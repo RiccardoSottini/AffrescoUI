@@ -403,6 +403,16 @@
 			"set.data": "Data",
 			"set.export": "Export all as CSV",
 			"set.exportHint": "Copies every habit's history",
+			"set.backup": "Back up to a file",
+			"set.backupHint": "Saves every habit and its history as a JSON file",
+			"set.restore": "Restore from a file",
+			"set.restoreHint": "Adds or replaces habits from a backup",
+			"toast.backedUp": "{n, plural, one {# habit saved} other {# habits saved}} to {name}",
+			"toast.restored": "{n, plural, one {# habit restored} other {# habits restored}}",
+			"toast.restoredSkipped": "{n, plural, one {# habit restored} other {# habits restored}}, {skipped, plural, one {# entry skipped} other {# entries skipped}}",
+			"toast.notRestored": "Not restored: {message}",
+			"toast.notBackedUp": "Not saved: {message}",
+			"toast.badBackup": "That file isn't a Streak backup",
 			"set.sync": "Sync",
 			"set.account": "Account",
 			"lang.en": "English",
@@ -573,6 +583,16 @@
 			"set.data": "Datos",
 			"set.export": "Exportar todo como CSV",
 			"set.exportHint": "Copia el historial de cada hábito",
+			"set.backup": "Copia de seguridad en un archivo",
+			"set.backupHint": "Guarda cada hábito y su historial en un archivo JSON",
+			"set.restore": "Restaurar desde un archivo",
+			"set.restoreHint": "Añade o sustituye hábitos desde una copia",
+			"toast.backedUp": "{n, plural, one {# hábito guardado} other {# hábitos guardados}} en {name}",
+			"toast.restored": "{n, plural, one {# hábito restaurado} other {# hábitos restaurados}}",
+			"toast.restoredSkipped": "{n, plural, one {# hábito restaurado} other {# hábitos restaurados}}, {skipped, plural, one {# entrada omitida} other {# entradas omitidas}}",
+			"toast.notRestored": "No restaurado: {message}",
+			"toast.notBackedUp": "No guardado: {message}",
+			"toast.badBackup": "Ese archivo no es una copia de Streak",
 			"set.sync": "Sincronización",
 			"set.account": "Cuenta",
 			"lang.en": "English",
@@ -743,6 +763,16 @@
 			"set.data": "Données",
 			"set.export": "Tout exporter en CSV",
 			"set.exportHint": "Copie l’historique de chaque habitude",
+			"set.backup": "Sauvegarder dans un fichier",
+			"set.backupHint": "Enregistre chaque habitude et son historique en JSON",
+			"set.restore": "Restaurer depuis un fichier",
+			"set.restoreHint": "Ajoute ou remplace des habitudes depuis une sauvegarde",
+			"toast.backedUp": "{n, plural, one {# habitude enregistrée} other {# habitudes enregistrées}} dans {name}",
+			"toast.restored": "{n, plural, one {# habitude restaurée} other {# habitudes restaurées}}",
+			"toast.restoredSkipped": "{n, plural, one {# habitude restaurée} other {# habitudes restaurées}}, {skipped, plural, one {# entrée ignorée} other {# entrées ignorées}}",
+			"toast.notRestored": "Non restauré : {message}",
+			"toast.notBackedUp": "Non enregistré : {message}",
+			"toast.badBackup": "Ce fichier n'est pas une sauvegarde de Streak",
 			"set.sync": "Synchronisation",
 			"set.account": "Compte",
 			"lang.en": "English",
@@ -862,7 +892,10 @@
 			"copy": null,
 			"error": "",
 			"commits": 0
-		}
+		},
+		"backupFile": null,
+		"restoredCount": 0,
+		"skippedCount": 0
 	},
 	"stateTypes": {
 		"theme": {
@@ -980,7 +1013,6 @@
 		"sel": "{{indexOf(map(data.ordered, it.id), state.selected)}}",
 		"h": "{{data.ordered[computed.sel]}}",
 		"col": "{{computed.sel >= 0 ? computed.pal[computed.h.color] : '#757575'}}",
-		"bar": "{{computed.sel >= 0 ? ['#c8443a', '#d4602a', '#d9822b', '#cf921c', '#b49a16', '#8a9a1c', '#5c9e3a', '#2f8a55', '#17877a', '#1592a6', '#2a7fc0', '#3366b8', '#4a4fa8', '#7048b0', '#9446a8', '#c23d78', '#7a5a44', '#3a3a3a', '#7a7a7a', '#a8a8a8'][computed.h.color] : '#616161'}}",
 		"accent": "{{state.edit.open ? computed.pal[state.edit.color] : computed.col}}",
 		"n": "{{computed.sel >= 0 ? length(computed.vals[computed.sel]) : 0}}",
 		"v": "{{computed.sel >= 0 ? computed.vals[computed.sel] : []}}",
@@ -1050,7 +1082,7 @@
 		},
 		"card": {
 			"color": "@c.card",
-			"radius": 10,
+			"radius": 14,
 			"shadow": {
 				"y": 1,
 				"blur": 3,
@@ -1359,12 +1391,14 @@
 			}
 		},
 		"switch": {
-			"note": "A Material switch: a rounded track and a round knob that slides to the end when on; a click toggles path.",
+			"note": "A switch: a rounded track and a round knob that slides to the end when on; a click toggles path. Its colours are the habit's unless track and knob name others.",
 			"params": {
 				"on": false,
 				"path": "state.reminders",
 				"label": "",
-				"enabled": true
+				"enabled": true,
+				"track": "",
+				"knob": ""
 			},
 			"node": {
 				"id": "panel-switch",
@@ -1390,7 +1424,7 @@
 						},
 						"height": 14,
 						"radius": 7,
-						"color": "{{on && enabled ? computed.accent + '80' : '@c.faint'}}"
+						"color": "{{on && enabled ? (track != '' ? track : computed.accent + '80') : '@c.faint'}}"
 					},
 					{
 						"id": "panel-switch-3",
@@ -1401,7 +1435,7 @@
 						"width": 22,
 						"height": 22,
 						"radius": 11,
-						"color": "{{on && enabled ? computed.accent : '@c.knob'}}",
+						"color": "{{on && enabled ? (knob != '' ? knob : computed.accent) : '@c.knob'}}",
 						"shadow": {
 							"y": 1,
 							"blur": 3,
@@ -1436,7 +1470,9 @@
 						"with": {
 							"on": "{{on}}",
 							"path": "{{bind}}",
-							"label": "{{title}}"
+							"label": "{{title}}",
+							"track": "@c.switchTrack",
+							"knob": "@c.primary"
 						},
 						"anchors": {
 							"right": 16,
@@ -1882,6 +1918,136 @@
 			],
 			"icon": "download"
 		},
+		"backupAll": {
+			"title": "Back up to a file",
+			"category": "Habits",
+			"icon": "hard-drive-download",
+			"do": [
+				{
+					"saveFile": "{{{format: 'streak-backup', version: 1, habits: data.ordered}}}",
+					"name": "{{'streak-backup-' + state.today + '.json'}}",
+					"onDone": [
+						{
+							"push": "state.toasts",
+							"value": "{{{message: t('toast.backedUp', {n: length(data.ordered), name: result.name})}}}"
+						}
+					],
+					"onError": [
+						{
+							"push": "state.toasts",
+							"value": "{{{message: t('toast.notBackedUp', {message: error.message})}}}"
+						}
+					]
+				}
+			]
+		},
+		"restoreAll": {
+			"title": "Restore from a file",
+			"category": "Habits",
+			"icon": "hard-drive-upload",
+			"do": [
+				{
+					"openFile": "state.backupFile",
+					"extensions": [
+						"json"
+					],
+					"onDone": [
+						{
+							"run": "restoreHabits"
+						}
+					],
+					"onError": [
+						{
+							"push": "state.toasts",
+							"value": "{{{message: t('toast.notRestored', {message: error.message})}}}"
+						}
+					]
+				}
+			]
+		},
+		"restoreHabits": [
+			{
+				"if": "{{state.backupFile.format != 'streak-backup' || type(state.backupFile.habits) != 'list'}}",
+				"then": [
+					{
+						"push": "state.toasts",
+						"value": "{{{message: t('toast.badBackup')}}}"
+					}
+				],
+				"else": [
+					{
+						"set": "state.restoredCount",
+						"to": 0
+					},
+					{
+						"set": "state.skippedCount",
+						"to": 0
+					},
+					{
+						"forEach": "state.backupFile.habits",
+						"as": "rb",
+						"do": [
+							{
+								"if": "{{type(rb) == 'object' && type(rb.id) == 'string' && rb.id != ''}}",
+								"then": [
+									{
+										"run": "restoreOne",
+										"with": {
+											"id": "{{rb.id}}",
+											"fields": "{{fromEntries(filter(entries(rb), contains(['name', 'question', 'color', 'kind', 'frequency', 'unit', 'target', 'targetType', 'reminder', 'description', 'archived', 'from', 'entries', 'notes', 'position'], it.key)))}}"
+										}
+									}
+								],
+								"else": [
+									{
+										"increment": "state.skippedCount"
+									}
+								]
+							}
+						]
+					},
+					{
+						"push": "state.toasts",
+						"value": "{{{message: state.skippedCount > 0 ? t('toast.restoredSkipped', {n: state.restoredCount, skipped: state.skippedCount}) : t('toast.restored', {n: state.restoredCount})}}}"
+					}
+				]
+			},
+			{
+				"set": "state.backupFile",
+				"to": null
+			}
+		],
+		"restoreOne": [
+			{
+				"if": "{{contains(map(data.ordered, it.id), id)}}",
+				"then": [
+					{
+						"update": "habits",
+						"id": "{{id}}",
+						"fields": "{{fields}}"
+					},
+					{
+						"increment": "state.restoredCount"
+					}
+				],
+				"else": [
+					{
+						"insert": "habits",
+						"value": "{{merge(fields, {id: id})}}",
+						"then": [
+							{
+								"increment": "state.restoredCount"
+							}
+						],
+						"onError": [
+							{
+								"increment": "state.skippedCount"
+							}
+						]
+					}
+				]
+			}
+		],
 		"openSettings": {
 			"title": "Settings",
 			"category": "Streak",
@@ -2258,30 +2424,43 @@
 												"color": "transparent",
 												"children": [
 													{
-														"id": "label-format-date-date",
-														"style": "tiny",
-														"text": "{{upper(formatDate(dateMs(d), 'EEE', 'utc'))}}",
+														"id": "todayPill",
+														"when": "{{d == state.today}}",
 														"anchors": {
-															"left": 0,
-															"right": 0,
-															"top": 4
+															"left": 5,
+															"right": 5,
+															"top": 0,
+															"bottom": 4
 														},
-														"height": 14,
-														"align": "center"
+														"radius": 12,
+														"color": "@c.primary"
 													},
 													{
 														"id": "label-format-date-date-2",
 														"type": "label",
 														"text": "{{formatDate(dateMs(d), 'd', 'utc')}}",
-														"font": "small",
-														"textColor": "{{d == state.today ? '@c.text' : '@c.muted'}}",
+														"font": "default",
+														"textColor": "{{d == state.today ? '@c.onPrimary' : '@c.text'}}",
 														"anchors": {
 															"left": 0,
 															"right": 0,
-															"top": 20
+															"top": 4
 														},
-														"height": 16,
+														"height": 18,
 														"align": "center"
+													},
+													{
+														"id": "label-format-date-date",
+														"style": "tiny",
+														"text": "{{formatDate(dateMs(d), 'EEE', 'utc')}}",
+														"anchors": {
+															"left": 0,
+															"right": 0,
+															"top": 23
+														},
+														"height": 14,
+														"align": "center",
+														"textColor": "{{d == state.today ? '@c.onPrimary' : '@c.muted'}}"
 													}
 												]
 											}
@@ -2405,8 +2584,19 @@
 													"top": 0,
 													"bottom": 0
 												},
-												"radius": 4,
+												"radius": 14,
 												"color": "{{computed.pal[hb.color] + (pk ? '30' : '18')}}"
+											},
+											{
+												"id": "rowAccent",
+												"anchors": {
+													"left": 0,
+													"top": 10,
+													"bottom": 10
+												},
+												"width": 4,
+												"radius": 2,
+												"color": "{{col}}"
 											},
 											{
 												"id": "ring-habit-row",
@@ -2416,7 +2606,7 @@
 													"color": "{{col}}"
 												},
 												"anchors": {
-													"left": 14,
+													"left": 18,
 													"top": 18
 												}
 											},
@@ -2427,7 +2617,7 @@
 												"textColor": "{{col}}",
 												"wrap": true,
 												"anchors": {
-													"left": 46,
+													"left": 50,
 													"right": "{{computed.cols * 44 + 6}}",
 													"top": 4,
 													"bottom": 4
@@ -2495,11 +2685,20 @@
 																"id": "label-cell",
 																"type": "label",
 																"when": "{{hb.kind != 'measurable'}}",
-																"fill": 0,
-																"font": "mark",
+																"font": "icons",
 																"align": "center",
-																"icon": "{{v == null ? '' : v == 1 ? 'check' : v == -1 ? 'chevrons-right' : r >= 1 ? 'check' : 'x'}}",
-																"textColor": "{{v == 1 ? col : v == -1 || r >= 1 ? col + '77' : '@c.faint'}}"
+																"icon": "{{v == null || v == 0 && r < 1 ? '' : v == -1 ? 'chevrons-right' : 'check'}}",
+																"textColor": "{{v == 1 ? computed.onColor : col}}",
+																"anchors": {
+																	"left": 8,
+																	"top": 14
+																},
+																"width": 28,
+																"height": 28,
+																"radius": 8,
+																"color": "{{v == 1 ? col : v == -1 || r >= 1 ? col + '2e' : 'transparent'}}",
+																"borderWidth": "{{v == 0 && r < 1 ? 1.5 : 0}}",
+																"borderColor": "@c.faint"
 															},
 															{
 																"id": "label-format-number-v",
@@ -2620,13 +2819,27 @@
 								},
 								"children": [
 									{
+										"id": "appMark",
+										"type": "label",
+										"font": "icons",
+										"icon": "flame",
+										"width": 24,
+										"height": 24,
+										"align": "center",
+										"textColor": "@c.primary",
+										"anchors": {
+											"left": 16,
+											"top": 16
+										}
+									},
+									{
 										"id": "label-t-app",
 										"type": "label",
 										"text": "{{t('app')}}",
 										"font": "title",
 										"textColor": "@c.text",
 										"anchors": {
-											"left": 16,
+											"left": 48,
 											"top": 16
 										},
 										"fitText": true,
@@ -2664,7 +2877,7 @@
 															"width": 200,
 															"placement": "below-end",
 															"icons": true,
-															"items": "{{[{title: t('kind.yesNo'), icon: 'circle-check', keyLabel: 'Ctrl+N', run: 'newHabit', with: {kind: 'yesNo'}}, {title: t('kind.measurable'), icon: 'ruler', run: 'newHabit', with: {kind: 'measurable'}}]}}"
+															"items": "{{[{title: t('kind.yesNo'), icon: 'circle-check', keyLabel: find(commands, it.name == 'addYesNo').keyLabel, run: 'newHabit', with: {kind: 'yesNo'}}, {title: t('kind.measurable'), icon: 'ruler', keyLabel: find(commands, it.name == 'addMeasurable').keyLabel, run: 'newHabit', with: {kind: 'measurable'}}]}}"
 														}
 													}
 												],
@@ -2714,7 +2927,7 @@
 															"open": "state.menus.more",
 															"width": 220,
 															"placement": "below-end",
-															"items": "{{[{title: t('darkMode'), checked: computed.theme != 'light', run: 'toggleTheme'}, {title: t('settings'), run: 'openSettings'}, {title: t('exportAll'), run: 'exportAll'}, {separator: true}, {title: t('syncNow'), run: 'syncNow'}, {title: computed.signedIn ? t('signOut') : t('signIn'), run: computed.signedIn ? 'signOut' : 'signIn'}]}}"
+															"items": "{{[{title: t('darkMode'), checked: computed.theme != 'light', keyLabel: find(commands, it.name == 'toggleTheme').keyLabel, run: 'toggleTheme'}, {title: t('settings'), keyLabel: find(commands, it.name == 'openSettings').keyLabel, run: 'openSettings'}, {title: t('exportAll'), run: 'exportAll'}, {separator: true}, {title: t('syncNow'), keyLabel: find(commands, it.name == 'syncNow').keyLabel, run: 'syncNow'}, {title: computed.signedIn ? t('signOut') : t('signIn'), run: computed.signedIn ? 'signOut' : 'signIn'}]}}"
 														}
 													}
 												],
@@ -3862,16 +4075,6 @@
 								},
 								"children": [
 									{
-										"id": "detailStripe",
-										"anchors": {
-											"left": 0,
-											"right": 0,
-											"bottom": 0
-										},
-										"height": 4,
-										"color": "{{computed.bar}}"
-									},
-									{
 										"id": "backButton",
 										"style": "iconButton",
 										"icon": "arrow-left",
@@ -3890,13 +4093,25 @@
 										"mirror": true
 									},
 									{
+										"id": "detailBadge",
+										"when": "{{computed.sel >= 0}}",
+										"anchors": {
+											"left": "{{computed.wide ? 20 : 56}}",
+											"top": 21
+										},
+										"width": 14,
+										"height": 14,
+										"radius": 5,
+										"color": "{{computed.col}}"
+									},
+									{
 										"id": "label-sel-0-h",
 										"type": "label",
 										"text": "{{computed.sel >= 0 ? computed.h.name : t('app')}}",
 										"font": "title",
 										"textColor": "{{computed.col}}",
 										"anchors": {
-											"left": "{{computed.wide ? 20 : 56}}",
+											"left": "{{computed.wide ? 44 : 80}}",
 											"right": 100,
 											"top": 16
 										},
@@ -3945,7 +4160,7 @@
 															"width": 200,
 															"placement": "below-end",
 															"icons": true,
-															"items": "{{[{title: computed.h.archived ? t('unarchive') : t('archive'), icon: computed.h.archived ? 'archive-restore' : 'archive', run: 'archiveHabit'}, {title: t('exportCsv'), icon: 'file-down', run: 'exportHabit'}, {separator: true}, {title: t('delete'), icon: 'trash-2', run: 'confirmDelete'}]}}"
+															"items": "{{[{title: computed.h.archived ? t('unarchive') : t('archive'), icon: computed.h.archived ? 'archive-restore' : 'archive', keyLabel: find(commands, it.name == 'archiveHabit').keyLabel, run: 'archiveHabit'}, {title: t('exportCsv'), icon: 'file-down', run: 'exportHabit'}, {separator: true}, {title: t('delete'), icon: 'trash-2', keyLabel: find(commands, it.name == 'confirmDelete').keyLabel, run: 'confirmDelete'}]}}"
 														}
 													}
 												],
@@ -4701,187 +4916,251 @@
 										"type": "column",
 										"id": "settingsColumn",
 										"width": "{{min(720, window.width)}}",
-										"height": 820,
-										"color": "@c.card",
 										"children": [
 											{
-												"id": "label-t-set-interface",
-												"type": "label",
-												"text": "{{t('set.interface')}}",
-												"style": "sectionTitle",
+												"id": "settingsTop",
+												"height": 4,
+												"color": "transparent"
+											},
+											{
+												"type": "column",
+												"id": "settingsInterface",
+												"style": "card",
 												"anchors": {
 													"left": 0,
 													"right": 0
-												}
-											},
-											{
-												"use": "prefRow",
-												"id": "themeRow",
-												"with": {
-													"title": "{{t('set.theme')}}",
-													"summary": "{{t('theme.' + state.theme)}}"
 												},
-												"isOpen": "{{state.menus.theme}}",
-												"onClick": {
-													"set": "state.menus.theme",
-													"to": true
-												},
+												"fitContent": "height",
 												"children": [
 													{
-														"id": "menu-theme-row",
-														"use": "menu",
-														"with": {
-															"open": "state.menus.theme",
-															"width": 220,
-															"placement": "below-end",
-															"items": "{{map(['light', 'dark', 'system'], {title: t('theme.' + it), checked: state.theme == it, run: 'setTheme', with: {value: it}})}}"
-														}
-													}
-												]
-											},
-											{
-												"use": "toggleRow",
-												"id": "pureBlackRow",
-												"with": {
-													"title": "{{t('set.pureBlack')}}",
-													"summary": "{{t('set.pureBlackHint')}}",
-													"bind": "state.pureBlack",
-													"on": "{{state.pureBlack}}"
-												}
-											},
-											{
-												"use": "toggleRow",
-												"id": "reverseRow",
-												"with": {
-													"title": "{{t('set.reverse')}}",
-													"summary": "{{t('set.reverseHint')}}",
-													"bind": "state.reverseDays",
-													"on": "{{state.reverseDays}}"
-												}
-											},
-											{
-												"use": "toggleRow",
-												"id": "skipRow",
-												"with": {
-													"title": "{{t('set.skip')}}",
-													"summary": "{{t('set.skipHint')}}",
-													"bind": "state.skipDays",
-													"on": "{{state.skipDays}}"
-												}
-											},
-											{
-												"use": "prefRow",
-												"id": "firstDayRow",
-												"with": {
-													"title": "{{t('set.firstDay')}}",
-													"summary": "{{formatDate(dateMs(addDays('2000-01-02', state.firstWeekday)), 'EEEE', 'utc')}}"
-												},
-												"isOpen": "{{state.menus.firstDay}}",
-												"onClick": {
-													"set": "state.menus.firstDay",
-													"to": true
-												},
-												"children": [
-													{
-														"id": "menu-first-day-row",
-														"use": "menu",
-														"with": {
-															"open": "state.menus.firstDay",
-															"width": 220,
-															"placement": "below-end",
-															"items": "{{map([6, 0, 1], {title: formatDate(dateMs(addDays('2000-01-02', it)), 'EEEE', 'utc'), checked: state.firstWeekday == it, run: 'setFirstDay', with: {value: it}})}}"
-														}
-													}
-												]
-											},
-											{
-												"use": "prefRow",
-												"id": "languageRow",
-												"with": {
-													"title": "{{t('set.language')}}",
-													"summary": "{{t('lang.' + state.locale)}}"
-												},
-												"isOpen": "{{state.menus.language}}",
-												"onClick": {
-													"set": "state.menus.language",
-													"to": true
-												},
-												"children": [
-													{
-														"id": "menu-language-row",
-														"use": "menu",
-														"with": {
-															"open": "state.menus.language",
-															"width": 220,
-															"placement": "below-end",
-															"items": "{{map(['en', 'es', 'fr'], {title: t('lang.' + it), checked: state.locale == it, run: 'setLocale', with: {value: it}})}}"
-														}
-													}
-												]
-											},
-											{
-												"id": "label-t-set-notifications",
-												"type": "label",
-												"text": "{{t('set.notifications')}}",
-												"style": "sectionTitle",
-												"anchors": {
-													"left": 0,
-													"right": 0
-												}
-											},
-											{
-												"use": "toggleRow",
-												"id": "remindersRow",
-												"with": {
-													"title": "{{t('set.reminders')}}",
-													"summary": "{{t('set.remindersHint')}}",
-													"bind": "state.reminders",
-													"on": "{{state.reminders}}"
-												}
-											},
-											{
-												"id": "label-t-set-data",
-												"type": "label",
-												"text": "{{t('set.data')}}",
-												"style": "sectionTitle",
-												"anchors": {
-													"left": 0,
-													"right": 0
-												}
-											},
-											{
-												"use": "prefRow",
-												"id": "exportRow",
-												"with": {
-													"title": "{{t('set.export')}}",
-													"summary": "{{t('set.exportHint')}}"
-												},
-												"onClick": "exportAll"
-											},
-											{
-												"use": "prefRow",
-												"id": "syncRow",
-												"with": {
-													"title": "{{t('set.sync')}}",
-													"summary": "{{computed.syncText}}"
-												},
-												"onClick": "syncNow",
-												"children": [
-													{
-														"style": "textButton",
-														"id": "accountButton",
-														"text": "{{computed.signedIn ? t('signOut') : t('signIn')}}",
+														"id": "label-t-set-interface",
+														"type": "label",
+														"text": "{{t('set.interface')}}",
+														"style": "sectionTitle",
 														"anchors": {
-															"right": 8,
-															"top": 14
+															"left": 0,
+															"right": 0
+														}
+													},
+													{
+														"use": "prefRow",
+														"id": "themeRow",
+														"with": {
+															"title": "{{t('set.theme')}}",
+															"summary": "{{t('theme.' + state.theme)}}"
 														},
+														"isOpen": "{{state.menus.theme}}",
 														"onClick": {
-															"run": "{{computed.signedIn ? 'signOut' : 'signIn'}}"
+															"set": "state.menus.theme",
+															"to": true
+														},
+														"children": [
+															{
+																"id": "menu-theme-row",
+																"use": "menu",
+																"with": {
+																	"open": "state.menus.theme",
+																	"width": 220,
+																	"placement": "below-end",
+																	"items": "{{map(['light', 'dark', 'system'], {title: t('theme.' + it), checked: state.theme == it, run: 'setTheme', with: {value: it}})}}"
+																}
+															}
+														]
+													},
+													{
+														"use": "toggleRow",
+														"id": "pureBlackRow",
+														"with": {
+															"title": "{{t('set.pureBlack')}}",
+															"summary": "{{t('set.pureBlackHint')}}",
+															"bind": "state.pureBlack",
+															"on": "{{state.pureBlack}}"
+														}
+													},
+													{
+														"use": "toggleRow",
+														"id": "reverseRow",
+														"with": {
+															"title": "{{t('set.reverse')}}",
+															"summary": "{{t('set.reverseHint')}}",
+															"bind": "state.reverseDays",
+															"on": "{{state.reverseDays}}"
+														}
+													},
+													{
+														"use": "toggleRow",
+														"id": "skipRow",
+														"with": {
+															"title": "{{t('set.skip')}}",
+															"summary": "{{t('set.skipHint')}}",
+															"bind": "state.skipDays",
+															"on": "{{state.skipDays}}"
+														}
+													},
+													{
+														"use": "prefRow",
+														"id": "firstDayRow",
+														"with": {
+															"title": "{{t('set.firstDay')}}",
+															"summary": "{{formatDate(dateMs(addDays('2000-01-02', state.firstWeekday)), 'EEEE', 'utc')}}"
+														},
+														"isOpen": "{{state.menus.firstDay}}",
+														"onClick": {
+															"set": "state.menus.firstDay",
+															"to": true
+														},
+														"children": [
+															{
+																"id": "menu-first-day-row",
+																"use": "menu",
+																"with": {
+																	"open": "state.menus.firstDay",
+																	"width": 220,
+																	"placement": "below-end",
+																	"items": "{{map([6, 0, 1], {title: formatDate(dateMs(addDays('2000-01-02', it)), 'EEEE', 'utc'), checked: state.firstWeekday == it, run: 'setFirstDay', with: {value: it}})}}"
+																}
+															}
+														]
+													},
+													{
+														"use": "prefRow",
+														"id": "languageRow",
+														"with": {
+															"title": "{{t('set.language')}}",
+															"summary": "{{t('lang.' + state.locale)}}"
+														},
+														"isOpen": "{{state.menus.language}}",
+														"onClick": {
+															"set": "state.menus.language",
+															"to": true
+														},
+														"children": [
+															{
+																"id": "menu-language-row",
+																"use": "menu",
+																"with": {
+																	"open": "state.menus.language",
+																	"width": 220,
+																	"placement": "below-end",
+																	"items": "{{map(['en', 'es', 'fr'], {title: t('lang.' + it), checked: state.locale == it, run: 'setLocale', with: {value: it}})}}"
+																}
+															}
+														]
+													}
+												]
+											},
+											{
+												"type": "column",
+												"id": "settingsNotifications",
+												"style": "card",
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"fitContent": "height",
+												"children": [
+													{
+														"id": "label-t-set-notifications",
+														"type": "label",
+														"text": "{{t('set.notifications')}}",
+														"style": "sectionTitle",
+														"anchors": {
+															"left": 0,
+															"right": 0
+														}
+													},
+													{
+														"use": "toggleRow",
+														"id": "remindersRow",
+														"with": {
+															"title": "{{t('set.reminders')}}",
+															"summary": "{{t('set.remindersHint')}}",
+															"bind": "state.reminders",
+															"on": "{{state.reminders}}"
 														}
 													}
 												]
+											},
+											{
+												"type": "column",
+												"id": "settingsData",
+												"style": "card",
+												"anchors": {
+													"left": 0,
+													"right": 0
+												},
+												"fitContent": "height",
+												"children": [
+													{
+														"id": "label-t-set-data",
+														"type": "label",
+														"text": "{{t('set.data')}}",
+														"style": "sectionTitle",
+														"anchors": {
+															"left": 0,
+															"right": 0
+														}
+													},
+													{
+														"use": "prefRow",
+														"id": "exportRow",
+														"with": {
+															"title": "{{t('set.export')}}",
+															"summary": "{{t('set.exportHint')}}"
+														},
+														"onClick": "exportAll"
+													},
+													{
+														"use": "prefRow",
+														"id": "backupRow",
+														"with": {
+															"title": "{{t('set.backup')}}",
+															"summary": "{{t('set.backupHint')}}"
+														},
+														"onClick": "backupAll"
+													},
+													{
+														"use": "prefRow",
+														"id": "restoreRow",
+														"with": {
+															"title": "{{t('set.restore')}}",
+															"summary": "{{t('set.restoreHint')}}"
+														},
+														"onClick": "restoreAll"
+													},
+													{
+														"use": "prefRow",
+														"id": "syncRow",
+														"with": {
+															"title": "{{t('set.sync')}}",
+															"summary": "{{computed.syncText}}"
+														},
+														"onClick": "syncNow",
+														"children": [
+															{
+																"style": "textButton",
+																"id": "accountButton",
+																"text": "{{computed.signedIn ? t('signOut') : t('signIn')}}",
+																"anchors": {
+																	"right": 8,
+																	"top": 14
+																},
+																"onClick": {
+																	"run": "{{computed.signedIn ? 'signOut' : 'signIn'}}"
+																}
+															}
+														]
+													}
+												]
+											},
+											{
+												"id": "settingsEnd",
+												"height": 4,
+												"color": "transparent"
 											}
-										]
+										],
+										"fitContent": "height",
+										"gap": 12
 									}
 								]
 							},

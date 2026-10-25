@@ -79,10 +79,11 @@ template <auto Body> [[nodiscard]] constexpr ImageOperationRunner onLayer() {
 	};
 }
 
-/// @brief moveLayer: moves a layer onto another's place in the list, or a step up or down.
+/// @brief moveLayer: moves a layer into a group, onto another's place in the list, or a step up or down.
 /// @param image The image.
-/// @param with id; then "onto" (the id of the layer whose place it takes) or "by" (+1 up, -1 down).
-/// @throws DocumentError If a layer is unknown.
+/// @param with id; then "into" (a group's id: it goes in at the top), "onto" (the id of the layer whose place it
+/// takes) or "by" (+1 up, -1 down).
+/// @throws DocumentError If a layer is unknown, or "into" names no group (or the layer itself, or nests too deep).
 void moveLayer(ImageDocument& image, const json& with, Window*) {
 	settle(image);
 	imaging::Document& document = image.canvas->document();
@@ -91,6 +92,11 @@ void moveLayer(ImageDocument& image, const json& with, Window*) {
 	const auto placeIn = [&](std::uint64_t parent) -> const std::vector<std::uint64_t>& {
 		return parent == 0 ? document.structure().root : document.layer(parent)->children;
 	};
+	if(with.contains("into")) {
+		const std::uint64_t group = layerOf(image, {{"id", with["into"]}});
+		document.moveLayer(id, group, document.layer(group)->children.size()); // its list is the bottom one first
+		return;
+	}
 	if(with.contains("onto")) {
 		const std::uint64_t onto = layerOf(image, {{"id", with["onto"]}});
 		if(onto == id) return;
@@ -191,7 +197,10 @@ std::vector<ImageOperation> layerOperations() {
 	    {"selectLayer", {"id"}, "Makes a layer the active one.", onLayer<selectLayer>()},
 	    {"addMask", {"id"}, "Adds a mask to a layer.", onLayer<addMask>()},
 	    {"deleteMask", {"id"}, "Deletes a layer's mask.", onLayer<deleteMask>()},
-	    {"moveLayer", {"id", "onto", "by"}, "Moves a layer onto another's place, or a step up or down.", moveLayer},
+	    {"moveLayer",
+	     {"id", "into", "onto", "by"},
+	     "Moves a layer into a group, onto another's place, or a step up or down.",
+	     moveLayer},
 	    {"setLayer",
 	     {"id", "name", "visible", "opacity", "blend", "lockPixels", "lockPosition", "lockAll", "clipped",
 	      "maskEnabled", "adjustment"},

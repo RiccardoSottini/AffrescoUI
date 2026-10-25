@@ -27,7 +27,7 @@
 		"agentProposalRows": "{{map(proposals, {id: text(it.id), label: '#' + it.id + '  ' + it.message + '  · ' + it.author, icon: it.id == preview ? 'eye' : 'git-pull-request'})}}",
 		"agentChangeRows": "{{computed.agentCurrent == null ? [] : map(slice(computed.agentCurrent.changes ?? [], 0, 200), {id: text(index), label: it, icon: 'git-commit'})}}",
 		"agentScenarioRows": "{{computed.agentEvidence == null ? [] : map(slice(computed.agentEvidence.scenarios ?? [], 0, 200), {id: text(index), label: text(it.name) + (it.passed == true ? '' : ': ' + text(it.message ?? 'failed')), icon: it.passed == true ? 'circle-check' : 'circle-x', iconColor: it.passed == true ? '#2ea043' : '#f85149'})}}",
-		"featureRows": "{{map(filter(state.features.catalog, empty(trim(state.features.filter)) || fuzzy(trim(state.features.filter), it.title + ' ' + it.name) != null), {id: it.name, label: it.title + (empty(it.release) ? '' : '  ' + it.release), icon: !it.installed ? 'download' : it.enabled ? 'circle-check' : 'circle-pause', iconColor: it.installed && it.enabled ? '#2ea043' : '#8b949e'})}}",
+		"featureCards": "{{filter(state.features.catalog, empty(trim(state.features.filter)) || fuzzy(trim(state.features.filter), it.title + ' ' + it.name) != null)}}",
 		"featureCurrent": "{{find(state.features.catalog, it.name == state.features.selected)}}"
 	},
 
@@ -178,22 +178,33 @@
 					{ "type": "label", "id": "agent-title", "text": "Agent", "textColor": "@color.muted", "width": "100%", "height": 32,
 					  "padding": 12 },
 					{ "type": "label", "id": "agent-status", "icon": "{{state.agent.connected ? 'plug' : 'unplug'}}",
-					  "text": "{{state.agent.status}}", "wrap": true, "width": "100%", "padding": 8, "textColor": "@color.muted" },
-					{ "type": "list", "id": "agent-log", "width": "100%", "grow": 2, "items": "{{computed.agentLogRows}}",
+					  "text": "{{state.agent.status}}", "wrap": true, "width": "100%", "height": 36, "padding": 8, "textColor": "@color.muted" },
+					{ "type": "column", "id": "agent-empty", "when": "{{length(state.agent.log) == 0}}", "width": "100%", "grow": 2,
+					  "alignItems": "center", "justify": "center", "gap": 8,
+					  "children": [
+						{ "type": "label", "id": "agent-empty-icon", "icon": "bot", "font": "iconsLarge", "textColor": "@color.accent",
+						  "fitText": true },
+						{ "type": "label", "id": "agent-empty-title", "text": "No conversation yet", "textColor": "@color.text",
+						  "fitText": true },
+						{ "type": "label", "id": "agent-empty-text", "wrap": true, "width": "100%", "height": 72, "padding": 12, "align": "center",
+						  "textColor": "@color.muted",
+						  "text": "{{state.agent.connected ? 'Ask for a change below. The agent edits the documents of this window, and each change waits under Review until you accept it.' : 'An agent joins through the socket of the host, for example with the MCP server. Once it is connected, ask for a change below; each change it makes waits under Review.'}}" }
+					  ] },
+					{ "type": "list", "id": "agent-log", "when": "{{length(state.agent.log) > 0}}", "width": "100%", "grow": 2, "items": "{{computed.agentLogRows}}",
 					  "selection": "none", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
 					  "accentColor": "@color.accent" },
 					{ "type": "textarea", "id": "agent-draft", "width": "100%", "height": 52, "padding": 6, "wrap": true,
 					  "color": "@color.input", "textColor": "@color.text", "placeholderColor": "@color.muted",
 					  "bind": "state.agent.draft", "placeholder": "Ask for a change (Enter to send)",
 					  "onSubmit": { "run": "agentAsk" } },
-					{ "type": "row", "id": "agent-ask-row", "width": "100%", "justify": "end",
+					{ "type": "row", "id": "agent-ask-row", "width": "100%", "height": 30, "justify": "end",
 					  "children": [
 						{ "use": "forgeAgentButton", "with": { "id": "agent-ask", "text": "Ask", "icon": "send", "action": "agentAsk",
 							"on": "{{!empty(trim(state.agent.draft))}}" } }
 					  ] },
 					{ "type": "label", "id": "agent-review-title", "text": "{{'REVIEW  ' + length(proposals)}}", "textColor": "@color.muted",
 					  "width": "100%", "height": 22, "padding": 8 },
-					{ "type": "label", "id": "agent-review-empty", "when": "{{length(proposals) == 0}}", "wrap": true, "width": "100%",
+					{ "type": "label", "id": "agent-review-empty", "when": "{{length(proposals) == 0}}", "wrap": true, "width": "100%", "height": 44,
 					  "padding": 8, "textColor": "@color.muted", "text": "No proposals to review. An agent's change waits here." },
 					{ "type": "list", "id": "agent-proposals", "when": "{{length(proposals) > 0}}", "width": "100%", "grow": 1,
 					  "items": "{{computed.agentProposalRows}}", "bind": "state.agent.selected", "rowHeight": 22,
@@ -249,9 +260,9 @@
 			"node": {
 				"type": "column", "id": "features-view", "width": "100%", "grow": 1, "color": "@color.sideBar", "gap": 4,
 				"children": [
-					{ "type": "row", "id": "features-head", "width": "100%", "height": 32, "alignItems": "center",
+					{ "type": "row", "id": "features-head", "width": "100%", "height": 35, "alignItems": "center",
 					  "children": [
-						{ "type": "label", "id": "features-title", "text": "Features", "textColor": "@color.muted", "grow": 1, "padding": 12 },
+						{ "type": "label", "id": "features-title", "text": "Features", "textColor": "@color.muted", "grow": 1, "height": 35, "padding": 12 },
 						{ "type": "label", "id": "features-refresh", "icon": "refresh-cw", "padding": 6, "fitText": true, "cursor": "hand",
 						  "textColor": "{{state.features.busy ? '@color.accent' : '@color.muted'}}", "tooltip": "Refresh",
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "featuresRefresh" } }
@@ -264,9 +275,25 @@
 					{ "type": "label", "id": "features-empty", "when": "{{length(state.features.catalog) == 0 && empty(state.features.error)}}",
 					  "wrap": true, "width": "100%", "padding": 8, "textColor": "@color.muted",
 					  "text": "The host's catalogue lists no features." },
-					{ "type": "list", "id": "features-list", "width": "100%", "grow": 1, "items": "{{computed.featureRows}}",
-					  "bind": "state.features.selected", "rowHeight": 22, "color": "@color.sideBar", "textColor": "@color.text",
-					  "selectedTextColor": "@color.text", "selectedBackground": "@color.selection", "accentColor": "@color.accent" },
+					{ "type": "column", "id": "features-list", "role": "listbox", "label": "Features", "width": "100%", "grow": 1, "scroll": "vertical",
+					  "children": [
+						{ "type": "row", "repeat": { "for": "f", "in": "{{computed.featureCards}}", "index": "fi", "key": "{{f.name}}" },
+						  "id": "{{'feature-' + f.name}}", "role": "option", "label": "{{f.title + '. ' + f.description}}", "width": "100%", "height": 48,
+						  "alignItems": "center", "gap": 8, "focusable": true, "cursor": "hand",
+						  "color": "{{state.features.selected == f.name ? '@color.selection' : '@color.sideBar'}}", "hover": { "color": "@color.hover" },
+						  "onClick": [{ "set": "state.features.selected", "to": "{{f.name}}" }],
+						  "children": [
+							{ "type": "label", "id": "{{'feature-icon-' + f.name}}", "icon": "{{!f.installed ? 'download' : f.enabled ? 'circle-check' : 'circle-pause'}}",
+							  "width": 32, "height": 48, "align": "center", "textColor": "{{f.installed && f.enabled ? '@color.accent' : '@color.muted'}}" },
+							{ "type": "column", "id": "{{'feature-text-' + f.name}}", "grow": 1, "height": 40, "children": [
+								{ "type": "label", "id": "{{'feature-title-' + f.name}}", "width": "100%", "height": 20, "textColor": "@color.text",
+								  "text": "{{f.title + (empty(f.release) ? '' : '  ' + f.release)}}" },
+								{ "type": "label", "id": "{{'feature-description-' + f.name}}", "width": "100%", "height": 20, "textColor": "@color.muted",
+								  "text": "{{f.description}}" }
+							] },
+							{ "id": "{{'feature-end-' + f.name}}", "width": 8 }
+						  ] }
+					  ] },
 					{ "type": "column", "id": "features-detail", "when": "{{computed.featureCurrent != null}}", "width": "100%", "gap": 4,
 					  "children": [
 						{ "type": "label", "id": "features-detail-title", "width": "100%", "padding": 4, "textColor": "@color.text",

@@ -117,6 +117,13 @@ void TextEditor::setIndentGuides(bool shown) {
 	invalidatePaint();
 }
 
+void TextEditor::setTabSize(std::size_t spaces) {
+	spaces = std::clamp<std::size_t>(spaces, 1, maxTabSize);
+	if(spaces == tabSize_) return;
+	tabSize_ = spaces;
+	invalidatePaint();
+}
+
 void TextEditor::setRulers(std::vector<std::size_t> columns) {
 	if(columns.size() > maxRulers) columns.resize(maxRulers);
 	if(columns == rulers_) return;

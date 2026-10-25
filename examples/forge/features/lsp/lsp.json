@@ -39,14 +39,14 @@
 
 	"actions": {
 		"lspAsk": [
-			{ "note": "Asks the server about the active file, its text sent along (the service keeps the version when it is unchanged). line, column: from 0, or null for the caret's" },
-			{ "increment": "state.lsp.request", "by": 1 },
+			{ "note": "Asks the server about the active file, its text sent along (the service keeps the version when it is unchanged). line, column: from 0, or null for the caret's. The outline kind leaves the request count alone, as nothing waits on it" },
+			{ "if": "{{kind != 'outline'}}", "then": [{ "increment": "state.lsp.request", "by": 1 }] },
 			{ "if": "{{computed.lspLanguage != null}}",
 			  "then": [
 				{ "run": "lspListen" },
 				{ "run": "lspCall", "with": { "kind": "{{kind}}", "request": "{{state.lsp.request}}",
 				  "path": "{{kind == 'workspaceSymbols' ? '' : computed.activeDoc.id}}",
-				  "arguments": "{{kind == 'workspaceSymbols' ? {query: query ?? ''} : merge({path: computed.activeDoc.id, text: computed.activeDoc.text, language: computed.lspLanguage}, contains(['hover', 'completion', 'signature', 'definition', 'references', 'rename'], kind) ? {line: line ?? max(state.caret.line - 1, 0), column: column ?? max(state.caret.column - 1, 0)} : {}, kind == 'rename' ? {newName: newName} : {}, kind == 'format' ? {tabSize: 4, insertSpaces: true} : {})}}" } },
+				  "arguments": "{{kind == 'workspaceSymbols' ? {query: query ?? ''} : merge({path: computed.activeDoc.id, text: computed.activeDoc.text, language: computed.lspLanguage}, contains(['hover', 'completion', 'signature', 'definition', 'references', 'rename'], kind) ? {line: line ?? max(state.caret.line - 1, 0), column: column ?? max(state.caret.column - 1, 0)} : {}, kind == 'rename' ? {newName: newName} : {}, kind == 'format' ? {tabSize: settings.editor.tabSize ?? 4, insertSpaces: true} : {})}}" } },
 				{ "if": "{{kind != 'workspaceSymbols' && !contains(state.lsp.open, computed.activeDoc.id)}}",
 				  "then": [{ "set": "state.lsp.open", "to": "{{slice(concat(state.lsp.open, [computed.activeDoc.id]), -256)}}" }] }
 			  ] }
@@ -75,6 +75,9 @@
 				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
 				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
 			{ "if": "{{kind == 'format'}}", "then": [{ "invoke": "lsp.format", "with": "{{arguments}}",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'outline'}}", "then": [{ "invoke": "lsp.symbols", "with": "{{arguments}}", "id": "lsp-outline",
 				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
 				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
 			{ "if": "{{kind == 'symbols'}}", "then": [{ "invoke": "lsp.symbols", "with": "{{arguments}}",
@@ -164,7 +167,7 @@
 			  "then": [
 				{ "if": "{{answer.kind == 'rename' || answer.kind == 'format'}}",
 				  "then": [{ "run": "notify", "with": { "severity": "warning", "message": "{{'Not applied: ' + answer.error.message}}" } }],
-				  "else": [{ "if": "{{answer.kind != 'hover' && answer.kind != 'completion' && answer.kind != 'signature' && answer.kind != 'tokens'}}",
+				  "else": [{ "if": "{{answer.kind != 'hover' && answer.kind != 'completion' && answer.kind != 'signature' && answer.kind != 'tokens' && answer.kind != 'outline'}}",
 				             "then": [{ "run": "notify", "with": { "severity": "info", "message": "{{'Language server: ' + answer.error.message}}" } }] }] }
 			  ],
 			  "else": [
@@ -188,6 +191,9 @@
 					  "then": [{ "run": "log", "with": { "text": "Language server: nothing to change" } }],
 					  "else": [{ "set": "state.lsp.review", "to": "{{ {open: true, kind: answer.kind, edits: answer.result.edits, files: answer.result.files, truncated: answer.result.truncated} }}" }] }
 				  ] },
+				{ "if": "{{answer.kind == 'outline' && answer.path == (computed.activeDoc.id ?? '')}}",
+				  "then": [{ "set": "state.outline", "to": "{{map(answer.result.symbols, {line: it.line + 1, depth: it.depth, label: it.name, kind: it.kind})}}" },
+				           { "set": "state.outlineSymbols", "to": "{{answer.path}}" }] },
 				{ "if": "{{answer.kind == 'symbols' || answer.kind == 'workspaceSymbols'}}",
 				  "then": [{ "set": "state.lsp.symbols", "to": "{{answer.result.symbols}}" }] },
 				{ "if": "{{answer.kind == 'tokens'}}",
@@ -389,7 +395,7 @@
 					  ] },
 					{ "id": "lsp-symbols", "use": "quickPick", "with": {
 						"name": "symbolPick", "width": 600, "color": "@color.widget", "textColor": "@color.text", "dimColor": "@color.muted",
-						"accent": "@color.info", "highlight": "@color.selection", "field": "@color.input",
+						"accent": "@color.accent", "highlight": "@color.selection", "field": "@color.input",
 						"providers": [
 							{ "prefix": "@", "items": "{{computed.lspSymbolItems}}", "key": "name", "run": "lspSymbolPicked",
 							  "placeholder": "Go to a symbol in this file" },

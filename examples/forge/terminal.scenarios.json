@@ -109,6 +109,20 @@
 			]
 		},
 		{
+			"name": "terminal-focus-takes-the-keys",
+			"note": "New Terminal and Focus Terminal move the focus into the terminal, so its cursor is a block and the keys go to the shell",
+			"steps": [
+				{ "action": "terminalNew" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#terminal", "property": "focused", "is": true } },
+				{ "click": "#explorer" },
+				{ "expect": { "node": "#terminal", "property": "focused", "is": false } },
+				{ "action": "showTerminal" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#terminal", "property": "focused", "is": true } }
+			]
+		},
+		{
 			"name": "terminal-kill-the-last",
 			"note": "Killing the last terminal hides the Terminal tab: the panel goes back to Output",
 			"steps": [

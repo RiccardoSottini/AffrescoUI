@@ -30,6 +30,10 @@ struct TextRun {
 	std::optional<Color> color;       ///< Its colour; none: the label's.
 	std::string link;                 ///< What a click on it reports (e.g. a URL); empty: not a link.
 	std::string icon;                 ///< A glyph named in its font (Font::codepointNamed()), drawn instead of text.
+	bool underline = false;           ///< A line under it (a link has one too).
+	bool strike = false;              ///< A line through it.
+	std::optional<Color> background;  ///< A highlight behind it, as tall as its line; none: nothing.
+	std::optional<Color> shadow;      ///< A copy of it in this colour, down and to the right, under it; none: no copy.
 	/// @brief Whether two runs are the same (the same font object, not an equal one).
 	friend bool operator==(const TextRun&, const TextRun&) = default;
 };

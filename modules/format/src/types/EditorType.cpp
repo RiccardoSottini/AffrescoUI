@@ -14,6 +14,7 @@
 #include "affresco/render/TextEditor.hpp"
 
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <map>
 #include <string>
@@ -238,7 +239,8 @@ void applyLanguage(TextEditor& editor, const json& values, const PropertyReader&
 }
 
 /// @brief Sets an editor's view: wrap, folds, decorations, find and matchStyle, brackets and bracketStyle,
-/// indentGuides, rulers, minimap with minimapStyle, minimapWidth and minimapViewport, composition, caretStyle and readOnly.
+/// indentGuides, tabSize, rulers, minimap with minimapStyle, minimapWidth and minimapViewport, scrollMarks,
+/// composition, caretStyle and readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours.
@@ -253,8 +255,17 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 		fail(path + ".bracketStyle", R"(expected "fill" or "underline")");
 	editor.setBracketUnderline(bracketStyle == "underline");
 	editor.setIndentGuides(flag("indentGuides"));
+	if(values.contains("tabSize")) {
+		const float spaces = number(values["tabSize"], path + ".tabSize");
+		if(!(spaces >= 1.0f && spaces <= static_cast<float>(TextEditor::maxTabSize)) || spaces != std::floor(spaces))
+			fail(path + ".tabSize", "expected a whole number of spaces, from 1 to 16");
+		editor.setTabSize(static_cast<std::size_t>(spaces));
+	} else {
+		editor.setTabSize(4);
+	}
 	editor.setRulers(readList<std::size_t>(values, "rulers", path, lineNumber));
 	editor.setMinimap(flag("minimap"));
+	editor.setScrollMarks(flag("scrollMarks"));
 	editor.setMinimapSize(values.contains("minimapWidth") ? number(values["minimapWidth"], path + ".minimapWidth")
 	                                                      : TextEditor::minimapSize);
 	const auto choice = [&](const char* key, const char* first, const char* second) {
@@ -421,12 +432,14 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"find", ValueKind::Any},
 	                   {"brackets", ValueKind::Boolean},
 	                   {"indentGuides", ValueKind::Boolean},
+	                   {"tabSize", ValueKind::Number},
 	                   {"readOnly", ValueKind::Boolean},
 	                   {"guideColor", ValueKind::Color},
 	                   {"matchColor", ValueKind::Color},
 	                   {"bracketColor", ValueKind::Color},
 	                   {"grammar", ValueKind::Text},
 	                   {"minimap", ValueKind::Boolean},
+	                   {"scrollMarks", ValueKind::Boolean},
 	                   {"composition", ValueKind::Text},
 	                   {"language", ValueKind::Text},
 	                   {"commands", ValueKind::Any},

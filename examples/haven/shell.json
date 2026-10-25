@@ -38,19 +38,19 @@
 
 	"components": {
 		"sideItem": {
-			"note": "A sidebar entry: its icon, its title while the sidebar is open, and a count of what waits",
+			"note": "A sidebar entry: its icon, its title while the sidebar is open, and a count of what waits; the shown page is a filled pill",
 			"params": { "icon": "", "title": "", "selected": false, "keyLabel": "", "badge": 0 },
 			"node": {
-				"anchors": { "left": 0, "right": 0 }, "height": 40, "radius": 4,
-				"color": "{{selected ? '@selected' : '@sidebar'}}", "hover": { "color": "{{selected ? '@selected' : '@cardHover'}}" },
+				"anchors": { "left": 0, "right": 0 }, "height": 40, "radius": 20,
+				"color": "{{selected ? '@navSelected' : '@sidebar'}}", "hover": { "color": "{{selected ? '@navSelected' : '@raised'}}" },
 				"cursor": "hand", "focusable": true, "selected": "{{selected}}", "label": "{{title}}",
 				"tooltip": "{{state.sidebarCollapsed ? title + (keyLabel ? ' (' + keyLabel + ')' : '') : keyLabel}}",
 				"children": [
-					{ "type": "label", "font": "iconsMedium", "icon": "{{icon}}", "text": "", "textColor": "{{selected ? '@accent' : '@muted'}}", "anchors": { "left": 8, "top": 8 },
+					{ "type": "label", "font": "iconsMedium", "icon": "{{icon}}", "text": "", "textColor": "{{selected ? '@onNavSelected' : '@muted'}}", "anchors": { "left": 8, "top": 8 },
 						"width": 24, "height": 24, "align": "center" },
-					{ "when": "{{!state.sidebarCollapsed}}", "type": "label", "text": "{{title}}", "textColor": "{{selected ? '@accent' : '@text'}}",
-						"anchors": { "left": 52, "right": 40, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
-					{ "when": "{{badge > 0}}", "type": "label", "font": "small", "text": "{{min(badge, 9)}}", "textColor": "@knob", "color": "@accent",
+					{ "when": "{{!state.sidebarCollapsed}}", "type": "label", "text": "{{title}}", "textColor": "{{selected ? '@onNavSelected' : '@text'}}",
+						"anchors": { "left": 48, "right": 40, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
+					{ "when": "{{badge > 0}}", "type": "label", "font": "small", "text": "{{min(badge, 9)}}", "textColor": "@onAccent", "color": "@accent",
 						"anchors": { "left": "{{state.sidebarCollapsed ? 22 : 196}}", "top": "{{state.sidebarCollapsed ? 2 : 10}}" }, "width": 20, "height": 20,
 						"radius": 10, "align": "center" }
 				]
@@ -190,13 +190,12 @@
 		},
 
 		"viewTab": {
-			"note": "A view in the top bar: its title, underlined while it is the one shown",
+			"note": "A view in the top bar: its title in a pill, filled while it is the one shown",
 			"params": { "title": "", "selected": false },
 			"node": {
-				"type": "label", "text": "{{title}}", "textColor": "{{selected ? '@onHeader' : '@onHeaderDim'}}",
-				"anchors": { "top": 0, "bottom": 0 }, "fitText": true, "padding": 16, "align": "center",
-				"hover": { "color": "#ffffff1a" }, "cursor": "hand", "focusable": true, "role": "tab", "selected": "{{selected}}",
-				"children": [{ "when": "{{selected}}", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 2, "color": "@onHeader" }]
+				"type": "label", "text": "{{title}}", "textColor": "{{selected ? '@onNavSelected' : '@onHeaderDim'}}", "color": "{{selected ? '@navSelected' : 'transparent'}}",
+				"anchors": { "top": 10, "bottom": 10 }, "fitText": true, "padding": 16, "radius": 18, "align": "center",
+				"hover": { "color": "{{selected ? '@navSelected' : '@headerHover'}}" }, "cursor": "hand", "focusable": true, "role": "tab", "selected": "{{selected}}"
 			}
 		},
 

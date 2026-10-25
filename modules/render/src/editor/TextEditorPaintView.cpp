@@ -109,7 +109,7 @@ void TextEditor::paintGuides(Painter& painter, const Font& font, const Layout& l
 		const float top = lineTop(layout, row);
 		// Indentation guides, on a line's first row, at each level but the deepest
 		if(guides_ && span.start == 0)
-			for(std::size_t column = tabSize; column < indentOf(span.line) && column < span.end; column += tabSize) {
+			for(std::size_t column = tabSize_; column < indentOf(span.line) && column < span.end; column += tabSize_) {
 				const float x = std::round(layout.textLeft + static_cast<float>(column) * space);
 				painter.fillRect({x, top, x + 1.0f, top + lh}, guideColor_);
 			}

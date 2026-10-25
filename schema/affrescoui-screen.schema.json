@@ -2129,6 +2129,32 @@
 										"color": {
 											"$ref": "#/$defs/v2/color"
 										},
+										"underline": {
+											"$ref": "#/$defs/v2/flag"
+										},
+										"strike": {
+											"$ref": "#/$defs/v2/flag"
+										},
+										"background": {
+											"oneOf": [
+												{
+													"$ref": "#/$defs/v2/color"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"shadow": {
+											"oneOf": [
+												{
+													"$ref": "#/$defs/v2/color"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
 										"link": {
 											"type": "string",
 											"maxLength": 2048
@@ -2137,7 +2163,7 @@
 								}
 							]
 						},
-						"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"
+						"description": "label: rich text, parts with their own font, size, bold, italic, colour, underline, strike, background, shadow, link or icon"
 					},
 					"selectable": {
 						"$ref": "#/$defs/v2/flag"
@@ -2305,6 +2331,18 @@
 					"indentGuides": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"tabSize": {
+						"anyOf": [
+							{
+								"type": "integer",
+								"minimum": 1,
+								"maximum": 16
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"rulers": {
 						"anyOf": [
 							{
@@ -2359,6 +2397,9 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						]
+					},
+					"scrollMarks": {
+						"$ref": "#/$defs/v2/flag"
 					},
 					"matchStyle": {
 						"anyOf": [
@@ -2929,6 +2970,21 @@
 												},
 												"closable": {
 													"type": "boolean"
+												},
+												"icon": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"iconColor": {
+													"type": [
+														"string",
+														"null"
+													]
+												},
+												"italic": {
+													"type": "boolean"
 												}
 											}
 										}
@@ -2939,7 +2995,7 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable }"
+						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable, icon, iconColor, italic }"
 					},
 					"activeTextColor": {
 						"$ref": "#/$defs/v2/color"
@@ -3840,6 +3896,9 @@
 					"glyphs": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"extras": {
+						"$ref": "#/$defs/v2/flag"
+					},
 					"up": {
 						"anyOf": [
 							{
@@ -3887,6 +3946,31 @@
 								"type": "number",
 								"minimum": 0,
 								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"xray": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 1
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"lighting": {
+						"anyOf": [
+							{
+								"enum": [
+									"scene",
+									"studio"
+								]
 							},
 							{
 								"$ref": "#/$defs/v2/dynamic"
@@ -4721,6 +4805,7 @@
 						"$curve",
 						"$gradientColor",
 						"$hexColor",
+						"$colorList",
 						"$keyframeValue",
 						"$t",
 						"$formatNumber",

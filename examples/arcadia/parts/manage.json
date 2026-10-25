@@ -21,7 +21,7 @@
 	},
 	"computed": {
 		"manageGame": "{{find(data.games, it.id == state.manage)}}",
-		"gameMenuItems": "{{computed.manageGame == null ? [] : [ { title: t(computed.manageGame.status == 'ready' ? 'menu.game.play' : computed.manageGame.status == 'running' ? 'menu.game.stop' : computed.manageGame.status == 'update' ? 'menu.game.update' : computed.manageGame.status == 'downloading' ? 'menu.game.downloading' : 'menu.game.install'), enabled: computed.manageGame.status != 'downloading', run: 'primary', with: { game: computed.manageGame } }, { separator: true }, { title: t(computed.manageGame.favourite ? 'menu.game.unfavourite' : 'menu.game.favourite'), run: 'toggleFavourite', with: { id: computed.manageGame.id } }, { title: t('menu.game.page'), run: 'openGame', with: { id: computed.manageGame.id } }, { title: t('menu.game.properties'), run: 'openProperties', with: { id: computed.manageGame.id } }, { separator: true }, { title: t('menu.game.uninstall'), enabled: computed.manageGame.installed && computed.manageGame.status != 'running', run: 'askUninstall', with: { id: computed.manageGame.id } } ]}}"
+		"gameMenuItems": "{{computed.manageGame == null ? [] : [ { title: t(computed.manageGame.status == 'ready' ? 'menu.game.play' : computed.manageGame.status == 'running' ? 'menu.game.stop' : computed.manageGame.status == 'update' ? 'menu.game.update' : computed.manageGame.status == 'downloading' ? 'menu.game.downloading' : 'menu.game.install'), enabled: computed.manageGame.status != 'downloading', run: 'primary', with: { game: computed.manageGame } }, { separator: true }, { title: t(computed.manageGame.favourite ? 'menu.game.unfavourite' : 'menu.game.favourite'), run: 'toggleFavourite', with: { id: computed.manageGame.id } }, { title: t('menu.game.page'), run: 'openGame', with: { id: computed.manageGame.id } }, { title: t('menu.game.properties'), run: 'openProperties', with: { id: computed.manageGame.id, tab: 'general' } }, { separator: true }, { title: t('menu.game.uninstall'), enabled: computed.manageGame.installed && computed.manageGame.status != 'running', run: 'askUninstall', with: { id: computed.manageGame.id } } ]}}"
 	},
 	"actions": {
 		"openGameMenu": {
@@ -56,7 +56,7 @@
 					"set": "state.properties",
 					"to": {
 						"open": true,
-						"tab": "general",
+						"tab": "{{tab ?? 'general'}}",
 						"verify": ""
 					}
 				}

@@ -86,6 +86,41 @@
 			]
 		},
 		{
+			"name": "forge-settings-table-of-contents",
+			"note": "The settings editor's table of contents lists each group of settings and shows only that group's",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#settings-toc-item", "nth": 4, "property": "name", "is": "Text Editor" } },
+				{ "click": "#settings-toc-item", "nth": 4 },
+				{ "expect": { "state": "settingsQuery", "is": "editor." } },
+				{ "click": "#settings-toc-item", "nth": 0 },
+				{ "expect": { "state": "settingsQuery", "is": "" } }
+			]
+		},
+		{
+			"name": "forge-settings-rows",
+			"note": "Each setting shows its description and a control for its type: a choice of its values, a checkbox; a changed one can be reset",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "wait": 50 },
+				{ "click": "#settings-search" },
+				{ "type": "startup" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#setting-description", "property": "text", "is": "What the editor area shows when no file is open." } },
+				{ "expect": { "node": "#setting-choice", "nth": 1, "property": "name", "is": "none" } },
+				{ "click": "#setting-choice", "nth": 1 },
+				{ "expect": { "state": "settings", "is": { "workbench.startupEditor": "none" } } },
+				{ "click": "#setting-reset" },
+				{ "expect": { "state": "settings", "is": {} } },
+				{ "click": "#settings-search" },
+				{ "key": "mod+a" },
+				{ "type": "zzz" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#settings-none", "exists": true } }
+			]
+		},
+		{
 			"name": "forge-problems-and-output",
 			"note": "Scan for Problems lists nothing in a clean folder and logs it to Output; Focus Problems shows the panel",
 			"steps": [

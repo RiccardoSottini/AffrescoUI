@@ -1,0 +1,233 @@
+{
+	"$schema": "../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's controls that had no behaviour of their own, checked headless on tests/render/forge/folder: the status bar's indentation, line endings and language, and the encoding left disabled. affrescoui_render_runner controls.scenarios.json",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-controls-indentation",
+			"note": "The status bar's Spaces item opens the indentation picker; two spaces sets the tab size, shown there, and Tab then indents by two",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "node": "#status-indent", "text": "Spaces: 4" } },
+				{ "click": "#status-indent" },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.open", "is": true } },
+				{ "expect": { "state": "quickPick.query", "is": "indent " } },
+				{ "type": "2" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "settings", "is": { "editor.tabSize": 2 } } },
+				{ "expect": { "node": "#status-indent", "text": "Spaces: 2" } },
+				{ "click": "#editor" },
+				{ "key": "mod+home" },
+				{ "key": "tab" },
+				{ "expect": { "state": "caret.column", "is": 3 } },
+				{ "expect": { "state": "docs[0].dirty", "is": true } }
+			]
+		},
+		{
+			"name": "forge-controls-end-of-line",
+			"note": "The status bar's LF item opens the line endings picker; CRLF is a change to save, shown there, and LF again undoes it",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "state": "docs[0].eol", "is": "LF" } },
+				{ "expect": { "node": "#status-eol", "text": "LF" } },
+				{ "click": "#status-eol" },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.query", "is": "eol " } },
+				{ "type": "crlf" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "docs[0].eol", "is": "CRLF" } },
+				{ "expect": { "state": "docs[0].dirty", "is": true } },
+				{ "expect": { "node": "#status-eol", "text": "CRLF" } },
+				{ "action": "changeEndOfLine" },
+				{ "wait": 50 },
+				{ "type": "lf" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "docs[0].eol", "is": "LF" } },
+				{ "expect": { "state": "docs[0].dirty", "is": false } }
+			]
+		},
+		{
+			"name": "forge-controls-language",
+			"note": "The status bar's language item opens the language picker; Markdown and then Plain Text become the file's language",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "node": "#status-language", "text": "C++" } },
+				{ "click": "#status-language" },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.query", "is": "language " } },
+				{ "type": "markdown" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "docs[0].language", "is": "Markdown" } },
+				{ "expect": { "node": "#status-language", "text": "Markdown" } },
+				{ "action": "changeLanguageMode" },
+				{ "wait": 50 },
+				{ "type": "plain" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "expect": { "state": "docs[0].language", "is": "" } },
+				{ "expect": { "node": "#status-language", "text": "Plain Text" } }
+			]
+		},
+		{
+			"name": "forge-controls-encoding",
+			"note": "The encoding item stays visible, disabled, its tooltip saying other encodings aren't available yet; a click opens nothing",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "node": "#status-encoding", "property": "tooltip", "is": "Encoding: UTF-8. Other encodings aren't available yet" } },
+				{ "click": "#status-encoding" },
+				{ "wait": 50 },
+				{ "expect": { "state": "quickPick.open", "is": false } }
+			]
+		},
+		{
+			"name": "forge-controls-explorer-title",
+			"note": "The explorer's title row: Collapse Folders, disabled while no folder is expanded, collapses them; New File and New Folder ask for a name; Refresh lists the folder again",
+			"steps": [
+				{ "wait": 100 },
+				{ "expect": { "node": "#explorer-collapse", "property": "tooltip", "is": "Collapse Folders in Explorer" } },
+				{ "click": "#explorer-collapse" },
+				{ "expect": { "state": "explorer.expanded", "is": [] } },
+				{ "action": "explorerExpand", "event": { "id": "src", "expanded": true } },
+				{ "wait": 50 },
+				{ "expect": { "state": "explorer.expanded", "is": ["src"] } },
+				{ "click": "#explorer-collapse" },
+				{ "expect": { "state": "explorer.expanded", "is": [] } },
+				{ "click": "#explorer-new-file" },
+				{ "expect": { "state": "explorerEdit.naming", "is": true } },
+				{ "expect": { "state": "explorerEdit.mode", "is": "newFile" } },
+				{ "key": "escape" },
+				{ "click": "#explorer-new-folder" },
+				{ "expect": { "state": "explorerEdit.mode", "is": "newFolder" } },
+				{ "key": "escape" },
+				{ "revision": { "message": "Forget what was listed", "set": { "/state/explorerTree/entries": [] } } },
+				{ "click": "#explorer-refresh" },
+				{ "wait": 50 },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 4 } }
+			]
+		},
+		{
+			"name": "forge-controls-welcome-recent",
+			"note": "The welcome page lists the folder's recently opened files, the last first; a click opens one",
+			"steps": [
+				{ "wait": 100 },
+				{ "expect": { "node": "#welcome-recent", "exists": false } },
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "wait": 50 },
+				{ "action": "closeEditor" },
+				{ "action": "closeEditor" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#welcome-recent-0", "text": "main.cpp" } },
+				{ "expect": { "node": "#welcome-recent-1", "text": "README.md" } },
+				{ "click": "#welcome-recent-1" },
+				{ "wait": 50 },
+				{ "expect": { "state": "docs[0].id", "is": "README.md" } }
+			]
+		},
+		{
+			"name": "forge-controls-debug-sections",
+			"note": "In Run and Debug, a section's title collapses the section, its chevron pointing sideways, and expands it again",
+			"steps": [
+				{ "key": "mod+shift+d" },
+				{ "expect": { "node": "#debug-stack", "exists": true } },
+				{ "click": "#debug-stack-title" },
+				{ "expect": { "state": "debug.collapsed", "is": ["stack"] } },
+				{ "expect": { "node": "#debug-stack", "exists": false } },
+				{ "click": "#debug-watch-title" },
+				{ "expect": { "node": "#debug-watch-input", "exists": false } },
+				{ "expect": { "node": "#debug-watches", "exists": false } },
+				{ "click": "#debug-stack-title" },
+				{ "expect": { "state": "debug.collapsed", "is": ["watch"] } },
+				{ "expect": { "node": "#debug-stack", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-controls-feature-cards",
+			"note": "The features view lists the catalogue as cards, title and release over the description; a click selects one and shows what it can do",
+			"steps": [
+				{ "action": "showFeatures" },
+				{ "action": "featuresRefresh" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#feature-title-wordCount", "text": "Word count  1.0.0" } },
+				{ "expect": { "node": "#feature-description-todoTree", "exists": true } },
+				{ "click": "#feature-wordCount" },
+				{ "expect": { "state": "features.selected", "is": "wordCount" } },
+				{ "expect": { "node": "#features-install", "exists": true } },
+				{ "key": "shift+tab" },
+				{ "key": "enter" },
+				{ "expect": { "state": "features.selected", "is": "todoTree" } }
+			]
+		},
+		{
+			"name": "forge-controls-search-dismiss",
+			"note": "Delete, or Dismiss in the results' context menu (Shift+F10), takes a file or a match out of the search results",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "wait": 50 },
+				{ "click": "#search-query" },
+				{ "type": "o" },
+				{ "action": "runSearch" },
+				{ "expect": { "state": "search.result.files", "is": 2 } },
+				{ "expect": { "state": "search.result.matches", "is": 12 } },
+				{ "click": "#search-results" },
+				{ "expect": { "state": "search.selected", "is": "file:src/main.cpp" } },
+				{ "key": "delete" },
+				{ "expect": { "state": "search.result.files", "is": 1 } },
+				{ "expect": { "state": "search.result.tree.length", "is": 1 } },
+				{ "expect": { "state": "search.selected", "is": null } },
+				{ "click": "#search-results" },
+				{ "key": "end" },
+				{ "key": "shift+f10" },
+				{ "expect": { "state": "search.menu", "is": true } },
+				{ "click": "#search-menu" },
+				{ "expect": { "state": "search.menu", "is": false } },
+				{ "expect": { "state": "search.result.tree[0].label", "is": "README.md  (8)" } },
+				{ "expect": { "state": "search.result.tree[0].children.length", "is": 8 } },
+				{ "expect": { "state": "search.result.matches", "is": 8 } },
+				{ "expect": { "state": "search.selected", "is": null } }
+			]
+		},
+		{
+			"name": "forge-controls-focus-follows",
+			"note": "Find in Files puts the caret in the search box, and closing the find bar gives the keys back to the editor: the focus waits for the node the same action shows",
+			"steps": [
+				{ "action": "findInFiles" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#search-query", "property": "focused", "is": true } },
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "wait": 50 },
+				{ "action": "openFind" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#find-text", "property": "focused", "is": true } },
+				{ "action": "closeFind" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#editor", "property": "focused", "is": true } }
+			]
+		},
+		{
+			"name": "forge-controls-agent-empty",
+			"note": "The agent view says how an agent joins until there is a conversation, and shows its status, the Ask button and the empty review in full",
+			"steps": [
+				{ "action": "showAgent" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#agent-empty-title", "text": "No conversation yet" } },
+				{ "expect": { "node": "#agent-log", "exists": false } },
+				{ "expect": { "node": "#agent-status", "property": "height", "is": 36 } },
+				{ "expect": { "node": "#agent-ask", "property": "visible", "is": true } },
+				{ "expect": { "node": "#agent-review-empty", "property": "height", "is": 44 } },
+				{ "revision": { "set": { "/state/agent/log": [{ "kind": "you", "text": "Rename the file" }] } } },
+				{ "wait": 50 },
+				{ "expect": { "node": "#agent-empty", "exists": false } },
+				{ "expect": { "node": "#agent-log", "exists": true } }
+			]
+		}
+	]
+}

@@ -20,10 +20,10 @@ constexpr std::array<std::string_view, 15> gestureNameList{
     "erase", "clone",           "gradient",       "fill",     "sample",        "pan",        "zoom"};
 
 /// @brief The keys of the tool options, as setOptions() reads them.
-constexpr std::array<std::string_view, 21> optionKeyList{
+constexpr std::array<std::string_view, 22> optionKeyList{
     "preset",     "size",        "sizeStep",   "hardness",       "spacing",  "opacity",    "flow",      "mode",
     "tolerance",  "contiguous",  "allLayers",  "fillOpacity",    "shape",    "gradientPreset", "gradient",
-    "foreground", "background",  "swap",       "reset",          "quickMask", "cloneSource"};
+    "foreground", "background",  "swap",       "reset",          "quickMask", "cloneSource", "autoSelect"};
 
 /// @brief A gradient argument: {stops: [{at, color}]} as a gradient editor gives it (or "position" for "at").
 /// @param value The value.
@@ -90,7 +90,7 @@ void setGradient(ToolSettings& settings, const json& arguments) {
 	if(arguments.contains("gradient")) settings.gradient = gradientOf(arguments["gradient"]);
 }
 
-/// @brief Sets the selection and fill options: mode, tolerance, contiguous, allLayers, fillOpacity.
+/// @brief Sets the selection, fill and move options: mode, tolerance, contiguous, allLayers, fillOpacity, autoSelect.
 /// @param settings The settings.
 /// @param arguments The options set.
 void setSampling(ToolSettings& settings, const json& arguments) {
@@ -98,6 +98,7 @@ void setSampling(ToolSettings& settings, const json& arguments) {
 	settings.sample.tolerance = std::clamp(wholeOf(arguments, "tolerance", settings.sample.tolerance), 0, 255);
 	settings.sample.contiguous = flagOf(arguments, "contiguous", settings.sample.contiguous);
 	settings.sample.allLayers = flagOf(arguments, "allLayers", settings.sample.allLayers);
+	settings.autoSelect = flagOf(arguments, "autoSelect", settings.autoSelect);
 	settings.opacity = std::clamp(
 	    static_cast<float>(numberOf(arguments, "fillOpacity", settings.opacity * 100.0) / 100.0), 0.0f, 1.0f);
 }

@@ -77,6 +77,7 @@ uniform vec2 lightCone[8];
 uniform int shadowLight;
 uniform mat4 shadowMatrix;
 uniform float exposure;
+uniform float opacity;
 uniform int solid;
 layout(location = 0) out vec4 color;
 const float PI = 3.14159265;
@@ -197,7 +198,7 @@ void main() {
 			lit += brdf(n, v, l, albedo, metallic, roughness) * light;
 		}
 	}
-	float alpha = alphaMode == 2 ? base.a : 1.0;
+	float alpha = (alphaMode == 2 ? base.a : 1.0) * opacity;
 	color = vec4(encodeSrgb(aces(lit * exposure)) * alpha, alpha);
 }
 )";

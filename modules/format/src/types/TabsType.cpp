@@ -5,11 +5,14 @@
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
 
+#include "affresco/render/Font.hpp"
 #include "affresco/render/Tabs.hpp"
+#include "affresco/render/Window.hpp"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -22,12 +25,16 @@ namespace {
 constexpr std::size_t maxTabs = 10'000; ///< The most tabs a strip reads (untrusted input).
 constexpr float maxTabShape = 64.0f;       ///< The largest tab radius, gap or inset read, in pixels.
 
-/// @brief Reads one tab: a string (its id and label) or {id, label, marker, closable}.
+/// @brief Reads one tab: a string (its id and label) or {id, label, marker, closable, icon, iconColor, italic}.
 /// @param value The tab.
 /// @param path Its place, for errors.
 /// @return The tab.
 Tab readTab(const json& value, const std::string& path) {
-	if(value.is_string()) return Tab{value.get<std::string>(), value.get<std::string>()};
+	if(value.is_string()) {
+		Tab tab;
+		tab.id = tab.label = value.get<std::string>();
+		return tab;
+	}
 	object(value, path);
 	Tab tab;
 	tab.id = value.contains("id") ? text(value["id"]) : std::string();
@@ -35,13 +42,20 @@ Tab readTab(const json& value, const std::string& path) {
 	tab.label = value.contains("label") ? text(value["label"]) : tab.id;
 	tab.marker = value.contains("marker") && boolean(value["marker"], path + ".marker");
 	tab.closable = !value.contains("closable") || boolean(value["closable"], path + ".closable");
+	if(value.contains("icon") && !value["icon"].is_null()) tab.icon = text(value["icon"]);
+	if(value.contains("iconColor") && !value["iconColor"].is_null()) {
+		tab.iconColor =
+		    value["iconColor"].is_string() ? Color::parseHex(value["iconColor"].get<std::string>()) : std::nullopt;
+		if(!tab.iconColor) fail(path + ".iconColor", "expected a hex colour: #rgb, #rrggbb or #rrggbbaa");
+	}
+	tab.italic = value.contains("italic") && boolean(value["italic"], path + ".italic");
 	return tab;
 }
 
 /// @brief Sets a strip's tabs, font and colours: those the node gives, the defaults for the others.
 /// @param panel The panel, a Tabs.
-/// @param values Its tabs, font, textColor, activeTextColor, activeBackground, accentColor, accentEdge, markerColor and
-/// keepMarker, tabRadius, tabGap and tabInset, if given.
+/// @param values Its tabs (and the slanted font of those marked italic), font, textColor, activeTextColor,
+/// activeBackground, accentColor, accentEdge, markerColor and keepMarker, tabRadius, tabGap and tabInset, if given.
 /// @param reader Reads colours and fonts.
 /// @param path The node's place, for errors.
 void applyTabs(Panel& panel, const json& values, const PropertyReader& reader, const std::string& path) {
@@ -58,8 +72,16 @@ void applyTabs(Panel& panel, const json& values, const PropertyReader& reader, c
 		for(std::size_t i = 0; i < given.size() && i < maxTabs; ++i)
 			list.push_back(readTab(given[i], concatenate(path, ".tabs[", std::to_string(i) + "]")));
 	}
+	const bool italic = std::ranges::any_of(list, &Tab::italic);
 	tabs->setTabs(std::move(list));
-	tabs->setFont(values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr);
+	const std::shared_ptr<const Font> named =
+	    values.contains("font") ? reader.font(values["font"], path + ".font") : nullptr;
+	tabs->setFont(named);
+	// Italic tabs: the strip's font slanted, as a rich text run's (none while the strip has no font yet)
+	const Font* base = named ? named.get() : tabs->window() ? tabs->window()->defaultFont() : nullptr;
+	tabs->setItalicFont(italic && base ? reader.fontVariant(named.get(), base->pixelHeight(),
+	                                                        FontStyle{base->style().bold, true}, path + ".tabs")
+	                                   : nullptr);
 	tabs->setColors(colorOr("textColor", colors::muted), colorOr("activeTextColor", colors::black),
 	                colorOr("activeBackground", colors::white), colorOr("accentColor", colors::accent));
 	const std::string edge =

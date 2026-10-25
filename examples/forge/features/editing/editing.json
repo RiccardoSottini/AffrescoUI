@@ -26,6 +26,8 @@
 	},
 
 	"settings": {
+		"editor.tabSize": { "type": "integer", "minimum": 1, "maximum": 16, "default": 4, "title": "Tab size",
+			"description": "Spaces per indentation level: what Tab inserts and an opened file's tabs become." },
 		"editor.wordWrap": { "type": "boolean", "default": false, "title": "Word wrap",
 			"description": "Wrap lines that don't fit the editor's width." },
 		"editor.bracketMatching": { "type": "boolean", "default": true, "title": "Bracket matching",
@@ -43,7 +45,7 @@
 			       { "focus": "#find-text" }] },
 		"closeFind": { "title": "Close Find", "category": "Edit", "enablement": "{{state.findBar.open}}",
 			"do": [{ "set": "state.findBar.open", "to": false }, { "set": "state.findBar.inSelection", "to": false },
-			       { "focus": "#editor" }] },
+			       { "after": 0, "do": [{ "focus": "#editor" }] }] },
 		"findStep": [{ "set": "state.findBar.step", "to": "{{step}}" }, { "increment": "state.findBar.request", "by": 1 }],
 		"findNext": { "title": "Find Next", "category": "Edit", "enablement": "{{state.findBar.open}}",
 			"do": [{ "run": "findStep", "with": { "step": "next" } }] },

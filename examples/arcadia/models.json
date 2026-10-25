@@ -35,6 +35,18 @@
 					"type": "boolean",
 					"default": false
 				},
+				"local": {
+					"type": "boolean",
+					"default": false
+				},
+				"note": {
+					"type": "string",
+					"maxLength": 500
+				},
+				"art": {
+					"type": "string",
+					"maxLength": 40
+				},
 				"sizeGb": {
 					"type": "number",
 					"minimum": 0

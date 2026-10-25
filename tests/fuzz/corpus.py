@@ -741,6 +741,41 @@ def images_seeds():
         for phase, x in [("press", 4), ("move", 30), ("release", 60)]]
     seeds.append(compact({"images": board, "steps": pointer + [{"image": "undo"}, {"image": "redo"}]}))
     seeds.append(compact({"images": board, "steps": [{"image": name, "with": {}} for name in operations]}))
+    box = [{"image": "select", "with": {"kind": "rectangle", "from": {"x": 4, "y": 4}, "to": {"x": 30, "y": 20}}}]
+    geometry = [{"image": "addLayer", "with": {"name": "Ink"}}, *box, {"image": "fillSelection", "with": {"color": "#204080"}},
+                {"image": "copy", "with": {"merged": True}}, {"image": "cut"}, {"image": "paste"},
+                {"image": "transformLayer", "with": {"x": 7, "scaleX": -150, "scaleY": 80, "angle": 33}},
+                {"image": "alignLayer", "with": {"edge": "middle"}},
+                {"image": "rotateCanvas", "with": {"angle": 90}}, {"image": "flipCanvas", "with": {"direction": "vertical"}},
+                {"image": "canvasSize", "with": {"width": 80, "height": 40, "anchor": "bottom-right"}},
+                {"image": "imageSize", "with": {"width": 20}}, {"image": "mergeDown"}, {"image": "mergeVisible"},
+                {"image": "deleteHidden"}, {"image": "flatten", "with": {"background": "#ffffff"}}, {"image": "clear"},
+                {"image": "undo"}, {"image": "redo"}]
+    seeds.append(compact({"images": board, "steps": geometry}))
+    groups = [{"image": "addLayer", "with": {"name": "Ink"}}, {"image": "addLayer", "with": {"kind": "group"}},
+              {"image": "moveLayer", "with": {"id": "2", "into": "3"}}, {"image": "moveLayer", "with": {"id": "3", "into": "3"}},
+              {"image": "moveLayer", "with": {"id": "2", "onto": "3"}}, {"image": "undo"}]
+    seeds.append(compact({"images": board, "steps": groups}))
+    held = [{"image": "setTool", "with": {"tool": tool}} if i == 0 else
+            {"image": "pointer", "with": {"phase": phase, "x": x, "y": x, "modifiers": mods}}
+            for tool in ["select-rectangle", "polygon-lasso", "magic-wand"]
+            for i, (phase, x, mods) in enumerate([(None, 0, None), ("press", 4, ["shift"]), ("move", 30, ["alt"]),
+                                                  ("release", 30, ["shift", "alt"]), ("press", 4, ["alt"]),
+                                                  ("release", 4, [])])]
+    seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": held}))
+    # move with autoSelect: presses on paint, in a group, off the image and on nothing
+    picked = [{"image": "setTool", "with": {"tool": "move"}}, {"image": "setOptions", "with": {"autoSelect": True}},
+              {"image": "addLayer", "with": {"kind": "group"}}, {"image": "addLayer", "with": {"name": "Ink"}},
+              {"image": "select", "with": {"kind": "rectangle", "from": {"x": 8, "y": 8}, "to": {"x": 20, "y": 20}}},
+              {"image": "fillSelection", "with": {"color": "#204080"}}, {"image": "select", "with": {"kind": "none"}}]
+    picked += [{"image": "pointer", "with": {"phase": phase, "x": x, "y": x}}
+               for x in [10, -10, 1000, 40] for phase in ["press", "release"]]
+    seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": picked}))
+    # histogram: bins in and out of range, with a hidden layer, and on a large image measured at a mip level
+    measured = [{"image": "histogram", "with": {"bins": bins}} for bins in [64, 1, 300, -5, "x"]]
+    measured += [{"image": "setLayer", "with": {"visible": False}}, {"image": "histogram"}]
+    seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": measured}))
+    seeds.append(compact({"images": {"board": {"width": 1500, "height": 900}}, "steps": measured[:1]}))
     return seeds
 
 
