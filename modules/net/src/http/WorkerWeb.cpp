@@ -290,7 +290,7 @@ void Job::resetResponse() {
 	lines.reset();
 }
 
-Worker::Worker(Executor& executor, const ClientOptions& options) : executor_(executor), options_(options) {}
+Worker::Worker(Executor& executor, ClientOptions options) : executor_(executor), options_(std::move(options)) {}
 
 Worker::~Worker() {
 	clearTimer(this);

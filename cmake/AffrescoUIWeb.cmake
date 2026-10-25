@@ -51,11 +51,14 @@ function(affrescoui_web_net target)
 endfunction()
 
 # Links a program for the browser (or Node, which plays the scenarios): its memory grows, exceptions work (the
-# library reports errors with them), and the main loop gives way to the browser between frames.
+# library reports errors with them), and the main loop gives way to the browser between frames. wasm-opt skips its
+# constraint-analysis pass: in this emsdk's Binaryen it fails an assertion (constraints.provesEverything()) on the
+# library's code and aborts the link; drop the skip when AFFRESCOUI_EMSDK_VERSION moves to a release that fixed it.
 # target: the executable. environment: where it runs (web, or node).
 function(affrescoui_web_program target environment)
 	target_link_options(${target} PRIVATE -fexceptions -sALLOW_MEMORY_GROWTH=1 -sSTACK_SIZE=1MB
-		-sENVIRONMENT=${environment} -sEXPORTED_RUNTIME_METHODS=ccall,callMain)
+		-sENVIRONMENT=${environment} -sEXPORTED_RUNTIME_METHODS=ccall,callMain
+		-sBINARYEN_EXTRA_PASSES=--skip-pass=constraint-analysis)
 endfunction()
 
 # Makes the programs the site and the checks use, once the root CMakeLists.txt has defined them: the host for the

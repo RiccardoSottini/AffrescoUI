@@ -43,6 +43,7 @@ jobs:
         run: |
           # shellcheck disable=SC1091 # emsdk's environment
           . "$RUNNER_TEMP/emsdk/emsdk_env.sh"
+          set -o pipefail # a failed build fails this step, not the next one that looks for its output
           tools/web/build.sh | tee "$RUNNER_TEMP/build.txt"
           {
             echo "### The site's sizes"
