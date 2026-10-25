@@ -145,6 +145,16 @@ void Events::modal(Panel& overlay, bool open) {
 	if(it == modals_.end()) return;
 	Panel* previous = it->previous;
 	modals_.erase(it);
+	// A dialog opened from this one, in the same update, has the focus coming: it keeps it, and gives it back where
+	// this one would have when it closes
+	const Panel* coming = focusLater_.panel ? focusLater_.panel : focusLater_.scope;
+	if(focusLater_.pending && !focusLater_.cancelled && !within(coming, overlay))
+		if(const auto next =
+		       std::ranges::find_if(modals_, [coming](const Modal& open) { return within(coming, *open.overlay); });
+		   next != modals_.end()) {
+			if(within(next->previous, overlay)) next->previous = previous;
+			return;
+		}
 	const bool inside =
 	    (focusLater_.pending && focusLater_.scope == &overlay) || within(window->focusedPanel(), overlay);
 	if(inside) focusLater(previous, nullptr);
