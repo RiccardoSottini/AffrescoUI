@@ -4590,7 +4590,11 @@
 						"$passwordStrength",
 						"$isEmail",
 						"$pathTree",
-						"$qrCode"
+						"$qrCode",
+						"$diffLines",
+						"$atPointer",
+						"$applyPatch",
+						"$formatJson"
 					]
 				}
 			},

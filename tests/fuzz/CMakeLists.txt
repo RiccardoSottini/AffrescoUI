@@ -24,6 +24,9 @@ affrescoui_fuzzer(json affrescoui::core nlohmann_json::nlohmann_json)
 affrescoui_fuzzer(expression affrescoui::format)
 target_include_directories(affrescoui_fuzz_expression PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
+affrescoui_fuzzer(diff_functions affrescoui::format) # diffLines, atPointer, applyPatch, formatJson
+target_include_directories(affrescoui_fuzz_diff_functions PRIVATE
+	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
 affrescoui_fuzzer(revision affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(migrate affrescoui::format) # version 1 files (SCREEN_FORMAT.md, "Migrating from version 1")
 affrescoui_fuzzer(session affrescoui::format affrescoui::vcs affrescoui::channel)

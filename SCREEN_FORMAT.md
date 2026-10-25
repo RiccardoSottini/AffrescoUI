@@ -1006,7 +1006,9 @@ Wherever a value is expected it can be computed:
   `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
   `addMonths(date, months)`, `daysBetween(from, to)`, `weekday(date)`, `daysInMonth(date)`, `dateOf(milliseconds)`,
   `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`, `pathTree(list, key?)`,
-  `qrCode(text, level?)` (a QR code's SVG path: `d`, `viewBox`, `size`, `version`);
+  `qrCode(text, level?)` (a QR code's SVG path: `d`, `viewBox`, `size`, `version`),
+  `diffLines(original, modified, options?)`, `atPointer(value, pointer)`, `applyPatch(value, patch)`,
+  `formatJson(value, indent?)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
@@ -1023,6 +1025,14 @@ are UTF-8: `length`, `indexOf` and `slice` count bytes, `split(text, '')` and `r
 are the matched `[start, end]` character spans, `parts` the text cut into `{ text, match }` for highlighting.
 `fuzzySort` keeps a list's matches (on each item's `key`, or the item itself) as `{ item, score, ranges, parts, index }`,
 the best first (an empty query keeps the order), at most `limit` of them.
+`diffLines` compares two texts line by line, as a unified diff does: `{ hunks, added, removed, same, hiddenAfter,
+truncated }`, each hunk `{ header, oldStart, oldLines, newStart, newLines, hiddenBefore, lines }` with a header such as
+`@@ -2,7 +2,7 @@` and lines `{ kind: 'context' | 'delete' | 'insert', old, new, text }` numbered from 1 (null on the
+side a line isn't on). Its options: `context` (3 lines around each change; -1 shows the whole text), `ignoreWhitespace`,
+`split` (adds `rows`, `{ left, right }` pairs `{ n, text, kind }` or null, for a side-by-side view) and `limit` (5000
+lines at most; past it `truncated` is true). `atPointer` reads a JSON Pointer (`/nodes/0/id`, `~1` for `/`), and
+`applyPatch` applies a JSON Patch such as the host's `diff` message carries; both give null when the path or the patch
+doesn't fit. `formatJson` writes a value as indented JSON, to diff it line by line.
 
 **Variables:** `state`; `computed`; `event` (what triggered a handler); `window` (`width`, `height`, `scale`: the
 display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `menuBar`: the screen's `window.menuBar` list

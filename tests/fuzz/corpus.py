@@ -104,6 +104,17 @@ def json_seeds():
     return seeds
 
 
+def diff_seeds():
+    """The diff_functions target's seeds: an options byte, then an original and a modified text cut at a zero byte."""
+    pairs = [("a\nb\nc\n", "a\nB\nc\nd\n"), ("", "one\n"), ("  x\n", "x  \n"),
+             ('{"a": [1, 2], "b": {"c": 3}}', '[{"op": "add", "path": "/a/-", "value": 4}, {"op": "copy", '
+              '"from": "/b", "path": "/d"}, {"op": "move", "from": "/a/0", "path": "/e"}]'),
+             ('{"a~b": {"c/d": 1}}', '[{"op": "test", "path": "/a~0b/c~1d", "value": 1}, {"op": "remove", '
+              '"path": "/a~0b"}]')]
+    return [bytes([options]) + original.encode() + b"\0" + modified.encode()
+            for options in (0, 1, 6, 255) for original, modified in pairs]
+
+
 def expression_seeds():
     """The expression target's seeds: insides of {{ }} as they are, operators as JSON."""
     texts = [path.read_text(encoding="utf-8") for path in templates("*.json")]
@@ -820,6 +831,8 @@ def main():
     words = dictionaries()
     write(out, "json", json_seeds(), words["json"])
     write(out, "expression", expression_seeds(), words["expression"])
+    write(out, "diff_functions", diff_seeds(), ["{", "}", "[", "]", '"op"', '"path"', '"value"', '"from"', "add",
+                                                "remove", "replace", "move", "copy", "test", "/", "~0", "~1", "\n"])
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])

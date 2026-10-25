@@ -361,6 +361,11 @@ const std::vector<Case> cases = {
     {"{{passwordStrength('').score}}", 0, {}},
     {"{{isEmail('ada@example.com')}}", true, {}},
     {"{{isEmail('ada@example')}}", false, {}},
+    // Diffs and JSON documents: tests/unit/diff_functions.cpp has the hunks, the pointers and the patches
+    {"{{diffLines('a\\nb', 'a\\nc').added}}", 1, {}},
+    {"{{atPointer({ a: [1, 2] }, '/a/1')}}", 2, {}},
+    {"{{applyPatch({ a: 1 }, [{ op: 'replace', path: '/a', value: 2 }]).a}}", 2, {}},
+    {"{{formatJson({ a: 1 })}}", "{\n  \"a\": 1\n}", {}},
     {"{{qrCode('Affresca').viewBox}}", "-4 -4 29 29", {}}, // tests/unit/qr_code.cpp has the codes
     {"{{pathTree(['src/b.c', 'src/a.c', 'README', {path: 'docs', expandable: true}])}}",
 	 J(R"([{"id": "docs", "label": "docs", "path": "docs", "expandable": true},

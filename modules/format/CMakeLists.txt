@@ -24,6 +24,7 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsDates.cpp
 	src/functions/ExpressionFunctionsForm.cpp
 	src/functions/ExpressionFunctionsPaths.cpp
+	src/functions/ExpressionFunctionsDiff.cpp
 	src/functions/ExpressionFunctionsFuzzy.cpp
 	src/functions/ExpressionFunctionsItems.cpp
 	src/functions/ExpressionFunctionsFold.cpp
