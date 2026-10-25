@@ -72,12 +72,12 @@ bool createWith(const std::filesystem::path& file, const std::string& text, std:
 		return false;
 	}
 	out.close();
-	std::filesystem::permissions(file, permissions, error);
+	std::filesystem::permissions(file, permissions & std::filesystem::perms::all, error);
 	return true;
 #else
 	const int descriptor = ::open(file.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
 	if(descriptor < 0) return false;
-	bool written = ::fchmod(descriptor, static_cast<mode_t>(permissions) & 07777) == 0 && writeAll(descriptor, text);
+	bool written = ::fchmod(descriptor, static_cast<mode_t>(permissions) & 0777) == 0 && writeAll(descriptor, text);
 	written = ::close(descriptor) == 0 && written;
 	if(!written) std::filesystem::remove(file, error);
 	return written;

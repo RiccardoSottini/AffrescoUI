@@ -24,6 +24,7 @@
 #include <arpa/inet.h>
 #include <cerrno>
 #include <csignal>
+#include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -63,6 +64,15 @@ std::string lastError() { return std::system_category().message(WSAGetLastError(
 /// @brief Closes a socket.
 /// @param socket The socket.
 void closeNative(Native socket) noexcept { closesocket(socket); }
+
+/// @brief Keeps a socket from the programs the host starts: a browser opened for a sign-in, a shell or a debug
+/// adapter must not hold a connection or the listener.
+/// @param socket The socket, or noSocket.
+/// @return It.
+Native hostOnly(Native socket) noexcept {
+	if(socket != noSocket) SetHandleInformation(reinterpret_cast<HANDLE>(socket), HANDLE_FLAG_INHERIT, 0);
+	return socket;
+}
 
 /// @brief Waits for a socket.
 /// @param socket The socket.
@@ -110,6 +120,15 @@ std::string lastError() { return std::strerror(errno); }
 /// @brief Closes a socket.
 /// @param socket The socket.
 void closeNative(Native socket) noexcept { ::close(socket); }
+
+/// @brief Keeps a socket from the programs the host starts (close-on-exec): a browser opened for a sign-in, a shell
+/// or a debug adapter must not hold a connection or the listener.
+/// @param socket The socket, or noSocket.
+/// @return It.
+Native hostOnly(Native socket) noexcept {
+	if(socket != noSocket) fcntl(socket, F_SETFD, FD_CLOEXEC);
+	return socket;
+}
 
 /// @brief Waits for a socket.
 /// @param socket The socket.
@@ -226,7 +245,7 @@ std::unique_ptr<Connection> Connection::open(const std::string& host, std::uint1
 	if(getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &found) != 0) return nullptr;
 	std::unique_ptr<Connection> connection;
 	for(const addrinfo* at = found; at && !connection; at = at->ai_next) {
-		const Native socket = ::socket(at->ai_family, at->ai_socktype, at->ai_protocol);
+		const Native socket = hostOnly(::socket(at->ai_family, at->ai_socktype, at->ai_protocol));
 		if(socket == noSocket) continue;
 		if(::connect(socket, at->ai_addr, static_cast<AddressLength>(at->ai_addrlen)) != 0) {
 			closeNative(socket);
@@ -287,7 +306,7 @@ std::unique_ptr<Listener> Listener::open(const std::string& host, std::uint16_t 
 		error = "the sockets could not start";
 		return nullptr;
 	}
-	const Native socket = ::socket(address.ss_family, SOCK_STREAM, IPPROTO_TCP);
+	const Native socket = hostOnly(::socket(address.ss_family, SOCK_STREAM, IPPROTO_TCP));
 	const int on = 1;
 #ifndef _WIN32
 	if(socket != noSocket) setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)); // restart while TIME_WAIT
@@ -312,7 +331,7 @@ std::unique_ptr<Connection> Listener::accept() {
 		if(ready == 0) continue;
 		sockaddr_storage address{};
 		auto length = static_cast<AddressLength>(sizeof(address));
-		const Native socket = ::accept(nativeOf(handle_), reinterpret_cast<sockaddr*>(&address), &length);
+		const Native socket = hostOnly(::accept(nativeOf(handle_), reinterpret_cast<sockaddr*>(&address), &length));
 		if(socket == noSocket) continue; // the peer went away before it was accepted
 		prepare(socket);
 		return std::make_unique<Connection>(handleOf(socket), addressText(address));

@@ -1,7 +1,36 @@
-# Keeps the actions pinned by commit SHA in .github/workflows/ up to date
+# Keeps the actions pinned by commit SHA in .github/workflows/, the editor extension's npm packages and the Python
+# tools' requirements up to date
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /editors/vscode
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /website
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /tools/quality
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /tools/release
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /tests/perf
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /mcp
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /bindings/python
     schedule:
       interval: weekly

@@ -341,4 +341,16 @@ TEST_CASE("auth: a provider's lifetimes and intervals are clamped, however large
 	CHECK(std::get<oauth::DeviceCodes>(codes).lifetime == std::chrono::seconds(10));
 }
 
+TEST_CASE("auth: a device flow's verification page is https, or on this machine") {
+	namespace oauth = affresco::net::oauth;
+	const auto plain = oauth::readDeviceCodes(
+	    R"({"device_code":"d","user_code":"U","verification_uri":"http://example.test/device"})");
+	REQUIRE(std::holds_alternative<std::string>(plain));
+	CHECK(std::get<std::string>(plain).find("https") != std::string::npos);
+	CHECK(std::holds_alternative<oauth::DeviceCodes>(oauth::readDeviceCodes(
+	    R"({"device_code":"d","user_code":"U","verification_uri":"http://127.0.0.1:8080/device"})")));
+	CHECK(std::holds_alternative<oauth::DeviceCodes>(oauth::readDeviceCodes(
+	    R"({"device_code":"d","user_code":"U","verification_uri":"https://example.test/device"})")));
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

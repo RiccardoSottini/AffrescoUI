@@ -275,8 +275,12 @@ std::variant<DeviceCodes, std::string> readDeviceCodes(std::string_view body) {
 	codes.deviceCode = field(*answer, "device_code", maxTokenBytes);
 	codes.userCode = field(*answer, "user_code", 64);
 	codes.verificationUrl = field(*answer, "verification_uri", 2048);
-	if(codes.deviceCode.empty() || codes.userCode.empty() || !parseUrl(codes.verificationUrl))
+	const auto verification = parseUrl(codes.verificationUrl);
+	if(codes.deviceCode.empty() || codes.userCode.empty() || !verification)
 		return "the provider's device codes are incomplete";
+	// The page the person types the code into: encrypted, unless it is on this machine (a test provider).
+	if(!verification->secure() && !isLoopback(verification->host))
+		return "the provider's verification page isn't https";
 	if(const auto in = answer->find("interval"); in != answer->end() && in->is_number())
 		codes.interval = std::chrono::seconds(secondsIn(*in, 1, 60));
 	if(const auto in = answer->find("expires_in"); in != answer->end() && in->is_number())

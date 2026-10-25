@@ -7,6 +7,7 @@
 #include "PropertyValues.hpp"
 
 #include "affresco/render/Stack.hpp"
+#include "affresco/core/Numbers.hpp"
 
 #include <cmath>
 #include <exception>
@@ -75,6 +76,7 @@ std::optional<float> plainNumber(std::string_view text) {
 	try {
 		std::size_t used = 0;
 		const std::string digits(text);
+		if(!numberLengthFits(digits)) return std::nullopt;
 		const float amount = std::stof(digits, &used);
 		if(used == digits.size() && std::isfinite(amount) && amount >= 0.0f) return amount;
 		// NOLINTNEXTLINE(bugprone-empty-catch): not a number, reported by the caller like any other malformed size

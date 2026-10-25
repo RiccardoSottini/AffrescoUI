@@ -59,6 +59,11 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `gltf` | A file's bytes, `.gltf` or `.glb`, to the glTF loader (`modules/scene3d/src/gltf/`), without a folder, so only embedded and `data:` buffers are read | Refused with an error, or a model within the limits it was given |
 | `scene` | `{ gltf, scene, animations, time }`: a scene node's scene and clips (`format/src/creative/SceneType.cpp`), the glTF placed as an asset, read at the time | Within its node and material limits; every placed node is in the scene and selects its owner; read back from its JSON it is the same scene |
 | `images` | `{ images, steps }`: the images a screen edits (`format/src/imaging`), each entry within small limits, and up to 48 `image` steps with any `with` | An entry is refused with a reason or makes an image; a step that can't be done leaves its reason, as the step does; every snapshot the screen's state receives can be written out, and the image stays within its side limit |
+| `sound` | A sound description (`audio/Sound.hpp`), as an agent writes it in a document | Refused, or rendered for a second at the start and past its end with every sample finite and within -1 to 1 |
+| `language_grammar` | A `"languages"` section's JSON (`format/src/languages/Language.hpp`), a zero byte, then text tokenized line by line in each language read | Refused with `DocumentError` or read within the limits; every language read tokenizes any text within the tokenizer's limits |
+| `language_tokenizer` | Text in one of the languages in `examples/shared/languages` (the first byte picks it), tokenized line by line (`format/src/languages/LanguageTokenizer.hpp`) | Within the limits, each token inside its line and in its language's scopes; a line tokenized again from the same start gives the same tokens |
+| `icc` | An ICC profile's bytes (`affresco/imaging/Color.hpp`), as any PNG, JPEG or project opened may embed | A usable profile that converts a few pixels and a table to sRGB (proofed when CMYK), or a `DocumentError`; never a read past its bytes |
+| `tempera_project` | An image editor project file's bytes (`affresco/imaging/Project.hpp`) | A `DocumentError`, or a document whose every tile reads and which saves and loads again within the limits |
 
 ## Inventory of untrusted inputs
 

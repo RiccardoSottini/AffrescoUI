@@ -296,6 +296,18 @@ TEST_CASE("search: a folder's matches, with lines, columns and previews, filtere
 	          .summary.matches == 1);
 }
 
+#ifndef _WIN32
+TEST_CASE("search: a .gitignore that is a link out of the root is not read") {
+	const TempFolder outside;
+	const TempFolder folder;
+	outside.write("rules", "*.txt\n");
+	folder.write("a.txt", "needle\n");
+	std::filesystem::create_symlink(outside.path / "rules", folder.path / ".gitignore");
+	CHECK(paths(search(folder.path, {.pattern = "needle", .options = {}, .include = {}, .exclude = {}})) ==
+	      std::vector<std::string>{"a.txt"});
+}
+#endif
+
 TEST_CASE("search: the wrong pattern, glob or folder is refused") {
 	const TempFolder folder;
 	CHECK(search(folder.path, {.pattern = "(", .options = {.regex = true}, .include = {}, .exclude = {}})

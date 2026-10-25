@@ -52,6 +52,7 @@ bool allowed(const json& after) {
 		rules.checkChange(screenWithActions(), after);
 		return true;
 	} catch(const affresco::DocumentError& error) {
+		INFO(std::string(error.what()));
 		CHECK(std::string(error.what()).find("permission denied") != std::string::npos);
 		return false;
 	}
@@ -224,6 +225,7 @@ TEST_CASE("format: a revision may not add a use of the document's own component 
 			affresco::format::Rules().checkChange(before, after);
 			return false;
 		} catch(const affresco::DocumentError& error) {
+			INFO(std::string(error.what()));
 			CHECK(std::string(error.what()).find("permission denied") != std::string::npos);
 			return true;
 		}
@@ -373,4 +375,29 @@ TEST_CASE("format: a revision can't give a taken id to another node, even in a d
 	renamed["root"]["children"][0]["id"] = "decoy";
 	CHECK_NOTHROW(rules.checkChange(before, renamed));
 	CHECK_NOTHROW(rules.checkChange(after, after)); // and a duplicate already there doesn't block what follows
+}
+
+TEST_CASE("format: a revision may not add an image step that shows a file dialog") {
+	const affresco::format::Rules rules;
+	json before = screenWithActions();
+	before["images"] = {{"photo", {{"width", 64}, {"height", 48}, {"into", "state.photo"}}}};
+	before["state"]["photo"] = nullptr;
+	before["state"]["asset"] = "a.png";
+	const auto adds = [&](const char* steps) {
+		json after = before;
+		after["root"]["children"][0]["children"] = json::array({{{"type", "panel"}, {"onClick", json::parse(steps)}}});
+		try {
+			rules.checkChange(before, after);
+			return true;
+		} catch(const affresco::DocumentError& error) {
+			INFO(std::string(error.what()));
+			CHECK(std::string(error.what()).find("permission denied") != std::string::npos);
+			return false;
+		}
+	};
+	CHECK_FALSE(adds(R"([{"image": "open", "of": "photo"}])"));
+	CHECK_FALSE(adds(R"([{"image": "save", "of": "photo"}])"));
+	CHECK_FALSE(adds(R"([{"image": "{{state.op}}", "of": "photo"}])"));
+	CHECK(adds(R"([{"image": "open", "of": "photo", "with": {"asset": "{{state.asset}}"}}])"));
+	CHECK(adds(R"([{"image": "rotateCanvas", "of": "photo"}])"));
 }
