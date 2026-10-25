@@ -22,6 +22,7 @@
 			"ws://127.0.0.1:7420": "Syncs your settings through a document server on this computer."
 		},
 		"files": "Imports a color theme you choose.",
-		"assistant": "Answers your questions about your code, with the assistant you set up in Settings."
+		"assistant": "Answers your questions about your code, with the assistant you set up in Settings.",
+		"channels": "The Agent view talks to the coding agent on this computer, through the host's local socket."
 	}
 }
