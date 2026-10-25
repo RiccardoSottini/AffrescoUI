@@ -6,7 +6,7 @@
 
 	"state": {
 		"layout": { "sidebar": true, "panel": false, "panelMax": false, "zen": false, "secondary": false, "sizes": [240], "panelSizes": [480], "groupSizes": [] },
-		"folder": { "root": "", "files": [],
+		"folder": { "root": "", "files": [], "truncated": false,
 			"skip": "**/node_modules/**,**/build/**,**/out/**,**/dist/**,**/target/**,**/__pycache__/**,**/.*/**,**/.*" },
 		"explorer": { "expanded": [], "selected": null },
 		"docs": [],
@@ -75,7 +75,8 @@
 		"indexFolder": [
 			{ "note": "Lists the folder's files for Go to File" },
 			{ "invoke": "search.files", "with": { "exclude": "{{state.folder.skip}}" },
-			  "onDone": [{ "run": "indexed", "with": { "files": "{{result.files}}" } }], "onError": [{ "set": "state.folder.files", "to": [] }] }
+			  "onDone": [{ "run": "indexed", "with": { "files": "{{result.files}}" } }, { "set": "state.folder.truncated", "to": "{{result.truncated}}" }],
+			  "onError": [{ "set": "state.folder.files", "to": [] }] }
 		],
 		"indexed": [{ "set": "state.folder.files", "to": "{{map(files, {id: it, title: reverse(split(it, '/'))[0], detail: join(slice(split(it, '/'), 0, -1), '/')})}}" }],
 		"openExplorerItem": [

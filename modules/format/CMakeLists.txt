@@ -22,12 +22,14 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctions.cpp
 	src/functions/ExpressionFunctionsColor.cpp
 	src/functions/ExpressionFunctionsDates.cpp
+	src/functions/ExpressionFunctionsDiff.cpp
 	src/functions/ExpressionFunctionsForm.cpp
 	src/functions/ExpressionFunctionsPaths.cpp
-	src/functions/ExpressionFunctionsDiff.cpp
 	src/functions/ExpressionFunctionsFuzzy.cpp
+	src/functions/ExpressionFunctionsGit.cpp
 	src/functions/ExpressionFunctionsItems.cpp
 	src/functions/ExpressionFunctionsFold.cpp
+	src/functions/ExpressionFunctionsKeys.cpp
 	src/functions/ExpressionFunctionsKeyframes.cpp
 	src/functions/ExpressionFunctionsLists.cpp
 	src/functions/ExpressionFunctionsLocale.cpp
@@ -101,7 +103,8 @@ target_sources(affrescoui_format PRIVATE
 	src/events/EventsPointer.cpp
 	src/events/EventsKeys.cpp
 	src/events/EventsFocus.cpp
-	src/events/Shortcuts.cpp)
+	src/events/Shortcuts.cpp
+	src/events/KeyNotation.cpp)
 target_include_directories(affrescoui_format PRIVATE src/events)
 # src/steps/: the registry and the step groups
 target_sources(affrescoui_format PRIVATE
@@ -113,6 +116,7 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/ReviewSteps.cpp
 	src/steps/EditorSteps.cpp
 	src/steps/NavigationSteps.cpp
+	src/steps/KeySteps.cpp
 	src/steps/TimeSteps.cpp
 	src/steps/OtherSteps.cpp
 	src/steps/ServiceSteps.cpp
@@ -151,6 +155,16 @@ target_sources(affrescoui_format PRIVATE src/components/Library.cpp)
 target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/creative/GradientType.cpp
 	src/creative/CurvesType.cpp src/creative/CreativeValues.cpp src/creative/CanvasType.cpp src/creative/GraphType.cpp
 	src/creative/TimelineType.cpp src/creative/PathType.cpp src/creative/SceneType.cpp)
+# terminal: the `terminal` node and steps: VT terminals (libvterm, compiled in, two of its sources fixed:
+# cmake/AffrescoUITerminal.cmake) whose programs run on a pty service
+target_sources(affrescoui_format PRIVATE src/terminal/TerminalModel.cpp src/terminal/TerminalSessions.cpp
+	src/terminal/TerminalView.cpp src/terminal/TerminalType.cpp src/terminal/TerminalSteps.cpp
+	${AFFRESCOUI_VTERM_SOURCES})
+target_include_directories(affrescoui_format PRIVATE src/terminal)
+target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_VTERM_DIR}/include)
+# libvterm's warnings are not ours to fix; the fixed copies include its internal header
+set_source_files_properties(${AFFRESCOUI_VTERM_SOURCES} PROPERTIES COMPILE_OPTIONS $<IF:$<C_COMPILER_ID:MSVC>,/w,-w>
+	SKIP_LINTING ON INCLUDE_DIRECTORIES ${AFFRESCOUI_VTERM_DIR}/src)
 # scene: the 3D scene node and its camera step
 target_link_libraries(affrescoui_format PRIVATE affrescoui::scene3d)
 # imaging: the images a screen edits ("images" section, "image" step, "raster" node): the store, the tools, the

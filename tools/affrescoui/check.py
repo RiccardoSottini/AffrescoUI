@@ -170,12 +170,12 @@ class Checker:
         listener.close()
 
     def insert_without_text(self):
-        """A code editor whose "insert" has no "text": render draws it and inserts nothing (it used to read the missing
-        key through a const operator[], which is undefined behaviour and aborted a debug build)."""
+        """An editor whose "insert" has no "text": render draws it and inserts nothing (the code editor this replaced
+        read the missing key through a const operator[], which is undefined behaviour and aborted a debug build)."""
         path = os.path.join(self.scratch, "insert.screen.json")
         with open(path, "w", encoding="utf-8") as file:
             json.dump({"format": "affrescoui-screen", "version": 2, "window": {"width": 200, "height": 100},
-                       "root": {"id": "root", "children": [{"type": "code", "id": "code", "width": 200, "height": 100,
+                       "root": {"id": "root", "children": [{"type": "editor", "id": "code", "width": 200, "height": 100,
                                                             "insert": {"before": 1}}]}}, file)
         self.run("render", path, "-o", os.path.join(self.scratch, "insert.png"))
 

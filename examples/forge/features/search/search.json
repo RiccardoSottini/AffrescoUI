@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's Search view: an editor page (Find in Files, mod+shift+f) that searches the open folder through the natives of Search.cpp (forge.search, slow and cancellable, its results streamed into state.search.result), shows the matches as a tree by file, opens a match at its line, and replaces every match after a confirm through forge.replace. Files with unsaved edits are skipped, and the open ones that changed are read again.",
+	"note": "Forge's Search view: an editor page (Find in Files, mod+shift+f) that searches the open folder with the search service (search.find, cancellable, one event per file, built into state.search.result), shows the matches as a tree by file, opens a match at its line, and replaces every match after a confirm, one file at a time (search.replace, then files.write). Build output and dependencies (state.search.skip) are never searched; files with unsaved edits are skipped, and the open ones that changed are read again.",
 
 	"state": {
 		"search": {
@@ -17,6 +17,8 @@
 			"ran": null,
 			"collapsed": [],
 			"reload": [],
+			"replacing": null,
+			"skip": "build, node_modules, out, target, dist, __pycache__",
 			"busy": false,
 			"confirm": false,
 			"error": ""
@@ -36,7 +38,7 @@
 			"do": [{ "set": "state.sideView", "to": "search" }, { "set": "state.layout.sidebar", "to": true }, { "focus": "#search-query" }]
 		},
 		"runSearch": [
-			{ "cancel": "forge.search" },
+			{ "cancel": "forge-search" },
 			{ "set": "state.search.error", "to": "" },
 			{ "set": "state.search.collapsed", "to": [] },
 			{
@@ -44,17 +46,12 @@
 				"then": [{ "set": "state.search.result", "to": null }, { "set": "state.search.ran", "to": null }],
 				"else": [
 					{
-						"call": "forge.searchScope",
+						"if": "{{empty(state.folder.root)}}",
 						"then": [
-							{
-								"if": "{{!result.open}}",
-								"then": [
-									{ "set": "state.search.result", "to": null },
-									{ "set": "state.search.error", "to": "Open a folder to search it." }
-								],
-								"else": [{ "run": "startSearch" }]
-							}
-						]
+							{ "set": "state.search.result", "to": null },
+							{ "set": "state.search.error", "to": "Open a folder to search it." }
+						],
+						"else": [{ "run": "startSearch" }]
 					}
 				]
 			}
@@ -62,23 +59,39 @@
 		"startSearch": [
 			{
 				"set": "state.search.ran",
-				"to": "{{ {pattern: state.search.query, regex: state.search.regex, wholeWord: state.search.wholeWord, caseSensitive: state.search.caseSensitive, include: state.search.include, exclude: state.search.exclude} }}"
+				"to": "{{ {pattern: state.search.query, regex: state.search.regex, wholeWord: state.search.wholeWord, caseSensitive: state.search.caseSensitive, include: state.search.include, exclude: state.search.skip + (empty(trim(state.search.exclude)) ? '' : ', ' + state.search.exclude)} }}"
 			},
+			{ "set": "state.search.result", "to": { "tree": [], "hits": [], "files": 0, "matches": 0, "skipped": 0, "truncated": false, "done": false } },
 			{
-				"call": "forge.search",
+				"invoke": "search.find",
 				"with": "{{state.search.ran}}",
-				"into": "state.search.result",
+				"id": "forge-search",
+				"timeout": 600000,
 				"loading": "state.search.busy",
+				"onEvent": [{ "run": "searchFound", "with": { "found": "{{event}}" } }],
 				"onError": [
-					{ "set": "state.search.result", "to": null },
-					{ "set": "state.search.error", "to": "{{error}}" }
+					{
+						"if": "{{error.code != 'cancelled'}}",
+						"then": [{ "set": "state.search.result", "to": null }, { "set": "state.search.error", "to": "{{error.message}}" }]
+					}
 				],
-				"then": [
+				"onDone": [
+					{
+						"set": "state.search.result",
+						"to": "{{merge(state.search.result, {tree: sort(state.search.result.tree, it.id), skipped: result.skipped, truncated: result.truncated, done: true})}}"
+					},
 					{
 						"run": "log",
-						"with": { "text": "{{'Search: ' + plural(result.matches, 'result') + ' in ' + plural(result.files, 'file')}}" }
+						"with": { "text": "{{'Search: ' + plural(state.search.result.matches, 'result') + ' in ' + plural(state.search.result.files, 'file')}}" }
 					}
 				]
+			}
+		],
+		"searchFound": [
+			{ "note": "found: { file, matches: [{ line (from 1), column, length, text, at }] }, one file's matches: a tree item with a child per match, each naming its place in hits" },
+			{
+				"set": "state.search.result",
+				"to": "{{merge(state.search.result, {tree: concat(state.search.result.tree, [{id: 'file:' + found.file, label: reverse(split(found.file, '/'))[0] + (contains(found.file, '/') ? '  ' + slice(found.file, 0, length(found.file) - length(reverse(split(found.file, '/'))[0]) - 1) : '') + '  (' + length(found.matches) + ')', icon: 'file', children: map(found.matches, {id: 'hit:' + (length(state.search.result.hits) + index), label: it.line + ': ' + trim(it.text)})}]), hits: concat(state.search.result.hits, map(found.matches, {file: found.file, label: reverse(split(found.file, '/'))[0], line: it.line, column: it.column})), files: state.search.result.files + 1, matches: state.search.result.matches + length(found.matches)})}}"
 			}
 		],
 		"cancelSearch": {
@@ -86,7 +99,7 @@
 			"category": "Search",
 			"icon": "close",
 			"enablement": "{{state.search.busy}}",
-			"do": [{ "cancel": "forge.search" }]
+			"do": [{ "cancel": "forge-search" }]
 		},
 		"openSearchHit": [
 			{
@@ -126,26 +139,66 @@
 			}
 		],
 		"replaceAll": [
+			{ "note": "One file at a time (the search service runs 4 calls at once): its text replaced by search.replace, written by files.write; open files with unsaved edits are skipped" },
 			{
-				"call": "forge.replace",
-				"with": "{{merge(state.search.ran, {replacement: state.search.replace, files: map(state.search.result.tree, slice(it.id, 5)), skip: computed.dirtyIds})}}",
-				"onError": [
-					{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot replace: ' + error}}" } }
-				],
-				"then": [
-					{ "set": "state.search.reload", "to": "{{filter(result.changed, contains(computed.docIds, it))}}" },
-					{ "forEach": "state.search.reload", "as": "file", "do": [{ "invoke": "files.read", "with": { "path": "{{file}}" },
-						"onDone": [{ "run": "reloaded", "with": { "id": "{{file}}", "text": "{{result.text}}" } }] }] },
-					{
-						"run": "notify",
-						"with": {
-							"severity": "{{length(result.failed) > 0 || length(result.skipped) > 0 ? 'warning' : 'info'}}",
-							"message": "{{'Replaced ' + plural(result.replaced, 'match', 'matches') + ' in ' + plural(length(result.changed), 'file') + (length(result.skipped) > 0 ? ', skipped ' + plural(length(result.skipped), 'unsaved file') : '') + (length(result.failed) > 0 ? ', ' + plural(length(result.failed), 'file') + ' failed' : '')}}"
-						}
-					},
-					{ "run": "runSearch" }
+				"set": "state.search.replacing",
+				"to": "{{ {queue: filter(map(state.search.result.tree, slice(it.id, 5)), !contains(computed.dirtyIds, it)), skipped: filter(map(state.search.result.tree, slice(it.id, 5)), contains(computed.dirtyIds, it)), replaced: 0, changed: [], failed: []} }}"
+			},
+			{ "run": "replaceNext" }
+		],
+		"replaceNext": [
+			{
+				"if": "{{empty(state.search.replacing.queue)}}",
+				"then": [{ "run": "replaceFinished", "with": { "done": "{{state.search.replacing}}" } }],
+				"else": [
+					{ "run": "replaceFile", "with": { "file": "{{state.search.replacing.queue[0]}}" } }
 				]
 			}
+		],
+		"replaceFile": [
+			{ "set": "state.search.replacing.queue", "to": "{{slice(state.search.replacing.queue, 1)}}" },
+			{
+				"invoke": "search.replace",
+				"with": "{{ {path: file, pattern: state.search.ran.pattern, regex: state.search.ran.regex, wholeWord: state.search.ran.wholeWord, caseSensitive: state.search.ran.caseSensitive, replacement: state.search.replace} }}",
+				"onError": [{ "run": "replaceFailed", "with": { "file": "{{file}}", "message": "{{error.message}}" } }],
+				"onDone": [
+					{
+						"if": "{{result.replacements == 0}}",
+						"then": [{ "run": "replaceNext" }],
+						"else": [{ "run": "replaceWrite", "with": { "file": "{{file}}", "text": "{{result.text}}", "count": "{{result.replacements}}" } }]
+					}
+				]
+			}
+		],
+		"replaceWrite": [
+			{
+				"invoke": "files.write",
+				"with": { "path": "{{file}}", "text": "{{text}}" },
+				"onError": [{ "run": "replaceFailed", "with": { "file": "{{file}}", "message": "{{error.message}}" } }],
+				"onDone": [
+					{ "set": "state.search.replacing.replaced", "to": "{{state.search.replacing.replaced + count}}" },
+					{ "set": "state.search.replacing.changed", "to": "{{concat(state.search.replacing.changed, [file])}}" },
+					{ "run": "replaceNext" }
+				]
+			}
+		],
+		"replaceFailed": [
+			{ "set": "state.search.replacing.failed", "to": "{{concat(state.search.replacing.failed, [{file: file, error: message}])}}" },
+			{ "run": "replaceNext" }
+		],
+		"replaceFinished": [
+			{ "set": "state.search.replacing", "to": null },
+			{ "set": "state.search.reload", "to": "{{filter(done.changed, contains(computed.docIds, it))}}" },
+			{ "forEach": "state.search.reload", "as": "file", "do": [{ "invoke": "files.read", "with": { "path": "{{file}}" },
+				"onDone": [{ "run": "reloaded", "with": { "id": "{{file}}", "text": "{{result.text}}" } }] }] },
+			{
+				"run": "notify",
+				"with": {
+					"severity": "{{length(done.failed) > 0 || length(done.skipped) > 0 ? 'warning' : 'info'}}",
+					"message": "{{'Replaced ' + plural(done.replaced, 'match', 'matches') + ' in ' + plural(length(done.changed), 'file') + (length(done.skipped) > 0 ? ', skipped ' + plural(length(done.skipped), 'unsaved file') : '') + (length(done.failed) > 0 ? ', ' + plural(length(done.failed), 'file') + ' failed' : '')}}"
+				}
+			},
+			{ "run": "runSearch" }
 		]
 	},
 

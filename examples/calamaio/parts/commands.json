@@ -1,0 +1,1090 @@
+{
+	"note": "Calamaio's commands, named as the editor they follow names them (M-x lists them; C-h f describes them), and the helpers they share. A command that moves or edits presses the keys of the selected window's editor.",
+	"computed": {
+		"ed": "{{'#ed' + state.sel}}",
+		"n": "{{state.arg ?? 1}}",
+		"cur": "{{state.win[state.sel].buf}}",
+		"buf": "{{state.bufs[state.win[state.sel].buf]}}",
+		"text": "{{state.bufs[state.win[state.sel].buf].kind != 'splash'}}",
+		"wins": "{{split(join(map(state.layout.groups, join(it, ',')), ','), ',')}}",
+		"other": "{{find(state.order, it != state.win[state.sel].buf && state.bufs[it].kind != 'splash') ?? state.win[state.sel].buf}}",
+		"names": "{{map(state.order, state.bufs[it].name)}}",
+		"commandNames": "{{sortText(map(commands, it.name))}}",
+		"mbCands": "{{state.mb.kind == 'command' || state.mb.kind == 'function' ? computed.commandNames : state.mb.kind == 'buffer' || state.mb.kind == 'kill' ? computed.names : contains(['file', 'write', 'insert'], state.mb.kind) ? map(state.files, it.path) : state.mb.kind == 'theme' ? ['default', 'inchiostro', 'pergamena'] : state.mb.kind == 'variable' ? map(settingsList, it.key) : []}}",
+		"mbMatches": "{{sortText(filter(computed.mbCands, slice(it, 0, length(state.mb.text)) == state.mb.text))}}",
+		"mbA": "{{computed.mbMatches[0] ?? ''}}",
+		"mbB": "{{computed.mbMatches[length(computed.mbMatches) - 1] ?? ''}}",
+		"mbPrefix": "{{slice(computed.mbA, 0, count(range(min(length(computed.mbA), length(computed.mbB))), slice(computed.mbA, 0, it + 1) == slice(computed.mbB, 0, it + 1)))}}",
+		"argLabel": "{{state.arg == null ? '' : state.argDigits ? text(state.arg) : 'C-u'}}",
+		"keyChars": {
+			"space": " ",
+			"minus": "-",
+			"period": ".",
+			"comma": ",",
+			"slash": "/",
+			"semicolon": ";",
+			"apostrophe": "'",
+			"equal": "=",
+			"leftbracket": "[",
+			"rightbracket": "]",
+			"backslash": "\\",
+			"shift+9": "(",
+			"shift+0": ")",
+			"shift+1": "!",
+			"shift+2": "@",
+			"shift+3": "#",
+			"shift+4": "$",
+			"shift+5": "%",
+			"shift+6": "^",
+			"shift+7": "&",
+			"shift+8": "*",
+			"shift+minus": "_",
+			"shift+equal": "+",
+			"shift+semicolon": ":",
+			"shift+apostrophe": "\"",
+			"shift+comma": "<",
+			"shift+period": ">",
+			"shift+slash": "?"
+		}
+	},
+	"actions": {
+		"message": [
+			{ "set": "state.echo", "to": "{{m}}" },
+			{ "set": "state.bufs.b2.text", "to": "{{state.bufs.b2.text + m + '\n'}}" }
+		],
+		"move": [
+			{ "if": "{{state.arg != null}}", "then": [{ "set": "state.echo", "to": "" }] },
+			{
+				"if": "{{computed.text}}",
+				"then": [
+					{
+						"press": "{{(state.mark.on ? 'shift+' : '') + k}}",
+						"in": "{{computed.ed}}",
+						"times": "{{computed.n}}"
+					}
+				]
+			},
+			{ "set": "state.arg", "to": null }
+		],
+		"edit-key": [
+			{ "if": "{{state.arg != null}}", "then": [{ "set": "state.echo", "to": "" }] },
+			{
+				"if": "{{computed.text && !computed.buf.readOnly}}",
+				"then": [{ "press": "{{k}}", "in": "{{computed.ed}}", "times": "{{computed.n}}" }],
+				"else": [{ "run": "read-only" }]
+			},
+			{ "set": "state.arg", "to": null }
+		],
+		"read-only": { "run": "message", "with": { "m": "{{'Buffer is read-only: ' + computed.buf.name}}" } },
+		"show": [
+			{ "run": "keep-point" },
+			{ "set": "{{'state.win.' + state.sel + '.buf'}}", "to": "{{b}}" },
+			{ "set": "state.order", "to": "{{concat([b], filter(state.order, it != b))}}" },
+			{ "set": "state.mark.on", "to": false },
+			{
+				"after": 20,
+				"do": [
+					{
+						"run": "goto-point",
+						"with": { "e": "{{'#ed' + state.sel}}", "pt": "{{state.bufs[b].pt ?? {line: 1, column: 1} }}" }
+					}
+				]
+			}
+		],
+		"keep-point": [
+			{
+				"if": "{{computed.text}}",
+				"then": [
+					{
+						"set": "{{'state.bufs.' + computed.cur + '.pt'}}",
+						"to": "{{ {line: state.win[state.sel].caret.line, column: state.win[state.sel].caret.column} }}"
+					}
+				]
+			}
+		],
+		"goto-point": [
+			{ "focus": "{{computed.ed}}" },
+			{
+				"if": "{{nodes[slice(e, 1)] != null}}",
+				"then": [
+					{ "press": "cmd+up", "in": "{{e}}" },
+					{
+						"if": "{{pt.line > 1}}",
+						"then": [{ "press": "down", "in": "{{e}}", "times": "{{min(1000, pt.line - 1)}}" }]
+					},
+					{ "press": "cmd+left", "in": "{{e}}" },
+					{
+						"if": "{{pt.column > 1}}",
+						"then": [{ "press": "right", "in": "{{e}}", "times": "{{min(1000, pt.column - 1)}}" }]
+					}
+				]
+			}
+		],
+		"open-buffer": [
+			{ "set": "{{'state.bufs.b' + state.nextBuf}}", "to": "{{buffer}}" },
+			{ "run": "show", "with": { "b": "{{'b' + state.nextBuf}}" } },
+			{ "increment": "state.nextBuf" }
+		],
+		"forward-char": {
+			"title": "Forward Char",
+			"category": "Motion",
+			"description": "Moves point a character forward (by the argument's count).",
+			"do": { "run": "move", "with": { "k": "right" } }
+		},
+		"backward-char": {
+			"title": "Backward Char",
+			"category": "Motion",
+			"description": "Moves point a character back.",
+			"do": { "run": "move", "with": { "k": "left" } }
+		},
+		"next-line": {
+			"title": "Next Line",
+			"category": "Motion",
+			"description": "Moves point down a line, keeping its column.",
+			"do": { "run": "move", "with": { "k": "down" } }
+		},
+		"previous-line": {
+			"title": "Previous Line",
+			"category": "Motion",
+			"description": "Moves point up a line, keeping its column.",
+			"do": { "run": "move", "with": { "k": "up" } }
+		},
+		"forward-word": {
+			"title": "Forward Word",
+			"category": "Motion",
+			"description": "Moves point past the end of the next word.",
+			"do": { "run": "move", "with": { "k": "alt+right" } }
+		},
+		"backward-word": {
+			"title": "Backward Word",
+			"category": "Motion",
+			"description": "Moves point to the start of the word before it.",
+			"do": { "run": "move", "with": { "k": "alt+left" } }
+		},
+		"move-beginning-of-line": {
+			"title": "Beginning of Line",
+			"category": "Motion",
+			"description": "Moves point to the start of its line.",
+			"do": { "run": "move", "with": { "k": "cmd+left" } }
+		},
+		"move-end-of-line": {
+			"title": "End of Line",
+			"category": "Motion",
+			"description": "Moves point to the end of its line.",
+			"do": { "run": "move", "with": { "k": "cmd+right" } }
+		},
+		"beginning-of-buffer": {
+			"title": "Beginning of Buffer",
+			"category": "Motion",
+			"description": "Moves point to the start of the buffer, leaving the mark where it was.",
+			"do": [
+				{ "if": "{{!state.mark.on}}", "then": [{ "run": "message", "with": { "m": "Mark set" } }] },
+				{ "set": "state.arg", "to": null },
+				{ "run": "move", "with": { "k": "cmd+up" } }
+			]
+		},
+		"end-of-buffer": {
+			"title": "End of Buffer",
+			"category": "Motion",
+			"description": "Moves point to the end of the buffer, leaving the mark where it was.",
+			"do": [
+				{ "if": "{{!state.mark.on}}", "then": [{ "run": "message", "with": { "m": "Mark set" } }] },
+				{ "set": "state.arg", "to": null },
+				{ "run": "move", "with": { "k": "cmd+down" } }
+			]
+		},
+		"scroll-up-command": {
+			"title": "Scroll Up",
+			"category": "Motion",
+			"description": "Shows the next screenful of text.",
+			"do": { "run": "move", "with": { "k": "pagedown" } }
+		},
+		"scroll-down-command": {
+			"title": "Scroll Down",
+			"category": "Motion",
+			"description": "Shows the previous screenful of text.",
+			"do": { "run": "move", "with": { "k": "pageup" } }
+		},
+		"delete-char": {
+			"title": "Delete Char",
+			"category": "Editing",
+			"description": "Deletes the character after point.",
+			"do": { "run": "edit-key", "with": { "k": "delete" } }
+		},
+		"undo": {
+			"title": "Undo",
+			"category": "Editing",
+			"description": "Undoes the last change; repeat it to undo more.",
+			"do": [{ "run": "edit-key", "with": { "k": "ctrl+z" } }, { "run": "message", "with": { "m": "Undo" } }]
+		},
+		"undo-redo": {
+			"title": "Redo",
+			"category": "Editing",
+			"description": "Redoes what the last undo undid.",
+			"do": [{ "run": "edit-key", "with": { "k": "ctrl+shift+z" } }, { "run": "message", "with": { "m": "Redo" } }]
+		},
+		"set-mark-command": {
+			"title": "Set Mark",
+			"category": "Editing",
+			"description": "Sets the mark where point is and activates the region.",
+			"do": [
+				{
+					"if": "{{computed.text && state.win[state.sel].caret.selected > 0}}",
+					"then": [{ "press": "right", "in": "{{computed.ed}}" }]
+				},
+				{
+					"set": "state.mark",
+					"to": "{{ {on: true, line: state.win[state.sel].caret.line, column: state.win[state.sel].caret.column} }}"
+				},
+				{ "run": "message", "with": { "m": "Mark set" } }
+			]
+		},
+		"keyboard-quit": {
+			"title": "Cancel",
+			"category": "Editing",
+			"description": "Cancels the command being typed, the minibuffer and the region.",
+			"do": [
+				{ "run": "deactivate-mark" },
+				{ "set": "state.arg", "to": null },
+				{ "if": "{{state.mb.open}}", "then": [{ "run": "minibuffer-close" }] },
+				{ "set": "state.echo", "to": "Quit" }
+			]
+		},
+		"deactivate-mark": [
+			{
+				"if": "{{state.mark.on && computed.text && state.win[state.sel].caret.selected > 0}}",
+				"then": [
+					{
+						"press": "{{state.win[state.sel].caret.line > state.mark.line || state.win[state.sel].caret.line == state.mark.line && state.win[state.sel].caret.column >= state.mark.column ? 'right' : 'left'}}",
+						"in": "{{computed.ed}}"
+					}
+				]
+			},
+			{ "set": "state.mark.on", "to": false }
+		],
+		"split-window-below": {
+			"title": "New Window Below",
+			"category": "Windows",
+			"description": "Splits the selected window in two, one above the other.",
+			"do": { "run": "split", "with": { "below": true } }
+		},
+		"split-window-right": {
+			"title": "New Window on Right",
+			"category": "Windows",
+			"description": "Splits the selected window in two, side by side.",
+			"do": { "run": "split", "with": { "below": false } }
+		},
+		"split": [
+			{
+				"if": "{{length(computed.wins) >= 8}}",
+				"then": [{ "run": "message", "with": { "m": "No room for another window" } }, { "stop": true }]
+			},
+			{
+				"if": "{{length(computed.wins) == 1}}",
+				"then": [{ "set": "state.layout.dir", "to": "{{below ? 'column' : 'row'}}" }]
+			},
+			{
+				"run": "split-at",
+				"with": {
+					"n": "{{'w' + state.nextWin}}",
+					"gi": "{{indexOf(map(state.layout.groups, contains(it, state.sel)), true)}}",
+					"across": "{{below == (state.layout.dir == 'column')}}"
+				}
+			},
+			{ "run": "relayout" }
+		],
+		"split-at": [
+			{
+				"set": "{{'state.win.' + n}}",
+				"to": "{{ {buf: state.win[state.sel].buf, caret: state.win[state.sel].caret, pt: state.win[state.sel].caret, view: {}} }}"
+			},
+			{ "increment": "state.nextWin" },
+			{
+				"set": "state.layout.groups",
+				"to": "{{across ? concat(slice(state.layout.groups, 0, gi + 1), [[n]], slice(state.layout.groups, gi + 1)) : map(state.layout.groups, index == gi ? concat(slice(it, 0, indexOf(it, state.sel) + 1), [n], slice(it, indexOf(it, state.sel) + 1)) : it)}}"
+			}
+		],
+		"delete-window": {
+			"title": "Remove Window",
+			"category": "Windows",
+			"description": "Removes the selected window; the others take its room.",
+			"do": [
+				{
+					"if": "{{length(computed.wins) == 1}}",
+					"then": [{ "run": "message", "with": { "m": "Can't remove the frame's only window" } }, { "stop": true }]
+				},
+				{
+					"run": "delete-window-at",
+					"with": {
+						"s": "{{state.sel}}",
+						"next": "{{computed.wins[max(0, indexOf(computed.wins, state.sel) - 1)] == state.sel ? computed.wins[1] : computed.wins[max(0, indexOf(computed.wins, state.sel) - 1)]}}"
+					}
+				}
+			]
+		},
+		"delete-window-at": [
+			{ "run": "relayout" },
+			{
+				"set": "state.layout.groups",
+				"to": "{{filter(map(state.layout.groups, filter(it, it != s)), length(it) > 0)}}"
+			},
+			{ "remove": "{{'state.win.' + s}}" },
+			{ "set": "state.sel", "to": "{{next}}" },
+			{ "focus": "{{'#ed' + next}}" }
+		],
+		"delete-other-windows": {
+			"title": "Remove Other Windows",
+			"category": "Windows",
+			"description": "Makes the selected window fill the frame.",
+			"do": [
+				{ "run": "relayout" },
+				{
+					"forEach": "{{filter(keys(state.win), it != state.sel)}}",
+					"as": "x",
+					"do": [{ "remove": "{{'state.win.' + x}}" }]
+				},
+				{ "set": "state.layout", "to": "{{ {dir: 'column', groups: [[state.sel]]} }}" }
+			]
+		},
+		"other-window": {
+			"title": "Other Window",
+			"category": "Windows",
+			"description": "Selects the next window, in the order they are on the frame.",
+			"do": [
+				{
+					"set": "state.sel",
+					"to": "{{computed.wins[(indexOf(computed.wins, state.sel) + 1) % length(computed.wins)]}}"
+				},
+				{ "set": "state.mark.on", "to": false },
+				{ "focus": "{{computed.ed}}" }
+			]
+		},
+		"switch-to-buffer": {
+			"title": "Select Buffer...",
+			"category": "Buffers",
+			"description": "Shows a buffer in the selected window, asking for its name.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": {
+					"kind": "buffer",
+					"prompt": "{{'Switch to buffer (default ' + state.bufs[computed.other].name + '): '}}",
+					"def": "{{state.bufs[computed.other].name}}",
+					"init": ""
+				}
+			}
+		},
+		"mb-buffer": [
+			{
+				"if": "{{contains(computed.names, value)}}",
+				"then": [{ "run": "show", "with": { "b": "{{state.order[indexOf(computed.names, value)]}}" } }],
+				"else": [{ "run": "open-buffer", "with": { "buffer": "{{ {name: value, mode: 'fundamental', text: ''} }}" } }]
+			}
+		],
+		"find-file": {
+			"title": "Open File...",
+			"category": "Files",
+			"description": "Visits a file in a buffer of its own, asking for its name.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "file", "prompt": "Find file: ", "def": "", "init": "{{state.home}}" }
+			}
+		},
+		"mb-file": [
+			{
+				"run": "visit",
+				"with": {
+					"path": "{{value}}",
+					"i": "{{indexOf(map(state.files, it.path), value)}}",
+					"name": "{{split(value, '/')[length(split(value, '/')) - 1]}}",
+					"open": "{{find(keys(state.bufs), state.bufs[it].file == value)}}"
+				}
+			}
+		],
+		"visit": [
+			{ "if": "{{open != null}}", "then": [{ "run": "show", "with": { "b": "{{open}}" } }, { "stop": true }] },
+			{
+				"run": "open-buffer",
+				"with": {
+					"buffer": "{{ {name: name, file: path, mode: state.modeFor[split(name, '.')[length(split(name, '.')) - 1]] ?? 'fundamental', text: i >= 0 ? state.files[i].text : ''} }}"
+				}
+			},
+			{ "if": "{{i < 0}}", "then": [{ "run": "message", "with": { "m": "(New file)" } }] }
+		],
+		"save-buffer": {
+			"title": "Save",
+			"category": "Files",
+			"description": "Writes the buffer to its file, if it changed.",
+			"do": [
+				{
+					"if": "{{computed.buf.file == null}}",
+					"then": [{ "run": "message", "with": { "m": "This buffer visits no file" } }, { "stop": true }]
+				},
+				{
+					"if": "{{!computed.buf.dirty}}",
+					"then": [{ "run": "message", "with": { "m": "(Nothing to save)" } }, { "stop": true }]
+				},
+				{
+					"run": "write-file-to",
+					"with": { "b": "{{computed.cur}}", "i": "{{indexOf(map(state.files, it.path), computed.buf.file)}}" }
+				}
+			]
+		},
+		"write-file-to": [
+			{
+				"if": "{{i >= 0}}",
+				"then": [{ "set": "{{'state.files[' + i + '].text'}}", "to": "{{state.bufs[b].text}}" }],
+				"else": [
+					{
+						"push": "state.files",
+						"value": "{{ {path: state.bufs[b].file, text: state.bufs[b].text, mtime: 1778749200000} }}"
+					}
+				]
+			},
+			{ "set": "{{'state.bufs.' + b + '.dirty'}}", "to": false },
+			{ "run": "message", "with": { "m": "{{'Wrote ' + state.bufs[b].file}}" } }
+		],
+		"kill-buffer": {
+			"title": "Close",
+			"category": "Files",
+			"description": "Kills a buffer, asking for its name.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": {
+					"kind": "kill",
+					"prompt": "{{'Kill buffer (default ' + computed.buf.name + '): '}}",
+					"def": "{{computed.buf.name}}",
+					"init": ""
+				}
+			}
+		},
+		"mb-kill": [
+			{
+				"if": "{{!contains(computed.names, value)}}",
+				"then": [{ "run": "message", "with": { "m": "{{'No buffer named ' + value}}" } }, { "stop": true }]
+			},
+			{ "run": "kill-buffer-id", "with": { "b": "{{state.order[indexOf(computed.names, value)]}}" } }
+		],
+		"kill-buffer-id": [
+			{
+				"if": "{{length(state.order) == 1}}",
+				"then": [
+					{
+						"run": "open-buffer",
+						"with": { "buffer": { "name": "*scratch*", "mode": "lisp-interaction", "text": "" } }
+					}
+				]
+			},
+			{ "set": "state.order", "to": "{{filter(state.order, it != b)}}" },
+			{
+				"forEach": "{{filter(keys(state.win), state.win[it].buf == b)}}",
+				"as": "x",
+				"do": [{ "set": "{{'state.win.' + x + '.buf'}}", "to": "{{state.order[0]}}" }]
+			},
+			{ "remove": "{{'state.bufs.' + b}}" },
+			{ "focus": "{{computed.ed}}" }
+		],
+		"save-buffers-kill-terminal": {
+			"title": "Quit",
+			"category": "Files",
+			"description": "Offers to save the changed files, then ends the session.",
+			"do": [
+				{
+					"if": "{{some(values(state.bufs), it.file != null && it.dirty == true)}}",
+					"then": [
+						{
+							"run": "message",
+							"with": { "m": "Some files have unsaved changes: save them with C-x C-s first" }
+						},
+						{ "stop": true }
+					]
+				},
+				{ "run": "message", "with": { "m": "Nothing left to save; close the window to end the session" } }
+			]
+		},
+		"execute-extended-command": {
+			"title": "Execute Command...",
+			"category": "Help",
+			"description": "Reads a command's name, with completion, and runs it.",
+			"do": { "run": "minibuffer-read", "with": { "kind": "command", "prompt": "M-x ", "def": "", "init": "" } }
+		},
+		"mb-command": [
+			{
+				"if": "{{contains(computed.commandNames, value)}}",
+				"then": [{ "run": "{{value}}" }],
+				"else": [{ "run": "message", "with": { "m": "{{'No command named ' + value}}" } }]
+			}
+		],
+		"minibuffer-read": [
+			{
+				"set": "state.mb",
+				"to": "{{merge(state.mb, {open: true, kind: kind, prompt: prompt, def: def, text: init, hi: -1, comp: null, note: ''})}}"
+			},
+			{ "set": "state.echo", "to": "" },
+			{ "focus": "#mb" }
+		],
+		"minibuffer-exit": [
+			{
+				"run": "minibuffer-done",
+				"with": { "value": "{{state.mb.text == '' ? state.mb.def : state.mb.text}}", "kind": "{{state.mb.kind}}" }
+			}
+		],
+		"minibuffer-done": [
+			{ "run": "minibuffer-close" },
+			{
+				"if": "{{value != ''}}",
+				"then": [
+					{
+						"set": "{{'state.mb.hist.' + kind}}",
+						"to": "{{concat([value], filter(state.mb.hist[kind] ?? [], it != value))}}"
+					}
+				]
+			},
+			{ "run": "{{'mb-' + kind}}", "with": { "value": "{{value}}" } }
+		],
+		"minibuffer-close": [
+			{ "set": "state.mb.open", "to": false },
+			{ "set": "state.mb.comp", "to": null },
+			{ "focus": "{{computed.ed}}" }
+		],
+		"splash-close": {
+			"title": "Close the Start Screen",
+			"category": "Help",
+			"description": "Closes the start screen and shows the scratch buffer.",
+			"do": [{ "if": "{{state.bufs.b0 != null}}", "then": [{ "run": "kill-buffer-id", "with": { "b": "b0" } }] }]
+		},
+		"toggle-splash": [{ "toggle": "state.splashAtStart" }],
+		"load-theme": {
+			"title": "Load Theme...",
+			"category": "Options",
+			"description": "Switches the colours to another theme: default, inchiostro or pergamena.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "theme", "prompt": "Load custom theme: ", "def": "", "init": "" }
+			}
+		},
+		"mb-theme": [
+			{
+				"if": "{{contains(['default', 'inchiostro', 'pergamena'], value)}}",
+				"then": [{ "set": "state.theme", "to": "{{value}}" }],
+				"else": [{ "run": "message", "with": { "m": "{{'No theme named ' + value}}" } }]
+			}
+		],
+		"menu-bar-open": {
+			"title": "Open the Menu Bar",
+			"category": "Windows",
+			"description": "Opens the menu bar's first menu.",
+			"do": [{ "set": "state.menuBar", "to": { "file": true } }]
+		},
+		"suspend-frame": {
+			"title": "Suspend Frame",
+			"category": "Windows",
+			"description": "Would hide the frame; here it only says so.",
+			"do": { "run": "message", "with": { "m": "The frame stays: minimize it from the window's own button" } }
+		},
+		"relayout": [
+			{
+				"forEach": "{{keys(state.win)}}",
+				"as": "x",
+				"do": [{ "set": "{{'state.win.' + x + '.pt'}}", "to": "{{state.win[x].caret}}" }]
+			},
+			{
+				"after": 40,
+				"do": [
+					{
+						"forEach": "{{keys(state.win)}}",
+						"as": "x",
+						"do": [
+							{
+								"run": "goto-point",
+								"with": { "e": "{{'#ed' + x}}", "pt": "{{state.win[x].pt ?? {line: 1, column: 1} }}" }
+							}
+						]
+					},
+					{ "focus": "{{computed.ed}}" }
+				]
+			}
+		],
+		"minibuffer-note": [
+			{ "set": "state.mb.note", "to": "{{note}}" },
+			{
+				"after": 1200,
+				"do": [{ "if": "{{state.mb.note == note}}", "then": [{ "set": "state.mb.note", "to": "" }] }]
+			}
+		],
+		"minibuffer-set": [{ "set": "state.mb.text", "to": "{{value}}" }, { "after": 0, "do": [{ "press": "cmd+right", "in": "#mb" }] }],
+		"minibuffer-complete": [
+			{
+				"if": "{{length(computed.mbMatches) == 0}}",
+				"then": [{ "run": "minibuffer-note", "with": { "note": " [Nothing matches]" } }, { "stop": true }]
+			},
+			{
+				"if": "{{length(computed.mbMatches) == 1}}",
+				"then": [
+					{ "run": "minibuffer-set", "with": { "value": "{{computed.mbA}}" } },
+					{ "set": "state.mb.comp", "to": null },
+					{
+						"run": "minibuffer-note",
+						"with": { "note": "{{state.mb.text == computed.mbA ? ' [The only match]' : ''}}" }
+					},
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{length(computed.mbPrefix) > length(state.mb.text)}}",
+				"then": [{ "run": "minibuffer-set", "with": { "value": "{{computed.mbPrefix}}" } }, { "stop": true }]
+			},
+			{ "set": "state.mb.comp", "to": "{{computed.mbMatches}}" }
+		],
+		"minibuffer-choose": [{ "run": "minibuffer-done", "with": { "value": "{{value}}", "kind": "{{state.mb.kind}}" } }],
+		"minibuffer-history": [
+			{
+				"if": "{{state.mb.hi + step >= length((state.mb.hist[state.mb.kind] ?? []))}}",
+				"then": [{ "run": "minibuffer-note", "with": { "note": " [No earlier input]" } }, { "stop": true }]
+			},
+			{
+				"if": "{{state.mb.hi + step < -1}}",
+				"then": [{ "run": "minibuffer-note", "with": { "note": " [No later input]" } }, { "stop": true }]
+			},
+			{ "increment": "state.mb.hi", "by": "{{step}}" },
+			{
+				"run": "minibuffer-set",
+				"with": { "value": "{{state.mb.hi < 0 ? state.mb.def : (state.mb.hist[state.mb.kind] ?? [])[state.mb.hi]}}" }
+			}
+		],
+		"universal-argument": {
+			"title": "Universal Argument",
+			"category": "Editing",
+			"description": "Starts a numeric argument for the next command: 4, and each further C-u multiplies it by 4.",
+			"do": [
+				{ "set": "state.argU", "to": "{{state.arg == null || state.argDigits ? 1 : (state.argU ?? 0) + 1}}" },
+				{ "set": "state.arg", "to": "{{state.arg == null || state.argDigits ? 4 : state.arg * 4}}" },
+				{ "set": "state.argDigits", "to": false },
+				{ "set": "state.echo", "to": "{{join(map(range(state.argU), 'C-u'), ' ') + '-'}}" }
+			]
+		},
+		"digit-argument": {
+			"title": "Digit Argument",
+			"category": "Editing",
+			"description": "Adds a digit to the numeric argument of the next command.",
+			"do": [
+				{ "set": "state.arg", "to": "{{state.argDigits && state.arg != null ? state.arg * 10 + d : d}}" },
+				{ "set": "state.argDigits", "to": true },
+				{ "set": "state.echo", "to": "{{'C-u ' + state.arg + '-'}}" }
+			]
+		},
+		"help-show": [
+			{ "set": "state.bufs.bh", "to": "{{ {name: '*Help*', mode: 'help', readOnly: true, text: text} }}" },
+			{
+				"if": "{{!contains(state.order, 'bh')}}",
+				"then": [{ "set": "state.order", "to": "{{concat(state.order, ['bh'])}}" }]
+			},
+			{ "if": "{{length(computed.wins) == 1}}", "then": [{ "run": "split", "with": { "below": true } }] },
+			{
+				"run": "help-in",
+				"with": { "x": "{{computed.wins[(indexOf(computed.wins, state.sel) + 1) % length(computed.wins)]}}" }
+			},
+			{ "run": "message", "with": { "m": "C-x 1 removes the help window; C-x o goes to it" } }
+		],
+		"help-in": [
+			{ "set": "{{'state.win.' + x + '.buf'}}", "to": "bh" },
+			{ "set": "{{'state.win.' + x + '.pt'}}", "to": { "line": 1, "column": 1 } },
+			{ "set": "{{'state.win.' + x + '.caret'}}", "to": { "line": 1, "column": 1 } },
+			{
+				"after": 40,
+				"do": [
+					{ "run": "goto-point", "with": { "e": "{{'#ed' + x}}", "pt": { "line": 1, "column": 1 } } },
+					{ "focus": "{{computed.ed}}" }
+				]
+			}
+		],
+		"help-function": [
+			{
+				"run": "help-show",
+				"with": {
+					"text": "{{f + ' is a command of the document' + \"'\" + 's actions, in the ' + find(commands, it.name == f).category + ' category.\\n\\n' + (some(keybindings, it.command == f) ? 'Its keys: ' + join(map(filter(keybindings, it.command == f), it.keyLabel), ', ') + '.' : 'It has no key: M-x ' + f + ' runs it.') + '\\n\\n' + find(commands, it.name == f).description + '\\n\\nIts menu and palette title is \"' + find(commands, it.name == f).title + '\".\\n'}}"
+				}
+			}
+		],
+		"describe-function": {
+			"title": "Describe Function...",
+			"category": "Help",
+			"description": "Shows what a command does, and the keys that run it.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "function", "prompt": "Describe function: ", "def": "", "init": "" }
+			}
+		},
+		"mb-function": [
+			{
+				"if": "{{contains(computed.commandNames, value)}}",
+				"then": [{ "run": "help-function", "with": { "f": "{{value}}" } }],
+				"else": [{ "run": "message", "with": { "m": "{{'No command named ' + value}}" } }]
+			}
+		],
+		"describe-variable": {
+			"title": "Describe Variable...",
+			"category": "Help",
+			"description": "Shows a variable's value, its default and what it changes.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "variable", "prompt": "Describe variable: ", "def": "", "init": "" }
+			}
+		},
+		"mb-variable": [
+			{
+				"if": "{{some(settingsList, it.key == value)}}",
+				"then": [{ "run": "help-variable", "with": { "s": "{{find(settingsList, it.key == value)}}" } }],
+				"else": [{ "run": "message", "with": { "m": "{{'No variable named ' + value}}" } }]
+			}
+		],
+		"help-variable": [
+			{
+				"run": "help-show",
+				"with": {
+					"text": "{{s.key + ' is a variable of the document' + \"'\" + 's settings.\\n\\nIts value is ' + json(s.value) + (s.modified ? ', changed from the default ' + json(s.default) + '.' : ', the default.') + '\\n\\n' + s.description + '\\n\\nType: ' + s.type + (s.enum ? ', one of ' + join(s.enum, ', ') : '') + (s.minimum != null ? ', from ' + s.minimum + ' to ' + s.maximum : '') + '.\\nM-x customize-variable changes it.\\n'}}"
+				}
+			}
+		],
+		"describe-key": {
+			"title": "Describe Key...",
+			"category": "Help",
+			"description": "Reads a key and shows the command it runs.",
+			"do": [
+				{ "set": "state.keyread", "to": { "on": true, "seq": "" } },
+				{ "set": "state.echo", "to": "" },
+				{ "after": 0, "do": [{ "focus": "#keyReader" }] }
+			]
+		},
+		"key-read": [
+			{ "set": "state.keyread.seq", "to": "{{trim(state.keyread.seq + ' ' + k)}}" },
+			{
+				"if": "{{state.keyread.seq == 'ctrl+g' || state.keyread.seq == 'escape'}}",
+				"then": [{ "run": "key-read-end" }, { "set": "state.echo", "to": "Quit" }, { "stop": true }]
+			},
+			{
+				"if": "{{some(keybindings, it.key == state.keyread.seq)}}",
+				"then": [
+					{ "run": "key-read-end" },
+					{ "run": "help-key", "with": { "b": "{{find(keybindings, it.key == state.keyread.seq)}}" } },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{some(keybindings, slice(it.key, 0, length(state.keyread.seq) + 1) == state.keyread.seq + ' ')}}",
+				"then": [{ "stop": true }]
+			},
+			{ "run": "key-read-end" },
+			{ "run": "message", "with": { "m": "{{keyLabel(state.keyread.seq, 'emacs') + ' has no binding'}}" } }
+		],
+		"key-read-end": [{ "set": "state.keyread.on", "to": false }, { "focus": "{{computed.ed}}" }],
+		"help-key": [
+			{
+				"run": "help-show",
+				"with": {
+					"text": "{{b.keyLabel + ' runs the command ' + b.command + ', bound in ' + (b.scope == 'screen' ? 'the document' + \"'\" + 's keys' : 'the keys of ' + b.scope) + '.\\n\\n' + (find(commands, it.name == b.command).description ?? '') + '\\n\\nC-h f ' + b.command + ' tells more about it.\\n'}}"
+				}
+			}
+		],
+		"describe-bindings": {
+			"title": "Describe Bindings",
+			"category": "Help",
+			"description": "Lists every key and the command it runs.",
+			"do": {
+				"run": "help-show",
+				"with": {
+					"text": "{{'Key bindings of the document:\\n\\nkey                 binding\\n---                 -------\\n' + join(map(filter(keybindings, it.scope == 'screen'), pad(it.keyLabel, 20, ' ') + it.command), '\\n') + '\\n'}}"
+				}
+			}
+		},
+		"describe-mode": {
+			"title": "Describe Mode",
+			"category": "Help",
+			"description": "Describes the selected buffer's major mode and the minor modes that are on.",
+			"do": {
+				"run": "help-show",
+				"with": {
+					"text": "{{'The major mode is ' + state.modes[computed.buf.mode].title + ' mode.\\n\\n' + (state.modes[computed.buf.mode].about ?? 'It has no keys of its own.') + '\\n'}}"
+				}
+			}
+		},
+		"view-echo-area-messages": {
+			"title": "Messages",
+			"category": "Help",
+			"description": "Shows the messages the echo area has shown so far.",
+			"do": { "run": "show-messages" }
+		},
+		"isearch-forward": {
+			"title": "Search Forward",
+			"category": "Search",
+			"description": "Searches forward as you type: C-s again goes to the next match, RET stops at it, C-g goes back.",
+			"do": { "run": "isearch-start", "with": { "back": false } }
+		},
+		"isearch-backward": {
+			"title": "Search Backward",
+			"category": "Search",
+			"description": "Searches backward as you type: C-r again goes to the previous match.",
+			"do": { "run": "isearch-start", "with": { "back": true } }
+		},
+		"isearch-start": [
+			{ "if": "{{!computed.text}}", "then": [{ "stop": true }] },
+			{
+				"set": "state.is",
+				"to": "{{merge(state.is, {on: true, text: '', back: back, step: 'first', req: state.is.req + 1, start: {line: state.win[state.sel].caret.line, column: state.win[state.sel].caret.column}, wrapped: false})}}"
+			},
+			{ "set": "state.echo", "to": "" }
+		],
+		"isearch-step": [
+			{ "set": "state.is.back", "to": "{{back}}" },
+			{ "if": "{{state.is.text == ''}}", "then": [{ "set": "state.is.text", "to": "{{state.is.last ?? ''}}" }] },
+			{ "set": "state.is.step", "to": "{{back ? 'previous' : 'next'}}" },
+			{ "increment": "state.is.req" }
+		],
+		"isearch-key": [
+			{
+				"if": "{{k == 'ctrl+s' || k == 'ctrl+r'}}",
+				"then": [{ "run": "isearch-step", "with": { "back": "{{k == 'ctrl+r'}}" } }, { "stop": true }]
+			},
+			{
+				"if": "{{k == 'backspace'}}",
+				"then": [
+					{ "set": "state.is.text", "to": "{{slice(state.is.text, 0, max(0, length(state.is.text) - 1))}}" },
+					{ "set": "state.is.step", "to": "first" },
+					{ "increment": "state.is.req" },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{k == 'ctrl+g'}}",
+				"then": [
+					{ "run": "isearch-end" },
+					{ "run": "goto-point", "with": { "e": "{{computed.ed}}", "pt": "{{state.is.start}}" } },
+					{ "set": "state.echo", "to": "Quit" },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{k == 'enter' || k == 'escape'}}",
+				"then": [
+					{ "run": "isearch-end" },
+					{ "run": "message", "with": { "m": "Mark saved where the search started" } },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{(length(k) == 1 ? k : length(k) == 7 && slice(k, 0, 6) == 'shift+' && upper(slice(k, 6)) != slice(k, 6) ? upper(slice(k, 6)) : computed.keyChars[k]) != null}}",
+				"then": [
+					{
+						"set": "state.is.text",
+						"to": "{{state.is.text + (length(k) == 1 ? k : length(k) == 7 && slice(k, 0, 6) == 'shift+' && upper(slice(k, 6)) != slice(k, 6) ? upper(slice(k, 6)) : computed.keyChars[k])}}"
+					},
+					{ "set": "state.is.step", "to": "{{state.is.back ? 'previous' : 'first'}}" },
+					{ "increment": "state.is.req" },
+					{ "stop": true }
+				]
+			},
+			{ "run": "isearch-end" },
+			{
+				"if": "{{some(keybindings, it.key == k)}}",
+				"then": [{ "run": "{{find(keybindings, it.key == k).command}}" }]
+			}
+		],
+		"isearch-end": [
+			{ "if": "{{state.is.text != ''}}", "then": [{ "set": "state.is.last", "to": "{{state.is.text}}" }] },
+			{ "set": "state.is.on", "to": false },
+			{ "set": "state.mark", "to": "{{ {on: false, line: state.is.start.line, column: state.is.start.column} }}" },
+			{
+				"after": 0,
+				"do": [
+					{
+						"if": "{{computed.text && state.win[state.sel].caret.selected > 0}}",
+						"then": [{ "press": "{{state.is.back ? 'left' : 'right'}}", "in": "{{computed.ed}}" }]
+					}
+				]
+			}
+		],
+		"query-replace": {
+			"title": "Replace...",
+			"category": "Search",
+			"description": "Replaces a text with another, asking at each match: y or SPC replaces, n skips, ! replaces the rest, q stops.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": {
+					"kind": "replace-from",
+					"prompt": "{{'Query replace' + (state.qr.from ? ' (default ' + state.qr.from + ' → ' + state.qr.to + ')' : '') + ': '}}",
+					"def": "{{state.qr.from ?? ''}}",
+					"init": ""
+				}
+			}
+		},
+		"mb-replace-from": [
+			{ "if": "{{value == ''}}", "then": [{ "stop": true }] },
+			{
+				"if": "{{value == state.qr.from && state.mb.text == ''}}",
+				"then": [{ "run": "query-replace-start", "with": { "to": "{{state.qr.to}}" } }, { "stop": true }]
+			},
+			{ "set": "state.qr.from", "to": "{{value}}" },
+			{
+				"after": 0,
+				"do": [
+					{
+						"run": "minibuffer-read",
+						"with": {
+							"kind": "replace-to",
+							"prompt": "{{'Query replace ' + value + ' with: '}}",
+							"def": "",
+							"init": ""
+						}
+					}
+				]
+			}
+		],
+		"mb-replace-to": [{ "run": "query-replace-start", "with": { "to": "{{value}}" } }],
+		"query-replace-start": [
+			{
+				"set": "state.qr",
+				"to": "{{merge(state.qr, {on: true, to: to, step: 'first', req: state.qr.req + 1, done: 0})}}"
+			},
+			{
+				"after": 60,
+				"do": [
+					{
+						"if": "{{state.qr.on && (state.win[state.sel].caret.matches ?? 0) == 0}}",
+						"then": [{ "run": "query-replace-end" }]
+					}
+				]
+			}
+		],
+		"query-replace-key": [
+			{
+				"if": "{{k == 'y' || k == 'space' || k == 'period'}}",
+				"then": [
+					{ "run": "query-replace-mark" },
+					{ "set": "state.qr.step", "to": "replace" },
+					{ "set": "state.qr.replace", "to": "{{state.qr.to}}" },
+					{ "increment": "state.qr.req" },
+					{ "increment": "state.qr.done" },
+					{ "if": "{{k == 'period'}}", "then": [{ "run": "query-replace-end" }, { "stop": true }] },
+					{ "run": "query-replace-wrapped" },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{k == 'n' || k == 'delete' || k == 'backspace'}}",
+				"then": [
+					{ "run": "query-replace-mark" },
+					{ "set": "state.qr.step", "to": "next" },
+					{ "increment": "state.qr.req" },
+					{ "run": "query-replace-wrapped" },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{k == 'shift+1'}}",
+				"then": [
+					{ "set": "state.qr.done", "to": "{{state.qr.done + (state.win[state.sel].caret.matches ?? 0)}}" },
+					{ "set": "state.qr.step", "to": "replaceAll" },
+					{ "set": "state.qr.replace", "to": "{{state.qr.to}}" },
+					{ "increment": "state.qr.req" },
+					{ "after": 60, "do": [{ "run": "query-replace-end" }] },
+					{ "stop": true }
+				]
+			},
+			{
+				"if": "{{k == 'ctrl+g'}}",
+				"then": [{ "set": "state.qr.on", "to": false }, { "set": "state.echo", "to": "Quit" }, { "stop": true }]
+			},
+			{ "run": "query-replace-end" }
+		],
+		"query-replace-mark": [
+			{
+				"set": "state.qr.at",
+				"to": "{{ {line: state.win[state.sel].caret.line, column: state.win[state.sel].caret.column} }}"
+			}
+		],
+		"query-replace-wrapped": [
+			{
+				"after": 60,
+				"do": [
+					{
+						"if": "{{state.qr.on && ((state.win[state.sel].caret.matches ?? 0) == 0 || state.win[state.sel].caret.line < state.qr.at.line || state.win[state.sel].caret.line == state.qr.at.line && state.win[state.sel].caret.column <= state.qr.at.column)}}",
+						"then": [
+							{ "run": "goto-point", "with": { "e": "{{computed.ed}}", "pt": "{{state.qr.at}}" } },
+							{ "run": "query-replace-end" }
+						]
+					}
+				]
+			}
+		],
+		"query-replace-end": [
+			{ "set": "state.qr.on", "to": false },
+			{ "run": "message", "with": { "m": "{{'Replaced ' + plural(state.qr.done, 'occurrence')}}" } },
+			{
+				"after": 0,
+				"do": [
+					{
+						"if": "{{computed.text && state.win[state.sel].caret.selected > 0}}",
+						"then": [{ "press": "right", "in": "{{computed.ed}}" }]
+					}
+				]
+			}
+		],
+		"search-key": [
+			{
+				"if": "{{state.is.on}}",
+				"then": [{ "run": "isearch-key", "with": { "k": "{{k}}" } }],
+				"else": [{ "run": "query-replace-key", "with": { "k": "{{k}}" } }]
+			}
+		],
+		"write-file": {
+			"title": "Save As...",
+			"category": "Files",
+			"description": "Writes the buffer to a file you name, which it then visits.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "write", "prompt": "Write file: ", "def": "", "init": "{{state.home}}" }
+			}
+		},
+		"mb-write": [
+			{ "set": "{{'state.bufs.' + computed.cur + '.file'}}", "to": "{{value}}" },
+			{
+				"set": "{{'state.bufs.' + computed.cur + '.name'}}",
+				"to": "{{split(value, '/')[length(split(value, '/')) - 1]}}"
+			},
+			{
+				"run": "write-file-to",
+				"with": { "b": "{{computed.cur}}", "i": "{{indexOf(map(state.files, it.path), value)}}" }
+			}
+		],
+		"insert-file": {
+			"title": "Insert File...",
+			"category": "Files",
+			"description": "Inserts a file's text at point.",
+			"do": {
+				"run": "minibuffer-read",
+				"with": { "kind": "insert", "prompt": "Insert file: ", "def": "", "init": "{{state.home}}" }
+			}
+		},
+		"mb-insert": [
+			{
+				"if": "{{!contains(map(state.files, it.path), value)}}",
+				"then": [{ "run": "message", "with": { "m": "{{'No file named ' + value}}" } }, { "stop": true }]
+			},
+			{
+				"after": 0,
+				"do": [
+					{
+						"run": "insert-at-point",
+						"with": {
+							"t": "{{state.files[indexOf(map(state.files, it.path), value)].text}}",
+							"pt": "{{ {line: state.win[state.sel].caret.line, column: state.win[state.sel].caret.column} }}"
+						}
+					}
+				]
+			}
+		],
+		"insert-at-point": [
+			{ "edit": "type", "text": "{{t}}", "in": "{{computed.ed}}" },
+			{ "run": "goto-point", "with": { "e": "{{computed.ed}}", "pt": "{{pt}}" } }
+		]
+	}
+}

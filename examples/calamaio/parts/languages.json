@@ -1,0 +1,36 @@
+{
+	"note": "Calamaio's own languages, each coloured by the @syntax.* tokens of look.json; Python, C and Markdown take their grammar.",
+	"languages": {
+		"emacs-lisp": {
+			"title": "Emacs Lisp",
+			"aliases": ["elisp", "lisp-interaction"],
+			"files": ["*.el", ".emacs"],
+			"comments": { "line": ";" },
+			"wordPattern": "[\\w-]+",
+			"patterns": [
+				{ "match": ";.*", "scope": "comment" },
+				{ "match": "\"(?:[^\"\\\\]|\\\\.)*\"?", "scope": "string" },
+				{ "match": "(?<=\\()(?:defun|defmacro|defvar|defcustom|defconst|defgroup|let\\*?|if|when|unless|cond|while|dolist|dotimes|progn|lambda|setq|and|or|require|provide|interactive|save-excursion|condition-case)(?=[\\s()])", "scope": "keyword" },
+				{ "match": "(?<=\\(defun )[^\\s()]+|(?<=\\(defmacro )[^\\s()]+", "scope": "function" },
+				{ "match": "(?<=\\(defvar )[^\\s()]+|(?<=\\(defcustom )[^\\s()]+|(?<=\\(defconst )[^\\s()]+", "scope": "label" },
+				{ "match": "(?<![\\w-]):[\\w-]+", "scope": "function.builtin" }
+			]
+		},
+		"org": {
+			"title": "Org",
+			"files": [
+				"*.org"
+			],
+			"wordPattern": "[\\w-]+",
+			"patterns": [
+				{ "match": "^#\\+\\w+:.*", "scope": "comment" },
+				{ "match": "^\\* .*", "scope": "text.title" },
+				{ "match": "^\\*\\* .*", "scope": "label" },
+				{ "match": "^\\*{3,} .*", "scope": "keyword" },
+				{ "match": "\\[\\[[^\\]]*\\](?:\\[[^\\]]*\\])?\\]", "scope": "text.uri" },
+				{ "match": "\\b(?:TODO|NEXT)\\b", "scope": "string" },
+				{ "match": "\\bDONE\\b", "scope": "type" }
+			]
+		}
+	}
+}

@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's themes: every colour of the workbench is a token with one variant per theme, so a theme is a set of values and switching is one state change. Importing a colour theme adds a variant to each token through a patch. The file icon theme maps names and extensions to icons, applied by forge.index.",
+	"note": "Forge's themes: every colour of the workbench is a token with one variant per theme, so a theme is a set of values and switching is one state change. Importing a colour theme adds a variant to each token through a patch. Importing reads the file with openFile and maps the theme format's colour keys to the tokens with themeSources. The file icon theme maps names and extensions to icons, which the explorer shows.",
 
 	"tokens": {
 		"color.titleBar": { "forge-dark": "#1b1e24", "forge-light": "#eef0f3", "forge-high-contrast": "#000000" },
@@ -42,6 +42,30 @@
 			{ "id": "forge-high-contrast", "name": "Forge High Contrast", "type": "hc" }
 		],
 		"imported": null,
+		"importedFile": "",
+		"themeSources": [
+			{ "token": "titleBar", "keys": ["titleBar.activeBackground", "editorGroupHeader.tabsBackground"], "dark": "#3c3c3c", "light": "#dddddd", "hc": "#000000" },
+			{ "token": "activityBar", "keys": ["activityBar.background", "sideBar.background"], "dark": "#333333", "light": "#2c2c2c", "hc": "#000000" },
+			{ "token": "sideBar", "keys": ["sideBar.background", "editor.background"], "dark": "#252526", "light": "#f3f3f3", "hc": "#000000" },
+			{ "token": "editor", "keys": ["editor.background"], "dark": "#1e1e1e", "light": "#ffffff", "hc": "#000000" },
+			{ "token": "editorText", "keys": ["editor.foreground", "foreground"], "dark": "#d4d4d4", "light": "#000000", "hc": "#ffffff" },
+			{ "token": "tabs", "keys": ["editorGroupHeader.tabsBackground", "tab.inactiveBackground"], "dark": "#252526", "light": "#f3f3f3", "hc": "#000000" },
+			{ "token": "tabActive", "keys": ["tab.activeBackground", "editor.background"], "dark": "#1e1e1e", "light": "#ffffff", "hc": "#000000" },
+			{ "token": "panel", "keys": ["panel.background", "editor.background"], "dark": "#1e1e1e", "light": "#ffffff", "hc": "#000000" },
+			{ "token": "statusBar", "keys": ["statusBar.background"], "dark": "#007acc", "light": "#007acc", "hc": "#000000" },
+			{ "token": "statusText", "keys": ["statusBar.foreground"], "dark": "#ffffff", "light": "#ffffff", "hc": "#ffffff" },
+			{ "token": "accent", "keys": ["focusBorder", "activityBarBadge.background", "button.background"], "dark": "#007fd4", "light": "#0090f1", "hc": "#f38518" },
+			{ "token": "selection", "keys": ["list.activeSelectionBackground", "editor.selectionBackground"], "dark": "#04395e", "light": "#0060c0", "hc": "#000000" },
+			{ "token": "hover", "keys": ["list.hoverBackground"], "dark": "#2a2d2e", "light": "#e8e8e8", "hc": "#000000" },
+			{ "token": "input", "keys": ["input.background", "dropdown.background"], "dark": "#3c3c3c", "light": "#ffffff", "hc": "#000000" },
+			{ "token": "border", "keys": ["panel.border", "editorGroup.border", "contrastBorder"], "dark": "#454545", "light": "#d4d4d4", "hc": "#6fc3df" },
+			{ "token": "muted", "keys": ["descriptionForeground", "tab.inactiveForeground"], "dark": "#8b8b8b", "light": "#717171", "hc": "#ffffff" },
+			{ "token": "error", "keys": ["editorError.foreground", "errorForeground"], "dark": "#f14c4c", "light": "#e51400", "hc": "#f48771" },
+			{ "token": "warning", "keys": ["editorWarning.foreground"], "dark": "#cca700", "light": "#bf8803", "hc": "#cca700" },
+			{ "token": "info", "keys": ["editorInfo.foreground"], "dark": "#3794ff", "light": "#1a85ff", "hc": "#3794ff" },
+			{ "token": "widget", "keys": ["editorWidget.background", "quickInput.background"], "dark": "#252526", "light": "#f3f3f3", "hc": "#0c141f" },
+			{ "token": "text", "keys": ["foreground", "sideBar.foreground", "editor.foreground"], "dark": "#cccccc", "light": "#616161", "hc": "#ffffff" }
+		],
 		"iconTheme": {
 			"file": { "icon": "file", "color": "#98a0a9" },
 			"folder": { "icon": "folder", "color": "#d1a35e" },
@@ -74,14 +98,33 @@
 		"setTheme": [{ "set": "state.theme", "to": "{{item.id}}" }],
 		"importTheme": { "title": "Import Color Theme...", "category": "Preferences", "icon": "palette",
 			"description": "Read a colour theme (.json) and add it as a theme.",
-			"do": [{ "call": "forge.importTheme", "into": "state.imported",
-				"onError": [{ "run": "notify", "with": { "severity": "info", "message": "{{'Theme not imported: ' + error}}" } }],
-				"then": [
-					{ "patch": "{{result.patch}}", "message": "{{'Import the ' + result.name + ' theme'}}" },
-					{ "set": "state.themes", "to": "{{concat(filter(state.themes, it.id != result.id), [{id: result.id, name: result.name, type: result.type}])}}" },
-					{ "set": "state.theme", "to": "{{result.id}}" },
-					{ "run": "notify", "with": { "severity": "info", "message": "{{'Imported the ' + result.name + ' theme'}}" } }
-				] }] },
+			"do": [{ "openFile": "state.imported", "comments": true, "title": "Import Color Theme", "extensions": ["json"],
+				"onDone": [{ "set": "state.importedFile", "to": "{{result.name}}" }, { "run": "readTheme" }],
+				"onError": [{ "run": "notify", "with": { "severity": "info", "message": "{{'Theme not imported: ' + error.message}}" } }] }] },
+		"readTheme": [
+			{ "note": "The colour theme read into state.imported: its name (else its file's), its type and its colours" },
+			{ "run": "readThemeOf", "with": { "theme": "{{state.imported}}", "file": "{{state.importedFile}}" } }
+		],
+		"readThemeOf": [
+			{ "if": "{{type(theme) != 'object'}}",
+				"then": [{ "run": "notify", "with": { "severity": "info", "message": "Theme not imported: not a colour theme: the file isn't a JSON object" } }],
+				"else": [{ "run": "addTheme", "with": {
+					"name": "{{type(theme.name) == 'string' ? theme.name : (slice(file, -5) == '.json' ? slice(file, 0, -5) : file)}}",
+					"kind": "{{type(theme.type) != 'string' ? 'dark' : theme.type == 'light' || theme.type == 'vs' ? 'light' : slice(theme.type, 0, 2) == 'hc' || theme.type == 'high-contrast' ? 'hc' : 'dark'}}",
+					"colors": "{{type(theme.colors) == 'object' ? theme.colors : null}}" } }] }
+		],
+		"addTheme": [
+			{ "note": "Each token takes the first of its keys the theme gives a colour, else its default for the theme's kind; the theme's id is made of its name" },
+			{ "run": "addThemeAs", "with": { "id": "{{slug(name, 40) || 'imported'}}", "name": "{{name}}", "kind": "{{kind}}",
+				"type": "{{kind == 'light' ? 'light' : 'dark'}}",
+				"values": "{{map(state.themeSources, {token: it.token, value: find(map(it.keys, hexColor(colors[it])), it != null) ?? it[kind]})}}" } }
+		],
+		"addThemeAs": [
+			{ "patch": "{{map(values, {op: 'add', path: '/tokens/color.' + it.token + '/' + id, value: it.value})}}", "message": "{{'Import the ' + name + ' theme'}}" },
+			{ "set": "state.themes", "to": "{{concat(filter(state.themes, it.id != id), [{id: id, name: name, type: type}])}}" },
+			{ "set": "state.theme", "to": "{{id}}" },
+			{ "run": "notify", "with": { "severity": "info", "message": "{{'Imported the ' + name + ' theme'}}" } }
+		],
 		"toggleIcons": { "title": "Toggle File Icons", "category": "Preferences", "icon": "file",
 			"do": [{ "set": "settings.workbench.fileIcons", "to": "{{!settings.workbench.fileIcons}}" },
 			       { "run": "reindex" }] }

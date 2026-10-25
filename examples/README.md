@@ -7,7 +7,7 @@ uses is in `shared/`. None of this is part of the library; each uses only its pu
 examples/
 ├── templates.json      the shipped templates: each one's name and folder (read by the tests, the tools, the web
 │                       build and the release archive)
-├── shared/             Assets.hpp, Templates.hpp, CodeEditor (the "code" type), SocketDir.hpp, components/, fonts/
+├── shared/             Assets.hpp, Templates.hpp, SocketDir.hpp, addons/, components/, fonts/, languages/
 │
 ├── host/               affrescoui_launcher, the stock host that runs any screen
 ├── launcher/           template "launcher": the apps, your own, creating one (what the host opens without a file)
@@ -17,9 +17,10 @@ examples/
 ├── streak/             template "habit-tracker": a habit tracker
 ├── sign-in/            template "sign-in": sign in, create an account, signed in
 ├── code-editor/        template "code-editor": Quaderno, a code editor
+├── calamaio/           template "calamaio": Calamaio, a text editor configured by its document
 │
 ├── arcadia/            a game launcher built only from the public docs and tools, covers/, its end-to-end test
-├── forge/              affrescoui_forge, a demo IDE: features/, catalog/, its scenarios
+├── forge/              a demo IDE run by the host: features/, catalog/, its scenarios
 ├── tempera/            affrescoui_tempera, an image editor on modules/imaging, parts/
 ├── sinopia/            slides and vector documents, parts/, run by the host
 ├── modello/            a 3D modeller and scene editor on modules/scene3d, run by the host
@@ -62,7 +63,7 @@ chat with the connected agents.
 | [Sign in](sign-in/README.md) | <img src="../.github/media/sign-in.png" width="200" alt="sign-in"> <img src="../.github/media/sign-in-scene.png" width="200" alt="sign-in, a scene"> | `./build/affrescoui_launcher examples/sign-in/index.screen.json` | `secret` fields, `codeInput`, `check` rules, `screens` and `navigate`, a made-up OAuth provider, ICU plurals |
 | [Quaderno](code-editor/README.md), a code editor | <img src="../.github/media/code-editor.png" width="200" alt="code-editor"> <img src="../.github/media/code-editor-scene.png" width="200" alt="code-editor, a scene"> | `./build/affrescoui_launcher examples/code-editor/index.screen.json` | a menu bar, an explorer tree, editor tabs with the host's `code` type, quick open, problems, a terminal |
 | [Arcadia](arcadia/README.md), a game launcher | <img src="../.github/media/arcadia.png" width="200" alt="arcadia"> <img src="../.github/media/arcadia-scene.png" width="200" alt="arcadia, a scene"> | `./build/affrescoui_launcher examples/arcadia/index.screen.json` | a `carousel`, `quickPick` with two providers, key chords, declared settings; built only from the public docs |
-| [Forge](forge/README.md), a demo IDE | <img src="../.github/media/forge.png" width="200" alt="forge"> <img src="../.github/media/forge-scene.png" width="200" alt="forge, a scene"> | `./build/affrescoui_forge [folder]` | natives for files, search, source control and a terminal, language servers, a debugger, a workbench of panels |
+| [Forge](forge/README.md), a demo IDE | <img src="../.github/media/forge.png" width="200" alt="forge"> <img src="../.github/media/forge-scene.png" width="200" alt="forge, a scene"> | `./build/affrescoui_launcher examples/forge/app.json [--folder DIR]` | no C++: files, search, source control, a terminal, language servers and a debugger on the library's services, a workbench of panels |
 | [Tempera](tempera/README.md), an image editor | <img src="../.github/media/tempera.png" width="200" alt="tempera"> <img src="../.github/media/tempera-scene.png" width="200" alt="tempera, a scene"> | `./build/affrescoui_tempera` | a `surface` canvas the host composites, layers, masks and filters with a live preview, agents limited to proposals |
 | [Sinopia](sinopia/README.md), a presentation editor | <img src="../.github/media/sinopia.png" width="200" alt="sinopia"> <img src="../.github/media/sinopia-scene.png" width="200" alt="sinopia, the sample deck"> | `./build/affrescoui_launcher examples/sinopia/index.screen.json` | a ribbon of tabs and galleries, slide thumbnails in sections, a `canvas` editor, speaker notes, a slide show with a presenter view and an audience window, saving, opening and PDF export |
 | [Modello](modello/README.md), a 3D modeller | <img src="../.github/media/modello.png" width="200" alt="modello"> <img src="../.github/media/modello-scene.png" width="200" alt="modello, the assistant open"> | `./build/affrescoui_launcher examples/modello/index.screen.json` | a PBR viewport (`scene3d`), gizmos, glTF import and export, every scene edit a revision |

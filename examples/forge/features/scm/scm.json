@@ -2,10 +2,10 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's source control: the open folder's git status (staged changes and changes), staging, the diff of a change against HEAD, commits and branches, and the gutter marks of each compared file (state.scm.gutters). git runs through the process service the host granted (Scm.cpp): only Forge's own commands, as arrays, in the open folder's repository, and its output is read strictly in C++ (forge.scm.parseStatus, forge.scm.parseBranches, forge.scm.diff). A commit message goes to git's input, never its arguments. The actions that take what git wrote as an event (scmApplyStatus, scmApplyBranches, scmCompare) let a scenario or an agent show a status or a diff without a repository.",
+	"note": "Forge's source control: the open folder's git status (staged changes and changes), staging, the diff of a change against HEAD, commits and branches, and the gutter marks of each compared file (state.scm.gutters). git runs through the process service the host granted: only the git grant's commands, as arrays, in the open folder's repository. Its output is read strictly by gitStatus() and gitBranches(), and diffLines() compares a file with HEAD (its hunks make the gutter marks). A commit message goes to git's input, never its arguments. The actions that take what git wrote as an event (scmApplyStatus, scmApplyBranches, scmCompare) let a scenario or an agent show a status or a diff without a repository.",
 
 	"services": {
-		"git": { "provider": "process", "process": "git" }
+		"git": { "provider": "process", "process": "git", "root": "workspace" }
 	},
 
 	"state": {
@@ -43,18 +43,23 @@
 					  "then": [{ "set": "state.scm.error", "to": "" },
 					           { "set": "state.scm.status", "to": { "branch": { "head": "", "upstream": "", "ahead": 0, "behind": 0 },
 						           "files": [], "staged": [], "changes": [], "count": 0 } }],
-					  "else": [{ "call": "forge.scm.parseStatus", "with": { "output": "{{result.output}}" }, "into": "state.scm.status",
-						"onError": [{ "set": "state.scm.error", "to": "{{error}}" }],
-						"then": [{ "set": "state.scm.error", "to": "" }] }] }
+					  "else": [{ "run": "scmStatusRead", "with": { "read": "{{gitStatus(result.output)}}" } }] }
 				] }] },
 		"scmInit": { "title": "Create Repository", "category": "Source Control", "icon": "git-branch-plus",
 			"description": "Make the open folder a git repository (git init), to track its changes.",
 			"enablement": "{{!empty(state.folder.root) && !computed.scmHasRepo}}",
 			"do": [{ "run": "scmGit", "with": { "arguments": ["init"], "input": "" } }] },
-		"scmApplyStatus": [
-			{ "call": "forge.scm.parseStatus", "with": { "output": "{{event.output}}" }, "into": "state.scm.status",
-			  "onError": [{ "set": "state.scm.error", "to": "{{error}}" }],
-			  "then": [{ "set": "state.scm.error", "to": "" }] }
+		"scmApplyStatus": [{ "run": "scmStatusRead", "with": { "read": "{{gitStatus(event.output)}}" } }],
+		"scmStatusRead": [
+			{ "if": "{{read == null}}",
+			  "then": [{ "set": "state.scm.error", "to": "git's status could not be read: it is not the output this view asks for." }],
+			  "else": [
+				{ "set": "state.scm.error", "to": "" },
+				{ "set": "state.scm.status", "to": "{{merge(read, {items: map(filter(read.files, it.kind != 'ignored'), {id: it.path, label: reverse(split(it.path, '/'))[0], detail: join(slice(split(it.path, '/'), 0, length(split(it.path, '/')) - 1), '/'), badge: it.kind == 'added' ? 'A' : it.kind == 'deleted' ? 'D' : it.kind == 'renamed' ? 'R' : it.kind == 'copied' ? 'C' : it.kind == 'unmerged' ? '!' : it.kind == 'untracked' ? 'U' : 'M', kind: it.kind, staged: it.staged, unstaged: it.unstaged})})}}" },
+				{ "set": "state.scm.status.staged", "to": "{{filter(state.scm.status.items, it.staged)}}" },
+				{ "set": "state.scm.status.changes", "to": "{{filter(state.scm.status.items, it.unstaged)}}" },
+				{ "set": "state.scm.status.count", "to": "{{length(state.scm.status.staged) + length(state.scm.status.changes)}}" }
+			  ] }
 		],
 		"scmGit": [
 			{ "invoke": "git.run", "loading": "state.scm.busy",
@@ -101,13 +106,16 @@
 				  "with": { "arguments": ["for-each-ref", "--format=%(HEAD)%00%(refname:short)", "refs/heads/"], "collect": true },
 				  "onError": [{ "set": "state.scm.error", "to": "{{'git did not run: ' + error.message}}" }],
 				  "onDone": [{ "if": "{{result.code == 0}}",
-					"then": [{ "call": "forge.scm.parseBranches", "with": { "output": "{{result.output}}" }, "into": "state.scm.branches",
-						"onError": [{ "set": "state.scm.error", "to": "{{error}}" }] }] }] }
+					"then": [{ "run": "scmBranchesRead", "with": { "read": "{{gitBranches(result.output)}}" } }] }] }
 			] },
 		"scmApplyBranches": [
 			{ "set": "state.scm.showBranches", "to": true },
-			{ "call": "forge.scm.parseBranches", "with": { "output": "{{event.output}}" }, "into": "state.scm.branches",
-			  "onError": [{ "set": "state.scm.error", "to": "{{error}}" }] }
+			{ "run": "scmBranchesRead", "with": { "read": "{{gitBranches(event.output)}}" } }
+		],
+		"scmBranchesRead": [
+			{ "if": "{{read == null}}",
+			  "then": [{ "set": "state.scm.error", "to": "git's branch list could not be read: it is not the output this view asks for." }],
+			  "else": [{ "set": "state.scm.branches", "to": "{{read}}" }] }
 		],
 		"scmSwitch": { "title": "Switch Branch", "category": "Source Control", "icon": "git-branch",
 			"enablement": "{{!empty(event.id ?? state.scm.selectedBranch)}}",
@@ -137,17 +145,14 @@
 			{ "set": "state.scm.compare", "to": "{{ {path: event.path, original: event.original ?? '', modified: event.modified ?? ''} }}" },
 			{ "run": "scmShowDiff" }
 		],
-		"scmShowDiff": [
-			{ "call": "forge.scm.diff", "with": { "original": "{{state.scm.compare.original}}", "modified": "{{state.scm.compare.modified}}" },
-			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot compare ' + state.scm.compare.path + ': ' + error}}" } }],
-			  "then": [
-				{ "set": "state.scm.gutters", "to": "{{concat(filter(state.scm.gutters, it.path != state.scm.compare.path), [{path: state.scm.compare.path, marks: result.gutter}])}}" },
-				{ "forEach": "{{[ {id: 'diff:' + state.scm.compare.path, label: reverse(split(state.scm.compare.path, '/'))[0] + ' (Working Tree)', diff: merge(result, {path: state.scm.compare.path, original: state.scm.compare.original, modified: state.scm.compare.modified, items: map(result.rows, {id: text(index), label: (it.kind == 'added' ? '+ ' : it.kind == 'removed' ? '- ' : '  ') + it.text, icon: it.kind == 'added' ? 'plus' : it.kind == 'removed' ? 'minus' : '', iconColor: it.kind == 'added' ? '#2ea043' : '#f85149'})})} ]}}",
-				  "as": "page", "do": [
-					{ "set": "state.docs", "to": "{{filter(state.docs, it.id != page.id)}}" },
-					{ "push": "state.docs", "value": "{{ {id: page.id, label: page.label, kind: 'diff', text: '', dirty: false, language: '', diff: page.diff} }}" },
-					{ "run": "showTab", "with": { "id": "{{page.id}}", "label": "{{page.label}}" } }
-				  ] }
+		"scmShowDiff": [{ "run": "scmDiffShow", "with": { "diff": "{{diffLines(state.scm.compare.original, state.scm.compare.modified, {context: -1})}}", "changes": "{{diffLines(state.scm.compare.original, state.scm.compare.modified, {context: 0}).hunks}}" } }],
+		"scmDiffShow": [
+			{ "set": "state.scm.gutters", "to": "{{concat(filter(state.scm.gutters, it.path != state.scm.compare.path), [{path: state.scm.compare.path, marks: map(changes, {line: max(it.newStart, 1), endLine: it.newLines == 0 ? max(it.newStart, 1) : it.newStart + it.newLines - 1, kind: 'gutter', color: it.oldLines == 0 ? '#2ea043' : it.newLines == 0 ? '#f85149' : '#0078d4', text: it.oldLines == 0 ? 'added' : it.newLines == 0 ? 'deleted' : 'modified'})}])}}" },
+			{ "forEach": "{{[ {id: 'diff:' + state.scm.compare.path, label: reverse(split(state.scm.compare.path, '/'))[0] + ' (Working Tree)', diff: merge(diff, {path: state.scm.compare.path, original: state.scm.compare.original, modified: state.scm.compare.modified, items: map(diff.hunks[0].lines ?? [], {id: text(index), label: (it.kind == 'insert' ? '+ ' : it.kind == 'delete' ? '- ' : '  ') + it.text, icon: it.kind == 'insert' ? 'plus' : it.kind == 'delete' ? 'minus' : '', iconColor: it.kind == 'insert' ? '#2ea043' : '#f85149'})})} ]}}",
+			  "as": "page", "do": [
+				{ "set": "state.docs", "to": "{{filter(state.docs, it.id != page.id)}}" },
+				{ "push": "state.docs", "value": "{{ {id: page.id, label: page.label, kind: 'diff', text: '', dirty: false, language: '', diff: page.diff} }}" },
+				{ "run": "showTab", "with": { "id": "{{page.id}}", "label": "{{page.label}}" } }
 			  ] }
 		]
 	},
@@ -265,7 +270,7 @@
 			"params": { "d": 0 },
 			"node": {
 				"type": "column", "id": "diff-editor", "width": "100%", "grow": 1, "color": "@color.editor",
-				"note": "The working tree against HEAD: a diff node, side by side or inline (diffEditor.renderSideBySide); forge.scm.diff counts the rows.",
+				"note": "The working tree against HEAD: a diff node, side by side or inline (diffEditor.renderSideBySide); diffLines() counts the lines.",
 				"children": [
 					{ "type": "row", "id": "diff-head", "width": "100%", "height": 28, "alignItems": "center", "gap": 8,
 					  "children": [

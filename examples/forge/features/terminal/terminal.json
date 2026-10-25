@@ -2,7 +2,7 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's terminal: up to 8 shells in the panel's Terminal tab, each a tab of its own (the terminal type in Terminal.cpp, on the pty provider). The Terminal tab shows only while a terminal is open. The node keeps Tab for the shell. Run Task (and mod+shift+b, the build task) runs a task of .forge/tasks.json (forge.tasks.list, Debug.cpp) in a new terminal, through forge.terminal.run.",
+	"note": "Forge's terminal: up to 8 shells in the panel's Terminal tab, each a tab of its own (the terminal node, its shell on the terminal service of the pty provider). The Terminal tab shows only while a terminal is open. The node keeps Tab for the shell. Run Task (and mod+shift+b, the build task) runs a task of .forge/tasks.json (read through files.read, parsed with parseJsonc) in a new terminal, through runInTerminal.",
 
 	"state": {
 		"terminals": { "list": [], "active": "", "next": 1 },
@@ -24,7 +24,7 @@
 				{ "set": "state.panelTab", "to": "terminal" }
 			] },
 		"terminalClose": [
-			{ "call": "forge.terminal.close", "with": { "id": "{{id}}" } },
+			{ "closeTerminal": "{{id}}" },
 			{ "set": "state.terminals.list", "to": "{{filter(state.terminals.list, it.id != id)}}" },
 			{ "if": "{{state.terminals.active == id}}",
 			  "then": [{ "set": "state.terminals.active", "to": "{{length(state.terminals.list) > 0 ? state.terminals.list[0].id : ''}}" }] },
@@ -42,7 +42,7 @@
 			] },
 		"terminalClear": { "title": "Clear Terminal", "category": "Terminal", "icon": "eraser",
 			"enablement": "{{!empty(state.terminals.active)}}",
-			"do": [{ "call": "forge.terminal.clear", "with": { "id": "{{state.terminals.active}}" } }] },
+			"do": [{ "clearTerminal": "{{state.terminals.active}}" }] },
 		"terminalKeepTab": [],
 		"runTask": { "title": "Run Task...", "category": "Terminal", "icon": "play",
 			"description": "Pick a task of the open folder's .forge/tasks.json and run it in a new terminal.",
@@ -50,10 +50,26 @@
 		"runBuildTask": { "title": "Run Build Task...", "category": "Terminal", "icon": "play",
 			"description": "Run the build task of .forge/tasks.json, or pick one if there are several.",
 			"do": [{ "run": "tasksLoad", "with": { "then": "build" } }] },
-		"tasksLoad": [{ "call": "forge.tasks.list",
-			"onError": [{ "set": "state.tasks.error", "to": "{{'Cannot read .forge/tasks.json: ' + error}}" },
-			            { "run": "notify", "with": { "severity": "error", "message": "{{state.tasks.error}}" } }],
-			"then": [{ "run": "tasksApply", "with": { "found": "{{result}}", "then": "{{then}}" } }] }],
+		"tasksLoad": [{ "if": "{{empty(state.folder.root)}}",
+			"then": [{ "run": "tasksApply", "with": { "found": { "tasks": [], "skipped": 0 }, "then": "{{then}}" } }],
+			"else": [{ "invoke": "files.read", "with": { "path": ".forge/tasks.json" },
+				"onError": [{ "if": "{{error.code == 'notFound'}}",
+					"then": [{ "run": "tasksApply", "with": { "found": { "tasks": [], "skipped": 0 }, "then": "{{then}}" } }],
+					"else": [{ "run": "tasksFail", "with": { "reason": "{{error.message}}" } }] }],
+				"onDone": [{ "run": "tasksReadFile", "with": { "file": "{{parseJsonc(result.text)}}", "then": "{{then}}" } }] }] }],
+		"tasksFail": [{ "set": "state.tasks.error", "to": "{{'Cannot read .forge/tasks.json: ' + reason}}" },
+		              { "run": "notify", "with": { "severity": "error", "message": "{{state.tasks.error}}" } }],
+		"tasksReadFile": [{ "if": "{{file == null}}", "then": [{ "run": "tasksFail", "with": { "reason": "it isn't JSON" } }],
+			"else": [{ "run": "tasksRead", "with": { "then": "{{then}}", "listed": "{{type(file) == 'object' && type(file.tasks) == 'list' ? file.tasks : []}}" } }] }],
+		"tasksRead": [{ "note": "The tasks Forge runs: type shell (its command a line for the shell) or process (one program), with plain text args, each quoted by shellLine(); ${workspaceFolder} becomes '.' (the terminal starts in the folder), and a task naming another variable is skipped. The first 100 are kept, the others counted as skipped." },
+			{ "run": "tasksQuote", "with": { "then": "{{then}}", "total": "{{length(listed)}}",
+				"known": "{{map(filter(listed, type(it) == 'object' && it.command != null && (it.type == null || it.type == 'shell' || it.type == 'process')), {t: it, shell: it.type != 'process', group: type(it.group) == 'object' ? it.group.kind : it.group, command: type(it.command) == 'string' ? join(split(it.command, '${workspaceFolder}'), '.') : null, args: it.args == null ? [] : type(it.args) == 'list' && length(it.args) <= 1000 ? map(it.args, type(it) == 'string' ? join(split(it, '${workspaceFolder}'), '.') : null) : null})}}" } }],
+		"tasksQuote": [{ "run": "tasksLine", "with": { "then": "{{then}}", "total": "{{total}}",
+			"quoted": "{{filter(map(filter(known, it.command != null && it.command != '' && it.args != null && !contains(it.command, '${') && every(it.args, it == null || !contains(it, '${'))), merge(it, {quotedCommand: shellLine([it.command]), quotedArgs: shellLine(it.args)})), it.quotedCommand != null && it.quotedArgs != null)}}" } }],
+		"tasksLine": [{ "run": "tasksKeep", "with": { "then": "{{then}}", "total": "{{total}}",
+			"kept": "{{filter(map(quoted, {label: type(it.t.label) == 'string' && it.t.label != '' && shellLine([it.t.label]) != null ? it.t.label : it.command, line: (it.shell ? it.command : it.quotedCommand) + (it.quotedArgs == '' ? '' : ' ' + it.quotedArgs), group: it.group == 'build' || it.group == 'test' ? it.group : ''}), length(it.line) <= 60000)}}" } }],
+		"tasksKeep": [{ "run": "tasksApply", "with": { "then": "{{then}}",
+			"found": "{{ {tasks: slice(kept, 0, 100), skipped: total - min(length(kept), 100)} }}" } }],
 		"tasksApply": [
 			{ "set": "state.tasks.items", "to": "{{map(found.tasks ?? [], {title: it.label, detail: it.line, line: it.line, group: it.group})}}" },
 			{ "set": "state.tasks.skipped", "to": "{{found.skipped ?? 0}}" },
@@ -65,13 +81,13 @@
 			             "else": [{ "if": "{{then != ''}}", "then": [{ "set": "state.quickPick.query", "to": "task " },
 			                                                         { "set": "state.quickPick.open", "to": true }] }] }] }
 		],
-		"tasksApplyFile": [{ "run": "tasksApply", "with": { "found": "{{event.found ?? event}}", "then": "{{event.then ?? ''}}" } }],
+		"tasksApplyFile": [{ "run": "tasksReadFile", "with": { "file": "{{event.file}}", "then": "{{event.then ?? ''}}" } }],
 		"taskRunEvent": [{ "run": "taskStart", "with": { "item": "{{event}}" } }],
 		"taskStart": [
 			{ "if": "{{length(state.terminals.list) >= 8}}",
 			  "then": [{ "run": "notify", "with": { "severity": "warning", "message": "Close a terminal to run a task" } }],
 			  "else": [
-				{ "call": "forge.terminal.run", "with": { "id": "{{'t' + state.terminals.next}}", "text": "{{item.line}}" } },
+				{ "runInTerminal": "{{'t' + state.terminals.next}}", "text": "{{item.line}}" },
 				{ "set": "state.tasks.last", "to": "{{item.title}}" },
 				{ "run": "terminalNew" },
 				{ "set": "state.terminals.list", "to": "{{map(state.terminals.list, it.id == state.terminals.active ? merge(it, {label: 'Task - ' + item.title}) : it)}}" }

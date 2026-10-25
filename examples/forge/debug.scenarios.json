@@ -33,40 +33,33 @@
 				{
 					"action": "debugApplyLaunchFile",
 					"event": {
+						"version": "0.2.0",
 						"configurations": [
-							{
-								"name": "Run main",
-								"type": "python",
-								"request": "launch",
-								"arguments": {
-									"program": "src/main.cpp",
-									"cwd": ".",
-									"stopOnEntry": false
-								}
-							},
-							{
-								"name": "Attach",
-								"type": "python",
-								"request": "attach",
-								"arguments": {
-									"port": 5678
-								}
-							}
-						],
-						"skipped": 1
+							{ "name": "Run main", "type": "python", "request": "launch", "program": "src/main.cpp", "cwd": ".", "stopOnEntry": false, "args": ["--fast", 3], "console": "externalTerminal", "justMyCode": true },
+							{ "name": "Attach", "type": "debugpy", "request": "attach", "connect": { "host": "localhost", "port": 5678 } },
+							{ "type": "lldb-dap", "request": "attach", "pid": 4242 },
+							{ "name": "No process", "type": "lldb", "request": "attach" },
+							{ "name": "Other", "type": "node", "request": "launch", "program": "main.js" },
+							"not a configuration"
+						]
 					},
-					"note": "what forge.debug.launchConfigurations reads from a launch.json"
+					"note": "what a .forge/launch.json holds, read by debugReadLaunchFile: three Forge runs, three skipped"
 				},
+				{ "expect": { "state": "debug.configurations[0].arguments", "is": { "program": "src/main.cpp", "cwd": ".", "stopOnEntry": false, "args": ["--fast"], "console": "integratedTerminal" } } },
+				{ "expect": { "state": "debug.configurations[1].type", "is": "python" } },
+				{ "expect": { "state": "debug.configurations[1].arguments.connect", "is": { "host": "127.0.0.1", "port": 5678 } } },
+				{ "expect": { "state": "debug.configurations[2].name", "is": "lldb attach" } },
+				{ "expect": { "state": "debug.configurations[2].arguments", "is": { "pid": 4242 } } },
 				{
 					"expect": {
 						"state": "debug.configurations.length",
-						"is": 2
+						"is": 3
 					}
 				},
 				{
 					"expect": {
 						"state": "debug.skipped",
-						"is": 1
+						"is": 3
 					}
 				},
 				{

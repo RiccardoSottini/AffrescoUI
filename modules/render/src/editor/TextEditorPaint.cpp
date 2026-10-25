@@ -306,8 +306,8 @@ void TextEditor::paintCaretAndScrollBar(Painter& painter, const Layout& layout) 
 	if(hasFocus()) {
 		const float x = std::round(layout.textLeft + xOnRow(caret_));
 		const float top = lineTop(layout, rowOf(caret_));
-		if(x >= box.left + layout.gutter - 8.0f)
-			painter.fillRect({x, top + 1.0f, x + 2.0f, top + lh - 1.0f}, caretColor_);
+		if(const Font* f = font(); f && x >= box.left + layout.gutter - 8.0f)
+			paintCaret(painter, *f, layout, caret_, x, top);
 	}
 
 	// A scroll bar thumb as long as the visible share of the text

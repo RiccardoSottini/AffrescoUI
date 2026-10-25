@@ -140,8 +140,36 @@ std::optional<Shape> fixedResult(std::string_view name) {
 	if(among(listOperators, name)) return Shape::array({single});
 	if(name == "$values") return Shape::array({anything});
 	if(name == "$entries") return Shape::array({{{"key", single}, {"value", anything}}});
-	if(name == "$parseJson") return anything;
+	if(name == "$parseJson" || name == "$parseJsonc") return anything;
 	if(name == "$qrCode") return Shape{{"size", single}, {"version", single}, {"d", single}, {"viewBox", single}};
+	if(name == "$gitStatus") // services' GitOutput.hpp, or null
+		return Shape{{"branch", {{"head", true}, {"oid", true}, {"upstream", true}, {"ahead", true}, {"behind", true}}},
+		             {"files", Shape::array({{{"path", true},
+		                                      {"original", true},
+		                                      {"index", true},
+		                                      {"worktree", true},
+		                                      {"kind", true},
+		                                      {"staged", true},
+		                                      {"unstaged", true}}})}};
+	if(name == "$gitBranches")
+		return Shape{{"current", true}, {"branches", Shape::array({{{"id", true}, {"label", true}, {"current", true}}})}};
+	if(name == "$diffLines") { // ExpressionFunctionsDiff.cpp; "rows" with the split option
+		const Shape side{{"n", true}, {"text", true}, {"kind", true}};
+		const Shape line{{"kind", true}, {"old", true}, {"new", true}, {"text", true}};
+		return Shape{{"hunks", Shape::array({{{"header", true},
+		                                      {"oldStart", true},
+		                                      {"oldLines", true},
+		                                      {"newStart", true},
+		                                      {"newLines", true},
+		                                      {"hiddenBefore", true},
+		                                      {"lines", Shape::array({line})},
+		                                      {"rows", Shape::array({{{"left", side}, {"right", side}}})}}})},
+		             {"added", true},
+		             {"removed", true},
+		             {"same", true},
+		             {"hiddenAfter", true},
+		             {"truncated", true}};
+	}
 	return std::nullopt;
 }
 

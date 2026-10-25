@@ -61,8 +61,7 @@ endfunction()
 # Makes the programs the site and the checks use, once the root CMakeLists.txt has defined them: the host for the
 # page (the templates' folders and examples/shared preloaded under /assets, without their C++ sources,
 # so no path of the machine that built them is in the site), and the command-line tool for Node, on the machine's own
-# files (NODERAWFS), to play the scenarios. Forge and the document server need processes, a terminal and a listening
-# socket: they aren't built for a browser.
+# files (NODERAWFS), to play the scenarios. The document server needs a listening socket: it isn't built for a browser.
 function(affrescoui_web_programs)
 	if(TARGET affrescoui_launcher)
 		affrescoui_template_folders(folders)
@@ -79,7 +78,7 @@ function(affrescoui_web_programs)
 			endforeach()
 			target_link_options(${program} PRIVATE "SHELL:--exclude-file *.cpp" "SHELL:--exclude-file *.hpp")
 		endforeach()
-		set_target_properties(affrescoui_forge affrescoui_server PROPERTIES EXCLUDE_FROM_ALL ON)
+		set_target_properties(affrescoui_server PROPERTIES EXCLUDE_FROM_ALL ON)
 	endif()
 	if(TARGET affrescoui_cli)
 		affrescoui_web_program(affrescoui_cli node)

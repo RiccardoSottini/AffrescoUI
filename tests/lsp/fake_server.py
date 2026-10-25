@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""A fake language server for Forge's lsp feature: JSON-RPC over stdio with Content-Length framing, its answers fixed.
+"""A fake language server for the `lsp` service: JSON-RPC over stdio with Content-Length framing, its answers fixed.
 
-It speaks enough of the protocol for every request Forge's client sends (initialize, sync, hover, completion,
-signature help, definition, references, rename, formatting, symbols, semantic tokens) and publishes a diagnostic for
-each line of an open document that contains "FIXME". What it answers is answer(method, params, text) below, so the
-scenarios (examples/forge/lsp.scenarios.json) play the same results without a process:
+It speaks enough of the protocol for every request the service sends (initialize, sync, hover, completion, signature
+help, definition, references, rename, formatting, symbols, semantic tokens) and publishes a diagnostic for each line of
+an open document that contains "FIXME". Once initialized it asks for its settings (`workspace/configuration`, section
+"fake") and publishes them as a diagnostic of "settings.json". What it answers is answer(method, params, text) below:
 
     python3 tests/lsp/fake_server.py --print hover      # the result it gives for a hover, as JSON
 
-To try it in Forge, grant it as clangd's stand-in (see examples/forge/README.md, "Language servers"). Flags that
-make it misbehave, for the client's limits: --crash-after N (exit after N requests), --outside (locations and edits
-outside the folder), --flood (a diagnostic per line and 10,000 completions).
+tests/unit/lsp_service.cpp drives it. Flags that make it misbehave, for the client's limits: --crash-after N (exit
+after N requests), --outside (locations and edits outside the folder), --flood (a diagnostic per line and 10,000
+completions).
 """
 
 import json
@@ -135,6 +135,16 @@ def main(arguments):
         method, params = message.get("method", ""), message.get("params") or {}
         if method == "exit":
             return 0
+        if not method:  # the answer to the settings asked for below
+            if message.get("id") == "settings":
+                write(sink, {"jsonrpc": "2.0", "method": "textDocument/publishDiagnostics", "params": {
+                    "uri": root + "/settings.json", "diagnostics": [
+                        {"range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 1}},
+                         "severity": 3, "message": json.dumps(message.get("result"))}]}})
+            continue
+        if method == "initialized":
+            write(sink, {"jsonrpc": "2.0", "id": "settings", "method": "workspace/configuration",
+                         "params": {"items": [{"section": "fake"}]}})
         if method == "initialize":
             root = (params.get("rootUri") or "file://").rstrip("/")
         if method in ("textDocument/didOpen", "textDocument/didChange"):

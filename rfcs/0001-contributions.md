@@ -177,7 +177,7 @@ parse.
 while the focus is inside the node, and an inner node's value wins over an outer one's:
 
 ```json
-{ "id": "editor", "type": "code", "context": { "editorFocus": true, "editorLanguage": "{{file.language}}" } }
+{ "id": "editor", "type": "editor", "context": { "editorFocus": true, "editorLanguage": "{{file.language}}" } }
 ```
 
 That is how a workbench says "the editor has the focus" without any built-in notion of an editor:

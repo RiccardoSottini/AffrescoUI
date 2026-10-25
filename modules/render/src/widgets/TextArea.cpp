@@ -96,6 +96,22 @@ bool TextArea::insert(std::u32string_view added) {
 	return changed;
 }
 
+bool TextArea::insertText(std::string_view utf8) {
+	if(!insert(detail::fromUtf8(utf8))) return false;
+	onTextChanged(text());
+	return true;
+}
+
+std::string TextArea::removeLast(std::size_t count) {
+	count = std::min(count, text_.size());
+	if(count == 0) return "";
+	std::string removed = detail::toUtf8(std::u32string_view(text_).substr(text_.size() - count));
+	text_.resize(text_.size() - count);
+	invalidate();
+	onTextChanged(text());
+	return removed;
+}
+
 std::u32string TextArea::shownText() const { return secret_ ? std::u32string(text_.size(), U'\u2022') : text_; }
 
 void TextArea::keyEvent(const KeyEvent& event) {

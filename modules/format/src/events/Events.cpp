@@ -124,6 +124,7 @@ void Events::hookUp(Panel& panel, Record& adopted) {
 		break;
 	}
 	hooks.caret = hookCaret(panel);
+	hooks.view = hookView(panel);
 	hooks.link = hookLink(panel);
 }
 
@@ -157,6 +158,27 @@ Connection Events::hookCaret(Panel& panel) {
 	});
 }
 
+Connection Events::hookView(Panel& panel) {
+	auto* editor = dynamic_cast<TextEditor*>(&panel);
+	if(!editor) return 0;
+	return editor->onViewChanged.connect([this, &panel](TextEditor::View view) {
+		Record* record = engine_.reconciler.recordOf(&panel);
+		if(!record || !record->view) return;
+		try {
+			const DocumentContext::BudgetScope budget(engine_.document); // the path may hold expressions
+			const std::string where = record->path + ".viewport";
+			const json::json_pointer pointer =
+			    format::statePointer(*record->view, engine_.document.context(*record->locals, json::object()), where);
+			statePlace(engine_.versions.state(), pointer, where) =
+			    json{{"first", view.first}, {"last", view.last}, {"rows", view.rows}, {"lines", view.lines}};
+			engine_.document.markStateChanged(pointer);
+			engine_.reconciler.requestStateUpdate();
+		} catch(const DocumentError& error) {
+			engine_.report(error.what());
+		}
+	});
+}
+
 void Events::unhook(Panel& panel, const Record& record) {
 	const Record::Hooks& hooks = record.hooks;
 	panel.onHover.disconnect(hooks.hover);
@@ -179,7 +201,10 @@ void Events::unhook(Panel& panel, const Record& record) {
 		set->events.stopListening(panel, hooks.events);
 		break;
 	}
-	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) editor->onCaretMoved.disconnect(hooks.caret);
+	if(auto* editor = dynamic_cast<TextEditor*>(&panel)) {
+		editor->onCaretMoved.disconnect(hooks.caret);
+		editor->onViewChanged.disconnect(hooks.view);
+	}
 	if(auto* label = dynamic_cast<Label*>(&panel)) label->onLink.disconnect(hooks.link);
 }
 

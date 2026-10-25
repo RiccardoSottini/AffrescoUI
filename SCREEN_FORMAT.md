@@ -60,7 +60,7 @@ Every part of the format follows these, and so should every extension:
 | `root` | Required. The window's root node. It always fills the window, so layout properties aren't allowed on it. |
 | `format` | `"affrescoui-screen"`, for tools. |
 | `note` | A comment. |
-| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a PNG, JPEG or SVG file under the rules of an image's `file`. |
+| `window` | `title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of `{ "menu": "file", "title": "File" }` naming menus of the `menus` section (macOS, Windows; elsewhere none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the node the keyboard focused: a colour, `{ "color": "#2563EB", "width": 2, "offset": 2 }` (the defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a PNG, JPEG or SVG file under the rules of an image's `file`; `keyLabels`: the notation of `keyLabel`s, `"platform"` (the default), `"mac"`, `"pc"` or `"emacs"` (`C-x`, `M-<`). |
 | `fonts` | `name → { "file", "size", "fallback", "bold", "italic" }`, paths relative to the screen file (TrueType or OpenType, a collection's first font). `default` is used by text without a `font`. Text is UTF-8, shaped per script (kerning, ligatures, Arabic, Indic; right-to-left runs), colour emoji from COLR fonts. `"fallback": ["symbols"]` names other fonts asked in order for a character this one lacks; a character none has shows as `?` (macOS menu key labels use ⌘ ⇧ ⌥ ⌃, which JetBrains Mono has). `"bold": true` and `"italic": true` thicken or slant the outlines, for headings from a file with one weight: `"heading": { "file": "Roboto-Regular.ttf", "size": 20, "bold": true }`; a label's `runs` keep its font's style unless they set their own. |
 | `languages` | `name → language`: the code languages an editor's `language` names (by name, alias or file name). Each has `title`, `aliases`, `files` (`["*.py", "CMakeLists.txt"]`), `comments` (`{ "line": "//", "block": ["/*", "*/"] }`), `brackets` and `pairs` (`[["(", ")"], ...]`: Enter between brackets indents, typing an opener of a pair adds its closer), `indent` (`{ "increase": regex, "decrease": regex }`), `wordPattern` (regex), and TextMate-style `patterns` with a `repository`: `{ "match": regex, "scope": "keyword" }`, `{ "begin": regex, "end": regex, "scope", "contentScope", "patterns" }` (an `end` may use the begin's groups, `\1`), `captures` / `beginCaptures` / `endCaptures` (`{ "1": { "scope": "type" } }`) and `{ "include": "#name" }` or `"$self"`. A scope is coloured by `@syntax.<scope>`, or its parent's (`keyword.control` by `@syntax.keyword`). Regular expressions are PCRE2, each find limited in steps and each line in time; a language has at most 2,048 rules. Ready-made languages are data files to `include` (`examples/shared/languages/`). |
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
@@ -122,7 +122,7 @@ parent, later siblings on top of earlier ones.
 <!-- generated: node -->
 | Key | Meaning |
 |---|---|
-| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `raster`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `scene`, `outlet`, or a type the application registers. |
+| `type` | `panel` (default), `label`, `textarea`, `editor`, `diff`, `stack`, `row`, `column`, `grid`, `toggle`, `checkbox`, `slider`, `image`, `surface`, `raster`, `split`, `tabs`, `list`, `tree`, `table`, `path`, `colorPicker`, `gradient`, `curves`, `canvas`, `graph`, `timeline`, `calendar`, `codeInput`, `carousel`, `scene`, `terminal`, `outlet`, or a type the application registers. |
 | `id` | A name to address the node (`#id` in edits, `nodes.id`, anchors, `focus`). Every node should have one, and no two nodes the same (the checker reports a duplicate). `affrescoui ids` gives readable ones to a file's nodes (`label-blocked`, `panel-top-bar`), and a node a revision adds without one gets one in the commit. A `use` keeps its own id over its component's. |
 | `style` | Style name or list of names; may be computed: `"{{on ? 'chipOn' : 'chip'}}"`. |
 | `children` | Array of nodes. |
@@ -204,7 +204,7 @@ only for the elements that changed.
 | `every` | `{ "ms": 1000, "do": steps }`: runs while the node exists. |
 | `drag` | `{ "data": {...} }`: the node can be dragged; a node with `onDrop` receives `event.data`. |
 | `context` | `{ "editorFocus": true }`: keys added to the `context` variable while the node or a child has the focus (an inner node wins); `when` clauses read them. |
-| `keys` | Shortcuts while the node or a child has the focus: `"enter" → handler`. |
+| `keys` | Shortcuts while the node or a child has the focus: `"enter" → handler`; `"*"` takes any other press (`event.key`). |
 | `locked` | `true`: no revision may change this node or anything inside it. Needs an `id`. |
 | `note` | A comment. |
 | `on…` | Event handlers (see Events). |
@@ -243,20 +243,15 @@ Everything `label` has, plus `placeholder`, `placeholderColor`, `bind` (a state 
 A multi-line text editor (Cmd on macOS, Ctrl elsewhere): click, drag, double and triple click select; arrows,
 Home/End, Page Up/Down, Alt+arrows (words), Cmd+arrows (line and document ends), Shift to extend; Enter keeps the
 indentation; Tab/Shift+Tab indent; Cmd+A/C/X/V/Z, Cmd+Shift+Z. The caret's line is highlighted; the wheel scrolls.
-Tabs become 4 spaces. Applications build richer editors on it (syntax colours, commands): see
-`examples/shared/CodeEditor.cpp`, the Forge template's `code` type.
-Forge's `code` type adds keys for features at the caret, such as a language server's (`features/lsp/`):
-`onHover` (event `{ over, line, column, x, y, top }` when the code point under the resting mouse changes), `onType`
-(event `{ text, line, column, word, x, y, top }` after each typed character or deletion), `popup` and `onPopupKey`
-(while `popup` is true, Up, Down, Page Up/Down, Enter, Tab and Escape go to the action as `{ key }`), `insert`
-(`{ text, before, request }`: replaces the `before` characters before the caret, once per request), and `tokens`
-(`[{ line, column, length, style }]`, from 0, coloured by `@syntax.<style>` over the grammar's colours).
+Tabs become 4 spaces. With a `language` it is a code editor; its events, `onType`, `onTextHover` and
+`onPopupKey`, are in Events.
 
 <!-- generated: editor -->
 | Key | Meaning |
 |---|---|
 | `bind` | A state path holding the text (lines joined by `"\n"`), kept in sync both ways. Without it, `text` sets the text. |
 | `caret` | A state path the editor writes its caret to: `{ "line", "column", "selected" }`, counted from 1. |
+| `viewport` | A state path the editor writes what it shows to: `{ "first", "last", "rows", "lines" }`: the lines of its first and last visible rows (from 1), how many rows fit, and how many lines there are. For "Top", "Bot" and "42%" indicators. |
 | `font`, `textColor` | Font and text colour. |
 | `lineNumbers` | `true` shows line numbers in a gutter. |
 | `lineNumberColor`, `activeLineNumberColor` | Line numbers, and the caret's line number. |
@@ -275,9 +270,10 @@ Forge's `code` type adds keys for features at the caret, such as a language serv
 | `minimapViewport` | When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it. |
 | `matchStyle` | How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
+| `caretStyle` | The caret: `line` (the default) a bar before the character, `block` a box over it, `underline` a bar under it. |
 | `readOnly` | `true`: the user can select, find and fold, but not edit. |
 | `guideColor`, `matchColor`, `bracketColor` | The indentation guides, find's matches and the paired brackets. |
-| `grammar` | The language parsed for syntax colours, folds and bracket pairs: `c`, `cpp`, `json`, `python`, `javascript`, `typescript`, `markdown` or an alias (`c++`, `js`, `ts`, `py`, `md`), or a file name whose extension says it. Each capture is coloured by the theme's `@syntax.<capture>` token (e.g. `@syntax.keyword`; `keyword.return` falls back to `@syntax.keyword`). Left out, plain text. |
+| `grammar` | The language parsed for syntax colours, folds and bracket pairs: `c`, `cpp`, `json`, `python`, `javascript`, `typescript`, `markdown` or an alias (`c++`, `js`, `ts`, `py`, `md`), or a file name whose extension says it. Each capture is coloured by the theme's `@syntax.<capture>` token (e.g. `@syntax.keyword`; `keyword.return` falls back to `@syntax.keyword`). Left out or empty, plain text. |
 | `commands` | Keys bound to code commands, each one undo step: `{ "mod+/": "toggleComment", "alt+up": "moveLinesUp" }` (`mod` is cmd on macOS, ctrl elsewhere). `toggleComment` (the language's line comment), `moveLinesUp`, `moveLinesDown`, `deleteLines`, `copyLine` and `cutLine` (the caret's line, when nothing is selected), `indentLines`, `outdentLines`, `insertLineAfter`, `insertLineBefore`. A bound key isn't typed. |
 | `popup` | `true` while the document shows a popup over the editor (completions): up, down, page up, page down, enter, tab and escape without modifiers go to `onPopupKey` instead of the text. |
 | `goTo` | `{ "line", "column", "request" }` (from 0): moves the caret there, once per `request` number (a new number moves it again). |
@@ -296,7 +292,7 @@ then character by character on the lines changed, in read-only editors that numb
 | `original` | The text compared from (lines split at `\n`, a `\r` before it dropped). |
 | `modified` | The text compared to. |
 | `mode` | `split` (default): the original on the left, the modified text on the right, rows aligned with blank rows and scrolled together; `inline`: one editor, the deleted lines above the lines inserted for them. |
-| `language` | A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. On an `editor`: a language of the `languages` section, by name, alias or file name (`main.py`). It colours the text unless `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, or wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an `indent.increase` line indents a level, and a line that comes to match `indent.decrease` goes back one. Unknown, plain text. |
+| `language` | A language id given to the application's editor factory (syntax colours); left out, or without one, plain text. On an `editor`: a language of the `languages` section, by name, alias or file name (`main.py`). It colours the text unless a `grammar` does, and its rules apply to typing: an opener of `pairs` adds its closer (typed over, or wrapping the selection), Backspace between an empty pair deletes both, Enter between `brackets` or after an `indent.increase` line indents a level, and a line that comes to match `indent.decrease` goes back one. Unknown, plain text. |
 | `deletedColor`, `insertedColor` | Behind deleted and inserted lines (the changed characters in the same colour, twice as strong). |
 <!-- end generated -->
 
@@ -996,13 +992,18 @@ Wherever a value is expected it can be computed:
   `cos(radians)`, `tan(radians)`, `asin(number)`, `acos(number)`, `atan(number)`, `atan2(y, x)`, `radians(degrees)`,
   `degrees(radians)`, `pi()`, `sqrt(number)`, `pow(base, exponent)`, `exp(number)`, `log(number, base?)`,
   `hypot(a, b, ...)` (numbers or a list), `sign(number)`, `upper(text)`, `lower(text)`, `trim(text)`,
-  `split(text, separator)`, `number(value)`, `text(value)`, `fixed(number, digits)`,
-  `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`, `json(value)`,
-  `length(value)`, `concat(a, b, ...)`, `flat(list)`, `join(list, separator)`, `slice(list or text, from, to?)`,
+  `split(text, separator)`, `slug(text, most?)` (an id: letters, digits and dashes), `number(value)`, `text(value)`,
+  `fixed(number, digits)`,
+  `pad(value, width, fill?)` (width up to 10000), `plural(count, word, plural?)`, `parseJson(text)`,
+  `parseJsonc(text)` (comments and trailing commas too, or null), `json(value)`,
+  `shellLine(words, variables?)` (single-quoted for a POSIX shell, or null if a word isn't plain text),
+  `applyEdits(text, edits)`, `length(value)`, `concat(a, b, ...)`, `flat(list)`, `join(list, separator)`,
+  `slice(list or text, from, to?)`,
   `contains(list or text or object, value)`, `indexOf(list or text, value)`, `keys(object)`, `values(object)`,
   `entries(object)`, `fromEntries(list)`, `merge(a, b, ...)`, `reverse(list or text)`, `range(count)` (count up to 10000), `now()`,
   `time(milliseconds, 'ddd D MMM HH:mm')`, `fuzzy(query, text)`, `fuzzySort(list, query, key?, limit?)`,
-  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`, `keyframeValue(track, time)`, `t('key', {params})`,
+  `curve(points, x, interpolation?)`, `gradientColor(gradient, at)`,
+  `hexColor(value)` ('#rrggbb' or '#rrggbbaa', or null), `keyframeValue(track, time)`, `t('key', {params})`,
   `formatNumber(n, fewest?, most?)`, `formatPercent(ratio, decimals?)`, `formatCurrency(amount, 'EUR')`,
   `formatDate(milliseconds, style?, zone?)`, `formatTime(milliseconds, style?, zone?)`, `formatRelative(value, 'day')`,
   `formatList(list, 'and' | 'or')`, `compareText(a, b)`, `sortText(list)`, `today()`, `addDays(date, days)`,
@@ -1010,7 +1011,7 @@ Wherever a value is expected it can be computed:
   `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`, `pathTree(list, key?)`,
   `qrCode(text, level?)` (a QR code's SVG path: `d`, `viewBox`, `size`, `version`),
   `diffLines(original, modified, options?)`, `atPointer(value, pointer)`, `applyPatch(value, patch)`,
-  `formatJson(value, indent?)`;
+  `formatJson(value, indent?)`, `gitStatus(output)`, `gitBranches(output)` (git's output read strictly, or null);
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`.
@@ -1183,8 +1184,11 @@ has no handler, its nearest ancestor with one. A row with `onClick` needs no inv
 `f1` to `f25`, the keys are `enter`, `escape`, `tab`, `backspace`, `delete`, `space`, the arrows, `home`, `end`,
 `pageup`, `pagedown`, `minus`, `equal`, `comma`, `period`, `slash`, `backslash`, `semicolon`, `apostrophe`,
 `leftbracket`, `rightbracket`, `grave`, and the keypad's `numpad0` to `numpad9`, `numpadperiod`, `numpadplus`,
-`numpadminus` and `numpadmultiply` (its Enter is `enter`). While a text area is focused, keys
-without Cmd, Ctrl or Alt go to the text (Escape still works).
+`numpadminus` and `numpadmultiply` (its Enter is `enter`). A key may also be written as its character (`"mod+/"`,
+`"ctrl+["`, but not `+`), `grave` as `backquote`, `enter` as `return` and `escape` as `esc`. While a text area is focused, keys
+without Cmd, Ctrl or Alt go to the text (Escape still works). A node's `"*"` takes every press its other keys don't
+name or begin, before the document's keys and the text, with the press in `event.key` (`"ctrl+x"`): a key recorder, or
+a keymap that owns the keyboard while its node has the focus.
 
 ### Commands and keybindings
 
@@ -1270,16 +1274,19 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `run` | `{ "run": "moveCard", "with": { "from": "{{c}}", "to": "{{c + 1}}" } }`: an action with variables; the name may be computed, and `with` too (`"{{item.with}}"`, an object or null) |
 | `call` | `{ "call": "pickFile", "with": {...}, "into": "state.file", "onError": [...] }`: a native function (`Screen::onCall`); `error` in `onError`, `result` in `then`. A slow one (`Screen::onAsyncCall`) runs on a worker thread: `"loading": "state.busy"` is true while it runs, `"progress": "state.done"` goes from 0 to 1, partial results stream into `into`, `"timeout": 5000` ends it with the error `timeout`, `then` runs with `result` |
 | `cancel` | `{ "cancel": "search" }`: stop the running slow calls of a function; they change nothing more |
-| `invoke` | `{ "invoke": "files.read", "with": {"path": "a.txt"}, "into": "state.text" }`: a method of a declared service, answered later; `loading`, `progress`, `timeout` (ms, default 30000), `id` (a new call with the same id cancels it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`); a stream's events go to `append` (the last `keep`) or run `onEvent` with `events` |
+| `invoke` | `{ "invoke": "files.read", "with": {"path": "a.txt"}, "into": "state.text" }`: a method of a declared service, answered later; `loading`, `progress`, `timeout` (ms, default 30000), `id` (a new call with the same id cancels it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`); a stream's events go to `append` (the last `keep`) or run `onEvent` once per event, with it as `event` |
 | `request` | `{ "request": "api.getProject", "with": {"id": "{{state.id}}"}, "into": "state.project", "loading": "state.busy" }`: an operation (or a WebSocket message) of a declared connection, built from its declaration; the keys of `invoke`, with `error` as `{code, message, status, body}`. In a preview only a read without a `mock` reaches the server: the others answer with their mock, or fail with `preview` |
-| `subscribe` | `{ "subscribe": "build.output", "append": "state.log", "keep": 500, "id": "build" }`: a stream of a declared service or connection until `cancel` or its node goes; `do` runs with `events` |
+| `subscribe` | `{ "subscribe": "build.output", "append": "state.log", "keep": 500, "id": "build" }`: a stream of a declared service or connection until `cancel` or its node goes; `do` runs once per event, with it as `event` |
 | `respond` | `{ "respond": "{{state.answer}}" }` or `{ "respond": null, "error": "no" }`: answers the service request that ran the action `service:method` (its `request`); a control step |
 | `signIn` | `{ "signIn": "api", "onDone": [...], "onError": [...] }`: signs in to the provider a connection's `auth` declares (OAuth 2: the browser with PKCE, or a device code), then its requests carry the token. The token never reaches the document or the state: the `auth` variable shows `{state, account, expires}`, and `error` in `onError` is `{code, message}`. A control step |
 | `signOut` | `{ "signOut": "api" }`: forgets the sign-in and its kept token; a control step |
 | `chooseFolder` | `{ "chooseFolder": "workspace", "onDone": [...] }`: after the event, the person chooses the folder a root names in the OS's dialog (if the host lets them); its services start again on it. `result` is `{name}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
 | `saveFile` | `{ "saveFile": "{{state.deck}}", "name": "{{state.deck.title}}.json", "onDone": [...] }`: after the event, writes the value as a JSON file (at most 16 MB) where the person chooses in the OS's save dialog. `result` is `{name, bytes}` (never where it is), `error` `{code, message}`, a cancel runs nothing. A control step |
-| `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. A control step |
+| `openFile` | `{ "openFile": "state.deck", "extensions": ["json"], "onDone": [...] }`: after the event, reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is `{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `"comments": true` it also reads the comments and trailing commas settings and theme files have. A control step |
 | `export` | `{ "export": "pdf", "pages": ["page-1", "page-2"], "size": [960, 540], "title": "Deck" }`: draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, else each node's own), or `"png"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step |
+| `runInTerminal` | `{ "runInTerminal": "t1", "text": "make" }`: types the line (at most 64 KiB) and a newline into the session of a `terminal` node, once a node first shows it if none has yet. A control step |
+| `clearTerminal` | `{ "clearTerminal": "t1" }`: clears a terminal session's scrollback and asks its program to redraw. A control step |
+| `closeTerminal` | `{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step |
 | `emit` | `{ "emit": "saved", "data": {...} }`: an event for every connected peer |
 | `send` | `{ "send": "host", "data": {...} }`: a message on a declared channel |
 | `connect` | `{ "connect": "host" }`: connect a declared channel now |
@@ -1289,7 +1296,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `patch` | `{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document |
 | `navigate` | `{ "navigate": "settings" }` or `"back"` |
 | `focus`, `scrollTo` | `{ "focus": "#input" }` (a container gives it to its first focusable node), `{ "scrollTo": "#row7" }` (after the update, waiting up to two frames for a node that is still being laid out); `"#form #input"`: the `input` inside `form`, for a component's node |
-| `edit` | `{ "edit": "sortLines", "in": "#code" }`: a code editor's command (Editor steps) |
+| `edit` | `{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", "into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", "word", "selection" or "line" |
+| `press` | `{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings |
 | `dismiss` | `{ "dismiss": true }`: closes the open overlays, e.g. a menu once an item is chosen |
 | `after` | `{ "after": 2000, "do": [...] }`: later |
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
@@ -1949,7 +1957,7 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 | `{ "drag": target, "to": target, "moves": 4 }` | Presses, moves there in steps, releases. `toNth` picks among the matches of `to` |
 | `{ "scroll": target, "dx": 0, "dy": -3 }` | Scrolls there |
 | `{ "type": "text" }` | Types into the focused node, a character at a time |
-| `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket backquote`, `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
+| `{ "key": "mod+z" }` | Presses a key: `enter escape tab backspace delete insert space left right up down home end pageup pagedown slash backslash minus equal comma period semicolon apostrophe leftbracket rightbracket grave` (or `backquote`), `a`–`z`, `0`–`9`, `f1`–`f12`, after any of `shift+ ctrl+ alt+ cmd+ mod+` (`mod` as screens write it: Cmd on macOS, Ctrl elsewhere) |
 | `{ "wait": 500 }` | Moves the clock on, running timers, animations and tooltips as they come due. What a handler leaves for the next frame (`focus`) runs at the next wait: `{ "wait": 0 }` |
 | `{ "revision": { ... } }` | Applies a revision as the application would |
 | `{ "propose": { "author": "agent", ... } }` | Submits a revision as its author's peer would: the screen's `permissions` apply it, send it to review (`proposals`) or refuse it |

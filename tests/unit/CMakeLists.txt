@@ -13,31 +13,20 @@ list(REMOVE_ITEM affrescoui_unit_test_files ${CMAKE_CURRENT_SOURCE_DIR}/second_w
 if(NOT AFFRESCOUI_AUDIO)
 	list(FILTER affrescoui_unit_test_files EXCLUDE REGEX "/audio_[^/]*\\.cpp$")
 endif()
-# forge.cpp tests the demo IDE's plain C++ (examples/forge), which needs no window
-set(affrescoui_forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
-add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp
-	${affrescoui_forge_dir}/features/palette/FileIndex.cpp ${affrescoui_forge_dir}/features/themes/ThemeImport.cpp
-	${affrescoui_forge_dir}/features/themes/IconTheme.cpp ${affrescoui_forge_dir}/features/terminal/TerminalModel.cpp
-	${affrescoui_forge_dir}/features/editor/Buffers.cpp ${affrescoui_forge_dir}/features/search/Search.cpp
-	${affrescoui_forge_dir}/features/scm/GitStatus.cpp ${affrescoui_forge_dir}/features/scm/GitArguments.cpp
-	${affrescoui_forge_dir}/features/scm/LineDiff.cpp ${affrescoui_forge_dir}/features/scm/Scm.cpp)
-# lsp.cpp tests the lsp feature's protocol functions, lsp_edits.cpp its edits applied to the folder
-target_sources(affrescoui_unit_tests PRIVATE ${affrescoui_forge_dir}/features/lsp/LspProtocol.cpp
-	${affrescoui_forge_dir}/features/lsp/LspText.cpp ${affrescoui_forge_dir}/features/lsp/LspCall.cpp
-	${affrescoui_forge_dir}/features/lsp/LspEdits.cpp)
+add_executable(affrescoui_unit_tests ${affrescoui_unit_test_files} ${PROJECT_SOURCE_DIR}/modules/screen/src/Png.cpp)
 # Expression.hpp, Utf8.hpp, Sha256.hpp, Lines.hpp, Png.hpp and automation's Internal.hpp and PngReader.hpp stay private
 target_include_directories(affrescoui_unit_tests PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>
 	${PROJECT_SOURCE_DIR}/modules/render/src ${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/channel/src ${PROJECT_SOURCE_DIR}/modules/screen/src
 	${PROJECT_SOURCE_DIR}/modules/automation/src ${PROJECT_SOURCE_DIR}/modules/net/src
-	${PROJECT_SOURCE_DIR}/modules/services/src ${affrescoui_forge_dir}
+	${PROJECT_SOURCE_DIR}/modules/services/src
 	${PROJECT_SOURCE_DIR}/apps/shared) # Templates.hpp
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/shared/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR})
 target_include_directories(affrescoui_unit_tests SYSTEM PRIVATE ${AFFRESCOUI_GLAD_INCLUDE_DIRS}) # gles.cpp: gl/Shader.hpp
-target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation affrescoui_vterm) # all modules; screen.cpp loads screens, no window
+target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::automation) # all modules; screen.cpp loads screens, no window
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::export) # pdf_export.cpp: PDF of a headless window's panels
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::data) # data_*.cpp: the record store and migrations
 set_target_properties(affrescoui_unit_tests PROPERTIES CXX_EXTENSIONS OFF
@@ -47,7 +36,8 @@ target_compile_options(affrescoui_unit_tests PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_unit_tests PRIVATE
 	AFFRESCOUI_EXAMPLES_DIRECTORY="${PROJECT_SOURCE_DIR}/examples"
 	AFFRESCOUI_PROTOTYPES_DIR="${PROJECT_SOURCE_DIR}/rfcs/prototypes" # services.cpp starts the JSON-RPC prototype
-	AFFRESCOUI_FAKE_ADAPTER="${PROJECT_SOURCE_DIR}/tests/dap/fake_adapter.py") # dap.cpp starts the fake debug adapter
+	AFFRESCOUI_FAKE_ADAPTER="${PROJECT_SOURCE_DIR}/tests/dap/fake_adapter.py" # dap.cpp starts the fake debug adapter
+	AFFRESCOUI_FAKE_LANGUAGE_SERVER="${PROJECT_SOURCE_DIR}/tests/lsp/fake_server.py") # lsp_service.cpp, the fake server
 # document_server.cpp tests the document server (apps/server), which needs no window
 target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/apps/server/DocumentServer.cpp
 	${PROJECT_SOURCE_DIR}/apps/server/TokenFile.cpp ${PROJECT_SOURCE_DIR}/apps/server/UserInfoVerifier.cpp)

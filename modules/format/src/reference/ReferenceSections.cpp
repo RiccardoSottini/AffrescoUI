@@ -32,13 +32,17 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"anyOf": [{"type": "string"}, {"const": false}, {"type": "object", "additionalProperties": false,
 		"properties": {"color": {"type": "string"}, "width": {"type": "number", "minimum": 0},
 		"offset": {"type": "number", "minimum": 0}}}]}, "icon": {"type": "string",
-		"description": "The window's icon (the app's in the macOS Dock): a PNG, JPEG or SVG file, as an image's file"}}})json",
+		"description": "The window's icon (the app's in the macOS Dock): a PNG, JPEG or SVG file, as an image's file"},
+		"keyLabels": {"enum": ["platform", "mac", "pc", "emacs"],
+		"description": "How keys are labelled in menus, commands and keybindings"}}})json",
 	 "`title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of "
 	 "`{ \"menu\": \"file\", \"title\": \"File\" }` naming menus of the `menus` section (macOS, Windows; elsewhere "
 	 "none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the "
 	 "node the keyboard focused: a colour, `{ \"color\": \"#2563EB\", \"width\": 2, \"offset\": 2 }` (the "
 	 "defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a "
-	 "PNG, JPEG or SVG file under the rules of an image's `file`.",
+	 "PNG, JPEG or SVG file under the rules of an image's `file`; "
+	 "`keyLabels`: the notation of `keyLabel`s, `\"platform\"` (the default), `\"mac\"`, `\"pc\"` or "
+	 "`\"emacs\"` (`C-x`, `M-<`).",
 	 "sections"},
     {"fonts", R"json({"type": "object",
 		"description": "Fonts by name; \"default\" is used by text without a \"font\"",
@@ -380,7 +384,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`{ \"invoke\": \"files.read\", \"with\": {\"path\": \"a.txt\"}, \"into\": \"state.text\" }`: a method of "
 	 "a declared service, answered later; `loading`, `progress`, `timeout` (ms, default 30000), `id` (a new call with "
 	 "the same id cancels it), `onDone` with `result`, `onError` with `error` (`{code, message, data}`); a stream's "
-	 "events go to `append` (the last `keep`) or run `onEvent` with `events`",
+	 "events go to `append` (the last `keep`) or run `onEvent` once per event, with it as `event`",
 	 "steps"},
     {"request", "",
 	 "`{ \"request\": \"api.getProject\", \"with\": {\"id\": \"{{state.id}}\"}, \"into\": \"state.project\", "
@@ -390,7 +394,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "steps"},
     {"subscribe", "",
 	 "`{ \"subscribe\": \"build.output\", \"append\": \"state.log\", \"keep\": 500, \"id\": \"build\" }`: a "
-	 "stream of a declared service or connection until `cancel` or its node goes; `do` runs with `events`",
+	 "stream of a declared service or connection until `cancel` or its node goes; `do` runs once per event, with it "
+	 "as `event`",
 	 "steps"},
     {"respond", "",
 	 "`{ \"respond\": \"{{state.answer}}\" }` or `{ \"respond\": null, \"error\": \"no\" }`: answers the "
@@ -418,13 +423,25 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"openFile", "",
 	 "`{ \"openFile\": \"state.deck\", \"extensions\": [\"json\"], \"onDone\": [...] }`: after the event, "
 	 "reads a JSON file (at most 16 MB) the person chooses in the OS's open dialog into the state path. `result` is "
-	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. A control step",
+	 "`{name, bytes}`, `error` `{code, message}` (not JSON, too large), a cancel runs nothing. With `\"comments\": "
+	 "true` it also reads the comments and trailing commas settings and theme files have. A control step",
 	 "steps"},
     {"export", "",
 	 "`{ \"export\": \"pdf\", \"pages\": [\"page-1\", \"page-2\"], \"size\": [960, 540], \"title\": \"Deck\" }`: "
 	 "draws nodes as a file the person saves after the event: a vector PDF of one page per node (`size` in points, "
 	 "else each node's own), or `\"png\"` of one node (`scale` pixels a unit, 2 by default). Snapshot nodes make good "
 	 "pages. `result` is `{name, pages, bytes}`, `error` `{code, message}`. A control step",
+	 "steps"},
+    {"runInTerminal", "",
+	 "`{ \"runInTerminal\": \"t1\", \"text\": \"make\" }`: types the line (at most 64 KiB) and a newline into the "
+	 "session of a `terminal` node, once a node first shows it if none has yet. A control step",
+	 "steps"},
+    {"clearTerminal", "",
+	 "`{ \"clearTerminal\": \"t1\" }`: clears a terminal session's scrollback and asks its program to redraw. A "
+	 "control step",
+	 "steps"},
+    {"closeTerminal", "",
+	 R"(`{ "closeTerminal": "t1" }`: ends a terminal session's program and forgets the session. A control step)",
 	 "steps"},
     {"emit", "", R"(`{ "emit": "saved", "data": {...} }`: an event for every connected peer)", "steps"},
     {"send", "", R"(`{ "send": "host", "data": {...} }`: a message on a declared channel)", "steps"},
@@ -450,13 +467,19 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 R"(`input` inside `form`, for a component's node)",
 	 "steps"},
     {"scrollTo", "", "", "steps"},
-    {"edit", "", "`{ \"edit\": \"sortLines\", \"in\": \"#code\" }`: a code editor's command (Editor steps)", "steps"},
+    {"edit", "",
+	 R"(`{ "edit": "sortLines", "in": "#code" }`, `{ "edit": "type", "text": "hi" }`, `{ "edit": "cut", "span": "word", )"
+	 R"("into": "state.kill" }`: an editor's command, in "in" or the focused one; a cut's "span" is "lineEnd", )"
+	 R"("word", "selection" or "line")",
+	 "steps"},
     {"in", "", "", ""},
     {"line", "", "", ""},
     {"column", "", "", ""},
     {"toLine", "", "", ""},
     {"toColumn", "", "", ""},
     {"prefix", "", "", ""},
+    {"span", "", "", ""},
+    {"press", "", R"(`{ "press": "ctrl+x ctrl+s", "in": "#ed" }`: keys as typed, unheard by bindings)", "steps"},
     {"dismiss", R"json({"const": true})json",
 	 "`{ \"dismiss\": true }`: closes the open overlays, e.g. a menu once an item is chosen", "steps"},
     {"after", "", R"(`{ "after": 2000, "do": [...] }`: later)", "steps"},
@@ -559,7 +582,10 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 ""},
     {"end", R"json({"anyOf": [{"enum": ["confirm", "cancel"]}, {"$ref": "#/$defs/v2/dynamic"}]})json", "", ""},
     {"append", "", "", ""},
-    {"keep", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "string"}]})json", "", ""},
+    {"keep",
+	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "boolean"}, {"type": "string"}]})json",
+	 "", ""},
+    {"times", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 1000}, {"type": "string"}]})json", "", ""},
     {"id", "", "", ""},
     {"error", "", "", ""},
     {"data", "", "", ""},
@@ -567,6 +593,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"title", "", "", ""},
     {"name", "", "", ""},
     {"extensions", "", "", ""},
+    {"comments", R"json({"type": "boolean"})json", "", ""},
     {"pages", "", "", ""},
     {"size", "", "", ""},
     {"scale", "", "", ""},

@@ -106,7 +106,7 @@ private:
 		return static_cast<ScopeId>(language_.scopes.size());
 	}
 
-	/// @brief Reads captures: `{ "1": "scope", ... }`, groups 0 to 99.
+	/// @brief Reads captures: `{ "1": { "scope": "type" }, ... }` (or `{ "1": "type" }`), groups 0 to 99.
 	/// @param value The object.
 	/// @param at Its place.
 	/// @return The captures.
@@ -117,7 +117,11 @@ private:
 			const bool number = !key.empty() && key.size() <= 2 &&
 			                    std::ranges::all_of(key, [](char c) { return c >= '0' && c <= '9'; });
 			if(!number) fail(at + "." + key, "expected a group's number, 0 to 99");
-			out.push_back({static_cast<std::uint8_t>(std::stoi(key)), scope(item, at + "." + key)});
+			const bool named = item.is_object();
+			if(named && (item.size() != 1 || !item.contains("scope")))
+				fail(at + "." + key, "expected { \"scope\": \"...\" }");
+			out.push_back({static_cast<std::uint8_t>(std::stoi(key)),
+			               named ? scope(item["scope"], at + "." + key + ".scope") : scope(item, at + "." + key)});
 		}
 		std::ranges::sort(out, {}, &LanguageRule::Capture::group);
 		return out;
@@ -167,7 +171,7 @@ private:
 		if(refersToGroups(end)) {
 			// Compiled for each region it ends, with begin's groups put in: checked now with stand-ins
 			rule.endSource = end;
-			static_cast<void>(compileLanguagePattern(withGroups(end, {}), at + ".end"));
+			static_cast<void>(compileLanguagePattern(withGroups(end, std::vector<std::string>(10, "a")), at + ".end"));
 		} else rule.end = compileLanguagePattern(end, at + ".end");
 		if(value.contains("contentScope")) rule.contentScope = scope(value["contentScope"], at + ".contentScope");
 		if(value.contains("beginCaptures"))
@@ -187,7 +191,7 @@ private:
 		if(name == "$self" || name == "$base") rule.target = 0;
 		else if(name.starts_with('#') && repository_.contains(name.substr(1)))
 			rule.target = repository_.at(name.substr(1));
-		else fail(at + ".include", "expected \"#name\" of the repository, or \"$self\"");
+		else fail(at + ".include", std::format("expected \"#name\" of the repository, or \"$self\", not \"{}\"", name));
 		language_.rules[index] = std::move(rule);
 	}
 

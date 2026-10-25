@@ -1,0 +1,223 @@
+{
+	"$schema": "../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Calamaio: a text editor modelled on GNU Emacs, made of one document. Its keys are in keys, its menus in menus, its looks in colors and tokens, so changing how it works is a revision of this file. The parts: look (themes), state (buffers, windows, minibuffer), files (the sample home folder), frame (windows, mode lines, splash, tool bar, echo area), commands, keys and menus.",
+	"window": {
+		"title": "Calamaio",
+		"width": 960,
+		"height": 720,
+		"minWidth": 640,
+		"minHeight": 420,
+		"keyLabels": "emacs",
+		"focusRing": false
+	},
+	"fonts": {
+		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "code"] },
+		"code": { "file": "../shared/fonts/JetBrainsMono-Regular.ttf", "size": 14, "fallback": ["icons"] },
+		"icons": { "file": "../shared/fonts/Lucide.ttf", "size": 20 },
+		"logo": { "file": "../shared/fonts/Lucide.ttf", "size": 64 }
+	},
+	"theme": "{{state.theme}}",
+	"permissions": {
+		"allow": ["studio"],
+		"ask": ["agent(/actions)", "agent(/keys)", "agent(/menus)"],
+		"deny": ["*(#echoArea)"],
+		"reviewers": ["studio"],
+		"budgets": [{ "author": "agent", "added": 20, "removed": 5, "changed": 50 }]
+	},
+	"include": [
+		"parts/look.json",
+		"parts/state.json",
+		"parts/settings.json",
+		"parts/languages.json",
+		"parts/files.json",
+		"parts/frame.json",
+		"parts/commands.json",
+		"parts/keys.json",
+		"parts/menus.json",
+		"../shared/addons/assistant/assistant.json"
+	],
+	"computed": {
+		"splashLinks": [
+			{
+				"title": "Calamaio Tutorial",
+				"run": "help-with-tutorial",
+				"about": "Learn the basic keys, one at a time"
+			},
+			{ "title": "Guided Tour", "run": "show-tour", "about": "See what Calamaio can do" },
+			{
+				"title": "All the Commands",
+				"run": "execute-extended-command",
+				"about": "Run any command by its name (M-x)"
+			},
+			{ "title": "Messages", "run": "show-messages", "about": "What Calamaio has told you so far" }
+		],
+		"toolItems": [
+			{ "icon": "file-plus", "tip": "Visit a new file", "run": "find-file" },
+			{ "icon": "folder-open", "tip": "Open a file", "run": "find-file" },
+			{ "icon": "folder", "tip": "Open a folder", "run": "dired-home" },
+			{ "icon": "x", "tip": "Close this buffer", "run": "kill-buffer" },
+			{ "icon": "save", "tip": "Save this buffer", "run": "save-buffer" },
+			{ "tip": "" },
+			{ "icon": "undo-2", "tip": "Undo the last change", "run": "undo" },
+			{ "tip": "" },
+			{ "icon": "scissors", "tip": "Cut the region", "run": "kill-region" },
+			{ "icon": "copy", "tip": "Copy the region", "run": "kill-ring-save" },
+			{ "icon": "clipboard-paste", "tip": "Paste the last cut", "run": "yank" },
+			{ "tip": "" },
+			{ "icon": "search", "tip": "Search for text", "run": "isearch-forward" }
+		],
+		"modeMenu": "{{state.modes[computed.buf.mode].menu}}",
+		"modeTitle": "{{ {lisp: 'Lisp-Interaction', text: 'Text', python: 'Python', c: 'C', outline: 'Outline'}[computed.modeMenu] ?? state.modes[computed.buf.mode].title }}",
+		"buffersMenu": "{{map(state.order, {title: state.bufs[it].name, run: 'show', with: {b: it} })}}",
+		"menuList": "{{concat([{name: 'file', title: 'File', items: menus.file}, {name: 'edit', title: 'Edit', items: menus.edit}, {name: 'options', title: 'Options', items: menus.options}, {name: 'buffers', title: 'Buffers', items: computed.buffersMenu}, {name: 'tools', title: 'Tools', items: menus.tools}], computed.modeMenu != null && menus[computed.modeMenu] != null ? [{name: 'mode', title: computed.modeTitle, items: menus[computed.modeMenu]}] : [], [{name: 'help', title: 'Help', items: menus.help}])}}",
+		"menuBar": "{{map(computed.menuList, merge(it, {width: round(length(it.title) * 7.2) + 14}))}}"
+	},
+	"actions": {
+		"show-messages": {
+			"title": "Messages",
+			"category": "Help",
+			"description": "Shows the messages buffer: everything the echo area said.",
+			"do": { "run": "show", "with": { "b": "b2" } }
+		},
+		"show-splash": {
+			"title": "Start Screen",
+			"category": "Help",
+			"description": "Shows the start screen again.",
+			"do": [
+				{
+					"if": "{{state.bufs.b0 == null}}",
+					"then": [
+						{
+							"set": "state.bufs.b0",
+							"to": {
+								"name": "*Calamaio*",
+								"mode": "fundamental",
+								"kind": "splash",
+								"text": "",
+								"readOnly": true
+							}
+						}
+					]
+				},
+				{ "run": "show", "with": { "b": "b0" } }
+			]
+		},
+		"help-with-tutorial": {
+			"title": "Tutorial",
+			"category": "Help",
+			"description": "Opens the tutorial in a buffer of its own.",
+			"do": { "run": "message", "with": { "m": "The tutorial comes in a later version" } }
+		},
+		"show-tour": {
+			"title": "Guided Tour",
+			"category": "Help",
+			"description": "Shows what Calamaio can do.",
+			"do": { "run": "message", "with": { "m": "The guided tour comes in a later version" } }
+		},
+		"dired-home": {
+			"title": "Open Folder",
+			"category": "Files",
+			"description": "Lists the home folder's files.",
+			"do": { "run": "message", "with": { "m": "Folders come in a later version" } }
+		},
+		"customize-startup": {
+			"title": "Customize Startup",
+			"category": "Options",
+			"description": "Changes what Calamaio shows at start.",
+			"do": { "run": "message", "with": { "m": "Customization comes in a later version" } }
+		},
+		"kill-region": {
+			"title": "Cut",
+			"category": "Editing",
+			"description": "Kills the region into the kill ring.",
+			"do": { "run": "message", "with": { "m": "The region is empty" } }
+		},
+		"kill-ring-save": {
+			"title": "Copy",
+			"category": "Editing",
+			"description": "Copies the region into the kill ring.",
+			"do": { "run": "message", "with": { "m": "The region is empty" } }
+		},
+		"yank": {
+			"title": "Paste",
+			"category": "Editing",
+			"description": "Inserts the last killed text.",
+			"do": { "run": "message", "with": { "m": "The kill ring is empty" } }
+		}
+	},
+	"root": {
+		"id": "root",
+		"color": "@bg",
+		"children": [
+			{
+				"id": "column-root",
+				"type": "column",
+				"anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 },
+				"children": [
+					{ "id": "menuBar", "use": "frameMenuBar", "alignSelf": "stretch" },
+					{ "id": "tool-bar-root", "use": "toolBar", "alignSelf": "stretch" },
+					{ "id": "panel-root", "height": 1, "alignSelf": "stretch", "color": "@barLine" },
+					{
+						"id": "column-root-2",
+						"when": "{{state.layout.dir == 'column'}}",
+						"type": "column",
+						"grow": 1,
+						"alignSelf": "stretch",
+						"children": [
+							{
+								"id": "row-g",
+								"repeat": { "for": "g", "in": "{{state.layout.groups}}", "key": "{{join(g, ',')}}" },
+								"type": "row",
+								"grow": 1,
+								"basis": 0,
+								"alignSelf": "stretch",
+								"children": [
+									{
+										"id": "window-w",
+										"repeat": { "for": "w", "in": "{{g}}", "key": "{{w}}" },
+										"use": "window",
+										"with": { "w": "{{w}}" }
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "row-root",
+						"when": "{{state.layout.dir == 'row'}}",
+						"type": "row",
+						"grow": 1,
+						"alignSelf": "stretch",
+						"children": [
+							{
+								"id": "column-g",
+								"repeat": { "for": "g", "in": "{{state.layout.groups}}", "key": "{{join(g, ',')}}" },
+								"type": "column",
+								"grow": 1,
+								"basis": 0,
+								"alignSelf": "stretch",
+								"children": [
+									{
+										"id": "window-w-2",
+										"repeat": { "for": "w", "in": "{{g}}", "key": "{{w}}" },
+										"use": "window",
+										"with": { "w": "{{w}}" }
+									}
+								]
+							}
+						]
+					},
+					{
+						"id": "completions-root",
+						"when": "{{state.mb.open && state.mb.comp != null}}",
+						"use": "completions",
+						"alignSelf": "stretch"
+					},
+					{ "id": "echoArea", "use": "echoArea", "alignSelf": "stretch" }
+				]
+			}
+		]
+	}
+}
