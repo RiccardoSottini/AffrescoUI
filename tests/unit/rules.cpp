@@ -147,6 +147,21 @@ TEST_CASE("format: a revision may not add a built-in that runs actions named by 
 	CHECK(added(R"({"use": "toolbar", "with": {"items": [{"title": "A", "run": "refresh"}]}})"));
 }
 
+// A component may declare the parameter whose items' "run" it runs ("runsActions"), as the kits' do: its uses are
+// then held to what the kits' are, whatever its body shows
+TEST_CASE("format: a revision may not feed the state to a component that declares it runs actions") {
+	const auto added = [](const json& use) {
+		json after = withNode(use);
+		after["state"].update(json::parse(R"({"items": [{"title": "OK", "run": "approve"}]})"));
+		after["components"] = json::parse(R"({"bar": {"params": {"items": []}, "runsActions": "items",
+			"node": {"type": "panel"}}, "keeper": {"runsActions": true, "node": {"type": "panel"}}})");
+		return allowed(after);
+	};
+	CHECK_FALSE(added(json::parse(R"({"use": "bar", "with": {"items": "{{state.items}}"}})")));
+	CHECK_FALSE(added(json::parse(R"({"use": "keeper"})")));
+	CHECK(added(json::parse(R"({"use": "bar", "with": {"items": [{"title": "OK", "run": "refresh"}]}})")));
+}
+
 TEST_CASE("format: a revision may not add a use of the document's own component that runs a computed action, fed "
           "by the state") {
 	json before = screenWithActions();

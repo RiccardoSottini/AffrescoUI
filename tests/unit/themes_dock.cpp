@@ -1,5 +1,5 @@
 /// @file
-/// @brief The desktop kit's dock (src/components/KitDock.cpp): areas showing their active panel with the use's
+/// @brief The desktop kit's dock (modules/themes/components/dock.json): areas showing their active panel with the use's
 /// children, a panel moved from an area's menu, collapsed and maximised areas, edges resized by dragging and from the
 /// keyboard in either writing direction; and components whose slots get the use's children in every place.
 

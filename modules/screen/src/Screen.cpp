@@ -9,6 +9,7 @@
 #include "affresco/format/Migrate.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
+#include "affresco/themes/Themes.hpp"
 
 #include <algorithm>
 #include <array>
@@ -239,6 +240,7 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 }
 
 Screen Screen::fromString(std::string_view content, std::filesystem::path baseDirectory) {
+	themes::install(); // the kits' components and tokens, before the document is checked against them
 	json document;
 	try {
 		document = parseUntrusted(content); // a ScreenError if it nests too deeply

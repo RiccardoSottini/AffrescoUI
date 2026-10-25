@@ -10,9 +10,25 @@ This page is the map: the layers, the path of a revision and of an event, where 
 library is extended. Each module's `README.md` has the details: its headers, invariants, threads, errors, files and
 recipes.
 
-## The layers
+## Apps, themes, engine
 
-Eight modules, one CMake target each. They depend on each other only as the arrows show, and anything else crossing a
+Three layers, each made only of the one below it:
+
+```text
+apps     folders of files: screen documents, an app.json, seed data, assets  (examples/, run by the Launcher)
+themes   kits' components and themes' design tokens, as JSON              (modules/themes)
+engine   mechanisms only: the format, layout, rendering, version control  (every other module)
+```
+
+The engine knows no kit, theme or app: a document's `"use"` of a component it doesn't define, or its `@kit.surface`,
+is looked up in the `ComponentLibrary` a program installs (`core`), which `modules/themes` fills from its JSON files.
+`format` never links `themes`; `screen` (the composition root) and the other entry points (the command-line tool, the
+server, the C API through `screen`, the tests) install it. A kit or a theme is more JSON in `modules/themes`, never C++
+in the engine, and an app's own components win over the kits'.
+
+## The modules
+
+Nine modules, one CMake target each. They depend on each other only as the arrows show, and anything else crossing a
 module boundary goes through an interface in `core`. `automation`, on top, plays a screen's scenarios through the
 public API (plus the render module's headless window, which isn't public yet).
 
@@ -22,16 +38,17 @@ flowchart TB
     automation["<b>automation</b> · scenarios<br/>a screen's own checks, played headless"]
     screen["<b>screen</b> · affresco::Screen<br/>puts the modules together"]
     format["<b>format</b> · Rules, Checker, Runtime<br/>the screen format"]
+    themes["<b>themes</b> · kits and themes<br/>components and tokens, as JSON"]
     data["<b>data</b> · Store<br/>models, records, migrations (SQLite)"]
     vcs["<b>vcs</b> · Repository<br/>commits, proposals, permissions"]
     channel["<b>channel</b> · sockets, processes, Session<br/>peers and the live protocol"]
     render["<b>render</b> · Application, Window, Panel<br/>layout, text, input, OpenGL"]
-    core["<b>core</b> · interfaces<br/>Executor · Channel · VersionControl · DocumentRules · ScreenImages · Signal · Json · Log"]
+    core["<b>core</b> · interfaces<br/>Executor · Channel · VersionControl · DocumentRules · ScreenImages · ComponentLibrary · Signal · Json · Log"]
 
     automation --> screen
-    screen --> format & vcs & channel
+    screen --> format & themes & vcs & channel
     format --> render & data
-    format & vcs & channel & render & data --> core
+    format & themes & vcs & channel & render & data --> core
 
     classDef root fill:#EEF2FF,stroke:#6366F1,stroke-width:1.5px,color:#1E1B4B
     classDef c_channel fill:#E0F2FE,stroke:#0284C7,stroke-width:1.5px,color:#0C4A6E
@@ -45,6 +62,7 @@ flowchart TB
     class vcs c_vcs
     class format c_format
     class data c_format
+    class themes c_format
     class render c_render
     class core c_core
 ```
@@ -54,6 +72,7 @@ flowchart TB
 | [`core`](modules/core/README.md) | `affrescoui::core` | The interfaces between modules (headers only) | | |
 | [`render`](modules/render/README.md) | `affrescoui::render` | Windows, the panel tree, layout, text, input, OpenGL | `Executor` (`Application`) | |
 | [`format`](modules/format/README.md) | `affrescoui::format` | The screen format: validation, the checker, expressions, the runtime | `DocumentRules` (`Rules`), `VersionObserver` (the runtime) | `VersionControl`, `render`, `data` |
+| [`themes`](modules/themes/README.md) | `affrescoui::themes` | The kits' components and the themes' design tokens, as JSON files built in | `ComponentLibrary` | |
 | [`data`](modules/data/README.md) | `affrescoui::data` | The records: typed models, a SQLite store per app, queries, the journal, migrations, CSV import | | |
 | [`vcs`](modules/vcs/README.md) | `affrescoui::vcs` | Version control of any JSON document | `VersionControl` (`Repository`) | `DocumentRules` |
 | [`channel`](modules/channel/README.md) | `affrescoui::channel` | Transports and the live protocol | `Channel` | `Executor`, `VersionControl`, `ScreenImages` |

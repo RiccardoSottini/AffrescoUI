@@ -121,7 +121,15 @@ French.
 ## Architecture
 
 AffrescoUI renders what it is told to: an application is a screen document plus any native code it registers, and the
-engine knows nothing else about it. A change travels down a stack of layers, each with one job.
+engine knows nothing else about it. It is built in three layers, each made only of the one below:
+
+- **Apps**: folders of files (screen documents, data, assets) that the Launcher opens, with nothing compiled for them.
+- **Themes** (`modules/themes`): the kits' components (toolbars, menus, docks, dialogs) and the themes' design
+  tokens, as JSON files built into the library.
+- **Engine** (every other module): mechanisms only. It looks a component or token a document doesn't define up in the
+  installed kits and themes, and knows none of them by name; a document's own components win over the kits'.
+
+A change travels down a stack of layers, each with one job.
 
 ```mermaid
 %%{init: {"theme": "base", "flowchart": {"nodeSpacing": 30, "rankSpacing": 34, "padding": 14, "wrappingWidth": 400}, "themeVariables": {"fontFamily": "Helvetica, Arial, sans-serif", "fontSize": "14px", "lineColor": "#94A3B8", "primaryTextColor": "#0F172A", "edgeLabelBackground": "#FFFFFF"}}}%%
@@ -134,6 +142,7 @@ flowchart TB
     vcs["🛡️ <b>Version control</b> · modules/vcs<br/>allow / ask / deny · proposals · commits · history"]
     format["📄 <b>Screen format</b> · modules/format<br/>checks the document · evaluates it · reconciles in place"]
     render["🎨 <b>Renderer</b> · modules/render<br/>layout · shaped text · input · accessibility · OpenGL"]
+    themes["🧩 <b>Kits and themes</b> · modules/themes<br/>components · design tokens · JSON"]
 
     agent --> mcp
     mcp --> channel
@@ -141,6 +150,7 @@ flowchart TB
     channel -- "revision" --> vcs
     vcs -- "accepted commit" --> format
     format -- "panels" --> render
+    themes -. "components, tokens" .-> format
 
     classDef peer fill:#FFFFFF,stroke:#CBD5E1,color:#0F172A
     classDef c_mcp fill:#F3E8FF,stroke:#9333EA,stroke-width:1.5px,color:#3B0764
@@ -153,6 +163,7 @@ flowchart TB
     class channel c_channel
     class vcs c_vcs
     class format c_format
+    class themes c_format
     class render c_render
 ```
 
@@ -174,6 +185,7 @@ flowchart TB
 modules/core/        the interfaces between modules: Executor, Channel, VersionControl, Services, Network
 modules/render/      windows, panels, layout, shaped text, input, accessibility; OpenGL 4.1 core or ES 3.0
 modules/format/      the screen format: rules, checker, {{expressions}}, the runtime that reconciles in place
+modules/themes/      the kits' components and the themes' design tokens, as JSON built into the library
 modules/vcs/         version control: commits, proposals, permissions, history
 modules/channel/     peers and the live protocol over local sockets and processes
 modules/net/         HTTP(S), server-sent events, WebSocket, remote peers
