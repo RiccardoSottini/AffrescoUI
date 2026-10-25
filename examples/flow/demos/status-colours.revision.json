@@ -1,0 +1,24 @@
+{
+	"type": "revision",
+	"author": "agent",
+	"message": "Colour the board by status and show how much is done",
+	"note": "What an agent proposed for the request \"Colour the board by status and show how much of it is done\". Replay it with the MCP server's submit_revision (the set and add below) or a scenario's propose step; the person accepts it on its card in the assistant's chat.",
+	"set": {
+		"#columnBody/color": "{{column.color + '24'}}",
+		"#columnName/textColor": "{{column.color}}",
+		"#filterBar/anchors/right": 340
+	},
+	"add": {
+		"#card/children/-": { "id": "cardStatusStripe", "anchors": { "left": 0, "top": 12, "bottom": 12 }, "width": 4, "radius": 2,
+		                      "color": "{{column.color}}" },
+		"#toolbar/children/-": { "id": "progress", "type": "row", "gap": 10, "alignItems": "center", "anchors": { "right": 112, "top": 8 },
+		                         "width": 220, "height": 28,
+		                         "let": { "done": "{{length(filter(computed.allCards, it.c == length(computed.columns) - 1))}}",
+		                                  "total": "{{length(computed.allCards)}}" },
+		                         "children": [
+			{ "id": "progressText", "type": "label", "font": "small", "fitText": true, "textColor": "@color.muted",
+			  "text": "{{done}} of {{total}} done" },
+			{ "id": "progressMeter", "use": "progressBar", "with": { "ratio": "{{done / max(total, 1)}}", "color": "@color.accent", "width": 120 } }
+		] }
+	}
+}
