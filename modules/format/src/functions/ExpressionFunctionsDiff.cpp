@@ -10,6 +10,7 @@
 #include <affresco/core/TextDiff.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <charconv>
 #include <optional>
@@ -444,7 +445,8 @@ Value formatJson(const Call& call) {
 	return Value::fromText(std::move(text));
 }
 
-const Function table[] = {
+/// The table.
+constexpr auto table = std::to_array<Function>({
     {.name = "diffLines",
 	 .arguments = "original, modified, options?",
 	 .about = "The hunks of a line diff: { hunks: [{ header, lines: [{ kind, old, new, text }], rows? }], added, "
@@ -470,7 +472,7 @@ const Function table[] = {
 	 .fewest = 1,
 	 .most = 2,
 	 .apply = formatJson},
-};
+});
 
 } // namespace
 

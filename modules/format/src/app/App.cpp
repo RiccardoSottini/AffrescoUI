@@ -84,6 +84,22 @@ bool plainName(std::string_view name) {
 	       });
 }
 
+/// @brief Whether a text is a port: one to five digits.
+/// @param port The text.
+/// @return Whether it is.
+bool isPort(std::string_view port) {
+	return !port.empty() && port.size() <= 5 && std::ranges::all_of(port, [](char c) { return c >= '0' && c <= '9'; });
+}
+
+/// @brief Whether a text is a host's name: letters, digits, '.' and '-', starting with neither of the last two.
+/// @param host The text.
+/// @return Whether it is.
+bool isHostName(std::string_view host) {
+	return !host.empty() && host.front() != '.' && host.front() != '-' && std::ranges::all_of(host, [](char c) {
+		return std::isalnum(static_cast<unsigned char>(c)) || c == '.' || c == '-';
+	});
+}
+
 /// @brief Whether a text is an origin the host can allow: http, https, ws or wss, then a host (letters, digits, '.',
 /// '-', and "*." first for any subdomain) and an optional port; no path.
 /// @param origin The text.
@@ -96,15 +112,8 @@ bool isOrigin(std::string_view origin) {
 	std::string_view host = origin.substr(separator + 3);
 	if(host.starts_with("*.")) host.remove_prefix(2);
 	const std::size_t colon = host.find(':');
-	if(colon != std::string_view::npos) {
-		const std::string_view port = host.substr(colon + 1);
-		if(port.empty() || port.size() > 5 || !std::ranges::all_of(port, [](char c) { return c >= '0' && c <= '9'; }))
-			return false;
-		host = host.substr(0, colon);
-	}
-	return !host.empty() && host.front() != '.' && host.front() != '-' && std::ranges::all_of(host, [](char c) {
-		return std::isalnum(static_cast<unsigned char>(c)) || c == '.' || c == '-';
-	});
+	if(colon != std::string_view::npos && !isPort(host.substr(colon + 1))) return false;
+	return isHostName(host.substr(0, colon));
 }
 
 /// @brief The origin of a URL: its scheme and host, lower case, and its port.
@@ -115,12 +124,12 @@ std::string originOf(std::string_view url) {
 	if(separator == std::string_view::npos) return "";
 	const std::size_t end = url.find_first_of("/?#", separator + 3);
 	std::string_view authority =
-	    url.substr(separator + 3, end == std::string_view::npos ? url.npos : end - separator - 3);
+	    url.substr(separator + 3, end == std::string_view::npos ? std::string_view::npos : end - separator - 3);
 	if(const std::size_t at = authority.rfind('@'); at != std::string_view::npos) authority.remove_prefix(at + 1);
 	std::string origin = std::string(url.substr(0, separator)) + "://" + std::string(authority);
 	std::ranges::transform(origin, origin.begin(),
 	                       [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
-	return isOrigin(origin) && origin.find('*') == std::string::npos ? origin : "";
+	return isOrigin(origin) && !origin.contains('*') ? origin : "";
 }
 
 /// @brief Whether a declared origin covers one a screen uses: the same, or "*.domain" for one of its subdomains.
@@ -134,7 +143,22 @@ bool covers(std::string_view declared, std::string_view used) {
 	const std::string_view suffix = declared.substr(wildcard + 4); // ".example.com", and its port
 	const std::string_view host = used.substr(wildcard + 3);
 	return host.size() > suffix.size() && host.ends_with(suffix) &&
-	       host.substr(0, host.size() - suffix.size()).find(':') == std::string_view::npos;
+	       !host.substr(0, host.size() - suffix.size()).contains(':');
+}
+
+/// @brief Reads one of "capabilities.folders": { "access": "read" or "write", "why": ... }.
+/// @param root The folder's name.
+/// @param folder Its entry.
+/// @return The capability.
+AppCapability readFolder(const std::string& root, const json& folder) {
+	const std::string place = "capabilities.folders." + root;
+	if(!plainName(root)) fail("capabilities.folders", "'" + root + "' is not a folder's name");
+	members(folder, place, 2);
+	const std::string access = text(folder.value("access", json("read")), place + ".access", 8);
+	if(access != "read" && access != "write") fail(place + ".access", R"(expected "read" or "write")");
+	if(folder.size() != (folder.contains("access") ? 2U : 1U)) fail(place, R"(expected "access" and "why")");
+	return {AppCapability::Kind::Folder, root, text(folder.value("why", json()), place + ".why", maxTextLength),
+	        access == "write"};
 }
 
 /// @brief Reads "capabilities".
@@ -153,16 +177,8 @@ std::vector<AppCapability> readCapabilities(const json& section) {
 			read.push_back({Kind::Network, origin, text(why, "capabilities.network." + origin, maxTextLength), false});
 		}
 	if(const auto folders = section.find("folders"); folders != section.end())
-		for(const auto& [root, folder] : members(*folders, "capabilities.folders", maxEntries).items()) {
-			const std::string place = "capabilities.folders." + root;
-			if(!plainName(root)) fail("capabilities.folders", "'" + root + "' is not a folder's name");
-			members(folder, place, 2);
-			const std::string access = text(folder.value("access", json("read")), place + ".access", 8);
-			if(access != "read" && access != "write") fail(place + ".access", "expected \"read\" or \"write\"");
-			if(folder.size() != (folder.contains("access") ? 2U : 1U)) fail(place, "expected \"access\" and \"why\"");
-			read.push_back({Kind::Folder, root, text(folder.value("why", json()), place + ".why", maxTextLength),
-			                access == "write"});
-		}
+		for(const auto& [root, folder] : members(*folders, "capabilities.folders", maxEntries).items())
+			read.push_back(readFolder(root, folder));
 	if(const auto programs = section.find("programs"); programs != section.end())
 		for(const auto& [program, why] : members(*programs, "capabilities.programs", maxEntries).items()) {
 			if(!plainName(program)) fail("capabilities.programs", "'" + program + "' is not a program's name");
@@ -205,6 +221,7 @@ std::vector<std::string> paths(const json& value, const std::string& place, std:
 	if(!value.is_array()) fail(place, "expected a list of paths");
 	if(value.size() > most) fail(place, "more than " + std::to_string(most) + " paths");
 	std::vector<std::string> read;
+	read.reserve(value.size());
 	for(std::size_t i = 0; i < value.size(); ++i) read.push_back(path(value[i], place + "[" + std::to_string(i) + "]"));
 	return read;
 }
@@ -263,11 +280,64 @@ bool hasStep(const json& value, bool (*is)(const json&), int depth = 0) {
 		return std::ranges::any_of(value, [is, depth](const json& item) { return hasStep(item, is, depth + 1); });
 	if(!value.is_object()) return false;
 	if(is(value)) return true;
-	for(const auto& [key, item] : value.items()) {
-		if(depth == 0 && (key == "state" || key == "strings" || key == "tokens" || key == "models")) continue;
-		if(hasStep(item, is, depth + 1)) return true;
+	const auto items = value.items();
+	return std::any_of(items.begin(), items.end(), [is, depth](const auto& entry) {
+		const std::string& key = entry.key();
+		const bool data = key == "state" || key == "strings" || key == "tokens" || key == "models";
+		return !(depth == 0 && data) && hasStep(entry.value(), is, depth + 1);
+	});
+}
+
+/// @brief Adds a capability a screen uses, once: a folder used for writing somewhere is used for writing.
+/// @param used The capabilities so far.
+/// @param capability The one to add.
+void addCapability(std::vector<AppCapability>& used, AppCapability capability) {
+	for(AppCapability& known : used)
+		if(known.kind == capability.kind && known.name == capability.name) {
+			known.write = known.write || capability.write;
+			return;
+		}
+	used.push_back(std::move(capability));
+}
+
+/// @brief Adds the network capability of a URL, if it is a text with an origin.
+/// @param used The capabilities so far.
+/// @param url The URL.
+void addOrigin(std::vector<AppCapability>& used, const json& url) {
+	if(url.is_string())
+		if(const std::string found = originOf(url.get<std::string>()); !found.empty())
+			addCapability(used, {AppCapability::Kind::Network, found, "", false});
+}
+
+/// @brief Adds the origins a screen's "connections" reach: their URLs and their authentication's.
+/// @param used The capabilities so far.
+/// @param document The screen.
+void addConnections(std::vector<AppCapability>& used, const json& document) {
+	const auto connections = document.find("connections");
+	if(connections == document.end() || !connections->is_object()) return;
+	for(const json& connection : *connections) {
+		if(!connection.is_object()) continue;
+		addOrigin(used, connection.value("url", json()));
+		if(const auto auth = connection.find("auth"); auth != connection.end() && auth->is_object())
+			for(const json& value : *auth) addOrigin(used, value);
 	}
-	return false;
+}
+
+/// @brief Adds the folders and programs a screen's "services" use.
+/// @param used The capabilities so far.
+/// @param document The screen.
+void addServices(std::vector<AppCapability>& used, const json& document) {
+	const auto services = document.find("services");
+	if(services == document.end() || !services->is_object()) return;
+	for(const json& service : *services) {
+		if(!service.is_object()) continue;
+		if(const json root = service.value("root", json()); root.is_string())
+			addCapability(
+			    used, {AppCapability::Kind::Folder, root.get<std::string>(), "", !service.value("readOnly", false)});
+		if(const json program = service.value("process", json());
+		   program.is_string() && service.value("provider", json()) == "process")
+			addCapability(used, {AppCapability::Kind::Program, program.get<std::string>(), "", false});
+	}
 }
 
 } // namespace
@@ -308,40 +378,13 @@ AppManifest parseApp(const json& manifest) {
 std::vector<AppCapability> usedCapabilities(const json& document) {
 	using Kind = AppCapability::Kind;
 	std::vector<AppCapability> used;
-	const auto add = [&used](AppCapability capability) {
-		for(AppCapability& known : used)
-			if(known.kind == capability.kind && known.name == capability.name) {
-				known.write = known.write || capability.write;
-				return;
-			}
-		used.push_back(std::move(capability));
-	};
-	const auto origin = [&add](const json& url) {
-		if(url.is_string())
-			if(std::string found = originOf(url.get<std::string>()); !found.empty())
-				add({Kind::Network, found, "", false});
-	};
-	if(const auto connections = document.find("connections"); connections != document.end() && connections->is_object())
-		for(const json& connection : *connections) {
-			if(!connection.is_object()) continue;
-			origin(connection.value("url", json()));
-			if(const auto auth = connection.find("auth"); auth != connection.end() && auth->is_object())
-				for(const json& value : *auth) origin(value);
-		}
-	if(const auto services = document.find("services"); services != document.end() && services->is_object())
-		for(const json& service : *services) {
-			if(!service.is_object()) continue;
-			if(const json root = service.value("root", json()); root.is_string())
-				add({Kind::Folder, root.get<std::string>(), "", !service.value("readOnly", false)});
-			if(const json program = service.value("process", json());
-			   program.is_string() && service.value("provider", json()) == "process")
-				add({Kind::Program, program.get<std::string>(), "", false});
-		}
-	if(document.contains("audio")) add({Kind::Audio, "audio", "", false});
-	if(hasStep(document, isAsk)) add({Kind::Assistant, "assistant", "", false});
-	if(hasStep(document, showsFileDialog)) add({Kind::Files, "files", "", false});
+	addConnections(used, document);
+	addServices(used, document);
+	if(document.contains("audio")) addCapability(used, {Kind::Audio, "audio", "", false});
+	if(hasStep(document, isAsk)) addCapability(used, {Kind::Assistant, "assistant", "", false});
+	if(hasStep(document, showsFileDialog)) addCapability(used, {Kind::Files, "files", "", false});
 	if(const auto windows = document.find("windows"); windows != document.end() && !windows->empty())
-		add({Kind::Windows, "windows", "", false});
+		addCapability(used, {Kind::Windows, "windows", "", false});
 	return used;
 }
 

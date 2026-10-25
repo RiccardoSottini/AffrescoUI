@@ -11,6 +11,7 @@
 #include <iterator>
 #include <limits>
 #include <span>
+#include <utility>
 
 namespace affresco::format::detail {
 namespace {
@@ -56,7 +57,7 @@ constexpr int penaltyBalance = 10;
 /// @brief The two bits the format information gives a level: L 01, M 00, Q 11, H 10.
 /// @param level The level.
 /// @return The bits.
-[[nodiscard]] int formatLevelBits(QrLevel level) noexcept {
+[[nodiscard]] int formatLevelBits(QrLevel level) {
 	static constexpr std::array<int, 4> bits{1, 0, 3, 2};
 	return bits.at(row(level));
 }
@@ -78,7 +79,7 @@ constexpr int penaltyBalance = 10;
 /// @param version 1 to 40.
 /// @param level The level.
 /// @return Their number.
-[[nodiscard]] int dataCodewords(int version, QrLevel level) noexcept {
+[[nodiscard]] int dataCodewords(int version, QrLevel level) {
 	const auto v = static_cast<std::size_t>(version - 1);
 	return rawModules(version) / 8 - ecPerBlock.at(row(level)).at(v) * blockCounts.at(row(level)).at(v);
 }
@@ -136,7 +137,8 @@ public:
 	/// @param value The value.
 	/// @param count How many of its bits, most significant first.
 	void append(unsigned value, int count) {
-		for(int i = count - 1; i >= 0; --i) bits_.push_back(static_cast<std::uint8_t>((value >> unsigned(i)) & 1U));
+		for(int i = count - 1; i >= 0; --i)
+			bits_.push_back(static_cast<std::uint8_t>((value >> static_cast<unsigned>(i)) & 1U));
 	}
 	/// @brief How many bits there are.
 	[[nodiscard]] std::size_t size() const noexcept { return bits_.size(); }
@@ -208,10 +210,10 @@ private:
 /// @return Ascending; empty for version 1.
 [[nodiscard]] std::vector<int> alignmentCentres(int version) {
 	if(version == 1) return {};
-	const auto count = static_cast<std::size_t>(version / 7 + 2);
-	const int step = (version * 8 + static_cast<int>(count) * 3 + 5) / (static_cast<int>(count) * 4 - 4) * 2;
+	const int count = version / 7 + 2;
+	const int step = (version * 8 + count * 3 + 5) / (count * 4 - 4) * 2;
 	std::vector<int> result{6};
-	for(int at = 17 + 4 * version - 7; result.size() < count; at -= step)
+	for(int at = 17 + 4 * version - 7; std::cmp_less(result.size(), count); at -= step)
 		result.insert(std::next(result.begin()), at);
 	return result;
 }
@@ -225,7 +227,7 @@ void drawFormat(Matrix& matrix, QrLevel level, int mask) noexcept {
 	unsigned rest = data;
 	for(int i = 0; i < 10; ++i) rest = (rest << 1U) ^ ((rest >> 9U) * 0x537U);
 	const unsigned bits = (data << 10U | rest) ^ 0x5412U;
-	const auto bit = [bits](int i) { return ((bits >> unsigned(i)) & 1U) != 0; };
+	const auto bit = [bits](int i) { return ((bits >> static_cast<unsigned>(i)) & 1U) != 0; };
 	const int size = matrix.size();
 	for(int i = 0; i <= 5; ++i) matrix.setFunction(8, i, bit(i));
 	matrix.setFunction(8, 7, bit(6));
@@ -246,12 +248,43 @@ void drawVersion(Matrix& matrix, int version) noexcept {
 	for(int i = 0; i < 12; ++i) rest = (rest << 1U) ^ ((rest >> 11U) * 0x1F25U);
 	const unsigned bits = static_cast<unsigned>(version) << 12U | rest;
 	for(int i = 0; i < 18; ++i) {
-		const bool dark = ((bits >> unsigned(i)) & 1U) != 0;
+		const bool dark = ((bits >> static_cast<unsigned>(i)) & 1U) != 0;
 		const int a = matrix.size() - 11 + i % 3;
 		const int b = i / 3;
 		matrix.setFunction(a, b, dark);
 		matrix.setFunction(b, a, dark);
 	}
+}
+
+/// @brief Draws a finder pattern, the 7x7 square in a corner and its light border, clipped to the code.
+/// @param matrix The code.
+/// @param cx The column of its centre.
+/// @param cy The row of its centre.
+void drawFinder(Matrix& matrix, int cx, int cy) noexcept {
+	const int size = matrix.size();
+	for(int dy = -4; dy <= 4; ++dy)
+		for(int dx = -4; dx <= 4; ++dx) {
+			const int x = cx + dx;
+			const int y = cy + dy;
+			if(x < 0 || y < 0 || x >= size || y >= size) continue;
+			const int distance = std::max(std::abs(dx), std::abs(dy));
+			matrix.setFunction(x, y, distance != 2 && distance != 4);
+		}
+}
+
+/// @brief Draws the alignment patterns (versions 2 and up), all but the three that would overlap the finders.
+/// @param matrix The code.
+/// @param version Its version.
+void drawAlignments(Matrix& matrix, int version) {
+	const std::vector<int> centres = alignmentCentres(version);
+	const std::size_t last = centres.empty() ? 0 : centres.size() - 1;
+	for(std::size_t i = 0; i < centres.size(); ++i)
+		for(std::size_t j = 0; j < centres.size(); ++j) {
+			if((i == 0 && j == 0) || (i == 0 && j == last) || (i == last && j == 0)) continue;
+			for(int dy = -2; dy <= 2; ++dy)
+				for(int dx = -2; dx <= 2; ++dx)
+					matrix.setFunction(centres[i] + dx, centres[j] + dy, std::max(std::abs(dx), std::abs(dy)) != 1);
+		}
 }
 
 /// @brief Draws the function patterns: the timing lines, the finders, the alignment patterns and the format and
@@ -265,28 +298,10 @@ void drawFunctionPatterns(Matrix& matrix, int version, QrLevel level) {
 		matrix.setFunction(6, i, i % 2 == 0);
 		matrix.setFunction(i, 6, i % 2 == 0);
 	}
-	const auto finder = [&](int cx, int cy) {
-		for(int dy = -4; dy <= 4; ++dy)
-			for(int dx = -4; dx <= 4; ++dx) {
-				const int x = cx + dx;
-				const int y = cy + dy;
-				if(x < 0 || y < 0 || x >= size || y >= size) continue;
-				const int distance = std::max(std::abs(dx), std::abs(dy));
-				matrix.setFunction(x, y, distance != 2 && distance != 4);
-			}
-	};
-	finder(3, 3);
-	finder(size - 4, 3);
-	finder(3, size - 4);
-	const std::vector<int> centres = alignmentCentres(version);
-	const std::size_t last = centres.empty() ? 0 : centres.size() - 1;
-	for(std::size_t i = 0; i < centres.size(); ++i)
-		for(std::size_t j = 0; j < centres.size(); ++j) {
-			if((i == 0 && j == 0) || (i == 0 && j == last) || (i == last && j == 0)) continue;
-			for(int dy = -2; dy <= 2; ++dy)
-				for(int dx = -2; dx <= 2; ++dx)
-					matrix.setFunction(centres[i] + dx, centres[j] + dy, std::max(std::abs(dx), std::abs(dy)) != 1);
-		}
+	drawFinder(matrix, 3, 3);
+	drawFinder(matrix, size - 4, 3);
+	drawFinder(matrix, 3, size - 4);
+	drawAlignments(matrix, version);
 	drawFormat(matrix, level, 0);
 	drawVersion(matrix, version);
 }
@@ -334,27 +349,68 @@ void applyMask(Matrix& matrix, int mask) noexcept {
 		}
 }
 
+/// @brief The penalty of one row or column's long runs (N1): five modules of a colour or more.
+/// @param line Its modules, 1 for dark.
+/// @return The penalty.
+[[nodiscard]] int runPenalty(std::span<const std::uint8_t> line) noexcept {
+	int penalty = 0;
+	for(std::size_t start = 0; start < line.size();) {
+		std::size_t end = start;
+		while(end < line.size() && line[end] == line[start]) ++end;
+		if(end - start >= 5) penalty += penaltyRun + static_cast<int>(end - start - 5);
+		start = end;
+	}
+	return penalty;
+}
+
+/// @brief Whether a module of a row or column is dark.
+/// @param line Its modules, 1 for dark.
+/// @param i The module's place; outside the line is light.
+/// @return Whether it is dark.
+[[nodiscard]] bool darkAt(std::span<const std::uint8_t> line, int i) noexcept {
+	return i >= 0 && std::cmp_less(i, line.size()) && line[static_cast<std::size_t>(i)] != 0;
+}
+
+/// @brief Whether four modules of a row or column are light (the outside is).
+/// @param line Its modules, 1 for dark.
+/// @param from The first.
+/// @return Whether all four are light.
+[[nodiscard]] bool lightAt(std::span<const std::uint8_t> line, int from) noexcept {
+	for(int i = from; i < from + 4; ++i)
+		if(darkAt(line, i)) return false;
+	return true;
+}
+
+/// @brief Whether a finder-like pattern starts at a module: dark 1:1:3:1:1.
+/// @param line Its modules, 1 for dark.
+/// @param p The module.
+/// @return Whether the seven modules from it are the pattern.
+[[nodiscard]] bool finderAt(std::span<const std::uint8_t> line, int p) noexcept {
+	static constexpr std::array<bool, 7> pattern{true, false, true, true, true, false, true};
+	for(int i = 0; i < 7; ++i)
+		if(darkAt(line, p + i) != pattern.at(static_cast<std::size_t>(i))) return false;
+	return true;
+}
+
+/// @brief The penalty of one row or column's finder-like patterns (N3): dark 1:1:3:1:1, with four light modules (or
+/// the outside) before or after it; each side counts.
+/// @param line Its modules, 1 for dark.
+/// @return The penalty.
+[[nodiscard]] int finderPenalty(std::span<const std::uint8_t> line) noexcept {
+	int penalty = 0;
+	for(int p = 0; std::cmp_less_equal(p + 7, line.size()); ++p) {
+		if(!finderAt(line, p)) continue;
+		if(lightAt(line, p - 4)) penalty += penaltyFinder;
+		if(lightAt(line, p + 7)) penalty += penaltyFinder;
+	}
+	return penalty;
+}
+
 /// @brief The penalty of one row or column: its long runs (N1) and its finder-like patterns (N3).
 /// @param line Its modules, 1 for dark.
 /// @return The penalty.
 [[nodiscard]] int linePenalty(std::span<const std::uint8_t> line) noexcept {
-	int penalty = 0;
-	const auto n = static_cast<int>(line.size());
-	for(int start = 0; start < n;) {
-		int end = start;
-		while(end < n && line[static_cast<std::size_t>(end)] == line[static_cast<std::size_t>(start)]) ++end;
-		if(end - start >= 5) penalty += penaltyRun + (end - start - 5);
-		start = end;
-	}
-	// Dark 1:1:3:1:1, with four light modules (or the outside) before or after it; each side counts.
-	const auto at = [&](int i) { return i >= 0 && i < n && line[static_cast<std::size_t>(i)] != 0; };
-	const auto light = [&](int from) { return !at(from) && !at(from + 1) && !at(from + 2) && !at(from + 3); };
-	for(int p = 0; p + 7 <= n; ++p) {
-		if(!(at(p) && !at(p + 1) && at(p + 2) && at(p + 3) && at(p + 4) && !at(p + 5) && at(p + 6))) continue;
-		if(light(p - 4)) penalty += penaltyFinder;
-		if(light(p + 7)) penalty += penaltyFinder;
-	}
-	return penalty;
+	return runPenalty(line) + finderPenalty(line);
 }
 
 /// @brief The penalty of a code, by the standard's four rules: the lower, the easier to read.
@@ -403,7 +459,8 @@ void applyMask(Matrix& matrix, int mask) noexcept {
 	std::vector<std::vector<std::uint8_t>> parts;
 	std::size_t taken = 0;
 	for(int i = 0; i < blocks; ++i) {
-		const auto length = static_cast<std::size_t>(shortLength - ecLength + (i < shortBlocks ? 0 : 1));
+		const int blockLength = shortLength - ecLength + (i < shortBlocks ? 0 : 1);
+		const auto length = static_cast<std::size_t>(blockLength);
 		std::vector<std::uint8_t> part(data.begin() + static_cast<std::ptrdiff_t>(taken),
 		                               data.begin() + static_cast<std::ptrdiff_t>(taken + length));
 		taken += length;
@@ -417,7 +474,7 @@ void applyMask(Matrix& matrix, int mask) noexcept {
 	const auto holder = static_cast<std::size_t>(shortLength - ecLength);
 	for(std::size_t i = 0; i < parts.front().size(); ++i)
 		for(std::size_t j = 0; j < parts.size(); ++j)
-			if(i != holder || j >= static_cast<std::size_t>(shortBlocks)) result.push_back(parts[j][i]);
+			if(i != holder || std::cmp_greater_equal(j, shortBlocks)) result.push_back(parts[j][i]);
 	return result;
 }
 
