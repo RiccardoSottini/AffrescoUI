@@ -1,6 +1,7 @@
 /// @file
 /// @brief Unit tests for rich text: TextLayout (runs broken into lines across styles), a label's "runs" with bold,
-/// italic, size, colour, links and icons, "selectable" with Cmd/Ctrl+A and Cmd/Ctrl+C, "onLink", and the limits.
+/// italic, size, colour, underline, strike, highlight, shadow, links and icons, "selectable" with Cmd/Ctrl+A and
+/// Cmd/Ctrl+C, "onLink", and the limits.
 
 #include "Headless.hpp"
 
@@ -218,4 +219,32 @@ TEST_CASE("rich text: a bold or italic font entry styles its text, and its runs 
 	document["fonts"]["heading"]["bold"] = "yes";
 	CHECK_THROWS_WITH_AS(affresco::Screen::fromString(document.dump(), {}).build(*window),
 	                     doctest::Contains("fonts.heading.bold"), affresco::DocumentError);
+}
+
+TEST_CASE("rich text: a run's underline, strike, background highlight and shadow, which null removes") {
+	json document = richScreen();
+	document["root"]["children"][0]["runs"] = {{{"text", "under"}, {"underline", true}},
+	                                           {{"text", " struck"}, {"strike", true}},
+	                                           {{"text", " marked"}, {"background", "#ffff00"}},
+	                                           {{"text", " plain"}, {"background", nullptr}, {"underline", false}},
+	                                           {{"text", " raised"}, {"shadow", "#00000066"}}};
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(320, 140, clock);
+	affresco::Screen screen = affresco::Screen::fromString(document.dump(), {});
+	screen.build(*window);
+	window->render();
+
+	const auto& rich = panel<affresco::Label>(screen, "rich");
+	REQUIRE(rich.runs().size() == 5);
+	CHECK(rich.runs()[0].underline);
+	CHECK(!rich.runs()[0].strike);
+	CHECK(rich.runs()[1].strike);
+	CHECK(rich.runs()[2].background == *affresco::Color::parseHex("#ffff00"));
+	CHECK(!rich.runs()[3].background);
+	CHECK(!rich.runs()[3].underline);
+	CHECK(!rich.runs()[3].shadow);
+	CHECK(rich.runs()[4].shadow == *affresco::Color::parseHex("#00000066"));
+	checkRefused(json::array({json::object({{"text", "a"}, {"background", "yellowish"}})}), "background");
+	checkRefused(json::array({json::object({{"text", "a"}, {"strike", "yes"}})}), "strike");
+	checkRefused(json::array({json::object({{"text", "a"}, {"shadow", 3}})}), "shadow");
 }

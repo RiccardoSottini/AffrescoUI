@@ -44,29 +44,49 @@
 					{ "use": "shapePath", "when": "{{prompt}}",
 					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash', effect: null })}}", "name": "{{outline}}" } },
 					{
-						"type": "column", "id": "{{prefix + o.id + '-text'}}", "when": "{{!empty || prompt}}", "overflow": "visible",
-						"x": "{{frame.x}}", "y": "{{frame.y}}", "width": "{{frame.w}}", "height": "{{frame.h}}",
-						"justify": "{{anchor == 'bottom' ? 'end' : anchor == 'middle' ? 'center' : 'start'}}",
-						"alignItems": "{{align == 'center' ? 'center' : align == 'right' ? 'end' : 'start'}}",
-						"gap": "{{bullets ? size * 0.35 : 0}}",
+						"type": "row", "id": "{{prefix + o.id + '-text'}}", "when": "{{!empty || prompt}}", "overflow": "visible", "gap": "{{size}}",
+						"let": {
+							"turned": "{{(o.textRotate ?? 0) != 0}}",
+							"cols": "{{prompt ? 1 : min(o.columns ?? 1, max(length(lines), 1))}}",
+							"per": "{{ceil(length(lines) / cols)}}",
+							"numbering": "{{prompt ? null : o.numbering ?? null}}",
+							"levels": "{{map(lines, min(floor(indexOf(it, trim(it)) / 4), 8))}}"
+						},
+						"x": "{{turned ? frame.x + (frame.w - frame.h) / 2 : frame.x}}", "y": "{{turned ? frame.y + (frame.h - frame.w) / 2 : frame.y}}",
+						"width": "{{turned ? frame.h : frame.w}}", "height": "{{turned ? frame.w : frame.h}}", "rotate": "{{o.textRotate ?? 0}}",
 						"children": [
 							{
-								"repeat": { "for": "line", "in": "{{lines}}", "index": "n" },
-								"type": "row", "id": "{{prefix + o.id + '-p' + n}}", "fitContent": true, "overflow": "visible",
-								"let": {
-									"level": "{{min(floor(indexOf(line, trim(line)) / 4), 8)}}",
-									"pt": "{{max(bullets ? size - 4 * min(level, 2) : size, 6)}}",
-									"lead": "{{bullets ? 36 * level : 0}}"
-								},
+								"repeat": { "for": "k", "in": "{{range(cols)}}" },
+								"type": "column", "id": "{{prefix + o.id + '-text-c' + k}}", "overflow": "visible",
+								"width": "{{((turned ? frame.h : frame.w) - size * (cols - 1)) / cols}}", "height": "{{turned ? frame.w : frame.h}}",
+								"justify": "{{anchor == 'bottom' ? 'end' : anchor == 'middle' ? 'center' : 'start'}}",
+								"alignItems": "{{align == 'center' ? 'center' : align == 'right' ? 'end' : 'start'}}",
+								"gap": "{{(bullets ? size * 0.35 : 0) + size * ((prompt ? 1 : o.spacing ?? 1) - 1)}}",
 								"children": [
-									{ "id": "{{prefix + o.id + '-p' + n + '-in'}}", "color": "transparent", "width": "{{lead}}", "height": 1, "when": "{{lead > 0}}" },
-									{ "type": "label", "id": "{{prefix + o.id + '-p' + n + '-b'}}", "when": "{{bullets && !prompt}}", "width": 18,
-									  "runs": [{ "text": "•", "size": "{{pt}}", "color": "{{ink}}" }] },
-									{ "type": "label", "id": "{{prefix + o.id + '-p' + n + '-t'}}", "wrap": true,
-									  "fitText": { "maxWidth": "{{max(frame.w - lead - (bullets && !prompt ? 18 : 0), 1)}}" },
-									  "align": { "horizontal": "{{align == 'center' ? 'center' : align == 'right' ? 'end' : 'start'}}" },
-									  "runs": [{ "text": "{{trim(line) == '' ? ' ' : trim(line)}}", "size": "{{pt}}", "bold": "{{o.bold ?? p.bold ?? false}}",
-									             "italic": "{{o.italic ?? false}}", "color": "{{prompt ? computed.palette['dark1.2'] : ink}}" }] }
+									{
+										"repeat": { "for": "line", "in": "{{slice(lines, k * per, k * per + per)}}", "index": "m" },
+										"type": "row", "id": "{{prefix + o.id + '-p' + (k * per + m)}}", "fitContent": true, "overflow": "visible",
+										"let": {
+											"n": "{{k * per + m}}",
+											"level": "{{levels[k * per + m]}}",
+											"pt": "{{max(bullets ? size - 4 * min(levels[k * per + m], 2) : size, 6)}}",
+											"lead": "{{bullets ? 36 * levels[k * per + m] : 0}}",
+											"mark": "{{numbering == null ? 18 : max(size * 1.5, 18)}}",
+											"ordinal": "{{count(slice(levels, 0, k * per + m + 1), it == levels[k * per + m])}}"
+										},
+										"children": [
+											{ "id": "{{prefix + o.id + '-p' + n + '-in'}}", "color": "transparent", "width": "{{lead}}", "height": 1, "when": "{{lead > 0}}" },
+											{ "type": "label", "id": "{{prefix + o.id + '-p' + n + '-b'}}", "when": "{{bullets && !prompt}}", "width": "{{mark}}", "height": "{{ceil(pt * 1.2)}}",
+											  "runs": "{{[numbering != null ? { text: (numbering == 'A.' ? slice('ABCDEFGHIJKLMNOPQRSTUVWXYZ', (ordinal - 1) % 26, (ordinal - 1) % 26 + 1) : numbering == 'a)' ? slice('abcdefghijklmnopqrstuvwxyz', (ordinal - 1) % 26, (ordinal - 1) % 26 + 1) : numbering == 'I.' ? ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX'][ordinal - 1] ?? text(ordinal) : text(ordinal)) + (numbering == '1)' || numbering == 'a)' ? ')' : '.'), size: pt, color: ink, font: o.font ?? 'default' } : o.bulletIcon != null ? { icon: o.bulletIcon, size: pt * 0.75, color: ink } : { text: '•', size: pt, color: ink }]}}" },
+											{ "type": "label", "id": "{{prefix + o.id + '-p' + n + '-t'}}", "wrap": true,
+											  "fitText": { "maxWidth": "{{max(((turned ? frame.h : frame.w) - size * (cols - 1)) / cols - lead - (bullets && !prompt ? mark : 0), 1)}}" },
+											  "align": { "horizontal": "{{align == 'center' ? 'center' : align == 'right' ? 'end' : 'start'}}" },
+											  "runs": [{ "text": "{{trim(line) == '' ? ' ' : trim(line)}}", "size": "{{pt}}", "bold": "{{o.bold ?? p.bold ?? false}}", "font": "{{o.font ?? 'default'}}",
+											             "italic": "{{o.italic ?? false}}", "color": "{{prompt ? computed.palette['dark1.2'] : ink}}",
+											             "underline": "{{!prompt && (o.underline ?? false)}}", "strike": "{{!prompt && (o.strike ?? false)}}",
+											             "background": "{{prompt ? null : o.highlight ?? null}}", "shadow": "{{!prompt && (o.shadow ?? false) ? '#00000059' : null}}" }] }
+										]
+									}
 								]
 							}
 						]

@@ -11,18 +11,18 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---|---|---|---|
 | Shell | Ribbon with tabs (Home, Insert, Ink, Design, Transitions, Motion, Present, Check, View) | missing | partial | first-frame, insert-tab, design-tab |
 | Shell | Ribbon groups with titles, large and small buttons | missing | done | first-frame |
-| Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | partial | first-frame (shapes), design-tab (themes) |
+| Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | partial | first-frame (shapes), design-tab (themes), launchers-and-gallery (the whole list) |
 | Shell | Collapse and pin the ribbon | missing | missing | |
-| Shell | Contextual tab (Shape Format) when a shape is selected | missing | missing | |
+| Shell | A contextual tab for the selected shape | missing | missing | |
 | Shell | Quick access toolbar (save, undo, redo, start from beginning) | missing | done | save-and-open, present-from-current, first-frame |
 | Shell | Title bar with the file name | partial | done | first-frame |
 | Shell | Search ("tell me what you want to do") that runs commands | missing | missing | |
 | Shell | File view (new, open, save, export) | missing | partial | save-and-open, export-pdf |
-| Shell | KeyTips (Alt shows a key on every command) | missing | missing | |
+| Shell | Key hints (Alt shows a key on every command) | missing | missing | |
 | Slides | Thumbnails pane with slide numbers | partial | done | first-frame, slide-4 |
 | Slides | New slide with a layout, duplicate, delete | done | done | new-duplicate-delete-slide |
 | Slides | Drag to reorder | partial | done | sorter-drag-to-reorder |
-| Slides | Sections (add, rename, collapse) | partial | partial | first-frame |
+| Slides | Sections (add, rename, collapse) | partial | partial | first-frame, section-menu (add, rename, remove; no collapse) |
 | Slides | Hide slide (dimmed, crossed number, skipped in the show) | partial | partial | hide-a-slide, present-skips-and-blacks |
 | Slides | Slide context menu | missing | missing | |
 | Canvas | Slide centred on grey | partial | done | first-frame, resized |
@@ -35,21 +35,21 @@ with its slide show, presenter view, audience window and files on library capabi
 | Status bar | Notes and comments toggles | missing | partial | speaker-notes, notes-hidden |
 | Status bar | Views (normal, sorter, reading, slide show) | partial | partial | sorter-view, outline-view, present-from-current, first-frame |
 | Status bar | Zoom slider, percentage and fit | missing | done | first-frame |
-| Text | Font, size, grow and shrink | missing | partial | |
-| Text | Bold, italic, underline, strikethrough, shadow | missing | partial | |
-| Text | Font colour and highlight | missing | partial |  |
-| Text | Change case and clear formatting | missing | partial | |
+| Text | Font, size, grow and shrink | missing | done | font-size-and-case (the two fonts the app ships) |
+| Text | Bold, italic, underline, strikethrough, shadow | missing | done | copy-style |
+| Text | Font colour and highlight | missing | done | colour-grids |
+| Text | Change case and clear formatting | missing | done | font-size-and-case |
 | Text | Paragraph alignment (left, centre, right, justify) | missing | partial | |
-| Text | Line spacing and columns | missing | missing | |
-| Text | Bullets and numbering | missing | missing | |
-| Text | List levels with Tab and Shift+Tab | missing | missing | |
+| Text | Line spacing and columns | missing | done | paragraph-menus |
+| Text | Bullets and numbering | missing | done | bullets-numbering-and-levels |
+| Text | List levels with Tab and Shift+Tab | missing | partial | bullets-numbering-and-levels (the list level buttons; Tab waits for editing in place) |
 | Text | Edit text in place (double-click, caret, selection) | missing | missing | |
-| Text | Vertical anchor and autofit | missing | missing | |
+| Text | Vertical anchor and autofit | missing | partial | paragraph-menus (anchor and text direction; no autofit) |
 | Shapes | Shapes gallery (lines, rectangles, basic shapes, arrows, stars, callouts) | partial | partial | add-a-shape, first-frame |
-| Shapes | Shape fill (solid, gradient, none) | partial | partial | format-fill-and-line |
-| Shapes | Shape outline (colour, weight, dashes) | partial | partial | format-fill-and-line |
+| Shapes | Shape fill (solid, gradient, none) | partial | partial | format-fill-and-line, colour-grids (no gradient) |
+| Shapes | Shape outline (colour, weight, dashes) | partial | partial | format-fill-and-line, colour-grids |
 | Shapes | Shape effects (shadow, glow, soft edges) | partial | partial | shape-effects (a shadow and a glow, unblurred; no soft edges) |
-| Shapes | Quick styles | missing | missing | |
+| Shapes | Quick styles | missing | done | colour-grids |
 | Shapes | Text inside shapes | missing | missing | |
 | Format pane | Fill and line | partial | partial | format-fill-and-line |
 | Format pane | Effects | partial | partial | shape-effects (none, shadow, glow) |
@@ -71,8 +71,8 @@ with its slide show, presenter view, audience window and files on library capabi
 | Content | Table styles | missing | missing | |
 | Content | Charts (column, bar, line, pie) | missing | missing | |
 | Content | Icons | missing | missing | |
-| Content | Text box and WordArt-like styles | partial | partial | add-a-text-box |
-| Design | Layouts (title, title and content, section header, two content, comparison, title only, blank) | missing | partial | |
+| Content | Text box and styled text effects | partial | partial | add-a-text-box |
+| Design | Layouts (title, title and content, section header, two content, comparison, title only, blank) | missing | done | slide-menus |
 | Design | Slide master view | missing | missing | |
 | Design | Themes | missing | partial | design-tab |
 | Design | Variants | missing | partial | design-tab |
@@ -80,15 +80,15 @@ with its slide show, presenter view, audience window and files on library capabi
 | Design | Theme fonts | missing | missing | |
 | Design | Slide size (16:9, 4:3) | partial | missing | |
 | Design | Format background | missing | partial |  |
-| Tools | Format painter | missing | missing | |
-| Tools | Find | missing | missing | |
-| Tools | Replace | missing | missing | |
+| Tools | Format painter | missing | done | copy-style |
+| Tools | Find | missing | done | find-and-replace |
+| Tools | Replace | missing | done | find-and-replace |
 | Tools | Undo and redo | done | done | delete-and-undo |
-| Tools | Cut, copy and paste | partial | partial | duplicate-an-object |
+| Tools | Cut, copy and paste | partial | partial | duplicate-an-object, paste-menu (no other apps' clipboard) |
 | Transitions | Fade | partial | partial | slide-transition |
 | Transitions | Push | partial | done | slide-transition |
 | Transitions | Wipe | partial | done | slide-transition |
-| Transitions | Morph-like (objects glide between slides) | missing | missing |  |
+| Transitions | Glide (objects move to their places on the next slide) | missing | missing |  |
 | Transitions | Effect options, duration, apply to all | partial | done | slide-transition |
 | Transitions | Preview | missing | missing | |
 | Animations | Entrance effects | partial | done | add-an-animation |
@@ -126,4 +126,5 @@ with its slide show, presenter view, audience window and files on library capabi
 | | Done | Partial | Missing | Total |
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
-| Now | 34 | 37 | 40 | 111 |
+| Before the controls audit | 34 | 37 | 40 | 111 |
+| Now | 45 | 34 | 32 | 111 |

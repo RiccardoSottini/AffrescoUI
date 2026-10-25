@@ -158,7 +158,7 @@
 				{ "expect": { "state": "board.selection[0]", "is": "o9" } },
 				{ "expect": { "state": "deck.slides[3].objects[6].id", "is": "o14" } },
 				{ "click": "#b-arrange" },
-				{ "expect": { "state": "arrangeMenu.open", "is": true } },
+				{ "expect": { "state": "drop", "is": { "open": true, "id": "b-arrange" } } },
 				{ "click": { "role": "menuitem", "name": "Bring to Front" } },
 				{ "expect": { "state": "deck.slides[3].objects[6].id", "is": "o9" } },
 				{ "expect": { "state": "deck.slides[3].objects[1].id", "is": "o10" } },
@@ -307,6 +307,7 @@
 				{ "key": "mod+m" },
 				{ "expect": { "state": "deck.slides.length", "is": 9} },
 				{ "expect": { "state": "current", "is": 2} },
+				{ "note": "The rail scrolls to the slides further down", "scroll": [100, 600], "dy": -6 },
 				{ "click": "#thumb-s4-row" },
 				{ "action": "duplicateSlide" },
 				{ "expect": { "state": "deck.slides.length", "is": 10} },
@@ -359,6 +360,7 @@
 			"name": "sinopia-speaker-notes",
 			"note": "The notes under the slide are the slide's: typed into, hidden and shown",
 			"steps": [
+				{ "note": "The rail scrolls to the slides further down", "scroll": [100, 600], "dy": -6 },
 				{ "click": "#thumb-s6-row" },
 				{ "expect": { "node": "#notes-placeholder", "text": "Click to add notes" } },
 				{ "click": "#notes" },
@@ -430,10 +432,10 @@
 				{ "click": "#tab-view-label" },
 				{ "click": "#b-dark" },
 				{ "expect": { "state": "theme", "is": "dark" } },
-				{ "expect": { "node": "#main", "property": "color", "is": "#18171d" } },
+				{ "expect": { "node": "#main", "property": "color", "is": "#131716" } },
 				{ "click": "#b-dark" },
 				{ "expect": { "state": "theme", "is": "light" } },
-				{ "expect": { "node": "#main", "property": "color", "is": "#e5e5eb" } }
+				{ "expect": { "node": "#main", "property": "color", "is": "#e2e7e5" } }
 			]
 		},
 		{
@@ -501,6 +503,7 @@
 			"name": "sinopia-present-skips-and-blacks",
 			"note": "The show skips a hidden slide; B and W blank the screen black or white and back",
 			"steps": [
+				{ "note": "The rail scrolls to the slides further down", "scroll": [100, 600], "dy": -6 },
 				{ "click": "#thumb-s6-row" },
 				{ "key": "shift+f5" },
 				{ "expect": { "state": "show.index", "is": 5} },
@@ -599,6 +602,250 @@
 				{ "wait": 0},
 				{ "expect": { "state": "view", "is": "sorter" } },
 				{ "expect": { "node": "#sorter-grid", "exists": true} }
+			]
+		},
+		{
+			"name": "sinopia-paste-menu",
+			"note": "The paste and copy arrows open their menus: Keep Text Only pastes plain text boxes, Duplicate copies the selection in place",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o6" },
+				{ "key": "mod+c" },
+				{ "click": "#b-paste-more" },
+				{ "expect": { "state": "drop", "is": { "open": true, "id": "b-paste" } } },
+				{ "click": { "role": "menuitem", "name": "Keep Text Only" } },
+				{ "expect": { "state": "deck.slides[2].objects.length", "is": 4} },
+				{ "expect": { "state": "deck.slides[2].objects[3].text", "is": "Light trail\n    Twelve installations along the quay\n    Lantern boats on Friday\nFood market in the warehouses" } },
+				{ "expect": { "state": "deck.slides[2].objects[3].size", "is": 18} },
+				{ "click": "#b-copy-arrow" },
+				{ "click": { "role": "menuitem", "name": "Duplicate" } },
+				{ "expect": { "state": "deck.slides[2].objects.length", "is": 5} }
+			]
+		},
+		{
+			"name": "sinopia-font-size-and-case",
+			"note": "The font and size fields open their lists; Change Case opens its five cases",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o5" },
+				{ "click": "#f-font" },
+				{ "click": { "role": "menuitem", "name": "JetBrains Mono" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].font", "is": "mono" } },
+				{ "click": "#f-size" },
+				{ "click": { "role": "menuitem", "name": "40" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].size", "is": 40} },
+				{ "click": "#b-case" },
+				{ "click": { "role": "menuitem", "name": "UPPERCASE" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].text", "is": "PROGRAMME" } },
+				{ "click": "#b-case" },
+				{ "click": { "role": "menuitem", "name": "tOGGLE cASE" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].text", "is": "programme" } },
+				{ "click": "#b-case" },
+				{ "click": { "role": "menuitem", "name": "Capitalize Each Word" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].text", "is": "Programme" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[2].objects[0].text", "is": "programme" } },
+				{ "click": "#o5" },
+				{ "click": "#f-font" },
+				{ "click": { "role": "menuitem", "name": "Roboto" } },
+				{ "expect": { "state": "deck.slides[2].objects[0].font", "is": null} }
+			]
+		},
+		{
+			"name": "sinopia-colour-grids",
+			"note": "The colour arrows open a grid of theme, standard and highlight colours; the button itself gives the last colour picked",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o5" },
+				{ "click": "#b-color-arrow" },
+				{ "expect": { "state": "colors", "is": { "open": true, "id": "b-color" } } },
+				{ "click": "#colors-s1-1" },
+				{ "expect": { "state": "deck.slides[2].objects[0].color", "is": "#ff0000" } },
+				{ "expect": { "state": "colors.open", "is": false} },
+				{ "click": "#o6" },
+				{ "click": "#b-color" },
+				{ "expect": { "state": "deck.slides[2].objects[1].color", "is": "#ff0000" } },
+				{ "click": "#b-highlight-arrow" },
+				{ "click": "#colors-s0-1" },
+				{ "expect": { "state": "deck.slides[2].objects[1].highlight", "is": "#00ff00" } },
+				{ "click": "#b-highlight-arrow" },
+				{ "click": "#colors-none" },
+				{ "expect": { "state": "deck.slides[2].objects[1].highlight", "is": null} },
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#o10" },
+				{ "click": "#b-fill-arrow" },
+				{ "click": "#colors-s0-15" },
+				{ "expect": { "state": "deck.slides[3].objects[2].fill", "is": "accent2.1" } },
+				{ "click": "#b-outline-arrow" },
+				{ "click": "#colors-none" },
+				{ "expect": { "state": "deck.slides[3].objects[2].line", "is": null} },
+				{ "click": "#b-quick-styles" },
+				{ "click": "#colors-s2-0" },
+				{ "expect": { "state": "deck.slides[3].objects[2].fill", "is": "light1" } },
+				{ "expect": { "state": "deck.slides[3].objects[2].line", "is": "accent1" } }
+			]
+		},
+		{
+			"name": "sinopia-bullets-numbering-and-levels",
+			"note": "Bullets and numbering pick their marks from their menus; the list level buttons move every line four spaces",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o6" },
+				{ "click": "#b-bullets-arrow" },
+				{ "click": { "role": "menuitem", "name": "Arrow" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].bulletIcon", "is": "chevron-right" } },
+				{ "expect": { "node": "#o6-p0-b", "exists": true} },
+				{ "click": "#b-numbering" },
+				{ "expect": { "state": "deck.slides[2].objects[1].numbering", "is": "1." } },
+				{ "expect": { "node": "#o6-p3-b", "text": "2." } },
+				{ "click": "#b-numbering-arrow" },
+				{ "click": { "role": "menuitem", "name": "I. II. III." } },
+				{ "expect": { "node": "#o6-p3-b", "text": "II." } },
+				{ "click": "#b-indent" },
+				{ "expect": { "state": "deck.slides[2].objects[1].text", "is": "    Light trail\n        Twelve installations along the quay\n        Lantern boats on Friday\n    Food market in the warehouses" } },
+				{ "click": "#b-outdent" },
+				{ "click": "#b-outdent" },
+				{ "expect": { "state": "deck.slides[2].objects[1].text", "is": "Light trail\nTwelve installations along the quay\nLantern boats on Friday\nFood market in the warehouses" } },
+				{ "click": "#b-bullets-arrow" },
+				{ "click": { "role": "menuitem", "name": "None" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].bullets", "is": false} },
+				{ "expect": { "node": "#o6-p0-b", "exists": false} }
+			]
+		},
+		{
+			"name": "sinopia-paragraph-menus",
+			"note": "Line spacing, columns, text direction and the vertical alignment each open a menu",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o6" },
+				{ "click": "#b-line-spacing" },
+				{ "click": { "role": "menuitem", "name": "2.0" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].spacing", "is": 2} },
+				{ "click": "#b-columns" },
+				{ "click": { "role": "menuitem", "name": "Two Columns" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].columns", "is": 2} },
+				{ "expect": { "node": "#o6-text-c1", "exists": true} },
+				{ "click": "#b-direction" },
+				{ "click": { "role": "menuitem", "name": "Rotate All Text 90°" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].textRotate", "is": 90} },
+				{ "click": "#b-anchor" },
+				{ "click": { "role": "menuitem", "name": "Bottom" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].anchor", "is": "bottom" } },
+				{ "click": "#b-direction" },
+				{ "click": { "role": "menuitem", "name": "Horizontal" } },
+				{ "expect": { "state": "deck.slides[2].objects[1].textRotate", "is": null} }
+			]
+		},
+		{
+			"name": "sinopia-select-menu",
+			"note": "Select picks every object, the text boxes, the shapes or nothing",
+			"steps": [
+				{ "click": "#thumb-s4-row" },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Select Shapes" } },
+				{ "expect": { "state": "board.selection.length", "is": 6} },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Select Text" } },
+				{ "expect": { "state": "board.selection", "is": ["o8"]} },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Select None" } },
+				{ "expect": { "state": "board.selection.length", "is": 0} },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Select All" } },
+				{ "expect": { "state": "board.selection.length", "is": 7} }
+			]
+		},
+		{
+			"name": "sinopia-section-menu",
+			"note": "Section adds, renames and removes the section the current slide is in",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#b-section" },
+				{ "click": { "role": "menuitem", "name": "Rename Section" } },
+				{ "wait": 0},
+				{ "expect": { "node": "#find-text", "exists": true} },
+				{ "type": "Schedule" },
+				{ "key": "enter" },
+				{ "expect": { "state": "deck.sections[1].name", "is": "Schedule" } },
+				{ "expect": { "state": "find.open", "is": false} },
+				{ "click": "#b-section" },
+				{ "click": { "role": "menuitem", "name": "Remove Section" } },
+				{ "expect": { "state": "deck.sections.length", "is": 1} },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.sections.length", "is": 2} },
+				{ "click": "#b-section" },
+				{ "click": { "role": "menuitem", "name": "Remove All Sections" } },
+				{ "expect": { "state": "deck.sections.length", "is": 0} }
+			]
+		},
+		{
+			"name": "sinopia-copy-style",
+			"note": "Copy Style keeps the selected object's look and gives it to the next object selected",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#o5" },
+				{ "key": "mod+i" },
+				{ "expect": { "state": "deck.slides[2].objects[0].italic", "is": true} },
+				{ "click": "#b-painter" },
+				{ "expect": { "state": "painter.italic", "is": true} },
+				{ "click": "#o6" },
+				{ "expect": { "state": "deck.slides[2].objects[1].italic", "is": true} },
+				{ "expect": { "state": "painter", "is": null} }
+			]
+		},
+		{
+			"name": "sinopia-find-and-replace",
+			"note": "Find goes to the next object holding the text, on any slide; Replace All changes it everywhere at once, and undo takes it back",
+			"steps": [
+				{ "key": "mod+f" },
+				{ "expect": { "state": "find.open", "is": true} },
+				{ "expect": { "state": "find.replace", "is": false} },
+				{ "wait": 0},
+				{ "type": "Lantern" },
+				{ "key": "enter" },
+				{ "expect": { "state": "current", "is": 2} },
+				{ "expect": { "state": "board.selection", "is": ["o6"]} },
+				{ "expect": { "node": "#find-status", "text": "1 match in the deck." } },
+				{ "key": "escape" },
+				{ "expect": { "state": "find.open", "is": false} },
+				{ "key": "mod+h" },
+				{ "wait": 0},
+				{ "expect": { "state": "find.text", "is": "Lantern" } },
+				{ "click": "#find-with" },
+				{ "type": "Paper" },
+				{ "click": "#find-replace-all" },
+				{ "expect": { "state": "deck.slides[2].objects[1].text", "is": "Light trail\n    Twelve installations along the quay\n    Paper boats on Friday\nFood market in the warehouses" } },
+				{ "expect": { "node": "#find-status", "text": "Replaced 1 object." } },
+				{ "key": "escape" },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.slides[2].objects[1].text", "is": "Light trail\n    Twelve installations along the quay\n    Lantern boats on Friday\nFood market in the warehouses" } }
+			]
+		},
+		{
+			"name": "sinopia-slide-menus",
+			"note": "The New Slide arrow and Layout list the layouts",
+			"steps": [
+				{ "click": "#b-new-slide-more" },
+				{ "click": { "role": "menuitem", "name": "Section Header" } },
+				{ "expect": { "state": "deck.slides.length", "is": 8} },
+				{ "expect": { "state": "deck.slides[1].layout", "is": "section" } },
+				{ "click": "#b-layout" },
+				{ "click": { "role": "menuitem", "name": "Title Only" } },
+				{ "expect": { "state": "deck.slides[1].layout", "is": "titleOnly" } }
+			]
+		},
+		{
+			"name": "sinopia-launchers-and-gallery",
+			"note": "A group's launcher opens the format pane; the gallery's last arrow lists its shapes",
+			"steps": [
+				{ "click": "#thumb-s3-row" },
+				{ "click": "#launch-font" },
+				{ "expect": { "state": "formatPane", "is": true} },
+				{ "click": "#gal-shapes-all" },
+				{ "expect": { "state": "drop", "is": { "open": true, "id": "gal-shapes" } } },
+				{ "click": { "role": "menuitem", "name": "Heart" } },
+				{ "expect": { "state": "deck.slides[2].objects.length", "is": 4} },
+				{ "expect": { "state": "deck.slides[2].objects[3].shape", "is": "heart" } }
 			]
 		}
 	]

@@ -7,9 +7,7 @@
 	"state": {
 		"undo": [],
 		"redo": [],
-		"clip": [],
-		"arrangeMenu": { "open": false, "x": 0, "y": 0 },
-		"effectsMenu": { "open": false, "x": 0, "y": 0 }
+		"clip": []
 	},
 
 	"computed": {
@@ -122,12 +120,12 @@
 			{ "run": "setObjects", "with": { "props": "{{ {size: by > 0 ? find(computed.sizes, it > computed.textSize) ?? computed.textSize + 8 : find(reverse(computed.sizes), it < computed.textSize) ?? max(computed.textSize - 1, 1)} }}" } }
 		],
 		"clearFormatting": [
-			{ "run": "setObjects", "with": { "props": { "bold": null, "italic": null, "underline": null, "strike": null, "shadow": null, "size": null, "color": null, "highlight": null } } }
+			{ "run": "setObjects", "with": { "props": { "bold": null, "italic": null, "underline": null, "strike": null, "shadow": null, "size": null, "color": null, "highlight": null, "font": null } } }
 		],
 		"changeCase": [
 			{ "if": "{{length(computed.selected) > 0}}", "then": [
 				{ "run": "commit" },
-				{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, contains(state.board.selection, it.id) ? merge(it, { text: how == 'upper' ? upper(it.text ?? '') : how == 'lower' ? lower(it.text ?? '') : it.text }) : it)}}" }
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, contains(state.board.selection, it.id) ? merge(it, { text: how == 'upper' ? upper(it.text ?? '') : how == 'lower' ? lower(it.text ?? '') : how == 'toggle' ? join(map(split(it.text ?? '', ''), upper(it) == it ? lower(it) : upper(it)), '') : how == 'sentence' ? join(map(split(it.text ?? '', '\n'), upper(join(slice(split(it, ''), 0, indexOf(it, trim(it)) + 1), '')) + lower(join(slice(split(it, ''), indexOf(it, trim(it)) + 1), ''))), '\n') : how == 'words' ? join(map(split(it.text ?? '', '\n'), join(map(split(it, ' '), upper(join(slice(split(it, ''), 0, 1), '')) + lower(join(slice(split(it, ''), 1), ''))), ' ')), '\n') : it.text }) : it)}}" }
 			] }
 		],
 		"placeObjects": [
@@ -211,12 +209,6 @@
 			{ "run": "commit" },
 			{ "set": "state.deck.slides[state.current].objects", "to": "{{map(computed.objects, !contains(ids, it.id) || (it.locked ?? false) ? it : merge(it, parseJson('{' + json(axis) + ':' + json(round((start + sum(slice(sizes, 0, indexOf(ids, it.id))) + indexOf(ids, it.id) * (span - sum(sizes)) / (length(ids) - 1)) * 10) / 10) + '}')))}}" }
 		],
-		"openArrangeMenu": [
-			{ "set": "state.arrangeMenu", "to": { "open": true, "x": "{{min(event.x ?? 520, window.width - 228)}}", "y": 136 } }
-		],
-		"openEffectsMenu": [
-			{ "set": "state.effectsMenu", "to": { "open": true, "x": "{{min(event.x ?? 970, window.width - 168)}}", "y": 148 } }
-		],
 
 		"setTheme": [
 			{ "run": "commit" },
@@ -254,12 +246,5 @@
 				{ "set": "state.deck.slides[state.current].notes", "to": "{{text}}" }
 			] }
 		]
-	},
-
-	"overlays": {
-		"zArrangeMenu": { "use": "contextMenu", "with": { "open": "state.arrangeMenu.open", "items": "{{computed.arrangeItems}}", "x": "{{state.arrangeMenu.x}}",
-			"y": "{{state.arrangeMenu.y}}", "width": 220, "color": "@rb", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } },
-		"zEffectsMenu": { "use": "contextMenu", "with": { "open": "state.effectsMenu.open", "items": "{{computed.effectItems}}", "x": "{{state.effectsMenu.x}}",
-			"y": "{{state.effectsMenu.y}}", "width": 160, "color": "@rb", "textColor": "@rbInk", "dimColor": "@rbMuted", "highlight": "@rbHover" } }
 	}
 }

@@ -18,7 +18,7 @@
 		"showSlide": "{{state.deck.slides[state.show.index] ?? state.deck.slides[0]}}",
 		"showFrom": "{{state.show.from >= 0 ? state.deck.slides[state.show.from] : null}}",
 		"showKind": "{{state.show.t >= 1 ? 'none' : computed.showSlide.transition.kind ?? 'none'}}",
-		"showFades": "{{computed.showKind == 'fade' || computed.showKind == 'morph'}}",
+		"showFades": "{{computed.showKind == 'fade' || computed.showKind == 'glide'}}",
 		"showTimings": "{{scan(computed.showSlide.animations ?? [], merge(it, { step: acc.step + (it.start == 'click' ? 1 : 0), start: (it.start == 'click' ? 0 : it.start == 'with' ? acc.start : acc.end) + (it.delay ?? 0), end: (it.start == 'click' ? 0 : it.start == 'with' ? acc.start : acc.end) + (it.delay ?? 0) + (it.ms ?? 500) }), { step: 0, start: 0, end: 0 })}}",
 		"showSteps": "{{count(computed.showSlide.animations ?? [], it.start == 'click')}}",
 		"showNext": "{{find(computed.showOrder, it > state.show.index)}}",
@@ -108,10 +108,10 @@
 
 	"styles": {
 		"presenterButton": {
-			"type": "label", "height": 32, "fitText": true, "padding": 10, "radius": 6, "color": "#2f2f37", "textColor": "#f2f2f5", "cursor": "hand",
-			"focusable": true, "hover": { "color": "#3d3d48" }
+			"type": "label", "height": 32, "fitText": true, "padding": 10, "radius": 16, "color": "#2a3230", "textColor": "#eef3f1", "cursor": "hand",
+			"focusable": true, "hover": { "color": "#38423f" }
 		},
-		"presenterButtonOn": { "style": "presenterButton", "color": "#4b3fa8", "hover": { "color": "#5d51c0" } }
+		"presenterButtonOn": { "style": "presenterButton", "color": "#0e7c6b", "hover": { "color": "#139080" } }
 	},
 
 	"components": {
@@ -185,7 +185,7 @@
 					{ "id": "show-blank", "when": "{{state.show.black || state.show.white || state.show.ended}}", "x": 0, "y": 0, "width": 960, "height": 540,
 					  "color": "{{state.show.white ? '#ffffff' : '#000000'}}",
 					  "children": [{ "type": "label", "id": "show-ended", "when": "{{state.show.ended}}", "x": 0, "y": 16, "width": 960, "height": 24, "align": "center",
-					                 "runs": [{ "text": "End of the slide show. Click to leave.", "size": 14, "color": "#d0d0d8" }] }] }
+					                 "runs": [{ "text": "End of the slide show. Click to leave.", "size": 14, "color": "#ccd6d2" }] }] }
 				]
 			}
 		},
@@ -216,30 +216,30 @@
 		"presenter": {
 			"params": {},
 			"node": {
-				"id": "presenter", "fill": 0, "color": "#18181d",
+				"id": "presenter", "fill": 0, "color": "#141a19",
 				"every": { "ms": 1000, "do": "showTick" },
 				"children": [
 					{ "type": "row", "id": "presenter-top", "anchors": { "left": 24, "right": 24, "top": 12 }, "height": 36, "gap": 8, "alignItems": "center", "color": "transparent",
 					  "children": [
-						{ "type": "label", "id": "presenter-timer", "fitText": true, "height": 32, "textColor": "#f2f2f5", "runs": [{ "text": "{{computed.showTimer}}", "size": 22 }] },
+						{ "type": "label", "id": "presenter-timer", "fitText": true, "height": 32, "textColor": "#eef3f1", "runs": [{ "text": "{{computed.showTimer}}", "size": 22 }] },
 						{ "type": "label", "id": "presenter-pause", "style": "presenterButton", "runs": [{ "icon": "{{state.show.paused ? 'play' : 'pause'}}", "size": 15 }],
 						  "tooltip": "{{state.show.paused ? 'Resume the timer' : 'Pause the timer'}}", "onClick": [{ "toggle": "state.show.paused" }] },
 						{ "type": "label", "id": "presenter-reset", "style": "presenterButton", "runs": [{ "icon": "rotate-ccw", "size": 15 }], "tooltip": "Restart the timer",
 						  "onClick": [{ "set": "state.show.seconds", "to": 0 }] },
 						{ "id": "presenter-top-gap", "grow": 1, "height": 1, "color": "transparent" },
-						{ "type": "label", "id": "presenter-clock", "fitText": true, "height": 32, "textColor": "#a9a9b8", "runs": [{ "text": "{{time(now(), 'HH:mm')}}", "size": 16 }] }
+						{ "type": "label", "id": "presenter-clock", "fitText": true, "height": 32, "textColor": "#a3b1ac", "runs": [{ "text": "{{time(now(), 'HH:mm')}}", "size": 16 }] }
 					  ] },
 					{ "id": "presenter-current", "anchors": { "left": 24, "top": 60, "right": 384, "bottom": 76 }, "color": "#000000", "radius": 4,
 					  "children": [{ "type": "image", "id": "presenter-current-image", "fill": 0, "source": "audience", "fit": "contain" }] },
 					{ "type": "column", "id": "presenter-side", "width": 336, "anchors": { "right": 24, "top": 60, "bottom": 76 }, "gap": 8, "color": "transparent", "alignItems": "stretch",
 					  "children": [
-						{ "type": "label", "id": "presenter-next-title", "height": 20, "textColor": "#a9a9b8",
+						{ "type": "label", "id": "presenter-next-title", "height": 20, "textColor": "#a3b1ac",
 						  "runs": [{ "text": "{{computed.showNext != null ? 'Next' : 'End of the slide show'}}", "size": 13 }] },
 						{ "id": "presenter-next", "height": 189, "color": "#000000", "radius": 4,
 						  "children": [{ "type": "image", "id": "presenter-next-image", "fill": 0, "when": "{{computed.showNext != null}}",
 						                 "source": "{{'slide-' + state.deck.slides[computed.showNext].id}}", "fit": "contain" }] },
 						{ "type": "row", "id": "presenter-notes-bar", "height": 24, "gap": 4, "alignItems": "center", "color": "transparent", "children": [
-							{ "type": "label", "id": "presenter-notes-title", "grow": 1, "height": 20, "textColor": "#a9a9b8", "runs": [{ "text": "Notes", "size": 13 }] },
+							{ "type": "label", "id": "presenter-notes-title", "grow": 1, "height": 20, "textColor": "#a3b1ac", "runs": [{ "text": "Notes", "size": 13 }] },
 							{ "type": "label", "id": "presenter-notes-smaller", "style": "presenterButton", "height": 24, "padding": 6, "runs": [{ "icon": "a-arrow-down", "size": 14 }],
 							  "tooltip": "Smaller notes", "onClick": [{ "set": "state.show.notesSize", "to": "{{max(state.show.notesSize - 2, 10)}}" }] },
 							{ "type": "label", "id": "presenter-notes-larger", "style": "presenterButton", "height": 24, "padding": 6, "runs": [{ "icon": "a-arrow-up", "size": 14 }],
@@ -248,13 +248,13 @@
 						{ "type": "column", "id": "presenter-notes-box", "grow": 1, "scroll": "vertical", "color": "transparent", "children": [
 							{ "type": "label", "id": "presenter-notes", "width": 336, "wrap": true, "fitText": { "maxWidth": 336 }, "align": "start",
 							  "runs": [{ "text": "{{(computed.showSlide.notes ?? '') == '' ? 'No notes for this slide.' : computed.showSlide.notes}}", "size": "{{state.show.notesSize}}",
-							             "color": "{{(computed.showSlide.notes ?? '') == '' ? '#7d7d8c' : '#f2f2f5'}}" }] }
+							             "color": "{{(computed.showSlide.notes ?? '') == '' ? '#7a8884' : '#eef3f1'}}" }] }
 						] }
 					  ] },
 					{ "type": "row", "id": "presenter-controls", "anchors": { "left": 24, "right": 24, "bottom": 22 }, "height": 36, "gap": 8, "alignItems": "center", "color": "transparent",
 					  "children": [
 						{ "type": "label", "id": "presenter-previous", "style": "presenterButton", "runs": [{ "icon": "chevron-left", "size": 16 }], "tooltip": "Previous (Left)", "onClick": "showPrevious" },
-						{ "type": "label", "id": "presenter-where", "fitText": true, "height": 32, "padding": 6, "textColor": "#f2f2f5",
+						{ "type": "label", "id": "presenter-where", "fitText": true, "height": 32, "padding": 6, "textColor": "#eef3f1",
 						  "runs": [{ "text": "{{'Slide ' + computed.showPosition + ' of ' + length(computed.showOrder)}}", "size": 14 }] },
 						{ "type": "label", "id": "presenter-forward", "style": "presenterButton", "runs": [{ "icon": "chevron-right", "size": 16 }], "tooltip": "Next (Right)", "onClick": "showNext" },
 						{ "type": "label", "id": "presenter-black", "style": "{{state.show.black ? 'presenterButtonOn' : 'presenterButton'}}",

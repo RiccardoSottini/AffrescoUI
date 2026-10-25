@@ -2128,6 +2128,32 @@
 										"color": {
 											"$ref": "#/$defs/v2/color"
 										},
+										"underline": {
+											"$ref": "#/$defs/v2/flag"
+										},
+										"strike": {
+											"$ref": "#/$defs/v2/flag"
+										},
+										"background": {
+											"oneOf": [
+												{
+													"$ref": "#/$defs/v2/color"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"shadow": {
+											"oneOf": [
+												{
+													"$ref": "#/$defs/v2/color"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
 										"link": {
 											"type": "string",
 											"maxLength": 2048
@@ -2136,7 +2162,7 @@
 								}
 							]
 						},
-						"description": "label: rich text, parts with their own font, size, bold, italic, colour, link or icon"
+						"description": "label: rich text, parts with their own font, size, bold, italic, colour, underline, strike, background, shadow, link or icon"
 					},
 					"selectable": {
 						"$ref": "#/$defs/v2/flag"

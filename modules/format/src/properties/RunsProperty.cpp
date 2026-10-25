@@ -1,6 +1,6 @@
 /// @file
 /// @brief The rich text properties of labels: "runs" (parts of the text with their own font, size, bold, italic,
-/// colour, link or icon), "selectable" and "selectionColor".
+/// colour, underline, strike, background, shadow, link or icon), "selectable" and "selectionColor".
 
 #include "NodeKeys.hpp"
 #include "TypeRegistry.hpp"
@@ -17,14 +17,15 @@ namespace affresco::format {
 
 namespace {
 
-constexpr std::size_t runLimit = 256;             ///< Runs one label may have.
+constexpr std::size_t runLimit = 256;                          ///< Runs one label may have.
 constexpr std::size_t characterLimit = std::size_t{64} * 1024; ///< Code points of all of them.
-constexpr std::size_t linkLimit = 2048;           ///< Bytes of one link.
-constexpr double smallestSize = 4.0;              ///< A run's smallest "size", in pixels.
-constexpr double largestSize = 256.0;             ///< Its largest.
+constexpr std::size_t linkLimit = 2048;                        ///< Bytes of one link.
+constexpr double smallestSize = 4.0;                           ///< A run's smallest "size", in pixels.
+constexpr double largestSize = 256.0;                          ///< Its largest.
 
 /// @brief The keys a run object may have.
-constexpr std::array<std::string_view, 8> runKeys = {"text", "icon", "font", "size", "bold", "italic", "color", "link"};
+constexpr std::array<std::string_view, 12> runKeys = {"text",  "icon",      "font",   "size",       "bold",   "italic",
+                                                      "color", "underline", "strike", "background", "shadow", "link"};
 
 /// @brief A run's font: the one it names or the label's, in the size and style it asks for.
 /// @param run The run.
@@ -67,10 +68,17 @@ TextRun readRun(const json& run, const Label& label, const PropertyReader& reade
 	for(const auto& [key, value] : run.items())
 		if(!std::ranges::contains(runKeys, key))
 			fail(concatenate(at, ".", key),
-			     "unknown run property (expected text, icon, font, size, bold, italic, color or link)");
+			     "unknown run property (expected text, icon, font, size, bold, italic, color, underline, strike, "
+			     "background, shadow or link)");
 	if(run.contains("text")) result.text = codepointsOf(text(run["text"]));
 	if(run.contains("icon")) result.icon = string(run["icon"], at + ".icon");
 	if(run.contains("color")) result.color = reader.color(run["color"], at + ".color");
+	if(run.contains("underline")) result.underline = boolean(run["underline"], at + ".underline");
+	if(run.contains("strike")) result.strike = boolean(run["strike"], at + ".strike");
+	// A null background or shadow is none, so a binding can switch it off
+	if(run.contains("background") && !run["background"].is_null())
+		result.background = reader.color(run["background"], at + ".background");
+	if(run.contains("shadow") && !run["shadow"].is_null()) result.shadow = reader.color(run["shadow"], at + ".shadow");
 	if(run.contains("link")) {
 		result.link = text(run["link"]);
 		if(result.link.size() > linkLimit) fail(at + ".link", std::format("at most {} bytes", linkLimit));
