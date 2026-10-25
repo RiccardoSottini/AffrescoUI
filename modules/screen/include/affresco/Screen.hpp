@@ -414,7 +414,8 @@ public:
 	/// @brief Forgets the usage counts (the consent stays).
 	void clearUsage();
 
-	/// @brief Runs an action as if a panel triggered it.
+	/// @brief Runs an action as if a panel triggered it, for the application's own code: what it starts counts as the
+	/// person's, as their press does (filling the display is one of them).
 	/// @param name The action (from the file, else native).
 	/// @param sender The panel it comes from.
 	/// @param eventJson Available to the action as "event".

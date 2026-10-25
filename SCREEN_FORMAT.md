@@ -84,7 +84,7 @@ Every part of the format follows these, and so should every extension:
 | `menus` | `menu → { key → { "run" or "submenu", "group", "order", "when", "title", "icon" } }`, listed by the `menus` variable (see Menus and settings). |
 | `settings` | `"editor.fontSize" → { "type", "default", "title", "description", "minimum", ... }`: the user's settings, stored in `state.settings` (see Menus and settings). |
 | `onLoad` | A handler run once after the first update. |
-| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu; `persist` lists join). Each is a plain file of at most 16 MiB; an app's are in its folder or the `shared` folder beside it ("Apps: app.json"). |
+| `include` | `["parts/sidebar.json", ...]`: files merged in at load, section by section (this file's entries win; `menus` menu by menu, so several files add to one menu; `persist` lists join). |
 <!-- end generated -->
 
 ### Capabilities and features
@@ -1318,7 +1318,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `undoData`, `redoData` | `{ "undoData": true }`, `{ "redoData": true }`: undoes or redoes the last write step's records |
 | `importCsv` | `{ "importCsv": "songs", "file": "songs.csv", "columns": { "title": "Title" }, "into": "state.report" }`: imports a CSV's rows as records (`file` in the screen's folder, or `text`); `result` is `{imported, failed, failures}` |
 | `openWindow`, `closeWindow` | `{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; `{ "closeWindow": "audience" }` closes it |
-| `fullscreen` | `{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or `"toggle"`); with `of`, a window of the `windows` section |
+| `fullscreen` | `{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or `"toggle"`); with `of`, a window of the `windows` section. It starts filling the display only from the person's own click or key, and Esc always leaves. A control step |
 | `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 | `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
 <!-- end generated -->
@@ -1565,7 +1565,10 @@ keeps all the logic. Revisions can't change the section (a capability).
 
 `{ "openWindow": "audience" }` opens one (or shows it again; `"fullscreen": true` or `false` over its entry), and
 `{ "closeWindow": "audience" }` closes it. `{ "fullscreen": "toggle" }` makes the screen's own window fill its display
-or not (`true`, `false` or `"toggle"`), and with `"of": "audience"` one of the others. The `windows` variable is
+or not (`true`, `false` or `"toggle"`), and with `"of": "audience"` one of the others. A window starts filling the
+display only from the person's own click or key (or the application's code): from `onLoad`, a timer or a channel's
+message the step is refused, and `openWindow` opens the window as it is. The window then shows for a few seconds that
+Esc leaves full screen, and Esc always does. The `windows` variable is
 `{main: {fullscreen}, <name>: {open, fullscreen}}`. When the screen's window closes, so do its others. Without a
 display (scenarios, `affrescoui test`, previews) nothing is shown, but the variable follows the steps.
 

@@ -464,7 +464,7 @@ void Screen::runAction(std::string_view name, Panel& sender, std::string_view ev
 	} catch(const json::parse_error& error) {
 		throw ScreenError(std::string("AffrescoUI screen: runAction: invalid event JSON: ") + error.what());
 	}
-	impl_->runtime.runAction(name, sender, event);
+	impl_->runtime.runHostAction(name, sender, event);
 }
 
 Panel* Screen::find(std::string_view id) noexcept { return impl_->runtime.find(id); }

@@ -139,9 +139,10 @@ screens, actions, and the live state.
 - `persist`, what the screen writes to disk;
 - `services`, the local programs and folders the screen uses (and the host has granted);
 - **control steps**: `accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo` and `patch` (which
-  control changes), and `call`, `send` and `connect` (which reach outside the screen). A revision can't add, remove,
-  alter or move one to another trigger (a handler, a timer, a key, a `watch`, `onLoad`). Otherwise an agent could
-  hide an "accept" inside a button and approve itself, or give the screen new access to the outside world.
+  control changes), `call`, `send` and `connect` (which reach outside the screen), and `fullscreen`, a step's or an
+  `openWindow`'s (which fills the display). A revision can't add, remove, alter or move one to another trigger (a
+  handler, a timer, a key, a `watch`, `onLoad`). Otherwise an agent could hide an "accept" inside a button and approve
+  itself, give the screen new access to the outside world, or cover the display with what looks like the system.
 - **ways to run a control step**: a revision can't add a `run`, a handler or a `do` that names an action holding
   control steps (found through the actions it runs in turn), an action the document doesn't define (the
   application's native actions), or a computed action name such as `{"run": "{{state.name}}"}`. Nor can it add a
@@ -402,6 +403,17 @@ the sender's own claim. Any peer can send one.
 A `repair` message is the exception: the host interprets it (see VERSION_CONTROL.md, "Self-repairing change sets").
 The agent's revision is authored by its channel, checked against the change set's proof, and always opened as a
 proposal, so a repair never skips review or the permission rules; only a reviewer retries a change set that gave up.
+
+### Filling the display
+
+A screen that fills the display could draw what looks like the system's own password or permission dialog. So a
+window starts filling the display only while the person's own press is delivered (a click, a key, a typed character
+or a menu choice, to the screen's window or one of its others), or while the application's own code runs an action
+(`Screen::runAction`). From `onLoad`, a timer, a `watch`, a channel's message or a key a `press` step sends, the
+`fullscreen` step is refused and reported, and an `openWindow` opens its window without filling the display. Leaving
+full screen is always allowed. When a window starts filling the display it shows, for four seconds and above
+everything the screen draws, a hint it draws itself, "Press Esc to leave full screen"; Esc always leaves, and still
+reaches the screen.
 
 ### What documents can't do
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start

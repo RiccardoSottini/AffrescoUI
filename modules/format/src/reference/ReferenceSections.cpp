@@ -555,7 +555,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"closeWindow", "", "", "steps"},
     {"fullscreen", R"json({"anyOf": [{"type": "boolean"}, {"const": "toggle"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 R"(`{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or )"
-	 R"(`"toggle"`); with `of`, a window of the `windows` section)",
+	 R"(`"toggle"`); with `of`, a window of the `windows` section. It starts filling the display only from the )"
+	 R"(person's own click or key, and Esc always leaves. A control step)",
 	 "steps"},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"

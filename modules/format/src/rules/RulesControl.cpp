@@ -20,11 +20,12 @@ namespace {
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
 /// "ask" and "cancelAsk" reach the agents: the person's request, which an agent may act on, is never a revision's.
-constexpr std::array<std::string_view, 24> controlSteps{
-    "accept",   "reject",       "preview",       "endPreview",    "restore",      "revert",
-    "undo",     "patch",        "call",          "send",          "connect",      "respond",
-    "signIn",   "signOut",      "ask",           "cancelAsk",     "chooseFolder", "attach",
-    "saveFile", "openFile",     "export",        "runInTerminal", "clearTerminal", "closeTerminal"};
+/// "fullscreen", a step's or an openWindow's, fills the display, where a screen could look like the system.
+constexpr std::array<std::string_view, 25> controlSteps{
+    "accept",        "reject",        "preview",       "endPreview", "restore",  "revert",   "undo",
+    "patch",         "call",          "send",          "connect",    "respond",  "signIn",   "signOut",
+    "ask",           "cancelAsk",     "chooseFolder",  "attach",     "saveFile", "openFile", "export",
+    "runInTerminal", "clearTerminal", "closeTerminal", "fullscreen"};
 
 /// The most uses of the document's own components one use is expanded through to be scanned; past them, it may run a
 /// control step.

@@ -220,6 +220,17 @@ void Runtime::runAction(std::string_view name, Panel& sender, const json& event)
 	impl_->runner.handle(json(std::string(name)), sender, event, *locals, "runAction");
 }
 
+void Runtime::runHostAction(std::string_view name, Panel& sender, const json& event) {
+	++impl_->hostRunning;
+	try {
+		runAction(name, sender, event);
+	} catch(...) {
+		--impl_->hostRunning;
+		throw;
+	}
+	--impl_->hostRunning;
+}
+
 void Runtime::runOnce(const json& steps, const std::string& commit) {
 	const std::string where = "commit " + commit.substr(0, 7) + ".run";
 	const json event = {{"type", "run"}, {"commit", commit}};

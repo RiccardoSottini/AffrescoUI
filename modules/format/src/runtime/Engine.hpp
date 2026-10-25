@@ -85,6 +85,7 @@ struct Engine : VersionObserver {
 	bool handlersSuspended = false;                                    ///< See Runtime::setHandlersSuspended().
 	bool fileDialogsAllowed = true;                                    ///< See Runtime::allowFileDialogs().
 	bool otherWindowsAllowed = true;                                   ///< See Runtime::allowOtherWindows().
+	int hostRunning = 0;                                               ///< Depth of Runtime::runHostAction().
 	json menuBar = json::array(); ///< The native menu bar last shown (showMenuBar()).
 	json icon;                    ///< The "window.icon" last shown (showIcon() in Reconciler.cpp), or null.
 	ImageCache::Request iconFile; ///< Its file, while it is decoded.
