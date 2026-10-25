@@ -72,6 +72,12 @@
 		],
 		"showFileTab": [
 			{
+				"run": "forgeRecordNav",
+				"with": {
+					"id": "{{id}}"
+				}
+			},
+			{
 				"if": "{{some(state.groups[state.activeGroup].tabs, it.id == id)}}",
 				"then": [
 					{

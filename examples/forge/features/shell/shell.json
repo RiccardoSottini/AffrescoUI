@@ -83,9 +83,13 @@
 			{ "if": "{{!empty(event.id) && (find(state.explorerTree.entries, it.path == event.id) ?? {}).kind != 'folder'}}",
 			  "then": [{ "run": "openPath", "with": { "path": "{{event.id}}", "label": "{{reverse(split(event.id, '/'))[0]}}" } }] }
 		],
-		"showTab": [
+		"forgeRecordNav": [
+			{ "note": "id: the tab about to be shown. The tab shown now goes into the history Go Back walks (the last 50), unless Go Back or Go Forward is moving" },
 			{ "if": "{{!state.nav.moving && !empty(state.groups[state.activeGroup].active) && state.groups[state.activeGroup].active != id}}",
-			  "then": [{ "set": "state.nav", "to": "{{ {back: slice(concat(state.nav.back, filter(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active)), max(0, length(state.nav.back) - 49)), forward: [], moving: false} }}" }] },
+			  "then": [{ "set": "state.nav", "to": "{{ {back: slice(concat(state.nav.back, filter(state.groups[state.activeGroup].tabs, it.id == state.groups[state.activeGroup].active)), max(0, length(state.nav.back) - 49)), forward: [], moving: false} }}" }] }
+		],
+		"showTab": [
+			{ "run": "forgeRecordNav", "with": { "id": "{{id}}" } },
 			{ "if": "{{!some(state.groups[state.activeGroup].tabs, it.id == id)}}",
 			  "then": [{ "push": "state.groups[state.activeGroup].tabs", "value": "{{ {id: id, label: label} }}" }] },
 			{ "set": "state.groups[state.activeGroup].active", "to": "{{id}}" }
