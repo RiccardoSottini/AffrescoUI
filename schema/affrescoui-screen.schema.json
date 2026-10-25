@@ -261,6 +261,12 @@
 								"node": {
 									"$ref": "#/$defs/v2/node"
 								},
+								"runsActions": {
+									"type": [
+										"string",
+										"boolean"
+									]
+								},
 								"note": {
 									"type": "string"
 								}

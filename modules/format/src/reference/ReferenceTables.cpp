@@ -3,7 +3,7 @@
 
 #include "Reference.hpp"
 #include "Engine.hpp"
-#include "KitTokens.hpp"
+#include "Library.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -57,7 +57,7 @@ void addRow(const Engine& engine, std::string& text, const std::string& names, s
 /// @return Its text.
 /// @throws std::invalid_argument If no entry is in it.
 std::string tableText(const Engine& engine, std::string_view table) {
-	if(table == "kitTokens") return kitTokenTable();
+	if(table == "kitTokens") return libraryTokenTable();
 	if(table == "imageOperations") return imageOperationTable();
 	if(table == "imageNames") return imageNameTable();
 	const auto [keys, known] = keysOf(engine, table);

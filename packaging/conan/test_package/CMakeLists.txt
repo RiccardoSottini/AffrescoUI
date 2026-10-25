@@ -5,7 +5,7 @@ project(AffrescoUITestPackage LANGUAGES CXX)
 
 find_package(AffrescoUI CONFIG REQUIRED)
 
-foreach(target affrescoui::affrescoui affrescoui::core affrescoui::data affrescoui::render affrescoui::format
+foreach(target affrescoui::affrescoui affrescoui::core affrescoui::data affrescoui::render affrescoui::format affrescoui::themes
 	affrescoui::vcs affrescoui::channel affrescoui::net affrescoui::services affrescoui::automation
 	affrescoui::harfbuzz affrescoui::regex)
 	if(NOT TARGET ${target})

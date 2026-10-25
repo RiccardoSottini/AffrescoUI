@@ -4,6 +4,7 @@
 #include "RulesControl.hpp"
 
 #include "CheckerShapes.hpp"
+#include "Library.hpp"
 #include "Limits.hpp"
 
 #include <algorithm>
@@ -37,40 +38,6 @@ constexpr std::size_t maxExpandedBytes = maxDocumentBytes;
 bool namesAction(std::string_view key) {
 	const bool handler = key.size() > 2 && key.starts_with("on") && std::isupper(static_cast<unsigned char>(key[2]));
 	return handler || key == "do" || key == "run";
-}
-
-/// The built-in components that run the actions a parameter names, through a computed "run" the document never
-/// shows, each with that parameter: the "run" of a menu's items, a dialog's buttons, a toast's actions, a toolbar's,
-/// a status bar's, a segmented control's and a breadcrumbs' items, a search field's "run", a tab strip's "onClose",
-/// an inspector's "onChange" and a ribbon's tabs (their items). The quick pick has none ("") as it runs its recent
-/// items, kept in the state, as well as its providers' items, and so do the toasts, whose actions are kept in the
-/// state.
-constexpr std::array<std::pair<std::string_view, std::string_view>, 16> runningBuiltIns{{{"menu", "items"},
-                                                                                         {"submenu", "items"},
-                                                                                         {"contextMenu", "items"},
-                                                                                         {"menuBar", "menus"},
-                                                                                         {"dialog", "buttons"},
-                                                                                         {"toast", "actions"},
-                                                                                         {"toolbar", "items"},
-                                                                                         {"statusBar", "items"},
-                                                                                         {"segmentedControl", "items"},
-                                                                                         {"breadcrumbs", "items"},
-                                                                                         {"searchField", "run"},
-                                                                                         {"tabStrip", "onClose"},
-                                                                                         {"inspector", "onChange"},
-                                                                                         {"ribbon", "tabs"},
-                                                                                         {"quickPick", ""},
-                                                                                         {"toasts", ""}}};
-
-/// @brief The names of the built-in components that run the actions a parameter names.
-/// @return Them.
-const std::set<std::string>& runningBuiltInNames() {
-	static const std::set<std::string> names = [] {
-		std::set<std::string> made;
-		for(const auto& [name, parameter] : runningBuiltIns) made.emplace(name);
-		return made;
-	}();
-	return names;
 }
 
 /// @brief Whether a value computes anything: a string with "{{" in it, at any depth.
@@ -207,9 +174,10 @@ public:
 
 private:
 	/// @brief Whether a node uses a component that runs the actions its parameters name, with parameters that may
-	/// name an action that controls: for a built-in, computed ones (from the state, say) in the parameter that names
-	/// them, or any for the quick pick; for the document's own component, which wins over a built-in of its name, see
-	/// expandsToControl. Literal parameters are also scanned as the node's own members.
+	/// name an action that controls. A component's "runsActions" says which parameter names them (computed ones, from
+	/// the state, say, may control), or true when it runs actions it keeps (the quick pick's recent items); the
+	/// document's own component, which wins over the library's of its name, is also expanded (expandsToControl).
+	/// Literal parameters are also scanned as the node's own members.
 	/// @param node The node.
 	/// @return true if it does.
 	[[nodiscard]] bool runsControl(const json& node) const {
@@ -223,18 +191,15 @@ private:
 		const auto with = node.find("with");
 		const json& parameters = with != node.end() ? *with : json();
 		if(const json* own = component(used)) {
+			if(declaredToRunActions(*own, parameters, computes)) return true; // as it declares, and maybe more
 			if(depth_ == 0) expansions_ = maxExpansions; // each use outside a component has its own budget
 			++depth_;
 			const bool controls = expandsToControl(*own, parameters);
 			--depth_;
 			return controls;
 		}
-		for(const auto& [name, parameter] : runningBuiltIns) {
-			if(used != name) continue;
-			if(parameter.empty()) return true;
-			const auto value = parameters.is_object() ? parameters.find(parameter) : parameters.end();
-			return parameters.is_object() && value != parameters.end() && computes(*value);
-		}
+		if(const json* shipped = libraryComponent(used); shipped && shipped->contains("runsActions"))
+			return declaredToRunActions(*shipped, parameters, computes);
 		return computes(parameters);
 	}
 
@@ -318,15 +283,18 @@ void grow(const std::vector<std::string>& candidates, std::set<std::string>& mem
 	}
 }
 
-/// @brief The components that run the actions their parameters name: the built-in ones, and the document's own that
-/// hold a way to run a control step (a computed "run", say) or use such a component with computed parameters.
+/// @brief The components that run the actions their parameters name: those that declare "runsActions" (the
+/// library's and the document's), and the document's own that hold a way to run a control step (a computed "run",
+/// say) or use such a component with computed parameters.
 /// @param doc The document.
 /// @param control The document's actions that may run control steps.
 /// @return Their names.
 std::set<std::string> runningComponents(const json& doc, const std::set<std::string>& control) {
-	std::set<std::string> runners = runningBuiltInNames();
+	std::set<std::string> runners = actionRunningLibraryComponents();
 	const auto components = doc.find("components");
 	if(components == doc.end() || !components->is_object()) return runners;
+	for(const auto& [name, definition] : components->items()) // those that declare it, as the library's do
+		if(definition.is_object() && definition.contains("runsActions")) runners.insert(name);
 	static const json none;
 	const auto actions = doc.find("actions");
 	const ControlScan scan(actions != doc.end() ? *actions : none, control, runners, *components);
@@ -349,7 +317,7 @@ std::set<std::string> controlActions(const json& doc, const std::set<std::string
 	if(!doc.contains("actions") || !doc["actions"].is_object()) return control;
 	const json& actions = doc["actions"];
 	static const json none; // actions use no component
-	const ControlScan scan(actions, control, runningBuiltInNames(), none);
+	const ControlScan scan(actions, control, actionRunningLibraryComponents(), none);
 	std::vector<std::string> candidates = checker::keysOf(actions);
 	std::erase_if(candidates, [&](const std::string& name) { return granted.contains(name); });
 	grow(candidates, control, [&](const std::string& name, std::vector<std::string>& asked) {

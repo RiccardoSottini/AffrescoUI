@@ -138,14 +138,9 @@ target_include_directories(affrescoui_format PRIVATE src/languages)
 # controls: the form controls: toggle, slider, calendar, code input, carousel
 target_sources(affrescoui_format PRIVATE src/controls/ToggleType.cpp src/controls/SliderType.cpp
 	src/controls/CalendarType.cpp src/controls/CodeInputType.cpp src/controls/CarouselType.cpp)
-# components: the built-in components, made of other nodes
-target_sources(affrescoui_format PRIVATE src/components/BuiltInComponents.cpp src/components/BuiltInFormComponents.cpp
-	src/components/KitTokens.cpp src/components/KitBars.cpp
-	src/components/KitOverlays.cpp
-	src/components/KitControls.cpp
-	src/components/KitDock.cpp
-	src/components/KitPanels.cpp
-	src/components/BuiltInChatComponents.cpp)
+# components: the lookup of the components and tokens a document uses without defining them, in the installed
+# ComponentLibrary (core); the kits and themes themselves are modules/themes, which the format never links
+target_sources(affrescoui_format PRIVATE src/components/Library.cpp)
 # creative: the creative types (colour picker, gradient, curves, canvas, graph, timeline, path) and their values
 target_sources(affrescoui_format PRIVATE src/creative/ColorPickerType.cpp src/creative/GradientType.cpp
 	src/creative/CurvesType.cpp src/creative/CreativeValues.cpp src/creative/CanvasType.cpp src/creative/GraphType.cpp

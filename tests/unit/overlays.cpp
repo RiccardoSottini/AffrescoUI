@@ -1,6 +1,6 @@
 /// @file
-/// @brief Overlays and focus (src/Events.cpp, src/BuiltInComponents.cpp): the tab order, modal overlays that trap
-/// the focus, arrow keys and mnemonics, the dismiss step, and the built-in menu, dialog and toast components.
+/// @brief Overlays and focus (src/Events.cpp, modules/themes/components/core.json): the tab order, modal overlays that
+/// trap the focus, arrow keys and mnemonics, the dismiss step, and the built-in menu, dialog and toast components.
 
 #include "Checker.hpp"
 #include "Headless.hpp"
