@@ -2940,6 +2940,9 @@
 														"string",
 														"null"
 													]
+												},
+												"italic": {
+													"type": "boolean"
 												}
 											}
 										}
@@ -2950,7 +2953,7 @@
 								"$ref": "#/$defs/v2/dynamic"
 							}
 						],
-						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable, icon, iconColor }"
+						"description": "tabs: the tabs, in order: an id, or { id, label, marker, closable, icon, iconColor, italic }"
 					},
 					"activeTextColor": {
 						"$ref": "#/$defs/v2/color"

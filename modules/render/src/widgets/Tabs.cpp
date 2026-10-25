@@ -86,6 +86,8 @@ void Tabs::setActive(std::string id) {
 
 void Tabs::setFont(std::shared_ptr<const Font> font) { setProperty(font_, std::move(font)); }
 
+void Tabs::setItalicFont(std::shared_ptr<const Font> font) { setProperty(italicFont_, std::move(font)); }
+
 void Tabs::setColors(Color text, Color activeText, Color activeBackground, Color accent) {
 	setLook(text_, text);
 	setLook(activeText_, activeText);
@@ -111,7 +113,8 @@ void Tabs::arrange() {
 	for(std::size_t i = 0; i < tabs_.size(); ++i) {
 		Place& place = places_[i];
 		place.text = detail::fromUtf8(tabs_[i].label);
-		const float text = labels ? std::ceil(labels->measure(place.text)) : 0.0f;
+		const Font* face = tabs_[i].italic && italicFont_ ? italicFont_.get() : labels;
+		const float text = face ? std::ceil(face->measure(place.text)) : 0.0f;
 		place.icon = labels && !tabs_[i].icon.empty() ? labels->codepointNamed(tabs_[i].icon) : 0;
 		place.iconWidth = place.icon != 0
 		                      ? std::round(labels->measure(std::u32string_view(&place.icon, 1)) + labels->measure(U" "))
@@ -274,7 +277,8 @@ void Tabs::paintTab(Painter& painter, const Font& font, std::size_t index) const
 	if(place.icon != 0)
 		painter.drawText(font, std::u32string_view(&place.icon, 1), {left + padding, baseline},
 		                 tab.iconColor.value_or(label));
-	painter.drawText(font, place.text, {left + padding + place.iconWidth, baseline}, label);
+	painter.drawText(tab.italic && italicFont_ ? *italicFont_ : font, place.text,
+	                 {left + padding + place.iconWidth, baseline}, label);
 
 	// The close button when it can be used now, else the marker (kept on the active tab too, if asked)
 	const float buttonLeft = area.right - padding - closeSize, middle = f.top + f.height() / 2.0f;
