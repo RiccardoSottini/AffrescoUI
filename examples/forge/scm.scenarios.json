@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Forge's source control, checked headless: git's output is given as events (scmApplyStatus, scmApplyBranches, scmCompare), so no repository is needed; Stash runs git in the test folder, which is none. affrescoui_render_runner scm.scenarios.json",
+	"note": "Forge's source control, checked headless: git's output is given as events (scmApplyStatus, scmApplyBranches, scmApplyLog, scmApplyCommitFiles, scmCompare, scmCommitCompare), so no repository is needed; Stash runs git in the test folder, which is none. affrescoui_render_runner scm.scenarios.json",
 	"screen": "index.screen.json",
 	"scenarios": [
 		{
@@ -598,6 +598,38 @@
 						"is": "added"
 					}
 				}
+			]
+		},
+		{
+			"name": "forge-scm-history",
+			"note": "Commits lists git log's lines; picking one keeps the commit, its files (a rename with its old path) list under it, and a file opens before and after the commit in a diff tab",
+			"steps": [
+				{ "action": "showSourceControl" },
+				{ "action": "scmApplyStatus", "event": { "output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u0000# branch.upstream origin/main\u0000# branch.ab +0 -0\u0000" } },
+				{ "expect": { "node": "#scm-history-toggle", "property": "tooltip", "is": "Commits" } },
+				{ "action": "scmApplyLog", "event": { "output": "aaaaaaa\u001faaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\u001fA. Writer\u001f2 hours ago\u001fSay hello\nbbbbbbb\u001fbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\u001fA. Writer\u001f3 days ago\u001fFirst commit\nnot a commit line\n" } },
+				{ "expect": { "node": "#scm-history", "exists": true } },
+				{ "expect": { "state": "scm.log.length", "is": 2 } },
+				{ "expect": { "state": "scm.log[0].subject", "is": "Say hello" } },
+				{ "expect": { "state": "scm.log[1].when", "is": "3 days ago" } },
+				{ "action": "scmPickCommit", "event": { "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } },
+				{ "expect": { "state": "scm.commit.hash", "is": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } },
+				{ "action": "scmApplyCommitFiles", "event": { "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "output": "M\tstale.txt\n" } },
+				{ "expect": { "state": "scm.commit.files.length", "is": 0 } },
+				{ "action": "scmApplyCommitFiles", "event": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "output": "M\tsrc/main.cpp\nR087\told.txt\tnew.txt\n" } },
+				{ "expect": { "state": "scm.commit.files.length", "is": 2 } },
+				{ "expect": { "state": "scm.commit.files[1].status", "is": "R" } },
+				{ "expect": { "state": "scm.commit.files[1].from", "is": "old.txt" } },
+				{ "expect": { "node": "#scm-commit-files", "exists": true } },
+				{ "action": "scmCommitCompare", "event": { "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "path": "src/main.cpp", "original": "a\n", "modified": "a\nb\n" } },
+				{ "expect": { "state": "docs[0].id", "is": "commit:aaaaaaaaaaaa:src/main.cpp" } },
+				{ "expect": { "state": "docs[0].label", "is": "main.cpp (aaaaaaa)" } },
+				{ "expect": { "state": "docs[0].diff.added", "is": 1 } },
+				{ "action": "scmPickCommit", "event": { "value": "--output=x" } },
+				{ "expect": { "state": "scm.commit.hash", "is": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } },
+				{ "click": "#scm-history-close" },
+				{ "expect": { "state": "scm.showHistory", "is": false } },
+				{ "expect": { "node": "#scm-history", "exists": false } }
 			]
 		},
 		{
