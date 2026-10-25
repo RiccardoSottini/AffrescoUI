@@ -462,7 +462,7 @@
 								"activeBackground": "@color.tabActive",
 								"accentEdge": "bottom",
 								"accentColor": "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}",
-								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky}))}}",
+								"tabs": "{{map(g.tabs, merge(it, {label: it.preview ? it.label + ' (preview)' : it.label, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky, icon: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).icon, iconColor: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).color}))}}",
 								"onClose": {
 									"run": "closeTab",
 									"with": {
