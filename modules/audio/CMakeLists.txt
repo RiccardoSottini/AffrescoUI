@@ -2,7 +2,7 @@
 # generators (README.md here). Uses core (the Executor its events go to). Backend: miniaudio
 # (cmake/AffrescoUIAudio.cmake): its devices, decoders and data converter.
 affrescoui_module(audio
-	src/Engine.cpp src/Voice.cpp src/Sources.cpp src/Buffers.cpp src/Decoders.cpp src/Sound.cpp
+	src/Engine.cpp src/Voice.cpp src/Sources.cpp src/Buffers.cpp src/Decoders.cpp src/Sound.cpp src/Spectrum.cpp
 	src/Miniaudio.c)
 # -fwrapv: its decoders' arithmetic on untrusted samples may overflow a signed integer (MS-ADPCM does, found by
 # tests/fuzz/audio.cpp); wrapping makes that defined, as MSVC's code already does

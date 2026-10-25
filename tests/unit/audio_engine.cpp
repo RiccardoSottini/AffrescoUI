@@ -6,13 +6,16 @@
 #include "Helpers.hpp"
 
 #include <affresco/audio/Engine.hpp>
+#include <affresco/audio/Spectrum.hpp>
 
 #include <doctest/doctest.h>
 
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <cmath>
 #include <limits>
+#include <numbers>
 #include <thread>
 #include <vector>
 
@@ -459,4 +462,38 @@ TEST_CASE("audio: encodings are guessed from names") {
 	CHECK(encodingOf("a.wav") == Encoding::Wav);
 	CHECK(encodingOf("a.ogg") == Encoding::Unknown);
 	CHECK(encodingOf("noextension") == Encoding::Unknown);
+}
+
+TEST_CASE("audio: a spectrum puts a sine in the band of its pitch, as loud as the sine, and silence at 0") {
+	std::vector<float> sine(spectrumSamples);
+	for(std::size_t i = 0; i < sine.size(); ++i) // 1 kHz at 48 kHz, half of full scale (-6 dB)
+		sine[i] = 0.5F * static_cast<float>(std::sin(2 * std::numbers::pi * 1000.0 * static_cast<double>(i) / 48000));
+	const std::vector<float> bands = spectrum(sine, 48000, 16);
+	REQUIRE(bands.size() == 16);
+	const auto loudest = std::ranges::max_element(bands) - bands.begin();
+	CHECK(loudest == 8); // 40 Hz to 16 kHz in 16 bands: 1 kHz is in the ninth
+	CHECK(bands[8] == doctest::Approx(0.9).epsilon(0.05));
+	CHECK(bands[0] < 0.2F);
+	CHECK(bands[15] < 0.2F);
+
+	CHECK(spectrum(std::vector<float>(spectrumSamples, 0.0F), 48000, 8) == std::vector<float>(8, 0.0F));
+	CHECK(spectrum({}, 48000, 0).size() == 1); // at least one band, at most maxSpectrumBands
+	CHECK(spectrum(sine, 48000, 1000).size() == maxSpectrumBands);
+	CHECK(spectrum(sine, 60, 4) == std::vector<float>(4, 0.0F)); // nothing from 40 Hz up fits under 30 Hz
+	std::vector<float> broken = sine;
+	broken[3] = std::numeric_limits<float>::quiet_NaN();
+	for(const float band : spectrum(broken, 48000, 16)) CHECK((band >= 0 && band <= 1));
+}
+
+TEST_CASE("audio: a voice's spectrum is of what it last played, and all 0 unless it plays") {
+	Engine engine(manual(nullptr, 2));
+	std::string error;
+	const auto voice = engine.play(Source::tone(1000, 10, 0.5F), {}, error);
+	REQUIRE(voice);
+	static_cast<void>(pull(engine, 2048));
+	const std::vector<float> playing = voice->spectrum(16);
+	CHECK(std::ranges::max_element(playing) - playing.begin() == 8);
+	CHECK(playing[8] > 0.7F);
+	voice->pause();
+	CHECK(voice->spectrum(16) == std::vector<float>(16, 0.0F));
 }
