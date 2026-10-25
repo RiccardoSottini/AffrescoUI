@@ -13,10 +13,28 @@
 	},
 	"actions": {
 		"pick": [
-			{ "if": "{{event.type != 'pick' || state.modal != null}}", "then": [{ "stop": true }] },
-			{ "if": "{{event.button == 'right' && event.shift}}", "then": [{ "set": "state.cursor", "to": "{{event.point}}" }, { "stop": true }] },
+			{ "if": "{{state.modal != null}}", "then": [{ "stop": true }] },
+			{ "if": "{{event.type == 'boxSelect'}}", "then": [
+				{ "set": "state.view.selection", "to": "{{concat(event.shift ? filter(state.view.selection, !contains(event.ids, it)) : [], filter(event.ids, contains(computed.pickable, it)))}}" },
+				{ "if": "{{!contains(state.view.selection, state.active)}}",
+				  "then": [{ "set": "state.active", "to": "{{length(state.view.selection) > 0 ? state.view.selection[length(state.view.selection) - 1] : null}}" }] },
+				{ "stop": true }
+			] },
+			{ "if": "{{event.type != 'pick'}}", "then": [{ "stop": true }] },
+			{ "if": "{{event.button == 'right' && event.shift}}", "then": [{ "set": "state.cursor", "to": "{{map(event.point, round(it * 10000) / 10000)}}" }, { "stop": true }] },
 			{ "if": "{{event.button == 'right'}}", "then": [{ "run": "openPopup", "with": { "args": { "menu": "objectContext", "x": "{{nodes.viewport.x + event.x}}", "y": "{{nodes.viewport.y + event.y}}" } } }, { "stop": true }] },
-			{ "if": "{{event.id != null}}", "then": [{ "set": "state.active", "to": "{{event.id}}" }] }
+			{ "if": "{{state.tool == 'cursor'}}", "then": [{ "set": "state.cursor", "to": "{{map(event.point, round(it * 10000) / 10000)}}" }, { "stop": true }] },
+			{ "if": "{{state.tool == 'measure'}}", "then": [{ "run": "measurePoint", "with": { "args": { "point": "{{event.point}}", "x": "{{event.x}}", "y": "{{event.y}}" } } }, { "stop": true }] },
+			{ "if": "{{state.tool == 'add'}}", "then": [{ "run": "addObject", "with": { "args": { "kind": "mesh", "mesh": "cube", "name": "Cube", "light": null, "at": "{{map(event.point, round(it * 10000) / 10000)}}" } } }, { "stop": true }] },
+			{ "if": "{{event.id == null || !contains(computed.pickable, event.id)}}",
+			  "then": [{ "if": "{{!event.shift}}", "then": [{ "set": "state.view.selection", "to": [] }] }, { "stop": true }] },
+			{ "run": "selectNode", "with": { "args": { "id": "{{event.id}}", "shift": "{{event.shift}}" } } }
+		],
+		"measurePoint": [
+			{ "if": "{{length(state.measure.points) >= 2 || !equals(state.measure.camera, state.view.camera)}}",
+			  "then": [{ "set": "state.measure", "to": { "points": [], "screen": [], "camera": "{{state.view.camera}}" } }] },
+			{ "push": "state.measure.points", "value": "{{map(args.point, round(it * 10000) / 10000)}}" },
+			{ "push": "state.measure.screen", "value": "{{[args.x, args.y]}}" }
 		],
 		"transformed": [
 			{ "if": "{{event.phase == 'preview'}}", "then": [{ "set": "state.modalText", "to": "{{event.text}}" }, { "stop": true }] },
@@ -108,11 +126,11 @@
 				"id": "{{lower(args.kind)}}-{{state.added}}", "name": "{{state.tmp.name}}", "kind": "{{args.kind}}",
 				"mesh": "{{args.mesh ?? null}}", "material": "{{args.kind == 'mesh' ? 'material' : null}}",
 				"light": "{{args.light ?? null}}", "camera": "{{args.kind == 'camera' ? { fieldOfView: 0.69 } : null}}",
-				"translation": "{{state.cursor}}", "rotationDegrees": [0, 0, 0], "scale": [1, 1, 1] } },
+				"translation": "{{args.at ?? state.cursor}}", "rotationDegrees": [0, 0, 0], "scale": [1, 1, 1] } },
 			{ "set": "state.view.selection", "to": "{{[lower(args.kind) + '-' + state.added]}}" },
 			{ "set": "state.active", "to": "{{lower(args.kind) + '-' + state.added}}" },
 			{ "set": "state.last", "to": "Add {{args.name}}" },
-			{ "set": "state.lastOp", "to": "{{ { title: 'Add ' + args.name, kind: 'translate', label: 'Location', base: [merge(state.scene.nodes[length(state.scene.nodes) - 1], { translation: [0, 0, 0] })], values: state.cursor } }}" }
+			{ "set": "state.lastOp", "to": "{{ { title: 'Add ' + args.name, kind: 'translate', label: 'Location', base: [merge(state.scene.nodes[length(state.scene.nodes) - 1], { translation: [0, 0, 0] })], values: args.at ?? state.cursor } }}" }
 		],
 		"deleteSelected": {
 			"title": "Delete", "category": "Object", "icon": "trash-2", "enablement": "{{length(state.view.selection) > 0}}",
@@ -159,9 +177,9 @@
 				{ "set": "state.scene.nodes", "to": "{{map(state.scene.nodes, merge(it, { visible: true }))}}" }
 			]
 		},
-		"selectAll": { "title": "Select All", "category": "Select", "do": [{ "set": "state.view.selection", "to": "{{map(filter(state.scene.nodes, it.visible != false), it.id)}}" }] },
+		"selectAll": { "title": "Select All", "category": "Select", "do": [{ "set": "state.view.selection", "to": "{{computed.pickable}}" }] },
 		"selectNone": { "title": "Select None", "category": "Select", "do": [{ "set": "state.view.selection", "to": [] }] },
-		"selectInvert": { "title": "Invert Selection", "category": "Select", "do": [{ "set": "state.view.selection", "to": "{{map(filter(state.scene.nodes, it.visible != false && !contains(state.view.selection, it.id)), it.id)}}" }] },
+		"selectInvert": { "title": "Invert Selection", "category": "Select", "do": [{ "set": "state.view.selection", "to": "{{filter(computed.pickable, !contains(state.view.selection, it))}}" }] },
 		"selectNode": [
 			{ "if": "{{!args.shift}}", "then": [{ "set": "state.view.selection", "to": "{{[args.id]}}" }, { "set": "state.active", "to": "{{args.id}}" }, { "stop": true }] },
 			{ "if": "{{contains(state.view.selection, args.id) && state.active == args.id}}",
@@ -185,10 +203,21 @@
 			{ "set": "state.scene.nodes[computed.activeIndex].name", "to": "{{trim(args.name)}}" }
 		],
 		"setMode": { "title": "Set Mode", "category": "Object", "do": [{ "dismiss": true }, { "set": "state.mode", "to": "{{args.mode}}" }] },
-		"toggleEditMode": { "title": "Toggle Edit Mode", "category": "Object", "do": [{ "set": "state.mode", "to": "{{state.mode == 'edit' ? 'object' : 'edit'}}" }] },
 		"setOption": [{ "dismiss": true }, { "set": "state[args.key]", "to": "{{args.value}}" }],
 		"toggleOption": [{ "toggle": "state[args.key]" }],
-		"setTool": [{ "set": "state.tool", "to": "{{args.tool}}" }],
+		"toggleOverlay": [{ "toggle": "state.overlay[args.key]" }],
+		"toggleKind": [
+			{ "set": "state[args.list]", "to": "{{contains(state[args.list], args.kind) ? filter(state[args.list], it != args.kind) : concat(state[args.list], [args.kind])}}" },
+			{ "set": "state.view.selection", "to": "{{filter(state.view.selection, contains(computed.pickable, it))}}" }
+		],
+		"setObjectGizmo": [{ "set": "state.objectGizmo", "to": "{{state.objectGizmo == args.mode ? null : args.mode}}" }],
+		"toggleXray": { "title": "Toggle X-Ray", "category": "View", "icon": "square-dashed-bottom", "do": [{ "toggle": "state.xray" }] },
+		"toggleSnap": { "title": "Toggle Snapping", "category": "Object", "icon": "magnet", "do": [{ "toggle": "state.snap" }] },
+		"toggleOverlays": { "title": "Toggle Overlays", "category": "View", "do": [{ "toggle": "state.overlays" }] },
+		"setTool": [
+			{ "set": "state.tool", "to": "{{args.tool}}" },
+			{ "set": "state.measure", "to": { "points": [], "screen": [], "camera": null } }
+		],
 		"toggleSidebar": { "title": "Sidebar", "category": "View", "do": [{ "toggle": "state.sidebar" }] },
 		"toggleToolbar": { "title": "Toolbar", "category": "View", "do": [{ "set": "state.toolbar", "to": "{{state.toolbar == false}}" }] },
 		"toggleTheme": { "title": "Toggle Light and Dark Theme", "category": "Window", "icon": "sun-moon", "do": [{ "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }] },
@@ -334,7 +363,9 @@
 		"f3": { "do": "search" },
 		"f9": { "when": "{{state.lastOp != null}}", "do": "adjustLastPanel" },
 		"t": { "do": "toggleToolbar" },
-		"tab": { "when": "{{!context.textInputFocus}}", "do": "toggleEditMode" },
+		"alt+z": { "do": "toggleXray" },
+		"shift+alt+z": { "do": "toggleOverlays" },
+		"shift+tab": { "when": "{{!context.textInputFocus}}", "do": "toggleSnap" },
 		"i": { "do": "insertKeyframe" },
 		"space": { "when": "{{!context.textInputFocus}}", "do": "play" },
 		"shift+left": { "do": "jumpStart" },

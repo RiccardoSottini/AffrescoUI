@@ -95,10 +95,20 @@
 		"pivot": "median",
 		"orientation": "global",
 		"snap": false,
-		"proportional": false,
+		"snapStep": "unit",
 		"shading": "solid",
+		"sceneLights": false,
+		"sceneWorld": false,
+		"world": { "color": "#3a3f47" },
 		"overlays": true,
+		"overlay": { "grid": true, "axes": true, "cursor": true, "text": true, "stats": false, "extras": true },
 		"gizmos": true,
+		"navGizmo": true,
+		"toolGizmos": true,
+		"objectGizmo": null,
+		"hiddenKinds": [],
+		"unselectableKinds": [],
+		"measure": { "points": [], "screen": [], "camera": null },
 		"xray": false,
 		"modal": null,
 		"modalText": "",
@@ -128,7 +138,7 @@
 	"computed": {
 		"activeNode": "{{find(state.scene.nodes, it.id == state.active)}}",
 		"selectedNodes": "{{filter(state.scene.nodes, contains(state.view.selection, it.id))}}",
-		"gizmo": "{{merge({ visible: state.gizmos && contains(['move', 'rotate', 'scale'], state.tool), mode: state.tool == 'rotate' ? 'rotate' : state.tool == 'scale' ? 'scale' : 'translate', space: state.orientation == 'local' ? 'local' : 'world', snap: state.snap ? { translate: 1, rotate: 5, scale: 0.1 } : {} }, state.pivot == 'cursor' ? { pivot: state.cursor } : state.pivot == 'active' && computed.activeNode ? { pivot: computed.activeNode.translation } : {})}}"
+		"gizmo": "{{merge({ visible: state.gizmos && (contains(['move', 'rotate', 'scale'], state.tool) && state.toolGizmos != false || state.tool == 'select' && state.objectGizmo != null), mode: state.tool == 'rotate' ? 'rotate' : state.tool == 'scale' ? 'scale' : state.tool == 'select' && state.objectGizmo != null ? state.objectGizmo : 'translate', space: state.orientation == 'local' || state.orientation == 'normal' ? 'local' : 'world', snap: state.snap ? computed.snapSteps : {} }, state.pivot == 'cursor' ? { pivot: state.cursor } : state.pivot == 'active' && computed.activeNode ? { pivot: computed.activeNode.translation } : state.pivot == 'bounds' && computed.boundsCentre != null ? { pivot: computed.boundsCentre } : {})}}"
 	},
 	"onLoad": { "set": "state.startScene", "to": "{{state.scene}}" },
 	"root": {
