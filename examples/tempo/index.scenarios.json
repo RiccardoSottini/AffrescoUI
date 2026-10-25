@@ -340,7 +340,7 @@
 			]
 		},
 		{
-			"name": "keyboard-only",
+			"name": "menu-by-keyboard",
 			"note": "The menu is a tab list: arrows move along it, Enter opens a page, Tab reaches the player",
 			"steps": [
 				{ "key": "tab" },
