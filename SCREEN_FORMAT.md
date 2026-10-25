@@ -1392,6 +1392,19 @@ The operations, and the keys of `with` each reads:
 | `previewFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Previews a filter on the active layer until it is applied or cancelled. |
 | `applyFilter` | `kind`, `radius`, `amount`, `threshold`, `angle`, `distance`, `monochrome`, `seed`, `name`, `mask` | Applies the filter previewed, or the one given, as one step. |
 | `cancelFilter` | — | Drops the filter's preview. |
+| `canvasSize` | `width`, `height`, `anchor` | Makes the canvas larger or smaller around the image, and forgets the history. |
+| `imageSize` | `width`, `height` | Resamples the image to a size, and forgets the history. |
+| `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
+| `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
+| `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
+| `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
+| `mergeVisible` | — | Merges the visible layers into one. |
+| `flatten` | `background` | Merges every visible layer into one and discards the hidden ones. |
+| `deleteHidden` | — | Deletes the hidden layers. |
+| `copy` | `merged` | Keeps the selection's pixels of the active layer, or of every layer, for paste. |
+| `cut` | — | Copies the selection's pixels of the active layer and clears them. |
+| `paste` | `name` | Adds what was copied as a new layer above the active one. |
+| `clear` | — | Clears the selection's pixels of the active layer. |
 | `snapshot` | — | Changes nothing; publishes the image's snapshot. |
 | `fit` | — | Zooms and centres the view on the whole image. |
 | `zoom` | `by`, `to`, `x`, `y` | Multiplies or sets the zoom, and centres the view on a point. |
@@ -1431,7 +1444,8 @@ id), `layers` (each with `id`, `name`, `label`, `depth`, `kind`, `visible`, `opa
 `lockPosition`, `lockAll`, `clipped`, `mask`, `adjustment` and `thumbnail`, an image name such as
 `"board/layer/3"` that an `image` node shows), `history` (`id`, `label`), `position`, `dropped`, `canUndo`,
 `canRedo`, `memory`, `selection`, `bounds`, `foreground`, `background`, `tool`, `gesture`, `options`, `view`
-(`zoom`, `x`, `y`), `message` and `previewing`; `"<image>/navigator"` is a thumbnail of the whole image.
+(`zoom`, `x`, `y`), `message`, `previewing` and `clipboard` (whether copy or cut has kept pixels to paste);
+`"<image>/navigator"` is a thumbnail of the whole image.
 
 ### An image example
 

@@ -727,6 +727,16 @@ def images_seeds():
         for phase, x in [("press", 4), ("move", 30), ("release", 60)]]
     seeds.append(compact({"images": board, "steps": pointer + [{"image": "undo"}, {"image": "redo"}]}))
     seeds.append(compact({"images": board, "steps": [{"image": name, "with": {}} for name in operations]}))
+    box = [{"image": "select", "with": {"kind": "rectangle", "from": {"x": 4, "y": 4}, "to": {"x": 30, "y": 20}}}]
+    geometry = [{"image": "addLayer", "with": {"name": "Ink"}}, *box, {"image": "fillSelection", "with": {"color": "#204080"}},
+                {"image": "copy", "with": {"merged": True}}, {"image": "cut"}, {"image": "paste"},
+                {"image": "transformLayer", "with": {"x": 7, "scaleX": -150, "scaleY": 80, "angle": 33}},
+                {"image": "rotateCanvas", "with": {"angle": 90}}, {"image": "flipCanvas", "with": {"direction": "vertical"}},
+                {"image": "canvasSize", "with": {"width": 80, "height": 40, "anchor": "bottom-right"}},
+                {"image": "imageSize", "with": {"width": 20}}, {"image": "mergeDown"}, {"image": "mergeVisible"},
+                {"image": "deleteHidden"}, {"image": "flatten", "with": {"background": "#ffffff"}}, {"image": "clear"},
+                {"image": "undo"}, {"image": "redo"}]
+    seeds.append(compact({"images": board, "steps": geometry}))
     return seeds
 
 
