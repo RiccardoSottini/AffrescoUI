@@ -490,6 +490,16 @@
 			"title": "Render Image", "category": "Render", "icon": "image", "enablement": "{{computed.cameraNode != null}}",
 			"do": [{ "dismiss": true }, { "if": "{{computed.cameraNode != null && state.modal == null}}", "then": [{ "set": "state.rendering", "to": true }] }]
 		},
+		"nextWorkspace": {
+			"title": "Next Workspace", "category": "Window", "icon": "arrow-right",
+			"do": [{ "set": "state.tmp", "to": "{{filter(computed.workspaces, it.needs == null)}}" },
+			       { "run": "setWorkspace", "with": { "args": "{{state.tmp[(indexOf(map(state.tmp, it.title), state.workspace) + 1) % length(state.tmp)]}}" } }]
+		},
+		"previousWorkspace": {
+			"title": "Previous Workspace", "category": "Window", "icon": "arrow-left",
+			"do": [{ "set": "state.tmp", "to": "{{filter(computed.workspaces, it.needs == null)}}" },
+			       { "run": "setWorkspace", "with": { "args": "{{state.tmp[(indexOf(map(state.tmp, it.title), state.workspace) + length(state.tmp) - 1) % length(state.tmp)]}}" } }]
+		},
 		"saveRender": {
 			"title": "Save Render As…", "category": "Render", "icon": "save", "enablement": "{{state.rendering}}",
 			"do": [
@@ -622,7 +632,9 @@
 		"shift+right": { "do": "jumpEnd" },
 		"mod+n": { "do": "newScene" },
 		"mod+s": { "do": "saveScene" },
-		"mod+o": { "do": "openScene" }
+		"mod+o": { "do": "openScene" },
+		"mod+pagedown": { "do": "nextWorkspace" },
+		"mod+pageup": { "do": "previousWorkspace" }
 	},
 	"menus": {
 		"file": {
@@ -643,6 +655,8 @@
 			"camera": { "run": "viewCamera", "title": "View Camera", "group": "2_view" }
 		},
 		"window": {
+			"next": { "run": "nextWorkspace", "group": "0_workspace", "order": 1 },
+			"previous": { "run": "previousWorkspace", "group": "0_workspace", "order": 2 },
 			"theme": { "run": "toggleTheme", "group": "1_theme" },
 			"sidebar": { "run": "toggleSidebar", "group": "2_regions", "order": 1 },
 			"toolbar": { "run": "toggleToolbar", "group": "2_regions", "order": 2 },

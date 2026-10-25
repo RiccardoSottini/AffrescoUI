@@ -717,6 +717,26 @@
 				{ "key": "mod+z" },
 				{ "expect": { "state": "scene.nodes[1].material", "is": "material" } }
 			]
+		},
+		{
+			"name": "modello-window-keys",
+			"note": "Ctrl+Page Down and Ctrl+Page Up (and the Window menu) step through the workspaces Modello has, skipping the unbuilt ones and wrapping around",
+			"steps": [
+				{ "key": "mod+pagedown" },
+				{ "expect": { "state": "workspace", "is": "Model" } },
+				{ "key": "mod+pagedown" },
+				{ "expect": { "state": "workspace", "is": "Materials" } },
+				{ "expect": { "state": "areas.b", "is": "shader" } },
+				{ "key": "mod+pageup" },
+				{ "key": "mod+pageup" },
+				{ "expect": { "state": "workspace", "is": "Layout" } },
+				{ "key": "mod+pageup" },
+				{ "expect": { "state": "workspace", "is": "Render" } },
+				{ "click": [230, 14] },
+				{ "wait": 30 },
+				{ "click": { "role": "menuitem", "name": "Next Workspace" } },
+				{ "expect": { "state": "workspace", "is": "Layout" } }
+			]
 		}
 	]
 }
