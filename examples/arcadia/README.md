@@ -7,6 +7,7 @@ single screen document, with no C++: the stock host runs it.
 ```sh
 ./build/affrescoui_launcher examples/arcadia/index.screen.json
 ./build/affrescoui test examples/arcadia/index.scenarios.json --out out/shots
+./build/affrescoui test examples/arcadia/controls.scenarios.json --out out/controls
 python3 examples/arcadia/e2e_test.py build
 ```
 
@@ -31,6 +32,17 @@ python3 examples/arcadia/e2e_test.py build
   grid takes the extra width.
 - **Scenarios**: 33 in `index.scenarios.json`, covering each of the above, both themes, the three languages,
   keyboard-only use and the bugs found while walking the app across sizes, themes and languages.
+
+- **The client's own controls** (`parts/client.json`, `parts/hub.json`): every menu item, bar button and link does
+  something, and `controls.scenarios.json` proves each one. A Settings window (`mod+,`) with Interface, Downloads
+  (a bandwidth limit, downloading while playing, clearing the cache), Storage (usage by game, uninstall) and Account
+  pages; product keys and gift codes (the demo ones are in `state.productKeys` and `state.giftCodes`); a game added
+  from this computer; backup and restore through the file dialogs; offline mode; signing out and in; a couch mode in
+  full screen, driven by the arrow keys; a game's player hub with discussions and guides; notes on a game; filters and
+  collapsing collections in the library; votes on reviews. The store bar's Rewards and Experiments are disabled with
+  a tooltip, as is Exit (a document can't close the window it runs in).
+- **The look**: aubergine and charcoal with an amber accent, a centred segmented navigation, flat pill bars, rounded
+  cover tiles and a round mint play button, all through tokens.
 
 ### Gamepad
 
