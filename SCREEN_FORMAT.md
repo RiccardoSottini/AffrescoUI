@@ -739,6 +739,8 @@ to load is left out and named in the log.
 | `gridColor` | The grid's lines. |
 | `outlineColor` | The selection's outline (default orange). |
 | `exposure` | The light's multiplier, before tone mapping (default 1). |
+| `xray` | How see-through the surfaces are, so that what is behind them shows (an X-ray): 0 (the default) opaque, up to 1 (kept at 0.95, so they still show). |
+| `lighting` | `"scene"` (the default: the scene's lights, a soft studio light if it has none) or `"studio"` (the studio light only, the scene's lights left out: a material preview). |
 | `gizmo` | A gizmo on the selection (none without it): `{ "visible", "mode": "translate" | "rotate" | "scale", "space": "world" | "local", "pixels" (its size), "pivot": [x, y, z] (where it turns and scales about, if not the selection's centre), "snap": { "translate", "rotate" (degrees), "scale" } }`. Dragging a handle runs `onTransform`. |
 | `controls` | The pointer's gestures: `{ "orbit": "middle", "pan": "shift+middle", "select": "left", "zoom": true, "selects": true, "minimumDistance", "maximumDistance" }` (these are the defaults); a binding is `"left"`, `"middle"` or `"right"` after any of `"shift+"`, `"control+"` and `"alt+"`, or `"none"`. A click picks, a drag on nothing draws a box; `selects` false leaves the selection to the handlers. |
 | `onSelect` | A click (`event.type` `"pick"`: `id`, or null on nothing, `button`, `shift`, `x`, `y`, the world `point`) or a box (`"boxSelect"`: `ids`, `shift`, `box`), with the `selection` after it. |

@@ -3844,6 +3844,31 @@
 							}
 						]
 					},
+					"xray": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 1
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"lighting": {
+						"anyOf": [
+							{
+								"enum": [
+									"scene",
+									"studio"
+								]
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"gizmo": {
 						"anyOf": [
 							{

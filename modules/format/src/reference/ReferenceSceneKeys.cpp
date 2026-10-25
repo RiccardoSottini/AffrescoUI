@@ -74,6 +74,14 @@ constexpr auto sceneTable = std::to_array<KeyReference>({
     {"exposure",
 	 R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 64}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "The light's multiplier, before tone mapping (default 1).", "scene"},
+    {"xray", R"json({"anyOf": [{"type": "number", "minimum": 0, "maximum": 1}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "How see-through the surfaces are, so that what is behind them shows (an X-ray): 0 (the default) opaque, up to "
+	 "1 (kept at 0.95, so they still show).",
+	 "scene"},
+    {"lighting", R"json({"anyOf": [{"enum": ["scene", "studio"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 "`\"scene\"` (the default: the scene's lights, a soft studio light if it has none) or `\"studio\"` (the studio "
+	 "light only, the scene's lights left out: a material preview).",
+	 "scene"},
     {"gizmo", R"json({"anyOf": [{"type": "object", "properties": {"visible": {"type": "boolean"},
 		"mode": {"enum": ["translate", "rotate", "scale"]}, "space": {"enum": ["world", "local"]},
 		"pixels": {"type": "number", "minimum": 10, "maximum": 400},

@@ -34,12 +34,13 @@ struct SceneLight {
 	Vec3 direction; ///< Where it points (directional and spot).
 };
 
-/// @brief The scene's visible lights, at most maxLights; a soft directional light if it has none.
+/// @brief The scene's visible lights, at most maxLights; a soft directional light if it has none or the view asks
+/// for a studio light (ViewportSettings::studio).
 /// @param view The frame. @return The lights.
 std::vector<SceneLight> lightsOf(const FrameView& view) {
 	std::vector<SceneLight> lights;
 	for(const Node& node : view.scene.nodes) {
-		if(!node.light || lights.size() == maxLights) continue;
+		if(!node.light || lights.size() == maxLights || view.settings.studio) continue;
 		const auto world = view.worlds.find(node.id);
 		if(world == view.worlds.end() || !world->second.second) continue;
 		const auto [position, direction] = placement(world->second.first);
@@ -339,6 +340,7 @@ void SceneRenderer::setShared(const FrameView& view, const GlProgram& program, c
 	setMatrix(program.uniform("viewProjection"), view.viewProjection);
 	glUniform3f(program.uniform("eye"), view.eye.x, view.eye.y, view.eye.z);
 	glUniform1f(program.uniform("exposure"), view.settings.exposure);
+	glUniform1f(program.uniform("opacity"), 1.0f - view.settings.xray);
 	glUniform1i(program.uniform("solid"), view.settings.shading == Shading::Solid ? 1 : 0);
 	glUniform1i(program.uniform("baseColorMap"), 1);
 	glUniform1i(program.uniform("metallicRoughnessMap"), 2);
@@ -394,7 +396,7 @@ void SceneRenderer::drawSurfaces(const FrameView& view, const ShadowMap& shadow)
 			setShared(view, program, shadow);
 			current = &program;
 		}
-		if(item.blended) {
+		if(item.blended || view.settings.xray > 0.0f) { // see-through: what is behind shows, nothing hides it
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 			glDepthMask(GL_FALSE);

@@ -148,6 +148,12 @@ json readDisplay(const json& values, const PropertyReader& reader, const std::st
 	color("gridColor", "gridColor");
 	color("outlineColor", "outline");
 	if(values.contains("exposure")) display["exposure"] = within(values["exposure"], path + ".exposure", 0.0f, 64.0f);
+	if(values.contains("xray")) display["xray"] = within(values["xray"], path + ".xray", 0.0f, 1.0f);
+	if(values.contains("lighting")) {
+		const std::string lighting = string(values["lighting"], path + ".lighting");
+		if(lighting != "scene" && lighting != "studio") fail(path + ".lighting", R"(expected "scene" or "studio")");
+		display["lighting"] = lighting;
+	}
 	if(values.contains("gizmo")) display["gizmo"] = readGizmo(values["gizmo"], path + ".gizmo"); // else none
 	if(values.contains("up")) {
 		const std::string up = string(values["up"], path + ".up");
@@ -328,7 +334,8 @@ void registerSceneType(TypeRegistry& registry) {
 	                   {"gridColor", ValueKind::Color},      {"outlineColor", ValueKind::Color},
 	                   {"exposure", ValueKind::Number},      {"gizmo", ValueKind::Any},
 	                   {"controls", ValueKind::Any},         {"up", ValueKind::Text},
-	                   {"cursor3d", ValueKind::Any},         {"glyphs", ValueKind::Boolean}};
+	                   {"cursor3d", ValueKind::Any},         {"glyphs", ValueKind::Boolean},
+	                   {"xray", ValueKind::Number},          {"lighting", ValueKind::Text}};
 	set->apply = applyScene;
 	set->everyUpdate = false; // a scene of thousands of nodes: read again only when the values change
 	set->keepsClicks = true;
