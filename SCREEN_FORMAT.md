@@ -527,7 +527,8 @@ Rows of items, one or more of them selected, drawn only where they are in view: 
 and selects as fast as one of ten. The items come from the node (`items`, usually bound to state) and the selection
 goes back to it (`value`, `bind`, `onChange`). A click selects a row, Shift a range, Cmd or Ctrl one more; the arrow
 keys, Page Up and Page Down, Home and End move the selection, and typing a row's first letters finds it. Enter or a
-double click runs `onOpen`. A `tree` nests its items' `children` with indent guides: a click on the chevron, or Right
+double click runs `onOpen`. A right click on a row not selected selects it first, so the node's `onContextMenu` acts on
+the row under the pointer (or on all the selected rows, when it is one of them). A `tree` nests its items' `children` with indent guides: a click on the chevron, or Right
 and Left, open and close a node (`onExpand`), and Left goes to the parent. With `"drag": {}` on the node, rows drag
 (`event.data` is `{ "id", "ids" }`: the row, and every selected one if it is selected) and drop onto any `list` or
 `tree`, whose `onDrop` gets the row and the place (a line between rows, or an outline around a tree's node). With
