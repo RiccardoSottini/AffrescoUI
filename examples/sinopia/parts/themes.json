@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Sinopia's design data: the themes (twelve colour slots, four variants, a background and decorations drawn under every slide), the slide layouts and their placeholders on a 960 by 540 page (points: 13.33 by 7.5 inches), and the colour picker's standard colours. A deck names its theme and variant; its objects name colours by slot (accent1, dark1, accent1.2 for a tint) or by value.",
+	"note": "Sinopia's design data: the themes (twelve colour slots, four variants, a background and decorations drawn under every slide, and where a title slide's text goes beside them), the slide layouts and their placeholders on a 960 by 540 page (points: 13.33 by 7.5 inches), and the colour picker's standard colours. A deck names its theme and variant; its objects name colours by slot (accent1, dark1, accent1.2 for a tint) or by value.",
 
 	"computed": {
 		"themes": [
@@ -17,7 +17,8 @@
 			  "variants": [{}, { "accent1": "#3b6ea5", "accent2": "#4f9dde" }, { "accent1": "#7a5195", "accent2": "#bc5090" }, { "dark1": "#e3f1f4", "light1": "#0b2a35", "light2": "#14415a", "dark2": "#e3f1f4" }],
 			  "decor": [{ "id": "band", "kind": "shape", "shape": "rect", "x": 0, "y": 0, "w": 14, "h": 540, "fill": "accent1" }],
 			  "titleDecor": [{ "id": "band", "kind": "shape", "shape": "rect", "x": 0, "y": 0, "w": 300, "h": 540, "fill": "accent1" },
-			                 { "id": "edge", "kind": "shape", "shape": "rect", "x": 300, "y": 0, "w": 10, "h": 540, "fill": "accent2" }] },
+			                 { "id": "edge", "kind": "shape", "shape": "rect", "x": 300, "y": 0, "w": 10, "h": 540, "fill": "accent2" }],
+			  "titleArea": { "x": 350, "w": 570 } },
 			{ "id": "ember", "name": "Ember", "background": "dark2",
 			  "colors": { "dark1": "#ffffff", "light1": "#2b1d17", "dark2": "#2b1d17", "light2": "#f6e8dc", "accent1": "#f28c28", "accent2": "#e0482b", "accent3": "#f6c445", "accent4": "#b5651d", "accent5": "#d9a679", "accent6": "#8f3b1b" },
 			  "variants": [{}, { "accent1": "#e0482b", "accent2": "#f28c28" }, { "accent1": "#f6c445", "accent2": "#b5651d" }, { "dark2": "#3a2a22" }],
@@ -54,7 +55,7 @@
 			  "titleDecor": [{ "id": "frame", "kind": "shape", "shape": "frame", "x": 40, "y": 40, "w": 880, "h": 460, "fill": "accent1" }] }
 		],
 
-		"layouts": [
+		"baseLayouts": [
 			{ "id": "title", "name": "Title Slide", "ph": [
 				{ "ph": "ctrTitle", "x": 120, "y": 88, "w": 720, "h": 188, "size": 60, "anchor": "bottom", "align": "center" },
 				{ "ph": "subTitle", "x": 120, "y": 284, "w": 720, "h": 130, "size": 24, "anchor": "top", "align": "center" }] },
@@ -101,9 +102,12 @@
 		},
 
 		"theme": "{{find(computed.themes, it.id == state.deck.theme) ?? computed.themes[0]}}",
-		"colors": "{{merge(computed.theme.colors, computed.theme.variants[state.deck.variant ?? 0] ?? {})}}",
+		"colors": "{{merge(computed.theme.colors, computed.theme.variants[state.deck.variant ?? 0] ?? {}, state.deck.colors == null ? {} : (find(computed.themes, it.id == state.deck.colors) ?? { colors: {} }).colors)}}",
+		"headingFont": "{{(state.deck.fonts ?? {}).heading ?? 'default'}}",
+		"bodyFont": "{{(state.deck.fonts ?? {}).body ?? 'default'}}",
 		"slotTint": "{{map(computed.slotNames, it == 'light1' || it == 'light2' ? 'light' : it == 'dark1' || it == 'dark2' ? 'dark' : 'accent')}}",
 		"palette": "{{parseJson('{' + join(map(range(60), json(computed.slotNames[floor(it / 6)] + (it % 6 == 0 ? '' : '.' + (it % 6))) + ':' + json(it % 6 == 0 ? computed.colors[computed.slotNames[floor(it / 6)]] : gradientColor({ stops: [{ at: 0, color: computed.colors[computed.slotNames[floor(it / 6)]] }, { at: 1, color: computed.tints[computed.slotTint[floor(it / 6)]][it % 6 - 1].to }] }, computed.tints[computed.slotTint[floor(it / 6)]][it % 6 - 1].by))), ',') + '}')}}",
+		"layouts": "{{map(computed.baseLayouts, it.id == 'title' && computed.theme.titleArea != null ? merge(it, { ph: map(it.ph, merge(it, computed.theme.titleArea)) }) : it)}}",
 		"layout": "{{find(computed.layouts, it.id == computed.slide.layout) ?? computed.layouts[1]}}",
 		"titleLike": "{{computed.slide.layout == 'title' || computed.slide.layout == 'section'}}"
 	}

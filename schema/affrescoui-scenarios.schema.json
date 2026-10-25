@@ -85,7 +85,7 @@
 			]
 		},
 		"pointer": {
-			"description": "move, click, press or release: one of them, with a target.",
+			"description": "move, click, rightClick, press or release: one of them, with a target.",
 			"type": "object",
 			"minProperties": 1,
 			"maxProperties": 3,
@@ -93,12 +93,13 @@
 			"properties": {
 				"move": { "$ref": "#/$defs/target" },
 				"click": { "$ref": "#/$defs/target" },
+				"rightClick": { "$ref": "#/$defs/target" },
 				"press": { "$ref": "#/$defs/target" },
 				"release": { "$ref": "#/$defs/target" },
 				"nth": { "$ref": "#/$defs/nth" },
 				"note": { "type": "string" }
 			},
-			"oneOf": [{ "required": ["move"] }, { "required": ["click"] }, { "required": ["press"] }, { "required": ["release"] }]
+			"oneOf": [{ "required": ["move"] }, { "required": ["click"] }, { "required": ["rightClick"] }, { "required": ["press"] }, { "required": ["release"] }]
 		},
 		"expectation": {
 			"oneOf": [

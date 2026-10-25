@@ -94,16 +94,19 @@ bool Player::playPointer(const json& step) {
 	using affresco::Action;
 	Window& window = stage_.window;
 	const int nth = step.value("nth", 0);
-	const auto button = [&](const json& target, Action action) {
+	const auto button = [&](const json& target, Action action, MouseButton which = MouseButton::Left) {
 		const Vec2 at = pointOf(target, nth);
 		window.routeMouseMove(at);
-		window.routeMouseButton({MouseButton::Left, action, {}, at});
+		window.routeMouseButton({which, action, {}, at});
 	};
 	if(step.contains("move")) {
 		window.routeMouseMove(pointOf(step["move"], nth));
 	} else if(step.contains("click")) {
 		button(step["click"], Action::Press);
 		button(step["click"], Action::Release);
+	} else if(step.contains("rightClick")) {
+		button(step["rightClick"], Action::Press, MouseButton::Right);
+		button(step["rightClick"], Action::Release, MouseButton::Right);
 	} else if(step.contains("press")) {
 		button(step["press"], Action::Press);
 	} else if(step.contains("release")) {
