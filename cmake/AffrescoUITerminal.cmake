@@ -10,9 +10,76 @@ FetchContent_MakeAvailable(vterm)
 
 set(AFFRESCOUI_VTERM_DIR ${vterm_SOURCE_DIR})
 set(AFFRESCOUI_VTERM_SOURCES)
-foreach(name encoding keyboard mouse parser pen screen state unicode vterm)
+foreach(name encoding keyboard mouse pen screen unicode vterm)
 	list(APPEND AFFRESCOUI_VTERM_SOURCES ${vterm_SOURCE_DIR}/src/${name}.c)
 endforeach()
-# Its warnings are not ours to fix
-set_source_files_properties(${AFFRESCOUI_VTERM_SOURCES} PROPERTIES COMPILE_OPTIONS $<IF:$<C_COMPILER_ID:MSVC>,/w,-w>
-	SKIP_LINTING ON)
+
+# Fixes one of its sources, which the next fixes of that source build on. Stops if the source no longer has the text
+# the fix replaces.
+# name: the source, in src/; before: the text the fix replaces; after: the text it puts there.
+function(affrescoui_fix_vterm name before after)
+	get_property(source GLOBAL PROPERTY AFFRESCOUI_VTERM_FIXED_${name}) # its fixes so far, this configure
+	if(NOT source)
+		file(READ ${vterm_SOURCE_DIR}/src/${name} source)
+	endif()
+	string(FIND "${source}" "${before}" at)
+	if(at EQUAL -1)
+		message(FATAL_ERROR "libvterm's src/${name} has changed: check its fix in cmake/AffrescoUITerminal.cmake")
+	endif()
+	string(REPLACE "${before}" "${after}" source "${source}")
+	set_property(GLOBAL PROPERTY AFFRESCOUI_VTERM_FIXED_${name} "${source}")
+endfunction()
+
+# Found by the terminal fuzzer (tests/fuzz/terminal.cpp). A write that ended after ESC and a control, inside a string
+# (a title), gave the string's last piece the length -1, read past the write.
+affrescoui_fix_vterm(parser.c [=[
+    if(vt->parser.in_esc)
+      string_len -= 1;
+    string_fragment(vt, string_start, string_len, false);]=] [=[
+    if(vt->parser.in_esc && string_len) // AffrescoUI: the ESC may be in an earlier write
+      string_len -= 1;
+    string_fragment(vt, string_start, string_len, false);]=])
+# A long number in an escape sequence overflowed (a long may have 32 bits): one past 5 digits takes no more.
+affrescoui_fix_vterm(parser.c [=[
+        vt->parser.v.csi.args[vt->parser.v.csi.argi] *= 10;
+        vt->parser.v.csi.args[vt->parser.v.csi.argi] += c - '0';]=] [=[
+        if(vt->parser.v.csi.args[vt->parser.v.csi.argi] >= 100000) // AffrescoUI: no overflow
+          break;
+        vt->parser.v.csi.args[vt->parser.v.csi.argi] *= 10;
+        vt->parser.v.csi.args[vt->parser.v.csi.argi] += c - '0';]=])
+affrescoui_fix_vterm(parser.c [=[
+        else
+          vt->parser.v.osc.command *= 10;]=] [=[
+        else if(vt->parser.v.osc.command >= 100000) // AffrescoUI: no overflow
+          break;
+        else
+          vt->parser.v.osc.command *= 10;]=])
+# A CSI sequence's arguments past its 16th were written past their array: they replace the 16th.
+affrescoui_fix_vterm(parser.c [=[
+      if(c == ';') {
+        vt->parser.v.csi.argi++;]=] [=[
+      if(c == ';') {
+        if(vt->parser.v.csi.argi < CSI_ARGS_MAX - 1) // AffrescoUI: within the array
+          vt->parser.v.csi.argi++;]=])
+# A C1 control written in UTF-8 (U+0080 to U+009F) has the width -1: it moved the cursor off the screen, where a tab
+# stop set next wrote outside its table. It covers one column (the terminal node shows it as U+FFFD).
+affrescoui_fix_vterm(state.c [=[
+      int this_width = vterm_unicode_width(codepoints[i]);]=] [=[
+      int this_width = vterm_unicode_width(codepoints[i]);
+      if(this_width < 0) // AffrescoUI: a C1 control covers one column
+        this_width = 1;]=])
+
+# The fixed copies, in the build folder, are compiled instead (they include the originals' headers:
+# modules/format/CMakeLists.txt), each written only when it changes, so that it isn't compiled again each time
+foreach(name parser.c state.c)
+	get_property(source GLOBAL PROPERTY AFFRESCOUI_VTERM_FIXED_${name})
+	set(fixed ${CMAKE_BINARY_DIR}/affrescoui-vterm/${name})
+	set(old "")
+	if(EXISTS ${fixed})
+		file(READ ${fixed} old)
+	endif()
+	if(NOT old STREQUAL source)
+		file(WRITE ${fixed} "${source}")
+	endif()
+	list(APPEND AFFRESCOUI_VTERM_SOURCES ${fixed})
+endforeach()

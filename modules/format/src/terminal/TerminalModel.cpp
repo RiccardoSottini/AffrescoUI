@@ -20,10 +20,16 @@ constexpr std::size_t mostTitleBytes = 256;
 /// @brief The value libvterm gives the column a wide character covers.
 constexpr std::uint32_t wideContinuation = 0xFFFFFFFFu;
 
-/// @brief Clamps a number of rows or columns to what a terminal may have.
+/// @brief Clamps a number of rows to what a terminal may have.
 /// @param cells The number.
 /// @return It, within 1..mostTerminalCells.
 [[nodiscard]] int clampCells(int cells) noexcept { return std::clamp(cells, 1, mostTerminalCells); }
+
+/// @brief Clamps a number of columns to what a terminal may have: two at least, which a wide character covers (in one,
+/// libvterm writes its second column outside the row).
+/// @param cells The number.
+/// @return It, within 2..mostTerminalCells.
+[[nodiscard]] int clampColumns(int cells) noexcept { return std::clamp(cells, 2, mostTerminalCells); }
 
 /// @brief A colour as 0xRRGGBB.
 /// @param color An RGB colour.
@@ -55,6 +61,8 @@ constexpr std::uint32_t wideContinuation = 0xFFFFFFFFu;
 		return cell;
 	}
 	cell.character = static_cast<char32_t>(source.chars[0]);
+	// A C1 control written in UTF-8 takes a column (cmake/AffrescoUITerminal.cmake), shown as the replacement character
+	if(cell.character >= 0x80 && cell.character < 0xa0) cell.character = 0xfffd;
 	cell.width = source.width == 2 ? 2 : 1;
 	cell.bold = source.attrs.bold != 0;
 	cell.underline = source.attrs.underline != 0;
@@ -226,9 +234,9 @@ constexpr VTermScreenCallbacks screenCallbacks{
 void TerminalModel::VTermDeleter::operator()(VTerm* terminal) const noexcept { vterm_free(terminal); }
 
 TerminalModel::TerminalModel(int rows, int columns, std::size_t scrollbackLines)
-    : terminal_(vterm_new(clampCells(rows), clampCells(columns))),
+    : terminal_(vterm_new(clampCells(rows), clampColumns(columns))),
       scrollbackLimit_(std::min(scrollbackLines, mostScrollbackLines)), rows_(clampCells(rows)),
-      columns_(clampCells(columns)) {
+      columns_(clampColumns(columns)) {
 	vterm_set_utf8(terminal_.get(), 1);
 	vterm_output_set_callback(terminal_.get(), &TerminalCallbacks::output, this);
 	screen_ = vterm_obtain_screen(terminal_.get()); // NOLINT(cppcoreguidelines-prefer-member-initializer): once set up
@@ -245,7 +253,7 @@ void TerminalModel::write(std::string_view bytes) {
 
 void TerminalModel::resize(int rows, int columns) {
 	rows = clampCells(rows);
-	columns = clampCells(columns);
+	columns = clampColumns(columns);
 	if(rows == rows_ && columns == columns_) return;
 	rows_ = rows;
 	columns_ = columns;

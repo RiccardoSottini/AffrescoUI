@@ -61,7 +61,7 @@ class TerminalModel {
 public:
 	/// @brief A blank terminal.
 	/// @param rows Its rows, clamped to 1..mostTerminalCells.
-	/// @param columns Its columns, clamped likewise.
+	/// @param columns Its columns, clamped to 2..mostTerminalCells.
 	/// @param scrollbackLines The scrollback it keeps, at most mostScrollbackLines.
 	TerminalModel(int rows, int columns, std::size_t scrollbackLines = defaultScrollbackLines);
 	/// @brief Frees the terminal.
@@ -78,7 +78,7 @@ public:
 
 	/// @brief Changes its size; the program learns it from the pty.
 	/// @param rows Its rows, clamped to 1..mostTerminalCells.
-	/// @param columns Its columns, clamped likewise.
+	/// @param columns Its columns, clamped to 2..mostTerminalCells.
 	void resize(int rows, int columns);
 
 	/// @brief Takes the bytes waiting for the program: typed keys and replies to its queries.

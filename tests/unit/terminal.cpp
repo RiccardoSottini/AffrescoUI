@@ -99,6 +99,14 @@ TEST_CASE("terminal: the title only when allowed, and clipboard writes are dropp
 	model.write(longTitle + "\x07");
 	CHECK(model.title().size() == 255);
 	CHECK(static_cast<unsigned char>(model.title().back()) == 0xA9);
+
+	// A write that ends after ESC and a control, inside the title, adds nothing to it (libvterm gave that last piece
+	// the length -1, and read past the write: found by the terminal fuzzer)
+	model.write("\x1b]2;ab\x1b");
+	model.write(std::string(1, '\0'));
+	CHECK(model.title() == "ab");
+	model.write("\x07");
+	CHECK(model.title() == "ab");
 }
 
 TEST_CASE("terminal: a wide character covers two columns") {
@@ -109,6 +117,54 @@ TEST_CASE("terminal: a wide character covers two columns") {
 	CHECK(model.cell(0, 1).width == 0);
 	CHECK(model.cell(0, 2).character == U'x');
 	CHECK(model.lineText(0) == U"中x");
+
+	// A terminal has two columns at least, which a wide character covers (libvterm wrote outside a row of one)
+	TerminalModel narrow(3, 1);
+	CHECK(narrow.columns() == 2);
+	narrow.write("\xE4\xB8\xAD\xE4\xB8\xAD");
+	CHECK(narrow.lineText(0) == U"中");
+	CHECK(narrow.lineText(1) == U"中");
+	narrow.resize(3, 0);
+	CHECK(narrow.columns() == 2);
+}
+
+TEST_CASE("terminal: a C1 control written in UTF-8 takes a column, and never moves the cursor backwards") {
+	// libvterm's own width of U+009B is -1: at column 0 it moved the cursor off the screen, and a tab stop set there
+	// wrote outside its table (found by the terminal fuzzer)
+	for(const bool split : {false, true}) {
+		CAPTURE(split);
+		TerminalModel model(4, 11);
+		if(split) {
+			model.write("\xC2");
+			model.write("\x9B");
+		} else {
+			model.write("\xC2\x9B");
+		}
+		CHECK(model.cursor().column == 1);
+		CHECK(model.cell(0, 0).character == U'\uFFFD');
+		model.write("\x1bH\tx");
+		CHECK(model.cursor().row == 0);
+		CHECK(model.cursor().column >= 2);
+	}
+}
+
+TEST_CASE("terminal: a long number in an escape sequence counts as a large one, and too many are dropped") {
+	// libvterm's numbers overflowed (found by the terminal fuzzer): one past 5 digits takes no more
+	TerminalModel model(4, 20);
+	model.setAllowTitle(true);
+	model.write("\x1b]" + std::string(40, '9') + "2;x\x07");
+	CHECK(model.title().empty());
+	model.write("\x1b[" + std::string(40, '9') + "C");
+	CHECK(model.cursor().column == 19);
+	model.write("\x1b[" + std::string(40, '9') + "D");
+	CHECK(model.cursor().column == 0);
+
+	// A CSI sequence's arguments past its 16th replace the 16th (libvterm wrote them past their array)
+	std::string many = "\x1b[";
+	for(int argument = 0; argument < 100; ++argument) many += "1;";
+	model.write(many + "31mx");
+	CHECK(model.lineText(0) == U"x");
+	CHECK_FALSE(model.cell(0, 0).defaultForeground);
 }
 
 namespace {
