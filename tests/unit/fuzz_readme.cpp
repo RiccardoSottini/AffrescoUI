@@ -9,7 +9,8 @@
 #include <string>
 
 TEST_CASE("fuzz: the README's table has a row for every target") {
-	const std::filesystem::path folder = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY).parent_path() / "tests/fuzz";
+	const std::filesystem::path folder =
+	    std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY).parent_path() / "tests/fuzz";
 	std::ifstream file(folder / "README.md");
 	REQUIRE(file);
 	const std::string readme{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};

@@ -18,7 +18,8 @@ TEST_CASE("numbers: readNumber reads what strtod reads, up to maxNumberLength ch
 	CHECK(affresco::readNumber(exact.c_str(), &end) == 1e39);
 	CHECK(*end == '\0');
 
-	for(const std::string& longer : {"1" + std::string(500, '0'), "0." + std::string(500, '1'), "0x" + std::string(60, 'f')}) {
+	for(const std::string& longer :
+	    {"1" + std::string(500, '0'), "0." + std::string(500, '1'), "0x" + std::string(60, 'f')}) {
 		CHECK(affresco::readNumber(longer.c_str(), &end) == 0.0);
 		CHECK(end == longer.c_str()); // nothing read: the caller reports a malformed number
 	}

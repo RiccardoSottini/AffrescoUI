@@ -31,7 +31,8 @@ int inheritable() {
 TEST_CASE("net: a listener, its connections and outgoing ones are close-on-exec") {
 	const int before = inheritable();
 	std::string error;
-	const std::unique_ptr<affresco::net::tcp::Listener> listener = affresco::net::tcp::Listener::open("127.0.0.1", 0, error);
+	const std::unique_ptr<affresco::net::tcp::Listener> listener =
+	    affresco::net::tcp::Listener::open("127.0.0.1", 0, error);
 	REQUIRE(listener);
 	std::unique_ptr<affresco::net::tcp::Connection> accepted;
 	std::thread accepting([&] { accepted = listener->accept(); });

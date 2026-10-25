@@ -40,8 +40,6 @@ namespace affresco {
 /// @brief Whether a whole text is short enough to be read as a number by strtod(), stof() or stod().
 /// @param text The text.
 /// @return Whether it is at most maxNumberLength characters.
-[[nodiscard]] constexpr bool numberLengthFits(std::string_view text) noexcept {
-	return text.size() <= maxNumberLength;
-}
+[[nodiscard]] constexpr bool numberLengthFits(std::string_view text) noexcept { return text.size() <= maxNumberLength; }
 
 } // namespace affresco

@@ -216,7 +216,7 @@ TEST_CASE("format: a revision may not add a use of the document's own component 
 			return false;
 		} catch(const affresco::DocumentError& error) {
 			INFO(std::string(error.what()));
-		CHECK(std::string(error.what()).find("permission denied") != std::string::npos);
+			CHECK(std::string(error.what()).find("permission denied") != std::string::npos);
 			return true;
 		}
 	};

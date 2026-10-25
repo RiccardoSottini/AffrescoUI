@@ -340,7 +340,8 @@ TEST_CASE("document server: one person opens at most maxPersonalDocuments of the
 		INFO("document ", index);
 		clients.push_back(std::make_unique<Client>(executor, server->port(), team.ada));
 		clients.back()->send({{"type", "open"}, {"id", 1}, {"document", "~notes" + std::to_string(index)}});
-		REQUIRE(executor.runUntil([&] { return clients.back()->find("hello") != nullptr || clients.back()->find("error", 1) != nullptr; }));
+		REQUIRE(executor.runUntil(
+		    [&] { return clients.back()->find("hello") != nullptr || clients.back()->find("error", 1) != nullptr; }));
 		CHECK((clients.back()->find("hello") != nullptr) == (index < server::DocumentServer::maxPersonalDocuments));
 		executor.runFor(210ms); // within the server's five new connections a second from one address
 	}
