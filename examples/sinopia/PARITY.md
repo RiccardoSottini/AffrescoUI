@@ -77,8 +77,8 @@ with its slide show, presenter view, audience window and files on library capabi
 | Design | Slide master view | missing | missing | |
 | Design | Themes | missing | partial | design-tab |
 | Design | Variants | missing | partial | design-tab |
-| Design | Theme colours | missing | missing | |
-| Design | Theme fonts | missing | missing | |
+| Design | Theme colours | missing | partial | theme-colors-and-fonts (another theme's colours; no colours of the deck's own) |
+| Design | Theme fonts | missing | partial | theme-colors-and-fonts (the titles' and the text's, from the two fonts the app ships) |
 | Design | Slide size (16:9, 4:3) | partial | missing | |
 | Design | Format background | missing | done | background-and-reading-view |
 | Tools | Format painter | missing | done | copy-style |
@@ -137,6 +137,6 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 68 | 28 | 25 | 121 |
+| Now | 68 | 30 | 23 | 121 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have, and Insert > Link one (all missing at the start), so *Now* counts 121 rows.

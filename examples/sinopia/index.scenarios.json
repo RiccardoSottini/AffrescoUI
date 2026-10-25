@@ -1251,6 +1251,30 @@
 				{ "click": "#thumb-s3-row" },
 				{ "expect": { "node": "#motion-empty", "exists": true } }
 			]
+		},
+		{
+			"name": "sinopia-theme-colors-and-fonts",
+			"note": "Design > Colors gives the deck another theme's colours, and Fonts the titles' and the text's fonts; each is undoable, and a theme chosen after puts the colours back",
+			"steps": [
+				{ "click": "#tab-design-label" },
+				{ "click": "#b-colors" },
+				{ "click": { "role": "menuitem", "name": "Default" } },
+				{ "expect": { "state": "deck.colors", "is": "default" } },
+				{ "expect": { "state": "deck.theme", "is": "tide" } },
+				{ "click": "#b-fonts" },
+				{ "click": { "role": "menuitem", "name": "JetBrains Mono and Roboto" } },
+				{ "expect": { "state": "deck.fonts.heading", "is": "mono" } },
+				{ "expect": { "state": "deck.fonts.body", "is": "default" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "deck.colors", "is": "default" } },
+				{ "click": "#b-colors" },
+				{ "click": { "role": "menuitem", "name": "From the Theme" } },
+				{ "expect": { "state": "deck.colors", "is": null } },
+				{ "click": "#b-colors" },
+				{ "click": { "role": "menuitem", "name": "Ember" } },
+				{ "click": "#theme-grove" },
+				{ "expect": { "state": "deck.colors", "is": null } }
+			]
 		}
 	]
 }

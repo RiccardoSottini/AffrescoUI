@@ -190,6 +190,12 @@
 								{ "id": "{{'variant-' + n + '-line'}}", "x": 18, "y": 22, "width": 34, "height": 5, "color": "{{merge(computed.theme.colors, v).dark1}}" },
 								{ "id": "{{'variant-' + n + '-line2'}}", "x": 18, "y": 32, "width": 24, "height": 3, "color": "{{merge(computed.theme.colors, v).accent2}}" }
 							  ] }
+						] },
+						{ "type": "column", "id": "variants-col", "width": 76, "height": 72, "gap": 2, "alignItems": "stretch", "color": "transparent", "children": [
+							{ "use": "rbSmall", "id": "b-colors", "with": { "icon": "palette", "title": "Colors", "menu": true }, "tooltip": "Another theme's colours for this deck",
+							  "onClick": { "run": "openDrop", "with": { "id": "b-colors" } } },
+							{ "use": "rbSmall", "id": "b-fonts", "with": { "icon": "type", "title": "Fonts", "menu": true }, "tooltip": "The fonts of the titles and of the other text",
+							  "onClick": { "run": "openDrop", "with": { "id": "b-fonts" } } }
 						] }
 					] },
 					{ "use": "rbGroup", "id": "g-customize", "with": { "title": "Customize" }, "children": [

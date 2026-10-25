@@ -224,9 +224,20 @@
 		"setTheme": [
 			{ "run": "commit" },
 			{ "set": "state.deck.theme", "to": "{{theme}}" },
-			{ "set": "state.deck.variant", "to": 0 }
+			{ "set": "state.deck.variant", "to": 0 },
+			{ "set": "state.deck.colors", "to": null }
 		],
-		"setVariant": [{ "run": "commit" }, { "set": "state.deck.variant", "to": "{{variant}}" }],
+		"setVariant": [{ "run": "commit" }, { "set": "state.deck.variant", "to": "{{variant}}" }, { "set": "state.deck.colors", "to": null }],
+		"setColorSet": [
+			{ "note": "with: id, the theme whose colours the deck takes in place of its own (null: the theme's own); a theme or variant chosen after puts them back" },
+			{ "run": "commit" },
+			{ "set": "state.deck.colors", "to": "{{id}}" }
+		],
+		"setFonts": [
+			{ "note": "with: heading and body, the fonts of titles and of the other text (a text's own font wins)" },
+			{ "run": "commit" },
+			{ "set": "state.deck.fonts", "to": "{{ {heading: heading, body: body} }}" }
+		],
 		"setTransition": [
 			{ "run": "commit" },
 			{ "set": "state.deck.slides[state.current].transition", "to": "{{merge(computed.slide.transition ?? { kind: 'none', ms: 500 }, props)}}" }

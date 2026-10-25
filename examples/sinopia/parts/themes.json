@@ -102,7 +102,9 @@
 		},
 
 		"theme": "{{find(computed.themes, it.id == state.deck.theme) ?? computed.themes[0]}}",
-		"colors": "{{merge(computed.theme.colors, computed.theme.variants[state.deck.variant ?? 0] ?? {})}}",
+		"colors": "{{merge(computed.theme.colors, computed.theme.variants[state.deck.variant ?? 0] ?? {}, state.deck.colors == null ? {} : (find(computed.themes, it.id == state.deck.colors) ?? { colors: {} }).colors)}}",
+		"headingFont": "{{(state.deck.fonts ?? {}).heading ?? 'default'}}",
+		"bodyFont": "{{(state.deck.fonts ?? {}).body ?? 'default'}}",
 		"slotTint": "{{map(computed.slotNames, it == 'light1' || it == 'light2' ? 'light' : it == 'dark1' || it == 'dark2' ? 'dark' : 'accent')}}",
 		"palette": "{{parseJson('{' + join(map(range(60), json(computed.slotNames[floor(it / 6)] + (it % 6 == 0 ? '' : '.' + (it % 6))) + ':' + json(it % 6 == 0 ? computed.colors[computed.slotNames[floor(it / 6)]] : gradientColor({ stops: [{ at: 0, color: computed.colors[computed.slotNames[floor(it / 6)]] }, { at: 1, color: computed.tints[computed.slotTint[floor(it / 6)]][it % 6 - 1].to }] }, computed.tints[computed.slotTint[floor(it / 6)]][it % 6 - 1].by))), ',') + '}')}}",
 		"layouts": "{{map(computed.baseLayouts, it.id == 'title' && computed.theme.titleArea != null ? merge(it, { ph: map(it.ph, merge(it, computed.theme.titleArea)) }) : it)}}",

@@ -107,7 +107,7 @@
 											{ "type": "label", "id": "{{prefix + o.id + '-p' + n + '-t'}}", "wrap": true,
 											  "fitText": { "maxWidth": "{{max(((turned ? frame.h : frame.w) - size * (cols - 1)) / cols - lead - (bullets && !prompt ? mark : 0), 1)}}" },
 											  "align": { "horizontal": "{{align == 'center' ? 'center' : align == 'right' ? 'end' : 'start'}}" },
-											  "runs": [{ "text": "{{trim(line) == '' ? ' ' : trim(line)}}", "size": "{{pt}}", "bold": "{{o.bold ?? p.bold ?? false}}", "font": "{{o.font ?? 'default'}}",
+											  "runs": [{ "text": "{{trim(line) == '' ? ' ' : trim(line)}}", "size": "{{pt}}", "bold": "{{o.bold ?? p.bold ?? false}}", "font": "{{o.font ?? (contains(['title', 'ctrTitle'], o.ph ?? '') ? computed.headingFont : computed.bodyFont)}}",
 											             "italic": "{{o.italic ?? false}}", "color": "{{prompt ? computed.palette['dark1.2'] : ink}}",
 											             "underline": "{{!prompt && ((o.underline ?? false) || o.link != null)}}", "strike": "{{!prompt && (o.strike ?? false)}}",
 											             "background": "{{prompt ? null : o.highlight ?? null}}", "shadow": "{{!prompt && (o.shadow ?? false) ? '#00000059' : null}}" }] }
