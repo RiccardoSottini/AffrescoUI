@@ -26,6 +26,20 @@ constexpr std::array<std::string_view, 24> controlSteps{
     "signIn",   "signOut",      "ask",           "cancelAsk",     "chooseFolder", "attach",
     "saveFile", "openFile",     "export",        "runInTerminal", "clearTerminal", "closeTerminal"};
 
+/// @brief Whether an object is an "image" step that shows a file dialog: "open" (unless from an asset) or "save", or an
+/// operation computed at run time, which may be either.
+/// @param step The object.
+/// @return true if it is.
+bool imageDialog(const json& step) {
+	const auto operation = step.find("image");
+	if(operation == step.end() || !operation->is_string()) return false;
+	const std::string& name = operation->get_ref<const std::string&>();
+	if(name.contains("{{")) return step.contains("of") || step.contains("with");
+	const auto with = step.find("with");
+	const bool fromAsset = with != step.end() && with->is_object() && with->contains("asset");
+	return name == "save" || (name == "open" && !fromAsset);
+}
+
 /// The most uses of the document's own components one use is expanded through to be scanned; past them, it may run a
 /// control step.
 constexpr std::size_t maxExpansions = 64;
@@ -145,6 +159,7 @@ public:
 				control = control || std::ranges::find(controlSteps, entry.key()) != std::ranges::end(controlSteps);
 				uses = uses || entry.key() == "use";
 			}
+			control = control || imageDialog(value); // as saveFile and openFile are
 			// One text per outermost control step: the ones inside it are in its text, so theirs would only repeat
 			// it, once per level (a document of a few MiB, nested, would make GiBs)
 			if(control && !dumped_) found.push_back(trigger + ": " + value.dump());
