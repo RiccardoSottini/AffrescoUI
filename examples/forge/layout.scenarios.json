@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "forge-layout-outline-of-code",
-			"note": "The Outline lists a C++ file's functions, from forge.outline",
+			"note": "The Outline lists a C++ file's functions",
 			"steps": [
 				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
 				{ "action": "toggleSecondarySidebar" },
@@ -194,7 +194,7 @@
 				{ "click": { "role": "button", "name": "src" } },
 				{ "expect": { "state": "sideView", "is": "explorer" } },
 				{ "expect": { "state": "layout.sidebar", "is": true } },
-				{ "expect": { "state": "explorer.expanded", "is": ["src/"] } }
+				{ "expect": { "state": "explorer.expanded", "is": ["src"] } }
 			]
 		},
 		{

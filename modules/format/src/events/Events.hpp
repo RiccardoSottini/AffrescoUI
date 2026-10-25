@@ -77,6 +77,13 @@ public:
 	[[nodiscard]] static Panel* findByPath(Panel& root, std::string_view path);
 	/// @brief Closes every open overlay that closes on a click outside it (the "dismiss" step, Escape).
 	void dismissAll() { dismissOverlays(nullptr); }
+	/// @brief Presses a key on one panel for the "press" step: the panel handles it as its own (an editor moves or
+	/// types), but no shortcut, "keys" binding or "onKey" runs for it and the focus doesn't move. A press made while
+	/// one is being delivered is dropped, so a press can't send itself again.
+	/// @param panel The panel.
+	/// @param event The key and its modifiers.
+	/// @param typed The character it types, or 0 for none.
+	void press(Panel& panel, const KeyEvent& event, char32_t typed);
 	/// @brief A key press in another of the screen's windows (SecondWindows): it runs the screen's "keys", as if
 	/// nothing had the focus.
 	/// @param event The event.
@@ -106,6 +113,10 @@ private:
 	/// @param panel The panel, a TextEditor.
 	/// @return The connection, or 0 if it isn't one.
 	Connection hookCaret(Panel& panel);
+	/// @brief Connects a text editor's view, which it writes to the state path of its "viewport".
+	/// @param panel The panel, a TextEditor.
+	/// @return The connection, or 0 if it isn't one.
+	Connection hookView(Panel& panel);
 	/// @brief Connects a label's links to its "onLink".
 	/// @param panel The panel, a Label.
 	/// @return The connection, or 0 if it isn't one.
@@ -265,6 +276,7 @@ private:
 	Click lastClick_;          ///< For double clicks.
 	std::string chord_;        ///< The chord in progress (chord()).
 	bool keyResolved_ = false; ///< The focused panel resolved the press the window is about to get.
+	bool pressing_ = false;    ///< A key of press() is being delivered: no binding runs for it.
 	/// @brief An open modal overlay, and who had the focus before it.
 	struct Modal {
 		Panel* overlay = nullptr;  ///< The overlay.

@@ -3,7 +3,6 @@
 /// affrescoui_launcher does, into hidden windows that only get the events a workload sends.
 
 #include "Bench.hpp"
-#include "CodeEditor.hpp"
 #include "Headless.hpp"
 #include "Templates.hpp"
 
@@ -39,8 +38,7 @@ Application& Context::application() {
 }
 
 void Context::configure(Screen& screen) {
-	screen.setPlaceholderTypes(true);     // as affrescoui_launcher does
-	examples::registerCodeEditor(screen); // and its application-layer "code" type
+	screen.setPlaceholderTypes(true); // as affrescoui_launcher does
 	// Channels find nobody, so no workload waits on a host
 	screen.setSocketDirectory(std::filesystem::temp_directory_path() / "affrescoui-bench-no-host");
 }

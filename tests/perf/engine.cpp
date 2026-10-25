@@ -250,7 +250,6 @@ std::vector<Group> engineGroups() {
 	        {"history", historyWorkloads},
 	        {"views", viewWorkloads},
 	        {"watch", watchWorkloads},
-	        {"buffers", bufferWorkloads},
 	        {"search", searchWorkloads},
 	        {"canvas", canvasWorkloads},
 	        {"graph", graphWorkloads},

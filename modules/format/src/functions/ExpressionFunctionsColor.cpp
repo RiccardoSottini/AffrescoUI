@@ -1,11 +1,13 @@
 /// @file
-/// @brief Expression functions of the creative controls' values: curve, gradientColor.
+/// @brief Expression functions of colours and the creative controls' values: curve, gradientColor, hexColor.
 
 #include "ExpressionFunctions.hpp"
 
 #include "CreativeValues.hpp"
 
 #include <array>
+#include <cctype>
+#include <string>
 
 namespace affresco::format::detail {
 namespace {
@@ -38,6 +40,26 @@ Value gradientColor(const Call& call) {
 	return Value::fromText(colorToJson(sampleGradient(gradient.stops, call.number(1))));
 }
 
+/// @brief A colour written in hex, as one form: hexColor(value).
+/// @param call [value].
+/// @return "#rrggbb" or "#rrggbbaa" in lower case ("#rgb" and "#rgba" spelt out), or null if the value isn't text in
+/// one of those four forms.
+Value hexColor(const Call& call) {
+	if(!call[0].isText()) return {};
+	std::string text(call[0].text());
+	if(text.size() != 4 && text.size() != 5 && text.size() != 7 && text.size() != 9) return {};
+	if(text.front() != '#') return {};
+	for(std::size_t i = 1; i < text.size(); ++i) {
+		const auto c = static_cast<unsigned char>(text[i]);
+		if(std::isxdigit(c) == 0) return {};
+		text[i] = static_cast<char>(std::tolower(c));
+	}
+	if(text.size() > 5) return Value::fromText(std::move(text));
+	std::string full = "#";
+	for(std::size_t i = 1; i < text.size(); ++i) full.append(2, text[i]);
+	return Value::fromText(std::move(full));
+}
+
 /// The table.
 constexpr auto table = std::to_array<Function>({
     {.name = "curve",
@@ -53,6 +75,12 @@ constexpr auto table = std::to_array<Function>({
 	 .fewest = 2,
 	 .most = 2,
 	 .apply = gradientColor},
+    {.name = "hexColor",
+	 .arguments = "value",
+	 .about = "A colour written '#rgb', '#rgba', '#rrggbb' or '#rrggbbaa' as '#rrggbb' or '#rrggbbaa' in lower case, "
+	          "or null if the value isn't one",
+	 .takes = Takes::One,
+	 .apply = hexColor},
 });
 
 } // namespace

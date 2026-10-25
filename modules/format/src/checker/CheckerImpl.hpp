@@ -169,8 +169,8 @@ private:
 	/// @param value Its value.
 	/// @param place Where it is.
 	void references(const std::string& key, const json& value, const std::string& place);
-	/// @brief Checks "bind" or "caret": a state path the control reads and writes.
-	/// @param key "bind" or "caret".
+	/// @brief Checks "bind", "caret" or "viewport": a state path the control reads and writes.
+	/// @param key "bind", "caret" or "viewport".
 	/// @param value The path, or an expression giving one.
 	/// @param scope The variables.
 	/// @param place Where it is.

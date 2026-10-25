@@ -1,6 +1,7 @@
 {
 	"note": "The shipped templates: each one's name and its folder in examples/, which holds its index.screen.json. The tests, the tools, the web build and the release archive read this list.",
 	"templates": {
+		"calamaio": "calamaio",
 		"code-editor": "code-editor",
 		"habit-tracker": "streak",
 		"kanban": "flow",

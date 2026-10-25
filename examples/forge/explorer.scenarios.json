@@ -2,21 +2,32 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Forge's explorer, checked headless, with tests/render/forge/folder open: affrescoui_render_runner explorer.scenarios.json. A scenario that makes files deletes them before it ends, so the folder stays as it is.",
+	"note": "Forge's explorer, checked headless, with tests/render/forge/folder open: affrescoui_render_runner explorer.scenarios.json, on a copy of it. A scenario that makes files deletes them before it ends, so the folder stays as it is.",
 	"screen": "index.screen.json",
 	"scenarios": [
 		{
 			"name": "explorer-list-the-folder",
-			"note": "Opening the folder lists it into the explorer: folders first, hidden entries and node_modules skipped, dressed with the icon theme; without a running executor it is listed at each call, not watched",
+			"note": "Opening the folder lists its top level into the explorer, and a folder's entries once it is opened: folders first, hidden entries and node_modules not shown, dressed with the icon theme",
 			"steps": [
-				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } },
-				{ "expect": { "state": "explorerTree.tree[0].id", "is": "src/" } },
-				{ "expect": { "state": "explorerTree.tree[0].icon", "is": "folder" } },
-				{ "expect": { "state": "explorerTree.tree[0].children[0].id", "is": "src/main.cpp" } },
-				{ "expect": { "state": "explorerTree.tree[0].children[0].icon", "is": "file-code" } },
-				{ "expect": { "state": "explorerTree.tree[1].id", "is": "README.md" } },
-				{ "expect": { "state": "explorerTree.truncated", "is": false } },
-				{ "expect": { "state": "explorerTree.live", "is": false } },
+				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 3 } },
+				{ "expect": { "state": "explorerTree.entries[0].path", "is": "node_modules" } },
+				{ "expect": { "state": "explorerTree.entries[1].path", "is": "README.md" } },
+				{ "expect": { "state": "explorerTree.entries[2].kind", "is": "folder" } },
+				{ "expect": { "state": "explorerTree.listed.length", "is": 0 } },
+				{ "click": "#explorer" },
+				{ "key": "home", "note": "the first row shown: node_modules isn't, and folders come first" },
+				{ "expect": { "state": "explorer.selected", "is": "src" } },
+				{ "key": "end" },
+				{ "expect": { "state": "explorer.selected", "is": "README.md" } },
+				{ "key": "home" },
+				{ "key": "right", "note": "opens the folder, which lists it" },
+				{ "expect": { "state": "explorer.expanded[0]", "is": "src" } },
+				{ "expect": { "state": "explorerTree.listed[0]", "is": "src" } },
+				{ "expect": { "state": "explorerTree.entries[3].path", "is": "src/main.cpp" } },
+				{ "expect": { "state": "explorerTree.entries[3].parent", "is": "src" } },
+				{ "expect": { "state": "iconTheme.folder.icon", "is": "folder" } },
+				{ "expect": { "state": "iconTheme.extensions.cpp.icon", "is": "file-code" } },
 				{ "expect": { "node": "#explorer", "exists": true } }
 			]
 		},
@@ -27,7 +38,7 @@
 				{ "wait": 0, "note": "lets the first frame's tasks run, so the tree is laid out" },
 				{ "click": "#explorer" },
 				{ "key": "home" },
-				{ "expect": { "state": "explorer.selected", "is": "src/" } },
+				{ "expect": { "state": "explorer.selected", "is": "src" } },
 				{ "action": "explorerNewFile" },
 				{ "expect": { "state": "explorerEdit.naming", "is": true } },
 				{ "wait": 0 },
@@ -35,13 +46,14 @@
 				{ "action": "explorerSubmitName" },
 				{ "expect": { "state": "explorerEdit.naming", "is": false } },
 				{ "expect": { "state": "explorer.selected", "is": "src/notes.txt" } },
-				{ "expect": { "state": "explorerTree.tree[0].children.length", "is": 2 } },
-				{ "expect": { "state": "explorerTree.tree[0].children[1].id", "is": "src/notes.txt" } },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 5 } },
+				{ "expect": { "state": "explorerTree.entries[3].path", "is": "src/notes.txt" } },
 				{ "action": "explorerDelete" },
 				{ "expect": { "state": "explorerEdit.confirm", "is": true } },
 				{ "action": "explorerDeleteConfirmed" },
 				{ "expect": { "state": "explorerEdit.confirm", "is": false } },
-				{ "expect": { "state": "explorerTree.tree[0].children.length", "is": 1 } },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 4 } },
+				{ "expect": { "state": "explorerTree.entries[3].path", "is": "src/main.cpp" } },
 				{ "expect": { "state": "explorer.selected", "is": null } }
 			]
 		},
@@ -59,7 +71,8 @@
 				{ "expect": { "state": "explorerEdit.name", "is": "README.md" } },
 				{ "key": "escape" },
 				{ "expect": { "state": "explorerEdit.confirm", "is": false } },
-				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } }
+				{ "expect": { "state": "explorerTree.entries.length", "is": 3 } },
+				{ "expect": { "state": "explorerTree.entries[1].path", "is": "README.md" } }
 			]
 		},
 		{
@@ -82,10 +95,11 @@
 				{ "type": ".md" },
 				{ "action": "explorerSubmitName" },
 				{ "expect": { "state": "explorer.selected", "is": "draft.md" } },
-				{ "expect": { "state": "explorerTree.tree[2].id", "is": "draft.md" } },
+				{ "expect": { "state": "explorerTree.entries[0].path", "is": "draft.md" } },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 4 } },
 				{ "action": "explorerDelete" },
 				{ "action": "explorerDeleteConfirmed" },
-				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } }
+				{ "expect": { "state": "explorerTree.entries.length", "is": 3 } }
 			]
 		},
 		{
@@ -96,7 +110,7 @@
 				{ "wait": 0 },
 				{ "type": "../outside" },
 				{ "action": "explorerSubmitName" },
-				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 3 } },
 				{ "expect": { "state": "explorer.selected", "is": null } }
 			]
 		},
@@ -108,21 +122,24 @@
 				{ "wait": 0 },
 				{ "type": "box" },
 				{ "action": "explorerSubmitName" },
-				{ "expect": { "state": "explorerTree.tree[0].id", "is": "box/" } },
-				{ "action": "explorerDrop", "event": { "data": { "id": "README.md", "ids": ["README.md"] }, "id": "box/", "place": "inside" } },
+				{ "expect": { "state": "explorerTree.entries[0].path", "is": "box" } },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 4 } },
+				{ "action": "explorerDrop", "event": { "data": { "id": "README.md", "ids": ["README.md"] }, "id": "box", "place": "inside" } },
 				{ "expect": { "state": "explorer.selected", "is": "box/README.md" } },
-				{ "expect": { "state": "explorer.expanded[0]", "is": "box/" } },
-				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } },
-				{ "action": "explorerDrop", "event": { "data": { "id": "box/README.md", "ids": ["box/README.md"] }, "id": "src/", "place": "after" } },
+				{ "expect": { "state": "explorer.expanded[0]", "is": "box" } },
+				{ "expect": { "state": "explorerTree.entries[3].path", "is": "box/README.md" } },
+				{ "expect": { "state": "explorerTree.entries[2].path", "is": "src" } },
+				{ "action": "explorerDrop", "event": { "data": { "id": "box/README.md", "ids": ["box/README.md"] }, "id": "src", "place": "after" } },
 				{ "expect": { "state": "explorer.selected", "is": "README.md" } },
-				{ "expect": { "state": "explorerTree.tree.length", "is": 3 } },
+				{ "expect": { "state": "explorerTree.entries[2].path", "is": "README.md" } },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 4 } },
 				{ "click": "#explorer" },
 				{ "key": "home" },
-				{ "expect": { "state": "explorer.selected", "is": "box/" } },
+				{ "expect": { "state": "explorer.selected", "is": "box" } },
 				{ "action": "explorerDelete" },
 				{ "action": "explorerDeleteConfirmed" },
-				{ "expect": { "state": "explorerTree.tree.length", "is": 2 } },
-				{ "expect": { "state": "explorerTree.tree[1].id", "is": "README.md" } }
+				{ "expect": { "state": "explorerTree.entries.length", "is": 3 } },
+				{ "expect": { "state": "explorerTree.entries[1].path", "is": "README.md" } }
 			]
 		},
 		{
@@ -138,11 +155,13 @@
 				{ "key": "home" },
 				{ "action": "explorerPaste" },
 				{ "expect": { "state": "explorer.selected", "is": "src/README.md" } },
-				{ "expect": { "state": "explorerTree.tree[0].children.length", "is": 2 } },
-				{ "expect": { "state": "explorerTree.tree[1].id", "is": "README.md" } },
+				{ "expect": { "state": "explorerTree.entries[3].path", "is": "src/README.md" } },
+				{ "expect": { "state": "explorerTree.entries.length", "is": 5 } },
+				{ "expect": { "state": "explorerTree.entries[1].path", "is": "README.md" } },
 				{ "action": "explorerDelete" },
 				{ "action": "explorerDeleteConfirmed" },
-				{ "expect": { "state": "explorerTree.tree[0].children.length", "is": 1 } }
+				{ "expect": { "state": "explorerTree.entries.length", "is": 4 } },
+				{ "expect": { "state": "explorerTree.entries[3].path", "is": "src/main.cpp" } }
 			]
 		},
 		{
@@ -152,7 +171,7 @@
 				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
 				{ "expect": { "state": "explorer.expanded.length", "is": 0 } },
 				{ "action": "explorerReveal" },
-				{ "expect": { "state": "explorer.expanded[0]", "is": "src/" } },
+				{ "expect": { "state": "explorer.expanded[0]", "is": "src" } },
 				{ "expect": { "state": "explorer.selected", "is": "src/main.cpp" } }
 			]
 		}

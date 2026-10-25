@@ -14,7 +14,7 @@ A desktop text editor: a side bar with open files and folders, tabs, a minimap, 
 | `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `index.screen.json` | The screen document |
 
-Its `code` type is the host's, in [`../shared/CodeEditor.cpp`](../shared/CodeEditor.cpp).
+Its editor is the library's `editor`, with the languages in [`../shared/languages`](../shared/languages).
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 

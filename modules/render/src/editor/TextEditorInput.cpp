@@ -271,6 +271,7 @@ void TextEditor::scrollEvent(const ScrollEvent& event) {
 	invalidatePaint();
 	hoverAt(std::nullopt);
 	onScrolled(scroll_);
+	noteView();
 }
 
 void TextEditor::hoverEvent(bool hovered) {

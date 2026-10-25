@@ -243,7 +243,7 @@ TEST_CASE("languages: Python, JavaScript, TypeScript and shell") {
 	expectStyles(shipped("shell.json")->find("build.sh"), {"if [ -n \"$HOME\" ]; then echo $1 'a'; fi # done"},
 	             {{0, "if", 'k'},
 	              {0, "then", 'k'},
-	              {0, "\"$", 's'},
+	              {0, "\"", 's'}, // the quote; the variable inside it is a variable
 	              {0, "$HOME", 't'},
 	              {0, "$1", 't'},
 	              {0, "'a'", 's'},

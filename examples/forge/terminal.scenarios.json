@@ -18,12 +18,14 @@
 		},
 		{
 			"name": "terminal-tasks-from-a-file",
-			"note": "What forge.tasks.list reads becomes the picker's items, each with its command line as its detail",
+			"note": "What a .forge/tasks.json holds becomes the picker's items, each with its command line as its detail; a task naming a variable other than ${workspaceFolder} is skipped",
 			"steps": [
-				{ "action": "tasksApplyFile", "event": { "tasks": [{ "label": "build", "line": "make all", "group": "build" }, { "label": "test", "line": "'ctest' '--output-on-failure'", "group": "test" }], "skipped": 1 } },
+				{ "action": "tasksApplyFile", "event": { "file": { "version": "2.0.0", "tasks": [{ "label": "build", "type": "shell", "command": "make all", "group": { "kind": "build", "isDefault": true } }, { "label": "test", "type": "process", "command": "ctest", "args": ["--output-on-failure"], "group": "test" }, { "label": "lint", "command": "lint", "args": ["${file}"] }] } } },
 				{ "expect": { "state": "tasks.items.length", "is": 2 } },
 				{ "expect": { "state": "tasks.items[0].title", "is": "build" } },
 				{ "expect": { "state": "tasks.items[1].detail", "is": "'ctest' '--output-on-failure'" } },
+				{ "expect": { "state": "tasks.items[0].group", "is": "build" } },
+				{ "expect": { "state": "tasks.items[0].detail", "is": "make all" } },
 				{ "expect": { "state": "tasks.skipped", "is": 1 } }
 			]
 		},
@@ -31,7 +33,7 @@
 			"name": "terminal-run-picked-task",
 			"note": "A picked task runs in a new terminal named after it, and becomes the one Rerun Last Task runs",
 			"steps": [
-				{ "action": "tasksApplyFile", "event": { "tasks": [{ "label": "build", "line": "make all", "group": "build" }, { "label": "test", "line": "'ctest' '--output-on-failure'", "group": "test" }], "skipped": 1 } },
+				{ "action": "tasksApplyFile", "event": { "file": { "version": "2.0.0", "tasks": [{ "label": "build", "type": "shell", "command": "make all", "group": { "kind": "build", "isDefault": true } }, { "label": "test", "type": "process", "command": "ctest", "args": ["--output-on-failure"], "group": "test" }, { "label": "lint", "command": "lint", "args": ["${file}"] }] } } },
 				{ "action": "taskRunEvent", "event": { "title": "test", "line": "ctest" } },
 				{ "expect": { "state": "terminals.list.length", "is": 1 } },
 				{ "expect": { "state": "terminals.list[0].label", "is": "Task - test" } },
@@ -46,7 +48,7 @@
 			"name": "terminal-build-task-runs-the-only-one",
 			"note": "With one build task, Run Build Task runs it without a picker",
 			"steps": [
-				{ "action": "tasksApplyFile", "event": { "found": { "tasks": [{ "label": "build", "line": "make all", "group": "build" }, { "label": "test", "line": "'ctest' '--output-on-failure'", "group": "test" }], "skipped": 1 }, "then": "build" } },
+				{ "action": "tasksApplyFile", "event": { "file": { "version": "2.0.0", "tasks": [{ "label": "build", "type": "shell", "command": "make all", "group": { "kind": "build", "isDefault": true } }, { "label": "test", "type": "process", "command": "ctest", "args": ["--output-on-failure"], "group": "test" }, { "label": "lint", "command": "lint", "args": ["${file}"] }] }, "then": "build" } },
 				{ "expect": { "state": "quickPick.open", "is": false } },
 				{ "expect": { "state": "terminals.list[0].label", "is": "Task - build" } }
 			]
@@ -55,7 +57,7 @@
 			"name": "terminal-run-task-opens-the-picker",
 			"note": "Run Task with tasks opens the quick pick on its task provider",
 			"steps": [
-				{ "action": "tasksApplyFile", "event": { "found": { "tasks": [{ "label": "build", "line": "make all", "group": "build" }, { "label": "test", "line": "'ctest' '--output-on-failure'", "group": "test" }], "skipped": 1 }, "then": "pick" } },
+				{ "action": "tasksApplyFile", "event": { "file": { "version": "2.0.0", "tasks": [{ "label": "build", "type": "shell", "command": "make all", "group": { "kind": "build", "isDefault": true } }, { "label": "test", "type": "process", "command": "ctest", "args": ["--output-on-failure"], "group": "test" }, { "label": "lint", "command": "lint", "args": ["${file}"] }] }, "then": "pick" } },
 				{ "expect": { "state": "quickPick.open", "is": true } },
 				{ "expect": { "state": "quickPick.query", "is": "task " } }
 			]

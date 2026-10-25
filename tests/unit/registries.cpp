@@ -64,7 +64,7 @@ TEST_CASE("format: the built-in node types register in catalog order, each with 
 	                                                      "row", "column", "grid", "toggle", "checkbox", "slider",
 	                                                      "image", "surface", "raster", "split", "tabs", "list", "tree", "table", "path",
 	                                                      "colorPicker", "gradient", "curves", "canvas", "graph", "timeline", "calendar",
-	                                                      "codeInput", "carousel", "scene", "outlet"});
+	                                                      "codeInput", "carousel", "scene", "terminal", "outlet"});
 	for(const NodeType* type : registry.inOrder()) {
 		CAPTURE(type->name);
 		CHECK(type->create());
@@ -90,7 +90,7 @@ TEST_CASE("format: a type's property sets: its own, then the built-in widgets it
 	REQUIRE(sets[0] == own);
 	REQUIRE(sets[1]);
 	CHECK(sets[1]->find("lineNumbers")); // the editor's
-	CHECK(sets[2]); // then the sets that apply to every node, such as the transform properties
+	CHECK(sets[2]);                      // then the sets that apply to every node, such as the transform properties
 
 	const affresco::Panel panel;
 	const PropertySets none = registry.setsFor(registry.find("panel"), panel);
@@ -121,8 +121,9 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
 	CHECK(groups == std::vector<std::string>{"state",     "flow",       "outside", "services", "auth",
 	                                         "assistant", "attach",     "folder",  "file",     "export",
-	                                         "review",    "navigation", "editor",  "time",     "other",
-	                                         "scene",     "image",      "audio",   "data",     "windows"});
+	                                         "review",    "navigation", "editor",  "keys",     "time",
+	                                         "other",     "scene",      "image",   "audio",    "terminal",
+	                                         "data",      "windows"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
@@ -130,9 +131,10 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
 	CHECK(control ==
-	      std::vector<std::string>{"accept",     "ask",    "attach",   "call",  "cancelAsk", "chooseFolder", "connect",
-	                               "endPreview", "export", "openFile", "patch", "preview",   "reject",       "respond",
-	                               "restore",    "revert", "saveFile", "send",  "signIn",    "signOut",      "undo"});
+	      std::vector<std::string>{"accept",        "ask",          "attach",     "call",     "cancelAsk", "chooseFolder",
+	                               "clearTerminal", "closeTerminal", "connect",   "endPreview", "export",   "openFile",
+	                               "patch",         "preview",      "reject",     "respond",  "restore",   "revert",
+	                               "runInTerminal", "saveFile",     "send",       "signIn",   "signOut",   "undo"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});
@@ -296,9 +298,9 @@ TEST_CASE("format: an application's type gets the events it lists as its own") {
 
 	affresco::Screen unknown = affresco::Screen::fromString(R"json({
 		"format": "affrescoui-screen", "version": 1,
-		"root": { "type": "panel", "children": [{ "type": "notes", "onPopupKey": "typed" }] }
+		"root": { "type": "panel", "children": [{ "type": "notes", "onWobble": "typed" }] }
 	})json");
 	unknown.registerType(
 	    "notes", [] { return std::make_unique<NotesEditor>(); }, {"onType"}, [](auto&, const auto&) {});
-	CHECK_THROWS_WITH(unknown.build(*window), doctest::Contains("onPopupKey: unknown event"));
+	CHECK_THROWS_WITH(unknown.build(*window), doctest::Contains("onWobble: unknown event"));
 }

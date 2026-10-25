@@ -199,6 +199,7 @@ void registerBuiltInTypes(TypeRegistry& registry) {
 	registerCodeInputType(registry);
 	registerCarouselType(registry);
 	registerSceneType(registry);
+	registerTerminalType(registry);
 	registerTextFieldProperties(registry);
 	addCore(
 	    registry, "outlet", "Shows the current screen from \"screens\"",

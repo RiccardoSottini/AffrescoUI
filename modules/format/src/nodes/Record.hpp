@@ -58,6 +58,7 @@ struct Record {
 	json key;                             ///< A keyed repeat's key for this item (null: none).
 	std::optional<std::string> bind;      ///< State path the value mirrors.
 	std::optional<std::string> caret;     ///< State path a text editor writes its caret to.
+	std::optional<std::string> view;      ///< State path a text editor writes what it shows to.
 	/// The values last given to the apply function of its property set that runs only when they change (an
 	/// application's type); there is at most one such set, its type's own.
 	std::optional<json> ownProperties;
@@ -102,6 +103,7 @@ struct Record {
 		Connection key = 0;        ///< Every panel's onKey.
 		Connection value = 0;      ///< A widget's value (a text area's text, or ValueHooks::listen()).
 		Connection caret = 0;      ///< A text editor's caret.
+		Connection view = 0;       ///< A text editor's view.
 		EventConnections events{}; ///< A widget's own events (WidgetEvents::listen()).
 		Connection link = 0;       ///< A label's links.
 	} hooks;                       ///< See Hooks.

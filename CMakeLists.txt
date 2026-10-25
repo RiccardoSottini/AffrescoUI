@@ -91,10 +91,8 @@ endif()
 include(cmake/AffrescoUISignatures.cmake)
 # SQLite: the record store of the data module (screens' "models" and their records)
 include(cmake/AffrescoUISqlite.cmake)
-# libvterm: the terminal emulator of Forge's terminal panel, which the examples, the tests and the benchmarks build
-if(AFFRESCOUI_BUILD_EXAMPLES OR AFFRESCOUI_BUILD_TESTS OR AFFRESCOUI_BUILD_BENCHMARKS)
-	include(cmake/AffrescoUITerminal.cmake)
-endif()
+# libvterm: the VT terminal emulator of the format's `terminal` node
+include(cmake/AffrescoUITerminal.cmake)
 
 # The Lucide icon font the templates and the rendering check use (decision D11), vendored and pinned by its hash: lucide.ttf
 # of lucide-static 1.48.0 (examples/shared/fonts/README.md)
@@ -170,25 +168,9 @@ if(AFFRESCOUI_INSTALL)
 	include(cmake/AffrescoUIInstall.cmake)
 endif()
 
-# Forge's natives, which the benchmark builds too (without the examples)
-set(AFFRESCOUI_FORGE_SOURCES examples/forge/Forge.cpp examples/forge/features/palette/FileIndex.cpp
-	examples/forge/features/themes/ThemeImport.cpp examples/forge/features/themes/IconTheme.cpp
-	examples/forge/features/scm/Scm.cpp examples/forge/features/scm/GitStatus.cpp
-	examples/forge/features/scm/GitArguments.cpp examples/forge/features/scm/LineDiff.cpp
-	examples/forge/features/accounts/Accounts.cpp examples/forge/features/editor/Buffers.cpp
-	examples/forge/features/editor/Editor.cpp examples/forge/features/search/Search.cpp
-	examples/forge/features/explorer/Explorer.cpp examples/forge/features/terminal/Terminal.cpp
-	examples/forge/features/terminal/TerminalModel.cpp examples/forge/features/debug/Debug.cpp)
-# The terminal's sessions and widget (examples/forge/features/terminal)
-list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/terminal/TerminalSessions.cpp
-	examples/forge/features/terminal/TerminalView.cpp)
-# The lsp feature (examples/forge/features/lsp)
-list(APPEND AFFRESCOUI_FORGE_SOURCES examples/forge/features/lsp/Lsp.cpp examples/forge/features/lsp/LspCall.cpp
-	examples/forge/features/lsp/LspEdits.cpp examples/forge/features/lsp/LspProtocol.cpp examples/forge/features/lsp/LspText.cpp)
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
 	add_executable(affrescoui_launcher apps/host/host.cpp apps/host/Permissions.cpp)
-	target_sources(affrescoui_launcher PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui::intelligence) # the assistant's providers
 	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples apps/shared)
 	target_include_directories(affrescoui_launcher SYSTEM PRIVATE external/glad/include)
@@ -202,12 +184,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 			CONTENT "1 ICON \"${CMAKE_CURRENT_SOURCE_DIR}/brand/affrescoui.ico\"\n")
 		target_sources(affrescoui_launcher PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/affrescoui_launcher.rc")
 	endif()
-	# Forge, a demo IDE: its workbench is examples/forge/index.screen.json, with a few natives (examples/forge/README.md)
-	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/shared/CodeEditor.cpp)
-	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge apps/shared)
-	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm affrescoui::intelligence)
-	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
-	target_compile_definitions(affrescoui_forge PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (tests/render/surfaces)
 	add_executable(affrescoui_surfaces tests/render/surfaces/main.cpp tests/render/surfaces/Surfaces.cpp)
 	target_include_directories(affrescoui_surfaces SYSTEM PRIVATE external/glad/include)
@@ -281,15 +257,15 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
-		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/shared/CodeEditor.cpp tests/perf/buffers.cpp
-		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp ${AFFRESCOUI_FORGE_SOURCES}
+		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp
+		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp
 		tests/perf/syntax.cpp
 		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
-	target_include_directories(affrescoui_bench PRIVATE examples/shared apps/shared examples/forge
+	target_include_directories(affrescoui_bench PRIVATE examples/shared apps/shared
 		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
-	target_link_libraries(affrescoui_bench PRIVATE affrescoui affrescoui_vterm)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui::imaging)
 	target_compile_definitions(affrescoui_bench PRIVATE
 		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples"

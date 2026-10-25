@@ -112,12 +112,13 @@ void applyCodeKeys(TextEditor& editor, const json& values, const std::string& pa
 	code->setCommands(values.contains("commands") ? commandsOf(values["commands"], path + ".commands")
 	                                              : std::map<std::string, std::string, std::less<>>());
 	code->setPopup(values.contains("popup") && expect::boolean(values["popup"], path + ".popup"));
-	if(const auto goTo = values.find("goTo"); goTo != values.end()) {
+	// null: none, as a binding may give
+	if(const auto goTo = values.find("goTo"); goTo != values.end() && !goTo->is_null()) {
 		const std::string at = path + ".goTo";
 		object(*goTo, at);
 		code->goTo(place(*goTo, "line", at), place(*goTo, "column", at), requestOf(*goTo, at));
 	}
-	if(const auto insert = values.find("insert"); insert != values.end()) {
+	if(const auto insert = values.find("insert"); insert != values.end() && !insert->is_null()) {
 		const std::string at = path + ".insert";
 		object(*insert, at);
 		const std::string text = insert->contains("text") ? expect::string((*insert)["text"], at + ".text") : "";

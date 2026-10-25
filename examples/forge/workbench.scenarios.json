@@ -129,6 +129,34 @@
 			]
 		},
 		{
+			"name": "forge-workbench-import-theme",
+			"note": "A colour theme read into state.imported becomes a theme: each token from its first key that holds a colour (#rgb and #rgba spelt out), else the default for its type; one that isn't an object is refused",
+			"steps": [
+				{ "revision": { "type": "revision", "message": "A theme as openFile reads it", "set": {
+					"/state/importedFile": "harbour.json",
+					"/state/imported": { "name": "Harbour Night", "type": "dark", "colors": {
+						"editor.background": "#011627", "focusBorder": "#7E57C2", "titleBar.activeBackground": "#0116",
+						"statusBar.background": "#011627AA", "list.hoverBackground": "not a colour", "panel.background": 12 } } } } },
+				{ "action": "readTheme" },
+				{ "expect": { "state": "theme", "is": "harbour-night" } },
+				{ "expect": { "state": "themes[3]", "is": { "id": "harbour-night", "name": "Harbour Night", "type": "dark" } } },
+				{ "expect": { "node": "#root", "property": "color", "is": "#011627" } },
+				{ "expect": { "node": "#side-bar", "property": "color", "is": "#011627" } },
+				{ "expect": { "node": "#title-bar", "property": "color", "is": "#00111166" } },
+				{ "expect": { "state": "notifications[0].message", "is": "Imported the Harbour Night theme" } },
+				{ "revision": { "type": "revision", "message": "A light theme without a name", "set": {
+					"/state/importedFile": "paper.json", "/state/imported": { "type": "vs", "colors": { "editor.background": "#FFF" } } } } },
+				{ "action": "readTheme" },
+				{ "expect": { "state": "theme", "is": "paper" } },
+				{ "expect": { "state": "themes[4].type", "is": "light" } },
+				{ "expect": { "node": "#root", "property": "color", "is": "#ffffff" } },
+				{ "revision": { "type": "revision", "message": "Not a theme", "set": { "/state/imported": [1, 2] } } },
+				{ "action": "readTheme" },
+				{ "expect": { "state": "theme", "is": "paper" } },
+				{ "expect": { "state": "themes.length", "is": 5 } }
+			]
+		},
+		{
 			"name": "forge-workbench-open-twice",
 			"note": "Opening an open file shows its tab again, without a second copy",
 			"steps": [

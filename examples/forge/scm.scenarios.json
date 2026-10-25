@@ -112,7 +112,7 @@
 		},
 		{
 			"name": "forge-scm-read-the-status",
-			"note": "git's porcelain v2 status is read in C++: the branch, then each file in the staged list, the changes list or both; an ignored file is in neither",
+			"note": "git's porcelain v2 status is read by gitStatus(): the branch, then each file in the staged list, the changes list or both; an ignored file is in neither",
 			"steps": [
 				{
 					"action": "showSourceControl"
@@ -303,7 +303,7 @@
 				{
 					"expect": {
 						"state": "scm.error",
-						"is": "git's output is malformed: an entry has too few fields"
+						"is": "git's status could not be read: it is not the output this view asks for."
 					}
 				},
 				{
@@ -321,7 +321,7 @@
 				{
 					"expect": {
 						"state": "scm.error",
-						"is": "git's output is malformed: a record isn't ended"
+						"is": "git's status could not be read: it is not the output this view asks for."
 					}
 				},
 				{
@@ -333,7 +333,7 @@
 				{
 					"expect": {
 						"state": "scm.error",
-						"is": "git's output is malformed: a bad path"
+						"is": "git's status could not be read: it is not the output this view asks for."
 					}
 				},
 				{

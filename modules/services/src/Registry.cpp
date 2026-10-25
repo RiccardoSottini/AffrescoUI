@@ -209,6 +209,7 @@ ServiceRegistry::ServiceRegistry() {
 	add(makeJsonRpcProvider());
 	add(makeWatchProvider());
 	add(makePtyProvider());
+	add(makeLspProvider());
 #endif
 	add(makeSearchProvider());
 	add(makeDapProvider());
@@ -334,7 +335,7 @@ std::unique_ptr<ServiceRegistry::Entry> ServiceRegistry::declare(const std::stri
 		return refuse(place + ".root: no folder chosen yet");
 	}
 	if(auto problem = resolve(name, entry->configuration, entry->grant)) return refuse(*problem);
-	// A read-only root binds the providers that only read it; the others (process, pty, jsonrpc, dap) run programs
+	// A read-only root binds the providers that only read it; the others (process, pty, jsonrpc, dap, lsp) run programs
 	// there, which could write, so they can't use it
 	const std::string_view provider = entry->provider->name();
 	if(entry->grant.rootReadOnly && provider != "fs" && provider != "watch" && provider != "search")

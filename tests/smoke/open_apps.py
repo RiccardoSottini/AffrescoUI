@@ -42,7 +42,6 @@ SAVED = re.compile(r"screenshot saved|\b0 failed\b")  # the frame saved, a summa
 WINDOW, SERVICE, COMMAND = "window", "service", "command"
 PROGRAMS = [
     ("host", "affrescoui_launcher", [], WINDOW),
-    ("forge", "affrescoui_forge", [], WINDOW),
     ("surfaces", "affrescoui_surfaces", [], WINDOW),
     ("embed", "affrescoui_embed", [], WINDOW),
     ("embed-texture", "affrescoui_embed", ["--texture"], WINDOW),
@@ -141,7 +140,7 @@ def run(program, build, way, seconds, keep):
         if name in FIRST:
             subprocess.run([executable] + placed(FIRST[name]), cwd=cwd, env=environment_for(home), capture_output=True,
                            timeout=GRACE_SECONDS, check=False)
-        if way != "default socket" and executable.endswith(("launcher", "forge", "modello")):
+        if way != "default socket" and executable.endswith(("launcher", "modello")):
             absolute += ["--socket", socket]
         if way != "default socket" and executable.endswith("server"):
             absolute += ["--listen", f"127.0.0.1:{free_port()}"]  # runs side by side; the default way keeps 7420

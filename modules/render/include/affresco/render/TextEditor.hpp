@@ -208,6 +208,18 @@ public:
 	void setMatchOutline(bool outline);
 	/// @brief Whether find's matches are outlined.
 	[[nodiscard]] bool matchOutline() const noexcept { return matchOutline_; }
+	/// @brief How the caret is drawn.
+	enum class CaretStyle {
+		Line,     ///< A thin bar before the character.
+		Block,    ///< A box over the character, which shows through in the background colour.
+		Underline ///< A bar under the character.
+	};
+	/// @brief Sets how the caret (and each extra one) is drawn.
+	/// @param style The style.
+	void setCaretStyle(CaretStyle style);
+	/// @brief How the caret is drawn.
+	/// @return See setCaretStyle().
+	[[nodiscard]] CaretStyle caretStyle() const noexcept { return caretStyle_; }
 
 	/* Decorations and cursors: TextEditorCursors.cpp */
 
@@ -337,9 +349,24 @@ public:
 	/// @brief The text, one element per line (at least one), decoded when read.
 	[[nodiscard]] const TextLines& lines() const noexcept { return lines_; }
 
+	/// @brief What the editor shows: the lines of its first and last visible rows, counted from 1, how many rows
+	/// fit, and how many lines there are.
+	struct View {
+		std::size_t first = 0; ///< The line of the first visible row, from 1.
+		std::size_t last = 0;  ///< The line of the last visible row, from 1.
+		std::size_t rows = 0;  ///< How many whole rows fit.
+		std::size_t lines = 0; ///< How many lines the text has.
+		/// @brief Whether two views are the same.
+		bool operator==(const View&) const = default;
+	};
+	/// @brief What the editor shows now.
+	/// @return See View.
+	[[nodiscard]] View view() const;
+
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText()); UTF-8.
 	Signal<Position> onCaretMoved;            ///< The caret or the selection changed, by the user or by an edit.
 	Signal<Vec2> onScrolled;                  ///< The scroll offset changed (by the wheel, the caret or setScroll()).
+	Signal<View> onViewChanged;               ///< What view() returns changed: a scroll, an edit or a new size.
 	/// A left press on the gutter (line numbers, gutter decorations) that didn't unfold a line: the line, the keys
 	/// held. Only fired, and the press only kept from moving the caret, while something listens.
 	Signal<std::size_t, Mods> onGutterClicked;
@@ -359,6 +386,30 @@ public:
 	[[nodiscard]] std::optional<Rect> rectAt(Position at) const;
 	/// @brief The caret's box: rectAt(caret()).
 	[[nodiscard]] std::optional<Rect> caretRect() const { return rectAt(caret_); }
+
+	/* Editing as a script does it: each call is one undo step and fires the signals, like the user's own edit */
+
+	/// @brief Puts text in place of the selection (or at the caret), the caret after it, as a paste does: brackets
+	/// aren't closed and the indentation isn't changed.
+	/// @param utf8 UTF-8 text, lines separated by "\n".
+	/// @return Whether the text changed (not while read only).
+	bool insertText(std::string_view utf8);
+	/// @brief Removes the text between two positions; the caret goes to where it was.
+	/// @param from One end (clamped to the text).
+	/// @param to The other end (clamped to the text).
+	/// @return The text removed, as UTF-8 (empty while read only).
+	std::string removeText(Position from, Position to);
+	/// @brief The text between two positions, as removeText() would remove it.
+	/// @param from One end (clamped to the text).
+	/// @param to The other end (clamped to the text).
+	/// @return It, as UTF-8.
+	[[nodiscard]] std::string textBetween(Position from, Position to) const;
+	/// @brief The position one code point or one word on from another, crossing line breaks as the arrows do.
+	/// @param from The position (clamped to the text).
+	/// @param forward true for on, false for back.
+	/// @param word true to go a word.
+	/// @return It; from itself at the text's ends.
+	[[nodiscard]] Position nextPosition(Position from, bool forward, bool word) const;
 
 protected:
 	/// @brief What an edit was, so consecutive typing can be undone in one step.
@@ -498,6 +549,8 @@ private:
 	[[nodiscard]] std::size_t visibleLines() const noexcept;
 	/// @brief Keeps the scroll offset inside the content.
 	void clampScroll();
+	/// @brief Fires onViewChanged if view() changed since it last did.
+	void noteView();
 	/// @brief Scrolls so the caret is visible.
 	void revealCaret();
 	/// @brief The position one code point, or one word, to the left or right.
@@ -804,6 +857,14 @@ private:
 	/// @param font The font.
 	/// @param layout The frame's layout.
 	void paintCarets(Painter& painter, const Font& font, const Layout& layout) const;
+	/// @brief Draws one caret in the caret style.
+	/// @param painter The painter.
+	/// @param font The font.
+	/// @param layout The frame's layout.
+	/// @param at Where it is.
+	/// @param x Its left, on its row.
+	/// @param top Its row's top.
+	void paintCaret(Painter& painter, const Font& font, const Layout& layout, Position at, float x, float top) const;
 	/// @brief Calls a function for each row drawn that a range of lines shows.
 	/// @param layout The frame's layout.
 	/// @param from The first line.
@@ -820,6 +881,7 @@ private:
 	Position anchor_;                   ///< The selection's other end (== caret_: none).
 	float preferredX_ = -1.0f;          ///< The x vertical moves aim for (< 0: the caret's).
 	Vec2 scroll_;                       ///< Pixels scrolled right and down.
+	bool revealPending_ = false;        ///< The caret was revealed before the editor had a height: arrange() does it.
 	bool dragging_ = false;             ///< A button press is selecting text.
 	Position hoveredWord_{SIZE_MAX, 0}; ///< Where the word under the pointer starts, for onWordHovered.
 	double lastClickTime_ = -1.0;       ///< When the last press happened, for double clicks.
@@ -893,6 +955,8 @@ private:
 	bool minimapViewportOnHover_ = false; ///< See setMinimapViewportOnHover().
 	bool minimapHovered_ = false;     ///< The pointer is over the minimap.
 	bool matchOutline_ = false;       ///< See setMatchOutline().
+	CaretStyle caretStyle_ = CaretStyle::Line; ///< See setCaretStyle().
+	View lastView_;                            ///< What onViewChanged last told.
 
 	std::shared_ptr<const Font> font_;    ///< nullptr: the window's default.
 	bool lineNumbers_ = false;            ///< See setLineNumbers().

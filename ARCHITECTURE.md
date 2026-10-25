@@ -214,7 +214,7 @@ untrusted input, and the known gaps.
 Today an application extends the library at these points:
 - **Node types:** `Screen::registerType(name, factory, properties, apply)`, through the same type registry as the
   built-in types (a name the format has replaces that type). The type gets the properties of the built-in widget its
-  panel derives from, plus its own (`examples/shared/CodeEditor.*` adds a `code` type with syntax colours).
+  panel derives from, plus its own (`tests/unit/registries.cpp` registers one).
 - **Native behaviour:** `onAction` and `onCall`, and listeners on `onEvent`.
 - **Widgets:** `Panel` subclasses (`paint`, `prepareLayout`, `arrange`, the event hooks); `TextEditor`'s colouring hook.
 - **Transports and backends:** a `Channel`, a `VersionControl` or a `DocumentRules` of your own (`core`).

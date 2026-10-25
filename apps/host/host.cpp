@@ -40,7 +40,6 @@
 // own in DIR. Every template has a folder in examples (examples/README.md): the Kanban board is examples/flow.
 
 #include "Assets.hpp"
-#include "CodeEditor.hpp"
 #include "Permissions.hpp"
 #include "SocketDir.hpp"
 
@@ -102,9 +101,6 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 			automation::Options options;
 			options.document = document;
 			options.pictures = false;
-			options.prepare = [](affresco::Screen& played) {
-				examples::registerCodeEditor(played);
-			};
 			for(const automation::Scenario& scenario : loaded.scenarios)
 				if(!scenario.needsPictures) options.only.push_back(scenario.name);
 			if(options.only.empty()) return results.dump(); // all of them draw
@@ -382,8 +378,7 @@ void grantLauncher(affresco::Screen& screen, const Options& options) {
 	screen.services().addRoot("apps", apps);
 	services::AppPrograms programs;
 	programs.folder = programFile().parent_path();
-	programs.programs = {{"affrescoui_launcher", true, true},
-	                     {"affrescoui_forge", false, false}};
+	programs.programs = {{"affrescoui_launcher", true, true}};
 	programs.roots = {{"examples", examples}, {"apps", apps}};
 	programs.dataDirectory = std::filesystem::absolute(options.dataDir);
 	programs.socketDirectory = std::filesystem::absolute(options.socketDir);
@@ -451,8 +446,7 @@ int forgetPermissions(const Options& options) {
 affresco::Screen openScreen(const Opened& opened, const Options& options, affresco::Screen::History history) {
 	affresco::Screen screen = opened.app ? affresco::Screen::fromApp(opened.location, options.dataDir, history)
 	                                     : affresco::Screen::fromFile(opened.location, options.dataDir, history);
-	screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
-	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
+	screen.setPlaceholderTypes(true); // custom types of other apps show as plain panels
 	return screen;
 }
 

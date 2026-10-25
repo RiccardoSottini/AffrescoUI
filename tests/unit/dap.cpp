@@ -105,9 +105,11 @@ constexpr const char* debugScreen = R"json({
 	"version": 2,
 	"services": { "dbg": { "provider": "dap", "process": "adapter", "root": "work", "timeout": 1500 } },
 	"state": { "caps": null, "launched": false, "stops": [], "output": [], "terminal": null, "bps": null,
-	           "stack": null, "page": null, "value": "", "error": "", "code": "", "ended": "" },
+	           "stack": null, "page": null, "value": "", "error": "", "code": "", "ended": "",
+	           "reason": "" },
 	"actions": {
-		"listen": [{ "subscribe": "dbg.stopped", "append": "state.stops", "id": "stops" },
+		"listen": [{ "subscribe": "dbg.stopped", "append": "state.stops", "id": "stops",
+		             "do": [{ "set": "state.reason", "to": "{{event.reason}}" }] },
 		           { "subscribe": "dbg.output", "append": "state.output", "id": "output",
 		             "onError": [{ "set": "state.ended", "to": "{{error.message}}" }] }],
 		"initialize": [{ "invoke": "dbg.initialize", "with": { "adapterID": "fake", "linesStartAt1": true },
@@ -247,6 +249,7 @@ TEST_CASE("dap: a screen debugs the fake adapter: correlation, events, a reverse
 
 	REQUIRE(session.run("run", [&] { return !session.at("/stops").empty(); }));
 	CHECK(session.at("/stops/0/reason") == "breakpoint");
+	CHECK(session.at("/reason") == "breakpoint"); // `do` sees the stream's event as `event`
 	REQUIRE(session.run("stack", [&] { return session.at("/stack").is_object(); }));
 	CHECK(session.at("/stack/stackFrames/0/line") == 5);
 	CHECK(session.at("/stack/stackFrames/0/source/inside") == true);

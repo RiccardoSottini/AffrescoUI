@@ -5,13 +5,9 @@
 /// Every setup happens on the first run, so selecting one workload sets up only its own.
 
 #include "Bench.hpp"
-#include "Forge.hpp"
 #include "Headless.hpp"
-#include "features/editor/Buffers.hpp"
-#include "features/editor/Editor.hpp"
-#include "features/explorer/Explorer.hpp"
-#include "features/search/Search.hpp"
-#include "features/terminal/Terminal.hpp"
+
+#include <affresco/render/TextEditor.hpp>
 
 #include <chrono>
 #include <cmath>
@@ -141,30 +137,35 @@ Workload idleWorkload(Context& context) {
 	return workload;
 }
 
-/// @brief "budgets/open-50mb": a 50 MB file opened in Forge's buffers, with the process's memory once it is open.
+/// @brief "budgets/open-50mb": a 50 MB file read into the library's text editor (the editor node's view), with the
+/// process's memory once it is open.
 /// @return The workload.
 Workload openWorkload() {
 	const auto folder = std::make_shared<std::unique_ptr<TempFolder>>();
-	const auto buffers = std::make_shared<std::unique_ptr<forge::Buffers>>();
+	const auto editor = std::make_shared<std::unique_ptr<TextEditor>>();
 	Workload workload{.name = "budgets/open-50mb", .unit = "ms", .runs = 5};
-	workload.prepare = [folder, buffers] {
-		buffers->reset(); // the last run's, before the next is made
+	workload.prepare = [folder, editor] {
+		editor->reset(); // the last run's, before the next is made
 		if(!*folder) {
 			*folder = std::make_unique<TempFolder>();
 			(*folder)->write("big.cpp", 50 * 1024 * 1024);
 		}
-		*buffers = std::make_unique<forge::Buffers>();
+		*editor = std::make_unique<TextEditor>();
 	};
-	workload.step = [folder, buffers] {
-		if(const std::optional<std::string> error = (*buffers)->open((*folder)->path, "big.cpp"))
-			throw std::runtime_error("budgets/open-50mb: " + *error);
-	};
+	workload.step = [folder, editor] { (*editor)->setText(readFile((*folder)->path / "big.cpp")); };
 	reportMemory(workload);
 	return workload;
 }
 
-/// @brief Builds Forge into a new window as affrescoui_forge does, a folder open and a terminal that starts no shell,
-/// and draws its first frame.
+/// @brief Where Forge's services post their results: the 10-tab workload pumps it until its files are read.
+/// @return The executor, which outlives every screen (the Context goes first).
+PumpedExecutor& forgeExecutor() {
+	static PumpedExecutor executor;
+	return executor;
+}
+
+/// @brief Builds Forge into a new window as the host does, a folder open as its workspace and no program granted (a
+/// terminal that starts no shell), and draws its first frame.
 /// @param context The context.
 /// @param folder The folder.
 /// @return The screen and its window.
@@ -173,14 +174,9 @@ LoadedScreen startForge(Context& context, const std::filesystem::path& folder) {
 	const std::string text = readFile(directory / "index.screen.json");
 	Window& window = context.openWindow(json::parse(text));
 	Screen& screen = context.create(text, directory);
-	const auto workspace = std::make_shared<forge::Workspace>(folder, &window);
-	forge::registerNatives(screen, workspace);
-	forge::addExampleCatalog(screen, directory);
-	forge::registerExplorer(screen, workspace, nullptr);
-	forge::grantTerminal(screen, folder);
-	forge::registerTerminal(screen, nullptr);
-	forge::registerEditor(screen, workspace);
-	forge::registerSearch(screen, workspace);
+	screen.setExecutor(&forgeExecutor());
+	screen.services().allowChosenRoot("workspace");
+	screen.services().addRoot("workspace", folder);
 	screen.build(window);
 	detail::renderWithoutPresenting(window);
 	return {screen, window};
@@ -222,9 +218,9 @@ Workload tabsWorkload(Context& context) {
 		for(int file = 0; file < 10; ++file)
 			runAction(**loaded, "openExplorerItem", {{"id", "file" + std::to_string(file) + ".cpp"}});
 		runAction(**loaded, "terminalNew", json::object());
-		if(const json state = json::parse((*loaded)->screen.stateJson()); state.at("docs").size() != 10)
-			throw std::runtime_error("budgets/forge-10-tabs: " + std::to_string(state.at("docs").size()) +
-			                         " files open");
+		const LoadedScreen& forge = **loaded;
+		forgeExecutor().pumpUntil([&forge] { return json::parse(forge.screen.stateJson()).at("docs").size() == 10; },
+		                          "budgets/forge-10-tabs: Forge's files");
 	};
 	workload.step = [loaded, tab] {
 		*tab = (*tab + 1) % 10;

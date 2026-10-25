@@ -243,6 +243,8 @@ void TextEditor::textChanged(const TextChange& change) {
 		if(i != activeCursor_) shift((*editedCursors_)[i]);
 	shiftView(change);
 	rowsChanged(change);
+	clampScroll(); // a shorter text scrolls up now, so the view it notes is the one the next frame shows
+	noteView();
 	invalidate();
 	const std::size_t edited = change.newEnd.line - change.from.line + 1;
 	if(lines_.size() <= exactWidth || edited > exactWidth) {
@@ -461,6 +463,8 @@ void TextEditor::arrange() {
 	// The wrapped rows follow the width (and the font)
 	if(wrap_ && (wrapWidth() != rowsWidth_ || font() != rowsFont_)) rebuildRows();
 	clampScroll();
+	if(revealPending_ && frame().height() > textPadding) return revealCaret(); // it notes the view
+	noteView();
 }
 
 } // namespace affresco

@@ -205,6 +205,10 @@ TEST_CASE("checker: state paths") {
 	        "root": {"text": "{{computed.first.title}} {{computed.frist}} {{computed.first.titel}}"})",
 		 {"root.text: 'computed.first.titel' doesn't exist (did you mean 'computed.first.title'?)",
 		  "root.text: 'computed.frist' doesn't exist (did you mean 'computed.first'?)"}},
+	    {"a line diff has its hunks",
+		 R"("computed": {"diff": "{{diffLines('a', 'b')}}"},
+	        "root": {"text": "{{computed.diff.hunks[0].lines[0].text}} {{computed.diff.added}} {{computed.diff.hunk}}"})",
+		 {"root.text: 'computed.diff.hunk' doesn't exist (did you mean 'computed.diff.hunks'?)"}},
 	    {"text paths: watch, forEach and overlays (with dismiss, an overlay writes its path, like a bind)",
 		 R"("state": {"open": false, "items": []},
 	        "watch": {"state.opne": "go"}, "actions": {"go": {"forEach": "state.itmes", "do": []}},
@@ -349,11 +353,11 @@ TEST_CASE("checker: references to what a section defines") {
 	    {"steps it doesn't know",
 		 R"("root": {"onClick": [{"sett": "state.x", "to": 1}, {"note": "fine"}]})",
 		 {"root.onClick[0]: unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, "
-		  "call, emit, send, connect, patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, "
+		  "call, emit, send, connect, patch, focus, scrollTo, navigate, press, dismiss, after, debounce, animate, copy, log, "
 		  "stop, "
 		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, "
-		  "signIn, signOut, chooseFolder, audio, attach, saveFile, openFile, export, openWindow, closeWindow or "
-		  "fullscreen)"}},
+		  "signIn, signOut, chooseFolder, audio, attach, saveFile, openFile, export, openWindow, closeWindow, "
+		  "fullscreen, runInTerminal, clearTerminal or closeTerminal)"}},
 	    {"expressions that don't parse, and writes outside the state",
 		 R"("root": {"text": "{{1 +}}", "onClick": {"set": "card.title", "to": 1}})",
 		 {"root.onClick.set: can only change values under 'state', not 'card.title'",

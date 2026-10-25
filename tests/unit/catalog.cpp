@@ -30,7 +30,7 @@ std::filesystem::path exampleCatalog() {
 	return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "forge" / "catalog";
 }
 
-/// @brief The example catalogue's publisher, as Forge trusts it (Forge.hpp).
+/// @brief The example catalogue's publisher, as the rendering check trusts it (tests/render/runner.cpp).
 constexpr std::string_view examplePublisher = "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc";
 
 /// @brief Forge's word count package, unsigned.

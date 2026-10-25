@@ -23,14 +23,17 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",        "push",      "remove",   "toggle",       "increment", "if",         "forEach",    "while",
-	 "run",        "call",      "cancel",   "emit",         "send",      "connect",    "patch",      "accept",
-	 "reject",     "preview",   "restore",  "revert",       "undo",      "endPreview", "focus",      "scrollTo",
-	 "navigate",   "dismiss",   "after",    "debounce",     "animate",   "copy",       "log",        "stop",
-	 "note",       "invoke",    "request",  "subscribe",    "respond",   "ask",        "signIn",     "signOut",
-	 "camera",     "transform", "image",    "chooseFolder", "edit",      "audio",      "insert",     "update",
-	 "delete",     "undoData",  "redoData", "importCsv",    "attach",    "cancelAsk",  "openWindow", "closeWindow",
-	 "fullscreen", "saveFile",  "openFile", "export"});
+    {"set",       "push",          "remove",        "toggle",       "increment", "if",
+	 "forEach",   "while",         "run",           "call",         "cancel",    "emit",
+	 "send",      "connect",       "patch",         "accept",       "reject",    "preview",
+	 "restore",   "revert",        "undo",          "endPreview",   "focus",     "scrollTo",
+	 "press",     "navigate",      "dismiss",       "after",        "debounce",  "animate",
+	 "copy",      "log",           "stop",          "note",         "invoke",    "request",
+	 "subscribe", "respond",       "ask",           "signIn",       "signOut",   "camera",
+	 "transform", "image",         "chooseFolder",  "edit",         "audio",     "insert",
+	 "update",    "delete",        "undoData",      "redoData",     "importCsv", "attach",
+	 "cancelAsk", "openWindow",    "closeWindow",   "fullscreen",   "saveFile",  "openFile",
+	 "export",    "runInTerminal", "clearTerminal", "closeTerminal"});
 
 /// The data layer's write steps (DataSteps.cpp): `then` sees `result`, `onError` sees `error` ({code, message}).
 constexpr auto dataSteps =
@@ -123,7 +126,7 @@ std::optional<Reference> referenceOf(std::string_view key) {
 	if(key == "color" || key.ends_with("Color")) return Reference{"color", "colors", "@"};
 	if(key == "font") return Reference{"font", "fonts", ""};
 	if(key == "style") return Reference{"style", "styles", ""};
-	if(key == "image") return Reference{"image", "images", ""}; // a raster node's
+	if(key == "image") return Reference{"image", "images", ""};      // a raster node's
 	if(key == "file") return Reference{"asset", "assets", "asset:"}; // an image node's "asset:<name>"
 	return std::nullopt;
 }
@@ -135,19 +138,21 @@ std::optional<Reference> referenceOf(std::string_view key) {
 bool mayReferTo(const std::string& key, const json& value) {
 	if(value.is_structured()) return true;
 	if(!value.is_string()) return false;
-	return isDynamic(value) || handlerKey(key) || key == "bind" || key == "caret" || referenceOf(key).has_value();
+	return isDynamic(value) || handlerKey(key) || key == "bind" || key == "caret" || key == "viewport" ||
+	       referenceOf(key).has_value();
 }
 
 /// @brief Tells whether a step's key is what the step writes, or where: those are read by walkWrite().
 /// @param kind The step.
 /// @param key A key of it.
 /// @return true for the target of a state step, "to" of set, "value" of push and "into", "loading" and
-/// "progress" of call.
+/// "progress" of call, and "into" of ask, attach and edit (a cut).
 bool writtenKey(std::string_view kind, std::string_view key) {
 	return (among(stateSteps, kind) && key == kind) || (kind == "set" && key == "to") ||
 	       (kind == "push" && key == "value") ||
 	       (kind == "call" && (key == "into" || key == "loading" || key == "progress")) ||
-	       ((kind == "ask" || kind == "attach") && key == "into") || (kind == "openFile" && key == kind);
+	       ((kind == "ask" || kind == "attach" || kind == "edit") && key == "into") ||
+	       (kind == "openFile" && key == kind);
 }
 
 /// @brief Tells whether a component's node has a `{"slot": true}` for the use's children, as the runtime looks for
@@ -354,7 +359,7 @@ void Checker::walkProperty(const Prepared& node, const std::string& key, const j
 	if(!mayReferTo(key, value)) return; // most properties: no place is built for them
 	const std::string at = layer.place + "." + key;
 	if(walkBehaviour(key, value, scope, at)) return;
-	if(key == "bind" || key == "caret") {
+	if(key == "bind" || key == "caret" || key == "viewport") {
 		walkBinding(key, value, scope, at);
 		if(key == "bind") checkBind(node, value, at);
 	} else if(key == "overlay") {
@@ -414,7 +419,7 @@ void Checker::walkBinding(const std::string& key, const json& value, const Scope
 		return;
 	}
 	if(key == "bind") (void)shapeOfPath(value.get_ref<const std::string&>(), scope, place);
-	write(value, key == "caret" ? caretShape() : single, Change::set, scope, place);
+	write(value, key == "caret" ? caretShape() : key == "viewport" ? viewShape() : single, Change::set, scope, place);
 }
 
 void Checker::walkOverlay(const json& value, const Scope& scope, const std::string& place) {
@@ -509,11 +514,13 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 	if(!kind) {
 		report(place, "unknown step",
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
-		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, "
+		       "patch, focus, scrollTo, navigate, press, dismiss, after, debounce, animate, copy, log, "
+		       "stop, note, accept, "
 		       "reject, "
 		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, "
 		       "chooseFolder, audio, "
-		       "attach, saveFile, openFile, export, openWindow, closeWindow or fullscreen");
+		       "attach, saveFile, openFile, export, openWindow, closeWindow, fullscreen, runInTerminal, clearTerminal "
+		       "or closeTerminal");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);
@@ -541,11 +548,11 @@ void Checker::walkNestedSteps(const json& step, const Scope& scope, const std::s
 		if(steps == step.end()) continue;
 		Scope layer{&scope, nullptr, json(), {}, {}};
 		const bool writes = writesData(step);
-		const bool service = givesCodedErrors(step) || writes; // {code, message}
+		const bool service = givesCodedErrors(step) || writes;                  // {code, message}
 		if(key == "onError") layer.vars["error"] = service ? anything : single; // a call's error (a service's: code...)
 		if(key == "then" && (step.contains("call") || writes)) layer.vars["result"] = anything; // and its result
 		if(key == "onDone") layer.vars["result"] = anything;                             // a service call's result
-		if(key == "onDone" && step.contains("attach")) layer.vars["error"] = anything; // the files that failed
+		if(key == "onDone" && step.contains("attach")) layer.vars["error"] = anything;   // the files that failed
 		if(key == "onEvent" || (key == "do" && service)) layer.vars["event"] = anything; // what it streams
 		walkHandler(*steps, layer, place + "." + std::string(key));
 	}
@@ -567,6 +574,8 @@ void Checker::walkWrite(std::string_view kind, const json& step, const Scope& sc
 			if(step.contains(name))
 				write(step[name], std::string_view(name) == "into" ? anything : single, Change::set, scope,
 				      place + "." + name);
+	if(kind == "edit" && step.contains("into"))
+		write(step["into"], single, Change::set, scope, place + ".into"); // the text a cut took
 }
 
 void Checker::walkRun(const json& step, const Scope& scope, const std::string& place) {

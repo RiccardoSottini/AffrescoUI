@@ -221,11 +221,15 @@ bool Events::runPanelKeys(Panel* from, const std::string& press, bool& waits) {
 	for(Panel* p = from; p; p = p->parent()) {
 		const Record* record = engine_.reconciler.recordOf(p);
 		if(!record || !record->keys.is_object()) continue;
-		waits = waits || startsChord(record->keys, press + " ", false);
-		if(!record->keys.contains(press)) continue;
-		const json handler = record->keys[press]; // a copy: the handler may revise the document
+		const bool starts = startsChord(record->keys, press + " ", false);
+		waits = waits || starts;
+		// "*" takes any press the node's own keys don't name or begin (a key recorder, a modal keymap)
+		const bool exact = record->keys.contains(press);
+		if(!exact && (starts || !record->keys.contains("*"))) continue;
+		const std::string written = exact ? press : "*";
+		const json handler = record->keys[written]; // a copy: the handler may revise the document
 		const SharedScope locals = record->locals;
-		if(runBinding(handler, *p, *locals, press, record->path + ".keys." + press)) return true;
+		if(runBinding(handler, *p, *locals, press, record->path + ".keys." + written)) return true;
 	}
 	return false;
 }
@@ -281,6 +285,7 @@ void Events::key(Panel& panel, const KeyEvent& event) {
 	   textArea && (event.key == Key::Enter || event.key == Key::KeypadEnter) &&
 	   event.action == affresco::Action::Press)
 		fire(panel, "onSubmit", {{"type", "submit"}, {"text", textArea->text()}});
+	if(pressing_) return; // press(): the panel's own handling only
 
 	// Keys ("keys") on the focused panel, its ancestors and the document, in one walk (the window's hook skips it)
 	keyResolved_ = true;
@@ -376,6 +381,18 @@ bool Events::clickMnemonic(Panel& list, char letter) {
 	for(Panel* panel : focusables(list, true))
 		if(engine_.reconciler.recordOf(panel)->mnemonic == letter) return keyClick(*panel);
 	return false;
+}
+
+void Events::press(Panel& panel, const KeyEvent& event, char32_t typed) {
+	if(!engine_.window || pressing_) return;
+	pressing_ = true;
+	try {
+		engine_.window->pressKey(panel, event, typed);
+	} catch(...) {
+		pressing_ = false;
+		throw;
+	}
+	pressing_ = false;
 }
 
 } // namespace affresco::format

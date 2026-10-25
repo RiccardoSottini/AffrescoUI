@@ -79,6 +79,7 @@ void TextEditor::setScroll(Vec2 offset) {
 	if(scroll_.x == before.x && scroll_.y == before.y) return;
 	invalidatePaint();
 	onScrolled(scroll_);
+	noteView();
 }
 
 void TextEditor::setComposition(std::u32string text) {
@@ -449,6 +450,9 @@ void TextEditor::clampScroll() {
 
 void TextEditor::revealCaret() {
 	if(hidden(caret_.line)) unfoldAround(caret_.line);
+	// Without a height yet (just built), any scroll would hide the text: the first arrange() reveals it
+	revealPending_ = frame().height() <= textPadding;
+	if(revealPending_) return;
 	const Vec2 before = scroll_;
 	const float lh = lineHeight();
 	const float top = static_cast<float>(rowOf(caret_)) * lh;
@@ -463,6 +467,7 @@ void TextEditor::revealCaret() {
 	else if(x > scroll_.x + width) scroll_.x = x - width + 40.0f;
 	invalidate();
 	if(scroll_.x != before.x || scroll_.y != before.y) onScrolled(scroll_);
+	noteView();
 }
 
 float TextEditor::widestLine(const Font& font) const {

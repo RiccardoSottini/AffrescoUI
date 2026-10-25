@@ -2,11 +2,15 @@
 	"$schema": "../../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Forge's language servers: one jsonrpc service per language (clangd, pyright, typescript-language-server), started on demand when main.cpp found and granted the program. Lsp.cpp keeps the protocol's bookkeeping (initialize, open documents, changes, positions) and answers through lspShow and lspDiagnostics; this file shows the answers: diagnostics as squiggles and in Problems, a hover card, completion and signature help at the caret, a peek list for definitions and references, a reviewed list of edits for rename and formatting, and symbols in a quick pick ('@' this file, '#' the workspace). With no server for a language, the editor works as before.",
+	"note": "Forge's language server: the lsp service (clangd, granted by the host when it finds it) for C and C++ files; the service speaks the protocol (initialize, open documents, positions) and answers in small shapes counted from 0. This file asks it at the caret, keeps it told of the text being edited, and shows the answers: diagnostics as squiggles and in Problems, a hover card, completion and signature help at the caret, a peek list for definitions and references, a reviewed list of edits for rename and formatting, and symbols in a quick pick ('@' this file, '#' the workspace). With no server, the editor works as before. Positions shown and gone to count from 1",
 
 	"state": {
 		"lsp": {
 			"request": 0,
+			"languages": { "c": "c", "h": "cpp", "cc": "cpp", "cpp": "cpp", "cxx": "cpp", "hh": "cpp", "hpp": "cpp", "hxx": "cpp",
+			               "m": "objective-c", "mm": "objective-cpp" },
+			"open": [],
+			"listening": false,
 			"files": [],
 			"hover": { "open": false, "text": "", "x": 0, "y": 0, "request": 0 },
 			"at": { "x": 0, "y": 0, "top": 0 },
@@ -22,58 +26,91 @@
 	},
 
 	"computed": {
+		"lspLanguage": "{{computed.activeDoc == null || computed.activeDoc.kind != 'file' ? null : state.lsp.languages[lower(reverse(split(computed.activeDoc.id, '.'))[0])] ?? null}}",
 		"lspCompletions": "{{fuzzySort(state.lsp.completion.items, state.lsp.completion.word, 'filter', 50)}}",
-		"lspSymbolItems": "{{map(state.lsp.symbols, {title: slice('                ', 0, 2 * it.depth) + it.name, detail: it.kind + (empty(it.detail) ? '' : ' ' + it.detail) + (slice(state.symbolPick.query, 0, 1) == '#' ? ' — ' + it.id : ''), name: it.name, id: it.id, line: it.line, column: it.column})}}",
-		"lspPeekRows": "{{map(state.lsp.peek.items, {id: index, cells: [it.label, it.id, it.line]})}}"
+		"lspSymbolItems": "{{map(state.lsp.symbols, {title: slice('                ', 0, 2 * it.depth) + it.name, detail: it.kind + (empty(it.detail) ? '' : ' ' + it.detail) + (slice(state.symbolPick.query, 0, 1) == '#' ? ' — ' + it.path : ''), name: it.name, path: it.path, line: it.line, column: it.column})}}",
+		"lspPeekRows": "{{map(state.lsp.peek.items, {id: index, cells: [reverse(split(it.path, '/'))[0] + ':' + (it.line + 1), it.path, it.line + 1]})}}"
 	},
 
 	"services": {
-		"lsp_cpp": { "provider": "jsonrpc", "process": "clangd", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
-			"framing": "contentLength",
-				"notifications": ["initialized", "exit", "textDocument/didOpen", "textDocument/didChange", "textDocument/didClose",
-				                  "workspace/didChangeWorkspaceFolders"],
-				"methods": {
-					"initialize": { "effect": "run", "revisable": false }, "shutdown": { "effect": "run", "revisable": false },
-					"textDocument/hover": { "effect": "read" }, "textDocument/completion": { "effect": "read" },
-					"textDocument/signatureHelp": { "effect": "read" }, "textDocument/definition": { "effect": "read" },
-					"textDocument/references": { "effect": "read" }, "textDocument/rename": { "effect": "read" },
-					"textDocument/formatting": { "effect": "read" }, "textDocument/documentSymbol": { "effect": "read" },
-					"workspace/symbol": { "effect": "read" }, "textDocument/semanticTokens/full": { "effect": "read" },
-					"textDocument/publishDiagnostics": { "effect": "event" } } },
-		"lsp_python": { "provider": "jsonrpc", "process": "pyright-langserver", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
-			"framing": "contentLength",
-				"notifications": ["initialized", "exit", "textDocument/didOpen", "textDocument/didChange", "textDocument/didClose",
-				                  "workspace/didChangeWorkspaceFolders"],
-				"methods": {
-					"initialize": { "effect": "run", "revisable": false }, "shutdown": { "effect": "run", "revisable": false },
-					"textDocument/hover": { "effect": "read" }, "textDocument/completion": { "effect": "read" },
-					"textDocument/signatureHelp": { "effect": "read" }, "textDocument/definition": { "effect": "read" },
-					"textDocument/references": { "effect": "read" }, "textDocument/rename": { "effect": "read" },
-					"textDocument/formatting": { "effect": "read" }, "textDocument/documentSymbol": { "effect": "read" },
-					"workspace/symbol": { "effect": "read" }, "textDocument/semanticTokens/full": { "effect": "read" },
-					"textDocument/publishDiagnostics": { "effect": "event" } } },
-		"lsp_typescript": { "provider": "jsonrpc", "process": "typescript-language-server", "start": "onDemand", "restart": { "times": 3, "after": 1000 },
-			"framing": "contentLength",
-				"notifications": ["initialized", "exit", "textDocument/didOpen", "textDocument/didChange", "textDocument/didClose",
-				                  "workspace/didChangeWorkspaceFolders"],
-				"methods": {
-					"initialize": { "effect": "run", "revisable": false }, "shutdown": { "effect": "run", "revisable": false },
-					"textDocument/hover": { "effect": "read" }, "textDocument/completion": { "effect": "read" },
-					"textDocument/signatureHelp": { "effect": "read" }, "textDocument/definition": { "effect": "read" },
-					"textDocument/references": { "effect": "read" }, "textDocument/rename": { "effect": "read" },
-					"textDocument/formatting": { "effect": "read" }, "textDocument/documentSymbol": { "effect": "read" },
-					"workspace/symbol": { "effect": "read" }, "textDocument/semanticTokens/full": { "effect": "read" },
-					"textDocument/publishDiagnostics": { "effect": "event" } } }
+		"lsp": { "provider": "lsp", "process": "clangd", "root": "workspace", "language": "cpp", "start": "onDemand",
+		         "restart": { "times": 3, "after": 1000 } }
 	},
 
 	"actions": {
 		"lspAsk": [
+			{ "note": "Asks the server about the active file, its text sent along (the service keeps the version when it is unchanged). line, column: from 0, or null for the caret's" },
 			{ "increment": "state.lsp.request", "by": 1 },
-			{ "call": "forge.lsp.request",
-			  "with": { "kind": "{{kind}}", "id": "{{computed.activeDoc.id ?? ''}}", "language": "{{computed.activeDoc.language ?? ''}}",
-			            "line": "{{line ?? state.caret.line}}", "column": "{{column ?? state.caret.column}}",
-			            "request": "{{state.lsp.request}}", "newName": "{{newName ?? ''}}", "query": "{{query ?? ''}}" },
-			  "onError": [{ "run": "log", "with": { "text": "{{'Language server: ' + error}}" } }] }
+			{ "if": "{{computed.lspLanguage != null}}",
+			  "then": [
+				{ "run": "lspListen" },
+				{ "run": "lspCall", "with": { "kind": "{{kind}}", "request": "{{state.lsp.request}}",
+				  "path": "{{kind == 'workspaceSymbols' ? '' : computed.activeDoc.id}}",
+				  "arguments": "{{kind == 'workspaceSymbols' ? {query: query ?? ''} : merge({path: computed.activeDoc.id, text: computed.activeDoc.text, language: computed.lspLanguage}, contains(['hover', 'completion', 'signature', 'definition', 'references', 'rename'], kind) ? {line: line ?? max(state.caret.line - 1, 0), column: column ?? max(state.caret.column - 1, 0)} : {}, kind == 'rename' ? {newName: newName} : {}, kind == 'format' ? {tabSize: 4, insertSpaces: true} : {})}}" } },
+				{ "if": "{{kind != 'workspaceSymbols' && !contains(state.lsp.open, computed.activeDoc.id)}}",
+				  "then": [{ "set": "state.lsp.open", "to": "{{slice(concat(state.lsp.open, [computed.activeDoc.id]), -256)}}" }] }
+			  ] }
+		],
+		"lspCall": [
+			{ "note": "One invoke per kind, as a step names its method written out; the silent kinds cancel their older call. Every answer goes to lspAnswer" },
+			{ "if": "{{kind == 'hover'}}", "then": [{ "invoke": "lsp.hover", "with": "{{arguments}}", "id": "lsp-hover",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'completion'}}", "then": [{ "invoke": "lsp.completion", "with": "{{arguments}}", "id": "lsp-completion",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'signature'}}", "then": [{ "invoke": "lsp.signature", "with": "{{arguments}}", "id": "lsp-signature",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'tokens'}}", "then": [{ "invoke": "lsp.tokens", "with": "{{arguments}}", "id": "lsp-tokens",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'definition'}}", "then": [{ "invoke": "lsp.definition", "with": "{{arguments}}",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'references'}}", "then": [{ "invoke": "lsp.references", "with": "{{arguments}}",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'rename'}}", "then": [{ "invoke": "lsp.rename", "with": "{{arguments}}",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'format'}}", "then": [{ "invoke": "lsp.format", "with": "{{arguments}}",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'symbols'}}", "then": [{ "invoke": "lsp.symbols", "with": "{{arguments}}",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] },
+			{ "if": "{{kind == 'workspaceSymbols'}}", "then": [{ "invoke": "lsp.workspaceSymbols", "with": "{{arguments}}",
+				"onDone": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: result, error: null} }}" } }],
+				"onError": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: kind, request: request, path: path, result: null, error: error} }}" } }] }] }
+		],
+		"lspListen": [
+			{ "note": "The server's diagnostics, file by file, from its first request on (again after the stream ends)" },
+			{ "if": "{{!state.lsp.listening}}",
+			  "then": [
+				{ "set": "state.lsp.listening", "to": true },
+				{ "subscribe": "lsp.diagnostics", "id": "lsp-diagnostics",
+				  "do": [{ "run": "lspPublished", "with": { "published": "{{event}}" } }],
+				  "onError": [{ "set": "state.lsp.listening", "to": false }] }
+			  ] }
+		],
+		"lspChanged": [
+			{ "note": "id: an edited file. A file the server has open gets its new text once typing pauses, so its diagnostics follow" },
+			{ "if": "{{contains(state.lsp.open, id)}}",
+			  "then": [{ "debounce": 500, "do": [
+				{ "forEach": "{{filter(state.docs, it.id == id && it.kind == 'file')}}", "as": "doc", "do": [
+					{ "invoke": "lsp.sync", "with": { "path": "{{doc.id}}", "text": "{{doc.text}}",
+					  "language": "{{state.lsp.languages[lower(reverse(split(doc.id, '.'))[0])] ?? 'cpp'}}" }, "onError": [] }
+				] }
+			  ] }] }
+		],
+		"lspClosed": [
+			{ "note": "id: a file no longer open in Forge. The server reads it from disk again" },
+			{ "if": "{{contains(state.lsp.open, id)}}",
+			  "then": [
+				{ "set": "state.lsp.open", "to": "{{filter(state.lsp.open, it != id)}}" },
+				{ "invoke": "lsp.close", "with": { "path": "{{id}}" }, "onError": [] }
+			  ] }
 		],
 		"lspHoverAt": [
 			{ "if": "{{!event.over || computed.activeDoc == null}}",
@@ -121,12 +158,14 @@
 			  "to": "{{ {text: computed.lspCompletions[index].item.insert, before: length(state.lsp.completion.word), request: state.lsp.insert.request + 1} }}" },
 			{ "set": "state.lsp.completion.open", "to": false }
 		],
-		"lspShow": [{ "run": "lspAnswer", "with": { "answer": "{{event}}" } }],
 		"lspAnswer": [
+			{ "note": "answer: { kind, request, path, result, error }, its positions from 0" },
 			{ "if": "{{answer.error != null}}",
 			  "then": [
-				{ "if": "{{answer.kind != 'hover' && answer.kind != 'completion' && answer.kind != 'signature' && answer.kind != 'tokens'}}",
-				  "then": [{ "run": "notify", "with": { "severity": "info", "message": "{{'Language server: ' + answer.error}}" } }] }
+				{ "if": "{{answer.kind == 'rename' || answer.kind == 'format'}}",
+				  "then": [{ "run": "notify", "with": { "severity": "warning", "message": "{{'Not applied: ' + answer.error.message}}" } }],
+				  "else": [{ "if": "{{answer.kind != 'hover' && answer.kind != 'completion' && answer.kind != 'signature' && answer.kind != 'tokens'}}",
+				             "then": [{ "run": "notify", "with": { "severity": "info", "message": "{{'Language server: ' + answer.error.message}}" } }] }] }
 			  ],
 			  "else": [
 				{ "if": "{{answer.kind == 'hover' && answer.request == state.lsp.hover.request}}",
@@ -143,9 +182,7 @@
 				  "then": [{ "run": "lspOpenLocation", "with": { "at": "{{answer.result.locations[0]}}" } }] },
 				{ "if": "{{(answer.kind == 'definition' && length(answer.result.locations) != 1) || answer.kind == 'references'}}",
 				  "then": [{ "set": "state.lsp.peek", "to": "{{ {open: true, index: 0, items: answer.result.locations, title: (answer.kind == 'definition' ? 'Definitions: ' : 'References: ') + length(answer.result.locations) + (answer.result.truncated ? '+' : '')} }}" }] },
-				{ "if": "{{(answer.kind == 'rename' || answer.kind == 'format') && answer.result.error != null}}",
-				  "then": [{ "run": "notify", "with": { "severity": "warning", "message": "{{'Not applied: ' + answer.result.error}}" } }] },
-				{ "if": "{{(answer.kind == 'rename' || answer.kind == 'format') && answer.result.error == null}}",
+				{ "if": "{{answer.kind == 'rename' || answer.kind == 'format'}}",
 				  "then": [
 					{ "if": "{{length(answer.result.edits) == 0}}",
 					  "then": [{ "run": "log", "with": { "text": "Language server: nothing to change" } }],
@@ -154,35 +191,29 @@
 				{ "if": "{{answer.kind == 'symbols' || answer.kind == 'workspaceSymbols'}}",
 				  "then": [{ "set": "state.lsp.symbols", "to": "{{answer.result.symbols}}" }] },
 				{ "if": "{{answer.kind == 'tokens'}}",
-				  "then": [{ "set": "state.lsp.files", "to": "{{concat(filter(state.lsp.files, it.id != answer.id), [{id: answer.id, decorations: (find(state.lsp.files, it.id == answer.id) ?? {}).decorations ?? [], tokens: answer.result}])}}" }] }
+				  "then": [{ "set": "state.lsp.files", "to": "{{concat(filter(state.lsp.files, it.id != answer.path), [{id: answer.path, decorations: (find(state.lsp.files, it.id == answer.path) ?? {}).decorations ?? [], tokens: answer.result.tokens}])}}" }] }
 			  ] }
 		],
-		"lspDiagnostics": [{ "run": "lspPublished", "with": { "published": "{{event}}" } }],
 		"lspPublished": [
-			{ "if": "{{published.error != null}}", "then": [{ "run": "log", "with": { "text": "{{'Language server: ' + published.error}}" } }],
-			  "else": [{ "run": "lspStore", "with": { "published": "{{published}}" } }] }
-		],
-		"lspStore": [
+			{ "note": "published: { path, diagnostics, truncated }, positions from 0: squiggles in the file's editor, rows (from 1) in Problems" },
 			{ "set": "state.lsp.files",
-			  "to": "{{concat(filter(state.lsp.files, it.id != published.id), [{id: published.id, decorations: published.decorations, tokens: (find(state.lsp.files, it.id == published.id) ?? {}).tokens ?? []}])}}" },
+			  "to": "{{concat(filter(state.lsp.files, it.id != published.path), [{id: published.path, tokens: (find(state.lsp.files, it.id == published.path) ?? {}).tokens ?? [], decorations: map(published.diagnostics, {line: it.line, column: it.column, endLine: it.endLine, endColumn: it.endLine == it.line && it.endColumn <= it.column ? it.column + 1 : it.endColumn, kind: 'squiggle', color: it.severity == 'error' ? '#f85149' : it.severity == 'warning' ? '#cca700' : '#3794ff', text: it.message})}])}}" },
 			{ "set": "state.problems",
-			  "to": "{{concat(filter(state.problems, !(it.server ?? false) || it.file != published.id), map(published.items, merge(it, {server: true})))}}" },
-			{ "if": "{{computed.activeDoc != null && computed.activeDoc.id == published.id}}",
+			  "to": "{{concat(filter(state.problems, !(it.server ?? false) || it.file != published.path), map(published.diagnostics, {severity: it.severity == 'hint' ? 'info' : it.severity, message: empty(it.source) ? it.message : it.message + ' (' + it.source + ')', file: published.path, label: reverse(split(published.path, '/'))[0], line: it.line + 1, column: it.column + 1, source: 'lsp', server: true}))}}" },
+			{ "if": "{{computed.activeDoc != null && computed.activeDoc.id == published.path}}",
 			  "then": [{ "run": "lspAsk", "with": { "kind": "tokens", "line": null, "column": null, "newName": null, "query": null } }] }
 		],
 		"lspPlay": [
-			{ "call": "forge.lsp.normalize", "with": { "kind": "{{event.kind}}", "result": "{{event.result}}", "id": "{{event.id ?? ''}}", "root": "{{event.root ?? ''}}" },
-			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Language server: ' + error}}" } }],
-			  "then": [
-				{ "if": "{{event.kind == 'diagnostics'}}",
-				  "then": [{ "run": "lspPublished", "with": { "published": "{{result}}" } }],
-				  "else": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: event.kind, id: event.id ?? '', request: event.request ?? state.lsp.request, result: result, error: null} }}" } }] }
-			  ] }
+			{ "note": "Plays an answer the service gave (event: { kind, result, path, request, error }; kind 'diagnostics' for a published file), as the scenarios do" },
+			{ "if": "{{event.kind == 'diagnostics'}}",
+			  "then": [{ "run": "lspPublished", "with": { "published": "{{event.result}}" } }],
+			  "else": [{ "run": "lspAnswer", "with": { "answer": "{{ {kind: event.kind, request: event.request ?? state.lsp.request, path: event.path ?? '', result: event.result ?? null, error: event.error ?? null} }}" } }] }
 		],
 		"lspOpenLocation": [
-			{ "run": "openPath", "with": { "path": "{{at.id}}", "label": "{{reverse(split(at.id, '/'))[0]}}" } },
-			{ "set": "state.goTo.line", "to": "{{at.line}}" },
-			{ "set": "state.goTo.column", "to": "{{at.column}}" },
+			{ "note": "at: { path, line, column } from 0" },
+			{ "run": "openPath", "with": { "path": "{{at.path}}", "label": "{{reverse(split(at.path, '/'))[0]}}" } },
+			{ "set": "state.goTo.line", "to": "{{at.line + 1}}" },
+			{ "set": "state.goTo.column", "to": "{{at.column + 1}}" },
 			{ "increment": "state.goTo.request", "by": 1 }
 		],
 		"lspPeekOpen": [
@@ -190,10 +221,29 @@
 			{ "set": "state.lsp.peek.open", "to": false }
 		],
 		"lspApply": [
-			{ "call": "forge.lsp.apply", "with": { "edits": "{{state.lsp.review.edits}}" },
-			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied: ' + error}}" } }],
-			  "then": [{ "run": "log", "with": { "text": "{{'Applied ' + plural(result.edits, 'edit') + ' in ' + plural(result.files, 'file')}}" } }] },
+			{ "note": "An open file changes in its editor (one undo step, left unsaved); any other is read, changed and written" },
+			{ "forEach": "{{keys(fromEntries(map(state.lsp.review.edits, {key: it.path, value: true})))}}", "as": "file", "do": [
+				{ "run": "lspApplyTo", "with": { "file": "{{file}}",
+				  "edits": "{{map(filter(state.lsp.review.edits, it.path == file), {line: it.line, column: it.column, endLine: it.endLine, endColumn: it.endColumn, text: it.text})}}" } }
+			] },
+			{ "run": "log", "with": { "text": "{{'Applied ' + plural(length(state.lsp.review.edits), 'edit') + ' in ' + plural(state.lsp.review.files, 'file')}}" } },
 			{ "set": "state.lsp.review.open", "to": false }
+		],
+		"lspApplyTo": [
+			{ "if": "{{some(state.docs, it.id == file && it.kind == 'file')}}",
+			  "then": [{ "forEach": "{{filter(state.docs, it.id == file && it.kind == 'file')}}", "as": "doc", "do": [
+				{ "if": "{{applyEdits(doc.text, edits) == null}}",
+				  "then": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied to ' + file + ': an edit is past its text, or two overlap'}}" } }],
+				  "else": [{ "set": "state.docs", "to": "{{map(state.docs, it.id == file ? merge(it, {text: applyEdits(it.text, edits), dirty: applyEdits(it.text, edits) != it.saved}) : it)}}" }] }
+			  ] }],
+			  "else": [{ "invoke": "files.read", "with": { "path": "{{file}}" },
+				"onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied to ' + file + ': ' + error.message}}" } }],
+				"onDone": [
+					{ "if": "{{applyEdits(result.text, edits) == null}}",
+					  "then": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied to ' + file + ': an edit is past its text, or two overlap'}}" } }],
+					  "else": [{ "invoke": "files.write", "with": { "path": "{{file}}", "text": "{{applyEdits(result.text, edits)}}" },
+						"onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied to ' + file + ': ' + error.message}}" } }] }] }
+				] }] }
 		],
 		"lspRenameSend": [
 			{ "set": "state.lsp.rename.open", "to": false },
@@ -201,7 +251,7 @@
 			  "then": [{ "run": "lspAsk", "with": { "kind": "rename", "newName": "{{trim(state.lsp.rename.name)}}", "line": null, "column": null, "query": null } }] }
 		],
 		"lspSymbolPicked": [
-			{ "run": "lspOpenLocation", "with": { "at": "{{ {id: item.id, line: item.line, column: item.column} }}" } }
+			{ "run": "lspOpenLocation", "with": { "at": "{{item}}" } }
 		],
 		"goToDefinition": { "title": "Go to Definition", "category": "Go", "icon": "arrow-right",
 			"enablement": "{{computed.activeDoc != null}}",
@@ -332,7 +382,7 @@
 					            "buttons": [{ "title": "Apply", "run": "lspApply" }, { "title": "Cancel" }] },
 					  "children": [
 						{ "type": "table", "id": "lsp-review-list", "anchors": { "left": 20, "right": 20, "top": 80, "bottom": 56 },
-						  "items": "{{map(state.lsp.review.edits, {id: index, cells: [it.id, it.line + ':' + it.column, slice(join(split(it.text, '\n'), '⏎'), 0, 80)]})}}",
+						  "items": "{{map(state.lsp.review.edits, {id: index, cells: [it.path, (it.line + 1) + ':' + (it.column + 1), slice(join(split(it.text, '\n'), '⏎'), 0, 80)]})}}",
 						  "rowHeight": 20, "color": "@color.widget", "textColor": "@color.text",
 						  "columns": [{ "id": "file", "title": "File", "width": 200 }, { "id": "at", "title": "At", "width": 70 },
 						              { "id": "text", "title": "New text", "width": 260 }] }

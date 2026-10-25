@@ -316,11 +316,12 @@ a shell runs only if the host allows a shell as the program. The terminal's outp
 it is bounded: 8 terminals per service, 64 KiB a write and 1 MiB waiting, 16 KiB an event and 4 MiB a second. Escape
 sequences in that text are the terminal widget's to interpret; the provider acts on none of them.
 
-Forge's terminal widget (`examples/forge/features/terminal`, on libvterm) keeps every escape sequence inside itself:
-a program can't set the window title unless the node's `allowTitle` is true (and then only the session's, at most
-256 bytes), clipboard writes (OSC 52) and the bell are dropped, and its replies to queries go back to the program
-only. Its scrollback is bounded (10,000 lines at most). Forge grants the user's login shell, started in the open
-folder; the screen document only names the service.
+The `terminal` node (`modules/format/src/terminal`, on libvterm) keeps every escape sequence inside itself: a program
+can't set the window title unless the node's `allowTitle` is true (and then only the session's, at most 256 bytes),
+clipboard writes (OSC 52) and the bell are dropped, and its replies to queries go back to the program only. Its
+scrollback is bounded (10,000 lines at most), a screen keeps at most 16 terminals, and `runInTerminal` types at most
+64 KiB a line; the terminal steps are control steps, so a revision can't add one. The host grants the program (Forge
+grants the user's login shell, started in the open folder); the screen document only names the service.
 
 ### Debug adapters
 
@@ -333,9 +334,10 @@ written. A source the adapter names is placed against the granted folder: a path
 other `inside: false`, and Forge opens a frame outside the folder only after a confirm, read-only, through the
 adapter's `source` request. A relative path in a request that leaves the folder is refused. If the adapter crashes or
 exits, every waiting request ends and the session ends with one message. The only reverse requests are
-`runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds itself
-(`forge.debug.commandLine`): every word single-quoted, the working folder inside the open one, no control characters,
-and it runs in the terminal's shell under that shell's grant. Forge grants `lldb-dap` and `python3 -m
+`runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds with
+`shellLine()`: every word single-quoted, no control characters, at most 60000 bytes; the terminal opens in the
+request's `cwd` only if the pty service's root holds it, and the line runs in the terminal's shell under that shell's
+grant. Forge grants `lldb-dap` and `python3 -m
 debugpy.adapter` when they are on PATH; a launch configuration only names one of them.
 
 ### Channels a screen declares
@@ -463,8 +465,8 @@ grammar from outside; the `syntax` fuzz target covers them.
 | Who attacks | A peer or a revision that calls a service; a program that misbehaves or was swapped (a language server, a debug adapter, a shell's child); whoever made the folder being searched or watched (file names, `.gitignore` files, contents) |
 | Entry points | `invoke`, `subscribe` and `respond` from the document; what a program writes (frames, lines, terminal output); file names, links and contents in a granted folder |
 | Limits | "Limits" below: the `process`, `fs`, `pty`, `search` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
-| Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. A program started (a terminal's shell among them) gets only its standard input, output and error: none of the host's other descriptors, its peers' sockets among them. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs and patterns are fuzzed (`frames`, `search_glob`, `find_pattern`); PCRE2's match limits end catastrophic backtracking |
-| Known gaps | Programs aren't sandboxed (G-02); the terminal's escape-sequence parser isn't fuzzed yet (G-24) |
+| Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. A program started (a terminal's shell among them) gets only its standard input, output and error: none of the host's other descriptors, its peers' sockets among them. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs, patterns and terminal output are fuzzed (`frames`, `search_glob`, `find_pattern`, `terminal`); PCRE2's match limits end catastrophic backtracking |
+| Known gaps | Programs aren't sandboxed (G-02) |
 
 ### The network
 
@@ -676,7 +678,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A `search` service | 4 calls at once; 2,000 results by default, 20,000 at most; folders 64 deep; a file replaced in 8 MiB, a replaced text 64 MiB |
 | Globs a `search` call or a `.gitignore` gives (`SearchGlob`) | 256 bytes a glob, 64 globs a list; 64 KiB of a `.gitignore` read, 10,000 rules kept |
 | A `pty` service | 8 terminals; 64 KiB a write and 1 MiB waiting; 16 KiB an event and 4 MiB a second |
-| Forge's terminal widget | A title of 256 bytes, only with `allowTitle`; 10,000 lines of scrollback |
+| The `terminal` node | A title of 256 bytes, only with `allowTitle`; 10,000 lines of scrollback; 16 terminals a screen; 64 KiB a `runInTerminal` line |
 | What git prints for Forge (`GitLimits`) | 8 MiB of output, 10,000 files or branches, 4 KiB a path |
 | A colour theme Forge imports | An id of 40 characters; only `#rrggbb` and `#rrggbbaa` colours are kept |
 | The document server's token file (`TokenFile`) | 4,096 tokens |
@@ -849,10 +851,6 @@ removes the gap from this list.
   yet answered stay in its memory until the agent reads or answers them. The host's limits slow how fast peers can
   add to them, not how much piles up over a long session with an agent that never asks. Tracking: G-23.
 
-- **The terminal's escape-sequence parser isn't fuzzed yet.** What a program writes to a terminal is parsed by
-  libvterm inside Forge's terminal widget. The `pty` provider bounds it (the limits above) and the widget acts on few
-  sequences, but no fuzz target covers the parser yet (`tests/fuzz/README.md`, "Inventory of untrusted inputs"): run
-  in a terminal only programs you would run in your own. Tracking: G-24.
 - **Sound files are decoded by miniaudio's decoders** (dr_wav, dr_flac and dr_mp3, single-header C). A file in an
   allowed folder or a URL the host allows can hold anything, and it is decoded on the audio thread or a stream's
   own. The input is bounded (the limits above), read through the module's own bounded file system, compiled with
