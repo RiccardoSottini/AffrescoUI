@@ -7,7 +7,7 @@ with its slide show, presenter view, audience window and files on library capabi
 `saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](index.scenarios.json)
 (without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
 
-| Area | Feature | Start | Now | 65 | 26 | 29 | 120 |
+| Area | Feature | Start | Now | Evidence |
 |---|---|---|---|---|
 | Shell | Ribbon with tabs (Home, Insert, Ink, Design, Transitions, Motion, Present, Record, Check, View, Help) | missing | done | first-frame, insert-tab, design-tab, ink, rehearse-timings, check-and-comments |
 | Shell | Ribbon groups with titles, large and small buttons | missing | done | first-frame |
@@ -63,7 +63,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Arrange | Group and ungroup | missing | missing | |
 | Arrange | Order (front, back, forward, backward) | done | done | arrange-order |
 | Arrange | Rotate (handle, 90 degrees) and flip | partial | partial | format-size-and-rotation |
-| Arrange | Selection pane (names, show and hide) | missing | missing | |
+| Arrange | Selection pane (names, show and hide) | missing | partial | selection-pane (Home > Select > Selection Pane; the names are given, not renamed) |
 | Arrange | Nudge with arrow keys | partial | done | align-and-distribute |
 | Content | Insert picture | partial | missing | |
 | Content | Crop a picture | missing | missing | |
@@ -136,6 +136,6 @@ with its slide show, presenter view, audience window and files on library capabi
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
-| Now | 54 | 29 | 28 | 111 |
+| Now | 65 | 27 | 28 | 120 |
 
 The Ink, Record, Check and Help tabs added nine rows that the first list didn't have (all missing at the start), so *Now* counts 120 rows.

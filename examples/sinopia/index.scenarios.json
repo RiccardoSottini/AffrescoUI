@@ -1138,6 +1138,36 @@
 				{ "key": "escape" },
 				{ "expect": { "state": "show.on", "is": false } }
 			]
+		},
+		{
+			"name": "sinopia-selection-pane",
+			"note": "The Selection Pane names the slide's objects, front first: a click selects one, the eye hides it (undo shows it again), and Show All and Hide All do every one",
+			"steps": [
+				{ "click": "#thumb-s2-row" },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Selection Pane" } },
+				{ "expect": { "node": "#side-title", "text": "Selection" } },
+				{ "expect": { "node": "#selection-o3-name", "text": "  Title 1" } },
+				{ "expect": { "node": "#selection-o4-name", "text": "  Content 2" } },
+				{ "click": "#selection-o4-name" },
+				{ "expect": { "state": "board.selection", "is": ["o4"] } },
+				{ "click": "#selection-o4-eye" },
+				{ "expect": { "state": "deck.slides[1].objects[1].hidden", "is": true } },
+				{ "expect": { "state": "board.selection", "is": [] } },
+				{ "expect": { "node": "#o4", "property": "visible", "is": false } },
+				{ "expect": { "node": "#selection-o4-eye", "property": "tooltip", "is": "Show it" } },
+				{ "key": "mod+z" },
+				{ "expect": { "node": "#o4", "property": "visible", "is": true } },
+				{ "click": "#selection-hide-all" },
+				{ "expect": { "node": "#o3", "property": "visible", "is": false } },
+				{ "expect": { "node": "#o4", "property": "visible", "is": false } },
+				{ "click": "#selection-show-all" },
+				{ "expect": { "node": "#o3", "property": "visible", "is": true } },
+				{ "expect": { "node": "#o4", "property": "visible", "is": true } },
+				{ "click": "#b-select" },
+				{ "click": { "role": "menuitem", "name": "Selection Pane" } },
+				{ "expect": { "node": "#side-pane", "exists": false } }
+			]
 		}
 	]
 }

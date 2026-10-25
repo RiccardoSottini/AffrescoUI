@@ -44,6 +44,7 @@
 					"frame": "{{{ x: box.w * inset[0] + 7.2, y: box.h * inset[1] + 3.6, w: max(box.w * (1 - inset[0] - inset[2]) - 14.4, 1), h: max(box.h * (1 - inset[1] - inset[3]) - 7.2, 1) }}}"
 				},
 				"color": "transparent", "x": "{{box.x}}", "y": "{{box.y}}", "width": "{{box.w}}", "height": "{{box.h}}", "rotate": "{{o.rotate ?? 0}}", "overflow": "visible",
+				"visible": "{{!(o.hidden ?? false)}}",
 				"children": [
 					{ "use": "shapePath", "when": "{{shape}}", "with": { "o": "{{merge({ shape: o.kind == 'text' ? 'rect' : 'rect', fill: o.kind == 'shape' ? 'accent1' : 'none', line: o.kind == 'text' ? 'none' : null, lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null, effect: null }, merge(o, box))}}", "name": "{{prefix + o.id}}" } },
 					{ "type": "label", "id": "{{prefix + o.id + '-icon'}}", "when": "{{o.kind == 'icon'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}", "align": "center",
