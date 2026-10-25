@@ -131,6 +131,18 @@ public:
 	[[nodiscard]] static std::filesystem::path appDataDirectory(const std::filesystem::path& dataDirectory,
 	                                                            std::string_view id);
 
+	/// @brief The folder the app at a place keeps the person's data in, and its host the person's decisions: an id is
+	/// the app's own choice, so it is bound to the first place that opens it (recorded in the folder's "location"),
+	/// and an app elsewhere with the same id gets a folder of its own, never the other's data or permissions.
+	/// @param dataDirectory The data folder.
+	/// @param id The app's id (format::AppManifest::id).
+	/// @param location The app's folder (or a bare screen file a host names by id).
+	/// @return `<dataDirectory>/apps/<id>` if it is this place's, else `<dataDirectory>/apps/<id>~<hash of the place>`.
+	/// @throws ScreenError If neither can be this place's.
+	[[nodiscard]] static std::filesystem::path appDataDirectory(const std::filesystem::path& dataDirectory,
+	                                                            std::string_view id,
+	                                                            const std::filesystem::path& location);
+
 	/// @brief The manifest of the app the screen was loaded from (fromApp()).
 	/// @return It, or nullptr for a screen loaded otherwise.
 	[[nodiscard]] const format::AppManifest* app() const noexcept;

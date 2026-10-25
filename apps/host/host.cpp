@@ -415,7 +415,7 @@ host::Allowed decide(const Opened& opened, const Options& options, bool ask) {
 	};
 	for(const std::string& key : options.grants)
 		if(!declared(key)) throw std::runtime_error("--grant " + key + ": not a capability " + app.id + " declares");
-	const std::filesystem::path file = host::grantsFile(options.dataDir, app.id);
+	const std::filesystem::path file = host::grantsFile(options.dataDir, app.id, opened.location);
 	host::Decisions decisions = host::loadDecisions(file);
 	std::vector<affresco::format::AppCapability> asked;
 	for(const affresco::format::AppCapability& capability : app.capabilities)
@@ -442,7 +442,7 @@ host::Allowed decide(const Opened& opened, const Options& options, bool ask) {
 /// @throws std::exception If the app can't be read.
 int forgetPermissions(const Options& options) {
 	const Opened opened = locate(options.forget);
-	std::filesystem::remove(host::grantsFile(options.dataDir, opened.manifest.id));
+	std::filesystem::remove(host::grantsFile(options.dataDir, opened.manifest.id, opened.location));
 	std::cout << "affrescoui_launcher: " << opened.manifest.name << " asks again for what it uses when it opens\n";
 	return EXIT_SUCCESS;
 }

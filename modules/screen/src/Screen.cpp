@@ -182,12 +182,16 @@ namespace detail {
 /// @param suffix What is kept: ".state.json" or ".history".
 /// @return In the data folder, the file's name without ".screen.json", then @p suffix: "habits.screen.json" gives
 /// "habits.history". A folder's index screen is named after its folder: "flow/index.screen.json" gives "flow.history".
+/// The name is the file's own while no other file has it (boundDataName(), recorded in "habits.location").
 std::filesystem::path stateLocation(const std::filesystem::path& dataDirectory, const std::filesystem::path& screenFile,
                                     std::string_view suffix) {
 	std::string name = screenFile.filename().string();
 	for(const char* extension : {".json", ".screen"})
 		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
 	if(name == "index") name = folderName(screenFile).value_or(name);
+	if(!dataDirectory.empty())
+		name = boundDataName([&](const std::string& bound) { return dataDirectory / (bound + ".location"); }, name,
+		                     screenFile);
 	return dataDirectory / (name + std::string(suffix));
 }
 
@@ -212,7 +216,8 @@ namespace {
 /// @param baseDirectory Where its files are.
 /// @return The screen.
 Screen fromConverted(const format::adapters::Converted& converted, std::filesystem::path baseDirectory) {
-	for(const std::string& warning : converted.warnings) affresco::log(LogLevel::Warning, "AffrescoUI screen: " + warning);
+	for(const std::string& warning : converted.warnings)
+		affresco::log(LogLevel::Warning, "AffrescoUI screen: " + warning);
 	Screen screen = Screen::fromString(converted.screen.dump(), std::move(baseDirectory));
 	for(const json& revision : converted.revisions) {
 		std::string error;
@@ -253,7 +258,8 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(detail::stateLocation(dataDirectory, path, ".history"));
 	screen.setStateFile(detail::stateLocation(dataDirectory, path, ".state.json"));
-	screen.setDataFile(detail::stateLocation(dataDirectory, path, ".data.sqlite")); // after the state: they may import it
+	screen.setDataFile(
+	    detail::stateLocation(dataDirectory, path, ".data.sqlite")); // after the state: they may import it
 	screen.setUsageFile(detail::stateLocation(dataDirectory, path, ".usage.json"));
 	return screen;
 }
@@ -274,8 +280,9 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 	bool migrated = !format::migrate(document).empty();
 	detail::resolveIncludes(document, baseDirectory, migrated);
 	if(migrated) // one notice for the screen and its parts: they work as they are, in memory
-		affresco::log(LogLevel::Info, "AffrescoUI screen: written for format version 1, read as version 2 (`affrescoui migrate "
-		                    "--write <files>` rewrites the files)");
+		affresco::log(LogLevel::Info,
+		              "AffrescoUI screen: written for format version 1, read as version 2 (`affrescoui migrate "
+		              "--write <files>` rewrites the files)");
 	return Screen(std::make_unique<Impl>(std::move(document), std::move(baseDirectory)));
 }
 

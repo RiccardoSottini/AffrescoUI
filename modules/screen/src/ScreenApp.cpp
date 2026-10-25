@@ -213,7 +213,8 @@ void giveSeeds(json& document, const AppFolder& app) {
 }
 
 /// @brief Moves the data an earlier version kept for the entry screen (fromFile(): `<data>/<name>.history` and the
-/// others) into the app's folder, the first time the app is opened.
+/// others) into the app's folder, the first time the app is opened. Only the entry's own: stateLocation() names another
+/// file's data otherwise. A file the app's folder has already is kept.
 /// @param dataDirectory The data folder.
 /// @param entry The entry screen.
 /// @param appData The app's data folder, which doesn't exist yet.
@@ -232,7 +233,7 @@ void adoptOldData(const std::filesystem::path& dataDirectory, const std::filesys
 	if(error) return; // the history and state files report it
 	for(const auto& [old, now] : moves) {
 		const std::filesystem::path from = detail::stateLocation(dataDirectory, entry, old);
-		if(!std::filesystem::exists(from, error)) continue;
+		if(!std::filesystem::exists(from, error) || std::filesystem::exists(appData / now, error)) continue;
 		std::filesystem::rename(from, appData / now, error);
 		affresco::log(error ? LogLevel::Warning : LogLevel::Info,
 		              "AffrescoUI app: " + from.string() + (error ? " could not be moved to " : " moved to ") +
@@ -267,8 +268,10 @@ Screen Screen::fromApp(const std::filesystem::path& location, const std::filesys
 	screen.impl_->app = app.manifest;
 	screen.impl_->repairs.setTemplateName(detail::templateName(entry));
 	if(dataDirectory.empty()) return screen; // a check: nothing kept
-	const std::filesystem::path data = appDataDirectory(dataDirectory, app.manifest.id);
-	if(!std::filesystem::exists(data)) adoptOldData(dataDirectory, entry, data);
+	const std::filesystem::path data = appDataDirectory(dataDirectory, app.manifest.id, app.folder);
+	// Only the entry's own old data (stateLocation() binds its name to the entry, as it bound it then)
+	if(!std::filesystem::exists(data / "history") && !std::filesystem::exists(data / "state.json"))
+		adoptOldData(dataDirectory, entry, data);
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(data / "history");
 	screen.setStateFile(data / "state.json");
@@ -288,6 +291,13 @@ std::filesystem::path Screen::appOf(const std::filesystem::path& screenFile) {
 
 std::filesystem::path Screen::appDataDirectory(const std::filesystem::path& dataDirectory, std::string_view id) {
 	return dataDirectory / "apps" / format::appId(id);
+}
+
+std::filesystem::path Screen::appDataDirectory(const std::filesystem::path& dataDirectory, std::string_view id,
+                                               const std::filesystem::path& location) {
+	const std::filesystem::path apps = dataDirectory / "apps";
+	return apps / detail::boundDataName([&](const std::string& name) { return apps / name / "location"; },
+	                                    format::appId(id), location);
 }
 
 const format::AppManifest* Screen::app() const noexcept { return impl_->app ? &*impl_->app : nullptr; }

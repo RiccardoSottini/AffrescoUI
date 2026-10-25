@@ -7,6 +7,7 @@
 #include "affresco/core/Json.hpp"
 
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -20,6 +21,18 @@ namespace affresco::detail {
 /// @param depth Includes inside includes so far.
 /// @throws ScreenError If an include can't be read.
 void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated, int depth = 0);
+
+/// @brief The name of a place's data in the data folder: a name the place chose (an app's id, a screen file's name),
+/// bound to the first place that uses it, so that another place with the same name never gets its data or the
+/// person's decisions. The record holds the place, absolute with its links followed; one without a record (new, or
+/// kept before names were bound) is recorded as this place's.
+/// @param recordOf Where a name's record is.
+/// @param name The name the place chose.
+/// @param location The place: an app's folder or a screen file.
+/// @return @p name if it is this place's, else `<name>~<hash of the place>`, this place's own.
+/// @throws ScreenError If both are recorded as other places'.
+std::string boundDataName(const std::function<std::filesystem::path(const std::string&)>& recordOf,
+                          const std::string& name, const std::filesystem::path& location);
 
 /// @brief Where a screen file's data on disk is kept: its "persist" state and its history.
 /// @param dataDirectory The data folder (Screen::defaultDataDirectory()).

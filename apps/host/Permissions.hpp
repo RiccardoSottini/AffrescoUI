@@ -27,8 +27,11 @@ using Allowed = std::set<std::string, std::less<>>;
 /// @brief Where an app's decisions are kept.
 /// @param dataDirectory The data folder.
 /// @param id The app's id.
-/// @return `<data folder>/apps/<id>/grants.json`.
-[[nodiscard]] std::filesystem::path grantsFile(const std::filesystem::path& dataDirectory, std::string_view id);
+/// @param location The app's folder, or its bare screen file: an id is bound to the place that first used it
+/// (Screen::appDataDirectory()), so another app that names itself the same is asked again.
+/// @return `<data folder>/apps/<id>/grants.json`, or that of the place's own folder.
+[[nodiscard]] std::filesystem::path grantsFile(const std::filesystem::path& dataDirectory, std::string_view id,
+                                               const std::filesystem::path& location);
 
 /// @brief Reads an app's decisions.
 /// @param file Its grants file.

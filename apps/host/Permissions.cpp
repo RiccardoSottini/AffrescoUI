@@ -67,8 +67,9 @@ json describe(const affresco::format::AppManifest& app, const std::vector<AppCap
 
 } // namespace
 
-std::filesystem::path grantsFile(const std::filesystem::path& dataDirectory, std::string_view id) {
-	return affresco::Screen::appDataDirectory(dataDirectory, id) / "grants.json";
+std::filesystem::path grantsFile(const std::filesystem::path& dataDirectory, std::string_view id,
+                                 const std::filesystem::path& location) {
+	return affresco::Screen::appDataDirectory(dataDirectory, id, location) / "grants.json";
 }
 
 Decisions loadDecisions(const std::filesystem::path& file) {
