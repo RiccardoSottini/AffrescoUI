@@ -23,13 +23,14 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",      "push",    "remove",  "toggle",    "increment", "if",         "forEach", "while",
-	 "run",      "call",    "cancel",  "emit",      "send",      "connect",    "patch",   "accept",
-	 "reject",   "preview", "restore", "revert",    "undo",      "endPreview", "focus",   "scrollTo",
-	 "navigate", "dismiss", "after",   "debounce",  "animate",   "copy",       "log",     "stop",
-	 "note",     "invoke",  "request", "subscribe", "respond",   "ask",        "signIn",  "signOut",
-	 "camera",   "transform", "image", "chooseFolder", "edit", "audio", "insert", "update", "delete", "undoData",
-	 "redoData", "importCsv", "attach", "cancelAsk"});
+    {"set",       "push",      "remove",   "toggle",       "increment", "if",         "forEach",    "while",
+	 "run",       "call",      "cancel",   "emit",         "send",      "connect",    "patch",      "accept",
+	 "reject",    "preview",   "restore",  "revert",       "undo",      "endPreview", "focus",      "scrollTo",
+	 "navigate",  "dismiss",   "after",    "debounce",     "animate",   "copy",       "log",        "stop",
+	 "note",      "invoke",    "request",  "subscribe",    "respond",   "ask",        "signIn",     "signOut",
+	 "camera",    "transform", "image",    "chooseFolder", "edit",      "audio",      "insert",     "update",
+	 "delete",    "undoData",  "redoData", "importCsv",    "attach",    "cancelAsk",  "openWindow", "closeWindow",
+	 "fullscreen"});
 
 /// The data layer's write steps (DataSteps.cpp): `then` sees `result`, `onError` sees `error` ({code, message}).
 constexpr auto dataSteps =
@@ -510,7 +511,9 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 		       "expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, send, connect, "
 		       "patch, focus, scrollTo, navigate, dismiss, after, debounce, animate, copy, log, stop, note, accept, "
 		       "reject, "
-		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, chooseFolder, audio or attach");
+		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, "
+		       "chooseFolder, audio, "
+		       "attach, openWindow, closeWindow or fullscreen");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);

@@ -104,6 +104,7 @@ The sections the host grants and revisions can't widen, and the installed featur
 | `imports` | `{"ui": "workbench@^1.0.0"}`: `"use": "ui.panel"` builds the feature's `workbench.panel`, if its release is in the range. |
 | `images` | `{"canvas": {"width": 800, "height": 600, "into": "state.canvas", "tools": {"brush": {"gesture": "paint", "size": 12}}}}`: the images the `image` step edits; `tools` names the library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't change it. |
 | `audio` | `{"song": {"file": "sounds/song.mp3", "into": "state.song", "loop": true}}`: the sounds the `audio` step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a `url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` (`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run (see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a `tone` (never a `url` or a `source`), and only the person accepts it (Assets). |
+| `windows` | `{"audience": {"title": "Slide show", "image": "slide", "background": "#000000"}}`: up to four more windows, each showing a named image fitted on its `background` (a node's `snapshot`, so a slide show or a mirror is part of the screen drawn again), opened by `openWindow` (see Windows). Its key presses run the screen's `keys` (unless `keys` is false), a press of the mouse runs `onClick`, and closing it runs `onClose`; it closes with the screen. The `windows` variable is `{main: {fullscreen}, <name>: {open, fullscreen}}`. Revisions can't change it. |
 | `points` | `{"panels.dock": {"slot": "dock", "receives": ["doc.layers", "layers.move"]}}`: where a feature from another app may put its views (the node whose `point` has the name) and the exports it receives; the action exports a point receives are the host actions such features may run. Revisions can't change it. |
 <!-- end generated -->
 
@@ -1021,7 +1022,7 @@ display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `m
 (or `[]`), `nativeMenuBar`: whether it is shown natively); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
-`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`);
+`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`); `windows` (see Windows);
 `requests` (the `ask` requests, see "Asking the agents"); and the names given by `repeat`, `let`,
 `with`, `forEach`, a component's params, `it`/`index` inside list functions.
 
@@ -1280,6 +1281,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `delete` | `{ "delete": "songs", "id": "{{song.id}}" }`: deletes records (an `id`, a list, or a `where`) |
 | `undoData`, `redoData` | `{ "undoData": true }`, `{ "redoData": true }`: undoes or redoes the last write step's records |
 | `importCsv` | `{ "importCsv": "songs", "file": "songs.csv", "columns": { "title": "Title" }, "into": "state.report" }`: imports a CSV's rows as records (`file` in the screen's folder, or `text`); `result` is `{imported, failed, failures}` |
+| `openWindow`, `closeWindow` | `{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; `{ "closeWindow": "audience" }` closes it |
+| `fullscreen` | `{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or `"toggle"`); with `of`, a window of the `windows` section |
 | `camera` | `{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, `zoom`: see `scene`) |
 | `transform` | `{ "transform": "#viewport", "mode": "translate" }`: a scene's modal move of its selection, after the pointer until a click; `axis` locks it, `value` types its amount (units, degrees or a factor; null follows the pointer again), `end` (confirm, cancel) ends it |
 <!-- end generated -->
@@ -1497,6 +1500,33 @@ screen's folder, and the audio module renders it as it plays, the same samples e
   gives its pitch.
 - Bounds: 1 MiB of text, 16 tracks, 4,096 notes and hits, 32 sounding at once, 10 minutes. One beyond them, or
   malformed, is refused when a revision brings it, with its place (`tracks[1].notes[3].note: ...`).
+
+## Windows
+
+A screen can open up to four more windows: a slide show's audience view on a projector, a mirror, a second monitor.
+The `windows` section declares them, each showing one named image, fitted and centred on its `background`; a node
+draws that image with `snapshot`, so what a window shows is a part of the screen drawn a second time, and the screen
+keeps all the logic. Revisions can't change the section (a capability).
+
+```json
+"windows": { "audience": { "title": "Slide show", "image": "slide", "background": "#000000", "fullscreen": true } }
+```
+
+| Key of a window | Meaning |
+|---|---|
+| `image` | The named image it shows (required): a node's `snapshot`, or one the host gives. |
+| `title` | Its title bar (200 bytes at most). |
+| `width`, `height` | Its size before it fills a display: 100 to 8,192, 800 by 600 by default. |
+| `background` | A colour behind the image (black by default). |
+| `fullscreen` | Whether `openWindow` makes it fill the display it is mostly on. |
+| `keys` | Whether its key presses run the screen's `keys`, as if nothing had the focus (true by default). |
+| `onClick`, `onClose` | What a press of the mouse in it, and closing it with its own button, run. |
+
+`{ "openWindow": "audience" }` opens one (or shows it again; `"fullscreen": true` or `false` over its entry), and
+`{ "closeWindow": "audience" }` closes it. `{ "fullscreen": "toggle" }` makes the screen's own window fill its display
+or not (`true`, `false` or `"toggle"`), and with `"of": "audience"` one of the others. The `windows` variable is
+`{main: {fullscreen}, <name>: {open, fullscreen}}`. When the screen's window closes, so do its others. Without a
+display (scenarios, `affrescoui test`, previews) nothing is shown, but the variable follows the steps.
 
 ## Channels and persistence
 

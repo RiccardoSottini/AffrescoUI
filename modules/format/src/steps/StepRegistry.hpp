@@ -166,5 +166,8 @@ void registerAudioSteps(StepRegistry& registry);
 /// @brief Registers the data steps: insert, update, delete, undoData, redoData, importCsv (data/DataSteps.cpp).
 /// @param registry The registry.
 void registerDataSteps(StepRegistry& registry);
+/// @brief Registers the window steps: openWindow, closeWindow, fullscreen (windows/WindowSteps.cpp).
+/// @param registry The registry.
+void registerWindowSteps(StepRegistry& registry);
 
 } // namespace affresco::format

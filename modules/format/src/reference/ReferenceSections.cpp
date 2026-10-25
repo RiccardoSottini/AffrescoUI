@@ -158,8 +158,7 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"additionalProperties": {"type": "object", "required": ["from"], "properties": {
 		"from": {"type": "string"}, "where": {}, "sort": {}, "limit": {}, "offset": {}, "count": {}, "note": {}},
 		"additionalProperties": false}})json",
-	 "`name → { \"from\", \"where\", \"sort\", \"limit\" }`: records read as `data.<name>`.",
-	 "sections"},
+	 "`name → { \"from\", \"where\", \"sort\", \"limit\" }`: records read as `data.<name>`.", "sections"},
     {"computed", R"json({"type": "object", "description": "Values derived from the state, read as computed.name"})json",
 	 "`name → expression`: values derived from the state, read as `computed.name` (see Values).", "sections"},
     {"watch", R"json({"type": "object", "additionalProperties": {"$ref": "#/$defs/v2/handler"},
@@ -321,6 +320,23 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "(see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a "
 	 "`tone` (never a `url` or a `source`), and only the person accepts it (Assets).",
 	 "capabilities"},
+    {"windows", R"json({"type": "object", "maxProperties": 4,
+		"description": "The screen's other windows, each showing a named image. Revisions can't change it.",
+		"propertyNames": {"pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$", "not": {"const": "main"}},
+		"additionalProperties": {"type": "object", "required": ["image"], "additionalProperties": false,
+		"properties": {"title": {"type": "string", "maxLength": 200},
+		"width": {"type": "integer", "minimum": 100, "maximum": 8192},
+		"height": {"type": "integer", "minimum": 100, "maximum": 8192},
+		"image": {"type": "string", "maxLength": 200}, "background": {"type": "string", "maxLength": 200},
+		"fullscreen": {"type": "boolean"}, "keys": {"type": "boolean"},
+		"onClick": {"$ref": "#/$defs/v2/handler"}, "onClose": {"$ref": "#/$defs/v2/handler"}}}})json",
+	 "`{\"audience\": {\"title\": \"Slide show\", \"image\": \"slide\", \"background\": \"#000000\"}}`: up to four "
+	 "more windows, each showing a named image fitted on its `background` (a node's `snapshot`, so a slide show or a "
+	 "mirror is part of the screen drawn again), opened by `openWindow` (see Windows). Its key presses run the "
+	 "screen's `keys` (unless `keys` is false), a press of the mouse runs `onClick`, and closing it runs `onClose`; it "
+	 "closes with the screen. The `windows` variable is `{main: {fullscreen}, <name>: {open, fullscreen}}`. Revisions "
+	 "can't change it.",
+	 "capabilities"},
     {"points", R"json({"type": "object", "description": "Contribution points another app's features may fill",
 		"additionalProperties": {"type": "object", "required": ["slot"],
 		"properties": {"slot": {"enum": ["dock", "panel", "menu", "toolbar"]},
@@ -458,8 +474,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"of", "", "", ""},
     {"audio", R"json({"anyOf": [{"enum": ["play", "pause", "toggle", "stop", "seek", "volume", "pan", "rate", "loop",
 		"master"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
-	 R"(`{ "audio": "play", "of": "song" }`: see Audio)",
-	 "steps"},
+	 R"(`{ "audio": "play", "of": "song" }`: see Audio)", "steps"},
     {"insert", "",
 	 R"(`{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, )"
 	 R"(checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see )"
@@ -488,6 +503,15 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"separator", "", "", ""},
     {"atomic", "", "", ""},
     {"from", "", "", ""},
+    {"openWindow", "",
+	 R"(`{ "openWindow": "audience", "fullscreen": true }`: opens a window of the `windows` section, or shows it again; )"
+	 R"(`{ "closeWindow": "audience" }` closes it)",
+	 "steps"},
+    {"closeWindow", "", "", "steps"},
+    {"fullscreen", R"json({"anyOf": [{"type": "boolean"}, {"const": "toggle"}, {"$ref": "#/$defs/v2/dynamic"}]})json",
+	 R"(`{ "fullscreen": "toggle" }`: makes the screen's window fill its display, or not (`true`, `false` or )"
+	 R"(`"toggle"`); with `of`, a window of the `windows` section)",
+	 "steps"},
     {"camera", "",
 	 R"(`{ "camera": "#viewport", "view": "front" }`: moves a scene's camera (`view`, `frame`, `projection`, `orbit`, )"
 	 R"(`zoom`: see `scene`))",

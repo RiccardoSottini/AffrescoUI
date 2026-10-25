@@ -90,6 +90,7 @@ Window& Runtime::createWindow(Application& app) {
 	impl_->document.images().setExecutor(&app); // decoded files arrive through the event loop from now on
 	impl_->calls.setExecutor(&app);             // and so do the results of slow calls
 	impl_->serviceCalls.setExecutor(&app);      // and of services
+	impl_->otherWindows.setApplication(&app);   // the "windows" section opens its windows in it
 	build(window);
 	return window;
 }

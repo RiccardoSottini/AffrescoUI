@@ -146,6 +146,9 @@ public:
 		else glfwHideWindow(handle_);
 	}
 	[[nodiscard]] bool shouldClose() const override { return glfwWindowShouldClose(handle_) == GLFW_TRUE; }
+	void setShouldClose(bool close) override { glfwSetWindowShouldClose(handle_, close ? GLFW_TRUE : GLFW_FALSE); }
+	[[nodiscard]] bool isFullscreen() const override { return glfwGetWindowMonitor(handle_) != nullptr; }
+	void setFullscreen(bool fullscreen) override;
 
 	[[nodiscard]] std::string clipboardText() const override {
 		const char* text = glfwGetClipboardString(handle_);
@@ -190,7 +193,49 @@ private:
 	std::unique_ptr<desktop::MenuBar> menuBar_; ///< Its native menu bar, created on first use.
 	bool noMenuBar_ = false;                    ///< Native menus aren't supported here.
 	std::array<GLFWcursor*, 5> cursors_{};      ///< Standard cursors, created on first use (indexed by Cursor).
+	std::array<int, 4> windowed_{};             ///< Where it was before it filled a display: x, y, width, height.
 };
+
+/// @brief The display that holds the most of a window, or the primary one.
+/// @param window The window.
+/// @return The display, or nullptr if there is none.
+GLFWmonitor* displayOf(GLFWwindow* window) {
+	int x = 0, y = 0, width = 0, height = 0;
+	glfwGetWindowPos(window, &x, &y);
+	glfwGetWindowSize(window, &width, &height);
+	int count = 0;
+	GLFWmonitor** monitors = glfwGetMonitors(&count);
+	GLFWmonitor* best = glfwGetPrimaryMonitor();
+	long long most = 0;
+	for(int i = 0; i < count; ++i) {
+		int mx = 0, my = 0;
+		glfwGetMonitorPos(monitors[i], &mx, &my);
+		const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+		if(!mode) continue;
+		const long long across = std::max(0, std::min(x + width, mx + mode->width) - std::max(x, mx));
+		const long long down = std::max(0, std::min(y + height, my + mode->height) - std::max(y, my));
+		if(across * down > most) {
+			most = across * down;
+			best = monitors[i];
+		}
+	}
+	return best;
+}
+
+// The display's own mode, so nothing changes its resolution; back in a window, it returns where it was
+void GlfwWindow::setFullscreen(bool fullscreen) {
+	if(fullscreen == isFullscreen()) return;
+	if(!fullscreen) {
+		glfwSetWindowMonitor(handle_, nullptr, windowed_[0], windowed_[1], windowed_[2], windowed_[3], GLFW_DONT_CARE);
+		return;
+	}
+	GLFWmonitor* display = displayOf(handle_);
+	const GLFWvidmode* mode = display ? glfwGetVideoMode(display) : nullptr;
+	if(!mode) return; // no display to fill
+	glfwGetWindowPos(handle_, &windowed_[0], &windowed_[1]);
+	glfwGetWindowSize(handle_, &windowed_[2], &windowed_[3]);
+	glfwSetWindowMonitor(handle_, display, 0, 0, mode->width, mode->height, mode->refreshRate);
+}
 
 // GLFW's callbacks are converted to typed events and routed immediately
 void GlfwWindow::connect(Window& window) {

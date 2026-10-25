@@ -170,3 +170,33 @@ TEST_CASE("snapshot: a node drawn into a named image, shown by an image node, an
 	CHECK(pixel(*changed, 60, 40) == 0x00ff00);
 	CHECK(pixel(*changed, 5, 5) == 0xffffff);
 }
+
+TEST_CASE(
+    "windows section: openWindow makes a second window showing a snapshot, closeWindow hides it, and it opens again") {
+	affresco::Application app({nullptr, true});
+	affresco::Screen screen = affresco::Screen::fromString(R"json({
+		"format": "affrescoui-screen", "version": 2,
+		"window": { "title": "main", "width": 200, "height": 120 },
+		"windows": { "audience": { "title": "audience", "width": 160, "height": 100, "image": "card" } },
+		"state": { "seen": null },
+		"actions": {
+			"show": [{ "openWindow": "audience" }, { "set": "state.seen", "to": "{{windows.audience}}" }],
+			"hide": [{ "closeWindow": "audience" }, { "set": "state.seen", "to": "{{windows.audience}}" }]
+		},
+		"root": { "type": "panel", "color": "#202020", "children": [
+			{ "type": "panel", "id": "card", "snapshot": "card", "color": "#ff0000", "width": 80, "height": 45 }
+		] }
+	})json");
+	affresco::Window& window = screen.createWindow(app);
+	window.render();
+	const auto open = [&] { return affresco::json::parse(screen.stateJson())["seen"]["open"]; };
+
+	screen.runAction("show", window.root());
+	CHECK(open() == true);
+	screen.runAction("hide", window.root());
+	CHECK(open() == false);
+	screen.runAction("show", window.root()); // the same window, shown again
+	CHECK(open() == true);
+	window.render();
+	CHECK_FALSE(window.shouldClose());
+}
