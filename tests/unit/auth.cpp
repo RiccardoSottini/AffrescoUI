@@ -279,6 +279,29 @@ TEST_CASE("auth: a kept refresh token signs in again at the next run, with no br
 	CHECK(identity.grants() == 2); // the device grant, then the refresh
 }
 
+// Before, a kept sign-in was restored for any screen naming the same token endpoint and client, wherever it sent the
+// tokens and whatever scopes it asked
+TEST_CASE(
+    "auth: a kept sign-in isn't restored for a declaration that sends its tokens elsewhere or asks other scopes") {
+	MockIdentity identity;
+	const auto store = std::make_shared<affresco::MemorySecretStore>();
+	{
+		Shown first(identity, authScreen(identity, "device"), store);
+		identity.approve();
+		REQUIRE(first.run("login", "/me"));
+	}
+	json elsewhere = authScreen(identity, "device");
+	elsewhere["connections"]["api"]["url"] = identity.origin() + "/elsewhere";
+	json wider = authScreen(identity, "device");
+	wider["connections"]["api"]["auth"]["scopes"].push_back("admin");
+	for(const json& document : {elsewhere, wider}) {
+		Shown other(identity, document, store);
+		other.executor.runFor(std::chrono::milliseconds(200));
+		CHECK(other.auth()["state"] == "signedOut");
+	}
+	CHECK(identity.grants() == 1); // only the first sign-in's grant: no refresh for the others
+}
+
 TEST_CASE("auth: revisions can't add a sign-in, nor change a provider") {
 	MockIdentity identity;
 	const affresco::format::Rules rules;

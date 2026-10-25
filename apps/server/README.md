@@ -14,7 +14,8 @@ cmake --build build --target affrescoui_server
 
 Options: `--listen ADDRESS:PORT` (default `127.0.0.1:7420`), `--allow-remote` (accept peers from other machines: only
 behind a proxy that terminates TLS, see [`apps/server/deploy`](deploy/README.md)), `--origin URL` (repeatable: the
-browser origins allowed), `--userinfo URL --people FILE` (also admit OAuth access tokens, below). It stops on
+browser origins allowed), `--introspect URL --client FILE --people FILE` or `--userinfo URL --people FILE` (also
+admit OAuth access tokens, below). It stops on
 SIGINT or SIGTERM. [`Dockerfile`](Dockerfile) builds a container of it.
 
 ## The folder
@@ -38,6 +39,14 @@ people file names it, one line each, `<subject> <name>` (`#` starts a comment); 
 token file's. The token file is tried first, and is optional with `--userinfo`. A token that worked is remembered by
 its SHA-256 for five minutes, never the token itself; a refused one isn't remembered. Each question is bounded (4 s,
 64 KiB), and the endpoint must be `https://` (`http://` reaches the loopback only, for tests).
+
+Userinfo says whose a token is, not which app it was issued to: any app signed in at the same provider for a person
+on the list gets in with that person's token, and the server warns at start. Where the provider offers token
+introspection (RFC 7662), register the server as a client of its own and use `--introspect
+https://id.example.com/introspect --client client --people people` instead: the server posts each token with its client
+id and secret (`client_secret_post`) and admits only an active token whose `client_id` or `aud` is the server's. The
+client file is one line, `<client id> <secret>`, readable by the server's account alone (`chmod 600`; the server
+refuses it otherwise).
 
 ## The protocol
 

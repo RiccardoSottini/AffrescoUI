@@ -21,8 +21,24 @@
 
 namespace affresco::server {
 
-/// @brief Checks an OAuth access token by asking the provider who it belongs to (GET userinfo with the token as a
-/// Bearer), then admits only the subjects a people file names: lines of `<subject> <name>` ('#' starts a comment).
+/// @brief The server's own client at the provider, for token introspection (RFC 7662).
+struct IntrospectionClient {
+	std::string id;     ///< The client id a token must be issued to ("client_id" or "aud" of the answer).
+	std::string secret; ///< Its secret, sent in the request's body (client_secret_post).
+};
+
+/// @brief Reads the server's client from a file of one line, `<client id> <secret>`, which only its owner may read.
+/// @param file The file.
+/// @return The client.
+/// @throws std::runtime_error If it can't be read, isn't one line of two words, or others may read it (POSIX).
+[[nodiscard]] IntrospectionClient readIntrospectionClient(const std::filesystem::path& file);
+
+/// @brief Checks an OAuth access token by asking the provider who it belongs to, then admits only the subjects a
+/// people file names: lines of `<subject> <name>` ('#' starts a comment).
+///
+/// With an IntrospectionClient it asks the introspection endpoint (POST the token with the server's client), and
+/// admits only an active token issued to that client. Without one it asks userinfo (GET with the token as a Bearer),
+/// which says whose a token is but not for which app: any app signed in at that provider then gets in.
 ///
 /// A token that worked is remembered by its SHA-256 for five minutes (never the token itself), so reconnecting
 /// doesn't ask the provider again; a refused one isn't remembered. verify() is safe on any thread: one question to
@@ -39,11 +55,14 @@ public:
 	using Clock = std::chrono::steady_clock;
 
 	/// @brief Reads the people file and allows the endpoint's origin.
-	/// @param userinfo The provider's userinfo endpoint: https://, or http:// on the loopback (for tests).
+	/// @param userinfo The provider's userinfo endpoint, or its introspection endpoint with @p introspection: https://,
+	/// or http:// on the loopback (for tests).
 	/// @param people The people file.
 	/// @param options How to connect (proxy, certificate authorities).
+	/// @param introspection The server's client, to introspect tokens; none to ask userinfo.
 	/// @throws std::runtime_error If the URL isn't one, or the file can't be read or a line is malformed.
-	UserInfoVerifier(std::string_view userinfo, const std::filesystem::path& people, net::ClientOptions options = {});
+	UserInfoVerifier(std::string_view userinfo, const std::filesystem::path& people, net::ClientOptions options = {},
+	                 std::optional<IntrospectionClient> introspection = std::nullopt);
 	/// @brief Cancels a question in progress.
 	~UserInfoVerifier() override;
 	UserInfoVerifier(const UserInfoVerifier&) = delete;
@@ -67,7 +86,8 @@ private:
 	/// @return The subject ("sub"), or std::nullopt if the provider refused it or didn't answer in time.
 	[[nodiscard]] std::optional<std::string> ask(std::string_view token);
 
-	std::string userinfo_;                        ///< The endpoint.
+	std::string userinfo_;                             ///< The endpoint.
+	std::optional<IntrospectionClient> introspection_; ///< The server's client, when it introspects.
 	std::map<std::string, std::string> subjects_; ///< Name by subject.
 	std::vector<std::string> people_;             ///< The names, in the order of the file.
 	std::unique_ptr<Inline> executor_;            ///< The client's executor.

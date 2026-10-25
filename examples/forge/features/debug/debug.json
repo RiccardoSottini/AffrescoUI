@@ -7,7 +7,7 @@
 	"services": {
 		"debugLldb": { "provider": "dap", "process": "lldb-dap", "root": "workspace", "restart": { "after": 0, "times": 100 } },
 		"debugPython": { "provider": "dap", "process": "debugpy-adapter", "root": "workspace", "restart": { "after": 0, "times": 100 } },
-		"debugTerminal": { "provider": "pty", "process": "shell", "root": "workspace" }
+		"debugTerminal": { "provider": "pty", "process": "sh", "root": "workspace" }
 	},
 
 	"state": {
@@ -568,7 +568,7 @@
 
 		"debugLldb:runInTerminal": [{ "run": "debugRunInTerminal" }],
 		"debugPython:runInTerminal": [{ "run": "debugRunInTerminal" }],
-		"debugRunInTerminal": [{ "note": "The adapter's runInTerminal: its program runs on the debug terminal, started in its cwd (the pty service keeps it inside the folder), as `exec` and the line shellLine() quotes (null if a word isn't plain text or the line is too long)." },
+		"debugRunInTerminal": [{ "note": "The adapter's runInTerminal: its program runs on the debug terminal, started in its cwd (the pty service keeps it inside the folder), as `exec` and the line shellLine() quotes (null if a word isn't plain text or the line is too long), typed into the POSIX shell `sh`, never the person's login shell, which may be one (fish, csh, cmd.exe) where single quotes don't protect a word." },
 			{ "run": "debugRunLine", "with": {
 				"named": "{{type(event.args) == 'list' && !empty(event.args)}}",
 				"line": "{{type(event.args) == 'list' ? shellLine(event.args, type(event.env) == 'object' ? event.env : null) : null}}",

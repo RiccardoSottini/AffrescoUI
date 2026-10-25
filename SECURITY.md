@@ -286,7 +286,9 @@ ever in a document or in this repository), or names another connection's. The ho
 port, matched exactly and closed after one answer; or the device flow. The `state` and the OpenID `nonce` are
 checked, and compared in constant time; every answer from the provider is bounded in size and time. The tokens stay
 in the host's `SignIn` object, and the refresh token in its `SecretStore` (the Keychain, the Credential Manager or the
-Secret Service when the application passes `net::systemSecretStore`; in memory by default). The host adds the
+Secret Service when the application passes `net::systemSecretStore`; in memory by default). A kept sign-in is bound
+to its provider's whole declaration (flow, endpoints, client, scopes, issuer and the connection's URL its tokens go
+to): a screen that declares it another way signs in again, and so does one kept before this binding. The host adds the
 `Authorization` header to each request of a connection that signs in, after the document's headers, which can't
 carry one. What a document sees is `auth.<name>`: a state, an account and an expiry, never a token, so a token
 reaches no document, state, history, log or screenshot (`tests/unit/auth.cpp` signs in through a mock provider and
@@ -304,8 +306,10 @@ otherwise, and is meant to sit behind a proxy that terminates TLS (apps/server/d
 of every revision, so the document's permissions apply per person; a person's own documents (`~name`) are found by
 that name, never by a path the peer sends. A lease is a deny rule for everyone but its holder, checked with the
 document's own rules; it grants its holder nothing more. Presence is what a peer says about itself: shown, bounded,
-never used to decide anything. Leases, presence entries and the server's messages are all bounded (apps/server). With `--userinfo` it also admits OAuth access
-tokens: each is checked at the provider's https userinfo endpoint, and only the subjects of the people file the
+never used to decide anything. Leases, presence entries and the server's messages are all bounded (apps/server). With `--introspect` or `--userinfo` it also admits OAuth access
+tokens: each is checked at the provider's https introspection endpoint (RFC 7662, with the server's own client, and
+only a token issued to that client), or at its userinfo endpoint (which admits a token any app of that provider got:
+the server warns), and only the subjects of the people file the
 operator writes get in, by the name that file gives them; a token that worked is remembered by its hash for five
 minutes (a revoked token keeps working that long at most), a refused one isn't, and each question is bounded in time
 and size. The server never keeps, logs or forwards a token anywhere but to that endpoint.
@@ -342,8 +346,9 @@ adapter's `source` request. A relative path in a request that leaves the folder 
 exits, every waiting request ends and the session ends with one message. The only reverse requests are
 `runInTerminal` and `startDebugging`; Forge answers `runInTerminal` with a command line it builds with
 `shellLine()`: every word single-quoted, no control characters, at most 60000 bytes; the terminal opens in the
-request's `cwd` only if the pty service's root holds it, and the line runs in the terminal's shell under that shell's
-grant. Forge grants `lldb-dap` and `python3 -m
+request's `cwd` only if the pty service's root holds it, and the line is typed into `sh`, a POSIX shell of its own
+grant, never the person's login shell: single quotes protect a word in sh, bash, zsh, dash and ksh, but not in fish,
+csh or cmd.exe, and a line break or carriage return in a word is refused. Forge grants `lldb-dap` and `python3 -m
 debugpy.adapter` when they are on PATH; a launch configuration only names one of them.
 
 ### An app's data and the person's permissions
@@ -353,6 +358,12 @@ that first opened it (`Screen::appDataDirectory()`, recorded in the folder's `lo
 followed): another app with the same id, a copy elsewhere, gets `apps/<id>~<hash of its folder>/`, so it never opens
 with the first app's data and the person is asked again. A screen opened on its own is bound to its file the same
 way. Data kept before names were bound has no record, and the first place to open it after the upgrade takes it.
+
+The window that asks shows each capability with the app's reason, quoted as the app's own words. Only sound, the file
+dialogs, other windows and a folder read start checked (`AppCapability::startsAllowed()`); a program, a folder written,
+a network origin, the assistant and the channels start unchecked, so the person allows each one with a click. A shell
+or an interpreter (`sh`, `bash`, `python3`, `node`, `cmd`, `pwsh`, ...: `AppCapability::runsAnyCommand()`) is named
+for what it gives, any command run as the person, not as one program.
 
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
@@ -513,7 +524,7 @@ TLS, WebSocket, sign-in (OAuth 2 and OpenID Connect), remote peers, the document
 | Entry points | Response heads and bodies, server-sent events, WebSocket frames, sign-in answers and redirects, a remote peer's upgrade request and first message, URLs a document or a provider names, the token file |
 | Limits | "Limits" below: the `net` module, remote peer and connection rows, and the token file's |
 | Mitigations | TLS 1.2 or later with the certificate and host always verified; only origins the host allowed, plain http and ws to the loopback only; PKCE (S256), `state` and `nonce` compared in constant time; a token never reaches a document, state, history, log or screenshot (`tests/unit/auth.cpp`); the document server and remote peers admit no one without a token; server tokens kept as SHA-256 only. Every parser here is fuzzed (`http_response`, `sse`, `websocket`, `peer_handshake`, `url`, `oauth`, `token_file`) |
-| Known gaps | A token is as safe as the process, and the sign-in listener can be raced (G-01); the queue to the main thread isn't bounded (G-05); keys chosen to collide (G-19) |
+| Known gaps | A token is as safe as the process, and the sign-in listener can be raced (G-01); what waits for the main thread is bounded per connection, not in all (G-05); keys chosen to collide (G-19) |
 
 ### Features, signatures and the catalogue
 
@@ -594,6 +605,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | The document, with its live state one level inside it, as revisions build it (a trusted screen file may be deeper; then a revision may not make it deeper still) | 200 levels |
 | The live state, as steps build it: the place a `set`, `push` or `call` `into` writes, and the value written there | 200 levels |
 | One message on a channel (one line) | 96 MiB; a longer line closes the channel |
+| Lines a channel read and the main thread hasn't handled yet (`Delivery::maxWaitingBytes`) | 96 MiB; the channel isn't read meanwhile |
 | One message from a peer (`PeerLimits::maxMessageBytes`) | 88 MiB (a revision of 64 MiB of assets, in base64); a larger one gets an error, unread. A remote peer (`net::PeerServerOptions::maxMessageBytes`) stays at 8 MiB unless its host raises it |
 | One asset (`maxAssetBytes`, `core/Assets.hpp`) | 32 MiB |
 | New assets one revision brings (`maxRevisionAssetBytes`) | 64 MiB |
@@ -795,16 +807,18 @@ removes the gap from this list.
 - **The user check on Windows goes by process id.** The peer's process could exit and its id be reused between the
   connection and the check, a narrow race. A process of the same user that runs elevated may not be inspectable from
   a non-elevated host, and is then refused. Tracking: G-04.
-- **The rate limits are per peer, and the queue to the main thread isn't bounded.** Over local sockets nothing
-  limits how many peers connect, and each new connection gets fresh limits (remote peers over WebSocket are capped in
-  number and in connection rate, "Limits" above). A socket's reader thread hands every line to the main thread
-  as it arrives, so a peer that sends faster than the main thread refuses its messages still makes that queue grow;
-  refusing is cheap (no parsing), so the main thread keeps up in practice. The open-proposal limit caps waiting
+- **The rate limits are per peer.** Over local sockets nothing limits how many peers connect, and each new
+  connection gets fresh limits (remote peers over WebSocket are capped in number and in connection rate, "Limits"
+  above). A channel's reader thread hands each line to the main thread, but stops reading while 96 MiB of its lines
+  wait there, so a peer that sends faster than the main thread handles them is held back by its own connection: the
+  host holds at most about twice that for it, and a thousand connections can still hold a thousand times as much. The
+  rate and size checks themselves run on the main thread. The open-proposal limit caps waiting
   proposals, and the change rate caps how often they are pushed. Each connection also takes a file descriptor and two
   threads: a peer that opens enough connections to use up the descriptors makes the server's accepting thread retry
   without pause until one is closed, and one that uses up the threads stops the app (a thread that can't be started
   ends the process). Tracking: G-05.
-- **Large revisions.** A message can be up to 8 MiB, so a revision can still be large, and so can the lists it puts
+- **Large revisions.** A message can be up to 88 MiB from a local peer (8 MiB from a remote one), so a revision can
+  still be large, and so can the lists it puts
   in the state, which the screen may render as one panel per item. A long text costs in proportion to its length,
   but a line longer than a font keeps shaped (128 Ki code points) is shaped again every time it is drawn or measured:
   a label of a million characters on one line takes a fraction of a second each time. The limits above bound what

@@ -33,7 +33,7 @@ else.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `affrescoui.cliPath` | `affrescoui` | The tool: a name looked up on `PATH`, or a path. Machine-wide only, never taken from a workspace. |
+| `affrescoui.cliPath` | `affrescoui` | The tool: a name looked up in the absolute folders of `PATH` (never the screen's folder, which Windows would search first), or an absolute path. Machine-wide only, never taken from a workspace. |
 | `affrescoui.check.enabled` | `true` | Runs `affrescoui check` on open and save. |
 | `affrescoui.check.timeoutMs` | `15000` | How long a check may run. |
 | `affrescoui.preview.scale` | `1` | `1` or `2`: the scale the preview renders at. |

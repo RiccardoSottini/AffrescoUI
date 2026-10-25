@@ -355,9 +355,11 @@ constexpr auto table = std::to_array<Function>({
 	 .apply = parseJsonc},
     {.name = "shellLine",
 	 .arguments = "words, variables?",
-	 .about = "The words as a line for a POSIX shell, each in single quotes, after `env 'NAME=value'` for each "
-	          "variable of the object that isn't null; null if a word or value isn't text without control characters, "
-	          "or a name isn't a variable's",
+	 .about =
+	     "The words as a line for a POSIX shell, each in single quotes, after `env 'NAME=value'` for each "
+	     "variable of the object that isn't null; null if a word or value isn't text without control characters, "
+	     "or a name isn't a variable's. Only a POSIX shell (a program grant `sh`) reads it as these words: not a login "
+	     "shell that may be fish, csh or cmd.exe",
 	 .fewest = 1,
 	 .most = 2,
 	 .apply = shellLine,

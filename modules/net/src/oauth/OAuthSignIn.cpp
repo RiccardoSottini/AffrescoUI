@@ -26,16 +26,29 @@ struct Kept {
 	std::string account;      ///< The account it named.
 };
 
-/// @brief Reads the sign-in an earlier run kept, if it was with the same provider.
+/// @brief A provider's whole declaration, which a kept sign-in is bound to: its flow, endpoints, client, scopes, issuer
+/// and the place its tokens go.
+/// @param provider The provider.
+/// @return It, as JSON.
+json declarationOf(const identity::Provider& provider) {
+	return {{"flow", provider.flow},         {"signInUrl", provider.signInUrl}, {"deviceUrl", provider.deviceUrl},
+	        {"tokenUrl", provider.tokenUrl}, {"clientId", provider.clientId},   {"scopes", provider.scopes},
+	        {"issuer", provider.issuer},     {"sentTo", provider.sentTo}};
+}
+
+/// @brief Reads the sign-in an earlier run kept, if it was with the same provider, declared the same way: another
+/// screen that names the same token endpoint and client but sends the tokens elsewhere, or asks other scopes, signs in
+/// again.
 /// @param store Where it was kept.
 /// @param key Its key there.
 /// @param provider The provider now.
-/// @return It, or nullopt if none was kept, it can't be read, or it was with another provider.
+/// @return It, or nullopt if none was kept, it can't be read, or it was with another declaration (or kept before
+/// sign-ins were bound to theirs).
 std::optional<Kept> readKept(SecretStore& store, const std::string& key, const identity::Provider& provider) {
 	const auto kept = store.read(key);
 	const json secret = kept ? json::parse(*kept, nullptr, false) : json();
-	if(!secret.is_object() || secret.value("tokenUrl", "") != provider.tokenUrl ||
-	   secret.value("clientId", "") != provider.clientId || !secret["refresh"].is_string())
+	if(!secret.is_object() || !secret.contains("declaration") || secret["declaration"] != declarationOf(provider) ||
+	   !secret["refresh"].is_string())
 		return std::nullopt;
 	return Kept{secret["refresh"].get<std::string>(), secret.value("account", "")};
 }
@@ -296,7 +309,8 @@ void SignIn::keep(const Entry& entry) {
 	const json secret = {{"refresh", entry.refreshToken},
 	                     {"account", entry.account},
 	                     {"tokenUrl", entry.provider.tokenUrl},
-	                     {"clientId", entry.provider.clientId}};
+	                     {"clientId", entry.provider.clientId},
+	                     {"declaration", declarationOf(entry.provider)}};
 	if(!options_.store->write(key(entry.name), secret.dump()))
 		log(LogLevel::Warning, "AffrescoUI sign-in: couldn't keep the sign-in of '" + entry.name + "' in the " +
 		                           options_.store->name() + " secret store");

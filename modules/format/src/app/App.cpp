@@ -364,6 +364,41 @@ std::string AppCapability::key() const {
 	return "";
 }
 
+bool AppCapability::runsAnyCommand() const {
+	// Shells and interpreters, by their base name without ".exe" or a version
+	static const std::set<std::string, std::less<>> runners = {
+	    "ash",   "bash", "bun",        "busybox", "cmd",    "csh",    "dash",    "deno", "doas",
+	    "env",   "fish", "ksh",        "lua",     "luajit", "mksh",   "node",    "nu",   "osascript",
+	    "perl",  "php",  "powershell", "pwsh",    "py",     "python", "pythonw", "ruby", "sh",
+	    "shell", "sudo", "tclsh",      "tcsh",    "wish",   "xargs",  "zsh"};
+	if(kind != Kind::Program) return false;
+	const std::size_t slash = name.find_last_of("/\\");
+	std::string base = slash == std::string::npos ? name : name.substr(slash + 1); // "/usr/bin/python3.12"
+	std::ranges::transform(base, base.begin(),
+	                       [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+	if(base.ends_with(".exe")) base.resize(base.size() - 4);
+	while(!base.empty() && (std::isdigit(static_cast<unsigned char>(base.back())) || base.back() == '.'))
+		base.pop_back();
+	return runners.contains(base);
+}
+
+bool AppCapability::startsAllowed() const {
+	switch(kind) {
+	case Kind::Audio:
+	case Kind::Files:
+	case Kind::Windows:
+		return true;
+	case Kind::Folder:
+		return !write;
+	case Kind::Network:
+	case Kind::Program:
+	case Kind::Assistant:
+	case Kind::Channels:
+		return false;
+	}
+	return false;
+}
+
 AppManifest parseApp(const json& manifest) {
 	if(!manifest.is_object()) fail("", "expected an object");
 	for(const auto& [key, value] : manifest.items())
