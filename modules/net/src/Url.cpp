@@ -164,6 +164,9 @@ std::optional<std::string> OriginAllowlist::allow(std::string_view origin) {
 	if(!url || url->target != "/" || (text.find('/', text.find("://") + 3) != std::string::npos))
 		return "'" + std::string(origin) + "' isn't an origin (a scheme, a host and a port, nothing more)";
 	if(text.contains('*')) return "'" + std::string(origin) + "': a wildcard may only be the first label";
+	// A wildcard over a single label ("*.com", "*.localhost") would cover a whole top-level domain.
+	if(subdomains && !url->host.contains('.'))
+		return "'" + std::string(origin) + "': a wildcard needs at least two labels after it, as in https://*.example.com";
 	entries_.push_back({url->secure(), subdomains, url->host, url->port});
 	return std::nullopt;
 }
