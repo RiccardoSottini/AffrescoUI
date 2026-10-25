@@ -388,9 +388,17 @@ int closeTheRest(posix_spawn_file_actions_t& actions, short& flags) noexcept {
 	(void)flags;
 	return posix_spawn_file_actions_addclosefrom_np(&actions, STDERR_FILENO + 1);
 #else
-	(void)actions;
+	// No close-from here (musl, older glibc, the BSDs): close each descriptor that would pass, as found now. One
+	// opened by another thread between this scan and the spawn is the only gap, and the host opens its own
+	// close-on-exec.
 	(void)flags;
-	return 0; // the host's own descriptors are close-on-exec
+	const long limit = std::clamp(::sysconf(_SC_OPEN_MAX), 256L, 65536L);
+	for(int descriptor = STDERR_FILENO + 1; descriptor < limit; ++descriptor) {
+		const int state = ::fcntl(descriptor, F_GETFD);
+		if(state < 0 || (state & FD_CLOEXEC) != 0) continue;
+		if(const int error = posix_spawn_file_actions_addclose(&actions, descriptor); error != 0) return error;
+	}
+	return 0;
 #endif
 }
 
