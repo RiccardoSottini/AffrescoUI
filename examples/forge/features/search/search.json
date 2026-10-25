@@ -26,10 +26,13 @@
 			"busy": false,
 			"confirm": false,
 			"error": ""
-		}
+		},
+		"searchEditor": { "caret": { "line": 1, "column": 1, "selected": 0 } }
 	},
 
 	"computed": {
+		"searchEditorRows": "{{concat([{text: (empty(computed.searchSummary) ? 'No search yet' : computed.searchSummary) + (empty(state.search.query) ? '' : ' for ' + state.search.query), id: ''}, {text: '', id: ''}], reduce(state.search.result ? state.search.result.tree : [], concat(acc, [{text: slice(it.id, 5), id: it.id}], map(it.children ?? [], {text: '  ' + it.label, id: it.id}), [{text: '', id: ''}]), []))}}",
+		"searchEditorText": "{{join(map(computed.searchEditorRows, it.text), '\n')}}",
 		"searchExpanded": "{{state.search.result ? filter(map(state.search.result.tree, it.id), !contains(state.search.collapsed, it)) : []}}",
 		"searchSummary": "{{!empty(state.search.error) ? state.search.error : state.search.result ? (state.search.result.matches == 0 ? 'No results' : plural(state.search.result.matches, 'result') + ' in ' + plural(state.search.result.files, 'file')) + (state.search.result.truncated ? ', capped' : '') + (state.search.result.done ? '' : '...') : ''}}"
 	},
@@ -123,6 +126,29 @@
 								"with": { "path": "{{slice(event.id, 5)}}", "label": "{{reverse(split(event.id, '/'))[0]}}" }
 							}
 						]
+					}
+				]
+			}
+		],
+		"openSearchEditor": {
+			"title": "Open Results in Editor",
+			"category": "Search",
+			"icon": "file-text",
+			"description": "Show the search's results as text in an editor tab; Enter or a double click on a line opens it.",
+			"enablement": "{{state.search.result != null}}",
+			"do": [{ "run": "openPage", "with": { "id": "forge:search-results", "label": "Search Results", "kind": "searchResults" } }]
+		},
+		"openSearchEditorLine": [
+			{ "run": "openSearchRow", "with": { "row": "{{computed.searchEditorRows[(state.searchEditor.caret.line ?? 1) - 1] ?? {id: ''} }}" } }
+		],
+		"openSearchRow": [
+			{
+				"if": "{{slice(row.id, 0, 4) == 'hit:'}}",
+				"then": [{ "run": "openSearchMatch", "with": { "hit": "{{state.search.result.hits[number(slice(row.id, 4))]}}" } }],
+				"else": [
+					{
+						"if": "{{slice(row.id, 0, 5) == 'file:'}}",
+						"then": [{ "run": "openPath", "with": { "path": "{{slice(row.id, 5)}}", "label": "{{reverse(split(row.id, '/'))[0]}}" } }]
 					}
 				]
 			}
@@ -266,6 +292,16 @@
 	},
 
 	"components": {
+		"forgeSearchEditor": {
+			"node": {
+				"type": "editor", "id": "search-editor", "label": "Search Results", "font": "code", "width": "100%", "grow": 1,
+				"text": "{{computed.searchEditorText}}", "readOnly": true, "lineNumbers": false, "caret": "state.searchEditor.caret",
+				"color": "@color.editor", "textColor": "@color.editorText", "selectionColor": "@color.selection",
+				"lineColor": "@color.hover", "caretColor": "@color.text", "scrollMarks": true,
+				"find": "{{empty(state.search.query) || state.search.result == null ? null : {text: state.search.query, regex: state.search.regex, wholeWord: state.search.wholeWord, caseSensitive: state.search.caseSensitive} }}",
+				"keys": { "enter": "openSearchEditorLine" }, "onDoubleClick": { "run": "openSearchEditorLine" }
+			}
+		},
 		"forgeSearchPage": {
 			"node": {
 				"type": "column", "id": "search-page", "width": "100%", "grow": 1, "gap": 4,
@@ -297,7 +333,11 @@
 						"use": "forgeInset", "height": 22,
 						"children": [
 							{ "type": "label", "id": "search-summary", "text": "{{state.search.busy ? 'Searching... ' + computed.searchSummary : computed.searchSummary}}",
-							  "textColor": "@color.muted", "grow": 1, "height": 22 }
+							  "textColor": "@color.muted", "grow": 1, "height": 22 },
+							{ "when": "{{state.search.result != null}}", "type": "label", "id": "search-open-editor", "role": "button",
+							  "label": "Open Results in Editor", "icon": "file-text", "font": "icons", "width": 22, "height": 22, "align": "center",
+							  "cursor": "hand", "radius": 3, "tooltip": "Open Results in Editor", "textColor": "@color.text",
+							  "hover": { "color": "@color.hover" }, "onClick": { "run": "openSearchEditor" } }
 						]
 					},
 					{

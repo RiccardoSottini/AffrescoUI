@@ -30,7 +30,7 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Toggle side bar, panel, layout | done | |
 | Explorer: open, create, rename, delete, move, reveal | done | |
 | Editing, find and replace in a file | done | |
-| Search across files, replace all | partial | No search editor (results open in the side bar only) |
+| Search across files, replace all, search editor | done | |
 | Source control: stage, commit, branches, stash, remotes | partial | No commit graph or merge editor (Commits lists the branch's last hundred, file by file); a push or pull that asks for a password prompts in the terminal that started the host |
 | Run and debug | done | |
 | Terminal | done | |

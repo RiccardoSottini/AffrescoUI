@@ -597,6 +597,10 @@
 										"use": "forgeKeybindingsPage"
 									},
 									{
+										"when": "{{state.docs[d].kind == 'searchResults'}}",
+										"use": "forgeSearchEditor"
+									},
+									{
 										"when": "{{state.docs[d].kind == 'settingsJson'}}",
 										"use": "forgeSettingsJsonPage"
 									},
