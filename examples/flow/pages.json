@@ -47,6 +47,11 @@
 		"goToIssues": { "title": "Go to issues", "category": "Go", "icon": "copy", "do": [{ "run": "showPage", "with": { "page": "issues" } }] },
 		"goToCycles": { "title": "Go to sprints", "category": "Go", "icon": "timer", "do": [{ "run": "showPage", "with": { "page": "cycles" } }] },
 		"goToProjects": { "title": "Go to projects", "category": "Go", "icon": "box", "do": [{ "run": "showPage", "with": { "page": "projects" } }] },
+		"openProject": [
+			{ "note": "with: at, the project's index: its issues, behind a Project filter whose chip removes it" },
+			{ "set": "state.fProject", "to": "{{at}}" },
+			{ "run": "showPage", "with": { "page": "issues" } }
+		],
 		"pickNotification": [
 			{ "note": "with: at, the notification's place among the shown ones; marks it read" },
 			{ "set": "state.inboxAt", "to": "{{at}}" },
@@ -64,7 +69,7 @@
 			"do": [
 				{ "update": "inbox", "id": "{{computed.notification.id}}", "fields": { "snoozed": true } },
 				{ "set": "state.inboxAt", "to": "{{max(min(state.inboxAt, length(computed.inboxShown) - 2), 0)}}" },
-				{ "set": "state.toast", "to": { "open": true, "message": "{{t('inbox.snoozed')}}" } }
+				{ "run": "notify", "with": { "message": "{{t('inbox.snoozed')}}" } }
 			] },
 		"openNotification": { "title": "Open the notification's issue", "category": "Inbox", "icon": "maximize-2", "enablement": "{{computed.notificationCard != null}}",
 			"do": [
@@ -285,7 +290,6 @@
 								"anchors": { "left": 0, "right": 0 },
 								"height": 44,
 								"color": "transparent",
-								"hover": { "color": "@color.column" },
 								"role": "listitem",
 								"label": "{{t('cycle.name', { n: cycle.number })}}",
 								"children": [
@@ -349,9 +353,13 @@
 								"height": 44,
 								"color": "transparent",
 								"hover": { "color": "@color.column" },
+								"cursor": "hand",
 								"focusable": true,
 								"role": "listitem",
 								"label": "{{project.name}}, {{t('health.' + project.health)}}, {{formatPercent(project.progress)}}",
+								"tooltip": "{{t('projects.open')}}",
+								"onClick": { "run": "openProject", "with": { "at": "{{indexOf(map(data.projects, it.name), project.name)}}" } },
+								"keys": { "enter": { "run": "openProject", "with": { "at": "{{indexOf(map(data.projects, it.name), project.name)}}" } } },
 								"children": [
 									{ "id": "projectRowLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" },
 									{ "id": "projectIcon", "type": "label", "icon": "{{project.icon}}", "text": "", "width": 22, "height": 22, "radius": 5, "align": "center",

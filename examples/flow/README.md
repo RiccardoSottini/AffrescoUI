@@ -1,6 +1,6 @@
-# Flow, a Kanban board
+# Flow, an issue tracker
 
-Boards as tabs, swimlanes, a table and a timeline of every card, a card drawer, a burndown and an activity feed, drag and drop with a keyboard alternative, undo, Cmd+P and Cmd+Shift+P. The `kanban` template: a screen document with no C++ of its own, which the stock host runs.
+Boards in the sidebar, an inbox, sprints and projects, a grouped list, swimlanes, a table and a timeline of every card, a card drawer, a burndown and an activity feed, drag and drop with a keyboard alternative, undo, Cmd+P and Cmd+Shift+P. The `kanban` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
 ./build/affrescoui_launcher examples/flow/index.screen.json
