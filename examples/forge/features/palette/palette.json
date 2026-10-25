@@ -17,6 +17,8 @@
 		"eolItems": "{{map(['LF', 'CRLF'], {title: it, detail: it == (computed.activeDoc.eol ?? 'LF') ? 'Current' : '', run: 'setEol', with: {eol: it}})}}",
 		"languageItems": "{{map(concat(filter(values(state.languages), indexOf(values(state.languages), it) == index), ['Plain Text']), {title: it, detail: (it == 'Plain Text' ? '' : it) == (computed.activeDoc.language ?? '') ? 'Current' : '', run: 'setLanguage', with: {language: it == 'Plain Text' ? '' : it}})}}",
 		"lineItems": "{{(number(slice(state.quickPick.query ?? '', 1)) ?? 0) > 0 ? [{title: 'Go to line ' + trim(slice(state.quickPick.query, 1)), line: number(slice(state.quickPick.query, 1))}] : []}}",
+		"settingsGroups": "{{map(settingsList, split(it.key, '.')[0])}}",
+		"settingsToc": "{{concat([{query: '', label: 'All settings'}], map(filter(computed.settingsGroups, indexOf(computed.settingsGroups, it) == index), {query: it + '.', label: it == 'editor' ? 'Text Editor' : it == 'diffEditor' ? 'Diff Editor' : it == 'accounts' ? 'Accounts' : upper(slice(it, 0, 1)) + slice(it, 1)}))}}",
 		"keyRows": "{{map(filter(keybindings, empty(state.keysQuery) || contains(lower((it.title ?? it.command ?? '') + ' ' + it.keyLabel), lower(state.keysQuery))), {id: index, cells: [it.title ?? it.command ?? '', it.keyLabel, it.when ?? '', it.scope]})}}"
 	},
 
@@ -107,8 +109,27 @@
 				] } }
 		},
 		"forgeSettingsPage": {
-			"node": { "use": "settingsPage", "id": "settings-page", "width": "100%", "grow": 1, "color": "@color.editor",
-			          "with": { "search": "{{state.settingsQuery}}" } }
+			"node": {
+				"type": "row", "id": "settings-editor", "width": "100%", "grow": 1, "color": "@color.editor",
+				"children": [
+					{ "type": "column", "id": "settings-toc", "label": "Table of contents", "width": 176, "height": "100%",
+					  "color": "@color.editor", "gap": 2,
+					  "children": [
+						{ "width": "100%", "height": 6, "color": "@color.editor" },
+						{ "id": "settings-toc-item", "repeat": { "for": "group", "in": "{{computed.settingsToc}}" }, "role": "button",
+						  "label": "{{group.label}}", "width": "100%", "height": 26, "cursor": "hand", "radius": 4,
+						  "color": "{{state.settingsQuery == group.query ? '@color.selection' : '@color.editor'}}",
+						  "tooltip": "{{empty(group.query) ? 'Show every setting' : 'Show the ' + group.label + ' settings'}}",
+						  "onClick": { "set": "state.settingsQuery", "to": "{{group.query}}" },
+						  "children": [
+							{ "type": "label", "text": "{{group.label}}", "anchors": { "left": 16, "top": 5 }, "fitText": true,
+							  "textColor": "{{state.settingsQuery == group.query ? '@color.text' : '@color.muted'}}" }
+						  ] }
+					  ] },
+					{ "use": "settingsPage", "id": "settings-page", "height": "100%", "grow": 1, "color": "@color.editor",
+					  "with": { "search": "{{state.settingsQuery}}" } }
+				]
+			}
 		},
 		"forgeKeybindingsPage": {
 			"node": {

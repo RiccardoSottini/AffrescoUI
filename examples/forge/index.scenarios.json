@@ -86,6 +86,19 @@
 			]
 		},
 		{
+			"name": "forge-settings-table-of-contents",
+			"note": "The settings editor's table of contents lists each group of settings and shows only that group's",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#settings-toc-item", "nth": 4, "property": "name", "is": "Text Editor" } },
+				{ "click": "#settings-toc-item", "nth": 4 },
+				{ "expect": { "state": "settingsQuery", "is": "editor." } },
+				{ "click": "#settings-toc-item", "nth": 0 },
+				{ "expect": { "state": "settingsQuery", "is": "" } }
+			]
+		},
+		{
 			"name": "forge-problems-and-output",
 			"note": "Scan for Problems lists nothing in a clean folder and logs it to Output; Focus Problems shows the panel",
 			"steps": [
