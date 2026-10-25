@@ -63,7 +63,7 @@ int readInt16(hb_blob_t* blob, unsigned at) noexcept {
 /// @return It, or "Font".
 std::string postScriptName(hb_face_t* face) {
 	std::array<char, 64> text{};
-	unsigned length = text.size();
+	auto length = static_cast<unsigned>(text.size());
 	hb_ot_name_get_utf8(face, HB_OT_NAME_ID_POSTSCRIPT_NAME, HB_LANGUAGE_INVALID, &length, text.data());
 	std::string name;
 	for(const char c : std::string_view(text.data())) {
