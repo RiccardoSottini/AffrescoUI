@@ -2335,6 +2335,18 @@
 							}
 						]
 					},
+					"minimapWidth": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 20,
+								"maximum": 240
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
 					"minimapViewport": {
 						"anyOf": [
 							{
@@ -2957,6 +2969,42 @@
 					},
 					"keepMarker": {
 						"type": "boolean"
+					},
+					"tabRadius": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"tabGap": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
+					},
+					"tabInset": {
+						"anyOf": [
+							{
+								"type": "number",
+								"minimum": 0,
+								"maximum": 64
+							},
+							{
+								"$ref": "#/$defs/v2/dynamic"
+							}
+						]
 					},
 					"items": {
 						"anyOf": [

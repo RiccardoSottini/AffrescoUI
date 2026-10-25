@@ -133,3 +133,32 @@ TEST_CASE("editor commands: select range clamps to the text") {
 	CHECK(test.editor.anchor() == TextEditor::Position{0, 1});
 	CHECK(test.editor.caret() == TextEditor::Position{1, 2});
 }
+
+TEST_CASE("editor commands: undo, redo, cut, copy, paste, select all, indent and outdent by name") {
+	CommandWindow test("one\ntwo");
+	test.at(0, 0);
+	REQUIRE(test.editor.runCommand("indentLines"));
+	CHECK(test.editor.text() == "    one\ntwo");
+	REQUIRE(test.editor.runCommand("outdentLines"));
+	CHECK(test.editor.text() == "one\ntwo");
+	REQUIRE(test.editor.runCommand("undo"));
+	CHECK(test.editor.text() == "    one\ntwo");
+	REQUIRE(test.editor.runCommand("redo"));
+	CHECK(test.editor.text() == "one\ntwo");
+
+	REQUIRE(test.editor.runCommand("selectAll"));
+	CHECK(test.editor.anchor() == TextEditor::Position{0, 0});
+	CHECK(test.editor.caret() == TextEditor::Position{1, 3});
+	REQUIRE(test.editor.runCommand("copy"));
+	CHECK(test.editor.text() == "one\ntwo");
+	REQUIRE(test.editor.runCommand("cut"));
+	CHECK(test.editor.text().empty());
+	REQUIRE(test.editor.runCommand("paste"));
+	REQUIRE(test.editor.runCommand("paste"));
+	CHECK(test.editor.text() == "one\ntwoone\ntwo");
+
+	test.editor.setReadOnly(true);
+	CHECK(test.editor.runCommand("cut")); // known, but a read-only text doesn't change
+	CHECK(test.editor.runCommand("undo"));
+	CHECK(test.editor.text() == "one\ntwoone\ntwo");
+}

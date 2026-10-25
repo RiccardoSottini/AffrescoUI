@@ -198,6 +198,13 @@ public:
 	void setMinimapText(bool text);
 	/// @brief Whether the minimap draws its rows as their text.
 	[[nodiscard]] bool minimapText() const noexcept { return minimapText_; }
+	static constexpr float minimapSize = 60.0f; ///< Default width of the minimap, in pixels.
+	static constexpr std::pair<float, float> minimapWidths = {20.0f, 240.0f}; ///< The narrowest and widest minimap.
+	/// @brief Sets the minimap's width.
+	/// @param width In pixels, clamped to minimapWidths (the default is minimapSize).
+	void setMinimapSize(float width);
+	/// @brief The minimap's width, in pixels, when shown.
+	[[nodiscard]] float minimapPreferredWidth() const noexcept { return minimapSize_; }
 	/// @brief Marks the visible rows in the minimap only while the pointer is over it.
 	/// @param onHover true for only then, false for always.
 	void setMinimapViewportOnHover(bool onHover);
@@ -241,7 +248,8 @@ public:
 	/* Commands: TextEditorCommands.cpp */
 
 	/// @brief The commands runCommand() knows, by name: selections (goTo is selectRange()), line operations, case
-	/// conversion, transpose and toggleComment.
+	/// conversion, transpose, toggleComment, and the edit commands (undo, redo, cut, copy, paste, selectAll,
+	/// indentLines, outdentLines, unfoldAll).
 	[[nodiscard]] static const std::vector<std::string_view>& commandNames();
 	/// @brief Runs a command, as one undo step (ignored when it edits and the text is read-only).
 	/// @param name One of commandNames().
@@ -510,7 +518,6 @@ protected:
 private:
 	static constexpr float textPadding = 6.0f;      ///< Space above the first line, in pixels.
 	static constexpr float scrollBarWidth = 4.0f;   ///< Thickness of the scroll bar, in pixels.
-	static constexpr float minimapSize = 60.0f;     ///< Width of the minimap, in pixels.
 	static constexpr std::size_t exactWidth = 4096; ///< Up to this many lines, the widest is measured, not estimated.
 
 	/// @brief One row on screen: a line, or the part of a wrapped line between two columns.
@@ -700,6 +707,11 @@ private:
 	/// @param name The command.
 	/// @return Whether the name is one.
 	bool textCommand(std::string_view name);
+	/// @brief Runs an edit command that keys also reach: undo, redo, cut, copy, paste, selectAll, indentLines,
+	/// outdentLines and unfoldAll (TextEditorEditCommands.cpp).
+	/// @param name The command.
+	/// @return Whether the name is one.
+	bool editCommand(std::string_view name);
 	/// @brief Cmd+Alt+Up/Down: adds a cursor on the row above or below the outermost one.
 	/// @param down true for below.
 	void addCursorRow(bool down);
@@ -952,6 +964,7 @@ private:
 	bool minimap_ = false;            ///< See setMinimap().
 	bool minimapDragging_ = false;    ///< A press on the minimap is scrolling.
 	bool minimapText_ = false;        ///< See setMinimapText().
+	float minimapSize_ = minimapSize; ///< See setMinimapSize().
 	bool minimapViewportOnHover_ = false; ///< See setMinimapViewportOnHover().
 	bool minimapHovered_ = false;     ///< The pointer is over the minimap.
 	bool matchOutline_ = false;       ///< See setMatchOutline().
