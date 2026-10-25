@@ -148,6 +148,23 @@
 				{ "expect": { "state": "debug.collapsed", "is": ["watch"] } },
 				{ "expect": { "node": "#debug-stack", "exists": true } }
 			]
+		},
+		{
+			"name": "forge-controls-feature-cards",
+			"note": "The features view lists the catalogue as cards, title and release over the description; a click selects one and shows what it can do",
+			"steps": [
+				{ "action": "showFeatures" },
+				{ "action": "featuresRefresh" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#feature-title-wordCount", "text": "Word count  1.0.0" } },
+				{ "expect": { "node": "#feature-description-todoTree", "exists": true } },
+				{ "click": "#feature-wordCount" },
+				{ "expect": { "state": "features.selected", "is": "wordCount" } },
+				{ "expect": { "node": "#features-install", "exists": true } },
+				{ "key": "shift+tab" },
+				{ "key": "enter" },
+				{ "expect": { "state": "features.selected", "is": "todoTree" } }
+			]
 		}
 	]
 }
