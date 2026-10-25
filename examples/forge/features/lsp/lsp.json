@@ -97,7 +97,7 @@
 			  "else": [
 				{ "if": "{{event.text == '.' || length(event.word) == 1 || !state.lsp.completion.open}}",
 				  "then": [
-					{ "run": "lspAsk", "with": { "kind": "completion", "line": "{{event.line}}", "column": "{{event.column}}", "newName": null, "query": null } },
+					{ "run": "lspAsk", "with": { "kind": "completion", "line": "{{event.line + 1}}", "column": "{{event.column + 1}}", "newName": null, "query": null } },
 					{ "set": "state.lsp.completion.request", "to": "{{state.lsp.request}}" }
 				  ] }
 			  ] }
