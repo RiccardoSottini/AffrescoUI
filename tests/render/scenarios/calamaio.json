@@ -60,7 +60,24 @@
 				{ "wait": 50 },
 				{ "key": "enter" },
 				{ "wait": 120 },
-				{ "expect": { "image": "describe-function" } }
+				{ "expect": { "image": "describe-function" } },
+				{ "key": "ctrl+x" },
+				{ "key": "1" },
+				{ "wait": 50 },
+				{ "key": "ctrl+x" },
+				{ "key": "d" },
+				{ "wait": 50 },
+				{ "key": "enter" },
+				{ "wait": 80 },
+				{ "expect": { "image": "folder" } },
+				{ "action": "show-splash" },
+				{ "wait": 50 },
+				{ "revision": { "message": "Dark theme", "set": { "/state/settings": { "custom-enabled-themes": "inchiostro" } } } },
+				{ "wait": 50 },
+				{ "expect": { "image": "dark" } },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "wait": 50 },
+				{ "expect": { "image": "rtl" } }
 			]
 		}
 	]
