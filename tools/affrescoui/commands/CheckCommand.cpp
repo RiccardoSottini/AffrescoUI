@@ -1,11 +1,13 @@
 /// @file
-/// @brief `affrescoui check`: a screen against the schema, the format's rules and the checker, without a window.
+/// @brief `affrescoui check`: a screen against the schema, the format's rules and the checker, without a window; an
+/// app's folder or app.json, its manifest and the capabilities its screen uses too.
 
 #include "Cli.hpp"
 #include "Schema.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/core/Log.hpp>
+#include <affresco/format/App.hpp>
 #include <affresco/format/Rules.hpp>
 
 #include <algorithm>
@@ -74,14 +76,65 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	return problems;
 }
 
+/// @brief Checks an app (SCREEN_FORMAT.md, "Apps: app.json"): its manifest, its entry screen against the schema, the
+/// app loaded as the host loads it (themes, models and seeds merged in, nothing kept on disk), the checker, and every
+/// capability the screen uses that the manifest doesn't declare.
+/// @param manifest The app.json file.
+/// @return What it found.
+std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
+	std::vector<Problem> problems;
+	format::AppManifest app;
+	try {
+		app = format::parseApp(parseUntrusted(readFile(manifest)));
+	} catch(const std::exception& error) {
+		problems.push_back({"format", "", error.what()});
+		return problems;
+	}
+	const std::filesystem::path entry = manifest.parent_path() / app.entry;
+	try {
+		Schema schema(json::parse(embeddedSchema()));
+		for(SchemaProblem& problem : schema.check(parseUntrusted(readFile(entry))))
+			problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
+	} catch(const std::exception& error) {
+		problems.push_back({"json", app.entry, error.what()});
+		return problems;
+	}
+	setLogSink([](LogLevel, std::string_view) {});
+	try {
+		const Screen screen = Screen::fromApp(manifest, {}, Screen::History::InMemory);
+		setLogSink({});
+		const json document = json::parse(screen.documentJson());
+		for(std::string& finding : format::Rules().findings(document, json::parse(screen.stateJson())))
+			problems.push_back({"checker", app.entry, std::move(finding)});
+		for(const std::string& key : format::undeclaredCapabilities(app, document))
+			problems.push_back({"capabilities", app.entry,
+			                    "the screen uses " + key + ", which app.json doesn't declare: it is never granted"});
+	} catch(const DocumentError& error) {
+		setLogSink({});
+		problems.push_back({"format", "", error.what()});
+	}
+	return problems;
+}
+
+/// @brief Whether a file is an app's manifest, or a folder an app's.
+/// @param path The file or folder.
+/// @return The manifest, or "" if it isn't one.
+std::filesystem::path manifestOf(const std::filesystem::path& path) {
+	if(std::filesystem::is_directory(path)) return path / "app.json";
+	if(path.filename() == "app.json") return path;
+	return {};
+}
+
 } // namespace
 
 Exit checkScreen(std::span<const std::string_view> args) {
-	if(std::ranges::contains(args, std::string_view("--compose"))) return checkComposition(args, registerApplicationTypes);
+	if(std::ranges::contains(args, std::string_view("--compose")))
+		return checkComposition(args, registerApplicationTypes);
 	static constexpr std::array<std::string_view, 1> flags = {"--json"};
 	const Arguments arguments(args, {}, flags);
 	const std::filesystem::path file = arguments.file();
-	const std::vector<Problem> problems = problemsOf(file);
+	const std::filesystem::path manifest = manifestOf(file);
+	const std::vector<Problem> problems = manifest.empty() ? problemsOf(file) : appProblems(manifest);
 
 	if(arguments.flag("--json")) {
 		json list = json::array();

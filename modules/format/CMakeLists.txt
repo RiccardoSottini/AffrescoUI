@@ -184,6 +184,8 @@ target_sources(affrescoui_format PRIVATE src/sections/Sections.cpp src/sections/
 # connections: connections (RFC 0003): their specs, their HTTP and socket calls, signing in and its steps
 target_sources(affrescoui_format PRIVATE src/connections/ConnectionSpec.cpp src/connections/Connections.cpp
 	src/connections/ConnectionAuth.cpp src/connections/AuthSteps.cpp)
+# app: apps' manifests (app.json) and the capabilities a screen uses
+target_sources(affrescoui_format PRIVATE src/app/App.cpp)
 # features: features (RFC 0004): manifests, catalogues, signatures, trusted publishers
 target_sources(affrescoui_format PRIVATE src/features/FeatureManifest.cpp src/features/FeatureCatalog.cpp
 	src/features/FeatureSignatures.cpp src/features/Features.cpp)

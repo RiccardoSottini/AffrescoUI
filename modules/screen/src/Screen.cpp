@@ -2,6 +2,7 @@
 /// @brief affresco::Screen, the composition root: puts the format's rules, the repository, the runtime and the peers
 /// together with the services, and adds includes, declared channels and the "persist" state file.
 
+#include "ScreenFiles.hpp"
 #include "ScreenImpl.hpp"
 
 #include "affresco/core/Log.hpp"
@@ -129,6 +130,10 @@ void mergeInclude(json& document, const json& part) {
 	}
 }
 
+} // namespace
+
+namespace detail {
+
 /// @brief Merges a screen's "include" files into it (recursively, at most 8 deep): each section of an included file
 /// comes first and the including file's entries win; root and window come from the including file.
 /// @param document The screen.
@@ -136,7 +141,7 @@ void mergeInclude(json& document, const json& part) {
 /// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
 /// @param depth Includes inside includes so far.
 /// @throws ScreenError If an include can't be read.
-void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated, int depth = 0) {
+void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated, int depth) {
 	if(!document.is_object() || !document.contains("include")) return;
 	if(depth > 8) throw ScreenError("AffrescoUI screen: include: nested too deeply (a file includes itself?)");
 	const json includes = document["include"].is_string() ? json::array({document["include"]}) : document["include"];
@@ -153,6 +158,10 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 	}
 }
 
+} // namespace detail
+
+namespace {
+
 /// @brief The name of the folder a screen file is in.
 /// @param screenFile The screen file, absolute or relative to the current folder.
 /// @return The folder's name, or nothing if it has none (the root) or the path can't be made absolute.
@@ -162,6 +171,10 @@ std::optional<std::string> folderName(const std::filesystem::path& screenFile) {
 	if(error || folder.empty()) return std::nullopt;
 	return folder;
 }
+
+} // namespace
+
+namespace detail {
 
 /// @brief Where a screen file's data on disk is kept: its "persist" state and its history.
 /// @param dataDirectory The data folder (Screen::defaultDataDirectory()).
@@ -188,6 +201,10 @@ std::string templateName(const std::filesystem::path& screenFile) {
 	const std::optional<std::string> folder = folderName(screenFile);
 	return folder ? *folder + "/" + file : file;
 }
+
+} // namespace detail
+
+namespace {
 
 /// @brief A screen converted from another format (SCREEN_FORMAT.md, "Other formats"): its warnings logged, and its
 /// later updates (A2UI's) applied as revisions.
@@ -230,12 +247,12 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	std::stringstream content;
 	content << file.rdbuf();
 	Screen screen = fromString(content.str(), path.parent_path());
-	screen.impl_->repairs.setTemplateName(templateName(path));
+	screen.impl_->repairs.setTemplateName(detail::templateName(path));
 	// The history first: it sets the live state that the "persist" paths are then loaded into
-	if(history == History::OnDisk) screen.setHistoryDirectory(stateLocation(dataDirectory, path, ".history"));
-	screen.setStateFile(stateLocation(dataDirectory, path, ".state.json"));
-	screen.setDataFile(stateLocation(dataDirectory, path, ".data.sqlite")); // after the state: they may import it
-	screen.setUsageFile(stateLocation(dataDirectory, path, ".usage.json"));
+	if(history == History::OnDisk) screen.setHistoryDirectory(detail::stateLocation(dataDirectory, path, ".history"));
+	screen.setStateFile(detail::stateLocation(dataDirectory, path, ".state.json"));
+	screen.setDataFile(detail::stateLocation(dataDirectory, path, ".data.sqlite")); // after the state: they may import it
+	screen.setUsageFile(detail::stateLocation(dataDirectory, path, ".usage.json"));
 	return screen;
 }
 
@@ -253,7 +270,7 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 		if(auto foreign = format::adapters::convertForeign(content))
 			return fromConverted(*foreign, std::move(baseDirectory));
 	bool migrated = !format::migrate(document).empty();
-	resolveIncludes(document, baseDirectory, migrated);
+	detail::resolveIncludes(document, baseDirectory, migrated);
 	if(migrated) // one notice for the screen and its parts: they work as they are, in memory
 		affresco::log(LogLevel::Info, "AffrescoUI screen: written for format version 1, read as version 2 (`affrescoui migrate "
 		                    "--write <files>` rewrites the files)");

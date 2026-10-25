@@ -40,6 +40,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `data_models` | `{"models", "next", "query"}` (models with migrations and seeds, the next version of them, a query) or, if it isn't JSON, a CSV text, to the data module's store (`modules/data`) | Refused with `DocumentError` only; a plan changes nothing and agrees with what follow then does; a refused change leaves every record as it was; CSV rows stay within their limits |
 | `migrate` | A version 1 document or patch, to `migrate` and `migratePatch` (`format/Migrate.hpp`), each twice | Refused with `json::parse_error`; otherwise migrated, a changed document declares version 2, and the second migration changes nothing |
 | `feature_manifest` | A feature's manifest (RFC 0004), to `checkManifest` (`format/src/features/FeatureManifest.hpp`), and if it passes, its record composed into the Kanban template | Refused with `json::parse_error` or `DocumentError`; a manifest that passes composes into a screen or problems |
+| `app_manifest` | An app's manifest (`app.json`), to `parseApp` (`format/App.hpp`), and the same JSON as a screen to `usedCapabilities` and `undeclaredCapabilities` | Refused with `json::parse_error` or `DocumentError`; a manifest read has an id that is its own `appId`, every path inside the app's folder and a key for every capability; the undeclared capabilities are among the used ones |
 | `catalog_index` | A catalogue's index, signed at start-up by a trusted key made then, to `readCatalog` (`format/src/features/FeatureCatalog.hpp`) | An index or a `DocumentError`; releases newest first and once each, keys well formed, URLs inside the folder |
 | `signature` | Any text, to the signature parsers (`format/src/features/FeatureSignatures.hpp`): base64url, public keys, digests, key files, canonical JSON, verifying | Fixed-length parsing gives that length or nothing and writes back as the same text; canonical JSON is its own canonical form; verifying gives the named key or a `DocumentError` |
 | `composition` | `{ manifest, adapter, points, exports }`: a feature from another app proven on the Kanban template with those contribution points (`format/src/composition/CompositionProof.hpp`), and the template's contributions listed | Every proof checks as a proof record within its size, gives its verdict, and a passed one comes with the composed document; listing refuses with `DocumentError` or prints |
@@ -82,6 +83,7 @@ of these and what limits them.
 | The git commands a screen asks the git grant to run | The screen, a revision of it | `git_policy` |
 | A history folder on disk | Anyone who can write to it, a crash, a full disk | `history`, `delta` |
 | Feature manifests, catalogue indexes, signatures and key files | A catalogue's publisher, or whoever serves it | `feature_manifest`, `catalog_index`, `signature` |
+| An app's manifest (`app.json`) and the capabilities its screen uses | Whoever made the app's folder | `app_manifest` |
 | Features from another app, their adapters and proofs | Another app's author, an agent or a peer | `composition` |
 | The document server's token file | Whoever can write its folder | `token_file` |
 | A colour theme imported into Forge | Whoever published the theme | `color_theme` |
@@ -109,7 +111,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output`, `git_policy`, `path_tree`, `color_theme`, `gltf`, `scene` or `images` in place of
+Use `json`, `expression`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `path`, `text_model`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `app_manifest`, `catalog_index`, `signature`, `composition`, `url`, `oauth`, `history`, `token_file`, `git_output`, `git_policy`, `path_tree`, `color_theme`, `gltf`, `scene` or `images` in place of
 `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.

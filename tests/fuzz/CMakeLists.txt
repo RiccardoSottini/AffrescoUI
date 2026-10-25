@@ -82,6 +82,8 @@ target_include_directories(affrescoui_fuzz_dap PRIVATE ${PROJECT_SOURCE_DIR}/mod
 affrescoui_fuzzer(feature_manifest affrescoui::format)
 target_include_directories(affrescoui_fuzz_feature_manifest PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)
+# Apps' manifests (app.json, format/App.hpp), and the capabilities a screen uses
+affrescoui_fuzzer(app_manifest affrescoui::format)
 affrescoui_fuzzer(catalog_index affrescoui::format)
 target_include_directories(affrescoui_fuzz_catalog_index PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>)

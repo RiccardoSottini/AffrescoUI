@@ -18,6 +18,7 @@
 - frames:     Content-Length frames and lines, as a service process writes them;
 - peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
 - feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
+- app_manifest: every app's app.json, and the templates as screens whose capabilities are read.
 - composition: Sinopia's slide sorter with Bottega's adapters, good and broken, and Tempera's points and exports.
 - url:        an allowlist entry, a line feed, then a URL: remote peers', sign-in's and a document server's;
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
@@ -468,6 +469,13 @@ def feature_seeds():
             + sorted(forge.glob("catalog/**/*.json"))]
 
 
+def app_seeds():
+    """Every app's manifest (app.json), and the templates, which read as screens using capabilities."""
+    manifests = sorted(ROOT.glob("examples/*/app.json")) + sorted(ROOT.glob("apps/*/app.json"))
+    return [path.read_text(encoding="utf-8") for path in manifests] + [path.read_text(encoding="utf-8")
+                                                                       for path in templates("*.screen.json")]
+
+
 def composition_seeds():
     """The slide sorter's manifest with each of Bottega's adapters, and Tempera's points and exports (examples/bottega)."""
     examples = ROOT / "examples"
@@ -839,6 +847,8 @@ def main():
     features = ["affrescoui-feature", "affrescoui-catalog", "requires", "provides", "points", "exports", "signature",
                 "publisher", "releases", "release", "digest", "url", "size", "ed25519:", "sha512:", "1.0.0", "^1.0.0"]
     write(out, "feature_manifest", feature_seeds(), words["json"] + features)
+    write(out, "app_manifest", app_seeds(), words["json"] + ["affrescoui-app", "capabilities", "network", "folders",
+          "programs", "audio", "access", "write", "why", "seed", "models", "https://*.", "ws://127.0.0.1:", "../"])
     migrations = [path.read_text(encoding="utf-8") for path in sorted((ROOT / "tests" / "migrate").glob("*/*.json"))]
     write(out, "migrate", migrations, words["json"] + ["from", "justify", "align", "len(", "length(", "requires"])
     write(out, "catalog_index", feature_seeds(), words["json"] + features)

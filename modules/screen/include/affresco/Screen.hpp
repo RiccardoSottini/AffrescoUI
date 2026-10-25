@@ -21,6 +21,7 @@
 #include "affresco/render/GpuSurface.hpp"
 #include "affresco/render/Panel.hpp"
 #include "affresco/render/Window.hpp"
+#include "affresco/format/App.hpp"
 #include "affresco/format/Features.hpp"
 #include "affresco/services/ServiceRegistry.hpp"
 
@@ -101,6 +102,31 @@ public:
 	/// @throws ScreenError If the file can't be read, is not a valid screen, or its history on disk is damaged.
 	[[nodiscard]] static Screen fromFile(const std::filesystem::path& path, const std::filesystem::path& dataDirectory,
 	                                     History history = History::OnDisk);
+
+	/// @brief Loads an app (SCREEN_FORMAT.md, "Apps: app.json"): a folder with an app.json, or that file. Its entry
+	/// screen is read with the app's own kits and themes and its data models merged in (the screen's own entries win),
+	/// each seed file given to its model, and its data kept in appDataDirectory() (moved there, the first time, from
+	/// where fromFile() kept the entry screen's).
+	/// @param location The app's folder, or its app.json.
+	/// @param dataDirectory The data folder: the app's own is made in it. Empty to keep nothing on disk, as
+	/// fromString() does (a check).
+	/// @param history Whether the history is kept there or in memory only.
+	/// @return The screen, not yet built; app() is its manifest.
+	/// @throws ScreenError If the manifest or a file it names can't be read or isn't valid, a file it names is
+	/// outside its folder, or the entry screen can't be loaded.
+	[[nodiscard]] static Screen fromApp(const std::filesystem::path& location, const std::filesystem::path& dataDirectory,
+	                                    History history = History::OnDisk);
+
+	/// @brief The folder an app keeps the person's data in: its history, "persist" state, records and usage.
+	/// @param dataDirectory The data folder.
+	/// @param id The app's id (format::AppManifest::id).
+	/// @return `<dataDirectory>/apps/<id>`.
+	[[nodiscard]] static std::filesystem::path appDataDirectory(const std::filesystem::path& dataDirectory,
+	                                                            std::string_view id);
+
+	/// @brief The manifest of the app the screen was loaded from (fromApp()).
+	/// @return It, or nullptr for a screen loaded otherwise.
+	[[nodiscard]] const format::AppManifest* app() const noexcept;
 
 	/// @brief Loads a screen from JSON text.
 	/// @param content The document.

@@ -1550,7 +1550,7 @@ database with migrations, as Rails and Django keep their schema):
 | **View** | the layout: nodes, styles, `{{…}}` bindings | revisions | the document |
 | **Logic** (the view-model) | actions, `computed`, `queries`, rules, the short-lived `state` (a selection, a panel open) | revisions | the document |
 | **Model** (the schema) | `models`: collections, typed fields, references, a `version` | revisions, with a **migration** when the records must change | the document |
-| **Data** (the records) | each collection's records | the app's write steps (or a reviewed step an agent proposes), never a view or logic revision | a store of its own: SQLite, `<data folder>/<screen name>.data.sqlite`, with a journal |
+| **Data** (the records) | each collection's records | the app's write steps (or a reviewed step an agent proposes), never a view or logic revision | a store of its own: SQLite, `<data folder>/<screen name>.data.sqlite` (an app's: `<data folder>/apps/<id>/data.sqlite`), with a journal |
 
 So a new view never erases what was stored: a revision can't write records at all, a field the model stops declaring
 keeps its values in the store (unread), and reverting a commit leaves the records alone, except that a commit that
@@ -1638,6 +1638,55 @@ inverse of its steps (a rename back, the `inverse` expressions, a drop's values 
 it puts the archived records back and archives what was written since that the older model can't hold.
 
 `get_models` (the MCP server) gives each collection's model and count, never a record. Limits: SECURITY.md, "Limits".
+
+## Apps: app.json
+
+An app is a folder of files that a stock host runs, with nothing compiled for it: screens, its own kits and themes,
+data models and seed data, assets. `app.json` in the folder says what it is
+([schema/affrescoui-app.schema.json](schema/affrescoui-app.schema.json)); `affrescoui_launcher <folder>` (or
+`<folder>/app.json`) opens it, and `affrescoui check app.json` checks it with its entry screen. A generated example:
+```json
+{
+  "$schema": "../../schema/affrescoui-app.schema.json",
+  "format": "affrescoui-app", "version": 1,
+  "id": "reading-list", "name": "Reading list", "description": "Books to read, and notes on the ones read.",
+  "icon": "assets/icon.png",
+  "entry": "index.screen.json",
+  "themes": ["themes/paper.json"],
+  "capabilities": {
+    "network": { "https://api.example.com": "Looks books up by their ISBN." },
+    "folders": { "workspace": { "access": "read", "why": "Imports a list you exported." } }
+  },
+  "data": {
+    "models": "models.json",
+    "seed": { "books": "seed/books.csv", "shelves": "seed/shelves.json" }
+  },
+  "assets": ["assets"]
+}
+```
+- **`id`**: lower-case letters, digits and `-`. The person's data is kept by it, in `<data folder>/apps/<id>/`: the
+  history, the `persist` state (`state.json`), the records (`data.sqlite`) and the usage. Data an earlier version
+  kept for the entry screen (`<data folder>/<screen name>.*`) is moved there the first time the app opens.
+- **`entry`** (default `index.screen.json`): the screen it opens. Every path in the manifest is relative, inside the
+  folder (no `..`, no link leading out), and is refused otherwise.
+- **`themes`**: files of `components`, `styles`, `tokens`, `colors` and `fonts`, merged into the entry screen after
+  its own `include` files, so the screen's own entries win. A theme can't hold actions or nodes.
+- **`data.models`**: a file of `models` and `queries`, merged the same way. **`data.seed`**: a collection's first
+  records (its model's `seed`, so written once, when the store creates the collection, and migrated like stored
+  records): a JSON list of records, or a CSV file whose header names the fields (cells convert to the field's type; an
+  `id` column gives the ids; a row that doesn't fit refuses the app). A model with a `seed` of its own takes no file.
+- **`capabilities`**: what the app asks the person for, each with why. `network`: origins its `connections` reach
+  (`"https://*.example.com"` for the subdomains; http and ws reach only the computer's own addresses). `folders`: the
+  root names its `services` use, `read` or `write`; the person picks the folder. `programs`: what its `process`
+  services run. `audio`: sound. Nothing is allowed by default: the host asks the person the first time, for this app
+  only, and remembers the answer (`<data folder>/apps/<id>/grants.json`; `affrescoui_launcher --permissions <app>`
+  forgets it). A capability the screen uses that the manifest doesn't declare is never granted, and `affrescoui
+  check` reports it; since a revision can't change these sections (Live screens, "Revisions"), it never widens what
+  the app may reach. A screen opened alone (a `.screen.json`) is an app named after it that declares what it uses.
+- **`assets`**: its other files and folders, shipped with it.
+
+Limits: the manifest at most 256 KiB, a name 100 characters, a reason 300, 64 entries of each kind, 256 assets, a
+theme, models or seed file 16 MiB.
 
 ## Live screens: revisions and the channel
 

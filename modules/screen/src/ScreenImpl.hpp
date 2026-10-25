@@ -77,6 +77,7 @@ struct Screen::Impl {
 	};
 
 	format::Features features;                           ///< Catalogues and publishers (RFC 0004); outlives the rest.
+	std::optional<format::AppManifest> app;              ///< The app it was loaded from (Screen::fromApp()).
 	services::ServiceRegistry services;                  ///< What "services" may use (RFC 0002).
 	detail::RelayExecutor relay;                         ///< The network's executor.
 	std::unique_ptr<net::Client> network;                ///< See Screen::network(); outlives the runtime.

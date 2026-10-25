@@ -27,8 +27,8 @@ std::span<const Command> commands() {
 	    {"check",
 	     "<file> [--json] | --compose <screen> <feature> [--adapter FILE] [--base COMMIT] [--scenarios FILE|none] "
 	     "[--document FILE] [--revision out.json] [--json]",
-	     "Check a screen: the schema, the format's rules and the checker; --compose proves a feature from another app "
-	     "fits it",
+	     "Check a screen or an app (its folder or app.json): the schema, the format's rules and the checker; --compose "
+	     "proves a feature from another app fits it",
 	     checkScreen},
 	    {"contributions", "<file> [--json] [--document FILE]",
 	     "List a screen's contribution points, typed exports and installable parts, compactly", listContributions},
