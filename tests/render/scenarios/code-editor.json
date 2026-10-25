@@ -8,7 +8,7 @@
 			"screen": "index.screen.json",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
-				{ "move": [340, 789] },
+				{ "move": [140, 783] },
 				{ "wait": 1200 },
 				{ "expect": { "image": "tooltip" } },
 				{ "click": [22, 14] },
@@ -17,7 +17,7 @@
 				{ "key": "escape" },
 				{ "click": [130, 270] },
 				{ "expect": { "image": "file-opened" } },
-				{ "click": [472, 42] },
+				{ "click": [484, 45] },
 				{ "click": "#editor" },
 				{ "key": "cmd+down" },
 				{ "expect": { "image": "large-file" } },
@@ -31,7 +31,7 @@
 				{ "wait": 50 },
 				{ "expect": { "image": "command-palette" } },
 				{ "key": "escape" },
-				{ "click": [267, 42] },
+				{ "click": [270, 45] },
 				{ "click": "#editor" },
 				{ "type": "x" },
 				{ "key": "cmd+w" },
@@ -47,6 +47,35 @@
 				{ "key": "cmd+shift+a" },
 				{ "wait": 400 },
 				{ "expect": { "image": "assistant" } }
+			]
+		},
+		{
+			"name": "code-editor-look",
+			"screen": "index.screen.json",
+			"note": "Quaderno's own look: the theme picker previewing Light, light with the editor's menu, Distraction Free, right to left",
+			"steps": [
+				{ "key": "cmd+k" },
+				{ "key": "cmd+t" },
+				{ "wait": 50 },
+				{ "key": "down" },
+				{ "wait": 50 },
+				{ "expect": { "image": "theme-picker" } },
+				{ "key": "enter" },
+				{ "wait": 50 },
+				{ "click": [900, 166] },
+				{ "key": "shift+f10" },
+				{ "wait": 50 },
+				{ "expect": { "image": "light-editor-menu" } },
+				{ "key": "escape" },
+				{ "key": "ctrl+cmd+shift+f" },
+				{ "wait": 50 },
+				{ "expect": { "image": "distraction-free" } },
+				{ "key": "ctrl+cmd+shift+f" },
+				{ "click": "#themeSwitch" },
+				{ "revision": { "message": "Right to left", "set": { "/state/dir": "rtl" } } },
+				{ "action": "showProblems" },
+				{ "wait": 50 },
+				{ "expect": { "image": "rtl" } }
 			]
 		},
 		{

@@ -34,6 +34,7 @@
 	},
 
 	"state": {
+		"dir": "auto",
 		"project": "weather-station",
 		"theme": "dark",
 		"zen": false,
@@ -654,6 +655,11 @@
 		],
 		"closeOthers": { "title": "Close Other Files", "category": "File", "enablement": "{{length(state.tabs) > 1}}",
 			"do": [{ "forEach": "{{filter(state.tabs, it != state.active)}}", "as": "f", "do": [{ "if": "{{!state.files[f].dirty}}", "then": [{ "run": "closeNow", "with": { "file": "{{f}}" } }] }] }] },
+		"closeOthersOf": [
+			{ "note": "with: file; shows that tab and closes the other saved ones" },
+			{ "set": "state.active", "to": "{{file}}" },
+			{ "run": "closeOthers" }
+		],
 		"closeToTheRight": [
 			{ "note": "with: file; closes the saved tabs after it" },
 			{ "forEach": "{{slice(state.tabs, indexOf(state.tabs, file) + 1)}}", "as": "f", "do": [{ "if": "{{!state.files[f].dirty}}", "then": [{ "run": "closeNow", "with": { "file": "{{f}}" } }] }] }
@@ -711,6 +717,7 @@
 		"children": [
 			{
 				"id": "titleBar",
+				"dir": "{{state.dir}}",
 				"when": "{{!state.zen}}",
 				"anchors": { "left": 0, "right": 0, "top": 0 },
 				"height": 26,
@@ -772,6 +779,7 @@
 			},
 			{
 				"id": "workbench",
+				"dir": "{{state.dir}}",
 				"type": "split",
 				"anchors": { "left": 0, "right": 0, "top": "{{state.zen ? 0 : 26}}", "bottom": "{{(state.zen ? 0 : 24) + computed.findHeight}}" },
 				"bind": "state.sizes",
@@ -917,7 +925,7 @@
 											{ "forEach": "{{state.place ? [state.place] : []}}", "as": "place", "do": [{ "set": "state.place", "to": null }, { "run": "goToPlace", "with": { "item": "{{place}}" } }] }
 										],
 										"onChange": { "set": "state.files[open].dirty", "to": "{{!state.files[open].scratch}}" },
-										"onContextMenu": { "set": "state.editorMenu", "to": { "open": true, "x": "{{event.x}}", "y": "{{event.y}}" } },
+										"onContextMenu": { "set": "state.editorMenu", "to": { "open": true, "x": "{{min(event.x, event.x - event.left + event.width - 240)}}", "y": "{{min(event.y, event.y - event.top + event.height - 204)}}" } },
 										"onDoubleClick": { "if": "{{state.files[open].scratch}}", "then": [{ "run": "openResult", "with": { "line": "{{state.caret.line}}" } }] }
 									},
 									{
@@ -938,23 +946,17 @@
 								"keys": { "escape": "togglePanel" },
 								"children": [
 									{ "id": "panelEdge", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
-									{
-										"id": "panelTabs",
-										"type": "row",
-										"anchors": { "left": 10, "top": 4 },
-										"height": 22,
-										"gap": 4,
-										"children": [
-											{ "id": "panelTab", "repeat": { "for": "view", "in": "{{[{ id: 'problems', title: 'Problems' }, { id: 'terminal', title: 'Console' }]}}", "key": "{{view.id}}" },
-											  "type": "label", "text": "{{view.title}}", "font": "small", "height": 22, "padding": 10, "fitText": true, "radius": 4,
-											  "align": "center", "cursor": "hand",
-											  "color": "{{state.panelTab == view.id ? '@rowSelected' : 'transparent'}}",
-											  "textColor": "{{state.panelTab == view.id ? '@text' : '@muted'}}",
-											  "hover": { "textColor": "@text" },
-											  "onClick": { "run": "{{view.id == 'problems' ? 'showProblems' : 'showTerminal'}}" } }
-										]
-									},
-									{ "id": "panelClose", "type": "label", "text": "", "icon": "x", "font": "small", "anchors": { "right": 10, "top": 4 },
+									{ "id": "panelProblems", "type": "label", "text": "Problems", "font": "small", "anchors": { "left": 10, "top": 4 }, "height": 22, "width": 78,
+									  "align": "center", "radius": 4, "cursor": "hand",
+									  "color": "{{state.panelTab == 'problems' ? '@rowSelected' : 'transparent'}}",
+									  "textColor": "{{state.panelTab == 'problems' ? '@text' : '@muted'}}",
+									  "hover": { "textColor": "@text" }, "onClick": "showProblems" },
+									{ "id": "panelConsole", "type": "label", "text": "Console", "font": "small", "anchors": { "left": 92, "top": 4 }, "height": 22, "width": 72,
+									  "align": "center", "radius": 4, "cursor": "hand",
+									  "color": "{{state.panelTab == 'terminal' ? '@rowSelected' : 'transparent'}}",
+									  "textColor": "{{state.panelTab == 'terminal' ? '@text' : '@muted'}}",
+									  "hover": { "textColor": "@text" }, "onClick": "showTerminal" },
+									{ "id": "panelClose", "type": "label", "text": "×", "font": "default", "anchors": { "right": 10, "top": 4 },
 									  "width": 22, "height": 22, "align": "center", "radius": 4, "textColor": "@muted", "cursor": "hand",
 									  "hover": { "textColor": "@text", "color": "@hover" }, "tooltip": "Hide the panel (Escape)", "onClick": "togglePanel" },
 									{
@@ -1034,6 +1036,7 @@
 			},
 			{
 				"id": "findPanel",
+				"dir": "{{state.dir}}",
 				"when": "{{state.findBar.open}}",
 				"anchors": { "left": 0, "right": 0, "bottom": "{{state.zen ? 0 : 24}}" },
 				"height": "{{computed.findHeight}}",
@@ -1093,6 +1096,7 @@
 			},
 			{
 				"id": "statusBar",
+				"dir": "{{state.dir}}",
 				"when": "{{!state.zen}}",
 				"anchors": { "left": 0, "right": 0, "bottom": 0 },
 				"height": 24,
@@ -1270,7 +1274,7 @@
 					"y": "{{state.tabMenu.y}}",
 					"items": [
 						{ "title": "Close", "run": "close", "with": { "file": "{{state.tabMenu.file}}" } },
-						{ "title": "Close Others", "run": "closeOthers", "enabled": "{{length(state.tabs) > 1}}" },
+						{ "title": "Close Others", "run": "closeOthersOf", "with": { "file": "{{state.tabMenu.file}}" }, "enabled": "{{length(state.tabs) > 1}}" },
 						{ "title": "Close Tabs to the Right", "run": "closeToTheRight", "with": { "file": "{{state.tabMenu.file}}" }, "enabled": "{{indexOf(state.tabs, state.tabMenu.file) < length(state.tabs) - 1}}" },
 						{ "separator": true },
 						{ "title": "Reopen Closed File", "run": "reopenClosed", "enabled": "{{length(state.closed) > 0}}" }
