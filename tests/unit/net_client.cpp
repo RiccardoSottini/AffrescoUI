@@ -342,3 +342,18 @@ TEST_CASE("net client: a close without a code is answered with one without a cod
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
+
+TEST_CASE("net client: this machine is never reached through a proxy") {
+	LocalServer server([&](tcp::Connection& connection) {
+		(void)readRequest(connection);
+		CHECK(connection.send(httpResponse("200 OK", "here"), std::chrono::seconds{5}));
+	});
+	ThreadExecutor executor;
+	Client client(executor, ClientOptions{.proxy = std::string("http://127.0.0.1:9")}); // nothing listens there
+	CHECK_FALSE(client.allow(server.origin()));
+	Outcome outcome;
+	auto transfer = client.start(network::Request{.method = "GET", .url = server.origin() + "/"}, recordInto(outcome));
+	REQUIRE(executor.runUntil([&] { return outcome.ended(); }));
+	REQUIRE(outcome.response);
+	CHECK(outcome.response->body == "here");
+}
