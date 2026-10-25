@@ -147,29 +147,56 @@ jobs:
             case "$archive" in *.zip) unzip -q "$archive" ;; *) tar -xzf "$archive" ;; esac
           done
           ls -d affrescoui-*/
-      - name: The tool runs and checks the templates
+      - name: What the archive holds # the programs, every app's folder, the fonts and the notices
+        shell: bash
+        run: |
+          cd affrescoui-*/
+          for file in LICENSE NOTICE THIRD_PARTY_NOTICES.md README.txt assets/SCREEN_FORMAT.md; do test -s "$file"; done
+          ls assets/shared/fonts/*.ttf > /dev/null
+          ls -d assets/*/app.json
+          test -f assets/launcher/app.json
+      - name: The tool runs and checks every app
         shell: bash
         run: |
           cd affrescoui-*/
           ./affrescoui --version
+          for app in assets/*/app.json; do ./affrescoui check "$(dirname "$app")"; done
           for screen in assets/*/*.screen.json; do ./affrescoui check "$screen"; done
       - name: Universal (macOS)
         if: runner.os == 'macOS'
         run: |
           cd affrescoui-*/
           for program in affrescoui affrescoui_launcher; do lipo "$program" -verify_arch arm64 x86_64; done
-      - name: The host draws a frame from its own assets (Linux, under Xvfb)
+      - name: Xvfb and Mesa's software OpenGL (Linux)
         if: runner.os == 'Linux'
-        env:
-          LIBGL_ALWAYS_SOFTWARE: "1"
-          MESA_GL_VERSION_OVERRIDE: "4.1"
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri
+      # Every app opens from its folder, as a person would open it, and draws its first frame from the archive's own
+      # assets; then the Launcher, opened with no file, lists them. Windows runners have no OpenGL 4.1, so there the
+      # check above (each app loaded whole, without a window) is what runs.
+      - name: Every app draws its first frame, and the Launcher opens (macOS, Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          AFFRESCOUI_DATA_DIR: ${{ runner.temp }}/data
+          AFFRESCOUI_SOCKET_DIR: ${{ runner.temp }}/s
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_GL_VERSION_OVERRIDE: "4.1"
+        run: |
+          on_display() { if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a -s "-screen 0 1920x1080x24" "$@"; else "$@"; fi; }
           cd affrescoui-*/
-          AFFRESCOUI_SCREENSHOT=kanban.ppm xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui_launcher assets/flow/index.screen.json
-          xvfb-run -a -s "-screen 0 1920x1080x24" ./affrescoui render assets/flow/index.screen.json -o kanban.png
-          test -s kanban.ppm && test -s kanban.png
+          mkdir -p frames
+          for app in assets/*/app.json; do
+            folder="$(dirname "$app")"
+            name="$(basename "$folder")"
+            AFFRESCOUI_SCREENSHOT="frames/$name.ppm" on_display ./affrescoui_launcher "$folder"
+            test -s "frames/$name.ppm" || { echo "::error::$name drew no frame"; exit 1; }
+          done
+          AFFRESCOUI_SCREENSHOT=frames/launcher-without-a-file.ppm on_display ./affrescoui_launcher
+          test -s frames/launcher-without-a-file.ppm
+          on_display ./affrescoui render assets/flow/index.screen.json -o frames/kanban.png
+          test -s frames/kanban.png
 
   vscode:
     name: VS Code extension
@@ -362,6 +389,12 @@ jobs:
           sh dist/packages/appimage/build.sh "appimage/archive/affrescoui-$VERSION-linux-x86_64" \
             appimage/tools/appimagetool appimage/tools/runtime-x86_64 dist
           "./dist/AffrescoUI-$VERSION-x86_64.AppImage" --appimage-extract-and-run affrescoui --version
+          # It holds what the archive holds: every app's folder and the notices
+          (cd appimage && "../dist/AffrescoUI-$VERSION-x86_64.AppImage" --appimage-extract > /dev/null)
+          diff <(cd "appimage/archive/affrescoui-$VERSION-linux-x86_64/assets" && ls -d */app.json) \
+            <(cd appimage/squashfs-root/usr/bin/assets && ls -d */app.json)
+          for file in LICENSE NOTICE THIRD_PARTY_NOTICES.md; do test -s "appimage/squashfs-root/usr/share/doc/affrescoui/$file"; done
+          ls appimage/squashfs-root/usr/bin/assets/shared/fonts/*.ttf > /dev/null
       - name: Zip the recipes
         run: (cd dist && zip -qr "packages-$VERSION.zip" packages)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
