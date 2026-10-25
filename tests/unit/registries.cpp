@@ -131,10 +131,11 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
 	CHECK(control ==
-	      std::vector<std::string>{"accept",        "ask",          "attach",     "call",     "cancelAsk", "chooseFolder",
-	                               "clearTerminal", "closeTerminal", "connect",   "endPreview", "export",   "openFile",
-	                               "patch",         "preview",      "reject",     "respond",  "restore",   "revert",
-	                               "runInTerminal", "saveFile",     "send",       "signIn",   "signOut",   "undo"});
+	      std::vector<std::string>{"accept",       "ask",           "attach",        "call",    "cancelAsk",
+	                               "chooseFolder", "clearTerminal", "closeTerminal", "connect", "endPreview",
+	                               "export",       "fullscreen",    "openFile",      "patch",   "preview",
+	                               "reject",       "respond",       "restore",       "revert",  "runInTerminal",
+	                               "saveFile",     "send",          "signIn",        "signOut", "undo"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});
@@ -215,7 +216,7 @@ TEST_CASE("format: the catalog is built from the registries, and lists an applic
 	CHECK(catalog["common"] == catalog["types"]["panel"]["properties"]);
 	CHECK(std::ranges::find(catalog["steps"], json("set")) != catalog["steps"].end());
 	CHECK(std::ranges::find(catalog["steps"], json("accept")) == catalog["steps"].end());
-	CHECK(catalog["controlSteps"].size() == 16);
+	CHECK(catalog["controlSteps"].size() == 25);
 	CHECK(catalog["sections"].front() == "window");
 	CHECK(catalog["sections"].back() == "root");
 	CHECK(std::ranges::find(catalog["sections"], json("include")) != catalog["sections"].end());
