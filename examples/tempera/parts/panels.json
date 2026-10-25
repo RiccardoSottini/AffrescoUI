@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempera's panels and dialogs. The dock on the right holds three tabbed groups (Colour | Palette | Gradients | Patterns, Properties | Adjust, Layers | Channels | Paths), and an icon strip beside it opens History and the Navigator. Every change goes through a tempera.* native, which returns the new snapshot into state.doc; the filter dialog only edits state.filter, and watches (parts/commands.json) preview, apply or cancel it.",
+	"note": "Tempera's panels and dialogs. The dock on the right holds three rounded groups, each with a row of pill tabs (Colour | Palette | Gradients | Patterns, Properties | Adjust, Layers | Channels | Paths), and an icon strip at the window's far edge opens History and the Navigator. Every change goes through a tempera.* native, which returns the new snapshot into state.doc; the filter dialog only edits state.filter, and watches (parts/commands.json) preview, apply or cancel it.",
 
 	"computed": {
 		"adjustment": "{{computed.activeLayer.adjustment}}",
@@ -17,12 +17,19 @@
 		"tGroup": {
 			"params": { "slot": "", "tabs": [] },
 			"node": {
-				"type": "column", "id": "group-{{slot}}", "width": "100%", "color": "@panel",
+				"type": "column", "id": "group-{{slot}}", "width": "100%", "color": "@panel", "radius": "@kit.cardRadius",
 				"children": [
-					{ "type": "tabs", "id": "panel-tabs-{{slot}}", "width": "100%", "height": 24, "color": "@header",
-					  "tabs": "{{map(tabs, {id: it.id, label: it.label, closable: false})}}", "value": "{{state.panels[slot]}}",
-					  "textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@panel", "accentColor": "@accent",
-					  "onChange": { "run": "showPanel", "with": { "args": { "slot": "{{slot}}", "id": "{{event.value}}" } } } },
+					{ "type": "row", "id": "panel-tabs-{{slot}}", "role": "tablist", "label": "Panels", "width": "100%", "height": 32, "gap": 2,
+					  "alignItems": "center", "arrows": "horizontal",
+					  "children": [
+						{ "width": 4, "height": 1, "style": "clear" },
+						{ "type": "label", "repeat": { "for": "t", "in": "{{tabs}}" }, "id": "panel-tab-{{t.id}}", "role": "tab", "label": "{{t.label}}",
+						  "focusable": true, "selected": "{{state.panels[slot] == t.id}}", "text": "{{t.label}}", "width": "{{length(t.label) * 6 + 14}}", "height": 22,
+						  "align": "center", "radius": 999, "cursor": "hand", "color": "{{state.panels[slot] == t.id ? '@accentSoft' : 'transparent'}}",
+						  "textColor": "{{state.panels[slot] == t.id ? '@text' : '@muted'}}", "hover": { "textColor": "@text" },
+						  "focused": { "borderWidth": 1, "borderColor": "@accent" },
+						  "onClick": { "run": "showPanel", "with": { "args": { "slot": "{{slot}}", "id": "{{t.id}}" } } } }
+					  ] },
 					{ "id": "panel-{{slot}}", "style": "clear", "width": "100%", "grow": 1, "children": [{ "slot": true }] }
 				]
 			}
@@ -30,14 +37,15 @@
 		"tPopout": {
 			"params": { "name": "", "icon": "", "title": "", "height": 300 },
 			"node": {
-				"id": "{{name}}-popout-anchor", "style": "clear", "width": 28, "height": 26,
+				"id": "{{name}}-popout-anchor", "style": "clear", "width": 30, "height": 28,
 				"children": [
-					{ "use": "tIcon", "id": "{{name}}-button", "width": 28, "height": 26,
+					{ "use": "tIcon", "id": "{{name}}-button", "width": 30, "height": 28,
 					  "with": { "icon": "{{icon}}", "tip": "{{title}}", "on": "{{state.popout[name]}}", "run": "showPopout", "args": { "id": "{{name}}" } } },
 					{ "type": "column", "id": "{{name}}-popout", "role": "region", "label": "{{title}}", "width": 250, "height": "{{height}}", "color": "@panel",
-					  "borderWidth": 1, "borderColor": "@background", "overlay": { "placement": "left", "open": "{{'state.popout.' + name}}", "dismiss": "outside" },
+					  "radius": "@kit.cardRadius", "borderWidth": 1, "borderColor": "@border", "shadow": { "y": 4, "blur": 14, "color": "#00000060" },
+					  "overlay": { "placement": "left", "open": "{{'state.popout.' + name}}", "dismiss": "outside" },
 					  "children": [
-						{ "type": "label", "text": "{{title}}", "textColor": "@text", "width": "100%", "height": 24, "padding": 8, "color": "@header" },
+						{ "type": "label", "text": "{{title}}", "textColor": "@text", "width": "100%", "height": 28, "padding": 10 },
 						{ "style": "clear", "width": "100%", "grow": 1, "children": [{ "slot": true }] }
 					  ] }
 				]
@@ -77,7 +85,7 @@
 					{ "use": "tRange", "id": "filter-{{key}}", "with": { "title": "{{title}}", "key": "{{key}}", "value": "{{state.filter[key]}}", "min": "{{min}}", "max": "{{max}}",
 					  "run": "setFilterValue", "width": 196 } },
 					{ "type": "textarea", "label": "{{title}} value", "text": "{{round(state.filter[key])}}", "width": 40, "height": 20, "padding": 3,
-					  "textColor": "@text", "color": "@input", "borderWidth": 1, "borderColor": "@border", "radius": 2,
+					  "textColor": "@text", "color": "@input", "borderWidth": 1, "borderColor": "@border", "radius": "@kit.radius",
 					  "onSubmit": { "run": "setFilterValue", "with": { "args": "{{parseJson('{' + json(key) + ': ' + json(clamp(number(trim(event.text)) ?? state.filter[key], min, max)) + '}')}}" } } }
 				]
 			}
@@ -96,37 +104,35 @@
 
 		"temperaPanels": {
 			"node": {
-				"type": "row", "id": "dock", "width": 297, "height": "100%", "gap": 1,
+				"type": "row", "id": "dock", "width": 304, "height": "100%", "gap": 6,
 				"children": [
-					{ "type": "column", "id": "panel-icons", "role": "toolbar", "label": "Collapsed panels", "width": 34, "height": "100%",
-					  "color": "@panel", "alignItems": "center", "gap": 2,
-					  "children": [
-						{ "height": 4, "width": 1, "style": "clear" },
-						{ "use": "tPopout", "with": { "name": "history", "icon": "history", "title": "History" }, "children": [{ "use": "temperaHistory" }] },
-						{ "use": "tPopout", "with": { "name": "navigator", "icon": "compass", "title": "Navigator", "height": 250 }, "children": [{ "use": "temperaNavigator" }] }
-					  ] },
 					{ "type": "column", "id": "panels", "point": "panels.dock", "role": "complementary", "label": "Panels", "width": 262, "height": "100%",
-					  "color": "@background",
+					  "color": "transparent", "gap": 6,
 					  "children": [
-						{ "use": "tGroup", "height": 150, "with": { "slot": "colour", "tabs": [{ "id": "colour", "label": "Colour" }, { "id": "swatches", "label": "Palette" }, { "id": "gradients", "label": "Gradients" }, { "id": "patterns", "label": "Patterns" }] }, "children": [
+						{ "use": "tGroup", "height": 158, "with": { "slot": "colour", "tabs": [{ "id": "colour", "label": "Colour" }, { "id": "swatches", "label": "Palette" }, { "id": "gradients", "label": "Gradients" }, { "id": "patterns", "label": "Patterns" }] }, "children": [
 							{ "use": "temperaColour", "when": "{{state.panels.colour == 'colour'}}" },
 							{ "use": "temperaSwatches", "when": "{{state.panels.colour == 'swatches'}}" },
 							{ "use": "temperaGradients", "when": "{{state.panels.colour == 'gradients'}}" },
 							{ "style": "dim", "id": "patterns-empty", "when": "{{state.panels.colour == 'patterns'}}", "anchors": { "left": 10, "top": 10 },
 							  "text": "No patterns: pattern fills aren't available yet." }
 						] },
-						{ "id": "panels-split-1", "style": "clear", "width": "100%", "height": 1 },
-						{ "use": "tGroup", "height": 230, "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }] }, "children": [
+						{ "use": "tGroup", "height": 236, "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }] }, "children": [
 							{ "use": "temperaProperties", "when": "{{state.panels.properties == 'properties'}}" },
 							{ "use": "temperaAdjustments", "when": "{{state.panels.properties == 'adjustments'}}" }
 						] },
-						{ "id": "panels-split-2", "style": "clear", "width": "100%", "height": 1 },
 						{ "use": "tGroup", "grow": 1, "with": { "slot": "layers", "tabs": [{ "id": "layers", "label": "Layers" }, { "id": "channels", "label": "Channels" }, { "id": "paths", "label": "Paths" }] }, "children": [
 							{ "use": "temperaLayers", "when": "{{state.panels.layers == 'layers'}}" },
 							{ "use": "temperaChannels", "when": "{{state.panels.layers == 'channels'}}" },
 							{ "style": "dim", "id": "paths-empty", "when": "{{state.panels.layers == 'paths'}}", "anchors": { "left": 10, "top": 10 },
 							  "text": "No paths: the pen tool isn't available yet." }
 						] }
+					  ] },
+					{ "type": "column", "id": "panel-icons", "role": "toolbar", "label": "Collapsed panels", "width": 36, "height": "100%",
+					  "color": "@panel", "radius": "@kit.cardRadius", "alignItems": "center", "gap": 2,
+					  "children": [
+						{ "height": 6, "width": 1, "style": "clear" },
+						{ "use": "tPopout", "with": { "name": "history", "icon": "history", "title": "History" }, "children": [{ "use": "temperaHistory" }] },
+						{ "use": "tPopout", "with": { "name": "navigator", "icon": "compass", "title": "Navigator", "height": 250 }, "children": [{ "use": "temperaNavigator" }] }
 					  ] }
 				]
 			}
@@ -157,12 +163,12 @@
 					{ "id": "colour-chips", "role": "group", "label": "Colour being edited", "style": "clear", "x": 8, "y": 8, "width": 36, "height": 36,
 					  "children": [
 						{ "id": "colour-chip-background", "role": "button", "label": "Edit the background colour", "tooltip": "Background colour",
-						  "x": 13, "y": 13, "width": 22, "height": 22, "color": "{{state.doc.background}}", "cursor": "hand",
+						  "x": 13, "y": 13, "width": 22, "height": 22, "radius": 999, "color": "{{state.doc.background}}", "cursor": "hand",
 						  "borderWidth": "{{state.colourTarget == 'background' ? 2 : 1}}", "borderColor": "{{state.colourTarget == 'background' ? '@text' : '@muted'}}",
 						  "onClick": { "set": "state.colourTarget", "to": "background" } },
-						{ "x": 0, "y": 0, "width": 24, "height": 24, "color": "@panel" },
+						{ "x": 0, "y": 0, "width": 24, "height": 24, "radius": 999, "color": "@panel" },
 						{ "id": "colour-chip-foreground", "role": "button", "label": "Edit the foreground colour", "tooltip": "Foreground colour",
-						  "x": 1, "y": 1, "width": 22, "height": 22, "color": "{{state.doc.foreground}}", "cursor": "hand",
+						  "x": 1, "y": 1, "width": 22, "height": 22, "radius": 999, "color": "{{state.doc.foreground}}", "cursor": "hand",
 						  "borderWidth": "{{state.colourTarget == 'foreground' ? 2 : 1}}", "borderColor": "{{state.colourTarget == 'foreground' ? '@text' : '@muted'}}",
 						  "onClick": { "set": "state.colourTarget", "to": "foreground" } }
 					  ] },
@@ -371,13 +377,14 @@
 					{ "type": "column", "id": "layer-rows", "role": "list", "label": "Layers", "width": "100%", "grow": 1, "scroll": "vertical",
 					  "children": [
 						{ "type": "row", "id": "layer-{{layer.id}}", "repeat": { "for": "layer", "in": "computed.layerRows", "key": "{{layer.id}}" },
-						  "role": "listitem", "label": "{{layer.name}}", "selected": "{{layer.id == state.doc.active}}", "width": "100%", "height": 36,
-						  "alignItems": "center", "gap": 5, "cursor": "hand",
+						  "role": "listitem", "label": "{{layer.name}}", "selected": "{{layer.id == state.doc.active}}", "anchors": { "left": 4, "right": 4 }, "height": 36,
+						  "alignItems": "center", "gap": 5, "cursor": "hand", "radius": "@kit.radius",
 						  "color": "{{layer.id == state.doc.active ? '@selected' : 'transparent'}}", "hover": { "color": "@hover" },
 						  "drag": { "data": { "id": "{{layer.id}}" } },
 						  "onDrop": { "run": "moveLayer", "with": { "args": { "id": "{{event.data.id}}", "onto": "{{layer.id}}" } } },
 						  "onClick": { "run": "selectLayer", "with": { "args": { "id": "{{layer.id}}" } } },
 						  "children": [
+							{ "width": 3, "height": 22, "radius": 2, "color": "{{layer.id == state.doc.active ? '@accent' : 'transparent'}}" },
 							{ "type": "label", "id": "layer-eye-{{layer.id}}", "role": "button", "label": "Visibility of {{layer.name}}",
 							  "icon": "{{layer.visible ? 'eye' : ''}}", "width": 28, "height": 36, "align": "center", "cursor": "hand", "textColor": "@text",
 							  "onClick": { "run": "setLayer", "with": { "args": { "id": "{{layer.id}}", "visible": "{{!layer.visible}}" } } } },
@@ -401,7 +408,7 @@
 						  ] }
 					  ] },
 					{ "type": "row", "id": "layer-buttons", "role": "toolbar", "label": "Layer actions", "width": "100%", "height": 28,
-					  "alignItems": "center", "justify": "end", "gap": 2, "color": "@panel",
+					  "alignItems": "center", "justify": "end", "gap": 2,
 					  "children": [
 						{ "use": "tIcon", "id": "layer-link", "with": { "icon": "link", "tip": "Link layers, not available yet", "off": true } },
 						{ "use": "tIcon", "id": "layer-fx", "with": { "icon": "sparkles", "tip": "Layer style, not available yet", "off": true } },
@@ -479,7 +486,7 @@
 						  "children": [
 							{ "style": "dim", "fitText": false, "text": "{{upper(slice(f, 0, 1)) + slice(f, 1)}}", "width": 70, "height": 20 },
 							{ "type": "textarea", "id": "new-{{f}}", "label": "{{f}}", "width": 100, "height": 24, "padding": 4, "color": "@input", "textColor": "@text",
-							  "borderWidth": 1, "borderColor": "@border", "radius": 2, "bind": "{{'state.newDoc.' + f}}" },
+							  "borderWidth": 1, "borderColor": "@border", "radius": "@kit.radius", "bind": "{{'state.newDoc.' + f}}" },
 							{ "style": "dim", "text": "Pixels" }
 						  ] },
 						{ "type": "row", "width": "100%", "height": 28, "gap": 8, "alignItems": "center",
