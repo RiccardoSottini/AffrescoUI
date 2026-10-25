@@ -536,6 +536,7 @@
 										"caret": "state.caret",
 										"wrap": "{{settings.editor.wordWrap}}",
 										"minimap": "{{settings.editor.minimap.enabled}}",
+										"scrollMarks": true,
 										"brackets": "{{settings.editor.bracketMatching}}",
 										"indentGuides": "{{settings.editor.guides.indentation}}",
 										"tabSize": "{{settings.editor.tabSize ?? 4}}",

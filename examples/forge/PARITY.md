@@ -13,7 +13,7 @@ Forge is a desktop code workbench, in its own words, icons and sample data. Each
 | Side bar views, title rows | done | |
 | Editor tabs | done | |
 | Breadcrumbs | done | |
-| Minimap and overview ruler | missing | No minimap; no scrollbar markers |
+| Minimap and overview ruler | done | The minimap is a setting (off by default); the scroll bar marks problems, breakpoints, matches and the caret |
 | Panel (Problems, Output, Debug Console, Terminal) | done | |
 | Status bar | partial | Files are read and written as UTF-8 only; the encoding item is disabled and says so |
 | Notifications centre | done | |

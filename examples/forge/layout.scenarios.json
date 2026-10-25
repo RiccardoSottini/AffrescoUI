@@ -258,6 +258,19 @@
 			]
 		},
 		{
+			"name": "forge-layout-scroll-marks",
+			"note": "The editor's scroll bar marks the caret's row, and each line with a match while Find is open",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "node": "#editor", "property": "scrollMarks", "is": 1 } },
+				{ "key": "mod+f" },
+				{ "wait": 50 },
+				{ "type": "return" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#editor", "property": "scrollMarks", "is": 2 } }
+			]
+		},
+		{
 			"name": "forge-layout-settings-json-opens",
 			"note": "Open Settings (JSON) shows the changed settings as JSON in an editor",
 			"steps": [
