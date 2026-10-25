@@ -211,6 +211,17 @@ TEST_CASE("format: the layer operations add and change and move and mask and del
 	CHECK_THROWS(run(image, "setLayer", {{"id", ink}, {"blend", "sparkle"}}));
 	run(image, "moveLayer", {{"id", ink}, {"by", 1}});
 	CHECK(layers()[1]["id"] == ink);
+	const std::string group = layers()[2]["id"];
+	run(image, "moveLayer", {{"id", ink}, {"into", group}}); // in at the group's top, listed just under it
+	CHECK(layers()[1]["id"] == group);
+	CHECK(layers()[2]["id"] == ink);
+	CHECK(layers()[2]["depth"] == 1);
+	CHECK_THROWS(run(image, "moveLayer", {{"id", group}, {"into", group}}));
+	CHECK_THROWS(run(image, "moveLayer", {{"id", group}, {"into", layers()[0]["id"]}})); // not a group
+	run(image, "moveLayer", {{"id", ink}, {"onto", group}}); // out again, onto the group's place
+	CHECK(layers()[2]["depth"] == 0);
+	run(image, "moveLayer", {{"id", ink}, {"by", 1}});
+	CHECK(layers()[1]["id"] == ink);
 	run(image, "duplicateLayer", {{"id", ink}});
 	CHECK(layers().size() == 5);
 	run(image, "selectLayer", {{"id", ink}});

@@ -1383,7 +1383,7 @@ The operations, and the keys of `with` each reads:
 | `selectLayer` | `id` | Makes a layer the active one. |
 | `addMask` | `id` | Adds a mask to a layer. |
 | `deleteMask` | `id` | Deletes a layer's mask. |
-| `moveLayer` | `id`, `onto`, `by` | Moves a layer onto another's place, or a step up or down. |
+| `moveLayer` | `id`, `into`, `onto`, `by` | Moves a layer into a group, onto another's place, or a step up or down. |
 | `setLayer` | `id`, `name`, `visible`, `opacity`, `blend`, `lockPixels`, `lockPosition`, `lockAll`, `clipped`, `maskEnabled`, `adjustment` | Changes a layer's settings. |
 | `select` | `kind`, `mode`, `from`, `to`, `points`, `x`, `y`, `color`, `fuzziness`, `allLayers` | Selects all, none, the inverse, a rectangle, an ellipse, a polygon, by magic wand or by colour range. |
 | `feather` | `radius` | Softens the selection's edge. |
@@ -1417,9 +1417,9 @@ The operations, and the keys of `with` each reads:
 
 Points are in document pixels, `{ "x": 10, "y": 20 }`. `select` takes a `kind` (`all`, `none`, `invert`, `rectangle`
 and `ellipse` from `from` to `to`, `polygon` through `points`, `wand` at `x`, `y`, `colorRange` of `color` within
-`fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` onto the place of `onto`,
-or `by` places up (positive) or down. Filters and `fillSelection` change the active layer's pixels, or its mask with
-`"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
+`fuzziness`) and a `mode` (`replace`, `add`, `subtract`, `intersect`). `moveLayer` moves `id` into the group `into` (at
+its top), onto the place of `onto`, or `by` places up (positive) or down. Filters and `fillSelection` change the active
+layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
 `srgb`, `displayP3`, `wideRgb` or `gray`. `pointer` takes one event (`phase`: `press`, `move`, `release` or `scroll`;
 `x`, `y`; `button`: `left` or `right`; `pressure` from 0 to 1; `scroll`; `modifiers`: a list of `shift`, `control`,
 `alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. `open`, `save`
