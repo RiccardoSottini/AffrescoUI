@@ -192,3 +192,21 @@ TEST_CASE("format: copy, cut, paste and clear move the selection's pixels throug
 	CHECK_THROWS(run(image, "clear"));
 	CHECK_THROWS(run(image, "copy"));
 }
+
+TEST_CASE("format: align lines a layer's pixels up with the selection's edges, or the image's") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = inked(store); // the ink: columns 0 to 10
+	run(image, "alignLayer", {{"edge", "right"}});
+	CHECK(at(image, 5, 5)[0] == 255);
+	CHECK(at(image, 35, 5)[0] == 0); // columns 30 to 40
+	CHECK(image.canvas->document().history().canUndo());
+	run(image, "select", {{"kind", "rectangle"}, {"from", {{"x", 10}, {"y", 0}}}, {"to", {{"x", 30}, {"y", 30}}}});
+	run(image, "alignLayer", {{"edge", "center"}});
+	CHECK(at(image, 22, 5)[0] == 0); // columns 15 to 25
+	CHECK(at(image, 12, 5)[0] == 255);
+	CHECK_THROWS(run(image, "alignLayer", {{"edge", "diagonal"}}));
+	run(image, "addLayer", {{"name", "Empty"}});
+	run(image, "alignLayer", {{"edge", "top"}}); // nothing to line up: nothing changes
+	run(image, "addLayer", {{"kind", "group"}});
+	CHECK_THROWS(run(image, "alignLayer", {{"edge", "left"}}));
+}

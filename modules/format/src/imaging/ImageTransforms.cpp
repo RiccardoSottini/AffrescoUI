@@ -1,6 +1,7 @@
 /// @file
 /// @brief format::editing: the "image" step's geometry and merges: canvasSize, imageSize, rotateCanvas, flipCanvas,
-/// transformLayer, mergeDown, mergeVisible, flatten, deleteHidden, and the clipboard's copy, cut, paste and clear.
+/// transformLayer, alignLayer, mergeDown, mergeVisible, flatten, deleteHidden, and the clipboard's copy, cut, paste and
+/// clear.
 ///
 /// A change of the image's size makes a new document and forgets the history, as crop does; a change that keeps the
 /// size (a flip, a half turn, a layer's transform, the merges) is one undoable step.
@@ -8,6 +9,7 @@
 #include "ImageOperations.hpp"
 
 #include "affresco/imaging/Composite.hpp"
+#include "affresco/imaging/Selection.hpp"
 
 #include <algorithm>
 #include <array>
@@ -335,10 +337,10 @@ void flipCanvas(ImageDocument& image, const json& with, Window*) {
 	                : Mapping{1.0, 0.0, 0.0, 0.0, -1.0, static_cast<double>(old.height())}});
 }
 
-/// @brief The centre of the box around an image's pixels that aren't transparent, or nothing when there are none.
+/// @brief The box around an image's pixels that aren't transparent, or nothing when there are none.
 /// @param image The image.
-/// @return The centre, which lands on a pixel's edge or centre.
-[[nodiscard]] std::optional<std::pair<double, double>> contentCentre(const imaging::Image& image) {
+/// @return Its left, top, right and bottom edges.
+[[nodiscard]] std::optional<std::array<int, 4>> contentBox(const imaging::Image& image) {
 	int left = image.width(), top = image.height(), right = 0, bottom = 0;
 	for(int row = 0; row < image.rows(); ++row)
 		for(int column = 0; column < image.columns(); ++column) {
@@ -355,17 +357,15 @@ void flipCanvas(ImageDocument& image, const json& with, Window*) {
 				}
 		}
 	if(right <= left || bottom <= top) return std::nullopt;
-	return std::pair{(left + right) / 2.0, (top + bottom) / 2.0};
+	return std::array{left, top, right, bottom};
 }
 
-/// @brief transformLayer: moves, scales, flips and turns a pixel layer (with its mask) about the centre of its
-/// pixels, as one step.
+/// @brief Moves, scales, flips and turns a pixel layer (with its mask) about the centre of its pixels, as one step.
 /// @param image The image.
-/// @param with id (the active layer by default), x and y (pixels), scaleX and scaleY (percent, 100 by default;
-/// negative flips), angle (degrees, clockwise).
+/// @param with transformLayer's arguments.
+/// @param name The step's name.
 /// @throws DocumentError If the layer isn't a pixel layer, is locked, or a scale is under 1 %.
-void transformLayer(ImageDocument& image, const json& with, Window*) {
-	settle(image);
+void transform(ImageDocument& image, const json& with, const std::string& name) {
 	imaging::Document& document = image.canvas->document();
 	const std::uint64_t id = layerOf(image, with);
 	const imaging::Layer layer = *document.layer(id);
@@ -382,9 +382,9 @@ void transformLayer(ImageDocument& image, const json& with, Window*) {
 	const double moveX = std::clamp(numberOf(with, "x", 0.0), -farthest, farthest);
 	const double moveY = std::clamp(numberOf(with, "y", 0.0), -farthest, farthest);
 	if(scaleX == 1.0 && scaleY == 1.0 && degrees == 0.0 && moveX == 0.0 && moveY == 0.0) return;
-	const auto centre = contentCentre(*document.image(layer.pixels));
-	const double centreX = centre ? centre->first : document.width() / 2.0;
-	const double centreY = centre ? centre->second : document.height() / 2.0;
+	const auto box = contentBox(*document.image(layer.pixels));
+	const double centreX = box ? ((*box)[0] + (*box)[2]) / 2.0 : document.width() / 2.0;
+	const double centreY = box ? ((*box)[1] + (*box)[3]) / 2.0 : document.height() / 2.0;
 	// From the new image back to the old: p = C + S⁻¹ R⁻¹ (p' - C - T), R clockwise with y down
 	const double radians = degrees * std::numbers::pi / 180.0, cosine = std::cos(radians), sine = std::sin(radians);
 	const double toX = centreX + moveX, toY = centreY + moveY;
@@ -402,10 +402,54 @@ void transformLayer(ImageDocument& image, const json& with, Window*) {
 	};
 	auto pixels = remap(layer.pixels);
 	auto mask = layer.mask != 0 ? remap(layer.mask) : nullptr;
-	document.changeStructure("Free Transform", [&](imaging::Structure& changed) {
+	document.changeStructure(name, [&](imaging::Structure& changed) {
 		changed.images[layer.pixels] = pixels;
 		if(mask) changed.images[layer.mask] = mask;
 	});
+}
+
+/// @brief transformLayer: moves, scales, flips and turns a pixel layer (with its mask) about the centre of its
+/// pixels, as one step.
+/// @param image The image.
+/// @param with id (the active layer by default), x and y (pixels), scaleX and scaleY (percent, 100 by default;
+/// negative flips), angle (degrees, clockwise).
+/// @throws DocumentError If the layer isn't a pixel layer, is locked, or a scale is under 1 %.
+void transformLayer(ImageDocument& image, const json& with, Window*) {
+	settle(image);
+	transform(image, with, "Free Transform");
+}
+
+/// @brief alignLayer: moves a pixel layer so that the box around its pixels lines up with an edge or the middle of
+/// the selection's bounds (the image's without a selection), as one step.
+/// @param image The image.
+/// @param with id (the active layer by default), edge ("left", "center", "right", "top", "middle" or "bottom").
+/// @throws DocumentError If the edge is unknown, or the layer can't be moved.
+void alignLayer(ImageDocument& image, const json& with, Window*) {
+	settle(image);
+	const imaging::Document& document = image.canvas->document();
+	const std::string edge = textOf(with, "edge", "left");
+	constexpr std::array<std::string_view, 6> edges{"left", "center", "right", "top", "middle", "bottom"};
+	const auto found = std::ranges::find(edges, edge);
+	if(found == edges.end()) throw DocumentError("Unknown edge " + edge);
+	const std::uint64_t id = layerOf(image, with);
+	const imaging::Layer& layer = *document.layer(id);
+	if(layer.kind != imaging::LayerKind::pixel) throw DocumentError("Align a pixel layer");
+	const auto box = contentBox(*document.image(layer.pixels));
+	if(!box) return;
+	std::array<int, 4> to{0, 0, document.width(), document.height()};
+	if(document.hasSelection()) {
+		const auto [x, y, width, height] = imaging::selectionBounds(document);
+		to = {x, y, x + width, y + height};
+	}
+	// Across for the first three, down for the others; each at the start, the middle or the end
+	const auto index = static_cast<std::size_t>(found - edges.begin());
+	const std::size_t axis = index < 3 ? 0 : 1, where = index % 3;
+	const auto at = [where, axis](const std::array<int, 4>& edges4) {
+		const double start = edges4[axis], end = edges4[axis + 2];
+		return where == 0 ? start : where == 2 ? end : (start + end) / 2.0;
+	};
+	const double move = std::round(at(to) - at(*box));
+	transform(image, {{"id", std::to_string(id)}, {axis == 0 ? "x" : "y", move}}, "Align Layer");
 }
 
 /// @brief The list of a layer's siblings in a structure.
@@ -770,6 +814,10 @@ std::vector<ImageOperation> transformOperations() {
 		 {"id", "x", "y", "scaleX", "scaleY", "angle"},
 		 "Moves, scales, flips and turns a pixel layer about its centre.",
 		 transformLayer},
+	    {"alignLayer",
+		 {"id", "edge"},
+		 "Lines a pixel layer up with an edge or the middle of the selection, or of the image.",
+		 alignLayer},
 	    {"mergeDown", {"id"}, "Merges a layer into the pixel layer below it.", mergeDown},
 	    {"mergeVisible", {}, "Merges the visible layers into one.", mergeVisible},
 	    {"flatten", {"background"}, "Merges every visible layer into one and discards the hidden ones.", flatten},

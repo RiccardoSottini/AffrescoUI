@@ -731,6 +731,7 @@ def images_seeds():
     geometry = [{"image": "addLayer", "with": {"name": "Ink"}}, *box, {"image": "fillSelection", "with": {"color": "#204080"}},
                 {"image": "copy", "with": {"merged": True}}, {"image": "cut"}, {"image": "paste"},
                 {"image": "transformLayer", "with": {"x": 7, "scaleX": -150, "scaleY": 80, "angle": 33}},
+                {"image": "alignLayer", "with": {"edge": "middle"}},
                 {"image": "rotateCanvas", "with": {"angle": 90}}, {"image": "flipCanvas", "with": {"direction": "vertical"}},
                 {"image": "canvasSize", "with": {"width": 80, "height": 40, "anchor": "bottom-right"}},
                 {"image": "imageSize", "with": {"width": 20}}, {"image": "mergeDown"}, {"image": "mergeVisible"},

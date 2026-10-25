@@ -1397,6 +1397,7 @@ The operations, and the keys of `with` each reads:
 | `rotateCanvas` | `angle` | Turns the image clockwise by 90, 180 or 270 degrees (a quarter turn forgets the history). |
 | `flipCanvas` | `direction` | Mirrors the image horizontally or vertically. |
 | `transformLayer` | `id`, `x`, `y`, `scaleX`, `scaleY`, `angle` | Moves, scales, flips and turns a pixel layer about its centre. |
+| `alignLayer` | `id`, `edge` | Lines a pixel layer up with an edge or the middle of the selection, or of the image. |
 | `mergeDown` | `id` | Merges a layer into the pixel layer below it. |
 | `mergeVisible` | — | Merges the visible layers into one. |
 | `flatten` | `background` | Merges every visible layer into one and discards the hidden ones. |
