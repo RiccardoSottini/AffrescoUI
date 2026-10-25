@@ -131,6 +131,23 @@
 				{ "wait": 50 },
 				{ "expect": { "state": "docs[0].id", "is": "README.md" } }
 			]
+		},
+		{
+			"name": "forge-controls-debug-sections",
+			"note": "In Run and Debug, a section's title collapses the section, its chevron pointing sideways, and expands it again",
+			"steps": [
+				{ "key": "mod+shift+d" },
+				{ "expect": { "node": "#debug-stack", "exists": true } },
+				{ "click": "#debug-stack-title" },
+				{ "expect": { "state": "debug.collapsed", "is": ["stack"] } },
+				{ "expect": { "node": "#debug-stack", "exists": false } },
+				{ "click": "#debug-watch-title" },
+				{ "expect": { "node": "#debug-watch-input", "exists": false } },
+				{ "expect": { "node": "#debug-watches", "exists": false } },
+				{ "click": "#debug-stack-title" },
+				{ "expect": { "state": "debug.collapsed", "is": ["watch"] } },
+				{ "expect": { "node": "#debug-stack", "exists": true } }
+			]
 		}
 	]
 }
