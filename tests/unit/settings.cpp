@@ -48,7 +48,8 @@ std::string document(const std::string& menus, const std::string& root = R"({ "t
 			"big": [{ "set": "settings.editor.fontSize", "to": 20 }],
 			"wrong": [{ "set": "settings.editor.fontSize", "to": "large" }],
 			"tooBig": [{ "set": "settings.editor.fontSize", "to": 99 }],
-			"reset": [{ "remove": "settings.editor.fontSize" }]
+			"reset": [{ "remove": "settings.editor.fontSize" }],
+			"flipWrap": [{ "toggle": "settings.editor.wordWrap" }]
 		},
 		"keys": { "ctrl+s": "save" },
 		"settings": {
@@ -168,6 +169,22 @@ TEST_CASE("format: settings start at their defaults, take checked writes, and go
 	CHECK_FALSE(state(screen)["settings"].contains("editor.fontSize"));
 	run(screen, "look");
 	CHECK(state(screen)["seen"]["settings"]["editor"]["fontSize"] == 14);
+}
+
+TEST_CASE("format: a toggle of a setting at its default flips the default") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(400, 300, clock);
+	json screenJson = json::parse(document("{}"));
+	screenJson["settings"]["editor.lineNumbers"] = json::parse(R"({ "type": "boolean", "default": true })");
+	screenJson["actions"]["flipLines"] = json::parse(R"([{ "toggle": "settings.editor.lineNumbers" }])");
+	affresco::Screen screen = affresco::Screen::fromString(screenJson.dump());
+	screen.build(*window);
+	run(screen, "flipLines"); // true by default
+	CHECK(state(screen)["settings"]["editor.lineNumbers"] == false);
+	run(screen, "flipLines");
+	CHECK(state(screen)["settings"]["editor.lineNumbers"] == true);
+	run(screen, "flipWrap"); // false by default
+	CHECK(state(screen)["settings"]["editor.wordWrap"] == true);
 }
 
 TEST_CASE("format: the settings page lists the settings, and its search narrows them") {

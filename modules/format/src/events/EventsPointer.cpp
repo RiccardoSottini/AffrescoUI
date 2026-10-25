@@ -27,8 +27,12 @@ const DragHooks* dragHooks(const Record* record) {
 void Events::mouseButton(Panel& panel, const MouseButtonEvent& event) {
 	const Vec2 at = event.position;
 	if(event.button == MouseButton::Right) {
-		if(event.action == affresco::Action::Release && panel.bounds().contains(at))
-			bubble(panel, "onContextMenu", {{"type", "contextMenu"}}, &at);
+		if(event.action != affresco::Action::Release || !panel.bounds().contains(at)) return;
+		// The item under the pointer (a tab, a row), as a drag from there would carry it
+		json fields = {{"type", "contextMenu"}};
+		if(const DragHooks* hooks = dragHooks(engine_.reconciler.recordOf(&panel)); hooks && hooks->data)
+			if(json data = hooks->data(panel, at); !data.is_null()) fields["data"] = std::move(data);
+		bubble(panel, "onContextMenu", std::move(fields), &at);
 		return;
 	}
 	if(event.button != MouseButton::Left) return;

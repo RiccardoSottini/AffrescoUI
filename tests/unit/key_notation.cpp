@@ -1,5 +1,5 @@
 /// @file
-/// @brief Key notations (src/events/KeyNotation.hpp): the mac, pc and Emacs labels of chords, "window.keyLabels"
+/// @brief Key notations (src/events/KeyNotation.hpp): the mac, pc and letters labels of chords, "window.keyLabels"
 /// choosing the labels of commands and keybindings, and the `keyLabel` function.
 
 #include "Headless.hpp"
@@ -31,7 +31,7 @@ std::string document(const std::string& window) {
 			"open": { "title": "Open", "do": [] },
 			"look": [{ "set": "state.seen", "to": {
 				"keys": "{{keybindings}}", "commands": "{{commands}}",
-				"echo": "{{keyLabel('ctrl+x', 'emacs') + '-'}}", "written": "{{keyLabel('Alt+Shift+5', 'emacs')}}",
+				"echo": "{{keyLabel('ctrl+x', 'letters') + '-'}}", "written": "{{keyLabel('Alt+Shift+5', 'letters')}}",
 				"none": "{{keyLabel(null)}}" } }]
 		},
 		"keys": { "ctrl+x ctrl+f": "open", "ctrl+l": "look" },
@@ -54,23 +54,23 @@ json seen(const std::string& window) {
 
 } // namespace
 
-TEST_CASE("format: the Emacs notation writes C-, M-, s- and Emacs's key names") {
-	CHECK(keyLabel("ctrl+x ctrl+f", "emacs") == "C-x C-f");
-	CHECK(keyLabel("alt+x", "emacs") == "M-x");
-	CHECK(keyLabel("alt+shift+comma", "emacs") == "M-<");
-	CHECK(keyLabel("alt+shift+period", "emacs") == "M->");
-	CHECK(keyLabel("alt+shift+5", "emacs") == "M-%");
-	CHECK(keyLabel("ctrl+space", "emacs") == "C-SPC");
-	CHECK(keyLabel("ctrl+slash", "emacs") == "C-/");
-	CHECK(keyLabel("f3", "emacs") == "<f3>");
-	CHECK(keyLabel("ctrl+alt+shift+f3", "emacs") == "C-M-S-<f3>");
-	CHECK(keyLabel("ctrl+x enter", "emacs") == "C-x RET");
-	CHECK(keyLabel("shift+a", "emacs") == "A");
-	CHECK(keyLabel("ctrl+shift+a", "emacs") == "C-S-a");
-	CHECK(keyLabel("cmd+s", "emacs") == "s-s");
-	CHECK(keyLabel("ctrl+x r k", "emacs") == "C-x r k");
-	CHECK(keyLabel("pagedown", "emacs") == "<next>");
-	CHECK(keyLabel("ctrl+x leftbracket", "emacs") == "C-x [");
+TEST_CASE("format: the letters notation writes C-, M-, s- and short key names") {
+	CHECK(keyLabel("ctrl+x ctrl+f", "letters") == "C-x C-f");
+	CHECK(keyLabel("alt+x", "letters") == "M-x");
+	CHECK(keyLabel("alt+shift+comma", "letters") == "M-<");
+	CHECK(keyLabel("alt+shift+period", "letters") == "M->");
+	CHECK(keyLabel("alt+shift+5", "letters") == "M-%");
+	CHECK(keyLabel("ctrl+space", "letters") == "C-SPC");
+	CHECK(keyLabel("ctrl+slash", "letters") == "C-/");
+	CHECK(keyLabel("f3", "letters") == "<f3>");
+	CHECK(keyLabel("ctrl+alt+shift+f3", "letters") == "C-M-S-<f3>");
+	CHECK(keyLabel("ctrl+x enter", "letters") == "C-x RET");
+	CHECK(keyLabel("shift+a", "letters") == "A");
+	CHECK(keyLabel("ctrl+shift+a", "letters") == "C-S-a");
+	CHECK(keyLabel("cmd+s", "letters") == "s-s");
+	CHECK(keyLabel("ctrl+x r k", "letters") == "C-x r k");
+	CHECK(keyLabel("pagedown", "letters") == "<next>");
+	CHECK(keyLabel("ctrl+x leftbracket", "letters") == "C-x [");
 }
 
 TEST_CASE("format: the mac and pc notations, and the platform's") {
@@ -83,19 +83,21 @@ TEST_CASE("format: the mac and pc notations, and the platform's") {
 	CHECK(keyLabel("ctrl+s") == "Ctrl+S");
 #endif
 	CHECK(keyLabel("ctrl+s", "platform") == keyLabel("ctrl+s"));
-	CHECK(affresco::format::knownKeyNotation("emacs"));
+	CHECK(affresco::format::knownKeyNotation("letters"));
+	CHECK(affresco::format::knownKeyNotation("emacs")); // the older name, kept for the documents that use it
+	CHECK(keyLabel("alt+shift+comma", "emacs") == keyLabel("alt+shift+comma", "letters"));
 	CHECK_FALSE(affresco::format::knownKeyNotation("vim"));
 }
 
 TEST_CASE("format: window.keyLabels chooses how commands and keybindings label their keys") {
-	const json emacs = seen(R"({ "keyLabels": "emacs" })");
-	REQUIRE(emacs["keys"].size() == 2);
-	CHECK(emacs["keys"][0]["keyLabel"] == "C-x C-f");
-	CHECK(emacs["keys"][1]["keyLabel"] == "C-l");
-	CHECK(emacs["commands"][0]["keyLabel"] == "C-x C-f");
-	CHECK(emacs["echo"] == "C-x-");
-	CHECK(emacs["written"] == "M-%");
-	CHECK(emacs["none"] == "");
+	const json letters = seen(R"({ "keyLabels": "letters" })");
+	REQUIRE(letters["keys"].size() == 2);
+	CHECK(letters["keys"][0]["keyLabel"] == "C-x C-f");
+	CHECK(letters["keys"][1]["keyLabel"] == "C-l");
+	CHECK(letters["commands"][0]["keyLabel"] == "C-x C-f");
+	CHECK(letters["echo"] == "C-x-");
+	CHECK(letters["written"] == "M-%");
+	CHECK(letters["none"] == "");
 	const json platform = seen("{}");
 	CHECK(platform["keys"][0]["keyLabel"] == keyLabel("ctrl+x ctrl+f"));
 }

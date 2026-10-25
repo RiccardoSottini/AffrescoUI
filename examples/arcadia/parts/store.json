@@ -1105,7 +1105,7 @@
 							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
 							{
 								"use": "quietButton",
-								"with": { "title": "{{t('store.clear')}}", "icon": "x" },
+								"with": { "title": "{{t('store.clear')}}", "icon": "circle-x" },
 								"onClick": { "set": "state.storeQuery", "to": "" }
 							}
 						]

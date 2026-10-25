@@ -159,6 +159,8 @@ void watchColorScheme() {
 	            }];
 }
 
+void keepOutOfSwitcher() { [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory]; }
+
 void setApplicationIcon(const Bitmap* icon) {
 	@autoreleasepool {
 		if(!icon) {

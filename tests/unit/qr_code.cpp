@@ -10,6 +10,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -21,6 +22,9 @@ using affresco::format::detail::QrCode;
 using affresco::format::detail::qrPathData;
 using affresco::format::detail::QrLevel;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief The 15 format bits the standard gives a level and a mask: BCH(15, 5), then the fixed mask 0x5412.
@@ -28,8 +32,8 @@ namespace {
 /// @param mask The mask pattern.
 /// @return The bits, bit 0 first in the reading order.
 int formatBits(QrLevel level, int mask) {
-	static constexpr int levelBits[] = {1, 0, 3, 2}; // L, M, Q, H
-	const int data = levelBits[static_cast<int>(level)] << 3 | mask;
+	static constexpr std::array<int, 4> levelBits{1, 0, 3, 2}; // L, M, Q, H
+	const int data = levelBits.at(static_cast<std::size_t>(level)) << 3 | mask;
 	int remainder = data;
 	for(int i = 0; i < 10; ++i) remainder = (remainder << 1) ^ ((remainder >> 9) * 0x537);
 	return ((data << 10) | remainder) ^ 0x5412;
@@ -104,14 +108,14 @@ json evaluate(const std::string& expression) {
 }
 
 /// The rows of "Affresca" at level M with mask 0, checked module for module against an independent encoder.
-constexpr std::string_view referenceRows[] = {
+constexpr auto referenceRows = std::to_array<std::string_view>({
     "111111100110001111111", "100000101011001000001", "101110100110001011101", "101110100101001011101",
     "101110101001101011101", "100000100111001000001", "111111101010101111111", "000000000110000000000",
     "101010100000100010010", "101001011111010110011", "010100110001011110011", "010101010001110010000",
     "011110110011001010001", "000000001000001110010", "111111100100100110011", "100000100010001010010",
     "101110101000101011000", "101110100011010011010", "101110101011011110001", "100000100111110000010",
     "111111101101011110011",
-};
+});
 
 } // namespace
 
@@ -123,7 +127,7 @@ TEST_CASE("qr code: a whole version 1 code matches the reference matrix") {
 	for(int y = 0; y < code.size; ++y) {
 		std::string row;
 		for(int x = 0; x < code.size; ++x) row.push_back(code.at(x, y) ? '1' : '0');
-		CHECK_MESSAGE(row == referenceRows[y], "row ", y);
+		CHECK_MESSAGE(row == referenceRows.at(static_cast<std::size_t>(y)), "row ", y);
 	}
 }
 
@@ -236,3 +240,5 @@ TEST_CASE("qr code: a code too large to draw fails clearly instead of drawing no
 	CHECK_THROWS_WITH_AS((void)evaluate("qrCode('" + text + "', 'L')"), doctest::Contains("too large to draw"),
 	                     affresco::DocumentError);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

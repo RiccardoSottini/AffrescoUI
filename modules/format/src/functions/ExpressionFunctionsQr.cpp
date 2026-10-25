@@ -27,7 +27,7 @@ Value qrCode(const Call& call) {
 	if(call.size() > 1) {
 		static constexpr std::array<std::string_view, 4> names{"L", "M", "Q", "H"};
 		const std::string_view name = call[1].isText() ? call[1].text() : std::string_view{};
-		const auto found = std::ranges::find(names, name);
+		const auto* const found = std::ranges::find(names, name);
 		if(found == names.end()) call.fail(R"(expected the level "L", "M", "Q" or "H")");
 		level = static_cast<QrLevel>(found - names.begin());
 	}

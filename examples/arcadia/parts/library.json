@@ -376,6 +376,7 @@
 				"hover": { "color": "@color.hover" },
 				"onClick": { "run": "openGame", "with": { "id": "{{game.id}}" } },
 				"onDoubleClick": { "run": "primary", "with": { "game": "{{game}}" } },
+				"onContextMenu": { "run": "openGameMenu", "with": { "id": "{{game.id}}" } },
 				"children": [
 					{ "type": "panel", "width": 18, "height": 1, "color": "transparent" },
 					{
@@ -419,6 +420,7 @@
 				"hover": { "scale": 1.04, "shadow": { "y": 6, "blur": 18, "color": "#f5a52455" } },
 				"focused": { "scale": 1.04, "shadow": { "y": 6, "blur": 18, "color": "#f5a52455" } },
 				"onClick": { "run": "openGame", "with": { "id": "{{game.id}}" } },
+				"onContextMenu": { "run": "openGameMenu", "with": { "id": "{{game.id}}" } },
 				"children": [
 					{
 						"type": "image",
@@ -1025,7 +1027,9 @@
 								"style": "iconButton",
 								"font": "heading",
 								"icon": "settings",
-								"tooltip": "{{t('game.manage')}}"
+								"tooltip": "{{t('game.manage')}}",
+								"label": "{{t('game.manage')}}",
+								"onClick": { "run": "openGameMenu", "with": { "id": "{{g.id}}" } }
 							},
 							{
 								"id": "game-info",

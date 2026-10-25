@@ -15,6 +15,9 @@ using affresco::json;
 using affresco::detail::createHeadlessWindow;
 using affresco::detail::ManualClock;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief A screen with a field that keeps its keys' lock state, and a warning shown while caps lock is on.
@@ -79,3 +82,5 @@ TEST_CASE("automation: \"capslock+\" presses a key with caps lock on") {
 	CHECK(press->mods.shift());
 	CHECK_FALSE(affresco::automation::detail::parseKey("capslock+")); // a modifier alone is no key
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

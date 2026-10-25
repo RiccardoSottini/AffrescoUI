@@ -31,6 +31,8 @@ RUN_SECONDS = 300  # a runner that hangs (e.g. a program that opened its window 
 sys.path.insert(0, HERE)
 import pngfile  # noqa: E402 (next to this file)
 
+os.environ.setdefault("AFFRESCOUI_HIDDEN", "1")  # its programs never show a window (CONTRIBUTING.md); =0 shows them
+
 
 def load_gallery(path=GALLERY):
     """The gallery's list: {"runners": {...}, "apps": [...]}."""

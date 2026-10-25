@@ -174,7 +174,9 @@ json csvSeed(const json& models, const std::string& collection, const std::strin
 	    std::ranges::find_if(rows.front(), [&lower](const std::string& h) { return lower(h) == "id"; });
 	json records = json::array();
 	for(std::size_t r = 0; r < report["ids"].size(); ++r) {
-		json record = store.get(collection, report["ids"][r].get<std::string>())->fields;
+		const auto stored = store.get(collection, report["ids"][r].get<std::string>());
+		if(!stored) continue;
+		json record = stored->fields;
 		const auto column = static_cast<std::size_t>(idColumn - rows.front().begin());
 		if(idColumn != rows.front().end() && column < rows[r + 1].size() && !rows[r + 1][column].empty())
 			record["id"] = rows[r + 1][column];
@@ -252,7 +254,7 @@ Screen Screen::fromApp(const std::filesystem::path& location, const std::filesys
 		fail(entry.string(), std::string("invalid JSON: ") + parse.what());
 	}
 	if(format::adapters::detect(document) != format::adapters::SourceFormat::Screen)
-		fail(entry.string(), "an app's entry is a screen (\"format\": \"affrescoui-screen\")");
+		fail(entry.string(), R"(an app's entry is a screen ("format": "affrescoui-screen"))");
 	bool migrated = !format::migrate(document).empty();
 	includeParts(document, app, entry.parent_path());
 	detail::resolveIncludes(document, entry.parent_path(), migrated);
@@ -277,7 +279,7 @@ Screen Screen::fromApp(const std::filesystem::path& location, const std::filesys
 
 std::filesystem::path Screen::appOf(const std::filesystem::path& screenFile) {
 	std::error_code error;
-	const std::filesystem::path manifest = std::filesystem::absolute(screenFile, error).parent_path() / "app.json";
+	std::filesystem::path manifest = std::filesystem::absolute(screenFile, error).parent_path() / "app.json";
 	if(error || !std::filesystem::is_regular_file(manifest, error)) return {};
 	const AppFolder app = readFolder(manifest);
 	if(!std::filesystem::equivalent(app.folder / app.manifest.entry, screenFile, error)) return {};

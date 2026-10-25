@@ -8,6 +8,7 @@
 #include "QrCode.hpp"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
@@ -80,33 +81,14 @@ bool hasFinder(const QrCode& code, int left, int top) {
 	return true;
 }
 
-} // namespace
-
-/// @brief libFuzzer's entry point: encodes the input and checks the code and its path data.
-/// @param data The input.
-/// @param size Its size.
-/// @return 0.
-extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
-	if(size == 0 || size > 4096) return 0;
-	const auto level = static_cast<QrLevel>(data[0] & 3);
-	const int mask = (data[0] >> 2 & 15) < 8 ? data[0] >> 2 & 7 : -1;
-	const std::string_view text(reinterpret_cast<const char*>(data + 1), size - 1);
-	static constexpr std::size_t capacity[] = {2953, 2331, 1663, 1273};
-	const std::optional<QrCode> code = encodeQr(text, level, mask);
-	require(code.has_value() == (text.size() <= capacity[static_cast<int>(level)]));
-	if(!code) return 0;
-	require(code->version >= 1 && code->version <= 40);
-	require(code->size == 17 + 4 * code->version);
-	require(code->dark.size() == static_cast<std::size_t>(code->size) * static_cast<std::size_t>(code->size));
-	require(code->mask >= 0 && code->mask <= 7 && (mask < 0 || code->mask == mask));
-	require(hasFinder(*code, 0, 0) && hasFinder(*code, code->size - 7, 0) && hasFinder(*code, 0, code->size - 7));
-	require(formatMatches(*code, level, code->mask));
-
+/// @brief Checks a code's path data: rectangles, each "Mx yhWvHh-Wz", that cover every dark module once and nothing
+/// else, and as many commands as it says.
+/// @param code The code.
+void checkPath(const QrCode& code) {
 	std::size_t commands = 0;
-	std::string_view path;
-	const std::string d = affresco::format::detail::qrPathData(*code, commands);
-	path = d;
-	std::vector<std::uint8_t> covered(code->dark.size(), 0);
+	const std::string data = affresco::format::detail::qrPathData(code, commands);
+	std::string_view path = data;
+	std::vector<std::uint8_t> covered(code.dark.size(), 0);
 	std::size_t counted = 0;
 	while(!path.empty()) {
 		readCharacter(path, 'M');
@@ -121,15 +103,39 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		require(readNumber(path) == -width);
 		readCharacter(path, 'z');
 		counted += 5;
-		require(x >= 0 && y >= 0 && width > 0 && height > 0 && x + width <= code->size && y + height <= code->size);
+		require(x >= 0 && y >= 0 && width > 0 && height > 0 && x + width <= code.size && y + height <= code.size);
 		for(int row = y; row < y + height; ++row)
 			for(int column = x; column < x + width; ++column) {
-				std::uint8_t& module = covered[static_cast<std::size_t>(row * code->size + column)];
+				std::uint8_t& module = covered[static_cast<std::size_t>(row * code.size + column)];
 				require(module == 0);
 				module = 1;
 			}
 	}
 	require(counted == commands);
-	require(covered == code->dark);
+	require(covered == code.dark);
+}
+
+} // namespace
+
+/// @brief libFuzzer's entry point: encodes the input and checks the code and its path data.
+/// @param data The input.
+/// @param size Its size.
+/// @return 0.
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
+	if(size == 0 || size > 4096) return 0;
+	const auto level = static_cast<QrLevel>(data[0] & 3);
+	const int mask = (data[0] >> 2 & 15) < 8 ? data[0] >> 2 & 7 : -1;
+	const std::string_view text(reinterpret_cast<const char*>(data + 1), size - 1);
+	static constexpr std::array<std::size_t, 4> capacity{2953, 2331, 1663, 1273};
+	const std::optional<QrCode> code = encodeQr(text, level, mask);
+	require(code.has_value() == (text.size() <= capacity.at(static_cast<std::size_t>(level))));
+	if(!code) return 0;
+	require(code->version >= 1 && code->version <= 40);
+	require(code->size == 17 + 4 * code->version);
+	require(code->dark.size() == static_cast<std::size_t>(code->size) * static_cast<std::size_t>(code->size));
+	require(code->mask >= 0 && code->mask <= 7 && (mask < 0 || code->mask == mask));
+	require(hasFinder(*code, 0, 0) && hasFinder(*code, code->size - 7, 0) && hasFinder(*code, 0, code->size - 7));
+	require(formatMatches(*code, level, code->mask));
+	checkPath(*code);
 	return 0;
 }

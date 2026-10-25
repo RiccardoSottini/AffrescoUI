@@ -20,6 +20,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace affresco {
@@ -78,11 +79,17 @@ bool saveScreenshots(const Windows& windows, const std::string& path) {
 
 } // namespace
 
+bool hiddenWindowsRequested(const char* value) noexcept {
+	return value != nullptr && *value != '\0' && std::string_view(value) != "0";
+}
+
 Application::Application() : Application(ApplicationOptions{}) {}
 
 Application::Application(ApplicationOptions options) {
 	if(instanceAlive) throw std::logic_error("AffrescoUI: only one affresco::Application can exist at a time");
-	platform_ = platform::createGlfwPlatform(options.hiddenWindows);
+	// The one place the environment reaches: every program (launcher, tool, runners, server, C API) honours it
+	const bool hidden = options.hiddenWindows || hiddenWindowsRequested(std::getenv("AFFRESCOUI_HIDDEN"));
+	platform_ = platform::createGlfwPlatform(hidden);
 	if(options.clock) clock_ = options.clock;
 	instanceAlive = true;
 }

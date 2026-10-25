@@ -28,6 +28,9 @@ namespace automation = affresco::automation;
 namespace services = affresco::services;
 namespace fs = std::filesystem;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief Writes a file, making its folder.
@@ -368,3 +371,5 @@ TEST_CASE("launcher: an app is created blank and from an example, listed, duplic
 	INFO(built.text());
 	CHECK(built.failed() == 0);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

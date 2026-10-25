@@ -30,30 +30,34 @@
 	"theme": "{{state.theme}}",
 
 	"colors": {
-		"background": { "dark": "#120e16", "light": "#f7f5fa" },
-		"sidebar": { "dark": "#0b080f", "light": "#efecf4" },
-		"surface": { "dark": "#19141f", "light": "#ffffff" },
-		"rowHover": { "dark": "#221c2e", "light": "#f1edf6" },
-		"playingRow": { "dark": "#2d1f2b", "light": "#fde9e3" },
-		"bar": { "dark": "#0e0b12", "light": "#ffffff" },
-		"text": { "dark": "#f4f1fa", "light": "#1b1622" },
-		"muted": { "dark": "#9a92ab", "light": "#6b6478" },
-		"faint": { "dark": "#3a3347", "light": "#d9d3e2" },
-		"border": { "dark": "#241e2f", "light": "#e6e1ee" },
-		"accent": { "dark": "#ff7f7a", "light": "#cf2f45" },
-		"accentHover": { "dark": "#ffaaa2", "light": "#e4505c" },
-		"accentSoft": { "dark": "#3c2226", "light": "#ffe7e2" },
-		"onAccent": { "dark": "#1a0b10", "light": "#ffffff" },
-		"button": { "dark": "#241e2f", "light": "#efecf4" },
-		"buttonHover": { "dark": "#30283d", "light": "#e4dfec" },
-		"menu": { "dark": "#1d1828", "light": "#ffffff" },
-		"field": { "dark": "#120e16", "light": "#f7f5fa" }
+		"background": { "dark": "#10131c", "light": "#f6f3ec" },
+		"sidebar": { "dark": "#0b0d14", "light": "#ece7dc" },
+		"surface": { "dark": "#161a26", "light": "#fffdf8" },
+		"rowHover": { "dark": "#1e2332", "light": "#f0eadd" },
+		"playingRow": { "dark": "#2b2619", "light": "#fbecc8" },
+		"bar": { "dark": "#1a1f2d", "light": "#fffdf8" },
+		"text": { "dark": "#eef1f7", "light": "#1d1a14" },
+		"muted": { "dark": "#8d95a8", "light": "#6d675a" },
+		"faint": { "dark": "#323a4d", "light": "#d8d0bf" },
+		"border": { "dark": "#232a3a", "light": "#e3dccd" },
+		"accent": { "dark": "#f2b544", "light": "#b45309" },
+		"accentHover": { "dark": "#ffcb6b", "light": "#cc6a14" },
+		"accentSoft": { "dark": "#352d1a", "light": "#fbe7c2" },
+		"onAccent": { "dark": "#1c1405", "light": "#ffffff" },
+		"button": { "dark": "#232a3a", "light": "#ece7dc" },
+		"buttonHover": { "dark": "#2d3548", "light": "#e2dbcb" },
+		"menu": { "dark": "#1a1f2d", "light": "#fffdf8" },
+		"field": { "dark": "#10131c", "light": "#f6f3ec" }
 	},
 
 	"tokens": {
 		"assistant.accent": "@accent", "assistant.accentHover": "@accentHover", "assistant.onAccent": "@onAccent",
 		"assistant.surface": "@menu", "assistant.raised": "@button", "assistant.border": "@border", "assistant.text": "@text",
-		"assistant.dim": "@muted", "assistant.dot": "@faint", "assistant.warningBackground": "@accentSoft"
+		"assistant.dim": "@muted", "assistant.dot": "@faint", "assistant.warningBackground": "@accentSoft",
+		"kit.background": "@background", "kit.surface": "@menu", "kit.bar": "@bar", "kit.barHover": "@buttonHover", "kit.field": "@field",
+		"kit.text": "@text", "kit.dim": "@muted", "kit.body": "@muted", "kit.selection": "@accentSoft", "kit.border": "@border",
+		"kit.primary": "@accent", "kit.onPrimary": "@onAccent", "kit.secondary": "@button", "kit.onSecondary": "@text",
+		"kit.accent": "@accent", "kit.focus": "@accent", "kit.radius": 10, "kit.cardRadius": 16
 	},
 
 	"permissions": {
@@ -98,18 +102,18 @@
 		"shuffle": false,
 		"shuffleSeed": 0,
 		"repeat": "off",
-		"order": [2, 3, 4, 5, 6, 7, 8],
+		"order": ["0:2", "0:3", "0:4", "0:5", "0:6", "0:7", "0:8"],
 		"where": { "page": "playlist", "current": 0, "collection": null },
 		"backStack": [],
 		"forwardStack": [],
 		"navigating": false,
 		"queueOpen": true,
-		"queue": [3, 4, 5, 6, 7, 8],
+		"queue": ["0:3", "0:4", "0:5", "0:6", "0:7", "0:8"],
 		"queuePick": null,
 		"queueNote": "",
 		"source": "",
 		"mini": false,
-		"sizes": [736],
+		"sizes": [744],
 		"menu": [
 			{ "id": "library", "icon": "music" },
 			{ "id": "albums", "icon": "disc-3" },
@@ -132,6 +136,10 @@
 		"liked": [],
 		"likedPick": null,
 		"songMenu": { "open": false, "x": 0, "y": 0, "list": -1, "track": 0 },
+		"listMenu": { "open": false, "x": 0, "y": 0 },
+		"renaming": false,
+		"nameDraft": "",
+		"deleting": false,
 		"quickPick": { "open": false, "query": "" }
 	},
 
@@ -152,12 +160,12 @@
 		"shuffle": {"type": "boolean"},
 		"shuffleSeed": {"type": "number"},
 		"repeat": {"type": "string", "enum": ["off", "all", "one"]},
-		"order": {"type": "array", "items": {"type": "number"}},
+		"order": {"type": "array", "maxItems": 1000, "items": {"type": "string", "maxLength": 16}},
 		"backStack": {"type": "array", "maxItems": 50},
 		"forwardStack": {"type": "array", "maxItems": 50},
 		"navigating": {"type": "boolean"},
 		"queueOpen": {"type": "boolean"},
-		"queue": {"type": "array", "items": {"type": "number"}},
+		"queue": {"type": "array", "maxItems": 1000, "items": {"type": "string", "maxLength": 16}},
 		"queuePick": {"type": ["string", "null"]},
 		"queueNote": {"type": "string"},
 		"source": {"type": "string"},
@@ -172,6 +180,10 @@
 		"likedPick": {"type": ["string", "null"]},
 		"songMenu": {"type": "object", "properties": {"open": {"type": "boolean"}, "x": {"type": "number"}, "y": {"type": "number"},
 			"list": {"type": "integer"}, "track": {"type": "integer", "minimum": 0}}},
+		"listMenu": {"type": "object", "properties": {"open": {"type": "boolean"}, "x": {"type": "number"}, "y": {"type": "number"}}},
+		"renaming": {"type": "boolean"},
+		"nameDraft": {"type": "string", "maxLength": 200},
+		"deleting": {"type": "boolean"},
 		"quickPick": {"type": "object", "properties": {"open": {"type": "boolean"}, "query": {"type": "string"}}}
 	},
 
@@ -408,12 +420,17 @@
 		"playingName": "{{state.playingList >= 0 ? computed.playing.name : state.source != '' ? state.source : t('library.all')}}",
 		"duration": "{{number(split(computed.track.time, ':')[0]) * 60 + number(split(computed.track.time, ':')[1])}}",
 		"elapsedText": "{{floor(state.elapsed / 60)}}:{{pad(floor(state.elapsed % 60), 2)}}",
-		"upNext": "{{map(state.queue, { id: text(it), label: state.playingList < 0 ? computed.library[it].cells[1] + '  ·  ' + computed.library[it].cells[2] : computed.playing.tracks[it].title + '  ·  ' + computed.playing.tracks[it].artist })}}",
-		"queueAt": "{{state.queuePick == null ? -1 : indexOf(state.queue, number(state.queuePick))}}",
+		"listSizes": "{{map(data.playlists, length(it.tracks))}}",
+		"queueSongs": "{{map(filter(map(state.queue, { key: it, list: number(split(it, ':')[0]), track: number(split(it, ':')[1]) }), it.list < 0 ? it.track < length(computed.library) : it.track < (computed.listSizes[it.list] ?? 0)), merge(it, it.list < 0 ? { title: computed.library[it.track].cells[1], artist: computed.library[it.track].cells[2] } : { title: data.playlists[it.list].tracks[it.track].title, artist: data.playlists[it.list].tracks[it.track].artist }))}}",
+		"upNext": "{{map(computed.queueSongs, { id: it.key, label: it.title + '  ·  ' + it.artist })}}",
+		"queueAt": "{{state.queuePick == null ? -1 : indexOf(state.queue, state.queuePick)}}",
 		"picks": "{{state.quickPick.open ? map(computed.library, { title: it.cells[1], detail: it.cells[2] + ' · ' + it.cells[3], track: index }) : []}}",
 		"playingKey": "{{state.playingList}}:{{state.playingTrack}}",
 		"songMenuKey": "{{state.songMenu.list}}:{{state.songMenu.track}}",
-		"songMenuItems": "{{[{ title: t('song.play'), run: 'play', with: { list: state.songMenu.list, track: state.songMenu.track } }, { title: t('song.playNext'), enabled: state.songMenu.list == state.playingList, run: 'playNext', with: { track: state.songMenu.track } }, { title: t('song.addToQueue'), enabled: state.songMenu.list == state.playingList, run: 'addToQueue', with: { track: state.songMenu.track } }, { separator: true }, { title: t(contains(state.liked, computed.songMenuKey) ? 'song.unlike' : 'song.like'), run: 'toggleLike', with: { key: computed.songMenuKey } }]}}",
+		"songMenuSong": "{{state.songMenu.list < 0 ? merge({ title: computed.library[state.songMenu.track].cells[1], artist: computed.library[state.songMenu.track].cells[2], album: computed.library[state.songMenu.track].cells[3], time: computed.library[state.songMenu.track].cells[4] }, computed.library[state.songMenu.track].sound == null ? {} : { sound: computed.library[state.songMenu.track].sound }) : data.playlists[state.songMenu.list].tracks[state.songMenu.track]}}",
+		"listMinutes": "{{round(sum(computed.list.tracks ?? [], number(split(it.time ?? '0:0', ':')[0]) * 60 + number(split(it.time ?? '0:0', ':')[1])) / 60)}}",
+		"songMenuItems": "{{concat([{ title: t('song.play'), run: 'play', with: { list: state.songMenu.list, track: state.songMenu.track } }, { title: t('song.playNext'), run: 'playNext', with: { key: computed.songMenuKey } }, { title: t('song.addToQueue'), run: 'addToQueue', with: { key: computed.songMenuKey } }, { separator: true }, { title: t('song.addToPlaylist'), submenu: concat(map(data.playlists, { title: it.name, enabled: index != state.songMenu.list, run: 'addToPlaylist', with: { list: index } }), [{ separator: true }, { title: t('playlist.new'), run: 'newPlaylist', with: { withSong: true } }]) }, { title: t(contains(state.liked, computed.songMenuKey) ? 'song.unlike' : 'song.like'), run: 'toggleLike', with: { key: computed.songMenuKey } }], state.songMenu.list < 0 ? [] : [{ title: t('song.remove'), run: 'removeFromPlaylist', with: { list: state.songMenu.list, track: state.songMenu.track } }])}}",
+		"listMenuItems": "{{[{ title: t('playlist.rename'), run: 'startRename' }, { title: t('playlist.delete'), run: 'askDelete' }]}}",
 		"palette": "{{map(filter(commands, it.enabled), { title: it.title, detail: it.key ? join(map(split(it.key, '+'), it == 'mod' ? 'Cmd' : upper(slice(it, 0, 1)) + slice(it, 1)), '+') : it.category, run: it.name })}}",
 		"wave": "{{map(range(64), 3 + (index * index * (length(computed.track.title) + state.playingTrack) + index * 7) % 21)}}",
 		"played": "{{clamp(floor(64 * state.elapsed / max(computed.duration, 1)), 0, 64)}}",
@@ -462,8 +479,8 @@
 			"text": "  Play",
 			"font": "heading",
 			"width": 112,
-			"height": 32,
-			"radius": 8,
+			"height": 36,
+			"radius": 18,
 			"align": "center",
 			"color": "@accent",
 			"hover": { "color": "@accentHover" },
@@ -477,12 +494,16 @@
 
 	"actions": {
 		"startList": [
-			{ "note": "with: list (-1 for the library), track, source (the album or artist it plays from, or ''), rest (the queue after it)" },
-			{ "set": "state.playingList", "to": "{{list}}" },
-			{ "set": "state.playingTrack", "to": "{{track}}" },
+			{ "note": "with: list (-1 for the library), track, source (the album or artist it plays from, or ''), rest (the queue after it, as list:track keys)" },
 			{ "set": "state.source", "to": "{{source}}" },
-			{ "set": "state.order", "to": "{{concat([track], rest)}}" },
-			{ "set": "state.queue", "to": "{{state.shuffle ? sort(rest, (it * 7919 + state.shuffleSeed) % 1009) : rest}}" },
+			{ "set": "state.order", "to": "{{concat([list + ':' + track], rest)}}" },
+			{ "set": "state.queue", "to": "{{state.shuffle ? sort(rest, (number(split(it, ':')[1]) * 7919 + state.shuffleSeed) % 1009) : rest}}" },
+			{ "run": "playKey", "with": { "key": "{{list + ':' + track}}" } }
+		],
+		"playKey": [
+			{ "note": "with: key, a song as list:track (list -1 for the library): it plays from the start" },
+			{ "set": "state.playingList", "to": "{{number(split(key, ':')[0])}}" },
+			{ "set": "state.playingTrack", "to": "{{number(split(key, ':')[1])}}" },
 			{ "set": "state.queuePick", "to": null },
 			{ "set": "state.elapsed", "to": 0 },
 			{ "set": "state.isPlaying", "to": true }
@@ -495,29 +516,34 @@
 					"list": "{{list}}",
 					"track": "{{track}}",
 					"source": "",
-					"rest": "{{map(range(max(min((list < 0 ? length(computed.library) : length(data.playlists[list].tracks)) - track - 1, 50), 0)), track + 1 + index)}}"
+					"rest": "{{map(range(max(min((list < 0 ? length(computed.library) : length(data.playlists[list].tracks)) - track - 1, 50), 0)), list + ':' + (track + 1 + index))}}"
 				}
 			}
 		],
 		"advance": [
-			{ "note": "with: at, where the next song starts. The queue's first song plays; with an empty queue, the songs start again when repeating all, else playback stops" },
+			{ "note": "with: at, where the next song starts. The queue's first song plays; with an empty queue, the songs start again when repeating all, else playback stops. Songs no longer there (a playlist changed) leave the queue first" },
 			{ "if": "{{length(state.queue) == 0 && state.repeat == 'all' && length(state.order) > 0}}",
-			  "then": [{ "set": "state.queue", "to": "{{state.shuffle ? sort(state.order, (it * 7919 + state.shuffleSeed) % 1009) : state.order}}" }] },
+			  "then": [{ "set": "state.queue", "to": "{{state.shuffle ? sort(state.order, (number(split(it, ':')[1]) * 7919 + state.shuffleSeed) % 1009) : state.order}}" }] },
+			{ "set": "state.queue", "to": "{{map(computed.queueSongs, it.key)}}" },
 			{ "if": "{{length(state.queue) == 0}}", "then": [{ "set": "state.isPlaying", "to": false }, { "set": "state.elapsed", "to": 0 }, { "stop": true }] },
-			{ "set": "state.playingTrack", "to": "{{state.queue[0]}}" },
+			{ "run": "playKey", "with": { "key": "{{state.queue[0]}}" } },
 			{ "set": "state.queue", "to": "{{slice(state.queue, 1)}}" },
-			{ "set": "state.queuePick", "to": null },
-			{ "set": "state.elapsed", "to": "{{at}}" },
-			{ "set": "state.isPlaying", "to": true }
+			{ "set": "state.elapsed", "to": "{{at}}" }
 		],
 		"next": [{ "run": "advance", "with": { "at": 0 } }],
 		"previous": [
-			{ "run": "play", "with": { "list": "{{state.playingList}}", "track": "{{max(state.playingTrack - 1, 0)}}" } }
+			{ "note": "Past the first seconds, or on the first song, the song starts again; else the song before it in the order plays, and this one comes next" },
+			{ "if": "{{state.elapsed > 3 || indexOf(state.order, computed.playingKey) < 1}}",
+			  "then": [{ "run": "replay" }, { "set": "state.isPlaying", "to": true }, { "stop": true }] },
+			{ "set": "state.queue", "to": "{{concat([computed.playingKey], filter(state.queue, it != computed.playingKey))}}" },
+			{ "run": "playKey", "with": { "key": "{{state.order[indexOf(state.order, computed.playingKey) - 1]}}" } }
 		],
 		"tick": [
 			{ "note": "Each second while playing; at the end of a song the next starts, past the crossfade's seconds that overlapped" },
 			{ "if": "{{!state.isPlaying}}", "then": [{ "stop": true }] },
 			{ "increment": "state.elapsed" },
+			{ "if": "{{settings.playback.crossfade > 0 && state.soundOn != '' && state.repeat != 'one' && length(state.queue) > 0 && state.elapsed == computed.duration - settings.playback.crossfade}}",
+			  "then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": 0, "ms": "{{settings.playback.crossfade * 1000}}", "onError": [] }] },
 			{ "if": "{{state.elapsed >= computed.duration && state.repeat == 'one'}}", "then": [{ "run": "replay" }, { "stop": true }] },
 			{ "if": "{{state.elapsed >= computed.duration}}", "then": [{ "run": "advance", "with": { "at": "{{settings.playback.crossfade}}" } }] }
 		],
@@ -528,7 +554,7 @@
 		],
 		"openSongMenu": [
 			{ "note": "with: list, track: the song's menu at the pointer (or by the focused row, for Shift+F10)" },
-			{ "set": "state.songMenu", "to": { "open": true, "x": "{{min(event.x ?? 320, window.width - 248)}}", "y": "{{min(event.y ?? 200, window.height - 140)}}",
+			{ "set": "state.songMenu", "to": { "open": true, "x": "{{min(event.x ?? 320, window.width - 248)}}", "y": "{{min(event.y ?? 200, window.height - 240)}}",
 				"list": "{{list}}", "track": "{{track}}" } }
 		],
 		"openPickMenu": [
@@ -537,13 +563,13 @@
 			{ "run": "openSongMenu", "with": { "list": -1, "track": "{{number(pick)}}" } }
 		],
 		"playNext": [
-			{ "note": "with: track, a song of the list playing: it comes next" },
-			{ "set": "state.queue", "to": "{{concat([track], filter(state.queue, it != track))}}" },
+			{ "note": "with: key, any song as list:track: it comes next" },
+			{ "set": "state.queue", "to": "{{slice(concat([key], filter(state.queue, it != key)), 0, 1000)}}" },
 			{ "set": "state.queuePick", "to": null }
 		],
 		"addToQueue": [
-			{ "note": "with: track, a song of the list playing: it goes to the end of the queue" },
-			{ "set": "state.queue", "to": "{{concat(filter(state.queue, it != track), [track])}}" },
+			{ "note": "with: key, any song as list:track: it goes to the end of the queue" },
+			{ "set": "state.queue", "to": "{{slice(concat(filter(state.queue, it != key), [key]), 0, 1000)}}" },
 			{ "set": "state.queuePick", "to": null }
 		],
 		"toggleLike": [
@@ -574,17 +600,14 @@
 		],
 		"jumpTo": [
 			{ "note": "A song of the queue opened: it plays, and the songs before it leave the queue" },
-			{ "set": "state.playingTrack", "to": "{{number(event.id ?? event.value)}}" },
-			{ "set": "state.queue", "to": "{{slice(state.queue, indexOf(state.queue, state.playingTrack) + 1)}}" },
-			{ "set": "state.queuePick", "to": null },
-			{ "set": "state.elapsed", "to": 0 },
-			{ "set": "state.isPlaying", "to": true }
+			{ "set": "state.queue", "to": "{{slice(state.queue, indexOf(state.queue, event.id ?? event.value) + 1)}}" },
+			{ "run": "playKey", "with": { "key": "{{event.id ?? event.value}}" } }
 		],
 		"placeQueued": [
-			{ "note": "with: song, at: moves a song of the queue to that place" },
+			{ "note": "with: song (its key), at: moves a song of the queue to that place" },
+			{ "set": "state.queueNote", "to": "{{t('queue.moved', { title: computed.queueSongs[indexOf(map(computed.queueSongs, it.key), song)].title ?? '', n: at + 1 })}}" },
 			{ "set": "state.queue", "to": "{{filter(state.queue, it != song)}}" },
-			{ "set": "state.queue", "to": "{{concat(slice(state.queue, 0, at), [song], slice(state.queue, at))}}" },
-			{ "set": "state.queueNote", "to": "{{t('queue.moved', { title: state.playingList < 0 ? computed.library[song].cells[1] : computed.playing.tracks[song].title, n: at + 1 })}}" }
+			{ "set": "state.queue", "to": "{{concat(slice(state.queue, 0, at), [song], slice(state.queue, at))}}" }
 		],
 		"moveQueued": [
 			{ "note": "with: by, -1 or 1: moves the song picked in the queue up or down" },
@@ -596,8 +619,8 @@
 			{
 				"run": "placeQueued",
 				"with": {
-					"song": "{{number(event.data.id)}}",
-					"at": "{{event.id == null ? length(state.queue) - 1 : indexOf(filter(state.queue, it != number(event.data.id)), number(event.id)) + (event.place == 'after' ? 1 : 0)}}"
+					"song": "{{event.data.id}}",
+					"at": "{{event.id == null ? length(state.queue) - 1 : indexOf(filter(state.queue, it != event.data.id), event.id) + (event.place == 'after' ? 1 : 0)}}"
 				}
 			}
 		],
@@ -613,8 +636,70 @@
 		],
 		"openList": [
 			{ "note": "with: list" },
+			{ "set": "state.renaming", "to": false },
 			{ "set": "state.current", "to": "{{list}}" },
 			{ "set": "state.page", "to": "playlist" }
+		],
+		"newPlaylist": [
+			{ "note": "with: withSong: a new playlist opens with its name ready to type (Enter on an empty field keeps the one it has); it holds the song of the song menu when withSong" },
+			{ "set": "state.nameDraft", "to": "" },
+			{ "insert": "playlists", "value": {
+				"name": "{{t('playlist.newName', { n: length(data.playlists) + 1 })}}",
+				"cover": "{{['images/cover-focus.svg', 'images/cover-late-night.svg', 'images/cover-morning-run.svg', 'images/cover-sunday-jazz.svg'][length(data.playlists) % 4]}}",
+				"description": "",
+				"tracks": "{{withSong == true ? [computed.songMenuSong] : []}}" },
+			  "then": [{ "run": "openList", "with": { "list": "{{length(data.playlists) - 1}}" } }, { "set": "state.renaming", "to": true }] }
+		],
+		"addToPlaylist": [
+			{ "note": "with: list: the song of the song menu goes to the end of that playlist" },
+			{ "update": "playlists", "id": "{{data.playlists[list].id}}", "fields": { "tracks": "{{slice(concat(data.playlists[list].tracks, [computed.songMenuSong]), 0, 1000)}}" } }
+		],
+		"removeFromPlaylist": [
+			{ "note": "with: list, track: the song leaves the playlist; the liked songs, the queue and the song playing follow the places that moved" },
+			{ "set": "state.liked", "to": "{{map(filter(state.liked, it != list + ':' + track), number(split(it, ':')[0]) == list && number(split(it, ':')[1]) > track ? list + ':' + (number(split(it, ':')[1]) - 1) : it)}}" },
+			{ "set": "state.queue", "to": "{{map(filter(state.queue, it != list + ':' + track), number(split(it, ':')[0]) == list && number(split(it, ':')[1]) > track ? list + ':' + (number(split(it, ':')[1]) - 1) : it)}}" },
+			{ "set": "state.order", "to": "{{map(filter(state.order, it != list + ':' + track || it == computed.playingKey), number(split(it, ':')[0]) == list && number(split(it, ':')[1]) > track ? list + ':' + (number(split(it, ':')[1]) - 1) : it)}}" },
+			{ "update": "playlists", "id": "{{data.playlists[list].id}}", "fields": { "tracks": "{{concat(slice(data.playlists[list].tracks, 0, track), slice(data.playlists[list].tracks, track + 1))}}" } },
+			{ "if": "{{state.playingList == list && state.playingTrack > track}}", "then": [{ "set": "state.playingTrack", "to": "{{state.playingTrack - 1}}" }] },
+			{ "if": "{{state.playingList == list && state.playingTrack == track}}", "then": [
+				{ "set": "state.order", "to": "{{filter(state.order, it != list + ':' + track)}}" },
+				{ "run": "advance", "with": { "at": 0 } }] }
+		],
+		"openListMenu": [
+			{ "note": "The menu of the playlist shown: rename, delete" },
+			{ "set": "state.listMenu", "to": { "open": true, "x": "{{min(event.x ?? 200, window.width - 200)}}", "y": "{{min(event.y ?? 240, window.height - 80)}}" } }
+		],
+		"startRename": [
+			{ "set": "state.nameDraft", "to": "{{computed.list.name}}" },
+			{ "set": "state.renaming", "to": true }
+		],
+		"renameList": [
+			{ "note": "The name typed in the header: the playlist takes it, unless it is empty" },
+			{ "if": "{{trim(state.nameDraft) != '' && computed.list != null}}",
+			  "then": [{ "update": "playlists", "id": "{{computed.list.id}}", "fields": { "name": "{{slice(trim(state.nameDraft), 0, 60)}}" } }] },
+			{ "set": "state.renaming", "to": false }
+		],
+		"askDelete": [{ "set": "state.deleting", "to": true }],
+		"deleteList": [
+			{ "note": "with: list: the playlist goes; the liked songs, the queue and the playing list follow the lists that moved, and going back starts again" },
+			{ "set": "state.liked", "to": "{{map(filter(state.liked, number(split(it, ':')[0]) != list), number(split(it, ':')[0]) > list ? (number(split(it, ':')[0]) - 1) + ':' + split(it, ':')[1] : it)}}" },
+			{ "set": "state.queue", "to": "{{map(filter(state.queue, number(split(it, ':')[0]) != list), number(split(it, ':')[0]) > list ? (number(split(it, ':')[0]) - 1) + ':' + split(it, ':')[1] : it)}}" },
+			{ "set": "state.order", "to": "{{map(filter(state.order, number(split(it, ':')[0]) != list), number(split(it, ':')[0]) > list ? (number(split(it, ':')[0]) - 1) + ':' + split(it, ':')[1] : it)}}" },
+			{ "if": "{{state.playingList == list}}", "then": [
+				{ "set": "state.isPlaying", "to": false }, { "set": "state.elapsed", "to": 0 },
+				{ "set": "state.playingList", "to": -1 }, { "set": "state.playingTrack", "to": 0 }, { "set": "state.source", "to": "" }] },
+			{ "if": "{{state.playingList > list}}", "then": [{ "set": "state.playingList", "to": "{{state.playingList - 1}}" }] },
+			{ "set": "state.renaming", "to": false },
+			{ "set": "state.backStack", "to": [] },
+			{ "set": "state.forwardStack", "to": [] },
+			{ "delete": "playlists", "id": "{{data.playlists[list].id}}" },
+			{ "set": "state.current", "to": "{{max(list - 1, 0)}}" },
+			{ "set": "state.page", "to": "{{length(data.playlists) > 0 ? 'playlist' : 'library'}}" },
+			{ "set": "state.where", "to": "{{merge({ page: state.page }, { current: state.current, collection: state.collection })}}" }
+		],
+		"liftAssistant": [
+			{ "note": "The assistant's button sits above the floating player (none in the mini player)" },
+			{ "set": "state.assistant.lift", "to": "{{state.mini ? 0 : 92}}" }
 		],
 		"buildLibrary": [
 			{ "note": "Makes the library's 3,000 songs once, from the word lists: the first time the app starts" },
@@ -636,11 +721,15 @@
 			{ "audio": "play", "of": "{{computed.sound}}", "onError": [{ "set": "state.soundOn", "to": "" }] }
 		],
 		"songChanged": [
-			{ "note": "A new song: its sound from the start while playing (the same sound again, or another one)" },
+			{ "note": "A new song: its sound from the start while playing (the same sound again, or another one). After a crossfade (the song starts past 0) it fades in over the crossfade's seconds, as the song before faded out" },
 			{ "if": "{{state.isPlaying && state.soundOn != ''}}", "then": [
 				{ "if": "{{state.soundOn == computed.sound}}",
 				  "then": [{ "audio": "seek", "of": "{{state.soundOn}}", "to": 0, "onError": [] }],
-				  "else": [{ "run": "startSound" }] }
+				  "else": [{ "run": "startSound" }] },
+				{ "if": "{{state.elapsed > 0 && settings.playback.crossfade > 0}}",
+				  "then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": 0, "onError": [] },
+				           { "audio": "volume", "of": "{{state.soundOn}}", "to": "{{computed.loudness}}", "ms": "{{settings.playback.crossfade * 1000}}", "onError": [] }],
+				  "else": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": "{{computed.loudness}}", "onError": [] }] }
 			] }
 		],
 		"nextCommand": { "title": "Next song", "category": "Playback", "icon": "skip-forward", "do": [{ "run": "next" }] },
@@ -661,12 +750,14 @@
 		"likeSong": { "title": "Like the song playing", "category": "Playback", "icon": "heart", "do": [{ "run": "toggleLike", "with": { "key": "{{computed.playingKey}}" } }] },
 		"showNowPlaying": { "title": "Show now playing", "category": "View", "icon": "radio", "do": [{ "set": "state.page", "to": "nowPlaying" }] },
 		"showSound": { "title": "Show the equaliser and crossfade", "category": "View", "icon": "sliders-horizontal", "do": [{ "set": "state.page", "to": "sound" }] },
+		"cancelRename": { "title": "Leave the playlist's name", "category": "View", "icon": "x", "enablement": "{{state.renaming}}",
+			"do": [{ "set": "state.renaming", "to": false }] },
 		"toggleQueue": { "title": "Show or hide the queue", "category": "View", "icon": "list-ordered", "do": [{ "toggle": "state.queueOpen" }] },
 		"toggleShuffle": { "title": "Shuffle", "category": "Playback", "icon": "shuffle", "do": [
 			{ "toggle": "state.shuffle" },
 			{ "set": "state.shuffleSeed", "to": "{{now() % 1009}}" },
-			{ "note": "The songs up next, shuffled, or back in their order" },
-			{ "set": "state.queue", "to": "{{state.shuffle ? sort(state.queue, (it * 7919 + state.shuffleSeed) % 1009) : sort(state.queue)}}" },
+			{ "note": "The songs up next, shuffled, or back in their order (the songs added to the queue after them)" },
+			{ "set": "state.queue", "to": "{{state.shuffle ? sort(state.queue, (number(split(it, ':')[1]) * 7919 + state.shuffleSeed) % 1009) : concat(filter(state.order, contains(state.queue, it)), filter(state.queue, !contains(state.order, it)))}}" },
 			{ "set": "state.queuePick", "to": null }
 		] },
 		"cycleRepeat": { "title": "Repeat: off, all, this song", "category": "Playback", "icon": "repeat",
@@ -730,11 +821,12 @@
 		"state.muted": [{ "if": "{{state.soundOn != ''}}",
 			"then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": "{{computed.loudness}}", "ms": 80, "onError": [] }] }],
 		"state.page": [{ "run": "placeChanged" }],
+		"state.mini": [{ "run": "liftAssistant" }],
 		"state.current": [{ "run": "placeChanged" }],
 		"state.collection": [{ "run": "placeChanged" }]
 	},
 
-	"onLoad": "buildLibrary",
+	"onLoad": [{ "run": "liftAssistant" }, { "run": "buildLibrary" }],
 
 	"root": {
 		"id": "panel-root",
@@ -745,8 +837,8 @@
 				"id": "sidebar",
 				"when": "{{!state.mini}}",
 				"dir": "auto",
-				"anchors": { "left": 0, "top": 0, "bottom": 96 },
-				"width": 240,
+				"anchors": { "left": 0, "top": 0, "bottom": 112 },
+				"width": 248,
 				"color": "@sidebar",
 				"role": "navigation",
 				"label": "{{t('menu.label')}}",
@@ -783,12 +875,12 @@
 								"anchors": { "left": 0, "right": 0 },
 								"height": 36,
 								"padding": 16,
-								"radius": 8,
+								"radius": 18,
 								"align": { "horizontal": "start", "vertical": "center" },
-								"color": "{{on ? '@surface' : '@sidebar'}}",
-								"hover": { "color": "@surface" },
-								"focused": { "color": "@surface" },
-								"textColor": "{{on ? '@text' : '@muted'}}",
+								"color": "{{on ? '@accentSoft' : '@sidebar'}}",
+								"hover": { "color": "{{on ? '@accentSoft' : '@surface'}}" },
+								"focused": { "color": "{{on ? '@accentSoft' : '@surface'}}" },
+								"textColor": "{{on ? '@accent' : '@muted'}}",
 								"cursor": "hand",
 								"focusable": true,
 								"role": "tab",
@@ -800,6 +892,9 @@
 						]
 					},
 					{ "id": "label-playlists", "style": "caption", "text": "{{t('playlists.caption')}}", "anchors": { "left": 28, "top": 372 } },
+					{ "id": "newPlaylist", "style": "control", "icon": "plus", "width": 28, "height": 28, "radius": 10, "color": "@sidebar",
+						"anchors": { "right": 16, "top": 364 }, "label": "{{t('playlist.create')}}", "tooltip": "{{t('playlist.create')}}",
+						"onClick": { "run": "newPlaylist", "with": { "withSong": false } } },
 					{
 						"id": "playlists",
 						"type": "stack",
@@ -815,7 +910,7 @@
 								"let": { "open": "{{state.page == 'playlist' && index == state.current}}" },
 								"anchors": { "left": 0, "right": 0 },
 								"height": 56,
-								"radius": 8,
+								"radius": 14,
 								"color": "{{open ? '@surface' : '@sidebar'}}",
 								"hover": { "color": "@surface" },
 								"focused": { "color": "@surface" },
@@ -828,7 +923,7 @@
 								"onDoubleClick": { "run": "play", "with": { "list": "{{index}}", "track": 0 } },
 								"tooltip": "{{t('playlist.play')}}",
 								"children": [
-									{ "id": "image-list-cover", "type": "image", "file": "{{list.cover}}", "fit": "cover", "radius": 4, "anchors": { "left": 10, "top": 8 }, "width": 40, "height": 40 },
+									{ "id": "image-list-cover", "type": "image", "file": "{{list.cover}}", "fit": "cover", "radius": 10, "anchors": { "left": 10, "top": 8 }, "width": 40, "height": 40 },
 									{ "id": "label-list-name", "type": "label", "text": "{{list.name}}", "textColor": "@text", "anchors": { "left": 62, "top": 10 }, "fitText": true },
 									{ "id": "label-plural-list-tracks", "style": "caption", "text": "{{t('songs', { n: length(list.tracks) })}}", "anchors": { "left": 62, "top": 31 } },
 									{
@@ -850,9 +945,9 @@
 				"id": "main",
 				"when": "{{!state.mini}}",
 				"type": "split",
-				"anchors": { "left": 240, "right": 0, "top": 0, "bottom": 96 },
+				"anchors": { "left": 248, "right": 0, "top": 0, "bottom": 112 },
 				"bind": "state.sizes",
-				"defaultSizes": [736],
+				"defaultSizes": [744],
 				"minSize": [480, 240],
 				"sashSize": 4,
 				"sashColor": "@border",
@@ -875,29 +970,41 @@
 										"anchors": { "left": 0, "right": 0, "top": 0 },
 										"height": 264,
 										"color": "@surface",
+										"gradient": { "kind": "linear", "angle": 90, "stops": ["@accentSoft", "@surface"] },
 										"children": [
-											{ "id": "cover", "type": "image", "file": "{{computed.list.cover}}", "fit": "cover", "radius": 14, "anchors": { "left": 40, "top": 40 }, "width": 184, "height": 184,
+											{ "id": "cover", "type": "image", "file": "{{computed.list.cover}}", "fit": "cover", "radius": 24, "anchors": { "right": 40, "top": 48 }, "width": 168, "height": 168,
 												"role": "img", "label": "{{computed.list.name}}" },
-											{ "id": "label-playlist", "style": "caption", "text": "{{t('playlist.caption')}}", "anchors": { "left": 256, "top": 74 } },
-											{ "id": "listName", "type": "label", "text": "{{computed.list.name}}", "font": "title", "textColor": "@text", "anchors": { "left": 252, "top": 92 }, "fitText": true },
-											{ "id": "listDescription", "type": "label", "text": "{{computed.list.description}}", "textColor": "@muted", "anchors": { "left": 256, "top": 152 }, "fitText": true },
+											{ "id": "label-playlist", "style": "caption", "text": "{{t('playlist.caption')}}", "anchors": { "left": 40, "top": 62 } },
+											{ "id": "listName", "when": "{{!state.renaming}}", "type": "label", "text": "{{computed.list.name}}", "font": "title", "textColor": "@text", "anchors": { "left": 36, "top": 80 }, "fitText": true,
+												"tooltip": "{{t('playlist.rename')}}", "onDoubleClick": "startRename" },
+											{ "id": "nameField", "when": "{{state.renaming}}", "type": "textarea", "bind": "state.nameDraft", "placeholder": "{{computed.list.name}}", "placeholderColor": "@muted", "autofocus": true, "font": "title",
+												"textColor": "@text", "color": "@field", "radius": 12, "borderWidth": 1, "borderColor": "@accent",
+												"anchors": { "left": 32, "right": 232, "top": 78 }, "height": 52, "label": "{{t('playlist.nameLabel')}}",
+												"onSubmit": "renameList", "keys": { "escape": "cancelRename" } },
+											{ "id": "listDescription", "type": "label", "text": "{{computed.list.description}}", "textColor": "@muted", "anchors": { "left": 40, "top": 140 }, "fitText": true },
 											{
 												"id": "label-plural-list-tracks-2",
 												"style": "caption",
-												"text": "{{t('songs', { n: length(computed.list.tracks) })}}  ·  {{computed.list.length}}",
+												"text": "{{t('songs', { n: length(computed.list.tracks) })}}  ·  {{t('playlist.minutes', { n: computed.listMinutes })}}",
 												"textColor": "@text",
-												"anchors": { "left": 256, "top": 178 }
+												"anchors": { "left": 40, "top": 166 }
 											},
 											{
 												"id": "playButton",
 												"style": "playButton",
 												"text": "{{t('play')}}",
 												"label": "{{t('play.label', { name: computed.list.name })}}",
-												"anchors": { "left": 256, "top": 196 },
+												"anchors": { "left": 40, "top": 196 },
+												"disabled": "{{length(computed.list.tracks) == 0}}",
 												"onClick": { "run": "play", "with": { "list": "{{state.current}}", "track": 0 } }
-											}
+											},
+											{ "id": "listMore", "style": "control", "icon": "ellipsis", "width": 36, "height": 36, "radius": 18, "color": "@button",
+												"anchors": { "left": 164, "top": 196 }, "label": "{{t('playlist.more', { name: computed.list.name })}}",
+												"tooltip": "{{t('playlist.more', { name: computed.list.name })}}", "onClick": "openListMenu" }
 										]
 									},
+									{ "id": "playlistEmpty", "when": "{{length(computed.list.tracks) == 0}}", "type": "label", "text": "{{t('playlist.empty')}}", "textColor": "@muted",
+										"anchors": { "left": 52, "top": 340 }, "fitText": true },
 									{
 										"id": "columns",
 										"anchors": { "left": 40, "right": 40, "top": 284 },
@@ -1054,112 +1161,98 @@
 			{
 				"id": "player",
 				"when": "{{!state.mini}}",
-				"anchors": { "left": 0, "right": 0, "bottom": 32 },
+				"anchors": { "left": 12, "right": 12, "bottom": 40 },
 				"height": 64,
+				"radius": 16,
 				"color": "@bar",
+				"borderWidth": 1,
+				"borderColor": "@border",
 				"role": "region",
 				"label": "{{t('queue.now')}}",
 				"children": [
-					{ "id": "panel-player", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
-					{ "id": "playingCover", "type": "image", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 4, "anchors": { "left": 16, "top": 12 }, "width": 40, "height": 40 },
-					{ "id": "nowPlaying", "type": "label", "text": "{{computed.track.title}}", "textColor": "@text", "anchors": { "left": 68, "top": 13 }, "fitText": true },
-					{ "id": "label-track-artist-2", "style": "caption", "text": "{{computed.track.artist}}", "anchors": { "left": 68, "top": 35 } },
-					{ "id": "likeButton", "style": "control", "icon": "heart", "anchors": { "left": "27%", "top": 16 }, "width": 28,
-						"textColor": "{{contains(state.liked, computed.playingKey) ? '@accent' : '@muted'}}", "checked": "{{contains(state.liked, computed.playingKey)}}",
-						"label": "{{t('player.like')}}", "tooltip": "{{t('player.like')}}", "onClick": "likeSong" },
+					{ "id": "shuffleButton", "style": "control", "icon": "shuffle", "anchors": { "left": 12, "top": 16 }, "width": 32,
+						"textColor": "{{state.shuffle ? '@accent' : '@muted'}}", "checked": "{{state.shuffle}}",
+						"label": "{{t('player.shuffle')}}", "tooltip": "{{t('player.shuffle')}}", "onClick": "toggleShuffle" },
+					{ "id": "label-previous", "style": "control", "icon": "skip-back", "anchors": { "left": 48, "top": 16 }, "width": 32,
+						"label": "{{t('player.previous')}}", "tooltip": "{{t('player.previous')}}", "onClick": "previous" },
 					{
-						"id": "controls",
-						"anchors": { "left": "35%", "right": "35%", "top": 0 },
+						"id": "playPause",
+						"style": "control",
+						"icon": "{{state.isPlaying ? 'pause' : 'play'}}",
+						"anchors": { "left": 86, "top": 12 },
+						"width": 40,
 						"height": 40,
+						"radius": 12,
+						"color": "@accent",
+						"hover": { "color": "@accentHover" },
+						"focused": { "color": "@accentHover" },
+						"textColor": "@onAccent",
+						"label": "{{t('player.playPause')}}",
+						"tooltip": "{{t('player.playPause')}}",
+						"onClick": "playPause"
+					},
+					{ "id": "label-next", "style": "control", "icon": "skip-forward", "anchors": { "left": 132, "top": 16 }, "width": 32,
+						"label": "{{t('player.next')}}", "tooltip": "{{t('player.next')}}", "onClick": "next" },
+					{ "id": "repeatButton", "style": "control", "icon": "{{state.repeat == 'one' ? 'repeat-1' : 'repeat'}}", "anchors": { "left": 168, "top": 16 }, "width": 32,
+						"textColor": "{{state.repeat == 'off' ? '@muted' : '@accent'}}", "checked": "{{state.repeat != 'off'}}",
+						"label": "{{t('player.repeat.' + state.repeat)}}", "tooltip": "{{t('player.repeat.' + state.repeat)}}", "onClick": "cycleRepeat" },
+					{ "id": "panel-player", "anchors": { "left": 212, "top": 14, "bottom": 14 }, "width": 1, "color": "@border" },
+					{
+						"id": "nowCard",
+						"dir": "auto",
+						"anchors": { "left": 224, "right": 268, "top": 0, "bottom": 0 },
 						"color": "transparent",
 						"children": [
-							{ "id": "shuffleButton", "style": "control", "icon": "shuffle", "anchors": { "left": "4%", "top": 5 }, "width": 32,
-								"textColor": "{{state.shuffle ? '@accent' : '@muted'}}", "checked": "{{state.shuffle}}",
-								"label": "{{t('player.shuffle')}}", "tooltip": "{{t('player.shuffle')}}", "onClick": "toggleShuffle" },
-							{ "id": "label-previous", "style": "control", "icon": "skip-back", "anchors": { "left": "22%", "top": 5 }, "width": 32,
-								"label": "{{t('player.previous')}}", "tooltip": "{{t('player.previous')}}", "onClick": "previous" },
+							{ "id": "playingCover", "type": "image", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 10, "anchors": { "left": 0, "top": 10 }, "width": 44, "height": 44,
+								"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('now.show', { name: computed.playingName })}}", "tooltip": "{{t('now.show', { name: computed.playingName })}}",
+								"onClick": [{ "if": "{{state.playingList >= 0}}", "then": [{ "run": "openList", "with": { "list": "{{state.playingList}}" } }], "else": [{ "set": "state.page", "to": "library" }] }] },
+							{ "id": "nowPlaying", "type": "label", "anchors": { "left": 56, "right": 36, "top": 9 }, "height": 20,
+								"runs": [{ "text": "{{computed.track.title}}", "color": "@text" }, { "text": "  ·  {{computed.track.artist}}", "color": "@muted", "size": 12 }],
+								"label": "{{computed.track.title}}, {{computed.track.artist}}" },
+							{ "id": "likeButton", "style": "control", "icon": "heart", "anchors": { "right": 0, "top": 2 }, "width": 28, "color": "@bar",
+								"textColor": "{{contains(state.liked, computed.playingKey) ? '@accent' : '@muted'}}", "checked": "{{contains(state.liked, computed.playingKey)}}",
+								"label": "{{t('player.like')}}", "tooltip": "{{t('player.like')}}", "onClick": "likeSong" },
+							{ "id": "elapsed", "style": "caption", "text": "{{computed.elapsedText}}", "anchors": { "left": 56, "top": 37 } },
 							{
-								"id": "playPause",
-								"style": "control",
-								"icon": "{{state.isPlaying ? 'pause' : 'play'}}",
-								"anchors": { "left": "{{floor(window.width * 0.15) - 17}}", "top": 4 },
-								"width": 34,
-								"height": 34,
-								"radius": 17,
-								"color": "@text",
-								"hover": { "color": "@accentHover" },
-								"focused": { "color": "@accentHover" },
-								"textColor": "@background",
-								"label": "{{t('player.playPause')}}",
-								"tooltip": "{{t('player.playPause')}}",
-								"onClick": "playPause"
+								"id": "seek",
+								"type": "slider",
+								"anchors": { "left": 96, "right": 44, "top": 36 },
+								"height": 16,
+								"max": "{{computed.duration}}",
+								"step": 1,
+								"focusable": true,
+								"label": "{{t('player.seek')}}",
+								"bind": "state.elapsed",
+								"trackColor": "@faint",
+								"activeColor": "@accent",
+								"knobColor": "@accent"
 							},
-							{ "id": "label-next", "style": "control", "icon": "skip-forward", "anchors": { "right": "22%", "top": 5 }, "width": 32,
-								"label": "{{t('player.next')}}", "tooltip": "{{t('player.next')}}", "onClick": "next" },
-							{ "id": "repeatButton", "style": "control", "icon": "{{state.repeat == 'one' ? 'repeat-1' : 'repeat'}}", "anchors": { "right": "4%", "top": 5 }, "width": 32,
-								"textColor": "{{state.repeat == 'off' ? '@muted' : '@accent'}}", "checked": "{{state.repeat != 'off'}}",
-								"label": "{{t('player.repeat.' + state.repeat)}}", "tooltip": "{{t('player.repeat.' + state.repeat)}}", "onClick": "cycleRepeat" }
+							{ "id": "label-track-time-2", "style": "caption", "text": "{{computed.track.time}}", "anchors": { "right": 4, "top": 37 } }
 						]
 					},
-					{
-						"id": "seek",
-						"type": "slider",
-						"x": "30%",
-						"y": 40,
-						"width": "40%",
-						"height": 16,
-						"max": "{{computed.duration}}",
-						"step": 1,
-						"focusable": true,
-						"label": "{{t('player.seek')}}",
-						"bind": "state.elapsed",
-						"trackColor": "@faint",
-						"activeColor": "@accent",
-						"knobColor": "@text"
-					},
-					{ "id": "elapsed", "style": "caption", "text": "{{computed.elapsedText}}", "x": "25.5%", "y": 41 },
-					{ "id": "label-track-time-2", "style": "caption", "text": "{{computed.track.time}}", "x": "71%", "y": 41 },
-					{ "id": "levelMeter", "type": "path", "d": "{{computed.meter}}", "viewBox": "0 0 32 20", "fit": "fill", "anchors": { "right": 248, "top": 22 }, "width": 32, "height": 20, "stroke": "@accent", "strokeWidth": 2,
+					{ "id": "levelMeter", "type": "path", "d": "{{computed.meter}}", "viewBox": "0 0 32 20", "fit": "fill", "anchors": { "right": 228, "top": 22 }, "width": 32, "height": 20, "stroke": "@accent", "strokeWidth": 2,
 						"role": "img", "label": "{{t('player.level')}}", "tooltip": "{{t('player.level')}}" },
-					{ "id": "miniButton", "style": "control", "icon": "minimize-2", "anchors": { "right": 196, "top": 16 }, "width": 32, "radius": 8,
+					{ "id": "miniButton", "style": "control", "icon": "minimize-2", "anchors": { "right": 188, "top": 16 }, "width": 32, "radius": 10,
 						"textColor": "@muted", "label": "{{t('player.mini')}}", "tooltip": "{{t('player.mini')}}", "onClick": "toggleMini" },
-					{
-						"id": "queueButton",
-						"type": "label",
-						"icon": "list-ordered",
-						"text": "",
-						"anchors": { "right": 156, "top": 16 },
-						"width": 32,
-						"height": 32,
-						"radius": 8,
-						"align": "center",
-						"color": "{{state.queueOpen ? '@button' : '@bar'}}",
-						"hover": { "color": "@buttonHover" },
-						"focused": { "color": "@buttonHover" },
-						"textColor": "{{state.queueOpen ? '@accent' : '@muted'}}",
-						"cursor": "hand",
-						"focusable": true,
-						"role": "button",
-						"checked": "{{state.queueOpen}}",
-						"label": "{{t('player.queue')}}",
-						"tooltip": "{{t('player.queue')}}",
-						"onClick": "toggleQueue"
-					},
-					{ "id": "muteButton", "style": "control", "icon": "{{state.muted ? 'volume-x' : 'volume-2'}}", "anchors": { "right": 126, "top": 16 }, "width": 26, "radius": 8,
+					{ "id": "queueButton", "style": "control", "icon": "list-ordered", "anchors": { "right": 152, "top": 16 }, "width": 32, "radius": 10,
+						"color": "{{state.queueOpen ? '@accentSoft' : '@bar'}}",
+						"textColor": "{{state.queueOpen ? '@accent' : '@muted'}}", "checked": "{{state.queueOpen}}",
+						"label": "{{t('player.queue')}}", "tooltip": "{{t('player.queue')}}", "onClick": "toggleQueue" },
+					{ "id": "muteButton", "style": "control", "icon": "{{state.muted ? 'volume-x' : 'volume-2'}}", "anchors": { "right": 120, "top": 16 }, "width": 28, "radius": 10,
 						"textColor": "{{state.muted ? '@accent' : '@muted'}}", "checked": "{{state.muted}}",
 						"label": "{{t('player.mute')}}", "tooltip": "{{t('player.mute')}}", "onClick": "toggleMute" },
 					{
 						"id": "volume",
 						"type": "slider",
 						"anchors": { "right": 16, "top": 24 },
-						"width": 108,
+						"width": 100,
 						"height": 16,
 						"step": 5,
 						"focusable": true,
 						"label": "{{t('player.volume')}}",
 						"bind": "state.volume",
 						"trackColor": "@faint",
-						"activeColor": "@text",
+						"activeColor": "@muted",
 						"knobColor": "@text",
 						"tooltip": "{{t('player.volume')}}"
 					}
@@ -1208,6 +1301,22 @@
 					"textColor": "@text",
 					"dimColor": "@faint",
 					"highlight": "@accentSoft"
+				}
+			},
+			{
+				"id": "listMenu",
+				"use": "contextMenu",
+				"with": { "open": "state.listMenu.open", "items": "{{computed.listMenuItems}}", "x": "{{state.listMenu.x}}", "y": "{{state.listMenu.y}}", "width": 180 }
+			},
+			{
+				"id": "deleteDialog",
+				"use": "dialog",
+				"with": {
+					"open": "state.deleting",
+					"title": "{{t('playlist.deleteTitle')}}",
+					"message": "{{t('playlist.deleteMessage', { name: computed.list.name ?? '' })}}",
+					"primaryLast": true,
+					"buttons": [{ "title": "{{t('dialog.cancel')}}" }, { "title": "{{t('playlist.delete')}}", "default": true, "run": "deleteList", "with": { "list": "{{state.current}}" } }]
 				}
 			},
 			{

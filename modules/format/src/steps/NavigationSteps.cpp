@@ -13,6 +13,7 @@ namespace {
 /// @param path The panel's id, or a path of ids (Events::findByPath()).
 /// @param frames The frames it may still wait.
 void scrollLater(Engine& engine, const std::string& path, int frames) {
+	// NOLINTNEXTLINE(bugprone-exception-escape): only copying the path can throw, if memory runs out
 	engine.scheduler.once(0.0, [&engine, path, frames] {
 		if(!engine.window) return;
 		Panel* panel = Events::findByPath(engine.window->root(), path);

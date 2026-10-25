@@ -25,9 +25,16 @@ class Platform;
 struct ApplicationOptions {
 	/// @brief The clock every window reads; must outlive the Application. nullptr: the system's steady clock.
 	const Clock* clock = nullptr;
-	/// @brief Opens windows hidden: never on screen, drawn offscreen only (Window::saveScreenshot).
+	/// @brief Opens windows hidden: never on screen, drawn offscreen only (Window::saveScreenshot). The environment
+	/// variable AFFRESCOUI_HIDDEN=1 turns it on for every Application of a process (hiddenWindowsRequested()).
 	bool hiddenWindows = false;
 };
+
+/// @brief Whether a value of the environment variable AFFRESCOUI_HIDDEN asks for hidden windows, so that tests and
+/// harnesses run every AffrescoUI program without a window on screen, in the Dock or in the app switcher.
+/// @param value Its value, or nullptr when it is unset.
+/// @return true unless it is unset, empty or "0".
+[[nodiscard]] bool hiddenWindowsRequested(const char* value) noexcept;
 
 /// @brief Owns the windowing system (GLFW) and every Window, and runs the event loop.
 ///

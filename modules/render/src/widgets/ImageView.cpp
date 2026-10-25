@@ -70,7 +70,8 @@ Rect ImageView::highlighted(ImageFit fit, const Rect& frame, int width, int heig
 	const double left = within(region[0], w), top = within(region[1], h);
 	const double right = within(region[0] + std::max(region[2], 0.0), w);
 	const double bottom = within(region[1] + std::max(region[3], 0.0), h);
-	if(!(right > left && bottom > top)) return {}; // and NaN is nothing
+	// NOLINTNEXTLINE(readability-simplify-boolean-expr): written so that NaN is nothing too
+	if(!(right > left && bottom > top)) return {};
 	const double scaleX = image.width() / w, scaleY = image.height() / h;
 	return {image.left + static_cast<float>(left * scaleX), image.top + static_cast<float>(top * scaleY),
 	        image.left + static_cast<float>(right * scaleX), image.top + static_cast<float>(bottom * scaleY)};

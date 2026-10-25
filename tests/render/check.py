@@ -24,6 +24,8 @@ import os
 import subprocess
 import sys
 
+os.environ.setdefault("AFFRESCOUI_HIDDEN", "1")  # its programs never show a window (CONTRIBUTING.md); =0 shows them
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 GOLDENS = {"gl41": os.path.join(HERE, "golden"), "gles3": os.path.join(HERE, "golden-gles3")}
 SCENARIOS = os.path.join(HERE, "scenarios")

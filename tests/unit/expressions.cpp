@@ -380,7 +380,7 @@ const std::vector<Case> cases = {
     {"{{pathTree('a')}}", {}, "expected a list"},
     // Keys: tests/unit/key_notation.cpp has the notations
     {"{{keyLabel('ctrl+x ctrl+f', 'emacs')}}", "C-x C-f", {}},
-    {"{{keyLabel('ctrl+x', 'vi')}}", {}, R"(test.$keyLabel: expected the notation "platform", "mac", "pc" or "emacs")"},
+    {"{{keyLabel('ctrl+x', 'vi')}}", {}, R"(test.$keyLabel: expected the notation "platform", "mac", "pc" or "letters")"},
     // Timelines and the locale's: tests/unit/timeline.cpp and tests/unit/i18n.cpp have their values
     {"{{keyframeValue([{ time: 0, value: 0 }, { time: 2, value: 10 }], 0.5)}}", 2.5, {}},
     {"{{keyframeValue(1)}}", {}, "test.$keyframeValue: expected 2 arguments"},
@@ -405,8 +405,10 @@ const std::vector<Case> cases = {
     {"{{state.big}}", J(R"(18446744073709551615)"), {}},
     {"{{state.big + 1}}", J(R"(1.8446744073709552e+19)"), {}},
     // Texts and conversions; texts are UTF-8, and len, indexOf and slice count bytes
-    {"{{upper('héllo')}}", "HéLLO", {}},
-    {"{{lower('ÀB')}}", "Àb", {}},
+    {"{{upper('héllo')}}", "HÉLLO", {}},
+    {"{{lower('ÀB')}}", "àb", {}},
+    {"{{upper('ÿ ł ň ß ı 中')}}", "Ÿ Ł Ň ß ı 中", {}},
+    {"{{lower('Ÿ Ł Ň İ Ø×')}}", "ÿ ł ň İ ø×", {}},
     {"{{trim('  a b  ')}}", "a b", {}},
     {"{{text(null)}}", "", {}},
     {"{{text(2.0)}}", "2", {}},

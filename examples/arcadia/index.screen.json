@@ -13,7 +13,7 @@
 		"focusRing": { "color": "#f5a524", "width": 2, "offset": 1 }
 	},
 
-	"include": ["parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json", "parts/downloads.json", "../shared/addons/assistant/assistant.json"],
+	"include": ["parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json", "parts/downloads.json", "parts/community.json", "parts/manage.json", "../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{settings.appearance.theme}}",
 
@@ -83,7 +83,7 @@
 		"color.offline": { "dark": "#898989", "light": "#7a838c" },
 		"color.badge": { "dark": "#1f6b58", "light": "#1f6b58" },
 		"color.onBadge": { "dark": "#7ff0cf", "light": "#c8ffef" },
-		"color.shade": { "dark": "#100c14cc", "light": "#100c14aa" },
+		"color.shade": { "dark": "#100c14cc", "light": "#f6f2f7e6" },
 		"assistant.accent": "@color.accent",
 		"assistant.accentHover": "@color.warm",
 		"assistant.surface": "@color.panel",
@@ -252,12 +252,17 @@
 							{ "when": "{{computed.here.tab == 'library'}}", "use": "libraryPage", "id": "library" },
 							{ "when": "{{computed.here.tab == 'store'}}", "use": "storePage" },
 							{ "when": "{{computed.here.tab == 'downloads'}}", "use": "downloadsPage" },
-							{ "when": "{{!contains(['library', 'store', 'downloads'], computed.here.tab)}}", "use": "comingSoon", "id": "elsewhere" }
+							{ "when": "{{computed.here.tab == 'community'}}", "use": "friendsPage" },
+							{ "when": "{{computed.here.tab == 'profile'}}", "use": "profilePage" },
+							{ "when": "{{!contains(['library', 'store', 'downloads', 'community', 'profile'], computed.here.tab)}}", "use": "comingSoon", "id": "elsewhere" }
 						]
 					},
 					{ "use": "bottomBar", "id": "bottom-bar" }
 				]
-			}
+			},
+			{ "use": "gameMenu" },
+			{ "id": "properties-dialog", "use": "propertiesDialog" },
+			{ "id": "uninstall-dialog", "use": "uninstallDialog" }
 		]
 	}
 }

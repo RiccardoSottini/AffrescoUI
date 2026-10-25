@@ -1,5 +1,6 @@
 # The C API's test (README.md): every function of affresco/affresco.h, called from C11 with strict warnings, so the
 # header is checked as C too. It needs a display (a hidden window, and a context of its own for the embedded mode).
+cmake_language(DEFER CALL affrescoui_hide_test_windows) # AFFRESCOUI_HIDDEN=1 for its tests
 add_executable(affrescoui_capi_test capi_test.c)
 set_target_properties(affrescoui_capi_test PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF
 	LINKER_LANGUAGE CXX)
