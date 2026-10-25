@@ -10,7 +10,7 @@
 
 	"state": {
 		"presenterView": false,
-		"show": { "on": false, "index": 0, "from": -1, "step": 0, "clock": 0, "t": 1, "black": false, "white": false, "ended": false, "seconds": 0, "paused": false, "notesSize": 18 }
+		"show": { "on": false, "index": 0, "from": -1, "step": 0, "clock": 0, "t": 1, "black": false, "white": false, "ended": false, "seconds": 0, "paused": false, "notesSize": 18, "onSlide": 0, "elapsed": 0, "rehearsing": false }
 	},
 
 	"computed": {
@@ -34,12 +34,13 @@
 		],
 		"readingView": [{ "run": "showStart", "with": { "from": "{{from}}" } }],
 		"showStart": [
-			{ "set": "state.show", "to": "{{merge(state.show, { on: true, from: -1, black: false, white: false, ended: false, seconds: 0, paused: false })}}" },
+			{ "set": "state.show", "to": "{{merge(state.show, { on: true, from: -1, black: false, white: false, ended: false, seconds: 0, paused: false, elapsed: 0 })}}" },
 			{ "run": "showEnter", "with": { "index": "{{find(computed.showOrder, it >= from) ?? computed.showOrder[0] ?? 0}}", "previous": -1 } },
 			{ "focus": "#show-view" }
 		],
 		"showEnter": [
-			{ "set": "state.show", "to": "{{merge(state.show, { index: index, from: previous, step: 0, clock: 0, t: 0, ended: false })}}" },
+			{ "if": "{{state.show.rehearsing && previous >= 0}}", "then": [{ "set": "state.deck.slides[previous].advanceAfter", "to": "{{state.show.onSlide}}" }] },
+			{ "set": "state.show", "to": "{{merge(state.show, { index: index, from: previous, step: 0, clock: 0, t: 0, ended: false, onSlide: 0 })}}" },
 			{ "if": "{{(computed.showSlide.transition.kind ?? 'none') == 'none'}}",
 			  "then": [{ "set": "state.show.t", "to": 1 }],
 			  "else": [{ "animate": "state.show.t", "to": 1, "ms": "{{computed.showSlide.transition.ms ?? 500}}", "easing": "inOut" }] },
@@ -73,6 +74,11 @@
 		"showWhite": [{ "set": "state.show.black", "to": false }, { "toggle": "state.show.white" }],
 		"showEnd": [
 			{ "if": "{{state.show.on}}", "then": [
+				{ "if": "{{state.show.rehearsing}}", "then": [
+					{ "set": "state.deck.slides[state.show.index].advanceAfter", "to": "{{state.show.onSlide}}" },
+					{ "set": "state.deck.useTimings", "to": true },
+					{ "set": "state.show.rehearsing", "to": false }
+				] },
 				{ "set": "state.current", "to": "{{state.show.index}}" },
 				{ "set": "state.show", "to": "{{merge(state.show, { on: false, t: 1, from: -1, black: false, white: false, ended: false })}}" },
 				{ "set": "state.board.selection", "to": [] },
@@ -82,6 +88,15 @@
 			] }
 		],
 		"togglePresenterView": [{ "toggle": "state.presenterView" }],
+		"showSecond": [
+			{ "note": "Each second of the show: the slide's time, and with the deck's timings on (and no rehearsal), the next step when it is up" },
+			{ "if": "{{!state.show.paused && !state.show.ended}}", "then": [
+				{ "increment": "state.show.onSlide" },
+				{ "increment": "state.show.elapsed" },
+				{ "if": "{{!state.show.rehearsing && (state.deck.useTimings ?? false) && computed.showSlide.advanceAfter != null && state.show.onSlide >= computed.showSlide.advanceAfter}}",
+				  "then": [{ "run": "showNext" }] }
+			] }
+		],
 		"showTick": [{ "if": "{{!state.show.paused}}", "then": [{ "increment": "state.show.seconds" }] }]
 	},
 
@@ -209,10 +224,27 @@
 			"note": "This window while the show runs: the show itself, full screen, or the presenter view.",
 			"node": {
 				"id": "show-view", "color": "#000000", "focusable": true, "role": "dialog", "label": "Slide show",
+				"every": { "ms": 1000, "do": "showSecond" },
 				"onClick": [{ "if": "{{!state.presenterView}}", "then": [{ "run": "showNext" }] }],
 				"children": [
 					{ "type": "image", "id": "show-image", "when": "{{!state.presenterView}}", "fill": 0, "source": "audience", "fit": "contain" },
-					{ "use": "presenter", "when": "{{state.presenterView}}" }
+					{ "use": "presenter", "when": "{{state.presenterView}}" },
+					{ "type": "row", "id": "rehearsal", "when": "{{state.show.rehearsing}}", "x": 16, "y": 16, "fitContent": "width", "height": 40, "gap": 4,
+					  "radius": 20, "color": "#141a19ee", "alignItems": "center", "role": "toolbar", "label": "Rehearsal",
+					  "onClick": [{ "note": "a click on the bar isn't a click on the show" }],
+					  "children": [
+						{ "id": "rehearsal-start", "width": 0, "height": 1, "color": "transparent" },
+						{ "type": "label", "id": "rehearsal-next", "style": "presenterButton", "runs": [{ "icon": "arrow-right", "size": 15 }], "tooltip": "Next", "onClick": "showNext" },
+						{ "type": "label", "id": "rehearsal-pause", "style": "presenterButton", "runs": [{ "icon": "{{state.show.paused ? 'play' : 'pause'}}", "size": 15 }],
+						  "tooltip": "{{state.show.paused ? 'Resume' : 'Pause'}}", "onClick": [{ "toggle": "state.show.paused" }] },
+						{ "type": "label", "id": "rehearsal-slide", "fitText": true, "height": 32, "padding": 6, "textColor": "#eef3f1",
+						  "runs": [{ "text": "{{floor(state.show.onSlide / 60) + ':' + pad(state.show.onSlide % 60, 2, '0')}}", "size": 16, "bold": true }] },
+						{ "type": "label", "id": "rehearsal-repeat", "style": "presenterButton", "runs": [{ "icon": "rotate-ccw", "size": 15 }], "tooltip": "Time this slide again",
+						  "onClick": [{ "set": "state.show.elapsed", "to": "{{state.show.elapsed - state.show.onSlide}}" }, { "set": "state.show.onSlide", "to": 0 }] },
+						{ "type": "label", "id": "rehearsal-total", "fitText": true, "height": 32, "padding": 8, "textColor": "#a3b1ac",
+						  "runs": [{ "text": "{{floor(state.show.elapsed / 60) + ':' + pad(state.show.elapsed % 60, 2, '0')}}", "size": 14 }] },
+						{ "id": "rehearsal-end", "width": 0, "height": 1, "color": "transparent" }
+					  ] }
 				]
 			}
 		},

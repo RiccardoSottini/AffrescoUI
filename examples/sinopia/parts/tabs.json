@@ -137,7 +137,7 @@
 						{ "use": "rbBig", "id": "b-ins-link", "with": { "icon": "link", "title": "Link", "width": 44, "enabled": false }, "tooltip": "Linking text isn't available yet" }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-comments", "with": { "title": "Comments" }, "children": [
-						{ "use": "rbBig", "id": "b-ins-comment", "with": { "icon": "message-square-plus", "title": "Comment", "width": 56, "enabled": false }, "tooltip": "Commenting isn't available yet" }
+						{ "use": "rbBig", "id": "b-ins-comment", "with": { "icon": "message-square-plus", "title": "Comment", "width": 56 }, "tooltip": "Comment on this slide", "onClick": "newComment" }
 					] },
 					{ "use": "rbGroup", "id": "g-ins-text", "with": { "title": "Text" }, "children": [
 						{ "use": "rbBig", "id": "b-ins-textbox", "with": { "icon": "text-cursor-input", "title": "Text\nBox", "width": 44 }, "onClick": "insertTextBox" },
@@ -264,7 +264,7 @@
 					{ "use": "rbGroup", "id": "g-notes-show", "with": { "title": "Panes" }, "children": [
 						{ "use": "rbBig", "id": "b-notes-toggle", "with": { "icon": "notebook-pen", "title": "Notes", "on": "{{state.notes}}", "width": 44 }, "onClick": [{ "toggle": "state.notes" }] },
 						{ "use": "rbBig", "id": "b-format-pane", "with": { "icon": "paintbrush", "title": "Format\nPane", "on": "{{state.formatPane}}", "width": 48 },
-						  "onClick": [{ "toggle": "state.formatPane" }] }
+						  "onClick": [{ "toggle": "state.formatPane" }, { "set": "state.sidePane", "to": null }] }
 					] },
 					{ "use": "rbGroup", "id": "g-mode", "with": { "title": "Appearance" }, "children": [
 						{ "use": "rbBig", "id": "b-dark", "with": { "icon": "{{state.theme == 'dark' ? 'sun' : 'moon'}}", "title": "{{state.theme == 'dark' ? 'Light\nMode' : 'Dark\nMode'}}", "width": 48 },
@@ -375,15 +375,6 @@
 						] }
 					] }
 				]
-			}
-		},
-
-		"tabPlain": {
-			"params": { "name": "" },
-			"note": "A tab whose commands are still to come: its name and a muted line.",
-			"node": {
-				"type": "row", "fitContent": "width", "id": "tab-plain", "height": 92, "color": "transparent", "alignItems": "center",
-				"children": [{ "type": "label", "id": "tab-plain-text", "fitText": true, "padding": 12, "textColor": "@rbMuted", "runs": [{ "text": "{{name}}", "size": 12 }] }]
 			}
 		}
 	}

@@ -48,6 +48,9 @@
 					{ "use": "shapePath", "when": "{{shape}}", "with": { "o": "{{merge({ shape: o.kind == 'text' ? 'rect' : 'rect', fill: o.kind == 'shape' ? 'accent1' : 'none', line: o.kind == 'text' ? 'none' : null, lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null, effect: null }, merge(o, box))}}", "name": "{{prefix + o.id}}" } },
 					{ "type": "label", "id": "{{prefix + o.id + '-icon'}}", "when": "{{o.kind == 'icon'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}", "align": "center",
 					  "textColor": "{{ink}}", "runs": [{ "icon": "{{o.icon ?? 'star'}}", "size": "{{min(box.w, box.h) * 0.9}}" }] },
+					{ "type": "path", "id": "{{prefix + o.id + '-ink'}}", "when": "{{o.kind == 'ink'}}", "x": 0, "y": 0, "width": "{{box.w}}", "height": "{{box.h}}",
+					  "d": "{{o.d ?? ''}}", "viewBox": "{{'0 0 ' + (o.vw ?? box.w) + ' ' + (o.vh ?? box.h)}}", "fit": "fill",
+					  "stroke": "{{o.color ?? '#1f2933'}}", "strokeWidth": "{{o.width ?? 3}}", "strokeCap": "round", "strokeJoin": "round" },
 					{ "use": "shapePath", "when": "{{prompt}}",
 					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash', effect: null })}}", "name": "{{outline}}" } },
 					{

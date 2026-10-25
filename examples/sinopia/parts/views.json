@@ -100,7 +100,7 @@
 
 		"formatPane": {
 			"params": {},
-			"note": "The selected objects' fill, line, size, place and rotation, and their lock; with nothing selected, the slide's background.",
+			"note": "The selected objects' fill, line, size, place and rotation, their lock and the first one's alt text; with nothing selected, the slide's background.",
 			"node": {
 				"type": "column", "id": "format-pane", "width": 260, "color": "@rb", "borderWidth": 1, "borderColor": "@rbLine", "gap": 6,
 				"alignItems": "center", "scroll": "vertical", "role": "region", "label": "Format",
@@ -140,7 +140,11 @@
 						{ "use": "paneStepper", "with": { "prefix": "format-rotate", "title": "Rotation", "value": "{{o.rotate ?? 0}}", "unit": "°", "key": "rotate", "step": 15, "low": -360, "high": 360 } },
 						{ "type": "label", "id": "format-lock", "style": "{{computed.locked ? 'rbButtonOn' : 'rbButton'}}", "height": 26, "fitText": true, "padding": 6,
 						  "runs": [{ "icon": "{{computed.locked ? 'lock' : 'lock-open'}}", "size": 14 }, { "text": "{{computed.locked ? ' Locked' : ' Lock'}}", "size": 12 }],
-						  "tooltip": "A locked object stays where it is and isn't deleted", "onClick": "toggleLock" }
+						  "tooltip": "A locked object stays where it is and isn't deleted", "onClick": "toggleLock" },
+						{ "type": "label", "id": "format-alt-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Alt Text", "size": 12 }] },
+						{ "type": "editor", "id": "format-alt", "height": 54, "wrap": true, "color": "@rbFieldBg", "lineColor": "transparent", "textColor": "@rbInk",
+						  "label": "Alt text: what a screen reader says for this object",
+						  "bind": "{{'state.deck.slides[' + state.current + '].objects[' + indexOf(map(computed.objects, it.id), o.id) + '].alt'}}" }
 					] }
 				]
 			}

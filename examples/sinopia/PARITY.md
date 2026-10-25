@@ -7,9 +7,9 @@ with its slide show, presenter view, audience window and files on library capabi
 `saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](index.scenarios.json)
 (without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
 
-| Area | Feature | Start | Now | Evidence |
+| Area | Feature | Start | Now | 62 | 27 | 31 | 120 |
 |---|---|---|---|---|
-| Shell | Ribbon with tabs (Home, Insert, Ink, Design, Transitions, Motion, Present, Check, View) | missing | partial | first-frame, insert-tab, design-tab |
+| Shell | Ribbon with tabs (Home, Insert, Ink, Design, Transitions, Motion, Present, Record, Check, View, Help) | missing | done | first-frame, insert-tab, design-tab, ink, rehearse-timings, check-and-comments |
 | Shell | Ribbon groups with titles, large and small buttons | missing | done | first-frame |
 | Shell | Ribbon galleries (shapes, styles, themes, transitions, animations) | missing | partial | first-frame (shapes), design-tab (themes), launchers-and-gallery (the whole list) |
 | Shell | Collapse and pin the ribbon | missing | missing | |
@@ -32,7 +32,7 @@ with its slide show, presenter view, audience window and files on library capabi
 | Canvas | Rulers, gridlines and guides (View) | partial | partial | |
 | Status bar | Slide x of y | missing | done | slide-4 |
 | Status bar | Language | missing | done | first-frame |
-| Status bar | Notes and comments toggles | missing | partial | speaker-notes, notes-hidden |
+| Status bar | Notes and comments toggles | missing | done | speaker-notes, notes-hidden, check-and-comments |
 | Status bar | Views (normal, sorter, reading, slide show) | partial | done | sorter-view, outline-view, present-from-current, background-and-reading-view |
 | Status bar | Zoom slider, percentage and fit | missing | done | first-frame |
 | Text | Font, size, grow and shrink | missing | done | font-size-and-case (the two fonts the app ships) |
@@ -85,6 +85,13 @@ with its slide show, presenter view, audience window and files on library capabi
 | Tools | Replace | missing | done | find-and-replace |
 | Tools | Undo and redo | done | done | delete-and-undo |
 | Tools | Cut, copy and paste | partial | partial | duplicate-an-object, paste-menu (no other apps' clipboard) |
+| Ink | Draw with a pen and a highlighter (colours, widths) | missing | done | ink |
+| Ink | Eraser and Clear Ink | missing | done | ink |
+| Ink | Ink to shape and ink replay | missing | missing | |
+| Review | Comments (add, write, resolve, delete, next and previous) | missing | done | check-and-comments |
+| Review | Accessibility check (titles, empty placeholders, alternative text) | missing | done | check-and-comments |
+| Review | Spelling | missing | missing | |
+| Help | Keyboard shortcuts | missing | done | check-and-comments |
 | Transitions | Fade | partial | partial | slide-transition |
 | Transitions | Push | partial | done | slide-transition |
 | Transitions | Wipe | partial | done | slide-transition |
@@ -103,6 +110,8 @@ with its slide show, presenter view, audience window and files on library capabi
 | Slide show | From the beginning and from the current slide | partial | done | present-from-current |
 | Slide show | Black and white screen (B, W) | done | done | present-skips-and-blacks |
 | Slide show | End show (Esc) | done | done | present-and-step, present-ends-at-the-end |
+| Slide show | Rehearse timings, and a show that uses them | missing | done | rehearse-timings |
+| Slide show | Record audio and video, export to video | missing | missing | |
 | Presenter view | Current slide | missing | done | presenter-view |
 | Presenter view | Next slide | done | done | presenter-view |
 | Presenter view | Notes | partial | done | presenter-view |
@@ -128,3 +137,5 @@ with its slide show, presenter view, audience window and files on library capabi
 | Start | 12 | 37 | 62 | 111 |
 | Before the controls audit | 34 | 37 | 40 | 111 |
 | Now | 54 | 29 | 28 | 111 |
+
+The Ink, Record, Check and Help tabs added nine rows that the first list didn't have (all missing at the start), so *Now* counts 120 rows.

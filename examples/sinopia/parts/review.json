@@ -1,0 +1,363 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The Ink, Record, Check and Help tabs. Ink: a pen, a highlighter and an eraser draw on the slide through a layer over it; a stroke becomes an object of kind 'ink' (its points as a path in its own box), a highlighter's in a pale colour behind the other objects. Record: rehearsing a show keeps each slide's seconds as its advanceAfter, which the show uses when the deck's useTimings is on. Check: comments on each slide (slide.comments) and an accessibility check. Help: the keyboard shortcuts. Comments, the check, the shortcuts and About open in the side pane (state.sidePane), which takes the format pane's place.",
+
+	"state": {
+		"inkTool": null,
+		"inkColor": "#1f2933",
+		"inkWidth": 3,
+		"stroke": [],
+		"strokeFrom": [0, 0],
+		"sidePane": null,
+		"commentFocus": null
+	},
+
+	"computed": {
+		"inkPens": [["#1f2933", "Black"], ["#e03131", "Red"], ["#1c7ed6", "Blue"], ["#2f9e44", "Green"], ["#f08c00", "Orange"]],
+		"inkHighlights": [["#ffe680", "Yellow"], ["#b2f2bb", "Green"], ["#a5d8ff", "Blue"], ["#fcc2d7", "Pink"]],
+		"inkSwatches": "{{computed.inkHighlight ? computed.inkHighlights : computed.inkPens}}",
+		"inkWidths": [[1.5, "Thin"], [3, "Medium"], [6, "Thick"]],
+		"inkHighlight": "{{state.inkTool == 'highlighter'}}",
+		"strokeColor": "{{state.inkColor}}",
+		"strokeWidth": "{{computed.inkHighlight ? 14 : state.inkWidth}}",
+		"liveStroke": "{{'M ' + join(map(state.stroke, fixed((it[0] - computed.view.camera.x) * computed.view.camera.zoom, 1) + ' ' + fixed((it[1] - computed.view.camera.y) * computed.view.camera.zoom, 1)), ' L ')}}",
+		"slideInk": "{{count(computed.objects, it.kind == 'ink')}}",
+		"timed": "{{count(state.deck.slides, it.advanceAfter != null)}}",
+		"comments": "{{computed.slide.comments ?? []}}",
+		"commented": "{{filter(range(length(state.deck.slides)), length(state.deck.slides[it].comments ?? []) > 0)}}",
+		"untitled": "{{count(state.deck.slides, !some(it.objects ?? [], contains(['title', 'ctrTitle'], it.ph ?? '') && trim(it.text ?? '') != ''))}}",
+		"accessIssues": "{{computed.untitled + count(flat(map(state.deck.slides, it.objects ?? [])), (it.ph != null && trim(it.text ?? '') == '') || ((it.kind == 'icon' || it.kind == 'ink') && trim(it.alt ?? '') == ''))}}",
+		"shortcuts": [
+			["F5", "Present from the beginning"], ["Shift+F5", "Present from this slide"], ["Ctrl+M", "New slide"],
+			["F2", "Edit the selected text"], ["Escape", "Stop editing, or drop the selection"], ["Tab, Shift+Tab", "While editing text: a list level in or out"],
+			["Ctrl+Z, Ctrl+Y", "Undo, redo"], ["Ctrl+C, Ctrl+X, Ctrl+V", "Copy, cut, paste"], ["Ctrl+D", "Duplicate"],
+			["Ctrl+A", "Select all"], ["Delete", "Delete the selection"], ["Ctrl+F, Ctrl+H", "Find, replace"],
+			["Ctrl+B, Ctrl+I, Ctrl+U", "Bold, italic, underline"], ["Ctrl+L, E, R, J", "Align left, centre, right, justify"],
+			["Ctrl+Shift+>, <", "Larger or smaller text"], ["Ctrl+F1", "Show or hide the ribbon"], ["Shift+F10", "The context menu"],
+			["Right, Space, N", "Next, in the show"], ["Left, P", "Previous, in the show"], ["B, W", "A black or white screen, in the show"]
+		]
+	},
+
+	"actions": {
+		"inkTool": [
+			{ "note": "with: tool, null (select), pen, highlighter or eraser" },
+			{ "set": "state.inkTool", "to": "{{tool}}" },
+			{ "if": "{{tool == 'highlighter' && !contains(map(computed.inkHighlights, it[0]), state.inkColor)}}", "then": [{ "set": "state.inkColor", "to": "#ffe680" }] },
+			{ "if": "{{tool == 'pen' && !contains(map(computed.inkPens, it[0]), state.inkColor)}}", "then": [{ "set": "state.inkColor", "to": "#1f2933" }] },
+			{ "if": "{{tool != null}}", "then": [{ "set": "state.board.selection", "to": [] }, { "set": "state.editing", "to": null }] }
+		],
+		"inkPress": [
+			{ "note": "with: x, y, the slide point pressed" },
+			{ "set": "state.strokeFrom", "to": "{{[x, y]}}" },
+			{ "if": "{{state.inkTool == 'eraser'}}", "then": [{ "run": "eraseAt", "with": { "x": "{{x}}", "y": "{{y}}" } }],
+			  "else": [{ "set": "state.stroke", "to": "{{[[x, y]]}}" }] }
+		],
+		"inkDrag": [
+			{ "note": "with: dx, dy, in slide points since the press" },
+			{ "if": "{{state.inkTool == 'eraser'}}",
+			  "then": [{ "run": "eraseAt", "with": { "x": "{{state.strokeFrom[0] + dx}}", "y": "{{state.strokeFrom[1] + dy}}" } }],
+			  "else": [{ "if": "{{length(state.stroke) > 0 && length(state.stroke) < 2000}}",
+			             "then": [{ "push": "state.stroke", "value": "{{[state.strokeFrom[0] + dx, state.strokeFrom[1] + dy]}}" }] }] }
+		],
+		"inkRelease": [
+			{ "if": "{{state.inkTool != 'eraser' && length(state.stroke) > 1}}", "then": [
+				{ "run": "addInk", "with": {
+					"pad": "{{computed.strokeWidth / 2 + 1}}",
+					"left": "{{min(map(state.stroke, it[0]))}}", "top": "{{min(map(state.stroke, it[1]))}}",
+					"right": "{{max(map(state.stroke, it[0]))}}", "bottom": "{{max(map(state.stroke, it[1]))}}" } }
+			] },
+			{ "set": "state.stroke", "to": [] }
+		],
+		"addInk": [
+			{ "note": "with: pad, and the stroke's left, top, right and bottom: the box the points are kept in, the stroke's half width around them" },
+			{ "run": "insertObject", "with": { "object": "{{{ kind: 'ink', x: left - pad, y: top - pad, w: right - left + 2 * pad, h: bottom - top + 2 * pad, vw: right - left + 2 * pad, vh: bottom - top + 2 * pad, color: computed.strokeColor, width: computed.strokeWidth, d: 'M ' + join(map(state.stroke, fixed(it[0] - left + pad, 1) + ' ' + fixed(it[1] - top + pad, 1)), ' L ') }}}" } },
+			{ "if": "{{computed.inkHighlight}}", "then": [
+				{ "note": "a highlighter stroke goes behind the slide's other objects, as on paper" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{concat([computed.objects[length(computed.objects) - 1]], slice(computed.objects, 0, length(computed.objects) - 1))}}" }
+			] },
+			{ "set": "state.board.selection", "to": [] }
+		],
+		"eraseAt": [
+			{ "note": "with: x, y: the topmost ink stroke whose box is under the point goes" },
+			{ "run": "eraseInk", "with": { "hit": "{{find(reverse(computed.objects), it.kind == 'ink' && x >= it.x && x <= it.x + it.w && y >= it.y && y <= it.y + it.h).id ?? null}}" } }
+		],
+		"eraseInk": [
+			{ "if": "{{hit != null}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{filter(computed.objects, it.id != hit)}}" }
+			] }
+		],
+		"clearInk": [
+			{ "if": "{{computed.slideInk > 0}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides[state.current].objects", "to": "{{filter(computed.objects, it.kind != 'ink')}}" }
+			] }
+		],
+
+		"rehearse": [
+			{ "run": "commit" },
+			{ "set": "state.show.rehearsing", "to": true },
+			{ "run": "present", "with": { "from": 0 } }
+		],
+		"clearTimings": [
+			{ "if": "{{computed.timed > 0}}", "then": [
+				{ "run": "commit" },
+				{ "set": "state.deck.slides", "to": "{{map(state.deck.slides, merge(it, { advanceAfter: null }))}}" }
+			] }
+		],
+
+		"openSidePane": [
+			{ "note": "with: pane, comments, access, keys or about; the same pane again closes it" },
+			{ "set": "state.sidePane", "to": "{{state.sidePane == pane && !state.formatPane ? null : pane}}" },
+			{ "set": "state.formatPane", "to": false }
+		],
+		"newComment": [
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].comments", "to": "{{concat(computed.comments, [{ id: 'c' + state.deck.next, text: '', done: false }])}}" },
+			{ "set": "state.commentFocus", "to": "{{'c' + state.deck.next}}" },
+			{ "increment": "state.deck.next", "by": 1 },
+			{ "set": "state.sidePane", "to": "comments" },
+			{ "set": "state.formatPane", "to": false }
+		],
+		"deleteComment": [
+			{ "note": "with: id" },
+			{ "run": "commit" },
+			{ "set": "state.deck.slides[state.current].comments", "to": "{{filter(computed.comments, it.id != id)}}" }
+		],
+		"deleteComments": [
+			{ "note": "with: all, true for every slide's comments, false for this slide's" },
+			{ "run": "commit" },
+			{ "set": "state.deck.slides", "to": "{{map(state.deck.slides, all || index == state.current ? merge(it, { comments: [] }) : it)}}" }
+		],
+		"goToComment": [
+			{ "note": "with: forward: the next (or previous) slide with comments, round to the first (or last)" },
+			{ "if": "{{length(computed.commented) > 0}}", "then": [
+				{ "set": "state.current", "to": "{{forward ? find(computed.commented, it > state.current) ?? computed.commented[0] : find(reverse(computed.commented), it < state.current) ?? computed.commented[length(computed.commented) - 1]}}" },
+				{ "set": "state.board.selection", "to": [] },
+				{ "set": "state.sidePane", "to": "comments" },
+				{ "set": "state.formatPane", "to": false }
+			] }
+		],
+		"goToIssue": [
+			{ "note": "with: slide, and id (the object, or null for the slide)" },
+			{ "set": "state.current", "to": "{{slide}}" },
+			{ "set": "state.board.selection", "to": "{{id == null ? [] : [id]}}" }
+		]
+	},
+
+	"components": {
+		"tabInk": {
+			"params": {},
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-ink", "height": 92, "gap": 4, "color": "transparent",
+				"children": [
+					{ "use": "rbGroup", "id": "g-ink-tools", "with": { "title": "Drawing Tools" }, "children": [
+						{ "use": "rbBig", "id": "b-ink-select", "with": { "icon": "mouse-pointer-2", "title": "Select", "on": "{{state.inkTool == null}}", "width": 46 },
+						  "tooltip": "Select and move objects", "onClick": { "run": "inkTool", "with": { "tool": null } } },
+						{ "use": "rbBig", "id": "b-ink-pen", "with": { "icon": "pencil-line", "title": "Pen", "on": "{{state.inkTool == 'pen'}}", "width": 46 },
+						  "tooltip": "Draw on the slide (Escape stops)", "onClick": { "run": "inkTool", "with": { "tool": "pen" } } },
+						{ "use": "rbBig", "id": "b-ink-highlighter", "with": { "icon": "highlighter", "title": "Highlighter", "on": "{{state.inkTool == 'highlighter'}}", "width": 62 },
+						  "tooltip": "Highlight on the slide (Escape stops)", "onClick": { "run": "inkTool", "with": { "tool": "highlighter" } } },
+						{ "use": "rbBig", "id": "b-ink-eraser", "with": { "icon": "eraser", "title": "Eraser", "on": "{{state.inkTool == 'eraser'}}", "width": 46 },
+						  "tooltip": "Erase the strokes you drag over (Escape stops)", "onClick": { "run": "inkTool", "with": { "tool": "eraser" } } }
+					] },
+					{ "use": "rbGroup", "id": "g-ink-pens", "with": { "title": "Pens" }, "children": [
+						{ "type": "column", "id": "ink-pens", "fitContent": "width", "height": 72, "gap": 8, "justify": "center", "color": "transparent", "children": [
+							{ "type": "row", "id": "ink-colors", "fitContent": "width", "height": 22, "gap": 4, "color": "transparent", "children": [
+								{ "repeat": { "for": "c", "in": "{{computed.inkSwatches}}", "key": "{{c[0]}}" },
+								  "id": "{{(computed.inkHighlight ? 'ink-highlight-' : 'ink-color-') + slug(c[1])}}", "width": 22, "height": 22, "radius": 11, "color": "{{c[0]}}", "cursor": "hand", "tooltip": "{{c[1]}}",
+								  "borderWidth": "{{state.inkColor == c[0] ? 2 : 1}}", "borderColor": "{{state.inkColor == c[0] ? '@brand' : '@rbFieldLine'}}",
+								  "onClick": [{ "set": "state.inkColor", "to": "{{c[0]}}" }, { "if": "{{state.inkTool == null || state.inkTool == 'eraser'}}", "then": [{ "run": "inkTool", "with": { "tool": "pen" } }] }] }
+							] },
+							{ "use": "rbRow", "id": "ink-widths", "children": [
+								{ "repeat": { "for": "w", "in": "{{computed.inkWidths}}", "key": "{{w[1]}}" },
+								  "use": "rbSmall", "id": "{{'ink-width-' + lower(w[1])}}", "with": { "icon": "minus", "title": "{{w[1]}}", "on": "{{state.inkWidth == w[0]}}", "enabled": "{{!computed.inkHighlight}}" },
+								  "tooltip": "{{w[1] + ' pen'}}", "onClick": [{ "set": "state.inkWidth", "to": "{{w[0]}}" }] }
+							] }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-ink-edit", "with": { "title": "Edit" }, "children": [
+						{ "use": "rbBig", "id": "b-ink-clear", "with": { "icon": "brush-cleaning", "title": "Clear\nInk", "width": 46, "enabled": "{{computed.slideInk > 0}}" },
+						  "tooltip": "Delete every stroke on this slide", "onClick": "clearInk" }
+					] },
+					{ "use": "rbGroup", "id": "g-ink-convert", "with": { "title": "Convert" }, "children": [
+						{ "use": "rbBig", "id": "b-ink-shape", "with": { "icon": "shapes", "title": "Ink to\nShape", "width": 46, "enabled": false }, "tooltip": "Turning ink into shapes isn't available yet" },
+						{ "use": "rbBig", "id": "b-ink-replay", "with": { "icon": "history", "title": "Ink\nReplay", "width": 46, "enabled": false }, "tooltip": "Replaying ink isn't available yet" }
+					] }
+				]
+			}
+		},
+
+		"inkLayer": {
+			"params": {},
+			"note": "Over the slide while a pen is chosen: a press, a drag and a release draw (or erase) in slide points, the camera's place plus the pointer's over the zoom.",
+			"node": {
+				"id": "ink-layer", "fill": 0, "color": "transparent", "role": "region", "label": "Ink",
+				"onPress": { "run": "inkPress", "with": { "x": "{{computed.view.camera.x + event.left / computed.view.camera.zoom}}", "y": "{{computed.view.camera.y + event.top / computed.view.camera.zoom}}" } },
+				"onDrag": { "run": "inkDrag", "with": { "dx": "{{event.dx / computed.view.camera.zoom}}", "dy": "{{event.dy / computed.view.camera.zoom}}" } },
+				"onRelease": "inkRelease",
+				"children": [
+					{ "type": "path", "id": "ink-live", "when": "{{length(state.stroke) > 1}}", "fill": 0, "d": "{{computed.liveStroke}}",
+					  "stroke": "{{computed.strokeColor}}", "strokeWidth": "{{computed.strokeWidth * computed.view.camera.zoom}}", "strokeCap": "round", "strokeJoin": "round" }
+				]
+			}
+		},
+
+		"tabRecord": {
+			"params": {},
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-record", "height": 92, "gap": 4, "color": "transparent",
+				"children": [
+					{ "use": "rbGroup", "id": "g-rehearse", "with": { "title": "Timings" }, "children": [
+						{ "use": "rbBig", "id": "b-rehearse", "with": { "icon": "timer", "title": "Rehearse\nTimings", "width": 60 },
+						  "tooltip": "Present from the beginning, keeping how long each slide is shown", "onClick": "rehearse" },
+						{ "use": "rbBig", "id": "b-clear-timings", "with": { "icon": "timer-off", "title": "Clear\nTimings", "width": 52, "enabled": "{{computed.timed > 0}}" },
+						  "tooltip": "Forget every slide's timing", "onClick": "clearTimings" },
+						{ "type": "column", "id": "timings-col", "width": 130, "height": 72, "gap": 2, "justify": "center", "alignItems": "stretch", "color": "transparent", "children": [
+							{ "use": "rbCheck", "id": "cb-use-timings", "with": { "title": "Use Timings", "at": "state.deck.useTimings", "prefix": "cb-use-timings" },
+							  "tooltip": "In the show, each timed slide moves on by itself" },
+							{ "type": "label", "id": "timings-count", "height": 20, "textColor": "@rbMuted",
+							  "runs": [{ "text": "{{computed.timed == 0 ? 'No slide is timed' : plural(computed.timed, 'slide') + ' timed'}}", "size": 11 }] }
+						] }
+					] },
+					{ "use": "rbGroup", "id": "g-record", "with": { "title": "Record" }, "children": [
+						{ "use": "rbBig", "id": "b-record", "with": { "icon": "circle-dot", "title": "Record", "width": 46, "enabled": false }, "tooltip": "Recording audio and video isn't available yet" },
+						{ "use": "rbBig", "id": "b-export-video", "with": { "icon": "film", "title": "Export to\nVideo", "width": 54, "enabled": false }, "tooltip": "Exporting to video isn't available yet" }
+					] }
+				]
+			}
+		},
+
+		"tabCheck": {
+			"params": {},
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-check", "height": 92, "gap": 4, "color": "transparent",
+				"children": [
+					{ "use": "rbGroup", "id": "g-proofing", "with": { "title": "Proofing" }, "children": [
+						{ "use": "rbBig", "id": "b-spelling", "with": { "icon": "spell-check", "title": "Spelling", "width": 50, "enabled": false }, "tooltip": "Checking spelling isn't available yet" },
+						{ "use": "rbBig", "id": "b-access", "with": { "icon": "accessibility", "title": "Check\nAccessibility", "on": "{{state.sidePane == 'access' && !state.formatPane}}", "width": 70 },
+						  "tooltip": "Slides without titles, empty placeholders and pictures without alternative text", "onClick": { "run": "openSidePane", "with": { "pane": "access" } } }
+					] },
+					{ "use": "rbGroup", "id": "g-comments", "with": { "title": "Comments" }, "children": [
+						{ "use": "rbBig", "id": "b-new-comment", "with": { "icon": "message-square-plus", "title": "New\nComment", "width": 56 }, "tooltip": "Comment on this slide", "onClick": "newComment" },
+						{ "use": "rbBig", "id": "b-delete-comment", "with": { "icon": "message-square-x", "title": "Delete", "menu": true, "width": 46, "enabled": "{{length(computed.commented) > 0}}" },
+						  "onClick": { "run": "openDrop", "with": { "id": "b-delete-comment" } } },
+						{ "use": "rbStack", "id": "comments-nav", "children": [
+							{ "use": "rbSmall", "id": "b-comment-previous", "with": { "icon": "arrow-left", "title": "Previous", "enabled": "{{length(computed.commented) > 0}}" },
+							  "tooltip": "The slide with comments before this one", "onClick": { "run": "goToComment", "with": { "forward": false } } },
+							{ "use": "rbSmall", "id": "b-comment-next", "with": { "icon": "arrow-right", "title": "Next", "enabled": "{{length(computed.commented) > 0}}" },
+							  "tooltip": "The slide with comments after this one", "onClick": { "run": "goToComment", "with": { "forward": true } } }
+						] },
+						{ "use": "rbBig", "id": "b-show-comments", "with": { "icon": "messages-square", "title": "Show\nComments", "on": "{{state.sidePane == 'comments' && !state.formatPane}}", "width": 60 },
+						  "onClick": { "run": "openSidePane", "with": { "pane": "comments" } } }
+					] }
+				]
+			}
+		},
+
+		"tabHelp": {
+			"params": {},
+			"node": {
+				"type": "row", "fitContent": "width", "id": "tab-help", "height": 92, "gap": 4, "color": "transparent",
+				"children": [
+					{ "use": "rbGroup", "id": "g-help", "with": { "title": "Help" }, "children": [
+						{ "use": "rbBig", "id": "b-shortcuts", "with": { "icon": "keyboard", "title": "Keyboard\nShortcuts", "on": "{{state.sidePane == 'keys' && !state.formatPane}}", "width": 62 },
+						  "onClick": { "run": "openSidePane", "with": { "pane": "keys" } } },
+						{ "use": "rbBig", "id": "b-about", "with": { "icon": "info", "title": "About", "on": "{{state.sidePane == 'about' && !state.formatPane}}", "width": 46 },
+						  "onClick": { "run": "openSidePane", "with": { "pane": "about" } } },
+						{ "use": "rbBig", "id": "b-feedback", "with": { "icon": "message-circle-heart", "title": "Feedback", "width": 54, "enabled": false }, "tooltip": "Sending feedback isn't available yet" }
+					] }
+				]
+			}
+		},
+
+		"sidePane": {
+			"params": {},
+			"note": "The comments, the accessibility check, the shortcuts or About, by state.sidePane, where the format pane goes.",
+			"node": {
+				"type": "column", "id": "side-pane", "width": 260, "color": "@rb", "borderWidth": 1, "borderColor": "@rbLine", "gap": 6,
+				"alignItems": "center", "scroll": "vertical", "role": "region",
+				"let": { "pane": "{{state.sidePane}}" },
+				"label": "{{pane == 'comments' ? 'Comments' : pane == 'access' ? 'Accessibility' : pane == 'keys' ? 'Keyboard Shortcuts' : 'About'}}",
+				"children": [
+					{ "id": "side-top", "width": 1, "height": 4, "color": "transparent" },
+					{ "type": "row", "id": "side-head", "width": 236, "height": 24, "alignItems": "center", "color": "transparent", "children": [
+						{ "type": "label", "id": "side-title", "grow": 1, "height": 22, "textColor": "@rbInk",
+						  "runs": [{ "text": "{{pane == 'comments' ? 'Comments' : pane == 'access' ? 'Accessibility' : pane == 'keys' ? 'Keyboard Shortcuts' : 'About Sinopia'}}", "size": 14, "bold": true }] },
+						{ "use": "rbSmall", "id": "side-close", "with": { "icon": "x" }, "tooltip": "Close", "onClick": [{ "set": "state.sidePane", "to": null }] }
+					] },
+					{ "use": "commentsList", "when": "{{pane == 'comments'}}" },
+					{ "use": "accessList", "when": "{{pane == 'access'}}" },
+					{ "type": "column", "id": "shortcuts", "when": "{{pane == 'keys'}}", "width": 236, "fitContent": "height", "gap": 2, "alignItems": "stretch", "color": "transparent", "children": [
+						{ "repeat": { "for": "k", "in": "{{computed.shortcuts}}", "index": "n" },
+						  "type": "row", "id": "{{'shortcut-' + n}}", "height": 34, "gap": 8, "alignItems": "center", "color": "transparent", "children": [
+							{ "type": "label", "id": "{{'shortcut-' + n + '-keys'}}", "width": 96, "height": 32, "wrap": true, "align": "start center", "textColor": "@rbInk", "runs": [{ "text": "{{k[0]}}", "size": 11, "font": "mono" }] },
+							{ "type": "label", "id": "{{'shortcut-' + n + '-what'}}", "grow": 1, "height": 32, "wrap": true, "align": "start center", "textColor": "@rbMuted", "runs": [{ "text": "{{k[1]}}", "size": 12 }] }
+						  ] }
+					] },
+					{ "type": "label", "id": "about-text", "when": "{{pane == 'about'}}", "width": 236, "height": 150, "wrap": true, "textColor": "@rbInk",
+					  "runs": [{ "text": "Sinopia", "size": 13, "bold": true },
+					           { "text": " is a presentation editor written only in AffrescoUI's screen format: its ribbon, slides, themes, show and these panes are JSON documents, which people and agents change while it runs.\n\nIts themes, layouts and sample deck are its own. Decks are saved as JSON and exported as PDF.", "size": 12 }] }
+				]
+			}
+		},
+
+		"commentsList": {
+			"params": {},
+			"node": {
+				"type": "column", "id": "comments-list", "width": 236, "fitContent": "height", "gap": 8, "alignItems": "stretch", "color": "transparent",
+				"children": [
+					{ "type": "label", "id": "comment-new", "style": "rbButton", "height": 26, "fitText": true, "padding": 4,
+					  "runs": [{ "icon": "message-square-plus", "size": 14 }, { "text": " New comment", "size": 12 }], "onClick": "newComment" },
+					{ "type": "label", "id": "comments-none", "when": "{{length(computed.comments) == 0}}", "height": 40, "wrap": true, "textColor": "@rbMuted",
+					  "runs": [{ "text": "{{'No comments on slide ' + (state.current + 1) + '.'}}", "size": 12 }] },
+					{ "repeat": { "for": "c", "in": "{{computed.comments}}", "key": "{{c.id}}", "index": "n" },
+					  "type": "column", "id": "{{'comment-' + c.id}}", "height": 104, "gap": 4, "radius": 6, "alignItems": "center", "justify": "center",
+					  "color": "@card", "borderWidth": 1, "borderColor": "@rbLine",
+					  "children": [
+						{ "type": "row", "id": "{{'comment-' + c.id + '-head'}}", "width": 220, "height": 22, "gap": 2, "alignItems": "center", "color": "transparent", "children": [
+							{ "type": "label", "id": "{{'comment-' + c.id + '-who'}}", "grow": 1, "height": 20, "textColor": "{{c.done ? '@rbMuted' : '@rbInk'}}",
+							  "runs": [{ "text": "{{c.done ? 'Resolved' : 'Comment ' + (n + 1)}}", "size": 12, "bold": true }] },
+							{ "use": "rbSmall", "id": "{{'comment-' + c.id + '-resolve'}}", "with": { "icon": "{{c.done ? 'rotate-ccw' : 'check'}}" },
+							  "tooltip": "{{c.done ? 'Reopen' : 'Resolve'}}", "onClick": [{ "run": "commit" }, { "toggle": "{{'state.deck.slides[' + state.current + '].comments[' + n + '].done'}}" }] },
+							{ "use": "rbSmall", "id": "{{'comment-' + c.id + '-delete'}}", "with": { "icon": "trash-2" }, "tooltip": "Delete", "onClick": { "run": "deleteComment", "with": { "id": "{{c.id}}" } } }
+						] },
+						{ "type": "editor", "id": "{{'comment-' + c.id + '-text'}}", "width": 220, "height": 62, "wrap": true, "autofocus": "{{state.commentFocus == c.id}}",
+						  "color": "@rbFieldBg", "lineColor": "transparent", "textColor": "@rbInk", "label": "{{'Comment ' + (n + 1)}}",
+						  "bind": "{{'state.deck.slides[' + state.current + '].comments[' + n + '].text'}}" }
+					  ] }
+				]
+			}
+		},
+
+		"accessList": {
+			"params": {},
+			"note": "Each slide's findings: no title, an empty placeholder, an icon or ink without alternative text (which the format pane sets). A click goes to it.",
+			"node": {
+				"type": "column", "id": "access-list", "width": 236, "fitContent": "height", "gap": 2, "alignItems": "stretch", "color": "transparent",
+				"children": [
+					{ "type": "label", "id": "access-summary", "height": 36, "wrap": true, "textColor": "@rbMuted",
+					  "runs": [{ "text": "{{computed.accessIssues == 0 ? 'No problems found. People who use screen readers can follow this deck.' : plural(computed.accessIssues, 'finding') + ' to look at:'}}", "size": 12 }] },
+					{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "key": "{{s.id}}", "index": "n" },
+					  "type": "column", "id": "{{'access-' + s.id}}", "fitContent": "height", "gap": 2, "alignItems": "stretch", "color": "transparent",
+					  "children": [
+						{ "type": "label", "id": "{{'access-' + s.id + '-title'}}", "when": "{{!some(s.objects ?? [], contains(['title', 'ctrTitle'], it.ph ?? '') && trim(it.text ?? '') != '')}}",
+						  "style": "rbButton", "height": 24, "padding": 4, "tooltip": "Give every slide a title, so it can be found and read out",
+						  "runs": [{ "icon": "heading", "size": 13 }, { "text": "{{' Slide ' + (n + 1) + ': no title'}}", "size": 12 }],
+						  "onClick": { "run": "goToIssue", "with": { "slide": "{{n}}", "id": null } } },
+						{ "repeat": { "for": "o", "in": "{{s.objects ?? []}}", "key": "{{o.id}}" },
+						  "type": "label", "id": "{{'access-' + o.id}}",
+						  "when": "{{(o.ph != null && trim(o.text ?? '') == '') || ((o.kind == 'icon' || o.kind == 'ink') && trim(o.alt ?? '') == '')}}",
+						  "style": "rbButton", "height": 24, "padding": 4,
+						  "tooltip": "{{o.ph != null ? 'Fill it in or delete it' : 'Describe it in Alt Text, in the format pane'}}",
+						  "runs": [{ "icon": "{{o.ph != null ? 'square-dashed-bottom' : 'image-off'}}", "size": 13 },
+						           { "text": "{{' Slide ' + (n + 1) + ': ' + (o.ph != null ? 'an empty placeholder' : o.kind == 'ink' ? 'ink without alt text' : 'an icon without alt text')}}", "size": 12 }],
+						  "onClick": { "run": "goToIssue", "with": { "slide": "{{n}}", "id": "{{o.id}}" } } }
+					  ] }
+				]
+			}
+		}
+	}
+}

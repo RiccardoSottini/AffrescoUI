@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "parts/views.json", "parts/menus.json", "parts/review.json", "../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -53,7 +53,7 @@
 			{ "id": "slideShow", "title": "Present" }, { "id": "record", "title": "Record" }, { "id": "review", "title": "Check" },
 			{ "id": "view", "title": "View" }, { "id": "help", "title": "Help" }
 		],
-		"canvasWidth": "{{max(window.width - (state.view == 'outline' ? 300 : 201) - (state.formatPane ? 260 : 0), 100)}}",
+		"canvasWidth": "{{max(window.width - (state.view == 'outline' ? 300 : 201) - (state.formatPane || state.sidePane != null ? 260 : 0), 100)}}",
 		"canvasHeight": "{{max(window.height - 45 - (state.ribbon ? 100 : 0) - 27 - (state.notes ? 77 : 0), 100)}}",
 		"fitZoom": "{{min((computed.canvasWidth - 56) / 960, (computed.canvasHeight - 40) / 540)}}",
 		"fitCamera": "{{ {x: 480 - computed.canvasWidth / (2 * computed.fitZoom), y: 270 - computed.canvasHeight / (2 * computed.fitZoom), zoom: computed.fitZoom} }}",
@@ -103,7 +103,7 @@
 		"backspace": [{ "when": "{{state.show.on}}", "do": "showPrevious" }, { "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
 		"mod+f": [{ "when": "{{!state.show.on}}", "do": [{ "run": "openFind", "with": { "replace": false } }] }],
 		"mod+h": [{ "when": "{{!state.show.on}}", "do": [{ "run": "openFind", "with": { "replace": true } }] }],
-		"escape": [{ "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{state.editing != null}}", "do": "stopEditing" }, { "when": "{{!context.textInputFocus && !state.drop.open && !state.colors.open && !state.find.open && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
+		"escape": [{ "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{state.inkTool != null}}", "do": "inkTool", "with": { "tool": null } }, { "when": "{{state.editing != null}}", "do": "stopEditing" }, { "when": "{{!context.textInputFocus && !state.drop.open && !state.colors.open && !state.find.open && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
 	},
 
 	"root": {
@@ -156,8 +156,10 @@
 						{ "use": "tabFile", "when": "{{state.tab == 'file'}}" },
 						{ "use": "tabMotion", "when": "{{state.tab == 'animations'}}" },
 						{ "use": "tabPresent", "when": "{{state.tab == 'slideShow'}}" },
-						{ "use": "tabPlain", "when": "{{!contains(['home', 'insert', 'design', 'transitions', 'view', 'file', 'animations', 'slideShow'], state.tab)}}",
-						  "with": { "name": "{{find(computed.tabs, it.id == state.tab).title}}" } }
+						{ "use": "tabInk", "when": "{{state.tab == 'draw'}}" },
+						{ "use": "tabRecord", "when": "{{state.tab == 'record'}}" },
+						{ "use": "tabCheck", "when": "{{state.tab == 'review'}}" },
+						{ "use": "tabHelp", "when": "{{state.tab == 'help'}}" }
 					  ] }
 				]
 			},
@@ -231,23 +233,26 @@
 					{
 						"type": "column", "id": "centre", "when": "{{state.view != 'sorter'}}", "grow": 1, "color": "@work", "alignItems": "stretch",
 						"children": [
-							{
-								"type": "canvas", "id": "board", "grow": 1, "dir": "ltr", "focusable": true,
-								"onContextMenu": [{ "if": "{{!(event.keyboard ?? false)}}", "then": [{ "set": "state.board.selection", "to": [] }] }, { "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "canvas" } }], "color": "@work", "accentColor": "@handles",
-								"view": "{{computed.view}}", "scaleChildren": true, "snap": true, "rulers": "{{state.ruler}}", "grid": "{{state.gridlines ? 12 : 0}}",
-								"label": "{{'Slide ' + (state.current + 1) + (computed.slideTitle == '' ? '' : ', ' + computed.slideTitle)}}",
-								"onChange": { "run": "viewChanged", "with": { "view": "{{event.value}}" } },
-								"onTransform": { "run": "placeObjects", "with": { "moved": "{{event.items}}" } },
-								"children": [
-									{ "x": 0, "y": 0, "width": 960, "height": 540, "color": "#ffffff", "shadow": { "x": 0, "y": 1, "blur": 4, "color": "#00000033" },
-									  "children": [{ "use": "slideBackground", "with": { "slide": "{{computed.slide}}", "prefix": "e-" } }] },
-									{ "repeat": { "for": "o", "in": "{{computed.objects}}", "key": "{{o.id}}" },
-									  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "", "layout": "{{computed.layout}}", "edit": true },
-									  "onContextMenu": [{ "if": "{{!contains(state.board.selection, o.id)}}", "then": [{ "set": "state.board.selection", "to": ["{{o.id}}"] }] },
-										{ "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "object" } }],
-									  "onDoubleClick": { "run": "editText", "with": { "id": "{{o.id}}" } } }
-								]
-							},
+							{ "id": "board-area", "grow": 1, "color": "@work", "children": [
+								{
+									"type": "canvas", "id": "board", "fill": 0, "dir": "ltr", "focusable": true,
+									"onContextMenu": [{ "if": "{{!(event.keyboard ?? false)}}", "then": [{ "set": "state.board.selection", "to": [] }] }, { "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "canvas" } }], "color": "@work", "accentColor": "@handles",
+									"view": "{{computed.view}}", "scaleChildren": true, "snap": true, "rulers": "{{state.ruler}}", "grid": "{{state.gridlines ? 12 : 0}}",
+									"label": "{{'Slide ' + (state.current + 1) + (computed.slideTitle == '' ? '' : ', ' + computed.slideTitle)}}",
+									"onChange": { "run": "viewChanged", "with": { "view": "{{event.value}}" } },
+									"onTransform": { "run": "placeObjects", "with": { "moved": "{{event.items}}" } },
+									"children": [
+										{ "x": 0, "y": 0, "width": 960, "height": 540, "color": "#ffffff", "shadow": { "x": 0, "y": 1, "blur": 4, "color": "#00000033" },
+										  "children": [{ "use": "slideBackground", "with": { "slide": "{{computed.slide}}", "prefix": "e-" } }] },
+										{ "repeat": { "for": "o", "in": "{{computed.objects}}", "key": "{{o.id}}" },
+										  "use": "slideObject", "with": { "o": "{{o}}", "prefix": "", "layout": "{{computed.layout}}", "edit": true },
+										  "onContextMenu": [{ "if": "{{!contains(state.board.selection, o.id)}}", "then": [{ "set": "state.board.selection", "to": ["{{o.id}}"] }] },
+											{ "run": "openContext", "with": { "x": "{{event.x}}", "y": "{{event.y}}", "kind": "object" } }],
+										  "onDoubleClick": { "run": "editText", "with": { "id": "{{o.id}}" } } }
+									]
+								},
+								{ "use": "inkLayer", "when": "{{state.inkTool != null && !state.show.on}}" }
+							  ] },
 							{ "id": "notes-line", "height": 1, "color": "@barLine", "when": "{{state.notes}}" },
 							{ "id": "notes-pane", "height": 76, "color": "@notes", "when": "{{state.notes}}",
 							  "children": [
@@ -258,7 +263,8 @@
 							  ] }
 						]
 					},
-					{ "use": "formatPane", "when": "{{state.formatPane && state.view != 'sorter'}}" }
+					{ "use": "formatPane", "when": "{{state.formatPane && state.view != 'sorter'}}" },
+					{ "use": "sidePane", "when": "{{!state.formatPane && state.sidePane != null && state.view != 'sorter'}}" }
 				]
 			},
 			{ "id": "status-line", "height": 1, "color": "@barLine" },
@@ -281,6 +287,9 @@
 					{ "type": "label", "id": "status-slide", "style": "barButton", "runs": [{ "text": "{{'Slide ' + (state.current + 1) + ' of ' + length(state.deck.slides)}}", "size": 11 }] },
 					{ "type": "label", "id": "status-notes", "style": "{{state.notes ? 'barButtonOn' : 'barButton'}}", "runs": [{ "icon": "notebook-pen", "size": 13 }, { "text": " Notes", "size": 11 }],
 					  "onClick": [{ "toggle": "state.notes" }] },
+					{ "type": "label", "id": "status-comments", "style": "{{state.sidePane == 'comments' && !state.formatPane ? 'barButtonOn' : 'barButton'}}",
+					  "runs": [{ "icon": "message-square", "size": 13 }, { "text": "{{length(computed.comments) > 0 ? ' Comments (' + length(computed.comments) + ')' : ' Comments'}}", "size": 11 }],
+					  "onClick": { "run": "openSidePane", "with": { "pane": "comments" } } },
 					{ "id": "status-gap", "grow": 1, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "zoom-fit", "style": "{{state.fit ? 'barButtonOn' : 'barButton'}}", "runs": [{ "icon": "scan", "size": 13 }, { "text": " Fit", "size": 11 }], "tooltip": "Fit slide to current window", "onClick": "fit" },
 					{ "type": "label", "id": "zoom-out", "style": "barButton", "runs": [{ "icon": "zoom-out", "size": 13 }], "tooltip": "Zoom Out", "onClick": { "run": "zoomBy", "with": { "by": 0.9 } } },
