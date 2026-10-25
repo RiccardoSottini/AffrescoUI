@@ -380,7 +380,7 @@ const std::vector<Case> cases = {
     {"{{pathTree('a')}}", {}, "expected a list"},
     // Keys: tests/unit/key_notation.cpp has the notations
     {"{{keyLabel('ctrl+x ctrl+f', 'emacs')}}", "C-x C-f", {}},
-    {"{{keyLabel('ctrl+x', 'vi')}}", {}, R"(test.$keyLabel: expected the notation "platform", "mac", "pc" or "emacs")"},
+    {"{{keyLabel('ctrl+x', 'vi')}}", {}, R"(test.$keyLabel: expected the notation "platform", "mac", "pc" or "letters")"},
     // Timelines and the locale's: tests/unit/timeline.cpp and tests/unit/i18n.cpp have their values
     {"{{keyframeValue([{ time: 0, value: 0 }, { time: 2, value: 10 }], 0.5)}}", 2.5, {}},
     {"{{keyframeValue(1)}}", {}, "test.$keyframeValue: expected 2 arguments"},
