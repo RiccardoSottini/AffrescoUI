@@ -26,7 +26,8 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 SCREEN = os.path.join(HERE, "index.screen.json")
 ADAPTER = os.path.join(HERE, "orrery-sorter.adapter.json")
 FEATURE = os.path.join(ROOT, "examples", "sinopia", "features", "slide-sorter")
-SCENARIOS = [os.path.join(HERE, "index.scenarios.json"), os.path.join(HERE, "bodies-strip.scenarios.json")]
+SCENARIOS = [os.path.join(HERE, name) for name in
+             ("index.scenarios.json", "controls.scenarios.json", "bodies-strip.scenarios.json")]
 
 
 def connect(path, timeout=20.0):
@@ -135,7 +136,7 @@ def main():
     work = tempfile.mkdtemp(prefix="afr-or-")  # short: socket paths are limited to about 100 bytes
     sockets, data = os.path.join(work, "s"), os.path.join(work, "data")
     screen = copy_without_strip(work)
-    strip = os.path.join(os.path.dirname(screen), os.path.basename(SCENARIOS[1]))
+    strip = os.path.join(os.path.dirname(screen), os.path.basename(SCENARIOS[-1]))
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=sockets)
     host = subprocess.Popen([os.path.join(build, "affrescoui_launcher"), screen, "--socket", sockets, "--data", data,
                              "--grant", "assistant"],
