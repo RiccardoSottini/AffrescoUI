@@ -106,6 +106,13 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   windows share a `SteadyClock` (or the clock its `ApplicationOptions` give), and tests and automation use
   `detail::ManualClock` to move time by hand.
 - **One `Application` at a time.** A second one throws.
+- **`AFFRESCOUI_HIDDEN=1` hides every window of a process.** Any value but empty or `0` turns
+  `ApplicationOptions::hiddenWindows` on, read in one place (the `Application` constructor, through
+  `hiddenWindowsRequested`), so every program built on `Application` honours it: the launcher, the tool, the runners,
+  the server and the C API. Its windows never come on screen, never take the focus (`Window::setVisible(true)` leaves
+  them hidden), and on macOS the process is an accessory app, in neither the Dock nor the app switcher. They still draw
+  offscreen: `AFFRESCOUI_SCREENSHOT` and the scenario runners capture the same pixels as from a shown window. Every
+  test harness sets it by default (`CONTRIBUTING.md`).
 - **Text is shaped, then drawn.** `Font::shape` splits text into runs of one face and one script, each character
   from the first file of the font and its fallbacks that has it (fallbacks at the font's em size), and shapes each run
   with HarfBuzz; FreeType rasterises the glyphs, unhinted. A right-to-left run is laid out right to left, and a line's
