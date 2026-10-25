@@ -24,6 +24,15 @@ option(AFFRESCOUI_BUILD_CAPI_SHARED "Also build the C API as one shared library,
 if(AFFRESCOUI_BUILD_TESTS)
 	enable_testing() # before any add_subdirectory: a subdirectory added earlier keeps its tests from ctest
 endif()
+# Every test runs with AFFRESCOUI_HIDDEN=1: its windows never come on screen, in the Dock or in the app switcher
+# (CONTRIBUTING.md). Each directory that adds tests defers a call to its end, when they all exist
+function(affrescoui_hide_test_windows)
+	get_property(tests DIRECTORY PROPERTY TESTS)
+	if(tests)
+		set_property(TEST ${tests} APPEND PROPERTY ENVIRONMENT AFFRESCOUI_HIDDEN=1)
+	endif()
+endfunction()
+cmake_language(DEFER CALL affrescoui_hide_test_windows)
 if(AFFRESCOUI_BUILD_CAPI_SHARED)
 	set(AFFRESCOUI_BUILD_CAPI ON CACHE BOOL "" FORCE)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON) # before the dependencies: the static libraries go into the shared one
