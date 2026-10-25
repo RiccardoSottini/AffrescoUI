@@ -27,7 +27,7 @@ constexpr std::size_t maxGrantsBytes = 256 * 1024;
 
 /// @brief The name the prompt screen gives a capability's kind (its "permissions.<kind>" string).
 /// @param capability The capability.
-/// @return "network", "folderRead", "folderWrite", "program", "audio" or "assistant".
+/// @return "network", "folderRead", "folderWrite", "program", "audio", "assistant", "files" or "windows".
 std::string kindName(const AppCapability& capability) {
 	switch(capability.kind) {
 	case AppCapability::Kind::Network:
@@ -40,6 +40,10 @@ std::string kindName(const AppCapability& capability) {
 		return "audio";
 	case AppCapability::Kind::Assistant:
 		return "assistant";
+	case AppCapability::Kind::Files:
+		return "files";
+	case AppCapability::Kind::Windows:
+		return "windows";
 	}
 	return "audio";
 }
@@ -118,6 +122,8 @@ Decisions askPerson(const affresco::format::AppManifest& app, const std::vector<
 
 void applyGrants(affresco::Screen& screen, const affresco::format::AppManifest& app, const Allowed& allowed,
                  bool silent) {
+	screen.allowFileDialogs(false); // a library screen may, an app only once the person allows it
+	screen.allowOtherWindows(false);
 	for(const AppCapability& capability : app.capabilities) {
 		if(!allowed.contains(capability.key())) continue;
 		std::optional<std::string> refused;
@@ -135,6 +141,12 @@ void applyGrants(affresco::Screen& screen, const affresco::format::AppManifest& 
 			if(!silent) static_cast<void>(screen.audio()); // nullptr in a build without audio: its steps then say so
 			break;
 		case AppCapability::Kind::Assistant: // the host attaches its agent (host.cpp)
+			break;
+		case AppCapability::Kind::Files:
+			screen.allowFileDialogs(true);
+			break;
+		case AppCapability::Kind::Windows:
+			screen.allowOtherWindows(true);
 			break;
 		}
 		if(refused)

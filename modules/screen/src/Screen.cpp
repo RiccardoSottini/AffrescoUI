@@ -292,6 +292,10 @@ void Screen::registerSurface(std::string name, SurfaceFactory factory, SurfaceOp
 
 void Screen::setPlaceholderTypes(bool enabled) { impl_->runtime.setPlaceholderTypes(enabled); }
 
+void Screen::allowFileDialogs(bool allowed) { impl_->runtime.allowFileDialogs(allowed); }
+
+void Screen::allowOtherWindows(bool allowed) { impl_->runtime.allowOtherWindows(allowed); }
+
 void Screen::setLocale(std::string tag) { impl_->runtime.setLocale(std::move(tag)); }
 
 Window& Screen::createWindow(Application& app) {

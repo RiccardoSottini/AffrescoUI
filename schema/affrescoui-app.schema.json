@@ -69,7 +69,12 @@
 				"assistant": {
 					"$ref": "#/$defs/why",
 					"description": "The host's own agent, which answers the screen's ask steps with the provider of intelligence the person set up."
-				}
+				},
+				"files": {
+					"$ref": "#/$defs/why",
+					"description": "The open and save dialogs: saveFile, openFile, export, and an image step's open and save."
+				},
+				"windows": { "$ref": "#/$defs/why", "description": "The screen's other windows (its windows section, opened by openWindow)." }
 			}
 		},
 		"data": {

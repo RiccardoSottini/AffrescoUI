@@ -70,6 +70,10 @@ void Runtime::registerSurface(std::string name, SurfaceFactory factory, SurfaceO
 
 void Runtime::setPlaceholderTypes(bool enabled) { impl_->placeholderTypes = enabled; }
 
+void Runtime::allowFileDialogs(bool allowed) { impl_->fileDialogsAllowed = allowed; }
+
+void Runtime::allowOtherWindows(bool allowed) { impl_->otherWindowsAllowed = allowed; }
+
 Window& Runtime::createWindow(Application& app) {
 	const json& document = impl_->versions.document();
 	const json settings = document.contains("window") ? object(document["window"], "window") : json::object();

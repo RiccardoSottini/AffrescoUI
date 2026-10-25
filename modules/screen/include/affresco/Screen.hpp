@@ -169,6 +169,16 @@ public:
 	/// @brief Makes unknown types plain panels instead of an error.
 	/// @param enabled true to allow them.
 	void setPlaceholderTypes(bool enabled);
+	/// @brief Lets the screen show the open and save dialogs (`saveFile`, `openFile`, `export`, an image's open and
+	/// save), or not: a step refused runs its "onError" with the code "notAllowed". On by default; a host that asks
+	/// the person (the stock host's "files" capability) turns it off until they allow it.
+	/// @param allowed Whether it may.
+	void allowFileDialogs(bool allowed);
+	/// @brief Lets the screen open the windows of its "windows" section, or not: an `openWindow` refused opens nothing
+	/// and says so. On by default; a host that asks the person (the stock host's "windows" capability) turns it off
+	/// until they allow it.
+	/// @param allowed Whether it may.
+	void allowOtherWindows(bool allowed);
 	/// @brief Sets the computer's locale (format::systemLocale()), for screens whose "strings" name no "locale".
 	/// @param tag "fr-CA"; "" for the screen's default.
 	void setLocale(std::string tag);

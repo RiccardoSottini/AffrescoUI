@@ -1717,8 +1717,10 @@ data models and seed data, assets. `app.json` in the folder says what it is
   root names its `services` use, `read` or `write`; the person picks the folder. `programs`: what its `process`
   services run. `audio`: sound. `assistant`: the host's own agent, which answers its `ask` steps (Asking the agents)
   with the provider of intelligence the person set up (an agent the person connects, such as an MCP server, needs
-  none). Nothing is allowed by default: the host asks the person the first time, for this app
-  only, and remembers the answer (`<data folder>/apps/<id>/grants.json`; `affrescoui_launcher --permissions <app>`
+  none). `files`: the open and save dialogs (`saveFile`, `openFile`, `export`, an `image` step's `open` and `save`;
+  refused, a step runs its `onError` with the code `notAllowed`). `windows`: its other windows (the `windows`
+  section; refused, `openWindow` opens nothing). Nothing is allowed by default: the host asks the person the first
+  time, for this app only, and remembers the answer (`<data folder>/apps/<id>/grants.json`; `affrescoui_launcher --permissions <app>`
   forgets it; `--grant <key>` allows one for a single run, and a screenshot asks nothing). A capability the screen
   uses that the manifest doesn't declare is never granted, and `affrescoui check` reports it; since a revision can't
   change these sections (Live screens, "Revisions"), it never widens what the app may reach. A screen opened alone

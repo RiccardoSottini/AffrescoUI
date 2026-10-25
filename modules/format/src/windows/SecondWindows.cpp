@@ -92,6 +92,11 @@ const json* SecondWindows::entry(const std::string& name) const {
 void SecondWindows::open(const std::string& name, std::optional<bool> fullscreen, const std::string& at) {
 	const json* declared = entry(name);
 	if(!declared) fail(at, "no window \"" + name + "\" in the \"windows\" section");
+	if(!engine_.otherWindowsAllowed) {
+		engine_.reportRefused("AffrescoUI screen: " + at + ": the host doesn't let this screen open other windows " +
+		                      "(its app's \"windows\" capability)");
+		return;
+	}
 	Shown& shown = shown_[name];
 	const bool fill = fullscreen.value_or(declared->value("fullscreen", false));
 	if(application_ && engine_.window) {

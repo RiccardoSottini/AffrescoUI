@@ -186,6 +186,36 @@ TEST_CASE("app manifest: a screen that asks the agents uses the assistant, which
 	      std::vector<std::string>{"assistant"});
 }
 
+TEST_CASE("app manifest: file dialogs use files, other windows use windows, each declared with a reason") {
+	json manifest = fullManifest();
+	manifest["capabilities"]["files"] = "Saves the notes where you choose.";
+	manifest["capabilities"]["windows"] = "Shows the notes on a second display.";
+	const affresco::format::AppManifest app = affresco::format::parseApp(manifest);
+	REQUIRE(app.capabilities.size() == 6);
+	CHECK(app.capabilities[4].key() == "files");
+	CHECK(app.capabilities[5].key() == "windows");
+	manifest["capabilities"]["files"] = 3;
+	CHECK(errorOf(manifest).find("capabilities.files") != std::string::npos);
+
+	const auto keys = [](const json& screen) {
+		std::vector<std::string> found;
+		for(const AppCapability& capability : affresco::format::usedCapabilities(screen))
+			found.push_back(capability.key());
+		return found;
+	};
+	using Keys = std::vector<std::string>;
+	CHECK(keys(json::parse(R"({ "actions": { "a": [{ "saveFile": "{{state.notes}}" }] } })")) == Keys{"files"});
+	CHECK(keys(json::parse(R"({ "actions": { "a": [{ "export": "pdf", "pages": ["page"] }] } })")) == Keys{"files"});
+	CHECK(keys(json::parse(R"({ "actions": { "a": [{ "image": "save", "of": "picture" }] } })")) == Keys{"files"});
+	CHECK(keys(json::parse(R"({ "actions": { "a": [{ "image": "open", "with": { "asset": "a.png" } }] } })")).empty());
+	CHECK(keys(json::parse(R"({ "windows": { "audience": { "image": "slide" } } })")) == Keys{"windows"});
+	// An action named like a step, and an adapter's binding, are no step
+	CHECK(keys(json::parse(R"({ "actions": { "saveFile": [{ "set": "state.a", "to": 1 }] } })")).empty());
+	CHECK(keys(json::parse(R"({ "adapters": { "a": { "bindings": { "current": { "export": "x.y" } } } } })")).empty());
+	CHECK(affresco::format::undeclaredCapabilities(app, json::parse(R"({ "windows": { "a": { "image": "b" } } })"))
+	          .empty());
+}
+
 TEST_CASE("app manifest: fromApp merges the app's theme, models and CSV seed; the screen's own entries win") {
 	const auto folder = std::filesystem::temp_directory_path() / "affrescoui-app-test";
 	writeApp(folder / "notes");

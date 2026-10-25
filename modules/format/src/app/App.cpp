@@ -19,7 +19,7 @@ constexpr auto manifestKeys =
 
 /// The kinds of capability, as "capabilities" names them.
 constexpr auto capabilityKeys =
-    std::to_array<std::string_view>({"network", "folders", "programs", "audio", "assistant"});
+    std::to_array<std::string_view>({"network", "folders", "programs", "audio", "assistant", "files", "windows"});
 
 constexpr std::size_t maxNameLength = 100;   ///< The longest name.
 constexpr std::size_t maxTextLength = 300;   ///< The longest description or reason.
@@ -169,11 +169,11 @@ std::vector<AppCapability> readCapabilities(const json& section) {
 			read.push_back(
 			    {Kind::Program, program, text(why, "capabilities.programs." + program, maxTextLength), false});
 		}
-	if(const auto audio = section.find("audio"); audio != section.end())
-		read.push_back({Kind::Audio, "audio", text(*audio, "capabilities.audio", maxTextLength), false});
-	if(const auto assistant = section.find("assistant"); assistant != section.end())
-		read.push_back(
-		    {Kind::Assistant, "assistant", text(*assistant, "capabilities.assistant", maxTextLength), false});
+	// The kinds with no names: the reason alone
+	for(const auto& [kind, key] : {std::pair{Kind::Audio, "audio"}, std::pair{Kind::Assistant, "assistant"},
+	                               std::pair{Kind::Files, "files"}, std::pair{Kind::Windows, "windows"}})
+		if(const auto why = section.find(key); why != section.end())
+			read.push_back({kind, key, text(*why, std::string("capabilities.") + key, maxTextLength), false});
 	return read;
 }
 
@@ -226,20 +226,46 @@ void readHeader(const json& manifest, AppManifest& read) {
 	if(manifest.contains("note")) static_cast<void>(text(manifest["note"], "note", 4096, true));
 }
 
-/// @brief Whether a step anywhere in a screen is an `ask` (an object with an "ask" text), outside its data: its
-/// state, strings, tokens and models.
+/// @brief Whether an object is an `ask` step (an "ask" text).
+/// @param step The object.
+/// @return true if it is.
+bool isAsk(const json& step) {
+	const auto ask = step.find("ask");
+	return ask != step.end() && ask->is_string();
+}
+
+/// @brief Whether an object is a step that shows a file dialog: `saveFile`, `openFile`, `export`, or an `image`
+/// step's "open" (not of an asset) or "save". Not an action named "saveFile" (an array), nor an adapter binding's
+/// "export" (no "pages").
+/// @param step The object.
+/// @return true if it is.
+bool showsFileDialog(const json& step) {
+	const auto names = [&step](const char* key) {
+		const auto found = step.find(key);
+		return found != step.end() && found->is_string();
+	};
+	if(names("saveFile") || names("openFile") || (names("export") && step.contains("pages"))) return true;
+	const json operation = step.value("image", json());
+	if(operation == "save") return true;
+	const auto with = step.find("with");
+	return operation == "open" && !(with != step.end() && with->is_object() && with->contains("asset"));
+}
+
+/// @brief Whether a step anywhere in a screen is one of a kind, outside its data: its state, strings, tokens and
+/// models.
 /// @param value The screen, or a part of it.
+/// @param is Whether an object is one.
 /// @param depth How deep this part is, so a deep document can't exhaust the stack.
 /// @return true if one is.
-bool asksAgents(const json& value, int depth = 0) {
+bool hasStep(const json& value, bool (*is)(const json&), int depth = 0) {
 	if(depth > 256) return false;
 	if(value.is_array())
-		return std::ranges::any_of(value, [depth](const json& item) { return asksAgents(item, depth + 1); });
+		return std::ranges::any_of(value, [is, depth](const json& item) { return hasStep(item, is, depth + 1); });
 	if(!value.is_object()) return false;
-	if(const auto ask = value.find("ask"); ask != value.end() && ask->is_string()) return true;
+	if(is(value)) return true;
 	for(const auto& [key, item] : value.items()) {
 		if(depth == 0 && (key == "state" || key == "strings" || key == "tokens" || key == "models")) continue;
-		if(asksAgents(item, depth + 1)) return true;
+		if(hasStep(item, is, depth + 1)) return true;
 	}
 	return false;
 }
@@ -258,6 +284,10 @@ std::string AppCapability::key() const {
 		return "audio";
 	case Kind::Assistant:
 		return "assistant";
+	case Kind::Files:
+		return "files";
+	case Kind::Windows:
+		return "windows";
 	}
 	return "";
 }
@@ -308,7 +338,10 @@ std::vector<AppCapability> usedCapabilities(const json& document) {
 				add({Kind::Program, program.get<std::string>(), "", false});
 		}
 	if(document.contains("audio")) add({Kind::Audio, "audio", "", false});
-	if(asksAgents(document)) add({Kind::Assistant, "assistant", "", false});
+	if(hasStep(document, isAsk)) add({Kind::Assistant, "assistant", "", false});
+	if(hasStep(document, showsFileDialog)) add({Kind::Files, "files", "", false});
+	if(const auto windows = document.find("windows"); windows != document.end() && !windows->empty())
+		add({Kind::Windows, "windows", "", false});
 	return used;
 }
 

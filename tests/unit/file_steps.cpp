@@ -117,6 +117,27 @@ TEST_CASE("file steps: saveFile writes the value where the person chooses; openF
 	CHECK(asked.size() == 3);
 }
 
+TEST_CASE("file steps: a host that doesn't allow file dialogs shows none, and each step runs onError") {
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(300, 200, clock);
+	affresco::Screen screen = affresco::Screen::fromString(fileScreen().dump());
+	screen.allowFileDialogs(false);
+	screen.build(*window);
+	int asked = 0;
+	window->setFileDialogHandler([&](const affresco::FileDialog&) {
+		++asked;
+		return std::vector<std::string>{};
+	});
+	for(const char* action : {"open", "pdf", "png"}) {
+		screen.runAction(action, window->root());
+		window->runDeferredTasks();
+		const json error = json::parse(screen.stateJson())["error"];
+		CHECK(error.is_string());
+		CHECK((error == "notAllowed" || error.get<std::string>().contains("\"files\" capability")));
+	}
+	CHECK(asked == 0);
+}
+
 TEST_CASE("file steps: openFile refuses what isn't JSON, nests too deeply or is too large, and says so") {
 	const affresco::test::TemporaryFolder folder;
 	const ManualClock clock;

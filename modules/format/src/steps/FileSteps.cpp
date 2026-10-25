@@ -143,7 +143,7 @@ bool openFile(const Running& s) {
 		}
 	}
 	Engine& engine = s.steps.engine();
-	if(!engine.window) return true; // a check or a preview: nothing to show
+	if(!engine.window || dialogRefused(s)) return true; // a check or a preview: nothing to show
 	// The dialog is modal: it waits for the event to end, so the steps around it run first
 	engine.scheduler.defer([&engine, alive = std::weak_ptr<bool>(engine.alive), title = std::move(title),
 	                        extensions = std::move(extensions), into, followers = followersOf(s)] {
@@ -177,6 +177,17 @@ Followers followersOf(const Running& s) {
 	return {std::move(outcome), std::move(succeeded), std::move(failed)};
 }
 
+bool dialogRefused(const Running& s) {
+	Engine& engine = s.steps.engine();
+	if(engine.fileDialogsAllowed) return false;
+	const std::string message = "the host doesn't let this screen show file dialogs (its app's \"files\" capability)";
+	engine.reportRefused("AffrescoUI screen: " + s.where + ": " + message);
+	const Followers followers = followersOf(s);
+	followers.outcome->vars = json{{"error", {{"code", "notAllowed"}, {"message", message}}}};
+	followers.failed();
+	return true;
+}
+
 std::string suggestedFileName(std::string_view text, std::string_view fallback) {
 	std::string name;
 	for(const char c : text) {
@@ -197,7 +208,7 @@ void saveAfterEvent(const Running& s, std::vector<std::uint8_t> bytes, std::stri
                     json result) {
 	std::string title = titleOf(s, "Save");
 	Engine& engine = s.steps.engine();
-	if(!engine.window) return; // a check or a preview: nothing to show
+	if(!engine.window || dialogRefused(s)) return; // a check or a preview: nothing to show
 	// The dialog is modal: it waits for the event to end, so the steps around it run first
 	engine.scheduler.defer([&engine, alive = std::weak_ptr<bool>(engine.alive), title = std::move(title),
 	                        bytes = std::move(bytes), name = std::move(name), filter = std::move(filter),
