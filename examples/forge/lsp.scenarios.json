@@ -688,6 +688,12 @@
 						"state": "docs[0].dirty",
 						"is": true
 					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].text",
+						"is": "// formatted\n#include <iostream>\n\nint main() {\n    std::cout << \"hello\\n\";\n    return 0;\n}\n"
+					}
 				}
 			]
 		},
@@ -793,6 +799,69 @@
 					"expect": {
 						"state": "lsp.symbols[1].depth",
 						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-rename-a-closed-file",
+			"note": "A rename's edits to a file that isn't open are written to it: opened afterwards, it has them",
+			"steps": [
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "rename",
+						"result": {
+							"changes": {
+								"file:///folder/README.md": [
+									{
+										"range": {
+											"start": {
+												"line": 0,
+												"character": 2
+											},
+											"end": {
+												"line": 0,
+												"character": 3
+											}
+										},
+										"newText": "One"
+									}
+								]
+							}
+						},
+						"root": "/folder",
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.edits.length",
+						"is": 1
+					}
+				},
+				{
+					"action": "lspApply"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].text",
+						"is": "# One small project\n\nThe folder Forge's scenarios open (examples/forge/forge.scenarios.json).\n"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": false
 					}
 				}
 			]

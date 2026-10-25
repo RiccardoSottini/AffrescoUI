@@ -1,13 +1,16 @@
 /// @file
-/// @brief Expression functions: texts and conversions (upper, trim, split, pad, plural, number, json, ...).
+/// @brief Expression functions: texts and conversions (upper, trim, split, pad, plural, number, json, applyEdits, ...).
 
 #include "ExpressionFunctions.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <cstdio>
 #include <exception>
+#include <optional>
+#include <vector>
 
 namespace affresco::format::detail {
 namespace {
@@ -128,6 +131,75 @@ Value split(const Call& call) {
 	return Value::fromList(std::move(parts));
 }
 
+/// @brief A place's number: a whole number from 0.
+/// @param edit An edit.
+/// @param key Its member.
+/// @return The number, or std::nullopt if it is missing or isn't one.
+std::optional<std::size_t> placeOf(const Value& edit, std::string_view key) {
+	const std::optional<Value> value = edit.member(key);
+	if(!value || !value->isNumber()) return std::nullopt;
+	const double n = value->number();
+	if(!(n >= 0.0) || n > 1e15 || n != std::floor(n)) return std::nullopt;
+	return static_cast<std::size_t>(n);
+}
+
+/// @brief The byte offset of a place (from 0, columns in characters) in a text.
+/// @param lineStarts Where each line starts.
+/// @param text The text.
+/// @param line The line.
+/// @param column The column.
+/// @return The offset, or std::nullopt past the line or the text.
+std::optional<std::size_t> offsetIn(const std::vector<std::size_t>& lineStarts, std::string_view text,
+                                    std::optional<std::size_t> line, std::optional<std::size_t> column) {
+	if(!line || !column || *line >= lineStarts.size()) return std::nullopt;
+	std::size_t at = lineStarts[*line];
+	const std::size_t end = *line + 1 < lineStarts.size() ? lineStarts[*line + 1] - 1 : text.size();
+	for(std::size_t step = 0; step < *column; ++step) {
+		if(at >= end) return std::nullopt;
+		at += std::min(utf8CharacterSize(static_cast<unsigned char>(text[at])), end - at);
+	}
+	return at;
+}
+
+/// @brief `applyEdits(text, edits)`: each edit `{ line, column, endLine, endColumn, text }` (from 0, columns in
+/// characters) replaces its range with its text; the ranges are those of the text given, so the edits may come in
+/// any order.
+/// @param call [text, edits].
+/// @return The text edited, or null if an edit isn't one, is past the text or overlaps another (none is applied).
+Value applyEdits(const Call& call) {
+	const std::string text = call[0].toText();
+	const Value& edits = call[1];
+	if(!edits.isList()) return {};
+	std::vector<std::size_t> lineStarts{0};
+	for(std::size_t i = 0; i < text.size(); ++i)
+		if(text[i] == '\n') lineStarts.push_back(i + 1);
+	struct Range {
+		std::size_t from, to, index;
+	};
+	std::vector<Range> ranges;
+	for(std::size_t i = 0; i < edits.size(); ++i) {
+		const Value edit = edits.item(i);
+		if(!edit.isObject()) return {};
+		const auto from = offsetIn(lineStarts, text, placeOf(edit, "line"), placeOf(edit, "column"));
+		const auto to = offsetIn(lineStarts, text, placeOf(edit, "endLine"), placeOf(edit, "endColumn"));
+		if(!from || !to || *to < *from) return {};
+		ranges.push_back({*from, *to, i});
+	}
+	std::ranges::stable_sort(ranges, {}, &Range::from);
+	for(std::size_t i = 1; i < ranges.size(); ++i)
+		if(ranges[i].from < ranges[i - 1].to) return {};
+	std::string out;
+	std::size_t at = 0;
+	for(const Range& range : ranges) {
+		call.appendText(out, std::string_view(text).substr(at, range.from - at));
+		const std::optional<Value> inserted = edits.item(range.index).member("text");
+		if(inserted && !inserted->isNull()) call.appendText(out, inserted->toText());
+		at = range.to;
+	}
+	call.appendText(out, std::string_view(text).substr(at));
+	return Value::fromText(std::move(out));
+}
+
 /// The table.
 constexpr auto table = std::to_array<Function>({
     {.name = "upper",
@@ -186,6 +258,13 @@ constexpr auto table = std::to_array<Function>({
 	 .takes = Takes::One,
 	 .apply = parseJson},
     {.name = "json", .arguments = "value", .about = "The value as JSON text", .takes = Takes::One, .apply = toJsonText},
+    {.name = "applyEdits",
+	 .arguments = "text, edits",
+	 .about = "The text with each edit { line, column, endLine, endColumn, text } (from 0, columns in characters) "
+	          "made, or null if one is past the text or two overlap",
+	 .fewest = 2,
+	 .most = 2,
+	 .apply = applyEdits},
 });
 
 } // namespace

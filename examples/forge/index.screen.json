@@ -24,7 +24,7 @@
 	            "features/scm/scm.json", "features/agent/agent.json", "features/lsp/lsp.json",
 	            "features/debug/debug.json", "features/debug/debugViews.json",
 	            "features/editing/editing.json", "features/workbench/workbench.json",
-	            "../shared/addons/assistant/assistant.json"],
+	            "../shared/languages/languages.json", "../shared/addons/assistant/assistant.json"],
 
 	"tokens": {
 		"assistant.accent": "@color.accent", "assistant.accentHover": "@color.selection", "assistant.onAccent": "#ffffff",

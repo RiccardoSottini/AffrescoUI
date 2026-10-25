@@ -80,7 +80,7 @@
 			  "then": [{ "set": "state.lsp.hover.open", "to": false }],
 			  "else": [
 				{ "set": "state.lsp.at", "to": "{{ {x: event.x, y: event.y, top: event.top} }}" },
-				{ "run": "lspAsk", "with": { "kind": "hover", "line": "{{event.line}}", "column": "{{event.column}}", "newName": null, "query": null } },
+				{ "run": "lspAsk", "with": { "kind": "hover", "line": "{{event.line + 1}}", "column": "{{event.column + 1}}", "newName": null, "query": null } },
 				{ "set": "state.lsp.hover.request", "to": "{{state.lsp.request}}" }
 			  ] }
 		],
@@ -90,7 +90,7 @@
 			{ "set": "state.lsp.completion.word", "to": "{{event.word}}" },
 			{ "set": "state.lsp.completion.index", "to": 0 },
 			{ "if": "{{event.text == '(' || event.text == ','}}",
-			  "then": [{ "run": "lspAsk", "with": { "kind": "signature", "line": "{{event.line}}", "column": "{{event.column}}", "newName": null, "query": null } }] },
+			  "then": [{ "run": "lspAsk", "with": { "kind": "signature", "line": "{{event.line + 1}}", "column": "{{event.column + 1}}", "newName": null, "query": null } }] },
 			{ "if": "{{event.text == ')'}}", "then": [{ "set": "state.lsp.signature.open", "to": false }] },
 			{ "if": "{{empty(event.word) && event.text != '.'}}",
 			  "then": [{ "set": "state.lsp.completion.open", "to": false }],
@@ -190,10 +190,29 @@
 			{ "set": "state.lsp.peek.open", "to": false }
 		],
 		"lspApply": [
-			{ "call": "forge.lsp.apply", "with": { "edits": "{{state.lsp.review.edits}}" },
-			  "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied: ' + error}}" } }],
-			  "then": [{ "run": "log", "with": { "text": "{{'Applied ' + plural(result.edits, 'edit') + ' in ' + plural(result.files, 'file')}}" } }] },
+			{ "note": "An open file changes in its editor (one undo step, left unsaved); any other is read, changed and written. The rows count from 1, applyEdits from 0" },
+			{ "forEach": "{{keys(fromEntries(map(state.lsp.review.edits, {key: it.id, value: true})))}}", "as": "file", "do": [
+				{ "run": "lspApplyTo", "with": { "file": "{{file}}",
+				  "edits": "{{map(filter(state.lsp.review.edits, it.id == file), {line: it.line - 1, column: it.column - 1, endLine: it.endLine - 1, endColumn: it.endColumn - 1, text: it.text})}}" } }
+			] },
+			{ "run": "log", "with": { "text": "{{'Applied ' + plural(length(state.lsp.review.edits), 'edit') + ' in ' + plural(state.lsp.review.files, 'file')}}" } },
 			{ "set": "state.lsp.review.open", "to": false }
+		],
+		"lspApplyTo": [
+			{ "if": "{{some(state.docs, it.id == file && it.kind == 'file')}}",
+			  "then": [{ "forEach": "{{filter(state.docs, it.id == file && it.kind == 'file')}}", "as": "doc", "do": [
+				{ "if": "{{applyEdits(doc.text, edits) == null}}",
+				  "then": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied to ' + file + ': an edit is past its text, or two overlap'}}" } }],
+				  "else": [{ "set": "state.docs", "to": "{{map(state.docs, it.id == file ? merge(it, {text: applyEdits(it.text, edits), dirty: applyEdits(it.text, edits) != it.saved}) : it)}}" }] }
+			  ] }],
+			  "else": [{ "invoke": "files.read", "with": { "path": "{{file}}" },
+				"onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied to ' + file + ': ' + error.message}}" } }],
+				"onDone": [
+					{ "if": "{{applyEdits(result.text, edits) == null}}",
+					  "then": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied to ' + file + ': an edit is past its text, or two overlap'}}" } }],
+					  "else": [{ "invoke": "files.write", "with": { "path": "{{file}}", "text": "{{applyEdits(result.text, edits)}}" },
+						"onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Not applied to ' + file + ': ' + error.message}}" } }] }] }
+				] }] }
 		],
 		"lspRenameSend": [
 			{ "set": "state.lsp.rename.open", "to": false },

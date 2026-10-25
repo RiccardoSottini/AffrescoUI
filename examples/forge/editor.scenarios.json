@@ -520,6 +520,66 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "forge-editor-line-commands",
+			"note": "The editor's line commands: Cmd+/ comments the line in the file's language, Alt+Down moves it, Cmd+Shift+K deletes it; undoing them all leaves the file clean",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"exists": true
+					}
+				},
+				{
+					"click": "#editor"
+				},
+				{
+					"key": "mod+home"
+				},
+				{
+					"key": "mod+slash"
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				},
+				{
+					"key": "alt+down"
+				},
+				{
+					"key": "mod+shift+k"
+				},
+				{
+					"expect": {
+						"state": "docs[0].text",
+						"is": "\nint main() {\n    std::cout << \"hello\\n\";\n    return 0;\n}\n"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": false
+					}
+				}
+			]
 		}
 	]
 }

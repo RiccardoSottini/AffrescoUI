@@ -14,7 +14,7 @@
 		"focusRing": false
 	},
 
-	"include": ["../shared/addons/assistant/assistant.json"],
+	"include": ["../shared/languages/languages.json", "../shared/addons/assistant/assistant.json"],
 
 	"fonts": {
 		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons", "code"] },
@@ -817,13 +817,14 @@
 									{
 										"id": "editor",
 										"repeat": { "for": "open", "in": "{{computed.file ? [state.active] : []}}", "key": "{{open}}" },
-										"type": "code",
-										"note": "An application type (examples/shared/CodeEditor.cpp, registered by the host): an \"editor\" whose \"language\" gives the commands; \"grammar\" colours it with the @syntax tokens",
+										"type": "editor",
+										"note": "The library editor: its \"language\" (examples/shared/languages) gives the commands, pairs and indentation; \"grammar\" colours it with the theme's @syntax tokens",
 										"font": "code",
 										"lineNumbers": true,
 										"language": "{{state.files[open].language}}",
 										"grammar": "{{state.files[open].name}}",
-										"syntax": { "keyword": "@syntax.keyword", "type": "@syntax.type", "string": "@syntax.string", "number": "@syntax.number", "comment": "@syntax.comment", "heading": "@syntax.text.title", "function": "@syntax.function" },
+										"commands": { "alt+up": "moveLinesUp", "alt+down": "moveLinesDown", "mod+shift+k": "deleteLines",
+										              "mod+[": "outdentLines", "mod+]": "indentLines", "mod+c": "copyLine", "mod+x": "cutLine" },
 										"minimap": true,
 										"minimapStyle": "text",
 										"minimapViewport": "hover",

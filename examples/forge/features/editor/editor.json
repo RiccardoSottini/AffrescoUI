@@ -55,7 +55,7 @@
 						"onDone": [
 							{
 								"push": "state.docs",
-								"value": "{{ {id: path, label: label, kind: 'file', text: result.text, saved: result.text, dirty: false, language: label == 'CMakeLists.txt' ? 'CMake' : state.languages[lower(reverse(split(label, '.'))[0])] ?? ''} }}"
+								"value": "{{ {id: path, label: label, kind: 'file', text: join(split(join(split(result.text, '\r'), ''), '\\t'), '    '), saved: join(split(join(split(result.text, '\r'), ''), '\\t'), '    '), dirty: false, language: label == 'CMakeLists.txt' ? 'CMake' : state.languages[lower(reverse(split(label, '.'))[0])] ?? ''} }}"
 							},
 							{
 								"run": "showFileTab",
@@ -366,11 +366,11 @@
 		],
 		"reloaded": [
 			{
-				"note": "id: an open file; text: what it now holds on disk"
+				"note": "id: an open file; text: what it now holds on disk. Kept as the editor shows it (tabs as four spaces, no carriage returns), so undoing back to it is clean"
 			},
 			{
 				"set": "state.docs",
-				"to": "{{map(state.docs, it.id == id ? merge(it, {text: text, saved: text, dirty: false}) : it)}}"
+				"to": "{{map(state.docs, it.id == id ? merge(it, {text: join(split(join(split(text, '\r'), ''), '\\t'), '    '), saved: join(split(join(split(text, '\r'), ''), '\\t'), '    '), dirty: false}) : it)}}"
 			}
 		]
 	},
@@ -505,15 +505,16 @@
 									{
 										"when": "{{state.docs[d].kind == 'file'}}",
 										"id": "editor",
-										"type": "code",
+										"type": "editor",
 										"font": "code",
 										"width": "100%",
 										"grow": 1,
 										"bind": "state.docs[d].text",
 										"onChange": { "run": "textChanged", "with": { "id": "{{state.docs[d].id}}" } },
 										"language": "{{state.docs[d].language}}",
+										"grammar": "{{state.docs[d].label}}",
 										"lineNumbers": "{{settings.editor.lineNumbers}}",
-										"goTo": "{{gi == state.activeGroup ? {line: state.goTo.line, column: state.goTo.column ?? 1, request: state.goTo.request} : null}}",
+										"goTo": "{{gi == state.activeGroup && state.goTo.request > 0 ? {line: max(state.goTo.line - 1, 0), column: max((state.goTo.column ?? 1) - 1, 0), request: state.goTo.request} : null}}",
 										"caret": "state.caret",
 										"wrap": "{{settings.editor.wordWrap}}",
 										"minimap": "{{settings.editor.minimap.enabled}}",
@@ -522,11 +523,11 @@
 										"find": "{{gi == state.activeGroup ? computed.findQuery : null}}",
 										"decorations": "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark))}}",
 										"tokens": "{{(find(state.lsp.files, it.id == state.docs[d].id) ?? {}).tokens ?? []}}",
-										"onHover": "lspHoverAt",
+										"onTextHover": "lspHoverAt",
 										"onType": "lspTyped",
 										"popup": "{{gi == state.activeGroup && state.lsp.completion.open}}",
 										"onPopupKey": "lspPopupKey",
-										"insert": "{{gi == state.activeGroup ? state.lsp.insert : null}}",
+										"insert": "{{gi == state.activeGroup && state.lsp.insert.request > 0 ? state.lsp.insert : null}}",
 										"color": "@color.editor",
 										"textColor": "@color.editorText",
 										"lineNumberColor": "@color.muted",
@@ -556,13 +557,15 @@
 											"f11": "debugStepInto",
 											"shift+f11": "debugStepOut"
 										},
-										"syntax": {
-											"keyword": "@syntax.keyword",
-											"type": "@syntax.type",
-											"string": "@syntax.string",
-											"number": "@syntax.number",
-											"comment": "@syntax.comment",
-											"heading": "@syntax.heading"
+										"commands": {
+											"mod+/": "toggleComment",
+											"alt+up": "moveLinesUp",
+											"alt+down": "moveLinesDown",
+											"mod+shift+k": "deleteLines",
+											"mod+[": "outdentLines",
+											"mod+]": "indentLines",
+											"mod+c": "copyLine",
+											"mod+x": "cutLine"
 										}
 									},
 									{
