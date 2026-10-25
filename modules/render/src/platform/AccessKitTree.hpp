@@ -8,6 +8,9 @@
 #include "affresco/render/Accessibility.hpp"
 
 #ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX // windows.h's min and max macros would break std::min and std::max in every file including this one
+#endif
 #include <windows.h> // accesskit.h names HWND, WPARAM and LPARAM
 #endif
 #include <accesskit.h>
