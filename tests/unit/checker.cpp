@@ -270,7 +270,7 @@ TEST_CASE("checker: paths nested past the expression limit are findings, not a c
 TEST_CASE("checker: variables in scope") {
 	checkAll({
 	    {"an unknown variable",
-		 R"("root": {"text": "{{stat.x}} {{nodes.side.width}} {{event.x}} {{window.width}}"})",
+		 R"("root": {"text": "{{stat.x}} {{nodes.side.width}} {{event.x}} {{window.width}} {{windows.main.fullscreen}}"})",
 		 {"root.text: unknown variable 'stat' (did you mean 'state'?)"}},
 	    {"repeat, with its index; let and with in order",
 		 R"("state": {"cards": [{"title": "a"}]},
