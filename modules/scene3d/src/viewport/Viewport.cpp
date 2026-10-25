@@ -158,6 +158,7 @@ ViewportSettings viewportSettingsFromJson(const json& params) noexcept {
 	settings.grid = flagOr(params, "grid", true);
 	settings.axes = flagOr(params, "axes", true);
 	settings.glyphs = flagOr(params, "glyphs", false);
+	settings.extras = flagOr(params, "extras", true);
 	const auto member = [&params](const char* key) { return params.contains(key) ? params[key] : json(); };
 	settings.background = colorFromJson(member("background"), settings.background);
 	settings.gridColor = colorFromJson(member("gridColor"), settings.gridColor);

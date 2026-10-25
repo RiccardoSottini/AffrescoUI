@@ -733,6 +733,7 @@ to load is left out and named in the log.
 | `grid` | A ground grid (default true). |
 | `axes` | The X (red) and Z (blue) axes on the floor (default true); with `"up": "z"`, X and Y (green). |
 | `glyphs` | Lights and cameras drawn as a modeller draws them (default false: a small cross): a camera's frustum with its up triangle, a light's circle with a line down to the floor (a sun's rays, a spot's cone); the selected ones in `outlineColor`. |
+| `extras` | Lights and cameras drawn at all, as crosses or `glyphs` (default true); false leaves them out, as a rendered image does, while the lights still light. |
 | `up` | Which way is up in the scene's frame: `"y"` (the default, as glTF) or `"z"` (as CAD and modelling tools): then the nodes' transforms, the world gizmo's axes, the picked `point`, the `cursor3d` and the pivot are Z up, and the floor is the XY plane. |
 | `cursor3d` | A 3D cursor drawn at `[x, y, z]` (none without it): a ring of red and white dashes facing the eye; e.g. set from a pick's `point`, and used as the gizmo's `pivot` or where new nodes go. |
 | `background` | Behind the scene (default the theme's). |

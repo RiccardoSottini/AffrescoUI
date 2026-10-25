@@ -58,6 +58,10 @@ constexpr auto sceneTable = std::to_array<KeyReference>({
 	 "triangle, a light's circle with a line down to the floor (a sun's rays, a spot's cone); the selected ones in "
 	 "`outlineColor`.",
 	 "scene"},
+    {"extras", "flag",
+	 "Lights and cameras drawn at all, as crosses or `glyphs` (default true); false leaves them out, as a rendered "
+	 "image does, while the lights still light.",
+	 "scene"},
     {"up", R"json({"anyOf": [{"enum": ["y", "z"]}, {"$ref": "#/$defs/v2/dynamic"}]})json",
 	 "Which way is up in the scene's frame: `\"y\"` (the default, as glTF) or `\"z\"` (as CAD and modelling tools): "
 	 "then the nodes' transforms, the world gizmo's axes, the picked `point`, the `cursor3d` and the pivot are Z up, "

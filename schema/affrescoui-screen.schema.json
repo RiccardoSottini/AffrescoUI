@@ -3791,6 +3791,9 @@
 					"glyphs": {
 						"$ref": "#/$defs/v2/flag"
 					},
+					"extras": {
+						"$ref": "#/$defs/v2/flag"
+					},
 					"up": {
 						"anyOf": [
 							{
@@ -4697,6 +4700,7 @@
 						"$curve",
 						"$gradientColor",
 						"$hexColor",
+						"$colorList",
 						"$keyframeValue",
 						"$t",
 						"$formatNumber",
