@@ -368,6 +368,79 @@
 			]
 		},
 		{
+			"name": "shuffle-repeat-and-mute",
+			"note": "Cmd+S shuffles the songs up next and puts them back in order; Cmd+R repeats all, then this song, then nothing; the volume icon mutes",
+			"steps": [
+				{ "key": "mod+s" },
+				{ "expect": { "state": "shuffle", "is": true } },
+				{ "expect": { "state": "queue.length", "is": 6 } },
+				{ "expect": { "node": "#shuffleButton", "property": "tooltip", "is": "Shuffle (Cmd+S)" } },
+				{ "key": "mod+s" },
+				{ "expect": { "state": "queue", "is": [3, 4, 5, 6, 7, 8] } },
+				{ "key": "mod+r" },
+				{ "expect": { "state": "repeat", "is": "all" } },
+				{ "key": "mod+r" },
+				{ "expect": { "node": "#repeatButton", "property": "tooltip", "is": "Repeat: this song (Cmd+R)" } },
+				{ "key": "mod+r" },
+				{ "expect": { "state": "repeat", "is": "off" } },
+				{ "click": "#muteButton" },
+				{ "expect": { "state": "muted", "is": true } },
+				{ "expect": { "state": "volume", "is": 70 } },
+				{ "key": "mod+alt+down" },
+				{ "expect": { "state": "muted", "is": false } }
+			]
+		},
+		{
+			"name": "repeat-at-the-end-of-a-song",
+			"note": "At the end of a song, repeating this song plays it again; repeating all, after the last song the first starts again; else playback stops",
+			"steps": [
+				{ "revision": { "type": "revision", "message": "The end of the song, repeating it", "set": { "/state/elapsed": 197, "/state/repeat": "one" } } },
+				{ "wait": 1000 },
+				{ "expect": { "state": "elapsed", "is": 0 } },
+				{ "expect": { "state": "playingTrack", "is": 2 } },
+				{ "revision": { "type": "revision", "message": "The last song ending, repeating all", "set": { "/state/elapsed": 197, "/state/repeat": "all", "/state/queue": [] } } },
+				{ "wait": 1000 },
+				{ "expect": { "state": "playingTrack", "is": 2 } },
+				{ "expect": { "state": "queue", "is": [3, 4, 5, 6, 7, 8] } },
+				{ "expect": { "state": "isPlaying", "is": true } },
+				{ "revision": { "type": "revision", "message": "The last song ending", "set": { "/state/elapsed": 197, "/state/repeat": "off", "/state/queue": [] } } },
+				{ "wait": 1000 },
+				{ "expect": { "state": "isPlaying", "is": false } }
+			]
+		},
+		{
+			"name": "back-and-forward",
+			"note": "Cmd+[ goes back through the pages shown, Cmd+] forward again; showing a page clears the way forward",
+			"steps": [
+				{ "expect": { "state": "backStack.length", "is": 0 } },
+				{ "key": "mod+l" },
+				{ "key": "mod+2" },
+				{ "expect": { "state": "backStack.length", "is": 2 } },
+				{ "key": "mod+leftbracket" },
+				{ "expect": { "state": "page", "is": "library" } },
+				{ "click": "#backButton" },
+				{ "expect": { "state": "page", "is": "playlist" } },
+				{ "expect": { "state": "forwardStack.length", "is": 2 } },
+				{ "key": "mod+rightbracket" },
+				{ "expect": { "state": "page", "is": "library" } },
+				{ "key": "mod+3" },
+				{ "expect": { "state": "page", "is": "artists" } },
+				{ "expect": { "state": "forwardStack.length", "is": 0 } },
+				{ "expect": { "state": "backStack.length", "is": 2 } }
+			]
+		},
+		{
+			"name": "a-lyric-line-seeks",
+			"note": "Clicking a line of the lyrics goes to where it starts in the song",
+			"steps": [
+				{ "key": "mod+5" },
+				{ "click": "#lyric", "nth": 4 },
+				{ "expect": { "state": "elapsed", "is": 108 } },
+				{ "click": "#lyric", "nth": 0 },
+				{ "expect": { "state": "elapsed", "is": 84 } }
+			]
+		},
+		{
 			"name": "palette-runs-a-command",
 			"note": "The command palette finds the equaliser by name",
 			"steps": [

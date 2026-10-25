@@ -12,7 +12,7 @@ difference the note says. `missing`: not yet.
 | Light and dark themes | done | Cmd+T |
 | Languages | done | English, Spanish and French (Cmd+Shift+L) |
 | Small windows and full screen | done | From 1040 × 640 |
-| Back and forward through the pages | missing | |
+| Back and forward through the pages | done | The arrows by the name, Cmd+[ and Cmd+]: pages, playlists, albums and artists |
 
 ## The library
 
@@ -32,15 +32,15 @@ difference the note says. `missing`: not yet.
 |---|---|---|
 | Play, pause, previous, next, seek, volume | done | Space and the arrows too |
 | The sound of what plays | done | A beat for the simulated songs; a song may name a sound of its own (an attached file) |
-| Shuffle | missing | |
-| Repeat: off, all, one | missing | |
+| Shuffle | done | Cmd+S: the songs up next shuffled, and back in order |
+| Repeat: off, all, one | done | Cmd+R |
 | A queue to see and reorder | done | By dragging, or Alt and the arrows |
 | Crossfade into the next song | partial | Visual only: the sound doesn't fade |
 | Equaliser with presets | partial | On a curves control; visual only, the sound isn't filtered |
 | Now playing: the cover, a visualiser and the lyrics | done | The visualiser is the spectrum of what plays (the sound's `bands`) |
-| Lyrics that follow the time; click a line to go there | partial | They follow the time; a click doesn't seek |
+| Lyrics that follow the time; click a line to go there | done | |
 | Mini player | done | Cmd+M, inside the window |
-| Mute | missing | |
+| Mute | done | The volume icon, Cmd+Alt+↓; the volume is kept |
 
 ## Everywhere
 
@@ -53,3 +53,4 @@ difference the note says. `missing`: not yet.
 | Round | Done | Partial | Missing |
 |---|---|---|---|
 | 1 (a folder of files) | 17 | 3 | 6 |
+| 2 | 22 | 2 | 2 |

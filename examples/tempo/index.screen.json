@@ -2,13 +2,13 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser of the spectrum of what plays and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound. A song may have a sound of its own: its \"sound\" (a track's in state.playlists[i].tracks[j], a library row's in state.library[i]) names a sound of the audio section, e.g. { \"file\": \"asset:song.mp3\", \"into\": \"state.sounds.own\" } for an asset the person attached, and playing that song plays it instead of the beat. The equaliser and the crossfade are visual only: they don't change the sound.",
+	"note": "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser of the spectrum of what plays and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language; Cmd+S shuffles, Cmd+R repeats all or one song, Cmd+Alt+Down mutes, Cmd+[ and Cmd+] go back and forward through the pages, and a click on a line of the lyrics goes there. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound. A song may have a sound of its own: its \"sound\" (a track's in state.playlists[i].tracks[j], a library row's in state.library[i]) names a sound of the audio section, e.g. { \"file\": \"asset:song.mp3\", \"into\": \"state.sounds.own\" } for an asset the person attached, and playing that song plays it instead of the beat. The equaliser and the crossfade are visual only: they don't change the sound.",
 
 	"include": ["strings.json", "pages.json", "../shared/addons/assistant/assistant.json"],
 
 	"window": { "title": "Tempo: an AffrescoUI template", "width": 1280, "height": 800, "minWidth": 1040, "minHeight": 640 },
 
-	"persist": ["state.theme", "state.settings", "state.eq", "state.eqOn", "state.volume"],
+	"persist": ["state.theme", "state.settings", "state.eq", "state.eqOn", "state.volume", "state.shuffle", "state.repeat"],
 
 	"audio": {
 		"beat": { "file": "audio/beatbox.wav", "loop": true, "volume": 0.7, "into": "state.beat", "bands": 32, "updates": 50,
@@ -93,6 +93,15 @@
 		"soundOn": "",
 		"elapsed": 84,
 		"volume": 70,
+		"muted": false,
+		"shuffle": false,
+		"shuffleSeed": 0,
+		"repeat": "off",
+		"order": [2, 3, 4, 5, 6, 7, 8],
+		"where": { "page": "playlist", "current": 0, "collection": null },
+		"backStack": [],
+		"forwardStack": [],
+		"navigating": false,
 		"queueOpen": true,
 		"queue": [3, 4, 5, 6, 7, 8],
 		"queuePick": null,
@@ -134,6 +143,14 @@
 		"soundOn": {"type": "string"},
 		"elapsed": {"type": "number"},
 		"volume": {"type": "number", "minimum": 0, "maximum": 100},
+		"muted": {"type": "boolean"},
+		"shuffle": {"type": "boolean"},
+		"shuffleSeed": {"type": "number"},
+		"repeat": {"type": "string", "enum": ["off", "all", "one"]},
+		"order": {"type": "array", "items": {"type": "number"}},
+		"backStack": {"type": "array", "maxItems": 50},
+		"forwardStack": {"type": "array", "maxItems": 50},
+		"navigating": {"type": "boolean"},
 		"queueOpen": {"type": "boolean"},
 		"queue": {"type": "array", "items": {"type": "number"}},
 		"queuePick": {"type": ["string", "null"]},
@@ -378,6 +395,7 @@
 		"playing": "{{state.playingList < 0 ? state.libraryInfo : data.playlists[state.playingList]}}",
 		"track": "{{state.playingList < 0 ? { title: computed.library[state.playingTrack].cells[1], artist: computed.library[state.playingTrack].cells[2], album: computed.library[state.playingTrack].cells[3], time: computed.library[state.playingTrack].cells[4], sound: computed.library[state.playingTrack].sound } : computed.playing.tracks[state.playingTrack]}}",
 		"sound": "{{computed.track.sound ?? 'beat'}}",
+		"loudness": "{{state.muted ? 0 : state.volume / 100}}",
 		"playingName": "{{state.playingList >= 0 ? computed.playing.name : state.source != '' ? state.source : t('library.all')}}",
 		"duration": "{{number(split(computed.track.time, ':')[0]) * 60 + number(split(computed.track.time, ':')[1])}}",
 		"elapsedText": "{{floor(state.elapsed / 60)}}:{{pad(floor(state.elapsed % 60), 2)}}",
@@ -451,7 +469,8 @@
 			{ "set": "state.playingList", "to": "{{list}}" },
 			{ "set": "state.playingTrack", "to": "{{track}}" },
 			{ "set": "state.source", "to": "{{source}}" },
-			{ "set": "state.queue", "to": "{{rest}}" },
+			{ "set": "state.order", "to": "{{concat([track], rest)}}" },
+			{ "set": "state.queue", "to": "{{state.shuffle ? sort(rest, (it * 7919 + state.shuffleSeed) % 1009) : rest}}" },
 			{ "set": "state.queuePick", "to": null },
 			{ "set": "state.elapsed", "to": 0 },
 			{ "set": "state.isPlaying", "to": true }
@@ -469,7 +488,9 @@
 			}
 		],
 		"advance": [
-			{ "note": "with: at, where the next song starts. The queue's first song plays; with an empty queue, playback stops" },
+			{ "note": "with: at, where the next song starts. The queue's first song plays; with an empty queue, the songs start again when repeating all, else playback stops" },
+			{ "if": "{{length(state.queue) == 0 && state.repeat == 'all' && length(state.order) > 0}}",
+			  "then": [{ "set": "state.queue", "to": "{{state.shuffle ? sort(state.order, (it * 7919 + state.shuffleSeed) % 1009) : state.order}}" }] },
 			{ "if": "{{length(state.queue) == 0}}", "then": [{ "set": "state.isPlaying", "to": false }, { "set": "state.elapsed", "to": 0 }, { "stop": true }] },
 			{ "set": "state.playingTrack", "to": "{{state.queue[0]}}" },
 			{ "set": "state.queue", "to": "{{slice(state.queue, 1)}}" },
@@ -485,7 +506,35 @@
 			{ "note": "Each second while playing; at the end of a song the next starts, past the crossfade's seconds that overlapped" },
 			{ "if": "{{!state.isPlaying}}", "then": [{ "stop": true }] },
 			{ "increment": "state.elapsed" },
+			{ "if": "{{state.elapsed >= computed.duration && state.repeat == 'one'}}", "then": [{ "run": "replay" }, { "stop": true }] },
 			{ "if": "{{state.elapsed >= computed.duration}}", "then": [{ "run": "advance", "with": { "at": "{{settings.playback.crossfade}}" } }] }
+		],
+		"replay": [
+			{ "note": "The song playing, again from the start (repeating one)" },
+			{ "set": "state.elapsed", "to": 0 },
+			{ "if": "{{state.soundOn != ''}}", "then": [{ "audio": "seek", "of": "{{state.soundOn}}", "to": 0, "onError": [] }] }
+		],
+		"seekLyric": [
+			{ "note": "with: offset, the lines from the current one (-2 to 2): the song goes to where that line starts" },
+			{ "set": "state.elapsed", "to": "{{clamp((floor(state.elapsed / 12) + offset) * 12, 0, max(computed.duration - 1, 0))}}" }
+		],
+		"placeChanged": [
+			{ "note": "The page, the playlist or the album shown changed: the place before goes on the back stack, unless going back or forward moved there" },
+			{ "if": "{{state.where.page == state.page && state.where.current == state.current && json(state.where.collection) == json(state.collection)}}",
+			  "then": [{ "stop": true }] },
+			{ "if": "{{!state.navigating}}", "then": [
+				{ "set": "state.backStack", "to": "{{slice(concat(state.backStack, [state.where]), max(length(state.backStack) - 49, 0))}}" },
+				{ "set": "state.forwardStack", "to": [] }
+			] },
+			{ "set": "state.navigating", "to": false },
+			{ "set": "state.where", "to": "{{merge({ page: state.page }, { current: state.current, collection: state.collection })}}" }
+		],
+		"goTo": [
+			{ "note": "with: place, from the back or forward stack" },
+			{ "set": "state.navigating", "to": true },
+			{ "set": "state.collection", "to": "{{place.collection}}" },
+			{ "set": "state.current", "to": "{{place.current}}" },
+			{ "set": "state.page", "to": "{{place.page}}" }
 		],
 		"jumpTo": [
 			{ "note": "A song of the queue opened: it plays, and the songs before it leave the queue" },
@@ -547,7 +596,7 @@
 			{ "if": "{{state.soundOn != '' && state.soundOn != computed.sound}}",
 			  "then": [{ "audio": "stop", "of": "{{state.soundOn}}", "onError": [] }] },
 			{ "set": "state.soundOn", "to": "{{computed.sound}}" },
-			{ "audio": "volume", "of": "{{computed.sound}}", "to": "{{state.volume / 100}}", "onError": [] },
+			{ "audio": "volume", "of": "{{computed.sound}}", "to": "{{computed.loudness}}", "onError": [] },
 			{ "audio": "play", "of": "{{computed.sound}}", "onError": [{ "set": "state.soundOn", "to": "" }] }
 		],
 		"songChanged": [
@@ -575,6 +624,28 @@
 		"showNowPlaying": { "title": "Show now playing", "category": "View", "icon": "radio", "do": [{ "set": "state.page", "to": "nowPlaying" }] },
 		"showSound": { "title": "Show the equaliser and crossfade", "category": "View", "icon": "sliders-horizontal", "do": [{ "set": "state.page", "to": "sound" }] },
 		"toggleQueue": { "title": "Show or hide the queue", "category": "View", "icon": "list-ordered", "do": [{ "toggle": "state.queueOpen" }] },
+		"toggleShuffle": { "title": "Shuffle", "category": "Playback", "icon": "shuffle", "do": [
+			{ "toggle": "state.shuffle" },
+			{ "set": "state.shuffleSeed", "to": "{{now() % 1009}}" },
+			{ "note": "The songs up next, shuffled, or back in their order" },
+			{ "set": "state.queue", "to": "{{state.shuffle ? sort(state.queue, (it * 7919 + state.shuffleSeed) % 1009) : sort(state.queue)}}" },
+			{ "set": "state.queuePick", "to": null }
+		] },
+		"cycleRepeat": { "title": "Repeat: off, all, this song", "category": "Playback", "icon": "repeat",
+			"do": [{ "set": "state.repeat", "to": "{{state.repeat == 'off' ? 'all' : state.repeat == 'all' ? 'one' : 'off'}}" }] },
+		"toggleMute": { "title": "Mute", "category": "Playback", "icon": "volume-x", "do": [{ "toggle": "state.muted" }] },
+		"goBack": { "title": "Go back", "category": "View", "icon": "chevron-left", "enablement": "{{length(state.backStack) > 0}}", "do": [
+			{ "if": "{{length(state.backStack) == 0}}", "then": [{ "stop": true }] },
+			{ "set": "state.forwardStack", "to": "{{concat([state.where], slice(state.forwardStack, 0, 49))}}" },
+			{ "run": "goTo", "with": { "place": "{{state.backStack[length(state.backStack) - 1]}}" } },
+			{ "set": "state.backStack", "to": "{{slice(state.backStack, 0, length(state.backStack) - 1)}}" }
+		] },
+		"goForward": { "title": "Go forward", "category": "View", "icon": "chevron-right", "enablement": "{{length(state.forwardStack) > 0}}", "do": [
+			{ "if": "{{length(state.forwardStack) == 0}}", "then": [{ "stop": true }] },
+			{ "set": "state.backStack", "to": "{{slice(concat(state.backStack, [state.where]), max(length(state.backStack) - 49, 0))}}" },
+			{ "run": "goTo", "with": { "place": "{{state.forwardStack[0]}}" } },
+			{ "set": "state.forwardStack", "to": "{{slice(state.forwardStack, 1)}}" }
+		] },
 		"toggleMini": { "title": "Switch the mini player", "category": "View", "icon": "minimize-2", "do": [{ "toggle": "state.mini" }] },
 		"toggleTheme": { "title": "Switch light and dark", "category": "View", "icon": "moon",
 			"do": [{ "set": "state.theme", "to": "{{state.theme == 'dark' ? 'light' : 'dark'}}" }] },
@@ -601,7 +672,12 @@
 		"mod+u": "toggleQueue",
 		"mod+m": "toggleMini",
 		"mod+t": "toggleTheme",
-		"mod+shift+l": "switchLanguage"
+		"mod+shift+l": "switchLanguage",
+		"mod+s": "toggleShuffle",
+		"mod+r": "cycleRepeat",
+		"mod+alt+down": "toggleMute",
+		"mod+leftbracket": "goBack",
+		"mod+rightbracket": "goForward"
 	},
 
 	"watch": {
@@ -611,7 +687,12 @@
 		"state.playingTrack": [{ "run": "songChanged" }],
 		"state.playingList": [{ "run": "songChanged" }],
 		"state.volume": [{ "if": "{{state.soundOn != ''}}",
-			"then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": "{{state.volume / 100}}", "ms": 80, "onError": [] }] }]
+			"then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": "{{computed.loudness}}", "ms": 80, "onError": [] }] }],
+		"state.muted": [{ "if": "{{state.soundOn != ''}}",
+			"then": [{ "audio": "volume", "of": "{{state.soundOn}}", "to": "{{computed.loudness}}", "ms": 80, "onError": [] }] }],
+		"state.page": [{ "run": "placeChanged" }],
+		"state.current": [{ "run": "placeChanged" }],
+		"state.collection": [{ "run": "placeChanged" }]
 	},
 
 	"onLoad": "buildLibrary",
@@ -633,6 +714,12 @@
 				"children": [
 					{ "id": "logo", "type": "label", "text": "Tempo", "font": "brand", "textColor": "@text", "anchors": { "left": 28, "top": 28 }, "fitText": true },
 					{ "id": "label-an-affresco-ui", "style": "caption", "text": "{{t('app.tagline')}}", "anchors": { "left": 28, "top": 62 } },
+					{ "id": "backButton", "style": "control", "icon": "chevron-left", "mirror": true, "anchors": { "left": 96, "top": 26 }, "width": 24, "radius": 8,
+						"color": "@sidebar", "textColor": "{{length(state.backStack) > 0 ? '@text' : '@faint'}}", "disabled": "{{length(state.backStack) == 0}}",
+						"label": "{{t('nav.back')}}", "tooltip": "{{t('nav.back')}}", "onClick": "goBack" },
+					{ "id": "forwardButton", "style": "control", "icon": "chevron-right", "mirror": true, "anchors": { "left": 122, "top": 26 }, "width": 24, "radius": 8,
+						"color": "@sidebar", "textColor": "{{length(state.forwardStack) > 0 ? '@text' : '@faint'}}", "disabled": "{{length(state.forwardStack) == 0}}",
+						"label": "{{t('nav.forward')}}", "tooltip": "{{t('nav.forward')}}", "onClick": "goForward" },
 					{ "id": "themeButton", "style": "control", "icon": "{{state.theme == 'dark' ? 'sun' : 'moon'}}", "anchors": { "right": 56, "top": 26 }, "width": 32, "radius": 8,
 						"color": "@sidebar", "label": "{{t('theme.toggle')}}", "tooltip": "{{t('theme.toggle')}}", "onClick": "toggleTheme" },
 					{ "id": "languageButton", "style": "control", "font": "small", "text": "{{upper(settings.ui.language)}}", "anchors": { "right": 16, "top": 26 }, "width": 36, "radius": 8,
@@ -941,6 +1028,9 @@
 						"height": 40,
 						"color": "transparent",
 						"children": [
+							{ "id": "shuffleButton", "style": "control", "icon": "shuffle", "anchors": { "left": "4%", "top": 5 }, "width": 32,
+								"textColor": "{{state.shuffle ? '@accent' : '@muted'}}", "checked": "{{state.shuffle}}",
+								"label": "{{t('player.shuffle')}}", "tooltip": "{{t('player.shuffle')}}", "onClick": "toggleShuffle" },
 							{ "id": "label-previous", "style": "control", "icon": "skip-back", "anchors": { "left": "22%", "top": 5 }, "width": 32,
 								"label": "{{t('player.previous')}}", "tooltip": "{{t('player.previous')}}", "onClick": "previous" },
 							{
@@ -960,7 +1050,10 @@
 								"onClick": "playPause"
 							},
 							{ "id": "label-next", "style": "control", "icon": "skip-forward", "anchors": { "right": "22%", "top": 5 }, "width": 32,
-								"label": "{{t('player.next')}}", "tooltip": "{{t('player.next')}}", "onClick": "next" }
+								"label": "{{t('player.next')}}", "tooltip": "{{t('player.next')}}", "onClick": "next" },
+							{ "id": "repeatButton", "style": "control", "icon": "{{state.repeat == 'one' ? 'repeat-1' : 'repeat'}}", "anchors": { "right": "4%", "top": 5 }, "width": 32,
+								"textColor": "{{state.repeat == 'off' ? '@muted' : '@accent'}}", "checked": "{{state.repeat != 'off'}}",
+								"label": "{{t('player.repeat.' + state.repeat)}}", "tooltip": "{{t('player.repeat.' + state.repeat)}}", "onClick": "cycleRepeat" }
 						]
 					},
 					{
@@ -1007,7 +1100,9 @@
 						"tooltip": "{{t('player.queue')}}",
 						"onClick": "toggleQueue"
 					},
-					{ "id": "label-volume", "type": "label", "icon": "volume-2", "text": "", "textColor": "@muted", "anchors": { "right": 128, "top": 20 }, "width": 22, "height": 24, "align": "center" },
+					{ "id": "muteButton", "style": "control", "icon": "{{state.muted ? 'volume-x' : 'volume-2'}}", "anchors": { "right": 126, "top": 16 }, "width": 26, "radius": 8,
+						"textColor": "{{state.muted ? '@accent' : '@muted'}}", "checked": "{{state.muted}}",
+						"label": "{{t('player.mute')}}", "tooltip": "{{t('player.mute')}}", "onClick": "toggleMute" },
 					{
 						"id": "volume",
 						"type": "slider",

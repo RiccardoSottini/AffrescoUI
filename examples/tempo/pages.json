@@ -299,7 +299,12 @@
 								"textColor": "{{line.current ? '@text' : '@muted'}}",
 								"anchors": { "left": 0, "right": 0 },
 								"height": 26,
-								"align": { "horizontal": "start", "vertical": "center" }
+								"align": { "horizontal": "start", "vertical": "center" },
+								"cursor": "hand",
+								"focusable": true,
+								"hover": { "textColor": "@text" },
+								"tooltip": "{{t('now.seekLyric')}}",
+								"onClick": { "run": "seekLyric", "with": { "offset": "{{index - 2}}" } }
 							}
 						]
 					}
