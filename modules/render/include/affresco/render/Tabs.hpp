@@ -22,8 +22,8 @@ struct Tab {
 	std::string label;    ///< Its text, UTF-8.
 	bool marker = false;  ///< Shows a dot (e.g. unsaved changes) where the close button goes, until hovered.
 	bool closable = true; ///< Has a close button.
-	std::string icon; ///< A glyph named in the strip's font or its fallbacks, drawn before the label; empty for none.
-	std::optional<Color> iconColor; ///< The icon's colour, or std::nullopt for the label's.
+	std::string icon{}; ///< A glyph named in the strip's font or its fallbacks, drawn before the label; empty for none.
+	std::optional<Color> iconColor{}; ///< The icon's colour, or std::nullopt for the label's.
 	bool italic = false;            ///< Its label in setItalicFont()'s font, e.g. a preview tab the next file replaces.
 
 	/// @brief Equal when every field is.
