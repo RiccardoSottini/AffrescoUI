@@ -437,8 +437,10 @@ it has no tool to approve, or to write files, and reads only the format guide an
 reads only files named `*.scenarios.json`, and runs the `affrescoui` tool (`test --json`) as a list of arguments,
 with a timeout of 300 s. `get_contributions` (`contributions`, 60 s) and `check_composition` and `install_feature`
 (`check --compose`, 300 s) run the same tool the same way on a `*.screen.json` file and the feature file the agent
-names, which the tool reads as `check` does. It runs no other program but `--launch`, a command on its own command
-line. A message from either side that it can't use gets an error and
+names, which the tool reads as `check` does. Every file a tool names must be inside the repository, the working
+folder or a `--root` folder once its links are resolved. It runs no other program but `--launch`, a program and the
+`--launch-arg` arguments on its own command line, as an argument vector. It refuses a socket folder that isn't the
+user's own or that other users may enter (`0077` bits set). A message from either side that it can't use gets an error and
 costs only that message, and its log escapes what isn't printable, as the host's does. What it hands the agent (a person's request, the document, events) was written by peers
 and people: an agent should treat it as data, and a request as instructions from the channel it came from (see
 "Requests relayed between peers").
@@ -530,8 +532,9 @@ images. A2UI updates become revisions applied at load, so they pass the same che
 
 Forge (examples/forge) works on a folder the person opens, which may come from anywhere. Its search walks only that
 folder, follows no symbolic link out of it, and skips binary files; a replacement is written only to a regular file
-inside it, through a new file renamed over the old one, so a link planted in the folder is replaced, never written
-through. A pattern is at most 4 KiB, a replacement text 64 KiB, and what one replacement expands to 64 MiB; PCRE2
+inside it, through a new file renamed over the old one. A link planted in the folder is resolved first: the file
+it leads to must itself be a regular file inside the folder, or the replacement is refused, so nothing outside the
+folder is ever written. A `.gitignore` that is a link is not read. A pattern is at most 4 KiB, a replacement text 64 KiB, and what one replacement expands to 64 MiB; PCRE2
 runs with match and depth limits. Its source control runs the `git` the host allows (`allowProcess`) with a fixed
 argument vector per command (`status`, `add`, `restore`, `commit -F -`, `switch`, `show --no-textconv`, ...): paths
 are literal pathspecs after `--`, never options, and a commit message goes on standard input. git runs with the

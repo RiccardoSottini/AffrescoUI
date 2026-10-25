@@ -51,8 +51,11 @@ Python standard library (3.9+). The socket directory is found the way the host f
 Without channels (or with another MCP client), ask the agent to use the `serve_studio` prompt, or just tell it to
 "wait for requests from the AffrescoUI app and handle them": it loops on `wait_for_request`.
 
-Options: `--socket DIR` if the host listens elsewhere (`affrescoui_launcher --socket DIR`), and `--launch "command"` to start
-the host if none is running, e.g. `--launch "/path/to/build/affrescoui_launcher"`.
+Options: `--socket DIR` if the host listens elsewhere (`affrescoui_launcher --socket DIR`); `--launch PROGRAM` to start
+the host if none is running, e.g. `--launch /path/to/build/affrescoui_launcher`, with each of its arguments in a
+`--launch-arg ARG` of its own (never split from one string); and `--root DIR` (repeatable) for a folder outside the
+repository and the working folder whose screens and scenarios the tools may read. The socket folder must be the
+user's own and closed to others (`0700`).
 
 Other clients (JSON configuration):
 ```json
@@ -82,8 +85,8 @@ The setup, once the host builds on Windows (work in progress) and Python can con
    claude mcp add affrescoui -- py C:\path\to\AffrescoUI\mcp\affrescoui_mcp.py
    ```
    In a JSON configuration, double the backslashes: `"args": ["C:\\path\\to\\AffrescoUI\\mcp\\affrescoui_mcp.py"]`.
-3. `--socket DIR` and `AFFRESCOUI_SOCKET_DIR` work as on the other platforms. `--launch` takes a Windows command line
-   as it is, e.g. `--launch "C:\path\to\build\Release\affrescoui_launcher.exe"`.
+3. `--socket DIR` and `AFFRESCOUI_SOCKET_DIR` work as on the other platforms. `--launch` takes the program's
+   path, e.g. `--launch C:\path\to\build\Release\affrescoui_launcher.exe`.
 
 ## Tools
 
