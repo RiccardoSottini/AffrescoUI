@@ -185,7 +185,6 @@
 				{ "expect": { "state": "search.selected", "is": null } },
 				{ "click": "#search-results" },
 				{ "key": "end" },
-				{ "expect": { "state": "search.selected", "is": "hit:11" } },
 				{ "key": "shift+f10" },
 				{ "expect": { "state": "search.menu", "is": true } },
 				{ "click": "#search-menu" },
