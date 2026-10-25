@@ -249,29 +249,34 @@
 						{ "use": "tSection", "id": "section-transform", "with": { "title": "Transform", "key": "transform" } },
 						{ "type": "row", "when": "{{state.props.transform}}", "width": "100%", "height": 24, "gap": 10, "alignItems": "center",
 						  "children": [
-							{ "use": "tField", "id": "transform-w", "with": { "title": "W", "key": "w", "value": "{{computed.box[2]}}", "unit": " px", "pop": false, "off": true, "width": 66, "max": 100000,
-							  "tip": "{{state.doc.selection ? 'The selection' : 'The image'}}; typing a size isn't available yet" } },
-							{ "use": "tField", "id": "transform-h", "with": { "title": "H", "key": "h", "value": "{{computed.box[3]}}", "unit": " px", "pop": false, "off": true, "width": 66, "max": 100000 } }
+							{ "use": "tField", "id": "transform-w", "with": { "title": "W", "key": "w", "value": "{{computed.box[2]}}", "unit": " px", "pop": false, "width": 66, "min": 1, "max": 100000,
+							  "run": "transformBox", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "{{state.doc.selection ? 'The selection' : 'The image'}}: typing a width scales the active layer" } },
+							{ "use": "tField", "id": "transform-h", "with": { "title": "H", "key": "h", "value": "{{computed.box[3]}}", "unit": " px", "pop": false, "width": 66, "min": 1, "max": 100000,
+							  "run": "transformBox", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "Typing a height scales the active layer" } }
 						  ] },
 						{ "type": "row", "when": "{{state.props.transform}}", "width": "100%", "height": 24, "gap": 10, "alignItems": "center",
 						  "children": [
-							{ "use": "tField", "id": "transform-x", "with": { "title": "X", "key": "x", "value": "{{computed.box[0]}}", "unit": " px", "pop": false, "off": true, "width": 66, "max": 100000 } },
-							{ "use": "tField", "id": "transform-y", "with": { "title": "Y", "key": "y", "value": "{{computed.box[1]}}", "unit": " px", "pop": false, "off": true, "width": 66, "max": 100000 } }
+							{ "use": "tField", "id": "transform-x", "with": { "title": "X", "key": "x", "value": "{{computed.box[0]}}", "unit": " px", "pop": false, "width": 66, "min": -100000, "max": 100000,
+							  "run": "transformBox", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "Typing a position moves the active layer across" } },
+							{ "use": "tField", "id": "transform-y", "with": { "title": "Y", "key": "y", "value": "{{computed.box[1]}}", "unit": " px", "pop": false, "width": 66, "min": -100000, "max": 100000,
+							  "run": "transformBox", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "Typing a position moves the active layer down" } }
 						  ] },
 						{ "type": "row", "when": "{{state.props.transform}}", "width": "100%", "height": 24, "gap": 6, "alignItems": "center",
 						  "children": [
 							{ "type": "label", "icon": "rotate-cw", "textColor": "@muted", "width": 14, "height": 20, "align": "center", "tooltip": "Angle" },
-							{ "use": "tField", "id": "transform-angle", "with": { "title": "", "key": "angle", "value": 0, "unit": "°", "pop": false, "off": true, "width": 50 } },
+							{ "use": "tField", "id": "transform-angle", "with": { "title": "", "key": "angle", "value": 0, "unit": "°", "pop": false, "width": 50, "min": -360, "max": 360,
+							  "run": "transformActive", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "Turns the active layer by the angle typed" } },
 							{ "grow": 1, "height": 1, "style": "clear" },
-							{ "use": "tIcon", "id": "flip-horizontal", "with": { "icon": "flip-horizontal", "tip": "Flip horizontally, not available yet", "off": true } },
-							{ "use": "tIcon", "id": "flip-vertical", "with": { "icon": "flip-vertical", "tip": "Flip vertically, not available yet", "off": true } }
+							{ "use": "tIcon", "id": "flip-horizontal", "with": { "icon": "flip-horizontal", "tip": "Flip the layer horizontally", "run": "flipLayerHorizontal", "off": "{{computed.activeLayer.kind != 'pixel'}}" } },
+							{ "use": "tIcon", "id": "flip-vertical", "with": { "icon": "flip-vertical", "tip": "Flip the layer vertically", "run": "flipLayerVertical", "off": "{{computed.activeLayer.kind != 'pixel'}}" } }
 						  ] },
 						{ "width": "100%", "height": 1, "color": "@border" },
 						{ "use": "tSection", "id": "section-align", "with": { "title": "Align and Distribute", "key": "align" } },
 						{ "type": "row", "id": "align-icons", "when": "{{state.props.align}}", "width": "100%", "height": 24, "gap": 2,
 						  "children": [
-							{ "use": "tIcon", "repeat": { "for": "a", "in": "{{['align-start-vertical', 'align-center-vertical', 'align-end-vertical', 'align-start-horizontal', 'align-center-horizontal', 'align-end-horizontal']}}" },
-							  "with": { "icon": "{{a}}", "tip": "Aligning layers isn't available yet", "off": true } }
+							{ "use": "tIcon", "repeat": { "for": "a", "in": "{{[{icon: 'align-start-vertical', edge: 'left', title: 'left edges'}, {icon: 'align-center-vertical', edge: 'center', title: 'horizontal centres'}, {icon: 'align-end-vertical', edge: 'right', title: 'right edges'}, {icon: 'align-start-horizontal', edge: 'top', title: 'top edges'}, {icon: 'align-center-horizontal', edge: 'middle', title: 'vertical centres'}, {icon: 'align-end-horizontal', edge: 'bottom', title: 'bottom edges'}]}}" },
+							  "id": "align-{{a.edge}}", "with": { "icon": "{{a.icon}}", "tip": "Align {{a.title}} with the {{state.doc.selection ? 'selection' : 'image'}}", "run": "alignActive",
+							  "args": { "edge": "{{a.edge}}" }, "off": "{{computed.activeLayer.kind != 'pixel'}}" } }
 						  ] },
 						{ "width": "100%", "height": 1, "color": "@border" },
 						{ "use": "tSection", "id": "section-actions", "with": { "title": "Quick Actions", "key": "actions" } },
@@ -470,14 +475,14 @@
 				"children": [
 					{ "type": "column", "id": "new-fields", "anchors": { "left": 20, "right": 20, "top": 44, "bottom": 52 }, "gap": 6,
 					  "children": [
-						{ "type": "row", "repeat": { "for": "f", "in": "{{['width', 'height']}}" }, "height": 28, "gap": 8, "alignItems": "center",
+						{ "type": "row", "repeat": { "for": "f", "in": "{{['width', 'height']}}" }, "width": "100%", "height": 28, "gap": 8, "alignItems": "center",
 						  "children": [
 							{ "style": "dim", "fitText": false, "text": "{{upper(slice(f, 0, 1)) + slice(f, 1)}}", "width": 70, "height": 20 },
 							{ "type": "textarea", "id": "new-{{f}}", "label": "{{f}}", "width": 100, "height": 24, "padding": 4, "color": "@input", "textColor": "@text",
 							  "borderWidth": 1, "borderColor": "@border", "radius": 2, "bind": "{{'state.newDoc.' + f}}" },
 							{ "style": "dim", "text": "Pixels" }
 						  ] },
-						{ "type": "row", "height": 28, "gap": 8, "alignItems": "center",
+						{ "type": "row", "width": "100%", "height": 28, "gap": 8, "alignItems": "center",
 						  "children": [
 							{ "style": "dim", "fitText": false, "text": "Bit depth", "width": 70, "height": 20 },
 							{ "type": "tabs", "id": "new-format", "width": 200, "height": 24, "bind": "state.newDoc.format",

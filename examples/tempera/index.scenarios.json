@@ -1594,7 +1594,7 @@
 		},
 		{
 			"name": "tempera-new-document",
-			"note": "The New dialog creates a blank document",
+			"note": "The New dialog creates a blank document of the size typed",
 			"steps": [
 				{
 					"note": "onLoad draws the sample at the first frame",
@@ -1616,7 +1616,28 @@
 					}
 				},
 				{
-					"action": "createDocument"
+					"click": "#new-width"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "640"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
 				},
 				{
 					"expect": {
@@ -1627,7 +1648,7 @@
 				{
 					"expect": {
 						"state": "doc.width",
-						"is": 1200
+						"is": 640
 					}
 				},
 				{
@@ -2299,6 +2320,992 @@
 					"expect": {
 						"state": "doc.height",
 						"is": 800
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-clipboard",
+			"note": "Copy, Paste, Cut, Copy Merged and Clear from the Edit menu and their keys",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "doc.clipboard",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"click": "#menu-edit"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Copy"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.clipboard",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+v"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Pasted"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "mod+x"
+				},
+				{
+					"expect": {
+						"state": "doc.history[3].label",
+						"is": "Cut"
+					}
+				},
+				{
+					"key": "mod+shift+c"
+				},
+				{
+					"key": "mod+v"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Pasted"
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "delete"
+				},
+				{
+					"expect": {
+						"state": "doc.history[6].label",
+						"is": "Clear"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-free-transform",
+			"note": "Free Transform's dialog moves and turns the active layer as one step; Edit > Transform flips it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+t"
+				},
+				{
+					"expect": {
+						"state": "transform.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#transform-dialog",
+						"exists": true
+					}
+				},
+				{
+					"click": "#transform-x-field"
+				},
+				{
+					"type": "40"
+				},
+				{
+					"click": "#transform-angle-field"
+				},
+				{
+					"type": "5"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"expect": {
+						"state": "transform.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Free Transform"
+					}
+				},
+				{
+					"click": "#menu-edit"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Transform"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Flip Horizontal"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 3
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-image-size",
+			"note": "Image Size resamples the picture, its height following the width",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+alt+i"
+				},
+				{
+					"expect": {
+						"state": "resize.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "resize.width",
+						"is": 1200
+					}
+				},
+				{
+					"click": "#resize-width-field"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "600"
+				},
+				{
+					"expect": {
+						"node": "#image-size-dialog",
+						"exists": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 600
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 400
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Image Size..."
+					}
+				},
+				{
+					"click": "#image-size-linked"
+				},
+				{
+					"expect": {
+						"state": "resize.linked",
+						"is": false
+					}
+				},
+				{
+					"click": "#resize-height-field"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "100"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 600
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 100
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-canvas-size",
+			"note": "Canvas Size adds room around the picture by its anchor",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+alt+c"
+				},
+				{
+					"expect": {
+						"state": "canvasSize.open",
+						"is": true
+					}
+				},
+				{
+					"click": "#canvasSize-width-field"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "1300"
+				},
+				{
+					"click": "#anchor-left"
+				},
+				{
+					"expect": {
+						"state": "canvasSize.anchor",
+						"is": "left"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "OK"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1300
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 800
+					}
+				},
+				{
+					"expect": {
+						"state": "canvasSize.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-image-rotation",
+			"note": "Image Rotation turns and mirrors the whole picture",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-image"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Image Rotation"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "90° Clockwise"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 800
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 1200
+					}
+				},
+				{
+					"action": "flipCanvasHorizontal"
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": true
+					}
+				},
+				{
+					"action": "rotateCanvas180"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 3
+					}
+				},
+				{
+					"action": "rotateCanvasLeft"
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-merge-and-flatten",
+			"note": "Merge Down, Delete Hidden Layers, Merge Visible and Flatten Image",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+e"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Sun"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#layer-eye-5"
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].visible",
+						"is": false
+					}
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Delete"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Hidden Layers"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 2
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+shift+e"
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Merged"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[1].name",
+						"is": "Sun"
+					}
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Flatten Image"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Background"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-rename-layer",
+			"note": "Rename Layer's dialog names the active layer; Enter applies it",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Rename Layer..."
+					}
+				},
+				{
+					"expect": {
+						"state": "rename.name",
+						"is": "Hills"
+					}
+				},
+				{
+					"click": "#rename-name"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "Ridge"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "rename.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Ridge"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-not-available-yet",
+			"note": "A command Tempera can't do yet is shown disabled, and says so",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-file"
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "menuitem",
+							"name": "Print..."
+						},
+						"property": "tooltip",
+						"is": "Not available yet"
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "menuitem",
+							"name": "Save As..."
+						},
+						"property": "tooltip",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-align",
+			"note": "The Properties panel's Align icons and Layer > Align line the active layer up with the image, then with the selection",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "selectLayer",
+						"args": {
+							"id": "5"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.active",
+						"is": "5"
+					}
+				},
+				{
+					"click": "#align-left"
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Align Layer"
+					}
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Align"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Bottom Edges"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.history[2].label",
+						"is": "Align Layer"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-properties-transform",
+			"note": "The Properties panel's flips, X and W move, mirror and scale the active layer",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#flip-horizontal"
+				},
+				{
+					"expect": {
+						"state": "doc.history[1].label",
+						"is": "Free Transform"
+					}
+				},
+				{
+					"click": "#flip-vertical"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 3
+					}
+				},
+				{
+					"click": {
+						"role": "textbox",
+						"name": "X"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "25"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 4
+					}
+				},
+				{
+					"click": {
+						"role": "textbox",
+						"name": "W"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "600"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "doc.history.length",
+						"is": 5
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1200
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-layer-via-copy",
+			"note": "Layer > New > Layer via Copy and Layer via Cut put the selection's pixels on a layer of their own",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "New"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Layer via Copy"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills copy"
+					}
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "New"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Layer via Cut"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 5
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Hills copy cut"
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-close",
+			"note": "Close leaves a blank document in the picture's place, asking first when there are changes",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"key": "mod+w"
+				},
+				{
+					"expect": {
+						"state": "closeAsk",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#close-dialog",
+						"exists": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Cancel"
+					}
+				},
+				{
+					"expect": {
+						"state": "closeAsk",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 3
+					}
+				},
+				{
+					"click": "#menu-file"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Close"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Close"
+					}
+				},
+				{
+					"expect": {
+						"state": "closeAsk",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docName",
+						"is": "Untitled"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.canUndo",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+w"
+				},
+				{
+					"expect": {
+						"state": "closeAsk",
+						"is": false
 					}
 				},
 				{

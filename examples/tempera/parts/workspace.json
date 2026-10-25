@@ -133,6 +133,7 @@
 			"node": {
 				"fill": true, "role": "{{item.separator ? 'separator' : 'menuitem'}}", "label": "{{item.title ?? ''}}", "focusable": "{{!item.separator}}",
 				"disabled": "{{item.separator || item.enabled == false}}", "mnemonic": "{{item.title ?? ''}}", "color": "transparent",
+				"tooltip": "{{item.run == 'unavailable' ? 'Not available yet' : ''}}",
 				"selected": "{{item.checked == null ? null : item.checked == true}}",
 				"hover": { "color": "{{item.separator || item.enabled == false ? 'transparent' : '@menuHover'}}" }, "focused": { "color": "@menuHover" },
 				"onClick": [{ "if": "{{item.submenu != null}}", "then": [{ "toggle": "{{path}}" }],
@@ -396,7 +397,7 @@
 					{ "type": "tabs", "id": "document-tabs", "label": "Documents", "width": "100%", "height": 24, "color": "@header",
 					  "tabs": [{ "id": "doc", "closable": true, "label": "{{state.docName}} — {{computed.activeLayer.name ?? ''}} · {{round(computed.zoomPercent)}}% · {{computed.mode}}" }],
 					  "value": "doc", "textColor": "@muted", "activeTextColor": "@text", "activeBackground": "@panel", "accentColor": "@accent",
-					  "onClose": { "set": "state.doc.message", "to": "Closing the only document isn't available yet" } },
+					  "onClose": { "run": "closeDocument" } },
 					{ "type": "row", "id": "ruler-row", "when": "{{state.view.rulers}}", "width": "100%", "height": 16,
 					  "children": [
 						{ "id": "ruler-corner", "width": 16, "height": 16, "color": "@ruler" },

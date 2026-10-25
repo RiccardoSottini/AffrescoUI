@@ -14,7 +14,7 @@
 		"iconsLarge": { "file": "../shared/fonts/Lucide.ttf", "size": 17 }
 	},
 
-	"include": ["parts/commands.json", "parts/workspace.json", "parts/panels.json", "../shared/addons/assistant/assistant.json"],
+	"include": ["parts/commands.json", "parts/workspace.json", "parts/panels.json", "parts/dialogs.json", "../shared/addons/assistant/assistant.json"],
 
 	"theme": "{{state.theme}}",
 
@@ -84,7 +84,7 @@
 			"options": { "size": 20, "hardness": 80, "spacing": 25, "opacity": 100, "flow": 100, "mode": "replace",
 			             "tolerance": 32, "contiguous": true, "allLayers": false, "fillOpacity": 100, "shape": "linear",
 			             "quickMask": false },
-			"view": { "zoom": 1, "x": 0, "y": 0 }, "message": "", "previewing": false
+			"view": { "zoom": 1, "x": 0, "y": 0 }, "message": "", "previewing": false, "clipboard": false
 		},
 		"tools": [
 			[{ "id": "move", "icon": "move", "title": "Move Tool", "key": "V" }],
@@ -142,6 +142,11 @@
 		"filter": { "open": false, "kind": "gaussian-blur", "radius": 4, "amount": 100, "threshold": 0, "angle": 0,
 		            "distance": 12, "live": true, "apply": 0, "cancel": 0 },
 		"newDoc": { "open": false, "width": 1200, "height": 800, "format": "rgba8" },
+		"transform": { "open": false, "x": 0, "y": 0, "scaleX": 100, "scaleY": 100, "angle": 0 },
+		"resize": { "open": false, "width": 0, "height": 0, "linked": true },
+		"canvasSize": { "open": false, "width": 0, "height": 0, "anchor": "center" },
+		"rename": { "open": false, "name": "" },
+		"closeAsk": false,
 		"menuBar": {},
 		"adjustMenu": false,
 		"blendMenu": false,
@@ -185,6 +190,11 @@
 			{ "use": "quickPick", "with": { "width": 520, "providers": "{{[{placeholder: 'Search the commands', items: computed.searchItems}]}}" } },
 			{ "use": "temperaFilterDialog" },
 			{ "use": "temperaNewDialog" },
+			{ "use": "temperaTransformDialog" },
+			{ "use": "temperaImageSizeDialog" },
+			{ "use": "temperaCanvasSizeDialog" },
+			{ "use": "temperaRenameDialog" },
+			{ "use": "temperaCloseDialog" },
 			{ "use": "dialog", "id": "about-dialog", "with": { "open": "state.about", "title": "Tempera",
 				"message": "An image editor built with AffrescoUI: layers, masks, brushes, filters and colour management over sparse tiles.",
 				"buttons": [{ "title": "OK" }] } }
