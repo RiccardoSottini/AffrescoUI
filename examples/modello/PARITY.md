@@ -72,7 +72,7 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_launcher example
 |---|---|---|
 | Shading workspace: node editor, material slots | missing | |
 | Import and export glTF | missing | |
-| Save and open | missing | |
+| Save and open | done | Ctrl+S and Ctrl+O, and the File menu: the scene as JSON in a file the person picks, checked when it opens, undoable |
 | Render window | missing | |
 | Chat add-on | done | Window › Assistant, Ctrl+Shift+A |
 | Keyboard access and accessibility names | partial | names on every control; Tab order not tuned |
@@ -80,3 +80,5 @@ what isn't there yet. Modello is JSON only: `./build/affrescoui_launcher example
 ## Counts
 
 Round 1: 31 done, 10 partial, 11 missing.
+
+Round 2 (a folder of files): 35 done, 11 partial, 6 missing (34, 11 and 7 before it). Save and open.

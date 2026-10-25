@@ -32,6 +32,7 @@ and review cover the scene and the workspace alike.
 | Numpad 1, 3, 7 (Ctrl: the opposite side), 5, 0, period; Home | Views, projection, camera, frame |
 | Middle drag, Shift+middle drag, wheel; Shift+right click | Orbit, pan, zoom; place the 3D cursor |
 | `mod+z`, `mod+shift+z`, `n`, `t`, `i`, Space | Undo, redo, sidebar, toolbar, keyframe, play |
+| `mod+n`, `mod+o`, `mod+s` | A new scene, open one, save it (JSON, in a file you pick) |
 
 ## Samples
 
