@@ -207,9 +207,24 @@
 			  "to": "{{map(range(3), index == args.axis ? computed.activeNode['lock_' + args.key][index] != true : computed.activeNode['lock_' + args.key][index] == true)}}" }
 		],
 		"rename": [
-			{ "if": "{{trim(args.name) == '' || computed.activeIndex < 0}}", "then": [{ "stop": true }] },
+			{ "if": "{{trim(args.name) == '' || !contains(map(state.scene.nodes, it.id), args.id ?? state.active)}}", "then": [{ "stop": true }] },
 			{ "run": "snapshot" },
-			{ "set": "state.scene.nodes[computed.activeIndex].name", "to": "{{trim(args.name)}}" }
+			{ "set": "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), args.id ?? state.active)].name", "to": "{{slice(trim(args.name), 0, 63)}}" }
+		],
+		"startRename": { "title": "Rename", "category": "Object", "icon": "pencil", "do": [
+			{ "dismiss": true },
+			{ "if": "{{state.active == null || !contains(state.view.selection, state.active)}}", "then": [{ "stop": true }] },
+			{ "if": "{{!contains(values(state.areas), 'outliner')}}", "then": [{ "run": "swapEditor", "with": { "args": { "from": "properties", "to": "outliner" } } }] },
+			{ "set": "state.outlinerHide", "to": "{{filter(state.outlinerHide, it != computed.activeNode.kind)}}" },
+			{ "set": "state.outlinerFilter", "to": "" },
+			{ "set": "state.outlinerOpen.root", "to": true },
+			{ "set": "state.outlinerOpen.collection", "to": true },
+			{ "set": "state.renaming", "to": "{{state.active}}" },
+			{ "after": 0, "do": [{ "focus": "#outliner-rename" }] }
+		] },
+		"toggleCollection": [
+			{ "set": "state.collection[args.key]", "to": "{{state.collection[args.key] == false}}" },
+			{ "if": "{{args.key != 'render' && state.collection[args.key] == false}}", "then": [{ "set": "state.view.selection", "to": [] }] }
 		],
 		"setMode": { "title": "Set Mode", "category": "Object", "do": [{ "dismiss": true }, { "set": "state.mode", "to": "{{args.mode}}" }] },
 		"setOption": [{ "dismiss": true }, { "set": "state[args.key]", "to": "{{args.value}}" }],
@@ -362,6 +377,7 @@
 		"delete": { "do": "deleteSelected" },
 		"shift+d": { "do": "duplicate" },
 		"h": { "do": "hideSelected" },
+		"f2": { "do": "startRename" },
 		"shift+h": { "do": "hideUnselected" },
 		"alt+h": { "do": "revealHidden" },
 		"a": { "do": "selectAll" },
@@ -491,6 +507,13 @@
 			"hide": { "run": "hideSelected", "group": "3_edit", "order": 2 },
 			"keyframe": { "run": "insertKeyframe", "group": "4_anim" },
 			"delete": { "run": "deleteSelected", "group": "5_delete" }
+		},
+		"outlinerContext": {
+			"rename": { "run": "startRename", "group": "1_name" },
+			"frame": { "run": "frameSelected", "group": "2_view" },
+			"duplicate": { "run": "duplicate", "group": "3_edit", "order": 1 },
+			"hide": { "run": "hideSelected", "group": "3_edit", "order": 2 },
+			"delete": { "run": "deleteSelected", "group": "4_delete" }
 		},
 		"delete": {
 			"delete": { "run": "deleteSelected", "title": "Delete", "group": "1" }
