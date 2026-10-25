@@ -172,7 +172,7 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
 	add_executable(affrescoui_launcher apps/host/host.cpp apps/host/Permissions.cpp)
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui::intelligence) # the assistant's providers
-	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples apps/shared)
+	target_include_directories(affrescoui_launcher PRIVATE apps/shared)
 	target_include_directories(affrescoui_launcher SYSTEM PRIVATE external/glad/include)
 	# A proposal's evidence plays its scenarios; automation brings the library with it (linking both twice makes the
 	# linker warn about a duplicate library)

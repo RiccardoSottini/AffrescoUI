@@ -190,6 +190,7 @@ modules/vcs/         version control: commits, proposals, permissions, history
 modules/channel/     peers and the live protocol over local sockets and processes
 modules/net/         HTTP(S), server-sent events, WebSocket, remote peers
 modules/services/    language servers, local programs and folders the host grants
+modules/intelligence/ the providers an app's assistant asks (APIs or a command line), behind the assistant capability
 modules/screen/      affresco::Screen, the composition root, and the umbrella header affresco/affresco.hpp
 modules/automation/  scenarios: scripted input, expectations, golden images
 modules/imaging/     layered images on copy-on-write tiles
@@ -198,7 +199,8 @@ modules/export/      panel trees as vector PDF
 modules/capi/        the C API, affresco/affresco.h
 mcp/                 the MCP server for AI agents
 apps/server/         the document server: shared, persistent documents over WebSocket
-examples/            the applications, the host and its Launcher, the assistant add-on
+apps/host/           the stock host, affrescoui_launcher: it opens an app's folder and asks for what the app uses
+examples/            the apps (each a folder with an app.json), the Launcher among them, the assistant add-on
 web/                 the WebAssembly build
 ```
 

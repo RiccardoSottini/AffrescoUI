@@ -105,7 +105,7 @@
 											"run": "showCommunity",
 											"keyLabel": "⌘3"
 										},
-										{ "title": "{{t('menu.downloads')}}" },
+										{ "title": "{{t('menu.downloads')}}", "run": "showDownloads" },
 										{ "separator": true },
 										{ "title": "{{t('menu.theme')}}", "run": "toggleTheme" },
 										{ "title": "{{t('menu.language')}}", "run": "nextLanguage" }
@@ -115,24 +115,32 @@
 									"name": "friends",
 									"title": "{{t('menu.friends')}}",
 									"items": [
-										{ "title": "{{t('menu.friendsList')}}" },
-										{ "title": "{{t('menu.addFriend')}}" },
+										{ "title": "{{t('menu.friendsList')}}", "run": "showCommunity" },
+										{ "title": "{{t('menu.addFriend')}}", "run": "addFriendDialog" },
 										{ "separator": true },
 										{
 											"title": "{{t('presence.online')}}",
-											"checked": "{{state.user.status == 'online'}}"
+											"checked": "{{state.user.status == 'online'}}",
+											"run": "setStatus",
+											"with": { "status": "online" }
 										},
 										{
 											"title": "{{t('presence.away')}}",
-											"checked": "{{state.user.status == 'away'}}"
+											"checked": "{{state.user.status == 'away'}}",
+											"run": "setStatus",
+											"with": { "status": "away" }
 										},
 										{
 											"title": "{{t('presence.invisible')}}",
-											"checked": "{{state.user.status == 'invisible'}}"
+											"checked": "{{state.user.status == 'invisible'}}",
+											"run": "setStatus",
+											"with": { "status": "invisible" }
 										},
 										{
 											"title": "{{t('presence.offline')}}",
-											"checked": "{{state.user.status == 'offline'}}"
+											"checked": "{{state.user.status == 'offline'}}",
+											"run": "setStatus",
+											"with": { "status": "offline" }
 										}
 									]
 								},
@@ -434,7 +442,8 @@
 						"style": "barButton",
 						"font": "default",
 						"icon": "message-square",
-						"text": "{{t('bottom.friends')}}"
+						"text": "{{t('bottom.friends')}}",
+						"onClick": { "run": "showCommunity" }
 					},
 					{ "type": "panel", "width": 8, "height": 1, "color": "transparent" }
 				]

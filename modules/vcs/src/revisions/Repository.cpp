@@ -394,7 +394,7 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 	try {
 		expect::object(revision, "revision");
 		if(alwaysReview && revision.contains("proposal")) fail("revision.proposal", "it opens a proposal of its own");
-		// Evidence is what the host draws and plays itself: an author naming any of it is trying to forge it
+		// Evidence is what the host draws and plays itself: an author naming any of it is trying to fake it
 		for(const char* key : {"evidence", "behaviour"})
 			if(revision.contains(key)) fail(std::string("revision.") + key, "the host gathers it itself");
 		const std::string author = detail::authorOf(revision);

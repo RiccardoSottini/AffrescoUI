@@ -5,93 +5,547 @@
 	"scenarios": [
 		{
 			"name": "home",
-			"steps": [{ "expect": { "node": "#library-home", "property": "shown", "is": true } }, { "capture": "home" }]
+			"steps": [
+				{
+					"expect": {
+						"node": "#library-home",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"capture": "home"
+				}
+			]
 		},
 		{
 			"name": "game-page",
 			"steps": [
-				{ "click": "#row-favourites-starfall" },
-				{ "expect": { "state": "selected", "is": "starfall" } },
-				{ "expect": { "node": "#details-title", "text": "Starfall Odyssey" } },
-				{ "capture": "game-page" },
-				{ "click": "#game-info" },
-				{ "expect": { "node": "#details-blurb", "property": "shown", "is": true } },
-				{ "capture": "game-info" },
-				{ "key": "escape" },
-				{ "action": "back" },
-				{ "expect": { "node": "#library-home", "property": "shown", "is": true } }
+				{
+					"click": "#row-favourites-starfall"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "starfall"
+					}
+				},
+				{
+					"expect": {
+						"node": "#details-title",
+						"text": "Starfall Odyssey"
+					}
+				},
+				{
+					"capture": "game-page"
+				},
+				{
+					"click": "#game-info"
+				},
+				{
+					"expect": {
+						"node": "#details-blurb",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"capture": "game-info"
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"action": "back"
+				},
+				{
+					"expect": {
+						"node": "#library-home",
+						"property": "shown",
+						"is": true
+					}
+				}
 			]
 		},
 		{
 			"name": "play",
 			"steps": [
-				{ "click": "#row-favourites-starfall" },
-				{ "click": "#play-button" },
-				{ "expect": { "state": "running", "is": "starfall" } },
-				{ "expect": { "node": "#play-button", "text": "STOP" } },
-				{ "click": "#play-button" },
-				{ "expect": { "state": "running", "is": null } }
+				{
+					"click": "#row-favourites-starfall"
+				},
+				{
+					"click": "#play-button"
+				},
+				{
+					"expect": {
+						"state": "running",
+						"is": "starfall"
+					}
+				},
+				{
+					"expect": {
+						"node": "#play-button",
+						"text": "STOP"
+					}
+				},
+				{
+					"click": "#play-button"
+				},
+				{
+					"expect": {
+						"state": "running",
+						"is": null
+					}
+				}
 			]
 		},
 		{
 			"name": "install",
 			"steps": [
-				{ "click": "#row-favourites-mossheart" },
-				{ "expect": { "node": "#play-button", "text": "INSTALL" } },
-				{ "capture": "not-installed" },
-				{ "click": "#play-button" },
-				{ "expect": { "state": "downloads[6].id", "is": "mossheart" } }
+				{
+					"click": "#row-favourites-mossheart"
+				},
+				{
+					"expect": {
+						"node": "#play-button",
+						"text": "INSTALL"
+					}
+				},
+				{
+					"capture": "not-installed"
+				},
+				{
+					"click": "#play-button"
+				},
+				{
+					"expect": {
+						"state": "downloads[6].id",
+						"is": "mossheart"
+					}
+				}
 			]
 		},
 		{
 			"name": "filter",
 			"steps": [
-				{ "click": "#library-search" },
-				{ "type": "iron" },
-				{ "expect": { "node": "#row-uncategorised-ironhollow", "property": "shown", "is": true } },
-				{ "expect": { "node": "#row-favourites-starfall", "exists": false } },
-				{ "capture": "search" }
+				{
+					"click": "#library-search"
+				},
+				{
+					"type": "iron"
+				},
+				{
+					"expect": {
+						"node": "#row-uncategorised-ironhollow",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#row-favourites-starfall",
+						"exists": false
+					}
+				},
+				{
+					"capture": "search"
+				}
 			]
 		},
 		{
 			"name": "dark-light-french",
 			"steps": [
-				{ "action": "toggleTheme" },
-				{ "capture": "light" },
-				{ "action": "toggleTheme" },
-				{ "action": "nextLanguage" },
-				{ "action": "nextLanguage" },
-				{ "capture": "french" }
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"capture": "light"
+				},
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"action": "nextLanguage"
+				},
+				{
+					"action": "nextLanguage"
+				},
+				{
+					"capture": "french"
+				}
 			]
 		},
 		{
 			"name": "store",
 			"steps": [
-				{ "action": "storeHome" },
-				{ "expect": { "node": "#store-home", "property": "shown", "is": true } },
-				{ "move": "#offer-saltmarsh" },
-				{ "capture": "store-home" },
-				{ "click": "#offer-saltmarsh" },
-				{ "capture": "store-page" },
-				{ "scroll": "#store-title", "dy": -6 },
-				{ "expect": { "node": "#add-to-cart", "property": "shown", "is": true } },
-				{ "capture": "purchase" },
-				{ "click": "#add-to-cart" },
-				{ "capture": "added-to-cart" },
-				{ "key": "escape" },
-				{ "action": "showCart" },
-				{ "capture": "cart" },
-				{ "action": "showWishlist" },
-				{ "capture": "wishlist" }
+				{
+					"action": "storeHome"
+				},
+				{
+					"expect": {
+						"node": "#store-home",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"move": "#offer-saltmarsh"
+				},
+				{
+					"capture": "store-home"
+				},
+				{
+					"click": "#offer-saltmarsh"
+				},
+				{
+					"capture": "store-page"
+				},
+				{
+					"scroll": "#store-title",
+					"dy": -6
+				},
+				{
+					"expect": {
+						"node": "#add-to-cart",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"capture": "purchase"
+				},
+				{
+					"click": "#add-to-cart"
+				},
+				{
+					"capture": "added-to-cart"
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"action": "showCart"
+				},
+				{
+					"capture": "cart"
+				},
+				{
+					"action": "showWishlist"
+				},
+				{
+					"capture": "wishlist"
+				}
 			]
 		},
 		{
 			"name": "assistant",
 			"steps": [
-				{ "action": "assistant.open" },
-				{ "expect": { "node": "#assistantPanel", "property": "shown", "is": true } },
-				{ "capture": "assistant" },
-				{ "key": "escape" }
+				{
+					"action": "assistant.open"
+				},
+				{
+					"expect": {
+						"node": "#assistantPanel",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"capture": "assistant"
+				},
+				{
+					"key": "escape"
+				}
+			]
+		},
+		{
+			"name": "friends",
+			"steps": [
+				{
+					"click": "#friends-chat"
+				},
+				{
+					"expect": {
+						"node": "#friends-page",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#chat-name",
+						"property": "text",
+						"is": "NightDrifter"
+					}
+				},
+				{
+					"capture": "friends"
+				},
+				{
+					"click": "#chat-input"
+				},
+				{
+					"type": "Want to play tonight?"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"node": "#chat-input",
+						"property": "text",
+						"is": ""
+					}
+				},
+				{
+					"wait": 1200
+				},
+				{
+					"expect": {
+						"node": "#chat-typing",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"wait": 2600
+				},
+				{
+					"click": "#chat-invite"
+				},
+				{
+					"wait": 200
+				},
+				{
+					"capture": "friends-chat"
+				},
+				{
+					"click": "#my-status"
+				},
+				{
+					"capture": "friends-status"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Away"
+					}
+				},
+				{
+					"expect": {
+						"node": "#my-status",
+						"property": "text",
+						"is": "Away "
+					}
+				},
+				{
+					"click": "#friend-f9"
+				},
+				{
+					"expect": {
+						"node": "#chat-name",
+						"property": "text",
+						"is": "IronMole"
+					}
+				},
+				{
+					"click": "#add-friend"
+				},
+				{
+					"click": "#add-friend-name"
+				},
+				{
+					"type": "Ember"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"node": "#friends-group-offline",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"capture": "friends-light"
+				},
+				{
+					"action": "toggleTheme"
+				}
+			]
+		},
+		{
+			"name": "profile",
+			"steps": [
+				{
+					"action": "showProfile"
+				},
+				{
+					"expect": {
+						"node": "#profile-name",
+						"property": "text",
+						"is": "Mira"
+					}
+				},
+				{
+					"capture": "profile"
+				},
+				{
+					"click": "#profile-recent-starfall"
+				},
+				{
+					"expect": {
+						"node": "#library",
+						"property": "shown",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "manage",
+			"note": "A game's menu (right click, Shift+F10 or the gear): Properties keeps its launch options and settings, verifies the files; Uninstall asks first",
+			"steps": [
+				{
+					"click": "#row-favourites-starfall"
+				},
+				{
+					"key": "shift+f10"
+				},
+				{
+					"expect": {
+						"node": "#game-menu",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"capture": "menu"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Properties…"
+					}
+				},
+				{
+					"expect": {
+						"node": "#properties-launch",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"click": "#properties-launch"
+				},
+				{
+					"type": "-windowed"
+				},
+				{
+					"capture": "general"
+				},
+				{
+					"click": "#properties-tab-updates"
+				},
+				{
+					"click": "#properties-updates-launch"
+				},
+				{
+					"capture": "updates"
+				},
+				{
+					"click": "#properties-tab-files"
+				},
+				{
+					"click": "#properties-verify"
+				},
+				{
+					"wait": 1700
+				},
+				{
+					"capture": "files"
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"click": "#game-settings"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Properties…"
+					}
+				},
+				{
+					"expect": {
+						"node": "#properties-launch",
+						"property": "text",
+						"is": "-windowed"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"click": "#game-settings"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Uninstall…"
+					}
+				},
+				{
+					"capture": "uninstall"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Uninstall"
+					}
+				},
+				{
+					"capture": "uninstalled"
+				},
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"click": "#game-settings"
+				},
+				{
+					"capture": "menu-light"
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"action": "nextLanguage"
+				},
+				{
+					"action": "nextLanguage"
+				},
+				{
+					"wait": 100,
+					"note": "the new language's labels move the gear: it is laid out on the next frame"
+				},
+				{
+					"click": "#game-settings"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Propriétés…"
+					}
+				},
+				{
+					"capture": "fr"
+				}
 			]
 		}
 	]
