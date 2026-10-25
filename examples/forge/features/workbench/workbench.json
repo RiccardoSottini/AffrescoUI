@@ -48,7 +48,9 @@
 		"revealFolder": [
 			{ "note": "path: a folder's path. Opens the explorer with that folder and its parents open" },
 			{ "run": "explorerShow", "with": { "id": "{{path}}" } },
-			{ "run": "explorerExpand", "with": { "event": "{{ {id: path, expanded: !contains(state.explorer.expanded, path)} }}" } },
+			{ "if": "{{!contains(state.explorer.expanded, path)}}",
+			  "then": [{ "set": "state.explorer.expanded", "to": "{{concat(state.explorer.expanded, [path])}}" },
+			           { "run": "explorerList", "with": { "folder": "{{path}}" } }] },
 			{ "set": "state.sideView", "to": "explorer" },
 			{ "set": "state.layout.sidebar", "to": true }
 		],

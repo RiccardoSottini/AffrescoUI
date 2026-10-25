@@ -79,10 +79,14 @@
 				  "onDone": [{ "run": "explorerMoved", "with": { "from": "{{edit.id}}", "to": "{{to}}" } }] }],
 				"else": [{ "invoke": "files.stat", "with": { "path": "{{to}}" }, "onDone": [{ "if": "{{result.exists}}",
 				  "then": [{ "run": "notify", "with": { "severity": "error", "message": "{{'A file or folder ' + edit.name + ' already exists at this location'}}" } }],
-				  "else": [{ "invoke": "{{edit.mode == 'newFolder' ? 'files.mkdir' : 'files.write'}}", "with": "{{edit.mode == 'newFolder' ? {path: to} : {path: to, text: ''}}}",
-					"onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot create: ' + error.message}}" } }],
-					"onDone": [{ "run": "explorerShow", "with": { "id": "{{to}}" } },
-					           { "if": "{{edit.mode == 'newFile'}}", "then": [{ "run": "openPath", "with": { "path": "{{to}}", "label": "{{reverse(split(to, '/'))[0]}}" } }] }] }] }] }] }] }
+				  "else": [{ "if": "{{edit.mode == 'newFolder'}}",
+				    "then": [{ "invoke": "files.mkdir", "with": { "path": "{{to}}" },
+				               "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot create: ' + error.message}}" } }],
+				               "onDone": [{ "run": "explorerShow", "with": { "id": "{{to}}" } }] }],
+				    "else": [{ "invoke": "files.write", "with": { "path": "{{to}}", "text": "" },
+				               "onError": [{ "run": "notify", "with": { "severity": "error", "message": "{{'Cannot create: ' + error.message}}" } }],
+				               "onDone": [{ "run": "explorerShow", "with": { "id": "{{to}}" } },
+				                          { "run": "openPath", "with": { "path": "{{to}}", "label": "{{reverse(split(to, '/'))[0]}}" } }] }] }] }] }] }] }
 		],
 		"explorerMoved": [
 			{ "note": "from, to: a file or folder moved. Tabs follow it; the explorer shows it" },
