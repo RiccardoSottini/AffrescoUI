@@ -267,6 +267,7 @@ Tabs become 4 spaces. With a `language` it is a code editor; its events, `onType
 | `rulers` | Columns, counted from 0 in spaces, to draw a thin vertical line at, in `guideColor` (e.g. `[80]`). |
 | `minimap` | `true` shows a minimap at the right: an overview of the rows, with the visible ones marked; pressing or dragging it scrolls. |
 | `minimapStyle` | How the minimap draws a row: `bars` (the default), one bar from its first to its last character, or `text`, each character a pixel in its syntax colour. |
+| `minimapWidth` | The minimap's width in pixels, 20 to 240 (default 60). |
 | `minimapViewport` | When the minimap marks the visible rows: `always` (the default), or `hover`, while the pointer is over it. |
 | `matchStyle` | How find's matches are shown, in `matchColor`: `fill` (the default) behind them, or `outline`. |
 | `composition` | Text an input method is composing, shown underlined at the caret without editing (empty: none). |
@@ -513,6 +514,9 @@ With `"drag": {}` on the node, a tab dragged onto another `tabs` drops there: th
 | `accentEdge` | The edge of the active tab its accent line is on: `bottom` (default) or `top`. |
 | `markerColor` | The markers' colour (default `accentColor`). |
 | `keepMarker` | A marked tab keeps its marker while active, and shows its close button only while hovered (default false). |
+| `tabRadius` | The active tab's top corner radius, in pixels (default 0, square), e.g. a card that joins the content below. |
+| `tabGap` | Pixels before each tab (default 0: the tabs touch). |
+| `tabInset` | Pixels between the strip's top and the active tab's (default 0: the full height), so it rises from the strip. |
 <!-- end generated -->
 
 ```json
@@ -1142,7 +1146,7 @@ A handler is an action name, a step, or a list of steps. Pointer events get `eve
 <!-- generated: events -->
 | Handler | When |
 |---|---|
-| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node). |
+| `onClick`, `onDoubleClick`, `onContextMenu` | Left click, two clicks on the same node, right click (or Shift+F10 or the Menu key on the focused node; `event.data` is the item under the pointer that a drag would carry, as a tab's `{ "id", "index" }` or a list row's `{ "id", "ids" }`, when there is one). |
 | `onPress`, `onRelease` | Left button down, up. |
 | `onDrag` | The pointer moves while pressed: `event.dx`, `event.dy` since the press. |
 | `onDrop` | A dragged node was dropped here: `event.data` (on `tabs`, also `event.index`, where it goes; on a `list` or `tree`, `event.index`, `id` and `place`: `"before"`, `"inside"` or `"after"` that row); or files from the OS: `event.files` (their paths). |

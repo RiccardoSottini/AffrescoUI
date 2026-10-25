@@ -73,6 +73,11 @@ public:
 	/// @brief Whether the accent line is on the active tab's top edge.
 	/// @return True for the top edge, false for the bottom one.
 	bool accentOnTop() const { return accentOnTop_; }
+	/// @brief Sets the tabs' shape: rounded top corners and a lowered top on the active tab, and room between tabs.
+	/// @param radius The active tab's top corner radius, in pixels (0, the default: square).
+	/// @param gap Pixels before each tab (0, the default: tabs touch).
+	/// @param inset Pixels between the strip's top and the active tab's (0, the default: the full height).
+	void setTabShape(float radius, float gap, float inset);
 	/// @brief Sets the markers' colour.
 	/// @param color The colour, or std::nullopt for the accent's.
 	void setMarkerColor(std::optional<Color> color);
@@ -145,6 +150,9 @@ private:
 	Color activeBackground_ = colors::white;   ///< See setColors().
 	Color accent_ = colors::accent;            ///< See setColors().
 	bool accentOnTop_ = false;                 ///< See setAccentOnTop().
+	float tabRadius_ = 0.0f;                   ///< See setTabShape().
+	float tabGap_ = 0.0f;                      ///< See setTabShape().
+	float tabInset_ = 0.0f;                    ///< See setTabShape().
 	std::optional<Color> markerColor_;         ///< See setMarkerColor().
 	bool keepMarker_ = false;                  ///< See setKeepMarker().
 	float scroll_ = 0.0f;                      ///< See scrollPosition().

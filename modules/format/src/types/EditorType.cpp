@@ -238,7 +238,7 @@ void applyLanguage(TextEditor& editor, const json& values, const PropertyReader&
 }
 
 /// @brief Sets an editor's view: wrap, folds, decorations, find and matchStyle, brackets and bracketStyle,
-/// indentGuides, rulers, minimap with minimapStyle and minimapViewport, composition, caretStyle and readOnly.
+/// indentGuides, rulers, minimap with minimapStyle, minimapWidth and minimapViewport, composition, caretStyle and readOnly.
 /// @param editor The editor.
 /// @param values The node's values.
 /// @param reader Reads colours.
@@ -255,6 +255,8 @@ void applyView(TextEditor& editor, const json& values, const PropertyReader& rea
 	editor.setIndentGuides(flag("indentGuides"));
 	editor.setRulers(readList<std::size_t>(values, "rulers", path, lineNumber));
 	editor.setMinimap(flag("minimap"));
+	editor.setMinimapSize(values.contains("minimapWidth") ? number(values["minimapWidth"], path + ".minimapWidth")
+	                                                      : TextEditor::minimapSize);
 	const auto choice = [&](const char* key, const char* first, const char* second) {
 		const std::string chosen = values.contains(key) ? string(values[key], path + "." + key) : first;
 		if(chosen != first && chosen != second)
@@ -435,6 +437,7 @@ void registerEditorType(TypeRegistry& registry) {
 	                   {"rulers", ValueKind::Any},
 	                   {"bracketStyle", ValueKind::Text},
 	                   {"minimapStyle", ValueKind::Text},
+	                   {"minimapWidth", ValueKind::Number},
 	                   {"minimapViewport", ValueKind::Text},
 	                   {"matchStyle", ValueKind::Text},
 	                   {"caretStyle", ValueKind::Text}};
