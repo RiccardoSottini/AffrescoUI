@@ -173,6 +173,30 @@ TEST_CASE("services: a call that ends, or fails, before its timeout leaves no ti
 	CHECK_FALSE(window->secondsToNextTimer());
 }
 
+TEST_CASE("services: a call replaced by a new one with its id ends without an error") {
+	const TemporaryFolder folder;
+	writeText(folder.path / "work" / "note.txt", "inside");
+	PumpedExecutor executor;
+	const ManualClock clock;
+	const auto window = createHeadlessWindow(200, 100, clock);
+	affresco::Screen screen = affresco::Screen::fromString(R"json({"format": "affrescoui-screen", "version": 2,
+		"services": { "files": { "provider": "fs", "root": "work", "readOnly": true } },
+		"state": { "local": "" },
+		"actions": { "read": [{ "invoke": "files.read", "with": { "path": "note.txt" }, "id": "note",
+		                        "onDone": [{ "set": "state.local", "to": "{{result.text}}" }] }] },
+		"root": { "type": "label", "text": "" }})json");
+	std::vector<std::string> errors;
+	screen.onError([&errors](const std::string& message) { errors.push_back(message); });
+	screen.services().addRoot("work", folder.path / "work");
+	screen.setExecutor(&executor);
+	screen.build(*window);
+
+	screen.runAction("read", window->root());
+	screen.runAction("read", window->root()); // before the first one's answer: it cancels it
+	REQUIRE(executor.pumpUntil([&screen] { return stateAt(screen, "/local") == "inside"; }));
+	CHECK(errors.empty());
+}
+
 TEST_CASE("services: inline, a call's result arrives before the action returns, as in a scripted run") {
 	const TemporaryFolder folder;
 	writeText(folder.path / "work" / "note.txt", "inside");

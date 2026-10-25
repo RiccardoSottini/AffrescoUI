@@ -399,6 +399,7 @@ void ServiceCalls::failed(const Pending& call, const json& error) {
 		        {"body", error["data"].value("body", json())}};
 	const json& shown = flat.is_null() ? error : flat;
 	if(call.onError.is_null()) {
+		if(shown["code"] == "cancelled") return; // cancelled on purpose (a "cancel" step, a new call with its id)
 		const std::string& message = shown["message"].get_ref<const std::string&>();
 		engine_.report(call.where + ": " + call.name + ": " + message);
 	} else {
