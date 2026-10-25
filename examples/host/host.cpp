@@ -30,7 +30,6 @@
 // own in DIR. Every template has a folder in examples (examples/README.md): the Kanban board is examples/flow.
 
 #include "Assets.hpp"
-#include "CodeEditor.hpp"
 #include "intelligence/Intelligence.hpp"
 #include "SocketDir.hpp"
 #include "tempo/Visualiser.hpp"
@@ -91,7 +90,6 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 			options.document = document;
 			options.pictures = false;
 			options.prepare = [](affresco::Screen& played) {
-				examples::registerCodeEditor(played);
 				examples::tempo::registerVisualiser(played);
 			};
 			for(const automation::Scenario& scenario : loaded.scenarios)
@@ -322,8 +320,7 @@ int run(const Options& options) {
 	using History = affresco::Screen::History;
 	affresco::Screen screen = affresco::Screen::fromFile(screenFile(options.file), options.dataDir,
 	                                                     screenshotOnly ? History::InMemory : History::OnDisk);
-	screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
-	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
+	screen.setPlaceholderTypes(true); // custom types of other apps show as plain panels
 	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
 	screen.services().allowChosenRoot("workspace");
 	if(!options.folder.empty()) screen.services().addRoot("workspace", options.folder);

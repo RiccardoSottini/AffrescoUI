@@ -8,7 +8,6 @@
 // layout, theme and settings are kept in --data DIR ("persist").
 
 #include "Assets.hpp"
-#include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/editor/Editor.hpp"
 #include "intelligence/Intelligence.hpp"
@@ -90,7 +89,6 @@ int run(const Options& options) {
 	affresco::Screen screen =
 	    affresco::Screen::fromFile(assetsDirectory() / "forge" / "index.screen.json", options.dataDir,
 		                           screenshotOnly ? History::InMemory : History::OnDisk);
-	examples::registerCodeEditor(screen);
 	const auto workspace = std::make_shared<forge::Workspace>();
 	if(!options.folder.empty()) workspace->root = std::filesystem::absolute(options.folder);
 	forge::registerNatives(screen, workspace);

@@ -3,7 +3,6 @@
 
 #include "features/editor/Editor.hpp"
 
-#include "CodeEditor.hpp"
 #include "features/editor/Buffers.hpp"
 
 #include <affresco/core/Json.hpp>
@@ -63,10 +62,6 @@ void tellDocument(affresco::Screen& screen, const std::weak_ptr<Buffers>& buffer
 
 std::shared_ptr<Buffers> registerEditor(affresco::Screen& screen, const std::shared_ptr<Workspace>& workspace) {
 	const auto buffers = std::make_shared<Buffers>();
-	examples::registerCodeEditor(screen, [weak = std::weak_ptr<Buffers>(buffers)](std::string_view id) {
-		const std::shared_ptr<Buffers> alive = weak.lock();
-		return alive ? alive->find(id) : nullptr;
-	});
 	screen.setModel("buffers", buffers->model());
 	buffers->onDirty([&screen, weak = std::weak_ptr<Buffers>(buffers)](const std::string& id, bool) {
 		tellDocument(screen, weak, id);

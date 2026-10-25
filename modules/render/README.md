@@ -241,7 +241,7 @@ driver, not here: images are bounded by `Bitmap::Limits` and passes by `SurfaceF
   `prepareLayout`, place your children in `arrange`, and react in the event hooks (`keyEvent`, `mouseButtonEvent`, ...)
   or through the signals (`onKey`, `onMouseButton`, ...).
 - **Text editors:** `TextEditor`'s protected editing API and its `colorLine` hook let an application add a language
-  without changing the library (`examples/shared/CodeEditor.*` adds syntax colours that way).
+  without changing it (the format's `editor` colours its declarative languages that way).
 - **Highlighters:** an `EditorHighlighter` (`TextEditor::setHighlighter`) is told of every edit and colours each
   line; it may answer folds and bracket pairs too (the format's `SyntaxHighlighter` does, on tree-sitter).
 - **Another platform or renderer:** implement `platform::Platform` and `NativeWindow`, or `detail::Renderer`

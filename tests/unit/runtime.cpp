@@ -101,9 +101,9 @@ TEST_CASE("format: a screen destroyed while its window lives on takes back every
 	CHECK_FALSE(window->secondsToNextTimer());
 }
 
-// The code editor is left out: its "code" type is the host's (examples/shared/CodeEditor.cpp)
 TEST_CASE("format: the shipped templates build on a headless window") {
-	for(const std::string name : {"kanban", "smart-home", "music-player", "habit-tracker", "sign-in", "launcher"}) {
+	for(const std::string name :
+	    {"kanban", "smart-home", "music-player", "habit-tracker", "sign-in", "launcher", "code-editor"}) {
 		CAPTURE(name);
 		ManualClock clock;
 		const auto window = createHeadlessWindow(1280, 800, clock);

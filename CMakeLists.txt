@@ -201,7 +201,6 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_compile_definitions(affrescoui_intelligence PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
 	# affrescoui_launcher, the stock host: renders any screen and accepts peers; without a file it opens the Launcher
 	add_executable(affrescoui_launcher examples/host/host.cpp)
-	target_sources(affrescoui_launcher PRIVATE examples/shared/CodeEditor.cpp) # the Forge template's "code" type
 	target_sources(affrescoui_launcher PRIVATE examples/tempo/Visualiser.cpp) # the Tempo template's visualiser surface
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui_intelligence) # the assistant's providers
 	target_include_directories(affrescoui_launcher PRIVATE examples/shared examples)
@@ -217,7 +216,7 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 		target_sources(affrescoui_launcher PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/affrescoui_launcher.rc")
 	endif()
 	# Forge, a demo IDE: its workbench is examples/forge/index.screen.json, with a few natives (examples/forge/README.md)
-	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES} examples/shared/CodeEditor.cpp)
+	add_executable(affrescoui_forge examples/forge/main.cpp ${AFFRESCOUI_FORGE_SOURCES})
 	target_include_directories(affrescoui_forge PRIVATE examples/shared examples/forge)
 	target_link_libraries(affrescoui_forge PRIVATE affrescoui affrescoui_vterm affrescoui_intelligence)
 	target_compile_options(affrescoui_forge PRIVATE ${AFFRESCOUI_WARNINGS})
@@ -315,7 +314,7 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 	# using valgrind's header when it is installed
 	add_executable(affrescoui_bench tests/perf/bench.cpp tests/perf/allocations.cpp tests/perf/screens.cpp
 		tests/perf/engine.cpp tests/perf/history.cpp tests/perf/views.cpp tests/perf/scaling_screens.cpp
-		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp examples/shared/CodeEditor.cpp tests/perf/buffers.cpp
+		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp tests/perf/buffers.cpp
 		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp ${AFFRESCOUI_FORGE_SOURCES}
 		tests/perf/syntax.cpp
 		tests/perf/tempera.cpp)

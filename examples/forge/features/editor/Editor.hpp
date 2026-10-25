@@ -14,7 +14,6 @@
 namespace forge {
 
 /// @brief Registers the editor feature on a screen, after registerNatives():
-///   - the "code" type again, with `"buffer": id` showing that open file's buffer (CodeEditor.hpp);
 ///   - the data model `models.buffers` (Buffers::model());
 ///   - the natives `forge.open`, `forge.save`, `forge.revert` and `forge.close` `{ "id" }` (each returns
 ///     `{ "id", "dirty" }`, or fails with the reason), `forge.saveAll` (returns `{ "saved": [ids] }`) and

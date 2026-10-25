@@ -241,7 +241,7 @@ which outlive it or are replaced first.
 - **Application types:** `registerType(name, factory, properties, apply)`, through the type registry. The type has
   the properties of the built-in widget its panel derives from, plus its own, applied by `apply` whenever they change.
   A name the format already has replaces that type. `resolveColor` and
-  `font` read colours and fonts as the document writes them. `examples/shared/CodeEditor.*` registers `code` this way.
+  `font` read colours and fonts as the document writes them. `tests/unit/registries.cpp` registers one this way.
 - **Native actions and functions:** `onAction(name, action)` for `"onClick": "name"`, and `onCall(name, call)` for
   `{"call": name, "with": ..., "into": "state.x"}` steps. Tell `Rules::addNativeAction` about the actions, so the
   checker accepts them.
@@ -413,4 +413,4 @@ a section that grants a capability goes in `CapabilitySections.cpp` with `capabi
 then guards.
 
 **Add a node type for one application.** Don't add it here: register it from the application with
-`Screen::registerType` (or `Runtime::registerType`), as `examples/shared/CodeEditor.cpp` does.
+`Screen::registerType` (or `Runtime::registerType`), as `tests/unit/registries.cpp` does.

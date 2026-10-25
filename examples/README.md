@@ -7,7 +7,7 @@ uses is in `shared/`. None of this is part of the library; each uses only its pu
 examples/
 ├── templates.json      the shipped templates: each one's name and folder (read by the tests, the tools, the web
 │                       build and the release archive)
-├── shared/             Assets.hpp, Templates.hpp, CodeEditor (the "code" type), SocketDir.hpp, components/, fonts/
+├── shared/             Assets.hpp, Templates.hpp, SocketDir.hpp, addons/, components/, fonts/, languages/
 │
 ├── host/               affrescoui_launcher, the stock host that runs any screen
 ├── launcher/           template "launcher": the apps, your own, creating one (what the host opens without a file)

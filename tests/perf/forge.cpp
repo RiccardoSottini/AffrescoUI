@@ -4,7 +4,6 @@
 /// file, the command palette, the find bar, the secondary side bar and the minimap, each with its update and layout.
 
 #include "Bench.hpp"
-#include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/debug/Debug.hpp"
 #include "features/editor/Editor.hpp"
@@ -54,7 +53,6 @@ std::string forgeDocument(const Context& context) {
 LoadedScreen buildForge(Context& context, const std::string& text, Window& window) {
 	Screen& screen = context.create(text, forgeDirectory(context));
 	const auto workspace = std::make_shared<forge::Workspace>(AFFRESCOUI_FORGE_FOLDER, &window);
-	examples::registerCodeEditor(screen);
 	forge::registerNatives(screen, workspace);
 	forge::registerLsp(screen, workspace, forge::registerEditor(screen, workspace), nullptr);
 	forge::registerSearch(screen, workspace);

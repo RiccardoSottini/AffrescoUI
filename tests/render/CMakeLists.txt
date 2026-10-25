@@ -4,7 +4,7 @@
 # It registers what affrescoui_launcher and affrescoui_forge register: the code editor and Forge's natives, which see
 # forge/folder (a small fixed folder) open.
 set(forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
-add_executable(affrescoui_render_runner runner.cpp ${PROJECT_SOURCE_DIR}/examples/shared/CodeEditor.cpp ${forge_dir}/Forge.cpp
+add_executable(affrescoui_render_runner runner.cpp ${forge_dir}/Forge.cpp
 	${forge_dir}/features/palette/FileIndex.cpp ${forge_dir}/features/themes/ThemeImport.cpp
 	${forge_dir}/features/themes/IconTheme.cpp ${forge_dir}/features/explorer/Explorer.cpp
 	${forge_dir}/features/terminal/Terminal.cpp ${forge_dir}/features/terminal/TerminalModel.cpp
@@ -19,7 +19,7 @@ target_sources(affrescoui_render_runner PRIVATE ${forge_dir}/features/lsp/Lsp.cp
 	${forge_dir}/features/lsp/LspEdits.cpp ${forge_dir}/features/lsp/LspProtocol.cpp ${forge_dir}/features/lsp/LspText.cpp)
 target_sources(affrescoui_render_runner PRIVATE ${forge_dir}/features/terminal/TerminalSessions.cpp
 	${forge_dir}/features/terminal/TerminalView.cpp)
-# surfaces/Surfaces.hpp here, tempo/Visualiser.hpp in examples, CodeEditor.hpp and the shared headers in examples/shared
+# surfaces/Surfaces.hpp here, tempo/Visualiser.hpp in examples, the shared headers in examples/shared
 target_include_directories(affrescoui_render_runner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/examples
 	${PROJECT_SOURCE_DIR}/examples/shared ${forge_dir})
 # The example surfaces, and a failing one, draw with OpenGL (surfaces.json)

@@ -11,7 +11,6 @@
 /// With AFFRESCOUI_NO_OPENGL=1 in the environment (CI's macOS and Windows runners, which have no OpenGL 4.1), the
 /// scenarios that draw (capture, expect image) are left out, each one named; the others play headless.
 
-#include "CodeEditor.hpp"
 #include "Forge.hpp"
 #include "features/explorer/Explorer.hpp"
 #include "features/terminal/Terminal.hpp"
@@ -172,7 +171,6 @@ int main(int argc, char** argv) {
 		const auto copies = std::make_shared<FolderCopies>();
 		options.prepare = [copies](affresco::Screen& screen) {
 			const std::filesystem::path folder = copies->next();
-			examples::registerCodeEditor(screen);
 			screen.services().allowChosenRoot("workspace");
 			screen.services().addRoot("workspace", folder);
 			const auto workspace = std::make_shared<forge::Workspace>(folder);
