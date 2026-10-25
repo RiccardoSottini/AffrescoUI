@@ -4,13 +4,11 @@
 	"allowed": {
 		"sources-in-examples": {
 			"examples/forge/": "Forge, the workbench of C++ panels: its own program, to become a folder of JSON",
-			"examples/shared/Code": "the \"code\" node type (an editor with syntax colours), to become a library type",
-			"examples/tempo/Visualiser": "Tempo's visualiser surface, to become a library surface"
+			"examples/shared/Code": "the \"code\" node type (an editor with syntax colours), to become a library type"
 		},
 		"host-sources": {
 			"CMakeLists.txt: examples/shared/CodeEditor.cpp": "the \"code\" node type, compiled into the host until it is a library type",
-			"CMakeLists.txt: examples/tempo/Visualiser.cpp": "Tempo's visualiser surface, compiled into the host until it is a library surface",
-			"CMakeLists.txt: examples/shared examples apps/shared": "the headers of those two"
+			"CMakeLists.txt: examples/shared examples apps/shared": "its headers"
 		},
 		"theme-outside-themes": {
 			"modules/format/src/adapters/Layout.cpp": "the palette of the screens the adapters convert, to become a token set in modules/themes",

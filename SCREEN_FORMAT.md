@@ -103,7 +103,7 @@ The sections the host grants and revisions can't widen, and the installed featur
 | `exports` | `{"editor.text": {"type": "string", "value": "{{state.text}}"}}`: values features read as `app.editor.text`. |
 | `imports` | `{"ui": "workbench@^1.0.0"}`: `"use": "ui.panel"` builds the feature's `workbench.panel`, if its release is in the range. |
 | `images` | `{"canvas": {"width": 800, "height": 600, "into": "state.canvas", "tools": {"brush": {"gesture": "paint", "size": 12}}}}`: the images the `image` step edits; `tools` names the library's gestures with their settings, and `limits` only lowers the library's (see Images). Revisions can't change it. |
-| `audio` | `{"song": {"file": "sounds/song.mp3", "into": "state.song", "loop": true}}`: the sounds the `audio` step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a `url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` (`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position updates) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, loop, level, underruns, error}`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run (see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a `tone` (never a `url` or a `source`), and only the person accepts it (Assets). |
+| `audio` | `{"song": {"file": "sounds/song.mp3", "into": "state.song", "loop": true}}`: the sounds the `audio` step plays, each from one source: a `file` (WAV, FLAC or MP3) in the screen's folder or one the host allows, a `url` the host's network allows (streamed), a `source` the host names (`Screen::setAudioSource`), or a `tone` (`frequency`, `seconds`, `amplitude`); with `volume`, `pan`, `rate`, `loop`, `updates` (ms between position updates), `bands` (a spectrum of 1 to 64 bands) and a URL's `maxBytes`. `into` gets `{status, playing, position, duration, progress, volume, pan, rate, loop, level, underruns, error}`, and `spectrum` with `bands`; the actions `name:started`, `name:ended`, `name:underrun` and `name:error` run (see Audio). A `file` may be `asset:<name>`, also a sound description. A revision may give a sound a `file` or a `tone` (never a `url` or a `source`), and only the person accepts it (Assets). |
 | `windows` | `{"audience": {"title": "Slide show", "image": "slide", "background": "#000000"}}`: up to four more windows, each showing a named image fitted on its `background` (a node's `snapshot`, so a slide show or a mirror is part of the screen drawn again), opened by `openWindow` (see Windows). Its key presses run the screen's `keys` (unless `keys` is false), a press of the mouse runs `onClick`, and closing it runs `onClose`; it closes with the screen. The `windows` variable is `{main: {fullscreen}, <name>: {open, fullscreen}}`. Revisions can't change it. |
 | `points` | `{"panels.dock": {"slot": "dock", "receives": ["doc.layers", "layers.move"]}}`: where a feature from another app may put its views (the node whose `point` has the name) and the exports it receives; the action exports a point receives are the host actions such features may run. Revisions can't change it. |
 <!-- end generated -->
@@ -1460,11 +1460,14 @@ give a sound a `file` (one of the screen's, or an asset: `"asset:beat.wav"`) or 
 | `into` | A literal state path, e.g. `"state.song"`: where the sound's state is written. |
 | `volume`, `pan`, `rate`, `loop` | How it starts: a gain from 0 to 4, a balance from -1 to 1, a playback rate from 0.25 to 4 (speed and pitch), and whether it starts again at its end. |
 | `updates` | Milliseconds between position updates while it plays: 50 to 5,000, 250 by default. |
+| `bands` | 1 to 64: its state also gets `spectrum`, how loud each band of frequencies was at each update, for visualisers. |
 
 A sound has exactly one of `file`, `url`, `source` and `tone`. Its state is `{status, playing, position, duration,
 progress, volume, pan, rate, loop, level, underruns, error}`: `status` is `stopped`, `playing`, `paused` or `error`;
 `position` and `duration` are seconds (`duration` is null for a live stream), `progress` goes from 0 to 1, and `level`
-is the sound's peak over the last block mixed (0 to 1), for meters. The step:
+is the sound's peak over the last block mixed (0 to 1), for meters. With `bands`, `spectrum` lists that many numbers
+from 0 (-60 dB or quieter) to 1 (a full-scale sine), for bands spaced evenly in pitch from 40 Hz to 16 kHz over the
+last 1,024 samples mixed, all 0 unless it plays; `"updates": 50` makes it follow the music closely. The step:
 
 ```json
 { "audio": "play", "of": "song", "from": 30, "onError": [{ "set": "state.problem", "to": "{{error}}" }] }

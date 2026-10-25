@@ -61,11 +61,13 @@ void checkKey(const std::string& key, const json& item, const std::string& at) {
 	else if(key == "rate") checkRange(item, at, 0.25, 4);
 	else if(key == "loop") static_cast<void>(expect::boolean(item, at));
 	else if(key == "updates") checkRange(item, at, 50, 5000);
-	else if(key == "maxBytes")
-		checkRange(item, at, 1024, static_cast<double>(AudioPlayers::maxStreamBytes));
+	else if(key == "bands") {
+		checkRange(item, at, 1, static_cast<double>(AudioPlayers::maxBands));
+		if(!item.is_number_integer()) expect::fail(at, "expected a whole number of bands");
+	} else if(key == "maxBytes") checkRange(item, at, 1024, static_cast<double>(AudioPlayers::maxStreamBytes));
 	else if(key != "note")
 		expect::fail(at, "unknown property (expected file, url, source, tone, into, volume, pan, rate, loop, updates, "
-		                 "maxBytes or note)");
+		                 "bands, maxBytes or note)");
 }
 
 /// @brief "audio": at most 32 sounds, each with one source.

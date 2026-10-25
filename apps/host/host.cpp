@@ -43,7 +43,6 @@
 #include "CodeEditor.hpp"
 #include "Permissions.hpp"
 #include "SocketDir.hpp"
-#include "tempo/Visualiser.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
@@ -105,7 +104,6 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 			options.pictures = false;
 			options.prepare = [](affresco::Screen& played) {
 				examples::registerCodeEditor(played);
-				examples::tempo::registerVisualiser(played);
 			};
 			for(const automation::Scenario& scenario : loaded.scenarios)
 				if(!scenario.needsPictures) options.only.push_back(scenario.name);
@@ -453,9 +451,8 @@ int forgetPermissions(const Options& options) {
 affresco::Screen openScreen(const Opened& opened, const Options& options, affresco::Screen::History history) {
 	affresco::Screen screen = opened.app ? affresco::Screen::fromApp(opened.location, options.dataDir, history)
 	                                     : affresco::Screen::fromFile(opened.location, options.dataDir, history);
-	screen.setPlaceholderTypes(true);            // custom types of other apps show as plain panels
-	examples::registerCodeEditor(screen);        // the Forge template's "code" type (application layer)
-	examples::tempo::registerVisualiser(screen); // the Tempo template's visualiser surface
+	screen.setPlaceholderTypes(true);     // custom types of other apps show as plain panels
+	examples::registerCodeEditor(screen); // the Forge template's "code" type (application layer)
 	return screen;
 }
 

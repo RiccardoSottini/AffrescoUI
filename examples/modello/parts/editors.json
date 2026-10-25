@@ -305,7 +305,7 @@
 				"id": "status", "width": "100%", "height": 22, "color": "@bar", "children": [{
 				"use": "statusBar", "id": "status-bar", "fill": true,
 				"with": { "height": 22, "color": "@bar", "textColor": "@dim",
-				          "items": "{{state.modal != null ? [{ text: 'Confirm', icon: 'mouse-left' }, { text: 'Cancel', icon: 'mouse-right' }, { text: 'X Y Z  Axis lock, Shift for a plane' }, { text: 'Type a value' }] : [{ text: 'Select', icon: 'mouse-left' }, { text: 'Rotate View', icon: 'mouse' }, { text: 'Object', icon: 'mouse-right' }, { text: computed.stats + 'Modello 1.0', side: 'end' }]}}" }
+				          "items": "{{state.modal != null ? [{ text: 'Confirm', icon: 'mouse-left' }, { text: 'Cancel', icon: 'mouse-right' }, { text: 'X Y Z  Axis lock, Shift for a plane' }, { text: 'Type a value' }] : [{ text: 'Select', icon: 'mouse-left' }, { text: 'Rotate View', icon: 'mouse' }, { text: 'Object', icon: 'mouse-right' }, { text: (state.fileStatus != '' ? state.fileStatus + ' | ' : '') + computed.stats + 'Modello 1.0', side: 'end' }]}}" }
 			}] }
 		}
 	}

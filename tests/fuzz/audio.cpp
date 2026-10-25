@@ -25,7 +25,7 @@ namespace {
 /// The engine's limits: small, so that inputs reach them.
 constexpr double maxSeconds = 2;
 
-/// @brief Pulls the engine until the voice stops, checking every sample.
+/// @brief Pulls the engine until the voice stops, checking every sample and the spectrum after each block.
 /// @param engine The engine.
 /// @param voice The voice.
 /// @param streamed Whether its frames come from a decoding thread (which may be late).
@@ -39,6 +39,8 @@ void playOut(affresco::audio::Engine& engine, affresco::audio::Voice& voice, boo
 		if(engine.render(block) != 512) affresco::fuzz::broken("a Manual engine renders every frame asked for");
 		for(const float sample : block)
 			if(!std::isfinite(sample)) affresco::fuzz::broken("every sample is finite");
+		for(const float band : voice.spectrum(16))
+			if(!(band >= 0 && band <= 1)) affresco::fuzz::broken("every band of a spectrum is from 0 to 1");
 		if(streamed) std::this_thread::sleep_for(std::chrono::microseconds{200});
 		if(std::chrono::steady_clock::now() > deadline) break;
 	}

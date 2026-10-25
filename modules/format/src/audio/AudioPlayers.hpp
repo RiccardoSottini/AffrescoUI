@@ -36,6 +36,8 @@ class AudioPlayers {
 public:
 	/// The most sounds a section declares.
 	static constexpr std::size_t maxSounds = 32;
+	/// The most "bands" a sound's spectrum has (audio::maxSpectrumBands).
+	static constexpr std::size_t maxBands = 64;
 	/// The most bytes a URL's stream buffers, and its default.
 	static constexpr std::size_t maxStreamBytes = std::size_t{64} << 20;
 	/// The default of "maxBytes".

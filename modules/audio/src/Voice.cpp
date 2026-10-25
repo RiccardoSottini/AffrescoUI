@@ -163,6 +163,11 @@ void VoiceCore::render(float* mix, std::size_t frames) {
 		}
 	}
 	levels = measure(scratch.data(), made, channels);
+	for(std::size_t i = 0; i < made; ++i) { // the first two channels, as one
+		const float* frame = scratch.data() + (i * channels);
+		recent[recentNext] = channels >= 2 ? (frame[0] + frame[1]) / 2 : frame[0];
+		recentNext = (recentNext + 1) % recent.size();
+	}
 	if(faded) {
 		halt();
 		volume = target = restore; // a fade out leaves the voice at its volume for the next play
@@ -322,6 +327,21 @@ float Voice::rate() const {
 Levels Voice::levels() const {
 	const std::scoped_lock lock(shared_->mutex);
 	return core_->state == State::Playing ? core_->levels : Levels{};
+}
+
+std::vector<float> Voice::spectrum(std::size_t bands) const {
+	std::vector<float> samples(spectrumSamples, 0.0F);
+	std::uint32_t sampleRate = 0;
+	{
+		const std::scoped_lock lock(shared_->mutex);
+		if(core_->state != State::Playing)
+			return std::vector<float>(std::clamp<std::size_t>(bands, 1, maxSpectrumBands));
+		const auto split = core_->recent.begin() + static_cast<std::ptrdiff_t>(core_->recentNext);
+		std::copy(split, core_->recent.end(), samples.begin()); // oldest first
+		std::copy(core_->recent.begin(), split, samples.end() - (split - core_->recent.begin()));
+		sampleRate = core_->format.sampleRate;
+	}
+	return audio::spectrum(samples, sampleRate, bands); // the transform outside the lock the mix takes
 }
 
 std::size_t Voice::underruns() const {
