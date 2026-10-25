@@ -1,6 +1,6 @@
 {
 	"change-colour": { "message": "Purple accent", "set": { "/colors/accent": "#7c3aed" } },
-	"rename-label": { "message": "Call the explorer Files", "set": { "#label-explorer/text": "FILES" } },
+	"rename-label": { "message": "Call the open files Tabs", "set": { "#label-openFiles/text": "Tabs" } },
 	"add-terminal-line": {
 		"message": "Show a test run in the terminal",
 		"add": { "/state/terminal/-": { "t": "$ ctest --test-dir build", "c": "prompt" } }

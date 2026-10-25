@@ -1,12 +1,14 @@
 {
-	"change-colour": { "message": "Orange accent", "set": { "/tokens/color.accent/light": "#ea580c" } },
-	"rename-label": { "message": "Call the app Habits", "set": { "#logo/text": "Habits" } },
+	"change-colour": { "message": "Orange primary colour", "set": { "/tokens/c.primary/light": "#ea580c" } },
+	"rename-label": {
+		"message": "Ask the question differently", "set": { "#label-h-question/text": "Did you do it today?" }
+	},
 	"add-field": {
 		"message": "A goal for each habit: a new optional field of its model",
 		"add": { "/models/habits/fields/goal": { "type": "integer", "minimum": 1 } }
 	},
 	"add-node": {
-		"message": "Add a tip under today's habits",
-		"add": { "#today/children/-": { "style": "caption", "text": "Tip: small habits stick." } }
+		"message": "Add a tip under the habit's cards",
+		"add": { "#detailCards/children/-": { "style": "caption", "text": "Tip: small habits stick." } }
 	}
 }
