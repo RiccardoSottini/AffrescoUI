@@ -4220,6 +4220,140 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-move-auto-select",
+			"note": "With Auto-Select on, a move press makes the topmost layer painted under it the active one",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "addLayer",
+						"args": {
+							"kind": "pixel"
+						}
+					}
+				},
+				{
+					"key": "m"
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 0,
+									"y": 0
+								},
+								{
+									"kind": "move",
+									"x": 100,
+									"y": 100
+								},
+								{
+									"kind": "release",
+									"x": 100,
+									"y": 100
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "fillSelection",
+						"args": {
+							"color": "#c03020"
+						}
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "select",
+						"args": {
+							"kind": "none"
+						}
+					}
+				},
+				{
+					"key": "v"
+				},
+				{
+					"click": {
+						"role": "checkbox",
+						"name": "Auto-Select"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.options.autoSelect",
+						"is": true
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 600,
+									"y": 400
+								},
+								{
+									"kind": "release",
+									"x": 600,
+									"y": 400
+								}
+							]
+						}
+					}
+				},
+				{
+					"note": "the sample's layer is painted there",
+					"expect": {
+						"state": "doc.active",
+						"is": "3"
+					}
+				},
+				{
+					"action": "perform",
+					"event": {
+						"run": "pointer",
+						"args": {
+							"points": [
+								{
+									"kind": "press",
+									"x": 50,
+									"y": 50
+								},
+								{
+									"kind": "release",
+									"x": 50,
+									"y": 50
+								}
+							]
+						}
+					}
+				},
+				{
+					"note": "the new layer's square is above it",
+					"expect": {
+						"state": "doc.active",
+						"is": "9"
+					}
+				}
+			]
 		}
 	]
 }

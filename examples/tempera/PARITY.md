@@ -61,7 +61,7 @@ takes the gaps a daily user would notice first. Tempera keeps its own name, the 
 | Lasso and polygonal lasso | done | |
 | Magic wand with tolerance, quick selection | partial | No quick selection |
 | Select all, deselect, inverse, feather, transform selection | partial | No transform selection |
-| Move with auto-select | partial | No auto-select |
+| Move with auto-select | done | The Auto-Select check picks the topmost layer painted under the press |
 | Free transform (Cmd+T): handles, rotate, skew, commit and cancel | partial | A dialog: move, scale (flip with a negative), any angle, OK and Cancel; no on-canvas handles, no skew |
 | Crop with overlay grid and aspect presets | partial | Thirds while dragging; the ratios crop the largest centred part, but don't hold a drag to that shape |
 | Gradient tool with editor | partial | Inline editor and presets; reverse, dither and modes disabled |

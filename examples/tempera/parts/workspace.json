@@ -317,7 +317,9 @@
 					    { "title": "Portrait, 4 : 5", "run": "cropToRatio", "with": { "args": { "width": 4, "height": 5 } } }] } },
 					{ "use": "tCheck", "id": "option-sample-all", "when": "{{state.doc.tool == 'eyedropper'}}",
 					  "with": { "title": "Sample All Layers", "key": "allLayers", "checked": "{{state.doc.options.allLayers}}" } },
-					{ "style": "dim", "id": "option-move", "when": "{{state.doc.tool == 'move'}}", "text": "Drag to move the active layer" },
+					{ "use": "tCheck", "id": "option-auto-select", "when": "{{state.doc.tool == 'move'}}",
+					  "with": { "title": "Auto-Select", "key": "autoSelect", "checked": "{{state.doc.options.autoSelect}}" } },
+					{ "style": "dim", "id": "option-move", "when": "{{state.doc.tool == 'move'}}", "text": "{{state.doc.options.autoSelect ? 'Drag to move the layer painted under the pointer' : 'Drag to move the active layer'}}" },
 
 					{ "type": "row", "id": "options-view", "when": "{{state.doc.tool == 'hand' || state.doc.tool == 'zoom'}}", "alignItems": "center", "gap": 4, "height": 30, "grow": 100,
 					  "children": [

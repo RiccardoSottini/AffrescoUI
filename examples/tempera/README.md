@@ -6,7 +6,7 @@ adjustment layers and colour management, on sparse copy-on-write tiles. It is a 
 
 ```sh
 ./build/affrescoui_launcher examples/tempera/index.screen.json --socket out/s   # opens the sample
-./build/affrescoui test examples/tempera/index.scenarios.json                   # the 58 scenarios (ctest: scenarios)
+./build/affrescoui test examples/tempera/index.scenarios.json                   # the 59 scenarios (ctest: scenarios)
 ```
 
 It opens a generated sample (1200 × 800: Sky, Sun and Hills), drawn by `onLoad`.
@@ -24,7 +24,7 @@ can't work yet is shown disabled, its tooltip saying "not available yet".
 | `parts/workspace.json` | The menu bar, the options bar, the tool bar, the canvas (a `raster` node) with rulers and guides, and the status bar |
 | `parts/panels.json` | Navigator, Layers, History, Properties/Adjust, Colour/Palette, and the New dialog |
 | `parts/dialogs.json` | The dialogs that take numbers (Free Transform, Image Size, Canvas Size, Rename Layer, Fill) and Close's question |
-| `index.scenarios.json` | 58 scenarios, run headless |
+| `index.scenarios.json` | 59 scenarios, run headless |
 | `PARITY.md` | What a daily user of a professional editor finds, row by row, and how far Tempera has come, round by round |
 | `sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent |
 

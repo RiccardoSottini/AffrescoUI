@@ -84,7 +84,7 @@
 			"memory": 0, "selection": false, "bounds": [0, 0, 0, 0], "foreground": "#000000", "background": "#ffffff", "tool": "brush",
 			"options": { "size": 20, "hardness": 80, "spacing": 25, "opacity": 100, "flow": 100, "mode": "replace",
 			             "tolerance": 32, "contiguous": true, "allLayers": false, "fillOpacity": 100, "shape": "linear",
-			             "quickMask": false },
+			             "quickMask": false, "autoSelect": false },
 			"view": { "zoom": 1, "x": 0, "y": 0 }, "message": "", "previewing": false, "clipboard": false
 		},
 		"tools": [
