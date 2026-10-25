@@ -151,6 +151,8 @@ bool reducedMotion() {
 
 void watchColorScheme() {} // WM_SETTINGCHANGE reaches the window and wakes the event loop, which reads it again
 
+void setApplicationIcon(const Bitmap* /*icon*/) {} // each window has its own: glfwSetWindowIcon
+
 std::unique_ptr<MenuBar> createMenuBar(GLFWwindow* window, MenuChosen chosen) {
 	return std::make_unique<Win32MenuBar>(window, std::move(chosen));
 }

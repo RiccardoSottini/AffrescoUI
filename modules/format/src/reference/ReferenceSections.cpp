@@ -31,12 +31,14 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 		"focusRing": {"description": "The ring around the node the keyboard focused: a colour, or its look, or false",
 		"anyOf": [{"type": "string"}, {"const": false}, {"type": "object", "additionalProperties": false,
 		"properties": {"color": {"type": "string"}, "width": {"type": "number", "minimum": 0},
-		"offset": {"type": "number", "minimum": 0}}}]}}})json",
+		"offset": {"type": "number", "minimum": 0}}}]}, "icon": {"type": "string",
+		"description": "The window's icon (the app's in the macOS Dock): a PNG, JPEG or SVG file, as an image's file"}}})json",
 	 "`title`, `width`, `height`, `minWidth`, `minHeight` (integers); `menuBar`: the native menu bar, a list of "
 	 "`{ \"menu\": \"file\", \"title\": \"File\" }` naming menus of the `menus` section (macOS, Windows; elsewhere "
 	 "none, and `window.nativeMenuBar` is false so the screen can draw its own); `focusRing`: the ring around the "
 	 "node the keyboard focused: a colour, `{ \"color\": \"#2563EB\", \"width\": 2, \"offset\": 2 }` (the "
-	 "defaults), or `false` (none).",
+	 "defaults), or `false` (none); `icon`: the window's icon (on macOS the app's, in the Dock; none on Wayland), a "
+	 "PNG, JPEG or SVG file under the rules of an image's `file`.",
 	 "sections"},
     {"fonts", R"json({"type": "object",
 		"description": "Fonts by name; \"default\" is used by text without a \"font\"",

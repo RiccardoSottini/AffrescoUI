@@ -110,6 +110,12 @@ public:
 	/// @brief Sets the title.
 	/// @param title The title.
 	void setTitle(std::string title);
+	/// @brief The icon, or nullptr (the system's default).
+	[[nodiscard]] const std::shared_ptr<const Bitmap>& icon() const noexcept { return icon_; }
+	/// @brief Sets the icon: the window's on Windows and X11, the app's Dock icon on macOS (shared by its windows, and
+	/// kept after the window closes); nothing on Wayland, the web or an embedded window.
+	/// @param icon The image, or nullptr for the system's default.
+	void setIcon(std::shared_ptr<const Bitmap> icon);
 
 	/// @brief The width, in window units.
 	[[nodiscard]] int width() const noexcept { return width_; }
@@ -503,6 +509,7 @@ private:
 	std::vector<std::function<void()>> deferred_; ///< See defer().
 
 	std::shared_ptr<const Font> defaultFont_; ///< See defaultFont().
+	std::shared_ptr<const Bitmap> icon_;      ///< See icon().
 	Panel* focused_ = nullptr;                ///< See focusedPanel().
 	Panel* hovered_ = nullptr;                ///< See hoveredPanel().
 	Panel* grabbed_ = nullptr;                ///< See mouseGrabber().

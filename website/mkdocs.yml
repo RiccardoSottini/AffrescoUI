@@ -19,6 +19,8 @@ validation:
 
 theme:
   name: material
+  logo: assets/affrescoui-mark.svg
+  favicon: assets/favicon.svg
   features:
     - navigation.sections
     - navigation.top

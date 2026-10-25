@@ -146,6 +146,10 @@
 										}
 									}
 								]
+							},
+							"icon": {
+								"type": "string",
+								"description": "The window's icon (the app's in the macOS Dock): a PNG, JPEG or SVG file, as an image's file"
 							}
 						}
 					},

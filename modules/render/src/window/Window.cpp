@@ -186,6 +186,11 @@ void Window::setTitle(std::string title) {
 	if(native_) native_->setTitle(title_);
 }
 
+void Window::setIcon(std::shared_ptr<const Bitmap> icon) {
+	icon_ = std::move(icon);
+	if(native_) native_->setIcon(icon_.get());
+}
+
 void Window::setSize(int width, int height) {
 	const int clampedWidth = std::max(width, minWidth_);
 	const int clampedHeight = std::max(height, minHeight_);

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="brand/affrescoui-mark.svg" width="88" alt="The AffrescoUI logo: an arched window of four coloured panes, a brush painting the last one">
+
 # AffrescoUI
 
 ### Any application, written in one format and rendered natively.<br/>Its users reshape it live, just by asking an AI.
