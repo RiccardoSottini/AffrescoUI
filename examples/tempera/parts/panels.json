@@ -118,11 +118,11 @@
 							{ "style": "dim", "id": "patterns-empty", "when": "{{state.panels.colour == 'patterns'}}", "anchors": { "left": 10, "top": 10 },
 							  "text": "No patterns: pattern fills aren't available yet." }
 						] },
-						{ "use": "tGroup", "height": 236, "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }] }, "children": [
+						{ "use": "tGroup", "height": 236, "shrink": 1, "minHeight": 96, "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }] }, "children": [
 							{ "use": "temperaProperties", "when": "{{state.panels.properties == 'properties'}}" },
 							{ "use": "temperaAdjustments", "when": "{{state.panels.properties == 'adjustments'}}" }
 						] },
-						{ "use": "tGroup", "grow": 1, "with": { "slot": "layers", "tabs": [{ "id": "layers", "label": "Layers" }, { "id": "channels", "label": "Channels" }, { "id": "paths", "label": "Paths" }] }, "children": [
+						{ "use": "tGroup", "grow": 1, "minHeight": 200, "with": { "slot": "layers", "tabs": [{ "id": "layers", "label": "Layers" }, { "id": "channels", "label": "Channels" }, { "id": "paths", "label": "Paths" }] }, "children": [
 							{ "use": "temperaLayers", "when": "{{state.panels.layers == 'layers'}}" },
 							{ "use": "temperaChannels", "when": "{{state.panels.layers == 'channels'}}" },
 							{ "style": "dim", "id": "paths-empty", "when": "{{state.panels.layers == 'paths'}}", "anchors": { "left": 10, "top": 10 },

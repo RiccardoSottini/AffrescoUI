@@ -3000,6 +3000,11 @@
 					}
 				},
 				{
+					"note": "with a feature at the foot of the panels, the Properties panel is shorter: its Align row needs a scroll",
+					"scroll": "#properties",
+					"dy": -20
+				},
+				{
 					"click": "#align-left"
 				},
 				{
