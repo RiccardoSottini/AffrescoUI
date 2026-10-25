@@ -81,6 +81,15 @@ TEST_CASE(
 	CHECK(view["lines"] == 2);
 }
 
+TEST_CASE("editor view: a frame taller than any count of rows shows them all, without overflowing") {
+	const Viewed viewed;
+	viewed.screen->get("code").setHeight(affresco::px(1e30f)); // past size_t's range, in rows
+	viewed.window->render();
+	const json view = viewed.view();
+	CHECK(view["first"] == 1);
+	CHECK(view["last"] == 30);
+}
+
 TEST_CASE("editor view: only an editor has one") {
 	CHECK_THROWS_WITH(Viewed("textarea"), doctest::Contains("only text editors have \"viewport\""));
 }
