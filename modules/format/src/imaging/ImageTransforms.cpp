@@ -177,9 +177,9 @@ struct Sampling {
 				const Pixel pixel = sampling.smooth ? reader.between(clampedX, clampedY)
 				                                    : reader.at(static_cast<int>(std::floor(clampedX)),
 				                                                static_cast<int>(std::floor(clampedY)));
-				sum[0] += pixel.red * pixel.alpha;
-				sum[1] += pixel.green * pixel.alpha;
-				sum[2] += pixel.blue * pixel.alpha;
+				sum[0] += static_cast<double>(pixel.red) * pixel.alpha;
+				sum[1] += static_cast<double>(pixel.green) * pixel.alpha;
+				sum[2] += static_cast<double>(pixel.blue) * pixel.alpha;
 				sum[3] += pixel.alpha;
 			}
 		if(sum[3] <= 0.0) return {};
