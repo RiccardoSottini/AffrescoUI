@@ -46,7 +46,8 @@ private:
 	std::unique_ptr<Process> process_;                           ///< The child process.
 	std::atomic<bool> running_ = false;                          ///< See isRunning().
 	std::thread reader_;                                         ///< Reads its stdout.
-	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards tasks still queued after destruction.
+	std::shared_ptr<std::atomic<bool>> alive_ =
+	    std::make_shared<std::atomic<bool>>(true); ///< Guards tasks still queued after destruction.
 };
 
 /// @brief A Channel over this process's own stdin/stdout: the app is the other end's child process.
@@ -69,7 +70,8 @@ public:
 	void send(std::string_view message) override;
 
 private:
-	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards tasks still queued after destruction.
+	std::shared_ptr<std::atomic<bool>> alive_ =
+	    std::make_shared<std::atomic<bool>>(true); ///< Guards tasks still queued after destruction.
 };
 
 } // namespace affresco::channel

@@ -268,8 +268,8 @@ TEST_CASE("channel: the shared line framing drops CRs when asked, and ends the s
 			return static_cast<std::ptrdiff_t>(n);
 		};
 		std::atomic<bool> running = true;
-		affresco::channel::detail::readLines(read, {executor, channel, std::make_shared<bool>(true)}, &running,
-		                                     dropCarriageReturns);
+		affresco::channel::detail::readLines(read, {executor, channel, std::make_shared<std::atomic<bool>>(true)},
+		                                     &running, dropCarriageReturns);
 		CHECK_FALSE(running);
 		CHECK(executor.runUntil([&] { return closed; }));
 		return std::pair(lines, at);
@@ -288,6 +288,100 @@ TEST_CASE("channel: the shared line framing drops CRs when asked, and ends the s
 	const auto [lines, read] = frame(endless, false);
 	CHECK(lines == std::vector<std::string>{"before"});
 	CHECK(read < endless.size());
+}
+
+namespace {
+
+/// @brief An Executor any thread may post to; the test's thread runs what was posted with runPosted().
+class LockedExecutor final : public affresco::Executor {
+public:
+	/// @brief Keeps a task (from any thread).
+	/// @param task The task.
+	void post(std::function<void()> task) override {
+		const std::scoped_lock lock(mutex_);
+		tasks_.push_back(std::move(task));
+	}
+
+	/// @brief Runs the tasks posted so far.
+	/// @return How many ran.
+	std::size_t runPosted() {
+		std::vector<std::function<void()>> tasks;
+		{
+			const std::scoped_lock lock(mutex_);
+			tasks.swap(tasks_);
+		}
+		for(auto& task : tasks) task();
+		return tasks.size();
+	}
+
+private:
+	std::mutex mutex_;                         ///< Guards tasks_.
+	std::vector<std::function<void()>> tasks_; ///< Posted, not yet run.
+};
+
+/// @brief Waits until a count stops growing for a while: the reader is holding back, or has ended.
+/// @param count The count.
+/// @return Its value then.
+std::size_t settled(const std::atomic<std::size_t>& count) {
+	for(std::size_t before = count.load();; before = count.load()) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));
+		if(count.load() == before) return before;
+	}
+}
+
+} // namespace
+
+// Before, every line read was posted at once: a local peer could make the host buffer gigabytes before the rate check
+TEST_CASE("channel: the reader stops reading while too much waits for the main thread, and goes on as it is handled") {
+	constexpr std::size_t lineBytes = 1000, maxWaitingBytes = 20'000, streamBytes = 4 << 20;
+	const std::string line = std::string(lineBytes - 1, 'x') + "\n";
+	LockedExecutor executor;
+	MemoryChannel channel;
+	std::size_t received = 0;
+	channel.onMessage.connect([&](const std::string&) { ++received; });
+	std::atomic<std::size_t> readBytes = 0;
+	const auto read = [&](char* data, std::size_t size) -> std::ptrdiff_t {
+		const std::size_t n = std::min(size, streamBytes - readBytes.load());
+		for(std::size_t i = 0; i < n; ++i) data[i] = line[(readBytes + i) % lineBytes];
+		readBytes += n;
+		return static_cast<std::ptrdiff_t>(n);
+	};
+	const auto alive = std::make_shared<std::atomic<bool>>(true);
+	std::thread reader(
+	    [&] { affresco::channel::detail::readLines(read, {executor, channel, alive, maxWaitingBytes}, nullptr); });
+	// The main thread is busy: the reader holds at most the bound, a line more and a chunk
+	const std::size_t held = settled(readBytes);
+	CHECK(held < maxWaitingBytes + lineBytes + 4096);
+	CHECK(held < streamBytes);
+	// As the main thread handles them, the rest comes
+	for(int round = 0; round < 10'000 && readBytes < streamBytes; ++round)
+		if(executor.runPosted() == 0) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	CHECK(readBytes == streamBytes);
+	while(executor.runPosted() > 0 || received < streamBytes / lineBytes)
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	reader.join();
+	CHECK(received == streamBytes / lineBytes);
+}
+
+TEST_CASE("channel: a reader holding back ends when its channel is destroyed") {
+	constexpr std::size_t maxWaitingBytes = 10'000;
+	LockedExecutor executor; // never run: the main thread is in the channel's destructor
+	MemoryChannel channel;
+	std::atomic<std::size_t> readBytes = 0;
+	const auto read = [&](char* data, std::size_t size) -> std::ptrdiff_t {
+		std::fill_n(data, size - 1, 'x'); // a line a chunk
+		data[size - 1] = '\n';
+		readBytes += size;
+		return static_cast<std::ptrdiff_t>(size);
+	};
+	const auto alive = std::make_shared<std::atomic<bool>>(true);
+	std::thread reader(
+	    [&] { affresco::channel::detail::readLines(read, {executor, channel, alive, maxWaitingBytes}, nullptr); });
+	const std::size_t held = settled(readBytes);
+	CHECK(held < maxWaitingBytes + 4096);
+	*alive = false;
+	reader.join(); // returns within the reader's next look at the channel
+	CHECK(readBytes == held);
 }
 
 #ifndef _WIN32

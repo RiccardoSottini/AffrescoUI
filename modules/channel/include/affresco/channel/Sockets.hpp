@@ -88,7 +88,8 @@ private:
 	bool writerDone_ = false;              ///< The writer thread has ended.
 	std::thread reader_;                   ///< Reads the socket.
 	std::thread writer_;                   ///< Writes the queue (see writeQueued()).
-	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards tasks still queued after destruction.
+	std::shared_ptr<std::atomic<bool>> alive_ =
+	    std::make_shared<std::atomic<bool>>(true); ///< Guards tasks still queued after destruction.
 };
 
 /// @brief Listens on a local socket that only this user may open.
@@ -135,7 +136,8 @@ private:
 	PeerCheck checkPeer_;                ///< Accepts or refuses each connection.
 	std::unique_ptr<Listener> listener_; ///< Waits for connections; stopped by the destructor.
 	std::thread acceptor_;               ///< Accepts connections.
-	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< Guards tasks still queued after destruction.
+	std::shared_ptr<std::atomic<bool>> alive_ =
+	    std::make_shared<std::atomic<bool>>(true); ///< Guards tasks still queued after destruction.
 };
 
 } // namespace affresco::channel

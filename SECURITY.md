@@ -518,7 +518,7 @@ TLS, WebSocket, sign-in (OAuth 2 and OpenID Connect), remote peers, the document
 | Entry points | Response heads and bodies, server-sent events, WebSocket frames, sign-in answers and redirects, a remote peer's upgrade request and first message, URLs a document or a provider names, the token file |
 | Limits | "Limits" below: the `net` module, remote peer and connection rows, and the token file's |
 | Mitigations | TLS 1.2 or later with the certificate and host always verified; only origins the host allowed, plain http and ws to the loopback only; PKCE (S256), `state` and `nonce` compared in constant time; a token never reaches a document, state, history, log or screenshot (`tests/unit/auth.cpp`); the document server and remote peers admit no one without a token; server tokens kept as SHA-256 only. Every parser here is fuzzed (`http_response`, `sse`, `websocket`, `peer_handshake`, `url`, `oauth`, `token_file`) |
-| Known gaps | A token is as safe as the process, and the sign-in listener can be raced (G-01); the queue to the main thread isn't bounded (G-05); keys chosen to collide (G-19) |
+| Known gaps | A token is as safe as the process, and the sign-in listener can be raced (G-01); what waits for the main thread is bounded per connection, not in all (G-05); keys chosen to collide (G-19) |
 
 ### Features, signatures and the catalogue
 
@@ -598,6 +598,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | The document, with its live state one level inside it, as revisions build it (a trusted screen file may be deeper; then a revision may not make it deeper still) | 200 levels |
 | The live state, as steps build it: the place a `set`, `push` or `call` `into` writes, and the value written there | 200 levels |
 | One message on a channel (one line) | 96 MiB; a longer line closes the channel |
+| Lines a channel read and the main thread hasn't handled yet (`Delivery::maxWaitingBytes`) | 96 MiB; the channel isn't read meanwhile |
 | One message from a peer (`PeerLimits::maxMessageBytes`) | 88 MiB (a revision of 64 MiB of assets, in base64); a larger one gets an error, unread. A remote peer (`net::PeerServerOptions::maxMessageBytes`) stays at 8 MiB unless its host raises it |
 | One asset (`maxAssetBytes`, `core/Assets.hpp`) | 32 MiB |
 | New assets one revision brings (`maxRevisionAssetBytes`) | 64 MiB |
@@ -799,16 +800,18 @@ removes the gap from this list.
 - **The user check on Windows goes by process id.** The peer's process could exit and its id be reused between the
   connection and the check, a narrow race. A process of the same user that runs elevated may not be inspectable from
   a non-elevated host, and is then refused. Tracking: G-04.
-- **The rate limits are per peer, and the queue to the main thread isn't bounded.** Over local sockets nothing
-  limits how many peers connect, and each new connection gets fresh limits (remote peers over WebSocket are capped in
-  number and in connection rate, "Limits" above). A socket's reader thread hands every line to the main thread
-  as it arrives, so a peer that sends faster than the main thread refuses its messages still makes that queue grow;
-  refusing is cheap (no parsing), so the main thread keeps up in practice. The open-proposal limit caps waiting
+- **The rate limits are per peer.** Over local sockets nothing limits how many peers connect, and each new
+  connection gets fresh limits (remote peers over WebSocket are capped in number and in connection rate, "Limits"
+  above). A channel's reader thread hands each line to the main thread, but stops reading while 96 MiB of its lines
+  wait there, so a peer that sends faster than the main thread handles them is held back by its own connection: the
+  host holds at most about twice that for it, and a thousand connections can still hold a thousand times as much. The
+  rate and size checks themselves run on the main thread. The open-proposal limit caps waiting
   proposals, and the change rate caps how often they are pushed. Each connection also takes a file descriptor and two
   threads: a peer that opens enough connections to use up the descriptors makes the server's accepting thread retry
   without pause until one is closed, and one that uses up the threads stops the app (a thread that can't be started
   ends the process). Tracking: G-05.
-- **Large revisions.** A message can be up to 8 MiB, so a revision can still be large, and so can the lists it puts
+- **Large revisions.** A message can be up to 88 MiB from a local peer (8 MiB from a remote one), so a revision can
+  still be large, and so can the lists it puts
   in the state, which the screen may render as one panel per item. A long text costs in proportion to its length,
   but a line longer than a font keeps shaped (128 Ki code points) is shaped again every time it is drawn or measured:
   a label of a million characters on one line takes a fraction of a second each time. The limits above bound what
