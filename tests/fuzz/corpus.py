@@ -738,6 +738,10 @@ def images_seeds():
                 {"image": "deleteHidden"}, {"image": "flatten", "with": {"background": "#ffffff"}}, {"image": "clear"},
                 {"image": "undo"}, {"image": "redo"}]
     seeds.append(compact({"images": board, "steps": geometry}))
+    groups = [{"image": "addLayer", "with": {"name": "Ink"}}, {"image": "addLayer", "with": {"kind": "group"}},
+              {"image": "moveLayer", "with": {"id": "2", "into": "3"}}, {"image": "moveLayer", "with": {"id": "3", "into": "3"}},
+              {"image": "moveLayer", "with": {"id": "2", "onto": "3"}}, {"image": "undo"}]
+    seeds.append(compact({"images": board, "steps": groups}))
     return seeds
 
 
