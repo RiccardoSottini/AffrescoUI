@@ -52,9 +52,9 @@ void saveDecisions(const std::filesystem::path& file, const Decisions& decisions
                                   const std::filesystem::path& prompt);
 
 /// @brief Lets the app's screen use the capabilities allowed: their origins on its network, their folders for the
-/// person to choose (for reading only if declared so), their programs, its sound, the file dialogs and its other
-/// windows. Never one its manifest doesn't declare. One that can't be given (a program not on the PATH) is reported,
-/// and the app opens without it.
+/// person to choose (for reading only if declared so), their programs, its sound, the file dialogs, its other
+/// windows and its channels. Never one its manifest doesn't declare. One that can't be given (a program not on the
+/// PATH) is reported, and the app opens without it.
 /// @param screen The app's screen.
 /// @param app Its manifest.
 /// @param allowed The keys allowed.

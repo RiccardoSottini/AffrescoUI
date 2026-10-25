@@ -1584,6 +1584,9 @@ A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_
 Each message of type `T` runs the action `name:T` with the message as `event`; `name:open`, `name:closed` and
 `name:error` (a `send` while disconnected) run when that happens. `reconnect` (or `true`: 2 s) tries again after a
 disconnect.
+In an app (`app.json`) the stock host lets channels connect only with the `channels` capability, and only to a socket
+in its own socket folder: a relative path with no `..` (`studio.sock`, its own host). Any other is refused, and
+`name:closed` runs once with why (SECURITY.md, "Channels a screen declares").
 A `"socket"` that starts with `ws://` or `wss://` is a remote peer instead (a `PeerServer`, `modules/net/README.md`):
 `wss://` anywhere, `ws://` on the loopback only. The token is never in the file: the program that shows the screen
 gives it (`Screen::connectChannel()`), and
@@ -1749,7 +1752,8 @@ seed data; another screen in the folder is read as written. A generated example:
   with the provider of intelligence the person set up (an agent the person connects, such as an MCP server, needs
   none). `files`: the open and save dialogs (`saveFile`, `openFile`, `export`, an `image` step's `open` and `save`;
   refused, a step runs its `onError` with the code `notAllowed`). `windows`: its other windows (the `windows`
-  section; refused, `openWindow` opens nothing). Nothing is allowed by default: the host asks the person the first
+  section; refused, `openWindow` opens nothing). `channels`: its `channels` (Channels and persistence), to its own
+  host's socket folder only; refused, each runs its `name:closed` and never connects. Nothing is allowed by default: the host asks the person the first
   time, for this app only, and remembers the answer (`<data folder>/apps/<id>/grants.json`; `affrescoui_launcher --permissions <app>`
   forgets it; `--grant <key>` allows one for a single run, and a screenshot asks nothing). A capability the screen
   uses that the manifest doesn't declare is never granted, and `affrescoui check` reports it; since a revision can't

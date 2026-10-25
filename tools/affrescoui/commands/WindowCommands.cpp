@@ -106,6 +106,8 @@ Exit runScreen(std::span<const std::string_view> args) {
 	Screen screen = Screen::fromFile(options.file, options.data);
 	registerApplicationTypes(screen);
 	if(options.mode) screen.setModeForThisRun(*options.mode);
+	screen.setSocketDirectory(options.socketDirectory); // its channels reach this program's sockets only
+	screen.confineChannels(true);
 	screen.createWindow(app);
 	applyPlugins(screen, options.plugins);
 	createSocketDir(options.socketDirectory);

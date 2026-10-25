@@ -27,7 +27,7 @@ constexpr std::size_t maxGrantsBytes = 256 * 1024;
 
 /// @brief The name the prompt screen gives a capability's kind (its "permissions.<kind>" string).
 /// @param capability The capability.
-/// @return "network", "folderRead", "folderWrite", "program", "audio", "assistant", "files" or "windows".
+/// @return "network", "folderRead", "folderWrite", "program", "audio", "assistant", "files", "windows" or "channels".
 std::string kindName(const AppCapability& capability) {
 	switch(capability.kind) {
 	case AppCapability::Kind::Network:
@@ -44,6 +44,8 @@ std::string kindName(const AppCapability& capability) {
 		return "files";
 	case AppCapability::Kind::Windows:
 		return "windows";
+	case AppCapability::Kind::Channels:
+		return "channels";
 	}
 	return "audio";
 }
@@ -124,6 +126,7 @@ void applyGrants(affresco::Screen& screen, const affresco::format::AppManifest& 
                  bool silent) {
 	screen.allowFileDialogs(false); // a library screen may, an app only once the person allows it
 	screen.allowOtherWindows(false);
+	screen.allowChannels(false);
 	for(const AppCapability& capability : app.capabilities) {
 		if(!allowed.contains(capability.key())) continue;
 		std::optional<std::string> refused;
@@ -147,6 +150,9 @@ void applyGrants(affresco::Screen& screen, const affresco::format::AppManifest& 
 			break;
 		case AppCapability::Kind::Windows:
 			screen.allowOtherWindows(true);
+			break;
+		case AppCapability::Kind::Channels:
+			screen.allowChannels(true);
 			break;
 		}
 		if(refused)

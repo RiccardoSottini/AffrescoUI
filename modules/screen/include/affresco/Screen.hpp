@@ -115,8 +115,8 @@ public:
 	/// @return The screen, not yet built; app() is its manifest.
 	/// @throws ScreenError If the manifest or a file it names can't be read or isn't valid, a file it names is
 	/// outside its folder, or the entry screen can't be loaded.
-	[[nodiscard]] static Screen fromApp(const std::filesystem::path& location, const std::filesystem::path& dataDirectory,
-	                                    History history = History::OnDisk);
+	[[nodiscard]] static Screen fromApp(const std::filesystem::path& location,
+	                                    const std::filesystem::path& dataDirectory, History history = History::OnDisk);
 
 	/// @brief The app a screen file is the entry of: the app.json in its folder, if that names it as its entry.
 	/// @param screenFile The screen file.
@@ -312,6 +312,21 @@ public:
 	/// @brief Sets where relative "channels" socket paths are found (default: defaultSocketDirectory()).
 	/// @param directory The directory.
 	void setSocketDirectory(std::filesystem::path directory);
+
+	/// @brief Lets the file's "channels" connect, or not: a channel refused doesn't connect, and runs "C:closed" with
+	/// why. On by default; a host that asks the person (the stock host's "channels" capability) turns it off until
+	/// they allow it. Call it before startChannels().
+	/// @param allowed Whether they may.
+	void allowChannels(bool allowed);
+
+	/// @brief Keeps the file's "channels" sockets inside the socket directory (setSocketDirectory()), or not: a
+	/// confined socket path is relative, with no "..", "\\" or ":", and still inside the directory once links are
+	/// followed; any other is refused, as allowChannels() refuses. Off by default (a library screen is its embedder's
+	/// own); the stock host confines every screen it opens to its own socket folder, so that a screen reaches its own
+	/// host only, never another app's. Peer addresses (`wss://`) and connectChannel() aren't affected. Call it before
+	/// startChannels().
+	/// @param confined Whether they are.
+	void confineChannels(bool confined);
 
 	/// @brief Connects a declared channel somewhere else for this run, closing its connection first: a socket (as in
 	/// "channels"), or a remote peer's `wss://` address (`ws://` on the loopback) with the token its server's verifier
