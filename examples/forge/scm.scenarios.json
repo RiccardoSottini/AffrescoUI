@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-scenarios.schema.json",
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"note": "Forge's source control, checked headless: git's output is given as events (scmApplyStatus, scmApplyBranches, scmCompare), so no repository is needed; tests/unit/forge_scm.cpp runs a real one. affrescoui_render_runner scm.scenarios.json",
+	"note": "Forge's source control, checked headless: git's output is given as events (scmApplyStatus, scmApplyBranches, scmCompare), so no repository is needed; Stash runs git in the test folder, which is none. affrescoui_render_runner scm.scenarios.json",
 	"screen": "index.screen.json",
 	"scenarios": [
 		{
@@ -598,6 +598,29 @@
 						"is": "added"
 					}
 				}
+			]
+		},
+		{
+			"name": "forge-scm-remotes-and-stash",
+			"note": "Fetch, Pull and Push sit in the view's title row, Push publishing a branch with no upstream; Stash and Pop Stash sit on the changes. Stash runs git: the test folder is no repository, so it fails and says so",
+			"steps": [
+				{ "action": "showSourceControl" },
+				{ "action": "scmApplyStatus", "event": { "output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u0000# branch.upstream origin/main\u0000# branch.ab +2 -1\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u0000" } },
+				{ "expect": { "node": "#scm-pull", "property": "tooltip", "is": "Pull from origin/main" } },
+				{ "expect": { "node": "#scm-push", "property": "tooltip", "is": "Push to origin/main" } },
+				{ "expect": { "node": "#scm-fetch", "property": "tooltip", "is": "Fetch" } },
+				{ "expect": { "node": "#scm-stash-pop", "property": "tooltip", "is": "No stashed changes" } },
+				{ "action": "scmApplyStatus", "event": { "output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head topic\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u0000" } },
+				{ "expect": { "node": "#scm-pull", "property": "tooltip", "is": "Pull (the branch has no upstream)" } },
+				{ "expect": { "node": "#scm-push", "property": "tooltip", "is": "Publish Branch to origin" } },
+				{ "revision": { "set": { "/state/scm/stashes": 2 } } },
+				{ "expect": { "node": "#scm-stash-pop", "property": "tooltip", "is": "Pop Latest Stash (2 stashed)" } },
+				{ "expect": { "state": "notifications.length", "is": 0 } },
+				{ "click": "#scm-stash" },
+				{ "wait": 1500 },
+				{ "expect": { "state": "notifications.length", "is": 1 } },
+				{ "expect": { "state": "notifications[0].severity", "is": "error" } },
+				{ "expect": { "state": "scm.stashes", "is": 2 } }
 			]
 		},
 		{

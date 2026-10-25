@@ -13,7 +13,7 @@
 			"status": { "branch": { "head": "", "upstream": "", "ahead": 0, "behind": 0 }, "files": [], "staged": [],
 				"changes": [], "count": 0 },
 			"branches": { "current": "", "branches": [] },
-			"message": "", "branchName": "", "error": "", "busy": false, "showBranches": false,
+			"message": "", "branchName": "", "stashes": 0, "error": "", "busy": false, "showBranches": false,
 			"selectedStaged": null, "selectedChange": null, "selectedBranch": null,
 			"compare": { "path": "", "original": "", "modified": "" },
 			"gutters": []
@@ -24,6 +24,7 @@
 		"scmStagedRows": "{{map(state.scm.status.staged, {id: it.id, label: it.label + (empty(it.detail) ? '' : '  ' + it.detail) + '  ' + it.badge, icon: it.kind == 'added' || it.kind == 'untracked' ? 'file-plus' : it.kind == 'deleted' ? 'file-minus' : it.kind == 'unmerged' ? 'alert-triangle' : it.kind == 'renamed' || it.kind == 'copied' ? 'file-symlink' : 'file-diff', iconColor: it.kind == 'added' || it.kind == 'untracked' ? '#2ea043' : it.kind == 'deleted' || it.kind == 'unmerged' ? '#f85149' : '#d4a63a'})}}",
 		"scmChangeRows": "{{map(state.scm.status.changes, {id: it.id, label: it.label + (empty(it.detail) ? '' : '  ' + it.detail) + '  ' + it.badge, icon: it.kind == 'added' || it.kind == 'untracked' ? 'file-plus' : it.kind == 'deleted' ? 'file-minus' : it.kind == 'unmerged' ? 'alert-triangle' : it.kind == 'renamed' || it.kind == 'copied' ? 'file-symlink' : 'file-diff', iconColor: it.kind == 'added' || it.kind == 'untracked' ? '#2ea043' : it.kind == 'deleted' || it.kind == 'unmerged' ? '#f85149' : '#d4a63a'})}}",
 		"scmHasRepo": "{{!empty(state.scm.status.branch.head)}}",
+		"scmCanPush": "{{!empty(state.scm.status.branch.head) && state.scm.status.branch.head != '(detached)'}}",
 		"scmBranchRows": "{{map(state.scm.branches.branches, {id: it.id, label: it.label, icon: it.current ? 'check' : 'git-branch'})}}",
 		"scmBranchText": "{{(empty(state.scm.status.branch.head) ? 'No repository' : state.scm.status.branch.head) + (state.scm.status.branch.ahead > 0 ? '  ↑' + state.scm.status.branch.ahead : '') + (state.scm.status.branch.behind > 0 ? '  ↓' + state.scm.status.branch.behind : '')}}"
 	},
@@ -43,8 +44,31 @@
 					  "then": [{ "set": "state.scm.error", "to": "" },
 					           { "set": "state.scm.status", "to": { "branch": { "head": "", "upstream": "", "ahead": 0, "behind": 0 },
 						           "files": [], "staged": [], "changes": [], "count": 0 } }],
-					  "else": [{ "run": "scmStatusRead", "with": { "read": "{{gitStatus(result.output)}}" } }] }
+					  "else": [{ "run": "scmStatusRead", "with": { "read": "{{gitStatus(result.output)}}" } }, { "run": "scmStashCount" }] }
 				] }] },
+		"scmStashCount": [{ "invoke": "git.run", "id": "scm-stashes",
+			"with": { "arguments": ["stash", "list", "--format=%gd"], "collect": true },
+			"onDone": [{ "set": "state.scm.stashes", "to": "{{result.code == 0 ? length(filter(split(result.output, '\n'), !empty(trim(it)))) : 0}}" }] }],
+		"scmFetch": { "title": "Fetch", "category": "Source Control", "icon": "refresh-ccw-dot",
+			"description": "Fetch the remotes' branches (git fetch --prune); what is behind shows on the branch row.",
+			"enablement": "{{computed.scmHasRepo}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["fetch", "--prune"], "input": "" } }] },
+		"scmPull": { "title": "Pull", "category": "Source Control", "icon": "arrow-down-to-line",
+			"description": "Bring the branch up to its upstream, only where that needs no merge (git pull --ff-only).",
+			"enablement": "{{computed.scmHasRepo && !empty(state.scm.status.branch.upstream)}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["pull", "--ff-only"], "input": "" } }] },
+		"scmPush": { "title": "Push", "category": "Source Control", "icon": "arrow-up-from-line",
+			"description": "Send the branch's commits to its upstream, or publish it to origin when it has none.",
+			"enablement": "{{computed.scmCanPush}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": "{{empty(state.scm.status.branch.upstream) ? ['push', '-u', 'origin', 'HEAD'] : ['push']}}", "input": "" } }] },
+		"scmStash": { "title": "Stash Changes", "category": "Source Control", "icon": "archive",
+			"description": "Put every change aside, new files too (git stash push --include-untracked).",
+			"enablement": "{{state.scm.status.count > 0}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["stash", "push", "--include-untracked"], "input": "" } }] },
+		"scmStashPop": { "title": "Pop Latest Stash", "category": "Source Control", "icon": "archive-restore",
+			"description": "Bring back the changes put aside last, and drop them from the stashes (git stash pop).",
+			"enablement": "{{state.scm.stashes > 0}}",
+			"do": [{ "run": "scmGit", "with": { "arguments": ["stash", "pop"], "input": "" } }] },
 		"scmInit": { "title": "Create Repository", "category": "Source Control", "icon": "git-branch-plus",
 			"description": "Make the open folder a git repository (git init), to track its changes.",
 			"enablement": "{{!empty(state.folder.root) && !computed.scmHasRepo}}",
@@ -70,7 +94,9 @@
 				  "then": [{ "run": "notify", "with": { "severity": "error",
 					"message": "{{'git ' + arguments[0] + ' failed' + (empty(trim(result.output)) ? '' : ': ' + slice(trim(result.output), 0, 300))}}" } }],
 				  "else": [{ "if": "{{arguments[0] == 'commit'}}", "then": [{ "set": "state.scm.message", "to": "" },
-					{ "run": "log", "with": { "text": "{{'Committed: ' + slice(trim(result.output), 0, 200)}}" } }] }] },
+					{ "run": "log", "with": { "text": "{{'Committed: ' + slice(trim(result.output), 0, 200)}}" } }] },
+					{ "if": "{{contains(['fetch', 'pull', 'push', 'stash'], arguments[0])}}",
+					  "then": [{ "run": "log", "with": { "text": "{{'git ' + join(arguments, ' ') + (empty(trim(result.output)) ? '' : ': ' + slice(trim(result.output), 0, 200))}}" } }] }] },
 				{ "run": "scmRefresh" },
 				{ "if": "{{arguments[0] == 'switch'}}", "then": [{ "run": "scmBranches" }] }
 			  ] }
@@ -168,6 +194,14 @@
 	},
 
 	"components": {
+		"forgeScmTool": {
+			"params": { "icon": "", "tip": "", "action": "", "on": true },
+			"node": {
+				"type": "label", "icon": "{{icon}}", "padding": 6, "fitText": true, "role": "button", "label": "{{tip}}",
+				"tooltip": "{{tip}}", "cursor": "{{on ? 'hand' : 'arrow'}}", "textColor": "{{on ? '@color.muted' : '@color.border'}}",
+				"hover": { "textColor": "{{on ? '@color.text' : '@color.border'}}" }, "onClick": { "run": "{{action}}" }
+			}
+		},
 		"forgeScmView": {
 			"node": {
 				"type": "column", "id": "scm-view", "width": "100%", "grow": 1, "color": "@color.sideBar", "gap": 4,
@@ -181,7 +215,15 @@
 						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "scmRefresh" } },
 						{ "type": "label", "id": "scm-branches-toggle", "icon": "git-branch", "padding": 6, "fitText": true,
 						  "cursor": "hand", "textColor": "@color.muted", "tooltip": "Branches",
-						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "scmBranches" } }
+						  "hover": { "textColor": "@color.text" }, "onClick": { "run": "scmBranches" } },
+						{ "when": "{{computed.scmHasRepo}}", "use": "forgeScmTool", "id": "scm-fetch", "with": { "icon": "refresh-ccw-dot", "tip": "Fetch", "action": "scmFetch",
+							"on": "{{computed.scmHasRepo}}" } },
+						{ "when": "{{computed.scmHasRepo}}", "use": "forgeScmTool", "id": "scm-pull", "with": { "icon": "arrow-down-to-line", "action": "scmPull",
+							"tip": "{{empty(state.scm.status.branch.upstream) ? 'Pull (the branch has no upstream)' : 'Pull from ' + state.scm.status.branch.upstream}}",
+							"on": "{{computed.scmHasRepo && !empty(state.scm.status.branch.upstream)}}" } },
+						{ "when": "{{computed.scmHasRepo}}", "use": "forgeScmTool", "id": "scm-push", "with": { "icon": "{{empty(state.scm.status.branch.upstream) ? 'cloud-upload' : 'arrow-up-from-line'}}",
+							"tip": "{{empty(state.scm.status.branch.upstream) ? 'Publish Branch to origin' : 'Push to ' + state.scm.status.branch.upstream}}",
+							"action": "scmPush", "on": "{{computed.scmCanPush}}" } }
 					  ] },
 					{ "type": "label", "id": "scm-empty", "when": "{{empty(state.folder.root)}}", "wrap": true, "width": "100%",
 					  "padding": 12, "textColor": "@color.text",
@@ -236,6 +278,11 @@
 						{ "type": "label", "id": "scm-stage", "icon": "plus", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Stage the selected change", "hover": { "textColor": "@color.text" },
 						  "onClick": { "run": "scmStage" } },
+						{ "use": "forgeScmTool", "id": "scm-stash", "with": { "icon": "archive", "tip": "Stash Changes", "action": "scmStash",
+							"on": "{{state.scm.status.count > 0}}" } },
+						{ "use": "forgeScmTool", "id": "scm-stash-pop", "with": { "icon": "archive-restore", "action": "scmStashPop",
+							"tip": "{{state.scm.stashes > 0 ? 'Pop Latest Stash (' + state.scm.stashes + ' stashed)' : 'No stashed changes'}}",
+							"on": "{{state.scm.stashes > 0}}" } },
 						{ "type": "label", "id": "scm-stage-all", "icon": "list-plus", "padding": 4, "fitText": true, "cursor": "hand",
 						  "textColor": "@color.muted", "tooltip": "Stage All Changes", "hover": { "textColor": "@color.text" },
 						  "onClick": { "run": "scmStageAll" } }
