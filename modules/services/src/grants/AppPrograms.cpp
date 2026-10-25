@@ -6,6 +6,8 @@
 #include "affresco/services/Grants.hpp"
 #include "affresco/services/ServiceRegistry.hpp"
 
+#include "affresco/core/Portable.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>
@@ -71,8 +73,8 @@ std::string socketName(std::string_view text) {
 /// @return Its file, or empty if there is none.
 fs::path fileManager() {
 #ifdef _WIN32
-	const char* windows = std::getenv("SystemRoot"); // NOLINT(concurrency-mt-unsafe): read on the main thread
-	return (windows && fs::path(windows).is_absolute() ? fs::path(windows) : fs::path("C:\\Windows")) / "explorer.exe";
+	const std::string windows = environmentVariable("SystemRoot").value_or("");
+	return (fs::path(windows).is_absolute() ? fs::path(windows) : fs::path("C:\\Windows")) / "explorer.exe";
 #elif defined(__APPLE__)
 	return "/usr/bin/open";
 #else
