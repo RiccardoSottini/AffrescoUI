@@ -1,6 +1,9 @@
 # Writes the themes' JSON files into a C++ source, as bytes (cmake -P, from CMakeLists.txt at build time):
 #   -DBASE=<folder the paths are relative to> -DOUTPUT=<the .cpp> -DFILES=<path;path;...>
 # Bytes rather than string literals: no length limit per literal and no escaping, on every compiler.
+# The project's policies: a script run with -P has none, and CMake 3 then warns about CMP0053 for file(CONFIGURE),
+# printing the whole generated source (half a megabyte) into the build log.
+cmake_minimum_required(VERSION 3.25)
 set(sources "")
 set(entries "")
 set(index 0)
