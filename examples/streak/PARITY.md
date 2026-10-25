@@ -70,7 +70,8 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Language (English, Español, Français) | done | |
 | Export all as CSV | done | |
 | Sync (optional, a placeholder sign-in) | done | |
-| Widgets, backups to a file | missing | desktop documents have no widgets or file writes |
+| A full backup to a JSON file, and restoring one (adds or replaces habits, skips damaged entries) | done | |
+| Widgets | missing | a desktop document has no home-screen widgets |
 
 ## Desktop extras
 
@@ -83,6 +84,6 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 
 ## Counts
 
-- done: 42
+- done: 43
 - partial: 1
 - missing: 1
