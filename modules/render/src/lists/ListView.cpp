@@ -342,6 +342,10 @@ void ListView::mouseButtonEvent(const MouseButtonEvent& event) {
 			lastPressRow_ = row;
 		}
 	}
+	// A right click on a row not selected selects it, so that a context menu acts on the row under the pointer
+	if(event.button == MouseButton::Right && event.action == Action::Press && row < rows_.size() &&
+	   !isSelected(model_->item(rows_[row]).id))
+		moveCursor(row, {});
 	Panel::mouseButtonEvent(event);
 }
 

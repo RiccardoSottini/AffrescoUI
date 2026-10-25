@@ -13,7 +13,7 @@
 				"children": [
 					{ "repeat": { "for": "d", "in": "{{slide.layout == 'title' || slide.layout == 'section' ? computed.theme.titleDecor : computed.theme.decor}}", "key": "{{d.id}}" },
 					  "id": "{{prefix + 'decor-' + d.id}}", "color": "transparent", "x": "{{d.x}}", "y": "{{d.y}}", "width": "{{d.w}}", "height": "{{d.h}}", "overflow": "visible",
-					  "children": [{ "use": "shapePath", "with": { "o": "{{merge({ line: 'none', flipH: false, flipV: false, gradient: null, lineWidth: 0, dash: null }, d)}}", "name": "{{prefix + 'decor-' + d.id}}" } }] }
+					  "children": [{ "use": "shapePath", "with": { "o": "{{merge({ line: 'none', flipH: false, flipV: false, gradient: null, lineWidth: 0, dash: null, effect: null }, d)}}", "name": "{{prefix + 'decor-' + d.id}}" } }] }
 				]
 			}
 		},
@@ -40,9 +40,9 @@
 				},
 				"color": "transparent", "x": "{{box.x}}", "y": "{{box.y}}", "width": "{{box.w}}", "height": "{{box.h}}", "rotate": "{{o.rotate ?? 0}}", "overflow": "visible",
 				"children": [
-					{ "use": "shapePath", "when": "{{shape}}", "with": { "o": "{{merge({ shape: o.kind == 'text' ? 'rect' : 'rect', fill: o.kind == 'shape' ? 'accent1' : 'none', line: o.kind == 'text' ? 'none' : null, lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null }, merge(o, box))}}", "name": "{{prefix + o.id}}" } },
+					{ "use": "shapePath", "when": "{{shape}}", "with": { "o": "{{merge({ shape: o.kind == 'text' ? 'rect' : 'rect', fill: o.kind == 'shape' ? 'accent1' : 'none', line: o.kind == 'text' ? 'none' : null, lineWidth: 1, flipH: false, flipV: false, gradient: null, dash: null, effect: null }, merge(o, box))}}", "name": "{{prefix + o.id}}" } },
 					{ "use": "shapePath", "when": "{{prompt}}",
-					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash' })}}", "name": "{{outline}}" } },
+					  "with": { "o": "{{merge(box, { shape: 'rect', fill: 'none', line: '#8c8c8c', lineWidth: 0.75, flipH: false, flipV: false, gradient: null, dash: 'dash', effect: null })}}", "name": "{{outline}}" } },
 					{
 						"type": "column", "id": "{{prefix + o.id + '-text'}}", "when": "{{!empty || prompt}}", "overflow": "visible",
 						"x": "{{frame.x}}", "y": "{{frame.y}}", "width": "{{frame.w}}", "height": "{{frame.h}}",

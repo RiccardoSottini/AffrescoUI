@@ -48,23 +48,23 @@ with its slide show, presenter view, audience window and files on library capabi
 | Shapes | Shapes gallery (lines, rectangles, basic shapes, arrows, stars, callouts) | partial | partial | add-a-shape, first-frame |
 | Shapes | Shape fill (solid, gradient, none) | partial | partial | format-fill-and-line |
 | Shapes | Shape outline (colour, weight, dashes) | partial | partial | format-fill-and-line |
-| Shapes | Shape effects (shadow, glow, soft edges) | partial | missing | |
+| Shapes | Shape effects (shadow, glow, soft edges) | partial | partial | shape-effects (a shadow and a glow, unblurred; no soft edges) |
 | Shapes | Quick styles | missing | missing | |
 | Shapes | Text inside shapes | missing | missing | |
 | Format pane | Fill and line | partial | partial | format-fill-and-line |
-| Format pane | Effects | partial | missing | |
+| Format pane | Effects | partial | partial | shape-effects (none, shadow, glow) |
 | Format pane | Size and position (with lock aspect ratio) | partial | partial | format-size-and-rotation |
 | Format pane | Text box options (anchor, margins, wrap) | missing | missing | |
 | Arrange | Move and resize with handles | done | partial | selected |
 | Arrange | Smart guides (centres and edges) | missing | partial | |
 | Arrange | Distance indicators (equal gaps) | missing | missing | |
-| Arrange | Align (left, centre, right, top, middle, bottom) | done | missing | |
-| Arrange | Distribute horizontally and vertically | partial | missing | |
+| Arrange | Align (left, centre, right, top, middle, bottom) | done | done | align-and-distribute |
+| Arrange | Distribute horizontally and vertically | partial | done | align-and-distribute |
 | Arrange | Group and ungroup | missing | missing | |
-| Arrange | Order (front, back, forward, backward) | done | partial | arrange-order |
+| Arrange | Order (front, back, forward, backward) | done | done | arrange-order |
 | Arrange | Rotate (handle, 90 degrees) and flip | partial | partial | format-size-and-rotation |
 | Arrange | Selection pane (names, show and hide) | missing | missing | |
-| Arrange | Nudge with arrow keys | partial | missing | |
+| Arrange | Nudge with arrow keys | partial | done | align-and-distribute |
 | Content | Insert picture | partial | missing | |
 | Content | Crop a picture | missing | missing | |
 | Content | Tables | missing | missing | |
@@ -126,4 +126,4 @@ with its slide show, presenter view, audience window and files on library capabi
 | | Done | Partial | Missing | Total |
 |---|---:|---:|---:|---:|
 | Start | 12 | 37 | 62 | 111 |
-| Now | 30 | 36 | 45 | 111 |
+| Now | 34 | 37 | 40 | 111 |

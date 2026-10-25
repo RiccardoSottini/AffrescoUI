@@ -208,6 +208,17 @@ TEST_CASE("list: a click selects, Shift selects a range, Cmd toggles, and a doub
 	CHECK(fixture.list->cursor() == 2);
 }
 
+TEST_CASE("list: a right click on a row not selected selects it, and on a selected row keeps the selection") {
+	ListFixture fixture;
+	fixture.list->setSelectionMode(SelectionMode::Multiple);
+	fixture.window->routeMouseButton({MouseButton::Right, Action::Press, {}, rowPoint(2)});
+	CHECK(fixture.list->selection() == std::vector<std::string>{"cherry"});
+	fixture.list->setSelection({"apple", "banana"});
+	fixture.window->routeMouseButton({MouseButton::Right, Action::Press, {}, rowPoint(1)});
+	CHECK(fixture.list->selection() == std::vector<std::string>{"apple", "banana"});
+	CHECK(fixture.opened.empty());
+}
+
 TEST_CASE("list: the keys move the cursor and scroll it into view, and Enter opens") {
 	ListFixture fixture;
 	fixture.window->setFocus(fixture.list);

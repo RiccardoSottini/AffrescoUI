@@ -125,6 +125,13 @@
 						{ "type": "label", "id": "format-line-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Line", "size": 12 }] },
 						{ "use": "swatches", "with": { "prefix": "format-line", "chosen": "{{o.line ?? 'none'}}", "run": "setObjects", "key": "line" } },
 						{ "use": "paneStepper", "with": { "prefix": "format-line-width", "title": "Width", "value": "{{o.lineWidth ?? 1}}", "unit": " pt", "key": "lineWidth", "step": 0.5, "low": 0, "high": 50 } },
+						{ "type": "label", "id": "format-effects-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Effects", "size": 12 }] },
+						{ "type": "row", "id": "format-effects", "width": 236, "height": 26, "gap": 4, "color": "transparent", "children": [
+							{ "repeat": { "for": "fx", "in": [["none", "No effect"], ["shadow", "Shadow"], ["glow", "Glow"]], "key": "{{fx[0]}}" },
+							  "type": "label", "id": "{{'format-effect-' + fx[0]}}", "style": "{{(o.effect ?? 'none') == fx[0] ? 'rbButtonOn' : 'rbButton'}}", "height": 26,
+							  "fitText": true, "padding": 6, "runs": [{ "text": "{{fx[1]}}", "size": 12 }],
+							  "onClick": { "run": "setObjects", "with": { "props": { "effect": "{{fx[0] == 'none' ? null : fx[0]}}" } } } }
+						] },
 						{ "type": "label", "id": "format-size-title", "height": 18, "textColor": "@rbMuted", "runs": [{ "text": "Size and place", "size": 12 }] },
 						{ "use": "paneStepper", "with": { "prefix": "format-w", "title": "Width", "value": "{{box.w ?? 100}}", "key": "w", "step": 10, "low": 1, "high": 4000 } },
 						{ "use": "paneStepper", "with": { "prefix": "format-h", "title": "Height", "value": "{{box.h ?? 100}}", "key": "h", "step": 10, "low": 0, "high": 4000 } },

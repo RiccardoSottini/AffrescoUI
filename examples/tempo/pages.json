@@ -36,6 +36,8 @@
 		"browseColumns": "{{clamp(floor((computed.contentWidth - 48) / 176), 2, 8)}}",
 		"collectionRows": "{{state.page != 'collection' ? [] : filter(computed.library, state.collection.kind == 'album' ? it.cells[3] == state.collection.name : it.cells[2] == state.collection.name)}}",
 		"collectionHue": "{{state.collection.kind == 'album' ? indexOf(state.words.albums, state.collection.name) : indexOf(state.words.artists, state.collection.name)}}",
+		"likedSongs": "{{filter(map(state.liked, { id: it, list: number(split(it, ':')[0]), track: number(split(it, ':')[1]) }), it.list < 0 ? it.track < length(computed.library) : it.list < length(data.playlists) && it.track < length(data.playlists[it.list].tracks))}}",
+		"likedRows": "{{map(computed.likedSongs, merge(it, { cells: it.list < 0 ? slice(computed.library[it.track].cells, 1) : [data.playlists[it.list].tracks[it.track].title, data.playlists[it.list].tracks[it.track].artist, data.playlists[it.list].tracks[it.track].album, data.playlists[it.list].tracks[it.track].time] }))}}",
 		"searchRows": "{{state.page != 'search' || trim(state.search) == '' ? [] : filter(computed.library, fuzzy(trim(state.search), it.cells[1] + ' ' + it.cells[2]) != null)}}",
 		"fade": "{{settings.playback.crossfade > 0 && length(state.queue) > 0 ? clamp((computed.duration - state.elapsed) / settings.playback.crossfade, 0, 1) : 1}}",
 		"crossfading": "{{state.isPlaying && computed.fade < 1}}",
@@ -84,6 +86,16 @@
 					"rest": "{{map(slice(computed.searchRows, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 1, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 51), number(it.id))}}"
 				}
 			}
+		],
+		"playLiked": [
+			{ "note": "with: key, a liked song: it plays, and the liked songs after it from the same mix (or the library) come next" },
+			{ "run": "playLikedAt", "with": { "at": "{{indexOf(map(computed.likedSongs, it.id), key)}}" } }
+		],
+		"playLikedAt": [
+			{ "note": "with: at, the liked song's place in computed.likedSongs (-1: none)" },
+			{ "if": "{{at < 0}}", "then": [{ "stop": true }] },
+			{ "run": "startList", "with": { "list": "{{computed.likedSongs[at].list}}", "track": "{{computed.likedSongs[at].track}}", "source": "{{t('liked.title')}}",
+				"rest": "{{map(slice(filter(slice(computed.likedSongs, at + 1), it.list == computed.likedSongs[at].list), 0, 50), it.track)}}" } }
 		],
 		"setPreset": [
 			{ "note": "with: preset, a key of state.presets" },
@@ -187,7 +199,60 @@
 						"selectedBackground": "@accentSoft",
 						"accentColor": "@accent",
 						"onOpen": "playFromCollection",
+						"onContextMenu": { "run": "openPickMenu", "with": { "pick": "{{state.collectionPick}}" } },
 						"keys": { "escape": { "set": "state.page", "to": "{{state.collection.kind == 'artist' ? 'artists' : 'albums'}}" } }
+					}
+				]
+			}
+		},
+
+		"likedPage": {
+			"note": "The songs liked (the heart in the player, or a song's context menu), from the library and the mixes, in a table",
+			"params": {},
+			"node": {
+				"dir": "auto",
+				"color": "transparent",
+				"children": [
+					{
+						"id": "likedHeader",
+						"anchors": { "left": 0, "right": 0, "top": 0 },
+						"height": 132,
+						"color": "@surface",
+						"children": [
+							{ "id": "likedArt", "type": "label", "icon": "heart", "text": "", "font": "iconsLarge", "align": "center", "textColor": "@onAccent",
+								"anchors": { "left": 32, "top": 24 }, "width": 84, "height": 84, "radius": 6, "color": "@accent" },
+							{ "id": "likedCaption", "style": "caption", "text": "{{t('liked.caption')}}", "anchors": { "left": 140, "top": 28 } },
+							{ "id": "likedName", "type": "label", "text": "{{t('liked.title')}}", "font": "large", "textColor": "@text", "anchors": { "left": 138, "top": 44 }, "fitText": true },
+							{ "id": "likedCount", "style": "caption", "text": "{{t('songs', { n: length(computed.likedRows) })}}", "anchors": { "left": 140, "top": 88 } },
+							{ "id": "playLikedButton", "style": "playButton", "text": "{{t('play')}}", "anchors": { "right": 32, "top": 50 }, "when": "{{length(computed.likedRows) > 0}}",
+								"label": "{{t('play.label', { name: t('liked.title') })}}", "onClick": { "run": "playLiked", "with": { "key": "{{computed.likedRows[0].id}}" } } }
+						]
+					},
+					{ "id": "likedEmpty", "style": "caption", "when": "{{length(computed.likedRows) == 0}}", "text": "{{t('liked.empty')}}",
+						"anchors": { "left": 32, "right": 32, "top": 164 }, "wrap": true },
+					{
+						"id": "likedTable",
+						"type": "table",
+						"when": "{{length(computed.likedRows) > 0}}",
+						"anchors": { "left": 24, "right": 24, "top": 148, "bottom": 8 },
+						"color": "transparent",
+						"rowHeight": 30,
+						"items": "{{computed.likedRows}}",
+						"columns": [
+							{ "id": "title", "title": "{{t('column.title')}}", "width": 260 },
+							{ "id": "artist", "title": "{{t('column.artist')}}", "width": 170 },
+							{ "id": "album", "title": "{{t('column.album')}}", "width": 170 },
+							{ "id": "time", "title": "{{t('column.time')}}", "width": 64 }
+						],
+						"bind": "state.likedPick",
+						"label": "{{t('liked.title')}}",
+						"textColor": "@text",
+						"selectedTextColor": "@text",
+						"selectedBackground": "@accentSoft",
+						"accentColor": "@accent",
+						"onOpen": { "run": "playLiked", "with": { "key": "{{event.id ?? event.value}}" } },
+						"onContextMenu": { "if": "{{state.likedPick != null}}", "then": [{ "run": "openSongMenu", "with": {
+							"list": "{{number(split(state.likedPick, ':')[0])}}", "track": "{{number(split(state.likedPick, ':')[1])}}" } }] }
 					}
 				]
 			}
@@ -242,7 +307,8 @@
 						"selectedTextColor": "@text",
 						"selectedBackground": "@accentSoft",
 						"accentColor": "@accent",
-						"onOpen": "playFromSearch"
+						"onOpen": "playFromSearch",
+						"onContextMenu": { "run": "openPickMenu", "with": { "pick": "{{state.searchPick}}" } }
 					}
 				]
 			}
@@ -299,7 +365,12 @@
 								"textColor": "{{line.current ? '@text' : '@muted'}}",
 								"anchors": { "left": 0, "right": 0 },
 								"height": 26,
-								"align": { "horizontal": "start", "vertical": "center" }
+								"align": { "horizontal": "start", "vertical": "center" },
+								"cursor": "hand",
+								"focusable": true,
+								"hover": { "textColor": "@text" },
+								"tooltip": "{{t('now.seekLyric')}}",
+								"onClick": { "run": "seekLyric", "with": { "offset": "{{index - 2}}" } }
 							}
 						]
 					}

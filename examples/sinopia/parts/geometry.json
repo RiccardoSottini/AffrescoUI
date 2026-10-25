@@ -149,7 +149,7 @@
 					"lw": "{{o.line == 'none' || !(o.line ?? g.line) ? 0 : o.lineWidth ?? 1}}",
 					"ink": "{{computed.palette[o.line ?? 'accent1.5'] ?? o.line ?? '#000000'}}",
 					"cap": "{{g.line ? 3 * lw + 4 : 0}}",
-					"e": "{{lw / 2 + cap + (g.pad ?? 0) * max(w, h)}}",
+					"e": "{{lw / 2 + cap + (g.pad ?? 0) * max(w, h) + (o.effect == 'glow' ? 8 : 0)}}",
 					"r": "{{(g.round ?? 0) * m}}",
 					"c": "{{r * (1 - 0.5522848)}}",
 					"rx": "{{w / 2}}",
@@ -162,15 +162,28 @@
 					"y1": "{{g.line && g.tail ? h - cap * sin(a) : h}}",
 					"x0": "{{g.line && g.head ? cap * cos(a) : 0}}",
 					"y0": "{{g.line && g.head ? cap * sin(a) : 0}}",
-					"ellipse": "M0 {{ry}}C0 {{ry - cy}} {{rx - cx}} 0 {{rx}} 0C{{rx + cx}} 0 {{w}} {{ry - cy}} {{w}} {{ry}}C{{w}} {{ry + cy}} {{rx + cx}} {{h}} {{rx}} {{h}}C{{rx - cx}} {{h}} 0 {{ry + cy}} 0 {{ry}}Z"
+					"ellipse": "M0 {{ry}}C0 {{ry - cy}} {{rx - cx}} 0 {{rx}} 0C{{rx + cx}} 0 {{w}} {{ry - cy}} {{w}} {{ry}}C{{w}} {{ry + cy}} {{rx + cx}} {{h}} {{rx}} {{h}}C{{rx - cx}} {{h}} 0 {{ry + cy}} 0 {{ry}}Z",
+					"pathData": "{{g.d ? g.d : g.poly ? join(map(g.poly, 'M' + join(map(it, fixed(it[0] * w + (it[2] ?? 0) * m, 2) + ' ' + fixed(it[1] * h + (it[3] ?? 0) * m, 2)), 'L') + 'Z'), '') + (g.ellipse ? ellipse : '') : g.ellipse ? ellipse : g.line ? 'M' + x0 + ' ' + y0 + 'L' + x1 + ' ' + y1 + (g.tail == 'arrow' ? 'M' + w + ' ' + h + 'L' + (x1 - cap / 2 * sin(a)) + ' ' + (y1 + cap / 2 * cos(a)) + 'L' + (x1 + cap / 2 * sin(a)) + ' ' + (y1 - cap / 2 * cos(a)) + 'Z' : g.tail == 'oval' ? 'M' + (w - cap / 2) + ' ' + h + 'A' + cap / 2 + ' ' + cap / 2 + ' 0 1 1 ' + (w + cap / 2) + ' ' + h + 'A' + cap / 2 + ' ' + cap / 2 + ' 0 1 1 ' + (w - cap / 2) + ' ' + h + 'Z' : '') + (g.head == 'arrow' ? 'M0 0L' + (x0 - cap / 2 * sin(a)) + ' ' + (y0 + cap / 2 * cos(a)) + 'L' + (x0 + cap / 2 * sin(a)) + ' ' + (y0 - cap / 2 * cos(a)) + 'Z' : g.head == 'oval' ? 'M' + -cap / 2 + ' 0A' + cap / 2 + ' ' + cap / 2 + ' 0 1 1 ' + cap / 2 + ' 0A' + cap / 2 + ' ' + cap / 2 + ' 0 1 1 ' + -cap / 2 + ' 0Z' : '') : corners > 0 ? 'M' + join(map(range(corners), fixed(rx * (1 + (g.inner && it % 2 == 1 ? g.inner : 1) * cos(360 * it / corners - 90)), 2) + ' ' + fixed(ry * (1 + (g.inner && it % 2 == 1 ? g.inner : 1) * sin(360 * it / corners - 90)), 2)), 'L') + 'Z' : r == 0 ? 'M0 0H' + w + 'V' + h + 'H0Z' : 'M' + r + ' 0H' + (w - r) + 'C' + (w - c) + ' 0 ' + w + ' ' + c + ' ' + w + ' ' + r + 'V' + (h - r) + 'C' + w + ' ' + (h - c) + ' ' + (w - c) + ' ' + h + ' ' + (w - r) + ' ' + h + 'H' + r + 'C' + c + ' ' + h + ' 0 ' + (h - c) + ' 0 ' + (h - r) + 'V' + r + 'C0 ' + c + ' ' + c + ' 0 ' + r + ' 0Z'}}",
+					"fill": "{{computed.palette[o.fill ?? 'accent1'] ?? o.fill}}",
+					"halo": "{{g.line ? ink : o.gradient ? computed.palette[o.gradient.from] ?? o.gradient.from : o.fill == 'none' ? ink : fill}}"
 				},
 				"children": [
+					{
+						"type": "path", "id": "{{name + '-effect'}}", "when": "{{o.effect == 'shadow' || o.effect == 'glow'}}",
+						"x": "{{-e + (o.effect == 'shadow' ? 4 : 0)}}", "y": "{{-e + (o.effect == 'shadow' ? 4 : 0)}}", "width": "{{w + 2 * e}}", "height": "{{h + 2 * e}}", "fit": "fill",
+						"scale": "{{[o.flipH ? -1 : 1, o.flipV ? -1 : 1]}}",
+						"viewBox": "{{g.d ? fixed(-e * 100 / w, 3) + ' ' + fixed(-e * 100 / h, 3) + ' ' + fixed(100 + 200 * e / w, 3) + ' ' + fixed(100 + 200 * e / h, 3) : -e + ' ' + -e + ' ' + (w + 2 * e) + ' ' + (h + 2 * e)}}",
+						"d": "{{pathData}}", "fillRule": "{{g.evenodd ? 'evenodd' : 'nonzero'}}",
+						"fillColor": "{{o.effect == 'glow' || g.open ? 'transparent' : '#00000040'}}",
+						"stroke": "{{o.effect == 'glow' ? slice(halo, 0, 7) + '66' : g.line || g.open ? '#00000040' : 'transparent'}}",
+						"strokeWidth": "{{o.effect == 'glow' ? lw + 12 : lw}}", "strokeJoin": "round"
+					},
 					{
 						"type": "path", "id": "{{name + '-path'}}",
 						"x": "{{-e}}", "y": "{{-e}}", "width": "{{w + 2 * e}}", "height": "{{h + 2 * e}}", "fit": "fill",
 						"scale": "{{[o.flipH ? -1 : 1, o.flipV ? -1 : 1]}}",
 						"viewBox": "{{g.d ? fixed(-e * 100 / w, 3) + ' ' + fixed(-e * 100 / h, 3) + ' ' + fixed(100 + 200 * e / w, 3) + ' ' + fixed(100 + 200 * e / h, 3) : -e + ' ' + -e + ' ' + (w + 2 * e) + ' ' + (h + 2 * e)}}",
-						"d": "{{g.d ? g.d : g.poly ? join(map(g.poly, 'M' + join(map(it, fixed(it[0] * w + (it[2] ?? 0) * m, 2) + ' ' + fixed(it[1] * h + (it[3] ?? 0) * m, 2)), 'L') + 'Z'), '') + (g.ellipse ? ellipse : '') : g.ellipse ? ellipse : g.line ? 'M' + x0 + ' ' + y0 + 'L' + x1 + ' ' + y1 + (g.tail == 'arrow' ? 'M' + w + ' ' + h + 'L' + (x1 - cap / 2 * sin(a)) + ' ' + (y1 + cap / 2 * cos(a)) + 'L' + (x1 + cap / 2 * sin(a)) + ' ' + (y1 - cap / 2 * cos(a)) + 'Z' : g.tail == 'oval' ? 'M' + (w - cap / 2) + ' ' + h + 'A' + cap / 2 + ' ' + cap / 2 + ' 0 1 1 ' + (w + cap / 2) + ' ' + h + 'A' + cap / 2 + ' ' + cap / 2 + ' 0 1 1 ' + (w - cap / 2) + ' ' + h + 'Z' : '') + (g.head == 'arrow' ? 'M0 0L' + (x0 - cap / 2 * sin(a)) + ' ' + (y0 + cap / 2 * cos(a)) + 'L' + (x0 + cap / 2 * sin(a)) + ' ' + (y0 - cap / 2 * cos(a)) + 'Z' : g.head == 'oval' ? 'M' + -cap / 2 + ' 0A' + cap / 2 + ' ' + cap / 2 + ' 0 1 1 ' + cap / 2 + ' 0A' + cap / 2 + ' ' + cap / 2 + ' 0 1 1 ' + -cap / 2 + ' 0Z' : '') : corners > 0 ? 'M' + join(map(range(corners), fixed(rx * (1 + (g.inner && it % 2 == 1 ? g.inner : 1) * cos(360 * it / corners - 90)), 2) + ' ' + fixed(ry * (1 + (g.inner && it % 2 == 1 ? g.inner : 1) * sin(360 * it / corners - 90)), 2)), 'L') + 'Z' : r == 0 ? 'M0 0H' + w + 'V' + h + 'H0Z' : 'M' + r + ' 0H' + (w - r) + 'C' + (w - c) + ' 0 ' + w + ' ' + c + ' ' + w + ' ' + r + 'V' + (h - r) + 'C' + w + ' ' + (h - c) + ' ' + (w - c) + ' ' + h + ' ' + (w - r) + ' ' + h + 'H' + r + 'C' + c + ' ' + h + ' 0 ' + (h - c) + ' 0 ' + (h - r) + 'V' + r + 'C0 ' + c + ' ' + c + ' 0 ' + r + ' 0Z'}}",
+						"d": "{{pathData}}",
 						"fillRule": "{{g.evenodd ? 'evenodd' : 'nonzero'}}",
 						"fillColor": "{{g.line ? ink : g.open || o.fill == 'none' || o.gradient ? 'transparent' : computed.palette[o.fill ?? 'accent1'] ?? o.fill}}",
 						"fillGradient": "{{!g.line && o.gradient ? { kind: 'linear', angle: (o.gradient.angle ?? 90) + 90, stops: [{ at: 0, color: computed.palette[o.gradient.from] ?? o.gradient.from }, { at: 1, color: computed.palette[o.gradient.to] ?? o.gradient.to }] } : null}}",
