@@ -1422,8 +1422,10 @@ its top), onto the place of `onto`, or `by` places up (positive) or down. Filter
 layer's pixels, or its mask with `"mask": true`. `zoom` multiplies the zoom `by` a factor or sets it `to` one, centred on `x`, `y`. `setProfile` takes
 `srgb`, `displayP3`, `wideRgb` or `gray`. `pointer` takes one event (`phase`: `press`, `move`, `release` or `scroll`;
 `x`, `y`; `button`: `left` or `right`; `pressure` from 0 to 1; `scroll`; `modifiers`: a list of `shift`, `control`,
-`alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. `open`, `save`
-and `revert` go through the file dialogs the person sees: a document never names a file.
+`alt`, `super` and `space`, which pans whatever the tool) or `points`, a list of up to 4096 such events. A selecting
+tool's press with `shift` held adds to the selection, with `alt` subtracts, with both intersects, whatever the tool's
+`mode` (a polygon keeps the mode of its first corner). `open`, `save` and `revert` go through the file dialogs the
+person sees: a document never names a file.
 
 ### Image values and the snapshot
 

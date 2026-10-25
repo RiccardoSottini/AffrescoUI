@@ -123,6 +123,8 @@ struct Press {
 	double surfaceY = 0.0;    ///< Where it began on the surface.
 	imaging::CanvasView view; ///< The view when it began.
 	bool pan = false;         ///< Whether it pans the view whatever the tool (the space bar was held).
+	/// The selection mode of what it selects: Shift held adds, Alt subtracts, both intersect, else the tool's.
+	imaging::SelectionMode mode = imaging::SelectionMode::replace;
 };
 
 /// @brief One image being edited: its document on a canvas model, and everything the operations share. Main thread
@@ -160,6 +162,7 @@ struct ImageDocument {
 	float pressure = 1.0f;                                 ///< The pen's pressure of the event played (a mouse's is 1).
 	bool spaceHeld = false;                                ///< The space bar is held: a press pans the view.
 	std::vector<imaging::Point> path;                      ///< lasso, polygon-lasso: the points so far.
+	imaging::SelectionMode pathMode{};                     ///< polygon-lasso: the mode of the press that began it.
 	std::vector<std::uint8_t> saved;                       ///< The bytes last saved or opened (revert reads them).
 	std::string message;                                   ///< What the last operation has to say (a status line).
 	std::shared_ptr<const imaging::Image> clipboard;       ///< What copy and cut kept, the image's size then.

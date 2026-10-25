@@ -105,19 +105,31 @@ bool startStroke(ImageDocument& image, Point at) {
 	return false;
 }
 
+/// @brief The selection mode of a press: Shift held adds, Alt subtracts, both intersect.
+/// @param mods The keys held.
+/// @param tool The tool's mode, when neither is held.
+/// @return The mode.
+[[nodiscard]] imaging::SelectionMode gestureMode(affresco::Mods mods, imaging::SelectionMode tool) noexcept {
+	if(mods.shift() && mods.alt()) return imaging::SelectionMode::intersect;
+	if(mods.shift()) return imaging::SelectionMode::add;
+	if(mods.alt()) return imaging::SelectionMode::subtract;
+	return tool;
+}
+
 /// @brief Adds a point to the lasso or polygon, or closes the polygon at its first corner.
 /// @param image The image.
 /// @param at Where.
 /// @return Whether the screen should hear of it.
 bool addCorner(ImageDocument& image, Point at) {
 	std::vector<Point>& path = image.path;
+	if(path.empty()) image.pathMode = image.press.mode;
 	if(image.settings.gesture == Gesture::polygonLasso && path.size() >= 3) {
 		const double distance = std::hypot(at.x - path.front().x, at.y - path.front().y) * image.view.zoom;
 		if(distance <= closeDistance) {
 			imaging::Document& document = image.canvas->document();
 			imaging::select(document, "Polygonal Lasso",
 			                imaging::polygonCoverage(document.width(), document.height(), path, image.limits),
-			                image.settings.mode);
+			                image.pathMode);
 			path.clear();
 			return true;
 		}
@@ -143,13 +155,14 @@ bool pickColour(ImageDocument& image, Point at) {
 
 /// @brief Selects with the magic wand from the pixel clicked.
 /// @param document The document.
-/// @param settings The tool settings: the sampling and the selection mode.
+/// @param settings The tool settings: the sampling.
+/// @param mode The selection mode.
 /// @param at Where, in document pixels.
 /// @return Whether it was on the document, so the selection changed.
-bool clickWand(imaging::Document& document, const ToolSettings& settings, Point at) {
+bool clickWand(imaging::Document& document, const ToolSettings& settings, imaging::SelectionMode mode, Point at) {
 	const int x = static_cast<int>(std::floor(at.x)), y = static_cast<int>(std::floor(at.y));
 	if(x < 0 || y < 0 || x >= document.width() || y >= document.height()) return false;
-	imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, settings.sample), settings.mode);
+	imaging::select(document, "Magic Wand", imaging::wandCoverage(document, x, y, settings.sample), mode);
 	return true;
 }
 
@@ -187,7 +200,7 @@ bool pressTool(ImageDocument& image, Point at) {
 	case Gesture::polygonLasso:
 		return addCorner(image, at);
 	case Gesture::magicWand:
-		return clickWand(image.canvas->document(), image.settings, at);
+		return clickWand(image.canvas->document(), image.settings, image.press.mode, at);
 	case Gesture::fill:
 		clickFill(image, at);
 		return true;
@@ -228,20 +241,22 @@ bool dragTool(ImageDocument& image, const imaging::CanvasPointer& event) {
 
 /// @brief A marquee's selection, or none for a click without a drag.
 /// @param document The document.
-/// @param settings The tool settings: the marquee's shape and the selection mode.
+/// @param settings The tool settings: the marquee's shape.
+/// @param mode The selection mode.
 /// @param from Where the button went down.
 /// @param at Where it went up.
-void selectShape(imaging::Document& document, const ToolSettings& settings, Point from, Point at) {
+void selectShape(imaging::Document& document, const ToolSettings& settings, imaging::SelectionMode mode, Point from,
+                 Point at) {
 	if(std::abs(at.x - from.x) < 1.0f && std::abs(at.y - from.y) < 1.0f) {
-		if(settings.mode == imaging::SelectionMode::replace) imaging::deselect(document);
+		if(mode == imaging::SelectionMode::replace) imaging::deselect(document);
 		return;
 	}
 	if(settings.gesture == Gesture::selectRectangle)
 		imaging::select(document, "Rectangular Marquee",
-		                imaging::rectangleCoverage(document.width(), document.height(), from, at), settings.mode);
+		                imaging::rectangleCoverage(document.width(), document.height(), from, at), mode);
 	else
 		imaging::select(document, "Elliptical Marquee",
-		                imaging::ellipseCoverage(document.width(), document.height(), from, at), settings.mode);
+		                imaging::ellipseCoverage(document.width(), document.height(), from, at), mode);
 }
 
 /// @brief Draws the gradient from the press to a point.
@@ -265,7 +280,7 @@ void closeLasso(ImageDocument& image) {
 	if(image.path.size() >= 3)
 		imaging::select(document, "Lasso",
 		                imaging::polygonCoverage(document.width(), document.height(), image.path, image.limits),
-		                image.settings.mode);
+		                image.press.mode);
 	image.path.clear();
 }
 
@@ -296,7 +311,7 @@ bool releaseTool(ImageDocument& image, Point at) {
 		return true;
 	case Gesture::selectRectangle:
 	case Gesture::selectEllipse:
-		selectShape(image.canvas->document(), image.settings, from, at);
+		selectShape(image.canvas->document(), image.settings, image.press.mode, from, at);
 		return true;
 	case Gesture::lasso:
 		closeLasso(image);
@@ -417,7 +432,8 @@ bool applyPointer(ImageDocument& image, const imaging::CanvasPointer& event) {
 			         static_cast<double>(event.pointer.position.x),
 			         static_cast<double>(event.pointer.position.y),
 			         image.view,
-			         image.spaceHeld};
+			         image.spaceHeld,
+			         gestureMode(event.pointer.mods, image.settings.mode)};
 			image.message.clear();
 			return !press.pan && pressTool(image, at);
 		case affresco::PointerKind::move:

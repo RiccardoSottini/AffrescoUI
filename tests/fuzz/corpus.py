@@ -742,6 +742,13 @@ def images_seeds():
               {"image": "moveLayer", "with": {"id": "2", "into": "3"}}, {"image": "moveLayer", "with": {"id": "3", "into": "3"}},
               {"image": "moveLayer", "with": {"id": "2", "onto": "3"}}, {"image": "undo"}]
     seeds.append(compact({"images": board, "steps": groups}))
+    held = [{"image": "setTool", "with": {"tool": tool}} if i == 0 else
+            {"image": "pointer", "with": {"phase": phase, "x": x, "y": x, "modifiers": mods}}
+            for tool in ["select-rectangle", "polygon-lasso", "magic-wand"]
+            for i, (phase, x, mods) in enumerate([(None, 0, None), ("press", 4, ["shift"]), ("move", 30, ["alt"]),
+                                                  ("release", 30, ["shift", "alt"]), ("press", 4, ["alt"]),
+                                                  ("release", 4, [])])]
+    seeds.append(compact({"images": {"board": {"width": 64, "height": 48}}, "steps": held}))
     return seeds
 
 

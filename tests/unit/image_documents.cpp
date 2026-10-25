@@ -192,6 +192,38 @@ TEST_CASE("format: the pointer paints through the current tool, and undo and red
 	CHECK_THROWS(run(image, "pointer", {{"points", json(4097, json::object())}}));
 }
 
+TEST_CASE("format: Shift held at a press adds to the selection, Alt subtracts and both intersect") {
+	editing::ImageDocuments store;
+	editing::ImageDocument& image = store.image("photo", {{"width", 64}, {"height", 32}}, "images.photo");
+	const auto drag = [&](int fromX, int toX, json modifiers) {
+		run(image, "pointer",
+		    {{"points",
+		      {{{"phase", "press"}, {"x", fromX}, {"y", 0}, {"modifiers", modifiers}},
+		       {{"phase", "move"}, {"x", toX}, {"y", 32}, {"modifiers", modifiers}},
+		       {{"phase", "release"}, {"x", toX}, {"y", 32}, {"modifiers", modifiers}}}}});
+		return editing::snapshot(image)["bounds"];
+	};
+	run(image, "setTool", {{"tool", "select-rectangle"}});
+	CHECK(drag(0, 10, json::array()) == json({0, 0, 10, 32}));
+	CHECK(drag(30, 40, {"shift"}) == json({0, 0, 40, 32}));
+	CHECK(drag(30, 40, {"alt"}) == json({0, 0, 10, 32}));
+	CHECK(drag(5, 20, {"shift", "alt"}) == json({5, 0, 5, 32}));
+	CHECK(drag(20, 30, json::array()) == json({20, 0, 10, 32}));
+	CHECK(editing::snapshot(image)["options"]["mode"] == "replace");
+
+	// The polygon keeps the mode of the press that began it
+	run(image, "setTool", {{"tool", "polygon-lasso"}});
+	const auto corner = [&](int x, int y, json modifiers) {
+		for(const char* phase : {"press", "release"})
+			run(image, "pointer", {{"phase", phase}, {"x", x}, {"y", y}, {"modifiers", modifiers}});
+	};
+	corner(50, 0, {"shift"});
+	corner(60, 0, json::array());
+	corner(60, 32, json::array());
+	corner(50, 0, json::array());
+	CHECK(editing::snapshot(image)["bounds"] == json({20, 0, 40, 32}));
+}
+
 TEST_CASE("format: the layer operations add and change and move and mask and delete layers") {
 	editing::ImageDocuments store;
 	editing::ImageDocument& image = store.image("photo", {{"width", 16}, {"height", 16}}, "images.photo");
