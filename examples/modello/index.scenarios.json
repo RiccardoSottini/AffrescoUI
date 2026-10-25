@@ -405,7 +405,7 @@
 				{ "expect": { "state": "scene.materials[0].metallic", "is": 0.05 } },
 				{ "click": "#color-material" },
 				{ "wait": 50 },
-				{ "click": [1130, 410] },
+				{ "click": [1130, 436] },
 				{ "wait": 50 },
 				{ "expect": { "state": "scene.materials[0].baseColor", "is": [0.9608, 0.9216, 0.9216, 1.0] } },
 				{ "capture": "material" },
@@ -689,6 +689,33 @@
 				{ "key": "escape" },
 				{ "wait": 20 },
 				{ "expect": { "state": "pie.open", "is": false } }
+			]
+		},
+		{
+			"name": "modello-material-slots",
+			"note": "The Material tab names the object's material: New adds Material.001 and gives it to the cube (the Shader Editor follows), the browse menu gives back the first, and unlink leaves the cube with none; each is one undo step",
+			"steps": [
+				{ "click": "#outliner-cube" },
+				{ "click": "#workspace-shading" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#material-name", "text": "Material" } },
+				{ "click": "#material-new" },
+				{ "expect": { "state": "scene.materials[1].name", "is": "Material.001" } },
+				{ "expect": { "state": "scene.nodes[1].material", "is": "material-1" } },
+				{ "wait": 30 },
+				{ "expect": { "node": "#material-name", "text": "Material.001" } },
+				{ "expect": { "node": "#shader-material", "text": "Material: Material.001" } },
+				{ "click": "#material-browse" },
+				{ "wait": 30 },
+				{ "capture": "browse" },
+				{ "click": { "role": "menuitem", "name": "Material" } },
+				{ "expect": { "state": "scene.nodes[1].material", "is": "material" } },
+				{ "click": "#material-unlink" },
+				{ "expect": { "state": "scene.nodes[1].material", "is": null } },
+				{ "wait": 30 },
+				{ "expect": { "node": "#material-name", "text": "No material" } },
+				{ "key": "mod+z" },
+				{ "expect": { "state": "scene.nodes[1].material", "is": "material" } }
 			]
 		}
 	]

@@ -14,6 +14,39 @@
 		"shaderNodeIndex": "{{computed.shaderNode == null ? -1 : indexOf(map(computed.shaderGraph.nodes, it.id), computed.shaderNode.id)}}"
 	},
 	"actions": {
+		"newMaterial": {
+			"title": "New Material", "category": "Material", "icon": "plus", "enablement": "{{computed.activeNode.kind == 'mesh'}}",
+			"do": [
+				{ "dismiss": true },
+				{ "if": "{{computed.activeNode.kind != 'mesh'}}", "then": [{ "stop": true }] },
+				{ "run": "snapshot" },
+				{ "increment": "state.added", "by": 1 },
+				{ "set": "state.tmp", "to": "{{ { n: 0, name: 'Material', id: 'material-' + state.added } }}" },
+				{ "while": "{{some(state.scene.materials, it.name == state.tmp.name)}}", "do": [
+					{ "increment": "state.tmp.n", "by": 1 },
+					{ "set": "state.tmp.name", "to": "{{'Material.' + pad(state.tmp.n, 3, '0')}}" }
+				] },
+				{ "push": "state.scene.materials", "value": "{{ { id: state.tmp.id, name: state.tmp.name, baseColor: [0.8, 0.8, 0.8, 1], metallic: 0, roughness: 0.5 } }}" },
+				{ "set": "state.scene.nodes[computed.activeIndex].material", "to": "{{state.tmp.id}}" },
+				{ "set": "state.last", "to": "New Material" }
+			]
+		},
+		"assignMaterial": [
+			{ "dismiss": true },
+			{ "if": "{{computed.activeNode.kind != 'mesh' || computed.activeNode.material == args.id}}", "then": [{ "stop": true }] },
+			{ "run": "snapshot" },
+			{ "set": "state.scene.nodes[computed.activeIndex].material", "to": "{{args.id}}" },
+			{ "set": "state.last", "to": "Assign Material" }
+		],
+		"unlinkMaterial": {
+			"title": "Unlink Material", "category": "Material", "icon": "x", "enablement": "{{computed.activeMaterialIndex >= 0}}",
+			"do": [
+				{ "if": "{{computed.activeMaterialIndex < 0}}", "then": [{ "stop": true }] },
+				{ "run": "snapshot" },
+				{ "set": "state.scene.nodes[computed.activeIndex].material", "to": null },
+				{ "set": "state.last", "to": "Unlink Material" }
+			]
+		},
 		"shaderGraphEnsure": [
 			{ "if": "{{computed.activeMaterialIndex >= 0 && state.scene.materials[computed.activeMaterialIndex].graph == null}}", "then": [
 				{ "set": "state.scene.materials[computed.activeMaterialIndex].graph", "to": "{{computed.shaderGraph}}" }] }
