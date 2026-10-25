@@ -121,6 +121,10 @@ TEST_CASE("automation: a scenarios file that is wrong says where") {
 	CHECK(errorOf(oneStep(R"({"expect": {"node": "#a", "text": "x", "exists": true}})")).contains("expected one of"));
 	CHECK(errorOf(oneStep(R"({"expect": {"image": "../escape"}})")).contains("expect.image: expected a name"));
 	CHECK(errorOf(oneStep(R"({"drag": "#a"})")).contains("\"drag\" needs \"to\""));
+	CHECK(errorOf(oneStep(R"({"choose": "../deck.json"})")).contains("steps[0].choose: expected a file name"));
+	CHECK(errorOf(oneStep(R"({"choose": 3})")).contains("steps[0].choose: expected a file name"));
+	CHECK(errorOf(oneStep(R"({"choose": null})")).empty());
+	CHECK(errorOf(oneStep(R"({"propose": "x"})")).contains("steps[0].propose: expected a revision"));
 	CHECK(errorOf(R"({"version": 2, "screen": "a.json", "scenarios": [{"name": "a", "steps": []}, {"name": "a", "steps": []}]})")
 	          .contains("scenarios[1].name: 'a' is the name of another scenario"));
 	CHECK(errorOf(R"({"scenarios": [{"name": "a", "screen": "a.json"}]})").contains("version: expected 1"));
@@ -329,6 +333,59 @@ TEST_CASE("automation: only the scenarios asked for, and on another document") {
 	REQUIRE(report.scenarios.size() == 1);
 	CHECK(report.scenarios[0].name == "second");
 	CHECK(report.scenarios[0].passed());
+}
+
+TEST_CASE("automation: choose answers the file dialogs with a file in the run's own folder, or cancels them") {
+	const Fixture fixture;
+	automation::Options options;
+	options.document = R"json({
+		"format": "affrescoui-screen", "version": 2, "window": { "width": 200, "height": 100 },
+		"state": { "deck": { "title": "Plan" }, "opened": null, "saved": "" },
+		"actions": {
+			"save": [{ "saveFile": "{{state.deck}}", "onDone": [{ "set": "state.saved", "to": "{{result.name}}" }] }],
+			"open": [{ "openFile": "state.opened" }]
+		},
+		"root": { "type": "panel" }
+	})json";
+	const automation::Report report = automation::run(fixture.scenarios(R"([
+		{ "name": "round-trip", "steps": [
+			{ "choose": null }, { "action": "save" }, { "wait": 0 }, { "expect": { "state": "saved", "is": "" } },
+			{ "choose": "deck.json" }, { "action": "save" }, { "wait": 0 },
+			{ "expect": { "state": "saved", "is": "deck.json" } },
+			{ "action": "open" }, { "wait": 0 }, { "expect": { "state": "opened.title", "is": "Plan" } }
+		] }
+	])"),
+	                                                  options);
+	REQUIRE(report.scenarios.size() == 1);
+	CHECK(report.scenarios[0].passed());
+}
+
+TEST_CASE("automation: propose submits a revision through the screen's permissions, so an agent's waits for review") {
+	const Fixture fixture;
+	automation::Options options;
+	options.pictures = false;
+	options.document = R"json({
+		"format": "affrescoui-screen", "version": 2, "window": { "width": 200, "height": 100 },
+		"permissions": { "allow": ["studio"], "ask": ["agent"], "reviewers": ["studio"], "deny": ["stranger"] },
+		"state": { "title": "Plan" },
+		"root": { "type": "panel" }
+	})json";
+	const automation::Report report = automation::run(fixture.scenarios(R"([
+		{ "name": "reviewed", "steps": [
+			{ "propose": { "author": "agent", "message": "Rename", "set": { "/state/title": "Agent's" } } },
+			{ "expect": { "state": "title", "is": "Plan" } },
+			{ "propose": { "author": "studio", "message": "Rename", "set": { "/state/title": "Studio's" } } },
+			{ "expect": { "state": "title", "is": "Studio's" } }
+		] },
+		{ "name": "refused", "steps": [
+			{ "propose": { "author": "stranger", "message": "Rename", "set": { "/state/title": "Theirs" } } }
+		] }
+	])"),
+	                                                  options);
+	REQUIRE(report.scenarios.size() == 2);
+	CHECK(report.scenarios[0].passed());
+	REQUIRE(report.scenarios[1].failures.size() == 1);
+	CHECK(report.scenarios[1].failures[0].problem.starts_with("propose: refused"));
 }
 
 TEST_CASE("automation: a scenario's channels reach no host, by an absolute path either") {

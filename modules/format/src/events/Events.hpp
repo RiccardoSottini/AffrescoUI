@@ -77,6 +77,10 @@ public:
 	[[nodiscard]] static Panel* findByPath(Panel& root, std::string_view path);
 	/// @brief Closes every open overlay that closes on a click outside it (the "dismiss" step, Escape).
 	void dismissAll() { dismissOverlays(nullptr); }
+	/// @brief A key press in another of the screen's windows (SecondWindows): it runs the screen's "keys", as if
+	/// nothing had the focus.
+	/// @param event The event.
+	void keyFromAnotherWindow(const KeyEvent& event) { static_cast<void>(resolve(nullptr, event)); }
 
 private:
 	/// @brief A press that may become a click, a double click or a drag.

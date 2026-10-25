@@ -219,7 +219,19 @@ void Window::setVisible(bool visible) {
 	else visible_ = visible;
 }
 
-bool Window::shouldClose() const { return native_ && native_->shouldClose(); }
+bool Window::shouldClose() const { return native_ ? native_->shouldClose() : closing_; }
+
+void Window::setShouldClose(bool close) {
+	if(native_) native_->setShouldClose(close);
+	else closing_ = close;
+}
+
+bool Window::isFullscreen() const { return native_ ? native_->isFullscreen() : fullscreen_; }
+
+void Window::setFullscreen(bool fullscreen) {
+	if(native_) native_->setFullscreen(fullscreen);
+	else fullscreen_ = fullscreen;
+}
 
 /* Desktop */
 

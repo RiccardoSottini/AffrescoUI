@@ -31,9 +31,8 @@ opens it when it is started without a file.
 - **What the host grants** (`grantLauncher` in [`host.cpp`](../../apps/host/host.cpp)), and only when it opens the Launcher:
   the examples folder, read-only (the service `examples`); the apps folder (`apps`, which may copy from `examples`);
   and the app-programs grant `affresco` (the service `launch`), which starts `affrescoui_launcher` on a `.screen.json`
-  inside one of those two folders (with `--ask TEXT`), or `affrescoui_forge`, `affrescoui_tempera` or
-  `affrescoui_sinopia`, found next to the host, each detached, with the host's `--data` and a socket folder of its own
-  (`<socket folder>/<root>-<app>`), so several apps run at once. The screen names roots and programs, never a path.
+  inside one of those two folders (with `--ask TEXT`), or `affrescoui_forge`, found next to the host, each detached,
+  with the host's `--data` and a socket folder of its own (`<socket folder>/<root>-<app>`), so several apps run at once. The screen names roots and programs, never a path.
 - **The apps folder** holds one folder per app and `shared/`, a copy of `examples/shared` without its C++ (fonts,
   add-ons, components, languages), brought up to date at each create, so the apps' `../shared/...` paths hold as in
   `examples/`. The names of the examples' folders are kept: an app's state and history in the data folder are named

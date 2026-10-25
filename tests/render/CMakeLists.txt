@@ -36,7 +36,7 @@ if(Python3_FOUND)
 	         WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 endif()
 
-# The templates' own scenarios (in their folders, examples/templates.json) and Forge's (examples/forge): what each one
+# The templates' own scenarios (in their folders, examples/templates.json), Forge's, Modello's, Sinopia's and Tempera's: what each one
 # does, checked headless, without a window or golden images; and the rendering check's screens'
 # (screens/*.scenarios.json): where layout, images, icons and partial redraws put each node, held while they get faster
 affrescoui_template_folders(template_folders)
@@ -44,7 +44,8 @@ list(TRANSFORM template_folders PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_V
 list(TRANSFORM template_globs APPEND /*.scenarios.json)
 file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
 	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json
-	${PROJECT_SOURCE_DIR}/examples/modello/*.scenarios.json)
+	${PROJECT_SOURCE_DIR}/examples/modello/*.scenarios.json ${PROJECT_SOURCE_DIR}/examples/sinopia/*.scenarios.json
+	${PROJECT_SOURCE_DIR}/examples/tempera/*.scenarios.json)
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	# Their captures (pictures they take for the gallery, not compared) go to the build folder
 	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/scenario-captures)

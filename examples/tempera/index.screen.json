@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "Tempera, an image editor. The pixels live in the host (Session.cpp, the canvas model of modules/imaging); the state holds only state.doc, a snapshot the natives (tempera.*) return after each change, and what the workspace itself keeps (the theme, the guides, the dialogs). This file names the window, the fonts, the colours and the parts: parts/commands.json (actions, keys, menus, watches), parts/workspace.json (menu bar, options bar, tools bar, document tab, canvas, status bar) and parts/panels.json (the panels and dialogs).",
+	"note": "Tempera, an image editor. The pixels live in the library's image doc (the images section, modules/imaging), which the raster node shows and the image step changes; the state holds only state.doc, the snapshot the library puts there after each change, and what the workspace itself keeps (the theme, the guides, the dialogs). This file names the window, the fonts, the colours and the parts: parts/commands.json (actions, keys, menus, watches), parts/workspace.json (menu bar, options bar, tools bar, document tab, canvas, status bar) and parts/panels.json (the panels and dialogs).",
 
 	"window": { "title": "Tempera", "width": 1280, "height": 800, "minWidth": 900, "minHeight": 600 },
 
@@ -59,6 +59,20 @@
 	"points": {
 		"panels.dock": { "slot": "dock", "receives": ["doc.layers", "doc.active", "layers.move", "layers.select", "layers.duplicate"],
 			"description": "The foot of the panels column, under the Layers group." }
+	},
+
+	"images": {
+		"doc": {
+			"width": 1200, "height": 800, "into": "state.doc", "tool": "brush",
+			"tools": {
+				"move": { "gesture": "move" }, "marquee": { "gesture": "select-rectangle" },
+				"ellipse": { "gesture": "select-ellipse" }, "lasso": { "gesture": "lasso" },
+				"polygon": { "gesture": "polygon-lasso" }, "wand": { "gesture": "magic-wand" }, "crop": { "gesture": "crop" },
+				"brush": { "gesture": "paint" }, "eraser": { "gesture": "erase" }, "clone": { "gesture": "clone" },
+				"gradient": { "gesture": "gradient" }, "fill": { "gesture": "fill" }, "eyedropper": { "gesture": "sample" },
+				"hand": { "gesture": "pan" }, "zoom": { "gesture": "zoom" }
+			}
+		}
 	},
 
 	"state": {
@@ -154,7 +168,7 @@
 
 	"persist": ["state.theme", "state.view"],
 
-	"onLoad": [{ "call": "tempera.snapshot", "into": "state.doc" }],
+	"onLoad": [{ "run": "drawSample" }],
 
 	"root": {
 		"id": "root", "color": "@background",

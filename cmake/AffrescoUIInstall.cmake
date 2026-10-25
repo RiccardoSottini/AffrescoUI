@@ -30,7 +30,7 @@ include(CMakePackageConfigHelpers)
 set(AFFRESCOUI_PACKAGE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/AffrescoUI)
 
 # Exported as affrescoui::<module>, the same names as the aliases add_subdirectory users link to
-foreach(module core data render scene3d imaging format themes vcs channel net services automation intelligence)
+foreach(module core data render export scene3d imaging format themes vcs channel net services automation intelligence)
 	set_target_properties(affrescoui_${module} PROPERTIES EXPORT_NAME ${module})
 	install(DIRECTORY modules/${module}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endforeach()
@@ -38,8 +38,8 @@ install(DIRECTORY modules/screen/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR
 
 # HarfBuzz is built here as one static library (cmake/AffrescoUIText.cmake), so it is installed as one of ours,
 # affrescoui::harfbuzz; FreeType installs its own package, found by AffrescoUIConfig.cmake
-install(TARGETS affrescoui_core affrescoui_data affrescoui_render affrescoui_scene3d affrescoui_imaging affrescoui_format affrescoui_themes affrescoui_vcs affrescoui_channel affrescoui_net affrescoui_services affrescoui
-	affrescoui_automation affrescoui_intelligence affrescoui_harfbuzz affrescoui_regex affrescoui_syntax
+install(TARGETS affrescoui_core affrescoui_data affrescoui_render affrescoui_export affrescoui_scene3d affrescoui_imaging affrescoui_format affrescoui_themes affrescoui_vcs affrescoui_channel affrescoui_net affrescoui_services affrescoui
+	affrescoui_automation affrescoui_intelligence affrescoui_harfbuzz affrescoui_harfbuzz_subset affrescoui_regex affrescoui_syntax
 	EXPORT AffrescoUITargets
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

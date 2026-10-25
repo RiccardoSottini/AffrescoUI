@@ -680,9 +680,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | What git prints for Forge (`GitLimits`) | 8 MiB of output, 10,000 files or branches, 4 KiB a path |
 | A colour theme Forge imports | An id of 40 characters; only `#rrggbb` and `#rrggbbaa` colours are kept |
 | The document server's token file (`TokenFile`) | 4,096 tokens |
-| A Sinopia deck (`sinopia::DeckLimits`) | A file of 8 MiB; 500 slides, 1,000 objects a slide, master or layout (groups' included), 32 masters and 32 layouts, 200 sections, 64 theme tokens; text of 20,000 bytes and 256 runs an object, notes of 50,000 bytes a slide, pen paths of 64 KiB, ids of 64 bytes; images of 32 MiB and 4,096 pixels a side; numbers clamped, ids made unique. A peer's edit is read again, so the same limits hold |
-| A PDF export (`PdfLimits`) | 2,000 pages, a file of 256 MiB, 64 MiB of embedded fonts and of a page's drawing, 2^26 image pixels in all; Sinopia exports at most 500 pages, and as PNG at most 500 files |
-| Sinopia's audience window | Its keys run only the workspace's `nextStep`, `previousStep`, `toggleBlack` and `stopPresenting` |
+| The `saveFile` and `openFile` steps | Only after an event and only through the OS's file dialog: the screen names no path and learns only the chosen file's name. JSON of 16 MB written or read; `openFile` takes 1 to 16 extensions and puts the parsed value in state, where the checks of any state value hold |
+| The `export` step (`PdfLimits`) | Only after an event, through the OS's save dialog; 2,000 pages, a file of 256 MiB, 64 MiB of embedded fonts and of a page's drawing, 2^26 image pixels in all; a PNG is one node |
+| A screen's other windows (`windows`) | 4 windows, each only one the screen's `windows` section declares, showing a node of that screen; they close with the screen |
 | An image of `modules/imaging` (`imaging::Limits`) | 32,768 pixels across and down, and a gigapixel; 256 layers and groups, groups 2 deep |
 | Memory of an image's tiles (`imaging::Limits`) | 512 MiB of loaded tiles and mips per image on the CPU (the least recently used go), 256 MiB of resident tiles per view on the GPU |
 | Tempera's undo history (`imaging::Limits`) | 200 steps and 512 MiB of changed tiles; the oldest steps go first |

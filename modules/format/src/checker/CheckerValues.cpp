@@ -20,7 +20,7 @@ constexpr auto fixedVariables = std::to_array<std::string_view>({"window", "revi
 constexpr auto screenVariables = std::to_array<std::string_view>(
     {"nodes", "proposals", "history", "preview", "mode", "theme", "locale", "screen", "context", "commands",
 	 "keybindings", "menus", "settings", "settingsList", "services", "connections", "auth", "requests",
-	 "peers"});
+	 "peers", "windows"});
 
 /// List functions whose second argument sees each item as `it` (ExpressionFunctionsItems.cpp), and the folds' as well
 /// as `acc` (ExpressionFunctionsFold.cpp).

@@ -116,7 +116,10 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/OtherSteps.cpp
 	src/steps/ServiceSteps.cpp
 	src/steps/SceneSteps.cpp
-	src/steps/FolderSteps.cpp)
+	src/steps/FolderSteps.cpp
+	src/steps/FileSteps.cpp
+	src/steps/ExportSteps.cpp)
+target_link_libraries(affrescoui_format PRIVATE affrescoui::export) # the export step's PDF
 target_include_directories(affrescoui_format PRIVATE src/steps)
 # src/calls/: asynchronous and service calls
 target_sources(affrescoui_format PRIVATE
@@ -170,6 +173,8 @@ if(AFFRESCOUI_AUDIO)
 else()
 	target_sources(affrescoui_format PRIVATE src/audio/AudioPlayersNone.cpp)
 endif()
+# windows: the screen's other windows (the "windows" section) and the steps that open, close and fill them
+target_sources(affrescoui_format PRIVATE src/windows/SecondWindows.cpp src/windows/WindowSteps.cpp)
 # properties: the properties node types share: look, layout, accessibility, transform, text fields, icons, runs
 target_sources(affrescoui_format PRIVATE src/properties/Properties.cpp src/properties/CommonProperties.cpp
 	src/properties/PropertyValues.cpp src/properties/LayoutProperties.cpp src/properties/AccessibilityProperties.cpp
@@ -199,4 +204,5 @@ target_sources(affrescoui_format PRIVATE src/adapters/Layout.cpp src/adapters/A2
 	src/adapters/AdaptiveCards.cpp src/adapters/AdaptiveCardActions.cpp src/adapters/Adapters.cpp
 	src/adapters/AdapterMapping.cpp)
 target_include_directories(affrescoui_format PRIVATE src/types src/controls src/components src/creative src/properties
-	src/reference src/sections src/connections src/features src/composition src/adapters src/imaging src/audio)
+	src/reference src/sections src/connections src/features src/composition src/adapters src/imaging src/audio
+	src/windows)
