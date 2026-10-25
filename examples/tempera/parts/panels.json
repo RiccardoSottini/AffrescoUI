@@ -477,11 +477,18 @@
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
 				"use": "dialog", "id": "new-dialog",
-				"with": { "open": "state.newDoc.open", "title": "New Document", "message": "", "width": 360, "height": 230,
+				"with": { "open": "state.newDoc.open", "title": "New Document", "message": "", "width": 360, "height": 264,
 				          "buttons": [{ "title": "Cancel" }, { "title": "Create", "run": "createDocument" }] },
 				"children": [
 					{ "type": "column", "id": "new-fields", "anchors": { "left": 20, "right": 20, "top": 44, "bottom": 52 }, "gap": 6,
 					  "children": [
+						{ "type": "row", "id": "new-preset-row", "width": "100%", "height": 28, "gap": 8, "alignItems": "center",
+						  "children": [
+							{ "style": "dim", "fitText": false, "text": "Preset", "width": 70, "height": 20 },
+							{ "use": "tPicker", "id": "new-preset", "with": { "title": "{{find(state.newPresets, it.width == number(state.newDoc.width) && it.height == number(state.newDoc.height)).title ?? 'Custom'}}",
+							  "tip": "Document size presets", "width": 200, "open": "state.newPresetMenu", "inDialog": true,
+							  "items": "{{map(state.newPresets, {title: it.title, checked: it.width == number(state.newDoc.width) && it.height == number(state.newDoc.height), run: 'newPreset', with: {args: {width: it.width, height: it.height}}})}}" } }
+						  ] },
 						{ "type": "row", "repeat": { "for": "f", "in": "{{['width', 'height']}}" }, "width": "100%", "height": 28, "gap": 8, "alignItems": "center",
 						  "children": [
 							{ "style": "dim", "fitText": false, "text": "{{upper(slice(f, 0, 1)) + slice(f, 1)}}", "width": 70, "height": 20 },

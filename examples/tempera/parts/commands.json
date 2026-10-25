@@ -60,6 +60,9 @@
 			"do": [{ "run": "save", "with": { "args": { "format": "jpeg" } } }] },
 		"showNewDialog": { "title": "New...", "category": "File", "icon": "file-plus",
 			"do": [{ "set": "state.newDoc.open", "to": true }] },
+		"newPreset": [{ "set": "state.newDoc.width", "to": "{{args.width}}" }, { "set": "state.newDoc.height", "to": "{{args.height}}" }],
+		"blackWhiteLayer": [{ "run": "addLayer", "with": { "args": { "kind": "hue-saturation", "name": "Black & White" } } },
+			{ "run": "setAdjustment", "with": { "args": { "saturation": -1 } } }],
 		"createDocument": [{ "run": "newDocument", "with": { "args": { "width": "{{clamp(number(state.newDoc.width) ?? 1, 1, 20000)}}", "height": "{{clamp(number(state.newDoc.height) ?? 1, 1, 20000)}}", "format": "{{state.newDoc.format}}" } } },
 			{ "set": "state.newDoc.open", "to": false }],
 		"newSample": { "title": "New Sample", "category": "File", "icon": "sparkles",
@@ -479,6 +482,7 @@
 			"curves": { "run": "addLayer", "with": { "args": { "kind": "curves", "name": "Curves" } }, "title": "Curves...", "group": "1_tone", "order": 3 },
 			"hueSaturation": { "run": "addLayer", "with": { "args": { "kind": "hue-saturation", "name": "Hue/Saturation" } }, "title": "Hue/Saturation...", "group": "2_colour", "order": 1 },
 			"colorBalance": { "run": "addLayer", "with": { "args": { "kind": "color-balance", "name": "Colour Balance" } }, "title": "Colour Balance...", "group": "2_colour", "order": 2 },
+			"blackWhite": { "run": "blackWhiteLayer", "title": "Black & White...", "group": "2_colour", "order": 3 },
 			"invert": { "run": "addLayer", "with": { "args": { "kind": "invert", "name": "Invert" } }, "title": "Invert", "group": "3_special", "order": 1 },
 			"threshold": { "run": "addLayer", "with": { "args": { "kind": "threshold", "name": "Threshold" } }, "title": "Threshold...", "group": "3_special", "order": 2 },
 			"gradientMap": { "run": "addLayer", "with": { "args": { "kind": "gradient-map", "name": "Gradient Map" } }, "title": "Gradient Map...", "group": "3_special", "order": 3 }

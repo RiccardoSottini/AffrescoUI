@@ -143,6 +143,12 @@
 		"filter": { "open": false, "kind": "gaussian-blur", "radius": 4, "amount": 100, "threshold": 0, "angle": 0,
 		            "distance": 12, "live": true, "apply": 0, "cancel": 0 },
 		"newDoc": { "open": false, "width": 1200, "height": 800, "format": "rgba8" },
+		"newPresetMenu": false,
+		"newPresets": [
+			{ "title": "Default, 1200 × 800", "width": 1200, "height": 800 }, { "title": "Square, 1080 × 1080", "width": 1080, "height": 1080 },
+			{ "title": "HD, 1920 × 1080", "width": 1920, "height": 1080 }, { "title": "4K UHD, 3840 × 2160", "width": 3840, "height": 2160 },
+			{ "title": "A4 at 300 ppi, 2480 × 3508", "width": 2480, "height": 3508 }, { "title": "Icon, 512 × 512", "width": 512, "height": 512 }
+		],
 		"transform": { "open": false, "x": 0, "y": 0, "scaleX": 100, "scaleY": 100, "angle": 0 },
 		"resize": { "open": false, "width": 0, "height": 0, "linked": true },
 		"canvasSize": { "open": false, "width": 0, "height": 0, "anchor": "center" },

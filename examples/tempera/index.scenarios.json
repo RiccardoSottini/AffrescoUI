@@ -3315,6 +3315,121 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "tempera-new-document-preset",
+			"note": "A preset in the New dialog fills in its size, which Create uses",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"key": "mod+n"
+				},
+				{
+					"expect": {
+						"node": "#new-preset",
+						"property": "text",
+						"is": "Default, 1200 × 800"
+					}
+				},
+				{
+					"click": "#new-preset"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "HD, 1920 × 1080"
+					}
+				},
+				{
+					"expect": {
+						"state": "newDoc.width",
+						"is": 1920
+					}
+				},
+				{
+					"expect": {
+						"node": "#new-preset",
+						"property": "text",
+						"is": "HD, 1920 × 1080"
+					}
+				},
+				{
+					"expect": {
+						"state": "newPresetMenu",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "newDoc.open",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Create"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.width",
+						"is": 1920
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.height",
+						"is": 1080
+					}
+				}
+			]
+		},
+		{
+			"name": "tempera-black-and-white",
+			"note": "Black & White adds a Hue/Saturation layer with no saturation, which greys the image",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"click": "#menu-layer"
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "New Adjustment Layer"
+					}
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Black & White..."
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].name",
+						"is": "Black & White"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.kind",
+						"is": "hue-saturation"
+					}
+				},
+				{
+					"expect": {
+						"state": "doc.layers[0].adjustment.saturation",
+						"is": -1
+					}
+				}
+			]
 		}
 	]
 }
