@@ -7,6 +7,7 @@
 #include "affresco/format/Rules.hpp"
 
 #include "AudioPlayers.hpp"
+#include "ServiceRules.hpp"
 #include "SectionRegistry.hpp"
 
 #include "affresco/core/Assets.hpp"
@@ -112,7 +113,8 @@ void checkAudioChange(const json& before, const json& after) {
 }
 
 std::vector<std::string> Rules::personLines(const json& before, const json& after) const {
-	std::vector<std::string> lines;
+	// A service step that writes or runs is always reviewed (reviewLines()), and by the person: no peer accepts it
+	std::vector<std::string> lines = serviceReviewLines(before, after, services_);
 	const json& oldSounds = soundsOf(before);
 	const json& newSounds = soundsOf(after);
 	for(const auto& [name, sound] : newSounds.items())

@@ -154,14 +154,19 @@ screens, actions, and the live state.
 - **service steps out of bounds**: `respond` is a control step. An `invoke` or `subscribe` a revision adds must name
   a declared service and a method of it the provider lets revisions use, by a fixed name; and when the method writes
   or runs something it is always reviewed: the change becomes a proposal whatever the allow rules, grants or mode
-  say, and a person must approve it.
+  say, and only the person accepts it (below), no other reviewer. A `terminal` node counts as a use of its service's
+  `open` (its program runs, or it shows a running session), so adding one or changing its `service` or `session` is
+  reviewed the same way. So does new state for a use the screen already has: a revision that changes the state a
+  write or run use's arguments name (`"data": "{{state.command}}"`) is a proposal for the person too. Only state the
+  arguments name directly is followed; state an action copies first into other state isn't, so a screen keeps the
+  arguments of a run use in the state it names there.
 
 A revision also can't add an `include` (the section only exists while the file is loaded) or a new section the format
 doesn't know.
 
 **What only the person accepts**: a revision that brings, changes or removes **assets** (files kept with the
-history), carries **`run`** steps (run once when it is merged), changes the **`audio`** section, or makes a node show
-an asset. It is always a proposal: no allow rule, grant ("Always allow" can't remember it), mode (`acceptEdits`,
+history), carries **`run`** steps (run once when it is merged), changes the **`audio`** section, makes a node show
+an asset, or adds a service step that writes or runs (above). It is always a proposal: no allow rule, grant ("Always allow" can't remember it), mode (`acceptEdits`,
 `plan`) or reviewer other than the person lets it through. Only a reviewer of the channel `user` (the screen's own
 review steps, `Screen::acceptProposal`) accepts it, and never its own author's channel; a peer on `studio.sock` can't.
 The app's own commits (`commit()`, a screen's `patch` step) and the person's own revisions aren't asked. Assets are
@@ -342,9 +347,15 @@ debugpy.adapter` when they are on PATH; a launch configuration only names one of
 
 ### Channels a screen declares
 A screen's `channels` section names local sockets the screen connects to. Relative paths are resolved in
-`AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; an absolute path is used as it
-is, so a screen file can name any socket, a running host's `studio.sock` too, and connects to it as soon as its window
-opens. Every message that arrives
+`AFFRESCOUI_SOCKET_DIR`, or `/tmp/affrescoui-<uid>`, or the directory the host sets; for a screen the library
+embeds, an absolute path is used as it is. The stock host (the Launcher and every app it opens) and `affrescoui run`
+confine them (`Screen::confineChannels()`): a socket is a relative path with no `..`, inside the host's own socket
+folder (`--socket`) once links are followed, or it is refused and the screen's `<name>:closed` runs with why. Each app
+the Launcher opens has a folder of its own, so a screen reaches its own host's `studio.sock` and `agent.sock` only,
+never the Launcher's nor another app's; and an app's channels connect only if its `app.json` declares the `channels`
+capability and the person allowed it (`Screen::allowChannels()`). A screen on its own host's `studio.sock` is a
+reviewer of its own screen, as a channel there always is: it can't accept what only the person accepts (above), and
+"Known gaps" says what a per-run secret would add (G-27). Every message that arrives
 there runs the screen's `<name>:<type>` action, if it has one, with the message as its event, so the program at the
 other end can run those actions with any data. Revisions can't change `channels` or add `send` and `connect` steps.
 
@@ -752,6 +763,11 @@ removes the gap from this list.
 - **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
   accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
   who listens there, nor the directory of that socket or of one an embedding application passes to `listen`. Tracking: G-03.
+- **An app's channel to its own host is a reviewer of its own screen.** The stock host confines a screen's channels
+  to its own socket folder (above), and a channel on `studio.sock` has the author `studio`, a reviewer: a screen
+  allowed the `channels` capability can accept its own proposals, though never what only the person accepts. A
+  per-run secret that only the host's own peers hold, or a lower author for a connection from the host's own
+  process, would close it. Tracking: G-27.
 - **The user check on Windows goes by process id.** The peer's process could exit and its id be reused between the
   connection and the check, a narrow race. A process of the same user that runs elevated may not be inspectable from
   a non-elevated host, and is then refused. Tracking: G-04.

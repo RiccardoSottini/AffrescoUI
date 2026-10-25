@@ -116,11 +116,13 @@ public:
 	/// @return The lines, e.g. "uses files.write (writes: ...)".
 	[[nodiscard]] std::vector<std::string> reviewLines(const json& before, const json& after) const override;
 
-	/// @brief What only the person accepts (VERSION_CONTROL.md, "Assets"): a sound added, changed or removed in the
-	/// "audio" section, and a node made to show an asset (`"file": "asset:<name>"`) (AssetRules.cpp).
+	/// @brief What only the person accepts (VERSION_CONTROL.md, "Assets"): a service step that writes or runs (the
+	/// lines of reviewLines() for it), a sound added, changed or removed in the "audio" section, and a node made to
+	/// show an asset (`"file": "asset:<name>"`) (AssetRules.cpp).
 	/// @param before The document now.
 	/// @param after The document after the change.
-	/// @return The lines, e.g. "changes the sound 'song' (asset:beat.mp3)", "shows the asset 'moon.svg' in #cover".
+	/// @return The lines, e.g. "uses files.write (writes: ...)", "changes the sound 'song' (asset:beat.mp3)", "shows
+	/// the asset 'moon.svg' in #cover".
 	[[nodiscard]] std::vector<std::string> personLines(const json& before, const json& after) const override;
 	/// @brief Checks a revision's "run" steps as an action the document gained: no control step and no way to run one
 	/// (checkChange()), nothing it doesn't define, at most 1 MiB written as JSON.
