@@ -2,7 +2,7 @@
 
 Sinopia is a presentation editor. This matrix lists what a daily user of such an editor
 expects, and how far Sinopia goes: **done** (works as expected), **partial** (there, with less) or **missing**.
-*Start* is Sinopia before wave 14 (a C++ app); *Now* is Sinopia as a folder of JSON that the stock host runs,
+*Start* is Sinopia as a C++ app; *Now* is Sinopia as a folder of JSON that the stock host runs,
 with its slide show, presenter view, audience window and files on library capabilities (the `windows` section,
 `saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](index.scenarios.json)
 (without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
