@@ -4,7 +4,7 @@
 	"version": 2,
 	"note": "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json.",
 
-	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "../shared/addons/assistant/assistant.json"],
+	"include": ["parts/themes.json", "parts/geometry.json", "parts/slide.json", "parts/sample-deck.json", "parts/edit.json", "parts/ribbon.json", "parts/tabs.json", "parts/show.json", "../shared/addons/assistant/assistant.json"],
 
 	"window": { "title": "Sinopia", "width": 1280, "height": 800, "minWidth": 960, "minHeight": 600 },
 
@@ -139,8 +139,8 @@
 		"mod+shift+.": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": 1 } }],
 		"mod+shift+,": [{ "when": "{{!context.textInputFocus}}", "do": "growText", "with": { "by": -1 } }],
 		"delete": [{ "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
-		"backspace": [{ "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
-		"escape": [{ "when": "{{!context.textInputFocus && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
+		"backspace": [{ "when": "{{state.show.on}}", "do": "showPrevious" }, { "when": "{{!context.textInputFocus && length(computed.selected) > 0}}", "do": "deleteObjects" }],
+		"escape": [{ "when": "{{state.show.on}}", "do": "showEnd" }, { "when": "{{!context.textInputFocus && length(state.board.selection) > 0}}", "do": [{ "set": "state.board.selection", "to": [] }] }]
 	},
 
 	"root": {
@@ -164,7 +164,8 @@
 						  "textColor": "{{computed.canUndo ? '@titleInk' : '#2a274066'}}", "tooltip": "Undo (Ctrl+Z)", "onClick": "undo" },
 						{ "type": "label", "id": "qat-redo", "style": "titleButton", "runs": [{ "icon": "redo-2", "size": 16 }],
 						  "textColor": "{{computed.canRedo ? '@titleInk' : '#2a274066'}}", "tooltip": "Redo (Ctrl+Y)", "onClick": "redo" },
-						{ "type": "label", "id": "qat-present", "style": "titleButton", "runs": [{ "icon": "projector", "size": 16 }], "tooltip": "Present from the start (F5)" },
+						{ "type": "label", "id": "qat-present", "style": "titleButton", "runs": [{ "icon": "projector", "size": 16 }], "tooltip": "Present from the start (F5)",
+						  "onClick": { "run": "present", "with": { "from": 0 } } },
 						{ "type": "label", "id": "qat-more", "style": "titleButton", "width": 22, "runs": [{ "icon": "chevron-down", "size": 11 }], "tooltip": "More quick commands" },
 						{ "type": "label", "id": "doc-title", "height": 32, "fitText": true, "padding": 8, "radius": 8, "textColor": "@titleInk", "cursor": "hand", "hover": { "color": "@titleHover" },
 						  "runs": [{ "text": "{{state.deck.title}}", "size": 12 }, { "text": "  ·  On this computer ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] }
@@ -201,7 +202,8 @@
 					  "runs": [{ "icon": "circle-dot", "size": 14, "color": "#c50f1f" }, { "text": " Record", "size": 12 }] },
 					{ "id": "tab-row-gap-2", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "present-button", "style": "pillButton",
-					  "runs": [{ "icon": "projector", "size": 14 }, { "text": " Start ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] },
+					  "runs": [{ "icon": "projector", "size": 14 }, { "text": " Start", "size": 12 }],
+					  "tooltip": "Present from this slide (Shift+F5)", "onClick": { "run": "present", "with": { "from": "{{state.current}}" } } },
 					{ "id": "tab-row-gap-3", "width": 6, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "share-button", "style": "pillButton", "color": "@brandLine", "borderColor": "@brandLine", "textColor": "@onBrand", "hover": { "color": "@brand" },
 					  "runs": [{ "icon": "send", "size": 14 }, { "text": " Share ", "size": 12 }, { "icon": "chevron-down", "size": 9 }] },
@@ -267,10 +269,9 @@
 									  "color": "{{i == state.current ? '@brandLine' : 'transparent'}}",
 									  "hover": { "color": "{{i == state.current ? '@brandLine' : '@thumbHover'}}" }, "dragOver": { "color": "@brandLine" },
 									  "children": [
-										{ "id": "{{'thumb-' + s.id + '-paper'}}", "x": 2, "y": 2, "width": 160, "height": 90, "color": "#ffffff", "borderWidth": 1, "borderColor": "@thumbLine", "cache": true,
+										{ "id": "{{'thumb-' + s.id + '-paper'}}", "x": 2, "y": 2, "width": 160, "height": 90, "color": "#ffffff", "borderWidth": 1, "borderColor": "@thumbLine",
 										  "children": [
-											{ "id": "{{'thumb-' + s.id + '-page'}}", "color": "transparent", "x": 0, "y": 0, "width": 960, "height": 540, "scale": "{{160 / 960}}", "transformOrigin": "topLeft",
-											  "children": [{ "use": "slidePage", "with": { "slide": "{{s}}", "prefix": "{{'t' + s.id + '-'}}" } }] },
+											{ "type": "image", "id": "{{'thumb-' + s.id + '-page'}}", "x": 0, "y": 0, "width": 160, "height": 90, "source": "{{'slide-' + s.id}}", "fit": "fill" },
 											{ "id": "{{'thumb-' + s.id + '-veil'}}", "when": "{{s.hidden ?? false}}", "fill": 0, "color": "#ffffff99" }
 										  ] }
 									  ] }
@@ -325,7 +326,8 @@
 					{ "type": "label", "id": "status-sorter", "style": "{{state.view == 'sorter' ? 'barButtonOn' : 'barButton'}}", "runs": [{ "icon": "layout-grid", "size": 14 }], "tooltip": "Slide Sorter",
 					  "onClick": [{ "set": "state.view", "to": "sorter" }] },
 					{ "type": "label", "id": "status-reading", "style": "barButton", "runs": [{ "icon": "book-open", "size": 14 }], "tooltip": "Reading View" },
-					{ "type": "label", "id": "status-show", "style": "barButton", "runs": [{ "icon": "projector", "size": 14 }], "tooltip": "Present" },
+					{ "type": "label", "id": "status-show", "style": "barButton", "runs": [{ "icon": "projector", "size": 14 }], "tooltip": "Present from this slide",
+					  "onClick": { "run": "present", "with": { "from": "{{state.current}}" } } },
 					{ "id": "status-gap-3", "width": 8, "height": 1, "color": "transparent" },
 					{ "type": "label", "id": "zoom-out", "style": "barButton", "runs": [{ "icon": "minus", "size": 12 }], "tooltip": "Zoom Out", "onClick": { "run": "zoomBy", "with": { "by": 0.9 } } },
 					{ "type": "slider", "id": "zoom-slider", "width": 100, "height": 16, "trackColor": "@rbFieldLine", "activeColor": "@rbMuted", "knobColor": "@rbFieldBg", "min": 10, "max": 400, "value": "{{round(computed.zoom * 100)}}",
@@ -337,6 +339,8 @@
 				]
 			}
 		]
-		}]
+		},
+		{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "key": "{{s.id}}" }, "use": "slideImage", "with": { "s": "{{s}}" } },
+		{ "use": "showStage", "when": "{{state.show.on}}" }]
 	}
 }
