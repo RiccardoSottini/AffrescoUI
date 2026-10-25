@@ -53,6 +53,28 @@ if(NOT EXISTS ${AFFRESCOUI_ACCESSKIT_LIBRARY})
 		"configure with -DAFFRESCOUI_ACCESSIBILITY=OFF")
 endif()
 
+# A universal macOS build (CMAKE_OSX_ARCHITECTURES naming several) links one library holding every architecture's,
+# joined by lipo, since the archive has one per architecture
+list(LENGTH CMAKE_OSX_ARCHITECTURES AFFRESCOUI_ACCESSKIT_ARCHITECTURES)
+if(APPLE AND AFFRESCOUI_ACCESSKIT_ARCHITECTURES GREATER 1)
+	set(AFFRESCOUI_ACCESSKIT_PARTS)
+	foreach(architecture IN LISTS CMAKE_OSX_ARCHITECTURES)
+		set(part ${accesskit_SOURCE_DIR}/lib/macos/${architecture}/static/libaccesskit.a)
+		if(NOT EXISTS ${part})
+			message(FATAL_ERROR "AccessKit has no static library for macOS on ${architecture}: "
+				"configure with -DAFFRESCOUI_ACCESSIBILITY=OFF")
+		endif()
+		list(APPEND AFFRESCOUI_ACCESSKIT_PARTS ${part})
+	endforeach()
+	set(AFFRESCOUI_ACCESSKIT_LIBRARY ${CMAKE_BINARY_DIR}/accesskit/universal/libaccesskit.a)
+	file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/accesskit/universal)
+	execute_process(COMMAND lipo -create ${AFFRESCOUI_ACCESSKIT_PARTS} -output ${AFFRESCOUI_ACCESSKIT_LIBRARY}
+		RESULT_VARIABLE AFFRESCOUI_ACCESSKIT_LIPO)
+	if(NOT AFFRESCOUI_ACCESSKIT_LIPO EQUAL 0)
+		message(FATAL_ERROR "lipo could not join AccessKit's libraries for ${CMAKE_OSX_ARCHITECTURES}")
+	endif()
+endif()
+
 # The libraries the prebuilt one needs, as its own accesskit-config.cmake lists them
 if(APPLE)
 	set(AFFRESCOUI_ACCESSKIT_SYSTEM "-framework AppKit" "-framework Foundation" "-framework CoreFoundation" objc)
