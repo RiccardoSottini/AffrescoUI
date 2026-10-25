@@ -802,6 +802,35 @@
 				{ "expect": { "state": "scene.nodes[1].keyframes.length", "is": 3 } },
 				{ "expect": { "state": "scene.nodes[1].keyframes[1].frame", "is": 3 } }
 			]
+		},
+		{
+			"name": "modello-export-gltf",
+			"note": "File › Export glTF writes the scene as a .gltf file the person picks, its keyframes as an animation; a cancelled dialog changes nothing",
+			"steps": [
+				{ "move": [550, 450] },
+				{ "key": "i" },
+				{ "key": "shift+right" },
+				{ "key": "g" },
+				{ "key": "x" },
+				{ "key": "2" },
+				{ "key": "enter" },
+				{ "wait": 20 },
+				{ "move": [550, 450] },
+				{ "key": "i" },
+				{ "expect": { "state": "scene.nodes[1].keyframes[1]", "is": { "frame": 250, "translation": [2, 0, 0], "rotationDegrees": [0, 0, 0], "scale": [1, 1, 1] } } },
+				{ "choose": "scene.gltf" },
+				{ "click": [48, 14] },
+				{ "wait": 30 },
+				{ "click": { "role": "menuitem", "name": "Export glTF…" } },
+				{ "wait": 0 },
+				{ "expect": { "state": "fileStatus", "is": "Exported scene.gltf" } },
+				{ "choose": null },
+				{ "click": [48, 14] },
+				{ "wait": 30 },
+				{ "click": { "role": "menuitem", "name": "Export glTF…" } },
+				{ "wait": 0 },
+				{ "expect": { "state": "fileStatus", "is": "Exported scene.gltf" } }
+			]
 		}
 	]
 }

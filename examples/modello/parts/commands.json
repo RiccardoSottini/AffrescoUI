@@ -565,6 +565,16 @@
 				  "onError": [{ "set": "state.fileStatus", "to": "{{'Not saved: ' + error.message}}" }] }
 			]
 		},
+		"exportGltf": {
+			"title": "Export glTF…", "category": "File", "icon": "file-output", "enablement": "{{contains(values(state.areas), 'viewport')}}",
+			"do": [
+				{ "dismiss": true },
+				{ "if": "{{!contains(values(state.areas), 'viewport')}}", "then": [{ "stop": true }] },
+				{ "export": "gltf", "pages": ["viewport"], "animations": "{{computed.gltfClips}}", "name": "scene",
+				  "onDone": [{ "set": "state.fileStatus", "to": "{{'Exported ' + result.name}}" }],
+				  "onError": [{ "set": "state.fileStatus", "to": "{{'Not exported: ' + error.message}}" }] }
+			]
+		},
 		"openScene": {
 			"title": "Open…", "category": "File", "icon": "folder-open",
 			"do": [
@@ -679,7 +689,8 @@
 		"file": {
 			"new": { "run": "newScene", "group": "1_new", "order": 1 },
 			"open": { "run": "openScene", "group": "1_new", "order": 2 },
-			"save": { "run": "saveScene", "group": "2_save" }
+			"save": { "run": "saveScene", "group": "2_save" },
+			"export": { "run": "exportGltf", "group": "3_export" }
 		},
 		"edit": {
 			"undo": { "run": "undo", "group": "1_history", "order": 1 },
