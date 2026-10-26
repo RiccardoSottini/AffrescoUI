@@ -27,6 +27,15 @@ made blank, from an example or from a description, and the AI provider every app
 
 ---
 
+> [!WARNING]
+> **The v1.0.0 downloads are not code-signed yet**, so macOS and Windows warn that they can't verify the developer when you first open them. Signed builds will come in the next releases.
+>
+> **Best today: build from source.** It's one command, gives an optimised build for your machine, and never shows that warning (you need CMake 3.25+ and a C++23 compiler):
+>
+> ```sh
+> cmake -S . -B build && cmake --build build && ./build/affrescoui_launcher
+> ```
+
 AffrescoUI is a native UI engine that renders every application from one document format. An application's layout,
 state and behaviour live in a single readable document, which the engine draws in C++ and OpenGL and keeps running.
 People and AI agents change that document while the app runs: each change is checked against the app's permissions,
