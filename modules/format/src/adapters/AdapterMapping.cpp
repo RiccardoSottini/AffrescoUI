@@ -382,7 +382,7 @@ void checkAdapter(const json& adapter) {
 	if(adapter.dump().size() > maxAdapterBytes) fail("adapter", std::format("larger than {} bytes", maxAdapterBytes));
 	for(const auto& [key, value] : adapter.items())
 		if(std::ranges::find(adapterKeys, key) == adapterKeys.end()) fail("adapter." + key, "unknown key");
-	if(adapter.value("format", json()) != adapterFormat) fail("adapter.format", "expected \"affrescoui-adapter\"");
+	if(adapter.value("format", json()) != json(adapterFormat)) fail("adapter.format", "expected \"affrescoui-adapter\"");
 	if(adapter.value("version", json()) != 1) fail("adapter.version", "expected 1");
 	for(const char* key : {"feature", "host", "note"})
 		if(adapter.contains(key)) expect::string(adapter[key], std::string("adapter.") + key);

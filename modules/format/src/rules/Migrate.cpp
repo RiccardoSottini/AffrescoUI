@@ -365,7 +365,7 @@ DocumentKind documentKind(const json& document) noexcept {
 		           ? DocumentKind::Screen
 				   : DocumentKind::Other;
 	for(const auto& [name, kind] : formats)
-		if(*format == name) return kind;
+		if(*format == json(name)) return kind;
 	return DocumentKind::Other;
 }
 

@@ -331,7 +331,7 @@ void optionalText(const json& object, const char* key, const std::string& place)
 /// @param place Its place.
 /// @throws DocumentError If one of them is missing or wrong.
 void checkManifestIdentity(const json& manifest, const std::string& place) {
-	if(manifest.value("format", json()) != manifestFormat)
+	if(manifest.value("format", json()) != json(manifestFormat))
 		fail(place + ".format", std::format("expected \"{}\"", manifestFormat));
 	if(const json version = manifest.value("version", json()); version != 1 && version != formatVersion)
 		fail(place + ".version", "expected 1 or 2");
