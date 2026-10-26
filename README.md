@@ -36,6 +36,11 @@ made blank, from an example or from a description, and the AI provider every app
 > cmake -S . -B build && cmake --build build && ./build/affrescoui_launcher
 > ```
 
+https://github.com/user-attachments/assets/657c5090-8a35-4a19-9d97-ad8aecf60498
+
+<sub>66 seconds: a running app changed by asking its assistant, a 3D modeller building a model inside the running app,
+and a new app made from a name and a description.</sub>
+
 AffrescoUI is a native UI engine that renders every application from one document format. An application's layout,
 state and behaviour live in a single readable document, which the engine draws in C++ and OpenGL and keeps running.
 People and AI agents change that document while the app runs: each change is checked against the app's permissions,
