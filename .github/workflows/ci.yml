@@ -276,7 +276,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Build
+      - name: Build # each target's files compiled side by side (cl /MP): one after another, the build took over 60 minutes
+        env:
+          CL: /MP
         run: |
           cmake -S . -B build -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build --config Release
