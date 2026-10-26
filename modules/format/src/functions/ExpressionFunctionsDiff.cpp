@@ -423,6 +423,44 @@ Value atPointer(const Call& call) {
 	return holder.is_structured() || holder.is_null();
 }
 
+/// @brief A text member of a patch operation.
+/// @param operation The operation.
+/// @param key The member.
+/// @return Its text; nothing if the operation isn't an object or the member isn't a text.
+[[nodiscard]] std::optional<std::string> textOf(const json& operation, const char* key) {
+	if(!operation.is_object()) return std::nullopt;
+	const auto found = operation.find(key);
+	if(found == operation.end() || !found->is_string()) return std::nullopt;
+	return found->get<std::string>();
+}
+
+/// @brief Applies one operation of a patch: a move as JSON Patch defines it (a remove, then an add), so that where
+/// the value goes is checked after the remove.
+/// @param document The document, changed.
+/// @param operation The operation.
+/// @param copied The values the patch's copies have copied so far, counted on.
+/// @return false if it is refused: a copy past the budget, or an add inside a value that holds nothing.
+/// @throws json::exception If the operation doesn't apply.
+[[nodiscard]] bool applyOperation(json& document, const json& operation, std::size_t& copied) {
+	const std::optional<std::string> op = textOf(operation, "op");
+	const std::optional<std::string> from = textOf(operation, "from");
+	const std::optional<std::string> path = textOf(operation, "path");
+	json step = operation;
+	if(op == "copy" && from) {
+		copied += valuesIn(document.at(json::json_pointer(*from)), mostCopied);
+		if(copied > mostCopied) return false;
+	}
+	if(op == "move" && from && path) {
+		json value = document.at(json::json_pointer(*from));
+		document.patch_inplace(json::array({{{"op", "remove"}, {"path", *from}}}));
+		step = {{"op", "add"}, {"path", *path}, {"value", std::move(value)}};
+	}
+	if((op == "add" || op == "copy" || op == "move") && path && !takesValueAt(document, json::json_pointer(*path)))
+		return false;
+	document.patch_inplace(json::array({std::move(step)}));
+	return true;
+}
+
 /// @brief applyPatch(value, patch): a value with a JSON Patch applied, operation after operation.
 /// @param call The value and the patch (a list of { op, path, from?, value? }).
 /// @return The patched value, or null if the patch doesn't apply (or is bigger than its limits).
@@ -432,25 +470,8 @@ Value applyPatch(const Call& call) {
 	json document = call[0].toJson();
 	std::size_t copied = 0;
 	try {
-		for(const json& operation : patch) {
-			json step = operation;
-			const json op = operation.is_object() ? operation.value("op", json()) : json();
-			const bool from = operation.is_object() && operation.contains("from") && operation["from"].is_string();
-			const bool path = operation.is_object() && operation.contains("path") && operation["path"].is_string();
-			if(op == "copy" && from) {
-				copied += valuesIn(document.at(json::json_pointer(operation["from"].get<std::string>())), mostCopied);
-				if(copied > mostCopied) return {};
-			}
-			if(op == "move" && from && path) { // as JSON Patch defines it: a remove, then an add where it goes
-				json value = document.at(json::json_pointer(operation["from"].get<std::string>()));
-				document.patch_inplace(json::array({{{"op", "remove"}, {"path", operation["from"]}}}));
-				step = {{"op", "add"}, {"path", operation["path"]}, {"value", std::move(value)}};
-			}
-			if((op == "add" || op == "copy" || op == "move") && path &&
-			   !takesValueAt(document, json::json_pointer(operation["path"].get<std::string>())))
-				return {};
-			document.patch_inplace(json::array({std::move(step)}));
-		}
+		for(const json& operation : patch)
+			if(!applyOperation(document, operation, copied)) return {};
 	} catch(const std::exception&) { // json::exception, or memory running out
 		return {};
 	}
