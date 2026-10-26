@@ -73,7 +73,7 @@ set(GLFW_INSTALL ${AFFRESCOUI_INSTALL} CACHE BOOL "" FORCE) # installed static l
 FetchContent_Declare(glfw
 	URL https://github.com/glfw/glfw/releases/download/${AFFRESCOUI_GLFW_VERSION}/glfw-${AFFRESCOUI_GLFW_VERSION}.zip
 	URL_HASH SHA256=b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9
-	# One change: on a Mac without a GPU, Apple's software OpenGL instead of no window (cmake/AffrescoUIGlfwPatch.cmake)
+	# One change: on a Mac without a GPU, Apple's software OpenGL instead of no window, in cmake/AffrescoUIGlfwPatch.cmake
 	PATCH_COMMAND ${CMAKE_COMMAND} -DFILE=<SOURCE_DIR>/src/nsgl_context.m
 		-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/AffrescoUIGlfwPatch.cmake
 	SYSTEM)
