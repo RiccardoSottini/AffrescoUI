@@ -148,7 +148,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    # On the runner: the build about 35 minutes on a cold compile cache, the unit tests and the scenarios about 35,
+    # then the window tests and the rendering check, which builds the base's runner too
+    timeout-minutes: 150
     env:
       RENDER_CHECK_BASE: ${{ github.event_name == 'push' && github.event.before || 'HEAD^1' }}
       RENDER_CHECK_RECORD: ${{ contains(github.event.pull_request.labels.*.name, 'visual-change') }}
