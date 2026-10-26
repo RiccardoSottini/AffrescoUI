@@ -18,10 +18,10 @@
 
 <br/>
 
-<img src=".github/media/launcher.png" width="860" alt="The AffrescoUI Launcher: a sidebar with Apps, My apps, Create and Settings, and a grid of application cards with their pictures, rendered natively by AffrescoUI from one live document">
+https://github.com/user-attachments/assets/657c5090-8a35-4a19-9d97-ad8aecf60498
 
-<sub>The AffrescoUI Launcher, itself one live document: every application one click away, your own apps, a new app
-made blank, from an example or from a description, and the AI provider every app's assistant uses.</sub>
+<sub>The demo: a running app changed by asking its assistant, a 3D modeller building a model inside the running app,
+and a new app made from a name and a description.</sub>
 
 </div>
 
@@ -35,11 +35,6 @@ made blank, from an example or from a description, and the AI provider every app
 > ```sh
 > cmake -S . -B build && cmake --build build && ./build/affrescoui_launcher
 > ```
-
-https://github.com/user-attachments/assets/657c5090-8a35-4a19-9d97-ad8aecf60498
-
-<sub>The demo: a running app changed by asking its assistant, a 3D modeller building a model inside the running app,
-and a new app made from a name and a description.</sub>
 
 AffrescoUI is a native UI engine that renders every application from one document format. An application's layout,
 state and behaviour live in a single readable document, which the engine draws in C++ and OpenGL and keeps running.
@@ -93,6 +88,15 @@ natively, and shaped by the people who use them while they run.
 Twelve applications, from everyday apps to professional tools, all in the same format. They are examples
 ([`examples/`](examples/README.md)), not part of the library, and each carries the AI **assistant** in its bottom right
 corner: ask for a change in plain words, then review the proposal it becomes.
+
+<div align="center">
+
+<img src=".github/media/launcher.png" width="860" alt="The AffrescoUI Launcher: a sidebar with Apps, My apps, Create and Settings, and a grid of application cards with their pictures, rendered natively by AffrescoUI from one live document">
+
+<sub>The AffrescoUI Launcher, itself one live document: every application one click away, your own apps, a new app
+made blank, from an example or from a description, and the AI provider every app's assistant uses.</sub>
+
+</div>
 
 ### Professional tools
 
