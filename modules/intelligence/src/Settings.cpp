@@ -6,6 +6,7 @@
 #include "affresco/intelligence/Http.hpp"
 #include "Catalog.hpp" // made from providers.json
 
+#include <affresco/core/Portable.hpp>
 #include <affresco/net/SignIn.hpp>
 #include <affresco/net/Url.hpp>
 
@@ -257,8 +258,7 @@ bool writeKey(affresco::SecretStore& keys, const Endpoint& endpoint, const std::
 std::shared_ptr<affresco::SecretStore> systemKeys() {
 	static const std::shared_ptr<affresco::SecretStore> store = []() -> std::shared_ptr<affresco::SecretStore> {
 		// For tests only: AFFRESCOUI_KEYS=memory keeps every key in this process's memory, never in the keychain
-		const char* chosen = std::getenv("AFFRESCOUI_KEYS"); // NOLINT(concurrency-mt-unsafe): read once, at first use
-		if(chosen != nullptr && std::string_view(chosen) == "memory")
+		if(affresco::environmentVariable("AFFRESCOUI_KEYS") == "memory")
 			return std::make_shared<affresco::MemorySecretStore>();
 		return affresco::net::systemSecretStore("AffrescoUI");
 	}();
@@ -267,8 +267,7 @@ std::shared_ptr<affresco::SecretStore> systemKeys() {
 
 bool hiddenProvidersAllowed() {
 	static const bool allowed = [] {
-		const char* chosen = std::getenv("AFFRESCOUI_PROVIDERS"); // NOLINT(concurrency-mt-unsafe): read once
-		return chosen != nullptr && std::string_view(chosen) == "all";
+		return affresco::environmentVariable("AFFRESCOUI_PROVIDERS") == "all";
 	}();
 	return allowed;
 }

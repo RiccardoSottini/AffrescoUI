@@ -31,7 +31,12 @@ constexpr std::size_t maxKeyFile = 256;
 Exit newKey(const std::filesystem::path& file) {
 	const SigningKey key = SigningKey::generate();
 	// "x": never over an existing file; the permissions are set before the secret is written
-	std::FILE* out = std::fopen(file.string().c_str(), "wx");
+	std::FILE* out = nullptr;
+#ifdef _WIN32
+	if(_wfopen_s(&out, file.c_str(), L"wx") != 0) out = nullptr;
+#else
+	out = std::fopen(file.c_str(), "wx"); // NOLINT(cppcoreguidelines-owning-memory): closed below
+#endif
 	if(!out) throw FileProblem(file.string() + ": exists already or can't be written");
 	std::error_code error;
 	std::filesystem::permissions(file, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write,
