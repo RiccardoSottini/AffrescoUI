@@ -254,7 +254,7 @@ TEST_CASE("imaging canvas: the view maps both ways and the zoom picks the mip le
 TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {
 	std::optional<affresco::Application> application;
 	if(!openContext(application)) return;
-	INFO("OpenGL renderer: ", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+	INFO("OpenGL renderer: ", std::string(reinterpret_cast<const char*>(glGetString(GL_RENDERER))));
 	SUBCASE("every blend mode, at an opacity") {
 		for(std::size_t mode = 0; mode < blendModeCount; ++mode) {
 			auto document = painted();
