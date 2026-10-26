@@ -42,7 +42,7 @@ the tools, the web build and the release archive read (CI's scenarios step names
 
 The programs find this folder through `apps/shared/Assets.hpp`: in a build, `examples/` in the source tree; in a release
 (`tools/release`), `assets/` next to the program, which has the template folders and `shared/` laid out the same way,
-without the C++ sources.
+without the C++ sources; in the macOS app (`AffrescoUI.app`), `Contents/Resources/assets/` in the bundle.
 
 ## Gallery
 

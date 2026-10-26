@@ -780,6 +780,47 @@ version: a green check on such a pull request says nothing until someone has rea
 A release is made only from a tag `v*`, which only the maintainer can push. It builds in a fresh run,
 with no cache, and makes a draft: the archives, `SHA256SUMS` and build-provenance attestations signed through the
 run's identity. The MCP package is a release asset only: nothing is published to PyPI or anywhere but GitHub.
+The signing credentials are repository secrets that only the release workflow reads, never on a pull request; the
+macOS certificate lives in a keychain of the job's own, deleted when the job ends ([RELEASING.md](RELEASING.md)).
+
+### How releases are signed
+
+From 1.0.1, the downloads are signed (1.0.0 and earlier aren't). Each check below can be run by anyone; replace
+`<version>` with the release's version, e.g. `1.0.1`.
+
+- **macOS, `AffrescoUI-<version>-macos-universal.dmg`:** `AffrescoUI.app` and the disk image are signed with a
+  Developer ID Application certificate (the hardened runtime, no entitlements), notarized by Apple and stapled, so
+  Gatekeeper accepts them with no warning, offline too.
+  ```sh
+  spctl --assess --type open --context context:primary-signature --verbose AffrescoUI-<version>-macos-universal.dmg
+  spctl --assess --type execute --verbose /Applications/AffrescoUI.app   # accepted, source=Notarized Developer ID
+  xcrun stapler validate /Applications/AffrescoUI.app
+  ```
+- **macOS, `affrescoui-<version>-macos-universal.tar.gz`:** `affrescoui` and `affrescoui_launcher` are signed the same
+  way and notarized. A program on its own can't carry its ticket, so macOS asks Apple online the first time it runs.
+  ```sh
+  codesign --verify --strict --check-notarization -R=notarized --verbose affrescoui
+  codesign --display --verbose=2 affrescoui    # Authority=Developer ID Application: ...
+  ```
+- **Windows, `affrescoui-<version>-windows-x86_64.zip`:** `affrescoui.exe` and `affrescoui_launcher.exe` are signed
+  with Authenticode and timestamped, through SignPath, with SignPath Foundation's certificate (the publisher Windows
+  shows). In PowerShell, `Get-AuthenticodeSignature .\affrescoui_launcher.exe` says `Valid`; or *Properties → Digital
+  Signatures* in Explorer.
+- **Every file, Linux's too:** a Sigstore bundle, `<file>.sigstore.json`, made keyless by the release workflow's
+  identity for that tag and recorded in the public Rekor log. With [cosign](https://docs.sigstore.dev/cosign/system_config/installation/)
+  3 or later:
+  ```sh
+  cosign verify-blob --bundle affrescoui-<version>-linux-x86_64.tar.gz.sigstore.json \
+    --certificate-identity https://github.com/RiccardoSottini/AffrescoUI/.github/workflows/release.yml@refs/tags/v<version> \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    affrescoui-<version>-linux-x86_64.tar.gz
+  ```
+  `Verified OK` means the file is the one that workflow built for that tag, in this repository.
+- **Every file, two more ways:** `sha256sum -c SHA256SUMS --ignore-missing` (and `SHA256SUMS` has its own Sigstore
+  bundle), and `gh attestation verify <file> --repo RiccardoSottini/AffrescoUI` (build provenance).
+
+A tag whose macOS or Windows files would be unsigned fails instead of being released, unless the maintainer has named
+the platform in the repository variable `RELEASE_UNSIGNED_PLATFORMS`; the release notes then say so.
 
 ## Known gaps
 

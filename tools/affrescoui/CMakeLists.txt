@@ -29,6 +29,7 @@ target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples
 target_include_directories(affrescoui_cli SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 target_compile_options(affrescoui_cli PRIVATE ${AFFRESCOUI_WARNINGS})
 target_compile_definitions(affrescoui_cli PRIVATE AFFRESCOUI_VERSION="${PROJECT_VERSION}")
+affrescoui_windows_resources(affrescoui_cli affrescoui.exe "AffrescoUI command-line tool")
 if(AFFRESCOUI_BUILD_EXAMPLES)
 	# The example apps' own types, as affrescoui_launcher has them, so their templates run and render the same
 	target_include_directories(affrescoui_cli PRIVATE ${PROJECT_SOURCE_DIR}/examples)
