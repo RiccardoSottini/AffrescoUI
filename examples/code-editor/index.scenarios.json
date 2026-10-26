@@ -622,13 +622,13 @@
 		},
 		{
 			"name": "distraction-free",
-			"note": "Distraction Free hides the chrome around the editor, and comes back the same way",
+			"note": "Distraction Free (Shift+F11; also Ctrl+Cmd+Shift+F on macOS) hides the chrome around the editor, and comes back the same way",
 			"steps": [
-				{ "key": "ctrl+mod+shift+f" },
+				{ "key": "shift+f11" },
 				{ "wait": 50 },
 				{ "expect": { "state": "zen", "is": true } },
 				{ "expect": { "node": "#statusBar", "exists": false } },
-				{ "key": "ctrl+mod+shift+f" },
+				{ "key": "shift+f11" },
 				{ "wait": 50 },
 				{ "expect": { "node": "#statusBar", "exists": true } }
 			]

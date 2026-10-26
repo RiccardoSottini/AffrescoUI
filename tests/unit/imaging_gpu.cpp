@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <format>
 #include <limits>
 #include <map>
 #include <optional>
@@ -122,6 +123,7 @@ private:
 struct Difference {
 	int largest = 0;        ///< The largest difference of a channel, in 8-bit steps.
 	std::size_t pixels = 0; ///< Pixels with a channel more than 3 steps off.
+	std::string worst;      ///< Where the largest difference is, and both pixels there, for a failure's message.
 };
 
 /// @brief How far the GPU's premultiplied pixels are from the CPU's straight ones, premultiplied.
@@ -137,6 +139,11 @@ struct Difference {
 			const int expected = channel == 3 ? alpha : (cpu[index + channel] * alpha + 127) / 255;
 			largest = std::max(largest, std::abs(expected - gpu[index + channel]));
 		}
+		if(largest > difference.largest)
+			difference.worst =
+			    std::format("pixel {}: GPU {} {} {} {}, CPU (premultiplied) {} {} {} {}", index / 4, gpu[index],
+				            gpu[index + 1], gpu[index + 2], gpu[index + 3], (cpu[index] * alpha + 127) / 255,
+				            (cpu[index + 1] * alpha + 127) / 255, (cpu[index + 2] * alpha + 127) / 255, alpha);
 		difference.largest = std::max(difference.largest, largest);
 		difference.pixels += largest > 3 ? 1 : 0;
 	}
@@ -247,6 +254,7 @@ TEST_CASE("imaging canvas: the view maps both ways and the zoom picks the mip le
 TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {
 	std::optional<affresco::Application> application;
 	if(!openContext(application)) return;
+	INFO("OpenGL renderer: ", std::string(reinterpret_cast<const char*>(glGetString(GL_RENDERER))));
 	SUBCASE("every blend mode, at an opacity") {
 		for(std::size_t mode = 0; mode < blendModeCount; ++mode) {
 			auto document = painted();
@@ -255,7 +263,9 @@ TEST_CASE("imaging canvas: the GPU matches the CPU compositor") {
 				layer.blend = static_cast<BlendMode>(mode), layer.opacity = 0.8f;
 			});
 			INFO("blend mode ", mode);
-			CHECK(compare(std::make_shared<CanvasModel>(std::move(document))).largest <= 3);
+			const Difference difference = compare(std::make_shared<CanvasModel>(std::move(document)));
+			INFO(difference.pixels, " pixels off; the most at ", difference.worst);
+			CHECK(difference.largest <= 3);
 		}
 	}
 	SUBCASE("masks, clipping, groups and hidden layers") {

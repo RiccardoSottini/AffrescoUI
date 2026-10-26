@@ -52,7 +52,7 @@
 				{ "expect": { "state": "groups[0].active", "is": "forge:search-results" } },
 				{ "expect": { "node": "#search-editor", "property": "text", "is": "1 result in 1 file for hello\n\nsrc/main.cpp\n  4: std::cout << \"hello\\n\";\n" } },
 				{ "click": "#search-editor" },
-				{ "key": "mod+up" },
+				{ "key": "mod+home", "note": "the text's start on every system (Cmd+Up is macOS's only)" },
 				{ "key": "down" },
 				{ "key": "down" },
 				{ "key": "down" },

@@ -103,7 +103,12 @@ struct GradientPlace {
 			return;
 		}
 		const double radians = gradient.angle * std::numbers::pi / 180.0;
-		const double across = std::sin(radians), down = -std::cos(radians);
+		double across = std::sin(radians), down = -std::cos(radians);
+		// The sine and cosine of a right angle aren't exactly 0 (pi isn't exact): left so, a stop's line along an edge
+		// cut a sliver of a part, or not, depending on the compiler's rounding. Snapped, 90 degrees is exactly
+		// horizontal and 180 exactly vertical everywhere
+		if(std::abs(across) < 1e-12) across = 0.0;
+		if(std::abs(down) < 1e-12) down = 0.0;
 		const double length = std::abs(rect.width() * across) + std::abs(rect.height() * down);
 		step = {static_cast<float>(across / length), static_cast<float>(down / length)};
 	}

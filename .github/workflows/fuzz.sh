@@ -1,40 +1,61 @@
 #!/usr/bin/env bash
-# Runs every fuzz target the build has, one after the other (tests/fuzz/README.md), from the seeds and the corpus
+# Runs every fuzz target the build has, a few at a time (tests/fuzz/README.md), from the seeds and the corpus
 # earlier runs grew. A target that crashes, leaks, hangs or runs out of memory doesn't stop the others: its input is
 # kept in build/fuzz-found/<target>/ (uploaded as the "fuzz-found" artifact), the job summary names it, and the script
 # fails at the end.
 #
 # Usage: .github/workflows/fuzz.sh BUILD SECONDS   (BUILD: a build with -DAFFRESCOUI_BUILD_FUZZERS=ON, built)
 # The corpus is in fuzz-corpus/<target>/ (kept by the Actions cache); the seeds are written to BUILD/fuzz-corpus/.
+# FUZZ_JOBS targets run at a time (default: one per core), each for SECONDS; their logs are printed one after another.
 set -euo pipefail
 
 build="$1"
 seconds="$2"
+jobs="${FUZZ_JOBS:-$(nproc 2>/dev/null || echo 2)}"
 python3 tests/fuzz/corpus.py --out "$build/fuzz-corpus"
+logs="$build/fuzz-logs"
+rm -rf "$logs"
+mkdir -p "$logs"
 
-failed=()
-targets=()
-for program in "$build"/tests/fuzz/affrescoui_fuzz_*; do
-	[ -x "$program" ] || continue
-	target="${program##*/affrescoui_fuzz_}"
-	targets+=("$target")
+# Fuzzes one target, its output in $logs/<target>.log; $logs/<target>.failed if it found an input that fails.
+# $1: the target's program.
+fuzz_one() {
+	local program="$1" target="${1##*/affrescoui_fuzz_}"
 	mkdir -p "fuzz-corpus/$target" "$build/fuzz-found/$target"
-	echo "::group::Fuzz $target for $seconds s"
-	dictionary=()
+	local dictionary=() seeds=()
 	if [ -f "$build/fuzz-corpus/$target.dict" ]; then
 		dictionary=(-dict="$build/fuzz-corpus/$target.dict")
 	fi
-	seeds=()
 	if [ -d "$build/fuzz-corpus/$target" ]; then
 		seeds=("$build/fuzz-corpus/$target")
 	fi
 	if ! "$program" -max_total_time="$seconds" -timeout=10 -rss_limit_mb=2048 -print_final_stats=1 \
 		"${dictionary[@]+"${dictionary[@]}"}" -artifact_prefix="$build/fuzz-found/$target/" \
-		"fuzz-corpus/$target" "${seeds[@]+"${seeds[@]}"}"; then
+		"fuzz-corpus/$target" "${seeds[@]+"${seeds[@]}"}" >"$logs/$target.log" 2>&1; then
+		touch "$logs/$target.failed"
+	fi
+}
+
+targets=()
+for program in "$build"/tests/fuzz/affrescoui_fuzz_*; do
+	[ -x "$program" ] || continue
+	targets+=("${program##*/affrescoui_fuzz_}")
+	while [ "$(jobs -rp | wc -l)" -ge "$jobs" ]; do
+		sleep 1
+	done
+	fuzz_one "$program" &
+done
+wait
+
+failed=()
+for target in "${targets[@]}"; do
+	echo "::group::Fuzz $target for $seconds s"
+	cat "$logs/$target.log"
+	echo "::endgroup::"
+	if [ -f "$logs/$target.failed" ]; then
 		failed+=("$target")
 		echo "::error title=Fuzz $target::$target found an input that fails: it is in the fuzz-found artifact, under $target/"
 	fi
-	echo "::endgroup::"
 done
 
 if [ "${#targets[@]}" -eq 0 ]; then

@@ -42,7 +42,7 @@
 				{ "type": ">>>>>>> topic" },
 				{ "key": "enter" },
 				{ "expect": { "node": "#conflict-summary", "property": "text", "is": "2 merge conflicts" } },
-				{ "key": "mod+up" },
+				{ "key": "mod+home", "note": "the text's start on every system (Cmd+Up is macOS's only)" },
 				{ "key": "down" },
 				{ "expect": { "node": "#conflict-summary", "property": "text", "is": "Merge conflict 1 of 2" } },
 				{ "click": "#conflict-accept-current" },

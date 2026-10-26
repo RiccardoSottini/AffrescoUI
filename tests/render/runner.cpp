@@ -16,6 +16,7 @@
 #include <glad/glad.h>
 
 #include <affresco/Screen.hpp>
+#include <affresco/core/Portable.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/services/Grants.hpp>
 
@@ -184,8 +185,7 @@ int main(int argc, char** argv) {
 			// The inspector's overlay (inspector.json), without its times so that each picture is the same
 			screen.onAction("inspector:on", [&screen](affresco::Panel&) { screen.setInspector(true, false); });
 		};
-		const char* noOpenGL = std::getenv("AFFRESCOUI_NO_OPENGL");
-		options.pictures = !noOpenGL || std::string_view(noOpenGL) != "1";
+		options.pictures = affresco::environmentVariable("AFFRESCOUI_NO_OPENGL") != "1";
 		std::vector<std::string> files;
 		if(!readArguments(std::vector<std::string_view>(argv + 1, argv + argc), options, files)) return 2;
 		return playAll(files, options) ? EXIT_FAILURE : EXIT_SUCCESS;

@@ -122,7 +122,7 @@
     {
       "name": "GLFW",
       "version": "3.4",
-      "purpose": "windows and input",
+      "purpose": "windows and input; changed in one place: on a Mac without a GPU, Apple's software OpenGL instead of no window (`cmake/AffrescoUIGlfwPatch.cmake`)",
       "kind": "downloaded",
       "url": "https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip",
       "sha256": "b5ec004b2712fd08e8861dc271428f048775200a2df719ccf575143ba749a3e9",

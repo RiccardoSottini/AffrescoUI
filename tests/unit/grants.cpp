@@ -123,8 +123,9 @@ TEST_CASE("grants: the git grant runs on the declaration's own repository, never
 	                                   std::filesystem::path("/work/project")};
 	REQUIRE_FALSE(shape(run));
 	REQUIRE(run.arguments.size() == 7);
-	CHECK(run.arguments[0] == "--git-dir=/work/project/.git");
-	CHECK(run.arguments[1] == "--work-tree=/work/project");
+	const std::filesystem::path project("/work/project"); // written as the system writes paths
+	CHECK(run.arguments[0] == "--git-dir=" + (project / ".git").string());
+	CHECK(run.arguments[1] == "--work-tree=" + project.string());
 	CHECK(run.arguments[2] == "status");
 
 	affresco::services::ProcessRun init{{"init"}, std::filesystem::path("/work/project")};
@@ -138,23 +139,30 @@ TEST_CASE("grants: the git grant runs on the declaration's own repository, never
 }
 
 TEST_CASE("grants: programs by spec") {
+	// A program every system of each kind has, by its absolute path and by its name on the PATH
+#ifdef _WIN32
+	const std::string program = affresco::services::loginShell().generic_string(); // cmd.exe
+	const std::string name = "cmd";
+#else
+	const std::string program = "/bin/ls", name = "sh";
+#endif
 	affresco::services::ServiceRegistry registry;
 	CHECK_FALSE(affresco::services::grantProgram(registry, "shell"));
-	CHECK_FALSE(affresco::services::grantProgram(registry, "listing=/bin/ls -a -l"));
+	CHECK_FALSE(affresco::services::grantProgram(registry, "listing=" + program + " -a -l"));
 	CHECK(affresco::services::loginShell().is_absolute());
-	CHECK(affresco::services::findProgram("sh").is_absolute());
+	CHECK(affresco::services::findProgram(name).is_absolute());
 	CHECK(affresco::services::findProgram("no-such-program-affrescoui").empty());
-	CHECK(affresco::services::findProgram("../sh").empty()); // a name only, never a path
+	CHECK(affresco::services::findProgram("../" + name).empty()); // a name only, never a path
 
 	CHECK(affresco::services::grantProgram(registry, ""));
 	CHECK(affresco::services::grantProgram(registry, "bad name"));
 	CHECK(affresco::services::grantProgram(registry, "x=relative/tool"));
 	CHECK(affresco::services::grantProgram(registry, "x="));
 	CHECK(affresco::services::grantProgram(registry, "no-such-program-affrescoui"));
-	std::string many = "x=/bin/ls";
+	std::string many = "x=" + program;
 	for(int i = 0; i < 40; ++i) many += " a";
 	CHECK(affresco::services::grantProgram(registry, many));
-	CHECK(affresco::services::grantProgram(registry, "x=/bin/ls " + std::string(5000, 'a')));
+	CHECK(affresco::services::grantProgram(registry, "x=" + program + " " + std::string(5000, 'a')));
 }
 
 TEST_CASE("grants: a root the person chooses: its services wait for it, then start on the folder chosen") {

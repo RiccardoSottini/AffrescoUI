@@ -123,7 +123,7 @@ def check():
     """The problems that keep the recipes from matching the library: a list of messages."""
     problems = []
     with open(TEST_PACKAGE, encoding="utf-8") as file:
-        tested = set(re.findall(r"affrescoui::[a-z_]+", file.read()))
+        tested = set(re.findall(r"affrescoui::[a-z0-9_]+", file.read()))
     exported = exported_targets()
     if tested != exported:
         problems.append(f"packaging/conan/test_package checks {sorted(tested - exported)} that the install doesn't "

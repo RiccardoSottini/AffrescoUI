@@ -73,13 +73,16 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		paths.push_back(folder ? json{{"path", path}, {"expandable", true}} : json(path));
 		if(!normalised(path).empty()) given.insert(normalised(path));
 	}
-	static const json state = json::object(), window = json::object(), revision = 0, event = json::object();
+	// The paths are data, as a screen's state holds them: written in the document itself, a text with "{{" in it
+	// would be an expression
+	const json state = {{"paths", std::move(paths)}};
+	static const json window = json::object(), revision = 0, event = json::object();
 	static const json globals = json::object();
 	static const affresco::format::Scope locals{nullptr, nullptr, {}, {}, {}};
 	const affresco::format::Context context{state, window, revision, event, locals, globals, nullptr};
 	json tree;
 	try {
-		tree = affresco::format::evaluate(json{{"$pathTree", json::array({paths})}}, context, "fuzz");
+		tree = affresco::format::evaluate(json{{"$pathTree", json::array({"{{state.paths}}"})}}, context, "fuzz");
 	} catch(const affresco::DocumentError&) {
 		affresco::fuzz::broken("a list of texts and objects always nests");
 	}

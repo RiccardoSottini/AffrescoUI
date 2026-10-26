@@ -5,6 +5,7 @@
 #include "FileEntries.hpp"
 #include "Providers.hpp"
 
+#include <algorithm>
 #include <cerrno>
 #include <fstream>
 #include <iterator>
@@ -114,7 +115,22 @@ void writeFile(const std::filesystem::path& path, const std::string& text, Call&
 	call.fail("failed", "the file couldn't be written");
 }
 
-/// @brief Lists a folder: {entries: [{name, kind, size}]}, kind "file", "folder" or "other".
+/// @brief Whether a name comes before another in a listing: case aside (ASCII), then byte by byte.
+/// @param left A name.
+/// @param right Another.
+/// @return true if left comes first.
+[[nodiscard]] bool listedBefore(const std::string& left, const std::string& right) {
+	const auto folded = [](std::string name) {
+		std::ranges::transform(name, name.begin(),
+		                       [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c + 32) : c; });
+		return name;
+	};
+	const std::string a = folded(left), b = folded(right);
+	return a != b ? a < b : left < right;
+}
+
+/// @brief Lists a folder: {entries: [{name, kind, size}]}, kind "file", "folder" or "other", by name (listedBefore):
+/// the system gives them in no set order (Linux in its hash order), so every system lists a folder alike.
 /// @param path The folder (under the root).
 /// @param stop Says to give up.
 /// @param call Where the listing goes.
@@ -136,6 +152,9 @@ void listFolder(const std::filesystem::path& path, const std::stop_token& stop, 
 		if(error) break;
 	}
 	if(error) return call.fail("failed", "the folder couldn't be listed");
+	std::sort(entries.begin(), entries.end(), [](const json& left, const json& right) {
+		return listedBefore(left["name"].get_ref<const std::string&>(), right["name"].get_ref<const std::string&>());
+	});
 	call.finish({{"entries", std::move(entries)}});
 }
 

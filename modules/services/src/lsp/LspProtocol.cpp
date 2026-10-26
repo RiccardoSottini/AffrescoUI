@@ -398,7 +398,8 @@ json tokens(const json& result, const std::string& path, const Limits& limits, c
 	json runs = json::array();
 	if(!data.is_array() || !types.is_array()) return {{"tokens", std::move(runs)}, {"truncated", false}};
 	std::vector<std::string> styles;
-	for(const json& type : types) styles.push_back(type.is_string() ? styleOfToken(type.get<std::string>()) : "");
+	for(const json& type : types) // a type the server names, cut as its other texts are
+		styles.push_back(type.is_string() ? cut(styleOfToken(type.get<std::string>()), limits.text) : "");
 	std::size_t line = 0, start = 0, i = 0;
 	for(; i + 5 <= data.size() && runs.size() < limits.tokens; i += 5) {
 		const auto [deltaLine, deltaStart, length, type] = std::array{

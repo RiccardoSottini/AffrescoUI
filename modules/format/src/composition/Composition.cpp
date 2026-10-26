@@ -567,7 +567,7 @@ std::optional<std::string> findInView(const json& node, const std::string& point
 		for(std::size_t index = 0; index < children->size(); ++index) {
 			const json& child = (*children)[index];
 			std::string at = std::format("{}/children/{}", pointer, index);
-			if(child.is_object() && child.value("id", json()) == id) return at;
+			if(child.is_object() && child.value("id", json()) == json(id)) return at;
 			if(auto found = findInView(child, at, id, depth + 1)) return found;
 		}
 	return std::nullopt;
