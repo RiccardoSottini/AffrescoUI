@@ -15,9 +15,12 @@ opens it when it is started without a file.
 - **Apps:** every app as a grid of cards, the person's own first, then the examples of [`apps.json`](apps.json) (cover,
   name, a tagline in the person's language). Each card is tagged **Yours** or **Example**. A search field, and Enter or a
   click to open one. A host-run example can also start a new app.
-- **My apps:** each folder of the apps folder that holds an `index.screen.json`, named by its window's title: open,
+- **My apps:** each folder of the apps folder that holds an `index.screen.json`, named by its window's title, the last
+  changed first (an app just made or duplicated is at the top at once, before the folder is read again): open,
   duplicate, show in its folder, and delete after a confirm dialog (Delete on a focused row asks too).
-- **Create:** a name (checked as it is typed: its folder's name, the names the examples keep, the apps there already),
+- **Create:** a name (checked as it is typed: its folder's name, the names the examples keep, the apps there already,
+  no double curly braces, which the new app's file would read as an expression; a folder of that name holding
+  something else is said to be there, and kept),
   a starting point (a blank app, [`starters/blank.screen.json`](starters/blank.screen.json), or a copy of a host-run
   example, without its C++, except those `apps.json` marks `"starter": false`), an optional description and features from other apps, which become the first request
   to the new app's assistant (`--ask`). The app opens at once.
@@ -47,7 +50,7 @@ opens it when it is started without a file.
 | `launcher-strings.json` | Its text in three languages |
 | `apps.json` | The examples: id, name, tagline, folder, program, cover |
 | `covers/` | The examples' pictures, 480 pixels wide (from `.github/media/`) |
-| `starters/blank.screen.json` | A new blank app, with the assistant open |
+| `starters/blank.screen.json` | A new blank app, with the assistant open; its changes wait for the person's review |
 | `index.scenarios.json` | Its scenarios; its pictures are in `tests/render/scenarios/launcher.json` |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).

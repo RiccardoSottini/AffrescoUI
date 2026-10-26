@@ -352,7 +352,7 @@
 	},
 	"actions": {
 		"intelligence.load": [
-			{ "note": "The first provider until the host says which is in use; without the natives (the rendering check) the call fails and the stand-in data stays" },
+			{ "note": "The first provider until the host says which is in use; without the natives (the rendering check) the call fails and the stand-in data stays. The host's list may leave out the stand-in's first provider: then its own first is chosen, as the form shows it" },
 			{ "if": "{{state.intelligence.selected == ''}}", "then": [
 				{ "run": "intelligence.choose", "with": { "id": "{{state.intelligence.data.providers[0].id}}" } }
 			] },
@@ -362,7 +362,7 @@
 				{ "if": "{{!state.intelligence.loaded}}", "then": [
 					{ "set": "state.intelligence.loaded", "to": true },
 					{ "run": "intelligence.choose",
-					  "with": { "id": "{{state.intelligence.data.current.provider != '' ? state.intelligence.data.current.provider : state.intelligence.selected}}" } }
+					  "with": { "id": "{{state.intelligence.data.current.provider != '' ? state.intelligence.data.current.provider : some(state.intelligence.data.providers, it.id == state.intelligence.selected) ? state.intelligence.selected : state.intelligence.data.providers[0].id ?? ''}}" } }
 				] }
 			  ] }
 		],

@@ -90,6 +90,7 @@
 		"mineNext": [],
 		"mineLoaded": false,
 		"mineError": "",
+		"mineRun": 0,
 		"create": { "name": "", "from": "blank", "describe": "", "features": [], "tried": false, "busy": false, "error": "" },
 		"confirmOpen": false,
 		"confirm": { "id": "", "name": "" },
@@ -123,7 +124,7 @@
 		"myIds": "{{map(state.mine, it.id)}}",
 		"slug": "{{slice(join(filter(split(join(map(split(lower(trim(state.create.name)), ''), contains('abcdefghijklmnopqrstuvwxyz0123456789', it) ? it : ' '), ''), ' '), it != ''), '-'), 0, 40)}}",
 		"askText": "{{trim(trim(state.create.describe) + (length(state.create.features) > 0 ? '\n\nAlso add these features from other apps: ' + join(map(filter(state.featureChoices, contains(state.create.features, it.id)), it.ask), '; ') + '.' : ''))}}",
-		"createError": "{{trim(state.create.name) == '' ? 'create.error.empty' : length(trim(state.create.name)) > 80 ? 'create.error.long' : computed.slug == '' ? 'create.error.letters' : contains(computed.reserved, computed.slug) ? 'create.error.reserved' : contains(computed.myIds, computed.slug) ? 'create.error.exists' : length(computed.askText) > 4000 ? 'create.error.describe' : ''}}",
+		"createError": "{{trim(state.create.name) == '' ? 'create.error.empty' : length(trim(state.create.name)) > 80 ? 'create.error.long' : contains(state.create.name, '{' + '{') || contains(state.create.name, '}' + '}') ? 'create.error.braces' : computed.slug == '' ? 'create.error.letters' : contains(computed.reserved, computed.slug) ? 'create.error.reserved' : contains(computed.myIds, computed.slug) ? 'create.error.exists' : length(computed.askText) > 4000 ? 'create.error.describe' : ''}}",
 		"fromName": "{{state.create.from == 'blank' ? t('create.blank') : (find(state.examples, it.id == state.create.from).name ?? '')}}",
 		"excluded": "{{['*.cpp', '*.hpp', '*.h', '*.c', '*.cc', '*.mm', '*.cmake', 'CMakeLists.txt', '.*']}}"
 	},
@@ -137,14 +138,25 @@
 		],
 
 		"launcher.refresh": [
+			{ "note": "Reads the apps folder again. Each read is numbered (mineRun): one started later makes an earlier one, still reading, stop, so two never fill the list together" },
+			{ "increment": "state.mineRun" },
+			{ "run": "listMine", "with": { "run": "{{state.mineRun}}" } }
+		],
+		"listMine": [
+			{ "note": "with: run" },
 			{ "invoke": "apps.list", "with": { "path": "." },
 			  "onDone": [
+				{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
 				{ "set": "state.mineScan", "to": "{{filter(result.entries, it.kind == 'folder' && it.name != 'shared' && slice(it.name, 0, 1) != '.')}}" },
 				{ "set": "state.mineNext", "to": [] },
 				{ "set": "state.mineError", "to": "" },
-				{ "run": "loadMine", "with": { "i": 0 } }
+				{ "run": "loadMine", "with": { "i": 0, "run": "{{run}}" } }
 			  ],
-			  "onError": [{ "set": "state.mineError", "to": "{{error.message}}" }, { "set": "state.mineLoaded", "to": true }] }
+			  "onError": [
+				{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
+				{ "set": "state.mineError", "to": "{{error.message}}" },
+				{ "set": "state.mineLoaded", "to": true }
+			  ] }
 		],
 		"launcher.show": [
 			{ "note": "Shows a list of the person's apps as the folder gave it (event.mine: [{id, name, modified}]): scenarios play the folder's answer with it" },
@@ -153,28 +165,34 @@
 			{ "set": "state.mineLoaded", "to": true }
 		],
 		"loadMine": [
-			{ "note": "with: i. Reads the apps one after another (an fs service runs 16 calls at once): each folder's screen's modified time and window title" },
+			{ "note": "with: i, run. Reads the apps one after another (an fs service runs 16 calls at once): each folder's screen's modified time and window title; the last changed first" },
+			{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
 			{ "if": "{{i >= length(state.mineScan)}}", "then": [
-				{ "set": "state.mine", "to": "{{sort(state.mineNext, 'modified', 'desc')}}" },
+				{ "set": "state.mine", "to": "{{sort(state.mineNext, it.modified, 'desc')}}" },
 				{ "set": "state.mineLoaded", "to": true },
 				{ "stop": true }
 			] },
 			{ "invoke": "apps.stat", "with": { "path": "{{state.mineScan[i].name + '/index.screen.json'}}" },
 			  "onDone": [
-				{ "if": "{{result.exists != true || result.kind != 'file'}}", "then": [{ "run": "loadMine", "with": { "i": "{{i + 1}}" } }, { "stop": true }] },
-				{ "run": "readMine", "with": { "i": "{{i}}", "modified": "{{result.modified ?? 0}}" } }
+				{ "if": "{{result.exists != true || result.kind != 'file'}}", "then": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }, { "stop": true }] },
+				{ "run": "readMine", "with": { "i": "{{i}}", "modified": "{{result.modified ?? 0}}", "run": "{{run}}" } }
 			  ],
-			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}" } }] }
+			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }] }
 		],
 
 		"readMine": [
-			{ "note": "with: i, modified" },
+			{ "note": "with: i, modified, run" },
 			{ "invoke": "apps.read", "with": { "path": "{{state.mineScan[i].name + '/index.screen.json'}}" },
 			  "onDone": [
+				{ "if": "{{run != state.mineRun}}", "then": [{ "stop": true }] },
 				{ "push": "state.mineNext", "value": { "id": "{{state.mineScan[i].name}}", "name": "{{(parseJson(result.text) ?? {}).window.title ?? state.mineScan[i].name}}", "modified": "{{modified}}" } },
-				{ "run": "loadMine", "with": { "i": "{{i + 1}}" } }
+				{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }
 			  ],
-			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}" } }] }
+			  "onError": [{ "run": "loadMine", "with": { "i": "{{i + 1}}", "run": "{{run}}" } }] }
+		],
+		"listNew": [
+			{ "note": "with: id, title. Shows an app just made at the top of the list at once, before the folder is read again (launcher.refresh)" },
+			{ "set": "state.mine", "to": "{{concat([{id: id, name: title, modified: now()}], filter(state.mine, it.id != id))}}" }
 		],
 		"openExample": [
 			{ "note": "with: app" },
@@ -220,6 +238,7 @@
 			  "onError": [{ "run": "toast", "with": { "message": "{{error.message}}", "error": true } }] }
 		],
 		"copied": [
+			{ "run": "listNew", "with": { "id": "{{id}}", "title": "{{title}}" } },
 			{ "run": "toast", "with": { "message": "{{t('toast.duplicated', {name: title})}}", "error": false } },
 			{ "run": "launcher.refresh" }
 		],
@@ -278,21 +297,22 @@
 				  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
 				  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }
 			  ],
-			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": true } }] }
+			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}", "keep": true } }] }
 		],
 		"createCopy": [
 			{ "note": "with: id, title, ask, folder, then. A copy of an example's folder, without its C++" },
 			{ "invoke": "apps.copy", "with": { "from": "examples", "path": "{{folder}}", "to": "{{id}}", "exclude": "{{computed.excluded}}" },
 			  "onDone": [{ "run": "retitle", "with": { "id": "{{id}}", "title": "{{title}}", "ask": "{{ask}}", "then": "{{then}}" } }],
-			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": true } }] }
+			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}", "keep": true } }] }
 		],
 		"createShared": [
 			{ "note": "with: id, title, ask. The fonts, add-ons and components the apps name as ../shared, brought up to date beside them" },
 			{ "invoke": "apps.copy", "with": { "from": "examples", "path": "shared", "to": "shared", "merge": true, "exclude": "{{computed.excluded}}" },
 			  "onDone": [
-				{ "run": "openMine", "with": { "id": "{{id}}", "name": "{{title}}", "ask": "{{ask}}" } },
+				{ "run": "listNew", "with": { "id": "{{id}}", "title": "{{title}}" } },
 				{ "run": "resetCreate" },
 				{ "set": "state.page", "to": "mine" },
+				{ "run": "openMine", "with": { "id": "{{id}}", "name": "{{title}}", "ask": "{{ask}}" } },
 				{ "run": "launcher.refresh" }
 			  ],
 			  "onError": [{ "run": "createFailed", "with": { "id": "{{id}}", "why": "{{error.message}}", "keep": false } }] }

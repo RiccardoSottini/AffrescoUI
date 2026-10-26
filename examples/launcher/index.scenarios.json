@@ -70,6 +70,26 @@
 			]
 		},
 		{
+			"name": "create-name-braces",
+			"note": "A name with double braces would be read as an expression in the new app's file, which then wouldn't open",
+			"steps": [
+				{ "key": "mod+n" },
+				{ "click": "#createName" },
+				{ "type": "Budget {{ 2026" },
+				{ "key": "enter" },
+				{ "expect": { "state": "create.busy", "is": false } },
+				{ "expect": { "node": "#createNameHint", "text": "The name can't contain double curly braces." } },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "type": "}} 2026" },
+				{ "expect": { "node": "#createNameHint", "text": "The name can't contain double curly braces." } }
+			]
+		},
+		{
 			"name": "start-from-an-example",
 			"steps": [
 				{ "click": { "role": "button", "name": "Start a new app from Flow" } },

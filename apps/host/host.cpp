@@ -177,6 +177,20 @@ std::string screenName(const std::filesystem::path& file) {
 	return name == "index" ? std::filesystem::absolute(file).parent_path().filename().string() : name;
 }
 
+/// @brief The name a person knows a bare screen by: its window's title, when it is plain text (no expression), else the
+/// name of its file (screenName()). Its id stays the file's, so its data and decisions don't follow a new title.
+/// @param document The screen.
+/// @param file Its file.
+/// @return The name.
+std::string bareName(const affresco::json& document, const std::filesystem::path& file) {
+	const affresco::json* title = nullptr;
+	if(const auto window = document.find("window"); window != document.end() && window->is_object())
+		if(const auto found = window->find("title"); found != window->end() && found->is_string()) title = &*found;
+	if(title == nullptr) return screenName(file);
+	const std::string& text = title->get_ref<const std::string&>();
+	return text.empty() || text.contains("{{") ? screenName(file) : text;
+}
+
 /// @brief Reads a bare screen file as fromString() does, keeping nothing on disk.
 /// @param file The file.
 /// @return The screen.
@@ -209,10 +223,10 @@ Opened locate(const std::string& given) {
 		    opened.app ? affresco::Screen::fromApp(opened.location, {}) : bareScreen(path); // nothing kept on disk
 		affresco::setLogSink({});
 		const affresco::json document = affresco::json::parse(check.documentJson());
-		const std::string name = screenName(path);
-		opened.manifest = opened.app ? *check.app()
-		                             : affresco::format::manifestOf(affresco::format::appId(name), name,
-		                                                            path.filename().string(), document);
+		opened.manifest =
+		    opened.app ? *check.app()
+			           : affresco::format::manifestOf(affresco::format::appId(screenName(path)),
+			                                          bareName(document, path), path.filename().string(), document);
 		opened.undeclared = affresco::format::undeclaredCapabilities(opened.manifest, document);
 	} catch(...) {
 		affresco::setLogSink({});
