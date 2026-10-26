@@ -8,6 +8,7 @@ fits a line to log(cost) against log(n), and checks each exponent k against the 
     python3 tests/perf/scaling.py --callgrind                            # and instructions (Linux, valgrind)
     python3 tests/perf/scaling.py --callgrind --record                   # write today's exponents as the baseline
     python3 tests/perf/scaling.py --size large                           # the nightly sizes
+    python3 tests/perf/scaling.py --skip scaling/history                 # without some workloads
 
 The metrics: instructions (under callgrind; the frames, which callgrind makes very slow with software OpenGL, are not
 counted), time (the wall clock, or the main thread's CPU time for the frames), allocations, retained memory and
@@ -55,13 +56,14 @@ def collect(results, measured, metric_of_value):
         metrics.setdefault("retained", {})[size] = result["retainedBytes"]
 
 
-def run_bench(bench, size, callgrind):
-    """Every scaling workload of the program: the wall clock (CPU time for the frames), and with callgrind the
-    instructions of all but the frames, whose allocations and memory then come from the same run."""
+def run_bench(bench, size, callgrind, skip=()):
+    """Every scaling workload of the program but those whose names start with one of skip: the wall clock (CPU time
+    for the frames), and with callgrind the instructions of all but the frames, whose allocations and memory then come
+    from the same run."""
     measured = {}
-    passed = ["--scaling", size]
+    passed = ["--scaling", size] + (["--skip", ",".join(skip)] if skip else [])
     if callgrind:
-        results, status = run.run_callgrind(bench, passed + ["--skip", "scaling/frame"])
+        results, status = run.run_callgrind(bench, ["--scaling", size, "--skip", ",".join(["scaling/frame", *skip])])
         if status != 0:
             sys.exit(f"scaling.py: affrescoui_bench failed under callgrind (exit status {status})")
         collect(results, measured, lambda result: "instructions")
@@ -204,6 +206,7 @@ def main():
     parser.add_argument("--allow", action="store_true", help="report exponents above the baseline without failing")
     parser.add_argument("--out", help="also write the fitted exponents here, as JSON")
     parser.add_argument("--summary", help="also append the report to this file (e.g. $GITHUB_STEP_SUMMARY)")
+    parser.add_argument("--skip", default="", help="leave out the workloads whose names start with these (a, b)")
     args = parser.parse_args()
 
     bench = os.path.join(args.build, "affrescoui_bench")
@@ -213,7 +216,7 @@ def main():
         import tiktoken
     except ImportError:
         sys.exit("scaling.py: needs tiktoken: pip install -r tests/perf/requirements.txt")
-    measured = run_bench(bench, args.size, args.callgrind)
+    measured = run_bench(bench, args.size, args.callgrind, [name for name in args.skip.split(",") if name])
     sizes = [64 * 2 ** i for i in range(7 if args.size == "large" else 5)]
     measured.update(agent_areas(sizes, tiktoken.get_encoding("o200k_base")))
     fitted = fit(measured)

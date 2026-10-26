@@ -4,6 +4,7 @@
 
 #include "AudioWav.hpp"
 #include "Helpers.hpp"
+#include "HistoryFiles.hpp" // TemporaryFolder
 
 #include <affresco/audio/Engine.hpp>
 #include <affresco/audio/Spectrum.hpp>
@@ -112,8 +113,9 @@ TEST_CASE("audio: a WAV made in memory decodes to its samples, mono to every cha
 }
 
 TEST_CASE("audio: a WAV file at another rate is resampled, and only a file that exists and decodes opens") {
-	const std::filesystem::path folder = std::filesystem::temp_directory_path() / "affrescoui-audio-test";
-	std::filesystem::create_directories(folder);
+	// Removed at the end, after the engine and its voice, which keep a file in it open: Windows removes no open file
+	const test::TemporaryFolder temporary;
+	const std::filesystem::path& folder = temporary.path();
 	const std::filesystem::path file = folder / "tone.wav";
 	{
 		const std::vector<std::uint8_t> bytes = test::wavFile(test::toneSamples(24000, 24000, 440), 24000, 1);
@@ -137,7 +139,6 @@ TEST_CASE("audio: a WAV file at another rate is resampled, and only a file that 
 	std::ofstream(text) << "not a sound";
 	CHECK_FALSE(engine.play(Source::file(text), {}, error));
 	CHECK(error.contains("couldn't be decoded"));
-	std::filesystem::remove_all(folder);
 }
 
 TEST_CASE("audio: a tone has its frequency, its length and ramps at its ends") {

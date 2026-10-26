@@ -8,7 +8,6 @@
 #include "detail/Utf8.hpp"
 #include "editor/TextEditorShared.hpp"
 
-#include <chrono>
 #include <string>
 
 namespace affresco {
@@ -21,10 +20,6 @@ namespace {
 
 constexpr float scrollSpeed = 24.0f;       ///< Pixels per wheel step.
 constexpr double doubleClickSeconds = 0.4; ///< Longest pause between the presses of a double click.
-
-/// @brief The time now, in seconds, for double clicks.
-/// @return The time on a steady clock.
-double now() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 
 /// @brief Where Home takes the caret on its line: the first non-blank character, or the line's start if it is there.
 /// @param column The caret's column.
@@ -221,7 +216,8 @@ void TextEditor::mouseButtonEvent(const MouseButtonEvent& event) {
 	if(event.position.x < frame().left + gutterWidth() && !onGutterClicked.empty())
 		return onGutterClicked(at.line, event.mods);
 	clearCursors();
-	const double time = now();
+	// The window's clock, as its other double clicks read: a test controls it, so a slow build makes no double click
+	const double time = window() ? window()->clock().seconds() : SteadyClock().seconds();
 	clicks_ = nextClicks(clicks_, time - lastClickTime_, at.line == lastClickAt_.line);
 	lastClickTime_ = time;
 	lastClickAt_ = at;

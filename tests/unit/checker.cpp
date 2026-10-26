@@ -97,8 +97,10 @@ json screenTemplate(const std::string& name) {
 	json document = json::parse(content.str());
 	// The "include" files are merged when a screen is loaded: each section's entries, the screen's own winning;
 	// "persist" lists join.
-	if(const auto includes = document.find("include"); includes != document.end()) {
-		for(const json& include : *includes) {
+	if(const auto found = document.find("include"); found != document.end()) {
+		// A copy: merging adds sections to the document, whose storage then moves, and the list with it
+		const json includes = *found;
+		for(const json& include : includes) {
 			const std::ifstream part(directory / include.get<std::string>());
 			REQUIRE(part);
 			std::stringstream partContent;

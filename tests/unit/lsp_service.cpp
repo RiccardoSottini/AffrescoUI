@@ -179,7 +179,7 @@ struct Session {
 	affresco::Screen screen = affresco::Screen::fromString(languageScreen);           ///< The screen.
 
 	Session() {
-		screen.services().allowProcess("server", "/usr/bin/env", {"python3", fakeServer.string()});
+		screen.services().allowProcess("server", AFFRESCOUI_PYTHON, {fakeServer.string()});
 		screen.services().addRoot("work", folder.path / "work");
 		screen.setExecutor(&executor);
 		screen.build(*window);

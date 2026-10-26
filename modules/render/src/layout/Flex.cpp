@@ -266,7 +266,9 @@ void placeAlong(const FlexOptions& options, std::span<const FlexItem> items, std
 
 void layoutFlex(const FlexOptions& options, std::span<const FlexItem> items, std::vector<FlexPlacement>& placements) {
 	placements.assign(items.size(), FlexPlacement{});
-	std::vector<Work> work(items.size());
+	// Kept from one call to the next, so a layout allocates nothing once it has grown (no call is inside another)
+	thread_local std::vector<Work> work;
+	work.assign(items.size(), Work{});
 	for(std::size_t i = 0; i < items.size(); ++i)
 		work[i].length = bounded(items[i].base, items[i].minMain, items[i].maxMain);
 

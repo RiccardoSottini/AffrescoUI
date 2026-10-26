@@ -267,7 +267,11 @@ TEST_CASE("launcher: a read-only root is refused to the providers that run progr
 	const TemporaryFolder folder;
 	services::ServiceRegistry registry;
 	registry.addRoot("examples", folder.path(), true);
+#ifdef _WIN32
+	registry.allowProcess("true", services::loginShell()); // cmd.exe: never started, a program by its absolute path
+#else
 	registry.allowProcess("true", "/usr/bin/true");
+#endif
 	const std::vector<std::string> refused =
 	    registry.load({{"files", {{"provider", "fs"}, {"root", "examples"}, {"readOnly", true}}},
 		               {"writes", {{"provider", "fs"}, {"root", "examples"}}},

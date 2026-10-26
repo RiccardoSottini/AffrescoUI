@@ -289,9 +289,12 @@ TEST_CASE("data screens: persisted values that no longer fit the stateTypes open
 		CHECK(state["volume"] == 50);   // the default: "loud" isn't a number
 		CHECK(state["name"] == "kept"); // what fits is loaded
 	}
-	std::ifstream side(folder / "player.state.rejected.json");
-	REQUIRE(side);
-	const json rejected = json::parse(side);
+	json rejected;
+	{ // closed before the folder is removed: Windows removes no file that is open
+		std::ifstream side(folder / "player.state.rejected.json");
+		REQUIRE(side);
+		rejected = json::parse(side);
+	}
 	CHECK(rejected["/volume"]["value"] == "loud");
 	CHECK(rejected["/volume"]["problem"].get<std::string>().contains("state.volume"));
 	std::filesystem::remove_all(folder);
