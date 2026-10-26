@@ -410,6 +410,19 @@ Value atPointer(const Call& call) {
 	return count;
 }
 
+/// @brief Whether a value can be added at a pointer: its parent, if there, holds values (or is null, which becomes an
+/// object). nlohmann::json asserts, rather than throwing, when an "add" reaches inside a number or a text.
+/// @param document The document.
+/// @param path Where the value goes.
+/// @return false if the parent is a value that can't hold anything.
+[[nodiscard]] bool takesValueAt(const json& document, const json::json_pointer& path) {
+	if(path.empty()) return true;
+	const json::json_pointer parent = path.parent_pointer();
+	if(!document.contains(parent)) return true; // the patch then fails as the RFC says
+	const json& holder = document.at(parent);
+	return holder.is_structured() || holder.is_null();
+}
+
 /// @brief applyPatch(value, patch): a value with a JSON Patch applied, operation after operation.
 /// @param call The value and the patch (a list of { op, path, from?, value? }).
 /// @return The patched value, or null if the patch doesn't apply (or is bigger than its limits).
@@ -420,12 +433,23 @@ Value applyPatch(const Call& call) {
 	std::size_t copied = 0;
 	try {
 		for(const json& operation : patch) {
-			if(operation.is_object() && operation.value("op", json()) == "copy" && operation.contains("from") &&
-			   operation["from"].is_string()) {
+			json step = operation;
+			const json op = operation.is_object() ? operation.value("op", json()) : json();
+			const bool from = operation.is_object() && operation.contains("from") && operation["from"].is_string();
+			const bool path = operation.is_object() && operation.contains("path") && operation["path"].is_string();
+			if(op == "copy" && from) {
 				copied += valuesIn(document.at(json::json_pointer(operation["from"].get<std::string>())), mostCopied);
 				if(copied > mostCopied) return {};
 			}
-			document.patch_inplace(json::array({operation}));
+			if(op == "move" && from && path) { // as JSON Patch defines it: a remove, then an add where it goes
+				json value = document.at(json::json_pointer(operation["from"].get<std::string>()));
+				document.patch_inplace(json::array({{{"op", "remove"}, {"path", operation["from"]}}}));
+				step = {{"op", "add"}, {"path", operation["path"]}, {"value", std::move(value)}};
+			}
+			if((op == "add" || op == "copy" || op == "move") && path &&
+			   !takesValueAt(document, json::json_pointer(operation["path"].get<std::string>())))
+				return {};
+			document.patch_inplace(json::array({std::move(step)}));
 		}
 	} catch(const std::exception&) { // json::exception, or memory running out
 		return {};
