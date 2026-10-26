@@ -48,7 +48,7 @@ navigation, hovers and snippets still work, and `affrescoui.cliPath` can't be se
 
 ## Building
 
-Node.js 20 or newer. The devDependencies are pinned by `package-lock.json`.
+Node.js 22 or newer (what `@vscode/vsce` 4 needs). The devDependencies are pinned by `package-lock.json`.
 
 ```sh
 cd editors/vscode

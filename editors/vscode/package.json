@@ -6,7 +6,7 @@
 	"license": "Apache-2.0",
 	"private": true,
 	"repository": { "type": "git", "url": "https://github.com/RiccardoSottini/AffrescoUI.git", "directory": "editors/vscode" },
-	"engines": { "vscode": "^1.100.0", "node": ">=20" },
+	"engines": { "vscode": "^1.100.0", "node": ">=22" },
 	"categories": ["Programming Languages", "Linters", "Snippets"],
 	"keywords": ["affrescoui", "json", "ui"],
 	"main": "./out/extension.js",
@@ -101,7 +101,7 @@
 	"devDependencies": {
 		"@types/node": "20.19.0",
 		"@types/vscode": "1.100.0",
-		"@vscode/vsce": "3.9.2",
-		"typescript": "6.0.3"
+		"@vscode/vsce": "4.0.0",
+		"typescript": "7.0.2"
 	}
 }

@@ -42,7 +42,7 @@ jobs:
       - name: Python binding tests # headless
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install pytest==8.3.5
+          "$RUNNER_TEMP/venv/bin/pip" install pytest==9.1.1
           AFFRESCOUI_LIBRARY="$PWD/build/modules/capi/libaffresco.so" PYTHONPATH=bindings/python \
             xvfb-run -a -s "-screen 0 1920x1080x24" "$RUNNER_TEMP/venv/bin/python" -m pytest -q bindings/python/tests
       - name: Embedding demo, both modes # a frame of each, written as PPM
