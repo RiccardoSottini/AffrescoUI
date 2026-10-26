@@ -178,7 +178,9 @@ json csvSeed(const json& models, const std::string& collection, const std::strin
 		std::ranges::transform(name, name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 		return name;
 	};
-	for(const auto& [field, unused] : models[collection].value("fields", json::object()).items())
+	// Named: items() of the temporary that value() returns would outlive it (C++23 extends it only in newer compilers)
+	const json fields = models[collection].value("fields", json::object());
+	for(const auto& [field, unused] : fields.items())
 		for(const std::string& header : rows.front())
 			if(lower(header) == lower(field)) columns[field] = header;
 	const json report = data::importCsv(store, text, {collection, columns, ',', true, "seed"}, {});
