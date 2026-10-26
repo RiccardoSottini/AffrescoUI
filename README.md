@@ -89,6 +89,15 @@ Twelve applications, from everyday apps to professional tools, all in the same f
 ([`examples/`](examples/README.md)), not part of the library, and each carries the AI **assistant** in its bottom right
 corner: ask for a change in plain words, then review the proposal it becomes.
 
+<div align="center">
+
+<img src=".github/media/launcher.png" width="860" alt="The AffrescoUI Launcher: a sidebar with Apps, My apps, Create and Settings, and a grid of application cards with their pictures, rendered natively by AffrescoUI from one live document">
+
+<sub>The AffrescoUI Launcher, itself one live document: every application one click away, your own apps, a new app
+made blank, from an example or from a description, and the AI provider every app's assistant uses.</sub>
+
+</div>
+
 ### Professional tools
 
 <table>
