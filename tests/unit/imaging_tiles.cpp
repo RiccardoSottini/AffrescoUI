@@ -152,14 +152,14 @@ TEST_CASE("imaging tiles: mips are alpha-weighted and made again after a write")
 	Image image(512, 512, PixelFormat::rgba8);
 	image.writableTile(0, 0) = *Tile::filled(PixelFormat::rgba8, {1.0f, 0.0f, 0.0f, 1.0f});
 	const auto mip = image.tile({1, 0, 0});
-	REQUIRE(mip);
+	REQUIRE(mip.get() != nullptr);
 	CHECK(mip->pixel(10, 10) == Pixel{1.0f, 0.0f, 0.0f, 1.0f});
 	CHECK(mip->pixel(200, 10).alpha == 0.0f); // the transparent tile to its right
 	// Half covered: the colour stays red, not darkened by the transparent pixels; the alpha halves
 	Tile& tile = image.writableTile(0, 0);
 	for(int y = 0; y < tileSize; ++y) tile.setPixel(1, y, {});
 	const auto again = image.tile({1, 0, 0});
-	CHECK(again != mip);
+	CHECK(again.get() != mip.get());
 	CHECK(again->pixel(0, 10).red == 1.0f);
 	CHECK(again->pixel(0, 10).alpha == doctest::Approx(0.5f).epsilon(0.01));
 	CHECK(image.tile({2, 0, 0}).get() == nullptr); // beyond the levels

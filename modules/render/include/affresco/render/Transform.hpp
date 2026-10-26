@@ -61,7 +61,8 @@ struct Affine2 {
 	/// @return The inverse; nullopt when it flattens the plane (a scale of 0), or is not finite.
 	[[nodiscard]] std::optional<Affine2> inverse() const noexcept {
 		const float det = determinant();
-		if(!std::isfinite(det) || std::abs(det) < 1e-12f) return std::nullopt;
+		// The size test first: on a constant 0 MSVC folds it and sees no division (C4723 otherwise)
+		if(std::abs(det) < 1e-12f || !std::isfinite(det)) return std::nullopt;
 		const float ia = d / det, ib = -b / det, ic = -c / det, id = a / det;
 		return Affine2{ia, ib, ic, id, -(ia * tx + ic * ty), -(ib * tx + id * ty)};
 	}
