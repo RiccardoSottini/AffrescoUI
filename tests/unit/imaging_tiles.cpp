@@ -120,10 +120,10 @@ TEST_CASE("imaging tiles: an image is sparse, bounded and copy-on-write") {
 	const std::shared_ptr<const Tile> kept = image.tile({0, 1, 1});
 	const Image copy = image;                           // shares the tile
 	image.setPixel(301, 300, {0.0f, 1.0f, 0.0f, 1.0f}); // copies it first
-	CHECK(image.tile({0, 1, 1}) != kept);
+	CHECK(image.tile({0, 1, 1}).get() != kept.get());
 	CHECK(kept->pixel(301 % tileSize, 300 % tileSize).alpha == 0.0f);
 	CHECK(copy.pixel(301, 300).alpha == 0.0f);
-	CHECK(copy.tile({0, 1, 1}) == kept);
+	CHECK(copy.tile({0, 1, 1}).get() == kept.get());
 
 	CHECK_THROWS_AS(Image(0, 10, PixelFormat::rgba8), std::invalid_argument);
 	CHECK_THROWS_AS(Image(40000, 10, PixelFormat::rgba8), std::invalid_argument);
