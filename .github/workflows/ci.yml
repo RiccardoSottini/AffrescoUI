@@ -207,7 +207,7 @@ jobs:
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60 # the build alone takes 20 to 35 minutes, then the 58 targets about 15
     env:
       CC: clang-18
       CXX: clang++-18
