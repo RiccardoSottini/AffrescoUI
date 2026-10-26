@@ -27,7 +27,7 @@ import argparse
 import os
 import sys
 
-SECRETS = {
+SIGNING_INPUTS = {  # the names of the secrets each platform needs (names only)
     "macos": ("MACOS_CERTIFICATE_P12", "MACOS_CERTIFICATE_PASSWORD", "MACOS_SIGNING_IDENTITY", "APPLE_API_KEY_P8",
               "APPLE_API_KEY_ID", "APPLE_API_ISSUER_ID"),
     "windows": ("SIGNPATH_API_TOKEN", "SIGNPATH_ORGANIZATION_ID", "SIGNPATH_PROJECT_SLUG",
@@ -43,7 +43,7 @@ def decide(event, ref_type, unsigned_allowed):
     unsigned. Returns (sign, lines): a dictionary from each platform to whether it is signed, and one line per
     platform for the summary."""
     sign, lines = {}, []
-    for platform in SECRETS:
+    for platform in SIGNING_INPUTS:
         if event == "pull_request":
             sign[platform], why = False, "unsigned: a pull request is never signed"
         elif ref_type != "tag":
@@ -61,7 +61,7 @@ def decide(event, ref_type, unsigned_allowed):
 
 def missing(platform, present):
     """The secrets of a platform that aren't set, given the names of those that are."""
-    return [name for name in SECRETS[platform] if name not in present]
+    return [name for name in SIGNING_INPUTS[platform] if name not in present]
 
 
 def summary(text):
@@ -75,18 +75,19 @@ def summary(text):
 def main():
     """Writes the decision, or checks one platform's secrets (--secrets)."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--secrets", choices=sorted(SECRETS), help="check that this platform's secrets are set")
+    parser.add_argument("--secrets", dest="platform", metavar="PLATFORM", choices=sorted(SIGNING_INPUTS),
+                        help="check that this platform's secrets are set")
     args = parser.parse_args()
-    if args.secrets:
-        present = {name for name in SECRETS[args.secrets] if os.environ.get(name) == "true"}
-        absent = missing(args.secrets, present)
+    if args.platform:
+        present = {name for name in SIGNING_INPUTS[args.platform] if os.environ.get(name) == "true"}
+        absent = missing(args.platform, present)
         if absent:
-            summary(f"{args.secrets}: unsigned: secret {', '.join(absent)} missing in the release environment")
+            summary(f"{args.platform}: unsigned: secret {', '.join(absent)} missing in the release environment")
             print(f"::error::check_signing.py: a tag must be signed, and the release environment has no "
-                  f"{', '.join(absent)} (RELEASING.md); to release {args.secrets} unsigned, name it in the repository "
+                  f"{', '.join(absent)} (RELEASING.md); to release {args.platform} unsigned, name it in the repository "
                   f"variable RELEASE_UNSIGNED_PLATFORMS", file=sys.stderr)
             sys.exit(1)
-        summary(f"{args.secrets}: every signing secret is set")
+        summary(f"{args.platform}: every signing secret is set")
         return
     allowed = set(os.environ.get("UNSIGNED_PLATFORMS", "").replace(",", " ").lower().split())
     sign, lines = decide(os.environ.get("EVENT", ""), os.environ.get("REF_TYPE", ""), allowed)

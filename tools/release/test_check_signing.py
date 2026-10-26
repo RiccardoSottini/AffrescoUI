@@ -45,15 +45,15 @@ class Secrets(unittest.TestCase):
     """check_signing.missing, and --secrets."""
 
     def test_missing_names_only_the_absent_ones(self):
-        present = set(check_signing.SECRETS["macos"]) - {"APPLE_API_KEY_ID"}
+        present = set(check_signing.SIGNING_INPUTS["macos"]) - {"APPLE_API_KEY_ID"}
         self.assertEqual(check_signing.missing("macos", present), ["APPLE_API_KEY_ID"])
-        self.assertEqual(check_signing.missing("windows", set()), list(check_signing.SECRETS["windows"]))
+        self.assertEqual(check_signing.missing("windows", set()), list(check_signing.SIGNING_INPUTS["windows"]))
 
     def run_check(self, platform, present):
         """Runs --secrets with the given secrets marked as set; returns the process."""
         environment = {key: value for key, value in os.environ.items() if key not in ("GITHUB_OUTPUT",
                                                                                       "GITHUB_STEP_SUMMARY")}
-        for name in check_signing.SECRETS[platform]:
+        for name in check_signing.SIGNING_INPUTS[platform]:
             environment[name] = "true" if name in present else "false"
         return subprocess.run([sys.executable, os.path.join(HERE, "check_signing.py"), "--secrets", platform],
                               env=environment, capture_output=True, text=True, check=False)
@@ -65,7 +65,7 @@ class Secrets(unittest.TestCase):
         self.assertNotIn("SIGNPATH_API_TOKEN,", result.stderr)
 
     def test_a_platform_with_every_secret_passes(self):
-        result = self.run_check("macos", set(check_signing.SECRETS["macos"]))
+        result = self.run_check("macos", set(check_signing.SIGNING_INPUTS["macos"]))
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
