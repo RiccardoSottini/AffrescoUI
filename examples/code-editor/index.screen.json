@@ -679,7 +679,7 @@
 		"mod+b": "build",
 		"ctrl+backquote": "showTerminal",
 		"mod+shift+d": "duplicateLines",
-		"ctrl+shift+k": "deleteLines",
+		"ctrl+shift+k": { "when": "{{context.platform == 'mac'}}", "do": "deleteLines" },
 		"ctrl+mod+up": "moveLinesUp",
 		"ctrl+mod+down": "moveLinesDown",
 		"mod+j": "joinLines",
