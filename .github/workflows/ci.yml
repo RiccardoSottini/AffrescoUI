@@ -4,7 +4,7 @@
 # - Linux: GCC; the unit, window, CLI, MCP and scenario tests, every application opening, the rendering check, the
 #   package check, the API reference, and the quality gate (clang-tidy on the changed lines, function size);
 # - Linux (address + undefined sanitizers): GCC with ASan and UBSan: the tests and the rendering check;
-# - Fuzz, on pull requests: every fuzz target for 60 s, one after the other, from the nightly corpus;
+# - Fuzz, on pull requests: every fuzz target for 60 s, one per core at a time, from the nightly corpus;
 # - macOS (build only): the unit tests, the scenarios and every application opening;
 # - Windows: MSVC, the unit tests, the scenarios and the CLI's tests, headless;
 # - Benchmarks (callgrind), on pull requests: base and head on the same runner;
@@ -200,7 +200,7 @@ jobs:
             build/render-check/*.png
             tests/render/golden/
 
-  # Every fuzz target for 60 s, one after the other, from the nightly corpus (tests/fuzz/README.md), built as
+  # Every fuzz target for 60 s, one per core at a time, from the nightly corpus (tests/fuzz/README.md), built as
   # nightly.yml builds them
   fuzz:
     name: Fuzz
