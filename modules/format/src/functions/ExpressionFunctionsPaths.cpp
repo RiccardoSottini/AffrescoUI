@@ -20,7 +20,9 @@ namespace affresco::format::detail {
 namespace {
 
 constexpr std::size_t mostItems = 1'000'000; ///< The most items nested (a tree's most rows).
-constexpr std::size_t mostDepth = 256;       ///< The deepest a path nests (a tree's deepest).
+/// The deepest a path nests (a tree's deepest): each level is an item and its list of children, two levels of a value,
+/// which nests at most 256 levels deep (an item's own fields one more).
+constexpr std::size_t mostDepth = 127;
 
 /// @brief One node of the tree being made.
 struct PathNode {
@@ -125,7 +127,7 @@ Value pathTree(const Call& call) {
 			const std::string_view part = std::string_view(*path).substr(from, slash - from);
 			from = slash + 1;
 			if(part.empty()) continue;
-			if(++depth > mostDepth) call.fail("a path nests more than 256 deep: " + *path);
+			if(++depth > mostDepth) call.fail("a path nests more than 127 deep: " + *path);
 			id += id.empty() ? std::string(part) : "/" + std::string(part);
 			const auto [found, added] = byPath.try_emplace(id, nodes.size());
 			if(added) {
