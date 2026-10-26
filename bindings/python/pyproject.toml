@@ -6,7 +6,7 @@
 # Without a wheel, point AFFRESCOUI_LIBRARY at a library built with -DAFFRESCOUI_BUILD_CAPI_SHARED=ON.
 
 [build-system]
-requires = ["scikit-build-core==0.10.7"]
+requires = ["scikit-build-core==1.1.1"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -19,7 +19,7 @@ requires-python = ">=3.9"
 classifiers = ["Private :: Do Not Upload"]
 
 [project.optional-dependencies]
-test = ["pytest==8.3.5"]
+test = ["pytest==9.1.1"]
 
 [tool.scikit-build]
 minimum-version = "0.10"
