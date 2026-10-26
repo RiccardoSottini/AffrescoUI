@@ -16,6 +16,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -47,9 +48,7 @@ void writeFile(const fs::path& file, const std::string& bytes) {
 bool showsLabelStarting(const affresco::Panel& panel, const std::string& start) {
 	if(const auto* label = dynamic_cast<const affresco::Label*>(&panel); label && label->text().starts_with(start))
 		return true;
-	for(const auto& child : panel.children())
-		if(showsLabelStarting(*child, start)) return true;
-	return false;
+	return std::ranges::any_of(panel.children(), [&](const auto& child) { return showsLabelStarting(*child, start); });
 }
 
 /// @brief Plays scenarios on the Launcher, headless, with a host's grants.
@@ -210,7 +209,7 @@ TEST_CASE("launcher: Settings save the provider the form shows first, with no pi
 TEST_CASE("launcher: a new blank app's permissions show what it asks for, with no empty reason") {
 	// A blank app is a screen without an app.json: the host asks for what it uses, each with no reason
 	const fs::path file = fs::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "shared" / "host" / "permissions.screen.json";
-	affresco::detail::ManualClock clock;
+	const affresco::detail::ManualClock clock;
 	const auto window = affresco::detail::createHeadlessWindow(640, 480, clock);
 	std::ifstream in(file, std::ios::binary);
 	const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
