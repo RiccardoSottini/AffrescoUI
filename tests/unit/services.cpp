@@ -127,8 +127,7 @@ TEST_CASE("services: a screen invokes the prototype JSON-RPC server, and reads a
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(200, 100, clock);
 	affresco::Screen screen = affresco::Screen::fromString(serviceScreen);
-	screen.services().allowProcess("proto", "/usr/bin/env",
-	                               {"python3", AFFRESCOUI_PROTOTYPES_DIR "/0002-services/service.py"});
+	screen.services().allowProcess("proto", AFFRESCOUI_PYTHON, {AFFRESCOUI_PROTOTYPES_DIR "/0002-services/service.py"});
 	screen.services().addRoot("work", folder.path / "work");
 	screen.setExecutor(&executor);
 	screen.build(*window);

@@ -4,11 +4,13 @@
 ///
 /// The input is paths, one per line; a line starting with `+` is a folder whose children aren't listed yet
 /// (`{path, expandable: true}`). The tree gives each path a node exactly once: its id is its parent's id, `/`, its
-/// label; every path given has its node; and in each list the folders come first.
+/// label; every path given has its node; and in each list the folders come first. A path of more parts than the
+/// deepest a tree nests is refused, and only then.
 
 #include "Expression.hpp"
 #include "Fuzz.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <set>
@@ -20,6 +22,7 @@ using affresco::json;
 namespace {
 
 constexpr std::size_t maxLines = 256; ///< Paths in one input, at most.
+constexpr std::size_t mostDepth = 127; ///< The deepest a path nests, pathTree's limit (deeper is refused).
 
 /// @brief A path as pathTree normalises it: the parts between slashes, empty ones left out.
 /// @param path The path.
@@ -73,6 +76,10 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		paths.push_back(folder ? json{{"path", path}, {"expandable", true}} : json(path));
 		if(!normalised(path).empty()) given.insert(normalised(path));
 	}
+	const auto partsOf = [](const std::string& path) { return std::ranges::count(path, '/') + 1; };
+	const bool tooDeep = std::ranges::any_of(given, [&](const std::string& path) {
+		return static_cast<std::size_t>(partsOf(path)) > mostDepth;
+	});
 	// The paths are data, as a screen's state holds them: written in the document itself, a text with "{{" in it
 	// would be an expression
 	const json state = {{"paths", std::move(paths)}};
@@ -83,9 +90,12 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	json tree;
 	try {
 		tree = affresco::format::evaluate(json{{"$pathTree", json::array({"{{state.paths}}"})}}, context, "fuzz");
-	} catch(const affresco::DocumentError&) {
-		affresco::fuzz::broken("a list of texts and objects always nests");
+	} catch(const affresco::DocumentError& error) {
+		if(!tooDeep || !std::string_view(error.what()).contains("nests more than"))
+			affresco::fuzz::broken("a list of texts and objects always nests, unless a path is too deep");
+		return 0;
 	}
+	if(tooDeep) affresco::fuzz::broken("a path too deep is refused");
 	std::set<std::string> seen;
 	check(tree, "", seen);
 	for(const std::string& path : given)

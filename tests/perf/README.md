@@ -172,6 +172,7 @@ pip install --require-hashes -r tests/perf/requirements.txt   # tiktoken
 python3 tests/perf/scaling.py                                 # wall time, allocations, memory, tokens
 python3 tests/perf/scaling.py --callgrind                     # and instructions (Linux, valgrind)
 python3 tests/perf/scaling.py --size large                    # the nightly sizes
+python3 tests/perf/scaling.py --skip scaling/history          # without the workloads whose names start with these
 ```
 
 - `affrescoui_bench --scaling small` runs each area at 5 sizes that double; `--scaling large` at 7. The workloads are

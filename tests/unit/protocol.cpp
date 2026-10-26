@@ -83,7 +83,9 @@ std::function<json(Peers&)> plain(json message) {
 /// "reviewer →", "peer → other peers").
 /// @return The types.
 std::set<std::string> documentedMessages() {
-	const std::filesystem::path file = std::filesystem::path(__FILE__).parent_path() / "../../SCREEN_FORMAT.md";
+	// By an absolute path, as the build gives it: __FILE__ is relative when the compile cache rewrites the paths
+	const std::filesystem::path file =
+	    std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY).parent_path() / "SCREEN_FORMAT.md";
 	std::ifstream in(file);
 	REQUIRE(in);
 	std::set<std::string> types;

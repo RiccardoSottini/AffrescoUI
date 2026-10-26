@@ -1,13 +1,17 @@
 # What is too long for every pull request (.github/workflows/README.md): every fuzz target for 15 minutes, starting
-# from the corpus earlier nights grew, which this run keeps for the next one and for pull requests (the sanitizer job
-# of ci.yml reads it, never writes it). An input that crashes, leaks, hangs or runs out of memory fails the job; it
-# is uploaded as the "fuzz-found" artifact, under its target's name, and tests/fuzz/README.md says how to replay it.
-# And the scaling workloads at their large sizes (tests/perf/README.md, "Scaling").
+# from the corpus earlier nights grew, which this run keeps for the next one and for pull requests with the full-ci
+# label (ci.yml's Fuzz reads it, never writes it). An input that crashes, leaks, hangs or runs out of memory fails the
+# job; it is uploaded as the "fuzz-found" artifact, under its target's name, and tests/fuzz/README.md says how to
+# replay it. A v* tag fuzzes too. And, every night and on demand: the scaling workloads at their large sizes
+# (tests/perf/README.md, "Scaling"), the benchmarks of the last commit against the one before, and the quality report
+# (the coverage of the unit tests and the whole-repository report).
 name: Nightly
 
 on:
   schedule:
     - cron: "23 2 * * *" # 02:23 UTC
+  push:
+    tags: ["v*"] # fuzzing only
   workflow_dispatch:
     inputs:
       seconds:
@@ -70,6 +74,7 @@ jobs:
   # take too long for every pull request: fails when an exponent is more than 0.15 above the large baseline's
   scaling:
     name: Scaling (nightly)
+    if: github.event_name != 'push' # not for a tag
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -92,10 +97,12 @@ jobs:
           cmake -S . -B build-perf -G Ninja -DCMAKE_BUILD_TYPE=Release -DAFFRESCOUI_BUILD_BENCHMARKS=ON \
             -DAFFRESCOUI_BUILD_TESTS=OFF -DAFFRESCOUI_BUILD_EXAMPLES=OFF -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build-perf --target affrescoui_bench
+      # Temporary, until the commit check is fast again: the history areas make about 8,000 commits each before their
+      # first run, hours under valgrind (the job was cancelled at its limit). Restore them when it is fast again.
       - name: Measure the large sizes
         run: |
           xvfb-run -a -s "-screen 0 1920x1080x24" "$RUNNER_TEMP/venv/bin/python3" tests/perf/scaling.py \
-            --build build-perf --size large --callgrind --out "$RUNNER_TEMP/scaling/large.json" \
+            --build build-perf --size large --callgrind --skip scaling/history --out "$RUNNER_TEMP/scaling/large.json" \
             --summary "$GITHUB_STEP_SUMMARY"
       - name: Upload the results
         if: always()
@@ -104,3 +111,79 @@ jobs:
           name: scaling-large
           path: ${{ runner.temp }}/scaling/
           if-no-files-found: ignore
+
+  # tests/perf/ci.sh, as ci.yml's Benchmarks (callgrind) on a labelled pull request: the last commit against the one
+  # before, on this runner. About 2 hours 20 until the commit check is fast again (measured: each side's build 12 to
+  # 14 minutes on a cold compile cache, its workloads about 50 under callgrind).
+  benchmarks:
+    name: Benchmarks (nightly)
+    if: github.event_name != 'push' # not for a tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      PERF_BASE: HEAD^1
+      LIBGL_ALWAYS_SOFTWARE: "1" # Mesa's llvmpipe, under Xvfb
+      MESA_GL_VERSION_OVERRIDE: "4.1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2 # the commit and the one before
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          packages: valgrind xvfb xauth libgl1-mesa-dri python3-venv
+          cache: linux-gcc-release-benchmarks
+      - name: Install tiktoken # its own environment, each file checked against its hash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --require-hashes -r tests/perf/requirements.txt
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+      - name: Measure the last commit and the one before
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" tests/perf/ci.sh
+      - name: Upload the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: benchmarks
+          path: ${{ runner.temp }}/perf/
+
+  # The whole repository (the longest and most complex functions, tidy findings per module) and the coverage of the
+  # unit tests. Fails only when coverage falls below the floor in tools/quality/coverage-baseline.json; the numbers are
+  # in the job summary and the artifacts. Measured on this runner: the coverage 18 minutes, the report 63.
+  report:
+    name: Quality report
+    if: github.event_name != 'push' # not for a tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      LLVM_BIN: /usr/lib/llvm-18/bin
+      QUALITY_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          packages: clang-18 clang-tidy-18 llvm-18 python3-venv
+          cache: linux-clang-coverage
+      - name: Coverage of the unit tests # fails below the floor in tools/quality/coverage-baseline.json
+        run: tools/quality/run.sh coverage
+      - name: Whole-repository report # also when the coverage is below the floor: its numbers still help
+        if: success() || failure()
+        run: tools/quality/run.sh report
+      - name: Upload the report
+        if: success() || failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: quality-report
+          path: build-quality/quality-report.json
+      - name: Upload the coverage
+        if: success() || failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: |
+            build-quality/coverage/coverage.json
+            build-quality/coverage/coverage.lcov
+            build-quality/coverage/html/

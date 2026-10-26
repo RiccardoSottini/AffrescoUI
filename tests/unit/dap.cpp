@@ -147,7 +147,7 @@ struct Session {
 	affresco::Screen screen = affresco::Screen::fromString(debugScreen);              ///< The screen.
 
 	Session() {
-		screen.services().allowProcess("adapter", "/usr/bin/env", {"python3", fakeAdapter.string()});
+		screen.services().allowProcess("adapter", AFFRESCOUI_PYTHON, {fakeAdapter.string()});
 		screen.services().addRoot("work", folder.path / "work");
 		screen.setExecutor(&executor);
 		screen.build(*window);

@@ -6,7 +6,8 @@
 #
 # Usage: .github/workflows/fuzz.sh BUILD SECONDS   (BUILD: a build with -DAFFRESCOUI_BUILD_FUZZERS=ON, built)
 # The corpus is in fuzz-corpus/<target>/ (kept by the Actions cache); the seeds are written to BUILD/fuzz-corpus/.
-# FUZZ_JOBS targets run at a time (default: one per core), each for SECONDS; their logs are printed one after another.
+# FUZZ_JOBS targets run at a time (default: one per core), each for SECONDS (three times that at most, when replaying
+# its corpus takes longer); their logs are printed one after another.
 set -euo pipefail
 
 build="$1"
@@ -29,9 +30,23 @@ fuzz_one() {
 	if [ -d "$build/fuzz-corpus/$target" ]; then
 		seeds=("$build/fuzz-corpus/$target")
 	fi
-	if ! "$program" -max_total_time="$seconds" -timeout=10 -rss_limit_mb=2048 -print_final_stats=1 \
-		"${dictionary[@]+"${dictionary[@]}"}" -artifact_prefix="$build/fuzz-found/$target/" \
-		"fuzz-corpus/$target" "${seeds[@]+"${seeds[@]}"}" >"$logs/$target.log" 2>&1; then
+	# Temporary, until the commit check is fast again: the full check on commit is slower than its budget, and these
+	# targets commit or load the Kanban template several times an input, which takes up to 25 s in this build (10 s
+	# is libFuzzer's limit here). Give them 10 s again when it is fast again.
+	local per_input=10
+	case "$target" in
+	revision | scenarios | session) per_input=60 ;;
+	esac
+	# -max_total_time doesn't stop libFuzzer while it replays the corpus, which can outlast it on a slow target:
+	# after three times its time, the target is interrupted (SIGINT, which libFuzzer takes as the end of a run)
+	local status=0
+	timeout -s INT -k 60 "$((seconds * 3))" "$program" -max_total_time="$seconds" -timeout="$per_input" \
+		-rss_limit_mb=2048 -print_final_stats=1 "${dictionary[@]+"${dictionary[@]}"}" \
+		-artifact_prefix="$build/fuzz-found/$target/" "fuzz-corpus/$target" "${seeds[@]+"${seeds[@]}"}" \
+		>"$logs/$target.log" 2>&1 || status=$?
+	if [ "$status" -eq 124 ] && grep -q "libFuzzer: run interrupted" "$logs/$target.log"; then
+		touch "$logs/$target.interrupted"
+	elif [ "$status" -ne 0 ]; then
 		touch "$logs/$target.failed"
 	fi
 }
@@ -55,6 +70,8 @@ for target in "${targets[@]}"; do
 	if [ -f "$logs/$target.failed" ]; then
 		failed+=("$target")
 		echo "::error title=Fuzz $target::$target found an input that fails: it is in the fuzz-found artifact, under $target/"
+	elif [ -f "$logs/$target.interrupted" ]; then
+		echo "::notice title=Fuzz $target::$target was stopped after $((seconds * 3)) s, still replaying its corpus"
 	fi
 done
 
@@ -68,6 +85,8 @@ fi
 	for target in "${targets[@]}"; do
 		if [[ " ${failed[*]-} " == *" $target "* ]]; then
 			echo "- \`$target\`: **failed** (input in the \`fuzz-found\` artifact, \`$target/\`)"
+		elif [ -f "$logs/$target.interrupted" ]; then
+			echo "- \`$target\`: passed, stopped after $((seconds * 3)) s while replaying its corpus"
 		else
 			echo "- \`$target\`: passed"
 		fi

@@ -8,7 +8,9 @@
 #include "layout/Grid.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <limits>
+#include <memory>
 #include <vector>
 
 namespace affresco {
@@ -17,14 +19,62 @@ namespace {
 
 /// @brief The children a container places: visible, and not overlays.
 /// @param panel The container.
+/// @param result Set to the children, in order.
+void placed(const Panel& panel, std::vector<Panel*>& result) {
+	result.clear();
+	for(const auto& child : panel.children())
+		if(child->isVisible() && !child->isOverlay()) result.push_back(child.get());
+}
+
+/// @brief The children a container places: visible, and not overlays.
+/// @param panel The container.
 /// @return The children, in order.
 std::vector<Panel*> placed(const Panel& panel) {
 	std::vector<Panel*> result;
 	result.reserve(panel.children().size());
-	for(const auto& child : panel.children())
-		if(child->isVisible() && !child->isOverlay()) result.push_back(child.get());
+	placed(panel, result);
 	return result;
 }
+
+/// @brief The lists a stack fills as it lays its children out, kept from one layout to the next so a layout allocates
+/// nothing once they have grown.
+struct Scratch {
+	std::vector<Panel*> children;                  ///< The children placed.
+	std::vector<detail::FlexItem> items;           ///< Their items.
+	std::vector<detail::FlexPlacement> placements; ///< Their placements.
+};
+
+/// @brief Lends a stack's layout the lists of its depth on this thread, for as long as it lasts: layouts nest, as a
+/// child's size may lay out a stack inside it.
+class ScratchLease {
+public:
+	/// @brief Takes the lists of the next depth.
+	ScratchLease() {
+		if(depth() == pool().size()) pool().push_back(std::make_unique<Scratch>()); // its address stays as it grows
+		scratch_ = pool()[depth()++].get();
+	}
+	/// @brief Gives them back.
+	~ScratchLease() { --depth(); }
+	ScratchLease(const ScratchLease&) = delete;
+	ScratchLease& operator=(const ScratchLease&) = delete;
+	ScratchLease(ScratchLease&&) = delete;
+	ScratchLease& operator=(ScratchLease&&) = delete;
+	/// @brief The lists.
+	[[nodiscard]] Scratch& operator*() const noexcept { return *scratch_; }
+
+private:
+	/// @brief This thread's lists, one set per depth.
+	static std::vector<std::unique_ptr<Scratch>>& pool() {
+		thread_local std::vector<std::unique_ptr<Scratch>> lists;
+		return lists;
+	}
+	/// @brief How many are lent on this thread.
+	static std::size_t& depth() {
+		thread_local std::size_t lent = 0;
+		return lent;
+	}
+	Scratch* scratch_; ///< The lists lent.
+};
 
 /// @brief A maximum, resolved.
 /// @param maximum The maximum, if any.
@@ -135,7 +185,9 @@ void Stack::setFitContent(bool width, bool height) {
 
 Vec2 Stack::fittedSize(Vec2 size, Vec2 reference) {
 	const bool row = direction_ == Direction::Row;
-	const std::vector<Panel*> children = placed(*this);
+	const ScratchLease lease;
+	std::vector<Panel*>& children = (*lease).children;
+	placed(*this, children);
 	float length = 0.0f, thickness = 0.0f;
 	for(Panel* child : children) {
 		const Vec2 measured = child->measuredSize(size);
@@ -157,10 +209,11 @@ void Stack::arrange() {
 	const bool row = direction_ == Direction::Row;
 	const auto [start, end, crossStart, crossEnd] = flowEdges(row);
 	const Vec2 size = resolvedSize();
-	const std::vector<Panel*> children = placed(*this);
+	const ScratchLease lease;
+	auto& [children, items, placements] = *lease;
+	placed(*this, children);
 
-	std::vector<detail::FlexItem> items;
-	items.reserve(children.size());
+	items.clear();
 	for(Panel* child : children) {
 		arrangeSize(*child, std::nullopt, std::nullopt); // measured as itself, not as last pass arranged it
 		items.push_back(flexItem(*child, row, size, alignItems_));
@@ -173,7 +226,6 @@ void Stack::arrange() {
 	                                  .lineGap = row ? rowGap : columnGap,
 	                                  .justify = justify_,
 	                                  .wrap = wrap_};
-	std::vector<detail::FlexPlacement> placements;
 	detail::layoutFlex(options, items, placements);
 
 	for(std::size_t i = 0; i < children.size(); ++i) {

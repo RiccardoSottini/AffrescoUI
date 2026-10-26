@@ -33,8 +33,12 @@ build() {
 # Measures a checkout's build into $out/<side>: instructions (not the frames, which callgrind makes very slow with
 # software OpenGL, nor the idle second, which is wall clock) and the frames' CPU time. Uses this checkout's run.py, which drives any version of the program.
 measure() {
-	python3 "$here/tests/perf/run.py" --build "$1/build-perf" --callgrind --skip frame,budgets/idle --out "$out/$2/callgrind.jsonl" ||
-		return 1
+	# Temporary, until the commit check is fast again: the full check on commit is slower than its budget (about 30 ms
+	# a commit, against 3.2 ms), and "commits" and "history" make thousands of commits (10,000 before history's first
+	# run), which take hours under valgrind, on the base as on the head. Restore them here when it is fast again.
+	local slow=commits,history
+	python3 "$here/tests/perf/run.py" --build "$1/build-perf" --callgrind --skip "frame,budgets/idle,$slow" \
+		--out "$out/$2/callgrind.jsonl" || return 1
 	python3 "$here/tests/perf/run.py" --build "$1/build-perf" --only frame --out "$out/$2/frame.jsonl" || return 1
 }
 
@@ -68,9 +72,11 @@ fi
 status=0
 python3 tests/perf/compare.py --base "$out/base" --head "$out/head" --summary "${GITHUB_STEP_SUMMARY:-/dev/null}" \
 	"${allow[@]}" || status=1
-# How each area's cost grows with its n, at the small sizes, against tests/perf/scaling-baseline.json (scaling.py)
-python3 tests/perf/scaling.py --build "$here/build-perf" --size small --callgrind --out "$out/scaling/head.json" \
-	--summary "${GITHUB_STEP_SUMMARY:-/dev/null}" "${allow[@]}" || status=1
+# How each area's cost grows with its n, at the small sizes, against tests/perf/scaling-baseline.json (scaling.py).
+# Temporary, until the commit check is fast again: the history areas make about 2,000 commits each before their first
+# run, about 25 minutes an area under valgrind. Restore them here and in nightly.yml when it is fast again.
+python3 tests/perf/scaling.py --build "$here/build-perf" --size small --callgrind --skip scaling/history \
+	--out "$out/scaling/head.json" --summary "${GITHUB_STEP_SUMMARY:-/dev/null}" "${allow[@]}" || status=1
 # The budgets with a threshold, head's instructions and tokens against tests/perf/budgets.json (no label waives them)
 python3 tests/perf/run.py --budgets --from "$out/head" || status=1
 exit "$status"

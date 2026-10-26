@@ -87,6 +87,17 @@ constexpr bool underSanitizer() {
 #endif
 }
 
+/// @brief Whether this build's times mean anything: an optimised build (NDEBUG) without a sanitizer. A Debug build,
+/// such as the quality report's with coverage, runs several times slower.
+/// @return true if a test may hold the build to a time.
+constexpr bool timedBuild() {
+#ifdef NDEBUG
+	return !underSanitizer();
+#else
+	return false;
+#endif
+}
+
 /// The time limit of a test that checks its cost grows no faster than its size: the seconds given in an optimised
 /// build, 24 times as many in a debug or sanitized one, which runs up to 40 times slower (where the cost the test
 /// guards against takes many minutes).
