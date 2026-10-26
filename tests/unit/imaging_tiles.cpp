@@ -109,7 +109,7 @@ TEST_CASE("imaging tiles: an image is sparse, bounded and copy-on-write") {
 	CHECK(image.columns() == 4);
 	CHECK(image.rows() == 3);
 	CHECK(image.levels() == 3);
-	CHECK(image.tile({0, 1, 1}) == nullptr);
+	CHECK(image.tile({0, 1, 1}).get() == nullptr);
 	CHECK(image.memoryBytes() == 0);
 	image.setPixel(300, 300, {1.0f, 0.0f, 0.0f, 1.0f});
 	image.setPixel(5000, 5, {1.0f, 0.0f, 0.0f, 1.0f}); // outside: nothing
@@ -162,7 +162,7 @@ TEST_CASE("imaging tiles: mips are alpha-weighted and made again after a write")
 	CHECK(again != mip);
 	CHECK(again->pixel(0, 10).red == 1.0f);
 	CHECK(again->pixel(0, 10).alpha == doctest::Approx(0.5f).epsilon(0.01));
-	CHECK(image.tile({2, 0, 0}) == nullptr); // beyond the levels
+	CHECK(image.tile({2, 0, 0}).get() == nullptr); // beyond the levels
 }
 
 TEST_CASE("imaging tiles: a source loads lazily, within the cache budget") {
@@ -182,7 +182,7 @@ TEST_CASE("imaging tiles: a source loads lazily, within the cache budget") {
 	CHECK(source->loads == 22); // evicted, loaded again
 	// Levels it gives come from it; above, made from below
 	CHECK(image.tile({2, 1, 1})->pixel(0, 0).blue == doctest::Approx(0.25f).epsilon(0.01));
-	CHECK(image.tile({3, 0, 0}));
+	CHECK(image.tile({3, 0, 0}).get() != nullptr);
 	// A written tile's mips stop coming from the source
 	image.setPixel(0, 0, {0.0f, 0.0f, 0.0f, 0.0f});
 	CHECK(image.tile({1, 0, 0})->pixel(0, 0).blue == 0.0f);
