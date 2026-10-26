@@ -303,9 +303,10 @@ jobs:
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    # Measured on Linux (arm64): the workloads take about 27 minutes a side under callgrind, so base and head with
-    # their builds and the scaling areas outlast 30 minutes (the runs before this limit were cancelled at 30)
-    timeout-minutes: 120
+    # Measured on this runner: each side's build takes 12 to 14 minutes on a cold compile cache and its workloads about
+    # 50 under callgrind, so base and head, the frames, the tokens and the scaling areas take about 2 hours 20 (the
+    # runs were cancelled at 30 minutes before, and at 120 while measuring the base)
+    timeout-minutes: 200
     env:
       PERF_BASE: HEAD^1
       PERF_ALLOW: ${{ contains(github.event.pull_request.labels.*.name, 'perf-change') }}
