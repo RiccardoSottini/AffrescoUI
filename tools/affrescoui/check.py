@@ -124,7 +124,9 @@ class Checker:
         os.makedirs(captures, exist_ok=True)
         self.expect(" 0 failed" in self.run("test", path, "--out", captures), f"test {path}: a scenario failed")
         report = json.loads(self.run("test", path, "--json", "--out", captures))
-        self.expect(report["failed"] == 0 and report["passed"] >= 5, f"test --json {path}: {report}")
+        # Without OpenGL (AFFRESCOUI_NO_OPENGL=1) the scenarios that draw are left out: some files have only those
+        least = 0 if os.environ.get("AFFRESCOUI_NO_OPENGL") == "1" else 5
+        self.expect(report["failed"] == 0 and report["passed"] >= least, f"test --json {path}: {report}")
         wrong = os.path.join(self.scratch, "wrong.scenarios.json")
         with open(wrong, "w", encoding="utf-8") as file:
             json.dump({"version": 2, "screens": KANBAN, "screen": "index.screen.json", "scenarios": [

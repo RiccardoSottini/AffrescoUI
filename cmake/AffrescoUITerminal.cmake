@@ -3,7 +3,9 @@
 # module (its own Makefile isn't run). Its generated tables (src/encoding/*.inc, src/fullwidth.inc) ship in the archive.
 set(AFFRESCOUI_VTERM_VERSION 0.3.3)
 FetchContent_Declare(vterm
+	# Then Debian's copy of the same archive, with the same hash, when Launchpad doesn't answer: CMake tries each in turn
 	URL https://launchpad.net/libvterm/trunk/v0.3/+download/libvterm-${AFFRESCOUI_VTERM_VERSION}.tar.gz
+		https://deb.debian.org/debian/pool/main/libv/libvterm/libvterm_${AFFRESCOUI_VTERM_VERSION}.orig.tar.gz
 	URL_HASH SHA256=09156f43dd2128bd347cbeebe50d9a571d32c64e0cf18d211197946aff7226e0
 	SOURCE_SUBDIR affrescoui-compiles-its-sources SYSTEM) # a folder it doesn't have: it has no CMakeLists.txt anyway
 FetchContent_MakeAvailable(vterm)

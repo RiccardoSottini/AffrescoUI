@@ -154,7 +154,12 @@ void writeScreenshot(const char* path, int width, int height) {
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
-	std::FILE* file = std::fopen(path, "wb");
+	std::FILE* file = nullptr;
+#ifdef _WIN32
+	if(fopen_s(&file, path, "wb") != 0) file = nullptr;
+#else
+	file = std::fopen(path, "wb");
+#endif
 	if(file == nullptr) {
 		std::fprintf(stderr, "embed: can't write %s\n", path);
 		std::exit(1);
@@ -245,11 +250,28 @@ void forwardInput(GLFWwindow* window) {
 	});
 }
 
+/// @brief Reads an environment variable (_dupenv_s on Windows, where getenv is deprecated).
+/// @param name Its name.
+/// @return Its value; empty if it is not set.
+std::string environment(const char* name) {
+#ifdef _WIN32
+	char* value = nullptr;
+	std::size_t length = 0;
+	if(_dupenv_s(&value, &length, name) != 0 || value == nullptr) return {};
+	std::string copy(value);
+	std::free(value); // NOLINT(cppcoreguidelines-no-malloc): _dupenv_s allocates with malloc
+	return copy;
+#else
+	const char* value = std::getenv(name); // NOLINT(concurrency-mt-unsafe): read at launch
+	return value != nullptr ? value : "";
+#endif
+}
+
 /// @brief Whether AFFRESCOUI_HIDDEN asks for hidden windows, read as affresco::hiddenWindowsRequested() reads it.
 /// @return true unless it is unset, empty or "0".
 bool hiddenRequested() {
-	const char* value = std::getenv("AFFRESCOUI_HIDDEN");
-	return value != nullptr && *value != '\0' && std::strcmp(value, "0") != 0;
+	const std::string value = environment("AFFRESCOUI_HIDDEN");
+	return !value.empty() && value != "0";
 }
 
 /// @brief Opens the host's window with an OpenGL 4.1 core context, and loads its functions.
@@ -328,8 +350,8 @@ int main(int count, char** arguments) { // NOLINT(misc-const-correctness): main'
 	try {
 		Host host;
 		host.texture = count > 1 && std::strcmp(arguments[1], "--texture") == 0;
-		const char* screenshot = std::getenv("AFFRESCOUI_SCREENSHOT");
-		host.window = openWindow(screenshot != nullptr || hiddenRequested());
+		const std::string screenshot = environment("AFFRESCOUI_SCREENSHOT");
+		host.window = openWindow(!screenshot.empty() || hiddenRequested());
 		glfwSetWindowUserPointer(host.window, &host);
 		makeScene(host);
 		openScreen(host);
@@ -337,13 +359,13 @@ int main(int count, char** arguments) { // NOLINT(misc-const-correctness): main'
 		double seconds = 0.0, last = glfwGetTime();
 		while(glfwWindowShouldClose(host.window) == GLFW_FALSE) {
 			const double now = glfwGetTime();
-			if(!host.paused && screenshot == nullptr) seconds += (now - last) * host.speed;
+			if(!host.paused && screenshot.empty()) seconds += (now - last) * host.speed;
 			last = now;
-			drawFrame(host, screenshot != nullptr ? 0.6 : seconds);
-			if(screenshot != nullptr) {
+			drawFrame(host, !screenshot.empty() ? 0.6 : seconds);
+			if(!screenshot.empty()) {
 				int width = 0, height = 0;
 				glfwGetFramebufferSize(host.window, &width, &height);
-				writeScreenshot(screenshot, width, height);
+				writeScreenshot(screenshot.c_str(), width, height);
 				break;
 			}
 			glfwSwapBuffers(host.window);

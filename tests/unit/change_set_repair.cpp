@@ -142,7 +142,8 @@ std::string playProof(const std::string& document, const std::string& proof) {
 	options.pictures = false;
 	std::string failed;
 	const auto scenarios = automation::ScenarioFile::parse(file.dump(), screens() / "proof.scenarios.json");
-	for(const automation::ScenarioResult& result : automation::run(scenarios, options).scenarios)
+	const automation::Report report = automation::run(scenarios, options); // named: the loop outlives a temporary
+	for(const automation::ScenarioResult& result : report.scenarios)
 		for(const automation::Failure& failure : result.failures)
 			failed += (failed.empty() ? "" : "; ") + result.name + ": " + failure.problem;
 	return failed;

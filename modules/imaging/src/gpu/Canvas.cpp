@@ -340,7 +340,10 @@ struct CanvasSurface::Region {
 	}
 
 	/// @brief Readies a layer's target: to blend, copies it to the scratch pass the program reads the backdrop from;
-	/// for a clipping base, clears it (where the layer has no tile, its coverage is 0).
+	/// for a clipping base, clears it (where the layer has no tile, its coverage is 0). The whole pass is copied, not
+	/// only the region: a tile at the region's right or bottom edge draws past it, and there a backdrop never written
+	/// (a new texture's memory: on some drivers not a number) made the composite, which the display filters, wrong
+	/// at the document's last column and row.
 	/// @param target The target.
 	/// @param blending Whether the layer blends (else it writes its coverage).
 	void ready(const SurfacePass& target, bool blending) const {
@@ -351,7 +354,7 @@ struct CanvasSurface::Region {
 		const SurfacePass copy = scratch();
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, target.framebuffer);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, copy.framebuffer);
-		glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBlitFramebuffer(0, 0, passWidth, passHeight, 0, 0, passWidth, passHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		bindTexture(canvas::backdropUnit, copy.texture);
 	}
 

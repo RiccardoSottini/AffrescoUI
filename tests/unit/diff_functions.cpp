@@ -128,6 +128,12 @@ TEST_CASE("diff functions: applyPatch applies a JSON Patch, or gives null") {
 	CHECK(evaluate("applyPatch(state.doc, [{ op: 'test', path: '/a', value: 5 }])", state) == nullptr);
 	CHECK(evaluate("applyPatch(state.doc, 'not a patch')", state) == nullptr);
 	CHECK(evaluate("applyPatch(state.doc, [])", state) == state["doc"]);
+	// Nothing goes inside a number, by add, copy or move (found by the fuzzer: nlohmann::json asserts there)
+	CHECK(evaluate("applyPatch(state.doc, [{ op: 'add', path: '/a/b', value: 1 }])", state) == nullptr);
+	CHECK(evaluate("applyPatch(state.doc, [{ op: 'copy', from: '/list', path: '/a/0' }])", state) == nullptr);
+	CHECK(evaluate("applyPatch(state.doc, [{ op: 'move', from: '/list/0', path: '/list/0/x' }])", state) == nullptr);
+	CHECK(evaluate("applyPatch(state.doc, [{ op: 'move', from: '/list/0', path: '/b' }])", state) ==
+	      json{{"a", 1}, {"list", {2}}, {"b", 1}});
 	// Copies of copies double: the patch stops once it has copied too much
 	json doubling = json::array({{{"op", "add"}, {"path", "/x"}, {"value", json::array({0, 0, 0, 0})}}});
 	for(int i = 0; i < 40; ++i) doubling.push_back({{"op", "copy"}, {"from", "/x"}, {"path", "/x/0"}});

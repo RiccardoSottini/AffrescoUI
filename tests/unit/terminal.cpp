@@ -187,9 +187,9 @@ TEST_CASE("terminal: a status request of bytes past 0x7F gets the invalid reply"
 TEST_CASE("terminal: a cursor restored after the terminal shrank is on the screen") {
 	// libvterm put it back where it was saved, past the screen (found by the terminal fuzzer)
 	TerminalModel model(6, 20);
-	model.write("\x1b[5;12H\0337"); // ESC 7, saving it
+	model.write("\x1b[5;12H\x1b\x37"); // ESC 7 (0x37), saving it
 	model.resize(2, 4);
-	model.write("\0338"); // ESC 8, restoring it
+	model.write("\x1b\x38"); // ESC 8 (0x38), restoring it
 	CHECK(model.cursor().row == 1);
 	CHECK(model.cursor().column == 3);
 	// leaving the alternate screen restores it too

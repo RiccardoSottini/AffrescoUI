@@ -5,6 +5,7 @@
 
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/core/Log.hpp>
+#include <affresco/core/Portable.hpp>
 
 #include <algorithm>
 #include <array>
@@ -35,6 +36,9 @@ automation::Options optionsOf(const Arguments& arguments) {
 	}
 #ifdef __EMSCRIPTEN__
 	options.pictures = false; // WebAssembly under Node: no OpenGL, so the scenarios that draw are left out
+#else
+	// A machine without OpenGL 4.1 (the Windows CI runners) says so as the rendering check's runner reads it
+	if(environmentVariable("AFFRESCOUI_NO_OPENGL") == "1") options.pictures = false;
 #endif
 	return options;
 }

@@ -59,12 +59,7 @@ struct Affine2 {
 
 	/// @brief The transform that undoes it, if there is one.
 	/// @return The inverse; nullopt when it flattens the plane (a scale of 0), or is not finite.
-	[[nodiscard]] std::optional<Affine2> inverse() const noexcept {
-		const float det = determinant();
-		if(!std::isfinite(det) || std::abs(det) < 1e-12f) return std::nullopt;
-		const float ia = d / det, ib = -b / det, ic = -c / det, id = a / det;
-		return Affine2{ia, ib, ic, id, -(ia * tx + ic * ty), -(ib * tx + id * ty)};
-	}
+	[[nodiscard]] std::optional<Affine2> inverse() const noexcept;
 
 	/// @brief The smallest axis-aligned rectangle holding a transformed rectangle.
 	/// @param rect The rectangle.

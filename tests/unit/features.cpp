@@ -78,7 +78,8 @@ json composed(const affresco::vcs::Repository& repository) {
 /// @return Each with its place, joined by newlines.
 std::string problems(const json& document) {
 	std::string text;
-	for(const std::string& problem : affresco::format::compose(document).problems) text += problem + "\n";
+	const affresco::format::Composition composed = affresco::format::compose(document); // the loop outlives a temporary
+	for(const std::string& problem : composed.problems) text += problem + "\n";
 	return text;
 }
 

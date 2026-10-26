@@ -106,7 +106,8 @@ void play(const automation::ScenarioFile& file, const std::string& label, const 
 	options.prepare = prepare;
 	options.pictures = false; // a proof checks behaviour; pictures are the rendering check's
 	options.document = document.dump();
-	for(const automation::ScenarioResult& scenario : automation::run(file, options).scenarios) {
+	const automation::Report report = automation::run(file, options); // named: the loop outlives a temporary
+	for(const automation::ScenarioResult& scenario : report.scenarios) {
 		std::string problem;
 		if(!scenario.failures.empty())
 			problem = std::format("step {}: {}", scenario.failures.front().step, scenario.failures.front().problem);

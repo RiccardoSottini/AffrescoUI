@@ -679,7 +679,7 @@
 		"mod+b": "build",
 		"ctrl+backquote": "showTerminal",
 		"mod+shift+d": "duplicateLines",
-		"ctrl+shift+k": "deleteLines",
+		"ctrl+shift+k": { "when": "{{context.platform == 'mac'}}", "do": "deleteLines" },
 		"ctrl+mod+up": "moveLinesUp",
 		"ctrl+mod+down": "moveLinesDown",
 		"mod+j": "joinLines",
@@ -690,7 +690,8 @@
 		"mod+slash": "toggleComment",
 		"mod+l": "expandToLine",
 		"mod+shift+l": "splitIntoLines",
-		"ctrl+mod+g": "selectAllOccurrences",
+		"ctrl+cmd+g": { "when": "{{context.platform == 'mac'}}", "do": "selectAllOccurrences" },
+		"alt+f3": "selectAllOccurrences",
 		"mod+r": "goToSymbol",
 		"ctrl+g": "goToLine",
 		"mod+shift+m": "showProblems",
@@ -699,8 +700,10 @@
 		"mod+alt+left": "previousTab",
 		"mod+f": "openFind",
 		"mod+alt+f": "openReplace",
-		"mod+g": "findNext",
-		"mod+shift+g": "findPrevious",
+		"cmd+g": { "when": "{{context.platform == 'mac'}}", "do": "findNext" },
+		"cmd+shift+g": { "when": "{{context.platform == 'mac'}}", "do": "findPrevious" },
+		"f3": "findNext",
+		"shift+f3": "findPrevious",
 		"mod+alt+w": "toggleWordWrap",
 		"mod+shift+r": "goToSymbolInProject",
 		"mod+shift+f": "findInFiles",
@@ -708,7 +711,8 @@
 		"shift+f4": "previousResult",
 		"escape": "closeFind",
 		"mod+k mod+t": "selectTheme",
-		"ctrl+mod+shift+f": "toggleZen"
+		"ctrl+cmd+shift+f": { "when": "{{context.platform == 'mac'}}", "do": "toggleZen" },
+		"shift+f11": "toggleZen"
 	},
 
 	"root": {

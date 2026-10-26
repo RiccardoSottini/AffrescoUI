@@ -164,7 +164,7 @@ CatalogIndex readCatalog(std::string_view text, const std::filesystem::path& fol
 	const std::string signer = verifySignature(index, "catalog");
 	if(!isTrusted(signer, trusted)) fail("catalog", "it is signed by " + signer + ", which isn't a trusted publisher");
 	onlyKeys(index, indexKeys, "catalog");
-	if(index.value("format", json()) != catalogFormat) fail("catalog.format", "expected \"affrescoui-catalog\"");
+	if(index.value("format", json()) != json(catalogFormat)) fail("catalog.format", "expected \"affrescoui-catalog\"");
 	if(const json version = index.value("version", json()); version != 1 && version != formatVersion)
 		fail("catalog.version", "expected 1 or 2");
 	CatalogIndex catalog;

@@ -124,7 +124,8 @@ bool readsExport(const std::vector<std::string>& names, const json& exports) {
 /// @param exports The host's exports.
 /// @return Why, or empty if every path is allowed.
 std::string readsWhy(const std::string& text, const Names& roots, const json& exports) {
-	for(const std::string_view expression : placeholders(text).expressions) {
+	const Placeholders found = placeholders(text); // named: the loop would outlive a temporary
+	for(const std::string_view expression : found.expressions) {
 		std::vector<std::vector<std::string>> paths;
 		try {
 			pathsIn(detail::parse(expression, "adapter"), paths);
@@ -382,7 +383,8 @@ void checkAdapter(const json& adapter) {
 	if(adapter.dump().size() > maxAdapterBytes) fail("adapter", std::format("larger than {} bytes", maxAdapterBytes));
 	for(const auto& [key, value] : adapter.items())
 		if(std::ranges::find(adapterKeys, key) == adapterKeys.end()) fail("adapter." + key, "unknown key");
-	if(adapter.value("format", json()) != adapterFormat) fail("adapter.format", "expected \"affrescoui-adapter\"");
+	if(adapter.value("format", json()) != json(adapterFormat))
+		fail("adapter.format", "expected \"affrescoui-adapter\"");
 	if(adapter.value("version", json()) != 1) fail("adapter.version", "expected 1");
 	for(const char* key : {"feature", "host", "note"})
 		if(adapter.contains(key)) expect::string(adapter[key], std::string("adapter.") + key);

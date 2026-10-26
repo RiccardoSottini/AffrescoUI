@@ -35,6 +35,14 @@ file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	# Their captures (pictures they take for the gallery, not compared) go to the build folder
 	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/scenario-captures)
-	add_test(NAME scenarios COMMAND affrescoui_render_runner --out ${PROJECT_BINARY_DIR}/scenario-captures
-	         ${AFFRESCOUI_TEMPLATE_SCENARIOS})
+	# A test per file (scenarios/<folder>/<name>, all matched by ctest -R scenarios), so ctest --parallel spreads them:
+	# under the sanitizers, one after another, they take longer than a test and the job may run
+	foreach(file IN LISTS AFFRESCOUI_TEMPLATE_SCENARIOS)
+		cmake_path(GET file PARENT_PATH folder)
+		cmake_path(GET folder FILENAME folder)
+		string(REGEX REPLACE "\\.scenarios\\.json$" "" name "${file}")
+		cmake_path(GET name FILENAME name)
+		add_test(NAME scenarios/${folder}/${name} COMMAND affrescoui_render_runner --out
+		         ${PROJECT_BINARY_DIR}/scenario-captures ${file})
+	endforeach()
 endif()
