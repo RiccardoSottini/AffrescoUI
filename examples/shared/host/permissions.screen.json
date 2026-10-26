@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "The host's question before it opens an app (apps/host): what the app asks for, from its app.json, each capability with the app's reason, all checked to start; a click anywhere on a card flips it. The host gives the app with the native permissions.app and takes the person's answer with permissions.decide; closing the window allows nothing, and the host asks again next time.",
+	"note": "The host's question before it opens an app (apps/host): what the app asks for, from its app.json, each capability with the app's reason (none for a screen without an app.json), all checked to start; a click anywhere on a card flips it. The host gives the app with the native permissions.app and takes the person's answer with permissions.decide; closing the window allows nothing, and the host asks again next time.",
 
 	"window": { "title": "Permissions", "width": 560, "height": 460, "minWidth": 420, "minHeight": 320 },
 
@@ -176,6 +176,7 @@
 											},
 											{
 												"id": "why",
+												"when": "{{capability.why != ''}}",
 												"type": "label",
 												"padding": 4,
 												"wrap": true,

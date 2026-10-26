@@ -2,7 +2,7 @@
 	"$schema": "../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "A new, blank app, made by the Launcher: it copies this file to <apps folder>/<name>/index.screen.json and writes the app's name over each \"New app\" in it. Its paths name ../shared, the copy of examples/shared beside the apps. The assistant opens at once, to build the app with the person.",
+	"note": "A new, blank app, made by the Launcher: it copies this file to <apps folder>/<name>/index.screen.json and writes the app's name over each \"New app\" in it. Its paths name ../shared, the copy of examples/shared beside the apps. The assistant opens at once, to build the app with the person: each change it makes waits for the person's review, as a card in the assistant to preview, accept or reject.",
 
 	"window": { "title": "New app", "width": 1100, "height": 720, "minWidth": 640, "minHeight": 480 },
 
@@ -10,6 +10,8 @@
 
 	"theme": "{{window.colorScheme}}",
 	"onLoad": { "run": "assistant.open" },
+
+	"permissions": { "allow": ["studio"], "ask": ["agent"], "reviewers": ["studio"] },
 
 	"fonts": {
 		"default": { "file": "../shared/fonts/Roboto-Regular.ttf", "size": 15, "fallback": ["icons"] },
