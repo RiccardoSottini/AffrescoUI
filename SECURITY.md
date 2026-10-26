@@ -780,8 +780,10 @@ version: a green check on such a pull request says nothing until someone has rea
 A release is made only from a tag `v*`, which only the maintainer can push. It builds in a fresh run,
 with no cache, and makes a draft: the archives, `SHA256SUMS` and build-provenance attestations signed through the
 run's identity. The MCP package is a release asset only: nothing is published to PyPI or anywhere but GitHub.
-The signing credentials are repository secrets that only the release workflow reads, never on a pull request; the
-macOS certificate lives in a keychain of the job's own, deleted when the job ends ([RELEASING.md](RELEASING.md)).
+The signing credentials are secrets of the GitHub environment `release`, which only `v*` tags may use and which waits
+for the maintainer's approval: only the macOS and Windows build jobs of a tag he approved can read them, never a
+branch, a pull request or a manual run. The macOS certificate lives in a keychain of the job's own, deleted when the
+job ends ([RELEASING.md](RELEASING.md)).
 
 ### How releases are signed
 

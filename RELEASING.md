@@ -20,28 +20,35 @@ one, so Sigstore signs the archive and the AppImage.
 
 ### When it signs
 
-The **Signing** job ([`tools/release/check_signing.py`](tools/release/check_signing.py)) decides per platform, from
-which secrets are set (it is given only whether each is set, never its value), and writes the decision in the run's
-summary:
+Only a `v*` tag is signed. The signing secrets live in a GitHub **environment** named `release`, which only `v*`
+tags may use and which waits for the maintainer's approval, so they exist only in a tag's run that he approved:
 
-- **Every secret of a platform is set:** that platform is signed (on a tag, and on a manual *Run workflow*).
-- **A secret is missing** (a fork, a manual run without them): the platform is built as before, unsigned, and the
-  summary says `unsigned: secret <NAME> missing`.
-- **A pull request** is never signed, even with the secrets set: its code isn't on `master` yet.
-- **A tag must be signed.** A tag whose platform would be unsigned fails in the Signing job, before anything is
-  built, with that message. To release a platform unsigned on purpose (while an account is pending, say), name it in
-  the repository variable `RELEASE_UNSIGNED_PLATFORMS` (`macos`, `windows`, or both): the summary then says it was
-  allowed. Delete the variable afterwards.
+- **A tag:** the **Signing** job ([`tools/release/check_signing.py`](tools/release/check_signing.py)) says macOS and
+  Windows are signed. Their build jobs ask for the `release` environment and wait for the maintainer's **Approve and
+  deploy** (one click for both). Their first step checks that every secret of the platform is set; a missing one
+  fails the run there, before anything is built, with `secret <NAME> missing in the release environment`. A tag is
+  never released unsigned by accident.
+- **To release a platform unsigned on purpose** (while an account is pending, say), name it in the repository variable
+  `RELEASE_UNSIGNED_PLATFORMS` (`macos`, `windows`, or both): its build then doesn't ask for the environment, the
+  summary and the release notes say it is unsigned. Delete the variable afterwards.
+- **Anything else** (a pull request, a manual *Run workflow*, a fork): no job names the environment, so nothing waits
+  for approval and no secret is read; everything is built, packed and checked as before, unsigned (the macOS app and
+  disk image signed ad hoc), and the summary says why.
 - **Once signing starts, every step must pass:** a signature, notarization or check that fails fails the run, and no
-  draft is made. Nothing is published unsigned by accident.
-- **Sigstore** needs no secret. It signs a tag's release files only, so the public transparency log holds releases
-  and nothing else; a manual run also signs the Linux archive, as a test, and keeps the bundle as an artifact.
+  draft is made.
+- **Sigstore** needs no secret. It signs a tag's release files only, in the draft-release job (the only job with
+  `id-token: write`), so the public transparency log holds releases and nothing else.
 
-## The secrets
+## The environment and its secrets
 
-Set them under the repository's **Settings → Secrets and variables → Actions → Repository secrets** (or in an
-environment, if you prefer one with required reviewers). Only workflows on this repository read them; pull requests
-from forks don't.
+Create the environment **before the first signed tag** (a workflow that names an environment that doesn't exist
+creates it, unprotected): **Settings → Environments → New environment**, named `release`
+([GitHub's guide](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment)):
+
+- **Deployment branches and tags:** *Selected branches and tags*, with one rule: ref type **Tag**, pattern `v*`.
+  Nothing else (no branch), so no branch or pull request run can read the secrets.
+- **Required reviewers:** yourself. Leave *Prevent self-review* off, since you push the tags you approve.
+- **Environment secrets:** the ten below. Not as repository secrets: remove any that are set there.
 
 | Secret | What it holds |
 |---|---|
@@ -136,9 +143,8 @@ the team, a manual approval of every release, and a **code signing policy** on t
    - a CI user with an API token, allowed to submit to the signing policy: the token is `SIGNPATH_API_TOKEN`; the
      organization id, the project slug and the policy slug (`release-signing`) are the other three secrets.
 4. **Approve each release:** the request waits in SignPath for an approver (the workflow waits up to 2 hours,
-   `wait-for-completion-timeout-in-seconds`). SignPath's `test-signing` policy signs with a test certificate that
-   Windows doesn't trust, so a run with it fails at the workflow's check, as it should: use it only to try the
-   connection.
+   `wait-for-completion-timeout-in-seconds`). Use the `release-signing` policy: SignPath's `test-signing` policy signs
+   with a test certificate that Windows doesn't trust, so the workflow's check would fail the tag, as it should.
 
 ### Linux, and every file: Sigstore
 
@@ -147,16 +153,14 @@ certificate that Sigstore's Fulcio issues for that identity; the signature is re
 
 ## Making a release, step by step
 
-1. **Accounts and secrets:** the three sections above, then the ten secrets.
-2. **Try it before tagging:** *Actions → Release → Run workflow* on `master`. The Signing job's summary must say
-   `signed` for macOS and Windows; approve the SignPath request when it appears; the run builds, signs, notarizes and
-   checks everything, and keeps the files as the run's artifacts (no release). Download the `.dmg` and open it on a
-   Mac; open the zip's programs on Windows.
-3. **Prepare the version:** the same version everywhere (`python3 tools/release/check_version.py` checks every place), the
-   changelog, merged to `master`.
+1. **Accounts:** the three sections above.
+2. **The `release` environment** with its protection rules and the ten secrets (above).
+3. **Prepare the version:** the same version everywhere (`python3 tools/release/check_version.py` checks every
+   place), the changelog, merged to `master`.
 4. **Tag:** `git tag v<version> && git push origin v<version>`.
-5. **Approve** the SignPath request, then wait for the run (notarization usually takes minutes).
-6. **Read the draft release:** the files, `SHA256SUMS`, a `.sigstore.json` beside every file; check one of each kind
-   as SECURITY.md shows. Then publish it.
+5. **Approve** the run's `release` deployment in the Actions tab (the macOS and Windows builds wait for it), then the
+   SignPath request; wait for the run (notarization usually takes minutes).
+6. **Read the draft release:** the files, `SHA256SUMS`, a `.sigstore.json` beside every file; open the `.dmg` on a
+   Mac and the zip's programs on Windows, and check one of each kind as SECURITY.md shows. Then publish it.
 
 If a tag run fails, nothing is drafted: fix the cause, delete the tag, and tag again.

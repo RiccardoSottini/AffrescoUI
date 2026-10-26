@@ -1,25 +1,29 @@
 #!/usr/bin/env python3
-"""Decides which platforms the release workflow signs, from which of their secrets are set (RELEASING.md):
+"""Decides which platforms the release workflow signs, and checks that a platform being signed has its secrets
+(RELEASING.md). The signing secrets live in the GitHub environment "release", which only v* tags may use and which
+waits for the maintainer's approval, so only a tag's run is signed:
 
     macOS    MACOS_CERTIFICATE_P12, MACOS_CERTIFICATE_PASSWORD, MACOS_SIGNING_IDENTITY,
              APPLE_API_KEY_P8, APPLE_API_KEY_ID, APPLE_API_ISSUER_ID
     Windows  SIGNPATH_API_TOKEN, SIGNPATH_ORGANIZATION_ID, SIGNPATH_PROJECT_SLUG, SIGNPATH_SIGNING_POLICY_SLUG
 
-    python3 tools/release/check_signing.py
+    python3 tools/release/check_signing.py                       which platforms this run signs
+    python3 tools/release/check_signing.py --secrets <platform>  fails, naming them, if the platform's secrets aren't set
 
-The workflow passes, for each secret, an environment variable of the same name that says "true" when it is set (never
-its value), and EVENT (github.event_name), REF_TYPE (github.ref_type) and UNSIGNED_PLATFORMS (the repository variable
-RELEASE_UNSIGNED_PLATFORMS: "macos", "windows" or both, the platforms a tag may release unsigned).
+The first form reads EVENT (github.event_name), REF_TYPE (github.ref_type) and UNSIGNED_PLATFORMS (the repository
+variable RELEASE_UNSIGNED_PLATFORMS: "macos", "windows" or both, the platforms a tag may release unsigned), and writes
+macos=true|false and windows=true|false to GITHUB_OUTPUT:
+- a tag signs every platform, except one that UNSIGNED_PLATFORMS names;
+- anything else (a pull request, a manual run, a push to a branch) is built unsigned: the environment refuses it.
 
-- A platform with every secret is signed, except on a pull request: a pull request's code is never signed.
-- A platform with a secret missing is built unsigned, and the summary says which secret is missing.
-- On a tag, a platform that would be unsigned fails the run, unless UNSIGNED_PLATFORMS names it: a release never
-  goes out unsigned without the maintainer having said so.
+The second form runs in the job that signs, with the environment's secrets: for each secret, an environment variable of
+the same name that says "true" when it is set (never its value). A tag whose secrets are missing fails there, before
+anything is built, rather than being released unsigned.
 
-It writes macos=true|false and windows=true|false to GITHUB_OUTPUT, a table to GITHUB_STEP_SUMMARY (both when set),
-and the same to standard output. Only the standard library is needed.
+Both write a line to GITHUB_STEP_SUMMARY when it is set, and to standard output. Only the standard library is needed.
 """
 
+import argparse
 import os
 import sys
 
@@ -32,53 +36,65 @@ SECRETS = {
 HOW = {"macos": "Developer ID, notarized and stapled", "windows": "SignPath (Authenticode)"}
 
 
-def decide(event, ref_type, present, unsigned_allowed):
+def decide(event, ref_type, unsigned_allowed):
     """Which platforms to sign.
 
-    event, ref_type: github.event_name and github.ref_type. present: the names of the secrets that are set.
-    unsigned_allowed: the platforms a tag may release unsigned.
-    Returns (sign, lines, failed): a dictionary from each platform to whether it is signed, one line per platform
-    for the summary, and whether the run must fail."""
-    sign, lines, failed = {}, [], False
-    for platform, names in SECRETS.items():
-        missing = [name for name in names if name not in present]
+    event, ref_type: github.event_name and github.ref_type. unsigned_allowed: the platforms a tag may release
+    unsigned. Returns (sign, lines): a dictionary from each platform to whether it is signed, and one line per
+    platform for the summary."""
+    sign, lines = {}, []
+    for platform in SECRETS:
         if event == "pull_request":
             sign[platform], why = False, "unsigned: a pull request is never signed"
-        elif missing:
-            sign[platform], why = False, "unsigned: secret " + ", ".join(missing) + " missing"
+        elif ref_type != "tag":
+            sign[platform], why = False, "unsigned: only a v* tag is signed (the release environment's secrets)"
+        elif platform in unsigned_allowed:
+            sign[platform], why = False, "unsigned: allowed by RELEASE_UNSIGNED_PLATFORMS"
         else:
-            sign[platform], why = True, "signed: " + HOW[platform]
-        if ref_type == "tag" and not sign[platform]:
-            if platform in unsigned_allowed:
-                why += " (allowed by RELEASE_UNSIGNED_PLATFORMS)"
-            else:
-                why += "; a tag must be signed: set the secrets (RELEASING.md), or name the platform in the " \
-                       "repository variable RELEASE_UNSIGNED_PLATFORMS to release it unsigned"
-                failed = True
+            sign[platform], why = True, "signed: " + HOW[platform] + ", once the release environment is approved"
         lines.append(f"| {platform} | {why} |")
     sigstore = "signed: a Sigstore bundle for every file" if ref_type == "tag" else \
-        "not signed: Sigstore signs a tag's release only (a manual run signs the Linux archive, as a test)"
+        "not signed: Sigstore signs a tag's release only"
     lines.append(f"| every file (Sigstore) | {sigstore} |")
-    return sign, lines, failed
+    return sign, lines
+
+
+def missing(platform, present):
+    """The secrets of a platform that aren't set, given the names of those that are."""
+    return [name for name in SECRETS[platform] if name not in present]
+
+
+def summary(text):
+    """Writes text to standard output and to the job's summary."""
+    print(text)
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as file:
+            file.write(text + "\n")
 
 
 def main():
-    """Reads the environment, writes the decision, and fails a tag that would be unsigned."""
-    present = {name for names in SECRETS.values() for name in names if os.environ.get(name) == "true"}
+    """Writes the decision, or checks one platform's secrets (--secrets)."""
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--secrets", choices=sorted(SECRETS), help="check that this platform's secrets are set")
+    args = parser.parse_args()
+    if args.secrets:
+        present = {name for name in SECRETS[args.secrets] if os.environ.get(name) == "true"}
+        absent = missing(args.secrets, present)
+        if absent:
+            summary(f"{args.secrets}: unsigned: secret {', '.join(absent)} missing in the release environment")
+            print(f"::error::check_signing.py: a tag must be signed, and the release environment has no "
+                  f"{', '.join(absent)} (RELEASING.md); to release {args.secrets} unsigned, name it in the repository "
+                  f"variable RELEASE_UNSIGNED_PLATFORMS", file=sys.stderr)
+            sys.exit(1)
+        summary(f"{args.secrets}: every signing secret is set")
+        return
     allowed = set(os.environ.get("UNSIGNED_PLATFORMS", "").replace(",", " ").lower().split())
-    sign, lines, failed = decide(os.environ.get("EVENT", ""), os.environ.get("REF_TYPE", ""), present, allowed)
-    table = "\n".join(["### Signing", "", "| Platform | |", "|---|---|", *lines, ""])
-    print(table)
-    if os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as file:
-            file.write(table + "\n")
+    sign, lines = decide(os.environ.get("EVENT", ""), os.environ.get("REF_TYPE", ""), allowed)
+    summary("\n".join(["### Signing", "", "| Platform | |", "|---|---|", *lines, ""]))
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as file:
             for platform, signed in sign.items():
                 file.write(f"{platform}={'true' if signed else 'false'}\n")
-    if failed:
-        print("::error::check_signing.py: a tag would be released unsigned (see the table above)", file=sys.stderr)
-        sys.exit(1)
 
 
 if __name__ == "__main__":

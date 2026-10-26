@@ -9,11 +9,12 @@
 #   PyPI, marketplace, Pages, CDN, registry, tap or package index is ever touched.
 # - workflow_dispatch, and a pull request that changes the release files, are dry runs: everything is built, packed
 #   and checked, and the files are kept as this run's artifacts; nothing is released or published.
-# - Signing (RELEASING.md): the macOS programs, AffrescoUI.app and its disk image are signed with a Developer ID,
-#   notarized and stapled; the Windows programs are signed through SignPath; a tag's every release file gets a Sigstore
-#   bundle (keyless, through this run's identity). A platform whose secrets aren't all set is built unsigned, and the
-#   Signing job's summary says which secret is missing; a pull request is never signed; a tag that would be unsigned
-#   fails, unless the repository variable RELEASE_UNSIGNED_PLATFORMS names the platform (tools/release/check_signing.py).
+# - Signing (RELEASING.md), on a v* tag only: the macOS programs, AffrescoUI.app and its disk image are signed with a
+#   Developer ID, notarized and stapled; the Windows programs are signed through SignPath; every release file gets a
+#   Sigstore bundle (keyless, through this run's identity). The signing secrets are in the environment "release", which
+#   only v* tags may use and which waits for the maintainer's approval; only the macOS and Windows builds of a tag ask
+#   for it. Any other run is built unsigned, as before. A tag whose secrets are missing fails, naming them, unless the
+#   repository variable RELEASE_UNSIGNED_PLATFORMS names the platform (tools/release/check_signing.py).
 name: Release
 
 on:
@@ -52,7 +53,7 @@ jobs:
           version=$(python3 tools/release/check_version.py ${TAG:+--tag "$TAG"})
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-  # Which platforms this run signs, from which secrets are set (never their values): the other jobs follow it
+  # Which platforms this run signs (a tag's, unless RELEASE_UNSIGNED_PLATFORMS says otherwise): the other jobs follow it
   signing:
     name: Signing
     runs-on: ubuntu-24.04
@@ -67,28 +68,21 @@ jobs:
           persist-credentials: false
       - name: The decision's tests
         run: python3 -m unittest discover -s tools/release -p "test_check_signing.py"
-      - name: Which platforms are signed # a tag that would be unsigned fails here
+      - name: Which platforms are signed
         id: decide
         env:
           EVENT: ${{ github.event_name }}
           REF_TYPE: ${{ github.ref_type }}
           UNSIGNED_PLATFORMS: ${{ vars.RELEASE_UNSIGNED_PLATFORMS }}
-          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
-          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD != '' }}
-          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY != '' }}
-          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 != '' }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID != '' }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID != '' }}
-          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
-          SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID != '' }}
-          SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG != '' }}
-          SIGNPATH_SIGNING_POLICY_SLUG: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG != '' }}
         run: python3 tools/release/check_signing.py
 
   binaries:
     name: Binaries (${{ matrix.platform }})
     needs: [version, signing]
     runs-on: ${{ matrix.runner }}
+    # The signing secrets, only for a platform this tag signs: the environment allows v* tags only and waits for the
+    # maintainer's approval. Every other run names no environment, so it never waits and never sees them.
+    environment: ${{ needs.signing.outputs[matrix.system] == 'true' && 'release' || '' }}
     timeout-minutes: 180 # notarization, and SignPath's approval, are waited for
     permissions:
       contents: read
@@ -113,6 +107,22 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: The release environment's secrets # before building: a tag without them fails, naming them
+        if: needs.signing.outputs[matrix.system] == 'true'
+        shell: bash
+        env:
+          PYTHON: ${{ runner.os == 'Windows' && 'python' || 'python3' }}
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD != '' }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY != '' }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 != '' }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID != '' }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID != '' }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+          SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID != '' }}
+          SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG != '' }}
+          SIGNPATH_SIGNING_POLICY_SLUG: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG != '' }}
+        run: $PYTHON tools/release/check_signing.py --secrets ${{ matrix.system }}
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: brew install ninja
@@ -644,35 +654,3 @@ jobs:
           name: packages
       - name: Validate the manifests
         run: winget validate --manifest packages/winget
-
-  # A manual run tries the Sigstore steps the release takes, on the Linux archive: signed through this run's identity
-  # (the branch's), then checked. The bundle is kept as this run's artifact; nothing is released.
-  sigstore:
-    name: Sigstore (manual run)
-    if: github.event_name == 'workflow_dispatch'
-    needs: binaries
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      id-token: write # the run's identity, which signs
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          path: source
-          persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: binaries-linux-x86_64
-          path: dist
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-        with:
-          cosign-release: v3.1.3
-      - name: Sign and check
-        run: |
-          source/tools/release/sigstore.sh sign dist
-          source/tools/release/sigstore.sh verify dist "https://github.com/$GITHUB_WORKFLOW_REF"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: sigstore-dry-run
-          path: dist/*.sigstore.json
-          if-no-files-found: error
