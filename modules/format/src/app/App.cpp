@@ -382,23 +382,6 @@ bool AppCapability::runsAnyCommand() const {
 	return runners.contains(base);
 }
 
-bool AppCapability::startsAllowed() const {
-	switch(kind) {
-	case Kind::Audio:
-	case Kind::Files:
-	case Kind::Windows:
-		return true;
-	case Kind::Folder:
-		return !write;
-	case Kind::Network:
-	case Kind::Program:
-	case Kind::Assistant:
-	case Kind::Channels:
-		return false;
-	}
-	return false;
-}
-
 AppManifest parseApp(const json& manifest) {
 	if(!manifest.is_object()) fail("", "expected an object");
 	for(const auto& [key, value] : manifest.items())
