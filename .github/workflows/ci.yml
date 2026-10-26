@@ -303,7 +303,9 @@ jobs:
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # Measured on Linux (arm64): the workloads take about 27 minutes a side under callgrind, so base and head with
+    # their builds and the scaling areas outlast 30 minutes (the runs before this limit were cancelled at 30)
+    timeout-minutes: 120
     env:
       PERF_BASE: HEAD^1
       PERF_ALLOW: ${{ contains(github.event.pull_request.labels.*.name, 'perf-change') }}
