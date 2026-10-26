@@ -10,7 +10,7 @@ compiler and flags, kept warm by a compile cache (ccache) shared across runs.
 | [`web.yml`](web.yml) | Every pull request, every push to `master` | `Web (Emscripten, WebGL2)`: the browser build with emsdk at a pinned release ([`web/README.md`](../../web/README.md)), the Kanban's scenarios under Node on its WebAssembly, and the site kept as the `web-site` run artifact (nothing is deployed; the release carries it as a zip) |
 | [`nightly.yml`](nightly.yml) | Every night at 02:23 UTC, and on demand; a `v*` tag runs its fuzzing only | `Fuzz (nightly)`, `Scaling (nightly)`, `Benchmarks (nightly)` (the last commit against the one before), `Quality report` |
 | [`bindings.yml`](bindings.yml) | Pull requests that change the code, pushes to `master` | `C API and Python`: the C11 test of every `afr_` function (Xvfb), the Python binding's tests against `libaffresco`, a frame of each mode of `modules/capi/example` |
-| [`release.yml`](release.yml) | A `v*` tag | The release builds, and every artefact (binaries, MCP package, `.vsix`, web build, docs site, AppImage, package recipes) as an asset of the draft GitHub Release; the only job that uploads anywhere |
+| [`release.yml`](release.yml) | A `v*` tag; a dry run on a pull request that changes it or `tools/release/`, and on demand | The release builds, a tag's signed with the secrets of the `release` environment after the maintainer's approval ([`RELEASING.md`](../../RELEASING.md): the macOS app in a notarized, stapled `.dmg` and the programs notarized; the Windows programs signed through SignPath; a Sigstore bundle for every file of a tag's release), each download checked on a clean machine (its signatures too), and every artefact (binaries, `.dmg`, MCP package, `.vsix`, web build, docs site, AppImage, package recipes) as an asset of the draft GitHub Release; the only job that uploads anywhere |
 | [`site.yml`](site.yml) | Pull requests that change the site or what it is generated from, every push to `master`, and on demand | `Site`: builds the documentation site strictly ([`website/README.md`](../../website/README.md)) and uploads it (artifact `site`); no deploy (the release carries it as a zip) |
 | [`vscode.yml`](vscode.yml) | Pull requests that change `editors/vscode/` or the schemas, every push to `master`, and on demand | `VS Code extension`: the extension's unit tests and its `.vsix` package ([`editors/vscode/README.md`](../../editors/vscode/README.md), artifact `vscode-extension`); no publish (the release carries the `.vsix`) |
 
@@ -40,7 +40,10 @@ as skipped, which branch protection counts as passing, and would hide a failure 
 build (`ccache-<kind>-...`); a pull request reads the base branch's and writes its own, never master's.
 
 **What is protected.** Every workflow has `contents: read` only and no `pull_request_target`; every action is pinned by
-its commit; checkouts don't keep the token. A pull request's code is built and run with that read-only token, and
+its commit; checkouts don't keep the token. The exceptions are in `release.yml`: the draft release job writes the
+release and signs (`contents: write`, `id-token: write`, `attestations: write`), the build job lets SignPath read the
+run's artifact (`actions: read`), and only a tag's macOS and Windows builds name the `release` environment, which
+holds the signing secrets, allows `v*` tags only and waits for the maintainer's approval. A pull request's code is built and run with that read-only token, and
 nothing it writes reaches `master`'s caches. The golden images and the base benchmarks are built from the base commit
 on the same runner. A fuzz input that fails is uploaded under its target's name (`fuzz-found`).
 

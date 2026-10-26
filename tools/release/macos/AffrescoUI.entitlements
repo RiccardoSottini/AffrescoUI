@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The entitlements of the macOS programs, signed with the hardened runtime (tools/release/macos.sh). None are needed:
+  the programs aren't sandboxed, so starting other programs (an agent, the affrescoui tool, git), the network, the
+  keychain and playing sound are allowed as they are; OpenGL and the system frameworks they load are Apple's, which
+  library validation accepts; nothing records sound or video, compiles code at run time (no JIT) or loads a library
+  signed by someone else. Add one here only with the reason next to it.
+-->
+<plist version="1.0">
+<dict/>
+</plist>

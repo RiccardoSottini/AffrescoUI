@@ -294,6 +294,7 @@ int readArgument(Options& options, std::string_view arg, const char* value) {
 		options.usage = true;
 		return 1;
 	}
+	if(arg.starts_with("-psn_")) return 1; // the process serial number macOS may pass to an app opened from Finder
 	if(!arg.starts_with("--")) {
 		options.file = arg;
 		return 1;

@@ -63,6 +63,7 @@ include(FetchContent)
 # GLFW: windows, OpenGL context, input. The versions pinned here are also the ones the installed package asks for.
 set(AFFRESCOUI_GLFW_VERSION 3.4)
 include(cmake/AffrescoUITemplates.cmake) # the templates' folders (examples/templates.json)
+include(cmake/AffrescoUIWindowsResources.cmake) # the Windows programs' version information and icon
 include(cmake/AffrescoUIWeb.cmake) # the browser build: GLFW's Emscripten port and the browser's network instead
 if(NOT EMSCRIPTEN)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -192,11 +193,9 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui::automation)
 	target_compile_options(affrescoui_launcher PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_launcher PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
-	if(WIN32) # the program's icon in Explorer and the taskbar: the AffrescoUI app icon (brand/)
-		file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/affrescoui_launcher.rc"
-			CONTENT "1 ICON \"${CMAKE_CURRENT_SOURCE_DIR}/brand/affrescoui.ico\"\n")
-		target_sources(affrescoui_launcher PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/affrescoui_launcher.rc")
-	endif()
+	# Windows: the version information, and the program's icon in Explorer and the taskbar (brand/)
+	affrescoui_windows_resources(affrescoui_launcher affrescoui_launcher.exe "AffrescoUI Launcher"
+		ICON "${CMAKE_CURRENT_SOURCE_DIR}/brand/affrescoui.ico")
 	# GPU surfaces: native OpenGL drawing in "surface" nodes, a shader, a cube and a blur (tests/render/surfaces)
 	add_executable(affrescoui_surfaces tests/render/surfaces/main.cpp tests/render/surfaces/Surfaces.cpp)
 	target_include_directories(affrescoui_surfaces SYSTEM PRIVATE external/glad/include)
