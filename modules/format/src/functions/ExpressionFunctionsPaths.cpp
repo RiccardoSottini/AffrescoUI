@@ -118,16 +118,17 @@ Value pathTree(const Call& call) {
 	std::vector<std::size_t> roots;
 	for(std::size_t i = 0; i < list.size(); ++i) {
 		const Value item = list.item(i);
-		const std::optional<std::string> path = pathOf(item, key);
-		if(!path) continue;
+		const std::optional<std::string> given = pathOf(item, key);
+		if(!given) continue;
+		const std::string& path = *given;
 		std::string id;
 		std::size_t parent = SIZE_MAX, depth = 0, node = SIZE_MAX;
-		for(std::size_t from = 0; from <= path->size();) {
-			const std::size_t slash = std::min(path->find('/', from), path->size());
-			const std::string_view part = std::string_view(*path).substr(from, slash - from);
+		for(std::size_t from = 0; from <= path.size();) {
+			const std::size_t slash = std::min(path.find('/', from), path.size());
+			const std::string_view part = std::string_view(path).substr(from, slash - from);
 			from = slash + 1;
 			if(part.empty()) continue;
-			if(++depth > mostDepth) call.fail("a path nests more than 127 deep: " + *path);
+			if(++depth > mostDepth) call.fail("a path nests more than 127 deep: " + path);
 			id += id.empty() ? std::string(part) : "/" + std::string(part);
 			const auto [found, added] = byPath.try_emplace(id, nodes.size());
 			if(added) {

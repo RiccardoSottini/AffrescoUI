@@ -4,6 +4,7 @@
 
 #include "AudioWav.hpp"
 #include "Helpers.hpp"
+#include "HistoryFiles.hpp" // TemporaryFolder
 
 #include <affresco/audio/Engine.hpp>
 #include <affresco/audio/Spectrum.hpp>
@@ -112,34 +113,32 @@ TEST_CASE("audio: a WAV made in memory decodes to its samples, mono to every cha
 }
 
 TEST_CASE("audio: a WAV file at another rate is resampled, and only a file that exists and decodes opens") {
-	const std::filesystem::path folder = std::filesystem::temp_directory_path() / "affrescoui-audio-test";
-	std::filesystem::create_directories(folder);
+	// Removed at the end, after the engine and its voice, which keep a file in it open: Windows removes no open file
+	const test::TemporaryFolder temporary;
+	const std::filesystem::path& folder = temporary.path();
 	const std::filesystem::path file = folder / "tone.wav";
 	{
 		const std::vector<std::uint8_t> bytes = test::wavFile(test::toneSamples(24000, 24000, 440), 24000, 1);
 		std::ofstream(file, std::ios::binary).write(reinterpret_cast<const char*>(bytes.data()),
 		                                             static_cast<std::streamsize>(bytes.size()));
 	}
-	{ // the engine and its voice keep the file open: Windows removes no file that is open
-		Engine engine(manual());
-		std::string error;
-		const auto voice = engine.play(Source::file(file), {}, error);
-		REQUIRE_MESSAGE(voice, error);
-		CHECK(voice->duration().value() == doctest::Approx(1.0).epsilon(0.001));
-		const std::vector<float> out = pull(engine, 48000);
-		float peak = 0;
-		for(const float sample : out) peak = std::max(peak, std::fabs(sample));
-		CHECK(peak == doctest::Approx(16000.0 / 32768).epsilon(0.02));
+	Engine engine(manual());
+	std::string error;
+	const auto voice = engine.play(Source::file(file), {}, error);
+	REQUIRE_MESSAGE(voice, error);
+	CHECK(voice->duration().value() == doctest::Approx(1.0).epsilon(0.001));
+	const std::vector<float> out = pull(engine, 48000);
+	float peak = 0;
+	for(const float sample : out) peak = std::max(peak, std::fabs(sample));
+	CHECK(peak == doctest::Approx(16000.0 / 32768).epsilon(0.02));
 
-		CHECK_FALSE(engine.play(Source::file(folder / "missing.wav"), {}, error));
-		CHECK(error.contains("missing.wav"));
-		CHECK_FALSE(error.contains(folder.string())); // the error names the file, not where the machine keeps it
-		const std::filesystem::path text = folder / "notes.wav";
-		std::ofstream(text) << "not a sound";
-		CHECK_FALSE(engine.play(Source::file(text), {}, error));
-		CHECK(error.contains("couldn't be decoded"));
-	}
-	std::filesystem::remove_all(folder);
+	CHECK_FALSE(engine.play(Source::file(folder / "missing.wav"), {}, error));
+	CHECK(error.contains("missing.wav"));
+	CHECK_FALSE(error.contains(folder.string())); // the error names the file, not where the machine keeps it
+	const std::filesystem::path text = folder / "notes.wav";
+	std::ofstream(text) << "not a sound";
+	CHECK_FALSE(engine.play(Source::file(text), {}, error));
+	CHECK(error.contains("couldn't be decoded"));
 }
 
 TEST_CASE("audio: a tone has its frequency, its length and ramps at its ends") {
