@@ -10,6 +10,14 @@ updates:
     directory: /editors/vscode
     schedule:
       interval: weekly
+    # The types follow the oldest VS Code the extension supports, engines.vscode in package.json: vsce refuses an
+    # @types/vscode newer than it, and @types/node is the Node.js inside that VS Code (1.100: Node.js 20). Raise them
+    # with engines.vscode, by hand.
+    ignore:
+      - dependency-name: "@types/vscode"
+        versions: [">1.100.0"]
+      - dependency-name: "@types/node"
+        versions: [">=21"]
   - package-ecosystem: pip
     directory: /website
     schedule:
