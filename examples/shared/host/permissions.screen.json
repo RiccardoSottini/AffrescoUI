@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "The host's question before it opens an app (apps/host): what the app asks for, from its app.json, each capability with the app's reason. The host gives the app with the native permissions.app and takes the person's answer with permissions.decide; closing the window allows nothing, and the host asks again next time.",
+	"note": "The host's question before it opens an app (apps/host): what the app asks for, from its app.json, each capability with the app's reason, all checked to start; a click anywhere on a card flips it. The host gives the app with the native permissions.app and takes the person's answer with permissions.decide; closing the window allows nothing, and the host asks again next time.",
 
 	"window": { "title": "Permissions", "width": 560, "height": 460, "minWidth": 420, "minHeight": 320 },
 
@@ -123,6 +123,7 @@
 						"type": "column",
 						"grow": 1,
 						"gap": 8,
+						"scroll": "vertical",
 						"alignItems": "stretch",
 						"children": [
 							{
@@ -134,10 +135,14 @@
 									"key": "{{capability.key}}"
 								},
 								"type": "row",
-								"height": 64,
+								"fitContent": "height",
+								"minHeight": 64,
 								"gap": 12,
+								"alignItems": "center",
 								"color": "@prompt.surface",
 								"radius": 10,
+								"cursor": "hand",
+								"onClick": { "set": "state.app.capabilities[i].allowed", "to": "{{!capability.allowed}}" },
 								"children": [
 									{ "id": "inset", "width": 2 },
 									{
@@ -145,7 +150,6 @@
 										"type": "checkbox",
 										"width": 20,
 										"height": 20,
-										"alignSelf": "center",
 										"checked": "{{capability.allowed}}",
 										"activeColor": "@prompt.accent",
 										"onChange": {
@@ -157,28 +161,32 @@
 										"id": "about",
 										"type": "column",
 										"grow": 1,
-										"alignSelf": "stretch",
+										"fitContent": "height",
 										"alignItems": "stretch",
 										"children": [
+											{ "id": "top", "height": 6, "color": "transparent" },
 											{
 												"id": "what",
 												"type": "label",
-												"height": 30,
-												"padding": 6,
+												"padding": 4,
+												"wrap": true,
+												"fitText": { "maxWidth": "{{window.width - 116}}" },
 												"textColor": "@prompt.text",
 												"text": "{{t('permissions.' + capability.kind, { name: capability.name })}}"
 											},
 											{
 												"id": "why",
 												"type": "label",
-												"height": 28,
-												"padding": 6,
+												"padding": 4,
 												"wrap": true,
+												"fitText": { "maxWidth": "{{window.width - 116}}" },
 												"textColor": "@prompt.muted",
 												"text": "{{t('permissions.says', { name: state.app.name, why: capability.why })}}"
-											}
+											},
+											{ "id": "bottom", "height": 6, "color": "transparent" }
 										]
-									}
+									},
+									{ "id": "end", "width": 4, "color": "transparent" }
 								]
 							}
 						]

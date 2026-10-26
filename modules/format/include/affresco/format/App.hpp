@@ -46,12 +46,6 @@ struct AppCapability {
 	/// "sh", "bash", "python3.12", "node.exe", ...), which lets the app do anything the person may.
 	/// @return Whether it is.
 	[[nodiscard]] bool runsAnyCommand() const;
-
-	/// @brief Whether the window that asks offers it already checked: only what the person still steers, or that
-	/// can't leave the computer (sound, the file dialogs, other windows, a folder read). A program, a folder written,
-	/// a network origin, the assistant and the channels start unchecked, so allowing them takes a click.
-	/// @return Whether it does.
-	[[nodiscard]] bool startsAllowed() const;
 };
 
 /// @brief An app's manifest, as parseApp() read it.

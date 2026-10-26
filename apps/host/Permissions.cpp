@@ -51,9 +51,8 @@ std::string kindName(const AppCapability& capability) {
 	return "audio";
 }
 
-/// @brief What the prompt screen shows: the app's name and each capability asked, checked only if it starts allowed
-/// (AppCapability::startsAllowed()): a program, a folder written, an origin, the assistant and the channels take a
-/// click.
+/// @brief What the prompt screen shows: the app's name and each capability asked, all checked to start (the person
+/// unchecks what they don't want; closing the window allows nothing).
 /// @param app The app.
 /// @param asked The capabilities asked.
 /// @return `{"name", "capabilities": [{"key", "kind", "name", "why", "allowed"}]}`.
@@ -64,7 +63,7 @@ json describe(const affresco::format::AppManifest& app, const std::vector<AppCap
 		                        {"kind", kindName(capability)},
 		                        {"name", capability.name},
 		                        {"why", capability.why},
-		                        {"allowed", capability.startsAllowed()}});
+		                        {"allowed", true}});
 	return {{"name", app.name}, {"capabilities", std::move(capabilities)}};
 }
 
