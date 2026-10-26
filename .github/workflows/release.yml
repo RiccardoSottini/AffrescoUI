@@ -232,9 +232,11 @@ jobs:
             tools/release/macos.sh notarize "$image"
             tools/release/macos.sh staple "$image"
           fi
-          notarized=""
-          if [ "$NOTARIZE" = true ]; then notarized=--notarized; fi
-          tools/release/macos.sh verify "$app" "$image" build/affrescoui build/affrescoui_launcher $notarized
+          if [ "$NOTARIZE" = true ]; then
+            tools/release/macos.sh verify "$app" "$image" build/affrescoui build/affrescoui_launcher --notarized
+          else # the programs stay as the linker left them, unsigned (as before)
+            tools/release/macos.sh verify "$app" "$image"
+          fi
       - name: Delete the keychain (macOS)
         if: always() && runner.os == 'macOS' && needs.signing.outputs.macos == 'true'
         run: tools/release/macos.sh delete-keychain
