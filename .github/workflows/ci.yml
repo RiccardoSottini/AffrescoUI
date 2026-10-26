@@ -373,7 +373,9 @@ jobs:
     needs: changes
     if: github.event_name == 'push' && needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # Measured on this runner: the coverage of the unit tests 18 minutes, the whole-repository report (clang-tidy on
+    # every file) 63; at 60 the report was cancelled on every push
+    timeout-minutes: 120
     env:
       LLVM_BIN: /usr/lib/llvm-18/bin
       QUALITY_JOBS: "4"
