@@ -7,7 +7,8 @@ find_package(AffrescoUI CONFIG REQUIRED)
 
 foreach(target affrescoui::affrescoui affrescoui::core affrescoui::data affrescoui::render affrescoui::format affrescoui::themes
 	affrescoui::vcs affrescoui::channel affrescoui::net affrescoui::services affrescoui::automation
-	affrescoui::harfbuzz affrescoui::regex)
+	affrescoui::harfbuzz affrescoui::regex affrescoui::imaging affrescoui::scene3d affrescoui::export
+	affrescoui::harfbuzz_subset affrescoui::intelligence affrescoui::syntax)
 	if(NOT TARGET ${target})
 		message(FATAL_ERROR "find_package(AffrescoUI) defined no ${target}")
 	endif()
