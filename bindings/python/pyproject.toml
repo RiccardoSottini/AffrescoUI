@@ -6,7 +6,7 @@
 # Without a wheel, point AFFRESCOUI_LIBRARY at a library built with -DAFFRESCOUI_BUILD_CAPI_SHARED=ON.
 
 [build-system]
-requires = ["scikit-build-core==0.10.7"]
+requires = ["scikit-build-core==1.1.1"]
 build-backend = "scikit_build_core.build"
 
 [project]
