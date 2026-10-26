@@ -1,18 +1,17 @@
 # Every check of a pull request and of master, in a few jobs that each build once and run all that build can
-# (.github/workflows/README.md has the jobs, what each checks, and how to run each check locally):
+# (.github/workflows/README.md has the jobs, what each checks, where each runs, and how to run each check locally):
 # - Changes: whether the change needs a build at all (prose alone doesn't; the build jobs are then skipped);
 # - Linux: GCC; the unit, window, CLI, MCP and scenario tests, every application opening, the rendering check, the
 #   package check, the API reference, and the quality gate (clang-tidy on the changed lines, function size);
 # - Linux (address + undefined sanitizers): GCC with ASan and UBSan: the tests and the rendering check;
-# - Fuzz, on pull requests: every fuzz target for 60 s, one per core at a time, from the nightly corpus;
 # - macOS (build only): the unit tests, the scenarios and every application opening;
 # - Windows: MSVC, the unit tests, the scenarios and the CLI's tests, headless;
-# - Benchmarks (callgrind), on pull requests: base and head on the same runner;
-# - Quality report, on master: the whole repository and the coverage of the unit tests.
+# - Fuzz and Benchmarks (callgrind), on pull requests with a label only (full-ci; perf-change too for the benchmarks):
+#   they take about 40 minutes and 2 hours 20. They run every night (nightly.yml), with the Quality report.
 #
 # The rendering check and the benchmarks compare with the base commit, built on the same runner. The visual-change
 # label makes the rendering check record the frames instead, and perf-change lets the benchmarks grow: only the
-# maintainer adds them, and adding or removing one runs the checks again. The long fuzz runs are nightly (nightly.yml).
+# maintainer adds them, and adding or removing one runs the checks again.
 name: CI
 
 on:
@@ -203,11 +202,14 @@ jobs:
             tests/render/golden/
 
   # Every fuzz target for 60 s, one per core at a time, from the nightly corpus (tests/fuzz/README.md), built as
-  # nightly.yml builds them
+  # nightly.yml builds them: on a pull request with the full-ci label only (the nightly fuzzes every target for 15
+  # minutes, and a v* tag does too)
   fuzz:
     name: Fuzz
     needs: changes
-    if: github.event_name == 'pull_request' && needs.changes.outputs.code == 'true'
+    if: >-
+      github.event_name == 'pull_request' && needs.changes.outputs.code == 'true' &&
+      contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-24.04
     timeout-minutes: 60 # the build alone takes 20 to 35 minutes, then the 58 targets about 15
     env:
@@ -298,15 +300,18 @@ jobs:
   # tests/perf/ci.sh: instructions per operation under callgrind for the workloads that don't draw, the frames' CPU
   # time, allocations, memory and tokens, base and head on this runner; the job summary has the tables. It fails if a
   # workload's instructions grow by more than 3%, unless the pull request has the perf-change label.
+  # On a pull request with the perf-change or full-ci label only; every night in nightly.yml. Not on master pushes
+  # either, temporarily: until the commit check is fast again, base and head take about 2 hours 20 (measured on this
+  # runner: each side's build 12 to 14 minutes on a cold compile cache, its workloads about 50 under callgrind).
   benchmarks:
     name: Benchmarks (callgrind)
     needs: changes
-    if: github.event_name == 'pull_request' && needs.changes.outputs.code == 'true'
+    if: >-
+      github.event_name == 'pull_request' && needs.changes.outputs.code == 'true' &&
+      (contains(github.event.pull_request.labels.*.name, 'perf-change') ||
+      contains(github.event.pull_request.labels.*.name, 'full-ci'))
     runs-on: ubuntu-24.04
-    # Measured on this runner: each side's build takes 12 to 14 minutes on a cold compile cache and its workloads about
-    # 50 under callgrind, so base and head, the frames, the tokens and the scaling areas take about 2 hours 20 (the
-    # runs were cancelled at 30 minutes before, and at 120 while measuring the base)
-    timeout-minutes: 200
+    timeout-minutes: 180
     env:
       PERF_BASE: HEAD^1
       PERF_ALLOW: ${{ contains(github.event.pull_request.labels.*.name, 'perf-change') }}
@@ -364,48 +369,3 @@ jobs:
         with:
           name: agent-benchmark
           path: ${{ runner.temp }}/agents/
-
-  # The whole repository (the longest and most complex functions, tidy findings per module) and the coverage of the
-  # unit tests, on master only: 15 minutes that a pull request doesn't need. Fails only when coverage falls below the
-  # floor in tools/quality/coverage-baseline.json (the base's); the numbers are in the job summary and the artifacts.
-  report:
-    name: Quality report
-    needs: changes
-    if: github.event_name == 'push' && needs.changes.outputs.code == 'true'
-    runs-on: ubuntu-24.04
-    # Measured on this runner: the coverage of the unit tests 18 minutes, the whole-repository report (clang-tidy on
-    # every file) 63; at 60 the report was cancelled on every push
-    timeout-minutes: 120
-    env:
-      LLVM_BIN: /usr/lib/llvm-18/bin
-      QUALITY_JOBS: "4"
-      QUALITY_BASE: ${{ github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '' }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          packages: clang-18 clang-tidy-18 llvm-18 python3-venv
-          cache: linux-clang-coverage
-      - name: Coverage of the unit tests # fails below the floor in tools/quality/coverage-baseline.json
-        run: tools/quality/run.sh coverage "$QUALITY_BASE"
-      - name: Whole-repository report # also when the coverage is below the floor: its numbers still help
-        if: success() || failure()
-        run: tools/quality/run.sh report
-      - name: Upload the report
-        if: success() || failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: quality-report
-          path: build-quality/quality-report.json
-      - name: Upload the coverage
-        if: success() || failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: coverage
-          path: |
-            build-quality/coverage/coverage.json
-            build-quality/coverage/coverage.lcov
-            build-quality/coverage/html/
