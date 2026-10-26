@@ -13,24 +13,36 @@
 #include "affresco/net/Url.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
 
 namespace affresco::net {
 
 namespace {
 
-/// The longest the acceptor waits to send a refusal (429, 503) before it closes the connection anyway.
+/// The longest the acceptor waits to read a refused request, then again to send the refusal (429, 503), before it
+/// closes the connection anyway.
 constexpr std::chrono::milliseconds turnAwayTimeout{50};
+/// The most of a refused request the acceptor reads: an upgrade request's headers.
+constexpr std::size_t turnAwayRequestBytes = 16384;
 /// Addresses whose rate is tracked; past it, those back to a full burst are forgotten.
 constexpr std::size_t maxTrackedAddresses = 4096;
 
-/// @brief Refuses a connection before reading it, and logs why.
+/// @brief Refuses a connection, and logs why. What the peer has sent of its request is read first, for a short while:
+/// a socket closed with bytes it hasn't read is reset, and Windows then drops the refusal before the peer reads it.
 /// @param connection The connection.
 /// @param status 429 or 503.
 /// @param reason Why.
 void turnAway(tcp::Connection& connection, int status, std::string_view reason) {
 	log(LogLevel::Warning, "A remote peer from " + connection.peer() + " was refused: " + std::string(reason));
+	std::string request;
+	const auto end = std::chrono::steady_clock::now() + turnAwayTimeout;
+	while(!request.contains("\r\n\r\n") && request.size() < turnAwayRequestBytes) {
+		const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(end - std::chrono::steady_clock::now());
+		if(left <= std::chrono::milliseconds{0} || connection.receive(request, left) != tcp::Received::Data) break;
+	}
 	static_cast<void>(connection.send(peer::refusalResponse(status, reason), turnAwayTimeout));
 	connection.close();
 }

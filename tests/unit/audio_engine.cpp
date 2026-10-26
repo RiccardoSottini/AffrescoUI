@@ -120,23 +120,25 @@ TEST_CASE("audio: a WAV file at another rate is resampled, and only a file that 
 		std::ofstream(file, std::ios::binary).write(reinterpret_cast<const char*>(bytes.data()),
 		                                             static_cast<std::streamsize>(bytes.size()));
 	}
-	Engine engine(manual());
-	std::string error;
-	const auto voice = engine.play(Source::file(file), {}, error);
-	REQUIRE_MESSAGE(voice, error);
-	CHECK(voice->duration().value() == doctest::Approx(1.0).epsilon(0.001));
-	const std::vector<float> out = pull(engine, 48000);
-	float peak = 0;
-	for(const float sample : out) peak = std::max(peak, std::fabs(sample));
-	CHECK(peak == doctest::Approx(16000.0 / 32768).epsilon(0.02));
+	{ // the engine and its voice keep the file open: Windows removes no file that is open
+		Engine engine(manual());
+		std::string error;
+		const auto voice = engine.play(Source::file(file), {}, error);
+		REQUIRE_MESSAGE(voice, error);
+		CHECK(voice->duration().value() == doctest::Approx(1.0).epsilon(0.001));
+		const std::vector<float> out = pull(engine, 48000);
+		float peak = 0;
+		for(const float sample : out) peak = std::max(peak, std::fabs(sample));
+		CHECK(peak == doctest::Approx(16000.0 / 32768).epsilon(0.02));
 
-	CHECK_FALSE(engine.play(Source::file(folder / "missing.wav"), {}, error));
-	CHECK(error.contains("missing.wav"));
-	CHECK_FALSE(error.contains(folder.string())); // the error names the file, not where the machine keeps it
-	const std::filesystem::path text = folder / "notes.wav";
-	std::ofstream(text) << "not a sound";
-	CHECK_FALSE(engine.play(Source::file(text), {}, error));
-	CHECK(error.contains("couldn't be decoded"));
+		CHECK_FALSE(engine.play(Source::file(folder / "missing.wav"), {}, error));
+		CHECK(error.contains("missing.wav"));
+		CHECK_FALSE(error.contains(folder.string())); // the error names the file, not where the machine keeps it
+		const std::filesystem::path text = folder / "notes.wav";
+		std::ofstream(text) << "not a sound";
+		CHECK_FALSE(engine.play(Source::file(text), {}, error));
+		CHECK(error.contains("couldn't be decoded"));
+	}
 	std::filesystem::remove_all(folder);
 }
 
