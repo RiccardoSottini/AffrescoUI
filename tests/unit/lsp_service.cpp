@@ -30,7 +30,16 @@ namespace lsp = affresco::services::lsp;
 
 namespace {
 
+#ifdef _WIN32
+const std::filesystem::path root = "C:/folder"; ///< The folder of the normaliser's tests: only names are compared.
+#else
 const std::filesystem::path root = "/folder"; ///< The folder of the normaliser's tests: only names are compared.
+#endif
+
+/// @brief A URI in or next to the normaliser's folder, as this system writes its paths.
+/// @param rest What follows the folder's URI ("/src/main.cpp", or "x" for a sibling named "folderx").
+/// @return The URI: file:///folder/... here, file:///C%3A/folder/... on Windows.
+std::string inFolder(std::string_view rest) { return lsp::uriOf(root, "") + std::string(rest); }
 
 /// @brief The fake server (tests/lsp), by an absolute path, as the build gives it.
 const std::filesystem::path fakeServer = AFFRESCOUI_FAKE_LANGUAGE_SERVER;
@@ -65,7 +74,8 @@ json randomValue(std::mt19937& random, int depth) {
 	case 0: return nullptr;
 	case 1: return std::uniform_int_distribution<int>(-3, 1 << 20)(random);
 	case 2: return std::uniform_int_distribution<int>(0, 1)(random) == 1;
-	case 3: return "file:///folder/" + std::to_string(random() % 7);
+	case 3:
+		return inFolder("/") + std::to_string(random() % 7);
 	case 4: return std::string(random() % 40, static_cast<char>('a' + random() % 26));
 	case 5:
 	case 6: {
@@ -205,27 +215,32 @@ struct Session {
 
 TEST_SUITE("lsp service") {
 	TEST_CASE("URIs stay inside the folder") {
-		CHECK(lsp::uriOf(root, "src/main.cpp") == "file:///folder/src/main.cpp");
-		CHECK(lsp::uriOf(root, "") == "file:///folder");
-		CHECK(lsp::uriOf(root, "a b/ü.py") == "file:///folder/a%20b/%C3%BC.py");
-		CHECK(lsp::pathOfUri(root, "file:///folder/src/main.cpp") == "src/main.cpp");
-		CHECK(lsp::pathOfUri(root, "file:///folder/a%20b/%C3%BC.py") == "a b/ü.py");
-		CHECK(lsp::pathOfUri(root, "file://localhost/folder/x.cpp") == "x.cpp");
-		CHECK_FALSE(lsp::pathOfUri(root, "file:///folder/../etc/passwd"));
-		CHECK_FALSE(lsp::pathOfUri(root, "file:///folder%2F..%2Fetc"));
+		CHECK(lsp::uriOf(root, "src/main.cpp") == inFolder("/src/main.cpp"));
+		CHECK(lsp::uriOf(root, "") == inFolder(""));
+		CHECK(lsp::uriOf(root, "a b/ü.py") == inFolder("/a%20b/%C3%BC.py"));
+#ifndef _WIN32
+		CHECK(inFolder("/src/main.cpp") == "file:///folder/src/main.cpp");
+#else
+		CHECK(inFolder("/src/main.cpp") == "file:///C%3A/folder/src/main.cpp");
+#endif
+		CHECK(lsp::pathOfUri(root, inFolder("/src/main.cpp")) == "src/main.cpp");
+		CHECK(lsp::pathOfUri(root, inFolder("/a%20b/%C3%BC.py")) == "a b/ü.py");
+		CHECK(lsp::pathOfUri(root, "file://localhost" + inFolder("/x.cpp").substr(7)) == "x.cpp");
+		CHECK_FALSE(lsp::pathOfUri(root, inFolder("/../etc/passwd")));
+		CHECK_FALSE(lsp::pathOfUri(root, inFolder("%2F..%2Fetc")));
 		CHECK_FALSE(lsp::pathOfUri(root, "file:///elsewhere/x.cpp"));
-		CHECK_FALSE(lsp::pathOfUri(root, "file:///folderx/x.cpp"));
+		CHECK_FALSE(lsp::pathOfUri(root, inFolder("x/x.cpp")));
 		CHECK_FALSE(lsp::pathOfUri(root, "file://host/folder/x.cpp"));
 		CHECK_FALSE(lsp::pathOfUri(root, "https://example.com/folder/x.cpp"));
-		CHECK_FALSE(lsp::pathOfUri(root, "file:///folder"));
+		CHECK_FALSE(lsp::pathOfUri(root, inFolder("")));
 	}
 
 	TEST_CASE("diagnostics: from 0, an empty range kept, codes as text, outside files refused") {
 		const json params = {
-		    {"uri", "file:///folder/src/main.cpp"},
+		    {"uri", inFolder("/src/main.cpp")},
 		    {"diagnostics",
-		     {{{"range", range(2, 4, 9)}, {"severity", 1}, {"message", "bad"}, {"source", "fake"}, {"code", 42}},
-		      {{"range", range(0, 3, 3)}, {"severity", 3}, {"message", "note"}}}}};
+			 {{{"range", range(2, 4, 9)}, {"severity", 1}, {"message", "bad"}, {"source", "fake"}, {"code", 42}},
+			  {{"range", range(0, 3, 3)}, {"severity", 3}, {"message", "note"}}}}};
 		const json shown = lsp::normalize("diagnostics", params, root);
 		CHECK(shown["path"] == "src/main.cpp");
 		REQUIRE(shown["diagnostics"].size() == 2);
@@ -262,20 +277,23 @@ TEST_SUITE("lsp service") {
 	}
 
 	TEST_CASE("definitions and references: from 0, outside the folder dropped") {
-		const json result = json::array({location("file:///folder/a.cpp", 0, 4), location("file:///elsewhere/b.cpp", 1, 1),
-		                                  {{"targetUri", "file:///folder/c.cpp"}, {"targetSelectionRange", range(5, 2, 3)}}});
+		const json result =
+		    json::array({location(inFolder("/a.cpp"), 0, 4),
+			             location("file:///elsewhere/b.cpp", 1, 1),
+			             {{"targetUri", inFolder("/c.cpp")}, {"targetSelectionRange", range(5, 2, 3)}}});
 		const json shown = lsp::normalize("references", result, root);
 		REQUIRE(shown["locations"].size() == 2);
 		CHECK(shown["locations"][0]["path"] == "a.cpp");
 		CHECK(shown["locations"][0]["column"] == 4);
 		CHECK(shown["locations"][1]["path"] == "c.cpp");
 		CHECK(shown["locations"][1]["line"] == 5);
-		CHECK(lsp::normalize("definition", location("file:///folder/a.cpp", 3, 0), root)["locations"].size() == 1);
+		CHECK(lsp::normalize("definition", location(inFolder("/a.cpp"), 3, 0), root)["locations"].size() == 1);
 	}
 
 	TEST_CASE("rename: every edit inside the folder, or none") {
-		const json inside = {{"changes", {{"file:///folder/a.cpp", {{{"range", range(0, 4, 8)}, {"newText", "start"}}}},
-		                                  {"file:///folder/b.cpp", {{{"range", range(1, 0, 4)}, {"newText", "start"}}}}}}};
+		const json inside = {{"changes",
+		                      {{inFolder("/a.cpp"), {{{"range", range(0, 4, 8)}, {"newText", "start"}}}},
+		                       {inFolder("/b.cpp"), {{{"range", range(1, 0, 4)}, {"newText", "start"}}}}}}};
 		const json shown = lsp::normalize("rename", inside, root);
 		CHECK(shown["files"] == 2);
 		REQUIRE(shown["edits"].size() == 2);
@@ -285,7 +303,7 @@ TEST_SUITE("lsp service") {
 		json outside = inside;
 		outside["changes"]["file:///elsewhere/c.cpp"] = json::array({{{"range", range(0, 0, 1)}, {"newText", "x"}}});
 		CHECK_THROWS_AS((void)lsp::normalize("rename", outside, root), std::runtime_error);
-		const json creates = {{"documentChanges", {{{"kind", "create"}, {"uri", "file:///folder/new.cpp"}}}}};
+		const json creates = {{"documentChanges", {{{"kind", "create"}, {"uri", inFolder("/new.cpp")}}}}};
 		CHECK_THROWS_AS((void)lsp::normalize("rename", creates, root), std::runtime_error);
 	}
 
@@ -297,8 +315,9 @@ TEST_SUITE("lsp service") {
 		REQUIRE(shown["symbols"].size() == 2);
 		CHECK(shown["symbols"][1]["depth"] == 1);
 		CHECK(shown["symbols"][1]["path"] == "a.cpp");
-		const json workspace = json::array({{{"name", "main"}, {"kind", 12}, {"location", location("file:///folder/b.cpp", 2, 0)}},
-		                                    {{"name", "hidden"}, {"kind", 12}, {"location", location("file:///etc/x", 0, 0)}}});
+		const json workspace =
+		    json::array({{{"name", "main"}, {"kind", 12}, {"location", location(inFolder("/b.cpp"), 2, 0)}},
+			             {{"name", "hidden"}, {"kind", 12}, {"location", location("file:///etc/x", 0, 0)}}});
 		const json found = lsp::normalize("workspaceSymbols", workspace, root);
 		REQUIRE(found["symbols"].size() == 1);
 		CHECK(found["symbols"][0]["path"] == "b.cpp");
@@ -320,7 +339,7 @@ TEST_SUITE("lsp service") {
 
 	TEST_CASE("columns: UTF-16 units and code points, past the end too") {
 		const lsp::ColumnMapper halve = [](const std::string&, std::size_t, std::size_t column) { return column / 2; };
-		const json shown = lsp::normalize("definition", location("file:///folder/a.cpp", 0, 8), root, {}, {}, halve);
+		const json shown = lsp::normalize("definition", location(inFolder("/a.cpp"), 0, 8), root, {}, {}, halve);
 		CHECK(shown["locations"][0]["column"] == 4);
 		const std::string line = "a\xC3\xA9\xF0\x9F\x98\x80" "b"; // a, é, an emoji (two units), b
 		CHECK(lsp::utf16Units(line, 2) == 2);

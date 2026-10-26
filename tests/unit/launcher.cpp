@@ -159,8 +159,13 @@ TEST_CASE(
 TEST_CASE("launcher: the app-programs grant starts only its programs, on screens inside its roots") {
 	const TemporaryFolder folder;
 	const fs::path programs = folder.path() / "bin", examples = folder.path() / "examples";
-	writeFile(programs / "affrescoui_launcher", "");
-	writeFile(programs / "examples" / "tool" / "affrescoui_tool", ""); // a build tree's place for it
+#ifdef _WIN32
+	const std::string exe = ".exe"; // a program's file there
+#else
+	const std::string exe;
+#endif
+	writeFile(programs / ("affrescoui_launcher" + exe), "");
+	writeFile(programs / "examples" / "tool" / ("affrescoui_tool" + exe), ""); // a build tree's place for it
 	writeFile(examples / "flow" / "index.screen.json", "{}");
 	writeFile(examples / "flow" / "notes.txt", "");
 	writeFile(folder.path() / "outside.screen.json", "{}");
@@ -181,14 +186,14 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 
 	const auto host = shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--ask", "Make it blue"});
 	REQUIRE(host);
-	CHECK(host->program == programs / "affrescoui_launcher");
+	CHECK(host->program == programs / ("affrescoui_launcher" + exe));
 	const std::string screen = (fs::canonical(examples) / "flow" / "index.screen.json").string();
 	CHECK(host->arguments == std::vector<std::string>{screen, "--ask", "Make it blue", "--data",
 	                                                  (folder.path() / "data").string(), "--socket",
 	                                                  (folder.path() / "sockets" / "examples-flow").string()});
 	const auto tool = shaped({"affrescoui_tool"});
 	REQUIRE(tool);
-	CHECK(tool->program == programs / "examples" / "tool" / "affrescoui_tool");
+	CHECK(tool->program == programs / "examples" / "tool" / ("affrescoui_tool" + exe));
 	CHECK(tool->arguments.back() == (folder.path() / "sockets" / "tool").string());
 
 	CHECK_FALSE(shaped({}));

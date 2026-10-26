@@ -188,7 +188,12 @@ TEST_CASE("dap: an adapter's messages are read, bounded and placed against the f
 	CHECK(std::holds_alternative<dap::Event>(dap::readMessage(bodies[0])));
 
 	// Lists are cut to their limits, and sources placed
-	const std::filesystem::path root = std::filesystem::path("/work");
+#ifdef _WIN32
+	const std::string drive = "C:"; // an absolute path names its drive there
+#else
+	const std::string drive;
+#endif
+	const std::filesystem::path root = std::filesystem::path(drive + "/work");
 	json threads = json::array();
 	for(int index = 0; index < 1500; ++index)
 		threads.push_back({{"id", index}, {"name", std::string(dap::longestText + 10, 't')}});
@@ -196,11 +201,11 @@ TEST_CASE("dap: an adapter's messages are read, bounded and placed against the f
 	CHECK(bounded["threads"].size() == dap::mostThreads);
 	CHECK(bounded["truncated"] == true);
 	CHECK(bounded["threads"][0]["name"].get<std::string>().size() <= dap::longestText); // cut after the list is
-	json inside = {{"path", "/work/src/a.py"}};
+	json inside = {{"path", drive + "/work/src/a.py"}};
 	dap::place(inside, root);
 	CHECK(inside["inside"] == true);
 	CHECK(inside["relative"] == "src/a.py");
-	json outside = {{"path", "/etc/passwd"}};
+	json outside = {{"path", drive + "/etc/passwd"}};
 	dap::place(outside, root);
 	CHECK(outside["inside"] == false);
 
