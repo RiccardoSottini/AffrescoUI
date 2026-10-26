@@ -193,7 +193,8 @@ bool TextEditor::lineCommand(std::string_view name) {
 	if(name == "duplicateLines") {
 		std::vector<std::u32string> block = range(first, last);
 		const long size = static_cast<long>(block.size());
-		block.insert(block.end(), block.begin(), block.end());
+		const std::vector<std::u32string> again = range(first, last); // a vector's own range can't be inserted in it
+		block.insert(block.end(), again.begin(), again.end());
 		replaceLines(first, last, block, moved(anchor_, size), moved(caret_, size));
 	} else if(name == "deleteLines") {
 		beginEdit(Edit::Other);
