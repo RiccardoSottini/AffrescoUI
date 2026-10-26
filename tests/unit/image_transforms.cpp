@@ -56,7 +56,8 @@ editing::ImageDocument& inked(editing::ImageDocuments& store) {
 /// @return The names.
 std::vector<std::string> names(const editing::ImageDocument& image) {
 	std::vector<std::string> found;
-	for(const json& layer : editing::snapshot(image)["layers"]) found.push_back(layer["name"]);
+	const json taken = editing::snapshot(image); // named: the loop would outlive a temporary
+	for(const json& layer : taken["layers"]) found.push_back(layer["name"]);
 	return found;
 }
 

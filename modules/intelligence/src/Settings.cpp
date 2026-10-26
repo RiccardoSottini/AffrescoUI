@@ -266,9 +266,7 @@ std::shared_ptr<affresco::SecretStore> systemKeys() {
 }
 
 bool hiddenProvidersAllowed() {
-	static const bool allowed = [] {
-		return affresco::environmentVariable("AFFRESCOUI_PROVIDERS") == "all";
-	}();
+	static const bool allowed = [] { return affresco::environmentVariable("AFFRESCOUI_PROVIDERS") == "all"; }();
 	return allowed;
 }
 

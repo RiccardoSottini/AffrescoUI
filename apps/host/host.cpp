@@ -105,7 +105,8 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 			for(const automation::Scenario& scenario : loaded.scenarios)
 				if(!scenario.needsPictures) options.only.push_back(scenario.name);
 			if(options.only.empty()) return results.dump(); // all of them draw
-			for(const automation::ScenarioResult& result : automation::run(loaded, options).scenarios) {
+			const automation::Report report = automation::run(loaded, options); // named: the loop outlives a temporary
+			for(const automation::ScenarioResult& result : report.scenarios) {
 				std::string message;
 				for(const automation::Failure& failure : result.failures)
 					message +=
