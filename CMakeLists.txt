@@ -139,12 +139,13 @@ include(cmake/AffrescoUISyntax.cmake)
 # modules/<name>/CMakeLists.txt, so a new file touches only its own module's list.
 #
 #   core     interfaces + Signal: Executor, Channel, VersionControl, DocumentRules   (header-only)
+#   notation the notations documents are written in: JSON, and Lisp (S-expressions)  core
 #   data     records: typed models, SQLite, queries, the journal, migrations         core
 #   render   rendering engine: windows, panels, text, OpenGL                         core
 #   format   JSON screen format: rules, expressions, building panels, actions        core, render, data
 #   themes   kits' components and themes' tokens, as JSON files built in            core
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
-#   channel  communication: process/stdio channels, the live protocol                core
+#   channel  communication: process/stdio channels, the live protocol                core, notation
 #   net      network: HTTP(S), SSE and WebSocket over libcurl                        core
 #   services services: folders, programs and JSON-RPC servers a screen calls         core
 #   audio    audio: an output that mixes files, bytes, streams and generators       core   (AFFRESCOUI_AUDIO)
@@ -167,7 +168,7 @@ endfunction()
 if(AFFRESCOUI_AUDIO)
 	add_subdirectory(modules/audio) # before format and screen, which use it
 endif()
-foreach(module core data render export format themes vcs channel net services screen automation intelligence)
+foreach(module core notation data render export format themes vcs channel net services screen automation intelligence)
 	add_subdirectory(modules/${module})
 endforeach()
 add_subdirectory(modules/scene3d) # general 3D: the scene, glTF, picking, gizmos, the PBR renderer

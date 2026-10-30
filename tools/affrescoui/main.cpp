@@ -21,7 +21,7 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 13> list = {{
+	static constexpr std::array<Command, 14> list = {{
 	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
 		 "Show a screen and let peers change it, like affrescoui_launcher", runScreen},
 	    {"check",
@@ -40,6 +40,10 @@ std::span<const Command> commands() {
 		 "Draw a screen's first frame offscreen, to a PNG", renderScreen},
 	    {"fmt", "<file> [--check]", "Write a file the way AffrescoUI files are written; --check only says if it is",
 		 formatScreen},
+	    {"convert", "<file> [--to json|lisp] [-o FILE]",
+	     "Write a file in the other notation (JSON or Lisp, by its name: .lisp is Lisp), the same tree; to the output "
+	     "or a file",
+	     convertFile},
 	    {"ids", "<file> [--check]",
 		 "Give readable ids to the nodes that have none; --check only says if some have none", nameScreenNodes},
 	    {"export", "<file> [--from REVISION] [--name NAME] [-o changes.json] [--data DIR]",

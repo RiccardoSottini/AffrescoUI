@@ -21,9 +21,9 @@
 		"icon": { "$ref": "#/$defs/path", "description": "Its icon: an image in its folder." },
 		"entry": {
 			"$ref": "#/$defs/path",
-			"pattern": "\\.json$",
+			"pattern": "\\.(json|lisp)$",
 			"default": "index.screen.json",
-			"description": "The screen it opens."
+			"description": "The screen it opens, in JSON or in the Lisp notation (.lisp)."
 		},
 		"themes": {
 			"type": "array",

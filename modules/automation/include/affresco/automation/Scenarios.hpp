@@ -140,7 +140,8 @@ struct Report {
 
 /// @brief The document of a screen file as the host opens it: an app's entry screen (an app.json beside it names it:
 /// Screen::appOf()) with its app's themes, models and seed records merged in (Screen::fromApp(), keeping nothing on
-/// disk); any other screen as written. Scenarios play it, and `affrescoui render` draws it.
+/// disk); any other screen as written (a file in the Lisp notation as the JSON of its tree). Scenarios play it, and
+/// `affrescoui render` draws it.
 /// @param screen The screen file.
 /// @return Its document, as JSON text.
 /// @throws std::runtime_error If it can't be read; ScreenError if its app's files can't be read or aren't valid.

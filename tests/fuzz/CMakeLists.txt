@@ -21,6 +21,7 @@ function(affrescoui_fuzzer name)
 endfunction()
 
 affrescoui_fuzzer(json affrescoui::core nlohmann_json::nlohmann_json)
+affrescoui_fuzzer(notation affrescoui::notation) # the Lisp notation: reading any text, writing any value
 affrescoui_fuzzer(expression affrescoui::format)
 target_include_directories(affrescoui_fuzz_expression PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp

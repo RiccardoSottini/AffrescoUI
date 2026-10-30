@@ -12,7 +12,8 @@ channel, for example an AI agent through the MCP server.
 (`$defs/v2`; `$defs/v1` only says to migrate) and the loader checks the version first. A file of version 1 still
 loads: it is migrated in memory, with one notice ("Migrating from version 1").
 
-- File extension: `.screen.json`. JSON Schema (editor completion and validation):
+- File extension: `.screen.json`, or `.screen.lisp` for the same document in the Lisp notation ("The Lisp
+  notation"). JSON Schema (editor completion and validation):
   [`schema/affrescoui-screen.schema.json`](schema/affrescoui-screen.schema.json), referenced with `"$schema"`.
 - Try any file without writing code: `./build/affrescoui_launcher path/to/file.screen.json`
 
@@ -1792,7 +1793,8 @@ seed data; another screen in the folder is read as written. A generated example:
   the app's own choice, so it is bound to the folder that first opens it (recorded in the folder's `location`): an
   app elsewhere with the same id keeps its data, and the host the person's permissions, in `apps/<id>~<hash>/`, its
   own. A screen opened on its own is bound to its file the same way (`<data folder>/<screen name>.location`).
-- **`entry`** (default `index.screen.json`): the screen it opens. Every path in the manifest is relative, inside the
+- **`entry`** (default `index.screen.json`): the screen it opens, a `.json` file or a `.lisp` one (any of the app's
+  files may be written in the Lisp notation: "The Lisp notation"). Every path in the manifest is relative, inside the
   folder (no `..`, no link leading out), and is refused otherwise. The entry screen's `include`s, and theirs, are
   files in the folder or in the `shared` folder beside it (where the apps of a folder keep the kits they share, as a
   release lays them out; a folder, not a link), once links are resolved.
@@ -1871,9 +1873,10 @@ line:
 | → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
-| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `done` |
+| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `done` |
 | peer → | `revision` (compact edits or `patch`, `proposal`?, `assets`?, `run`?), `revert` / `restore` (`revision`), `undo` |
 | peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
+| peer → | `convert` (`notation`: `"lisp"` or `"json"`, and `text` to read or `value` to write; a mistake is rejected with its line and column): how a peer reads and writes the Lisp notation, while revisions and the history stay JSON |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
 | → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
@@ -2129,6 +2132,71 @@ text with `{{` in it goes into `state.literals` and is shown through a binding t
 elements deep, 2,000 elements and messages. Only the first A2UI surface converts, and a converted screen has fonts
 only when `--font` names one (AffrescoUI has no font of its own), so load one through `affrescoui import --font` for
 text.
+
+## The Lisp notation
+
+Any file the screen loader reads (a screen, its `include`s, an app's entry, themes and models) may be written in the
+**Lisp notation** instead of JSON: S-expressions that spell **the same JSON tree**, without the quotes around keys
+and words, and with a node's type and id at its head. A file is in the Lisp notation when its name ends in `.lisp`
+(`board.screen.lisp`, `parts/drawer.lisp`); the two notations mix freely, a JSON screen including a Lisp file and the
+other way round.
+
+```lisp
+; Flow's insights panel: a comment runs to the end of the line
+(panel #insights :color transparent
+  (node #burndownTitle :style caption :anchors {:left 0 :top 0} :text "{{t('burndown.title')}}")
+  (column #list :gap 4))
+```
+
+is exactly
+
+```json
+{ "type": "panel", "id": "insights", "color": "transparent", "children": [
+	{ "id": "burndownTitle", "style": "caption", "anchors": { "left": 0, "top": 0 }, "text": "{{t('burndown.title')}}" },
+	{ "type": "column", "id": "list", "gap": 4 } ] }
+```
+
+**It is never evaluated.** The Lisp notation is data, not code: there are no functions, macros, quoting or `eval`,
+and a list is never called. Expressions stay `{{...}}` strings, as in JSON.
+
+| JSON | Lisp |
+|---|---|
+| an object with an `id` that is a string (a node) | `(type #id :key value ... child child ...)` |
+| any other object | `{:key value ...}` |
+| an array | `[a b c]` |
+| a string that is a plain word | the word: `transparent`, `@color.accent`, `state.items` |
+| any other string | in quotes, with JSON's escapes: `"Hello, world"`, `"{{state.count + 1}}"`, `"12px"`, `"true"` |
+| a number, `true`, `false`, `null` | `4`, `-2.5`, `1e-3`, `true`, `false`, `nil` |
+
+- **A node** is written `(head ...)`. The head is the node's `type` when `type` is its first key and a plain word other
+  than `node`; otherwise the head is `node` and the type, if any, is a key where it is (`(node #title :type label
+  ...)` for `{"id": "title", "type": "label"}`). `#id` is its `id`. Every other key is `:key value`, in the order of
+  the object, so converting never reorders keys: a commit made from either spelling has the same hash.
+- **Children** are written after the properties, one per line: they are the node's `children` list when it is its
+  last key and isn't empty. `:children [...]` is written for an empty list or one that isn't the last key.
+- **Plain words** start with a letter, `_`, `@` or `$`, and go on with letters, digits, `_`, `.`, `@`, `$` and `-`
+  (ASCII). `true`, `false` and `nil` are values, so the strings `"true"`, `"false"` and `"nil"` are quoted.
+- **Keys and ids** that aren't plain words are quoted: `:"#root/color"`, `#"{{'nav-' + tab}}"`.
+- **Comments** start with `;` (outside a string) and run to the end of the line. They are not part of the tree, so
+  converting a file drops them; a `note` key keeps text that must stay.
+- **A key appears once** in an object or a node; properties come before the children. A mistake names its place:
+  `AffrescoUI screen: board.lisp: line 3, column 8: expected ')' to close the node opened at line 1, column 1`.
+- **Limits** as JSON's: 256 levels deep (a node's children count as a list inside it, as in JSON), numbers of at most
+  40 characters, a file of at most 64 MiB.
+
+The printer is canonical: a tree always gives the same text (a list, an object or a node on one line when it fits in
+120 columns, else one member a line), and reading it back gives the tree. `affrescoui convert board.screen.json` writes
+it (`--to json` the other way, `-o FILE` to a file), `affrescoui fmt` lays out a `.lisp` file canonically, and
+`affrescoui check` checks a `.lisp` file against the same schema, as the tree it spells.
+
+**Version control stays JSON.** The history, commits, patches, blame and permissions never see Lisp: a peer reads and
+writes it through the protocol's `convert` message ("Peers and the live protocol"), and the MCP server's `get_screen`
+and `submit_revision` take `notation: "lisp"`. A revision written in Lisp is an object with the revision's keys,
+converted to JSON before it is submitted:
+
+```lisp
+{:set {:"#statusBar/color" @topBar} :add {:"#list/children/-" (label #hello :text Hello)}}
+```
 
 ## Migrating from version 1
 

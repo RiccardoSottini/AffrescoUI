@@ -44,10 +44,11 @@ The program that embeds AffrescoUI (the host) is trusted, and so is everything i
 - the native code it registers (`registerType`, `onAction`, `onCall`).
 
 The screen file, its includes and the state file are read with the JSON nesting limit (256 levels), but none of the
-other checks applied to peers. Don't load a screen file or change set you wouldn't run as a program. The state file
-is the exception to "trusted": it holds the persisted parts of the live state, which peers can change, and it is read
-back at the next start with only that nesting limit. Keep the paths a screen persists out of reach of agents you
-don't trust.
+other checks applied to peers. A file in the Lisp notation (`.lisp`) is read to the same JSON tree with the same
+limits (256 levels, numbers of at most 40 characters, and at most 64 MiB); it is data only, never evaluated. Don't
+load a screen file or change set you wouldn't run as a program. The state file is the exception to "trusted": it
+holds the persisted parts of the live state, which peers can change, and it is read back at the next start with only
+that nesting limit. Keep the paths a screen persists out of reach of agents you don't trust.
 
 The history of a screen opened from a file is kept next to the state file, in `<file name>.history/` (the data
 folder: `~/.affrescoui`, `AFFRESCOUI_DATA_DIR` or `--data`; see VERSION_CONTROL.md, "History on disk"). It is read
@@ -110,6 +111,8 @@ A host may also accept peers over WebSocket (`Screen::listenWebSocket`, `net::Pe
 Each peer is held to limits (`channel::PeerLimits`; the defaults are in "Limits" below), so one peer can't take the
 app's time or memory from the others:
 - a message larger than its limit is refused before it is parsed;
+- `convert` (text in the Lisp notation into JSON, and back) reads nothing of the document and changes nothing: it
+  holds to the JSON limits (256 levels, 64 MiB of text) and is fuzzed (`tests/fuzz/notation.cpp`);
 - messages of any kind, and changes (`revision`, `restore`, `revert`, `undo`, which rebuild the screen), each have a
   rate, kept by a token bucket: a burst after a quiet time, then a steady rate. A message over the rate gets an error
   and costs no more than that; the first refusal in a row is logged;

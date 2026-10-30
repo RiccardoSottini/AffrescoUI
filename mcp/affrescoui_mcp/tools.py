@@ -9,6 +9,12 @@ def object_schema(properties=None, required=None):
     return schema
 
 
+# The notation a tool reads or writes documents in: JSON, or the Lisp notation, which spells the same tree (the host
+# converts; the history stays JSON)
+NOTATION = {"type": "string", "enum": ["json", "lisp"],
+            "description": "json (the default) or lisp: the same document, written as S-expressions"}
+
+
 TOOLS = [
     {"name": "wait_for_request",
      "description": "Wait for the next change request a person sends from inside the app (its chat) or from "
@@ -42,8 +48,12 @@ TOOLS = [
                     "address (every node has an id: \"#label-blocked\"), type, text, bind, style, onClick, repeat and "
                     "when, without the styling. depth limits both to that many levels below (outline lines then say "
                     "\"+12\" for the nodes inside; a node's deeper children become their addresses). Read the outline "
-                    "first, then the nodes you change with at.",
+                    "first, then the nodes you change with at. notation=\"lisp\" writes the document or the node "
+                    "in the Lisp notation instead of JSON: the same tree as S-expressions, e.g. (label #title "
+                    ":text Hello) for {\"type\": \"label\", \"id\": \"title\", \"text\": \"Hello\"} "
+                    "(get_format_guide topic \"Lisp notation\"); what changed since a read stays a JSON Patch.",
      "inputSchema": object_schema({"full": {"type": "boolean", "description": "Everything, not what changed"},
+                                   "notation": NOTATION,
                                    "at": {"type": "string", "description": "Only this node: \"#id\" or a JSON Pointer"},
                                    "outline": {"type": "boolean",
                                                "description": "The node tree: one line per node (address, type, text, "
@@ -134,9 +144,16 @@ TOOLS = [
                     "screen then reads it as \"asset:<name>\" (an image's or a sound's file, the image step's open "
                     "with {\"asset\": name}). `run`: steps run once on the live screen when the proposal is accepted "
                     "(e.g. [{\"image\": \"open\", \"with\": {\"asset\": \"moon.svg\"}}]). A revision with assets or "
-                    "run is always proposed, and only the person accepts it (get_format_guide topic \"Assets\").",
+                    "run is always proposed, and only the person accepts it (get_format_guide topic \"Assets\"). "
+                    "With notation=\"lisp\", write the change in `revision` as Lisp text instead: an object with "
+                    "the same keys, e.g. {:set {:\"#statusBar/color\" @topBar} :add {:\"#list/children/-\" (label "
+                    "#hello :text Hello)}}; it becomes the same JSON before it is committed.",
      "inputSchema": object_schema({
          "message": {"type": "string", "description": "One line, for the reviewer, saying what the change does"},
+         "notation": NOTATION,
+         "revision": {"type": "string",
+                      "description": "With notation \"lisp\": the change as Lisp text, an object with any of set, "
+                                     "add, remove, move, patch, parent, proposal, assets and run"},
          "set": {"type": "object", "description": "path -> new value (replace, or add where nothing is)"},
          "add": {"type": "object", "description": "path -> value to insert (\"/-\" appends to a list)"},
          "remove": {"type": "array", "items": {"type": "string"}, "description": "Paths to remove"},

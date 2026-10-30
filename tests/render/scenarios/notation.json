@@ -1,0 +1,82 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "notation-tokens",
+			"screen": "tokens.screen.lisp",
+			"note": "The Lisp notation: the tokens screen written as S-expressions (converted from tokens.screen.json by `affrescoui convert`). The same tree, so the same steps draw pixels identical to the tokens scenario's",
+			"steps": [
+				{
+					"expect": {
+						"image": "first-frame"
+					}
+				},
+				{
+					"revision": {
+						"message": "Dark theme",
+						"set": {
+							"/state/theme": "dark"
+						}
+					}
+				},
+				{
+					"expect": {
+						"image": "dark"
+					}
+				},
+				{
+					"revision": {
+						"message": "Roomier and rounder, in another accent",
+						"set": {
+							"/tokens/space.s": 16,
+							"/tokens/radius.card": 22,
+							"/colors/brand": "#db2777"
+						}
+					}
+				},
+				{
+					"expect": {
+						"image": "restyled"
+					}
+				}
+			]
+		},
+		{
+			"name": "notation-visuals",
+			"screen": "visuals.screen.lisp",
+			"note": "The Lisp notation again, on a screen of images, icons and text: visuals.screen.json converted by `affrescoui convert`, so the same steps draw pixels identical to the visuals scenario's",
+			"steps": [
+				{
+					"expect": {
+						"image": "first-frame"
+					}
+				},
+				{
+					"revision": {
+						"message": "Another picture, another fit, another icon",
+						"set": {
+							"#contain/file": "images/banner.png",
+							"#fill/fit": "contain",
+							"#bell/icon": "bell-ring"
+						}
+					}
+				},
+				{
+					"expect": {
+						"image": "revised"
+					}
+				},
+				{
+					"move": "#settings"
+				},
+				{
+					"expect": {
+						"image": "icon-hover"
+					}
+				}
+			]
+		}
+	]
+}

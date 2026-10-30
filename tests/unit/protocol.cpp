@@ -12,9 +12,11 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iterator>
 #include <regex>
 #include <set>
 #include <sstream>
@@ -102,11 +104,25 @@ std::set<std::string> documentedMessages() {
 	return types;
 }
 
+/// @brief The rows of convert: text in the Lisp notation into its value and back, and its errors.
+/// @return The rows.
+std::vector<Row> convertRows() {
+	return {
+	    {"convert", false, plain({{"type", "convert"}, {"notation", "lisp"}, {"text", "(label #a)"}}), "converted", ""},
+	    {"convert", false, plain({{"type", "convert"}, {"notation", "lisp"}, {"value", {{"id", "a"}}}}), "converted",
+	     ""},
+	    {"convert", false, plain({{"type", "convert"}, {"notation", "lisp"}, {"text", "(label"}}), "rejected",
+	     "line 1, column 7"},
+	    {"convert", false, plain({{"type", "convert"}, {"notation", "yaml"}, {"text", "a"}}), "rejected",
+	     "convert.notation"},
+	};
+}
+
 /// @brief The table: every message, and its answer or error.
 /// @return The rows.
 std::vector<Row> protocolTable() {
 	const auto proposal = [](Peers& peers) { return peers.propose(); };
-	return {
+	std::vector<Row> rows = {
 	    {"revision", false, plain({{"type", "revision"}, {"set", {{"#board/color", "#00ff00"}}}}), "applied", ""},
 	    {"revision", false, plain({{"type", "revision"}, {"set", {{"#title/text", "Mine"}}}}), "proposed", ""},
 	    {"revision", false, plain({{"type", "revision"}, {"set", {{"#statusBar/color", "#000000"}}}}), "rejected",
@@ -178,6 +194,8 @@ std::vector<Row> protocolTable() {
 	    {"request", false, plain({{"type", "request"}, {"id", "r1"}, {"text", "Make it blue"}}), "", ""},
 	    {"reply", true, plain({{"type", "reply"}, {"request", "r1"}, {"text", "Done"}}), "", ""},
 	};
+	std::ranges::move(convertRows(), std::back_inserter(rows));
+	return rows;
 }
 
 /// @brief The answer a row's message gets: the last message its sender received, which carries the message's id.

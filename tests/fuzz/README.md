@@ -8,6 +8,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | Target | Input | Checks, besides not crashing |
 |---|---|---|
 | `json` | Any text, to `parseUntrusted` (`core/Json.hpp`), and to `plainJson` | Throws only `json::parse_error` or `DocumentError`; what parses nests at most `maxNesting` levels; `plainJson` keeps the length, and plain JSON's value |
+| `notation` | Any text, to the Lisp notation's reader (`modules/notation`), and, if it is JSON, its value to the writer | Throws only `NotationError`; what reads nests at most `maxNesting` levels; what is written reads back as the same value, key order included, and is written the same again (canonical) |
 | `expression` | A JSON value (templates, `$` operators) or, if it isn't JSON, the inside of a `{{ }}` | Evaluating gives a value or a `DocumentError`, the only error the runtime catches |
 | `diff_functions` | A byte of options, then two texts cut at a zero byte, to the diff and JSON expression functions (`format/src/functions/ExpressionFunctionsDiff.cpp`): `diffLines`, `applyPatch`, `atPointer`, `formatJson` | Each gives a value or a `DocumentError`; every line number of a diff lies inside its text, and a patch that copies too much gives null |
 | `revision` | A revision's JSON, submitted to a `vcs::Repository` holding the Kanban template | A revision that isn't applied changes nothing; reverting one that is (directly or after review) restores the document and the state |
@@ -74,7 +75,8 @@ of these and what limits them.
 
 | Where bytes come in | Who controls them | Target, or why none |
 |---|---|---|
-| A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, a person's client, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout`, `policy` |
+| A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, a person's client, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout`, `policy`; `notation` for the Lisp text a `convert` message carries |
+| Documents in the Lisp notation (`.lisp` screens, includes, an app's parts) | Whoever made the files, an agent through `convert` | `notation` |
 | A peer's replies to the screen's own requests (`ask`) | Any peer | `ask_reply` |
 | A remote peer's opening (upgrade request, first message) | Anyone who reaches the document server | `peer_handshake`, `http_response` |
 | WebSocket frames, server-sent events, HTTP response heads | The server a connection opens, or a peer | `websocket`, `sse`, `http_response` |
@@ -124,7 +126,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `expression`, `diff_functions`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `data_uri`, `path`, `text_model`, `terminal`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `app_manifest`, `catalog_index`, `signature`, `composition`, `qr_code`, `url`, `oauth`, `history`, `token_file`, `git_output`, `key_press`, `git_policy`, `path_tree`, `gltf`, `scene` or `images` in place of
+Use `json`, `notation`, `expression`, `diff_functions`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `data_uri`, `path`, `text_model`, `terminal`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `app_manifest`, `catalog_index`, `signature`, `composition`, `qr_code`, `url`, `oauth`, `history`, `token_file`, `git_output`, `key_press`, `git_policy`, `path_tree`, `gltf`, `scene` or `images` in place of
 `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.

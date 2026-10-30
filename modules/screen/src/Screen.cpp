@@ -10,6 +10,7 @@
 #include "affresco/format/Migrate.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
+#include "affresco/notation/Notation.hpp"
 #include "affresco/themes/Themes.hpp"
 
 #include <algorithm>
@@ -82,8 +83,10 @@ json readInclude(const std::filesystem::path& path) {
 		throw ScreenError("AffrescoUI screen: include: " + path.string() + " is over 16 MiB");
 	json part;
 	try {
-		part = parseUntrusted(text);
+		part = notation::readDocument(text, path);
 	} catch(const json::parse_error&) { // NOLINT(bugprone-empty-catch): reported below, as not a JSON object
+	} catch(const notation::NotationError&) {
+		throw; // names the file, the line and the column already
 	} catch(const DocumentError& deep) {
 		throw ScreenError("AffrescoUI screen: include: " + path.string() + ": " + deep.what());
 	}
@@ -216,7 +219,7 @@ namespace detail {
 std::filesystem::path stateLocation(const std::filesystem::path& dataDirectory, const std::filesystem::path& screenFile,
                                     std::string_view suffix) {
 	std::string name = screenFile.filename().string();
-	for(const char* extension : {".json", ".screen"})
+	for(const char* extension : {".json", ".lisp", ".screen"}) // either notation: the same name
 		if(name.ends_with(extension)) name.resize(name.size() - std::string_view(extension).size());
 	if(name == "index") name = folderName(screenFile).value_or(name);
 	if(!dataDirectory.empty())
@@ -230,8 +233,8 @@ std::filesystem::path stateLocation(const std::filesystem::path& dataDirectory, 
 /// @param screenFile The screen file.
 /// @return The name.
 std::string templateName(const std::filesystem::path& screenFile) {
-	const std::string file = screenFile.filename().string();
-	if(file != "index.screen.json") return file;
+	std::string file = screenFile.filename().string(); // not const: returned, it moves
+	if(file != "index.screen.json" && file != "index.screen.lisp") return file;
 	const std::optional<std::string> folder = folderName(screenFile);
 	return folder ? *folder + "/" + file : file;
 }
@@ -283,7 +286,7 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 
 	std::stringstream content;
 	content << file.rdbuf();
-	Screen screen = fromString(content.str(), path.parent_path());
+	Screen screen = fromString(notation::jsonText(content.str(), path), path.parent_path()); // JSON or Lisp
 	screen.impl_->repairs.setTemplateName(detail::templateName(path));
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(detail::stateLocation(dataDirectory, path, ".history"));

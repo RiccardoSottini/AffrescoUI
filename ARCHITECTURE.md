@@ -42,13 +42,15 @@ flowchart TB
     data["<b>data</b> · Store<br/>models, records, migrations (SQLite)"]
     vcs["<b>vcs</b> · Repository<br/>commits, proposals, permissions"]
     channel["<b>channel</b> · sockets, processes, Session<br/>peers and the live protocol"]
+    notation["<b>notation</b> · read, write<br/>documents in JSON or Lisp"]
     render["<b>render</b> · Application, Window, Panel<br/>layout, text, input, OpenGL"]
     core["<b>core</b> · interfaces<br/>Executor · Channel · VersionControl · DocumentRules · ScreenImages · ComponentLibrary · Signal · Json · Log"]
 
     automation --> screen
     screen --> format & themes & vcs & channel
     format --> render & data
-    format & themes & vcs & channel & render & data --> core
+    screen & channel --> notation
+    format & themes & vcs & channel & render & data & notation --> core
 
     classDef root fill:#EEF2FF,stroke:#6366F1,stroke-width:1.5px,color:#1E1B4B
     classDef c_channel fill:#E0F2FE,stroke:#0284C7,stroke-width:1.5px,color:#0C4A6E
@@ -63,6 +65,7 @@ flowchart TB
     class format c_format
     class data c_format
     class themes c_format
+    class notation c_format
     class render c_render
     class core c_core
 ```
@@ -73,9 +76,10 @@ flowchart TB
 | [`render`](modules/render/README.md) | `affrescoui::render` | Windows, the panel tree, layout, text, input, OpenGL | `Executor` (`Application`) | |
 | [`format`](modules/format/README.md) | `affrescoui::format` | The screen format: validation, the checker, expressions, the runtime | `DocumentRules` (`Rules`), `VersionObserver` (the runtime) | `VersionControl`, `render`, `data` |
 | [`themes`](modules/themes/README.md) | `affrescoui::themes` | The kits' components and the themes' design tokens, as JSON files built in | `ComponentLibrary` | |
+| [`notation`](modules/notation/README.md) | `affrescoui::notation` | The notations documents are written in: JSON, and Lisp (S-expressions spelling the same tree); reading and writing either | | |
 | [`data`](modules/data/README.md) | `affrescoui::data` | The records: typed models, a SQLite store per app, queries, the journal, migrations, CSV import | | |
 | [`vcs`](modules/vcs/README.md) | `affrescoui::vcs` | Version control of any JSON document | `VersionControl` (`Repository`) | `DocumentRules` |
-| [`channel`](modules/channel/README.md) | `affrescoui::channel` | Transports and the live protocol | `Channel` | `Executor`, `VersionControl`, `ScreenImages` |
+| [`channel`](modules/channel/README.md) | `affrescoui::channel` | Transports and the live protocol | `Channel` | `Executor`, `VersionControl`, `ScreenImages`, `notation` |
 | [`screen`](modules/screen/README.md) | `affrescoui::affrescoui` | The composition root, `affresco::Screen` | `ScreenImages` | every module |
 | [`audio`](modules/audio/README.md) | `affrescoui::audio` | Sound: an output that mixes voices of files, bytes, streams and generators (miniaudio); optional (`AFFRESCOUI_AUDIO`) | | `Executor` |
 | [`automation`](modules/automation/README.md) | `affrescoui::automation` | Scenarios: the checks a screen ships with, played headless, pictures against golden images | | `screen` |

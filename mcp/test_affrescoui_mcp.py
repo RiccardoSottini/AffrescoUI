@@ -276,6 +276,86 @@ class Models(unittest.TestCase):
         self.assertIn('impact: {"view":1,"logic":0,"model":[],"data":"none"}', said)
 
 
+class Notation(unittest.TestCase):
+    """notation "lisp": the host converts (one implementation, the library's); the history stays JSON."""
+
+    class ScriptedHost:
+        """Answers each message by its type, and keeps what it was asked."""
+
+        def __init__(self, replies):
+            self.replies, self.asked = replies, []
+
+        def request(self, message):
+            self.asked.append(message)
+            return self.replies[message["type"]]
+
+    LISP = "(label #logo :text Flow)\n"
+
+    def server_with(self, replies):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.host = self.ScriptedHost(replies)
+        return server
+
+    def test_json_is_the_default_and_asks_for_no_conversion(self):
+        server = self.server_with({"getDocument": {"type": "document", "document": SCREEN, "state": {}, "revision": 1}})
+        text, failed = server.call_tool("get_screen", {"at": "#logo"})
+        self.assertFalse(failed)
+        self.assertEqual([message["type"] for message in server.host.asked], ["getDocument"])
+        self.assertIn('"node":{"id":"logo"', text)
+
+    def test_a_node_in_lisp_is_written_by_the_host(self):
+        server = self.server_with({"getDocument": {"type": "document", "document": SCREEN, "state": {}, "revision": 1},
+                                   "convert": {"type": "converted", "notation": "lisp", "text": self.LISP}})
+        text, failed = server.call_tool("get_screen", {"at": "#logo", "notation": "lisp"})
+        self.assertFalse(failed)
+        convert = server.host.asked[1]
+        self.assertEqual(convert, {"type": "convert", "notation": "lisp",
+                                   "value": {"id": "logo", "type": "label", "text": "Flow"}})
+        facts, lisp = text.split("\n", 1)
+        self.assertEqual(json.loads(facts)["at"], "/root/children/0/children/0")
+        self.assertEqual(lisp, self.LISP)
+
+    def test_the_whole_document_in_lisp_then_changes_as_json(self):
+        server = self.server_with({"getDocument": {"type": "document", "document": SCREEN, "state": {}, "revision": 1},
+                                   "convert": {"type": "converted", "notation": "lisp", "text": self.LISP}})
+        text, failed = server.call_tool("get_screen", {"notation": "lisp"})
+        self.assertFalse(failed)
+        self.assertTrue(text.endswith(self.LISP))
+        self.assertEqual(server.host.asked[1]["value"]["root"], SCREEN["root"])
+        text, failed = server.call_tool("get_screen", {"notation": "lisp"})
+        self.assertIn('"unchanged":true', text)  # a re-read: what changed, as a JSON Patch
+
+    def test_a_revision_in_lisp_becomes_the_same_json(self):
+        change = {"set": {"#logo/text": "Hello"}, "add": {"#topBar/children/-": {"id": "new", "type": "label"}}}
+        server = self.server_with({"convert": {"type": "converted", "notation": "lisp", "value": change},
+                                   "revision": {"type": "applied", "revision": 2, "commit": "abcdef0123"}})
+        text, failed = server.call_tool("submit_revision", {
+            "message": "Hello", "notation": "lisp",
+            "revision": '{:set {"#logo/text" Hello} :add {"#topBar/children/-" (label #new)}}'})
+        self.assertFalse(failed, text)
+        self.assertEqual(server.host.asked[0]["type"], "convert")
+        self.assertEqual(server.host.asked[1], {"type": "revision", "author": server.client, "message": "Hello",
+                                                **change})
+
+    def test_a_revision_the_host_cant_read_is_an_error_and_nothing_is_sent(self):
+        server = self.server_with({"convert": {"type": "rejected", "error": "line 1, column 7: expected ')'"}})
+        text, failed = server.call_tool("submit_revision", {"message": "x", "notation": "lisp", "revision": "(label"})
+        self.assertTrue(failed)
+        self.assertIn("line 1, column 7", text)
+        self.assertEqual([message["type"] for message in server.host.asked], ["convert"])
+
+    def test_a_revision_that_isnt_an_object_is_refused(self):
+        server = self.server_with({"convert": {"type": "converted", "notation": "lisp", "value": [1, 2]}})
+        text, failed = server.call_tool("submit_revision", {"message": "x", "notation": "lisp", "revision": "[1 2]"})
+        self.assertTrue(failed)
+        self.assertEqual(len(server.host.asked), 1)
+
+    def test_the_tools_offer_the_notation(self):
+        for name in ("get_screen", "submit_revision"):
+            tool = next(tool for tool in mcp.TOOLS if tool["name"] == name)
+            self.assertEqual(tool["inputSchema"]["properties"]["notation"]["enum"], ["json", "lisp"])
+
+
 class Composition(unittest.TestCase):
     """check_composition and install_feature return the proof's reasons, never the document, and install only what a
     passed proof made."""

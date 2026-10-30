@@ -9,6 +9,7 @@
 #include <affresco/core/Log.hpp>
 #include <affresco/format/App.hpp>
 #include <affresco/format/Rules.hpp>
+#include <affresco/notation/Notation.hpp>
 
 #include <algorithm>
 #include <array>
@@ -24,7 +25,7 @@ namespace {
 
 /// @brief One problem the check found.
 struct Problem {
-	std::string source;  ///< "json", "schema", "format" or "checker".
+	std::string source;  ///< "json" (or "lisp", the file's notation), "schema", "format" or "checker".
 	std::string place;   ///< Where, if it is known apart from the message.
 	std::string message; ///< What.
 };
@@ -54,12 +55,13 @@ std::optional<std::pair<json, json>> load(const std::string& text, const std::fi
 /// @return What it found.
 std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	const std::string text = readFile(path);
+	const notation::Notation spelling = notation::notationOf(path);
 	std::vector<Problem> problems;
 	json document;
 	try {
-		document = parseUntrusted(text);
+		document = notation::readDocument(text, path);
 	} catch(const std::exception& error) {
-		problems.push_back({"json", "", error.what()});
+		problems.push_back({std::string(notation::nameOf(spelling)), "", error.what()});
 		return problems;
 	}
 
@@ -67,7 +69,7 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	for(SchemaProblem& problem : schema.check(document))
 		problems.push_back({"schema", std::move(problem.place), std::move(problem.problem)});
 
-	const auto loaded = load(text, path.parent_path(), problems);
+	const auto loaded = load(notation::jsonText(text, path), path.parent_path(), problems);
 	const format::Rules rules;
 	const json& checked = loaded ? loaded->first : document;
 	for(std::string& finding :
@@ -93,7 +95,7 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 	const std::filesystem::path entry = manifest.parent_path() / app.entry;
 	try {
 		Schema schema(json::parse(embeddedSchema()));
-		for(SchemaProblem& problem : schema.check(parseUntrusted(readFile(entry))))
+		for(SchemaProblem& problem : schema.check(notation::readDocument(readFile(entry), entry)))
 			problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
 	} catch(const std::exception& error) {
 		problems.push_back({"json", app.entry, error.what()});

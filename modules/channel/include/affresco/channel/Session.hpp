@@ -132,6 +132,13 @@ private:
 	/// @return false if it isn't one.
 	/// @throws DocumentError If it is malformed, or the target isn't there.
 	bool handleBlame(const Incoming& in);
+	/// @brief Handles convert (Convert.cpp): `{"type": "convert", "notation": "lisp", "text": "..."}` answers
+	/// `{"type": "converted", "value": ...}`, and with `value` instead of `text`, the value's `text` in the notation.
+	/// @param in The message.
+	/// @return false if it isn't one.
+	/// @throws DocumentError If it is malformed, or the text isn't a value in the notation (a NotationError, with the
+	/// line and column).
+	bool handleConvert(const Incoming& in);
 	/// @brief The "review" message: proposals, preview, mode and grants.
 	[[nodiscard]] json reviewState() const;
 

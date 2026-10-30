@@ -28,7 +28,8 @@ target_include_directories(affrescoui PRIVATE $<TARGET_PROPERTY:affrescoui_forma
 	${PROJECT_SOURCE_DIR}/modules/vcs/src
 	${PROJECT_SOURCE_DIR}/modules/screen/src) # its own private headers, from every sub-folder
 target_link_libraries(affrescoui PUBLIC affrescoui::core affrescoui::render affrescoui::format affrescoui::vcs
-	affrescoui::channel affrescoui::net affrescoui::services affrescoui::data affrescoui::themes)
+	affrescoui::channel affrescoui::net affrescoui::services affrescoui::data affrescoui::themes
+	affrescoui::notation) # its files in JSON or Lisp (notation::readDocument())
 # The audio engine screens play on (Screen::audio()), when the audio module is built
 if(AFFRESCOUI_AUDIO)
 	target_sources(affrescoui PRIVATE src/ScreenAudio.cpp)
