@@ -6,7 +6,9 @@ child process, and `StdioChannel` over the app's own stdin and stdout (how MCP c
 of them, `Session` speaks the live-document protocol (`SCREEN_FORMAT.md`, "Peers and the live protocol") for one
 peer: it reads the document and its history, sends revisions, and, if the document lets it review, decides on
 proposals. It only sees `core` interfaces (`VersionControl`, `ScreenImages`), so it works with any document format.
-Target: `affrescoui::channel` (uses `core` and nlohmann/json; Winsock on Windows).
+Its `convert` message reads and writes the Lisp notation for a peer (`notation`, a leaf that knows only text and
+JSON), so that revisions and the history stay JSON. Target: `affrescoui::channel` (uses `core`, `notation` and
+nlohmann/json; Winsock on Windows).
 
 ## Public headers (`include/affresco/channel/`)
 
@@ -94,6 +96,7 @@ src/
     Channels.cpp            ProcessChannel and StdioChannel; the process platform layer (POSIX and Windows)
   session/
     Session.cpp             the live protocol: reading, answering, base64 pictures, relaying
+    Convert.cpp             the convert message: text in a notation into its value, and back
 CMakeLists.txt              the affrescoui_channel target and its sources
 ```
 

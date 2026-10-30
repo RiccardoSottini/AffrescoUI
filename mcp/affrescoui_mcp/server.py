@@ -262,6 +262,7 @@ class Server:
         info = screen_info(reply)
         depth = args.get("depth")
         depth = max(0, int(depth)) if isinstance(depth, (int, float)) and not isinstance(depth, bool) else None
+        lisp = args.get("notation") == "lisp"
         try:
             if args.get("outline"):
                 return compact(info) + "\n" + outline(document, args.get("at"), depth), False
@@ -269,6 +270,8 @@ class Server:
                 pointer, node = locate(document, args["at"])
                 address = str(args["at"]) if str(args["at"]).startswith("#") else pointer
                 node = pruned(node, address, depth) if depth is not None else node
+                if lisp:
+                    return self.in_lisp({**info, "at": pointer}, node)
                 return compact({**info, "at": pointer, "node": node}), False
         except ValueError as failure:
             return f"error: {failure}", True
@@ -277,7 +280,17 @@ class Server:
             self.seen = document
             return compact({**info, "changes": changes} if changes else {**info, "unchanged": True}), False
         self.seen = document
+        if lisp:
+            return self.in_lisp(info, document)
         return compact({**info, "document": document}), False
+
+    def in_lisp(self, info, value):
+        """A read in the Lisp notation: the facts as JSON on the first line, then the value as Lisp text, written by
+        the host (one implementation of the notation, the library's)."""
+        reply = self.host.request({"type": "convert", "notation": "lisp", "value": value})
+        if reply.get("type") != "converted":
+            return host_failure(reply)
+        return compact(info) + "\n" + str(reply.get("text", "")), False
 
     def get_contributions(self, args):
         """An app's contribution points, exports and installable parts, as affrescoui contributions prints them."""
@@ -383,11 +396,20 @@ class Server:
         return part, False
 
     def submit_revision(self, args):
-        """The submit_revision tool: a change, authored by this connection, applied or proposed as the rules say."""
+        """The submit_revision tool: a change, authored by this connection, applied or proposed as the rules say. With
+        notation "lisp", the change is the Lisp text in `revision`, which the host reads into the same JSON first."""
+        fields = args
+        if args.get("notation") == "lisp":
+            reply = self.host.request({"type": "convert", "notation": "lisp", "text": str(args.get("revision", ""))})
+            if reply.get("type") != "converted":
+                return host_failure(reply)
+            fields = reply.get("value")
+            if not isinstance(fields, dict):
+                return "error: revision: expected an object, e.g. {:set {:\"#title/text\" Hello}}", True
         revision = {"type": "revision", "author": self.client, "message": args.get("message", "")}
         for key in ("patch", "set", "add", "remove", "move", "parent", "proposal", "assets", "run"):
-            if key in args:
-                revision[key] = args[key]
+            if key in fields:
+                revision[key] = fields[key]
         return describe(self.host.request(revision))
 
     def get_history(self, args):

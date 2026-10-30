@@ -294,7 +294,8 @@ void Session::handle(const std::string& line) {
 			reply["revision"] = versions_.head().number;
 			reply["id"] = in.id;
 			send(reply);
-		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in) && !handleBlame(in)) {
+		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in) && !handleBlame(in) &&
+		          !handleConvert(in)) {
 			send({{"type", "error"}, {"message", "unknown message type '" + in.type + "'"}, {"id", in.id}});
 		}
 	} catch(const DocumentError& error) {

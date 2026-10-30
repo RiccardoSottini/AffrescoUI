@@ -636,3 +636,60 @@ TEST_CASE("channel: render refuses what it can't draw") {
 	REQUIRE(other.sent.size() == 3); // hello, the review state its joining changed, then the answer
 	CHECK(other.sent[2]["error"] == "AffrescoUI screen: render: this host draws no pictures");
 }
+
+TEST_CASE("channel: convert reads text in the Lisp notation into its value, and writes a value as its text") {
+	Peer peer;
+	const affresco::channel::Session session(peer.channel, peer.versions, "agent");
+	peer.channel.receive(R"~({"type": "convert", "notation": "lisp", "text": "(label #hi :text Hi)", "id": 1})~");
+	CHECK(peer.channel.sent.back() == json::parse(R"({"type": "converted", "notation": "lisp",
+		"value": {"type": "label", "id": "hi", "text": "Hi"}, "id": 1})"));
+
+	peer.channel.receive(R"({"type": "convert", "notation": "lisp", "value": {"type": "label", "id": "hi"}, "id": 2})");
+	CHECK(peer.channel.sent.back()["text"] == "(label #hi)\n");
+
+	// A mistake is rejected with its line and column; a message that says neither or both, or another notation, too
+	peer.channel.receive(R"({"type": "convert", "notation": "lisp", "text": "(label\n  #hi", "id": 3})");
+	CHECK(peer.channel.sent.back()["type"] == "rejected");
+	CHECK(peer.channel.sent.back()["error"] ==
+	      "AffrescoUI screen: line 2, column 6: expected ')' to close the node opened at line 1, column 1");
+	for(const char* message :
+	    {R"({"type": "convert", "notation": "lisp"})",
+	     R"({"type": "convert", "notation": "lisp", "text": "1", "value": 1})",
+	     R"({"type": "convert", "notation": "yaml", "text": "1"})", R"({"type": "convert", "text": "1"})"}) {
+		CAPTURE(message);
+		peer.channel.receive(message);
+		CHECK(peer.channel.sent.back()["type"] == "rejected");
+	}
+	CHECK(peer.versions.head().number == 0); // nothing changed
+}
+
+TEST_CASE("channel: a revision written in the Lisp notation commits the same change as its JSON") {
+	const auto submit = [](Peer& peer, const json& change) {
+		const affresco::channel::Session session(peer.channel, peer.versions, "studio");
+		json revision = {{"type", "revision"}, {"message", "Greet"}};
+		revision.update(change);
+		peer.channel.receive(revision.dump());
+		REQUIRE(peer.channel.sent.back()["type"] == "applied");
+		peer.channel.receive(R"({"type": "diff", "from": 0, "to": 1})");
+		return peer.channel.sent.back()["patch"];
+	};
+	Peer written;
+	const json patch = submit(written, json::parse(R"({"set": {"#title/text": "Hello"},
+		"add": {"#main/children/-": {"type": "label", "id": "hi", "text": "Hi there"}}})"));
+
+	Peer spelt;
+	{
+		const affresco::channel::Session reader(spelt.channel, spelt.versions, "studio");
+		spelt.channel.receive(
+		    json{{"type", "convert"},
+			     {"notation", "lisp"},
+			     {"text", R"~({:set {:"#title/text" Hello} :add {:"#main/children/-" (label #hi :text "Hi there")}})~"}}
+		        .dump());
+	}
+	const auto converted =
+	    std::ranges::find(spelt.channel.sent, json("converted"), [](const json& m) { return m["type"]; });
+	REQUIRE(converted != spelt.channel.sent.end());
+	const json change = (*converted)["value"];
+	CHECK(submit(spelt, change) == patch);
+	CHECK(spelt.versions.document().dump() == written.versions.document().dump());
+}
