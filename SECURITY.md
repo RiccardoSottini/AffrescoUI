@@ -45,10 +45,10 @@ The program that embeds AffrescoUI (the host) is trusted, and so is everything i
 
 The screen file, its includes and the state file are read with the JSON nesting limit (256 levels), but none of the
 other checks applied to peers. A file in the Lisp notation (`.lisp`) is read to the same JSON tree with the same
-limits (256 levels, numbers of at most 40 characters, and at most 64 MiB); it is data only, never evaluated. Don't load a screen file or change set you wouldn't run as a program. The state file
-is the exception to "trusted": it holds the persisted parts of the live state, which peers can change, and it is read
-back at the next start with only that nesting limit. Keep the paths a screen persists out of reach of agents you
-don't trust.
+limits (256 levels, numbers of at most 40 characters, and at most 64 MiB); it is data only, never evaluated. Don't
+load a screen file or change set you wouldn't run as a program. The state file is the exception to "trusted": it
+holds the persisted parts of the live state, which peers can change, and it is read back at the next start with only
+that nesting limit. Keep the paths a screen persists out of reach of agents you don't trust.
 
 The history of a screen opened from a file is kept next to the state file, in `<file name>.history/` (the data
 folder: `~/.affrescoui`, `AFFRESCOUI_DATA_DIR` or `--data`; see VERSION_CONTROL.md, "History on disk"). It is read

@@ -2137,8 +2137,9 @@ text.
 
 Any file the screen loader reads (a screen, its `include`s, an app's entry, themes and models) may be written in the
 **Lisp notation** instead of JSON: S-expressions that spell **the same JSON tree**, without the quotes around keys
-and words, and with a node's type and id at its head. A file is in the Lisp notation when its name ends in `.lisp` (`board.screen.lisp`, `parts/drawer.lisp`); the
-two notations mix freely, a JSON screen including a Lisp file and the other way round.
+and words, and with a node's type and id at its head. A file is in the Lisp notation when its name ends in `.lisp`
+(`board.screen.lisp`, `parts/drawer.lisp`); the two notations mix freely, a JSON screen including a Lisp file and the
+other way round.
 
 ```lisp
 ; Flow's insights panel: a comment runs to the end of the line
