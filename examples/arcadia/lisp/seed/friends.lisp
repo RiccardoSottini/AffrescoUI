@@ -1,0 +1,11 @@
+[(node #f1 :name MossyGolem :avatar frog :presence ingame :game neon :since 0)
+  (node #f2 :name NightDrifter :avatar owl :presence online :since 0)
+  (node #f3 :name StarFinch :avatar bird :presence away :since 0)
+  (node #f4 :name KeepBurner :avatar knight :presence ingame :game ironhollow :since 0)
+  (node #f5 :name TideReader :avatar cat :presence offline :since 2)
+  (node #f6 :name OrbitKeeper :avatar astronaut :presence online :since 0)
+  (node #f7 :name LanternFox :avatar ghost :presence offline :since 9)
+  (node #f8 :name QuietComet :avatar alien :presence away :since 0)
+  (node #f9 :name IronMole :avatar bear :presence ingame :game starfall :since 0)
+  (node #f10 :name Slimetime :avatar slime :presence offline :since 31)
+  (node #f11 :name BoltBot :avatar robot :presence offline :since 4)]

@@ -1,0 +1,16 @@
+{:$schema "../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "Markdown: include it to colour and edit Markdown in an editor ({ \"language\": \"markdown\" })."
+  :languages {:markdown {:title Markdown
+      :aliases [md mdx]
+      :files ["*.md" "*.markdown" "*.mdx"]
+      :comments {:block ["<!--" "-->"]}
+      :brackets [["(" ")"] ["[" "]"]]
+      :pairs [["(" ")"] ["[" "]"] ["`" "`"]]
+      :patterns [{:begin "^ {0,3}(`{3,}|~{3,})" :end "^ {0,3}\\1" :scope string.fenced}
+        {:match "^ {4,}\\S.*" :scope string.indented}
+        {:match "^ {0,3}#.*" :scope heading}
+        {:match "^ {0,3}([-*])(?= )" :captures {:"1" {:scope keyword.list}}}
+        {:match "`[^`]*`?" :scope string.code}
+        {:begin "<!--" :end "-->" :scope comment.block}]}}}

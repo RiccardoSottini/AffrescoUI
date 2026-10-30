@@ -1,0 +1,123 @@
+{:$schema "../../../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "Forge's panels: Problems (TODO and FIXME lines of the open files, a click goes to the line), Output (a log every feature writes to with the notify action), the notification centre over the status bar's bell (the toast's history) and progress (a toast with a bar while a long task runs). The panel's tabs and the status bar counts come from this state."
+  :state {:problems [] :output [] :notifications [] :toast {:open false :message "" :progress nil} :panelTab problems}
+  :computed {:errors "{{count(state.problems, it.severity == 'error')}}"
+    :warnings "{{count(state.problems, it.severity == 'warning')}}"
+    :problemRows "{{map(state.problems, {id: index, icon: it.severity == 'error' ? 'circle-x' : it.severity == 'warning' ? 'alert-triangle' : 'info', iconColor: it.severity == 'error' ? '#f85149' : it.severity == 'warning' ? '#cca700' : '#3794ff', cells: [it.message, it.label, it.line]})}}"
+    :outputRows "{{map(state.output, {id: index, label: time(it.time, 'HH:mm:ss') + '  ' + it.text})}}"
+    :notificationRows "{{map(reverse(state.notifications), {id: index, label: it.message, icon: it.severity == 'error' ? 'circle-x' : 'bell'})}}"}
+  :actions {:notify [{:push state.output :value "{{ {time: now(), text: '[' + severity + '] ' + message} }}"}
+      {:push state.notifications :value "{{ {time: now(), severity: severity, message: message} }}"}
+      {:set state.toast :to "{{ {open: true, message: message, progress: null} }}"}
+      {:debounce 4000 :do [{:set state.toast.open :to false}]}]
+    :log [{:push state.output :value "{{ {time: now(), text: text} }}"}]
+    :goToProblem [{:forEach "{{[state.problems[number(event.id)]]}}"
+        :as p
+        :do [{:run showTab :with (node #"{{p.file}}" :label "{{p.label}}")} {:run goToLine :with {:line "{{p.line}}"}}]}]
+    :showProblems {:title "Focus Problems"
+      :category View
+      :icon alert-triangle
+      :do [{:set state.layout.panel :to true} {:set state.panelTab :to problems}]}
+    :showOutput {:title "Focus Output"
+      :category View
+      :icon terminal
+      :do [{:set state.layout.panel :to true} {:set state.panelTab :to output}]}
+    :showNotifications {:title "Show Notifications" :category View :icon bell :do [{:toggle state.notificationCentre}]}
+    :clearOutput {:title "Clear Output" :category Output :do [{:set state.output :to []}]}
+    :clearNotifications {:title "Clear All Notifications"
+      :category Notifications
+      :do [{:set state.notifications :to []}
+        {:set state.toast.open :to false}
+        {:set state.notificationCentre :to false}]}
+    :reindex {:title "Reindex Folder"
+      :category Files
+      :icon folder
+      :description "Read the folder again, showing the progress."
+      :do [{:set state.toast :to {:open true :message "Indexing the folder" :progress 0.2}}
+        {:run explorerRefresh}
+        {:invoke search.files
+          :with {:exclude "{{state.folder.skip}}"}
+          :onError [{:run notify :with {:severity error :message "{{'Indexing failed: ' + error.message}}"}}]
+          :onDone [{:run indexed :with {:files "{{result.files}}"}}
+            {:set state.toast.progress :to 1}
+            {:run log
+              :with {:text "{{'Indexed ' + plural(length(result.files), 'file') + (result.truncated ? ' (truncated)' : '')}}"}}
+            {:debounce 1500 :do [{:set state.toast.open :to false}]}]}]}}
+  :menus {:view {:problems {:run showProblems :group "3_panels" :order 1}
+      :output {:run showOutput :group "3_panels" :order 2}
+      :notifications {:run showNotifications :group "3_panels" :order 3}
+      :maximizePanel {:run toggleMaximizedPanel :group "3_panels" :order 4}}}
+  :watch {:state.panelTab [{:if "{{state.panelTab == 'terminal' && length(state.terminals.list) == 0 && state.layout.panel}}"
+        :then [{:run terminalNew}]}]}
+  :keys {:"mod+shift+m" showProblems :"mod+shift+u" showOutput}
+  :components {:forgePanel {:node (column #panel :role region :label Panel :color @color.panel
+        (row #panel-head :width "100%" :height 32 :alignItems center
+          (tabs #panel-tabs
+            :role tablist
+            :label "Panel Views"
+            :width 420
+            :height 32
+            :bind state.panelTab
+            :color @color.panel
+            :textColor @color.muted
+            :activeTextColor @color.text
+            :activeBackground @color.panel
+            :accentColor @color.accent
+            :tabs "{{[{id: 'problems', label: 'Problems' + (length(state.problems) > 0 ? ' ' + length(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'debugConsole', label: 'Debug Console', closable: false}, {id: 'terminal', label: 'Terminal', closable: false}]}}")
+          (node #panel-gap :grow 1)
+          (node :use forgeTitleButton
+            #panel-new-terminal
+            :when "{{state.panelTab == 'terminal'}}"
+            :with {:icon plus :tip "New Terminal"}
+            :onClick {:run terminalNew})
+          (node :use forgeTitleButton
+            #panel-clear-output
+            :when "{{state.panelTab == 'output'}}"
+            :with {:icon list-x :tip "Clear Output"}
+            :onClick {:run clearOutput})
+          (node :use forgeTitleButton
+            #panel-maximize
+            :with {:icon "{{state.layout.panelMax ? 'chevron-down' : 'chevron-up'}}"
+              :tip "{{state.layout.panelMax ? 'Restore Panel Size' : 'Maximize Panel Size'}}"}
+            :onClick {:run toggleMaximizedPanel})
+          (node :use forgeTitleButton #panel-close :with {:icon x :tip "Hide Panel (Cmd+J)"} :onClick {:run togglePanel})
+          (node #panel-end :width 8))
+        (label #problems-empty
+          :when "{{state.panelTab == 'problems' && empty(state.problems)}}"
+          :width "100%"
+          :padding 12
+          :text "No problems found in the open files so far."
+          :textColor @color.text)
+        (node :when "{{state.panelTab == 'problems' && !empty(state.problems)}}"
+          :type table
+          #problems
+          :label Problems
+          :width "100%"
+          :grow 1
+          :items "{{computed.problemRows}}"
+          :rowHeight 22
+          :color @color.panel
+          :textColor @color.text
+          :selectedBackground @color.selection
+          :accentColor @color.accent
+          :columns [(node #message :title Message :width 420)
+            (node #file :title File :width 160)
+            (node #line :title Line :width 60)]
+          :onOpen {:run goToProblem})
+        (node :when "{{state.panelTab == 'output'}}"
+          :type list
+          #output
+          :role log
+          :label Output
+          :width "100%"
+          :grow 1
+          :items "{{computed.outputRows}}"
+          :rowHeight 20
+          :font code
+          :color @color.panel
+          :textColor @color.text
+          :selectedBackground @color.selection)
+        {:when "{{state.panelTab == 'terminal'}}" :use forgeTerminal}
+        {:when "{{state.panelTab == 'debugConsole'}}" :use forgeDebugConsole})}}}

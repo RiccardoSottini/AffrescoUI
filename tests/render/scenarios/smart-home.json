@@ -1,7 +1,7 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/haven",
+	"screens": "../../../examples/haven/json",
 	"scenarios": [
 		{
 			"name": "smart-home",

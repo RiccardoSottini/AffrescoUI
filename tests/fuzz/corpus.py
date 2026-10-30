@@ -54,7 +54,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
 DOCS = [ROOT / "SCREEN_FORMAT.md", ROOT / "VERSION_CONTROL.md"]
-KANBAN = EXAMPLES / "flow" / "index.screen.json"
+KANBAN = EXAMPLES / "flow" / "json" / "index.screen.json"
 MAX_NESTING = 256  # maxNesting in modules/core/include/affresco/core/Json.hpp
 
 # Values for the fields the protocol table names, and the fields of the messages it lists without them
@@ -501,25 +501,25 @@ def frames_seeds():
 
 def feature_seeds():
     """Forge's feature manifests, and its catalogue's index and manifest copies (examples/forge)."""
-    forge = ROOT / "examples" / "forge"
+    forge = ROOT / "examples" / "forge" / "json"
     return [path.read_text(encoding="utf-8") for path in sorted(forge.glob("features/*/feature.json"))
             + sorted(forge.glob("catalog/**/*.json"))]
 
 
 def app_seeds():
     """Every app's manifest (app.json), and the templates, which read as screens using capabilities."""
-    manifests = sorted(ROOT.glob("examples/*/app.json")) + sorted(ROOT.glob("apps/*/app.json"))
+    manifests = sorted(ROOT.glob("examples/*/json/app.json")) + sorted(ROOT.glob("apps/*/app.json"))
     return [path.read_text(encoding="utf-8") for path in manifests] + [path.read_text(encoding="utf-8")
                                                                        for path in templates("*.screen.json")]
 
 
 def composition_seeds():
-    """The slide sorter's manifest with each of Tempera's adapters, and Tempera's points and exports (examples/tempera/sorter)."""
+    """The slide sorter's manifest with each of Tempera's adapters, and Tempera's points and exports (examples/tempera/json/sorter)."""
     examples = ROOT / "examples"
-    manifest = json.loads((examples / "sinopia" / "features" / "slide-sorter" / "feature.json").read_text(encoding="utf-8"))
-    tempera = json.loads((examples / "tempera" / "index.screen.json").read_text(encoding="utf-8"))
+    manifest = json.loads((examples / "sinopia" / "json" / "features" / "slide-sorter" / "feature.json").read_text(encoding="utf-8"))
+    tempera = json.loads((examples / "tempera" / "json" / "index.screen.json").read_text(encoding="utf-8"))
     host = {part: tempera[part] for part in ("points", "exports") if part in tempera}
-    adapters = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((examples / "tempera" / "sorter").glob("*.adapter.json"))]
+    adapters = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((examples / "tempera" / "json" / "sorter").glob("*.adapter.json"))]
     return [compact({"manifest": manifest, "adapter": adapter, **host}) for adapter in [None] + adapters]
 
 

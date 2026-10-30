@@ -87,8 +87,8 @@
 					"type": "object",
 					"maxProperties": 64,
 					"propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9_]{0,63}$" },
-					"additionalProperties": { "$ref": "#/$defs/path", "pattern": "\\.(json|csv)$" },
-					"description": "A collection's first records, imported on first run: a JSON list of records, or a CSV file whose header names the fields (an \"id\" column gives the ids)."
+					"additionalProperties": { "$ref": "#/$defs/path", "pattern": "\\.(json|lisp|csv)$" },
+					"description": "A collection's first records, imported on first run: a list of records in JSON or the Lisp notation, or a CSV file whose header names the fields (an \"id\" column gives the ids)."
 				}
 			}
 		},

@@ -208,7 +208,8 @@ void readData(const json& section, AppManifest& manifest) {
 		if(!plainName(collection) || collection.find_first_of(".-") != std::string::npos)
 			fail("data.seed", "'" + collection + "' is not a collection's name");
 		std::string read = path(file, place);
-		if(!read.ends_with(".json") && !read.ends_with(".csv")) fail(place, "expected a .json or .csv file");
+		if(!read.ends_with(".json") && !read.ends_with(".lisp") && !read.ends_with(".csv"))
+			fail(place, "expected a .json, .lisp or .csv file");
 		manifest.seed.emplace_back(collection, std::move(read));
 	}
 }

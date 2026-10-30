@@ -5,8 +5,8 @@ adjustment layers and colour management, on sparse copy-on-write tiles. It is a 
 `affrescoui_launcher` runs, with nothing compiled for it.
 
 ```sh
-./build/affrescoui_launcher examples/tempera/index.screen.json --socket out/s   # opens the sample
-./build/affrescoui test examples/tempera/index.scenarios.json                   # the 62 scenarios (ctest: scenarios)
+./build/affrescoui_launcher examples/tempera/json/index.screen.json --socket out/s   # opens the sample
+./build/affrescoui test examples/tempera/json/index.scenarios.json                   # the 62 scenarios (ctest: scenarios)
 ```
 
 It opens a generated sample (1200 × 800: Sky, Sun and Hills), drawn by `onLoad`.

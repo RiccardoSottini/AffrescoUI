@@ -1,0 +1,104 @@
+{:$schema "../../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "The deck a new Sinopia window opens with (invented). A slide has a layout, objects, notes, a transition and animations; an object filling a placeholder names it (ph) and takes the layout's frame until it is moved. Text is paragraphs separated by newlines, each indented four spaces a level."
+  :state {:deck {:title "Harbour Lights"
+      :size [960 540]
+      :theme tide
+      :variant 0
+      :next 40
+      :sections [(node #a :name Introduction :first 0) (node #b :name "The plan" :first 2)]
+      :slides [(node #s1
+          :layout title
+          :notes "Welcome everyone. Two minutes on why we are doing this, then the plan."
+          :transition {:kind fade :ms 700}
+          :objects [(node #o1 :kind text :ph ctrTitle :text "Harbour Lights")
+            (node #o2 :kind text :ph subTitle :text "A winter festival on the waterfront\nPlanning review · Spring")])
+        (node #s2
+          :layout content
+          :notes "The numbers come from last year's pilot weekend."
+          :transition {:kind push :ms 600 :direction left}
+          :objects [(node #o3 :kind text :ph title :text "Why the harbour")
+            (node #o4
+              :kind text
+              :ph body
+              :text "The quay is empty after dark from November to March\nThe pilot weekend drew 4,200 visitors\n    68% came from outside the town\n    Cafés stayed open two hours later\nThe old crane and the warehouses make a stage of their own")]
+          :animations [(node #a1 :target o4 :effect fade :kind entrance :start click :ms 500 :delay 0)])
+        (node #s3
+          :layout two
+          :notes "Light trail on the left, evening programme on the right."
+          :transition {:kind wipe :ms 600 :direction left}
+          :objects [(node #o5 :kind text :ph title :text Programme)
+            (node #o6
+              :kind text
+              :ph body
+              :text "Light trail\n    Twelve installations along the quay\n    Lantern boats on Friday\nFood market in the warehouses")
+            (node #o7
+              :kind text
+              :ph body2
+              :text "Evening stage\n    Local choirs and bands\n    Silent cinema on the sea wall\nWorkshops for schools")])
+        (node #s4
+          :layout titleOnly
+          :notes "Each phase has one owner. Building starts once the permits are in."
+          :transition {:kind glide :ms 900}
+          :objects [(node #o8 :kind text :ph title :text Timeline)
+            (node #o9
+              :kind shape
+              :shape homePlate
+              :x 66
+              :y 200
+              :w 210
+              :h 90
+              :fill accent1
+              :text "Plan\nJan – Feb"
+              :size 20)
+            (node #o10
+              :kind shape
+              :shape chevron
+              :x 270
+              :y 200
+              :w 210
+              :h 90
+              :fill accent2
+              :text "Build\nMar – Apr"
+              :size 20)
+            (node #o11 :kind shape :shape chevron :x 474 :y 200 :w 210 :h 90 :fill accent3 :text "Open\nMay" :size 20)
+            (node #o12 :kind shape :shape chevron :x 678 :y 200 :w 210 :h 90 :fill accent4 :text "Review\nJune" :size 20)
+            (node #o13
+              :kind shape
+              :shape wedgeRoundRectCallout
+              :x 560
+              :y 352
+              :w 250
+              :h 84
+              :fill light2
+              :line accent1
+              :color dark1
+              :text "Permits are the long pole"
+              :size 18)
+            (node #o14 :kind line :shape lineArrow :x 140 :y 330 :w 600 :h 0 :line dark2 :lineWidth 2)]
+          :animations [(node #a2 :target o9 :effect wipe :kind entrance :start click :ms 500 :delay 0)
+            (node #a3 :target o10 :effect wipe :kind entrance :start after :ms 500 :delay 0)
+            (node #a4 :target o11 :effect wipe :kind entrance :start after :ms 500 :delay 0)
+            (node #a5 :target o12 :effect wipe :kind entrance :start after :ms 500 :delay 0)])
+        (node #s5
+          :layout comparison
+          :notes "Budget is the same either way; the difference is who carries the risk."
+          :transition {:kind fade :ms 700}
+          :objects [(node #o15 :kind text :ph title :text "Two ways to run it")
+            (node #o16 :kind text :ph head :text Town-run)
+            (node #o17 :kind text :ph body :text "One budget line\nVolunteers from the harbour club\nSlower to change")
+            (node #o18 :kind text :ph head2 :text Trust-run)
+            (node #o19 :kind text :ph body2 :text "Sponsors and grants\nA paid coordinator\nNeeds a board by March")])
+        (node #s6
+          :layout section
+          :notes ""
+          :transition {:kind cover :ms 600 :direction up}
+          :objects [(node #o20 :kind text :ph title :text "Next steps")
+            (node #o21 :kind text :ph body :text "Decide on the model at the April meeting")])
+        (node #s7
+          :layout content
+          :hidden true
+          :notes "Backup slide: only if someone asks about costs."
+          :objects [(node #o22 :kind text :ph title :text "Costs (backup)")
+            (node #o23 :kind text :ph body :text "Lighting hire\nInsurance\nStewards and first aid")])]}}}

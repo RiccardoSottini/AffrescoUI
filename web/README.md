@@ -24,7 +24,7 @@ The build is Release. It makes `affrescoui_launcher` for the browser, and the co
 left out, and counted: Node has no OpenGL):
 
 ```sh
-node build-web/affrescoui.js test examples/flow/index.scenarios.json
+node build-web/affrescoui.js test examples/flow/json/index.scenarios.json
 ```
 
 The templates' folders (`examples/templates.json`) and `examples/shared` are preloaded into the host under `/assets`

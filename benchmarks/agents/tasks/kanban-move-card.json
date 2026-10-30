@@ -1,7 +1,7 @@
 {
 	"id": "kanban-move-card",
 	"level": "feature",
-	"screen": "examples/flow/index.screen.json",
+	"screen": "examples/flow/json/index.screen.json",
 	"request": "Add a \"Start\" button with the id startFirst to the toolbar, left of the Board and Table switch, that moves the first card of the Backlog to the end of In progress.",
 	"scenarios": [
 		{

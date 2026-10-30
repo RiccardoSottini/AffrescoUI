@@ -19,7 +19,7 @@ declarations, so a new command shows up everywhere at once.
 AffrescoUI screens have the raw parts but not the declarations:
 
 - An **action** is a name and a list of steps. It has no title, category, icon or enablement, so nothing can list
-  it to a person. The Forge template's Cmd+P palette (`examples/code-editor/index.screen.json`) can only open
+  it to a person. The Forge template's Cmd+P palette (`examples/code-editor/json/index.screen.json`) can only open
   files, because a palette of commands would need a second, hand-kept list in the state.
 - **`keys`** (on the document, or on a node) maps one key press to a handler. There are no chords (`mod+k mod+s`), no
   condition (a key that means one thing in the editor and another in a list), and no way for a menu or a palette to

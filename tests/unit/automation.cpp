@@ -372,7 +372,7 @@ TEST_CASE("automation: the sign-in template writes its keys as the platform does
 	options.pictures = false;
 	const automation::Report report = automation::run(
 	    automation::ScenarioFile::parse(scenarios.dump(), std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) /
-	                                                          "sign-in" / "keys.scenarios.json"),
+	                                                          "sign-in" / "json" / "keys.scenarios.json"),
 	    options);
 	INFO(report.text());
 	REQUIRE(report.scenarios.size() == 2);

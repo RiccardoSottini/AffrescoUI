@@ -1,0 +1,22 @@
+{:$schema "../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "Python: include it to colour and edit Python in an editor ({ \"language\": \"python\" })."
+  :languages {:python {:title Python
+      :aliases [py python3 gyp]
+      :files ["*.py" "*.pyi" "*.pyw" SConstruct SConscript]
+      :comments {:line "#"}
+      :brackets [["{" "}"] ["[" "]"] ["(" ")"]]
+      :pairs [["{" "}"] ["[" "]"] ["(" ")"] ["\"" "\""] ["'" "'"]]
+      :indent {:increase "^\\s*[^#]*:\\s*(?:#.*)?$" :decrease "^\\s*(?:elif\\b.*|else|except\\b.*|finally):\\s*$"}
+      :patterns [{:match "#.*" :scope comment.line}
+        {:begin "(?<!\\w)[rRbBuUfF]{0,2}(\\\"\\\"\\\"|''')" :end "\\1" :scope string.quoted.triple}
+        {:match "(?<!\\w)[rRbBuUfF]{0,2}\"(?:[^\"\\\\]|\\\\.)*\"?" :scope string.quoted.double}
+        {:match "(?<!\\w)[rRbBuUfF]{0,2}'(?:[^'\\\\]|\\\\.)*'?" :scope string.quoted.single}
+        {:match "(?<![\\w.])(?:0[xXoObB][\\da-fA-F_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][+-]?\\d+)?j?)" :scope number}
+        {:match "^\\s*(@[\\w.]+)" :captures {:"1" {:scope keyword.decorator}}}
+        {:match "\\b(class)\\s+(\\w+)" :captures {:"1" {:scope keyword} :"2" {:scope type.class}}}
+        {:match "\\b(?:False|None|True|and|as|assert|async|await|break|case|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|match|nonlocal|not|or|pass|raise|return|self|try|while|with|yield)\\b"
+          :scope keyword}
+        {:match "\\b(?:bool|bytes|complex|dict|float|frozenset|int|list|object|set|str|tuple|type)\\b|\\b[A-Z]\\w*"
+          :scope type}]}}}

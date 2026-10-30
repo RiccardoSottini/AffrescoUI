@@ -5,10 +5,10 @@ A game launcher built only from what an outsider has: the public docs (`README.m
 single screen document, with no C++: the stock host runs it.
 
 ```sh
-./build/affrescoui_launcher examples/arcadia/index.screen.json
-./build/affrescoui test examples/arcadia/index.scenarios.json --out out/shots
-./build/affrescoui test examples/arcadia/controls.scenarios.json --out out/controls
-python3 examples/arcadia/e2e_test.py build
+./build/affrescoui_launcher examples/arcadia/json/index.screen.json
+./build/affrescoui test examples/arcadia/json/index.scenarios.json --out out/shots
+./build/affrescoui test examples/arcadia/json/controls.scenarios.json --out out/controls
+python3 examples/arcadia/json/e2e_test.py build
 ```
 
 ## What it shows

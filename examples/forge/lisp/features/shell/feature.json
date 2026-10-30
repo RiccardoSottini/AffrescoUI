@@ -1,0 +1,12 @@
+{
+	"format": "affrescoui-feature",
+	"version": 2,
+	"name": "shell",
+	"release": "1.0.0",
+	"title": "Shell",
+	"description": "The workbench: title bar with a command centre, activity bar, explorer side bar, editor groups with tabs, panel and status bar; zen mode.",
+	"license": "Apache-2.0",
+	"note": "Built into Forge: index.screen.json includes shell.json, so this manifest names and versions the package and lists no provides; it is not in the catalogue. Its contribution points are sidebar.views and statusBar.right.",
+	"requires": { "format": 2 },
+	"provides": {}
+}

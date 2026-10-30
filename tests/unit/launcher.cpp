@@ -156,6 +156,34 @@ TEST_CASE(
 	CHECK_FALSE(fs::exists(source / "new.txt"));
 }
 
+TEST_CASE("launcher: an example's json and lisp folders have a socket each, so both can be open") {
+	const TemporaryFolder folder;
+	const fs::path examples = folder.path() / "examples";
+	writeFile(folder.path() / "bin" /
+	              ("affrescoui_launcher" + std::string(
+#ifdef _WIN32
+	                                           ".exe"
+#else
+	                                           ""
+#endif
+	                                           )),
+	          "");
+	writeFile(examples / "flow" / "json" / "app.json", "{}");
+	writeFile(examples / "flow" / "lisp" / "app.json", "{}");
+	services::AppPrograms grant;
+	grant.folder = folder.path() / "bin";
+	grant.programs = {{"affrescoui_launcher", true, true}};
+	grant.roots = {{"examples", fs::canonical(examples)}};
+	grant.dataDirectory = folder.path() / "data";
+	grant.socketDirectory = folder.path() / "sockets";
+	const services::ProcessShaper shape = services::appProgramsShaper(grant);
+	for(const std::string notation : {"json", "lisp"}) {
+		services::ProcessRun run{{"affrescoui_launcher", "examples:flow/" + notation}, {}, "/bin/false"};
+		REQUIRE_FALSE(shape(run));
+		CHECK(run.arguments.back() == (folder.path() / "sockets" / ("examples-flow-" + notation)).string());
+	}
+}
+
 TEST_CASE("launcher: the app-programs grant starts only its programs, on screens inside its roots") {
 	const TemporaryFolder folder;
 	const fs::path programs = folder.path() / "bin", examples = folder.path() / "examples";
@@ -197,8 +225,8 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 	CHECK(tool->arguments.back() == (folder.path() / "sockets" / "tool").string());
 
 	CHECK_FALSE(shaped({}));
-	CHECK_FALSE(shaped({"sh", "-c", "true"}));                                   // not one of its programs
-	CHECK_FALSE(shaped({"affrescoui_gone"}));                                    // not there
+	CHECK_FALSE(shaped({"sh", "-c", "true"}));                                       // not one of its programs
+	CHECK_FALSE(shaped({"affrescoui_gone"}));                                        // not there
 	CHECK_FALSE(shaped({"affrescoui_launcher"}));                                    // no screen
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:../outside.screen.json"})); // outside the root
 	CHECK_FALSE(shaped({"affrescoui_launcher", "/etc/passwd"}));                     // no root named
@@ -213,7 +241,8 @@ TEST_CASE("launcher: the app-programs grant starts only its programs, on screens
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:."})); // a folder without an app.json
 	fs::remove(examples / "flow" / "app.json");
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow"}));
-	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--data", "/tmp"})); // its own flags only
+	CHECK_FALSE(
+	    shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--data", "/tmp"})); // its own flags only
 	CHECK_FALSE(shaped({"affrescoui_tool", "--ask", "hello"})); // it takes no first request
 	CHECK_FALSE(shaped({"affrescoui_launcher", "examples:flow/index.screen.json", "--ask", std::string(5000, 'a')}));
 	CHECK_FALSE(shaped({"reveal", "examples:flow/index.screen.json"})); // a folder only
@@ -358,7 +387,7 @@ TEST_CASE("launcher: an app is created blank and from an example, listed, duplic
 		{ "wait": 10 },
 		{ "expect": { "state": "mine.length", "is": 2 } }
 	] }])json");
-	const automation::Report report = play(scenarios, examples / "launcher" / "index.screen.json", "", grant);
+	const automation::Report report = play(scenarios, examples / "launcher" / "json" / "index.screen.json", "", grant);
 	INFO(report.text());
 	CHECK(report.failed() == 0);
 	const std::string blank = readFile(apps / "garden-planner" / "index.screen.json");

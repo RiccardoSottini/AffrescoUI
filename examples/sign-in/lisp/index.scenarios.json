@@ -1,0 +1,7075 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "What the Sign-in template does, checked headless: affrescoui test index.scenarios.json",
+	"screen": "index.screen.lisp",
+	"scenarios": [
+		{
+			"name": "sign-in",
+			"note": "A valid email and a password of 8 characters or more sign in and greet the user by email",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"expect": {
+						"state": "email",
+						"is": "ada@example.com"
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"text": "You're in"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as ada@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#signIn",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"state": "submitted",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "errors-show-only-after-submit",
+			"note": "Each step checks its own field only when it is submitted: the email on Continue, the password on Sign in.",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "not-an-email"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "submitted",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"nth": 0,
+						"text": "Enter a full email address, like name@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#email",
+						"property": "height",
+						"is": 68
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#password",
+						"exists": false
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "step",
+						"is": "password"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				},
+				{
+					"type": "short"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"nth": 0,
+						"text": "At least 8 characters"
+					}
+				}
+			]
+		},
+		{
+			"name": "fixing-a-field-clears-its-error",
+			"note": "After a failed sign-in, correcting the email removes its error at once while the password's stays",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": true
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "@example.com"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#email",
+						"property": "height",
+						"is": 44
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "At least 8 characters"
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "go-to-create-account-and-back",
+			"note": "The link opens the create-account screen without old errors; its back link and Escape return to sign in",
+			"steps": [
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": true
+					}
+				},
+				{
+					"click": "#toCreate"
+				},
+				{
+					"expect": {
+						"node": "#label-create-an-account",
+						"text": "Create an account"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-back-to-sign"
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				},
+				{
+					"click": "#toCreate"
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"node": "#label-create-an-account",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#toCreate",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "create-an-account",
+			"note": "Create account needs a name too; with all four fields valid (the password confirmed) it signs in",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "Enter your name"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"nth": 1,
+						"exists": false
+					}
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": 200
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Jon Doe"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"text": "Verify your email"
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "name",
+						"is": "Jon Doe"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as jon@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-out",
+			"note": "Signing out returns to sign in with the email kept and the password cleared",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "12345678"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"expect": {
+						"state": "password",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "step",
+						"is": "email"
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"text": "ada@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#password",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "enter-signs-in",
+			"note": "Enter anywhere in the card signs in, like the button",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "switch-the-theme",
+			"note": "The moon button and Cmd+J switch between the light and the dark tokens",
+			"steps": [
+				{
+					"click": "#themeToggle"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "light"
+					}
+				}
+			]
+		},
+		{
+			"name": "show-and-hide-the-password",
+			"note": "The password is a secret field until the eye is pressed; the eye's name says what it does",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "abc"
+				},
+				{
+					"expect": {
+						"node": "#field-eye",
+						"property": "name",
+						"is": "Show the password"
+					}
+				},
+				{
+					"expect": {
+						"state": "password",
+						"is": "abc"
+					}
+				},
+				{
+					"click": "#field-eye"
+				},
+				{
+					"expect": {
+						"state": "showPassword",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#field-eye",
+						"property": "name",
+						"is": "Hide the password"
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"text": "abc"
+					}
+				},
+				{
+					"click": "#field-eye"
+				},
+				{
+					"expect": {
+						"state": "showPassword",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#field-eye",
+						"property": "name",
+						"is": "Show the password"
+					}
+				}
+			]
+		},
+		{
+			"name": "the-focused-field-is-marked",
+			"note": "Focusing a field remembers which one, for its accent border",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"expect": {
+						"state": "focus",
+						"is": "email"
+					}
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "focus",
+						"is": "password"
+					}
+				}
+			]
+		},
+		{
+			"name": "remember-me",
+			"note": "Remember me is on by default; the box or its text turns it off, and the signed-in card says so",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "remember",
+						"is": true
+					}
+				},
+				{
+					"click": "#remember"
+				},
+				{
+					"expect": {
+						"state": "remember",
+						"is": false
+					}
+				},
+				{
+					"click": "#label-remember"
+				},
+				{
+					"click": "#label-remember"
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-remembered",
+						"text": "You will be signed out when you close the app"
+					}
+				}
+			]
+		},
+		{
+			"name": "reset-the-password",
+			"note": "Forgot password? asks for the email (prefilled), checks it and says the link was sent",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "forgot.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "forgot.email",
+						"is": "ada@example.com"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "forgot.error",
+						"is": "Enter the email of your account"
+					}
+				},
+				{
+					"expect": {
+						"node": "#forgotError",
+						"exists": true
+					}
+				},
+				{
+					"type": ".com"
+				},
+				{
+					"expect": {
+						"state": "forgot.error",
+						"is": ""
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "forgot.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "We sent a reset link to ada@example.com"
+					}
+				},
+				{
+					"wait": 4100
+				},
+				{
+					"expect": {
+						"state": "toast.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "cancel-the-reset",
+			"note": "Escape closes the reset dialog and sends nothing",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "forgot.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "password-strength",
+			"note": "The meter follows passwordStrength: length and variety (capitals, digits, symbols); the hint says what to add",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"expect": {
+						"node": "#strength-name",
+						"text": "Use 12 or more characters: capitals, digits, symbols"
+					}
+				},
+				{
+					"expect": {
+						"node": "#strength-meter",
+						"property": "name",
+						"is": "No password yet"
+					}
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "abc"
+				},
+				{
+					"expect": {
+						"node": "#strength-meter",
+						"property": "name",
+						"is": "Weak password"
+					}
+				},
+				{
+					"expect": {
+						"node": "#strength-name",
+						"text": "Add more characters, a capital, a digit, and a symbol"
+					}
+				},
+				{
+					"type": "defghA1"
+				},
+				{
+					"expect": {
+						"node": "#strength-meter",
+						"property": "name",
+						"is": "Fair password"
+					}
+				},
+				{
+					"type": "bc"
+				},
+				{
+					"expect": {
+						"node": "#strength-meter",
+						"property": "name",
+						"is": "Good password"
+					}
+				},
+				{
+					"expect": {
+						"node": "#strength-name",
+						"text": "Add a symbol"
+					}
+				},
+				{
+					"type": "!"
+				},
+				{
+					"expect": {
+						"node": "#strength-meter",
+						"property": "name",
+						"is": "Strong password"
+					}
+				},
+				{
+					"expect": {
+						"node": "#strength-name",
+						"text": "Looks strong"
+					}
+				},
+				{
+					"expect": {
+						"node": "#strength-meter",
+						"property": "role",
+						"is": "status"
+					}
+				}
+			]
+		},
+		{
+			"name": "welcome-after-creating",
+			"note": "A new account is greeted by name in a toast and an initial",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "jon snow"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"node": "#avatar",
+						"text": "J"
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Welcome, jon snow"
+					}
+				}
+			]
+		},
+		{
+			"name": "escape-keeps-the-session",
+			"note": "Bug: Escape after signing in went back to the sign-in form while still signed in",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "escape-after-signing-out",
+			"note": "Bug: after signing out, Escape went back to the signed-in screen",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "keyboard-only-sign-in",
+			"note": "Bug: links and buttons could not be reached by Tab. Signs in with the keyboard alone: Tab, Space and Enter",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#signIn",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "step",
+						"is": "password"
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "shift+tab"
+				},
+				{
+					"expect": {
+						"node": "#forgot",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "shift+tab"
+				},
+				{
+					"expect": {
+						"node": "#changeEmail",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#field-eye",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "space"
+				},
+				{
+					"expect": {
+						"state": "showPassword",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#remember",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "space"
+				},
+				{
+					"expect": {
+						"state": "remember",
+						"is": false
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#signIn",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-remembered",
+						"text": "You will be signed out when you close the app"
+					}
+				}
+			]
+		},
+		{
+			"name": "enter-runs-the-focused-control",
+			"note": "Bug: Enter on a focused link or button in the card signed in instead of running it",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "shift+tab"
+				},
+				{
+					"expect": {
+						"node": "#forgot",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "forgot.open",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "forgot.open",
+						"is": false
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#field-eye",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "showPassword",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#emailCode",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#toCreate",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"node": "#label-create-an-account",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "tab-reaches-the-top-bar",
+			"note": "Bug: the theme button could not be focused and had the text role; the top bar is reached by Tab and named",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#signIn",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#passkey",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#provider",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#provider-wrenfield",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#provider-mossbank",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#provider-quillo",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#toCreate",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#lang",
+						"nth": 0,
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "right"
+				},
+				{
+					"expect": {
+						"state": "locale",
+						"is": "en"
+					}
+				},
+				{
+					"expect": {
+						"node": "#languages",
+						"property": "role",
+						"is": "radiogroup"
+					}
+				},
+				{
+					"expect": {
+						"node": "#lang",
+						"nth": 1,
+						"property": "role",
+						"is": "radio"
+					}
+				},
+				{
+					"expect": {
+						"node": "#lang",
+						"nth": 1,
+						"property": "name",
+						"is": "Italiano"
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#slowToggle",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#slowToggle",
+						"property": "role",
+						"is": "switch"
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#shortcutsButton",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"expect": {
+						"node": "#themeToggle",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#themeToggle",
+						"property": "role",
+						"is": "button"
+					}
+				},
+				{
+					"key": "space"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "light"
+					}
+				}
+			]
+		},
+		{
+			"name": "fields-are-named-and-errors-announced",
+			"note": "Bug: fields were named by their placeholder, and errors had no role or description",
+			"steps": [
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "name",
+						"is": "Email"
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "description",
+						"is": ""
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"nth": 0,
+						"property": "role",
+						"is": "alert"
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "description",
+						"is": "Enter a full email address, like name@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#announcer",
+						"property": "role",
+						"is": "status"
+					}
+				},
+				{
+					"expect": {
+						"node": "#signIn",
+						"property": "role",
+						"is": "button"
+					}
+				},
+				{
+					"expect": {
+						"node": "#toCreate",
+						"property": "role",
+						"is": "link"
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "name",
+						"is": "Password"
+					}
+				},
+				{
+					"expect": {
+						"node": "#changeEmail",
+						"property": "role",
+						"is": "link"
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "description",
+						"is": "At least 8 characters"
+					}
+				},
+				{
+					"expect": {
+						"node": "#remember",
+						"property": "role",
+						"is": "checkbox"
+					}
+				}
+			]
+		},
+		{
+			"name": "smallest-window",
+			"note": "Bug: at the smallest window the create card with its errors ran past the window and over the footer; the card fits its content and is centred, so the email step's card is shorter than the password step's",
+			"steps": [
+				{
+					"resize": [480, 640]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#toCreate"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -20
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"expect": {
+						"node": "#panel-root",
+						"property": "width",
+						"is": 480
+					}
+				},
+				{
+					"expect": {
+						"node": "#panel-card",
+						"property": "width",
+						"is": 420
+					}
+				},
+				{
+					"expect": {
+						"node": "#panel-card",
+						"property": "x",
+						"is": 30
+					}
+				},
+				{
+					"expect": {
+						"node": "#panel-card",
+						"property": "y",
+						"is": 64
+					}
+				},
+				{
+					"expect": {
+						"node": "#panel-card",
+						"property": "height",
+						"is": 524
+					}
+				},
+				{
+					"expect": {
+						"node": "#footer",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#themeToggle",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "y",
+						"is": 71
+					}
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "height",
+						"is": 510
+					}
+				},
+				{
+					"expect": {
+						"node": "#signIn",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#logo",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "resizing-relays-out-at-once",
+			"note": "Bug: sizes worked out in computed values kept the old window size until the next click, so the first click after a resize hit the wrong field; the card fits its content and is centred, so the email step's card is shorter than the password step's",
+			"steps": [
+				{
+					"resize": [480, 640]
+				},
+				{
+					"expect": {
+						"node": "#logo",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "y",
+						"is": 71
+					}
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "height",
+						"is": 510
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"expect": {
+						"state": "email",
+						"is": "ada@example.com"
+					}
+				},
+				{
+					"expect": {
+						"state": "password",
+						"is": ""
+					}
+				},
+				{
+					"resize": [960, 720]
+				},
+				{
+					"expect": {
+						"node": "#logo",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "height",
+						"is": 578
+					}
+				}
+			]
+		},
+		{
+			"name": "full-screen",
+			"note": "At 1920 by 1080 the card stays 420 wide in the middle, with the logo and the footer",
+			"steps": [
+				{
+					"resize": [1920, 1080]
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "width",
+						"is": 420
+					}
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "x",
+						"is": 750
+					}
+				},
+				{
+					"expect": {
+						"node": "#logo",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#footer",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#themeToggle",
+						"property": "x",
+						"is": 1872
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-light-theme",
+			"note": "The light theme: a white card on a pale background (the toggle's name, with its key as each platform writes it, is in tests/unit/automation.cpp)",
+			"steps": [
+				{
+					"expect": {
+						"state": "theme",
+						"is": "light"
+					}
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "color",
+						"is": "#ffffff"
+					}
+				},
+				{
+					"expect": {
+						"node": "#panel-root",
+						"property": "color",
+						"is": "#eef2ff"
+					}
+				}
+			]
+		},
+		{
+			"name": "dark-theme",
+			"note": "The dark theme from the moon button: a deep card on a dark background, and back with Cmd+J (Ctrl+J off macOS)",
+			"steps": [
+				{
+					"click": "#themeToggle"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "color",
+						"is": "#141b2e"
+					}
+				},
+				{
+					"expect": {
+						"node": "#panel-root",
+						"property": "color",
+						"is": "#0b1020"
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"node": "#card",
+						"property": "color",
+						"is": "#ffffff"
+					}
+				}
+			]
+		},
+		{
+			"name": "italian",
+			"note": "The IT chip switches every text to Italian, errors included",
+			"steps": [
+				{
+					"click": "#lang",
+					"nth": 1
+				},
+				{
+					"expect": {
+						"state": "locale",
+						"is": "it"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"text": "Bentornato"
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"nth": 0,
+						"text": "Inserisci un indirizzo email completo, come nome@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "name",
+						"is": "Email"
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-in-arabic-right-to-left",
+			"note": "Cmd+L twice switches to Arabic: the texts are Arabic and the layout runs right to left",
+			"steps": [
+				{
+					"key": "mod+l"
+				},
+				{
+					"expect": {
+						"state": "locale",
+						"is": "it"
+					}
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"expect": {
+						"state": "locale",
+						"is": "ar"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"text": "مرحبًا بعودتك"
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"nth": 0,
+						"text": "أدخل عنوان بريد إلكتروني كاملًا، مثل name@example.com"
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#forgot",
+						"property": "x",
+						"is": 306
+					}
+				},
+				{
+					"key": "mod+l"
+				},
+				{
+					"expect": {
+						"state": "locale",
+						"is": "en"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"text": "Welcome back"
+					}
+				},
+				{
+					"expect": {
+						"node": "#forgot",
+						"property": "x",
+						"is": 575
+					}
+				}
+			]
+		},
+		{
+			"name": "shortcut-keys-are-readable",
+			"note": "Bug: the keys were shown as the symbols for Command and Shift, which the screen's font has not got, so they read as question marks. The keys with the platform's modifier read differently on each one: tests/unit/automation.cpp checks them",
+			"steps": [
+				{
+					"key": "f1"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#shortcut-key",
+						"nth": 2,
+						"text": "F1"
+					}
+				},
+				{
+					"expect": {
+						"node": "#shortcutsButton",
+						"property": "tooltip",
+						"is": "Keyboard shortcuts (F1)"
+					}
+				}
+			]
+		},
+		{
+			"name": "commands-and-shortcuts",
+			"note": "F1 lists the commands with their keys; the shortcuts show the password, slow the network and sign out",
+			"steps": [
+				{
+					"key": "f1"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "shortcutsOpen",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#shortcut-title",
+						"nth": 0,
+						"text": "Show or hide the password"
+					}
+				},
+				{
+					"expect": {
+						"node": "#shortcut",
+						"nth": 5,
+						"exists": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "shortcutsOpen",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+shift+h"
+				},
+				{
+					"expect": {
+						"state": "showPassword",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+shift+h"
+				},
+				{
+					"expect": {
+						"state": "showPassword",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"expect": {
+						"state": "slow",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"expect": {
+						"state": "slow",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+shift+q"
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "mod+shift+q"
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "You signed out"
+					}
+				}
+			]
+		},
+		{
+			"name": "unknown-account-then-a-known-one",
+			"note": "The fake server knows ada@ and sam@ only: an unknown email stops at Continue, a known one goes on to the password (it takes any long-enough password until one is set, as in account-settings)",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "kim@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#formError",
+						"text": "No account uses this email. Check it, or create one."
+					}
+				},
+				{
+					"expect": {
+						"node": "#formError",
+						"property": "role",
+						"is": "alert"
+					}
+				},
+				{
+					"expect": {
+						"state": "step",
+						"is": "email"
+					}
+				},
+				{
+					"expect": {
+						"node": "#password",
+						"exists": false
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#formError",
+						"exists": false
+					}
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "two-step-wrong-code",
+			"note": "Sam has two-step on: a wrong code is refused and announced, the right one signs in",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-two-step-caption",
+						"text": "Enter the 6-digit code we sent to sam@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#twoStepCode",
+						"property": "name",
+						"is": "One-time code"
+					}
+				},
+				{
+					"click": "#verify"
+				},
+				{
+					"expect": {
+						"node": "#codeError",
+						"text": "Enter all 6 digits"
+					}
+				},
+				{
+					"expect": {
+						"node": "#codeError",
+						"property": "role",
+						"is": "alert"
+					}
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "111111"
+				},
+				{
+					"expect": {
+						"node": "#codeError",
+						"text": "That code is not right. Check it and try again."
+					}
+				},
+				{
+					"expect": {
+						"node": "#twoStepCode",
+						"property": "description",
+						"is": "That code is not right. Check it and try again."
+					}
+				},
+				{
+					"expect": {
+						"state": "code",
+						"is": ""
+					}
+				},
+				{
+					"type": "2468"
+				},
+				{
+					"expect": {
+						"node": "#codeError",
+						"exists": false
+					}
+				},
+				{
+					"type": "10"
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "labels-stay-clear-after-two-step",
+			"note": "Bug: after a wrong code, the account page drew the Email label as a purple bar: it took the colour of the Verify button drawn in its place",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "111111"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-photo",
+						"property": "color",
+						"is": "#00000000"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-account-name",
+						"property": "color",
+						"is": "#00000000"
+					}
+				}
+			]
+		},
+		{
+			"name": "dialog-fields-have-quiet-borders",
+			"note": "Bug: the fields of the change password dialog had no border colour and were drawn with a black frame",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"click": "#changePassword"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#newPassword"
+				},
+				{
+					"expect": {
+						"node": "#newPasswordConfirm",
+						"property": "borderColor",
+						"is": "#e2e8f0"
+					}
+				},
+				{
+					"expect": {
+						"node": "#newPassword",
+						"property": "borderColor",
+						"is": "#6366f1"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"action": "toggleTheme"
+				},
+				{
+					"click": "#changePassword"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#newPassword"
+				},
+				{
+					"expect": {
+						"node": "#newPasswordConfirm",
+						"property": "borderColor",
+						"is": "#26304a"
+					}
+				}
+			]
+		},
+		{
+			"name": "resend-countdown",
+			"note": "A new code can be asked for after 30 seconds; the link counts down",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#resend",
+						"text": "Send a new code in 30s"
+					}
+				},
+				{
+					"wait": 3000
+				},
+				{
+					"expect": {
+						"node": "#resend",
+						"text": "Send a new code in 27s"
+					}
+				},
+				{
+					"click": "#resend"
+				},
+				{
+					"expect": {
+						"state": "resendLeft",
+						"is": 27
+					}
+				},
+				{
+					"wait": 27000
+				},
+				{
+					"expect": {
+						"node": "#resend",
+						"text": "Send a new code"
+					}
+				},
+				{
+					"click": "#resend"
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "We sent a new code to sam@example.com"
+					}
+				},
+				{
+					"expect": {
+						"state": "resendLeft",
+						"is": 30
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "reset-with-a-code",
+			"note": "The reset link's code and a new password, confirmed, replace the password; the old one stops working",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "forgot.email",
+						"is": "ada@example.com"
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"node": "#label-reset-title",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-reset-caption",
+						"text": "Open the link we sent to ada@example.com, or enter the code in it"
+					}
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "123456"
+				},
+				{
+					"click": "#textarea-placeholder"
+				},
+				{
+					"type": "Not-A-Secret-1"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Not-A-Secret-1"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"expect": {
+						"node": "#resetCodeError",
+						"text": "That code is not right. Check it and try again."
+					}
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Your password was changed. Sign in with the new one."
+					}
+				},
+				{
+					"expect": {
+						"state": "email",
+						"is": "ada@example.com"
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#formError",
+						"text": "The email or the password is not right."
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "Not-A-Secret-1"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "confirm-and-length-limits",
+			"note": "The confirmation must match the password, and the fields stop at their maxLength",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
+				},
+				{
+					"expect": {
+						"state": "name",
+						"is": "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
+					}
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long passwork"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"nth": 0,
+						"text": "The passwords don't match"
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 4,
+						"property": "description",
+						"is": "The passwords don't match"
+					}
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "d"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "slow-network-busy-states",
+			"note": "With Slow network on, the button shows the work, is disabled and the status line announces it",
+			"steps": [
+				{
+					"click": "#slowToggle"
+				},
+				{
+					"expect": {
+						"state": "slow",
+						"is": true
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "busy",
+						"is": "lookup"
+					}
+				},
+				{
+					"expect": {
+						"node": "#signIn",
+						"text": "Looking up your account…"
+					}
+				},
+				{
+					"wait": 900
+				},
+				{
+					"expect": {
+						"state": "step",
+						"is": "password"
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "busy",
+						"is": "signIn"
+					}
+				},
+				{
+					"expect": {
+						"node": "#signIn",
+						"text": "Signing in…"
+					}
+				},
+				{
+					"expect": {
+						"node": "#announcer",
+						"text": "Signing in…"
+					}
+				},
+				{
+					"expect": {
+						"node": "#announcer",
+						"property": "name",
+						"is": "Signing in…"
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				},
+				{
+					"wait": 900
+				},
+				{
+					"expect": {
+						"state": "busy",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#announcer",
+						"text": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "provider-sign-in",
+			"note": "Continue with Example ID waits for the fake provider; its answer, played as an event, signs in",
+			"steps": [
+				{
+					"click": "#provider",
+					"error": "this host has no sign-in"
+				},
+				{
+					"expect": {
+						"state": "busy",
+						"is": "provider"
+					}
+				},
+				{
+					"expect": {
+						"node": "#provider",
+						"text": "Waiting for Example ID…"
+					}
+				},
+				{
+					"expect": {
+						"node": "#cancelProvider",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#announcer",
+						"text": "Waiting for Example ID…"
+					}
+				},
+				{
+					"action": "providerSignedIn",
+					"event": {
+						"account": "kim@example.com",
+						"name": "Kim"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as kim@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#avatar",
+						"text": "K"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-provider",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#changePassword",
+						"exists": false
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "provider-failure-and-cancel",
+			"note": "A failed answer is shown as an alert; once cancelled, a late answer is ignored",
+			"steps": [
+				{
+					"click": "#provider",
+					"error": "this host has no sign-in"
+				},
+				{
+					"action": "providerFailed",
+					"event": {
+						"message": "access denied"
+					}
+				},
+				{
+					"expect": {
+						"node": "#formError",
+						"text": "Example ID could not sign you in: access denied"
+					}
+				},
+				{
+					"expect": {
+						"node": "#formError",
+						"property": "role",
+						"is": "alert"
+					}
+				},
+				{
+					"expect": {
+						"state": "busy",
+						"is": ""
+					}
+				},
+				{
+					"click": "#provider",
+					"error": "this host has no sign-in"
+				},
+				{
+					"click": "#cancelProvider"
+				},
+				{
+					"expect": {
+						"state": "busy",
+						"is": ""
+					}
+				},
+				{
+					"action": "providerSignedIn",
+					"event": {
+						"account": "kim@example.com",
+						"name": "Kim"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "session-expires",
+			"note": "The session counts down; a minute before the end a toast offers more time, then the sign-in form says it expired",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#session",
+						"text": "Session ends in 5:00"
+					}
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"node": "#session",
+						"text": "Session ends in 4:59"
+					}
+				},
+				{
+					"wait": 239000
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Your session ends in a minute"
+					}
+				},
+				{
+					"expect": {
+						"node": "#staySignedIn",
+						"exists": true
+					}
+				},
+				{
+					"wait": 60000
+				},
+				{
+					"expect": {
+						"node": "#label-welcome-back",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#sessionNotice",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#sessionNotice",
+						"property": "role",
+						"is": "alert"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-session-expired",
+						"text": "Your session expired. Sign in again to go on."
+					}
+				},
+				{
+					"click": "#signInAgain"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"node": "#sessionNotice",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "focus",
+						"is": "email"
+					}
+				}
+			]
+		},
+		{
+			"name": "stay-signed-in",
+			"note": "Stay signed in, from the card, gives the session five more minutes",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 250000
+				},
+				{
+					"click": "#staySignedIn"
+				},
+				{
+					"expect": {
+						"state": "session.left",
+						"is": 300
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "You stay signed in for 5 more minutes"
+					}
+				},
+				{
+					"wait": 100000
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "account-settings",
+			"note": "The account page saves the name and email, turns two-step on (click or Space) and changes the password",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "name",
+						"is": "Name"
+					}
+				},
+				{
+					"click": "#account-name"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "Ada Lovelace"
+				},
+				{
+					"click": "#saveProfile"
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Your details were saved"
+					}
+				},
+				{
+					"expect": {
+						"state": "user.name",
+						"is": "Ada Lovelace"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"expect": {
+						"node": "#twoStep",
+						"property": "role",
+						"is": "switch"
+					}
+				},
+				{
+					"click": "#twoStep"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": true
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "codes"
+					}
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"expect": {
+						"state": "setup.error",
+						"is": "notSaved"
+					}
+				},
+				{
+					"click": "#savedCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "user.twoStep",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Two-step verification is on"
+					}
+				},
+				{
+					"key": "space"
+				},
+				{
+					"expect": {
+						"state": "user.twoStep",
+						"is": false
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": true
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#savedCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "user.twoStep",
+						"is": true
+					}
+				},
+				{
+					"click": "#changePassword"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": true
+					}
+				},
+				{
+					"click": "#newPassword"
+				},
+				{
+					"type": "short"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#changeError",
+						"text": "At least 8 characters"
+					}
+				},
+				{
+					"click": "#newPassword"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "Not-A-Secret-1"
+				},
+				{
+					"click": "#newPasswordConfirm"
+				},
+				{
+					"type": "Not-A-Secret-1"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Your password was changed"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#formError",
+						"text": "The email or the password is not right."
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "Not-A-Secret-1"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "account-errors",
+			"note": "Saving an empty name or a wrong email shows the field errors on the account page",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"click": "#account-name"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"click": "#saveProfile"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "Enter your name"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"click": "#addEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "ada@example"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "Enter a full email address, like name@example.com"
+					}
+				},
+				{
+					"click": "#newEmailField"
+				},
+				{
+					"type": ".com"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "This email is already on your account"
+					}
+				},
+				{
+					"expect": {
+						"state": "user.email",
+						"is": "ada@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "identifier-first",
+			"note": "Continue looks the email up first; the password step names the account in a chip, its initial and its email trimmed, and asks for nothing else",
+			"steps": [
+				{
+					"expect": {
+						"node": "#signIn",
+						"text": "Continue"
+					}
+				},
+				{
+					"expect": {
+						"node": "#password",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#accountChip",
+						"exists": false
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "Ada@Example.com "
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "step",
+						"is": "password"
+					}
+				},
+				{
+					"expect": {
+						"node": "#accountChip",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-chip-email",
+						"text": "Ada@Example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#email",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#signIn",
+						"text": "Sign in"
+					}
+				},
+				{
+					"expect": {
+						"node": "#forgot",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "focused",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "caps-lock-warning",
+			"note": "A key typed with caps lock on, in the password, shows a warning under it; a key without caps lock, or leaving the field, hides it",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "Ada@Example.com "
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#capsLockWarning",
+						"exists": false
+					}
+				},
+				{
+					"key": "capslock+c"
+				},
+				{
+					"expect": {
+						"node": "#capsLockWarning",
+						"text": "Caps Lock is on"
+					}
+				},
+				{
+					"key": "o"
+				},
+				{
+					"expect": {
+						"node": "#capsLockWarning",
+						"exists": false
+					}
+				},
+				{
+					"key": "capslock+r"
+				},
+				{
+					"expect": {
+						"node": "#capsLockWarning",
+						"exists": true
+					}
+				},
+				{
+					"click": "#remember"
+				},
+				{
+					"expect": {
+						"node": "#capsLockWarning",
+						"exists": true
+					},
+					"note": "it stays when the field loses focus: hiding it then moved the layout under the pointer"
+				},
+				{
+					"key": "o"
+				},
+				{
+					"expect": {
+						"node": "#capsLockWarning",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "not-you-goes-back-to-the-email",
+			"note": "\"Not you?\" on the password step goes back to the email, keeps it to edit, clears the password and focuses the email",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "Ada@Example.com "
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"expect": {
+						"state": "password",
+						"is": "correct horse"
+					}
+				},
+				{
+					"click": "#changeEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "step",
+						"is": "email"
+					}
+				},
+				{
+					"expect": {
+						"state": "password",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "email",
+						"is": "Ada@Example.com "
+					}
+				},
+				{
+					"expect": {
+						"node": "#accountChip",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#textarea-placeholder",
+						"nth": 0,
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "passkey-sign-in",
+			"steps": [
+				{
+					"click": "#passkey"
+				},
+				{
+					"expect": {
+						"state": "passkeyOpen",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#passkey-choice",
+						"nth": 0,
+						"text": "Ada · ada@example.com"
+					}
+				},
+				{
+					"expect": {
+						"node": "#passkey-choice",
+						"nth": 1,
+						"exists": false
+					}
+				},
+				{
+					"click": "#passkey-choice"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "passkeyOpen",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as ada@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "passkey-cancelled",
+			"steps": [
+				{
+					"click": "#passkey"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#passkey-choice",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#passkey",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "passkeyOpen",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				},
+				{
+					"click": "#passkey"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "passkeyOpen",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#formError",
+						"property": "role",
+						"is": "alert"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#passkey",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "email-code-sign-in",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#emailCode",
+						"exists": true
+					}
+				},
+				{
+					"click": "#emailCode"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "email"
+					}
+				},
+				{
+					"expect": {
+						"node": "#twoStepCode",
+						"property": "name",
+						"is": "One-time code"
+					}
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as ada@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "email-code-then-two-step",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#emailCode"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "twoStep"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-you-re-in",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-two-step-caption",
+						"text": "Enter the 6-digit code we sent to sam@example.com"
+					}
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "made-up-provider",
+			"steps": [
+				{
+					"expect": {
+						"node": "#provider-quillo",
+						"property": "description",
+						"is": "Other ways to sign in"
+					}
+				},
+				{
+					"click": "#provider-quillo"
+				},
+				{
+					"expect": {
+						"state": "busy",
+						"is": "provider"
+					}
+				},
+				{
+					"expect": {
+						"state": "providerName",
+						"is": "quillo"
+					}
+				},
+				{
+					"wait": 1300
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as you@quillo.example"
+					}
+				}
+			]
+		},
+		{
+			"name": "username-is-checked",
+			"note": "A username is checked as it is typed: a spinner while checking, then taken, available or invalid",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "Ada"
+				},
+				{
+					"expect": {
+						"node": "#username-status-text",
+						"text": "Checking ada…"
+					}
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"node": "#username-status-text",
+						"text": "ada is taken. Try another."
+					}
+				},
+				{
+					"type": "_x"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"expect": {
+						"node": "#username-status-text",
+						"text": "ada_x is available"
+					}
+				},
+				{
+					"type": "!"
+				},
+				{
+					"expect": {
+						"node": "#username-status-text",
+						"text": "Use 3 to 20 letters, digits, _ or ."
+					}
+				}
+			]
+		},
+		{
+			"name": "create-waits-for-the-username-check",
+			"note": "Creating while the name is still being checked asks to wait",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Jon Doe"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "Wait for the check to finish"
+					}
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "twoStep"
+					}
+				}
+			]
+		},
+		{
+			"name": "terms-are-required",
+			"note": "The account is not created until the terms are agreed",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Jon Doe"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"expect": {
+						"node": "#termsError",
+						"text": "Agree to the terms to continue"
+					}
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "twoStep"
+					}
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"expect": {
+						"node": "#termsError",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "invitation-code",
+			"note": "An invitation code is checked, and a known one names the team",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Jon Doe"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#haveInvite"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#invite"
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"text": "That code is not known. The demo code is EXAMPLE-INVITE."
+					}
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "twoStep"
+					}
+				},
+				{
+					"click": "#invite"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "example-invite"
+				},
+				{
+					"expect": {
+						"node": "#inviteNotice",
+						"text": "Sam invited you to Example Team"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-error",
+						"exists": false
+					}
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Welcome, Jon Doe. You joined Example Team."
+					}
+				}
+			]
+		},
+		{
+			"name": "email-is-verified-before-sign-in",
+			"note": "A new account gets a 6-digit email code; a wrong one is refused, and going back keeps the form",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"click": "#checked-field-form"
+				},
+				{
+					"type": "Jon Doe"
+				},
+				{
+					"click": "#checked-field-form-2"
+				},
+				{
+					"type": "jon@example.com"
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#confirm-password"
+				},
+				{
+					"type": "a long password"
+				},
+				{
+					"click": "#username"
+				},
+				{
+					"type": "jon_d"
+				},
+				{
+					"wait": 700
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#terms"
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"text": "Verify your email"
+					}
+				},
+				{
+					"expect": {
+						"node": "#avatar",
+						"exists": false
+					}
+				},
+				{
+					"type": "111111"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"node": "#codeError",
+						"text": "That code is not right. Check it and try again."
+					}
+				},
+				{
+					"click": "#twoStepBack"
+				},
+				{
+					"expect": {
+						"node": "#label-create-an-account",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "username",
+						"is": "jon_d"
+					}
+				},
+				{
+					"scroll": "#stack-form-2",
+					"dy": -40
+				},
+				{
+					"click": "#label-create-account"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"node": "#avatar",
+						"text": "J"
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Welcome, Jon Doe"
+					}
+				}
+			]
+		},
+		{
+			"name": "password-rules-tick-off",
+			"note": "Each password rule is ticked off, for the eye and for a screen reader",
+			"steps": [
+				{
+					"click": "#toCreate"
+				},
+				{
+					"expect": {
+						"node": "#rule-length",
+						"property": "name",
+						"is": "8 or more characters: not yet"
+					}
+				},
+				{
+					"click": "#checked-field-form-3"
+				},
+				{
+					"type": "abcdefgh"
+				},
+				{
+					"expect": {
+						"node": "#rule-length",
+						"property": "name",
+						"is": "8 or more characters: done"
+					}
+				},
+				{
+					"expect": {
+						"node": "#rule-digit",
+						"property": "name",
+						"is": "A digit: not yet"
+					}
+				},
+				{
+					"type": "1"
+				},
+				{
+					"expect": {
+						"node": "#rule-digit",
+						"property": "name",
+						"is": "A digit: done"
+					}
+				}
+			]
+		},
+		{
+			"name": "create-starts-with-an-empty-password",
+			"note": "The password typed to sign in is not carried into a new account",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "shortSecret12"
+				},
+				{
+					"click": "#toCreate"
+				},
+				{
+					"expect": {
+						"state": "password",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "confirm",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "setup-wrong-code-then-right",
+			"note": "Turning two-step on: a short or wrong app code is refused in the dialog, the right one moves on to the backup codes, which must be ticked as saved. Back returns to the app code with the dialog still open (it used to close it)",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"click": "#twoStep"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "scan"
+					}
+				},
+				{
+					"type": "123"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.error",
+						"is": "short"
+					}
+				},
+				{
+					"expect": {
+						"node": "#setupError",
+						"text": "Enter all 6 digits"
+					}
+				},
+				{
+					"click": "#setupCode"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "111111"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.error",
+						"is": "wrong"
+					}
+				},
+				{
+					"expect": {
+						"state": "setup.code",
+						"is": ""
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "codes"
+					}
+				},
+				{
+					"expect": {
+						"state": "backupCodes",
+						"is": [
+							"DEMO-1001",
+							"DEMO-1002",
+							"DEMO-1003",
+							"DEMO-1004",
+							"DEMO-1005",
+							"DEMO-1006",
+							"DEMO-1007",
+							"DEMO-1008"
+						]
+					}
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#setupError",
+						"text": "Tick the box once the codes are saved"
+					}
+				},
+				{
+					"expect": {
+						"state": "user.twoStep",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": true
+					}
+				},
+				{
+					"key": "alt+b"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "scan"
+					}
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": true
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "codes"
+					}
+				}
+			]
+		},
+		{
+			"name": "text-me-a-code",
+			"note": "Sam asks for a text instead: the title and caption change, a toast confirms the made-up number, and the same demo code signs in",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#textMe"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "sms"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"text": "Check your phone"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-two-step-caption",
+						"text": "Enter the 6-digit code we texted to 555-0142"
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "We texted a code to 555-0142"
+					}
+				},
+				{
+					"expect": {
+						"node": "#textMe",
+						"exists": false
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "backup-code-is-used-once",
+			"note": "A wrong backup code is refused; a right one signs in, is struck off the list and cannot be used again",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#useBackup"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeMode",
+						"is": "backup"
+					}
+				},
+				{
+					"expect": {
+						"node": "#backupField",
+						"property": "name",
+						"is": "Backup code"
+					}
+				},
+				{
+					"type": "DEMO-9999"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#codeError",
+						"text": "That backup code is not right, or it was already used"
+					}
+				},
+				{
+					"expect": {
+						"state": "backupCodes",
+						"is": [
+							"DEMO-1001",
+							"DEMO-1002",
+							"DEMO-1003",
+							"DEMO-1004",
+							"DEMO-1005",
+							"DEMO-1006",
+							"DEMO-1007",
+							"DEMO-1008"
+						]
+					}
+				},
+				{
+					"click": "#backupField"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "demo-1003"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Backup code used. 7 codes left"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"expect": {
+						"node": "#backupLeft",
+						"text": "7 backup codes left"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#useBackup"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "DEMO-1003"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "codeError",
+						"is": "wrongBackup"
+					}
+				}
+			]
+		},
+		{
+			"name": "trust-this-device-skips-the-code",
+			"note": "Ticking Trust this device remembers it for 30 days: the next sign-in skips the code, until the device is removed on the account page",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#trust"
+				},
+				{
+					"expect": {
+						"state": "trust",
+						"is": true
+					}
+				},
+				{
+					"click": "#twoStepCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"expect": {
+						"node": "#trusted-name",
+						"nth": 1,
+						"text": "This device  ·  30 days left"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as sam@example.com"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"click": "#trusted-remove",
+					"nth": 1
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Device removed. It will be asked for a code again"
+					}
+				},
+				{
+					"expect": {
+						"state": "trusted",
+						"is": [
+							{
+								"email": "sam@example.com",
+								"device": "phone",
+								"days": 12
+							}
+						]
+					}
+				},
+				{
+					"click": "#trusted-remove"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#noTrusted",
+						"text": "No trusted devices: every sign-in asks for a code"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-two-step",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "new-backup-codes",
+			"note": "With two-step on, New codes opens the codes step straight away, refills the list and says the old codes stop working",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "sam@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#useBackup"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "DEMO-1001"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 300
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"expect": {
+						"node": "#backupLeft",
+						"text": "7 backup codes left"
+					}
+				},
+				{
+					"click": "#newCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.step",
+						"is": "codes"
+					}
+				},
+				{
+					"expect": {
+						"node": "#backupLeft",
+						"text": "8 backup codes left"
+					}
+				},
+				{
+					"click": "#savedCodes"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+d"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "setup.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "New backup codes are ready. The old ones no longer work"
+					}
+				}
+			]
+		},
+		{
+			"name": "lock-after-five",
+			"note": "Five wrong passwords lock the account; resetting the password unlocks it",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": ""
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": "wrongPassword"
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": "locked"
+					}
+				},
+				{
+					"expect": {
+						"node": "#unlock",
+						"exists": true
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": "locked"
+					}
+				},
+				{
+					"click": "#unlock"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "forgot.open",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "reset-unlocks",
+			"note": "A finished reset clears the failures, so the new password signs in",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"key": "mod+a"
+				},
+				{
+					"type": "wrong-guess"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "formError",
+						"is": "locked"
+					}
+				},
+				{
+					"click": "#unlock"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-24"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-24"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "failures",
+						"is": []
+					}
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "Example-Pass-24"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "user.email",
+						"is": "ada@example.com"
+					}
+				}
+			]
+		},
+		{
+			"name": "reset-code-expires",
+			"note": "The emailed code lasts 10 minutes; after that it is refused until a new one is sent",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#resetExpiry",
+						"text": "The code expires in 10:00"
+					}
+				},
+				{
+					"wait": 600000
+				},
+				{
+					"expect": {
+						"state": "reset.error",
+						"is": "expired"
+					}
+				},
+				{
+					"expect": {
+						"node": "#resendReset",
+						"exists": true
+					}
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "reset.error",
+						"is": "expired"
+					}
+				},
+				{
+					"click": "#resendReset"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reset.left",
+						"is": 600
+					}
+				},
+				{
+					"expect": {
+						"state": "reset.error",
+						"is": ""
+					}
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"expect": {
+						"state": "reset.left",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "password",
+						"is": ""
+					}
+				}
+			]
+		},
+		{
+			"name": "step-up",
+			"note": "Two minutes after signing in, changing the password asks for it again first",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#forgot"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#resetCode"
+				},
+				{
+					"type": "246810"
+				},
+				{
+					"click": "#reset-password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#reset-confirm"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#setPassword"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 800
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"click": "#changePassword"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"wait": 121000
+				},
+				{
+					"click": "#changePassword"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reauth.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": false
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reauth.error",
+						"is": "empty"
+					}
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reauth.error",
+						"is": "wrong"
+					}
+				},
+				{
+					"type": "Example-Pass-23"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "reauth.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "account-sections-are-tabs",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#navColumn",
+						"property": "role",
+						"is": "tablist"
+					}
+				},
+				{
+					"expect": {
+						"node": "#nav",
+						"nth": 0,
+						"property": "role",
+						"is": "tab"
+					}
+				},
+				{
+					"expect": {
+						"node": "#section-title",
+						"text": "Personal info"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 3
+				},
+				{
+					"expect": {
+						"state": "section",
+						"is": "devices"
+					}
+				},
+				{
+					"expect": {
+						"node": "#section-title",
+						"text": "Devices"
+					}
+				},
+				{
+					"resize": [600, 720]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#navColumn",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#navRow",
+						"property": "role",
+						"is": "tablist"
+					}
+				},
+				{
+					"click": "#navChip",
+					"nth": 1
+				},
+				{
+					"expect": {
+						"state": "section",
+						"is": "emails"
+					}
+				}
+			]
+		},
+		{
+			"name": "profile-photo-colour",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#changePhoto"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "photoOpen",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#swatch",
+						"nth": 3,
+						"property": "role",
+						"is": "radio"
+					}
+				},
+				{
+					"click": "#swatch",
+					"nth": 3
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "user.avatar",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "photoOpen",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Your photo was updated"
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "user.avatar",
+						"is": 3
+					}
+				}
+			]
+		},
+		{
+			"name": "emails-verify-and-make-primary",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"expect": {
+						"node": "#badge-unverified",
+						"text": "Not verified"
+					}
+				},
+				{
+					"click": "#verifyEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#badge-unverified",
+						"text": "Link sent"
+					}
+				},
+				{
+					"wait": 5100
+				},
+				{
+					"expect": {
+						"node": "#badge-unverified",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "ada@work.example.org is verified"
+					}
+				},
+				{
+					"click": "#makePrimary",
+					"nth": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "ada.home@example.net is now your primary email"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as ada.home@example.net"
+					}
+				},
+				{
+					"click": "#removeEmail",
+					"nth": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#emailRow",
+						"nth": 2,
+						"exists": false
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"expect": {
+						"state": "email",
+						"is": "ada.home@example.net"
+					}
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#label-signed-in-as",
+						"text": "Signed in as ada.home@example.net"
+					}
+				}
+			]
+		},
+		{
+			"name": "add-an-email",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 1
+				},
+				{
+					"click": "#addEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "ada.new@example.com"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "We sent a link to ada.new@example.com: open it to verify the address"
+					}
+				},
+				{
+					"expect": {
+						"node": "#emailRow",
+						"nth": 3,
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#addEmail",
+						"exists": true
+					}
+				},
+				{
+					"click": "#addEmail"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "five@example.com"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#addEmail",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#newEmailForm",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "passkeys-add-and-remove",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 2
+				},
+				{
+					"expect": {
+						"node": "#passkeyRow",
+						"nth": 1,
+						"exists": false
+					}
+				},
+				{
+					"click": "#addPasskey"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Passkey added. You can use it at your next sign-in"
+					}
+				},
+				{
+					"expect": {
+						"node": "#item-title",
+						"nth": 2,
+						"exists": true
+					}
+				},
+				{
+					"click": "#removePasskey",
+					"nth": 0
+				},
+				{
+					"click": "#removePasskey",
+					"nth": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#noPasskeys",
+						"exists": true
+					}
+				},
+				{
+					"click": "#label-sign-out"
+				},
+				{
+					"expect": {
+						"state": "accounts[0].passkey",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "sign-out-other-devices",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 3
+				},
+				{
+					"click": "#signOutSession",
+					"nth": 0
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Phone was signed out"
+					}
+				},
+				{
+					"click": "#signOutOthers"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Every other device was signed out"
+					}
+				},
+				{
+					"expect": {
+						"node": "#onlyThisDevice",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#signOutOthers",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "connect-and-disconnect",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 4
+				},
+				{
+					"click": "#connectProvider",
+					"nth": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Wrenfield is connected"
+					}
+				},
+				{
+					"expect": {
+						"node": "#item-hint",
+						"nth": 0,
+						"text": "Connected as ada@wrenfield.example"
+					}
+				},
+				{
+					"click": "#disconnectProvider",
+					"nth": 1
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Quillo is no longer connected"
+					}
+				},
+				{
+					"click": "#nav",
+					"nth": 5
+				},
+				{
+					"expect": {
+						"node": "#item-title",
+						"nth": 0,
+						"text": "Account disconnected"
+					}
+				},
+				{
+					"expect": {
+						"node": "#item-title",
+						"nth": 1,
+						"text": "Account connected"
+					}
+				}
+			]
+		},
+		{
+			"name": "activity-not-you",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 5
+				},
+				{
+					"expect": {
+						"node": "#item-title",
+						"nth": 0,
+						"text": "Signed in"
+					}
+				},
+				{
+					"expect": {
+						"node": "#item-hint",
+						"nth": 2,
+						"text": "3 days ago  ·  Laptop  ·  Eastvale"
+					}
+				},
+				{
+					"click": "#notYou"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "change.open",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "delete-account",
+			"steps": [
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#password"
+				},
+				{
+					"type": "correct horse"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#nav",
+					"nth": 6
+				},
+				{
+					"click": "#deleteAccount"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#deleteError",
+						"text": "Type DELETE to confirm"
+					}
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#deleteError",
+						"text": "That isn't DELETE. Type it exactly"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "delete"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Your account was deleted"
+					}
+				},
+				{
+					"expect": {
+						"node": "#email",
+						"exists": true
+					}
+				},
+				{
+					"click": "#email"
+				},
+				{
+					"type": "ada@example.com"
+				},
+				{
+					"click": "#signIn"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "step",
+						"is": "email"
+					}
+				}
+			]
+		}
+	]
+}

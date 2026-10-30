@@ -195,12 +195,15 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 
 namespace {
 
-/// @brief The name of the folder a screen file is in.
+/// @brief The name of the folder a screen file is in; for a "json" or "lisp" folder, one notation of an example, the
+/// example's.
 /// @param screenFile The screen file, absolute or relative to the current folder.
 /// @return The folder's name, or nothing if it has none (the root) or the path can't be made absolute.
 std::optional<std::string> folderName(const std::filesystem::path& screenFile) {
 	std::error_code error;
-	const std::string folder = std::filesystem::absolute(screenFile, error).parent_path().filename().string();
+	const std::filesystem::path place = std::filesystem::absolute(screenFile, error).parent_path();
+	std::string folder = place.filename().string();
+	if(folder == "json" || folder == "lisp") folder = place.parent_path().filename().string();
 	if(error || folder.empty()) return std::nullopt;
 	return folder;
 }

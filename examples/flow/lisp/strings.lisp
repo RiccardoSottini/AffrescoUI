@@ -1,0 +1,654 @@
+{:note "Flow's text in English, Spanish and French, included by index.screen.json. Card titles, names and boards are data, not text to translate."
+  :strings {:default en
+    :locale "{{settings.appearance.language}}"
+    :en {:issue.back Back
+      :issue.close "Close issue"
+      :issue.addSubs "Add sub-issues"
+      :display.grouping Grouping
+      :filter.placeholder "Filter…"
+      :prop.status Status
+      :display.ordering Ordering
+      :display.properties "Display properties"
+      :order.manual Manual
+      :order.priority Priority
+      :order.due "Due date"
+      :prop.id ID
+      :prop.priority Priority
+      :prop.label Labels
+      :prop.due "Due date"
+      :prop.estimate Estimate
+      :prop.assignee Assignee
+      :issue.previous "Previous issue"
+      :issue.next "Next issue"
+      :issue.project Project
+      :issue.cycle Sprint
+      :issue.noCycle "No sprint"
+      :issue.properties Properties
+      :issue.status Status
+      :issue.priority Priority
+      :issue.assignee Assignee
+      :issue.labels Labels
+      :issue.due "Due date"
+      :issue.estimate Estimate
+      :issue.activity Activity
+      :issue.created "{who} created the issue"
+      :issue.subIssues "Sub-issues  {done}/{total}"
+      :issue.noAssignee Unassigned
+      :issue.addSub "Add sub-issue…"
+      :issue.comment "Leave a comment…"
+      :bulk.count "{n} selected"
+      :bulk.clear "Clear the selection (Esc)"
+      :bulk.delete "Delete the selected issues"
+      :bulk.changed "{n} issues changed"
+      :bulk.deleted "{n} issues deleted"
+      :filter.button Filter
+      :filter.status Status
+      :filter.assignee Assignee
+      :filter.priority Priority
+      :filter.label Label
+      :filter.project Project
+      :filter.is is
+      :filter.clear "Clear the filter"
+      :display.button View
+      :display.layout Layout
+      :composer.title "New issue"
+      :composer.notes "Add description…"
+      :composer.more "Create more"
+      :composer.placeholder "Issue title"
+      :composer.create "Create issue"
+      :composer.in "New issue in {column}"
+      :theme.menu "Switch light and dark"
+      :locale.menu "Language: {code}"
+      :toast.undo Undo
+      :toast.close Close
+      :issue.addLabel "Add a label"
+      :issue.changeTag "Change the type"
+      :issue.projectFollows "The project follows the type"
+      :issue.removeLabel "Remove the label"
+      :scope.all "All issues"
+      :scope.active Active
+      :scope.backlog Backlog
+      :nav.inbox Inbox
+      :nav.cycles Sprints
+      :nav.projects Projects
+      :projects.all "All projects"
+      :projects.active Active
+      :projects.completed Completed
+      :projects.open "Show the project's issues"
+      :projects.new "New project"
+      :projects.untitled "Project {n}"
+      :inbox.assigned "{who} assigned the issue to you"
+      :inbox.commented "{who} commented"
+      :inbox.mentioned "{who} mentioned you"
+      :inbox.status "{who} moved it to {to}"
+      :inbox.due "The issue is due soon"
+      :inbox.open "Open issue"
+      :inbox.snooze Snooze
+      :inbox.snoozed "Notification snoozed"
+      :inbox.markRead "Mark read"
+      :inbox.markUnread "Mark unread"
+      :inbox.allRead "Mark all read"
+      :inbox.empty "No notifications"
+      :cycle.name "Sprint {n}"
+      :cycle.current Current
+      :cycle.left "{n} days left"
+      :cycle.scope Scope
+      :cycle.started Started
+      :cycle.completed Completed
+      :cycle.others "Upcoming and past"
+      :cycle.issues "Issues · {n}"
+      :cycle.upcoming Upcoming
+      :cycle.past Completed
+      :project.name Name
+      :project.health Health
+      :project.lead Lead
+      :project.target "Target date"
+      :project.progress Progress
+      :health.onTrack "On track"
+      :health.atRisk "At risk"
+      :health.offTrack "Off track"
+      :health.completed Completed
+      :workspace.name "Lumen Labs"
+      :nav.newTooltip "New issue (Cmd+N)"
+      :nav.mine "Assigned to me"
+      :list.collapse "Collapse or expand {name}"
+      :nav.teams Teams
+      :nav.issues Issues
+      :nav.boards Pinned
+      :nav.commands "Commands (Cmd+Shift+P)"
+      :search.placeholder "Search issues"
+      :search.label "Search the issues of this board"
+      :goTo.tooltip "Go to an issue by its title (Cmd+P)"
+      :theme.tooltip "Switch light and dark (Cmd+J)"
+      :locale.tooltip "Change the language (Cmd+L)"
+      :members.label "Team members: show one person's issues"
+      :members.title "Show the issues of"
+      :presence.here "{n, plural, =0 {Only you here} one {# other person here} other {# other people here}}"
+      :filter.all "All issues"
+      :tag.bug bug
+      :tag.feature feature
+      :tag.design design
+      :tag.chore chore
+      :label.urgent urgent
+      :label.frontend frontend
+      :label.backend backend
+      :label.docs docs
+      :view.board " Board"
+      :view.list " List"
+      :priority.0 "No priority"
+      :priority.1 Urgent
+      :priority.2 High
+      :priority.3 Medium
+      :priority.4 Low
+      :view.table " Table"
+      :view.timeline " Timeline"
+      :view.lanes "Swimlanes by member"
+      :newCard.placeholder "New issue for the Backlog, then Enter"
+      :column.limit "max {limit}"
+      :column.more "Column actions"
+      :column.over "{name} has {count} issues, over its limit of {limit}"
+      :card.points "{n} pt"
+      :card.label "{title}, {tag}, {who}, {column}"
+      :lane.cards "{n, plural, one {# issue} other {# issues}}"
+      :chart.title " Issues per column"
+      :burndown.title " Sprint burndown: {n} points left"
+      :activity.title " Activity"
+      :activity.added "{who} added “{title}”"
+      :activity.moved "{who} moved “{title}” to {column}"
+      :activity.deleted "{who} deleted “{title}”"
+      :activity.renamed "{who} renamed an issue to “{title}”"
+      :activity.commented "{who} commented on “{title}”"
+      :activity.undone "{who} undid a change"
+      :activity.joined "{who} opened the board"
+      :activity.revised "{who} changed the board: {title}"
+      :presence.viewing "{who} is on “{title}”"
+      :noCard.select "Select an issue to see it here. "
+      :noCard.rightClick Right-click
+      :noCard.menu " an issue for its menu, or press "
+      :noCard.goTo " to go to one."
+      :detail.noNotes "No description yet."
+      :detail.edit " Edit"
+      :detail.left "Move left"
+      :detail.right " Move right"
+      :detail.delete " Delete"
+      :detail.more "More (or right-click the issue)"
+      :detail.editNotes "Edit the description (*bold* between stars)"
+      :detail.save Save
+      :detail.cancel Cancel
+      :drawer.due Due
+      :drawer.noDue "No due date"
+      :drawer.clearDue "Clear the due date"
+      :drawer.dueIn "{n, plural, =0 {today} one {tomorrow} other {in # days}}"
+      :drawer.late "{n, plural, one {a day late} other {# days late}}"
+      :drawer.labels Labels
+      :drawer.assignees Assignees
+      :drawer.checklist "Checklist {done} of {total}"
+      :drawer.addItem "Add an item, then Enter"
+      :drawer.comments "{n, plural, =0 {No comments} one {# comment} other {# comments}}"
+      :drawer.addComment "Write a comment, then Enter"
+      :drawer.attachments Attachments
+      :drawer.addAttachment "A file name, then Enter"
+      :drawer.remove "Remove {name}"
+      :calendar.months "January,February,March,April,May,June,July,August,September,October,November,December"
+      :calendar.days "Su,Mo,Tu,We,Th,Fr,Sa"
+      :timeline.title "Sprint from {from}: the issues with dates, by owner"
+      :timeline.sprintEnd "Sprint end"
+      :toast.added "Added “{title}” to {column}"
+      :toast.renamed "Issue renamed"
+      :toast.deleted "Deleted “{title}”"
+      :toast.linkCopied "Copied {link} to the clipboard"
+      :toast.undone Undone
+      :toast.nothingToUndo "Nothing to undo"
+      :toast.wip "{column} is over its limit of {limit}"
+      :toast.saved Saved
+      :edit.title "Edit issue"
+      :edit.message "The title shown on the board."
+      :quick.cards "Go to an issue by its title"
+      :quick.commands "Type a command or search…"
+      :quick.status "Change status…"
+      :quick.priority "Set priority…"
+      :quick.assignee "Assign to…"
+      :status.revision "Revision {number}  ·  {author}: {message}"
+      :table.id ID
+      :table.priority Priority
+      :table.card Issue
+      :table.column Status
+      :table.label Label
+      :table.owner Assignee
+      :table.points Estimate
+      :settings.title Settings
+      :settings.close Close}
+    :es {:issue.back "Atrás"
+      :issue.close "Cerrar incidencia"
+      :issue.addSubs "Añadir subincidencias"
+      :display.grouping "Agrupación"
+      :filter.placeholder "Filtrar…"
+      :prop.status Estado
+      :display.ordering Orden
+      :display.properties "Propiedades visibles"
+      :order.manual Manual
+      :order.priority Prioridad
+      :order.due "Fecha límite"
+      :prop.id ID
+      :prop.priority Prioridad
+      :prop.label Etiquetas
+      :prop.due "Fecha límite"
+      :prop.estimate "Estimación"
+      :prop.assignee Responsable
+      :issue.previous "Incidencia anterior"
+      :issue.next "Incidencia siguiente"
+      :issue.project Proyecto
+      :issue.cycle Sprint
+      :issue.noCycle "Sin sprint"
+      :issue.properties Propiedades
+      :issue.status Estado
+      :issue.priority Prioridad
+      :issue.assignee Responsable
+      :issue.labels Etiquetas
+      :issue.due "Fecha límite"
+      :issue.estimate "Estimación"
+      :issue.activity Actividad
+      :issue.created "{who} creó la incidencia"
+      :issue.subIssues "Subincidencias  {done}/{total}"
+      :issue.noAssignee "Sin asignar"
+      :issue.addSub "Añadir subincidencia…"
+      :issue.comment "Escribe un comentario…"
+      :bulk.count "{n} seleccionadas"
+      :bulk.clear "Borrar la selección (Esc)"
+      :bulk.delete "Eliminar las incidencias seleccionadas"
+      :bulk.changed "{n} incidencias modificadas"
+      :bulk.deleted "{n} incidencias eliminadas"
+      :filter.button Filtrar
+      :filter.status Estado
+      :filter.assignee Responsable
+      :filter.priority Prioridad
+      :filter.label Etiqueta
+      :filter.project Proyecto
+      :filter.is es
+      :filter.clear "Quitar el filtro"
+      :display.button Vista
+      :display.layout "Diseño"
+      :composer.title "Nueva incidencia"
+      :composer.notes "Añadir descripción…"
+      :composer.more "Crear otra"
+      :composer.placeholder "Título de la incidencia"
+      :composer.create "Crear incidencia"
+      :composer.in "Nueva incidencia en {column}"
+      :theme.menu "Cambiar entre claro y oscuro"
+      :locale.menu "Idioma: {code}"
+      :toast.undo Deshacer
+      :toast.close Cerrar
+      :issue.addLabel "Añadir una etiqueta"
+      :issue.changeTag "Cambiar el tipo"
+      :issue.projectFollows "El proyecto sigue al tipo"
+      :issue.removeLabel "Quitar la etiqueta"
+      :scope.all "Todas las incidencias"
+      :scope.active Activas
+      :scope.backlog Backlog
+      :nav.inbox "Bandeja de entrada"
+      :nav.cycles Sprints
+      :nav.projects Proyectos
+      :projects.all "Todos los proyectos"
+      :projects.active Activos
+      :projects.completed Completados
+      :projects.open "Ver las incidencias del proyecto"
+      :projects.new "Nuevo proyecto"
+      :projects.untitled "Proyecto {n}"
+      :inbox.assigned "{who} te asignó la incidencia"
+      :inbox.commented "{who} comentó"
+      :inbox.mentioned "{who} te mencionó"
+      :inbox.status "{who} la movió a {to}"
+      :inbox.due "La incidencia vence pronto"
+      :inbox.open "Abrir incidencia"
+      :inbox.snooze Posponer
+      :inbox.snoozed "Notificación pospuesta"
+      :inbox.markRead "Marcar como leída"
+      :inbox.markUnread "Marcar como no leída"
+      :inbox.allRead "Marcar todo como leído"
+      :inbox.empty "Sin notificaciones"
+      :cycle.name "Sprint {n}"
+      :cycle.current Actual
+      :cycle.left "Quedan {n} días"
+      :cycle.scope Alcance
+      :cycle.started Iniciadas
+      :cycle.completed Completadas
+      :cycle.others "Próximos y anteriores"
+      :cycle.issues "Incidencias · {n}"
+      :cycle.upcoming "Próximos"
+      :cycle.past Completados
+      :project.name Nombre
+      :project.health "Estado de salud"
+      :project.lead Responsable
+      :project.target "Fecha objetivo"
+      :project.progress Progreso
+      :health.onTrack "En camino"
+      :health.atRisk "En riesgo"
+      :health.offTrack Desviado
+      :health.completed Completado
+      :workspace.name "Lumen Labs"
+      :nav.newTooltip "Nueva incidencia (Cmd+N)"
+      :nav.mine "Asignadas a mí"
+      :list.collapse "Contraer o expandir {name}"
+      :nav.teams Equipos
+      :nav.issues Incidencias
+      :nav.boards Fijados
+      :nav.commands "Comandos (Cmd+Shift+P)"
+      :search.placeholder "Buscar incidencias"
+      :search.label "Buscar entre las incidencias de este tablero"
+      :goTo.tooltip "Ir a una incidencia por su título (Cmd+P)"
+      :theme.tooltip "Cambiar entre claro y oscuro (Cmd+J)"
+      :locale.tooltip "Cambiar el idioma (Cmd+L)"
+      :members.label "Miembros del equipo: ver las incidencias de una persona"
+      :members.title "Ver las incidencias de"
+      :presence.here "{n, plural, =0 {Solo tú estás aquí} one {# persona más está aquí} other {# personas más están aquí}}"
+      :filter.all "Todas las incidencias"
+      :tag.bug error
+      :tag.feature "función"
+      :tag.design "diseño"
+      :tag.chore tarea
+      :label.urgent urgente
+      :label.frontend frontend
+      :label.backend backend
+      :label.docs docs
+      :view.board " Tablero"
+      :view.list " Lista"
+      :priority.0 "Sin prioridad"
+      :priority.1 Urgente
+      :priority.2 Alta
+      :priority.3 Media
+      :priority.4 Baja
+      :view.table " Tabla"
+      :view.timeline " Cronograma"
+      :view.lanes "Carriles por miembro"
+      :newCard.placeholder "Nueva incidencia para el Backlog, luego Intro"
+      :column.limit "máx. {limit}"
+      :column.more "Acciones de la columna"
+      :column.over "{name} tiene {count} incidencias, por encima de su límite de {limit}"
+      :card.points "{n} pt"
+      :card.label "{title}, {tag}, {who}, {column}"
+      :lane.cards "{n, plural, one {# incidencia} other {# incidencias}}"
+      :chart.title " Incidencias por columna"
+      :burndown.title " Burndown del sprint: quedan {n} puntos"
+      :activity.title " Actividad"
+      :activity.added "{who} añadió “{title}”"
+      :activity.moved "{who} movió “{title}” a {column}"
+      :activity.deleted "{who} eliminó “{title}”"
+      :activity.renamed "{who} renombró una incidencia como “{title}”"
+      :activity.commented "{who} comentó en “{title}”"
+      :activity.undone "{who} deshizo un cambio"
+      :activity.joined "{who} abrió el tablero"
+      :activity.revised "{who} cambió el tablero: {title}"
+      :presence.viewing "{who} está en “{title}”"
+      :noCard.select "Selecciona una incidencia para verla aquí. "
+      :noCard.rightClick "Haz clic derecho"
+      :noCard.menu " en una incidencia para ver su menú, o pulsa "
+      :noCard.goTo " para ir a una."
+      :detail.noNotes "Aún no hay descripción."
+      :detail.edit " Editar"
+      :detail.left "Mover a la izquierda"
+      :detail.right " Mover a la derecha"
+      :detail.delete " Eliminar"
+      :detail.more "Más (o clic derecho en la incidencia)"
+      :detail.editNotes "Editar la descripción (*negrita* entre asteriscos)"
+      :detail.save Guardar
+      :detail.cancel Cancelar
+      :drawer.due Vence
+      :drawer.noDue "Sin fecha límite"
+      :drawer.clearDue "Quitar la fecha límite"
+      :drawer.dueIn "{n, plural, =0 {hoy} one {mañana} other {en # días}}"
+      :drawer.late "{n, plural, one {con un día de retraso} other {con # días de retraso}}"
+      :drawer.labels Etiquetas
+      :drawer.assignees Responsables
+      :drawer.checklist "Lista de tareas {done} de {total}"
+      :drawer.addItem "Añade un elemento y pulsa Intro"
+      :drawer.comments "{n, plural, =0 {Sin comentarios} one {# comentario} other {# comentarios}}"
+      :drawer.addComment "Escribe un comentario y pulsa Intro"
+      :drawer.attachments "Archivos adjuntos"
+      :drawer.addAttachment "Un nombre de archivo y pulsa Intro"
+      :drawer.remove "Quitar {name}"
+      :calendar.months "enero,febrero,marzo,abril,mayo,junio,julio,agosto,septiembre,octubre,noviembre,diciembre"
+      :calendar.days "Do,Lu,Ma,Mi,Ju,Vi,Sá"
+      :timeline.title "Sprint desde {from}: las incidencias con fecha, por responsable"
+      :timeline.sprintEnd "Fin del sprint"
+      :toast.added "Se añadió “{title}” a {column}"
+      :toast.renamed "Incidencia renombrada"
+      :toast.deleted "Se eliminó “{title}”"
+      :toast.linkCopied "{link} copiado al portapapeles"
+      :toast.undone Deshecho
+      :toast.nothingToUndo "Nada que deshacer"
+      :toast.wip "{column} supera su límite de {limit}"
+      :toast.saved Guardado
+      :edit.title "Editar incidencia"
+      :edit.message "El título que se muestra en el tablero."
+      :quick.cards "Ir a una incidencia por su título"
+      :quick.commands "Escribe un comando o busca…"
+      :quick.status "Cambiar estado…"
+      :quick.priority "Establecer prioridad…"
+      :quick.assignee "Asignar a…"
+      :status.revision "Revisión {number}  ·  {author}: {message}"
+      :table.id ID
+      :table.priority Prioridad
+      :table.card Incidencia
+      :table.column Estado
+      :table.label Etiqueta
+      :table.owner Responsable
+      :table.points "Estimación"
+      :settings.title Ajustes
+      :settings.close Cerrar}
+    :fr {:issue.back Retour
+      :issue.close "Fermer le ticket"
+      :issue.addSubs "Ajouter des sous-tickets"
+      :display.grouping Regroupement
+      :filter.placeholder "Filtrer…"
+      :prop.status Statut
+      :display.ordering Tri
+      :display.properties "Propriétés affichées"
+      :order.manual Manuel
+      :order.priority "Priorité"
+      :order.due "Échéance"
+      :prop.id ID
+      :prop.priority "Priorité"
+      :prop.label "Étiquettes"
+      :prop.due "Échéance"
+      :prop.estimate Estimation
+      :prop.assignee "Assigné à"
+      :issue.previous "Ticket précédent"
+      :issue.next "Ticket suivant"
+      :issue.project Projet
+      :issue.cycle Sprint
+      :issue.noCycle "Aucun sprint"
+      :issue.properties "Propriétés"
+      :issue.status Statut
+      :issue.priority "Priorité"
+      :issue.assignee "Assigné à"
+      :issue.labels "Étiquettes"
+      :issue.due "Échéance"
+      :issue.estimate Estimation
+      :issue.activity "Activité"
+      :issue.created "{who} a créé le ticket"
+      :issue.subIssues "Sous-tickets  {done}/{total}"
+      :issue.noAssignee "Non assigné"
+      :issue.addSub "Ajouter un sous-ticket…"
+      :issue.comment "Écrire un commentaire…"
+      :bulk.count "{n} sélectionnés"
+      :bulk.clear "Effacer la sélection (Échap)"
+      :bulk.delete "Supprimer les tickets sélectionnés"
+      :bulk.changed "{n} tickets modifiés"
+      :bulk.deleted "{n} tickets supprimés"
+      :filter.button Filtrer
+      :filter.status Statut
+      :filter.assignee "Assigné à"
+      :filter.priority "Priorité"
+      :filter.label "Étiquette"
+      :filter.project Projet
+      :filter.is est
+      :filter.clear "Effacer le filtre"
+      :display.button Vue
+      :display.layout Disposition
+      :composer.title "Nouveau ticket"
+      :composer.notes "Ajouter une description…"
+      :composer.more "En créer un autre"
+      :composer.placeholder "Titre du ticket"
+      :composer.create "Créer le ticket"
+      :composer.in "Nouveau ticket dans {column}"
+      :theme.menu "Basculer entre clair et sombre"
+      :locale.menu "Langue : {code}"
+      :toast.undo Annuler
+      :toast.close Fermer
+      :issue.addLabel "Ajouter une étiquette"
+      :issue.changeTag "Changer le type"
+      :issue.projectFollows "Le projet suit le type"
+      :issue.removeLabel "Retirer l’étiquette"
+      :scope.all "Tous les tickets"
+      :scope.active Actifs
+      :scope.backlog Backlog
+      :nav.inbox "Boîte de réception"
+      :nav.cycles Sprints
+      :nav.projects Projets
+      :projects.all "Tous les projets"
+      :projects.active Actifs
+      :projects.completed "Terminés"
+      :projects.open "Voir les tickets du projet"
+      :projects.new "Nouveau projet"
+      :projects.untitled "Projet {n}"
+      :inbox.assigned "{who} vous a assigné le ticket"
+      :inbox.commented "{who} a commenté"
+      :inbox.mentioned "{who} vous a mentionné"
+      :inbox.status "{who} l’a déplacé vers {to}"
+      :inbox.due "Le ticket arrive bientôt à échéance"
+      :inbox.open "Ouvrir le ticket"
+      :inbox.snooze Reporter
+      :inbox.snoozed "Notification reportée"
+      :inbox.markRead "Marquer comme lu"
+      :inbox.markUnread "Marquer comme non lu"
+      :inbox.allRead "Tout marquer comme lu"
+      :inbox.empty "Aucune notification"
+      :cycle.name "Sprint {n}"
+      :cycle.current "En cours"
+      :cycle.left "{n} jours restants"
+      :cycle.scope "Périmètre"
+      :cycle.started "Démarrés"
+      :cycle.completed "Terminés"
+      :cycle.others "À venir et passés"
+      :cycle.issues "Tickets · {n}"
+      :cycle.upcoming "À venir"
+      :cycle.past "Terminés"
+      :project.name Nom
+      :project.health "Santé"
+      :project.lead Responsable
+      :project.target "Date cible"
+      :project.progress Progression
+      :health.onTrack "Dans les temps"
+      :health.atRisk "À risque"
+      :health.offTrack "En retard"
+      :health.completed "Terminé"
+      :workspace.name "Lumen Labs"
+      :nav.newTooltip "Nouveau ticket (Cmd+N)"
+      :nav.mine "Assignés à moi"
+      :list.collapse "Réduire ou développer {name}"
+      :nav.teams "Équipes"
+      :nav.issues Tickets
+      :nav.boards "Épinglés"
+      :nav.commands "Commandes (Cmd+Shift+P)"
+      :search.placeholder "Rechercher des tickets"
+      :search.label "Rechercher parmi les tickets de ce tableau"
+      :goTo.tooltip "Aller à un ticket par son titre (Cmd+P)"
+      :theme.tooltip "Basculer entre clair et sombre (Cmd+J)"
+      :locale.tooltip "Changer de langue (Cmd+L)"
+      :members.label "Membres de l’équipe : afficher les tickets d’une personne"
+      :members.title "Afficher les tickets de"
+      :presence.here "{n, plural, =0 {Vous êtes seul ici} one {# autre personne ici} other {# autres personnes ici}}"
+      :filter.all "Tous les tickets"
+      :tag.bug bug
+      :tag.feature "fonctionnalité"
+      :tag.design design
+      :tag.chore "tâche"
+      :label.urgent urgent
+      :label.frontend frontend
+      :label.backend backend
+      :label.docs docs
+      :view.board " Tableau"
+      :view.list " Liste"
+      :priority.0 "Aucune priorité"
+      :priority.1 Urgente
+      :priority.2 Haute
+      :priority.3 Moyenne
+      :priority.4 Basse
+      :view.table " Table"
+      :view.timeline " Chronologie"
+      :view.lanes "Couloirs par membre"
+      :newCard.placeholder "Nouveau ticket pour le Backlog, puis Entrée"
+      :column.limit "max. {limit}"
+      :column.more "Actions de la colonne"
+      :column.over "{name} compte {count} tickets, au-delà de sa limite de {limit}"
+      :card.points "{n} pt"
+      :card.label "{title}, {tag}, {who}, {column}"
+      :lane.cards "{n, plural, one {# ticket} other {# tickets}}"
+      :chart.title " Tickets par colonne"
+      :burndown.title " Burndown du sprint : {n} points restants"
+      :activity.title " Activité"
+      :activity.added "{who} a ajouté « {title} »"
+      :activity.moved "{who} a déplacé « {title} » vers {column}"
+      :activity.deleted "{who} a supprimé « {title} »"
+      :activity.renamed "{who} a renommé un ticket en « {title} »"
+      :activity.commented "{who} a commenté « {title} »"
+      :activity.undone "{who} a annulé une modification"
+      :activity.joined "{who} a ouvert le tableau"
+      :activity.revised "{who} a modifié le tableau : {title}"
+      :presence.viewing "{who} est sur « {title} »"
+      :noCard.select "Sélectionnez un ticket pour le voir ici. "
+      :noCard.rightClick "Faites un clic droit"
+      :noCard.menu " sur un ticket pour son menu, ou appuyez sur "
+      :noCard.goTo " pour aller à un ticket."
+      :detail.noNotes "Pas encore de description."
+      :detail.edit " Modifier"
+      :detail.left "Déplacer à gauche"
+      :detail.right " Déplacer à droite"
+      :detail.delete " Supprimer"
+      :detail.more "Plus (ou clic droit sur le ticket)"
+      :detail.editNotes "Modifier la description (*gras* entre astérisques)"
+      :detail.save Enregistrer
+      :detail.cancel Annuler
+      :drawer.due "Échéance"
+      :drawer.noDue "Aucune échéance"
+      :drawer.clearDue "Effacer l’échéance"
+      :drawer.dueIn "{n, plural, =0 {aujourd’hui} one {demain} other {dans # jours}}"
+      :drawer.late "{n, plural, one {un jour de retard} other {# jours de retard}}"
+      :drawer.labels "Étiquettes"
+      :drawer.assignees "Assignés"
+      :drawer.checklist "Liste de contrôle {done} sur {total}"
+      :drawer.addItem "Ajoutez un élément, puis Entrée"
+      :drawer.comments "{n, plural, =0 {Aucun commentaire} one {# commentaire} other {# commentaires}}"
+      :drawer.addComment "Écrivez un commentaire, puis Entrée"
+      :drawer.attachments "Pièces jointes"
+      :drawer.addAttachment "Un nom de fichier, puis Entrée"
+      :drawer.remove "Retirer {name}"
+      :calendar.months "janvier,février,mars,avril,mai,juin,juillet,août,septembre,octobre,novembre,décembre"
+      :calendar.days "Di,Lu,Ma,Me,Je,Ve,Sa"
+      :timeline.title "Sprint à partir du {from} : les tickets datés, par responsable"
+      :timeline.sprintEnd "Fin du sprint"
+      :toast.added "« {title} » ajouté à {column}"
+      :toast.renamed "Ticket renommé"
+      :toast.deleted "« {title} » supprimé"
+      :toast.linkCopied "{link} copié dans le presse-papiers"
+      :toast.undone "Annulé"
+      :toast.nothingToUndo "Rien à annuler"
+      :toast.wip "{column} dépasse sa limite de {limit}"
+      :toast.saved "Enregistré"
+      :edit.title "Modifier le ticket"
+      :edit.message "Le titre affiché sur le tableau."
+      :quick.cards "Aller à un ticket par son titre"
+      :quick.commands "Saisissez une commande ou recherchez…"
+      :quick.status "Changer le statut…"
+      :quick.priority "Définir la priorité…"
+      :quick.assignee "Assigner à…"
+      :status.revision "Révision {number}  ·  {author} : {message}"
+      :table.id ID
+      :table.priority "Priorité"
+      :table.card Ticket
+      :table.column Statut
+      :table.label "Étiquette"
+      :table.owner "Assigné à"
+      :table.points Estimation
+      :settings.title "Paramètres"
+      :settings.close Fermer}}}

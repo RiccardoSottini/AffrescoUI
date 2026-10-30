@@ -1,7 +1,7 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/launcher",
+	"screens": "../../../examples/launcher/json",
 	"scenarios": [
 		{
 			"name": "launcher",

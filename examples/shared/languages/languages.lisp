@@ -1,0 +1,5 @@
+{:$schema "../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "Every language of this folder in one include. Their scopes are coloured by the @syntax.* tokens, a scope by its parent's when it has none of its own (keyword.control by @syntax.keyword): keyword, type, string, number, comment and heading."
+  :include [cpp.lisp javascript.lisp typescript.lisp python.lisp json.lisp cmake.lisp markdown.lisp shell.lisp]}

@@ -3,8 +3,8 @@
 Boards in the sidebar, an inbox, sprints and projects, a grouped list, swimlanes, a table and a timeline of every card, a card drawer, a burndown and an activity feed, drag and drop with a keyboard alternative, undo, Cmd+P and Cmd+Shift+P. The `kanban` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_launcher examples/flow/index.screen.json
-./build/affrescoui test examples/flow/index.scenarios.json
+./build/affrescoui_launcher examples/flow/json/index.screen.json
+./build/affrescoui test examples/flow/json/index.scenarios.json
 ```
 
 | File | What it is |
@@ -17,7 +17,7 @@ Boards in the sidebar, an inbox, sprints and projects, a grouped list, swimlanes
 | `strings.json` | Its string tables: English, Spanish and French |
 | `views.json` | Its other views, included: insights, swimlanes, the timeline, the settings |
 
-The Launcher lists it first, and the release's checks draw it: `affrescoui_launcher examples/flow/index.screen.json`.
+The Launcher lists it first, and the release's checks draw it: `affrescoui_launcher examples/flow/json/index.screen.json`.
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 

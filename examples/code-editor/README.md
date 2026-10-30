@@ -3,8 +3,8 @@
 A desktop text editor: a side bar with open files and folders, tabs, a minimap, the Quick Switcher (files, symbols, lines, also scoped to a file), Find Symbol in Project, Find in Files with a results buffer, a command palette, a console and a status bar; context menus on the tabs and the text, a theme picker (dark, light, the system's), Distraction Free, and its settings and key bindings as JSON files. The `code-editor` template: a screen document that the stock host runs. What it covers is in [`PARITY.md`](PARITY.md).
 
 ```sh
-./build/affrescoui_launcher examples/code-editor/index.screen.json
-./build/affrescoui test examples/code-editor/index.scenarios.json
+./build/affrescoui_launcher examples/code-editor/json/index.screen.json
+./build/affrescoui test examples/code-editor/json/index.scenarios.json
 ```
 
 | File | What it is |

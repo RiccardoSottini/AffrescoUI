@@ -1,0 +1,3683 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's debugger, checked headless: affrescoui_render_runner debug.scenarios.json. No adapter runs: the steps named debugApply* play what tests/dap/fake_adapter.py answers (its capabilities, stops, frames, variables and evaluations), as the dap service hands them to the screen.",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "debug-view-and-configurations",
+			"note": "Run and Debug shows the folder's launch configurations (none in the example folder); a launch.json's are listed, those Forge can't run counted",
+			"steps": [
+				{
+					"key": "mod+shift+d"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "debug"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.configurations.length",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#debug-view",
+						"exists": true
+					}
+				},
+				{
+					"action": "debugApplyLaunchFile",
+					"event": {
+						"version": "0.2.0",
+						"configurations": [
+							{ "name": "Run main", "type": "python", "request": "launch", "program": "src/main.cpp", "cwd": ".", "stopOnEntry": false, "args": ["--fast", 3], "console": "externalTerminal", "justMyCode": true },
+							{ "name": "Attach", "type": "debugpy", "request": "attach", "connect": { "host": "localhost", "port": 5678 } },
+							{ "type": "lldb-dap", "request": "attach", "pid": 4242 },
+							{ "name": "No process", "type": "lldb", "request": "attach" },
+							{ "name": "Other", "type": "node", "request": "launch", "program": "main.js" },
+							"not a configuration"
+						]
+					},
+					"note": "what a .forge/launch.json holds, read by debugReadLaunchFile: three Forge runs, three skipped"
+				},
+				{ "expect": { "state": "debug.configurations[0].arguments", "is": { "program": "src/main.cpp", "cwd": ".", "stopOnEntry": false, "args": ["--fast"], "console": "integratedTerminal" } } },
+				{ "expect": { "state": "debug.configurations[1].type", "is": "python" } },
+				{ "expect": { "state": "debug.configurations[1].arguments.connect", "is": { "host": "127.0.0.1", "port": 5678 } } },
+				{ "expect": { "state": "debug.configurations[2].name", "is": "lldb attach" } },
+				{ "expect": { "state": "debug.configurations[2].arguments", "is": { "pid": 4242 } } },
+				{
+					"expect": {
+						"state": "debug.configurations.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.skipped",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.selected",
+						"is": "0"
+					}
+				},
+				{
+					"expect": {
+						"node": "#debug-configurations",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-start-without-configuration",
+			"note": "F5 with no configuration says how to add one and starts nothing",
+			"steps": [
+				{
+					"key": "mod+shift+d"
+				},
+				{
+					"click": "#debug-title",
+					"note": "the explorer's name field has the focus at start, and a text area keeps F5"
+				},
+				{
+					"key": "f5"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "inactive"
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.console.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-launch-refused",
+			"note": "A launch the adapter refuses ends the session with one message, in the console and as a toast",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "running"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.exceptionFilters.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.exceptionFilters[1].enabled",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "panelTab",
+						"is": "debugConsole"
+					}
+				},
+				{
+					"expect": {
+						"node": "#debug-toolbar",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"action": "debugApplyRefusal",
+					"event": {
+						"command": "launch",
+						"error": {
+							"code": "refused",
+							"message": "no such file: src/main.cpp"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "inactive"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.console[1].text",
+						"is": "The debugger could not launch: no such file: src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.console[1].kind",
+						"is": "error"
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"node": "#debug-toolbar",
+						"property": "shown",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-breakpoints-verified",
+			"note": "Breakpoints set before the session go to the adapter when it is initialized; it verifies line 5 and not line 11 (fake_adapter: no code on this line)",
+			"steps": [
+				{
+					"action": "debugApplyBreakpoint",
+					"event": {
+						"path": "src/main.cpp",
+						"line": 5
+					},
+					"note": "a click in the gutter of line 5"
+				},
+				{
+					"action": "debugApplyBreakpoint",
+					"event": {
+						"path": "src/main.cpp",
+						"line": 11
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[0].id",
+						"is": "b1"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[0].enabled",
+						"is": true
+					}
+				},
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.configured",
+						"is": true
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnSetBreakpoints",
+						"body": {
+							"breakpoints": [
+								{
+									"id": 1,
+									"verified": true,
+									"line": 5
+								},
+								{
+									"id": 2,
+									"verified": false,
+									"line": 11,
+									"message": "no code on this line"
+								}
+							]
+						},
+						"context": {
+							"path": "src/main.cpp",
+							"ids": [
+								"b1",
+								"b2"
+							]
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[0].verified",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[0].adapterId",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[1].verified",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[1].message",
+						"is": "no code on this line"
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "breakpoint",
+						"body": {
+							"reason": "changed",
+							"breakpoint": {
+								"id": 1,
+								"verified": false
+							}
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[0].verified",
+						"is": false
+					}
+				},
+				{
+					"action": "debugApplyBreakpoint",
+					"event": {
+						"path": "src/main.cpp",
+						"line": 11
+					},
+					"note": "a second click removes it"
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints.length",
+						"is": 1
+					}
+				},
+				{
+					"key": "mod+shift+d"
+				},
+				{
+					"click": "#debug-breakpoints"
+				},
+				{
+					"key": "home"
+				},
+				{
+					"expect": {
+						"state": "debug.selectedBreakpoint",
+						"is": "b1"
+					}
+				},
+				{
+					"click": "#debug-breakpoint-enable"
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[0].enabled",
+						"is": false
+					}
+				},
+				{
+					"click": "#debug-breakpoint-remove"
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-conditional-and-logpoint",
+			"note": "A breakpoint with a condition and a hit count, and a logpoint; the edit dialog changes them",
+			"steps": [
+				{
+					"action": "debugApplyBreakpoint",
+					"event": {
+						"path": "src/main.cpp",
+						"line": 3,
+						"condition": "count > 2",
+						"hitCondition": "2"
+					}
+				},
+				{
+					"action": "debugApplyBreakpoint",
+					"event": {
+						"path": "src/main.cpp",
+						"line": 4,
+						"logMessage": "count is {count}"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[0].condition",
+						"is": "count > 2"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[0].hitCondition",
+						"is": "2"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[1].logMessage",
+						"is": "count is {count}"
+					}
+				},
+				{
+					"key": "mod+shift+d"
+				},
+				{
+					"click": "#debug-breakpoints"
+				},
+				{
+					"key": "home"
+				},
+				{
+					"click": "#debug-breakpoint-edit"
+				},
+				{
+					"expect": {
+						"state": "debug.edit.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.edit.condition",
+						"is": "count > 2"
+					}
+				},
+				{
+					"click": "#debug-edit-condition"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"type": "0"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "debug.edit.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints[0].condition",
+						"is": "count > 20"
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-stopped-stack",
+			"note": "Stopped at a breakpoint: the thread and its frames, the current line highlighted in src/main.cpp, the frame's source open",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "stopped"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.reason",
+						"is": "breakpoint"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.threads[0].name",
+						"is": "main"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.frames.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.frameId",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.selectedStack",
+						"is": "f:1"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.current.path",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.current.line",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#debug-toolbar",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+shift+d"
+				},
+				{
+					"click": "#debug-stack"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"expect": {
+						"state": "debug.selectedStack",
+						"is": "f:3"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.outside.open",
+						"is": true
+					}
+				},
+				{
+					"note": "a library frame outside the folder opens only with consent"
+				},
+				{
+					"action": "debugApplySource",
+					"event": {
+						"path": "/opt/fake-runtime/lib/runtime.py",
+						"label": "runtime.py (read-only)",
+						"content": "def run():\n    main()\n"
+					},
+					"note": "what the adapter's source request answers once allowed"
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "debug-source:/opt/fake-runtime/lib/runtime.py"
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-stepping",
+			"note": "Step over, into and out resume (frames and variables cleared) until the next stop; F10 steps over while editing",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnScopes",
+						"body": {
+							"scopes": [
+								{
+									"name": "Locals",
+									"variablesReference": 1001,
+									"expensive": false
+								},
+								{
+									"name": "Globals",
+									"variablesReference": 2000,
+									"expensive": true
+								}
+							]
+						},
+						"context": {
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[0].expanded",
+						"is": true
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnVariables",
+						"body": {
+							"variables": [
+								{
+									"name": "count",
+									"value": "3",
+									"variablesReference": 0
+								},
+								{
+									"name": "name",
+									"value": "'forge'",
+									"variablesReference": 0
+								},
+								{
+									"name": "items",
+									"value": "list[2500]",
+									"variablesReference": 3000,
+									"indexedVariables": 2500
+								}
+							]
+						},
+						"context": {
+							"parent": "s0",
+							"ref": 1001,
+							"depth": 1,
+							"start": 0,
+							"indexed": 0,
+							"replace": "",
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"click": "#editor",
+					"note": "the editor keeps the debugger's keys"
+				},
+				{
+					"key": "f10"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "running"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.frames.length",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 0
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "step",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 4,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.current.line",
+						"is": 4
+					}
+				},
+				{
+					"key": "f11"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "running"
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "step",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 1,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"key": "shift+f11"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "running"
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "continued",
+						"body": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.current.line",
+						"is": 0
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "pause",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 5,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.reason",
+						"is": "pause"
+					}
+				},
+				{
+					"click": "#debug-toolbar-continue"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "running"
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-variables-paged",
+			"note": "Scopes, the locals expanded, a 2,500-item list loaded 100 at a time (fake_adapter's items)",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnScopes",
+						"body": {
+							"scopes": [
+								{
+									"name": "Locals",
+									"variablesReference": 1001,
+									"expensive": false
+								},
+								{
+									"name": "Globals",
+									"variablesReference": 2000,
+									"expensive": true
+								}
+							]
+						},
+						"context": {
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[0].expanded",
+						"is": true
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnVariables",
+						"body": {
+							"variables": [
+								{
+									"name": "count",
+									"value": "3",
+									"variablesReference": 0
+								},
+								{
+									"name": "name",
+									"value": "'forge'",
+									"variablesReference": 0
+								},
+								{
+									"name": "items",
+									"value": "list[2500]",
+									"variablesReference": 3000,
+									"indexedVariables": 2500
+								}
+							]
+						},
+						"context": {
+							"parent": "s0",
+							"ref": 1001,
+							"depth": 1,
+							"start": 0,
+							"indexed": 0,
+							"replace": "",
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 5
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[1].name",
+						"is": "count"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[3].name",
+						"is": "items"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[4].name",
+						"is": "Globals"
+					}
+				},
+				{
+					"key": "mod+shift+d"
+				},
+				{
+					"click": "#debug-variables"
+				},
+				{
+					"key": "home"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "debug.selectedVariable",
+						"is": "s0/2"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnVariables",
+						"body": {
+							"variables": [
+								{
+									"name": "[0]",
+									"value": "0",
+									"variablesReference": 0
+								},
+								{
+									"name": "[1]",
+									"value": "1",
+									"variablesReference": 0
+								},
+								{
+									"name": "[2]",
+									"value": "4",
+									"variablesReference": 0
+								},
+								{
+									"name": "[3]",
+									"value": "9",
+									"variablesReference": 0
+								},
+								{
+									"name": "[4]",
+									"value": "16",
+									"variablesReference": 0
+								},
+								{
+									"name": "[5]",
+									"value": "25",
+									"variablesReference": 0
+								},
+								{
+									"name": "[6]",
+									"value": "36",
+									"variablesReference": 0
+								},
+								{
+									"name": "[7]",
+									"value": "49",
+									"variablesReference": 0
+								},
+								{
+									"name": "[8]",
+									"value": "64",
+									"variablesReference": 0
+								},
+								{
+									"name": "[9]",
+									"value": "81",
+									"variablesReference": 0
+								},
+								{
+									"name": "[10]",
+									"value": "100",
+									"variablesReference": 0
+								},
+								{
+									"name": "[11]",
+									"value": "121",
+									"variablesReference": 0
+								},
+								{
+									"name": "[12]",
+									"value": "144",
+									"variablesReference": 0
+								},
+								{
+									"name": "[13]",
+									"value": "169",
+									"variablesReference": 0
+								},
+								{
+									"name": "[14]",
+									"value": "196",
+									"variablesReference": 0
+								},
+								{
+									"name": "[15]",
+									"value": "225",
+									"variablesReference": 0
+								},
+								{
+									"name": "[16]",
+									"value": "256",
+									"variablesReference": 0
+								},
+								{
+									"name": "[17]",
+									"value": "289",
+									"variablesReference": 0
+								},
+								{
+									"name": "[18]",
+									"value": "324",
+									"variablesReference": 0
+								},
+								{
+									"name": "[19]",
+									"value": "361",
+									"variablesReference": 0
+								},
+								{
+									"name": "[20]",
+									"value": "400",
+									"variablesReference": 0
+								},
+								{
+									"name": "[21]",
+									"value": "441",
+									"variablesReference": 0
+								},
+								{
+									"name": "[22]",
+									"value": "484",
+									"variablesReference": 0
+								},
+								{
+									"name": "[23]",
+									"value": "529",
+									"variablesReference": 0
+								},
+								{
+									"name": "[24]",
+									"value": "576",
+									"variablesReference": 0
+								},
+								{
+									"name": "[25]",
+									"value": "625",
+									"variablesReference": 0
+								},
+								{
+									"name": "[26]",
+									"value": "676",
+									"variablesReference": 0
+								},
+								{
+									"name": "[27]",
+									"value": "729",
+									"variablesReference": 0
+								},
+								{
+									"name": "[28]",
+									"value": "784",
+									"variablesReference": 0
+								},
+								{
+									"name": "[29]",
+									"value": "841",
+									"variablesReference": 0
+								},
+								{
+									"name": "[30]",
+									"value": "900",
+									"variablesReference": 0
+								},
+								{
+									"name": "[31]",
+									"value": "961",
+									"variablesReference": 0
+								},
+								{
+									"name": "[32]",
+									"value": "1024",
+									"variablesReference": 0
+								},
+								{
+									"name": "[33]",
+									"value": "1089",
+									"variablesReference": 0
+								},
+								{
+									"name": "[34]",
+									"value": "1156",
+									"variablesReference": 0
+								},
+								{
+									"name": "[35]",
+									"value": "1225",
+									"variablesReference": 0
+								},
+								{
+									"name": "[36]",
+									"value": "1296",
+									"variablesReference": 0
+								},
+								{
+									"name": "[37]",
+									"value": "1369",
+									"variablesReference": 0
+								},
+								{
+									"name": "[38]",
+									"value": "1444",
+									"variablesReference": 0
+								},
+								{
+									"name": "[39]",
+									"value": "1521",
+									"variablesReference": 0
+								},
+								{
+									"name": "[40]",
+									"value": "1600",
+									"variablesReference": 0
+								},
+								{
+									"name": "[41]",
+									"value": "1681",
+									"variablesReference": 0
+								},
+								{
+									"name": "[42]",
+									"value": "1764",
+									"variablesReference": 0
+								},
+								{
+									"name": "[43]",
+									"value": "1849",
+									"variablesReference": 0
+								},
+								{
+									"name": "[44]",
+									"value": "1936",
+									"variablesReference": 0
+								},
+								{
+									"name": "[45]",
+									"value": "2025",
+									"variablesReference": 0
+								},
+								{
+									"name": "[46]",
+									"value": "2116",
+									"variablesReference": 0
+								},
+								{
+									"name": "[47]",
+									"value": "2209",
+									"variablesReference": 0
+								},
+								{
+									"name": "[48]",
+									"value": "2304",
+									"variablesReference": 0
+								},
+								{
+									"name": "[49]",
+									"value": "2401",
+									"variablesReference": 0
+								},
+								{
+									"name": "[50]",
+									"value": "2500",
+									"variablesReference": 0
+								},
+								{
+									"name": "[51]",
+									"value": "2601",
+									"variablesReference": 0
+								},
+								{
+									"name": "[52]",
+									"value": "2704",
+									"variablesReference": 0
+								},
+								{
+									"name": "[53]",
+									"value": "2809",
+									"variablesReference": 0
+								},
+								{
+									"name": "[54]",
+									"value": "2916",
+									"variablesReference": 0
+								},
+								{
+									"name": "[55]",
+									"value": "3025",
+									"variablesReference": 0
+								},
+								{
+									"name": "[56]",
+									"value": "3136",
+									"variablesReference": 0
+								},
+								{
+									"name": "[57]",
+									"value": "3249",
+									"variablesReference": 0
+								},
+								{
+									"name": "[58]",
+									"value": "3364",
+									"variablesReference": 0
+								},
+								{
+									"name": "[59]",
+									"value": "3481",
+									"variablesReference": 0
+								},
+								{
+									"name": "[60]",
+									"value": "3600",
+									"variablesReference": 0
+								},
+								{
+									"name": "[61]",
+									"value": "3721",
+									"variablesReference": 0
+								},
+								{
+									"name": "[62]",
+									"value": "3844",
+									"variablesReference": 0
+								},
+								{
+									"name": "[63]",
+									"value": "3969",
+									"variablesReference": 0
+								},
+								{
+									"name": "[64]",
+									"value": "4096",
+									"variablesReference": 0
+								},
+								{
+									"name": "[65]",
+									"value": "4225",
+									"variablesReference": 0
+								},
+								{
+									"name": "[66]",
+									"value": "4356",
+									"variablesReference": 0
+								},
+								{
+									"name": "[67]",
+									"value": "4489",
+									"variablesReference": 0
+								},
+								{
+									"name": "[68]",
+									"value": "4624",
+									"variablesReference": 0
+								},
+								{
+									"name": "[69]",
+									"value": "4761",
+									"variablesReference": 0
+								},
+								{
+									"name": "[70]",
+									"value": "4900",
+									"variablesReference": 0
+								},
+								{
+									"name": "[71]",
+									"value": "5041",
+									"variablesReference": 0
+								},
+								{
+									"name": "[72]",
+									"value": "5184",
+									"variablesReference": 0
+								},
+								{
+									"name": "[73]",
+									"value": "5329",
+									"variablesReference": 0
+								},
+								{
+									"name": "[74]",
+									"value": "5476",
+									"variablesReference": 0
+								},
+								{
+									"name": "[75]",
+									"value": "5625",
+									"variablesReference": 0
+								},
+								{
+									"name": "[76]",
+									"value": "5776",
+									"variablesReference": 0
+								},
+								{
+									"name": "[77]",
+									"value": "5929",
+									"variablesReference": 0
+								},
+								{
+									"name": "[78]",
+									"value": "6084",
+									"variablesReference": 0
+								},
+								{
+									"name": "[79]",
+									"value": "6241",
+									"variablesReference": 0
+								},
+								{
+									"name": "[80]",
+									"value": "6400",
+									"variablesReference": 0
+								},
+								{
+									"name": "[81]",
+									"value": "6561",
+									"variablesReference": 0
+								},
+								{
+									"name": "[82]",
+									"value": "6724",
+									"variablesReference": 0
+								},
+								{
+									"name": "[83]",
+									"value": "6889",
+									"variablesReference": 0
+								},
+								{
+									"name": "[84]",
+									"value": "7056",
+									"variablesReference": 0
+								},
+								{
+									"name": "[85]",
+									"value": "7225",
+									"variablesReference": 0
+								},
+								{
+									"name": "[86]",
+									"value": "7396",
+									"variablesReference": 0
+								},
+								{
+									"name": "[87]",
+									"value": "7569",
+									"variablesReference": 0
+								},
+								{
+									"name": "[88]",
+									"value": "7744",
+									"variablesReference": 0
+								},
+								{
+									"name": "[89]",
+									"value": "7921",
+									"variablesReference": 0
+								},
+								{
+									"name": "[90]",
+									"value": "8100",
+									"variablesReference": 0
+								},
+								{
+									"name": "[91]",
+									"value": "8281",
+									"variablesReference": 0
+								},
+								{
+									"name": "[92]",
+									"value": "8464",
+									"variablesReference": 0
+								},
+								{
+									"name": "[93]",
+									"value": "8649",
+									"variablesReference": 0
+								},
+								{
+									"name": "[94]",
+									"value": "8836",
+									"variablesReference": 0
+								},
+								{
+									"name": "[95]",
+									"value": "9025",
+									"variablesReference": 0
+								},
+								{
+									"name": "[96]",
+									"value": "9216",
+									"variablesReference": 0
+								},
+								{
+									"name": "[97]",
+									"value": "9409",
+									"variablesReference": 0
+								},
+								{
+									"name": "[98]",
+									"value": "9604",
+									"variablesReference": 0
+								},
+								{
+									"name": "[99]",
+									"value": "9801",
+									"variablesReference": 0
+								}
+							]
+						},
+						"context": {
+							"parent": "s0/2",
+							"ref": 3000,
+							"depth": 2,
+							"start": 0,
+							"indexed": 2500,
+							"replace": "",
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 106
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[4].name",
+						"is": "[0]"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[104].path",
+						"is": "s0/2/more100"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[104].value",
+						"is": "2400 more"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnVariables",
+						"body": {
+							"variables": [
+								{
+									"name": "[100]",
+									"value": "10000",
+									"variablesReference": 0
+								},
+								{
+									"name": "[101]",
+									"value": "10201",
+									"variablesReference": 0
+								},
+								{
+									"name": "[102]",
+									"value": "10404",
+									"variablesReference": 0
+								},
+								{
+									"name": "[103]",
+									"value": "10609",
+									"variablesReference": 0
+								},
+								{
+									"name": "[104]",
+									"value": "10816",
+									"variablesReference": 0
+								},
+								{
+									"name": "[105]",
+									"value": "11025",
+									"variablesReference": 0
+								},
+								{
+									"name": "[106]",
+									"value": "11236",
+									"variablesReference": 0
+								},
+								{
+									"name": "[107]",
+									"value": "11449",
+									"variablesReference": 0
+								},
+								{
+									"name": "[108]",
+									"value": "11664",
+									"variablesReference": 0
+								},
+								{
+									"name": "[109]",
+									"value": "11881",
+									"variablesReference": 0
+								},
+								{
+									"name": "[110]",
+									"value": "12100",
+									"variablesReference": 0
+								},
+								{
+									"name": "[111]",
+									"value": "12321",
+									"variablesReference": 0
+								},
+								{
+									"name": "[112]",
+									"value": "12544",
+									"variablesReference": 0
+								},
+								{
+									"name": "[113]",
+									"value": "12769",
+									"variablesReference": 0
+								},
+								{
+									"name": "[114]",
+									"value": "12996",
+									"variablesReference": 0
+								},
+								{
+									"name": "[115]",
+									"value": "13225",
+									"variablesReference": 0
+								},
+								{
+									"name": "[116]",
+									"value": "13456",
+									"variablesReference": 0
+								},
+								{
+									"name": "[117]",
+									"value": "13689",
+									"variablesReference": 0
+								},
+								{
+									"name": "[118]",
+									"value": "13924",
+									"variablesReference": 0
+								},
+								{
+									"name": "[119]",
+									"value": "14161",
+									"variablesReference": 0
+								},
+								{
+									"name": "[120]",
+									"value": "14400",
+									"variablesReference": 0
+								},
+								{
+									"name": "[121]",
+									"value": "14641",
+									"variablesReference": 0
+								},
+								{
+									"name": "[122]",
+									"value": "14884",
+									"variablesReference": 0
+								},
+								{
+									"name": "[123]",
+									"value": "15129",
+									"variablesReference": 0
+								},
+								{
+									"name": "[124]",
+									"value": "15376",
+									"variablesReference": 0
+								},
+								{
+									"name": "[125]",
+									"value": "15625",
+									"variablesReference": 0
+								},
+								{
+									"name": "[126]",
+									"value": "15876",
+									"variablesReference": 0
+								},
+								{
+									"name": "[127]",
+									"value": "16129",
+									"variablesReference": 0
+								},
+								{
+									"name": "[128]",
+									"value": "16384",
+									"variablesReference": 0
+								},
+								{
+									"name": "[129]",
+									"value": "16641",
+									"variablesReference": 0
+								},
+								{
+									"name": "[130]",
+									"value": "16900",
+									"variablesReference": 0
+								},
+								{
+									"name": "[131]",
+									"value": "17161",
+									"variablesReference": 0
+								},
+								{
+									"name": "[132]",
+									"value": "17424",
+									"variablesReference": 0
+								},
+								{
+									"name": "[133]",
+									"value": "17689",
+									"variablesReference": 0
+								},
+								{
+									"name": "[134]",
+									"value": "17956",
+									"variablesReference": 0
+								},
+								{
+									"name": "[135]",
+									"value": "18225",
+									"variablesReference": 0
+								},
+								{
+									"name": "[136]",
+									"value": "18496",
+									"variablesReference": 0
+								},
+								{
+									"name": "[137]",
+									"value": "18769",
+									"variablesReference": 0
+								},
+								{
+									"name": "[138]",
+									"value": "19044",
+									"variablesReference": 0
+								},
+								{
+									"name": "[139]",
+									"value": "19321",
+									"variablesReference": 0
+								},
+								{
+									"name": "[140]",
+									"value": "19600",
+									"variablesReference": 0
+								},
+								{
+									"name": "[141]",
+									"value": "19881",
+									"variablesReference": 0
+								},
+								{
+									"name": "[142]",
+									"value": "20164",
+									"variablesReference": 0
+								},
+								{
+									"name": "[143]",
+									"value": "20449",
+									"variablesReference": 0
+								},
+								{
+									"name": "[144]",
+									"value": "20736",
+									"variablesReference": 0
+								},
+								{
+									"name": "[145]",
+									"value": "21025",
+									"variablesReference": 0
+								},
+								{
+									"name": "[146]",
+									"value": "21316",
+									"variablesReference": 0
+								},
+								{
+									"name": "[147]",
+									"value": "21609",
+									"variablesReference": 0
+								},
+								{
+									"name": "[148]",
+									"value": "21904",
+									"variablesReference": 0
+								},
+								{
+									"name": "[149]",
+									"value": "22201",
+									"variablesReference": 0
+								},
+								{
+									"name": "[150]",
+									"value": "22500",
+									"variablesReference": 0
+								},
+								{
+									"name": "[151]",
+									"value": "22801",
+									"variablesReference": 0
+								},
+								{
+									"name": "[152]",
+									"value": "23104",
+									"variablesReference": 0
+								},
+								{
+									"name": "[153]",
+									"value": "23409",
+									"variablesReference": 0
+								},
+								{
+									"name": "[154]",
+									"value": "23716",
+									"variablesReference": 0
+								},
+								{
+									"name": "[155]",
+									"value": "24025",
+									"variablesReference": 0
+								},
+								{
+									"name": "[156]",
+									"value": "24336",
+									"variablesReference": 0
+								},
+								{
+									"name": "[157]",
+									"value": "24649",
+									"variablesReference": 0
+								},
+								{
+									"name": "[158]",
+									"value": "24964",
+									"variablesReference": 0
+								},
+								{
+									"name": "[159]",
+									"value": "25281",
+									"variablesReference": 0
+								},
+								{
+									"name": "[160]",
+									"value": "25600",
+									"variablesReference": 0
+								},
+								{
+									"name": "[161]",
+									"value": "25921",
+									"variablesReference": 0
+								},
+								{
+									"name": "[162]",
+									"value": "26244",
+									"variablesReference": 0
+								},
+								{
+									"name": "[163]",
+									"value": "26569",
+									"variablesReference": 0
+								},
+								{
+									"name": "[164]",
+									"value": "26896",
+									"variablesReference": 0
+								},
+								{
+									"name": "[165]",
+									"value": "27225",
+									"variablesReference": 0
+								},
+								{
+									"name": "[166]",
+									"value": "27556",
+									"variablesReference": 0
+								},
+								{
+									"name": "[167]",
+									"value": "27889",
+									"variablesReference": 0
+								},
+								{
+									"name": "[168]",
+									"value": "28224",
+									"variablesReference": 0
+								},
+								{
+									"name": "[169]",
+									"value": "28561",
+									"variablesReference": 0
+								},
+								{
+									"name": "[170]",
+									"value": "28900",
+									"variablesReference": 0
+								},
+								{
+									"name": "[171]",
+									"value": "29241",
+									"variablesReference": 0
+								},
+								{
+									"name": "[172]",
+									"value": "29584",
+									"variablesReference": 0
+								},
+								{
+									"name": "[173]",
+									"value": "29929",
+									"variablesReference": 0
+								},
+								{
+									"name": "[174]",
+									"value": "30276",
+									"variablesReference": 0
+								},
+								{
+									"name": "[175]",
+									"value": "30625",
+									"variablesReference": 0
+								},
+								{
+									"name": "[176]",
+									"value": "30976",
+									"variablesReference": 0
+								},
+								{
+									"name": "[177]",
+									"value": "31329",
+									"variablesReference": 0
+								},
+								{
+									"name": "[178]",
+									"value": "31684",
+									"variablesReference": 0
+								},
+								{
+									"name": "[179]",
+									"value": "32041",
+									"variablesReference": 0
+								},
+								{
+									"name": "[180]",
+									"value": "32400",
+									"variablesReference": 0
+								},
+								{
+									"name": "[181]",
+									"value": "32761",
+									"variablesReference": 0
+								},
+								{
+									"name": "[182]",
+									"value": "33124",
+									"variablesReference": 0
+								},
+								{
+									"name": "[183]",
+									"value": "33489",
+									"variablesReference": 0
+								},
+								{
+									"name": "[184]",
+									"value": "33856",
+									"variablesReference": 0
+								},
+								{
+									"name": "[185]",
+									"value": "34225",
+									"variablesReference": 0
+								},
+								{
+									"name": "[186]",
+									"value": "34596",
+									"variablesReference": 0
+								},
+								{
+									"name": "[187]",
+									"value": "34969",
+									"variablesReference": 0
+								},
+								{
+									"name": "[188]",
+									"value": "35344",
+									"variablesReference": 0
+								},
+								{
+									"name": "[189]",
+									"value": "35721",
+									"variablesReference": 0
+								},
+								{
+									"name": "[190]",
+									"value": "36100",
+									"variablesReference": 0
+								},
+								{
+									"name": "[191]",
+									"value": "36481",
+									"variablesReference": 0
+								},
+								{
+									"name": "[192]",
+									"value": "36864",
+									"variablesReference": 0
+								},
+								{
+									"name": "[193]",
+									"value": "37249",
+									"variablesReference": 0
+								},
+								{
+									"name": "[194]",
+									"value": "37636",
+									"variablesReference": 0
+								},
+								{
+									"name": "[195]",
+									"value": "38025",
+									"variablesReference": 0
+								},
+								{
+									"name": "[196]",
+									"value": "38416",
+									"variablesReference": 0
+								},
+								{
+									"name": "[197]",
+									"value": "38809",
+									"variablesReference": 0
+								},
+								{
+									"name": "[198]",
+									"value": "39204",
+									"variablesReference": 0
+								},
+								{
+									"name": "[199]",
+									"value": "39601",
+									"variablesReference": 0
+								}
+							]
+						},
+						"context": {
+							"parent": "s0/2",
+							"ref": 3000,
+							"depth": 2,
+							"start": 100,
+							"indexed": 2500,
+							"replace": "s0/2/more100",
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 206
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[104].name",
+						"is": "[100]"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[104].value",
+						"is": "10000"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[204].value",
+						"is": "2300 more"
+					}
+				},
+				{
+					"key": "home"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 5
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[3].expanded",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-set-value",
+			"note": "Set Value on a local sends setVariable; the answer replaces the row's value",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnScopes",
+						"body": {
+							"scopes": [
+								{
+									"name": "Locals",
+									"variablesReference": 1001,
+									"expensive": false
+								},
+								{
+									"name": "Globals",
+									"variablesReference": 2000,
+									"expensive": true
+								}
+							]
+						},
+						"context": {
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[0].expanded",
+						"is": true
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnVariables",
+						"body": {
+							"variables": [
+								{
+									"name": "count",
+									"value": "3",
+									"variablesReference": 0
+								},
+								{
+									"name": "name",
+									"value": "'forge'",
+									"variablesReference": 0
+								},
+								{
+									"name": "items",
+									"value": "list[2500]",
+									"variablesReference": 3000,
+									"indexedVariables": 2500
+								}
+							]
+						},
+						"context": {
+							"parent": "s0",
+							"ref": 1001,
+							"depth": 1,
+							"start": 0,
+							"indexed": 0,
+							"replace": "",
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"key": "mod+shift+d"
+				},
+				{
+					"click": "#debug-variables"
+				},
+				{
+					"key": "home"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "debug.selectedVariable",
+						"is": "s0/0"
+					}
+				},
+				{
+					"click": "#debug-set-value"
+				},
+				{
+					"expect": {
+						"state": "debug.setValue.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.setValue.value",
+						"is": "3"
+					}
+				},
+				{
+					"click": "#debug-value"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "42"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "debug.setValue.open",
+						"is": false
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnSetVariable",
+						"body": {
+							"value": "42"
+						},
+						"context": {
+							"path": "s0/0"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[1].value",
+						"is": "42"
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-watches",
+			"note": "Watches evaluate in the selected frame at each stop; a name the program doesn't have shows the adapter's error",
+			"steps": [
+				{
+					"key": "mod+shift+d"
+				},
+				{
+					"click": "#debug-watch-input"
+				},
+				{
+					"type": "count + 1"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"click": "#debug-watch-input"
+				},
+				{
+					"type": "missing"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "debug.watches.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.watches[0].id",
+						"is": "w1"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.watchDraft",
+						"is": ""
+					}
+				},
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnScopes",
+						"body": {
+							"scopes": [
+								{
+									"name": "Locals",
+									"variablesReference": 1001,
+									"expensive": false
+								},
+								{
+									"name": "Globals",
+									"variablesReference": 2000,
+									"expensive": true
+								}
+							]
+						},
+						"context": {
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[0].expanded",
+						"is": true
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnVariables",
+						"body": {
+							"variables": [
+								{
+									"name": "count",
+									"value": "3",
+									"variablesReference": 0
+								},
+								{
+									"name": "name",
+									"value": "'forge'",
+									"variablesReference": 0
+								},
+								{
+									"name": "items",
+									"value": "list[2500]",
+									"variablesReference": 3000,
+									"indexedVariables": 2500
+								}
+							]
+						},
+						"context": {
+							"parent": "s0",
+							"ref": 1001,
+							"depth": 1,
+							"start": 0,
+							"indexed": 0,
+							"replace": "",
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnWatch",
+						"body": {
+							"result": "4"
+						},
+						"context": {
+							"id": "w1"
+						}
+					}
+				},
+				{
+					"action": "debugApplyRefusal",
+					"event": {
+						"command": "evaluate",
+						"refused": "debugOnWatchError",
+						"context": {
+							"id": "w2"
+						},
+						"error": {
+							"code": "failed",
+							"message": "name 'missing' is not defined"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.watches[0].value",
+						"is": "4"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.watches[1].error",
+						"is": "name 'missing' is not defined"
+					}
+				},
+				{
+					"click": "#debug-watches"
+				},
+				{
+					"key": "end"
+				},
+				{
+					"click": "#debug-watch-remove"
+				},
+				{
+					"expect": {
+						"state": "debug.watches.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-console",
+			"note": "The debug console evaluates in the frame, keeps a history (up and down) and completes with tab",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnScopes",
+						"body": {
+							"scopes": [
+								{
+									"name": "Locals",
+									"variablesReference": 1001,
+									"expensive": false
+								},
+								{
+									"name": "Globals",
+									"variablesReference": 2000,
+									"expensive": true
+								}
+							]
+						},
+						"context": {
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.variables[0].expanded",
+						"is": true
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnVariables",
+						"body": {
+							"variables": [
+								{
+									"name": "count",
+									"value": "3",
+									"variablesReference": 0
+								},
+								{
+									"name": "name",
+									"value": "'forge'",
+									"variablesReference": 0
+								},
+								{
+									"name": "items",
+									"value": "list[2500]",
+									"variablesReference": 3000,
+									"indexedVariables": 2500
+								}
+							]
+						},
+						"context": {
+							"parent": "s0",
+							"ref": 1001,
+							"depth": 1,
+							"start": 0,
+							"indexed": 0,
+							"replace": "",
+							"frameId": 1
+						}
+					}
+				},
+				{
+					"click": "#debug-console-input"
+				},
+				{
+					"type": "count + 4"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "debug.history",
+						"is": [
+							"count + 4"
+						]
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.input",
+						"is": ""
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnEvaluate",
+						"body": {
+							"result": "7"
+						}
+					}
+				},
+				{
+					"click": "#debug-console-input"
+				},
+				{
+					"type": "nope"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"action": "debugApplyRefusal",
+					"event": {
+						"command": "evaluate",
+						"refused": "debugOnEvaluateError",
+						"error": {
+							"code": "failed",
+							"message": "name 'nope' is not defined"
+						}
+					}
+				},
+				{
+					"key": "up"
+				},
+				{
+					"expect": {
+						"state": "debug.input",
+						"is": "nope"
+					}
+				},
+				{
+					"key": "up"
+				},
+				{
+					"expect": {
+						"state": "debug.input",
+						"is": "count + 4"
+					}
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "debug.input",
+						"is": ""
+					}
+				},
+				{
+					"type": "na"
+				},
+				{
+					"key": "tab"
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnCompletions",
+						"body": {
+							"targets": [
+								{
+									"label": "name"
+								}
+							]
+						},
+						"context": {
+							"input": "na"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.input",
+						"is": "name"
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-exception",
+			"note": "An uncaught exception stops on line 8 with its description inline (exceptionInfo); the filters go to the adapter when toggled",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "exception",
+							"threadId": 1,
+							"allThreadsStopped": true,
+							"description": "ValueError: bad value",
+							"text": "ValueError"
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 8,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.exception",
+						"is": "ValueError"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnExceptionInfo",
+						"body": {
+							"exceptionId": "ValueError",
+							"description": "bad value"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.exception",
+						"is": "ValueError: bad value"
+					}
+				},
+				{
+					"key": "mod+shift+d"
+				},
+				{
+					"click": "#debug-filter"
+				},
+				{
+					"expect": {
+						"state": "debug.exceptionFilters[0].enabled",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.filterChoices.raised",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "debug-output-and-end",
+			"note": "The program's output goes to the console; exited and terminated end the session with one line",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "output",
+						"body": {
+							"category": "stdout",
+							"output": "done\n"
+						}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "output",
+						"body": {
+							"category": "telemetry",
+							"output": "ignored\n"
+						}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "exited",
+						"body": {
+							"exitCode": 0
+						}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "terminated",
+						"body": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "inactive"
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications.length",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#debug-toolbar",
+						"property": "shown",
+						"is": false
+					}
+				}
+			]
+		}
+	]
+}

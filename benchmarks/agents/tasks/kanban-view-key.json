@@ -1,7 +1,7 @@
 {
 	"id": "kanban-view-key",
 	"level": "feature",
-	"screen": "examples/flow/index.screen.json",
+	"screen": "examples/flow/json/index.screen.json",
 	"request": "Make Cmd+T (mod+t) switch between the board and the table view, both ways.",
 	"scenarios": [
 		{

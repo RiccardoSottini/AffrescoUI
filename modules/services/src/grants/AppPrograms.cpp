@@ -134,7 +134,8 @@ std::optional<std::string> shapeReveal(const AppPrograms& programs, ProcessRun& 
 /// root.
 /// @param programs The grant.
 /// @param reference The argument, or nullptr if there is none.
-/// @param app Set to the app's name for its socket: the root's, then the folder's.
+/// @param app Set to the app's name for its socket: the root's, then its folder's path in the root, so the apps of two
+/// folders with the same name ("flow" and "lisp/flow") have two sockets.
 /// @return The path, or std::nullopt if it isn't one.
 std::optional<fs::path> appScreen(const AppPrograms& programs, const std::string* reference, std::string& app) {
 	if(reference == nullptr) return std::nullopt;
@@ -146,7 +147,9 @@ std::optional<fs::path> appScreen(const AppPrograms& programs, const std::string
 	const std::string file = utf8(screen->filename());
 	if(!folder && (!(file.ends_with(".screen.json") || file == "app.json") || !fs::is_regular_file(*screen, error)))
 		return std::nullopt;
-	app = rootName + "-" + utf8(folder ? screen->filename() : screen->parent_path().filename());
+	const fs::path& root = programs.roots.find(rootName)->second;
+	const fs::path place = (folder ? *screen : screen->parent_path()).lexically_relative(root);
+	app = rootName + "-" + utf8(place == "." ? root.filename() : place);
 	return screen;
 }
 

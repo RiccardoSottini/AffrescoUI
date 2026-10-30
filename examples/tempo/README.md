@@ -3,13 +3,13 @@
 Playlists, a library of 3,000 songs in a table, albums and artists in grids, search, a queue you reorder, now playing with a visualiser and lyrics, an equaliser, crossfade and a mini player. The songs are simulated, a timer moving each along; what you hear is a beatbox loop made for Tempo (`audio/beatbox.wav`), on a host that gives the screen sound. The `music-player` template: a folder of files that the stock `affrescoui_launcher` runs, with nothing compiled for it.
 
 ```sh
-./build/affrescoui_launcher examples/tempo/index.screen.json --socket out/s
-./build/affrescoui test examples/tempo/index.scenarios.json
+./build/affrescoui_launcher examples/tempo/json/index.screen.json --socket out/s
+./build/affrescoui test examples/tempo/json/index.scenarios.json
 ```
 
 | File | What it is |
 |---|---|
-| `audio/` | `beatbox.wav`, the loop Tempo plays, and `make_beat.py`, which synthesises it (`python3 examples/tempo/audio/make_beat.py`) |
+| `audio/` | `beatbox.wav`, the loop Tempo plays, and `make_beat.py`, which synthesises it (`python3 examples/tempo/json/audio/make_beat.py`) |
 | `images/` | The pictures the screen shows |
 | `pages.json` | The pages (albums, artists, a collection, search, now playing, sound), included by the screen |
 | `strings.json` | The string tables: English, Spanish and French |

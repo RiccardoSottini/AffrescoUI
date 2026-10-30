@@ -1,0 +1,591 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "What the Smart home template does, checked headless: affrescoui test index.scenarios.json",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "switch-a-light-on",
+			"note": "Switching a light that is off on with its toggle (the tile itself opens its dialog), and the summary counts it",
+			"steps": [
+				{ "expect": { "node": "#toggle-rooms-room-lights", "nth": 2, "property": "checked", "is": false } },
+				{ "click": "#toggle-rooms-room-lights", "nth": 2 },
+				{ "expect": { "state": "rooms[0].lights[2].on", "is": true } },
+				{ "expect": { "node": "#toggle-rooms-room-lights", "nth": 2, "property": "checked", "is": true } },
+				{ "expect": { "node": "#label-light-on-on", "nth": 2, "text": "On  ·  30%" } },
+				{ "expect": { "node": "#summary", "text": "  3 of 4 lights on" } },
+				{ "click": "#toggle-rooms-room-lights", "nth": 2, "note": "a second click switches it off again" },
+				{ "expect": { "state": "rooms[0].lights[2].on", "is": false } },
+				{ "expect": { "node": "#label-light-on-on", "nth": 2, "text": "Off" } }
+			]
+		},
+		{
+			"name": "dim-a-light-in-its-dialog",
+			"note": "Clicking a light's tile opens its dialog; the big bar sets the level and switches it on, Escape closes it",
+			"steps": [
+				{ "click": "#light", "nth": 2 },
+				{ "expect": { "state": "info.open", "is": true } },
+				{ "expect": { "state": "info.index", "is": 2 } },
+				{ "click": "#barBand", "nth": 5 },
+				{ "expect": { "state": "rooms[0].lights[2].level", "is": 50 } },
+				{ "expect": { "state": "rooms[0].lights[2].on", "is": true } },
+				{ "click": "#infoPower" },
+				{ "expect": { "state": "rooms[0].lights[2].on", "is": false } },
+				{ "key": "escape" },
+				{ "expect": { "state": "info.open", "is": false } }
+			]
+		},
+		{
+			"name": "set-a-lights-brightness",
+			"note": "Clicking the middle of a brightness slider sets the light's level to the nearest step",
+			"steps": [
+				{ "click": "#slider-rooms-room-lights", "nth": 0 },
+				{ "expect": { "state": "rooms[0].lights[0].level", "is": 60 } },
+				{ "expect": { "node": "#slider-rooms-room-lights", "nth": 0, "property": "value", "is": 60 } },
+				{ "expect": { "node": "#label-light-on-on", "nth": 0, "text": "On  ·  60%" } }
+			]
+		},
+		{
+			"name": "pick-a-room",
+			"note": "Clicking a room's tab in the top bar shows its tab selected, its picture, its lights and its climate",
+			"steps": [
+				{ "click": "#viewTab", "nth": 1, "note": "Kitchen" },
+				{ "expect": { "state": "room", "is": 1 } },
+				{ "expect": { "node": "#areaName", "text": "Kitchen" } },
+				{ "expect": { "node": "#roomImage", "property": "shown", "is": true } },
+				{ "expect": { "node": "#label-light-name", "nth": 0, "text": "Pendants" } },
+				{ "expect": { "node": "#light", "nth": 2, "exists": false } },
+				{ "expect": { "node": "#target", "text": "21°" } }
+			]
+		},
+		{
+			"name": "scene-animates-the-blinds",
+			"note": "Movie night dims the room's lights at once and closes the blinds over 600 ms",
+			"steps": [
+				{ "click": "#scene", "nth": 1 },
+				{ "expect": { "state": "scene", "is": "Movie night" } },
+				{ "expect": { "state": "rooms[0].lights[0].level", "is": 20 } },
+				{ "expect": { "state": "rooms[0].blinds", "is": 60, "note": "the blinds have not moved yet" } },
+				{ "wait": 700 },
+				{ "expect": { "state": "rooms[0].blinds", "is": 0 } },
+				{ "expect": { "node": "#label-round-room-blinds", "text": "0% open" } }
+			]
+		},
+		{
+			"name": "away-turns-everything-off",
+			"note": "The Away scene switches off every light in every room and lowers every target to 17°",
+			"steps": [
+				{ "click": "#scene", "nth": 2 },
+				{ "expect": { "state": "scene", "is": "Away" } },
+				{ "expect": { "state": "rooms[3].lights[0].on", "is": false } },
+				{ "expect": { "state": "rooms[2].target", "is": 17 } },
+				{ "expect": { "node": "#summary", "text": "  0 of 4 lights on  ·  scene: Away" } },
+				{ "click": "#toggle-rooms-room-lights", "nth": 0, "note": "switching a light clears the scene" },
+				{ "expect": { "state": "scene", "is": "" } }
+			]
+		},
+		{
+			"name": "change-the-target-temperature",
+			"note": "The arrow keys and the +/- buttons move the target by half a degree",
+			"steps": [
+				{ "key": "up" },
+				{ "key": "up" },
+				{ "expect": { "state": "rooms[0].target", "is": 23 } },
+				{ "click": "#label-down-arrow" },
+				{ "expect": { "state": "rooms[0].target", "is": 22.5 } },
+				{ "expect": { "node": "#target", "text": "22.5°" } },
+				{ "click": "#panel-mode", "nth": 1 },
+				{ "expect": { "state": "mode", "is": "Cool" } }
+			]
+		},
+		{
+			"name": "smart-home-switch-the-theme",
+			"note": "Cmd+T flips between the dark and the light theme",
+			"steps": [
+				{ "key": "mod+t" },
+				{ "expect": { "state": "theme", "is": "dark" } },
+				{ "key": "mod+t" },
+				{ "expect": { "state": "theme", "is": "light" } }
+			]
+		},
+		{
+			"name": "a-device-call-takes-a-while",
+			"note": "A device tile shows its progress while the call runs, then its new state and a toast; a second call waits for the first",
+			"steps": [
+				{ "click": "#deviceAction", "nth": 1 },
+				{ "expect": { "state": "devices[1].busy", "is": true } },
+				{ "expect": { "node": "#deviceState", "nth": 1, "text": "Waiting for it…" } },
+				{ "click": "#deviceAction", "nth": 2, "note": "ignored while the vacuum is busy" },
+				{ "expect": { "state": "devices[2].busy", "is": false } },
+				{ "wait": 450 },
+				{ "expect": { "node": "#busyToast", "exists": true } },
+				{ "wait": 500 },
+				{ "expect": { "state": "devices[1].busy", "is": false } },
+				{ "expect": { "state": "devices[1].on", "is": true } },
+				{ "expect": { "node": "#deviceState", "nth": 1, "text": "Cleaning" } },
+				{ "expect": { "node": "#deviceAction", "nth": 1, "text": "Dock" } },
+				{ "expect": { "state": "toast", "is": { "open": true, "message": "Vacuum: cleaning" } } },
+				{ "wait": 4100 },
+				{ "expect": { "state": "toast.open", "is": false } }
+			]
+		},
+		{
+			"name": "pages-from-the-sidebar-and-keys",
+			"note": "The sidebar and Cmd+1, Cmd+2, Cmd+, switch between Home, Energy and Settings",
+			"steps": [
+				{ "click": "#navItem", "nth": 1 },
+				{ "expect": { "state": "page", "is": "energy" } },
+				{ "expect": { "node": "#viewTabs", "exists": false } },
+				{ "expect": { "node": "#todayFigure", "text": "24.4 kWh" } },
+				{ "expect": { "node": "#peakFigure", "text": "18:00" } },
+				{ "key": "mod+comma" },
+				{ "expect": { "state": "page", "is": "settings" } },
+				{ "key": "mod+1" },
+				{ "expect": { "node": "#areaName", "text": "Living room" } },
+				{ "click": "#settingsItem", "note": "Settings, at the foot of the sidebar" },
+				{ "expect": { "state": "page", "is": "settings" } }
+			]
+		},
+		{
+			"name": "the-room-table-picks-a-room",
+			"note": "On the Energy page, the By room view's table picks a room",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "click": "#energyByRoom" },
+				{ "expect": { "state": "energyView", "is": "room" } },
+				{ "click": [1000, 583], "note": "the Bedroom row" },
+				{ "expect": { "state": "room", "is": 2 } },
+				{ "key": "mod+1" },
+				{ "expect": { "node": "#areaName", "text": "Bedroom" } }
+			]
+		},
+		{
+			"name": "settings-change-the-scenes",
+			"note": "The Away temperature and the device notifications come from the settings page",
+			"steps": [
+				{ "key": "mod+comma" },
+				{ "click": "#settingsRow", "nth": 5, "note": "open General" },
+				{ "click": "#generalField", "nth": 0, "note": "the Away temperature" },
+				{ "key": "backspace" },
+				{ "key": "backspace" },
+				{ "type": "13" },
+				{ "click": "#generalSwitch", "nth": 0, "note": "switch device notifications off" },
+				{ "key": "mod+1" },
+				{ "click": "#scene", "nth": 2 },
+				{ "expect": { "state": "rooms[2].target", "is": 13 } },
+				{ "click": "#deviceAction", "nth": 0 },
+				{ "wait": 1000 },
+				{ "expect": { "state": "devices[0].on", "is": false } },
+				{ "expect": { "state": "toast.open", "is": false, "note": "no toast with notifications off" } }
+			]
+		},
+		{
+			"name": "plan-click-picks-a-room",
+			"note": "On the floor plan, clicking a room on the canvas makes it the room the other pages show",
+			"steps": [
+				{ "key": "mod+3" },
+				{ "expect": { "state": "page", "is": "plan" } },
+				{ "click": [700, 250], "note": "the Kitchen on the canvas" },
+				{ "expect": { "state": "room", "is": 1 } },
+				{ "expect": { "node": "#planRoomName", "text": "Kitchen" } },
+				{ "click": "#planShow" },
+				{ "expect": { "state": "page", "is": "home" } },
+				{ "expect": { "node": "#areaName", "text": "Kitchen" } }
+			]
+		},
+		{
+			"name": "tilt-and-related",
+			"note": "The cover dialog tilts the slats; a device dialog's related automation opens in the editor",
+			"screen": "index.screen.json",
+			"steps": [
+				{ "click": "#blindsIcon" },
+				{ "click": "#barBand", "nth": 12 },
+				{ "wait": 400 },
+				{ "expect": { "state": "coverTilt", "is": 80 } },
+				{ "key": "escape" },
+				{ "click": "#deviceName", "nth": 0 },
+				{ "click": "#infoRelated" },
+				{ "expect": { "state": "page", "is": "automations" } },
+				{ "expect": { "state": "autoOpen", "is": 0 } },
+				{ "expect": { "state": "info.open", "is": false } }
+			]
+		},
+		{
+			"name": "colour-a-light",
+			"note": "A light's dialog opens the colour dialog; Warm white sets its colour and Done closes it",
+			"steps": [
+				{ "click": "#light", "nth": 1 },
+				{ "click": "#infoColour" },
+				{ "wait": 100, "note": "the dialog takes the focus once it is laid out" },
+				{ "expect": { "state": "colourOpen", "is": true } },
+				{ "expect": { "state": "light", "is": 1 } },
+				{ "expect": { "node": "#colourPicker", "property": "focused", "is": true } },
+				{ "click": "#colourWarm" },
+				{ "expect": { "state": "rooms[0].lights[1].color", "is": "#ffd58aff" } },
+				{ "click": "#colourDone" },
+				{ "expect": { "state": "colourOpen", "is": false } },
+				{ "click": "#light", "nth": 0 },
+				{ "click": "#infoColour" },
+				{ "wait": 100 },
+				{ "key": "escape", "note": "Escape closes it too" },
+				{ "expect": { "state": "colourOpen", "is": false } }
+			]
+		},
+		{
+			"name": "edit-a-card",
+			"note": "Arrange cards, in the top bar's menu, outlines the cards; a card's editor renames it in the form, hides its modes in code, and refuses code that is not an object",
+			"steps": [
+				{ "click": "#dashMore" },
+				{ "click": { "role": "menuitem", "name": "Arrange cards" } },
+				{ "expect": { "state": "editing", "is": true } },
+				{ "click": "#editClimate" },
+				{ "expect": { "state": "cardEdit.open", "is": true } },
+				{ "click": "#cardTitleField" },
+				{ "type": "Living room" },
+				{ "click": "#cardSave" },
+				{ "expect": { "node": "#label-climate", "text": "Living room" } },
+				{ "click": "#editClimate" },
+				{ "click": "#cardCodeSwitch" },
+				{ "expect": { "state": "cardEdit.text", "is": "{\n  \"type\": \"thermostat\",\n  \"title\": \"Living room\",\n  \"modes\": true\n}" } },
+				{ "click": "#cardCode" },
+				{ "key": "mod+a" },
+				{ "type": "[1]" },
+				{ "click": "#cardSave" },
+				{ "expect": { "node": "#cardCodeError", "text": "The configuration is not a valid object" } },
+				{ "click": "#cardCode" },
+				{ "key": "mod+a" },
+				{ "type": "{ \"modes\": false }" },
+				{ "click": "#cardSave" },
+				{ "expect": { "state": "cards.climate.modes", "is": false } },
+				{ "expect": { "state": "cards.climate.type", "is": "thermostat" } },
+				{ "click": "#editDone" },
+				{ "expect": { "state": "editing", "is": false } }
+			]
+		},
+		{
+			"name": "automations-add-a-node",
+			"note": "The Add buttons put a new node on the automation graph, chosen",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "click": "#autoTabFlow" },
+				{ "expect": { "state": "autoNodes.length", "is": 6 } },
+				{ "click": "#autoAddTime" },
+				{ "expect": { "state": "autoNodes.length", "is": 7 } },
+				{ "expect": { "state": "autoNodes[6].kind", "is": "time" } },
+				{ "expect": { "state": "autoSelected", "is": ["time6"] } },
+				{ "click": "#autoAddScene" },
+				{ "expect": { "state": "autoNodes.length", "is": 8 } }
+			]
+		},
+		{
+			"name": "drag-a-schedule-clip",
+			"note": "Dragging the Morning heating clip two hours later moves it by whole hours",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "click": "#autoTabFlow" },
+				{ "drag": [680, 630], "to": [748, 630], "moves": 8 },
+				{ "expect": { "state": "schedules[0].clips[0].start", "is": 8 } },
+				{ "expect": { "state": "schedules[0].clips[0].duration", "is": 3 } }
+			]
+		},
+		{
+			"name": "automations-list-and-editor",
+			"note": "The automations list turns one off, opens one as cards, adds and removes a step, runs it and goes back",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "expect": { "node": "#autoRow", "nth": 3, "property": "shown", "is": true } },
+				{ "click": "#autoRowMore", "nth": 0 },
+				{ "click": { "role": "menuitem", "name": "Disable" } },
+				{ "expect": { "state": "automations[0].on", "is": false } },
+				{ "click": "#autoRowOpen", "nth": 1 },
+				{ "expect": { "state": "autoOpen", "is": 1 } },
+				{ "expect": { "node": "#autoStep", "nth": 4, "property": "shown", "is": true } },
+				{ "click": "#autoAdd-if" },
+				{ "expect": { "state": "automations[1].steps.length", "is": 6 } },
+				{ "expect": { "state": "automations[1].steps[5].part", "is": "if" } },
+				{ "click": "#autoStepMore", "nth": 0 },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
+				{ "expect": { "state": "automations[1].steps.length", "is": 5 } },
+				{ "expect": { "state": "automations[1].steps[0].part", "is": "if" } },
+				{ "click": "#autoMore" },
+				{ "click": { "role": "menuitem", "name": "Run" } },
+				{ "expect": { "state": "automations[1].ran", "is": "now" } },
+				{ "click": "#autoBack" },
+				{ "expect": { "state": "autoOpen", "is": -1 } },
+				{ "expect": { "node": "#autoList", "exists": true } }
+			]
+		},
+		{
+			"name": "new-automation-from-the-list",
+			"note": "New automation adds an untitled, empty one and opens it in the editor",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "click": "#autoNew" },
+				{ "expect": { "state": "automations.length", "is": 5 } },
+				{ "expect": { "state": "autoOpen", "is": 4 } },
+				{ "expect": { "node": "#autoStep", "exists": false } },
+				{ "click": "#autoAdd-when" },
+				{ "expect": { "node": "#autoStep", "exists": true } }
+			]
+		},
+		{
+			"name": "automation-menu-duplicate-and-delete",
+			"note": "The editor's more menu duplicates the open automation, then deletes the copy once the dialog confirms it",
+			"steps": [
+				{ "key": "mod+4" },
+				{ "click": "#autoRowOpen", "nth": 0 },
+				{ "click": "#autoMore" },
+				{ "expect": { "state": "autoMenu", "is": true } },
+				{ "click": { "role": "menuitem", "name": "Duplicate" } },
+				{ "expect": { "state": "autoMenu", "is": false } },
+				{ "expect": { "state": "automations.length", "is": 5 } },
+				{ "expect": { "state": "autoOpen", "is": 4 } },
+				{ "expect": { "state": "automations[4].steps.length", "is": 4 } },
+				{ "click": "#autoMore" },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
+				{ "expect": { "state": "autoConfirm", "is": true } },
+				{ "click": { "role": "button", "name": "Cancel" } },
+				{ "expect": { "state": "autoConfirm", "is": false } },
+				{ "expect": { "state": "automations.length", "is": 5 } },
+				{ "click": "#autoMore" },
+				{ "click": { "role": "menuitem", "name": "Delete" } },
+				{ "click": { "role": "button", "name": "Delete" } },
+				{ "expect": { "state": "automations.length", "is": 4 } },
+				{ "expect": { "state": "autoOpen", "is": -1 } },
+				{ "expect": { "node": "#autoList", "exists": true } }
+			]
+		},
+		{
+			"name": "energy-by-device",
+			"note": "The By device switch charts the week's energy per device, labelled by device",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "click": "#energyByDevice" },
+				{ "expect": { "state": "energyView", "is": "device" } },
+				{ "expect": { "node": "#energyByDevice", "property": "role", "is": "button" } },
+				{ "expect": { "node": "#weekDay", "exists": false } },
+				{ "expect": { "node": "#weekDevice", "exists": true } },
+				{ "click": "#energyByDay" },
+				{ "expect": { "state": "energyView", "is": "day" } }
+			]
+		},
+		{
+			"name": "placeholders-say-why",
+			"note": "A control this demo leaves for later stays visible but disabled: a click does nothing and its tooltip says why",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "click": "#energyNext" },
+				{ "expect": { "node": "#energyDay", "text": "Today" } },
+				{ "expect": { "state": "toast.open", "is": false } },
+				{ "expect": { "node": "#energyNext", "property": "tooltip", "is": "This demo keeps only today" } },
+				{ "key": "mod+comma" },
+				{ "click": "#settingsRow", "nth": 0 },
+				{ "click": "#devAdd" },
+				{ "expect": { "state": "toast.open", "is": false } },
+				{ "expect": { "node": "#devAdd", "property": "tooltip", "is": "Adding devices and controls is not part of this demo" } }
+			]
+		},
+		{
+			"name": "security-mode-and-notifications",
+			"note": "Cmd+Shift+A cycles Off, Home, Away; each change is a notification, the bell counts them, Cmd+Shift+N shows them and Clear empties them",
+			"steps": [
+				{ "key": "mod+shift+a" },
+				{ "expect": { "state": "security", "is": "home" } },
+				{ "click": "#alarmMode", "nth": 2, "note": "Arm away, on the alarm tile" },
+				{ "expect": { "state": "security", "is": "away" } },
+				{ "expect": { "node": "#bellButton", "property": "name", "is": "2 notifications" } },
+				{ "key": "mod+shift+n" },
+				{ "expect": { "state": "notificationsOpen", "is": true } },
+				{ "expect": { "node": "#notification", "nth": 0, "text": "Security: Away" } },
+				{ "click": "#notificationsClear" },
+				{ "expect": { "state": "notifications", "is": [] } },
+				{ "expect": { "node": "#bellCount", "exists": false } }
+			]
+		},
+		{
+			"name": "simulated-service-moves-rooms",
+			"note": "Every ten seconds the simulated service moves each room half a degree towards its target",
+			"steps": [
+				{ "expect": { "state": "rooms[0].temp", "is": 21.5 } },
+				{ "wait": 10100 },
+				{ "expect": { "state": "tick", "is": 1 } },
+				{ "expect": { "state": "rooms[0].temp", "is": 22 } },
+				{ "expect": { "state": "rooms[2].temp", "is": 18.5 } },
+				{ "expect": { "state": "rooms[3].temp", "is": 22 } }
+			]
+		},
+		{
+			"name": "motion-alerts-while-away",
+			"note": "While away, the simulated service reports motion in the hall every fourth tick",
+			"steps": [
+				{ "key": "mod+shift+a" },
+				{ "key": "mod+shift+a" },
+				{ "expect": { "state": "security", "is": "away" } },
+				{ "wait": 40100 },
+				{ "expect": { "state": "notifications[0].message", "is": "Motion in the hall while away" } }
+			]
+		},
+		{
+			"name": "languages-cycle",
+			"note": "Cmd+L switches to Spanish, then French, then back to English: the sidebar reads in each",
+			"steps": [
+				{ "key": "mod+l" },
+				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "Inicio" } },
+				{ "key": "mod+l" },
+				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "Accueil" } },
+				{ "key": "mod+l" },
+				{ "expect": { "node": "#navItem", "nth": 0, "property": "name", "is": "Home" } }
+			]
+		},
+		{
+			"name": "small-dark-window",
+			"note": "Regression: at 1040 by 640 in the dark theme the lights card ends before the climate card, and the devices stay usable",
+			"steps": [
+				{ "resize": [1040, 640] },
+				{ "key": "mod+t" },
+				{ "expect": { "node": "#lightsCard", "property": "x", "is": 280 } },
+				{ "expect": { "node": "#lightsCard", "property": "width", "is": 367.20001220703125 } },
+				{ "expect": { "node": "#climateCard", "property": "x", "is": 663.199951171875, "note": "16 after the lights card" } },
+				{ "click": "#deviceAction", "nth": 1 },
+				{ "expect": { "state": "devices[1].busy", "is": true } }
+			]
+		},
+		{
+			"name": "haven-palette-runs-a-command",
+			"note": "Cmd+K opens the command palette; typing filters it and Enter runs the command",
+			"steps": [
+				{ "key": "mod+k" },
+				{ "wait": 100 },
+				{ "type": "floor plan" },
+				{ "key": "enter" },
+				{ "expect": { "state": "page", "is": "plan" } }
+			]
+		},
+		{
+			"name": "keyboard-only-sidebar",
+			"note": "Tab reaches the menu button first and Enter folds the sidebar to its icons",
+			"steps": [
+				{ "key": "tab" },
+				{ "wait": 50 },
+				{ "key": "tab" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#menuButton", "property": "focused", "is": true } },
+				{ "key": "enter" },
+				{ "expect": { "state": "sidebarCollapsed", "is": true } },
+				{ "expect": { "node": "#lightsCard", "property": "x", "is": 80 } }
+			]
+		},
+		{
+			"name": "search-opens-an-entity",
+			"note": "E opens the entity search; typing filters every light, climate, cover and device, and Enter opens the picked one's dialog in its room",
+			"steps": [
+				{ "key": "e" },
+				{ "wait": 100 },
+				{ "type": "pendants" },
+				{ "key": "enter" },
+				{ "expect": { "state": "room", "is": 1 } },
+				{ "expect": { "state": "info.kind", "is": "light" } }
+			]
+		},
+		{
+			"name": "disarming-takes-a-code",
+			"note": "Arming needs no code; disarming without four digits on the keypad only says so, with them it disarms and clears the code",
+			"steps": [
+				{ "click": "#alarmMode", "nth": 1 },
+				{ "expect": { "state": "security", "is": "home" } },
+				{ "click": "#alarmMode", "nth": 0, "note": "Disarm opens the keypad" },
+				{ "click": "#alarmAction", "nth": 0 },
+				{ "expect": { "state": "security", "is": "home" } },
+				{ "click": "#alarmKey", "nth": 0 },
+				{ "click": "#alarmKey", "nth": 1 },
+				{ "click": "#alarmKey", "nth": 2 },
+				{ "click": "#alarmKey", "nth": 3 },
+				{ "expect": { "node": "#alarmCode", "text": "● ● ● ●" } },
+				{ "click": "#alarmAction", "nth": 0 },
+				{ "expect": { "state": "security", "is": "off" } },
+				{ "expect": { "state": "alarmCode", "is": "" } }
+			]
+		},
+		{
+			"name": "arrows-at-start-change-the-target",
+			"note": "Regression: the closed quick pick's field took the focus at start and swallowed Up and Down",
+			"steps": [
+				{ "key": "up" },
+				{ "expect": { "state": "rooms[0].target", "is": 22.5 } },
+				{ "key": "down" },
+				{ "key": "down" },
+				{ "expect": { "state": "rooms[0].target", "is": 21.5 } }
+			]
+		},
+		{
+			"name": "blinds-slider-on-the-first-frame",
+			"note": "Regression: the blinds slider anchored to a button laid out after it, so the first frame had no slider",
+			"steps": [
+				{ "expect": { "node": "#blinds", "property": "width", "is": 436.79998779296875 } }
+			]
+		},
+		{
+			"name": "search-the-logbook",
+			"note": "Typing in the logbook's search keeps the events whose device or rule matches, and an empty day is hidden",
+			"steps": [
+				{ "key": "mod+5" },
+				{ "expect": { "state": "page", "is": "logbook" } },
+				{ "expect": { "node": "#logRow", "nth": 8, "exists": true } },
+				{ "click": "#logSearch" },
+				{ "type": "night" },
+				{ "expect": { "state": "logQuery", "is": "night" } },
+				{ "expect": { "node": "#logRow", "nth": 0, "exists": true } },
+				{ "expect": { "node": "#logRow", "nth": 1, "exists": false } }
+			]
+		},
+		{
+			"name": "an-area-opens-its-room",
+			"note": "Rooms in the sidebar opens the rooms page, and an area's card opens that room on the home page",
+			"steps": [
+				{ "click": { "role": "tab", "name": "Rooms" } },
+				{ "expect": { "state": "page", "is": "areas" } },
+				{ "click": "#areaTile", "nth": 2 },
+				{ "expect": { "state": "page", "is": "home" } },
+				{ "expect": { "state": "room", "is": 2 } },
+				{ "expect": { "node": "#areaName", "text": "Bedroom" } }
+			]
+		},
+		{
+			"name": "info-header-speaker-devices",
+			"screen": "index.screen.json",
+			"steps": [
+				{ "click": "#light", "nth": 1 },
+				{ "click": "#infoClose" },
+				{ "expect": { "state": "info.open", "is": false } },
+				{ "click": "#label-climate" },
+				{ "click": "#infoModeRow" },
+				{ "click": { "role": "menuitem", "name": "Cool" } },
+				{ "expect": { "state": "mode", "is": "Cool" } },
+				{ "expect": { "node": "#infoModeValue", "text": "Cool" } },
+				{ "key": "escape" },
+				{ "click": "#deviceName", "nth": 2 },
+				{ "expect": { "node": "#infoVolume", "property": "shown", "is": true } },
+				{ "click": "#infoPlay" },
+				{ "expect": { "state": "devices[2].busy", "is": true } },
+				{ "click": "#infoMore" },
+				{ "click": { "role": "menuitem", "name": "Related" } },
+				{ "expect": { "state": "page", "is": "automations" } },
+				{ "key": "mod+comma" },
+				{ "click": "#settingsRow", "nth": 0 },
+				{ "click": { "role": "tab", "name": "Controls" } },
+				{ "expect": { "node": "#roomEntityTable", "property": "shown", "is": true } },
+				{ "click": "#devSearch" },
+				{ "type": "kit" },
+				{ "expect": { "state": "devQuery", "is": "kit" } },
+				{ "click": "#settingsBack" },
+				{ "key": "mod+4", "note": "the related automation is still open" },
+				{ "click": "#autoMore" },
+				{ "click": { "role": "menuitem", "name": "Disable" } },
+				{ "expect": { "node": "#autoOffBanner", "property": "shown", "is": true } },
+				{ "click": "#autoOffEnable" },
+				{ "expect": { "node": "#autoOffBanner", "exists": false } }
+			]
+		}
+	]
+}

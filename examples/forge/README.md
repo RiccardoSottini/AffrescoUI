@@ -5,7 +5,7 @@ which people and agents change while it runs. It is JSON only, with no C++ of it
 stock host opens, from the Launcher or from the command line. It is an example, not part of the library.
 
 ```
-./build/affrescoui_launcher examples/forge/app.json [--socket DIR] [--data DIR]
+./build/affrescoui_launcher examples/forge/json/app.json [--socket DIR] [--data DIR]
 ```
 
 `app.json` asks for what Forge uses, and the host asks the person before granting any of it: the folder to work in

@@ -1,7 +1,7 @@
 {
   "format": "affrescoui-scenarios",
   "version": 2,
-  "screens": "../../../examples/streak",
+  "screens": "../../../examples/streak/json",
   "scenarios": [
     {
       "name": "habit-tracker",

@@ -1,0 +1,138 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's terminal tabs, checked headless: affrescoui_render_runner terminal.scenarios.json. The runner registers the terminal type without an executor, so no shell starts; these check the tabs, the panel and the nodes.",
+	"screen": "index.screen.lisp",
+	"scenarios": [
+		{
+			"name": "terminal-run-task-reads-no-tasks",
+			"note": "Run Task reads the folder's .forge/tasks.json; the test folder has none, so nothing opens",
+			"steps": [
+				{ "action": "runTask" },
+				{ "expect": { "state": "tasks.items.length", "is": 0 } },
+				{ "expect": { "state": "tasks.error", "is": "" } },
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "terminals.list.length", "is": 0 } }
+			]
+		},
+		{
+			"name": "terminal-tasks-from-a-file",
+			"note": "What a .forge/tasks.json holds becomes the picker's items, each with its command line as its detail; a task naming a variable other than ${workspaceFolder} is skipped",
+			"steps": [
+				{ "action": "tasksApplyFile", "event": { "file": { "version": "2.0.0", "tasks": [{ "label": "build", "type": "shell", "command": "make all", "group": { "kind": "build", "isDefault": true } }, { "label": "test", "type": "process", "command": "ctest", "args": ["--output-on-failure"], "group": "test" }, { "label": "lint", "command": "lint", "args": ["${file}"] }] } } },
+				{ "expect": { "state": "tasks.items.length", "is": 2 } },
+				{ "expect": { "state": "tasks.items[0].title", "is": "build" } },
+				{ "expect": { "state": "tasks.items[1].detail", "is": "'ctest' '--output-on-failure'" } },
+				{ "expect": { "state": "tasks.items[0].group", "is": "build" } },
+				{ "expect": { "state": "tasks.items[0].detail", "is": "make all" } },
+				{ "expect": { "state": "tasks.skipped", "is": 1 } }
+			]
+		},
+		{
+			"name": "terminal-run-picked-task",
+			"note": "A picked task runs in a new terminal named after it, and becomes the one Rerun Last Task runs",
+			"steps": [
+				{ "action": "tasksApplyFile", "event": { "file": { "version": "2.0.0", "tasks": [{ "label": "build", "type": "shell", "command": "make all", "group": { "kind": "build", "isDefault": true } }, { "label": "test", "type": "process", "command": "ctest", "args": ["--output-on-failure"], "group": "test" }, { "label": "lint", "command": "lint", "args": ["${file}"] }] } } },
+				{ "action": "taskRunEvent", "event": { "title": "test", "line": "ctest" } },
+				{ "expect": { "state": "terminals.list.length", "is": 1 } },
+				{ "expect": { "state": "terminals.list[0].label", "is": "Task - test" } },
+				{ "expect": { "state": "tasks.last", "is": "test" } },
+				{ "expect": { "state": "panelTab", "is": "terminal" } },
+				{ "action": "rerunLastTask" },
+				{ "expect": { "state": "terminals.list.length", "is": 2 } },
+				{ "expect": { "state": "terminals.list[1].label", "is": "Task - test" } }
+			]
+		},
+		{
+			"name": "terminal-build-task-runs-the-only-one",
+			"note": "With one build task, Run Build Task runs it without a picker",
+			"steps": [
+				{ "action": "tasksApplyFile", "event": { "file": { "version": "2.0.0", "tasks": [{ "label": "build", "type": "shell", "command": "make all", "group": { "kind": "build", "isDefault": true } }, { "label": "test", "type": "process", "command": "ctest", "args": ["--output-on-failure"], "group": "test" }, { "label": "lint", "command": "lint", "args": ["${file}"] }] }, "then": "build" } },
+				{ "expect": { "state": "quickPick.open", "is": false } },
+				{ "expect": { "state": "terminals.list[0].label", "is": "Task - build" } }
+			]
+		},
+		{
+			"name": "terminal-run-task-opens-the-picker",
+			"note": "Run Task with tasks opens the quick pick on its task provider",
+			"steps": [
+				{ "action": "tasksApplyFile", "event": { "file": { "version": "2.0.0", "tasks": [{ "label": "build", "type": "shell", "command": "make all", "group": { "kind": "build", "isDefault": true } }, { "label": "test", "type": "process", "command": "ctest", "args": ["--output-on-failure"], "group": "test" }, { "label": "lint", "command": "lint", "args": ["${file}"] }] }, "then": "pick" } },
+				{ "expect": { "state": "quickPick.open", "is": true } },
+				{ "expect": { "state": "quickPick.query", "is": "task " } }
+			]
+		},
+		{
+			"name": "terminal-hidden-until-one-opens",
+			"note": "No terminal at start: the panel has no Terminal tab and no terminal node",
+			"steps": [
+				{ "expect": { "state": "terminals.list.length", "is": 0 } },
+				{ "expect": { "state": "terminals.active", "is": "" } },
+				{ "expect": { "node": "#terminal", "exists": false } }
+			]
+		},
+		{
+			"name": "terminal-new-shows-the-panel",
+			"note": "New Terminal opens the panel on its Terminal tab, with one terminal tab and its node",
+			"steps": [
+				{ "action": "terminalNew" },
+				{ "expect": { "state": "terminals.list.length", "is": 1 } },
+				{ "expect": { "state": "terminals.list[0].label", "is": "Terminal 1" } },
+				{ "expect": { "state": "terminals.active", "is": "t1" } },
+				{ "expect": { "state": "layout.panel", "is": true } },
+				{ "expect": { "state": "panelTab", "is": "terminal" } },
+				{ "expect": { "node": "#terminal", "exists": true } }
+			]
+		},
+		{
+			"name": "terminal-two-then-kill-the-active",
+			"note": "A second terminal becomes the active one; killing it goes back to the first",
+			"steps": [
+				{ "action": "terminalNew" },
+				{ "action": "terminalNew" },
+				{ "expect": { "state": "terminals.list.length", "is": 2 } },
+				{ "expect": { "state": "terminals.active", "is": "t2" } },
+				{ "action": "terminalKill" },
+				{ "expect": { "state": "terminals.list.length", "is": 1 } },
+				{ "expect": { "state": "terminals.active", "is": "t1" } },
+				{ "expect": { "node": "#terminal", "exists": true } }
+			]
+		},
+		{
+			"name": "terminal-focus-opens-one-once",
+			"note": "Focus Terminal opens a terminal when there is none, and only shows the panel when there is one",
+			"steps": [
+				{ "action": "showTerminal" },
+				{ "action": "showTerminal" },
+				{ "expect": { "state": "terminals.list.length", "is": 1 } },
+				{ "expect": { "state": "panelTab", "is": "terminal" } }
+			]
+		},
+		{
+			"name": "terminal-focus-takes-the-keys",
+			"note": "New Terminal and Focus Terminal move the focus into the terminal, so its cursor is a block and the keys go to the shell",
+			"steps": [
+				{ "action": "terminalNew" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#terminal", "property": "focused", "is": true } },
+				{ "click": "#explorer" },
+				{ "expect": { "node": "#terminal", "property": "focused", "is": false } },
+				{ "action": "showTerminal" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#terminal", "property": "focused", "is": true } }
+			]
+		},
+		{
+			"name": "terminal-kill-the-last",
+			"note": "Killing the last terminal hides the Terminal tab: the panel goes back to Output",
+			"steps": [
+				{ "action": "terminalNew" },
+				{ "action": "terminalKill" },
+				{ "expect": { "state": "terminals.list.length", "is": 0 } },
+				{ "expect": { "state": "terminals.active", "is": "" } },
+				{ "expect": { "state": "panelTab", "is": "output" } },
+				{ "expect": { "node": "#terminal", "exists": false } }
+			]
+		}
+	]
+}

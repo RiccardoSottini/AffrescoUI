@@ -1,0 +1,304 @@
+{:$schema "../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "Tempera, an image editor. The pixels live in the library's image doc (the images section, modules/imaging), which the raster node shows and the image step changes; the state holds only state.doc, the snapshot the library puts there after each change, and what the workspace itself keeps (the theme, the guides, the dialogs). This file names the window, the fonts, the colours and the parts: parts/commands.json (actions, keys, menus, watches), parts/workspace.json (menu bar, options bar, tools bar, document tab, canvas, status bar) and parts/panels.json (the panels and dialogs)."
+  :window {:title Tempera :width 1280 :height 800 :minWidth 900 :minHeight 600}
+  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [icons symbols]}
+    :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 10 :fallback [icons]}
+    :symbols {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 11}
+    :icons {:file "../../shared/fonts/Lucide.ttf" :size 13}
+    :iconsLarge {:file "../../shared/fonts/Lucide.ttf" :size 17}}
+  :include ["parts/commands.lisp"
+    "parts/workspace.lisp"
+    "parts/panels.lisp"
+    "parts/dialogs.lisp"
+    "../../shared/addons/assistant/assistant.lisp"
+    "../../shared/components/charts.lisp"]
+  :theme "{{state.theme}}"
+  :tokens {:background {:light "#aab4a6" :dark "#141815"}
+    :panel {:light "#eef1ea" :dark "#242a25"}
+    :header {:light "#dfe5da" :dark "#1c211d"}
+    :canvasBack {:light "#c4ccc0" :dark "#1a1f1b"}
+    :border {:light "#c3ccbf" :dark "#38423a"}
+    :text {:light "#1c231d" :dark "#dfe5dc"}
+    :muted {:light "#5e6a5d" :dark "#8e9a8c"}
+    :accent {:light "#9a6a0e" :dark "#d39b2a"}
+    :accentSoft {:light "#efdfb6" :dark "#4a3b19"}
+    :selected {:light "#d8e1d2" :dark "#364238"}
+    :hover {:light "#e2e8dd" :dark "#2e362f"}
+    :input {:light "#fbfcf8" :dark "#191e1a"}
+    :ruler {:light "#e4e9df" :dark "#1f2520"}
+    :guide {:light "#9333ea" :dark "#c084fc"}
+    :menuHover {:light "#efdfb6" :dark "#4a3b19"}
+    :kit.background @panel
+    :kit.surface @panel
+    :kit.bar @panel
+    :kit.barHover @hover
+    :kit.field @input
+    :kit.text @text
+    :kit.dim @muted
+    :kit.body @muted
+    :kit.selection @accent
+    :kit.border @border
+    :kit.primary @accent
+    :kit.secondary @selected
+    :kit.onSecondary @text
+    :kit.focus @text
+    :kit.radius 6
+    :kit.cardRadius 10
+    :assistant.accent @accent
+    :assistant.accentHover @menuHover
+    :assistant.onAccent "#1c1608"
+    :assistant.surface @panel
+    :assistant.raised @header
+    :assistant.border @border
+    :assistant.text @text
+    :assistant.dim @muted
+    :assistant.warningBackground @selected}
+  :permissions {:allow [studio] :ask [agent] :reviewers [studio user]}
+  :exports {:doc.layers {:type array
+      :kind list
+      :value "{{state.doc.layers}}"
+      :description "The layers, top first: id, name, depth (0 at the top level), kind and a thumbnail image."
+      :item (node #string :name string :depth integer :kind string :thumbnail image)}
+    :doc.active {:type string :kind state :value "{{state.doc.active}}" :description "The active layer's id."}
+    :layers.move {:type string
+      :kind action
+      :value "{{'moveLayer'}}"
+      :description "Moves a layer: args.id takes the place of args.onto."
+      :arguments {:args object}}
+    :layers.select {:type string
+      :kind action
+      :value "{{'selectLayer'}}"
+      :description "Makes args.id the active layer."
+      :arguments {:args object}}
+    :layers.duplicate {:type string
+      :kind action
+      :value "{{'duplicateLayer'}}"
+      :description "Duplicates layer args.id."
+      :arguments {:args object}}}
+  :points {:panels.dock {:slot dock
+      :receives [doc.layers doc.active layers.move layers.select layers.duplicate]
+      :description "The foot of the panels column, under the Layers group."}}
+  :images {:doc {:width 1200
+      :height 800
+      :into state.doc
+      :tool brush
+      :tools {:move {:gesture move}
+        :marquee {:gesture select-rectangle}
+        :ellipse {:gesture select-ellipse}
+        :lasso {:gesture lasso}
+        :polygon {:gesture polygon-lasso}
+        :wand {:gesture magic-wand}
+        :crop {:gesture crop}
+        :brush {:gesture paint}
+        :pencil {:gesture paint :hardness 100}
+        :eraser {:gesture erase}
+        :clone {:gesture clone}
+        :gradient {:gesture gradient}
+        :fill {:gesture fill}
+        :eyedropper {:gesture sample}
+        :hand {:gesture pan}
+        :zoom {:gesture zoom}}}}
+  :state {:theme dark
+    :doc {:width 0
+      :height 0
+      :format rgba8
+      :profile sRGB
+      :display sRGB
+      :proof ""
+      :revision 0
+      :active ""
+      :layers []
+      :history []
+      :position 0
+      :dropped 0
+      :canUndo false
+      :canRedo false
+      :memory 0
+      :selection false
+      :bounds [0 0 0 0]
+      :foreground "#000000"
+      :background "#ffffff"
+      :tool brush
+      :options {:size 20
+        :hardness 80
+        :spacing 25
+        :opacity 100
+        :flow 100
+        :mode replace
+        :tolerance 32
+        :contiguous true
+        :allLayers false
+        :fillOpacity 100
+        :shape linear
+        :quickMask false
+        :autoSelect false}
+      :view {:zoom 1 :x 0 :y 0}
+      :message ""
+      :previewing false
+      :clipboard false}
+    :tools [[(node #move :icon move :title "Move Tool" :key V)]
+      []
+      [(node #marquee :icon box-select :title "Rectangular Marquee Tool" :key M)
+        (node #ellipse :icon circle-dashed :title "Elliptical Marquee Tool" :key "Shift+M")]
+      [(node #lasso :icon lasso :title "Lasso Tool" :key L)
+        (node #polygon :icon pentagon :title "Polygonal Lasso Tool" :key "Shift+L")]
+      [(node #wand :icon wand :title "Magic Wand Tool" :key W)]
+      [(node #crop :icon crop :title "Crop Tool" :key C)]
+      []
+      [(node #eyedropper :icon pipette :title "Eyedropper Tool" :key I)]
+      [{:icon bandage :title "Healing Tool"}]
+      [(node #brush :icon paintbrush :title "Brush Tool" :key B)
+        (node #pencil :icon pencil :title "Pencil Tool" :key "Shift+B")]
+      [(node #clone :icon copy-plus :title "Clone Tool" :key S)]
+      [{:icon undo-dot :title "Restore Brush Tool"}]
+      [(node #eraser :icon eraser :title "Eraser Tool" :key E)]
+      [(node #gradient :icon blend :title "Gradient Tool" :key G)
+        (node #fill :icon paint-bucket :title "Paint Bucket Tool" :key "Shift+G")]
+      [{:icon droplet :title "Blur Tool"}]
+      [{:icon sun-dim :title "Dodge Tool"}]
+      []
+      [{:icon pen-tool :title "Pen Tool"}]
+      [{:icon text-cursor :title "Text Tool"}]
+      [{:icon mouse-pointer-2 :title "Path Selection Tool"}]
+      [{:icon square :title "Rectangle Tool"}]
+      []
+      [(node #hand :icon hand :title "Hand Tool" :key H)]
+      [(node #zoom :icon zoom-in :title "Zoom Tool" :key Z)]]
+    :brushHardness 80
+    :brushes ["Hard Round 5" "Hard Round 20" "Soft Round 30" "Soft Round 100" "Airbrush 60" "Pencil 1" "Chalk 40"]
+    :gradients ["Black, White" Spectrum Copper "Black, Transparent"]
+    :blends [normal
+      "-"
+      darken
+      multiply
+      "-"
+      lighten
+      screen
+      "-"
+      overlay
+      soft-light
+      "-"
+      difference
+      "-"
+      hue
+      saturation
+      color
+      luminosity]
+    :adjustments [(node #brightness-contrast :title "Brightness/Contrast" :icon sun)
+      (node #levels :title Levels :icon bar-chart-3)
+      (node #curves :title Curves :icon spline)
+      (node #hue-saturation :title "Hue/Saturation" :icon palette)
+      (node #color-balance :title "Colour Balance" :icon scale)
+      (node #invert :title Invert :icon circle-slash)
+      (node #threshold :title Threshold :icon contrast)
+      (node #gradient-map :title "Gradient Map" :icon blend)]
+    :profiles [(node #srgb :title sRGB)
+      (node #displayP3 :title "Display P3")
+      (node #wideRgb :title "Wide RGB")
+      (node #gray :title Grey)]
+    :swatches ["#000000"
+      "#ffffff"
+      "#ef4444"
+      "#f97316"
+      "#facc15"
+      "#22c55e"
+      "#14b8a6"
+      "#3b82f6"
+      "#6366f1"
+      "#a855f7"
+      "#ec4899"
+      "#78716c"
+      "#9ca3af"
+      "#374151"
+      "#7c2d12"
+      "#14532d"]
+    :guides {:vertical [] :horizontal []}
+    :view {:rulers true :guides true}
+    :panels {:colour colour :properties properties :layers layers}
+    :popout {:history false :navigator false}
+    :flyout {}
+    :docName "Untitled 1"
+    :filters [(node #gaussian-blur :title "Gaussian Blur")
+      (node #motion-blur :title "Motion Blur")
+      (node #sharpen :title Sharpen)
+      (node #unsharp-mask :title "Unsharp Mask")
+      (node #add-noise :title "Add Noise")]
+    :gradientEdit {:kind linear :angle 90 :stops [{:at 0 :color "#000000ff"} {:at 1 :color "#ffffffff"}]}
+    :filter {:open false
+      :kind gaussian-blur
+      :radius 4
+      :amount 100
+      :threshold 0
+      :angle 0
+      :distance 12
+      :live true
+      :apply 0
+      :cancel 0}
+    :newDoc {:open false :width 1200 :height 800 :format rgba8}
+    :newPresetMenu false
+    :newPresets [{:title "Default, 1200 × 800" :width 1200 :height 800}
+      {:title "Square, 1080 × 1080" :width 1080 :height 1080}
+      {:title "HD, 1920 × 1080" :width 1920 :height 1080}
+      {:title "4K UHD, 3840 × 2160" :width 3840 :height 2160}
+      {:title "A4 at 300 ppi, 2480 × 3508" :width 2480 :height 3508}
+      {:title "Icon, 512 × 512" :width 512 :height 512}]
+    :transform {:open false :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}
+    :resize {:open false :width 0 :height 0 :linked true}
+    :canvasSize {:open false :width 0 :height 0 :anchor center}
+    :rename {:open false :name ""}
+    :closeAsk false
+    :fill {:open false :menu false :contents foreground}
+    :cropSize [0 0]
+    :menuBar {}
+    :adjustMenu false
+    :blendMenu false
+    :brushMenu false
+    :gradientMenu false
+    :workspaceMenu false
+    :paintModeMenu false
+    :fillSourceMenu false
+    :statusMenu false
+    :layerKindMenu false
+    :screenMenu false
+    :slide 0
+    :pop {}
+    :statusInfo size
+    :colourTarget foreground
+    :screenMode standard
+    :layerFilter {:on false :kinds []}
+    :foldedGroups []
+    :grouping ""
+    :props {:transform true :align true :actions true}
+    :quickPick {:open false :query "" :index 0 :top 0 :recent []}
+    :cropMenu false
+    :zoomMenu false
+    :about false}
+  :persist [state.theme state.view]
+  :onLoad [{:run drawSample}]
+  :root (node #root :color @background
+    (column #workspace :fill true :gap 6
+      {:use temperaMenuBar}
+      {:use temperaOptionsBar}
+      (row #main :anchors {:left 6 :right 6} :grow 1 :gap 6
+        {:use temperaToolBar}
+        {:use temperaCanvasArea}
+        {:use temperaPanels :when "{{state.screenMode == 'standard'}}"})
+      (node #workspace-foot :style clear :width 1 :height 0))
+    {:use quickPick
+      :with {:width 520 :providers "{{[{placeholder: 'Search the commands', items: computed.searchItems}]}}"}}
+    {:use temperaFilterDialog}
+    {:use temperaNewDialog}
+    {:use temperaTransformDialog}
+    {:use temperaImageSizeDialog}
+    {:use temperaCanvasSizeDialog}
+    {:use temperaRenameDialog}
+    {:use temperaFillDialog}
+    {:use temperaCloseDialog}
+    (node :use dialog
+      #about-dialog
+      :with {:open state.about
+        :title Tempera
+        :message "An image editor built with AffrescoUI: layers, masks, brushes, filters and colour management over sparse tiles."
+        :buttons [{:title OK}]}))}

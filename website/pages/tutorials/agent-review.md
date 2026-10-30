@@ -11,7 +11,7 @@ Start the host on an app, with a socket folder of your own (it keeps parallel se
 host and the server meet in `/tmp/affrescoui-<uid>`):
 
 ```sh
-./build/affrescoui_launcher examples/flow/index.screen.json --socket out/s
+./build/affrescoui_launcher examples/flow/json/index.screen.json --socket out/s
 ```
 
 Register the MCP server with Claude Code, on the same folder, and start Claude Code with channels so requests arrive

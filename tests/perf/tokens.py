@@ -148,7 +148,7 @@ def screens(root):
     for name, path in template_files(root):
         with open(path, encoding="utf-8") as screen:
             yield name, with_includes(json.load(screen), os.path.dirname(path))
-    forge = os.path.join(root, "examples", "forge", "index" + SUFFIX)
+    forge = os.path.join(root, "examples", "forge", "json", "index" + SUFFIX)
     if not os.path.exists(forge):  # a root from before index.screen.json
         forge = os.path.join(root, "examples", "forge", "forge" + SUFFIX)
     if os.path.exists(forge):  # a root from before Forge has none

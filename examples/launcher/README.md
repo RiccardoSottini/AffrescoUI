@@ -7,12 +7,12 @@ opens it when it is started without a file.
 ```sh
 ./build/affrescoui_launcher                      # the Launcher; your apps go to ~/AffrescoUI
 ./build/affrescoui_launcher --apps /some/folder  # another apps folder
-./build/affrescoui test examples/launcher/index.scenarios.json
+./build/affrescoui test examples/launcher/json/index.scenarios.json
 ```
 
 ## What it shows
 
-- **Apps:** every app as a grid of cards, the person's own first, then the examples of [`apps.json`](apps.json) (cover,
+- **Apps:** every app as a grid of cards, the person's own first, then the examples of [`apps.json`](json/apps.json) (cover,
   name, a tagline in the person's language). Each card is tagged **Yours** or **Example**. A search field, and Enter or a
   click to open one. A host-run example can also start a new app.
 - **My apps:** each folder of the apps folder that holds an `index.screen.json`, named by its window's title, the last
@@ -21,12 +21,13 @@ opens it when it is started without a file.
 - **Create:** a name (checked as it is typed: its folder's name, the names the examples keep, the apps there already,
   no double curly braces, which the new app's file would read as an expression; a folder of that name holding
   something else is said to be there, and kept),
-  a starting point (a blank app, [`starters/blank.screen.json`](starters/blank.screen.json), or a copy of a host-run
+  a starting point (a blank app, [`starters/blank.screen.json`](json/starters/blank.screen.json), or a copy of a host-run
   example, without its C++, except those `apps.json` marks `"starter": false`), an optional description and features from other apps, which become the first request
   to the new app's assistant (`--ask`). The app opens at once.
-- **Settings:** theme and language (kept with `persist`), the apps folder, the keyboard shortcuts, and the container
+- **Settings:** theme and language (kept with `persist`), whether the examples open from their `json` or their `lisp`
+  folder (also kept), the apps folder, the keyboard shortcuts, and the container
   `settingsIntelligence` for the intelligence settings.
-- English, Spanish and French ([`launcher-strings.json`](launcher-strings.json)), light and dark, the keyboard
+- English, Spanish and French ([`launcher-strings.json`](json/launcher-strings.json)), light and dark, the keyboard
   throughout (Cmd+1, Cmd+2, Cmd+N, Cmd+, and Cmd+F), from 800 × 600 up.
 
 ## How it holds together

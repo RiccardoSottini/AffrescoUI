@@ -1,0 +1,1649 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's commands that no other scenario plays, checked headless on tests/render/forge/folder (a copy of it, so saving writes there): each runs and does what its title says. affrescoui_render_runner commands.scenarios.json",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-commands-find-steps",
+			"note": "With the find bar open, Find Next and Find Previous step through the matches, Toggle Find in Selection flips the scope and Close Find closes the bar",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "openFind"
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Look for std",
+						"set": {
+							"/state/findBar/text": "std"
+						}
+					}
+				},
+				{
+					"action": "findNext"
+				},
+				{
+					"expect": {
+						"state": "findBar.step",
+						"is": "next"
+					}
+				},
+				{
+					"action": "findPrevious"
+				},
+				{
+					"expect": {
+						"state": "findBar.step",
+						"is": "previous"
+					}
+				},
+				{
+					"action": "toggleFindInSelection"
+				},
+				{
+					"expect": {
+						"state": "findBar.inSelection",
+						"is": true
+					}
+				},
+				{
+					"action": "toggleFindInSelection"
+				},
+				{
+					"expect": {
+						"state": "findBar.inSelection",
+						"is": false
+					}
+				},
+				{
+					"action": "closeFind"
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#find-bar",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-replace",
+			"note": "Replace changes the current match and Replace All the others, in the file's text: a change to save",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "openReplace"
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Replace std with ns",
+						"set": {
+							"/state/findBar/text": "std",
+							"/state/findBar/replace": "ns"
+						}
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"action": "replaceOne"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.step",
+						"is": "replace"
+					}
+				},
+				{
+					"action": "replaceAllInFile"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.step",
+						"is": "replaceAll"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-panel",
+			"note": "Show Debug Console shows the panel on the debug console; Maximize Panel Size maximizes it and restores it",
+			"steps": [
+				{
+					"action": "showDebugConsole"
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "panelTab",
+						"is": "debugConsole"
+					}
+				},
+				{
+					"action": "toggleMaximizedPanel"
+				},
+				{
+					"expect": {
+						"state": "layout.panelMax",
+						"is": true
+					}
+				},
+				{
+					"action": "toggleMaximizedPanel"
+				},
+				{
+					"expect": {
+						"state": "layout.panelMax",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.panel",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-show-search",
+			"note": "Show Search shows the search view in the side bar",
+			"steps": [
+				{
+					"action": "showSearch"
+				},
+				{
+					"expect": {
+						"state": "sideView",
+						"is": "search"
+					}
+				},
+				{
+					"expect": {
+						"state": "layout.sidebar",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-second-group",
+			"note": "Focus Second Editor Group makes the split's second group the active one",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "splitEditor"
+				},
+				{
+					"expect": {
+						"state": "activeGroup",
+						"is": 1
+					}
+				},
+				{
+					"action": "focusFirstGroup"
+				},
+				{
+					"expect": {
+						"state": "activeGroup",
+						"is": 0
+					}
+				},
+				{
+					"action": "focusSecondGroup"
+				},
+				{
+					"expect": {
+						"state": "activeGroup",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-navigate",
+			"note": "Go Back returns to the tab shown before, Go Forward to the one left",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "README.md"
+					}
+				},
+				{
+					"action": "navigateBack"
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"action": "navigateForward"
+				},
+				{
+					"expect": {
+						"state": "groups[0].active",
+						"is": "README.md"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-breakpoints",
+			"note": "Toggle Breakpoint marks the caret's line; Remove All Breakpoints clears them; Clear Console empties the debug console",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "debugToggleBreakpointAtCaret"
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints.length",
+						"is": 1
+					}
+				},
+				{
+					"action": "debugToggleBreakpointAtCaret"
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints.length",
+						"is": 0
+					}
+				},
+				{
+					"action": "debugToggleBreakpointAtCaret"
+				},
+				{
+					"action": "debugRemoveAllBreakpoints"
+				},
+				{
+					"expect": {
+						"state": "debug.breakpoints",
+						"is": []
+					}
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "A line in the console",
+						"set": {
+							"/state/debug/console": [
+								{
+									"text": "hello",
+									"kind": "console"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugClearConsole"
+				},
+				{
+					"expect": {
+						"state": "debug.console",
+						"is": []
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-debug-without-configuration",
+			"note": "With no launch configuration, Reload Launch Configurations finds none and Start Debugging says how to add one",
+			"steps": [
+				{
+					"action": "debugLoadConfigurations"
+				},
+				{
+					"wait": 200
+				},
+				{
+					"expect": {
+						"state": "debug.configurations",
+						"is": []
+					}
+				},
+				{
+					"action": "debugStart"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "inactive"
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-symbols",
+			"note": "Go to Symbol in Workspace opens its picker on '#'; Rename Symbol opens the rename box",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "goToWorkspaceSymbol"
+				},
+				{
+					"expect": {
+						"state": "symbolPick.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "symbolPick.query",
+						"is": "#"
+					}
+				},
+				{
+					"action": "renameSymbol"
+				},
+				{
+					"expect": {
+						"state": "lsp.rename.open",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-outline",
+			"note": "Refresh Outline lists the file's blocks",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "refreshOutline"
+				},
+				{
+					"expect": {
+						"state": "outline.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-save-all",
+			"note": "Save All writes every changed file (here with CRLF line endings): none is left to save",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#status-eol"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": "eol "
+					}
+				},
+				{
+					"type": "crlf"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": "eol crlf"
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "docs[0].eol",
+						"is": "CRLF"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				},
+				{
+					"action": "saveAll"
+				},
+				{
+					"wait": 200
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].savedEol",
+						"is": "CRLF"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-explorer-refresh",
+			"note": "Refresh Explorer lists the folder again",
+			"steps": [
+				{
+					"action": "explorerRefresh"
+				},
+				{
+					"wait": 200
+				},
+				{
+					"expect": {
+						"node": "#explorer",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"state": "explorerTree.listed",
+						"is": []
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-terminal-clear",
+			"note": "Clear Terminal empties the active terminal, which stays open",
+			"steps": [
+				{
+					"action": "terminalNew"
+				},
+				{
+					"wait": 1000
+				},
+				{
+					"expect": {
+						"state": "terminals.list.length",
+						"is": 1
+					}
+				},
+				{
+					"action": "terminalClear"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "terminals.list.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-build-task",
+			"note": "Run Build Task with no tasks file finds no task to run, and says so",
+			"steps": [
+				{
+					"action": "runBuildTask"
+				},
+				{
+					"wait": 200
+				},
+				{
+					"expect": {
+						"state": "tasks.items",
+						"is": []
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-git-refresh",
+			"note": "Refresh reads git's status again; git runs (the view is busy until it answers)",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": false
+					}
+				},
+				{
+					"action": "scmRefresh"
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-git-init",
+			"note": "On a folder with no repository, Create Repository runs git init; git runs (the view is busy until it answers)",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": false
+					}
+				},
+				{
+					"action": "scmInit"
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-git-stage-all",
+			"note": "Stage All Changes stages the changes; git runs (the view is busy until it answers)",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u00001 M. N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 src/main.cpp\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u0000"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.changes.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": false
+					}
+				},
+				{
+					"action": "scmStageAll"
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-git-unstage-all",
+			"note": "Unstage All Changes unstages the staged files; git runs (the view is busy until it answers)",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u00001 M. N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 src/main.cpp\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u0000"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.status.staged.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": false
+					}
+				},
+				{
+					"action": "scmUnstageAll"
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-git-stage",
+			"note": "Stage Changes stages one change; git runs (the view is busy until it answers)",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u00001 M. N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 src/main.cpp\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u0000"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": false
+					}
+				},
+				{
+					"action": "scmStage",
+					"event": {
+						"id": "README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-git-unstage",
+			"note": "Unstage Changes unstages one staged file; git runs (the view is busy until it answers)",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u00001 M. N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 src/main.cpp\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u0000"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": false
+					}
+				},
+				{
+					"action": "scmUnstage",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-git-create-branch",
+			"note": "Create Branch starts a branch of that name and empties the name field; git runs (the view is busy until it answers)",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u00001 M. N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 src/main.cpp\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u0000"
+					}
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "A branch name",
+						"set": {
+							"/state/scm/branchName": "topic"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": false
+					}
+				},
+				{
+					"action": "scmCreateBranch"
+				},
+				{
+					"expect": {
+						"state": "scm.branchName",
+						"is": ""
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-git-switch",
+			"note": "Switch Branch switches to another branch; git runs (the view is busy until it answers)",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u00001 M. N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 src/main.cpp\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u0000"
+					}
+				},
+				{
+					"action": "scmApplyBranches",
+					"event": {
+						"output": "*\u0000main\n \u0000topic\n"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": false
+					}
+				},
+				{
+					"action": "scmSwitch",
+					"event": {
+						"id": "topic"
+					}
+				},
+				{
+					"expect": {
+						"state": "scm.busy",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-git-branches",
+			"note": "Show Branches shows the branch list and asks git for it",
+			"steps": [
+				{
+					"action": "showSourceControl"
+				},
+				{
+					"action": "scmApplyStatus",
+					"event": {
+						"output": "# branch.oid 0000000000000000000000000000000000000000\u0000# branch.head main\u00001 M. N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 src/main.cpp\u00001 .M N... 100644 100644 100644 0000000000000000000000000000000000000000 0000000000000000000000000000000000000000 README.md\u0000"
+					}
+				},
+				{
+					"action": "scmBranches"
+				},
+				{
+					"expect": {
+						"state": "scm.showBranches",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-debug-continue",
+			"note": "Stopped at a breakpoint, Continue resumes the program",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "stopped"
+					}
+				},
+				{
+					"action": "debugContinue"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "running"
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.frames.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-debug-restart",
+			"note": "Restart, which the adapter supports, restarts the session: running again",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"action": "debugRestart"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "running"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-debug-pause",
+			"note": "Running, Pause asks the adapter which thread to pause",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"action": "debugContinue"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "running"
+					}
+				},
+				{
+					"action": "debugPause"
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "running"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-debug-stop",
+			"note": "Stop asks the adapter to end the program",
+			"steps": [
+				{
+					"action": "debugApplySession",
+					"event": {
+						"configuration": {
+							"name": "Run main",
+							"type": "python",
+							"request": "launch",
+							"arguments": {
+								"program": "src/main.cpp",
+								"cwd": ".",
+								"stopOnEntry": false
+							}
+						},
+						"capabilities": {
+							"supportsConfigurationDoneRequest": true,
+							"supportsConditionalBreakpoints": true,
+							"supportsHitConditionalBreakpoints": true,
+							"supportsLogPoints": true,
+							"supportsSetVariable": true,
+							"supportsCompletionsRequest": true,
+							"supportsCancelRequest": true,
+							"supportsRestartRequest": true,
+							"supportsExceptionInfoRequest": true,
+							"supportsEvaluateForHovers": true,
+							"exceptionBreakpointFilters": [
+								{
+									"filter": "raised",
+									"label": "Raised Exceptions"
+								},
+								{
+									"filter": "uncaught",
+									"label": "Uncaught Exceptions",
+									"default": true
+								}
+							]
+						}
+					},
+					"note": "the adapter answered initialize"
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "initialized"
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnLaunch",
+						"body": {}
+					}
+				},
+				{
+					"action": "debugApplyEvent",
+					"event": {
+						"event": "stopped",
+						"body": {
+							"reason": "breakpoint",
+							"threadId": 1,
+							"allThreadsStopped": true
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnThreads",
+						"body": {
+							"threads": [
+								{
+									"id": 1,
+									"name": "main"
+								}
+							]
+						}
+					}
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnStackTrace",
+						"body": {
+							"stackFrames": [
+								{
+									"id": 1,
+									"name": "main",
+									"line": 3,
+									"column": 1,
+									"source": {
+										"name": "main.cpp",
+										"path": "/work/src/main.cpp",
+										"inside": true,
+										"relative": "src/main.cpp"
+									}
+								},
+								{
+									"id": 3,
+									"name": "<module>",
+									"line": 40,
+									"column": 1,
+									"source": {
+										"name": "runtime.py",
+										"path": "/opt/fake-runtime/lib/runtime.py",
+										"inside": false
+									}
+								}
+							],
+							"totalFrames": 2
+						},
+						"context": {
+							"threadId": 1
+						}
+					}
+				},
+				{
+					"action": "debugStop"
+				},
+				{
+					"action": "debugApplyResponse",
+					"event": {
+						"answer": "debugOnDisconnect",
+						"body": {}
+					}
+				},
+				{
+					"expect": {
+						"state": "debug.status",
+						"is": "inactive"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-debug-edit-breakpoint",
+			"note": "Edit Breakpoint opens the selected breakpoint's condition editor",
+			"steps": [
+				{
+					"action": "debugApplyBreakpoint",
+					"event": {
+						"path": "src/main.cpp",
+						"line": 5
+					}
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Select it",
+						"set": {
+							"/state/debug/selectedBreakpoint": "b1"
+						}
+					}
+				},
+				{
+					"action": "debugEditSelectedBreakpoint"
+				},
+				{
+					"expect": {
+						"state": "debug.edit.open",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-lsp-requests",
+			"note": "Format Document, Go to Definition, Find All References and Trigger Suggest each ask the language server about the file",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "lsp.request",
+						"is": 0
+					}
+				},
+				{
+					"action": "formatDocument"
+				},
+				{
+					"expect": {
+						"state": "lsp.request",
+						"is": 1
+					}
+				},
+				{
+					"action": "goToDefinition"
+				},
+				{
+					"expect": {
+						"state": "lsp.request",
+						"is": 2
+					}
+				},
+				{
+					"action": "findReferences"
+				},
+				{
+					"expect": {
+						"state": "lsp.request",
+						"is": 3
+					}
+				},
+				{
+					"action": "triggerSuggest"
+				},
+				{
+					"expect": {
+						"state": "lsp.request",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.request",
+						"is": 4
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-commands-features-switch",
+			"note": "In the agent panel's feature list, Refresh Features lists the catalogue, and Disable or Enable Feature switches the selected one off and on",
+			"steps": [
+				{
+					"revision": {
+						"author": "studio",
+						"message": "Install wordCount",
+						"set": {
+							"/features/wordCount": {
+								"release": "1.0.0",
+								"title": "Word count",
+								"source": "catalog:forge-examples",
+								"digest": "sha512:jya0GCcYM4OCsogNXebWlUBS4klrNcN3rQ_WDY4fta8ZwZbE12H4OSm9pPlKcfvZsPhXhuEBn75BOo96GvPgZA",
+								"publisher": "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc",
+								"enabled": true,
+								"order": 10,
+								"requires": {
+									"format": 2,
+									"points": [
+										"statusBar.right"
+									],
+									"exports": {
+										"editor.text": {
+											"type": "string"
+										}
+									}
+								},
+								"provides": {
+									"state": {
+										"characters": false
+									},
+									"computed": {
+										"words": "{{length(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), length(trim(it)) > 0))}}",
+										"characters": "{{length(app.editor.text)}}"
+									},
+									"actions": {
+										"toggle": {
+											"title": "Toggle Word or Character Count",
+											"category": "Word Count",
+											"do": {
+												"toggle": "state.wordCount.characters"
+											}
+										}
+									},
+									"menus": {
+										"view": {
+											"items": {
+												"toggle": {}
+											}
+										}
+									},
+									"views": {
+										"statusBar.right": {
+											"wordCount-label": {
+												"type": "label",
+												"padding": 6,
+												"fitText": true,
+												"textColor": "@color.statusText",
+												"cursor": "hand",
+												"text": "{{state.wordCount.characters ? plural(computed.wordCount.characters, 'character') : plural(computed.wordCount.words, 'word')}}",
+												"onClick": "wordCount.toggle"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "features.catalog.length",
+						"is": 0
+					}
+				},
+				{
+					"action": "featuresRefresh"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "features.catalog.length",
+						"is": 2
+					}
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Select word count",
+						"set": {
+							"/state/features/selected": "wordCount"
+						}
+					}
+				},
+				{
+					"action": "featuresDisable"
+				},
+				{
+					"expect": {
+						"node": "#wordCount-label",
+						"exists": false
+					}
+				},
+				{
+					"action": "featuresEnable"
+				},
+				{
+					"expect": {
+						"node": "#wordCount-label",
+						"exists": true
+					}
+				}
+			]
+		}
+	]
+}

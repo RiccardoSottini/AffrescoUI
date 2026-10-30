@@ -1793,16 +1793,17 @@ seed data; another screen in the folder is read as written. A generated example:
   the app's own choice, so it is bound to the folder that first opens it (recorded in the folder's `location`): an
   app elsewhere with the same id keeps its data, and the host the person's permissions, in `apps/<id>~<hash>/`, its
   own. A screen opened on its own is bound to its file the same way (`<data folder>/<screen name>.location`).
-- **`entry`** (default `index.screen.json`): the screen it opens, a `.json` file or a `.lisp` one (any of the app's
-  files may be written in the Lisp notation: "The Lisp notation"). Every path in the manifest is relative, inside the
+- **`entry`** (default `index.screen.json`): the screen it opens, a `.json` file or a `.lisp` one (its includes, themes,
+  models and seed data may be written in the Lisp notation too: "The Lisp notation"). Every path in the manifest is relative, inside the
   folder (no `..`, no link leading out), and is refused otherwise. The entry screen's `include`s, and theirs, are
   files in the folder or in the `shared` folder beside it (where the apps of a folder keep the kits they share, as a
-  release lays them out; a folder, not a link), once links are resolved.
+  release lays them out; a folder, not a link), once links are resolved. An app in a folder named `json` or `lisp`, one
+  notation of an example (`flow/json/`, `flow/lisp/`), may also use the `shared` folder beside that example.
 - **`themes`**: files of `components`, `styles`, `tokens`, `colors` and `fonts`, merged into the entry screen after
   its own `include` files, so the screen's own entries win. A theme can't hold actions or nodes.
 - **`data.models`**: a file of `models` and `queries`, merged the same way. **`data.seed`**: a collection's first
   records (its model's `seed`, so written once, when the store creates the collection, and migrated like stored
-  records): a JSON list of records, or a CSV file whose header names the fields (cells convert to the field's type; an
+  records): a list of records in JSON or the Lisp notation, or a CSV file whose header names the fields (cells convert to the field's type; an
   `id` column gives the ids; a row that doesn't fit refuses the app). A model with a `seed` of its own takes no file.
 - **`capabilities`**: what the app asks the person for, each with why. `network`: origins its `connections` reach
   (`"https://*.example.com"` for the subdomains; http and ws reach only the computer's own addresses). `folders`: the
@@ -2135,7 +2136,7 @@ text.
 
 ## The Lisp notation
 
-Any file the screen loader reads (a screen, its `include`s, an app's entry, themes and models) may be written in the
+Any file the screen loader reads (a screen, its `include`s, an app's entry, themes, models and seed data) may be written in the
 **Lisp notation** instead of JSON: S-expressions that spell **the same JSON tree**, without the quotes around keys
 and words, and with a node's type and id at its head. A file is in the Lisp notation when its name ends in `.lisp`
 (`board.screen.lisp`, `parts/drawer.lisp`); the two notations mix freely, a JSON screen including a Lisp file and the

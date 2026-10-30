@@ -3,7 +3,7 @@
 Modello is a 3D modeller written only as screen documents: no C++ of its own. The stock host runs it:
 
 ```
-./build/affrescoui_launcher examples/modello/index.screen.json [--socket DIR]
+./build/affrescoui_launcher examples/modello/json/index.screen.json [--socket DIR]
 ```
 
 Its layout and keys follow the conventions of desktop 3D modellers, so a daily user of such a modeller finds what they expect where they
@@ -48,7 +48,7 @@ For glTF import, from the Khronos glTF Sample Assets, each with its licence and 
 ## Tests
 
 - `index.scenarios.json`: what the keys do, played headless (`./build/affrescoui test
-  examples/modello/index.scenarios.json`, and in ctest's `scenarios`).
+  examples/modello/json/index.scenarios.json`, and in ctest's `scenarios`).
 - `tests/render/scenarios/modello.json`: its frames in the rendering check.
 - `tests/unit/scene3d*.cpp`: the scene module's maths, scene JSON, glTF loading and limits, picking, gizmos.
 - `tests/perf/modello.cpp` (`affrescoui_perf_modello`, built with `AFFRESCOUI_BUILD_BENCHMARKS`): a 200,000-triangle

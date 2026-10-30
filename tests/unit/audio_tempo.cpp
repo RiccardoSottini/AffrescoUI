@@ -36,7 +36,7 @@ json stateAt(const affresco::Screen& screen, const char* pointer) {
 } // namespace
 
 TEST_CASE("tempo: a song with a sound of its own plays it, a song without one plays the beat") {
-	const std::filesystem::path folder = std::filesystem::path(AFFRESCOUI_EXAMPLES_ASSETS) / "tempo";
+	const std::filesystem::path folder = std::filesystem::path(AFFRESCOUI_EXAMPLES_ASSETS) / "tempo" / "json";
 	json document = json::parse(std::ifstream(folder / "index.screen.json"));
 	document["audio"]["own"] = {{"tone", {{"frequency", 330}, {"seconds", 30}}}, {"into", "state.sounds.own"}};
 	document["models"]["playlists"]["seed"][0]["tracks"][2]["sound"] = "own"; // the song Tempo opens on
@@ -81,7 +81,7 @@ TEST_CASE("tempo: a song with a sound of its own plays it, a song without one pl
 }
 
 TEST_CASE("tempo: a file the person attaches becomes a song's sound in one proposal the person accepts") {
-	const std::filesystem::path folder = std::filesystem::path(AFFRESCOUI_EXAMPLES_ASSETS) / "tempo";
+	const std::filesystem::path folder = std::filesystem::path(AFFRESCOUI_EXAMPLES_ASSETS) / "tempo" / "json";
 	ThreadExecutor executor;
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(1280, 800, clock);

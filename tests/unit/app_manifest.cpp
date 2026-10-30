@@ -120,7 +120,7 @@ TEST_CASE("app manifest: every bad part is refused, with its place") {
 	CHECK(with("/capabilities/folders/workspace/access", "all").contains("access"));
 	CHECK(with("/capabilities/folders/workspace/also", 1).contains("workspace"));
 	CHECK(with("/capabilities/camera", "Why").contains("unknown kind"));
-	CHECK(with("/data/seed/notes", "seed/notes.txt").contains(".json or .csv"));
+	CHECK(with("/data/seed/notes", "seed/notes.txt").contains(".json, .lisp or .csv"));
 	CHECK(with("/data/seed/a.b", "seed/a.json").contains("collection"));
 	CHECK(with("/data/runs", "x").contains("data"));
 }

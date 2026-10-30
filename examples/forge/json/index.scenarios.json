@@ -1,0 +1,150 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "What Forge does, checked headless, with tests/render/forge/folder open: affrescoui_render_runner index.scenarios.json",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-index-the-folder",
+			"note": "On load, the open folder is indexed for Go to File: hidden entries and node_modules are skipped (the explorer's tree, folders first and dressed by the icon theme, is checked in explorer.scenarios.json)",
+			"steps": [
+				{ "expect": { "state": "folder.files.length", "is": 2 } },
+				{ "expect": { "state": "folder.files[0].id", "is": "README.md" } },
+				{ "expect": { "state": "folder.files[1].id", "is": "src/main.cpp" } },
+				{ "expect": { "state": "folder.truncated", "is": false } },
+				{ "expect": { "node": "#explorer", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-toggle-the-layout",
+			"note": "mod+B hides the side bar, mod+J shows the panel (hidden at first), and the chord mod+K Z enters zen mode, which hides the title and status bars",
+			"steps": [
+				{ "key": "mod+b" },
+				{ "expect": { "state": "layout.sidebar", "is": false } },
+				{ "key": "mod+j" },
+				{ "expect": { "state": "layout.panel", "is": true } },
+				{ "key": "mod+k" },
+				{ "key": "z" },
+				{ "expect": { "state": "layout.zen", "is": true } },
+				{ "action": "toggleZen" },
+				{ "action": "toggleSidebar" },
+				{ "expect": { "state": "layout.zen", "is": false } },
+				{ "expect": { "state": "layout.sidebar", "is": true } }
+			]
+		},
+		{
+			"name": "forge-open-and-close-a-file",
+			"note": "Opening a file from the explorer reads it, gives it a language and a tab; mod+W closes it",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "expect": { "state": "docs.length", "is": 1 } },
+				{ "expect": { "state": "docs[0].language", "is": "C++" } },
+				{ "expect": { "state": "groups[0].active", "is": "src/main.cpp" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/" }, "note": "a folder opens nothing" },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 1 } },
+				{ "action": "closeEditor" },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 0 } },
+				{ "expect": { "state": "groups[0].active", "is": null } }
+			]
+		},
+		{
+			"name": "forge-split-the-editor",
+			"note": "Split Editor opens the active editor in a second group, and closing it there removes the group",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "action": "splitEditor" },
+				{ "expect": { "state": "groups.length", "is": 2 } },
+				{ "expect": { "state": "activeGroup", "is": 1 } },
+				{ "expect": { "state": "groups[1].active", "is": "README.md" } },
+				{ "action": "closeEditor" },
+				{ "expect": { "state": "groups.length", "is": 1 } }
+			]
+		},
+		{
+			"name": "forge-open-the-palette",
+			"note": "mod+shift+P opens the palette on commands, mod+P on files, mod+G on lines",
+			"steps": [
+				{ "key": "mod+shift+p" },
+				{ "expect": { "state": "quickPick.open", "is": true } },
+				{ "expect": { "state": "quickPick.query", "is": ">" } },
+				{ "key": "mod+p" },
+				{ "expect": { "state": "quickPick.query", "is": "" } },
+				{ "key": "mod+g" },
+				{ "expect": { "state": "quickPick.query", "is": ":" } }
+			]
+		},
+		{
+			"name": "forge-generated-pages",
+			"note": "The settings and keyboard shortcuts pages open as editor tabs",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "expect": { "state": "groups[0].active", "is": "forge:settings" } },
+				{ "action": "openKeybindings" },
+				{ "expect": { "state": "groups[0].tabs.length", "is": 2 } },
+				{ "expect": { "state": "docs[1].kind", "is": "keybindings" } }
+			]
+		},
+		{
+			"name": "forge-settings-table-of-contents",
+			"note": "The settings editor's table of contents lists each group of settings and shows only that group's",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#settings-toc-item", "nth": 4, "property": "name", "is": "Text Editor" } },
+				{ "click": "#settings-toc-item", "nth": 4 },
+				{ "expect": { "state": "settingsQuery", "is": "editor." } },
+				{ "click": "#settings-toc-item", "nth": 0 },
+				{ "expect": { "state": "settingsQuery", "is": "" } }
+			]
+		},
+		{
+			"name": "forge-settings-rows",
+			"note": "Each setting shows its description and a control for its type: a choice of its values, a checkbox; a changed one can be reset",
+			"steps": [
+				{ "action": "openSettings" },
+				{ "wait": 50 },
+				{ "click": "#settings-search" },
+				{ "type": "startup" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#setting-description", "property": "text", "is": "What the editor area shows when no file is open." } },
+				{ "expect": { "node": "#setting-choice", "nth": 1, "property": "name", "is": "none" } },
+				{ "click": "#setting-choice", "nth": 1 },
+				{ "expect": { "state": "settings", "is": { "workbench.startupEditor": "none" } } },
+				{ "click": "#setting-reset" },
+				{ "expect": { "state": "settings", "is": {} } },
+				{ "click": "#settings-search" },
+				{ "key": "mod+a" },
+				{ "type": "zzz" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#settings-none", "exists": true } }
+			]
+		},
+		{
+			"name": "forge-problems-and-output",
+			"note": "Scan for Problems lists nothing in a clean folder and logs it to Output; Focus Problems shows the panel",
+			"steps": [
+				{ "expect": { "state": "layout.panel", "is": false } },
+				{ "action": "showProblems" },
+				{ "expect": { "state": "layout.panel", "is": true } },
+				{ "expect": { "state": "panelTab", "is": "problems" } },
+				{ "action": "openExplorerItem", "event": { "id": "src/main.cpp" } },
+				{ "action": "scanProblems" },
+				{ "expect": { "state": "problems.length", "is": 0 } },
+				{ "expect": { "state": "output.length", "is": 1 } }
+			]
+		},
+		{
+			"name": "forge-reindex-with-progress",
+			"note": "Reindex shows a progress toast that closes on its own, and logs the count to Output",
+			"steps": [
+				{ "action": "toggleIcons" },
+				{ "expect": { "state": "toast.progress", "is": 1 } },
+				{ "expect": { "state": "toast.open", "is": true } },
+				{ "expect": { "state": "output[0].text", "is": "Indexed 2 files" } },
+				{ "wait": 2000 },
+				{ "expect": { "state": "toast.open", "is": false } }
+			]
+		}
+	]
+}

@@ -1,0 +1,25 @@
+[{:game ember
+    :kind update
+    :ago 1
+    :title "Patch 1.8: the Ashen Gate"
+    :text "A new keep, two relics and a reworked shield bash."}
+  {:game starfall
+    :kind event
+    :ago 2
+    :title "Double crew XP weekend"
+    :text "Every mission gives twice the crew experience until Monday."}
+  {:game neon
+    :kind news
+    :ago 3
+    :title "Season 4 soundtrack revealed"
+    :text "Twelve new tracks and three night highways."}
+  {:game ironhollow
+    :kind update
+    :ago 5
+    :title "Winter 41: hotfix"
+    :text "Fixes for frozen pipes and miners who forgot to eat."}
+  {:game thornwick
+    :kind event
+    :ago 6
+    :title "The Lantern Hunt"
+    :text "Find the twelve lanterns hidden in the manor before Halloween."}]

@@ -3,8 +3,8 @@
 Rooms in a tree by floor, a floor plan, scenes, lights with their colours, climate, blinds, media, automations, schedules, an energy page with charts, security and notifications, a settings page, light and dark themes, in English, Spanish and French. The `smart-home` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_launcher examples/haven/index.screen.json
-./build/affrescoui test examples/haven/index.scenarios.json
+./build/affrescoui_launcher examples/haven/json/index.screen.json
+./build/affrescoui test examples/haven/json/index.scenarios.json
 ```
 
 | File | What it is |

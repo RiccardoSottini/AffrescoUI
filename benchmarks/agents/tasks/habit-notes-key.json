@@ -1,7 +1,7 @@
 {
 	"id": "habit-notes-key",
 	"level": "feature",
-	"screen": "examples/streak/index.screen.json",
+	"screen": "examples/streak/json/index.screen.json",
 	"request": "Add a command \"Sort by name\" that sorts the habit list by name (state.sort to \"name\"), on the shortcut Cmd+Shift+O (mod+shift+o).",
 	"scenarios": [
 		{

@@ -1,7 +1,7 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/flow",
+	"screens": "../../../examples/flow/json",
 	"scenarios": [
 		{
 			"name": "kanban",

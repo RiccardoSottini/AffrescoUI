@@ -22,7 +22,7 @@ namespace {
 /// @brief A copy of two example folders in a folder of its own, removed when the test ends.
 class Copy {
 public:
-	/// @brief Copies `examples/<app>` and `examples/shared`, which the apps include from, side by side.
+	/// @brief Copies `examples/<app>` and `examples/shared`, which its apps include from, side by side.
 	/// @param app The app's folder name.
 	explicit Copy(const std::string& app) {
 		const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
@@ -31,7 +31,7 @@ public:
 		std::filesystem::create_directories(root_);
 		std::filesystem::copy(examples / app, root_ / app, std::filesystem::copy_options::recursive);
 		std::filesystem::copy(examples / "shared", root_ / "shared", std::filesystem::copy_options::recursive);
-		app_ = root_ / app;
+		app_ = root_ / app / "json";
 	}
 	Copy(const Copy&) = delete;            ///< One owner of the folder.
 	Copy& operator=(const Copy&) = delete; ///< One owner of the folder.
@@ -41,7 +41,7 @@ public:
 		std::filesystem::remove_all(root_, ignored);
 	}
 
-	/// @brief The app's folder in the copy. @return It.
+	/// @brief The app's JSON folder in the copy. @return It.
 	[[nodiscard]] const std::filesystem::path& app() const noexcept { return app_; }
 	/// @brief A data folder inside the copy, for the screens loaded from files. @return It.
 	[[nodiscard]] std::filesystem::path data() const { return root_ / "data"; }

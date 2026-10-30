@@ -1,0 +1,358 @@
+{:$schema "../../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "The ribbon's drop-downs. A button's arrow (or a button that is only a menu) runs openDrop with its own id: one menu opens below it, its items from computed['menu-' + id]. The colour buttons open a grid instead (openColors, computed['colors-' + id]); their body applies the last colour picked. Find and Replace open a small box below their button; Copy Style keeps the selection's style and gives it to the next objects selected."
+  :state {:drop (node :open false #"")
+    :search ""
+    :colors (node :open false #"")
+    :lastColor {:b-color "#c00000" :b-highlight "#ffff00" :b-fill accent1 :b-outline dark1}
+    :painter nil
+    :find {:open false :replace false :text "" :with "" :status "" :ask ""}
+    :ctx {:open false :x 0 :y 0 :kind ""}}
+  :computed {:anyText "{{length(computed.selected) > 0}}"
+    :menuSizes [8 9 10 11 12 14 16 18 20 24 28 32 36 40 48 54 60 72 80 96]
+    :fontNames [[default Roboto] [mono "JetBrains Mono"]]
+    :fontTitle "{{(computed.first.font ?? 'default') == 'mono' ? 'JetBrains Mono' : computed.titleLike || computed.first.ph == 'title' || computed.first.ph == 'ctrTitle' ? 'Roboto (Headings)' : 'Roboto (Body)'}}"
+    :dropItems "{{state.drop.open ? computed['menu-' + state.drop.id] ?? [] : []}}"
+    :menu-b-paste "{{[{ title: 'Paste', icon: 'clipboard-paste', keyLabel: 'Ctrl+V', run: 'pasteObjects', enabled: length(state.clip) > 0 }, { title: 'Keep Text Only', icon: 'type', run: 'pasteText', enabled: length(state.clip) > 0 }, { title: 'Duplicate', icon: 'copy-plus', keyLabel: 'Ctrl+D', run: 'duplicateObjects', enabled: computed.anyText }]}}"
+    :menu-b-copy "{{[{ title: 'Copy', icon: 'copy', keyLabel: 'Ctrl+C', run: 'copyObjects', enabled: computed.anyText }, { title: 'Duplicate', icon: 'copy-plus', keyLabel: 'Ctrl+D', run: 'duplicateObjects', enabled: computed.anyText }]}}"
+    :menu-b-new-slide "{{concat(map(computed.layouts, { title: it.name, icon: 'layout-panel-top', run: 'newSlide', with: { layout: it.id } }), [{ separator: true }, { title: 'Duplicate Slide', icon: 'copy', run: 'duplicateSlide' }])}}"
+    :menu-b-ins-new-slide "{{computed['menu-b-new-slide']}}"
+    :ctxItems "{{state.ctx.kind == 'slide' ? computed.slideCtxItems : length(computed.selected) > 0 ? computed.objectCtxItems : computed.canvasCtxItems}}"
+    :slideCtxItems "{{[{ title: 'New Slide', icon: 'layout-panel-top', keyLabel: 'Ctrl+M', run: 'newSlide', with: { layout: 'content' } }, { title: 'Duplicate Slide', icon: 'copy-plus', run: 'duplicateSlide' }, { title: 'Delete Slide', icon: 'trash-2', run: 'deleteSlide', enabled: length(state.deck.slides) > 1 }, { separator: true }, { title: 'Add Section', icon: 'list-start', run: 'addSection' }, { separator: true }, { title: 'Reset Slide', icon: 'rotate-ccw', run: 'resetSlide' }, { title: 'Format Background…', icon: 'paint-bucket', run: 'formatBackground' }, { title: computed.slide.hidden ?? false ? 'Show Slide' : 'Hide Slide', icon: 'eye-off', checked: computed.slide.hidden ?? false, run: 'hideSlide' }]}}"
+    :objectCtxItems "{{[{ title: 'Cut', icon: 'scissors', keyLabel: 'Ctrl+X', run: 'cutObjects' }, { title: 'Copy', icon: 'copy', keyLabel: 'Ctrl+C', run: 'copyObjects' }, { title: 'Paste', icon: 'clipboard-paste', keyLabel: 'Ctrl+V', run: 'pasteObjects', enabled: length(state.clip) > 0 }, { separator: true }, { title: 'Bring to Front', icon: 'bring-to-front', run: 'order', with: { how: 'front' } }, { title: 'Send to Back', icon: 'send-to-back', run: 'order', with: { how: 'back' } }, { separator: true }, { title: 'Format Shape…', icon: 'paintbrush', run: 'openFormatPane' }, { title: 'Delete', icon: 'trash-2', keyLabel: 'Del', run: 'deleteObjects' }]}}"
+    :canvasCtxItems "{{[{ title: 'Paste', icon: 'clipboard-paste', keyLabel: 'Ctrl+V', run: 'pasteObjects', enabled: length(state.clip) > 0 }, { separator: true }, { title: 'Reset Slide', icon: 'rotate-ccw', run: 'resetSlide' }, { title: 'Format Background…', icon: 'paint-bucket', run: 'formatBackground' }]}}"
+    :menu-b-ins-icons "{{map([['Star', 'star'], ['Heart', 'heart'], ['Lightbulb', 'lightbulb'], ['Flag', 'flag'], ['Calendar', 'calendar'], ['Clock', 'clock'], ['Map Pin', 'map-pin'], ['People', 'users'], ['Chat', 'message-circle'], ['Check', 'circle-check'], ['Warning', 'triangle-alert'], ['Music', 'music']], { title: it[0], icon: it[1], run: 'insertObject', with: { object: { kind: 'icon', icon: it[1], x: 420, y: 210, w: 120, h: 120, color: 'accent1' } } })}}"
+    :menu-b-ins-art-text "{{map([['Accent, Bold', 'accent1', null, false], ['Accent, Bold, Shadow', 'accent1', null, true], ['Dark, Bold, Shadow', 'dark1', null, true], ['Light on Accent', 'light1', 'accent1', false], ['Accent 2 on Light', 'accent2', 'light2', false]], { title: it[0], icon: 'type', run: 'insertObject', with: { object: { kind: 'text', x: 180, y: 210, w: 600, h: 120, text: 'Your text here', size: 54, bold: true, align: 'center', anchor: 'middle', color: it[1], fill: it[2] ?? 'none', shadow: it[3] } } })}}"
+    :menu-b-ins-symbol "{{map(['©', '®', '™', '€', '£', '¥', '°', '±', '×', '÷', '≈', '≠', '≤', '≥', '→', '←', '↑', '↓', '•', '…', '§', '¶', 'π', 'Ω'], { title: it, run: 'insertSymbol', with: { symbol: it } })}}"
+    :menu-b-ins-header "{{[{ title: 'Slide Numbers', icon: 'hash', checked: state.deck.slideNumbers ?? false, run: 'toggleSlideNumbers' }, { title: (state.deck.footer ?? null) == null ? 'Footer Text…' : 'Footer: ' + state.deck.footer, icon: 'panel-bottom', run: 'askFooter' }]}}"
+    :menu-b-layout "{{map(computed.layouts, { title: it.name, checked: computed.slide.layout == it.id, run: 'setLayout', with: { layout: it.id } })}}"
+    :menu-b-section "{{[{ title: 'Add Section', icon: 'list-plus', run: 'addSection' }, { title: 'Rename Section', icon: 'pencil', run: 'askSectionName', enabled: computed.sectionHere != null }, { title: 'Remove Section', icon: 'list-minus', run: 'removeSection', enabled: computed.sectionHere != null }, { separator: true }, { title: 'Remove All Sections', icon: 'list-x', run: 'removeSections', enabled: length(state.deck.sections ?? []) > 0 }]}}"
+    :menu-f-font "{{map(computed.fontNames, { title: it[1], checked: (computed.first.font ?? 'default') == it[0], enabled: computed.anyText, run: 'setObjects', with: { props: { font: it[0] == 'default' ? null : it[0] } } })}}"
+    :menu-f-size "{{map(computed.menuSizes, { title: text(it), checked: computed.textSize == it, enabled: computed.anyText, run: 'setObjects', with: { props: { size: it } } })}}"
+    :menu-b-case "{{map([['Sentence case.', 'sentence'], ['lowercase', 'lower'], ['UPPERCASE', 'upper'], ['Capitalize Each Word', 'words'], ['tOGGLE cASE', 'toggle']], { title: it[0], enabled: computed.anyText, run: 'changeCase', with: { how: it[1] } })}}"
+    :menu-b-bullets "{{concat([{ title: 'None', icon: 'ban', run: 'setObjects', with: { props: { bullets: false, numbering: null } }, enabled: computed.anyText }], map([['Filled Round', 'dot'], ['Hollow Round', 'circle'], ['Filled Square', 'square'], ['Dash', 'minus'], ['Arrow', 'chevron-right'], ['Check', 'check']], { title: it[0], icon: it[1], checked: computed.first != null && (computed.first.bullets ?? computed.firstPlaceholder.bullets ?? false) && computed.first.numbering == null && (computed.first.bulletIcon ?? 'dot') == it[1], enabled: computed.anyText, run: 'setObjects', with: { props: { bullets: true, numbering: null, bulletIcon: it[1] == 'dot' ? null : it[1] } } }))}}"
+    :menu-b-numbering "{{concat([{ title: 'None', icon: 'ban', run: 'setObjects', with: { props: { numbering: null } }, enabled: computed.anyText }], map([['1. 2. 3.', '1.'], ['1) 2) 3)', '1)'], ['A. B. C.', 'A.'], ['a) b) c)', 'a)'], ['I. II. III.', 'I.']], { title: it[0], checked: computed.first.numbering == it[1], enabled: computed.anyText, run: 'setObjects', with: { props: { bullets: true, numbering: it[1] } } }))}}"
+    :menu-b-line-spacing "{{map([1, 1.5, 2, 2.5, 3], { title: fixed(it, 1), checked: (computed.first.spacing ?? 1) == it, enabled: computed.anyText, run: 'setObjects', with: { props: { spacing: it == 1 ? null : it } } })}}"
+    :menu-b-columns "{{map([['One Column', 1, 'square'], ['Two Columns', 2, 'columns-2'], ['Three Columns', 3, 'columns-3']], { title: it[0], icon: it[2], checked: (computed.first.columns ?? 1) == it[1], enabled: computed.anyText, run: 'setObjects', with: { props: { columns: it[1] == 1 ? null : it[1] } } })}}"
+    :menu-b-direction "{{map([['Horizontal', 0, 'move-horizontal'], ['Rotate All Text 90°', 90, 'redo-2'], ['Rotate All Text 270°', 270, 'undo-2']], { title: it[0], icon: it[2], checked: (computed.first.textRotate ?? 0) == it[1], enabled: computed.anyText, run: 'setObjects', with: { props: { textRotate: it[1] == 0 ? null : it[1] } } })}}"
+    :menu-b-anchor "{{map([['Top', 'top', 'align-vertical-justify-start'], ['Middle', 'middle', 'align-vertical-justify-center'], ['Bottom', 'bottom', 'align-vertical-justify-end']], { title: it[0], icon: it[2], checked: computed.first != null && (computed.first.anchor ?? computed.firstPlaceholder.anchor ?? 'top') == it[1], enabled: computed.anyText, run: 'setObjects', with: { props: { anchor: it[1] } } })}}"
+    :menu-b-select "{{[{ title: 'Select All', icon: 'mouse-pointer-2', keyLabel: 'Ctrl+A', run: 'selectAll' }, { title: 'Select Text', icon: 'type', run: 'selectKind', with: { kinds: ['text'] } }, { title: 'Select Shapes', icon: 'shapes', run: 'selectKind', with: { kinds: ['shape', 'line'] } }, { separator: true }, { title: 'Select None', icon: 'square-dashed', run: 'selectKind', with: { kinds: [] } }, { separator: true }, { title: 'Selection Pane', icon: 'layers', checked: state.sidePane == 'select' && !state.formatPane, run: 'openSidePane', with: { pane: 'select' } }]}}"
+    :menu-b-arrange "{{computed.arrangeItems}}"
+    :commands "{{[{ title: 'New Slide', icon: 'plus', run: 'runSearched', with: { action: 'newSlide', args: { layout: 'content' } }, keyLabel: 'Ctrl+M' }, { title: 'Duplicate Slide', icon: 'copy-plus', run: 'runSearched', with: { action: 'duplicateSlide', args: {} } }, { title: 'Delete Slide', icon: 'trash-2', run: 'runSearched', with: { action: 'deleteSlide', args: {} }, enabled: length(state.deck.slides) > 1 }, { title: 'Hide Slide', icon: 'eye-off', run: 'runSearched', with: { action: 'hideSlide', args: {} } }, { title: 'Reset Slide', icon: 'rotate-ccw', run: 'runSearched', with: { action: 'resetSlide', args: {} } }, { title: 'Add Section', icon: 'folder-plus', run: 'runSearched', with: { action: 'addSection', args: {} } }, { title: 'Text Box', icon: 'text-cursor-input', run: 'runSearched', with: { action: 'insertTextBox', args: {} } }, { title: 'Find', icon: 'search', run: 'runSearched', with: { action: 'openFind', args: { replace: false } }, keyLabel: 'Ctrl+F' }, { title: 'Replace', icon: 'replace', run: 'runSearched', with: { action: 'openFind', args: { replace: true } }, keyLabel: 'Ctrl+H' }, { title: 'Select All', icon: 'mouse-pointer-2', run: 'runSearched', with: { action: 'selectAll', args: {} }, keyLabel: 'Ctrl+A' }, { title: 'Selection Pane', icon: 'layers', run: 'runSearched', with: { action: 'openSidePane', args: { pane: 'select' } } }, { title: 'Animation Pane', icon: 'list-ordered', run: 'runSearched', with: { action: 'openSidePane', args: { pane: 'motion' } } }, { title: 'Show Comments', icon: 'messages-square', run: 'runSearched', with: { action: 'openSidePane', args: { pane: 'comments' } } }, { title: 'New Comment', icon: 'message-square-plus', run: 'runSearched', with: { action: 'newComment', args: {} } }, { title: 'Check Accessibility', icon: 'accessibility', run: 'runSearched', with: { action: 'openSidePane', args: { pane: 'access' } } }, { title: 'Keyboard Shortcuts', icon: 'keyboard', run: 'runSearched', with: { action: 'openSidePane', args: { pane: 'keys' } } }, { title: 'Format Background', icon: 'paint-bucket', run: 'runSearched', with: { action: 'formatBackground', args: {} } }, { title: 'Present from the Start', icon: 'play', run: 'runSearched', with: { action: 'present', args: { from: 0 } }, keyLabel: 'F5' }, { title: 'Present from This Slide', icon: 'presentation', run: 'runSearched', with: { action: 'present', args: { from: state.current } }, keyLabel: 'Shift+F5' }, { title: 'Preview Transition and Builds', icon: 'play', run: 'runSearched', with: { action: 'previewSlide', args: {} } }, { title: 'Reading View', icon: 'book-open', run: 'runSearched', with: { action: 'readingView', args: { from: state.current } } }, { title: 'Rehearse Timings', icon: 'timer', run: 'runSearched', with: { action: 'rehearse', args: {} } }, { title: 'Clear Ink on the Slide', icon: 'eraser', run: 'runSearched', with: { action: 'clearInk', args: {} } }, { title: 'Apply Transition to All', icon: 'copy-check', run: 'runSearched', with: { action: 'transitionToAll', args: {} } }, { title: 'Slide Numbers', icon: 'hash', run: 'runSearched', with: { action: 'toggleSlideNumbers', args: {} } }, { title: 'Footer', icon: 'panel-bottom', run: 'runSearched', with: { action: 'askFooter', args: {} } }, { title: 'Save', icon: 'save', run: 'runSearched', with: { action: 'saveDeck', args: {} }, keyLabel: 'Ctrl+S' }, { title: 'Open', icon: 'folder-open', run: 'runSearched', with: { action: 'openDeck', args: {} }, keyLabel: 'Ctrl+O' }, { title: 'Export to PDF', icon: 'file-down', run: 'runSearched', with: { action: 'exportPdf', args: {} } }, { title: 'Export Slide as Picture', icon: 'image', run: 'runSearched', with: { action: 'exportPng', args: {} } }, { title: 'Dark Mode', icon: 'moon', run: 'runSearched', with: { action: 'toggleTheme', args: {} } }, { title: 'Undo', icon: 'undo-2', run: 'runSearched', with: { action: 'undo', args: {} }, keyLabel: 'Ctrl+Z', enabled: computed.canUndo }, { title: 'Redo', icon: 'redo-2', run: 'runSearched', with: { action: 'redo', args: {} }, keyLabel: 'Ctrl+Y', enabled: computed.canRedo }]}}"
+    :menu-search "{{trim(state.search) == '' ? [] : concat(slice(filter(computed.commands, contains(lower(it.title), lower(trim(state.search)))), 0, 10), [{ separator: true }, { title: 'Find “' + trim(state.search) + '” in the slides', icon: 'search', run: 'searchSlides' }])}}"
+    :menu-b-colors "{{concat([{ title: 'From the Theme', checked: state.deck.colors == null, run: 'setColorSet', with: { id: null } }, { separator: true }], map(computed.themes, { title: it.name, checked: state.deck.colors == it.id, run: 'setColorSet', with: { id: it.id } }))}}"
+    :menu-b-fonts "{{map([['default', 'default'], ['mono', 'default'], ['mono', 'mono']], { title: (it[0] == 'mono' ? 'JetBrains Mono' : 'Roboto') + (it[0] == it[1] ? '' : ' and ' + (it[1] == 'mono' ? 'JetBrains Mono' : 'Roboto')), checked: computed.headingFont == it[0] && computed.bodyFont == it[1], run: 'setFonts', with: { heading: it[0], body: it[1] } })}}"
+    :menu-b-ins-link "{{concat(map(state.deck.slides, { title: 'Slide ' + (index + 1) + ': ' + (split((find(it.objects ?? [], contains(['title', 'ctrTitle'], it.ph ?? '')) ?? {}).text ?? '', '\n')[0] ?? ''), checked: computed.linkOf == it.id, run: 'setLink', with: { slide: it.id } }), [{ separator: true }, { title: 'Remove Link', icon: 'unlink', run: 'setLink', with: { slide: null }, enabled: some(computed.selected, it.link != null) }])}}"
+    :linkOf "{{length(computed.selected) > 0 && every(computed.selected, it.link == computed.selected[0].link) ? computed.selected[0].link : null}}"
+    :menu-gal-shapes "{{computed['menu-b-ins-shapes']}}"
+    :menu-b-delete-comment "{{[{ title: 'Delete All Comments on This Slide', icon: 'message-square-x', run: 'deleteComments', with: { all: false }, enabled: length(computed.comments) > 0 }, { title: 'Delete All Comments in This Deck', icon: 'trash-2', run: 'deleteComments', with: { all: true } }]}}"
+    :menu-gal-themes "{{map(computed.themes, { title: it.name, checked: state.deck.theme == it.id, run: 'setTheme', with: { theme: it.id } })}}"
+    :menu-b-effects "{{computed.effectItems}}"
+    :menu-b-ins-shapes "{{map(['rect', 'roundRect', 'ellipse', 'triangle', 'rtTriangle', 'line', 'lineArrow', 'rightArrow', 'downArrow', 'curvedRightArrow', 'star5', 'heart', 'cloud', 'smileyFace', 'leftBrace', 'rightBrace', 'wedgeRoundRectCallout'], { title: computed.shapes[it].name ?? it, run: 'insertShape', with: { shape: it } })}}"
+    :themeGrid "{{map(range(60), computed.slotNames[it % 10] + (it < 10 ? '' : '.' + floor(it / 10)))}}"
+    :highlightColors ["#ffff00"
+      "#00ff00"
+      "#00ffff"
+      "#ff00ff"
+      "#0000ff"
+      "#ff0000"
+      "#000080"
+      "#008080"
+      "#008000"
+      "#800080"
+      "#800000"
+      "#808000"
+      "#808080"
+      "#c0c0c0"
+      "#000000"]
+    :colors-b-color "{{ { key: 'color', none: 'Automatic', sections: [{ title: 'Theme Colors', columns: 10, cells: computed.themeGrid }, { title: 'Standard Colors', columns: 10, cells: computed.standardColors }] } }}"
+    :colors-b-fill "{{ { key: 'fill', none: 'No Fill', sections: [{ title: 'Theme Colors', columns: 10, cells: computed.themeGrid }, { title: 'Standard Colors', columns: 10, cells: computed.standardColors }] } }}"
+    :colors-b-outline "{{ { key: 'line', none: 'No Outline', sections: [{ title: 'Theme Colors', columns: 10, cells: computed.themeGrid }, { title: 'Standard Colors', columns: 10, cells: computed.standardColors }] } }}"
+    :colors-b-highlight "{{ { key: 'highlight', none: 'No Color', sections: [{ title: 'Highlight Colors', columns: 5, cells: computed.highlightColors }] } }}"
+    :colors-b-quick-styles "{{ { key: 'style', none: 'No Style', sections: [{ title: 'Filled', columns: 6, cells: map(range(6), 'accent' + (it + 1)) }, { title: 'Light', columns: 6, cells: map(range(6), 'accent' + (it + 1) + '.1') }, { title: 'Outlined', columns: 6, cells: map(range(6), 'line:accent' + (it + 1)) }] } }}"
+    :colorDrop "{{state.colors.open ? computed['colors-' + state.colors.id] : null}}"
+    :sectionHere "{{find(sort(filter(state.deck.sections ?? [], it.first <= state.current), it.first, 'desc'), true)}}"
+    :findQuery "{{state.find.text}}"
+    :hitsBySlide "{{computed.findQuery == '' ? map(state.deck.slides, []) : map(state.deck.slides, map(filter(it.objects ?? [], contains(it.text ?? '', computed.findQuery)), it.id))}}"
+    :hitCount "{{sum(computed.hitsBySlide, length(it))}}"}
+  :actions {:openFormatPane [{:if "{{state.view == 'sorter'}}" :then [{:set state.view :to normal}]}
+      {:set state.formatPane :to true}
+      {:set state.sidePane :to nil}]
+    :formatBackground [{:set state.board.selection :to []} {:run openFormatPane}]
+    :openContext [{:set state.drop.open :to false}
+      {:set state.ctx :to {:open true :x "{{x}}" :y "{{y}}" :kind "{{kind}}"}}]
+    :runSearched [{:note "with: action and args, a command the search box found: empties the box and runs it"}
+      {:set state.search :to ""}
+      {:run "{{action}}" :with "{{args}}"}]
+    :searchSlides [{:note "The search box's last item: finds its text in the slides, and empties the box"}
+      {:set state.find.text :to "{{trim(state.search)}}"}
+      {:run openFind :with {:replace false}}
+      {:set state.find.text :to "{{trim(state.search)}}"}
+      {:set state.search :to ""}]
+    :openDrop [{:set state.colors.open :to false} {:set state.drop :to (node :open true #"{{id}}")}]
+    :openColors [{:set state.drop.open :to false} {:set state.colors :to (node :open true #"{{id}}")}]
+    :pickColor [{:note "with: id (the button), value (a colour, a theme slot, or null for none)"}
+      {:set state.colors.open :to false}
+      {:if "{{value != null}}"
+        :then [{:set state.lastColor :to "{{merge(state.lastColor, fromEntries([{ key: id, value: value }]))}}"}]}
+      {:run applyColor :with (node #"{{id}}" :value "{{value}}")}]
+    :applyColor [{:if "{{id == 'b-quick-styles'}}"
+        :then [{:run setObjects
+            :with {:props "{{value == null ? { fill: null, line: null, color: null } : slice(value, 0, 5) == 'line:' ? { fill: 'light1', line: slice(value, 5), lineWidth: 2, color: slice(value, 5) } : contains(value, '.') ? { fill: value, line: split(value, '.')[0], color: 'dark1' } : { fill: value, line: value, color: 'light1' }}}"}}]
+        :else [{:run setObjects :with {:props "{{fromEntries([{ key: computed['colors-' + id].key, value: value }])}}"}}]}]
+    :pasteText [{:if "{{length(state.clip) > 0}}"
+        :then [{:run commit}
+          {:set "state.deck.slides[state.current].objects"
+            :to "{{concat(computed.objects, map(state.clip, { id: 'o' + (state.deck.next + index), kind: 'text', x: (it.x ?? 330) + 18, y: (it.y ?? 240) + 18, w: it.w ?? 300, h: it.h ?? 40, text: it.text ?? '', size: 18 }))}}"}
+          {:set state.board.selection :to "{{map(state.clip, 'o' + (state.deck.next + index))}}"}
+          {:increment state.deck.next :by "{{length(state.clip)}}"}]}]
+    :setLink [{:note "with: slide, the id of the slide the selected objects' text goes to in the show, or null"}
+      {:run setObjects :with {:props "{{ {link: slide} }}"}}]
+    :selectKind [{:set state.board.selection
+        :to "{{map(filter(computed.objects, contains(kinds, it.kind ?? 'text')), it.id)}}"}]
+    :indentText [{:note "with: by, 1 or -1: every line of the selected text moves a list level (four spaces at its start), from 0 to 8"}
+      {:if "{{computed.anyText}}"
+        :then [{:run commit}
+          {:set "state.deck.slides[state.current].objects"
+            :to "{{map(computed.objects, !contains(state.board.selection, it.id) ? it : merge(it, { text: join(map(split(it.text ?? '', '\n'), by > 0 ? (indexOf(it, trim(it)) < 32 ? '    ' + it : it) : slice(it, min(indexOf(it, trim(it)), 4))), '\n') }))}}"}]}]
+    :removeSection [{:if "{{computed.sectionHere != null}}"
+        :then [{:run commit}
+          {:set state.deck.sections :to "{{filter(state.deck.sections, it.id != computed.sectionHere.id)}}"}]}]
+    :removeSections [{:run commit} {:set state.deck.sections :to []}]
+    :askSectionName [{:set state.find :to {:open true :replace false :text "" :with "" :status "" :ask section}}]
+    :answer [{:if "{{state.find.ask == 'section'}}" :then [{:run renameSection}] :else [{:run setFooter}]}]
+    :askFooter [{:set state.find :to {:open true :replace false :text "" :with "" :status "" :ask footer}}]
+    :setFooter [{:run commit}
+      {:set state.deck.footer :to "{{trim(state.find.text) == '' ? null : trim(state.find.text)}}"}
+      {:set state.find :to {:open false :replace false :text "" :with "" :status "" :ask ""}}]
+    :toggleSlideNumbers [{:run commit} {:set state.deck.slideNumbers :to "{{!(state.deck.slideNumbers ?? false)}}"}]
+    :insertSymbol [{:if "{{computed.anyText}}"
+        :then [{:run commit}
+          {:set "state.deck.slides[state.current].objects"
+            :to "{{map(computed.objects, contains(state.board.selection, it.id) && it.kind != 'line' ? merge(it, { text: (it.text ?? '') + symbol }) : it)}}"}]
+        :else [{:run insertObject
+            :with {:object {:kind text :x 430 :y 230 :w 100 :h 80 :text "{{symbol}}" :size 48 :align center}}}]}]
+    :renameSection [{:if "{{computed.sectionHere != null && trim(state.find.text) != ''}}"
+        :then [{:run commit}
+          {:set state.deck.sections
+            :to "{{map(state.deck.sections, it.id == computed.sectionHere.id ? merge(it, { name: trim(state.find.text) }) : it)}}"}]}
+      {:set state.find :to {:open false :replace false :text "" :with "" :status "" :ask ""}}]
+    :openFind [{:set state.find
+        :to {:open true
+          :replace "{{replace}}"
+          :text "{{(state.find.ask ?? '') != '' ? '' : state.find.text}}"
+          :with "{{state.find.with}}"
+          :status ""
+          :ask ""}}]
+    :findNext [{:if "{{computed.hitCount == 0}}"
+        :then [{:set state.find.status :to "{{computed.findQuery == '' ? '' : 'Not found.'}}"}]
+        :else [{:run findAfter
+            :with {:here "{{computed.hitsBySlide[state.current]}}"
+              :at "{{indexOf(computed.hitsBySlide[state.current], state.board.selection[0] ?? '')}}"}}]}]
+    :findAfter [{:if "{{at >= 0 && at + 1 < length(here) || at < 0 && length(here) > 0 && length(state.board.selection) == 0}}"
+        :then [{:set state.board.selection :to "{{[here[at + 1]]}}"}]
+        :else [{:run findOn
+            :with {:slide "{{find(map(range(length(state.deck.slides)), (state.current + 1 + it) % length(state.deck.slides)), length(computed.hitsBySlide[it]) > 0)}}"}}]}
+      {:set state.find.status
+        :to "{{computed.hitCount + (computed.hitCount == 1 ? ' match' : ' matches') + ' in the deck.'}}"}]
+    :findOn [{:run pickSlide :with {:index "{{slide}}"}}
+      {:set state.board.selection :to "{{[computed.hitsBySlide[slide][0]]}}"}]
+    :replaceOne [{:if "{{computed.findQuery != '' && length(computed.selected) > 0 && contains(computed.first.text ?? '', computed.findQuery)}}"
+        :then [{:run setObjects
+            :with {:props "{{ {text: join(split(computed.first.text, computed.findQuery), state.find.with)} }}"}}]}
+      {:run findNext}]
+    :replaceAll [{:if "{{computed.hitCount > 0}}"
+        :then [{:set state.find.status
+            :to "{{'Replaced ' + computed.hitCount + (computed.hitCount == 1 ? ' object' : ' objects') + '.'}}"}
+          {:run commit}
+          {:set state.deck.slides
+            :to "{{map(state.deck.slides, merge(it, { objects: map(it.objects ?? [], contains(it.text ?? '', computed.findQuery) ? merge(it, { text: join(split(it.text, computed.findQuery), state.find.with) }) : it) }))}}"}]
+        :else [{:set state.find.status :to "Not found."}]}]
+    :copyStyle [{:if "{{state.painter != null || !computed.anyText}}"
+        :then [{:set state.painter :to nil}]
+        :else [{:set state.painter
+            :to "{{fromEntries(map(['bold', 'italic', 'underline', 'strike', 'shadow', 'size', 'color', 'highlight', 'font', 'fill', 'line', 'lineWidth', 'dash', 'align', 'anchor', 'bullets', 'bulletIcon', 'numbering', 'spacing'], { key: it, value: computed.first[it] ?? null }))}}"}]}]}
+  :watch {:state.board.selection [{:if "{{state.painter != null && length(event.value) > 0}}"
+        :then [{:run setObjects :with {:props "{{state.painter}}"}} {:set state.painter :to nil}]}]}
+  :components {:colorGrid {:params {}
+      :note "The colour drop-down: its sections of swatches (a theme slot, a tint such as accent1.2, a hex colour, or line:slot for an outline), and the none row."
+      :node (column #colors
+        :width 232
+        :height "{{40 + sum(computed.colorDrop.sections ?? [], 24 + ceil(length(it.cells) / it.columns) * 22 - 4)}}"
+        :gap 4
+        :radius 10
+        :color @card
+        :borderWidth 1
+        :borderColor @rbLine
+        :shadow {:y 4 :blur 14 :color "#00000033"}
+        :role menu
+        :label Colours
+        :overlay {:anchor "{{'#' + state.colors.id}}"
+          :placement below
+          :open state.colors.open
+          :dismiss outside
+          :modal true}
+        :let {:drop "{{computed.colorDrop ?? { sections: [], none: '' } }}"}
+        (node #colors-top :height 4 :color transparent)
+        (label #colors-none
+          :height 24
+          :padding 4
+          :style rbButton
+          :anchors {:left 8 :right 8}
+          :runs [{:icon ban :size 14} {:text "{{' ' + drop.none}}" :size 12}]
+          :onClick {:run pickColor :with (node #"{{state.colors.id}}" :value nil)})
+        (node :repeat {:for sec :in "{{drop.sections}}" :index s}
+          :type column
+          #"{{'colors-s' + s}}"
+          :anchors {:left 8 :right 8}
+          :height "{{20 + ceil(length(sec.cells) / sec.columns) * 22 - 4}}"
+          :gap 4
+          :color transparent
+          :alignItems stretch
+          (label #"{{'colors-s' + s + '-title'}}"
+            :height 16
+            :textColor @rbMuted
+            :runs [{:text "{{sec.title}}" :size 11 :bold true}])
+          (grid #"{{'colors-s' + s + '-grid'}}"
+            :columns "{{sec.columns}}"
+            :gap 4
+            :height "{{ceil(length(sec.cells) / sec.columns) * 22 - 4}}"
+            :color transparent
+            (node :repeat {:for c :in "{{sec.cells}}" :index k}
+              #"{{'colors-s' + s + '-' + k}}"
+              :width "{{sec.columns > 6 ? 18 : 32}}"
+              :height 18
+              :radius 3
+              :cursor hand
+              :role menuitem
+              :let {:line "{{slice(c, 0, 5) == 'line:'}}" :slot "{{slice(c, 0, 5) == 'line:' ? slice(c, 5) : c}}"}
+              :color "{{line ? '@card' : computed.palette[slot] ?? slot}}"
+              :borderWidth "{{line ? 2 : 1}}"
+              :borderColor "{{line ? computed.palette[slot] : '@rbFieldLine'}}"
+              :hover {:borderColor @brand}
+              :tooltip "{{computed.slotTitles[split(slot, '.')[0]] ?? slot}}"
+              :label "{{slot}}"
+              :onClick {:run pickColor :with (node #"{{state.colors.id}}" :value "{{c}}")})))
+        (node #colors-bottom :height 4 :color transparent))}
+    :findBox {:params {}
+      :note "Find, Replace and the section's new name: a field (and the replacement), its buttons and a line of status, below the button that opened it."
+      :node (column #find-box
+        :width 300
+        :height "{{94 + (state.find.replace && (state.find.ask ?? '') == '' ? 32 : 0) + (state.find.status != '' ? 24 : 0)}}"
+        :gap 6
+        :radius 10
+        :color @card
+        :borderWidth 1
+        :borderColor @rbLine
+        :shadow {:y 4 :blur 14 :color "#00000033"}
+        :role dialog
+        :label "{{state.find.ask == 'section' ? 'Rename Section' : state.find.ask == 'footer' ? 'Footer' : state.find.replace ? 'Replace' : 'Find'}}"
+        :overlay {:anchor "{{state.find.ask == 'section' ? '#b-section' : state.find.ask == 'footer' ? '#b-ins-header' : state.find.replace ? '#b-replace' : '#b-find'}}"
+          :placement below
+          :open state.find.open
+          :dismiss outside
+          :modal true}
+        :keys {:escape [{:set state.find.open :to false}]}
+        (node #find-top :height 4 :color transparent)
+        (label #find-title
+          :anchors {:left 10 :right 10}
+          :height 18
+          :textColor @rbInk
+          :runs [{:text "{{state.find.ask == 'section' ? 'Section name' : state.find.ask == 'footer' ? 'Footer text (empty: none)' : state.find.replace ? 'Replace' : 'Find what'}}"
+              :size 12
+              :bold true}])
+        (textarea #find-text
+          :anchors {:left 10 :right 10}
+          :height 26
+          :padding 6
+          :radius 6
+          :color @rbFieldBg
+          :borderWidth 1
+          :borderColor @rbFieldLine
+          :textColor @rbInk
+          :bind state.find.text
+          :autofocus true
+          :placeholder "{{state.find.ask == 'section' ? computed.sectionHere.name ?? 'Untitled Section' : state.find.ask == 'footer' ? state.deck.footer ?? 'Footer' : 'Text in the slides'}}"
+          :placeholderColor @rbMuted
+          :onSubmit [{:if "{{(state.find.ask ?? '') != ''}}" :then [{:run answer}] :else [{:run findNext}]}])
+        (textarea #find-with
+          :anchors {:left 10 :right 10}
+          :when "{{state.find.replace && (state.find.ask ?? '') == ''}}"
+          :height 26
+          :padding 6
+          :radius 6
+          :color @rbFieldBg
+          :borderWidth 1
+          :borderColor @rbFieldLine
+          :textColor @rbInk
+          :bind state.find.with
+          :placeholder "Replace with"
+          :placeholderColor @rbMuted
+          :onSubmit replaceOne)
+        (row #find-buttons :anchors {:left 10 :right 10} :height 26 :gap 4 :color transparent :justify end
+          (label #find-rename
+            :when "{{(state.find.ask ?? '') != ''}}"
+            :style rbButtonOn
+            :height 26
+            :fitText true
+            :padding 10
+            :runs [{:text "{{state.find.ask == 'section' ? 'Rename' : 'Apply'}}" :size 12}]
+            :onClick answer)
+          (label #find-next
+            :when "{{(state.find.ask ?? '') == ''}}"
+            :style rbButton
+            :height 26
+            :fitText true
+            :padding 8
+            :runs [{:text "Find Next" :size 12}]
+            :onClick findNext)
+          (label #find-replace
+            :when "{{state.find.replace && (state.find.ask ?? '') == ''}}"
+            :style rbButton
+            :height 26
+            :fitText true
+            :padding 8
+            :runs [{:text Replace :size 12}]
+            :onClick replaceOne)
+          (label #find-replace-all
+            :when "{{state.find.replace && (state.find.ask ?? '') == ''}}"
+            :style rbButtonOn
+            :height 26
+            :fitText true
+            :padding 10
+            :runs [{:text "Replace All" :size 12}]
+            :onClick replaceAll))
+        (label #find-status
+          :anchors {:left 10 :right 10}
+          :when "{{state.find.status != ''}}"
+          :height 18
+          :textColor @rbMuted
+          :runs [{:text "{{state.find.status}}" :size 11}])
+        (node #find-bottom :height 4 :color transparent))}}
+  :overlays {:zDrop {:use contextMenu
+      :shadow {:x 0 :y 4 :blur 14 :color "#0000003a"}
+      :with {:open state.drop.open
+        :items "{{computed.dropItems}}"
+        :anchor "{{'#' + state.drop.id}}"
+        :placement below
+        :width 220
+        :icons "{{length(filter(computed.dropItems, it.icon != null || it.checked != null)) > 0}}"
+        :color @card
+        :textColor @rbInk
+        :dimColor @rbMuted
+        :highlight @rbHover}}
+    :zColors {:use colorGrid}
+    :zContext {:use contextMenu
+      :shadow {:x 0 :y 4 :blur 14 :color "#0000003a"}
+      :with {:open state.ctx.open
+        :items "{{state.ctx.open ? computed.ctxItems : []}}"
+        :x "{{state.ctx.x}}"
+        :y "{{state.ctx.y}}"
+        :width 220
+        :icons true
+        :color @card
+        :textColor @rbInk
+        :dimColor @rbMuted
+        :highlight @rbHover}}
+    :zFind {:use findBox :when "{{state.find.open}}"}}}
