@@ -180,7 +180,7 @@ private:
 	/// @throws NotationError If it never ends.
 	std::string_view quoted(std::size_t start) {
 		std::size_t end = start + 1;
-		while(end < text_.size() && text_[end] != '"') end += text_[end] == '\\' ? 2 : 1;
+		while(end < text_.size() && text_[end] != '"') end += text_[end] == '\\' ? std::size_t{2} : std::size_t{1};
 		if(end >= text_.size()) fail(start, "a string that never ends: expected '\"'");
 		at_ = end + 1;
 		if(at_ < text_.size() && !isDelimiter(text_[at_]))
