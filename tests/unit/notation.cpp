@@ -10,6 +10,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -147,6 +148,11 @@ TEST_CASE("notation: numbers, true, false, nil and the empty values") {
 	CHECK(fromLisp("1e2") == json(100.0));
 	CHECK(fromLisp("-0.5").get<double>() == -0.5);
 	for(const char* scalar : {"\"a\"", "1", "nil", "true", "word"}) roundTrips(fromLisp(scalar));
+	// A number that isn't finite, which only a computed value can hold, is nil, as JSON writes it null; never the
+	// bare word null, which would read back as a string
+	const json computed = {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity(), 1.0};
+	CHECK(lisp(computed) == "[nil nil 1.0]\n");
+	CHECK(fromLisp(lisp(computed)) == json::parse(computed.dump()));
 }
 
 TEST_CASE("notation: long values break over lines, the same way every time") {
@@ -210,6 +216,14 @@ TEST_CASE("notation: a problem is reported at its line and column") {
 	CHECK(errorOf("caf\xC3\xA9").message().starts_with("unexpected")); // a bare word is ASCII
 	CHECK(errorOf("1e400").message() == "a number too large: '1e400'");
 	CHECK(errorOf(std::string(41, '1')).message() == "a number longer than 40 characters");
+	// What an error quotes is short, and cut between characters: a key or a word can be as long as the text
+	const std::string key(100000, 'k');
+	CHECK(errorOf("{:" + key + " 1 :" + key + " 2}").message() ==
+	      "the key \"" + std::string(40, 'k') + "...\" twice: a key has one value");
+	const NotationError cut = errorOf("[" + std::string(39, 'a') + "\u00e9" + std::string(10, 'b') + "]");
+	CHECK(cut.message() == "unexpected '" + std::string(39, 'a') +
+	                           "...': not a word, a number, true, false or nil (a "
+	                           "string with other characters goes in quotes)");
 }
 
 TEST_CASE("notation: nesting stops at maxNesting, counted as JSON counts it") {

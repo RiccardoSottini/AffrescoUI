@@ -10,6 +10,7 @@
 
 #include "Words.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <iterator>
 #include <string>
@@ -187,11 +188,13 @@ private:
 		write(member, level);
 	}
 
-	/// @brief Writes a value that holds no others: a string, a number, true, false or nil.
+	/// @brief Writes a value that holds no others: a string, a number, true, false or nil. A number that isn't finite
+	/// (a value computed at run time, never one read) is nil, as JSON writes it null: dump()'s "null" would read back
+	/// as the string "null".
 	/// @param value The value.
 	void scalar(const json& value) {
 		if(value.is_string()) atom(value.get_ref<const std::string&>());
-		else if(value.is_null()) append("nil");
+		else if(value.is_null() || (value.is_number_float() && !std::isfinite(value.get<double>()))) append("nil");
 		else append(value.dump());
 	}
 

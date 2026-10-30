@@ -304,7 +304,7 @@ private:
 	/// @param key Its key.
 	/// @throws NotationError If the object has that key already.
 	void add(ObjectBuilder& object, const Token& item, json member, std::string key) const {
-		const std::string written = key;
+		const std::string written = excerpt(key); // a key can be as long as the text: the error shows its start
 		if(!object.add(std::move(key), std::move(member)))
 			fail(item.offset, "the key \"" + written + "\" twice: a key has one value");
 	}
@@ -359,14 +359,23 @@ private:
 		}
 	}
 
-	/// @brief A token as an error shows it: its first 40 characters, in quotes.
+	/// @brief The start of a text an error quotes: its first 40 bytes, cut before a character rather than inside one,
+	/// and "..." if there is more.
+	/// @param text The text.
+	/// @return Its start.
+	[[nodiscard]] static std::string excerpt(std::string_view text) {
+		constexpr std::size_t most = 40;
+		if(text.size() <= most) return std::string(text);
+		std::size_t cut = most;
+		while(cut > 0 && (static_cast<unsigned char>(text[cut]) & 0xC0U) == 0x80U) --cut; // a UTF-8 continuation byte
+		return std::string(text.substr(0, cut)) + "...";
+	}
+
+	/// @brief A token as an error shows it: its excerpt(), in quotes.
 	/// @param token The token.
 	/// @return The text.
 	[[nodiscard]] static std::string shown(const Token& token) {
-		if(token.kind == Kind::End) return "the end of the text";
-		constexpr std::size_t most = 40;
-		const std::string_view text = token.text.substr(0, most);
-		return "'" + std::string(text) + (token.text.size() > most ? "...'" : "'");
+		return token.kind == Kind::End ? "the end of the text" : "'" + excerpt(token.text) + "'";
 	}
 
 	/// @brief The line and column of a place in the text.

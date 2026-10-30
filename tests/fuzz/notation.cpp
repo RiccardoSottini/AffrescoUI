@@ -1,9 +1,10 @@
 /// @file
 /// @brief Fuzzes the Lisp notation (modules/notation): its reader on any text, and its writer on any JSON value.
 ///
-/// Any text either reads or throws a NotationError, and what reads nests at most maxNesting levels. What reads is
-/// written as text that reads back as the same value, key order included, and is canonical: writing it again gives
-/// the same text. Text that is JSON is also written in the Lisp notation and read back, the same.
+/// Any text either reads or throws a NotationError whose message stays short, and what reads nests at most maxNesting
+/// levels. What reads is written as text that reads back as the same value, key order included, and is canonical:
+/// writing it again gives the same text. Text that is JSON is also written in the Lisp notation and read back, the
+/// same.
 
 #include "Fuzz.hpp"
 
@@ -17,6 +18,9 @@ using affresco::json;
 using affresco::notation::Notation;
 
 namespace {
+
+/// Longest error message the reader gives, without its place: what it quotes of the text is cut short.
+constexpr std::size_t maxMessage = 256;
 
 /// @brief Writes a value in the Lisp notation and checks that it reads back the same, and is written the same again.
 /// @param value The value, at most maxNesting deep.
@@ -45,7 +49,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		if(affresco::nestingDepth(value) > affresco::maxNesting)
 			affresco::fuzz::broken("the reader keeps to maxNesting");
 		roundTrips(value);
-	} catch(const affresco::notation::NotationError&) { // NOLINT(bugprone-empty-catch): refusing it is the rule
+	} catch(const affresco::notation::NotationError& error) { // refusing it is the rule, in a few words
+		if(error.message().size() > maxMessage) affresco::fuzz::broken("an error quotes only the start of the text");
 	}
 	const json value = affresco::fuzz::untrusted(text);
 	if(!value.is_discarded()) roundTrips(value);
