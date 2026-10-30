@@ -79,10 +79,10 @@ std::string loadedApp(const std::filesystem::path& folder) {
 
 TEST_CASE("notation: a template converted to the Lisp notation loads as the same document") {
 	const Copy copy("sign-in");
-	const std::filesystem::path json = copy.app() / "index.screen.json";
+	const std::filesystem::path jsonFile = copy.app() / "index.screen.json";
 	const std::filesystem::path lisp = copy.app() / "plain.screen.lisp"; // not the app's entry: a screen on its own
-	writeLisp(lisp, readFile(json));
-	std::filesystem::copy_file(json, copy.app() / "plain.screen.json");
+	writeLisp(lisp, readFile(jsonFile));
+	std::filesystem::copy_file(jsonFile, copy.app() / "plain.screen.json");
 
 	const std::string fromJson =
 	    Screen::fromFile(copy.app() / "plain.screen.json", copy.data(), Screen::History::InMemory).documentJson();
