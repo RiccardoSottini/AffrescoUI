@@ -218,8 +218,9 @@ TEST_CASE("notation: a problem is reported at its line and column") {
 	CHECK(errorOf(std::string(41, '1')).message() == "a number longer than 40 characters");
 	// What an error quotes is short, and cut between characters: a key or a word can be as long as the text
 	const std::string key(100000, 'k');
-	CHECK(errorOf("{:" + key + " 1 :" + key + " 2}").message() ==
-	      "the key \"" + std::string(40, 'k') + "...\" twice: a key has one value");
+	std::string twice = "{:";
+	twice.append(key).append(" 1 :").append(key).append(" 2}");
+	CHECK(errorOf(twice).message() == "the key \"" + std::string(40, 'k') + "...\" twice: a key has one value");
 	const NotationError cut = errorOf("[" + std::string(39, 'a') + "\u00e9" + std::string(10, 'b') + "]");
 	CHECK(cut.message() == "unexpected '" + std::string(39, 'a') +
 	                           "...': not a word, a number, true, false or nil (a "
