@@ -47,13 +47,13 @@ target_compile_definitions(affrescoui_unit_tests PRIVATE AFFRESCOUI_PYTHON="${Py
 target_sources(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/apps/server/DocumentServer.cpp
 	${PROJECT_SOURCE_DIR}/apps/server/TokenFile.cpp ${PROJECT_SOURCE_DIR}/apps/server/UserInfoVerifier.cpp)
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/apps/server)
-# scene3d*.cpp test the 3D module on Modello's sample models (examples/modello/json/samples)
+# scene3d*.cpp test the 3D module on Modello's sample models (examples/modello/assets/samples)
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::scene3d)
 if(AFFRESCOUI_AUDIO)
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::audio)
 endif()
 target_compile_definitions(affrescoui_unit_tests PRIVATE
-	AFFRESCOUI_MODELLO_SAMPLES="${PROJECT_SOURCE_DIR}/examples/modello/json/samples")
+	AFFRESCOUI_MODELLO_SAMPLES="${PROJECT_SOURCE_DIR}/examples/modello/assets/samples")
 target_include_directories(affrescoui_unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/examples ${PROJECT_SOURCE_DIR}/examples/shared)
 # intelligence*.cpp test the providers, settings and agent (modules/intelligence)
 target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::intelligence)

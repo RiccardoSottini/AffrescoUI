@@ -96,8 +96,7 @@ std::vector<std::filesystem::path> includeRoots(const AppFolder& app) {
 			roots.push_back(shared);
 	};
 	addShared(app.folder.parent_path());
-	if(const std::string name = app.folder.filename().string(); name == "json" || name == "lisp")
-		addShared(app.folder.parent_path().parent_path());
+	if(format::isNotationFolder(app.folder)) addShared(app.folder.parent_path().parent_path());
 	return roots;
 }
 

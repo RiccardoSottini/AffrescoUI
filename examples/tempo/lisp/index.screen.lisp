@@ -5,7 +5,7 @@
   :include [strings.lisp pages.lisp "../../shared/addons/assistant/assistant.lisp"]
   :window {:title "Tempo: an AffrescoUI template" :width 1280 :height 800 :minWidth 1040 :minHeight 640}
   :persist [state.theme state.settings state.eq state.eqOn state.volume state.shuffle state.repeat state.liked]
-  :audio {:beat {:file "audio/beatbox.wav"
+  :audio {:beat {:file "../assets/audio/beatbox.wav"
       :loop true
       :volume 0.7
       :into state.beat
@@ -181,7 +181,7 @@
         "Field Notes"
         Overture]
       :versions [Live Remix Demo Edit Acoustic Reprise Mono Dub "Take 2"]}
-    :libraryInfo {:name "All songs" :cover "images/cover-library.svg"}
+    :libraryInfo {:name "All songs" :cover "../assets/images/cover-library.svg"}
     :librarySort nil
     :libraryPick nil
     :liked []
@@ -264,7 +264,7 @@
           :maxItems 1000}}
       :seed [(node #p1
           :name "Late Night Code"
-          :cover "images/cover-late-night.svg"
+          :cover "../assets/images/cover-late-night.svg"
           :description "Low-key beats for long sessions. Updated every Friday."
           :length "38 min"
           :tracks [{:title "Vertex Buffers" :artist "The Shaders" :album "Core Profile" :time "3:42"}
@@ -278,7 +278,7 @@
             {:title Retina :artist "The Shaders" :album "Core Profile" :time "4:12"}])
         (node #p2
           :name "Morning Run"
-          :cover "images/cover-morning-run.svg"
+          :cover "../assets/images/cover-morning-run.svg"
           :description "Fast, bright and loud. 160 bpm and up."
           :length "24 min"
           :tracks [{:title "First Light" :artist Halfway :album Pace :time "3:05"}
@@ -287,7 +287,7 @@
             {:title "Finish Line" :artist "Mira Sol" :album Stride :time "4:02"}])
         (node #p3
           :name "Sunday Jazz"
-          :cover "images/cover-sunday-jazz.svg"
+          :cover "../assets/images/cover-sunday-jazz.svg"
           :description "Slow standards and new takes on old tunes."
           :length "51 min"
           :tracks [{:title "Blue Hour" :artist "Ada Quartet" :album Standards :time "6:12"}
@@ -295,7 +295,7 @@
             {:title "Slow Burn" :artist "Ada Quartet" :album Standards :time "7:03"}])
         (node #p4
           :name Focus
-          :cover "images/cover-focus.svg"
+          :cover "../assets/images/cover-focus.svg"
           :description "Ambient textures without words."
           :length "1 h 12 min"
           :tracks [{:title "Deep Work" :artist "Quiet Rooms" :album Hours :time "8:20"}
@@ -481,7 +481,7 @@
       {:set state.nameDraft :to ""}
       {:insert playlists
         :value {:name "{{t('playlist.newName', { n: length(data.playlists) + 1 })}}"
-          :cover "{{['images/cover-focus.svg', 'images/cover-late-night.svg', 'images/cover-morning-run.svg', 'images/cover-sunday-jazz.svg'][length(data.playlists) % 4]}}"
+          :cover "{{['../assets/images/cover-focus.svg', '../assets/images/cover-late-night.svg', '../assets/images/cover-morning-run.svg', '../assets/images/cover-sunday-jazz.svg'][length(data.playlists) % 4]}}"
           :description ""
           :tracks "{{withSong == true ? [computed.songMenuSong] : []}}"}
         :then [{:run openList :with {:list "{{length(data.playlists) - 1}}"}} {:set state.renaming :to true}]}]

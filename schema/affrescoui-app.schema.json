@@ -18,7 +18,7 @@
 		},
 		"name": { "$ref": "#/$defs/text", "maxLength": 100, "description": "Its name, shown by the host." },
 		"description": { "type": "string", "maxLength": 300, "description": "One line about it." },
-		"icon": { "$ref": "#/$defs/path", "description": "Its icon: an image in its folder." },
+		"icon": { "$ref": "#/$defs/assetPath", "description": "Its icon: an image in its folder, or in ../assets for an app in a json or lisp folder." },
 		"entry": {
 			"$ref": "#/$defs/path",
 			"pattern": "\\.(json|lisp)$",
@@ -95,14 +95,20 @@
 		"assets": {
 			"type": "array",
 			"maxItems": 256,
-			"items": { "$ref": "#/$defs/path" },
-			"description": "Its other files and folders (images, sounds, fonts), shipped with it."
+			"items": { "$ref": "#/$defs/assetPath" },
+			"description": "Its other files and folders (images, sounds, fonts), shipped with it; ../assets for what the two notations of an example share."
 		}
 	},
 	"$defs": {
 		"text": { "type": "string", "minLength": 1 },
 		"why": { "type": "string", "minLength": 1, "maxLength": 300, "description": "What the app does with it, shown to the person when it asks." },
 		"name": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$" },
+		"assetPath": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 1024,
+			"pattern": "^(\\.\\./assets/)?(?!/)(?!.*(^|/)\\.\\.(/|$))[^\\\\:]+$"
+		},
 		"path": {
 			"type": "string",
 			"minLength": 1,

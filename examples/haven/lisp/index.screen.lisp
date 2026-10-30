@@ -147,7 +147,7 @@
     :modes [Heat Cool Auto]
     :scene ""
     :rooms [{:name "Living room"
-        :image "images/living-room.svg"
+        :image "../assets/images/living-room.svg"
         :temp 21.5
         :target 22
         :humidity 44
@@ -158,7 +158,7 @@
           {:name "TV backlight" :on false :level 30 :color "#8ab4ffff"}
           {:name "Shelf strip" :on false :level 60 :color "#ff9ad5ff"}]}
       {:name Kitchen
-        :image "images/kitchen.svg"
+        :image "../assets/images/kitchen.svg"
         :temp 20.5
         :target 21
         :humidity 51
@@ -167,7 +167,7 @@
         :lights [{:name Pendants :on true :level 90 :color "#ffd58aff"}
           {:name "Under cabinet" :on false :level 70 :color "#ffe082ff"}]}
       {:name Bedroom
-        :image "images/bedroom.svg"
+        :image "../assets/images/bedroom.svg"
         :temp 19
         :target 18.5
         :humidity 47
@@ -177,7 +177,7 @@
           {:name "Bedside right" :on false :level 30 :color "#ffc078ff"}
           {:name Wardrobe :on false :level 100 :color "#ffe082ff"}]}
       {:name Office
-        :image "images/office.svg"
+        :image "../assets/images/office.svg"
         :temp 22
         :target 22
         :humidity 40

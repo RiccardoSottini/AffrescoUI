@@ -551,7 +551,7 @@
 										"type": "image",
 										"fill": true,
 										"fit": "cover",
-										"file": "{{'art/' + computed.feature.id + '/' + (state.storeShot == null ? 'hero' : state.storeShot < 4 ? 'shot' + state.storeShot : 'hero') + '.svg'}}"
+										"file": "{{'../assets/art/' + computed.feature.id + '/' + (state.storeShot == null ? 'hero' : state.storeShot < 4 ? 'shot' + state.storeShot : 'hero') + '.svg'}}"
 									}
 								],
 								"color": "transparent"
@@ -596,7 +596,7 @@
 																"type": "image",
 																"fill": true,
 																"fit": "cover",
-																"file": "{{'art/' + computed.feature.id + '/' + (n < 4 ? 'shot' + n : 'hero') + '.svg'}}"
+																"file": "{{'../assets/art/' + computed.feature.id + '/' + (n < 4 ? 'shot' + n : 'hero') + '.svg'}}"
 															},
 															{
 																"fill": true,
@@ -760,7 +760,7 @@
 				"children": [
 					{
 						"type": "image",
-						"file": "{{'art/' + g.id + '/hero.svg'}}",
+						"file": "{{'../assets/art/' + g.id + '/hero.svg'}}",
 						"fit": "cover",
 						"height": 143,
 						"anchors": { "left": 0, "right": 0, "top": 0 },
@@ -803,7 +803,7 @@
 				"children": [
 					{
 						"type": "image",
-						"file": "{{'art/' + game + '/hero.svg'}}",
+						"file": "{{'../assets/art/' + game + '/hero.svg'}}",
 						"fill": true,
 						"fit": "cover",
 						"radius": 4
@@ -848,7 +848,7 @@
 				"children": [
 					{
 						"type": "image",
-						"file": "{{'art/' + g.id + '/hero.svg'}}",
+						"file": "{{'../assets/art/' + g.id + '/hero.svg'}}",
 						"fit": "cover",
 						"width": 184,
 						"height": 69,
@@ -1079,7 +1079,7 @@
 												"height": 158,
 												"anchors": { "left": 0, "right": 0 },
 												"fit": "cover",
-												"file": "{{'art/' + computed.storePreview.id + '/shot' + n + '.svg'}}"
+												"file": "{{'../assets/art/' + computed.storePreview.id + '/shot' + n + '.svg'}}"
 											}
 										]
 									}
@@ -1276,7 +1276,7 @@
 										"anchors": { "left": 0, "right": 0 },
 										"fit": "cover",
 										"color": "#000000",
-										"file": "{{'art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][state.shotIndex] + '.svg'}}"
+										"file": "{{'../assets/art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][state.shotIndex] + '.svg'}}"
 									},
 									{
 										"id": "gallery-strip",
@@ -1302,7 +1302,7 @@
 														"type": "image",
 														"fill": true,
 														"fit": "cover",
-														"file": "{{'art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][s] + '.svg'}}"
+														"file": "{{'../assets/art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][s] + '.svg'}}"
 													},
 													{
 														"fill": true,
@@ -1329,7 +1329,7 @@
 										"height": 151,
 										"anchors": { "left": 0, "right": 0 },
 										"fit": "cover",
-										"file": "{{'art/' + g.id + '/hero.svg'}}"
+										"file": "{{'../assets/art/' + g.id + '/hero.svg'}}"
 									},
 									{ "type": "panel", "color": "transparent", "height": 4, "width": 1 },
 									{
@@ -2006,7 +2006,7 @@
 												"children": [
 													{
 														"type": "image",
-														"file": "{{'art/avatars/' + r.avatar + '.svg'}}",
+														"file": "{{'../assets/art/avatars/' + r.avatar + '.svg'}}",
 														"width": 34,
 														"height": 34,
 														"radius": 2,
@@ -2212,7 +2212,7 @@
 												"children": [
 													{
 														"type": "image",
-														"file": "{{'art/' + id + '/hero.svg'}}",
+														"file": "{{'../assets/art/' + id + '/hero.svg'}}",
 														"fit": "cover",
 														"width": 90,
 														"height": 34
@@ -2297,7 +2297,7 @@
 											{ "type": "panel", "color": "transparent", "width": 2, "height": 1 },
 											{
 												"type": "image",
-												"file": "{{'art/' + g.id + '/hero.svg'}}",
+												"file": "{{'../assets/art/' + g.id + '/hero.svg'}}",
 												"fit": "cover",
 												"width": 184,
 												"height": 69,
@@ -2482,7 +2482,7 @@
 						"children": [
 							{
 								"type": "image",
-								"file": "{{'art/avatars/' + state.user.avatar + '.svg'}}",
+								"file": "{{'../assets/art/avatars/' + state.user.avatar + '.svg'}}",
 								"width": 40,
 								"height": 40,
 								"radius": 2
@@ -2654,7 +2654,7 @@
 									},
 									{
 										"type": "image",
-										"file": "{{'art/' + g.id + '/hero.svg'}}",
+										"file": "{{'../assets/art/' + g.id + '/hero.svg'}}",
 										"fit": "cover",
 										"width": 230,
 										"height": 100,

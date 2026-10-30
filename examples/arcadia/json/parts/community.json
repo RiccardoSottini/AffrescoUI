@@ -290,7 +290,7 @@
 				"children": [
 					{
 						"type": "image",
-						"file": "{{'art/avatars/' + avatar + '.svg'}}",
+						"file": "{{'../assets/art/avatars/' + avatar + '.svg'}}",
 						"fill": 2,
 						"fit": "cover"
 					}
@@ -648,7 +648,7 @@
 					{
 						"when": "{{!m.mine}}",
 						"type": "image",
-						"file": "{{'art/avatars/' + friend.avatar + '.svg'}}",
+						"file": "{{'../assets/art/avatars/' + friend.avatar + '.svg'}}",
 						"width": 28,
 						"height": 28,
 						"fit": "cover",
@@ -694,7 +694,7 @@
 									},
 									{
 										"type": "image",
-										"file": "{{'art/' + g.id + '/cover.svg'}}",
+										"file": "{{'../assets/art/' + g.id + '/cover.svg'}}",
 										"width": 48,
 										"height": 72,
 										"fit": "cover",
@@ -1496,7 +1496,7 @@
 													},
 													{
 														"type": "image",
-														"file": "{{'art/' + g.id + '/hero.svg'}}",
+														"file": "{{'../assets/art/' + g.id + '/hero.svg'}}",
 														"width": 150,
 														"height": 64,
 														"fit": "cover",

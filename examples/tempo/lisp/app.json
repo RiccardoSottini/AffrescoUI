@@ -11,7 +11,7 @@
 		"assistant": "Answers your questions about your music, with the assistant you set up in Settings."
 	},
 	"assets": [
-		"audio",
-		"images"
+		"../assets/audio",
+		"../assets/images"
 	]
 }

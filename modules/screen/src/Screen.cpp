@@ -203,7 +203,7 @@ std::optional<std::string> folderName(const std::filesystem::path& screenFile) {
 	std::error_code error;
 	const std::filesystem::path place = std::filesystem::absolute(screenFile, error).parent_path();
 	std::string folder = place.filename().string();
-	if(folder == "json" || folder == "lisp") folder = place.parent_path().filename().string();
+	if(format::isNotationFolder(place)) folder = place.parent_path().filename().string();
 	if(error || folder.empty()) return std::nullopt;
 	return folder;
 }

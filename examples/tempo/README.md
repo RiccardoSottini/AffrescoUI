@@ -9,7 +9,7 @@ Playlists, a library of 3,000 songs in a table, albums and artists in grids, sea
 
 | File | What it is |
 |---|---|
-| `audio/` | `beatbox.wav`, the loop Tempo plays, and `make_beat.py`, which synthesises it (`python3 examples/tempo/json/audio/make_beat.py`) |
+| `audio/` | `beatbox.wav`, the loop Tempo plays, and `make_beat.py`, which synthesises it (`python3 examples/tempo/assets/audio/make_beat.py`) |
 | `images/` | The pictures the screen shows |
 | `pages.json` | The pages (albums, artists, a collection, search, now playing, sound), included by the screen |
 | `strings.json` | The string tables: English, Spanish and French |

@@ -3,7 +3,7 @@
   :version 2
   :note "The AffrescoUI Launcher: the home of the example apps and of the person's own. Apps (your apps and the examples as cards, each tagged Example or Yours; a search; a click or Enter opens one), My apps (open, duplicate, show in the folder, delete after a confirm), Create (a name, a starting point, a description for the assistant, features from other apps) and Settings. It is a screen like any other, with no C++ of its own: affrescoui_launcher opens it when started without a file and grants it the folders it reads and writes (the services examples and apps) and the programs that open the apps (the service launch). Where nothing is granted (the rendering check), the services are refused and it shows the examples from apps.json and an empty My apps."
   :window {:title AffrescoUI
-    :icon affrescoui-icon.png
+    :icon "../assets/affrescoui-icon.png"
     :width 1200
     :height 780
     :minWidth 800
@@ -123,7 +123,7 @@
     :askText "{{trim(trim(state.create.describe) + (length(state.create.features) > 0 ? '\n\nAlso add these features from other apps: ' + join(map(filter(state.featureChoices, contains(state.create.features, it.id)), it.ask), '; ') + '.' : ''))}}"
     :createError "{{trim(state.create.name) == '' ? 'create.error.empty' : length(trim(state.create.name)) > 80 ? 'create.error.long' : contains(state.create.name, '{' + '{') || contains(state.create.name, '}' + '}') ? 'create.error.braces' : computed.slug == '' ? 'create.error.letters' : contains(computed.reserved, computed.slug) ? 'create.error.reserved' : contains(computed.myIds, computed.slug) ? 'create.error.exists' : length(computed.askText) > 4000 ? 'create.error.describe' : ''}}"
     :fromName "{{state.create.from == 'blank' ? t('create.blank') : (find(state.examples, it.id == state.create.from).name ?? '')}}"
-    :excluded "{{['*.cpp', '*.hpp', '*.h', '*.c', '*.cc', '*.mm', '*.cmake', 'CMakeLists.txt', '*.lisp', '.*']}}"}
+    :excluded "{{['*.cpp', '*.hpp', '*.h', '*.c', '*.cc', '*.mm', '*.cmake', 'CMakeLists.txt', '*.py', '*.lisp', '.*']}}"}
   :actions {:go [{:note "with: page"} {:set state.page :to "{{page}}"}]
     :toast [{:note "with: message, error"}
       {:push state.toasts :value {:message "{{message}}" :color "{{error ? '@c.danger' : '@c.accent'}}"}}
@@ -271,13 +271,20 @@
             :with (node #"{{id}}"
               :why "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}"
               :keep true)}]}]
-    :createCopy [{:note "with: id, title, ask, folder, then. A copy of an example's JSON folder, without its C++, into a json folder: its paths lead to the shared folder from there"}
+    :createCopy [{:note "with: id, title, ask, folder, then. A copy of an example's JSON folder and its assets, without its C++, into a json folder and an assets folder: its paths lead to the shared folder from there"}
       {:invoke apps.mkdir
         :with {:path "{{id}}"}
         :onDone [{:invoke apps.copy
             :with {:from examples :path "{{folder + '/json'}}" :to "{{id + '/json'}}" :exclude "{{computed.excluded}}"}
-            :onDone [{:run retitle
-                :with (node #"{{id}}" :sub "/json" :title "{{title}}" :ask "{{ask}}" :then "{{then}}")}]
+            :onDone [{:invoke apps.copy
+                :with {:from examples
+                  :path "{{folder + '/assets'}}"
+                  :to "{{id + '/assets'}}"
+                  :exclude "{{computed.excluded}}"}
+                :onDone [{:run retitle
+                    :with (node #"{{id}}" :sub "/json" :title "{{title}}" :ask "{{ask}}" :then "{{then}}")}]
+                :onError [{:run retitle
+                    :with (node #"{{id}}" :sub "/json" :title "{{title}}" :ask "{{ask}}" :then "{{then}}")}]}]
             :onError [{:run createFailed :with (node #"{{id}}" :why "{{error.message}}" :keep false)}]}]
         :onError [{:run createFailed
             :with (node #"{{id}}"
@@ -587,7 +594,7 @@
       (node #sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @c.border)
       (node #brandMark
         :type image
-        :file affrescoui-mark.svg
+        :file "../assets/affrescoui-mark.svg"
         :fit contain
         :anchors {:left "{{computed.wide ? 20 : 16}}" :top 22}
         :width 40

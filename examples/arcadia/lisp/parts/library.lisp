@@ -302,7 +302,7 @@
         :onContextMenu {:run openGameMenu :with (node #"{{game.id}}")}
         :children [{:type panel :width 18 :height 1 :color transparent}
           {:type image
-            :file "{{'art/' + (game.art ?? game.id) + '/cover.svg'}}"
+            :file "{{'../assets/art/' + (game.art ?? game.id) + '/cover.svg'}}"
             :width 18
             :height 18
             :fit cover
@@ -331,7 +331,7 @@
         :onClick {:run openGame :with (node #"{{game.id}}")}
         :onContextMenu {:run openGameMenu :with (node #"{{game.id}}")}
         :children [{:type image
-            :file "{{'art/' + (game.art ?? game.id) + '/cover.svg'}}"
+            :file "{{'../assets/art/' + (game.art ?? game.id) + '/cover.svg'}}"
             :fill true
             :fit cover
             :radius 12}
@@ -392,7 +392,7 @@
               :hover {:color @color.hover :shadow {:y 4 :blur 14 :color "#00000080"}}
               :onClick {:run openGame :with (node #"{{n.game}}")}
               {:type image
-                :file "{{'art/' + n.game + '/hero.svg'}}"
+                :file "{{'../assets/art/' + n.game + '/hero.svg'}}"
                 :anchors {:left 0 :right 0}
                 :height 120
                 :fit cover
@@ -526,7 +526,7 @@
         :hover {:scale 1.02 :shadow {:y 6 :blur 18 :color "#f5a52455"}}
         :onClick {:run openGame :with (node #"{{game.id}}")}
         :children [{:type image
-            :file "{{'art/' + (game.art ?? game.id) + '/hero.svg'}}"
+            :file "{{'../assets/art/' + (game.art ?? game.id) + '/hero.svg'}}"
             :fill true
             :fit cover
             :radius 12}
@@ -561,7 +561,11 @@
       :params {}
       :node (node #game-scroll :type column :fill true :scroll vertical :let {:g "{{computed.game}}"}
         (node #hero :height 310 :anchors {:left 0 :right 0}
-          (node #hero-image :type image :file "{{'art/' + (g.art ?? g.id) + '/hero.svg'}}" :fill true :fit cover)
+          (node #hero-image
+            :type image
+            :file "{{'../assets/art/' + (g.art ?? g.id) + '/hero.svg'}}"
+            :fill true
+            :fit cover)
           {:fill true
             :color transparent
             :gradient {:kind linear :stops [{:at 0.55 :color "#00000000"} {:at 1 :color "#0d0a10c0"}]}}
@@ -775,7 +779,7 @@
               :gap 14
               :alignItems center
               :children [{:type image
-                  :file "{{'art/' + (g.art ?? g.id) + '/hero.svg'}}"
+                  :file "{{'../assets/art/' + (g.art ?? g.id) + '/hero.svg'}}"
                   :width 180
                   :height 108
                   :fit cover
@@ -811,7 +815,7 @@
               :style card
               :gap 12
               :children [{:type image
-                  :file "{{'art/avatars/' + f.avatar + '.svg'}}"
+                  :file "{{'../assets/art/avatars/' + f.avatar + '.svg'}}"
                   :width 36
                   :height 36
                   :anchors {:top 14}
@@ -837,7 +841,7 @@
                       :height 16}
                     {:when "{{a.kind == 'screenshot'}}"
                       :type image
-                      :file "{{'art/' + (g.art ?? g.id) + '/shot' + a.shot + '.svg'}}"
+                      :file "{{'../assets/art/' + (g.art ?? g.id) + '/shot' + a.shot + '.svg'}}"
                       :width 160
                       :height 90
                       :fit cover
@@ -873,7 +877,7 @@
                     :anchors {:left 0 :right 0}
                     :children [{:repeat {:for f :in "{{slice(who, 0, 7)}}"}
                         :type image
-                        :file "{{'art/avatars/' + f.avatar + '.svg'}}"
+                        :file "{{'../assets/art/avatars/' + f.avatar + '.svg'}}"
                         :width 34
                         :height 34
                         :fit cover
@@ -928,7 +932,7 @@
                 :height 80
                 :children [{:repeat {:for k :in "{{[1, 2, 3]}}"}
                     :type image
-                    :file "{{'art/' + (g.art ?? g.id) + '/shot' + k + '.svg'}}"
+                    :file "{{'../assets/art/' + (g.art ?? g.id) + '/shot' + k + '.svg'}}"
                     :grow 1
                     :height 80
                     :fit cover

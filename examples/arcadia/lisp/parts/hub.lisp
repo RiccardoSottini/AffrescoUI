@@ -25,7 +25,7 @@
             :gap 16
             :alignItems center
             :children [{:type image
-                :file "{{'art/' + (g.art ?? g.id) + '/cover.svg'}}"
+                :file "{{'../assets/art/' + (g.art ?? g.id) + '/cover.svg'}}"
                 :width 40
                 :height 60
                 :radius 6

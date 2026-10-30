@@ -138,7 +138,7 @@
 		"rooms": [
 			{
 				"name": "Living room",
-				"image": "images/living-room.svg",
+				"image": "../assets/images/living-room.svg",
 				"temp": 21.5,
 				"target": 22,
 				"humidity": 44,
@@ -153,7 +153,7 @@
 			},
 			{
 				"name": "Kitchen",
-				"image": "images/kitchen.svg",
+				"image": "../assets/images/kitchen.svg",
 				"temp": 20.5,
 				"target": 21,
 				"humidity": 51,
@@ -166,7 +166,7 @@
 			},
 			{
 				"name": "Bedroom",
-				"image": "images/bedroom.svg",
+				"image": "../assets/images/bedroom.svg",
 				"temp": 19,
 				"target": 18.5,
 				"humidity": 47,
@@ -180,7 +180,7 @@
 			},
 			{
 				"name": "Office",
-				"image": "images/office.svg",
+				"image": "../assets/images/office.svg",
 				"temp": 22,
 				"target": 22,
 				"humidity": 40,

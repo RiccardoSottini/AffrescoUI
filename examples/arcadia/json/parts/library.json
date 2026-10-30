@@ -485,7 +485,7 @@
 					{ "type": "panel", "width": 18, "height": 1, "color": "transparent" },
 					{
 						"type": "image",
-						"file": "{{'art/' + (game.art ?? game.id) + '/cover.svg'}}",
+						"file": "{{'../assets/art/' + (game.art ?? game.id) + '/cover.svg'}}",
 						"width": 18,
 						"height": 18,
 						"fit": "cover",
@@ -528,7 +528,7 @@
 				"children": [
 					{
 						"type": "image",
-						"file": "{{'art/' + (game.art ?? game.id) + '/cover.svg'}}",
+						"file": "{{'../assets/art/' + (game.art ?? game.id) + '/cover.svg'}}",
 						"fill": true,
 						"fit": "cover",
 						"radius": 12
@@ -639,7 +639,7 @@
 										"children": [
 											{
 												"type": "image",
-												"file": "{{'art/' + n.game + '/hero.svg'}}",
+												"file": "{{'../assets/art/' + n.game + '/hero.svg'}}",
 												"anchors": { "left": 0, "right": 0 },
 												"height": 120,
 												"fit": "cover",
@@ -879,7 +879,7 @@
 				"children": [
 					{
 						"type": "image",
-						"file": "{{'art/' + (game.art ?? game.id) + '/hero.svg'}}",
+						"file": "{{'../assets/art/' + (game.art ?? game.id) + '/hero.svg'}}",
 						"fill": true,
 						"fit": "cover",
 						"radius": 12
@@ -943,7 +943,7 @@
 							{
 								"id": "hero-image",
 								"type": "image",
-								"file": "{{'art/' + (g.art ?? g.id) + '/hero.svg'}}",
+								"file": "{{'../assets/art/' + (g.art ?? g.id) + '/hero.svg'}}",
 								"fill": true,
 								"fit": "cover"
 							},
@@ -1318,7 +1318,7 @@
 										"children": [
 											{
 												"type": "image",
-												"file": "{{'art/' + (g.art ?? g.id) + '/hero.svg'}}",
+												"file": "{{'../assets/art/' + (g.art ?? g.id) + '/hero.svg'}}",
 												"width": 180,
 												"height": 108,
 												"fit": "cover",
@@ -1382,7 +1382,7 @@
 										"children": [
 											{
 												"type": "image",
-												"file": "{{'art/avatars/' + f.avatar + '.svg'}}",
+												"file": "{{'../assets/art/avatars/' + f.avatar + '.svg'}}",
 												"width": 36,
 												"height": 36,
 												"anchors": { "top": 14 },
@@ -1425,7 +1425,7 @@
 													{
 														"when": "{{a.kind == 'screenshot'}}",
 														"type": "image",
-														"file": "{{'art/' + (g.art ?? g.id) + '/shot' + a.shot + '.svg'}}",
+														"file": "{{'../assets/art/' + (g.art ?? g.id) + '/shot' + a.shot + '.svg'}}",
 														"width": 160,
 														"height": 90,
 														"fit": "cover",
@@ -1491,7 +1491,7 @@
 															{
 																"repeat": { "for": "f", "in": "{{slice(who, 0, 7)}}" },
 																"type": "image",
-																"file": "{{'art/avatars/' + f.avatar + '.svg'}}",
+																"file": "{{'../assets/art/avatars/' + f.avatar + '.svg'}}",
 																"width": 34,
 																"height": 34,
 																"fit": "cover",
@@ -1601,7 +1601,7 @@
 													{
 														"repeat": { "for": "k", "in": "{{[1, 2, 3]}}" },
 														"type": "image",
-														"file": "{{'art/' + (g.art ?? g.id) + '/shot' + k + '.svg'}}",
+														"file": "{{'../assets/art/' + (g.art ?? g.id) + '/shot' + k + '.svg'}}",
 														"grow": 1,
 														"height": 80,
 														"fit": "cover",

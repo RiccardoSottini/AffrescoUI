@@ -1819,7 +1819,9 @@ seed data; another screen in the folder is read as written. A generated example:
   uses that the manifest doesn't declare is never granted, and `affrescoui check` reports it; since a revision can't
   change these sections (Live screens, "Revisions"), it never widens what the app may reach. A screen opened alone
   (a `.screen.json`) is an app named after it that declares what it uses.
-- **`assets`**: its other files and folders, shipped with it.
+- **`assets`**: its other files and folders, shipped with it. An app in a folder named `json` or `lisp` may also read
+  images and sounds in the `assets` folder beside it, which an example's two notations have in common, and `icon` and
+  `assets` may name them (`../assets/covers`).
 
 Limits: the manifest at most 256 KiB, a name 100 characters, a reason 300, 64 entries of each kind, 256 assets, a
 theme, models or seed file 16 MiB.

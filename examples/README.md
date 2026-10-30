@@ -1,7 +1,7 @@
 # Examples
 
-One folder per application, holding the same app twice: `json/` and `lisp/`, each complete with its `app.json`, screens,
-scenarios and assets, and a short README beside them. What more than one of them uses is in `shared/`. None of this is part of the library; each uses only its public API.
+One folder per application, holding the same app twice: `json/` and `lisp/`, each with its `app.json`, screens and
+scenarios; `assets/`, the pictures and sounds both read, if it has any; and a short README. What more than one of them uses is in `shared/`. None of this is part of the library; each uses only its public API.
 
 ```
 examples/
@@ -32,8 +32,8 @@ scene is `modules/capi/example`.
 **JSON or Lisp.** `<app>/json/` is the source and `<app>/lisp/` is written from it, so make a change in `json/` and run
 `python3 tools/notation/lisp_examples.py` (the test `cli_lisp_examples` fails if you forget). In `lisp/`, every document
 an app loads is a `.lisp` file: its screens, what they include, its themes, models and seed data. The files with a reader
-of their own stay JSON (`app.json`, scenarios, policies, adapters, a package's manifest and catalogue), and the assets are
-copied so the folder runs alone. `shared/` keeps a `.lisp` file beside each JSON one it serves. Both versions load as
+of their own stay JSON (`app.json`, scenarios, policies, adapters, a package's manifest and catalogue). There is one copy
+of the assets, in `<app>/assets/`, named `../assets/...` in both notations. `shared/` keeps a `.lisp` file beside each JSON one it serves. Both versions load as
 the same document (`tests/unit/lisp_examples.cpp`), and each keeps its own data, permissions and history. The Launcher's
 **Settings → Example apps** chooses which one opens; `./build/affrescoui_launcher examples/flow/lisp` opens one directly.
 

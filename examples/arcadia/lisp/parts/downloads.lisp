@@ -146,7 +146,7 @@
           :type image
           :fill true
           :fit cover
-          :file "{{'art/' + computed.download.id + '/hero.svg'}}"}
+          :file "{{'../assets/art/' + computed.download.id + '/hero.svg'}}"}
         {:fill true :color @dl.shade}
         {:when "{{computed.download == null}}"
           :type label
@@ -160,7 +160,7 @@
           :anchors {:left 24 :right 24 :top 24 :bottom 24}
           :gap 20
           :children [{:type image
-              :file "{{'art/' + computed.download.id + '/hero.svg'}}"
+              :file "{{'../assets/art/' + computed.download.id + '/hero.svg'}}"
               :fit cover
               :width 300
               :height 140
@@ -310,7 +310,12 @@
                     :radius 2
                     :hover {:color @dl.rowHover}
                     {:type panel :color transparent :width 8 :height 1}
-                    {:type image :file "{{'art/' + q.d.id + '/hero.svg'}}" :fit cover :width 150 :height 70 :radius 2}
+                    {:type image
+                      :file "{{'../assets/art/' + q.d.id + '/hero.svg'}}"
+                      :fit cover
+                      :width 150
+                      :height 70
+                      :radius 2}
                     {:type column
                       :grow 1
                       :height 52
@@ -449,7 +454,12 @@
                     :radius 2
                     :hover {:color @dl.rowHover}
                     {:type panel :color transparent :width 8 :height 1}
-                    {:type image :file "{{'art/' + d.id + '/hero.svg'}}" :fit cover :width 150 :height 70 :radius 2}
+                    {:type image
+                      :file "{{'../assets/art/' + d.id + '/hero.svg'}}"
+                      :fit cover
+                      :width 150
+                      :height 70
+                      :radius 2}
                     {:type column
                       :grow 1
                       :height 52
@@ -544,7 +554,12 @@
                     :radius 2
                     :hover {:color @dl.rowHover}
                     {:type panel :color transparent :width 8 :height 1}
-                    {:type image :file "{{'art/' + d.id + '/hero.svg'}}" :fit cover :width 150 :height 70 :radius 2}
+                    {:type image
+                      :file "{{'../assets/art/' + d.id + '/hero.svg'}}"
+                      :fit cover
+                      :width 150
+                      :height 70
+                      :radius 2}
                     {:type column
                       :grow 1
                       :height 52

@@ -6,9 +6,9 @@ change is made there and this is run again; `--check` fails if what is there isn
 (`ctest -R cli_lisp_examples`).
 
 Every document an app loads becomes a .lisp file: its entry and every other screen, what they include, its themes,
-models and seed data. Its other files are copied, so the folder runs on its own: assets, and the files with a reader of
-their own, which stay JSON (app.json, scenarios, policies, adapters, a package's manifest and catalogue). What the apps
-share in examples/shared/ gets a .lisp file beside its JSON, as the fonts there serve both.
+models and seed data. The files with a reader of their own stay JSON and are copied (app.json, scenarios, policies,
+adapters, a package's manifest and catalogue). Assets are never copied: both folders read examples/<app>/assets/. What
+the apps share in examples/shared/ gets a .lisp file beside its JSON, as the fonts there serve both.
 
     python3 tools/notation/lisp_examples.py [--check] [--cli build/affrescoui]
 """
@@ -99,10 +99,8 @@ def documents(files):
 
 
 def is_copied(path):
-    """Whether a file that isn't a document belongs in a lisp/ folder: an app's, and read when running, or a licence."""
-    if JSON_FOLDER not in os.sep + path or path.endswith(SKIPPED_SUFFIXES):
-        return False
-    return not path.endswith(".md") or "samples" + os.sep in path
+    """Whether a file that isn't a document belongs in a lisp/ folder: one of a json/ folder, read when running."""
+    return JSON_FOLDER in os.sep + path and not path.endswith(SKIPPED_SUFFIXES) and not path.endswith(".md")
 
 
 def write_lisp(path, out, cli):

@@ -146,7 +146,7 @@
             {:type panel :width 4 :height 1 :color transparent}
             (node #account-avatar
               :type image
-              :file "{{'art/avatars/' + state.user.avatar + '.svg'}}"
+              :file "{{'../assets/art/avatars/' + state.user.avatar + '.svg'}}"
               :width 22
               :height 22
               :fit cover

@@ -266,7 +266,7 @@
 						"type": "image",
 						"fill": true,
 						"fit": "cover",
-						"file": "{{'art/' + computed.download.id + '/hero.svg'}}"
+						"file": "{{'../assets/art/' + computed.download.id + '/hero.svg'}}"
 					},
 					{ "fill": true, "color": "@dl.shade" },
 					{
@@ -286,7 +286,7 @@
 						"children": [
 							{
 								"type": "image",
-								"file": "{{'art/' + computed.download.id + '/hero.svg'}}",
+								"file": "{{'../assets/art/' + computed.download.id + '/hero.svg'}}",
 								"fit": "cover",
 								"width": 300,
 								"height": 140,
@@ -576,7 +576,7 @@
 													},
 													{
 														"type": "image",
-														"file": "{{'art/' + q.d.id + '/hero.svg'}}",
+														"file": "{{'../assets/art/' + q.d.id + '/hero.svg'}}",
 														"fit": "cover",
 														"width": 150,
 														"height": 70,
@@ -819,7 +819,7 @@
 													},
 													{
 														"type": "image",
-														"file": "{{'art/' + d.id + '/hero.svg'}}",
+														"file": "{{'../assets/art/' + d.id + '/hero.svg'}}",
 														"fit": "cover",
 														"width": 150,
 														"height": 70,
@@ -986,7 +986,7 @@
 													},
 													{
 														"type": "image",
-														"file": "{{'art/' + d.id + '/hero.svg'}}",
+														"file": "{{'../assets/art/' + d.id + '/hero.svg'}}",
 														"fit": "cover",
 														"width": 150,
 														"height": 70,

@@ -334,7 +334,7 @@
       :node {:fill true
         :color transparent
         :children [{:type image
-            :file "{{'art/avatars/' + state.user.avatar + '.svg'}}"
+            :file "{{'../assets/art/avatars/' + state.user.avatar + '.svg'}}"
             :anchors {:left 0 :top 0}
             :width 64
             :height 64
@@ -491,7 +491,7 @@
           :label "{{t('signIn.title')}}"
           :children [{:type label :font logo :fitText true :text Arcadia :textColor @color.accent}
             {:type image
-              :file "{{'art/avatars/' + state.user.avatar + '.svg'}}"
+              :file "{{'../assets/art/avatars/' + state.user.avatar + '.svg'}}"
               :width 72
               :height 72
               :radius 36
@@ -541,7 +541,7 @@
             :role option
             :label "{{g.title}}"
             :selected "{{on}}"
-            :file "{{'art/' + (g.art ?? g.id) + '/cover.svg'}}"
+            :file "{{'../assets/art/' + (g.art ?? g.id) + '/cover.svg'}}"
             :fit cover
             :width "{{on ? 210 : 150}}"
             :height "{{on ? 315 : 225}}"

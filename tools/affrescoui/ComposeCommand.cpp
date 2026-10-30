@@ -178,8 +178,7 @@ std::filesystem::path hostScenariosOf(const Arguments& arguments, const std::fil
 /// @param folder The app's folder, absolute.
 /// @return The name.
 std::string appNameOf(const std::filesystem::path& folder) {
-	const std::string name = folder.filename().string();
-	return "app:" + (name == "json" || name == "lisp" ? folder.parent_path().filename().string() : name);
+	return "app:" + (format::isNotationFolder(folder) ? folder.parent_path() : folder).filename().string();
 }
 
 /// @brief Where a feature comes from: the app of the folder above its features folder.

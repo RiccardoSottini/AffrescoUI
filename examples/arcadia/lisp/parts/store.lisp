@@ -365,7 +365,7 @@
                 :children [{:type image
                     :fill true
                     :fit cover
-                    :file "{{'art/' + computed.feature.id + '/' + (state.storeShot == null ? 'hero' : state.storeShot < 4 ? 'shot' + state.storeShot : 'hero') + '.svg'}}"}]
+                    :file "{{'../assets/art/' + computed.feature.id + '/' + (state.storeShot == null ? 'hero' : state.storeShot < 4 ? 'shot' + state.storeShot : 'hero') + '.svg'}}"}]
                 :color transparent)
               (node #featured-side
                 :width 324
@@ -396,7 +396,7 @@
                           :children [{:type image
                               :fill true
                               :fit cover
-                              :file "{{'art/' + computed.feature.id + '/' + (n < 4 ? 'shot' + n : 'hero') + '.svg'}}"}
+                              :file "{{'../assets/art/' + computed.feature.id + '/' + (n < 4 ? 'shot' + n : 'hero') + '.svg'}}"}
                             {:fill true :color "{{state.storeShot == n ? 'transparent' : '#00000040'}}"}]}]}
                     {:type label
                       :font heading
@@ -501,7 +501,7 @@
         :hover {:color @store.cardHover :shadow {:y 4 :blur 14 :color "#f5a52450"}}
         :onClick {:run openStore :with (node #"{{g.id}}")}
         :children [{:type image
-            :file "{{'art/' + g.id + '/hero.svg'}}"
+            :file "{{'../assets/art/' + g.id + '/hero.svg'}}"
             :fit cover
             :height 143
             :anchors {:left 0 :right 0 :top 0}
@@ -531,7 +531,7 @@
         :label "{{t('genre.' + genre)}}"
         :hover {:scale 1.03 :shadow {:blur 16 :color "#f5a52450"}}
         :onClick {:run storeSearch :with {:query "{{genre}}"}}
-        :children [{:type image :file "{{'art/' + game + '/hero.svg'}}" :fill true :fit cover :radius 4}
+        :children [{:type image :file "{{'../assets/art/' + game + '/hero.svg'}}" :fill true :fit cover :radius 4}
           {:fill true
             :radius 4
             :color transparent
@@ -558,7 +558,7 @@
         :label "{{g.title}}"
         :onClick {:run openStore :with (node #"{{g.id}}")}
         :children [{:type image
-            :file "{{'art/' + g.id + '/hero.svg'}}"
+            :file "{{'../assets/art/' + g.id + '/hero.svg'}}"
             :fit cover
             :width 184
             :height 69
@@ -682,7 +682,7 @@
                     :height 158
                     :anchors {:left 0 :right 0}
                     :fit cover
-                    :file "{{'art/' + computed.storePreview.id + '/shot' + n + '.svg'}}"}]})]})}
+                    :file "{{'../assets/art/' + computed.storePreview.id + '/shot' + n + '.svg'}}"}]})]})}
     :storeResults {:params {}
       :node (node #store-results
         :type column
@@ -781,7 +781,7 @@
               :anchors {:left 0 :right 0}
               :fit cover
               :color "#000000"
-              :file "{{'art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][state.shotIndex] + '.svg'}}"}
+              :file "{{'../assets/art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][state.shotIndex] + '.svg'}}"}
             (node #gallery-strip :type row :height 72 :anchors {:left 0 :right 0} :gap 4 :arrows horizontal
               (node :repeat {:for s :in "{{range(4)}}"}
                 #"{{'shot-' + s}}"
@@ -796,14 +796,18 @@
                 :children [{:type image
                     :fill true
                     :fit cover
-                    :file "{{'art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][s] + '.svg'}}"}
+                    :file "{{'../assets/art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][s] + '.svg'}}"}
                   {:fill true
                     :color "{{state.shotIndex == s ? 'transparent' : '#00000055'}}"
                     :borderWidth "{{state.shotIndex == s ? 2 : 0}}"
                     :borderColor "#ffffff"}]
                 :color transparent)))
           (node #store-side :type column :width 314 :height 424 :gap 4
-            {:type image :height 151 :anchors {:left 0 :right 0} :fit cover :file "{{'art/' + g.id + '/hero.svg'}}"}
+            {:type image
+              :height 151
+              :anchors {:left 0 :right 0}
+              :fit cover
+              :file "{{'../assets/art/' + g.id + '/hero.svg'}}"}
             {:type panel :color transparent :height 4 :width 1}
             {:type label
               :font small
@@ -1207,7 +1211,7 @@
                     :gap 8
                     :alignItems center
                     :children [{:type image
-                        :file "{{'art/avatars/' + r.avatar + '.svg'}}"
+                        :file "{{'../assets/art/avatars/' + r.avatar + '.svg'}}"
                         :width 34
                         :height 34
                         :radius 2
@@ -1348,7 +1352,11 @@
                     :anchors {:left 16 :right 16}
                     :gap 10
                     :alignItems center
-                    :children [{:type image :file "{{'art/' + id + '/hero.svg'}}" :fit cover :width 90 :height 34}
+                    :children [{:type image
+                        :file "{{'../assets/art/' + id + '/hero.svg'}}"
+                        :fit cover
+                        :width 90
+                        :height 34}
                       {:type label
                         :text "{{find(data.games, it.id == id).title}}"
                         :grow 1
@@ -1393,7 +1401,7 @@
                   :radius 2
                   {:type panel :color transparent :width 2 :height 1}
                   {:type image
-                    :file "{{'art/' + g.id + '/hero.svg'}}"
+                    :file "{{'../assets/art/' + g.id + '/hero.svg'}}"
                     :fit cover
                     :width 184
                     :height 69
@@ -1499,7 +1507,7 @@
           :alignItems center
           :gap 12
           :children [{:type image
-              :file "{{'art/avatars/' + state.user.avatar + '.svg'}}"
+              :file "{{'../assets/art/avatars/' + state.user.avatar + '.svg'}}"
               :width 40
               :height 40
               :radius 2}
@@ -1605,7 +1613,7 @@
                   :onClick {:if "{{i < length(state.wishlist) - 1}}"
                     :then [{:run wishMove :with {:i "{{i}}" :j "{{i + 1}}"}}]}}]}
             {:type image
-              :file "{{'art/' + g.id + '/hero.svg'}}"
+              :file "{{'../assets/art/' + g.id + '/hero.svg'}}"
               :fit cover
               :width 230
               :height 100

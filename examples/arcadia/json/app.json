@@ -21,7 +21,7 @@
 		}
 	},
 	"assets": [
-		"art",
-		"covers"
+		"../assets/art",
+		"../assets/covers"
 	]
 }

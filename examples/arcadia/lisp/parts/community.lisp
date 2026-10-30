@@ -82,7 +82,7 @@
         :height "{{size}}"
         :radius 4
         :color "{{p == 'ingame' ? '@color.ingame' : p == 'offline' || p == 'invisible' ? '@color.offline' : '@color.online'}}"
-        :children [{:type image :file "{{'art/avatars/' + avatar + '.svg'}}" :fill 2 :fit cover}]}}
+        :children [{:type image :file "{{'../assets/art/avatars/' + avatar + '.svg'}}" :fill 2 :fit cover}]}}
     :friendRow {:note "A friend in the list: avatar, name in their presence's colour, what they are doing; opens the chat."
       :params {:friend {}}
       :node (node :let {:p "{{friend.presence}}" :here "{{state.chatWith == friend.id}}"}
@@ -229,7 +229,7 @@
         :label "{{(m.mine ? state.user.name : friend.name) + ': ' + (g == null ? m.text : t('chat.invite', { game: g.title }))}}"
         :children [{:when "{{!m.mine}}"
             :type image
-            :file "{{'art/avatars/' + friend.avatar + '.svg'}}"
+            :file "{{'../assets/art/avatars/' + friend.avatar + '.svg'}}"
             :width 28
             :height 28
             :fit cover
@@ -259,7 +259,12 @@
                 :borderColor @color.border
                 :alignItems center
                 :children [{:type panel :color transparent :width 2 :height 1}
-                  {:type image :file "{{'art/' + g.id + '/cover.svg'}}" :width 48 :height 72 :fit cover :radius 3}
+                  {:type image
+                    :file "{{'../assets/art/' + g.id + '/cover.svg'}}"
+                    :width 48
+                    :height 72
+                    :fit cover
+                    :radius 3}
                   {:type column
                     :grow 1
                     :height 64
@@ -581,7 +586,12 @@
                     :hover {:color @color.raised}
                     :onClick {:run openGame :with (node #"{{g.id}}")}
                     {:type panel :color transparent :width 4 :height 1}
-                    {:type image :file "{{'art/' + g.id + '/hero.svg'}}" :width 150 :height 64 :fit cover :radius 3}
+                    {:type image
+                      :file "{{'../assets/art/' + g.id + '/hero.svg'}}"
+                      :width 150
+                      :height 64
+                      :fit cover
+                      :radius 3}
                     {:type column
                       :grow 1
                       :height 40

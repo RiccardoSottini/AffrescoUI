@@ -120,6 +120,9 @@ TEST_CASE("app manifest: every bad part is refused, with its place") {
 	CHECK(with("/capabilities/folders/workspace/access", "all").contains("access"));
 	CHECK(with("/capabilities/folders/workspace/also", 1).contains("workspace"));
 	CHECK(with("/capabilities/camera", "Why").contains("unknown kind"));
+	CHECK(with("/icon", "../icon.png").contains("../assets"));
+	CHECK(with("/icon", "../assets/../../icon.png").contains("../assets"));
+	CHECK(with("/assets", json::array({"../other"})).contains("../assets"));
 	CHECK(with("/data/seed/notes", "seed/notes.txt").contains(".json, .lisp or .csv"));
 	CHECK(with("/data/seed/a.b", "seed/a.json").contains("collection"));
 	CHECK(with("/data/runs", "x").contains("data"));
@@ -178,7 +181,8 @@ TEST_CASE("app manifest: a screen that asks the agents uses the assistant, which
 	manifest["capabilities"]["assistant"] = "";
 	CHECK(errorOf(manifest).find("capabilities.assistant") != std::string::npos);
 
-	const json asks = json::parse(R"json({ "actions": { "send": [{ "if": "{{true}}", "then": [{ "ask": "{{state.draft}}" }] }] },
+	const json asks =
+	    json::parse(R"json({ "actions": { "send": [{ "if": "{{true}}", "then": [{ "ask": "{{state.draft}}" }] }] },
 		"root": { "children": [{ "type": "button", "onClick": { "ask": "Hello" } }] } })json");
 	const json data = json::parse(R"json({ "state": { "ask": "a key" }, "strings": { "en": { "ask": "Ask" } },
 		"permissions": { "ask": ["agent"] } })json");

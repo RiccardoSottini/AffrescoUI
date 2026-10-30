@@ -11,6 +11,6 @@
 		"assistant": "Answers your questions about your models, with the assistant you set up in Settings."
 	},
 	"assets": [
-		"samples"
+		"../assets/samples"
 	]
 }

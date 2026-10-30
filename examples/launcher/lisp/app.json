@@ -5,7 +5,7 @@
 	"id": "launcher",
 	"name": "AffrescoUI",
 	"description": "The home of the apps: every example to open, and the apps the person made.",
-	"icon": "affrescoui-icon.png",
+	"icon": "../assets/affrescoui-icon.png",
 	"entry": "index.screen.lisp",
 	"capabilities": {
 		"folders": {
@@ -24,9 +24,9 @@
 		"assistant": "Answers your questions about your apps, with the assistant you set up in Settings."
 	},
 	"assets": [
-		"covers",
+		"../assets/covers",
 		"starters",
-		"affrescoui-icon.png",
-		"affrescoui-mark.svg"
+		"../assets/affrescoui-icon.png",
+		"../assets/affrescoui-mark.svg"
 	]
 }
