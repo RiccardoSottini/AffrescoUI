@@ -146,6 +146,11 @@ Exit renderScreen(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit formatScreen(std::span<const std::string_view> args);
 
+/// @brief `convert`: writes a file in the other notation, JSON or Lisp (commands/ConvertCommand.cpp).
+/// @param args The arguments.
+/// @return How it ended.
+Exit convertFile(std::span<const std::string_view> args);
+
 /// @brief `ids`: gives readable ids to the nodes of a file that have none.
 /// @param args The arguments.
 /// @return How it ended.

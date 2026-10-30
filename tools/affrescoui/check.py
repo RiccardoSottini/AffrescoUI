@@ -4,6 +4,8 @@
 - check:  every template passes (exit 0), in text and with --json;
 - fmt:    a template formatted once passes fmt --check, and reads back as the same JSON, keys in the same order;
 - ids:    every template has an id on every node (ids --check);
+- convert: a template in the Lisp notation is canonical (fmt --check) and converts back to the same JSON, keys in
+          the same order; a Lisp file that isn't a value exits with 1, naming its line;
 - render: the first frame is pixel for pixel what the rendering check's runner draws for the same scenario;
 - test:   every template's scenarios pass, in text and with --json; a failing expectation and a malformed file exit
           with 1;
@@ -99,6 +101,17 @@ class Checker:
             same = json.load(before, object_pairs_hook=list) == json.load(after, object_pairs_hook=list)
         self.expect(same, f"fmt {name}: the formatted file reads as different JSON")
         self.run("ids", "--check", path)
+        self.convert(name, path)
+
+    def convert(self, name, path):
+        """The template in the Lisp notation, canonical, and back to the same JSON."""
+        lisp, back = (os.path.join(self.scratch, name + suffix) for suffix in (".screen.lisp", ".back.json"))
+        self.run("convert", path, "--to", "lisp", "-o", lisp)
+        self.run("fmt", "--check", lisp)
+        self.run("convert", lisp, "-o", back)
+        with open(path, encoding="utf-8") as before, open(back, encoding="utf-8") as after:
+            same = json.load(before, object_pairs_hook=list) == json.load(after, object_pairs_hook=list)
+        self.expect(same, f"convert {name}: the Lisp file converts back to different JSON")
 
     def render(self, screens, scenario, path):
         """The first frame of a scenario whose first step expects it, against the runner's capture of it."""
@@ -257,6 +270,14 @@ def main():
         checker.run("fmt", broken, expect=1)
         checker.expect(json.loads(checker.run("check", broken, "--json", expect=1))["problems"][0]["source"] == "json",
                        "check: a file that isn't JSON")
+        broken_lisp = os.path.join(scratch, "broken.screen.lisp")
+        with open(broken_lisp, "w", encoding="utf-8") as file:
+            file.write('{:version 2\n :root (row #a')
+        problems = json.loads(checker.run("check", broken_lisp, "--json", expect=1))["problems"]
+        checker.expect(problems[0]["source"] == "lisp" and "line 2, column 15" in problems[0]["message"],
+                       f"check: a Lisp file that isn't a value: {problems}")
+        checker.run("convert", broken_lisp, expect=1)
+        checker.run("convert", broken, "--to", "yaml", expect=2)
         checker.long_pattern_input()
         checker.policy_roles()
         if not headless:
