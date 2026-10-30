@@ -42,6 +42,41 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "notation-visuals",
+			"screen": "visuals.screen.lisp",
+			"note": "The Lisp notation again, on a screen of images, icons and text: visuals.screen.json converted by `affrescoui convert`, so the same steps draw pixels identical to the visuals scenario's",
+			"steps": [
+				{
+					"expect": {
+						"image": "first-frame"
+					}
+				},
+				{
+					"revision": {
+						"message": "Another picture, another fit, another icon",
+						"set": {
+							"#contain/file": "images/banner.png",
+							"#fill/fit": "contain",
+							"#bell/icon": "bell-ring"
+						}
+					}
+				},
+				{
+					"expect": {
+						"image": "revised"
+					}
+				},
+				{
+					"move": "#settings"
+				},
+				{
+					"expect": {
+						"image": "icon-hover"
+					}
+				}
+			]
 		}
 	]
 }
