@@ -1,0 +1,23 @@
+{
+	"$schema": "../../../schema/affrescoui-app.schema.json",
+	"format": "affrescoui-app",
+	"version": 1,
+	"id": "haven",
+	"name": "Haven",
+	"description": "A smart-home dashboard: rooms, lights, climate, automations and energy.",
+	"entry": "index.screen.json",
+	"capabilities": {
+		"assistant": "Answers your questions about your home, with the assistant you set up in Settings."
+	},
+	"data": {
+		"models": "models.json",
+		"seed": {
+			"logbook": "seed/logbook.json",
+			"timeline": "seed/timeline.json",
+			"energy": "seed/energy.json"
+		}
+	},
+	"assets": [
+		"../assets/images"
+	]
+}

@@ -83,15 +83,20 @@ std::filesystem::path inside(const AppFolder& app, const std::string& relative, 
 }
 
 /// @brief The folders an app's includes may be in: its own, and the "shared" folder beside it, where the apps of a
-/// folder keep the kits they share (as a release lays them out), if it is a folder and not a link.
+/// folder keep the kits they share (as a release lays them out), if it is a folder and not a link. An app in a "json"
+/// or "lisp" folder is one notation of an example, so the "shared" folder beside that example counts too.
 /// @param app The app.
 /// @return The folders, canonical.
 std::vector<std::filesystem::path> includeRoots(const AppFolder& app) {
 	std::vector<std::filesystem::path> roots{app.folder};
-	const std::filesystem::path shared = app.folder.parent_path() / "shared";
-	std::error_code error;
-	if(std::filesystem::symlink_status(shared, error).type() == std::filesystem::file_type::directory)
-		roots.push_back(shared);
+	const auto addShared = [&roots](const std::filesystem::path& beside) {
+		const std::filesystem::path shared = beside / "shared";
+		std::error_code error;
+		if(std::filesystem::symlink_status(shared, error).type() == std::filesystem::file_type::directory)
+			roots.push_back(shared);
+	};
+	addShared(app.folder.parent_path());
+	if(format::isNotationFolder(app.folder)) addShared(app.folder.parent_path().parent_path());
 	return roots;
 }
 
@@ -215,10 +220,12 @@ void giveSeeds(json& document, const AppFolder& app) {
 		if(!model || !model->is_object() || !model->contains(collection) || !(*model)[collection].is_object())
 			fail(place, "no model \"" + collection + "\" in the screen or the app's models");
 		if((*model)[collection].contains("seed")) fail(place, "the model has a \"seed\" of its own");
-		const std::string text = readWhole(inside(app, relative, place), maxPartBytes);
+		const std::filesystem::path file = inside(app, relative, place);
+		const std::string text = readWhole(file, maxPartBytes);
 		json records;
 		try {
-			records = relative.ends_with(".csv") ? csvSeed(*model, collection, text, place) : parseUntrusted(text);
+			records = relative.ends_with(".csv") ? csvSeed(*model, collection, text, place)
+			                                     : notation::readDocument(text, file);
 		} catch(const json::parse_error& parse) {
 			fail(place, std::string("invalid JSON: ") + parse.what());
 		} catch(const DocumentError& invalid) {

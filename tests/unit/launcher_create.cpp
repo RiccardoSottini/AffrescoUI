@@ -56,7 +56,7 @@ bool showsLabelStarting(const affresco::Panel& panel, const std::string& start) 
 /// @param grant Grants what the screen uses, before it is built.
 /// @return The report.
 automation::Report playLauncher(const json& scenarios, const std::function<void(affresco::Screen&)>& grant) {
-	const fs::path screen = fs::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "launcher" / "index.screen.json";
+	const fs::path screen = fs::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "launcher" / "json" / "index.screen.json";
 	const json file = {{"version", 2}, {"screen", screen.filename().string()}, {"scenarios", scenarios}};
 	automation::Options options;
 	options.pictures = false;
@@ -204,6 +204,32 @@ TEST_CASE("launcher: Settings save the provider the form shows first, with no pi
 	INFO(report.text());
 	CHECK(report.failed() == 0);
 	CHECK(fs::exists(affresco::intelligence::Settings::file(data)));
+}
+
+TEST_CASE("launcher: the setting chooses whether an example opens from its json or its lisp folder") {
+	LauncherFolders folders;
+	// Only the lisp folder is there, so the grant takes that reference and refuses the JSON one; then, with the
+	// programs missing, opening what it took fails further on
+	folders.examples = folders.folder.path() / "examples";
+	writeFile(folders.examples / "flow" / "lisp" / "app.json", "{}");
+	const json scenarios = json::parse(R"json([
+		{ "name": "json", "steps": [
+			{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team's issues" } },
+			{ "wait": 10 },
+			{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher needs an app, ROOT:PATH, a folder with an app.json, an app.json or a .screen.json inside a granted root" } }
+		] },
+		{ "name": "lisp", "steps": [
+			{ "key": "mod+comma" },
+			{ "click": { "role": "radio", "name": "Lisp" } },
+			{ "key": "mod+1" },
+			{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team's issues" } },
+			{ "wait": 10 },
+			{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher isn't there next to the host" } }
+		] }
+	])json");
+	const automation::Report report = playLauncher(scenarios, [&](affresco::Screen& screen) { folders.grant(screen); });
+	INFO(report.text());
+	CHECK(report.failed() == 0);
 }
 
 TEST_CASE("launcher: a new blank app's permissions show what it asks for, with no empty reason") {

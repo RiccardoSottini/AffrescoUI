@@ -1,0 +1,773 @@
+{:note "Haven's automations, security and simulated service, included by index.screen.json: rules as a node graph, schedules on a timeline, the security mode, the notifications beside the sidebar's bell, and a timer that stands in for the devices (rooms drift towards their target; motion while away)."
+  :settings {:security.motionAlerts {:type boolean
+      :default true
+      :title "Motion alerts"
+      :description "While the security mode is Away, motion in the hall sends a notification."}
+    :simulation.enabled {:type boolean
+      :default true
+      :title "Simulated devices"
+      :description "Every ten seconds the simulated service moves each room towards its target and reports motion."}}
+  :state {:security off
+    :securityModes [off home away]
+    :notifications []
+    :notificationsOpen false
+    :notifyCount 0
+    :tick 0
+    :autoSelected []
+    :autoTab list
+    :autoOpen -1
+    :autoQuery ""
+    :autoMenu false
+    :autoConfirm false
+    :autoTarget -1
+    :autoRowMenu {}
+    :stepMenu {}
+    :automations [(node #welcome
+        :icon door-open
+        :on true
+        :ran min7
+        :steps [{:part when :icon door-open :key frontOpens}
+          {:part if :icon sunset :key afterDark}
+          {:part do :icon lightbulb :key hallOn}
+          {:part do :icon music :key playMusic}])
+      (node #goodNight
+        :icon moon
+        :on true
+        :ran h9
+        :steps [{:part when :icon clock-3 :key time2300}
+          {:part if :icon users :key allHome}
+          {:part do :icon lightbulb-off :key lightsOff}
+          {:part do :icon lock :key lockDoors}
+          {:part do :icon thermometer :key heatNight}])
+      (node #motionAway
+        :icon siren
+        :on true
+        :ran d2
+        :steps [{:part when :icon activity :key hallMotion}
+          {:part if :icon shield :key alarmAway}
+          {:part do :icon bell :key sendNote}
+          {:part do :icon lightbulb :key hallOn}])
+      (node #morning
+        :icon sunrise
+        :on false
+        :ran never
+        :steps [{:part when :icon clock-3 :key time0630}
+          {:part do :icon blinds :key blindsOpen}
+          {:part do :icon thermometer :key heatDay}])]
+    :autoPresets {:when {:part when :icon clock-3 :key time0700}
+      :if {:part if :icon user-check :key someoneHome}
+      :do {:part do :icon bell :key sendNote}}
+    :autoNodes [(node #motion :kind motion :x 20 :y 30 :outputs [(node #when :kind event)])
+      (node #sunset :kind sunset :x 20 :y 190 :outputs [(node #when :kind event)])
+      (node #armed :kind armed :x 230 :y 30 :inputs [(node #if :kind event)] :outputs [(node #then :kind event)])
+      (node #hallLight :kind hallLight :x 440 :y 10 :inputs [(node #do :kind event)])
+      (node #notify :kind notify :x 440 :y 100 :inputs [(node #do :kind event)])
+      (node #blindsDown :kind blindsDown :x 440 :y 190 :inputs [(node #do :kind event)])]
+    :autoLinks [{:from motion :output when :to armed :input if}
+      {:from armed :output then :to notify :input do}
+      {:from armed :output then :to hallLight :input do}
+      {:from sunset :output when :to blindsDown :input do}]
+    :schedules [(node #heating
+        :clips [(node #heatMorning :key morning :start 6 :duration 3)
+          (node #heatEvening :key evening :start 17 :duration 6)])
+      (node #lights :clips [(node #lightsNight :key night :start 19 :duration 4)])
+      (node #vacuum :clips [(node #vacuumClean :key clean :start 10 :duration 2)])]}
+  :computed {:autoGraph "{{map(state.autoNodes, merge(it, { title: t('auto.' + it.kind), width: 170, inputs: map(it.inputs ?? [], merge(it, { label: t('port.' + it.id) })), outputs: map(it.outputs ?? [], merge(it, { label: t('port.' + it.id) })) }))}}"
+    :scheduleTracks "{{map(state.schedules, { id: it.id, label: t('schedule.' + it.id), clips: map(it.clips, { id: it.id, label: t('schedule.' + it.key), start: it.start, duration: it.duration }) })}}"
+    :openAuto "{{state.automations[max(state.autoOpen, 0)]}}"
+    :autoOnCount "{{length(filter(state.automations, it.on))}}"
+    :autoShown "{{length(filter(state.automations, (state.autoQuery == '' || contains(lower(t('rule.' + (it.title ?? it.id))), lower(trim(state.autoQuery))))))}}"
+    :securityLabel "{{t('security.' + state.security)}}"}
+  :actions {:notify [{:note "with: message, icon. Keeps the newest twenty notifications, the newest first"}
+      {:increment state.notifyCount :by 1}
+      {:set state.notifications
+        :to "{{filter(concat([{ id: 'n' + state.notifyCount, message: message, icon: icon }], state.notifications), index < 20)}}"}]
+    :cycleSecurity {:title "Change the security mode"
+      :category Security
+      :icon shield
+      :do [{:set state.security :to "{{state.securityModes[(indexOf(state.securityModes, state.security) + 1) % 3]}}"}
+        {:run notify
+          :with {:message "{{t('security.changed', { mode: t('security.' + state.security) })}}" :icon shield}}]}
+    :toggleNotifications {:title "Show the notifications"
+      :category Security
+      :icon bell
+      :do [{:toggle state.notificationsOpen}]}
+    :clearNotifications {:title "Clear the notifications"
+      :category Security
+      :icon bell-off
+      :do [{:set state.notifications :to []}]}
+    :simulate [{:note "The simulated service, every ten seconds: each room 0.5° nearer its target; every fourth tick while away, motion in the hall"}
+      {:if "{{settings.simulation.enabled}}"
+        :then [{:increment state.tick :by 1}
+          {:forEach state.rooms
+            :index r
+            :do [{:set "state.rooms[r].temp"
+                :to "{{state.rooms[r].temp + clamp(state.rooms[r].target - state.rooms[r].temp, -0.5, 0.5)}}"}]}
+          {:if "{{state.security == 'away' && settings.security.motionAlerts && state.tick % 4 == 0}}"
+            :then [{:run notify :with {:message "{{t('notify.motion')}}" :icon siren}}]}]}]
+    :addAutoNode [{:note "with: kind and the node's ports: a new node to the right of the others, chosen"}
+      {:set state.autoNodes
+        :to "{{concat(state.autoNodes, [merge(node, { id: node.kind + length(state.autoNodes), x: 640, y: 20 + 80 * (length(state.autoNodes) % 4) })])}}"}
+      {:set state.autoSelected :to "{{[node.kind + (length(state.autoNodes) - 1)]}}"}]
+    :openAutomation [{:note "with: i, the automation to edit (-1 for the list)"} {:set state.autoOpen :to "{{i}}"}]
+    :newAutomation {:title "New automation"
+      :category Automations
+      :icon plus
+      :do [{:set state.automations
+          :to "{{concat(state.automations, [{ id: 'new' + length(state.automations), title: 'untitled', icon: 'sparkles', on: true, ran: 'never', steps: [] }])}}"}
+        {:set state.autoTab :to list}
+        {:set state.autoOpen :to "{{length(state.automations) - 1}}"}]}
+    :addStep [{:note "with: part (when, if or do): the part's preset, at the end of the open automation"}
+      {:set "state.automations[state.autoOpen].steps"
+        :to "{{concat(state.automations[state.autoOpen].steps, [state.autoPresets[part]])}}"}]
+    :duplicateAutomation [{:note "A copy of the open automation, at the end of the list, opened"}
+      {:set state.automations
+        :to "{{concat(state.automations, [merge(computed.openAuto, { id: computed.openAuto.id + '-' + length(state.automations), title: computed.openAuto.title ?? computed.openAuto.id, ran: 'never' })])}}"}
+      {:set state.autoOpen :to "{{length(state.automations) - 1}}"}]
+    :stepAction [{:note "with: s, a step of the open automation, and what: duplicate or delete"}
+      {:set "state.automations[state.autoOpen].steps"
+        :to "{{what == 'delete' ? filter(state.automations[state.autoOpen].steps, index != s) : concat(slice(state.automations[state.autoOpen].steps, 0, s + 1), slice(state.automations[state.autoOpen].steps, s))}}"}]
+    :confirmDelete [{:set state.autoTarget :to "{{state.autoOpen}}"} {:set state.autoConfirm :to true}]
+    :rowAction [{:note "with: i, an automation in the list, and what: its row menu's choice (run, duplicate, enable or delete)"}
+      {:if "{{what == 'run'}}"
+        :then [{:set "{{'state.automations[' + i + '].ran'}}" :to now}
+          {:run notify
+            :with {:message "{{t('auto.ranNote', { name: t('rule.' + (state.automations[i].title ?? state.automations[i].id)) })}}"
+              :icon play}}]}
+      {:if "{{what == 'duplicate'}}" :then [{:set state.autoOpen :to "{{i}}"} {:run duplicateAutomation}]}
+      {:if "{{what == 'enable'}}"
+        :then [{:set "{{'state.automations[' + i + '].on'}}" :to "{{!state.automations[i].on}}"}]}
+      {:if "{{what == 'delete'}}" :then [{:set state.autoTarget :to "{{i}}"} {:set state.autoConfirm :to true}]}]
+    :deleteAutomation [{:note "Deletes the target automation, once confirmed, and goes back to the list"}
+      {:run notify
+        :with {:message "{{t('auto.deletedNote', { name: t('rule.' + (state.automations[state.autoTarget].title ?? state.automations[state.autoTarget].id)) })}}"
+          :icon trash-2}}
+      {:set state.automations :to "{{filter(state.automations, index != state.autoTarget)}}"}
+      {:set state.autoOpen :to -1}]
+    :runAutomation [{:note "Runs the open automation now: it reports in the notifications and its trace starts again"}
+      {:set "state.automations[state.autoOpen].ran" :to now}
+      {:run notify
+        :with {:message "{{t('auto.ranNote', { name: t('rule.' + (computed.openAuto.title ?? computed.openAuto.id)) })}}"
+          :icon play}}]
+    :changeSchedule [{:note "A schedule clip moved or trimmed: whole hours, at least one; it stays on its own track"}
+      {:set state.schedules
+        :to "{{map(state.schedules, it.id != (event.fromTrack ?? event.track) ? it : merge(it, { clips: map(it.clips, it.id != event.id ? it : merge(it, { start: clamp(round(event.start), 0, 23), duration: max(1, round(event.duration)) })) }))}}"}]}
+  :components {:notificationsPanel {:note "The notifications, beside the bell; Escape or a click outside closes them"
+      :params {}
+      :node {:dir auto
+        :overlay {:anchor "#bellButton"
+          :placement right
+          :flip true
+          :open state.notificationsOpen
+          :dismiss outside
+          :modal true}
+        :x 8
+        :width 320
+        :height 300
+        :radius 12
+        :color @card
+        :shadow {:y 6 :blur 18 :color "#00000040"}
+        :role dialog
+        :label "{{t('notify.title')}}"
+        :children [(node #notificationsTitle
+            :type label
+            :font heading
+            :icon bell
+            :text " {{t('notify.title')}}"
+            :textColor @text
+            :anchors {:left 16 :top 14}
+            :fitText true)
+          (node #notificationsClear
+            :style button
+            :font small
+            :text "{{t('notify.clear')}}"
+            :anchors {:right 12 :top 12}
+            :width 96
+            :height 26
+            :onClick clearNotifications)
+          (node #notificationsEmpty
+            :when "{{length(state.notifications) == 0}}"
+            :style caption
+            :text "{{t('notify.empty')}}"
+            :anchors {:left 16 :top 60})
+          (node #notificationList
+            :type column
+            :anchors {:left 8 :right 8 :top 50 :bottom 8}
+            :gap 4
+            :scroll vertical
+            :role list
+            :live polite
+            (node #notification
+              :repeat {:for note :in state.notifications :key "{{note.id}}"}
+              :type label
+              :font small
+              :icon "{{note.icon}}"
+              :text "  {{note.message}}"
+              :anchors {:left 0 :right 0}
+              :height 34
+              :padding 10
+              :radius 6
+              :align {:horizontal start :vertical center}
+              :color @raised
+              :textColor @text
+              :role listitem))]}}
+    :simulator {:note "No pixels: the timer of the simulated service"
+      :params {}
+      :node {:width 0 :height 0 :color transparent :every {:ms 10000 :do simulate}}}
+    :autoSection {:note "One part of the automation editor as a card: its steps, each with a remove button, and an add button"
+      :params {:part when :title "" :hint "" :addLabel ""}
+      :node {:style card
+        :anchors {:left 0 :right 12}
+        :height "{{max(1, length(filter(computed.openAuto.steps, it.part == part))) * 54 + 116}}"
+        :role group
+        :label "{{title}}"
+        :children [{:style cardTitle :text "{{title}}" :anchors {:left 20 :top 16}}
+          {:style caption :text "{{hint}}" :anchors {:left 20 :top 42}}
+          {:style caption
+            :when "{{length(filter(computed.openAuto.steps, it.part == part)) == 0}}"
+            :text "{{t('auto.empty')}}"
+            :anchors {:left 24 :top 80}}
+          {:type column
+            :anchors {:left 12 :right 12 :top 68}
+            :height "{{length(filter(computed.openAuto.steps, it.part == part)) * 54}}"
+            :gap 6
+            :role list
+            :label "{{title}}"
+            :children [(node #autoStep
+                :repeat {:for step :in computed.openAuto.steps :index s}
+                :when "{{step.part == part}}"
+                :anchors {:left 0 :right 0}
+                :height 48
+                :radius 12
+                :color @card
+                :borderWidth 1
+                :borderColor @border
+                :role listitem
+                {:type label
+                  :icon "{{step.icon}}"
+                  :text ""
+                  :textColor @accent
+                  :anchors {:left 16 :top 0 :bottom 0}
+                  :width 24
+                  :align center}
+                {:type label
+                  :text "{{t('rule.' + step.key)}}"
+                  :textColor @text
+                  :anchors {:left 48 :right 96 :top 0 :bottom 0}
+                  :align {:horizontal start :vertical center}}
+                {:type label
+                  :icon chevron-down
+                  :text ""
+                  :textColor @muted
+                  :anchors {:right 56 :top 12}
+                  :width 24
+                  :height 24
+                  :align center}
+                (node #autoStepMore
+                  :style button
+                  :icon ellipsis-vertical
+                  :text ""
+                  :color transparent
+                  :hover {:color @raised}
+                  :textColor @muted
+                  :anchors {:right 8 :top 4}
+                  :width 40
+                  :height 40
+                  :radius 20
+                  :label "{{t('auto.more')}}: {{t('rule.' + step.key)}}"
+                  :tooltip "{{t('auto.more')}}"
+                  :isOpen "{{state.stepMenu['s' + s] == true}}"
+                  :onClick {:toggle "{{'state.stepMenu.s' + s}}"}
+                  {:use popMenu
+                    :with {:open "{{'state.stepMenu.s' + s}}"
+                      :width 200
+                      :items [{:title "{{t('auto.duplicate')}}"
+                          :icon copy
+                          :run stepAction
+                          :with {:s "{{s}}" :what duplicate}}
+                        {:separator true}
+                        {:title "{{t('auto.delete')}}" :icon trash-2 :run stepAction :with {:s "{{s}}" :what delete}}]}}))]}
+          (node #"autoAdd-{{part}}"
+            :style button
+            :font small
+            :icon plus
+            :text " {{addLabel}}"
+            :color transparent
+            :textColor @accent
+            :borderWidth 1
+            :borderColor @border
+            :anchors {:left 20 :bottom 10}
+            :width 196
+            :height 36
+            :radius 18
+            :onClick {:run addStep :with {:part "{{part}}"}})]}}
+    :automationsPage {:note "The automations as a list and an editor of cards (when, and if, then do) with the last run; the rules as a node graph and the schedules of the day on a timeline"
+      :params {}
+      :node {:color transparent
+        :children [(node #automationsBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @header :role banner)
+          (node #automationsTitle
+            :when "{{state.autoOpen < 0 || state.autoTab == 'flow'}}"
+            :type label
+            :font heading
+            :text "{{t('page.automations')}}"
+            :textColor @onHeader
+            :anchors {:left 24 :right 24 :top 0}
+            :height 56
+            :align {:horizontal start :vertical center})
+          (node #autoTabs
+            :when "{{state.autoOpen < 0 || state.autoTab == 'flow'}}"
+            :type row
+            :anchors {:left 32 :top 68}
+            :width 260
+            :height 28
+            :gap 4
+            :role toolbar
+            :arrows horizontal
+            (node #autoTabList
+              :style "{{state.autoTab == 'list' ? 'choiceOn' : 'choice'}}"
+              :font small
+              :icon list
+              :text " {{t('auto.tabList')}}"
+              :grow 1
+              :basis 0
+              :anchors {:top 0 :bottom 0}
+              :selected "{{state.autoTab == 'list'}}"
+              :onClick {:set state.autoTab :to list})
+            (node #autoTabFlow
+              :style "{{state.autoTab == 'flow' ? 'choiceOn' : 'choice'}}"
+              :font small
+              :icon git-fork
+              :text " {{t('auto.tabFlow')}}"
+              :grow 1
+              :basis 0
+              :anchors {:top 0 :bottom 0}
+              :selected "{{state.autoTab == 'flow'}}"
+              :onClick {:set state.autoTab :to flow}))
+          (node #autoSearchBox
+            :when "{{state.autoTab == 'list' && state.autoOpen < 0}}"
+            :anchors {:left 308 :top 64}
+            :width 300
+            :height 36
+            :radius 18
+            :color @field
+            {:type label
+              :icon search
+              :text ""
+              :textColor @muted
+              :anchors {:left 10 :top 0 :bottom 0}
+              :width 24
+              :align center}
+            (node #autoSearch
+              :type textarea
+              :bind state.autoQuery
+              :placeholder "{{t('auto.search')}}"
+              :placeholderColor @muted
+              :textColor @text
+              :color transparent
+              :anchors {:left 38 :right 12 :top 0 :bottom 0}
+              :label "{{t('auto.search')}}"))
+          (node #autoNew
+            :when "{{state.autoTab == 'list' && state.autoOpen < 0}}"
+            :style button
+            :icon plus
+            :text " {{t('auto.new')}}"
+            :color @accent
+            :hover {:color @accent}
+            :textColor @onAccent
+            :anchors {:right 32 :bottom 32}
+            :width 208
+            :height 52
+            :radius 16
+            :shadow {:y 4 :blur 12 :color "#00000040"}
+            :onClick newAutomation)
+          {:use scrim :with {:open state.autoConfirm}}
+          (node #autoConfirm
+            :dir auto
+            :overlay {:placement center :open state.autoConfirm :dismiss outside :modal true}
+            :width 400
+            :height 156
+            :radius 28
+            :color @card
+            :shadow {:y 8 :blur 24 :color "#00000040"}
+            :role dialog
+            :label "{{t('auto.deleteTitle')}}"
+            {:type label
+              :font heading
+              :textColor @text
+              :text "{{t('auto.deleteTitle')}}"
+              :anchors {:left 24 :right 24 :top 24}
+              :height 24}
+            {:type label
+              :wrap true
+              :textColor @muted
+              :text "{{t('auto.deleteBody', { name: t('rule.' + (state.automations[state.autoTarget].title ?? state.automations[state.autoTarget].id)) })}}"
+              :anchors {:left 24 :right 24 :top 60 :bottom 60}}
+            {:style button
+              :color transparent
+              :textColor @accent
+              :hover {:color @accentSoft}
+              :text "{{t('auto.cancel')}}"
+              :anchors {:right 112 :bottom 16}
+              :width 88
+              :height 36
+              :radius 18
+              :onClick {:set state.autoConfirm :to false}}
+            {:style button
+              :color transparent
+              :textColor @alert
+              :hover {:color @alertSoft}
+              :text "{{t('auto.delete')}}"
+              :anchors {:right 16 :bottom 16}
+              :width 88
+              :height 36
+              :radius 18
+              :onClick [{:set state.autoConfirm :to false} {:run deleteAutomation}]})
+          (node #autoList
+            :when "{{state.autoTab == 'list' && state.autoOpen < 0}}"
+            :style card
+            :anchors {:left 32 :right 32 :top 112}
+            :height "{{min(max(1, computed.autoShown) * 64 + 56, computed.compact ? 420 : 520)}}"
+            {:style caption :text "{{t('auto.colName')}}" :anchors {:left 88 :top 14}}
+            {:style caption
+              :text "{{t('auto.colRan')}}"
+              :anchors {:right 128 :top 14}
+              :width 180
+              :height 16
+              :fitText false
+              :align {:horizontal start :vertical center}}
+            {:anchors {:left 0 :right 0 :top 44} :height 1 :color @border}
+            {:style caption
+              :when "{{computed.autoShown == 0}}"
+              :text "{{t('auto.noMatch')}}"
+              :anchors {:left 88 :top 70}}
+            {:type column
+              :anchors {:left 0 :right 0 :top 48 :bottom 6}
+              :scroll vertical
+              :role list
+              :label "{{t('page.automations')}}"
+              :children [(node #autoRow
+                  :repeat {:for auto :in state.automations :index i :key "{{auto.id}}"}
+                  :anchors {:left 0 :right 0}
+                  :when "{{(state.autoQuery == '' || contains(lower(t('rule.' + (auto.title ?? auto.id))), lower(trim(state.autoQuery))))}}"
+                  :height 64
+                  :color transparent
+                  :role listitem
+                  (node #autoRowOpen
+                    :anchors {:left 8 :right 8 :top 4 :bottom 4}
+                    :radius 8
+                    :color transparent
+                    :hover {:color @raised}
+                    :cursor hand
+                    :focusable true
+                    :role button
+                    :label "{{t('rule.' + (auto.title ?? auto.id))}}"
+                    :onClick {:run openAutomation :with {:i "{{i}}"}}
+                    {:type label
+                      :icon "{{auto.icon}}"
+                      :text ""
+                      :anchors {:left 12 :top 8}
+                      :width 40
+                      :height 40
+                      :radius 20
+                      :align center
+                      :color "{{auto.on ? '@accentSoft' : '@raised'}}"
+                      :textColor "{{auto.on ? '@accent' : '@muted'}}"}
+                    {:type label
+                      :text "{{t('rule.' + (auto.title ?? auto.id))}}"
+                      :textColor "{{auto.on ? '@text' : '@muted'}}"
+                      :anchors {:left 68 :right 320 :top 0 :bottom 0}
+                      :align {:horizontal start :vertical center}}
+                    {:type label
+                      :font small
+                      :text "{{t('ran.' + auto.ran)}}"
+                      :textColor @muted
+                      :anchors {:right 120 :top 0 :bottom 0}
+                      :width 180
+                      :align {:horizontal start :vertical center}})
+                  (node #autoRowMore
+                    :style button
+                    :icon ellipsis-vertical
+                    :text ""
+                    :color transparent
+                    :hover {:color @raised}
+                    :textColor @muted
+                    :anchors {:right 16 :top 12}
+                    :width 40
+                    :height 40
+                    :radius 20
+                    :label "{{t('auto.more')}}: {{t('rule.' + (auto.title ?? auto.id))}}"
+                    :tooltip "{{t('auto.more')}}"
+                    :isOpen "{{state.autoRowMenu[auto.id] == true}}"
+                    :onClick {:toggle "{{'state.autoRowMenu.' + auto.id}}"}
+                    {:use popMenu
+                      :with {:open "{{'state.autoRowMenu.' + auto.id}}"
+                        :width 200
+                        :items [{:title "{{t('auto.run')}}" :icon play :run rowAction :with {:i "{{i}}" :what run}}
+                          {:title "{{t('auto.duplicate')}}"
+                            :icon copy
+                            :run rowAction
+                            :with {:i "{{i}}" :what duplicate}}
+                          {:title "{{t(auto.on ? 'auto.disable' : 'auto.enable')}}"
+                            :icon "{{auto.on ? 'circle-off' : 'check-circle'}}"
+                            :run rowAction
+                            :with {:i "{{i}}" :what enable}}
+                          {:separator true}
+                          {:title "{{t('auto.delete')}}" :icon trash-2 :run rowAction :with {:i "{{i}}" :what delete}}]}})
+                  {:when "{{i < length(state.automations) - 1}}"
+                    :anchors {:left 24 :right 24 :bottom 0}
+                    :height 1
+                    :color @border})]})
+          (node #autoEditor
+            :when "{{state.autoTab == 'list' && state.autoOpen >= 0}}"
+            :anchors {:left 0 :right 0 :top 0 :bottom 0}
+            :color transparent
+            (node #autoBack
+              :style button
+              :icon arrow-left
+              :mirror true
+              :text ""
+              :color transparent
+              :hover {:color @headerHover}
+              :textColor @onHeader
+              :anchors {:left 12 :top 8}
+              :width 40
+              :height 40
+              :radius 20
+              :label "{{t('auto.back')}}"
+              :tooltip "{{t('auto.back')}}"
+              :onClick {:run openAutomation :with {:i -1}})
+            (node #autoName
+              :type label
+              :font heading
+              :icon "{{computed.openAuto.icon}}"
+              :text "  {{t('rule.' + (computed.openAuto.title ?? computed.openAuto.id))}}"
+              :textColor @onHeader
+              :anchors {:left 64 :right 72 :top 0}
+              :height 56
+              :align {:horizontal start :vertical center})
+            (node #autoMoreAnchor :anchors {:right 16 :top 8} :width 40 :height 40 :color transparent
+              (node #autoMenu
+                :use popMenu
+                :with {:open state.autoMenu
+                  :width 200
+                  :items [{:title "{{t('auto.run')}}" :icon play :run runAutomation :with nil}
+                    {:title "{{t(computed.openAuto.on ? 'auto.disable' : 'auto.enable')}}"
+                      :icon "{{computed.openAuto.on ? 'circle-off' : 'check-circle'}}"
+                      :run rowAction
+                      :with {:i "{{state.autoOpen}}" :what enable}}
+                    {:title "{{t('auto.duplicate')}}" :icon copy :run duplicateAutomation}
+                    {:separator true}
+                    {:title "{{t('auto.delete')}}" :icon trash-2 :run confirmDelete}]}))
+            (node #autoMore
+              :style button
+              :icon ellipsis-vertical
+              :text ""
+              :color transparent
+              :hover {:color @headerHover}
+              :textColor @onHeader
+              :anchors {:right 16 :top 8}
+              :width 40
+              :height 40
+              :radius 20
+              :label "{{t('auto.more')}}"
+              :tooltip "{{t('auto.more')}}"
+              :isOpen "{{state.autoMenu}}"
+              :onClick {:toggle state.autoMenu})
+            (node #autoOffBanner
+              :when "{{!computed.openAuto.on}}"
+              :anchors {:left 32 :right "{{computed.compact ? 32 : 364}}" :top 80}
+              :height 48
+              :radius 8
+              :color @warmSoft
+              :role status
+              {:type label
+                :icon info
+                :text "  {{t('auto.offBanner')}}"
+                :textColor @text
+                :anchors {:left 16 :right 120 :top 0 :bottom 0}
+                :align {:horizontal start :vertical center}}
+              (node #autoOffEnable
+                :style button
+                :text "{{t('auto.enable')}}"
+                :color transparent
+                :hover {:color @accentSoft}
+                :textColor @accent
+                :anchors {:right 8 :top 6}
+                :padding 12
+                :fitText true
+                :height 36
+                :radius 18
+                :onClick {:run rowAction :with {:i "{{state.autoOpen}}" :what enable}}))
+            (node #autoParts
+              :type column
+              :anchors {:left 32
+                :right "{{computed.compact ? 32 : 364}}"
+                :top "{{computed.openAuto.on ? 88 : 144}}"
+                :bottom 0}
+              :gap 12
+              :scroll vertical
+              {:use autoSection
+                :with {:part when
+                  :title "{{t('auto.when')}}"
+                  :hint "{{t('auto.whenHint')}}"
+                  :addLabel "{{t('auto.addWhen')}}"}}
+              {:use autoSection
+                :with {:part if :title "{{t('auto.if')}}" :hint "{{t('auto.ifHint')}}" :addLabel "{{t('auto.addIf')}}"}}
+              {:use autoSection
+                :with {:part do
+                  :title "{{t('auto.then')}}"
+                  :hint "{{t('auto.thenHint')}}"
+                  :addLabel "{{t('auto.addDo')}}"}}
+              {:anchors {:left 0 :right 0} :height 12 :color transparent})
+            (node #autoTrace
+              :when "{{!computed.compact}}"
+              :style card
+              :anchors {:right 32 :top 88 :bottom 24}
+              :width 316
+              :role group
+              :label "{{t('auto.trace')}}"
+              {:style cardTitle :icon history :text " {{t('auto.trace')}}" :anchors {:left 20 :top 16}}
+              {:style caption
+                :text "{{computed.openAuto.ran == 'never' ? t('auto.traceNever') : t('ran.' + computed.openAuto.ran)}}"
+                :anchors {:left 20 :top 44}}
+              {:type column
+                :when "{{computed.openAuto.ran != 'never'}}"
+                :anchors {:left 20 :right 16 :top 78 :bottom 12}
+                :scroll vertical
+                :role list
+                :label "{{t('auto.trace')}}"
+                :children [{:repeat {:for step :in computed.openAuto.steps :index s}
+                    :anchors {:left 0 :right 0}
+                    :height 52
+                    :color transparent
+                    :role listitem
+                    :children [{:when "{{s < length(computed.openAuto.steps) - 1}}"
+                        :anchors {:left 11 :top 26 :bottom 0}
+                        :width 2
+                        :color @border}
+                      {:type label
+                        :icon check
+                        :text ""
+                        :font small
+                        :anchors {:left 0 :top 0}
+                        :width 24
+                        :height 24
+                        :radius 12
+                        :align center
+                        :color @accentSoft
+                        :textColor @accent}
+                      {:type label
+                        :font small
+                        :text "{{t('rule.' + step.key)}}"
+                        :textColor @text
+                        :anchors {:left 36 :right 0 :top 3}
+                        :height 18
+                        :align {:horizontal start :vertical center}}
+                      {:style caption
+                        :text "{{t('trace.' + step.part)}}  ·  +{{fixed(s * 0.12, 2)}} s"
+                        :anchors {:left 36 :top 25}}]}]}))
+          (node #automationsSummary
+            :when "{{state.autoTab == 'flow'}}"
+            :style caption
+            :text "{{t('auto.summary')}}"
+            :anchors {:left 308 :top 73})
+          (node #autoAdd
+            :when "{{state.autoTab == 'flow'}}"
+            :type row
+            :anchors {:right 32 :top 28}
+            :width 330
+            :height 30
+            :gap 6
+            :role toolbar
+            :arrows horizontal
+            (node #autoAddLabel :style caption :text "{{t('auto.add')}}" :anchors {:top 8})
+            (node #autoAddTime
+              :style button
+              :font small
+              :icon clock-3
+              :text " {{t('auto.addTime')}}"
+              :grow 1
+              :anchors {:top 0 :bottom 0}
+              :onClick {:run addAutoNode :with {:node {:kind time :outputs [(node #when :kind event)]}}})
+            (node #autoAddDark
+              :style button
+              :font small
+              :icon moon
+              :text " {{t('auto.addDark')}}"
+              :grow 1
+              :anchors {:top 0 :bottom 0}
+              :onClick {:run addAutoNode
+                :with {:node {:kind dark :inputs [(node #if :kind event)] :outputs [(node #then :kind event)]}}})
+            (node #autoAddScene
+              :style button
+              :font small
+              :icon sparkles
+              :text " {{t('auto.addScene')}}"
+              :grow 1
+              :anchors {:top 0 :bottom 0}
+              :onClick {:run addAutoNode :with {:node {:kind scene :inputs [(node #do :kind event)]}}}))
+          (node #autoCard
+            :when "{{state.autoTab == 'flow'}}"
+            :style card
+            :anchors {:left 32 :right 32 :top 104 :bottom "#scheduleCard.top - 16"}
+            (node #autoGraph
+              :type graph
+              :fill 8
+              :focusable true
+              :label "{{t('auto.graph')}}"
+              :nodes "{{computed.autoGraph}}"
+              :links "{{state.autoLinks}}"
+              :color @field
+              :minimap "{{!computed.compact}}"
+              :nodeColor @raised
+              :headerColor @raisedHover
+              :textColor @text
+              :accentColor @accent
+              :kindColors {:event @warm}
+              :onConnect [{:set state.autoLinks
+                  :to "{{concat(state.autoLinks, [{ from: event.from, output: event.output, to: event.to, input: event.input }])}}"}]
+              :onDisconnect [{:set state.autoLinks :to "{{filter(state.autoLinks, index != event.index)}}"}]
+              :onMove [{:set state.autoNodes
+                  :to "{{map(state.autoNodes, contains(event.ids, it.id) ? merge(it, { x: it.x + event.dx, y: it.y + event.dy }) : it)}}"}]
+              :onSelect [{:set state.autoSelected :to "{{event.ids}}"}]
+              :onDelete [{:set state.autoLinks
+                  :to "{{filter(state.autoLinks, !contains(event.ids, it.from) && !contains(event.ids, it.to))}}"}
+                {:set state.autoNodes :to "{{filter(state.autoNodes, !contains(event.ids, it.id))}}"}
+                {:set state.autoSelected :to []}]))
+          (node #scheduleCard
+            :when "{{state.autoTab == 'flow'}}"
+            :style card
+            :anchors {:left 32 :right 32 :bottom 24}
+            :height "{{computed.compact ? 156 : 196}}"
+            (node #scheduleTitle
+              :style caption
+              :icon calendar-clock
+              :text " {{t('schedule.title')}}"
+              :anchors {:left 16 :top 12})
+            (node #schedule
+              :type timeline
+              :anchors {:left 8 :right 8 :top 34 :bottom 8}
+              :tracks "{{computed.scheduleTracks}}"
+              :duration 24
+              :fps 1
+              :pixelsPerSecond "{{max(16, (window.width - computed.sideWidth - 64 - 16 - 140) / 24)}}"
+              :offset 0
+              :time 14
+              :headerWidth 140
+              :trackHeight "{{computed.compact ? 30 : 40}}"
+              :label "{{t('schedule.title')}}"
+              :color @card
+              :clipColor @accent
+              :headerColor @field
+              :textColor @text
+              :accentColor @accent
+              :onClipChange changeSchedule
+              (node #scheduleHeader
+                :repeat {:for track :in computed.scheduleTracks}
+                :type label
+                :font small
+                :text "{{track.label}}"
+                :textColor @text
+                :fill 0
+                :padding 10
+                :align {:horizontal start :vertical center})))]}}}}

@@ -1,7 +1,7 @@
 {
 	"id": "habit-add",
 	"level": "edit",
-	"screen": "examples/streak/index.screen.json",
+	"screen": "examples/streak/json/index.screen.json",
 	"request": "Show the archived habits in the habit list too, so that Guitar appears as its last row (#label-hb-name).",
 	"scenarios": [
 		{

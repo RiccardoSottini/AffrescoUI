@@ -73,7 +73,7 @@ private:
 
 /// @brief The shipped screens' folder.
 /// @return It.
-std::filesystem::path screens() { return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow"; }
+std::filesystem::path screens() { return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow" / "json"; }
 
 /// @brief A JSON file.
 /// @param path Its path.
@@ -240,7 +240,7 @@ TEST_CASE("change set repair: the template changes, the fake agent repairs it, t
 	ThreadedExecutor executor;
 	// The channels first: a connected channel must outlive the screen, which says goodbye on it when it closes
 	affresco::test::MemoryChannel studio;
-	const std::string agentScript = (screens() / "../../tests/repair/fake_agent.py").string();
+	const std::string agentScript = (screens() / "../../../tests/repair/fake_agent.py").string();
 	affresco::channel::ProcessChannel agent(executor, "python3 \"" + agentScript + "\"");
 	affresco::Screen screen = affresco::Screen::fromString(kanban(renameDone).dump(), screens());
 	screen.setProofCheck(playProof);

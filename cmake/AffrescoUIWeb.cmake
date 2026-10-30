@@ -78,6 +78,12 @@ function(affrescoui_web_programs)
 			foreach(folder ${folders} shared)
 				target_link_options(${program} PRIVATE
 					"SHELL:--preload-file ${PROJECT_SOURCE_DIR}/examples/${folder}@/assets/${folder}")
+				# What an example's two notations have in common, beside its JSON folder
+				cmake_path(GET folder PARENT_PATH example)
+				if(example AND EXISTS ${PROJECT_SOURCE_DIR}/examples/${example}/assets)
+					target_link_options(${program} PRIVATE
+						"SHELL:--preload-file ${PROJECT_SOURCE_DIR}/examples/${example}/assets@/assets/${example}/assets")
+				endif()
 			endforeach()
 			target_link_options(${program} PRIVATE "SHELL:--exclude-file *.cpp" "SHELL:--exclude-file *.hpp")
 		endforeach()

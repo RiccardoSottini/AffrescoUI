@@ -8,8 +8,8 @@ Launcher ([`../../examples/launcher`](../../examples/launcher/README.md)), which
 
 ```sh
 ./build/affrescoui_launcher [app folder | app.json | screen.json] [--socket DIR] [--data DIR] [--grant KEY ...]
-./build/affrescoui_launcher --permissions examples/tempo                  # forget what the person allowed Tempo
-AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_launcher examples/flow   # the first frame, then exit
+./build/affrescoui_launcher --permissions examples/tempo/json                # forget what the person allowed Tempo
+AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_launcher examples/flow/json # the first frame, then exit
 ```
 
 The app may use nothing its `app.json` declares (origins, folders, programs, sound, the assistant) until the person

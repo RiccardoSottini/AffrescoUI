@@ -34,7 +34,7 @@ namespace {
 
 namespace automation = affresco::automation;
 
-/// The public key of Forge's example catalogue's publisher (examples/forge/catalog, its README). Its private half was
+/// The public key of Forge's example catalogue's publisher (examples/forge/json/catalog, its README). Its private half was
 /// discarded once the catalogue was signed, so nothing more can be signed with it.
 constexpr std::string_view examplePublisher = "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc";
 
@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
 	try {
 		automation::Options options;
 		options.policy = automation::Goldens::RecordMissing;
-		// As the host grants Forge (examples/forge/app.json): its scenarios see forge/folder open as the workspace, a
+		// As the host grants Forge (examples/forge/json/app.json): its scenarios see forge/folder open as the workspace, a
 		// shell, sh and git, its example catalogue, and no file dialog. No language server or debug adapter is granted:
 		// the scenarios mirror their answers.
 		const auto copies = std::make_shared<FolderCopies>();

@@ -1,0 +1,585 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's editor (features/editor), checked headless with tests/render/forge/folder open; nothing is saved, so the folder stays as it is: affrescoui_render_runner editor.scenarios.json",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "forge-editor-buffer-not-state",
+			"note": "An open file's text is kept by the editor node, not the state: the document only lists the file",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].kind",
+						"is": "file"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-typing-marks-dirty",
+			"note": "An edit makes the buffer dirty: the doc says so and the tab is no longer a preview",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"exists": true
+					}
+				},
+				{
+					"click": "#editor"
+				},
+				{
+					"type": "x"
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs[0].preview",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-undo-to-clean",
+			"note": "Undoing the only edit makes the buffer equal to its file, so it is clean again",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"exists": true
+					}
+				},
+				{
+					"click": "#editor"
+				},
+				{
+					"type": "x"
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-revert",
+			"note": "Revert File reads the file again and drops the edits",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"exists": true
+					}
+				},
+				{
+					"click": "#editor"
+				},
+				{
+					"type": "x"
+				},
+				{
+					"action": "revertFile"
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-close-releases-the-buffer",
+			"note": "Closing a clean file's last tab closes its buffer and forgets the doc",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "closeEditor"
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-dirty-close-keeps-the-buffer",
+			"note": "Closing a dirty file's tab keeps its buffer: opening it again shows the edits",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"exists": true
+					}
+				},
+				{
+					"click": "#editor"
+				},
+				{
+					"type": "x"
+				},
+				{
+					"action": "closeEditor"
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				},
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-split-shares-the-buffer",
+			"note": "Both groups show the same buffer: an edit in the second leaves one dirty doc, and closing one tab keeps it",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "splitEditor"
+				},
+				{
+					"expect": {
+						"state": "groups.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"exists": true
+					}
+				},
+				{
+					"click": "#editor",
+					"nth": 1
+				},
+				{
+					"type": "y"
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				},
+				{
+					"action": "revertFile"
+				},
+				{
+					"action": "closeEditor"
+				},
+				{
+					"expect": {
+						"state": "groups.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-preview-tab",
+			"note": "Selecting a file in the explorer opens it as a preview; selecting another replaces the preview, and its buffer is closed",
+			"steps": [
+				{
+					"expect": {
+						"node": "#explorer",
+						"exists": true
+					}
+				},
+				{
+					"click": "#explorer"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs[0].id",
+						"is": "README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs[0].preview",
+						"is": true
+					}
+				},
+				{
+					"key": "up",
+					"note": "a folder opens nothing"
+				},
+				{
+					"key": "right"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs[0].id",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs[0].preview",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-keep-editor",
+			"note": "Keep Editor pins the preview, so the next preview opens beside it; a double click pins too",
+			"steps": [
+				{
+					"expect": {
+						"node": "#explorer",
+						"exists": true
+					}
+				},
+				{
+					"click": "#explorer"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"action": "keepEditor"
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs[0].preview",
+						"is": false
+					}
+				},
+				{
+					"key": "up"
+				},
+				{
+					"key": "right"
+				},
+				{
+					"key": "down"
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs[1].preview",
+						"is": true
+					}
+				},
+				{
+					"key": "enter",
+					"note": "opens the selected file: pins it"
+				},
+				{
+					"expect": {
+						"state": "groups[0].tabs[1].preview",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-problems-from-the-buffers",
+			"note": "Scan for Problems reads the buffers natively, edits included",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"exists": true
+					}
+				},
+				{
+					"click": "#editor"
+				},
+				{
+					"key": "mod+home"
+				},
+				{
+					"type": "// TODO tidy\n"
+				},
+				{
+					"action": "scanProblems"
+				},
+				{
+					"expect": {
+						"state": "problems.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "problems[0].line",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "problems[0].severity",
+						"is": "info"
+					}
+				},
+				{
+					"expect": {
+						"state": "problems[0].file",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"action": "revertFile"
+				},
+				{
+					"action": "scanProblems"
+				},
+				{
+					"expect": {
+						"state": "problems.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-open-outside-the-folder",
+			"note": "A path that leaves the open folder opens nothing and says why",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "../README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs.length",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-line-commands",
+			"note": "The editor's line commands: Cmd+/ comments the line in the file's language, Alt+Down moves it, Cmd+Shift+K deletes it; undoing them all leaves the file clean",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"exists": true
+					}
+				},
+				{
+					"click": "#editor"
+				},
+				{
+					"key": "mod+home"
+				},
+				{
+					"key": "mod+slash"
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				},
+				{
+					"key": "alt+down"
+				},
+				{
+					"key": "mod+shift+k"
+				},
+				{
+					"expect": {
+						"state": "docs[0].text",
+						"is": "\nint main() {\n    std::cout << \"hello\\n\";\n    return 0;\n}\n"
+					}
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"key": "mod+z"
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": false
+					}
+				}
+			]
+		}
+	]
+}

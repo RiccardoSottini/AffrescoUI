@@ -1,0 +1,28 @@
+{:$schema "../../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "The assistant add-on end to end (e2e_test.py): a page that includes it, where a timer stands in for the person. It asks once before any agent is connected (the offline answer), then, once one is, asks for a new title and accepts the proposal card that comes back, then asks for a colour and rejects that card, as a person would with the card's buttons."
+  :include [assistant.lisp]
+  :window {:title "Assistant end to end" :width 800 :height 700}
+  :fonts {:default {:file "../../fonts/Roboto-Regular.ttf" :size 14}}
+  :permissions {:allow [studio] :ask [agent] :reviewers [studio]}
+  :state {:step offline}
+  :onLoad [{:run assistant.open} {:run assistant.ask :with {:text "Is anyone there?"}} {:set state.step :to waiting}]
+  :actions {:person.decide [{:if "{{state.step == 'rename'}}"
+        :then [{:run assistant.accept :with (node #"{{card.id}}")}
+          {:set state.step :to recolour}
+          {:run assistant.ask :with {:text "Make the title red"}}]
+        :else [{:run assistant.reject :with (node #"{{card.id}}")} {:set state.step :to done}]}]}
+  :root {:color "#ffffff"
+    :children [(node #pageTitle :type label :text Tasks :textColor "#1f2328" :anchors {:left 24 :top 24} :fitText true)
+      (node #person
+        :anchors {:left 0 :top 0}
+        :width 1
+        :height 1
+        :every {:ms 100
+          :do [{:if "{{state.step == 'waiting' && length(peers) > 0}}"
+              :then [{:set state.step :to rename} {:run assistant.ask :with {:text "Rename the page to Board"}}]}
+            {:forEach "{{filter(state.assistant.messages, it.kind == 'card')}}"
+              :as card
+              :do [{:if "{{find(proposals, it.id == card.id) != null}}"
+                  :then [{:run person.decide :with {:card "{{card}}"}}]}]}]})]}}

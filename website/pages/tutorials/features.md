@@ -27,12 +27,12 @@ with the status bar, which offers the point `statusBar.right`, in `parts/status-
 A feature is published as a manifest. This is the word count of the example IDE, whose toggle goes in its View menu:
 
 ```json
---8<-- "examples/forge/features/word-count/feature.json"
+--8<-- "examples/forge/json/features/word-count/feature.json"
 ```
 
 ## Installing from a catalogue
 
-A catalogue (`examples/forge/catalog/index.json`) lists each feature's releases with a digest and the publisher's
+A catalogue (`examples/forge/json/catalog/index.json`) lists each feature's releases with a digest and the publisher's
 key, and is signed. The host decides which publishers and catalogues it trusts (`screen.features().trustPublisher(...)`,
 then `addCatalog(...)`); nothing is trusted until it does. The example catalogue is signed with a throwaway key that
 only the rendering check trusts: the stock host doesn't offer catalogues yet. The `features` service installs and

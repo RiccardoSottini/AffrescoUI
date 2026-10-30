@@ -6,6 +6,7 @@
 
 #include "Engine.hpp"
 #include "NodeKeys.hpp"
+#include "affresco/format/App.hpp"
 
 #include <affresco/audio/Engine.hpp>
 #include <affresco/audio/Sound.hpp>
@@ -93,15 +94,15 @@ struct AudioPlayers::Impl {
 	/// @param engine The runtime.
 	Impl(AudioPlayers& self, Engine& engine) : owner(self), runtime(engine) {}
 
-	AudioPlayers& owner;                                                       ///< For the network.
-	Engine& runtime;                                                           ///< The runtime.
-	std::shared_ptr<audio::Engine> audio;                                      ///< See setEngine().
+	AudioPlayers& owner;                                                        ///< For the network.
+	Engine& runtime;                                                            ///< The runtime.
+	std::shared_ptr<audio::Engine> audio;                                       ///< See setEngine().
 	std::map<std::string, std::shared_ptr<audio::Source>, std::less<>> sources; ///< See setSource().
-	std::vector<std::filesystem::path> folders;                                ///< See allowDirectory().
-	std::map<std::string, Player, std::less<>> players;                       ///< The sounds used so far.
-	std::vector<std::unique_ptr<network::Transfer>> retired;                   ///< See retire().
-	std::uint64_t generation = 0;                                              ///< The last voice made.
-	std::shared_ptr<bool> alive = std::make_shared<bool>(true);                ///< Expires with this.
+	std::vector<std::filesystem::path> folders;                                 ///< See allowDirectory().
+	std::map<std::string, Player, std::less<>> players;                         ///< The sounds used so far.
+	std::vector<std::unique_ptr<network::Transfer>> retired;                    ///< See retire().
+	std::uint64_t generation = 0;                                               ///< The last voice made.
+	std::shared_ptr<bool> alive = std::make_shared<bool>(true);                 ///< Expires with this.
 
 	/// @brief The declaration of a sound in the document, or null.
 	/// @param name The sound.
@@ -169,21 +170,20 @@ struct AudioPlayers::Impl {
 	void publish(const std::string& name, const Player& player) {
 		if(!player.spec.contains("into")) return;
 		const std::string at = "audio." + name + ".into";
-		const json state = {
-		    {"status", player.status},
-		    {"playing", player.status == "playing"},
-		    {"position", milliseconds(player.position)},
-		    {"duration", player.duration ? json(milliseconds(*player.duration)) : json(nullptr)},
-		    {"progress", player.duration && *player.duration > 0
-		                     ? json(std::clamp(player.position / *player.duration, 0.0, 1.0))
-		                     : json(nullptr)},
-		    {"volume", player.volume},
-		    {"pan", player.pan},
-		    {"rate", player.rate},
-		    {"loop", player.loop},
-		    {"level", std::round(player.level * 1000) / 1000},
-		    {"underruns", player.underruns},
-		    {"error", player.error ? json(*player.error) : json(nullptr)}};
+		const json state = {{"status", player.status},
+		                    {"playing", player.status == "playing"},
+		                    {"position", milliseconds(player.position)},
+		                    {"duration", player.duration ? json(milliseconds(*player.duration)) : json(nullptr)},
+		                    {"progress", player.duration && *player.duration > 0
+		                                     ? json(std::clamp(player.position / *player.duration, 0.0, 1.0))
+		                                     : json(nullptr)},
+		                    {"volume", player.volume},
+		                    {"pan", player.pan},
+		                    {"rate", player.rate},
+		                    {"loop", player.loop},
+		                    {"level", std::round(player.level * 1000) / 1000},
+		                    {"underruns", player.underruns},
+		                    {"error", player.error ? json(*player.error) : json(nullptr)}};
 		try {
 			const json::json_pointer pointer = statePointer(player.spec["into"].get<std::string>(),
 			                                                runtime.document.context(Scope{}, emptyObject()), at);
@@ -225,7 +225,9 @@ struct AudioPlayers::Impl {
 		}
 		const json data = {{"position", milliseconds(event.position)}, {"message", event.message}};
 		switch(event.type) {
-		case audio::EventType::Position: publish(name, player); return;
+		case audio::EventType::Position:
+			publish(name, player);
+			return;
 		case audio::EventType::Started:
 			player.status = "playing";
 			publish(name, player);
@@ -277,6 +279,8 @@ struct AudioPlayers::Impl {
 		path = resolved(path);
 		std::vector<std::filesystem::path> allowed = folders;
 		if(!base.empty()) allowed.push_back(resolved(base));
+		if(const std::filesystem::path assets = format::notationAssets(base); !assets.empty())
+			allowed.push_back(resolved(assets));
 		if(std::ranges::none_of(allowed, [&](const std::filesystem::path& folder) { return isInside(path, folder); })) {
 			error = "'" + std::filesystem::path(file).filename().string() +
 			        "' is outside the folders the host allows (the screen's own, Screen::allowAudioDirectory)";
@@ -426,9 +430,8 @@ struct AudioPlayers::Impl {
 		const double ms = step.contains("ms") ? numberIn(step["ms"], where + ".ms", 0, 3600000) : 0;
 		std::optional<std::string> problem;
 		if(operation == "play" || (operation == "toggle" && player.status != "playing")) {
-			problem = play(name, player, step.contains("from")
-			                                  ? json(numberIn(step["from"], where + ".from", 0, 1e9))
-			                                  : json());
+			problem = play(name, player,
+			               step.contains("from") ? json(numberIn(step["from"], where + ".from", 0, 1e9)) : json());
 		} else if(operation == "pause" || operation == "toggle") {
 			if(player.voice) player.voice->pause();
 			if(player.status == "playing") player.status = "paused";
@@ -532,8 +535,8 @@ std::optional<double> probeSound(const std::string& bytes, std::string_view type
 	                             : type == "audio/flac" ? audio::Encoding::Flac
 	                                                    : audio::Encoding::Mp3;
 	std::string error;
-	const auto seconds = audio::probeSeconds(
-	    std::span(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size()), hint, error);
+	const auto seconds =
+	    audio::probeSeconds(std::span(reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size()), hint, error);
 	if(!seconds) throw DocumentError("the sound doesn't play (" + error + ")");
 	return seconds;
 }

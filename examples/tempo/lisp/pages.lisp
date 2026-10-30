@@ -1,0 +1,601 @@
+{:note "Tempo's pages beside the playlists and the library, included by index.screen.json: albums and artists in a grid, one album or artist in a table, search, now playing (cover, visualiser, lyrics), sound (equaliser, crossfade, theme, language) and the mini player."
+  :state {:collection {:kind album :name ""}
+    :collectionPick nil
+    :search ""
+    :searchPick nil
+    :eq {:points [[0 0.5] [0.25 0.5] [0.5 0.5] [0.75 0.5] [1 0.5]]}
+    :eqOn true
+    :tileColors ["#f2b544" "#7dd3fc" "#c4b5fd" "#fda4af" "#5eead4" "#fdba74" "#a5b4fc" "#f0abfc"]
+    :bands [{:label "60 Hz" :at 0}
+      {:label "250 Hz" :at 0.25}
+      {:label "1 kHz" :at 0.5}
+      {:label "4 kHz" :at 0.75}
+      {:label "16 kHz" :at 1}]
+    :presets {:flat [[0 0.5] [0.25 0.5] [0.5 0.5] [0.75 0.5] [1 0.5]]
+      :bass [[0 0.8] [0.25 0.68] [0.5 0.5] [0.75 0.48] [1 0.46]]
+      :vocal [[0 0.4] [0.25 0.48] [0.5 0.7] [0.75 0.62] [1 0.45]]
+      :treble [[0 0.46] [0.25 0.48] [0.5 0.52] [0.75 0.68] [1 0.8]]}
+    :lyrics ["Count the lights along the river"
+      "Every window keeps a song"
+      "We were drawing in the margins"
+      "Of a page that ran too long"
+      "Hold the line until the morning"
+      "Let the echoes find their way"
+      "All the signals in the static"
+      "Turn to colour, turn to grey"
+      "Keep the rhythm, keep it steady"
+      "Close your eyes and let it play"]}
+  :computed {:contentWidth "{{state.queueOpen ? clamp(state.sizes[0], 480, window.width - 492) : window.width - 248}}"
+    :browseItems "{{state.page == 'artists' ? map(state.words.artists, { name: it, kind: 'artist', count: 250, hue: index }) : map(state.words.albums, { name: it, kind: 'album', count: (33 + (index < 6 ? 1 : 0)) * 5, hue: index })}}"
+    :browseColumns "{{clamp(floor((computed.contentWidth - 48) / 176), 2, 8)}}"
+    :collectionRows "{{state.page != 'collection' ? [] : filter(computed.library, state.collection.kind == 'album' ? it.cells[3] == state.collection.name : it.cells[2] == state.collection.name)}}"
+    :collectionHue "{{state.collection.kind == 'album' ? indexOf(state.words.albums, state.collection.name) : indexOf(state.words.artists, state.collection.name)}}"
+    :likedSongs "{{filter(map(state.liked, { id: it, list: number(split(it, ':')[0]), track: number(split(it, ':')[1]) }), it.list < 0 ? it.track < length(computed.library) : it.track < (computed.listSizes[it.list] ?? 0))}}"
+    :likedRows "{{map(computed.likedSongs, merge(it, { cells: it.list < 0 ? slice(computed.library[it.track].cells, 1) : [data.playlists[it.list].tracks[it.track].title, data.playlists[it.list].tracks[it.track].artist, data.playlists[it.list].tracks[it.track].album, data.playlists[it.list].tracks[it.track].time] }))}}"
+    :searchRows "{{state.page != 'search' || trim(state.search) == '' ? [] : filter(computed.library, fuzzy(trim(state.search), it.cells[1] + ' ' + it.cells[2]) != null)}}"
+    :fade "{{settings.playback.crossfade > 0 && length(state.queue) > 0 ? clamp((computed.duration - state.elapsed) / settings.playback.crossfade, 0, 1) : 1}}"
+    :crossfading "{{state.isPlaying && computed.fade < 1}}"
+    :nextTitle "{{computed.queueSongs[0].title ?? ''}}"
+    :lyricLine "{{(floor(state.elapsed / 12) + state.playingTrack) % 10}}"
+    :lyricWindow "{{map(range(5), { text: state.lyrics[(computed.lyricLine + index + 8) % 10], current: index == 2 })}}"
+    :spectrum "{{(state.soundOn == 'beat' ? state.beat.spectrum : state.sounds[state.soundOn].spectrum) ?? []}}"
+    :barHeights "{{map(range(32), clamp(0.04 + (computed.spectrum[index] ?? 0) * computed.fade * (state.eqOn ? curve(state.eq, index / 31) * 2 : 1), 0.04, 1))}}"
+    :bars "{{join(map(computed.barHeights, 'M ' + (index * 10 + 2) + ' ' + (84 - it * 80) + ' h 6 V 84 h -6 Z'), ' ')}}"
+    :barReflections "{{join(map(computed.barHeights, 'M ' + (index * 10 + 2) + ' 86 h 6 V ' + (86 + it * 28) + ' h -6 Z'), ' ')}}"}
+  :actions {:openCollection [{:note "with: kind ('album' or 'artist'), name"}
+      {:set state.collection :to {:kind "{{kind}}" :name "{{name}}"}}
+      {:set state.collectionPick :to nil}
+      {:set state.page :to collection}
+      {:focus "#collectionTable"}]
+    :playFromCollection [{:note "A row of the album or artist opened: the songs after it in the table come next"}
+      {:run startList
+        :with {:list -1
+          :track "{{number(event.id ?? event.value)}}"
+          :source "{{state.collection.name}}"
+          :rest "{{map(slice(computed.collectionRows, indexOf(map(computed.collectionRows, it.id), event.id ?? event.value) + 1, indexOf(map(computed.collectionRows, it.id), event.id ?? event.value) + 51), '-1:' + it.id)}}"}}]
+    :playCollection [{:if "{{length(computed.collectionRows) == 0}}" :then [{:stop true}]}
+      {:run startList
+        :with {:list -1
+          :track "{{number(computed.collectionRows[0].id)}}"
+          :source "{{state.collection.name}}"
+          :rest "{{map(slice(computed.collectionRows, 1, 51), '-1:' + it.id)}}"}}]
+    :playFromSearch [{:note "A search result opened: the results after it come next"}
+      {:run startList
+        :with {:list -1
+          :track "{{number(event.id ?? event.value)}}"
+          :source ""
+          :rest "{{map(slice(computed.searchRows, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 1, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 51), '-1:' + it.id)}}"}}]
+    :playLiked [{:note "with: key, a liked song: it plays, and the liked songs after it come next"}
+      {:run playLikedAt :with {:at "{{indexOf(map(computed.likedSongs, it.id), key)}}"}}]
+    :playLikedAt [{:note "with: at, the liked song's place in computed.likedSongs (-1: none)"}
+      {:if "{{at < 0}}" :then [{:stop true}]}
+      {:run startList
+        :with {:list "{{computed.likedSongs[at].list}}"
+          :track "{{computed.likedSongs[at].track}}"
+          :source "{{t('liked.title')}}"
+          :rest "{{map(slice(computed.likedSongs, at + 1, at + 51), it.id)}}"}}]
+    :setPreset [{:note "with: preset, a key of state.presets"}
+      {:set state.eq :to {:points "{{state.presets[preset]}}"}}
+      {:set state.eqOn :to true}]}
+  :components {:browsePage {:note "Albums or artists (state.page) as tiles in a grid; a tile opens its songs"
+      :params {}
+      :node {:dir auto
+        :color transparent
+        :children [(node #browseTitle :style pageTitle :text "{{t('menu.' + state.page)}}")
+          (node #browseSummary
+            :style caption
+            :anchors {:left 32 :top 70}
+            :text "{{t(state.page == 'artists' ? 'browse.artists' : 'browse.albums', { n: length(computed.browseItems) })}}")
+          (node #browseGrid
+            :type grid
+            :anchors {:left 24 :right 24 :top 100 :bottom 0}
+            :columns "{{computed.browseColumns}}"
+            :gap 8
+            :scroll vertical
+            :role list
+            :label "{{t('menu.' + state.page)}}"
+            (node #tile
+              :repeat {:for item :in computed.browseItems :key "{{item.name}}"}
+              :height 204
+              :radius 16
+              :color transparent
+              :hover {:color @rowHover}
+              :focused {:color @rowHover}
+              :cursor hand
+              :focusable true
+              :role button
+              :label "{{t('browse.label', { name: item.name, songs: t('songs', { n: item.count }) })}}"
+              :onClick {:run openCollection :with {:kind "{{item.kind}}" :name "{{item.name}}"}}
+              (node #tileArt
+                :type label
+                :text "{{slice(item.name, 0, 1)}}"
+                :font large
+                :align center
+                :textColor "#141826"
+                :anchors {:left 8 :right 8 :top 8}
+                :height 140
+                :radius "{{item.kind == 'artist' ? 40 : 14}}"
+                :color "{{state.tileColors[item.hue % 8]}}")
+              (node #tileName
+                :type label
+                :text "{{item.name}}"
+                :textColor @text
+                :align center
+                :anchors {:left 8 :right 8 :top 156}
+                :height 20)
+              (node #tileCount
+                :style caption
+                :text "{{t('songs', { n: item.count })}}"
+                :align center
+                :fitText false
+                :anchors {:left 8 :right 8 :top 180}
+                :height 16)))]}}
+    :collectionPage {:note "One album or artist's songs in a table; Enter or a double click plays one"
+      :params {}
+      :node {:dir auto
+        :color transparent
+        :children [(node #collectionHeader :anchors {:left 0 :right 0 :top 0} :height 132 :color @surface
+            (node #collectionBack
+              :style control
+              :icon arrow-left
+              :mirror true
+              :anchors {:left 12 :top 12}
+              :width 32
+              :color @surface
+              :focusable true
+              :role button
+              :label "{{t('collection.back')}}"
+              :tooltip "{{t('collection.back')}}"
+              :onClick {:set state.page :to "{{state.collection.kind == 'artist' ? 'artists' : 'albums'}}"})
+            (node #collectionArt
+              :type label
+              :text "{{slice(state.collection.name, 0, 1)}}"
+              :font large
+              :align center
+              :textColor "#141826"
+              :anchors {:left 56 :top 24}
+              :width 84
+              :height 84
+              :radius "{{state.collection.kind == 'artist' ? 24 : 12}}"
+              :color "{{state.tileColors[max(computed.collectionHue, 0) % 8]}}")
+            (node #collectionKind
+              :style caption
+              :text "{{t(state.collection.kind == 'artist' ? 'collection.artist' : 'collection.album')}}"
+              :anchors {:left 164 :top 28})
+            (node #collectionName
+              :type label
+              :text "{{state.collection.name}}"
+              :font large
+              :textColor @text
+              :anchors {:left 162 :top 44}
+              :fitText true)
+            (node #collectionCount
+              :style caption
+              :text "{{t('songs', { n: length(computed.collectionRows) })}}"
+              :anchors {:left 164 :top 88})
+            (node #playCollectionButton
+              :style playButton
+              :text "{{t('play')}}"
+              :anchors {:right 32 :top 50}
+              :label "{{t('play.label', { name: state.collection.name })}}"
+              :onClick playCollection))
+          (node #collectionTable
+            :type table
+            :anchors {:left 24 :right 24 :top 148 :bottom 8}
+            :color transparent
+            :rowHeight 30
+            :items "{{computed.collectionRows}}"
+            :columns [(node #number :title "{{t('column.number')}}" :width 60)
+              (node #title :title "{{t('column.title')}}" :width 230)
+              (node #artist :title "{{t('column.artist')}}" :width 150)
+              (node #album :title "{{t('column.album')}}" :width 170)
+              (node #time :title "{{t('column.time')}}" :width 64)]
+            :bind state.collectionPick
+            :label "{{state.collection.name}}"
+            :textColor @text
+            :selectedTextColor @text
+            :selectedBackground @accentSoft
+            :accentColor @accent
+            :onOpen playFromCollection
+            :onContextMenu {:run openPickMenu :with {:pick "{{state.collectionPick}}"}}
+            :keys {:escape {:set state.page :to "{{state.collection.kind == 'artist' ? 'artists' : 'albums'}}"}})]}}
+    :likedPage {:note "The songs liked (the heart in the player, or a song's context menu), from the library and the mixes, in a table"
+      :params {}
+      :node {:dir auto
+        :color transparent
+        :children [(node #likedHeader :anchors {:left 0 :right 0 :top 0} :height 132 :color @surface
+            (node #likedArt
+              :type label
+              :icon heart
+              :text ""
+              :font iconsLarge
+              :align center
+              :textColor @onAccent
+              :anchors {:left 32 :top 24}
+              :width 84
+              :height 84
+              :radius 6
+              :color @accent)
+            (node #likedCaption :style caption :text "{{t('liked.caption')}}" :anchors {:left 140 :top 28})
+            (node #likedName
+              :type label
+              :text "{{t('liked.title')}}"
+              :font large
+              :textColor @text
+              :anchors {:left 138 :top 44}
+              :fitText true)
+            (node #likedCount
+              :style caption
+              :text "{{t('songs', { n: length(computed.likedRows) })}}"
+              :anchors {:left 140 :top 88})
+            (node #playLikedButton
+              :style playButton
+              :text "{{t('play')}}"
+              :anchors {:right 32 :top 50}
+              :when "{{length(computed.likedRows) > 0}}"
+              :label "{{t('play.label', { name: t('liked.title') })}}"
+              :onClick {:run playLiked :with {:key "{{computed.likedRows[0].id}}"}}))
+          (node #likedEmpty
+            :style caption
+            :when "{{length(computed.likedRows) == 0}}"
+            :text "{{t('liked.empty')}}"
+            :anchors {:left 32 :right 32 :top 164}
+            :wrap true)
+          (node #likedTable
+            :type table
+            :when "{{length(computed.likedRows) > 0}}"
+            :anchors {:left 24 :right 24 :top 148 :bottom 8}
+            :color transparent
+            :rowHeight 30
+            :items "{{computed.likedRows}}"
+            :columns [(node #title :title "{{t('column.title')}}" :width 260)
+              (node #artist :title "{{t('column.artist')}}" :width 170)
+              (node #album :title "{{t('column.album')}}" :width 170)
+              (node #time :title "{{t('column.time')}}" :width 64)]
+            :bind state.likedPick
+            :label "{{t('liked.title')}}"
+            :textColor @text
+            :selectedTextColor @text
+            :selectedBackground @accentSoft
+            :accentColor @accent
+            :onOpen {:run playLiked :with {:key "{{event.id ?? event.value}}"}}
+            :onContextMenu {:if "{{state.likedPick != null}}"
+              :then [{:run openSongMenu
+                  :with {:list "{{number(split(state.likedPick, ':')[0])}}"
+                    :track "{{number(split(state.likedPick, ':')[1])}}"}}]})]}}
+    :searchPage {:note "A search field over the library: fuzzy matches on the title and the artist, in a table"
+      :params {}
+      :node {:dir auto
+        :color transparent
+        :children [(node #searchTitle :style pageTitle :text "{{t('menu.search')}}")
+          (node #searchField
+            :type textarea
+            :anchors {:left 32 :right 32 :top 72}
+            :height 36
+            :padding 10
+            :radius 8
+            :color @field
+            :borderWidth 1
+            :borderColor @border
+            :focused {:borderColor @accent}
+            :textColor @text
+            :placeholder "{{t('search.placeholder')}}"
+            :placeholderColor @muted
+            :label "{{t('search.label')}}"
+            :autofocus true
+            :bind state.search
+            :keys {:escape {:set state.search :to ""} :down {:focus "#searchTable"}})
+          (node #searchCount
+            :style caption
+            :live polite
+            :anchors {:left 32 :top 118}
+            :text "{{trim(state.search) == '' ? t('search.hint') : t('search.found', { n: length(computed.searchRows) })}}")
+          (node #searchTable
+            :type table
+            :anchors {:left 24 :right 24 :top 144 :bottom 8}
+            :color transparent
+            :rowHeight 30
+            :items "{{computed.searchRows}}"
+            :columns [(node #number :title "{{t('column.number')}}" :width 60)
+              (node #title :title "{{t('column.title')}}" :width 230)
+              (node #artist :title "{{t('column.artist')}}" :width 150)
+              (node #album :title "{{t('column.album')}}" :width 170)
+              (node #time :title "{{t('column.time')}}" :width 64)]
+            :bind state.searchPick
+            :label "{{t('search.label')}}"
+            :textColor @text
+            :selectedTextColor @text
+            :selectedBackground @accentSoft
+            :accentColor @accent
+            :onOpen playFromSearch
+            :onContextMenu {:run openPickMenu :with {:pick "{{state.searchPick}}"}})]}}
+    :nowPlayingPage {:note "The song playing: its cover, the visualiser (the spectrum of what plays, as bars) and the lyrics, line by line"
+      :params {}
+      :node {:dir auto
+        :color transparent
+        :children [(node #nowCover
+            :type image
+            :file "{{computed.playing.cover}}"
+            :fit cover
+            :radius 8
+            :anchors {:left 32 :top 32}
+            :width 160
+            :height 160
+            :role img
+            :label "{{computed.playingName}}")
+          (node #nowCaption
+            :style caption
+            :text "{{state.isPlaying ? t('queue.now') : t('now.paused')}}"
+            :anchors {:left 216 :top 56})
+          (node #nowTitle
+            :type label
+            :text "{{computed.track.title}}"
+            :font large
+            :textColor @text
+            :anchors {:left 214 :right 32 :top 76}
+            :height 40)
+          (node #nowArtist
+            :type label
+            :text "{{computed.track.artist}}  ·  {{computed.track.album}}"
+            :textColor @muted
+            :anchors {:left 216 :right 32 :top 122}
+            :height 20)
+          (node #nowCrossfade
+            :when "{{computed.crossfading}}"
+            :style caption
+            :live polite
+            :textColor @accent
+            :anchors {:left 216 :top 150}
+            :text "{{t('now.crossfading', { title: computed.nextTitle })}}")
+          (node #visualiser
+            :note "32 bars from the spectrum of the sound playing (its \"bands\"), and their faint reflection; low and flat when nothing plays, or the host gives no sound"
+            :color @surface
+            :anchors {:left 32 :right 32 :top 216}
+            :height 120
+            :radius 8
+            :role img
+            :label "{{t('now.visualiser')}}"
+            (node #visualiserBars
+              :type path
+              :d "{{computed.bars}}"
+              :viewBox "0 0 320 120"
+              :fit fill
+              :anchors {:left 8 :right 8 :top 0 :bottom 0}
+              :fillGradient {:kind linear :angle 90 :stops [{:at 0 :color @accentHover} {:at 1 :color @accent}]})
+            (node #visualiserReflections
+              :type path
+              :d "{{computed.barReflections}}"
+              :viewBox "0 0 320 120"
+              :fit fill
+              :anchors {:left 8 :right 8 :top 0 :bottom 0}
+              :fillColor @accentSoft))
+          (node #lyricsCaption :style caption :text "{{t('now.lyrics')}}" :anchors {:left 32 :top 356})
+          (node #lyrics
+            :type stack
+            :anchors {:left 32 :right 32 :top 380}
+            :height 140
+            :gap 2
+            :role list
+            :label "{{t('now.lyrics')}}"
+            (node #lyric
+              :repeat {:for line :in computed.lyricWindow}
+              :type label
+              :role listitem
+              :text "{{line.text}}"
+              :font "{{line.current ? 'heading' : 'default'}}"
+              :textColor "{{line.current ? '@text' : '@muted'}}"
+              :anchors {:left 0 :right 0}
+              :height 26
+              :align {:horizontal start :vertical center}
+              :cursor hand
+              :focusable true
+              :hover {:textColor @text}
+              :tooltip "{{t('now.seekLyric')}}"
+              :onClick {:run seekLyric :with {:offset "{{index - 2}}"}}))]}}
+    :soundPage {:note "The equaliser on a curves control, its presets and bands, the crossfade, the theme and the language"
+      :params {}
+      :node {:dir auto
+        :color transparent
+        :scroll vertical
+        :children [(node #soundTitle :style pageTitle :text "{{t('menu.sound')}}")
+          (node #equaliserCaption :style caption :text "{{t('sound.equaliser')}}" :anchors {:left 32 :top 80})
+          (node #equaliserNote
+            :type label
+            :text "{{t('sound.equaliserNote')}}"
+            :font small
+            :textColor @muted
+            :anchors {:left 140 :top 80}
+            :fitText true)
+          (node #equaliserOnLabel
+            :type label
+            :text "{{t('sound.equaliserOn')}}"
+            :font small
+            :textColor @muted
+            :anchors {:right 84 :top 78}
+            :fitText true)
+          (node #equaliserOn
+            :type toggle
+            :role switch
+            :label "{{t('sound.equaliserOn')}}"
+            :focusable true
+            :anchors {:right 32 :top 76}
+            :width 40
+            :height 22
+            :checked "{{state.eqOn}}"
+            :trackColor @faint
+            :activeColor @accent
+            :onChange {:set state.eqOn :to "{{event.value}}"})
+          (node #equaliser
+            :type curves
+            :anchors {:left 32 :right 32 :top 108}
+            :height 168
+            :focusable true
+            :label "{{t('sound.curve')}}"
+            :tooltip "{{t('sound.equaliserNote')}}"
+            :bind state.eq
+            :color @surface
+            :radius 8
+            :accentColor @accent)
+          (node #bands :type grid :anchors {:left 32 :right 32 :top 284} :height 20 :columns 5
+            (node #band
+              :repeat {:for band :in state.bands}
+              :type label
+              :font small
+              :align center
+              :textColor "{{state.eqOn ? '@text' : '@muted'}}"
+              :height 20
+              :text "{{band.label}}  {{round((curve(state.eq, band.at) - 0.5) * 24) > 0 ? '+' : ''}}{{round((curve(state.eq, band.at) - 0.5) * 24)}} dB"))
+          (node #presets
+            :type stack
+            :direction row
+            :anchors {:left 32 :right 32 :top 314}
+            :height 30
+            :gap 8
+            :role toolbar
+            :label "{{t('sound.presets')}}"
+            (node #preset
+              :repeat {:for preset :in "keys(state.presets)"}
+              :style chip
+              :text "{{t('preset.' + preset)}}"
+              :onClick {:run setPreset :with {:preset "{{preset}}"}}))
+          (node #crossfadeCaption :style caption :text "{{t('sound.crossfade')}}" :anchors {:left 32 :top 364})
+          (node #crossfade
+            :type slider
+            :anchors {:left 32 :top 388}
+            :width 240
+            :height 16
+            :min 0
+            :max 12
+            :step 1
+            :focusable true
+            :label "{{t('sound.crossfadeLabel')}}"
+            :bind settings.playback.crossfade
+            :trackColor @faint
+            :activeColor @accent
+            :knobColor @text)
+          (node #crossfadeValue
+            :type label
+            :text "{{t('sound.crossfadeValue', { n: settings.playback.crossfade })}}"
+            :textColor @text
+            :anchors {:left 288 :top 386}
+            :fitText true)
+          (node #appearanceCaption :style caption :text "{{t('sound.appearance')}}" :anchors {:left 32 :top 428})
+          (node #themes
+            :type stack
+            :direction row
+            :anchors {:left 32 :right 32 :top 452}
+            :height 30
+            :gap 8
+            :role toolbar
+            :label "{{t('theme.toggle')}}"
+            (node #themeChoice
+              :repeat {:for theme :in "['dark', 'light']"}
+              :style chip
+              :text "{{t('theme.' + theme)}}"
+              :role radio
+              :checked "{{state.theme == theme}}"
+              :color "{{state.theme == theme ? '@accentSoft' : '@button'}}"
+              :onClick {:set state.theme :to "{{theme}}"}))
+          (node #languages
+            :type stack
+            :direction row
+            :anchors {:left 32 :right 32 :top 490}
+            :height 30
+            :gap 8
+            :role toolbar
+            :label "{{t('language.toggle')}}"
+            (node #languageChoice
+              :repeat {:for language :in "['en', 'es', 'fr']"}
+              :style chip
+              :text "{{t('language.' + language)}}"
+              :role radio
+              :checked "{{settings.ui.language == language}}"
+              :color "{{settings.ui.language == language ? '@accentSoft' : '@button'}}"
+              :onClick {:set settings.ui.language :to "{{language}}"}))]}}
+    :miniPlayer {:note "The compact player: the whole window shows one card with the song, its controls and the seek bar"
+      :params {}
+      :node {:dir auto
+        :color @background
+        :role region
+        :label "{{t('player.mini')}}"
+        :children [(node #miniCard
+            :anchors {:left "{{floor(window.width / 2) - 200}}" :top "{{floor(window.height / 2) - 96}}"}
+            :width 400
+            :height 192
+            :radius 12
+            :color @surface
+            (node #miniCover
+              :type image
+              :file "{{computed.playing.cover}}"
+              :fit cover
+              :radius 6
+              :anchors {:left 20 :top 20}
+              :width 112
+              :height 112)
+            (node #miniTitle
+              :type label
+              :text "{{computed.track.title}}"
+              :font heading
+              :textColor @text
+              :anchors {:left 148 :right 52 :top 24}
+              :height 24)
+            (node #miniArtist :style caption :text "{{computed.track.artist}}" :anchors {:left 148 :top 50})
+            (node #miniExpand
+              :style control
+              :icon maximize-2
+              :anchors {:right 12 :top 12}
+              :width 32
+              :color @surface
+              :focusable true
+              :role button
+              :label "{{t('player.full')}}"
+              :tooltip "{{t('player.full')}}"
+              :onClick toggleMini)
+            (node #miniPrevious
+              :style control
+              :icon skip-back
+              :anchors {:left 148 :top 88}
+              :width 32
+              :color @surface
+              :focusable true
+              :role button
+              :label "{{t('player.previous')}}"
+              :onClick previous)
+            (node #miniPlayPause
+              :style control
+              :icon "{{state.isPlaying ? 'pause' : 'play'}}"
+              :anchors {:left 192 :top 87}
+              :width 34
+              :height 34
+              :radius 17
+              :color @text
+              :hover {:color @accentHover}
+              :textColor @background
+              :focusable true
+              :role button
+              :label "{{t('player.playPause')}}"
+              :onClick playPause)
+            (node #miniNext
+              :style control
+              :icon skip-forward
+              :anchors {:left 238 :top 88}
+              :width 32
+              :color @surface
+              :focusable true
+              :role button
+              :label "{{t('player.next')}}"
+              :onClick next)
+            (node #miniElapsed :style caption :text "{{computed.elapsedText}}" :anchors {:left 20 :top 152})
+            (node #miniSeek
+              :type slider
+              :anchors {:left 64 :right 64 :top 152}
+              :height 16
+              :max "{{computed.duration}}"
+              :step 1
+              :focusable true
+              :label "{{t('player.seek')}}"
+              :bind state.elapsed
+              :trackColor @faint
+              :activeColor @accent
+              :knobColor @text)
+            (node #miniTime :style caption :text "{{computed.track.time}}" :anchors {:right 20 :top 152}))]}}}}

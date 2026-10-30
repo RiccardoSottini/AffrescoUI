@@ -3,8 +3,8 @@
 Habits to check day by day, with scores, charts, a calendar and notes, kept as records of a `habits` model (SCREEN_FORMAT.md, "Data: models and records"). The `habit-tracker` template: a screen document with no C++ of its own, which the stock host runs.
 
 ```sh
-./build/affrescoui_launcher examples/streak/index.screen.json
-./build/affrescoui test examples/streak/index.scenarios.json
+./build/affrescoui_launcher examples/streak/json/index.screen.json
+./build/affrescoui test examples/streak/json/index.scenarios.json
 ```
 
 | File | What it is |

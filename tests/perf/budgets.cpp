@@ -170,7 +170,7 @@ PumpedExecutor& forgeExecutor() {
 /// @param folder The folder.
 /// @return The screen and its window.
 LoadedScreen startForge(Context& context, const std::filesystem::path& folder) {
-	const std::filesystem::path directory = context.examples() / "forge";
+	const std::filesystem::path directory = context.examples() / "forge" / "json";
 	const std::string text = readFile(directory / "index.screen.json");
 	Window& window = context.openWindow(json::parse(text));
 	Screen& screen = context.create(text, directory);

@@ -5,6 +5,7 @@
 #include "Engine.hpp"
 #include "Limits.hpp"
 #include "PropertyValues.hpp"
+#include "affresco/format/App.hpp"
 
 #include <algorithm>
 #include <format>
@@ -90,7 +91,9 @@ DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirec
       modelLookup_([this](std::string_view place) { return engine_.models.at(place); }),
       variableLookup_([this](std::string_view name) { return variable(name); }),
       computedValueLookup_([this](std::string_view name) { return &computedValue(name); }) {
-	if(!baseDirectory_.empty()) images_.allowDirectory(baseDirectory_);
+	if(baseDirectory_.empty()) return;
+	images_.allowDirectory(baseDirectory_);
+	images_.allowDirectory(format::notationAssets(baseDirectory_)); // nothing if there is no such folder
 }
 
 std::filesystem::path DocumentContext::imageFile(const json& value, const std::string& path) const {
@@ -112,7 +115,8 @@ std::string DocumentContext::assetImage(const json& value, const std::string& pa
 	const std::shared_ptr<const std::string> bytes = engine_.versions.assetBytes(name);
 	if(!bytes) fail(path, "the asset '" + name + "' can't be read");
 	try {
-		images_.setNamed(key, Bitmap::decode({reinterpret_cast<const std::uint8_t*>(bytes->data()), bytes->size()}, {}));
+		images_.setNamed(key,
+		                 Bitmap::decode({reinterpret_cast<const std::uint8_t*>(bytes->data()), bytes->size()}, {}));
 	} catch(const std::exception& error) {
 		fail(path, "the asset '" + name + "' doesn't decode: " + error.what());
 	}
@@ -231,10 +235,20 @@ const DocumentContext::Globals& DocumentContext::globals() const {
 
 Context DocumentContext::context(const Scope& locals, const json& event) const {
 	const Globals& g = globals();
-	return Context{
-	    engine_.versions.state(), g.window, g.revision, event,         locals,           g.other,  &nodeLookup_,
-	    &computedLookup_,         budget_,  reads_,     &modelLookup_, &variableLookup_, &strings_,
-	    &computedValueLookup_};
+	return Context{engine_.versions.state(),
+	               g.window,
+	               g.revision,
+	               event,
+	               locals,
+	               g.other,
+	               &nodeLookup_,
+	               &computedLookup_,
+	               budget_,
+	               reads_,
+	               &modelLookup_,
+	               &variableLookup_,
+	               &strings_,
+	               &computedValueLookup_};
 }
 
 void DocumentContext::addVariable(std::string name, std::function<json()> build) {

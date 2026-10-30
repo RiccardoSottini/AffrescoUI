@@ -1,7 +1,7 @@
 {
 	"id": "music-volume",
 	"level": "edit",
-	"screen": "examples/tempo/index.screen.json",
+	"screen": "examples/tempo/json/index.screen.json",
 	"request": "Set the player's volume to 40.",
 	"scenarios": [
 		{

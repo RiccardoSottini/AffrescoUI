@@ -1,0 +1,55 @@
+{:note "Calamaio's variables: what C-h v describes and M-x customize changes. A changed value is stored in state.settings, kept from one session to the next; the defaults stay here."
+  :settings {:inhibit-startup-screen {:type boolean
+      :default false
+      :title "Inhibit Startup Screen"
+      :description "Whether Calamaio starts in the scratch buffer instead of the start screen."}
+    :custom-enabled-themes {:type string
+      :default default
+      :enum [default inchiostro pergamena]
+      :title "Custom Enabled Themes"
+      :description "The theme the colours come from: default, inchiostro (dark) or pergamena (strong contrast)."}
+    :menu-bar-mode {:type boolean
+      :default true
+      :title "Menu Bar Mode"
+      :description "Whether the frame shows its menu bar."}
+    :tool-bar-mode {:type boolean
+      :default true
+      :title "Tool Bar Mode"
+      :description "Whether the frame shows its tool bar, at the end of the menu bar."}
+    :cursor-type {:type string
+      :default box
+      :enum [box bar hbar]
+      :title "Cursor Type"
+      :description "How point is drawn: a filled box, a thin bar or a line under the character."}
+    :global-display-line-numbers-mode {:type boolean
+      :default false
+      :title "Global Display Line Numbers Mode"
+      :description "Whether every buffer shows its line numbers in the margin."}
+    :visual-line-mode {:type boolean
+      :default false
+      :title "Visual Line Mode"
+      :description "Whether long lines wrap at the window's edge instead of running past it."}
+    :show-paren-mode {:type boolean
+      :default true
+      :title "Show Paren Mode"
+      :description "Whether the bracket that matches the one at point is highlighted."}
+    :display-fill-column-indicator-mode {:type boolean
+      :default false
+      :title "Display Fill Column Indicator Mode"
+      :description "Whether a thin line marks the fill column in every buffer."}
+    :fill-column {:type integer
+      :default 70
+      :minimum 8
+      :maximum 400
+      :title "Fill Column"
+      :description "The column the fill column indicator marks, when it is on."}
+    :search-highlight {:type boolean
+      :default true
+      :title "Search Highlight"
+      :description "Whether incremental search and replace also highlight the other matches."}
+    :kill-ring-max {:type integer
+      :default 120
+      :minimum 1
+      :maximum 1000
+      :title "Kill Ring Max"
+      :description "How many kills the kill ring keeps before it forgets the oldest."}}}

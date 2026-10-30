@@ -1,7 +1,7 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/sign-in",
+	"screens": "../../../examples/sign-in/json",
 	"scenarios": [
 		{
 			"name": "sign-in",

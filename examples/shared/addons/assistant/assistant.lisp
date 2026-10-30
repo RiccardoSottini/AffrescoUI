@@ -1,0 +1,770 @@
+{:$schema "../../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "The assistant add-on: a chat with the agents connected to the app, to include. A launcher at the bottom right opens a panel where the person asks in plain words (the ask step), the agents answer (ask:reply), and the proposals they open come back as cards to preview, accept or reject, as does every other proposal waiting for review: this is where the person reviews. Everything here is named assistant..., so it merges into any screen; an app restyles it by overriding the assistant.* tokens. See README.md."
+  :tokens {:assistant.accent {:light "#0969da" :dark "#4493f8"}
+    :assistant.accentHover {:light "#0550ae" :dark "#2f81f7"}
+    :assistant.onAccent {:light "#ffffff" :dark "#ffffff"}
+    :assistant.surface {:light "#ffffff" :dark "#161b22"}
+    :assistant.raised {:light "#f6f8fa" :dark "#21262d"}
+    :assistant.border {:light "#d0d7de" :dark "#30363d"}
+    :assistant.text {:light "#1f2328" :dark "#e6edf3"}
+    :assistant.dim {:light "#57606a" :dark "#8d96a0"}
+    :assistant.dot {:light "#8c959f" :dark "#6e7681"}
+    :assistant.success {:light "#1f883d" :dark "#3fb950"}
+    :assistant.danger {:light "#cf222e" :dark "#f85149"}
+    :assistant.warningBackground {:light "#fff8c5" :dark "#3b2e0a"}}
+  :strings {:default en
+    :en {:assistant.title Assistant
+      :assistant.open "Open the assistant"
+      :assistant.close "Close the assistant"
+      :assistant.shortcut "Assistant (Ctrl+Shift+A)"
+      :assistant.online "{n, plural, one {Connected} other {# agents connected}}"
+      :assistant.offline Offline
+      :assistant.offlineNote "No agent is connected. Set up a provider in the AffrescoUI Launcher's Settings, or connect an agent over MCP."
+      :assistant.empty "Ask for a change in plain words. The agent proposes it, and you review it here."
+      :assistant.chip1 "What can you change here?"
+      :assistant.chip2 "Make the text larger"
+      :assistant.chip3 "Add a dark theme"
+      :assistant.message "Message to the assistant"
+      :assistant.placeholder "Ask for a change…"
+      :assistant.send Send
+      :assistant.typing "The assistant is working"
+      :assistant.messages Conversation
+      :assistant.you You
+      :assistant.touches "Changes {n, plural, one {# element} other {# elements}}"
+      :assistant.preview Preview
+      :assistant.accept Accept
+      :assistant.reject Reject
+      :assistant.accepted Accepted
+      :assistant.rejected Rejected
+      :assistant.closed Closed
+      :assistant.clear "Clear the conversation"
+      :assistant.chooseModel "Choose the model ({provider})"
+      :assistant.defaultModel default
+      :assistant.attach "Attach files"
+      :assistant.attached "Attached files"
+      :assistant.remove "Remove {name}"
+      :assistant.opens "Opens {name} as the new document"
+      :assistant.runs "Runs once when accepted: {step}"
+      :assistant.stop Stop
+      :assistant.stopped Stopped.
+      :assistant.copy Copy
+      :assistant.copied Copied
+      :assistant.retry Retry}
+    :es {:assistant.title Asistente
+      :assistant.open "Abrir el asistente"
+      :assistant.close "Cerrar el asistente"
+      :assistant.shortcut "Asistente (Ctrl+Shift+A)"
+      :assistant.online "{n, plural, one {Conectado} other {# agentes conectados}}"
+      :assistant.offline "Sin conexión"
+      :assistant.offlineNote "Ningún agente conectado. Elige un proveedor en los Ajustes de AffrescoUI Launcher, o conecta uno por MCP."
+      :assistant.empty "Pide un cambio con tus propias palabras. El agente lo propone y tú lo revisas aquí."
+      :assistant.chip1 "¿Qué puedes cambiar aquí?"
+      :assistant.chip2 "Haz el texto más grande"
+      :assistant.chip3 "Añade un tema oscuro"
+      :assistant.message "Mensaje para el asistente"
+      :assistant.placeholder "Pide un cambio…"
+      :assistant.send Enviar
+      :assistant.typing "El asistente está trabajando"
+      :assistant.messages "Conversación"
+      :assistant.you "Tú"
+      :assistant.touches "Cambia {n, plural, one {# elemento} other {# elementos}}"
+      :assistant.preview "Vista previa"
+      :assistant.accept Aceptar
+      :assistant.reject Rechazar
+      :assistant.accepted Aceptado
+      :assistant.rejected Rechazado
+      :assistant.closed Cerrado
+      :assistant.clear "Borrar la conversación"
+      :assistant.chooseModel "Elige el modelo ({provider})"
+      :assistant.defaultModel predeterminado
+      :assistant.attach "Adjuntar archivos"
+      :assistant.attached "Archivos adjuntos"
+      :assistant.remove "Quitar {name}"
+      :assistant.opens "Abre {name} como el nuevo documento"
+      :assistant.runs "Se ejecuta una vez al aceptar: {step}"
+      :assistant.stop Detener
+      :assistant.stopped Detenido.
+      :assistant.copy Copiar
+      :assistant.copied Copiado
+      :assistant.retry Reintentar}
+    :fr {:assistant.title Assistant
+      :assistant.open "Ouvrir l'assistant"
+      :assistant.close "Fermer l'assistant"
+      :assistant.shortcut "Assistant (Ctrl+Maj+A)"
+      :assistant.online "{n, plural, one {Connecté} other {# agents connectés}}"
+      :assistant.offline "Hors ligne"
+      :assistant.offlineNote "Aucun agent connecté. Choisissez un fournisseur dans les Réglages d'AffrescoUI Launcher, ou un agent par MCP."
+      :assistant.empty "Demandez une modification avec vos propres mots. L'agent la propose et vous la vérifiez ici."
+      :assistant.chip1 "Que pouvez-vous modifier ici ?"
+      :assistant.chip2 "Agrandis le texte"
+      :assistant.chip3 "Ajoute un thème sombre"
+      :assistant.message "Message pour l'assistant"
+      :assistant.placeholder "Demandez une modification…"
+      :assistant.send Envoyer
+      :assistant.typing "L'assistant travaille"
+      :assistant.messages Conversation
+      :assistant.you Vous
+      :assistant.touches "Modifie {n, plural, one {# élément} other {# éléments}}"
+      :assistant.preview "Aperçu"
+      :assistant.accept Accepter
+      :assistant.reject Refuser
+      :assistant.accepted "Accepté"
+      :assistant.rejected "Refusé"
+      :assistant.closed "Fermé"
+      :assistant.clear "Effacer la conversation"
+      :assistant.chooseModel "Choisir le modèle ({provider})"
+      :assistant.defaultModel "par défaut"
+      :assistant.attach "Joindre des fichiers"
+      :assistant.attached "Fichiers joints"
+      :assistant.remove "Retirer {name}"
+      :assistant.opens "Ouvre {name} comme nouveau document"
+      :assistant.runs "S'exécute une fois à l'acceptation : {step}"
+      :assistant.stop "Arrêter"
+      :assistant.stopped "Arrêté."
+      :assistant.copy Copier
+      :assistant.copied "Copié"
+      :assistant.retry "Réessayer"}}
+  :state {:assistant {:show true
+      :lift 0
+      :open false
+      :anim 1
+      :draft ""
+      :messages []
+      :unread 0
+      :pending ""
+      :decided {}
+      :phase 0
+      :simulate nil
+      :model ""
+      :models nil
+      :modelMenu false
+      :attachments []
+      :picked nil
+      :copied nil}}
+  :watch {:state.assistant.picked [{:if "{{state.assistant.picked != null}}" :then [{:run assistant.attachPicked}]}]}
+  :persist [state.assistant.messages state.assistant.decided state.assistant.model]
+  :keys {:"mod+shift+a" assistant.toggle}
+  :components {:assistantChip {:params {:text ""}
+      :node {:type label
+        :text "{{text}}"
+        :textColor @assistant.text
+        :fitText {:maxWidth 320}
+        :padding 7
+        :radius 15
+        :color @assistant.raised
+        :borderWidth 1
+        :borderColor @assistant.border
+        :hover {:borderColor @assistant.accent}
+        :focused {:borderColor @assistant.accent}
+        :role button
+        :focusable true
+        :cursor hand
+        :justifySelf start
+        :onClick [{:run assistant.ask :with {:text "{{text}}"}}]}}
+    :assistantFile {:note "A file as a card, as chat apps show attachments: an icon of its kind (a picture, a sound, any other file), its name, and its length (a sound) or size; removable from the files of the next message"
+      :params {:file {} :removable false}
+      :node {:type row
+        :fitContent width
+        :height 44
+        :alignItems center
+        :gap 8
+        :radius 10
+        :color @assistant.surface
+        :borderWidth 1
+        :borderColor @assistant.border
+        :role listitem
+        :label "{{file.name}}"
+        :let {:assistantKind "{{slice(file.type ?? '', 0, 6)}}"}
+        :children [{:width 38
+            :height 44
+            :color transparent
+            :children [{:anchors {:left 6 :top 6}
+                :width 32
+                :height 32
+                :radius 8
+                :color @assistant.raised
+                :children [{:type path
+                    :anchors {:left 8 :top 8}
+                    :width 16
+                    :height 16
+                    :viewBox "0 0 24 24"
+                    :d "{{assistantKind == 'image/' ? 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM11 9a2 2 0 1 1-4 0a2 2 0 1 1 4 0M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21' : assistantKind == 'audio/' ? 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0M21 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0' : 'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4'}}"
+                    :stroke @assistant.dim
+                    :strokeWidth 2
+                    :strokeCap round
+                    :strokeJoin round}]}]}
+          {:type column
+            :fitContent true
+            :gap 1
+            :children [{:type label :text "{{file.name}}" :textColor @assistant.text :fitText {:maxWidth 180}}
+              {:type label
+                :runs [{:text "{{file.duration != null ? floor(file.duration / 60) + ':' + pad(floor(file.duration % 60), 2) : (file.size ?? 0) >= 1048576 ? formatNumber(file.size / 1048576, 0, 1) + ' MB' : (file.size ?? 0) >= 1024 ? formatNumber(floor(file.size / 1024)) + ' KB' : (file.size ?? 0) + ' B'}}"
+                    :size 12}]
+                :textColor @assistant.dim
+                :fitText {:maxWidth 180}}]}
+          {:when "{{removable}}"
+            :width 22
+            :height 22
+            :radius 11
+            :color transparent
+            :role button
+            :focusable true
+            :cursor hand
+            :label "{{t('assistant.remove', {name: file.name})}}"
+            :tooltip "{{t('assistant.remove', {name: file.name})}}"
+            :hover {:color @assistant.raised}
+            :focused {:borderWidth 1 :borderColor @assistant.accent}
+            :onClick [{:run assistant.unattach :with (node #"{{file.id}}")}]
+            :children [{:type path
+                :anchors {:left 4 :top 4}
+                :width 14
+                :height 14
+                :viewBox "0 0 24 24"
+                :d "M18 6 6 18M6 6l12 12"
+                :stroke @assistant.dim
+                :strokeWidth 2.5
+                :strokeCap round}]}
+          {:width 2 :height 1 :color transparent}]}}
+    :assistantExtras {:note "What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is previewed) and its run-once steps, a line each"
+      :params {:id 0 :assets [] :run []}
+      :node {:type column
+        :fitContent height
+        :width 340
+        :gap 6
+        :color transparent
+        :role list
+        :children [(node :repeat {:for asset :in "{{assets}}" :index a}
+            #"assistantAsset{{a}}"
+            :type row
+            :fitContent height
+            :alignSelf stretch
+            :gap 8
+            :alignItems center
+            {:when "{{preview != null && preview.id == id && contains(['image/png', 'image/jpeg', 'image/svg+xml'], asset.type ?? '')}}"
+              :type image
+              :file "{{'asset:' + asset.name}}"
+              :width 44
+              :height 44
+              :fit cover
+              :radius 10
+              :color @assistant.raised}
+            {:use assistantFile :with {:file "{{asset}}"}})
+          (node :repeat {:for step :in "{{run}}" :index r}
+            #"assistantRun{{r}}"
+            :type label
+            :textColor @assistant.dim
+            :wrap true
+            :alignSelf stretch
+            :height 32
+            :padding 8
+            :radius 8
+            :color @assistant.raised
+            :role listitem
+            :text "{{step.note ?? (step.image == 'open' || step.image == 'openAsset' ? t('assistant.opens', {name: step.with.asset ?? step.asset ?? ''}) : t('assistant.runs', {step: slice((keys(step)[0] ?? '') + ' ' + text(values(step)[0] ?? ''), 0, 80)}))}}")]}}}
+  :actions {:assistant.toggle [{:if "{{state.assistant.open}}"
+        :then [{:run assistant.close}]
+        :else [{:run assistant.open}]}]
+    :assistant.open [{:set state.assistant.open :to true}
+      {:set state.assistant.unread :to 0}
+      {:set state.assistant.anim :to 0}
+      {:animate state.assistant.anim :to 1 :ms 180 :easing out}
+      {:focus "#assistantComposer"}
+      {:scrollTo "#assistantEnd"}]
+    :assistant.close [{:set state.assistant.open :to false} {:focus "#assistantLauncher"}]
+    :assistant.start [{:run assistant.open} {:run assistant.ask :with {:text "{{trim(event.text ?? '')}}"}}]
+    :assistant.send [{:run assistant.ask :with {:text "{{trim(state.assistant.draft)}}"}}
+      {:set state.assistant.draft :to ""}]
+    :assistant.ask [{:if "{{length(text) == 0}}" :then [{:stop true}]}
+      {:if "{{length(state.assistant.attachments) > 0}}"
+        :then [{:push state.assistant.messages
+            :value "{{ {kind: 'files', mine: true, files: state.assistant.attachments, time: now()} }}"}]}
+      {:push state.assistant.messages
+        :value "{{ {mine: true, from: t('assistant.you'), text: text, time: now(), error: false} }}"}
+      {:run assistant.trim}
+      {:ask "{{text}}"
+        :attachments "{{map(state.assistant.attachments, it.id)}}"
+        :into state.assistant.pending
+        :options "{{state.assistant.models != null && state.assistant.models.default != '' ? {model: some(state.assistant.models.models, it.id == state.assistant.model) ? state.assistant.model : state.assistant.models.default} : {}}}"}
+      {:set state.assistant.attachments :to []}
+      {:scrollTo "#assistantEnd"}]
+    :assistant.attach [{:note "The file dialog: what the person picks lands in picked, and the watch adds it to the next message's files"}
+      {:attach {:multiple true :title "{{t('assistant.attach')}}"}
+        :into state.assistant.picked
+        :onError [{:run assistant.attachFailed :with {:message "{{merge({message: ''}, error).message}}"}}]}]
+    :assistant.drop [{:note "with: files, dropped on the panel from the OS (onDrop's event.files): attached like picked ones"}
+      {:if "{{length(files ?? []) == 0}}" :then [{:stop true}]}
+      {:attach {:from "{{files}}" :multiple true}
+        :into state.assistant.picked
+        :onError [{:run assistant.attachFailed :with {:message "{{merge({message: ''}, error).message}}"}}]}]
+    :assistant.attachFailed [{:note "with: message, why a file couldn't be attached (its type, its size): said in the conversation"}
+      {:push state.assistant.messages
+        :value "{{ {mine: false, from: t('assistant.title'), text: message, time: now(), error: true} }}"}
+      {:run assistant.trim}
+      {:scrollTo "#assistantEnd"}]
+    :assistant.attachPicked [{:set state.assistant.attachments
+        :to "{{slice(concat(state.assistant.attachments, filter(state.assistant.picked ?? [], !contains(map(state.assistant.attachments, it.id), it.id))), 0, 8)}}"}
+      {:set state.assistant.picked :to nil}
+      {:focus "#assistantComposer"}]
+    :assistant.unattach [{:set state.assistant.attachments :to "{{filter(state.assistant.attachments, it.id != id)}}"}
+      {:focus "#assistantComposer"}]
+    :"ask:reply" [{:if "{{length(event.text ?? '') == 0 && length(event.error ?? '') == 0 && length(event.proposals ?? []) == 0}}"
+        :then [{:stop true}]}
+      {:push state.assistant.messages
+        :value "{{ {mine: false, from: event.from, text: length(event.error ?? '') > 0 ? event.error : event.text ?? '', time: event.time, error: length(event.error ?? '') > 0, asked: find(requests, it.id == event.request).text ?? ''} }}"}
+      {:forEach "{{filter(state.assistant.simulate.proposals ?? proposals, contains(event.proposals ?? [], it.id))}}"
+        :as proposal
+        :do [{:push state.assistant.messages
+            :value "{{ {kind: 'card', id: proposal.id, time: event.time, title: proposal.message, summary: t('assistant.touches', {n: length(proposal.touches ?? [])}), lines: slice(proposal.changes ?? [], 0, 3)} }}"}
+          {:if "{{length(proposal.assets ?? []) + length(proposal.run ?? []) > 0}}"
+            :then [{:push state.assistant.messages
+                :value "{{ {kind: 'extras', id: proposal.id, time: event.time, assets: slice(proposal.assets ?? [], 0, 8), run: slice(proposal.run ?? [], 0, 8)} }}"}]}]}
+      {:run assistant.trim}
+      {:if "{{!state.assistant.open}}" :then [{:increment state.assistant.unread}]}
+      {:scrollTo "#assistantEnd"}]
+    :assistant.stop [{:note "Stops the requests in progress (cancelAsk): the agents are told, and what they send after is dropped"}
+      {:push state.assistant.messages
+        :value "{{ {mine: false, from: t('assistant.title'), text: t('assistant.stopped'), time: now(), error: false, note: true, asked: find(requests, it.id == state.assistant.pending).text ?? ''} }}"}
+      {:cancelAsk "{{map(filter(requests, it.state == 'sent' || it.state == 'working'), it.id)}}"}
+      {:if "{{state.assistant.simulate != null}}" :then [{:set state.assistant.simulate.working :to false}]}
+      {:run assistant.trim}
+      {:focus "#assistantComposer"}
+      {:scrollTo "#assistantEnd"}]
+    :assistant.retry [{:note "with: text, the request a reply answered (or a stopped one): asked again, as it was written"}
+      {:run assistant.ask :with {:text "{{text}}"}}]
+    :assistant.copy [{:note "with: text and at, a message and its place: copied, and its button says so for a moment"}
+      {:copy "{{text}}"}
+      {:set state.assistant.copied :to "{{at}}"}
+      {:after 1500 :do [{:set state.assistant.copied :to nil}]}]
+    :assistant.trim [{:if "{{length(state.assistant.messages) > 200}}"
+        :then [{:set state.assistant.messages
+            :to "{{slice(state.assistant.messages, length(state.assistant.messages) - 200)}}"}]}]
+    :assistant.preview [{:if "{{preview != null && preview.id == id}}"
+        :then [{:endPreview true}]
+        :else [{:preview "{{id}}"}]}]
+    :assistant.accept [{:accept "{{id}}" :head "{{find(proposals, it.id == id).head}}"}
+      {:set "state.assistant.decided[id]" :to accepted}]
+    :assistant.reject [{:reject "{{id}}"} {:set "state.assistant.decided[id]" :to rejected}]
+    :assistant.loadModels [{:note "The host's read-only assistant.models: the provider in use, the person's default and the models to choose from. Only the hosts whose own agent is connected (the peer 'agent') have it; without it (MCP-only setups, other hosts, the rendering check) models stays null and the picker hides"}
+      {:if "{{!some(peers, it.author == 'agent')}}" :then [{:set state.assistant.models :to nil} {:stop true}]}
+      {:call assistant.models :into state.assistant.models :onError [{:set state.assistant.models :to nil}]}]
+    :assistant.pickModel [{:note "The person's default is kept as '': it follows a later change of the default in the Launcher's Settings"}
+      {:set state.assistant.model
+        :to "{{id == (state.assistant.simulate.models ?? state.assistant.models).default ? '' : id}}"}
+      {:set state.assistant.modelMenu :to false}]
+    :assistant.clear [{:set state.assistant.messages :to []} {:set state.assistant.decided :to {}}]}
+  :overlays {:assistantLauncher (node :when "{{(state.assistant.simulate.online ?? (length(peers) > 0)) || length(state.assistant.messages) > 0 || state.assistant.show}}"
+      #assistantLauncher
+      :use chatLauncher
+      :anchors {:right 24 :bottom "{{24 + state.assistant.lift}}"}
+      :with {:isOpen "{{state.assistant.open}}"
+        :run assistant.toggle
+        :unread "{{state.assistant.unread}}"
+        :label "{{t(state.assistant.open ? 'assistant.close' : 'assistant.open')}}"
+        :tooltip "{{t('assistant.shortcut')}}"
+        :color @assistant.accent
+        :hoverColor @assistant.accentHover
+        :iconColor @assistant.onAccent
+        :badgeColor @assistant.danger
+        :badgeTextColor @assistant.onAccent})
+    :assistantPanel (node #assistantPanel
+      :type column
+      :dir auto
+      :width 380
+      :height "{{min(560, window.height - 120 - state.assistant.lift)}}"
+      :anchors {:right 24 :bottom "{{96 + state.assistant.lift}}"}
+      :overlay {:placement window :open state.assistant.open :modal true}
+      :color @assistant.surface
+      :radius 12
+      :borderWidth 1
+      :borderColor @assistant.border
+      :shadow {:x 0 :y 8 :blur 24 :color "#00000040"}
+      :translate "{{[0, (1 - state.assistant.anim) * 16]}}"
+      :scale "{{0.96 + 0.04 * state.assistant.anim}}"
+      :transformOrigin bottomRight
+      :role dialog
+      :label "{{t('assistant.title')}}"
+      :keys {:escape assistant.close}
+      :onDrop [{:run assistant.drop :with {:files "{{event.files ?? []}}"}}]
+      :let {:assistantOnline "{{state.assistant.simulate.online ?? (length(peers) > 0)}}"
+        :assistantPending "{{state.assistant.simulate.pending ?? map(proposals, it.id)}}"
+        :assistantWorking "{{state.assistant.simulate.working ?? some(requests, it.state == 'sent' || it.state == 'working')}}"
+        :assistantCarded "{{map(filter(state.assistant.messages, it.kind == 'card'), it.id)}}"
+        :assistantModels "{{state.assistant.simulate.models ?? state.assistant.models}}"
+        :assistantModel "{{some(assistantModels.models ?? [], it.id == state.assistant.model) ? state.assistant.model : assistantModels.default ?? ''}}"}
+      (node #assistantHeader :height 56 :alignSelf stretch :color transparent :onShow [{:run assistant.loadModels}]
+        {:type label
+          :runs [{:text "{{t('assistant.title')}}" :bold true :size 16}]
+          :textColor @assistant.text
+          :role heading
+          :anchors {:left 16 :top 9}
+          :fitText true}
+        {:anchors {:left 16 :top 35}
+          :width 8
+          :height 8
+          :radius 4
+          :color "{{assistantOnline ? '@assistant.success' : '@assistant.dot'}}"}
+        (node #assistantStatus
+          :type label
+          :role status
+          :live polite
+          :text "{{assistantOnline ? t('assistant.online', {n: max(1, length(peers))}) : t('assistant.offline')}}"
+          :textColor @assistant.dim
+          :anchors {:left 30 :top 30}
+          :fitText true)
+        (node #assistantClose
+          :anchors {:right 12 :top 12}
+          :width 32
+          :height 32
+          :radius 6
+          :color transparent
+          :role button
+          :focusable true
+          :cursor hand
+          :label "{{t('assistant.close')}}"
+          :tooltip "{{t('assistant.close')}}"
+          :hover {:color @assistant.raised}
+          :focused {:borderWidth 1 :borderColor @assistant.accent}
+          :onClick [{:run assistant.close}]
+          {:anchors {:left 7 :top 15} :width 18 :height 2 :radius 1 :rotate 45 :color @assistant.dim}
+          {:anchors {:left 7 :top 15} :width 18 :height 2 :radius 1 :rotate -45 :color @assistant.dim})
+        {:anchors {:left 0 :right 0 :bottom 0} :height 1 :color @assistant.border})
+      (node :when "{{!assistantOnline}}"
+        #assistantOffline
+        :alignSelf stretch
+        :height 52
+        :color @assistant.warningBackground
+        :role alert
+        {:type label
+          :text "{{t('assistant.offlineNote')}}"
+          :textColor @assistant.text
+          :wrap true
+          :anchors {:left 16 :right 16 :top 8 :bottom 8}})
+      {:grow 1
+        :alignSelf stretch
+        :color transparent
+        :children [(node #assistantMessages
+            :type grid
+            :columns ["1fr" 8]
+            :columnGap 0
+            :rowGap 8
+            :scroll vertical
+            :anchors {:left 12 :right 12 :top 12 :bottom 0}
+            :role list
+            :label "{{t('assistant.messages')}}"
+            :let {:assistantCount "{{length(state.assistant.messages)}}"
+              :assistantLoose "{{filter(state.assistant.simulate.proposals ?? proposals, !contains(assistantCarded, it.id))}}"}
+            (node :when "{{assistantCount == 0}}"
+              #assistantEmpty
+              :type label
+              :cell {:column 1 :row 1}
+              :text "{{t('assistant.empty')}}"
+              :textColor @assistant.dim
+              :wrap true
+              :height 44)
+            (node :when "{{assistantCount == 0}}"
+              #assistantChip1
+              :use assistantChip
+              :cell {:column 1 :row 2}
+              :with {:text "{{t('assistant.chip1')}}"})
+            (node :when "{{assistantCount == 0}}"
+              #assistantChip2
+              :use assistantChip
+              :cell {:column 1 :row 3}
+              :with {:text "{{t('assistant.chip2')}}"})
+            (node :when "{{assistantCount == 0}}"
+              #assistantChip3
+              :use assistantChip
+              :cell {:column 1 :row 4}
+              :with {:text "{{t('assistant.chip3')}}"})
+            (node :repeat {:for message :in state.assistant.messages :index m}
+              :when "{{(message.kind ?? 'message') == 'message'}}"
+              #"assistantMessage{{m}}"
+              :type column
+              :fitContent height
+              :gap 2
+              :justifySelf stretch
+              :color transparent
+              :cell {:column 1 :row "{{m + 1}}"}
+              (node #"assistantBubble{{m}}"
+                :use chatBubble
+                :with {:text "{{message.text}}"
+                  :mine "{{message.mine}}"
+                  :from "{{message.from}}"
+                  :time "{{formatTime(message.time, 'short')}}"
+                  :error "{{message.error}}"
+                  :maxWidth "{{message.mine ? 280 : 340}}"
+                  :padding "{{message.mine || message.error ? 10 : 2}}"
+                  :radius 14
+                  :color transparent
+                  :textColor "{{message.note == true ? '@assistant.dim' : '@assistant.text'}}"
+                  :mineColor @assistant.raised
+                  :mineTextColor @assistant.text
+                  :errorColor @assistant.danger})
+              (node :when "{{!message.mine}}"
+                #"assistantActions{{m}}"
+                :type row
+                :fitContent width
+                :height 26
+                :gap 2
+                :alignSelf start
+                :color transparent
+                :role toolbar
+                (node :when "{{message.note != true}}"
+                  #"assistantCopy{{m}}"
+                  :width 26
+                  :height 26
+                  :radius 6
+                  :color transparent
+                  :role button
+                  :focusable true
+                  :cursor hand
+                  :label "{{t(state.assistant.copied == m ? 'assistant.copied' : 'assistant.copy')}}"
+                  :tooltip "{{t(state.assistant.copied == m ? 'assistant.copied' : 'assistant.copy')}}"
+                  :hover {:color @assistant.raised}
+                  :focused {:borderWidth 1 :borderColor @assistant.accent}
+                  :onClick [{:run assistant.copy :with {:text "{{message.text}}" :at "{{m}}"}}]
+                  {:type path
+                    :anchors {:left 6 :top 6}
+                    :width 14
+                    :height 14
+                    :viewBox "0 0 24 24"
+                    :d "{{state.assistant.copied == m ? 'M20 6 9 17l-5-5' : 'M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2ZM4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2'}}"
+                    :stroke "{{state.assistant.copied == m ? '@assistant.success' : '@assistant.dim'}}"
+                    :strokeWidth 2
+                    :strokeCap round
+                    :strokeJoin round})
+                (node :when "{{length(message.asked ?? '') > 0}}"
+                  #"assistantRetry{{m}}"
+                  :width 26
+                  :height 26
+                  :radius 6
+                  :color transparent
+                  :role button
+                  :focusable true
+                  :cursor hand
+                  :label "{{t('assistant.retry')}}"
+                  :tooltip "{{t('assistant.retry')}}"
+                  :hover {:color @assistant.raised}
+                  :focused {:borderWidth 1 :borderColor @assistant.accent}
+                  :onClick [{:run assistant.retry :with {:text "{{message.asked}}"}}]
+                  {:type path
+                    :anchors {:left 6 :top 6}
+                    :width 14
+                    :height 14
+                    :viewBox "0 0 24 24"
+                    :d "M3 12a9 9 0 1 0 9-9a9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5"
+                    :stroke @assistant.dim
+                    :strokeWidth 2
+                    :strokeCap round
+                    :strokeJoin round})))
+            (node :repeat {:for message :in state.assistant.messages :index m}
+              :when "{{message.kind == 'files'}}"
+              #"assistantFiles{{m}}"
+              :type row
+              :wrap true
+              :fitContent height
+              :gap 6
+              :justify end
+              :cell {:column 1 :row "{{m + 1}}"}
+              :role list
+              :label "{{t('assistant.attached')}}"
+              (node :repeat {:for file :in "{{message.files}}" :index f}
+                #"assistantSent{{m}}-{{f}}"
+                :use assistantFile
+                :with {:file "{{file}}"}))
+            (node :repeat {:for message :in state.assistant.messages :index m}
+              :when "{{message.kind == 'extras'}}"
+              #"assistantAdds{{message.id}}"
+              :use assistantExtras
+              :cell {:column 1 :row "{{m + 1}}"}
+              :justifySelf start
+              :with (node #"{{message.id}}" :assets "{{message.assets ?? []}}" :run "{{message.run ?? []}}"))
+            (node :repeat {:for message :in state.assistant.messages :index m}
+              :when "{{message.kind == 'card'}}"
+              #"assistantCard{{message.id}}"
+              :use proposalCard
+              :cell {:column 1 :row "{{m + 1}}"}
+              :with {:title "{{message.title}}"
+                :summary "{{message.summary}}"
+                :lines "{{message.lines ?? []}}"
+                :status "{{preview != null && preview.id == message.id ? 'previewing' : contains(assistantPending, message.id) ? 'pending' : state.assistant.decided[message.id] ?? 'closed'}}"
+                :preview assistant.preview
+                :accept assistant.accept
+                :reject assistant.reject
+                :with (node #"{{message.id}}")
+                :width 340
+                :labels {:preview "{{t('assistant.preview')}}"
+                  :accept "{{t('assistant.accept')}}"
+                  :reject "{{t('assistant.reject')}}"
+                  :accepted "{{t('assistant.accepted')}}"
+                  :rejected "{{t('assistant.rejected')}}"
+                  :closed "{{t('assistant.closed')}}"}
+                :color @assistant.surface
+                :textColor @assistant.text
+                :dimColor @assistant.dim
+                :borderColor @assistant.border
+                :accent @assistant.success
+                :accentTextColor @assistant.onAccent
+                :buttonColor @assistant.raised})
+            (node :repeat {:for proposal :in "{{assistantLoose}}" :index l}
+              #"assistantWaiting{{proposal.id}}"
+              :use proposalCard
+              :cell {:column 1 :row "{{assistantCount + (assistantCount == 0 ? 4 : 0) + l + 1}}"}
+              :with {:title "{{proposal.message}}"
+                :summary "{{t('assistant.touches', {n: length(proposal.touches ?? [])})}}"
+                :lines "{{slice(concat(map(proposal.assets ?? [], '+ ' + it.name), proposal.changes ?? []), 0, 3)}}"
+                :status "{{preview != null && preview.id == proposal.id ? 'previewing' : 'pending'}}"
+                :preview assistant.preview
+                :accept assistant.accept
+                :reject assistant.reject
+                :with (node #"{{proposal.id}}")
+                :width 340
+                :labels {:preview "{{t('assistant.preview')}}"
+                  :accept "{{t('assistant.accept')}}"
+                  :reject "{{t('assistant.reject')}}"
+                  :accepted "{{t('assistant.accepted')}}"
+                  :rejected "{{t('assistant.rejected')}}"
+                  :closed "{{t('assistant.closed')}}"}
+                :color @assistant.surface
+                :textColor @assistant.text
+                :dimColor @assistant.dim
+                :borderColor @assistant.border
+                :accent @assistant.success
+                :accentTextColor @assistant.onAccent
+                :buttonColor @assistant.raised})
+            (node :when "{{assistantWorking}}"
+              #assistantTyping
+              :cell {:column 1 :row "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + 1}}"}
+              :use typingIndicator
+              :every {:ms 400 :do [{:increment state.assistant.phase}]}
+              :with {:label "{{t('assistant.typing')}}"
+                :phase "{{state.assistant.phase}}"
+                :color transparent
+                :dotColor @assistant.dot
+                :activeColor @assistant.dim})
+            (node #assistantEnd
+              :height 1
+              :color transparent
+              :cell {:column 1 :row "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + 2}}"}))]}
+      (node #assistantInput
+        :alignSelf stretch
+        :color transparent
+        :height "{{length(state.assistant.attachments) > 0 ? 166 : 112}}"
+        (node #assistantInputCard
+          :type column
+          :anchors {:left 12 :right 12 :top 0 :bottom 12}
+          :color @assistant.surface
+          :radius 16
+          :borderWidth 1
+          :borderColor @assistant.border
+          :shadow {:x 0 :y 2 :blur 8 :color "#0000001a"}
+          (node :when "{{length(state.assistant.attachments) > 0}}"
+            #assistantAttachments
+            :alignSelf stretch
+            :height 54
+            :color transparent
+            (row #assistantAttachedList
+              :scroll horizontal
+              :gap 6
+              :alignItems center
+              :anchors {:left 10 :right 10 :top 10 :bottom 0}
+              :role list
+              :label "{{t('assistant.attached')}}"
+              (node :repeat {:for file :in state.assistant.attachments :index f}
+                #"assistantAttached{{f}}"
+                :use assistantFile
+                :with {:file "{{file}}" :removable true})))
+          {:alignSelf stretch
+            :height 100
+            :color transparent
+            :children [(node #assistantComposer
+                :use chatComposer
+                :anchors {:left 1 :right 1 :top 1 :bottom 1}
+                :with {:bind state.assistant.draft
+                  :value "{{state.assistant.draft}}"
+                  :send assistant.send
+                  :autofocus true
+                  :close assistant.close
+                  :label "{{t('assistant.message')}}"
+                  :placeholder "{{t('assistant.placeholder')}}"
+                  :sendLabel "{{t('assistant.send')}}"
+                  :working "{{assistantWorking}}"
+                  :stop assistant.stop
+                  :stopLabel "{{t('assistant.stop')}}"
+                  :borderWidth 0
+                  :radius 16
+                  :color @assistant.surface
+                  :textColor @assistant.text
+                  :dimColor @assistant.dim
+                  :borderColor @assistant.border
+                  :accent @assistant.accent
+                  :accentTextColor @assistant.onAccent}
+                (node #assistantAttach
+                  :width 32
+                  :height 32
+                  :radius 8
+                  :color transparent
+                  :role button
+                  :focusable true
+                  :cursor hand
+                  :label "{{t('assistant.attach')}}"
+                  :tooltip "{{t('assistant.attach')}}"
+                  :hover {:color @assistant.raised}
+                  :focused {:borderWidth 1 :borderColor @assistant.accent}
+                  :onClick [{:run assistant.attach}]
+                  {:type path
+                    :anchors {:left 7 :top 7}
+                    :width 18
+                    :height 18
+                    :viewBox "0 0 24 24"
+                    :d "M12 5v14M5 12h14"
+                    :stroke @assistant.dim
+                    :strokeWidth 2
+                    :strokeCap round})
+                (node :when "{{length(assistantModels.models ?? []) > 0}}"
+                  #assistantModelPicker
+                  :type row
+                  :fitContent width
+                  :height 32
+                  :gap 4
+                  :alignItems center
+                  :radius 8
+                  :color transparent
+                  :role button
+                  :focusable true
+                  :cursor hand
+                  :isOpen "{{state.assistant.modelMenu}}"
+                  :label "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}"
+                  :tooltip "{{t('assistant.chooseModel', {provider: assistantModels.provider ?? ''})}}"
+                  :hover {:color @assistant.raised}
+                  :focused {:borderWidth 1 :borderColor @assistant.accent}
+                  :onClick [{:toggle state.assistant.modelMenu}]
+                  {:width 4 :height 1 :color transparent}
+                  (node #assistantModelName
+                    :type label
+                    :fitText {:maxWidth 150}
+                    :textColor @assistant.dim
+                    :text "{{find(assistantModels.models, it.id == assistantModel).name ?? assistantModel}}")
+                  (node #assistantModelChevron
+                    :type path
+                    :width 14
+                    :height 14
+                    :viewBox "0 0 24 24"
+                    :d "m6 9 6 6 6-6"
+                    :stroke @assistant.dim
+                    :strokeWidth 2.25
+                    :strokeCap round
+                    :strokeJoin round)
+                  {:width 4 :height 1 :color transparent}
+                  (node #assistantModelMenu
+                    :use menu
+                    :with {:open state.assistant.modelMenu
+                      :placement above
+                      :width 260
+                      :items "{{map(assistantModels.models, {title: it.name, checked: it.id == assistantModel, keyLabel: it.id == assistantModels.default ? t('assistant.defaultModel') : '', run: 'assistant.pickModel', with: {id: it.id}})}}"
+                      :color @assistant.raised
+                      :textColor @assistant.text
+                      :dimColor @assistant.dim
+                      :highlight @assistant.border})))]})))}}

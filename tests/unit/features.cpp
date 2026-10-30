@@ -2,7 +2,7 @@
 /// @brief Unit tests for features (rfcs/0004-features.md): manifests, composition, and installing, enabling,
 /// disabling and removing a feature by revision, each step undoable.
 ///
-/// The packages are Forge's worked examples (examples/forge/features/word-count and todo-tree); the app is a small
+/// The packages are Forge's worked examples (examples/forge/json/features/word-count and todo-tree); the app is a small
 /// screen with the same contribution points and exports as Forge.
 
 #include "Composition.hpp"
@@ -22,10 +22,10 @@ using affresco::RevisionStatus;
 namespace {
 
 /// @brief One of Forge's feature packages.
-/// @param folder Its folder under examples/forge/features, e.g. "word-count".
+/// @param folder Its folder under examples/forge/json/features, e.g. "word-count".
 /// @return Its manifest.
 json package(const std::string& folder) {
-	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/forge/features/" + folder + "/feature.json");
+	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/forge/json/features/" + folder + "/feature.json");
 	REQUIRE(file);
 	return json::parse(file);
 }

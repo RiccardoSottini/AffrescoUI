@@ -1,7 +1,7 @@
 {
 	"id": "kanban-add-member",
 	"level": "edit",
-	"screen": "examples/flow/index.screen.json",
+	"screen": "examples/flow/json/index.screen.json",
 	"request": "Add Maria Rossi to the board's members, with the initials MR and the color #8e44ad.",
 	"scenarios": [
 		{

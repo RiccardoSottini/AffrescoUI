@@ -77,7 +77,7 @@ TEST_CASE("shellLine: a word or value with a line break, a carriage return or an
 }
 
 TEST_CASE("shellLine: Forge types the debug adapter's line into the program `sh`, which it declares") {
-	const std::filesystem::path forge = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "forge";
+	const std::filesystem::path forge = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "forge" / "json";
 	const json debug = json::parse(std::ifstream(forge / "features" / "debug" / "debug.json"));
 	const json app = json::parse(std::ifstream(forge / "app.json"));
 	CHECK(debug["services"]["debugTerminal"]["process"] == "sh");

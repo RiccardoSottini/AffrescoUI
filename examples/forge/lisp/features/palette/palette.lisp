@@ -1,0 +1,284 @@
+{:$schema "../../../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "Forge's palette: one quick pick with four providers (files by default, '>' commands, ':' go to line, 'theme ' colour themes, 'task ' the tasks Run Task read), and the Settings and Keyboard Shortcuts pages, both generated from what the features contribute (the settings and commands sections and the keys)."
+  :state {:quickPick {:open false :query ""} :goTo {:line 0 :request 0} :keysQuery "" :settingsQuery ""}
+  :computed {:commandItems "{{map(filter(commands, it.enabled), {title: (it.category ? it.category + ': ' : '') + it.title, detail: it.keyLabel ?? '', run: it.name})}}"
+    :indentItems "{{map([2, 4, 8], {title: 'Spaces: ' + text(it), detail: it == (settings.editor.tabSize ?? 4) ? 'Current' : '', run: 'setTabSize', with: {spaces: it}})}}"
+    :eolItems "{{map(['LF', 'CRLF'], {title: it, detail: it == (computed.activeDoc.eol ?? 'LF') ? 'Current' : '', run: 'setEol', with: {eol: it}})}}"
+    :languageItems "{{map(concat(filter(values(state.languages), indexOf(values(state.languages), it) == index), ['Plain Text']), {title: it, detail: (it == 'Plain Text' ? '' : it) == (computed.activeDoc.language ?? '') ? 'Current' : '', run: 'setLanguage', with: {language: it == 'Plain Text' ? '' : it}})}}"
+    :lineItems "{{(number(slice(state.quickPick.query ?? '', 1)) ?? 0) > 0 ? [{title: 'Go to line ' + trim(slice(state.quickPick.query, 1)), line: number(slice(state.quickPick.query, 1))}] : []}}"
+    :settingsGroups "{{map(settingsList, split(it.key, '.')[0])}}"
+    :settingsToc "{{concat([{query: '', label: 'All settings'}], map(filter(computed.settingsGroups, indexOf(computed.settingsGroups, it) == index), {query: it + '.', label: it == 'editor' ? 'Text Editor' : it == 'diffEditor' ? 'Diff Editor' : it == 'accounts' ? 'Accounts' : upper(slice(it, 0, 1)) + slice(it, 1)}))}}"
+    :settingsRows "{{filter(settingsList, contains(lower(it.title + ' ' + it.key + ' ' + (it.description ?? '')), lower(state.settingsQuery)))}}"
+    :keyRows "{{map(filter(keybindings, empty(state.keysQuery) || contains(lower((it.title ?? it.command ?? '') + ' ' + it.keyLabel), lower(state.keysQuery))), {id: index, cells: [it.title ?? it.command ?? '', it.keyLabel, it.when ?? '', it.scope]})}}"}
+  :settings {:workbench.statusBar.visible {:type boolean
+      :default true
+      :title "Status bar"
+      :description "Show the status bar at the bottom of the window."}
+    :workbench.activityBar.visible {:type boolean
+      :default true
+      :title "View rail"
+      :description "Show the activity bar on the left."}
+    :workbench.startupEditor {:type string
+      :enum [welcome none]
+      :default welcome
+      :title "Startup editor"
+      :description "What the editor area shows when no file is open."}
+    :editor.lineNumbers {:type boolean
+      :default true
+      :title "Line numbers"
+      :description "Show line numbers in the editor's gutter."}}
+  :actions {:quickOpen {:title "Go to File..."
+      :category Go
+      :icon search
+      :do [{:set state.quickPick.query :to ""} {:set state.quickPick.open :to true}]}
+    :showCommands {:title "Run a Command..."
+      :category View
+      :icon search
+      :do [{:set state.quickPick.query :to ">"} {:set state.quickPick.open :to true}]}
+    :goToLinePick {:title "Go to Line..."
+      :category Go
+      :icon hash
+      :do [{:set state.quickPick.query :to ":"} {:set state.quickPick.open :to true}]}
+    :changeIndentation {:title "Change Indentation"
+      :category View
+      :icon indent-increase
+      :enablement "{{computed.activeDoc.kind == 'file'}}"
+      :do [{:set state.quickPick.query :to "indent "} {:set state.quickPick.open :to true}]}
+    :changeEndOfLine {:title "Change End of Line Sequence"
+      :category View
+      :icon corner-down-left
+      :enablement "{{computed.activeDoc.kind == 'file'}}"
+      :do [{:set state.quickPick.query :to "eol "} {:set state.quickPick.open :to true}]}
+    :changeLanguageMode {:title "Change Language Mode"
+      :category View
+      :icon braces
+      :enablement "{{computed.activeDoc.kind == 'file'}}"
+      :do [{:set state.quickPick.query :to "language "} {:set state.quickPick.open :to true}]}
+    :setTabSize [{:note "spaces: per indentation level, for every editor (a file's text keeps the spaces it has)"}
+      {:set settings.editor.tabSize :to "{{spaces}}"}]
+    :setEol [{:note "eol: 'LF' or 'CRLF', the line endings the active file is saved with. A change to save, like an edit"}
+      {:forEach "{{filter(state.docs, it.id == computed.activeDoc.id)}}"
+        :as doc
+        :do [{:run markDirty :with (node #"{{doc.id}}" :dirty "{{doc.text != doc.saved || eol != doc.savedEol}}")}
+          {:set state.docs :to "{{map(state.docs, it.id == doc.id ? merge(it, {eol: eol}) : it)}}"}]}]
+    :setLanguage [{:note "language: the active file's, as state.languages names them ('' is plain text)"}
+      {:set state.docs :to "{{map(state.docs, it.id == computed.activeDoc.id ? merge(it, {language: language}) : it)}}"}]
+    :openPicked [{:run openPath :with {:path "{{item.id}}" :label "{{item.title}}"}}]
+    :goToPicked [{:run goToLine :with {:line "{{item.line}}"}}]
+    :goToLine [{:set state.goTo.line :to "{{line}}"} {:increment state.goTo.request :by 1}]
+    :openSettings {:title "Open Settings"
+      :category Preferences
+      :icon settings
+      :do [{:run openPage :with (node #"forge:settings" :label Settings :kind settings)}]}
+    :openKeybindings {:title "Open Keyboard Shortcuts"
+      :category Preferences
+      :icon keyboard
+      :do [{:run openPage :with (node #"forge:keybindings" :label "Keyboard Shortcuts" :kind keybindings)}]}}
+  :keys {:"mod+p" quickOpen
+    :"mod+shift+p" showCommands
+    :"mod+g" goToLinePick
+    :"mod+," openSettings
+    :"mod+k mod+s" openKeybindings}
+  :menus {:go {:quickOpen {:run quickOpen :group "1_go" :order 1} :goToLine {:run goToLinePick :group "1_go" :order 2}}
+    :view {:commands {:run showCommands :group "1_open" :order 1}}
+    :preferences {:settings {:run openSettings :group "1_settings" :order 1}
+      :keybindings {:run openKeybindings :group "1_settings" :order 2}}}
+  :components {:forgePalette {:node (node #palette
+        :use quickPick
+        :with {:width 600
+          :color @color.widget
+          :textColor @color.text
+          :dimColor @color.muted
+          :accent @color.accent
+          :highlight @color.selection
+          :field @color.input
+          :providers [{:items "{{state.folder.files ?? []}}"
+              :run openPicked
+              :placeholder "Search files by name (> for commands, : for a line)"}
+            {:prefix ">" :items "{{computed.commandItems}}" :placeholder "Run a command"}
+            {:prefix ":" :items "{{computed.lineItems}}" :run goToPicked :placeholder "Type a line number"}
+            {:prefix "theme " :items "{{state.themes}}" :key name :run setTheme :placeholder "Choose a colour theme"}
+            {:prefix "task " :items "{{state.tasks.items}}" :run taskStart :placeholder "Choose a task to run"}
+            {:prefix "indent " :items "{{computed.indentItems}}" :placeholder "Select the spaces per indentation level"}
+            {:prefix "eol " :items "{{computed.eolItems}}" :placeholder "Select the end of line sequence"}
+            {:prefix "language " :items "{{computed.languageItems}}" :placeholder "Select a language mode"}]})}
+    :forgeSettingsPage {:node (row #settings-editor :width "100%" :grow 1 :color @color.editor
+        (column #settings-toc :label "Table of contents" :width 176 :height "100%" :color @color.editor :gap 2
+          {:width "100%" :height 6 :color @color.editor}
+          (node #settings-toc-item
+            :repeat {:for group :in "{{computed.settingsToc}}"}
+            :role button
+            :label "{{group.label}}"
+            :width "100%"
+            :height 26
+            :cursor hand
+            :radius 4
+            :color "{{state.settingsQuery == group.query ? '@color.selection' : '@color.editor'}}"
+            :tooltip "{{empty(group.query) ? 'Show every setting' : 'Show the ' + group.label + ' settings'}}"
+            :onClick {:set state.settingsQuery :to "{{group.query}}"}
+            {:type label
+              :text "{{group.label}}"
+              :anchors {:left 16 :top 5}
+              :fitText true
+              :textColor "{{state.settingsQuery == group.query ? '@color.text' : '@color.muted'}}"}))
+        (column #settings-page :height "100%" :grow 1 :color @color.editor :gap 8
+          (textarea #settings-search
+            :role searchbox
+            :label "Search Settings"
+            :bind state.settingsQuery
+            :width "100%"
+            :height 30
+            :padding 7
+            :color @color.input
+            :textColor @color.text
+            :placeholderColor @color.muted
+            :placeholder "Search settings")
+          (node :when "{{empty(computed.settingsRows)}}"
+            :type label
+            #settings-none
+            :text "No settings found"
+            :textColor @color.muted
+            :width "100%"
+            :height 28
+            :padding 8)
+          (column #settings-list :label Settings :width "100%" :grow 1 :scroll vertical :gap 2
+            (node :use forgeSettingRow #settings-row :repeat {:for s :in "{{computed.settingsRows}}"}))))}
+    :forgeSettingRow {:node {:label "{{s.title}}"
+        :width "100%"
+        :height "{{s.type == 'boolean' ? 58 : 86}}"
+        :color @color.editor
+        :hover {:color @color.hover}
+        :radius 4
+        :children [{:when "{{s.modified}}" :anchors {:left 0 :top 8 :bottom 8} :width 2 :color @color.accent}
+          (label #setting-title
+            :text "{{s.title}}"
+            :textColor @color.text
+            :fitText true
+            :tooltip "{{s.key}}"
+            :anchors {:left 16 :top 8})
+          (node :when "{{s.type == 'boolean'}}"
+            :type checkbox
+            #setting-check
+            :label "{{s.title}}"
+            :bind "{{'settings.' + s.key}}"
+            :width 14
+            :height 14
+            :anchors {:left 16 :top 33}
+            :activeColor @color.accent
+            :trackColor @color.input
+            :knobColor @color.text)
+          (label #setting-description
+            :text "{{s.description ?? ''}}"
+            :textColor @color.muted
+            :height 18
+            :anchors {:left "{{s.type == 'boolean' ? 38 : 16}}" :right 90 :top 31})
+          (node :when "{{s.type == 'string' && s.enum != null}}"
+            :type row
+            #setting-choices
+            :gap 4
+            :width 480
+            :height 24
+            :anchors {:left 16 :top 54}
+            :color "#00000000"
+            (label #setting-choice
+              :repeat {:for choice :in "{{s.enum ?? []}}"}
+              :role radio
+              :label "{{choice}}"
+              :checked "{{s.value == choice}}"
+              :text "{{choice}}"
+              :height 24
+              :width "{{24 + 7 * length(choice)}}"
+              :align center
+              :cursor hand
+              :radius 3
+              :borderWidth 1
+              :borderColor "{{s.value == choice ? '@color.accent' : '@color.border'}}"
+              :color "{{s.value == choice ? '@color.selection' : '@color.input'}}"
+              :textColor @color.text
+              :onClick {:set "{{'settings.' + s.key}}" :to "{{choice}}"}))
+          (node :when "{{s.type != 'boolean' && s.minimum != null && s.maximum != null}}"
+            :type slider
+            #setting-slider
+            :label "{{s.title}}"
+            :bind "{{'settings.' + s.key}}"
+            :min "{{s.minimum ?? 0}}"
+            :max "{{s.maximum ?? 1}}"
+            :step "{{s.type == 'integer' ? 1 : 0}}"
+            :width 200
+            :height 20
+            :anchors {:left 16 :top 56}
+            :activeColor @color.accent
+            :trackColor @color.input
+            :knobColor @color.text)
+          (node :when "{{s.type != 'boolean' && s.minimum != null && s.maximum != null}}"
+            :type label
+            #setting-slider-value
+            :text "{{text(s.value)}}"
+            :textColor @color.text
+            :fitText true
+            :anchors {:left 228 :top 58})
+          (node :when "{{s.type == 'string' && s.enum == null}}"
+            :type textarea
+            #setting-text
+            :label "{{s.title}}"
+            :bind "{{'settings.' + s.key}}"
+            :width 260
+            :height 26
+            :padding 5
+            :anchors {:left 16 :top 52}
+            :color @color.input
+            :textColor @color.text)
+          (node :when "{{s.type != 'boolean' && s.type != 'string' && (s.minimum == null || s.maximum == null)}}"
+            :type textarea
+            #setting-number
+            :label "{{s.title}}"
+            :text "{{text(s.value)}}"
+            :width 120
+            :height 26
+            :padding 5
+            :anchors {:left 16 :top 52}
+            :color @color.input
+            :textColor @color.text
+            :onChange {:if "{{number(event.value) != null}}"
+              :then [{:set "{{'settings.' + s.key}}" :to "{{number(event.value)}}"}]})
+          (node :when "{{s.modified}}"
+            :type label
+            #setting-reset
+            :role button
+            :text Reset
+            :label "Reset {{s.title}}"
+            :tooltip "Reset to the default"
+            :textColor @color.muted
+            :hover {:textColor @color.text}
+            :cursor hand
+            :fitText true
+            :anchors {:right 16 :top 8}
+            :onClick {:remove "{{'settings.' + s.key}}"})]}}
+    :forgeKeybindingsPage {:node (column #keybindings-page :width "100%" :grow 1 :color @color.editor :gap 8
+        (textarea #keybindings-search
+          :role searchbox
+          :label "Search Keybindings"
+          :bind state.keysQuery
+          :width "100%"
+          :height 30
+          :padding 7
+          :color @color.input
+          :textColor @color.text
+          :placeholderColor @color.muted
+          :placeholder "Search keybindings")
+        (table #keybindings-table
+          :label "Keyboard Shortcuts"
+          :width "100%"
+          :grow 1
+          :items "{{computed.keyRows}}"
+          :rowHeight 24
+          :color @color.editor
+          :textColor @color.text
+          :selectedBackground @color.selection
+          :accentColor @color.accent
+          :columns [(node #command :title Command :width 280)
+            (node #key :title Keybinding :width 160)
+            (node #when :title When :width 200)
+            (node #source :title Source :width 100)]))}}}

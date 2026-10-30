@@ -30,7 +30,7 @@ NOTICES = ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md")
 README = """AffrescoUI {version} for {platform}
 
   ./affrescoui_launcher                 the Launcher (assets/launcher): every app, opened with a click, and new ones
-  ./affrescoui_launcher <screen.json>   one template, e.g. assets/flow/index.screen.json (the Kanban board)
+  ./affrescoui_launcher <screen.json>   one template, e.g. assets/flow/json/index.screen.json (the Kanban board)
   ./affrescoui help                 the command-line tool: check, render, fmt, ids, run, export, import
 
 The MCP server for AI agents is in this release (the .whl file): pipx install ./affrescoui_mcp-<version>-py3-none-any.whl, then
@@ -51,11 +51,11 @@ def program(build, name, windows):
 
 
 def copy_assets(assets):
-    """Every app's folder (an app.json in it: each opens in the stock host) and examples/shared, as the programs find
+    """Every example's folder (an app in its json/ and lisp/: each opens in the stock host) and examples/shared, as the programs find
     them in examples/, without the C++ sources and the tests' scripts."""
     examples = os.path.join(ROOT, "examples")
-    folders = sorted(each for each in os.listdir(examples) if os.path.isfile(os.path.join(examples, each, "app.json")))
-    for each in folders + ["shared"]:
+    folders = sorted(each for each in os.listdir(examples) if os.path.isfile(os.path.join(examples, each, "json", "app.json")))
+    for each in folders + ["shared"]:  # each with its json/ and lisp/ folders
         shutil.copytree(os.path.join(examples, each), os.path.join(assets, each),
                         ignore=shutil.ignore_patterns("*.cpp", "*.hpp", "*.py"))
     # The host's own agent reads the format guide by topic (modules/intelligence, ScreenQueries.hpp)

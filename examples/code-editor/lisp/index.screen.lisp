@@ -1,0 +1,1411 @@
+{:$schema "../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "Quaderno: a code editor. A menu bar, an explorer tree, editor tabs with unsaved dots (closing an unsaved one asks first), a generated 5,000-line file, the Quick Switcher (Cmd+P; file@symbol, file:line), symbols in the project (Cmd+Shift+R), Find in Files (Cmd+Shift+F, F4 for the next result), every command in a palette (Cmd+Shift+P), the TODO and FIXME lines as problems (updated on save), and a terminal. A find panel (Cmd+F, Cmd+Alt+F to replace), word wrap (Alt+Cmd+W) and a ruler at column 80 (View); multiple selections, Cmd+/ comments, line operations."
+  :window {:title "Quaderno: an AffrescoUI template"
+    :width 1280
+    :height 800
+    :minWidth 1040
+    :minHeight 640
+    :focusRing false}
+  :include ["parts/look.lisp" "../../shared/languages/languages.lisp" "../../shared/addons/assistant/assistant.lisp"]
+  :theme "{{computed.theme}}"
+  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons code]}
+    :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [icons code]}
+    :code {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 14}
+    :icons {:file "../../shared/fonts/Lucide.ttf" :size 18}}
+  :permissions {:allow [studio]
+    :ask ["agent(/actions)"]
+    :deny ["*(#statusBar)"]
+    :reviewers [studio]
+    :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
+  :state {:dir auto
+    :project weather-station
+    :theme dark
+    :zen false
+    :minimap true
+    :tabs [0 1 3]
+    :active 0
+    :caret {:line 1 :column 1 :selected 0}
+    :command ""
+    :expanded ["d:root" "d:src" "d:screens"]
+    :sidebarOpen true
+    :panelOpen false
+    :panelTab problems
+    :menuBar {}
+    :quickPick {:open false :query ""}
+    :palette {:open false :query ""}
+    :symbolPick {:open false :query ""}
+    :themePick {:open false :query ""}
+    :syntaxPick {:open false :query ""}
+    :tabMenu {:open false :x 0 :y 0 :file -1}
+    :editorMenu {:open false :x 0 :y 0}
+    :symbolIndex []
+    :place nil
+    :results {:query "" :at 0}
+    :wrap false
+    :ruler false
+    :findBar {:open false
+      :replacing false
+      :inFiles false
+      :where ""
+      :scope []
+      :text ""
+      :replace ""
+      :regex false
+      :wholeWord false
+      :caseSensitive false
+      :inSelection false
+      :step first
+      :request 0}
+    :closing {:open false :file -1}
+    :closed []
+    :aboutOpen false
+    :problems []
+    :problemPick ""
+    :scan []
+    :files [{:name main.cpp
+        :folder src
+        :language "C++"
+        :dirty false
+        :text "#include <affresco/affresco.hpp>\n#include \"Station.hpp\"\n\n// A weather station: the UI is a live document, the readings come from C++\nint main() {\n    affresco::Application app;\n    affresco::Screen screen = affresco::Screen::fromFile(\"screens/station.screen.json\");\n    screen.createWindow(app);\n\n    Station station(screen);\n    // TODO: read the sensor's name from the settings\n    station.connect(\"sensor-0\");\n    return app.run();\n}\n"}
+      {:name Station.hpp
+        :folder src
+        :language "C++"
+        :dirty false
+        :text "#pragma once\n\n#include <affresco/Screen.hpp>\n#include <string>\n\n/// @brief Reads the sensors and puts their values in the screen's state.\nclass Station {\npublic:\n    explicit Station(affresco::Screen& screen);\n\n    /// @brief Starts reading the sensor with this name.\n    void connect(const std::string& sensor);\n\nprivate:\n    affresco::Screen& screen_; ///< The station's live document.\n    double lastCelsius_ = 0.0; ///< The last temperature read.\n};\n"}
+      {:name Station.cpp
+        :folder src
+        :language "C++"
+        :dirty false
+        :text "#include \"Station.hpp\"\n\nStation::Station(affresco::Screen& screen) : screen_(screen) {}\n\nvoid Station::connect(const std::string& sensor) {\n    // FIXME: a sensor that never answers blocks the UI thread\n    lastCelsius_ = sensor0(readRaw(sensor));\n    screen_.applyRevision(R\"({\"message\": \"New reading\",\n        \"patch\": [{\"op\": \"replace\", \"path\": \"/state/celsius\", \"value\": 21.5}]})\");\n}\n"}
+      {:name Calibration.cpp :folder src :language "C++" :dirty false :text ""}
+      {:name station.screen.json
+        :folder screens
+        :language JSON
+        :dirty false
+        :text "{\n    \"format\": \"affrescoui-screen\",\n    \"version\": 1,\n    \"permissions\": { \"authors\": { \"agent\": \"review\" } },\n    \"state\": { \"celsius\": 21.5, \"humidity\": 48 },\n    \"root\": { \"children\": [ ... ] }\n}\n"}
+      {:name CMakeLists.txt
+        :folder ""
+        :language CMake
+        :dirty false
+        :text "cmake_minimum_required(VERSION 3.25)\nproject(weather-station CXX)\n\nadd_subdirectory(external/AffrescoUI)\nadd_executable(station src/main.cpp src/Station.cpp src/Calibration.cpp)\ntarget_link_libraries(station PRIVATE affrescoui::affrescoui)\n"}
+      {:name README.md
+        :folder ""
+        :language Markdown
+        :dirty false
+        :text "# weather-station\n\nA native weather station built on AffrescoUI.\n\n## Build\n    cmake -S . -B build && cmake --build build\n\nTODO: describe how the sensors are wired\n"}]
+    :terminal [{:t "$ cmake --build build" :c prompt}
+      {:t "[ 50%] Building CXX object src/Calibration.cpp.o" :c plain}
+      {:t "[100%] Linking CXX executable station" :c plain}
+      {:t "Build finished: 0 warnings" :c comment}]
+    :outputs {:help [{:t "commands: build, run, help, clear" :c plain}]
+      :build [{:t "[100%] Built target station" :c plain} {:t "[Done in 0.8s]" :c comment}]
+      :run [{:t "station: reading sensor-0 every second" :c plain}]}}
+  :computed {:file "{{state.active >= 0 ? state.files[state.active] : null}}"
+    :path "{{computed.file ? (computed.file.folder ? computed.file.folder + '  /  ' : '') + computed.file.name : ''}}"
+    :tree "{{[{ id: 'd:root', label: state.project, children: concat([{ id: 'd:src', label: 'src', children: map(filter(range(length(state.files)), state.files[it].folder == 'src'), { id: 'f' + it, label: state.files[it].name }) }, { id: 'd:screens', label: 'screens', children: map(filter(range(length(state.files)), state.files[it].folder == 'screens'), { id: 'f' + it, label: state.files[it].name }) }], map(filter(range(length(state.files)), state.files[it].folder == ''), { id: 'f' + it, label: state.files[it].name })) }]}}"
+    :tabItems "{{map(state.tabs, { id: text(it), label: state.files[it].name, marker: state.files[it].dirty })}}"
+    :errors "{{length(filter(state.problems, it.cells[0] == 'Error'))}}"
+    :warnings "{{length(filter(state.problems, it.cells[0] == 'Warning'))}}"
+    :picks "{{map(filter(range(length(state.files)), !state.files[it].scratch), { title: state.files[it].name, detail: state.project + '/' + (state.files[it].folder ? state.files[it].folder + '/' : '') + state.files[it].name, file: it })}}"
+    :gotoMark "{{min(concat([length(state.quickPick.query)], filter(map(['@', ':', '#'], indexOf(state.quickPick.query, it)), it >= 0)))}}"
+    :gotoKind "{{slice(state.quickPick.query, computed.gotoMark, computed.gotoMark + 1)}}"
+    :gotoFile "{{computed.gotoMark == 0 ? state.active : fuzzySort(computed.picks, slice(state.quickPick.query, 0, computed.gotoMark), 'title', 1)[0].item.file ?? -1}}"
+    :gotoLines "{{computed.gotoFile >= 0 && computed.gotoKind != '' ? split(state.files[computed.gotoFile].text, '\\n') : []}}"
+    :search "{{lower(slice(state.quickPick.query, computed.gotoMark + 1))}}"
+    :lines "{{computed.file ? split(computed.file.text, '\\n') : []}}"
+    :commentMark "{{computed.file && (computed.file.language == 'CMake' || computed.file.language == 'Markdown') ? '#' : '//'}}"
+    :symbols "{{map(fuzzySort(state.symbolIndex[computed.gotoFile] ?? [], computed.search, 'title', 50), it.item)}}"
+    :lineItems "{{computed.gotoFile < 0 ? [] : [number(computed.search) ? { title: 'Go to line ' + clamp(number(computed.search), 1, length(computed.gotoLines)), detail: state.files[computed.gotoFile].name, file: computed.gotoFile, line: clamp(number(computed.search), 1, length(computed.gotoLines)) } : { title: 'Type a line number, 1 to ' + length(computed.gotoLines), detail: state.files[computed.gotoFile].name, file: computed.gotoFile }]}}"
+    :found "{{empty(computed.search) ? [] : slice(map(filter(range(length(computed.gotoLines)), contains(lower(computed.gotoLines[it]), computed.search)), { title: trim(computed.gotoLines[it]), detail: 'line ' + (it + 1), file: computed.gotoFile, line: it + 1, column: indexOf(lower(computed.gotoLines[it]), computed.search) + 1, length: length(computed.search) }), 0, 50)}}"
+    :gotoItems "{{computed.gotoKind == '@' ? computed.symbols : computed.gotoKind == ':' ? computed.lineItems : computed.found}}"
+    :projectSymbols "{{flat(state.symbolIndex)}}"
+    :resultsFile "{{find(range(length(state.files)), state.files[it].scratch) ?? -1}}"
+    :resultLines "{{computed.resultsFile < 0 ? [] : map(filter(map(split(state.files[computed.resultsFile].text, '\\n'), slice(it, 0, 1) == ' ' && contains(it, ': ') ? index + 1 : 0), it > 0), it)}}"
+    :findHeight "{{state.findBar.open ? (state.findBar.inFiles ? (state.findBar.replacing ? 94 : 64) : state.findBar.replacing ? 64 : 34) : 0}}"
+    :findLeft "{{state.findBar.inFiles || state.findBar.replacing ? 188 : 128}}"
+    :replaceTop "{{state.findBar.inFiles ? 65 : 35}}"
+    :palette "{{map(filter(commands, it.enabled), { title: it.category + ': ' + it.title, detail: it.keyLabel || '', run: it.name })}}"
+    :findQuery "{{state.findBar.open && !state.findBar.inFiles && !empty(state.findBar.text) ? {text: state.findBar.text, regex: state.findBar.regex, wholeWord: state.findBar.wholeWord, caseSensitive: state.findBar.caseSensitive, inSelection: state.findBar.inSelection, replace: state.findBar.replace, step: state.findBar.step, request: state.findBar.request} : state.active >= 0 && state.active == computed.resultsFile ? {text: state.results.query, caseSensitive: state.findBar.caseSensitive} : null}}"
+    :findMatches "{{merge({matches: 0}, state.caret).matches}}"
+    :themes "{{[{ title: 'Dark', detail: 'Charcoal and violet ink', theme: 'dark', pick: 'dark' }, { title: 'Light', detail: 'Paper and violet ink', theme: 'light', pick: 'light' }, { title: 'System', detail: 'Follows the system, now ' + window.colorScheme, theme: window.colorScheme, pick: 'system' }]}}"
+    :theme "{{state.themePick.open ? (computed.themes[state.themePick.index ?? 0] ?? computed.themes[0]).theme : state.theme == 'system' ? window.colorScheme : state.theme}}"
+    :syntaxes "{{[{ title: 'Plain Text', language: '', grammar: 'plain.txt' }, { title: 'C++', language: 'C++', grammar: 'cpp' }, { title: 'CMake', language: 'CMake', grammar: 'CMakeLists.txt' }, { title: 'JavaScript', language: 'JavaScript', grammar: 'javascript' }, { title: 'JSON', language: 'JSON', grammar: 'json' }, { title: 'Markdown', language: 'Markdown', grammar: 'markdown' }, { title: 'Python', language: 'Python', grammar: 'python' }, { title: 'Shell', language: 'Shell', grammar: 'script.sh' }, { title: 'TypeScript', language: 'TypeScript', grammar: 'typescript' }]}}"
+    :settingsText "{{'{\\n\\t// Quaderno settings: save this file (Cmd+S) to apply them.\\n\\t// theme: \"dark\", \"light\" or \"system\"\\n\\t\"theme\": ' + json(state.theme) + ',\\n\\t\"wordWrap\": ' + json(state.wrap) + ',\\n\\t\"ruler\": ' + json(state.ruler) + ',\\n\\t\"minimap\": ' + json(state.minimap) + ',\\n\\t\"sideBar\": ' + json(state.sidebarOpen) + '\\n}\\n'}}"
+    :keysText "{{'// Quaderno key bindings (read only): the keys section of the screen\\n[\\n' + join(map(filter(commands, it.key), '\\t{ \"keys\": ' + json(it.key) + ', \"command\": ' + json(it.name) + ' }'), ',\\n') + '\\n]\\n'}}"
+    :findSummary "{{empty(state.findBar.text) ? '' : computed.findMatches == 0 ? 'No results' : plural(computed.findMatches, 'match', 'matches')}}"}
+  :styles {:caption {:type label :font small :textColor @muted :fitText true}
+    :terminalLine {:type label :font code :align {:horizontal start :vertical center}}
+    :findToggle {:type label
+      :font code
+      :width 24
+      :height 22
+      :align center
+      :radius 3
+      :borderWidth 1
+      :borderColor @guide
+      :cursor hand
+      :hover {:textColor @text}}
+    :findButton {:type label
+      :font small
+      :textColor @text
+      :color @tab
+      :width 92
+      :height 24
+      :align center
+      :radius 3
+      :borderWidth 1
+      :borderColor @guide
+      :cursor hand
+      :hover {:color @hover}}
+    :findField {:type textarea
+      :font code
+      :height 24
+      :padding 5
+      :color @background
+      :textColor @text
+      :placeholderColor @faint
+      :borderWidth 1
+      :borderColor @guide
+      :focused {:borderColor @muted}}
+    :findLabel {:type label :font small :textColor @muted :width 52 :height 16 :align end}
+    :statusItem {:type label
+      :font small
+      :textColor @muted
+      :anchors {:top 0 :bottom 0}
+      :align {:horizontal start :vertical center}
+      :fitText true}}
+  :menus {:file {:new {:run newFile :group "1_new"}
+      :open {:run quickOpen :group "1_new" :order 2}
+      :reopen {:run reopenClosed :group "1_new" :order 3}
+      :save {:run save :group "2_save"}
+      :saveAll {:run saveAll :group "2_save" :order 2}
+      :revert {:run revertFile :group "2_save" :order 3}
+      :close {:run closeTab :group "3_close"}
+      :closeAll {:run closeAll :group "3_close" :order 2}
+      :settings {:run openSettings :group "4_settings"}
+      :keyBindings {:run openKeyBindings :group "4_settings" :order 2}
+      :theme {:run selectTheme :group "4_settings" :order 3}}
+    :edit {:undo {:run undo :group "0_undo"}
+      :redo {:run redo :group "0_undo" :order 2}
+      :cut {:run cut :group "0_clipboard"}
+      :copy {:run copy :group "0_clipboard" :order 2}
+      :paste {:run paste :group "0_clipboard" :order 3}
+      :duplicate {:run duplicateLines :group "1_line"}
+      :delete {:run deleteLines :group "1_line" :order 2}
+      :up {:run moveLinesUp :group "1_line" :order 3}
+      :down {:run moveLinesDown :group "1_line" :order 4}
+      :join {:run joinLines :group "1_line" :order 5}
+      :indent {:run indentLines :group "1_line" :order 6}
+      :outdent {:run outdentLines :group "1_line" :order 7}
+      :comment {:run toggleComment :group "2_comment"}
+      :sort {:run sortLines :group "3_text"}
+      :reverse {:run reverseLines :group "3_text" :order 2}
+      :unique {:run uniqueLines :group "3_text" :order 3}
+      :upper {:run upperCase :group "4_case"}
+      :lower {:run lowerCase :group "4_case" :order 2}
+      :title {:run titleCase :group "4_case" :order 3}
+      :swap {:run swapCase :group "4_case" :order 4}}
+    :selection {:all {:run selectAll :group "0_all"}
+      :lines {:run splitIntoLines :group "1_split"}
+      :occurrences {:run selectAllOccurrences :group "1_split" :order 2}
+      :line {:run expandToLine :group "2_expand"}
+      :word {:run expandToWord :group "2_expand" :order 2}}
+    :view {:palette {:run commandPalette :group "1_palette"}
+      :sidebar {:run toggleSidebar :group "2_layout"}
+      :panel {:run togglePanel :group "2_layout" :order 2}
+      :zen {:run toggleZen :group "2_layout" :order 3}
+      :problems {:run showProblems :group "3_panel"}
+      :terminal {:run showTerminal :group "3_panel" :order 2}
+      :wrap {:run toggleWordWrap :group "4_editor"}
+      :ruler {:run toggleRuler :group "4_editor" :order 2}
+      :minimap {:run toggleMinimap :group "4_editor" :order 3}
+      :unfold {:run unfoldAll :group "4_editor" :order 4}
+      :syntax {:run selectSyntax :group "5_look"}
+      :theme {:run selectTheme :group "5_look" :order 2}}
+    :find {:find {:run openFind :group "1_find"}
+      :next {:run findNext :group "1_find" :order 2}
+      :previous {:run findPrevious :group "1_find" :order 3}
+      :replace {:run openReplace :group "2_replace"}
+      :replaceNext {:run replaceOne :group "2_replace" :order 2}
+      :replaceAll {:run replaceAllInFile :group "2_replace" :order 3}
+      :search {:run findInFile :group "3_search"}
+      :files {:run findInFiles :group "4_files"}
+      :nextResult {:run nextResult :group "4_files" :order 2}
+      :previousResult {:run previousResult :group "4_files" :order 3}}
+    :go {:file {:run quickOpen :group "1_file"}
+      :symbol {:run goToSymbol :group "1_file" :order 2}
+      :projectSymbol {:run goToSymbolInProject :group "1_file" :order 3}
+      :line {:run goToLine :group "1_file" :order 4}
+      :next {:run nextTab :group "2_tabs"}
+      :previous {:run previousTab :group "2_tabs" :order 2}}
+    :terminal {:build {:run build :group "1_run"}
+      :run {:run runApp :group "1_run" :order 2}
+      :clear {:run clearConsole :group "2_clear"}
+      :assistant {:run showAssistant :group "3_assistant"}}
+    :project {:symbol {:run goToSymbolInProject :group "1_find"}
+      :find {:run findInFiles :group "1_find" :order 2}
+      :refresh {:run refreshFolders :group "2_folders"}}
+    :window {:next {:run nextTab :group "1_tabs"}
+      :previous {:run previousTab :group "1_tabs" :order 2}
+      :closeAll {:run closeAll :group "2_close"}}
+    :help {:palette {:run commandPalette :group "1_palette"} :about {:run about :group "2_about"}}}
+  :onLoad prepare
+  :watch {:state.findBar [{:set state.assistant.lift :to "{{computed.findHeight}}"}]}
+  :actions {:prepare [{:note "Generates the large file once (5,000 lines, a TODO every 1,000), then finds the problems"}
+      {:set "state.files[3].text"
+        :to "{{join(map(range(5000), index == 0 ? '// Calibration tables for the station sensors (generated, 5,000 lines)' : index % 25 == 0 ? '' : index % 25 == 1 ? 'double sensor' + floor(index / 25) + '(double raw) {' : index % 25 == 23 ? '    return raw;' : index % 25 == 24 ? '}' : index % 1000 == 507 ? '    // TODO: recalibrate sensor ' + floor(index / 25) + ' after the winter readings' : '    raw += ' + (index * 37) % 1000 + ' / 1000.0;'), '\\n')}}"}
+      {:forEach "{{range(length(state.files))}}"
+        :as f
+        :do [{:set "state.files[f].saved" :to "{{state.files[f].text}}"}]}
+      {:set state.symbolIndex :to "{{map(state.files, [])}}"}
+      {:forEach "{{range(length(state.files))}}" :as f :do [{:run indexFile :with {:file "{{f}}"}}]}
+      {:run findProblems}]
+    :findProblems [{:note "Every line with TODO (a warning) or FIXME (an error) in the saved files, as rows of the problems table"}
+      {:set state.problems :to []}
+      {:forEach "{{range(length(state.files))}}"
+        :as f
+        :do [{:set state.scan :to "{{split(state.files[f].saved ?? state.files[f].text, '\\n')}}"}
+          {:set state.problems
+            :to "{{concat(state.problems, map(filter(range(length(state.scan)), contains(state.scan[it], 'TODO') || contains(state.scan[it], 'FIXME')), { id: f + ':' + (it + 1), cells: [contains(state.scan[it], 'FIXME') ? 'Error' : 'Warning', state.files[f].name, it + 1, slice(state.scan[it], indexOf(state.scan[it], contains(state.scan[it], 'FIXME') ? 'FIXME' : 'TODO'))] }))}}"}]}
+      {:set state.scan :to []}]
+    :open [{:note "with: file (an index in state.files)"}
+      {:if "{{!contains(state.tabs, file)}}" :then [{:push state.tabs :value "{{file}}"}]}
+      {:set state.active :to "{{file}}"}]
+    :close [{:note "with: file; an unsaved file asks first"}
+      {:if "{{state.files[file].dirty}}" :then [{:set state.closing :to {:open true :file "{{file}}"}} {:stop true}]}
+      {:run closeNow :with {:file "{{file}}"}}]
+    :closeNow [{:note "with: file; the next tab takes its place, and Reopen Closed File brings it back"}
+      {:set state.closing.open :to false}
+      {:push state.closed :value "{{file}}"}
+      {:remove state.tabs :at "{{indexOf(state.tabs, file)}}"}
+      {:if "{{!contains(state.tabs, state.active)}}"
+        :then [{:set state.active
+            :to "{{length(state.tabs) ? state.tabs[min(length(state.tabs) - 1, max(0, indexOf(state.tabs, state.active)))] : -1}}"}]}]
+    :saveFile [{:note "with: file; the Settings file applies its values instead"}
+      {:if "{{state.files[file].settings}}" :then [{:run applySettings :with {:file "{{file}}"}} {:stop true}]}
+      {:set "state.files[file].saved" :to "{{state.files[file].text}}"}
+      {:set "state.files[file].dirty" :to false}]
+    :saveAndClose [{:run saveFile :with {:file "{{state.closing.file}}"}}
+      {:run findProblems}
+      {:run closeNow :with {:file "{{state.closing.file}}"}}]
+    :discardAndClose [{:set "state.files[state.closing.file].text" :to "{{state.files[state.closing.file].saved}}"}
+      {:set "state.files[state.closing.file].dirty" :to false}
+      {:run closeNow :with {:file "{{state.closing.file}}"}}]
+    :pickTreeRow [{:note "A file row opens the file, a folder row opens or closes the folder"}
+      {:if "{{slice(event.value, 0, 2) == 'd:'}}"
+        :then [{:set state.expanded
+            :to "{{contains(state.expanded, event.value) ? filter(state.expanded, it != event.value) : concat(state.expanded, [event.value])}}"}]
+        :else [{:run open :with {:file "{{number(slice(event.value, 1))}}"}}]}]
+    :openProblem [{:note "A problem row chosen: its id is 'file:line'"}
+      {:set state.problemPick :to "{{event.id ?? event.value}}"}
+      {:run goToPlace
+        :with {:item {:file "{{number(split(event.id ?? event.value, ':')[0])}}"
+            :line "{{number(split(event.id ?? event.value, ':')[1])}}"
+            :column 1
+            :length 0}}}]
+    :indexFile [{:note "with: file; its symbols for Find Symbol (@) and Find Symbol in Project: Markdown headings, C++ classes, structs and function definitions"}
+      {:if "{{state.files[file].scratch}}" :then [{:stop true}]}
+      {:set "state.symbolIndex[file]"
+        :to "{{map(filter(map(split(state.files[file].text, '\\n'), { t: it, line: index + 1 }), state.files[file].language == 'Markdown' ? slice(it.t, 0, 1) == '#' : (state.files[file].language == 'C++' && indexOf(' \\t#/}', slice(it.t, 0, 1)) < 0 && (slice(it.t, 0, 6) == 'class ' || slice(it.t, 0, 7) == 'struct ' || (contains(it.t, '(') && !contains(it.t, ';'))))), { title: slice(it.t, 0, 1) == '#' ? trim(join(split(it.t, '#'), '')) : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? split(trim(split(it.t, '{')[0]), ' ')[1] : reverse(split(trim(split(it.t, '(')[0]), ' '))[0], badge: slice(it.t, 0, 1) == '#' ? '#' : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? 'c' : 'f', badgeColor: slice(it.t, 0, 1) == '#' ? '@badgeHeading' : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? '@badgeClass' : '@badgeFunction', detail: (state.files[file].folder ? state.files[file].folder + '/' : '') + state.files[file].name + ':' + it.line, file: file, line: it.line })}}"}]
+    :runCommand [{:if "{{length(trim(state.command)) == 0}}" :then [{:stop true}]}
+      {:push state.terminal :value {:t "$ {{state.command}}" :c prompt}}
+      {:if "{{state.command == 'clear'}}"
+        :then [{:set state.terminal :to []}]
+        :else [{:forEach "{{state.outputs[state.command] ?? [{ 't': state.command + ': command not found (try help)', 'c': 'string' }]}}"
+            :as out
+            :do [{:push state.terminal :value "{{out}}"}]}]}
+      {:set state.command :to ""}]
+    :typeCommand [{:note "with: name; runs a terminal command as if typed"}
+      {:set state.panelOpen :to true}
+      {:set state.panelTab :to terminal}
+      {:set state.command :to "{{name}}"}
+      {:run runCommand}]
+    :newFile {:title "New File"
+      :category File
+      :icon file-plus
+      :do [{:push state.files
+          :value {:name "Untitled-{{length(state.files) - 6}}.md"
+            :folder ""
+            :language Markdown
+            :dirty true
+            :text ""
+            :saved ""}}
+        {:run open :with {:file "{{length(state.files) - 1}}"}}]}
+    :quickOpen {:title "Quick Switcher…"
+      :category Go
+      :icon search
+      :do [{:if "{{state.active >= 0}}" :then [{:run indexFile :with {:file "{{state.active}}"}}]}
+        {:set state.quickPick.query :to ""}
+        {:set state.quickPick.open :to true}]}
+    :commandPalette {:title "All Commands…"
+      :category View
+      :icon command
+      :do [{:set state.palette.query :to ""} {:set state.palette.open :to true}]}
+    :openFind {:title "Find…"
+      :category Find
+      :icon search
+      :enablement "{{state.active >= 0}}"
+      :do [{:set state.findBar.open :to true}
+        {:set state.findBar.replacing :to false}
+        {:set state.findBar.inFiles :to false}
+        {:focus "#findText"}]}
+    :openReplace {:title "Replace…"
+      :category Find
+      :icon replace
+      :enablement "{{state.active >= 0}}"
+      :do [{:set state.findBar.open :to true} {:set state.findBar.replacing :to true} {:focus "#findText"}]}
+    :closeFind {:title "Hide Find Panel"
+      :category Find
+      :enablement "{{state.findBar.open}}"
+      :do [{:set state.findBar.open :to false} {:set state.findBar.inSelection :to false} {:focus "#editor"}]}
+    :findStep [{:set state.findBar.step :to "{{step}}"} {:increment state.findBar.request :by 1}]
+    :findNext {:title "Find Next"
+      :category Find
+      :enablement "{{state.findBar.open}}"
+      :do [{:run findStep :with {:step next}}]}
+    :findPrevious {:title "Find Previous"
+      :category Find
+      :enablement "{{state.findBar.open}}"
+      :do [{:run findStep :with {:step previous}}]}
+    :replaceOne {:title "Replace Next"
+      :category Find
+      :enablement "{{state.findBar.open}}"
+      :do [{:run findStep :with {:step replace}}]}
+    :replaceAllInFile {:title "Replace All"
+      :category Find
+      :enablement "{{state.findBar.open}}"
+      :do [{:run findStep :with {:step replaceAll}}]}
+    :toggleFindRegex {:title "Toggle Regular Expression"
+      :category Find
+      :do [{:set state.findBar.regex :to "{{!state.findBar.regex}}"} {:run findStep :with {:step first}}]}
+    :toggleFindCase {:title "Toggle Case Sensitive"
+      :category Find
+      :do [{:set state.findBar.caseSensitive :to "{{!state.findBar.caseSensitive}}"}
+        {:run findStep :with {:step first}}]}
+    :toggleFindWord {:title "Toggle Whole Word"
+      :category Find
+      :do [{:set state.findBar.wholeWord :to "{{!state.findBar.wholeWord}}"} {:run findStep :with {:step first}}]}
+    :toggleFindInSelection {:title "Toggle In Selection"
+      :category Find
+      :do [{:set state.findBar.inSelection :to "{{!state.findBar.inSelection}}"} {:run findStep :with {:step first}}]}
+    :toggleWordWrap {:title "Toggle Word Wrap" :category View :icon wrap :do [{:set state.wrap :to "{{!state.wrap}}"}]}
+    :toggleRuler {:title "Toggle Ruler" :category View :icon ruler :do [{:set state.ruler :to "{{!state.ruler}}"}]}
+    :save {:title Save
+      :category File
+      :icon save
+      :enablement "{{state.active >= 0}}"
+      :do [{:run saveFile :with {:file "{{state.active}}"}} {:run findProblems}]}
+    :saveAll {:title "Save All"
+      :category File
+      :icon save
+      :do [{:forEach "{{range(length(state.files))}}" :as f :do [{:run saveFile :with {:file "{{f}}"}}]}
+        {:run findProblems}]}
+    :closeTab {:title "Close File"
+      :category File
+      :icon x
+      :enablement "{{state.active >= 0}}"
+      :do [{:run close :with {:file "{{state.active}}"}}]}
+    :closeAll {:title "Close All Files"
+      :category File
+      :enablement "{{length(state.tabs) > 0}}"
+      :do [{:forEach "{{filter(state.tabs, !state.files[it].dirty)}}" :as f :do [{:run closeNow :with {:file "{{f}}"}}]}
+        {:if "{{length(state.tabs) > 0}}" :then [{:run close :with {:file "{{state.tabs[0]}}"}}]}]}
+    :reopenClosed {:title "Reopen Closed File"
+      :category File
+      :enablement "{{length(state.closed) > 0}}"
+      :do [{:run open :with {:file "{{reverse(state.closed)[0]}}"}}
+        {:remove state.closed :at "{{length(state.closed) - 1}}"}]}
+    :revertFile {:title "Revert File"
+      :category File
+      :enablement "{{state.active >= 0 && state.files[state.active].dirty}}"
+      :do [{:set "state.files[state.active].text" :to "{{state.files[state.active].saved}}"}
+        {:set "state.files[state.active].dirty" :to false}]}
+    :refreshFolders {:title "Refresh Folders"
+      :category Project
+      :do [{:forEach "{{range(length(state.files))}}" :as f :do [{:run indexFile :with {:file "{{f}}"}}]}
+        {:run findProblems}]}
+    :nextTab {:title "Next File"
+      :category Go
+      :icon chevron-right
+      :enablement "{{length(state.tabs) > 1}}"
+      :do [{:set state.active :to "{{state.tabs[(indexOf(state.tabs, state.active) + 1) % length(state.tabs)]}}"}]}
+    :previousTab {:title "Previous File"
+      :category Go
+      :icon chevron-left
+      :enablement "{{length(state.tabs) > 1}}"
+      :do [{:set state.active
+          :to "{{state.tabs[(indexOf(state.tabs, state.active) + length(state.tabs) - 1) % length(state.tabs)]}}"}]}
+    :toggleSidebar {:title "Toggle Side Bar" :category View :icon panel-left :do [{:toggle state.sidebarOpen}]}
+    :togglePanel {:title "Toggle Panel" :category View :icon square-terminal :do [{:toggle state.panelOpen}]}
+    :showProblems {:title "Show Problems"
+      :category View
+      :icon alert-triangle
+      :do [{:set state.panelOpen :to true} {:set state.panelTab :to problems}]}
+    :showTerminal {:title "Show Console"
+      :category View
+      :icon square-terminal
+      :do [{:set state.panelOpen :to true} {:set state.panelTab :to terminal} {:focus "#command"}]}
+    :build {:title Build :category Tools :icon hammer :do [{:run typeCommand :with {:name build}}]}
+    :runApp {:title Run :category Tools :icon play :do [{:run typeCommand :with {:name run}}]}
+    :clearConsole {:title "Clear Console" :category Tools :icon eraser :do [{:set state.terminal :to []}]}
+    :undo {:title Undo :category Edit :icon undo-2 :enablement "{{state.active >= 0}}" :do [{:edit undo :in "#editor"}]}
+    :redo {:title Redo :category Edit :icon redo-2 :enablement "{{state.active >= 0}}" :do [{:edit redo :in "#editor"}]}
+    :cut {:title Cut :category Edit :icon scissors :enablement "{{state.active >= 0}}" :do [{:edit cut :in "#editor"}]}
+    :copy {:title Copy :category Edit :icon copy :enablement "{{state.active >= 0}}" :do [{:edit copy :in "#editor"}]}
+    :paste {:title Paste
+      :category Edit
+      :icon clipboard-paste
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit paste :in "#editor"}]}
+    :selectAll {:title "Select All"
+      :category Selection
+      :icon text-select
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit selectAll :in "#editor"}]}
+    :indentLines {:title Indent
+      :category Edit
+      :icon indent
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit indentLines :in "#editor"}]}
+    :outdentLines {:title Outdent
+      :category Edit
+      :icon outdent
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit outdentLines :in "#editor"}]}
+    :unfoldAll {:title "Unfold All"
+      :category View
+      :icon unfold-vertical
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit unfoldAll :in "#editor"}]}
+    :duplicateLines {:title "Duplicate Line"
+      :category Edit
+      :icon copy-plus
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit duplicateLines :in "#editor"}]}
+    :deleteLines {:title "Delete Line"
+      :category Edit
+      :icon trash-2
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit deleteLines :in "#editor"}]}
+    :moveLinesUp {:title "Move Line Up"
+      :category Edit
+      :icon arrow-up
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit moveLinesUp :in "#editor"}]}
+    :moveLinesDown {:title "Move Line Down"
+      :category Edit
+      :icon arrow-down
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit moveLinesDown :in "#editor"}]}
+    :joinLines {:title "Join Lines"
+      :category Edit
+      :icon merge
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit joinLines :in "#editor"}]}
+    :insertLineAfter {:title "Insert Line After"
+      :category Edit
+      :icon corner-down-left
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit insertLineAfter :in "#editor"}]}
+    :insertLineBefore {:title "Insert Line Before"
+      :category Edit
+      :icon corner-up-left
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit insertLineBefore :in "#editor"}]}
+    :transpose {:title Transpose
+      :category Edit
+      :icon repeat
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit transpose :in "#editor"}]}
+    :sortLines {:title "Sort Lines"
+      :category Edit
+      :icon arrow-down-a-z
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit sortLines :in "#editor"}]}
+    :reverseLines {:title "Reverse Lines"
+      :category Edit
+      :icon arrow-up-down
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit reverseLines :in "#editor"}]}
+    :uniqueLines {:title "Unique Lines"
+      :category Edit
+      :icon list-filter
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit uniqueLines :in "#editor"}]}
+    :upperCase {:title "Upper Case"
+      :category "Convert Case"
+      :icon case-upper
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit upperCase :in "#editor"}]}
+    :lowerCase {:title "Lower Case"
+      :category "Convert Case"
+      :icon case-lower
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit lowerCase :in "#editor"}]}
+    :titleCase {:title "Title Case"
+      :category "Convert Case"
+      :icon case-sensitive
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit titleCase :in "#editor"}]}
+    :swapCase {:title "Swap Case"
+      :category "Convert Case"
+      :icon case-sensitive
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit swapCase :in "#editor"}]}
+    :expandToLine {:title "Expand Selection to Line"
+      :category Selection
+      :icon text-select
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit expandToLine :in "#editor"}]}
+    :expandToWord {:title "Expand Selection to Word"
+      :category Selection
+      :icon text-select
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit expandToWord :in "#editor"}]}
+    :splitIntoLines {:title "Split into Lines"
+      :category Selection
+      :icon text-cursor
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit splitIntoLines :in "#editor"}]}
+    :selectAllOccurrences {:title "Select All Occurrences"
+      :category Selection
+      :icon text-cursor
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit selectAllOccurrences :in "#editor"}]}
+    :toggleComment {:title "Toggle Comment"
+      :category Edit
+      :icon message-square
+      :enablement "{{state.active >= 0}}"
+      :do [{:edit toggleComment :in "#editor" :prefix "{{computed.commentMark}}"}]}
+    :goToSymbol {:title "Find Symbol…"
+      :category Go
+      :icon at-sign
+      :enablement "{{state.active >= 0}}"
+      :do [{:run indexFile :with {:file "{{state.active}}"}}
+        {:set state.quickPick.query :to @}
+        {:set state.quickPick.open :to true}]}
+    :goToLine {:title "Go to Line…"
+      :category Go
+      :icon hash
+      :enablement "{{state.active >= 0}}"
+      :do [{:set state.quickPick.query :to ":"} {:set state.quickPick.open :to true}]}
+    :findInFile {:title "Search in File…"
+      :category Go
+      :icon search
+      :enablement "{{state.active >= 0}}"
+      :do [{:set state.quickPick.query :to "#"} {:set state.quickPick.open :to true}]}
+    :goToPlace [{:note "with: item, a row with a file (opened) and a line (and a column and a length: selects them)"}
+      {:if "{{item.file != null && item.file >= 0 && item.file != state.active}}"
+        :then [{:set state.place :to "{{item}}"} {:run open :with {:file "{{item.file}}"}} {:stop true}]}
+      {:if "{{item.line == null}}" :then [{:stop true}]}
+      {:focus "#editor"}
+      {:edit select
+        :in "#editor"
+        :line "{{item.line}}"
+        :column "{{item.column ?? 1}}"
+        :toLine "{{item.line}}"
+        :toColumn "{{(item.column ?? 1) + (item.length ?? 0)}}"}]
+    :goToSymbolInProject {:title "Find Symbol in Project…"
+      :category Go
+      :icon at-sign
+      :do [{:run indexFile :with {:file "{{state.active}}"}}
+        {:set state.symbolPick.query :to ""}
+        {:set state.symbolPick.open :to true}]}
+    :showAssistant {:title "Assistant…"
+      :category Tools
+      :icon message-circle
+      :do [{:set state.assistant.show :to true} {:run assistant.open}]}
+    :findInFiles {:title "Find in Files…"
+      :category Find
+      :icon folder-search
+      :do [{:set state.findBar.open :to true}
+        {:set state.findBar.inFiles :to true}
+        {:set state.findBar.replacing :to true}
+        {:set state.findBar.where :to "{{state.findBar.where || '<open folders>'}}"}
+        {:focus "#findText"}]}
+    :searchFiles [{:note "Writes every matching line of the files that 'Where' names (<open folders>, <open files>, or parts of paths separated by commas) into the Search Results buffer, as Find in Files does"}
+      {:if "{{empty(state.findBar.text)}}" :then [{:stop true}]}
+      {:set state.results :to {:query "{{state.findBar.text}}" :at 0 :text "" :files 0 :matches 0 :searched 0}}
+      {:run scopeFiles}
+      {:forEach "{{state.findBar.scope}}"
+        :as f
+        :do [{:set state.results.searched :to "{{state.results.searched + 1}}"}
+          {:forEach "{{[split(state.findBar.caseSensitive ? state.files[f].text : lower(state.files[f].text), '\\n')]}}"
+            :as lines
+            :do [{:forEach "{{[filter(range(length(lines)), contains(lines[it], state.findBar.caseSensitive ? state.results.query : lower(state.results.query)))]}}"
+                :as hits
+                :do [{:if "{{length(hits) > 0}}"
+                    :then [{:set state.results.files :to "{{state.results.files + 1}}"}
+                      {:set state.results.matches
+                        :to "{{state.results.matches + sum(hits, length(split(lines[it], state.findBar.caseSensitive ? state.results.query : lower(state.results.query))) - 1)}}"}
+                      {:set state.results.text
+                        :to "{{state.results.text + (state.files[f].folder ? state.files[f].folder + '/' : '') + state.files[f].name + ':\\n' + join(map(hits, pad(it + 1, 6, ' ') + ': ' + split(state.files[f].text, '\\n')[it]), '\\n') + '\\n\\n'}}"}]}]}]}]}
+      {:set state.results.text
+        :to "{{'Searching ' + plural(state.results.searched, 'file') + ' for \"' + state.results.query + '\"\\n\\n' + state.results.text + plural(state.results.matches, 'match', 'matches') + ' across ' + plural(state.results.files, 'file') + '\\n'}}"}
+      {:if "{{computed.resultsFile < 0}}"
+        :then [{:push state.files
+            :value {:name "Search Results"
+              :folder nil
+              :language "Search Results"
+              :scratch true
+              :dirty false
+              :text "{{state.results.text}}"}}]
+        :else [{:set "state.files[computed.resultsFile].text" :to "{{state.results.text}}"}]}
+      {:run open :with {:file "{{computed.resultsFile}}"}}]
+    :scopeFiles [{:note "Sets findBar.scope to the files that 'Where' names"}
+      {:set state.findBar.scope :to []}
+      {:forEach "{{range(length(state.files))}}"
+        :as f
+        :do [{:if "{{!state.files[f].scratch && (state.findBar.where == '<open files>' ? contains(state.tabs, f) : state.findBar.where == '<open folders>' || empty(trim(state.findBar.where)) || some(split(state.findBar.where, ','), contains((state.files[f].folder ? state.files[f].folder + '/' : '') + state.files[f].name, trim(it))))}}"
+            :then [{:push state.findBar.scope :value "{{f}}"}]}]}]
+    :replaceInFiles {:title "Replace in Files"
+      :category Find
+      :enablement "{{state.findBar.inFiles && !empty(state.findBar.text)}}"
+      :do [{:note "Lists the matches in Search Results, then replaces them (plain text, case sensitive) in the files 'Where' names"}
+        {:run searchFiles}
+        {:forEach "{{filter(state.findBar.scope, contains(state.files[it].text, state.findBar.text))}}"
+          :as f
+          :do [{:set "state.files[f].text"
+              :to "{{join(split(state.files[f].text, state.findBar.text), state.findBar.replace)}}"}
+            {:set "state.files[f].dirty" :to true}]}]}
+    :openResult [{:note "with: line, a line of the Search Results buffer; a match line ('   12: text') opens its file there, under the path line above it"}
+      {:forEach "{{[split(state.files[computed.resultsFile].text, '\\n')]}}"
+        :as lines
+        :do [{:if "{{!contains(computed.resultLines, line)}}" :then [{:stop true}]}
+          {:set state.results.at :to "{{line}}"}
+          {:forEach "{{[slice(find(reverse(slice(lines, 0, line - 1)), slice(it, 0, 1) != ' ' && slice(it, -1) == ':'), 0, -1)]}}"
+            :as path
+            :do [{:forEach "{{[slice(lines[line - 1], indexOf(lines[line - 1], ': ') + 2)]}}"
+                :as found
+                :do [{:run goToPlace
+                    :with {:item {:file "{{find(range(length(state.files)), (state.files[it].folder ? state.files[it].folder + '/' : '') + state.files[it].name == path) ?? -1}}"
+                        :line "{{number(trim(split(lines[line - 1], ':')[0]))}}"
+                        :column "{{indexOf(lower(found), lower(state.results.query)) + 1}}"
+                        :length "{{length(state.results.query)}}"}}}]}]}]}]
+    :nextResult {:title "Next Result"
+      :category Find
+      :enablement "{{length(computed.resultLines) > 0}}"
+      :do [{:run openResult
+          :with {:line "{{find(computed.resultLines, it > state.results.at) ?? computed.resultLines[0]}}"}}]}
+    :previousResult {:title "Previous Result"
+      :category Find
+      :enablement "{{length(computed.resultLines) > 0}}"
+      :do [{:run openResult
+          :with {:line "{{find(reverse(computed.resultLines), it < state.results.at) ?? slice(computed.resultLines, -1)[0]}}"}}]}
+    :toggleMinimap {:title "Toggle Minimap" :category View :icon map :do [{:toggle state.minimap}]}
+    :toggleZen {:title "Toggle Distraction Free"
+      :category View
+      :icon maximize
+      :do [{:toggle state.zen} {:focus "#editor"}]}
+    :selectTheme {:title "Select Theme…"
+      :category Preferences
+      :icon palette
+      :do [{:set state.themePick
+          :to {:open true :query "" :index "{{indexOf(map(computed.themes, it.pick), state.theme)}}"}}]}
+    :setTheme [{:note "with: item, a row of computed.themes"} {:set state.theme :to "{{item.pick}}"}]
+    :toggleTheme {:title "Toggle Light and Dark"
+      :category Preferences
+      :icon sun-moon
+      :do [{:set state.theme :to "{{computed.theme == 'dark' ? 'light' : 'dark'}}"}]}
+    :selectSyntax {:title "Syntax…"
+      :category View
+      :icon code
+      :enablement "{{state.active >= 0}}"
+      :do [{:set state.syntaxPick :to {:open true :query ""}}]}
+    :setSyntax [{:note "with: item, a row of computed.syntaxes: the language (commands, comments) and the grammar (colours) of the open file"}
+      {:set "state.files[state.active].language" :to "{{item.language}}"}
+      {:set "state.files[state.active].grammar" :to "{{item.grammar}}"}]
+    :openVirtual [{:note "with: name, text, readOnly; opens the file of that name outside the project, made with the text the first time"}
+      {:if "{{find(range(length(state.files)), state.files[it].name == name && state.files[it].folder == null) == null}}"
+        :then [{:push state.files
+            :value {:name "{{name}}"
+              :folder nil
+              :language JSON
+              :dirty false
+              :text "{{text}}"
+              :saved "{{text}}"
+              :readOnly "{{readOnly}}"
+              :settings "{{!readOnly}}"}}]}
+      {:run open
+        :with {:file "{{find(range(length(state.files)), state.files[it].name == name && state.files[it].folder == null)}}"}}]
+    :openSettings {:title Settings
+      :category Preferences
+      :icon settings
+      :do [{:run openVirtual :with {:name Settings.json :text "{{computed.settingsText}}" :readOnly false}}]}
+    :openKeyBindings {:title "Key Bindings"
+      :category Preferences
+      :icon keyboard
+      :do [{:run openVirtual :with {:name "Key Bindings.json" :text "{{computed.keysText}}" :readOnly true}}]}
+    :applySettings [{:note "with: file, the Settings file; a valid file is saved and its values applied, a broken one stays unsaved with an error in the console"}
+      {:forEach "{{[parseJsonc(state.files[file].text)]}}"
+        :as values
+        :do [{:if "{{values == null || type(values) != 'object'}}"
+            :then [{:push state.terminal :value {:t "Settings.json: not valid JSON, nothing applied" :c error}}
+              {:set state.panelOpen :to true}
+              {:set state.panelTab :to terminal}
+              {:stop true}]}
+          {:set state.theme :to "{{contains(['dark', 'light', 'system'], values.theme) ? values.theme : state.theme}}"}
+          {:set state.wrap :to "{{values.wordWrap ?? state.wrap}}"}
+          {:set state.ruler :to "{{values.ruler ?? state.ruler}}"}
+          {:set state.minimap :to "{{values.minimap ?? state.minimap}}"}
+          {:set state.sidebarOpen :to "{{values.sideBar ?? state.sidebarOpen}}"}
+          {:set "state.files[file].saved" :to "{{state.files[file].text}}"}
+          {:set "state.files[file].dirty" :to false}]}]
+    :closeOthers {:title "Close Other Files"
+      :category File
+      :enablement "{{length(state.tabs) > 1}}"
+      :do [{:forEach "{{filter(state.tabs, it != state.active)}}"
+          :as f
+          :do [{:if "{{!state.files[f].dirty}}" :then [{:run closeNow :with {:file "{{f}}"}}]}]}]}
+    :closeOthersOf [{:note "with: file; shows that tab and closes the other saved ones"}
+      {:set state.active :to "{{file}}"}
+      {:run closeOthers}]
+    :closeToTheRight [{:note "with: file; closes the saved tabs after it"}
+      {:forEach "{{slice(state.tabs, indexOf(state.tabs, file) + 1)}}"
+        :as f
+        :do [{:if "{{!state.files[f].dirty}}" :then [{:run closeNow :with {:file "{{f}}"}}]}]}]
+    :about {:title "About Quaderno" :category Help :icon info :do [{:set state.aboutOpen :to true}]}}
+  :keys {:"mod+p" quickOpen
+    :"mod+shift+p" commandPalette
+    :"mod+s" save
+    :"mod+alt+s" saveAll
+    :"mod+w" closeTab
+    :"mod+shift+t" reopenClosed
+    :"mod+k mod+b" toggleSidebar
+    :"mod+b" build
+    :"ctrl+backquote" showTerminal
+    :"mod+shift+d" duplicateLines
+    :"ctrl+shift+k" {:when "{{context.platform == 'mac'}}" :do deleteLines}
+    :"ctrl+mod+up" moveLinesUp
+    :"ctrl+mod+down" moveLinesDown
+    :"mod+j" joinLines
+    :"mod+enter" insertLineAfter
+    :"mod+shift+enter" insertLineBefore
+    :"ctrl+t" transpose
+    :f5 sortLines
+    :"mod+slash" toggleComment
+    :"mod+l" expandToLine
+    :"mod+shift+l" splitIntoLines
+    :"ctrl+cmd+g" {:when "{{context.platform == 'mac'}}" :do selectAllOccurrences}
+    :"alt+f3" selectAllOccurrences
+    :"mod+r" goToSymbol
+    :"ctrl+g" goToLine
+    :"mod+shift+m" showProblems
+    :"mod+shift+b" build
+    :"mod+alt+right" nextTab
+    :"mod+alt+left" previousTab
+    :"mod+f" openFind
+    :"mod+alt+f" openReplace
+    :"cmd+g" {:when "{{context.platform == 'mac'}}" :do findNext}
+    :"cmd+shift+g" {:when "{{context.platform == 'mac'}}" :do findPrevious}
+    :f3 findNext
+    :"shift+f3" findPrevious
+    :"mod+alt+w" toggleWordWrap
+    :"mod+shift+r" goToSymbolInProject
+    :"mod+shift+f" findInFiles
+    :f4 nextResult
+    :"shift+f4" previousResult
+    :escape closeFind
+    :"mod+k mod+t" selectTheme
+    :"ctrl+cmd+shift+f" {:when "{{context.platform == 'mac'}}" :do toggleZen}
+    :"shift+f11" toggleZen}
+  :root (node #panel-root :color @background
+    (node #titleBar
+      :dir "{{state.dir}}"
+      :when "{{!state.zen}}"
+      :anchors {:left 0 :right 0 :top 0}
+      :height 26
+      :color @chrome
+      (node #menuBar
+        :use menuBar
+        :anchors {:left 4 :top 0}
+        :width 500
+        :with {:menus [{:name file :title File :width 40 :items "{{menus.file}}"}
+            {:name edit :title Edit :width 40 :items "{{menus.edit}}"}
+            {:name selection :title Selection :width 70 :items "{{menus.selection}}"}
+            {:name find :title Find :width 40 :items "{{menus.find}}"}
+            {:name view :title View :width 44 :items "{{menus.view}}"}
+            {:name go :title Go :width 32 :items "{{menus.go}}"}
+            {:name terminal :title Tools :width 46 :items "{{menus.terminal}}"}
+            {:name project :title Project :width 58 :items "{{menus.project}}"}
+            {:name window :title Window :width 62 :items "{{menus.window}}"}
+            {:name help :title Help :width 42 :items "{{menus.help}}"}]
+          :open state.menuBar
+          :width 260
+          :color @chrome
+          :textColor @text
+          :dimColor @muted
+          :highlight @rowSelected})
+      (node #windowTitle
+        :type label
+        :font small
+        :text "{{computed.file ? computed.file.name + '  ·  ' : ''}}{{state.project}}"
+        :textColor @muted
+        :anchors {:left 520 :right 44 :top 0 :bottom 0}
+        :align {:horizontal end :vertical center})
+      (node #themeSwitch
+        :type label
+        :text ""
+        :icon "{{computed.theme == 'dark' ? 'moon' : 'sun'}}"
+        :font small
+        :anchors {:right 10 :top 3}
+        :width 24
+        :height 20
+        :align center
+        :radius 4
+        :textColor @muted
+        :hover {:textColor @accent :color @hover}
+        :cursor hand
+        :tooltip "Light or dark (Select Theme…: Cmd+K Cmd+T)"
+        :onClick toggleTheme))
+    (node #workbench
+      :dir "{{state.dir}}"
+      :type split
+      :anchors {:left 0 :right 0 :top "{{state.zen ? 0 : 26}}" :bottom "{{(state.zen ? 0 : 24) + computed.findHeight}}"}
+      :bind state.sizes
+      :defaultSizes [232]
+      :minSize [160 480]
+      :sashSize 2
+      :sashColor @border
+      :sashActiveColor @accent
+      (node #explorer :when "{{state.sidebarOpen && !state.zen}}" :color @sidebar
+        (node #label-openFiles :style caption :text "Open Files" :anchors {:left 14 :top 10})
+        (node #openFiles :type column :anchors {:left 0 :right 0 :top 30} :height "{{24 * length(state.tabs)}}"
+          (node #openFile
+            :repeat {:for tab :in state.tabs :key "{{tab}}"}
+            :type label
+            :text "{{state.files[tab].dirty ? '●  ' : ''}}{{state.files[tab].name}}"
+            :font small
+            :height 24
+            :anchors {:left 8 :right 8}
+            :padding 14
+            :radius 5
+            :align {:horizontal start :vertical center}
+            :color "{{tab == state.active ? '@rowSelected' : 'transparent'}}"
+            :hover {:color @hover}
+            :textColor "{{tab == state.active ? '@text' : '@muted'}}"
+            :cursor hand
+            :onClick {:set state.active :to "{{tab}}"}))
+        (node #label-folders :style caption :text Project :anchors {:left 14 :top "{{44 + 24 * length(state.tabs)}}"})
+        (node #fileTree
+          :type tree
+          :anchors {:left 0 :right 0 :top "{{64 + 24 * length(state.tabs)}}" :bottom 8}
+          :rowHeight 24
+          :font small
+          :color @sidebar
+          :items "{{computed.tree}}"
+          :expanded "{{state.expanded}}"
+          :value "{{'f' + state.active}}"
+          :textColor @muted
+          :selectedTextColor @text
+          :selectedBackground @rowSelected
+          :accentColor @accent
+          :guides false
+          :onChange pickTreeRow
+          :onExpand [{:set state.expanded
+              :to "{{event.expanded ? concat(state.expanded, [event.id]) : filter(state.expanded, it != event.id)}}"}]))
+      (node #editorColumn
+        :type split
+        :direction column
+        :bind state.panelSizes
+        :defaultSizes [560]
+        :minSize [160 100]
+        :sashSize 2
+        :sashColor @border
+        :sashActiveColor @accent
+        (node #editorGroup :color @background
+          (node #editorTabs
+            :type tabs
+            :when "{{!state.zen}}"
+            :anchors {:left 0 :right 0 :top 0}
+            :height 32
+            :tabs "{{computed.tabItems}}"
+            :value "{{text(state.active)}}"
+            :color @tabBar
+            :textColor @muted
+            :activeTextColor @text
+            :activeBackground @background
+            :accentColor transparent
+            :markerColor @accent
+            :keepMarker true
+            :tabRadius 7
+            :tabGap 4
+            :tabInset 5
+            :onContextMenu {:set state.tabMenu
+              :to {:open true
+                :x "{{event.x}}"
+                :y "{{event.y}}"
+                :file "{{event.data ? number(event.data.id) : state.active}}"}}
+            :onChange {:set state.active :to "{{number(event.value)}}"}
+            :onClose {:run close :with {:file "{{number(event.id)}}"}}
+            :onMove [{:remove state.tabs :at "{{event.from}}"}
+              {:set state.tabs
+                :to "{{concat(slice(state.tabs, 0, event.to), [number(event.id)], slice(state.tabs, event.to))}}"}])
+          (node #editor
+            :repeat {:for open :in "{{computed.file ? [state.active] : []}}" :key "{{open}}"}
+            :type editor
+            :note "The library editor: its \"language\" (examples/shared/languages) gives the commands, pairs and indentation; \"grammar\" colours it with the theme's @syntax tokens"
+            :font code
+            :lineNumbers true
+            :language "{{state.files[open].language}}"
+            :grammar "{{state.files[open].grammar ?? state.files[open].name}}"
+            :readOnly "{{state.files[open].readOnly ?? false}}"
+            :commands {:"alt+up" moveLinesUp
+              :"alt+down" moveLinesDown
+              :"mod+shift+k" deleteLines
+              :"mod+[" outdentLines
+              :"mod+]" indentLines
+              :"mod+c" copyLine
+              :"mod+x" cutLine}
+            :minimap "{{state.minimap}}"
+            :minimapStyle bars
+            :minimapWidth 44
+            :minimapViewport always
+            :matchStyle outline
+            :indentGuides "{{!state.files[open].scratch}}"
+            :brackets true
+            :bracketStyle underline
+            :rulers "{{state.ruler ? [80] : []}}"
+            :wrap "{{state.wrap}}"
+            :find "{{computed.findQuery}}"
+            :bind "state.files[open].text"
+            :caret state.caret
+            :autofocus true
+            :anchors {:left "{{state.zen ? 160 : 0}}"
+              :right "{{state.zen ? 160 : 0}}"
+              :top "{{state.zen ? 24 : 32}}"
+              :bottom 0}
+            :color @background
+            :textColor @plain
+            :lineNumberColor @faint
+            :activeLineNumberColor @text
+            :lineColor @line
+            :selectionColor @selection
+            :caretColor @accent
+            :guideColor @guide
+            :matchColor @selection
+            :bracketColor @accent
+            :onShow [{:set state.caret :to {:line 1 :column 1 :selected 0}}
+              {:forEach "{{state.place ? [state.place] : []}}"
+                :as place
+                :do [{:set state.place :to nil} {:run goToPlace :with {:item "{{place}}"}}]}]
+            :onChange {:set "state.files[open].dirty" :to "{{!state.files[open].scratch}}"}
+            :onContextMenu {:set state.editorMenu
+              :to {:open true
+                :x "{{min(event.x, event.x - event.left + event.width - 240)}}"
+                :y "{{min(event.y, event.y - event.top + event.height - 204)}}"}}
+            :onDoubleClick {:if "{{state.files[open].scratch}}"
+              :then [{:run openResult :with {:line "{{state.caret.line}}"}}]})
+          (node #welcome
+            :when "{{!computed.file}}"
+            :type label
+            :text "No file open. Pick one in the side bar, or press Cmd+P."
+            :textColor @faint
+            :anchors {:left 0 :right 0 :top 32 :bottom 0}
+            :align center))
+        (node #bottomPanel :when "{{state.panelOpen && !state.zen}}" :color @panel :keys {:escape togglePanel}
+          (node #panelEdge :anchors {:left 0 :right 0 :top 0} :height 1 :color @border)
+          (node #panelProblems
+            :type label
+            :text Problems
+            :font small
+            :anchors {:left 10 :top 4}
+            :height 22
+            :width 78
+            :align center
+            :radius 4
+            :cursor hand
+            :color "{{state.panelTab == 'problems' ? '@rowSelected' : 'transparent'}}"
+            :textColor "{{state.panelTab == 'problems' ? '@text' : '@muted'}}"
+            :hover {:textColor @text}
+            :onClick showProblems)
+          (node #panelConsole
+            :type label
+            :text Console
+            :font small
+            :anchors {:left 92 :top 4}
+            :height 22
+            :width 72
+            :align center
+            :radius 4
+            :cursor hand
+            :color "{{state.panelTab == 'terminal' ? '@rowSelected' : 'transparent'}}"
+            :textColor "{{state.panelTab == 'terminal' ? '@text' : '@muted'}}"
+            :hover {:textColor @text}
+            :onClick showTerminal)
+          (node #panelClose
+            :type label
+            :text "×"
+            :font default
+            :anchors {:right 10 :top 4}
+            :width 22
+            :height 22
+            :align center
+            :radius 4
+            :textColor @muted
+            :cursor hand
+            :hover {:textColor @text :color @hover}
+            :tooltip "Hide the panel (Escape)"
+            :onClick togglePanel)
+          (node #problemsTable
+            :type table
+            :when "{{state.panelTab == 'problems'}}"
+            :anchors {:left 8 :right 8 :top 30 :bottom 4}
+            :rowHeight 24
+            :font code
+            :color @panel
+            :items "{{state.problems}}"
+            :value "{{state.problemPick}}"
+            :columns [(node #severity :title Severity :width 96)
+              (node #file :title File :width 170)
+              (node #line :title Line :width 70)
+              (node #message :title Message :width 560)]
+            :textColor @text
+            :selectedTextColor @text
+            :selectedBackground @rowSelected
+            :accentColor @accent
+            :onChange openProblem)
+          (node #noProblems
+            :when "{{state.panelTab == 'problems' && length(state.problems) == 0}}"
+            :style caption
+            :text "No problems: no TODO or FIXME left in the saved files."
+            :anchors {:left 20 :top 70})
+          (node #terminal
+            :when "{{state.panelTab == 'terminal'}}"
+            :anchors {:left 0 :right 0 :top 30 :bottom 0}
+            :color transparent
+            (node #terminalOutput
+              :type stack
+              :anchors {:left 14 :right 14 :top 4 :bottom 30}
+              :gap 0
+              :justify end
+              :scroll vertical
+              (node #label-out-t
+                :repeat {:for out :in state.terminal}
+                :style terminalLine
+                :text "{{out.t}}"
+                :textColor "@{{out.c}}"
+                :anchors {:left 0 :right 0}
+                :height 20))
+            (node #command
+              :type textarea
+              :font code
+              :anchors {:left 0 :right 0 :bottom 0}
+              :height 26
+              :padding 8
+              :color @input
+              :focused {:color @chrome}
+              :textColor @text
+              :bind state.command
+              :onSubmit runCommand)))))
+    (node #findPanel
+      :dir "{{state.dir}}"
+      :when "{{state.findBar.open}}"
+      :anchors {:left 0 :right 0 :bottom "{{state.zen ? 0 : 24}}"}
+      :height "{{computed.findHeight}}"
+      :color @chrome
+      :keys {:escape closeFind
+        :"shift+enter" findPrevious
+        :"alt+mod+r" toggleFindRegex
+        :"alt+mod+c" toggleFindCase
+        :"alt+mod+e" toggleFindWord
+        :"alt+mod+s" toggleFindInSelection}
+      (node #findRegex
+        :style findToggle
+        :text ".*"
+        :anchors {:left 8 :top 6}
+        :color "{{state.findBar.regex ? '@rowSelected' : 'transparent'}}"
+        :textColor "{{state.findBar.regex ? '@accent' : '@muted'}}"
+        :tooltip "Regular expression"
+        :onClick toggleFindRegex)
+      (node #findCase
+        :style findToggle
+        :text Aa
+        :anchors {:left 36 :top 6}
+        :color "{{state.findBar.caseSensitive ? '@rowSelected' : 'transparent'}}"
+        :textColor "{{state.findBar.caseSensitive ? '@accent' : '@muted'}}"
+        :tooltip "Case sensitive"
+        :onClick toggleFindCase)
+      (node #findWord
+        :style findToggle
+        :text "\"\""
+        :anchors {:left 64 :top 6}
+        :color "{{state.findBar.wholeWord ? '@rowSelected' : 'transparent'}}"
+        :textColor "{{state.findBar.wholeWord ? '@accent' : '@muted'}}"
+        :tooltip "Whole word"
+        :onClick toggleFindWord)
+      (node #findSelection
+        :style findToggle
+        :text "[ ]"
+        :anchors {:left 92 :top 6}
+        :color "{{state.findBar.inSelection ? '@rowSelected' : 'transparent'}}"
+        :textColor "{{state.findBar.inSelection ? '@accent' : '@muted'}}"
+        :tooltip "In selection"
+        :onClick toggleFindInSelection)
+      (node #findText
+        :style findField
+        :anchors {:left "{{computed.findLeft}}" :right "{{state.findBar.inFiles ? 112 : 300}}" :top 5}
+        :placeholder "{{computed.findLeft > 128 ? '' : 'Find'}}"
+        :bind state.findBar.text
+        :autofocus true
+        :onChange {:if "{{!state.findBar.inFiles}}" :then [{:run findStep :with {:step first}}]}
+        :onSubmit {:if "{{state.findBar.inFiles}}" :then [{:run searchFiles}] :else [{:run findNext}]})
+      (node #findCount
+        :when "{{!state.findBar.inFiles}}"
+        :style caption
+        :text "{{computed.findSummary}}"
+        :anchors {:right 220 :top 10})
+      (node #findNextButton
+        :when "{{!state.findBar.inFiles}}"
+        :style findButton
+        :text Find
+        :anchors {:right 112 :top 5}
+        :onClick findNext)
+      (node #findPreviousButton
+        :when "{{!state.findBar.inFiles}}"
+        :style findButton
+        :text "Find Prev"
+        :anchors {:right 12 :top 5}
+        :onClick findPrevious)
+      (node #findFilesButton
+        :when "{{state.findBar.inFiles}}"
+        :style findButton
+        :text Find
+        :anchors {:right 12 :top 5}
+        :onClick searchFiles)
+      (node #label-find :when "{{computed.findLeft > 128}}" :style findLabel :text "Find:" :anchors {:left 128 :top 9})
+      (node #label-where :when "{{state.findBar.inFiles}}" :style findLabel :text "Where:" :anchors {:left 128 :top 39})
+      (node #label-replace
+        :when "{{state.findBar.replacing}}"
+        :style findLabel
+        :text "Replace:"
+        :anchors {:left 128 :top "{{computed.replaceTop + 4}}"})
+      (node #whereText
+        :style findField
+        :when "{{state.findBar.inFiles}}"
+        :anchors {:left "{{computed.findLeft}}" :right 112 :top 35}
+        :placeholder "Where: <open folders>, <open files>, or folders and files separated by commas"
+        :bind state.findBar.where
+        :onSubmit searchFiles)
+      (node #replaceText
+        :style findField
+        :when "{{state.findBar.replacing}}"
+        :anchors {:left "{{computed.findLeft}}"
+          :right "{{state.findBar.inFiles ? 112 : 300}}"
+          :top "{{computed.replaceTop}}"}
+        :bind state.findBar.replace
+        :onSubmit {:if "{{state.findBar.inFiles}}" :then [{:run replaceInFiles}] :else [{:run replaceOne}]})
+      (node #replaceButton
+        :style findButton
+        :text Replace
+        :when "{{state.findBar.replacing && !state.findBar.inFiles}}"
+        :anchors {:right 112 :top 35}
+        :onClick replaceOne)
+      (node #replaceAllButton
+        :style findButton
+        :text "Replace All"
+        :when "{{state.findBar.replacing && !state.findBar.inFiles}}"
+        :anchors {:right 12 :top 35}
+        :onClick replaceAllInFile)
+      (node #replaceFilesButton
+        :style findButton
+        :text Replace
+        :when "{{state.findBar.replacing && state.findBar.inFiles}}"
+        :anchors {:right 12 :top 65}
+        :onClick replaceInFiles))
+    (node #statusBar
+      :dir "{{state.dir}}"
+      :when "{{!state.zen}}"
+      :anchors {:left 0 :right 0 :bottom 0}
+      :height 24
+      :color @sidebar
+      (node #statusEdge :anchors {:left 0 :right 0 :top 0} :height 1 :color @border)
+      (node #panelSwitcher
+        :type label
+        :text ""
+        :icon square-terminal
+        :font small
+        :anchors {:left 6 :top 2}
+        :width 22
+        :height 20
+        :align center
+        :radius 4
+        :color transparent
+        :textColor "{{state.panelOpen ? '@accent' : '@muted'}}"
+        :hover {:textColor @text :color @hover}
+        :cursor hand
+        :tooltip "Show or hide the panel"
+        :onClick togglePanel)
+      (node #statusText
+        :style statusItem
+        :text main
+        :icon git-branch
+        :textColor @faint
+        :anchors {:left 36}
+        :tooltip "Branch: switching branches isn't available yet")
+      (node #statusProblems
+        :style statusItem
+        :text "{{computed.errors}} {{computed.errors == 1 ? 'error' : 'errors'}}, {{computed.warnings}} {{computed.warnings == 1 ? 'warning' : 'warnings'}}"
+        :textColor "{{computed.errors > 0 ? '@error' : '@muted'}}"
+        :hover {:textColor @text}
+        :anchors {:left 104}
+        :cursor hand
+        :tooltip "Show the problems (Cmd+Shift+M)"
+        :onClick showProblems)
+      (node #statusSize
+        :style statusItem
+        :text "{{computed.file ? 'Ln ' + state.caret.line + ', Col ' + state.caret.column + (state.caret.selected ? '  (' + state.caret.selected + ' selected)' : '') : ''}}"
+        :hover {:textColor @text}
+        :anchors {:right 236}
+        :cursor hand
+        :tooltip "Go to Line (Ctrl+G)"
+        :onClick goToLine)
+      (node #statusIndent
+        :style statusItem
+        :text "{{computed.file ? 'Spaces: 4' : ''}}"
+        :textColor @faint
+        :anchors {:right 140}
+        :tooltip "Indentation: 4 spaces; changing it isn't available yet")
+      (node #statusSyntax
+        :style statusItem
+        :text "{{computed.file ? (computed.file.language || 'Plain Text') : ''}}"
+        :hover {:textColor @text}
+        :anchors {:right 16}
+        :cursor hand
+        :tooltip "Select the syntax"
+        :onClick selectSyntax))
+    (node #closeDialog
+      :use dialog
+      :with {:open state.closing.open
+        :title "Do you want to save the changes you made to {{state.closing.file >= 0 ? state.files[state.closing.file].name : ''}}?"
+        :message "Your changes will be lost if you don't save them."
+        :primaryLast true
+        :width 470
+        :height 124
+        :color @menu
+        :textColor @text
+        :dimColor @muted
+        :highlight @accent
+        :backdrop @backdrop
+        :buttons [{:title Save :run saveAndClose} {:title Cancel} {:title "Don't Save" :run discardAndClose}]})
+    (node #aboutDialog
+      :use dialog
+      :with {:open state.aboutOpen
+        :title Quaderno
+        :message "A code editor written as one AffrescoUI screen: its menus, tabs, side bar, problems and commands are JSON that you, or an agent, can change while it runs."
+        :width 460
+        :height 170
+        :color @menu
+        :textColor @text
+        :dimColor @muted
+        :highlight @selection
+        :backdrop @backdrop
+        :buttons [{:title OK}]})
+    (node #palette
+      :when "{{state.palette.open}}"
+      :use quickPick
+      :with {:name palette
+        :color @menu
+        :textColor @text
+        :dimColor @muted
+        :accent @accent
+        :highlight @rowSelected
+        :field @input
+        :providers [{:items "{{computed.palette}}" :placeholder ""}]})
+    (node #symbolPick
+      :when "{{state.symbolPick.open}}"
+      :use quickPick
+      :with {:name symbolPick
+        :stacked true
+        :rowHeight 44
+        :detailFont small
+        :color @menu
+        :textColor @text
+        :dimColor @muted
+        :accent @accent
+        :highlight @rowSelected
+        :field @input
+        :providers [{:items "{{computed.projectSymbols}}" :run goToPlace :placeholder "Go to a symbol in the project"}]})
+    (node #quickPick
+      :when "{{state.quickPick.open}}"
+      :use quickPick
+      :with {:stacked true
+        :rowHeight 44
+        :detailFont small
+        :color @menu
+        :textColor @text
+        :dimColor @muted
+        :accent @accent
+        :highlight @rowSelected
+        :field @input
+        :providers [{:items "{{computed.gotoKind == '' ? computed.picks : computed.gotoItems}}"
+            :filter "{{computed.gotoKind == ''}}"
+            :run goToPlace
+            :placeholder "Go to a file; then @ a symbol, : a line, # a word in it"}
+          {:prefix @
+            :items "{{computed.gotoItems}}"
+            :filter false
+            :run goToPlace
+            :placeholder "Go to a symbol in the file"}
+          {:prefix ":" :items "{{computed.gotoItems}}" :filter false :run goToPlace :placeholder "Go to a line"}
+          {:prefix "#" :items "{{computed.gotoItems}}" :filter false :run goToPlace :placeholder "Search the file"}]})
+    (node #tabMenu
+      :use contextMenu
+      :with {:open state.tabMenu.open
+        :x "{{state.tabMenu.x}}"
+        :y "{{state.tabMenu.y}}"
+        :items [{:title Close :run close :with {:file "{{state.tabMenu.file}}"}}
+          {:title "Close Others"
+            :run closeOthersOf
+            :with {:file "{{state.tabMenu.file}}"}
+            :enabled "{{length(state.tabs) > 1}}"}
+          {:title "Close Tabs to the Right"
+            :run closeToTheRight
+            :with {:file "{{state.tabMenu.file}}"}
+            :enabled "{{indexOf(state.tabs, state.tabMenu.file) < length(state.tabs) - 1}}"}
+          {:separator true}
+          {:title "Reopen Closed File" :run reopenClosed :enabled "{{length(state.closed) > 0}}"}]})
+    (node #editorMenu
+      :use contextMenu
+      :with {:open state.editorMenu.open
+        :x "{{state.editorMenu.x}}"
+        :y "{{state.editorMenu.y}}"
+        :items [{:title Cut :run cut :enabled "{{!(computed.file.readOnly ?? false)}}"}
+          {:title Copy :run copy}
+          {:title Paste :run paste :enabled "{{!(computed.file.readOnly ?? false)}}"}
+          {:separator true}
+          {:title "Select All" :run selectAll}
+          {:title "Toggle Comment" :run toggleComment}
+          {:separator true}
+          {:title "Find…" :run openFind}
+          {:title "Syntax…" :run selectSyntax}]})
+    (node #themePick
+      :when "{{state.themePick.open}}"
+      :use quickPick
+      :with {:name themePick
+        :stacked true
+        :rowHeight 44
+        :detailFont small
+        :color @menu
+        :textColor @text
+        :dimColor @muted
+        :accent @accent
+        :highlight @rowSelected
+        :field @input
+        :providers [{:items "{{computed.themes}}"
+            :filter false
+            :run setTheme
+            :placeholder "Select a theme: the arrows preview it"}]})
+    (node #syntaxPick
+      :when "{{state.syntaxPick.open}}"
+      :use quickPick
+      :with {:name syntaxPick
+        :color @menu
+        :textColor @text
+        :dimColor @muted
+        :accent @accent
+        :highlight @rowSelected
+        :field @input
+        :providers [{:items "{{computed.syntaxes}}" :run setSyntax :placeholder "Select the syntax of the file"}]}))}

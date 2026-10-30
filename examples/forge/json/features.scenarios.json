@@ -1,0 +1,264 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's features as packages, from the example catalogue (catalog/, whose publisher only Forge trusts): listed by the features service, installed, disabled, enabled and removed by revisions on /features/<name>. The installs are the revisions features.install makes; a scenario can't wait for the service's own (what it posts never runs headless).",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "features-the-catalogue",
+			"note": "The features service lists the signed example catalogue: word count and the TODO tree, neither installed",
+			"steps": [
+				{ "action": "refreshFeatures" },
+				{ "expect": { "state": "featureRows.length", "is": 2 } },
+				{ "expect": { "state": "featureRows[0].name", "is": "todoTree" } },
+				{ "expect": { "state": "featureRows[0].version", "is": "1.2.0" } },
+				{ "expect": { "state": "featureRows[1].name", "is": "wordCount" } },
+				{ "expect": { "state": "featureRows[1].publisher", "is": "AffrescoUI examples" } },
+				{ "expect": { "state": "featureRows[1].installed", "is": false } }
+			]
+		},
+		{
+			"name": "features-install-word-count",
+			"note": "Installed, word count shows in the status bar and the catalogue says so; disabled, it goes; enabled, it comes back; removed, it goes",
+			"steps": [
+				{ "expect": { "node": "#wordCount-label", "exists": false } },
+				{
+					"revision": {
+						"author": "studio",
+						"message": "Install wordCount",
+						"set": {
+							"/features/wordCount": {
+								"release": "1.0.0",
+								"title": "Word count",
+								"source": "catalog:forge-examples",
+								"digest": "sha512:jya0GCcYM4OCsogNXebWlUBS4klrNcN3rQ_WDY4fta8ZwZbE12H4OSm9pPlKcfvZsPhXhuEBn75BOo96GvPgZA",
+								"publisher": "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc",
+								"enabled": true,
+								"order": 10,
+								"requires": {
+									"format": 2,
+									"points": ["statusBar.right"],
+									"exports": { "editor.text": { "type": "string" } }
+								},
+								"provides": {
+									"state": { "characters": false },
+									"computed": {
+										"words": "{{length(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), length(trim(it)) > 0))}}",
+										"characters": "{{length(app.editor.text)}}"
+									},
+									"actions": {
+										"toggle": {
+											"title": "Toggle Word or Character Count",
+											"category": "Word Count",
+											"do": { "toggle": "state.wordCount.characters" }
+										}
+									},
+									"menus": { "view": { "items": { "toggle": {} } } },
+									"views": {
+										"statusBar.right": {
+											"wordCount-label": {
+												"type": "label",
+												"padding": 6,
+												"fitText": true,
+												"textColor": "@color.statusText",
+												"cursor": "hand",
+												"text": "{{state.wordCount.characters ? plural(computed.wordCount.characters, 'character') : plural(computed.wordCount.words, 'word')}}",
+												"onClick": "wordCount.toggle"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{ "expect": { "node": "#wordCount-label", "exists": true } },
+				{ "expect": { "node": "#wordCount-label", "text": "0 words" } },
+				{ "action": "refreshFeatures" },
+				{ "expect": { "state": "featureRows[1].installed", "is": true } },
+				{
+					"revision": {
+						"author": "studio",
+						"message": "Disable wordCount",
+						"set": { "/features/wordCount/enabled": false }
+					}
+				},
+				{ "expect": { "node": "#wordCount-label", "exists": false } },
+				{
+					"revision": {
+						"author": "studio",
+						"message": "Enable wordCount",
+						"set": { "/features/wordCount/enabled": true }
+					}
+				},
+				{ "expect": { "node": "#wordCount-label", "exists": true } },
+				{
+					"revision": { "author": "studio", "message": "Remove wordCount", "remove": ["/features/wordCount"] }
+				},
+				{ "expect": { "node": "#wordCount-label", "exists": false } }
+			]
+		},
+		{
+			"name": "features-todo-tree-after-word-count",
+			"note": "The TODO tree requires word count: installed after it, it adds its view to the side bar",
+			"steps": [
+				{
+					"revision": {
+						"author": "studio",
+						"message": "Install wordCount",
+						"set": {
+							"/features/wordCount": {
+								"release": "1.0.0",
+								"title": "Word count",
+								"source": "catalog:forge-examples",
+								"digest": "sha512:jya0GCcYM4OCsogNXebWlUBS4klrNcN3rQ_WDY4fta8ZwZbE12H4OSm9pPlKcfvZsPhXhuEBn75BOo96GvPgZA",
+								"publisher": "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc",
+								"enabled": true,
+								"order": 10,
+								"requires": {
+									"format": 2,
+									"points": ["statusBar.right"],
+									"exports": { "editor.text": { "type": "string" } }
+								},
+								"provides": {
+									"state": { "characters": false },
+									"computed": {
+										"words": "{{length(filter(split(join(split(app.editor.text, '\\n'), ' '), ' '), length(trim(it)) > 0))}}",
+										"characters": "{{length(app.editor.text)}}"
+									},
+									"actions": {
+										"toggle": {
+											"title": "Toggle Word or Character Count",
+											"category": "Word Count",
+											"do": { "toggle": "state.wordCount.characters" }
+										}
+									},
+									"menus": { "view": { "items": { "toggle": {} } } },
+									"views": {
+										"statusBar.right": {
+											"wordCount-label": {
+												"type": "label",
+												"padding": 6,
+												"fitText": true,
+												"textColor": "@color.statusText",
+												"cursor": "hand",
+												"text": "{{state.wordCount.characters ? plural(computed.wordCount.characters, 'character') : plural(computed.wordCount.words, 'word')}}",
+												"onClick": "wordCount.toggle"
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					"revision": {
+						"author": "studio",
+						"message": "Install todoTree",
+						"set": {
+							"/features/todoTree": {
+								"release": "1.2.0",
+								"title": "TODO tree",
+								"source": "catalog:forge-examples",
+								"digest": "sha512:UQjd6XullJ1YfoVR1qXNfUaKDCoAeg_jJL8AM_iYvL5bBHRpY6ayA294oweNKoJ16-gJECG5OzekOqk0PrRiZg",
+								"publisher": "ed25519:wvzomDMyk9aPCGQCvTzNPugq4saaDmJdO_8LaeLFYQc",
+								"enabled": true,
+								"order": 20,
+								"requires": {
+									"format": 2,
+									"points": ["sidebar.views"],
+									"exports": { "workspace.files": { "type": "array" } },
+									"features": { "wordCount": "^1.0.0" }
+								},
+								"provides": {
+									"state": { "open": true },
+									"computed": {
+										"count": "{{sum(app.workspace.files, count(split(it.text, '\\n'), contains(it, 'TODO') || contains(it, 'FIXME')))}}"
+									},
+									"actions": {
+										"toggle": {
+											"title": "Show or Hide the TODO Tree",
+											"category": "TODO Tree",
+											"do": { "toggle": "state.todoTree.open" }
+										}
+									},
+									"keys": { "mod+shift+t": "todoTree.toggle" },
+									"views": {
+										"sidebar.views": {
+											"todoTree-view": {
+												"type": "column",
+												"gap": 2,
+												"width": "100%",
+												"children": [
+													{
+														"id": "todoTree-header",
+														"type": "label",
+														"textColor": "@color.muted",
+														"width": "100%",
+														"height": 32,
+														"padding": 12,
+														"cursor": "hand",
+														"text": "TODO TREE ({{computed.todoTree.count}})",
+														"onClick": "todoTree.toggle"
+													},
+													{
+														"id": "todoTree-file",
+														"when": "{{state.todoTree.open}}",
+														"repeat": {
+															"for": "file",
+															"in": "app.workspace.files",
+															"key": "{{file.id}}"
+														},
+														"let": {
+															"todos": "{{filter(split(file.text, '\\n'), contains(it, 'TODO') || contains(it, 'FIXME'))}}"
+														},
+														"type": "column",
+														"width": "100%",
+														"height": "{{length(todos) == 0 ? 0 : 24 + length(todos) * 22}}",
+														"children": [
+															{
+																"id": "todoTree-file-name",
+																"type": "label",
+																"fitText": true,
+																"textColor": "@color.text",
+																"padding": 4,
+																"text": "{{file.name}}",
+																"visible": "{{length(todos) > 0}}"
+															},
+															{
+																"id": "todoTree-line",
+																"repeat": { "for": "todo", "in": "todos" },
+																"type": "label",
+																"textColor": "@color.text",
+																"padding": 3,
+																"height": 22,
+																"width": "100%",
+																"cursor": "hand",
+																"text": "{{trim(todo)}}",
+																"onClick": {
+																	"run": "showTab",
+																	"with": {
+																		"id": "{{file.id}}",
+																		"label": "{{file.name}}"
+																	}
+																}
+															}
+														]
+													}
+												]
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{ "expect": { "node": "#todoTree-view", "exists": true } },
+				{ "expect": { "node": "#todoTree-header", "exists": true } }
+			]
+		}
+	]
+}

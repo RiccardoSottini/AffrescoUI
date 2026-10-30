@@ -1,0 +1,26 @@
+{:$schema "../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "C++ (and C, Objective-C): include it to colour and edit C-like code in an editor ({ \"language\": \"cpp\" })."
+  :languages {:cpp {:title "C++"
+      :aliases ["c++" cxx c h hpp objective-c]
+      :files ["*.cpp" "*.cc" "*.cxx" "*.c++" "*.hpp" "*.hh" "*.hxx" "*.h" "*.ipp" "*.inl" "*.c" "*.m" "*.mm"]
+      :comments {:line "//" :block ["/*" "*/"]}
+      :brackets [["{" "}"] ["[" "]"] ["(" ")"]]
+      :pairs [["{" "}"] ["[" "]"] ["(" ")"] ["\"" "\""] ["'" "'"]]
+      :indent {:increase "^.*(?:\\{[^}\\\"'`]*|\\([^)\\\"'`]*|\\[[^\\]\\\"'`]*)$" :decrease "^\\s*[}\\])]"}
+      :patterns [{:include "#preprocessor"}
+        {:begin "/\\*" :end "\\*/" :scope comment.block}
+        {:match "//.*" :scope comment.line}
+        {:begin "R\"([^(\\s\\\\]{0,16})\\(" :end "\\)\\1\"" :scope string.raw}
+        {:match "\"(?:[^\"\\\\]|\\\\.)*\"?" :scope string.quoted.double}
+        {:match "'(?:[^'\\\\]|\\\\.)*'?" :scope string.quoted.single}
+        {:match "\\b\\d[\\w.']*" :scope number}
+        {:include "#keywords"}
+        {:include "#types"}]
+      :repository {:preprocessor {:match "^\\s*(#\\s*\\w*)(?:[^<\"]*([<\"][^>\"]*[>\"]?))?"
+          :captures {:"1" {:scope keyword.preprocessor} :"2" {:scope string.include}}}
+        :keywords {:match "\\b(?:alignas|alignof|auto|break|case|catch|class|co_await|co_return|co_yield|concept|const|consteval|constexpr|constinit|continue|decltype|default|delete|do|else|enum|explicit|export|extern|false|final|for|friend|goto|if|import|inline|module|mutable|namespace|new|noexcept|nullptr|operator|override|private|protected|public|requires|return|sizeof|static|static_assert|static_cast|struct|switch|template|this|throw|true|try|typedef|typename|union|using|virtual|volatile|while)\\b"
+          :scope keyword}
+        :types {:match "\\b(?:bool|char|char8_t|char16_t|char32_t|double|float|int|long|short|signed|size_t|unsigned|void|wchar_t|std)\\b|\\b[A-Z]\\w*"
+          :scope type}}}}}

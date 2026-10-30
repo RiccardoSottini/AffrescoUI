@@ -166,17 +166,26 @@ std::filesystem::path hostScenariosOf(const Arguments& arguments, const std::fil
 	std::string name = screen.filename().string();
 	if(const std::size_t at = name.find(".screen.json"); at != std::string::npos)
 		name.replace(at, 12, ".scenarios.json");
+	else if(const std::size_t lisp = name.find(".screen.lisp"); lisp != std::string::npos)
+		name.replace(lisp, 12, ".scenarios.json");
 	const std::filesystem::path beside = screen.parent_path() / name;
 	return name != screen.filename().string() && std::filesystem::is_regular_file(beside) ? beside
 	                                                                                      : std::filesystem::path();
 }
 
-/// @brief Where a feature comes from: "app:<the folder above its features folder>".
+/// @brief An app's name for a composition: "app:<its folder>", or the example's for a "json" or "lisp" folder, which is
+/// one notation of an example.
+/// @param folder The app's folder, absolute.
+/// @return The name.
+std::string appNameOf(const std::filesystem::path& folder) {
+	return "app:" + (format::isNotationFolder(folder) ? folder.parent_path() : folder).filename().string();
+}
+
+/// @brief Where a feature comes from: the app of the folder above its features folder.
 /// @param feature The feature's manifest file.
 /// @return The source.
 std::string sourceOf(const std::filesystem::path& feature) {
-	const std::filesystem::path app = std::filesystem::absolute(feature).parent_path().parent_path().parent_path();
-	return "app:" + app.filename().string();
+	return appNameOf(std::filesystem::absolute(feature).parent_path().parent_path().parent_path());
 }
 
 } // namespace
@@ -209,7 +218,7 @@ Exit checkComposition(std::span<const std::string_view> args, const std::functio
 	if(const std::optional<std::string> adapter = arguments.value("--adapter"))
 		inputs.adapter = readUntrusted(*adapter);
 	inputs.source = arguments.value("--source").value_or(sourceOf(feature));
-	inputs.hostName = "app:" + std::filesystem::absolute(screen).parent_path().filename().string();
+	inputs.hostName = appNameOf(std::filesystem::absolute(screen).parent_path());
 	inputs.base = arguments.value("--base").value_or("");
 	inputs.digest = format::digestOf(manifestText);
 	const format::ProvenComposition proven =

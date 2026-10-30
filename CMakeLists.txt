@@ -236,13 +236,16 @@ if(AFFRESCOUI_BUILD_TESTS)
 	if(Python3_FOUND)
 		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
 		# tests/perf/tokens.py reads a screen's includes as the host merges them
+		# examples/lisp/ is what tools/notation/lisp_examples.py writes from the JSON apps
+		add_test(NAME cli_lisp_examples COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/tools/notation/lisp_examples.py --check --cli $<TARGET_FILE:affrescoui_cli>)
 		add_test(NAME perf_tokens COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/perf/test_tokens.py)
 		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/tempera/sorter)
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/json/e2e_test.py ${CMAKE_BINARY_DIR})
+		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/tempera/json/sorter)
 		add_test(NAME tempera_sorter_e2e COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/tempera/sorter/e2e_test.py ${CMAKE_BINARY_DIR})
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/tempera/json/sorter/e2e_test.py ${CMAKE_BINARY_DIR})
 		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
 		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
@@ -251,7 +254,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 			${CMAKE_CURRENT_SOURCE_DIR}/tests/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
 		# Orrery end to end, JSON only on affrescoui_launcher: MCP server, a revision, an approval, a picture (examples/orrery)
 		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/e2e_test.py ${CMAKE_BINARY_DIR})
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/json/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()
 endif()
 

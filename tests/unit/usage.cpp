@@ -49,7 +49,7 @@ json controls() {
 /// @brief The Kanban template's document, its state in "state", as a host gives it to its repository.
 /// @return The document.
 json kanban() {
-	const std::filesystem::path directory = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow";
+	const std::filesystem::path directory = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow" / "json";
 	const std::ifstream file(directory / "index.screen.json");
 	REQUIRE(file);
 	std::stringstream text;

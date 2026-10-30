@@ -31,7 +31,7 @@ Python standard library (3.9+). The socket directory is found the way the host f
 1. Build and start the host on an app (with no file it opens the Launcher, which lists every app):
    ```sh
    cmake -S . -B build && cmake --build build
-   ./build/affrescoui_launcher examples/flow/index.screen.json &   # the Kanban board; its assistant chat asks and reviews
+   ./build/affrescoui_launcher examples/flow/json/index.screen.json &   # the Kanban board; its assistant chat asks and reviews
    ```
 2. Register the server with Claude Code:
    ```sh

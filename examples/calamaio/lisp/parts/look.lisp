@@ -1,0 +1,87 @@
+{:note "Calamaio's look: three themes (default, light with a teal ink; inchiostro, dark; pergamena, light with strong contrast), the faces as colours, the syntax colours and the kit's colours for the menus and the assistant."
+  :colors {:bg {:default "#fbfbf8" :inchiostro "#0d0e1c" :pergamena "#fbf7ee"}
+    :fg {:default "#22262d" :inchiostro "#e6e6ef" :pergamena "#1b1914"}
+    :fringe {:default "#f0f1ec" :inchiostro "#14152a" :pergamena "#efe9da"}
+    :cursor {:default "#c2410c" :inchiostro "#f5b85a" :pergamena "#1b1914"}
+    :region {:default "#d3e8e2" :inchiostro "#3b3f6e" :pergamena "#e3cfa0"}
+    :line {:default "#f3f4ef" :inchiostro "#0d0e1c" :pergamena "#fbf7ee"}
+    :ml {:default "#22404a" :inchiostro "#2b2f57" :pergamena "#5a4a2c"}
+    :mlFg {:default "#eef5f3" :inchiostro "#eceefa" :pergamena "#fbf5e6"}
+    :mli {:default "#ebede7" :inchiostro "#1c1d36" :pergamena "#ece4cf"}
+    :mliFg {:default "#5a616a" :inchiostro "#9b9cba" :pergamena "#625a45"}
+    :mliBorder {:default "#d9ddd4" :inchiostro "#2d2f52" :pergamena "#cfc4a8"}
+    :bar {:default "#edf0ea" :inchiostro "#16172c" :pergamena "#f1ead9"}
+    :barFg {:default "#283038" :inchiostro "#d9d9e6" :pergamena "#2a261c"}
+    :barHover {:default "#dde3da" :inchiostro "#2a2c4e" :pergamena "#e0d6bd"}
+    :barLine {:default "#d2d7cd" :inchiostro "#26284a" :pergamena "#d9cfb6"}
+    :icon {:default "#36505a" :inchiostro "#c9c9de" :pergamena "#3b3526"}
+    :prompt {:default "#0d6b63" :inchiostro "#7fb0ff" :pergamena "#1d3fa8"}
+    :link {:default "#0d6b63" :inchiostro "#80b2ff" :pergamena "#2348a8"}
+    :hl {:default "#e2efd5" :inchiostro "#2d4a3a" :pergamena "#d6e6c3"}
+    :compCommon {:default "#7c8279" :inchiostro "#80829e" :pergamena "#857b62"}
+    :compFirst {:default "#0d1a16" :inchiostro "#ffffff" :pergamena "#000000"}
+    :isearch {:default "#ef9443" :inchiostro "#c04fd0" :pergamena "#b12fb0"}
+    :lazy {:default "#fae0c2" :inchiostro "#2d5866" :pergamena "#bfe3df"}
+    :paren {:default "#c6d9f2" :inchiostro "#3f6f8f" :pergamena "#9fd8cf"}
+    :warn {:default "#b45309" :inchiostro "#ffb35a" :pergamena "#b35a00"}
+    :err {:default "#bf2630" :inchiostro "#ff6b72" :pergamena "#b8141e"}
+    :ok {:default "#2f7a34" :inchiostro "#6fd08a" :pergamena "#1e6e2a"}
+    :track {:default "#edf0ea" :inchiostro "#14152a" :pergamena "#ece4cf"}
+    :thumb {:default "#b6beb5" :inchiostro "#3a3d66" :pergamena "#bfb397"}
+    :field {:default "#ffffff" :inchiostro "#1a1b33" :pergamena "#fffdf6"}
+    :button {:default "#e2e6df" :inchiostro "#2a2c4e" :pergamena "#e6dcc3"}
+    :mlChip {:default "#2f5a66" :inchiostro "#3e4380" :pergamena "#74603a"}
+    :mlMark {:default "#f0b44c" :inchiostro "#f5b85a" :pergamena "#f3c66b"}
+    :tile {:default "#e3efe9" :inchiostro "#1c1d36" :pergamena "#efe3c6"}
+    :logo {:default "#0d6b63" :inchiostro "#f5b85a" :pergamena "#7a4f12"}
+    :syntax.keyword {:default "#1c5ea6" :inchiostro "#d38cff" :pergamena "#7a1ea8"}
+    :syntax.string {:default "#3a7a22" :inchiostro "#7fd6a8" :pergamena "#8a2a1a"}
+    :syntax.string.escape {:default "#2d6a18" :inchiostro "#7fd6a8" :pergamena "#8a2a1a"}
+    :syntax.comment {:default "#868173" :inchiostro "#9b9cba" :pergamena "#8f5a20"}
+    :syntax.function {:default "#9e4d00" :inchiostro "#ffb15e" :pergamena "#1b3fa0"}
+    :syntax.function.builtin {:default "#68489a" :inchiostro "#b3a2ff" :pergamena "#4b3a8f"}
+    :syntax.function.method {:default "#9e4d00" :inchiostro "#ffb15e" :pergamena "#1b3fa0"}
+    :syntax.type {:default "#0c7775" :inchiostro "#6fd0d8" :pergamena "#1e6e2a"}
+    :syntax.constant {:default "#b1357a" :inchiostro "#8fd0ff" :pergamena "#006f6f"}
+    :syntax.constant.builtin {:default "#b1357a" :inchiostro "#8fd0ff" :pergamena "#006f6f"}
+    :syntax.label {:default "#86570a" :inchiostro "#ffcf8a" :pergamena "#8a4a14"}
+    :syntax.text.title {:default "#1c5ea6" :inchiostro "#8fb7ff" :pergamena "#1b3fa0"}
+    :syntax.text.literal {:default "#3a7a22" :inchiostro "#7fd6a8" :pergamena "#8a2a1a"}
+    :syntax.text.uri {:default "#0d6b63" :inchiostro "#80b2ff" :pergamena "#2348a8"}
+    :syntax.text.reference {:default "#0d6b63" :inchiostro "#80b2ff" :pergamena "#2348a8"}}
+  :tokens {:kit.background @bg
+    :kit.surface {:default "#ffffff" :inchiostro "#1a1b33" :pergamena "#fffdf6"}
+    :kit.bar @bar
+    :kit.barHover @barHover
+    :kit.field @field
+    :kit.text @barFg
+    :kit.dim {:default "#6a716c" :inchiostro "#8d8fb0" :pergamena "#7a705a"}
+    :kit.body @barFg
+    :kit.selection {:default "#d8ebe5" :inchiostro "#2f3260" :pergamena "#e7dcc0"}
+    :kit.border {:default "#cfd5cb" :inchiostro "#2d2f52" :pergamena "#cfc4a8"}
+    :kit.primary @link
+    :kit.onPrimary "#ffffff"
+    :kit.secondary @button
+    :kit.onSecondary @barFg
+    :kit.accent @link
+    :kit.focus @link
+    :kit.backdrop "#00000030"
+    :kit.info @link
+    :kit.warning @warn
+    :kit.error @err
+    :kit.success @ok
+    :kit.radius 6
+    :kit.cardRadius 8
+    :kit.borderWidth 1
+    :assistant.accent @link
+    :assistant.accentHover @link
+    :assistant.onAccent "#ffffff"
+    :assistant.surface @kit.surface
+    :assistant.raised @bar
+    :assistant.border @kit.border
+    :assistant.text @barFg
+    :assistant.dim @kit.dim
+    :assistant.dot @kit.dim
+    :assistant.success @ok
+    :assistant.danger @err
+    :assistant.warning @kit.selection}}

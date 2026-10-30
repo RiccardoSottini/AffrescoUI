@@ -1,0 +1,7 @@
+[{:day Mon :kwh 62}
+  {:day Tue :kwh 55}
+  {:day Wed :kwh 71}
+  {:day Thu :kwh 48}
+  {:day Fri :kwh 66}
+  {:day Sat :kwh 83}
+  {:day Sun :kwh 58}]

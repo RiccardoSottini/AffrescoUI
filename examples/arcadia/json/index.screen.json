@@ -1,0 +1,307 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Arcadia: a desktop game store and launcher, with every feature of the reference app in a look of its own. A menu row and a centred navigation (store, library, community, profile) with back and forward; a library with a game list on the left, a home of shelves and a page per game; a bottom bar with the downloads and friends. Every game, studio, friend and picture is invented. The parts: parts/data.json (the data), parts/chrome.json (the bars around the pages), parts/library.json (the library), parts/store.json, parts/downloads.json, parts/manage.json, parts/client.json (Settings, codes, backup, couch mode, offline, sign-in) and parts/hub.json (a game's player hub). Built from the public docs only; see README.md next to it.",
+
+	"window": {
+		"title": "Arcadia",
+		"width": 1280,
+		"height": 800,
+		"minWidth": 1024,
+		"minHeight": 680,
+		"focusRing": { "color": "#f5a524", "width": 2, "offset": 1 }
+	},
+
+	"include": ["parts/data.json", "parts/chrome.json", "parts/library.json", "parts/store.json", "parts/downloads.json", "parts/community.json", "parts/manage.json", "parts/client.json", "parts/hub.json", "../../shared/addons/assistant/assistant.json"],
+
+	"theme": "{{settings.appearance.theme}}",
+
+	"permissions": { "allow": ["studio"], "ask": ["agent"], "reviewers": ["studio"] },
+
+	"fonts": {
+		"default": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 14, "fallback": ["icons"] },
+		"small": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 12, "fallback": ["icons"] },
+		"caps": {
+			"file": "../../shared/fonts/Roboto-Regular.ttf",
+			"size": 12,
+			"bold": true,
+			"fallback": ["icons"]
+		},
+		"strong": {
+			"file": "../../shared/fonts/Roboto-Regular.ttf",
+			"size": 14,
+			"bold": true,
+			"fallback": ["icons"]
+		},
+		"heading": {
+			"file": "../../shared/fonts/Roboto-Regular.ttf",
+			"size": 17,
+			"bold": true,
+			"fallback": ["icons"]
+		},
+		"nav": {
+			"file": "../../shared/fonts/Roboto-Regular.ttf",
+			"size": 18,
+			"bold": true,
+			"fallback": ["icons"]
+		},
+		"button": {
+			"file": "../../shared/fonts/Roboto-Regular.ttf",
+			"size": 18,
+			"bold": true,
+			"fallback": ["icons"]
+		},
+		"logo": { "file": "../../shared/fonts/Roboto-Regular.ttf", "size": 48, "bold": true },
+		"icons": { "file": "../../shared/fonts/Lucide.ttf", "size": 14 }
+	},
+
+	"tokens": {
+		"color.top": { "dark": "#16121b", "light": "#e8e2ec" },
+		"color.page": { "dark": "#211a28", "light": "#f6f2f7" },
+		"color.side": { "dark": "#1d1823", "light": "#efe9f2" },
+		"color.sideTop": { "dark": "#262030", "light": "#f6f2f7" },
+		"color.main": { "dark": "#231c2a", "light": "#faf7fb" },
+		"color.panel": { "dark": "#2a2232", "light": "#ffffff" },
+		"color.raised": { "dark": "#352c3f", "light": "#ece5f0" },
+		"color.hover": { "dark": "#463a52", "light": "#e0d6e8" },
+		"color.select": { "dark": "#54405e", "light": "#f3dfc1" },
+		"color.field": { "dark": "#30283a", "light": "#ffffff" },
+		"color.border": { "dark": "#3a3045", "light": "#dcd2e3" },
+		"color.text": { "dark": "#e2d8e6", "light": "#2a2030" },
+		"color.bright": { "dark": "#ffffff", "light": "#150f1a" },
+		"color.muted": { "dark": "#a597ad", "light": "#6b5d75" },
+		"color.dim": { "dark": "#6e6178", "light": "#a796b0" },
+		"color.onAccent": { "dark": "#1b1320", "light": "#ffffff" },
+		"color.accent": { "dark": "#f5a524", "light": "#a65800" },
+		"color.link": { "dark": "#ffc46b", "light": "#94500a" },
+		"color.play": { "dark": "#2ec4a0", "light": "#1f9e80" },
+		"color.playEnd": { "dark": "#17866c", "light": "#137a62" },
+		"color.warm": { "dark": "#ffc552", "light": "#e09422" },
+		"color.warmEnd": { "dark": "#c9560f", "light": "#b8520c" },
+		"color.ingame": { "dark": "#a5d66f", "light": "#4f8a12" },
+		"color.online": { "dark": "#c9a7ff", "light": "#7a4fc0" },
+		"color.offline": { "dark": "#898989", "light": "#7a838c" },
+		"color.badge": { "dark": "#1f6b58", "light": "#1f6b58" },
+		"color.onBadge": { "dark": "#7ff0cf", "light": "#c8ffef" },
+		"color.shade": { "dark": "#100c14cc", "light": "#f6f2f7e6" },
+		"assistant.accent": "@color.accent",
+		"assistant.accentHover": "@color.warm",
+		"assistant.surface": "@color.panel",
+		"assistant.raised": "@color.raised",
+		"assistant.border": "@color.border",
+		"assistant.text": "@color.text",
+		"assistant.dim": "@color.muted",
+		"assistant.dot": "@color.dim",
+		"assistant.success": "@color.play",
+		"kit.background": "@color.page",
+		"kit.surface": { "dark": "#463a52", "light": "#ffffff" },
+		"kit.bar": "@color.top",
+		"kit.barHover": "@color.hover",
+		"kit.field": "@color.field",
+		"kit.text": { "dark": "#e8e0ec", "light": "#2a2030" },
+		"kit.dim": "@color.muted",
+		"kit.body": "@color.muted",
+		"kit.selection": { "dark": "#5e4a6c", "light": "#f3dfc1" },
+		"kit.border": { "dark": "#4d4058", "light": "#dcd2e3" },
+		"kit.primary": "@color.accent",
+		"kit.accent": "@color.link",
+		"kit.focus": "@color.accent",
+		"kit.radius": 3,
+		"kit.cardRadius": 4
+	},
+
+	"strings": { "default": "en", "locale": "{{settings.appearance.language}}" },
+
+	"settings": {
+		"appearance.theme": {
+			"type": "string",
+			"enum": ["dark", "light"],
+			"default": "dark",
+			"title": "Theme",
+			"description": "Dark or light colours for the whole client."
+		},
+		"appearance.language": {
+			"type": "string",
+			"enum": ["en", "es", "fr"],
+			"default": "en",
+			"title": "Language",
+			"description": "English, Spanish or French."
+		},
+		"appearance.startPage": {
+			"type": "string",
+			"enum": ["library", "store", "community"],
+			"default": "library",
+			"title": "Start page",
+			"description": "The page Arcadia opens on."
+		},
+		"downloads.limit": {
+			"type": "number",
+			"enum": [0, 10, 25],
+			"default": 0,
+			"title": "Download speed limit",
+			"description": "The most MB/s a download takes; 0 for no limit."
+		},
+		"downloads.whilePlaying": {
+			"type": "boolean",
+			"default": true,
+			"title": "Download while playing",
+			"description": "Off, downloads wait while a game is running."
+		},
+		"library.sortBy": {
+			"type": "string",
+			"enum": ["name", "playtime", "recent"],
+			"default": "name",
+			"title": "Sort the library by",
+			"description": "Name from A to Z, the most hours, or the most recently played."
+		}
+	},
+
+	"state": {
+		"nav": [{ "tab": "library", "page": "home", "id": null }],
+		"at": 0
+	},
+
+	"computed": {
+		"rtl": "{{slice(locale, 0, 2) == 'ar'}}",
+		"here": "{{state.nav[state.at]}}",
+		"owned": "{{filter(data.games, it.owned)}}",
+		"game": "{{find(data.games, it.id == (computed.here.id ?? state.selected))}}"
+	},
+
+	"actions": {
+		"go": {
+			"title": "Go to a page",
+			"category": "View",
+			"description": "Goes to { tab, page, id }, dropping the pages ahead of this one, as a browser does.",
+			"do": [
+				{
+					"if": "{{tab != computed.here.tab || page != computed.here.page || id != computed.here.id}}",
+					"then": [
+						{
+							"set": "state.nav",
+							"to": "{{concat(slice(state.nav, 0, state.at + 1), [{ tab: tab, page: page, id: id }])}}"
+						},
+						{ "set": "state.at", "to": "{{state.at + 1}}" }
+					]
+				}
+			]
+		},
+		"back": {
+			"title": "Back",
+			"category": "View",
+			"icon": "arrow-left",
+			"enablement": "{{state.at > 0}}",
+			"do": [{ "set": "state.at", "to": "{{max(0, state.at - 1)}}" }]
+		},
+		"forward": {
+			"title": "Forward",
+			"category": "View",
+			"icon": "arrow-right",
+			"enablement": "{{state.at < length(state.nav) - 1}}",
+			"do": [{ "set": "state.at", "to": "{{min(length(state.nav) - 1, state.at + 1)}}" }]
+		},
+		"showStore": {
+			"title": "Discover",
+			"category": "View",
+			"do": [{ "run": "go", "with": { "tab": "store", "page": "home", "id": null } }]
+		},
+		"showLibrary": {
+			"title": "My games",
+			"category": "View",
+			"do": [{ "run": "go", "with": { "tab": "library", "page": "home", "id": null } }]
+		},
+		"showCommunity": {
+			"title": "Friends",
+			"category": "View",
+			"do": [{ "run": "go", "with": { "tab": "community", "page": "home", "id": null } }]
+		},
+		"showProfile": {
+			"title": "Profile",
+			"category": "View",
+			"do": [{ "run": "go", "with": { "tab": "profile", "page": "home", "id": null } }]
+		},
+		"toggleTheme": {
+			"title": "Switch between dark and light",
+			"category": "View",
+			"do": [
+				{
+					"set": "settings.appearance.theme",
+					"to": "{{settings.appearance.theme == 'dark' ? 'light' : 'dark'}}"
+				}
+			]
+		},
+		"nextLanguage": {
+			"title": "Next language",
+			"category": "View",
+			"do": [
+				{
+					"set": "settings.appearance.language",
+					"to": "{{settings.appearance.language == 'en' ? 'es' : settings.appearance.language == 'es' ? 'fr' : 'en'}}"
+				}
+			]
+		}
+	},
+
+	"keys": {
+		"alt+left": "back",
+		"alt+right": "forward",
+		"mod+1": "showStore",
+		"mod+2": "showLibrary",
+		"mod+3": "showCommunity",
+		"mod+k mod+t": "toggleTheme",
+		"mod+k mod+l": "nextLanguage",
+		"mod+,": { "do": { "run": "openSettings", "with": { "page": "interface" } } }
+	},
+
+	"onLoad": [
+		{
+			"if": "{{settings.appearance.startPage != 'library'}}",
+			"then": [{ "set": "state.nav", "to": "{{[{ tab: settings.appearance.startPage, page: 'home', id: null }]}}" }]
+		}
+	],
+
+	"root": {
+		"id": "app",
+		"color": "@color.page",
+		"children": [
+			{
+				"id": "app-body",
+				"type": "column",
+				"fill": true,
+				"dir": "auto",
+				"children": [
+					{ "use": "menuRow", "id": "menu-row" },
+					{ "use": "navRow", "id": "nav-row" },
+					{
+						"id": "body",
+						"grow": 1,
+						"anchors": { "left": 0, "right": 0 },
+						"children": [
+							{ "when": "{{computed.here.tab == 'library'}}", "use": "libraryPage", "id": "library" },
+							{ "when": "{{computed.here.tab == 'store' && !state.session.offline}}", "use": "storePage" },
+							{ "when": "{{computed.here.tab == 'downloads'}}", "use": "downloadsPage" },
+							{ "when": "{{computed.here.tab == 'community' && !state.session.offline}}", "use": "friendsPage" },
+							{ "when": "{{contains(['store', 'community'], computed.here.tab) && state.session.offline}}", "use": "offlinePage" },
+							{ "when": "{{computed.here.tab == 'profile'}}", "use": "profilePage" },
+							{ "when": "{{!contains(['library', 'store', 'downloads', 'community', 'profile'], computed.here.tab)}}", "use": "comingSoon", "id": "elsewhere" }
+						]
+					},
+					{ "use": "bottomBar", "id": "bottom-bar" }
+				]
+			},
+			{ "id": "settings-dialog", "use": "settingsDialog" },
+			{ "use": "gameMenu" },
+			{ "id": "properties-dialog", "use": "propertiesDialog" },
+			{ "id": "uninstall-dialog", "use": "uninstallDialog" },
+			{ "id": "code-dialog", "use": "codeDialog" },
+			{ "id": "add-game-dialog", "use": "addGameDialog" },
+			{ "id": "backup-dialog", "use": "backupDialog" },
+			{ "id": "note-dialog", "use": "noteDialog" },
+			{ "id": "info-dialog", "use": "infoDialog" },
+			{ "use": "clientToast" },
+			{ "use": "couchMode" },
+			{ "use": "signedOutScreen" }
+		]
+	}
+}

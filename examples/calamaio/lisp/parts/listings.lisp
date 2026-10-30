@@ -1,0 +1,55 @@
+{:note "Calamaio's listing buffers: a folder's files (C-x d, the tool bar's folder) and the buffer list (C-x C-b). Each keeps the ids or paths of its lines in entries, from line first: RET visits the one on point's line, g lists again and q leaves it."
+  :actions {:dired {:title "Open Folder..."
+      :category Files
+      :description "Lists a folder's files in a buffer; RET on a line visits that file or folder."
+      :do {:run minibuffer-read
+        :with {:kind dired :prompt "List folder: " :def "{{state.home}}" :init "{{state.home}}"}}}
+    :mb-dired [{:run dired-show :with {:dir "{{slice(value, length(value) - 1) == '/' ? value : value + '/'}}"}}]
+    :dired-home {:title "Open Home Folder"
+      :category Files
+      :description "Lists the home folder's files."
+      :do {:run dired-show :with {:dir "{{state.home}}"}}}
+    :dired-show [{:run dired-list :with {:dir "{{dir}}" :items "{{filter(computed.fileInfo, it.parent == dir)}}"}}]
+    :dired-list [{:run listing-show
+        :with (node #bd
+          :buffer {:name "{{dir}}"
+            :mode dired
+            :readOnly true
+            :dir "{{dir}}"
+            :first 3
+            :entries "{{map(items, it.path)}}"
+            :text "{{'Folder ' + dir + '    RET visits the line' + \"'\" + 's file, g lists again, q leaves\\n\\n' + join(map(items, '  ' + (it.dir ? 'd' : '-') + pad(it.dir ? '' : text(length(it.text ?? '')), 8, ' ') + '  ' + pad(time(it.mtime, 'D MMM HH:mm'), 12, ' ') + '  ' + it.name), '\\n') + (length(items) == 0 ? '  (no files)' : '') + '\\n'}}"})}]
+    :list-buffers {:title "List Buffers"
+      :category Buffers
+      :description "Lists the buffers, with their size, mode and file; RET on a line shows that buffer."
+      :do [{:run listing-show
+          :with (node #bl
+            :buffer {:name "*Buffer List*"
+              :mode buffer-menu
+              :readOnly true
+              :first 5
+              :entries "{{filter(state.order, it != 'bl')}}"
+              :text "{{'Buffers    RET shows the line' + \"'\" + 's buffer, g lists again, q leaves\\n\\n  ' + slice('Name' + pad('', 22, ' '), 0, max(22, length('Name'))) + slice('Size' + pad('', 8, ' '), 0, max(8, length('Size'))) + slice('Mode' + pad('', 18, ' '), 0, max(18, length('Mode'))) + 'File\\n  ' + slice('----' + pad('', 22, ' '), 0, max(22, length('----'))) + slice('----' + pad('', 8, ' '), 0, max(8, length('----'))) + slice('----' + pad('', 18, ' '), 0, max(18, length('----'))) + '----\\n' + join(map(filter(state.order, it != 'bl'), (state.bufs[it].dirty ? '* ' : state.bufs[it].readOnly ? '% ' : '  ') + slice(state.bufs[it].name + pad('', 22, ' '), 0, max(22, length(state.bufs[it].name))) + slice(text(length(state.bufs[it].text ?? '')) + pad('', 8, ' '), 0, max(8, length(text(length(state.bufs[it].text ?? ''))))) + slice(state.modes[state.bufs[it].mode].title + pad('', 18, ' '), 0, max(18, length(state.modes[state.bufs[it].mode].title))) + (state.bufs[it].file ?? '')), '\\n') + '\\n'}}"})}]}
+    :listing-show [{:set "{{'state.bufs.' + id}}" :to "{{buffer}}"} {:run show :with {:b "{{id}}"}}]
+    :listing-visit {:title "Visit This Line"
+      :category Buffers
+      :description "In a folder or buffer listing, visits the file, folder or buffer on point's line."
+      :do [{:run listing-visit-entry
+          :with {:e "{{computed.buf.entries[state.win[state.sel].caret.line - computed.buf.first]}}"
+            :mode "{{computed.buf.mode}}"}}]}
+    :listing-visit-entry [{:if "{{e == null}}" :then [{:run message :with {:m "No file on this line"}} {:stop true}]}
+      {:if "{{mode == 'buffer-menu'}}" :then [{:run show :with {:b "{{e}}"}} {:stop true}]}
+      {:if "{{slice(e, length(e) - 1) == '/'}}" :then [{:run dired-show :with {:dir "{{e}}"}} {:stop true}]}
+      {:run mb-file :with {:value "{{e}}"}}]
+    :listing-revert {:title "List Again"
+      :category Buffers
+      :description "Makes a folder or buffer listing again, with what changed since."
+      :do [{:if "{{computed.buf.mode == 'dired'}}"
+          :then [{:run dired-show :with {:dir "{{computed.buf.dir}}"}}]
+          :else [{:run list-buffers}]}]}
+    :quit-window {:title "Leave This Buffer"
+      :category Buffers
+      :description "Shows the buffer before this one in the window (in a listing or a help buffer)."
+      :do {:run show :with {:b "{{computed.other}}"}}}}
+  :computed {:fileNames "{{map(state.files, it.dir == true ? split(it.path, '/')[length(split(it.path, '/')) - 2] + '/' : split(it.path, '/')[length(split(it.path, '/')) - 1])}}"
+    :fileInfo "{{map(range(length(state.files)), merge(state.files[it], {name: computed.fileNames[it], parent: slice(state.files[it].path, 0, length(state.files[it].path) - length(computed.fileNames[it]))}))}}"}}

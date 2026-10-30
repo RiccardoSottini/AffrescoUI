@@ -1,13 +1,13 @@
 {
-	"note": "The shipped templates: each one's name and its folder in examples/, which holds its index.screen.json. The tests, the tools, the web build and the release archive read this list.",
+	"note": "The shipped templates: each one's name and its JSON folder in examples/, which holds its index.screen.json. The tests, the tools, the web build and the release archive read this list.",
 	"templates": {
-		"calamaio": "calamaio",
-		"code-editor": "code-editor",
-		"habit-tracker": "streak",
-		"kanban": "flow",
-		"launcher": "launcher",
-		"music-player": "tempo",
-		"sign-in": "sign-in",
-		"smart-home": "haven"
+		"calamaio": "calamaio/json",
+		"code-editor": "code-editor/json",
+		"habit-tracker": "streak/json",
+		"kanban": "flow/json",
+		"launcher": "launcher/json",
+		"music-player": "tempo/json",
+		"sign-in": "sign-in/json",
+		"smart-home": "haven/json"
 	}
 }

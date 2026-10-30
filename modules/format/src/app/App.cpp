@@ -208,9 +208,22 @@ void readData(const json& section, AppManifest& manifest) {
 		if(!plainName(collection) || collection.find_first_of(".-") != std::string::npos)
 			fail("data.seed", "'" + collection + "' is not a collection's name");
 		std::string read = path(file, place);
-		if(!read.ends_with(".json") && !read.ends_with(".csv")) fail(place, "expected a .json or .csv file");
+		if(!read.ends_with(".json") && !read.ends_with(".lisp") && !read.ends_with(".csv"))
+			fail(place, "expected a .json, .lisp or .csv file");
 		manifest.seed.emplace_back(collection, std::move(read));
 	}
+}
+
+/// @brief Reads a path an asset may have: inside the app's folder, or in the `assets` folder two notations share.
+/// @param value The value.
+/// @param place Where, for the error.
+/// @return The path.
+std::string assetPath(const json& value, const std::string& place) {
+	static constexpr std::string_view shared = "../assets/";
+	std::string read = text(value, place, maxPathLength);
+	const std::string_view inside = read.starts_with(shared) ? std::string_view(read).substr(shared.size()) : read;
+	if(!insideApp(inside)) fail(place, "'" + read + "' is not a path inside the app's folder or ../assets");
+	return read;
 }
 
 /// @brief Reads a list of paths.
@@ -238,7 +251,7 @@ void readHeader(const json& manifest, AppManifest& read) {
 	read.name = text(manifest.value("name", json()), "name", maxNameLength);
 	if(manifest.contains("description"))
 		read.description = text(manifest["description"], "description", maxTextLength, true);
-	if(manifest.contains("icon")) read.icon = path(manifest["icon"], "icon");
+	if(manifest.contains("icon")) read.icon = assetPath(manifest["icon"], "icon");
 	if(manifest.contains("entry")) read.entry = path(manifest["entry"], "entry");
 	if(!read.entry.ends_with(".json") && !read.entry.ends_with(".lisp")) // either notation
 		fail("entry", "expected a screen file (.json, or .lisp in the Lisp notation)");
@@ -392,7 +405,12 @@ AppManifest parseApp(const json& manifest) {
 	if(manifest.contains("themes")) read.themes = paths(manifest["themes"], "themes", maxEntries);
 	if(manifest.contains("capabilities")) read.capabilities = readCapabilities(manifest["capabilities"]);
 	if(manifest.contains("data")) readData(manifest["data"], read);
-	if(manifest.contains("assets")) read.assets = paths(manifest["assets"], "assets", maxAssets);
+	if(manifest.contains("assets")) {
+		if(!manifest["assets"].is_array()) fail("assets", "expected a list of paths");
+		if(manifest["assets"].size() > maxAssets) fail("assets", "more than " + std::to_string(maxAssets) + " paths");
+		for(std::size_t i = 0; i < manifest["assets"].size(); ++i)
+			read.assets.push_back(assetPath(manifest["assets"][i], "assets[" + std::to_string(i) + "]"));
+	}
 	return read;
 }
 
@@ -444,6 +462,30 @@ std::string appId(std::string_view name) {
 	id.erase(0, first);
 	id.erase(id.find_last_not_of('-') + 1);
 	return id;
+}
+
+namespace {
+
+/// @brief A folder as an absolute path that ends in its name: "flow/json/." and "flow/json/" give ".../flow/json".
+/// @param folder The folder.
+/// @return The path, or empty if there is no folder or it can't be made absolute.
+std::filesystem::path namedFolder(const std::filesystem::path& folder) {
+	std::error_code error;
+	if(folder.empty()) return {};
+	const std::filesystem::path place = std::filesystem::absolute(folder, error).lexically_normal();
+	if(error) return {};
+	return place.has_filename() ? place : place.parent_path();
+}
+
+} // namespace
+
+bool isNotationFolder(const std::filesystem::path& folder) {
+	const std::filesystem::path name = namedFolder(folder).filename();
+	return name == "json" || name == "lisp";
+}
+
+std::filesystem::path notationAssets(const std::filesystem::path& folder) {
+	return isNotationFolder(folder) ? namedFolder(folder).parent_path() / "assets" : std::filesystem::path();
 }
 
 bool insideApp(std::string_view path) {

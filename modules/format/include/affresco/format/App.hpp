@@ -8,6 +8,7 @@
 #include "affresco/core/Json.hpp"
 
 #include <cstddef>
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -104,5 +105,17 @@ struct AppManifest {
 /// @param path The path, as the manifest writes it.
 /// @return Whether it is.
 [[nodiscard]] bool insideApp(std::string_view path);
+
+/// @brief Whether a folder is one notation of an example: an app written twice is kept as `<example>/json` and
+/// `<example>/lisp`, beside the `shared` folder of the examples and its own `assets`.
+/// @param folder The folder.
+/// @return Whether it is named so.
+[[nodiscard]] bool isNotationFolder(const std::filesystem::path& folder);
+
+/// @brief The assets a screen's folder reads beside its own files: `<example>/assets`, which an example's two notations
+/// have in common.
+/// @param folder The screen's folder.
+/// @return The folder, or empty if the screen's isn't a notation folder (isNotationFolder()).
+[[nodiscard]] std::filesystem::path notationAssets(const std::filesystem::path& folder);
 
 } // namespace affresco::format

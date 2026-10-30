@@ -17,7 +17,7 @@ namespace {
 /// @brief Sinopia's screen as a repository holds it.
 /// @return It.
 json sinopiaScreen() {
-	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/sinopia/index.screen.json");
+	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/sinopia/json/index.screen.json");
 	REQUIRE(file);
 	json screen = json::parse(file);
 	screen.erase("include"); // a Repository does not merge included files; the permissions are in this one

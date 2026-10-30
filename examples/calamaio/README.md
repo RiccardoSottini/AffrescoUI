@@ -5,8 +5,8 @@ bar, windows that split, mode lines, an echo area with a minibuffer, and the key
 template: a screen document that the stock host runs, with no C++ of its own.
 
 ```sh
-./build/affrescoui_launcher examples/calamaio/calamaio.screen.json
-./build/affrescoui test examples/calamaio/calamaio.scenarios.json
+./build/affrescoui_launcher examples/calamaio/json/calamaio.screen.json
+./build/affrescoui test examples/calamaio/json/calamaio.scenarios.json
 ```
 
 | File | What it is |

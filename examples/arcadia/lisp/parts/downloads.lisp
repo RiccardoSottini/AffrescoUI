@@ -1,0 +1,702 @@
+{:$schema "../../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "Arcadia's downloads: the current download with its network and disk graph, the queue to reorder, unscheduled items and completed ones."
+  :tokens {:dl.net {:dark "#f5a524" :light "#a65800"}
+    :dl.netSoft {:dark "#f5a52440" :light "#a6580040"}
+    :dl.disk {:dark "#2ec4a0" :light "#1f9e80"}
+    :dl.band {:dark "#130f17" :light "#ebe3ef"}
+    :dl.shade {:dark "#130f17e0" :light "#f6f2f7e6"}
+    :dl.row {:dark "#ffffff08" :light "#ffffffc0"}
+    :dl.rowHover {:dark "#ffffff14" :light "#ffffff"}}
+  :state {:dlPaused false
+    :dlTick 0
+    :dlRate [22
+      31
+      38
+      35
+      41
+      44
+      39
+      36
+      42
+      47
+      45
+      40
+      38
+      43
+      49
+      52
+      46
+      41
+      39
+      44
+      48
+      45
+      42
+      40
+      37
+      41
+      46
+      50
+      47
+      43
+      39
+      36
+      40
+      44
+      47
+      45
+      41
+      38
+      42
+      46
+      49
+      45
+      41
+      39
+      43
+      46
+      44
+      38]}
+  :computed {:dlSize "{{computed.download == null ? 0 : computed.download.sizeGb ?? computed.downloadGame.sizeGb}}"
+    :dlQueue "{{filter(map(state.downloads, { d: it, at: index }), it.d.status == 'queued')}}"
+    :dlParked "{{filter(state.downloads, it.status == 'paused')}}"
+    :dlDone "{{filter(state.downloads, it.status == 'done')}}"
+    :dlNow "{{state.dlPaused || computed.download == null ? 0 : state.dlRate[47]}}"
+    :dlPeak "{{max(state.dlRate)}}"
+    :dlLeft "{{computed.download == null || computed.dlNow == 0 ? 0 : ceil((computed.dlSize - computed.download.doneGb) * 1024 / computed.dlNow / 60)}}"}
+  :actions {:showDownloads {:title Downloads
+      :category Downloads
+      :icon download
+      :do [{:run go :with {:tab downloads :page home :id nil}}]}
+    :dlPause {:title "Pause or resume downloads" :category Downloads :icon pause :do [{:toggle state.dlPaused}]}
+    :dlStart {:title "Download now"
+      :category Downloads
+      :icon download
+      :description "Moves the item `id` to the top and starts it; what was downloading waits at the head of the queue."
+      :do [{:forEach state.downloads
+          :as d
+          :index i
+          :do [{:if "{{d.status == 'downloading'}}" :then [{:set "state.downloads[i].status" :to queued}]}
+            {:if "{{d.id == id}}" :then [{:set "state.downloads[i].status" :to downloading}]}]}
+        {:set state.dlPaused :to false}]}
+    :dlMove {:title "Move in the queue"
+      :category Downloads
+      :description "Swaps the downloads at positions i and j."
+      :do [{:set state.downloads
+          :to "{{map(state.downloads, index == i ? state.downloads[j] : index == j ? state.downloads[i] : it)}}"}]}
+    :dlUnschedule {:title Unschedule
+      :category Downloads
+      :do [{:forEach state.downloads
+          :as d
+          :index i
+          :do [{:if "{{d.id == id}}" :then [{:set "state.downloads[i].status" :to paused}]}]}]}
+    :dlRemove {:title "Remove from downloads"
+      :category Downloads
+      :icon x
+      :do [{:if "{{find(data.games, it.id == id).status == 'downloading'}}"
+          :then [(node :update games
+              #"{{id}}"
+              :fields {:status "{{find(data.games, it.id == id).installed ? 'update' : 'none'}}"})]}
+        {:set state.downloads :to "{{filter(state.downloads, it.id != id)}}"}]}
+    :dlClear {:title "Clear completed downloads"
+      :category Downloads
+      :do [{:set state.downloads :to "{{filter(state.downloads, it.status != 'done')}}"}]}
+    :dlFinish {:title "Finish the current download"
+      :category Downloads
+      :description "Marks the download `id` done, its game ready, and starts the next in the queue."
+      :do [{:forEach state.downloads
+          :as d
+          :index i
+          :do [{:if "{{d.id == id}}"
+              :then [{:set "state.downloads[i].status" :to done}
+                {:set "state.downloads[i].doneGb" :to "{{d.sizeGb ?? find(data.games, it.id == id).sizeGb}}"}]}]}
+        (node :update games #"{{id}}" :fields {:status ready :installed true})
+        {:if "{{find(state.downloads, it.status == 'queued') != null}}"
+          :then [{:run dlStart :with (node #"{{find(state.downloads, it.status == 'queued').id}}")}]}]}}
+  :components {:dlGraph {:note "The network rate as bars and the disk rate as a line over the last samples, newest on the right."
+      :params {}
+      :node (node #dl-graph :type row :width 336 :height 110 :gap 1 :alignItems end :color "#00000033"
+        {:repeat {:for r :in "{{state.dlRate}}" :index k}
+          :width 6
+          :height 110
+          :color transparent
+          :children [{:anchors {:left 0 :right 0 :bottom 0}
+              :height "{{round(r * 1.8)}}"
+              :color transparent
+              :gradient {:kind linear :stops [@dl.net @dl.netSoft]}}
+            {:anchors {:left 0 :right 0 :bottom "{{round(r * 1.8 * 0.82)}}"} :height 2 :color @dl.disk}]})}
+    :dlStat {:note "One figure under the graph: a caps label over a value."
+      :params {:label "" :value "" :color @color.bright}
+      :node {:type column
+        :width 110
+        :height 38
+        :children [{:type label
+            :font small
+            :text "{{upper(label)}}"
+            :height 16
+            :anchors {:left 0 :right 0}
+            :textColor @color.muted}
+          {:type label :font strong :text "{{value}}" :height 20 :anchors {:left 0 :right 0} :textColor "{{color}}"}]}}
+    :dlCurrent {:note "The current download over its art: capsule, title, progress, pause, and the graph with its figures."
+      :params {}
+      :node (node #dl-current :height 230 :anchors {:left 0 :right 0} :color @dl.band
+        {:when "{{computed.download != null}}"
+          :type image
+          :fill true
+          :fit cover
+          :file "{{'../assets/art/' + computed.download.id + '/hero.svg'}}"}
+        {:fill true :color @dl.shade}
+        {:when "{{computed.download == null}}"
+          :type label
+          :font heading
+          :text "{{t('dl.idle')}}"
+          :fill true
+          :align center
+          :textColor @color.muted}
+        {:when "{{computed.download != null}}"
+          :type row
+          :anchors {:left 24 :right 24 :top 24 :bottom 24}
+          :gap 20
+          :children [{:type image
+              :file "{{'../assets/art/' + computed.download.id + '/hero.svg'}}"
+              :fit cover
+              :width 300
+              :height 140
+              :radius 2
+              :cursor hand
+              :onClick {:run openGame :with (node #"{{computed.download.id}}")}}
+            {:type column
+              :grow 1
+              :height 182
+              :gap 6
+              :children [(node #dl-title
+                  :type label
+                  :font title
+                  :text "{{computed.downloadGame.title}}"
+                  :height 36
+                  :anchors {:left 0 :right 0}
+                  :textColor @color.bright)
+                {:type label
+                  :font caps
+                  :text "{{upper(state.dlPaused ? t('dl.paused') : computed.download.kind == 'update' ? t('dl.updating') : t('dl.downloading'))}}"
+                  :height 18
+                  :anchors {:left 0 :right 0}
+                  :textColor "{{state.dlPaused ? '@color.muted' : '@dl.net'}}"}
+                {:type panel :color transparent :height 8 :width 1}
+                {:type row
+                  :height 30
+                  :anchors {:left 0 :right 0}
+                  :gap 12
+                  :alignItems center
+                  :children [(node #dl-progress
+                      :grow 1
+                      :height 8
+                      :radius 4
+                      :color @color.raised
+                      :role progressbar
+                      :label "{{t('dl.progress')}}"
+                      :value "{{computed.download.doneGb / computed.dlSize}}"
+                      {:anchors {:left 0 :top 0}
+                        :height 8
+                        :radius 4
+                        :width "{{text(floor(100 * computed.download.doneGb / computed.dlSize)) + '%'}}"
+                        :color "{{state.dlPaused ? '@color.muted' : '@dl.net'}}"})
+                    (node #dl-pause
+                      :type label
+                      :icon "{{state.dlPaused ? 'play' : 'pause'}}"
+                      :text ""
+                      :width 30
+                      :height 30
+                      :radius 15
+                      :align center
+                      :color "{{true ? '@dl.net' : 'transparent'}}"
+                      :textColor "{{true ? '#ffffff' : '@color.dim'}}"
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :label "{{state.dlPaused ? t('dl.resume') : t('dl.pause')}}"
+                      :tooltip "{{state.dlPaused ? t('dl.resume') : t('dl.pause')}}"
+                      :hover {:color @color.hover :textColor @color.bright}
+                      :onClick dlPause)]}
+                {:type row
+                  :height 20
+                  :anchors {:left 0 :right 0}
+                  :gap 16
+                  :children [{:type label
+                      :text "{{formatNumber(computed.download.doneGb, 1, 1)}} GB / {{formatNumber(computed.dlSize, 1, 1)}} GB"
+                      :fitText true
+                      :font small
+                      :textColor @color.text}
+                    {:type panel :color transparent :grow 1 :height 1}
+                    {:type label
+                      :text "{{state.dlPaused ? '' : t('dl.left', { n: computed.dlLeft })}}"
+                      :fitText true
+                      :font small
+                      :textColor @color.muted}]}]}
+            {:type column
+              :width 336
+              :height 182
+              :gap 8
+              :children [{:use dlGraph}
+                {:type row
+                  :height 40
+                  :anchors {:left 0 :right 0}
+                  :gap 4
+                  :children [{:use dlStat
+                      :with {:label "{{t('dl.current')}}"
+                        :value "{{formatNumber(computed.dlNow, 1, 1)}} MB/s"
+                        :color @dl.net}}
+                    {:use dlStat
+                      :with {:label "{{t('dl.peak')}}" :value "{{formatNumber(computed.dlPeak, 1, 1)}} MB/s"}}
+                    {:use dlStat
+                      :with {:label "{{t('dl.disk')}}"
+                        :value "{{formatNumber(computed.dlNow * 0.82, 1, 1)}} MB/s"
+                        :color @dl.disk}}]}]}]})}
+    :downloadsPage {:note "Downloads: the current one with its graph, the queue to reorder, unscheduled items and completed ones."
+      :params {}
+      :node (node #downloads
+        :fill true
+        :color @color.page
+        :every {:ms 1000
+          :do [{:if "{{computed.download != null && !state.dlPaused && (settings.downloads.whilePlaying || state.running == null)}}"
+              :then [{:set state.dlTick :to "{{state.dlTick + 1}}"}
+                {:set state.dlRate
+                  :to "{{concat(slice(state.dlRate, 1), [settings.downloads.limit > 0 ? min(settings.downloads.limit, 34 + state.dlTick * 7 - floor(state.dlTick * 7 / 19) * 19) : 34 + state.dlTick * 7 - floor(state.dlTick * 7 / 19) * 19])}}"}
+                {:forEach state.downloads
+                  :as d
+                  :index i
+                  :do [{:if "{{d.status == 'downloading'}}"
+                      :then [{:set "state.downloads[i].doneGb"
+                          :to "{{min(computed.dlSize, d.doneGb + state.dlRate[47] / 1024)}}"}]}]}
+                {:if "{{computed.download.doneGb >= computed.dlSize}}"
+                  :then [{:run dlFinish :with (node #"{{computed.download.id}}")}]}]}]}
+        (column #dl-scroll :fill true :scroll vertical
+          {:type column
+            :height "{{420 + 92 * (length(computed.dlQueue) + length(computed.dlParked) + length(computed.dlDone))}}"
+            :anchors {:left 0 :right 0}
+            :children [{:use dlCurrent}
+              {:type column
+                :height "{{180 + 92 * (length(computed.dlQueue) + length(computed.dlParked) + length(computed.dlDone))}}"
+                :anchors {:left 24 :right 24}
+                :gap 6
+                :children [{:type panel :color transparent :height 8 :width 1}
+                  (node #dl-next :type row :height 44 :anchors {:left 0 :right 0} :gap 8 :alignItems center
+                    {:type label :text "{{upper(t('dl.upNext'))}}" :fitText true :font caps :textColor @color.bright}
+                    {:type label
+                      :text "({{length(computed.dlQueue)}})"
+                      :fitText true
+                      :font small
+                      :textColor @color.muted}
+                    {:type panel :color transparent :grow 1 :height 1}
+                    {:type label :text "" :fitText true :icon settings :font small :textColor @color.muted}
+                    {:type label :text "{{t('dl.autoUpdates')}}" :fitText true :font small :textColor @color.muted})
+                  {:when "{{length(computed.dlQueue) == 0}}"
+                    :type label
+                    :font small
+                    :text "{{t('dl.queueEmpty')}}"
+                    :height 30
+                    :anchors {:left 0 :right 0}
+                    :textColor @color.dim}
+                  (node :repeat {:for q :in "{{computed.dlQueue}}" :index k :key "{{q.d.id}}"}
+                    #"{{'dl-q-' + q.d.id}}"
+                    :type row
+                    :height 86
+                    :anchors {:left 0 :right 0}
+                    :gap 16
+                    :alignItems center
+                    :color @dl.row
+                    :radius 2
+                    :hover {:color @dl.rowHover}
+                    {:type panel :color transparent :width 8 :height 1}
+                    {:type image
+                      :file "{{'../assets/art/' + q.d.id + '/hero.svg'}}"
+                      :fit cover
+                      :width 150
+                      :height 70
+                      :radius 2}
+                    {:type column
+                      :grow 1
+                      :height 52
+                      :gap 4
+                      :children [{:type label
+                          :font strong
+                          :text "{{find(data.games, it.id == q.d.id).title}}"
+                          :height 24
+                          :anchors {:left 0 :right 0}
+                          :textColor @color.bright
+                          :cursor hand
+                          :onClick {:run openGame :with (node #"{{q.d.id}}")}}
+                        {:type label
+                          :font small
+                          :text "{{formatNumber(q.d.doneGb, 1, 1)}} GB / {{formatNumber(q.d.sizeGb ?? find(data.games, it.id == q.d.id).sizeGb, 1, 1)}} GB"
+                          :height 18
+                          :anchors {:left 0 :right 0}
+                          :textColor @color.muted}]}
+                    {:type label
+                      :font small
+                      :text "{{q.d.kind == 'update' ? t('dl.kindUpdate') : t('dl.kindInstall')}}"
+                      :width 90
+                      :textColor @color.muted
+                      :height 86
+                      :align {:horizontal start :vertical center}}
+                    (node #"{{'dl-up-' + q.d.id}}"
+                      :type label
+                      :icon arrow-up
+                      :text ""
+                      :width 30
+                      :height 30
+                      :radius 15
+                      :align center
+                      :color "{{k > 0 ? '@color.raised' : 'transparent'}}"
+                      :textColor "{{k > 0 ? '@color.text' : '@color.dim'}}"
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :label "{{t('dl.moveUp')}}"
+                      :tooltip "{{t('dl.moveUp')}}"
+                      :hover {:color @color.hover :textColor @color.bright}
+                      :onClick {:if "{{k > 0}}"
+                        :then [{:run dlMove :with {:i "{{q.at}}" :j "{{computed.dlQueue[k - 1].at}}"}}]})
+                    (node #"{{'dl-down-' + q.d.id}}"
+                      :type label
+                      :icon arrow-down
+                      :text ""
+                      :width 30
+                      :height 30
+                      :radius 15
+                      :align center
+                      :color "{{k < length(computed.dlQueue) - 1 ? '@color.raised' : 'transparent'}}"
+                      :textColor "{{k < length(computed.dlQueue) - 1 ? '@color.text' : '@color.dim'}}"
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :label "{{t('dl.moveDown')}}"
+                      :tooltip "{{t('dl.moveDown')}}"
+                      :hover {:color @color.hover :textColor @color.bright}
+                      :onClick {:if "{{k < length(computed.dlQueue) - 1}}"
+                        :then [{:run dlMove :with {:i "{{q.at}}" :j "{{computed.dlQueue[k + 1].at}}"}}]})
+                    (node #"{{'dl-start-' + q.d.id}}"
+                      :type label
+                      :icon download
+                      :text ""
+                      :width 30
+                      :height 30
+                      :radius 15
+                      :align center
+                      :color "{{true ? '@dl.net' : 'transparent'}}"
+                      :textColor "{{true ? '#ffffff' : '@color.dim'}}"
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :label "{{t('dl.startNow')}}"
+                      :tooltip "{{t('dl.startNow')}}"
+                      :hover {:color @color.hover :textColor @color.bright}
+                      :onClick {:run dlStart :with (node #"{{q.d.id}}")})
+                    (node #"{{'dl-unschedule-' + q.d.id}}"
+                      :type label
+                      :icon clock-3
+                      :text ""
+                      :width 30
+                      :height 30
+                      :radius 15
+                      :align center
+                      :color "{{true ? '@color.raised' : 'transparent'}}"
+                      :textColor "{{true ? '@color.text' : '@color.dim'}}"
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :label "{{t('dl.unschedule')}}"
+                      :tooltip "{{t('dl.unschedule')}}"
+                      :hover {:color @color.hover :textColor @color.bright}
+                      :onClick {:run dlUnschedule :with (node #"{{q.d.id}}")})
+                    (node #"{{'dl-remove-' + q.d.id}}"
+                      :type label
+                      :icon x
+                      :font icons
+                      :text ""
+                      :width 30
+                      :height 30
+                      :radius 15
+                      :align center
+                      :color "{{true ? '@color.raised' : 'transparent'}}"
+                      :textColor "{{true ? '@color.text' : '@color.dim'}}"
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :label "{{t('dl.remove')}}"
+                      :tooltip "{{t('dl.remove')}}"
+                      :hover {:color @color.hover :textColor @color.bright}
+                      :onClick {:run dlRemove :with (node #"{{q.d.id}}")})
+                    {:type panel :color transparent :width 8 :height 1})
+                  {:type panel :color transparent :height 8 :width 1}
+                  (node #dl-parked :type row :height 44 :anchors {:left 0 :right 0} :gap 8 :alignItems center
+                    {:type label
+                      :text "{{upper(t('dl.unscheduled'))}}"
+                      :fitText true
+                      :font caps
+                      :textColor @color.bright}
+                    {:type label
+                      :text "({{length(computed.dlParked)}})"
+                      :fitText true
+                      :font small
+                      :textColor @color.muted}
+                    {:type panel :color transparent :grow 1 :height 1})
+                  (node :repeat {:for d :in "{{computed.dlParked}}" :key "{{d.id}}"}
+                    #"{{'dl-p-' + d.id}}"
+                    :type row
+                    :height 86
+                    :anchors {:left 0 :right 0}
+                    :gap 16
+                    :alignItems center
+                    :color @dl.row
+                    :radius 2
+                    :hover {:color @dl.rowHover}
+                    {:type panel :color transparent :width 8 :height 1}
+                    {:type image
+                      :file "{{'../assets/art/' + d.id + '/hero.svg'}}"
+                      :fit cover
+                      :width 150
+                      :height 70
+                      :radius 2}
+                    {:type column
+                      :grow 1
+                      :height 52
+                      :gap 4
+                      :children [{:type label
+                          :font strong
+                          :text "{{find(data.games, it.id == d.id).title}}"
+                          :height 24
+                          :anchors {:left 0 :right 0}
+                          :textColor @color.bright
+                          :cursor hand
+                          :onClick {:run openGame :with (node #"{{d.id}}")}}
+                        {:type label
+                          :font small
+                          :text "{{formatNumber(d.doneGb, 1, 1)}} GB / {{formatNumber((d.sizeGb ?? find(data.games, it.id == d.id).sizeGb), 1, 1)}} GB"
+                          :height 18
+                          :anchors {:left 0 :right 0}
+                          :textColor @color.muted}]}
+                    {:type label
+                      :font small
+                      :text "{{d.kind == 'update' ? t('dl.kindUpdate') : t('dl.kindInstall')}}"
+                      :width 90
+                      :textColor @color.muted
+                      :height 86
+                      :align {:horizontal start :vertical center}}
+                    (node #"{{'dl-start-' + d.id}}"
+                      :type label
+                      :icon download
+                      :text ""
+                      :width 30
+                      :height 30
+                      :radius 15
+                      :align center
+                      :color "{{true ? '@dl.net' : 'transparent'}}"
+                      :textColor "{{true ? '#ffffff' : '@color.dim'}}"
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :label "{{t('dl.startNow')}}"
+                      :tooltip "{{t('dl.startNow')}}"
+                      :hover {:color @color.hover :textColor @color.bright}
+                      :onClick {:run dlStart :with (node #"{{d.id}}")})
+                    (node #"{{'dl-remove-' + d.id}}"
+                      :type label
+                      :icon x
+                      :font icons
+                      :text ""
+                      :width 30
+                      :height 30
+                      :radius 15
+                      :align center
+                      :color "{{true ? '@color.raised' : 'transparent'}}"
+                      :textColor "{{true ? '@color.text' : '@color.dim'}}"
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :label "{{t('dl.remove')}}"
+                      :tooltip "{{t('dl.remove')}}"
+                      :hover {:color @color.hover :textColor @color.bright}
+                      :onClick {:run dlRemove :with (node #"{{d.id}}")})
+                    {:type panel :color transparent :width 8 :height 1})
+                  {:type panel :color transparent :height 8 :width 1}
+                  (node #dl-done :type row :height 44 :anchors {:left 0 :right 0} :gap 8 :alignItems center
+                    {:type label :text "{{upper(t('dl.completed'))}}" :fitText true :font caps :textColor @color.bright}
+                    {:type label
+                      :text "({{length(computed.dlDone)}})"
+                      :fitText true
+                      :font small
+                      :textColor @color.muted}
+                    {:type panel :color transparent :grow 1 :height 1}
+                    (node #dl-clear
+                      :type label
+                      :font small
+                      :text "{{t('dl.clearAll')}}"
+                      :fitText true
+                      :padding 6
+                      :radius 2
+                      :textColor @color.link
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :hover {:color @color.hover}
+                      :onClick dlClear))
+                  (node :repeat {:for d :in "{{computed.dlDone}}" :key "{{d.id}}"}
+                    #"{{'dl-d-' + d.id}}"
+                    :type row
+                    :height 86
+                    :anchors {:left 0 :right 0}
+                    :gap 16
+                    :alignItems center
+                    :color @dl.row
+                    :radius 2
+                    :hover {:color @dl.rowHover}
+                    {:type panel :color transparent :width 8 :height 1}
+                    {:type image
+                      :file "{{'../assets/art/' + d.id + '/hero.svg'}}"
+                      :fit cover
+                      :width 150
+                      :height 70
+                      :radius 2}
+                    {:type column
+                      :grow 1
+                      :height 52
+                      :gap 4
+                      :children [{:type label
+                          :font strong
+                          :text "{{find(data.games, it.id == d.id).title}}"
+                          :height 24
+                          :anchors {:left 0 :right 0}
+                          :textColor @color.bright
+                          :cursor hand
+                          :onClick {:run openGame :with (node #"{{d.id}}")}}
+                        {:type label
+                          :font small
+                          :text "{{t('dl.doneSize', { n: formatNumber((d.sizeGb ?? find(data.games, it.id == d.id).sizeGb), 1, 1) })}}"
+                          :height 18
+                          :anchors {:left 0 :right 0}
+                          :textColor @color.muted}]}
+                    {:type label
+                      :font small
+                      :text "{{d.kind == 'update' ? t('dl.kindUpdate') : t('dl.kindInstall')}}"
+                      :width 90
+                      :textColor @color.muted
+                      :height 86
+                      :align {:horizontal start :vertical center}}
+                    {:use playButton :with (node #"{{d.id}}")}
+                    (node #"{{'dl-forget-' + d.id}}"
+                      :type label
+                      :icon x
+                      :font icons
+                      :text ""
+                      :width 30
+                      :height 30
+                      :radius 15
+                      :align center
+                      :color "{{true ? '@color.raised' : 'transparent'}}"
+                      :textColor "{{true ? '@color.text' : '@color.dim'}}"
+                      :focusable true
+                      :role button
+                      :cursor hand
+                      :label "{{t('dl.remove')}}"
+                      :tooltip "{{t('dl.remove')}}"
+                      :hover {:color @color.hover :textColor @color.bright}
+                      :onClick {:run dlRemove :with (node #"{{d.id}}")})
+                    {:type panel :color transparent :width 8 :height 1})]}]}))}
+    :playButton {:note "A small green Play for a finished download."
+      :params (node #"")
+      :node {:type label
+        :icon play
+        :text " {{t('dl.play')}}"
+        :fitText true
+        :padding 8
+        :radius 2
+        :font strong
+        :textColor "#ffffff"
+        :color transparent
+        :focusable true
+        :role button
+        :cursor hand
+        :gradient {:kind linear :angle 90 :stops [@color.play @color.playEnd]}
+        :hover {:shadow {:blur 10 :color "#2ec4a066"}}
+        :onClick {:run play :with (node #"{{id}}")}}}}
+  :strings {:en {:dl.idle "Nothing is downloading"
+      :dl.downloading Downloading
+      :dl.updating Updating
+      :dl.paused Paused
+      :dl.progress "Download progress"
+      :dl.pause Pause
+      :dl.resume Resume
+      :dl.left "{n} min left"
+      :dl.current Current
+      :dl.peak Peak
+      :dl.disk "Disk usage"
+      :dl.upNext "Up Next"
+      :dl.autoUpdates "Auto-updates enabled"
+      :dl.queueEmpty "There are no downloads in the queue"
+      :dl.moveUp "Move up"
+      :dl.moveDown "Move down"
+      :dl.startNow "Download now"
+      :dl.unschedule Unschedule
+      :dl.remove Remove
+      :dl.unscheduled Unscheduled
+      :dl.completed Completed
+      :dl.clearAll "Clear all"
+      :dl.kindUpdate Update
+      :dl.kindInstall Install
+      :dl.doneSize "{n} GB downloaded"
+      :dl.play Play}
+    :es {:dl.idle "No se está descargando nada"
+      :dl.downloading Descargando
+      :dl.updating Actualizando
+      :dl.paused "En pausa"
+      :dl.progress "Progreso de la descarga"
+      :dl.pause Pausar
+      :dl.resume Reanudar
+      :dl.left "Quedan {n} min"
+      :dl.current Actual
+      :dl.peak "Máximo"
+      :dl.disk "Uso del disco"
+      :dl.upNext "A continuación"
+      :dl.autoUpdates "Actualizaciones automáticas activadas"
+      :dl.queueEmpty "No hay descargas en la cola"
+      :dl.moveUp Subir
+      :dl.moveDown Bajar
+      :dl.startNow "Descargar ahora"
+      :dl.unschedule "Quitar de la programación"
+      :dl.remove Quitar
+      :dl.unscheduled "Sin programar"
+      :dl.completed Completadas
+      :dl.clearAll "Borrar todo"
+      :dl.kindUpdate "Actualización"
+      :dl.kindInstall "Instalación"
+      :dl.doneSize "{n} GB descargados"
+      :dl.play Jugar}
+    :fr {:dl.idle "Aucun téléchargement en cours"
+      :dl.downloading "Téléchargement"
+      :dl.updating "Mise à jour"
+      :dl.paused "En pause"
+      :dl.progress "Progression du téléchargement"
+      :dl.pause Suspendre
+      :dl.resume Reprendre
+      :dl.left "{n} min restantes"
+      :dl.current Actuel
+      :dl.peak Pic
+      :dl.disk "Utilisation du disque"
+      :dl.upNext "À suivre"
+      :dl.autoUpdates "Mises à jour automatiques activées"
+      :dl.queueEmpty "Aucun téléchargement dans la file d'attente"
+      :dl.moveUp Monter
+      :dl.moveDown Descendre
+      :dl.startNow "Télécharger maintenant"
+      :dl.unschedule "Retirer de la programmation"
+      :dl.remove Retirer
+      :dl.unscheduled "Non programmés"
+      :dl.completed "Terminés"
+      :dl.clearAll "Tout effacer"
+      :dl.kindUpdate "Mise à jour"
+      :dl.kindInstall Installation
+      :dl.doneSize "{n} Go téléchargés"
+      :dl.play Jouer}}}

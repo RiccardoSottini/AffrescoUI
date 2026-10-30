@@ -1,0 +1,559 @@
+{:note "Haven's more-info dialog, included by index.screen.json: a click on a light, the climate, the blinds or a device opens it in the middle of the window, with the big control of that kind, its details and its recent activity. Escape or a click outside closes it."
+  :state {:info {:open false :kind light :index 0}
+    :tempHistory [20.1
+      19.8
+      19.6
+      19.4
+      19.3
+      19.2
+      19.4
+      20.2
+      21.0
+      21.4
+      21.6
+      21.5
+      21.7
+      21.8
+      21.6
+      21.5
+      21.6
+      21.9
+      22.1
+      22.0
+      21.8
+      21.6
+      21.4
+      21.5]
+    :coverTilt 50
+    :speakerVolume 40
+    :infoMenu false
+    :modeMenu false
+    :deviceFacts {:door {:related welcome :battery 82 :changed "08:12" :log ["08:12" "07:40" "22:05"]}
+      :vacuum {:related morning :battery 64 :changed "10:30" :log ["10:30" "09:55" "18:20"]}
+      :speaker {:related welcome :battery 100 :changed "09:02" :log ["09:02" "08:47" "21:30"]}}}
+  :computed {:infoLight "{{computed.room.lights[state.info.index]}}"
+    :infoDevice "{{state.devices[state.info.index]}}"
+    :infoFacts "{{state.deviceFacts[computed.infoDevice.id]}}"
+    :infoName "{{state.info.kind == 'light' ? computed.infoLight.name : (state.info.kind == 'device' ? computed.infoDevice.name : t('info.' + state.info.kind))}}"
+    :infoState "{{state.info.kind == 'alarm' ? t('alarm.' + state.security) : state.info.kind == 'light' ? (computed.infoLight.on ? computed.infoLight.level + '%' : t('light.off')) : (state.info.kind == 'climate' ? computed.room.target + '°' : (state.info.kind == 'cover' ? t('blinds.open', { n: round(computed.room.blinds) }) : (computed.infoDevice.busy ? t('device.waiting') : t('device.' + computed.infoDevice.id + (computed.infoDevice.on ? '.on' : '.off')))))}}"}
+  :actions {:openInfo [{:note "with: kind (light, climate, cover or device) and i, the light or device it shows"}
+      {:set state.info :to {:open true :kind "{{kind}}" :index "{{i}}"}}]
+    :setLevel [{:note "with: by, a step of the shown light's brightness; it switches the light on"}
+      {:set "state.rooms[state.room].lights[state.info.index].level"
+        :to "{{clamp(computed.infoLight.level + by, 10, 100)}}"}
+      {:set "state.rooms[state.room].lights[state.info.index].on" :to true}
+      {:set state.scene :to ""}]
+    :pickLevel [{:run setLevel :with {:by "{{level - computed.infoLight.level}}"}}]
+    :levelUp [{:run setLevel :with {:by 10}}]
+    :levelDown [{:run setLevel :with {:by -10}}]
+    :pickTilt [{:animate state.coverTilt :to "{{level}}" :ms 300}]
+    :tiltUp [{:set state.coverTilt :to "{{clamp(state.coverTilt + 10, 0, 100)}}"}]
+    :tiltDown [{:set state.coverTilt :to "{{clamp(state.coverTilt - 10, 0, 100)}}"}]
+    :pickMode [{:note "with: mode, a heating mode"} {:set state.mode :to "{{mode}}"}]
+    :infoRelatedMenu [{:if "{{state.info.kind == 'device' && computed.infoFacts.related != null}}"
+        :then [{:run openRelated}]
+        :else [{:run showToast :with {:message "{{t('info.noRelated')}}"}}]}]
+    :openRelated [{:set state.info.open :to false}
+      {:set state.page :to automations}
+      {:set state.autoOpen :to "{{indexOf(map(state.automations, it.id), computed.infoFacts.related)}}"}]
+    :pickBlinds [{:animate "state.rooms[state.room].blinds" :to "{{level}}" :ms 300}]
+    :blindsUp [{:set "state.rooms[state.room].blinds" :to "{{clamp(computed.room.blinds + 10, 0, 100)}}"}]
+    :blindsDown [{:set "state.rooms[state.room].blinds" :to "{{clamp(computed.room.blinds - 10, 0, 100)}}"}]}
+  :components {:iconBtn {:note "A round button with an icon, named and explained by the string tip"
+      :params {:icon "" :tip ""}
+      :node {:style round :icon "{{icon}}" :text "" :label "{{t(tip)}}" :tooltip "{{t(tip)}}"}}
+    :infoBody {:note "The part of the dialog for one kind"
+      :params {:kind ""}
+      :node {:when "{{state.info.kind == kind}}"
+        :anchors {:left 0 :right 0 :top 0 :bottom 0}
+        :color transparent
+        :children [{:slot true}]}}
+    :infoRow {:note "The dialog's row of round buttons under its big bar"
+      :params {}
+      :node {:type row
+        :anchors {:left 0 :right 0 :top 396}
+        :height 44
+        :gap 16
+        :justify center
+        :role toolbar
+        :arrows horizontal
+        :children [{:slot true}]}}
+    :bigBar {:note "A tall rounded bar filled from the bottom to share (0 to 1); a click on one of its ten bands runs pick with level, 10 to 100"
+      :params {:share 0 :fill @accent :label "" :pick "" :up "" :down "" :left 140 :width 120}
+      :node {:anchors {:left "{{left}}" :top 132}
+        :width "{{width}}"
+        :height 240
+        :radius 28
+        :color @raised
+        :focusable true
+        :role slider
+        :label "{{label}}"
+        :keys {:up {:run "{{up}}"} :down {:run "{{down}}"}}
+        :children [(node #barFill
+            :anchors {:left 0 :right 0 :bottom 0}
+            :height "{{240 * share}}"
+            :color "{{fill}}"
+            :radius "{{ { topLeft: share > 0.88 ? 28 : 0, topRight: share > 0.88 ? 28 : 0, bottomLeft: 28, bottomRight: 28 } }}")
+          (node #barHandle
+            :when "{{share > 0.06}}"
+            :anchors {:left "{{(width - 40) / 2}}" :bottom "{{240 * share - (share > 0.92 ? 22 : 12)}}"}
+            :width 40
+            :height 4
+            :radius 2
+            :color "#ffffffcc")
+          (node #barBand
+            :repeat {:for k :in "{{range(10)}}"}
+            :anchors {:left 0 :right 0 :top "{{k * 24}}"}
+            :height 24
+            :color transparent
+            :cursor hand
+            :onClick {:run "{{pick}}" :with {:level "{{(10 - k) * 10}}"}})]}}
+    :thermoDial {:note "The target temperature on a dial coloured by the mode; p prefixes the inner ids"
+      :params {:p "" :small false}
+      :node {:width "{{small ? 150 : 200}}"
+        :height "{{small ? 150 : 200}}"
+        :color transparent
+        :children [(node #"{{p}}dialTrack"
+            :type path
+            :fill 0
+            :viewBox "0 0 200 200"
+            :d "M 43.43 156.57 A 80 80 0 1 1 156.57 156.57"
+            :stroke @off
+            :strokeWidth 14
+            :strokeCap round)
+          (node #"{{p}}dialArc"
+            :type path
+            :fill 0
+            :viewBox "0 0 200 200"
+            :d "M 43.43 156.57 A 80 80 0 1 1 156.57 156.57"
+            :stroke "{{computed.modeColor}}"
+            :strokeWidth 14
+            :strokeCap round
+            :strokeDash "{{[max(computed.dialShare * 377, 0.01), 400]}}")
+          (node #"{{p}}dialKnob"
+            :type path
+            :fill 0
+            :viewBox "0 0 200 200"
+            :d "M 93 20 A 7 7 0 1 0 107 20 A 7 7 0 1 0 93 20"
+            :fillColor @knob
+            :stroke "{{computed.modeColor}}"
+            :strokeWidth 3
+            :rotate "{{-135 + 270 * computed.dialShare}}")
+          (node #"{{p}}label-mode-now"
+            :type label
+            :font small
+            :textColor @muted
+            :text "{{t('mode.' + state.mode)}}"
+            :anchors {:left 0 :right 0 :top "{{small ? 30 : 46}}"}
+            :height 16
+            :align center)
+          (node #"{{p}}target"
+            :type label
+            :text "{{computed.room.target}}°"
+            :font figure
+            :textColor @text
+            :anchors {:left 0 :right 0 :top "{{small ? 46 : 66}}"}
+            :height 60
+            :align center
+            :label "{{t('climate.targetIs', { target: computed.room.target })}}"
+            :live polite)
+          (node #"{{p}}label-target"
+            :when "{{!small}}"
+            :style caption
+            :icon thermometer
+            :text " {{computed.room.temp}}°"
+            :anchors {:left 0 :right 0 :top 128}
+            :height 16
+            :align center)]}}
+    :scrim {:note "Dims the page behind a dialog that is open at the state path"
+      :params {:open ""}
+      :node {:overlay {:placement window :open "{{open}}"}
+        :x 0
+        :y 0
+        :width "{{window.width}}"
+        :height "{{window.height}}"
+        :color "#00000052"}}
+    :moreInfo {:note "The details of one light, the climate, the blinds or one device"
+      :params {}
+      :node {:dir auto
+        :overlay {:placement center :open state.info.open :dismiss outside :modal true}
+        :width 400
+        :height "{{state.info.kind == 'device' ? 600 : state.info.kind == 'climate' ? 536 : 500}}"
+        :radius 28
+        :color @card
+        :shadow {:y 8 :blur 24 :color "#00000040"}
+        :role dialog
+        :label "{{computed.infoName}}"
+        :children [(node #infoState
+            :when "{{state.info.kind != 'climate'}}"
+            :type label
+            :font title
+            :textColor @text
+            :text "{{computed.infoState}}"
+            :anchors {:left 0 :right 0 :top 76}
+            :height 36
+            :align center
+            :live polite)
+          (node :use infoBody :with {:kind light} #infoLightBody
+            {:use bigBar
+              :with {:share "{{computed.infoLight.on ? computed.infoLight.level / 100 : 0}}"
+                :fill "{{slice(computed.infoLight.color, 0, 7)}}"
+                :label "{{t('light.brightness')}}: {{computed.infoLight.on ? computed.infoLight.level + '%' : t('light.off')}}"
+                :pick pickLevel
+                :up levelUp
+                :down levelDown}}
+            (node :use infoRow #infoLightButtons
+              (node :use iconBtn
+                :with {:icon power :tip info.power}
+                #infoPower
+                :selected "{{computed.infoLight.on}}"
+                :color "{{computed.infoLight.on ? '@warmSoft' : '@raised'}}"
+                :textColor "{{computed.infoLight.on ? '@warm' : '@text'}}"
+                :onClick [{:toggle "state.rooms[state.room].lights[state.info.index].on"} {:set state.scene :to ""}])
+              (node :use iconBtn
+                :with {:icon palette :tip colour.title}
+                #infoColour
+                :onClick [{:set state.info.open :to false}
+                  {:run openColour :with {:i "{{state.info.index}}"}}
+                  {:focus "#colourPicker"}])
+              (node :use iconBtn
+                :with {:icon thermometer-sun :tip colour.warm}
+                #infoWarm
+                :onClick {:set "state.rooms[state.room].lights[state.info.index].color" :to "#ffd58aff"}))
+            (node #infoLightHint
+              :style caption
+              :text "{{t('info.lightHint')}}"
+              :anchors {:left 0 :right 0 :top 460}
+              :height 16
+              :align center
+              :fitText false))
+          (node :use infoBody :with {:kind climate} #infoClimateBody
+            (node :use thermoDial :with {:p info-} #infoDial :anchors {:left 0 :right 0 :top 64})
+            (node :use iconBtn
+              :with {:icon minus :tip climate.down}
+              #infoDown
+              :anchors {:left 146 :top 212}
+              :onClick {:run setTarget :with {:by -0.5}})
+            (node :use iconBtn
+              :with {:icon plus :tip climate.up}
+              #infoUp
+              :anchors {:right 146 :top 212}
+              :onClick {:run setTarget :with {:by 0.5}})
+            (node #infoModeRow
+              :anchors {:left 24 :right 24 :top 276}
+              :height 52
+              :radius {:topLeft 4 :topRight 4}
+              :color @raised
+              :hover {:color @raisedHover}
+              :cursor hand
+              :focusable true
+              :role combobox
+              :label "{{t('climate.mode')}}"
+              :isOpen "{{state.modeMenu}}"
+              :onClick {:toggle state.modeMenu}
+              {:type label
+                :icon "{{state.mode == 'Heat' ? 'flame' : (state.mode == 'Cool' ? 'snowflake' : 'sun-snow')}}"
+                :text ""
+                :textColor "{{computed.modeColor}}"
+                :anchors {:left 8 :top 10}
+                :width 32
+                :height 32
+                :align center}
+              {:style caption :text "{{t('climate.mode')}}" :anchors {:left 48 :top 8}}
+              (node #infoModeValue
+                :type label
+                :text "{{t('mode.' + state.mode)}}"
+                :textColor @text
+                :anchors {:left 48 :top 24}
+                :fitText true)
+              {:type label
+                :icon chevron-down
+                :text ""
+                :textColor @muted
+                :anchors {:right 8 :top 14}
+                :width 24
+                :height 24
+                :align center}
+              {:anchors {:left 0 :right 0 :bottom 0} :height 1 :color @muted}
+              (node #modeMenu
+                :use menu
+                :with {:open state.modeMenu
+                  :placement below
+                  :width 352
+                  :items [{:title "{{t('mode.Heat')}}"
+                      :checked "{{state.mode == 'Heat'}}"
+                      :run pickMode
+                      :with {:mode Heat}}
+                    {:title "{{t('mode.Cool')}}" :checked "{{state.mode == 'Cool'}}" :run pickMode :with {:mode Cool}}
+                    {:title "{{t('mode.Auto')}}" :checked "{{state.mode == 'Auto'}}" :run pickMode :with {:mode Auto}}]}))
+            (node #infoHistoryTitle
+              :type label
+              :textColor @text
+              :icon history
+              :text " {{t('info.history')}}"
+              :anchors {:left 24 :top 348}
+              :fitText true)
+            (node #infoHistory
+              :style card
+              :anchors {:left 24 :right 24 :top 376}
+              :height 136
+              :color @field
+              :borderWidth 0
+              :role img
+              :label "{{t('info.historyLabel', { low: min(state.tempHistory), high: max(state.tempHistory) })}}"
+              {:use lineChart
+                :with {:values "{{map(state.tempHistory, it - 19)}}"
+                  :top 4
+                  :color "{{computed.modeColor}}"
+                  :lineWidth 2}
+                :anchors {:left 48 :right 12 :top 16 :bottom 28}}
+              (node #infoHistoryHigh :style caption :text "23°" :anchors {:left 12 :top 12})
+              (node #infoHistoryLow :style caption :text "19°" :anchors {:left 12 :bottom 28})
+              (node #infoHistoryStart :style caption :text "00:00" :anchors {:left 48 :bottom 8})
+              (node #infoHistoryEnd :style caption :text "{{t('info.now')}}" :anchors {:right 12 :bottom 8})))
+          (node :use infoBody :with {:kind cover} #infoCoverBody
+            {:use bigBar
+              :with {:share "{{computed.room.blinds / 100}}"
+                :fill @cover
+                :label "{{t('blinds.title')}}: {{t('blinds.open', { n: round(computed.room.blinds) })}}"
+                :pick pickBlinds
+                :up blindsUp
+                :down blindsDown
+                :left 96}}
+            (node :use bigBar
+              #infoTilt
+              :with {:share "{{state.coverTilt / 100}}"
+                :fill @cover
+                :label "{{t('info.tilt', { n: state.coverTilt })}}"
+                :pick pickTilt
+                :up tiltUp
+                :down tiltDown
+                :left 232
+                :width 72})
+            (node :use infoRow #infoCoverButtons
+              (node :use iconBtn
+                :with {:icon chevron-up :tip blinds.openButton}
+                #infoOpen
+                :onClick {:animate "state.rooms[state.room].blinds" :to 100 :ms 500})
+              (node :use iconBtn
+                :with {:icon square :tip info.stop}
+                #infoStop
+                :onClick {:set "state.rooms[state.room].blinds" :to "{{round(computed.room.blinds / 10) * 10}}"})
+              (node :use iconBtn
+                :with {:icon chevron-down :tip blinds.close}
+                #infoShut
+                :onClick {:animate "state.rooms[state.room].blinds" :to 0 :ms 500}))
+            (node #infoCoverHint
+              :style caption
+              :text "{{t('info.coverHint')}}"
+              :anchors {:left 0 :right 0 :top 460}
+              :height 16
+              :align center
+              :fitText false))
+          (node :use infoBody :with {:kind alarm} #infoAlarmBody
+            (node #alarmKeypad :use alarmKeypad))
+          (node :use infoBody :with {:kind device} #infoDeviceBody
+            (node #infoDeviceIcon
+              :type label
+              :font title
+              :icon "{{computed.infoDevice.on ? computed.infoDevice.icon : computed.infoDevice.iconOff}}"
+              :text ""
+              :anchors {:left 164 :top "{{computed.infoDevice.id == 'speaker' ? 120 : 128}}"}
+              :width 72
+              :height 72
+              :radius 36
+              :align center
+              :textColor "{{computed.infoDevice.on ? '@accent' : '@muted'}}"
+              :color "{{computed.infoDevice.on ? '@accentSoft' : '@raised'}}")
+            (node #infoTransport
+              :when "{{computed.infoDevice.id == 'speaker'}}"
+              :type row
+              :anchors {:left 0 :right 0 :top 198}
+              :height 44
+              :gap 16
+              :justify center
+              :role toolbar
+              :arrows horizontal
+              :label "{{computed.infoName}}"
+              {:use iconBtn
+                :with {:icon skip-back :tip info.previous}
+                :tooltip "{{t('info.queueEmpty')}}"
+                :color transparent
+                :hover {:color transparent}
+                :textColor @off
+                :cursor arrow
+                :disabled true}
+              (node :use iconBtn
+                :with {:icon "{{computed.infoDevice.on ? 'pause' : 'play'}}"
+                  :tip "{{computed.infoDevice.on ? 'info.pause' : 'info.play'}}"}
+                #infoPlay
+                :color @accentSoft
+                :textColor @accent
+                :onClick {:run deviceCall :with {:i "{{state.info.index}}"}})
+              {:use iconBtn
+                :with {:icon skip-forward :tip info.next}
+                :tooltip "{{t('info.queueEmpty')}}"
+                :color transparent
+                :hover {:color transparent}
+                :textColor @off
+                :cursor arrow
+                :disabled true})
+            (node #infoVolume
+              :when "{{computed.infoDevice.id == 'speaker'}}"
+              :anchors {:left 24 :right 24 :top 248}
+              :height 40
+              :color transparent
+              {:type label
+                :icon volume-2
+                :text ""
+                :textColor @muted
+                :anchors {:left 0 :top 8}
+                :width 24
+                :height 24
+                :align center}
+              {:use levelBar
+                :with {:level "{{state.speakerVolume / 100}}" :fill @accent :back @accentSoft}
+                :anchors {:left 40 :right 0 :top 0}}
+              (node #infoVolumeSlider
+                :type slider
+                :anchors {:left 40 :right 0 :top 0}
+                :height 40
+                :min 0
+                :max 100
+                :step 5
+                :cursor hand
+                :bind state.speakerVolume
+                :label "{{t('info.volume')}}"
+                :tooltip "{{t('info.volume')}}"
+                :trackColor transparent
+                :activeColor transparent
+                :knobColor transparent))
+            (node #infoDeviceAction
+              :when "{{computed.infoDevice.id != 'speaker'}}"
+              :style choiceOn
+              :anchors {:left 120 :top 216}
+              :width 160
+              :height 36
+              :radius 18
+              :text "{{t('device.' + computed.infoDevice.id + (computed.infoDevice.on ? '.doOff' : '.doOn'))}}"
+              :onClick {:run deviceCall :with {:i "{{state.info.index}}"}})
+            (node #infoFacts
+              :type stack
+              :anchors {:left 24 :right 24 :top "{{computed.infoDevice.id == 'speaker' ? 292 : 276}}"}
+              :height 120
+              :gap 0
+              :role list
+              (node #infoBattery
+                :type label
+                :icon battery-medium
+                :text "  {{t('info.battery', { n: computed.infoFacts.battery })}}"
+                :textColor @text
+                :role listitem
+                :anchors {:left 0 :right 0}
+                :height 40
+                :align {:horizontal start :vertical center})
+              (node #infoChanged
+                :type label
+                :icon history
+                :text "  {{t('info.changed', { time: computed.infoFacts.changed })}}"
+                :textColor @text
+                :role listitem
+                :anchors {:left 0 :right 0}
+                :height 40
+                :align {:horizontal start :vertical center})
+              (node #infoRelated
+                :type label
+                :icon workflow
+                :text "  {{t('info.related', { name: t('rule.' + computed.infoFacts.related) })}}"
+                :textColor @accent
+                :anchors {:left 0 :right 0}
+                :height 40
+                :align {:horizontal start :vertical center}
+                :cursor hand
+                :focusable true
+                :role link
+                :label "{{t('info.related', { name: t('rule.' + computed.infoFacts.related) })}}"
+                :onClick openRelated))
+            (node #infoLogTitle
+              :type label
+              :textColor @text
+              :icon activity
+              :text " {{t('info.activity')}}"
+              :anchors {:left 24 :top "{{computed.infoDevice.id == 'speaker' ? 416 : 412}}"}
+              :fitText true)
+            (node #infoLog
+              :type stack
+              :anchors {:left 24 :right 24 :top "{{computed.infoDevice.id == 'speaker' ? 446 : 444}}"}
+              :height 132
+              :gap 4
+              :role list
+              (node #infoLogRow
+                :repeat {:for time :in computed.infoFacts.log :index n}
+                :anchors {:left 0 :right 0}
+                :height 40
+                :radius 8
+                :color @field
+                :role listitem
+                :label "{{time}}"
+                (node #infoLogTime :style caption :text "{{time}}" :anchors {:left 12 :top 12})
+                (node #infoLogText
+                  :type label
+                  :textColor @text
+                  :anchors {:left 64 :right 12 :top 10}
+                  :height 20
+                  :text "{{t('device.' + computed.infoDevice.id + ((n % 2 == 0) == computed.infoDevice.on ? '.on' : '.off'))}}"))))
+          (node :use iconBtn
+            :with {:icon x :tip info.close}
+            #infoClose
+            :font icons
+            :color transparent
+            :anchors {:left 10 :top 10}
+            :onClick {:set state.info.open :to false})
+          (node #infoRoom
+            :style caption
+            :text "{{state.info.kind == 'device' || state.info.kind == 'alarm' ? t('info.home') : computed.room.name}}"
+            :anchors {:left 64 :top 12})
+          (node #infoName
+            :type label
+            :font heading
+            :textColor @text
+            :text "{{computed.infoName}}"
+            :anchors {:left 64 :right 156 :top 30}
+            :height 22)
+          (node :use iconBtn
+            :with {:icon chart-line :tip page.history}
+            #infoToHistory
+            :font icons
+            :color transparent
+            :anchors {:right 106 :top 10}
+            :onClick [{:set state.info.open :to false} {:set state.page :to history}])
+          (node :use iconBtn
+            :with {:icon settings :tip page.settings}
+            #infoToSettings
+            :font icons
+            :color transparent
+            :anchors {:right 58 :top 10}
+            :onClick [{:set state.info.open :to false} {:set state.page :to settings}])
+          (node #infoMore
+            :style round
+            :icon ellipsis-vertical
+            :text ""
+            :label "{{t('auto.more')}}"
+            :tooltip "{{t('auto.more')}}"
+            :font icons
+            :color transparent
+            :anchors {:right 10 :top 10}
+            :isOpen "{{state.infoMenu}}"
+            :onClick {:toggle state.infoMenu}
+            {:use popMenu
+              :with {:open state.infoMenu
+                :width 200
+                :items [{:title "{{t('info.menuRelated')}}"
+                    :icon workflow
+                    :run infoRelatedMenu
+                    :with nil
+                    :separator false}
+                  {:title "{{t('info.menuAttributes')}}"
+                    :icon list
+                    :run showToast
+                    :with {:message "{{t('info.attributesNote')}}"}}]}})]}}}}

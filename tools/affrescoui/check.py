@@ -36,7 +36,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 EXAMPLES = os.path.join(ROOT, "examples")
 with open(os.path.join(EXAMPLES, "templates.json"), encoding="utf-8") as templates_file:
     TEMPLATE_FOLDERS = {os.path.join(EXAMPLES, folder) for folder in json.load(templates_file)["templates"].values()}
-KANBAN = os.path.join(EXAMPLES, "flow")  # the Kanban template's folder
+KANBAN = os.path.join(EXAMPLES, "flow", "json")  # the Kanban template's folder
 RENDER_SCENARIOS = os.path.join(ROOT, "tests", "render", "scenarios")
 sys.path.insert(0, os.path.join(ROOT, "tools", "media"))
 import pngfile  # noqa: E402 (tools/media/: reads the PNGs the tool and the runner write)

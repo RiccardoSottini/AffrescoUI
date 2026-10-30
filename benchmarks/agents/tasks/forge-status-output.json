@@ -1,7 +1,7 @@
 {
 	"id": "forge-status-output",
 	"level": "forge",
-	"screen": "examples/forge/index.screen.json",
+	"screen": "examples/forge/json/index.screen.json",
 	"request": "In Forge, add an \"Output\" item (id status-output) to the status bar that opens the panel on its Output tab.",
 	"scenarios": [
 		{

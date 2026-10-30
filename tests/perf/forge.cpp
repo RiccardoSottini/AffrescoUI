@@ -21,7 +21,7 @@ namespace {
 /// @brief Forge's folder, beside the templates' folders.
 /// @param context The context.
 /// @return examples/forge.
-std::filesystem::path forgeDirectory(const Context& context) { return context.examples() / "forge"; }
+std::filesystem::path forgeDirectory(const Context& context) { return context.examples() / "forge" / "json"; }
 
 /// @brief Where Forge's services post their results: the workloads pump it until a file they open is read.
 /// @return The executor, which outlives every screen (the Context goes first).

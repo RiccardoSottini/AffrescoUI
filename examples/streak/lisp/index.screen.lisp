@@ -1,0 +1,2406 @@
+{:$schema "../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :include ["../../shared/addons/assistant/assistant.lisp"]
+  :note "Streak: a habit tracker laid out for the desktop: the habits with their last days to tick on the left, the chosen habit's score, history, calendar, streaks and frequency on the right. Yes-or-no and measurable habits, frequencies, reminders, notes per day, sorting, archiving, CSV export, light, dark and pure black. In English, Italian and Arabic."
+  :window {:title Streak :width 1280 :height 800 :minWidth 400 :minHeight 560}
+  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :fallback [icons]}
+    :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [icons]}
+    :tiny {:file "../../shared/fonts/Roboto-Regular.ttf" :size 11 :fallback [icons]}
+    :heading {:file "../../shared/fonts/Roboto-Regular.ttf" :size 17 :fallback [icons]}
+    :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 20 :fallback [icons]}
+    :big {:file "../../shared/fonts/Roboto-Regular.ttf" :size 26 :fallback [icons]}
+    :icons {:file "../../shared/fonts/Lucide.ttf" :size 20}
+    :mark {:file "../../shared/fonts/Lucide.ttf" :size 22}
+    :iconsSmall {:file "../../shared/fonts/Lucide.ttf" :size 14}}
+  :theme "{{computed.theme}}"
+  :tokens {:c.bg {:light "#f2efec" :dark "#1f1d1c" :black "#000000"}
+    :c.card {:light "#ffffff" :dark "#2d2a28" :black "#0f0f0f"}
+    :c.bar {:light "#ffffff" :dark "#282523" :black "#000000"}
+    :c.actionBar {:light "#5b4a42" :dark "#463a35" :black "#1c1c1c"}
+    :c.text {:light "#212121" :dark "#e0e0e0" :black "#e0e0e0"}
+    :c.muted {:light "#757575" :dark "#9e9e9e" :black "#9e9e9e"}
+    :c.faint {:light "#cfcfcf" :dark "#5a5a5a" :black "#454545"}
+    :c.track {:light "#ebe7e3" :dark "#424242" :black "#262626"}
+    :c.divider {:light "#e3dfdb" :dark "#3d3d3d" :black "#222222"}
+    :c.hover {:light "#0000000d" :dark "#ffffff12" :black "#ffffff12"}
+    :c.selected {:light "#fdebe1" :dark "#4a3a33" :black "#2a1810"}
+    :c.primary {:light "#c2410c" :dark "#ff9e6b" :black "#ff9e6b"}
+    :c.onPrimary {:light "#ffffff" :dark "#3a1404" :black "#3a1404"}
+    :c.danger {:light "#d32f2f" :dark "#ef9a9a" :black "#ef9a9a"}
+    :c.backdrop {:light "#00000066" :dark "#000000a0" :black "#000000c0"}
+    :c.raised {:light "#ffffff" :dark "#424242" :black "#1c1c1c"}
+    :c.knob {:light "#fafafa" :dark "#bdbdbd" :black "#bdbdbd"}
+    :c.switchTrack {:light "#c2410c80" :dark "#ff9e6b80" :black "#ff9e6b80"}
+    :c.snack {:light "#323232" :dark "#e0e0e0" :black "#e0e0e0"}
+    :c.snackText {:light "#ffffff" :dark "#212121" :black "#212121"}
+    :c.snackAction {:light "#ffb38a" :dark "#b23a0a" :black "#b23a0a"}
+    :assistant.accent @c.primary
+    :assistant.accentHover @c.primary
+    :assistant.onAccent @c.onPrimary
+    :assistant.surface @c.card
+    :assistant.raised @c.bg
+    :assistant.border @c.divider
+    :assistant.text @c.text
+    :assistant.dim @c.muted
+    :assistant.dot @c.faint
+    :assistant.danger @c.danger
+    :kit.background @c.bg
+    :kit.surface @c.raised
+    :kit.bar @c.bar
+    :kit.barHover @c.hover
+    :kit.field @c.card
+    :kit.text @c.text
+    :kit.dim @c.muted
+    :kit.body @c.muted
+    :kit.selection @c.selected
+    :kit.border @c.divider
+    :kit.primary @c.primary
+    :kit.onPrimary @c.onPrimary
+    :kit.secondary @c.track
+    :kit.onSecondary @c.text
+    :kit.accent @c.primary
+    :kit.focus @c.primary
+    :kit.backdrop @c.backdrop
+    :kit.radius 4
+    :kit.cardRadius 10}
+  :permissions {:allow [studio]
+    :ask ["agent(/actions)"]
+    :deny ["*(#appBar)"]
+    :reviewers [studio]
+    :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
+  :connections {:streakServer {:url "ws://127.0.0.1:7420/live"
+      :auth {:flow device
+        :deviceUrl "https://id.example.com/oauth/device"
+        :tokenUrl "https://id.example.com/oauth/token"
+        :clientId streak
+        :issuer "https://id.example.com"
+        :scopes [openid profile]
+        :note "A placeholder provider: put your own here and in the host's allowed origins."}
+      :messages {:open {:type open :document "~streak"}
+        :revision (revision #"{{id}}"
+          :set {:"/state/habits" "{{data.habits}}"
+            :"/state/weeks" "{{data.weeks}}"
+            :"/state/notes" "{{data.notes}}"
+            :"/state/dayNotes" "{{data.dayNotes}}"})
+        :getDocument {:type getDocument}}
+      :reconnect true
+      :note "The person's habits in their own document on the document server (apps/server), ~streak, synced both ways."}}
+  :strings {:default en
+    :locale "{{state.locale}}"
+    :en {:app Streak
+      :add "Add habit"
+      :filter Filter
+      :more "More options"
+      :back Back
+      :edit Edit
+      :kind.yesNo "Yes or no"
+      :kind.measurable Measurable
+      :sortBy Sort
+      :sort.manual Manually
+      :sort.name "By name"
+      :sort.color "By colour"
+      :sort.score "By score"
+      :sort.status "By status"
+      :hideCompleted "Hide completed"
+      :showArchived "Show archived"
+      :darkMode "Dark mode"
+      :settings Settings
+      :exportAll "Export all as CSV"
+      :syncNow "Sync now"
+      :archive Archive
+      :unarchive Unarchive
+      :delete Delete
+      :exportCsv "Export as CSV"
+      :empty "No habits here yet"
+      :emptyHint "Add one with the + button, or change the filter."
+      :noSelection "Choose a habit to see how it is going."
+      :freq.daily "Every day"
+      :freq.everyN "{n, plural, one {Every day} other {Every # days}}"
+      :freq.week "{n, plural, one {Once a week} other {# times a week}}"
+      :freq.month "{n, plural, one {Once a month} other {# times a month}}"
+      :target "{type, select, atMost {At most} other {At least}} {value} {unit} {per, select, day {a day} week {a week} other {a month}}"
+      :reminderOff "No reminder"
+      :archivedTag Archived
+      :card.overview "At a glance"
+      :card.target Target
+      :card.score Strength
+      :card.history Progress
+      :card.calendar Calendar
+      :card.streaks "Longest runs"
+      :card.frequency "By weekday"
+      :card.notes Notes
+      :stat.score Strength
+      :stat.month Month
+      :stat.year Year
+      :stat.total Total
+      :period Period
+      :period.day Day
+      :period.week Week
+      :period.month Month
+      :period.quarter Quarter
+      :period.year Year
+      :quarter "Q{n}"
+      :goal.day Today
+      :goal.week "This week"
+      :goal.month "This month"
+      :goal.quarter "This quarter"
+      :goal.year "This year"
+      :goalOf "{value} / {goal}"
+      :noNotes "No notes yet. Right-click a day to write one."
+      :noStreaks "No streaks yet."
+      :days "{n, plural, one {# day} other {# days}}"
+      :popup.yes Yes
+      :popup.no No
+      :popup.skip Skip
+      :popup.save Save
+      :popup.note Note
+      :popup.value Value
+      :cell.yes "{date}: done"
+      :cell.no "{date}: not done"
+      :cell.skip "{date}: skipped"
+      :cell.auto "{date}: on target"
+      :cell.value "{date}: {value} {unit}"
+      :cell.none "{date}"
+      :edit.new "Create habit"
+      :edit.edit "Edit habit"
+      :edit.name Name
+      :edit.namePh "e.g. Stretch"
+      :edit.question Question
+      :edit.questionPh "e.g. Did you stretch today?"
+      :edit.unit Unit
+      :edit.unitPh "e.g. pages"
+      :edit.target Target
+      :edit.frequency Frequency
+      :edit.reminder Reminder
+      :edit.notes Notes
+      :edit.notesPh "Why it matters, or how you will keep it"
+      :edit.color Colour
+      :edit.nameNeeded "A habit needs a name."
+      :chip.daily "Every day"
+      :chip.everyN "Every n days"
+      :chip.week "Per week"
+      :chip.month "Per month"
+      :chip.atLeast "At least"
+      :chip.atMost "At most"
+      :chip.perDay "Per day"
+      :save Save
+      :cancel Cancel
+      :picked "{n} selected"
+      :clearPick "Clear selection"
+      :delete.titleN "Delete these habits?"
+      :delete.messageN "{n} habits and their whole history will be removed. This can't be undone."
+      :toast.archivedN "{n, plural, one {# habit archived} other {# habits archived}}"
+      :toast.unarchivedN "{n, plural, one {# habit restored} other {# habits restored}}"
+      :toast.deletedN "{n, plural, one {# habit deleted} other {# habits deleted}}"
+      :delete.title "Delete this habit?"
+      :delete.message "{name} and its whole history will be removed. This can't be undone."
+      :toast.archived "{name} archived"
+      :toast.unarchived "{name} restored"
+      :toast.deleted "{name} deleted"
+      :toast.copied "{n, plural, one {# habit copied as CSV} other {# habits copied as CSV}}"
+      :toast.reminder "Time for {name}"
+      :toast.done "Mark done"
+      :undo Undo
+      :set.interface Interface
+      :set.theme Theme
+      :theme.light Light
+      :theme.dark Dark
+      :theme.system "System default"
+      :set.pureBlack "True black"
+      :set.pureBlackHint "A black background in dark mode"
+      :set.reverse "Reverse order of days"
+      :set.reverseHint "Show the oldest day first"
+      :set.skip "Enable skip days"
+      :set.skipHint "Click a box a third time to mark the day as skipped"
+      :set.firstDay "First day of the week"
+      :set.language Language
+      :set.notifications Notifications
+      :set.reminders Reminders
+      :set.remindersHint "A notification at each habit's time"
+      :set.data Data
+      :set.export "Export all as CSV"
+      :set.exportHint "Copies every habit's history"
+      :set.backup "Back up to a file"
+      :set.backupHint "Saves every habit and its history as a JSON file"
+      :set.restore "Restore from a file"
+      :set.restoreHint "Adds or replaces habits from a backup"
+      :toast.backedUp "{n, plural, one {# habit saved} other {# habits saved}} to {name}"
+      :toast.restored "{n, plural, one {# habit restored} other {# habits restored}}"
+      :toast.restoredSkipped "{n, plural, one {# habit restored} other {# habits restored}}, {skipped, plural, one {# entry skipped} other {# entries skipped}}"
+      :toast.notRestored "Not restored: {message}"
+      :toast.notBackedUp "Not saved: {message}"
+      :toast.badBackup "That file isn't a Streak backup"
+      :set.sync Sync
+      :set.account Account
+      :lang.en English
+      :lang.es "Español"
+      :lang.fr "Français"
+      :sync.signedOut "Not signed in"
+      :sync.offline Offline
+      :sync.online Synced
+      :sync.error "Sync error: {message}"
+      :sync.received "Habits synced from the server"
+      :sync.commits "{state}  ·  {n, plural, one {# change sent} other {# changes sent}}"
+      :signIn "Sign in"
+      :signOut "Sign out"
+      :signedIn "Signed in as {account}"
+      :notSignedIn "Not signed in: {message}"
+      :you you
+      :palettePlaceholder "Type a command"
+      :cmd.addYesNo "New yes-or-no habit"
+      :cmd.addMeasurable "New measurable habit"
+      :cmd.editHabit "Edit habit"
+      :cmd.archiveHabit "Archive or restore habit"
+      :cmd.confirmDelete "Delete habit"
+      :cmd.exportHabit "Export habit as CSV"
+      :cmd.exportAll "Export all as CSV"
+      :cmd.openSettings Settings
+      :cmd.toggleTheme "Toggle dark mode"
+      :cmd.toggleHideCompleted "Hide completed"
+      :cmd.toggleShowArchived "Show archived"
+      :cmd.nextHabit "Next habit"
+      :cmd.prevHabit "Previous habit"
+      :cmd.checkToday "Check today"
+      :cmd.syncNow "Sync now"
+      :cmd.signIn "Sign in"
+      :cmd.signOut "Sign out"
+      :cmd.commandPalette "Command palette"}
+    :es {:app Streak
+      :add "Añadir hábito"
+      :filter Filtrar
+      :more "Más opciones"
+      :back "Atrás"
+      :edit Editar
+      :kind.yesNo "Sí o no"
+      :kind.measurable Medible
+      :sortBy Ordenar
+      :sort.manual Manualmente
+      :sort.name "Por nombre"
+      :sort.color "Por color"
+      :sort.score "Por puntuación"
+      :sort.status "Por estado"
+      :hideCompleted "Ocultar completados"
+      :showArchived "Mostrar archivados"
+      :darkMode "Modo oscuro"
+      :settings Ajustes
+      :exportAll "Exportar todo como CSV"
+      :syncNow "Sincronizar ahora"
+      :archive Archivar
+      :unarchive Desarchivar
+      :delete Eliminar
+      :exportCsv "Exportar como CSV"
+      :empty "Aún no hay hábitos"
+      :emptyHint "Añade uno con el botón + o cambia el filtro."
+      :noSelection "Elige un hábito para ver cómo va."
+      :freq.daily "Cada día"
+      :freq.everyN "{n, plural, one {Cada día} other {Cada # días}}"
+      :freq.week "{n, plural, one {Una vez a la semana} other {# veces a la semana}}"
+      :freq.month "{n, plural, one {Una vez al mes} other {# veces al mes}}"
+      :target "{type, select, atMost {Como máximo} other {Al menos}} {value} {unit} {per, select, day {al día} week {a la semana} other {al mes}}"
+      :reminderOff "Sin recordatorio"
+      :archivedTag Archivado
+      :card.overview "De un vistazo"
+      :card.target Objetivo
+      :card.score Fuerza
+      :card.history Progreso
+      :card.calendar Calendario
+      :card.streaks "Rachas más largas"
+      :card.frequency "Por día de la semana"
+      :card.notes Notas
+      :stat.score Fuerza
+      :stat.month Mes
+      :stat.year "Año"
+      :stat.total Total
+      :period Periodo
+      :period.day "Día"
+      :period.week Semana
+      :period.month Mes
+      :period.quarter Trimestre
+      :period.year "Año"
+      :quarter "T{n}"
+      :goal.day Hoy
+      :goal.week "Esta semana"
+      :goal.month "Este mes"
+      :goal.quarter "Este trimestre"
+      :goal.year "Este año"
+      :goalOf "{value} / {goal}"
+      :noNotes "Aún no hay notas. Haz clic derecho en un día para escribir una."
+      :noStreaks "Aún no hay rachas."
+      :days "{n, plural, one {# día} other {# días}}"
+      :popup.yes "Sí"
+      :popup.no No
+      :popup.skip Omitir
+      :popup.save Guardar
+      :popup.note Nota
+      :popup.value Valor
+      :cell.yes "{date}: hecho"
+      :cell.no "{date}: no hecho"
+      :cell.skip "{date}: omitido"
+      :cell.auto "{date}: en el objetivo"
+      :cell.value "{date}: {value} {unit}"
+      :cell.none "{date}"
+      :edit.new "Crear hábito"
+      :edit.edit "Editar hábito"
+      :edit.name Nombre
+      :edit.namePh "p. ej. Estirar"
+      :edit.question Pregunta
+      :edit.questionPh "p. ej. ¿Has estirado hoy?"
+      :edit.unit Unidad
+      :edit.unitPh "p. ej. páginas"
+      :edit.target Objetivo
+      :edit.frequency Frecuencia
+      :edit.reminder Recordatorio
+      :edit.notes Notas
+      :edit.notesPh "Por qué es importante, o cómo lo mantendrás"
+      :edit.color Color
+      :edit.nameNeeded "Un hábito necesita un nombre."
+      :chip.daily "Cada día"
+      :chip.everyN "Cada n días"
+      :chip.week "Por semana"
+      :chip.month "Por mes"
+      :chip.atLeast "Al menos"
+      :chip.atMost "Como máximo"
+      :chip.perDay "Por día"
+      :save Guardar
+      :cancel Cancelar
+      :picked "{n} seleccionados"
+      :clearPick "Borrar selección"
+      :delete.titleN "¿Eliminar estos hábitos?"
+      :delete.messageN "Se eliminarán {n} hábitos y todo su historial. Esta acción no se puede deshacer."
+      :toast.archivedN "{n, plural, one {# hábito archivado} other {# hábitos archivados}}"
+      :toast.unarchivedN "{n, plural, one {# hábito restaurado} other {# hábitos restaurados}}"
+      :toast.deletedN "{n, plural, one {# hábito eliminado} other {# hábitos eliminados}}"
+      :delete.title "¿Eliminar este hábito?"
+      :delete.message "Se eliminarán {name} y todo su historial. Esta acción no se puede deshacer."
+      :toast.archived "{name} archivado"
+      :toast.unarchived "{name} restaurado"
+      :toast.deleted "{name} eliminado"
+      :toast.copied "{n, plural, one {# hábito copiado como CSV} other {# hábitos copiados como CSV}}"
+      :toast.reminder "Es hora de {name}"
+      :toast.done "Marcar como hecho"
+      :undo Deshacer
+      :set.interface Interfaz
+      :set.theme Tema
+      :theme.light Claro
+      :theme.dark Oscuro
+      :theme.system "Predeterminado del sistema"
+      :set.pureBlack "Negro total"
+      :set.pureBlackHint "Un fondo negro en modo oscuro"
+      :set.reverse "Invertir el orden de los días"
+      :set.reverseHint "Mostrar primero el día más antiguo"
+      :set.skip "Activar días omitidos"
+      :set.skipHint "Haz clic en una casilla una tercera vez para marcar el día como omitido"
+      :set.firstDay "Primer día de la semana"
+      :set.language Idioma
+      :set.notifications Notificaciones
+      :set.reminders Recordatorios
+      :set.remindersHint "Una notificación a la hora de cada hábito"
+      :set.data Datos
+      :set.export "Exportar todo como CSV"
+      :set.exportHint "Copia el historial de cada hábito"
+      :set.backup "Copia de seguridad en un archivo"
+      :set.backupHint "Guarda cada hábito y su historial en un archivo JSON"
+      :set.restore "Restaurar desde un archivo"
+      :set.restoreHint "Añade o sustituye hábitos desde una copia"
+      :toast.backedUp "{n, plural, one {# hábito guardado} other {# hábitos guardados}} en {name}"
+      :toast.restored "{n, plural, one {# hábito restaurado} other {# hábitos restaurados}}"
+      :toast.restoredSkipped "{n, plural, one {# hábito restaurado} other {# hábitos restaurados}}, {skipped, plural, one {# entrada omitida} other {# entradas omitidas}}"
+      :toast.notRestored "No restaurado: {message}"
+      :toast.notBackedUp "No guardado: {message}"
+      :toast.badBackup "Ese archivo no es una copia de Streak"
+      :set.sync "Sincronización"
+      :set.account Cuenta
+      :lang.en English
+      :lang.es "Español"
+      :lang.fr "Français"
+      :sync.signedOut "Sin sesión iniciada"
+      :sync.offline "Sin conexión"
+      :sync.online Sincronizado
+      :sync.error "Error de sincronización: {message}"
+      :sync.received "Hábitos sincronizados desde el servidor"
+      :sync.commits "{state}  ·  {n, plural, one {# cambio enviado} other {# cambios enviados}}"
+      :signIn "Iniciar sesión"
+      :signOut "Cerrar sesión"
+      :signedIn "Sesión iniciada como {account}"
+      :notSignedIn "Sin sesión iniciada: {message}"
+      :you "tú"
+      :palettePlaceholder "Escribe un comando"
+      :cmd.addYesNo "Nuevo hábito de sí o no"
+      :cmd.addMeasurable "Nuevo hábito medible"
+      :cmd.editHabit "Editar hábito"
+      :cmd.archiveHabit "Archivar o restaurar hábito"
+      :cmd.confirmDelete "Eliminar hábito"
+      :cmd.exportHabit "Exportar hábito como CSV"
+      :cmd.exportAll "Exportar todo como CSV"
+      :cmd.openSettings Ajustes
+      :cmd.toggleTheme "Alternar modo oscuro"
+      :cmd.toggleHideCompleted "Ocultar completados"
+      :cmd.toggleShowArchived "Mostrar archivados"
+      :cmd.nextHabit "Hábito siguiente"
+      :cmd.prevHabit "Hábito anterior"
+      :cmd.checkToday "Marcar hoy"
+      :cmd.syncNow "Sincronizar ahora"
+      :cmd.signIn "Iniciar sesión"
+      :cmd.signOut "Cerrar sesión"
+      :cmd.commandPalette "Paleta de comandos"}
+    :fr {:app Streak
+      :add "Ajouter une habitude"
+      :filter Filtrer
+      :more "Plus d’options"
+      :back Retour
+      :edit Modifier
+      :kind.yesNo "Oui ou non"
+      :kind.measurable Mesurable
+      :sortBy Trier
+      :sort.manual Manuellement
+      :sort.name "Par nom"
+      :sort.color "Par couleur"
+      :sort.score "Par score"
+      :sort.status "Par statut"
+      :hideCompleted "Masquer les terminées"
+      :showArchived "Afficher les archivées"
+      :darkMode "Mode sombre"
+      :settings "Réglages"
+      :exportAll "Tout exporter en CSV"
+      :syncNow "Synchroniser maintenant"
+      :archive Archiver
+      :unarchive "Désarchiver"
+      :delete Supprimer
+      :exportCsv "Exporter en CSV"
+      :empty "Pas encore d’habitudes"
+      :emptyHint "Ajoutez-en une avec le bouton + ou changez le filtre."
+      :noSelection "Choisissez une habitude pour voir où vous en êtes."
+      :freq.daily "Chaque jour"
+      :freq.everyN "{n, plural, one {Chaque jour} other {Tous les # jours}}"
+      :freq.week "{n, plural, one {Une fois par semaine} other {# fois par semaine}}"
+      :freq.month "{n, plural, one {Une fois par mois} other {# fois par mois}}"
+      :target "{type, select, atMost {Au plus} other {Au moins}} {value} {unit} {per, select, day {par jour} week {par semaine} other {par mois}}"
+      :reminderOff "Aucun rappel"
+      :archivedTag "Archivée"
+      :card.overview "En un coup d'œil"
+      :card.target Objectif
+      :card.score "Solidité"
+      :card.history Progression
+      :card.calendar Calendrier
+      :card.streaks "Plus longues séries"
+      :card.frequency "Par jour de la semaine"
+      :card.notes Notes
+      :stat.score "Solidité"
+      :stat.month Mois
+      :stat.year "Année"
+      :stat.total Total
+      :period "Période"
+      :period.day Jour
+      :period.week Semaine
+      :period.month Mois
+      :period.quarter Trimestre
+      :period.year "Année"
+      :quarter "T{n}"
+      :goal.day "Aujourd’hui"
+      :goal.week "Cette semaine"
+      :goal.month "Ce mois-ci"
+      :goal.quarter "Ce trimestre"
+      :goal.year "Cette année"
+      :goalOf "{value} / {goal}"
+      :noNotes "Pas encore de notes. Faites un clic droit sur un jour pour en écrire une."
+      :noStreaks "Pas encore de séries."
+      :days "{n, plural, one {# jour} other {# jours}}"
+      :popup.yes Oui
+      :popup.no Non
+      :popup.skip Passer
+      :popup.save Enregistrer
+      :popup.note Note
+      :popup.value Valeur
+      :cell.yes "{date} : fait"
+      :cell.no "{date} : non fait"
+      :cell.skip "{date} : passé"
+      :cell.auto "{date} : objectif atteint"
+      :cell.value "{date} : {value} {unit}"
+      :cell.none "{date}"
+      :edit.new "Créer une habitude"
+      :edit.edit "Modifier l’habitude"
+      :edit.name Nom
+      :edit.namePh "p. ex. Étirements"
+      :edit.question Question
+      :edit.questionPh "p. ex. Vous êtes-vous étiré aujourd’hui ?"
+      :edit.unit "Unité"
+      :edit.unitPh "p. ex. pages"
+      :edit.target Objectif
+      :edit.frequency "Fréquence"
+      :edit.reminder Rappel
+      :edit.notes Notes
+      :edit.notesPh "Pourquoi c’est important, ou comment vous allez la tenir"
+      :edit.color Couleur
+      :edit.nameNeeded "Une habitude doit avoir un nom."
+      :chip.daily "Chaque jour"
+      :chip.everyN "Tous les n jours"
+      :chip.week "Par semaine"
+      :chip.month "Par mois"
+      :chip.atLeast "Au moins"
+      :chip.atMost "Au plus"
+      :chip.perDay "Par jour"
+      :save Enregistrer
+      :cancel Annuler
+      :picked "{n} sélectionnées"
+      :clearPick "Effacer la sélection"
+      :delete.titleN "Supprimer ces habitudes ?"
+      :delete.messageN "{n} habitudes et tout leur historique seront supprimés. Cette action est irréversible."
+      :toast.archivedN "{n, plural, one {# habitude archivée} other {# habitudes archivées}}"
+      :toast.unarchivedN "{n, plural, one {# habitude restaurée} other {# habitudes restaurées}}"
+      :toast.deletedN "{n, plural, one {# habitude supprimée} other {# habitudes supprimées}}"
+      :delete.title "Supprimer cette habitude ?"
+      :delete.message "{name} et tout son historique seront supprimés. Cette action est irréversible."
+      :toast.archived "{name} archivée"
+      :toast.unarchived "{name} restaurée"
+      :toast.deleted "{name} supprimée"
+      :toast.copied "{n, plural, one {# habitude copiée en CSV} other {# habitudes copiées en CSV}}"
+      :toast.reminder "C’est l’heure de {name}"
+      :toast.done "Marquer comme fait"
+      :undo Annuler
+      :set.interface Interface
+      :set.theme "Thème"
+      :theme.light Clair
+      :theme.dark Sombre
+      :theme.system "Réglage du système"
+      :set.pureBlack "Noir intégral"
+      :set.pureBlackHint "Un fond noir en mode sombre"
+      :set.reverse "Inverser l’ordre des jours"
+      :set.reverseHint "Afficher le jour le plus ancien en premier"
+      :set.skip "Activer les jours passés"
+      :set.skipHint "Cliquez une troisième fois sur une case pour marquer le jour comme passé"
+      :set.firstDay "Premier jour de la semaine"
+      :set.language Langue
+      :set.notifications Notifications
+      :set.reminders Rappels
+      :set.remindersHint "Une notification à l’heure de chaque habitude"
+      :set.data "Données"
+      :set.export "Tout exporter en CSV"
+      :set.exportHint "Copie l’historique de chaque habitude"
+      :set.backup "Sauvegarder dans un fichier"
+      :set.backupHint "Enregistre chaque habitude et son historique en JSON"
+      :set.restore "Restaurer depuis un fichier"
+      :set.restoreHint "Ajoute ou remplace des habitudes depuis une sauvegarde"
+      :toast.backedUp "{n, plural, one {# habitude enregistrée} other {# habitudes enregistrées}} dans {name}"
+      :toast.restored "{n, plural, one {# habitude restaurée} other {# habitudes restaurées}}"
+      :toast.restoredSkipped "{n, plural, one {# habitude restaurée} other {# habitudes restaurées}}, {skipped, plural, one {# entrée ignorée} other {# entrées ignorées}}"
+      :toast.notRestored "Non restauré : {message}"
+      :toast.notBackedUp "Non enregistré : {message}"
+      :toast.badBackup "Ce fichier n'est pas une sauvegarde de Streak"
+      :set.sync Synchronisation
+      :set.account Compte
+      :lang.en English
+      :lang.es "Español"
+      :lang.fr "Français"
+      :sync.signedOut "Non connecté"
+      :sync.offline "Hors ligne"
+      :sync.online "Synchronisé"
+      :sync.error "Erreur de synchronisation : {message}"
+      :sync.received "Habitudes synchronisées depuis le serveur"
+      :sync.commits "{state}  ·  {n, plural, one {# modification envoyée} other {# modifications envoyées}}"
+      :signIn "Se connecter"
+      :signOut "Se déconnecter"
+      :signedIn "Connecté en tant que {account}"
+      :notSignedIn "Non connecté : {message}"
+      :you vous
+      :palettePlaceholder "Saisissez une commande"
+      :cmd.addYesNo "Nouvelle habitude oui ou non"
+      :cmd.addMeasurable "Nouvelle habitude mesurable"
+      :cmd.editHabit "Modifier l’habitude"
+      :cmd.archiveHabit "Archiver ou restaurer l’habitude"
+      :cmd.confirmDelete "Supprimer l’habitude"
+      :cmd.exportHabit "Exporter l’habitude en CSV"
+      :cmd.exportAll "Tout exporter en CSV"
+      :cmd.openSettings "Réglages"
+      :cmd.toggleTheme "Basculer le mode sombre"
+      :cmd.toggleHideCompleted "Masquer les terminées"
+      :cmd.toggleShowArchived "Afficher les archivées"
+      :cmd.nextHabit "Habitude suivante"
+      :cmd.prevHabit "Habitude précédente"
+      :cmd.checkToday "Cocher aujourd’hui"
+      :cmd.syncNow "Synchroniser maintenant"
+      :cmd.signIn "Se connecter"
+      :cmd.signOut "Se déconnecter"
+      :cmd.commandPalette "Palette de commandes"}}
+  :state {:today "2026-10-15"
+    :nextId 1
+    :selected meditate
+    :page list
+    :sort manual
+    :hideCompleted false
+    :showArchived false
+    :theme light
+    :pureBlack false
+    :firstWeekday 1
+    :reverseDays false
+    :skipDays true
+    :reminders true
+    :locale en
+    :scorePeriod week
+    :historyPeriod week
+    :popup {:open false :h 0 :date "" :x 0 :y 0 :value "" :note ""}
+    :edit (node :open false
+      #""
+      :kind yesNo
+      :name ""
+      :question ""
+      :color 11
+      :freqMode daily
+      :n 3
+      :unit ""
+      :target ""
+      :targetType atLeast
+      :reminderOn false
+      :time "08:00"
+      :days [true true true true true true true]
+      :description ""
+      :error "")
+    :colorOpen false
+    :confirmDelete false
+    :picked []
+    :unpicked []
+    :settingsOpen false
+    :menus {:add false
+      :filter false
+      :more false
+      :detail false
+      :score false
+      :history false
+      :theme false
+      :firstDay false
+      :language false
+      :filterSub {}}
+    :toasts []
+    :quickPick {:open false :query "" :index 0 :top 0 :recent []}
+    :sync {:revisions 0 :copy nil :error "" :commits 0}
+    :backupFile nil
+    :restoredCount 0
+    :skippedCount 0}
+  :stateTypes {:theme {:enum [light dark system]}
+    :locale {:enum [en es fr]}
+    :sort {:enum [manual name color score status]}
+    :page {:enum [list detail]}
+    :scorePeriod {:enum [day week month quarter year]}
+    :historyPeriod {:enum [day week month quarter year]}
+    :firstWeekday {:type number}
+    :pureBlack {:type boolean}
+    :reverseDays {:type boolean}
+    :skipDays {:type boolean}
+    :reminders {:type boolean}
+    :hideCompleted {:type boolean}
+    :showArchived {:type boolean}
+    :today {:type string}}
+  :persist [state.nextId
+    state.selected
+    state.sort
+    state.hideCompleted
+    state.showArchived
+    state.theme
+    state.pureBlack
+    state.firstWeekday
+    state.reverseDays
+    state.skipDays
+    state.reminders
+    state.locale
+    state.scorePeriod
+    state.historyPeriod]
+  :computed {:theme "{{(state.theme == 'system' ? window.colorScheme : state.theme) == 'dark' ? (state.pureBlack ? 'black' : 'dark') : 'light'}}"
+    :pal "{{computed.theme == 'light' ? ['#c8443a', '#d4602a', '#d9822b', '#cf921c', '#b49a16', '#8a9a1c', '#5c9e3a', '#2f8a55', '#17877a', '#1592a6', '#2a7fc0', '#3366b8', '#4a4fa8', '#7048b0', '#9446a8', '#c23d78', '#7a5a44', '#3a3a3a', '#7a7a7a', '#a8a8a8'] : ['#e88a80', '#f09a72', '#f5b56e', '#f5cc66', '#e8dc72', '#cfdc78', '#a8d888', '#86cfa0', '#6cc8bc', '#6ad0e0', '#7cc0f0', '#8aaaf0', '#9a9ef0', '#b39af0', '#cc94e0', '#f08ab4', '#b8977f', '#e2e2e2', '#a2a2a2', '#c2c2c2']}}"
+    :onColor "{{computed.theme == 'light' ? '#ffffff' : '#1b1b1b'}}"
+    :wide "{{window.width >= 960}}"
+    :picking "{{length(state.picked) > 0}}"
+    :pickedArchived "{{every(data.ordered, !contains(state.picked, it.id) || it.archived)}}"
+    :listWidth "{{computed.wide ? clamp(floor(window.width * 0.46), 460, 640) : window.width}}"
+    :detailWidth "{{computed.wide ? window.width - computed.listWidth - 1 : window.width}}"
+    :cardWidth "{{min(760, computed.detailWidth - 32)}}"
+    :cols "{{clamp(floor((computed.listWidth - 228) / 44), 3, 14)}}"
+    :days "{{state.reverseDays ? reverse(map(range(computed.cols), addDays(state.today, -it))) : map(range(computed.cols), addDays(state.today, -it))}}"
+    :weekStart "{{addDays(state.today, -((weekday(state.today) - state.firstWeekday + 7) % 7))}}"
+    :weekdays "{{map(range(7), (state.firstWeekday + it) % 7)}}"
+    :note "Per habit, from its first day to today: the entries (1 yes, 0 no, -1 skipped, or the number), their running total, the share of the target met over the frequency's window, and the score."
+    :parsed "{{map(data.ordered, it.entries == '' ? [] : it.kind == 'measurable' ? map(split(it.entries, ' '), number(it) ?? 0) : map(split(it.entries, ''), it == 'y' ? 1 : it == 's' ? -1 : 0))}}"
+    :vals "{{map(data.ordered, slice(concat(computed.parsed[index], map(range(max(0, daysBetween(it.from, state.today) + 1 - length(computed.parsed[index]))), 0)), 0, max(0, daysBetween(it.from, state.today) + 1)))}}"
+    :prefix "{{map(computed.vals, scan(it, acc + max(it, 0), 0))}}"
+    :ratio "{{map(data.ordered, scan(computed.prefix[index], {h: acc.h, w: acc.w, need: acc.need, most: acc.most, r: acc.most ? (it - (index >= acc.w ? computed.prefix[acc.h][index - acc.w] : 0) <= acc.need ? 1 : max(0, 2 - (it - (index >= acc.w ? computed.prefix[acc.h][index - acc.w] : 0)) / acc.need)) : min(1, (it - (index >= acc.w ? computed.prefix[acc.h][index - acc.w] : 0)) / acc.need)}, {h: index, w: max(1, it.frequency.days), need: max(0.001, it.kind == 'measurable' ? number(it.target) ?? 1 : it.frequency.times), most: it.kind == 'measurable' && it.targetType == 'atMost'}))}}"
+    :score "{{map(data.ordered, scan(computed.ratio[index], {h: acc.h, m: acc.m, s: computed.vals[acc.h][index] == -1 ? acc.s : acc.s * acc.m + it.r * (1 - acc.m)}, {h: index, m: pow(0.5, sqrt(it.kind == 'measurable' ? 1 / max(1, it.frequency.days) : it.frequency.times / max(1, it.frequency.days)) / 13), s: 0}))}}"
+    :now "{{map(computed.score, length(it) > 0 ? it[length(it) - 1].s : 0)}}"
+    :done "{{map(computed.ratio, length(it) > 0 && it[length(it) - 1].r >= 1)}}"
+    :visible "{{filter(range(length(data.ordered)), (state.showArchived || !data.ordered[it].archived) && (!state.hideCompleted || !computed.done[it]))}}"
+    :order "{{state.sort == 'name' ? sort(computed.visible, lower(data.ordered[it].name)) : state.sort == 'color' ? sort(computed.visible, data.ordered[it].color) : state.sort == 'score' ? sort(computed.visible, -computed.now[it]) : state.sort == 'status' ? sort(computed.visible, computed.done[it] ? 1 : 0) : computed.visible}}"
+    :sel "{{indexOf(map(data.ordered, it.id), state.selected)}}"
+    :h "{{data.ordered[computed.sel]}}"
+    :col "{{computed.sel >= 0 ? computed.pal[computed.h.color] : '#757575'}}"
+    :accent "{{state.edit.open ? computed.pal[state.edit.color] : computed.col}}"
+    :n "{{computed.sel >= 0 ? length(computed.vals[computed.sel]) : 0}}"
+    :v "{{computed.sel >= 0 ? computed.vals[computed.sel] : []}}"
+    :p "{{computed.sel >= 0 ? computed.prefix[computed.sel] : []}}"
+    :s "{{computed.sel >= 0 ? computed.score[computed.sel] : []}}"
+    :r "{{computed.sel >= 0 ? computed.ratio[computed.sel] : []}}"
+    :dates "{{map(range(computed.n), addDays(computed.h.from, it))}}"
+    :keys "{{map(computed.dates, {day: index, week: floor((daysBetween('2000-01-02', it) - state.firstWeekday) / 7), month: slice(it, 0, 7), quarter: slice(it, 0, 4) + floor((number(slice(it, 5, 7)) - 1) / 3), year: slice(it, 0, 4)})}}"
+    :scoreEnds "{{filter(range(computed.n), it == computed.n - 1 || computed.keys[it][state.scorePeriod] != computed.keys[it + 1][state.scorePeriod])}}"
+    :scoreShown "{{slice(computed.scoreEnds, -(state.scorePeriod == 'day' ? 30 : 20))}}"
+    :scoreLabels "{{map(computed.scoreShown, {a: state.scorePeriod == 'year' ? slice(computed.dates[it], 0, 4) : state.scorePeriod == 'quarter' ? t('quarter', {n: floor((number(slice(computed.dates[it], 5, 7)) - 1) / 3) + 1}) : state.scorePeriod == 'month' ? formatDate(dateMs(computed.dates[it]), 'MMM', 'utc') : formatDate(dateMs(computed.dates[it]), 'd', 'utc'), b: index > 0 && slice(computed.dates[it], 0, state.scorePeriod == 'month' || state.scorePeriod == 'quarter' ? 4 : 7) == slice(computed.dates[computed.scoreShown[index - 1]], 0, state.scorePeriod == 'month' || state.scorePeriod == 'quarter' ? 4 : 7) ? '' : state.scorePeriod == 'month' || state.scorePeriod == 'quarter' ? slice(computed.dates[it], 0, 4) : state.scorePeriod == 'year' ? '' : formatDate(dateMs(computed.dates[it]), 'MMM', 'utc')})}}"
+    :historyEnds "{{filter(range(computed.n), it == computed.n - 1 || computed.keys[it][state.historyPeriod] != computed.keys[it + 1][state.historyPeriod])}}"
+    :historyShown "{{slice(computed.historyEnds, -(state.historyPeriod == 'day' ? 30 : 20))}}"
+    :historyLabels "{{map(computed.historyShown, {a: state.historyPeriod == 'year' ? slice(computed.dates[it], 0, 4) : state.historyPeriod == 'quarter' ? t('quarter', {n: floor((number(slice(computed.dates[it], 5, 7)) - 1) / 3) + 1}) : state.historyPeriod == 'month' ? formatDate(dateMs(computed.dates[it]), 'MMM', 'utc') : formatDate(dateMs(computed.dates[it]), 'd', 'utc'), b: index > 0 && slice(computed.dates[it], 0, state.historyPeriod == 'month' || state.historyPeriod == 'quarter' ? 4 : 7) == slice(computed.dates[computed.historyShown[index - 1]], 0, state.historyPeriod == 'month' || state.historyPeriod == 'quarter' ? 4 : 7) ? '' : state.historyPeriod == 'month' || state.historyPeriod == 'quarter' ? slice(computed.dates[it], 0, 4) : state.historyPeriod == 'year' ? '' : formatDate(dateMs(computed.dates[it]), 'MMM', 'utc')})}}"
+    :scorePts "{{map(computed.scoreShown, computed.s[it].s)}}"
+    :scorePath "{{length(computed.scorePts) == 0 ? '' : 'M ' + join(map(computed.scorePts, fixed((index + 0.5) * 1000 / length(computed.scorePts), 1) + ' ' + fixed(100 - it * 100, 1)), ' L ')}}"
+    :historyVals "{{map(computed.historyShown, computed.p[it] - (index + length(computed.historyEnds) - length(computed.historyShown) > 0 ? computed.p[computed.historyEnds[index + length(computed.historyEnds) - length(computed.historyShown) - 1]] : 0))}}"
+    :historyMax "{{max(concat([1], computed.historyVals))}}"
+    :stats "{{computed.n == 0 ? {score: 0, month: 0, year: 0, total: 0} : {score: computed.s[computed.n - 1].s, month: computed.s[computed.n - 1].s - (computed.n > 30 ? computed.s[computed.n - 31].s : 0), year: computed.s[computed.n - 1].s - (computed.n > 365 ? computed.s[computed.n - 366].s : 0), total: computed.p[computed.n - 1]}}}"
+    :weeks "{{computed.sel >= 0 ? clamp(ceil((daysBetween(computed.h.from, computed.weekStart) + 1) / 7) + 1, 1, floor((computed.cardWidth - 65) / 25)) : 0}}"
+    :runs "{{scan(computed.r, computed.v[index] == -1 ? acc : it.r >= 1 ? {len: acc.len + 1, start: acc.len > 0 ? acc.start : index} : {len: 0, start: index + 1}, {len: 0, start: 0})}}"
+    :streaks "{{sort(slice(sort(map(filter(range(computed.n), computed.runs[it].len > 0 && (it == computed.n - 1 || computed.runs[it + 1].len == 0)), {len: computed.runs[it].len, from: computed.dates[computed.runs[it].start], to: computed.dates[it]}), -it.len), 0, 6), it.to, 'desc')}}"
+    :streakMax "{{max(concat([1], map(computed.streaks, it.len)))}}"
+    :months "{{map(range(12), slice(addMonths(slice(state.today, 0, 7) + '-01', it - 11), 0, 7))}}"
+    :notes "{{computed.sel >= 0 ? sort(filter(entries(computed.h.notes ?? {}), trim(it.value) != ''), it.key, 'desc') : []}}"
+    :goals "{{computed.sel < 0 || computed.h.kind != 'measurable' ? [] : map(['day', 'week', 'month', 'quarter', 'year'], {period: it, start: it == 'day' ? state.today : it == 'week' ? computed.weekStart : it == 'month' ? slice(state.today, 0, 8) + '01' : it == 'quarter' ? slice(state.today, 0, 5) + pad(floor((number(slice(state.today, 5, 7)) - 1) / 3) * 3 + 1, 2, '0') + '-01' : slice(state.today, 0, 5) + '01-01'})}}"
+    :goalRows "{{map(computed.goals, {period: it.period, value: computed.p[computed.n - 1] - (computed.n - 1 - daysBetween(it.start, state.today) > 0 ? computed.p[computed.n - 2 - daysBetween(it.start, state.today)] : 0), goal: number(computed.h.target) / max(1, computed.h.frequency.days) * (it.period == 'day' ? 1 : it.period == 'week' ? 7 : it.period == 'year' ? daysBetween(it.start, addMonths(it.start, 12)) : daysBetween(it.start, addMonths(it.start, it.period == 'month' ? 1 : 3)))})}}"
+    :palette "{{map(filter(commands, it.enabled && it.name != 'commandPalette'), {title: t('cmd.' + it.name), detail: it.keyLabel ?? '', run: it.name})}}"
+    :signedIn "{{(auth.streakServer.state ?? 'signedOut') == 'signedIn'}}"
+    :online "{{connections.streakServer.online ?? false}}"
+    :syncData "{{{habits: data.ordered}}}"
+    :syncState "{{state.sync.error != '' ? 'error' : computed.online ? 'online' : computed.signedIn ? 'offline' : 'signedOut'}}"
+    :syncText "{{t('sync.commits', {state: t('sync.' + computed.syncState, {message: state.sync.error}), n: state.sync.commits})}}"
+    :csvRows "{{map(data.ordered, scan(computed.vals[index], {h: acc.h, line: data.ordered[acc.h].name + ',' + addDays(data.ordered[acc.h].from, index) + ',' + (data.ordered[acc.h].kind == 'measurable' ? text(it) : it == 1 ? 'YES' : it == -1 ? 'SKIP' : 'NO')}, {h: index}))}}"
+    :freqText "{{computed.sel < 0 ? '' : computed.h.kind == 'measurable' ? t('target', {type: computed.h.targetType, value: computed.h.target, unit: computed.h.unit, per: computed.h.frequency.days == 1 ? 'day' : computed.h.frequency.days == 7 ? 'week' : 'month'}) : computed.h.frequency.days == 1 && computed.h.frequency.times == 1 ? t('freq.daily') : computed.h.frequency.times == 1 && computed.h.frequency.days != 7 && computed.h.frequency.days != 30 ? t('freq.everyN', {n: computed.h.frequency.days}) : t(computed.h.frequency.days == 7 ? 'freq.week' : 'freq.month', {n: computed.h.frequency.times})}}"}
+  :watch {:computed.syncData [{:debounce 800 :do [{:run syncSend}]}]}
+  :styles {:iconButton {:type label
+      :font icons
+      :width 40
+      :height 40
+      :radius 20
+      :align center
+      :cursor hand
+      :focusable true
+      :role button
+      :textColor @c.muted
+      :hover {:color "#8080802e"}
+      :focused {:color "#80808040"}}
+    :card {:color @c.card :radius 14 :shadow {:y 1 :blur 3 :color "#0000002e"}}
+    :cardTitle {:type label :font heading :anchors {:left 16 :top 14} :fitText true}
+    :small {:type label :font small :textColor @c.muted}
+    :caption {:style small :fitText true}
+    :tiny {:type label :font tiny :textColor @c.muted}
+    :axis {:style tiny :anchors {:left 0 :right 0 :top 2} :height 12 :align center}
+    :axis2 {:style axis :anchors {:left 0 :right 0 :top 16}}
+    :body {:type label :textColor @c.text :fitText true}
+    :field {:type textarea
+      :height 40
+      :padding 10
+      :color @c.card
+      :radius 4
+      :borderWidth 1
+      :borderColor @c.divider
+      :textColor @c.text
+      :placeholderColor @c.muted
+      :focused {:borderColor "{{computed.accent}}" :borderWidth 2}}
+    :textButton {:type label
+      :height 36
+      :padding 10
+      :radius 4
+      :textColor @c.primary
+      :fitText true
+      :focusable true
+      :role button
+      :cursor hand
+      :hover {:color @c.hover}
+      :focused {:color @c.hover}}
+    :chip {:type label
+      :height 32
+      :padding 10
+      :radius 16
+      :fitText true
+      :font small
+      :focusable true
+      :role radio
+      :cursor hand
+      :borderWidth 1
+      :borderColor @c.divider
+      :textColor @c.text
+      :hover {:color @c.hover}}
+    :chipOn {:type label
+      :height 32
+      :padding 10
+      :radius 16
+      :fitText true
+      :font small
+      :focusable true
+      :role radio
+      :cursor hand
+      :borderWidth 1
+      :borderColor "{{computed.accent}}"
+      :color "{{computed.accent + '1f'}}"
+      :textColor "{{computed.accent}}"}
+    :sectionTitle {:type label
+      :font small
+      :textColor @c.primary
+      :height 40
+      :fitText true
+      :padding 16
+      :align {:horizontal start :vertical end}}}
+  :components {:ring {:note "A score ring: value from 0 to 1 drawn clockwise from the top over a full track."
+      :params {:value 0 :color "#888888" :size 22 :stroke 3}
+      :node (node #panel-ring
+        :width "{{size}}"
+        :height "{{size}}"
+        :color transparent
+        :role img
+        :label "{{formatPercent(value)}}"
+        (node #path-ring
+          :type path
+          :fill 0
+          :viewBox "0 0 24 24"
+          :d "M 12 3 A 9 9 0 1 1 11.99 3"
+          :stroke @c.track
+          :strokeWidth "{{stroke}}")
+        (node #path-ring-2
+          :type path
+          :fill 0
+          :viewBox "0 0 24 24"
+          :stroke "{{color}}"
+          :strokeWidth "{{stroke}}"
+          :d "{{value >= 0.999 ? 'M 12 3 A 9 9 0 1 1 11.99 3' : value <= 0.005 ? 'M 12 3' : 'M 12 3 A 9 9 0 ' + (value > 0.5 ? 1 : 0) + ' 1 ' + fixed(12 + 9 * sin(value * 6.28319), 2) + ' ' + fixed(12 - 9 * cos(value * 6.28319), 2)}}"))}
+    :periodButton {:note "A chart's period: a text button that opens a menu of the five periods, kept in state[key]."
+      :params {:key scorePeriod :color "#888888"}
+      :node (node #label-text-button
+        :type label
+        :style textButton
+        :font small
+        :textColor "{{color}}"
+        :runs ["{{upper(t('period.' + state[key])) + ' '}}" {:icon chevron-down}]
+        :label "{{t('period') + ': ' + t('period.' + state[key])}}"
+        :isOpen "{{state.menus[key == 'scorePeriod' ? 'score' : 'history']}}"
+        :onClick {:set "{{'state.menus.' + (key == 'scorePeriod' ? 'score' : 'history')}}" :to true}
+        (node #menu-text-button
+          :use menu
+          :with {:open "{{'state.menus.' + (key == 'scorePeriod' ? 'score' : 'history')}}"
+            :width 160
+            :placement below-end
+            :items "{{map(['day', 'week', 'month', 'quarter', 'year'], {title: t('period.' + it), checked: state[key] == it, run: 'setPeriod', with: {key: key, value: it}})}}"}))}
+    :prefRow {:note "A settings row: a title, a summary under it, and its control (the children) at the end."
+      :params {:title "" :summary ""}
+      :node (node #panel-pref-row
+        :anchors {:left 0 :right 0}
+        :height "{{summary == '' ? 48 : 64}}"
+        :color transparent
+        :focusable true
+        :role button
+        :cursor hand
+        :label "{{title}}"
+        :description "{{summary}}"
+        :hover {:color @c.hover}
+        :focused {:color @c.hover}
+        (node #label-title
+          :type label
+          :text "{{title}}"
+          :textColor @c.text
+          :anchors {:left 16 :top "{{summary == '' ? 14 : 12}}"}
+          :fitText true)
+        (node #label-summary
+          :type label
+          :when "{{summary != ''}}"
+          :text "{{summary}}"
+          :font small
+          :textColor @c.muted
+          :anchors {:left 16 :top 34}
+          :fitText true)
+        {:slot true})}
+    :stat {:note "One number of the overview with its caption under it."
+      :params {:value "" :caption "" :color @c.text}
+      :node (node #panel-stat :width 120 :height 56 :color transparent :role text :label "{{caption + ': ' + value}}"
+        (node #label-value
+          :type label
+          :text "{{value}}"
+          :font title
+          :textColor "{{color}}"
+          :anchors {:left 0 :right 0 :top 4}
+          :height 26
+          :align center)
+        (node #label-caption
+          :type label
+          :text "{{caption}}"
+          :font small
+          :textColor @c.muted
+          :anchors {:left 0 :right 0 :top 32}
+          :height 16
+          :align center))}
+    :switch {:note "A switch: a rounded track and a round knob that slides to the end when on; a click toggles path. Its colours are the habit's unless track and knob name others."
+      :params {:on false :path state.reminders :label "" :enabled true :track "" :knob ""}
+      :node (node #panel-switch
+        :width 40
+        :height 24
+        :color transparent
+        :focusable true
+        :role switch
+        :label "{{label}}"
+        :selected "{{on}}"
+        :cursor hand
+        :disabled "{{!enabled}}"
+        :onClick {:toggle "{{path}}"}
+        (node #panel-switch-2
+          :anchors {:left 3 :right 3 :top 5}
+          :height 14
+          :radius 7
+          :color "{{on && enabled ? (track != '' ? track : computed.accent + '80') : '@c.faint'}}")
+        (node #panel-switch-3
+          :anchors {:left "{{on ? 18 : 0}}" :top 1}
+          :width 22
+          :height 22
+          :radius 11
+          :color "{{on && enabled ? (knob != '' ? knob : computed.accent) : '@c.knob'}}"
+          :shadow {:y 1 :blur 3 :color "#00000050"}
+          :focused {:borderWidth 2 :borderColor @c.text}))}
+    :toggleRow {:note "A settings row with a switch bound to a state path."
+      :params {:title "" :summary "" :bind state.reminders :on false}
+      :node (node #pref-row-row :use prefRow :onClick {:toggle "{{bind}}"}
+        (node #switch-pref-row-row
+          :use switch
+          :with {:on "{{on}}" :path "{{bind}}" :label "{{title}}" :track @c.switchTrack :knob @c.primary}
+          :anchors {:right 16 :top "{{summary == '' ? 12 : 20}}"}))}}
+  :actions {:select [{:set state.selected :to "{{data.ordered[h].id}}"}
+      {:if "{{!computed.wide}}" :then [{:set state.page :to detail}]}]
+    :cellClick [{:note "with: h, d (a date), x, y: a yes-or-no box goes yes, skipped (if allowed), no; a measurable one asks for the number"}
+      {:if "{{data.ordered[h].kind == 'measurable'}}"
+        :then [{:run openPopup :with {:h "{{h}}" :d "{{d}}" :x "{{x}}" :y "{{y}}"}}]
+        :else [{:run putEntry
+            :with {:h "{{h}}"
+              :date "{{d}}"
+              :value "{{(split(data.ordered[h].entries, '')[daysBetween(data.ordered[h].from, d)] ?? '-') == 'y' ? (state.skipDays ? 's' : '-') : (split(data.ordered[h].entries, '')[daysBetween(data.ordered[h].from, d)] ?? '-') == 's' ? '-' : 'y'}}"}}]}]
+    :openPopup [{:set state.popup
+        :to "{{{open: true, h: h, date: d, x: x, y: y, note: data.ordered[h].notes[d] ?? '', value: data.ordered[h].kind == 'measurable' && (computed.vals[h][daysBetween(data.ordered[h].from, d)] ?? 0) > 0 ? text(computed.vals[h][daysBetween(data.ordered[h].from, d)]) : ''}}}"}]
+    :popupSet [{:note "with: value ('y', 's' or '-'), from the popup's buttons"}
+      {:run putEntry :with {:h "{{state.popup.h}}" :date "{{state.popup.date}}" :value "{{value}}"}}
+      {:run popupNoteOnly}]
+    :popupSave [{:run putEntry
+        :with {:h "{{state.popup.h}}"
+          :date "{{state.popup.date}}"
+          :value "{{text(max(0, number(state.popup.value) ?? 0))}}"}}
+      {:run popupNoteOnly}]
+    :popupNoteOnly [(node :update habits
+        #"{{data.ordered[state.popup.h].id}}"
+        :fields {:notes "{{merge(data.ordered[state.popup.h].notes, fromEntries([{key: state.popup.date, value: trim(state.popup.note)}]))}}"})
+      {:set state.popup.open :to false}]
+    :putEntry [{:note "with: h, date, value (a character for yes-or-no habits, a number's text for measurable ones): writes one day's entry, extending the history when the day is before the first one"}
+      {:if "{{date < data.ordered[h].from}}"
+        :then [(node :update habits
+            #"{{data.ordered[h].id}}"
+            :fields {:entries "{{data.ordered[h].kind == 'measurable' ? trim(join(map(range(daysBetween(date, data.ordered[h].from)), '0'), ' ') + ' ' + data.ordered[h].entries) : join(map(range(daysBetween(date, data.ordered[h].from)), '-'), '') + data.ordered[h].entries}}"
+              :from "{{date}}"})]}
+      {:run putAt
+        :with {:h "{{h}}"
+          :at "{{daysBetween(data.ordered[h].from, date)}}"
+          :value "{{value}}"
+          :sep "{{data.ordered[h].kind == 'measurable' ? ' ' : ''}}"
+          :list "{{concat(data.ordered[h].entries == '' ? [] : split(data.ordered[h].entries, data.ordered[h].kind == 'measurable' ? ' ' : ''), map(range(max(0, daysBetween(data.ordered[h].from, date) + 1 - (data.ordered[h].entries == '' ? 0 : length(split(data.ordered[h].entries, data.ordered[h].kind == 'measurable' ? ' ' : ''))))), data.ordered[h].kind == 'measurable' ? '0' : '-'))}}"}}]
+    :putAt [(node :update habits
+        #"{{data.ordered[h].id}}"
+        :fields {:entries "{{join(concat(slice(list, 0, at), [value], slice(list, at + 1)), sep)}}"})]
+    :moveHabit [{:note "with: from, to (indexes in data.ordered): a row dragged onto another, in manual order"}
+      {:if "{{state.sort == 'manual' && from != to}}"
+        :then [(node :update habits
+            #"{{data.ordered[from].id}}"
+            :fields {:position "{{to <= 0 ? (filter(data.ordered, index != from)[0].position ?? 0) - 1 : to >= length(data.ordered) - 1 ? (filter(data.ordered, index != from)[length(data.ordered) - 2].position ?? 0) + 1 : (filter(data.ordered, index != from)[to - 1].position + filter(data.ordered, index != from)[to].position) / 2}}"})]}]
+    :setSort [{:set state.sort :to "{{by}}"}]
+    :setPeriod [{:set "{{'state.' + key}}" :to "{{value}}"}]
+    :setTheme [{:set state.theme :to "{{value}}"}]
+    :setFirstDay [{:set state.firstWeekday :to "{{value}}"}]
+    :setLocale [{:set state.locale :to "{{value}}"}]
+    :newHabit [{:note "with: kind"}
+      {:set state.edit
+        :to "{{{open: true, id: '', kind: kind, name: '', question: '', color: (length(data.ordered) * 3 + 11) % 20, freqMode: 'daily', n: 3, unit: '', target: kind == 'measurable' ? '10' : '', targetType: 'atLeast', reminderOn: false, time: '08:00', days: [true, true, true, true, true, true, true], description: '', error: ''}}}"}]
+    :addYesNo {:title "New yes-or-no habit"
+      :category Habits
+      :do [{:run newHabit :with {:kind yesNo}}]
+      :icon check-circle}
+    :addMeasurable {:title "New measurable habit"
+      :category Habits
+      :do [{:run newHabit :with {:kind measurable}}]
+      :icon ruler}
+    :editHabit {:title "Edit habit"
+      :category Habits
+      :do [{:set state.edit
+          :to "{{{open: true, id: computed.h.id, kind: computed.h.kind, name: computed.h.name, question: computed.h.question, color: computed.h.color, freqMode: computed.h.frequency.days == 1 && computed.h.frequency.times == 1 ? 'daily' : computed.h.kind == 'measurable' ? (computed.h.frequency.days == 7 ? 'week' : 'month') : computed.h.frequency.times == 1 && computed.h.frequency.days != 7 && computed.h.frequency.days != 30 ? 'everyN' : computed.h.frequency.days == 7 ? 'week' : 'month', n: computed.h.frequency.times == 1 ? computed.h.frequency.days : computed.h.frequency.times, unit: computed.h.unit, target: text(computed.h.target), targetType: computed.h.targetType, reminderOn: computed.h.reminder != null, time: computed.h.reminder.time ?? '08:00', days: computed.h.reminder.days ?? [true, true, true, true, true, true, true], description: computed.h.description, error: ''}}}"}]
+      :icon edit
+      :enablement "{{computed.sel >= 0}}"}
+    :saveHabit [{:if "{{trim(state.edit.name) == ''}}"
+        :then [{:set state.edit.error :to "{{t('edit.nameNeeded')}}"}
+          {:focus "#nameField"}
+          {:set state.edit.open :to true}
+          {:stop true}]}
+      {:run storeHabit
+        :with {:fields "{{{name: trim(state.edit.name), question: trim(state.edit.question), color: state.edit.color, description: trim(state.edit.description), unit: trim(state.edit.unit), target: number(state.edit.target) ?? 0, targetType: state.edit.targetType, reminder: state.edit.reminderOn ? {time: state.edit.time, days: state.edit.days} : null, frequency: state.edit.freqMode == 'daily' ? {times: 1, days: 1} : state.edit.kind == 'measurable' ? {times: 1, days: state.edit.freqMode == 'week' ? 7 : 30} : state.edit.freqMode == 'everyN' ? {times: 1, days: state.edit.n} : {times: state.edit.n, days: state.edit.freqMode == 'week' ? 7 : 30}}}}"}}]
+    :storeHabit [{:if "{{state.edit.id == ''}}"
+        :then [{:insert habits
+            :value "{{merge({id: 'habit' + state.nextId, kind: state.edit.kind, archived: false, from: state.today, entries: '', notes: {}, position: max(concat([-1], map(data.ordered, it.position))) + 1}, fields)}}"}
+          {:set state.selected :to "{{'habit' + state.nextId}}"}
+          {:increment state.nextId}]
+        :else [(node :update habits #"{{computed.h.id}}" :fields "{{fields}}")]}]
+    :archiveHabit {:title "Archive or restore habit"
+      :category Habits
+      :do [(node :update habits #"{{computed.h.id}}" :fields {:archived "{{!computed.h.archived}}"})
+        {:push state.toasts
+          :value "{{{message: t(computed.h.archived ? 'toast.archived' : 'toast.unarchived', {name: computed.h.name}), actions: [{title: t('undo'), run: 'archiveHabit'}]}}}"}]
+      :icon archive
+      :enablement "{{computed.sel >= 0}}"}
+    :confirmDelete {:title "Delete habit"
+      :category Habits
+      :do [{:set state.confirmDelete :to true}]
+      :icon trash-2
+      :enablement "{{computed.sel >= 0}}"}
+    :togglePick [{:if "{{contains(state.picked, id)}}"
+        :then [{:set state.picked :to "{{filter(state.picked, it != id)}}"}]
+        :else [{:push state.picked :value "{{id}}"}]}]
+    :archivePicked [{:set state.unpicked :to "{{state.picked}}"}
+      (node :update habits #"{{state.picked}}" :fields {:archived "{{!computed.pickedArchived}}"})
+      {:push state.toasts
+        :value "{{{message: t(!computed.pickedArchived ? 'toast.unarchivedN' : 'toast.archivedN', {n: length(state.picked)}), actions: [{title: t('undo'), run: 'unarchivePicked'}]}}}"}
+      {:set state.picked :to []}]
+    :unarchivePicked [{:forEach state.unpicked
+        :as picked
+        :do [(node :update habits
+            #"{{picked}}"
+            :fields {:archived "{{!(find(data.ordered, it.id == picked).archived)}}"})]}]
+    :deleteHabit [{:if "{{computed.picking}}"
+        :then [{:push state.toasts :value "{{{message: t('toast.deletedN', {n: length(state.picked)})}}}"}
+          (node :delete habits #"{{state.picked}}")
+          {:set state.selected :to "{{data.ordered[0].id ?? ''}}"}
+          {:set state.picked :to []}]
+        :else [{:run deleteOne}]}]
+    :deleteOne [{:push state.toasts :value "{{{message: t('toast.deleted', {name: computed.h.name})}}}"}
+      (node :delete habits #"{{computed.h.id}}")
+      {:set state.selected :to "{{data.ordered[computed.order[0] ?? 0].id ?? ''}}"}
+      {:set state.page :to list}]
+    :exportHabit {:title "Export habit as CSV"
+      :category Habits
+      :do [{:copy "{{'Date,Value,Note\\n' + join(reverse(map(computed.v, addDays(computed.h.from, index) + ',' + (computed.h.kind == 'measurable' ? text(it) : it == 1 ? 'YES' : it == -1 ? 'SKIP' : 'NO') + ',' + (computed.h.notes[addDays(computed.h.from, index)] ?? ''))), '\\n')}}"}
+        {:push state.toasts :value "{{{message: t('toast.copied', {n: 1})}}}"}]
+      :icon file-down
+      :enablement "{{computed.sel >= 0}}"}
+    :exportAll {:title "Export all as CSV"
+      :category Habits
+      :do [{:copy "{{'Habit,Date,Value\\n' + join(map(computed.csvRows, join(map(it, it.line), '\\n')), '\\n')}}"}
+        {:push state.toasts :value "{{{message: t('toast.copied', {n: length(data.ordered)})}}}"}]
+      :icon download}
+    :backupAll {:title "Back up to a file"
+      :category Habits
+      :icon hard-drive-download
+      :do [{:saveFile "{{{format: 'streak-backup', version: 1, habits: data.ordered}}}"
+          :name "{{'streak-backup-' + state.today + '.json'}}"
+          :onDone [{:push state.toasts
+              :value "{{{message: t('toast.backedUp', {n: length(data.ordered), name: result.name})}}}"}]
+          :onError [{:push state.toasts :value "{{{message: t('toast.notBackedUp', {message: error.message})}}}"}]}]}
+    :restoreAll {:title "Restore from a file"
+      :category Habits
+      :icon hard-drive-upload
+      :do [{:openFile state.backupFile
+          :extensions [json]
+          :onDone [{:run restoreHabits}]
+          :onError [{:push state.toasts :value "{{{message: t('toast.notRestored', {message: error.message})}}}"}]}]}
+    :restoreHabits [{:if "{{state.backupFile.format != 'streak-backup' || type(state.backupFile.habits) != 'list'}}"
+        :then [{:push state.toasts :value "{{{message: t('toast.badBackup')}}}"}]
+        :else [{:set state.restoredCount :to 0}
+          {:set state.skippedCount :to 0}
+          {:forEach state.backupFile.habits
+            :as rb
+            :do [{:if "{{type(rb) == 'object' && type(rb.id) == 'string' && rb.id != ''}}"
+                :then [{:run restoreOne
+                    :with (node #"{{rb.id}}"
+                      :fields "{{fromEntries(filter(entries(rb), contains(['name', 'question', 'color', 'kind', 'frequency', 'unit', 'target', 'targetType', 'reminder', 'description', 'archived', 'from', 'entries', 'notes', 'position'], it.key)))}}")}]
+                :else [{:increment state.skippedCount}]}]}
+          {:push state.toasts
+            :value "{{{message: state.skippedCount > 0 ? t('toast.restoredSkipped', {n: state.restoredCount, skipped: state.skippedCount}) : t('toast.restored', {n: state.restoredCount})}}}"}]}
+      {:set state.backupFile :to nil}]
+    :restoreOne [{:if "{{contains(map(data.ordered, it.id), id)}}"
+        :then [(node :update habits #"{{id}}" :fields "{{fields}}") {:increment state.restoredCount}]
+        :else [{:insert habits
+            :value "{{merge(fields, {id: id})}}"
+            :then [{:increment state.restoredCount}]
+            :onError [{:increment state.skippedCount}]}]}]
+    :openSettings {:title Settings :category Streak :do [{:set state.settingsOpen :to true}] :icon settings}
+    :toggleTheme {:title "Toggle dark mode"
+      :category Streak
+      :do [{:set state.theme :to "{{computed.theme == 'light' ? 'dark' : 'light'}}"}]
+      :icon moon}
+    :toggleHideCompleted {:title "Hide completed" :category Streak :do [{:toggle state.hideCompleted}] :icon eye}
+    :toggleShowArchived {:title "Show archived" :category Streak :do [{:toggle state.showArchived}] :icon archive}
+    :nextHabit {:title "Next habit"
+      :category Habits
+      :do [{:set state.selected
+          :to "{{data.ordered[computed.order[min(length(computed.order) - 1, indexOf(computed.order, computed.sel) + 1)]].id ?? state.selected}}"}]}
+    :prevHabit {:title "Previous habit"
+      :category Habits
+      :do [{:set state.selected
+          :to "{{data.ordered[computed.order[max(0, indexOf(computed.order, computed.sel) - 1)]].id ?? state.selected}}"}]}
+    :checkToday {:title "Check today"
+      :category Habits
+      :do [{:run cellClick
+          :with {:h "{{computed.sel}}" :d "{{state.today}}" :x "{{window.width / 2}}" :y "{{window.height / 3}}"}}]
+      :icon check
+      :enablement "{{computed.sel >= 0}}"}
+    :tick [{:set state.today :to "{{today()}}"}
+      {:if "{{state.reminders}}"
+        :then [{:forEach data.ordered
+            :as rh
+            :index ri
+            :do [{:if "{{!rh.archived && rh.reminder != null && rh.reminder.time == formatTime(now(), 'HH:mm') && rh.reminder.days[weekday(state.today)]}}"
+                :then [{:push state.toasts
+                    :value "{{{message: t('toast.reminder', {name: rh.name}), actions: [{title: t('toast.done'), run: 'cellClick', with: {h: ri, d: state.today, x: 0, y: 0}}]}}}"}]}]}]}]
+    :syncNow {:title "Sync now"
+      :category Sync
+      :do [{:if "{{computed.online}}"
+          :then [{:run syncSend}]
+          :else [{:push state.toasts
+              :value "{{{message: t('sync.' + computed.syncState, {message: state.sync.error})}}}"}]}]
+      :icon refresh-cw}
+    :signIn {:title "Sign in"
+      :category Sync
+      :do [{:signIn streakServer
+          :onDone [{:push state.toasts
+              :value "{{{message: t('signedIn', {account: auth.streakServer.account ?? t('you')})}}}"}]
+          :onError [{:push state.toasts :value "{{{message: t('notSignedIn', {message: error.message})}}}"}]}]
+      :icon log-in
+      :enablement "{{!computed.signedIn}}"}
+    :signOut {:title "Sign out"
+      :category Sync
+      :do [{:signOut streakServer}
+        {:set state.sync :to "{{{revisions: state.sync.revisions, copy: null, error: '', commits: 0}}}"}]
+      :icon log-out
+      :enablement "{{computed.signedIn}}"}
+    :"streakServer:open" [{:set state.sync.error :to ""} {:request streakServer.open}]
+    :"streakServer:hello" [{:run syncReceive :with {:data "{{event.state}}"}}]
+    :"streakServer:document" [{:run syncReceive :with {:data "{{event.state}}"}}]
+    :"streakServer:committed" [{:increment state.sync.commits} {:request streakServer.getDocument}]
+    :"streakServer:error" [{:set state.sync.error :to "{{event.message ?? event.error ?? 'error'}}"}]
+    :"streakServer:closed" [{:set state.sync.copy :to nil}]
+    :syncReceive [{:if "{{data.habits != null}}"
+        :then [{:delete habits :where {}}
+          {:forEach "{{data.habits}}"
+            :as habit
+            :index i
+            :do [{:insert habits :value "{{merge(habit, {position: i})}}"}]}
+          {:set state.sync.copy :to "{{computed.syncData}}"}
+          {:push state.toasts :value "{{{message: t('sync.received')}}}"}]}]
+    :syncSend [{:if "{{computed.online && json(computed.syncData) != json(state.sync.copy)}}"
+        :then [{:increment state.sync.revisions}
+          {:set state.sync.copy :to "{{computed.syncData}}"}
+          {:request streakServer.revision
+            :with (node #"{{'streak-' + text(state.sync.revisions)}}" :data "{{computed.syncData}}")}]}]
+    :commandPalette {:title "Command palette"
+      :category Streak
+      :do [{:set state.quickPick.open :to true} {:set state.quickPick.query :to ""}]
+      :icon search}}
+  :keys {:"mod+n" addYesNo
+    :"mod+shift+n" addMeasurable
+    :"mod+e" editHabit
+    :"mod+backspace" confirmDelete
+    :"mod+shift+h" archiveHabit
+    :"mod+comma" openSettings
+    :"mod+j" toggleTheme
+    :"mod+k" commandPalette
+    :"mod+shift+p" commandPalette
+    :"mod+s" syncNow
+    :"mod+down" nextHabit
+    :"mod+up" prevHabit
+    :"mod+enter" checkToday
+    :escape {:when "{{computed.picking || !computed.wide && state.page == 'detail'}}"
+      :do [{:if "{{computed.picking}}" :then [{:set state.picked :to []}] :else [{:set state.page :to list}]}]}}
+  :root (node #root :color @c.bg
+    (node #body :fill 0 :color transparent :dir auto :every {:ms 60000 :do [{:run tick}]}
+      (node #listPane
+        :anchors {:left 0 :top 0 :bottom 0}
+        :width "{{computed.listWidth}}"
+        :visible "{{computed.wide || state.page == 'list'}}"
+        :color @c.bg
+        (node #dayHeader :anchors {:left 0 :right 0 :top 56} :height 44 :color @c.bg
+          (node #row-day-header :type row :anchors {:right 8 :top 4 :bottom 0} :width "{{computed.cols * 44}}"
+            (node #dayColumn
+              :repeat {:for d :in "{{computed.days}}" :key "{{d}}"}
+              :width 44
+              :anchors {:top 0 :bottom 0}
+              :color transparent
+              (node #todayPill
+                :when "{{d == state.today}}"
+                :anchors {:left 5 :right 5 :top 0 :bottom 4}
+                :radius 12
+                :color @c.primary)
+              (node #label-format-date-date-2
+                :type label
+                :text "{{formatDate(dateMs(d), 'd', 'utc')}}"
+                :font default
+                :textColor "{{d == state.today ? '@c.onPrimary' : '@c.text'}}"
+                :anchors {:left 0 :right 0 :top 4}
+                :height 18
+                :align center)
+              (node #label-format-date-date
+                :style tiny
+                :text "{{formatDate(dateMs(d), 'EEE', 'utc')}}"
+                :anchors {:left 0 :right 0 :top 23}
+                :height 14
+                :align center
+                :textColor "{{d == state.today ? '@c.onPrimary' : '@c.muted'}}"))))
+        (column #habitList
+          :anchors {:left 0 :right 0 :top 100 :bottom 0}
+          :gap 4
+          :scroll vertical
+          :arrows vertical
+          :role list
+          :label "{{t('app')}}"
+          (node #habitRow
+            :repeat {:for h :in "{{computed.order}}" :key "{{data.ordered[h].id}}"}
+            :let {:hb "{{data.ordered[h]}}"
+              :col "{{hb.archived ? '@c.muted' : computed.pal[hb.color]}}"
+              :on "{{computed.wide && hb.id == state.selected && !computed.picking}}"
+              :pk "{{contains(state.picked, hb.id)}}"}
+            :style card
+            :anchors {:left 8 :right 8}
+            :height 56
+            :borderWidth "{{pk ? 2 : 0}}"
+            :borderColor "{{col}}"
+            :focusable true
+            :role listitem
+            :label "{{hb.name}}"
+            :description "{{formatPercent(computed.now[h])}}"
+            :selected "{{on || pk}}"
+            :focused {:borderWidth 2 :borderColor @c.primary}
+            :drag {:data {:from "{{h}}"}}
+            :dragOver {:borderWidth 2 :borderColor "{{col}}"}
+            :onDrop {:run moveHabit :with {:from "{{event.data.from}}" :to "{{h}}"}}
+            :onClick {:if "{{computed.picking}}"
+              :then [{:run togglePick :with (node #"{{hb.id}}")}]
+              :else [{:run select :with {:h "{{h}}"}}]}
+            :onContextMenu {:run togglePick :with (node #"{{hb.id}}")}
+            :keys {:space {:run cellClick
+                :with {:h "{{h}}" :d "{{state.today}}" :x "{{window.width / 2}}" :y "{{window.height / 3}}"}}
+              :"shift+space" {:run openPopup
+                :with {:h "{{h}}" :d "{{state.today}}" :x "{{window.width / 2}}" :y "{{window.height / 3}}"}}}
+            (node #tint
+              :visible "{{on || pk}}"
+              :anchors {:left 0 :right 0 :top 0 :bottom 0}
+              :radius 14
+              :color "{{computed.pal[hb.color] + (pk ? '30' : '18')}}")
+            (node #rowAccent :anchors {:left 0 :top 10 :bottom 10} :width 4 :radius 2 :color "{{col}}")
+            (node #ring-habit-row
+              :use ring
+              :with {:value "{{computed.now[h]}}" :color "{{col}}"}
+              :anchors {:left 18 :top 18})
+            (node #label-hb-name
+              :type label
+              :text "{{hb.name}}"
+              :textColor "{{col}}"
+              :wrap true
+              :anchors {:left 50 :right "{{computed.cols * 44 + 6}}" :top 4 :bottom 4}
+              :align {:horizontal start :vertical center})
+            (row #cells :anchors {:right 0 :top 0 :bottom 0} :width "{{computed.cols * 44}}"
+              (node #cell
+                :repeat {:for d :in "{{computed.days}}" :key "{{d}}"}
+                :let {:li "{{daysBetween(hb.from, d)}}"
+                  :v "{{li >= 0 ? computed.vals[h][li] : null}}"
+                  :r "{{li >= 0 ? computed.ratio[h][li].r : 0}}"
+                  :date "{{formatDate(dateMs(d), 'EEE d MMM', 'utc')}}"}
+                :width 44
+                :anchors {:top 0 :bottom 0}
+                :color transparent
+                :cursor hand
+                :hover {:color @c.hover}
+                :role "{{hb.kind == 'measurable' ? 'button' : 'checkbox'}}"
+                :label "{{v == null ? t('cell.none', {date: date}) : hb.kind == 'measurable' ? t('cell.value', {date: date, value: v, unit: hb.unit}) : v == 1 ? t('cell.yes', {date: date}) : v == -1 ? t('cell.skip', {date: date}) : r >= 1 ? t('cell.auto', {date: date}) : t('cell.no', {date: date})}}"
+                :onClick {:run cellClick :with {:h "{{h}}" :d "{{d}}" :x "{{event.x}}" :y "{{event.y}}"}}
+                :onContextMenu {:run openPopup :with {:h "{{h}}" :d "{{d}}" :x "{{event.x}}" :y "{{event.y}}"}}
+                (node #label-cell
+                  :type label
+                  :when "{{hb.kind != 'measurable'}}"
+                  :font icons
+                  :align center
+                  :icon "{{v == null || v == 0 && r < 1 ? '' : v == -1 ? 'chevrons-right' : 'check'}}"
+                  :textColor "{{v == 1 ? computed.onColor : col}}"
+                  :anchors {:left 8 :top 14}
+                  :width 28
+                  :height 28
+                  :radius 8
+                  :color "{{v == 1 ? col : v == -1 || r >= 1 ? col + '2e' : 'transparent'}}"
+                  :borderWidth "{{v == 0 && r < 1 ? 1.5 : 0}}"
+                  :borderColor @c.faint)
+                (node #label-format-number-v
+                  :type label
+                  :when "{{hb.kind == 'measurable' && v != null}}"
+                  :anchors {:left 0 :right 0 :top 9}
+                  :height 18
+                  :align center
+                  :text "{{formatNumber(v, 0, 1)}}"
+                  :textColor "{{hb.frequency.days == 1 ? (r >= 1 && v > 0 ? col : '@c.faint') : v > 0 ? col : '@c.faint'}}")
+                (node #label-hb-unit
+                  :type label
+                  :when "{{hb.kind == 'measurable' && v != null}}"
+                  :anchors {:left 0 :right 0 :top 27}
+                  :height 14
+                  :align center
+                  :font tiny
+                  :text "{{hb.unit}}"
+                  :textColor "{{hb.frequency.days == 1 ? (r >= 1 && v > 0 ? col : '@c.faint') : v > 0 ? col : '@c.faint'}}")
+                (node #panel-cell
+                  :when "{{trim(hb.notes[d] ?? '') != ''}}"
+                  :anchors {:top 8 :right 8}
+                  :width 5
+                  :height 5
+                  :radius 3
+                  :color "{{col}}")))))
+        (node #emptyList
+          :when "{{length(computed.order) == 0}}"
+          :anchors {:left 0 :right 0 :top 160}
+          :height 120
+          :color transparent
+          (node #label-empty-list
+            :type label
+            :text ""
+            :font icons
+            :icon list-checks
+            :textColor @c.faint
+            :anchors {:left 0 :right 0 :top 0}
+            :height 32
+            :align center)
+          (node #label-t-empty
+            :type label
+            :text "{{t('empty')}}"
+            :font heading
+            :textColor @c.muted
+            :anchors {:left 0 :right 0 :top 40}
+            :height 22
+            :align center)
+          (node #label-t-empty-hint
+            :style small
+            :text "{{t('emptyHint')}}"
+            :anchors {:left 0 :right 0 :top 66}
+            :height 18
+            :align center))
+        (node #appBar
+          :anchors {:left 0 :right 0 :top 0}
+          :height 56
+          :color @c.bar
+          :shadow {:y 2 :blur 4 :color "#00000030"}
+          (node #appMark
+            :type label
+            :font icons
+            :icon flame
+            :width 24
+            :height 24
+            :align center
+            :textColor @c.primary
+            :anchors {:left 16 :top 16})
+          (node #label-t-app
+            :type label
+            :text "{{t('app')}}"
+            :font title
+            :textColor @c.text
+            :anchors {:left 48 :top 16}
+            :fitText true
+            :role heading)
+          (row #appActions :anchors {:right 4 :top 8} :width 128 :height 40 :gap 4 :arrows horizontal
+            (node #addButton
+              :style iconButton
+              :icon plus
+              :label "{{t('add')}}"
+              :tooltip "{{t('add')}}"
+              :textColor @c.muted
+              :onClick {:set state.menus.add :to true}
+              :children [(node #menu-add-button
+                  :use menu
+                  :with {:open state.menus.add
+                    :width 200
+                    :placement below-end
+                    :icons true
+                    :items "{{[{title: t('kind.yesNo'), icon: 'circle-check', keyLabel: find(commands, it.name == 'addYesNo').keyLabel, run: 'newHabit', with: {kind: 'yesNo'}}, {title: t('kind.measurable'), icon: 'ruler', keyLabel: find(commands, it.name == 'addMeasurable').keyLabel, run: 'newHabit', with: {kind: 'measurable'}}]}}"})]
+              :isOpen "{{state.menus.add}}")
+            (node #filterButton
+              :style iconButton
+              :icon sliders-horizontal
+              :label "{{t('filter')}}"
+              :tooltip "{{t('filter')}}"
+              :textColor @c.muted
+              :onClick {:set state.menus.filter :to true}
+              :children [(node #menu-filter-button
+                  :use menu
+                  :with {:open state.menus.filter
+                    :width 220
+                    :placement below-end
+                    :items "{{concat(map(['manual', 'name', 'color', 'score', 'status'], {title: t('sort.' + it), checked: state.sort == it, run: 'setSort', with: {by: it}}), [{separator: true}, {title: t('hideCompleted'), checked: state.hideCompleted, run: 'toggleHideCompleted'}, {title: t('showArchived'), checked: state.showArchived, run: 'toggleShowArchived'}])}}"})]
+              :isOpen "{{state.menus.filter}}")
+            (node #moreButton
+              :style iconButton
+              :icon ellipsis
+              :label "{{t('more')}}"
+              :tooltip "{{t('more')}}"
+              :textColor @c.muted
+              :onClick {:set state.menus.more :to true}
+              :children [(node #menu-more-button
+                  :use menu
+                  :with {:open state.menus.more
+                    :width 220
+                    :placement below-end
+                    :items "{{[{title: t('darkMode'), checked: computed.theme != 'light', keyLabel: find(commands, it.name == 'toggleTheme').keyLabel, run: 'toggleTheme'}, {title: t('settings'), keyLabel: find(commands, it.name == 'openSettings').keyLabel, run: 'openSettings'}, {title: t('exportAll'), run: 'exportAll'}, {separator: true}, {title: t('syncNow'), keyLabel: find(commands, it.name == 'syncNow').keyLabel, run: 'syncNow'}, {title: computed.signedIn ? t('signOut') : t('signIn'), run: computed.signedIn ? 'signOut' : 'signIn'}]}}"})]
+              :isOpen "{{state.menus.more}}"))
+          (node #pickBar
+            :when "{{computed.picking}}"
+            :anchors {:left 0 :right 0 :top 0 :bottom 0}
+            :color @c.actionBar
+            :role toolbar
+            :label "{{t('picked', {n: length(state.picked)})}}"
+            (node #clearPick
+              :style iconButton
+              :icon x
+              :label "{{t('clearPick')}}"
+              :tooltip "{{t('clearPick')}}"
+              :textColor "#ffffff"
+              :onClick {:set state.picked :to []}
+              :anchors {:left 4 :top 8})
+            (node #label-t-picked-n
+              :type label
+              :text "{{t('picked', {n: length(state.picked)})}}"
+              :font title
+              :textColor "#ffffff"
+              :anchors {:left 56 :top 16}
+              :fitText true
+              :live polite)
+            (node #row-pick-bar :type row :anchors {:right 4 :top 8} :width 84 :height 40 :gap 4 :arrows horizontal
+              (node #archivePicked
+                :style iconButton
+                :icon archive
+                :label "{{t('archive')}}"
+                :tooltip "{{t('archive')}}"
+                :textColor "#ffffff"
+                :onClick archivePicked)
+              (node #deletePicked
+                :style iconButton
+                :icon trash-2
+                :label "{{t('delete')}}"
+                :tooltip "{{t('delete')}}"
+                :textColor "#ffffff"
+                :onClick {:set state.confirmDelete :to true})))))
+      (node #paneDivider
+        :when "{{computed.wide}}"
+        :anchors {:left "{{computed.listWidth}}" :top 0 :bottom 0}
+        :width 1
+        :color @c.divider)
+      (node #detailPane
+        :anchors {:right 0 :top 0 :bottom 0}
+        :width "{{computed.detailWidth}}"
+        :visible "{{computed.wide || state.page == 'detail'}}"
+        :color @c.bg
+        (column #detailCards
+          :when "{{computed.sel >= 0}}"
+          :anchors {:left 0 :right 0 :top 56 :bottom 0}
+          :scroll vertical
+          :gap 12
+          :alignItems center
+          (node #panel-detail-cards :height 0 :width 10 :color transparent)
+          (node #subtitle
+            :style card
+            :width "{{computed.cardWidth}}"
+            :height "{{computed.h.description != '' ? 92 : 70}}"
+            (node #label-h-question
+              :type label
+              :text "{{computed.h.question}}"
+              :textColor "{{computed.col}}"
+              :anchors {:left 16 :right 16 :top 12}
+              :height 20)
+            (row #subtitleFacts :anchors {:left 16 :right 16 :top 38} :height 20 :gap 20
+              (node #label-freq-text :style caption :text "{{computed.freqText}}" :icon repeat :height 20)
+              (node #label-h-reminder-null
+                :style caption
+                :text "{{computed.h.reminder == null ? t('reminderOff') : formatTime(dateMs('2000-01-01') + (number(slice(computed.h.reminder.time, 0, 2)) * 60 + number(slice(computed.h.reminder.time, 3, 5))) * 60000, 'short', 'utc')}}"
+                :icon "{{computed.h.reminder == null ? 'bell-off' : 'bell'}}"
+                :height 20)
+              (node #label-t-archived-tag
+                :style caption
+                :text "{{t('archivedTag')}}"
+                :when "{{computed.h.archived}}"
+                :icon archive
+                :height 20))
+            (node #label-h-description
+              :type label
+              :text "{{computed.h.description}}"
+              :when "{{computed.h.description != ''}}"
+              :font small
+              :textColor @c.text
+              :anchors {:left 16 :right 16 :top 64}
+              :height 18))
+          (node #overviewCard
+            :style card
+            :width "{{computed.cardWidth}}"
+            :height 112
+            :role region
+            :label "{{t('card.overview')}}"
+            (node #label-t-card-overview :style cardTitle :text "{{t('card.overview')}}" :textColor "{{computed.col}}")
+            (row #overviewStats
+              :anchors {:left 16 :right 16 :top 44}
+              :height 56
+              :justify space-around
+              :alignItems center
+              (node #ring-overview-stats
+                :use ring
+                :with {:value "{{computed.stats.score}}" :color "{{computed.col}}" :size 48 :stroke 2.5})
+              (node #stat-overview-stats
+                :use stat
+                :with {:value "{{formatPercent(computed.stats.score)}}"
+                  :caption "{{t('stat.score')}}"
+                  :color "{{computed.col}}"})
+              (node #stat-overview-stats-2
+                :use stat
+                :with {:value "{{(computed.stats.month >= 0 ? '+' : '') + formatPercent(computed.stats.month)}}"
+                  :caption "{{t('stat.month')}}"
+                  :color "{{computed.col}}"})
+              (node #stat-overview-stats-3
+                :use stat
+                :with {:value "{{(computed.stats.year >= 0 ? '+' : '') + formatPercent(computed.stats.year)}}"
+                  :caption "{{t('stat.year')}}"
+                  :color "{{computed.col}}"})
+              (node #stat-overview-stats-4
+                :use stat
+                :with {:value "{{formatNumber(computed.stats.total, 0, 1)}}"
+                  :caption "{{t('stat.total')}}"
+                  :color "{{computed.col}}"})))
+          (node #targetCard
+            :style card
+            :width "{{computed.cardWidth}}"
+            :height 232
+            :role region
+            :label "{{t('card.target')}}"
+            :children [(node #label-t-card-target
+                :style cardTitle
+                :text "{{t('card.target')}}"
+                :textColor "{{computed.col}}")
+              (column #goalRows :anchors {:left 16 :right 16 :top 48} :height 170 :gap 6
+                (node #goalRow
+                  :repeat {:for g :in "{{computed.goalRows}}"}
+                  :anchors {:left 0 :right 0}
+                  :height 28
+                  :color transparent
+                  :role progressbar
+                  :label "{{t('goal.' + g.period)}}"
+                  :description "{{t('goalOf', {value: formatNumber(g.value, 0, 1), goal: formatNumber(g.goal, 0, 1)})}}"
+                  (node #label-t-goal-g
+                    :type label
+                    :text "{{t('goal.' + g.period)}}"
+                    :font small
+                    :textColor @c.text
+                    :anchors {:left 0 :top 0}
+                    :fitText true)
+                  (node #label-t-goal-of
+                    :style caption
+                    :text "{{t('goalOf', {value: formatNumber(g.value, 0, 1), goal: formatNumber(g.goal, 0, 1)}) + ' ' + computed.h.unit}}"
+                    :anchors {:right 0 :top 0})
+                  (node #panel-goal-row :anchors {:left 0 :right 0 :top 19} :height 6 :radius 3 :color @c.track
+                    (node #panel-goal-row-2
+                      :anchors {:left 0 :top 0 :bottom 0}
+                      :radius 3
+                      :width "{{clamp(g.value / max(0.001, g.goal), 0, 1) * 100 + '%'}}"
+                      :color "{{computed.h.targetType == 'atMost' && g.value > g.goal ? '@c.danger' : computed.col}}"))))]
+            :when "{{computed.h.kind == 'measurable'}}")
+          (node #scoreCard
+            :style card
+            :width "{{computed.cardWidth}}"
+            :height 240
+            :role region
+            :label "{{t('card.score')}}"
+            (node #label-t-card-score :style cardTitle :text "{{t('card.score')}}" :textColor "{{computed.col}}")
+            (node #period-button-score-card
+              :use periodButton
+              :with {:key scorePeriod :color "{{computed.col}}"}
+              :anchors {:right 8 :top 8})
+            (node #scorePlot :dir ltr :anchors {:left 16 :right 52 :top 56 :bottom 44} :color transparent
+              (node #gridLine
+                :repeat {:for g :in "{{range(5)}}"}
+                :anchors {:left 0 :right 0 :top "{{g * 25 + '%'}}"}
+                :height 1
+                :color @c.divider)
+              (path #scoreLine
+                :fill 0
+                :viewBox "0 0 1000 100"
+                :fit fill
+                :d "{{computed.scorePath}}"
+                :stroke "{{computed.col}}"
+                :strokeWidth 2
+                :strokeJoin round
+                :strokeCap round)
+              (node #row-score-plot :type row :fill 0
+                (node #scoreSlot
+                  :repeat {:for pt :in "{{computed.scorePts}}" :index i}
+                  :grow 1
+                  :anchors {:top 0 :bottom 0}
+                  :color transparent
+                  :tooltip "{{formatPercent(pt)}}"
+                  (node #panel-score-slot
+                    :anchors {:left "50%" :top "{{(100 - pt * 100) + '%'}}"}
+                    :translate [-3.5 -3.5]
+                    :width 7
+                    :height 7
+                    :radius 4
+                    :color "{{computed.col}}"))))
+            (node #scoreAxis
+              :repeat {:for g :in "{{range(5)}}"}
+              :type label
+              :font tiny
+              :textColor @c.muted
+              :text "{{(100 - g * 25) + '%'}}"
+              :anchors {:right 12 :top "{{56 + g * 35 - 6}}"}
+              :height 12
+              :width 34
+              :align end)
+            (row #scoreLabels :dir ltr :anchors {:left 16 :right 52 :bottom 8} :height 30
+              (node #scoreLabel
+                :repeat {:for lb :in "{{computed.scoreLabels}}"}
+                :grow 1
+                :anchors {:top 0 :bottom 0}
+                :color transparent
+                (node #label-lb-a :style axis :text "{{lb.a}}")
+                (node #label-lb-b :style axis2 :text "{{lb.b}}"))))
+          (node #historyCard
+            :style card
+            :width "{{computed.cardWidth}}"
+            :height 240
+            :role region
+            :label "{{t('card.history')}}"
+            (node #label-t-card-history :style cardTitle :text "{{t('card.history')}}" :textColor "{{computed.col}}")
+            (node #period-button-history-card
+              :use periodButton
+              :with {:key historyPeriod :color "{{computed.col}}"}
+              :anchors {:right 8 :top 8})
+            (node #historyPlot :dir ltr :anchors {:left 16 :right 16 :top 56 :bottom 44} :color transparent
+              (node #panel-history-plot :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @c.divider)
+              (node #row-history-plot :type row :fill 0
+                (node #historySlot
+                  :repeat {:for hv :in "{{computed.historyVals}}" :index i}
+                  :grow 1
+                  :anchors {:top 0 :bottom 0}
+                  :color transparent
+                  :tooltip "{{formatNumber(hv, 0, 1)}}"
+                  (node #panel-history-slot
+                    :anchors {:left "22%" :right "22%" :bottom 1}
+                    :height "{{(hv / computed.historyMax * 86) + '%'}}"
+                    :color "{{computed.col}}"
+                    :radius {:topLeft 2 :topRight 2})
+                  (node #label-hv-0-format
+                    :type label
+                    :text "{{hv > 0 ? formatNumber(hv, 0, 0) : ''}}"
+                    :font tiny
+                    :textColor "{{computed.col}}"
+                    :anchors {:left -8 :right -8 :bottom "{{(hv / computed.historyMax * 86) + '%'}}"}
+                    :translate [0 -2]
+                    :height 12
+                    :align center))))
+            (row #historyLabels :dir ltr :anchors {:left 16 :right 16 :bottom 8} :height 30
+              (node #historyLabel
+                :repeat {:for lb :in "{{computed.historyLabels}}"}
+                :grow 1
+                :anchors {:top 0 :bottom 0}
+                :color transparent
+                (node #label-lb-a-2 :style axis :text "{{lb.a}}")
+                (node #label-lb-b-2 :style axis2 :text "{{lb.b}}"))))
+          (node #calendarCard
+            :style card
+            :width "{{computed.cardWidth}}"
+            :height 268
+            :role region
+            :label "{{t('card.calendar')}}"
+            (node #label-t-card-calendar :style cardTitle :text "{{t('card.calendar')}}" :textColor "{{computed.col}}")
+            (row #calendarWeeks :dir rtl :anchors {:left 16 :right 52 :top 48} :height 210 :gap 3
+              (column #calWeek
+                :repeat {:for w :in "{{range(computed.weeks)}}"}
+                :dir ltr
+                :width 22
+                :anchors {:top 0 :bottom 0}
+                :gap 3
+                (node #label-number-format-date
+                  :style tiny
+                  :text "{{number(formatDate(dateMs(addDays(computed.weekStart, -7 * w)), 'd', 'utc')) <= 7 ? formatDate(dateMs(addDays(computed.weekStart, -7 * w)), 'MMM', 'utc') : ''}}"
+                  :height 14
+                  :width 40)
+                (node #calCell
+                  :repeat {:for r :in "{{range(7)}}"}
+                  :let {:d "{{addDays(computed.weekStart, r - 7 * w)}}"
+                    :li "{{daysBetween(computed.h.from, d)}}"
+                    :cv "{{li >= 0 ? computed.v[li] : null}}"
+                    :cr "{{li >= 0 && cv != null ? computed.r[li].r : 0}}"}
+                  :width 22
+                  :height 22
+                  :radius 3
+                  :visible "{{d <= state.today}}"
+                  :color "{{cv == null ? '@c.track' : computed.h.kind == 'measurable' ? (cv > 0 ? computed.col + (cr >= 1 ? '' : cr >= 0.5 ? 'b0' : '60') : '@c.track') : cv == 1 ? computed.col : cv == -1 ? computed.col + '60' : cr >= 1 ? computed.col + '60' : '@c.track'}}"
+                  :cursor hand
+                  :role button
+                  :label "{{formatDate(dateMs(d), 'medium', 'utc')}}"
+                  :onClick {:run cellClick :with {:h "{{computed.sel}}" :d "{{d}}" :x "{{event.x}}" :y "{{event.y}}"}}
+                  :onContextMenu {:run openPopup
+                    :with {:h "{{computed.sel}}" :d "{{d}}" :x "{{event.x}}" :y "{{event.y}}"}}
+                  (node #label-format-date-date-3
+                    :type label
+                    :text "{{formatDate(dateMs(d), 'd', 'utc')}}"
+                    :font tiny
+                    :fill 0
+                    :align center
+                    :textColor "{{cv != null && (cv != 0 || cr >= 1) ? computed.onColor : '@c.muted'}}"))))
+            (column #calWeekdays :anchors {:right 12 :top 65} :width 36 :height 180 :gap 3
+              (node :style tiny
+                :text "{{formatDate(dateMs(addDays('2000-01-02', wd)), 'EEE', 'utc')}}"
+                #calWeekday
+                :repeat {:for wd :in "{{computed.weekdays}}"}
+                :height 22
+                :width 36
+                :align {:horizontal start :vertical center})))
+          (node #streaksCard
+            :style card
+            :width "{{computed.cardWidth}}"
+            :height "{{max(1, length(computed.streaks)) * 26 + 60}}"
+            :role region
+            :label "{{t('card.streaks')}}"
+            (node #label-t-card-streaks :style cardTitle :text "{{t('card.streaks')}}" :textColor "{{computed.col}}")
+            (node #label-t-no-streaks
+              :style caption
+              :text "{{t('noStreaks')}}"
+              :when "{{length(computed.streaks) == 0}}"
+              :anchors {:left 16 :top 46})
+            (column #streakRows :anchors {:left 16 :right 16 :top 46} :height "{{length(computed.streaks) * 26}}" :gap 4
+              (node #streakRow
+                :type row
+                :repeat {:for st :in "{{computed.streaks}}"}
+                :anchors {:left 0 :right 0}
+                :height 22
+                :justify center
+                :alignItems center
+                :gap 8
+                :role text
+                :label "{{formatDate(dateMs(st.from), 'medium', 'utc') + ' – ' + formatDate(dateMs(st.to), 'medium', 'utc') + ': ' + t('days', {n: st.len})}}"
+                (node #label-format-date-date-4
+                  :style tiny
+                  :text "{{formatDate(dateMs(st.from), 'd MMM yyyy', 'utc')}}"
+                  :width 80
+                  :height 14
+                  :align end)
+                (node #panel-streak-row
+                  :height 22
+                  :width "{{max(28, (computed.cardWidth - 224) * st.len / computed.streakMax)}}"
+                  :radius 2
+                  :color "{{st.len == computed.streakMax ? computed.col : computed.col + 'aa'}}"
+                  (node #label-text-st-len
+                    :type label
+                    :text "{{text(st.len)}}"
+                    :font small
+                    :textColor "{{computed.onColor}}"
+                    :fill 0
+                    :align center))
+                (node #label-format-date-date-5
+                  :style tiny
+                  :text "{{formatDate(dateMs(st.to), 'd MMM yyyy', 'utc')}}"
+                  :width 80
+                  :height 14
+                  :align start))))
+          (node #frequencyCard
+            :style card
+            :width "{{computed.cardWidth}}"
+            :height 252
+            :role region
+            :label "{{t('card.frequency')}}"
+            (node #label-t-card-frequency :style cardTitle :text "{{t('card.frequency')}}" :textColor "{{computed.col}}")
+            (row #freqGrid :dir ltr :anchors {:left 16 :right 52 :top 48} :height 196
+              (column #freqMonth :repeat {:for mo :in "{{computed.months}}"} :grow 1 :anchors {:top 0 :bottom 0}
+                (node #freqDot
+                  :repeat {:for wd :in "{{computed.weekdays}}"}
+                  :let {:c "{{count(range(daysInMonth(mo + '-01')), weekday(addDays(mo + '-01', it)) == wd && (computed.v[daysBetween(computed.h.from, addDays(mo + '-01', it))] ?? 0) > 0)}}"}
+                  :anchors {:left 0 :right 0}
+                  :height 24
+                  :color transparent
+                  :tooltip "{{text(c)}}"
+                  (node #panel-freq-dot
+                    :anchors {:left "50%" :top 12}
+                    :translate "{{[-(c == 0 ? 2 : 4 + c * 2), -(c == 0 ? 2 : 4 + c * 2)]}}"
+                    :width "{{c == 0 ? 4 : 8 + c * 4}}"
+                    :height "{{c == 0 ? 4 : 8 + c * 4}}"
+                    :radius 20
+                    :color "{{c == 0 ? '@c.track' : computed.col + ['59', '80', 'a6', 'cc', 'f2'][min(c, 5) - 1]}}"))
+                (node #label-format-date-date-6
+                  :style tiny
+                  :text "{{formatDate(dateMs(mo + '-01'), 'MMM', 'utc')}}"
+                  :anchors {:left 0 :right 0}
+                  :height 20
+                  :align center)))
+            (column #freqWeekdays :anchors {:right 12 :top 48} :width 36 :height 168
+              (node :style tiny
+                :text "{{formatDate(dateMs(addDays('2000-01-02', wd)), 'EEE', 'utc')}}"
+                #freqWeekday
+                :repeat {:for wd :in "{{computed.weekdays}}"}
+                :height 24
+                :width 36
+                :align {:horizontal start :vertical center})))
+          (node #notesCard
+            :style card
+            :width "{{computed.cardWidth}}"
+            :height "{{max(1, length(computed.notes)) * 44 + 60}}"
+            :role region
+            :label "{{t('card.notes')}}"
+            (node #label-t-card-notes :style cardTitle :text "{{t('card.notes')}}" :textColor "{{computed.col}}")
+            (node #label-t-no-notes
+              :style caption
+              :text "{{t('noNotes')}}"
+              :when "{{length(computed.notes) == 0}}"
+              :anchors {:left 16 :top 46})
+            (column #noteRows :anchors {:left 0 :right 0 :top 44} :height "{{length(computed.notes) * 44}}"
+              (node #noteRow
+                :repeat {:for nt :in "{{computed.notes}}"}
+                :anchors {:left 0 :right 0}
+                :height 44
+                :color transparent
+                :hover {:color @c.hover}
+                :focusable true
+                :role button
+                :cursor hand
+                :label "{{formatDate(dateMs(nt.key), 'medium', 'utc') + ': ' + nt.value}}"
+                :onClick {:run openPopup
+                  :with {:h "{{computed.sel}}" :d "{{nt.key}}" :x "{{event.x}}" :y "{{event.y}}"}}
+                (node #label-format-date-date-7
+                  :type label
+                  :text "{{formatDate(dateMs(nt.key), 'EEE d MMM', 'utc')}}"
+                  :font small
+                  :textColor "{{computed.col}}"
+                  :anchors {:left 16 :top 14}
+                  :width 96
+                  :height 16)
+                (node #label-nt-value
+                  :type label
+                  :text "{{nt.value}}"
+                  :textColor @c.text
+                  :anchors {:left 120 :right 16 :top 13}
+                  :height 18))))
+          (node #panel-detail-cards-2 :height 12 :width 10 :color transparent))
+        (node #label-t-no-selection
+          :type label
+          :text "{{t('noSelection')}}"
+          :when "{{computed.sel < 0}}"
+          :textColor @c.muted
+          :anchors {:left 0 :right 0 :top 200}
+          :height 20
+          :align center)
+        (node #detailBar
+          :anchors {:left 0 :right 0 :top 0}
+          :height 56
+          :color @c.bar
+          :shadow {:y 1 :blur 3 :color "#00000020"}
+          (node #backButton
+            :style iconButton
+            :icon arrow-left
+            :label "{{t('back')}}"
+            :tooltip "{{t('back')}}"
+            :textColor @c.text
+            :onClick {:set state.page :to list}
+            :when "{{!computed.wide}}"
+            :anchors {:left 4 :top 8}
+            :mirror true)
+          (node #detailBadge
+            :when "{{computed.sel >= 0}}"
+            :anchors {:left "{{computed.wide ? 20 : 56}}" :top 21}
+            :width 14
+            :height 14
+            :radius 5
+            :color "{{computed.col}}")
+          (node #label-sel-0-h
+            :type label
+            :text "{{computed.sel >= 0 ? computed.h.name : t('app')}}"
+            :font title
+            :textColor "{{computed.col}}"
+            :anchors {:left "{{computed.wide ? 44 : 80}}" :right 100 :top 16}
+            :height 24
+            :role heading)
+          (row #detailActions
+            :when "{{computed.sel >= 0}}"
+            :anchors {:right 4 :top 8}
+            :width 84
+            :height 40
+            :gap 4
+            :arrows horizontal
+            (node #editButton
+              :style iconButton
+              :icon edit
+              :label "{{t('edit')}}"
+              :tooltip "{{t('edit')}}"
+              :textColor @c.text
+              :onClick editHabit)
+            (node #detailMore
+              :style iconButton
+              :icon ellipsis
+              :label "{{t('more')}}"
+              :tooltip "{{t('more')}}"
+              :textColor @c.text
+              :onClick {:set state.menus.detail :to true}
+              :children [(node #menu-detail-more
+                  :use menu
+                  :with {:open state.menus.detail
+                    :width 200
+                    :placement below-end
+                    :icons true
+                    :items "{{[{title: computed.h.archived ? t('unarchive') : t('archive'), icon: computed.h.archived ? 'archive-restore' : 'archive', keyLabel: find(commands, it.name == 'archiveHabit').keyLabel, run: 'archiveHabit'}, {title: t('exportCsv'), icon: 'file-down', run: 'exportHabit'}, {separator: true}, {title: t('delete'), icon: 'trash-2', keyLabel: find(commands, it.name == 'confirmDelete').keyLabel, run: 'confirmDelete'}]}}"})]
+              :isOpen "{{state.menus.detail}}"))))
+      (node #entryPopup
+        :overlay {:placement window :open state.popup.open :dismiss outside :modal true}
+        :let {:ph "{{data.ordered[state.popup.h]}}"
+          :pcol "{{computed.pal[ph.color]}}"
+          :meas "{{ph.kind == 'measurable'}}"
+          :pd "{{state.popup.date == '' ? state.today : state.popup.date}}"}
+        :x "{{clamp(state.popup.x - 140, 8, window.width - 288)}}"
+        :y "{{clamp(state.popup.y + 14, 8, window.height - 208)}}"
+        :width 280
+        :height "{{meas ? 196 : 152}}"
+        :style card
+        :shadow {:y 4 :blur 16 :color "#00000050"}
+        :role dialog
+        :label "{{ph.name + ', ' + formatDate(dateMs(pd), 'full', 'utc')}}"
+        (node #label-format-date-date-8
+          :type label
+          :text "{{formatDate(dateMs(pd), 'EEEE d MMMM', 'utc')}}"
+          :font heading
+          :textColor "{{pcol}}"
+          :anchors {:left 16 :top 14}
+          :fitText true)
+        (node #popupValue
+          :when "{{meas}}"
+          :style field
+          :bind state.popup.value
+          :autofocus true
+          :label "{{t('popup.value')}}"
+          :placeholder "{{t('popup.value')}}"
+          :anchors {:left 16 :right 80 :top 44}
+          :onSubmit popupSave)
+        (node #label-ph-unit
+          :type label
+          :text "{{ph.unit}}"
+          :when "{{meas}}"
+          :textColor @c.muted
+          :anchors {:right 16 :top 56}
+          :width 56
+          :height 18)
+        (node #popupNote
+          :when "{{!meas}}"
+          :style field
+          :bind state.popup.note
+          :autofocus true
+          :label "{{t('popup.note')}}"
+          :placeholder "{{t('popup.note')}}"
+          :anchors {:left 16 :right 16 :top 44}
+          :onSubmit popupNoteOnly)
+        (node #popupMeasNote
+          :when "{{meas}}"
+          :style field
+          :bind state.popup.note
+          :label "{{t('popup.note')}}"
+          :placeholder "{{t('popup.note')}}"
+          :anchors {:left 16 :right 16 :top 92}
+          :onSubmit popupSave)
+        (row #popupButtons
+          :when "{{!meas}}"
+          :anchors {:left 8 :right 8 :bottom 10}
+          :height 40
+          :justify space-around
+          :arrows horizontal
+          (node :style textButton
+            #popupYes
+            :icon check
+            :text "{{t('popup.yes')}}"
+            :textColor "{{pcol}}"
+            :mnemonic y
+            :onClick {:run popupSet :with {:value y}})
+          (node :style textButton
+            #popupSkip
+            :icon chevrons-right
+            :text "{{t('popup.skip')}}"
+            :textColor "{{pcol}}"
+            :mnemonic s
+            :onClick {:run popupSet :with {:value s}})
+          (node :style textButton
+            #popupNo
+            :icon x
+            :text "{{t('popup.no')}}"
+            :textColor @c.muted
+            :mnemonic n
+            :onClick {:run popupSet :with {:value "-"}}))
+        (node :style textButton
+          #popupSave
+          :when "{{meas}}"
+          :text "{{upper(t('popup.save'))}}"
+          :anchors {:right 12 :bottom 10}
+          :onClick popupSave))
+      (node :use dialog
+        #editDialog
+        :with {:open state.edit.open
+          :title "{{state.edit.id == '' ? t('edit.new') : t('edit.edit')}}"
+          :message ""
+          :width 600
+          :height "{{state.edit.kind == 'measurable' ? 500 : 436}}"
+          :highlight "{{computed.accent}}"
+          :buttons "{{[{title: t('save'), run: 'saveHabit'}, {title: t('cancel')}]}}"}
+        (column #editFields :anchors {:left 20 :right 20 :top 48 :bottom 56} :gap 6
+          (node #editName :anchors {:left 0 :right 0} :height 58 :color transparent
+            (node #label-t-edit-name :style caption :text "{{t('edit.name')}}" :anchors {:left 2 :top 0})
+            (node :style field
+              #nameField
+              :bind state.edit.name
+              :autofocus true
+              :label "{{t('edit.name')}}"
+              :placeholder "{{t('edit.namePh')}}"
+              :anchors {:left 0 :right 52 :top 18}
+              :borderColor "{{state.edit.error != '' ? '@c.danger' : '@c.divider'}}")
+            (node #colorButton
+              :anchors {:right 4 :top 20}
+              :width 36
+              :height 36
+              :radius 18
+              :color "{{computed.pal[state.edit.color]}}"
+              :focusable true
+              :role button
+              :cursor hand
+              :label "{{t('edit.color')}}"
+              :tooltip "{{t('edit.color')}}"
+              :isOpen "{{state.colorOpen}}"
+              :focused {:borderWidth 2 :borderColor @c.text}
+              :onClick {:set state.colorOpen :to true}
+              (node #popover-color-button
+                :use popover
+                :with {:open state.colorOpen
+                  :anchor "#colorButton"
+                  :title "{{t('edit.color')}}"
+                  :width 232
+                  :height 236
+                  :placement below-end}
+                (grid #swatches :columns 5 :gap 8 :anchors {:left 12 :right 12 :top 38} :height 176 :arrows both
+                  (node #swatch
+                    :repeat {:for sw :in "{{range(20)}}"}
+                    :width 32
+                    :height 32
+                    :radius 16
+                    :color "{{computed.pal[sw]}}"
+                    :focusable true
+                    :role radio
+                    :selected "{{state.edit.color == sw}}"
+                    :label "{{t('edit.color') + ' ' + (sw + 1)}}"
+                    :cursor hand
+                    :borderWidth "{{state.edit.color == sw ? 3 : 0}}"
+                    :borderColor @c.card
+                    :focused {:borderWidth 3 :borderColor @c.text}
+                    :onClick [{:set state.edit.color :to "{{sw}}"} {:set state.colorOpen :to false}]
+                    (node #label-swatch
+                      :type label
+                      :text ""
+                      :font iconsSmall
+                      :icon "{{state.edit.color == sw ? 'check' : ''}}"
+                      :textColor "#ffffff"
+                      :fill 0
+                      :align center))))))
+          (node #editQuestion :anchors {:left 0 :right 0} :height 58 :color transparent
+            (node #label-t-edit-question :style caption :text "{{t('edit.question')}}" :anchors {:left 2 :top 0})
+            (node :style field
+              #questionField
+              :bind state.edit.question
+              :label "{{t('edit.question')}}"
+              :placeholder "{{t('edit.questionPh')}}"
+              :anchors {:left 0 :right 0 :top 18}))
+          (node #editTarget
+            :anchors {:left 0 :right 0}
+            :height 58
+            :color transparent
+            :children [(node #label-t-edit-target :style caption :text "{{t('edit.target')}}" :anchors {:left 2 :top 0})
+              (node #row-edit-target :type row :anchors {:left 0 :right 0 :top 18} :height 40 :gap 8 :alignItems center
+                (node #atLeast
+                  :style "{{(state.edit.targetType == 'atLeast') ? 'chipOn' : 'chip'}}"
+                  :text "{{t('chip.atLeast')}}"
+                  :selected "{{state.edit.targetType == 'atLeast'}}"
+                  :onClick {:set state.edit.targetType :to atLeast})
+                (node #atMost
+                  :style "{{(state.edit.targetType == 'atMost') ? 'chipOn' : 'chip'}}"
+                  :text "{{t('chip.atMost')}}"
+                  :selected "{{state.edit.targetType == 'atMost'}}"
+                  :onClick {:set state.edit.targetType :to atMost})
+                (node :style field
+                  #targetField
+                  :bind state.edit.target
+                  :label "{{t('edit.target')}}"
+                  :width 96
+                  :placeholder "10")
+                (node :style field
+                  #unitField
+                  :bind state.edit.unit
+                  :label "{{t('edit.unit')}}"
+                  :width 140
+                  :placeholder "{{t('edit.unitPh')}}"))]
+            :when "{{state.edit.kind == 'measurable'}}")
+          (node #editFrequency :anchors {:left 0 :right 0} :height 58 :color transparent
+            (node #label-t-edit-frequency :style caption :text "{{t('edit.frequency')}}" :anchors {:left 2 :top 0})
+            (node #row-edit-frequency
+              :type row
+              :anchors {:left 0 :right 0 :top 20}
+              :height 32
+              :gap 6
+              :alignItems center
+              :arrows horizontal
+              :role radiogroup
+              :label "{{t('edit.frequency')}}"
+              (node #freq_daily
+                :style "{{(state.edit.freqMode == 'daily') ? 'chipOn' : 'chip'}}"
+                :text "{{t('chip.daily')}}"
+                :selected "{{state.edit.freqMode == 'daily'}}"
+                :onClick {:set state.edit.freqMode :to daily}
+                :when "{{state.edit.kind != 'measurable'}}")
+              (node #freq_everyN
+                :style "{{(state.edit.freqMode == 'everyN') ? 'chipOn' : 'chip'}}"
+                :text "{{t('chip.everyN')}}"
+                :selected "{{state.edit.freqMode == 'everyN'}}"
+                :onClick {:set state.edit.freqMode :to everyN}
+                :when "{{state.edit.kind != 'measurable'}}")
+              (node #freq_week
+                :style "{{(state.edit.freqMode == 'week') ? 'chipOn' : 'chip'}}"
+                :text "{{t('chip.week')}}"
+                :selected "{{state.edit.freqMode == 'week'}}"
+                :onClick {:set state.edit.freqMode :to week}
+                :when "{{state.edit.kind != 'measurable'}}")
+              (node #freq_month
+                :style "{{(state.edit.freqMode == 'month') ? 'chipOn' : 'chip'}}"
+                :text "{{t('chip.month')}}"
+                :selected "{{state.edit.freqMode == 'month'}}"
+                :onClick {:set state.edit.freqMode :to month}
+                :when "{{state.edit.kind != 'measurable'}}")
+              (node #per_daily
+                :style "{{(state.edit.freqMode == 'daily') ? 'chipOn' : 'chip'}}"
+                :text "{{t('chip.perDay')}}"
+                :selected "{{state.edit.freqMode == 'daily'}}"
+                :onClick {:set state.edit.freqMode :to daily}
+                :when "{{state.edit.kind == 'measurable'}}")
+              (node #per_week
+                :style "{{(state.edit.freqMode == 'week') ? 'chipOn' : 'chip'}}"
+                :text "{{t('chip.week')}}"
+                :selected "{{state.edit.freqMode == 'week'}}"
+                :onClick {:set state.edit.freqMode :to week}
+                :when "{{state.edit.kind == 'measurable'}}")
+              (node #per_month
+                :style "{{(state.edit.freqMode == 'month') ? 'chipOn' : 'chip'}}"
+                :text "{{t('chip.month')}}"
+                :selected "{{state.edit.freqMode == 'month'}}"
+                :onClick {:set state.edit.freqMode :to month}
+                :when "{{state.edit.kind == 'measurable'}}")
+              (row #freqStepper
+                :when "{{state.edit.kind != 'measurable' && state.edit.freqMode != 'daily'}}"
+                :width 112
+                :height 32
+                :alignItems center
+                (node :style iconButton
+                  #freqLess
+                  :font iconsSmall
+                  :icon minus
+                  :width 32
+                  :height 32
+                  :label "−"
+                  :onClick {:set state.edit.n :to "{{max(1, state.edit.n - 1)}}"})
+                (node #label-text-edit-n
+                  :type label
+                  :text "{{text(state.edit.n)}}"
+                  :textColor @c.text
+                  :width 40
+                  :height 20
+                  :align center
+                  :role status)
+                (node :style iconButton
+                  #freqMore
+                  :font iconsSmall
+                  :icon plus
+                  :width 32
+                  :height 32
+                  :label "+"
+                  :onClick {:set state.edit.n :to "{{min(state.edit.freqMode == 'week' ? 7 : 31, state.edit.n + 1)}}"}))))
+          (node #editReminder :anchors {:left 0 :right 0} :height 58 :color transparent
+            (node #label-t-edit-reminder :style caption :text "{{t('edit.reminder')}}" :anchors {:left 2 :top 0})
+            (node #row-edit-reminder :type row :anchors {:left 0 :right 0 :top 20} :height 32 :gap 6 :alignItems center
+              (node :use switch
+                #reminderToggle
+                :with {:on "{{state.edit.reminderOn}}" :path state.edit.reminderOn :label "{{t('edit.reminder')}}"})
+              (node :style field
+                #timeField
+                :bind state.edit.time
+                :label "{{t('edit.reminder')}}"
+                :width 72
+                :height 32
+                :padding 6
+                :disabled "{{!state.edit.reminderOn}}"
+                :placeholder "08:00")
+              (node #dayChip
+                :repeat {:for wd :in "{{computed.weekdays}}"}
+                :style "{{state.edit.days[wd] && state.edit.reminderOn ? 'chipOn' : 'chip'}}"
+                :role checkbox
+                :padding 6
+                :text "{{formatDate(dateMs(addDays('2000-01-02', wd)), 'EEE', 'utc')}}"
+                :selected "{{state.edit.days[wd]}}"
+                :disabled "{{!state.edit.reminderOn}}"
+                :onClick {:toggle "{{'state.edit.days[' + wd + ']'}}"})))
+          (node #editNotes :anchors {:left 0 :right 0} :height 58 :color transparent
+            (node #label-t-edit-notes :style caption :text "{{t('edit.notes')}}" :anchors {:left 2 :top 0})
+            (node :style field
+              #notesField
+              :bind state.edit.description
+              :label "{{t('edit.notes')}}"
+              :placeholder "{{t('edit.notesPh')}}"
+              :anchors {:left 0 :right 0 :top 18}))
+          (node #label-edit-error
+            :type label
+            :text "{{state.edit.error}}"
+            :when "{{state.edit.error != ''}}"
+            :font small
+            :textColor @c.danger
+            :height 16
+            :width 400
+            :live assertive)))
+      (node :use dialog
+        #deleteDialog
+        :with {:open state.confirmDelete
+          :title "{{t(computed.picking ? 'delete.titleN' : 'delete.title')}}"
+          :message "{{computed.picking ? t('delete.messageN', {n: length(state.picked)}) : t('delete.message', {name: computed.sel >= 0 ? computed.h.name : ''})}}"
+          :highlight @c.danger
+          :buttons "{{[{title: t('delete'), run: 'deleteHabit'}, {title: t('cancel')}]}}"})
+      (node #settingsPage
+        :overlay {:placement window :open state.settingsOpen :dismiss outside :modal true}
+        :fill 0
+        :color @c.bg
+        :role dialog
+        :label "{{t('settings')}}"
+        (column #settingsList :anchors {:left 0 :right 0 :top 56 :bottom 0} :scroll vertical :alignItems center
+          (column #settingsColumn
+            :width "{{min(720, window.width)}}"
+            :children [(node #settingsTop :height 4 :color transparent)
+              (column #settingsInterface :style card :anchors {:left 0 :right 0} :fitContent height
+                (node #label-t-set-interface
+                  :type label
+                  :text "{{t('set.interface')}}"
+                  :style sectionTitle
+                  :anchors {:left 0 :right 0})
+                (node :use prefRow
+                  #themeRow
+                  :with {:title "{{t('set.theme')}}" :summary "{{t('theme.' + state.theme)}}"}
+                  :isOpen "{{state.menus.theme}}"
+                  :onClick {:set state.menus.theme :to true}
+                  (node #menu-theme-row
+                    :use menu
+                    :with {:open state.menus.theme
+                      :width 220
+                      :placement below-end
+                      :items "{{map(['light', 'dark', 'system'], {title: t('theme.' + it), checked: state.theme == it, run: 'setTheme', with: {value: it}})}}"}))
+                (node :use toggleRow
+                  #pureBlackRow
+                  :with {:title "{{t('set.pureBlack')}}"
+                    :summary "{{t('set.pureBlackHint')}}"
+                    :bind state.pureBlack
+                    :on "{{state.pureBlack}}"})
+                (node :use toggleRow
+                  #reverseRow
+                  :with {:title "{{t('set.reverse')}}"
+                    :summary "{{t('set.reverseHint')}}"
+                    :bind state.reverseDays
+                    :on "{{state.reverseDays}}"})
+                (node :use toggleRow
+                  #skipRow
+                  :with {:title "{{t('set.skip')}}"
+                    :summary "{{t('set.skipHint')}}"
+                    :bind state.skipDays
+                    :on "{{state.skipDays}}"})
+                (node :use prefRow
+                  #firstDayRow
+                  :with {:title "{{t('set.firstDay')}}"
+                    :summary "{{formatDate(dateMs(addDays('2000-01-02', state.firstWeekday)), 'EEEE', 'utc')}}"}
+                  :isOpen "{{state.menus.firstDay}}"
+                  :onClick {:set state.menus.firstDay :to true}
+                  (node #menu-first-day-row
+                    :use menu
+                    :with {:open state.menus.firstDay
+                      :width 220
+                      :placement below-end
+                      :items "{{map([6, 0, 1], {title: formatDate(dateMs(addDays('2000-01-02', it)), 'EEEE', 'utc'), checked: state.firstWeekday == it, run: 'setFirstDay', with: {value: it}})}}"}))
+                (node :use prefRow
+                  #languageRow
+                  :with {:title "{{t('set.language')}}" :summary "{{t('lang.' + state.locale)}}"}
+                  :isOpen "{{state.menus.language}}"
+                  :onClick {:set state.menus.language :to true}
+                  (node #menu-language-row
+                    :use menu
+                    :with {:open state.menus.language
+                      :width 220
+                      :placement below-end
+                      :items "{{map(['en', 'es', 'fr'], {title: t('lang.' + it), checked: state.locale == it, run: 'setLocale', with: {value: it}})}}"})))
+              (column #settingsNotifications :style card :anchors {:left 0 :right 0} :fitContent height
+                (node #label-t-set-notifications
+                  :type label
+                  :text "{{t('set.notifications')}}"
+                  :style sectionTitle
+                  :anchors {:left 0 :right 0})
+                (node :use toggleRow
+                  #remindersRow
+                  :with {:title "{{t('set.reminders')}}"
+                    :summary "{{t('set.remindersHint')}}"
+                    :bind state.reminders
+                    :on "{{state.reminders}}"}))
+              (column #settingsData :style card :anchors {:left 0 :right 0} :fitContent height
+                (node #label-t-set-data
+                  :type label
+                  :text "{{t('set.data')}}"
+                  :style sectionTitle
+                  :anchors {:left 0 :right 0})
+                (node :use prefRow
+                  #exportRow
+                  :with {:title "{{t('set.export')}}" :summary "{{t('set.exportHint')}}"}
+                  :onClick exportAll)
+                (node :use prefRow
+                  #backupRow
+                  :with {:title "{{t('set.backup')}}" :summary "{{t('set.backupHint')}}"}
+                  :onClick backupAll)
+                (node :use prefRow
+                  #restoreRow
+                  :with {:title "{{t('set.restore')}}" :summary "{{t('set.restoreHint')}}"}
+                  :onClick restoreAll)
+                (node :use prefRow
+                  #syncRow
+                  :with {:title "{{t('set.sync')}}" :summary "{{computed.syncText}}"}
+                  :onClick syncNow
+                  (node :style textButton
+                    #accountButton
+                    :text "{{computed.signedIn ? t('signOut') : t('signIn')}}"
+                    :anchors {:right 8 :top 14}
+                    :onClick {:run "{{computed.signedIn ? 'signOut' : 'signIn'}}"})))
+              (node #settingsEnd :height 4 :color transparent)]
+            :fitContent height
+            :gap 12))
+        (node #settingsBar
+          :anchors {:left 0 :right 0 :top 0}
+          :height 56
+          :color @c.bar
+          :shadow {:y 2 :blur 4 :color "#00000030"}
+          (node #settingsBack
+            :style iconButton
+            :icon arrow-left
+            :label "{{t('back')}}"
+            :tooltip "{{t('back')}}"
+            :textColor @c.text
+            :onClick {:set state.settingsOpen :to false}
+            :anchors {:left 4 :top 8}
+            :mirror true)
+          (node #label-t-settings
+            :type label
+            :text "{{t('settings')}}"
+            :font title
+            :textColor @c.text
+            :anchors {:left 60 :top 16}
+            :fitText true
+            :role heading)))
+      (node :use quickPick
+        #palette
+        :with {:providers "{{[{placeholder: t('palettePlaceholder'), items: computed.palette, key: 'title'}]}}"
+          :color @c.card
+          :textColor @c.text
+          :dimColor @c.muted
+          :accent @c.primary
+          :highlight @c.selected
+          :field @c.bg})
+      (node :use toasts
+        #toasts
+        :with {:name toasts :width 344 :color @c.snack :textColor @c.snackText :accent @c.snackAction})))}

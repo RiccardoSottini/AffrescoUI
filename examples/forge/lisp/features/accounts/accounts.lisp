@@ -1,0 +1,108 @@
+{:$schema "../../../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "Forge's accounts: signing in to a document server (apps/server) with a device code, the settings kept in the person's own document ~settings and synced both ways, and the collaborators on a shared document with where each one is. The provider's URLs and client id are placeholders to edit (no client secret: a public client with PKCE or a device code); the host allows their origins (Accounts.cpp). The token stays in the system's secret store, never in the state."
+  :connections {:accountsServer {:url "ws://127.0.0.1:7420/live"
+      :auth {:flow device
+        :deviceUrl "https://id.example.com/oauth/device"
+        :tokenUrl "https://id.example.com/oauth/token"
+        :clientId forge
+        :issuer "https://id.example.com"
+        :scopes [openid profile]
+        :note "A placeholder provider: put your own here and in Accounts.cpp."}
+      :messages {:open {:type open :document "~settings"}
+        :revision (revision #"{{id}}" :set {:"/state/settings" "{{settings}}"})
+        :getDocument {:type getDocument}}
+      :reconnect true
+      :note "The person's settings: their own document on the server, ~settings."}
+    :accountsTeam {:url "ws://127.0.0.1:7420/live"
+      :auth accountsServer
+      :messages {:open {:type open :document "{{document}}"}
+        :presence {:type presence :where "{{where}}" :doing "{{doing}}"}}
+      :reconnect true
+      :note "Presence on the shared document the setting accounts.document names: who is here, and where."}}
+  :state {:accounts {:synced nil :revisions 0 :peers [] :where "" :menuOpen false}}
+  :settings {:accounts.document {:type string
+      :default forge
+      :title "Shared document"
+      :description "The document on the server whose collaborators the status bar shows."}}
+  :actions {:accountsSignIn {:title "Sign In"
+      :category Accounts
+      :icon user
+      :description "Sign in to the document server with a device code, to sync settings and see collaborators."
+      :do [{:signIn accountsServer
+          :onDone [{:run notify
+              :with {:severity info :message "{{'Signed in as ' + (auth.accountsServer.account ?? 'you')}}"}}]
+          :onError [{:run notify :with {:severity error :message "{{'Not signed in: ' + error.message}}"}}]}]}
+    :accountsSignOut {:title "Sign Out"
+      :category Accounts
+      :icon user
+      :description "Forget the sign-in; settings stay as they are on this machine."
+      :do [{:signOut accountsServer} {:set state.accounts.peers :to []} {:set state.accounts.synced :to nil}]}
+    :accountsMenu {:title Accounts
+      :category Accounts
+      :icon user
+      :description "Sign in, or see who else is on the shared document."
+      :do [{:if "{{auth.accountsServer.state == 'signedIn'}}"
+          :then [{:set state.accounts.menuOpen :to "{{!state.accounts.menuOpen}}"}]
+          :else [{:run accountsSignIn}]}]}
+    :"accountsServer:open" [{:request accountsServer.open}]
+    :"accountsServer:hello" [{:run accountsReceive :with {:settings "{{event.state.settings}}"}}]
+    :"accountsServer:document" [{:run accountsReceive :with {:settings "{{event.state.settings}}"}}]
+    :"accountsServer:committed" [{:request accountsServer.getDocument}]
+    :accountsReceive [{:if "{{settings != null}}"
+        :then [{:set state.accounts.synced :to "{{settings}}"} {:set state.settings :to "{{settings}}"}]}]
+    :accountsSend [{:if "{{connections.accountsServer.online && state.settings != state.accounts.synced}}"
+        :then [{:set state.accounts.revisions :to "{{state.accounts.revisions + 1}}"}
+          {:set state.accounts.synced :to "{{state.settings}}"}
+          {:request accountsServer.revision
+            :with (node #"{{'settings-' + text(state.accounts.revisions)}}" :settings "{{state.settings}}")}]}]
+    :"accountsTeam:open" [{:request accountsTeam.open :with {:document "{{settings.accounts.document}}"}}
+      {:set state.accounts.where :to ""}
+      {:run accountsPresence}]
+    :"accountsTeam:presence" [{:set state.accounts.peers :to "{{event.peers}}"}]
+    :"accountsTeam:closed" [{:set state.accounts.peers :to []}]
+    :accountsPresence [{:if "{{connections.accountsTeam.online && (computed.activeDoc.label ?? '') != state.accounts.where}}"
+        :then [{:set state.accounts.where :to "{{computed.activeDoc.label ?? ''}}"}
+          {:request accountsTeam.presence :with {:where "{{state.accounts.where}}" :doing editing}}]}]}
+  :watch {:state.settings accountsSend :state.activeGroup accountsPresence :state.groups accountsPresence}
+  :menus {:preferences {:accountsSignIn {:run accountsSignIn :group "3_accounts" :order 1}
+      :accountsSignOut {:run accountsSignOut :group "3_accounts" :order 2}}}
+  :components {:forgeAccountsStatus {:node (column #status-accounts-slot :width 44 :height 42
+        (label #status-accounts
+          :role button
+          :icon circle-user
+          :font iconsRail
+          :width 44
+          :height 42
+          :align center
+          :cursor hand
+          :label "{{auth.accountsServer.state == 'signedIn' ? (auth.accountsServer.account ?? 'Signed in') + (length(state.accounts.peers) > 1 ? ' · ' + text(length(state.accounts.peers)) + ' here' : '') : auth.accountsServer.state == 'signingIn' && auth.accountsServer.code != null ? 'Code ' + auth.accountsServer.code + ' at ' + auth.accountsServer.verificationUrl : 'Sign in'}}"
+          :textColor "{{auth.accountsServer.state == 'signedIn' ? '@color.text' : '@color.muted'}}"
+          :tooltip "{{auth.accountsServer.state == 'signedIn' ? (auth.accountsServer.account ?? 'Signed in') + (length(state.accounts.peers) > 1 ? ' · ' + text(length(state.accounts.peers)) + ' here' : '') : auth.accountsServer.state == 'signingIn' && auth.accountsServer.code != null ? 'Code ' + auth.accountsServer.code + ' at ' + auth.accountsServer.verificationUrl : 'Sign in'}}"
+          :hover {:textColor @color.text}
+          :onClick {:run accountsMenu})
+        (column #status-accounts-peers
+          :color @color.sideBar
+          :borderWidth 1
+          :borderColor @color.border
+          :overlay {:anchor "#status-accounts" :placement right :open state.accounts.menuOpen :dismiss outside}
+          (label #status-accounts-title
+            :text "{{'On ' + settings.accounts.document}}"
+            :padding 4
+            :fitText true
+            :textColor @color.statusText)
+          (label #status-accounts-peer
+            :repeat {:for p :in state.accounts.peers :index pi}
+            :padding 4
+            :fitText true
+            :textColor @color.statusText
+            :text "{{p.author + (p.where != '' ? ' — ' + p.where : '')}}")
+          (label #status-accounts-signout
+            :text "Sign Out"
+            :padding 4
+            :fitText true
+            :cursor hand
+            :textColor @color.statusText
+            :hover {:color @color.hover}
+            :onClick {:run accountsSignOut})))}}}

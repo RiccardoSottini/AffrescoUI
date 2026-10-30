@@ -10,6 +10,9 @@
 const affrescoPrograms = new Set(["affrescoui_launcher"]);
 const affrescoScreenName = /^[a-z][a-z0-9-]{0,63}$/;
 
+/** A template's folder, an example's JSON folder: the same words, in the same place, with /json after them. */
+const affrescoFolderName = /^[a-z][a-z0-9-]{0,63}\/json$/;
+
 /**
  * @brief Shows a line in the page's status bar.
  * @param text The line.
@@ -27,7 +30,7 @@ function affrescoStart() {
 	const program = document.body.dataset.program || "";
 	const folder = document.body.dataset.folder || "";
 	const screen = document.body.dataset.screen || "";
-	const named = affrescoScreenName.test(screen) && affrescoScreenName.test(folder);
+	const named = affrescoScreenName.test(screen) && affrescoFolderName.test(folder);
 	if (!affrescoPrograms.has(program) || (screen !== "" && !named)) {
 		affrescoStatus("This page names no program of the site.");
 		return;

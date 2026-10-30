@@ -1,0 +1,629 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's editing (features/editing): the find and replace bar, the caret's position in the status bar and the editor's settings, checked headless with tests/render/forge/folder open; nothing is saved: affrescoui_render_runner editing.scenarios.json",
+	"screen": "index.screen.lisp",
+	"scenarios": [
+		{
+			"name": "forge-merge-conflicts",
+			"note": "A file with conflict markers shows the conflict bar; Accept Current, Next and Accept Incoming each replace a conflict by the side kept, and the bar goes with the last",
+			"steps": [
+				{ "action": "openExplorerItem", "event": { "id": "README.md" } },
+				{ "expect": { "node": "#editor", "exists": true } },
+				{ "click": "#editor" },
+				{ "key": "mod+a" },
+				{ "type": "a" },
+				{ "key": "enter" },
+				{ "type": "<<<<<<< HEAD" },
+				{ "key": "enter" },
+				{ "type": "ours" },
+				{ "key": "enter" },
+				{ "type": "=======" },
+				{ "key": "enter" },
+				{ "type": "theirs" },
+				{ "key": "enter" },
+				{ "type": ">>>>>>> topic" },
+				{ "key": "enter" },
+				{ "type": "b" },
+				{ "key": "enter" },
+				{ "type": "<<<<<<< HEAD" },
+				{ "key": "enter" },
+				{ "type": "mine" },
+				{ "key": "enter" },
+				{ "type": "||||||| base" },
+				{ "key": "enter" },
+				{ "type": "old" },
+				{ "key": "enter" },
+				{ "type": "=======" },
+				{ "key": "enter" },
+				{ "type": "yours" },
+				{ "key": "enter" },
+				{ "type": ">>>>>>> topic" },
+				{ "key": "enter" },
+				{ "expect": { "node": "#conflict-summary", "property": "text", "is": "2 merge conflicts" } },
+				{ "key": "mod+home", "note": "the text's start on every system (Cmd+Up is macOS's only)" },
+				{ "key": "down" },
+				{ "expect": { "node": "#conflict-summary", "property": "text", "is": "Merge conflict 1 of 2" } },
+				{ "click": "#conflict-accept-current" },
+				{ "expect": { "state": "docs[0].text", "is": "a\nours\nb\n<<<<<<< HEAD\nmine\n||||||| base\nold\n=======\nyours\n>>>>>>> topic\n" } },
+				{ "expect": { "state": "docs[0].dirty", "is": true } },
+				{ "click": "#conflict-next" },
+				{ "wait": 50 },
+				{ "expect": { "node": "#conflict-summary", "property": "text", "is": "Merge conflict 1 of 1" } },
+				{ "click": "#conflict-accept-incoming" },
+				{ "expect": { "state": "docs[0].text", "is": "a\nours\nb\nyours\n" } },
+				{ "expect": { "node": "#conflict-bar", "property": "visible", "is": false } }
+			]
+		},
+		{
+			"name": "forge-find-opens-and-counts",
+			"note": "Cmd+F opens the find bar over the active editor with the focus in it; typing counts the matches",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#find-bar",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#find-text",
+						"property": "focused",
+						"is": true
+					}
+				},
+				{
+					"type": "in"
+				},
+				{
+					"expect": {
+						"state": "caret.matches",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"node": "#find-count",
+						"text": "3 matches"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-find-selects-first-then-next",
+			"note": "Typing selects the first match from the start; Enter and Shift+Enter step to the next and previous",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": true
+					}
+				},
+				{
+					"type": "in"
+				},
+				{
+					"expect": {
+						"state": "caret",
+						"is": {
+							"line": 1,
+							"column": 4,
+							"selected": 2,
+							"matches": 3
+						}
+					}
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "caret.line",
+						"is": 3
+					}
+				},
+				{
+					"key": "shift+enter"
+				},
+				{
+					"expect": {
+						"state": "caret.line",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-find-whole-word",
+			"note": "Whole word counts only whole words, and the count follows the option at once",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": true
+					}
+				},
+				{
+					"type": "in"
+				},
+				{
+					"click": "#find-word-box"
+				},
+				{
+					"expect": {
+						"state": "caret.matches",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#find-count",
+						"text": "No results"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-find-case-and-regex",
+			"note": "A regular expression matches by pattern; case-sensitive tells upper from lower case",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": true
+					}
+				},
+				{
+					"click": "#find-regex-box"
+				},
+				{
+					"click": "#find-text"
+				},
+				{
+					"type": "std|main"
+				},
+				{
+					"expect": {
+						"state": "caret.matches",
+						"is": 2
+					}
+				},
+				{
+					"click": "#find-regex-box"
+				},
+				{
+					"expect": {
+						"state": "caret.matches",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-find-case-sensitive",
+			"note": "Case-sensitive tells upper from lower case",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": true
+					}
+				},
+				{
+					"type": "STD"
+				},
+				{
+					"expect": {
+						"state": "caret.matches",
+						"is": 1
+					}
+				},
+				{
+					"click": "#find-case-box"
+				},
+				{
+					"expect": {
+						"state": "caret.matches",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#find-count",
+						"text": "No results"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-find-replace-all",
+			"note": "Cmd+Alt+F shows the replace row; Replace All changes every match in the file in one step and marks it dirty",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"key": "mod+alt+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#replace-row",
+						"exists": true
+					}
+				},
+				{
+					"type": "hello"
+				},
+				{
+					"expect": {
+						"state": "caret.matches",
+						"is": 1
+					}
+				},
+				{
+					"click": "#replace-text"
+				},
+				{
+					"type": "world"
+				},
+				{
+					"click": "#find-replace-all"
+				},
+				{
+					"expect": {
+						"state": "caret.matches",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-find-replace-one",
+			"note": "Replace changes the selected match and selects the next",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"key": "mod+alt+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": true
+					}
+				},
+				{
+					"type": "in"
+				},
+				{
+					"click": "#replace-text"
+				},
+				{
+					"type": "on"
+				},
+				{
+					"click": "#find-replace"
+				},
+				{
+					"expect": {
+						"state": "caret.matches",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-find-escape-closes",
+			"note": "Escape closes the find bar, clears the highlight and gives the focus back to the editor",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"key": "mod+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": true
+					}
+				},
+				{
+					"type": "in"
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#find-bar",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"state": "findBar.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#editor",
+						"property": "focused",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-find-only-for-files",
+			"note": "The find bar shows only over a file: on the settings page there is none",
+			"steps": [
+				{
+					"action": "openSettings"
+				},
+				{
+					"key": "mod+f"
+				},
+				{
+					"expect": {
+						"node": "#find-bar",
+						"exists": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-status-position",
+			"note": "The status bar shows the caret's line and column, and the selection's length",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#status-position",
+						"text": "Ln 1, Col 1"
+					}
+				},
+				{
+					"click": "#editor"
+				},
+				{
+					"key": "mod+end"
+				},
+				{
+					"expect": {
+						"node": "#status-position",
+						"text": "Ln 7, Col 1"
+					}
+				},
+				{
+					"key": "up"
+				},
+				{
+					"key": "shift+end"
+				},
+				{
+					"expect": {
+						"node": "#status-position",
+						"text": "Ln 6, Col 2 (1 selected)"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-status-position-goes-to-line",
+			"note": "A click on Ln, Col opens Go to Line",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"node": "#status-position",
+						"text": "Ln 1, Col 1"
+					}
+				},
+				{
+					"click": "#status-position"
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "quickPick.query",
+						"is": ":"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-word-wrap-toggle",
+			"note": "Alt+Z turns word wrap on and off, as a setting kept with the others",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"key": "alt+z"
+				},
+				{
+					"expect": {
+						"state": "settings",
+						"is": {
+							"editor.wordWrap": true
+						}
+					}
+				},
+				{
+					"key": "alt+z"
+				},
+				{
+					"expect": {
+						"state": "settings",
+						"is": {
+							"editor.wordWrap": false
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-editor-settings-listed",
+			"note": "The settings page lists the editor's settings: word wrap, bracket matching and indentation guides (the panel, hidden at first, would leave too little room)",
+			"steps": [
+				{
+					"action": "openSettings"
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "text",
+							"name": "Word wrap"
+						},
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "text",
+							"name": "Bracket matching"
+						},
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "text",
+							"name": "Indentation guides"
+						},
+						"exists": true
+					}
+				}
+			]
+		}
+	]
+}

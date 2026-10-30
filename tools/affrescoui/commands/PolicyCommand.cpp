@@ -8,6 +8,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/core/Log.hpp>
 #include <affresco/format/Rules.hpp>
+#include <affresco/notation/Notation.hpp>
 #include <affresco/vcs/Repository.hpp>
 
 #include <array>
@@ -39,7 +40,7 @@ json screenOf(const std::filesystem::path& policyFile, const json& policy) {
 	    policyFile.parent_path() / expect::string(policy.value("screen", json()), "screen");
 	setLogSink([](LogLevel, std::string_view) {});
 	try {
-		const Screen screen = Screen::fromString(readFile(file), file.parent_path());
+		const Screen screen = Screen::fromString(notation::jsonText(readFile(file), file), file.parent_path());
 		setLogSink({});
 		json document = json::parse(screen.documentJson());
 		document["state"] = json::parse(screen.stateJson());

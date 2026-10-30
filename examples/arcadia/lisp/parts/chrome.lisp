@@ -1,0 +1,482 @@
+{:$schema "../../../../schema/affrescoui-screen.schema.json"
+  :format affrescoui-screen
+  :version 2
+  :note "The bars around Arcadia's pages: the menu row (menus on the left, TV mode, notifications and the account with its wallet on the right), the big navigation with back and forward, and the bottom bar (add a game, the download in progress, friends and chat)."
+  :state {:menus {}
+    :accountOpen false
+    :bellOpen false
+    :addOpen false
+    :downloads [(node #skyward :doneGb 12.4 :status downloading :kind install)
+      (node #ember :doneGb 0 :status queued :sizeGb 1.2 :kind update)
+      (node #frostline :doneGb 0 :status queued :sizeGb 0.8 :kind update)
+      (node #thornwick :doneGb 0.2 :status paused :sizeGb 2.6 :kind update)
+      (node #lumen :doneGb 0.3 :status done :sizeGb 0.3 :kind update)
+      (node #quietorbit :doneGb 4.3 :status done :kind install)]
+    :notifications [{:icon download :text notice.update :game "Ember Vigil" :unread true}
+      {:icon user-plus :text notice.friend :who NightDrifter :unread true}
+      {:icon tag :text notice.sale :n 2 :unread false}]}
+  :computed {:download "{{find(state.downloads, it.status == 'downloading')}}"
+    :downloadGame "{{find(data.games, it.id == computed.download.id)}}"
+    :unread "{{count(state.notifications, it.unread)}}"}
+  :styles {:navTab {:type label
+      :font strong
+      :fitText true
+      :padding 16
+      :height 30
+      :radius 15
+      :cursor hand
+      :focusable true
+      :role tab
+      :hover {:textColor @color.bright :color @color.raised}}
+    :barButton {:type label
+      :font small
+      :fitText true
+      :padding 8
+      :cursor hand
+      :focusable true
+      :role button
+      :textColor @color.muted
+      :radius 2
+      :hover {:textColor @color.bright :color @color.hover}}}
+  :components {:menuRow {:note "The top row: the client's menus, then TV mode, notifications and the account on the right."
+      :params {}
+      :node {:type row
+        :height 30
+        :anchors {:left 0 :right 0}
+        :color @color.top
+        :alignItems center
+        :children [(node #menus
+            :use menuBar
+            :grow 1
+            :with {:height 30
+              :width 230
+              :open state.menus
+              :textColor @color.muted
+              :highlight @color.hover
+              :menus [{:name app
+                  :title "{{t('menu.app')}}"
+                  :items [{:title "{{t('menu.changeAccount')}}" :run signOut}
+                    {:title "{{t('menu.offline')}}" :run toggleOffline :checked "{{state.session.offline}}"}
+                    {:separator true}
+                    {:title "{{t('menu.updates')}}" :run checkUpdates}
+                    {:title "{{t('menu.backup')}}" :run openBackup}
+                    {:title "{{t('menu.settings')}}" :run openSettings :with {:page interface} :keyLabel "⌘,"}
+                    {:separator true}
+                    {:title "{{t('menu.exit')}}" :enabled false}]}
+                {:name view
+                  :title "{{t('menu.view')}}"
+                  :items [{:title "{{t('menu.tv')}}" :run enterCouch}
+                    {:separator true}
+                    {:title "{{t('nav.store')}}" :run showStore :keyLabel "⌘1"}
+                    {:title "{{t('nav.library')}}" :run showLibrary :keyLabel "⌘2"}
+                    {:title "{{t('nav.community')}}" :run showCommunity :keyLabel "⌘3"}
+                    {:title "{{t('menu.downloads')}}" :run showDownloads}
+                    {:separator true}
+                    {:title "{{t('menu.theme')}}" :run toggleTheme}
+                    {:title "{{t('menu.language')}}" :run nextLanguage}]}
+                {:name friends
+                  :title "{{t('menu.friends')}}"
+                  :items [{:title "{{t('menu.friendsList')}}" :run showCommunity}
+                    {:title "{{t('menu.addFriend')}}" :run addFriendDialog}
+                    {:separator true}
+                    {:title "{{t('presence.online')}}"
+                      :checked "{{state.user.status == 'online'}}"
+                      :run setStatus
+                      :with {:status online}}
+                    {:title "{{t('presence.away')}}"
+                      :checked "{{state.user.status == 'away'}}"
+                      :run setStatus
+                      :with {:status away}}
+                    {:title "{{t('presence.invisible')}}"
+                      :checked "{{state.user.status == 'invisible'}}"
+                      :run setStatus
+                      :with {:status invisible}}
+                    {:title "{{t('presence.offline')}}"
+                      :checked "{{state.user.status == 'offline'}}"
+                      :run setStatus
+                      :with {:status offline}}]}
+                {:name games
+                  :title "{{t('menu.games')}}"
+                  :items [{:title "{{t('menu.viewLibrary')}}" :run showLibrary}
+                    {:title "{{t('menu.activate')}}" :run openCode :with {:kind activate}}
+                    {:title "{{t('menu.redeem')}}" :run openCode :with {:kind redeem}}
+                    {:title "{{t('menu.addOther')}}" :run openAddGame}]}
+                {:name help
+                  :title "{{t('menu.help')}}"
+                  :items [{:title "{{t('menu.support')}}" :run showInfo :with {:kind support}}
+                    {:title "{{t('menu.privacy')}}" :run showInfo :with {:kind privacy}}
+                    {:title "{{t('menu.system')}}" :run showInfo :with {:kind system}}
+                    {:separator true}
+                    {:title "{{t('menu.about')}}" :run showInfo :with {:kind about}}]}]})
+          (node #tv-button
+            :style barButton
+            :icon sofa
+            :text ""
+            :tooltip "{{t('menu.tv')}}"
+            :label "{{t('menu.tv')}}"
+            :onClick enterCouch)
+          (node #bell
+            :style barButton
+            :icon bell
+            :text "{{computed.unread > 0 ? text(computed.unread) : ''}}"
+            :color "{{computed.unread > 0 ? '@color.play' : 'transparent'}}"
+            :textColor "{{computed.unread > 0 ? '#ffffff' : '@color.muted'}}"
+            :label "{{t('notice.title', { n: computed.unread })}}"
+            :isOpen "{{state.bellOpen}}"
+            :onClick {:toggle state.bellOpen}
+            {:use menu
+              :with {:open state.bellOpen
+                :width 330
+                :icons true
+                :placement below-end
+                :items "{{map(state.notifications, { title: t(it.text, { game: it.game ?? '', who: it.who ?? '', n: it.n ?? 0 }), icon: it.icon, run: 'openNotice', with: { i: index } })}}"}})
+          (node #account
+            :type row
+            :height 30
+            :width 168
+            :gap 6
+            :alignItems center
+            :focusable true
+            :role button
+            :cursor hand
+            :isOpen "{{state.accountOpen}}"
+            :label "{{t('account.label', { name: state.user.name })}}"
+            :hover {:color @color.hover}
+            :onClick {:toggle state.accountOpen}
+            {:type panel :width 4 :height 1 :color transparent}
+            (node #account-avatar
+              :type image
+              :file "{{'../assets/art/avatars/' + state.user.avatar + '.svg'}}"
+              :width 22
+              :height 22
+              :fit cover
+              :borderWidth 1
+              :borderColor @color.online)
+            (node #account-name
+              :type label
+              :font small
+              :text "{{state.user.name}}"
+              :textColor @color.online
+              :fitText true)
+            (node #account-wallet
+              :type label
+              :font small
+              :text "{{formatCurrency(state.user.wallet, 'EUR')}}"
+              :textColor @color.muted
+              :fitText true)
+            (node #account-chevron
+              :type label
+              :font small
+              :icon chevron-down
+              :text ""
+              :textColor @color.muted
+              :fitText true)
+            {:use menu
+              :with {:open state.accountOpen
+                :width 240
+                :placement below-end
+                :items [{:title "{{t('account.profile')}}" :run showProfile}
+                  {:title "{{t('account.details')}}" :run openSettings :with {:page account}}
+                  {:title "{{t('account.wallet', { amount: formatCurrency(state.user.wallet, 'EUR') })}}"
+                    :run openCode
+                    :with {:kind redeem}}
+                  {:title "{{t('account.language')}}" :run nextLanguage}
+                  {:separator true}
+                  {:title "{{t('account.signOut')}}" :run signOut}]}})]}}
+    :navRow {:note "The navigation: back and forward on the left, then discover, my games, friends and the profile as one segmented group in the middle, the current one lit."
+      :params {}
+      :node {:type row
+        :height 50
+        :anchors {:left 0 :right 0}
+        :color @color.top
+        :alignItems center
+        :children [{:type panel :width 12 :height 1 :color transparent}
+          (node #nav-back
+            :type label
+            :font nav
+            :icon chevron-left
+            :mirror true
+            :text ""
+            :fitText true
+            :padding 6
+            :textColor "{{state.at > 0 ? '@color.text' : '@color.dim'}}"
+            :focusable true
+            :role button
+            :label "{{t('nav.back')}}"
+            :tooltip "{{t('nav.back')}}"
+            :cursor hand
+            :onClick back
+            :hover {:textColor @color.bright})
+          (node #nav-forward
+            :type label
+            :font nav
+            :icon chevron-right
+            :mirror true
+            :text ""
+            :fitText true
+            :padding 6
+            :textColor "{{state.at < length(state.nav) - 1 ? '@color.text' : '@color.dim'}}"
+            :focusable true
+            :role button
+            :label "{{t('nav.forward')}}"
+            :tooltip "{{t('nav.forward')}}"
+            :cursor hand
+            :onClick forward
+            :hover {:textColor @color.bright})
+          {:type panel :grow 1 :height 1 :color transparent}
+          (node #nav-tabs
+            :type row
+            :height 38
+            :fitContent width
+            :gap 2
+            :radius 19
+            :alignItems center
+            :color @color.side
+            :arrows horizontal
+            :role tablist
+            {:type panel :width 2 :height 1 :color transparent}
+            (node :repeat {:for tab :in "{{['store', 'library', 'community', 'profile']}}"}
+              #"{{'nav-' + tab}}"
+              :style navTab
+              :text "{{tab == 'profile' ? state.user.name : t('nav.' + tab)}}"
+              :textColor "{{computed.here.tab == tab ? '@color.onAccent' : '@color.text'}}"
+              :color "{{computed.here.tab == tab ? '@color.accent' : 'transparent'}}"
+              :hover {:textColor "{{computed.here.tab == tab ? '@color.onAccent' : '@color.bright'}}"
+                :color "{{computed.here.tab == tab ? '@color.accent' : '@color.raised'}}"}
+              :selected "{{computed.here.tab == tab}}"
+              :onClick {:run go :with {:tab "{{tab}}" :page home :id nil}})
+            {:type panel :width 2 :height 1 :color transparent})
+          {:type panel :grow 1 :height 1 :color transparent}
+          {:type panel :width 80 :height 1 :color transparent}]}}
+    :bottomBar {:note "The bottom bar: add a game, the download in progress (or a link to the downloads) and friends and chat."
+      :params {}
+      :node {:type row
+        :height 40
+        :anchors {:left 0 :right 0}
+        :alignItems center
+        :gradient {:kind linear :stops [@color.sideTop @color.top]}
+        :borderWidth 0
+        :children [{:type panel :width 8 :height 1 :color transparent}
+          (node #add-game
+            :style barButton
+            :font default
+            :icon package-plus
+            :text "{{t('bottom.add')}}"
+            :isOpen "{{state.addOpen}}"
+            :onClick {:toggle state.addOpen}
+            {:use menu
+              :with {:open state.addOpen
+                :width 260
+                :placement above
+                :items [{:title "{{t('menu.addOther')}}" :run openAddGame}
+                  {:title "{{t('menu.activate')}}" :run openCode :with {:kind activate}}
+                  {:title "{{t('bottom.browse')}}" :run showStore}]}})
+          {:type panel :grow 1 :height 1 :color transparent}
+          (node #downloads-status
+            :type row
+            :width 340
+            :height 34
+            :gap 10
+            :alignItems center
+            :focusable true
+            :role button
+            :cursor hand
+            :radius 2
+            :hover {:color @color.hover}
+            :onClick showDownloads
+            :label "{{computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}"
+            {:type label
+              :icon download
+              :text ""
+              :textColor "{{computed.download ? '@color.accent' : '@color.muted'}}"
+              :fitText true
+              :padding 6}
+            {:type column
+              :grow 1
+              :height 30
+              :gap 5
+              :children [(node #downloads-text
+                  :type label
+                  :font small
+                  :anchors {:left 0 :right 0}
+                  :height 15
+                  :textColor @color.text
+                  :text "{{computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}")
+                (node :when "{{computed.download != null}}"
+                  #downloads-track
+                  :anchors {:left 0 :right 0}
+                  :height 4
+                  :color @color.raised
+                  :radius 2
+                  (node #downloads-fill
+                    :anchors {:left 0 :top 0 :bottom 0}
+                    :radius 2
+                    :width "{{text(floor(100 * computed.download.doneGb / computed.downloadGame.sizeGb)) + '%'}}"
+                    :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]}))]})
+          {:type panel :grow 1 :height 1 :color transparent}
+          (node #friends-chat
+            :style barButton
+            :font default
+            :icon message-square
+            :text "{{t('bottom.friends')}}"
+            :onClick {:run showCommunity})
+          {:type panel :width 8 :height 1 :color transparent}]}}
+    :comingSoon {:params {}
+      :node {:fill true
+        :color @color.page
+        :children [{:type label
+            :font heading
+            :text "{{t('nav.' + computed.here.tab)}}"
+            :textColor @color.muted
+            :align center
+            :fill true}]}}}
+  :strings {:en {:menu.app Arcadia
+      :menu.view View
+      :menu.friends Friends
+      :menu.games Games
+      :menu.help Help
+      :menu.changeAccount "Change Account…"
+      :menu.offline "Offline Mode"
+      :menu.updates "Check for Client Updates…"
+      :menu.backup "Back Up and Restore Games…"
+      :menu.settings Settings
+      :menu.exit Exit
+      :menu.tv "Couch mode"
+      :menu.downloads Downloads
+      :menu.theme "Dark or Light"
+      :menu.language "Next Language"
+      :menu.friendsList "View Friends List"
+      :menu.addFriend "Add a Friend…"
+      :menu.viewLibrary "Show my games"
+      :menu.activate "Activate a Product…"
+      :menu.redeem "Redeem a gift code…"
+      :menu.addOther "Add a Game from This Computer…"
+      :menu.support "Arcadia Support"
+      :menu.privacy "Privacy Policy"
+      :menu.system "System Information"
+      :menu.about "About Arcadia"
+      :presence.online Online
+      :presence.away Away
+      :presence.invisible Invisible
+      :presence.offline Offline
+      :nav.store Discover
+      :nav.library "My games"
+      :nav.community Friends
+      :nav.profile Profile
+      :nav.back Back
+      :nav.forward Forward
+      :notice.title "{n, plural, =0 {Notifications} one {Notifications: {n} new} other {Notifications: {n} new}}"
+      :notice.update "{game}: an update is ready"
+      :notice.friend "{who} accepted your friend request"
+      :notice.sale "{n, plural, one {An item} other {{n} items}} on your wishlist on sale"
+      :account.label "Account: {name}"
+      :account.profile "View my profile"
+      :account.details "Account details"
+      :account.wallet "View my wallet ({amount})"
+      :account.language "Change language"
+      :account.signOut "Sign out"
+      :bottom.add "Add a Game"
+      :bottom.browse "Discover games"
+      :bottom.friends Messages
+      :bottom.manage "Manage Downloads"
+      :bottom.downloading "Downloading {title}: {percent}%"}
+    :es {:menu.app Arcadia
+      :menu.view Ver
+      :menu.friends Amigos
+      :menu.games Juegos
+      :menu.help Ayuda
+      :menu.changeAccount "Cambiar de cuenta…"
+      :menu.offline "Modo sin conexión"
+      :menu.updates "Buscar actualizaciones del cliente…"
+      :menu.backup "Copia de seguridad y restauración de juegos…"
+      :menu.settings Ajustes
+      :menu.exit Salir
+      :menu.tv "Modo sofá"
+      :menu.downloads Descargas
+      :menu.theme "Oscuro o claro"
+      :menu.language "Siguiente idioma"
+      :menu.friendsList "Ver lista de amigos"
+      :menu.addFriend "Añadir un amigo…"
+      :menu.viewLibrary "Ver mis juegos"
+      :menu.activate "Activar un producto…"
+      :menu.redeem "Canjear un código regalo…"
+      :menu.addOther "Añadir un juego de este equipo…"
+      :menu.support "Soporte de Arcadia"
+      :menu.privacy "Política de privacidad"
+      :menu.system "Información del sistema"
+      :menu.about "Acerca de Arcadia"
+      :presence.online "En línea"
+      :presence.away Ausente
+      :presence.invisible Invisible
+      :presence.offline Desconectado
+      :nav.store Descubrir
+      :nav.library "Mis juegos"
+      :nav.community Amigos
+      :nav.profile Perfil
+      :nav.back "Atrás"
+      :nav.forward Adelante
+      :notice.title "{n, plural, =0 {Notificaciones} one {Notificaciones: {n} nueva} other {Notificaciones: {n} nuevas}}"
+      :notice.update "{game}: hay una actualización lista"
+      :notice.friend "{who} ha aceptado tu solicitud de amistad"
+      :notice.sale "{n, plural, one {Un artículo} other {{n} artículos}} de tu lista de deseos en oferta"
+      :account.label "Cuenta: {name}"
+      :account.profile "Ver mi perfil"
+      :account.details "Detalles de la cuenta"
+      :account.wallet "Ver mi monedero ({amount})"
+      :account.language "Cambiar idioma"
+      :account.signOut "Cerrar sesión"
+      :bottom.add "Añadir un juego"
+      :bottom.browse "Descubrir juegos"
+      :bottom.friends Mensajes
+      :bottom.manage "Gestionar descargas"
+      :bottom.downloading "Descargando {title}: {percent}%"}
+    :fr {:menu.app Arcadia
+      :menu.view Affichage
+      :menu.friends Amis
+      :menu.games Jeux
+      :menu.help Aide
+      :menu.changeAccount "Changer de compte…"
+      :menu.offline "Mode hors ligne"
+      :menu.updates "Rechercher les mises à jour du client…"
+      :menu.backup "Sauvegarder et restaurer les jeux…"
+      :menu.settings "Paramètres"
+      :menu.exit Quitter
+      :menu.tv "Mode canapé"
+      :menu.downloads "Téléchargements"
+      :menu.theme "Sombre ou clair"
+      :menu.language "Langue suivante"
+      :menu.friendsList "Afficher la liste d'amis"
+      :menu.addFriend "Ajouter un ami…"
+      :menu.viewLibrary "Afficher mes jeux"
+      :menu.activate "Activer un produit…"
+      :menu.redeem "Utiliser un code cadeau…"
+      :menu.addOther "Ajouter un jeu depuis cet ordinateur…"
+      :menu.support "Assistance Arcadia"
+      :menu.privacy "Politique de confidentialité"
+      :menu.system "Informations système"
+      :menu.about "À propos d'Arcadia"
+      :presence.online "En ligne"
+      :presence.away Absent
+      :presence.invisible Invisible
+      :presence.offline "Hors ligne"
+      :nav.store "Découvrir"
+      :nav.library "Mes jeux"
+      :nav.community Amis
+      :nav.profile Profil
+      :nav.back Retour
+      :nav.forward Suivant
+      :notice.title "{n, plural, =0 {Notifications} one {Notifications : {n} nouvelle} other {Notifications : {n} nouvelles}}"
+      :notice.update "{game} : une mise à jour est prête"
+      :notice.friend "{who} a accepté votre demande d'ami"
+      :notice.sale "{n, plural, one {Un article} other {{n} articles}} de votre liste de souhaits en promotion"
+      :account.label "Compte : {name}"
+      :account.profile "Afficher mon profil"
+      :account.details "Détails du compte"
+      :account.wallet "Afficher mon portefeuille ({amount})"
+      :account.language "Changer de langue"
+      :account.signOut "Se déconnecter"
+      :bottom.add "Ajouter un jeu"
+      :bottom.browse "Découvrir des jeux"
+      :bottom.friends Messages
+      :bottom.manage "Gérer les téléchargements"
+      :bottom.downloading "Téléchargement de {title} : {percent} %"}}}

@@ -64,10 +64,10 @@ def programs(build):
         else:
             print(f"skipped {name}: {executable} isn't built")
     host = os.path.join(build, "affrescoui_launcher")
-    for screen in sorted(glob.glob(os.path.join(ROOT, "examples", "*", "*.screen.json"))):
+    for screen in sorted(glob.glob(os.path.join(ROOT, "examples", "*", "json", "*.screen.json"))):
         name = "host " + os.path.relpath(screen, os.path.join(ROOT, "examples"))
         found.append((name, host, [os.path.relpath(screen, ROOT)], WINDOW))
-    for app in sorted(glob.glob(os.path.join(ROOT, "examples", "*", "app.json"))):
+    for app in sorted(glob.glob(os.path.join(ROOT, "examples", "*", "json", "app.json"))):
         name = "host " + os.path.relpath(app, os.path.join(ROOT, "examples"))
         found.append((name, host, [os.path.relpath(app, ROOT)], WINDOW))
     return found

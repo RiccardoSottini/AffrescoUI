@@ -1,0 +1,597 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screen": "index.screen.lisp",
+	"note": "Every control of Orrery, clicked as a person would: toolbars, keys, the sky's bar, the render options, the browser's tabs, the notes and the timeline.",
+	"scenarios": [
+		{
+			"name": "toolbar-time-buttons",
+			"steps": [
+				{
+					"click": {
+						"role": "button",
+						"name": "Play"
+					}
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Pause"
+					}
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Faster"
+					}
+				},
+				{
+					"expect": {
+						"state": "speed",
+						"is": 0.1
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Slower"
+					}
+				},
+				{
+					"expect": {
+						"state": "speed",
+						"is": 0.01
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Reverse"
+					}
+				},
+				{
+					"expect": {
+						"state": "speed",
+						"is": -0.01
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Reverse"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Real time"
+					}
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Pause"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Next event"
+					}
+				},
+				{
+					"wait": 3000
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 29.5
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Back to day 0"
+					}
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				}
+			],
+			"note": "Every time button in the toolbar does what its name says: play and pause, ten times faster and slower, reverse, real time, the next event and back to day 0."
+		},
+		{
+			"name": "toolbar-view-buttons",
+			"steps": [
+				{
+					"click": {
+						"role": "button",
+						"name": "Orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "showOrbits",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Orbits"
+					}
+				},
+				{
+					"expect": {
+						"state": "showOrbits",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Labels"
+					}
+				},
+				{
+					"expect": {
+						"state": "showLabels",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Labels"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Browser"
+					}
+				},
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Browser"
+					}
+				},
+				{
+					"expect": {
+						"state": "showBrowser",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Mark the selected body"
+					}
+				},
+				{
+					"expect": {
+						"state": "markers.length",
+						"is": 1
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Render options"
+					}
+				},
+				{
+					"expect": {
+						"state": "renderOpen",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Go to the selected body"
+					}
+				},
+				{
+					"wait": 3000
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Centre the selected body"
+					}
+				},
+				{
+					"wait": 3000
+				}
+			],
+			"note": "The toolbar's orbits, labels and browser toggles, the marker, render options, go to and centre."
+		},
+		{
+			"name": "keys-with-mod",
+			"steps": [
+				{
+					"key": "mod+p"
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+p"
+				},
+				{
+					"expect": {
+						"state": "playing",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+n"
+				},
+				{
+					"wait": 3000
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 29.5
+					}
+				},
+				{
+					"key": "mod+0"
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				}
+			],
+			"note": "Ctrl+P plays and pauses, Ctrl+N goes to the next event, Ctrl+0 back to day 0."
+		},
+		{
+			"name": "sky-bar-buttons",
+			"steps": [
+				{
+					"action": "skyPress"
+				},
+				{
+					"action": "skyDrag",
+					"event": {
+						"dx": 900,
+						"dy": -46
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Mars"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Constellation lines"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyLayers.lines",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Constellation names"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyLayers.names",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Azimuthal grid"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyLayers.grid",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Ground"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyLayers.ground",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Cardinal points"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyLayers.cardinal",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Atmosphere"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyLayers.atmosphere",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Planet labels"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyLayers.labels",
+						"is": false
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Centre on the selected body"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyTrack",
+						"is": "mars"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "The chart from above"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyMode",
+						"is": "above"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "The sky from the ground"
+					}
+				},
+				{
+					"expect": {
+						"state": "skyMode",
+						"is": "ground"
+					}
+				}
+			],
+			"note": "Every button of the sky's layer bar toggles its layer, centring keeps the selected body in the middle, and the two modes switch."
+		},
+		{
+			"name": "render-dialog-toggles",
+			"steps": [
+				{
+					"key": "mod+comma"
+				},
+				{
+					"click": "#render-orbits-toggle"
+				},
+				{
+					"expect": {
+						"state": "showOrbits",
+						"is": false
+					}
+				},
+				{
+					"click": "#render-labels-toggle"
+				},
+				{
+					"expect": {
+						"state": "showLabels",
+						"is": false
+					}
+				},
+				{
+					"click": "#render-glow-toggle"
+				},
+				{
+					"expect": {
+						"state": "showGlow",
+						"is": false
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"expect": {
+						"state": "renderOpen",
+						"is": false
+					}
+				}
+			],
+			"note": "The render options dialog's orbits, labels and glow switches, and Escape closes it."
+		},
+		{
+			"name": "browser-tabs",
+			"steps": [
+				{
+					"key": "b"
+				},
+				{
+					"click": [668, 117]
+				},
+				{
+					"expect": {
+						"state": "browserTab",
+						"is": "places"
+					}
+				},
+				{
+					"click": [726, 117]
+				},
+				{
+					"expect": {
+						"state": "browserTab",
+						"is": "eclipses"
+					}
+				}
+			],
+			"note": "The browser's Places tab opens on a click."
+		},
+		{
+			"name": "notes-on-the-chart",
+			"steps": [
+				{
+					"click": {
+						"role": "button",
+						"name": "The chart from above"
+					}
+				},
+				{
+					"click": "#note-text"
+				},
+				{
+					"type": "Look"
+				},
+				{
+					"click": "#add-note"
+				},
+				{
+					"expect": {
+						"state": "notes.length",
+						"is": 2
+					}
+				},
+				{
+					"click": "#note-text"
+				},
+				{
+					"type": "Again"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"expect": {
+						"state": "notes.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "notes[2].text",
+						"is": "Again"
+					}
+				}
+			],
+			"note": "A note typed in the field goes on the chart with the add button."
+		},
+		{
+			"name": "lock-a-kind-of-event",
+			"note": "A click on an event in the timeline goes to its day; L locks that kind, and its events no longer answer a click.",
+			"steps": [
+				{
+					"click": [206, 614]
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 29.5
+					}
+				},
+				{
+					"action": "rewind"
+				},
+				{
+					"click": [117, 614]
+				},
+				{
+					"expect": {
+						"state": "locked",
+						"is": ["eclipse"]
+					}
+				},
+				{
+					"click": [206, 614]
+				},
+				{
+					"expect": {
+						"state": "time",
+						"is": 0
+					}
+				},
+				{
+					"click": [117, 614]
+				},
+				{
+					"expect": {
+						"state": "locked",
+						"is": []
+					}
+				}
+			]
+		}
+	]
+}

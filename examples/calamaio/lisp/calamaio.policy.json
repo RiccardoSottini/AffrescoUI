@@ -1,0 +1,41 @@
+{
+	"screen": "calamaio.screen.lisp",
+	"cases": [
+		{
+			"name": "the studio changes the look",
+			"revision": { "author": "studio", "set": { "#root/color": "#000000" } },
+			"expect": "allow"
+		},
+		{
+			"name": "an agent's change waits for review",
+			"revision": { "author": "agent/claude-code", "set": { "#root/color": "#000000" } },
+			"expect": "ask",
+			"reason": "no rule allows"
+		},
+		{
+			"name": "an agent's new key binding is always asked",
+			"revision": { "author": "agent/claude-code", "add": { "/keys/ctrl+c t": "toggle-splash" } },
+			"expect": "ask"
+		},
+		{
+			"name": "an agent's new command is always asked",
+			"revision": {
+				"author": "agent/claude-code",
+				"add": { "/actions/policyExample": [{ "set": "state.theme", "to": "inchiostro" }] }
+			},
+			"expect": "ask"
+		},
+		{
+			"name": "no one changes the echo area",
+			"revision": { "author": "studio", "set": { "#echoArea/height": 40 } },
+			"expect": "deny",
+			"reason": "#echoArea"
+		},
+		{
+			"name": "no one changes the permissions",
+			"revision": { "author": "studio", "set": { "/permissions/allow": ["*"] } },
+			"expect": "deny",
+			"reason": "can't change \"permissions\""
+		}
+	]
+}

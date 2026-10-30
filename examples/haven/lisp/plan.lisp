@@ -1,0 +1,212 @@
+{:note "Haven's floor plan and media, included by index.screen.json: the rooms on a canvas (drag to move, click to pick), the picked room's lights, the speaker's player, and the dialog that colours a light."
+  :state {:planView {:camera {:x -40 :y -40 :zoom 1} :selection [] :guides {:vertical [] :horizontal []}}
+    :planRooms [(node #r0 :x 0 :y 0 :width 300 :height 200)
+      (node #r1 :x 300 :y 0 :width 180 :height 200)
+      (node #r2 :x 0 :y 260 :width 240 :height 180)
+      (node #r3 :x 240 :y 260 :width 240 :height 180)]
+    :light 0
+    :colourOpen false
+    :media {:track 0 :volume 40}
+    :tracks [{:title "Paper Lanterns" :artist "The Quiet Rooms"}
+      {:title "Slow Tide" :artist "Marisol Grey"}
+      {:title "Window Seat" :artist "Northbound Trio"}
+      {:title "Copper Kettle" :artist "The Quiet Rooms"}]}
+  :computed {:planItems "{{map(state.planRooms, merge(it, { color: computed.themeNow == 'dark' ? '#1a2340' : '#ffffff', borderColor: indexOf(['r0', 'r1', 'r2', 'r3'], it.id) == state.room ? (computed.themeNow == 'dark' ? '#22d3ee' : '#0891b2') : (computed.themeNow == 'dark' ? '#3a4363' : '#94a3b8'), borderWidth: indexOf(['r0', 'r1', 'r2', 'r3'], it.id) == state.room ? 3 : 2, radius: 4, text: state.rooms[indexOf(['r0', 'r1', 'r2', 'r3'], it.id)].name, textSize: 16, textColor: computed.themeNow == 'dark' ? '#e5e9f5' : '#0f172a' }))}}"
+    :track "{{state.tracks[state.media.track]}}"
+    :speaker "{{find(state.devices, it.id == 'speaker')}}"}
+  :actions {:openColour [{:note "with: i, a light of the room: opens the dialog that colours it"}
+      {:set state.light :to "{{i}}"}
+      {:set state.colourOpen :to true}]
+    :moveRooms [{:note "with: moved, the canvas's items after a drag or a nudge"}
+      {:forEach "{{moved}}"
+        :as item
+        :do [{:set state.planRooms
+            :to "{{map(state.planRooms, it.id == item.id ? merge(it, { x: item.x, y: item.y, width: item.width, height: item.height }) : it)}}"}]}]
+    :planPick [{:note "with: view, the canvas's view: one room chosen becomes the room the other pages show"}
+      {:if "{{length(view.selection) == 1 && indexOf(['r0', 'r1', 'r2', 'r3'], view.selection[0]) >= 0}}"
+        :then [{:set state.room :to "{{indexOf(['r0', 'r1', 'r2', 'r3'], view.selection[0])}}"}]}]
+    :stepTrack [{:note "with: by, -1 or 1"}
+      {:set state.media.track :to "{{(state.media.track + by + length(state.tracks)) % length(state.tracks)}}"}]
+    :playPause {:title "Play or pause the speaker"
+      :category Media
+      :icon play
+      :do [{:run deviceCall :with {:i "{{indexOf(map(state.devices, it.id), 'speaker')}}"}}]}
+    :nextTrack {:title "Next track" :category Media :icon skip-forward :do [{:run stepTrack :with {:by 1}}]}
+    :previousTrack {:title "Previous track" :category Media :icon skip-back :do [{:run stepTrack :with {:by -1}}]}}
+  :components {:planPage {:note "The floor plan: the rooms on a canvas, and beside it the picked room and the speaker"
+      :params {}
+      :node {:color transparent
+        :children [(node #planTitle :style pageTitle :icon map :text " {{t('page.plan')}}")
+          (node #planSummary :style caption :text "{{t('plan.summary')}}" :anchors {:left 32 :top 66})
+          (node #planCard :style card :anchors {:left 32 :right 336 :top 104 :bottom 24}
+            (node #plan
+              :type canvas
+              :fill 8
+              :bind state.planView
+              :focusable true
+              :rulers false
+              :grid 20
+              :color @field
+              :accentColor @accent
+              :label "{{t('plan.label')}}"
+              :items "{{computed.planItems}}"
+              :onTransform {:run moveRooms :with {:moved "{{event.items}}"}}
+              :onChange {:run planPick :with {:view "{{event.value}}"}}))
+          (node #planRoomCard
+            :style card
+            :anchors {:right 32 :top 104 :bottom 236}
+            :width 288
+            :role group
+            :label "{{computed.room.name}}"
+            (node #planRoomName :style cardTitle :text "{{computed.room.name}}")
+            (node #planRoomSummary
+              :style caption
+              :anchors {:left 24 :top 46}
+              :text "{{t('plan.room', { temp: computed.room.temp, lights: computed.lightsOn })}}")
+            (node #planLights
+              :type stack
+              :anchors {:left 16 :right 16 :top 76 :bottom 60}
+              :gap 4
+              :scroll vertical
+              :role list
+              (node #planLight
+                :repeat {:for light :in computed.room.lights :index i}
+                :type label
+                :icon "{{light.on ? 'lightbulb' : 'lightbulb-off'}}"
+                :text "  {{light.name}}"
+                :anchors {:left 0 :right 0}
+                :height 32
+                :padding 10
+                :radius 6
+                :align {:horizontal start :vertical center}
+                :color "{{light.on ? '@warmSoft' : '@raised'}}"
+                :hover {:color "{{light.on ? '@warmSoft' : '@raisedHover'}}"}
+                :textColor "{{light.on ? '@text' : '@muted'}}"
+                :cursor hand
+                :focusable true
+                :role switch
+                :checked "{{light.on}}"
+                :label "{{light.name}}"
+                :onClick [{:toggle "state.rooms[state.room].lights[i].on"} {:set state.scene :to ""}]))
+            (node #planShow
+              :style button
+              :text "{{t('plan.show')}}"
+              :anchors {:left 16 :right 16 :bottom 16}
+              :height 32
+              :onClick goHome))
+          (node #mediaCard :use mediaCard :anchors {:right 32 :bottom 24} :width 288 :height 196)]}}
+    :mediaCard {:note "The speaker: the track, play and pause (a device call), previous and next, and the volume"
+      :params {}
+      :node {:style card
+        :role group
+        :label "{{t('media.title')}}"
+        :children [(node #mediaTitle :style cardTitle :icon speaker :text " {{t('media.title')}}")
+          (node #mediaState
+            :style caption
+            :anchors {:right 24 :top 24}
+            :text "{{computed.speaker.busy ? t('device.waiting') : t('device.speaker.' + (computed.speaker.on ? 'on' : 'off'))}}"
+            :textColor "{{computed.speaker.on ? '@accent' : '@muted'}}")
+          (node #mediaTrack
+            :type label
+            :text "{{computed.track.title}}"
+            :textColor @text
+            :anchors {:left 24 :right 24 :top 54}
+            :height 20
+            :align {:horizontal start :vertical center}
+            :live polite)
+          (node #mediaArtist :style caption :text "{{computed.track.artist}}" :anchors {:left 24 :top 76})
+          (node #mediaButtons
+            :type row
+            :anchors {:left 24 :right 24 :top 100}
+            :height 36
+            :gap 8
+            :role toolbar
+            :arrows horizontal
+            (node #mediaPrevious
+              :style button
+              :icon skip-back
+              :text ""
+              :grow 1
+              :anchors {:top 0 :bottom 0}
+              :label "{{t('media.previous')}}"
+              :tooltip "{{t('media.previous')}}"
+              :onClick previousTrack)
+            (node #mediaPlay
+              :style choiceOn
+              :icon "{{computed.speaker.on ? 'pause' : 'play'}}"
+              :text ""
+              :grow 1
+              :anchors {:top 0 :bottom 0}
+              :label "{{computed.speaker.on ? t('media.pause') : t('media.play')}}"
+              :tooltip "{{computed.speaker.on ? t('media.pause') : t('media.play')}}"
+              :onClick playPause)
+            (node #mediaNext
+              :style button
+              :icon skip-forward
+              :text ""
+              :grow 1
+              :anchors {:top 0 :bottom 0}
+              :label "{{t('media.next')}}"
+              :tooltip "{{t('media.next')}}"
+              :onClick nextTrack))
+          (node #mediaVolumeIcon
+            :type label
+            :icon volume-2
+            :text ""
+            :textColor @muted
+            :anchors {:left 24 :top 152}
+            :width 20
+            :height 20)
+          (node #mediaVolume
+            :type slider
+            :anchors {:left 56 :right 24 :top 152}
+            :height 20
+            :step 5
+            :bind state.media.volume
+            :label "{{t('media.volume')}}"
+            :tooltip "{{t('media.volume')}}"
+            :trackColor @off
+            :activeColor @accent
+            :knobColor @knob)]}}
+    :colourDialog {:note "The colour of a light, in the middle of the window; Escape, a click outside or Done closes it"
+      :params {}
+      :node {:dir auto
+        :overlay {:placement center :open state.colourOpen :dismiss outside :modal true}
+        :width 280
+        :height 440
+        :radius 12
+        :color @card
+        :shadow {:y 8 :blur 24 :color "#00000040"}
+        :role dialog
+        :label "{{t('colour.title')}}"
+        :children [(node #colourTitle
+            :type label
+            :font heading
+            :textColor @text
+            :anchors {:left 20 :top 16}
+            :fitText true
+            :text "{{computed.room.lights[state.light].name ?? t('colour.title')}}")
+          (node #colourPicker
+            :type colorPicker
+            :anchors {:left 20 :right 20 :top 48}
+            :height 320
+            :focusable true
+            :label "{{t('colour.title')}}"
+            :bind "state.rooms[state.room].lights[state.light].color"
+            :textColor @text
+            :accentColor @accent
+            :swatches ["#ffd58aff" "#fff4e0ff" "#ffc078ff" "#8ab4ffff" "#ff9ad5ff" "#9af5c0ff"])
+          (node #colourWarm
+            :style button
+            :text "{{t('colour.warm')}}"
+            :anchors {:left 20 :bottom 20}
+            :width 116
+            :height 32
+            :onClick {:set "state.rooms[state.room].lights[state.light].color" :to "#ffd58aff"})
+          (node #colourDone
+            :style choiceOn
+            :text "{{t('colour.done')}}"
+            :anchors {:right 20 :bottom 20}
+            :width 100
+            :height 32
+            :onClick {:set state.colourOpen :to false})]}}}}

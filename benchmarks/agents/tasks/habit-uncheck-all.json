@@ -1,7 +1,7 @@
 {
 	"id": "habit-uncheck-all",
 	"level": "feature",
-	"screen": "examples/streak/index.screen.json",
+	"screen": "examples/streak/json/index.screen.json",
 	"request": "Add a \"Pick all\" link with the id pickAll to the day header (#dayHeader), above the habit names, that picks every habit the list shows (state.picked holds their ids).",
 	"scenarios": [
 		{

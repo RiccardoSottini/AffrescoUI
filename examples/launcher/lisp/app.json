@@ -1,0 +1,32 @@
+{
+	"$schema": "../../../schema/affrescoui-app.schema.json",
+	"format": "affrescoui-app",
+	"version": 1,
+	"id": "launcher",
+	"name": "AffrescoUI",
+	"description": "The home of the apps: every example to open, and the apps the person made.",
+	"icon": "../assets/affrescoui-icon.png",
+	"entry": "index.screen.lisp",
+	"capabilities": {
+		"folders": {
+			"examples": {
+				"access": "read",
+				"why": "Lists the example apps, and copies one to start an app of your own."
+			},
+			"apps": {
+				"access": "write",
+				"why": "Keeps the apps you make, in AffrescoUI in your home folder."
+			}
+		},
+		"programs": {
+			"affresco": "Opens each app in a window of its own."
+		},
+		"assistant": "Answers your questions about your apps, with the assistant you set up in Settings."
+	},
+	"assets": [
+		"../assets/covers",
+		"starters",
+		"../assets/affrescoui-icon.png",
+		"../assets/affrescoui-mark.svg"
+	]
+}

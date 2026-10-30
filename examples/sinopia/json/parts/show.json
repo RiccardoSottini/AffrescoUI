@@ -1,0 +1,358 @@
+{
+	"$schema": "../../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "The slide show. The node audience draws the slide being shown into the image 'audience' (a snapshot), with its transition from the slide before and its builds: the audience window shows that image, and so does this window, full screen, or the presenter view beside the next slide, the notes and a timer. state.show.t runs from 0 to 1 through a transition, and state.show.clock through the builds of the step shown (milliseconds), both animated. Each slide is also drawn once into its own image, 'slide-<id>', by the page nodes: the thumbnails, the sorter and the presenter view show those images, and the PDF export draws the page nodes themselves, as vectors.",
+
+	"windows": {
+		"audience": { "title": "Slide show", "image": "audience", "background": "#000000", "fullscreen": true, "onClick": "showNext", "onClose": "showEnd" }
+	},
+
+	"state": {
+		"presenterView": false,
+		"show": { "on": false, "index": 0, "from": -1, "step": 0, "clock": 0, "t": 1, "black": false, "white": false, "ended": false, "seconds": 0, "paused": false, "notesSize": 18, "onSlide": 0, "elapsed": 0, "rehearsing": false, "navigator": false, "typed": "", "preview": false }
+	},
+
+	"computed": {
+		"showOrder": "{{filter(range(length(state.deck.slides)), !(state.deck.slides[it].hidden ?? false))}}",
+		"showSlide": "{{state.deck.slides[state.show.index] ?? state.deck.slides[0]}}",
+		"showPh": "{{(find(computed.layouts, it.id == computed.showSlide.layout) ?? computed.layouts[1]).ph ?? []}}",
+		"showPhIds": "{{map(computed.showPh, it.ph)}}",
+		"showUnbuilt": "{{map(filter(computed.showTimings, it.kind == 'exit' ? it.step < state.show.step : it.step > state.show.step), it.target)}}",
+		"showLinks": "{{map(filter(computed.showSlide.objects ?? [], it.link != null && !(it.hidden ?? false) && !contains(computed.showUnbuilt, it.id)), { link: it.link, x: it.x ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).x ?? 0, y: it.y ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).y ?? 0, w: it.w ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).w ?? 100, h: it.h ?? (computed.showPh[indexOf(computed.showPhIds, it.ph)] ?? {}).h ?? 100 })}}",
+		"showFrom": "{{state.show.from >= 0 ? state.deck.slides[state.show.from] : null}}",
+		"showKind": "{{state.show.t >= 1 ? 'none' : computed.showSlide.transition.kind ?? 'none'}}",
+		"showStepEnd": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end)))}}",
+		"showFades": "{{computed.showKind == 'fade' || computed.showKind == 'glide'}}",
+		"showTimings": "{{scan(computed.showSlide.animations ?? [], merge(it, { step: acc.step + (it.start == 'click' ? 1 : 0), start: (it.start == 'click' ? 0 : it.start == 'with' ? acc.start : acc.end) + (it.delay ?? 0), end: (it.start == 'click' ? 0 : it.start == 'with' ? acc.start : acc.end) + (it.delay ?? 0) + (it.ms ?? 500) }), { step: 0, start: 0, end: 0 })}}",
+		"showSteps": "{{count(computed.showSlide.animations ?? [], it.start == 'click')}}",
+		"showNext": "{{find(computed.showOrder, it > state.show.index)}}",
+		"showPrevious": "{{find(reverse(computed.showOrder), it < state.show.index)}}",
+		"showPosition": "{{indexOf(computed.showOrder, state.show.index) + 1}}",
+		"showTimer": "{{pad(floor(state.show.seconds / 3600), 2, '0') + ':' + pad(floor(state.show.seconds / 60) % 60, 2, '0') + ':' + pad(state.show.seconds % 60, 2, '0')}}"
+	},
+
+	"actions": {
+		"present": [
+			{ "run": "showStart", "with": { "from": "{{from}}" } },
+			{ "if": "{{state.presenterView}}", "then": [{ "openWindow": "audience" }], "else": [{ "fullscreen": true }] }
+		],
+		"previewSlide": [
+			{ "note": "Plays the current slide in this window as the show would: its transition from the slide before, then a build each second, and ends by itself" },
+			{ "set": "state.show", "to": "{{merge(state.show, { on: true, preview: true, from: -1, black: false, white: false, ended: false, seconds: 0, paused: false, elapsed: 0 })}}" },
+			{ "run": "showEnter", "with": { "index": "{{state.current}}", "previous": "{{state.current > 0 ? state.current - 1 : -1}}" } },
+			{ "focus": "#show-view" }
+		],
+		"readingView": [{ "run": "showStart", "with": { "from": "{{from}}" } }],
+		"showStart": [
+			{ "set": "state.show", "to": "{{merge(state.show, { on: true, from: -1, black: false, white: false, ended: false, seconds: 0, paused: false, elapsed: 0 })}}" },
+			{ "run": "showEnter", "with": { "index": "{{find(computed.showOrder, it >= from) ?? computed.showOrder[0] ?? 0}}", "previous": -1 } },
+			{ "focus": "#show-view" }
+		],
+		"showEnter": [
+			{ "if": "{{state.show.rehearsing && previous >= 0}}", "then": [{ "set": "state.deck.slides[previous].advanceAfter", "to": "{{state.show.onSlide}}" }] },
+			{ "set": "state.show", "to": "{{merge(state.show, { index: index, from: previous, step: 0, clock: 0, t: 0, ended: false, onSlide: 0 })}}" },
+			{ "if": "{{(computed.showSlide.transition.kind ?? 'none') == 'none'}}",
+			  "then": [{ "set": "state.show.t", "to": 1 }],
+			  "else": [{ "animate": "state.show.t", "to": 1, "ms": "{{computed.showSlide.transition.ms ?? 500}}", "easing": "inOut" }] },
+			{ "run": "showPlay" }
+		],
+		"showPlay": [
+			{ "if": "{{max(concat([0], map(filter(computed.showTimings, it.step == state.show.step), it.end))) > 0}}",
+			  "then": [{ "animate": "state.show.clock", "to": "{{computed.showStepEnd}}", "ms": "{{computed.showStepEnd}}", "easing": "linear" }],
+			  "else": [{ "set": "state.show.clock", "to": 0 }] }
+		],
+		"showClick": [
+			{ "note": "with: x, y, the click on the 960 by 540 slide: on linked text it goes to that slide, elsewhere it moves on" },
+			{ "if": "{{some(computed.showLinks, x >= it.x && x <= it.x + it.w && y >= it.y && y <= it.y + it.h)}}",
+			  "then": [{ "run": "showGo", "with": { "index": "{{indexOf(map(state.deck.slides, it.id), find(reverse(computed.showLinks), x >= it.x && x <= it.x + it.w && y >= it.y && y <= it.y + it.h).link)}}", "built": false } }],
+			  "else": [{ "run": "showNext" }] }
+		],
+		"showNext": [
+			{ "if": "{{state.show.ended}}", "then": [{ "run": "showEnd" }],
+			  "else": [{ "if": "{{state.show.step < computed.showSteps}}",
+			             "then": [{ "set": "state.show.clock", "to": 0 }, { "increment": "state.show.step" }, { "set": "state.show.t", "to": 1 }, { "run": "showPlay" }],
+			             "else": [{ "if": "{{computed.showNext != null}}",
+			                        "then": [{ "run": "showEnter", "with": { "index": "{{computed.showNext}}", "previous": "{{state.show.index}}" } }],
+			                        "else": [{ "set": "state.show.ended", "to": true }] }] }] }
+		],
+		"showPrevious": [
+			{ "if": "{{state.show.ended}}", "then": [{ "set": "state.show.ended", "to": false }],
+			  "else": [{ "if": "{{state.show.step > 0}}",
+			             "then": [{ "set": "state.show.clock", "to": 1000000 }, { "increment": "state.show.step", "by": -1 }],
+			             "else": [{ "if": "{{computed.showPrevious != null}}",
+			                        "then": [{ "run": "showGo", "with": { "index": "{{computed.showPrevious}}", "built": true } }] }] }] }
+		],
+		"showGo": [
+			{ "set": "state.show", "to": "{{merge(state.show, { index: clamp(index, 0, length(state.deck.slides) - 1), from: -1, t: 1, clock: 1000000, ended: false, black: false, white: false, typed: '' })}}" },
+			{ "set": "state.show.step", "to": "{{built ? computed.showSteps : 0}}" }
+		],
+		"showBlack": [{ "set": "state.show.white", "to": false }, { "toggle": "state.show.black" }],
+		"showWhite": [{ "set": "state.show.black", "to": false }, { "toggle": "state.show.white" }],
+		"showEnd": [
+			{ "if": "{{state.show.on}}", "then": [
+				{ "if": "{{state.show.rehearsing}}", "then": [
+					{ "set": "state.deck.slides[state.show.index].advanceAfter", "to": "{{state.show.onSlide}}" },
+					{ "set": "state.deck.useTimings", "to": true },
+					{ "set": "state.show.rehearsing", "to": false }
+				] },
+				{ "set": "state.current", "to": "{{state.show.index}}" },
+				{ "set": "state.show", "to": "{{merge(state.show, { on: false, t: 1, from: -1, black: false, white: false, ended: false, preview: false })}}" },
+				{ "set": "state.board.selection", "to": [] },
+				{ "if": "{{windows.audience.open}}", "then": [{ "closeWindow": "audience" }] },
+				{ "if": "{{windows.main.fullscreen}}", "then": [{ "fullscreen": false }] },
+				{ "focus": "#thumbnails" }
+			] }
+		],
+		"togglePresenterView": [{ "toggle": "state.presenterView" }],
+		"showSecond": [
+			{ "note": "Each second of the show: the slide's time, and with the deck's timings on (and no rehearsal), the next step when it is up" },
+			{ "if": "{{!state.show.paused && !state.show.ended}}", "then": [
+				{ "increment": "state.show.onSlide" },
+				{ "increment": "state.show.elapsed" },
+				{ "if": "{{state.show.preview && state.show.t >= 1 && state.show.clock >= computed.showStepEnd}}",
+				  "then": [{ "if": "{{state.show.step < computed.showSteps}}", "then": [{ "run": "showNext" }], "else": [{ "run": "showEnd" }] }] },
+				{ "if": "{{!state.show.rehearsing && (state.deck.useTimings ?? false) && computed.showSlide.advanceAfter != null && state.show.onSlide >= computed.showSlide.advanceAfter}}",
+				  "then": [{ "run": "showNext" }] }
+			] }
+		],
+		"showTyped": [
+			{ "run": "showGo", "with": { "index": "{{number(state.show.typed) - 1}}", "built": false } },
+			{ "set": "state.show.typed", "to": "" }
+		],
+		"showTick": [{ "if": "{{!state.show.paused}}", "then": [{ "increment": "state.show.seconds" }] }]
+	},
+
+	"keys": {
+		"right": [{ "when": "{{state.show.on}}", "do": "showNext" }],
+		"down": [{ "when": "{{state.show.on}}", "do": "showNext" }],
+		"pagedown": [{ "when": "{{state.show.on}}", "do": "showNext" }],
+		"space": [{ "when": "{{state.show.on}}", "do": "showNext" }],
+		"enter": [{ "when": "{{state.show.on && state.show.typed != ''}}", "do": "showTyped" }, { "when": "{{state.show.on}}", "do": "showNext" }],
+		"n": [{ "when": "{{state.show.on}}", "do": "showNext" }],
+		"left": [{ "when": "{{state.show.on}}", "do": "showPrevious" }],
+		"up": [{ "when": "{{state.show.on}}", "do": "showPrevious" }],
+		"pageup": [{ "when": "{{state.show.on}}", "do": "showPrevious" }],
+		"p": [{ "when": "{{state.show.on}}", "do": "showPrevious" }],
+		"home": [{ "when": "{{state.show.on}}", "do": "showGo", "with": { "index": "{{computed.showOrder[0] ?? 0}}", "built": false } }],
+		"end": [{ "when": "{{state.show.on}}", "do": "showGo", "with": { "index": "{{computed.showOrder[length(computed.showOrder) - 1] ?? 0}}", "built": true } }],
+		"0": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '0'}}" }] }],
+		"1": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '1'}}" }] }],
+		"2": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '2'}}" }] }],
+		"3": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '3'}}" }] }],
+		"4": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '4'}}" }] }],
+		"5": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '5'}}" }] }],
+		"6": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '6'}}" }] }],
+		"7": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '7'}}" }] }],
+		"8": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '8'}}" }] }],
+		"9": [{ "when": "{{state.show.on}}", "do": [{ "set": "state.show.typed", "to": "{{state.show.typed + '9'}}" }] }],
+		"b": [{ "when": "{{state.show.on}}", "do": "showBlack" }],
+		"period": [{ "when": "{{state.show.on}}", "do": "showBlack" }],
+		"w": [{ "when": "{{state.show.on}}", "do": "showWhite" }],
+		"comma": [{ "when": "{{state.show.on}}", "do": "showWhite" }],
+		"f5": [{ "when": "{{!state.show.on}}", "do": "present", "with": { "from": 0 } }],
+		"shift+f5": [{ "when": "{{!state.show.on}}", "do": "present", "with": { "from": "{{state.current}}" } }]
+	},
+
+	"overlays": {
+		"zShow": { "use": "showView", "when": "{{state.show.on}}", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } }
+	},
+
+	"styles": {
+		"presenterButton": {
+			"type": "label", "height": 32, "fitText": true, "padding": 10, "radius": 16, "color": "#2a3230", "textColor": "#eef3f1", "cursor": "hand",
+			"focusable": true, "hover": { "color": "#38423f" }
+		},
+		"presenterButtonOn": { "style": "presenterButton", "color": "#0e7c6b", "hover": { "color": "#139080" } }
+	},
+
+	"components": {
+		"showSlide": {
+			"params": { "slide": null, "step": 0, "clock": 0, "timings": [], "prefix": "" },
+			"note": "A slide as the show draws it: the objects whose builds haven't come yet left out, the one building faded in over the background, wiped in, flown in from the bottom or grown.",
+			"node": {
+				"id": "{{prefix + 'show'}}", "color": "transparent", "x": 0, "y": 0, "width": 960, "height": 540,
+				"let": {
+					"layout": "{{find(computed.layouts, it.id == slide.layout) ?? computed.layouts[1]}}",
+					"ground": "{{slice(computed.palette[slide.background ?? computed.theme.background] ?? slide.background ?? '#ffffff', 0, 7)}}"
+				},
+				"children": [
+					{ "use": "slideBackground", "with": { "slide": "{{slide}}", "prefix": "{{prefix}}" } },
+					{
+						"repeat": { "for": "o", "in": "{{slide.objects}}", "key": "{{o.id}}" },
+						"let": {
+							"a": "{{find(timings, it.target == o.id)}}",
+							"p": "{{a == null || a.step < step ? 1 : a.step > step ? 0 : clamp((clock - a.start) / max(a.ms ?? 500, 1), 0, 1)}}",
+							"q": "{{a == null ? 1 : a.kind == 'exit' ? 1 - p : p}}",
+							"ph": "{{find(layout.ph, it.ph == o.ph) ?? {}}}",
+							"box": "{{{ x: o.x ?? ph.x ?? 0, y: o.y ?? ph.y ?? 0, w: o.w ?? ph.w ?? 100, h: o.h ?? ph.h ?? 100 }}}",
+							"effect": "{{q >= 1 ? 'none' : a.effect ?? 'appear'}}"
+						},
+						"id": "{{prefix + 'build-' + o.id}}", "when": "{{q > 0}}", "color": "transparent",
+						"x": 0, "y": 0, "width": "{{effect == 'wipe' ? box.x + box.w * q : 960}}", "height": 540,
+						"translate": "{{effect == 'fly' ? [0, (1 - q) * (560 - box.y)] : [0, 0]}}",
+						"scale": "{{effect == 'zoom' ? max(q, 0.01) : 1}}",
+						"transformOrigin": "{{[(box.x + box.w / 2) / 9.6, (box.y + box.h / 2) / 5.4]}}",
+						"children": [
+							{ "use": "slideObject", "with": { "o": "{{o}}", "prefix": "{{prefix}}", "layout": "{{layout}}", "edit": false } },
+							{ "id": "{{prefix + 'veil-' + o.id}}", "when": "{{effect == 'fade'}}", "x": "{{box.x - 4}}", "y": "{{box.y - 4}}", "width": "{{box.w + 8}}", "height": "{{box.h + 8}}",
+							  "rotate": "{{o.rotate ?? 0}}",
+							  "color": "{{gradientColor({ stops: [{ at: 0, color: ground }, { at: 1, color: ground + '00' }] }, q)}}" }
+						]
+					}
+				]
+			}
+		},
+
+		"showStage": {
+			"params": {},
+			"note": "What the audience sees: the slide before under (or, for reveal, over) the slide shown, as its transition goes; a fade goes through black.",
+			"node": {
+				"id": "audience", "snapshot": { "image": "audience", "scale": 2 }, "x": 0, "y": 0, "width": 960, "height": 540, "color": "#000000",
+				"let": {
+					"k": "{{computed.showKind}}",
+					"t": "{{state.show.t}}",
+					"u": "{{1 - state.show.t}}",
+					"d": "{{computed.showSlide.transition.direction ?? 'left'}}",
+					"dx": "{{d == 'left' ? 960 : d == 'right' ? -960 : 0}}",
+					"dy": "{{d == 'up' ? 540 : d == 'down' ? -540 : 0}}",
+					"band": "{{k == 'wipe' ? (d == 'left' ? [960 * u, 0, 960 * t, 540] : d == 'right' ? [0, 0, 960 * t, 540] : d == 'up' ? [0, 540 * u, 960, 540 * t] : [0, 0, 960, 540 * t]) : k == 'split' ? [480 * u, 0, 960 * t, 540] : [0, 0, 960, 540]}}"
+				},
+				"children": [
+					{ "id": "show-from", "when": "{{computed.showFrom != null && k != 'none' && k != 'reveal' && !(computed.showFades && t >= 0.5)}}",
+					  "color": "transparent", "x": 0, "y": 0, "width": 960, "height": 540,
+					  "translate": "{{k == 'push' ? [-dx * t, -dy * t] : [0, 0]}}",
+					  "children": [{ "use": "slidePage", "with": { "slide": "{{computed.showFrom}}", "prefix": "f-" } }] },
+					{ "id": "show-to", "when": "{{!(computed.showFades && t < 0.5)}}", "color": "transparent",
+					  "x": "{{band[0]}}", "y": "{{band[1]}}", "width": "{{max(band[2], 0)}}", "height": "{{max(band[3], 0)}}",
+					  "translate": "{{k == 'push' || k == 'cover' ? [dx * u, dy * u] : [0, 0]}}",
+					  "children": [{ "id": "show-to-page", "color": "transparent", "x": "{{-band[0]}}", "y": "{{-band[1]}}", "width": 960, "height": 540,
+					                 "children": [{ "use": "showSlide", "with": { "slide": "{{computed.showSlide}}", "step": "{{state.show.step}}", "clock": "{{state.show.clock}}",
+					                                                            "timings": "{{computed.showTimings}}", "prefix": "a-" } }] }] },
+					{ "id": "show-from-over", "when": "{{computed.showFrom != null && k == 'reveal'}}", "color": "transparent", "x": 0, "y": 0, "width": 960, "height": 540,
+					  "translate": "{{[-dx * t, -dy * t]}}",
+					  "children": [{ "use": "slidePage", "with": { "slide": "{{computed.showFrom}}", "prefix": "r-" } }] },
+					{ "id": "show-fade", "when": "{{computed.showFades}}", "x": 0, "y": 0, "width": 960, "height": 540,
+					  "color": "{{gradientColor({ stops: [{ at: 0, color: '#00000000' }, { at: 1, color: '#000000' }] }, t < 0.5 ? 2 * t : 2 * u)}}" },
+					{ "id": "show-blank", "when": "{{state.show.black || state.show.white || state.show.ended}}", "x": 0, "y": 0, "width": 960, "height": 540,
+					  "color": "{{state.show.white ? '#ffffff' : '#000000'}}",
+					  "children": [{ "type": "label", "id": "show-ended", "when": "{{state.show.ended}}", "x": 0, "y": 16, "width": 960, "height": 24, "align": "center",
+					                 "runs": [{ "text": "End of the slide show. Click to leave.", "size": 14, "color": "#ccd6d2" }] }] }
+				]
+			}
+		},
+
+		"slideImage": {
+			"params": { "s": null },
+			"note": "A slide drawn once into the image 'slide-<id>', for the thumbnails, the sorter and the presenter view; the export draws these nodes as PDF pages.",
+			"node": {
+				"id": "{{'page-' + s.id}}", "snapshot": { "image": "{{'slide-' + s.id}}", "scale": "{{clamp(window.scale / 4, 0.25, 1)}}" },
+				"x": 0, "y": 0, "width": 960, "height": 540, "color": "#ffffff",
+				"children": [{ "use": "slidePage", "with": { "slide": "{{s}}", "prefix": "{{'p' + s.id + '-'}}" } }]
+			}
+		},
+
+		"showView": {
+			"params": {},
+			"note": "This window while the show runs: the show itself, full screen, or the presenter view.",
+			"node": {
+				"id": "show-view", "color": "#000000", "focusable": true, "role": "dialog", "label": "Slide show",
+				"every": { "ms": 1000, "do": "showSecond" },
+				"onClick": [{ "if": "{{!state.presenterView || state.show.preview}}", "then": [{ "run": "showClick", "with": {
+					"x": "{{(event.left - (event.width - 960 * min(event.width / 960, event.height / 540)) / 2) / min(event.width / 960, event.height / 540)}}",
+					"y": "{{(event.top - (event.height - 540 * min(event.width / 960, event.height / 540)) / 2) / min(event.width / 960, event.height / 540)}}" } }] }],
+				"children": [
+					{ "type": "image", "id": "show-image", "when": "{{!state.presenterView || state.show.preview}}", "fill": 0, "source": "audience", "fit": "contain" },
+					{ "use": "presenter", "when": "{{state.presenterView && !state.show.preview}}" },
+					{ "type": "row", "id": "rehearsal", "when": "{{state.show.rehearsing}}", "x": 16, "y": 16, "fitContent": "width", "height": 40, "gap": 4,
+					  "radius": 20, "color": "#141a19ee", "alignItems": "center", "role": "toolbar", "label": "Rehearsal",
+					  "onClick": [{ "note": "a click on the bar isn't a click on the show" }],
+					  "children": [
+						{ "id": "rehearsal-start", "width": 0, "height": 1, "color": "transparent" },
+						{ "type": "label", "id": "rehearsal-next", "style": "presenterButton", "runs": [{ "icon": "arrow-right", "size": 15 }], "tooltip": "Next", "onClick": "showNext" },
+						{ "type": "label", "id": "rehearsal-pause", "style": "presenterButton", "runs": [{ "icon": "{{state.show.paused ? 'play' : 'pause'}}", "size": 15 }],
+						  "tooltip": "{{state.show.paused ? 'Resume' : 'Pause'}}", "onClick": [{ "toggle": "state.show.paused" }] },
+						{ "type": "label", "id": "rehearsal-slide", "fitText": true, "height": 32, "padding": 6, "textColor": "#eef3f1",
+						  "runs": [{ "text": "{{floor(state.show.onSlide / 60) + ':' + pad(state.show.onSlide % 60, 2, '0')}}", "size": 16, "bold": true }] },
+						{ "type": "label", "id": "rehearsal-repeat", "style": "presenterButton", "runs": [{ "icon": "rotate-ccw", "size": 15 }], "tooltip": "Time this slide again",
+						  "onClick": [{ "set": "state.show.elapsed", "to": "{{state.show.elapsed - state.show.onSlide}}" }, { "set": "state.show.onSlide", "to": 0 }] },
+						{ "type": "label", "id": "rehearsal-total", "fitText": true, "height": 32, "padding": 8, "textColor": "#a3b1ac",
+						  "runs": [{ "text": "{{floor(state.show.elapsed / 60) + ':' + pad(state.show.elapsed % 60, 2, '0')}}", "size": 14 }] },
+						{ "id": "rehearsal-end", "width": 0, "height": 1, "color": "transparent" }
+					  ] }
+				]
+			}
+		},
+
+		"presenter": {
+			"params": {},
+			"node": {
+				"id": "presenter", "fill": 0, "color": "#141a19",
+				"every": { "ms": 1000, "do": "showTick" },
+				"children": [
+					{ "type": "row", "id": "presenter-top", "anchors": { "left": 24, "right": 24, "top": 12 }, "height": 36, "gap": 8, "alignItems": "center", "color": "transparent",
+					  "children": [
+						{ "type": "label", "id": "presenter-timer", "fitText": true, "height": 32, "textColor": "#eef3f1", "runs": [{ "text": "{{computed.showTimer}}", "size": 22 }] },
+						{ "type": "label", "id": "presenter-pause", "style": "presenterButton", "runs": [{ "icon": "{{state.show.paused ? 'play' : 'pause'}}", "size": 15 }],
+						  "tooltip": "{{state.show.paused ? 'Resume the timer' : 'Pause the timer'}}", "onClick": [{ "toggle": "state.show.paused" }] },
+						{ "type": "label", "id": "presenter-reset", "style": "presenterButton", "runs": [{ "icon": "rotate-ccw", "size": 15 }], "tooltip": "Restart the timer",
+						  "onClick": [{ "set": "state.show.seconds", "to": 0 }] },
+						{ "id": "presenter-top-gap", "grow": 1, "height": 1, "color": "transparent" },
+						{ "type": "label", "id": "presenter-clock", "fitText": true, "height": 32, "textColor": "#a3b1ac", "runs": [{ "text": "{{time(now(), 'HH:mm')}}", "size": 16 }] }
+					  ] },
+					{ "id": "presenter-current", "anchors": { "left": 24, "top": 60, "right": 384, "bottom": 76 }, "color": "#000000", "radius": 4,
+					  "children": [{ "type": "image", "id": "presenter-current-image", "fill": 0, "source": "audience", "fit": "contain" }] },
+					{ "type": "grid", "id": "presenter-navigator", "when": "{{state.show.navigator}}", "anchors": { "left": 24, "top": 60, "right": 384, "bottom": 76 },
+					  "columns": 4, "gap": 12, "scroll": "vertical", "color": "#141a19", "role": "list", "label": "All slides",
+					  "children": [
+						{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "index": "i", "key": "{{s.id}}" },
+						  "type": "column", "id": "{{'navigator-' + s.id}}", "width": 200, "height": 136, "gap": 4, "alignItems": "center", "color": "transparent",
+						  "cursor": "hand", "role": "listitem", "label": "{{'Slide ' + (i + 1)}}",
+						  "onClick": [{ "run": "showGo", "with": { "index": "{{i}}", "built": false } }, { "set": "state.show.navigator", "to": false }],
+						  "children": [
+							{ "id": "{{'navigator-' + s.id + '-frame'}}", "width": 200, "height": 112, "radius": 4, "color": "#000000", "borderWidth": 2,
+							  "borderColor": "{{i == state.show.index ? '#5fd3bc' : 'transparent'}}", "hover": { "borderColor": "#a3b1ac" },
+							  "children": [{ "type": "image", "id": "{{'navigator-' + s.id + '-image'}}", "x": 2, "y": 2, "width": 196, "height": 108,
+							                 "source": "{{'slide-' + s.id}}", "fit": "fill" }] },
+							{ "type": "label", "id": "{{'navigator-' + s.id + '-number'}}", "width": 200, "height": 18, "align": "center", "textColor": "#a3b1ac",
+							  "runs": [{ "text": "{{text(i + 1) + ((s.hidden ?? false) ? ' (hidden)' : '')}}", "size": 12 }] }
+						  ] }
+					  ] },
+					{ "type": "column", "id": "presenter-side", "width": 336, "anchors": { "right": 24, "top": 60, "bottom": 76 }, "gap": 8, "color": "transparent", "alignItems": "stretch",
+					  "children": [
+						{ "type": "label", "id": "presenter-next-title", "height": 20, "textColor": "#a3b1ac",
+						  "runs": [{ "text": "{{computed.showNext != null ? 'Next' : 'End of the slide show'}}", "size": 13 }] },
+						{ "id": "presenter-next", "height": 189, "color": "#000000", "radius": 4,
+						  "children": [{ "type": "image", "id": "presenter-next-image", "fill": 0, "when": "{{computed.showNext != null}}",
+						                 "source": "{{'slide-' + state.deck.slides[computed.showNext].id}}", "fit": "contain" }] },
+						{ "type": "row", "id": "presenter-notes-bar", "height": 24, "gap": 4, "alignItems": "center", "color": "transparent", "children": [
+							{ "type": "label", "id": "presenter-notes-title", "grow": 1, "height": 20, "textColor": "#a3b1ac", "runs": [{ "text": "Notes", "size": 13 }] },
+							{ "type": "label", "id": "presenter-notes-smaller", "style": "presenterButton", "height": 24, "padding": 6, "runs": [{ "icon": "a-arrow-down", "size": 14 }],
+							  "tooltip": "Smaller notes", "onClick": [{ "set": "state.show.notesSize", "to": "{{max(state.show.notesSize - 2, 10)}}" }] },
+							{ "type": "label", "id": "presenter-notes-larger", "style": "presenterButton", "height": 24, "padding": 6, "runs": [{ "icon": "a-arrow-up", "size": 14 }],
+							  "tooltip": "Larger notes", "onClick": [{ "set": "state.show.notesSize", "to": "{{min(state.show.notesSize + 2, 48)}}" }] }
+						] },
+						{ "type": "column", "id": "presenter-notes-box", "grow": 1, "scroll": "vertical", "color": "transparent", "children": [
+							{ "type": "label", "id": "presenter-notes", "width": 336, "wrap": true, "fitText": { "maxWidth": 336 }, "align": "start",
+							  "runs": [{ "text": "{{(computed.showSlide.notes ?? '') == '' ? 'No notes for this slide.' : computed.showSlide.notes}}", "size": "{{state.show.notesSize}}",
+							             "color": "{{(computed.showSlide.notes ?? '') == '' ? '#7a8884' : '#eef3f1'}}" }] }
+						] }
+					  ] },
+					{ "type": "row", "id": "presenter-controls", "anchors": { "left": 24, "right": 24, "bottom": 22 }, "height": 36, "gap": 8, "alignItems": "center", "color": "transparent",
+					  "children": [
+						{ "type": "label", "id": "presenter-previous", "style": "presenterButton", "runs": [{ "icon": "chevron-left", "size": 16 }], "tooltip": "Previous (Left)", "onClick": "showPrevious" },
+						{ "type": "label", "id": "presenter-where", "fitText": true, "height": 32, "padding": 6, "textColor": "#eef3f1",
+						  "runs": [{ "text": "{{'Slide ' + computed.showPosition + ' of ' + length(computed.showOrder)}}", "size": 14 }] },
+						{ "type": "label", "id": "presenter-forward", "style": "presenterButton", "runs": [{ "icon": "chevron-right", "size": 16 }], "tooltip": "Next (Right)", "onClick": "showNext" },
+						{ "type": "label", "id": "presenter-black", "style": "{{state.show.black ? 'presenterButtonOn' : 'presenterButton'}}",
+						  "runs": [{ "icon": "square", "size": 14 }, { "text": " Black (B)", "size": 13 }], "onClick": "showBlack" },
+						{ "type": "label", "id": "presenter-all", "style": "{{state.show.navigator ? 'presenterButtonOn' : 'presenterButton'}}",
+						  "runs": [{ "icon": "layout-grid", "size": 14 }, { "text": " See All Slides", "size": 13 }], "onClick": [{ "toggle": "state.show.navigator" }] },
+						{ "id": "presenter-gap", "grow": 1, "height": 1, "color": "transparent" },
+						{ "type": "label", "id": "presenter-end", "style": "presenterButton", "runs": [{ "text": "End Slide Show", "size": 13 }], "onClick": "showEnd" }
+					  ] }
+				]
+			}
+		}
+	}
+}

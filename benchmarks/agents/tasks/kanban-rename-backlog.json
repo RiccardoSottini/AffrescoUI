@@ -1,7 +1,7 @@
 {
 	"id": "kanban-rename-backlog",
 	"level": "edit",
-	"screen": "examples/flow/index.screen.json",
+	"screen": "examples/flow/json/index.screen.json",
 	"request": "Rename the Backlog column to Ideas.",
 	"scenarios": [
 		{

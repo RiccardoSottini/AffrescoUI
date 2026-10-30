@@ -83,13 +83,14 @@ bool environmentHas(const char* name) {
 #endif
 }
 
-/// @brief Lets a proposal's evidence play the screen's scenarios (`<name>.scenarios.json` beside `<name>.screen.json`)
+/// @brief Lets a proposal's evidence play the screen's scenarios (`<name>.scenarios.json` beside its `.screen.json` or
+/// `.screen.lisp`)
 /// on the proposal: those that draw no picture, headless, on a screen connected to nobody.
 /// @param screen The screen.
 /// @param file Its file.
 void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::path& file) {
 	const std::string name = file.filename().string();
-	if(!name.ends_with(".screen.json")) return;
+	if(!name.ends_with(".screen.json") && !name.ends_with(".screen.lisp")) return; // the same length, either notation
 	const std::filesystem::path scenarios =
 	    file.parent_path() /
 	    (name.substr(0, name.size() - std::string_view(".screen.json").size()) + ".scenarios.json");
@@ -172,8 +173,10 @@ bool isAppEntry(const std::filesystem::path& file) {
 /// @return The name.
 std::string screenName(const std::filesystem::path& file) {
 	std::string name = file.filename().string();
-	if(name.ends_with(".screen.json")) name.resize(name.size() - std::string_view(".screen.json").size());
-	else if(name.ends_with(".json")) name.resize(name.size() - std::string_view(".json").size());
+	if(name.ends_with(".screen.json") || name.ends_with(".screen.lisp"))
+		name.resize(name.size() - std::string_view(".screen.json").size());
+	else if(name.ends_with(".json") || name.ends_with(".lisp"))
+		name.resize(name.size() - std::string_view(".json").size());
 	return name == "index" ? std::filesystem::absolute(file).parent_path().filename().string() : name;
 }
 
@@ -211,7 +214,7 @@ affresco::Screen bareScreen(const std::filesystem::path& file) {
 /// @throws affresco::ScreenError If it can't be read.
 Opened locate(const std::string& given) {
 	namespace fs = std::filesystem;
-	fs::path path = given.empty() ? assetsDirectory() / "launcher" : fs::path(given);
+	fs::path path = given.empty() ? assetsDirectory() / "launcher" / "json" : fs::path(given);
 	if(path.filename() == "app.json") path = path.parent_path();
 	Opened opened;
 	std::error_code error;

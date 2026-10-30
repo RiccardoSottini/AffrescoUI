@@ -1,10 +1,10 @@
 # The rendering check (README.md): affrescoui_render_runner plays the scenarios in scenarios/*.json with the automation
 # module and compares every picture with its golden image; check.py runs it. The runner is built next to the other
 # programs, where check.py looks.
-# It grants Forge's workspace (examples/forge/app.json) with forge/folder (a small fixed folder) open, a shell and git,
+# It grants Forge's workspace (examples/forge/json/app.json) with forge/folder (a small fixed folder) open, a shell and git,
 # and trusts the example catalogue's publisher.
 cmake_language(DEFER CALL affrescoui_hide_test_windows) # AFFRESCOUI_HIDDEN=1 for its tests
-set(forge_dir ${PROJECT_SOURCE_DIR}/examples/forge)
+set(forge_dir ${PROJECT_SOURCE_DIR}/examples/forge/json)
 add_executable(affrescoui_render_runner runner.cpp ${CMAKE_CURRENT_SOURCE_DIR}/surfaces/Surfaces.cpp)
 # surfaces/Surfaces.hpp here
 target_include_directories(affrescoui_render_runner PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -30,8 +30,8 @@ list(TRANSFORM template_folders PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_V
 list(TRANSFORM template_globs APPEND /*.scenarios.json)
 file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
 	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json
-	${PROJECT_SOURCE_DIR}/examples/modello/*.scenarios.json ${PROJECT_SOURCE_DIR}/examples/sinopia/*.scenarios.json
-	${PROJECT_SOURCE_DIR}/examples/tempera/*.scenarios.json)
+	${PROJECT_SOURCE_DIR}/examples/modello/json/*.scenarios.json ${PROJECT_SOURCE_DIR}/examples/sinopia/json/*.scenarios.json
+	${PROJECT_SOURCE_DIR}/examples/tempera/json/*.scenarios.json)
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	# Their captures (pictures they take for the gallery, not compared) go to the build folder
 	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/scenario-captures)
@@ -39,6 +39,10 @@ if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	# under the sanitizers, one after another, they take longer than a test and the job may run
 	foreach(file IN LISTS AFFRESCOUI_TEMPLATE_SCENARIOS)
 		cmake_path(GET file PARENT_PATH folder)
+		cmake_path(GET folder FILENAME name)
+		if(name STREQUAL "json") # an example's JSON folder: named after the example
+			cmake_path(GET folder PARENT_PATH folder)
+		endif()
 		cmake_path(GET folder FILENAME folder)
 		string(REGEX REPLACE "\\.scenarios\\.json$" "" name "${file}")
 		cmake_path(GET name FILENAME name)

@@ -1,0 +1,725 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "Forge's language server (features/lsp), checked headless: the answers the lsp service gives (its shapes, positions from 0) are played through lspPlay, so no server runs; tests/unit/lsp_service.cpp checks the service against tests/lsp/fake_server.py. affrescoui_render_runner lsp.scenarios.json",
+	"screen": "index.screen.lisp",
+	"scenarios": [
+		{
+			"name": "forge-lsp-diagnostics-squiggles",
+			"note": "A server's diagnostics (fake_server.py: each FIXME) become squiggles in the file's editor and rows in Problems",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "diagnostics",
+						"result": {
+							"path": "src/main.cpp",
+							"diagnostics": [
+								{
+									"severity": "error",
+									"message": "FIXME left in the code",
+									"source": "fake",
+									"code": "",
+									"line": 2,
+									"column": 16,
+									"endLine": 2,
+									"endColumn": 21
+								}
+							],
+							"truncated": false
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].id",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations[0].kind",
+						"is": "squiggle"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations[0].line",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations[0].color",
+						"is": "#f85149"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-diagnostics-replace",
+			"note": "A file's new diagnostics replace its old ones, squiggles and Problems rows alike",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "diagnostics",
+						"result": {
+							"path": "src/main.cpp",
+							"diagnostics": [
+								{
+									"severity": "error",
+									"message": "FIXME left in the code",
+									"source": "fake",
+									"code": "",
+									"line": 2,
+									"column": 16,
+									"endLine": 2,
+									"endColumn": 21
+								}
+							],
+							"truncated": false
+						}
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "diagnostics",
+						"result": {
+							"path": "src/main.cpp",
+							"diagnostics": [],
+							"truncated": false
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.files[0].decorations.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-hover",
+			"note": "A hover's answer opens the hover card with its text",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "hover",
+						"result": {
+							"text": "```cpp\nint main()\n```\nThe program starts here."
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.hover.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.hover.text",
+						"is": "```cpp\nint main()\n```\nThe program starts here."
+					}
+				},
+				{
+					"expect": {
+						"node": "#lsp-hover-text",
+						"exists": true
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-hover-stale",
+			"note": "An answer to an older hover is ignored: only the latest request opens the card",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "hover",
+						"result": {
+							"text": "```cpp\nint main()\n```\nThe program starts here."
+						},
+						"request": 7
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.hover.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-completion-insert",
+			"note": "Completion items fill the popup; Down and Enter insert the chosen one, its snippet's placeholder as plain text",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "completion",
+						"result": {
+							"items": [
+								{
+									"label": "printf",
+									"detail": "int printf(const char*, ...)",
+									"insert": "printf",
+									"filter": "printf",
+									"kind": "function"
+								},
+								{
+									"label": "puts",
+									"detail": "int puts(const char*)",
+									"insert": "puts(text)",
+									"filter": "puts",
+									"kind": "function"
+								},
+								{
+									"label": "putchar",
+									"detail": "int putchar(int)",
+									"insert": "putchar",
+									"filter": "putchar",
+									"kind": "function"
+								}
+							],
+							"incomplete": false,
+							"truncated": false
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.items.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.items[1].insert",
+						"is": "puts(text)"
+					}
+				},
+				{
+					"action": "lspPopupKey",
+					"event": {
+						"key": "down"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.index",
+						"is": 1
+					}
+				},
+				{
+					"action": "lspPopupKey",
+					"event": {
+						"key": "enter"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.completion.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.insert.text",
+						"is": "puts(text)"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.insert.request",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-signature",
+			"note": "Signature help shows the signature and its documentation above the caret",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "signature",
+						"result": {
+							"label": "int puts(const char* text)",
+							"documentation": "Writes a line.",
+							"parameter": "const char* text",
+							"active": 0,
+							"count": 1
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.signature.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.signature.label",
+						"is": "int puts(const char* text)"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.signature.documentation",
+						"is": "Writes a line."
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-definition",
+			"note": "One definition goes to it: the file opens at its line and column (from 1)",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "definition",
+						"result": {
+							"locations": [
+								{
+									"path": "src/main.cpp",
+									"line": 0,
+									"column": 4,
+									"endLine": 0,
+									"endColumn": 8
+								}
+							],
+							"truncated": false
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].id",
+						"is": "src/main.cpp"
+					}
+				},
+				{
+					"expect": {
+						"state": "goTo.line",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "goTo.column",
+						"is": 5
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-references-peek",
+			"note": "References open the peek list; choosing a row goes there (shown and gone to from 1)",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "references",
+						"result": {
+							"locations": [
+								{
+									"path": "src/main.cpp",
+									"line": 0,
+									"column": 4,
+									"endLine": 0,
+									"endColumn": 8
+								}
+							],
+							"truncated": false
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.items.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.items[0].line",
+						"is": 0
+					}
+				},
+				{
+					"expect": {
+						"node": "#lsp-peek-list",
+						"exists": true
+					}
+				},
+				{
+					"action": "lspPeekOpen",
+					"event": {
+						"id": "0"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.peek.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "goTo.line",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-rename-outside-refused",
+			"note": "A rename the service refuses (one of its edits leaves the folder) is reported, with nothing to review",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "rename",
+						"path": "src/main.cpp",
+						"error": {
+							"code": "refused",
+							"message": "an edit is outside the folder"
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "notifications[0].message",
+						"is": "Not applied: an edit is outside the folder"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-format-review",
+			"note": "Formatting is a list of edits to review; Apply changes the open file's buffer and closes the list",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "format",
+						"path": "src/main.cpp",
+						"result": {
+							"edits": [
+								{
+									"path": "src/main.cpp",
+									"text": "// formatted\n",
+									"line": 0,
+									"column": 0,
+									"endLine": 0,
+									"endColumn": 0
+								}
+							],
+							"files": 1,
+							"truncated": false
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.kind",
+						"is": "format"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.edits.length",
+						"is": 1
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.edits[0].text",
+						"is": "// formatted\n"
+					}
+				},
+				{
+					"action": "lspApply"
+				},
+				{
+					"expect": {
+						"state": "lsp.review.open",
+						"is": false
+					}
+				},
+				{
+					"wait": 0
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].text",
+						"is": "// formatted\n#include <iostream>\n\nint main() {\n    std::cout << \"hello\\n\";\n    return 0;\n}\n"
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-symbols",
+			"note": "Document symbols fill the '@' quick pick, nested ones indented",
+			"steps": [
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "src/main.cpp"
+					}
+				},
+				{
+					"action": "goToSymbol"
+				},
+				{
+					"expect": {
+						"state": "symbolPick.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "symbolPick.query",
+						"is": "@"
+					}
+				},
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "symbols",
+						"path": "src/main.cpp",
+						"result": {
+							"symbols": [
+								{
+									"name": "main",
+									"detail": "int ()",
+									"kind": "function",
+									"path": "src/main.cpp",
+									"line": 0,
+									"column": 4,
+									"depth": 0
+								},
+								{
+									"name": "count",
+									"detail": "",
+									"kind": "variable",
+									"path": "src/main.cpp",
+									"line": 1,
+									"column": 5,
+									"depth": 1
+								}
+							],
+							"truncated": false
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.symbols.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.symbols[1].name",
+						"is": "count"
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.symbols[1].depth",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "forge-lsp-rename-a-closed-file",
+			"note": "A rename's edits to a file that isn't open are written to it: opened afterwards, it has them",
+			"steps": [
+				{
+					"action": "lspPlay",
+					"event": {
+						"kind": "rename",
+						"path": "src/main.cpp",
+						"result": {
+							"edits": [
+								{
+									"path": "README.md",
+									"text": "One",
+									"line": 0,
+									"column": 2,
+									"endLine": 0,
+									"endColumn": 3
+								}
+							],
+							"files": 1,
+							"truncated": false
+						}
+					}
+				},
+				{
+					"expect": {
+						"state": "lsp.review.edits.length",
+						"is": 1
+					}
+				},
+				{
+					"action": "lspApply"
+				},
+				{
+					"wait": 0
+				},
+				{
+					"action": "openExplorerItem",
+					"event": {
+						"id": "README.md"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].text",
+						"is": "# One small project\n\nThe folder Forge's scenarios open (examples/forge/forge.scenarios.json).\n"
+					}
+				},
+				{
+					"expect": {
+						"state": "docs[0].dirty",
+						"is": false
+					}
+				}
+			]
+		}
+	]
+}
