@@ -34,6 +34,7 @@
 - audio:      small WAV files made here (8-bit, 16-bit, float, stereo, cut short), each after a mode byte for every
               way they arrive (bytes in memory or a stream, the chunk size, the encoding hinted).
 - key_press:  key chords, as the "keys" of a screen and the "press" step write them.
+- notation:   the templates as JSON (written in the Lisp notation by the target), and Lisp texts of every kind.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -813,6 +814,19 @@ def ask_reply_seeds():
     return [json.dumps(reply) for reply in replies + lists] + ["null", '"text"', "{"]
 
 
+def notation_seeds():
+    """The notation target's seeds: the templates as JSON (the target writes each in the Lisp notation and reads it
+    back), Lisp texts of every construct, and nesting at the limit."""
+    seeds = [path.read_text(encoding="utf-8") for path in templates("*.json")]
+    seeds += ['(panel #insights :color transparent\n  (node #title :style caption :anchors {:left 0 :top 0} '
+              ':text "{{t(\'burndown.title\')}}")\n  (column #list :gap 4))\n',
+              '{:format affrescoui-screen :version 2 ; a comment\n :root (node :type node #"{{\'nav-\' + tab}}" '
+              ':children [])}',
+              '[1 -2.5 1e10 -0 true false nil "" "a\\n\\u00e9" $t @color.accent :x {:"#root/color" red}]',
+              "[" * MAX_NESTING + "]" * MAX_NESTING, "(row #r " * (MAX_NESTING // 2) + ")" * (MAX_NESTING // 2)]
+    return seeds
+
+
 def key_press_seeds():
     """Chords for the key names (tests/fuzz/key_press.cpp): the templates' "keys", and some written loosely."""
     chords = set()
@@ -947,6 +961,8 @@ def main():
     out = parser.parse_args().out
     words = dictionaries()
     write(out, "json", json_seeds() + settings_file_seeds(), words["json"])
+    write(out, "notation", notation_seeds(), ["(", ")", "[", "]", "{", "}", "#", ":", '"', ";", "\n", "nil", "true",
+                                              "false", "node", "\\u", "\\n", "-", "1e", "#\"", ':"', "\xEF\xBB\xBF"])
     write(out, "expression", expression_seeds() + ["hexColor('#AbC')", "hexColor(state.colors['editor.background'])",
           "slug('Solarized Dark', 40) || 'imported'",
           "map(state.keys, find(map(it.keys, hexColor(colors[it])), it != null) ?? it['dark'])"], words["expression"])
