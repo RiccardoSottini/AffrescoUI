@@ -11,6 +11,7 @@
 #include "affresco/data/Query.hpp"
 #include "affresco/format/Adapters.hpp"
 #include "affresco/format/Migrate.hpp"
+#include "affresco/notation/Notation.hpp"
 #include "affresco/themes/Themes.hpp"
 
 #include <algorithm>
@@ -123,7 +124,7 @@ template <std::size_t N>
 void checkPart(const std::filesystem::path& file, const std::array<std::string_view, N>& keys) {
 	json part;
 	try {
-		part = parseUntrusted(readWhole(file, maxPartBytes));
+		part = notation::readDocument(readWhole(file, maxPartBytes), file);
 	} catch(const json::parse_error& parse) {
 		fail(file.string(), std::string("invalid JSON: ") + parse.what());
 	}
@@ -267,7 +268,7 @@ Screen Screen::fromApp(const std::filesystem::path& location, const std::filesys
 	const std::filesystem::path entry = inside(app, app.manifest.entry, "entry");
 	json document;
 	try {
-		document = parseUntrusted(readWhole(entry, maxPartBytes));
+		document = notation::readDocument(readWhole(entry, maxPartBytes), entry);
 	} catch(const json::parse_error& parse) {
 		fail(entry.string(), std::string("invalid JSON: ") + parse.what());
 	}

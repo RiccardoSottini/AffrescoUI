@@ -10,6 +10,7 @@
 
 #include <affresco/Screen.hpp>
 #include <affresco/core/Executor.hpp>
+#include <affresco/notation/Notation.hpp>
 #include <affresco/render/Application.hpp>
 
 #include <algorithm>
@@ -151,6 +152,12 @@ json Report::toJson() const {
 	return {{"file", file.filename().string()}, {"passed", passed()}, {"failed", failed()}, {"failures", failures}};
 }
 
+std::string screenDocument(const std::filesystem::path& screen) {
+	const std::filesystem::path manifest = Screen::appOf(screen);
+	if(manifest.empty()) return notation::jsonText(readText(screen), screen); // JSON or Lisp
+	return Screen::fromApp(manifest, {}, Screen::History::InMemory).documentJson();
+}
+
 /// @brief Loads a screen connected to nobody: its channels, its includes' too, are pointed at one socket in a folder
 /// that is never created. A channel's own path can be absolute, and would then reach a running host's socket (its
 /// studio.sock, a reviewer's) and send it whatever the screen's `open` handler says: a scenario can play on an
@@ -159,12 +166,6 @@ json Report::toJson() const {
 /// @param directory Where its relative paths ("include", fonts) are found.
 /// @param nowhere The folder that is never created.
 /// @return The screen.
-std::string screenDocument(const std::filesystem::path& screen) {
-	const std::filesystem::path manifest = Screen::appOf(screen);
-	if(manifest.empty()) return readText(screen);
-	return Screen::fromApp(manifest, {}, Screen::History::InMemory).documentJson();
-}
-
 Screen unconnectedScreen(const std::string& document, const std::filesystem::path& directory,
                          const std::filesystem::path& nowhere) {
 	Screen screen = Screen::fromString(document, directory);

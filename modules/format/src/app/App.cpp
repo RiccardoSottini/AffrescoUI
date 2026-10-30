@@ -240,7 +240,8 @@ void readHeader(const json& manifest, AppManifest& read) {
 		read.description = text(manifest["description"], "description", maxTextLength, true);
 	if(manifest.contains("icon")) read.icon = path(manifest["icon"], "icon");
 	if(manifest.contains("entry")) read.entry = path(manifest["entry"], "entry");
-	if(!read.entry.ends_with(".json")) fail("entry", "expected a screen file (.json)");
+	if(!read.entry.ends_with(".json") && !read.entry.ends_with(".lisp")) // either notation
+		fail("entry", "expected a screen file (.json, or .lisp in the Lisp notation)");
 	if(manifest.contains("note")) static_cast<void>(text(manifest["note"], "note", 4096, true));
 }
 
