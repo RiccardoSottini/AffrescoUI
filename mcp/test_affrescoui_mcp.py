@@ -276,6 +276,16 @@ class Models(unittest.TestCase):
         self.assertIn('impact: {"view":1,"logic":0,"model":[],"data":"none"}', said)
 
 
+    def test_a_diff_can_be_asked_for_file_by_file(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        changes = {"files": [{"file": "board.json", "added": 2, "removed": 1}]}
+        server.host = Evidence.FakeHost({"type": "fileChanges", "changes": changes})
+        text, failed = server.call_tool("get_diff", {"files": True, "proposal": 3, "notation": "lisp", "file": "a"})
+        self.assertFalse(failed)
+        self.assertEqual(server.host.asked, [{"type": "fileChanges", "proposal": 3, "file": "a", "notation": "lisp"}])
+        self.assertEqual(json.loads(text if isinstance(text, str) else text[0]["text"]), changes)
+
+
 class Notation(unittest.TestCase):
     """notation "lisp": the host converts (one implementation, the library's); the history stays JSON."""
 

@@ -64,13 +64,14 @@ add_test(NAME unit COMMAND affrescoui_unit_tests WORKING_DIRECTORY ${PROJECT_BIN
 # steps, shapes, pictures. Helpers.hpp is shared with the unit tests.
 file(GLOB affrescoui_window_test_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/window/*.cpp)
 add_executable(affrescoui_window_tests ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp ${affrescoui_window_test_files}
-	${CMAKE_CURRENT_SOURCE_DIR}/second_window.cpp)
+	${CMAKE_CURRENT_SOURCE_DIR}/second_window.cpp ${PROJECT_SOURCE_DIR}/apps/host/ChangesWindow.cpp)
 # glyphs.cpp draws with render's private gl::QuadRenderer, so it sees render's src and glad
 target_include_directories(affrescoui_window_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 	${PROJECT_SOURCE_DIR}/modules/render/src)
 target_include_directories(affrescoui_window_tests SYSTEM PRIVATE ${doctest_SOURCE_DIR}
 	$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES> ${AFFRESCOUI_GLAD_INCLUDE_DIRS})
 target_compile_definitions(affrescoui_window_tests PRIVATE GLFW_INCLUDE_NONE
+	AFFRESCOUI_EXAMPLES_DIRECTORY="${PROJECT_SOURCE_DIR}/examples"
 	AFFRESCOUI_FONTS_DIR="${PROJECT_SOURCE_DIR}/examples/shared/fonts"
 	AFFRESCOUI_TEST_FONTS_DIR="${PROJECT_SOURCE_DIR}/tests/render/fonts")
 target_link_libraries(affrescoui_window_tests PRIVATE affrescoui::automation) # and through it, the library

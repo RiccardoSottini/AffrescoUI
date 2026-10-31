@@ -951,7 +951,7 @@ The parts of a conversation with an assistant (see Asking the agents) are built-
   `transparent` draws a reply as plain text), `typingIndicator` (`label`; its active dot is
   `phase % 3`), `proposalCard` (`title`, `summary`, up to three `lines` such as a proposal's `changes`, in the font
   `lineFont`, a `status`, and `preview`, `accept`, `reject` buttons until the status is `accepted`, `rejected` or
-  `closed`), `chatComposer` (a card: an editor bound to `bind`, showing `value`, above a bar with the use's `children`
+  `closed`; `review`, an action for a link to the change's files, in every status), `chatComposer` (a card: an editor bound to `bind`, showing `value`, above a bar with the use's `children`
   at its start, such as an attach button or a model picker, and a round send button at its end. Enter runs `send`
   unless the draft is blank, Shift+Enter breaks the line, Escape runs `close`; while `working` is true, a `stop`
   action turns the send button into a stop button. It lays out left to right, as the editor starts its lines at the
@@ -1876,9 +1876,9 @@ line:
 | → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
-| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `done` |
+| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `done` |
 | peer → | `revision` (compact edits or `patch`, `proposal`?, `assets`?, `run`?), `revert` / `restore` (`revision`), `undo` |
-| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
+| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `fileChanges` (the same, plus `notation` and `file`: VERSION_CONTROL.md, "The changes, file by file"), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
 | peer → | `convert` (`notation`: `"lisp"` or `"json"`, and `text` to read or `value` to write; a mistake is rejected with its line and column): how a peer reads and writes the Lisp notation, while revisions and the history stay JSON |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |

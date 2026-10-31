@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ScreenSources.hpp"
+
 /// @file
 /// @brief affresco::Screen::Impl, the screen's modules and peers, shared by the files that make up affresco::Screen.
 
@@ -79,6 +81,9 @@ struct Screen::Impl {
 
 	format::Features features;                           ///< Catalogues and publishers (RFC 0004); outlives the rest.
 	std::optional<format::AppManifest> app;              ///< The app it was loaded from (Screen::fromApp()).
+	detail::SourceMap sources;                           ///< Which file each entry came from (fileChanges()).
+	std::string entryFile = "screen";                    ///< The screen's own file's name (fileChanges()).
+	std::filesystem::path screenFolder;                  ///< Where relative paths are resolved from.
 	services::ServiceRegistry services;                  ///< What "services" may use (RFC 0002).
 	detail::RelayExecutor relay;                         ///< The network's executor.
 	std::unique_ptr<net::Client> network;                ///< See Screen::network(); outlives the runtime.
@@ -109,6 +114,12 @@ struct Screen::Impl {
 	/// @param baseDirectory Where relative paths are resolved from.
 	/// @throws DocumentError If the screen is invalid.
 	Impl(json document, std::filesystem::path baseDirectory);
+
+	/// @brief A change as a reviewer reads it (Screen::fileChanges()).
+	/// @param request What to show.
+	/// @return The change, file by file.
+	/// @throws DocumentError If there is no such proposal or commit.
+	[[nodiscard]] json fileChanges(const json& request) const;
 
 	Impl(const Impl&) = delete;            ///< Callbacks hold `this`: it never copies.
 	Impl& operator=(const Impl&) = delete; ///< Callbacks hold `this`: it never copies.

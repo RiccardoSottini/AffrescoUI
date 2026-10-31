@@ -103,7 +103,7 @@ The setup, once the host builds on Windows (work in progress) and Python can con
 | `get_evidence` | An open proposal's evidence, gathered by the host (VERSION_CONTROL.md, "Evidence"): the pictures before and after (PNG image blocks, at `scale` 1 or 2), then one line of JSON with the changed `region`, the `behaviour` lines, the `scenarios` results and the changed `texts`. Read-only |
 | `run_scenarios` | Plays the screen's own scenarios (`file`: a `*.scenarios.json` shipped next to the screen, and no other file; SCREEN_FORMAT.md, "Scenarios") on main as it runs now, or with an open proposal applied (`proposal`), or the agent's own `scenarios` on that screen; `only` picks one. Answers in a few lines: the totals, then `FAILED <scenario>, step <n>: <what>`. Runs the `affrescoui` tool (`$AFFRESCOUI_CLI`, the `PATH`, or `build/`) headless on a copy: nothing changes. Read-only |
 | `get_history` | main's commits, like `git log`: number, short id, author, committer (who approved it), message, parents |
-| `get_diff` | A JSON Patch between two revisions (`HEAD~1`, ids, numbers), or what an open proposal would change |
+| `get_diff` | A JSON Patch between two revisions (`HEAD~1`, ids, numbers), or what an open proposal would change; with `files`, the change file by file (`file` for a file's text, `notation` for JSON or Lisp) |
 | `get_blame` | Who last changed a node (`"#board"`, `"#board/text"`) or a path (`"/colors/accent"`), and when, like `git blame`: the commit's revision, id, author, committer, message and time |
 | `revert_revision` | Undo one revision and keep the later ones, like `git revert` (follows the permissions) |
 | `restore_revision` | Bring the whole screen back to an earlier revision, like `git restore` (follows the permissions) |

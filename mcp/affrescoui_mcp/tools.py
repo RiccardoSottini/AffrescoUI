@@ -212,9 +212,13 @@ TOOLS = [
      "description": "What changed, as a JSON Patch: between two revisions (`from`, `to`: numbers, "
                     "commit ids, \"HEAD\", \"HEAD~1\"; default HEAD~1 to HEAD), or what accepting an open proposal "
                     "would change now (`proposal`), then its impact per layer: view, logic, model (each change "
-                    "compatible, transforming or destructive) and data (\"none\", \"migrates N records\", ...).",
+                    "compatible, transforming or destructive) and data (\"none\", \"migrates N records\", ...). With "
+                    "`files`, the change file by file instead: each file with its lines added and removed, and the "
+                    "before and after text of `file`, in `notation` (\"json\" or \"lisp\").",
      "inputSchema": object_schema({"from": {"type": ["integer", "string"]}, "to": {"type": ["integer", "string"]},
-                                   "proposal": {"type": "integer"}})},
+                                   "proposal": {"type": "integer"}, "files": {"type": "boolean"},
+                                   "file": {"type": "string"},
+                                   "notation": {"type": "string", "enum": ["json", "lisp"]}})},
     {"name": "get_blame",
      "description": "Who last changed a node or a value, and when: the commit on main that last "
                     "changed `target`, a node (\"#board\", or \"#board/text\" inside it) or a path "

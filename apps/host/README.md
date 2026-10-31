@@ -12,6 +12,10 @@ Launcher ([`../../examples/launcher`](../../examples/launcher/README.md)), which
 AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_launcher examples/flow/json # the first frame, then exit
 ```
 
+Ctrl+Shift+D (Cmd+Shift+D on macOS), or *Review changes* on a card in the app's assistant, opens the host's window on a
+change, file by file, with preview, accept, reject and undo
+([`ChangesWindow.cpp`](ChangesWindow.cpp), [VERSION_CONTROL.md](../../VERSION_CONTROL.md), "The changes, file by file").
+
 The app may use nothing its `app.json` declares (origins, folders, programs, sound, the assistant) until the person
 allows it. The host asks in a window of its own
 ([`../../examples/shared/host`](../../examples/shared/host/permissions.screen.json)) the first time, for this app only,

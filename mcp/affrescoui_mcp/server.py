@@ -418,7 +418,14 @@ class Server:
         return compact(reply.get("entries")), False
 
     def get_diff(self, args):
-        """The get_diff tool: a JSON Patch between two revisions, or what an open proposal would change."""
+        """The get_diff tool: a JSON Patch between two revisions, or what an open proposal would change; or, with
+        `files`, the same change file by file."""
+        if args.get("files"):
+            keys = ("from", "to", "proposal", "file", "notation")
+            reply = self.host.request({"type": "fileChanges", **{k: args[k] for k in keys if k in args}})
+            if reply.get("type") != "fileChanges":
+                return f"error: {reply.get('error')}", True
+            return compact(reply.get("changes")), False
         reply = self.host.request({"type": "diff", **{k: args[k] for k in ("from", "to", "proposal") if k in args}})
         if reply.get("type") != "diff":
             return f"error: {reply.get('error')}", True

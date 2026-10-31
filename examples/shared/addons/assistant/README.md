@@ -31,7 +31,8 @@ screen without meeting the app's own names.
   waiting for review (one an agent opened without a reply, e.g. from a terminal over MCP) has a card too, after the
   conversation, so the app's assistant is where the person reviews every change. A card's buttons show while the
   proposal waits for review; after, it says *Accepted*, *Rejected*, or *Closed* (the proposal went another way, e.g.
-  reviewed by another client).
+  reviewed by another client). On a host that has it, *Review changes* opens the host's own window on the change, file by
+  file ([VERSION_CONTROL.md](../../../../VERSION_CONTROL.md), "The changes, file by file").
 - **Files**, as cards with an icon of their kind (a picture, a sound, any other file), their name and their size or
   length: the files attached to the next message inside the composer (each removable), the files sent with a message,
   and a proposal's assets with its run-once steps.

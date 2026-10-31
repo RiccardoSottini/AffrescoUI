@@ -8,6 +8,7 @@
 #include <cstring>
 #include <map>
 #include <string_view>
+#include <utility>
 
 namespace affresco::scene3d {
 
@@ -248,7 +249,9 @@ std::string exportGltf(const Scene& scene, const Assets& assets, const std::vect
 			if(!meshes.contains(key)) meshes.emplace(key, writeMesh(writer, *data, index));
 			mesh = static_cast<int>(meshes.at(key));
 		} else if(!node.mesh.empty()) skipped.push_back("the mesh " + node.mesh + " of " + node.id + " is missing");
-		writer.root["nodes"].push_back(nodeJson(writer, node, mesh));
+		// First: it may add members to the root, which moves them, so "nodes" must be looked up after
+		json written = nodeJson(writer, node, mesh);
+		writer.root["nodes"].push_back(std::move(written));
 	}
 	const json roots = linkNodes(writer, scene, nodes);
 	if(writer.root.contains("extensions")) writer.root["extensionsUsed"] = {"KHR_lights_punctual"};

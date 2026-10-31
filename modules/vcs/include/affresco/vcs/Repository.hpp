@@ -80,6 +80,10 @@ public:
 	[[nodiscard]] json& state() override { return state_; }
 	[[nodiscard]] const json& state() const override { return state_; }
 	[[nodiscard]] CommitInfo head() const override { return info(mainHead()); }
+	/// @brief main's head as a document with its live state in it, what a patch from diff() applies to, previewed or
+	/// not.
+	/// @return The document.
+	[[nodiscard]] json committedView() const;
 
 	/* Assets (VERSION_CONTROL.md, "Assets"; RepositoryAssets.cpp) */
 

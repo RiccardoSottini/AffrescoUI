@@ -41,6 +41,7 @@
 // own in DIR. Every template has a folder in examples (examples/README.md): the Kanban board is examples/flow.
 
 #include "Assets.hpp"
+#include "ChangesWindow.hpp"
 #include "Permissions.hpp"
 #include "SocketDir.hpp"
 
@@ -56,6 +57,7 @@
 #include <format>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -511,6 +513,12 @@ int run(const Options& options) {
 	if(!screenshotOnly) screen.setLocale(affresco::format::systemLocale()); // screenshots stay in the default locale
 	affresco::Window& window = screen.createWindow(app);
 	if(!screenshotOnly) startAssistant(assistant, app, screen, window, options, allowed);
+#ifndef __EMSCRIPTEN__ // a browser tab has one window
+	std::unique_ptr<host::ChangesWindow> changes;
+	if(!screenshotOnly)
+		changes = std::make_unique<host::ChangesWindow>(app, screen, window,
+		                                                assetsDirectory() / "shared" / "host" / "changes.screen.json");
+#endif
 	applyPlugins(screen, options.plugins);
 	checkScenariosForEvidence(screen, opened.entry);
 
