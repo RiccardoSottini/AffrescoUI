@@ -1,0 +1,19 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "proposal-review",
+			"screen": "proposal-card.screen.json",
+			"note": "A proposal's card with the link to its changes, waiting and decided.",
+			"steps": [
+				{
+					"expect": {
+						"image": "first-frame"
+					}
+				}
+			]
+		}
+	]
+}

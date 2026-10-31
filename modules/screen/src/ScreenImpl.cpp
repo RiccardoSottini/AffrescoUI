@@ -14,7 +14,8 @@
 namespace affresco {
 
 Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
-    : repository(rules, std::move(document)), runtime(repository, std::move(baseDirectory)) {
+    : screenFolder(baseDirectory), repository(rules, std::move(document)),
+      runtime(repository, std::move(baseDirectory)) {
 	// A commit's "run" steps (a merged proposal's), once, on the live screen; a restore or a revert carries none
 	repository.onCommit.connect([this](const CommitInfo& commit) {
 		if(commit.run.is_array() && !commit.run.empty() && !images.rendering()) runtime.runOnce(commit.run, commit.id);
@@ -117,7 +118,7 @@ void Screen::Impl::load() {
 		file = parseUntrusted(text.str());
 		// NOLINTNEXTLINE(bugprone-empty-catch): the screen keeps its own state, as the comment below says
 	} catch(const std::exception&) { // json::parse_error, or DocumentError if it nests too deeply
-		                             // Not a state file this screen wrote: the screen keeps its own state, as before
+	                                 // Not a state file this screen wrote: the screen keeps its own state, as before
 	}
 	json rejected = json::object();
 	if(file.is_object())
@@ -173,6 +174,7 @@ Screen::Impl::Peer& Screen::Impl::add(Channel& channel, std::unique_ptr<Channel>
 	peer->channel = &channel;
 	peer->session = std::make_unique<channel::Session>(
 	    channel, repository, std::move(author), [this] { return runtime.catalog(); }, &images);
+	peer->session->setFileChanges([this](const json& request) { return fileChanges(request); });
 	peer->session->setUsage([this](bool clear) -> std::optional<json> {
 		if(!runtime.usage.enabled()) return std::nullopt;
 		if(clear) runtime.usage.clear();

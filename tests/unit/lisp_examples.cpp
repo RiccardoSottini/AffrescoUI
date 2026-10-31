@@ -49,9 +49,10 @@ TEST_CASE("lisp examples: the two notations share one copy of an example's asset
 }
 
 TEST_CASE("lisp examples: only a json or a lisp folder reads the assets folder beside it") {
-	CHECK(affresco::format::notationAssets("/a/flow/json") == std::filesystem::path("/a/flow/assets"));
-	CHECK(affresco::format::notationAssets("/a/flow/lisp/") == std::filesystem::path("/a/flow/assets"));
-	CHECK(affresco::format::notationAssets("/a/flow/json/.") == std::filesystem::path("/a/flow/assets"));
+	const std::filesystem::path assets = std::filesystem::absolute("/a/flow/assets"); // on Windows, with its drive
+	CHECK(affresco::format::notationAssets("/a/flow/json") == assets);
+	CHECK(affresco::format::notationAssets("/a/flow/lisp/") == assets);
+	CHECK(affresco::format::notationAssets("/a/flow/json/.") == assets);
 	CHECK(affresco::format::notationAssets("/a/flow").empty());
 	CHECK(affresco::format::notationAssets("").empty());
 	CHECK(affresco::format::notationAssets("/a/flow/parts").empty());

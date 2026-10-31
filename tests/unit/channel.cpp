@@ -663,6 +663,40 @@ TEST_CASE("channel: convert reads text in the Lisp notation into its value, and 
 	CHECK(peer.versions.head().number == 0); // nothing changed
 }
 
+TEST_CASE("channel: a change's files are the host's to tell") {
+	Peer peer;
+	affresco::channel::Session session(peer.channel, peer.versions, "studio");
+	peer.channel.receive(R"({"type": "fileChanges", "id": 1})");
+	CHECK(peer.channel.sent.back()["type"] == "rejected"); // a host that can't tell
+	json asked;
+	session.setFileChanges([&asked](const json& request) {
+		asked = request;
+		return json{{"files", json::array()}};
+	});
+	peer.channel.receive(R"({"type": "fileChanges", "proposal": 3, "notation": "lisp", "id": 2})");
+	CHECK(peer.channel.sent.back()["type"] == "fileChanges");
+	CHECK(peer.channel.sent.back()["changes"]["files"].empty());
+	CHECK(asked["proposal"] == 3);
+	CHECK(asked["notation"] == "lisp");
+}
+
+TEST_CASE("channel: a peer whose reads are limited is refused a change's files, never given a shorter list") {
+	json screen = affresco::test::permissionsScreen();
+	screen["permissions"]["data"] = json::array({{{"author", "agent"}, {"read", json::array({"/state/secret"})}}});
+	const affresco::format::Rules rules;
+	affresco::vcs::Repository versions(rules, screen);
+	MemoryChannel channel;
+	affresco::channel::Session session(channel, versions, "agent");
+	bool told = false;
+	session.setFileChanges([&told](const json&) {
+		told = true;
+		return json::object();
+	});
+	channel.receive(R"({"type": "fileChanges", "id": 1})");
+	CHECK_FALSE(told);
+	CHECK(channel.sent.back()["type"] == "rejected");
+}
+
 TEST_CASE("channel: a revision written in the Lisp notation commits the same change as its JSON") {
 	const auto submit = [](Peer& peer, const json& change) {
 		const affresco::channel::Session session(peer.channel, peer.versions, "studio");

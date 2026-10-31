@@ -39,6 +39,7 @@
 			"assistant.you": "You",
 			"assistant.touches": "Changes {n, plural, one {# element} other {# elements}}",
 			"assistant.preview": "Preview",
+			"assistant.review": "Review changes",
 			"assistant.accept": "Accept",
 			"assistant.reject": "Reject",
 			"assistant.accepted": "Accepted",
@@ -78,6 +79,7 @@
 			"assistant.you": "Tú",
 			"assistant.touches": "Cambia {n, plural, one {# elemento} other {# elementos}}",
 			"assistant.preview": "Vista previa",
+			"assistant.review": "Revisar cambios",
 			"assistant.accept": "Aceptar",
 			"assistant.reject": "Rechazar",
 			"assistant.accepted": "Aceptado",
@@ -117,6 +119,7 @@
 			"assistant.you": "Vous",
 			"assistant.touches": "Modifie {n, plural, one {# élément} other {# éléments}}",
 			"assistant.preview": "Aperçu",
+			"assistant.review": "Examiner les modifications",
 			"assistant.accept": "Accepter",
 			"assistant.reject": "Refuser",
 			"assistant.accepted": "Accepté",
@@ -140,7 +143,7 @@
 	"state": {
 		"assistant": { "show": true, "lift": 0, "open": false, "anim": 1, "draft": "", "messages": [], "unread": 0, "pending": "",
 		               "decided": {}, "phase": 0, "simulate": null,
-		               "model": "", "models": null, "modelMenu": false, "attachments": [], "picked": null,
+		               "model": "", "models": null, "modelMenu": false, "canReview": false, "attachments": [], "picked": null,
 		               "copied": null }
 	},
 	"watch": {
@@ -318,6 +321,10 @@
 		] }],
 		"assistant.preview": [{ "if": "{{preview != null && preview.id == id}}", "then": [{ "endPreview": true }],
 		                        "else": [{ "preview": "{{id}}" }] }],
+		"assistant.review": [
+			{ "note": "with: id. Asks the host for its own window on the change (ChangesWindow): the file by file diff" },
+			{ "call": "changes.open", "with": { "proposal": "{{id}}" }, "onError": [] }
+		],
 		"assistant.accept": [
 			{ "accept": "{{id}}", "head": "{{find(proposals, it.id == id).head}}" },
 			{ "set": "state.assistant.decided[id]", "to": "accepted" }
@@ -374,7 +381,7 @@
 			},
 			"children": [
 				{ "id": "assistantHeader", "height": 56, "alignSelf": "stretch", "color": "transparent",
-				  "onShow": [{ "run": "assistant.loadModels" }], "children": [
+				  "onShow": [{ "call": "changes.available", "into": "state.assistant.canReview", "onError": [] }, { "run": "assistant.loadModels" }], "children": [
 					{ "type": "label", "runs": [{ "text": "{{t('assistant.title')}}", "bold": true, "size": 16 }],
 					  "textColor": "@assistant.text", "role": "heading", "anchors": { "left": 16, "top": 9 },
 					  "fitText": true },
@@ -477,10 +484,11 @@
 							"title": "{{message.title}}", "summary": "{{message.summary}}", "lines": "{{message.lines ?? []}}",
 							"status": "{{preview != null && preview.id == message.id ? 'previewing' : contains(assistantPending, message.id) ? 'pending' : state.assistant.decided[message.id] ?? 'closed'}}",
 							"preview": "assistant.preview", "accept": "assistant.accept", "reject": "assistant.reject",
+							"review": "{{state.assistant.canReview == true ? 'assistant.review' : null}}",
 							"with": { "id": "{{message.id}}" }, "width": 340,
 							"labels": {
 								"preview": "{{t('assistant.preview')}}", "accept": "{{t('assistant.accept')}}",
-								"reject": "{{t('assistant.reject')}}", "accepted": "{{t('assistant.accepted')}}",
+								"reject": "{{t('assistant.reject')}}", "accepted": "{{t('assistant.accepted')}}", "review": "{{t('assistant.review')}}",
 								"rejected": "{{t('assistant.rejected')}}", "closed": "{{t('assistant.closed')}}"
 							},
 							"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
@@ -493,10 +501,11 @@
 							"lines": "{{slice(concat(map(proposal.assets ?? [], '+ ' + it.name), proposal.changes ?? []), 0, 3)}}",
 							"status": "{{preview != null && preview.id == proposal.id ? 'previewing' : 'pending'}}",
 							"preview": "assistant.preview", "accept": "assistant.accept", "reject": "assistant.reject",
+							"review": "{{state.assistant.canReview == true ? 'assistant.review' : null}}",
 							"with": { "id": "{{proposal.id}}" }, "width": 340,
 							"labels": {
 								"preview": "{{t('assistant.preview')}}", "accept": "{{t('assistant.accept')}}",
-								"reject": "{{t('assistant.reject')}}", "accepted": "{{t('assistant.accepted')}}",
+								"reject": "{{t('assistant.reject')}}", "accepted": "{{t('assistant.accepted')}}", "review": "{{t('assistant.review')}}",
 								"rejected": "{{t('assistant.rejected')}}", "closed": "{{t('assistant.closed')}}"
 							},
 							"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",

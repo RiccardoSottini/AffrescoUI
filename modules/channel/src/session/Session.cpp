@@ -39,8 +39,8 @@ std::string toBase64(std::string_view bytes) {
 /// @param type The message's type.
 /// @return true for diff, exportChanges, render, getEvidence and blame.
 bool showsWhole(std::string_view type) noexcept {
-	static constexpr std::array<std::string_view, 5> reads = {"diff", "exportChanges", "render", "getEvidence",
-	                                                          "blame"};
+	static constexpr std::array<std::string_view, 6> reads = {"diff",   "fileChanges", "exportChanges",
+	                                                          "render", "getEvidence", "blame"};
 	return std::ranges::find(reads, type) != reads.end();
 }
 
@@ -248,9 +248,7 @@ Session::~Session() {
 
 // Error texts can quote what the peer sent, bytes that aren't UTF-8 included (a parse error shows the bytes it read),
 // and dump() throws on those by default: they are replaced with U+FFFD instead, so answering never fails
-void Session::send(const json& message) {
-	channel_.send(message.dump(-1, ' ', false, json::error_handler_t::replace));
-}
+void Session::send(const json& message) { channel_.send(message.dump(-1, ' ', false, json::error_handler_t::replace)); }
 
 // Open proposals, the one being previewed, the mode and the "don't ask again" grants
 json Session::reviewState() const {
@@ -492,6 +490,9 @@ bool Session::handleQuery(const Incoming& in) {
 		json reply = {{"type", "diff"}, {"patch", patch}, {"revision", versions_.head().number}, {"id", in.id}};
 		if(!versions_.readable(author_)) reply["impact"] = impactOf(versions_, m); // the layers it touches
 		send(reply);
+	} else if(in.type == "fileChanges") {
+		if(!fileChanges_) expect::fail("fileChanges", "this host can't tell a change's files");
+		send({{"type", "fileChanges"}, {"changes", fileChanges_(m)}, {"id", in.id}});
 	} else if(in.type == "exportChanges") {
 		send({{"type", "changes"},
 		      {"changes", versions_.exportChanges(m.value("from", json(0)), m.value("name", "changes"))},

@@ -171,7 +171,7 @@ revision, and in one proposal, which is judged whole when it merges.
 - **Writes are judged by effect**, like every rule: a change to a path outside `write`, or to a `never` path, is
   refused with the rule (`data rule: 'agent' may never touch /state/token`), even when the patch never names it.
 - **Reads are masked.** An author whose reads are limited gets the screen and the state without what it may not read
-  (array elements read as `null`, so positions stay). It can't ask for a diff, export, render, evidence or blame of
+  (array elements read as `null`, so positions stay). It can't ask for a diff, its files, export, render, evidence or blame of
   the whole screen, and proposals it sees list no changes. A revision that names an unreadable path (a `test` or a
   `copy` from it would tell its value) is refused.
 - **Records:** a screen's records (its `models`, SCREEN_FORMAT.md, "Data: models and records") are never in a
@@ -384,6 +384,40 @@ by node, keys such as Enter or Escape (never a typed character), sends by channe
 decisions. It is off by default, a peer that may not review can't turn it on, and the overlay is never in a picture
 drawn for a peer. The host answers `done`, or `rejected` with no window or no inspector. In C++:
 `Screen::setInspector()` and `Screen::inspectorTrace()`.
+
+## The changes, file by file
+
+Preview shows what a change looks like, and not what it does: a changed handler can look the same on screen. So a reviewer
+can also read it the way git shows a diff, every file it touches with its lines before and after.
+
+**Files.** Includes are merged when a screen loads and revisions patch the result, so a change has no file of its own.
+The screen keeps a map beside the document of which file holds each entry it merged: a section's member, or a member of a
+member for `menus` and `strings`. A deeper path belongs to its nearest entry, and an entry no file holds yet is listed
+under the screen's own file. The map is not part of the document, so it changes neither the document nor its hashes.
+
+**Text.** Each file's entries are printed before and after, in JSON or the Lisp notation, and compared. The layout is the
+notation's standard one, so a line number can differ from the hand-formatted file on disk, which stays as it was loaded:
+the history is kept apart from it. The live state is left out except for what the change touches. A side over 4 MiB is
+listed without its text.
+
+**How to ask.** `Screen::fileChanges(request)`, the protocol's `fileChanges`, or MCP's `get_diff` with `files`. The
+request names a `proposal`, or a `to` and optionally a `from` (default: the commit's parent), with `notation` and the `file`
+to give the text of. An author whose reads are limited is refused, so a list is never silently shorter than the change.
+
+**The window.** `affrescoui_launcher` shows it in a window of its own (`examples/shared/host/changes.screen.json`,
+`apps/host/ChangesWindow.cpp`), opened by a screen's `{"call": "changes.open", "with": {"proposal": id}}`, as the assistant's
+cards do, or by Ctrl+Shift+D (Cmd+Shift+D on macOS). It lists the proposals waiting and the changes applied, shows each
+file's diff, and offers preview, accept and reject, or undo for an applied change.
+
+- **Nothing in the change can alter it.** While a proposal is previewed, the running document is that proposal, so a
+  review panel inside it could be restyled or covered. The window is the host's screen, read from the host's assets and
+  fed only by the host from version control; a revision can't reach it. The shortcut works whatever a preview has done to
+  the app's own buttons.
+- **It accepts only what was read.** Accepting names the head the window showed, and an older head is refused. If the author
+  pushes while it is open, it says so, shows what is there now, and hides Accept until the person has seen the update
+  by choosing the change again.
+- **It adds no way to approve.** Its buttons are the person's, through the same `acceptProposal`, `rejectProposal` and
+  revert the rest of the library uses, and the deny rules and review policies apply to them as ever.
 
 ## Impact per layer
 
