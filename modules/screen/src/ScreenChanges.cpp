@@ -226,7 +226,7 @@ json Screen::Impl::fileChanges(const json& request) const {
 	const std::string wanted = request.value("file", std::string());
 	json files = json::array();
 	for(const std::string& owner : owners) {
-		const std::string shown = shownName(owner, entry, baseDirectory);
+		const std::string shown = shownName(owner, entry, screenFolder);
 		json before = json::object();
 		json after = json::object();
 		project(sides.before, "", owner, sources, touched, before);

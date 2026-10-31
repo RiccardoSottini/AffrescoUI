@@ -83,7 +83,7 @@ struct Screen::Impl {
 	std::optional<format::AppManifest> app;              ///< The app it was loaded from (Screen::fromApp()).
 	detail::SourceMap sources;                           ///< Which file each entry came from (fileChanges()).
 	std::string entryFile = "screen";                    ///< The screen's own file's name (fileChanges()).
-	std::filesystem::path baseDirectory;                 ///< Where relative paths are resolved from.
+	std::filesystem::path screenFolder;                  ///< Where relative paths are resolved from.
 	services::ServiceRegistry services;                  ///< What "services" may use (RFC 0002).
 	detail::RelayExecutor relay;                         ///< The network's executor.
 	std::unique_ptr<net::Client> network;                ///< See Screen::network(); outlives the runtime.

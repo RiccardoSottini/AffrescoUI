@@ -14,7 +14,7 @@
 namespace affresco {
 
 Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
-    : baseDirectory(baseDirectory), repository(rules, std::move(document)),
+    : screenFolder(baseDirectory), repository(rules, std::move(document)),
       runtime(repository, std::move(baseDirectory)) {
 	// A commit's "run" steps (a merged proposal's), once, on the live screen; a restore or a revert carries none
 	repository.onCommit.connect([this](const CommitInfo& commit) {
@@ -118,7 +118,7 @@ void Screen::Impl::load() {
 		file = parseUntrusted(text.str());
 		// NOLINTNEXTLINE(bugprone-empty-catch): the screen keeps its own state, as the comment below says
 	} catch(const std::exception&) { // json::parse_error, or DocumentError if it nests too deeply
-		                             // Not a state file this screen wrote: the screen keeps its own state, as before
+	                                 // Not a state file this screen wrote: the screen keeps its own state, as before
 	}
 	json rejected = json::object();
 	if(file.is_object())

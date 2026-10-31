@@ -133,8 +133,8 @@ TEST_CASE("scene3d: the hierarchy places children in their parents' space") {
 }
 
 TEST_CASE("scene3d: primitives are valid closed meshes with outward normals") {
-	for(const auto primitive : {Primitive::Cube, Primitive::Sphere, Primitive::Cylinder, Primitive::Cone, Primitive::Torus,
-	                            Primitive::Plane}) {
+	for(const auto primitive : {Primitive::Cube, Primitive::Sphere, Primitive::Cylinder, Primitive::Cone,
+	                            Primitive::Torus, Primitive::Plane}) {
 		CAPTURE(primitiveName(primitive));
 		const MeshData mesh = makePrimitive(primitive);
 		CHECK(mesh.validate().empty());
@@ -335,7 +335,8 @@ TEST_CASE("scene3d: malformed and hostile glTF files are refused") {
 		return bytesOf(R"({"asset":{"version":"2.0"},"buffers":[{"uri":"data:application/octet-stream;base64,)"
 		               R"(AAAAAAAAAAAAAAAAAAAAAA==","byteLength":16}],"bufferViews":[{"buffer":0,"byteLength":16}],)"
 		               R"("accessors":[{"bufferView":0,"byteOffset":)" +
-		               std::to_string(offset) + R"(,"componentType":5126,"type":"VEC3","count":1}],)"
+		               std::to_string(offset) +
+		               R"(,"componentType":5126,"type":"VEC3","count":1}],)"
 		               R"("meshes":[{"primitives":[{"attributes":{"POSITION":0}}]}],"nodes":[{"mesh":0}]})");
 	};
 	CHECK_NOTHROW((void)loadGltf(shifted(4), none));
@@ -358,6 +359,29 @@ TEST_CASE("scene3d: only safe relative URIs are read") {
 	CHECK_FALSE(isSafeRelativeUri("C:/model.bin"));
 	CHECK_FALSE(isSafeRelativeUri("https://example.com/model.bin"));
 	CHECK_FALSE(isSafeRelativeUri("textures\\..\\model.bin"));
+}
+
+TEST_CASE("scene3d: a node that adds a section to the file is still written") {
+	// nodeJson() adds "cameras" and "extensions" to the file's object, whose members move as it grows: a reference to
+	// its "nodes" taken before that would write the node into freed memory (on any platform, with so few members)
+	Scene scene;
+	Node camera;
+	camera.id = "camera";
+	camera.name = "Camera";
+	camera.camera = Lens{};
+	scene.nodes.push_back(camera);
+	Node light;
+	light.id = "light";
+	light.name = "Light";
+	light.light = Light{};
+	scene.nodes.push_back(light);
+	const affresco::json file = affresco::json::parse(exportGltf(scene, Assets{}, {}, nullptr));
+	REQUIRE(file.contains("nodes"));
+	REQUIRE(file["nodes"].size() == 2);
+	CHECK(file["nodes"][0]["name"] == "Camera");
+	CHECK(file["nodes"][0]["camera"] == 0);
+	CHECK(file["nodes"][1]["name"] == "Light");
+	CHECK(file["scenes"][0]["nodes"] == affresco::json::array({0, 1}));
 }
 
 TEST_CASE("scene3d: an export loads back") {
