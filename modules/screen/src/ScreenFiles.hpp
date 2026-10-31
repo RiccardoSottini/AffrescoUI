@@ -4,6 +4,7 @@
 /// @brief How a screen's files are read and where its data is kept: shared by Screen::fromFile() and
 /// Screen::fromApp().
 
+#include "ScreenSources.hpp"
 #include "affresco/core/Json.hpp"
 
 #include <filesystem>
@@ -21,9 +22,12 @@ namespace affresco::detail {
 /// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
 /// @param roots The folders every include must be in once links are resolved (an app's), or none for anywhere.
 /// @param depth Includes inside includes so far.
+/// @param sources Receives which file each entry came from (may be nullptr).
+/// @param file The file this document is (for @p sources): its absolute path, or empty for the screen itself.
 /// @throws ScreenError If an include can't be read, isn't a plain file of at most 16 MiB, or is outside @p roots.
 void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated,
-                     std::span<const std::filesystem::path> roots = {}, int depth = 0);
+                     std::span<const std::filesystem::path> roots = {}, int depth = 0, SourceMap* sources = nullptr,
+                     const std::string& file = {});
 
 /// @brief The name of a place's data in the data folder: a name the place chose (an app's id, a screen file's name),
 /// bound to the first place that uses it, so that another place with the same name never gets its data or the

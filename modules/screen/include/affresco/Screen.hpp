@@ -441,6 +441,15 @@ public:
 	/// @brief The open proposals.
 	[[nodiscard]] std::vector<ProposalInfo> proposals() const;
 
+	/// @brief A change as a reviewer reads it, file by file (VERSION_CONTROL.md, "The changes, file by file").
+	/// @param request `proposal` (what accepting it would change), or `to` and optionally `from` (default: `to`'s
+	/// parent; `to` defaults to HEAD); `notation` ("json" or "lisp", default the screen file's); `file`, a file to give
+	/// the texts of.
+	/// @return Who and what (`author`, `message`, `head`, ...), `files` (`[{"file", "added", "removed", "before"?,
+	/// "after"?}]`, or `"tooLarge": true`), `assets`, `run`, `impact`, `behaviour` and `person`.
+	/// @throws DocumentError If there is no such proposal or commit, or a proposal no longer applies.
+	[[nodiscard]] json fileChanges(const json& request) const;
+
 	/// @brief Merges a proposal, approved by "user" (VersionControl::accept takes more).
 	/// @param id The proposal.
 	/// @param head Its head commit as the user reviewed it (ProposalInfo::head, or 7+ characters of it); refused if

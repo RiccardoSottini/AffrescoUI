@@ -34,6 +34,7 @@
       :assistant.you You
       :assistant.touches "Changes {n, plural, one {# element} other {# elements}}"
       :assistant.preview Preview
+      :assistant.review "Review changes"
       :assistant.accept Accept
       :assistant.reject Reject
       :assistant.accepted Accepted
@@ -71,6 +72,7 @@
       :assistant.you "Tú"
       :assistant.touches "Cambia {n, plural, one {# elemento} other {# elementos}}"
       :assistant.preview "Vista previa"
+      :assistant.review "Revisar cambios"
       :assistant.accept Aceptar
       :assistant.reject Rechazar
       :assistant.accepted Aceptado
@@ -108,6 +110,7 @@
       :assistant.you Vous
       :assistant.touches "Modifie {n, plural, one {# élément} other {# éléments}}"
       :assistant.preview "Aperçu"
+      :assistant.review "Examiner les modifications"
       :assistant.accept Accepter
       :assistant.reject Refuser
       :assistant.accepted "Accepté"
@@ -140,6 +143,7 @@
       :model ""
       :models nil
       :modelMenu false
+      :canReview false
       :attachments []
       :picked nil
       :copied nil}}
@@ -343,6 +347,8 @@
     :assistant.preview [{:if "{{preview != null && preview.id == id}}"
         :then [{:endPreview true}]
         :else [{:preview "{{id}}"}]}]
+    :assistant.review [{:note "with: id. Asks the host for its own window on the change (ChangesWindow): the file by file diff"}
+      {:call changes.open :with {:proposal "{{id}}"} :onError []}]
     :assistant.accept [{:accept "{{id}}" :head "{{find(proposals, it.id == id).head}}"}
       {:set "state.assistant.decided[id]" :to accepted}]
     :assistant.reject [{:reject "{{id}}"} {:set "state.assistant.decided[id]" :to rejected}]
@@ -393,7 +399,11 @@
         :assistantCarded "{{map(filter(state.assistant.messages, it.kind == 'card'), it.id)}}"
         :assistantModels "{{state.assistant.simulate.models ?? state.assistant.models}}"
         :assistantModel "{{some(assistantModels.models ?? [], it.id == state.assistant.model) ? state.assistant.model : assistantModels.default ?? ''}}"}
-      (node #assistantHeader :height 56 :alignSelf stretch :color transparent :onShow [{:run assistant.loadModels}]
+      (node #assistantHeader
+        :height 56
+        :alignSelf stretch
+        :color transparent
+        :onShow [{:call changes.available :into state.assistant.canReview :onError []} {:run assistant.loadModels}]
         {:type label
           :runs [{:text "{{t('assistant.title')}}" :bold true :size 16}]
           :textColor @assistant.text
@@ -593,12 +603,14 @@
                 :preview assistant.preview
                 :accept assistant.accept
                 :reject assistant.reject
+                :review "{{state.assistant.canReview == true ? 'assistant.review' : null}}"
                 :with (node #"{{message.id}}")
                 :width 340
                 :labels {:preview "{{t('assistant.preview')}}"
                   :accept "{{t('assistant.accept')}}"
                   :reject "{{t('assistant.reject')}}"
                   :accepted "{{t('assistant.accepted')}}"
+                  :review "{{t('assistant.review')}}"
                   :rejected "{{t('assistant.rejected')}}"
                   :closed "{{t('assistant.closed')}}"}
                 :color @assistant.surface
@@ -619,12 +631,14 @@
                 :preview assistant.preview
                 :accept assistant.accept
                 :reject assistant.reject
+                :review "{{state.assistant.canReview == true ? 'assistant.review' : null}}"
                 :with (node #"{{proposal.id}}")
                 :width 340
                 :labels {:preview "{{t('assistant.preview')}}"
                   :accept "{{t('assistant.accept')}}"
                   :reject "{{t('assistant.reject')}}"
                   :accepted "{{t('assistant.accepted')}}"
+                  :review "{{t('assistant.review')}}"
                   :rejected "{{t('assistant.rejected')}}"
                   :closed "{{t('assistant.closed')}}"}
                 :color @assistant.surface

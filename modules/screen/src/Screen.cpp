@@ -173,7 +173,9 @@ namespace detail {
 /// @param depth Includes inside includes so far.
 /// @throws ScreenError If an include can't be read.
 void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated,
-                     std::span<const std::filesystem::path> roots, int depth) {
+                     std::span<const std::filesystem::path> roots, int depth, SourceMap* sources,
+                     const std::string& file) {
+	if(sources != nullptr) sources->claimDocument(document, file);
 	if(!document.is_object() || !document.contains("include")) return;
 	if(depth > 8) throw ScreenError("AffrescoUI screen: include: nested too deeply (a file includes itself?)");
 	const json includes = document["include"].is_string() ? json::array({document["include"]}) : document["include"];
@@ -186,8 +188,11 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 		checkInside(path, roots);
 		json part = readInclude(path);
 		if(!format::migrate(part).empty()) migrated = true;
-		resolveIncludes(part, path.parent_path(), migrated, roots, depth + 1);
+		SourceMap partSources;
+		resolveIncludes(part, path.parent_path(), migrated, roots, depth + 1,
+		                sources != nullptr ? &partSources : nullptr, path.lexically_normal().generic_string());
 		mergeInclude(document, part);
+		if(sources != nullptr) sources->absorb(partSources);
 	}
 }
 
@@ -291,6 +296,7 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 	content << file.rdbuf();
 	Screen screen = fromString(notation::jsonText(content.str(), path), path.parent_path()); // JSON or Lisp
 	screen.impl_->repairs.setTemplateName(detail::templateName(path));
+	screen.impl_->entryFile = path.filename().string();
 	// The history first: it sets the live state that the "persist" paths are then loaded into
 	if(history == History::OnDisk) screen.setHistoryDirectory(detail::stateLocation(dataDirectory, path, ".history"));
 	screen.setStateFile(detail::stateLocation(dataDirectory, path, ".state.json"));
@@ -314,12 +320,15 @@ Screen Screen::fromString(std::string_view content, std::filesystem::path baseDi
 		if(auto foreign = format::adapters::convertForeign(content))
 			return fromConverted(*foreign, std::move(baseDirectory));
 	bool migrated = !format::migrate(document).empty();
-	detail::resolveIncludes(document, baseDirectory, migrated);
+	detail::SourceMap sources;
+	detail::resolveIncludes(document, baseDirectory, migrated, {}, 0, &sources);
 	if(migrated) // one notice for the screen and its parts: they work as they are, in memory
 		affresco::log(LogLevel::Info,
 		              "AffrescoUI screen: written for format version 1, read as version 2 (`affrescoui migrate "
 		              "--write <files>` rewrites the files)");
-	return Screen(std::make_unique<Impl>(std::move(document), std::move(baseDirectory)));
+	Screen screen(std::make_unique<Impl>(std::move(document), std::move(baseDirectory)));
+	screen.impl_->sources = std::move(sources);
+	return screen;
 }
 
 /* Runtime */

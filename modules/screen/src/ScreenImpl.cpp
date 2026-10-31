@@ -14,7 +14,8 @@
 namespace affresco {
 
 Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
-    : repository(rules, std::move(document)), runtime(repository, std::move(baseDirectory)) {
+    : baseDirectory(baseDirectory), repository(rules, std::move(document)),
+      runtime(repository, std::move(baseDirectory)) {
 	// A commit's "run" steps (a merged proposal's), once, on the live screen; a restore or a revert carries none
 	repository.onCommit.connect([this](const CommitInfo& commit) {
 		if(commit.run.is_array() && !commit.run.empty() && !images.rendering()) runtime.runOnce(commit.run, commit.id);
@@ -173,6 +174,7 @@ Screen::Impl::Peer& Screen::Impl::add(Channel& channel, std::unique_ptr<Channel>
 	peer->channel = &channel;
 	peer->session = std::make_unique<channel::Session>(
 	    channel, repository, std::move(author), [this] { return runtime.catalog(); }, &images);
+	peer->session->setFileChanges([this](const json& request) { return fileChanges(request); });
 	peer->session->setUsage([this](bool clear) -> std::optional<json> {
 		if(!runtime.usage.enabled()) return std::nullopt;
 		if(clear) runtime.usage.clear();

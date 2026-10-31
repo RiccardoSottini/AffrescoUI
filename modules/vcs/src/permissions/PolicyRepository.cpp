@@ -98,6 +98,8 @@ void Repository::checkReadable(const json& patch, const std::string& author) con
 		throw DocumentError("AffrescoUI screen: revision: permission denied: " + *unreadable);
 }
 
+json Repository::committedView() const { return detail::view(mainDocument(), committedState()); }
+
 std::optional<json> Repository::readable(std::string_view author) const {
 	const detail::Policy policy = detail::policyOf(mainDocument());
 	if(!detail::readLimited(policy, author, roles_)) return std::nullopt;

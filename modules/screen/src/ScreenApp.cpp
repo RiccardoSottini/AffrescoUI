@@ -283,14 +283,20 @@ Screen Screen::fromApp(const std::filesystem::path& location, const std::filesys
 		fail(entry.string(), R"(an app's entry is a screen ("format": "affrescoui-screen"))");
 	bool migrated = !format::migrate(document).empty();
 	includeParts(document, app, entry.parent_path());
-	detail::resolveIncludes(document, entry.parent_path(), migrated, includeRoots(app));
+	detail::SourceMap sources;
+	detail::resolveIncludes(document, entry.parent_path(), migrated, includeRoots(app), 0, &sources);
 	giveSeeds(document, app);
+	for(const auto& [collection, relative] : app.manifest.seed)
+		sources.assign(detail::SourceMap::child(detail::SourceMap::child("/models", collection), "seed"),
+		               (app.folder / relative).lexically_normal().generic_string());
 	if(migrated)
 		affresco::log(LogLevel::Info, "AffrescoUI screen: written for format version 1, read as version 2 "
 		                              "(`affrescoui migrate --write <files>` rewrites the files)");
 
 	Screen screen(std::make_unique<Impl>(std::move(document), entry.parent_path()));
 	screen.impl_->app = app.manifest;
+	screen.impl_->sources = std::move(sources);
+	screen.impl_->entryFile = entry.filename().string();
 	screen.impl_->repairs.setTemplateName(detail::templateName(entry));
 	if(dataDirectory.empty()) return screen; // a check: nothing kept
 	const std::filesystem::path data = appDataDirectory(dataDirectory, app.manifest.id, app.folder);

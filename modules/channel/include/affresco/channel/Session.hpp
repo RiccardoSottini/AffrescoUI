@@ -54,6 +54,10 @@ public:
 	/// @param summary The summaries; must not outlive what it reads.
 	void setUsage(UsageSummary summary) { usage_ = std::move(summary); }
 
+	/// @brief Answers "fileChanges": a change file by file, which only the host can tell (by default it is off).
+	/// @param changes Gives the change the message asks for; may throw DocumentError; must not outlive what it reads.
+	void setFileChanges(std::function<json(const json& request)> changes) { fileChanges_ = std::move(changes); }
+
 	Signal<const json&> onRelay; ///< A "request" or "reply" for other peers, with "from" set.
 
 private:
@@ -142,18 +146,19 @@ private:
 	/// @brief The "review" message: proposals, preview, mode and grants.
 	[[nodiscard]] json reviewState() const;
 
-	Channel& channel_;                                                    ///< The transport.
-	VersionControl& versions_;                                            ///< The document.
-	std::string author_;                                                  ///< See author().
-	std::function<json()> catalog_;                                       ///< For "getCatalog".
-	ScreenImages* images_ = nullptr;                                      ///< For "render" (may be nullptr).
-	PeerLimits limits_;                                                   ///< What the peer may send.
-	TokenBucket messageRate_;                                             ///< Messages of any kind.
-	TokenBucket revisionRate_;                                            ///< Changes.
-	TokenBucket pictureRate_; ///< Pictures ("render"), at the rate of changes: each draws the whole screen.
-	bool limited_ = false;                                                ///< Over a limit now (see overLimit()).
+	Channel& channel_;               ///< The transport.
+	VersionControl& versions_;       ///< The document.
+	std::string author_;             ///< See author().
+	std::function<json()> catalog_;  ///< For "getCatalog".
+	ScreenImages* images_ = nullptr; ///< For "render" (may be nullptr).
+	PeerLimits limits_;              ///< What the peer may send.
+	TokenBucket messageRate_;        ///< Messages of any kind.
+	TokenBucket revisionRate_;       ///< Changes.
+	TokenBucket pictureRate_;        ///< Pictures ("render"), at the rate of changes: each draws the whole screen.
+	bool limited_ = false;           ///< Over a limit now (see overLimit()).
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
-	UsageSummary usage_; ///< For "getUsage" and "clearUsage" (empty: off).
+	UsageSummary usage_;                           ///< For "getUsage" and "clearUsage" (empty: off).
+	std::function<json(const json&)> fileChanges_; ///< Answers "fileChanges".
 };
 
 } // namespace affresco::channel

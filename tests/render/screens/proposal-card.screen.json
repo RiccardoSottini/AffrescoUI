@@ -1,0 +1,82 @@
+{
+	"format": "affrescoui-screen",
+	"version": 2,
+	"window": {
+		"title": "card",
+		"width": 420,
+		"height": 280
+	},
+	"note": "A proposal's card with the link to its changes, waiting and decided.",
+	"fonts": {
+		"default": {
+			"file": "../../../examples/shared/fonts/Roboto-Regular.ttf",
+			"size": 14,
+			"fallback": [
+				"icons"
+			]
+		},
+		"icons": {
+			"file": "../../../examples/shared/fonts/Lucide.ttf",
+			"size": 14
+		}
+	},
+	"actions": {
+		"noop": []
+	},
+	"root": {
+		"id": "cards",
+		"color": "#101018",
+		"children": [
+			{
+				"id": "cardsColumn",
+				"type": "column",
+				"fill": 12,
+				"gap": 12,
+				"children": [
+					{
+						"id": "waiting",
+						"use": "proposalCard",
+						"with": {
+							"title": "Add a Blocked column",
+							"summary": "3 changes",
+							"status": "pending",
+							"lines": [
+								"set #title/text to Two"
+							],
+							"preview": "noop",
+							"accept": "noop",
+							"reject": "noop",
+							"review": "noop",
+							"width": 340,
+							"color": "#1c1c26",
+							"textColor": "#ececf4",
+							"dimColor": "#a4a2b9",
+							"borderColor": "#2b2b39",
+							"accent": "#3fb96b",
+							"accentTextColor": "#111118",
+							"buttonColor": "#262633"
+						}
+					},
+					{
+						"id": "decided",
+						"use": "proposalCard",
+						"with": {
+							"title": "Rename Done",
+							"summary": "1 change",
+							"status": "accepted",
+							"review": "noop",
+							"width": 340,
+							"color": "#1c1c26",
+							"textColor": "#ececf4",
+							"dimColor": "#a4a2b9",
+							"borderColor": "#2b2b39",
+							"accent": "#3fb96b",
+							"accentTextColor": "#111118",
+							"buttonColor": "#262633"
+						}
+					}
+				]
+			}
+		]
+	}
+}

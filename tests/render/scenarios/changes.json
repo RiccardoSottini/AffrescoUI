@@ -1,0 +1,209 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../../../examples/shared/host",
+	"scenarios": [
+		{
+			"name": "changes",
+			"screen": "changes.screen.json",
+			"note": "The host's window on a change, the action changes.show standing in for the host: a proposal, a file's diff, inline, and an applied change.",
+			"steps": [
+				{
+					"expect": {
+						"node": "#changesPick",
+						"exists": true
+					}
+				},
+				{
+					"action": "changes.show",
+					"event": {
+						"list": {
+							"selectionCount": 0,
+							"proposals": [
+								{
+									"id": 3,
+									"head": "a1b2c3d",
+									"author": "agent/claude-code",
+									"message": "Add a Blocked column"
+								}
+							],
+							"history": [
+								{
+									"number": 2,
+									"id": "c2",
+									"author": "studio",
+									"message": "Rename Done"
+								},
+								{
+									"number": 0,
+									"id": "c0",
+									"author": "file",
+									"message": "original"
+								}
+							]
+						},
+						"selected": {
+							"proposal": 3
+						},
+						"view": {
+							"kind": "proposal",
+							"proposal": 3,
+							"author": "agent/claude-code",
+							"message": "Add a Blocked column",
+							"head": "a1b2c3d",
+							"notation": "json",
+							"files": [
+								{
+									"file": "board.json",
+									"added": 2,
+									"removed": 2
+								},
+								{
+									"file": "locales/en.json",
+									"added": 1,
+									"removed": 0
+								},
+								{
+									"file": "index.screen.json",
+									"added": 8,
+									"removed": 2
+								}
+							],
+							"assets": [
+								{
+									"name": "blocked.svg"
+								}
+							],
+							"run": [],
+							"behaviour": [
+								"set the action moveCard"
+							],
+							"person": [
+								"brings an asset: blocked.svg"
+							],
+							"conflicts": [],
+							"impact": {
+								"view": 2,
+								"logic": 1,
+								"model": [],
+								"data": "none"
+							}
+						},
+						"text": {
+							"file": "board.json",
+							"added": 2,
+							"removed": 2,
+							"before": "{\n\t\"components\": {\n\t\t\"card\": {\n\t\t\t\"node\": {\n\t\t\t\t\"id\": \"card\",\n\t\t\t\t\"color\": \"#111111\"\n\t\t\t}\n\t\t}\n\t},\n\t\"state\": {\n\t\t\"count\": 1\n\t}\n}\n",
+							"after": "{\n\t\"components\": {\n\t\t\"card\": {\n\t\t\t\"node\": {\n\t\t\t\t\"id\": \"card\",\n\t\t\t\t\"color\": \"#222222\"\n\t\t\t}\n\t\t}\n\t},\n\t\"state\": {\n\t\t\"count\": 2\n\t}\n}\n"
+						}
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesTitle",
+						"text": "Add a Blocked column"
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesAccept",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"image": "proposal"
+					}
+				},
+				{
+					"click": "#changesInline"
+				},
+				{
+					"expect": {
+						"state": "mode",
+						"is": "inline"
+					}
+				},
+				{
+					"expect": {
+						"image": "inline"
+					}
+				},
+				{
+					"action": "changes.show",
+					"event": {
+						"list": {
+							"selectionCount": 0,
+							"proposals": [
+								{
+									"id": 3,
+									"head": "a1b2c3d",
+									"author": "agent/claude-code",
+									"message": "Add a Blocked column"
+								}
+							],
+							"history": [
+								{
+									"number": 2,
+									"id": "c2",
+									"author": "studio",
+									"message": "Rename Done"
+								},
+								{
+									"number": 0,
+									"id": "c0",
+									"author": "file",
+									"message": "original"
+								}
+							]
+						},
+						"selected": {
+							"to": "c2"
+						},
+						"view": {
+							"kind": "commit",
+							"commit": "c2",
+							"revision": 2,
+							"author": "studio",
+							"message": "Rename Done",
+							"head": "c2",
+							"notation": "lisp",
+							"files": [
+								{
+									"file": "board.lisp",
+									"added": 1,
+									"removed": 1
+								}
+							],
+							"assets": []
+						},
+						"text": {
+							"file": "board.lisp",
+							"added": 1,
+							"removed": 1,
+							"before": "{:title Done}\n",
+							"after": "{:title Finished}\n"
+						}
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndo",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesAccept",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"image": "commit"
+					}
+				}
+			]
+		}
+	]
+}
