@@ -94,6 +94,11 @@ void checkStrings(const json& section, const std::string& name) {
 			static_cast<void>(expect::string(value, at));
 		} else if(key == "default") {
 			if(!validTag(expect::string(value, at))) expect::fail(at, "expected a locale's tag, e.g. \"en\"");
+		} else if(key == "required") {
+			if(!value.is_boolean()) expect::fail(at, "expected true or false");
+		} else if(key == "keep") {
+			if(!value.is_array()) expect::fail(at, "expected a list of texts");
+			for(const json& text : value) static_cast<void>(expect::string(text, at));
 		} else {
 			if(!validTag(key)) expect::fail(at, "a locale's tag has letters, digits and '-', e.g. \"fr-CA\"");
 			if(++locales > stringsLocaleLimit)

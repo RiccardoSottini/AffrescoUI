@@ -1,7 +1,7 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
   :format affrescoui-screen
   :version 2
-  :include ["../../shared/addons/assistant/assistant.lisp"]
+  :include ["locales/en.lisp" "locales/es.lisp" "locales/fr.lisp" "../../shared/addons/assistant/assistant.lisp"]
   :note "Streak: a habit tracker laid out for the desktop: the habits with their last days to tick on the left, the chosen habit's score, history, calendar, streaks and frequency on the right. Yes-or-no and measurable habits, frequencies, reminders, notes per day, sorting, archiving, CSV export, light, dark and pure black. In English, Italian and Arabic."
   :window {:title Streak :width 1280 :height 800 :minWidth 400 :minHeight 560}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :fallback [icons]}
@@ -86,542 +86,7 @@
         :getDocument {:type getDocument}}
       :reconnect true
       :note "The person's habits in their own document on the document server (apps/server), ~streak, synced both ways."}}
-  :strings {:default en
-    :locale "{{state.locale}}"
-    :en {:app Streak
-      :add "Add habit"
-      :filter Filter
-      :more "More options"
-      :back Back
-      :edit Edit
-      :kind.yesNo "Yes or no"
-      :kind.measurable Measurable
-      :sortBy Sort
-      :sort.manual Manually
-      :sort.name "By name"
-      :sort.color "By colour"
-      :sort.score "By score"
-      :sort.status "By status"
-      :hideCompleted "Hide completed"
-      :showArchived "Show archived"
-      :darkMode "Dark mode"
-      :settings Settings
-      :exportAll "Export all as CSV"
-      :syncNow "Sync now"
-      :archive Archive
-      :unarchive Unarchive
-      :delete Delete
-      :exportCsv "Export as CSV"
-      :empty "No habits here yet"
-      :emptyHint "Add one with the + button, or change the filter."
-      :noSelection "Choose a habit to see how it is going."
-      :freq.daily "Every day"
-      :freq.everyN "{n, plural, one {Every day} other {Every # days}}"
-      :freq.week "{n, plural, one {Once a week} other {# times a week}}"
-      :freq.month "{n, plural, one {Once a month} other {# times a month}}"
-      :target "{type, select, atMost {At most} other {At least}} {value} {unit} {per, select, day {a day} week {a week} other {a month}}"
-      :reminderOff "No reminder"
-      :archivedTag Archived
-      :card.overview "At a glance"
-      :card.target Target
-      :card.score Strength
-      :card.history Progress
-      :card.calendar Calendar
-      :card.streaks "Longest runs"
-      :card.frequency "By weekday"
-      :card.notes Notes
-      :stat.score Strength
-      :stat.month Month
-      :stat.year Year
-      :stat.total Total
-      :period Period
-      :period.day Day
-      :period.week Week
-      :period.month Month
-      :period.quarter Quarter
-      :period.year Year
-      :quarter "Q{n}"
-      :goal.day Today
-      :goal.week "This week"
-      :goal.month "This month"
-      :goal.quarter "This quarter"
-      :goal.year "This year"
-      :goalOf "{value} / {goal}"
-      :noNotes "No notes yet. Right-click a day to write one."
-      :noStreaks "No streaks yet."
-      :days "{n, plural, one {# day} other {# days}}"
-      :popup.yes Yes
-      :popup.no No
-      :popup.skip Skip
-      :popup.save Save
-      :popup.note Note
-      :popup.value Value
-      :cell.yes "{date}: done"
-      :cell.no "{date}: not done"
-      :cell.skip "{date}: skipped"
-      :cell.auto "{date}: on target"
-      :cell.value "{date}: {value} {unit}"
-      :cell.none "{date}"
-      :edit.new "Create habit"
-      :edit.edit "Edit habit"
-      :edit.name Name
-      :edit.namePh "e.g. Stretch"
-      :edit.question Question
-      :edit.questionPh "e.g. Did you stretch today?"
-      :edit.unit Unit
-      :edit.unitPh "e.g. pages"
-      :edit.target Target
-      :edit.frequency Frequency
-      :edit.reminder Reminder
-      :edit.notes Notes
-      :edit.notesPh "Why it matters, or how you will keep it"
-      :edit.color Colour
-      :edit.nameNeeded "A habit needs a name."
-      :chip.daily "Every day"
-      :chip.everyN "Every n days"
-      :chip.week "Per week"
-      :chip.month "Per month"
-      :chip.atLeast "At least"
-      :chip.atMost "At most"
-      :chip.perDay "Per day"
-      :save Save
-      :cancel Cancel
-      :picked "{n} selected"
-      :clearPick "Clear selection"
-      :delete.titleN "Delete these habits?"
-      :delete.messageN "{n} habits and their whole history will be removed. This can't be undone."
-      :toast.archivedN "{n, plural, one {# habit archived} other {# habits archived}}"
-      :toast.unarchivedN "{n, plural, one {# habit restored} other {# habits restored}}"
-      :toast.deletedN "{n, plural, one {# habit deleted} other {# habits deleted}}"
-      :delete.title "Delete this habit?"
-      :delete.message "{name} and its whole history will be removed. This can't be undone."
-      :toast.archived "{name} archived"
-      :toast.unarchived "{name} restored"
-      :toast.deleted "{name} deleted"
-      :toast.copied "{n, plural, one {# habit copied as CSV} other {# habits copied as CSV}}"
-      :toast.reminder "Time for {name}"
-      :toast.done "Mark done"
-      :undo Undo
-      :set.interface Interface
-      :set.theme Theme
-      :theme.light Light
-      :theme.dark Dark
-      :theme.system "System default"
-      :set.pureBlack "True black"
-      :set.pureBlackHint "A black background in dark mode"
-      :set.reverse "Reverse order of days"
-      :set.reverseHint "Show the oldest day first"
-      :set.skip "Enable skip days"
-      :set.skipHint "Click a box a third time to mark the day as skipped"
-      :set.firstDay "First day of the week"
-      :set.language Language
-      :set.notifications Notifications
-      :set.reminders Reminders
-      :set.remindersHint "A notification at each habit's time"
-      :set.data Data
-      :set.export "Export all as CSV"
-      :set.exportHint "Copies every habit's history"
-      :set.backup "Back up to a file"
-      :set.backupHint "Saves every habit and its history as a JSON file"
-      :set.restore "Restore from a file"
-      :set.restoreHint "Adds or replaces habits from a backup"
-      :toast.backedUp "{n, plural, one {# habit saved} other {# habits saved}} to {name}"
-      :toast.restored "{n, plural, one {# habit restored} other {# habits restored}}"
-      :toast.restoredSkipped "{n, plural, one {# habit restored} other {# habits restored}}, {skipped, plural, one {# entry skipped} other {# entries skipped}}"
-      :toast.notRestored "Not restored: {message}"
-      :toast.notBackedUp "Not saved: {message}"
-      :toast.badBackup "That file isn't a Streak backup"
-      :set.sync Sync
-      :set.account Account
-      :lang.en English
-      :lang.es "Español"
-      :lang.fr "Français"
-      :sync.signedOut "Not signed in"
-      :sync.offline Offline
-      :sync.online Synced
-      :sync.error "Sync error: {message}"
-      :sync.received "Habits synced from the server"
-      :sync.commits "{state}  ·  {n, plural, one {# change sent} other {# changes sent}}"
-      :signIn "Sign in"
-      :signOut "Sign out"
-      :signedIn "Signed in as {account}"
-      :notSignedIn "Not signed in: {message}"
-      :you you
-      :palettePlaceholder "Type a command"
-      :cmd.addYesNo "New yes-or-no habit"
-      :cmd.addMeasurable "New measurable habit"
-      :cmd.editHabit "Edit habit"
-      :cmd.archiveHabit "Archive or restore habit"
-      :cmd.confirmDelete "Delete habit"
-      :cmd.exportHabit "Export habit as CSV"
-      :cmd.exportAll "Export all as CSV"
-      :cmd.openSettings Settings
-      :cmd.toggleTheme "Toggle dark mode"
-      :cmd.toggleHideCompleted "Hide completed"
-      :cmd.toggleShowArchived "Show archived"
-      :cmd.nextHabit "Next habit"
-      :cmd.prevHabit "Previous habit"
-      :cmd.checkToday "Check today"
-      :cmd.syncNow "Sync now"
-      :cmd.signIn "Sign in"
-      :cmd.signOut "Sign out"
-      :cmd.commandPalette "Command palette"}
-    :es {:app Streak
-      :add "Añadir hábito"
-      :filter Filtrar
-      :more "Más opciones"
-      :back "Atrás"
-      :edit Editar
-      :kind.yesNo "Sí o no"
-      :kind.measurable Medible
-      :sortBy Ordenar
-      :sort.manual Manualmente
-      :sort.name "Por nombre"
-      :sort.color "Por color"
-      :sort.score "Por puntuación"
-      :sort.status "Por estado"
-      :hideCompleted "Ocultar completados"
-      :showArchived "Mostrar archivados"
-      :darkMode "Modo oscuro"
-      :settings Ajustes
-      :exportAll "Exportar todo como CSV"
-      :syncNow "Sincronizar ahora"
-      :archive Archivar
-      :unarchive Desarchivar
-      :delete Eliminar
-      :exportCsv "Exportar como CSV"
-      :empty "Aún no hay hábitos"
-      :emptyHint "Añade uno con el botón + o cambia el filtro."
-      :noSelection "Elige un hábito para ver cómo va."
-      :freq.daily "Cada día"
-      :freq.everyN "{n, plural, one {Cada día} other {Cada # días}}"
-      :freq.week "{n, plural, one {Una vez a la semana} other {# veces a la semana}}"
-      :freq.month "{n, plural, one {Una vez al mes} other {# veces al mes}}"
-      :target "{type, select, atMost {Como máximo} other {Al menos}} {value} {unit} {per, select, day {al día} week {a la semana} other {al mes}}"
-      :reminderOff "Sin recordatorio"
-      :archivedTag Archivado
-      :card.overview "De un vistazo"
-      :card.target Objetivo
-      :card.score Fuerza
-      :card.history Progreso
-      :card.calendar Calendario
-      :card.streaks "Rachas más largas"
-      :card.frequency "Por día de la semana"
-      :card.notes Notas
-      :stat.score Fuerza
-      :stat.month Mes
-      :stat.year "Año"
-      :stat.total Total
-      :period Periodo
-      :period.day "Día"
-      :period.week Semana
-      :period.month Mes
-      :period.quarter Trimestre
-      :period.year "Año"
-      :quarter "T{n}"
-      :goal.day Hoy
-      :goal.week "Esta semana"
-      :goal.month "Este mes"
-      :goal.quarter "Este trimestre"
-      :goal.year "Este año"
-      :goalOf "{value} / {goal}"
-      :noNotes "Aún no hay notas. Haz clic derecho en un día para escribir una."
-      :noStreaks "Aún no hay rachas."
-      :days "{n, plural, one {# día} other {# días}}"
-      :popup.yes "Sí"
-      :popup.no No
-      :popup.skip Omitir
-      :popup.save Guardar
-      :popup.note Nota
-      :popup.value Valor
-      :cell.yes "{date}: hecho"
-      :cell.no "{date}: no hecho"
-      :cell.skip "{date}: omitido"
-      :cell.auto "{date}: en el objetivo"
-      :cell.value "{date}: {value} {unit}"
-      :cell.none "{date}"
-      :edit.new "Crear hábito"
-      :edit.edit "Editar hábito"
-      :edit.name Nombre
-      :edit.namePh "p. ej. Estirar"
-      :edit.question Pregunta
-      :edit.questionPh "p. ej. ¿Has estirado hoy?"
-      :edit.unit Unidad
-      :edit.unitPh "p. ej. páginas"
-      :edit.target Objetivo
-      :edit.frequency Frecuencia
-      :edit.reminder Recordatorio
-      :edit.notes Notas
-      :edit.notesPh "Por qué es importante, o cómo lo mantendrás"
-      :edit.color Color
-      :edit.nameNeeded "Un hábito necesita un nombre."
-      :chip.daily "Cada día"
-      :chip.everyN "Cada n días"
-      :chip.week "Por semana"
-      :chip.month "Por mes"
-      :chip.atLeast "Al menos"
-      :chip.atMost "Como máximo"
-      :chip.perDay "Por día"
-      :save Guardar
-      :cancel Cancelar
-      :picked "{n} seleccionados"
-      :clearPick "Borrar selección"
-      :delete.titleN "¿Eliminar estos hábitos?"
-      :delete.messageN "Se eliminarán {n} hábitos y todo su historial. Esta acción no se puede deshacer."
-      :toast.archivedN "{n, plural, one {# hábito archivado} other {# hábitos archivados}}"
-      :toast.unarchivedN "{n, plural, one {# hábito restaurado} other {# hábitos restaurados}}"
-      :toast.deletedN "{n, plural, one {# hábito eliminado} other {# hábitos eliminados}}"
-      :delete.title "¿Eliminar este hábito?"
-      :delete.message "Se eliminarán {name} y todo su historial. Esta acción no se puede deshacer."
-      :toast.archived "{name} archivado"
-      :toast.unarchived "{name} restaurado"
-      :toast.deleted "{name} eliminado"
-      :toast.copied "{n, plural, one {# hábito copiado como CSV} other {# hábitos copiados como CSV}}"
-      :toast.reminder "Es hora de {name}"
-      :toast.done "Marcar como hecho"
-      :undo Deshacer
-      :set.interface Interfaz
-      :set.theme Tema
-      :theme.light Claro
-      :theme.dark Oscuro
-      :theme.system "Predeterminado del sistema"
-      :set.pureBlack "Negro total"
-      :set.pureBlackHint "Un fondo negro en modo oscuro"
-      :set.reverse "Invertir el orden de los días"
-      :set.reverseHint "Mostrar primero el día más antiguo"
-      :set.skip "Activar días omitidos"
-      :set.skipHint "Haz clic en una casilla una tercera vez para marcar el día como omitido"
-      :set.firstDay "Primer día de la semana"
-      :set.language Idioma
-      :set.notifications Notificaciones
-      :set.reminders Recordatorios
-      :set.remindersHint "Una notificación a la hora de cada hábito"
-      :set.data Datos
-      :set.export "Exportar todo como CSV"
-      :set.exportHint "Copia el historial de cada hábito"
-      :set.backup "Copia de seguridad en un archivo"
-      :set.backupHint "Guarda cada hábito y su historial en un archivo JSON"
-      :set.restore "Restaurar desde un archivo"
-      :set.restoreHint "Añade o sustituye hábitos desde una copia"
-      :toast.backedUp "{n, plural, one {# hábito guardado} other {# hábitos guardados}} en {name}"
-      :toast.restored "{n, plural, one {# hábito restaurado} other {# hábitos restaurados}}"
-      :toast.restoredSkipped "{n, plural, one {# hábito restaurado} other {# hábitos restaurados}}, {skipped, plural, one {# entrada omitida} other {# entradas omitidas}}"
-      :toast.notRestored "No restaurado: {message}"
-      :toast.notBackedUp "No guardado: {message}"
-      :toast.badBackup "Ese archivo no es una copia de Streak"
-      :set.sync "Sincronización"
-      :set.account Cuenta
-      :lang.en English
-      :lang.es "Español"
-      :lang.fr "Français"
-      :sync.signedOut "Sin sesión iniciada"
-      :sync.offline "Sin conexión"
-      :sync.online Sincronizado
-      :sync.error "Error de sincronización: {message}"
-      :sync.received "Hábitos sincronizados desde el servidor"
-      :sync.commits "{state}  ·  {n, plural, one {# cambio enviado} other {# cambios enviados}}"
-      :signIn "Iniciar sesión"
-      :signOut "Cerrar sesión"
-      :signedIn "Sesión iniciada como {account}"
-      :notSignedIn "Sin sesión iniciada: {message}"
-      :you "tú"
-      :palettePlaceholder "Escribe un comando"
-      :cmd.addYesNo "Nuevo hábito de sí o no"
-      :cmd.addMeasurable "Nuevo hábito medible"
-      :cmd.editHabit "Editar hábito"
-      :cmd.archiveHabit "Archivar o restaurar hábito"
-      :cmd.confirmDelete "Eliminar hábito"
-      :cmd.exportHabit "Exportar hábito como CSV"
-      :cmd.exportAll "Exportar todo como CSV"
-      :cmd.openSettings Ajustes
-      :cmd.toggleTheme "Alternar modo oscuro"
-      :cmd.toggleHideCompleted "Ocultar completados"
-      :cmd.toggleShowArchived "Mostrar archivados"
-      :cmd.nextHabit "Hábito siguiente"
-      :cmd.prevHabit "Hábito anterior"
-      :cmd.checkToday "Marcar hoy"
-      :cmd.syncNow "Sincronizar ahora"
-      :cmd.signIn "Iniciar sesión"
-      :cmd.signOut "Cerrar sesión"
-      :cmd.commandPalette "Paleta de comandos"}
-    :fr {:app Streak
-      :add "Ajouter une habitude"
-      :filter Filtrer
-      :more "Plus d’options"
-      :back Retour
-      :edit Modifier
-      :kind.yesNo "Oui ou non"
-      :kind.measurable Mesurable
-      :sortBy Trier
-      :sort.manual Manuellement
-      :sort.name "Par nom"
-      :sort.color "Par couleur"
-      :sort.score "Par score"
-      :sort.status "Par statut"
-      :hideCompleted "Masquer les terminées"
-      :showArchived "Afficher les archivées"
-      :darkMode "Mode sombre"
-      :settings "Réglages"
-      :exportAll "Tout exporter en CSV"
-      :syncNow "Synchroniser maintenant"
-      :archive Archiver
-      :unarchive "Désarchiver"
-      :delete Supprimer
-      :exportCsv "Exporter en CSV"
-      :empty "Pas encore d’habitudes"
-      :emptyHint "Ajoutez-en une avec le bouton + ou changez le filtre."
-      :noSelection "Choisissez une habitude pour voir où vous en êtes."
-      :freq.daily "Chaque jour"
-      :freq.everyN "{n, plural, one {Chaque jour} other {Tous les # jours}}"
-      :freq.week "{n, plural, one {Une fois par semaine} other {# fois par semaine}}"
-      :freq.month "{n, plural, one {Une fois par mois} other {# fois par mois}}"
-      :target "{type, select, atMost {Au plus} other {Au moins}} {value} {unit} {per, select, day {par jour} week {par semaine} other {par mois}}"
-      :reminderOff "Aucun rappel"
-      :archivedTag "Archivée"
-      :card.overview "En un coup d'œil"
-      :card.target Objectif
-      :card.score "Solidité"
-      :card.history Progression
-      :card.calendar Calendrier
-      :card.streaks "Plus longues séries"
-      :card.frequency "Par jour de la semaine"
-      :card.notes Notes
-      :stat.score "Solidité"
-      :stat.month Mois
-      :stat.year "Année"
-      :stat.total Total
-      :period "Période"
-      :period.day Jour
-      :period.week Semaine
-      :period.month Mois
-      :period.quarter Trimestre
-      :period.year "Année"
-      :quarter "T{n}"
-      :goal.day "Aujourd’hui"
-      :goal.week "Cette semaine"
-      :goal.month "Ce mois-ci"
-      :goal.quarter "Ce trimestre"
-      :goal.year "Cette année"
-      :goalOf "{value} / {goal}"
-      :noNotes "Pas encore de notes. Faites un clic droit sur un jour pour en écrire une."
-      :noStreaks "Pas encore de séries."
-      :days "{n, plural, one {# jour} other {# jours}}"
-      :popup.yes Oui
-      :popup.no Non
-      :popup.skip Passer
-      :popup.save Enregistrer
-      :popup.note Note
-      :popup.value Valeur
-      :cell.yes "{date} : fait"
-      :cell.no "{date} : non fait"
-      :cell.skip "{date} : passé"
-      :cell.auto "{date} : objectif atteint"
-      :cell.value "{date} : {value} {unit}"
-      :cell.none "{date}"
-      :edit.new "Créer une habitude"
-      :edit.edit "Modifier l’habitude"
-      :edit.name Nom
-      :edit.namePh "p. ex. Étirements"
-      :edit.question Question
-      :edit.questionPh "p. ex. Vous êtes-vous étiré aujourd’hui ?"
-      :edit.unit "Unité"
-      :edit.unitPh "p. ex. pages"
-      :edit.target Objectif
-      :edit.frequency "Fréquence"
-      :edit.reminder Rappel
-      :edit.notes Notes
-      :edit.notesPh "Pourquoi c’est important, ou comment vous allez la tenir"
-      :edit.color Couleur
-      :edit.nameNeeded "Une habitude doit avoir un nom."
-      :chip.daily "Chaque jour"
-      :chip.everyN "Tous les n jours"
-      :chip.week "Par semaine"
-      :chip.month "Par mois"
-      :chip.atLeast "Au moins"
-      :chip.atMost "Au plus"
-      :chip.perDay "Par jour"
-      :save Enregistrer
-      :cancel Annuler
-      :picked "{n} sélectionnées"
-      :clearPick "Effacer la sélection"
-      :delete.titleN "Supprimer ces habitudes ?"
-      :delete.messageN "{n} habitudes et tout leur historique seront supprimés. Cette action est irréversible."
-      :toast.archivedN "{n, plural, one {# habitude archivée} other {# habitudes archivées}}"
-      :toast.unarchivedN "{n, plural, one {# habitude restaurée} other {# habitudes restaurées}}"
-      :toast.deletedN "{n, plural, one {# habitude supprimée} other {# habitudes supprimées}}"
-      :delete.title "Supprimer cette habitude ?"
-      :delete.message "{name} et tout son historique seront supprimés. Cette action est irréversible."
-      :toast.archived "{name} archivée"
-      :toast.unarchived "{name} restaurée"
-      :toast.deleted "{name} supprimée"
-      :toast.copied "{n, plural, one {# habitude copiée en CSV} other {# habitudes copiées en CSV}}"
-      :toast.reminder "C’est l’heure de {name}"
-      :toast.done "Marquer comme fait"
-      :undo Annuler
-      :set.interface Interface
-      :set.theme "Thème"
-      :theme.light Clair
-      :theme.dark Sombre
-      :theme.system "Réglage du système"
-      :set.pureBlack "Noir intégral"
-      :set.pureBlackHint "Un fond noir en mode sombre"
-      :set.reverse "Inverser l’ordre des jours"
-      :set.reverseHint "Afficher le jour le plus ancien en premier"
-      :set.skip "Activer les jours passés"
-      :set.skipHint "Cliquez une troisième fois sur une case pour marquer le jour comme passé"
-      :set.firstDay "Premier jour de la semaine"
-      :set.language Langue
-      :set.notifications Notifications
-      :set.reminders Rappels
-      :set.remindersHint "Une notification à l’heure de chaque habitude"
-      :set.data "Données"
-      :set.export "Tout exporter en CSV"
-      :set.exportHint "Copie l’historique de chaque habitude"
-      :set.backup "Sauvegarder dans un fichier"
-      :set.backupHint "Enregistre chaque habitude et son historique en JSON"
-      :set.restore "Restaurer depuis un fichier"
-      :set.restoreHint "Ajoute ou remplace des habitudes depuis une sauvegarde"
-      :toast.backedUp "{n, plural, one {# habitude enregistrée} other {# habitudes enregistrées}} dans {name}"
-      :toast.restored "{n, plural, one {# habitude restaurée} other {# habitudes restaurées}}"
-      :toast.restoredSkipped "{n, plural, one {# habitude restaurée} other {# habitudes restaurées}}, {skipped, plural, one {# entrée ignorée} other {# entrées ignorées}}"
-      :toast.notRestored "Non restauré : {message}"
-      :toast.notBackedUp "Non enregistré : {message}"
-      :toast.badBackup "Ce fichier n'est pas une sauvegarde de Streak"
-      :set.sync Synchronisation
-      :set.account Compte
-      :lang.en English
-      :lang.es "Español"
-      :lang.fr "Français"
-      :sync.signedOut "Non connecté"
-      :sync.offline "Hors ligne"
-      :sync.online "Synchronisé"
-      :sync.error "Erreur de synchronisation : {message}"
-      :sync.received "Habitudes synchronisées depuis le serveur"
-      :sync.commits "{state}  ·  {n, plural, one {# modification envoyée} other {# modifications envoyées}}"
-      :signIn "Se connecter"
-      :signOut "Se déconnecter"
-      :signedIn "Connecté en tant que {account}"
-      :notSignedIn "Non connecté : {message}"
-      :you vous
-      :palettePlaceholder "Saisissez une commande"
-      :cmd.addYesNo "Nouvelle habitude oui ou non"
-      :cmd.addMeasurable "Nouvelle habitude mesurable"
-      :cmd.editHabit "Modifier l’habitude"
-      :cmd.archiveHabit "Archiver ou restaurer l’habitude"
-      :cmd.confirmDelete "Supprimer l’habitude"
-      :cmd.exportHabit "Exporter l’habitude en CSV"
-      :cmd.exportAll "Tout exporter en CSV"
-      :cmd.openSettings "Réglages"
-      :cmd.toggleTheme "Basculer le mode sombre"
-      :cmd.toggleHideCompleted "Masquer les terminées"
-      :cmd.toggleShowArchived "Afficher les archivées"
-      :cmd.nextHabit "Habitude suivante"
-      :cmd.prevHabit "Habitude précédente"
-      :cmd.checkToday "Cocher aujourd’hui"
-      :cmd.syncNow "Synchroniser maintenant"
-      :cmd.signIn "Se connecter"
-      :cmd.signOut "Se déconnecter"
-      :cmd.commandPalette "Palette de commandes"}}
+  :strings {:default en :locale "{{state.locale}}" :required true :keep [Streak]}
   :state {:today "2026-10-15"
     :nextId 1
     :selected meditate
@@ -1010,16 +475,16 @@
     :newHabit [{:note "with: kind"}
       {:set state.edit
         :to "{{{open: true, id: '', kind: kind, name: '', question: '', color: (length(data.ordered) * 3 + 11) % 20, freqMode: 'daily', n: 3, unit: '', target: kind == 'measurable' ? '10' : '', targetType: 'atLeast', reminderOn: false, time: '08:00', days: [true, true, true, true, true, true, true], description: '', error: ''}}}"}]
-    :addYesNo {:title "New yes-or-no habit"
-      :category Habits
+    :addYesNo {:title "{{t('action.addYesNo.title')}}"
+      :category "{{t('action.addYesNo.category')}}"
       :do [{:run newHabit :with {:kind yesNo}}]
       :icon check-circle}
-    :addMeasurable {:title "New measurable habit"
-      :category Habits
+    :addMeasurable {:title "{{t('action.addMeasurable.title')}}"
+      :category "{{t('action.addMeasurable.category')}}"
       :do [{:run newHabit :with {:kind measurable}}]
       :icon ruler}
-    :editHabit {:title "Edit habit"
-      :category Habits
+    :editHabit {:title "{{t('action.editHabit.title')}}"
+      :category "{{t('action.editHabit.category')}}"
       :do [{:set state.edit
           :to "{{{open: true, id: computed.h.id, kind: computed.h.kind, name: computed.h.name, question: computed.h.question, color: computed.h.color, freqMode: computed.h.frequency.days == 1 && computed.h.frequency.times == 1 ? 'daily' : computed.h.kind == 'measurable' ? (computed.h.frequency.days == 7 ? 'week' : 'month') : computed.h.frequency.times == 1 && computed.h.frequency.days != 7 && computed.h.frequency.days != 30 ? 'everyN' : computed.h.frequency.days == 7 ? 'week' : 'month', n: computed.h.frequency.times == 1 ? computed.h.frequency.days : computed.h.frequency.times, unit: computed.h.unit, target: text(computed.h.target), targetType: computed.h.targetType, reminderOn: computed.h.reminder != null, time: computed.h.reminder.time ?? '08:00', days: computed.h.reminder.days ?? [true, true, true, true, true, true, true], description: computed.h.description, error: ''}}}"}]
       :icon edit
@@ -1037,15 +502,15 @@
           {:set state.selected :to "{{'habit' + state.nextId}}"}
           {:increment state.nextId}]
         :else [(node :update habits #"{{computed.h.id}}" :fields "{{fields}}")]}]
-    :archiveHabit {:title "Archive or restore habit"
-      :category Habits
+    :archiveHabit {:title "{{t('action.archiveHabit.title')}}"
+      :category "{{t('action.archiveHabit.category')}}"
       :do [(node :update habits #"{{computed.h.id}}" :fields {:archived "{{!computed.h.archived}}"})
         {:push state.toasts
           :value "{{{message: t(computed.h.archived ? 'toast.archived' : 'toast.unarchived', {name: computed.h.name}), actions: [{title: t('undo'), run: 'archiveHabit'}]}}}"}]
       :icon archive
       :enablement "{{computed.sel >= 0}}"}
-    :confirmDelete {:title "Delete habit"
-      :category Habits
+    :confirmDelete {:title "{{t('action.confirmDelete.title')}}"
+      :category "{{t('action.confirmDelete.category')}}"
       :do [{:set state.confirmDelete :to true}]
       :icon trash-2
       :enablement "{{computed.sel >= 0}}"}
@@ -1072,27 +537,27 @@
       (node :delete habits #"{{computed.h.id}}")
       {:set state.selected :to "{{data.ordered[computed.order[0] ?? 0].id ?? ''}}"}
       {:set state.page :to list}]
-    :exportHabit {:title "Export habit as CSV"
-      :category Habits
+    :exportHabit {:title "{{t('action.exportHabit.title')}}"
+      :category "{{t('action.exportHabit.category')}}"
       :do [{:copy "{{'Date,Value,Note\\n' + join(reverse(map(computed.v, addDays(computed.h.from, index) + ',' + (computed.h.kind == 'measurable' ? text(it) : it == 1 ? 'YES' : it == -1 ? 'SKIP' : 'NO') + ',' + (computed.h.notes[addDays(computed.h.from, index)] ?? ''))), '\\n')}}"}
         {:push state.toasts :value "{{{message: t('toast.copied', {n: 1})}}}"}]
       :icon file-down
       :enablement "{{computed.sel >= 0}}"}
-    :exportAll {:title "Export all as CSV"
-      :category Habits
+    :exportAll {:title "{{t('action.exportAll.title')}}"
+      :category "{{t('action.exportAll.category')}}"
       :do [{:copy "{{'Habit,Date,Value\\n' + join(map(computed.csvRows, join(map(it, it.line), '\\n')), '\\n')}}"}
         {:push state.toasts :value "{{{message: t('toast.copied', {n: length(data.ordered)})}}}"}]
       :icon download}
-    :backupAll {:title "Back up to a file"
-      :category Habits
+    :backupAll {:title "{{t('action.backupAll.title')}}"
+      :category "{{t('action.backupAll.category')}}"
       :icon hard-drive-download
       :do [{:saveFile "{{{format: 'streak-backup', version: 1, habits: data.ordered}}}"
           :name "{{'streak-backup-' + state.today + '.json'}}"
           :onDone [{:push state.toasts
               :value "{{{message: t('toast.backedUp', {n: length(data.ordered), name: result.name})}}}"}]
           :onError [{:push state.toasts :value "{{{message: t('toast.notBackedUp', {message: error.message})}}}"}]}]}
-    :restoreAll {:title "Restore from a file"
-      :category Habits
+    :restoreAll {:title "{{t('action.restoreAll.title')}}"
+      :category "{{t('action.restoreAll.category')}}"
       :icon hard-drive-upload
       :do [{:openFile state.backupFile
           :extensions [json]
@@ -1118,23 +583,32 @@
             :value "{{merge(fields, {id: id})}}"
             :then [{:increment state.restoredCount}]
             :onError [{:increment state.skippedCount}]}]}]
-    :openSettings {:title Settings :category Streak :do [{:set state.settingsOpen :to true}] :icon settings}
-    :toggleTheme {:title "Toggle dark mode"
+    :openSettings {:title "{{t('action.openSettings.title')}}"
+      :category Streak
+      :do [{:set state.settingsOpen :to true}]
+      :icon settings}
+    :toggleTheme {:title "{{t('action.toggleTheme.title')}}"
       :category Streak
       :do [{:set state.theme :to "{{computed.theme == 'light' ? 'dark' : 'light'}}"}]
       :icon moon}
-    :toggleHideCompleted {:title "Hide completed" :category Streak :do [{:toggle state.hideCompleted}] :icon eye}
-    :toggleShowArchived {:title "Show archived" :category Streak :do [{:toggle state.showArchived}] :icon archive}
-    :nextHabit {:title "Next habit"
-      :category Habits
+    :toggleHideCompleted {:title "{{t('action.toggleHideCompleted.title')}}"
+      :category Streak
+      :do [{:toggle state.hideCompleted}]
+      :icon eye}
+    :toggleShowArchived {:title "{{t('action.toggleShowArchived.title')}}"
+      :category Streak
+      :do [{:toggle state.showArchived}]
+      :icon archive}
+    :nextHabit {:title "{{t('action.nextHabit.title')}}"
+      :category "{{t('action.nextHabit.category')}}"
       :do [{:set state.selected
           :to "{{data.ordered[computed.order[min(length(computed.order) - 1, indexOf(computed.order, computed.sel) + 1)]].id ?? state.selected}}"}]}
-    :prevHabit {:title "Previous habit"
-      :category Habits
+    :prevHabit {:title "{{t('action.prevHabit.title')}}"
+      :category "{{t('action.prevHabit.category')}}"
       :do [{:set state.selected
           :to "{{data.ordered[computed.order[max(0, indexOf(computed.order, computed.sel) - 1)]].id ?? state.selected}}"}]}
-    :checkToday {:title "Check today"
-      :category Habits
+    :checkToday {:title "{{t('action.checkToday.title')}}"
+      :category "{{t('action.checkToday.category')}}"
       :do [{:run cellClick
           :with {:h "{{computed.sel}}" :d "{{state.today}}" :x "{{window.width / 2}}" :y "{{window.height / 3}}"}}]
       :icon check
@@ -1147,23 +621,23 @@
             :do [{:if "{{!rh.archived && rh.reminder != null && rh.reminder.time == formatTime(now(), 'HH:mm') && rh.reminder.days[weekday(state.today)]}}"
                 :then [{:push state.toasts
                     :value "{{{message: t('toast.reminder', {name: rh.name}), actions: [{title: t('toast.done'), run: 'cellClick', with: {h: ri, d: state.today, x: 0, y: 0}}]}}}"}]}]}]}]
-    :syncNow {:title "Sync now"
-      :category Sync
+    :syncNow {:title "{{t('action.syncNow.title')}}"
+      :category "{{t('action.syncNow.category')}}"
       :do [{:if "{{computed.online}}"
           :then [{:run syncSend}]
           :else [{:push state.toasts
               :value "{{{message: t('sync.' + computed.syncState, {message: state.sync.error})}}}"}]}]
       :icon refresh-cw}
-    :signIn {:title "Sign in"
-      :category Sync
+    :signIn {:title "{{t('action.signIn.title')}}"
+      :category "{{t('action.signIn.category')}}"
       :do [{:signIn streakServer
           :onDone [{:push state.toasts
               :value "{{{message: t('signedIn', {account: auth.streakServer.account ?? t('you')})}}}"}]
           :onError [{:push state.toasts :value "{{{message: t('notSignedIn', {message: error.message})}}}"}]}]
       :icon log-in
       :enablement "{{!computed.signedIn}}"}
-    :signOut {:title "Sign out"
-      :category Sync
+    :signOut {:title "{{t('action.signOut.title')}}"
+      :category "{{t('action.signOut.category')}}"
       :do [{:signOut streakServer}
         {:set state.sync :to "{{{revisions: state.sync.revisions, copy: null, error: '', commits: 0}}}"}]
       :icon log-out
@@ -1187,7 +661,7 @@
           {:set state.sync.copy :to "{{computed.syncData}}"}
           {:request streakServer.revision
             :with (node #"{{'streak-' + text(state.sync.revisions)}}" :data "{{computed.syncData}}")}]}]
-    :commandPalette {:title "Command palette"
+    :commandPalette {:title "{{t('action.commandPalette.title')}}"
       :category Streak
       :do [{:set state.quickPick.open :to true} {:set state.quickPick.query :to ""}]
       :icon search}}

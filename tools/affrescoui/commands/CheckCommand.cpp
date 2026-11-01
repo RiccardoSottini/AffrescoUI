@@ -141,7 +141,10 @@ Exit checkScreen(std::span<const std::string_view> args) {
 	const Arguments arguments(args, {}, flags);
 	const std::filesystem::path file = arguments.file();
 	const std::filesystem::path manifest = manifestOf(file);
-	const std::vector<Problem> problems = manifest.empty() ? problemsOf(file) : appProblems(manifest);
+	std::vector<Problem> problems = manifest.empty() ? problemsOf(file) : appProblems(manifest);
+	if(problems.empty() && !std::filesystem::is_directory(file) && file.filename() != "app.json")
+		for(std::string& problem : requiredStringsProblems(file))
+			problems.push_back({"strings", "", std::move(problem)});
 
 	if(arguments.flag("--json")) {
 		json list = json::array();

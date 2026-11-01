@@ -78,6 +78,17 @@ private:
 	/// @param depth How many objects and arrays it is inside.
 	/// @return The value.
 	TextValue read(int depth) {
+		const std::size_t start = at_;
+		TextValue value = unplaced(depth);
+		value.start = start;
+		value.end = at_;
+		return value;
+	}
+
+	/// @brief Reads a value, without saying where it is.
+	/// @param depth How many objects and arrays it is inside.
+	/// @return The value.
+	TextValue unplaced(int depth) {
 		if(depth > maxNesting) fail("nested more than " + std::to_string(maxNesting) + " levels deep");
 		const char c = peek();
 		if(c == '{' || c == '[') return container(depth);
@@ -109,7 +120,7 @@ private:
 	TextValue container(int depth) {
 		const bool object = peek() == '{';
 		const char close = object ? '}' : ']';
-		TextValue value{object ? TextValue::Kind::Object : TextValue::Kind::Array, {}, {}, false, at_, {}};
+		TextValue value{object ? TextValue::Kind::Object : TextValue::Kind::Array, {}, {}, false, at_, at_, {}};
 		const std::size_t inside = ++at_;
 		value.expanded = skipSpace() > 0 && object;
 		value.lead = text_.substr(inside, at_ - inside);
@@ -119,7 +130,7 @@ private:
 		}
 		for(bool first = true;; first = false) {
 			const int lines = first ? 0 : skipSpace();
-			TextValue::Member member{{}, {}, lines > 1};
+			TextValue::Member member{{}, {}, lines > 1, at_};
 			if(object) {
 				if(peek() != '"') fail("expected a key in quotes");
 				member.key = string();

@@ -67,7 +67,7 @@ Every part of the format follows these, and so should every extension:
 | `colors` | `name → "#rrggbb"`, or per theme `name → { "light": "#fff", "dark": "#111827" }`. Used as `"@name"`. |
 | `tokens` | `name → value`: a number (spacing, a radius, a type size), a colour (`"#rrggbb"`, `"transparent"`), an alias (`"@other"`, of a token or of `colors`), or per theme `{ "light": ..., "dark": ... }` of those. Used as `"@name"` wherever a number or a colour fits (`"padding": "@space.m"`, a font's `"size"`). Switched by `theme` like `colors`; a name in both is an error. Aliases go at most 16 deep. |
 | `theme` | Which variant of the colors and tokens is shown, usually bound: `"{{state.theme}}"`. Without a match, the first variant. |
-| `strings` | `locale → { key → message }`, with `"default"` (the locale a key falls back to) and `"locale"` (the locale shown, usually bound: `"{{state.locale}}"`; else the host's, from the system). `t("key", {params})` looks a key up in the locale, then its parents (`fr-CA`, then `fr`), then the default; a key found nowhere shows as itself. See Strings and locales. |
+| `strings` | `locale → { key → message }`, with `"default"` (the locale a key falls back to) and `"locale"` (the locale shown, usually bound: `"{{state.locale}}"`; else the host's, from the system), `"required"` and `"keep"` (what `affrescoui strings` holds to). `t("key", {params})` looks a key up in the locale, then its parents (`fr-CA`, then `fr`), then the default; a key found nowhere shows as itself. See Strings and locales. |
 | `styles` | `name → properties`, applied with `"style": "name"` or `["a", "b"]`. A style may itself have a `style`. |
 | `components` | `name → { "params": {defaults}, "node": node }`: reusable nodes with parameters; `runsActions` names the parameter whose items' `run` it runs (see Components). |
 | `screens` | `name → node`: the screens an `outlet` shows; `{"navigate": "name"}` switches. The first is shown first. |
@@ -1146,7 +1146,19 @@ A screen's text can come in several languages. The `strings` section holds, per 
   ("a, b and c"), and `compareText(a, b)` and `sortText(list)`, which order text for people (letters, then accents,
   then case). The data covers en, it, fr, de, es, pt, ja, zh, ar and he; another language formats as English.
 - **Direction:** Arabic and Hebrew are right to left; nodes with `"dir": "auto"` follow it.
+- **Titles** outside the nodes can be messages too: a command's `title`, `category` and `description`, a menu item's
+  `title`, a setting's `title` and `description`, and `window.title` and `window.menuBar`'s titles are evaluated when
+  they hold `{{...}}`, so `"title": "{{t('file.save')}}"` follows the language. Text without `{{` shows as written.
 - **The checker** reports a `t()` key no locale has and parameters a message doesn't read or that aren't given.
+- **One file per language:** with `"include": ["locales/en.json", "locales/fr.json"]`, each file holding
+  `{ "strings": { "fr": { ... } } }`, a new language is one new file and touches no screen. `affrescoui strings split`
+  and `extract` move a screen's text there, and `report` lists what is left (`tools/affrescoui/README.md`).
+- **Holding a screen to it:** `"strings": { "required": true, "keep": ["Streak"] }` makes `affrescoui check` fail on
+  visible text written in place and on a key a language misses. The library itself doesn't mind: a screen in one
+  language can write its text in place. `keep` lists the texts that stay as written, such as product names. What
+  counts as visible is the `text` list of each type in the catalog, what a component passes on to those properties, the
+  items of a list property, and the titles above. Text in the state, in steps' values and in larger expressions isn't
+  looked at.
 
 ### Dates
 

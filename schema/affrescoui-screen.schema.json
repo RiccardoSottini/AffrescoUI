@@ -555,7 +555,7 @@
 					},
 					"strings": {
 						"type": "object",
-						"maxProperties": 66,
+						"maxProperties": 68,
 						"description": "Translations per locale for t(): {\"default\": \"en\", \"locale\": \"{{state.locale}}\", \"en\": {key: message}}",
 						"properties": {
 							"default": {
@@ -563,6 +563,15 @@
 							},
 							"locale": {
 								"type": "string"
+							},
+							"required": {
+								"type": "boolean"
+							},
+							"keep": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
 							}
 						},
 						"additionalProperties": {

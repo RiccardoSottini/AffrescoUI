@@ -25,7 +25,8 @@ struct TextValue {
 	std::string text;            ///< A scalar's text as written ("1.50", "\"caf\\u00e9\"").
 	std::vector<Member> members; ///< An object's members or an array's items, in order.
 	bool expanded = false;       ///< An object written with a line break after its '{': it stays on several lines.
-	std::size_t start = 0;       ///< Where an object or array starts in the text it was read from: its '{' or '['.
+	std::size_t start = 0;       ///< Where it starts in the text it was read from: an object's '{', a string's quote.
+	std::size_t end = 0;         ///< Where it ends there: just after its last character.
 	std::string lead;            ///< The spaces and line breaks between an object's '{' and its first key.
 };
 
@@ -34,6 +35,7 @@ struct TextValue::Member {
 	std::string key;          ///< An object member's key as written, quotes included; empty for an array item.
 	TextValue value;          ///< Its value.
 	bool blankBefore = false; ///< An empty line comes before it (kept: it separates groups).
+	std::size_t start = 0;    ///< Where it starts in the text it was read from: its key's quote, or an item's value.
 };
 
 /// @brief Reads JSON text into a tree that keeps how it was written.

@@ -4,6 +4,7 @@
 - check:  every template passes (exit 0), in text and with --json;
 - fmt:    a template formatted once passes fmt --check, and reads back as the same JSON, keys in the same order;
 - ids:    every template has an id on every node (ids --check);
+- strings: literal text moves to a language file, and a screen that requires that is held to it;
 - convert: a template in the Lisp notation is canonical (fmt --check) and converts back to the same JSON, keys in
           the same order; a Lisp file that isn't a value exits with 1, naming its line;
 - render: the first frame is pixel for pixel what the rendering check's runner draws for the same scenario;
@@ -208,6 +209,61 @@ class Checker:
                            "roles": {"agent/claude-code": role}, "cases": [case]}, file)
             self.run("policy", "test", path, expect=expect)
 
+    def strings(self):
+        """Literal text moves to a language file and the screen's text doesn't change; a screen that requires it fails
+        check until it has; a text with quotes and braces survives as a message; the file's layout stays."""
+        folder = os.path.join(self.scratch, "strings")
+        os.makedirs(folder)
+        path = os.path.join(folder, "index.screen.json")
+        with open(path, "w", encoding="utf-8") as file:
+            file.write('''{
+  "format": "affrescoui-screen", "version": 2,
+  "state": { "name": "" },
+  "strings": { "default": "en", "required": true, "keep": ["Brand"] },
+  "components": { "note": { "params": { "words": "", "tag": "" },
+    "node": { "id": "noteLabel", "type": "label", "text": "{{words}}", "tooltip": "{{t(tag)}}" } } },
+  "actions": { "go": { "title": "Don't {go}", "category": "Brand", "do": [] } },
+  "root": { "id": "root", "children": [
+    { "id": "saved", "type": "label", "text": "Saved {{state.name}}" },
+    { "id": "plus", "type": "label", "text": "+" },
+    { "id": "code", "type": "editor", "text": "not text a person translates" },
+    { "id": "hello", "type": "label", "text": "Hello", "hover": { "text": "Hi" } },
+    { "id": "use", "use": "note", "with": { "words": "Note", "tag": "key" } }
+  ] } }
+''')
+        self.run("check", path, expect=1)
+        report = json.loads(self.run("strings", "report", path, "--json"))
+        found = {literal["at"]: literal for literal in report["literals"]}
+        self.expect(sorted(found) == ["/actions/go/title", "/root/children/0/text", "/root/children/3/hover/text",
+                                      "/root/children/3/text", "/root/children/4/with/words"],
+                    f"strings report: found {sorted(found)}")
+        self.expect(found["/root/children/0/text"]["built"], "strings report: text around an expression")
+        self.run("strings", "extract", path)  # lists, and writes nothing
+        self.expect(not os.path.exists(os.path.join(folder, "locales")), "strings extract: wrote without --write")
+        self.run("strings", "extract", path, "--write")
+        with open(os.path.join(folder, "locales", "en.json"), encoding="utf-8") as file:
+            messages = json.load(file)["strings"]["en"]
+        self.expect(messages == {"action.go.title": "Don''t '{'go'}'", "hello.text": "Hello", "hello.hover.text": "Hi",
+                                 "use.words": "Note"}, f"strings extract: wrote {messages}")
+        with open(path, encoding="utf-8") as file:
+            written = file.read()
+        self.expect('  "format": "affrescoui-screen", "version": 2,\n  "include": ["locales/en.json"],\n  "state"' in written
+                    and '{ "id": "plus", "type": "label", "text": "+" },\n' in written,
+                    "strings extract: the file's layout changed")
+        problems = json.loads(self.run("check", path, "--json", expect=1))["problems"]
+        self.expect([problem["source"] for problem in problems] == ["strings"], f"check: {problems}")  # the text left
+        with open(path, encoding="utf-8") as file:
+            fixed = file.read().replace("Saved {{state.name}}", "{{state.name}}")
+        with open(path, "w", encoding="utf-8") as file:
+            file.write(fixed)
+        self.run("check", path)
+        self.run("strings", "check", path, expect=0)
+        report = json.loads(self.run("strings", "report", os.path.join(KANBAN), "--json"))  # an app's folder, its entry
+        self.expect(report["file"].endswith("index.screen.json"), f"strings report: read {report['file']}")
+        lisp = os.path.join(folder, "index.screen.lisp")
+        self.run("convert", path, "-o", lisp)
+        self.run("strings", "extract", lisp, expect=1)  # Lisp files are generated
+
     def long_pattern_input(self):
         """A colour expression of 30,000 characters: the schema's patterns aren't run on it (libstdc++'s std::regex
         overflowed the stack on it), so check reports it as too long to check instead of crashing."""
@@ -279,6 +335,7 @@ def main():
         checker.run("convert", broken_lisp, expect=1)
         checker.run("convert", broken, "--to", "yaml", expect=2)
         checker.long_pattern_input()
+        checker.strings()
         checker.policy_roles()
         if not headless:
             checker.render_reaches_nobody()

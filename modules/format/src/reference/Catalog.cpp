@@ -26,13 +26,25 @@ json propertyNames(const NodeType& type) {
 	return list;
 }
 
+/// @brief The properties of a type that a person reads, which belong in the language files.
+/// @param type The type.
+/// @return The names.
+json visibleTextNames(const NodeType& type) {
+	json list = json::array();
+	for(const PropertySpec& property : type.own->properties)
+		if(property.visibleText) list.push_back(property.name);
+	return list;
+}
+
 /// @brief The node types, with their properties and what they are.
 /// @param registry The types.
-/// @return {name: {"properties", "about"}}.
+/// @return {name: {"properties", "about"}}, with "text" naming the properties a person reads, if it has any.
 json typesOf(const TypeRegistry& registry) {
 	json types = json::object();
-	for(const NodeType* type : registry.inOrder())
+	for(const NodeType* type : registry.inOrder()) {
 		types[type->name] = {{"properties", propertyNames(*type)}, {"about", type->about}};
+		if(json text = visibleTextNames(*type); !text.empty()) types[type->name]["text"] = std::move(text);
+	}
 	return types;
 }
 

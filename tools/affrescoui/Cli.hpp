@@ -136,6 +136,16 @@ Exit testScreen(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit policyCommand(std::span<const std::string_view> args);
 
+/// @brief `strings`: a screen's visible text: what is still written in place, and moving it to language files.
+/// @param args The arguments.
+/// @return How it ended.
+Exit stringsCommand(std::span<const std::string_view> args);
+
+/// @brief What `strings check` finds in a screen that asks for it ("strings.required"), for `check`.
+/// @param file The screen.
+/// @return One line per problem; none if it doesn't ask.
+[[nodiscard]] std::vector<std::string> requiredStringsProblems(const std::filesystem::path& file);
+
 /// @brief `render`: a picture of a screen's first frame, drawn offscreen.
 /// @param args The arguments.
 /// @return How it ended.

@@ -52,6 +52,7 @@ target_sources(affrescoui_format PRIVATE
 	src/locale/LocaleNumbers.cpp
 	src/locale/LocalePlurals.cpp
 	src/locale/LocaleSystem.cpp
+	src/locale/Literals.cpp
 	src/locale/Strings.cpp
 	src/locale/StringsMessage.cpp)
 target_include_directories(affrescoui_format PRIVATE src/locale)
