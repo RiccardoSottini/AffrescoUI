@@ -15,7 +15,7 @@ each time the site is built, so nothing is copied by hand.
 
 ## Building
 
-You need Python 3.10 or later (with `venv`), Doxygen, and the `affrescoui` tool:
+You need Python 3.11 or later (with `venv`), Doxygen, and the `affrescoui` tool:
 
 ```sh
 cmake -S . -B build && cmake --build build --target affrescoui -j 4

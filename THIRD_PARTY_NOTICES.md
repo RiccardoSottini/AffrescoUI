@@ -31,7 +31,7 @@ following components, which keep their own licenses:
 | Noto Sans Arabic, Devanagari, SC, JP and KR subsets (rendering check only) | `tests/render/fonts/` (vendored, SHA-256 checked by sbom.py) | test: tests/render | SIL Open Font License 1.1 (`tests/render/fonts/LICENSE-NotoSans*.txt`); SPDX: `OFL-1.1` |
 | Twemoji Mozilla 0.7.0, a subset (rendering check only) | `tests/render/fonts/TwemojiMozilla-Subset.ttf` (vendored, SHA-256 checked by sbom.py) | test: tests/render | Art: CC BY 4.0, © Twitter, Inc. and other contributors; font build: Apache License 2.0 (`tests/render/fonts/LICENSE-TwemojiMozilla.md`); SPDX: `CC-BY-4.0 AND Apache-2.0` |
 | build 1.6.1 (builds the MCP package) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
-| hatchling 1.32.4 (the MCP package's build backend) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
+| hatchling 1.33.0 (the MCP package's build backend) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |
 | packaging 26.3 (used by hatchling) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | Apache License 2.0 or BSD 2-Clause; SPDX: `Apache-2.0 OR BSD-2-Clause` |
 | pathspec 1.1.1 (used by hatchling) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | Mozilla Public License 2.0; SPDX: `MPL-2.0` |
 | pluggy 1.7.0 (used by hatchling) | pinned by hash in `tools/release/requirements.txt`; used to build, not shipped | build: mcp (build) | MIT; SPDX: `MIT` |

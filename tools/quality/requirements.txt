@@ -1,5 +1,5 @@
 # lizard (function length and cyclomatic complexity) and what it needs, pinned by hash: run.sh installs them with
 # pip --require-hashes into the build directory's own virtual environment, never into the system's Python.
-lizard==1.24.2 --hash=sha256:dc89ae0a6048e89efbb77e1bf21c0d34c23cbc80116a8fe969baaeb6255c90d0
+lizard==1.24.3 --hash=sha256:7d2570ca711288388de1cf0f25512e97fbbc5e189f551c87b4e20d11d028b297 --hash=sha256:f7fccd909719170e323a240cc6927bfea65984d77a8f9c0e6405be582e9861db
 pathspec==1.1.1 --hash=sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189
 pygments==2.21.0 --hash=sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9
