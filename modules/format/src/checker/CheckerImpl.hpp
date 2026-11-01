@@ -12,6 +12,7 @@
 #include "Record.hpp"
 #include "StateTypes.hpp"
 
+#include <initializer_list>
 #include <map>
 #include <optional>
 #include <set>
@@ -91,6 +92,19 @@ private:
 	/// @param slot An enclosing use's children, for a `{"slot": true}` inside a component.
 	/// @param child Whether it is a child (only children may "use" and "repeat", as in the runtime).
 	void walkNode(const json& node, const std::string& place, const Scope& scope, const Slot* slot, bool child);
+
+	/// @brief Reads some members of an object as values that may hold expressions.
+	/// @param owner The object.
+	/// @param keys The members.
+	/// @param place Its place.
+	/// @param scope The variables they see.
+	void readTexts(const json& owner, std::initializer_list<const char*> keys, const std::string& place,
+	               const Scope& scope);
+
+	/// @brief Reads the titles outside the nodes, which may name keys of "strings": the window's, the commands', the
+	/// menu items' and the settings'.
+	/// @param scope The variables they see.
+	void walkDeclaredTexts(const Scope& scope);
 	/// @brief Checks a node once its component, if any, is in: styles, repeat, variables, properties, children.
 	/// @param node The node.
 	/// @param scope Its parent's variables.

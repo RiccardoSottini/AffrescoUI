@@ -49,6 +49,7 @@ struct PropertySpec {
 	ValueKind kind = ValueKind::Any; ///< The kind of value it takes.
 	bool states = true;              ///< Whether a state block ("hover", "pressed", ...) may set it.
 	bool transition = false;         ///< Whether "transition" may animate it.
+	bool visibleText = false;        ///< Whether a person reads it, so it belongs in the language files ("strings").
 };
 
 class LanguageCatalog;

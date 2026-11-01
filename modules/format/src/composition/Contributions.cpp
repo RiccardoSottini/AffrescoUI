@@ -71,12 +71,13 @@ json contextOf(Engine& engine) {
 }
 
 /// @brief Adds the bindings of one scope to the `keybindings` list.
+/// @param engine The runtime, for the commands' titles.
 /// @param list The list.
 /// @param keys The scope's "keys".
 /// @param scope "screen" or "#id".
 /// @param actions The document's "actions".
 /// @param notation How the keys are labelled: "window.keyLabels".
-void addBindings(json& list, const json& keys, const std::string& scope, const json& actions,
+void addBindings(Engine& engine, json& list, const json& keys, const std::string& scope, const json& actions,
                  std::string_view notation) {
 	if(!keys.is_object()) return;
 	for(const auto& [written, handler] : keys.items()) {
@@ -92,7 +93,9 @@ void addBindings(json& list, const json& keys, const std::string& scope, const j
 				const std::string name = run.get<std::string>();
 				entry["command"] = name;
 				const json action = actions.is_object() ? actions.value(name, json()) : json();
-				entry["title"] = isCommand(action) ? action.value("title", name) : name;
+				entry["title"] = isCommand(action)
+				                     ? declaredText(engine, action, "title", name, "actions." + name + ".title")
+				                     : name;
 			}
 			list.push_back(std::move(entry));
 		}
@@ -110,10 +113,10 @@ json keybindingsOf(Engine& engine) {
 	    window.is_object() && window.contains("keyLabels") && window["keyLabels"].is_string() ? window["keyLabels"]
 	                                                                                           : "platform";
 	json list = json::array();
-	addBindings(list, document.value("keys", json()), "screen", actions, notation);
+	addBindings(engine, list, document.value("keys", json()), "screen", actions, notation);
 	json nodes = json::array();
 	for(const auto& [panel, record] : engine.reconciler.records())
-		if(!panel->id().empty()) addBindings(nodes, record.keys, "#" + panel->id(), actions, notation);
+		if(!panel->id().empty()) addBindings(engine, nodes, record.keys, "#" + panel->id(), actions, notation);
 	// NOLINTNEXTLINE(modernize-use-ranges): json's iterators don't model the ranges concepts
 	std::sort(nodes.begin(), nodes.end(), [](const json& a, const json& b) {
 		return std::tie(a["scope"].get_ref<const std::string&>(), a["key"].get_ref<const std::string&>()) <
@@ -133,11 +136,12 @@ json commandsOf(Engine& engine) {
 	const json* bindings = engine.document.variable("keybindings");
 	for(const auto& [name, action] : document["actions"].items()) {
 		if(!isCommand(action)) continue;
+		const std::string at = "actions." + name;
 		json command = {{"name", name},
-		                {"title", action.value("title", name)},
-		                {"category", action.value("category", "")},
+		                {"title", declaredText(engine, action, "title", name, at + ".title")},
+		                {"category", declaredText(engine, action, "category", "", at + ".category")},
 		                {"icon", action.value("icon", json())},
-		                {"description", action.value("description", "")},
+		                {"description", declaredText(engine, action, "description", "", at + ".description")},
 		                {"enabled", commandEnabled(engine, name)},
 		                {"key", nullptr},
 		                {"keyLabel", nullptr}};
@@ -226,13 +230,15 @@ void describeCommand(json& entry, const json& item, const std::unordered_map<std
 }
 
 /// @brief A menu's item as the `menus` variable shows it, before its submenu is resolved.
+/// @param engine The runtime, for its title.
 /// @param key The item's name.
 /// @param item Its declaration.
 /// @param commands The `commands` variable's commands, by name.
 /// @return `{ name, title, icon, enabled, key, keyLabel, group, separator, order, run, with, submenu }`.
-json menuEntry(const std::string& key, const json& item, const std::unordered_map<std::string, const json*>& commands) {
+json menuEntry(Engine& engine, const std::string& key, const json& item,
+               const std::unordered_map<std::string, const json*>& commands) {
 	json entry = {{"name", key},
-	              {"title", item.value("title", key)},
+	              {"title", declaredText(engine, item, "title", key, "menus item " + key + ".title")},
 	              {"icon", item.value("icon", json())},
 	              {"enabled", true},
 	              {"key", nullptr},
@@ -286,7 +292,7 @@ json menuOf(Engine& engine, MenuSources& sources, const std::string& name, int d
 		if(!item.is_object()) continue;
 		if(item.contains("when") && !shown(engine, item["when"], std::format("menus.{}.{}.when", name, key))) continue;
 		if(!take(engine, sources.budget, "menus")) break;
-		kept.push_back(menuEntry(key, item, sources.commands));
+		kept.push_back(menuEntry(engine, key, item, sources.commands));
 	}
 	// Submenus once this menu's own items are counted, so the budget keeps the items nearest the top
 	for(json& entry : kept)
@@ -342,6 +348,31 @@ MenuItem nativeItem(Engine& engine, const json& entry, MenuBudget& budget) {
 
 } // namespace
 
+std::string declaredText(Engine& engine, const json& owner, const char* key, const std::string& fallback,
+                         const std::string& where) {
+	std::string text = owner.value(key, fallback);
+	if(!text.contains("{{")) return text;
+	try {
+		const json shown = engine.document.evaluate(text, *noVariables(), json::object(), where);
+		return shown.is_string() ? shown.get<std::string>() : shown.dump();
+	} catch(const DocumentError& error) {
+		engine.report(error.what());
+		return text;
+	}
+}
+
+void showWindowTitle(Engine& engine) {
+	if(!engine.window) return;
+	const json& document = engine.versions.document();
+	const auto settings = document.find("window");
+	if(settings == document.end() || !settings->is_object()) return;
+	const auto declared = settings->find("title");
+	if(declared == settings->end() || !declared->is_string() || !declared->get_ref<const std::string&>().contains("{{"))
+		return; // plain text was set when the window opened, and the host may have changed it since
+	const std::string title = declaredText(engine, *settings, "title", "AffrescoUI", "window.title");
+	if(title != engine.window->title()) engine.window->setTitle(title);
+}
+
 void showMenuBar(Engine& engine) {
 	Window* window = engine.window;
 	const json& document = engine.versions.document();
@@ -357,8 +388,9 @@ void showMenuBar(Engine& engine) {
 				const json& top = expect::object(menuBar[i], at);
 				const std::string& name = expect::string(top.contains("menu") ? top["menu"] : json(), at + ".menu");
 				if(!menus || !menus->contains(name)) expect::fail(at + ".menu", "there is no menu '" + name + "' in \"menus\"");
-				bar.push_back({{"title", top.contains("title") ? expect::string(top["title"], at + ".title") : name},
-				               {"submenu", (*menus)[name]}});
+				if(top.contains("title")) static_cast<void>(expect::string(top["title"], at + ".title"));
+				bar.push_back(
+				    {{"title", declaredText(engine, top, "title", name, at + ".title")}, {"submenu", (*menus)[name]}});
 			}
 		}
 		if(bar == engine.menuBar) return;

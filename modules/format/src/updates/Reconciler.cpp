@@ -421,6 +421,7 @@ void Reconciler::update(bool full) {
 	    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 
 	if(!engine_.handlersSuspended) watch(root);
+	showWindowTitle(engine_);
 	showMenuBar(engine_);
 	showFocusRing(engine_);
 	engine_.owner.onUpdated();

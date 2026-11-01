@@ -21,17 +21,17 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 14> list = {{
+	static constexpr std::array<Command, 15> list = {{
 	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
 		 "Show a screen and let peers change it, like affrescoui_launcher", runScreen},
 	    {"check",
-	     "<file> [--json] | --compose <screen> <feature> [--adapter FILE] [--base COMMIT] [--scenarios FILE|none] "
-	     "[--document FILE] [--revision out.json] [--json]",
-	     "Check a screen or an app (its folder or app.json): the schema, the format's rules and the checker; --compose "
-	     "proves a feature from another app fits it",
-	     checkScreen},
+		 "<file> [--json] | --compose <screen> <feature> [--adapter FILE] [--base COMMIT] [--scenarios FILE|none] "
+		 "[--document FILE] [--revision out.json] [--json]",
+		 "Check a screen or an app (its folder or app.json): the schema, the format's rules and the checker; --compose "
+		 "proves a feature from another app fits it",
+		 checkScreen},
 	    {"contributions", "<file> [--json] [--document FILE]",
-	     "List a screen's contribution points, typed exports and installable parts, compactly", listContributions},
+		 "List a screen's contribution points, typed exports and installable parts, compactly", listContributions},
 	    {"test", "<scenarios.json>... [--json] [--only NAME] [--goldens DIR] [--update] [--out DIR] [--document FILE]",
 		 "Play a screen's scenarios and report what failed", testScreen},
 	    {"policy", "test <file.policy.json>... [--json]",
@@ -41,16 +41,21 @@ std::span<const Command> commands() {
 	    {"fmt", "<file> [--check]", "Write a file the way AffrescoUI files are written; --check only says if it is",
 		 formatScreen},
 	    {"convert", "<file> [--to json|lisp] [-o FILE]",
-	     "Write a file in the other notation (JSON or Lisp, by its name: .lisp is Lisp), the same tree; to the output "
-	     "or a file",
-	     convertFile},
+		 "Write a file in the other notation (JSON or Lisp, by its name: .lisp is Lisp), the same tree; to the output "
+		 "or a file",
+		 convertFile},
+	    {"strings",
+		 "report <file> [--json] | check <file> [--json] | extract <file> [--write] | split <file> [--write]",
+		 "A screen's visible text: list what is written in place, fail on it, or move it to one language file per "
+		 "language",
+		 stringsCommand},
 	    {"ids", "<file> [--check]",
 		 "Give readable ids to the nodes that have none; --check only says if some have none", nameScreenNodes},
 	    {"export", "<file> [--from REVISION] [--name NAME] [-o changes.json] [--data DIR]",
 		 "Write the revisions after one, from the screen's history on disk, as a change set", exportChanges},
 	    {"import",
-	     "<file> <changes.json> [--data DIR] | --from a2ui|adaptive-cards <source> [-o out.screen.json] [--font FILE] "
-	     "[--title TITLE] [--size WIDTHxHEIGHT] [--revisions FILE]",
+		 "<file> <changes.json> [--data DIR] | --from a2ui|adaptive-cards <source> [-o out.screen.json] [--font FILE] "
+		 "[--title TITLE] [--size WIDTHxHEIGHT] [--revisions FILE]",
 		 "Apply a change set to the screen's history on disk; --from writes a screen from another format", importFile},
 	    {"schema", "[-o schema.json] [--doc SCREEN_FORMAT.md] [--types builtin|examples] [--check]",
 		 "Generate the format's JSON Schema and SCREEN_FORMAT.md's tables; --check only says if they are out of date",

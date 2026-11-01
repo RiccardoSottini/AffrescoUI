@@ -2,6 +2,7 @@
 /// @brief Settings: the "settings" section, its checked writes, and the `settings` and `settingsList` variables.
 
 #include "Settings.hpp"
+#include "Contributions.hpp"
 #include "Engine.hpp"
 #include "StateTypes.hpp"
 
@@ -56,16 +57,17 @@ json settingsListOf(Engine& engine) {
 	for(const auto& [key, type] : document["settings"].items()) {
 		const json& value = settingValue(engine.versions.state(), key, type);
 		const json& kind = type.value("type", json());
-		list.push_back({{"key", key},
-		                {"title", type.value("title", key)},
-		                {"description", type.value("description", "")},
-		                {"type", kind.is_array() && !kind.empty() ? kind[0] : kind},
-		                {"value", value},
-		                {"default", type["default"]},
-		                {"modified", value != type["default"]},
-		                {"enum", type.value("enum", json())},
-		                {"minimum", type.value("minimum", json())},
-		                {"maximum", type.value("maximum", json())}});
+		list.push_back(
+		    {{"key", key},
+			 {"title", declaredText(engine, type, "title", key, "settings." + key + ".title")},
+			 {"description", declaredText(engine, type, "description", "", "settings." + key + ".description")},
+			 {"type", kind.is_array() && !kind.empty() ? kind[0] : kind},
+			 {"value", value},
+			 {"default", type["default"]},
+			 {"modified", value != type["default"]},
+			 {"enum", type.value("enum", json())},
+			 {"minimum", type.value("minimum", json())},
+			 {"maximum", type.value("maximum", json())}});
 	}
 	// NOLINTNEXTLINE(modernize-use-ranges): a json array isn't a sortable range
 	std::sort(list.begin(), list.end(), [](const json& a, const json& b) { return a["key"] < b["key"]; });

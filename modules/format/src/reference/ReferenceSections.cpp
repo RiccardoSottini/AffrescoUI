@@ -98,13 +98,15 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "Which variant of the colors and tokens is shown, usually bound: `\"{{state.theme}}\"`. Without a match, the "
 	 "first variant.",
 	 "sections"},
-    {"strings", R"json({"type": "object", "maxProperties": 66,
+    {"strings", R"json({"type": "object", "maxProperties": 68,
 		"description": "Translations per locale for t(): {\"default\": \"en\", \"locale\": \"{{state.locale}}\", \"en\": {key: message}}",
-		"properties": {"default": {"type": "string"}, "locale": {"type": "string"}},
+		"properties": {"default": {"type": "string"}, "locale": {"type": "string"}, "required": {"type": "boolean"},
+		"keep": {"type": "array", "items": {"type": "string"}}},
 		"additionalProperties": {"type": "object", "maxProperties": 10000, "additionalProperties": {"type": "string",
 		"maxLength": 4096}}})json",
 	 "`locale → { key → message }`, with `\"default\"` (the locale a key falls back to) and `\"locale\"` (the locale "
-	 "shown, usually bound: `\"{{state.locale}}\"`; else the host's, from the system). `t(\"key\", {params})` "
+	 "shown, usually bound: `\"{{state.locale}}\"`; else the host's, from the system), `\"required\"` and `\"keep\"` "
+	 "(what `affrescoui strings` holds to). `t(\"key\", {params})` "
 	 "looks a key up in the locale, then its parents (`fr-CA`, then `fr`), then the default; a key found nowhere shows "
 	 "as itself. See Strings and locales.",
 	 "sections"},

@@ -9,6 +9,7 @@
 #include "affresco/format/NodeIds.hpp"
 
 #include <algorithm>
+#include <format>
 #include <iterator>
 #include <span>
 #include <unordered_map>
@@ -344,6 +345,30 @@ void Checker::walkUnreached() {
 	if(const json* actions = section("actions"))
 		for(const auto& [name, steps] : actions->items())
 			if(!actionsReached_.contains(name)) callAction(name, open, "actions." + name);
+	walkDeclaredTexts(open);
+}
+
+void Checker::readTexts(const json& owner, std::initializer_list<const char*> keys, const std::string& place,
+                        const Scope& scope) {
+	if(!owner.is_object()) return;
+	for(const char* key : keys)
+		if(const auto text = owner.find(key); text != owner.end() && text->is_string())
+			read(*text, scope, std::format("{}.{}", place, key));
+}
+
+void Checker::walkDeclaredTexts(const Scope& scope) {
+	if(const json* window = section("window")) readTexts(*window, {"title"}, "window", scope);
+	if(const json* actions = section("actions"))
+		for(const auto& [name, action] : actions->items())
+			readTexts(action, {"title", "category", "description"}, std::format("actions.{}", name), scope);
+	if(const json* menus = section("menus"))
+		for(const auto& [menu, items] : menus->items())
+			if(items.is_object())
+				for(const auto& [name, item] : items.items())
+					readTexts(item, {"title"}, std::format("menus.{}.{}", menu, name), scope);
+	if(const json* settings = section("settings"))
+		for(const auto& [name, setting] : settings->items())
+			readTexts(setting, {"title", "description"}, std::format("settings.{}", name), scope);
 }
 
 /* Findings and limits */

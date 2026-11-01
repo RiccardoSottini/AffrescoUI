@@ -57,6 +57,21 @@ void checkMenus(const json& section, const std::string& name);
 /// @param engine The runtime; outlives the variables.
 void addContributionVariables(Engine& engine);
 
+/// @brief A title or description a document declares outside its nodes (a command's, a menu item's, a setting's, the
+/// window's): its text, evaluated when it holds an expression, so that `t()` can translate it.
+/// @param engine The runtime.
+/// @param owner The object that declares it.
+/// @param key Its key there.
+/// @param fallback What it is if the object has none.
+/// @param where Its place, for errors.
+/// @return The text; as written if it can't be evaluated, which is reported.
+[[nodiscard]] std::string declaredText(Engine& engine, const json& owner, const char* key, const std::string& fallback,
+                                       const std::string& where);
+
+/// @brief Shows a bound "window.title" on the window, when it differs.
+/// @param engine The runtime.
+void showWindowTitle(Engine& engine);
+
 /// @brief Shows the window's native menu bar ("window.menuBar": menus of "menus", resolved like the `menus` variable),
 /// if it changed since the last call. Errors are reported, and leave the bar as it was.
 /// @param engine The runtime.

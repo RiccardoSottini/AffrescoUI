@@ -53,7 +53,7 @@ std::shared_ptr<const PropertySet> commonProperties() {
 	                  {"overflow", ValueKind::Text},
 	                  {"visible", ValueKind::Boolean},
 	                  {"cursor", ValueKind::Text},
-	                  {"tooltip", ValueKind::Text},
+	                  {"tooltip", ValueKind::Text, true, false, true},
 	                  {"disabled", ValueKind::Boolean},
 	                  {"scroll"},
 	                  {"overlay"},
@@ -63,8 +63,8 @@ std::shared_ptr<const PropertySet> commonProperties() {
 	                  {"arrows", ValueKind::Text},
 	                  {"mnemonic", ValueKind::Text},
 	                  {"role", ValueKind::Text},
-	                  {"label", ValueKind::Text},
-	                  {"description", ValueKind::Text},
+	                  {"label", ValueKind::Text, true, false, true},
+	                  {"description", ValueKind::Text, true, false, true},
 	                  {"isOpen", ValueKind::Boolean},
 	                  {"selected", ValueKind::Boolean},
 	                  {"live", ValueKind::Text},
@@ -125,6 +125,8 @@ void registerTextTypes(TypeRegistry& registry) {
 	const auto label = std::make_shared<PropertySet>();
 	label->properties = textProperties();
 	label->properties.push_back({"icon", ValueKind::Text}); // applied by IconProperty.cpp, listed here for the catalog
+	for(PropertySpec& spec : label->properties)
+		spec.visibleText = spec.visibleText || spec.name == "text"; // not an input's
 	// Applied by RunsProperty.cpp, listed here for the catalog
 	label->properties.push_back({"runs", ValueKind::Any, false});
 	label->properties.push_back({"selectable", ValueKind::Boolean, false});
@@ -133,7 +135,7 @@ void registerTextTypes(TypeRegistry& registry) {
 
 	const auto textarea = std::make_shared<PropertySet>();
 	textarea->properties = textProperties();
-	for(PropertySpec spec : std::initializer_list<PropertySpec>{{"placeholder", ValueKind::Text},
+	for(PropertySpec spec : std::initializer_list<PropertySpec>{{"placeholder", ValueKind::Text, true, false, true},
 	                                                            {"placeholderColor", ValueKind::Color},
 	                                                            {"bind", ValueKind::StatePath},
 	                                                            {"check"},
