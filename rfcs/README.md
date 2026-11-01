@@ -54,3 +54,4 @@ None yet.
 | [0002: Services and data models](0002-services.md) | Native providers, out-of-process JSON-RPC services, `invoke` and `subscribe`, host data models (D2) |
 | [0003: Connections, sign-in and servers](0003-network.md) | Declared connections and operations, OAuth sign-in, secrets, remote peers, a document server (D3) |
 | [0004: Features as packages](0004-features.md) | Manifests, namespaces, installs as revisions, composition checks, signatures, a catalogue |
+| [0005: Lisp as a programming language](0005-lisp-language.md) | A runtime for Lisp apps, with JSON staying as the format for static apps; run-time checks by author; diffs and review of programs |
