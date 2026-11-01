@@ -57,6 +57,19 @@ private:
 /// @return Its notation.
 [[nodiscard]] Notation notationOf(const std::filesystem::path& file);
 
+/// @brief The file of a document that is found by its name (an app's `app`, a feature's `feature`), in a folder:
+/// `<name>.json`, or `<name>.lisp` when only that one is there.
+/// @param folder The folder.
+/// @param name The document's name, without its extension.
+/// @return The file; `<name>.json` if neither is there, so that the problem names what was looked for.
+[[nodiscard]] std::filesystem::path namedDocument(const std::filesystem::path& folder, std::string_view name);
+
+/// @brief Whether a file is a document found by this name, in either notation.
+/// @param file The file.
+/// @param name The document's name, without its extension.
+/// @return Whether it is.
+[[nodiscard]] bool isNamedDocument(const std::filesystem::path& file, std::string_view name);
+
 /// @brief A notation by its name, as the protocol and the command line give it.
 /// @param name "json" or "lisp".
 /// @return The notation, or std::nullopt for any other name.

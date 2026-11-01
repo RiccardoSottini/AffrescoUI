@@ -1,0 +1,8 @@
+(node :$schema "../../../schema/affrescoui-app.schema.json"
+  :format affrescoui-app
+  :version 1
+  #calamaio
+  :name Calamaio
+  :description "A keyboard-first text editor: buffers, windows that split, a kill ring, search as you type."
+  :entry calamaio.screen.lisp
+  :capabilities {:assistant "Answers your questions about what you are editing, with the assistant you set up in Settings."})

@@ -105,14 +105,14 @@ std::vector<std::filesystem::path> includeRoots(const AppFolder& app) {
 /// @return Them.
 /// @throws ScreenError If there is no manifest, or it isn't valid.
 AppFolder readFolder(const std::filesystem::path& location) {
-	const bool isManifest = location.filename() == "app.json";
+	const bool isManifest = notation::isNamedDocument(location, "app");
 	std::error_code error;
 	AppFolder app{std::filesystem::canonical(isManifest ? location.parent_path() : location, error), {}};
 	if(error || !std::filesystem::is_directory(app.folder))
 		fail(location.string(), "not an app: expected its folder, or its app.json");
-	const std::filesystem::path file = app.folder / "app.json";
+	const std::filesystem::path file = notation::namedDocument(app.folder, "app");
 	try {
-		app.manifest = format::parseApp(parseUntrusted(readWhole(file, format::maxAppManifestBytes)));
+		app.manifest = format::parseApp(notation::readDocument(readWhole(file, format::maxAppManifestBytes), file));
 	} catch(const json::parse_error& parse) {
 		fail(file.string(), std::string("invalid JSON: ") + parse.what());
 	} catch(const DocumentError& invalid) {
@@ -313,7 +313,8 @@ Screen Screen::fromApp(const std::filesystem::path& location, const std::filesys
 
 std::filesystem::path Screen::appOf(const std::filesystem::path& screenFile) {
 	std::error_code error;
-	std::filesystem::path manifest = std::filesystem::absolute(screenFile, error).parent_path() / "app.json";
+	const std::filesystem::path folder = std::filesystem::absolute(screenFile, error).parent_path();
+	std::filesystem::path manifest = notation::namedDocument(folder, "app");
 	if(error || !std::filesystem::is_regular_file(manifest, error)) return {};
 	const AppFolder app = readFolder(manifest);
 	if(!std::filesystem::equivalent(app.folder / app.manifest.entry, screenFile, error)) return {};

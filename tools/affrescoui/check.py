@@ -209,6 +209,21 @@ class Checker:
                            "roles": {"agent/claude-code": role}, "cases": [case]}, file)
             self.run("policy", "test", path, expect=expect)
 
+    def lisp_documents(self):
+        """A lisp/ folder's own files work as its JSON ones do: its app.lisp, a policy, and a feature's manifest,
+        which gives the same answer in either notation."""
+        lisp = os.path.join(EXAMPLES, "flow", "lisp")
+        self.run("check", lisp)
+        self.run("check", os.path.join(lisp, "app.lisp"))
+        self.run("policy", "test", os.path.join(lisp, "index.policy.lisp"))
+        forge = os.path.join(EXAMPLES, "forge", "lisp")
+        written = os.path.join(EXAMPLES, "forge", "json")
+        as_lisp = self.run("check", "--compose", os.path.join(forge, "index.screen.lisp"),
+                           os.path.join(forge, "features", "word-count"), expect=1)
+        as_json = self.run("check", "--compose", os.path.join(written, "index.screen.json"),
+                           os.path.join(written, "features", "word-count"), expect=1)
+        self.expect(as_lisp == as_json, f"compose: the notations differ:\n{as_lisp}\n{as_json}")
+
     def strings(self):
         """Literal text moves to a language file and the screen's text doesn't change; a screen that requires it fails
         check until it has; a text with quotes and braces survives as a message; the file's layout stays."""
@@ -337,6 +352,7 @@ def main():
         checker.long_pattern_input()
         checker.strings()
         checker.policy_roles()
+        checker.lisp_documents()
         if not headless:
             checker.render_reaches_nobody()
             checker.insert_without_text()

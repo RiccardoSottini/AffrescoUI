@@ -34,7 +34,7 @@ std::span<const Command> commands() {
 		 "List a screen's contribution points, typed exports and installable parts, compactly", listContributions},
 	    {"test", "<scenarios.json>... [--json] [--only NAME] [--goldens DIR] [--update] [--out DIR] [--document FILE]",
 		 "Play a screen's scenarios and report what failed", testScreen},
-	    {"policy", "test <file.policy.json>... [--json]",
+	    {"policy", "test <policy-file>... [--json]",
 		 "Play policy files' example revisions and report the decisions that aren't the expected ones", policyCommand},
 	    {"render", "<file> -o out.png [--scale 1|2] [--size WIDTHxHEIGHT]",
 		 "Draw a screen's first frame offscreen, to a PNG", renderScreen},

@@ -1,0 +1,11 @@
+(node :$schema "../../../schema/affrescoui-app.schema.json"
+  :format affrescoui-app
+  :version 1
+  #sinopia
+  :name Sinopia
+  :description "Slides and vector documents: a ribbon, a slide sorter, an outline, transitions and a slide show."
+  :entry index.screen.lisp
+  :themes ["themes/sinopia.lisp"]
+  :capabilities {:files "Saves and opens your decks, and exports them as PDF or PNG, where you choose."
+    :windows "Shows the slide show to the audience in a window of its own, on a second display."
+    :assistant "Changes your slides when you ask, with the assistant you set up in Settings."})

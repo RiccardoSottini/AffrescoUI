@@ -1,0 +1,9 @@
+(node :$schema "../../../schema/affrescoui-app.schema.json"
+  :format affrescoui-app
+  :version 1
+  #sign-in
+  :name "Sign in"
+  :description "Sign in, create an account, two-step verification and an account page."
+  :entry index.screen.lisp
+  :capabilities {:network {:"https://id.example.com" "Signs you in with Example ID, a made-up provider for the demo."}
+    :assistant "Answers your questions in the chat, with the assistant you set up in Settings."})

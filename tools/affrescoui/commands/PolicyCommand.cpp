@@ -76,7 +76,7 @@ CaseResult play(const vcs::Repository& repository, const json& item, const std::
 /// @throws FileProblem If the file, or its screen, is malformed.
 std::vector<CaseResult> playFile(const std::filesystem::path& file) {
 	try {
-		const json policy = parseUntrusted(readFile(file));
+		const json policy = notation::readDocument(readFile(file), file);
 		expect::object(policy, "policy");
 		const json& cases = policy.value("cases", json());
 		if(!cases.is_array() || cases.empty() || cases.size() > maxCases)

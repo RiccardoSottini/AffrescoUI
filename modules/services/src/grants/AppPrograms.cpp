@@ -130,8 +130,8 @@ std::optional<std::string> shapeReveal(const AppPrograms& programs, ProcessRun& 
 	return std::nullopt;
 }
 
-/// @brief Reads an app program's ROOT:PATH: a folder with an app.json, an app.json or a .screen.json, inside a granted
-/// root.
+/// @brief Reads an app program's ROOT:PATH: a folder with an app.json or app.lisp, either of those files, or a
+/// .screen.json, inside a granted root.
 /// @param programs The grant.
 /// @param reference The argument, or nullptr if there is none.
 /// @param app Set to the app's name for its socket: the root's, then its folder's path in the root, so the apps of two
@@ -143,10 +143,12 @@ std::optional<fs::path> appScreen(const AppPrograms& programs, const std::string
 	std::optional<fs::path> screen = inRoot(programs, *reference, rootName);
 	if(!screen) return std::nullopt;
 	std::error_code error;
-	const bool folder = fs::is_directory(*screen, error) && fs::is_regular_file(*screen / "app.json", error);
+	const bool folder = fs::is_directory(*screen, error) && (fs::is_regular_file(*screen / "app.json", error) ||
+	                                                         fs::is_regular_file(*screen / "app.lisp", error));
 	const std::string file = utf8(screen->filename());
-	if(!folder && (!(file.ends_with(".screen.json") || file == "app.json") || !fs::is_regular_file(*screen, error)))
-		return std::nullopt;
+	const bool named =
+	    file.ends_with(".screen.json") || file.ends_with(".screen.lisp") || file == "app.json" || file == "app.lisp";
+	if(!folder && (!named || !fs::is_regular_file(*screen, error))) return std::nullopt;
 	const fs::path& root = programs.roots.find(rootName)->second;
 	const fs::path place = (folder ? *screen : screen->parent_path()).lexically_relative(root);
 	app = rootName + "-" + utf8(place == "." ? root.filename() : place);
@@ -188,7 +190,8 @@ std::optional<std::string> shapeApp(const AppPrograms& programs, ProcessRun& run
 		const std::optional<fs::path> screen =
 		    appScreen(programs, run.arguments.size() > 1 ? &run.arguments[1] : nullptr, app);
 		if(!screen)
-			return name + " needs an app, ROOT:PATH, a folder with an app.json, an app.json or a .screen.json inside "
+			return name + " needs an app, ROOT:PATH, a folder with an app.json or app.lisp, either of those files, or "
+			              "a .screen.json inside "
 			              "a granted root";
 		arguments.push_back(utf8(*screen));
 		at = 2;

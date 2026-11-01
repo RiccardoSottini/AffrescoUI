@@ -28,6 +28,20 @@ std::optional<Notation> notationNamed(std::string_view name) noexcept {
 	return std::nullopt;
 }
 
+std::filesystem::path namedDocument(const std::filesystem::path& folder, std::string_view name) {
+	const std::filesystem::path written = folder / (std::string(name) + ".json");
+	const std::filesystem::path lisp = folder / (std::string(name) + ".lisp");
+	std::error_code error;
+	return !std::filesystem::is_regular_file(written, error) && std::filesystem::is_regular_file(lisp, error) ? lisp
+	                                                                                                          : written;
+}
+
+bool isNamedDocument(const std::filesystem::path& file, std::string_view name) {
+	const std::string stem = file.stem().string();
+	const std::string extension = file.extension().string();
+	return stem == name && (extension == ".json" || extension == ".lisp");
+}
+
 std::string_view nameOf(Notation notation) noexcept { return notation == Notation::Lisp ? "lisp" : "json"; }
 
 json read(std::string_view text, Notation notation) {

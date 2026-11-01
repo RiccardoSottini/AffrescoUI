@@ -13,6 +13,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/core/Log.hpp>
+#include <affresco/notation/Notation.hpp>
 
 #include <algorithm>
 #include <array>
@@ -53,26 +54,36 @@ json loadDocument(const std::filesystem::path& path, const std::string& text) {
 	}
 }
 
-/// @brief Reads an untrusted JSON file: a manifest or an adapter.
+/// @brief The text of the document to load, as JSON: what `--document` names, or the screen's own file.
+/// @param arguments The command's arguments.
+/// @param screen The screen's file.
+/// @return Its text.
+/// @throws FileProblem If it can't be read.
+std::string documentText(const Arguments& arguments, const std::filesystem::path& screen) {
+	const std::filesystem::path source = arguments.value("--document").value_or(screen.string());
+	return notation::jsonText(readFile(source), source);
+}
+
+/// @brief Reads an untrusted file, in the notation its name says: a manifest or an adapter.
 /// @param path The file.
 /// @return Its value.
-/// @throws FileProblem If it isn't JSON.
+/// @throws FileProblem If it can't be read in that notation.
 json readUntrusted(const std::filesystem::path& path) {
 	try {
-		return parseUntrusted(readFile(path));
+		return notation::readDocument(readFile(path), path);
 	} catch(const std::exception& error) {
 		throw FileProblem(path.string() + ": " + error.what());
 	}
 }
 
-/// @brief A feature's manifest file: the path itself, or the feature.json in that folder.
-/// @param path A feature.json or its folder.
+/// @brief A feature's manifest file: the path itself, or the feature.json or feature.lisp in that folder.
+/// @param path A manifest or its folder.
 /// @return The file.
 std::filesystem::path manifestFile(const std::filesystem::path& path) {
-	return std::filesystem::is_directory(path) ? path / "feature.json" : path;
+	return std::filesystem::is_directory(path) ? notation::namedDocument(path, "feature") : path;
 }
 
-/// @brief The installable parts an app ships: `<its folder>/features/*/feature.json`, by name.
+/// @brief The installable parts an app ships: `<its folder>/features/*/feature.json` (or `.lisp`), by name.
 /// @param screen The app's screen file.
 /// @return partOf() each, or `{name, problem}` for one that doesn't check.
 json partsOf(const std::filesystem::path& screen) {
@@ -81,8 +92,9 @@ json partsOf(const std::filesystem::path& screen) {
 	if(!std::filesystem::is_directory(folder)) return parts;
 	std::vector<std::filesystem::path> files;
 	for(const auto& entry : std::filesystem::directory_iterator(folder))
-		if(std::filesystem::is_regular_file(entry.path() / "feature.json"))
-			files.push_back(entry.path() / "feature.json");
+		if(const std::filesystem::path file = notation::namedDocument(entry.path(), "feature");
+		   std::filesystem::is_regular_file(file))
+			files.push_back(file);
 	std::ranges::sort(files);
 	for(const std::filesystem::path& file : files) try {
 			const json manifest = readUntrusted(file);
@@ -195,8 +207,8 @@ Exit listContributions(std::span<const std::string_view> args) {
 	static constexpr std::array<std::string_view, 1> flags = {"--json"};
 	const Arguments arguments(args, valued, flags);
 	const std::filesystem::path file = arguments.file();
-	const std::string text = readFile(arguments.value("--document").value_or(file.string()));
-	const json contributions = format::contributionsOf(loadDocument(file, text), partsOf(file));
+	const json contributions =
+	    format::contributionsOf(loadDocument(file, documentText(arguments, file)), partsOf(file));
 	if(arguments.flag("--json")) std::cout << contributions.dump() << '\n';
 	else std::cout << format::contributionsText(contributions);
 	return Exit::Success;
@@ -213,7 +225,7 @@ Exit checkComposition(std::span<const std::string_view> args, const std::functio
 	const std::string manifestText = readFile(feature);
 
 	format::ProofInputs inputs;
-	inputs.host = loadDocument(screen, readFile(arguments.value("--document").value_or(screen.string())));
+	inputs.host = loadDocument(screen, documentText(arguments, screen));
 	inputs.manifest = readUntrusted(feature);
 	if(const std::optional<std::string> adapter = arguments.value("--adapter"))
 		inputs.adapter = readUntrusted(*adapter);

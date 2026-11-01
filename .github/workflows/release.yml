@@ -153,14 +153,14 @@ jobs:
           cd affrescoui-*/
           for file in LICENSE NOTICE THIRD_PARTY_NOTICES.md README.txt assets/SCREEN_FORMAT.md; do test -s "$file"; done
           ls assets/shared/fonts/*.ttf > /dev/null
-          ls -d assets/*/json/app.json assets/*/lisp/app.json
+          ls -d assets/*/json/app.json assets/*/lisp/app.lisp
           test -f assets/launcher/json/app.json
       - name: The tool runs and checks every app
         shell: bash
         run: |
           cd affrescoui-*/
           ./affrescoui --version
-          for app in assets/*/*/app.json; do ./affrescoui check "$(dirname "$app")"; done
+          for app in assets/*/json/app.json assets/*/lisp/app.lisp; do ./affrescoui check "$(dirname "$app")"; done
           for screen in assets/*/json/*.screen.json assets/*/lisp/*.screen.lisp; do ./affrescoui check "$screen"; done
       - name: Universal (macOS)
         if: runner.os == 'macOS'
@@ -187,7 +187,7 @@ jobs:
           on_display() { if [ "$RUNNER_OS" = Linux ]; then xvfb-run -a -s "-screen 0 1920x1080x24" "$@"; else "$@"; fi; }
           cd affrescoui-*/
           mkdir -p frames
-          for app in assets/*/*/app.json; do
+          for app in assets/*/json/app.json assets/*/lisp/app.lisp; do
             folder="$(dirname "$app")"
             name="$(basename "$(dirname "$folder")")-$(basename "$folder")"
             AFFRESCOUI_SCREENSHOT="frames/$name.ppm" on_display ./affrescoui_launcher "$folder"
