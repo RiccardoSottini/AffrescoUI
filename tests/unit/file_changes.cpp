@@ -172,7 +172,7 @@ TEST_CASE("file changes: an example's changes are in the files that hold them, i
 	for(const char* notation : {"json", "lisp"}) {
 		CAPTURE(notation);
 		Screen screen = Screen::fromApp(examples / "flow" / notation, {}, Screen::History::InMemory);
-		std::ifstream file(examples / "flow" / "json" / "strings.json");
+		std::ifstream file(examples / "flow" / "json" / "locales" / "en.json");
 		const json strings = json::parse(file)["strings"]["en"];
 		REQUIRE_FALSE(strings.empty());
 		const std::string key = strings.items().begin().key();
@@ -181,6 +181,6 @@ TEST_CASE("file changes: an example's changes are in the files that hold them, i
 		CAPTURE(result.error);
 		const json changes = screen.fileChanges({{"to", "HEAD"}});
 		REQUIRE(fileCount(changes) == 1);
-		CHECK(changes["files"][0]["file"] == std::string("strings.") + notation);
+		CHECK(changes["files"][0]["file"] == std::string("locales/en.") + notation);
 	}
 }

@@ -156,44 +156,5 @@
 				]
 			}
 		}
-	},
-
-	"strings": {
-		"en": {
-			"hub.subtitle": "Player hub: what players say about it",
-			"hub.back": "Back to the game",
-			"hub.all": "Everything",
-			"hub.by": "Posted by {who}",
-			"hub.post.firstHours": "Tips for your first hours in {game}",
-			"hub.post.allEndings": "Every ending of {game}, and how to reach each one",
-			"hub.post.controller": "Best controller layout for {game}?",
-			"hub.post.beginner": "A beginner's guide to {game}",
-			"hub.post.coop": "Looking for people to play {game} with this weekend",
-			"hub.post.secrets": "Ten secrets in {game} most players miss"
-		},
-		"es": {
-			"hub.subtitle": "Comunidad: lo que dicen los jugadores",
-			"hub.back": "Volver al juego",
-			"hub.all": "Todo",
-			"hub.by": "Publicado por {who}",
-			"hub.post.firstHours": "Consejos para tus primeras horas en {game}",
-			"hub.post.allEndings": "Todos los finales de {game} y cómo llegar a cada uno",
-			"hub.post.controller": "¿La mejor configuración de mando para {game}?",
-			"hub.post.beginner": "Guía de {game} para principiantes",
-			"hub.post.coop": "Busco gente para jugar a {game} este fin de semana",
-			"hub.post.secrets": "Diez secretos de {game} que casi nadie ve"
-		},
-		"fr": {
-			"hub.subtitle": "Communauté : ce qu’en disent les joueurs",
-			"hub.back": "Retour au jeu",
-			"hub.all": "Tout",
-			"hub.by": "Publié par {who}",
-			"hub.post.firstHours": "Conseils pour vos premières heures dans {game}",
-			"hub.post.allEndings": "Toutes les fins de {game} et comment les atteindre",
-			"hub.post.controller": "Meilleure configuration de manette pour {game} ?",
-			"hub.post.beginner": "Guide du débutant pour {game}",
-			"hub.post.coop": "Je cherche des joueurs pour {game} ce week-end",
-			"hub.post.secrets": "Dix secrets de {game} que la plupart des joueurs ratent"
-		}
 	}
 }

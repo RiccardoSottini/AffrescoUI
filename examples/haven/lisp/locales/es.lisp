@@ -1,0 +1,391 @@
+{:strings {:es {:info.open Detalles
+      :info.close Cerrar
+      :info.climate Clima
+      :info.cover Persianas
+      :info.home Casa
+      :info.power "Encender o apagar"
+      :info.lightHint "Toca la barra o usa las teclas de flecha"
+      :info.history "Últimas 24 horas"
+      :info.historyLabel "Temperatura en las últimas 24 horas, de {low}° a {high}°"
+      :info.now Ahora
+      :info.stop Detener
+      :info.coverHint "Toca una barra para ajustar la posición o la inclinación"
+      :info.battery "Batería {n}%"
+      :info.changed "Último cambio a las {time}"
+      :info.activity "Actividad reciente"
+      :toolbar.search Buscar
+      :toolbar.more "Más opciones"
+      :edit.dashboard "Organizar tarjetas"
+      :edit.done Hecho
+      :snack.dismiss Descartar
+      :set.reset Restablecer
+      :set.value.en English
+      :set.value.es "Español"
+      :set.value.fr "Français"
+      :edit.card "Editar {name}"
+      :edit.cardTitle "Ajustes de la tarjeta {kind}"
+      :edit.kind.lights "Mosaicos de luces"
+      :edit.kind.scenes "Botones de escenas"
+      :edit.kind.security "Panel de alarma"
+      :edit.kind.climate Termostato
+      :edit.kind.cover Persiana
+      :edit.kind.devices "Mosaicos de dispositivos"
+      :edit.title "Título (opcional)"
+      :edit.opt.modes "Mostrar los botones de modo"
+      :edit.opt.actions "Mostrar una acción en cada mosaico"
+      :edit.code "Ajustes de la tarjeta como código"
+      :edit.showCode "Editar como código"
+      :edit.showForm "Editar con el formulario"
+      :edit.save Guardar
+      :edit.cancel Cancelar
+      :edit.badCode "La configuración no es un objeto válido"
+      :chips.label "De un vistazo"
+      :app.tagline "una plantilla de AffrescoUI"
+      :page.home Inicio
+      :page.energy "Energía"
+      :page.plan Plano
+      :page.automations Automatizaciones
+      :page.areas Habitaciones
+      :page.logbook "Registro de actividad"
+      :page.history Historial
+      :areas.add "Añadir una habitación"
+      :areas.addSoon "Añadir habitaciones llegará en una versión posterior"
+      :log.on "se encendió"
+      :log.off "se apagó"
+      :log.opened "se abrió"
+      :log.locked "se bloqueó"
+      :log.docked "volvió a la base"
+      :log.playing "empezó a reproducir"
+      :log.triggered "se activó"
+      :log.today Hoy
+      :log.yesterday Ayer
+      :log.empty "Ningún evento coincide"
+      :log.period "Ayer – Hoy"
+      :log.twoDays "El registro de actividad conserva los dos últimos días"
+      :hist.timeline "Actividad de hoy"
+      :hist.temp "Temperatura de {name}"
+      :hist.on Encendido
+      :hist.off Apagado
+      :hist.now Ahora
+      :set.auto "Automático"
+      :info.tilt "Inclinación {n}%"
+      :quick.clear Borrar
+      :quick.none "Sin resultados"
+      :quick.recent "Usados recientemente"
+      :table.maker Fabricante
+      :table.model Modelo
+      :table.area "Área"
+      :table.integration "Conexión"
+      :dev.filtersSoon "Los filtros no están disponibles en esta demo"
+      :dev.addSoon "Añadir dispositivos y controles no forma parte de esta demo"
+      :dev.searchN.devices "Buscar entre {n} dispositivos"
+      :dev.searchN.entities "Buscar entre {n} controles"
+      :dev.searchN.integrations "Buscar conexiones"
+      :dev.searchN.helpers "Buscar utilidades"
+      :climate.mode Modo
+      :auto.offBanner "Esta automatización está desactivada y no se ejecutará"
+      :toolbar.assist Preguntar
+      :edit.addCard "Añadir tarjeta"
+      :edit.addCardSoon "Todas las tarjetas ya están en este panel"
+      :dev.integrations Conexiones
+      :dev.devices Dispositivos
+      :dev.entities Controles
+      :dev.helpers Utilidades
+      :dev.search Buscar
+      :dev.filters Filtros
+      :dev.empty.integrations "Todos los dispositivos de aquí son integrados, así que no hay conexiones que configurar"
+      :dev.empty.helpers "Aún no hay utilidades"
+      :dev.add.integrations "Añadir conexión"
+      :dev.add.devices "Añadir dispositivo"
+      :dev.add.entities "Añadir control"
+      :dev.add.helpers "Crear utilidad"
+      :info.menuRelated Relacionados
+      :info.menuAttributes Propiedades
+      :info.attributesNote "No hay más propiedades que mostrar"
+      :info.noRelated "Aún no se usa en ninguna automatización"
+      :info.previous Anterior
+      :info.next Siguiente
+      :info.play Reproducir
+      :info.pause Pausa
+      :info.volume Volumen
+      :info.queueEmpty "No hay nada más en la cola"
+      :info.related "Usado en “{name}”"
+      :edit.preview "Vista previa"
+      :profile.owner "Propietario, con sesión iniciada en este dispositivo"
+      :profile.logout "Cerrar sesión"
+      :profile.logoutSoon "Cerrar sesión no forma parte de esta demo"
+      :hist.today "Hoy, 00:00 – ahora"
+      :hist.choose "Elige un control, una habitación o un dispositivo"
+      :hist.range "De {min}° a {max}°"
+      :page.settings Ajustes
+      :rooms.label "Habitaciones por planta"
+      :floor.ground "Planta baja"
+      :floor.upper "Planta alta"
+      :theme.light "Tema claro"
+      :kwh "{n} kWh"
+      :day.Mon Lun
+      :day.Tue Mar
+      :day.Wed "Mié"
+      :day.Thu Jue
+      :day.Fri Vie
+      :day.Sat "Sáb"
+      :day.Sun Dom
+      :summary.lights "{on} de {total} luces encendidas"
+      :summary.scene "  ·  escena: {scene}"
+      :scene.morning "Mañana"
+      :scene.movie "Noche de cine"
+      :scene.away Ausente
+      :scene.night "Buenas noches"
+      :scenes.label Escenas
+      :weather.outside Exterior
+      :weather.sky "Nublado, viento suave"
+      :lights.title Luces
+      :lights.hint "Haz clic para encender o apagar, arrastra para regular"
+      :light.colour "Color de {name}"
+      :light.on "Encendida  ·  {level}%"
+      :light.off Apagada
+      :light.switchOn Encender
+      :light.switchOff Apagar
+      :light.brightness Brillo
+      :colour.title "Color de la luz"
+      :colour.done Hecho
+      :colour.warm "Blanco cálido"
+      :climate.label "Clima de la habitación"
+      :climate.title Clima
+      :climate.now "Ahora {temp}°  ·  humedad {humidity}%"
+      :climate.target objetivo
+      :climate.targetIs "Objetivo {target}°"
+      :climate.down "Bajar el objetivo (flecha abajo)"
+      :climate.up "Subir el objetivo (flecha arriba)"
+      :mode.Heat Calor
+      :mode.Cool "Frío"
+      :mode.Auto Auto
+      :blinds.title Persianas
+      :blinds.open "{n}% abierta"
+      :blinds.close Cerrar
+      :blinds.openButton Abrir
+      :devices.title Dispositivos
+      :device.waiting "Esperando respuesta…"
+      :device.busy "Esperando a {name}…"
+      :device.door.on Bloqueada
+      :device.door.off Desbloqueada
+      :device.door.doOn Bloquear
+      :device.door.doOff Desbloquear
+      :device.vacuum.on Limpiando
+      :device.vacuum.off "En la base"
+      :device.vacuum.doOn Iniciar
+      :device.vacuum.doOff "A la base"
+      :device.speaker.on Reproduciendo
+      :device.speaker.off "En pausa"
+      :device.speaker.doOn Reproducir
+      :device.speaker.doOff Pausa
+      :toast.device "{name}: {state}"
+      :stat.budget "Presupuesto diario"
+      :stat.peak "Hora punta"
+      :week.byDay "Esta semana"
+      :week.byDevice "Esta semana, por dispositivo"
+      :week.dayButton "Por día"
+      :week.deviceButton "Por dispositivo"
+      :week.roomButton "Por habitación"
+      :byRoom.title "Esta semana, por habitación"
+      :table.room "Habitación"
+      :table.energy "Energía"
+      :table.now Ahora
+      :use.heating "Calefacción"
+      :use.kitchen Cocina
+      :use.lights Luces
+      :use.media Multimedia
+      :use.vacuum Aspirador
+      :use.other Otros
+      :energy.prev "Día anterior"
+      :energy.next "Día siguiente"
+      :energy.pick "Elegir un día"
+      :energy.today Hoy
+      :energy.onlyToday "Esta demo solo conserva hoy"
+      :usage.title "Consumo de energía"
+      :usage.label "Energía de hoy, hora a hora, de la red y del sol; el pico a las {hour}"
+      :flow.title "Adónde va la energía"
+      :flow.grid Red
+      :flow.solar Solar
+      :flow.home Casa
+      :flow.label "Los paneles produjeron {solar} kWh, la red aportó {grid} kWh y {back} kWh volvieron a ella"
+      :sources.title Fuentes
+      :sources.source Fuente
+      :sources.energy "Energía"
+      :sources.cost Coste
+      :sources.grid "De la red"
+      :sources.return "Devuelta a la red"
+      :sources.solar "Producción solar"
+      :sources.total "Coste neto de hoy"
+      :gauge.title "Balance solar"
+      :gauge.selfUse "Solar usada en casa"
+      :gauge.selfSufficiency "Casa alimentada por el sol"
+      :budget.today "{n} kWh usados hoy"
+      :money "{n} €"
+      :set.devices "Dispositivos y controles"
+      :set.devices.sub "Cerraduras, robots, altavoces y todas las habitaciones"
+      :set.automations "Automatizaciones y escenas"
+      :set.automations.sub "Reglas que se ejecutan solas"
+      :set.areas "Habitaciones y zonas"
+      :set.areas.sub "Habitaciones y plantas de la casa"
+      :set.energy "Energía"
+      :set.energy.sub "Consumo, presupuesto y gráfico diario"
+      :set.profile Perfil
+      :set.profile.sub "Idioma y tema"
+      :set.general General
+      :set.general.sub "Clima, escenas, presupuesto y notificaciones"
+      :set.about "Acerca de"
+      :set.about.sub "Versión y licencia"
+      :set.back "Atrás"
+      :set.entities Controles
+      :set.language Idioma
+      :set.language.sub "El idioma de todas las pantallas"
+      :set.theme Tema
+      :set.theme.sub "Colores claros u oscuros"
+      :set.light Claro
+      :set.dark Oscuro
+      :set.group.home Casa
+      :set.group.you "Tú"
+      :table.device Dispositivo
+      :table.kind Tipo
+      :table.state Estado
+      :kind.door Cerradura
+      :kind.vacuum "Robot aspirador"
+      :kind.speaker "Reproductor multimedia"
+      :about.version "Versión"
+      :about.devices "Dispositivos y habitaciones"
+      :about.license Licencia
+      :about.docs "Documentación"
+      :about.issue "Informar de un problema"
+      :about.source "Código fuente"
+      :about.offline "Los enlaces se abren en un navegador, no en esta demo"
+      :quick.commands "Ejecutar un comando"
+      :quick.entities "Buscar controles"
+      :sidebar.open "Abrir la barra lateral"
+      :sidebar.fold "Plegar la barra lateral"
+      :user.profile "Alex: perfil"
+      :info.alarm Alarma
+      :alarm.title Alarma
+      :alarm.section Seguridad
+      :alarm.off Desarmada
+      :alarm.home "Armada en casa"
+      :alarm.away "Armada ausente"
+      :alarm.do.off Desarmar
+      :alarm.do.home "Armar en casa"
+      :alarm.do.away "Armar ausente"
+      :alarm.code "Código"
+      :alarm.keypad Teclado
+      :alarm.clear Borrar
+      :alarm.back "Borrar un dígito"
+      :alarm.needCode "Escribe el código para desarmar"
+      :plan.summary "Arrastra una habitación para moverla; haz clic en una para elegirla"
+      :plan.room "{temp}°  ·  {lights, plural, =0 {luces apagadas} one {# luz encendida} other {# luces encendidas}}"
+      :plan.show "Mostrar en Inicio"
+      :plan.label "Plano de la casa"
+      :media.title Altavoz
+      :media.previous "Pista anterior"
+      :media.next "Pista siguiente"
+      :media.play Reproducir
+      :media.pause Pausa
+      :media.volume Volumen
+      :media.track "{title}  ·  {artist}"
+      :auto.summary "Conecta un disparador con una condición o una acción; Supr elimina los nodos elegidos"
+      :auto.graph "Grafo de automatizaciones"
+      :auto.add "Añadir:"
+      :auto.addTime Hora
+      :auto.addDark "Al oscurecer"
+      :auto.addScene Escena
+      :auto.motion "Movimiento en el vestíbulo"
+      :auto.sunset "Puesta de sol"
+      :auto.time "A las 07:00"
+      :auto.armed "Si la alarma está activada"
+      :auto.dark "Si es de noche"
+      :auto.hallLight "Luz del vestíbulo encendida"
+      :auto.notify "Enviar una nota"
+      :auto.blindsDown "Cerrar las persianas"
+      :auto.scene "Escena: Buenas noches"
+      :port.when cuando
+      :port.then entonces
+      :port.if si
+      :port.do hacer
+      :schedule.title "Programaciones, hora a hora"
+      :schedule.heating "Calefacción"
+      :schedule.lights "Luces exteriores"
+      :schedule.vacuum Aspirador
+      :schedule.morning "Mañana"
+      :schedule.evening Tarde
+      :schedule.night Noche
+      :schedule.clean Limpieza
+      :auto.tabList Reglas
+      :auto.tabFlow "Grafo y programaciones"
+      :auto.new "Nueva automatización"
+      :auto.search "Buscar automatizaciones"
+      :auto.colName Nombre
+      :auto.colRan "Última ejecución"
+      :auto.noMatch "Ninguna automatización coincide"
+      :auto.back "Volver a las automatizaciones"
+      :auto.disable Desactivar
+      :auto.enable Activar
+      :auto.run Ejecutar
+      :auto.more "Más opciones"
+      :auto.duplicate Duplicar
+      :auto.delete Eliminar
+      :auto.cancel Cancelar
+      :auto.deleteTitle "¿Eliminar esta automatización?"
+      :auto.deleteBody "{name} se eliminará definitivamente."
+      :auto.deletedNote "{name} eliminada"
+      :auto.enabled Activada
+      :auto.lastRan "Última ejecución: {when}"
+      :auto.when Cuando
+      :auto.if "Y si"
+      :auto.then "Entonces hacer"
+      :auto.whenHint "Cualquiera de estos inicia la automatización."
+      :auto.ifHint "Todas estas deben cumplirse, o se detiene."
+      :auto.thenHint "Se ejecutan en orden."
+      :auto.addWhen "Añadir un disparador"
+      :auto.addIf "Añadir una condición"
+      :auto.addDo "Añadir una acción"
+      :auto.empty "Aún no hay nada aquí"
+      :auto.remove "Quitar {item}"
+      :auto.trace "Última ejecución"
+      :auto.traceNever "Aún no se ha ejecutado"
+      :auto.ranNote "{name} se ejecutó"
+      :ran.now "ahora mismo"
+      :ran.min7 "hace 7 minutos"
+      :ran.h9 "hace 9 horas"
+      :ran.d2 "hace 2 días"
+      :ran.never nunca
+      :rule.welcome "Bienvenido a casa"
+      :rule.goodNight "Buenas noches"
+      :rule.motionAway "Movimiento estando ausente"
+      :rule.morning "Mañana tranquila"
+      :rule.untitled "Nueva automatización"
+      :rule.frontOpens "Se abre la puerta principal"
+      :rule.time2300 "Son las 23:00"
+      :rule.hallMotion "Movimiento en el vestíbulo"
+      :rule.time0630 "Son las 06:30"
+      :rule.time0700 "Son las 07:00"
+      :rule.afterDark "Es después del atardecer"
+      :rule.allHome "Todos están en casa"
+      :rule.alarmAway "La seguridad está en modo Ausente"
+      :rule.someoneHome "Hay alguien en casa"
+      :rule.hallOn "Encender la luz del vestíbulo"
+      :rule.playMusic "Reproducir la lista de la tarde"
+      :rule.lightsOff "Apagar todas las luces"
+      :rule.lockDoors "Bloquear las puertas"
+      :rule.heatNight "Ajustar la calefacción a 18 °C"
+      :rule.sendNote "Enviar una notificación"
+      :rule.blindsOpen "Abrir las persianas del dormitorio"
+      :rule.heatDay "Ajustar la calefacción a 21 °C"
+      :trace.when Activada
+      :trace.if "Condición cumplida"
+      :trace.do "Acción ejecutada"
+      :security.off Desactivada
+      :security.home "En casa"
+      :security.away Ausente
+      :security.changed "Seguridad: {mode}"
+      :notify.count "{n, plural, =0 {Sin notificaciones} one {# notificación} other {# notificaciones}}"
+      :notify.title Notificaciones
+      :notify.clear "Borrar todo"
+      :notify.empty "Nada nuevo"
+      :notify.motion "Movimiento en el vestíbulo estando ausente"}}}

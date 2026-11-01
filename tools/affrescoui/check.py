@@ -224,6 +224,43 @@ class Checker:
                            os.path.join(written, "features", "word-count"), expect=1)
         self.expect(as_lisp == as_json, f"compose: the notations differ:\n{as_lisp}\n{as_json}")
 
+    def strings_split(self):
+        """Languages leave every file of a screen for one file each; a file left with nothing else goes, what it set
+        reaches the screen, and two files that disagree stop it before it writes anything."""
+        folder = os.path.join(self.scratch, "split")
+        os.makedirs(folder)
+        def write(name, value):
+            with open(os.path.join(folder, name), "w", encoding="utf-8") as file:
+                json.dump(value, file, indent="\t")
+        write("index.screen.json", {"format": "affrescoui-screen", "version": 2, "include": ["texts.json", "part.json"],
+                                    "root": {"id": "a", "type": "label", "text": "{{t('a')}}"}})
+        write("texts.json", {"note": "text", "strings": {"default": "es", "en": {"a": "A"}, "es": {"a": "B"}}})
+        write("part.json", {"components": {"c": {"node": {"id": "c"}}}, "strings": {"en": {"b": "C"}, "es": {"b": "D"}}})
+        path = os.path.join(folder, "index.screen.json")
+        self.run("strings", "split", path)
+        self.expect(os.path.exists(os.path.join(folder, "texts.json")), "strings split: wrote without --write")
+        write("wrong.json", {"strings": {"en": {"a": "other"}}})
+        with open(path, encoding="utf-8") as file:
+            screen = json.load(file)
+        before = dict(screen)
+        screen["include"] = ["texts.json", "part.json", "wrong.json"]
+        write("index.screen.json", screen)
+        self.run("strings", "split", path, "--write", expect=1)
+        self.expect(not os.path.exists(os.path.join(folder, "locales")), "strings split: wrote despite a conflict")
+        write("index.screen.json", before)
+        self.run("strings", "split", path, "--write")
+        with open(path, encoding="utf-8") as file:
+            screen = json.load(file)
+        self.expect(screen["include"] == ["locales/en.json", "locales/es.json", "part.json"],
+                    f"strings split: include is {screen['include']}")
+        self.expect(screen["strings"] == {"default": "es"}, f"strings split: the screen's strings are {screen.get('strings')}")
+        self.expect(not os.path.exists(os.path.join(folder, "texts.json")), "strings split: an emptied file stayed")
+        with open(os.path.join(folder, "part.json"), encoding="utf-8") as file:
+            self.expect(json.load(file) == {"components": {"c": {"node": {"id": "c"}}}}, "strings split: a part's other content")
+        with open(os.path.join(folder, "locales", "es.json"), encoding="utf-8") as file:
+            self.expect(json.load(file)["strings"]["es"] == {"a": "B", "b": "D"}, "strings split: a language's file")
+        self.run("check", path)
+
     def strings(self):
         """Literal text moves to a language file and the screen's text doesn't change; a screen that requires it fails
         check until it has; a text with quotes and braces survives as a message; the file's layout stays."""
@@ -351,6 +388,7 @@ def main():
         checker.run("convert", broken, "--to", "yaml", expect=2)
         checker.long_pattern_input()
         checker.strings()
+        checker.strings_split()
         checker.policy_roles()
         checker.lisp_documents()
         if not headless:

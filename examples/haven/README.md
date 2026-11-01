@@ -15,7 +15,7 @@ Rooms in a tree by floor, a floor plan, scenes, lights with their colours, clima
 | `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 | `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `index.screen.json` | The screen document |
-| `strings.json` | Its string tables: English, Spanish and French |
+| `locales/` | Its text, one file per language: English, Spanish and French |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
@@ -35,5 +35,5 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 - **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, the settings and the security mode persist; nothing else.
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
-- **Extension points:** rooms, devices and scenes are entries of `state`; the plan, the automations and the strings are included files, each changed on its own; a language is a table in `strings.json`.
+- **Extension points:** rooms, devices and scenes are entries of `state`; the plan, the automations and the strings are included files, each changed on its own; a language is a file in `locales/`.
 - **Assets:** the pictures in `images/` are simple vector drawings made for this project, under the repository's Apache-2.0 licence. The fonts' licences are with them in `../shared/fonts`.

@@ -14,7 +14,7 @@ Boards in the sidebar, an inbox, sprints and projects, a grouped list, swimlanes
 | `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 | `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `index.screen.json` | The screen document |
-| `strings.json` | Its string tables: English, Spanish and French |
+| `locales/` | Its text, one file per language: English, Spanish and French |
 | `views.json` | Its other views, included: insights, swimlanes, the timeline, the settings |
 
 The Launcher lists it first, and the release's checks draw it: `affrescoui_launcher examples/flow/json/index.screen.json`.
@@ -39,5 +39,5 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 - **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, column sizes, view, swimlanes and settings persist; the issues are records of the `issues` model (a status for the column, an order in it), seeded from the document, read through a query per column (`data.lane0`...).
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
-- **Extension points:** boards and columns are entries of `state`; the board logic, the drawer and the other views are included files; a language is a table in `strings.json`.
+- **Extension points:** boards and columns are entries of `state`; the board logic, the drawer and the other views are included files; a language is a file in `locales/`.
 - **Assets:** no pictures of its own; the fonts' licences are with them in `../shared/fonts`.

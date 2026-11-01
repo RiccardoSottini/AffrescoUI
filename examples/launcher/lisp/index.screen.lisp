@@ -1,6 +1,7 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
   :format affrescoui-screen
   :version 2
+  :strings {:default en :locale "{{state.locale == 'system' ? '' : state.locale}}"}
   :note "The AffrescoUI Launcher: the home of the example apps and of the person's own. Apps (your apps and the examples as cards, each tagged Example or Yours; a search; a click or Enter opens one), My apps (open, duplicate, show in the folder, delete after a confirm), Create (a name, a starting point, a description for the assistant, features from other apps) and Settings. It is a screen like any other, with no C++ of its own: affrescoui_launcher opens it when started without a file and grants it the folders it reads and writes (the services examples and apps) and the programs that open the apps (the service launch). Where nothing is granted (the rendering check), the services are refused and it shows the examples from apps.json and an empty My apps."
   :window {:title AffrescoUI
     :icon "../assets/affrescoui-icon.png"
@@ -9,7 +10,11 @@
     :minWidth 800
     :minHeight 600
     :focusRing {:color @c.accent :width 2 :offset 2}}
-  :include [apps.lisp launcher-strings.lisp "../../shared/addons/intelligence/settings.lisp"]
+  :include ["locales/en.lisp"
+    "locales/es.lisp"
+    "locales/fr.lisp"
+    apps.lisp
+    "../../shared/addons/intelligence/settings.lisp"]
   :theme "{{state.theme == 'system' ? window.colorScheme : state.theme}}"
   :persist [state.theme state.locale state.notation]
   :onLoad {:run launcher.refresh}

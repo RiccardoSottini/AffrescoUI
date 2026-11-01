@@ -1,5 +1,5 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
-  :note "The Launcher's catalog of example apps, included by index.screen.json (as state.examples). Each: id, name, a one-line tagline in English (the screen shows its translation, tagline.<id> in launcher-strings.json), its folder in examples/, the program that runs it (host: the stock affrescoui_launcher opens <folder>/json or <folder>/lisp, as Settings choose; else the program, which opens its own screen), and a cover in covers/. The Apps page tags each one Example, and the person's own apps Yours. Only the apps a host-run program shows can start a new app."
+  :note "The Launcher's catalog of example apps, included by index.screen.json (as state.examples). Each: id, name, a one-line tagline in English (the screen shows its translation, tagline.<id> in locales/), its folder in examples/, the program that runs it (host: the stock affrescoui_launcher opens <folder>/json or <folder>/lisp, as Settings choose; else the program, which opens its own screen), and a cover in covers/. The Apps page tags each one Example, and the person's own apps Yours. Only the apps a host-run program shows can start a new app."
   :state {:examples [(node #flow
         :name Flow
         :tagline "A Kanban board for a team's issues"

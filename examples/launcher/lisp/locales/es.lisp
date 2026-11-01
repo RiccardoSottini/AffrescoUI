@@ -1,0 +1,110 @@
+{:strings {:es {:brand.sub Lanzador
+      :brand.note "Cada app es una pantalla, en JSON o Lisp, que tú, y el asistente, podéis cambiar mientras funciona."
+      :nav.label Secciones
+      :nav.apps Apps
+      :nav.mine "Mis apps"
+      :nav.create Crear
+      :nav.settings Ajustes
+      :nav.newApp "Nueva app"
+      :apps.title Apps
+      :apps.sub "Tus apps y los ejemplos: abre una con un clic, o empieza una app nueva a partir de un ejemplo."
+      :apps.tagExample Ejemplo
+      :apps.tagMine Tuya
+      :apps.search "Buscar apps"
+      :apps.clear "Borrar la búsqueda"
+      :apps.count "{n, plural, =0 {Ninguna app} one {# app} other {# apps}}"
+      :apps.none "Ninguna app coincide con «{query}»."
+      :apps.openLabel "Abrir {name}: {tagline}"
+      :apps.startFrom "Empezar una app nueva a partir de {name}"
+      :tagline.flow "Un tablero Kanban para las tareas de un equipo"
+      :tagline.streak "Un registro de hábitos con metas y un mapa del año"
+      :tagline.sign-in "Iniciar sesión, crear una cuenta, códigos en dos pasos"
+      :tagline.sinopia "Diapositivas y documentos vectoriales"
+      :tagline.tempera "Un editor de imágenes con capas, máscaras y filtros"
+      :tagline.modello "Un modelador 3D y editor de escenas"
+      :tagline.forge "Un IDE con terminal, control de versiones y depurador"
+      :tagline.quaderno "Un editor de código con pestañas, apertura rápida y terminal"
+      :tagline.haven "Un panel de casa inteligente con plano"
+      :tagline.tempo "Un reproductor de música con ecualizador y visualizador"
+      :tagline.arcadia "Una tienda y lanzador de juegos"
+      :tagline.orrery "Un planetario con mapa del cielo y los planetas"
+      :mine.title "Mis apps"
+      :mine.sub "Las apps que has hecho. Cada una es una carpeta en AffrescoUI, en tu carpeta personal."
+      :mine.showFolder "Ver carpeta"
+      :mine.open Abrir
+      :mine.openLabel "Abrir {name}"
+      :mine.duplicate Duplicar
+      :mine.duplicateLabel "Duplicar {name}"
+      :mine.reveal "Ver en su carpeta"
+      :mine.revealLabel "Ver {name} en su carpeta"
+      :mine.delete Eliminar
+      :mine.deleteLabel "Eliminar {name}"
+      :mine.info "{folder} · cambiada el {date}"
+      :mine.copyName "{name} (copia)"
+      :mine.emptyTitle "Aún no hay apps"
+      :mine.emptyText "Crea una desde cero o a partir de un ejemplo, y pide al asistente que la construya contigo."
+      :mine.emptyButton "Crea tu primera app"
+      :mine.unavailable "Tu carpeta de apps no está disponible aquí: abre el Lanzador con affrescoui_launcher, sin archivo, para ver y crear tus apps."
+      :create.title "Crear una app"
+      :create.sub "Dale un nombre y un punto de partida. Se abre enseguida, lista para cambiar."
+      :create.name Nombre
+      :create.namePlaceholder "Mi presupuesto"
+      :create.nameHint "Las letras y los dígitos nombran su carpeta."
+      :create.folder "Su carpeta: AffrescoUI/{folder}"
+      :create.from "Empezar desde"
+      :create.fromHint "Una app en blanco, o una copia de un ejemplo para cambiarla."
+      :create.blank "App en blanco"
+      :create.describe "Describe tu app (opcional)"
+      :create.describeHint "El asistente lo lee cuando se abre tu app, y empieza a construirla."
+      :create.describePlaceholder "Un presupuesto con mis gastos del mes, un gráfico y un tema oscuro…"
+      :create.features "Añadir funciones de otras apps (opcional)"
+      :create.featuresHint "El asistente las trae de las apps de ejemplo, como cambios que revisas."
+      :create.summary "«{name}», a partir de {from}."
+      :create.submit "Crear y abrir"
+      :create.busy "Creando…"
+      :create.failed "No se pudo crear la app: {why}"
+      :create.error.empty "Dale un nombre a la app."
+      :create.error.long "El nombre es demasiado largo: 80 caracteres como máximo."
+      :create.error.letters "El nombre necesita al menos una letra o un dígito, de la a a la z o del 0 al 9."
+      :create.error.reserved "Ese nombre está reservado para una app de ejemplo: elige otro."
+      :create.error.exists "Ya tienes una app con ese nombre."
+      :create.error.braces "El nombre no puede llevar llaves dobles."
+      :create.error.taken "ya hay una carpeta AffrescoUI/{folder}: elige otro nombre"
+      :create.error.describe "La descripción es demasiado larga: 4000 caracteres como máximo."
+      :feature.board "Tablero Kanban"
+      :feature.palette "Paleta de comandos"
+      :feature.charts "Gráficos"
+      :feature.heatmap "Mapa del año"
+      :feature.settings "Página de ajustes"
+      :feature.signIn "Pantallas de inicio de sesión"
+      :feature.slideSorter "Clasificador de diapositivas"
+      :feature.label "{feature}, de {app}"
+      :settings.title Ajustes
+      :settings.sub "Cómo se ve el Lanzador, dónde están tus apps y la inteligencia que usan."
+      :settings.appearance Apariencia
+      :settings.theme Tema
+      :settings.language Idioma
+      :settings.system Sistema
+      :settings.light Claro
+      :settings.dark Oscuro
+      :settings.folder "Carpeta de apps"
+      :settings.folderText "Tus apps están en la carpeta {folder}, en tu carpeta personal: una carpeta por app, junto a las fuentes y partes que comparten."
+      :settings.notation "Apps de ejemplo"
+      :settings.notationLabel "Escritas en"
+      :settings.notationText "Cada app de ejemplo está dos veces, escrita en JSON y en Lisp. Se ven y funcionan igual, y cada una guarda sus propios datos."
+      :settings.keys Teclado
+      :settings.keyPages "Apps, Mis apps, Ajustes"
+      :settings.keyNew "Crear una app"
+      :settings.keySearch "Buscar apps"
+      :settings.keyRefresh "Volver a leer la carpeta de apps"
+      :settings.keyDelete "Eliminar la app enfocada (pregunta antes)"
+      :settings.about "Acerca de"
+      :settings.aboutText "AffrescoUI muestra lo que se le indica: cada app, también el Lanzador, es un documento de pantalla, en JSON o Lisp, cambiado en vivo y bajo control de versiones."
+      :delete.title "¿Eliminar {name}?"
+      :delete.message "Se elimina su carpeta, AffrescoUI/{folder}, con todo lo que contiene. No se puede deshacer."
+      :delete.confirm Eliminar
+      :delete.cancel Cancelar
+      :toast.opening "Abriendo {name}…"
+      :toast.openFailed "No se pudo abrir {name}: {why}"
+      :toast.deleted "{name} se ha eliminado."
+      :toast.duplicated "{name} está lista."}}}

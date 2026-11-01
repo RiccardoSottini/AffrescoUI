@@ -8,7 +8,10 @@
     :minWidth 1024
     :minHeight 680
     :focusRing {:color "#f5a524" :width 2 :offset 1}}
-  :include ["parts/data.lisp"
+  :include ["locales/en.lisp"
+    "locales/es.lisp"
+    "locales/fr.lisp"
+    "parts/data.lisp"
     "parts/chrome.lisp"
     "parts/library.lisp"
     "parts/store.lisp"
