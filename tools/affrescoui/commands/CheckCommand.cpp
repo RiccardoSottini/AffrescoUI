@@ -87,7 +87,7 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 	std::vector<Problem> problems;
 	format::AppManifest app;
 	try {
-		app = format::parseApp(parseUntrusted(readFile(manifest)));
+		app = format::parseApp(notation::readDocument(readFile(manifest), manifest));
 	} catch(const std::exception& error) {
 		problems.push_back({"format", "", error.what()});
 		return problems;
@@ -123,12 +123,12 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 /// @param path The file or folder.
 /// @return The manifest, or "" if it isn't one.
 std::filesystem::path manifestOf(const std::filesystem::path& path) {
-	if(std::filesystem::is_directory(path)) return path / "app.json";
-	if(path.filename() == "app.json") return path;
+	if(std::filesystem::is_directory(path)) return notation::namedDocument(path, "app");
+	if(notation::isNamedDocument(path, "app")) return path;
 	try {
 		return Screen::appOf(path);
 	} catch(const DocumentError&) {
-		return path.parent_path() / "app.json"; // the app's check says what is wrong with it
+		return notation::namedDocument(path.parent_path(), "app"); // the app's check says what is wrong with it
 	}
 }
 
@@ -142,7 +142,7 @@ Exit checkScreen(std::span<const std::string_view> args) {
 	const std::filesystem::path file = arguments.file();
 	const std::filesystem::path manifest = manifestOf(file);
 	std::vector<Problem> problems = manifest.empty() ? problemsOf(file) : appProblems(manifest);
-	if(problems.empty() && !std::filesystem::is_directory(file) && file.filename() != "app.json")
+	if(problems.empty() && !std::filesystem::is_directory(file) && !notation::isNamedDocument(file, "app"))
 		for(std::string& problem : requiredStringsProblems(file))
 			problems.push_back({"strings", "", std::move(problem)});
 

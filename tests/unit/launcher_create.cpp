@@ -216,7 +216,7 @@ TEST_CASE("launcher: the setting chooses whether an example opens from its json 
 		{ "name": "json", "steps": [
 			{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team's issues" } },
 			{ "wait": 10 },
-			{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher needs an app, ROOT:PATH, a folder with an app.json, an app.json or a .screen.json inside a granted root" } }
+			{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher needs an app, ROOT:PATH, a folder with an app.json or app.lisp, either of those files, or a .screen.json inside a granted root" } }
 		] },
 		{ "name": "lisp", "steps": [
 			{ "key": "mod+comma" },

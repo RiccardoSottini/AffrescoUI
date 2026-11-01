@@ -1,0 +1,8 @@
+(node :$schema "../../../schema/affrescoui-app.schema.json"
+  :format affrescoui-app
+  :version 1
+  #orrery
+  :name Orrery
+  :description "A small planetarium: planets going round a sun, in 3D and on a sky chart."
+  :entry index.screen.lisp
+  :capabilities {:assistant "Answers your questions about the sky, with the assistant you set up in Settings."})

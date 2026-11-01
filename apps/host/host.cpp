@@ -48,6 +48,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/format/App.hpp>
+#include <affresco/notation/Notation.hpp>
 #include <affresco/format/Locale.hpp>
 #include <affresco/intelligence/Intelligence.hpp>
 #include <affresco/services/Grants.hpp>
@@ -157,13 +158,15 @@ struct Opened {
 /// @param file The file.
 /// @return Whether it is.
 bool isAppEntry(const std::filesystem::path& file) {
-	const std::filesystem::path manifest = file.parent_path() / "app.json";
+	const std::filesystem::path manifest = affresco::notation::namedDocument(file.parent_path(), "app");
 	std::error_code error;
 	if(!std::filesystem::is_regular_file(manifest, error)) return false;
 	try {
 		if(std::filesystem::file_size(manifest) > affresco::format::maxAppManifestBytes) return true;
+		std::ifstream stream(manifest, std::ios::binary);
+		const std::string text{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
 		const affresco::format::AppManifest app =
-		    affresco::format::parseApp(affresco::json::parse(std::ifstream(manifest)));
+		    affresco::format::parseApp(affresco::notation::readDocument(text, manifest));
 		return std::filesystem::equivalent(file.parent_path() / app.entry, file, error);
 	} catch(const std::exception&) {
 		return true;
@@ -217,7 +220,7 @@ affresco::Screen bareScreen(const std::filesystem::path& file) {
 Opened locate(const std::string& given) {
 	namespace fs = std::filesystem;
 	fs::path path = given.empty() ? assetsDirectory() / "launcher" / "json" : fs::path(given);
-	if(path.filename() == "app.json") path = path.parent_path();
+	if(affresco::notation::isNamedDocument(path, "app")) path = path.parent_path();
 	Opened opened;
 	std::error_code error;
 	opened.app = fs::is_directory(path, error) || isAppEntry(path);

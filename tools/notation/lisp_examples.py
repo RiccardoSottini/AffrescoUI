@@ -5,9 +5,10 @@ An example holds the same app twice, examples/<app>/json/ and examples/<app>/lis
 change is made there and this is run again; `--check` fails if what is there isn't what it would write
 (`ctest -R cli_lisp_examples`).
 
-Every document an app loads becomes a .lisp file: its entry and every other screen, what they include, its themes,
-models and seed data. The files with a reader of their own stay JSON and are copied (app.json, scenarios, policies,
-adapters, a package's manifest and catalogue). Assets are never copied: both folders read examples/<app>/assets/. What
+Every document becomes a .lisp file: an app's manifest, its entry and every other screen, what they include, its themes,
+models and seed data, its policies, adapters and features' manifests. Two kinds stay JSON and are copied: scenarios, and
+a signed catalogue (its index pins each package's bytes, so spelling one differently needs the publisher's key). Assets
+are never copied: both folders read examples/<app>/assets/. What
 the apps share in examples/shared/ gets a .lisp file beside its JSON, as the fonts there serve both.
 
     python3 tools/notation/lisp_examples.py [--check] [--cli build/affrescoui]
@@ -98,22 +99,40 @@ def documents(files):
     return found
 
 
+def is_named_document(path):
+    """Whether a file of a json/ folder is a document its reader finds by name or is pointed at."""
+    if JSON_FOLDER not in os.sep + path or os.sep + "catalog" + os.sep in path:
+        return False
+    return os.path.basename(path) in ("app.json", "feature.json") or path.endswith((".policy.json", ".adapter.json"))
+
+
 def is_copied(path):
     """Whether a file that isn't a document belongs in a lisp/ folder: one of a json/ folder, read when running."""
     return JSON_FOLDER in os.sep + path and not path.endswith(SKIPPED_SUFFIXES) and not path.endswith(".md")
 
 
-def write_lisp(path, out, cli):
-    """Writes a document in the Lisp notation, with its includes named in that notation too."""
+def lisp_document(path, loaded):
+    """A document as its lisp/ folder holds it: the same value, naming its files in the Lisp notation."""
     document = read_json(path)
-    target = os.path.join(out, as_lisp(target_of(path)))
-    os.makedirs(os.path.dirname(target), exist_ok=True)
-    source = os.path.join(EXAMPLES, path)
+    if os.path.basename(path) == "app.json":
+        return lisp_manifest(document, os.path.dirname(path), loaded)
+    if path.endswith(".policy.json") and str(document.get("screen", "")).endswith(".screen.json"):
+        document["screen"] = as_lisp(document["screen"])
     if includes_of(document):
         if isinstance(document["include"], str):
             document["include"] = as_lisp(document["include"])
         else:
             document["include"] = [as_lisp(name) for name in document["include"]]
+    return document
+
+
+def write_lisp(path, out, cli, loaded):
+    """Writes a document in the Lisp notation."""
+    target = os.path.join(out, as_lisp(target_of(path)))
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    document = lisp_document(path, loaded)
+    source = os.path.join(EXAMPLES, path)
+    if document != read_json(path):
         source = target + ".json"
         with open(source, "w", encoding="utf-8") as file:
             json.dump(document, file, ensure_ascii=False)
@@ -122,10 +141,8 @@ def write_lisp(path, out, cli):
         os.remove(source)
 
 
-def manifest_text(path, loaded):
-    """An app.json for its lisp/ folder: the same app, naming its files in the Lisp notation."""
-    app = read_json(path)
-    folder = os.path.dirname(path)
+def lisp_manifest(app, folder, loaded):
+    """An app's manifest for its lisp/ folder: the same app, naming its files in the Lisp notation."""
 
     def named(name):
         return as_lisp(name) if os.path.normpath(os.path.join(folder, name)) in loaded else name
@@ -138,11 +155,11 @@ def manifest_text(path, loaded):
         data["models"] = named(data["models"])
     if "seed" in data:
         data["seed"] = {collection: named(name) for collection, name in data["seed"].items()}
-    return json.dumps(app, ensure_ascii=False, indent="\t") + "\n"
+    return app
 
 
-def checks_text(path):
-    """A scenarios or policy file for the lisp/ folder: its screen in the Lisp notation."""
+def scenarios_text(path):
+    """A scenarios file for the lisp/ folder: its screen in the Lisp notation."""
     with open(os.path.join(EXAMPLES, path), encoding="utf-8") as file:
         return re.sub(r'("screen"\s*:\s*"[^"]*\.screen)\.json"', r'\1.lisp"', file.read())
 
@@ -150,18 +167,14 @@ def checks_text(path):
 def write_tree(out, cli):
     """Writes every generated file, at its path from examples/, into a folder."""
     files = source_files()
-    loaded = documents(files)
+    loaded = documents(files) | {path for path in files if is_named_document(path)}
     for path in files:
         if path in loaded:
-            write_lisp(path, out, cli)
+            write_lisp(path, out, cli, loaded)
         elif is_copied(path):
             target = os.path.join(out, target_of(path))
             os.makedirs(os.path.dirname(target), exist_ok=True)
-            text = None
-            if os.path.basename(path) == "app.json":
-                text = manifest_text(path, loaded)
-            elif path.endswith((".scenarios.json", ".policy.json")):
-                text = checks_text(path)
+            text = scenarios_text(path) if path.endswith(".scenarios.json") else None
             if text is None:
                 shutil.copyfile(os.path.join(EXAMPLES, path), target)
             else:

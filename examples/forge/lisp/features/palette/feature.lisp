@@ -1,0 +1,10 @@
+{:format affrescoui-feature
+  :version 2
+  :name palette
+  :release "1.0.0"
+  :title "Command palette"
+  :description "One quick pick for files, commands (>), go to line (:) and colour themes, plus the Settings and Keyboard Shortcuts pages."
+  :license Apache-2.0
+  :note "Built into Forge: index.screen.json includes palette.json, so this manifest names and versions the package and lists no provides; it is not in the catalogue. Its file provider reads the folder the fs service lists."
+  :requires {:format 2}
+  :provides {}}

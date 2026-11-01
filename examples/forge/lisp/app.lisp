@@ -1,0 +1,20 @@
+(node :$schema "../../../schema/affrescoui-app.schema.json"
+  :format affrescoui-app
+  :version 1
+  #forge
+  :name Forge
+  :description "An IDE: a folder's files, tabs, search, source control, language servers, a debugger and terminals."
+  :entry index.screen.lisp
+  :capabilities {:folders {:workspace {:access write
+        :why "The folder you work in: its files, edited, searched and saved."}}
+    :programs {:shell "The terminal runs your login shell in the folder."
+      :sh "The debugger starts the program you debug on a terminal of its own, through the plain POSIX shell sh."
+      :git "The Source Control view reads and changes the folder's repository."
+      :clangd "Completion, diagnostics and navigation in C and C++ files."
+      :lldb-dap "Debugs programs built from C, C++ and Swift."
+      :debugpy-adapter "Debugs Python programs (pip install debugpy)."}
+    :network {:"https://id.example.com" "Signs in to your account, to sync your settings."
+      :"ws://127.0.0.1:7420" "Syncs your settings through a document server on this computer."}
+    :files "Imports a color theme you choose."
+    :assistant "Answers your questions about your code, with the assistant you set up in Settings."
+    :channels "The Agent view talks to the coding agent on this computer, through the host's local socket."})

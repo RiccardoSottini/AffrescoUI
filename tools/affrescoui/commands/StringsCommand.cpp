@@ -111,7 +111,8 @@ App readApp(const fs::path& given) {
 	App app;
 	app.entry = given;
 	if(fs::is_directory(given)) {
-		app.entry = given / format::parseApp(parseUntrusted(readFile(given / "app.json"))).entry;
+		const fs::path manifest = notation::namedDocument(given, "app");
+		app.entry = given / format::parseApp(notation::readDocument(readFile(manifest), manifest)).entry;
 	}
 	addOwnFiles(app.entry, app.entry.parent_path().lexically_normal(), app.files, 0);
 	setLogSink([](LogLevel, std::string_view) {});
