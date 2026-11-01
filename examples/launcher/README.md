@@ -27,7 +27,7 @@ opens it when it is started without a file.
 - **Settings:** theme and language (kept with `persist`), whether the examples open from their `json` or their `lisp`
   folder (also kept), the apps folder, the keyboard shortcuts, and the container
   `settingsIntelligence` for the intelligence settings.
-- English, Spanish and French ([`launcher-strings.json`](json/launcher-strings.json)), light and dark, the keyboard
+- English, Spanish and French ([`locales/`](json/locales)), light and dark, the keyboard
   throughout (Cmd+1, Cmd+2, Cmd+N, Cmd+, and Cmd+F), from 800 × 600 up.
 
 ## How it holds together
@@ -48,7 +48,7 @@ opens it when it is started without a file.
 | File | What it is |
 |---|---|
 | `index.screen.json` | The screen document |
-| `launcher-strings.json` | Its text in three languages |
+| `locales/` | Its text, one file per language |
 | `apps.json` | The examples: id, name, tagline, folder, program, cover |
 | `covers/` | The examples' pictures, 480 pixels wide (from `.github/media/`) |
 | `starters/blank.screen.json` | A new blank app, with the assistant open; its changes wait for the person's review |

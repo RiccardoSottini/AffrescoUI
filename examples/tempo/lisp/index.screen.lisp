@@ -1,8 +1,13 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
   :format affrescoui-screen
   :version 2
+  :strings {:default en :locale "{{settings.ui.language}}"}
   :note "Tempo: a music player. Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging or with Alt and the arrows, now playing with a visualiser of the spectrum of what plays and lyrics, an equaliser on a curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song and Cmd+Shift+P runs any command. Space plays or pauses, the arrows skip and set the volume, Cmd+L, Cmd+2, Cmd+3, Cmd+4 (the liked songs), Cmd+F, Cmd+5 and Cmd+6 change the page, Cmd+U shows the queue, Cmd+M the mini player, Cmd+T switches light and dark and Cmd+Shift+L the language; Cmd+S shuffles, Cmd+R repeats all or one song, Cmd+Alt+Down mutes, Cmd+[ and Cmd+] go back and forward through the pages, and a click on a line of the lyrics goes there. The heart in the player likes the song playing; a right click (or Shift+F10) on a song opens its menu: play, play next, add to the queue, like. The songs are simulated; what plays is one beatbox loop (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound. A song may have a sound of its own: its \"sound\" (a track's in state.playlists[i].tracks[j], a library row's in state.library[i]) names a sound of the audio section, e.g. { \"file\": \"asset:song.mp3\", \"into\": \"state.sounds.own\" } for an asset the person attached, and playing that song plays it instead of the beat. The equaliser and the crossfade are visual only: they don't change the sound."
-  :include [strings.lisp pages.lisp "../../shared/addons/assistant/assistant.lisp"]
+  :include ["locales/en.lisp"
+    "locales/es.lisp"
+    "locales/fr.lisp"
+    pages.lisp
+    "../../shared/addons/assistant/assistant.lisp"]
   :window {:title "Tempo: an AffrescoUI template" :width 1280 :height 800 :minWidth 1040 :minHeight 640}
   :persist [state.theme state.settings state.eq state.eqOn state.volume state.shuffle state.repeat state.liked]
   :audio {:beat {:file "../assets/audio/beatbox.wav"

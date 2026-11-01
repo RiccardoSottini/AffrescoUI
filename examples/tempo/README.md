@@ -12,7 +12,7 @@ Playlists, a library of 3,000 songs in a table, albums and artists in grids, sea
 | `audio/` | `beatbox.wav`, the loop Tempo plays, and `make_beat.py`, which synthesises it (`python3 examples/tempo/assets/audio/make_beat.py`) |
 | `images/` | The pictures the screen shows |
 | `pages.json` | The pages (albums, artists, a collection, search, now playing, sound), included by the screen |
-| `strings.json` | The string tables: English, Spanish and French |
+| `locales/` | The text, one file per language: English, Spanish and French |
 | `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
 | `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 | `index.screen.json` | The screen document |
@@ -38,5 +38,5 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 - **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, settings, equaliser and volume persist; the songs and the playlists are records of the `songs` and `playlists` models, the 3,000 songs made into the store once.
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
-- **Extension points:** the library, the playlists and the queue are entries of `state`; a page is a part of `pages.json`; a language is a table in `strings.json`.
+- **Extension points:** the library, the playlists and the queue are entries of `state`; a page is a part of `pages.json`; a language is a file in `locales/`.
 - **Assets:** the pictures in `images/` are simple vector drawings made for this project, under the repository's Apache-2.0 licence; the beat in `audio/` is synthesised by `make_beat.py` from sines and seeded noise (a kick, a snare, hi-hats, a clap and a bass blip; 120 beats a minute, four bars, 16-bit mono at 22,050 Hz, 8 seconds, -1 dBFS), this project's own work under the same licence, with no samples from anywhere. The fonts' licences are with them in `../shared/fonts`.

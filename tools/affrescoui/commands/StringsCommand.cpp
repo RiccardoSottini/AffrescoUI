@@ -17,7 +17,9 @@
 #include <format>
 #include <functional>
 #include <iostream>
+#include <iterator>
 #include <map>
+#include <optional>
 #include <set>
 
 namespace affresco::cli {
@@ -436,30 +438,191 @@ Exit extract(const App& app, bool write) {
 	return Exit::Success;
 }
 
-/// @brief `strings split`: moves the languages a screen holds in its own "strings" to one file each.
+/// @brief What `strings split` moves.
+struct SplitPlan {
+	std::map<std::string, json> languages; ///< Each language's messages, from every file.
+	std::vector<const OwnFile*> holders;   ///< The files they leave.
+	std::set<fs::path> emptied;            ///< The files with nothing else in them, which go.
+	json settings = json::object();        ///< What the files that go said besides, such as the default language.
+};
+
+/// @brief Whether a file holds nothing but its text, so that it can go once that has moved.
+/// @param file The file.
+/// @return Whether it does.
+bool holdsOnlyStrings(const OwnFile& file) {
+	static constexpr std::array<std::string_view, 5> plain = {"$schema", "format", "version", "note", "strings"};
+	return std::ranges::all_of(file.document.items(), [](const auto& member) {
+		return std::ranges::find(plain, std::string_view(member.key())) != plain.end();
+	});
+}
+
+/// @brief Reads what to move, through every file of a screen but the language files.
+/// @param app The screen.
+/// @return The plan.
+/// @throws FileProblem If two files say different things for a key: which is meant is for a person to say.
+SplitPlan splitPlanOf(const App& app) {
+	const fs::path locales = app.entry.parent_path().lexically_normal() / "locales";
+	SplitPlan plan;
+	for(const OwnFile& file : app.files) {
+		if(file.path.parent_path() == locales) continue;
+		const json section = file.document.value("strings", json::object());
+		if(!section.is_object()) continue;
+		bool holds = false;
+		for(const auto& [language, table] : section.items()) {
+			if(!isLanguage(language, table)) continue;
+			holds = true;
+			json& messages = plan.languages.try_emplace(language, json::object()).first->second;
+			for(const auto& [key, message] : table.items()) {
+				if(messages.contains(key) && messages[key] != message)
+					throw FileProblem(
+					    std::format("{}: '{}' in {} differs from another file's", file.path.string(), key, language));
+				messages[key] = message;
+			}
+		}
+		if(!holds) continue;
+		plan.holders.push_back(&file);
+		if(&file == &app.files.front() || !holdsOnlyStrings(file)) continue;
+		plan.emptied.insert(file.path);
+		for(const auto& [key, value] : section.items())
+			if(!isLanguage(key, value) && !plan.settings.contains(key)) plan.settings[key] = value;
+	}
+	return plan;
+}
+
+/// @brief A file's "include" as a list.
+/// @param file The file.
+/// @return What it names.
+json includesOf(const OwnFile& file) {
+	const json named = file.document.value("include", json::array());
+	return named.is_array() ? named : json::array({named});
+}
+
+/// @brief Whether an include names a file that goes.
+/// @param file The file that includes it.
+/// @param include What it names.
+/// @param emptied The files that go.
+/// @return Whether it does.
+bool namesEmptied(const OwnFile& file, const json& include, const std::set<fs::path>& emptied) {
+	return include.is_string() &&
+	       emptied.contains((file.path.parent_path() / include.get<std::string>()).lexically_normal());
+}
+
+/// @brief The change that adds files to a file's "include" and takes away those that go.
+/// @param file The file.
+/// @param tree The file, as written.
+/// @param names The files to add.
+/// @param emptied The files that go; one of them is in its "include".
+/// @return The change.
+Splice includeWithout(const OwnFile& file, TextValue& tree, const std::vector<std::string>& names,
+                      const std::set<fs::path>& emptied) {
+	std::string listed;
+	const auto list = [&listed](const json& name) { listed += (listed.empty() ? "" : ", ") + name.dump(); };
+	std::ranges::for_each(names, list);
+	for(const json& include : includesOf(file))
+		if(!namesEmptied(file, include, emptied)) list(include);
+	const TextValue* include = memberOf(tree, "include");
+	return {include->start, include->end - include->start, std::format("[{}]", listed)};
+}
+
+/// @brief The change that gives a screen the settings of the files that go. What the screen says itself stays.
+/// @param tree The screen, as written.
+/// @param section The screen's "strings".
+/// @param settings The settings.
+/// @return The change, if there is one.
+std::optional<Splice> settingsChange(TextValue& tree, const json& section, const json& settings) {
+	json added = json::object();
+	for(const auto& [key, value] : settings.items())
+		if(!section.contains(key)) added[key] = value;
+	if(added.empty()) return std::nullopt;
+	std::string listed;
+	for(const auto& [key, value] : added.items())
+		listed += std::format("{}{}: {}", listed.empty() ? "" : ", ", json(key).dump(), value.dump());
+	const auto staysThere = [&](const auto& member) {
+		const std::string key = member.key();
+		return !isLanguage(key, member.value());
+	};
+	TextValue* written = memberOf(tree, "strings");
+	if(written != nullptr && std::ranges::any_of(section.items(), staysThere)) {
+		return Splice{written->start + 1, 0, std::format("{}{},", written->lead, listed)};
+	}
+	const TextValue* after = memberOf(tree, "version");
+	if(after == nullptr) throw std::runtime_error("the screen has no \"version\"");
+	return Splice{after->end, 0, std::format(",{}\"strings\": {{ {} }}", tree.lead, listed)};
+}
+
+/// @brief A file being changed.
+struct FileEdit {
+	std::string text;            ///< Its text.
+	TextValue tree;              ///< That text, read.
+	std::vector<Splice> splices; ///< The changes to it.
+};
+
+/// @brief The changes to a screen's files that `strings split` makes, but for the language files themselves.
+/// @param app The screen.
+/// @param plan What moves.
+/// @param names The language files that are new.
+/// @return Each file's changes.
+std::map<const OwnFile*, FileEdit> splitEdits(const App& app, const SplitPlan& plan,
+                                              const std::vector<std::string>& names) {
+	std::map<const OwnFile*, FileEdit> edits;
+	const auto editOf = [&edits](const OwnFile& file) -> FileEdit& {
+		const auto [place, isNew] = edits.try_emplace(&file);
+		if(isNew) {
+			refuseLisp(file.path);
+			place->second.text = readFile(file.path);
+			place->second.tree = parseText(place->second.text);
+		}
+		return place->second;
+	};
+	for(const OwnFile* file : plan.holders)
+		if(!plan.emptied.contains(file->path)) {
+			FileEdit& edit = editOf(*file);
+			std::ranges::move(withoutLanguages(edit.tree, file->document.value("strings", json::object())),
+			                  std::back_inserter(edit.splices));
+		}
+	const OwnFile& entry = app.files.front();
+	for(const OwnFile& file : app.files) {
+		const std::vector<std::string> added = &file == &entry ? names : std::vector<std::string>{};
+		const json includes = includesOf(file);
+		const bool removes = std::ranges::any_of(
+		    includes, [&](const json& include) { return namesEmptied(file, include, plan.emptied); });
+		if(plan.emptied.contains(file.path) || (!removes && added.empty())) continue;
+		FileEdit& edit = editOf(file);
+		edit.splices.push_back(removes ? includeWithout(file, edit.tree, added, plan.emptied)
+		                               : includeFirst(edit.tree, added));
+	}
+	if(!plan.settings.empty()) {
+		FileEdit& edit = editOf(entry);
+		if(const auto change =
+		       settingsChange(edit.tree, entry.document.value("strings", json::object()), plan.settings))
+			edit.splices.push_back(*change);
+	}
+	return edits;
+}
+
+/// @brief `strings split`: moves the languages of a screen's files to one file each, and removes the files left with
+/// nothing else in them. The language files come first in the screen's "include", so its own text still wins.
 /// @param app The screen.
 /// @param write Write the files; else only list.
 /// @return How it ended.
 Exit split(const App& app, bool write) {
 	refuseLisp(app.entry);
-	const OwnFile& entry = app.files.front();
-	const json section = entry.document.value("strings", json::object());
-	std::vector<std::pair<std::string, const json*>> languages;
-	for(const auto& [language, table] : section.items())
-		if(isLanguage(language, table)) languages.emplace_back(language, &table);
-	for(const auto& [language, table] : languages)
-		std::cout << std::format("{}: {} keys -> locales/{}.json\n", language, table->size(), language);
-	if(!write || languages.empty()) return Exit::Success;
-	std::string text = readFile(entry.path);
-	TextValue tree = parseText(text);
+	const SplitPlan plan = splitPlanOf(app);
+	const fs::path folder = app.entry.parent_path().lexically_normal();
+	for(const auto& [language, messages] : plan.languages)
+		std::cout << std::format("{}: {} keys -> locales/{}.json\n", language, messages.size(), language);
+	for(const fs::path& file : plan.emptied)
+		std::cout << std::format("{}: holds nothing else, so it goes\n",
+		                         file.lexically_relative(folder).generic_string());
+	if(!write || plan.languages.empty()) return Exit::Success;
 	std::vector<std::string> names;
-	for(const auto& [language, table] : languages) {
-		const auto [name, isNew] = addToLanguageFile(app.entry.parent_path(), language, *table, ".json");
+	for(const auto& [language, messages] : plan.languages) {
+		const auto [name, isNew] = addToLanguageFile(app.entry.parent_path(), language, messages, ".json");
 		if(isNew) names.push_back(name);
 	}
-	std::vector<Splice> splices = withoutLanguages(tree, section);
-	if(!names.empty()) splices.push_back(includeFirst(tree, names));
-	writeFile(entry.path, spliced(std::move(text), std::move(splices)));
+	for(auto& [file, edit] : splitEdits(app, plan, names))
+		writeFile(file->path, spliced(std::move(edit.text), std::move(edit.splices)));
+	for(const fs::path& file : plan.emptied) fs::remove(file);
 	return Exit::Success;
 }
 

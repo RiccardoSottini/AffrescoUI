@@ -1,10 +1,13 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
   :format affrescoui-screen
   :version 2
+  :strings {:default en :locale "{{settings.appearance.language}}"}
   :note "Flow: an issue tracker with a kanban board. Boards are rows of the sidebar, next to the inbox, the sprints and the projects; the board, a grouped list, swimlanes by member, a table of every card or a timeline of due dates shares a split with the chosen card's drawer, or the board's insights. Drag a card to another column, use the drawer's arrows, Alt and the arrows, or right-click it for its menu; double-click it or press Cmd+Enter to open it as a page, Enter to edit it. Cmd+P goes to a card, Cmd+Shift+P runs a command, Cmd+N types a new card, Cmd+F searches, Cmd+Z undoes, Cmd+J switches light and dark, Cmd+L the language, Cmd+, opens the settings, Escape closes the issue page, then clears the filters."
   :window {:title "Flow: an AffrescoUI template" :width 1280 :height 800 :minWidth 1040 :minHeight 640}
-  :include ["../../shared/components/charts.lisp"
-    strings.lisp
+  :include ["locales/en.lisp"
+    "locales/es.lisp"
+    "locales/fr.lisp"
+    "../../shared/components/charts.lisp"
     board.lisp
     drawer.lisp
     views.lisp

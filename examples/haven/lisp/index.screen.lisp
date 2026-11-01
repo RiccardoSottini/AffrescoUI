@@ -1,10 +1,13 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
   :format affrescoui-screen
   :version 2
+  :strings {:default en :locale "{{settings.ui.language}}"}
   :note "Haven: a smart-home dashboard. Rooms in a tree by floor, scenes, lights (switch, dim, colour), climate, blinds, device tiles whose calls take a while (progress, then a toast), a floor plan on a canvas with media, automations as a node graph with schedules on a timeline, an energy page by day and by device, security modes and notifications, device state from a simulated service, and a settings page from the settings schema; light and dark themes, English, Spanish and French. Cmd+1 to Cmd+4 and Cmd+, change the page, Cmd+Shift+P runs a command, Cmd+T switches light and dark, Cmd+L the language, Cmd+Shift+A the security mode, Cmd+Shift+N the notifications, Up and Down the target temperature, Alt and Up or Down the room."
-  :include ["../../shared/components/charts.lisp"
+  :include ["locales/en.lisp"
+    "locales/es.lisp"
+    "locales/fr.lisp"
+    "../../shared/components/charts.lisp"
     "../../shared/addons/assistant/assistant.lisp"
-    strings.lisp
     plan.lisp
     automations.lisp
     moreinfo.lisp
