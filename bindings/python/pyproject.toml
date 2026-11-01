@@ -19,7 +19,7 @@ requires-python = ">=3.9"
 classifiers = ["Private :: Do Not Upload"]
 
 [project.optional-dependencies]
-test = ["pytest==9.1.1"]
+test = ["pytest==9.2.0"]
 
 [tool.scikit-build]
 minimum-version = "0.10"
