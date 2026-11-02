@@ -85,6 +85,17 @@ Value changedCase(Machine& machine, Arguments arguments, int (*change)(int)) {
 	return machine.heap.string(text);
 }
 
+/// @brief `pr-str`. @param machine The machine. @param arguments Values. @return They as Lisp text, read back as they
+/// are.
+Value printed(Machine& machine, Arguments arguments) {
+	std::string text;
+	for(std::size_t at = 0; at < arguments.size(); ++at) {
+		if(at > 0) text += ' ';
+		printValue(machine, arguments[at], text, true);
+	}
+	return machine.heap.string(text);
+}
+
 /// @brief `upper-case`. @param machine The machine. @param arguments A string. @return It in capitals.
 Value upperCase(Machine& machine, Arguments arguments) { return changedCase(machine, arguments, std::toupper); }
 
@@ -178,6 +189,7 @@ void defineText(Machine& machine) {
 	machine.defineNative("%binding", bindingText);
 	machine.defineNative("str", str);
 	machine.defineNative("join", join);
+	machine.defineNative("pr-str", printed);
 	machine.defineNative("subs", subs);
 	machine.defineNative("upper-case", upperCase);
 	machine.defineNative("lower-case", lowerCase);

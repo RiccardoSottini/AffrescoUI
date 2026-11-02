@@ -496,6 +496,17 @@ as with an action that holds such a step. That is the first line. The second is 
 person or the app's file may not run a control step at all ([SECURITY.md](SECURITY.md), "The Lisp language"). So an agent's accepted function may
 do what a revision may add to a handler, and no more, as a proposal can't add a control step to JSON either.
 
+**The person's own input.** Evaluating a form in a running app is a revision by the author `user` (`VersionControl::commitOwnInput()`, reached only from the step
+`evaluate`, or from `undo`, `revert` or `restore`, each from the person's input). It only touches `/program/`, and it lands marked `ownInput`, which the commit's hash covers. It is judged as any revision
+but for one rule: **what reaches a control step may change**, as that is what only the person may do. Everything else holds: what no revision may change (`permissions`, `channels`,
+`persist`, `services`...), deny rules, what it builds, and the limits. No peer has a way to it: a revision that says `"author": "user"` is scanned as any other, and a channel can't name its author so. Text that a commit on `main` first
+wrote stays that author's even if the person evaluates exactly it. An agent's revert of the person's change stays refused when it would change what reaches a control step.
+
+**What arrives from elsewhere** is a proposal. The step `propose` takes definitions as text (an `init.lisp`) or a change set, and proposes them in the name `plugin:<name>`, whatever the rules would let it do. Accepting
+doesn't move them to anyone with more authority, as with any proposal: its code has what a revision has, so a control step in it is refused when it runs, and one a key or a handler reaches is refused when it arrives. A form that isn't a definition can't be in it. So
+an **init file is a change set**: what a person evaluated is exported (`exportChanges`, `only`), imported (`importChanges`, as `plugin:<name>`, no `ownInput` mark, the scan on) and undone like any customisation, and a copy somewhere else gets
+no more authority than a change set has. To have a function's control step work there, the person evaluates it themselves.
+
 **Records.** A new or changed definition that uses a step that writes records (`insert`, `update-record`, `delete`, `undoData`, `redoData`,
 `importCsv`) is always reviewed, as a new write step in a handler is.
 

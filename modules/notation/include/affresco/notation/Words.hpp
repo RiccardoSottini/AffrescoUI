@@ -54,10 +54,10 @@ inline constexpr std::string_view untypedHead = "node";
 inline constexpr auto languageWords = std::to_array<std::string_view>({
     "abs", "add-hook", "advice", "and", "apply", "assoc", "assoc-in", "backquote", "catch", "concat", "cond",
     "conj", "cons", "count", "dec", "def", "defcommand", "defcustom", "defkey", "defmacro", "defn",
-    "defscreen", "dissoc", "do", "drop", "filter", "find", "first", "fn", "gensym", "get", "get-in",
+    "defhook", "defscreen", "dissoc", "do", "drop", "filter", "find", "first", "fn", "gensym", "get", "get-in",
     "identity", "if", "inc", "join", "keys", "keyword", "last", "let", "loop", "lower-case", "map",
-    "map-indexed", "mapcat", "max", "merge", "min", "mod", "name", "not", "nth", "or", "quote", "range",
-    "recur", "reduce", "rem", "remove", "rest", "reverse", "second", "some", "sort", "sort-by", "str", "subs",
+    "map-indexed", "mapcat", "max", "merge", "min", "mod", "name", "not", "nth", "or", "pr-str", "quote", "range",
+    "recur", "reduce", "rem", "remove", "remove-hook", "rest", "reverse", "second", "some", "sort", "sort-by", "str", "subs",
     "symbol", "take", "throw", "try", "unquote", "unquote-splicing", "update", "update-in", "upper-case",
     "vals", "vec", "when", "zipmap"});
 // clang-format on

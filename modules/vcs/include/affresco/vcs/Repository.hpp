@@ -79,6 +79,8 @@ public:
 	[[nodiscard]] const json& document() const override { return built_.is_null() ? document_ : built_; }
 	[[nodiscard]] const json& sourceDocument() const override { return document_; }
 	[[nodiscard]] json programAuthors() const override;
+	/// @copydoc VersionControl::commitOwnInput
+	std::optional<std::string> commitOwnInput(const json& revision) override;
 	[[nodiscard]] json& state() override { return state_; }
 	[[nodiscard]] const json& state() const override { return state_; }
 	[[nodiscard]] CommitInfo head() const override { return info(mainHead()); }
@@ -122,7 +124,7 @@ public:
 	/// sets").
 	/// @param revision The revision, as for submit(); it can't push to a proposal.
 	/// @return Proposed or rejected, never applied.
-	RevisionResult propose(const json& revision);
+	RevisionResult propose(const json& revision) override;
 	std::optional<std::string> commit(const json& revision) override;
 	[[nodiscard]] CommitInfo resolve(const json& revision) const override { return info(find(revision)); }
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
@@ -232,6 +234,7 @@ private:
 		/// removed. A revert needs them as they are, as it needs the parts of the document.
 		json stateAfter;
 		json run; ///< The steps it runs once when it lands on main (the revision's "run"), or null; the id covers it.
+		bool ownInput = false; ///< The person's own input made it (commitOwnInput()); the id covers it.
 	};
 
 	/// @brief An open proposal: a branch from `base` to `head`.
@@ -785,6 +788,7 @@ private:
 	Mode keptMode_ = Mode::Default;     ///< The mode the history keeps: the one a reviewer last chose (setMode()).
 	std::vector<Grant> grants_;         ///< "Don't ask again" rules.
 	bool importing_ = false;            ///< Commits are announced once the whole change set is in.
+	bool ownInput_ = false;             ///< The revision being prepared is the person's own (commitOwnInput()).
 	std::vector<std::string> imported_; ///< The change sets applied, by id (hasImported()), oldest first.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
 	Roles roles_;                                   ///< Who plays which role, for this run (never kept in the history).

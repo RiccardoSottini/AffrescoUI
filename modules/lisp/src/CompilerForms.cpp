@@ -37,7 +37,9 @@ const std::unordered_map<std::string_view, Compiler::SpecialForm>& Compiler::spe
 	    {"defcommand", &Compiler::formMisplaced},
 	    {"defkey", &Compiler::formMisplaced},
 	    {"defcustom", &Compiler::formMisplaced},
+	    {"defhook", &Compiler::formMisplaced},
 	    {"add-hook", &Compiler::formMisplaced},
+	    {"remove-hook", &Compiler::formMisplaced},
 	    {"advice", &Compiler::formMisplaced},
 	};
 	return forms;

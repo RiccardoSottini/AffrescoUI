@@ -66,6 +66,7 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   is read from main when each approval arrives. Grants may carry `expires`; expired ones no longer allow.
 - **Evidence is never the author's:** a revision carrying `evidence` or `behaviour` is refused; the host gathers both
   (VERSION_CONTROL.md, "Evidence").
+- **`commitOwnInput()`** is the person's own change of a program, from the host's code alone: only `/program/` paths, judged by the rules' `checkOwnChange`, and marked in its commit (VERSION_CONTROL.md, "Programs").
 - **The document rules' `checkChange` runs on every change,** so what the format forbids for everyone (widening a
   capability, for example) is refused even for a reviewer.
 - **On disk** (history version 2), commits carry their deltas, documents are written for snapshots only, and every

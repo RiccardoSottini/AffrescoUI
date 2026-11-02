@@ -5,28 +5,50 @@ bar, windows that split, mode lines, an echo area with a minibuffer, and the key
 template: a screen document that the stock host runs, with no C++ of its own.
 
 ```sh
-./build/affrescoui_launcher examples/calamaio/json/calamaio.screen.json
-./build/affrescoui test examples/calamaio/json/calamaio.scenarios.json
+./build/affrescoui_launcher examples:calamaio/lisp
+./build/affrescoui test examples/calamaio/lisp/calamaio.scenarios.json --out out/calamaio
 ```
 
 | File | What it is |
 |---|---|
-| `calamaio.screen.json` | The screen document: the window, the fonts, the permissions and the layout of the windows |
-| `calamaio.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `calamaio.screen.lisp` | The screen document: the window, the fonts, the permissions and the layout of the windows |
+| `calamaio.policy.lisp` | Its approval rules' example revisions (`affrescoui policy test`) |
 | `calamaio.scenarios.json` | Its scenarios (`affrescoui test`) |
-| `parts/look.json` | The themes: the faces as colours, the syntax colours, the kit's tokens for the menus |
-| `parts/settings.json` | The variables (`fill-column`, `kill-ring-max`...): what `C-h v` describes and Customize sets |
-| `parts/state.json` | The buffers, the windows and their layout, the minibuffer, the mark, the modes |
-| `parts/files.json` | The sample home folder that `C-x C-f` visits |
-| `parts/frame.json` | A window with its fringes and mode line, the splash screen, the menu bar, the tool bar, the echo area |
-| `parts/commands.json` | Every command, by its name: what `M-x` runs and what a key, a menu or a link names |
-| `parts/keys.json` | The key bindings |
-| `parts/menus.json` | The menus |
-| `parts/killring.json` | The kill ring: `C-k`, `M-d`, `C-w`, `M-w`, `C-y`, `M-y` |
-| `parts/editing.json` | The region's case, comments, transposing, the minor modes Options toggles, Customize |
-| `parts/listings.json` | A folder's files (`C-x d`) and the buffer list (`C-x C-b`) |
-| `parts/guides.json` | The tutorial (`C-h t`) and the tour |
+| `parts/look.lisp` | The themes: the faces as colours, the syntax colours, the kit's tokens for the menus |
+| `parts/settings.lisp` | The variables (`fill-column`, `kill-ring-max`...): what `C-h v` describes and Customize sets |
+| `parts/state.lisp` | The buffers, the windows and their layout, the minibuffer, the mark, the modes |
+| `parts/files.lisp` | The sample home folder that `C-x C-f` visits |
+| `parts/frame.lisp` | A window with its fringes and mode line, the splash screen, the menu bar, the tool bar, the echo area |
+| `parts/commands.lisp` | Every command, by its name: what `M-x` runs and what a key, a menu or a link names |
+| `parts/keys.lisp` | The key bindings |
+| `parts/menus.lisp` | The menus |
+| `killring.lisp` | The kill ring, as a program: `C-k`, `M-d`, `C-w`, `M-w`, `C-y`, `M-y` |
+| `loop.lisp` | Extending it from inside: `C-M-x`, `C-x C-e`, `C-j`, your init file, hook points, asking what is defined |
+| `parts/editing.lisp` | The region's case, comments, transposing, the minor modes Options toggles, Customize |
+| `parts/listings.lisp` | A folder's files (`C-x d`) and the buffer list (`C-x C-b`) |
+| `parts/guides.lisp` | The tutorial (`C-h t`) and the tour |
 | `PARITY.md` | What it does like its model, and what not yet |
+
+`lisp/` is its only source, a real program (RFC 0005): `killring.lisp` and `loop.lisp` are functions, and the other parts stay data where data reads naturally.
+
+## The loop
+
+Lisp you type runs in the running editor, and lands in its history.
+
+```lisp
+(+ 1 2)                                  ; C-j here: 3 appears on the next line. C-x C-e: in the echo area
+
+(defcommand kill-line "Says so."         ; C-M-x here: the running command is replaced
+  :title "Kill Line" :category "Killing"
+  []
+  (message "kill-line, as you just redefined it"))
+                                         ; C-k now does that. C-x C-z takes it back, exactly
+```
+
+- **`M-x find-init`** opens your init file, your own definitions, or a start for them. `M-x eval-buffer` evaluates it: try the `say-hello` it holds with `C-c h`.
+- **`M-x load-init`** treats the buffer as a file from elsewhere: a proposal in its own name, which `M-x accept-proposal` accepts and which never gets your authority. **`M-x export-init`** gives what you evaluated as a change set.
+- **`M-x what-is-here`**, `(describe-function "kill-line")`, `(describe-key "ctrl+k")`, `(apropos "yank")`: ask what is defined.
+- **What you type has your authority, and nothing else's does:** never from a timer or a handler, and an agent's code stays a proposal (SECURITY.md, "The Lisp language").
 
 ## Configured by its document
 

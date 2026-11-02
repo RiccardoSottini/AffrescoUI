@@ -155,6 +155,8 @@ struct Function {
 /// @brief The table of the logic functions: `if`, `and`, `coalesce`, ... (ExpressionFunctionsLogic.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> logicFunctions();
+/// @brief Functions on forms of Lisp in a text (ExpressionFunctionsForms.cpp). @return The table.
+[[nodiscard]] std::span<const Function> formsFunctions();
 /// @brief The table of the number functions: `clamp`, `round`, `max`, ... (ExpressionFunctionsNumbers.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> numberFunctions();

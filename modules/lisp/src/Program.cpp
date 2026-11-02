@@ -93,11 +93,27 @@ void addSection(json& tree, const char* key, Section& section) {
 /// @param options What it was given.
 /// @param name Its name, its function's too.
 /// @param doc Its docstring.
+/// @param parameters Its function's parameters, what a caller by name gives.
 /// @return The action.
-json commandAction(json options, const std::string& name, const std::string& doc) {
+json commandAction(json options, const std::string& name, const std::string& doc,
+                   const std::vector<std::string>& parameters) {
 	if(!doc.empty() && !options.contains("description")) options["description"] = doc;
 	if(!options.contains("do")) options["do"] = json::array({{{"lisp", name}}});
+	if(!parameters.empty() && !options.contains("arguments")) options["arguments"] = parameters;
 	return options;
+}
+
+/// @brief Refuses a hook or advice whose function the program doesn't define: a host's primitive is no hook, so a step
+/// can't be run this way, and neither can what isn't there yet.
+/// @param machine The machine.
+/// @param definition The hook or advice.
+/// @throws Problem If it isn't a function of the program.
+void checkExtensionFunction(const Machine& machine, const Definition& definition) {
+	if(definition.kind == "remove-hook" || definition.targets.empty()) return;
+	const Definition* function = machine.definition(definition.targets.back());
+	if(!function || (function->kind != "defn" && function->kind != "defcommand"))
+		throw Problem("\"" + definition.name + "\" names \"" + notation::Lexer::excerpt(definition.targets.back()) +
+		              "\", which is no function of the program");
 }
 
 /// @brief Adds the names a piece of compiled code uses, with the functions inside it.
@@ -162,7 +178,8 @@ void buildDefinition(Machine& machine, const Definition& definition, BuiltParts&
 	if(definition.kind == "defkey") {
 		parts.keys[name.substr(std::string_view("defkey ").size())] = valueToTree(machine, data, name);
 	} else if(definition.kind == "defcommand") {
-		parts.actions[name] = commandAction(valueToTree(machine, data, name), name, definition.doc);
+		parts.actions[name] = commandAction(valueToTree(machine, data, name), name, definition.doc,
+		                                    Interpreter::parametersOf(definition.global->value));
 	} else if(definition.kind == "defcustom") {
 		const Value value = machine.force(*definition.global);
 		parts.settings[name] =
@@ -448,9 +465,11 @@ json Program::build(const Limits& limits) {
 		machine.workOutDefinitions(); // a value is worked out here, purely: nothing later can change one
 		BuiltParts parts;
 		for(const auto& definition : machine.definitions()) {
-			if(definition->kind == "add-hook" || definition->kind == "advice")
-				extensions_.push_back(
-				    {definition->kind, definition->name, definition->targets, definition->doc, definition->author});
+			if(isExtensionWord(definition->kind)) {
+				extensions_.push_back({definition->kind, definition->name, definition->targets, definition->doc,
+				                       definition->author, machine.authorNames(definition->authors)});
+				checkExtensionFunction(machine, *definition);
+			}
 			buildDefinition(machine, *definition, parts);
 			used_[definition->name] = namesUsedBy(*definition);
 		}

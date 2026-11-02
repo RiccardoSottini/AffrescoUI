@@ -113,6 +113,16 @@ struct DefinitionInfo {
 	Place place;        ///< Where it is.
 };
 
+/// @brief A definition that joins something else rather than defining a name: `add-hook`, `remove-hook` or `advice`.
+struct Extension {
+	std::string kind;                 ///< `add-hook`, `remove-hook` or `advice`.
+	std::string name;                 ///< Its address, as the entry's.
+	std::vector<std::string> targets; ///< Its arguments, as written, in order: `after-save`, `notify-saved`.
+	std::string doc;                  ///< Its docstring, or "".
+	std::string author;               ///< Its author.
+	std::vector<std::string> authors; ///< Its author and those of the macros it came through.
+};
+
 /// @brief An interpreter: a global environment, a heap and a stack, and its limits. Not thread-safe.
 class Interpreter {
 public:
@@ -163,6 +173,21 @@ public:
 	/// @return The last form's value.
 	/// @throws LispError If it can't be read or run.
 	Value eval(std::string_view text, const std::string& file = "", const std::string& author = "");
+	/// @brief Evaluates one form for its value, as code of an author: it can't define anything. Macros are expanded
+	/// first with nothing reaching outside, as when a program loads; then it runs with the primitives, the gate and the
+	/// authors as any function does, the macros' authors among them.
+	/// @param text The form's text.
+	/// @param file Its name, for errors.
+	/// @param author Who wrote it.
+	/// @return Its value.
+	/// @throws LispError If it can't be read or run, or isn't one form.
+	Value evaluate(std::string_view text, const std::string& file, const std::string& author);
+	/// @brief Tells whether a form is a call of a macro that gives a definition (or a `do` of them). Nothing runs but
+	/// the macro, with nothing reaching outside.
+	/// @param text The form's text.
+	/// @return true if it is.
+	/// @throws LispError If it can't be read, or the macro fails.
+	[[nodiscard]] bool expandsToDefinition(std::string_view text);
 	/// @brief Calls a function.
 	/// @param function The function, or anything callable.
 	/// @param arguments Its arguments.
@@ -178,6 +203,46 @@ public:
 	/// @param name Its name.
 	/// @return It, or std::nullopt if there is none.
 	[[nodiscard]] std::optional<DefinitionInfo> describe(std::string_view name) const;
+
+	/// @brief The names of everything defined, for `apropos`. @return Them, sorted.
+	[[nodiscard]] std::vector<std::string> definitionNames() const;
+	/// @brief The hooks and advice defined. @return Them, in the order of their definitions.
+	[[nodiscard]] std::vector<Extension> extensions() const;
+	/// @brief Puts a host's primitive in a function's place: whatever calls that name, however, now calls it. It stands
+	/// for the function: parametersOf(), authorOf() and definitionNameOf() answer as the function's.
+	/// @param name The function's name.
+	/// @param primitive What runs instead.
+	/// @return The function it replaces.
+	/// @throws std::invalid_argument If that name has no function.
+	Value wrapGlobal(const std::string& name, Primitive primitive);
+	/// @brief A function made by the host, for this run only: it goes with the values of its event.
+	/// @param name Its name, for errors.
+	/// @param primitive What it does.
+	/// @return The function.
+	[[nodiscard]] Value makeFunction(const std::string& name, Primitive primitive);
+	/// @brief While it lives, what runs counts in authorsThatRan() as usual; when it ends that goes back to what it
+	/// was. Only for a run that gives nothing back to what called it (a hook): what it did can't then be in what runs
+	/// next.
+	class Sealed {
+	public:
+		/// @brief Starts one.
+		/// @param interpreter The interpreter; outlives it.
+		explicit Sealed(Interpreter& interpreter);
+		/// @brief Puts it back.
+		~Sealed();
+		Sealed(const Sealed&) = delete;
+		Sealed& operator=(const Sealed&) = delete;
+		Sealed(Sealed&&) = delete;
+		Sealed& operator=(Sealed&&) = delete;
+
+	private:
+		Machine& machine_; ///< The machine.
+		const void* ran_;  ///< What it was.
+	};
+	/// @brief Adds authors to authorsThatRan(): those whose decision is why what runs next runs, though it isn't their
+	/// code.
+	/// @param authors The authors.
+	void addAuthorsThatRan(std::span<const std::string> authors);
 
 	/// @brief Every author on the stack: the functions being run and those a tail call replaced. A closure runs with
 	/// its own author; a definition that used a macro counts the macro's author too. The language's own functions have
@@ -196,6 +261,10 @@ public:
 	/// @param function A closure.
 	/// @return Its author; "" for anything else.
 	[[nodiscard]] static std::string authorOf(const Value& function);
+	/// @brief Everyone whose code a function holds: its author and those of the macros that wrote it.
+	/// @param function A closure.
+	/// @return Them, sorted; none for anything else.
+	[[nodiscard]] std::vector<std::string> authorsOf(const Value& function) const;
 	/// @brief The definition a value is: a function a definition gave, as it is now the value of that name. A callback
 	/// that outlives the event is kept by this name (a closure's values go with the event).
 	/// @param function The value.

@@ -78,6 +78,9 @@ public:
 	/// @param after The document after the change, with the live state after it.
 	/// @throws DocumentError If the change is forbidden; what() lists the new findings, each with its place.
 	void checkChange(const json& before, const json& after) const override;
+	/// @brief checkChange() but for the scan of what reaches a control step: the person's own input may change that.
+	/// Capabilities, granted actions, services and models stay refused. @copydetails DocumentRules::checkOwnChange
+	void checkOwnChange(const json& before, const json& after) const override;
 
 	/// @brief Migrates a version 1 document to version 2 (format::migrate()).
 	/// @param document The document, changed in place.
@@ -175,6 +178,12 @@ public:
 	[[nodiscard]] json impact(const json& before, const json& after) const override;
 
 private:
+	/// @brief What checkChange() and checkOwnChange() share.
+	/// @param before The document before.
+	/// @param after The document after.
+	/// @param scanControls Whether what reaches a control step may not change.
+	void judgeChange(const json& before, const json& after, bool scanControls) const;
+
 	std::set<std::string, std::less<>> nativeActions_; ///< From addNativeAction().
 	std::shared_ptr<const SectionRegistry> sections_;  ///< The sections; shared by copies, never changed.
 	const services::Services* services_ = nullptr;     ///< See setServices().

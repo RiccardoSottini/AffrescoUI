@@ -27,11 +27,8 @@ constexpr auto freeSteps = std::to_array<std::string_view>(
 	 "audio",    "dismiss", "transform", "insert", "update",    "delete",   "undoData",   "redoData"});
 
 /// The steps that decide on changes: only ever from the person's own input.
-constexpr auto reviewSteps =
-    std::to_array<std::string_view>({"accept", "reject", "preview", "endPreview", "restore", "revert", "undo"});
-
-/// @brief Who a program's entry that nobody is credited with counts as: no one, with the least authority.
-constexpr std::string_view unknownAuthor = "unknown";
+constexpr auto reviewSteps = std::to_array<std::string_view>(
+    {"accept", "reject", "preview", "endPreview", "restore", "revert", "undo", "evaluate"});
 
 /// @brief Credits the entries of a program no author is known for, so that none runs as if nobody wrote it.
 /// @param section The section.
@@ -69,62 +66,6 @@ AuthorityScope::AuthorityScope(Engine& engine, const StepAuthority* authority) n
     : engine_(engine), outer_(std::exchange(engine.authority, authority)) {}
 
 AuthorityScope::~AuthorityScope() { engine_.authority = outer_; }
-
-/// @brief Links a running interpreter's budget to the event's while it lives: the event's going in, and back when it
-/// ends, whatever ends it.
-class Programs::Linked {
-public:
-	/// @brief Gives the interpreter what the event may still do.
-	/// @param programs The programs.
-	/// @param interpreter The interpreter.
-	Linked(const Programs& programs, lisp::Interpreter& interpreter)
-	    : work_(programs.work()), interpreter_(interpreter) {
-		interpreter_.setBudget({work_.operations, work_.bytes});
-	}
-	/// @brief Gives the event what is left.
-	~Linked() {
-		const lisp::Budget left = interpreter_.budget();
-		work_.operations = left.operations;
-		work_.bytes = left.bytes;
-	}
-	Linked(const Linked&) = delete;
-	Linked& operator=(const Linked&) = delete;
-	Linked(Linked&&) = delete;
-	Linked& operator=(Linked&&) = delete;
-
-private:
-	WorkBudget& work_;               ///< The event's.
-	lisp::Interpreter& interpreter_; ///< The interpreter's.
-};
-
-/// @brief A call of a function, as long as it lasts: it holds its interpreter, whatever happens to the program
-/// meanwhile, what it allocates goes when it ends, and what it spends is the event's.
-class Programs::Entered {
-public:
-	/// @brief Enters.
-	/// @param programs The programs.
-	/// @param frame What it is called from.
-	explicit Entered(Programs& programs, Frame frame)
-	    : programs_(programs), interpreter_(programs.live_), frame_(frame), outer_(programs.enter(&frame_)),
-	      transient_(*interpreter_), linked_(programs, *interpreter_) {}
-	/// @brief Leaves.
-	~Entered() { programs_.frame_ = outer_; }
-	Entered(const Entered&) = delete;
-	Entered& operator=(const Entered&) = delete;
-	Entered(Entered&&) = delete;
-	Entered& operator=(Entered&&) = delete;
-
-	/// @brief The interpreter. @return It.
-	[[nodiscard]] lisp::Interpreter& interpreter() const noexcept { return *interpreter_; }
-
-private:
-	Programs& programs_;                             ///< The programs.
-	std::shared_ptr<lisp::Interpreter> interpreter_; ///< Running code keeps its version.
-	Frame frame_;                                    ///< What it is called from.
-	Frame* outer_;                                   ///< The call around it.
-	lisp::Interpreter::Transient transient_;         ///< What it allocates.
-	Linked linked_;                                  ///< What it spends.
-};
 
 WorkBudget& Programs::work() const {
 	WorkBudget* running = engine_.document.budget();
@@ -217,6 +158,8 @@ json Programs::read(const std::string& name, std::vector<json> arguments, const 
 	}
 }
 
+bool Programs::hasProgram() const noexcept { return live_ != nullptr; }
+
 std::optional<std::string> Programs::refusal(std::string_view what, StepKind kind,
                                              std::span<const std::string> ran) const {
 	if(kind == StepKind::None || kind == StepKind::Free) return std::nullopt;
@@ -227,7 +170,7 @@ std::optional<std::string> Programs::refusal(std::string_view what, StepKind kin
 	if(stranger != ran.end())
 		return "code by \"" + *stranger + "\" led here, and only the person's own code and the app's file may run " +
 		       step;
-	const bool input = engine_.window && engine_.window->routingInput();
+	const bool input = ownInput_ || (engine_.window && engine_.window->routingInput());
 	if(kind == StepKind::Review && !input) return step + " runs only from the person's own input";
 	if(engine_.versions.previewing() && !input)
 		return "while a proposal is previewed, control steps run only from the user's input";

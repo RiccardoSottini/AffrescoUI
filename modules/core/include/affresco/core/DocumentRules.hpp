@@ -105,6 +105,13 @@ public:
 	/// @param after The document after the change, with the live state after it.
 	/// @throws DocumentError If the change is forbidden.
 	virtual void checkChange(const json& before, const json& after) const = 0;
+	/// @brief checkChange() for a change of a program the person made by their own input
+	/// (VersionControl::commitOwnInput()): what is refused to everyone stays refused; only what a revision can't add
+	/// because the person alone may is let past. By default, nothing is.
+	/// @param before The document before.
+	/// @param after The document after.
+	/// @throws DocumentError If it is refused.
+	virtual void checkOwnChange(const json& before, const json& after) const { checkChange(before, after); }
 
 	/// @brief Brings a document written for an older version of the format to the current one, in place, before it is
 	/// validated (a version 1 screen read as version 2). The default changes nothing.

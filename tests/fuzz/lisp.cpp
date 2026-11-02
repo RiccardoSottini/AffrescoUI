@@ -169,8 +169,47 @@ void heldToItsAuthority(std::string_view text) {
 /// @param data The input.
 /// @param size Its size.
 /// @return 0.
+/// @brief The forms at a position of any text: what is found is in the text, and a form evaluated for its value by an
+/// author reaches no primitive without the gate, nor defines anything.
+/// @param text The text.
+void formsHold(std::string_view text) {
+	for(const std::size_t line : {std::size_t{1}, std::size_t{2}, std::size_t{1000000}})
+		for(const std::size_t column : {std::size_t{1}, text.size() / 2 + 1, text.size() + 1}) {
+			const auto before = affresco::lisp::formBefore(text, line, column);
+			if(before && !text.contains(before->text)) affresco::fuzz::broken("the form before a place is in the text");
+			const auto around = affresco::lisp::formAround(text, line, column);
+			if(around && !text.contains(around->text)) affresco::fuzz::broken("the form around a place is in the text");
+		}
+	std::size_t count = 0;
+	try {
+		count = affresco::lisp::formsOf(text, "fuzz").size();
+		// NOLINTNEXTLINE(bugprone-empty-catch): refusing it is the rule
+	} catch(const affresco::DocumentError&) {
+		return;
+	}
+	if(count != 1) return;
+	affresco::lisp::Interpreter interpreter(lowLimits());
+	const std::size_t before = interpreter.definitionNames().size();
+	bool reached = false;
+	interpreter.definePrimitive("reach", {.capability = "control", .pure = false, .call = [&](auto&, auto) {
+		                                      reached = true;
+		                                      return affresco::lisp::Value();
+	                                      }});
+	interpreter.setGate([](const affresco::lisp::CallContext& call) {
+		if(call.capability == "control") throw affresco::lisp::Refusal("no");
+	});
+	try {
+		static_cast<void>(interpreter.print(interpreter.evaluate(text, "fuzz", "agent")));
+		// NOLINTNEXTLINE(bugprone-empty-catch): refusing it is the rule
+	} catch(const affresco::DocumentError&) {
+	}
+	if(reached) affresco::fuzz::broken("the gate holds for what is evaluated");
+	if(interpreter.definitionNames().size() != before) affresco::fuzz::broken("what is evaluated defines nothing");
+}
+
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
 	const std::string_view text = affresco::fuzz::text(data, size);
+	formsHold(text);
 	const std::optional<json> tree = built(text);
 	if(tree != built(text)) affresco::fuzz::broken("the same text builds to the same tree");
 	agreesWithTheNotation(text, tree);

@@ -14,7 +14,7 @@
 		{ "app": "Streak", "screen": "streak/lisp/index.screen.lisp", "scenarios": "streak/lisp/index.scenarios.json", "scene": "a-row-selects-its-habit", "output": "habit-tracker", "runner": "render" },
 		{ "app": "Sign in", "screen": "sign-in/json/index.screen.json", "scenarios": "sign-in/json/index.scenarios.json", "scene": "password-strength", "output": "sign-in", "runner": "render", "size": [1280, 960] },
 		{ "app": "Quaderno", "screen": "code-editor/json/index.screen.json", "scenarios": "code-editor/json/index.scenarios.json", "scene": "a-problem-opens-its-file", "output": "code-editor", "runner": "render" },
-		{ "app": "Calamaio", "screen": "calamaio/json/calamaio.screen.json", "scenarios": "calamaio/json/calamaio.scenarios.json", "scene": "listings", "output": "calamaio", "runner": "render" },
+		{ "app": "Calamaio", "screen": "calamaio/lisp/calamaio.screen.lisp", "scenarios": "calamaio/lisp/calamaio.scenarios.json", "scene": "listings", "output": "calamaio", "runner": "render" },
 		{ "app": "Forge", "screen": "forge/json/index.screen.json", "scenarios": "forge/json/scm.scenarios.json", "scene": "forge-scm-diff-and-terminal", "output": "forge", "runner": "render", "size": [1280, 810] },
 		{ "app": "Arcadia", "screen": "arcadia/json/index.screen.json", "scenarios": "arcadia/json/index.scenarios.json", "scene": "game-page", "output": "arcadia", "runner": "render" },
 		{ "app": "Tempera", "screen": "tempera/json/index.screen.json", "scenarios": "tempera/json/index.scenarios.json", "scene": "tempera-a-filter-previewing", "output": "tempera", "runner": "render" },

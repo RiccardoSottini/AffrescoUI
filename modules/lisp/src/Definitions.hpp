@@ -12,10 +12,15 @@
 namespace affresco::lisp {
 
 /// @brief Tells whether a word is the head of a definition form: `def`, `defn`, `defmacro`, `defscreen`, `defcommand`,
-/// `defkey`, `defcustom`, `add-hook` or `advice`.
+/// `defkey`, `defcustom`, `defhook`, `add-hook`, `remove-hook` or `advice`.
 /// @param word The word.
 /// @return true if it is.
 [[nodiscard]] bool isDefinitionWord(std::string_view word) noexcept;
+
+/// @brief Tells whether a word is the head of a form that joins something: `add-hook`, `remove-hook` or `advice`.
+/// @param word The word.
+/// @return true if it is.
+[[nodiscard]] bool isExtensionWord(std::string_view word) noexcept;
 
 /// @brief A top-level form's kind (its head) and its address: the name it defines; `defkey ctrl+k` and
 /// `add-hook after-save f` for the forms that define no name.

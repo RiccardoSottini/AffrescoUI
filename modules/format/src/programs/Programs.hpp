@@ -51,6 +51,9 @@ enum class StepKind : std::uint8_t {
 /// @return true if it has.
 [[nodiscard]] bool isPersonsAuthor(std::string_view author) noexcept;
 
+/// @brief Who a program's entry that nobody is credited with counts as: no one, with the least authority.
+inline constexpr std::string_view unknownAuthor = "unknown";
+
 /// @brief Who the steps now running come from, while code of a program runs them, and later for what it scheduled.
 struct StepAuthority {
 	std::vector<std::string> authors; ///< Every author whose code led here.
@@ -76,6 +79,24 @@ public:
 	/// values worked out, purely.
 	/// @throws DocumentError If it can't be loaded: the version is refused.
 	void load();
+	/// @brief What evaluating a text gave.
+	struct Evaluated {
+		std::string printed;              ///< The last form's value, as Lisp; a definition's address.
+		std::optional<std::string> error; ///< What went wrong: names and kinds, no value.
+	};
+	/// @brief Tells whether the document has a program. @return true if it has.
+	[[nodiscard]] bool hasProgram() const noexcept;
+	/// @brief Evaluates a text the person's own input gave (the step `evaluate` has checked that): each definition
+	/// becomes an entry of the program in one revision of theirs, then each other form runs for its value as code of
+	/// theirs.
+	/// @param text The text.
+	/// @param file The file for a definition no file has.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @return What it gave.
+	[[nodiscard]] Evaluated evaluate(const std::string& text, const std::string& file, Panel& sender, const json& event,
+	                                 const Scope& locals);
 	/// @brief Tells whether a name is a function of the program, which a handler may run by name.
 	/// @param name The name.
 	/// @return true if it is; always false for a document without a program.
@@ -130,6 +151,40 @@ private:
 	};
 	class Entered;
 	class Linked;
+
+	/// @brief Registers what describes the program.
+	/// @param interpreter The interpreter.
+	void defineLoopPrimitives(lisp::Interpreter& interpreter);
+	/// @brief What limits the code running now in what it reads: a view for each limited reader among its authors.
+	/// @param interpreter The interpreter.
+	/// @return The views; none for code nobody limited wrote.
+	[[nodiscard]] std::vector<json> limitedViews(const lisp::Interpreter& interpreter) const;
+	/// @brief What is known of a name, unless a view doesn't show it: never a value.
+	/// @param interpreter The interpreter.
+	/// @param name The name.
+	/// @param views The views.
+	/// @return It, or null.
+	[[nodiscard]] json describeName(lisp::Interpreter& interpreter, const std::string& name,
+	                                const std::vector<json>& views) const;
+	/// @brief What `describe-function`, `describe-variable`, `describe-key`, `apropos` and `program-file` do.
+	/// @param what Which.
+	/// @param interpreter The interpreter.
+	/// @param arguments Its one argument.
+	/// @return What it gives.
+	lisp::Value describePrimitive(std::string_view what, lisp::Interpreter& interpreter,
+	                              std::span<const lisp::Value> arguments);
+	/// @brief Every name holding a text that a view shows, described.
+	/// @param interpreter The interpreter.
+	/// @param text The text.
+	/// @param views The views.
+	/// @return The list.
+	[[nodiscard]] json aproposOf(lisp::Interpreter& interpreter, const std::string& text,
+	                             const std::vector<json>& views) const;
+	/// @brief A program's file, its entries one after another, but what a view doesn't show.
+	/// @param file The file.
+	/// @param views The views.
+	/// @return Its text; "" for none.
+	[[nodiscard]] json programFileOf(const std::string& file, const std::vector<json>& views) const;
 
 	/// @brief Enters a call: the outermost starts the budget of a tool that runs no event.
 	/// @param frame What it is called from.
@@ -246,12 +301,69 @@ private:
 		return action();
 	}
 
-	Engine& engine_;                          ///< The runtime.
-	std::shared_ptr<lisp::Interpreter> live_; ///< The program now; running code holds its own.
-	json loaded_;                             ///< The section it was loaded from.
-	Frame* frame_ = nullptr;                  ///< What the running function is called from.
-	int reading_ = 0;                         ///< Values being read: nothing but reading runs.
-	mutable WorkBudget ownBudget_;            ///< With no event or update running (a tool).
+	Engine& engine_;                                   ///< The runtime.
+	std::shared_ptr<lisp::Interpreter> live_;          ///< The program now; running code holds its own.
+	json loaded_;                                      ///< The section it was loaded from.
+	Frame* frame_ = nullptr;                           ///< What the running function is called from.
+	int reading_ = 0;                                  ///< Values being read: nothing but reading runs.
+	mutable WorkBudget ownBudget_;                     ///< With no event or update running (a tool).
+	bool ownInput_ = false;                            ///< What the person's own input asked to evaluate is running.
+};
+
+/// @brief Links a running interpreter's budget to the event's while it lives: the event's going in, and back when it
+/// ends, whatever ends it.
+class Programs::Linked {
+public:
+	/// @brief Gives the interpreter what the event may still do.
+	/// @param programs The programs.
+	/// @param interpreter The interpreter.
+	Linked(const Programs& programs, lisp::Interpreter& interpreter)
+	    : work_(programs.work()), interpreter_(interpreter) {
+		interpreter_.setBudget({work_.operations, work_.bytes});
+	}
+	/// @brief Gives the event what is left.
+	~Linked() {
+		const lisp::Budget left = interpreter_.budget();
+		work_.operations = left.operations;
+		work_.bytes = left.bytes;
+	}
+	Linked(const Linked&) = delete;
+	Linked& operator=(const Linked&) = delete;
+	Linked(Linked&&) = delete;
+	Linked& operator=(Linked&&) = delete;
+
+private:
+	WorkBudget& work_;               ///< The event's.
+	lisp::Interpreter& interpreter_; ///< The interpreter's.
+};
+
+/// @brief A call of a function, as long as it lasts: it holds its interpreter, whatever happens to the program
+/// meanwhile, what it allocates goes when it ends, and what it spends is the event's.
+class Programs::Entered {
+public:
+	/// @brief Enters.
+	/// @param programs The programs.
+	/// @param frame What it is called from.
+	explicit Entered(Programs& programs, Frame frame)
+	    : programs_(programs), interpreter_(programs.live_), frame_(frame), outer_(programs.enter(&frame_)),
+	      transient_(*interpreter_), linked_(programs, *interpreter_) {}
+	/// @brief Leaves.
+	~Entered() { programs_.frame_ = outer_; }
+	Entered(const Entered&) = delete;
+	Entered& operator=(const Entered&) = delete;
+	Entered(Entered&&) = delete;
+	Entered& operator=(Entered&&) = delete;
+
+	/// @brief The interpreter. @return It.
+	[[nodiscard]] lisp::Interpreter& interpreter() const noexcept { return *interpreter_; }
+
+private:
+	Programs& programs_;                             ///< The programs.
+	std::shared_ptr<lisp::Interpreter> interpreter_; ///< Running code keeps its version.
+	Frame frame_;                                    ///< What it is called from.
+	Frame* outer_;                                   ///< The call around it.
+	lisp::Interpreter::Transient transient_;         ///< What it allocates.
+	Linked linked_;                                  ///< What it spends.
 };
 
 /// @brief Sets who the steps now running come from, as long as it lives.

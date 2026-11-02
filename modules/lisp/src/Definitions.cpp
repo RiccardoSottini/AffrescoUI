@@ -20,8 +20,10 @@ namespace {
 /// @param head A form's head.
 /// @return The least items, or 0 if it is no such form.
 std::size_t leastItems(std::string_view head) noexcept {
-	if(head == "def" || head == "defscreen" || head == "defkey" || head == "defcustom" || head == "add-hook") return 3;
-	if(head == "defn" || head == "defmacro" || head == "defcommand" || head == "advice") return 3;
+	if(head == "def" || head == "defscreen" || head == "defkey" || head == "defcustom") return 3;
+	if(head == "defn" || head == "defmacro" || head == "defcommand") return 3;
+	if(head == "add-hook" || head == "remove-hook" || head == "advice") return 3;
+	if(head == "defhook") return 2;
 	return 0;
 }
 
@@ -153,9 +155,27 @@ void checkName(const Value& form, const std::string& name) {
 	if(name.starts_with('%')) failDefinition(form, name, "a name starting with % is the language's own");
 }
 
+/// @brief Refuses an extension that doesn't say what it joins: `(add-hook hook function)`, `(advice target :how
+/// function)`.
+/// @param form The form.
+/// @param definition What it defines, its words read.
+void checkExtension(const Value& form, const Definition& definition) {
+	const std::vector<std::string>& words = definition.targets;
+	if(definition.kind != "advice") {
+		if(words.size() != 2) failDefinition(form, definition.name, definition.kind + " takes a hook and a function");
+		return;
+	}
+	if(words.size() != 3 || (words[1] != "before" && words[1] != "after" && words[1] != "around"))
+		failDefinition(form, definition.name, "advice takes a target, :before, :after or :around, and a function");
+}
+
 } // namespace
 
 bool isDefinitionWord(std::string_view word) noexcept { return leastItems(word) != 0; }
+
+bool isExtensionWord(std::string_view word) noexcept {
+	return word == "add-hook" || word == "remove-hook" || word == "advice";
+}
 
 std::pair<std::string, std::string> definitionAddress(const Value& form) {
 	const std::string head(headWord(form));
@@ -165,7 +185,7 @@ std::pair<std::string, std::string> definitionAddress(const Value& form) {
 		if(form.at(1).text().empty()) failDefinition(form, "", "defkey takes a key first");
 		return {head, head + " " + std::string(form.at(1).text())};
 	}
-	if(head == "add-hook" || head == "advice") {
+	if(isExtensionWord(head)) {
 		std::string name = head;
 		for(std::size_t at = 1; at < form.count(); ++at) {
 			if(at >= 2 && !docAt(form, at).empty()) continue;
@@ -219,7 +239,7 @@ Definition& Machine::define(const Value& form, const std::string& author, const 
 	const std::string head(headWord(form));
 	const auto [kind, name] = definitionAddress(form);
 	if(form.count() < leastItems(head)) failDefinition(form, name, head + " is missing what it defines");
-	if(head != "defkey" && head != "add-hook" && head != "advice") checkName(form, name);
+	if(head != "defkey" && !isExtensionWord(head)) checkName(form, name);
 	Definition& made = addDefinition(form, kind, name, author, strict);
 	made.authors = authors ? authors : authorSet(author);
 	const CompileContext context{name, author, made.authors, false};
@@ -232,6 +252,12 @@ Definition& Machine::define(const Value& form, const std::string& author, const 
 		if(at + 1 != form.count()) failDefinition(form, name, "def takes a name, maybe a docstring, and a value");
 		made.global = &global(name);
 		setPending(*made.global, compileValueInto(*this, *made.global, form.at(at), context), false);
+	} else if(head == "defhook") {
+		if(form.count() > 3 || (form.count() == 3 && form.at(2).kind() != Kind::String))
+			failDefinition(form, name, "defhook takes a name, and maybe a docstring");
+		made.doc = form.count() == 3 ? std::string(form.at(2).text()) : "";
+		made.global = &global(name); // its value is its name, so `(run-hooks after-save)` reads as it means
+		setPending(*made.global, compileValueInto(*this, *made.global, heap.string(name), context), false);
 	} else {
 		defineVocabulary(made, form, context);
 	}
@@ -309,9 +335,11 @@ void Machine::defineVocabulary(Definition& definition, const Value& form, const 
 		if(at + 1 != form.count())
 			failDefinition(form, definition.name, "defkey takes a key, maybe a docstring, and what it runs");
 		data = form.at(at);
-	} else { // add-hook, advice: recorded, and a later stage gives them their behaviour
+	} else { // add-hook, remove-hook, advice: recorded, and the host runs them
 		for(std::size_t item = 1; item < form.count(); ++item)
 			if(item < 2 || docAt(form, item).empty()) definition.targets.emplace_back(form.at(item).text());
+		definition.doc = docAt(form, 2);
+		checkExtension(form, definition);
 		return;
 	}
 	definition.pending = compileDataInto(*this, definition, data, context);
@@ -403,6 +431,15 @@ const AuthorSet* Machine::unite(const AuthorSet* first, const AuthorSet* second)
 	}
 	authorUnions_.emplace(std::make_pair(first, second), made);
 	return made;
+}
+
+std::vector<std::string> Machine::authorNames(const AuthorSet* authors) const {
+	std::vector<std::string> names;
+	if(!authors) return names;
+	names.reserve(authors->authors.size());
+	for(const std::uint32_t author : authors->authors) names.push_back(authorNames_[author]);
+	std::ranges::sort(names);
+	return names;
 }
 
 std::vector<std::string> Machine::authorsThatRan() const {

@@ -17,10 +17,10 @@ std::span<const Function> functions() {
 	static const std::vector<Function> all = [] {
 		std::vector<Function> rows;
 		for(const std::span<const Function> group :
-		    {logicFunctions(), numberFunctions(), mathsFunctions(), textFunctions(), listFunctions(), itemFunctions(), foldFunctions(),
-		     timeFunctions(), fuzzyFunctions(), colorFunctions(), keyframeFunctions(), localeFunctions(),
-		     dateFunctions(), formFunctions(), pathFunctions(), keyFunctions(), qrFunctions(), diffFunctions(),
-		     gitFunctions()})
+		    {logicFunctions(),    numberFunctions(), mathsFunctions(), textFunctions(),  listFunctions(),
+		     itemFunctions(),     foldFunctions(),   timeFunctions(),  fuzzyFunctions(), colorFunctions(),
+		     keyframeFunctions(), localeFunctions(), dateFunctions(),  formFunctions(),  pathFunctions(),
+		     keyFunctions(),      qrFunctions(),     diffFunctions(),  gitFunctions(),   formsFunctions()})
 			rows.insert(rows.end(), group.begin(), group.end());
 		return rows;
 	}();

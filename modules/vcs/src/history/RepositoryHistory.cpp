@@ -246,7 +246,10 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	json document = reading(store.objectFile(head.id), [&] {
 		json rebuilt = rebuild(objects, head); // checked against the head's tree
 		json first, last;
-		rules_.checkChange(judged(*objects.at(main.front()).snapshot, first), judged(rebuilt, last));
+		// What the person's own input changed in a program is the one thing their commits may add
+		const bool own = std::ranges::any_of(main, [&](const std::string& id) { return objects.at(id).ownInput; });
+		if(own) rules_.checkOwnChange(judged(*objects.at(main.front()).snapshot, first), judged(rebuilt, last));
+		else rules_.checkChange(judged(*objects.at(main.front()).snapshot, first), judged(rebuilt, last));
 		upgraded = rebuilt;
 		static_cast<void>(rules_.upgrade(upgraded)); // a version 1 head is read as the current version
 		rules_.validate(upgraded);
@@ -393,6 +396,10 @@ Repository::Commit Repository::readObject(detail::HistoryStore& store, const std
 			if(!run->is_array() || run->empty()) expect::fail("run", "expected a list of steps");
 			commit.run = std::move(*run);
 		}
+		if(const auto own = object.find("ownInput"); own != object.end()) { // only the person's own commit has it
+			if(!own->is_boolean() || !own->get<bool>()) expect::fail("ownInput", "expected true");
+			commit.ownInput = true;
+		}
 		// Version 2: a delta, and the document only for a snapshot. Version 1: always the document
 		if(const auto delta = object.find("delta"); delta != object.end() && !commit.parents.empty()) {
 			if(!delta->is_array()) expect::fail("delta", "expected a list of operations");
@@ -507,6 +514,7 @@ json Repository::objectOf(const Commit& commit) {
 	               {"time", commit.time},       {"proposal", commit.proposal}, {"message", commit.message},
 	               {"patch", commit.patch},     {"tree", commit.tree}};
 	if(!commit.run.is_null()) object["run"] = commit.run;
+	if(commit.ownInput) object["ownInput"] = true;
 	if(!commit.delta.is_null()) { // a commit loaded from version 1 has none, and its document is written
 		object["delta"] = commit.delta;
 		object["snapshot"] = commit.snapshot != nullptr;

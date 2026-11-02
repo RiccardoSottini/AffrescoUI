@@ -92,7 +92,7 @@ const std::array<Machine::Handle, static_cast<std::size_t>(Op::Count)>& Machine:
 
 Value Machine::call(const Value& function, std::span<const Value> arguments) {
 	const std::vector<Value> copied(arguments.begin(), arguments.end()); // they may stand on the stack
-	if(frames_.empty()) ran_ = noAuthors_;
+	if(frames_.empty() && nesting_ == 0) ran_ = noAuthors_;              // a primitive calling back is no new start
 	const std::size_t floor = frames_.size();
 	const std::size_t height = stack_.size();
 	const std::size_t handlers = handlers_.size();
@@ -124,7 +124,7 @@ Value Machine::call(const Value& function, std::span<const Value> arguments) {
 }
 
 Value Machine::runThunk(const Code* code) {
-	if(frames_.empty()) ran_ = noAuthors_;
+	if(frames_.empty() && nesting_ == 0) ran_ = noAuthors_; // a primitive calling back is no new start
 	const std::size_t floor = frames_.size();
 	const std::size_t height = stack_.size();
 	const std::size_t handlers = handlers_.size();
@@ -144,7 +144,7 @@ Value Machine::runThunk(const Code* code) {
 Value Machine::force(Global& global) {
 	ensureCompiled(global);
 	if(global.state == Global::State::Lazy) {
-		if(frames_.empty()) ran_ = noAuthors_;
+		if(frames_.empty() && nesting_ == 0) ran_ = noAuthors_; // a primitive calling back is no new start
 		const std::size_t floor = frames_.size();
 		const std::size_t height = stack_.size();
 		const RunGuard guard(nesting_);

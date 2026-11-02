@@ -60,6 +60,14 @@ public:
 	}
 	/// @copydoc VersionControl::submit
 	RevisionResult submit(const json& revision) override { return inner_.submit(revision); }
+	/// @copydoc VersionControl::propose
+	RevisionResult propose(const json& revision) override { return inner_.propose(revision); }
+	/// @copydoc VersionControl::commitOwnInput
+	std::optional<std::string> commitOwnInput(const json& revision) override { return inner_.commitOwnInput(revision); }
+	/// @copydoc VersionControl::readable
+	[[nodiscard]] std::optional<json> readable(std::string_view author) const override {
+		return inner_.readable(author);
+	}
 	/// @copydoc VersionControl::commit
 	std::optional<std::string> commit(const json& revision) override { return inner_.commit(revision); }
 	/// @copydoc VersionControl::resolve

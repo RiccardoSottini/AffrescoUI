@@ -602,7 +602,7 @@ TEST_CASE("lisp: a program builds the format's sections, whatever the order of i
 		"screens": {"extra": {"type": "panel", "id": "extra"}},
 		"actions": {
 			"another": {"title": "Another", "do": [{"lisp": "another"}]},
-			"toggle": {"title": "Toggle", "category": "View", "description": "Toggles it.", "do": [{"lisp": "toggle"}]}},
+			"toggle": {"title": "Toggle", "category": "View", "description": "Toggles it.", "do": [{"lisp": "toggle"}], "arguments": ["times"]}},
 		"keys": {"mod+b": "toggle", "mod+n": {"run": "another"}},
 		"settings": {"list-size": {"type": "integer", "default": 60, "minimum": 1, "description": "How many."}}
 	})");
@@ -792,7 +792,7 @@ TEST_CASE("lisp: the notation's list of the language's words is the language's")
 	                                        "recur",     "fn",         "try",     "catch",
 	                                        "throw",     "def",        "defn",    "defmacro",
 	                                        "defscreen", "defcommand", "defkey",  "defcustom",
-	                                        "add-hook",  "advice"};
+	                                        "add-hook",  "advice",     "defhook", "remove-hook"};
 	for(const std::string& form : forms) {
 		CAPTURE(form);
 		CHECK(affresco::notation::isLanguageWord(form));

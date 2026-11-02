@@ -21,7 +21,8 @@ namespace affresco::format {
 namespace {
 
 /// The steps the language says itself: a program has `if`, `loop`, a function's end. `stop` is a function's end too.
-constexpr auto unspoken = std::to_array<std::string_view>({"if", "forEach", "while", "stop", "note", "lisp"});
+constexpr auto unspoken =
+    std::to_array<std::string_view>({"if", "forEach", "while", "stop", "note", "lisp"});
 
 /// @brief The word of the language a step is, for the two the language has for something else.
 /// @param step The step's key.
@@ -82,7 +83,10 @@ std::optional<bool> runProgramStep(const Running& s) {
 
 } // namespace
 
-void registerProgramSteps(StepRegistry& registry) { registry.add({"program", {{"lisp", {"with"}}}, runProgramStep}); }
+void registerProgramSteps(StepRegistry& registry) {
+	registry.add({"program", {{"lisp", {"with"}}}, runProgramStep});
+	registerLoopSteps(registry);
+}
 
 void Programs::definePrimitives(lisp::Interpreter& interpreter) {
 	interpreter.definePrimitive("%read",
@@ -93,6 +97,7 @@ void Programs::definePrimitives(lisp::Interpreter& interpreter) {
 	                             }});
 	defineSteps(interpreter);
 	defineFunctions(interpreter);
+	defineLoopPrimitives(interpreter);
 }
 
 void Programs::defineSteps(lisp::Interpreter& interpreter) {

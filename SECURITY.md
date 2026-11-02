@@ -458,7 +458,7 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
 | **reads** (a path, an expression's function) | Always |
 | **is ordinary** (`set`, `push`, `navigate`, `after`, `run`, the record steps...) | Never from a value read for the screen; otherwise always |
 | **is a control step** (`call`, `send`, `connect`, `patch`, `invoke`, `request`, `saveFile`, and any step not named above) | Everyone whose code led here is the person or the app's file; and while a proposal is previewed, only from the person's own input |
-| **is a review step** (`accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`) | Everyone whose code led here is the person or the app's file, and it comes from the person's own input: a click or a key, never a timer, a `watch` or a handler that fires by itself |
+| **is a review step** (`accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`, `evaluate`) | Everyone whose code led here is the person or the app's file, and it comes from the person's own input: a click or a key, never a timer, a `watch` or a handler that fires by itself |
 
 - **"Everyone whose code led here"** is every author whose code has run since the outermost call began, those that returned included;
   those whose macro wrote the code; and those who scheduled what is running. The least of them is the authority, so authority is only
@@ -480,6 +480,18 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
   with `{{` in it stays text. A function can't be kept in the state.
 - **A change of the program** replaces the interpreter whole, so a definition taken away or undone is gone, with the callbacks of its name. A
   function running at that moment ends on its own version, with its authors.
+
+**The loop: evaluating from inside the app** (`tests/unit/lisp_loop.cpp`). The step `evaluate` is what makes an app extensible from inside, and it is what the person may do and nobody else:
+
+- **Only from the person's own input,** checked at the step, whoever's code or JSON holds it: never a timer, a `watch`, a handler that fires by itself, a key pressed for the screen, or an agent's reply. An author who isn't the person or the file can't reach it at all, and
+  no revision may add it. While a proposal is previewed it is refused.
+- **It may change what reaches a control step,** and no more (VERSION_CONTROL.md, "Programs"): what no revision may change, it can't either. No peer has a way to that: it is a call in the host's code, not a message or a name an author can claim. An evaluated form is the
+  person's decision about text they have in front of them, as a line typed in a terminal is.
+- **An agent's macro in it stays the agent's:** the person's function or expression holding what it wrote has its authority. A macro runs while the form is read, reaching nothing.
+- **What isn't a definition** runs as the person's code, with no change to history, and has only what the person's code has. Its result is printed; its error says names and kinds, no value.
+- **What arrives from elsewhere is a proposal** (`propose`), in its own name, never with the person's authority; it holds definitions only, so nothing in it runs by arriving.
+- **`describe-*`, `apropos` and `program-file`** give no value, and obey read masks: for code with a limited reader among its authors, what its `read` doesn't name isn't there.
+- **A history on disk with `ownInput` commits** is held to what a person's revision may do, not to the scan: a history folder is trusted to that extent, so treat one you didn't make as you would a screen file.
 
 What holds for whatever text it is given:
 

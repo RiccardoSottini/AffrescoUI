@@ -62,6 +62,84 @@ Value Interpreter::eval(std::string_view text, const std::string& file, const st
 	});
 }
 
+namespace {
+
+/// @brief Reads a text that must be one form.
+/// @param machine The machine.
+/// @param reader Its reader.
+/// @return The form.
+/// @throws LispError If it isn't one form.
+Value oneForm(Machine& machine, Reader& reader) {
+	const auto read = readUncharged(machine.heap, reader, machine.budget());
+	if(!read || readUncharged(machine.heap, reader, machine.budget()))
+		throw LispError("", 1, 1, "", "expected one form");
+	return read->form;
+}
+
+/// @brief Turns building's purity on, for as long as it lives, and back to what it was.
+class PureWhile {
+public:
+	/// @brief Turns it on. @param machine The machine.
+	explicit PureWhile(Machine& machine) : machine_(machine), was_(machine.pure()) { machine_.setPure(true); }
+	/// @brief Puts it back.
+	~PureWhile() { machine_.setPure(was_); }
+	PureWhile(const PureWhile&) = delete;
+	PureWhile& operator=(const PureWhile&) = delete;
+	PureWhile(PureWhile&&) = delete;
+	PureWhile& operator=(PureWhile&&) = delete;
+
+private:
+	Machine& machine_; ///< The machine.
+	bool was_;         ///< What it was.
+};
+
+/// @brief The function a value stands for: what a host wrapped, or itself.
+/// @param function The value.
+/// @return The function.
+Value standsFor(const Value& function) {
+	return function.kind() == Kind::Native ? static_cast<const NativeObject*>(function.pointer())->wrapped : function;
+}
+
+} // namespace
+
+Value Interpreter::evaluate(std::string_view text, const std::string& file, const std::string& author) {
+	return leavingAsLispError(*machine_, [&] {
+		Reader reader(machine_->heap, text, file);
+		const Value form = oneForm(*machine_, reader);
+		CompileContext context;
+		context.author = author;
+		context.authors = machine_->authorSet(author);
+		const Code* code = nullptr;
+		{
+			const PureWhile pure(*machine_); // a macro runs now, and reaches nothing
+			code = Compiler(*machine_, std::move(context)).thunk(form);
+		}
+		return machine_->runThunk(code);
+	});
+}
+
+bool Interpreter::expandsToDefinition(std::string_view text) {
+	return leavingAsLispError(*machine_, [&] {
+		Reader reader(machine_->heap, text, "");
+		Value form = oneForm(*machine_, reader);
+		const PureWhile pure(*machine_);
+		for(int depth = 0; depth < 16; ++depth) {
+			const std::string_view head = headWord(form);
+			if(isDefinitionWord(head)) return true;
+			if(head == "do" && form.count() > 1) {
+				form = form.at(1);
+				continue;
+			}
+			Global* macro = head.empty() ? nullptr : machine_->findGlobal(head);
+			if(!macro || !macro->macro) return false;
+			std::vector<Value> arguments;
+			for(std::size_t at = 1; at < form.count(); ++at) arguments.push_back(form.at(at));
+			form = machine_->expand(*macro, arguments, form.place());
+		}
+		return false;
+	});
+}
+
 Value Interpreter::call(const Value& function, std::span<const Value> arguments) {
 	return leavingAsLispError(*machine_, [&] { return machine_->call(function, arguments); });
 }
@@ -78,6 +156,52 @@ std::optional<DefinitionInfo> Interpreter::describe(std::string_view name) const
 	return DefinitionInfo{definition->kind, definition->name, definition->doc, definition->author, definition->place};
 }
 
+std::vector<std::string> Interpreter::definitionNames() const {
+	std::vector<std::string> names;
+	for(const auto& definition : machine_->definitions()) names.push_back(definition->name);
+	std::ranges::sort(names);
+	return names;
+}
+
+std::vector<Extension> Interpreter::extensions() const {
+	std::vector<Extension> found;
+	for(const auto& definition : machine_->definitions()) {
+		if(!isExtensionWord(definition->kind)) continue;
+		found.push_back({definition->kind, definition->name, definition->targets, definition->doc, definition->author,
+		                 machine_->authorNames(definition->authors)});
+	}
+	return found;
+}
+
+Value Interpreter::wrapGlobal(const std::string& name, Primitive primitive) {
+	Global* cell = machine_->findGlobal(name);
+	if(!cell || cell->state != Global::State::Ready || cell->value.kind() != Kind::Function)
+		throw std::invalid_argument("no function to wrap: " + name);
+	auto* native = machine_->heap.make<NativeObject>();
+	native->name = name;
+	native->host = std::move(primitive);
+	native->wrapped = cell->value;
+	const Value original = cell->value;
+	cell->value = Value::object(Kind::Native, native);
+	return original;
+}
+
+Value Interpreter::makeFunction(const std::string& name, Primitive primitive) {
+	auto* native = machine_->heap.make<NativeObject>();
+	native->name = name;
+	native->host = std::move(primitive);
+	return Value::object(Kind::Native, native);
+}
+
+Interpreter::Sealed::Sealed(Interpreter& interpreter) : machine_(interpreter.machine()), ran_(machine_.ranSet()) {}
+
+Interpreter::Sealed::~Sealed() { machine_.setRanSet(static_cast<const AuthorSet*>(ran_)); }
+
+void Interpreter::addAuthorsThatRan(std::span<const std::string> authors) {
+	for(const std::string& author : authors)
+		machine_->setRanSet(machine_->unite(machine_->ranSet(), machine_->authorSet(author)));
+}
+
 std::vector<std::string> Interpreter::authorsOnStack() const { return machine_->authorsOnStack(); }
 
 std::optional<std::string> Interpreter::leastAuthority(const std::function<int(std::string_view)>& rank) const {
@@ -89,20 +213,29 @@ std::optional<std::string> Interpreter::leastAuthority(const std::function<int(s
 std::vector<std::string> Interpreter::authorsThatRan() const { return machine_->authorsThatRan(); }
 
 std::string Interpreter::authorOf(const Value& function) {
-	return function.kind() == Kind::Function ? static_cast<const ClosureObject*>(function.pointer())->code->author : "";
+	const Value closure = standsFor(function);
+	return closure.kind() == Kind::Function ? static_cast<const ClosureObject*>(closure.pointer())->code->author : "";
+}
+
+std::vector<std::string> Interpreter::authorsOf(const Value& function) const {
+	const Value closure = standsFor(function);
+	if(closure.kind() != Kind::Function) return {};
+	return machine_->authorNames(static_cast<const ClosureObject*>(closure.pointer())->code->authors);
 }
 
 std::optional<std::string> Interpreter::definitionNameOf(const Value& function) const {
-	if(function.kind() != Kind::Function) return std::nullopt;
-	const std::string& name = static_cast<const ClosureObject*>(function.pointer())->code->name;
+	const Value closure = standsFor(function);
+	if(closure.kind() != Kind::Function) return std::nullopt;
+	const std::string& name = static_cast<const ClosureObject*>(closure.pointer())->code->name;
 	const Global* cell = name.empty() ? nullptr : machine_->findGlobal(name);
 	if(!cell || cell->state != Global::State::Ready || cell->value.pointer() != function.pointer()) return std::nullopt;
 	return name;
 }
 
 std::vector<std::string> Interpreter::parametersOf(const Value& function) {
-	if(function.kind() != Kind::Function) return {};
-	return static_cast<const ClosureObject*>(function.pointer())->code->parameters;
+	const Value closure = standsFor(function);
+	if(closure.kind() != Kind::Function) return {};
+	return static_cast<const ClosureObject*>(closure.pointer())->code->parameters;
 }
 
 bool Interpreter::isProgramFunction(std::string_view name) const {

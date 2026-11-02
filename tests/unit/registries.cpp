@@ -61,11 +61,12 @@ std::optional<bool> recognisesNothing(const Running& step) {
 TEST_CASE("format: the built-in node types register in catalog order, each with a factory") {
 	TypeRegistry registry;
 	registerBuiltInTypes(registry);
-	CHECK(typeNames(registry) == std::vector<std::string>{"panel", "label", "textarea", "editor", "diff", "stack",
-	                                                      "row", "column", "grid", "toggle", "checkbox", "slider",
-	                                                      "image", "surface", "raster", "split", "tabs", "list", "tree", "table", "path",
-	                                                      "colorPicker", "gradient", "curves", "canvas", "graph", "timeline", "calendar",
-	                                                      "codeInput", "carousel", "scene", "terminal", "outlet"});
+	CHECK(typeNames(registry) ==
+	      std::vector<std::string>{"panel",       "label",    "textarea", "editor",   "diff",   "stack",    "row",
+	                               "column",      "grid",     "toggle",   "checkbox", "slider", "image",    "surface",
+	                               "raster",      "split",    "tabs",     "list",     "tree",   "table",    "path",
+	                               "colorPicker", "gradient", "curves",   "canvas",   "graph",  "timeline", "calendar",
+	                               "codeInput",   "carousel", "scene",    "terminal", "outlet"});
 	for(const NodeType* type : registry.inOrder()) {
 		CAPTURE(type->name);
 		CHECK(type->create());
@@ -120,22 +121,22 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	registerBuiltInSteps(registry);
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
-	CHECK(groups == std::vector<std::string>{"state",  "flow",     "outside", "services", "auth",   "assistant",
-	                                         "attach", "folder",   "file",    "export",   "review", "navigation",
-	                                         "editor", "keys",     "time",    "other",    "scene",  "image",
-	                                         "audio",  "terminal", "data",    "windows",  "program"});
+	CHECK(groups == std::vector<std::string>{"state",  "flow",     "outside", "services", "auth",    "assistant",
+	                                         "attach", "folder",   "file",    "export",   "review",  "navigation",
+	                                         "editor", "keys",     "time",    "other",    "scene",   "image",
+	                                         "audio",  "terminal", "data",    "windows",  "program", "loop"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
 		for(const StepType& step : group.steps)
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
-	CHECK(control ==
-	      std::vector<std::string>{"accept",       "ask",           "attach",        "call",    "cancelAsk",
-	                               "chooseFolder", "clearTerminal", "closeTerminal", "connect", "endPreview",
-	                               "export",       "fullscreen",    "openFile",      "patch",   "preview",
-	                               "reject",       "respond",       "restore",       "revert",  "runInTerminal",
-	                               "saveFile",     "send",          "signIn",        "signOut", "undo"});
+	CHECK(control == std::vector<std::string>{
+	                     "accept",        "ask",           "attach",   "call",       "cancelAsk",     "chooseFolder",
+	                     "clearTerminal", "closeTerminal", "connect",  "endPreview", "evaluate",      "export",
+	                     "exportChanges", "fullscreen",    "openFile", "patch",      "preview",       "propose",
+	                     "reject",        "respond",       "restore",  "revert",     "runInTerminal", "saveFile",
+	                     "send",          "signIn",        "signOut",  "undo"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});
@@ -187,8 +188,8 @@ TEST_CASE("format: the capability sections are the ones a revision can't change"
 	for(const SectionType& section : sections.sections())
 		if(section.capability) capabilities.push_back(section.name);
 	CHECK(capabilities ==
-	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "images",
-	                               "windows", "points"}); // "audio" is the person's to change (VERSION_CONTROL.md, "Assets")
+	      std::vector<std::string>{"channels", "services", "connections", "persist", "permissions", "images", "windows",
+	                               "points"}); // "audio" is the person's to change (VERSION_CONTROL.md, "Assets")
 
 	const Rules rules;
 	const json before = {{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}}}};
@@ -216,7 +217,7 @@ TEST_CASE("format: the catalog is built from the registries, and lists an applic
 	CHECK(catalog["common"] == catalog["types"]["panel"]["properties"]);
 	CHECK(std::ranges::find(catalog["steps"], json("set")) != catalog["steps"].end());
 	CHECK(std::ranges::find(catalog["steps"], json("accept")) == catalog["steps"].end());
-	CHECK(catalog["controlSteps"].size() == 25);
+	CHECK(catalog["controlSteps"].size() == 28);
 	for(const json& step : catalog["controlSteps"]) { // a feature installed by revision can't contain any of them
 		INFO("a control step features may contain: ", step);
 		CHECK(std::ranges::find(affresco::format::controlSteps, step.get<std::string>()) !=

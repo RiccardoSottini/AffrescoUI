@@ -27,16 +27,17 @@ struct Lease {
 };
 
 /// @brief The leases on one document. Leases on overlapping parts (one inside the other) can't be held by two
-/// people at once; the same holder renews its own. Bounded: maxLeases in all, maxPerHolder per holder and per connection, maxDuration long.
+/// people at once; the same holder renews its own. Bounded: maxLeases in all, maxPerHolder per holder and per
+/// connection, maxDuration long.
 ///
 /// Not thread-safe: kept on the thread that changes the document.
 class Leases {
 public:
-	using Clock = std::chrono::steady_clock;          ///< The clock the times come from.
-	static constexpr std::size_t maxLeases = 256;       ///< Leases on one document.
-	static constexpr std::size_t maxPerHolder = 16;     ///< Leases one person, or one connection, holds.
+	using Clock = std::chrono::steady_clock;                 ///< The clock the times come from.
+	static constexpr std::size_t maxLeases = 256;            ///< Leases on one document.
+	static constexpr std::size_t maxPerHolder = 16;          ///< Leases one person, or one connection, holds.
 	static constexpr std::chrono::seconds maxDuration{3600}; ///< The longest lease.
-	static constexpr std::size_t maxTargetBytes = 256;  ///< The longest target.
+	static constexpr std::size_t maxTargetBytes = 256;       ///< The longest target.
 
 	/// @brief Leases on a document of some format.
 	/// @param rules Finds "#id" nodes; must outlive the leases.
@@ -111,6 +112,8 @@ public:
 	[[nodiscard]] Permissions permissions(const json& document) const override;
 	/// @brief As the base rules.
 	void checkChange(const json& before, const json& after) const override { base_.checkChange(before, after); }
+	/// @copydoc DocumentRules::checkOwnChange
+	void checkOwnChange(const json& before, const json& after) const override { base_.checkOwnChange(before, after); }
 	/// @brief As the base rules.
 	void checkRevision(const json& patch) const override { base_.checkRevision(patch); }
 	/// @brief As the base rules.
@@ -127,10 +130,10 @@ public:
 	}
 
 private:
-	const DocumentRules& base_;                          ///< The format's rules.
-	const Leases& leases_;                               ///< The leases.
-	std::function<std::vector<std::string>()> people_;   ///< See the constructor.
-	std::function<Leases::Clock::time_point()> clock_;   ///< See the constructor.
+	const DocumentRules& base_;                        ///< The format's rules.
+	const Leases& leases_;                             ///< The leases.
+	std::function<std::vector<std::string>()> people_; ///< See the constructor.
+	std::function<Leases::Clock::time_point()> clock_; ///< See the constructor.
 };
 
 } // namespace affresco::vcs

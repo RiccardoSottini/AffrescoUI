@@ -247,7 +247,13 @@ Permissions Rules::permissions(const json& doc) const {
 }
 
 // On the composed screens: what a feature brings is checked as if the app had it
-void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
+void Rules::checkChange(const json& rawBefore, const json& rawAfter) const { judgeChange(rawBefore, rawAfter, true); }
+
+void Rules::checkOwnChange(const json& rawBefore, const json& rawAfter) const {
+	judgeChange(rawBefore, rawAfter, false);
+}
+
+void Rules::judgeChange(const json& rawBefore, const json& rawAfter, bool scanControls) const {
 	for(const SectionType& section : sections_->sections()) {
 		if(!section.capability) continue;
 		if(rawBefore.value(section.name, json()) != rawAfter.value(section.name, json()))
@@ -265,7 +271,7 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 	const auto granted = grantedActions(rawBefore); // the host's: a revision can't change what its points pass on
 	if(granted != grantedActions(rawAfter))
 		fail("revision", "permission denied: revisions can't change the actions a contribution point passes on");
-	if(controlsIn(before, granted) != controlsIn(after, granted))
+	if(scanControls && controlsIn(before, granted) != controlsIn(after, granted))
 		fail("revision",
 		     "permission denied: revisions can't add, change or move accept, reject, preview, endPreview, "
 		     "restore, revert, undo, patch, call, send, connect or respond steps, nor run an action that has them, "

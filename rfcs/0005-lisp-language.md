@@ -150,6 +150,13 @@ Evaluating a form is submitting a revision.
   merge cleanly and blame shows who added what.
 - **Who may do it:** a person's own input runs with the person's authority. An agent's code is always a proposal.
 
+As built, in stages 4 and 5 (SCREEN_FORMAT.md, "The loop" and "Hooks and advice"):
+
+- **The tools are the library's, and generic.** A step `evaluate` (text from the person's own input), `formBefore`, `formAround`, `printForm`, `describe-function`, `describe-variable`, `describe-key`, `apropos`. The commands `eval-defun`,
+  `eval-last-sexp` and `eval-region` are Calamaio's Lisp, on those.
+- **`checkChange` is judged again for the person's own change only:** `VersionControl::commitOwnInput()`, a call in the host's code that only `/program/` paths pass, skips the scan of what reaches a control step and nothing else. A marker in the commit carries that into a history reloaded.
+- **`init.lisp` is a change set.** What the person evaluates lands in `/program/init.lisp` when no file has its name; `exportChanges` and `importChanges` carry it. A text that arrives from elsewhere goes through `propose`: a proposal in its own name, with no authority of the person's, even accepted.
+
 This is the one deliberate difference from Emacs: its full power goes to the owner, without its whole-trust model applying
 to everyone else.
 

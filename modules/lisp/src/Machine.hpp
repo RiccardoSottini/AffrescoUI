@@ -137,6 +137,17 @@ public:
 	const AuthorSet* unite(const AuthorSet* first, const AuthorSet* second);
 	/// @brief The empty set. @return It.
 	[[nodiscard]] const AuthorSet* noAuthors() const noexcept { return noAuthors_; }
+	/// @brief Who has run since the outermost call began, as a set. @return It.
+	[[nodiscard]] const AuthorSet* ranSet() const noexcept { return ran_; }
+	/// @brief Sets who has run: only ever back to what it was around a run that gives nothing back, or wider.
+	/// @param ran The set.
+	void setRanSet(const AuthorSet* ran) noexcept { ran_ = ran; }
+	/// @brief The names in a set.
+	/// @param authors The set; nullptr for none.
+	/// @return The names, sorted.
+	[[nodiscard]] std::vector<std::string> authorNames(const AuthorSet* authors) const;
+	/// @brief Whether a build's purity is on. @return It.
+	[[nodiscard]] bool pure() const noexcept { return pure_; }
 	/// @brief Every author on the stack. @return Their names, sorted.
 	[[nodiscard]] std::vector<std::string> authorsOnStack() const;
 	/// @brief Every author whose code has run since the outermost call began. @return Their names, sorted.

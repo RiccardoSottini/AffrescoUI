@@ -13,6 +13,7 @@ affrescoui_module(lisp
 	src/Prelude.cpp
 	src/Tree.cpp
 	src/Interpreter.cpp
+	src/Forms.cpp
 	src/Program.cpp
 	src/Document.cpp)
 target_link_libraries(affrescoui_lisp PUBLIC affrescoui::core affrescoui::notation nlohmann_json::nlohmann_json)

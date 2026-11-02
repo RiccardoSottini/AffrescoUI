@@ -71,4 +71,8 @@
         "ctrl+x u" undo
         "ctrl+x ctrl+b" list-buffers
         "ctrl+x d" dired
-        "ctrl+c a" assistant.toggle}}
+        "ctrl+c a" assistant.toggle
+        "ctrl+x ctrl+e" eval-last-sexp
+        "ctrl+j" eval-print-last-sexp
+        "ctrl+alt+x" eval-defun
+        "ctrl+x ctrl+z" undo-evaluation}}

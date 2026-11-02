@@ -31,7 +31,7 @@ scene is `modules/capi/example`.
 
 **JSON or Lisp.** `<app>/json/` is the source and `<app>/lisp/` is written from it, so make a change in `json/` and run
 `python3 tools/notation/lisp_examples.py` (the test `cli_lisp_examples` fails if you forget). An app written as a program
-(RFC 0005) has no `json/`: its `lisp/` is its only source, and the Launcher opens it whichever notation is chosen (`streak`). In `lisp/`, every document
+(RFC 0005) has no `json/`: its `lisp/` is its only source, and the Launcher opens it whichever notation is chosen (`streak`, `calamaio`). In `lisp/`, every document
 an app loads is a `.lisp` file: its screens, what they include, its themes, models and seed data. The files with a reader
 of their own stay JSON (`app.json`, scenarios, policies, adapters, a package's manifest and catalogue). There is one copy
 of the assets, in `<app>/assets/`, named `../assets/...` in both notations. `shared/` keeps a `.lisp` file beside each JSON one it serves. Both versions load as

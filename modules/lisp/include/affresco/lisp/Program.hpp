@@ -64,14 +64,39 @@ struct Entry {
 /// @throws LispError If it can't be read or built, naming the place.
 [[nodiscard]] json buildText(std::string_view text, const std::string& file = "", const Limits& limits = {});
 
-/// @brief A definition that doesn't build anything itself, recorded for a later stage: `add-hook` or `advice`.
-struct Extension {
-	std::string kind;                 ///< `add-hook` or `advice`.
-	std::string name;                 ///< Its address, as the entry's.
-	std::vector<std::string> targets; ///< Its arguments, as written, in order: `after-save`, `notify-saved`.
-	std::string doc;                  ///< Its docstring, or "".
-	std::string author;               ///< Its author.
+/// @brief A form in a text a person or a program has in hand.
+struct FormAt {
+	std::string text;          ///< Its exact text.
+	std::size_t line = 1;      ///< The line it starts on, from 1.
+	std::size_t column = 1;    ///< The column it starts on, from 1, as a text editor counts: in characters.
+	std::size_t endLine = 1;   ///< The line it ends on.
+	std::size_t endColumn = 1; ///< The column just past its end.
+	std::string kind;          ///< Its head, if it is a definition form; else "".
+	std::string name;          ///< Its address, if it is a definition form; else "".
 };
+
+/// @brief The form that ends at or before a position, however deep: what "evaluate the last form" reads. A text that
+/// goes on badly further down doesn't matter; a word, a string or a list all count.
+/// @param text The text.
+/// @param line The position's line, from 1.
+/// @param column Its column, from 1, in characters.
+/// @return The form, or std::nullopt if none ends there.
+[[nodiscard]] std::optional<FormAt> formBefore(std::string_view text, std::size_t line, std::size_t column);
+
+/// @brief The top-level form around a position, or else the last one before it, or else the next: what "evaluate this
+/// definition" reads.
+/// @param text The text.
+/// @param line The position's line, from 1.
+/// @param column Its column, from 1, in characters.
+/// @return The form, or std::nullopt if there is none or the one around it isn't finished.
+[[nodiscard]] std::optional<FormAt> formAround(std::string_view text, std::size_t line, std::size_t column);
+
+/// @brief A text's top-level forms, each with its exact text: "evaluate this region".
+/// @param text The text.
+/// @param file Its name, for errors.
+/// @return The forms. Those that aren't definition forms have an empty FormAt::kind.
+/// @throws LispError If it can't be read.
+[[nodiscard]] std::vector<FormAt> formsOf(std::string_view text, const std::string& file = "");
 
 /// @brief A name a definition's code uses that nothing defines. Not an error until it runs: a function's body may use
 /// what the host gives only when the app runs.
@@ -122,7 +147,8 @@ public:
 	/// @throws LispError If building fails or a limit runs out, naming the place.
 	[[nodiscard]] json build(const Limits& limits = {});
 
-	/// @brief The `add-hook` and `advice` definitions of the last build. @return Them, in order of the entries.
+	/// @brief The `add-hook`, `remove-hook` and `advice` definitions of the last build. @return Them, in order of the
+	/// entries.
 	[[nodiscard]] const std::vector<Extension>& extensions() const noexcept { return extensions_; }
 	/// @brief The names the last build's definitions use that nothing defines. @return Them, in order of use.
 	[[nodiscard]] const std::vector<UndefinedName>& undefinedNames() const noexcept { return undefined_; }

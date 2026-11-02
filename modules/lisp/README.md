@@ -29,8 +29,8 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 | Header | Offers |
 |---|---|
 | `Value.hpp` | `Value`, `Kind`, `Place`: JSON's values plus symbols, keywords, lists and functions |
-| `Interpreter.hpp` | `Interpreter` (`eval`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `authorsThatRan`, `leastAuthority`, `authorOf`, `definitionNameOf`, `parametersOf`, `isProgramFunction`, `workOutDefinitions`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`, `Transient`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
-| `Program.hpp` | `Program` (`addFile`, `addEntry`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `namesUsed`), `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `Extension`, `UndefinedName` |
+| `Interpreter.hpp` | `Interpreter` (`eval`, `evaluate`, `expandsToDefinition`, `extensions`, `definitionNames`, `wrapGlobal`, `makeFunction`, `Sealed`, `addAuthorsThatRan`, `authorsOf`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `authorsThatRan`, `leastAuthority`, `authorOf`, `definitionNameOf`, `parametersOf`, `isProgramFunction`, `workOutDefinitions`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`, `Transient`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
+| `Program.hpp` | `Program` (`addFile`, `addEntry`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `namesUsed`), `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
 | `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits |
 
 ## Values
@@ -55,7 +55,7 @@ while building and a host gives while running.
 Functions: `+ - * / mod rem inc dec min max abs < > <= >= = not= not`, `nil? some? boolean? number? string? symbol? keyword?
 list? vector? map? fn? empty? contains?`, `first second last rest nth cons conj list vec concat reverse range sort sort-by
 take drop count get get-in assoc assoc-in dissoc update update-in merge keys vals zipmap`, `map map-indexed mapcat filter
-remove find some every? reduce apply identity`, `str join subs upper-case lower-case name keyword symbol gensym`. `map` and
+remove find some every? reduce apply identity`, `str pr-str join subs upper-case lower-case name keyword symbol gensym`. `map` and
 the others give vectors, not lazy sequences. `map` takes one collection. `(:a m)` and `(m :a)` look a key up. Integers stay
 integers until they overflow, then go on as doubles; dividing by zero is an error.
 
@@ -73,7 +73,8 @@ Definitions, top-level only, each with a docstring after the name (after the val
 | `(defcommand name "doc"? :key value ... [params] body...)` | A function | `actions.name`: the keys (a template), `description` from the docstring, and `do: [{"lisp": name}]`, which runs the function |
 | `(defkey "chord" "doc"? what)` | Nothing callable | `keys.chord`: a template, a word being an action's name |
 | `(defcustom name value "doc"? :key value ...)` | A global: the value | `settings.name`: `type`, `default`, the other keys, `description` |
-| `(add-hook hook "doc"? function)`, `(advice target "doc"? how... function)` | Nothing yet | Nothing: recorded in `Program::extensions()` |
+| `(defhook name "doc"?)` | A global: its own name, as text | Nothing: a hook point, for `run-hooks` and `describe-*` |
+| `(add-hook hook "doc"? function)`, `(remove-hook hook "doc"? function)`, `(advice target "doc"? :before/:after/:around function)` | Nothing the language runs: a host does | Nothing: recorded in `Program::extensions()`. The build refuses one whose function the program doesn't define |
 
 ## Programs
 
@@ -191,12 +192,7 @@ author)` the same for what is evaluated.
 **`format::Programs` is the host in an app** (`modules/format/src/programs/`): the rules are in SECURITY.md, "The Lisp language". For the next
 stages:
 
-- **Hooks and advice.** `Program::extensions()` lists them; `Programs::run` runs a function by name, so a hook's run is that, under an
-  `AuthorityScope` holding the authors of whatever set it off: the check needs nothing new. A hook belongs to its entry, so it goes with a new
-  interpreter when the entry goes.
-- **`eval-defun`** is a revision on `/program/...`, by the author `user` when the person's own input runs it: a primitive of capability `review`
-  is checked by author and input as it stands. `Rules::checkChange` (the scan of new ways to reach a control step) refuses any author today, the
-  person too: stage 4 must let the person's own revision past it, and only that.
+- **`evaluate`** (`ProgramEvaluate.cpp`): `formsOf` splits the text, a definition goes in a revision by the author `user`, through `VersionControl::commitOwnInput()` (the step checked the person's own input), and anything else through `Interpreter::evaluate`, which compiles with purity on and runs as that author, the authors of any macro it holds with it.
 - **`describe-*`** read `Interpreter::describe` (docstring, author, place), and give no value.
 
 ## Files
@@ -220,6 +216,7 @@ src/
   TopLevel.hpp          what the interpreter and programs share
   Interpreter.cpp       the machine, seen from outside
   Program.cpp           the split, loading, the build
+  Forms.cpp             forms in a text being edited: before a position, around it, all of them
   Document.cpp          documents holding programs: reading them, what they build, the keyword edit
 CMakeLists.txt          the affrescoui_lisp target
 ```

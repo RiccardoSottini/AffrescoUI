@@ -29,7 +29,7 @@ TEST_CASE("lisp examples: every example is there in both notations, and loads as
 		      Screen::fromApp(entry.path() / "json", {}, Screen::History::InMemory).documentJson());
 		++apps;
 	}
-	CHECK(apps >= 13);
+	CHECK(apps >= 12);
 }
 
 TEST_CASE("lisp examples: a lisp folder holds Lisp, but for scenarios and a signed catalogue") {

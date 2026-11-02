@@ -42,7 +42,14 @@
                        "shift+comma" "<"
                        "shift+period" ">"
                        "shift+slash" "?"}}
- :actions {:message [{:set state.echo :to "{{m}}"} {:set state.bufs.b2.text :to "{{state.bufs.b2.text + m + '\n'}}"}]
+ :actions {:accept-proposal {:title "Accept Proposal"
+                             :category "Lisp"
+                             :description "Accepts the first proposal waiting, as it stands."
+                             :do [{:accept "{{proposals[0].id}}" :head "{{proposals[0].head}}"}]}
+           :undo-evaluation {:title "Undo Last Evaluation"
+                             :category "Lisp"
+                             :description "Takes back what was last evaluated: the definition goes back, exactly. What it did to the state stays."
+                             :do [{:undo true}]}
            :move [{:if "{{state.arg != null}}" :then [{:set state.echo :to ""}]}
                   {:if "{{computed.text}}"
                    :then [{:press "{{(state.mark.on ? 'shift+' : '') + k}}"

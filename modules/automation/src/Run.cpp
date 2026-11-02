@@ -4,7 +4,7 @@
 
 #include "affresco/automation/Scenarios.hpp"
 
-#include "Headless.hpp"      // the render module's headless window and manual clock
+#include "Headless.hpp" // the render module's headless window and manual clock
 #include "Player.hpp"
 #include "ScratchFolder.hpp" // the screen module's
 
@@ -92,8 +92,8 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 	window->setMinSize(sizeIn(settings, "minWidth", 0), sizeIn(settings, "minHeight", 0));
 
 	Screen screen = unconnectedScreen(document, scenario.screen.parent_path(), scratch / "no-host");
-	screen.setPlaceholderTypes(true); // as affrescoui_launcher does
-	screen.services().setInline(true);  // a service's results arrive before its call returns: the same every run
+	screen.setPlaceholderTypes(true);  // as affrescoui_launcher does
+	screen.services().setInline(true); // a service's results arrive before its call returns: the same every run
 	if(options.prepare) options.prepare(screen);
 	screen.build(*window);
 	screen.startChannels(noPeers);
@@ -108,7 +108,8 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 ScenarioResult runScenario(const Scenario& scenario, const Options& options, const std::filesystem::path& scratch) {
 	ScenarioResult result{scenario.name, {}, {}, 0};
 	try {
-		play(scenario, options.document ? *options.document : screenDocument(scenario.screen), options, scratch, result);
+		play(scenario, options.document ? *options.document : screenDocument(scenario.screen), options, scratch,
+		     result);
 	} catch(const std::exception& error) { // the screen didn't load or build: step 0
 		result.failures.push_back({0, std::string("could not start: ") + error.what()});
 	}
@@ -155,10 +156,24 @@ json Report::toJson() const {
 	return {{"file", file.filename().string()}, {"passed", passed()}, {"failed", failed()}, {"failures", failures}};
 }
 
+namespace {
+
+/// @brief A loaded screen's document, as a scenario plays it: a program as its source, since what it builds isn't its
+/// own to edit.
+/// @param screen The screen.
+/// @return The JSON text.
+std::string sourceJson(Screen& screen) {
+	const json& source = screen.versions().sourceDocument();
+	return lisp::hasProgram(source) ? source.dump() : screen.documentJson();
+}
+
+} // namespace
+
 std::string screenDocument(const std::filesystem::path& screen) {
 	const std::filesystem::path manifest = Screen::appOf(screen);
 	if(manifest.empty()) return lisp::jsonText(readText(screen), screen); // JSON, Lisp or a program
-	return Screen::fromApp(manifest, {}, Screen::History::InMemory).documentJson();
+	Screen app = Screen::fromApp(manifest, {}, Screen::History::InMemory);
+	return sourceJson(app);
 }
 
 /// @brief Loads a screen connected to nobody: its channels, its includes' too, are pointed at one socket in a folder
@@ -172,7 +187,7 @@ std::string screenDocument(const std::filesystem::path& screen) {
 Screen unconnectedScreen(const std::string& document, const std::filesystem::path& directory,
                          const std::filesystem::path& nowhere) {
 	Screen screen = Screen::fromString(document, directory);
-	json loaded = parseUntrusted(screen.documentJson()); // the includes in place
+	json loaded = parseUntrusted(sourceJson(screen)); // the includes in place
 	if(loaded.contains("channels") && loaded["channels"].is_object()) {
 		for(auto& [name, channel] : loaded["channels"].items())
 			if(channel.is_object()) channel["socket"] = "none.sock";

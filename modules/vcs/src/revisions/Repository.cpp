@@ -372,7 +372,9 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	detail::expectNarrowEnough(result.before, after);
 
 	judgeProgram(result, document, after);
-	rules_.checkChange(result.before, after); // with the live state: the checker reads state paths
+	// With the live state: the checker reads state paths
+	if(ownInput_) rules_.checkOwnChange(result.before, after);
+	else rules_.checkChange(result.before, after);
 	rules_.validate(result.document);
 	result.after = std::move(after);
 	return result;
@@ -441,12 +443,30 @@ std::optional<std::string> Repository::commit(const json& revision) {
 		c.time = detail::utcNow();
 		c.patch = std::move(next.patch);
 		c.run = run;
+		c.ownInput = ownInput_;
 		land(std::move(c), std::move(next.document), std::move(next.state));
 		staged.keep();
 	} catch(const DocumentError& error) {
 		return error.what();
 	}
 	return std::nullopt;
+}
+
+std::optional<std::string> Repository::commitOwnInput(const json& revision) {
+	const auto patch = revision.find("patch");
+	if(!revision.is_object() || patch == revision.end() || !patch->is_array())
+		return "revision: the person's own change is a patch of the program";
+	for(const json& op : *patch) {
+		const bool inside = op.is_object() && op.contains("path") && op["path"].is_string() &&
+		                    op["path"].get_ref<const std::string&>().starts_with("/program/");
+		if(!inside || op.contains("from")) return "revision: the person's own change only reaches /program/";
+	}
+	struct Own {
+		bool& flag; ///< The flag.
+		~Own() { flag = false; }
+	} own{ownInput_};
+	ownInput_ = true;
+	return commit(revision);
 }
 
 RevisionResult Repository::submit(const json& revision) { return submitRevision(revision, false); }

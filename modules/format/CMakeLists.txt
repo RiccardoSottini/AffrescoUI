@@ -33,6 +33,7 @@ target_sources(affrescoui_format PRIVATE
 	src/functions/ExpressionFunctionsGit.cpp
 	src/functions/ExpressionFunctionsItems.cpp
 	src/functions/ExpressionFunctionsFold.cpp
+	src/functions/ExpressionFunctionsForms.cpp
 	src/functions/ExpressionFunctionsKeys.cpp
 	src/functions/ExpressionFunctionsKeyframes.cpp
 	src/functions/ExpressionFunctionsLists.cpp
@@ -135,7 +136,8 @@ target_include_directories(affrescoui_format PRIVATE src/steps)
 # src/programs/: a document's live Lisp program: calling its functions, and the checks by author (RFC 0005)
 target_sources(affrescoui_format PRIVATE
 	src/programs/Programs.cpp
-	src/programs/ProgramSteps.cpp)
+	src/programs/ProgramSteps.cpp
+	src/programs/ProgramEvaluate.cpp)
 target_include_directories(affrescoui_format PRIVATE src/programs)
 # src/calls/: asynchronous and service calls
 target_sources(affrescoui_format PRIVATE

@@ -202,6 +202,7 @@ struct NativeObject final : Object {
 	NativeFunction function = nullptr; ///< The language's own function, or nullptr for a host's.
 	Primitive host;                    ///< A host's primitive.
 	bool spread = false;               ///< `apply`: the machine spreads its last argument and calls its first.
+	Value wrapped;                     ///< The function a host wraps with it (Interpreter::wrapGlobal()), or nil.
 };
 
 /// @brief A value `~@` spreads.

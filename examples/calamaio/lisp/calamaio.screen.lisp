@@ -22,7 +22,8 @@
            "parts/files.lisp"
            "parts/frame.lisp"
            "parts/commands.lisp"
-           "parts/killring.lisp"
+           killring.lisp
+           loop.lisp
            "parts/editing.lisp"
            "parts/listings.lisp"
            "parts/guides.lisp"

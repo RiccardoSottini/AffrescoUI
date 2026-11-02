@@ -1034,7 +1034,8 @@ Wherever a value is expected it can be computed:
   `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`, `pathTree(list, key?)`,
   `keyLabel(chord, notation?)`, `qrCode(text, level?)`, `diffLines(original, modified, options?)`,
   `atPointer(value, pointer)`, `applyPatch(value, patch)`, `formatJson(value, indent?)`,
-  `gitStatus(output)` (up to 10000 files), `gitBranches(output)` (up to 10000 branches);
+  `gitStatus(output)` (up to 10000 files), `gitBranches(output)` (up to 10000 branches),
+  `formBefore(text, line, column)`, `formAround(text, line, column)`, `printForm(value)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
@@ -1320,7 +1321,11 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
-| `lisp` | `{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too) |
+| `lisp`, `only` | `{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too) |
+| `evaluate` | `{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text from the person's own input, never a timer or a handler that fires by itself. Each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code; `then` gets `result`, the last one's value as Lisp, and `error` |
+| `propose` | `{ "propose": "{{state.text}}", "as": "init.lisp", "file": "init.lisp", "then": [...], "onError": [...] }`: Lisp text of definitions, or a change set, as a proposal in the name `plugin:<as>`, whatever the rules would let it do; `then` gets `proposal`, `onError` gets `error` |
+| `exportChanges` | `{ "exportChanges": "my init", "only": "/program/init.lisp", "from": 0, "into": "state.changes" }`: the commits on main after `from`, those that only touch what starts with `only`, as a change set |
+| `runHooks` | `{ "runHooks": "after-save", "with": ["{{item.name}}"] }`: runs a program's functions added to that hook point (`defhook`, `add-hook`), each under its own author's authority |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
 | `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images) |
@@ -2265,7 +2270,7 @@ builds
 | `(defkey "chord" "doc"? what)` | `keys.chord` |
 | `(defcustom name value "doc"? :key value ...)` | `settings.name`, and the global `name` |
 | `(def name "doc"? value)`, `(defn ...)`, `(defmacro ...)` | Nothing: what the others use |
-| `(add-hook hook "doc"? f)`, `(advice target "doc"? how... f)` | Nothing yet: recorded |
+| `(defhook name "doc"?)`, `(add-hook hook "doc"? f)`, `(remove-hook hook "doc"? f)`, `(advice target "doc"? :before/:after/:around f)` | Nothing it builds: they run in the app ("Hooks and advice", below) |
 
 - **A program** is a file with several top-level forms, or one that is a definition. Each form is a definition with a name, the
   order doesn't matter, a name twice is an error naming both places, and the sections are sorted by name.
@@ -2345,6 +2350,39 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
 - **A change of the program** takes effect at once, whole: a new version of it replaces the one before, so a definition taken away is
   gone, and an undo gives back exactly the definitions it had. A function running at that moment ends on its own version. The live state stays, what is
   scheduled goes on (and finds the new definition of its name).
+
+### The loop: evaluating from inside the app
+
+Evaluating a form is submitting a revision. These are the library's tools for it, generic: a code editor or a spreadsheet would use
+them as Calamaio does (`examples/calamaio/lisp/loop.lisp`).
+
+```lisp
+(defn show "Shows what was evaluated." [result error] (set "state.echo" (or error result)))
+(defcommand eval-defun "Evaluates the definition around point." :title "Evaluate Definition" []
+  (let [at state.caret
+        form (formAround state.text (:line at) (:column at))]
+    (when form (evaluate (:text form) :file "init.lisp" :then show))))
+```
+
+| Step or function | What it does |
+|---|---|
+| `{ "evaluate": text, "file": "init.lisp", "then": steps }` | Each definition in the text becomes an entry of the program, all in one revision by the person: a definition of that name is replaced where it is, a new one goes in `file`. Then each other form runs for its value, as the person's code; history doesn't move for them. `then` gets `result`, the last form's value printed as Lisp (a definition's address, for a definition), and `error`. **Only from the person's own input:** a key or a click, never a timer, a `watch` or a handler that fires by itself, and not while a proposal is previewed |
+| `{ "propose": text or change set, "as": "init.lisp", "file": "init.lisp", "then": steps, "onError": steps }` | The same text as something from elsewhere: a proposal in the name `plugin:<as>`, whatever the rules would let it do. It holds definitions only, and what a revision may not do it may not do. `then` gets `proposal`, `onError` gets `error` |
+| `{ "exportChanges": "name", "only": "/program/init.lisp", "from": 0, "into": "state.changes" }` | The commits on `main` after `from` as a change set, only those wholly under `only` |
+| `formBefore(text, line, column)` | The form that ends at or before a position, however deep: `{text, line, column, endLine, endColumn, kind, name}`, or null. Lines and columns count from 1, as an editor's `caret` does |
+| `formAround(text, line, column)` | The top-level form around a position, or else the last before it, or else the next; null if the one around it isn't finished |
+| `printForm(value)`, `(pr-str value)` | A value as Lisp text |
+| `(describe-function name)`, `(describe-variable name)` | What is known of a definition or a command: `{name, kind, doc, author, file, line, arguments}`, with `title` and `category` for a command; never a value; nil if it isn't there |
+| `(describe-key "ctrl+k")` | `{key, runs, command}`: what a key runs, and that described |
+| `(apropos "text")` | Everything defined whose name holds the text, each described |
+| `(program-file "init.lisp")` | A file of the program, its entries one after another |
+
+**Commands.** A `defcommand` is callable by name (`{ "run": "kill-word", "with": { "times": 2 } }`, a command palette, `M-x`): its action has `title`,
+`category`, `description` from the docstring and `arguments`, its function's parameters, and the `commands` variable lists them.
+
+**`describe-*` and `apropos` obey read masks:** for code whose authors include a limited reader, a definition its `read` doesn't name isn't there.
+
+**An init file** is a change set (VERSION_CONTROL.md, "Programs"): what a person evaluates is exported, imported and undone like any customisation.
 
 ### A program in the document
 
