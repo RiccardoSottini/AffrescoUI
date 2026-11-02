@@ -133,6 +133,8 @@ function per instruction). Calls and returns use the machine's own stack, so no 
 - The walks over a whole value (making a tree, printing, `=`) spend from the budget and stop at a depth (`maxValueDepth`,
   `maxNesting`). The native recursion that remains is the reader's (`maxNesting`), the compiler's (`maxCompileDepth`, macro output
   included) and runs inside runs (`maxNestedRuns`: macro expansion and a primitive calling back).
+- Those depths are set against an 8 MiB main-thread stack, as on macOS and Linux. On Windows, a program that links `lisp` gets the
+  same (`/STACK` with MSVC, `--stack` with MinGW), passed on through the target and the installed package.
 
 ## Limits
 
