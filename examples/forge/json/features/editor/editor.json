@@ -526,9 +526,9 @@
 										"visible": "{{gi == state.activeGroup && !empty(computed.conflictBlocks)}}"
 									},
 									{
-										"when": "{{state.docs[d].kind == 'file'}}",
-										"id": "editor",
 										"type": "editor",
+										"id": "editor",
+										"when": "{{state.docs[d].kind == 'file'}}",
 										"font": "code",
 										"width": "100%",
 										"grow": 1,

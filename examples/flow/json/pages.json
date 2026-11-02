@@ -94,7 +94,7 @@
 			"note": "A page's top bar: an icon, a title and room for buttons on the end side",
 			"params": { "icon": "circle", "text": "" },
 			"node": { "id": "pageHeader", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 48, "color": "transparent", "children": [
-				{ "id": "pageTitle", "type": "label", "font": "small", "icon": "{{icon}}", "text": " {{text}}", "textColor": "@color.text", "fitText": true,
+				{ "type": "label", "id": "pageTitle", "font": "small", "icon": "{{icon}}", "text": " {{text}}", "textColor": "@color.text", "fitText": true,
 					"anchors": { "left": 20, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" }, "role": "heading" },
 				{ "id": "pageLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" }
 			] }
@@ -112,7 +112,7 @@
 			"params": { "text": "", "value": "", "color": "#111827" },
 			"node": { "id": "cycleStat", "width": 130, "height": 44, "color": "transparent", "children": [
 				{ "id": "cycleStatName", "style": "caption", "text": "{{text}}", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 20, "align": { "horizontal": "start", "vertical": "center" } },
-				{ "id": "cycleStatValue", "type": "label", "font": "title", "text": "{{value}}", "textColor": "{{color}}", "anchors": { "left": 0, "right": 0, "top": 20 }, "height": 28,
+				{ "type": "label", "id": "cycleStatValue", "font": "title", "text": "{{value}}", "textColor": "{{color}}", "anchors": { "left": 0, "right": 0, "top": 20 }, "height": 28,
 					"align": { "horizontal": "start", "vertical": "center" } }
 			] }
 		},
@@ -130,8 +130,8 @@
 					{ "id": "inboxAllRead", "style": "topButton", "icon": "check-check", "text": "", "width": 28, "height": 28, "padding": 0, "align": "center",
 						"anchors": { "right": 12, "top": 10 }, "tooltip": "{{t('inbox.allRead')}}", "label": "{{t('inbox.allRead')}}", "onClick": "markAllRead" },
 					{
-						"id": "inboxList",
 						"type": "column",
+						"id": "inboxList",
 						"anchors": { "left": 0, "top": 48, "bottom": 0 },
 						"width": 360,
 						"scroll": "vertical",
@@ -154,8 +154,8 @@
 									{ "id": "inboxUnread", "when": "{{!n.read}}", "width": 6, "height": 6, "radius": 3, "color": "@color.accent", "anchors": { "left": 8, "top": 27 } },
 									{ "id": "inboxWho", "style": "badge", "text": "{{n.who}}", "width": 24, "height": 24, "radius": 999, "anchors": { "left": 20, "top": 10 },
 										"color": "{{find(state.members, it.who == n.who).color ?? '@color.muted'}}", "textColor": "#ffffff" },
-									{ "id": "inboxRef", "type": "label", "font": "small", "width": 44, "textColor": "@color.muted", "text": "{{n.ref}}", "padding": 0, "anchors": { "left": 54, "top": 8 }, "height": 22, "align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "inboxTitle", "type": "label", "font": "small", "anchors": { "left": 98, "right": 64, "top": 8 }, "height": 22, "padding": 0,
+									{ "type": "label", "id": "inboxRef", "font": "small", "width": 44, "textColor": "@color.muted", "text": "{{n.ref}}", "padding": 0, "anchors": { "left": 54, "top": 8 }, "height": 22, "align": { "horizontal": "start", "vertical": "center" } },
+									{ "type": "label", "id": "inboxTitle", "font": "small", "anchors": { "left": 98, "right": 64, "top": 8 }, "height": 22, "padding": 0,
 										"textColor": "{{n.read ? '@color.muted' : '@color.text'}}", "align": { "horizontal": "start", "vertical": "center" },
 										"text": "{{find(computed.allCards, it.ref == n.ref).title ?? ''}}" },
 									{ "id": "inboxWhat", "style": "caption", "anchors": { "left": 54, "right": 16, "top": 30 }, "height": 20,
@@ -168,7 +168,7 @@
 						]
 					},
 					{ "id": "inboxDivider", "anchors": { "left": 360, "top": 48, "bottom": 0 }, "width": 1, "color": "@color.border" },
-					{ "id": "inboxEmpty", "when": "{{computed.notification == null}}", "type": "label", "icon": "inbox", "text": " {{t('inbox.empty')}}", "textColor": "@color.muted",
+					{ "type": "label", "id": "inboxEmpty", "when": "{{computed.notification == null}}", "icon": "inbox", "text": " {{t('inbox.empty')}}", "textColor": "@color.muted",
 						"anchors": { "left": 361, "right": 0, "top": 48, "bottom": 0 }, "align": "center" },
 					{
 						"id": "inboxDetail",
@@ -177,19 +177,19 @@
 						"color": "transparent",
 						"children": [
 							{ "id": "inboxDetailRef", "style": "caption", "text": "{{computed.notification.ref}}", "anchors": { "left": 40, "top": 32 }, "height": 20 },
-							{ "id": "inboxDetailTitle", "type": "label", "font": "title", "text": "{{computed.notificationCard.title ?? ''}}", "textColor": "@color.text",
+							{ "type": "label", "id": "inboxDetailTitle", "font": "title", "text": "{{computed.notificationCard.title ?? ''}}", "textColor": "@color.text",
 								"anchors": { "left": 40, "right": 40, "top": 54 }, "height": 36, "align": { "horizontal": "start", "vertical": "center" } },
 							{ "id": "inboxDetailEvent", "anchors": { "left": 40, "right": 40, "top": 144 }, "height": 64, "radius": "@radius.card", "color": "@color.column",
 								"children": [
 									{ "id": "inboxDetailWho", "style": "badge", "text": "{{computed.notification.who}}", "width": 24, "height": 24, "radius": 999, "anchors": { "left": 14, "top": 10 },
 										"color": "{{find(state.members, it.who == computed.notification.who).color ?? '@color.muted'}}", "textColor": "#ffffff" },
-									{ "id": "inboxDetailWhat", "type": "label", "font": "small", "textColor": "@color.text", "anchors": { "left": 48, "right": 14, "top": 10 }, "height": 24,
+									{ "type": "label", "id": "inboxDetailWhat", "font": "small", "textColor": "@color.text", "anchors": { "left": 48, "right": 14, "top": 10 }, "height": 24,
 										"align": { "horizontal": "start", "vertical": "center" },
 										"text": "{{t('inbox.' + computed.notification.kind, { who: find(state.members, it.who == computed.notification.who).name ?? computed.notification.who, to: computed.notification.to ?? '' })}}" },
 									{ "id": "inboxDetailText", "style": "caption", "anchors": { "left": 48, "right": 14, "top": 34 }, "height": 20,
 										"align": { "horizontal": "start", "vertical": "center" }, "text": "{{computed.notification.text ?? ''}}" }
 								] },
-							{ "id": "inboxProps", "type": "row", "gap": 6, "anchors": { "left": 40, "right": 40, "top": 102 }, "height": 24, "alignItems": "center",
+							{ "type": "row", "id": "inboxProps", "gap": 6, "anchors": { "left": 40, "right": 40, "top": 102 }, "height": 24, "alignItems": "center",
 								"let": { "card": "{{computed.notificationCard}}", "col": "{{computed.columns[computed.notificationCard.c]}}" }, "children": [
 								{ "id": "inboxStatus", "style": "cardChip", "textColor": "@color.text", "runs": [{ "icon": "{{state.statusIcons[card.c] ?? 'circle'}}", "color": "{{col.color}}" }, "\u00a0{{col.name}}"] },
 								{ "id": "inboxPriority", "style": "cardChip", "textColor": "@color.text",
@@ -197,7 +197,7 @@
 								{ "id": "inboxAssignee", "style": "cardChip", "textColor": "@color.text", "icon": "circle-user", "text": "\u00a0{{find(state.members, it.who == card.who).name ?? card.who}}" },
 								{ "id": "inboxTag", "style": "cardChip", "textColor": "@color.text", "runs": [{ "text": "●", "font": "symbols", "size": 10, "color": "@{{card.tag}}" }, "\u00a0{{t('tag.' + card.tag)}}"] }
 							] },
-							{ "id": "inboxActions", "type": "row", "gap": 8, "anchors": { "left": 40, "right": 40, "top": 224 }, "height": 28, "children": [
+							{ "type": "row", "id": "inboxActions", "gap": 8, "anchors": { "left": 40, "right": 40, "top": 224 }, "height": 28, "children": [
 								{ "id": "inboxOpen", "style": "propValue", "icon": "maximize-2", "text": " {{t('inbox.open')}}", "onClick": "openNotification", "tooltip": "Enter" },
 								{ "id": "inboxSnooze", "style": "propValue", "icon": "alarm-clock", "text": " {{t('inbox.snooze')}}", "onClick": "snoozeNotification", "tooltip": "H" },
 								{ "id": "inboxRead", "style": "propValue", "icon": "{{computed.notification.read ? 'mail' : 'mail-check'}}",
@@ -228,7 +228,7 @@
 						"borderColor": "@color.border",
 						"color": "transparent",
 						"children": [
-							{ "id": "cycleName", "type": "label", "font": "small", "anchors": { "left": 20, "top": 14 }, "height": 22, "fitText": true, "textColor": "@color.text",
+							{ "type": "label", "id": "cycleName", "font": "small", "anchors": { "left": 20, "top": 14 }, "height": 22, "fitText": true, "textColor": "@color.text",
 								"runs": [{ "text": "{{t('cycle.name', { n: state.cycle.number })}}", "bold": true }, "   ", { "text": "{{t('cycle.current')}}", "color": "@color.accent" }] },
 							{ "id": "cycleDates", "style": "caption", "anchors": { "left": 20, "top": 36 }, "height": 20,
 								"text": "{{formatDate(dateMs(state.cycle.start), 'MMM d', 'utc')}} – {{formatDate(dateMs(state.cycle.end), 'MMM d', 'utc')}}  ·  {{t('cycle.left', { n: daysBetween(state.today, state.cycle.end) })}}" },
@@ -247,8 +247,8 @@
 						]
 					},
 					{
-						"id": "cycleRows",
 						"type": "column",
+						"id": "cycleRows",
 						"anchors": { "left": 24, "right": 24, "top": 320, "bottom": 0 },
 						"scroll": "vertical",
 						"role": "list",
@@ -269,13 +269,13 @@
 								"keys": { "enter": [{ "run": "selectCard", "with": { "c": "{{card.c}}", "i": "{{card.at}}" } }, { "set": "state.page", "to": "issues" }, { "set": "state.issueOpen", "to": true }] },
 								"children": [
 									{ "id": "cycleIssueLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" },
-									{ "id": "cycleIssuePriority", "type": "label", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "fitText": true,
+									{ "type": "label", "id": "cycleIssuePriority", "icon": "{{state.priorities[card.priority ?? 0]}}", "text": "", "fitText": true,
 										"textColor": "{{card.priority == 1 ? '@bug' : '@color.muted'}}", "anchors": { "left": 12, "top": 0, "bottom": 0 }, "align": "center" },
 									{ "id": "cycleIssueRef", "style": "caption", "text": "{{card.ref}}", "width": 56, "fitText": false, "anchors": { "left": 36, "top": 0, "bottom": 0 },
 										"align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "cycleIssueStatus", "type": "label", "icon": "{{state.statusIcons[card.c] ?? 'circle'}}", "text": "", "fitText": true, "textColor": "{{computed.columns[card.c].color}}",
+									{ "type": "label", "id": "cycleIssueStatus", "icon": "{{state.statusIcons[card.c] ?? 'circle'}}", "text": "", "fitText": true, "textColor": "{{computed.columns[card.c].color}}",
 										"anchors": { "left": 100, "top": 0, "bottom": 0 }, "align": "center" },
-									{ "id": "cycleIssueTitle", "type": "label", "font": "small", "text": "{{card.title}}", "textColor": "@color.text", "anchors": { "left": 124, "right": 120, "top": 0, "bottom": 0 },
+									{ "type": "label", "id": "cycleIssueTitle", "font": "small", "text": "{{card.title}}", "textColor": "@color.text", "anchors": { "left": 124, "right": 120, "top": 0, "bottom": 0 },
 										"align": { "horizontal": "start", "vertical": "center" } },
 									{ "id": "cycleIssuePoints", "style": "caption", "text": "{{card.points ?? ''}}", "width": 24, "fitText": false, "anchors": { "right": 44, "top": 0, "bottom": 0 },
 										"align": { "horizontal": "end", "vertical": "center" } },
@@ -294,9 +294,9 @@
 								"label": "{{t('cycle.name', { n: cycle.number })}}",
 								"children": [
 									{ "id": "cycleRowLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" },
-									{ "id": "cycleRowIcon", "type": "label", "icon": "{{cycle.done >= cycle.scope || cycle.number < state.cycle.number ? 'check-circle-2' : cycle.done == 0 ? 'circle-dashed' : 'circle-dot'}}", "text": "", "fitText": true,
+									{ "type": "label", "id": "cycleRowIcon", "icon": "{{cycle.done >= cycle.scope || cycle.number < state.cycle.number ? 'check-circle-2' : cycle.done == 0 ? 'circle-dashed' : 'circle-dot'}}", "text": "", "fitText": true,
 										"textColor": "{{cycle.done == 0 ? '@color.muted' : '@color.accent'}}", "anchors": { "left": 8, "top": 0, "bottom": 0 }, "align": "center" },
-									{ "id": "cycleRowName", "type": "label", "font": "small", "text": "{{t('cycle.name', { n: cycle.number })}}", "textColor": "@color.text", "width": 120,
+									{ "type": "label", "id": "cycleRowName", "font": "small", "text": "{{t('cycle.name', { n: cycle.number })}}", "textColor": "@color.text", "width": 120,
 										"anchors": { "left": 36, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
 									{ "id": "cycleRowDates", "style": "caption", "width": 180, "fitText": false, "anchors": { "left": 160, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" },
 										"text": "{{formatDate(dateMs(cycle.start), 'MMM d', 'utc')}} – {{formatDate(dateMs(cycle.end), 'MMM d', 'utc')}}" },
@@ -324,7 +324,7 @@
 				"label": "{{t('nav.projects')}}",
 				"children": [
 					{ "id": "projectsHeader", "use": "pageHeader", "with": { "icon": "box", "text": "{{t('nav.projects')}}" } },
-					{ "id": "projectTabs", "type": "row", "gap": 2, "anchors": { "left": 120, "top": 10 }, "width": 360, "height": 28, "role": "tablist", "arrows": "horizontal", "children": [
+					{ "type": "row", "id": "projectTabs", "gap": 2, "anchors": { "left": 120, "top": 10 }, "width": 360, "height": 28, "role": "tablist", "arrows": "horizontal", "children": [
 						{ "id": "projectTab", "repeat": { "for": "scope", "in": "['all', 'active', 'completed']" }, "style": "{{state.projectScope == scope ? 'toolButtonOn' : 'toolButton'}}",
 							"borderWidth": "{{state.projectScope == scope ? 1 : 0}}", "text": "{{t('projects.' + scope)}}", "role": "tab", "selected": "{{state.projectScope == scope}}",
 							"onClick": { "set": "state.projectScope", "to": "{{scope}}" } }
@@ -340,8 +340,8 @@
 						{ "id": "projectsColumnsLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" }
 					] },
 					{
-						"id": "projectRows",
 						"type": "column",
+						"id": "projectRows",
 						"anchors": { "left": 0, "right": 0, "top": 80, "bottom": 0 },
 						"scroll": "vertical",
 						"role": "list",
@@ -362,11 +362,11 @@
 								"keys": { "enter": { "run": "openProject", "with": { "at": "{{indexOf(map(data.projects, it.name), project.name)}}" } } },
 								"children": [
 									{ "id": "projectRowLine", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@color.border" },
-									{ "id": "projectIcon", "type": "label", "icon": "{{project.icon}}", "text": "", "width": 22, "height": 22, "radius": 5, "align": "center",
+									{ "type": "label", "id": "projectIcon", "icon": "{{project.icon}}", "text": "", "width": 22, "height": 22, "radius": 5, "align": "center",
 										"color": "{{project.color + '24'}}", "textColor": "{{project.color}}", "anchors": { "left": 20, "top": 11 } },
-									{ "id": "projectName", "type": "label", "font": "small", "text": "{{project.name}}", "textColor": "@color.text",
+									{ "type": "label", "id": "projectName", "font": "small", "text": "{{project.name}}", "textColor": "@color.text",
 										"anchors": { "left": 52, "right": 560, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "projectHealth", "type": "label", "font": "small", "icon": "circle", "text": " {{t('health.' + project.health)}}",
+									{ "type": "label", "id": "projectHealth", "font": "small", "icon": "circle", "text": " {{t('health.' + project.health)}}",
 										"textColor": "{{state.healthColors[project.health]}}", "anchors": { "right": 440, "top": 0, "bottom": 0 }, "width": 110,
 										"align": { "horizontal": "start", "vertical": "center" } },
 									{ "id": "projectLead", "style": "badge", "text": "{{project.lead}}", "width": 22, "height": 22, "radius": 999, "anchors": { "right": 398, "top": 11 },

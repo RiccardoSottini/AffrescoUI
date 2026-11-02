@@ -266,28 +266,28 @@
 		"color": "@color.page",
 		"children": [
 			{
-				"id": "app-body",
 				"type": "column",
+				"id": "app-body",
 				"fill": true,
 				"dir": "auto",
 				"children": [
-					{ "use": "menuRow", "id": "menu-row" },
-					{ "use": "navRow", "id": "nav-row" },
+					{ "id": "menu-row", "use": "menuRow" },
+					{ "id": "nav-row", "use": "navRow" },
 					{
 						"id": "body",
 						"grow": 1,
 						"anchors": { "left": 0, "right": 0 },
 						"children": [
-							{ "when": "{{computed.here.tab == 'library'}}", "use": "libraryPage", "id": "library" },
+							{ "id": "library", "when": "{{computed.here.tab == 'library'}}", "use": "libraryPage" },
 							{ "when": "{{computed.here.tab == 'store' && !state.session.offline}}", "use": "storePage" },
 							{ "when": "{{computed.here.tab == 'downloads'}}", "use": "downloadsPage" },
 							{ "when": "{{computed.here.tab == 'community' && !state.session.offline}}", "use": "friendsPage" },
 							{ "when": "{{contains(['store', 'community'], computed.here.tab) && state.session.offline}}", "use": "offlinePage" },
 							{ "when": "{{computed.here.tab == 'profile'}}", "use": "profilePage" },
-							{ "when": "{{!contains(['library', 'store', 'downloads', 'community', 'profile'], computed.here.tab)}}", "use": "comingSoon", "id": "elsewhere" }
+							{ "id": "elsewhere", "when": "{{!contains(['library', 'store', 'downloads', 'community', 'profile'], computed.here.tab)}}", "use": "comingSoon" }
 						]
 					},
-					{ "use": "bottomBar", "id": "bottom-bar" }
+					{ "id": "bottom-bar", "use": "bottomBar" }
 				]
 			},
 			{ "id": "settings-dialog", "use": "settingsDialog" },

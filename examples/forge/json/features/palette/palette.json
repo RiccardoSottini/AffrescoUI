@@ -132,10 +132,10 @@
 						{ "type": "textarea", "id": "settings-search", "role": "searchbox", "label": "Search Settings", "bind": "state.settingsQuery",
 						  "width": "100%", "height": 30, "padding": 7, "color": "@color.input", "textColor": "@color.text",
 						  "placeholderColor": "@color.muted", "placeholder": "Search settings" },
-						{ "when": "{{empty(computed.settingsRows)}}", "type": "label", "id": "settings-none", "text": "No settings found",
+						{ "type": "label", "id": "settings-none", "when": "{{empty(computed.settingsRows)}}", "text": "No settings found",
 						  "textColor": "@color.muted", "width": "100%", "height": 28, "padding": 8 },
 						{ "type": "column", "id": "settings-list", "label": "Settings", "width": "100%", "grow": 1, "scroll": "vertical", "gap": 2,
-						  "children": [{ "use": "forgeSettingRow", "id": "settings-row", "repeat": { "for": "s", "in": "{{computed.settingsRows}}" } }] }
+						  "children": [{ "id": "settings-row", "use": "forgeSettingRow", "repeat": { "for": "s", "in": "{{computed.settingsRows}}" } }] }
 					  ] }
 				]
 			}
@@ -148,12 +148,12 @@
 					{ "when": "{{s.modified}}", "anchors": { "left": 0, "top": 8, "bottom": 8 }, "width": 2, "color": "@color.accent" },
 					{ "type": "label", "id": "setting-title", "text": "{{s.title}}", "textColor": "@color.text", "fitText": true,
 					  "tooltip": "{{s.key}}", "anchors": { "left": 16, "top": 8 } },
-					{ "when": "{{s.type == 'boolean'}}", "type": "checkbox", "id": "setting-check", "label": "{{s.title}}",
+					{ "type": "checkbox", "id": "setting-check", "when": "{{s.type == 'boolean'}}", "label": "{{s.title}}",
 					  "bind": "{{'settings.' + s.key}}", "width": 14, "height": 14, "anchors": { "left": 16, "top": 33 },
 					  "activeColor": "@color.accent", "trackColor": "@color.input", "knobColor": "@color.text" },
 					{ "type": "label", "id": "setting-description", "text": "{{s.description ?? ''}}", "textColor": "@color.muted",
 					  "height": 18, "anchors": { "left": "{{s.type == 'boolean' ? 38 : 16}}", "right": 90, "top": 31 } },
-					{ "when": "{{s.type == 'string' && s.enum != null}}", "type": "row", "id": "setting-choices", "gap": 4, "width": 480, "height": 24,
+					{ "type": "row", "id": "setting-choices", "when": "{{s.type == 'string' && s.enum != null}}", "gap": 4, "width": 480, "height": 24,
 					  "anchors": { "left": 16, "top": 54 }, "color": "#00000000",
 					  "children": [
 						{ "type": "label", "id": "setting-choice", "repeat": { "for": "choice", "in": "{{s.enum ?? []}}" }, "role": "radio",
@@ -163,20 +163,20 @@
 						  "color": "{{s.value == choice ? '@color.selection' : '@color.input'}}", "textColor": "@color.text",
 						  "onClick": { "set": "{{'settings.' + s.key}}", "to": "{{choice}}" } }
 					  ] },
-					{ "when": "{{s.type != 'boolean' && s.minimum != null && s.maximum != null}}", "type": "slider", "id": "setting-slider",
+					{ "type": "slider", "id": "setting-slider", "when": "{{s.type != 'boolean' && s.minimum != null && s.maximum != null}}",
 					  "label": "{{s.title}}", "bind": "{{'settings.' + s.key}}", "min": "{{s.minimum ?? 0}}", "max": "{{s.maximum ?? 1}}",
 					  "step": "{{s.type == 'integer' ? 1 : 0}}", "width": 200, "height": 20, "anchors": { "left": 16, "top": 56 },
 					  "activeColor": "@color.accent", "trackColor": "@color.input", "knobColor": "@color.text" },
-					{ "when": "{{s.type != 'boolean' && s.minimum != null && s.maximum != null}}", "type": "label", "id": "setting-slider-value",
+					{ "type": "label", "id": "setting-slider-value", "when": "{{s.type != 'boolean' && s.minimum != null && s.maximum != null}}",
 					  "text": "{{text(s.value)}}", "textColor": "@color.text", "fitText": true, "anchors": { "left": 228, "top": 58 } },
-					{ "when": "{{s.type == 'string' && s.enum == null}}", "type": "textarea", "id": "setting-text", "label": "{{s.title}}",
+					{ "type": "textarea", "id": "setting-text", "when": "{{s.type == 'string' && s.enum == null}}", "label": "{{s.title}}",
 					  "bind": "{{'settings.' + s.key}}", "width": 260, "height": 26, "padding": 5, "anchors": { "left": 16, "top": 52 },
 					  "color": "@color.input", "textColor": "@color.text" },
-					{ "when": "{{s.type != 'boolean' && s.type != 'string' && (s.minimum == null || s.maximum == null)}}", "type": "textarea",
-					  "id": "setting-number", "label": "{{s.title}}", "text": "{{text(s.value)}}", "width": 120, "height": 26, "padding": 5,
+					{ "type": "textarea", "id": "setting-number",
+					  "when": "{{s.type != 'boolean' && s.type != 'string' && (s.minimum == null || s.maximum == null)}}", "label": "{{s.title}}", "text": "{{text(s.value)}}", "width": 120, "height": 26, "padding": 5,
 					  "anchors": { "left": 16, "top": 52 }, "color": "@color.input", "textColor": "@color.text",
 					  "onChange": { "if": "{{number(event.value) != null}}", "then": [{ "set": "{{'settings.' + s.key}}", "to": "{{number(event.value)}}" }] } },
-					{ "when": "{{s.modified}}", "type": "label", "id": "setting-reset", "role": "button", "text": "Reset", "label": "Reset {{s.title}}",
+					{ "type": "label", "id": "setting-reset", "when": "{{s.modified}}", "role": "button", "text": "Reset", "label": "Reset {{s.title}}",
 					  "tooltip": "Reset to the default", "textColor": "@color.muted", "hover": { "textColor": "@color.text" }, "cursor": "hand",
 					  "fitText": true, "anchors": { "right": 16, "top": 8 }, "onClick": { "remove": "{{'settings.' + s.key}}" } }
 				]

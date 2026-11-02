@@ -77,26 +77,119 @@ TEST_CASE("notation: every example file reads back exactly from its Lisp text, w
 	CHECK(files > 150);
 }
 
-TEST_CASE("notation: a node is written with its type as its head, its id after #, its children one per line") {
+TEST_CASE("notation: a node is written with its type and id as its head, its children one per line") {
 	const json node = json::parse(R"({"type": "node", "id": "x"})"); // the word node can't be a head: :type node
-	CHECK(lisp(node) == "(node :type node #x)\n");
+	CHECK(lisp(node) == "(node :type node :id x)\n");
 	const json insights = json::parse(R"({"type": "panel", "id": "insights", "color": "transparent", "children": [
 		{"id": "title", "style": "caption", "anchors": {"left": 0, "top": 0}, "text": "{{t('burndown.title')}}"},
 		{"type": "column", "id": "list", "gap": 4}]})");
 	CHECK(lisp(insights) ==
-	      "(panel #insights :color transparent\n"
-	      "  (node #title :style caption :anchors {:left 0 :top 0} :text \"{{t('burndown.title')}}\")\n"
-	      "  (column #list :gap 4))\n");
+	      "(panel#insights :color transparent\n"
+	      "  (node#title :style caption :anchors {:left 0 :top 0} :text \"{{t('burndown.title')}}\")\n"
+	      "  (column#list :gap 4))\n");
 	roundTrips(insights);
 	// Every key keeps its place: an id before the type, a key before the id, children that aren't last
-	CHECK(lisp(json::parse(R"({"id": "a", "type": "row"})")) == "(node #a :type row)\n");
-	CHECK(lisp(json::parse(R"({"use": "chip", "id": "a"})")) == "(node :use chip #a)\n");
+	CHECK(lisp(json::parse(R"({"id": "a", "type": "row"})")) == "(node#a :type row)\n");
+	CHECK(lisp(json::parse(R"({"use": "chip", "id": "a"})")) == "(node :use chip :id a)\n");
+	CHECK(lisp(json::parse(R"({"type": "row", "gap": 1, "id": "a"})")) == "(row :gap 1 :id a)\n");
 	roundTrips(json::parse(R"({"type": "row", "id": "a", "children": [{"id": "b"}], "gap": 2})"));
 	roundTrips(json::parse(R"({"type": "row", "id": "a", "children": "not a list"})"));
-	CHECK(lisp(json::parse(R"({"type": "row", "id": "a", "children": []})")) == "(row #a :children [])\n");
-	// An object without an id as a string is written with braces, as is a type that isn't a plain word
-	CHECK(lisp(json::parse(R"({"id": 3, "type": "row"})")) == "{:id 3 :type row}\n");
-	CHECK(lisp(json::parse(R"({"type": "my row", "id": "a"})")) == "(node :type \"my row\" #a)\n");
+	CHECK(lisp(json::parse(R"({"type": "row", "id": "a", "children": []})")) == "(row#a :children [])\n");
+	CHECK(lisp(json::parse(R"({"type": "my row", "id": "a"})")) == "(node :type \"my row\" :id a)\n");
+	// An id that isn't a plain word is a key, in its place; the old spellings still read
+	CHECK(lisp(json::parse(R"({"type": "label", "id": "{{'nav-' + tab}}"})")) ==
+	      "(label :id \"{{'nav-' + tab}}\")\n");
+	CHECK(fromLisp("(label #a)") == fromLisp("(label#a)"));
+	CHECK(fromLisp("(label #\"a b\")") == fromLisp("(label :id \"a b\")"));
+	CHECK(fromLisp("(node#a :type row)") == json::parse(R"({"id": "a", "type": "row"})"));
+	// A type the language runs is never a head, so that the file means the same to the language (modules/lisp)
+	CHECK(lisp(json::parse(R"({"type": "not", "id": "a", "x": 1})")) == "(node :type not :id a :x 1)\n");
+	CHECK(lisp(json::parse(R"({"id": "a", "type": "range"})")) == "(node#a :type range)\n");
+	roundTrips(json::parse(R"({"type": "map", "children": [{"type": "defn"}]})"));
+}
+
+TEST_CASE("notation: only what is a node is written with parentheses") {
+	CHECK(lisp(json::parse(R"({"item": {"id": "string", "name": "string"}})")) == "{:item {:id string :name string}}\n");
+	CHECK(lisp(json::parse(R"({"id": 3, "type": "row"})")) == "(node :id 3 :type row)\n");
+	CHECK(lisp(json::parse(R"({"use": "chip"})")) == "(node :use chip)\n");
+	CHECK(lisp(json::parse(R"({"children": 3})")) == "(node :children 3)\n");
+	// In a list of children, any object is a node, written after its parent's properties or as a key
+	const json children = json::parse(R"({"type": "row", "children": [{"id": "a"}, {"text": "b"}, {}, 1]})");
+	CHECK(lisp(children) == "(row\n  (node#a)\n  (node :text b)\n  (node)\n  1)\n");
+	roundTrips(children);
+	CHECK(lisp(json::parse(R"({"type": "row", "children": [{"id": "a"}], "gap": 1})")) ==
+	      "(row :children [(node#a)] :gap 1)\n");
+}
+
+TEST_CASE("notation: display text is in quotes, keys that aren't words are strings, and continuation lines align") {
+	CHECK(lisp(json::parse(R"({"title": "Cut", "style": "caption"})")) == "{:title \"Cut\" :style caption}\n");
+	CHECK(lisp(json::parse(R"({"Title": 1})")) == "{:Title 1}\n"); // a key is a name, not text
+	CHECK(fromLisp("{:title Cut}") == json::parse(R"({"title": "Cut"})"));
+	const json keys = json::parse(R"({"ctrl+f": "find", "a": 1})");
+	CHECK(lisp(keys) == "{\"ctrl+f\" find :a 1}\n");
+	CHECK(fromLisp("{:\"ctrl+f\" find :a 1}") == keys);
+	CHECK(lisp(json::parse(R"({"type": "row", "a b": 1})")) == "(row :\"a b\" 1)\n"); // in a node a string is a child
+	CHECK(errorOf("{\"a\" 1 :a 2}").message() == "the key \"a\" twice: a key has one value");
+	// One column past the opener for maps and lists, two spaces for a node's body
+	json wide = json::object();
+	for(int i = 0; i < 12; ++i) wide["member" + std::to_string(i)] = std::string(12, 'x');
+	const std::string text = lisp(json{{"wide", wide}, {"items", json::array({std::string(70, 'a'), std::string(70, 'b')})}});
+	CHECK(text.starts_with("{:wide {:member0 xxxxxxxxxxxx\n        :member1 xxxxxxxxxxxx\n"));
+	CHECK(text.contains(" :items [" + std::string(70, 'a') + "\n         " + std::string(70, 'b') + "]}\n"));
+	const json node = json::parse(R"({"type": "row", "id": "r", "children": [{"type": "label", "id": "é"}]})");
+	CHECK(lisp(node) == "(row#r\n  (label :id \"é\"))\n");
+	const std::string wideText = lisp(json{{"éé", wide}}); // columns count characters
+	CHECK(wideText.contains("\n       :member1"));
+}
+
+TEST_CASE("notation: commas are spaces, and #_ discards the next form") {
+	CHECK(fromLisp("[1, 2,3 ,4]") == json::array({1, 2, 3, 4}));
+	CHECK(fromLisp("{:a 1, :b 2}") == json::parse(R"({"a": 1, "b": 2})"));
+	CHECK(fromLisp("[1 #_ 2 3]") == json::array({1, 3}));
+	CHECK(fromLisp("[1 #_[2 [3] (x :y z)] 4]") == json::array({1, 4}));
+	CHECK(fromLisp("[1 #_ #_ 2 3 4]") == json::array({1, 4})); // two discards take two forms
+	CHECK(fromLisp("[#_\"a\" #_:b 1]") == json::array({1}));
+	CHECK(fromLisp("(row #_ :gap 1)") == json::parse(R"({"type": "row", "children": [1]})"));
+	CHECK(fromLisp("#_ 1 2") == 2);
+	CHECK(fromLisp("(row #_x)") == json::parse(R"({"type": "row", "id": "_x"})")); // #_x is the id it always was
+	CHECK(errorOf("[#_]").message() == "expected a form to discard, found ']'");
+	CHECK(errorOf("#_").message().starts_with("expected a form to discard after the #_"));
+	CHECK(errorOf("#_ [ 1").message().starts_with("expected a form to discard after the #_"));
+	CHECK(errorOf("#_ [ 1 )").message() == "expected a form to discard, found ')'");
+	const std::string deep(100000, '[');
+	CHECK(errorOf("#_ " + deep).message() == "nested more than 256 levels deep");
+}
+
+TEST_CASE("notation: formatting keeps comments and discarded forms") {
+	using affresco::notation::format;
+	CHECK(format("; top\n(label#a) ; end\n; after\n") == "; top\n(label#a) ; end\n; after\n");
+	CHECK(format("[1 2 3]\n") == "[1 2 3]\n");
+	const std::string list = "[1 ; one\n ; before two\n 2\n ; last\n ]\n";
+	CHECK(format(list) == list);
+	const std::string map = "{:a 1 ; one\n ; before b\n :b [2 ; two\n     ]}\n";
+	CHECK(format(map) == map);
+	const std::string node = "(row#a ; the row\n  :gap 2 ; the gap\n  ; the child\n  (label#b :text x) ; done\n  )\n";
+	CHECK(format(node) == node);
+	// Moved, never lost
+	CHECK(format("(row ; c\n #a :gap 2)").contains("; c"));
+	CHECK(format("{:a ; between\n 1 :b 2}") == "{:a 1 ; between\n :b 2}\n");
+	CHECK(format("[ ; first\n 1]") == "[\n ; first\n 1]\n");
+	CHECK(format("[#_ (x :y z) 1]") == "[\n #_ (x :y z)\n 1]\n");
+	CHECK(format("(row\n  (label) ; c\n)") == "(row\n  (label) ; c\n  )\n");
+	CHECK(format("(row ; only\n)") == "(row ; only\n  )\n");
+	CHECK(format("[;a\n]") == "[\n ;a\n ]\n");
+	// Canonical: the same tree, and twice is once
+	for(const char* text :
+	    {"; a\n[1 ; b\n 2]", "(row ; c\n #a ; d\n :x 1 ; e\n (y ; f\n ) ; g\n ; h\n)", "{;a\n:a [;b\n] ;c\n;d\n}", "1 ;x",
+	     "#_ 1 2 #_ 3", "(node ;a\n)", "(row :children [;a\n (x)])", "(row #_a :b 1 #_(c) #_ d)"}) {
+		CAPTURE(text);
+		const std::string once = format(text);
+		CHECK(fromLisp(once).dump() == fromLisp(text).dump());
+		CHECK(format(once) == once);
+	}
+	// No comments: what write() writes
+	const json value = json::parse(R"({"type": "row", "id": "r", "gap": 2, "children": [{"type": "label"}]})");
+	CHECK(format("(row #r :gap 2 (label))") == lisp(value));
 }
 
 TEST_CASE("notation: strings are bare words or quoted, and read back the same") {
@@ -123,6 +216,7 @@ TEST_CASE("notation: strings are bare words or quoted, and read back the same") 
 	                                                                  {"caf\u00e9", "\"caf\u00e9\""},
 	                                                                  {"\U0001F600", "\"\U0001F600\""},
 	                                                                  {"a.b-c_d@e$f", "a.b-c_d@e$f"},
+	                                                                  {"Cut", R"("Cut")"},
 	                                                                  {"@color.accent", "@color.accent"},
 	                                                                  {"$t", "$t"}};
 	for(const auto& [value, written] : strings) {
@@ -132,10 +226,9 @@ TEST_CASE("notation: strings are bare words or quoted, and read back the same") 
 	}
 	// Keys and ids that aren't plain words are quoted too
 	const json keys = json::parse(R"({"#root/color": 1, "": 2, "true": 3, "a b": 4, "ok": 5})");
-	CHECK(lisp(keys) == "{:\"#root/color\" 1 :\"\" 2 :\"true\" 3 :\"a b\" 4 :ok 5}\n");
+	CHECK(lisp(keys) == "{\"#root/color\" 1 \"\" 2 \"true\" 3 \"a b\" 4 :ok 5}\n");
 	roundTrips(keys);
 	const json id = json::parse(R"({"type": "label", "id": "{{'nav-' + tab}}"})");
-	CHECK(lisp(id) == "(label #\"{{'nav-' + tab}}\")\n");
 	roundTrips(id);
 	CHECK(fromLisp("\"\\u00e9\\ud83d\\ude00\"") == "\u00e9\U0001F600"); // escapes, a surrogate pair
 }
@@ -159,14 +252,14 @@ TEST_CASE("notation: long values break over lines, the same way every time") {
 	json row = {{"type", "row"}, {"id", "r"}};
 	for(int i = 0; i < 30; ++i) row["key" + std::to_string(i)] = i;
 	const std::string text = lisp(row);
-	CHECK(text.starts_with("(row #r\n  :key0 0\n  :key1 1\n"));
+	CHECK(text.starts_with("(row#r :key0 0\n  :key1 1\n"));
 	for(std::size_t start = 0, end = 0; start < text.size(); start = end + 1) {
 		end = text.find('\n', start);
 		CHECK(end - start <= 120);
 	}
 	roundTrips(row);
 	const json list = json::array({std::string(200, 'a'), std::string(10, 'b')});
-	CHECK(lisp(list) == "[" + std::string(200, 'a') + "\n  " + std::string(10, 'b') + "]\n");
+	CHECK(lisp(list) == "[" + std::string(200, 'a') + "\n " + std::string(10, 'b') + "]\n");
 }
 
 TEST_CASE("notation: comments and spaces are only between values") {
@@ -274,7 +367,7 @@ TEST_CASE("notation: the notation of a file is its extension, and JSON reads as 
 	CHECK(affresco::notation::write(json::parse(R"({"b": 1, "a": [true]})"), Notation::Json) ==
 	      R"({"b":1,"a":[true]})");
 	CHECK(affresco::notation::jsonText("{ \"kept\" : 1 }", "a.screen.json") == "{ \"kept\" : 1 }");
-	CHECK(affresco::notation::jsonText("(label #a)", "a.screen.lisp") == R"({"type":"label","id":"a"})");
+	CHECK(affresco::notation::jsonText("(label#a)", "a.screen.lisp") == R"({"type":"label","id":"a"})");
 
 	// A file's error names the file
 	try {

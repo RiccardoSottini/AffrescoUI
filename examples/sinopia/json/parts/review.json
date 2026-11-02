@@ -176,40 +176,40 @@
 		"tabInk": {
 			"params": {},
 			"node": {
-				"type": "row", "fitContent": "width", "id": "tab-ink", "height": 92, "gap": 4, "color": "transparent",
+				"type": "row", "id": "tab-ink", "fitContent": "width", "height": 92, "gap": 4, "color": "transparent",
 				"children": [
-					{ "use": "rbGroup", "id": "g-ink-tools", "with": { "title": "Drawing Tools" }, "children": [
-						{ "use": "rbBig", "id": "b-ink-select", "with": { "icon": "mouse-pointer-2", "title": "Select", "on": "{{state.inkTool == null}}", "width": 46 },
+					{ "id": "g-ink-tools", "use": "rbGroup", "with": { "title": "Drawing Tools" }, "children": [
+						{ "id": "b-ink-select", "use": "rbBig", "with": { "icon": "mouse-pointer-2", "title": "Select", "on": "{{state.inkTool == null}}", "width": 46 },
 						  "tooltip": "Select and move objects", "onClick": { "run": "inkTool", "with": { "tool": null } } },
-						{ "use": "rbBig", "id": "b-ink-pen", "with": { "icon": "pencil-line", "title": "Pen", "on": "{{state.inkTool == 'pen'}}", "width": 46 },
+						{ "id": "b-ink-pen", "use": "rbBig", "with": { "icon": "pencil-line", "title": "Pen", "on": "{{state.inkTool == 'pen'}}", "width": 46 },
 						  "tooltip": "Draw on the slide (Escape stops)", "onClick": { "run": "inkTool", "with": { "tool": "pen" } } },
-						{ "use": "rbBig", "id": "b-ink-highlighter", "with": { "icon": "highlighter", "title": "Highlighter", "on": "{{state.inkTool == 'highlighter'}}", "width": 62 },
+						{ "id": "b-ink-highlighter", "use": "rbBig", "with": { "icon": "highlighter", "title": "Highlighter", "on": "{{state.inkTool == 'highlighter'}}", "width": 62 },
 						  "tooltip": "Highlight on the slide (Escape stops)", "onClick": { "run": "inkTool", "with": { "tool": "highlighter" } } },
-						{ "use": "rbBig", "id": "b-ink-eraser", "with": { "icon": "eraser", "title": "Eraser", "on": "{{state.inkTool == 'eraser'}}", "width": 46 },
+						{ "id": "b-ink-eraser", "use": "rbBig", "with": { "icon": "eraser", "title": "Eraser", "on": "{{state.inkTool == 'eraser'}}", "width": 46 },
 						  "tooltip": "Erase the strokes you drag over (Escape stops)", "onClick": { "run": "inkTool", "with": { "tool": "eraser" } } }
 					] },
-					{ "use": "rbGroup", "id": "g-ink-pens", "with": { "title": "Pens" }, "children": [
+					{ "id": "g-ink-pens", "use": "rbGroup", "with": { "title": "Pens" }, "children": [
 						{ "type": "column", "id": "ink-pens", "fitContent": "width", "height": 72, "gap": 8, "justify": "center", "color": "transparent", "children": [
 							{ "type": "row", "id": "ink-colors", "fitContent": "width", "height": 22, "gap": 4, "color": "transparent", "children": [
-								{ "repeat": { "for": "c", "in": "{{computed.inkSwatches}}", "key": "{{c[0]}}" },
-								  "id": "{{(computed.inkHighlight ? 'ink-highlight-' : 'ink-color-') + slug(c[1])}}", "width": 22, "height": 22, "radius": 11, "color": "{{c[0]}}", "cursor": "hand", "tooltip": "{{c[1]}}",
+								{ "id": "{{(computed.inkHighlight ? 'ink-highlight-' : 'ink-color-') + slug(c[1])}}",
+								  "repeat": { "for": "c", "in": "{{computed.inkSwatches}}", "key": "{{c[0]}}" }, "width": 22, "height": 22, "radius": 11, "color": "{{c[0]}}", "cursor": "hand", "tooltip": "{{c[1]}}",
 								  "borderWidth": "{{state.inkColor == c[0] ? 2 : 1}}", "borderColor": "{{state.inkColor == c[0] ? '@brand' : '@rbFieldLine'}}",
 								  "onClick": [{ "set": "state.inkColor", "to": "{{c[0]}}" }, { "if": "{{state.inkTool == null || state.inkTool == 'eraser'}}", "then": [{ "run": "inkTool", "with": { "tool": "pen" } }] }] }
 							] },
-							{ "use": "rbRow", "id": "ink-widths", "children": [
-								{ "repeat": { "for": "w", "in": "{{computed.inkWidths}}", "key": "{{w[1]}}" },
-								  "use": "rbSmall", "id": "{{'ink-width-' + lower(w[1])}}", "with": { "icon": "minus", "title": "{{w[1]}}", "on": "{{state.inkWidth == w[0]}}", "enabled": "{{!computed.inkHighlight}}" },
+							{ "id": "ink-widths", "use": "rbRow", "children": [
+								{ "id": "{{'ink-width-' + lower(w[1])}}",
+								  "repeat": { "for": "w", "in": "{{computed.inkWidths}}", "key": "{{w[1]}}" }, "use": "rbSmall", "with": { "icon": "minus", "title": "{{w[1]}}", "on": "{{state.inkWidth == w[0]}}", "enabled": "{{!computed.inkHighlight}}" },
 								  "tooltip": "{{w[1] + ' pen'}}", "onClick": [{ "set": "state.inkWidth", "to": "{{w[0]}}" }] }
 							] }
 						] }
 					] },
-					{ "use": "rbGroup", "id": "g-ink-edit", "with": { "title": "Edit" }, "children": [
-						{ "use": "rbBig", "id": "b-ink-clear", "with": { "icon": "brush-cleaning", "title": "Clear\nInk", "width": 46, "enabled": "{{computed.slideInk > 0}}" },
+					{ "id": "g-ink-edit", "use": "rbGroup", "with": { "title": "Edit" }, "children": [
+						{ "id": "b-ink-clear", "use": "rbBig", "with": { "icon": "brush-cleaning", "title": "Clear\nInk", "width": 46, "enabled": "{{computed.slideInk > 0}}" },
 						  "tooltip": "Delete every stroke on this slide", "onClick": "clearInk" }
 					] },
-					{ "use": "rbGroup", "id": "g-ink-convert", "with": { "title": "Convert" }, "children": [
-						{ "use": "rbBig", "id": "b-ink-shape", "with": { "icon": "shapes", "title": "Ink to\nShape", "width": 46, "enabled": false }, "tooltip": "Turning ink into shapes isn't available yet" },
-						{ "use": "rbBig", "id": "b-ink-replay", "with": { "icon": "history", "title": "Ink\nReplay", "width": 46, "enabled": false }, "tooltip": "Replaying ink isn't available yet" }
+					{ "id": "g-ink-convert", "use": "rbGroup", "with": { "title": "Convert" }, "children": [
+						{ "id": "b-ink-shape", "use": "rbBig", "with": { "icon": "shapes", "title": "Ink to\nShape", "width": 46, "enabled": false }, "tooltip": "Turning ink into shapes isn't available yet" },
+						{ "id": "b-ink-replay", "use": "rbBig", "with": { "icon": "history", "title": "Ink\nReplay", "width": 46, "enabled": false }, "tooltip": "Replaying ink isn't available yet" }
 					] }
 				]
 			}
@@ -233,23 +233,23 @@
 		"tabRecord": {
 			"params": {},
 			"node": {
-				"type": "row", "fitContent": "width", "id": "tab-record", "height": 92, "gap": 4, "color": "transparent",
+				"type": "row", "id": "tab-record", "fitContent": "width", "height": 92, "gap": 4, "color": "transparent",
 				"children": [
-					{ "use": "rbGroup", "id": "g-rehearse", "with": { "title": "Timings" }, "children": [
-						{ "use": "rbBig", "id": "b-rehearse", "with": { "icon": "timer", "title": "Rehearse\nTimings", "width": 60 },
+					{ "id": "g-rehearse", "use": "rbGroup", "with": { "title": "Timings" }, "children": [
+						{ "id": "b-rehearse", "use": "rbBig", "with": { "icon": "timer", "title": "Rehearse\nTimings", "width": 60 },
 						  "tooltip": "Present from the beginning, keeping how long each slide is shown", "onClick": "rehearse" },
-						{ "use": "rbBig", "id": "b-clear-timings", "with": { "icon": "timer-off", "title": "Clear\nTimings", "width": 52, "enabled": "{{computed.timed > 0}}" },
+						{ "id": "b-clear-timings", "use": "rbBig", "with": { "icon": "timer-off", "title": "Clear\nTimings", "width": 52, "enabled": "{{computed.timed > 0}}" },
 						  "tooltip": "Forget every slide's timing", "onClick": "clearTimings" },
 						{ "type": "column", "id": "timings-col", "width": 130, "height": 72, "gap": 2, "justify": "center", "alignItems": "stretch", "color": "transparent", "children": [
-							{ "use": "rbCheck", "id": "cb-use-timings", "with": { "title": "Use Timings", "at": "state.deck.useTimings", "prefix": "cb-use-timings" },
+							{ "id": "cb-use-timings", "use": "rbCheck", "with": { "title": "Use Timings", "at": "state.deck.useTimings", "prefix": "cb-use-timings" },
 							  "tooltip": "In the show, each timed slide moves on by itself" },
 							{ "type": "label", "id": "timings-count", "height": 20, "textColor": "@rbMuted",
 							  "runs": [{ "text": "{{computed.timed == 0 ? 'No slide is timed' : plural(computed.timed, 'slide') + ' timed'}}", "size": 11 }] }
 						] }
 					] },
-					{ "use": "rbGroup", "id": "g-record", "with": { "title": "Record" }, "children": [
-						{ "use": "rbBig", "id": "b-record", "with": { "icon": "circle-dot", "title": "Record", "width": 46, "enabled": false }, "tooltip": "Recording audio and video isn't available yet" },
-						{ "use": "rbBig", "id": "b-export-video", "with": { "icon": "film", "title": "Export to\nVideo", "width": 54, "enabled": false }, "tooltip": "Exporting to video isn't available yet" }
+					{ "id": "g-record", "use": "rbGroup", "with": { "title": "Record" }, "children": [
+						{ "id": "b-record", "use": "rbBig", "with": { "icon": "circle-dot", "title": "Record", "width": 46, "enabled": false }, "tooltip": "Recording audio and video isn't available yet" },
+						{ "id": "b-export-video", "use": "rbBig", "with": { "icon": "film", "title": "Export to\nVideo", "width": 54, "enabled": false }, "tooltip": "Exporting to video isn't available yet" }
 					] }
 				]
 			}
@@ -258,24 +258,24 @@
 		"tabCheck": {
 			"params": {},
 			"node": {
-				"type": "row", "fitContent": "width", "id": "tab-check", "height": 92, "gap": 4, "color": "transparent",
+				"type": "row", "id": "tab-check", "fitContent": "width", "height": 92, "gap": 4, "color": "transparent",
 				"children": [
-					{ "use": "rbGroup", "id": "g-proofing", "with": { "title": "Proofing" }, "children": [
-						{ "use": "rbBig", "id": "b-spelling", "with": { "icon": "spell-check", "title": "Spelling", "width": 50, "enabled": false }, "tooltip": "Checking spelling isn't available yet" },
-						{ "use": "rbBig", "id": "b-access", "with": { "icon": "accessibility", "title": "Check\nAccessibility", "on": "{{state.sidePane == 'access' && !state.formatPane}}", "width": 70 },
+					{ "id": "g-proofing", "use": "rbGroup", "with": { "title": "Proofing" }, "children": [
+						{ "id": "b-spelling", "use": "rbBig", "with": { "icon": "spell-check", "title": "Spelling", "width": 50, "enabled": false }, "tooltip": "Checking spelling isn't available yet" },
+						{ "id": "b-access", "use": "rbBig", "with": { "icon": "accessibility", "title": "Check\nAccessibility", "on": "{{state.sidePane == 'access' && !state.formatPane}}", "width": 70 },
 						  "tooltip": "Slides without titles, empty placeholders and pictures without alternative text", "onClick": { "run": "openSidePane", "with": { "pane": "access" } } }
 					] },
-					{ "use": "rbGroup", "id": "g-comments", "with": { "title": "Comments" }, "children": [
-						{ "use": "rbBig", "id": "b-new-comment", "with": { "icon": "message-square-plus", "title": "New\nComment", "width": 56 }, "tooltip": "Comment on this slide", "onClick": "newComment" },
-						{ "use": "rbBig", "id": "b-delete-comment", "with": { "icon": "message-square-x", "title": "Delete", "menu": true, "width": 46, "enabled": "{{length(computed.commented) > 0}}" },
+					{ "id": "g-comments", "use": "rbGroup", "with": { "title": "Comments" }, "children": [
+						{ "id": "b-new-comment", "use": "rbBig", "with": { "icon": "message-square-plus", "title": "New\nComment", "width": 56 }, "tooltip": "Comment on this slide", "onClick": "newComment" },
+						{ "id": "b-delete-comment", "use": "rbBig", "with": { "icon": "message-square-x", "title": "Delete", "menu": true, "width": 46, "enabled": "{{length(computed.commented) > 0}}" },
 						  "onClick": { "run": "openDrop", "with": { "id": "b-delete-comment" } } },
-						{ "use": "rbStack", "id": "comments-nav", "children": [
-							{ "use": "rbSmall", "id": "b-comment-previous", "with": { "icon": "arrow-left", "title": "Previous", "enabled": "{{length(computed.commented) > 0}}" },
+						{ "id": "comments-nav", "use": "rbStack", "children": [
+							{ "id": "b-comment-previous", "use": "rbSmall", "with": { "icon": "arrow-left", "title": "Previous", "enabled": "{{length(computed.commented) > 0}}" },
 							  "tooltip": "The slide with comments before this one", "onClick": { "run": "goToComment", "with": { "forward": false } } },
-							{ "use": "rbSmall", "id": "b-comment-next", "with": { "icon": "arrow-right", "title": "Next", "enabled": "{{length(computed.commented) > 0}}" },
+							{ "id": "b-comment-next", "use": "rbSmall", "with": { "icon": "arrow-right", "title": "Next", "enabled": "{{length(computed.commented) > 0}}" },
 							  "tooltip": "The slide with comments after this one", "onClick": { "run": "goToComment", "with": { "forward": true } } }
 						] },
-						{ "use": "rbBig", "id": "b-show-comments", "with": { "icon": "messages-square", "title": "Show\nComments", "on": "{{state.sidePane == 'comments' && !state.formatPane}}", "width": 60 },
+						{ "id": "b-show-comments", "use": "rbBig", "with": { "icon": "messages-square", "title": "Show\nComments", "on": "{{state.sidePane == 'comments' && !state.formatPane}}", "width": 60 },
 						  "onClick": { "run": "openSidePane", "with": { "pane": "comments" } } }
 					] }
 				]
@@ -285,14 +285,14 @@
 		"tabHelp": {
 			"params": {},
 			"node": {
-				"type": "row", "fitContent": "width", "id": "tab-help", "height": 92, "gap": 4, "color": "transparent",
+				"type": "row", "id": "tab-help", "fitContent": "width", "height": 92, "gap": 4, "color": "transparent",
 				"children": [
-					{ "use": "rbGroup", "id": "g-help", "with": { "title": "Help" }, "children": [
-						{ "use": "rbBig", "id": "b-shortcuts", "with": { "icon": "keyboard", "title": "Keyboard\nShortcuts", "on": "{{state.sidePane == 'keys' && !state.formatPane}}", "width": 62 },
+					{ "id": "g-help", "use": "rbGroup", "with": { "title": "Help" }, "children": [
+						{ "id": "b-shortcuts", "use": "rbBig", "with": { "icon": "keyboard", "title": "Keyboard\nShortcuts", "on": "{{state.sidePane == 'keys' && !state.formatPane}}", "width": 62 },
 						  "onClick": { "run": "openSidePane", "with": { "pane": "keys" } } },
-						{ "use": "rbBig", "id": "b-about", "with": { "icon": "info", "title": "About", "on": "{{state.sidePane == 'about' && !state.formatPane}}", "width": 46 },
+						{ "id": "b-about", "use": "rbBig", "with": { "icon": "info", "title": "About", "on": "{{state.sidePane == 'about' && !state.formatPane}}", "width": 46 },
 						  "onClick": { "run": "openSidePane", "with": { "pane": "about" } } },
-						{ "use": "rbBig", "id": "b-feedback", "with": { "icon": "message-circle-heart", "title": "Feedback", "width": 54, "enabled": false }, "tooltip": "Sending feedback isn't available yet" }
+						{ "id": "b-feedback", "use": "rbBig", "with": { "icon": "message-circle-heart", "title": "Feedback", "width": 54, "enabled": false }, "tooltip": "Sending feedback isn't available yet" }
 					] }
 				]
 			}
@@ -311,15 +311,15 @@
 					{ "type": "row", "id": "side-head", "width": 236, "height": 24, "alignItems": "center", "color": "transparent", "children": [
 						{ "type": "label", "id": "side-title", "grow": 1, "height": 22, "textColor": "@rbInk",
 						  "runs": [{ "text": "{{pane == 'comments' ? 'Comments' : pane == 'access' ? 'Accessibility' : pane == 'select' ? 'Selection' : pane == 'motion' ? 'Animation Pane' : pane == 'keys' ? 'Keyboard Shortcuts' : 'About Sinopia'}}", "size": 14, "bold": true }] },
-						{ "use": "rbSmall", "id": "side-close", "with": { "icon": "x" }, "tooltip": "Close", "onClick": [{ "set": "state.sidePane", "to": null }] }
+						{ "id": "side-close", "use": "rbSmall", "with": { "icon": "x" }, "tooltip": "Close", "onClick": [{ "set": "state.sidePane", "to": null }] }
 					] },
 					{ "use": "commentsList", "when": "{{pane == 'comments'}}" },
 					{ "use": "accessList", "when": "{{pane == 'access'}}" },
 					{ "use": "selectionList", "when": "{{pane == 'select'}}" },
 					{ "use": "motionList", "when": "{{pane == 'motion'}}" },
 					{ "type": "column", "id": "shortcuts", "when": "{{pane == 'keys'}}", "width": 236, "fitContent": "height", "gap": 2, "alignItems": "stretch", "color": "transparent", "children": [
-						{ "repeat": { "for": "k", "in": "{{computed.shortcuts}}", "index": "n" },
-						  "type": "row", "id": "{{'shortcut-' + n}}", "height": 34, "gap": 8, "alignItems": "center", "color": "transparent", "children": [
+						{ "type": "row",
+						  "id": "{{'shortcut-' + n}}", "repeat": { "for": "k", "in": "{{computed.shortcuts}}", "index": "n" }, "height": 34, "gap": 8, "alignItems": "center", "color": "transparent", "children": [
 							{ "type": "label", "id": "{{'shortcut-' + n + '-keys'}}", "width": 96, "height": 32, "wrap": true, "align": "start center", "textColor": "@rbInk", "runs": [{ "text": "{{k[0]}}", "size": 11, "font": "mono" }] },
 							{ "type": "label", "id": "{{'shortcut-' + n + '-what'}}", "grow": 1, "height": 32, "wrap": true, "align": "start center", "textColor": "@rbMuted", "runs": [{ "text": "{{k[1]}}", "size": 12 }] }
 						  ] }
@@ -340,16 +340,16 @@
 					  "runs": [{ "icon": "message-square-plus", "size": 14 }, { "text": " New comment", "size": 12 }], "onClick": "newComment" },
 					{ "type": "label", "id": "comments-none", "when": "{{length(computed.comments) == 0}}", "height": 40, "wrap": true, "textColor": "@rbMuted",
 					  "runs": [{ "text": "{{'No comments on slide ' + (state.current + 1) + '.'}}", "size": 12 }] },
-					{ "repeat": { "for": "c", "in": "{{computed.comments}}", "key": "{{c.id}}", "index": "n" },
-					  "type": "column", "id": "{{'comment-' + c.id}}", "height": 104, "gap": 4, "radius": 6, "alignItems": "center", "justify": "center",
+					{ "type": "column",
+					  "id": "{{'comment-' + c.id}}", "repeat": { "for": "c", "in": "{{computed.comments}}", "key": "{{c.id}}", "index": "n" }, "height": 104, "gap": 4, "radius": 6, "alignItems": "center", "justify": "center",
 					  "color": "@card", "borderWidth": 1, "borderColor": "@rbLine",
 					  "children": [
 						{ "type": "row", "id": "{{'comment-' + c.id + '-head'}}", "width": 220, "height": 22, "gap": 2, "alignItems": "center", "color": "transparent", "children": [
 							{ "type": "label", "id": "{{'comment-' + c.id + '-who'}}", "grow": 1, "height": 20, "textColor": "{{c.done ? '@rbMuted' : '@rbInk'}}",
 							  "runs": [{ "text": "{{c.done ? 'Resolved' : 'Comment ' + (n + 1)}}", "size": 12, "bold": true }] },
-							{ "use": "rbSmall", "id": "{{'comment-' + c.id + '-resolve'}}", "with": { "icon": "{{c.done ? 'rotate-ccw' : 'check'}}" },
+							{ "id": "{{'comment-' + c.id + '-resolve'}}", "use": "rbSmall", "with": { "icon": "{{c.done ? 'rotate-ccw' : 'check'}}" },
 							  "tooltip": "{{c.done ? 'Reopen' : 'Resolve'}}", "onClick": [{ "run": "commit" }, { "toggle": "{{'state.deck.slides[' + state.current + '].comments[' + n + '].done'}}" }] },
-							{ "use": "rbSmall", "id": "{{'comment-' + c.id + '-delete'}}", "with": { "icon": "trash-2" }, "tooltip": "Delete", "onClick": { "run": "deleteComment", "with": { "id": "{{c.id}}" } } }
+							{ "id": "{{'comment-' + c.id + '-delete'}}", "use": "rbSmall", "with": { "icon": "trash-2" }, "tooltip": "Delete", "onClick": { "run": "deleteComment", "with": { "id": "{{c.id}}" } } }
 						] },
 						{ "type": "editor", "id": "{{'comment-' + c.id + '-text'}}", "width": 220, "height": 62, "wrap": true, "autofocus": "{{state.commentFocus == c.id}}",
 						  "color": "@rbFieldBg", "lineColor": "transparent", "textColor": "@rbInk", "label": "{{'Comment ' + (n + 1)}}",
@@ -372,8 +372,8 @@
 						  "runs": [{ "text": "Hide All", "size": 12 }], "onClick": { "run": "hideObjects", "with": { "ids": "{{map(computed.objects, it.id)}}", "hidden": true } } }
 					] },
 					{ "type": "label", "id": "selection-empty", "when": "{{length(computed.objects) == 0}}", "height": 24, "textColor": "@rbMuted", "runs": [{ "text": "This slide has no objects.", "size": 12 }] },
-					{ "repeat": { "for": "o", "in": "{{reverse(computed.objects)}}", "key": "{{o.id}}", "index": "n" },
-					  "type": "row", "id": "{{'selection-' + o.id}}", "height": 26, "gap": 4, "alignItems": "center",
+					{ "type": "row",
+					  "id": "{{'selection-' + o.id}}", "repeat": { "for": "o", "in": "{{reverse(computed.objects)}}", "key": "{{o.id}}", "index": "n" }, "height": 26, "gap": 4, "alignItems": "center",
 					  "let": { "name": "{{o.name ?? ((contains(['title', 'ctrTitle'], o.ph ?? '') ? 'Title' : o.ph == 'subTitle' ? 'Subtitle' : o.ph != null ? 'Content' : o.kind == 'shape' ? 'Shape' : o.kind == 'line' ? 'Line' : o.kind == 'icon' ? 'Icon' : o.kind == 'ink' ? 'Ink' : 'Text Box') + ' ' + (length(computed.objects) - n))}}" },
 					  "color": "{{contains(state.board.selection, o.id) ? '@rbChecked' : 'transparent'}}",
 					  "children": [
@@ -381,7 +381,7 @@
 						  "textColor": "{{o.hidden ?? false ? '@rbMuted' : '@rbInk'}}", "label": "{{name}}",
 						  "runs": [{ "text": "{{'  ' + name}}", "size": 12, "italic": "{{o.hidden ?? false}}" }],
 						  "onClick": [{ "if": "{{!(o.hidden ?? false)}}", "then": [{ "set": "state.board.selection", "to": "{{[o.id]}}" }] }] },
-						{ "use": "rbSmall", "id": "{{'selection-' + o.id + '-eye'}}", "with": { "icon": "{{o.hidden ?? false ? 'eye-off' : 'eye'}}" },
+						{ "id": "{{'selection-' + o.id + '-eye'}}", "use": "rbSmall", "with": { "icon": "{{o.hidden ?? false ? 'eye-off' : 'eye'}}" },
 						  "tooltip": "{{o.hidden ?? false ? 'Show it' : 'Hide it'}}",
 						  "onClick": { "run": "hideObjects", "with": { "ids": "{{[o.id]}}", "hidden": "{{!(o.hidden ?? false)}}" } } }
 					  ] }
@@ -401,8 +401,8 @@
 					] },
 					{ "type": "label", "id": "motion-empty", "when": "{{length(computed.motionRows) == 0}}", "width": 236, "height": 36, "wrap": true, "textColor": "@rbMuted",
 					  "runs": [{ "text": "No builds on this slide. Select an object and pick an effect on the Motion tab.", "size": 12 }] },
-					{ "repeat": { "for": "a", "in": "{{computed.motionRows}}", "key": "{{a.id}}", "index": "n" },
-					  "type": "row", "id": "{{'motion-' + a.id}}", "height": 26, "gap": 2, "alignItems": "center",
+					{ "type": "row",
+					  "id": "{{'motion-' + a.id}}", "repeat": { "for": "a", "in": "{{computed.motionRows}}", "key": "{{a.id}}", "index": "n" }, "height": 26, "gap": 2, "alignItems": "center",
 					  "color": "{{contains(state.board.selection, a.target) ? '@rbChecked' : 'transparent'}}",
 					  "children": [
 						{ "type": "label", "id": "{{'motion-' + a.id + '-step'}}", "width": 20, "height": 24, "align": "center", "textColor": "@rbMuted",
@@ -411,11 +411,11 @@
 						  "textColor": "@rbInk", "label": "{{a.name + ', ' + a.effect + (a.kind == 'exit' ? ' exit' : '') + ', ' + a.start}}",
 						  "runs": "{{[{ icon: a.kind == 'exit' ? 'log-out' : 'log-in', size: 13 }, { text: ' ' + a.name, size: 12 }, { text: '  ' + a.effect + (a.start == 'click' ? '' : ', ' + a.start), size: 11, color: '@rbMuted' }]}}",
 						  "onClick": [{ "set": "state.board.selection", "to": "{{[a.target]}}" }] },
-						{ "use": "rbSmall", "id": "{{'motion-' + a.id + '-up'}}", "with": { "icon": "chevron-up", "enabled": "{{n > 0}}" }, "tooltip": "Play it earlier",
+						{ "id": "{{'motion-' + a.id + '-up'}}", "use": "rbSmall", "with": { "icon": "chevron-up", "enabled": "{{n > 0}}" }, "tooltip": "Play it earlier",
 						  "onClick": { "run": "moveAnimation", "with": { "id": "{{a.id}}", "by": -1 } } },
-						{ "use": "rbSmall", "id": "{{'motion-' + a.id + '-down'}}", "with": { "icon": "chevron-down", "enabled": "{{n < length(computed.motionRows) - 1}}" }, "tooltip": "Play it later",
+						{ "id": "{{'motion-' + a.id + '-down'}}", "use": "rbSmall", "with": { "icon": "chevron-down", "enabled": "{{n < length(computed.motionRows) - 1}}" }, "tooltip": "Play it later",
 						  "onClick": { "run": "moveAnimation", "with": { "id": "{{a.id}}", "by": 1 } } },
-						{ "use": "rbSmall", "id": "{{'motion-' + a.id + '-remove'}}", "with": { "icon": "x" }, "tooltip": "Remove it",
+						{ "id": "{{'motion-' + a.id + '-remove'}}", "use": "rbSmall", "with": { "icon": "x" }, "tooltip": "Remove it",
 						  "onClick": { "run": "removeAnimation", "with": { "id": "{{a.id}}" } } }
 					  ] }
 				]
@@ -430,15 +430,15 @@
 				"children": [
 					{ "type": "label", "id": "access-summary", "height": 36, "wrap": true, "textColor": "@rbMuted",
 					  "runs": [{ "text": "{{computed.accessIssues == 0 ? 'No problems found. People who use screen readers can follow this deck.' : plural(computed.accessIssues, 'finding') + ' to look at:'}}", "size": 12 }] },
-					{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "key": "{{s.id}}", "index": "n" },
-					  "type": "column", "id": "{{'access-' + s.id}}", "fitContent": "height", "gap": 2, "alignItems": "stretch", "color": "transparent",
+					{ "type": "column",
+					  "id": "{{'access-' + s.id}}", "repeat": { "for": "s", "in": "{{state.deck.slides}}", "key": "{{s.id}}", "index": "n" }, "fitContent": "height", "gap": 2, "alignItems": "stretch", "color": "transparent",
 					  "children": [
 						{ "type": "label", "id": "{{'access-' + s.id + '-title'}}", "when": "{{!some(s.objects ?? [], contains(['title', 'ctrTitle'], it.ph ?? '') && trim(it.text ?? '') != '')}}",
 						  "style": "rbButton", "height": 24, "padding": 4, "tooltip": "Give every slide a title, so it can be found and read out",
 						  "runs": [{ "icon": "heading", "size": 13 }, { "text": "{{' Slide ' + (n + 1) + ': no title'}}", "size": 12 }],
 						  "onClick": { "run": "goToIssue", "with": { "slide": "{{n}}", "id": null } } },
-						{ "repeat": { "for": "o", "in": "{{s.objects ?? []}}", "key": "{{o.id}}" },
-						  "type": "label", "id": "{{'access-' + o.id}}",
+						{ "type": "label",
+						  "id": "{{'access-' + o.id}}", "repeat": { "for": "o", "in": "{{s.objects ?? []}}", "key": "{{o.id}}" },
 						  "when": "{{(o.ph != null && trim(o.text ?? '') == '') || ((o.kind == 'icon' || o.kind == 'ink') && trim(o.alt ?? '') == '')}}",
 						  "style": "rbButton", "height": 24, "padding": 4,
 						  "tooltip": "{{o.ph != null ? 'Fill it in or delete it' : 'Describe it in Alt Text, in the format pane'}}",

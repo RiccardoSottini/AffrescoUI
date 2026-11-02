@@ -11,8 +11,8 @@
 				"id": "{{prefix + 'bg'}}", "x": 0, "y": 0, "width": 960, "height": 540,
 				"color": "{{computed.palette[slide.background ?? computed.theme.background] ?? slide.background}}",
 				"children": [
-					{ "repeat": { "for": "d", "in": "{{slide.layout == 'title' || slide.layout == 'section' ? computed.theme.titleDecor : computed.theme.decor}}", "key": "{{d.id}}" },
-					  "id": "{{prefix + 'decor-' + d.id}}", "color": "transparent", "x": "{{d.x}}", "y": "{{d.y}}", "width": "{{d.w}}", "height": "{{d.h}}", "overflow": "visible",
+					{ "id": "{{prefix + 'decor-' + d.id}}",
+					  "repeat": { "for": "d", "in": "{{slide.layout == 'title' || slide.layout == 'section' ? computed.theme.titleDecor : computed.theme.decor}}", "key": "{{d.id}}" }, "color": "transparent", "x": "{{d.x}}", "y": "{{d.y}}", "width": "{{d.w}}", "height": "{{d.h}}", "overflow": "visible",
 					  "children": [{ "use": "shapePath", "with": { "o": "{{merge({ line: 'none', flipH: false, flipV: false, gradient: null, lineWidth: 0, dash: null, effect: null }, d)}}", "name": "{{prefix + 'decor-' + d.id}}" } }] },
 					{ "type": "label", "id": "{{prefix + 'footer'}}", "when": "{{(state.deck.footer ?? null) != null && slide.layout != 'title'}}", "x": 40, "y": 506, "width": 640, "height": 22,
 					  "textColor": "{{computed.palette.dark2 ?? computed.palette.dark1}}", "runs": [{ "text": "{{state.deck.footer ?? ''}}", "size": 12 }] },
@@ -82,16 +82,16 @@
 						"width": "{{turned ? frame.h : frame.w}}", "height": "{{turned ? frame.w : frame.h}}", "rotate": "{{o.textRotate ?? 0}}",
 						"children": [
 							{
-								"repeat": { "for": "k", "in": "{{range(cols)}}" },
-								"type": "column", "id": "{{prefix + o.id + '-text-c' + k}}", "overflow": "visible",
+								"type": "column",
+								"id": "{{prefix + o.id + '-text-c' + k}}", "repeat": { "for": "k", "in": "{{range(cols)}}" }, "overflow": "visible",
 								"width": "{{colWidth}}", "height": "{{turned ? frame.w : frame.h}}",
 								"justify": "{{anchor == 'bottom' ? 'end' : anchor == 'middle' ? 'center' : 'start'}}",
 								"alignItems": "{{align == 'center' ? 'center' : align == 'right' ? 'end' : 'start'}}",
 								"gap": "{{(bullets ? size * 0.35 : 0) + size * ((prompt ? 1 : o.spacing ?? 1) - 1)}}",
 								"children": [
 									{
-										"repeat": { "for": "n", "in": "{{filter(range(length(lines)), column[it] == k)}}" },
-										"type": "row", "id": "{{prefix + o.id + '-p' + n}}", "fitContent": true, "overflow": "visible",
+										"type": "row",
+										"id": "{{prefix + o.id + '-p' + n}}", "repeat": { "for": "n", "in": "{{filter(range(length(lines)), column[it] == k)}}" }, "fitContent": true, "overflow": "visible",
 										"let": {
 											"line": "{{lines[n]}}",
 											"level": "{{levels[n]}}",

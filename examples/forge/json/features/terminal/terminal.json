@@ -126,8 +126,8 @@
 						  "fitText": true, "cursor": "hand", "tooltip": "New Terminal", "hover": { "color": "@color.hover" },
 						  "onClick": { "run": "terminalNew" } }
 					  ] },
-					{ "repeat": { "for": "t", "in": "{{filter(map(state.terminals.list, it.id), it == state.terminals.active)}}", "key": "{{t}}" },
-					  "type": "terminal", "id": "terminal", "session": "{{t}}", "font": "code", "width": "100%", "grow": 1,
+					{ "type": "terminal",
+					  "id": "terminal", "repeat": { "for": "t", "in": "{{filter(map(state.terminals.list, it.id), it == state.terminals.active)}}", "key": "{{t}}" }, "session": "{{t}}", "font": "code", "width": "100%", "grow": 1,
 					  "color": "@color.editor", "textColor": "@color.text", "cursorColor": "@color.accent", "scrollback": 1000,
 					  "focusable": true, "keys": { "tab": "terminalKeepTab", "shift+tab": "terminalKeepTab" } }
 				]

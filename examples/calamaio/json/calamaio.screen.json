@@ -130,14 +130,14 @@
 		"color": "@bar",
 		"children": [
 			{
-				"id": "column-root",
 				"type": "column",
+				"id": "column-root",
 				"dir": "{{state.dir}}",
 				"anchors": { "left": 6, "right": 6, "top": 0, "bottom": 0 },
 				"children": [
 					{
-						"id": "topBar",
 						"type": "row",
+						"id": "topBar",
 						"height": 40,
 						"alignSelf": "stretch",
 						"alignItems": "center",
@@ -154,17 +154,17 @@
 						]
 					},
 					{
+						"type": "column",
 						"id": "column-root-2",
 						"when": "{{state.layout.dir == 'column'}}",
-						"type": "column",
 						"grow": 1,
 						"gap": 6,
 						"alignSelf": "stretch",
 						"children": [
 							{
+								"type": "row",
 								"id": "row-g",
 								"repeat": { "for": "g", "in": "{{state.layout.groups}}", "key": "{{join(g, ',')}}" },
-								"type": "row",
 								"grow": 1,
 								"basis": 0,
 								"gap": 6,
@@ -181,17 +181,17 @@
 						]
 					},
 					{
+						"type": "row",
 						"id": "row-root",
 						"when": "{{state.layout.dir == 'row'}}",
-						"type": "row",
 						"grow": 1,
 						"gap": 6,
 						"alignSelf": "stretch",
 						"children": [
 							{
+								"type": "column",
 								"id": "column-g",
 								"repeat": { "for": "g", "in": "{{state.layout.groups}}", "key": "{{join(g, ',')}}" },
-								"type": "column",
 								"grow": 1,
 								"basis": 0,
 								"gap": 6,

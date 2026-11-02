@@ -45,9 +45,9 @@
 										"with": { "search": "{{state.customQuery}}", "query": "state.customQuery" }
 									},
 									{
-										"when": "{{b.kind != 'splash' && b.kind != 'customize'}}",
 										"type": "editor",
 										"id": "{{'ed' + w}}",
+										"when": "{{b.kind != 'splash' && b.kind != 'customize'}}",
 										"anchors": { "left": -7, "top": -6, "right": 0, "bottom": 0 },
 										"bind": "{{'state.bufs.' + win.buf + '.text'}}",
 										"caret": "{{'state.win.' + w + '.caret'}}",
@@ -195,8 +195,8 @@
 								]
 							},
 							{
-								"when": "{{b.readOnly == true}}",
 								"type": "label",
+								"when": "{{b.readOnly == true}}",
 								"fitText": true,
 								"runs": [{ "icon": "lock", "font": "icons", "size": 14 }],
 								"textColor": "{{on ? @mlFg : @mliFg}}",
@@ -321,8 +321,8 @@
 						"color": "transparent",
 						"children": [
 							{
-								"repeat": { "for": "a", "in": "{{computed.splashActions}}" },
 								"type": "label",
+								"repeat": { "for": "a", "in": "{{computed.splashActions}}" },
 								"fitText": true,
 								"padding": 9,
 								"radius": 16,
@@ -348,8 +348,8 @@
 						"color": "transparent",
 						"children": [
 							{
-								"id": "splashAtStart",
 								"type": "checkbox",
+								"id": "splashAtStart",
 								"width": 16,
 								"height": 16,
 								"checked": "{{!settings['inhibit-startup-screen']}}",
@@ -394,8 +394,8 @@
 				"children": [
 					{ "width": 2 },
 					{
-						"repeat": { "for": "m", "in": "{{computed.menuBar}}" },
 						"type": "label",
+						"repeat": { "for": "m", "in": "{{computed.menuBar}}" },
 						"text": "{{m.title}}",
 						"textColor": "@barFg",
 						"padding": 9,
@@ -451,8 +451,8 @@
 						"onClick": [{ "if": "{{t.run != null}}", "then": [{ "run": "{{t.run}}" }] }],
 						"children": [
 							{
-								"when": "{{t.icon != null}}",
 								"type": "label",
+								"when": "{{t.icon != null}}",
 								"font": "icons",
 								"icon": "{{t.icon}}",
 								"align": "center",
@@ -477,8 +477,8 @@
 				"color": "@bar",
 				"children": [
 					{
-						"when": "{{!state.mb.open}}",
 						"type": "label",
+						"when": "{{!state.mb.open}}",
 						"font": "code",
 						"textColor": "@fg",
 						"anchors": { "left": 4, "top": 5 },
@@ -486,8 +486,8 @@
 						"text": "{{context.chord != null ? keyLabel(context.chord, 'letters') + '-' : state.is.on ? (state.is.text != '' && (state.win[state.sel].caret.matches ?? 0) == 0 ? 'Failing ' : '') + (state.is.back ? 'Search backward: ' : 'Search: ') + state.is.text : state.qr.on ? 'Replace ' + state.qr.from + ' with ' + state.qr.to + '? (y, n, !, q, . or C-h) ' : state.keyread.on ? 'Key to describe: ' + (state.keyread.seq == '' ? '' : keyLabel(state.keyread.seq, 'letters') + '-') : state.echo}}"
 					},
 					{
-						"when": "{{state.mb.open}}",
 						"type": "row",
+						"when": "{{state.mb.open}}",
 						"anchors": { "left": 4, "right": 0, "top": 4 },
 						"height": 19,
 						"children": [
@@ -499,8 +499,8 @@
 								"text": "{{state.mb.prompt}}"
 							},
 							{
-								"id": "mb",
 								"type": "textarea",
+								"id": "mb",
 								"grow": 0,
 								"height": 19,
 								"font": "code",
@@ -530,8 +530,8 @@
 						]
 					},
 					{
-						"when": "{{state.keyread.on}}",
 						"id": "keyReader",
+						"when": "{{state.keyread.on}}",
 						"focusable": true,
 						"width": 1,
 						"height": 1,

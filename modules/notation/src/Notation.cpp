@@ -70,4 +70,10 @@ std::string write(const json& value, Notation notation) {
 	return notation == Notation::Lisp ? detail::writeLisp(value) : value.dump();
 }
 
+std::string format(std::string_view text) {
+	detail::DocumentComments comments;
+	const json value = detail::readLisp(text, comments);
+	return detail::writeLisp(value, &comments);
+}
+
 } // namespace affresco::notation

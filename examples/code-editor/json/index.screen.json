@@ -754,8 +754,8 @@
 						}
 					},
 					{
-						"id": "windowTitle",
 						"type": "label",
+						"id": "windowTitle",
 						"font": "small",
 						"text": "{{computed.file ? computed.file.name + '  ·  ' : ''}}{{state.project}}",
 						"textColor": "@muted",
@@ -763,8 +763,8 @@
 						"align": { "horizontal": "end", "vertical": "center" }
 					},
 					{
-						"id": "themeSwitch",
 						"type": "label",
+						"id": "themeSwitch",
 						"text": "",
 						"icon": "{{computed.theme == 'dark' ? 'moon' : 'sun'}}",
 						"font": "small",
@@ -782,9 +782,9 @@
 				]
 			},
 			{
+				"type": "split",
 				"id": "workbench",
 				"dir": "{{state.dir}}",
-				"type": "split",
 				"anchors": { "left": 0, "right": 0, "top": "{{state.zen ? 0 : 26}}", "bottom": "{{(state.zen ? 0 : 24) + computed.findHeight}}" },
 				"bind": "state.sizes",
 				"defaultSizes": [232],
@@ -800,15 +800,15 @@
 						"children": [
 							{ "id": "label-openFiles", "style": "caption", "text": "Open Files", "anchors": { "left": 14, "top": 10 } },
 							{
-								"id": "openFiles",
 								"type": "column",
+								"id": "openFiles",
 								"anchors": { "left": 0, "right": 0, "top": 30 },
 								"height": "{{24 * length(state.tabs)}}",
 								"children": [
 									{
+										"type": "label",
 										"id": "openFile",
 										"repeat": { "for": "tab", "in": "state.tabs", "key": "{{tab}}" },
-										"type": "label",
 										"text": "{{state.files[tab].dirty ? '●  ' : ''}}{{state.files[tab].name}}",
 										"font": "small",
 										"height": 24,
@@ -826,8 +826,8 @@
 							},
 							{ "id": "label-folders", "style": "caption", "text": "Project", "anchors": { "left": 14, "top": "{{44 + 24 * length(state.tabs)}}" } },
 							{
-								"id": "fileTree",
 								"type": "tree",
+								"id": "fileTree",
 								"anchors": { "left": 0, "right": 0, "top": "{{64 + 24 * length(state.tabs)}}", "bottom": 8 },
 								"rowHeight": 24,
 								"font": "small",
@@ -847,8 +847,8 @@
 						]
 					},
 					{
-						"id": "editorColumn",
 						"type": "split",
+						"id": "editorColumn",
 						"direction": "column",
 						"bind": "state.panelSizes",
 						"defaultSizes": [560],
@@ -862,8 +862,8 @@
 								"color": "@background",
 								"children": [
 									{
-										"id": "editorTabs",
 										"type": "tabs",
+										"id": "editorTabs",
 										"when": "{{!state.zen}}",
 										"anchors": { "left": 0, "right": 0, "top": 0 },
 										"height": 32,
@@ -888,9 +888,9 @@
 										]
 									},
 									{
+										"type": "editor",
 										"id": "editor",
 										"repeat": { "for": "open", "in": "{{computed.file ? [state.active] : []}}", "key": "{{open}}" },
-										"type": "editor",
 										"note": "The library editor: its \"language\" (examples/shared/languages) gives the commands, pairs and indentation; \"grammar\" colours it with the theme's @syntax tokens",
 										"font": "code",
 										"lineNumbers": true,
@@ -933,9 +933,9 @@
 										"onDoubleClick": { "if": "{{state.files[open].scratch}}", "then": [{ "run": "openResult", "with": { "line": "{{state.caret.line}}" } }] }
 									},
 									{
+										"type": "label",
 										"id": "welcome",
 										"when": "{{!computed.file}}",
-										"type": "label",
 										"text": "No file open. Pick one in the side bar, or press Cmd+P.",
 										"textColor": "@faint",
 										"anchors": { "left": 0, "right": 0, "top": 32, "bottom": 0 },
@@ -950,22 +950,22 @@
 								"keys": { "escape": "togglePanel" },
 								"children": [
 									{ "id": "panelEdge", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
-									{ "id": "panelProblems", "type": "label", "text": "Problems", "font": "small", "anchors": { "left": 10, "top": 4 }, "height": 22, "width": 78,
+									{ "type": "label", "id": "panelProblems", "text": "Problems", "font": "small", "anchors": { "left": 10, "top": 4 }, "height": 22, "width": 78,
 									  "align": "center", "radius": 4, "cursor": "hand",
 									  "color": "{{state.panelTab == 'problems' ? '@rowSelected' : 'transparent'}}",
 									  "textColor": "{{state.panelTab == 'problems' ? '@text' : '@muted'}}",
 									  "hover": { "textColor": "@text" }, "onClick": "showProblems" },
-									{ "id": "panelConsole", "type": "label", "text": "Console", "font": "small", "anchors": { "left": 92, "top": 4 }, "height": 22, "width": 72,
+									{ "type": "label", "id": "panelConsole", "text": "Console", "font": "small", "anchors": { "left": 92, "top": 4 }, "height": 22, "width": 72,
 									  "align": "center", "radius": 4, "cursor": "hand",
 									  "color": "{{state.panelTab == 'terminal' ? '@rowSelected' : 'transparent'}}",
 									  "textColor": "{{state.panelTab == 'terminal' ? '@text' : '@muted'}}",
 									  "hover": { "textColor": "@text" }, "onClick": "showTerminal" },
-									{ "id": "panelClose", "type": "label", "text": "×", "font": "default", "anchors": { "right": 10, "top": 4 },
+									{ "type": "label", "id": "panelClose", "text": "×", "font": "default", "anchors": { "right": 10, "top": 4 },
 									  "width": 22, "height": 22, "align": "center", "radius": 4, "textColor": "@muted", "cursor": "hand",
 									  "hover": { "textColor": "@text", "color": "@hover" }, "tooltip": "Hide the panel (Escape)", "onClick": "togglePanel" },
 									{
-										"id": "problemsTable",
 										"type": "table",
+										"id": "problemsTable",
 										"when": "{{state.panelTab == 'problems'}}",
 										"anchors": { "left": 8, "right": 8, "top": 30, "bottom": 4 },
 										"rowHeight": 24,
@@ -999,8 +999,8 @@
 										"color": "transparent",
 										"children": [
 											{
-												"id": "terminalOutput",
 												"type": "stack",
+												"id": "terminalOutput",
 												"anchors": { "left": 14, "right": 14, "top": 4, "bottom": 30 },
 												"gap": 0,
 												"justify": "end",
@@ -1018,8 +1018,8 @@
 												]
 											},
 											{
-												"id": "command",
 												"type": "textarea",
+												"id": "command",
 												"font": "code",
 												"anchors": { "left": 0, "right": 0, "bottom": 0 },
 												"height": 26,
@@ -1108,8 +1108,8 @@
 				"children": [
 					{ "id": "statusEdge", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
 					{
-						"id": "panelSwitcher",
 						"type": "label",
+						"id": "panelSwitcher",
 						"text": "",
 						"icon": "square-terminal",
 						"font": "small",

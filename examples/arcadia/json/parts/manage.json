@@ -145,8 +145,8 @@
 				},
 				"children": [
 					{
-						"id": "properties-body",
 						"type": "row",
+						"id": "properties-body",
 						"anchors": {
 							"left": 20,
 							"right": 20,
@@ -156,8 +156,8 @@
 						"gap": 20,
 						"children": [
 							{
-								"id": "properties-tabs",
 								"type": "column",
+								"id": "properties-tabs",
 								"width": 150,
 								"alignSelf": "stretch",
 								"gap": 2,
@@ -165,12 +165,12 @@
 								"arrows": "vertical",
 								"children": [
 									{
+										"type": "label",
+										"id": "{{'properties-tab-' + tab}}",
 										"repeat": {
 											"for": "tab",
 											"in": ["general", "updates", "files", "dlc"]
 										},
-										"id": "{{'properties-tab-' + tab}}",
-										"type": "label",
 										"anchors": {
 											"left": 0,
 											"right": 0
@@ -225,8 +225,8 @@
 												"height": 18
 											},
 											{
-												"id": "properties-launch",
 												"type": "textarea",
+												"id": "properties-launch",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -281,8 +281,8 @@
 												"height": 18
 											},
 											{
-												"id": "properties-overlay",
 												"type": "row",
+												"id": "properties-overlay",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -299,8 +299,8 @@
 														"textColor": "@color.text"
 													},
 													{
-														"id": "properties-overlay-toggle",
 														"type": "toggle",
+														"id": "properties-overlay-toggle",
 														"width": 40,
 														"height": 22,
 														"label": "{{t('properties.overlay')}}",
@@ -317,8 +317,8 @@
 												]
 											},
 											{
-												"id": "properties-cloud",
 												"type": "row",
+												"id": "properties-cloud",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -335,8 +335,8 @@
 														"textColor": "@color.text"
 													},
 													{
-														"id": "properties-cloud-toggle",
 														"type": "toggle",
+														"id": "properties-cloud-toggle",
 														"width": 40,
 														"height": 22,
 														"label": "{{t('properties.cloud')}}",
@@ -372,8 +372,8 @@
 												"height": 18
 											},
 											{
-												"id": "properties-updates-auto",
 												"type": "row",
+												"id": "properties-updates-auto",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -437,8 +437,8 @@
 												]
 											},
 											{
-												"id": "properties-updates-launch",
 												"type": "row",
+												"id": "properties-updates-launch",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -502,8 +502,8 @@
 												]
 											},
 											{
-												"id": "properties-updates-high",
 												"type": "row",
+												"id": "properties-updates-high",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -599,8 +599,8 @@
 												"height": 18
 											},
 											{
-												"id": "properties-size",
 												"type": "label",
+												"id": "properties-size",
 												"text": "{{t('properties.sizeValue', { size: formatNumber(computed.manageGame.sizeGb ?? 0) })}}",
 												"textColor": "@color.text",
 												"font": "default",
@@ -624,8 +624,8 @@
 												"height": 18
 											},
 											{
-												"id": "properties-folder",
 												"type": "label",
+												"id": "properties-folder",
 												"text": "{{'Arcadia/games/' + computed.manageGame.title}}",
 												"textColor": "@color.text",
 												"font": "small",
@@ -666,8 +666,8 @@
 												]
 											},
 											{
-												"id": "properties-verify-result",
 												"type": "label",
+												"id": "properties-verify-result",
 												"live": "polite",
 												"font": "small",
 												"anchors": {
@@ -699,8 +699,8 @@
 												"height": 18
 											},
 											{
-												"id": "properties-dlc-empty",
 												"type": "label",
+												"id": "properties-dlc-empty",
 												"text": "{{t('properties.dlcNone')}}",
 												"textColor": "@color.muted",
 												"anchors": {

@@ -2160,9 +2160,9 @@ other way round.
 
 ```lisp
 ; Flow's insights panel: a comment runs to the end of the line
-(panel #insights :color transparent
-  (node #burndownTitle :style caption :anchors {:left 0 :top 0} :text "{{t('burndown.title')}}")
-  (column #list :gap 4))
+(panel#insights :color transparent
+  (node#burndownTitle :style caption :anchors {:left 0 :top 0} :text "{{t('burndown.title')}}")
+  (column#list :gap 4))
 ```
 
 is exactly
@@ -2178,32 +2178,38 @@ and a list is never called. Expressions stay `{{...}}` strings, as in JSON.
 
 | JSON | Lisp |
 |---|---|
-| an object with an `id` that is a string (a node) | `(type #id :key value ... child child ...)` |
-| any other object | `{:key value ...}` |
+| an object with a `type`, a `use` or `children`, or one in a list of children (a node) | `(type#id :key value ... child child ...)` |
+| any other object | `{:key value ...}`; a key that isn't a plain word is a string: `{"ctrl+f" find}` |
 | an array | `[a b c]` |
-| a string that is a plain word | the word: `transparent`, `@color.accent`, `state.items` |
-| any other string | in quotes, with JSON's escapes: `"Hello, world"`, `"{{state.count + 1}}"`, `"12px"`, `"true"` |
+| a string that is a plain word and doesn't start with a capital | the word: `transparent`, `@color.accent`, `state.items` |
+| any other string | in quotes, with JSON's escapes: `"Cut"`, `"Hello, world"`, `"{{state.count + 1}}"`, `"12px"`, `"true"` |
 | a number, `true`, `false`, `null` | `4`, `-2.5`, `1e-3`, `true`, `false`, `nil` |
 
 - **A node** is written `(head ...)`. The head is the node's `type` when `type` is its first key and a plain word other
-  than `node`; otherwise the head is `node` and the type, if any, is a key where it is (`(node #title :type label
-  ...)` for `{"id": "title", "type": "label"}`). `#id` is its `id`. Every other key is `:key value`, in the order of
-  the object, so converting never reorders keys: a commit made from either spelling has the same hash.
+  than `node` or a word the language runs ("The Lisp language"); otherwise the head is `node` and the type, if any, is a
+  key where it is (`(node#title :type label ...)` for `{"id": "title", "type": "label"}`). `#id` right after the head
+  (`panel#x`) is its `id`, when that is the next key and a plain word; otherwise `:id "..."`, where it is. `(panel #x)`
+  and `(panel #"a b")` still read. Every other key is `:key value`, in the order of the object, so converting never
+  reorders keys: a commit made from either spelling has the same hash.
 - **Children** are written after the properties, one per line: they are the node's `children` list when it is its
   last key and isn't empty. `:children [...]` is written for an empty list or one that isn't the last key.
 - **Plain words** start with a letter, `_`, `@` or `$`, and go on with letters, digits, `_`, `.`, `@`, `$` and `-`
-  (ASCII). `true`, `false` and `nil` are values, so the strings `"true"`, `"false"` and `"nil"` are quoted.
-- **Keys and ids** that aren't plain words are quoted: `:"#root/color"`, `#"{{'nav-' + tab}}"`.
-- **Comments** start with `;` (outside a string) and run to the end of the line. They are not part of the tree, so
-  converting a file drops them; a `note` key keeps text that must stay.
+  (ASCII). `true`, `false` and `nil` are values, so the strings `"true"`, `"false"` and `"nil"` are quoted. Text that
+  starts with a capital is written in quotes, so it keeps them when it gains a space; `Cut` bare still reads.
+- **Keys** that aren't plain words are strings in a map, `{"#root/color" red}`, and `:"a b"` in a node, where a bare
+  string is a child. `{:"a b" 1}` still reads.
+- **Comments** start with `;` (outside a string) and run to the end of the line, and `#_` discards the next form
+  (`#_x` with no space is still the id `_x`). Neither is part of the tree, so converting a file to JSON drops them; a
+  `note` key keeps text that must stay. Commas are spaces.
 - **A key appears once** in an object or a node; properties come before the children. A mistake names its place:
   `AffrescoUI screen: board.lisp: line 3, column 8: expected ')' to close the node opened at line 1, column 1`.
 - **Limits** as JSON's: 256 levels deep (a node's children count as a list inside it, as in JSON), numbers of at most
   40 characters, a file of at most 64 MiB.
 
 The printer is canonical: a tree always gives the same text (a list, an object or a node on one line when it fits in
-120 columns, else one member a line), and reading it back gives the tree. `affrescoui convert board.screen.json` writes
-it (`--to json` the other way, `-o FILE` to a file), `affrescoui fmt` lays out a `.lisp` file canonically, and
+120 columns, else one member a line, a map's and a list's aligned one column past the bracket and a node's two spaces
+in), and reading it back gives the tree. `affrescoui convert board.screen.json` writes it (`--to json` the other way,
+`-o FILE` to a file), `affrescoui fmt` lays out a `.lisp` file canonically and keeps its comments, and
 `affrescoui check` checks a `.lisp` file against the same schema, as the tree it spells.
 
 **Version control stays JSON.** The history, commits, patches, blame and permissions never see Lisp: a peer reads and
@@ -2212,7 +2218,7 @@ and `submit_revision` take `notation: "lisp"`. A revision written in Lisp is an 
 converted to JSON before it is submitted:
 
 ```lisp
-{:set {:"#statusBar/color" @topBar} :add {:"#list/children/-" (label #hello :text Hello)}}
+{:set {"#statusBar/color" @topBar} :add {"#list/children/-" (label#hello :text "Hello")}}
 ```
 
 ## Migrating from version 1

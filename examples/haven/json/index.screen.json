@@ -390,17 +390,17 @@
 						"role": "navigation",
 						"children": [
 							{ "id": "sidebarHeader", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 56, "color": "transparent", "children": [
-								{ "id": "menuButton", "type": "label", "font": "iconsMedium", "icon": "menu", "text": "", "textColor": "@muted", "anchors": { "left": 8, "top": 8 }, "width": 40, "height": 40,
+								{ "type": "label", "id": "menuButton", "font": "iconsMedium", "icon": "menu", "text": "", "textColor": "@muted", "anchors": { "left": 8, "top": 8 }, "width": 40, "height": 40,
 									"radius": 20, "align": "center", "hover": { "color": "@cardHover" }, "cursor": "hand", "focusable": true, "role": "button",
 									"label": "{{t(state.sidebarCollapsed ? 'sidebar.open' : 'sidebar.fold')}}", "tooltip": "{{t(state.sidebarCollapsed ? 'sidebar.open' : 'sidebar.fold')}}",
 									"onClick": "toggleSidebar" },
-								{ "id": "logo", "when": "{{!state.sidebarCollapsed}}", "type": "label", "text": "Haven", "font": "heading", "textColor": "@text",
+								{ "type": "label", "id": "logo", "when": "{{!state.sidebarCollapsed}}", "text": "Haven", "font": "heading", "textColor": "@text",
 									"anchors": { "left": 64, "top": 0, "bottom": 0 }, "fitText": true, "align": { "horizontal": "start", "vertical": "center" } }
 							] },
 							{ "id": "sidebarRule", "anchors": { "left": 0, "right": 0, "top": 56 }, "height": 1, "color": "@divider" },
 							{
-								"id": "nav",
 								"type": "stack",
+								"id": "nav",
 								"anchors": { "left": 8, "right": 8, "top": 64 },
 								"height": 344,
 								"gap": 4,
@@ -418,8 +418,8 @@
 								]
 							},
 							{
-								"id": "sidebarFoot",
 								"type": "stack",
+								"id": "sidebarFoot",
 								"anchors": { "left": 8, "right": 8, "bottom": 8 },
 								"height": 148,
 								"gap": 4,
@@ -437,9 +437,9 @@
 										"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('user.profile')}}", "tooltip": "{{t('user.profile')}}",
 										"onClick": [{ "set": "state.settingsView", "to": "profile" }, { "set": "state.page", "to": "settings" }],
 										"children": [
-											{ "id": "userAvatar", "type": "label", "font": "small", "text": "A", "textColor": "@onAccent", "color": "@primary", "anchors": { "left": 4, "top": 8 },
+											{ "type": "label", "id": "userAvatar", "font": "small", "text": "A", "textColor": "@onAccent", "color": "@primary", "anchors": { "left": 4, "top": 8 },
 												"width": 32, "height": 32, "radius": 16, "align": "center" },
-											{ "id": "userName", "when": "{{!state.sidebarCollapsed}}", "type": "label", "text": "Alex", "textColor": "{{computed.onProfile ? '@onNavSelected' : '@text'}}",
+											{ "type": "label", "id": "userName", "when": "{{!state.sidebarCollapsed}}", "text": "Alex", "textColor": "{{computed.onProfile ? '@onNavSelected' : '@text'}}",
 												"anchors": { "left": 52, "top": 0, "bottom": 0 }, "fitText": true, "align": { "horizontal": "start", "vertical": "center" } }
 										] }
 								]
@@ -461,20 +461,20 @@
 								"color": "{{state.editing ? '@editHeader' : '@header'}}",
 								"role": "banner",
 								"children": [
-									{ "id": "editClose", "when": "{{state.editing}}", "type": "label", "font": "iconsMedium", "icon": "x", "text": "", "textColor": "@onHeader", "anchors": { "left": 8, "top": 8 },
+									{ "type": "label", "id": "editClose", "when": "{{state.editing}}", "font": "iconsMedium", "icon": "x", "text": "", "textColor": "@onHeader", "anchors": { "left": 8, "top": 8 },
 										"width": 40, "height": 40, "radius": 20, "align": "center", "hover": { "color": "@headerHover" }, "cursor": "hand", "focusable": true, "role": "button",
 										"label": "{{t('edit.done')}}", "tooltip": "{{t('edit.done')}}", "onClick": "doneEditing" },
-									{ "id": "editTitle", "when": "{{state.editing}}", "type": "label", "font": "heading", "text": "{{t('edit.dashboard')}}", "textColor": "@onHeader",
+									{ "type": "label", "id": "editTitle", "when": "{{state.editing}}", "font": "heading", "text": "{{t('edit.dashboard')}}", "textColor": "@onHeader",
 										"anchors": { "left": 60, "top": 0, "bottom": 0 }, "fitText": true, "align": { "horizontal": "start", "vertical": "center" } },
-									{ "id": "viewTabs", "type": "row", "anchors": { "left": "{{state.editing ? 240 : 16}}", "top": 0, "bottom": 0, "right": 168 }, "gap": 6, "role": "tablist", "arrows": "horizontal",
+									{ "type": "row", "id": "viewTabs", "anchors": { "left": "{{state.editing ? 240 : 16}}", "top": 0, "bottom": 0, "right": 168 }, "gap": 6, "role": "tablist", "arrows": "horizontal",
 										"label": "{{t('rooms.label')}}", "children": [
 										{ "id": "viewTab", "repeat": { "for": "r", "in": "state.rooms", "index": "i" }, "use": "viewTab",
 											"with": { "title": "{{r.name}}", "selected": "{{i == state.room}}" }, "label": "{{r.name}}", "onClick": { "set": "state.room", "to": "{{i}}" } }
 									] },
-									{ "id": "assistButton", "when": "{{!state.editing}}", "type": "label", "font": "iconsMedium", "icon": "sparkles", "text": "", "textColor": "@onHeader",
+									{ "type": "label", "id": "assistButton", "when": "{{!state.editing}}", "font": "iconsMedium", "icon": "sparkles", "text": "", "textColor": "@onHeader",
 										"anchors": { "right": 112, "top": 8 }, "width": 40, "height": 40, "radius": 20, "align": "center", "hover": { "color": "@headerHover" }, "cursor": "hand",
 										"focusable": true, "role": "button", "label": "{{t('toolbar.assist')}}", "tooltip": "{{t('toolbar.assist')}}", "onClick": { "run": "assistant.toggle" } },
-									{ "id": "searchButton", "when": "{{!state.editing}}", "type": "label", "font": "iconsMedium", "icon": "search", "text": "", "textColor": "@onHeader", "anchors": { "right": 64, "top": 8 }, "width": 40, "height": 40, "radius": 20,
+									{ "type": "label", "id": "searchButton", "when": "{{!state.editing}}", "font": "iconsMedium", "icon": "search", "text": "", "textColor": "@onHeader", "anchors": { "right": 64, "top": 8 }, "width": 40, "height": 40, "radius": 20,
 										"align": "center", "hover": { "color": "@headerHover" }, "cursor": "hand", "focusable": true, "role": "button",
 										"label": "{{t('toolbar.search')}}", "tooltip": "{{t('toolbar.search')}} (E)", "onClick": "searchEntities" },
 									{ "id": "editAddCard", "when": "{{state.editing}}", "style": "button", "icon": "plus", "text": " {{t('edit.addCard')}}", "color": "transparent",
@@ -490,14 +490,14 @@
 												{ "title": "{{t('edit.dashboard')}}", "icon": "pencil", "run": "editDashboard" }
 											] } }
 									] },
-									{ "id": "dashMore", "when": "{{!state.editing}}", "type": "label", "font": "iconsMedium", "icon": "ellipsis-vertical", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 },
+									{ "type": "label", "id": "dashMore", "when": "{{!state.editing}}", "font": "iconsMedium", "icon": "ellipsis-vertical", "text": "", "textColor": "@onHeader", "anchors": { "right": 16, "top": 8 },
 										"width": 40, "height": 40, "radius": 20, "align": "center", "hover": { "color": "@headerHover" }, "cursor": "hand", "focusable": true, "role": "button",
 										"label": "{{t('toolbar.more')}}", "tooltip": "{{t('toolbar.more')}}", "isOpen": "{{state.dashMenu}}", "onClick": { "toggle": "state.dashMenu" } }
 								]
 							},
 							{
-								"id": "chips",
 								"type": "row",
+								"id": "chips",
 								"anchors": { "left": 24, "right": 24, "top": 68 },
 								"height": 36,
 								"gap": 8,
@@ -521,17 +521,17 @@
 								"children": [
 									{ "id": "areaCard", "when": "{{!computed.compact}}", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 120, "radius": 18, "color": "@card",
 										"role": "group", "label": "{{computed.room.name}}", "children": [
-										{ "id": "roomImage", "type": "image", "file": "{{computed.room.image}}", "fit": "cover", "radius": 18, "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 }, "label": "{{computed.room.name}}" },
+										{ "type": "image", "id": "roomImage", "file": "{{computed.room.image}}", "fit": "cover", "radius": 18, "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 }, "label": "{{computed.room.name}}" },
 										{ "id": "areaShade", "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 44, "color": "#00000088", "radius": 18 },
-										{ "id": "areaName", "type": "label", "text": "{{computed.room.name}}", "font": "heading", "textColor": "#ffffff", "anchors": { "left": 16, "bottom": 10 }, "fitText": true },
-										{ "id": "areaStats", "type": "label", "font": "small", "textColor": "#ffffff", "icon": "thermometer",
+										{ "type": "label", "id": "areaName", "text": "{{computed.room.name}}", "font": "heading", "textColor": "#ffffff", "anchors": { "left": 16, "bottom": 10 }, "fitText": true },
+										{ "type": "label", "id": "areaStats", "font": "small", "textColor": "#ffffff", "icon": "thermometer",
 											"text": " {{computed.room.temp}}°   {{computed.room.humidity}}%", "anchors": { "right": 16, "bottom": 13 }, "fitText": true }
 									] },
-									{ "id": "label-lights", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.lights}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": "{{computed.compact ? 0 : 136}}" }, "fitText": true },
+									{ "type": "label", "id": "label-lights", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.lights}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": "{{computed.compact ? 0 : 136}}" }, "fitText": true },
 									{ "id": "label-click-a-light", "when": "{{!state.editing}}", "style": "caption", "text": "{{t('lights.hint')}}", "anchors": { "right": 4, "top": "{{computed.compact ? 4 : 140}}" } },
 									{
-										"id": "lights",
 										"type": "grid",
+										"id": "lights",
 										"columns": 2,
 										"gap": 8,
 										"anchors": { "left": "{{state.editing ? 10 : 0}}", "right": "{{state.editing ? 10 : 0}}", "top": "{{computed.compact ? 30 : 166}}" },
@@ -556,10 +556,10 @@
 												"description": "{{t('info.open')}}",
 												"onClick": { "run": "openInfo", "with": { "kind": "light", "i": "{{i}}" } },
 												"children": [
-													{ "id": "lightIcon", "type": "label", "icon": "{{light.on ? 'lightbulb' : 'lightbulb-off'}}", "text": "",
+													{ "type": "label", "id": "lightIcon", "icon": "{{light.on ? 'lightbulb' : 'lightbulb-off'}}", "text": "",
 														"textColor": "{{light.on ? tint : '@muted'}}", "color": "{{light.on ? tint + '33' : '@raised'}}",
 														"anchors": { "left": 12, "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center" },
-													{ "id": "label-light-name", "type": "label", "text": "{{light.name}}", "textColor": "@text", "anchors": { "left": 56, "right": 12, "top": 12 }, "height": 18 },
+													{ "type": "label", "id": "label-light-name", "text": "{{light.name}}", "textColor": "@text", "anchors": { "left": 56, "right": 12, "top": 12 }, "height": 18 },
 													{
 														"id": "label-light-on-on",
 														"style": "caption",
@@ -567,9 +567,9 @@
 														"anchors": { "left": 56, "top": 32 }
 													},
 													{
+														"type": "toggle",
 														"id": "toggle-rooms-room-lights",
 														"note": "The icon switches the light: a toggle drawn by the icon under it",
-														"type": "toggle",
 														"anchors": { "left": 12, "top": 12 },
 														"width": 36,
 														"height": 36,
@@ -586,9 +586,9 @@
 													{ "id": "level-bar-light", "use": "levelBar", "with": { "level": "{{light.on ? (light.level - 10) / 90 : 0}}", "fill": "{{light.on ? tint : '@off'}}", "back": "{{light.on ? tint + '33' : '@raised'}}" },
 														"anchors": { "left": 12, "right": 12, "bottom": 10 } },
 													{
+														"type": "slider",
 														"id": "slider-rooms-room-lights",
 														"note": "Drags the bar under it",
-														"type": "slider",
 														"anchors": { "left": 12, "right": 12, "bottom": 10 },
 														"height": 40,
 														"min": 10,
@@ -606,10 +606,10 @@
 											}
 										]
 									},
-									{ "id": "label-scenes", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.scenes}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": "#lights.bottom + 16" }, "fitText": true },
+									{ "type": "label", "id": "label-scenes", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.scenes}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": "#lights.bottom + 16" }, "fitText": true },
 									{
-										"id": "scenes",
 										"type": "row",
+										"id": "scenes",
 										"anchors": { "left": "{{state.editing ? 10 : 0}}", "right": "{{state.editing ? 10 : 0}}", "top": "#label-scenes.bottom + 10" },
 										"height": 76,
 										"gap": 8,
@@ -631,10 +631,10 @@
 												"hover": { "color": "{{on ? '@accentSoft' : '@cardHover'}}" },
 												"cursor": "hand",
 												"children": [
-													{ "id": "sceneIcon", "type": "label", "icon": "{{scene.icon}}", "text": "", "font": "title", "textColor": "{{on ? '@accent' : '@muted'}}", "anchors": { "left": 0, "right": 0, "top": 12 }, "height": 24, "align": "center" },
+													{ "type": "label", "id": "sceneIcon", "icon": "{{scene.icon}}", "text": "", "font": "title", "textColor": "{{on ? '@accent' : '@muted'}}", "anchors": { "left": 0, "right": 0, "top": 12 }, "height": 24, "align": "center" },
 													{
-														"id": "label-scene-name",
 														"type": "label",
+														"id": "label-scene-name",
 														"text": "{{t('scene.' + scene.key)}}",
 														"font": "small",
 														"anchors": { "left": 4, "right": 4, "top": 0, "bottom": 0 },
@@ -651,13 +651,13 @@
 											}
 										]
 									},
-									{ "id": "label-security", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.security}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": "#scenes.bottom + 16" }, "fitText": true },
+									{ "type": "label", "id": "label-security", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.security}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": "#scenes.bottom + 16" }, "fitText": true },
 									{ "id": "alarmTile", "use": "alarmTile", "anchors": { "left": "{{state.editing ? 10 : 0}}", "right": "{{state.editing ? 10 : 0}}", "top": "#label-security.bottom + 10" } },
-									{ "use": "editFrame", "with": { "card": "lights", "name": "{{computed.cardTitle.lights}}" }, "id": "editLights",
+									{ "id": "editLights", "use": "editFrame", "with": { "card": "lights", "name": "{{computed.cardTitle.lights}}" },
 										"anchors": { "left": 0, "right": 0, "top": "#label-lights.top - 6", "bottom": "#lights.bottom + 10" } },
-									{ "use": "editFrame", "with": { "card": "scenes", "name": "{{computed.cardTitle.scenes}}" }, "id": "editScenes",
+									{ "id": "editScenes", "use": "editFrame", "with": { "card": "scenes", "name": "{{computed.cardTitle.scenes}}" },
 										"anchors": { "left": 0, "right": 0, "top": "#label-scenes.top - 6", "bottom": "#scenes.bottom + 10" } },
-									{ "use": "editFrame", "with": { "card": "security", "name": "{{computed.cardTitle.security}}" }, "id": "editSecurity",
+									{ "id": "editSecurity", "use": "editFrame", "with": { "card": "security", "name": "{{computed.cardTitle.security}}" },
 										"anchors": { "left": 0, "right": 0, "top": "#label-security.top - 6", "bottom": "#alarmTile.bottom + 10" } }
 								]
 							},
@@ -674,17 +674,17 @@
 									{ "id": "label-climate", "style": "cardTitle", "icon": "thermometer", "text": " {{computed.cardTitle.climate}}", "cursor": "hand", "focusable": true, "role": "button",
 										"tooltip": "{{t('info.open')}}", "onClick": { "run": "openInfo", "with": { "kind": "climate", "i": 0 } } },
 									{ "id": "label-now-room-temp", "when": "{{!state.editing}}", "style": "caption", "text": "{{t('climate.now', { temp: computed.room.temp, humidity: computed.room.humidity })}}", "anchors": { "right": 24, "top": 24 } },
-									{ "use": "thermoDial", "with": { "p": "", "small": "{{computed.compact}}" }, "id": "dial", "anchors": { "left": 0, "right": 0, "top": 44 } },
-									{ "id": "steps", "type": "row", "anchors": { "left": 0, "right": 0, "top": "{{computed.compact ? 136 : 192}}" }, "height": 40, "gap": 12, "justify": "center",
+									{ "id": "dial", "use": "thermoDial", "with": { "p": "", "small": "{{computed.compact}}" }, "anchors": { "left": 0, "right": 0, "top": 44 } },
+									{ "type": "row", "id": "steps", "anchors": { "left": 0, "right": 0, "top": "{{computed.compact ? 136 : 192}}" }, "height": 40, "gap": 12, "justify": "center",
 										"role": "toolbar", "arrows": "horizontal", "label": "{{t('climate.label')}}",
 										"children": [
-											{ "use": "iconBtn", "with": { "icon": "minus", "tip": "climate.down" }, "id": "label-down-arrow", "width": 40, "height": 40, "radius": 20, "onClick": { "run": "setTarget", "with": { "by": -0.5 } } },
-											{ "use": "iconBtn", "with": { "icon": "plus", "tip": "climate.up" }, "id": "label-up-arrow", "width": 40, "height": 40, "radius": 20, "onClick": { "run": "setTarget", "with": { "by": 0.5 } } }
+											{ "id": "label-down-arrow", "use": "iconBtn", "with": { "icon": "minus", "tip": "climate.down" }, "width": 40, "height": 40, "radius": 20, "onClick": { "run": "setTarget", "with": { "by": -0.5 } } },
+											{ "id": "label-up-arrow", "use": "iconBtn", "with": { "icon": "plus", "tip": "climate.up" }, "width": 40, "height": 40, "radius": 20, "onClick": { "run": "setTarget", "with": { "by": 0.5 } } }
 										] },
 									{
+										"type": "row",
 										"id": "modes",
 										"when": "{{state.cards.climate.modes}}",
-										"type": "row",
 										"anchors": { "left": 0, "right": 0, "bottom": 16 },
 										"justify": "center",
 										"height": 44,
@@ -693,9 +693,9 @@
 										"arrows": "horizontal",
 										"children": [
 											{
+												"type": "label",
 												"id": "panel-mode",
 												"repeat": { "for": "mode", "in": "state.modes" },
-												"type": "label",
 												"icon": "{{mode == 'Heat' ? 'flame' : (mode == 'Cool' ? 'snowflake' : 'sun-snow')}}",
 												"text": "",
 												"width": 44,
@@ -715,7 +715,7 @@
 											}
 										]
 									},
-									{ "use": "editFrame", "with": { "card": "climate", "name": "{{computed.cardTitle.climate}}" }, "id": "editClimate", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } }
+									{ "id": "editClimate", "use": "editFrame", "with": { "card": "climate", "name": "{{computed.cardTitle.climate}}" }, "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } }
 								]
 							},
 							{
@@ -728,22 +728,22 @@
 								"role": "group",
 								"label": "{{t('blinds.title')}}",
 								"children": [
-									{ "id": "blindsIcon", "type": "label", "icon": "blinds", "text": "", "textColor": "@cover", "color": "{{computed.coverTint}}", "anchors": { "left": 12, "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
+									{ "type": "label", "id": "blindsIcon", "icon": "blinds", "text": "", "textColor": "@cover", "color": "{{computed.coverTint}}", "anchors": { "left": 12, "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
 										"cursor": "hand", "focusable": true, "role": "button", "label": "{{t('info.cover')}}", "tooltip": "{{t('info.open')}}", "onClick": { "run": "openInfo", "with": { "kind": "cover", "i": 0 } } },
-									{ "id": "label-blinds", "type": "label", "text": "{{computed.cardTitle.cover}}", "textColor": "@text", "anchors": { "left": 60, "top": 12 }, "fitText": true,
+									{ "type": "label", "id": "label-blinds", "text": "{{computed.cardTitle.cover}}", "textColor": "@text", "anchors": { "left": 60, "top": 12 }, "fitText": true,
 										"cursor": "hand", "onClick": { "run": "openInfo", "with": { "kind": "cover", "i": 0 } } },
 									{ "id": "label-round-room-blinds", "style": "caption", "text": "{{t('blinds.open', { n: round(computed.room.blinds) })}}", "anchors": { "left": 60, "top": 32 } },
-									{ "id": "label-open", "type": "label", "icon": "chevron-up", "text": "", "anchors": { "right": "{{state.editing ? 52 : 12}}", "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
+									{ "type": "label", "id": "label-open", "icon": "chevron-up", "text": "", "anchors": { "right": "{{state.editing ? 52 : 12}}", "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
 										"color": "@raised", "hover": { "color": "@raisedHover" }, "textColor": "@text", "cursor": "hand", "focusable": true, "role": "button",
 										"label": "{{t('blinds.openButton')}}", "tooltip": "{{t('blinds.openButton')}}", "onClick": { "animate": "state.rooms[state.room].blinds", "to": 100, "ms": 500 } },
-									{ "id": "label-close", "type": "label", "icon": "chevron-down", "text": "", "anchors": { "right": "{{state.editing ? 96 : 56}}", "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
+									{ "type": "label", "id": "label-close", "icon": "chevron-down", "text": "", "anchors": { "right": "{{state.editing ? 96 : 56}}", "top": 12 }, "width": 36, "height": 36, "radius": 18, "align": "center",
 										"color": "@raised", "hover": { "color": "@raisedHover" }, "textColor": "@text", "cursor": "hand", "focusable": true, "role": "button",
 										"label": "{{t('blinds.close')}}", "tooltip": "{{t('blinds.close')}}", "onClick": { "animate": "state.rooms[state.room].blinds", "to": 0, "ms": 500 } },
 									{ "id": "level-bar-blinds-card", "use": "levelBar", "with": { "level": "{{computed.room.blinds / 100}}", "fill": "@cover", "back": "{{computed.coverTint}}" },
 										"anchors": { "left": 12, "right": 12, "bottom": 12 } },
 									{
-										"id": "blinds",
 										"type": "slider",
+										"id": "blinds",
 										"anchors": { "left": 12, "right": 12, "bottom": 12 },
 										"height": 40,
 										"step": 10,
@@ -754,7 +754,7 @@
 										"activeColor": "transparent",
 										"knobColor": "transparent"
 									},
-									{ "use": "editFrame", "with": { "card": "cover", "name": "{{computed.cardTitle.cover}}" }, "id": "editCover", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } }
+									{ "id": "editCover", "use": "editFrame", "with": { "card": "cover", "name": "{{computed.cardTitle.cover}}" }, "anchors": { "left": 0, "right": 0, "top": 0, "bottom": 0 } }
 								]
 							},
 							{
@@ -766,10 +766,10 @@
 								"role": "group",
 								"label": "{{t('devices.title')}}",
 								"children": [
-									{ "id": "label-devices", "when": "{{!computed.compact}}", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.devices}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": 4 }, "fitText": true },
+									{ "type": "label", "id": "label-devices", "when": "{{!computed.compact}}", "font": "heading", "textColor": "@text", "text": "{{computed.cardTitle.devices}}", "anchors": { "left": "{{state.editing ? 14 : 4}}", "top": 4 }, "fitText": true },
 									{
-										"id": "devices",
 										"type": "row",
+										"id": "devices",
 										"anchors": { "left": "{{state.editing ? 10 : 0}}", "right": "{{state.editing ? 10 : 0}}", "top": "{{computed.compact ? 0 : 34}}" },
 										"height": "{{computed.compact ? 96 : 124}}",
 										"gap": 8,
@@ -791,9 +791,9 @@
 												"label": "{{d.name}}",
 												"onClick": { "run": "openInfo", "with": { "kind": "device", "i": "{{i}}" } },
 												"children": [
-													{ "id": "deviceIcon", "type": "label", "icon": "{{d.on ? d.icon : d.iconOff}}", "text": "", "textColor": "{{d.on ? '@accent' : '@muted'}}", "color": "{{d.on ? '@accentSoft' : '@raised'}}",
+													{ "type": "label", "id": "deviceIcon", "icon": "{{d.on ? d.icon : d.iconOff}}", "text": "", "textColor": "{{d.on ? '@accent' : '@muted'}}", "color": "{{d.on ? '@accentSoft' : '@raised'}}",
 														"anchors": { "left": 10, "top": 12 }, "width": 32, "height": 32, "radius": 16, "align": "center" },
-													{ "id": "deviceName", "type": "label", "text": "{{d.name}}", "textColor": "@text", "anchors": { "left": 50, "right": 4, "top": 12 }, "height": 18 },
+													{ "type": "label", "id": "deviceName", "text": "{{d.name}}", "textColor": "@text", "anchors": { "left": 50, "right": 4, "top": 12 }, "height": 18 },
 													{ "id": "deviceState", "style": "caption", "text": "{{d.busy ? t('device.waiting') : t('device.' + d.id + (d.on ? '.on' : '.off'))}}", "anchors": { "left": 50, "top": 32 }, "live": "polite" },
 													{
 														"id": "deviceAction",
@@ -811,7 +811,7 @@
 											}
 										]
 									},
-									{ "use": "editFrame", "with": { "card": "devices", "name": "{{computed.cardTitle.devices}}" }, "id": "editDevices", "anchors": { "left": 0, "right": 0, "top": 0, "bottom": "#devices.bottom + 10" } }
+									{ "id": "editDevices", "use": "editFrame", "with": { "card": "devices", "name": "{{computed.cardTitle.devices}}" }, "anchors": { "left": 0, "right": 0, "top": 0, "bottom": "#devices.bottom + 10" } }
 								]
 							}
 						]
@@ -832,8 +832,8 @@
 						"children": [
 							{ "id": "panel-status-bar", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 1, "color": "@border" },
 							{
-								"id": "statusText",
 								"type": "label",
+								"id": "statusText",
 								"text": "Revision {{revision.number}}  ·  {{revision.author}}: {{revision.message}}",
 								"font": "small",
 								"textColor": "@muted",
@@ -841,8 +841,8 @@
 								"align": { "horizontal": "start", "vertical": "center" }
 							},
 							{
-								"id": "statusSize",
 								"type": "label",
+								"id": "statusSize",
 								"text": "{{window.width}} × {{window.height}}",
 								"font": "small",
 								"textColor": "@muted",

@@ -511,14 +511,14 @@
 		},
 		"children": [
 			{
-				"id": "changesLayout",
 				"type": "row",
+				"id": "changesLayout",
 				"fill": 16,
 				"gap": 16,
 				"children": [
 					{
-						"id": "changesSide",
 						"type": "column",
+						"id": "changesSide",
 						"width": 290,
 						"gap": 6,
 						"alignItems": "stretch",
@@ -529,20 +529,20 @@
 						"scroll": "vertical",
 						"children": [
 							{
+								"type": "label",
 								"id": "changesProposalsTitle",
 								"when": "{{length(state.list.proposals) > 0}}",
-								"type": "label",
 								"text": "{{t('changes.proposals')}}",
 								"font": "small",
 								"textColor": "@c.muted",
 								"height": 20
 							},
 							{
+								"id": "changesProposal{{p.id}}",
 								"repeat": {
 									"for": "p",
 									"in": "{{state.list.proposals}}"
 								},
-								"id": "changesProposal{{p.id}}",
 								"role": "button",
 								"focusable": true,
 								"cursor": "hand",
@@ -592,19 +592,19 @@
 								]
 							},
 							{
-								"id": "changesHistoryTitle",
 								"type": "label",
+								"id": "changesHistoryTitle",
 								"text": "{{t('changes.history')}}",
 								"font": "small",
 								"textColor": "@c.muted",
 								"height": 20
 							},
 							{
+								"id": "changesCommit{{c.number}}",
 								"repeat": {
 									"for": "c",
 									"in": "{{state.list.history}}"
 								},
-								"id": "changesCommit{{c.number}}",
 								"role": "button",
 								"focusable": true,
 								"cursor": "hand",
@@ -656,8 +656,8 @@
 						]
 					},
 					{
-						"id": "changesMain",
 						"type": "column",
+						"id": "changesMain",
 						"grow": 1,
 						"gap": 10,
 						"alignItems": "stretch",
@@ -667,17 +667,17 @@
 						},
 						"children": [
 							{
+								"type": "label",
 								"id": "changesPick",
 								"when": "{{state.view == null}}",
-								"type": "label",
 								"text": "{{t('changes.pick')}}",
 								"textColor": "@c.muted",
 								"height": 24
 							},
 							{
+								"type": "label",
 								"id": "changesTitle",
 								"when": "{{state.view != null}}",
-								"type": "label",
 								"font": "heading",
 								"text": "{{state.view.message}}",
 								"textColor": "@c.text",
@@ -685,17 +685,17 @@
 								"role": "heading"
 							},
 							{
+								"type": "label",
 								"id": "changesSummary",
 								"when": "{{state.view != null}}",
-								"type": "label",
 								"text": "{{t('changes.by', {author: state.view.author}) + '   ' + t('changes.filesSummary', {n: length(state.view.files), added: computed.added, removed: computed.removed}) + (state.view.impact == null ? '' : '   ' + t('changes.layers', {view: state.view.impact.view, logic: state.view.impact.logic, data: state.view.impact.data}))}}",
 								"textColor": "@c.muted",
 								"height": 20
 							},
 							{
+								"type": "label",
 								"id": "changesStale",
 								"when": "{{state.stale && !state.closed}}",
-								"type": "label",
 								"wrap": true,
 								"text": "{{t('changes.stale')}}",
 								"textColor": "@c.warning",
@@ -706,9 +706,9 @@
 								"height": "{{36}}"
 							},
 							{
+								"type": "label",
 								"id": "changesClosed",
 								"when": "{{state.closed}}",
-								"type": "label",
 								"wrap": true,
 								"text": "{{t('changes.closed')}}",
 								"textColor": "@c.muted",
@@ -719,9 +719,9 @@
 								"height": "{{36}}"
 							},
 							{
+								"type": "label",
 								"id": "changesConflicts",
 								"when": "{{length(state.view.conflicts ?? []) > 0}}",
-								"type": "label",
 								"wrap": true,
 								"text": "{{t('changes.conflicts')}}",
 								"textColor": "@c.warning",
@@ -732,9 +732,9 @@
 								"height": "{{36}}"
 							},
 							{
+								"type": "label",
 								"id": "changesPerson",
 								"when": "{{length(state.view.person ?? []) > 0}}",
-								"type": "label",
 								"wrap": true,
 								"text": "{{t('changes.person', {lines: join(state.view.person, '; ')})}}",
 								"textColor": "@c.warning",
@@ -745,9 +745,9 @@
 								"height": "{{36}}"
 							},
 							{
+								"type": "label",
 								"id": "changesBehaviour",
 								"when": "{{length(state.view.behaviour ?? []) > 0}}",
-								"type": "label",
 								"wrap": true,
 								"text": "{{t('changes.behaviour', {lines: join(slice(state.view.behaviour, 0, 3), '; ') + (length(state.view.behaviour) > 3 ? '; …' : '')})}}",
 								"textColor": "@c.warning",
@@ -758,15 +758,15 @@
 								"height": "{{36}}"
 							},
 							{
+								"type": "row",
 								"id": "changesBody",
 								"when": "{{state.view != null}}",
-								"type": "row",
 								"grow": 1,
 								"gap": 12,
 								"children": [
 									{
-										"id": "changesFiles",
 										"type": "column",
+										"id": "changesFiles",
 										"width": 240,
 										"gap": 2,
 										"alignItems": "stretch",
@@ -777,27 +777,27 @@
 										"scroll": "vertical",
 										"children": [
 											{
-												"id": "changesFilesTitle",
 												"type": "label",
+												"id": "changesFilesTitle",
 												"text": "{{t('changes.files')}}",
 												"font": "small",
 												"textColor": "@c.muted",
 												"height": 20
 											},
 											{
+												"type": "label",
 												"id": "changesNoFiles",
 												"when": "{{length(state.view.files) == 0}}",
-												"type": "label",
 												"text": "{{t('changes.none')}}",
 												"textColor": "@c.muted",
 												"height": 20
 											},
 											{
+												"id": "changesFile{{f.file}}",
 												"repeat": {
 													"for": "f",
 													"in": "{{state.view.files}}"
 												},
-												"id": "changesFile{{f.file}}",
 												"role": "button",
 												"focusable": true,
 												"cursor": "hand",
@@ -845,21 +845,21 @@
 												]
 											},
 											{
+												"type": "label",
 												"id": "changesExtrasTitle",
 												"when": "{{length(computed.extras) > 0}}",
-												"type": "label",
 												"text": "{{t('changes.assets') + ' · ' + t('changes.run')}}",
 												"font": "small",
 												"textColor": "@c.muted",
 												"height": 20
 											},
 											{
+												"type": "label",
+												"id": "changesExtra{{index}}",
 												"repeat": {
 													"for": "x",
 													"in": "{{computed.extras}}"
 												},
-												"id": "changesExtra{{index}}",
-												"type": "label",
 												"text": "{{x}}",
 												"textColor": "@c.text",
 												"font": "small",
@@ -868,8 +868,8 @@
 										]
 									},
 									{
-										"id": "changesPane",
 										"type": "column",
+										"id": "changesPane",
 										"grow": 1,
 										"gap": 6,
 										"alignItems": "stretch",
@@ -879,14 +879,14 @@
 										},
 										"children": [
 											{
-												"id": "changesTools",
 												"type": "row",
+												"id": "changesTools",
 												"gap": 6,
 												"height": 32,
 												"children": [
 													{
-														"id": "changesFileName",
 														"type": "label",
+														"id": "changesFileName",
 														"text": "{{state.file}}",
 														"font": "code",
 														"textColor": "@c.text",
@@ -1057,9 +1057,9 @@
 												]
 											},
 											{
+												"type": "diff",
 												"id": "changesDiff",
 												"when": "{{state.text != null && state.text.tooLarge != true}}",
-												"type": "diff",
 												"grow": 1,
 												"font": "code",
 												"textColor": "@c.text",
@@ -1070,17 +1070,17 @@
 												"insertedColor": "@c.inserted"
 											},
 											{
+												"type": "label",
 												"id": "changesTooLarge",
 												"when": "{{state.text != null && state.text.tooLarge == true}}",
-												"type": "label",
 												"text": "{{t('changes.tooLarge')}}",
 												"textColor": "@c.muted",
 												"height": 24
 											},
 											{
+												"type": "label",
 												"id": "changesLayoutNote",
 												"when": "{{state.text != null}}",
-												"type": "label",
 												"text": "{{t('changes.canonical')}}",
 												"font": "small",
 												"textColor": "@c.muted",
@@ -1091,25 +1091,25 @@
 								]
 							},
 							{
+								"type": "label",
 								"id": "changesMessage",
 								"when": "{{state.message != ''}}",
-								"type": "label",
 								"wrap": true,
 								"text": "{{state.message}}",
 								"textColor": "@c.warning",
 								"height": 36
 							},
 							{
+								"type": "row",
 								"id": "changesActions",
 								"when": "{{computed.open || (state.view != null && state.view.kind == 'commit' && state.view.revision > 0)}}",
-								"type": "row",
 								"gap": 8,
 								"height": 32,
 								"children": [
 									{
+										"type": "textarea",
 										"id": "changesReason",
 										"when": "{{computed.open}}",
-										"type": "textarea",
 										"bind": "state.reason",
 										"placeholder": "{{t('changes.reason')}}",
 										"grow": 1,

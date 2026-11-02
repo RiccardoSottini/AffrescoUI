@@ -1845,9 +1845,9 @@
 								"align": "center"
 							},
 							{
+								"id": "menu-bar",
 								"when": "{{!window.nativeMenuBar}}",
 								"use": "menuBar",
-								"id": "menu-bar",
 								"width": 56,
 								"with": {
 									"open": "state.menuBar",
@@ -1860,8 +1860,8 @@
 								}
 							},
 							{
-								"use": "toolbar",
 								"id": "toolbar",
+								"use": "toolbar",
 								"with": {
 									"items": "{{computed.toolbarItems}}",
 									"width": "{{window.width - (window.nativeMenuBar ? 84 : 140)}}",
@@ -1926,13 +1926,13 @@
 										]
 									},
 									{
+										"type": "panel",
+										"id": "{{'view-marker-' + t.id}}",
 										"repeat": {
 											"for": "t",
 											"in": "{{computed.marked}}",
 											"key": "{{t.id}}"
 										},
-										"type": "panel",
-										"id": "{{'view-marker-' + t.id}}",
 										"x": "{{t.x}}",
 										"y": "{{t.y}}",
 										"width": "{{t.w}}",
@@ -1940,13 +1940,13 @@
 										"color": "#f0abfc"
 									},
 									{
+										"type": "label",
+										"id": "{{'view-label-' + b.id}}",
 										"repeat": {
 											"for": "b",
 											"in": "{{computed.projected}}",
 											"key": "{{b.id}}"
 										},
-										"type": "label",
-										"id": "{{'view-label-' + b.id}}",
 										"x": "{{b.parent != '' && b.parent != 'sun' ? b.px - b.r - 4 : b.px + b.r + 6}}",
 										"y": "{{b.parent != '' && b.parent != 'sun' ? b.py + b.r + 2 : b.py - 9}}",
 										"height": 18,
@@ -1957,13 +1957,13 @@
 										"visible": "{{state.showLabels && b.depth > 0.3}}"
 									},
 									{
+										"type": "panel",
+										"id": "{{'thumb-' + b.id}}",
 										"repeat": {
 											"for": "b",
 											"in": "{{filter(state.bodies, (it.look ?? '') == '')}}",
 											"key": "{{b.id}}"
 										},
-										"type": "panel",
-										"id": "{{'thumb-' + b.id}}",
 										"snapshot": "{{ {image: 'body:' + b.id, scale: 1} }}",
 										"width": 96,
 										"height": 64,
@@ -2471,8 +2471,8 @@
 												}
 											},
 											{
-												"use": "skyFromGround",
 												"id": "sky-view",
+												"use": "skyFromGround",
 												"visible": "{{state.skyMode == 'ground'}}",
 												"anchors": {
 													"left": 0,
@@ -2647,8 +2647,8 @@
 						"children": []
 					},
 					{
-						"use": "statusBar",
 						"id": "status-bar",
+						"use": "statusBar",
 						"width": "100%",
 						"with": {
 							"items": "{{computed.statusItems}}",
@@ -2661,8 +2661,8 @@
 				]
 			},
 			{
-				"use": "dialog",
 				"id": "render",
+				"use": "dialog",
 				"with": {
 					"open": "state.renderOpen",
 					"title": "Render options",
@@ -2682,13 +2682,13 @@
 						"gap": 6,
 						"children": [
 							{
+								"type": "row",
+								"id": "{{'render-' + o.id}}",
 								"repeat": {
 									"for": "o",
 									"in": "{{computed.renderOptions}}",
 									"key": "{{o.id}}"
 								},
-								"type": "row",
-								"id": "{{'render-' + o.id}}",
 								"width": "100%",
 								"height": 30,
 								"children": [
@@ -2842,13 +2842,13 @@
 									"color": "transparent",
 									"children": [
 										{
+											"type": "column",
+											"id": "slideSorter-page-{{page.id}}",
 											"repeat": {
 												"for": "page",
 												"in": "{{app.pages}}",
 												"key": "{{page.id}}"
 											},
-											"type": "column",
-											"id": "slideSorter-page-{{page.id}}",
 											"width": 84,
 											"height": 96,
 											"gap": 2,
@@ -2917,8 +2917,8 @@
 					"description": "The pages in order, each with an id, a name and an image the host renders."
 				},
 				"current": {
-					"kind": "state",
 					"type": "string",
+					"kind": "state",
 					"optional": true,
 					"description": "The id of the selected page."
 				},

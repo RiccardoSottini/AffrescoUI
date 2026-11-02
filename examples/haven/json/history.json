@@ -29,21 +29,21 @@
 						"children": [
 							{ "type": "label", "text": "{{t('page.logbook')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "fitText": true,
 								"align": { "horizontal": "start", "vertical": "center" } },
-							{ "id": "logRange", "type": "label", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@off", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+							{ "type": "label", "id": "logRange", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@off", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "role": "button", "label": "{{t('energy.pick')}}",
 								"tooltip": "{{t('log.twoDays')}}", "cursor": "arrow", "disabled": true }
 						]
 					},
-					{ "id": "logFilters", "type": "row", "anchors": { "left": 24, "right": 24, "top": 72 }, "height": 48, "gap": 16,
+					{ "type": "row", "id": "logFilters", "anchors": { "left": 24, "right": 24, "top": 72 }, "height": 48, "gap": 16,
 						"children": [
-							{ "id": "logPeriod", "type": "label", "icon": "calendar", "text": "  {{t('log.period')}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
+							{ "type": "label", "id": "logPeriod", "icon": "calendar", "text": "  {{t('log.period')}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
 								"color": "@field", "borderWidth": 1, "borderColor": "@border", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
 								"role": "button", "label": "{{t('log.period')}}", "tooltip": "{{t('log.twoDays')}}", "cursor": "arrow", "disabled": true },
 							{ "id": "logSearchBox", "width": 320, "height": 48, "radius": 24, "color": "transparent", "borderWidth": 1, "borderColor": "@border",
 								"hover": { "color": "@accentSoft" },
 								"children": [
 									{ "type": "label", "icon": "{{state.logQuery == '' ? 'plus' : 'search'}}", "text": "", "textColor": "@accent", "anchors": { "left": 14, "top": 0, "bottom": 0 }, "width": 24, "align": "center" },
-									{ "id": "logSearch", "type": "textarea", "bind": "state.logQuery", "placeholder": "{{t('hist.choose')}}", "placeholderColor": "@accent", "textColor": "@text",
+									{ "type": "textarea", "id": "logSearch", "bind": "state.logQuery", "placeholder": "{{t('hist.choose')}}", "placeholderColor": "@accent", "textColor": "@text",
 										"color": "transparent", "anchors": { "left": 44, "right": 16, "top": 0, "bottom": 0 }, "label": "{{t('hist.choose')}}" }
 								] }
 						] },
@@ -54,8 +54,8 @@
 						"children": [
 							{ "style": "caption", "when": "{{length(computed.logShown) == 0}}", "text": "{{t('log.empty')}}", "anchors": { "left": 24, "top": 24 } },
 							{
-								"id": "logList",
 								"type": "column",
+								"id": "logList",
 								"anchors": { "left": 0, "right": 0, "top": 8, "bottom": 8 },
 								"scroll": "vertical",
 								"role": "list",
@@ -120,18 +120,18 @@
 						"children": [
 							{ "type": "label", "text": "{{t('page.history')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 }, "fitText": true,
 								"align": { "horizontal": "start", "vertical": "center" } },
-							{ "id": "histRange", "type": "label", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@off", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+							{ "type": "label", "id": "histRange", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@off", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "role": "button", "label": "{{t('energy.pick')}}",
 								"tooltip": "{{t('energy.onlyToday')}}", "cursor": "arrow", "disabled": true }
 						]
 					},
 					{
-						"id": "histFilters", "type": "row", "anchors": { "left": 24, "right": 24, "top": 72 }, "height": 48, "gap": 16,
+						"type": "row", "id": "histFilters", "anchors": { "left": 24, "right": 24, "top": 72 }, "height": 48, "gap": 16,
 						"children": [
-							{ "id": "histPeriod", "type": "label", "icon": "calendar", "text": "  {{t('hist.today')}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
+							{ "type": "label", "id": "histPeriod", "icon": "calendar", "text": "  {{t('hist.today')}}", "textColor": "@text", "width": 280, "height": 48, "padding": 12,
 								"color": "@field", "borderWidth": 1, "borderColor": "@border", "radius": 4, "align": { "horizontal": "start", "vertical": "center" },
 								"role": "button", "label": "{{t('hist.today')}}", "tooltip": "{{t('energy.onlyToday')}}", "cursor": "arrow", "disabled": true },
-							{ "id": "histTarget", "type": "label", "icon": "plus", "text": "  {{t('hist.choose')}}", "textColor": "@accent", "width": 320, "height": 48, "padding": 12,
+							{ "type": "label", "id": "histTarget", "icon": "plus", "text": "  {{t('hist.choose')}}", "textColor": "@accent", "width": 320, "height": 48, "padding": 12,
 								"color": "transparent", "borderWidth": 1, "borderColor": "@border", "radius": 24, "align": { "horizontal": "start", "vertical": "center" },
 								"hover": { "color": "@accentSoft" }, "cursor": "hand", "focusable": true, "role": "button", "label": "{{t('hist.choose')}}",
 								"onClick": { "set": "state.quickPick.open", "to": true } }
@@ -169,7 +169,7 @@
 												"height": 28,
 												"gap": 0,
 												"children": [
-													{ "repeat": { "for": "seg", "in": "ent.segs", "index": "si" }, "type": "label", "grow": "{{seg.h}}", "basis": 0, "anchors": { "top": 0, "bottom": 0 },
+													{ "type": "label", "repeat": { "for": "seg", "in": "ent.segs", "index": "si" }, "grow": "{{seg.h}}", "basis": 0, "anchors": { "top": 0, "bottom": 0 },
 														"radius": { "topLeft": "{{si == 0 ? 4 : 0}}", "bottomLeft": "{{si == 0 ? 4 : 0}}", "topRight": "{{si == length(ent.segs) - 1 ? 4 : 0}}", "bottomRight": "{{si == length(ent.segs) - 1 ? 4 : 0}}" },
 														"color": "{{seg.on ? '@accent' : '@raised'}}", "textColor": "{{seg.on ? '@onAccent' : '@muted'}}", "font": "small", "align": "center",
 														"text": "{{seg.h >= 2 ? t(ent.k + (seg.on ? '.on' : '.off')) : ''}}", "tooltip": "{{t(ent.k + (seg.on ? '.on' : '.off'))}}" }
@@ -203,7 +203,7 @@
 						"children": [
 							{ "style": "cardTitle", "text": "{{t('hist.temp', { name: state.rooms[0].name })}}" },
 							{ "style": "caption", "text": "{{t('hist.range', { min: min(state.tempHistory), max: max(state.tempHistory) })}}", "anchors": { "right": 24, "top": 24 } },
-							{ "id": "histScale", "type": "column", "anchors": { "left": 24, "right": 24, "top": 52, "bottom": 32 }, "justify": "space-between", "children": [{
+							{ "type": "column", "id": "histScale", "anchors": { "left": 24, "right": 24, "top": 52, "bottom": 32 }, "justify": "space-between", "children": [{
 								"repeat": { "for": "deg", "in": "{{[23, 22, 21, 20, 19]}}" }, "anchors": { "left": 0, "right": 0 }, "height": 16, "color": "transparent", "children": [
 									{ "type": "label", "font": "small", "text": "{{deg}}°", "textColor": "@muted", "anchors": { "left": 0, "top": 0 }, "width": 28, "height": 16,
 										"align": { "horizontal": "end", "vertical": "center" } },
@@ -212,7 +212,7 @@
 							{ "use": "lineChart", "with": { "values": "{{map(state.tempHistory, it - 19)}}", "top": 4, "color": "@warm", "lineWidth": 2 },
 								"anchors": { "left": 64, "right": 24, "top": 60, "bottom": 40 } },
 							{ "type": "row", "anchors": { "left": 64, "right": 24, "bottom": 12 }, "height": 16, "justify": "space-between", "children": [{
-								"repeat": { "for": "h", "in": "{{['00:00', '06:00', '12:00', '18:00', t('hist.now')]}}" }, "type": "label", "font": "small", "text": "{{h}}",
+								"type": "label", "repeat": { "for": "h", "in": "{{['00:00', '06:00', '12:00', '18:00', t('hist.now')]}}" }, "font": "small", "text": "{{h}}",
 								"textColor": "@muted", "fitText": true }] }
 						]
 					}

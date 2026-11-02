@@ -11,7 +11,7 @@
 	"needs": {
 		"pages": { "kind": "list", "item": { "id": "string", "name": "string", "image": "image" },
 			"description": "The pages in order, each with an id, a name and an image the host renders." },
-		"current": { "kind": "state", "type": "string", "optional": true, "description": "The id of the selected page." },
+		"current": { "type": "string", "kind": "state", "optional": true, "description": "The id of the selected page." },
 		"reorder": { "kind": "action", "arguments": { "id": "string", "onto": "string" }, "description": "Page id takes the place of page onto." },
 		"select": { "kind": "action", "arguments": { "id": "string" }, "description": "Selects page id." },
 		"duplicate": { "kind": "action", "arguments": { "id": "string" }, "description": "Duplicates page id." },
@@ -41,8 +41,8 @@
 						  ] },
 						{ "type": "row", "id": "slideSorter-pages", "width": "100%", "grow": 1, "gap": 8, "scroll": "horizontal", "color": "transparent",
 						  "children": [
-							{ "repeat": { "for": "page", "in": "{{app.pages}}", "key": "{{page.id}}" },
-							  "type": "column", "id": "slideSorter-page-{{page.id}}", "width": 84, "height": 96, "gap": 2, "color": "transparent", "cursor": "hand",
+							{ "type": "column",
+							  "id": "slideSorter-page-{{page.id}}", "repeat": { "for": "page", "in": "{{app.pages}}", "key": "{{page.id}}" }, "width": 84, "height": 96, "gap": 2, "color": "transparent", "cursor": "hand",
 							  "drag": { "data": { "id": "{{page.id}}" } },
 							  "onDrop": { "run": "slideSorter.move", "with": { "id": "{{event.data.id}}", "onto": "{{page.id}}" } },
 							  "onClick": { "run": "slideSorter.pick", "with": { "id": "{{page.id}}" } },

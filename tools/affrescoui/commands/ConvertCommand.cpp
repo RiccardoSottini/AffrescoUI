@@ -1,6 +1,6 @@
 /// @file
 /// @brief `affrescoui convert`: a file written in the other notation (modules/notation): JSON as AffrescoUI files are
-/// written (`fmt`), Lisp canonically. Comments in a Lisp file are dropped; `note` keys keep their text.
+/// written (`fmt`), Lisp canonically. Comments in a Lisp file are dropped, as JSON has none; `note` keys keep their text.
 
 #include "Cli.hpp"
 #include "JsonText.hpp"

@@ -244,8 +244,8 @@
 				"width": "{{g.owned ? 86 : g.discount > 0 ? (big ? 156 : 132) : (big ? 90 : 76)}}",
 				"children": [
 					{
-						"when": "{{g.owned}}",
 						"type": "label",
+						"when": "{{g.owned}}",
 						"font": "small",
 						"text": "{{upper(t('store.inLibrary'))}}",
 						"grow": 1,
@@ -256,8 +256,8 @@
 						"textColor": "@store.chipText"
 					},
 					{
-						"when": "{{!g.owned && g.discount > 0}}",
 						"type": "label",
+						"when": "{{!g.owned && g.discount > 0}}",
 						"font": "{{big ? 'price' : 'button'}}",
 						"text": "-{{g.discount}}%",
 						"width": "{{big ? 66 : 56}}",
@@ -275,8 +275,8 @@
 						"radius": "{{g.discount > 0 ? {topRight: 2, bottomRight: 2} : 2}}",
 						"children": [
 							{
-								"when": "{{g.discount > 0}}",
 								"type": "label",
+								"when": "{{g.discount > 0}}",
 								"font": "small",
 								"text": "{{formatCurrency(g.price, 'EUR')}}",
 								"textColor": "@store.oldPrice",
@@ -384,8 +384,8 @@
 						"children": [
 							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
 							{
-								"id": "store-wishlist",
 								"type": "label",
+								"id": "store-wishlist",
 								"font": "small",
 								"fitText": true,
 								"padding": 14,
@@ -400,9 +400,9 @@
 								"onClick": "showWishlist"
 							},
 							{
-								"when": "{{length(state.cart) > 0}}",
-								"id": "store-cart",
 								"type": "label",
+								"id": "store-cart",
+								"when": "{{length(state.cart) > 0}}",
 								"font": "small",
 								"fitText": true,
 								"padding": 14,
@@ -420,8 +420,8 @@
 						]
 					},
 					{
-						"id": "store-bar",
 						"type": "row",
+						"id": "store-bar",
 						"height": 40,
 						"anchors": { "left": 0, "right": 0 },
 						"alignItems": "center",
@@ -432,13 +432,13 @@
 						"children": [
 							{ "type": "panel", "width": 1, "height": 1, "color": "transparent" },
 							{
+								"type": "label",
+								"id": "{{'store-bar-' + item}}",
 								"repeat": {
 									"for": "item",
 									"in": "{{['yours', 'noteworthy', 'categories', 'points', 'news', 'labs']}}"
 								},
 								"let": { "later": "{{contains(['points', 'labs'], item)}}" },
-								"id": "{{'store-bar-' + item}}",
-								"type": "label",
 								"fitText": true,
 								"padding": 13,
 								"height": 30,
@@ -485,8 +485,8 @@
 							},
 							{ "type": "panel", "color": "transparent", "grow": 1, "height": 1 },
 							{
-								"id": "store-search",
 								"type": "textarea",
+								"id": "store-search",
 								"width": 200,
 								"height": 26,
 								"padding": 30,
@@ -632,11 +632,11 @@
 														"textColor": "#ffffff"
 													},
 													{
+														"type": "label",
 														"repeat": {
 															"for": "tag",
 															"in": "{{slice(computed.feature.tags, 0, 3)}}"
 														},
-														"type": "label",
 														"font": "small",
 														"text": "{{tag}}",
 														"fitText": true,
@@ -677,8 +677,8 @@
 						]
 					},
 					{
-						"id": "featured-prev",
 						"type": "label",
+						"id": "featured-prev",
 						"icon": "chevron-left",
 						"mirror": true,
 						"text": "",
@@ -698,8 +698,8 @@
 						"onClick": { "set": "state.storeFeature", "to": "{{(state.storeFeature + 4) % 5}}" }
 					},
 					{
-						"id": "featured-next",
 						"type": "label",
+						"id": "featured-next",
 						"icon": "chevron-right",
 						"mirror": true,
 						"text": "",
@@ -886,8 +886,8 @@
 			"note": "The store's front page: featured, special offers, categories and the tabbed lists with a preview.",
 			"params": {},
 			"node": {
-				"id": "store-home",
 				"type": "column",
+				"id": "store-home",
 				"height": 1960,
 				"anchors": { "left": 0, "right": 0 },
 				"children": [
@@ -905,17 +905,17 @@
 						]
 					},
 					{
-						"id": "offers",
 						"type": "row",
+						"id": "offers",
 						"wrap": true,
 						"gap": 11,
 						"height": 410,
 						"anchors": { "left": 0, "right": 0 },
 						"children": [
 							{
+								"id": "{{'offer-' + g.id}}",
 								"repeat": { "for": "g", "in": "{{computed.offers}}", "key": "{{g.id}}" },
 								"use": "offerCard",
-								"id": "{{'offer-' + g.id}}",
 								"with": { "g": "{{g}}" }
 							}
 						]
@@ -923,8 +923,8 @@
 					{ "type": "panel", "color": "transparent", "height": 14, "width": 1 },
 					{ "use": "storeHeader", "with": { "title": "{{t('store.categories')}}" } },
 					{
-						"id": "categories",
 						"type": "row",
+						"id": "categories",
 						"gap": 12,
 						"height": 170,
 						"anchors": { "left": 0, "right": 0 },
@@ -949,17 +949,17 @@
 					},
 					{ "type": "panel", "color": "transparent", "height": 30, "width": 1 },
 					{
-						"id": "store-tabs",
 						"type": "row",
+						"id": "store-tabs",
 						"height": 34,
 						"anchors": { "left": 0, "right": 0 },
 						"arrows": "horizontal",
 						"role": "tablist",
 						"children": [
 							{
-								"repeat": { "for": "tab", "in": "{{['new', 'top', 'specials']}}" },
-								"id": "{{'store-tab-' + tab}}",
 								"type": "label",
+								"id": "{{'store-tab-' + tab}}",
+								"repeat": { "for": "tab", "in": "{{['new', 'top', 'specials']}}" },
 								"fitText": true,
 								"padding": 14,
 								"height": 34,
@@ -987,16 +987,16 @@
 						"alignItems": "start",
 						"children": [
 							{
-								"id": "store-list",
 								"type": "column",
+								"id": "store-list",
 								"grow": 1,
 								"height": 600,
 								"gap": 5,
 								"children": [
 									{
+										"id": "{{'store-row-' + g.id}}",
 										"repeat": { "for": "g", "in": "{{computed.storeRows}}", "key": "{{g.id}}" },
 										"use": "storeRow",
-										"id": "{{'store-row-' + g.id}}",
 										"with": { "g": "{{g}}", "lit": "{{computed.storePreview.id == g.id}}" },
 										"onHover": { "set": "state.storeHover", "to": "{{g.id}}" }
 									}
@@ -1058,11 +1058,11 @@
 												"gap": 4,
 												"children": [
 													{
+														"type": "label",
 														"repeat": {
 															"for": "tag",
 															"in": "{{slice(computed.storePreview.tags, 0, 4)}}"
 														},
-														"type": "label",
 														"font": "small",
 														"text": "{{tag}}",
 														"fitText": true,
@@ -1074,8 +1074,8 @@
 												]
 											},
 											{
-												"repeat": { "for": "n", "in": "{{[1, 2, 3]}}" },
 												"type": "image",
+												"repeat": { "for": "n", "in": "{{[1, 2, 3]}}" },
 												"height": 158,
 												"anchors": { "left": 0, "right": 0 },
 												"fit": "cover",
@@ -1093,8 +1093,8 @@
 		"storeResults": {
 			"params": {},
 			"node": {
-				"id": "store-results",
 				"type": "column",
+				"id": "store-results",
 				"height": "{{110 + 74 * max(1, length(computed.results))}}",
 				"anchors": { "left": 0, "right": 0 },
 				"gap": 5,
@@ -1121,17 +1121,17 @@
 						]
 					},
 					{
-						"when": "{{length(computed.results) == 0}}",
 						"type": "label",
+						"when": "{{length(computed.results) == 0}}",
 						"text": "{{t('store.noResults')}}",
 						"textColor": "@color.muted",
 						"height": 40,
 						"anchors": { "left": 0, "right": 0 }
 					},
 					{
+						"id": "{{'result-' + g.id}}",
 						"repeat": { "for": "g", "in": "{{computed.results}}", "key": "{{g.id}}" },
 						"use": "storeRow",
-						"id": "{{'result-' + g.id}}",
 						"with": { "g": "{{g}}" }
 					}
 				]
@@ -1154,8 +1154,8 @@
 						"anchors": { "left": 0, "right": 0 }
 					},
 					{
-						"repeat": { "for": "r", "in": "{{['os', 'cpu', 'memory', 'gpu', 'storage']}}" },
 						"type": "label",
+						"repeat": { "for": "r", "in": "{{['os', 'cpu', 'memory', 'gpu', 'storage']}}" },
 						"font": "small",
 						"height": 20,
 						"anchors": { "left": 0, "right": 0 },
@@ -1174,8 +1174,8 @@
 			"note": "A game's store page: the gallery and its strip, the header capsule with reviews and tags, buying, the description, requirements and reviews.",
 			"params": { "g": {} },
 			"node": {
-				"id": "store-app",
 				"type": "column",
+				"id": "store-app",
 				"height": 1670,
 				"anchors": { "left": 0, "right": 0 },
 				"children": [
@@ -1244,8 +1244,8 @@
 						"alignItems": "center",
 						"children": [
 							{
-								"id": "store-title",
 								"type": "label",
+								"id": "store-title",
 								"font": "title",
 								"text": "{{g.title}}",
 								"textColor": "@color.bright",
@@ -1256,16 +1256,16 @@
 						]
 					},
 					{
-						"id": "store-top",
 						"type": "row",
+						"id": "store-top",
 						"height": 424,
 						"anchors": { "left": 0, "right": 0 },
 						"gap": 16,
 						"color": "@store.card",
 						"children": [
 							{
-								"id": "gallery",
 								"type": "column",
+								"id": "gallery",
 								"grow": 1,
 								"height": 424,
 								"gap": 8,
@@ -1279,16 +1279,16 @@
 										"file": "{{'../assets/art/' + g.id + '/' + ['hero', 'shot1', 'shot2', 'shot3'][state.shotIndex] + '.svg'}}"
 									},
 									{
-										"id": "gallery-strip",
 										"type": "row",
+										"id": "gallery-strip",
 										"height": 72,
 										"anchors": { "left": 0, "right": 0 },
 										"gap": 4,
 										"arrows": "horizontal",
 										"children": [
 											{
-												"repeat": { "for": "s", "in": "{{range(4)}}" },
 												"id": "{{'shot-' + s}}",
+												"repeat": { "for": "s", "in": "{{range(4)}}" },
 												"width": 116,
 												"height": 65,
 												"focusable": true,
@@ -1318,8 +1318,8 @@
 								]
 							},
 							{
-								"id": "store-side",
 								"type": "column",
+								"id": "store-side",
 								"width": 314,
 								"height": 424,
 								"gap": 4,
@@ -1484,8 +1484,8 @@
 										"anchors": { "left": 0, "right": 0 },
 										"children": [
 											{
-												"repeat": { "for": "tag", "in": "{{g.tags}}" },
 												"type": "label",
+												"repeat": { "for": "tag", "in": "{{g.tags}}" },
 												"font": "small",
 												"text": "{{tag}}",
 												"fitText": true,
@@ -1516,8 +1516,8 @@
 					},
 					{ "type": "panel", "color": "transparent", "height": 16, "width": 1 },
 					{
-						"id": "store-queue",
 						"type": "row",
+						"id": "store-queue",
 						"height": 44,
 						"anchors": { "left": 0, "right": 0 },
 						"gap": 6,
@@ -1577,8 +1577,8 @@
 										},
 										"children": [
 											{
-												"when": "{{!g.owned}}",
 												"type": "label",
+												"when": "{{!g.owned}}",
 												"font": "heading",
 												"text": "{{t('store.buy', { title: g.title })}}",
 												"textColor": "#ffffff",
@@ -1586,8 +1586,8 @@
 												"anchors": { "left": 16, "top": 14 }
 											},
 											{
-												"when": "{{g.owned}}",
 												"type": "label",
+												"when": "{{g.owned}}",
 												"font": "heading",
 												"text": "{{t('store.owned', { title: g.title })}}",
 												"textColor": "#ffffff",
@@ -1595,8 +1595,8 @@
 												"anchors": { "left": 16, "top": 14 }
 											},
 											{
-												"when": "{{!g.owned && g.discount > 0}}",
 												"type": "label",
+												"when": "{{!g.owned && g.discount > 0}}",
 												"font": "small",
 												"text": "{{upper(t('store.promo', { date: '2 Nov' }))}}",
 												"textColor": "#ffd9a0",
@@ -1633,8 +1633,8 @@
 														"with": { "g": "{{g}}", "big": false }
 													},
 													{
-														"when": "{{!g.owned}}",
 														"id": "add-to-cart",
+														"when": "{{!g.owned}}",
 														"use": "ctaButton",
 														"with": {
 															"title": "{{contains(state.cart, g.id) ? t('store.inCart') : t('store.addToCart')}}"
@@ -1730,8 +1730,8 @@
 										]
 									},
 									{
-										"id": "req-tabs",
 										"type": "row",
+										"id": "req-tabs",
 										"height": 40,
 										"anchors": { "left": 0, "right": 0 },
 										"gap": 2,
@@ -1740,9 +1740,9 @@
 										"role": "tablist",
 										"children": [
 											{
-												"repeat": { "for": "p", "in": "{{['windows', 'macos', 'linux']}}" },
-												"id": "{{'req-' + p}}",
 												"type": "label",
+												"id": "{{'req-' + p}}",
+												"repeat": { "for": "p", "in": "{{['windows', 'macos', 'linux']}}" },
 												"font": "small",
 												"text": "{{upper(t('req.platform.' + p))}}",
 												"fitText": true,
@@ -1777,8 +1777,8 @@
 								"gap": 12,
 								"children": [
 									{
-										"id": "features",
 										"type": "column",
+										"id": "features",
 										"height": 196,
 										"anchors": { "left": 0, "right": 0 },
 										"color": "@store.card",
@@ -1786,11 +1786,11 @@
 										"children": [
 											{ "type": "panel", "color": "transparent", "height": 6, "width": 1 },
 											{
+												"type": "row",
 												"repeat": {
 													"for": "f",
 													"in": "{{filter([{ id: 'single', icon: 'user', on: true }, { id: 'coop', icon: 'users', on: contains(g.tags, 'Co-op') }, { id: 'achievements', icon: 'trophy', on: true }, { id: 'controller', icon: 'gamepad-2', on: g.controller != 'none' }, { id: 'cloud', icon: 'cloud', on: true }, { id: 'family', icon: 'share-2', on: true }], it.on)}}"
 												},
-												"type": "row",
 												"height": 30,
 												"anchors": { "left": 8, "right": 8 },
 												"gap": 8,
@@ -1821,8 +1821,8 @@
 										]
 									},
 									{
-										"id": "languages",
 										"type": "column",
+										"id": "languages",
 										"height": 150,
 										"anchors": { "left": 0, "right": 0 },
 										"color": "@store.card",
@@ -1843,11 +1843,11 @@
 														"align": { "horizontal": "start", "vertical": "center" }
 													},
 													{
+														"type": "label",
 														"repeat": {
 															"for": "c",
 															"in": "{{['interface', 'audio', 'subtitles']}}"
 														},
-														"type": "label",
 														"font": "small",
 														"text": "{{t('store.lang.' + c)}}",
 														"width": 62,
@@ -1858,11 +1858,11 @@
 												]
 											},
 											{
+												"type": "row",
 												"repeat": {
 													"for": "l",
 													"in": "{{[['en', true, true, true], ['es', true, false, true], ['fr', true, false, true]]}}"
 												},
-												"type": "row",
 												"height": 26,
 												"anchors": { "left": 10, "right": 10 },
 												"children": [
@@ -1876,8 +1876,8 @@
 														"align": { "horizontal": "start", "vertical": "center" }
 													},
 													{
-														"repeat": { "for": "k", "in": "{{[1, 2, 3]}}" },
 														"type": "label",
+														"repeat": { "for": "k", "in": "{{[1, 2, 3]}}" },
 														"icon": "{{l[k] ? 'check' : ''}}",
 														"text": "",
 														"width": 62,
@@ -1918,8 +1918,8 @@
 					},
 					{ "type": "panel", "color": "transparent", "height": 10, "width": 1 },
 					{
-						"id": "review-summary",
 						"type": "row",
+						"id": "review-summary",
 						"height": 56,
 						"anchors": { "left": 0, "right": 0 },
 						"gap": 10,
@@ -1976,15 +1976,15 @@
 					},
 					{ "type": "panel", "color": "transparent", "height": 10, "width": 1 },
 					{
-						"id": "reviews",
 						"type": "column",
+						"id": "reviews",
 						"height": 432,
 						"anchors": { "left": 0, "right": 0 },
 						"gap": 10,
 						"children": [
 							{
-								"repeat": { "for": "r", "in": "{{state.reviews}}" },
 								"type": "row",
+								"repeat": { "for": "r", "in": "{{state.reviews}}" },
 								"height": 136,
 								"anchors": { "left": 0, "right": 0 },
 								"gap": 0,
@@ -2124,10 +2124,10 @@
 														"textColor": "@color.dim"
 													},
 													{
+														"type": "label",
+														"id": "{{'vote-' + slug(r.author) + '-' + b}}",
 														"repeat": { "for": "b", "in": "{{['yes', 'no', 'funny']}}" },
 														"let": { "on": "{{state.votes[slug(r.author)] == b}}" },
-														"id": "{{'vote-' + slug(r.author) + '-' + b}}",
-														"type": "label",
 														"font": "small",
 														"text": "{{t('store.vote.' + b)}}",
 														"fitText": true,
@@ -2157,8 +2157,8 @@
 			"note": "The cart: the games and their prices, the estimated total from the wallet, and a receipt after buying.",
 			"params": {},
 			"node": {
-				"id": "store-cart-page",
 				"type": "column",
+				"id": "store-cart-page",
 				"height": "{{140 + max(250, length(computed.cartGames) * 106 + 60, length(state.receipt) * 40 + 160)}}",
 				"anchors": { "left": 0, "right": 0 },
 				"children": [
@@ -2184,9 +2184,9 @@
 								"gap": 6,
 								"children": [
 									{
-										"when": "{{length(state.receipt) > 0}}",
-										"id": "receipt",
 										"type": "column",
+										"id": "receipt",
+										"when": "{{length(state.receipt) > 0}}",
 										"height": "{{length(state.receipt) * 40 + 130}}",
 										"anchors": { "left": 0, "right": 0 },
 										"color": "@store.card",
@@ -2203,8 +2203,8 @@
 												"textColor": "@color.ingame"
 											},
 											{
-												"repeat": { "for": "id", "in": "{{state.receipt}}" },
 												"type": "row",
+												"repeat": { "for": "id", "in": "{{state.receipt}}" },
 												"height": 34,
 												"anchors": { "left": 16, "right": 16 },
 												"gap": 10,
@@ -2251,8 +2251,8 @@
 										]
 									},
 									{
-										"when": "{{length(computed.cartGames) == 0 && length(state.receipt) == 0}}",
 										"type": "column",
+										"when": "{{length(computed.cartGames) == 0 && length(state.receipt) == 0}}",
 										"height": 120,
 										"anchors": { "left": 0, "right": 0 },
 										"color": "@store.card",
@@ -2284,9 +2284,9 @@
 										]
 									},
 									{
-										"repeat": { "for": "g", "in": "{{computed.cartGames}}", "key": "{{g.id}}" },
-										"id": "{{'cart-' + g.id}}",
 										"type": "row",
+										"id": "{{'cart-' + g.id}}",
+										"repeat": { "for": "g", "in": "{{computed.cartGames}}", "key": "{{g.id}}" },
 										"height": 100,
 										"anchors": { "left": 0, "right": 0 },
 										"gap": 14,
@@ -2373,8 +2373,8 @@
 								]
 							},
 							{
-								"id": "cart-summary",
 								"type": "column",
+								"id": "cart-summary",
 								"width": 308,
 								"height": 236,
 								"color": "@store.card",
@@ -2468,8 +2468,8 @@
 			"note": "The wishlist: ranked games with their price and Add to Cart, sorted by rank, name, price or discount, and moved up or down.",
 			"params": {},
 			"node": {
-				"id": "store-wishlist-page",
 				"type": "column",
+				"id": "store-wishlist-page",
 				"height": "{{160 + max(1, length(computed.wishSorted)) * 128}}",
 				"anchors": { "left": 0, "right": 0 },
 				"children": [
@@ -2505,8 +2505,8 @@
 						"gap": 10,
 						"children": [
 							{
-								"id": "wish-search",
 								"type": "textarea",
+								"id": "wish-search",
 								"width": 300,
 								"height": 32,
 								"padding": 10,
@@ -2528,8 +2528,8 @@
 								"textColor": "@color.muted"
 							},
 							{
-								"id": "wish-sort",
 								"type": "label",
+								"id": "wish-sort",
 								"font": "small",
 								"fitText": true,
 								"padding": 12,
@@ -2557,8 +2557,8 @@
 					},
 					{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
 					{
-						"when": "{{length(computed.wishSorted) == 0}}",
 						"type": "label",
+						"when": "{{length(computed.wishSorted) == 0}}",
 						"text": "{{t('store.wishEmpty')}}",
 						"height": 60,
 						"anchors": { "left": 0, "right": 0 },
@@ -2566,21 +2566,21 @@
 						"textColor": "@color.muted"
 					},
 					{
-						"id": "wish-list",
 						"type": "column",
+						"id": "wish-list",
 						"height": "{{length(computed.wishSorted) * 128}}",
 						"anchors": { "left": 0, "right": 0 },
 						"gap": 8,
 						"children": [
 							{
+								"type": "row",
+								"id": "{{'wish-' + g.id}}",
 								"repeat": {
 									"for": "g",
 									"in": "{{computed.wishSorted}}",
 									"key": "{{g.id}}",
 									"index": "i"
 								},
-								"id": "{{'wish-' + g.id}}",
-								"type": "row",
 								"height": 120,
 								"anchors": { "left": 0, "right": 0 },
 								"gap": 14,
@@ -2603,8 +2603,8 @@
 												"textColor": "@color.muted"
 											},
 											{
-												"when": "{{state.wishSort == 'rank' && state.wishQuery == ''}}",
 												"type": "label",
+												"when": "{{state.wishSort == 'rank' && state.wishQuery == ''}}",
 												"icon": "chevron-up",
 												"text": "",
 												"height": 30,
@@ -2627,8 +2627,8 @@
 												}
 											},
 											{
-												"when": "{{state.wishSort == 'rank' && state.wishQuery == ''}}",
 												"type": "label",
+												"when": "{{state.wishSort == 'rank' && state.wishQuery == ''}}",
 												"icon": "chevron-down",
 												"text": "",
 												"height": 30,
@@ -2726,8 +2726,8 @@
 												"gap": 4,
 												"children": [
 													{
-														"repeat": { "for": "tag", "in": "{{slice(g.tags, 0, 4)}}" },
 														"type": "label",
+														"repeat": { "for": "tag", "in": "{{slice(g.tags, 0, 4)}}" },
 														"font": "small",
 														"text": "{{tag}}",
 														"fitText": true,
@@ -2837,14 +2837,14 @@
 				},
 				"children": [
 					{
-						"id": "store-scroll",
 						"type": "column",
+						"id": "store-scroll",
 						"fill": true,
 						"scroll": "vertical",
 						"children": [
 							{
-								"id": "store-content",
 								"type": "column",
+								"id": "store-content",
 								"height": "{{computed.storeHeight}}",
 								"anchors": {
 									"left": "{{(window.width - computed.storeWidth) / 2}}",

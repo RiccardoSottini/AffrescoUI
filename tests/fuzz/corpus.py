@@ -818,7 +818,8 @@ def notation_seeds():
     """The notation target's seeds: the templates as JSON (the target writes each in the Lisp notation and reads it
     back), Lisp texts of every construct, and nesting at the limit."""
     seeds = [path.read_text(encoding="utf-8") for path in templates("*.json")]
-    seeds += ['(panel #insights :color transparent\n  (node #title :style caption :anchors {:left 0 :top 0} '
+    seeds += ['; a comment\n(panel#insights :color transparent ; another\n  ; before\n  (node#a) #_ (x :y z)\n  )\n[1, 2]',
+              '(panel #insights :color transparent\n  (node #title :style caption :anchors {:left 0 :top 0} '
               ':text "{{t(\'burndown.title\')}}")\n  (column #list :gap 4))\n',
               '{:format affrescoui-screen :version 2 ; a comment\n :root (node :type node #"{{\'nav-\' + tab}}" '
               ':children [])}',

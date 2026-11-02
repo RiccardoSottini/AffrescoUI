@@ -1,56 +1,55 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
-  :note "Arcadia's records: the games (owned or only in the store), the friends, the library's news, the activity and the chat messages. Their first records are in seed/, all invented. Times are milliseconds, measured from state.today; `ago` is in days."
-  :models {:games {:fields {:title {:type string :required true :maxLength 100}
-        :genre {:type string}
-        :developer {:type string}
-        :publisher {:type string}
-        :owned {:type boolean :default false}
-        :installed {:type boolean :default false}
-        :status {:type enum :values [none ready running downloading update] :default none}
-        :favourite {:type boolean :default false}
-        :local {:type boolean :default false}
-        :note {:type string :maxLength 500}
-        :art {:type string :maxLength 40}
-        :sizeGb {:type number :minimum 0}
-        :hours {:type number :minimum 0 :default 0}
-        :lastPlayed {:type dateTime}
-        :achievements {:type list :of {:type integer :minimum 0} :maxItems 2 :description "Earned, of how many."}
-        :price {:type number :minimum 0}
-        :discount {:type integer :minimum 0 :maximum 100 :default 0}
-        :review {:type enum :values [mixed mostlyPositive positive veryPositive overwhelminglyPositive]}
-        :reviewPercent {:type integer :minimum 0 :maximum 100}
-        :reviewCount {:type integer :minimum 0}
-        :release {:type string}
-        :tags {:type list :of {:type string} :maxItems 16}
-        :controller {:type enum :values [none partial full]}
-        :blurb {:type string}
-        :logo {:type string}
-        :launchOptions {:type string :maxLength 200}
-        :overlay {:type boolean :default true}
-        :cloud {:type boolean :default true}
-        :updates {:type enum :values [auto launch high] :default auto}}}
-    :friends {:fields {:name {:type string :required true :maxLength 100}
-        :avatar {:type string}
-        :presence {:type enum :values [online ingame away offline] :default offline}
-        :game {:type reference :to games :onDelete nullify :description "The game they are playing."}
-        :since {:type integer :description "Minutes in their present presence."}}}
-    :news {:fields {:game {:type reference :to games :onDelete nullify}
-        :kind {:type enum :values [update news event]}
-        :ago {:type integer :minimum 0}
-        :title {:type string :required true}
-        :text {:type string}}}
-    :activity {:fields {:who {:type reference :to friends :onDelete nullify}
-        :game {:type reference :to games :onDelete nullify}
-        :kind {:type enum :values [achievement played review screenshot]}
-        :ago {:type integer :minimum 0}
-        :text {:type string}
-        :detail {:type string}
-        :shot {:type integer :minimum 1 :maximum 3}}}
-    :messages {:fields {:friend {:type reference :to friends :onDelete nullify}
-        :mine {:type boolean :default false :description "Sent by the person, else by the friend."}
-        :at {:type dateTime}
-        :text {:type string :maxLength 2000}
-        :game {:type reference
-          :to games
-          :onDelete nullify
-          :description "An invitation to play this game, instead of a text."}}}}}
+ :note "Arcadia's records: the games (owned or only in the store), the friends, the library's news, the activity and the chat messages. Their first records are in seed/, all invented. Times are milliseconds, measured from state.today; `ago` is in days."
+ :models {:games {:fields {:title (string :required true :maxLength 100)
+                           :genre (string)
+                           :developer (string)
+                           :publisher (string)
+                           :owned (boolean :default false)
+                           :installed (boolean :default false)
+                           :status (enum :values [none ready running downloading update] :default none)
+                           :favourite (boolean :default false)
+                           :local (boolean :default false)
+                           :note (string :maxLength 500)
+                           :art (string :maxLength 40)
+                           :sizeGb (number :minimum 0)
+                           :hours (number :minimum 0 :default 0)
+                           :lastPlayed (dateTime)
+                           :achievements (list :of (integer :minimum 0) :maxItems 2 :description "Earned, of how many.")
+                           :price (number :minimum 0)
+                           :discount (integer :minimum 0 :maximum 100 :default 0)
+                           :review (enum :values [mixed mostlyPositive positive veryPositive overwhelminglyPositive])
+                           :reviewPercent (integer :minimum 0 :maximum 100)
+                           :reviewCount (integer :minimum 0)
+                           :release (string)
+                           :tags (list :of (string) :maxItems 16)
+                           :controller (enum :values [none partial full])
+                           :blurb (string)
+                           :logo (string)
+                           :launchOptions (string :maxLength 200)
+                           :overlay (boolean :default true)
+                           :cloud (boolean :default true)
+                           :updates (enum :values [auto launch high] :default auto)}}
+          :friends {:fields {:name (string :required true :maxLength 100)
+                             :avatar (string)
+                             :presence (enum :values [online ingame away offline] :default offline)
+                             :game (reference :to games :onDelete nullify :description "The game they are playing.")
+                             :since (integer :description "Minutes in their present presence.")}}
+          :news {:fields {:game (reference :to games :onDelete nullify)
+                          :kind (enum :values [update news event])
+                          :ago (integer :minimum 0)
+                          :title (string :required true)
+                          :text (string)}}
+          :activity {:fields {:who (reference :to friends :onDelete nullify)
+                              :game (reference :to games :onDelete nullify)
+                              :kind (enum :values [achievement played review screenshot])
+                              :ago (integer :minimum 0)
+                              :text (string)
+                              :detail (string)
+                              :shot (integer :minimum 1 :maximum 3)}}
+          :messages {:fields {:friend (reference :to friends :onDelete nullify)
+                              :mine (boolean :default false :description "Sent by the person, else by the friend.")
+                              :at (dateTime)
+                              :text (string :maxLength 2000)
+                              :game (reference :to games
+                                      :onDelete nullify
+                                      :description "An invitation to play this game, instead of a text.")}}}}

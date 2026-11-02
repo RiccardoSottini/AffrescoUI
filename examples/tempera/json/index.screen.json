@@ -209,7 +209,7 @@
 			{ "use": "temperaRenameDialog" },
 			{ "use": "temperaFillDialog" },
 			{ "use": "temperaCloseDialog" },
-			{ "use": "dialog", "id": "about-dialog", "with": { "open": "state.about", "title": "Tempera",
+			{ "id": "about-dialog", "use": "dialog", "with": { "open": "state.about", "title": "Tempera",
 				"message": "An image editor built with AffrescoUI: layers, masks, brushes, filters and colour management over sparse tiles.",
 				"buttons": [{ "title": "OK" }] } }
 		]

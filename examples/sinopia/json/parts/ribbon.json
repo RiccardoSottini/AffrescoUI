@@ -17,7 +17,7 @@
 						"runs": "{{concat([{ icon: icon, size: 30 }, { text: '\n', size: 6 }, { text: drop == '' ? title : join(split(title, '\n'), ' '), size: drop == '' ? 12 : 11 }], menu && drop == '' ? [{ text: ' ', size: 12 }, { icon: 'chevron-down', size: 10 }] : [])}}"
 					},
 					{
-						"type": "label", "when": "{{drop != ''}}", "id": "{{drop + '-more'}}", "width": "{{width}}", "height": 18, "align": "center", "disabled": "{{!enabled}}", "tooltip": "More options",
+						"type": "label", "id": "{{drop + '-more'}}", "when": "{{drop != ''}}", "width": "{{width}}", "height": 18, "align": "center", "disabled": "{{!enabled}}", "tooltip": "More options",
 						"style": "{{!enabled ? 'rbButtonOff' : 'rbButton'}}", "runs": [{ "icon": "chevron-down", "size": 10 }],
 						"onClick": { "run": "openDrop", "with": { "id": "{{drop}}" } }
 					}
@@ -37,7 +37,7 @@
 							"runs": "{{concat([{ icon: icon, size: 16 }], title == '' ? [] : [{ text: ' ' + title, size: 12 }], menu && drop == '' ? [{ text: ' ', size: 12 }, { icon: 'chevron-down', size: 10 }] : [])}}"
 						},
 						{
-							"type": "label", "when": "{{drop != ''}}", "id": "{{drop + '-arrow'}}", "width": 13, "height": "{{tint == null ? 24 : 21}}", "align": "center", "disabled": "{{!enabled}}", "tooltip": "More options",
+							"type": "label", "id": "{{drop + '-arrow'}}", "when": "{{drop != ''}}", "width": 13, "height": "{{tint == null ? 24 : 21}}", "align": "center", "disabled": "{{!enabled}}", "tooltip": "More options",
 							"style": "{{!enabled ? 'rbButtonOff' : 'rbButton'}}", "runs": [{ "icon": "chevron-down", "size": 10 }],
 							"onClick": { "run": "{{colors ? 'openColors' : 'openDrop'}}", "with": { "id": "{{drop}}" } }
 						}
@@ -69,7 +69,7 @@
 						{ "width": 6, "height": 1, "color": "transparent" },
 						{ "type": "label", "style": "rbGroupTitle", "fitText": true, "runs": [{ "text": "{{upper(title)}}", "size": 9, "bold": true }] },
 						{ "grow": 1, "height": 1, "color": "transparent" },
-						{ "type": "label", "when": "{{launcher}}", "id": "{{'launch-' + join(split(lower(title), ' '), '-')}}", "width": 16, "height": 16, "style": "rbButton", "align": "center", "tooltip": "{{'More ' + lower(title) + ' options'}}",
+						{ "type": "label", "id": "{{'launch-' + join(split(lower(title), ' '), '-')}}", "when": "{{launcher}}", "width": 16, "height": 16, "style": "rbButton", "align": "center", "tooltip": "{{'More ' + lower(title) + ' options'}}",
 						  "role": "button", "label": "{{title + ' options'}}", "runs": [{ "icon": "settings-2", "size": 10 }], "onClick": "openFormatPane" },
 						{ "width": 4, "height": 1, "color": "transparent" }
 					] },

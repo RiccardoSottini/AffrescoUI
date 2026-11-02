@@ -695,8 +695,8 @@
 				"label": "{{formatPercent(value)}}",
 				"children": [
 					{
-						"id": "path-ring",
 						"type": "path",
+						"id": "path-ring",
 						"fill": 0,
 						"viewBox": "0 0 24 24",
 						"d": "M 12 3 A 9 9 0 1 1 11.99 3",
@@ -704,8 +704,8 @@
 						"strokeWidth": "{{stroke}}"
 					},
 					{
-						"id": "path-ring-2",
 						"type": "path",
+						"id": "path-ring-2",
 						"fill": 0,
 						"viewBox": "0 0 24 24",
 						"stroke": "{{color}}",
@@ -722,8 +722,8 @@
 				"color": "#888888"
 			},
 			"node": {
-				"id": "label-text-button",
 				"type": "label",
+				"id": "label-text-button",
 				"style": "textButton",
 				"font": "small",
 				"textColor": "{{color}}",
@@ -780,8 +780,8 @@
 				},
 				"children": [
 					{
-						"id": "label-title",
 						"type": "label",
+						"id": "label-title",
 						"text": "{{title}}",
 						"textColor": "@c.text",
 						"anchors": {
@@ -791,8 +791,8 @@
 						"fitText": true
 					},
 					{
-						"id": "label-summary",
 						"type": "label",
+						"id": "label-summary",
 						"when": "{{summary != ''}}",
 						"text": "{{summary}}",
 						"font": "small",
@@ -825,8 +825,8 @@
 				"label": "{{caption + ': ' + value}}",
 				"children": [
 					{
-						"id": "label-value",
 						"type": "label",
+						"id": "label-value",
 						"text": "{{value}}",
 						"font": "title",
 						"textColor": "{{color}}",
@@ -839,8 +839,8 @@
 						"align": "center"
 					},
 					{
-						"id": "label-caption",
 						"type": "label",
+						"id": "label-caption",
 						"text": "{{caption}}",
 						"font": "small",
 						"textColor": "@c.muted",
@@ -1865,8 +1865,8 @@
 								"color": "@c.bg",
 								"children": [
 									{
-										"id": "row-day-header",
 										"type": "row",
+										"id": "row-day-header",
 										"anchors": {
 											"right": 8,
 											"top": 4,
@@ -1901,8 +1901,8 @@
 														"color": "@c.primary"
 													},
 													{
-														"id": "label-format-date-date-2",
 														"type": "label",
+														"id": "label-format-date-date-2",
 														"text": "{{formatDate(dateMs(d), 'd', 'utc')}}",
 														"font": "default",
 														"textColor": "{{d == state.today ? '@c.onPrimary' : '@c.text'}}",
@@ -2076,8 +2076,8 @@
 												}
 											},
 											{
-												"id": "label-hb-name",
 												"type": "label",
+												"id": "label-hb-name",
 												"text": "{{hb.name}}",
 												"textColor": "{{col}}",
 												"wrap": true,
@@ -2147,8 +2147,8 @@
 														},
 														"children": [
 															{
-																"id": "label-cell",
 																"type": "label",
+																"id": "label-cell",
 																"when": "{{hb.kind != 'measurable'}}",
 																"font": "icons",
 																"align": "center",
@@ -2166,8 +2166,8 @@
 																"borderColor": "@c.faint"
 															},
 															{
-																"id": "label-format-number-v",
 																"type": "label",
+																"id": "label-format-number-v",
 																"when": "{{hb.kind == 'measurable' && v != null}}",
 																"anchors": {
 																	"left": 0,
@@ -2180,8 +2180,8 @@
 																"textColor": "{{hb.frequency.days == 1 ? (r >= 1 && v > 0 ? col : '@c.faint') : v > 0 ? col : '@c.faint'}}"
 															},
 															{
-																"id": "label-hb-unit",
 																"type": "label",
+																"id": "label-hb-unit",
 																"when": "{{hb.kind == 'measurable' && v != null}}",
 																"anchors": {
 																	"left": 0,
@@ -2226,8 +2226,8 @@
 								"color": "transparent",
 								"children": [
 									{
-										"id": "label-empty-list",
 										"type": "label",
+										"id": "label-empty-list",
 										"text": "",
 										"font": "icons",
 										"icon": "list-checks",
@@ -2241,8 +2241,8 @@
 										"align": "center"
 									},
 									{
-										"id": "label-t-empty",
 										"type": "label",
+										"id": "label-t-empty",
 										"text": "{{t('empty')}}",
 										"font": "heading",
 										"textColor": "@c.muted",
@@ -2284,8 +2284,8 @@
 								},
 								"children": [
 									{
-										"id": "appMark",
 										"type": "label",
+										"id": "appMark",
 										"font": "icons",
 										"icon": "flame",
 										"width": 24,
@@ -2298,8 +2298,8 @@
 										}
 									},
 									{
-										"id": "label-t-app",
 										"type": "label",
+										"id": "label-t-app",
 										"text": "{{t('app')}}",
 										"font": "title",
 										"textColor": "@c.text",
@@ -2430,8 +2430,8 @@
 												}
 											},
 											{
-												"id": "label-t-picked-n",
 												"type": "label",
+												"id": "label-t-picked-n",
 												"text": "{{t('picked', {n: length(state.picked)})}}",
 												"font": "title",
 												"textColor": "#ffffff",
@@ -2443,8 +2443,8 @@
 												"live": "polite"
 											},
 											{
-												"id": "row-pick-bar",
 												"type": "row",
+												"id": "row-pick-bar",
 												"anchors": {
 													"right": 4,
 													"top": 8
@@ -2532,8 +2532,8 @@
 										"height": "{{computed.h.description != '' ? 92 : 70}}",
 										"children": [
 											{
-												"id": "label-h-question",
 												"type": "label",
+												"id": "label-h-question",
 												"text": "{{computed.h.question}}",
 												"textColor": "{{computed.col}}",
 												"anchors": {
@@ -2579,8 +2579,8 @@
 												]
 											},
 											{
-												"id": "label-h-description",
 												"type": "label",
+												"id": "label-h-description",
 												"text": "{{computed.h.description}}",
 												"when": "{{computed.h.description != ''}}",
 												"font": "small",
@@ -2712,8 +2712,8 @@
 														"description": "{{t('goalOf', {value: formatNumber(g.value, 0, 1), goal: formatNumber(g.goal, 0, 1)})}}",
 														"children": [
 															{
-																"id": "label-t-goal-g",
 																"type": "label",
+																"id": "label-t-goal-g",
 																"text": "{{t('goal.' + g.period)}}",
 																"font": "small",
 																"textColor": "@c.text",
@@ -2827,8 +2827,8 @@
 														"strokeCap": "round"
 													},
 													{
-														"id": "row-score-plot",
 														"type": "row",
+														"id": "row-score-plot",
 														"fill": 0,
 														"children": [
 															{
@@ -2868,12 +2868,12 @@
 												]
 											},
 											{
+												"type": "label",
 												"id": "scoreAxis",
 												"repeat": {
 													"for": "g",
 													"in": "{{range(5)}}"
 												},
-												"type": "label",
 												"font": "tiny",
 												"textColor": "@c.muted",
 												"text": "{{(100 - g * 25) + '%'}}",
@@ -2973,8 +2973,8 @@
 														"color": "@c.divider"
 													},
 													{
-														"id": "row-history-plot",
 														"type": "row",
+														"id": "row-history-plot",
 														"fill": 0,
 														"children": [
 															{
@@ -3007,8 +3007,8 @@
 																		}
 																	},
 																	{
-																		"id": "label-hv-0-format",
 																		"type": "label",
+																		"id": "label-hv-0-format",
 																		"text": "{{hv > 0 ? formatNumber(hv, 0, 0) : ''}}",
 																		"font": "tiny",
 																		"textColor": "{{computed.col}}",
@@ -3158,8 +3158,8 @@
 																},
 																"children": [
 																	{
-																		"id": "label-format-date-date-3",
 																		"type": "label",
+																		"id": "label-format-date-date-3",
 																		"text": "{{formatDate(dateMs(d), 'd', 'utc')}}",
 																		"font": "tiny",
 																		"fill": 0,
@@ -3184,9 +3184,9 @@
 												"gap": 3,
 												"children": [
 													{
+														"id": "calWeekday",
 														"style": "tiny",
 														"text": "{{formatDate(dateMs(addDays('2000-01-02', wd)), 'EEE', 'utc')}}",
-														"id": "calWeekday",
 														"repeat": {
 															"for": "wd",
 															"in": "{{computed.weekdays}}"
@@ -3238,8 +3238,8 @@
 												"gap": 4,
 												"children": [
 													{
-														"id": "streakRow",
 														"type": "row",
+														"id": "streakRow",
 														"repeat": {
 															"for": "st",
 															"in": "{{computed.streaks}}"
@@ -3271,8 +3271,8 @@
 																"color": "{{st.len == computed.streakMax ? computed.col : computed.col + 'aa'}}",
 																"children": [
 																	{
-																		"id": "label-text-st-len",
 																		"type": "label",
+																		"id": "label-text-st-len",
 																		"text": "{{text(st.len)}}",
 																		"font": "small",
 																		"textColor": "{{computed.onColor}}",
@@ -3390,9 +3390,9 @@
 												"height": 168,
 												"children": [
 													{
+														"id": "freqWeekday",
 														"style": "tiny",
 														"text": "{{formatDate(dateMs(addDays('2000-01-02', wd)), 'EEE', 'utc')}}",
-														"id": "freqWeekday",
 														"repeat": {
 															"for": "wd",
 															"in": "{{computed.weekdays}}"
@@ -3472,8 +3472,8 @@
 														},
 														"children": [
 															{
-																"id": "label-format-date-date-7",
 																"type": "label",
+																"id": "label-format-date-date-7",
 																"text": "{{formatDate(dateMs(nt.key), 'EEE d MMM', 'utc')}}",
 																"font": "small",
 																"textColor": "{{computed.col}}",
@@ -3485,8 +3485,8 @@
 																"height": 16
 															},
 															{
-																"id": "label-nt-value",
 																"type": "label",
+																"id": "label-nt-value",
 																"text": "{{nt.value}}",
 																"textColor": "@c.text",
 																"anchors": {
@@ -3511,8 +3511,8 @@
 								]
 							},
 							{
-								"id": "label-t-no-selection",
 								"type": "label",
+								"id": "label-t-no-selection",
 								"text": "{{t('noSelection')}}",
 								"when": "{{computed.sel < 0}}",
 								"textColor": "@c.muted",
@@ -3570,8 +3570,8 @@
 										"color": "{{computed.col}}"
 									},
 									{
-										"id": "label-sel-0-h",
 										"type": "label",
+										"id": "label-sel-0-h",
 										"text": "{{computed.sel >= 0 ? computed.h.name : t('app')}}",
 										"font": "title",
 										"textColor": "{{computed.col}}",
@@ -3665,8 +3665,8 @@
 						"label": "{{ph.name + ', ' + formatDate(dateMs(pd), 'full', 'utc')}}",
 						"children": [
 							{
-								"id": "label-format-date-date-8",
 								"type": "label",
+								"id": "label-format-date-date-8",
 								"text": "{{formatDate(dateMs(pd), 'EEEE d MMMM', 'utc')}}",
 								"font": "heading",
 								"textColor": "{{pcol}}",
@@ -3692,8 +3692,8 @@
 								"onSubmit": "popupSave"
 							},
 							{
-								"id": "label-ph-unit",
 								"type": "label",
+								"id": "label-ph-unit",
 								"text": "{{ph.unit}}",
 								"when": "{{meas}}",
 								"textColor": "@c.muted",
@@ -3747,8 +3747,8 @@
 								"arrows": "horizontal",
 								"children": [
 									{
-										"style": "textButton",
 										"id": "popupYes",
+										"style": "textButton",
 										"icon": "check",
 										"text": "{{t('popup.yes')}}",
 										"textColor": "{{pcol}}",
@@ -3761,8 +3761,8 @@
 										}
 									},
 									{
-										"style": "textButton",
 										"id": "popupSkip",
+										"style": "textButton",
 										"icon": "chevrons-right",
 										"text": "{{t('popup.skip')}}",
 										"textColor": "{{pcol}}",
@@ -3775,8 +3775,8 @@
 										}
 									},
 									{
-										"style": "textButton",
 										"id": "popupNo",
+										"style": "textButton",
 										"icon": "x",
 										"text": "{{t('popup.no')}}",
 										"textColor": "@c.muted",
@@ -3791,8 +3791,8 @@
 								]
 							},
 							{
-								"style": "textButton",
 								"id": "popupSave",
+								"style": "textButton",
 								"when": "{{meas}}",
 								"text": "{{upper(t('popup.save'))}}",
 								"anchors": {
@@ -3804,8 +3804,8 @@
 						]
 					},
 					{
-						"use": "dialog",
 						"id": "editDialog",
+						"use": "dialog",
 						"with": {
 							"open": "state.edit.open",
 							"title": "{{state.edit.id == '' ? t('edit.new') : t('edit.edit')}}",
@@ -3846,8 +3846,8 @@
 												}
 											},
 											{
-												"style": "field",
 												"id": "nameField",
+												"style": "field",
 												"bind": "state.edit.name",
 												"autofocus": true,
 												"label": "{{t('edit.name')}}",
@@ -3942,8 +3942,8 @@
 																		],
 																		"children": [
 																			{
-																				"id": "label-swatch",
 																				"type": "label",
+																				"id": "label-swatch",
 																				"text": "",
 																				"font": "iconsSmall",
 																				"icon": "{{state.edit.color == sw ? 'check' : ''}}",
@@ -3980,8 +3980,8 @@
 												}
 											},
 											{
-												"style": "field",
 												"id": "questionField",
+												"style": "field",
 												"bind": "state.edit.question",
 												"label": "{{t('edit.question')}}",
 												"placeholder": "{{t('edit.questionPh')}}",
@@ -4012,8 +4012,8 @@
 												}
 											},
 											{
-												"id": "row-edit-target",
 												"type": "row",
+												"id": "row-edit-target",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -4044,16 +4044,16 @@
 														}
 													},
 													{
-														"style": "field",
 														"id": "targetField",
+														"style": "field",
 														"bind": "state.edit.target",
 														"label": "{{t('edit.target')}}",
 														"width": 96,
 														"placeholder": "10"
 													},
 													{
-														"style": "field",
 														"id": "unitField",
+														"style": "field",
 														"bind": "state.edit.unit",
 														"label": "{{t('edit.unit')}}",
 														"width": 140,
@@ -4083,8 +4083,8 @@
 												}
 											},
 											{
-												"id": "row-edit-frequency",
 												"type": "row",
+												"id": "row-edit-frequency",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -4183,8 +4183,8 @@
 														"alignItems": "center",
 														"children": [
 															{
-																"style": "iconButton",
 																"id": "freqLess",
+																"style": "iconButton",
 																"font": "iconsSmall",
 																"icon": "minus",
 																"width": 32,
@@ -4196,8 +4196,8 @@
 																}
 															},
 															{
-																"id": "label-text-edit-n",
 																"type": "label",
+																"id": "label-text-edit-n",
 																"text": "{{text(state.edit.n)}}",
 																"textColor": "@c.text",
 																"width": 40,
@@ -4206,8 +4206,8 @@
 																"role": "status"
 															},
 															{
-																"style": "iconButton",
 																"id": "freqMore",
+																"style": "iconButton",
 																"font": "iconsSmall",
 																"icon": "plus",
 																"width": 32,
@@ -4243,8 +4243,8 @@
 												}
 											},
 											{
-												"id": "row-edit-reminder",
 												"type": "row",
+												"id": "row-edit-reminder",
 												"anchors": {
 													"left": 0,
 													"right": 0,
@@ -4255,8 +4255,8 @@
 												"alignItems": "center",
 												"children": [
 													{
-														"use": "switch",
 														"id": "reminderToggle",
+														"use": "switch",
 														"with": {
 															"on": "{{state.edit.reminderOn}}",
 															"path": "state.edit.reminderOn",
@@ -4264,8 +4264,8 @@
 														}
 													},
 													{
-														"style": "field",
 														"id": "timeField",
+														"style": "field",
 														"bind": "state.edit.time",
 														"label": "{{t('edit.reminder')}}",
 														"width": 72,
@@ -4313,8 +4313,8 @@
 												}
 											},
 											{
-												"style": "field",
 												"id": "notesField",
+												"style": "field",
 												"bind": "state.edit.description",
 												"label": "{{t('edit.notes')}}",
 												"placeholder": "{{t('edit.notesPh')}}",
@@ -4327,8 +4327,8 @@
 										]
 									},
 									{
-										"id": "label-edit-error",
 										"type": "label",
+										"id": "label-edit-error",
 										"text": "{{state.edit.error}}",
 										"when": "{{state.edit.error != ''}}",
 										"font": "small",
@@ -4342,8 +4342,8 @@
 						]
 					},
 					{
-						"use": "dialog",
 						"id": "deleteDialog",
+						"use": "dialog",
 						"with": {
 							"open": "state.confirmDelete",
 							"title": "{{t(computed.picking ? 'delete.titleN' : 'delete.title')}}",
@@ -4398,8 +4398,8 @@
 												"fitContent": "height",
 												"children": [
 													{
-														"id": "label-t-set-interface",
 														"type": "label",
+														"id": "label-t-set-interface",
 														"text": "{{t('set.interface')}}",
 														"style": "sectionTitle",
 														"anchors": {
@@ -4408,8 +4408,8 @@
 														}
 													},
 													{
-														"use": "prefRow",
 														"id": "themeRow",
+														"use": "prefRow",
 														"with": {
 															"title": "{{t('set.theme')}}",
 															"summary": "{{t('theme.' + state.theme)}}"
@@ -4433,8 +4433,8 @@
 														]
 													},
 													{
-														"use": "toggleRow",
 														"id": "pureBlackRow",
+														"use": "toggleRow",
 														"with": {
 															"title": "{{t('set.pureBlack')}}",
 															"summary": "{{t('set.pureBlackHint')}}",
@@ -4443,8 +4443,8 @@
 														}
 													},
 													{
-														"use": "toggleRow",
 														"id": "reverseRow",
+														"use": "toggleRow",
 														"with": {
 															"title": "{{t('set.reverse')}}",
 															"summary": "{{t('set.reverseHint')}}",
@@ -4453,8 +4453,8 @@
 														}
 													},
 													{
-														"use": "toggleRow",
 														"id": "skipRow",
+														"use": "toggleRow",
 														"with": {
 															"title": "{{t('set.skip')}}",
 															"summary": "{{t('set.skipHint')}}",
@@ -4463,8 +4463,8 @@
 														}
 													},
 													{
-														"use": "prefRow",
 														"id": "firstDayRow",
+														"use": "prefRow",
 														"with": {
 															"title": "{{t('set.firstDay')}}",
 															"summary": "{{formatDate(dateMs(addDays('2000-01-02', state.firstWeekday)), 'EEEE', 'utc')}}"
@@ -4488,8 +4488,8 @@
 														]
 													},
 													{
-														"use": "prefRow",
 														"id": "languageRow",
+														"use": "prefRow",
 														"with": {
 															"title": "{{t('set.language')}}",
 															"summary": "{{t('lang.' + state.locale)}}"
@@ -4525,8 +4525,8 @@
 												"fitContent": "height",
 												"children": [
 													{
-														"id": "label-t-set-notifications",
 														"type": "label",
+														"id": "label-t-set-notifications",
 														"text": "{{t('set.notifications')}}",
 														"style": "sectionTitle",
 														"anchors": {
@@ -4535,8 +4535,8 @@
 														}
 													},
 													{
-														"use": "toggleRow",
 														"id": "remindersRow",
+														"use": "toggleRow",
 														"with": {
 															"title": "{{t('set.reminders')}}",
 															"summary": "{{t('set.remindersHint')}}",
@@ -4557,8 +4557,8 @@
 												"fitContent": "height",
 												"children": [
 													{
-														"id": "label-t-set-data",
 														"type": "label",
+														"id": "label-t-set-data",
 														"text": "{{t('set.data')}}",
 														"style": "sectionTitle",
 														"anchors": {
@@ -4567,8 +4567,8 @@
 														}
 													},
 													{
-														"use": "prefRow",
 														"id": "exportRow",
+														"use": "prefRow",
 														"with": {
 															"title": "{{t('set.export')}}",
 															"summary": "{{t('set.exportHint')}}"
@@ -4576,8 +4576,8 @@
 														"onClick": "exportAll"
 													},
 													{
-														"use": "prefRow",
 														"id": "backupRow",
+														"use": "prefRow",
 														"with": {
 															"title": "{{t('set.backup')}}",
 															"summary": "{{t('set.backupHint')}}"
@@ -4585,8 +4585,8 @@
 														"onClick": "backupAll"
 													},
 													{
-														"use": "prefRow",
 														"id": "restoreRow",
+														"use": "prefRow",
 														"with": {
 															"title": "{{t('set.restore')}}",
 															"summary": "{{t('set.restoreHint')}}"
@@ -4594,8 +4594,8 @@
 														"onClick": "restoreAll"
 													},
 													{
-														"use": "prefRow",
 														"id": "syncRow",
+														"use": "prefRow",
 														"with": {
 															"title": "{{t('set.sync')}}",
 															"summary": "{{computed.syncText}}"
@@ -4603,8 +4603,8 @@
 														"onClick": "syncNow",
 														"children": [
 															{
-																"style": "textButton",
 																"id": "accountButton",
+																"style": "textButton",
 																"text": "{{computed.signedIn ? t('signOut') : t('signIn')}}",
 																"anchors": {
 																	"right": 8,
@@ -4662,8 +4662,8 @@
 										"mirror": true
 									},
 									{
-										"id": "label-t-settings",
 										"type": "label",
+										"id": "label-t-settings",
 										"text": "{{t('settings')}}",
 										"font": "title",
 										"textColor": "@c.text",
@@ -4679,8 +4679,8 @@
 						]
 					},
 					{
-						"use": "quickPick",
 						"id": "palette",
+						"use": "quickPick",
 						"with": {
 							"providers": "{{[{placeholder: t('palettePlaceholder'), items: computed.palette, key: 'title'}]}}",
 							"color": "@c.card",
@@ -4692,8 +4692,8 @@
 						}
 					},
 					{
-						"use": "toasts",
 						"id": "toasts",
+						"use": "toasts",
 						"with": {
 							"name": "toasts",
 							"width": 344,

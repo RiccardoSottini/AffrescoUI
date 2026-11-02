@@ -789,6 +789,7 @@
 			"textColor": "@color.accent"
 		},
 		"card": {
+			"type": "column",
 			"radius": "@radius.card",
 			"color": "@color.surface",
 			"borderWidth": 1,
@@ -798,7 +799,6 @@
 				"blur": 32,
 				"color": "@color.shadow"
 			},
-			"type": "column",
 			"fitContent": "height",
 			"scroll": "vertical"
 		},
@@ -1113,8 +1113,8 @@
 						"style": "{{on ? 'fieldBoxOn' : error ? 'fieldBoxError' : 'fieldBox'}}",
 						"children": [
 							{
-								"id": "field-icon",
 								"type": "label",
+								"id": "field-icon",
 								"font": "icons",
 								"icon": "{{icon}}",
 								"text": "",
@@ -1257,8 +1257,8 @@
 				"password": ""
 			},
 			"node": {
-				"id": "rules",
 				"type": "grid",
+				"id": "rules",
 				"columns": 2,
 				"rowGap": 4,
 				"columnGap": 8,
@@ -1274,8 +1274,8 @@
 				},
 				"children": [
 					{
-						"id": "rule-length",
 						"type": "label",
+						"id": "rule-length",
 						"font": "small",
 						"height": 18,
 						"color": "transparent",
@@ -1285,8 +1285,8 @@
 						"label": "{{t('rule8') + ': ' + t('ruleState', { ok: n >= 8 })}}"
 					},
 					{
-						"id": "rule-case",
 						"type": "label",
+						"id": "rule-case",
 						"font": "small",
 						"height": 18,
 						"color": "transparent",
@@ -1296,8 +1296,8 @@
 						"label": "{{t('ruleCase') + ': ' + t('ruleState', { ok: n > 0 && !contains(m, 'upper') && !contains(m, 'lower') })}}"
 					},
 					{
-						"id": "rule-digit",
 						"type": "label",
+						"id": "rule-digit",
 						"font": "small",
 						"height": 18,
 						"color": "transparent",
@@ -1307,8 +1307,8 @@
 						"label": "{{t('ruleDigit') + ': ' + t('ruleState', { ok: n > 0 && !contains(m, 'digit') })}}"
 					},
 					{
-						"id": "rule-symbol",
 						"type": "label",
+						"id": "rule-symbol",
 						"font": "small",
 						"height": 18,
 						"color": "transparent",
@@ -1326,8 +1326,8 @@
 				"name": ""
 			},
 			"node": {
-				"id": "column-section-header",
 				"type": "column",
+				"id": "column-section-header",
 				"fitContent": "height",
 				"gap": 2,
 				"anchors": {
@@ -4298,8 +4298,8 @@
 									"label": "{{t('sessionExpired')}}",
 									"children": [
 										{
-											"id": "label-session-expired",
 											"type": "label",
+											"id": "label-session-expired",
 											"font": "small",
 											"icon": "clock-3",
 											"text": "{{t('sessionExpired')}}",
@@ -4364,9 +4364,9 @@
 									}
 								},
 								{
+									"type": "row",
 									"id": "accountChip",
 									"when": "{{state.step == 'password'}}",
-									"type": "row",
 									"height": 36,
 									"gap": 10,
 									"alignItems": "center",
@@ -4387,8 +4387,8 @@
 											"color": "transparent",
 											"children": [
 												{
-													"id": "chip-initial",
 													"type": "label",
+													"id": "chip-initial",
 													"width": 28,
 													"height": 28,
 													"radius": 14,
@@ -4405,8 +4405,8 @@
 											]
 										},
 										{
-											"id": "label-chip-email",
 											"type": "label",
+											"id": "label-chip-email",
 											"font": "small",
 											"textColor": "@color.text",
 											"height": 20,
@@ -4414,8 +4414,8 @@
 											"text": "{{trim(state.email)}}"
 										},
 										{
-											"id": "spacer-chip",
 											"type": "row",
+											"id": "spacer-chip",
 											"grow": 1,
 											"height": 1
 										},
@@ -4427,17 +4427,17 @@
 											"onClick": "changeEmail"
 										},
 										{
-											"id": "spacer-chip-end",
 											"type": "row",
+											"id": "spacer-chip-end",
 											"width": 6,
 											"height": 1
 										}
 									]
 								},
 								{
+									"type": "row",
 									"id": "row-password",
 									"when": "{{state.step == 'password'}}",
-									"type": "row",
 									"height": 18,
 									"justify": "space-between",
 									"anchors": {
@@ -4481,9 +4481,9 @@
 									}
 								},
 								{
+									"type": "label",
 									"id": "capsLockWarning",
 									"when": "{{state.step == 'password' && window.capsLock}}",
-									"type": "label",
 									"font": "small",
 									"icon": "arrow-big-up",
 									"text": "{{t('capsLock')}}",
@@ -4511,8 +4511,8 @@
 											}
 										},
 										{
-											"id": "label-remember",
 											"type": "label",
+											"id": "label-remember",
 											"font": "small",
 											"text": "{{t('rememberText')}}",
 											"fitText": true,
@@ -4548,8 +4548,8 @@
 									"onClick": "emailCodeSignIn"
 								},
 								{
-									"id": "row-or",
 									"type": "row",
+									"id": "row-or",
 									"height": 18,
 									"gap": 10,
 									"alignItems": "center",
@@ -4565,8 +4565,8 @@
 											"color": "@color.border"
 										},
 										{
-											"id": "label-or",
 											"type": "label",
+											"id": "label-or",
 											"font": "small",
 											"fitText": true,
 											"height": 18,
@@ -4601,9 +4601,9 @@
 									"when": "{{state.step == 'email'}}"
 								},
 								{
+									"type": "row",
 									"id": "row-providers",
 									"when": "{{state.step == 'email'}}",
-									"type": "row",
 									"height": 40,
 									"gap": 8,
 									"anchors": {
@@ -4790,9 +4790,9 @@
 									}
 								},
 								{
+									"type": "row",
 									"id": "usernameStatus",
 									"when": "{{computed.usernameStatus != '' && !(state.submitted && computed.usernameStatus != 'available')}}",
-									"type": "row",
 									"height": 18,
 									"gap": 6,
 									"alignItems": "center",
@@ -4806,8 +4806,8 @@
 									"label": "{{t('usernameStatus', { kind: computed.usernameStatus, name: lower(trim(state.username)) })}}",
 									"children": [
 										{
-											"id": "username-status-icon",
 											"type": "label",
+											"id": "username-status-icon",
 											"font": "iconsSmall",
 											"text": "",
 											"width": 14,
@@ -4819,8 +4819,8 @@
 											"textColor": "{{computed.usernameStatus == 'checking' ? '@color.muted' : computed.usernameStatus == 'available' ? '@color.strong' : '@color.error'}}"
 										},
 										{
-											"id": "username-status-text",
 											"type": "label",
+											"id": "username-status-text",
 											"font": "small",
 											"fitText": true,
 											"height": 18,
@@ -4905,8 +4905,8 @@
 											"onClick": "toggleTerms"
 										},
 										{
-											"id": "label-terms",
 											"type": "label",
+											"id": "label-terms",
 											"font": "small",
 											"text": "{{t('terms')}}",
 											"fitText": true,
@@ -4954,9 +4954,9 @@
 									}
 								},
 								{
+									"type": "label",
 									"id": "inviteNotice",
 									"when": "{{state.invite.open && computed.inviteValid}}",
-									"type": "label",
 									"font": "small",
 									"icon": "users",
 									"height": 36,
@@ -5108,8 +5108,8 @@
 											}
 										},
 										{
-											"id": "label-trust",
 											"type": "label",
+											"id": "label-trust",
 											"font": "small",
 											"text": "{{t('trustDevice')}}",
 											"fitText": true,
@@ -5140,9 +5140,9 @@
 									"when": "{{state.codeMode != 'backup'}}"
 								},
 								{
+									"type": "row",
 									"id": "row-other-ways",
 									"when": "{{state.codeMode != 'verify' && state.codeMode != 'email'}}",
-									"type": "row",
 									"height": 20,
 									"gap": 16,
 									"justify": "center",
@@ -5394,8 +5394,8 @@
 							"color": "transparent"
 						},
 						{
-							"id": "row-account",
 							"type": "row",
+							"id": "row-account",
 							"height": 56,
 							"gap": 14,
 							"alignItems": "center",
@@ -5405,8 +5405,8 @@
 							},
 							"children": [
 								{
-									"id": "avatar",
 									"type": "label",
+									"id": "avatar",
 									"font": "title",
 									"text": "{{computed.initials}}",
 									"width": 56,
@@ -5419,8 +5419,8 @@
 									"label": "{{state.user.name}}"
 								},
 								{
-									"id": "column-account",
 									"type": "column",
+									"id": "column-account",
 									"grow": 1,
 									"height": 56,
 									"gap": 2,
@@ -5450,8 +5450,8 @@
 							]
 						},
 						{
-							"id": "row-meta",
 							"type": "row",
+							"id": "row-meta",
 							"height": 20,
 							"gap": 18,
 							"alignItems": "center",
@@ -5461,8 +5461,8 @@
 							},
 							"children": [
 								{
-									"id": "label-remembered",
 									"type": "label",
+									"id": "label-remembered",
 									"font": "small",
 									"height": 20,
 									"icon": "{{state.remember ? 'shield-check' : 'clock-3'}}",
@@ -5471,9 +5471,9 @@
 									"fitText": true
 								},
 								{
+									"type": "label",
 									"id": "label-provider",
 									"when": "{{state.user.provider}}",
-									"type": "label",
 									"font": "small",
 									"height": 20,
 									"icon": "key-round",
@@ -5482,8 +5482,8 @@
 									"fitText": true
 								},
 								{
-									"id": "session",
 									"type": "label",
+									"id": "session",
 									"font": "small",
 									"fitText": true,
 									"height": 20,
@@ -5511,9 +5511,9 @@
 							}
 						},
 						{
+							"type": "row",
 							"id": "navRow",
 							"when": "{{!computed.wide}}",
-							"type": "row",
 							"height": 46,
 							"gap": 4,
 							"role": "tablist",
@@ -5542,8 +5542,8 @@
 							"alignItems": "start"
 						},
 						{
-							"id": "row-body",
 							"type": "row",
+							"id": "row-body",
 							"grow": 1,
 							"gap": 24,
 							"alignItems": "stretch",
@@ -5553,9 +5553,9 @@
 							},
 							"children": [
 								{
+									"type": "column",
 									"id": "navColumn",
 									"when": "{{computed.wide}}",
-									"type": "column",
 									"width": 196,
 									"gap": 2,
 									"role": "tablist",
@@ -5578,16 +5578,16 @@
 									]
 								},
 								{
-									"id": "sectionPanel",
 									"type": "column",
+									"id": "sectionPanel",
 									"grow": 1,
 									"gap": 10,
 									"scroll": "vertical",
 									"children": [
 										{
+											"type": "column",
 											"id": "section-profile",
 											"when": "{{state.section == 'profile'}}",
-											"type": "column",
 											"fitContent": "height",
 											"gap": 10,
 											"anchors": {
@@ -5605,8 +5605,8 @@
 													}
 												},
 												{
-													"id": "row-photo",
 													"type": "row",
+													"id": "row-photo",
 													"height": 64,
 													"gap": 16,
 													"alignItems": "center",
@@ -5616,8 +5616,8 @@
 													},
 													"children": [
 														{
-															"id": "avatarLarge",
 															"type": "label",
+															"id": "avatarLarge",
 															"font": "title",
 															"text": "{{computed.initials}}",
 															"width": 64,
@@ -5630,8 +5630,8 @@
 															"label": "{{t('photo')}}"
 														},
 														{
-															"id": "column-photo",
 															"type": "column",
+															"id": "column-photo",
 															"grow": 1,
 															"height": 42,
 															"gap": 2,
@@ -5685,8 +5685,8 @@
 													"text": "{{t('usernameIs', { name: state.user.username })}}"
 												},
 												{
-													"id": "row-account-buttons",
 													"type": "row",
+													"id": "row-account-buttons",
 													"height": 42,
 													"anchors": {
 														"left": 0,
@@ -5709,9 +5709,9 @@
 											]
 										},
 										{
+											"type": "column",
 											"id": "section-emails",
 											"when": "{{state.section == 'emails'}}",
-											"type": "column",
 											"fitContent": "height",
 											"gap": 10,
 											"anchors": {
@@ -5807,9 +5807,9 @@
 													"when": "{{!state.newEmail.open && length(state.emails) < 5}}"
 												},
 												{
+													"type": "column",
 													"id": "newEmailForm",
 													"when": "{{state.newEmail.open}}",
-													"type": "column",
 													"fitContent": "height",
 													"gap": 8,
 													"anchors": {
@@ -5840,8 +5840,8 @@
 															}
 														},
 														{
-															"id": "row-new-email",
 															"type": "row",
+															"id": "row-new-email",
 															"height": 34,
 															"gap": 8,
 															"anchors": {
@@ -5878,9 +5878,9 @@
 											]
 										},
 										{
+											"type": "column",
 											"id": "section-security",
 											"when": "{{state.section == 'security'}}",
-											"type": "column",
 											"fitContent": "height",
 											"gap": 10,
 											"anchors": {
@@ -5919,8 +5919,8 @@
 													]
 												},
 												{
-													"id": "twoStepBox",
 													"type": "column",
+													"id": "twoStepBox",
 													"fitContent": "height",
 													"gap": 8,
 													"radius": "@radius.field",
@@ -5938,8 +5938,8 @@
 															"color": "transparent"
 														},
 														{
-															"id": "row-two-step",
 															"type": "row",
+															"id": "row-two-step",
 															"height": 36,
 															"gap": 12,
 															"alignItems": "center",
@@ -5949,8 +5949,8 @@
 															},
 															"children": [
 																{
-																	"id": "twoStep",
 																	"type": "toggle",
+																	"id": "twoStep",
 																	"width": 44,
 																	"height": 24,
 																	"role": "switch",
@@ -5982,8 +5982,8 @@
 																	}
 																},
 																{
-																	"id": "column-two-step",
 																	"type": "column",
+																	"id": "column-two-step",
 																	"grow": 1,
 																	"height": 36,
 																	"children": [
@@ -6002,9 +6002,9 @@
 															]
 														},
 														{
+															"type": "row",
 															"id": "row-backup",
 															"when": "{{state.user.twoStep}}",
-															"type": "row",
 															"height": 18,
 															"gap": 12,
 															"alignItems": "center",
@@ -6040,6 +6040,7 @@
 															}
 														},
 														{
+															"type": "row",
 															"id": "row-trusted",
 															"when": "{{state.user.twoStep}}",
 															"repeat": {
@@ -6048,7 +6049,6 @@
 																"index": "i",
 																"key": "{{dv.device}}"
 															},
-															"type": "row",
 															"height": 18,
 															"gap": 12,
 															"alignItems": "center",
@@ -6155,9 +6155,9 @@
 											]
 										},
 										{
+											"type": "column",
 											"id": "section-devices",
 											"when": "{{state.section == 'devices'}}",
-											"type": "column",
 											"fitContent": "height",
 											"gap": 10,
 											"anchors": {
@@ -6229,9 +6229,9 @@
 											]
 										},
 										{
+											"type": "column",
 											"id": "section-connected",
 											"when": "{{state.section == 'connected'}}",
-											"type": "column",
 											"fitContent": "height",
 											"gap": 10,
 											"anchors": {
@@ -6296,9 +6296,9 @@
 											]
 										},
 										{
+											"type": "column",
 											"id": "section-activity",
 											"when": "{{state.section == 'activity'}}",
-											"type": "column",
 											"fitContent": "height",
 											"gap": 10,
 											"anchors": {
@@ -6342,9 +6342,9 @@
 											]
 										},
 										{
+											"type": "column",
 											"id": "section-data",
 											"when": "{{state.section == 'data'}}",
-											"type": "column",
 											"fitContent": "height",
 											"gap": 10,
 											"anchors": {
@@ -6362,8 +6362,8 @@
 													}
 												},
 												{
-													"id": "deleteWarning",
 													"type": "label",
+													"id": "deleteWarning",
 													"font": "small",
 													"icon": "alert-triangle",
 													"wrap": true,
@@ -6379,8 +6379,8 @@
 													"text": "{{t('deleteText')}}"
 												},
 												{
-													"id": "row-delete",
 													"type": "row",
+													"id": "row-delete",
 													"height": 42,
 													"anchors": {
 														"left": 0,
@@ -6429,8 +6429,8 @@
 					},
 					"children": [
 						{
-							"id": "swatches",
 							"type": "row",
+							"id": "swatches",
 							"gap": 8,
 							"height": 30,
 							"role": "radiogroup",
@@ -6443,12 +6443,12 @@
 							},
 							"children": [
 								{
+									"type": "label",
 									"id": "swatch",
 									"repeat": {
 										"for": "c",
 										"in": "{{range(7)}}"
 									},
-									"type": "label",
 									"width": 30,
 									"height": 30,
 									"radius": 999,
@@ -6526,9 +6526,9 @@
 				}
 			},
 			{
+				"type": "outlet",
 				"id": "screens",
 				"dir": "auto",
-				"type": "outlet",
 				"anchors": {
 					"left": 0,
 					"right": 0,
@@ -6537,9 +6537,9 @@
 				}
 			},
 			{
+				"type": "label",
 				"id": "announcer",
 				"dir": "auto",
-				"type": "label",
 				"font": "small",
 				"role": "status",
 				"live": "polite",
@@ -6555,9 +6555,9 @@
 				"fitText": true
 			},
 			{
+				"type": "row",
 				"id": "topBar",
 				"dir": "auto",
-				"type": "row",
 				"gap": 6,
 				"width": 226,
 				"height": 32,
@@ -6568,8 +6568,8 @@
 				},
 				"children": [
 					{
-						"id": "languages",
 						"type": "row",
+						"id": "languages",
 						"role": "radiogroup",
 						"label": "{{t('language')}}",
 						"arrows": "horizontal",
@@ -6630,9 +6630,9 @@
 				]
 			},
 			{
+				"type": "label",
 				"id": "footer",
 				"when": "{{window.width >= 640}}",
-				"type": "label",
 				"font": "small",
 				"textColor": "@color.muted",
 				"align": "center",
@@ -6782,9 +6782,9 @@
 				},
 				"children": [
 					{
+						"type": "panel",
 						"id": "qrBox",
 						"when": "{{state.setup.step == 'scan'}}",
-						"type": "panel",
 						"width": 140,
 						"height": 140,
 						"radius": 8,
@@ -6797,8 +6797,8 @@
 						"label": "{{t('setupScanMessage')}}",
 						"children": [
 							{
-								"id": "qr",
 								"type": "path",
+								"id": "qr",
 								"d": "{{computed.otpQr.d}}",
 								"viewBox": "{{computed.otpQr.viewBox}}",
 								"fillColor": "@color.qrInk",
@@ -6823,9 +6823,9 @@
 						}
 					},
 					{
+						"type": "label",
 						"id": "setupKey",
 						"when": "{{state.setup.step == 'scan'}}",
-						"type": "label",
 						"font": "mono",
 						"dir": "ltr",
 						"height": 22,
@@ -6904,6 +6904,7 @@
 						"onSubmit": "setupNext"
 					},
 					{
+						"type": "label",
 						"id": "backup-code",
 						"when": "{{state.setup.step == 'codes'}}",
 						"repeat": {
@@ -6912,7 +6913,6 @@
 							"index": "i",
 							"key": "{{bc}}"
 						},
-						"type": "label",
 						"font": "mono",
 						"dir": "ltr",
 						"height": 24,
@@ -6948,8 +6948,8 @@
 								}
 							},
 							{
-								"id": "label-saved",
 								"type": "label",
+								"id": "label-saved",
 								"font": "small",
 								"text": "{{t('savedCodes')}}",
 								"fitText": true,
@@ -7241,8 +7241,8 @@
 				},
 				"children": [
 					{
-						"id": "shortcutList",
 						"type": "column",
+						"id": "shortcutList",
 						"color": "transparent",
 						"role": "list",
 						"label": "{{t('shortcuts')}}",
@@ -7269,8 +7269,8 @@
 								"color": "transparent",
 								"children": [
 									{
-										"id": "shortcut-title",
 										"type": "label",
+										"id": "shortcut-title",
 										"font": "small",
 										"icon": "{{c.icon}}",
 										"text": "{{t('command', { name: c.name })}}",
@@ -7287,8 +7287,8 @@
 										"height": 20
 									},
 									{
-										"id": "shortcut-key",
 										"type": "label",
+										"id": "shortcut-key",
 										"font": "small",
 										"dir": "ltr",
 										"text": "{{c.keyText}}",
@@ -7311,9 +7311,9 @@
 				]
 			},
 			{
+				"type": "row",
 				"id": "toast",
 				"dir": "auto",
-				"type": "row",
 				"overlay": {
 					"placement": "window",
 					"open": "{{state.toast.open}}"
@@ -7330,8 +7330,8 @@
 				"live": "polite",
 				"children": [
 					{
-						"id": "toastPill",
 						"type": "row",
+						"id": "toastPill",
 						"fitContent": "width",
 						"height": 40,
 						"gap": 10,
@@ -7350,25 +7350,25 @@
 								"color": "transparent"
 							},
 							{
-								"id": "toastIcon",
 								"type": "label",
+								"id": "toastIcon",
 								"font": "iconsSmall",
 								"icon": "check",
 								"textColor": "@color.toastText",
 								"fitText": true
 							},
 							{
-								"id": "toastMessage",
 								"type": "label",
+								"id": "toastMessage",
 								"font": "small",
 								"text": "{{state.toast.message}}",
 								"textColor": "@color.toastText",
 								"fitText": true
 							},
 							{
+								"type": "label",
 								"id": "toastStay",
 								"when": "{{state.toast.action == 'stay'}}",
-								"type": "label",
 								"font": "small",
 								"text": "{{t('stay')}}",
 								"textColor": "@color.toastAction",
@@ -7387,8 +7387,8 @@
 								]
 							},
 							{
-								"id": "toastClose",
 								"type": "label",
+								"id": "toastClose",
 								"font": "iconsSmall",
 								"icon": "x",
 								"text": "",

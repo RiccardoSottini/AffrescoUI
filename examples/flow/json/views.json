@@ -17,8 +17,8 @@
 						"role": "img", "label": "{{t('burndown.title', { n: computed.remaining })}}" },
 					{ "id": "activityTitle", "style": "caption", "icon": "activity", "text": "{{t('activity.title')}}", "anchors": { "left": 0, "top": 124 } },
 					{
-						"id": "activity",
 						"type": "column",
+						"id": "activity",
 						"anchors": { "left": 0, "right": 0, "top": 148, "bottom": 0 },
 						"gap": 4,
 						"scroll": "vertical",
@@ -35,7 +35,7 @@
 								"children": [
 									{ "id": "activityWho", "style": "badge", "text": "{{entry.who}}", "anchors": { "left": 0, "top": 5 }, "width": 24, "height": 24, "radius": 999,
 										"color": "{{find(state.members, it.who == entry.who).color ?? '@color.muted'}}", "textColor": "#ffffff" },
-									{ "id": "activityText", "type": "label", "font": "small", "textColor": "@color.text", "wrap": true,
+									{ "type": "label", "id": "activityText", "font": "small", "textColor": "@color.text", "wrap": true,
 										"anchors": { "left": 32, "right": 0, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" },
 										"text": "{{t('activity.' + entry.key, { who: find(state.members, it.who == entry.who).name ?? entry.who, title: entry.title, column: entry.column ?? '' })}}" }
 								]
@@ -50,8 +50,8 @@
 			"note": "One lane a member, the board's columns across it; a card dropped in another lane changes its owner",
 			"params": {},
 			"node": {
-				"id": "lanes",
 				"type": "column",
+				"id": "lanes",
 				"gap": 8,
 				"scroll": "vertical",
 				"color": "transparent",
@@ -68,13 +68,13 @@
 						"children": [
 							{ "id": "laneWho", "style": "badge", "text": "{{member.who}}", "anchors": { "left": 12, "top": 10 }, "width": 24, "height": 24, "radius": 999,
 								"color": "{{member.color}}", "textColor": "#ffffff" },
-							{ "id": "laneName", "type": "label", "font": "heading", "textColor": "@color.text", "fitText": true, "anchors": { "left": 44, "top": 12 },
+							{ "type": "label", "id": "laneName", "font": "heading", "textColor": "@color.text", "fitText": true, "anchors": { "left": 44, "top": 12 },
 								"text": "{{member.name}}" },
 							{ "id": "laneCount", "style": "caption", "anchors": { "left": "#laneName.right + 10", "top": 15 },
 								"text": "{{t('lane.cards', { n: count(computed.allCards, it.who == member.who) })}}" },
 							{
-								"id": "laneColumns",
 								"type": "row",
+								"id": "laneColumns",
 								"gap": 6,
 								"anchors": { "left": 8, "right": 8, "top": 42, "bottom": 8 },
 								"children": [
@@ -89,17 +89,17 @@
 										"children": [
 											{ "id": "laneColumnName", "style": "caption", "text": "{{column.name}}", "anchors": { "left": 8, "top": 4 } },
 											{
-												"id": "laneCards",
 												"type": "stack",
+												"id": "laneCards",
 												"gap": 4,
 												"scroll": "vertical",
 												"anchors": { "left": 4, "right": 4, "top": 22, "bottom": 4 },
 												"children": [
 													{
-														"id": "laneCard",
-														"repeat": { "for": "row", "in": "sort(filter(computed.allCards, it.c == c), state.order == 'priority' ? ((it.priority ?? 0) == 0 ? 9 : it.priority) : state.order == 'due' ? (it.due ?? '9999-12-31') : it.at)", "index": "k" }, "let": { "i": "{{row.at}}", "card": "{{column.cards[row.at]}}" },
-														"when": "{{card.who == member.who && contains(computed.matchRefs, card.ref)}}",
 														"type": "label",
+														"id": "laneCard", "repeat": { "for": "row", "in": "sort(filter(computed.allCards, it.c == c), state.order == 'priority' ? ((it.priority ?? 0) == 0 ? 9 : it.priority) : state.order == 'due' ? (it.due ?? '9999-12-31') : it.at)", "index": "k" },
+														"let": { "i": "{{row.at}}", "card": "{{column.cards[row.at]}}" },
+														"when": "{{card.who == member.who && contains(computed.matchRefs, card.ref)}}",
 														"font": "small",
 														"text": "{{card.title}}",
 														"anchors": { "left": 0, "right": 0 },
@@ -142,8 +142,8 @@
 					{ "id": "timelineTitle", "style": "caption", "icon": "calendar-range", "anchors": { "left": 16, "top": 12 },
 						"text": "{{t('timeline.title', { from: formatDate(dateMs(state.sprintStart), 'medium', 'utc') })}}" },
 					{
-						"id": "cardTimeline",
 						"type": "timeline",
+						"id": "cardTimeline",
 						"anchors": { "left": 8, "right": 8, "top": 36, "bottom": 8 },
 						"tracks": "{{state.timelineTracks}}",
 						"duration": 28,
@@ -162,7 +162,7 @@
 						"accentColor": "@color.accent",
 						"onClipChange": "changeClip",
 						"children": [
-							{ "id": "timelineHeader", "repeat": { "for": "track", "in": "state.timelineTracks" }, "type": "label", "font": "small", "text": "{{track.label}}",
+							{ "type": "label", "id": "timelineHeader", "repeat": { "for": "track", "in": "state.timelineTracks" }, "font": "small", "text": "{{track.label}}",
 								"textColor": "@color.text", "fill": 0, "padding": 10, "align": { "horizontal": "start", "vertical": "center" } }
 						]
 					}
@@ -185,12 +185,12 @@
 				"role": "dialog",
 				"label": "{{t('settings.title')}}",
 				"children": [
-					{ "id": "settingsTitle", "type": "label", "font": "heading", "icon": "settings", "text": " {{t('settings.title')}}", "textColor": "@color.text",
+					{ "type": "label", "id": "settingsTitle", "font": "heading", "icon": "settings", "text": " {{t('settings.title')}}", "textColor": "@color.text",
 						"anchors": { "left": 20, "top": 16 }, "fitText": true },
-					{ "id": "settingsClose", "type": "label", "icon": "x", "text": "", "width": 30, "height": 30, "radius": "@radius.chip", "align": "center",
+					{ "type": "label", "id": "settingsClose", "icon": "x", "text": "", "width": 30, "height": 30, "radius": "@radius.chip", "align": "center",
 						"anchors": { "right": 12, "top": 10 }, "focusable": true, "role": "button", "label": "{{t('settings.close')}}", "tooltip": "{{t('settings.close')}}",
 						"textColor": "@color.muted", "hover": { "color": "@color.chipHover" }, "cursor": "hand", "onClick": "closeSettings" },
-					{ "use": "settingsPage", "id": "settingsList", "anchors": { "left": 12, "right": 12, "top": 52, "bottom": 12 },
+					{ "id": "settingsList", "use": "settingsPage", "anchors": { "left": 12, "right": 12, "top": 52, "bottom": 12 },
 						"with": { "color": "@color.menu", "textColor": "@color.text", "dimColor": "@color.muted", "accent": "@color.accent", "field": "@color.field" } }
 				]
 			}

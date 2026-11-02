@@ -18,7 +18,7 @@ namespace affresco::notation {
 /// @brief How a document is written.
 enum class Notation {
 	Json, ///< JSON, as every document was written before.
-	Lisp  ///< S-expressions: `(column #list :gap 4 (label #title :text Hello))` (README.md).
+	Lisp  ///< S-expressions: `(column#list :gap 4 (label#title :text "Hello"))` (README.md).
 };
 
 /// Longest text read in the Lisp notation, in bytes: four times the largest file a screen includes (16 MiB), far more
@@ -117,5 +117,14 @@ private:
 /// @return The text.
 /// @throws DocumentError If the value nests deeper than maxNesting.
 [[nodiscard]] std::string write(const json& value, Notation notation);
+
+/// @brief Lays out a text in the Lisp notation canonically, keeping its comments and its `#_` discarded forms: a comment
+/// on a line of its own stays before the member it stands before, and one that ends a line stays on that member's
+/// line (one written between a key and its value moves to the value's line). Without comments, the text is what
+/// write() writes of its value. Formatting twice changes nothing.
+/// @param text The text.
+/// @return The canonical text.
+/// @throws NotationError If the text isn't one value in the Lisp notation.
+[[nodiscard]] std::string format(std::string_view text);
 
 } // namespace affresco::notation

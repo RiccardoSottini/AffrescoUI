@@ -25,7 +25,7 @@
 					  "alignItems": "center", "arrows": "horizontal",
 					  "children": [
 						{ "width": 4, "height": 1, "style": "clear" },
-						{ "type": "label", "repeat": { "for": "t", "in": "{{tabs}}" }, "id": "panel-tab-{{t.id}}", "role": "tab", "label": "{{t.label}}",
+						{ "type": "label", "id": "panel-tab-{{t.id}}", "repeat": { "for": "t", "in": "{{tabs}}" }, "role": "tab", "label": "{{t.label}}",
 						  "focusable": true, "selected": "{{state.panels[slot] == t.id}}", "text": "{{t.label}}", "width": "{{length(t.label) * 6 + 14}}", "height": 22,
 						  "align": "center", "radius": 999, "cursor": "hand", "color": "{{state.panels[slot] == t.id ? '@accentSoft' : 'transparent'}}",
 						  "textColor": "{{state.panels[slot] == t.id ? '@text' : '@muted'}}", "hover": { "textColor": "@text" },
@@ -41,7 +41,7 @@
 			"node": {
 				"id": "{{name}}-popout-anchor", "style": "clear", "width": 30, "height": 28,
 				"children": [
-					{ "use": "tIcon", "id": "{{name}}-button", "width": 30, "height": 28,
+					{ "id": "{{name}}-button", "use": "tIcon", "width": 30, "height": 28,
 					  "with": { "icon": "{{icon}}", "tip": "{{title}}", "on": "{{state.popout[name]}}", "run": "showPopout", "args": { "id": "{{name}}" } } },
 					{ "type": "column", "id": "{{name}}-popout", "role": "region", "label": "{{title}}", "width": 250, "height": "{{height}}", "color": "@panel",
 					  "radius": "@kit.cardRadius", "borderWidth": 1, "borderColor": "@border", "shadow": { "y": 4, "blur": 14, "color": "#00000060" },
@@ -84,7 +84,7 @@
 				"type": "row", "height": 28, "alignItems": "center", "gap": 8, "width": "100%",
 				"children": [
 					{ "style": "dim", "fitText": false, "text": "{{title}}", "width": 80, "height": 20 },
-					{ "use": "tRange", "id": "filter-{{key}}", "with": { "title": "{{title}}", "key": "{{key}}", "value": "{{state.filter[key]}}", "min": "{{min}}", "max": "{{max}}",
+					{ "id": "filter-{{key}}", "use": "tRange", "with": { "title": "{{title}}", "key": "{{key}}", "value": "{{state.filter[key]}}", "min": "{{min}}", "max": "{{max}}",
 					  "run": "setFilterValue", "width": 196 } },
 					{ "type": "textarea", "label": "{{title}} value", "text": "{{round(state.filter[key])}}", "width": 40, "height": 20, "padding": 3,
 					  "textColor": "@text", "color": "@input", "borderWidth": 1, "borderColor": "@border", "radius": "@kit.radius",
@@ -115,7 +115,7 @@
 							{ "use": "temperaColour", "when": "{{state.panels.colour == 'colour'}}" },
 							{ "use": "temperaSwatches", "when": "{{state.panels.colour == 'swatches'}}" },
 							{ "use": "temperaGradients", "when": "{{state.panels.colour == 'gradients'}}" },
-							{ "style": "dim", "id": "patterns-empty", "when": "{{state.panels.colour == 'patterns'}}", "anchors": { "left": 10, "top": 10 },
+							{ "id": "patterns-empty", "style": "dim", "when": "{{state.panels.colour == 'patterns'}}", "anchors": { "left": 10, "top": 10 },
 							  "text": "No patterns: pattern fills aren't available yet." }
 						] },
 						{ "use": "tGroup", "height": 236, "shrink": 1, "minHeight": 96, "with": { "slot": "properties", "tabs": [{ "id": "properties", "label": "Properties" }, { "id": "adjustments", "label": "Adjust" }] }, "children": [
@@ -125,7 +125,7 @@
 						{ "use": "tGroup", "grow": 1, "minHeight": 200, "with": { "slot": "layers", "tabs": [{ "id": "layers", "label": "Layers" }, { "id": "channels", "label": "Channels" }, { "id": "paths", "label": "Paths" }] }, "children": [
 							{ "use": "temperaLayers", "when": "{{state.panels.layers == 'layers'}}" },
 							{ "use": "temperaChannels", "when": "{{state.panels.layers == 'channels'}}" },
-							{ "style": "dim", "id": "paths-empty", "when": "{{state.panels.layers == 'paths'}}", "anchors": { "left": 10, "top": 10 },
+							{ "id": "paths-empty", "style": "dim", "when": "{{state.panels.layers == 'paths'}}", "anchors": { "left": 10, "top": 10 },
 							  "text": "No paths: the pen tool isn't available yet." }
 						] }
 					  ] },
@@ -150,9 +150,9 @@
 					{ "type": "row", "id": "navigator-zoom", "height": 26, "gap": 4, "alignItems": "center",
 					  "children": [
 						{ "type": "label", "id": "navigator-percent", "text": "{{computed.zoomPercent}}%", "textColor": "@text", "width": 56, "height": 22 },
-						{ "use": "tIcon", "id": "navigator-out", "with": { "icon": "zoom-out", "run": "zoomOut", "tip": "Zoom Out" } },
-						{ "use": "tIcon", "id": "navigator-fit", "with": { "icon": "maximize", "run": "fitOnScreen", "tip": "Fit on Screen" } },
-						{ "use": "tIcon", "id": "navigator-in", "with": { "icon": "zoom-in", "run": "zoomIn", "tip": "Zoom In" } }
+						{ "id": "navigator-out", "use": "tIcon", "with": { "icon": "zoom-out", "run": "zoomOut", "tip": "Zoom Out" } },
+						{ "id": "navigator-fit", "use": "tIcon", "with": { "icon": "maximize", "run": "fitOnScreen", "tip": "Fit on Screen" } },
+						{ "id": "navigator-in", "use": "tIcon", "with": { "icon": "zoom-in", "run": "zoomIn", "tip": "Zoom In" } }
 					  ] }
 				]
 			}
@@ -215,88 +215,88 @@
 					{ "type": "label", "id": "properties-kind", "textColor": "@text", "fitText": true,
 					  "icon": "{{!computed.activeLayer ? 'circle-off' : computed.activeLayer.kind == 'group' ? 'folder' : computed.adjustment ? 'contrast' : 'image'}}",
 					  "text": "{{!computed.activeLayer ? 'No layer' : computed.activeLayer.kind == 'group' ? 'Group' : computed.adjustment ? (find(state.adjustments, it.id == computed.adjustmentKind).title ?? '') : 'Pixel Layer'}}" },
-					{ "style": "dim", "id": "properties-name", "when": "{{computed.activeLayer && !computed.adjustment}}",
+					{ "id": "properties-name", "style": "dim", "when": "{{computed.activeLayer && !computed.adjustment}}",
 					  "text": "{{computed.activeLayer.name}}: {{computed.blendTitle}}, {{computed.activeLayer.opacity}}% opacity" },
 					{ "id": "properties-line", "width": "100%", "height": 1, "color": "@border" },
-					{ "use": "areaChart", "id": "adjust-tones", "when": "{{computed.adjustmentKind == 'levels'}}", "width": 200, "height": 60,
+					{ "id": "adjust-tones", "use": "areaChart", "when": "{{computed.adjustmentKind == 'levels'}}", "width": 200, "height": 60,
 					  "with": { "color": "@muted", "values":
 					    "{{map(state.doc.histogram ?? [], min(it, 4 * sum(state.doc.histogram) / length(state.doc.histogram)))}}" } },
-					{ "use": "tAdjustSlider", "id": "adjust-input-black", "when": "{{computed.adjustmentKind == 'levels'}}",
+					{ "id": "adjust-input-black", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'levels'}}",
 					  "with": { "title": "Input black", "key": "inputBlack", "value": "{{computed.adjustment.inputBlack}}", "max": 255, "scale": 255 } },
-					{ "use": "tAdjustSlider", "id": "adjust-input-white", "when": "{{computed.adjustmentKind == 'levels'}}",
+					{ "id": "adjust-input-white", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'levels'}}",
 					  "with": { "title": "Input white", "key": "inputWhite", "value": "{{computed.adjustment.inputWhite}}", "max": 255, "scale": 255 } },
-					{ "use": "tAdjustSlider", "id": "adjust-gamma", "when": "{{computed.adjustmentKind == 'levels'}}",
+					{ "id": "adjust-gamma", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'levels'}}",
 					  "with": { "title": "Gamma", "key": "gamma", "value": "{{computed.adjustment.gamma}}", "min": 10, "max": 400, "scale": 100 } },
-					{ "use": "tAdjustSlider", "id": "adjust-output-black", "when": "{{computed.adjustmentKind == 'levels'}}",
+					{ "id": "adjust-output-black", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'levels'}}",
 					  "with": { "title": "Output black", "key": "outputBlack", "value": "{{computed.adjustment.outputBlack}}", "max": 255, "scale": 255 } },
-					{ "use": "tAdjustSlider", "id": "adjust-output-white", "when": "{{computed.adjustmentKind == 'levels'}}",
+					{ "id": "adjust-output-white", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'levels'}}",
 					  "with": { "title": "Output white", "key": "outputWhite", "value": "{{computed.adjustment.outputWhite}}", "max": 255, "scale": 255 } },
 					{ "type": "curves", "id": "adjust-curve", "label": "Curve", "when": "{{computed.adjustmentKind == 'curves'}}", "width": 200, "height": 140,
 					  "value": "{{merge({points: []}, {points: computed.adjustment.curve})}}", "accentColor": "@accent",
 					  "histogram": "{{map(state.doc.histogram ?? [], min(it, 4 * sum(state.doc.histogram) / length(state.doc.histogram)))}}",
 					  "onChange": { "run": "setLayer", "with": { "args": { "adjustment": "{{merge(computed.adjustment, {curve: event.value.points})}}" } } } },
-					{ "use": "tAdjustSlider", "id": "adjust-hue", "when": "{{computed.adjustmentKind == 'hue-saturation'}}",
+					{ "id": "adjust-hue", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'hue-saturation'}}",
 					  "with": { "title": "Hue", "key": "hue", "value": "{{computed.adjustment.hue}}", "min": -180, "max": 180, "scale": 1 } },
-					{ "use": "tAdjustSlider", "id": "adjust-saturation", "when": "{{computed.adjustmentKind == 'hue-saturation'}}",
+					{ "id": "adjust-saturation", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'hue-saturation'}}",
 					  "with": { "title": "Saturation", "key": "saturation", "value": "{{computed.adjustment.saturation}}", "min": -100 } },
-					{ "use": "tAdjustSlider", "id": "adjust-lightness", "when": "{{computed.adjustmentKind == 'hue-saturation'}}",
+					{ "id": "adjust-lightness", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'hue-saturation'}}",
 					  "with": { "title": "Lightness", "key": "lightness", "value": "{{computed.adjustment.lightness}}", "min": -100 } },
-					{ "use": "tBalanceSlider", "id": "adjust-cyan-red", "when": "{{computed.adjustmentKind == 'color-balance'}}",
+					{ "id": "adjust-cyan-red", "use": "tBalanceSlider", "when": "{{computed.adjustmentKind == 'color-balance'}}",
 					  "with": { "title": "Cyan / Red", "channel": 0 } },
-					{ "use": "tBalanceSlider", "id": "adjust-magenta-green", "when": "{{computed.adjustmentKind == 'color-balance'}}",
+					{ "id": "adjust-magenta-green", "use": "tBalanceSlider", "when": "{{computed.adjustmentKind == 'color-balance'}}",
 					  "with": { "title": "Mag. / Green", "channel": 1 } },
-					{ "use": "tBalanceSlider", "id": "adjust-yellow-blue", "when": "{{computed.adjustmentKind == 'color-balance'}}",
+					{ "id": "adjust-yellow-blue", "use": "tBalanceSlider", "when": "{{computed.adjustmentKind == 'color-balance'}}",
 					  "with": { "title": "Yellow / Blue", "channel": 2 } },
-					{ "use": "tAdjustSlider", "id": "adjust-brightness", "when": "{{computed.adjustmentKind == 'brightness-contrast'}}",
+					{ "id": "adjust-brightness", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'brightness-contrast'}}",
 					  "with": { "title": "Brightness", "key": "brightness", "value": "{{computed.adjustment.brightness}}", "min": -100 } },
-					{ "use": "tAdjustSlider", "id": "adjust-contrast", "when": "{{computed.adjustmentKind == 'brightness-contrast'}}",
+					{ "id": "adjust-contrast", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'brightness-contrast'}}",
 					  "with": { "title": "Contrast", "key": "contrast", "value": "{{computed.adjustment.contrast}}", "min": -100 } },
-					{ "use": "tAdjustSlider", "id": "adjust-level", "when": "{{computed.adjustmentKind == 'threshold'}}",
+					{ "id": "adjust-level", "use": "tAdjustSlider", "when": "{{computed.adjustmentKind == 'threshold'}}",
 					  "with": { "title": "Level", "key": "level", "value": "{{computed.adjustment.level}}", "max": 255, "scale": 255 } },
-					{ "style": "dim", "fitText": false, "id": "adjust-plain", "width": "100%", "height": 34, "wrap": true,
+					{ "id": "adjust-plain", "style": "dim", "fitText": false, "width": "100%", "height": 34, "wrap": true,
 					  "when": "{{computed.adjustmentKind == 'invert' || computed.adjustmentKind == 'gradient-map'}}",
 					  "text": "{{computed.adjustmentKind == 'invert' ? 'Inverts the colours below.' : 'Maps the lightness below to the foreground and background colours.'}}" },
 					{ "type": "column", "id": "properties-sections", "when": "{{!computed.adjustment}}", "width": "100%", "height": 300, "gap": 4,
 					  "children": [
-						{ "use": "tSection", "id": "section-transform", "with": { "title": "Transform", "key": "transform" } },
+						{ "id": "section-transform", "use": "tSection", "with": { "title": "Transform", "key": "transform" } },
 						{ "type": "row", "when": "{{state.props.transform}}", "width": "100%", "height": 24, "gap": 10, "alignItems": "center",
 						  "children": [
-							{ "use": "tField", "id": "transform-w", "with": { "title": "W", "key": "w", "value": "{{computed.box[2]}}", "unit": " px", "pop": false, "width": 66, "min": 1, "max": 100000,
+							{ "id": "transform-w", "use": "tField", "with": { "title": "W", "key": "w", "value": "{{computed.box[2]}}", "unit": " px", "pop": false, "width": 66, "min": 1, "max": 100000,
 							  "run": "transformBox", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "{{state.doc.selection ? 'The selection' : 'The image'}}: typing a width scales the active layer" } },
-							{ "use": "tField", "id": "transform-h", "with": { "title": "H", "key": "h", "value": "{{computed.box[3]}}", "unit": " px", "pop": false, "width": 66, "min": 1, "max": 100000,
+							{ "id": "transform-h", "use": "tField", "with": { "title": "H", "key": "h", "value": "{{computed.box[3]}}", "unit": " px", "pop": false, "width": 66, "min": 1, "max": 100000,
 							  "run": "transformBox", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "Typing a height scales the active layer" } }
 						  ] },
 						{ "type": "row", "when": "{{state.props.transform}}", "width": "100%", "height": 24, "gap": 10, "alignItems": "center",
 						  "children": [
-							{ "use": "tField", "id": "transform-x", "with": { "title": "X", "key": "x", "value": "{{computed.box[0]}}", "unit": " px", "pop": false, "width": 66, "min": -100000, "max": 100000,
+							{ "id": "transform-x", "use": "tField", "with": { "title": "X", "key": "x", "value": "{{computed.box[0]}}", "unit": " px", "pop": false, "width": 66, "min": -100000, "max": 100000,
 							  "run": "transformBox", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "Typing a position moves the active layer across" } },
-							{ "use": "tField", "id": "transform-y", "with": { "title": "Y", "key": "y", "value": "{{computed.box[1]}}", "unit": " px", "pop": false, "width": 66, "min": -100000, "max": 100000,
+							{ "id": "transform-y", "use": "tField", "with": { "title": "Y", "key": "y", "value": "{{computed.box[1]}}", "unit": " px", "pop": false, "width": 66, "min": -100000, "max": 100000,
 							  "run": "transformBox", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "Typing a position moves the active layer down" } }
 						  ] },
 						{ "type": "row", "when": "{{state.props.transform}}", "width": "100%", "height": 24, "gap": 6, "alignItems": "center",
 						  "children": [
 							{ "type": "label", "icon": "rotate-cw", "textColor": "@muted", "width": 14, "height": 20, "align": "center", "tooltip": "Angle" },
-							{ "use": "tField", "id": "transform-angle", "with": { "title": "", "key": "angle", "value": 0, "unit": "°", "pop": false, "width": 50, "min": -360, "max": 360,
+							{ "id": "transform-angle", "use": "tField", "with": { "title": "", "key": "angle", "value": 0, "unit": "°", "pop": false, "width": 50, "min": -360, "max": 360,
 							  "run": "transformActive", "off": "{{computed.activeLayer.kind != 'pixel'}}", "tip": "Turns the active layer by the angle typed" } },
 							{ "grow": 1, "height": 1, "style": "clear" },
-							{ "use": "tIcon", "id": "flip-horizontal", "with": { "icon": "flip-horizontal", "tip": "Flip the layer horizontally", "run": "flipLayerHorizontal", "off": "{{computed.activeLayer.kind != 'pixel'}}" } },
-							{ "use": "tIcon", "id": "flip-vertical", "with": { "icon": "flip-vertical", "tip": "Flip the layer vertically", "run": "flipLayerVertical", "off": "{{computed.activeLayer.kind != 'pixel'}}" } }
+							{ "id": "flip-horizontal", "use": "tIcon", "with": { "icon": "flip-horizontal", "tip": "Flip the layer horizontally", "run": "flipLayerHorizontal", "off": "{{computed.activeLayer.kind != 'pixel'}}" } },
+							{ "id": "flip-vertical", "use": "tIcon", "with": { "icon": "flip-vertical", "tip": "Flip the layer vertically", "run": "flipLayerVertical", "off": "{{computed.activeLayer.kind != 'pixel'}}" } }
 						  ] },
 						{ "width": "100%", "height": 1, "color": "@border" },
-						{ "use": "tSection", "id": "section-align", "with": { "title": "Align and Distribute", "key": "align" } },
+						{ "id": "section-align", "use": "tSection", "with": { "title": "Align and Distribute", "key": "align" } },
 						{ "type": "row", "id": "align-icons", "when": "{{state.props.align}}", "width": "100%", "height": 24, "gap": 2,
 						  "children": [
-							{ "use": "tIcon", "repeat": { "for": "a", "in": "{{[{icon: 'align-start-vertical', edge: 'left', title: 'left edges'}, {icon: 'align-center-vertical', edge: 'center', title: 'horizontal centres'}, {icon: 'align-end-vertical', edge: 'right', title: 'right edges'}, {icon: 'align-start-horizontal', edge: 'top', title: 'top edges'}, {icon: 'align-center-horizontal', edge: 'middle', title: 'vertical centres'}, {icon: 'align-end-horizontal', edge: 'bottom', title: 'bottom edges'}]}}" },
-							  "id": "align-{{a.edge}}", "with": { "icon": "{{a.icon}}", "tip": "Align {{a.title}} with the {{state.doc.selection ? 'selection' : 'image'}}", "run": "alignActive",
+							{ "id": "align-{{a.edge}}", "use": "tIcon",
+							  "repeat": { "for": "a", "in": "{{[{icon: 'align-start-vertical', edge: 'left', title: 'left edges'}, {icon: 'align-center-vertical', edge: 'center', title: 'horizontal centres'}, {icon: 'align-end-vertical', edge: 'right', title: 'right edges'}, {icon: 'align-start-horizontal', edge: 'top', title: 'top edges'}, {icon: 'align-center-horizontal', edge: 'middle', title: 'vertical centres'}, {icon: 'align-end-horizontal', edge: 'bottom', title: 'bottom edges'}]}}" }, "with": { "icon": "{{a.icon}}", "tip": "Align {{a.title}} with the {{state.doc.selection ? 'selection' : 'image'}}", "run": "alignActive",
 							  "args": { "edge": "{{a.edge}}" }, "off": "{{computed.activeLayer.kind != 'pixel'}}" } }
 						  ] },
 						{ "width": "100%", "height": 1, "color": "@border" },
-						{ "use": "tSection", "id": "section-actions", "with": { "title": "Quick Actions", "key": "actions" } },
+						{ "id": "section-actions", "use": "tSection", "with": { "title": "Quick Actions", "key": "actions" } },
 						{ "type": "column", "id": "quick-actions", "when": "{{state.props.actions}}", "width": "100%", "height": 76, "gap": 4,
 						  "children": [
-							{ "use": "tButton", "id": "action-duplicate", "with": { "title": "Duplicate Layer", "tip": "Duplicate the active layer (Cmd+J)", "run": "duplicateActive" } },
-							{ "use": "tButton", "id": "action-mask", "with": { "title": "Add Layer Mask", "tip": "Add a mask to the active layer", "run": "addLayerMask" } },
-							{ "use": "tButton", "id": "action-select-all", "with": { "title": "Select All", "tip": "Select the whole image (Cmd+A)", "run": "selectAll" } }
+							{ "id": "action-duplicate", "use": "tButton", "with": { "title": "Duplicate Layer", "tip": "Duplicate the active layer (Cmd+J)", "run": "duplicateActive" } },
+							{ "id": "action-mask", "use": "tButton", "with": { "title": "Add Layer Mask", "tip": "Add a mask to the active layer", "run": "addLayerMask" } },
+							{ "id": "action-select-all", "use": "tButton", "with": { "title": "Select All", "tip": "Select the whole image (Cmd+A)", "run": "selectAll" } }
 						  ] }
 					  ] }
 				]
@@ -310,7 +310,7 @@
 					{ "style": "dim", "text": "Add an adjustment" },
 					{ "type": "row", "id": "adjustment-icons", "width": "100%", "height": 24, "gap": 3,
 					  "children": [
-						{ "use": "tIcon", "repeat": { "for": "a", "in": "state.adjustments" }, "id": "adjustment-{{a.id}}",
+						{ "id": "adjustment-{{a.id}}", "use": "tIcon", "repeat": { "for": "a", "in": "state.adjustments" },
 						  "with": { "icon": "{{a.icon}}", "tip": "{{a.title}}", "run": "addLayer", "args": { "kind": "{{a.id}}", "name": "{{a.title}}" } } }
 					  ] }
 				]
@@ -342,41 +342,41 @@
 					{ "type": "row", "id": "layers-filter-row", "role": "toolbar", "label": "Filter the layers", "height": 30, "width": "100%", "gap": 1, "alignItems": "center",
 					  "children": [
 						{ "width": 6, "height": 1, "style": "clear" },
-						{ "use": "tPicker", "id": "layer-filter-kind", "with": { "title": "Kind", "tip": "Filter type: name, effect and mode aren't available yet", "width": 70,
+						{ "id": "layer-filter-kind", "use": "tPicker", "with": { "title": "Kind", "tip": "Filter type: name, effect and mode aren't available yet", "width": 70,
 						  "open": "state.layerKindMenu", "items": [{ "title": "Kind", "checked": true }] } },
 						{ "width": 6, "height": 1, "style": "clear" },
-						{ "use": "tIcon", "repeat": { "for": "k", "in": "{{[{id: 'pixel', icon: 'image', title: 'pixel layers'}, {id: 'adjustment', icon: 'contrast', title: 'adjustment layers'}, {id: 'group', icon: 'folder', title: 'groups'}]}}" },
-						  "id": "filter-kind-{{k.id}}", "with": { "icon": "{{k.icon}}", "tip": "Show only the {{k.title}}", "on": "{{state.layerFilter.on && contains(state.layerFilter.kinds, k.id)}}",
+						{ "id": "filter-kind-{{k.id}}", "use": "tIcon",
+						  "repeat": { "for": "k", "in": "{{[{id: 'pixel', icon: 'image', title: 'pixel layers'}, {id: 'adjustment', icon: 'contrast', title: 'adjustment layers'}, {id: 'group', icon: 'folder', title: 'groups'}]}}" }, "with": { "icon": "{{k.icon}}", "tip": "Show only the {{k.title}}", "on": "{{state.layerFilter.on && contains(state.layerFilter.kinds, k.id)}}",
 						  "run": "toggleLayerKind", "args": { "kind": "{{k.id}}" } } },
-						{ "use": "tIcon", "id": "filter-kind-type", "with": { "icon": "type", "tip": "Type layers aren't available yet", "off": true } },
-						{ "use": "tIcon", "id": "filter-kind-shape", "with": { "icon": "shapes", "tip": "Shape layers aren't available yet", "off": true } },
+						{ "id": "filter-kind-type", "use": "tIcon", "with": { "icon": "type", "tip": "Type layers aren't available yet", "off": true } },
+						{ "id": "filter-kind-shape", "use": "tIcon", "with": { "icon": "shapes", "tip": "Shape layers aren't available yet", "off": true } },
 						{ "grow": 1, "height": 1, "style": "clear" },
-						{ "use": "tIcon", "id": "layer-filter-toggle", "with": { "icon": "{{state.layerFilter.on ? 'toggle-right' : 'toggle-left'}}",
+						{ "id": "layer-filter-toggle", "use": "tIcon", "with": { "icon": "{{state.layerFilter.on ? 'toggle-right' : 'toggle-left'}}",
 						  "tip": "Turn layer filtering {{state.layerFilter.on ? 'off' : 'on'}}", "run": "toggleLayerFilter" } },
 						{ "width": 4, "height": 1, "style": "clear" }
 					  ] },
 					{ "type": "row", "id": "layers-blend-row", "height": 30, "width": "100%", "gap": 6, "alignItems": "center",
 					  "children": [
 						{ "width": 2, "height": 1, "style": "clear" },
-						{ "use": "tPicker", "id": "layer-blend", "with": { "title": "{{computed.blendTitle}}", "tip": "Blend mode", "width": 104, "open": "state.blendMenu",
+						{ "id": "layer-blend", "use": "tPicker", "with": { "title": "{{computed.blendTitle}}", "tip": "Blend mode", "width": 104, "open": "state.blendMenu",
 						  "items": "{{map(state.blends, it == '-' ? {separator: true} : {title: join(map(split(it, '-'), upper(slice(it, 0, 1)) + slice(it, 1)), ' '), checked: it == computed.activeLayer.blend, run: 'setLayer', with: {args: {blend: it}}})}}" } },
 						{ "grow": 1, "height": 1, "style": "clear" },
-						{ "use": "tField", "id": "layer-opacity", "with": { "title": "Opacity", "key": "opacity", "value": "{{computed.activeLayer.opacity ?? 100}}", "run": "setLayer", "width": 40 } }
+						{ "id": "layer-opacity", "use": "tField", "with": { "title": "Opacity", "key": "opacity", "value": "{{computed.activeLayer.opacity ?? 100}}", "run": "setLayer", "width": 40 } }
 					  ] },
 					{ "type": "row", "id": "layers-lock-row", "height": 26, "width": "100%", "gap": 2, "alignItems": "center",
 					  "children": [
 						{ "width": 6, "height": 1, "style": "clear" },
 						{ "style": "dim", "text": "Lock:" },
-						{ "use": "tIcon", "id": "lock-transparency", "with": { "icon": "grid-2-x-2", "tip": "Lock transparent pixels, not available yet", "off": true } },
-						{ "use": "tIcon", "id": "lock-pixels", "with": { "icon": "brush", "tip": "Lock image pixels", "on": "{{computed.activeLayer.lockPixels}}",
+						{ "id": "lock-transparency", "use": "tIcon", "with": { "icon": "grid-2-x-2", "tip": "Lock transparent pixels, not available yet", "off": true } },
+						{ "id": "lock-pixels", "use": "tIcon", "with": { "icon": "brush", "tip": "Lock image pixels", "on": "{{computed.activeLayer.lockPixels}}",
 						  "run": "setLayer", "args": { "lockPixels": "{{!computed.activeLayer.lockPixels}}" } } },
-						{ "use": "tIcon", "id": "lock-position", "with": { "icon": "move", "tip": "Lock position", "on": "{{computed.activeLayer.lockPosition}}",
+						{ "id": "lock-position", "use": "tIcon", "with": { "icon": "move", "tip": "Lock position", "on": "{{computed.activeLayer.lockPosition}}",
 						  "run": "setLayer", "args": { "lockPosition": "{{!computed.activeLayer.lockPosition}}" } } },
-						{ "use": "tIcon", "id": "lock-artboard", "with": { "icon": "frame", "tip": "Prevent auto-nesting in artboards, not available yet", "off": true } },
-						{ "use": "tIcon", "id": "lock-all", "with": { "icon": "lock", "tip": "Lock all", "on": "{{computed.activeLayer.lockAll}}",
+						{ "id": "lock-artboard", "use": "tIcon", "with": { "icon": "frame", "tip": "Prevent auto-nesting in artboards, not available yet", "off": true } },
+						{ "id": "lock-all", "use": "tIcon", "with": { "icon": "lock", "tip": "Lock all", "on": "{{computed.activeLayer.lockAll}}",
 						  "run": "setLayer", "args": { "lockAll": "{{!computed.activeLayer.lockAll}}" } } },
 						{ "grow": 1, "height": 1, "style": "clear" },
-						{ "use": "tField", "id": "layer-fill", "with": { "title": "Fill", "key": "fill", "value": 100, "run": "setLayer", "width": 40, "off": true,
+						{ "id": "layer-fill", "use": "tField", "with": { "title": "Fill", "key": "fill", "value": 100, "run": "setLayer", "width": 40, "off": true,
 						  "tip": "Fill opacity isn't available yet" } }
 					  ] },
 					{ "width": "100%", "height": 1, "color": "@border" },
@@ -419,18 +419,18 @@
 					{ "type": "row", "id": "layer-buttons", "role": "toolbar", "label": "Layer actions", "width": "100%", "height": 28,
 					  "alignItems": "center", "justify": "end", "gap": 2,
 					  "children": [
-						{ "use": "tIcon", "id": "layer-link", "with": { "icon": "link", "tip": "Link layers, not available yet", "off": true } },
-						{ "use": "tIcon", "id": "layer-fx", "with": { "icon": "sparkles", "tip": "Layer style, not available yet", "off": true } },
-						{ "use": "tIcon", "id": "layer-add-mask", "with": { "icon": "circle-dot", "tip": "Add layer mask", "run": "addLayerMask" } },
-						{ "use": "tIcon", "id": "layer-adjust", "with": { "icon": "contrast", "tip": "New fill or adjustment layer", "on": "{{state.adjustMenu}}" },
+						{ "id": "layer-link", "use": "tIcon", "with": { "icon": "link", "tip": "Link layers, not available yet", "off": true } },
+						{ "id": "layer-fx", "use": "tIcon", "with": { "icon": "sparkles", "tip": "Layer style, not available yet", "off": true } },
+						{ "id": "layer-add-mask", "use": "tIcon", "with": { "icon": "circle-dot", "tip": "Add layer mask", "run": "addLayerMask" } },
+						{ "id": "layer-adjust", "use": "tIcon", "with": { "icon": "contrast", "tip": "New fill or adjustment layer", "on": "{{state.adjustMenu}}" },
 						  "onClick": [{ "toggle": "state.adjustMenu" }],
 						  "children": [
-							{ "use": "menu", "id": "adjust-menu", "with": { "open": "state.adjustMenu", "placement": "above", "width": 200, "icons": true,
+							{ "id": "adjust-menu", "use": "menu", "with": { "open": "state.adjustMenu", "placement": "above", "width": 200, "icons": true,
 							  "items": "{{map(state.adjustments, {title: it.title + '...', icon: it.icon, run: 'addLayer', with: {args: {kind: it.id, name: it.title}}})}}" } }
 						  ] },
-						{ "use": "tIcon", "id": "layer-new-group", "with": { "icon": "folder", "tip": "Create a new group", "run": "newGroup" } },
-						{ "use": "tIcon", "id": "layer-new", "with": { "icon": "plus-square", "tip": "Create a new layer", "run": "newLayer" } },
-						{ "use": "tIcon", "id": "layer-delete", "with": { "icon": "trash-2", "tip": "Delete layer", "run": "deleteActive" } },
+						{ "id": "layer-new-group", "use": "tIcon", "with": { "icon": "folder", "tip": "Create a new group", "run": "newGroup" } },
+						{ "id": "layer-new", "use": "tIcon", "with": { "icon": "plus-square", "tip": "Create a new layer", "run": "newLayer" } },
+						{ "id": "layer-delete", "use": "tIcon", "with": { "icon": "trash-2", "tip": "Delete layer", "run": "deleteActive" } },
 						{ "width": 6, "height": 1, "style": "clear" }
 					  ] }
 				]
@@ -445,7 +445,7 @@
 					  "items": "{{state.doc.history}}", "value": "{{text(state.doc.position)}}", "textColor": "@text",
 					  "selectedTextColor": "@text", "selectedBackground": "@selected", "accentColor": "@accent",
 					  "onChange": { "run": "goToHistory", "with": { "args": { "position": "{{number(event.value)}}" } } } },
-					{ "style": "dim", "fitText": false, "id": "history-dropped", "when": "{{state.doc.dropped > 0}}", "font": "small",
+					{ "id": "history-dropped", "style": "dim", "fitText": false, "when": "{{state.doc.dropped > 0}}", "font": "small",
 					  "text": "{{state.doc.dropped}} older steps dropped to stay within the undo memory", "width": "100%", "height": 18, "padding": 4 }
 				]
 			}
@@ -454,7 +454,7 @@
 		"temperaFilterDialog": {
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
-				"use": "dialog", "id": "filter-dialog",
+				"id": "filter-dialog", "use": "dialog",
 				"with": { "open": "state.filter.open", "title": "{{computed.filterTitle}}", "message": "", "width": 380, "height": 250,
 				          "buttons": [{ "title": "Cancel", "run": "discardFilter" }, { "title": "OK", "run": "commitFilter", "default": true }] },
 				"children": [
@@ -485,7 +485,7 @@
 		"temperaNewDialog": {
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
-				"use": "dialog", "id": "new-dialog",
+				"id": "new-dialog", "use": "dialog",
 				"with": { "open": "state.newDoc.open", "title": "New Document", "message": "", "width": 360, "height": 264,
 				          "buttons": [{ "title": "Cancel" }, { "title": "Create", "run": "createDocument", "default": true }] },
 				"children": [
@@ -494,7 +494,7 @@
 						{ "type": "row", "id": "new-preset-row", "width": "100%", "height": 28, "gap": 8, "alignItems": "center",
 						  "children": [
 							{ "style": "dim", "fitText": false, "text": "Preset", "width": 70, "height": 20 },
-							{ "use": "tPicker", "id": "new-preset", "with": { "title": "{{find(state.newPresets, it.width == number(state.newDoc.width) && it.height == number(state.newDoc.height)).title ?? 'Custom'}}",
+							{ "id": "new-preset", "use": "tPicker", "with": { "title": "{{find(state.newPresets, it.width == number(state.newDoc.width) && it.height == number(state.newDoc.height)).title ?? 'Custom'}}",
 							  "tip": "Document size presets", "width": 200, "open": "state.newPresetMenu", "inDialog": true,
 							  "items": "{{map(state.newPresets, {title: it.title, checked: it.width == number(state.newDoc.width) && it.height == number(state.newDoc.height), run: 'newPreset', with: {args: {width: it.width, height: it.height}}})}}" } }
 						  ] },

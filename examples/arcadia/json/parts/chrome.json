@@ -202,8 +202,8 @@
 						]
 					},
 					{
-						"id": "account",
 						"type": "row",
+						"id": "account",
 						"height": 30,
 						"width": 168,
 						"gap": 6,
@@ -218,8 +218,8 @@
 						"children": [
 							{ "type": "panel", "width": 4, "height": 1, "color": "transparent" },
 							{
-								"id": "account-avatar",
 								"type": "image",
+								"id": "account-avatar",
 								"file": "{{'../assets/art/avatars/' + state.user.avatar + '.svg'}}",
 								"width": 22,
 								"height": 22,
@@ -228,24 +228,24 @@
 								"borderColor": "@color.online"
 							},
 							{
-								"id": "account-name",
 								"type": "label",
+								"id": "account-name",
 								"font": "small",
 								"text": "{{state.user.name}}",
 								"textColor": "@color.online",
 								"fitText": true
 							},
 							{
-								"id": "account-wallet",
 								"type": "label",
+								"id": "account-wallet",
 								"font": "small",
 								"text": "{{formatCurrency(state.user.wallet, 'EUR')}}",
 								"textColor": "@color.muted",
 								"fitText": true
 							},
 							{
-								"id": "account-chevron",
 								"type": "label",
+								"id": "account-chevron",
 								"font": "small",
 								"icon": "chevron-down",
 								"text": "",
@@ -289,8 +289,8 @@
 				"children": [
 					{ "type": "panel", "width": 12, "height": 1, "color": "transparent" },
 					{
-						"id": "nav-back",
 						"type": "label",
+						"id": "nav-back",
 						"font": "nav",
 						"icon": "chevron-left",
 						"mirror": true,
@@ -307,8 +307,8 @@
 						"hover": { "textColor": "@color.bright" }
 					},
 					{
-						"id": "nav-forward",
 						"type": "label",
+						"id": "nav-forward",
 						"font": "nav",
 						"icon": "chevron-right",
 						"mirror": true,
@@ -326,8 +326,8 @@
 					},
 					{ "type": "panel", "grow": 1, "height": 1, "color": "transparent" },
 					{
-						"id": "nav-tabs",
 						"type": "row",
+						"id": "nav-tabs",
 						"height": 38,
 						"fitContent": "width",
 						"gap": 2,
@@ -339,8 +339,8 @@
 						"children": [
 							{ "type": "panel", "width": 2, "height": 1, "color": "transparent" },
 							{
-								"repeat": { "for": "tab", "in": "{{['store', 'library', 'community', 'profile']}}" },
 								"id": "{{'nav-' + tab}}",
+								"repeat": { "for": "tab", "in": "{{['store', 'library', 'community', 'profile']}}" },
 								"style": "navTab",
 								"text": "{{tab == 'profile' ? state.user.name : t('nav.' + tab)}}",
 								"textColor": "{{computed.here.tab == tab ? '@color.onAccent' : '@color.text'}}",
@@ -395,8 +395,8 @@
 					},
 					{ "type": "panel", "grow": 1, "height": 1, "color": "transparent" },
 					{
-						"id": "downloads-status",
 						"type": "row",
+						"id": "downloads-status",
 						"width": 340,
 						"height": 34,
 						"gap": 10,
@@ -424,8 +424,8 @@
 								"gap": 5,
 								"children": [
 									{
-										"id": "downloads-text",
 										"type": "label",
+										"id": "downloads-text",
 										"font": "small",
 										"anchors": { "left": 0, "right": 0 },
 										"height": 15,
@@ -433,8 +433,8 @@
 										"text": "{{computed.download ? t('bottom.downloading', { title: computed.downloadGame.title, percent: floor(computed.download.doneGb / computed.downloadGame.sizeGb * 100) }) : t('bottom.manage')}}"
 									},
 									{
-										"when": "{{computed.download != null}}",
 										"id": "downloads-track",
+										"when": "{{computed.download != null}}",
 										"anchors": { "left": 0, "right": 0 },
 										"height": 4,
 										"color": "@color.raised",

@@ -51,14 +51,14 @@ TextValue parsed(const std::filesystem::path& file, const std::string& text) {
 	}
 }
 
-/// @brief A file in the Lisp notation, written canonically.
+/// @brief A file in the Lisp notation, written canonically, its comments kept.
 /// @param file The file.
 /// @param text Its text.
 /// @return The canonical text.
 /// @throws FileProblem If it isn't a value in the Lisp notation, naming the file, the line and the column.
 std::string writeLisp(const std::filesystem::path& file, const std::string& text) {
 	try {
-		return notation::write(notation::read(text, notation::Notation::Lisp), notation::Notation::Lisp);
+		return notation::format(text);
 	} catch(const DocumentError& error) {
 		throw FileProblem(file.string() + ": " + error.what());
 	}

@@ -72,8 +72,8 @@
 						]
 					},
 					{
-						"id": "hub-tabs",
 						"type": "row",
+						"id": "hub-tabs",
 						"height": 40,
 						"anchors": { "left": 32, "right": 32 },
 						"gap": 6,
@@ -82,8 +82,8 @@
 						"arrows": "horizontal",
 						"children": [
 							{
-								"repeat": { "for": "s", "in": "{{['hub', 'discussions', 'guides']}}" },
 								"id": "{{'hub-tab-' + s}}",
+								"repeat": { "for": "s", "in": "{{['hub', 'discussions', 'guides']}}" },
 								"style": "pillButton",
 								"role": "tab",
 								"selected": "{{state.hubTab == s}}",
@@ -95,8 +95,8 @@
 						]
 					},
 					{
-						"id": "hub-posts",
 						"type": "column",
+						"id": "hub-posts",
 						"anchors": { "left": 32, "right": 32 },
 						"height": "{{8 + count(state.hubPosts, state.hubTab == 'hub' || it.kind == state.hubTab) * 76}}",
 						"gap": 8,
@@ -104,9 +104,9 @@
 						"label": "{{t('hub.subtitle')}}",
 						"children": [
 							{
+								"type": "row",
 								"repeat": { "for": "p", "in": "{{filter(state.hubPosts, state.hubTab == 'hub' || it.kind == state.hubTab)}}" },
 								"let": { "who": "{{data.friends[p.by % length(data.friends)]}}" },
-								"type": "row",
 								"role": "listitem",
 								"anchors": { "left": 0, "right": 0 },
 								"height": 68,
