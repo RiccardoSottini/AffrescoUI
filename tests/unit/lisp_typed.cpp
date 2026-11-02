@@ -290,6 +290,6 @@ TEST_CASE("lisp attack: what a bound value's place holds now is whatever an agen
 	app.commit({{"author", "agent/x"}, {"message", "m"}, {"set", {{"/state/buffers", json::array({1, 2})}}}});
 	app.press(Key::E);
 	app.settle();
-	CHECK(app.state("result").is_null());
+	CHECK(app.state("result") == ""); // what it held went with it, so this is no longer what they typed
 	CHECK(app.state("error").get<std::string>().contains("typed"));
 }
