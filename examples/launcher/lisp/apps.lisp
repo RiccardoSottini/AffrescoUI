@@ -4,14 +4,12 @@
                      :name "Flow"
                      :tagline "A Kanban board for a team's issues"
                      :folder flow
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/kanban.jpg"}
                     {:id streak
                      :name "Streak"
                      :tagline "A habit tracker with goals and a year heatmap"
                      :folder streak
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/habit-tracker.jpg"}
                     {:id sign-in
@@ -24,21 +22,18 @@
                      :name "Sinopia"
                      :tagline "Slides and vector documents"
                      :folder sinopia
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/sinopia.jpg"}
                     {:id tempera
                      :name "Tempera"
                      :tagline "An image editor with layers, masks and filters"
                      :folder tempera
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/tempera.jpg"}
                     {:id modello
                      :name "Modello"
                      :tagline "A 3D modeller and scene editor"
                      :folder modello
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/modello.jpg"}
                     {:id forge
@@ -52,35 +47,30 @@
                      :name "Quaderno"
                      :tagline "A code editor with tabs, quick open and a terminal"
                      :folder code-editor
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/code-editor.jpg"}
                     {:id haven
                      :name "Haven"
                      :tagline "A smart-home dashboard with a floor plan"
                      :folder haven
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/smart-home.jpg"}
                     {:id tempo
                      :name "Tempo"
                      :tagline "A music player with an equaliser and a visualiser"
                      :folder tempo
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/music-player.jpg"}
                     {:id arcadia
                      :name "Arcadia"
                      :tagline "A game store and launcher"
                      :folder arcadia
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/arcadia.jpg"}
                     {:id orrery
                      :name "Orrery"
                      :tagline "A planetarium with a sky chart and the planets"
                      :folder orrery
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/orrery.jpg"}
                     {:id calamaio

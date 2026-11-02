@@ -1,0 +1,6 @@
+[
+	{"id": "door", "name": "Front door", "k": "device.door", "segs": [{"on": true, "h": 8}, {"on": false, "h": 1}, {"on": true, "h": 9}, {"on": false, "h": 1}, {"on": true, "h": 5}]},
+	{"id": "lamp", "name": "Floor lamp", "k": "hist", "segs": [{"on": false, "h": 7}, {"on": true, "h": 1}, {"on": false, "h": 10}, {"on": true, "h": 6}]},
+	{"id": "vacuum", "name": "Vacuum", "k": "device.vacuum", "segs": [{"on": false, "h": 10}, {"on": true, "h": 2}, {"on": false, "h": 5}, {"on": true, "h": 2}, {"on": false, "h": 5}]},
+	{"id": "speaker", "name": "Speaker", "k": "device.speaker", "segs": [{"on": false, "h": 18}, {"on": true, "h": 4}, {"on": false, "h": 2}]}
+]

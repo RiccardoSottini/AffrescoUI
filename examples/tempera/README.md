@@ -4,13 +4,12 @@ An image editor over `modules/imaging`: layers and groups, masks and selections,
 adjustment layers and colour management, on sparse copy-on-write tiles. It is a folder of Lisp that the stock
 `affrescoui_launcher` runs, with nothing compiled for it.
 
-**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because it has behaviour beyond one
+**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because it has behaviour beyond one
 operation at a time: the dialogs' numbers, grouping and ungrouping, cropping to a ratio, adjustments and the panels' lists
 are functions in `lisp/tempera.lisp`. Each operation of the image step stays an action in `parts/commands.lisp`, which the
 functions run, so an agent's revision may wire a button to an operation exactly as before, and the slide sorter an agent
 installs runs the same actions. Not to the functions that run an operation by a name they are given (`op`): the revision
-rules count a `run` of a computed name as reaching anything, where one written out reaches what it names. `lisp/` is its only source, with no `json/` beside it, and
-`tools/notation/lisp_examples.py` leaves it alone.
+rules count a `run` of a computed name as reaching anything, where one written out reaches what it names. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone.
 
 ```sh
 ./build/affrescoui_launcher examples/tempera/lisp/index.screen.lisp --socket out/s   # opens the sample

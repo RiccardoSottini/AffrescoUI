@@ -311,8 +311,10 @@ untrusted.
   that name still works when written as a type), and `SECURITY.md`'s promise above.
 - **"Both spell the same document"** remains true for data files and stops being true for programs. A program can't be
   converted to JSON and back: `convert` refuses one, naming the first definition that needs running.
-- **Examples:** today `json/` is the source and `lisp/` is generated. An app rewritten as a program has `lisp/` as its
-  only source, its `json/` removed, and its Launcher entry says so. The others stay as they are.
+- **Examples:** today `json/` is the source and `lisp/` is generated. An app rewritten as a program keeps its `json/`
+  beside it (the maintainer's decision at stage 6): both are written by hand, the same scenarios check both, and the
+  Launcher's Settings choose which one opens. Only an app with no JSON version (Calamaio) has its Launcher entry pinned
+  to `lisp/`. The others stay as they are.
 - **History** stays RFC 6902. `program` is a new top-level key; the schema, `SCREEN_FORMAT.md` and the catalog change
   together.
 - **Public C++ API:** additive, a new module.
@@ -331,7 +333,8 @@ untrusted.
 4. **The Emacs loop.** `eval-defun`, `describe-*`, commands from functions; Calamaio's `*scratch*` and `init.lisp` really
    work.
 5. **Hooks and advice,** with their review.
-6. **Roll out** app by app, and the agents' edit-accuracy test. As built so far: the test (above, "The cost in tokens"), the
+6. **Roll out** app by app, and the agents' edit-accuracy test. As built so far: ten examples written as programs beside
+   their JSON versions (above, "Compatibility"), the test (above, "The cost in tokens"), the
    question the host draws before text the person didn't type runs as theirs ("The Emacs loop"), Calamaio in the Launcher, and
    a rule on `/actions` that covers the code an action runs: an `ask` or `deny` rule, or an owner, on the actions also covers a change
    of any definition but a screen's that nothing else uses, so an app moved from JSON keeps its review (found by this stage's

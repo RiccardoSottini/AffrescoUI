@@ -330,7 +330,7 @@
                                :title "{{trim(state.create.name)}}"
                                :ask "{{computed.askText}}"
                                :folder "{{(find(state.examples, it.id == state.create.from) ?? {}).folder ?? ''}}"
-                               :sub "{{(find(state.examples, it.id == state.create.from) ?? {}).notation == 'lisp' ? '/lisp' : '/json'}}"
+                               :sub "{{((find(state.examples, it.id == state.create.from) ?? {}).notation ?? state.notation) == 'lisp' ? '/lisp' : '/json'}}"
                                :then createShared}}]
            :createBlank [{:note "with: id, title, ask, then. A folder, and the blank starter in it"}
                          {:invoke apps.mkdir
@@ -351,7 +351,7 @@
                                      :with {:id "{{id}}"
                                             :why "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}"
                                             :keep true}}]}]
-           :createCopy [{:note "with: id, title, ask, folder, sub, then. A copy of an example's folder (sub: '/json', or '/lisp' for a program) and its assets, without its C++, into a folder of that name and an assets folder: its paths lead to the shared folder from there"}
+           :createCopy [{:note "with: id, title, ask, folder, sub, then. A copy of an example's folder in the notation Settings choose, or the one its entry pins (sub: '/json' or '/lisp') and its assets, without its C++, into a folder of that name and an assets folder: its paths lead to the shared folder from there"}
                         {:invoke apps.mkdir
                          :with {:path "{{id}}"}
                          :onDone [{:invoke apps.copy

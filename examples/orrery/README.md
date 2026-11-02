@@ -4,10 +4,9 @@ Orrery shows a few planets going round a sun, in a 3D view and on a sky chart. I
 is one screen document, `lisp/index.screen.lisp` (with the sky from the ground in `sky.lisp`, which it includes), and a
 program, `lisp/orrery.lisp`, with no C++ of its own: the standard host runs it.
 
-**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because it has behaviour: the camera's
+**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because it has behaviour: the camera's
 flights (Go to, Centre and Follow share one take-off and one landing), bodies moved in the graph, notes, bookmarks and the
-eclipse finder. The one-step actions (the toggles, the time controls) stay data in the screen. `lisp/` is its only source,
-with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone.
+eclipse finder. The one-step actions (the toggles, the time controls) stay data in the screen. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone.
 
 It was built by an outsider to the library, as a test of the public documentation. They had only `README.md`,
 `SCREEN_FORMAT.md`, `VERSION_CONTROL.md`, the public headers (`modules/*/include/`), the other examples, the

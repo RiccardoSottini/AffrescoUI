@@ -1,6 +1,6 @@
 /// @file
-/// @brief Each example holds its app twice, in a json and a lisp folder: both load as exactly the same document, and
-/// the lisp folder's app is in the Lisp notation.
+/// @brief Each example holds its app twice, in a json and a lisp folder: both load as exactly the same document (a
+/// program, written by hand, as the same app), and the lisp folder's app is in the Lisp notation.
 
 #include <affresco/affresco.hpp>
 #include <affresco/format/App.hpp>
@@ -18,23 +18,34 @@ using affresco::Screen;
 TEST_CASE("lisp examples: every example is there in both notations, and loads as the same document") {
 	const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
 	int apps = 0;
-	int programs = 0; // apps written as programs (RFC 0005): their lisp folder is their only source
+	int programs = 0; // apps written as programs (RFC 0005): their lisp folder is a source of its own, beside the JSON
 	for(const auto& entry : std::filesystem::directory_iterator(examples)) {
-		if(!std::filesystem::is_regular_file(entry.path() / "json" / "app.json")) {
-			programs += std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp") ? 1 : 0;
-			continue;
-		}
+		if(!std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp")) continue;
 		CAPTURE(entry.path().filename().string());
-		REQUIRE(std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp"));
-		const Screen written = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
+		Screen written = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
 		REQUIRE(written.app() != nullptr);
 		CHECK(written.app()->entry.ends_with(".lisp"));
-		CHECK(written.documentJson() ==
-		      Screen::fromApp(entry.path() / "json", {}, Screen::History::InMemory).documentJson());
-		++apps;
+		if(!std::filesystem::is_regular_file(entry.path() / "json" / "app.json")) {
+			// Lisp only: Calamaio
+			CHECK(written.versions().sourceDocument().contains("program"));
+			++programs;
+			continue;
+		}
+		const Screen spelled = Screen::fromApp(entry.path() / "json", {}, Screen::History::InMemory);
+		REQUIRE(spelled.app() != nullptr);
+		CHECK(spelled.app()->id == written.app()->id);
+		if(written.versions().sourceDocument().contains("program")) {
+			// A program builds what its JSON writes out, its logic in functions: the same app, not the same document
+			CHECK(affresco::json::parse(written.documentJson())["window"] ==
+			      affresco::json::parse(spelled.documentJson())["window"]);
+			++programs;
+		} else {
+			CHECK(written.documentJson() == spelled.documentJson());
+			++apps;
+		}
 	}
-	CHECK(apps > 0);              // the apps that stay JSON
-	CHECK(apps + programs >= 14); // and those written as programs, whose lisp folder is their only source
+	CHECK(apps >= 3);      // the generated ones: Sign in, Forge and the Launcher
+	CHECK(programs >= 11); // the programs, all but Calamaio with their JSON beside them
 }
 
 TEST_CASE("lisp examples: a lisp folder holds Lisp, but for scenarios and a signed catalogue") {
@@ -74,10 +85,9 @@ TEST_CASE("lisp examples: a file found by its name reads the same in either nota
 		return notation::readDocument(text, file);
 	};
 	CHECK(read(notation::namedDocument(lisp, "feature")) == read(notation::namedDocument(written, "feature")));
-	// Tempera is a program, with no JSON beside it: its adapter reads as one
-	const affresco::json adapter = read(examples / "tempera" / "lisp" / "sorter" / "sorter.adapter.lisp");
-	CHECK(adapter["format"] == "affrescoui-adapter");
-	CHECK(adapter["bind"]["reorder"]["action"] == "layers.move");
+	// Tempera is a program, its lisp folder written by hand: its adapter still reads as its JSON one
+	CHECK(read(examples / "tempera" / "lisp" / "sorter" / "sorter.adapter.lisp") ==
+	      read(examples / "tempera" / "json" / "sorter" / "sorter.adapter.json"));
 }
 
 TEST_CASE("lisp examples: the two notations share one copy of an example's assets") {
@@ -130,9 +140,7 @@ TEST_CASE("lisp examples attack: an agent's change to an app's program is review
 	const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
 	int programs = 0;
 	for(const auto& entry : std::filesystem::directory_iterator(examples)) {
-		if(std::filesystem::exists(entry.path() / "json") ||
-		   !std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp"))
-			continue;
+		if(!std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp")) continue;
 		CAPTURE(entry.path().filename().string());
 		Screen screen = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
 		const affresco::json source = screen.versions().sourceDocument();
@@ -150,5 +158,5 @@ TEST_CASE("lisp examples attack: an agent's change to an app's program is review
 		CHECK(result.status != affresco::RevisionStatus::Applied);
 		++programs;
 	}
-	CHECK(programs >= 9);
+	CHECK(programs >= 11);
 }

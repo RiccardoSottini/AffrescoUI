@@ -6,11 +6,11 @@ Modello is a 3D modeller written only as screen documents and a program: no C++ 
 ./build/affrescoui_launcher examples/modello/lisp/index.screen.lisp [--socket DIR]
 ```
 
-**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"): Undo and Redo, deleting, hiding and
+**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"): Undo and Redo, deleting, hiding and
 showing objects, putting the selection on the 3D cursor and clearing a transform are functions and commands in
 `lisp/modello.lisp`, where one function changes the selected nodes that a list of steps had to change one path at a time.
 The tools that follow the pointer, the editors and what reaches outside (opening, saving, exporting) stay actions in the
-parts. `lisp/` is its only source, with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone.
+parts. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone.
 
 Its layout and keys follow the conventions of desktop 3D modellers, so a daily user of such a modeller finds what they expect where they
 expect it: the top bar with its menus and workspace tabs, the 3D viewport with its header, toolbar, navigation gizmo

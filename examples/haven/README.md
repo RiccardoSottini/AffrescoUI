@@ -7,9 +7,9 @@ Rooms in a tree by floor, a floor plan, scenes, lights with their colours, clima
 ./build/affrescoui test examples/haven/lisp/index.scenarios.json
 ```
 
-**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), as it has real behaviour: scenes over every
+**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), as it has real behaviour: scenes over every
 light of a room or every room, device calls that take a while, the alarm's code, a simulated service, automations edited in
-place. `lisp/` is its only source, with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone. The screen
+place. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone. The screen
 and its parts say what is shown and keep their keys as data; `lisp/haven.lisp` says what happens: every action is a function
 or a command, and the handlers name them.
 

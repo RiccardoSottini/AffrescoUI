@@ -1,0 +1,11 @@
+[
+	{"id": "e1", "day": "today", "time": "21:42", "icon": "lamp-floor", "name": "Floor lamp", "rule": "", "what": "on"},
+	{"id": "e2", "day": "today", "time": "21:40", "icon": "door-open", "name": "Front door", "rule": "", "what": "opened"},
+	{"id": "e3", "day": "today", "time": "21:40", "icon": "workflow", "name": "", "rule": "welcome", "what": "triggered"},
+	{"id": "e4", "day": "today", "time": "19:05", "icon": "bot", "name": "Vacuum", "rule": "", "what": "docked"},
+	{"id": "e5", "day": "today", "time": "07:00", "icon": "blinds", "name": "Bedroom blinds", "rule": "", "what": "opened"},
+	{"id": "e6", "day": "yesterday", "time": "23:00", "icon": "workflow", "name": "", "rule": "goodNight", "what": "triggered"},
+	{"id": "e7", "day": "yesterday", "time": "23:00", "icon": "lock", "name": "Front door", "rule": "", "what": "locked"},
+	{"id": "e8", "day": "yesterday", "time": "22:58", "icon": "lightbulb", "name": "Ceiling", "rule": "", "what": "off"},
+	{"id": "e9", "day": "yesterday", "time": "18:12", "icon": "speaker", "name": "Speaker", "rule": "", "what": "playing"}
+]

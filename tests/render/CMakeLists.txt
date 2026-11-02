@@ -24,29 +24,42 @@ endif()
 
 # The templates' own scenarios (in their folders, examples/templates.json), Forge's, Modello's, Sinopia's and Tempera's: what each one
 # does, checked headless, without a window or golden images; and the rendering check's screens'
-# (screens/*.scenarios.json): where layout, images, icons and partial redraws put each node, held while they get faster
+# (screens/*.scenarios.json): where layout, images, icons and partial redraws put each node, held while they get faster.
+# An app written as a Lisp program has its JSON version beside it: its scenarios are played on both
 affrescoui_template_folders(template_folders)
-list(TRANSFORM template_folders PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_VARIABLE template_globs)
+list(APPEND template_folders modello/lisp sinopia/lisp tempera/lisp)
+set(scenario_folders)
+foreach(folder IN LISTS template_folders)
+	list(APPEND scenario_folders ${folder})
+	string(REGEX REPLACE "/lisp$" "/json" spelled "${folder}")
+	if(NOT spelled STREQUAL folder AND IS_DIRECTORY ${PROJECT_SOURCE_DIR}/examples/${spelled})
+		list(APPEND scenario_folders ${spelled})
+	endif()
+endforeach()
+list(TRANSFORM scenario_folders PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_VARIABLE template_globs)
 list(TRANSFORM template_globs APPEND /*.scenarios.json)
 file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
-	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json
-	${PROJECT_SOURCE_DIR}/examples/modello/lisp/*.scenarios.json ${PROJECT_SOURCE_DIR}/examples/sinopia/lisp/*.scenarios.json
-	${PROJECT_SOURCE_DIR}/examples/tempera/lisp/*.scenarios.json)
+	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json)
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	# Their captures (pictures they take for the gallery, not compared) go to the build folder
 	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/scenario-captures)
-	# A test per file (scenarios/<folder>/<name>, all matched by ctest -R scenarios), so ctest --parallel spreads them:
-	# under the sanitizers, one after another, they take longer than a test and the job may run
+	# A test per file (scenarios/<folder>/<name>, or scenarios/<folder>/lisp/<name> for a program's lisp folder beside
+	# its JSON, all matched by ctest -R scenarios), so ctest --parallel spreads them: under the sanitizers, one after
+	# another, they take longer than a test and the job may run
 	foreach(file IN LISTS AFFRESCOUI_TEMPLATE_SCENARIOS)
 		cmake_path(GET file PARENT_PATH folder)
 		cmake_path(GET folder FILENAME name)
+		set(notation "")
 		if(name STREQUAL "json" OR name STREQUAL "lisp") # an example's source folder: named after the example
+			if(name STREQUAL "lisp" AND IS_DIRECTORY ${folder}/../json)
+				set(notation lisp/)
+			endif()
 			cmake_path(GET folder PARENT_PATH folder)
 		endif()
 		cmake_path(GET folder FILENAME folder)
 		string(REGEX REPLACE "\\.scenarios\\.json$" "" name "${file}")
 		cmake_path(GET name FILENAME name)
-		add_test(NAME scenarios/${folder}/${name} COMMAND affrescoui_render_runner --out
+		add_test(NAME scenarios/${folder}/${notation}${name} COMMAND affrescoui_render_runner --out
 		         ${PROJECT_BINARY_DIR}/scenario-captures ${file})
 	endforeach()
 endif()

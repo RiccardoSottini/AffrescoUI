@@ -207,21 +207,31 @@ TEST_CASE("launcher: every app its list names opens from its folder, a program a
 	std::vector<std::string> opened;
 	for(const affresco::json& app : apps["state"]["examples"]) {
 		if(app.value("program", "") != "host") continue;
-		const std::string name = app["folder"].get<std::string>() + "/" + app.value("notation", "json");
-		services::ProcessRun run{{"affrescoui_launcher", "examples:" + name}, {}, "/bin/false"};
-		CAPTURE(name);
-		CHECK_FALSE(shape(run));
-		CHECK(run.arguments.front() == fs::path(examples / name).make_preferred().string());
-		opened.push_back(name);
+		// Each opens in the notation Settings choose, json or lisp, unless its entry pins the only one it has
+		const std::vector<std::string> notations = app.contains("notation")
+		                                               ? std::vector<std::string>{app["notation"].get<std::string>()}
+		                                               : std::vector<std::string>{"json", "lisp"};
+		for(const std::string& notation : notations) {
+			const std::string name = app["folder"].get<std::string>() + "/" + notation;
+			services::ProcessRun run{{"affrescoui_launcher", "examples:" + name}, {}, "/bin/false"};
+			CAPTURE(name);
+			CHECK_FALSE(shape(run));
+			CHECK(run.arguments.front() == fs::path(examples / name).make_preferred().string());
+			opened.push_back(name);
+		}
 	}
-	// The apps that are programs open from their lisp folder, their only one, whatever the notation setting says
-	CHECK(std::ranges::find(opened, "streak/lisp") != opened.end());
+	// The apps written as programs open from either folder; Calamaio, Lisp only, from its lisp folder whatever the
+	// setting says
+	CHECK(std::ranges::find(opened, "flow/json") != opened.end());
+	CHECK(std::ranges::find(opened, "flow/lisp") != opened.end());
+	CHECK(std::ranges::find(opened, "streak/json") != opened.end());
 	CHECK(std::ranges::find(opened, "calamaio/lisp") != opened.end());
+	CHECK(std::ranges::find(opened, "calamaio/json") == opened.end());
 	for(const affresco::json& app : apps["state"]["examples"]) {
-		// "lisp" for exactly the apps with no json folder, so none opens a folder that isn't there
+		// A pin for exactly the apps with no json folder, so none opens a folder that isn't there
 		CAPTURE(app["folder"].get<std::string>());
-		const bool program = app.value("notation", "json") == "lisp";
-		CHECK(fs::exists(examples / app["folder"].get<std::string>() / "json") != program);
+		const bool pinned = app.value("notation", "json") == "lisp";
+		CHECK(fs::exists(examples / app["folder"].get<std::string>() / "json") != pinned);
 		CHECK(fs::exists(examples / app["folder"].get<std::string>() / "lisp"));
 	}
 }
@@ -416,7 +426,7 @@ TEST_CASE("launcher: an app is created blank and from an example, listed, duplic
 		{ "key": "mod+n" },
 		{ "click": "#createName" },
 		{ "type": "Team board" },
-		{ "click": { "role": "radio", "name": "Sign in" } },
+		{ "click": { "role": "radio", "name": "Flow" } },
 		{ "key": "mod+enter" },
 		{ "wait": 10 },
 		{ "expect": { "state": "mine.length", "is": 2 } },
@@ -452,7 +462,8 @@ TEST_CASE("launcher: an app is created blank and from an example, listed, duplic
 	CHECK(built.failed() == 0);
 }
 
-TEST_CASE("launcher: an app is created from an example written as a program, listed, duplicated and opened") {
+TEST_CASE("launcher: with Lisp chosen in Settings, an app is created from an example written as a program, listed, "
+          "duplicated and opened") {
 	const TemporaryFolder folder;
 	const fs::path apps = folder.path() / "AffrescoUI", examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
 	fs::create_directories(apps);
@@ -461,6 +472,9 @@ TEST_CASE("launcher: an app is created from an example written as a program, lis
 		screen.services().addRoot("apps", apps);
 	};
 	const json scenarios = json::parse(R"json([{ "name": "create", "steps": [
+		{ "key": "mod+comma" },
+		{ "click": { "role": "radio", "name": "Lisp" } },
+		{ "key": "mod+1" },
 		{ "key": "mod+n" },
 		{ "click": "#createName" },
 		{ "type": "Team board" },
@@ -516,13 +530,14 @@ TEST_CASE("launcher: an app is created from an example written as a program, lis
 	CHECK(habitsOpened.failed() == 0);
 }
 
-TEST_CASE("launcher: every example written as a program that starts an app makes one that opens, titled") {
+TEST_CASE("launcher: with Lisp chosen, every example that starts an app makes one from its lisp folder that opens, "
+          "titled") {
 	const fs::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
 	std::ifstream file(examples / "launcher" / "json" / "apps.json", std::ios::binary);
 	const json list = json::parse(file);
 	int made = 0;
 	for(const json& app : list["state"]["examples"]) {
-		if(app.value("notation", "json") != "lisp" || !app.value("starter", true)) continue;
+		if(!app.value("starter", true)) continue;
 		// An apps folder each: listing several copies of programs nests past 32 actions where calls end at once
 		const TemporaryFolder folder;
 		const fs::path apps = folder.path() / "AffrescoUI";
@@ -533,7 +548,8 @@ TEST_CASE("launcher: every example written as a program that starts an app makes
 		};
 		const std::string name = "Made from " + app["name"].get<std::string>();
 		CAPTURE(name);
-		const json steps = {json{{"key", "mod+n"}}, json{{"click", "#createName"}}, json{{"type", name}},
+		const json steps = {json{{"revision", {{"message", "lisp"}, {"set", {{"/state/notation", "lisp"}}}}}},
+		                    json{{"key", "mod+n"}}, json{{"click", "#createName"}}, json{{"type", name}},
 		                    // its tile may be scrolled out of sight: chosen as a click on it chooses it
 		                    json{{"revision", {{"message", "from"}, {"set", {{"/state/create/from", app["id"]}}}}}},
 		                    json{{"key", "mod+enter"}}, json{{"wait", 10}},
@@ -558,7 +574,8 @@ TEST_CASE("launcher: every example written as a program that starts an app makes
 		CHECK(json::parse(copy.documentJson())["window"]["title"] == name);
 		++made;
 	}
-	CHECK(made >= 9); // Flow, Streak, Quaderno, Haven, Tempo, Arcadia, Orrery, Tempera, Sinopia, Modello
+	CHECK(made >= 11); // the programs (Flow, Streak, Quaderno, Haven, Tempo, Arcadia, Orrery, Tempera, Sinopia,
+	                   // Modello) and Sign in, whose lisp folder is generated
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
@@ -612,6 +629,7 @@ TEST_CASE("launcher attack: a new app's name can't write code into the program i
 	const json steps = {json{{"key", "mod+n"}},
 	                    json{{"click", "#createName"}},
 	                    json{{"type", name}},
+	                    json{{"revision", {{"message", "lisp"}, {"set", {{"/state/notation", "lisp"}}}}}},
 	                    json{{"revision", {{"message", "from"}, {"set", {{"/state/create/from", "flow"}}}}}},
 	                    json{{"key", "mod+enter"}},
 	                    json{{"wait", 10}},

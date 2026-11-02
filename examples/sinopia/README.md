@@ -5,11 +5,10 @@ Sinopia makes slide decks, presents them and exports them. It is a folder of Lis
 [`parts/`](lisp/parts) and its program, [`sinopia.lisp`](lisp/sinopia.lisp). People and agents change it live like any other screen. Its permissions apply a `studio` peer's
 changes (the person's client) and send an agent's to review, which only a `studio` peer can give.
 
-**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because its edits have behaviour: Undo
+**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because its edits have behaviour: Undo
 and Redo, adding, copying, removing and moving slides, and the selection's order, alignment, spacing and case are
 functions in `lisp/sinopia.lisp`, where a `let` holds what an action had to pass to a second action. The edits that are
-one step, and those that reach outside (open, save, export, the show), stay actions in the parts. `lisp/` is its only
-source, with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone. Its slide sorter, which Orrery
+one step, and those that reach outside (open, save, export, the show), stay actions in the parts. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone. Its slide sorter, which Orrery
 and Tempera install, is [`lisp/features/slide-sorter`](lisp/features/slide-sorter).
 
 ```sh

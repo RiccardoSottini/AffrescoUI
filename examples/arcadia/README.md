@@ -11,9 +11,8 @@ single screen document, with no C++: the stock host runs it.
 python3 examples/arcadia/lisp/e2e_test.py build
 ```
 
-**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), as it has real behaviour: installs and
-downloads, the cart and the wishlist, the library's filters, codes, backups, friends and chat. `lisp/` is its only source,
-with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone. The screen and its parts say what is
+**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), as it has real behaviour: installs and
+downloads, the cart and the wishlist, the library's filters, codes, backups, friends and chat. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone. The screen and its parts say what is
 shown and keep their keys, the download timer and the first page as data; `lisp/arcadia.lisp` says what happens: every
 action is a command, as it was written, with its title, category and description, and the handlers name them. Lists that
 hold a game, a swap of two places and a game by its id are one function each (`has`, `toggled`, `swapped`, `gameOf`).

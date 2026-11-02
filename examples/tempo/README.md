@@ -7,9 +7,8 @@ Playlists, a library of 3,000 songs in a table, albums and artists in grids, sea
 ./build/affrescoui test examples/tempo/lisp/index.scenarios.json
 ```
 
-**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), as it has real behaviour: playback and the
-queue, shuffle, crossfade, playlists whose songs move the liked songs and the queue with them, back and forward. `lisp/` is
-its only source, with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone. The screen and its pages
+**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), as it has real behaviour: playback and the
+queue, shuffle, crossfade, playlists whose songs move the liked songs and the queue with them, back and forward. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone. The screen and its pages
 say what is shown and keep their keys and what the state watches as data; `lisp/tempo.lisp` says what happens: every action
 is a function or a command, and the handlers name them. A song is a `list:track` key, read and made by three functions
 (`keyOf`, `listOf`, `trackOf`) where each expression used to split it again.

@@ -51,10 +51,12 @@ def program(build, name, windows):
 
 
 def copy_assets(assets):
-    """Every example's folder (an app in its json/ and lisp/: each opens in the stock host) and examples/shared, as the programs find
-    them in examples/, without the C++ sources and the tests' scripts."""
+    """Every example's folder (an app in its json/ and lisp/, or only lisp/ for Calamaio: each opens in the stock host) and
+    examples/shared, as the programs find them in examples/, without the C++ sources and the tests' scripts."""
     examples = os.path.join(ROOT, "examples")
-    folders = sorted(each for each in os.listdir(examples) if os.path.isfile(os.path.join(examples, each, "json", "app.json")))
+    folders = sorted(each for each in os.listdir(examples)
+                     if os.path.isfile(os.path.join(examples, each, "json", "app.json"))
+                     or os.path.isfile(os.path.join(examples, each, "lisp", "app.lisp")))
     for each in folders + ["shared"]:  # each with its json/ and lisp/ folders
         shutil.copytree(os.path.join(examples, each), os.path.join(assets, each),
                         ignore=shutil.ignore_patterns("*.cpp", "*.hpp", "*.py"))

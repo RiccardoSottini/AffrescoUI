@@ -3,8 +3,8 @@
 
 An example holds the same app twice, examples/<app>/json/ and examples/<app>/lisp/. The json/ folder is the source, so a
 change is made there and this is run again; `--check` fails if what is there isn't what it would write
-(`ctest -R cli_lisp_examples`). An app written as a program (RFC 0005) has no json/ folder: its lisp/ folder is its only
-source, and this leaves it alone.
+(`ctest -R cli_lisp_examples`). An app written as a program (RFC 0005), whose lisp/ folder holds code, has two sources:
+its json/ folder and its lisp/ folder, each written by hand, so this leaves both alone.
 
 Every document becomes a .lisp file: an app's manifest, its entry and every other screen, what they include, its themes,
 models and seed data, its policies, adapters and features' manifests. Two kinds stay JSON and are copied: scenarios, and
@@ -16,6 +16,7 @@ the apps share in examples/shared/ gets a .lisp file beside its JSON, as the fon
 """
 
 import argparse
+import functools
 import json
 import os
 import re
@@ -42,16 +43,37 @@ def source_files():
                             cwd=ROOT, check=True, capture_output=True, text=True).stdout
     paths = [os.path.relpath(os.path.join(ROOT, path), EXAMPLES) for path in listed.split("\0") if path]
     return sorted(path for path in paths if os.path.exists(os.path.join(EXAMPLES, path)) and not is_generated(path)
-                  and not path.startswith(LEFT_OUT))
+                  and not path.startswith(LEFT_OUT) and not of_program(path, JSON_FOLDER))
+
+
+@functools.cache
+def is_program(app):
+    """Whether an example (its path from examples/) is written as a program (RFC 0005): a file of its lisp/ folder is
+    code, starting with a comment or a form where a document starts with a map. Its lisp/ folder is then a source of its
+    own, written by hand beside its json/ folder."""
+    for place, _, names in os.walk(os.path.join(EXAMPLES, app, "lisp")):
+        for name in names:
+            if name.endswith(".lisp"):
+                with open(os.path.join(place, name), encoding="utf-8") as file:
+                    if file.read().lstrip()[:1] in (";", "("):
+                        return True
+    return False
+
+
+def of_program(path, folder):
+    """Whether a file of examples/ is in the json/ or lisp/ folder (as given) of an app written as a program."""
+    place = (os.sep + path).find(folder)
+    return place >= 0 and is_program(path[:place])
 
 
 def is_generated(path):
-    """Whether a file of examples/ is one the generator writes: not one of an app that is a program, with no json/ folder
-    (RFC 0005), whose lisp/ folder is its source."""
+    """Whether a file of examples/ is one the generator writes: in the lisp/ folder of an app with a json/ folder, but
+    not one written as a program, whose two folders are both sources."""
     if path.startswith(SHARED):
         return path.endswith(".lisp")
     place = (os.sep + path).find(LISP_FOLDER)
-    return place >= 0 and os.path.isdir(os.path.join(EXAMPLES, path[:place], "json"))
+    return (place >= 0 and os.path.isdir(os.path.join(EXAMPLES, path[:place], "json"))
+            and not of_program(path, LISP_FOLDER))
 
 
 def read_json(path):

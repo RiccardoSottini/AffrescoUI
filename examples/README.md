@@ -29,9 +29,13 @@ examples/
 The stock host is in `apps/host` and the document server in `apps/server`; a screen inside a program's own OpenGL
 scene is `modules/capi/example`.
 
-**JSON or Lisp.** `<app>/json/` is the source and `<app>/lisp/` is written from it, so make a change in `json/` and run
-`python3 tools/notation/lisp_examples.py` (the test `cli_lisp_examples` fails if you forget). An app written as a program
-(RFC 0005) has no `json/`: its `lisp/` is its only source, and the Launcher opens it whichever notation is chosen (`streak`, `calamaio`, `flow`, `haven`, `tempo`, `arcadia`, `code-editor`, `orrery`, `tempera`, `sinopia`, `modello`). An app with real behaviour moves to a program, and a static one stays JSON; each app's README says which it is, and why. In `lisp/`, every document
+**JSON or Lisp.** Every example ships in both notations, but Calamaio, which is Lisp only. For most, `<app>/json/` is the
+source and `<app>/lisp/` is written from it, so make a change in `json/` and run `python3 tools/notation/lisp_examples.py`
+(the test `cli_lisp_examples` fails if you forget). An app with real behaviour is also written as a Lisp program (RFC 0005):
+then both folders are written by hand, `json/` as the JSON app and `lisp/` as a program that does the same with its logic
+in functions, the generator leaves both alone, and the same scenarios check each (`streak`, `flow`, `haven`, `tempo`,
+`arcadia`, `code-editor`, `orrery`, `tempera`, `sinopia`, `modello`; `calamaio` has only its `lisp/`, and the Launcher opens
+it whichever notation is chosen). Each app's README says which it is. In `lisp/`, every document
 an app loads is a `.lisp` file: its screens, what they include, its themes, models and seed data. The files with a reader
 of their own stay JSON (`app.json`, scenarios, policies, adapters, a package's manifest and catalogue). There is one copy
 of the assets, in `<app>/assets/`, named `../assets/...` in both notations. `shared/` keeps a `.lisp` file beside each JSON one it serves. Both versions load as
