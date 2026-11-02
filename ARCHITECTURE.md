@@ -77,6 +77,7 @@ flowchart TB
 | [`format`](modules/format/README.md) | `affrescoui::format` | The screen format: validation, the checker, expressions, the runtime | `DocumentRules` (`Rules`), `VersionObserver` (the runtime) | `VersionControl`, `render`, `data` |
 | [`themes`](modules/themes/README.md) | `affrescoui::themes` | The kits' components and the themes' design tokens, as JSON files built in | `ComponentLibrary` | |
 | [`notation`](modules/notation/README.md) | `affrescoui::notation` | The notations documents are written in: JSON, and Lisp (S-expressions spelling the same tree); reading and writing either | | |
+| [`lisp`](modules/lisp/README.md) | `affrescoui::lisp` | The Lisp language: reader, compiler, machine, its own functions, programs split into definitions and built purely into a tree; its one way out is the primitives a host registers | | `notation` |
 | [`data`](modules/data/README.md) | `affrescoui::data` | The records: typed models, a SQLite store per app, queries, the journal, migrations, CSV import | | |
 | [`vcs`](modules/vcs/README.md) | `affrescoui::vcs` | Version control of any JSON document | `VersionControl` (`Repository`) | `DocumentRules` |
 | [`channel`](modules/channel/README.md) | `affrescoui::channel` | Transports and the live protocol | `Channel` | `Executor`, `VersionControl`, `ScreenImages`, `notation` |

@@ -97,8 +97,7 @@ TEST_CASE("notation: a node is written with its type and id as its head, its chi
 	CHECK(lisp(json::parse(R"({"type": "row", "id": "a", "children": []})")) == "(row#a :children [])\n");
 	CHECK(lisp(json::parse(R"({"type": "my row", "id": "a"})")) == "(node :type \"my row\" :id a)\n");
 	// An id that isn't a plain word is a key, in its place; the old spellings still read
-	CHECK(lisp(json::parse(R"({"type": "label", "id": "{{'nav-' + tab}}"})")) ==
-	      "(label :id \"{{'nav-' + tab}}\")\n");
+	CHECK(lisp(json::parse(R"({"type": "label", "id": "{{'nav-' + tab}}"})")) == "(label :id \"{{'nav-' + tab}}\")\n");
 	CHECK(fromLisp("(label #a)") == fromLisp("(label#a)"));
 	CHECK(fromLisp("(label #\"a b\")") == fromLisp("(label :id \"a b\")"));
 	CHECK(fromLisp("(node#a :type row)") == json::parse(R"({"id": "a", "type": "row"})"));
@@ -109,7 +108,8 @@ TEST_CASE("notation: a node is written with its type and id as its head, its chi
 }
 
 TEST_CASE("notation: only what is a node is written with parentheses") {
-	CHECK(lisp(json::parse(R"({"item": {"id": "string", "name": "string"}})")) == "{:item {:id string :name string}}\n");
+	CHECK(lisp(json::parse(R"({"item": {"id": "string", "name": "string"}})")) ==
+	      "{:item {:id string :name string}}\n");
 	CHECK(lisp(json::parse(R"({"id": 3, "type": "row"})")) == "(node :id 3 :type row)\n");
 	CHECK(lisp(json::parse(R"({"use": "chip"})")) == "(node :use chip)\n");
 	CHECK(lisp(json::parse(R"({"children": 3})")) == "(node :children 3)\n");
@@ -133,7 +133,8 @@ TEST_CASE("notation: display text is in quotes, keys that aren't words are strin
 	// One column past the opener for maps and lists, two spaces for a node's body
 	json wide = json::object();
 	for(int i = 0; i < 12; ++i) wide["member" + std::to_string(i)] = std::string(12, 'x');
-	const std::string text = lisp(json{{"wide", wide}, {"items", json::array({std::string(70, 'a'), std::string(70, 'b')})}});
+	const std::string text =
+	    lisp(json{{"wide", wide}, {"items", json::array({std::string(70, 'a'), std::string(70, 'b')})}});
 	CHECK(text.starts_with("{:wide {:member0 xxxxxxxxxxxx\n        :member1 xxxxxxxxxxxx\n"));
 	CHECK(text.contains(" :items [" + std::string(70, 'a') + "\n         " + std::string(70, 'b') + "]}\n"));
 	const json node = json::parse(R"({"type": "row", "id": "r", "children": [{"type": "label", "id": "é"}]})");
@@ -180,8 +181,8 @@ TEST_CASE("notation: formatting keeps comments and discarded forms") {
 	CHECK(format("[;a\n]") == "[\n ;a\n ]\n");
 	// Canonical: the same tree, and twice is once
 	for(const char* text :
-	    {"; a\n[1 ; b\n 2]", "(row ; c\n #a ; d\n :x 1 ; e\n (y ; f\n ) ; g\n ; h\n)", "{;a\n:a [;b\n] ;c\n;d\n}", "1 ;x",
-	     "#_ 1 2 #_ 3", "(node ;a\n)", "(row :children [;a\n (x)])", "(row #_a :b 1 #_(c) #_ d)"}) {
+	    {"; a\n[1 ; b\n 2]", "(row ; c\n #a ; d\n :x 1 ; e\n (y ; f\n ) ; g\n ; h\n)", "{;a\n:a [;b\n] ;c\n;d\n}",
+	     "1 ;x", "#_ 1 2 #_ 3", "(node ;a\n)", "(row :children [;a\n (x)])", "(row #_a :b 1 #_(c) #_ d)"}) {
 		CAPTURE(text);
 		const std::string once = format(text);
 		CHECK(fromLisp(once).dump() == fromLisp(text).dump());

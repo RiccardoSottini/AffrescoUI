@@ -125,7 +125,8 @@ private:
 	[[nodiscard]] std::size_t column() const {
 		std::size_t count = 0;
 		for(std::size_t at = out_.size(); at > 0 && out_[at - 1] != '\n'; --at)
-			if((static_cast<unsigned char>(out_[at - 1]) & 0xC0U) != 0x80U) ++count; // a UTF-8 continuation byte isn't one
+			if((static_cast<unsigned char>(out_[at - 1]) & 0xC0U) != 0x80U)
+				++count; // a UTF-8 continuation byte isn't one
 		return count;
 	}
 
@@ -263,7 +264,8 @@ private:
 		}
 		nodeProperties(from, properties, index, tree, indent, headComment);
 		if(hasChildren) {
-			const CommentTree* children = innerOf(commentsOf(tree, static_cast<std::size_t>(std::distance(first, last))));
+			const CommentTree* children =
+			    innerOf(commentsOf(tree, static_cast<std::size_t>(std::distance(first, last))));
 			std::size_t child = 0;
 			for(const json& item : *last) {
 				if(tooLong_) return;
@@ -400,6 +402,8 @@ private:
 
 } // namespace
 
-std::string writeLisp(const json& value, const DocumentComments* comments) { return Writer().document(value, comments); }
+std::string writeLisp(const json& value, const DocumentComments* comments) {
+	return Writer().document(value, comments);
+}
 
 } // namespace affresco::notation::detail

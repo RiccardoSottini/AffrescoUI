@@ -5,6 +5,7 @@
 - fmt:    a template formatted once passes fmt --check, and reads back as the same JSON, keys in the same order;
 - ids:    every template has an id on every node (ids --check);
 - strings: literal text moves to a language file, and a screen that requires that is held to it;
+- run, repl: a Lisp program's tree is printed, a repl answers, and fmt and convert refuse a program;
 - convert: a template in the Lisp notation is canonical (fmt --check) and converts back to the same JSON, keys in
           the same order; a Lisp file that isn't a value exits with 1, naming its line;
 - render: the first frame is pixel for pixel what the rendering check's runner draws for the same scenario;
@@ -29,6 +30,7 @@ import os
 import shutil
 import socket
 import subprocess
+from pathlib import Path
 import sys
 import tempfile
 
@@ -224,6 +226,42 @@ class Checker:
                            os.path.join(written, "features", "word-count"), expect=1)
         self.expect(as_lisp == as_json, f"compose: the notations differ:\n{as_lisp}\n{as_json}")
 
+    def lisp_language(self):
+        """`run` prints what a program builds and shows nothing, `repl` answers, `fmt` keeps comments, and the tools that
+        treat files as data refuse a program, naming what needs running."""
+        def write(name, text):
+            path = os.path.join(self.scratch, name)
+            Path(path).write_text(text, encoding="utf-8")
+            return path
+
+        program = write("rooms.lisp", '; the rooms\n(defn card [id] `(label :id ~id))\n'
+                                      '(defscreen main (column ~@(map card ["a"])))\n(defkey "mod+k" nothing)\n')
+        built = json.loads(self.run("run", program))
+        self.expect(built["root"]["children"] == [{"type": "label", "id": "a"}] and built["keys"] == {"mod+k": "nothing"},
+                    f"run: a program's tree: {built}")
+        self.expect(json.loads(self.run("run", "--print", program)) == built, "run --print: a program's tree")
+        template = write("template.lisp", '(label :text ~(str "a" 1))\n')
+        self.expect(json.loads(self.run("run", "--print", template)) == {"type": "label", "text": "a1"},
+                    "run --print: a template's tree")
+        refused = subprocess.run([self.tool, "convert", program], capture_output=True, text=True, encoding="utf-8")
+        self.expect(refused.returncode == 1 and '"card"' in refused.stderr + refused.stdout,
+                    f"convert: a program names what needs running: {refused.stderr}{refused.stdout}")
+        self.run("convert", template, expect=1)
+        self.run("fmt", program, expect=1)
+        self.run("fmt", "--check", program, expect=1)
+        self.run("run", "--print", write("mistake.lisp", "(defscreen main (not x))\n"), expect=1)
+        self.run("run", "--print", os.path.join(self.scratch, "nowhere.lisp"), expect=3)
+        self.run("run", "--print", write("a.json", "{}"), expect=2)
+        commented = write("commented.lisp", "; top\n(row#a ; the row\n  (label) ; one\n  )\n")
+        before = Path(commented).read_text(encoding="utf-8")
+        self.run("fmt", commented)
+        self.run("fmt", "--check", commented)
+        self.expect(Path(commented).read_text(encoding="utf-8") == before, "fmt: a Lisp file's comments stay")
+        session = subprocess.run([self.tool, "repl"], input='(def a\n  2)\n(+ a 1)\n(nope)\n(* a 2)\n', capture_output=True,
+                                 text=True, encoding="utf-8")
+        self.expect(session.returncode == 0 and "3" in session.stdout and "is not defined" in session.stdout
+                    and "4" in session.stdout, f"repl: {session.stdout}{session.stderr}")
+
     def strings_split(self):
         """Languages leave every file of a screen for one file each; a file left with nothing else goes, what it set
         reaches the screen, and two files that disagree stop it before it writes anything."""
@@ -391,6 +429,7 @@ def main():
         checker.strings_split()
         checker.policy_roles()
         checker.lisp_documents()
+        checker.lisp_language()
         if not headless:
             checker.render_reaches_nobody()
             checker.insert_without_text()

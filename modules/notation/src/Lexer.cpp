@@ -143,7 +143,8 @@ void Lexer::discardForm(std::size_t start) {
 			if(closers.empty()) ++owed; // inside a form it goes with that form; here it takes the next one too
 			continue;
 		}
-		if(token.kind == TokenKind::End) fail(token.offset, "expected a form to discard after the #_ at " + placeOf(start));
+		if(token.kind == TokenKind::End)
+			fail(token.offset, "expected a form to discard after the #_ at " + placeOf(start));
 		if(token.kind == TokenKind::OpenNode || token.kind == TokenKind::OpenList || token.kind == TokenKind::OpenMap) {
 			if(closers.size() >= static_cast<std::size_t>(maxNesting))
 				fail(token.offset, "nested more than " + std::to_string(maxNesting) + " levels deep");

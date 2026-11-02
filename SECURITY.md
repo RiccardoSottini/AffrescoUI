@@ -45,8 +45,8 @@ The program that embeds AffrescoUI (the host) is trusted, and so is everything i
 
 The screen file, its includes and the state file are read with the JSON nesting limit (256 levels), but none of the
 other checks applied to peers. A file in the Lisp notation (`.lisp`) is read to the same JSON tree with the same
-limits (256 levels, numbers of at most 40 characters, and at most 64 MiB); it is data only, never evaluated. Don't
-load a screen file or change set you wouldn't run as a program. The state file is the exception to "trusted": it
+limits (256 levels, numbers of at most 40 characters, and at most 64 MiB); it is data only, never evaluated, when an app loads it: the Lisp language ("The Lisp language" below) isn't
+connected to loading documents yet, so nothing an app loads runs. Don't load a screen file or change set you wouldn't run as a program. The state file is the exception to "trusted": it
 holds the persisted parts of the live state, which peers can change, and it is read back at the next start with only
 that nesting limit. Keep the paths a screen persists out of reach of agents you don't trust.
 
@@ -428,6 +428,27 @@ or a menu choice, to the screen's window or one of its others), or while the app
 full screen is always allowed. When a window starts filling the display it shows, for four seconds and above
 everything the screen draws, a hint it draws itself, "Press Esc to leave full screen"; Esc always leaves, and still
 reaches the screen.
+
+### The Lisp language
+
+`modules/lisp` is a programming language in Lisp syntax (RFC 0005). **Today only `affrescoui run` on a program or with
+`--print`, `affrescoui repl` and code using the module's API run it: an app's documents, revisions and peers' messages never
+reach it**, so "a `.lisp` file is data" still holds for everything an app loads. This section will change when the language is
+connected to apps, as RFC 0005's review says.
+
+What holds already, for whatever text it is given:
+
+- **No way out.** The language has no file, process, network, clock, randomness, foreign-function or host-eval primitive. The
+  only way out is what a host registers, each call passing through one function that first refuses what isn't pure during a
+  build, then asks the host's gate (`modules/lisp/README.md`, "For the next stages"). `affrescoui` registers nothing.
+- **A build is pure**, so the same source gives the same tree.
+- **Limits.** Work, allocation, call depth and macro expansion are bounded, a `try` can't catch a limit running out, and each
+  error names its place. Recursion uses the machine's own stack, not the native one, and what is left of native recursion
+  (reader, compiler, walks over values) stops at a depth. The reader's limits are the notation's. Fuzzed: `tests/fuzz/lisp.cpp`.
+- **Errors** say names and kinds, never a value; a `throw` nothing catches shows its message only if the form wrote it.
+- **Authors** are carried by definitions, closures and stack frames, including through tail calls and macro output, but
+  **nothing checks them yet**: that is stage 3, with its own review and attack tests. A host registering primitives today
+  has only its gate.
 
 ### What documents can't do
 A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start

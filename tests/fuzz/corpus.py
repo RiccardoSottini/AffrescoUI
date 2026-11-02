@@ -35,6 +35,8 @@
               way they arrive (bytes in memory or a stream, the chunk size, the encoding hinted).
 - key_press:  key chords, as the "keys" of a screen and the "press" step write them.
 - notation:   the templates as JSON (written in the Lisp notation by the target), and Lisp texts of every kind.
+- lisp:       the examples' Lisp files, and programs of every construct of the language: closures, macros, tail calls,
+              conditions, templates, the forms that define, and what runs out each limit.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -828,6 +830,24 @@ def notation_seeds():
     return seeds
 
 
+def lisp_seeds():
+    """The lisp target's seeds: the smaller Lisp examples, and every construct of the language."""
+    examples = [path.read_text(encoding="utf-8") for path in sorted(EXAMPLES.glob("*/lisp/**/*.lisp"))]
+    seeds = [text for text in examples if len(text) < 4096][:40]
+    seeds += ['(defn f "doc" [n & more] (if (< n 1) more (f (- n 1) n)))\n(defscreen main (panel#a :x ~(f 3)))',
+              '(defmacro m [a & b] `(do ~a ~@b))\n(defn g [] (m 1 2))\n(def x (g))\n(defcustom y 1 "d" :type integer)',
+              '(defcommand c "d" :title "T" [a] (other a))\n(defkey "mod+k" c)\n(add-hook h c)\n(advice c :around g)',
+              '(let [[a & b :as c] [1 2 3] {:keys [d] :or {d 4} e :f} {:f 5}] (try (throw {:a a}) (catch x [x b c d e])))',
+              '(loop [i 0 v []] (if (< i 9) (recur (inc i) (conj v i)) (map inc (filter (fn [x] (mod x 2)) v))))',
+              '(reduce + 0 (range 10))', '(apply str (sort-by identity ["b" "a"]))', '(get-in {:a [1]} [:a 0])',
+              '`(a ~(b) ~@[c] {:d ~e} `(f ~(g ~h)))', '(panel :when ~(not x) "(not x)" (not x))',
+              '(node :type not (list#a) (map) ~@(list 1))', '{"a b" 1 :c 2, #_ :d #_ 3}', "'x '(y) ~z ~@w",
+              '(defn d [n] (+ 1 (d n))) (d 0)', '(loop [] (recur))', '(loop [a [1]] (recur [a a]))',
+              '(defmacro m [] `(m)) (m)', '(def a b) (def b a) a', "(" * MAX_NESTING + ")" * MAX_NESTING,
+              "`~" * (MAX_NESTING // 2) + "x", "'" * MAX_NESTING + "x"]
+    return seeds
+
+
 def key_press_seeds():
     """Chords for the key names (tests/fuzz/key_press.cpp): the templates' "keys", and some written loosely."""
     chords = set()
@@ -962,6 +982,10 @@ def main():
     out = parser.parse_args().out
     words = dictionaries()
     write(out, "json", json_seeds() + settings_file_seeds(), words["json"])
+    write(out, "lisp", lisp_seeds(), ["(", ")", "[", "]", "{", "}", "#_", ":", '"', ";", "'", "`", "~", "~@", "nil", "true",
+                                      "def ", "defn ", "defmacro ", "defscreen ", "defcommand ", "defkey ", "defcustom ",
+                                      "fn ", "let ", "loop ", "recur ", "try ", "catch ", "throw ", "if ", "do ", "map ",
+                                      "reduce ", "apply ", "gensym", "& "])
     write(out, "notation", notation_seeds(), ["(", ")", "[", "]", "{", "}", "#", ":", '"', ";", "\n", "nil", "true",
                                               "false", "node", "\\u", "\\n", "-", "1e", "#\"", ':"', "\xEF\xBB\xBF"])
     write(out, "expression", expression_seeds() + ["hexColor('#AbC')", "hexColor(state.colors['editor.background'])",

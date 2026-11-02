@@ -21,9 +21,12 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 15> list = {{
-	    {"run", "<file> [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
-		 "Show a screen and let peers change it, like affrescoui_launcher", runScreen},
+	static constexpr std::array<Command, 16> list = {{
+	    {"run", "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
+		 "Show a screen and let peers change it, like affrescoui_launcher; a Lisp program, or --print, prints the tree "
+		 "it builds",
+		 runScreen},
+	    {"repl", "", "Read Lisp forms and print their values", lispRepl},
 	    {"check",
 		 "<file> [--json] | --compose <screen> <feature> [--adapter FILE] [--base COMMIT] [--scenarios FILE|none] "
 		 "[--document FILE] [--revision out.json] [--json]",

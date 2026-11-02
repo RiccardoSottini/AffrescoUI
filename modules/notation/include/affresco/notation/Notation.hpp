@@ -118,10 +118,10 @@ private:
 /// @throws DocumentError If the value nests deeper than maxNesting.
 [[nodiscard]] std::string write(const json& value, Notation notation);
 
-/// @brief Lays out a text in the Lisp notation canonically, keeping its comments and its `#_` discarded forms: a comment
-/// on a line of its own stays before the member it stands before, and one that ends a line stays on that member's
-/// line (one written between a key and its value moves to the value's line). Without comments, the text is what
-/// write() writes of its value. Formatting twice changes nothing.
+/// @brief Lays out a text in the Lisp notation canonically, keeping its comments and its `#_` discarded forms: a
+/// comment on a line of its own stays before the member it stands before, and one that ends a line stays on that
+/// member's line (one written between a key and its value moves to the value's line). Without comments, the text is
+/// what write() writes of its value. Formatting twice changes nothing.
 /// @param text The text.
 /// @return The canonical text.
 /// @throws NotationError If the text isn't one value in the Lisp notation.

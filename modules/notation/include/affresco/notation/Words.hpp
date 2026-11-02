@@ -50,17 +50,17 @@ inline constexpr std::string_view untypedHead = "node";
 /// The plain words the language (modules/lisp) runs. `list` is also a node type and isn't here: in a data position it
 /// stays a node, and running `list` there takes `~`. A test in tests/unit/lisp.cpp checks this list against the
 /// language.
-inline constexpr auto languageWords = std::to_array<std::string_view>(
-    {"abs",     "add-hook",   "advice",      "and",       "apply",     "assoc",     "assoc-in",   "backquote",
-     "catch",   "concat",     "cond",        "conj",      "cons",      "count",     "dec",        "def",
-     "defcommand", "defcustom", "defkey",    "defmacro",  "defn",      "defscreen", "dissoc",     "do",
-     "drop",    "filter",     "find",        "first",     "fn",        "gensym",    "get",        "get-in",
-     "identity", "if",        "inc",         "join",      "keys",      "keyword",   "last",       "let",
-     "loop",    "lower-case", "map",         "map-indexed", "mapcat",  "max",       "merge",      "min",
-     "mod",     "name",       "not",         "nth",       "or",        "quote",     "range",      "recur",
-     "reduce",  "rem",        "remove",      "rest",      "reverse",   "second",    "some",       "sort",
-     "sort-by", "str",        "subs",        "symbol",    "take",      "throw",     "try",        "unquote",
-     "unquote-splicing", "update", "update-in", "upper-case", "vals",  "vec",       "when",       "zipmap"});
+// clang-format off
+inline constexpr auto languageWords = std::to_array<std::string_view>({
+    "abs", "add-hook", "advice", "and", "apply", "assoc", "assoc-in", "backquote", "catch", "concat", "cond",
+    "conj", "cons", "count", "dec", "def", "defcommand", "defcustom", "defkey", "defmacro", "defn",
+    "defscreen", "dissoc", "do", "drop", "filter", "find", "first", "fn", "gensym", "get", "get-in",
+    "identity", "if", "inc", "join", "keys", "keyword", "last", "let", "loop", "lower-case", "map",
+    "map-indexed", "mapcat", "max", "merge", "min", "mod", "name", "not", "nth", "or", "quote", "range",
+    "recur", "reduce", "rem", "remove", "rest", "reverse", "second", "some", "sort", "sort-by", "str", "subs",
+    "symbol", "take", "throw", "try", "unquote", "unquote-splicing", "update", "update-in", "upper-case",
+    "vals", "vec", "when", "zipmap"});
+// clang-format on
 
 /// @brief Tells whether a plain word is one the language runs (languageWords): in a data position of a language file
 /// it isn't a node type, and the writer writes a node of that type as `(node :type word ...)`.

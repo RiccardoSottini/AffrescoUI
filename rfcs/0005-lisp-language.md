@@ -64,12 +64,12 @@ Out of scope: running existing Emacs Lisp packages, and any change to how JSON a
      (label :text ~(:name room))))
 
 (defscreen main
-  (column :repeat {:for room :in state.rooms}
-    ~(room-card 'room)))
+  (column ~@(map room-card [{:id "kitchen" :name "Kitchen"} {:id "hall" :name "Hall"}])))
 ```
 
 Function names such as `kill`, `buffers` and `current-buffer` are an app's own or the library's, and are illustrative
-here. The syntax is what this RFC decides.
+here. The syntax is what this RFC decides. Building runs on values known when building: a list from `state` goes through
+the existing `repeat` and bindings, written as data, since nothing in a build can read `state`.
 
 ### The language
 
@@ -241,8 +241,9 @@ untrusted.
 
 ## Rollout, one pull request each
 
-1. **The language, pure.** Reader additions, evaluator, closures, macros, budget, templates. `affrescoui run` and a REPL
-   in the CLI, fuzzing. Every existing `lisp/` file gives an identical tree. No live part.
+1. **The language, pure.** Reader additions, evaluator, closures, macros, budget, templates. `affrescoui run` (which
+   showed screens, and goes on showing them: a program, or `--print`, prints what it builds) and a REPL in the CLI, fuzzing.
+   Every existing `lisp/` file gives an identical tree. No live part.
 2. **Definitions in the document.** `program`, version control and per-file diffs on definitions, review by the built
    tree, the keyword edit, comments kept. One small app (Streak) rewritten.
 3. **The live runtime.** Handlers and bindings call functions, authors tracked, run-time checks. Its own security

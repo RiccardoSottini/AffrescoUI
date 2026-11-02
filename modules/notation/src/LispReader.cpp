@@ -79,7 +79,8 @@ public:
 	json document() {
 		const Token first = lexer_.next();
 		if(comments_)
-			for(const SourceComment& comment : lexer_.takeComments()) comments_->root.leading.emplace_back(comment.text);
+			for(const SourceComment& comment : lexer_.takeComments())
+				comments_->root.leading.emplace_back(comment.text);
 		json result = value(first, 0, comments_ ? &comments_->root.inner : nullptr);
 		if(const Token after = lexer_.next(); after.kind != TokenKind::End)
 			lexer_.fail(after.offset, "expected the end of the text after the value, found " + Lexer::shown(after));

@@ -2174,7 +2174,8 @@ is exactly
 ```
 
 **It is never evaluated.** The Lisp notation is data, not code: there are no functions, macros, quoting or `eval`,
-and a list is never called. Expressions stay `{{...}}` strings, as in JSON.
+and a list is never called. Expressions stay `{{...}}` strings, as in JSON. The language that runs Lisp is another thing, which
+apps don't load yet ("The Lisp language").
 
 | JSON | Lisp |
 |---|---|
@@ -2220,6 +2221,64 @@ converted to JSON before it is submitted:
 ```lisp
 {:set {"#statusBar/color" @topBar} :add {"#list/children/-" (label#hello :text "Hello")}}
 ```
+
+## The Lisp language
+
+Besides the notation, `.lisp` text can be a **program**, in a language with a runtime (RFC 0005, `modules/lisp/README.md`):
+Clojure's syntax, Emacs's vocabulary. **An app's documents don't load it yet**: `affrescoui run` prints what a program builds,
+and `affrescoui repl` tries the language.
+
+```lisp
+;;; rooms.lisp
+(defn card "One room, as a node." [room]
+  `(panel :id ~(str "room-" (:id room))
+     (label :text ~(:name room))))
+
+(defcommand toggle-side "Shows or hides the side bar." :title "Toggle Side" :category "View" [] nil)
+(defkey "mod+b" toggle-side)
+(defcustom list-size 60 "How many rooms are listed." :type integer)
+
+(defscreen main :window {:title "Rooms"}
+  (column#rooms ~@(map card [{:id "a" :name "Kitchen"} {:id "b" :name "Hall"}])))
+```
+
+builds
+
+```json
+{ "format": "affrescoui-screen", "version": 2, "window": { "title": "Rooms" },
+  "root": { "type": "column", "id": "rooms", "children": [
+    { "type": "panel", "id": "room-a", "children": [{ "type": "label", "text": "Kitchen" }] },
+    { "type": "panel", "id": "room-b", "children": [{ "type": "label", "text": "Hall" }] } ] },
+  "actions": { "toggle-side": { "title": "Toggle Side", "category": "View", "description": "Shows or hides the side bar.", "do": [] } },
+  "keys": { "mod+b": "toggle-side" },
+  "settings": { "list-size": { "type": "integer", "default": 60, "description": "How many rooms are listed." } } }
+```
+
+| Form | Builds |
+|---|---|
+| `(defscreen main "doc"? :key value ... node)` | `root`, and its keys at the top of the document; another name: `screens.name` |
+| `(defcommand name "doc"? :key value ... [params] body...)` | `actions.name`, and the function `name`. Until functions run in apps, its `do` is empty |
+| `(defkey "chord" "doc"? what)` | `keys.chord` |
+| `(defcustom name value "doc"? :key value ...)` | `settings.name`, and the global `name` |
+| `(def name "doc"? value)`, `(defn ...)`, `(defmacro ...)` | Nothing: what the others use |
+| `(add-hook hook "doc"? f)`, `(advice target "doc"? how... f)` | Nothing yet: recorded |
+
+- **A program** is a file with several top-level forms, or one that is a definition. Each form is a definition with a name, the
+  order doesn't matter, a name twice is an error naming both places, and the sections are sorted by name.
+- **A data file is a template**, read as if backquoted, and builds to exactly the tree the notation gives. Words stay data, and
+  `~` drops into code: `(label :text ~(str "a" 1))`. A word the language runs isn't a node type here: `(not x)` gives
+  `"not" is not a node type; to run it, write ~(not ...); for a node of that type, write (node :type not ...)`, and the printer
+  writes such a type that way. `list` is a node type, and stays one.
+- **The language:** `def defn defmacro fn let if do when cond and or quote loop recur try catch throw`, backquote with `~` and
+  `~@`, lexical closures, proper tail calls, destructuring of vectors and maps, docstrings on every definition, and Clojure's names
+  for functions (`map filter reduce find first rest cons conj assoc dissoc get get-in merge keys vals count str range apply not
+  not= = < > <= >= + - * / mod` and similar: `modules/lisp/README.md`). `nil`, booleans, numbers, strings, vectors and maps are JSON's.
+  It has no file, process, network, clock or randomness, and building is pure: the same source gives the same tree.
+- **Limits** (10 million operations, 64 MiB allocated, 20,000 nested calls, a budget of its own for macros) end anything that
+  would run away, with an error naming the file, line, column and definition, never a value.
+
+`affrescoui convert` refuses a program, naming the first definition that needs running, since a program can't be converted to
+JSON and back; `affrescoui fmt` refuses one for now.
 
 ## Migrating from version 1
 
