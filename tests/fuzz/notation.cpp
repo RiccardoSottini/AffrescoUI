@@ -45,8 +45,7 @@ void formats(std::string_view text, const json& value) {
 	if(affresco::notation::read(once, Notation::Lisp).dump() != value.dump())
 		affresco::fuzz::broken("formatting keeps the tree");
 	if(affresco::notation::format(once) != once) affresco::fuzz::broken("formatting twice is formatting once");
-	if(text.find(';') != std::string_view::npos && text.find('"') == std::string_view::npos &&
-	   text.find("#_") == std::string_view::npos && once.find(';') == std::string::npos)
+	if(text.contains(';') && !text.contains('"') && !text.contains("#_") && !once.contains(';'))
 		affresco::fuzz::broken("formatting keeps comments");
 }
 

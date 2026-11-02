@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <ranges>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -150,7 +151,7 @@ Value Machine::force(Global& global) {
 }
 
 void Machine::pushThunk(const Code* code, Global* storeTo) {
-	stack_.push_back({}); // where a function would stand
+	stack_.emplace_back(); // where a function would stand
 	Frame frame;
 	frame.code = code;
 	frame.base = stack_.size();
@@ -183,10 +184,10 @@ void Machine::step() {
 }
 
 std::pair<Place, std::string> Machine::currentPlace() const {
-	for(auto frame = frames_.rbegin(); frame != frames_.rend(); ++frame) {
-		const Code* code = frame->code->library ? frame->origin : frame->code;
+	for(const Frame& frame : std::views::reverse(frames_)) {
+		const Code* code = frame.code->library ? frame.origin : frame.code;
 		if(!code) continue;
-		const std::uint32_t at = frame->code->library ? frame->originIp : frame->ip;
+		const std::uint32_t at = frame.code->library ? frame.originIp : frame.ip;
 		const std::uint32_t ip = at > 0 ? at - 1 : 0;
 		return {ip < code->places.size() ? code->places[ip] : Place{}, code->definition};
 	}
@@ -450,8 +451,7 @@ void Machine::opClosure(const Instruction& instruction) {
 	closure->code = code;
 	closure->captured.reserve(code->captures.size());
 	for(const CaptureSource& source : code->captures) {
-		if(source.index == static_cast<std::uint32_t>(-1))
-			closure->captured.push_back(Value::object(Kind::Function, frame.closure));
+		if(source.index == selfCapture) closure->captured.push_back(Value::object(Kind::Function, frame.closure));
 		else
 			closure->captured.push_back(source.local ? stack_[frame.base + source.index]
 			                                         : frame.closure->captured[source.index]);
@@ -503,11 +503,9 @@ void Machine::opThrow(const Instruction& instruction) {
 	const Value value = pop();
 	const Value written = frames_.back().code->constants[instruction.a];
 	// A message from the form itself is shown; one computed from values never is
-	Problem problem(written.kind() == Kind::String ? std::string(written.text())
-	                                               : "a condition was thrown and nothing caught it");
-	problem.value = value;
-	problem.hasValue = true;
-	throw problem;
+	throw Problem(written.kind() == Kind::String ? std::string(written.text())
+	                                             : "a condition was thrown and nothing caught it",
+	              value);
 }
 
 void Machine::opTryBegin(const Instruction& instruction) {

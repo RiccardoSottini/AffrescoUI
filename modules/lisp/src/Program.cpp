@@ -188,7 +188,7 @@ std::vector<Value> argumentsOf(const Value& form) {
 /// @param machine The machine.
 /// @param form The form.
 /// @return The macro's global, or nullptr.
-Global* macroOf(Machine& machine, const Value& form) {
+Global* macroOf(const Machine& machine, const Value& form) {
 	const std::string_view head = headWord(form);
 	Global* global = head.empty() ? nullptr : machine.findGlobal(head);
 	return global && global->macro ? global : nullptr;
@@ -271,24 +271,48 @@ bool isProgram(std::string_view text) {
 	return reader.next().has_value() || isDefinitionWord(headWord(first->form));
 }
 
+namespace {
+
+/// @brief The place of the first `~`, or a quote, in a text.
+/// @param text The text.
+/// @return The place as an answer of needsRunning(), or std::nullopt.
+std::optional<std::string> firstUnquote(std::string_view text) {
+	notation::Lexer lexer(text, true);
+	for(notation::Token token = lexer.next(); token.kind != notation::TokenKind::End; token = lexer.next())
+		if(token.kind >= notation::TokenKind::Quote && token.kind <= notation::TokenKind::Splice)
+			return "the " + std::string(token.text) + " at " + lexer.placeOf(token.offset);
+	return std::nullopt;
+}
+
+} // namespace
+
+namespace {
+
+/// @brief Whether a text is a program, for a text that may not read.
+/// @param text The text.
+/// @return true if it reads as one.
+bool isProgramQuietly(std::string_view text) {
+	try {
+		return isProgram(text);
+	} catch(const LispError&) {
+		return false;
+	}
+}
+
+} // namespace
+
 std::optional<std::string> needsRunning(std::string_view text) {
 	try {
-		if(isProgram(text)) {
-			try {
-				const Entry first = splitEntries(text, "").front();
-				return "\"" + notation::Lexer::excerpt(first.name) + "\", at line " + std::to_string(first.line);
-			} catch(const LispError& error) { // a form without a name
-				return "the form at line " + std::to_string(error.line());
-			}
-		}
-		notation::Lexer lexer(text, true);
-		for(notation::Token token = lexer.next(); token.kind != notation::TokenKind::End; token = lexer.next())
-			if(token.kind == notation::TokenKind::Unquote || token.kind == notation::TokenKind::Splice ||
-			   token.kind == notation::TokenKind::Quote || token.kind == notation::TokenKind::Backquote)
-				return "the ~ at " + lexer.placeOf(token.offset);
-	} catch(const DocumentError&) { // the notation's reader says what is wrong with it
+		if(!isProgram(text)) return firstUnquote(text);
+		const Entry first = splitEntries(text, "").front();
+		return "\"" + notation::Lexer::excerpt(first.name) + "\", at line " + std::to_string(first.line);
+	} catch(const LispError& error) { // a program with a form that names nothing; or text the notation's reader reports
+		return error.line() != 0 && isProgramQuietly(text)
+		           ? std::optional("the form at line " + std::to_string(error.line()))
+				   : std::nullopt;
+	} catch(const DocumentError&) { // text the notation's reader reports
+		return std::nullopt;
 	}
-	return std::nullopt;
 }
 
 json buildText(std::string_view text, const std::string& file, const Limits& limits) {
@@ -322,6 +346,13 @@ void Program::addFile(std::string_view text, const std::string& file, const std:
 }
 
 void Program::addEntry(Entry entry) {
+	Heap heap;
+	Reader reader(heap, entry.text, entry.file, entry.line, entry.column);
+	const auto read = reader.next();
+	if(!read || reader.next())
+		throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
+	if(definitionAddress(read->form).second != entry.name)
+		throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text defines its own name");
 	for(const Entry& known : entries_)
 		if(known.name == entry.name)
 			throw LispError(entry.file, entry.line, entry.column, entry.name,
@@ -339,7 +370,7 @@ void Program::definePure(const std::string& name, Primitive primitive) {
 
 void Program::load(Interpreter& interpreter) const {
 	Machine& machine = interpreter.machine();
-	leavingAsLispError(machine, [&] {
+	static_cast<void>(leavingAsLispError(machine, [&] {
 		std::vector<std::pair<Value, const Entry*>> forms;
 		forms.reserve(entries_.size());
 		for(const Entry& entry : entries_) {
@@ -361,7 +392,7 @@ void Program::load(Interpreter& interpreter) const {
 				defineTopLevel(machine, form, entry->author, authorsOf(*entry), form.place());
 		machine.compilePending();
 		return true;
-	});
+	}));
 }
 
 json Program::build(const Limits& limits) {

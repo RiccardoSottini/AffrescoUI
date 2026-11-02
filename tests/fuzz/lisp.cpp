@@ -72,7 +72,8 @@ void entriesKeepTheText(std::string_view text) {
 			if(at == std::string_view::npos) affresco::fuzz::broken("an entry's text is exact");
 			at += entry.text.size();
 		}
-	} catch(const affresco::lisp::LispError&) { // it can't be read, or a form names no definition
+	} catch(const affresco::lisp::LispError& error) { // it can't be read, or a form names no definition
+		if(error.message().size() > maxMessage) affresco::fuzz::broken("an error quotes only the start of the text");
 	}
 }
 
@@ -93,7 +94,8 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		const affresco::lisp::Value value = interpreter.eval(text, "fuzz", "fuzz");
 		static_cast<void>(interpreter.print(value));
 		static_cast<void>(interpreter.toTree(value));
-	} catch(const affresco::lisp::LispError&) { // refusing it is the rule
+	} catch(const affresco::lisp::LispError& error) { // refusing it is the rule
+		if(error.message().size() > maxMessage) affresco::fuzz::broken("an error quotes only the start of the text");
 	}
 	return 0;
 }

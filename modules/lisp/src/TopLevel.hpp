@@ -17,7 +17,7 @@ namespace affresco::lisp {
 /// @param machine The machine.
 /// @param function What to run.
 /// @return What it returns.
-template <class Function> auto leavingAsLispError(Machine& machine, Function&& function) {
+template <class Function> auto leavingAsLispError(Machine& machine, const Function& function) {
 	try {
 		return function();
 	} catch(const Problem& problem) {

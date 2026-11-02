@@ -8,7 +8,6 @@
 #include <affresco/notation/Lexer.hpp>
 #include <affresco/notation/Words.hpp>
 
-#include <cmath>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -186,42 +185,33 @@ public:
 	void write(const Value& value, int depth) {
 		if(depth > maxValueDepth) Machine::exhausted("a value nested too deeply to print");
 		machine_.spend(1);
-		switch(value.kind()) {
-		case Kind::Nil:
-			add(readable_ || depth > 0 ? "nil" : "");
-			return;
-		case Kind::Boolean:
-			add(value.asBoolean() ? "true" : "false");
-			return;
-		case Kind::Integer:
-		case Kind::Unsigned:
-		case Kind::Float:
-			add(value.numberAsJson().dump());
-			return;
-		case Kind::String:
-			if(readable_ || depth > 0) add(json(value.text()).dump(-1, ' ', false, json::error_handler_t::replace));
-			else add(value.text());
-			return;
-		case Kind::Symbol:
-			add(value.text());
-			return;
-		case Kind::Keyword:
-			add(":");
-			add(value.text());
-			return;
-		case Kind::List:
-		case Kind::Vector:
-			sequence(value, depth);
-			return;
-		case Kind::Map:
-			map(value, depth);
-			return;
-		default:
-			add("#<function>");
-		}
+		if(value.isSequence()) sequence(value, depth);
+		else if(value.kind() == Kind::Map) map(value, depth);
+		else if(value.isNumber()) add(value.numberAsJson().dump());
+		else if(value.kind() == Kind::String) string(value, depth);
+		else if(value.kind() == Kind::Nil) add(readable_ || depth > 0 ? "nil" : "");
+		else if(value.kind() == Kind::Boolean) add(value.asBoolean() ? "true" : "false");
+		else if(value.kind() == Kind::Symbol) add(value.text());
+		else if(value.kind() == Kind::Keyword) keyword(value);
+		else add("#<function>");
 	}
 
 private:
+	/// @brief Writes a string: in quotes when it is meant to read back, or inside something.
+	/// @param value It.
+	/// @param depth How many values hold it.
+	void string(const Value& value, int depth) {
+		if(readable_ || depth > 0) add(json(value.text()).dump(-1, ' ', false, json::error_handler_t::replace));
+		else add(value.text());
+	}
+
+	/// @brief Writes a keyword.
+	/// @param value It.
+	void keyword(const Value& value) {
+		add(":");
+		add(value.text());
+	}
+
 	/// @brief Writes a list or a vector.
 	/// @param value It.
 	/// @param depth How many values hold it.
@@ -278,6 +268,37 @@ bool numbersEqual(const Value& first, const Value& second) noexcept {
 	return first.asDouble() == second.asDouble();
 }
 
+bool equalAt(Machine& machine, const Value& first, const Value& second, int depth);
+
+/// @brief Compares two lists or vectors.
+/// @param machine The machine, whose budget it spends.
+/// @param first One.
+/// @param second The other.
+/// @param depth How deep it has gone.
+/// @return true if they are equal.
+bool sequencesEqual(Machine& machine, const Value& first, const Value& second, int depth) {
+	if(first.count() != second.count()) return false;
+	for(std::size_t at = 0; at < first.count(); ++at)
+		if(!equalAt(machine, first.at(at), second.at(at), depth + 1)) return false;
+	return true;
+}
+
+/// @brief Compares two maps, whatever the order of their keys.
+/// @param machine The machine, whose budget it spends.
+/// @param first One.
+/// @param second The other.
+/// @param depth How deep it has gone.
+/// @return true if they are equal.
+bool mapsEqual(Machine& machine, const Value& first, const Value& second, int depth) {
+	if(first.count() != second.count()) return false;
+	for(std::size_t at = 0; at < first.count(); ++at) {
+		bool found = false;
+		const Value other = second.lookup(first.keyAt(at), &found);
+		if(!found || !equalAt(machine, first.valueAt(at), other, depth + 1)) return false;
+	}
+	return true;
+}
+
 /// @brief Compares two values.
 /// @param machine The machine, whose budget it spends.
 /// @param first One.
@@ -288,34 +309,13 @@ bool equalAt(Machine& machine, const Value& first, const Value& second, int dept
 	if(depth > maxValueDepth) Machine::exhausted("values nested too deeply to compare");
 	machine.spend(1);
 	if(first.isNumber() && second.isNumber()) return numbersEqual(first, second);
-	if(first.isSequence() && second.isSequence()) {
-		if(first.count() != second.count()) return false;
-		for(std::size_t at = 0; at < first.count(); ++at)
-			if(!equalAt(machine, first.at(at), second.at(at), depth + 1)) return false;
-		return true;
-	}
+	if(first.isSequence() && second.isSequence()) return sequencesEqual(machine, first, second, depth);
 	if(first.kind() != second.kind()) return false;
-	switch(first.kind()) {
-	case Kind::Nil:
-		return true;
-	case Kind::Boolean:
-		return first.asBoolean() == second.asBoolean();
-	case Kind::String:
-	case Kind::Symbol:
-	case Kind::Keyword:
-		return first.text() == second.text();
-	case Kind::Map: {
-		if(first.count() != second.count()) return false;
-		for(std::size_t at = 0; at < first.count(); ++at) {
-			bool found = false;
-			const Value other = second.lookup(first.keyAt(at), &found);
-			if(!found || !equalAt(machine, first.valueAt(at), other, depth + 1)) return false;
-		}
-		return true;
-	}
-	default:
-		return first.pointer() == second.pointer();
-	}
+	if(first.kind() == Kind::Map) return mapsEqual(machine, first, second, depth);
+	if(first.kind() == Kind::Nil) return true;
+	if(first.kind() == Kind::Boolean) return first.asBoolean() == second.asBoolean();
+	if(first.kind() == Kind::Function || first.kind() == Kind::Native) return first.pointer() == second.pointer();
+	return first.text() == second.text(); // a string, a symbol, a keyword
 }
 
 } // namespace

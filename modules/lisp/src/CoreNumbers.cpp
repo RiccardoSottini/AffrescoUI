@@ -123,7 +123,7 @@ Value divided(const Value& first, const Value& second) {
 	if(first.kind() == Kind::Integer && second.kind() == Kind::Integer) {
 		const std::int64_t a = first.asInteger();
 		const std::int64_t b = second.asInteger();
-		if(!(a == lowestInteger && b == -1) && a % b == 0) return Value::integer(a / b);
+		if((a != lowestInteger || b != -1) && a % b == 0) return Value::integer(a / b);
 	}
 	return Value::real(first.asDouble() / second.asDouble());
 }

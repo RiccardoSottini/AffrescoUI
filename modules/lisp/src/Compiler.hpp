@@ -149,7 +149,7 @@ private:
 	/// @brief Runs a compilation, so that a limit running out inside it names the place.
 	/// @param compilation What compiles.
 	/// @return The code.
-	const Code* compiling(const std::function<const Code*()>& compilation);
+	const Code* compiling(const std::function<const Code*()>& compilation) const;
 	/// @brief Starts a function's compilation. @param state Its state. @param name Its own name, or "".
 	void begin(Function& state, std::string_view name);
 	/// @brief Ends a function's compilation: its value is the top. @param state Its state. @return The code.
@@ -175,6 +175,14 @@ private:
 	/// @param pattern The pattern.
 	/// @param slot The slot.
 	void destructureMap(const Value& pattern, std::uint32_t slot);
+	/// @brief Binds one of a map pattern's options: `:keys`, `:as`, or `:or`, read already.
+	/// @param pattern The pattern.
+	/// @param word The option.
+	/// @param value Its value.
+	/// @param defaults The pattern's `:or`, or nil.
+	/// @param slot The slot of the map.
+	void destructureOption(const Value& pattern, std::string_view word, const Value& value, const Value& defaults,
+	                       std::uint32_t slot);
 	/// @brief Binds one member of a map pattern.
 	/// @param pattern The name or the pattern.
 	/// @param key The key.
@@ -228,6 +236,6 @@ private:
 /// @brief A form's head word: a list's first item, if it is a symbol.
 /// @param form The form.
 /// @return Its text, or "".
-[[nodiscard]] std::string_view headWord(const Value& form) noexcept;
+[[nodiscard]] std::string_view headWord(const Value& form);
 
 } // namespace affresco::lisp

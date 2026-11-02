@@ -168,7 +168,7 @@ public:
 	/// @brief The author of a function, which it keeps wherever it goes.
 	/// @param function A closure.
 	/// @return Its author; "" for anything else.
-	[[nodiscard]] std::string authorOf(const Value& function) const;
+	[[nodiscard]] static std::string authorOf(const Value& function);
 
 	/// @brief Sets what running may spend from now on. @param budget The budget.
 	void setBudget(const Budget& budget) noexcept;

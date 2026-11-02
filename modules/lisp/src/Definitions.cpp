@@ -109,6 +109,21 @@ std::function<void()> compileValueInto(Machine& machine, Global& global, const V
 	};
 }
 
+/// @brief Makes what compiles what a definition builds, a template.
+/// @param machine The machine.
+/// @param definition The definition.
+/// @param data The template.
+/// @param context Who the code belongs to.
+/// @return What compiles it.
+std::function<void()> compileDataInto(Machine& machine, Definition& definition, const Value& data,
+                                      CompileContext context) {
+	return [&machine, &definition, data, context = std::move(context)] {
+		const std::uint64_t saved = std::exchange(machine.gensymCounter(), 0);
+		definition.data = Compiler(machine, context).templateThunk(data);
+		machine.gensymCounter() = saved;
+	};
+}
+
 /// @brief Sets a global waiting to be compiled.
 /// @param global The global.
 /// @param pending What compiles it.
@@ -118,6 +133,16 @@ void setPending(Global& global, std::function<void()> pending, bool macro) {
 	global.state = Global::State::Deferred;
 	global.macro = macro;
 	global.library = false;
+}
+
+/// @brief Refuses a name no definition may have.
+/// @param form The form.
+/// @param name The name.
+void checkName(const Value& form, const std::string& name) {
+	if(Compiler::isSpecial(name))
+		failDefinition(form, name,
+		               "\"" + notation::Lexer::excerpt(name) + "\" is a form of the language, and can't be redefined");
+	if(name.starts_with('%')) failDefinition(form, name, "a name starting with % is the language's own");
 }
 
 } // namespace
@@ -180,30 +205,45 @@ void Machine::definePrimitive(const std::string& name, Primitive primitive) {
 	cell.library = false;
 }
 
-bool Machine::isDefinitionForm(const Value& form) noexcept { return isDefinitionWord(headWord(form)); }
+bool Machine::isDefinitionForm(const Value& form) { return isDefinitionWord(headWord(form)); }
 
 Definition& Machine::define(const Value& form, const std::string& author, const AuthorSet* authors, bool strict) {
 	const std::string head(headWord(form));
-	auto [kind, name] = definitionAddress(form);
-	const std::string shown = notation::Lexer::excerpt(name);
+	const auto [kind, name] = definitionAddress(form);
 	if(form.count() < leastItems(head)) failDefinition(form, name, head + " is missing what it defines");
-	if(head != "defkey" && head != "add-hook" && head != "advice") {
-		if(Compiler::isSpecial(name))
-			failDefinition(form, name, "\"" + shown + "\" is a form of the language, and can't be redefined");
-		if(name.starts_with('%')) failDefinition(form, name, "a name starting with % is the language's own");
+	if(head != "defkey" && head != "add-hook" && head != "advice") checkName(form, name);
+	Definition& made = addDefinition(form, kind, name, author, strict);
+	made.authors = authors ? authors : authorSet(author);
+	const CompileContext context{name, author, made.authors, false};
+	made.doc = docAt(form, 2);
+	if(head == "defn" || head == "defmacro") {
+		made.global = &global(name);
+		setPending(*made.global, compileFunctionInto(*this, *made.global, form, context), head == "defmacro");
+	} else if(head == "def") {
+		const std::size_t at = made.doc.empty() ? 2 : 3;
+		if(at + 1 != form.count()) failDefinition(form, name, "def takes a name, maybe a docstring, and a value");
+		made.global = &global(name);
+		setPending(*made.global, compileValueInto(*this, *made.global, form.at(at), context), false);
+	} else {
+		defineVocabulary(made, form, context);
 	}
+	return made;
+}
+
+Definition& Machine::addDefinition(const Value& form, const std::string& kind, const std::string& name,
+                                   const std::string& author, bool strict) {
 	const auto taken = definitionNames_.find(name);
 	if(strict && taken != definitionNames_.end())
 		failDefinition(form, name,
-		               "\"" + shown + "\" is defined twice: at " + describePlace(definitions_[taken->second]->place) +
-		                   " and at " + describePlace(form.place()));
+		               "\"" + notation::Lexer::excerpt(name) + "\" is defined twice: at " +
+		                   describePlace(definitions_[taken->second]->place) + " and at " +
+		                   describePlace(form.place()));
 	auto definition = std::make_unique<Definition>();
 	definition->kind = kind;
 	definition->name = name;
 	definition->author = author;
-	definition->authors = authors ? authors : authorSet(author);
 	definition->place = form.place();
-	Definition* made = definition.get();
+	Definition& made = *definition;
 	if(taken != definitionNames_.end()) {
 		definitions_[taken->second] = std::move(definition);
 		compiled_ = std::min(compiled_, taken->second);
@@ -211,72 +251,62 @@ Definition& Machine::define(const Value& form, const std::string& author, const 
 		definitionNames_.emplace(name, definitions_.size());
 		definitions_.push_back(std::move(definition));
 	}
-	const CompileContext context{name, author, made->authors, false};
-	std::size_t at = 2;
-	made->doc = docAt(form, at);
-	if(head == "defn" || head == "defmacro") {
-		made->global = &global(name);
-		setPending(*made->global, compileFunctionInto(*this, *made->global, form, context), head == "defmacro");
-	} else if(head == "def") {
-		if(!made->doc.empty()) ++at;
-		if(at + 1 != form.count()) failDefinition(form, name, "def takes a name, maybe a docstring, and a value");
-		made->global = &global(name);
-		setPending(*made->global, compileValueInto(*this, *made->global, form.at(at), context), false);
-	} else {
-		defineVocabulary(*made, form, context);
-	}
-	return *made;
+	return made;
+}
+
+Value Machine::commandData(Definition& definition, const Value& form, const CompileContext& context) {
+	std::size_t at = definition.doc.empty() ? 2 : 3;
+	const Value data = optionsOf(*this, form, at, definition.name);
+	if(at >= form.count() || form.at(at).kind() != Kind::Vector)
+		failDefinition(form, definition.name, "defcommand takes its parameters, a vector, before its body");
+	std::vector<Value> function = {form.at(1)};
+	for(std::size_t item = at; item < form.count(); ++item) function.push_back(form.at(item));
+	definition.global = &global(definition.name);
+	const Value fn = listOf(*this, "fn", std::move(function), form.place());
+	setPending(*definition.global, compileFunctionInto(*this, *definition.global, fn, context), false);
+	return data;
+}
+
+Value Machine::customData(Definition& definition, const Value& form, const CompileContext& context) {
+	definition.doc = docAt(form, 3);
+	std::size_t at = definition.doc.empty() ? 3 : 4;
+	const Value data = optionsOf(*this, form, at, definition.name);
+	if(at != form.count())
+		failDefinition(form, definition.name, "defcustom takes a name, a value, maybe a docstring, and options");
+	definition.global = &global(definition.name);
+	setPending(*definition.global, compileValueInto(*this, *definition.global, form.at(2), context), false);
+	return data;
+}
+
+Value Machine::screenData(const Definition& definition, const Value& form) {
+	std::size_t at = definition.doc.empty() ? 2 : 3;
+	const Value options = optionsOf(*this, form, at, definition.name);
+	if(at + 1 != form.count())
+		failDefinition(form, definition.name, "defscreen holds one root node, after its options");
+	const std::vector<Value> both = {options, form.at(at)};
+	return heap.sequence(Kind::Vector, std::span<const Value>(both), form.place());
 }
 
 void Machine::defineVocabulary(Definition& definition, const Value& form, const CompileContext& context) {
 	const std::string& kind = definition.kind;
-	const std::string& name = definition.name;
-	const Place place = form.place();
-	std::size_t at = 2;
 	Value data;
 	if(kind == "defcommand") {
-		if(!definition.doc.empty()) ++at;
-		data = optionsOf(*this, form, at, name);
-		if(at >= form.count() || form.at(at).kind() != Kind::Vector)
-			failDefinition(form, name, "defcommand takes its parameters, a vector, before its body");
-		std::vector<Value> function = {form.at(1)};
-		for(std::size_t item = at; item < form.count(); ++item) function.push_back(form.at(item));
-		definition.global = &global(name);
-		setPending(
-		    *definition.global,
-		    compileFunctionInto(*this, *definition.global, listOf(*this, "fn", std::move(function), place), context),
-		    false);
+		data = commandData(definition, form, context);
 	} else if(kind == "defcustom") {
-		definition.doc = docAt(form, 3);
-		at = definition.doc.empty() ? 3 : 4;
-		data = optionsOf(*this, form, at, name);
-		if(at != form.count())
-			failDefinition(form, name, "defcustom takes a name, a value, maybe a docstring, and options");
-		definition.global = &global(name);
-		setPending(*definition.global, compileValueInto(*this, *definition.global, form.at(2), context), false);
+		data = customData(definition, form, context);
 	} else if(kind == "defscreen") {
-		if(!definition.doc.empty()) ++at;
-		const Value options = optionsOf(*this, form, at, name);
-		if(at + 1 != form.count()) failDefinition(form, name, "defscreen holds one root node, after its options");
-		const std::vector<Value> both = {options, form.at(at)};
-		data = heap.sequence(Kind::Vector, std::span<const Value>(both), place);
+		data = screenData(definition, form);
 	} else if(kind == "defkey") {
-		if(!definition.doc.empty()) ++at;
+		const std::size_t at = definition.doc.empty() ? 2 : 3;
 		if(at + 1 != form.count())
-			failDefinition(form, name, "defkey takes a key, maybe a docstring, and what it runs");
+			failDefinition(form, definition.name, "defkey takes a key, maybe a docstring, and what it runs");
 		data = form.at(at);
 	} else { // add-hook, advice: recorded, and a later stage gives them their behaviour
-		for(std::size_t item = 1; item < form.count(); ++item) {
-			if(item >= 2 && form.at(item).kind() == Kind::String && item + 1 < form.count()) continue;
-			definition.targets.emplace_back(form.at(item).text());
-		}
+		for(std::size_t item = 1; item < form.count(); ++item)
+			if(item < 2 || docAt(form, item).empty()) definition.targets.emplace_back(form.at(item).text());
 		return;
 	}
-	definition.pending = [this, &definition, data, context] {
-		const std::uint64_t saved = std::exchange(gensym_, 0);
-		definition.data = Compiler(*this, context).templateThunk(data);
-		gensym_ = saved;
-	};
+	definition.pending = compileDataInto(*this, definition, data, context);
 }
 
 void Machine::compilePending() {
@@ -303,11 +333,14 @@ Value Machine::expand(Global& macro, std::span<const Value> arguments, Place pla
 	/// Keeps macro expansion on its own budget, until it ends.
 	class OnMacroBudget {
 	public:
+		/// @brief Goes on the macro budget, unless an expansion around this one already did.
+		/// @param machine The machine.
 		explicit OnMacroBudget(Machine& machine) : machine_(machine), outer_(!machine.expanding_) {
 			if(!outer_) return;
 			saved_ = std::exchange(machine_.budget_.operations, machine_.macroOperations_);
 			machine_.expanding_ = true;
 		}
+		/// @brief Goes back to the budget it was on.
 		~OnMacroBudget() {
 			if(!outer_) return;
 			machine_.macroOperations_ = std::exchange(machine_.budget_.operations, saved_);
@@ -317,9 +350,9 @@ Value Machine::expand(Global& macro, std::span<const Value> arguments, Place pla
 		OnMacroBudget& operator=(const OnMacroBudget&) = delete;
 
 	private:
-		Machine& machine_;
-		bool outer_;
-		std::size_t saved_ = 0;
+		Machine& machine_;      ///< See the constructor.
+		bool outer_;            ///< It is the one that went on the macro budget.
+		std::size_t saved_ = 0; ///< The operations of the budget it was on.
 	};
 	const OnMacroBudget budget(*this);
 	try {
@@ -373,7 +406,7 @@ std::vector<std::string> Machine::authorsOnStack() const {
 }
 
 std::string describePlace(Place place) {
-	std::string text = place.file && !place.file->empty() ? *place.file + ": " : "";
+	const std::string text = place.file && !place.file->empty() ? *place.file + ": " : "";
 	return text + "line " + std::to_string(place.line) + ", column " + std::to_string(place.column);
 }
 

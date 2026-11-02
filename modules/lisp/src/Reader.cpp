@@ -39,11 +39,12 @@ bool isSymbolWord(std::string_view text) noexcept {
 	if(text.empty() || !std::ranges::all_of(text, allowed)) return false;
 	const auto digit = [](char c) { return c >= '0' && c <= '9'; };
 	if(digit(text.front())) return false;
-	return !((text.front() == '-' || text.front() == '+' || text.front() == '.') && text.size() > 1 && digit(text[1]));
+	const bool signed_ = text.front() == '-' || text.front() == '+' || text.front() == '.';
+	return !signed_ || text.size() == 1 || !digit(text[1]);
 }
 
 Reader::Reader(Heap& heap, std::string_view text, const std::string& file, std::size_t line, std::size_t column)
-    : heap_(heap), lexer_([&]() -> notation::Lexer {
+    : heap_(heap), lexer_([&] -> notation::Lexer {
 	      try {
 		      return notation::Lexer(text, true);
 	      } catch(const notation::NotationError& error) {
@@ -197,7 +198,7 @@ Value Reader::map(const Token& open, int depth) {
 	for(Token item = lexer_.next(); item.kind != TokenKind::CloseMap; item = lexer_.next()) {
 		if(item.kind == TokenKind::End)
 			lexer_.fail(item.offset, "expected '}' to close the object opened at " + lexer_.placeOf(open.offset));
-		Value key = form(item, depth + 1);
+		const Value key = form(item, depth + 1);
 		literal = literal && (key.kind() == Kind::Keyword || key.kind() == Kind::String);
 		if((key.kind() == Kind::Keyword || key.kind() == Kind::String) && !seen.insert(key.text()).second)
 			lexer_.fail(item.offset,

@@ -101,12 +101,12 @@ public:
 	/// @brief Tells whether a list is a top-level definition form.
 	/// @param form The form.
 	/// @return true if it is.
-	[[nodiscard]] static bool isDefinitionForm(const Value& form) noexcept;
+	[[nodiscard]] static bool isDefinitionForm(const Value& form);
 	/// @brief Compiles every definition not compiled yet.
 	void compilePending();
 	/// @brief Compiles a global, if it is waiting to be.
-	/// @param global The global.
-	void ensureCompiled(Global& global);
+	/// @param cell The global.
+	static void ensureCompiled(Global& cell);
 	/// @brief A definition by name.
 	/// @param name Its name.
 	/// @return It, or nullptr.
@@ -206,6 +206,25 @@ private:
 	void run(std::size_t floor);
 	/// @brief Runs one instruction.
 	void step();
+	/// @brief Adds a definition, or replaces one of the name.
+	/// @param form The form.
+	/// @param kind Its kind.
+	/// @param name Its name.
+	/// @param author Its author.
+	/// @param strict Whether a name taken is an error.
+	/// @return The definition.
+	Definition& addDefinition(const Value& form, const std::string& kind, const std::string& name,
+	                          const std::string& author, bool strict);
+	/// @brief Defines `defcommand`'s function. @param definition It. @param form Its form. @param context Its code's
+	/// owner. @return What it builds, as a template.
+	Value commandData(Definition& definition, const Value& form, const CompileContext& context);
+	/// @brief Defines `defcustom`'s global. @param definition It. @param form Its form. @param context Its code's
+	/// owner.
+	/// @return What it builds, as a template.
+	Value customData(Definition& definition, const Value& form, const CompileContext& context);
+	/// @brief What `defscreen` builds. @param definition It. @param form Its form. @return A vector of its options and
+	/// its node, as a template.
+	Value screenData(const Definition& definition, const Value& form);
 	/// @brief What the forms that build a tree mean: `defcommand`, `defcustom`, `defscreen`, `defkey`, and the recorded
 	/// `add-hook` and `advice`.
 	/// @param definition The definition.

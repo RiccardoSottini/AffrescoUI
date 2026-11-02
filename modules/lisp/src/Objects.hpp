@@ -15,6 +15,7 @@
 #include <functional>
 #include <memory>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -26,11 +27,17 @@ namespace affresco::lisp {
 class Machine;
 
 /// @brief What a primitive or the machine raises: a condition a `try` can catch, unless a limit ran out.
-struct Problem {
+struct Problem : std::runtime_error {
 	/// @brief A problem.
 	/// @param what What is wrong: what an uncaught error says.
 	/// @param limit A limit ran out: no `try` catches it.
-	explicit Problem(std::string what, bool limit = false) : message(std::move(what)), exhausted(limit) {}
+	explicit Problem(const std::string& what, bool limit = false)
+	    : std::runtime_error(what), message(what), exhausted(limit) {}
+	/// @brief What `throw` raises.
+	/// @param what What an uncaught error says.
+	/// @param thrown What `catch` binds.
+	Problem(const std::string& what, const Value& thrown)
+	    : std::runtime_error(what), message(what), value(thrown), hasValue(true) {}
 	std::string message;    ///< See the constructor.
 	Value value;            ///< What `catch` binds, when thrown (hasValue).
 	bool hasValue = false;  ///< Thrown by `throw`, with this value.
@@ -150,6 +157,9 @@ struct Global {
 	std::function<void()> pending;  ///< What compiles it.
 };
 
+/// A CaptureSource::index that stands for the closure being run, which a function inside it captures by its name.
+inline constexpr std::uint32_t selfCapture = 0xFFFFFFFFU;
+
 /// @brief Where a closure's captured value comes from, in the function that makes it.
 struct CaptureSource {
 	bool local = true;       ///< From its locals, else from its own captures.
@@ -223,12 +233,12 @@ public:
 		budget_->bytes -= bytes;
 	}
 
-	/// @brief A string. @param text Its text. @param place Where it was read. @return The value.
-	Value string(std::string_view text, Place place = {});
-	/// @brief A symbol. @param text Its text. @param place Where it was read. @return The value.
-	Value symbol(std::string_view text, Place place = {});
-	/// @brief A keyword. @param text Its text, without ':'. @param place Where it was read. @return The value.
-	Value keyword(std::string_view text, Place place = {});
+	/// @brief A string. @param written Its text. @param place Where it was read. @return The value.
+	Value string(std::string_view written, Place place = {});
+	/// @brief A symbol. @param written Its text. @param place Where it was read. @return The value.
+	Value symbol(std::string_view written, Place place = {});
+	/// @brief A keyword. @param written Its text, without ':'. @param place Where it was read. @return The value.
+	Value keyword(std::string_view written, Place place = {});
 	/// @brief A list or a vector, of a copy of its items.
 	/// @param kind Kind::List or Kind::Vector.
 	/// @param items Its items.
@@ -254,8 +264,8 @@ public:
 	Value appended(const Value& from, const Value& item);
 	/// @brief A map. @param entries Its members. @param place Where it was read. @return The value.
 	Value map(std::vector<MapEntry>&& entries, Place place = {});
-	/// @brief Copies a text into the heap, for a map's key. @param text The text. @return The copy.
-	std::string_view keep(std::string_view text);
+	/// @brief Copies a text into the heap, for a map's key. @param written The text. @return The copy.
+	std::string_view keep(std::string_view written);
 	/// @brief Keeps a file's name for the places that name it. @param name The name. @return The kept name.
 	const std::string* file(const std::string& name);
 	/// @brief Keeps JSON alive as long as the heap. @param value The JSON.
@@ -264,10 +274,10 @@ public:
 private:
 	/// @brief A symbol, a keyword or a string.
 	/// @param kind Which.
-	/// @param text Its text.
+	/// @param written Its text.
 	/// @param place Where it was read.
 	/// @return The value.
-	Value text(Kind kind, std::string_view text, Place place);
+	Value text(Kind kind, std::string_view written, Place place);
 
 	Budget* budget_ = nullptr;                         ///< See setBudget().
 	std::vector<std::unique_ptr<Object>> objects_;     ///< What it owns.

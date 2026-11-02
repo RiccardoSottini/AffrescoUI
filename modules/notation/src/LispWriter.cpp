@@ -237,21 +237,41 @@ private:
 			close(")", tree, column() + 1);
 			return;
 		}
-		const auto first = value.begin();
 		const auto last = std::prev(value.end());
-		const bool typed = first.key() == "type" && isHeadType(*first);
 		const bool hasChildren = last.key() == "children" && last->is_array() && !last->empty();
 		if(trying_ && hasChildren) {
 			tooLong_ = true; // children always go one per line
 			return;
 		}
 		const std::size_t indent = column() + 2;
-		append("(");
-		append(typed ? first->get_ref<const std::string&>() : std::string(untypedHead));
-		auto from = typed ? std::next(first) : first;
-		std::size_t index = typed ? 1 : 0;
 		const auto properties = hasChildren ? last : value.end();
-		const bool hoisted = from != properties && from.key() == "id" && isHeadId(*from, commentsOf(tree, index));
+		auto from = value.begin();
+		std::size_t index = 0;
+		const bool headComment = nodeHead(from, index, properties, tree);
+		nodeProperties(from, properties, index, tree, indent, headComment);
+		if(hasChildren) {
+			nodeChildren(*last, innerOf(commentsOf(tree, static_cast<std::size_t>(std::distance(value.begin(), last)))),
+			             indent);
+		}
+		close(")", tree, indent);
+	}
+
+	/// @brief Writes a node's head: `(type#id`.
+	/// @param from Its first key; gets the first key after the head.
+	/// @param index Gets that key's index.
+	/// @param to Past its properties.
+	/// @param tree The comments inside it, or nullptr.
+	/// @return Whether a comment ends the head's line.
+	bool nodeHead(json::const_iterator& from, std::size_t& index, const json::const_iterator& to,
+	              const CommentTree* tree) {
+		const bool typed = from.key() == "type" && isHeadType(*from);
+		append("(");
+		append(typed ? from->get_ref<const std::string&>() : std::string(untypedHead));
+		if(typed) {
+			++from;
+			index = 1;
+		}
+		const bool hoisted = from != to && from.key() == "id" && isHeadId(*from, commentsOf(tree, index));
 		if(hoisted) {
 			append("#");
 			append(from->get_ref<const std::string&>());
@@ -262,21 +282,23 @@ private:
 			++from;
 			++index;
 		}
-		nodeProperties(from, properties, index, tree, indent, headComment);
-		if(hasChildren) {
-			const CommentTree* children =
-			    innerOf(commentsOf(tree, static_cast<std::size_t>(std::distance(first, last))));
-			std::size_t child = 0;
-			for(const json& item : *last) {
-				if(tooLong_) return;
-				const MemberComments* comments = commentsOf(children, child);
-				beginMember(comments, indent, false);
-				write(item, innerOf(comments), true);
-				endMember(comments);
-				++child;
-			}
+		return headComment;
+	}
+
+	/// @brief Writes a node's children, one per line.
+	/// @param children The list.
+	/// @param tree The comments inside it, or nullptr.
+	/// @param indent The column of their lines.
+	void nodeChildren(const json& children, const CommentTree* tree, std::size_t indent) {
+		std::size_t index = 0;
+		for(const json& item : children) {
+			if(tooLong_) return;
+			const MemberComments* comments = commentsOf(tree, index);
+			beginMember(comments, indent, false);
+			write(item, innerOf(comments), true);
+			endMember(comments);
+			++index;
 		}
-		close(")", tree, indent);
 	}
 
 	/// @brief Tells whether an `id` is written `#id` after the head: a plain word with no comment before it.

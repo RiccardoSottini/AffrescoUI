@@ -182,7 +182,7 @@ private:
 		CommentTree childrenTree;
 		json children = json::array();
 		// The member before the comments read last
-		const auto previous = [&]() -> MemberPlace {
+		const auto previous = [&] -> MemberPlace {
 			if(!children.empty()) return {&childrenTree, children.size() - 1};
 			return object.size() > 0 ? MemberPlace{&tree, object.size() - 1} : MemberPlace{};
 		};
@@ -236,7 +236,7 @@ private:
 		shallowEnough(open, depth + 1);
 		json items = json::array();
 		CommentTree tree;
-		const auto previous = [&]() -> MemberPlace {
+		const auto previous = [&] -> MemberPlace {
 			return items.empty() ? MemberPlace{} : MemberPlace{&tree, items.size() - 1};
 		};
 		for(Token item = lexer_.next(); item.kind != TokenKind::CloseList; item = lexer_.next()) {
@@ -262,7 +262,7 @@ private:
 		shallowEnough(open, depth + 1);
 		ObjectBuilder object;
 		CommentTree tree;
-		const auto previous = [&]() -> MemberPlace {
+		const auto previous = [&] -> MemberPlace {
 			return object.size() == 0 ? MemberPlace{} : MemberPlace{&tree, object.size() - 1};
 		};
 		for(Token item = lexer_.next(); item.kind != TokenKind::CloseMap; item = lexer_.next()) {

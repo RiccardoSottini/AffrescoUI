@@ -167,6 +167,7 @@ void setMember(std::vector<MapEntry>& members, std::string_view key, const Value
 Value assocVector(Machine& machine, Arguments arguments) {
 	std::vector<Value> items;
 	machine.spend(arguments[0].count());
+	items.reserve(arguments[0].count() + 1);
 	for(std::size_t at = 0; at < arguments[0].count(); ++at) items.push_back(arguments[0].at(at));
 	for(std::size_t at = 1; at + 1 < arguments.size(); at += 2) {
 		const std::int64_t index = arguments[at].kind() == Kind::Integer ? arguments[at].asInteger() : -1;
@@ -287,6 +288,7 @@ Value keysOf(Machine& machine, Arguments arguments) {
 		throw Problem("\"keys\" takes a map, and was given " + std::string(describeKind(arguments[0])));
 	std::vector<Value> keys;
 	machine.spend(arguments[0].count());
+	keys.reserve(arguments[0].count());
 	for(std::size_t at = 0; at < arguments[0].count(); ++at)
 		keys.push_back(machine.heap.string(arguments[0].keyAt(at)));
 	return machine.heap.sequence(Kind::Vector, std::move(keys));
@@ -299,6 +301,7 @@ Value valuesOf(Machine& machine, Arguments arguments) {
 		throw Problem("\"vals\" takes a map, and was given " + std::string(describeKind(arguments[0])));
 	std::vector<Value> values;
 	machine.spend(arguments[0].count());
+	values.reserve(arguments[0].count());
 	for(std::size_t at = 0; at < arguments[0].count(); ++at) values.push_back(arguments[0].valueAt(at));
 	return machine.heap.sequence(Kind::Vector, std::move(values));
 }
@@ -349,6 +352,7 @@ Value makeVector(Machine& machine, Arguments arguments) {
 	const Value items = sequenceOf(machine, arguments[0], "vec");
 	std::vector<Value> made;
 	machine.spend(items.count());
+	made.reserve(items.count());
 	for(std::size_t at = 0; at < items.count(); ++at) made.push_back(items.at(at));
 	return machine.heap.sequence(Kind::Vector, std::move(made));
 }
@@ -372,6 +376,7 @@ Value reversed(Machine& machine, Arguments arguments) {
 	const Value items = sequenceOf(machine, arguments[0], "reverse");
 	std::vector<Value> made;
 	machine.spend(items.count());
+	made.reserve(items.count());
 	for(std::size_t at = items.count(); at > 0; --at) made.push_back(items.at(at - 1));
 	return machine.heap.sequence(Kind::Vector, std::move(made));
 }
@@ -415,6 +420,7 @@ Value sorted(Machine& machine, Arguments arguments) {
 	const Value items = sequenceOf(machine, arguments[0], "sort");
 	std::vector<Value> made;
 	machine.spend(items.count() * 16);
+	made.reserve(items.count());
 	for(std::size_t at = 0; at < items.count(); ++at) made.push_back(items.at(at));
 	std::ranges::stable_sort(made, comesFirst);
 	return machine.heap.sequence(Kind::Vector, std::move(made));
@@ -427,6 +433,7 @@ Value sorted(Machine& machine, Arguments arguments) {
 Value sortedByKeys(Machine& machine, Arguments arguments) {
 	std::vector<std::pair<Value, Value>> pairs;
 	machine.spend(arguments[0].count() * 16);
+	pairs.reserve(arguments[0].count());
 	for(std::size_t at = 0; at < arguments[0].count(); ++at)
 		pairs.emplace_back(arguments[0].at(at), arguments[1].at(at));
 	std::ranges::stable_sort(pairs, comesFirst, &std::pair<Value, Value>::first);

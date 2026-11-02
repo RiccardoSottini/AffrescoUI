@@ -141,6 +141,15 @@ private:
 	/// @param discard Set if the token is a `#_`.
 	/// @return It.
 	Token raw(bool& discard);
+	/// @brief Moves past a key or an id, or a `#_`, at the next character.
+	/// @return Whether it is a `#_`.
+	bool nameOrDiscard();
+	/// @brief Moves past a language's prefix, if the next character starts one.
+	/// @return The prefix, or std::nullopt.
+	std::optional<TokenKind> prefixAt() noexcept;
+	/// @brief Keeps the comment at the next character.
+	/// @param end Where it ends.
+	void keepComment(std::size_t end);
 	/// @brief Moves past spaces, commas and comments.
 	void skipSpace();
 	/// @brief Moves past a string in quotes, its escapes included.
@@ -149,6 +158,11 @@ private:
 	/// @brief Moves past a bare word: everything up to a delimiter.
 	/// @param start Where it starts.
 	void wordAt(std::size_t start) noexcept;
+	/// @brief Follows a bracket inside a discarded form.
+	/// @param token The bracket.
+	/// @param closers The brackets still to close.
+	/// @param owed How many forms are still to discard.
+	void discardBrackets(const Token& token, std::vector<TokenKind>& closers, std::size_t& owed) const;
 	/// @brief Moves past one discarded form, after its `#_`, one token at a time.
 	/// @param start Where the `#_` is.
 	void discardForm(std::size_t start);

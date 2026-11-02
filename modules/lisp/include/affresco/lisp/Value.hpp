@@ -58,7 +58,7 @@ public:
 	/// viewed.
 	/// @param value The JSON value.
 	/// @return The value.
-	[[nodiscard]] static Value view(const json& value) noexcept;
+	[[nodiscard]] static Value view(const json& value);
 	/// @brief A value pointing at one of the interpreter's objects (internal).
 	/// @param kind What it is.
 	/// @param object The object.
@@ -93,7 +93,7 @@ public:
 
 	/// @brief The text of a string, a symbol or a keyword (without its ':').
 	/// @return It; empty for any other value.
-	[[nodiscard]] std::string_view text() const noexcept;
+	[[nodiscard]] std::string_view text() const;
 
 	/// @brief How many items a list, a vector or a map has.
 	/// @return The count; 0 for any other value.

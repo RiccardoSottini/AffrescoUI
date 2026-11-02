@@ -47,7 +47,7 @@ Value Value::real(double value) noexcept {
 	return made;
 }
 
-Value Value::view(const json& value) noexcept {
+Value Value::view(const json& value) {
 	Value made;
 	switch(value.type()) {
 	case json::value_t::boolean:
@@ -107,7 +107,7 @@ json Value::numberAsJson() const {
 	return bits_.real;
 }
 
-std::string_view Value::text() const noexcept {
+std::string_view Value::text() const {
 	if(kind_ != Kind::String && kind_ != Kind::Symbol && kind_ != Kind::Keyword) return {};
 	if(view_) return bits_.viewed->get_ref<const std::string&>();
 	return static_cast<const TextObject*>(bits_.pointer)->text;
@@ -209,9 +209,9 @@ std::size_t MapObject::find(std::string_view key) const {
 	return found == index_->end() ? entries.size() : found->second;
 }
 
-Value Heap::text(Kind kind, std::string_view text, Place place) {
-	auto* object = make<TextObject>(text.size());
-	object->text = std::string(text);
+Value Heap::text(Kind kind, std::string_view written, Place place) {
+	auto* object = make<TextObject>(written.size());
+	object->text = std::string(written);
 	object->place = place;
 	return Value::object(kind, object);
 }

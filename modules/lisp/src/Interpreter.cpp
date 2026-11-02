@@ -86,7 +86,7 @@ std::optional<std::string> Interpreter::leastAuthority(const std::function<int(s
 	return *std::ranges::min_element(authors, {}, [&](const std::string& author) { return rank(author); });
 }
 
-std::string Interpreter::authorOf(const Value& function) const {
+std::string Interpreter::authorOf(const Value& function) {
 	return function.kind() == Kind::Function ? static_cast<const ClosureObject*>(function.pointer())->code->author : "";
 }
 

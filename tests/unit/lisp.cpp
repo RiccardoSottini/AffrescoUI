@@ -472,7 +472,8 @@ TEST_CASE("lisp: the host's primitives pass through one gate, which sees who is 
 	static_cast<void>(interpreter.call(closure, {}));
 	CHECK(last() == Authors{"agent"});
 	static_cast<void>(interpreter.eval("(defn caller [f] (f) nil)", "a.lisp", "person"));
-	static_cast<void>(interpreter.call(*interpreter.global("caller"), std::vector<lisp::Value>{closure}));
+	static_cast<void>(
+	    interpreter.call(interpreter.global("caller").value_or(lisp::Value()), std::vector<lisp::Value>{closure}));
 	CHECK(last() == Authors{"agent", "person"});
 	// A macro's output counts its author: an agent's macro writes a person's function
 	static_cast<void>(interpreter.eval("(defmacro written [] `(effect 1))", "b.lisp", "agent"));
@@ -494,8 +495,8 @@ TEST_CASE("lisp: the host's primitives pass through one gate, which sees who is 
 	      "\"not allowed\"");
 	CHECK_THROWS_WITH_AS(static_cast<void>(interpreter.eval("(effect 1)", "a.lisp", "person")),
 	                     "AffrescoUI lisp: a.lisp: line 1, column 1: not allowed", lisp::LispError);
-	CHECK(interpreter.describe("trusted")->author == "person");
-	CHECK(interpreter.describe("launder")->author == "agent");
+	CHECK(interpreter.describe("trusted").value_or(lisp::DefinitionInfo{}).author == "person");
+	CHECK(interpreter.describe("launder").value_or(lisp::DefinitionInfo{}).author == "agent");
 	CHECK(interpreter.describe("nope") == std::nullopt);
 }
 
@@ -512,8 +513,10 @@ TEST_CASE("lisp: JSON is viewed, not converted") {
 	CHECK(interpreter.toTree(view).dump() == state->dump());
 	static_cast<void>(interpreter.eval("(defn names [s] (map :name (:rooms s))) (defn rest-of [v] (rest (:rooms v)))"));
 	const std::vector<lisp::Value> arguments = {view};
-	CHECK(interpreter.print(interpreter.call(*interpreter.global("names"), arguments)) == "[\"Hall\"]");
-	CHECK(interpreter.print(interpreter.call(*interpreter.global("rest-of"), arguments)) == "[]");
+	CHECK(interpreter.print(interpreter.call(interpreter.global("names").value_or(lisp::Value()), arguments)) ==
+	      "[\"Hall\"]");
+	CHECK(interpreter.print(interpreter.call(interpreter.global("rest-of").value_or(lisp::Value()), arguments)) ==
+	      "[]");
 	CHECK(interpreter.print(view) == "{:rooms [{:id 1 :name \"Hall\"}] :big 18446744073709551615 :x 1.5}");
 }
 
@@ -671,13 +674,12 @@ TEST_CASE("lisp: what a program can get wrong names both places") {
 	entry.kind = "defn";
 	entry.text = "(defn f [] 1)";
 	lisp::Program wrong;
-	wrong.addEntry(entry);
-	CHECK_THROWS_AS(static_cast<void>(wrong.build()), lisp::LispError);
+	CHECK_THROWS_AS(wrong.addEntry(entry), lisp::LispError);
 	entry.name = "f";
 	entry.text = "(defn f [] 1) (defn g [] 1)";
 	lisp::Program two;
-	two.addEntry(entry);
-	CHECK_THROWS_AS(static_cast<void>(two.build()), lisp::LispError);
+	CHECK_THROWS_AS(two.addEntry(entry), lisp::LispError);
+	CHECK(two.entries().empty());
 }
 
 TEST_CASE("lisp: building is pure") {
@@ -768,7 +770,6 @@ TEST_CASE("lisp: a data file is a template") {
 
 TEST_CASE("lisp: every example's Lisp file builds to the tree the notation's reader gives") {
 	int files = 0;
-	std::vector<std::string> types;
 	for(const auto& entry : std::filesystem::recursive_directory_iterator(AFFRESCOUI_EXAMPLES_DIRECTORY)) {
 		if(entry.path().extension() != ".lisp") continue;
 		const std::string text = textOf(entry.path());

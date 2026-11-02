@@ -7,6 +7,7 @@
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
+#include <ranges>
 #include <string>
 #include <utility>
 
@@ -30,7 +31,7 @@ private:
 
 } // namespace
 
-std::string_view headWord(const Value& form) noexcept {
+std::string_view headWord(const Value& form) {
 	if(form.kind() != Kind::List || form.count() == 0 || form.at(0).kind() != Kind::Symbol) return {};
 	return form.at(0).text();
 }
@@ -39,7 +40,7 @@ Compiler::Compiler(Machine& machine, CompileContext context) : machine_(machine)
 	if(!context_.authors) context_.authors = machine_.authorSet(context_.author);
 }
 
-const Code* Compiler::compiling(const std::function<const Code*()>& compilation) {
+const Code* Compiler::compiling(const std::function<const Code*()>& compilation) const {
 	try {
 		return compilation();
 	} catch(const Problem& problem) {
@@ -322,51 +323,49 @@ void Compiler::destructureMember(const Value& pattern, std::string_view key, con
 	destructure(pattern, into);
 }
 
+void Compiler::destructureOption(const Value& pattern, std::string_view word, const Value& value, const Value& defaults,
+                                 std::uint32_t slot) {
+	if(word == "or") return;
+	if(word == "as") {
+		destructure(value, slot);
+		return;
+	}
+	if(word != "keys" || value.kind() != Kind::Vector)
+		fail(pattern, "a map pattern takes :keys, :or, :as, or a name then a key: {x :x}");
+	for(std::size_t at = 0; at < value.count(); ++at) {
+		if(value.at(at).kind() != Kind::Symbol) fail(pattern, ":keys takes a vector of names");
+		destructureMember(value.at(at), value.at(at).text(), defaults, slot);
+	}
+}
+
 void Compiler::destructureMap(const Value& pattern, std::uint32_t slot) {
-	const bool computed = pattern.kind() == Kind::List; // (%map key value ...), a name as a key
-	const std::size_t first = computed ? 1 : 0;
+	const bool computed = pattern.kind() == Kind::List; // (%map key value ...): a name as a key
 	const std::size_t size = computed ? (pattern.count() - 1) / 2 : pattern.count();
-	const auto keyOf = [&](std::size_t index) { return computed ? pattern.at(first + index * 2) : Value(); };
-	const auto valueOf = [&](std::size_t index) {
-		return computed ? pattern.at(first + index * 2 + 1) : pattern.valueAt(index);
+	const auto first = [&](std::size_t at) {
+		return computed ? pattern.at(1 + at * 2) : machine_.heap.keyword(pattern.keyAt(at));
 	};
-	const auto wordOf = [&](std::size_t index) {
-		if(!computed) return pattern.keyAt(index);
-		return keyOf(index).kind() == Kind::Keyword ? keyOf(index).text() : std::string_view{};
-	};
+	const auto second = [&](std::size_t at) { return computed ? pattern.at(2 + at * 2) : pattern.valueAt(at); };
 	Value defaults;
 	for(std::size_t at = 0; at < size; ++at)
-		if(wordOf(at) == "or") defaults = valueOf(at);
+		if(first(at).kind() == Kind::Keyword && first(at).text() == "or") defaults = second(at);
 	for(std::size_t at = 0; at < size; ++at) {
-		const std::string_view word = wordOf(at);
-		if(word == "or") continue;
-		if(word == "as") {
-			destructure(valueOf(at), slot);
-		} else if(word == "keys") {
-			const Value names = valueOf(at);
-			if(names.kind() != Kind::Vector) fail(pattern, ":keys takes a vector of names");
-			for(std::size_t name = 0; name < names.count(); ++name) {
-				if(names.at(name).kind() != Kind::Symbol) fail(pattern, ":keys takes a vector of names");
-				destructureMember(names.at(name), names.at(name).text(), defaults, slot);
-			}
-		} else if(computed && !word.empty()) {
-			fail(pattern, "a map pattern has a name or a pattern first, then the key: {x :x}");
-		} else if(computed) {
-			const Value key = valueOf(at); // {x :x}: the pattern is the key position
-			if(key.kind() != Kind::Keyword && key.kind() != Kind::String)
-				fail(pattern, "the key of a pattern is a keyword or a string");
-			destructureMember(keyOf(at), key.text(), defaults, slot);
-		} else {
-			fail(pattern, "a map pattern has a name or a pattern first, then the key: {x :x}");
+		const Value key = first(at);
+		if(key.kind() == Kind::Keyword) {
+			destructureOption(pattern, key.text(), second(at), defaults, slot);
+			continue;
 		}
+		const Value name = second(at); // {x :x}: the pattern where a key would be
+		if(name.kind() != Kind::Keyword && name.kind() != Kind::String)
+			fail(pattern, "the key of a pattern is a keyword or a string");
+		destructureMember(key, name.text(), defaults, slot);
 	}
 }
 
 Compiler::Variable Compiler::resolve(Function& function, std::string_view name) {
-	for(auto local = function.locals.rbegin(); local != function.locals.rend(); ++local)
-		if(local->name == name) return {Variable::Kind::Local, local->slot};
-	for(std::size_t at = 0; at < function.captureNames.size(); ++at)
-		if(function.captureNames[at] == name) return {Variable::Kind::Capture, static_cast<std::uint32_t>(at)};
+	for(const Local& local : std::views::reverse(function.locals))
+		if(local.name == name) return {Variable::Kind::Local, local.slot};
+	if(const auto captured = std::ranges::find(function.captureNames, name); captured != function.captureNames.end())
+		return {Variable::Kind::Capture, static_cast<std::uint32_t>(captured - function.captureNames.begin())};
 	if(!function.self.empty() && function.self == name) return {Variable::Kind::Self, 0};
 	if(!function.parent) return {};
 	const Variable outer = resolve(*function.parent, name);
@@ -374,7 +373,7 @@ Compiler::Variable Compiler::resolve(Function& function, std::string_view name) 
 	if(outer.kind == Variable::Kind::Self) { // its own closure, seen from inside: captured like any value
 		const auto index = static_cast<std::uint32_t>(function.captureNames.size());
 		function.captureNames.push_back(name);
-		function.code->captures.push_back({true, static_cast<std::uint32_t>(-1)});
+		function.code->captures.push_back({true, selfCapture});
 		return {Variable::Kind::Capture, index};
 	}
 	const auto index = static_cast<std::uint32_t>(function.captureNames.size());

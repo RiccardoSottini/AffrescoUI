@@ -66,34 +66,54 @@ Token Lexer::raw(bool& discard) {
 	if(at_ >= text_.size()) return {TokenKind::End, {}, at_};
 	const std::size_t start = at_;
 	const char c = text_[at_];
-	Token token{TokenKind::Word, {}, start};
 	static constexpr std::string_view brackets = "()[]{}";
+	TokenKind kind = TokenKind::Word;
 	if(const std::size_t bracket = brackets.find(c); bracket != std::string_view::npos) {
 		++at_;
-		token.kind = static_cast<TokenKind>(bracket);
+		kind = static_cast<TokenKind>(bracket);
 	} else if(c == '"') {
-		token.kind = TokenKind::String;
+		kind = TokenKind::String;
 		quoted(start);
 	} else if(c == ':' || c == '#') {
-		discard = text_.substr(at_, 2) == "#_" && (at_ + 2 >= text_.size() || !isWordCharacter(text_[at_ + 2]));
-		++at_;
-		if(discard) ++at_;
-		else if(at_ < text_.size() && text_[at_] == '"') quoted(at_);
-		else wordAt(at_);
-		token.kind = c == ':' ? TokenKind::Key : TokenKind::Id;
-	} else if(language_ && (c == '\'' || c == '`')) {
-		++at_;
-		token.kind = c == '`' ? TokenKind::Backquote : TokenKind::Quote;
-	} else if(language_ && c == '~') {
-		const bool splice = at_ + 1 < text_.size() && text_[at_ + 1] == '@';
-		at_ += splice ? 2 : 1;
-		token.kind = splice ? TokenKind::Splice : TokenKind::Unquote;
+		kind = c == ':' ? TokenKind::Key : TokenKind::Id;
+		discard = nameOrDiscard();
+	} else if(const std::optional<TokenKind> prefix = language_ ? prefixAt() : std::nullopt) {
+		kind = *prefix;
 	} else {
 		wordAt(start);
 	}
-	token.text = text_.substr(start, at_ - start);
 	lastEnd_ = at_;
-	return token;
+	return {kind, text_.substr(start, at_ - start), start};
+}
+
+bool Lexer::nameOrDiscard() {
+	const bool discard = text_.substr(at_, 2) == "#_" && (at_ + 2 >= text_.size() || !isWordCharacter(text_[at_ + 2]));
+	++at_;
+	if(discard) ++at_;
+	else if(at_ < text_.size() && text_[at_] == '"') quoted(at_);
+	else wordAt(at_);
+	return discard;
+}
+
+std::optional<TokenKind> Lexer::prefixAt() noexcept {
+	const char c = text_[at_];
+	if(c == '\'' || c == '`') {
+		++at_;
+		return c == '`' ? TokenKind::Backquote : TokenKind::Quote;
+	}
+	if(c != '~') return std::nullopt;
+	const bool splice = at_ + 1 < text_.size() && text_[at_ + 1] == '@';
+	at_ += splice ? 2 : 1;
+	return splice ? TokenKind::Splice : TokenKind::Unquote;
+}
+
+void Lexer::keepComment(std::size_t end) {
+	std::string_view comment = text_.substr(at_, end - at_);
+	while(!comment.empty() && (comment.back() == '\r' || comment.back() == ' ' || comment.back() == '\t'))
+		comment.remove_suffix(1);
+	const std::size_t line = text_.rfind('\n', at_);
+	const bool token = lastEnd_ > 0 && (line == std::string_view::npos || lastEnd_ > line);
+	comments_.push_back({comment, token && comments_.empty()});
 }
 
 void Lexer::skipSpace() {
@@ -101,14 +121,7 @@ void Lexer::skipSpace() {
 		const char c = text_[at_];
 		if(c == ';') {
 			const std::size_t end = std::min(text_.find('\n', at_), text_.size());
-			if(keepComments_) {
-				std::string_view comment = text_.substr(at_, end - at_);
-				while(!comment.empty() && (comment.back() == '\r' || comment.back() == ' ' || comment.back() == '\t'))
-					comment.remove_suffix(1);
-				const std::size_t line = text_.rfind('\n', at_);
-				const bool token = lastEnd_ > 0 && (line == std::string_view::npos || lastEnd_ > line);
-				comments_.push_back({comment, token && comments_.empty()});
-			}
+			if(keepComments_) keepComment(end);
 			at_ = end;
 		} else if(c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == ',') {
 			++at_;
@@ -132,6 +145,21 @@ void Lexer::wordAt(std::size_t start) noexcept {
 	while(at_ < text_.size() && !isDelimiter(text_[at_])) ++at_;
 }
 
+void Lexer::discardBrackets(const Token& token, std::vector<TokenKind>& closers, std::size_t& owed) const {
+	const bool opens =
+	    token.kind == TokenKind::OpenNode || token.kind == TokenKind::OpenList || token.kind == TokenKind::OpenMap;
+	if(opens) {
+		if(closers.size() >= static_cast<std::size_t>(maxNesting))
+			fail(token.offset, "nested more than " + std::to_string(maxNesting) + " levels deep");
+		if(closers.empty()) --owed;
+		closers.push_back(static_cast<TokenKind>(static_cast<int>(token.kind) + 1));
+		return;
+	}
+	if(closers.empty() || closers.back() != token.kind)
+		fail(token.offset, "expected a form to discard, found " + shown(token));
+	closers.pop_back();
+}
+
 void Lexer::discardForm(std::size_t start) {
 	const bool keep = std::exchange(keepComments_, false); // what is inside goes with the form
 	std::size_t owed = 1;
@@ -141,22 +169,11 @@ void Lexer::discardForm(std::size_t start) {
 		const Token token = raw(discard);
 		if(discard) {
 			if(closers.empty()) ++owed; // inside a form it goes with that form; here it takes the next one too
-			continue;
-		}
-		if(token.kind == TokenKind::End)
+		} else if(token.kind == TokenKind::End) {
 			fail(token.offset, "expected a form to discard after the #_ at " + placeOf(start));
-		if(token.kind == TokenKind::OpenNode || token.kind == TokenKind::OpenList || token.kind == TokenKind::OpenMap) {
-			if(closers.size() >= static_cast<std::size_t>(maxNesting))
-				fail(token.offset, "nested more than " + std::to_string(maxNesting) + " levels deep");
-			if(closers.empty()) --owed;
-			closers.push_back(static_cast<TokenKind>(static_cast<int>(token.kind) + 1));
-		} else if(token.kind == TokenKind::CloseNode || token.kind == TokenKind::CloseList ||
-		          token.kind == TokenKind::CloseMap) {
-			if(closers.empty() || closers.back() != token.kind)
-				fail(token.offset, "expected a form to discard, found " + shown(token));
-			closers.pop_back();
-		} else if(closers.empty() && token.kind != TokenKind::Quote && token.kind != TokenKind::Backquote &&
-		          token.kind != TokenKind::Unquote && token.kind != TokenKind::Splice) {
+		} else if(token.kind <= TokenKind::CloseMap) { // the brackets come first in TokenKind
+			discardBrackets(token, closers, owed);
+		} else if(closers.empty() && (token.kind < TokenKind::Quote || token.kind > TokenKind::Splice)) {
 			--owed; // a prefix applies to the form still owed
 		}
 	}
