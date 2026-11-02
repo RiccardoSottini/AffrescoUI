@@ -185,7 +185,9 @@ void buildDefinition(Machine& machine, const Definition& definition, BuiltParts&
 		parts.settings[name] =
 		    customSetting(valueToTree(machine, data, name), valueToTree(machine, value, name), definition.doc);
 	} else if(name == "main") {
-		for(auto& [key, member] : valueToTree(machine, data.at(0), name).items()) parts.main[key] = std::move(member);
+		// A named tree: a loop over a temporary's items() reads it after it is gone
+		json settings = valueToTree(machine, data.at(0), name);
+		for(auto& [key, member] : settings.items()) parts.main[key] = std::move(member);
 		parts.main["root"] = valueToTree(machine, data.at(1), name);
 	} else {
 		json screen = valueToTree(machine, data.at(1), name);

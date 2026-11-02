@@ -576,7 +576,7 @@ TEST_CASE("lisp hooks: a value read for the screen can't run a hook's steps") {
 	REQUIRE(label);
 	CHECK(label->text() == "0");
 	// run-hooks itself is a step
-	App direct(R"lisp(
+	const App direct(R"lisp(
 (defhook point "")
 (defn mine "" [] (set "state.n" 9))
 (add-hook point mine)

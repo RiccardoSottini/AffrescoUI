@@ -303,10 +303,10 @@ TEST_CASE("vcs: the same screen with its keys in another order keeps its history
 	const affresco::format::Rules rules;
 	const TemporaryFolder folder;
 	const std::filesystem::path history = folder.path() / "board.history";
-	json written = {{"format", "affrescoui-screen"},
-	                {"version", 2},
-	                {"state", {{"n", 0}}},
-	                {"root", {{"id", "root"}, {"type", "panel"}}}};
+	const json written = {{"format", "affrescoui-screen"},
+	                      {"version", 2},
+	                      {"state", {{"n", 0}}},
+	                      {"root", {{"id", "root"}, {"type", "panel"}}}};
 	json reordered = {{"format", "affrescoui-screen"},
 	                  {"version", 2},
 	                  {"root", {{"type", "panel"}, {"id", "root"}}},

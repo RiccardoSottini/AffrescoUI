@@ -242,7 +242,7 @@ bool Compiler::lowerOperator(const Value& form, int depth, std::vector<BindingPa
 		lowerList(form, depth, parts, "!(", "");
 		return true;
 	}
-	const auto* const infix = std::ranges::find(infixOperators, head, &InfixOperator::word);
+	const auto infix = std::ranges::find(infixOperators, head, &InfixOperator::word);
 	if(infix == infixOperators.end() || operands < infix->fewest || operands > infix->most) return false;
 	lowerList(form, depth, parts, "(", " " + std::string(infix->expression) + " ");
 	return true;

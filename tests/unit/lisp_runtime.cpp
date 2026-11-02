@@ -402,7 +402,7 @@ TEST_CASE("lisp attack: a binding has no way to cause effects") {
 		int hits = 0;
 		ManualClock clock;
 		const auto window = createHeadlessWindow(400, 300, clock);
-		Rules rules;
+		const Rules rules;
 		Repository repository(rules, lisp::sourceDocument(functions +
 		                                                      "(defscreen main :state {:n 0} :actions {:act [{:set "
 		                                                      "\"state.n\" :to 9}]} (label#a :text " +
@@ -495,7 +495,7 @@ TEST_CASE("lisp attack: the build, a macro and a value are pure") {
 	                        R"lisp((defscreen main (panel#root :text ~(call "hit"))))lisp"}) {
 		CAPTURE(text);
 		int hits = 0;
-		ManualClock clock;
+		const ManualClock clock;
 		const auto window = createHeadlessWindow(400, 300, clock);
 		try {
 			affresco::Screen screen = affresco::Screen::fromString(lisp::sourceDocument(text, "app.lisp").dump());

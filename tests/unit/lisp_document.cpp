@@ -191,7 +191,7 @@ TEST_CASE("lisp document: an address with a slash or a tilde round-trips through
 	REQUIRE(f.repository.submit(f.repository.revertRevision("HEAD", "app")).status == RevisionStatus::Applied);
 	CHECK(f.text("defkey a/b~c") == R"lisp((defkey "a/b~c" f))lisp");
 	// A file's name holds slashes too
-	Rules rules;
+	const Rules rules;
 	Repository nested(rules, lisp::sourceDocument(text, "parts/x.lisp"));
 	CHECK(nested.submit(setting("/program/parts~1x.lisp/f", R"lisp((defn f "F." [] 2))lisp")).status ==
 	      RevisionStatus::Applied);
@@ -524,7 +524,7 @@ TEST_CASE("lisp document: history on disk, and a history written by hand is judg
 	const TemporaryFolder folder;
 	const std::filesystem::path history = folder.path() / "h";
 	const json source = lisp::sourceDocument(kGoverned, "app.lisp");
-	Rules rules;
+	const Rules rules;
 	std::string head;
 	{
 		Repository first(rules, source);
@@ -581,7 +581,7 @@ TEST_CASE("lisp document, attack: a history written by hand is judged by what it
 		    R"lisp((label#locked :text "x" :locked true) ~(card))))lisp";
 		REQUIRE(forged.submit(setting(at("main"), widened, "agent")).status == RevisionStatus::Applied);
 	}
-	Rules rules;
+	const Rules rules;
 	Repository real(rules, source);
 	CHECK_THROWS_WITH_AS(static_cast<void>(real.openHistory(history)), doctest::Contains("permission denied"),
 	                     affresco::DocumentError);
@@ -639,11 +639,11 @@ TEST_CASE("lisp document: a change set on a definition applies to another copy")
 }
 
 TEST_CASE("lisp document, attack: a JSON screen stays static: no revision brings it a program") {
-	json screen = {{"format", "affrescoui-screen"},
-	               {"version", 2},
-	               {"permissions", {{"allow", json::array({"studio"})}, {"reviewers", json::array({"studio"})}}},
-	               {"root", {{"type", "panel"}, {"id", "root"}}}};
-	Rules rules;
+	const json screen = {{"format", "affrescoui-screen"},
+	                     {"version", 2},
+	                     {"permissions", {{"allow", json::array({"studio"})}, {"reviewers", json::array({"studio"})}}},
+	                     {"root", {{"type", "panel"}, {"id", "root"}}}};
+	const Rules rules;
 	Repository repository(rules, screen);
 	for(const char* text : {R"lisp((defscreen main :channels {:out {:socket "x"}} (panel#root)))lisp",
 	                        "(defscreen main (panel#other))", R"lisp((defcommand go "Go." :title "Go" [] nil))lisp"}) {

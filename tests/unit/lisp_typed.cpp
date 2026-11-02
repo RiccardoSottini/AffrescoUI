@@ -86,7 +86,7 @@ TEST_CASE("lisp typed: what the person types has their authority") {
 	fourth.press(Key::S);
 	CHECK(fourth.hits == 1);
 	// And its copy, by the person's own command, is still what they typed
-	App fifth(kEditor);
+	const App fifth(kEditor);
 	fifth.type("(+ 1 1)");
 	fifth.press(Key::T);
 	fifth.press(Key::G);
@@ -244,7 +244,7 @@ TEST_CASE("lisp attack: copying what an agent wrote through the person's own com
 }
 
 TEST_CASE("lisp attack: what a person typed in an earlier run is no proof") {
-	App first(kEditor);
+	const App first(kEditor);
 	first.type(kReaches);
 	const json kept = first.state("text"); // a persisted state: anyone who can write that file has this
 	App second(kEditor);

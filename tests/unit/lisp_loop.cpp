@@ -75,7 +75,7 @@ TEST_CASE("lisp forms: the form before a position, the one around it, and all of
 }
 
 TEST_CASE("lisp forms: an expression can read them, and print a value as Lisp") {
-	App app(R"lisp(
+	const App app(R"lisp(
 (defn read-them "" [text]
   (set "state.before" (:text (formBefore text 1 8)))
   (set "state.around" (:name (formAround text 1 3)))
@@ -439,7 +439,7 @@ TEST_CASE("lisp init: a person's definitions export as a change set, and import 
 /* Describing */
 
 TEST_CASE("lisp describe: docstrings, authors, keys and commands, with no value") {
-	App app(R"lisp(
+	const App app(R"lisp(
 (defn shown "Shows a thing." [what how] nil)
 (defcommand act "Does a thing." :title "Act" :category "Things" [times] (set "state.times" times))
 (defcustom limit 60 "How many." :type integer)
@@ -527,7 +527,7 @@ TEST_CASE("lisp attack: describe-* and apropos over masked definitions") {
 	CHECK_FALSE(app.state("file").get<std::string>().contains("hunter2"));
 	CHECK(app.state("file").get<std::string>().contains("Anyone may read this."));
 	// The person's own describe sees it
-	App own(R"lisp(
+	const App own(R"lisp(
 (defn masked-fn "The password is hunter2." [] 1)
 (defcommand c "" :title "C" [] (set "state.masked" (describe-function "masked-fn")))
 (defkey "ctrl+c" c)
