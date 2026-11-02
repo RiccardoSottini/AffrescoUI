@@ -481,6 +481,8 @@ definition that does more than what it builds (`defn`, `def`, `defmacro`, `defco
 **The changes, file by file.** The file view lists each changed `.lisp` file with its definitions' texts, comments included, and
 a row marked `"built": true` with the trees they build, side by side. Diffs and `proposalDiff` are the source's patch.
 
+**A history goes on when only the order of a file's keys changed:** the same content, in another order, is the same screen. A program replacing a JSON app (Streak and Calamaio, in this release) is another screen: its old history is kept aside, as for any changed file.
+
 **Blame** answers per definition. A node a program builds has no commit of its own: blaming it says to blame its definition.
 
 **Authors.** `VersionControl::programAuthors()` gives who wrote each definition: the author of the commit on `main` that last changed

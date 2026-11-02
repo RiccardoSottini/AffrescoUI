@@ -37,6 +37,8 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 | `painter.cpp` | What a `Panel` asks its `Painter` to draw (shadow, rounded fill, border), and a `Painter`'s fallbacks |
 | `png.cpp` | The PNG encoder behind `render` (`modules/screen/src/Png.hpp`): each image decoded again and compared |
 | `rules.cpp` | `format::Rules::checkChange`: control steps, and the actions, handlers and `run`s that reach them |
+| `lisp_typed.cpp` | What `evaluate` gives the person's authority to: only what they typed, and the attacks, one per way text gets into a buffer |
+| `lisp_gate.cpp` | Attacks from the independent review of the language: its natives, work no budget saw, what advice can keep or read, a JSON app staying static |
 | `lisp_runtime.cpp` | A document's live program: handlers and bindings calling functions, reloads, limits, and the attacks on the checks by author, one per route (with the revision's scan off, so the check at run time holds by itself) |
 | `rules_sections.cpp` | `format::Rules` on the capability sections (`permissions`, `channels`, `persist`, `include`): `validate` and `checkChange`, as tables |
 | `sockets.cpp` | `channel::SocketServer` and `SocketChannel` over a real local socket in a temporary folder: lines both ways, a peer going away, the file's owner-only access, a busy or stale socket file |
