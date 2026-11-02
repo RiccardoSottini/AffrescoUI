@@ -13,7 +13,8 @@
 [![Frame time](https://img.shields.io/badge/full%20frame-0.44%20ms-10B981)](BENCHMARKS.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-**[Vision](#the-vision)** · **[Applications](#applications)** · **[Architecture](#architecture)** ·
+**[Vision](#the-vision)** · **[Applications](#applications)** · **[Lisp](#programs-in-lisp-extended-from-inside)** ·
+**[Architecture](#architecture)** ·
 **[How it works](#how-it-works)** · **[Quick start](#quick-start)** · **[Documentation](#documentation)**
 
 <br/>
@@ -42,26 +43,30 @@ People and AI agents change that document while the app runs: each change is che
 previewed if it needs approval, and applied in place in milliseconds, with no rebuild, no restart and nothing lost.
 
 > [!TIP]
-> **Write your application in JSON or in Lisp: your choice.** Both spell the same document, so the engine, the history
-> and the permissions treat them alike, and a project can mix them file by file. Every example application comes in
-> both, and a setting in the Launcher chooses which one opens.
+> **JSON for applications that are shown, Lisp for applications that run.** A JSON document is parsed and drawn as
+> it is. A Lisp file is a program in a real language with its own runtime (functions, closures, macros), in the spirit
+> of Emacs: the app is extended from inside, while it runs. Both get the same history, diffs and permissions, and
+> code an agent writes is reviewed like any other change.
 >
 > <table>
-> <tr><th>JSON</th><th>Lisp</th></tr>
+> <tr><th>JSON: a static document</th><th>Lisp: a program that builds it</th></tr>
 > <tr><td>
 >
 > ```json
-> { "type": "panel", "id": "insights", "children": [
->   { "type": "label", "id": "title", "text": "Burndown" },
->   { "type": "column", "id": "list", "gap": 4 } ] }
+> { "type": "column", "id": "cards", "children": [
+>   { "type": "label", "id": "card-1", "text": "Ship it" },
+>   { "type": "label", "id": "card-2", "text": "Review" } ] }
 > ```
 >
 > </td><td>
 >
 > ```lisp
-> (panel #insights
->   (label #title :text Burndown)
->   (column #list :gap 4))
+> (defn card "One card as a node." [c]
+>   `(label :id ~(str "card-" (:id c)) :text ~(:title c)))
+>
+> (defscreen main :window {:title "Board"}
+>   (column#cards ~@(map card [{:id 1 :title "Ship it"}
+>                              {:id 2 :title "Review"}])))
 > ```
 >
 > </td></tr>
@@ -113,8 +118,9 @@ natively, and shaped by the people who use them while they run.
 
 Twelve applications, from everyday apps to professional tools, all in the same format. They are examples
 ([`examples/`](examples/README.md)), not part of the library, and each carries the AI **assistant** in its bottom right
-corner: ask for a change in plain words, then review the proposal it becomes. Each is there twice, written in JSON
-(`examples/<app>/json/`) and in Lisp (`examples/<app>/lisp/`): choose in the Launcher's Settings.
+corner: ask for a change in plain words, then review the proposal it becomes. Streak and Calamaio are Lisp programs
+(`examples/<app>/lisp/` only). The others are JSON documents (`examples/<app>/json/`), each with a Lisp spelling of
+the same document next to it (`lisp/`): choose which opens in the Launcher's Settings.
 
 <div align="center">
 
@@ -150,7 +156,7 @@ made blank, from an example or from a description, and the AI provider every app
 <td width="50%" valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player with playlists, a song table and a queue"><br/><b>Tempo</b> · a music player<br/><sub>Playlists, a 3,000-song library, albums and artists, a queue to reorder, now playing with a visualiser and lyrics, an equaliser and a mini player. Playback is simulated. <code>examples/tempo/json/index.screen.json</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker with daily habits, a score chart and a history chart"><br/><b>Streak</b> · a habit tracker<br/><sub>Daily habits with goals and schedules, scores, charts, a calendar, notes and reminders, all kept on disk. <code>examples/streak/json/index.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker with daily habits, a score chart and a history chart"><br/><b>Streak</b> · a habit tracker<br/><sub>Daily habits with goals and schedules, scores, charts, a calendar, notes and reminders, all kept on disk, written as a Lisp program. <code>examples/streak/lisp/index.screen.lisp</code></sub></td>
 <td valign="top"><img src=".github/media/arcadia.png" alt="Arcadia, a game launcher with a library, a store and game pages"><br/><b>Arcadia</b> · a game launcher<br/><sub>A library and a store with carousels, game pages, downloads, a wishlist and a cart. Built by an outsider from the public docs. <code>examples/arcadia/json/index.screen.json</code></sub></td>
 </tr>
 <tr>
@@ -160,8 +166,35 @@ made blank, from an example or from a description, and the AI provider every app
 </table>
 
 Open them from the **Launcher** (`./build/affrescoui_launcher`), or run one with `./build/affrescoui_launcher <file>`.
-None has a program of its own: files, the terminal and pixels are the library's. Flow, Haven, Tempo, Streak, Arcadia
+None has native code of its own: files, the terminal and pixels are the library's. Flow, Haven, Tempo, Streak, Arcadia
 and Sign in speak English, Spanish and French.
+
+## Programs in Lisp, extended from inside
+
+JSON stays the format for applications that are only shown: the engine parses the document and draws it as it is.
+Lisp is now a programming language with its own runtime ([`modules/lisp`](modules/lisp/README.md),
+[RFC 0005](rfcs/0005-lisp-language.md)). An app written in it is a program. The program builds the document the
+engine draws, and its functions run when a button is pressed, a key is typed or a value is bound.
+
+The model is Emacs: an app you change from inside while it runs. In **Calamaio**, the text editor among the examples,
+open the scratch buffer (`C-x b *scratch* RET`), type a command's new definition and evaluate it with `C-M-x`:
+
+```lisp
+(defcommand kill-line "Says so." :title "Kill Line" :category "Killing" [] (message "redefined"))
+```
+
+The next `C-k` runs the new definition, and `C-x C-z` takes it back. `describe-key`, `apropos` and the `describe-*`
+functions inspect the running program.
+
+That freedom stays inside version control:
+
+- **Each change is a revision.** Every evaluation is a revision of a definition, kept in history, shown in diffs and
+  undone like any other change.
+- **Agent code is reviewed.** An agent's code is a proposal, rebuilt from its source and judged by what it builds.
+  Once accepted, it still runs with the agent's authority, never the person's.
+- **Your authority covers only what you typed.** Text that was pasted or written by someone else runs with less.
+- **Hooks and advice can't take your commands down.** An agent's hooks and advice run sealed: they can't stop a
+  person's command from working.
 
 ## Architecture
 
@@ -187,6 +220,7 @@ flowchart TB
     channel["🔌 <b>Channel</b> · modules/channel, modules/net<br/>local sockets · processes · WebSocket · one session per peer"]
     vcs["🛡️ <b>Version control</b> · modules/vcs<br/>allow / ask / deny · proposals · commits · history"]
     format["📄 <b>Screen format</b> · modules/format<br/>checks the document · evaluates it · reconciles in place"]
+    lisp["λ <b>Lisp language</b> · modules/lisp<br/>builds a program's tree · runs its functions"]
     render["🎨 <b>Renderer</b> · modules/render<br/>layout · shaped text · input · accessibility · OpenGL"]
     themes["🧩 <b>Kits and themes</b> · modules/themes<br/>components · design tokens · JSON"]
 
@@ -197,6 +231,7 @@ flowchart TB
     vcs -- "accepted commit" --> format
     format -- "panels" --> render
     themes -. "components, tokens" .-> format
+    lisp -. "programs" .-> format
 
     classDef peer fill:#FFFFFF,stroke:#CBD5E1,color:#0F172A
     classDef c_mcp fill:#F3E8FF,stroke:#9333EA,stroke-width:1.5px,color:#3B0764
@@ -210,15 +245,22 @@ flowchart TB
     class vcs c_vcs
     class format c_format
     class themes c_format
+    class lisp c_format
     class render c_render
 ```
 
-- **One format, in JSON or Lisp.** A screen document ([SCREEN_FORMAT.md](SCREEN_FORMAT.md), with a
+- **One format, shown as JSON.** A screen document ([SCREEN_FORMAT.md](SCREEN_FORMAT.md), with a
   [JSON Schema](schema/affrescoui-screen.schema.json), written in JSON or in the
   [Lisp notation](SCREEN_FORMAT.md#the-lisp-notation)) holds layout, components, themes, state, JS-style
   `{{expressions}}`, events, timers, services and permissions. Behaviour that usually needs code (wiring a button to a
   list, validating a form, filtering, drag and drop, shortcuts, navigation, calls to services) is data, so an agent
   changes it as safely as a colour.
+- **Programs, run in Lisp.** When data isn't enough, an app is a program
+  ([The Lisp language](SCREEN_FORMAT.md#the-lisp-language), [`modules/lisp`](modules/lisp/README.md)): Clojure's
+  syntax and Emacs's vocabulary (`defn`, `defcommand`, `defkey`, `defcustom`, `add-hook`, `advice`), run by the
+  library's own interpreter. Each definition is versioned on its own, so a diff names the function that changed, and
+  a proposal is rebuilt and judged by the tree it builds. The language can't reach files, processes or the network.
+  Its only ways out are the steps a host grants, each checked against who wrote the code that is running.
 - **Compact for agents.** Edits address nodes by id (`{"set": {"#title/text": "Q4"}}`, stored as JSON Patch) and
   re-reads return only what changed: a typical edit is 24 tokens, a re-read after one commit 29
   ([BENCHMARKS.md](BENCHMARKS.md)).
@@ -233,6 +275,8 @@ modules/core/        the interfaces between modules: Executor, Channel, VersionC
 modules/render/      windows, panels, layout, shaped text, input, accessibility; OpenGL 4.1 core or ES 3.0
 modules/format/      the screen format: rules, checker, {{expressions}}, the runtime that reconciles in place
 modules/themes/      the kits' components and the themes' design tokens, as JSON built into the library
+modules/notation/    documents read and written in JSON or in the Lisp notation
+modules/lisp/        the Lisp language: reader, interpreter, programs built purely into a document
 modules/vcs/         version control: commits, proposals, permissions, history
 modules/channel/     peers and the live protocol over local sockets and processes
 modules/net/         HTTP(S), server-sent events, WebSocket, remote peers
@@ -468,6 +512,7 @@ wraps it.
 |---|---|
 | [SCREEN_FORMAT.md](SCREEN_FORMAT.md) | The screen format, node by node |
 | [VERSION_CONTROL.md](VERSION_CONTROL.md) | Commits, proposals, permissions and review |
+| [modules/lisp/README.md](modules/lisp/README.md) | The Lisp language: its values, special forms, functions and limits |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | The modules, the path of a revision and of an event, the security boundary |
 | [mcp/README.md](mcp/README.md) | The MCP server and its tools |
 | [BENCHMARKS.md](BENCHMARKS.md) | Speed, memory and token budgets, with every measurement |

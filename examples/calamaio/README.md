@@ -5,7 +5,7 @@ bar, windows that split, mode lines, an echo area with a minibuffer, and the key
 template: a screen document that the stock host runs, with no C++ of its own.
 
 ```sh
-./build/affrescoui_launcher examples:calamaio/lisp
+./build/affrescoui_launcher examples/calamaio/lisp
 ./build/affrescoui test examples/calamaio/lisp/calamaio.scenarios.json --out out/calamaio
 ```
 
