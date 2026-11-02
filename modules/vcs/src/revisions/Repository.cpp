@@ -109,6 +109,7 @@ std::string Repository::idOf(const Commit& commit) {
 	          detail::sha256(commit.patch.dump()) + "\n";
 	if(commit.proposal) object += "proposal " + std::to_string(commit.proposal) + "\n";
 	if(!commit.run.is_null()) object += "run " + detail::sha256(commit.run.dump()) + "\n"; // only when it runs any
+	if(commit.ownInput) object += "ownInput\n";
 	object += "\n" + commit.message;
 	return detail::sha256(object);
 }

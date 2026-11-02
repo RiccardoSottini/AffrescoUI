@@ -191,6 +191,20 @@ void expectContainerAt(const json& document, const json::json_pointer& path, con
 
 } // namespace
 
+bool sameContent(const json& a, const json& b) {
+	if(a.is_object() && b.is_object()) {
+		if(a.size() != b.size()) return false;
+		return std::ranges::all_of(a.items(), [&](const auto& member) {
+			const auto other = b.find(member.key());
+			return other != b.end() && sameContent(member.value(), *other);
+		});
+	}
+	if(a.is_array() && b.is_array())
+		return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(),
+		                                          [](const json& x, const json& y) { return sameContent(x, y); });
+	return a == b;
+}
+
 json delta(const json& from, const json& to) {
 	json out = json::array();
 	std::string path;

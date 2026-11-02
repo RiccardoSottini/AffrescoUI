@@ -188,13 +188,13 @@ Screen unconnectedScreen(const std::string& document, const std::filesystem::pat
                          const std::filesystem::path& nowhere) {
 	Screen screen = Screen::fromString(document, directory);
 	json loaded = parseUntrusted(sourceJson(screen)); // the includes in place
-	if(loaded.contains("channels") && loaded["channels"].is_object()) {
+	if(lisp::hasProgram(loaded)) {
+		screen.allowChannels(false); // what a program builds can't be pointed elsewhere: nothing it declares connects
+	} else if(loaded.contains("channels") && loaded["channels"].is_object()) {
 		for(auto& [name, channel] : loaded["channels"].items())
 			if(channel.is_object()) channel["socket"] = "none.sock";
 		screen = Screen::fromString(loaded.dump(), directory);
 	}
-	// What a program builds can't be pointed elsewhere like that: nothing it declares connects
-	if(lisp::hasProgram(loaded)) screen.allowChannels(false);
 	screen.setSocketDirectory(nowhere);
 	return screen;
 }

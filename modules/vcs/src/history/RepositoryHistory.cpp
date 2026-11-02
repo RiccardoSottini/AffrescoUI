@@ -5,6 +5,7 @@
 #include "affresco/vcs/Repository.hpp"
 
 #include "history/HistoryStore.hpp"
+#include "revisions/Deltas.hpp"
 #include "permissions/Permissions.hpp"
 #include "Reasons.hpp"
 #include "Sha256.hpp"
@@ -233,7 +234,8 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	// A history begun on a version 1 screen began on this one, if the screen file was migrated since
 	json original = *objects.at(main.front()).snapshot;
 	static_cast<void>(rules_.upgrade(original));
-	if(original != mainDocument()) return false;
+	// The same screen, written with its keys in another order, is the same screen: its history goes on
+	if(!detail::sameContent(original, mainDocument())) return false;
 
 	for(Proposal& proposal : refs.proposals) {
 		completeProposal(proposal, objects, main, store.refsFile());
@@ -248,6 +250,7 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 		json first, last;
 		// What the person's own input changed in a program is the one thing their commits may add
 		const bool own = std::ranges::any_of(main, [&](const std::string& id) { return objects.at(id).ownInput; });
+		for(const std::string& id : main) checkOwnCommit(objects.at(id));
 		if(own) rules_.checkOwnChange(judged(*objects.at(main.front()).snapshot, first), judged(rebuilt, last));
 		else rules_.checkChange(judged(*objects.at(main.front()).snapshot, first), judged(rebuilt, last));
 		upgraded = rebuilt;
@@ -372,6 +375,15 @@ Repository::readDocument(detail::HistoryStore& store, const std::string& id, con
 	if(detail::sha256(document.dump()) != id)
 		throw HistoryError(file, "its content doesn't match its SHA-256: the file is damaged");
 	return documents.emplace(id, std::make_shared<const json>(std::move(document))).first->second;
+}
+
+void Repository::checkOwnCommit(const Commit& commit) {
+	if(!commit.ownInput) return;
+	const bool onlyProgram = std::ranges::all_of(commit.patch, [](const json& op) {
+		return op.is_object() && !op.contains("from") && op.value("path", std::string()).starts_with("/program/");
+	});
+	if(detail::channelOf(commit.author) != personChannel || !onlyProgram)
+		throw DocumentError("a commit marked as the person's own input is by someone else, or changes more than a program");
 }
 
 Repository::Commit Repository::readObject(detail::HistoryStore& store, const std::string& id,

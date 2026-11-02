@@ -635,6 +635,11 @@ private:
 	[[nodiscard]] static std::shared_ptr<const json>
 	readDocument(detail::HistoryStore& store, const std::string& id, const std::filesystem::path& namedIn,
 	             std::unordered_map<std::string, std::shared_ptr<const json>>& documents);
+	/// @brief Refuses a commit of a history that says it is the person's own input and can't be: by another channel, or
+	/// beyond the program (commitOwnInput()).
+	/// @param commit The commit.
+	/// @throws DocumentError If it can't be.
+	static void checkOwnCommit(const Commit& commit);
 	/// @brief Reads a commit object, and its document if it is a snapshot, and checks them against their ids. A
 	/// commit's delta isn't covered by its id: rebuild() checks the documents deltas give against their trees.
 	/// @param store The history.
