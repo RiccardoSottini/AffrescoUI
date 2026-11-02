@@ -8,8 +8,8 @@
 #include <algorithm>
 #include <array>
 #include <ranges>
+#include <set>
 #include <string>
-#include <unordered_set>
 #include <utility>
 
 namespace affresco::lisp {
@@ -92,7 +92,7 @@ const std::array<Machine::Handle, static_cast<std::size_t>(Op::Count)>& Machine:
 
 Value Machine::call(const Value& function, std::span<const Value> arguments) {
 	const std::vector<Value> copied(arguments.begin(), arguments.end()); // they may stand on the stack
-	if(frames_.empty() && nesting_ == 0) ran_ = noAuthors_;              // a primitive calling back is no new start
+	startRecord();
 	const std::size_t floor = frames_.size();
 	const std::size_t height = stack_.size();
 	const std::size_t handlers = handlers_.size();
@@ -124,7 +124,7 @@ Value Machine::call(const Value& function, std::span<const Value> arguments) {
 }
 
 Value Machine::runThunk(const Code* code) {
-	if(frames_.empty() && nesting_ == 0) ran_ = noAuthors_; // a primitive calling back is no new start
+	startRecord();
 	const std::size_t floor = frames_.size();
 	const std::size_t height = stack_.size();
 	const std::size_t handlers = handlers_.size();
@@ -144,7 +144,7 @@ Value Machine::runThunk(const Code* code) {
 Value Machine::force(Global& global) {
 	ensureCompiled(global);
 	if(global.state == Global::State::Lazy) {
-		if(frames_.empty() && nesting_ == 0) ran_ = noAuthors_; // a primitive calling back is no new start
+		startRecord();
 		const std::size_t floor = frames_.size();
 		const std::size_t height = stack_.size();
 		const RunGuard guard(nesting_);
@@ -259,6 +259,7 @@ void Machine::invoke(std::uint32_t count, bool tail) {
 		if(map.kind() != Kind::Map && !map.isNil())
 			throw Problem("a keyword as a function takes a map, and was given " + std::string(describeKind(map)));
 		const std::string_view key = callee.kind() == Kind::Map ? keyText(arguments[0]) : callee.text();
+		spendLookup(map, key);
 		bool found = false;
 		const Value member = map.lookup(key, &found);
 		finishCall(found || count == 1 ? member : arguments[1], count);
@@ -492,7 +493,7 @@ void Machine::opBuildMap(const Instruction& instruction) {
 	const auto first = stack_.end() - static_cast<std::ptrdiff_t>(instruction.a) * 2;
 	std::vector<MapEntry> entries;
 	entries.reserve(instruction.a);
-	std::unordered_set<std::string_view> seen;
+	std::set<std::string_view> seen;
 	for(auto item = first; item != stack_.end(); item += 2) {
 		const std::string_view key = keyText(*item);
 		if(!seen.insert(key).second) throw Problem("a map with the same key twice");

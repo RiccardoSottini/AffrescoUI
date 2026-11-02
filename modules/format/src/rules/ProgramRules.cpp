@@ -252,7 +252,11 @@ void checkProgramSection(const json& value, const std::string& name) {
 }
 
 void checkProgramChange(const json& before, const json& after) {
-	if(!lisp::hasProgram(after) || !lisp::hasProgram(before) || before["program"] == after["program"]) return;
+	if(lisp::hasProgram(before) != lisp::hasProgram(after))
+		fail("revision", lisp::hasProgram(after)
+		                     ? "permission denied: this app is static, and a revision can't give it a program"
+		                     : "permission denied: a revision can't take the whole program from an app");
+	if(!lisp::hasProgram(after) || before["program"] == after["program"]) return;
 	std::set<std::string> defined;
 	for(const auto& [file, entries] : before["program"].items())
 		for(const auto& [name, text] : entries.items()) defined.insert(name);

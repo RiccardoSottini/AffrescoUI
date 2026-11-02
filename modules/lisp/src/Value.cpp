@@ -200,8 +200,7 @@ std::size_t MapObject::find(std::string_view key) const {
 		return entries.size();
 	}
 	if(!index_) {
-		index_ = std::make_unique<std::unordered_map<std::string_view, std::uint32_t>>();
-		index_->reserve(entries.size());
+		index_ = std::make_unique<std::map<std::string_view, std::uint32_t, std::less<>>>();
 		for(std::size_t index = 0; index < entries.size(); ++index)
 			index_->emplace(entries[index].key, static_cast<std::uint32_t>(index));
 	}

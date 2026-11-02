@@ -85,6 +85,10 @@ public:
 	/// @param message What is wrong.
 	/// @throws DocumentError Always.
 	[[noreturn]] void fail(const std::string& message) const;
+	/// @brief Spends from the running event's budget what a function does beyond an operation.
+	/// @param operations How many operations it comes to.
+	/// @throws DocumentError If the budget runs out.
+	void spend(std::size_t operations) const;
 	/// @brief Adds a piece to a text the function builds, which stays within textLimit.
 	/// @param text The text.
 	/// @param piece What it gets.

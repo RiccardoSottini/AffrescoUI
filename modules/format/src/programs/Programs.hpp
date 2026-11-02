@@ -184,6 +184,7 @@ private:
 	};
 	class Entered;
 	class Linked;
+	class Seeing;
 	struct Share;
 	/// @brief The forms of a text, as `evaluate` takes them.
 	struct FormsRead {
@@ -236,6 +237,9 @@ private:
 	/// @param interpreter Its interpreter.
 	/// @throws DocumentError If one names what isn't there.
 	void loadExtensions(lisp::Interpreter& interpreter);
+	/// @brief What a hook or advice by a stranger sees of where it is called from: only the panel.
+	/// @return It.
+	[[nodiscard]] Frame blindFrame() const;
 	/// @brief The share of the budget each of some sealed runs gets.
 	/// @param interpreter The interpreter.
 	/// @param count How many.
@@ -256,9 +260,11 @@ private:
 	/// @param index How many of them are still to go.
 	/// @param original The function.
 	/// @param arguments Its arguments.
+	/// @param open Whether the call of the advice is still going on: what it goes on with works no longer than that.
 	/// @return What the outermost gives.
 	lisp::Value callAround(lisp::Interpreter& interpreter, const std::vector<const ExtensionEntry*>& arounds,
-	                       std::size_t index, const lisp::Value& original, const std::vector<lisp::Value>& arguments);
+	                       std::size_t index, const lisp::Value& original, const std::vector<lisp::Value>& arguments,
+	                       const std::shared_ptr<bool>& open);
 	/// @brief Calls a function with all its advice.
 	/// @param interpreter The interpreter.
 	/// @param table The version's advice.
@@ -433,6 +439,26 @@ private:
 	std::shared_ptr<const Extensions> extensionsNext_; ///< Those of what load() is loading.
 	std::vector<std::string> hooksRunning_;            ///< The hook points being run.
 	TypedText typed_;                                  ///< What the person typed themselves.
+};
+
+/// @brief Sets what running code sees of where it is called from, as long as it lives. A hook or advice by a stranger sees
+/// nothing of it: the variables and the event around it are what it wasn't given.
+class Programs::Seeing {
+public:
+	/// @brief Sets it.
+	/// @param programs The programs.
+	/// @param frame What it sees.
+	Seeing(Programs& programs, Frame* frame) noexcept : programs_(programs), outer_(std::exchange(programs.frame_, frame)) {}
+	/// @brief Puts back what it was.
+	~Seeing() { programs_.frame_ = outer_; }
+	Seeing(const Seeing&) = delete;
+	Seeing& operator=(const Seeing&) = delete;
+	Seeing(Seeing&&) = delete;
+	Seeing& operator=(Seeing&&) = delete;
+
+private:
+	Programs& programs_; ///< The programs.
+	Frame* outer_;       ///< What it was.
 };
 
 /// @brief Links a running interpreter's budget to the event's while it lives: the event's going in, and back when it

@@ -2,6 +2,7 @@
 /// @brief Expression functions on forms of Lisp in a text (RFC 0005): what a code editor, a spreadsheet or anything
 /// that holds code needs to evaluate what is at a position.
 
+#include "Expression.hpp"
 #include "ExpressionFunctions.hpp"
 
 #include <affresco/lisp/Interpreter.hpp>
@@ -38,6 +39,7 @@ Value atPosition(const Call& call, std::optional<lisp::FormAt> (*find)(std::stri
 	const double line = call.number(1);
 	const double column = call.number(2);
 	if(line < 1 || column < 1 || line > 1e9 || column > 1e9) call.fail("a line and a column count from 1");
+	call.spend(call[0].text().size() / 8); // the text is read, however much of it the position asks for
 	return formValue(find(call[0].text(), static_cast<std::size_t>(line), static_cast<std::size_t>(column)));
 }
 
@@ -49,7 +51,9 @@ Value formAroundOf(const Call& call) { return atPosition(call, lisp::formAround)
 
 /// @brief `printForm(value)`: a value as Lisp. @param call The call. @return The text.
 Value printFormOf(const Call& call) {
-	lisp::Interpreter interpreter;
+	thread_local lisp::Interpreter interpreter; // making one costs far more than printing with it
+	const lisp::Interpreter::Transient region(interpreter);
+	interpreter.setBudget({operationsPerEvent, bytesPerEvent});
 	const auto value = std::make_shared<const json>(call[0].toJson());
 	return Value::ownJson(json(interpreter.print(interpreter.viewJson(value))));
 }

@@ -33,6 +33,7 @@ Value join(Machine& machine, Arguments arguments) {
 		throw Problem("\"join\" takes a separator and a list of items");
 	std::string text;
 	for(std::size_t at = 0; at < arguments[1].count(); ++at) {
+		machine.heap.charge(at > 0 ? arguments[0].text().size() : 0); // as it grows: a separator can be long
 		if(at > 0) text += arguments[0].text();
 		printValue(machine, arguments[1].at(at), text, false);
 	}
@@ -63,6 +64,7 @@ Value subs(Machine& machine, Arguments arguments) {
 	for(const Value& index : arguments.subspan(1))
 		if(index.kind() != Kind::Integer || index.asInteger() < 0) throw Problem("\"subs\" takes indexes from 0");
 	const std::string_view text = arguments[0].text();
+	machine.spendText(text.size());
 	const std::size_t start = offsetOf(text, static_cast<std::size_t>(arguments[1].asInteger()));
 	const std::size_t end =
 	    arguments.size() == 3 ? offsetOf(text, static_cast<std::size_t>(arguments[2].asInteger())) : text.size();
@@ -167,6 +169,7 @@ std::string expressionOf(const json& value) {
 /// @param arguments The value.
 /// @return The text.
 Value expressionPart(Machine& machine, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("\"%expression\" takes one value");
 	return machine.heap.string(expressionOf(valueToTree(machine, arguments[0], "")));
 }
 
@@ -176,7 +179,10 @@ Value expressionPart(Machine& machine, Arguments arguments) {
 /// @return The text.
 Value bindingText(Machine& machine, Arguments arguments) {
 	std::string text;
-	for(const Value& part : arguments) text += part.text();
+	for(const Value& part : arguments) {
+		machine.heap.charge(part.text().size()); // as it grows: these can be long, and many
+		text += part.text();
+	}
 	machine.spend(text.size());
 	return machine.heap.string(text);
 }

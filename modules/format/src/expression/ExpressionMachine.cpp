@@ -178,6 +178,8 @@ Value Call::evaluateFold(std::size_t index, const Value& item, std::size_t posit
 
 void Call::fail(const std::string& message) const { Machine::fail(at_, message); }
 
+void Call::spend(std::size_t operations) const { machine_.spend(operations, at_); }
+
 void Call::appendText(std::string& text, std::string_view piece) const { Machine::appendText(text, piece, at_); }
 
 const Strings* Call::strings() const noexcept { return machine_.context().strings; }

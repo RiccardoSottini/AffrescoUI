@@ -43,6 +43,12 @@ struct Programs::Share {
 	std::size_t steps = 0; ///< Each one's steps.
 };
 
+Programs::Frame Programs::blindFrame() const {
+	static const json noEvent = json::object();
+	static const Scope nothing{nullptr, nullptr, json::object(), {}, {}};
+	return {frame_->sender, &noEvent, &nothing};
+}
+
 Programs::Share Programs::shareOf(const lisp::Interpreter& interpreter, std::size_t count) const {
 	const lisp::Budget left = interpreter.budget();
 	const std::size_t parts = 2 * std::max<std::size_t>(count, 1);
@@ -66,6 +72,8 @@ void Programs::runSealed(lisp::Interpreter& interpreter, const ExtensionEntry& e
 			interpreter.addAuthorsThatRan(entry.authors);
 			const lisp::Value function = functionOf(interpreter, entry.function, entry.label);
 			const bool stranger = byStranger(interpreter, function, entry.authors);
+			Frame blind = blindFrame();
+			const Seeing seeing(*this, stranger ? &blind : frame_);
 			static_cast<void>(interpreter.call(function, stranger ? std::span<const lisp::Value>() : arguments));
 		} catch(const lisp::LispError& error) {
 			failed(error.message());
@@ -85,27 +93,32 @@ void Programs::runSealed(lisp::Interpreter& interpreter, const ExtensionEntry& e
 
 lisp::Value Programs::callAround(lisp::Interpreter& interpreter, const std::vector<const ExtensionEntry*>& arounds,
                                  std::size_t index, const lisp::Value& original,
-                                 const std::vector<lisp::Value>& arguments) {
+                                 const std::vector<lisp::Value>& arguments, const std::shared_ptr<bool>& open) {
 	if(index == 0) return interpreter.call(original, arguments);
 	const ExtensionEntry& entry = *arounds[index - 1];
 	const lisp::Value function = functionOf(interpreter, entry.function, entry.label);
 	const bool stranger = byStranger(interpreter, function, entry.authors);
+	Frame* const around = frame_; // what the function it goes on with sees
 	// What a stranger's advice is given can only go on as it was: it can't change the arguments, or see the result
 	// NOLINTNEXTLINE(bugprone-exception-escape): a primitive may throw: the machine takes it as a condition
 	const lisp::Value proceed = interpreter.makeFunction(
 	    "proceed", {.capability = "read",
 		            .pure = false,
-		            .call = [this, &arounds, index, original, arguments, stranger](lisp::Interpreter& in, // NOLINT(bugprone-exception-escape)
-		                                                                           std::span<const lisp::Value> given) {
+		            .call = [this, &arounds, index, original, arguments, stranger, open, around](lisp::Interpreter& in, // NOLINT(bugprone-exception-escape)
+		                                                                                         std::span<const lisp::Value> given) {
+		                if(!*open) throw lisp::Refusal("what this advice went on with has ended");
+		                const Seeing seeing(*this, around);
 		                const std::vector<lisp::Value> changed(given.begin(), given.end());
 		                const lisp::Value result = callAround(in, arounds, index - 1, original,
-						                                      stranger || changed.empty() ? arguments : changed);
+						                                      stranger || changed.empty() ? arguments : changed, open);
 		                return stranger ? lisp::Value() : result;
 	                }});
 	// Whoever added it decided that what it names runs here, so an agent can't get a person's function run this way
 	interpreter.addAuthorsThatRan(entry.authors);
 	std::vector<lisp::Value> values = {proceed};
 	if(!stranger) values.insert(values.end(), arguments.begin(), arguments.end());
+	Frame blind = blindFrame();
+	const Seeing seeing(*this, stranger ? &blind : frame_);
 	return interpreter.call(function, values);
 }
 
@@ -122,7 +135,25 @@ lisp::Value Programs::callAdvised(lisp::Interpreter& interpreter, const Extensio
 	const std::vector<const ExtensionEntry*> before = of("before"), around = of("around"), after = of("after");
 	const Share share = shareOf(interpreter, before.size() + after.size());
 	for(const ExtensionEntry* entry : before) runSealed(interpreter, *entry, target, arguments, share);
-	const lisp::Value result = callAround(interpreter, around, around.size(), original, arguments);
+	// A function an advice returned can outlive this call, and what it refers to here doesn't
+	const auto open = std::make_shared<bool>(true);
+	/// @brief Closes what advice goes on with, whatever ends the call.
+	class Closing {
+	public:
+		/// @brief Remembers it. @param flag It.
+		explicit Closing(bool& flag) : flag_(flag) {}
+		/// @brief Closes it.
+		~Closing() { flag_ = false; }
+		Closing(const Closing&) = delete;
+		Closing& operator=(const Closing&) = delete;
+		Closing(Closing&&) = delete;
+		Closing& operator=(Closing&&) = delete;
+
+	private:
+		bool& flag_; ///< It.
+	};
+	const Closing closing(*open);
+	const lisp::Value result = callAround(interpreter, around, around.size(), original, arguments, open);
 	for(const ExtensionEntry* entry : after) runSealed(interpreter, *entry, target, arguments, share);
 	return result;
 }

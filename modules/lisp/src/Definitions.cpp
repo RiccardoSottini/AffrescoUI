@@ -361,7 +361,7 @@ void Machine::ensureCompiled(Global& cell) {
 }
 
 const Definition* Machine::definition(std::string_view name) const {
-	const auto found = definitionNames_.find(std::string(name));
+	const auto found = definitionNames_.find(name);
 	return found == definitionNames_.end() ? nullptr : definitions_[found->second].get();
 }
 

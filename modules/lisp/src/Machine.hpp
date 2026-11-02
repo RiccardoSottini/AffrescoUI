@@ -170,9 +170,12 @@ public:
 	/// @return The value.
 	/// @throws LispError If it is undefined or working it out fails.
 	Value force(Global& global);
-	/// @brief Enters a region (Interpreter::Transient): the outermost starts it.
+	/// @brief Enters a region (Interpreter::Transient): the outermost starts it, and what it runs starts a new record of
+	/// who ran.
 	void enterRegion() {
-		if(regions_++ == 0) region_ = heap.mark();
+		if(regions_++ != 0) return;
+		region_ = heap.mark();
+		if(frames_.empty() && nesting_ == 0) ran_ = noAuthors_;
 	}
 	/// @brief Leaves a region: the outermost ends it, and gives back the stack a deep run grew.
 	void leaveRegion();
@@ -190,6 +193,19 @@ public:
 		if(budget_.operations < count)
 			exhausted(expanding_ ? "the budget for macro expansion ran out" : "the budget for work ran out");
 		budget_.operations -= count;
+	}
+	/// @brief Spends what going through a text costs: what is done per byte, as an operation is about as long as going
+	/// through this many.
+	/// @param bytes Its size.
+	/// @throws Problem If the budget runs out.
+	void spendText(std::size_t bytes) { spend(bytes / 64); }
+	/// @brief Spends what finding a key in a map costs, beyond an operation: comparing a long key, and going through the
+	/// members of a map viewed from JSON, which has no index.
+	/// @param map The map.
+	/// @param key The key.
+	/// @throws Problem If the budget runs out.
+	void spendLookup(const Value& map, std::string_view key) {
+		spend(key.size() / 64 + (map.isView() ? map.count() / 16 : 0));
 	}
 	/// @brief A Problem saying a limit ran out.
 	/// @param what Which.
@@ -298,6 +314,12 @@ private:
 	void noteRan(const Code* code) {
 		if(code->authors != ran_ && code->authors != noAuthors_) ran_ = unite(ran_, code->authors);
 	}
+	/// @brief Starts a new record of who ran, for a run with nothing around it. Inside a region it is the region's start
+	/// that does, so that who a host says led to a run (Interpreter::addAuthorsThatRan()) stays on the record, whatever the
+	/// stack holds.
+	void startRecord() noexcept {
+		if(frames_.empty() && nesting_ == 0 && regions_ == 0) ran_ = noAuthors_;
+	}
 	/// @brief Takes a Build's items off the stack, spreading what `~@` marked.
 	/// @param count How many values.
 	/// @return The items.
@@ -349,9 +371,9 @@ private:
 	std::size_t regions_ = 0;         ///< Regions inside each other.
 	bool pure_ = false;               ///< See setPure().
 	std::deque<Global> globalCells_;  ///< The cells: their addresses stay.
-	std::unordered_map<std::string_view, Global*> globals_;              ///< The cells by name.
+	std::map<std::string_view, Global*, std::less<>> globals_;           ///< The cells by name.
 	std::vector<std::unique_ptr<Definition>> definitions_;               ///< See definitions().
-	std::unordered_map<std::string, std::size_t> definitionNames_;       ///< definitions_'s indexes by name.
+	std::map<std::string, std::size_t, std::less<>> definitionNames_;    ///< definitions_'s indexes by name.
 	std::size_t compiled_ = 0;                                           ///< How many of definitions_ are compiled.
 	std::vector<GlobalUse> uses_;                                        ///< See uses().
 	int compileDepth_ = 0;                                               ///< See compileDepth().

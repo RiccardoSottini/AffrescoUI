@@ -8,8 +8,8 @@
 #include <affresco/notation/Lexer.hpp>
 #include <affresco/notation/Words.hpp>
 
+#include <set>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -136,7 +136,7 @@ private:
 		const std::string_view type = typeOf(list, place);
 		json object = json::object();
 		auto& members = static_cast<Members&>(object.get_ref<json::object_t&>());
-		std::unordered_set<std::string_view> seen;
+		std::set<std::string_view> seen;
 		if(type != notation::untypedHead) {
 			members.emplace_back("type", std::string(type));
 			seen.insert("type");
@@ -293,6 +293,7 @@ bool mapsEqual(Machine& machine, const Value& first, const Value& second, int de
 	if(first.count() != second.count()) return false;
 	for(std::size_t at = 0; at < first.count(); ++at) {
 		bool found = false;
+		machine.spendLookup(second, first.keyAt(at));
 		const Value other = second.lookup(first.keyAt(at), &found);
 		if(!found || !equalAt(machine, first.valueAt(at), other, depth + 1)) return false;
 	}
@@ -315,6 +316,7 @@ bool equalAt(Machine& machine, const Value& first, const Value& second, int dept
 	if(first.kind() == Kind::Nil) return true;
 	if(first.kind() == Kind::Boolean) return first.asBoolean() == second.asBoolean();
 	if(first.kind() == Kind::Function || first.kind() == Kind::Native) return first.pointer() == second.pointer();
+	if(first.text().size() == second.text().size()) machine.spendText(first.text().size());
 	return first.text() == second.text(); // a string, a symbol, a keyword
 }
 

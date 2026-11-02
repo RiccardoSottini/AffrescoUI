@@ -397,6 +397,7 @@ void Compiler::destructureMap(const Value& pattern, std::uint32_t slot) {
 }
 
 Compiler::Variable Compiler::resolve(Function& function, std::string_view name) {
+	machine_.spend((function.locals.size() + function.captureNames.size()) / 8); // both are searched, whatever is written
 	for(const Local& local : std::views::reverse(function.locals))
 		if(local.name == name) return {Variable::Kind::Local, local.slot};
 	if(const auto captured = std::ranges::find(function.captureNames, name); captured != function.captureNames.end())

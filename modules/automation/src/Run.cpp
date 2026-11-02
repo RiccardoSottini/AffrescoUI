@@ -193,6 +193,8 @@ Screen unconnectedScreen(const std::string& document, const std::filesystem::pat
 			if(channel.is_object()) channel["socket"] = "none.sock";
 		screen = Screen::fromString(loaded.dump(), directory);
 	}
+	// What a program builds can't be pointed elsewhere like that: nothing it declares connects
+	if(lisp::hasProgram(loaded)) screen.allowChannels(false);
 	screen.setSocketDirectory(nowhere);
 	return screen;
 }

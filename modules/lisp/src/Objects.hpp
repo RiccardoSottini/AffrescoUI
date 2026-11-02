@@ -14,12 +14,12 @@
 #include <cstdint>
 #include <deque>
 #include <functional>
+#include <map>
 #include <memory>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -94,7 +94,7 @@ struct MapObject final : Object {
 private:
 	/// Keys found by a search one by one; past this many, through the index.
 	static constexpr std::size_t searched = 16;
-	mutable std::unique_ptr<std::unordered_map<std::string_view, std::uint32_t>> index_; ///< See find().
+	mutable std::unique_ptr<std::map<std::string_view, std::uint32_t, std::less<>>> index_; ///< See find().
 };
 
 /// @brief A set of authors, by their number in the machine's table. Sets are interned: one pointer per set.

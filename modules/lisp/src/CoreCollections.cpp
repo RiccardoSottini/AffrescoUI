@@ -5,6 +5,7 @@
 #include "Machine.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -211,16 +212,19 @@ Value dissoc(Machine& machine, Arguments arguments) {
 }
 
 /// @brief `get` (also `%get`, which a program can't redefine).
+/// @param machine The machine.
 /// @param arguments A map, a vector or nil, a key or an index, and maybe what to give if it isn't there.
 /// @return The member, or what was given, or nil.
-Value getMember(Machine& /*machine*/, Arguments arguments) {
+Value getMember(Machine& machine, Arguments arguments) {
 	needCount(arguments, 2, 3, "get");
 	const Value& from = arguments[0];
 	const Value fallback = arguments.size() == 3 ? arguments[2] : Value();
 	if(from.isNil()) return fallback;
 	if(from.kind() == Kind::Map) {
 		bool found = false;
-		const Value member = from.lookup(keyText(arguments[1]), &found);
+		const std::string_view key = keyText(arguments[1]);
+		machine.spendLookup(from, key);
+		const Value member = from.lookup(key, &found);
 		return found ? member : fallback;
 	}
 	if(from.isSequence()) {
@@ -250,6 +254,8 @@ Value nthItem(Machine& machine, Arguments arguments) {
 /// @param arguments A collection and an index.
 /// @return The item, or nil.
 Value patternItem(Machine& machine, Arguments arguments) {
+	needCount(arguments, 2, 2, "%nth");
+	if(arguments[1].kind() != Kind::Integer || arguments[1].asInteger() < 0) throw Problem("\"%nth\" takes an index");
 	const Value items = sequenceOf(machine, arguments[0], "a vector pattern");
 	const auto index = static_cast<std::size_t>(arguments[1].asInteger());
 	return index < items.count() ? items.at(index) : Value();
@@ -260,6 +266,8 @@ Value patternItem(Machine& machine, Arguments arguments) {
 /// @param arguments A collection and an index.
 /// @return Its items from there.
 Value patternRest(Machine& machine, Arguments arguments) {
+	needCount(arguments, 2, 2, "%drop");
+	if(arguments[1].kind() != Kind::Integer || arguments[1].asInteger() < 0) throw Problem("\"%drop\" takes an index");
 	const Value items = sequenceOf(machine, arguments[0], "a vector pattern");
 	const auto index = static_cast<std::size_t>(arguments[1].asInteger());
 	return index < items.count() ? machine.heap.part(items, index, items.count() - index)
@@ -306,12 +314,16 @@ Value valuesOf(Machine& machine, Arguments arguments) {
 	return machine.heap.sequence(Kind::Vector, std::move(values));
 }
 
-/// @brief `count`. @param arguments A collection, a string or nil. @return How many items or characters.
-Value countOf(Machine& /*machine*/, Arguments arguments) {
+/// @brief `count`.
+/// @param machine The machine.
+/// @param arguments A collection, a string or nil.
+/// @return How many items or characters.
+Value countOf(Machine& machine, Arguments arguments) {
 	needCount(arguments, 1, 1, "count");
 	const Value& value = arguments[0];
 	if(value.kind() == Kind::String) {
 		const std::string_view text = value.text();
+		machine.spendText(text.size());
 		const auto characters =
 		    std::ranges::count_if(text, [](char c) { return (static_cast<unsigned char>(c) & 0xC0U) != 0x80U; });
 		return Value::integer(characters);
@@ -328,13 +340,16 @@ Value isEmpty(Machine& machine, Arguments arguments) {
 }
 
 /// @brief `contains?`.
+/// @param machine The machine.
 /// @param arguments A map (with a key) or a vector (with an index), or nil.
 /// @return Whether it has it.
-Value containsMember(Machine& /*machine*/, Arguments arguments) {
+Value containsMember(Machine& machine, Arguments arguments) {
 	needCount(arguments, 2, 2, "contains?");
 	if(arguments[0].kind() == Kind::Map) {
 		bool found = false;
-		static_cast<void>(arguments[0].lookup(keyText(arguments[1]), &found));
+		const std::string_view key = keyText(arguments[1]);
+		machine.spendLookup(arguments[0], key);
+		static_cast<void>(arguments[0].lookup(key, &found));
 		return Value::boolean(found);
 	}
 	if(arguments[0].isSequence() && arguments[1].kind() == Kind::Integer)
@@ -399,18 +414,30 @@ Value range(Machine& machine, Arguments arguments) {
 	machine.heap.charge(size * sizeof(Value));
 	std::vector<Value> made;
 	made.reserve(size);
+	// In unsigned arithmetic, which wraps: each result fits, though the product on the way to it may not
 	for(std::size_t at = 0; at < size; ++at)
-		made.push_back(Value::integer(start + static_cast<std::int64_t>(at) * step));
+		made.push_back(Value::integer(static_cast<std::int64_t>(static_cast<std::uint64_t>(start) +
+		                                                        static_cast<std::uint64_t>(at) *
+		                                                            static_cast<std::uint64_t>(step))));
 	return machine.heap.sequence(Kind::Vector, std::move(made));
 }
 
-/// @brief The natural order of two numbers or two strings.
+/// @brief The natural order of two numbers or two strings: what isn't a number comes after all that are, so that it is an
+/// order, as sorting needs. Comparing costs what the texts' sizes cost.
+/// @param machine The machine.
 /// @param first One.
 /// @param second The other.
 /// @return Whether one comes first.
-bool comesFirst(const Value& first, const Value& second) {
-	if(first.isNumber() && second.isNumber()) return first.asDouble() < second.asDouble();
-	if(first.kind() == Kind::String && second.kind() == Kind::String) return first.text() < second.text();
+bool comesFirst(Machine& machine, const Value& first, const Value& second) {
+	if(first.isNumber() && second.isNumber()) {
+		const double a = first.asDouble();
+		const double b = second.asDouble();
+		return std::isnan(a) || std::isnan(b) ? !std::isnan(a) && std::isnan(b) : a < b;
+	}
+	if(first.kind() == Kind::String && second.kind() == Kind::String) {
+		machine.spendText(std::min(first.text().size(), second.text().size()));
+		return first.text() < second.text();
+	}
 	throw Problem("\"sort\" compares numbers with numbers and strings with strings");
 }
 
@@ -422,7 +449,7 @@ Value sorted(Machine& machine, Arguments arguments) {
 	machine.spend(items.count() * 16);
 	made.reserve(items.count());
 	for(std::size_t at = 0; at < items.count(); ++at) made.push_back(items.at(at));
-	std::ranges::stable_sort(made, comesFirst);
+	std::ranges::stable_sort(made, [&](const Value& a, const Value& b) { return comesFirst(machine, a, b); });
 	return machine.heap.sequence(Kind::Vector, std::move(made));
 }
 
@@ -431,12 +458,15 @@ Value sorted(Machine& machine, Arguments arguments) {
 /// @param arguments A vector of keys and a vector of items as long.
 /// @return The items, in the order of their keys.
 Value sortedByKeys(Machine& machine, Arguments arguments) {
+	needCount(arguments, 2, 2, "%sort-by-keys");
+	if(!arguments[0].isSequence() || !arguments[1].isSequence() || arguments[0].count() != arguments[1].count())
+		throw Problem("\"%sort-by-keys\" takes two lists as long as each other");
 	std::vector<std::pair<Value, Value>> pairs;
 	machine.spend(arguments[0].count() * 16);
 	pairs.reserve(arguments[0].count());
 	for(std::size_t at = 0; at < arguments[0].count(); ++at)
 		pairs.emplace_back(arguments[0].at(at), arguments[1].at(at));
-	std::ranges::stable_sort(pairs, comesFirst, &std::pair<Value, Value>::first);
+	std::ranges::stable_sort(pairs, [&](const auto& a, const auto& b) { return comesFirst(machine, a.first, b.first); });
 	std::vector<Value> made;
 	made.reserve(pairs.size());
 	for(const auto& [key, item] : pairs) made.push_back(item);

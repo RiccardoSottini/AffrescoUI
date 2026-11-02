@@ -638,27 +638,22 @@ TEST_CASE("lisp document: a change set on a definition applies to another copy")
 	CHECK(other.repository.document()["actions"]["kill-line"]["title"] == "Plugged");
 }
 
-TEST_CASE("lisp document, attack: a program brought to a JSON screen by a revision is judged like any other") {
+TEST_CASE("lisp document, attack: a JSON screen stays static: no revision brings it a program") {
 	json screen = {{"format", "affrescoui-screen"},
 	               {"version", 2},
 	               {"permissions", {{"allow", json::array({"studio"})}, {"reviewers", json::array({"studio"})}}},
 	               {"root", {{"type", "panel"}, {"id", "root"}}}};
 	Rules rules;
 	Repository repository(rules, screen);
-	const json widen = setting("/program",
-	                           json{{"x.lisp",
-	                                 {{"main", R"lisp((defscreen main :channels {:out {:socket "x"}} )lisp"
-	                                           "(panel#root))"}}}},
-	                           "agent");
-	CHECK(repository.submit(widen).status == RevisionStatus::Rejected);
-	const json clash = setting("/program", json{{"x.lisp", {{"main", "(defscreen main (panel#other))"}}}}, "agent");
-	CHECK(repository.submit(clash).status == RevisionStatus::Rejected);
-	const auto command = repository.submit(setting(
-	    "/program", json{{"x.lisp", {{"go", R"lisp((defcommand go "Go." :title "Go" [] nil))lisp"}}}}, "agent"));
-	REQUIRE(command.status == RevisionStatus::Proposed);
-	REQUIRE_FALSE(repository.accept(command.proposal, {"studio", command.commit}).has_value());
-	CHECK(repository.document()["actions"]["go"]["title"] == "Go");
-	CHECK(repository.document()["root"]["id"] == "root");
+	for(const char* text : {R"lisp((defscreen main :channels {:out {:socket "x"}} (panel#root)))lisp",
+	                        "(defscreen main (panel#other))", R"lisp((defcommand go "Go." :title "Go" [] nil))lisp"}) {
+		CAPTURE(text);
+		const json name = std::string(text).contains("defcommand") ? "go" : "main";
+		const auto result = repository.submit(setting("/program", json{{"x.lisp", {{name, text}}}}, "agent"));
+		CHECK(result.status == RevisionStatus::Rejected);
+		if(name == "go") CHECK(result.error.contains("static"));
+	}
+	CHECK_FALSE(repository.sourceDocument().contains("program"));
 }
 
 TEST_CASE("lisp document: a JSON section beside a program merges, and may not disagree with it") {
