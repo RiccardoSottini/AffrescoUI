@@ -100,20 +100,20 @@ lisp::Value Programs::callAround(lisp::Interpreter& interpreter, const std::vect
 	const bool stranger = byStranger(interpreter, function, entry.authors);
 	Frame* const around = frame_; // what the function it goes on with sees
 	// What a stranger's advice is given can only go on as it was: it can't change the arguments, or see the result
-	// NOLINTNEXTLINE(bugprone-exception-escape): a primitive may throw: the machine takes it as a condition
 	const lisp::Value proceed = interpreter.makeFunction(
-	    "proceed", {.capability = "read",
-		            .pure = false,
-		            .call = [this, &arounds, index, original, arguments, stranger, open,
-		                     around](lisp::Interpreter& in, // NOLINT(bugprone-exception-escape)
-		                             std::span<const lisp::Value> given) {
-		                if(!*open) throw lisp::Refusal("what this advice went on with has ended");
-		                const Seeing seeing(*this, around);
-		                const std::vector<lisp::Value> changed(given.begin(), given.end());
-		                const lisp::Value result = callAround(in, arounds, index - 1, original,
-						                                      stranger || changed.empty() ? arguments : changed, open);
-		                return stranger ? lisp::Value() : result;
-	                }});
+	    "proceed",
+	    {.capability = "read",
+		 .pure = false,
+		 // NOLINTNEXTLINE(bugprone-exception-escape): a primitive may throw: the machine takes it as a condition
+		 .call = [this, &arounds, index, original, arguments, stranger, open,
+		          around](lisp::Interpreter& in, std::span<const lisp::Value> given) {
+		     if(!*open) throw lisp::Refusal("what this advice went on with has ended");
+		     const Seeing seeing(*this, around);
+		     const std::vector<lisp::Value> changed(given.begin(), given.end());
+		     const lisp::Value result =
+		         callAround(in, arounds, index - 1, original, stranger || changed.empty() ? arguments : changed, open);
+		     return stranger ? lisp::Value() : result;
+	     }});
 	// Whoever added it decided that what it names runs here, so an agent can't get a person's function run this way
 	interpreter.addAuthorsThatRan(entry.authors);
 	std::vector<lisp::Value> values = {proceed};

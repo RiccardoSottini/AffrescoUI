@@ -214,6 +214,43 @@ template <class Each> void eachWritten(const json& op, const Each& each) {
 			for(const auto& [name, text] : entries.items()) each(file, name, text);
 }
 
+/// @brief The entries a person's commit is credited with, whose author is whoever first wrote that text.
+class FirstWriters {
+public:
+	/// @brief Takes the entries to answer for.
+	/// @param program The program on main's head; it must outlive this.
+	/// @param credited `{file: {name: author}}`, changed where it is settled; it must outlive this.
+	FirstWriters(const json& program, json& credited) : program_(program) {
+		for(auto& [file, entries] : credited.items())
+			for(auto& [name, author] : entries.items()) {
+				const auto& who = author.get_ref<const std::string&>();
+				if(who == "user" || who.starts_with("user/")) wanted_.emplace(std::pair(file, name), &author);
+			}
+	}
+	/// @brief Tells whether every entry has its answer. @return Whether it has.
+	[[nodiscard]] bool done() const noexcept { return wanted_.empty(); }
+	/// @brief Takes a writing of an entry, the earliest first: if it is the text the entry holds now, that is its
+	/// author.
+	/// @param file The file.
+	/// @param name The entry's address.
+	/// @param text What was written.
+	/// @param author Who wrote it.
+	void settle(const std::string& file, const std::string& name, const json& text, const std::string& author) {
+		const auto found = wanted_.find(std::pair(file, name));
+		if(found == wanted_.end() || text != program_[file][name]) return;
+		*found->second = author;
+		wanted_.erase(found);
+	}
+	/// @brief Ends the walk: an entry with no writing it could name is the person's commit's.
+	void finish() {
+		for(const auto& [entry, author] : wanted_) *author = "user";
+	}
+
+private:
+	const json& program_;                                         ///< See the constructor.
+	std::map<std::pair<std::string, std::string>, json*> wanted_; ///< What is left to answer for.
+};
+
 /// @brief Who last wrote each definition of a document's program, credited a commit at a time, newest first.
 class EntryAuthors {
 public:
@@ -437,34 +474,23 @@ json Repository::programAuthors() const {
 // A person's restore or revert brings back what someone else wrote, and it stays theirs: whoever first wrote that text
 // on main. One walk over the history, however many entries it answers for
 void Repository::keepFirstWriters(json& credited) const {
-	std::map<std::pair<std::string, std::string>, json*> wanted;
-	for(auto& [file, entries] : credited.items())
-		for(auto& [name, author] : entries.items()) {
-			const auto& who = author.get_ref<const std::string&>();
-			if(who == "user" || who.starts_with("user/")) wanted.emplace(std::pair(file, name), &author);
-		}
-	if(wanted.empty()) return;
-	const json& program = mainDocument()["program"];
-	const auto settle = [&](const std::string& file, const std::string& name, const json& text,
-	                        const std::string& who) {
-		const auto found = wanted.find(std::pair(file, name));
-		if(found == wanted.end() || text != program[file][name]) return;
-		*found->second = who;
-		wanted.erase(found);
-	};
+	FirstWriters writers(mainDocument()["program"], credited);
+	if(writers.done()) return;
 	const json first = documentOf(objects_.at(main_.front()));
-	if(const auto files = first.find("program"); files != first.end() && files->is_object())
-		for(const auto& [file, entries] : files->items())
-			if(entries.is_object())
-				for(const auto& [name, text] : entries.items()) settle(file, name, text, "file");
-	for(std::size_t n = 1; n < main_.size() && !wanted.empty(); ++n) {
+	if(const auto files = first.find("program"); files != first.end() && files->is_object()) {
+		const json whole = {{"path", "/program"}, {"value", *files}};
+		eachWritten(whole, [&](const std::string& file, const std::string& name, const json& text) {
+			writers.settle(file, name, text, "file");
+		});
+	}
+	for(std::size_t n = 1; n < main_.size() && !writers.done(); ++n) {
 		const Commit& commit = objects_.at(main_[n]);
 		for(const json& op : deltaOf(commit))
 			eachWritten(op, [&](const std::string& file, const std::string& name, const json& text) {
-				settle(file, name, text, commit.author);
+				writers.settle(file, name, text, commit.author);
 			});
 	}
-	for(const auto& [entry, author] : wanted) *author = "user"; // written by nobody it can name: a person's commit
+	writers.finish();
 }
 
 // What is shown is the proposal's: nothing it changed has the authority of what it replaced

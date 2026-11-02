@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -80,9 +81,10 @@ TEST_CASE("lisp attack: what a value's size makes slow costs its size") {
 	for(int key = 0; key < 100000; ++key) object[std::to_string(key)] = key;
 	const lisp::Value viewed = interpreter.viewJson(std::make_shared<const json>(std::move(object)));
 	const std::size_t before = interpreter.budget().operations;
-	const lisp::Value get = *interpreter.global("get");
+	const std::optional<lisp::Value> get = interpreter.global("get");
+	REQUIRE(get.has_value());
 	const std::vector<lisp::Value> arguments = {viewed, interpreter.makeString("nothing-here")};
-	static_cast<void>(interpreter.call(get, arguments));
+	static_cast<void>(interpreter.call(*get, arguments));
 	CHECK(before - interpreter.budget().operations >= atLeast);
 }
 
@@ -105,7 +107,7 @@ TEST_CASE("lisp attack: join and %binding are charged as they grow, not after") 
 TEST_CASE("lisp attack: a function with more locals than anyone writes costs its compiling") {
 	std::string text = "(defn f [] (let [";
 	for(int at = 0; at < 60000; ++at) text += "a" + std::to_string(at) + " 1 ";
-	text += "]";
+	text += ']';
 	for(int at = 0; at < 60000; ++at) text += " a" + std::to_string(at);
 	text += "))";
 	lisp::Program program;
@@ -204,7 +206,7 @@ TEST_CASE("lisp attack: a JSON app gains no code by a revision") {
 	                       {"root", {{"id", "root"}, {"type", "panel"}}},
 	                       {"actions", {{"plain", json::array({{{"set", "state.out"}, {"to", 1}}})}}}};
 	const json program = {{"app.lisp", {{"f", "(defn f [] 1)"}}}};
-	lispapp::WithoutTheScan rules(true);
+	const lispapp::WithoutTheScan rules(true);
 	affresco::vcs::Repository repository(rules, document);
 	const json add = {{"author", "agent/x"},
 	                  {"message", "m"},
@@ -250,7 +252,7 @@ TEST_CASE("lisp attack: a program's channels, built by it, are pointed nowhere w
 		/// @copydoc Executor::post
 		void post(std::function<void()> task) override { task(); }
 	} noPeers;
-	affresco::detail::ManualClock clock;
+	const affresco::detail::ManualClock clock;
 	const std::unique_ptr<affresco::Window> window = affresco::detail::createHeadlessWindow(200, 100, clock);
 	affresco::Screen screen = affresco::automation::unconnectedScreen(document, folder, folder / "no-host");
 	screen.build(*window);

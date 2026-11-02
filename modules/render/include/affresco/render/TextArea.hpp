@@ -69,6 +69,9 @@ public:
 	/// @return The text removed, as UTF-8.
 	std::string removeLast(std::size_t count);
 
+	/// @copydoc Panel::takeTyped
+	[[nodiscard]] bool takeTyped() noexcept override { return std::exchange(typedNow_, false); }
+
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText() or clear()); UTF-8.
 
 protected:
@@ -84,9 +87,6 @@ protected:
 	void charEvent(const CharEvent& event) override;
 	void focusEvent(bool focused) override;
 	void paint(Painter& painter) const override;
-
-	/// @copydoc Panel::takeTyped
-	[[nodiscard]] bool takeTyped() noexcept override { return std::exchange(typedNow_, false); }
 
 private:
 	/// @brief Reports what a key of the person's changed: as typing, unless the field is a secret or the key was pressed

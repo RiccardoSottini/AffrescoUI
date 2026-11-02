@@ -112,10 +112,10 @@ json patchOfArrival(const json& value, const json& section, const std::string& f
 	return definitionPatch(section, definitions, file);
 }
 
-/// @brief Runs an "evaluate" step: reads the text now, and evaluates it after the event, as revisions are.
+/// @brief Refuses an "evaluate" step that isn't on the person's own press, or has nothing to evaluate in.
 /// @param s The step.
-void evaluateStep(const Running& s) {
-	Engine& engine = s.steps.engine();
+void checkEvaluateStep(const Running& s) {
+	const Engine& engine = s.steps.engine();
 	const std::string& where = s.where;
 	if(!engine.window || !engine.window->routingOwnPress())
 		fail(where, "\"evaluate\" runs only from the person's own input: a key or a click, never a timer, a watch, a "
@@ -123,6 +123,14 @@ void evaluateStep(const Running& s) {
 	if(engine.asks.deciding()) fail(where, "an agent's reply runs this action: a reply is never the person's input");
 	if(engine.versions.previewing()) fail(where, "a proposal is being previewed: end that first");
 	if(!engine.programs.hasProgram()) fail(where, "this screen has no program, so there is nothing to evaluate in");
+}
+
+/// @brief Runs an "evaluate" step: reads the text now, and evaluates it after the event, as revisions are.
+/// @param s The step.
+void evaluateStep(const Running& s) {
+	checkEvaluateStep(s);
+	Engine& engine = s.steps.engine();
+	const std::string& where = s.where;
 	const std::string text = string(s.value("evaluate"), where + ".evaluate");
 	if(text.size() > maxEvaluatedBytes) fail(where, "the text is longer than a program's file may be");
 	const std::string file =
