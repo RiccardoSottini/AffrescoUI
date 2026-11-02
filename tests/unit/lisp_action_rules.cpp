@@ -11,6 +11,7 @@
 #include <doctest/doctest.h>
 
 #include <string>
+#include <vector>
 
 using affresco::json;
 using affresco::Mode;
@@ -69,7 +70,7 @@ constexpr const char* kAskActions = R"p({:ask ["agent(/actions)"] :reviewers ["s
 // The stage 6 review: a JSON app's rule on /actions stopped matching once its actions became a program, so in
 // acceptEdits an agent's change to a function was applied unreviewed, where JSON asked for a change to the actions
 TEST_CASE("lisp action rules, attack: a rule on /actions reviews an agent's change to the code an action runs") {
-	const json changes[] = {
+	const std::vector<json> changes = {
 	    setting(at("extra"), R"lisp((defn extra "New." [] 2))lisp"),                              // a new function
 	    setting(at("helper"), R"lisp((defn helper "A function." [] 2))lisp"),                     // a changed body
 	    setting(at("save") + "/:category", "Edit"),                                               // a command's keyword
