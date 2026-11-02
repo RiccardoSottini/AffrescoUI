@@ -608,8 +608,13 @@ void Checker::walkForEach(const json& step, const Scope& scope, const std::strin
 	if(const auto steps = step.find("do"); steps != step.end()) walkSteps(*steps, layer, place + ".do");
 }
 
+bool Checker::programDefines(const std::string& name) {
+	if(!programDefined_) programDefined_ = programReach(document_).defined;
+	return programDefined_->contains(name);
+}
+
 void Checker::callProgramFunction(const std::string& name, const std::string& place) {
-	if(!programReach(document_).defined.contains(name)) report(place, "the program has no function '" + name + "'");
+	if(!programDefines(name)) report(place, "the program has no function '" + name + "'");
 }
 
 void Checker::callAction(const std::string& name, const Scope& scope, const std::string& place) {
@@ -629,11 +634,12 @@ void Checker::callAction(const std::string& name, const Scope& scope, const std:
 		return;
 	}
 	if(nativeActions_.contains(name)) return;
-	if(const auto program = programReach(document_); program.defined.contains(name))
-		return; // a function of its program
+	if(programDefines(name)) return; // a function of its program
 	report(place, "unknown action '" + name + "'", hint([&] {
 		       std::vector<std::string> names = definedNames("actions");
 		       names.insert(names.end(), nativeActions_.begin(), nativeActions_.end());
+		       for(const std::string& defined : *programDefined_) // its program's too, but for what has no name
+			       if(!defined.contains(' ')) names.push_back(defined);
 		       return hintFor(name, names, "", "defined:");
 	       }));
 }

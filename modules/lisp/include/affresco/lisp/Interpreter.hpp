@@ -91,6 +91,10 @@ struct CallContext {
 	/// back (a function, a name to run) is in what is running now, so it is what a host weighs authority by.
 	std::span<const std::string> ran;
 	Place place; ///< The call.
+	/// The text its first argument is, when the code that calls it names it with that text written out there
+	/// (`(invoke "files.read")`, Program::namedCalls()); else empty. What such code reaches by that name is in its own
+	/// text, so a host may judge it by what was judged of that text, as a step written in a document is.
+	std::string_view named;
 };
 
 /// @brief The choke point: called before every call of a host's primitive. It throws Refusal to refuse.

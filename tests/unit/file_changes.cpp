@@ -171,8 +171,8 @@ TEST_CASE("file changes: an example's changes are in the files that hold them, i
 	const fs::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
 	for(const char* notation : {"json", "lisp"}) {
 		CAPTURE(notation);
-		Screen screen = Screen::fromApp(examples / "flow" / notation, {}, Screen::History::InMemory);
-		std::ifstream file(examples / "flow" / "json" / "locales" / "en.json");
+		Screen screen = Screen::fromApp(examples / "sign-in" / notation, {}, Screen::History::InMemory);
+		std::ifstream file(examples / "sign-in" / "json" / "locales" / "en.json");
 		const json strings = json::parse(file)["strings"]["en"];
 		REQUIRE_FALSE(strings.empty());
 		const std::string key = strings.items().begin().key();

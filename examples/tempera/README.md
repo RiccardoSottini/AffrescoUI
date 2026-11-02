@@ -1,12 +1,20 @@
 # Tempera
 
 An image editor over `modules/imaging`: layers and groups, masks and selections, brushes, filters with a live preview,
-adjustment layers and colour management, on sparse copy-on-write tiles. It is a folder of JSON that the stock
+adjustment layers and colour management, on sparse copy-on-write tiles. It is a folder of Lisp that the stock
 `affrescoui_launcher` runs, with nothing compiled for it.
 
+**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because it has behaviour beyond one
+operation at a time: the dialogs' numbers, grouping and ungrouping, cropping to a ratio, adjustments and the panels' lists
+are functions in `lisp/tempera.lisp`. Each operation of the image step stays an action in `parts/commands.lisp`, which the
+functions run, so an agent's revision may wire a button to an operation exactly as before, and the slide sorter an agent
+installs runs the same actions. Not to the functions that run an operation by a name they are given (`op`): the revision
+rules count a `run` of a computed name as reaching anything, where one written out reaches what it names. `lisp/` is its only source, with no `json/` beside it, and
+`tools/notation/lisp_examples.py` leaves it alone.
+
 ```sh
-./build/affrescoui_launcher examples/tempera/json/index.screen.json --socket out/s   # opens the sample
-./build/affrescoui test examples/tempera/json/index.scenarios.json                   # the 62 scenarios (ctest: scenarios)
+./build/affrescoui_launcher examples/tempera/lisp/index.screen.lisp --socket out/s   # opens the sample
+./build/affrescoui test examples/tempera/lisp/index.scenarios.json                   # the 62 scenarios (ctest: scenarios)
 ```
 
 It opens a generated sample (1200 × 800: Sky, Sun and Hills), drawn by `onLoad`.
@@ -19,14 +27,15 @@ can't work yet is shown disabled, its tooltip saying "not available yet".
 
 | File | What it holds |
 | --- | --- |
-| `index.screen.json` | The window, fonts, colours, permissions, the `images` section (the document `doc`) and the initial state |
-| `parts/commands.json` | The actions, each a list of `image` steps, the menu commands, the tool keys and the filter watches |
-| `parts/workspace.json` | The menu bar, the options bar, the tool bar, the canvas (a `raster` node) with rulers and guides, and the status bar |
-| `parts/panels.json` | Navigator, Layers, History, Properties/Adjust, Colour/Palette, and the New dialog |
-| `parts/dialogs.json` | The dialogs that take numbers (Free Transform, Image Size, Canvas Size, Rename Layer, Fill) and Close's question |
-| `index.scenarios.json` | 62 scenarios, run headless |
+| `lisp/index.screen.lisp` | The window, fonts, colours, permissions, the `images` section (the document `doc`) and the initial state |
+| `lisp/tempera.lisp` | The program: the dialogs, groups, crops, adjustments and the panels' lists, as functions and commands |
+| `lisp/parts/commands.lisp` | The actions that are one operation of the image step, the sample, the menu commands, the tool keys and the filter watches |
+| `lisp/parts/workspace.lisp` | The menu bar, the options bar, the tool bar, the canvas (a `raster` node) with rulers and guides, and the status bar |
+| `lisp/parts/panels.lisp` | Navigator, Layers, History, Properties/Adjust, Colour/Palette, and the New dialog |
+| `lisp/parts/dialogs.lisp` | The dialogs that take numbers (Free Transform, Image Size, Canvas Size, Rename Layer, Fill) and Close's question |
+| `lisp/index.scenarios.json` | 62 scenarios, run headless (they stay JSON) |
 | `PARITY.md` | What a daily user of a professional editor finds, row by row, and how far Tempera has come, round by round |
-| `sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent |
+| `lisp/sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent |
 
 The pixels stay in the library. The `images` section declares `doc`, and the state `doc` mirrors it after every step:
 the layers (top first) with their thumbnails (`doc/layer/<id>`), the history, the selection's bounds, the colours, the

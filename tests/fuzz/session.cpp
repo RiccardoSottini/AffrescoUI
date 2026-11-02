@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes channel::Session, the live protocol, with raw lines from two peers of the Kanban template: an agent
+/// @brief Fuzzes channel::Session, the live protocol, with raw lines from two peers of the JSON template: an agent
 /// and the reviewer ("studio"), each through an in-memory channel.
 ///
 /// The input is lines. Each goes to the agent, or to the reviewer when it starts with '>' (taken off). A peer's
@@ -59,11 +59,11 @@ affresco::channel::PeerLimits fuzzLimits(double burst, double changes) {
 	return limits;
 }
 
-/// @brief The Kanban template under version control, and its two peers. Members are destroyed in reverse order, so
+/// @brief The JSON template under version control, and its two peers. Members are destroyed in reverse order, so
 /// the sessions go before the channels and the repository they use.
 struct Peers {
 	affresco::format::Rules rules;                                               ///< The screen format.
-	affresco::vcs::Repository versions{rules, affresco::fuzz::kanbanTemplate()}; ///< The screen.
+	affresco::vcs::Repository versions{rules, affresco::fuzz::jsonTemplate()}; ///< The screen.
 	CheckedChannel agentChannel, studioChannel;                                  ///< What each peer is sent.
 	/// May propose; asks for /actions. Its limits are low enough for inputs to cross them.
 	affresco::channel::Session agent{agentChannel, versions, "agent", {}, nullptr, fuzzLimits(10, 6)};

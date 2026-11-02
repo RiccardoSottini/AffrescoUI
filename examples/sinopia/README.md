@@ -1,13 +1,20 @@
 # Sinopia, slides and vector documents
 
-Sinopia makes slide decks, presents them and exports them. It is a folder of JSON that the stock
-`affrescoui_launcher` runs, with nothing compiled for it: [`index.screen.json`](json/index.screen.json) and its parts in
-[`parts/`](json/parts). People and agents change it live like any other screen. Its permissions apply a `studio` peer's
+Sinopia makes slide decks, presents them and exports them. It is a folder of Lisp that the stock
+`affrescoui_launcher` runs, with nothing compiled for it: [`index.screen.lisp`](lisp/index.screen.lisp), its parts in
+[`parts/`](lisp/parts) and its program, [`sinopia.lisp`](lisp/sinopia.lisp). People and agents change it live like any other screen. Its permissions apply a `studio` peer's
 changes (the person's client) and send an agent's to review, which only a `studio` peer can give.
 
+**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because its edits have behaviour: Undo
+and Redo, adding, copying, removing and moving slides, and the selection's order, alignment, spacing and case are
+functions in `lisp/sinopia.lisp`, where a `let` holds what an action had to pass to a second action. The edits that are
+one step, and those that reach outside (open, save, export, the show), stay actions in the parts. `lisp/` is its only
+source, with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone. Its slide sorter, which Orrery
+and Tempera install, is [`lisp/features/slide-sorter`](lisp/features/slide-sorter).
+
 ```sh
-./build/affrescoui_launcher examples/sinopia/json/index.screen.json --socket out/s   # the workspace, with the sample deck
-./build/affrescoui test examples/sinopia/json/index.scenarios.json                   # the 57 scenarios (ctest: scenarios)
+./build/affrescoui_launcher examples/sinopia/lisp/index.screen.lisp --socket out/s   # the workspace, with the sample deck
+./build/affrescoui test examples/sinopia/lisp/index.scenarios.json                   # the 57 scenarios (ctest: scenarios)
 ```
 
 ## The workspace
@@ -32,26 +39,27 @@ screen black or white, a slide's number and Enter go to it, and Escape ends.
 
 ## The deck
 
-The deck is the state `deck` (the sample is [`parts/sample-deck.json`](json/parts/sample-deck.json)): a title, a size,
+The deck is the state `deck` (the sample is [`parts/sample-deck.lisp`](lisp/parts/sample-deck.lisp)): a title, a size,
 a theme and variant, sections and slides. A slide has a layout, notes, a background, a transition (`fade`, `push`,
 `wipe`, `cover`, `glide` and more, with a duration and a direction), builds (`appear`, `fade`, `wipe`, `fly` or `zoom`,
 as an entrance or an exit, on a click, with or after the one before) and objects, back to front: text, shapes from
-[`parts/geometry.json`](json/parts/geometry.json)'s presets, and lines. Saved, it is that JSON; opened, it is checked to
+[`parts/geometry.lisp`](lisp/parts/geometry.lisp)'s presets, and lines. Saved, it is that JSON; opened, it is checked to
 be a deck before it replaces the one on screen, as a change undo takes back.
 
 ## The parts
 
 | Part | What |
 |---|---|
-| [`themes.json`](json/parts/themes.json) | The themes, their colour slots and variants, the layouts and their placeholders |
-| [`geometry.json`](json/parts/geometry.json), [`slide.json`](json/parts/slide.json) | Shapes as paths, and a slide as nodes: its background and objects |
-| [`edit.json`](json/parts/edit.json) | Every edit, each one undoable: slides, objects, text, arrange, themes, transitions and builds |
-| [`ribbon.json`](json/parts/ribbon.json), [`tabs.json`](json/parts/tabs.json) | The ribbon's buttons, galleries and groups, and its tabs |
-| [`show.json`](json/parts/show.json) | The slide show: the `audience` window, transitions and builds through `animate`, the presenter view |
-| [`views.json`](json/parts/views.json) | The outline, the sorter, the format pane, and the deck as a file (`saveFile`, `openFile`, `export`) |
-| [`menus.json`](json/parts/menus.json) | The ribbon's drop-down menus and colour grids, Copy Style, and the find box (find, replace, rename a section) |
-| [`review.json`](json/parts/review.json) | The Ink, Record, Check and Help tabs: ink on the slide, timings, comments, the accessibility check, the side pane |
-| [`themes/sinopia.json`](json/themes/sinopia.json) | The app's own look: the window's colour tokens, light and dark |
+| [`themes.lisp`](lisp/parts/themes.lisp) | The themes, their colour slots and variants, the layouts and their placeholders |
+| [`geometry.lisp`](lisp/parts/geometry.lisp), [`slide.lisp`](lisp/parts/slide.lisp) | Shapes as paths, and a slide as nodes: its background and objects |
+| [`sinopia.lisp`](lisp/sinopia.lisp) | The program: Undo and Redo, the slides, and the selection's order, alignment, spacing and case |
+| [`edit.lisp`](lisp/parts/edit.lisp) | The other edits, each one undoable: objects, text, themes, transitions and builds |
+| [`ribbon.lisp`](lisp/parts/ribbon.lisp), [`tabs.lisp`](lisp/parts/tabs.lisp) | The ribbon's buttons, galleries and groups, and its tabs |
+| [`show.lisp`](lisp/parts/show.lisp) | The slide show: the `audience` window, transitions and builds through `animate`, the presenter view |
+| [`views.lisp`](lisp/parts/views.lisp) | The outline, the sorter, the format pane, and the deck as a file (`saveFile`, `openFile`, `export`) |
+| [`menus.lisp`](lisp/parts/menus.lisp) | The ribbon's drop-down menus and colour grids, Copy Style, and the find box (find, replace, rename a section) |
+| [`review.lisp`](lisp/parts/review.lisp) | The Ink, Record, Check and Help tabs: ink on the slide, timings, comments, the accessibility check, the side pane |
+| [`themes/sinopia.lisp`](lisp/themes/sinopia.lisp) | The app's own look: the window's colour tokens, light and dark |
 
-The slide sorter as a part other apps install is [`features/slide-sorter`](json/features/slide-sorter) (Orrery's bodies
+The slide sorter as a part other apps install is [`features/slide-sorter`](lisp/features/slide-sorter) (Orrery's bodies
 strip uses it).

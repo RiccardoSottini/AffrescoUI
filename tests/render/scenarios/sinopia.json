@@ -1,11 +1,11 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/sinopia/json",
+	"screens": "../../../examples/sinopia/lisp",
 	"scenarios": [
 		{
 			"name": "sinopia",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#tab-insert-label" },

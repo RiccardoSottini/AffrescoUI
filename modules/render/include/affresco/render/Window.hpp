@@ -87,6 +87,15 @@ struct FileDialog {
 /// dialog. Returns the paths chosen, or none for a cancel.
 using FileDialogHandler = std::function<std::vector<std::string>(const FileDialog& dialog)>;
 
+/// @brief A question the window asks the person itself (Window::confirm()).
+struct Confirmation {
+	std::string title;              ///< The question, in a line.
+	std::string message;            ///< What saying yes does.
+	std::string text;               ///< What it is about, shown whole and as it is, in a box that scrolls and wraps.
+	std::string accept = "OK";      ///< The button that says yes.
+	std::string decline = "Cancel"; ///< The button that says no.
+};
+
 /// @brief A root Panel filling a window: routes input to its panels, keeps the focus, hover and mouse capture, runs
 /// timers and deferred tasks, lays the tree out, and draws only when something changed. Created by Application.
 ///
@@ -194,6 +203,29 @@ public:
 	void setFileDialogHandler(FileDialogHandler handler);
 	/// @brief Whether chooseFiles() can show anything: a handler is set, or the OS shows file dialogs.
 	[[nodiscard]] bool fileDialogs() const;
+
+	/// @brief Asks the person a question the window draws itself, above everything a screen draws, overlays, the
+	/// inspection layer and the full-screen hint included: nothing a screen draws can cover it, look like it to the
+	/// code that answers, or answer it.
+	///
+	/// Only the person's own press answers (routingOwnPress()): a click begun and ended on one of its two buttons, or
+	/// Enter for yes or Escape for no, pressed and let go while it is shown (so the key that brought it up can't answer
+	/// it). A yes counts only from a press begun once it has been shown half a second, so a press already on its way
+	/// when it came up (a double click's second, Enter typed on) can't say yes to a text not read. A key pressKey()
+	/// presses, a timer, a deferred task or anything a screen runs can't. While it is shown,
+	/// no input reaches the screen: the pointer, the wheel and the other keys reach its text, which can be read,
+	/// scrolled, selected and copied, never changed. One question at a time; it goes when it is answered, or by
+	/// dismissConfirmation(). Headless, it answers the same input (tests, automation).
+	/// @param question What it asks.
+	/// @param answered Gets the answer once, after the event that gave it is delivered; never if it is dismissed.
+	/// @return An id for dismissConfirmation(), or 0 if a question is shown already (this one isn't asked).
+	std::uint64_t confirm(const Confirmation& question, std::function<void(bool accepted)> answered);
+	/// @brief Takes a question away unanswered: its callback never runs.
+	/// @param id From confirm(); an unknown or answered one is ignored.
+	void dismissConfirmation(std::uint64_t id);
+	/// @brief The question shown, as the panel that holds it (its buttons have the role "button" and their text as
+	/// their name), or nullptr: what automation finds and clicks, as a person does.
+	[[nodiscard]] Panel* confirmation() const noexcept;
 
 	/* Content */
 
@@ -466,6 +498,22 @@ private:
 	void layoutFocusRing();
 	/// @brief Lays out the inspection layer over the window, if it is visible, and adds it to what is drawn (drawn_).
 	void layoutInspection();
+	/// @brief Lays out the question confirm() asks over the window, if one is shown, and adds it last to what is drawn.
+	void layoutConfirmation();
+	/// @brief Takes a key while a question is shown: Enter and Escape answer it, other keys reach its text.
+	/// @param event The key.
+	void confirmationKey(const KeyEvent& event);
+	/// @brief Takes a mouse button while a question is shown: a press on one of its buttons answers it, a press
+	/// elsewhere in it reaches what is there, and nothing reaches the screen.
+	/// @param event The button.
+	/// @param hit What is under the pointer: a part of the question.
+	void confirmationButton(const MouseButtonEvent& event, Panel* hit);
+	/// @brief Tells whether the question shown has been shown long enough for a press to say yes.
+	/// @return true if so.
+	[[nodiscard]] bool confirmationReady() const noexcept;
+	/// @brief Answers the question shown, if the person's own press is being delivered, and takes it away.
+	/// @param accepted The answer.
+	void answerConfirmation(bool accepted);
 	/// @brief Lays out, draws and presents a frame, and records what it cost (frameStatistics()).
 	void drawAndPresent();
 	/// @brief Lays out a snapshot's source (Panel::setSnapshot()) from the window's top left, unclipped.
@@ -583,6 +631,9 @@ private:
 	std::unique_ptr<Label> fullscreenHint_; ///< "Press Esc to leave full screen", created on first use.
 	bool fullscreenHintShown_ = false;      ///< The hint is on screen.
 	std::uint64_t fullscreenHintTimer_ = 0; ///< Hides it, if running.
+	struct Asking;                          ///< The question confirm() asks (WindowConfirm.cpp).
+	std::unique_ptr<Asking> asking_;        ///< It, while it is shown.
+	std::uint64_t nextConfirmation_ = 1;    ///< The next question's id.
 
 	Cursor currentCursor_ = Cursor::Arrow; ///< Shape shown now.
 	Panel root_;                           ///< Fills the window.

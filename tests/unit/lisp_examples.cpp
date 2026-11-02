@@ -18,8 +18,12 @@ using affresco::Screen;
 TEST_CASE("lisp examples: every example is there in both notations, and loads as the same document") {
 	const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
 	int apps = 0;
+	int programs = 0; // apps written as programs (RFC 0005): their lisp folder is their only source
 	for(const auto& entry : std::filesystem::directory_iterator(examples)) {
-		if(!std::filesystem::is_regular_file(entry.path() / "json" / "app.json")) continue;
+		if(!std::filesystem::is_regular_file(entry.path() / "json" / "app.json")) {
+			programs += std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp") ? 1 : 0;
+			continue;
+		}
 		CAPTURE(entry.path().filename().string());
 		REQUIRE(std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp"));
 		const Screen written = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
@@ -29,7 +33,8 @@ TEST_CASE("lisp examples: every example is there in both notations, and loads as
 		      Screen::fromApp(entry.path() / "json", {}, Screen::History::InMemory).documentJson());
 		++apps;
 	}
-	CHECK(apps >= 12);
+	CHECK(apps > 0);              // the apps that stay JSON
+	CHECK(apps + programs >= 14); // and those written as programs, whose lisp folder is their only source
 }
 
 TEST_CASE("lisp examples: a lisp folder holds Lisp, but for scenarios and a signed catalogue") {
@@ -69,8 +74,10 @@ TEST_CASE("lisp examples: a file found by its name reads the same in either nota
 		return notation::readDocument(text, file);
 	};
 	CHECK(read(notation::namedDocument(lisp, "feature")) == read(notation::namedDocument(written, "feature")));
-	CHECK(read(examples / "tempera" / "lisp" / "sorter" / "sorter.adapter.lisp") ==
-	      read(examples / "tempera" / "json" / "sorter" / "sorter.adapter.json"));
+	// Tempera is a program, with no JSON beside it: its adapter reads as one
+	const affresco::json adapter = read(examples / "tempera" / "lisp" / "sorter" / "sorter.adapter.lisp");
+	CHECK(adapter["format"] == "affrescoui-adapter");
+	CHECK(adapter["bind"]["reorder"]["action"] == "layers.move");
 }
 
 TEST_CASE("lisp examples: the two notations share one copy of an example's assets") {
@@ -102,4 +109,46 @@ TEST_CASE("lisp examples: only a json or a lisp folder reads the assets folder b
 	CHECK(affresco::format::notationAssets("/a/flow").empty());
 	CHECK(affresco::format::notationAssets("").empty());
 	CHECK(affresco::format::notationAssets("/a/flow/parts").empty());
+}
+
+namespace {
+
+/// @brief A name as a JSON Pointer's segment: "~" as "~0", "/" as "~1".
+/// @param name The name.
+/// @return The segment.
+std::string segment(const std::string& name) {
+	std::string escaped;
+	for(const char c : name) escaped += c == '~' ? std::string("~0") : c == '/' ? std::string("~1") : std::string(1, c);
+	return escaped;
+}
+
+} // namespace
+
+// The apps that moved to programs kept their JSON permissions, whose ask rules name /actions: an agent's change to a
+// function or a command is under /program, so in acceptEdits it was applied unreviewed, where JSON asked for it
+TEST_CASE("lisp examples attack: an agent's change to an app's program is reviewed, as its actions were, in any mode") {
+	const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	int programs = 0;
+	for(const auto& entry : std::filesystem::directory_iterator(examples)) {
+		if(std::filesystem::exists(entry.path() / "json") ||
+		   !std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp"))
+			continue;
+		CAPTURE(entry.path().filename().string());
+		Screen screen = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
+		const affresco::json source = screen.versions().sourceDocument();
+		if(!source.contains("program")) continue;
+		const auto file = source["program"].begin();
+		const auto definition = file->begin();
+		screen.versions().setMode(affresco::Mode::AcceptEdits);
+		const affresco::json revision = {{"author", "agent/x"},
+		                                 {"message", "m"},
+		                                 {"set",
+		                                  {{"/program/" + segment(file.key()) + "/" + segment(definition.key()),
+		                                    ";; changed\n" + definition->get<std::string>()}}}};
+		const affresco::RevisionResult result = screen.submitRevision(revision.dump());
+		CAPTURE(result.error);
+		CHECK(result.status != affresco::RevisionStatus::Applied);
+		++programs;
+	}
+	CHECK(programs >= 9);
 }

@@ -3,19 +3,28 @@
 Playlists, a library of 3,000 songs in a table, albums and artists in grids, search, a queue you reorder, now playing with a visualiser and lyrics, an equaliser, crossfade and a mini player. The songs are simulated, a timer moving each along; what you hear is a beatbox loop made for Tempo (`audio/beatbox.wav`), on a host that gives the screen sound. The `music-player` template: a folder of files that the stock `affrescoui_launcher` runs, with nothing compiled for it.
 
 ```sh
-./build/affrescoui_launcher examples/tempo/json/index.screen.json --socket out/s
-./build/affrescoui test examples/tempo/json/index.scenarios.json
+./build/affrescoui_launcher examples/tempo/lisp/index.screen.lisp --socket out/s
+./build/affrescoui test examples/tempo/lisp/index.scenarios.json
 ```
+
+**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), as it has real behaviour: playback and the
+queue, shuffle, crossfade, playlists whose songs move the liked songs and the queue with them, back and forward. `lisp/` is
+its only source, with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone. The screen and its pages
+say what is shown and keep their keys and what the state watches as data; `lisp/tempo.lisp` says what happens: every action
+is a function or a command, and the handlers name them. A song is a `list:track` key, read and made by three functions
+(`keyOf`, `listOf`, `trackOf`) where each expression used to split it again.
 
 | File | What it is |
 |---|---|
 | `audio/` | `beatbox.wav`, the loop Tempo plays, and `make_beat.py`, which synthesises it (`python3 examples/tempo/assets/audio/make_beat.py`) |
 | `images/` | The pictures the screen shows |
-| `pages.json` | The pages (albums, artists, a collection, search, now playing, sound), included by the screen |
-| `locales/` | The text, one file per language: English, Spanish and French |
-| `index.policy.json` | Its approval rules' example revisions (`affrescoui policy test`) |
-| `index.scenarios.json` | Its scenarios (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
-| `index.screen.json` | The screen document |
+| `lisp/app.lisp` | The app: its entry, its capabilities, its assets |
+| `lisp/index.screen.lisp` | The screen document: the window, the sound, the theme, the state, the models, the computed values, the keys, the layout |
+| `lisp/tempo.lisp` | The program: every function and command (playing and the queue, sound, menus, going back, playlists, the library) |
+| `lisp/pages.lisp` | The pages (albums, artists, a collection, search, now playing, sound), included by the screen |
+| `lisp/locales/` | The text, one file per language: English, Spanish and French |
+| `lisp/index.policy.lisp` | Its approval rules' example revisions (`affrescoui policy test`) |
+| `lisp/index.scenarios.json` | Its scenarios, which stay JSON (`affrescoui test`; ctest `scenarios` plays them with the rendering check's runner) |
 
 Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
@@ -38,5 +47,5 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 
 - **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer) (a change to its actions always does, even under a grant), and a budget caps how many nodes an agent changes at once (20 added, 5 removed, 50 changed); no one may change the status bar. The theme, settings, equaliser and volume persist; the songs and the playlists are records of the `songs` and `playlists` models, the 3,000 songs made into the store once.
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
-- **Extension points:** the library, the playlists and the queue are entries of `state`; a page is a part of `pages.json`; a language is a file in `locales/`.
+- **Extension points:** the library, the playlists and the queue are entries of `state`; a page is a part of `pages.lisp`, a behaviour a function of `tempo.lisp`; a language is a file in `locales/`.
 - **Assets:** the pictures in `images/` are simple vector drawings made for this project, under the repository's Apache-2.0 licence; the beat in `audio/` is synthesised by `make_beat.py` from sines and seeded noise (a kick, a snare, hi-hats, a clap and a bass blip; 120 beats a minute, four bars, 16-bit mono at 22,050 Hz, 8 seconds, -1 dBFS), this project's own work under the same licence, with no samples from anywhere. The fonts' licences are with them in `../shared/fonts`.

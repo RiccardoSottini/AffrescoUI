@@ -45,9 +45,9 @@ an optional `scale` and `note`, and the steps. A picture is an expectation, name
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/flow/json",
+	"screens": "../../../examples/flow/lisp",
 	"scenarios": [
-		{ "name": "kanban", "screen": "index.screen.json", "steps": [{ "expect": { "image": "first-frame" } }] }
+		{ "name": "kanban", "screen": "index.screen.lisp", "steps": [{ "expect": { "image": "first-frame" } }] }
 	]
 }
 ```

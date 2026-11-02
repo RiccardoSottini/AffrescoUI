@@ -1,4 +1,4 @@
-{:note "Haven's dashboard editing, included by index.screen.json: Arrange cards in the top bar's menu outlines each card with a pencil, and a card's editor changes its configuration in a visual form or as code."
+{:note "Haven's dashboard editing, included by index.screen.lisp: Arrange cards in the top bar's menu outlines each card with a pencil, and a card's editor changes its configuration in a visual form or as code."
  :state {:editing false
          :dashMenu false
          :cards {:lights (light-tiles :title "")
@@ -11,25 +11,6 @@
  :computed {:cardTitle "{{ { lights: state.cards.lights.title || t('lights.title'), scenes: state.cards.scenes.title || t('scenes.label'), security: state.cards.security.title || t('alarm.section'), climate: state.cards.climate.title || t('climate.title'), cover: state.cards.cover.title || t('blinds.title'), devices: state.cards.devices.title || t('devices.title') } }}"
             :cardIcon "{{ { lights: 'lightbulb', scenes: 'clapperboard', security: 'shield', climate: 'thermometer', cover: 'blinds', devices: 'cpu' } }}"
             :cardCode "{{'{\\n' + join(map(entries(state.cardEdit.draft), '  ' + json(it.key) + ': ' + json(it.value)), ',\\n') + '\\n}'}}"}
- :actions {:editDashboard {:title "Arrange cards"
-                           :category "View"
-                           :icon pencil
-                           :do [{:set state.page :to home} {:set state.editing :to true}]}
-           :doneEditing [{:set state.editing :to false} {:set state.cardEdit.open :to false}]
-           :editCard [{:note "with: card, the key of the card in state.cards"}
-                      {:set state.cardEdit
-                       :to {:open true :id "{{card}}" :code false :draft "{{state.cards[card]}}" :text "" :error ""}}]
-           :showCardCode [{:set state.cardEdit.text :to "{{computed.cardCode}}"} {:set state.cardEdit.code :to true}]
-           :showCardForm [{:if "{{type(parseJson(state.cardEdit.text)) == 'object'}}"
-                           :then [{:set state.cardEdit.draft
-                                   :to "{{merge(parseJson(state.cardEdit.text), { type: state.cards[state.cardEdit.id].type })}}"}
-                                  {:set state.cardEdit.error :to ""}
-                                  {:set state.cardEdit.code :to false}]
-                           :else [{:set state.cardEdit.error :to "{{t('edit.badCode')}}"}]}]
-           :saveCard [{:if "{{state.cardEdit.code}}" :then [{:run showCardForm}]}
-                      {:if "{{empty(state.cardEdit.error)}}"
-                       :then [{:set "{{'state.cards.' + state.cardEdit.id}}" :to "{{state.cardEdit.draft}}"}
-                              {:set state.cardEdit.open :to false}]}]}
  :components {:editFrame {:note "While editing, a card's outline and pencil: a click anywhere on the card opens its editor"
                           :params {:card "" :name ""}
                           :node (node :when "{{state.editing}}"

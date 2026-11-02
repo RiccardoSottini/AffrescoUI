@@ -9,11 +9,6 @@
                     {:kind guides :key hub.post.beginner :by 5 :replies 31 :votes 288}
                     {:kind discussions :key hub.post.coop :by 2 :replies 73 :votes 96}
                     {:kind guides :key hub.post.secrets :by 4 :replies 12 :votes 154}]}
- :actions {:openHub {:title "Open the game's player hub"
-                     :category "Game"
-                     :description "section is hub (everything), discussions or guides."
-                     :do [{:set state.hubTab :to "{{section ?? 'hub'}}"}
-                          {:run go :with {:tab library :page hub :id "{{id}}"}}]}}
  :components {:hubPage {:note "The hub of the game on the page: its name, the three sections and the posts of the one chosen."
                         :params {}
                         :node (column :fill true :scroll vertical :let {:g "{{computed.game}}"}

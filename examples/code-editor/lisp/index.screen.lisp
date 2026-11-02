@@ -8,14 +8,14 @@
           :minWidth 1040
           :minHeight 640
           :focusRing false}
- :include ["parts/look.lisp" "../../shared/languages/languages.lisp" "../../shared/addons/assistant/assistant.lisp"]
+ :include ["parts/look.lisp" "../../shared/languages/languages.lisp" "../../shared/addons/assistant/assistant.lisp" quaderno.lisp]
  :theme "{{computed.theme}}"
  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons code]}
          :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [icons code]}
          :code {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 14}
          :icons {:file "../../shared/fonts/Lucide.ttf" :size 18}}
  :permissions {:allow [studio]
-               :ask ["agent(/actions)"]
+               :ask ["agent(/actions)" "agent(/program)"]
                :deny ["*(#statusBar)"]
                :reviewers [studio]
                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
@@ -249,16 +249,7 @@
          :help {:palette {:run commandPalette :group "1_palette"} :about {:run about :group "2_about"}}}
  :onLoad prepare
  :watch {:state.findBar [{:set state.assistant.lift :to "{{computed.findHeight}}"}]}
- :actions {:prepare [{:note "Generates the large file once (5,000 lines, a TODO every 1,000), then finds the problems"}
-                     {:set "state.files[3].text"
-                      :to "{{join(map(range(5000), index == 0 ? '// Calibration tables for the station sensors (generated, 5,000 lines)' : index % 25 == 0 ? '' : index % 25 == 1 ? 'double sensor' + floor(index / 25) + '(double raw) {' : index % 25 == 23 ? '    return raw;' : index % 25 == 24 ? '}' : index % 1000 == 507 ? '    // TODO: recalibrate sensor ' + floor(index / 25) + ' after the winter readings' : '    raw += ' + (index * 37) % 1000 + ' / 1000.0;'), '\\n')}}"}
-                     {:forEach "{{range(length(state.files))}}"
-                      :as f
-                      :do [{:set "state.files[f].saved" :to "{{state.files[f].text}}"}]}
-                     {:set state.symbolIndex :to "{{map(state.files, [])}}"}
-                     {:forEach "{{range(length(state.files))}}" :as f :do [{:run indexFile :with {:file "{{f}}"}}]}
-                     {:run findProblems}]
-           :findProblems [{:note "Every line with TODO (a warning) or FIXME (an error) in the saved files, as rows of the problems table"}
+ :actions {:findProblems [{:note "Every line with TODO (a warning) or FIXME (an error) in the saved files, as rows of the problems table"}
                           {:set state.problems :to []}
                           {:forEach "{{range(length(state.files))}}"
                            :as f
@@ -266,61 +257,10 @@
                                 {:set state.problems
                                  :to "{{concat(state.problems, map(filter(range(length(state.scan)), contains(state.scan[it], 'TODO') || contains(state.scan[it], 'FIXME')), { id: f + ':' + (it + 1), cells: [contains(state.scan[it], 'FIXME') ? 'Error' : 'Warning', state.files[f].name, it + 1, slice(state.scan[it], indexOf(state.scan[it], contains(state.scan[it], 'FIXME') ? 'FIXME' : 'TODO'))] }))}}"}]}
                           {:set state.scan :to []}]
-           :open [{:note "with: file (an index in state.files)"}
-                  {:if "{{!contains(state.tabs, file)}}" :then [{:push state.tabs :value "{{file}}"}]}
-                  {:set state.active :to "{{file}}"}]
-           :close [{:note "with: file; an unsaved file asks first"}
-                   {:if "{{state.files[file].dirty}}"
-                    :then [{:set state.closing :to {:open true :file "{{file}}"}} {:stop true}]}
-                   {:run closeNow :with {:file "{{file}}"}}]
-           :closeNow [{:note "with: file; the next tab takes its place, and Reopen Closed File brings it back"}
-                      {:set state.closing.open :to false}
-                      {:push state.closed :value "{{file}}"}
-                      {:remove state.tabs :at "{{indexOf(state.tabs, file)}}"}
-                      {:if "{{!contains(state.tabs, state.active)}}"
-                       :then [{:set state.active
-                               :to "{{length(state.tabs) ? state.tabs[min(length(state.tabs) - 1, max(0, indexOf(state.tabs, state.active)))] : -1}}"}]}]
-           :saveFile [{:note "with: file; the Settings file applies its values instead"}
-                      {:if "{{state.files[file].settings}}"
-                       :then [{:run applySettings :with {:file "{{file}}"}} {:stop true}]}
-                      {:set "state.files[file].saved" :to "{{state.files[file].text}}"}
-                      {:set "state.files[file].dirty" :to false}]
-           :saveAndClose [{:run saveFile :with {:file "{{state.closing.file}}"}}
-                          {:run findProblems}
-                          {:run closeNow :with {:file "{{state.closing.file}}"}}]
-           :discardAndClose [{:set "state.files[state.closing.file].text"
-                              :to "{{state.files[state.closing.file].saved}}"}
-                             {:set "state.files[state.closing.file].dirty" :to false}
-                             {:run closeNow :with {:file "{{state.closing.file}}"}}]
-           :pickTreeRow [{:note "A file row opens the file, a folder row opens or closes the folder"}
-                         {:if "{{slice(event.value, 0, 2) == 'd:'}}"
-                          :then [{:set state.expanded
-                                  :to "{{contains(state.expanded, event.value) ? filter(state.expanded, it != event.value) : concat(state.expanded, [event.value])}}"}]
-                          :else [{:run open :with {:file "{{number(slice(event.value, 1))}}"}}]}]
-           :openProblem [{:note "A problem row chosen: its id is 'file:line'"}
-                         {:set state.problemPick :to "{{event.id ?? event.value}}"}
-                         {:run goToPlace
-                          :with {:item {:file "{{number(split(event.id ?? event.value, ':')[0])}}"
-                                        :line "{{number(split(event.id ?? event.value, ':')[1])}}"
-                                        :column 1
-                                        :length 0}}}]
            :indexFile [{:note "with: file; its symbols for Find Symbol (@) and Find Symbol in Project: Markdown headings, C++ classes, structs and function definitions"}
                        {:if "{{state.files[file].scratch}}" :then [{:stop true}]}
                        {:set "state.symbolIndex[file]"
                         :to "{{map(filter(map(split(state.files[file].text, '\\n'), { t: it, line: index + 1 }), state.files[file].language == 'Markdown' ? slice(it.t, 0, 1) == '#' : (state.files[file].language == 'C++' && indexOf(' \\t#/}', slice(it.t, 0, 1)) < 0 && (slice(it.t, 0, 6) == 'class ' || slice(it.t, 0, 7) == 'struct ' || (contains(it.t, '(') && !contains(it.t, ';'))))), { title: slice(it.t, 0, 1) == '#' ? trim(join(split(it.t, '#'), '')) : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? split(trim(split(it.t, '{')[0]), ' ')[1] : reverse(split(trim(split(it.t, '(')[0]), ' '))[0], badge: slice(it.t, 0, 1) == '#' ? '#' : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? 'c' : 'f', badgeColor: slice(it.t, 0, 1) == '#' ? '@badgeHeading' : contains(' class struct ', ' ' + split(it.t, ' ')[0] + ' ') ? '@badgeClass' : '@badgeFunction', detail: (state.files[file].folder ? state.files[file].folder + '/' : '') + state.files[file].name + ':' + it.line, file: file, line: it.line })}}"}]
-           :runCommand [{:if "{{length(trim(state.command)) == 0}}" :then [{:stop true}]}
-                        {:push state.terminal :value {:t "$ {{state.command}}" :c prompt}}
-                        {:if "{{state.command == 'clear'}}"
-                         :then [{:set state.terminal :to []}]
-                         :else [{:forEach "{{state.outputs[state.command] ?? [{ 't': state.command + ': command not found (try help)', 'c': 'string' }]}}"
-                                 :as out
-                                 :do [{:push state.terminal :value "{{out}}"}]}]}
-                        {:set state.command :to ""}]
-           :typeCommand [{:note "with: name; runs a terminal command as if typed"}
-                         {:set state.panelOpen :to true}
-                         {:set state.panelTab :to terminal}
-                         {:set state.command :to "{{name}}"}
-                         {:run runCommand}]
            :newFile {:title "New File"
                      :category "File"
                      :icon file-plus
@@ -363,39 +303,6 @@
                        :do [{:set state.findBar.open :to false}
                             {:set state.findBar.inSelection :to false}
                             {:focus "#editor"}]}
-           :findStep [{:set state.findBar.step :to "{{step}}"} {:increment state.findBar.request :by 1}]
-           :findNext {:title "Find Next"
-                      :category "Find"
-                      :enablement "{{state.findBar.open}}"
-                      :do [{:run findStep :with {:step next}}]}
-           :findPrevious {:title "Find Previous"
-                          :category "Find"
-                          :enablement "{{state.findBar.open}}"
-                          :do [{:run findStep :with {:step previous}}]}
-           :replaceOne {:title "Replace Next"
-                        :category "Find"
-                        :enablement "{{state.findBar.open}}"
-                        :do [{:run findStep :with {:step replace}}]}
-           :replaceAllInFile {:title "Replace All"
-                              :category "Find"
-                              :enablement "{{state.findBar.open}}"
-                              :do [{:run findStep :with {:step replaceAll}}]}
-           :toggleFindRegex {:title "Toggle Regular Expression"
-                             :category "Find"
-                             :do [{:set state.findBar.regex :to "{{!state.findBar.regex}}"}
-                                  {:run findStep :with {:step first}}]}
-           :toggleFindCase {:title "Toggle Case Sensitive"
-                            :category "Find"
-                            :do [{:set state.findBar.caseSensitive :to "{{!state.findBar.caseSensitive}}"}
-                                 {:run findStep :with {:step first}}]}
-           :toggleFindWord {:title "Toggle Whole Word"
-                            :category "Find"
-                            :do [{:set state.findBar.wholeWord :to "{{!state.findBar.wholeWord}}"}
-                                 {:run findStep :with {:step first}}]}
-           :toggleFindInSelection {:title "Toggle In Selection"
-                                   :category "Find"
-                                   :do [{:set state.findBar.inSelection :to "{{!state.findBar.inSelection}}"}
-                                        {:run findStep :with {:step first}}]}
            :toggleWordWrap {:title "Toggle Word Wrap"
                             :category "View"
                             :icon wrap
@@ -404,44 +311,11 @@
                          :category "View"
                          :icon ruler
                          :do [{:set state.ruler :to "{{!state.ruler}}"}]}
-           :save {:title "Save"
-                  :category "File"
-                  :icon save
-                  :enablement "{{state.active >= 0}}"
-                  :do [{:run saveFile :with {:file "{{state.active}}"}} {:run findProblems}]}
-           :saveAll {:title "Save All"
-                     :category "File"
-                     :icon save
-                     :do [{:forEach "{{range(length(state.files))}}" :as f :do [{:run saveFile :with {:file "{{f}}"}}]}
-                          {:run findProblems}]}
-           :closeTab {:title "Close File"
-                      :category "File"
-                      :icon x
-                      :enablement "{{state.active >= 0}}"
-                      :do [{:run close :with {:file "{{state.active}}"}}]}
-           :closeAll {:title "Close All Files"
-                      :category "File"
-                      :enablement "{{length(state.tabs) > 0}}"
-                      :do [{:forEach "{{filter(state.tabs, !state.files[it].dirty)}}"
-                            :as f
-                            :do [{:run closeNow :with {:file "{{f}}"}}]}
-                           {:if "{{length(state.tabs) > 0}}" :then [{:run close :with {:file "{{state.tabs[0]}}"}}]}]}
-           :reopenClosed {:title "Reopen Closed File"
-                          :category "File"
-                          :enablement "{{length(state.closed) > 0}}"
-                          :do [{:run open :with {:file "{{reverse(state.closed)[0]}}"}}
-                               {:remove state.closed :at "{{length(state.closed) - 1}}"}]}
            :revertFile {:title "Revert File"
                         :category "File"
                         :enablement "{{state.active >= 0 && state.files[state.active].dirty}}"
                         :do [{:set "state.files[state.active].text" :to "{{state.files[state.active].saved}}"}
                              {:set "state.files[state.active].dirty" :to false}]}
-           :refreshFolders {:title "Refresh Folders"
-                            :category "Project"
-                            :do [{:forEach "{{range(length(state.files))}}"
-                                  :as f
-                                  :do [{:run indexFile :with {:file "{{f}}"}}]}
-                                 {:run findProblems}]}
            :nextTab {:title "Next File"
                      :category "Go"
                      :icon chevron-right
@@ -464,154 +338,7 @@
                           :category "View"
                           :icon square-terminal
                           :do [{:set state.panelOpen :to true} {:set state.panelTab :to terminal} {:focus "#command"}]}
-           :build {:title "Build" :category "Tools" :icon hammer :do [{:run typeCommand :with {:name build}}]}
-           :runApp {:title "Run" :category "Tools" :icon play :do [{:run typeCommand :with {:name run}}]}
            :clearConsole {:title "Clear Console" :category "Tools" :icon eraser :do [{:set state.terminal :to []}]}
-           :undo {:title "Undo"
-                  :category "Edit"
-                  :icon undo-2
-                  :enablement "{{state.active >= 0}}"
-                  :do [{:edit undo :in "#editor"}]}
-           :redo {:title "Redo"
-                  :category "Edit"
-                  :icon redo-2
-                  :enablement "{{state.active >= 0}}"
-                  :do [{:edit redo :in "#editor"}]}
-           :cut {:title "Cut"
-                 :category "Edit"
-                 :icon scissors
-                 :enablement "{{state.active >= 0}}"
-                 :do [{:edit cut :in "#editor"}]}
-           :copy {:title "Copy"
-                  :category "Edit"
-                  :icon copy
-                  :enablement "{{state.active >= 0}}"
-                  :do [{:edit copy :in "#editor"}]}
-           :paste {:title "Paste"
-                   :category "Edit"
-                   :icon clipboard-paste
-                   :enablement "{{state.active >= 0}}"
-                   :do [{:edit paste :in "#editor"}]}
-           :selectAll {:title "Select All"
-                       :category "Selection"
-                       :icon text-select
-                       :enablement "{{state.active >= 0}}"
-                       :do [{:edit selectAll :in "#editor"}]}
-           :indentLines {:title "Indent"
-                         :category "Edit"
-                         :icon indent
-                         :enablement "{{state.active >= 0}}"
-                         :do [{:edit indentLines :in "#editor"}]}
-           :outdentLines {:title "Outdent"
-                          :category "Edit"
-                          :icon outdent
-                          :enablement "{{state.active >= 0}}"
-                          :do [{:edit outdentLines :in "#editor"}]}
-           :unfoldAll {:title "Unfold All"
-                       :category "View"
-                       :icon unfold-vertical
-                       :enablement "{{state.active >= 0}}"
-                       :do [{:edit unfoldAll :in "#editor"}]}
-           :duplicateLines {:title "Duplicate Line"
-                            :category "Edit"
-                            :icon copy-plus
-                            :enablement "{{state.active >= 0}}"
-                            :do [{:edit duplicateLines :in "#editor"}]}
-           :deleteLines {:title "Delete Line"
-                         :category "Edit"
-                         :icon trash-2
-                         :enablement "{{state.active >= 0}}"
-                         :do [{:edit deleteLines :in "#editor"}]}
-           :moveLinesUp {:title "Move Line Up"
-                         :category "Edit"
-                         :icon arrow-up
-                         :enablement "{{state.active >= 0}}"
-                         :do [{:edit moveLinesUp :in "#editor"}]}
-           :moveLinesDown {:title "Move Line Down"
-                           :category "Edit"
-                           :icon arrow-down
-                           :enablement "{{state.active >= 0}}"
-                           :do [{:edit moveLinesDown :in "#editor"}]}
-           :joinLines {:title "Join Lines"
-                       :category "Edit"
-                       :icon merge
-                       :enablement "{{state.active >= 0}}"
-                       :do [{:edit joinLines :in "#editor"}]}
-           :insertLineAfter {:title "Insert Line After"
-                             :category "Edit"
-                             :icon corner-down-left
-                             :enablement "{{state.active >= 0}}"
-                             :do [{:edit insertLineAfter :in "#editor"}]}
-           :insertLineBefore {:title "Insert Line Before"
-                              :category "Edit"
-                              :icon corner-up-left
-                              :enablement "{{state.active >= 0}}"
-                              :do [{:edit insertLineBefore :in "#editor"}]}
-           :transpose {:title "Transpose"
-                       :category "Edit"
-                       :icon repeat
-                       :enablement "{{state.active >= 0}}"
-                       :do [{:edit transpose :in "#editor"}]}
-           :sortLines {:title "Sort Lines"
-                       :category "Edit"
-                       :icon arrow-down-a-z
-                       :enablement "{{state.active >= 0}}"
-                       :do [{:edit sortLines :in "#editor"}]}
-           :reverseLines {:title "Reverse Lines"
-                          :category "Edit"
-                          :icon arrow-up-down
-                          :enablement "{{state.active >= 0}}"
-                          :do [{:edit reverseLines :in "#editor"}]}
-           :uniqueLines {:title "Unique Lines"
-                         :category "Edit"
-                         :icon list-filter
-                         :enablement "{{state.active >= 0}}"
-                         :do [{:edit uniqueLines :in "#editor"}]}
-           :upperCase {:title "Upper Case"
-                       :category "Convert Case"
-                       :icon case-upper
-                       :enablement "{{state.active >= 0}}"
-                       :do [{:edit upperCase :in "#editor"}]}
-           :lowerCase {:title "Lower Case"
-                       :category "Convert Case"
-                       :icon case-lower
-                       :enablement "{{state.active >= 0}}"
-                       :do [{:edit lowerCase :in "#editor"}]}
-           :titleCase {:title "Title Case"
-                       :category "Convert Case"
-                       :icon case-sensitive
-                       :enablement "{{state.active >= 0}}"
-                       :do [{:edit titleCase :in "#editor"}]}
-           :swapCase {:title "Swap Case"
-                      :category "Convert Case"
-                      :icon case-sensitive
-                      :enablement "{{state.active >= 0}}"
-                      :do [{:edit swapCase :in "#editor"}]}
-           :expandToLine {:title "Expand Selection to Line"
-                          :category "Selection"
-                          :icon text-select
-                          :enablement "{{state.active >= 0}}"
-                          :do [{:edit expandToLine :in "#editor"}]}
-           :expandToWord {:title "Expand Selection to Word"
-                          :category "Selection"
-                          :icon text-select
-                          :enablement "{{state.active >= 0}}"
-                          :do [{:edit expandToWord :in "#editor"}]}
-           :splitIntoLines {:title "Split into Lines"
-                            :category "Selection"
-                            :icon text-cursor
-                            :enablement "{{state.active >= 0}}"
-                            :do [{:edit splitIntoLines :in "#editor"}]}
-           :selectAllOccurrences {:title "Select All Occurrences"
-                                  :category "Selection"
-                                  :icon text-cursor
-                                  :enablement "{{state.active >= 0}}"
-                                  :do [{:edit selectAllOccurrences :in "#editor"}]}
-           :toggleComment {:title "Toggle Comment"
-                           :category "Edit"
-                           :icon message-square
-                           :enablement "{{state.active >= 0}}"
-                           :do [{:edit toggleComment :in "#editor" :prefix "{{computed.commentMark}}"}]}
            :goToSymbol {:title "Find Symbol…"
                         :category "Go"
                         :icon at-sign
@@ -629,17 +356,6 @@
                         :icon search
                         :enablement "{{state.active >= 0}}"
                         :do [{:set state.quickPick.query :to "#"} {:set state.quickPick.open :to true}]}
-           :goToPlace [{:note "with: item, a row with a file (opened) and a line (and a column and a length: selects them)"}
-                       {:if "{{item.file != null && item.file >= 0 && item.file != state.active}}"
-                        :then [{:set state.place :to "{{item}}"} {:run open :with {:file "{{item.file}}"}} {:stop true}]}
-                       {:if "{{item.line == null}}" :then [{:stop true}]}
-                       {:focus "#editor"}
-                       {:edit select
-                        :in "#editor"
-                        :line "{{item.line}}"
-                        :column "{{item.column ?? 1}}"
-                        :toLine "{{item.line}}"
-                        :toColumn "{{(item.column ?? 1) + (item.length ?? 0)}}"}]
            :goToSymbolInProject {:title "Find Symbol in Project…"
                                  :category "Go"
                                  :icon at-sign
@@ -704,20 +420,6 @@
                                   :do [{:set "state.files[f].text"
                                         :to "{{join(split(state.files[f].text, state.findBar.text), state.findBar.replace)}}"}
                                        {:set "state.files[f].dirty" :to true}]}]}
-           :openResult [{:note "with: line, a line of the Search Results buffer; a match line ('   12: text') opens its file there, under the path line above it"}
-                        {:forEach "{{[split(state.files[computed.resultsFile].text, '\\n')]}}"
-                         :as lines
-                         :do [{:if "{{!contains(computed.resultLines, line)}}" :then [{:stop true}]}
-                              {:set state.results.at :to "{{line}}"}
-                              {:forEach "{{[slice(find(reverse(slice(lines, 0, line - 1)), slice(it, 0, 1) != ' ' && slice(it, -1) == ':'), 0, -1)]}}"
-                               :as path
-                               :do [{:forEach "{{[slice(lines[line - 1], indexOf(lines[line - 1], ': ') + 2)]}}"
-                                     :as found
-                                     :do [{:run goToPlace
-                                           :with {:item {:file "{{find(range(length(state.files)), (state.files[it].folder ? state.files[it].folder + '/' : '') + state.files[it].name == path) ?? -1}}"
-                                                         :line "{{number(trim(split(lines[line - 1], ':')[0]))}}"
-                                                         :column "{{indexOf(lower(found), lower(state.results.query)) + 1}}"
-                                                         :length "{{length(state.results.query)}}"}}}]}]}]}]
            :nextResult {:title "Next Result"
                         :category "Find"
                         :enablement "{{length(computed.resultLines) > 0}}"
@@ -753,59 +455,6 @@
            :setSyntax [{:note "with: item, a row of computed.syntaxes: the language (commands, comments) and the grammar (colours) of the open file"}
                        {:set "state.files[state.active].language" :to "{{item.language}}"}
                        {:set "state.files[state.active].grammar" :to "{{item.grammar}}"}]
-           :openVirtual [{:note "with: name, text, readOnly; opens the file of that name outside the project, made with the text the first time"}
-                         {:if "{{find(range(length(state.files)), state.files[it].name == name && state.files[it].folder == null) == null}}"
-                          :then [{:push state.files
-                                  :value {:name "{{name}}"
-                                          :folder nil
-                                          :language "JSON"
-                                          :dirty false
-                                          :text "{{text}}"
-                                          :saved "{{text}}"
-                                          :readOnly "{{readOnly}}"
-                                          :settings "{{!readOnly}}"}}]}
-                         {:run open
-                          :with {:file "{{find(range(length(state.files)), state.files[it].name == name && state.files[it].folder == null)}}"}}]
-           :openSettings {:title "Settings"
-                          :category "Preferences"
-                          :icon settings
-                          :do [{:run openVirtual
-                                :with {:name "Settings.json" :text "{{computed.settingsText}}" :readOnly false}}]}
-           :openKeyBindings {:title "Key Bindings"
-                             :category "Preferences"
-                             :icon keyboard
-                             :do [{:run openVirtual
-                                   :with {:name "Key Bindings.json" :text "{{computed.keysText}}" :readOnly true}}]}
-           :applySettings [{:note "with: file, the Settings file; a valid file is saved and its values applied, a broken one stays unsaved with an error in the console"}
-                           {:forEach "{{[parseJsonc(state.files[file].text)]}}"
-                            :as values
-                            :do [{:if "{{values == null || type(values) != 'object'}}"
-                                  :then [{:push state.terminal
-                                          :value {:t "Settings.json: not valid JSON, nothing applied" :c error}}
-                                         {:set state.panelOpen :to true}
-                                         {:set state.panelTab :to terminal}
-                                         {:stop true}]}
-                                 {:set state.theme
-                                  :to "{{contains(['dark', 'light', 'system'], values.theme) ? values.theme : state.theme}}"}
-                                 {:set state.wrap :to "{{values.wordWrap ?? state.wrap}}"}
-                                 {:set state.ruler :to "{{values.ruler ?? state.ruler}}"}
-                                 {:set state.minimap :to "{{values.minimap ?? state.minimap}}"}
-                                 {:set state.sidebarOpen :to "{{values.sideBar ?? state.sidebarOpen}}"}
-                                 {:set "state.files[file].saved" :to "{{state.files[file].text}}"}
-                                 {:set "state.files[file].dirty" :to false}]}]
-           :closeOthers {:title "Close Other Files"
-                         :category "File"
-                         :enablement "{{length(state.tabs) > 1}}"
-                         :do [{:forEach "{{filter(state.tabs, it != state.active)}}"
-                               :as f
-                               :do [{:if "{{!state.files[f].dirty}}" :then [{:run closeNow :with {:file "{{f}}"}}]}]}]}
-           :closeOthersOf [{:note "with: file; shows that tab and closes the other saved ones"}
-                           {:set state.active :to "{{file}}"}
-                           {:run closeOthers}]
-           :closeToTheRight [{:note "with: file; closes the saved tabs after it"}
-                             {:forEach "{{slice(state.tabs, indexOf(state.tabs, file) + 1)}}"
-                              :as f
-                              :do [{:if "{{!state.files[f].dirty}}" :then [{:run closeNow :with {:file "{{f}}"}}]}]}]
            :about {:title "About Quaderno" :category "Help" :icon info :do [{:set state.aboutOpen :to true}]}}
  :keys {"mod+p" quickOpen
         "mod+shift+p" commandPalette

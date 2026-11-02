@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes budgets and data rules (VERSION_CONTROL.md, "Budgets" and "Data rules"): the Kanban template with the
+/// @brief Fuzzes budgets and data rules (VERSION_CONTROL.md, "Budgets" and "Data rules"): the JSON template with the
 /// input's "permissions" (when the format accepts them), judging the input's "revision" by an agent.
 ///
 /// Besides not crashing, judging changes nothing and gives the same decision twice, and what an agent reads never
@@ -52,7 +52,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	if(!input.is_object() || !input.contains("permissions")) return 0;
 	affresco::fuzz::silenceLog();
 	static const affresco::format::Rules rules;
-	json document = affresco::fuzz::kanbanTemplate();
+	json document = affresco::fuzz::jsonTemplate();
 	document["permissions"] = input["permissions"];
 	try {
 		rules.validate(document);

@@ -7,7 +7,8 @@
            "locales/es.lisp"
            "locales/fr.lisp"
            pages.lisp
-           "../../shared/addons/assistant/assistant.lisp"]
+           "../../shared/addons/assistant/assistant.lisp"
+           tempo.lisp]
  :window {:title "Tempo: an AffrescoUI template" :width 1280 :height 800 :minWidth 1040 :minHeight 640}
  :persist [state.theme state.settings state.eq state.eqOn state.volume state.shuffle state.repeat state.liked]
  :audio {:beat {:file "../assets/audio/beatbox.wav"
@@ -74,7 +75,7 @@
           :kit.radius 10
           :kit.cardRadius 16}
  :permissions {:allow [studio]
-               :ask ["agent(/actions)"]
+               :ask ["agent(/actions)" "agent(/program)"]
                :deny ["*(#statusBar)"]
                :reviewers [studio]
                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
@@ -372,316 +373,6 @@
                         :cursor hand
                         :focusable true
                         :role button)}
- :actions {:startList [{:note "with: list (-1 for the library), track, source (the album or artist it plays from, or ''), rest (the queue after it, as list:track keys)"}
-                       {:set state.source :to "{{source}}"}
-                       {:set state.order :to "{{concat([list + ':' + track], rest)}}"}
-                       {:set state.queue
-                        :to "{{state.shuffle ? sort(rest, (number(split(it, ':')[1]) * 7919 + state.shuffleSeed) % 1009) : rest}}"}
-                       {:run playKey :with {:key "{{list + ':' + track}}"}}]
-           :playKey [{:note "with: key, a song as list:track (list -1 for the library): it plays from the start"}
-                     {:set state.playingList :to "{{number(split(key, ':')[0])}}"}
-                     {:set state.playingTrack :to "{{number(split(key, ':')[1])}}"}
-                     {:set state.queuePick :to nil}
-                     {:set state.elapsed :to 0}
-                     {:set state.isPlaying :to true}]
-           :play [{:note "with: list, track; the queue is the songs after it, up to 50"}
-                  {:run startList
-                   :with {:list "{{list}}"
-                          :track "{{track}}"
-                          :source ""
-                          :rest "{{map(range(max(min((list < 0 ? length(computed.library) : length(data.playlists[list].tracks)) - track - 1, 50), 0)), list + ':' + (track + 1 + index))}}"}}]
-           :advance [{:note "with: at, where the next song starts. The queue's first song plays; with an empty queue, the songs start again when repeating all, else playback stops. Songs no longer there (a playlist changed) leave the queue first"}
-                     {:if "{{length(state.queue) == 0 && state.repeat == 'all' && length(state.order) > 0}}"
-                      :then [{:set state.queue
-                              :to "{{state.shuffle ? sort(state.order, (number(split(it, ':')[1]) * 7919 + state.shuffleSeed) % 1009) : state.order}}"}]}
-                     {:set state.queue :to "{{map(computed.queueSongs, it.key)}}"}
-                     {:if "{{length(state.queue) == 0}}"
-                      :then [{:set state.isPlaying :to false} {:set state.elapsed :to 0} {:stop true}]}
-                     {:run playKey :with {:key "{{state.queue[0]}}"}}
-                     {:set state.queue :to "{{slice(state.queue, 1)}}"}
-                     {:set state.elapsed :to "{{at}}"}]
-           :next [{:run advance :with {:at 0}}]
-           :previous [{:note "Past the first seconds, or on the first song, the song starts again; else the song before it in the order plays, and this one comes next"}
-                      {:if "{{state.elapsed > 3 || indexOf(state.order, computed.playingKey) < 1}}"
-                       :then [{:run replay} {:set state.isPlaying :to true} {:stop true}]}
-                      {:set state.queue
-                       :to "{{concat([computed.playingKey], filter(state.queue, it != computed.playingKey))}}"}
-                      {:run playKey :with {:key "{{state.order[indexOf(state.order, computed.playingKey) - 1]}}"}}]
-           :tick [{:note "Each second while playing; at the end of a song the next starts, past the crossfade's seconds that overlapped"}
-                  {:if "{{!state.isPlaying}}" :then [{:stop true}]}
-                  {:increment state.elapsed}
-                  {:if "{{settings.playback.crossfade > 0 && state.soundOn != '' && state.repeat != 'one' && length(state.queue) > 0 && state.elapsed == computed.duration - settings.playback.crossfade}}"
-                   :then [{:audio volume
-                           :of "{{state.soundOn}}"
-                           :to 0
-                           :ms "{{settings.playback.crossfade * 1000}}"
-                           :onError []}]}
-                  {:if "{{state.elapsed >= computed.duration && state.repeat == 'one'}}"
-                   :then [{:run replay} {:stop true}]}
-                  {:if "{{state.elapsed >= computed.duration}}"
-                   :then [{:run advance :with {:at "{{settings.playback.crossfade}}"}}]}]
-           :replay [{:note "The song playing, again from the start (repeating one)"}
-                    {:set state.elapsed :to 0}
-                    {:if "{{state.soundOn != ''}}" :then [{:audio seek :of "{{state.soundOn}}" :to 0 :onError []}]}]
-           :openSongMenu [{:note "with: list, track: the song's menu at the pointer (or by the focused row, for Shift+F10)"}
-                          {:set state.songMenu
-                           :to {:open true
-                                :x "{{min(event.x ?? 320, window.width - 248)}}"
-                                :y "{{min(event.y ?? 200, window.height - 240)}}"
-                                :list "{{list}}"
-                                :track "{{track}}"}}]
-           :openPickMenu [{:note "with: pick, the library song a table has selected (a right click selects the row under the pointer), or null"}
-                          {:if "{{pick == null}}" :then [{:stop true}]}
-                          {:run openSongMenu :with {:list -1 :track "{{number(pick)}}"}}]
-           :playNext [{:note "with: key, any song as list:track: it comes next"}
-                      {:set state.queue :to "{{slice(concat([key], filter(state.queue, it != key)), 0, 1000)}}"}
-                      {:set state.queuePick :to nil}]
-           :addToQueue [{:note "with: key, any song as list:track: it goes to the end of the queue"}
-                        {:set state.queue :to "{{slice(concat(filter(state.queue, it != key), [key]), 0, 1000)}}"}
-                        {:set state.queuePick :to nil}]
-           :toggleLike [{:note "with: key, a song as list:track (list -1 for the library)"}
-                        {:set state.liked
-                         :to "{{contains(state.liked, key) ? filter(state.liked, it != key) : slice(concat(state.liked, [key]), 0, 5000)}}"}]
-           :seekLyric [{:note "with: offset, the lines from the current one (-2 to 2): the song goes to where that line starts"}
-                       {:set state.elapsed
-                        :to "{{clamp((floor(state.elapsed / 12) + offset) * 12, 0, max(computed.duration - 1, 0))}}"}]
-           :placeChanged [{:note "The page, the playlist or the album shown changed: the place before goes on the back stack, unless going back or forward moved there"}
-                          {:if "{{state.where.page == state.page && state.where.current == state.current && json(state.where.collection) == json(state.collection)}}"
-                           :then [{:stop true}]}
-                          {:if "{{!state.navigating}}"
-                           :then [{:set state.backStack
-                                   :to "{{slice(concat(state.backStack, [state.where]), max(length(state.backStack) - 49, 0))}}"}
-                                  {:set state.forwardStack :to []}]}
-                          {:set state.navigating :to false}
-                          {:set state.where
-                           :to "{{merge({ page: state.page }, { current: state.current, collection: state.collection })}}"}]
-           :goTo [{:note "with: place, from the back or forward stack"}
-                  {:set state.navigating :to true}
-                  {:set state.collection :to "{{place.collection}}"}
-                  {:set state.current :to "{{place.current}}"}
-                  {:set state.page :to "{{place.page}}"}]
-           :jumpTo [{:note "A song of the queue opened: it plays, and the songs before it leave the queue"}
-                    {:set state.queue :to "{{slice(state.queue, indexOf(state.queue, event.id ?? event.value) + 1)}}"}
-                    {:run playKey :with {:key "{{event.id ?? event.value}}"}}]
-           :placeQueued [{:note "with: song (its key), at: moves a song of the queue to that place"}
-                         {:set state.queueNote
-                          :to "{{t('queue.moved', { title: computed.queueSongs[indexOf(map(computed.queueSongs, it.key), song)].title ?? '', n: at + 1 })}}"}
-                         {:set state.queue :to "{{filter(state.queue, it != song)}}"}
-                         {:set state.queue :to "{{concat(slice(state.queue, 0, at), [song], slice(state.queue, at))}}"}]
-           :moveQueued [{:note "with: by, -1 or 1: moves the song picked in the queue up or down"}
-                        {:if "{{computed.queueAt < 0}}" :then [{:stop true}]}
-                        {:run placeQueued
-                         :with {:song "{{state.queue[computed.queueAt]}}"
-                                :at "{{clamp(computed.queueAt + by, 0, length(state.queue) - 1)}}"}}]
-           :dropQueued [{:note "A song dragged within the queue: it lands before or after the row under the pointer, or last past the rows"}
-                        {:run placeQueued
-                         :with {:song "{{event.data.id}}"
-                                :at "{{event.id == null ? length(state.queue) - 1 : indexOf(filter(state.queue, it != event.data.id), event.id) + (event.place == 'after' ? 1 : 0)}}"}}]
-           :playFromLibrary [{:note "A library row opened: its id is the song's place in the library"}
-                             {:run play :with {:list -1 :track "{{number(event.id ?? event.value)}}"}}]
-           :playFromPick [{:note "with: item, a quick pick row"}
-                          {:set state.page :to library}
-                          {:set state.libraryPick :to "{{text(item.track)}}"}
-                          {:run play :with {:list -1 :track "{{item.track}}"}}]
-           :openList [{:note "with: list"}
-                      {:set state.renaming :to false}
-                      {:set state.current :to "{{list}}"}
-                      {:set state.page :to playlist}]
-           :newPlaylist [{:note "with: withSong: a new playlist opens with its name ready to type (Enter on an empty field keeps the one it has); it holds the song of the song menu when withSong"}
-                         {:set state.nameDraft :to ""}
-                         {:insert playlists
-                          :value {:name "{{t('playlist.newName', { n: length(data.playlists) + 1 })}}"
-                                  :cover "{{['../assets/images/cover-focus.svg', '../assets/images/cover-late-night.svg', '../assets/images/cover-morning-run.svg', '../assets/images/cover-sunday-jazz.svg'][length(data.playlists) % 4]}}"
-                                  :description ""
-                                  :tracks "{{withSong == true ? [computed.songMenuSong] : []}}"}
-                          :then [{:run openList :with {:list "{{length(data.playlists) - 1}}"}}
-                                 {:set state.renaming :to true}]}]
-           :addToPlaylist [{:note "with: list: the song of the song menu goes to the end of that playlist"}
-                           {:update playlists
-                            :id "{{data.playlists[list].id}}"
-                            :fields {:tracks "{{slice(concat(data.playlists[list].tracks, [computed.songMenuSong]), 0, 1000)}}"}}]
-           :removeFromPlaylist [{:note "with: list, track: the song leaves the playlist; the liked songs, the queue and the song playing follow the places that moved"}
-                                {:set state.liked
-                                 :to "{{map(filter(state.liked, it != list + ':' + track), number(split(it, ':')[0]) == list && number(split(it, ':')[1]) > track ? list + ':' + (number(split(it, ':')[1]) - 1) : it)}}"}
-                                {:set state.queue
-                                 :to "{{map(filter(state.queue, it != list + ':' + track), number(split(it, ':')[0]) == list && number(split(it, ':')[1]) > track ? list + ':' + (number(split(it, ':')[1]) - 1) : it)}}"}
-                                {:set state.order
-                                 :to "{{map(filter(state.order, it != list + ':' + track || it == computed.playingKey), number(split(it, ':')[0]) == list && number(split(it, ':')[1]) > track ? list + ':' + (number(split(it, ':')[1]) - 1) : it)}}"}
-                                {:update playlists
-                                 :id "{{data.playlists[list].id}}"
-                                 :fields {:tracks "{{concat(slice(data.playlists[list].tracks, 0, track), slice(data.playlists[list].tracks, track + 1))}}"}}
-                                {:if "{{state.playingList == list && state.playingTrack > track}}"
-                                 :then [{:set state.playingTrack :to "{{state.playingTrack - 1}}"}]}
-                                {:if "{{state.playingList == list && state.playingTrack == track}}"
-                                 :then [{:set state.order :to "{{filter(state.order, it != list + ':' + track)}}"}
-                                        {:run advance :with {:at 0}}]}]
-           :openListMenu [{:note "The menu of the playlist shown: rename, delete"}
-                          {:set state.listMenu
-                           :to {:open true
-                                :x "{{min(event.x ?? 200, window.width - 200)}}"
-                                :y "{{min(event.y ?? 240, window.height - 80)}}"}}]
-           :startRename [{:set state.nameDraft :to "{{computed.list.name}}"} {:set state.renaming :to true}]
-           :renameList [{:note "The name typed in the header: the playlist takes it, unless it is empty"}
-                        {:if "{{trim(state.nameDraft) != '' && computed.list != null}}"
-                         :then [{:update playlists
-                                 :id "{{computed.list.id}}"
-                                 :fields {:name "{{slice(trim(state.nameDraft), 0, 60)}}"}}]}
-                        {:set state.renaming :to false}]
-           :askDelete [{:set state.deleting :to true}]
-           :deleteList [{:note "with: list: the playlist goes; the liked songs, the queue and the playing list follow the lists that moved, and going back starts again"}
-                        {:set state.liked
-                         :to "{{map(filter(state.liked, number(split(it, ':')[0]) != list), number(split(it, ':')[0]) > list ? (number(split(it, ':')[0]) - 1) + ':' + split(it, ':')[1] : it)}}"}
-                        {:set state.queue
-                         :to "{{map(filter(state.queue, number(split(it, ':')[0]) != list), number(split(it, ':')[0]) > list ? (number(split(it, ':')[0]) - 1) + ':' + split(it, ':')[1] : it)}}"}
-                        {:set state.order
-                         :to "{{map(filter(state.order, number(split(it, ':')[0]) != list), number(split(it, ':')[0]) > list ? (number(split(it, ':')[0]) - 1) + ':' + split(it, ':')[1] : it)}}"}
-                        {:if "{{state.playingList == list}}"
-                         :then [{:set state.isPlaying :to false}
-                                {:set state.elapsed :to 0}
-                                {:set state.playingList :to -1}
-                                {:set state.playingTrack :to 0}
-                                {:set state.source :to ""}]}
-                        {:if "{{state.playingList > list}}"
-                         :then [{:set state.playingList :to "{{state.playingList - 1}}"}]}
-                        {:set state.renaming :to false}
-                        {:set state.backStack :to []}
-                        {:set state.forwardStack :to []}
-                        {:delete playlists :id "{{data.playlists[list].id}}"}
-                        {:set state.current :to "{{max(list - 1, 0)}}"}
-                        {:set state.page :to "{{length(data.playlists) > 0 ? 'playlist' : 'library'}}"}
-                        {:set state.where
-                         :to "{{merge({ page: state.page }, { current: state.current, collection: state.collection })}}"}]
-           :liftAssistant [{:note "The assistant's button sits above the floating player (none in the mini player)"}
-                           {:set state.assistant.lift :to "{{state.mini ? 0 : 92}}"}]
-           :buildLibrary [{:note "Makes the library's 3,000 songs once, from the word lists: the first time the app starts"}
-                          {:if "{{length(data.songs) == 0}}"
-                           :then [{:insert songs
-                                   :values "{{map(range(3000), { id: text(index), number: index + 1, title: state.words.adjectives[index % 16] + ' ' + state.words.nouns[floor(index / 16) % 20] + (index < 320 ? '' : ' (' + state.words.versions[floor(index / 320) - 1] + ')'), artist: state.words.artists[(index * 7) % 12], album: state.words.albums[floor(index / 5) % 18], time: floor((150 + (index * 37) % 210) / 60) + ':' + pad((150 + (index * 37) % 210) % 60, 2) })}}"}]}]
-           :playPause {:title "Play or pause"
-                       :category "Playback"
-                       :icon play
-                       :do [{:note "Tempo opens playing, silently: the first press starts the song's sound; without sound (a host that gives none) it pauses"}
-                            {:if "{{state.isPlaying && state.soundOn == ''}}"
-                             :then [{:run startSound} {:if "{{state.soundOn == ''}}" :then [{:toggle state.isPlaying}]}]
-                             :else [{:toggle state.isPlaying}]}]}
-           :startSound [{:note "Plays the sound of the song playing (computed.sound: its own, else the beat), stopping the one before; state.soundOn names the one started, empty when none could"}
-                        {:if "{{state.soundOn != '' && state.soundOn != computed.sound}}"
-                         :then [{:audio stop :of "{{state.soundOn}}" :onError []}]}
-                        {:set state.soundOn :to "{{computed.sound}}"}
-                        {:audio volume :of "{{computed.sound}}" :to "{{computed.loudness}}" :onError []}
-                        {:audio play :of "{{computed.sound}}" :onError [{:set state.soundOn :to ""}]}]
-           :songChanged [{:note "A new song: its sound from the start while playing (the same sound again, or another one). After a crossfade (the song starts past 0) it fades in over the crossfade's seconds, as the song before faded out"}
-                         {:if "{{state.isPlaying && state.soundOn != ''}}"
-                          :then [{:if "{{state.soundOn == computed.sound}}"
-                                  :then [{:audio seek :of "{{state.soundOn}}" :to 0 :onError []}]
-                                  :else [{:run startSound}]}
-                                 {:if "{{state.elapsed > 0 && settings.playback.crossfade > 0}}"
-                                  :then [{:audio volume :of "{{state.soundOn}}" :to 0 :onError []}
-                                         {:audio volume
-                                          :of "{{state.soundOn}}"
-                                          :to "{{computed.loudness}}"
-                                          :ms "{{settings.playback.crossfade * 1000}}"
-                                          :onError []}]
-                                  :else [{:audio volume :of "{{state.soundOn}}" :to "{{computed.loudness}}" :onError []}]}]}]
-           :nextCommand {:title "Next song" :category "Playback" :icon skip-forward :do [{:run next}]}
-           :previousCommand {:title "Previous song" :category "Playback" :icon skip-back :do [{:run previous}]}
-           :volumeUp {:title "Volume up"
-                      :category "Playback"
-                      :icon volume-2
-                      :enablement "{{state.volume < 100}}"
-                      :do [{:set state.volume :to "{{min(state.volume + 10, 100)}}"}]}
-           :volumeDown {:title "Volume down"
-                        :category "Playback"
-                        :icon volume-1
-                        :enablement "{{state.volume > 0}}"
-                        :do [{:set state.volume :to "{{max(state.volume - 10, 0)}}"}]}
-           :searchCommand {:title "Find a song…"
-                           :category "Go"
-                           :icon search
-                           :do [{:set state.quickPick.query :to ""} {:set state.quickPick.open :to true}]}
-           :commandPalette {:title "Show all commands"
-                            :category "Go"
-                            :icon command
-                            :do [{:set state.quickPick.query :to ">"} {:set state.quickPick.open :to true}]}
-           :showLibrary {:title "Show the library" :category "View" :icon music :do [{:set state.page :to library}]}
-           :showAlbums {:title "Show the albums" :category "View" :icon disc-3 :do [{:set state.page :to albums}]}
-           :showArtists {:title "Show the artists" :category "View" :icon users :do [{:set state.page :to artists}]}
-           :showSearch {:title "Search the library"
-                        :category "View"
-                        :icon search
-                        :do [{:set state.page :to search} {:focus "#searchField"}]}
-           :showLiked {:title "Show the liked songs" :category "View" :icon heart :do [{:set state.page :to liked}]}
-           :likeSong {:title "Like the song playing"
-                      :category "Playback"
-                      :icon heart
-                      :do [{:run toggleLike :with {:key "{{computed.playingKey}}"}}]}
-           :showNowPlaying {:title "Show now playing"
-                            :category "View"
-                            :icon radio
-                            :do [{:set state.page :to nowPlaying}]}
-           :showSound {:title "Show the equaliser and crossfade"
-                       :category "View"
-                       :icon sliders-horizontal
-                       :do [{:set state.page :to sound}]}
-           :cancelRename {:title "Leave the playlist's name"
-                          :category "View"
-                          :icon x
-                          :enablement "{{state.renaming}}"
-                          :do [{:set state.renaming :to false}]}
-           :toggleQueue {:title "Show or hide the queue"
-                         :category "View"
-                         :icon list-ordered
-                         :do [{:toggle state.queueOpen}]}
-           :toggleShuffle {:title "Shuffle"
-                           :category "Playback"
-                           :icon shuffle
-                           :do [{:toggle state.shuffle}
-                                {:set state.shuffleSeed :to "{{now() % 1009}}"}
-                                {:note "The songs up next, shuffled, or back in their order (the songs added to the queue after them)"}
-                                {:set state.queue
-                                 :to "{{state.shuffle ? sort(state.queue, (number(split(it, ':')[1]) * 7919 + state.shuffleSeed) % 1009) : concat(filter(state.order, contains(state.queue, it)), filter(state.queue, !contains(state.order, it)))}}"}
-                                {:set state.queuePick :to nil}]}
-           :cycleRepeat {:title "Repeat: off, all, this song"
-                         :category "Playback"
-                         :icon repeat
-                         :do [{:set state.repeat
-                               :to "{{state.repeat == 'off' ? 'all' : state.repeat == 'all' ? 'one' : 'off'}}"}]}
-           :toggleMute {:title "Mute" :category "Playback" :icon volume-x :do [{:toggle state.muted}]}
-           :goBack {:title "Go back"
-                    :category "View"
-                    :icon chevron-left
-                    :enablement "{{length(state.backStack) > 0}}"
-                    :do [{:if "{{length(state.backStack) == 0}}" :then [{:stop true}]}
-                         {:set state.forwardStack :to "{{concat([state.where], slice(state.forwardStack, 0, 49))}}"}
-                         {:run goTo :with {:place "{{state.backStack[length(state.backStack) - 1]}}"}}
-                         {:set state.backStack :to "{{slice(state.backStack, 0, length(state.backStack) - 1)}}"}]}
-           :goForward {:title "Go forward"
-                       :category "View"
-                       :icon chevron-right
-                       :enablement "{{length(state.forwardStack) > 0}}"
-                       :do [{:if "{{length(state.forwardStack) == 0}}" :then [{:stop true}]}
-                            {:set state.backStack
-                             :to "{{slice(concat(state.backStack, [state.where]), max(length(state.backStack) - 49, 0))}}"}
-                            {:run goTo :with {:place "{{state.forwardStack[0]}}"}}
-                            {:set state.forwardStack :to "{{slice(state.forwardStack, 1)}}"}]}
-           :toggleMini {:title "Switch the mini player" :category "View" :icon minimize-2 :do [{:toggle state.mini}]}
-           :toggleTheme {:title "Switch light and dark"
-                         :category "View"
-                         :icon moon
-                         :do [{:set state.theme :to "{{state.theme == 'dark' ? 'light' : 'dark'}}"}]}
-           :switchLanguage {:title "Change the language"
-                            :category "View"
-                            :icon languages
-                            :do [{:set settings.ui.language
-                                  :to "{{settings.ui.language == 'en' ? 'es' : settings.ui.language == 'es' ? 'fr' : 'en'}}"}]}
-           :flatEqualiser {:title "Reset the equaliser"
-                           :category "Sound"
-                           :icon sliders-horizontal
-                           :do [{:run setPreset :with {:preset flat}}]}
-           :playLibrary {:title "Play the library"
-                         :category "Playback"
-                         :icon disc-3
-                         :do [{:run play :with {:list -1 :track 0}}]}}
  :keys {:space playPause
         :right nextCommand
         :left previousCommand
@@ -705,17 +396,11 @@
         "mod+alt+down" toggleMute
         "mod+leftbracket" goBack
         "mod+rightbracket" goForward}
- :watch {:state.isPlaying [{:note "The song's sound follows the player: play and pause, a new song starts it again, the volume slider sets it. A host without sound fails these quietly"}
-                           {:if "{{state.isPlaying}}"
-                            :then [{:run startSound}]
-                            :else [{:if "{{state.soundOn != ''}}"
-                                    :then [{:audio pause :of "{{state.soundOn}}" :onError []}]}]}]
+ :watch {:state.isPlaying [{:run followPlaying}]
          :state.playingTrack [{:run songChanged}]
          :state.playingList [{:run songChanged}]
-         :state.volume [{:if "{{state.soundOn != ''}}"
-                         :then [{:audio volume :of "{{state.soundOn}}" :to "{{computed.loudness}}" :ms 80 :onError []}]}]
-         :state.muted [{:if "{{state.soundOn != ''}}"
-                        :then [{:audio volume :of "{{state.soundOn}}" :to "{{computed.loudness}}" :ms 80 :onError []}]}]
+         :state.volume [{:run followVolume}]
+         :state.muted [{:run followVolume}]
          :state.page [{:run placeChanged}]
          :state.mini [{:run liftAssistant}]
          :state.current [{:run placeChanged}]

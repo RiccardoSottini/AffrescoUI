@@ -158,7 +158,8 @@ As built, in stages 4 and 5 (SCREEN_FORMAT.md, "The loop" and "Hooks and advice"
   `eval-last-sexp` and `eval-region` are Calamaio's Lisp, on those.
 - **`checkChange` is judged again for the person's own change only:** `VersionControl::commitOwnInput()`, a call in the host's code that only `/program/` paths pass, skips the scan of what reaches a control step and nothing else. A marker in the commit carries that into a history reloaded.
 - **`init.lisp` is a change set.** What the person evaluates lands in `/program/init.lisp` when no file has its name; `exportChanges` and `importChanges` carry it. A text that arrives from elsewhere goes through `propose`: a proposal in its own name, with no authority of the person's, even accepted.
-- **Decision 5 is enforced by proof, not by marks.** The person's authority goes only to what the person typed: `format::TypedText` records the runs of a bound value that came from their own keystrokes, and anything else `evaluate` is given, a buffer an agent wrote, a paste, an undo, a copy by their own command of what they didn't type, or text loaded from a file, is a proposal in the name `plugin:evaluated`, and doesn't run if it holds anything but definitions. The price: what the person didn't type here has to be retyped to get their authority. A confirmation that shows the whole form could lift that, and it would have to be drawn by the host, as nothing a document draws can be trusted for it; it isn't built.
+- **Decision 5 is enforced by proof, not by marks.** The person's authority goes only to what the person typed: `format::TypedText` records the runs of a bound value that came from their own keystrokes, and anything else `evaluate` is given, a buffer an agent wrote, a paste, an undo, a copy by their own command of what they didn't type, or text loaded from a file, is a proposal in the name `plugin:evaluated`, and doesn't run if it holds anything but definitions. The price was that what the person didn't type here had to be retyped to get their authority.
+- **Or confirmed, in a question the host draws** (stage 6, the maintainer's decision). `evaluate` with `confirm` shows a text the person didn't type, whole, in a question the window draws itself (`Window::confirm()`), above everything a document draws and out of every document's reach; only their own click or key on it runs that text as theirs, once, and exactly the text shown. The program changing while it is shown, a character that doesn't show as itself, a preview or a second question runs nothing. Attack tests: `tests/unit/lisp_confirm.cpp` (an agent's revision, a `press` step, a timer, an action no input ran, a document's overlay over the window, the buffer and the program changed between showing and answering, the key that brought the question up). Calamaio's point commands ask; `M-x eval-buffer` stays a proposal.
 - **`remove-hook` and `defhook` are definitions too.** Nothing changes at run time: a program's hook points are what its entries say, in that version.
 
 This is the one deliberate difference from Emacs: its full power goes to the owner, without its whole-trust model applying
@@ -203,6 +204,22 @@ compact JSON without its message:
 
 The difference with JSON left is the longer path. Whole-app numbers come at stage 6, with an edit-accuracy test of agents
 writing Lisp against JSON, before Lisp is recommended to agents.
+
+**Measured at stage 6** (`benchmarks/agents/`, tasks `lisp-*` and `json-*`; BENCHMARKS.md, "Lisp against JSON"): the same
+request on the same app, written as a program's definitions or as JSON, checked by the same scenarios. One run each, Claude Code
+with Sonnet (`claude-sonnet-5-5`), whole sessions, the tokens in counting every read and the cache:
+
+| Change | Passed, JSON / Lisp | Tokens out, JSON / Lisp | Tool calls, JSON / Lisp |
+|---|---|---|---|
+| A command's title (Lisp: the keyword edit) | yes / yes | 697 / 632 | 5 / 5 |
+| A function's or an action's body | yes / yes | 616 / 695 | 4 / 3 |
+| A new command on a key | yes / yes | 1,202 / 1,179 | 8 / 8 |
+| A hook (JSON: a step added to the action) | yes / yes | 1,229 / 1,279 | 9 / 9 |
+| A new command on a key, Streak (JSON: `habit-notes-key`) | yes / yes | 1,622 / 1,022 | 12 / 7 |
+
+Agents wrote Lisp as accurately as JSON on every change measured, at about the same cost; one run per task can't tell the
+small differences apart. That is enough to keep programs editable by agents, not to recommend Lisp to them over JSON: more runs
+and other models come first.
 
 ## Performance
 
@@ -266,7 +283,8 @@ untrusted.
   **As built, the authority weighed is wider than the stack:** every author whose code has run since the outermost call began, those that
   returned too, and whoever scheduled it. See "Open questions", answered. **The attack tests run with the revision's scan off**, so the check at
   run time holds by itself (`tests/unit/lisp_runtime.cpp`), and the scan is a first line on top: a function counts as what it reaches, which is
-  sound as the language has no way to find a global from a value (`run` counts as reaching anything).
+  sound as the language has no way to find a global from a value. A `run` of a name written out reaches what the name runs, and a
+  computed one anything (stage 6, "Open questions").
 - **Hooks and advice** can wrap a protected action. They run with their own author's authority, under the least-authority
   rule, and adding one to a protected action needs the same review as changing that action.
   **The agent's denial of service, answered by stage 5's attack tests** (`tests/unit/lisp_hooks.cpp`): under the rule as it was, an agent's `:before` on a person's command, or its hook before the person's next step, would have taken the command's authority away:
@@ -313,7 +331,11 @@ untrusted.
 4. **The Emacs loop.** `eval-defun`, `describe-*`, commands from functions; Calamaio's `*scratch*` and `init.lisp` really
    work.
 5. **Hooks and advice,** with their review.
-6. **Roll out** app by app, and the agents' edit-accuracy test.
+6. **Roll out** app by app, and the agents' edit-accuracy test. As built so far: the test (above, "The cost in tokens"), the
+   question the host draws before text the person didn't type runs as theirs ("The Emacs loop"), Calamaio in the Launcher, and
+   a rule on `/actions` that covers the code an action runs: an `ask` or `deny` rule, or an owner, on the actions also covers a change
+   of any definition but a screen's that nothing else uses, so an app moved from JSON keeps its review (found by this stage's
+   review; an `allow` rule doesn't widen; VERSION_CONTROL.md, "Programs").
 
 ## Decisions taken by the maintainer
 
@@ -323,7 +345,9 @@ untrusted.
 4. **Undo restores definitions exactly;** data a function already changed stays. This matches today's rule that state
    changes aren't undone (`VERSION_CONTROL.md`).
 5. **`*scratch*` has the person's full authority** for what they type themselves, never from a timer or a handler that
-   fires by itself, as the `patch` step already is. As built: only for what they typed, proved from the keystrokes ("The Emacs loop").
+   fires by itself, as the `patch` step already is. As built: only for what they typed, proved from the keystrokes, or what they say yes
+   to in a question the host draws, once ("The Emacs loop"). An `ownInput` mark in a history on disk isn't signed: it relies on the trust of
+   the app's history folder, whose writer can already change anything in it (SECURITY.md).
 
 ## Open questions
 
@@ -340,6 +364,24 @@ untrusted.
   - *What it doesn't cover:* data. A value an earlier event's agent code left in the state reaches a person's `call` as an argument, as with any JSON
     action whose `with` reads the state. A control step's arguments are untrusted input (SECURITY.md, "What `onCall` and `onAction` expose").
 - **Least authority and hooks: a sealed run, answered above.** The rule stays what `CallContext::ran` says, for all that gives a value back; only what gives nothing back is left out of it.
+- **Control steps in programs against JSON's: answered at stage 6** (`tests/unit/lisp_reach.cpp`). Moving logic into functions had narrowed
+  what an agent's revision may wire a button to, for two reasons, and both are closed without lending an agent's code more than a JSON
+  revision has:
+  - *A function's `run` counted as reaching anything.* The language records each call of a global whose first argument is a text written out
+    (`Program::namedCalls()`), so a `run` of a name written out reaches what the run step finds by it: the document's action (with any advice
+    on it), else the program's function, else the application's own, which may do anything. Function and action reach each other, so the
+    scan works them out together until neither grows (16 rounds at most, then every action a function runs counts). A computed name, `run` as
+    a value, `apply` or `map` still reach anything. And a step's handler from code (`:onDone`, `:onError`...) takes a function only: before, a
+    name given there ran that action, past every name the scan reads (the check at run time held; the scan didn't see it).
+  - *Every step not named free was a control step*, where JSON judges `invoke`, `request` and `subscribe` by the method they name (declared,
+    revisable, reviewed by the person when it writes or runs) and `image` as control only for a dialog. Now a call whose code names its
+    method written out is judged that way (`CallContext::named`), and its definition's revision too, as JSON's is; computed, it stays a
+    control step. The attacks: an agent's function calling the file's use (runs, as a button would), a computed name, the step as a value,
+    `apply`, a name beside the one written out, a use beside a computed one in one definition (refused at the revision: found while writing
+    this), an agent's macro writing a use into the file's function, a hook, advice, a callback an agent's code schedules, a person's command
+    using an agent's helper (its use runs, its control step doesn't), image dialogs. Each was seen to fail with its guard taken out.
+  - *What stays narrower than JSON:* `saveFile`, `openFile`, `export` and the other control steps, as in JSON; `image "open"` from an asset,
+    which JSON allows; and a function whose `run` names what it is given (Tempera's `op`), which JSON can't write either.
 - **`@word` tokens:** a stock EDN reader rejects them. Kept unless third-party EDN tooling turns out to matter.
 - **Conventional-syntax fixes** from the notation review (`type` as the head, `panel#id`, quoted display text, indentation,
   `fmt` keeping comments) go in their own PR before stage 1, as they apply either way. `fmt` currently deletes comments.

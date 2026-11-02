@@ -85,13 +85,37 @@ missed is written as missed: the targets don't move, the code does.
 
 ## Agents
 
-The agent benchmark (`benchmarks/agents/README.md`): 24 tasks a person might ask of a running screen, at three levels
-(11 edits, 8 features in a template, 5 features in Forge across its files), each given to a client that changes the
-screen through the MCP server, then checked by the task's scenarios and its unchanged nodes. The oracle submits each
-task's reference revisions: it checks the tasks themselves, and CI runs it on every change. A model has not been run
-yet.
+The agent benchmark (`benchmarks/agents/README.md`): 34 tasks a person might ask of a running screen, at three levels
+(12 edits, 17 features in a template, 5 features in Forge across its files), each given to a client that changes the
+screen through the MCP server, then checked by the task's scenarios, its unchanged nodes and, where the request says how
+it is written, the definitions or actions it must leave. The oracle submits each task's reference revisions: it checks
+the tasks themselves, and CI runs it on every change. A model has been run once, on the tasks that compare Lisp with
+JSON (below), not on the others.
 
 | Date | Client | Model | Versions | Machine | Success | Median tokens in / out | Median tool calls |
 |---|---|---|---|---|---:|---:|---:|
 | 2026-10-22 | oracle | none | oracle 1, AffrescoUI 8b367ca | Apple M4 Pro, macOS 27.0.1 | 24/24 (edit 11/11, feature 8/8, forge 5/5) | n/a / n/a | 1.0 |
-| not run yet | claude-code | | | | | | |
+| 2026-11-02 | oracle | none | oracle 1, AffrescoUI 064a5355 (with changes) | Apple M4 Pro, macOS 27.0.1 | 34/34 (edit 12/12, feature 17/17, forge 5/5) | n/a / n/a | 1.0 |
+| 2026-11-02 | claude-code | claude-sonnet-5-5 | 2.1.312 (Claude Code), AffrescoUI 064a5355 (with changes) | Apple M4 Pro, macOS 27.0.1 | 11/11 (edit 2/2, feature 9/9), the 11 tasks below only | 179,548 / 1,022 | 7 |
+
+### Lisp against JSON (RFC 0005, stage 6)
+
+The same requests, made of a program's definitions and of JSON. Calamaio is both: its kill ring and its loop are a
+program (`killring.lisp`, `loop.lisp`), its other commands JSON actions, so each pair is one app, one scenario and one
+kind of change, and each request says which way it is written (the task's `present` checks it). Streak is a program;
+its pair is `habit-notes-key`, the same command added as a JSON action. One run of each task, Claude Code with Sonnet
+(`claude-sonnet-5-5`), so a few thousand tokens either way are noise.
+
+| Change | JSON task | Lisp task | Passed, JSON / Lisp | Tokens in, JSON / Lisp | Tokens out, JSON / Lisp | Tool calls, JSON / Lisp |
+|---|---|---|---:|---:|---:|---:|
+| A command's title | `json-calamaio-title` | `lisp-calamaio-title` (the keyword edit) | 1/1 / 1/1 | 167,312 / 159,651 | 697 / 632 | 5 / 5 |
+| A body: a message changed | `json-calamaio-body` | `lisp-calamaio-body` | 1/1 / 1/1 | 126,505 / 126,524 | 616 / 695 | 4 / 3 |
+| A new command on a key | `json-calamaio-command-key` | `lisp-calamaio-command-key` | 1/1 / 1/1 | 185,091 / 179,548 | 1,202 / 1,179 | 8 / 8 |
+| After a save: a step, or a hook | `json-calamaio-hook` | `lisp-calamaio-hook` | 1/1 / 1/1 | 253,816 / 222,385 | 1,229 / 1,279 | 9 / 9 |
+| A new command on a key (Streak) | `habit-notes-key` | `lisp-streak-command-key` | 1/1 / 1/1 | 237,178 / 188,481 | 1,622 / 1,022 | 12 / 7 |
+| A body: a toast added (Streak) | | `lisp-streak-body` | / 1/1 | / 170,041 | / 1,000 | / 6 |
+
+Every task passed, both ways. Tokens and calls are within what one run per task can tell apart, but for Streak's new
+command, where the JSON task took 12 calls to the Lisp task's 7: one run, so not yet a difference. This says agents
+write Lisp as accurately as JSON on these changes; it doesn't say they do better, so Lisp isn't recommended to agents
+over JSON on these numbers. More runs per task, and other models, would.

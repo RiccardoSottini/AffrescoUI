@@ -30,8 +30,8 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 |---|---|
 | `Value.hpp` | `Value`, `Kind`, `Place`: JSON's values plus symbols, keywords, lists and functions |
 | `Interpreter.hpp` | `Interpreter` (`eval`, `evaluate`, `expandsToDefinition`, `extensions`, `definitionNames`, `wrapGlobal`, `makeFunction`, `Sealed`, `addAuthorsThatRan`, `authorsOf`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `authorsThatRan`, `leastAuthority`, `authorOf`, `definitionNameOf`, `parametersOf`, `isProgramFunction`, `workOutDefinitions`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`, `Transient`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
-| `Program.hpp` | `Program` (`addFile`, `addEntry`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `namesUsed`), `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
-| `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits |
+| `Program.hpp` | `Program` (`addFile`, `addEntry`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `namesUsed`, `namedCalls`), `NamedCalls`, `CallsByName`, `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
+| `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits; `findKeyword` and `withKeyword`, a keyword's value in any text of Lisp, read and replaced by tokens |
 
 ## Values
 
@@ -40,7 +40,12 @@ number read keeps the exact kind `parseUntrusted` gives. A map's keys are string
 key (`(get m :a)` is `(get m "a")`). JSON read through `Interpreter::viewJson` is viewed, not converted: a vector or a map
 from it wraps its items as they are read. Besides those: **symbols** (a word in code; in data the string of the same text),
 **keywords** (as a value in data, their text), **lists** (code; in data a node), **functions**. `nil` and `false` are false,
-everything else is true. Nothing changes a value: `assoc` and `conj` give new ones (appending to a vector's end shares its
+everything else is true. **A whole number that is a double** (`13.0`, from `(* 26 0.5)` or a JSON file that writes it so) keeps
+its kind, as JSON's model says, and is printed `13.0` to be read back (`pr-str`, `printForm`); but it counts as the integer wherever an
+index, a count or a position is taken (`get`, `nth`, `contains?`, `assoc`, `subs`, `range`, a vector pattern; up to 2^53), as
+JavaScript does, where it was nil or an error; and `str` and `join` show it as an expression's text does, `13` (below 10^15; one inside a
+vector or a map is written as JSON writes it). So text a function makes reads as the expression it replaces made it. Expressions themselves
+don't change (`list[1.0]` there still leads nowhere). Nothing changes a value: `assoc` and `conj` give new ones (appending to a vector's end shares its
 storage, so a loop of `conj` is linear).
 
 ## The language
@@ -173,6 +178,10 @@ interpreter.setGate([&](const lisp::CallContext& call) {
   call, `apply`, a value in a variable, a hook. It refuses what isn't `pure` while `setPure(true)`, then calls the gate, then the
   primitive. A primitive or the gate throws `Refusal`, a condition the program may catch; any other exception leaves as it is.
 - **`Primitive::capability`** is free text for the gate: this module doesn't interpret it.
+- **`CallContext::named`** is the primitive's first argument when the code calling it names it with that text written out
+  (`(invoke "files.read")`), and empty otherwise: through `apply`, a value in a variable, a computed first argument, or the
+  language's own functions. `Program::namedCalls()` lists, per definition, every such call and which of those names it
+  also uses another way, so a host can judge such code by what its text says (a `run` by what the name it writes runs).
 - **`CallContext::ran` starts with the outermost run, or the outermost `Interpreter::Transient` when a host has one:** what a host adds with `addAuthorsThatRan` stays on the record, whatever the stack holds then.
 - A primitive's span lives only for the call. A primitive that wants to call a function back uses `Interpreter::call`, which
   nests a native run, up to 64 deep.
@@ -195,7 +204,7 @@ stages:
 
 - **Hooks and advice** (`ProgramExtensions.cpp`). `Interpreter::extensions()` lists them. Advice wraps the function's global (`wrapGlobal`), so it applies however the function is called; the wrapper stands for it (`parametersOf`, `definitionNameOf`). A hook, `:before` and
   `:after` run sealed (`Interpreter::Sealed`: `authorsThatRan()` goes back to what it was when one ends), with the authors of whoever added it added (`addAuthorsThatRan`). A hook belongs to its entry, so it goes with a new interpreter when the entry goes.
-- **`evaluate`** (`ProgramEvaluate.cpp`): `formsOf` splits the text. If every form is one run of what the person typed (`TypedText.hpp`), a definition goes in a revision by the author `user`, through `VersionControl::commitOwnInput()` (the step checked the person's own press), and anything else through `Interpreter::evaluate`, which compiles with purity on and runs as that author, the authors of any macro it holds with it. If not, its definitions are a proposal in the name `plugin:evaluated`, and anything else doesn't run.
+- **`evaluate`** (`ProgramEvaluate.cpp`): `formsOf` splits the text. If every form is one run of what the person typed (`TypedText.hpp`), a definition goes in a revision by the author `user`, through `VersionControl::commitOwnInput()` (the step checked the person's own press), and anything else through `Interpreter::evaluate`, which compiles with purity on and runs as that author, the authors of any macro it holds with it. If not, its definitions are a proposal in the name `plugin:evaluated`, and anything else doesn't run; or, with `confirm`, the window asks the person (`Window::confirm()`, a question it draws itself), and their yes runs exactly the text shown as if they had typed it, once.
 - **`describe-*`** read `Interpreter::describe` (docstring, author, place), and give no value.
 
 ## Files

@@ -23,7 +23,7 @@ affresco::format::AppManifest readManifest(const json& value) {
 	try {
 		return affresco::format::parseApp(value);
 	} catch(const affresco::DocumentError&) {
-		return affresco::format::manifestOf("fuzz", "Fuzz", "index.screen.json", affresco::fuzz::kanbanTemplate());
+		return affresco::format::manifestOf("fuzz", "Fuzz", "index.screen.json", affresco::fuzz::jsonTemplate());
 	}
 }
 

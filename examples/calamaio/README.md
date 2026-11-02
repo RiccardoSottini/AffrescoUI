@@ -48,7 +48,7 @@ Lisp you type runs in the running editor, and lands in its history.
 - **`M-x find-init`** opens your init file, your own definitions, or a start for them. `M-x eval-buffer` evaluates it, as a proposal, since you didn't type it: `M-x accept-proposal` takes it, then try the `say-hello` it holds with `C-c h`, and save any file to see its hook on `after-save`.
 - **`M-x load-init`** treats the buffer as a file from elsewhere: a proposal in its own name, which `M-x accept-proposal` accepts and which never gets your authority. **`M-x export-init`** gives what you evaluated as a change set.
 - **`M-x what-is-here`**, `(describe-function "kill-line")`, `(describe-key "ctrl+k")`, `(apropos "yank")`: ask what is defined.
-- **What you type has your authority, and nothing else's does:** never from a timer or a handler, and text you didn't type here, whoever put it in the buffer, however you copied it, is a proposal with none of it. Retype it to make it yours (SECURITY.md, "The Lisp language").
+- **What you type has your authority, and nothing else's does:** never from a timer or a handler. Text you didn't type here, whoever put it in the buffer, however you copied it, gets yours only when you say so: `C-x C-e`, `C-M-x`, `C-j` and `M-x eval-region` on it ask first, in a question the window draws itself, above anything the editor draws, with the whole text; **Run as Me** (or Enter) runs it as you, once, and **Don't Run** (or Escape) runs nothing. `M-x eval-buffer` doesn't ask: what it holds is a proposal (SECURITY.md, "The Lisp language").
 
 ## Configured by its document
 

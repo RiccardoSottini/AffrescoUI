@@ -9,6 +9,7 @@
 #include "CheckerShapes.hpp"
 
 #include "Expression.hpp"
+#include "ProgramRules.hpp"
 #include "Record.hpp"
 #include "StateTypes.hpp"
 
@@ -283,6 +284,11 @@ private:
 	/// @param name The function.
 	/// @param place The step's place.
 	void callProgramFunction(const std::string& name, const std::string& place);
+	/// @brief Tells whether the document's program defines a name, worked out once per check: a handler that calls a
+	/// function would otherwise go over the whole program again.
+	/// @param name The name.
+	/// @return true if it does.
+	[[nodiscard]] bool programDefines(const std::string& name);
 	/// @brief Checks an action run by name, with the caller's variables (as the runtime runs it).
 	/// @param name The action.
 	/// @param scope The caller's variables.
@@ -428,6 +434,10 @@ private:
 	/// @brief Reads "models" and "queries": what `data.<name>` holds, a list of records with their model's fields
 	/// only, so a binding to a field the model doesn't have is found (CheckerData.cpp).
 	void learnData();
+	/// @brief Reads the program's source: a state path a definition names in a text (`(set "state.files" ...)`, or
+	/// `(str "state.files[" f "]")` for a place it computes) may hold anything, as the checker doesn't run functions to
+	/// see what they write. Text holding no path is no write; a comment naming one only makes the check looser.
+	void learnProgramWrites();
 	/// @brief The declared type at a state path.
 	/// @param keys The path's keys, "state" first.
 	/// @return The type, or nullptr if none is declared there.
@@ -494,14 +504,15 @@ private:
 	/// Computed values checked in this pass. A map, not a JSON object (a vector): a shape read through a reference
 	/// stays where it is while other computed values are added.
 	std::map<std::string, Shape, std::less<>> computedShapes_;
-	std::vector<std::string> computing_; ///< Computed values being checked (finds circles).
-	std::size_t visits_ = 0;             ///< Visits so far (maxVisits).
-	Work work_;                          ///< Shape nodes it may still copy.
-	bool exhausted_ = false;             ///< maxVisits or maxShapeWork was passed.
-	std::size_t hints_ = 0;              ///< Hints made in this pass (maxHints).
-	int nodeDepth_ = 0;                  ///< Nodes inside each other now (maxDepth).
-	int actionDepth_ = 0;                ///< Actions inside each other now (maxActionDepth).
-	int styleDepth_ = 0;                 ///< Styles chosen inside chosen styles now (16 at most).
+	std::vector<std::string> computing_;                  ///< Computed values being checked (finds circles).
+	std::size_t visits_ = 0;                              ///< Visits so far (maxVisits).
+	Work work_;                                           ///< Shape nodes it may still copy.
+	bool exhausted_ = false;                              ///< maxVisits or maxShapeWork was passed.
+	std::size_t hints_ = 0;                               ///< Hints made in this pass (maxHints).
+	int nodeDepth_ = 0;                                   ///< Nodes inside each other now (maxDepth).
+	int actionDepth_ = 0;                                 ///< Actions inside each other now (maxActionDepth).
+	int styleDepth_ = 0;                                  ///< Styles chosen inside chosen styles now (16 at most).
+	std::optional<std::set<std::string>> programDefined_; ///< The program's definitions (programDefines()).
 };
 
 } // namespace affresco::format::checker

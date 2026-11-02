@@ -53,6 +53,17 @@ namespace affresco::vcs::detail {
 [[nodiscard]] bool changes(const DocumentRules& rules, const json& before, const json& after,
                            const std::string& pattern);
 
+/// @brief changes(), for the rules that send a change to review or refuse it (`ask`, `deny`, a part's owners): also
+/// what runs where the pattern points that the tree there doesn't hold (DocumentRules::changesCodeUnder(), a program's
+/// code that an action runs). `allow` rules don't use it.
+/// @param rules Finds "#id" nodes, and says what runs.
+/// @param before The view before.
+/// @param after The view after.
+/// @param pattern A rule's pattern (empty: everything).
+/// @return true if the change alters either.
+[[nodiscard]] bool reaches(const DocumentRules& rules, const json& before, const json& after,
+                           const std::string& pattern);
+
 /// @brief Tells whether everything a change alters is inside the patterns.
 /// @param rules Finds "#id" nodes.
 /// @param before The view before.

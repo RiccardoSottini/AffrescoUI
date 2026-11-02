@@ -49,12 +49,10 @@ json controls() {
 /// @brief The Kanban template's document, its state in "state", as a host gives it to its repository.
 /// @return The document.
 json kanban() {
-	const std::filesystem::path directory = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow" / "json";
-	const std::ifstream file(directory / "index.screen.json");
-	REQUIRE(file);
-	std::stringstream text;
-	text << file.rdbuf();
-	affresco::Screen screen = affresco::Screen::fromString(text.str(), directory);
+	// A program (RFC 0005): what its app builds, as a host opens it
+	const std::filesystem::path app =
+	    std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow" / "lisp" / "app.lisp";
+	affresco::Screen screen = affresco::Screen::fromApp(app, {}, affresco::Screen::History::InMemory);
 	screen.setPlaceholderTypes(true);
 	json document = json::parse(screen.documentJson());
 	document["state"] = json::parse(screen.stateJson());

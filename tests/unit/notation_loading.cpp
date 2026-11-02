@@ -90,17 +90,17 @@ TEST_CASE("notation: a template converted to the Lisp notation loads as the same
 }
 
 TEST_CASE("notation: an app may mix Lisp and JSON files, and loads as the same document") {
-	const Copy copy("flow");
+	const Copy copy("sign-in");
 	const std::string before = loadedApp(copy.app());
 
 	// The entry in Lisp, naming one include written in Lisp; the other includes, the models and seeds stay JSON
 	json entry = readFile(copy.app() / "index.screen.json");
 	for(json& include : entry["include"])
-		if(include == "board.json") include = "board.lisp";
+		if(include == "locales/en.json") include = "locales/en.lisp";
 	writeLisp(copy.app() / "index.screen.lisp", entry);
-	writeLisp(copy.app() / "board.lisp", readFile(copy.app() / "board.json"));
+	writeLisp(copy.app() / "locales" / "en.lisp", readFile(copy.app() / "locales" / "en.json"));
 	std::filesystem::remove(copy.app() / "index.screen.json");
-	std::filesystem::remove(copy.app() / "board.json");
+	std::filesystem::remove(copy.app() / "locales" / "en.json");
 	json manifest = readFile(copy.app() / "app.json");
 	manifest["entry"] = "index.screen.lisp";
 	std::ofstream(copy.app() / "app.json") << manifest.dump();

@@ -145,7 +145,14 @@ void Compiler::compileList(const Value& form, Position position) {
 }
 
 void Compiler::compileCall(const Value& form, Position position) {
+	const std::size_t globals = current_->code->globals.size();
 	compile(form.at(0), {});
+	// (run "save"): the head is one global, the first argument a text written out, which a host's scan can follow
+	const Value head = form.at(0);
+	if(head.kind() == Kind::Symbol && !head.text().contains('.') && form.count() > 1 &&
+	   current_->code->globals.size() == globals + 1 &&
+	   (form.at(1).kind() == Kind::String || form.at(1).kind() == Kind::Keyword))
+		current_->code->named.push_back({static_cast<std::uint32_t>(globals), std::string(form.at(1).text())});
 	for(std::size_t at = 1; at < form.count(); ++at) compile(form.at(at), {});
 	place_ = form.place();
 	emit(position.tail ? Op::TailCall : Op::Call, static_cast<std::uint32_t>(form.count() - 1));

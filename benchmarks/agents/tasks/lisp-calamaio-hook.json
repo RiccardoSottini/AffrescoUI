@@ -1,0 +1,67 @@
+{
+	"id": "lisp-calamaio-hook",
+	"level": "feature",
+	"screen": "examples/calamaio/lisp/calamaio.screen.lisp",
+	"request": "In Calamaio, count the buffers saved with C-x C-s in state.saves (a number, from 0), with a hook on the program's hook point after-save: a function and an add-hook, written in Lisp in the program's loop.lisp.",
+	"scenarios": [
+		{
+			"name": "saves",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "~/notes.txt"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "words"
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+s"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "saves",
+						"is": 1
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"/program/killring.lisp/kill-line",
+		"/program/loop.lisp/eval-defun",
+		"/actions/kill-buffer",
+		"/actions/save-buffer"
+	],
+	"present": [
+		"/program/loop.lisp/add-hook after-save count-save"
+	],
+	"reference": [
+		{
+			"message": "Saves are counted",
+			"add": {
+				"/program/loop.lisp/count-save": "(defn count-save \"Counts a save.\" [& given] (set \"state.saves\" (inc (or state.saves 0))))",
+				"/program/loop.lisp/add-hook after-save count-save": "(add-hook after-save count-save)"
+			}
+		}
+	]
+}

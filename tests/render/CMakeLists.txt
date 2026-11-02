@@ -30,8 +30,8 @@ list(TRANSFORM template_folders PREPEND ${PROJECT_SOURCE_DIR}/examples/ OUTPUT_V
 list(TRANSFORM template_globs APPEND /*.scenarios.json)
 file(GLOB AFFRESCOUI_TEMPLATE_SCENARIOS CONFIGURE_DEPENDS ${template_globs}
 	${forge_dir}/*.scenarios.json ${CMAKE_CURRENT_SOURCE_DIR}/screens/*.scenarios.json
-	${PROJECT_SOURCE_DIR}/examples/modello/json/*.scenarios.json ${PROJECT_SOURCE_DIR}/examples/sinopia/json/*.scenarios.json
-	${PROJECT_SOURCE_DIR}/examples/tempera/json/*.scenarios.json)
+	${PROJECT_SOURCE_DIR}/examples/modello/lisp/*.scenarios.json ${PROJECT_SOURCE_DIR}/examples/sinopia/lisp/*.scenarios.json
+	${PROJECT_SOURCE_DIR}/examples/tempera/lisp/*.scenarios.json)
 if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	# Their captures (pictures they take for the gallery, not compared) go to the build folder
 	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/scenario-captures)

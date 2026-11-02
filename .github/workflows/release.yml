@@ -195,7 +195,7 @@ jobs:
           done
           AFFRESCOUI_SCREENSHOT=frames/launcher-without-a-file.ppm on_display ./affrescoui_launcher
           test -s frames/launcher-without-a-file.ppm
-          on_display ./affrescoui render assets/flow/json/index.screen.json -o frames/kanban.png
+          on_display ./affrescoui render assets/flow/lisp/index.screen.lisp -o frames/kanban.png
           test -s frames/kanban.png
 
   vscode:

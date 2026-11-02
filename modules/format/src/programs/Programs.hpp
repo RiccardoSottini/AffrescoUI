@@ -13,6 +13,7 @@
 #include <affresco/lisp/Interpreter.hpp>
 #include <affresco/lisp/Program.hpp>
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -45,6 +46,15 @@ enum class StepKind : std::uint8_t {
 /// @param name The step's key.
 /// @return Its kind; StepKind::None if it isn't a step.
 [[nodiscard]] StepKind stepKind(std::string_view name);
+
+/// @brief Tells whether a control step that a capability gates is judged by what it uses, as JSON's revision rules
+/// judge it, rather than by who runs it: `invoke`, `request` and `subscribe` naming their method or operation written
+/// out (a revision that writes one is checked against what the screen declares, and reviewed by the person when it
+/// writes or runs: ServiceRules.cpp), and `image` short of a file dialog (RulesControl.cpp).
+/// @param step The step's key.
+/// @param name What it names, written out: the method, or the image's operation; empty if it isn't.
+/// @return true if so.
+[[nodiscard]] bool judgedByUse(std::string_view step, std::string_view name);
 
 /// @brief The step a word of the language runs: its own name, but for those the language has for something else.
 /// @param word The word.
@@ -109,6 +119,26 @@ public:
 	/// @return What it gave.
 	[[nodiscard]] Evaluated evaluate(const std::string& text, const std::string& file, Panel& sender, const json& event,
 	                                 const Scope& locals);
+	/// @brief Tells whether a text holds a form the person didn't type, so that `evaluate` with `confirm` asks them.
+	/// @param text The text.
+	/// @return true if it has forms and one isn't, whole, what they typed; false for a text that can't be read, which
+	/// evaluate() reports.
+	[[nodiscard]] bool untyped(const std::string& text);
+	/// @brief Evaluates a text the person said yes to, in the question the window drew (Window::confirm()): as if they
+	/// had typed it, this once. Only the step `evaluate` calls it, from their answer.
+	/// @param text The text, exactly as the question showed it.
+	/// @param file The file for a definition no file has.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @return What it gave.
+	[[nodiscard]] Evaluated evaluateConfirmed(const std::string& text, const std::string& file, Panel& sender,
+	                                          const json& event, const Scope& locals);
+	/// @brief Remembers the question the window asks for an evaluation, so that it goes with the runtime.
+	/// @param id Window::confirm()'s id; 0 for none.
+	void setQuestion(std::uint64_t id) noexcept { question_ = id; }
+	/// @brief Takes the question away unanswered, if one is asked: the runtime is going.
+	void dismissQuestion();
 	/// @brief Runs the functions of a hook point, each sealed and on its share of the budget (ProgramExtensions.cpp).
 	/// @param hook The hook.
 	/// @param arguments What they are given, if their authors may see it.
@@ -439,6 +469,7 @@ private:
 	std::shared_ptr<const Extensions> extensionsNext_; ///< Those of what load() is loading.
 	std::vector<std::string> hooksRunning_;            ///< The hook points being run.
 	TypedText typed_;                                  ///< What the person typed themselves.
+	std::uint64_t question_ = 0;                       ///< The question asked for an evaluation, if any.
 };
 
 /// @brief Sets what running code sees of where it is called from, as long as it lives. A hook or advice by a stranger

@@ -78,27 +78,6 @@
                          :do [{:set "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), b.id)]"
                                :to "{{merge(b, state.lastOp.kind == 'scale' ? { translation: map(b.translation, b.lock_translation[index] == true ? it : computed.lastCentre[index] + (it - computed.lastCentre[index]) * state.lastOp.values[index]), scale: map(b.scale, b.lock_scale[index] == true ? it : round(it * state.lastOp.values[index] * 10000) / 10000) } : state.lastOp.kind == 'rotate' ? { rotationDegrees: map(b.rotationDegrees, b.lock_rotationDegrees[index] == true ? it : round((it + state.lastOp.values[index]) * 100) / 100) } : { translation: map(b.translation, b.lock_translation[index] == true ? it : round((it + state.lastOp.values[index]) * 10000) / 10000) })}}"}]}
                         {:run autoKey}]
-           :snapshot [{:set state.lastOp :to nil}
-                      {:push state.undoStack :value "{{state.scene}}"}
-                      {:if "{{length(state.undoStack) > 32}}" :then [{:remove state.undoStack :at 0}]}
-                      {:set state.redoStack :to []}]
-           :undo {:title "Undo"
-                  :category "Edit"
-                  :icon undo-2
-                  :enablement "{{length(state.undoStack) > 0}}"
-                  :do [{:set state.lastOp :to nil}
-                       {:push state.redoStack :value "{{state.scene}}"}
-                       {:set state.scene :to "{{state.undoStack[length(state.undoStack) - 1]}}"}
-                       {:remove state.undoStack :at "{{length(state.undoStack) - 1}}"}
-                       {:set state.view.selection
-                        :to "{{filter(state.view.selection, contains(map(state.scene.nodes, it.id), it))}}"}]}
-           :redo {:title "Redo"
-                  :category "Edit"
-                  :icon redo-2
-                  :enablement "{{length(state.redoStack) > 0}}"
-                  :do [{:push state.undoStack :value "{{state.scene}}"}
-                       {:set state.scene :to "{{state.redoStack[length(state.redoStack) - 1]}}"}
-                       {:remove state.redoStack :at "{{length(state.redoStack) - 1}}"}]}
            :startTransform [{:if "{{length(state.view.selection) == 0}}" :then [{:stop true}]}
                             {:set state.modal :to {:mode "{{args.mode}}" :axis view :typed ""}}
                             {:set state.modalText :to "{{computed.modalName}}"}
@@ -172,17 +151,6 @@
                        {:set state.last :to "Add {{args.name}}"}
                        {:set state.lastOp
                         :to "{{ { title: 'Add ' + args.name, kind: 'translate', label: 'Location', base: [merge(state.scene.nodes[length(state.scene.nodes) - 1], { translation: [0, 0, 0] })], values: args.at ?? state.cursor } }}"}]
-           :deleteSelected {:title "Delete"
-                            :category "Object"
-                            :icon trash-2
-                            :enablement "{{length(state.view.selection) > 0}}"
-                            :do [{:dismiss true}
-                                 {:run snapshot}
-                                 {:set state.scene.nodes
-                                  :to "{{filter(state.scene.nodes, !contains(state.view.selection, it.id))}}"}
-                                 {:set state.view.selection :to []}
-                                 {:set state.active :to nil}
-                                 {:set state.last :to "Delete"}]}
            :duplicate {:title "Duplicate Objects"
                        :category "Object"
                        :icon copy
@@ -199,22 +167,6 @@
                             {:set state.view.selection :to "{{state.dupes}}"}
                             {:set state.active :to "{{state.dupes[length(state.dupes) - 1]}}"}
                             {:after 0 :do [{:run startTransform :with {:args {:mode translate}}}]}]}
-           :hideSelected {:title "Hide Selected"
-                          :category "Object"
-                          :icon eye-off
-                          :do [{:set state.scene.nodes
-                                :to "{{map(state.scene.nodes, contains(state.view.selection, it.id) ? merge(it, { visible: false }) : it)}}"}
-                               {:set state.view.selection :to []}]}
-           :hideUnselected {:title "Hide Unselected"
-                            :category "Object"
-                            :do [{:set state.scene.nodes
-                                  :to "{{map(state.scene.nodes, contains(state.view.selection, it.id) ? it : merge(it, { visible: false }))}}"}]}
-           :revealHidden {:title "Show Hidden Objects"
-                          :category "Object"
-                          :icon eye
-                          :do [{:set state.view.selection
-                                :to "{{map(filter(state.scene.nodes, it.visible == false), it.id)}}"}
-                               {:set state.scene.nodes :to "{{map(state.scene.nodes, merge(it, { visible: true }))}}"}]}
            :selectAll {:title "Select All"
                        :category "Select"
                        :do [{:set state.view.selection :to "{{computed.pickable}}"}]}
@@ -588,31 +540,10 @@
                         :category "Object"
                         :enablement "{{length(state.view.selection) > 0}}"
                         :do [{:run clearTransform :with {:args {:key scale :value 1 :title "Clear Scale"}}}]}
-           :clearTransform [{:dismiss true}
-                            {:if "{{state.modal != null || length(state.view.selection) == 0}}" :then [{:stop true}]}
-                            {:run snapshot}
-                            {:forEach "{{filter(state.scene.nodes, contains(state.view.selection, it.id))}}"
-                             :as n
-                             :do [{:set "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), n.id)][args.key]"
-                                   :to "{{map(n[args.key], n['lock_' + args.key][index] == true ? it : args.value)}}"}]}
-                            {:set state.last :to "{{args.title}}"}
-                            {:run autoKey}]
            :snapMenu {:title "Snap"
                       :category "Object"
                       :do [{:if "{{state.modal == null}}"
                             :then [{:run openPopup :with {:args {:menu snap :x nil :y nil}}}]}]}
-           :selectionToCursor {:title "Selection to Cursor"
-                               :category "Object"
-                               :enablement "{{length(state.view.selection) > 0}}"
-                               :do [{:dismiss true}
-                                    {:if "{{length(state.view.selection) == 0}}" :then [{:stop true}]}
-                                    {:run snapshot}
-                                    {:forEach "{{filter(state.scene.nodes, contains(state.view.selection, it.id))}}"
-                                     :as n
-                                     :do [{:set "state.scene.nodes[indexOf(map(state.scene.nodes, it.id), n.id)].translation"
-                                           :to "{{map(state.cursor, n.lock_translation[index] == true ? n.translation[index] : it)}}"}]}
-                                    {:set state.last :to "Selection to Cursor"}
-                                    {:run autoKey}]}
            :cursorToSelected {:title "Cursor to Selected"
                               :category "Object"
                               :enablement "{{length(state.view.selection) > 0}}"

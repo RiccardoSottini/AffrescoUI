@@ -1,4 +1,4 @@
-{:note "Haven's logbook and history pages, included by index.screen.json: the logbook lists today's and yesterday's events with a search; history draws a day of on and off states per device and the living room's temperature. The events are invented."
+{:note "Haven's logbook and history pages, included by index.screen.lisp: the logbook lists today's and yesterday's events with a search; history draws a day of on and off states per device and the living room's temperature. The events are invented."
  :state {:logQuery ""}
  :stateTypes {:logQuery (string :maxLength 64)}
  :computed {:logShown "{{filter(data.logbook, state.logQuery == '' || contains(lower(it.rule != '' ? t('rule.' + it.rule) : it.name), lower(trim(state.logQuery))))}}"}

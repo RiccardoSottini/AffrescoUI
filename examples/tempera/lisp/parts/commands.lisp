@@ -36,8 +36,6 @@
            :goToHistory [{:image history :with "{{args}}"}]
            :newDocument [{:image newImage :with "{{args}}"}]
            :save [{:image save :with "{{args}}"}]
-           :setGradient [{:set state.gradientEdit :to "{{args}}"}
-                         {:run setOptions :with {:args {:gradient "{{args}}"}}}]
            :perform [{:note "Runs an action with arguments, for the scenarios: event.run and event.args."}
                      {:run "{{event.run}}" :with {:args "{{event.args}}"}}]
            :undo {:title "Undo" :category "Edit" :icon undo-2 :enablement "{{state.doc.canUndo}}" :do [{:image undo}]}
@@ -46,16 +44,6 @@
                       :category "File"
                       :icon folder-open
                       :do [{:image open :with {:projectExtension tempera}}]}
-           :closeDocument {:title "Close"
-                           :category "File"
-                           :icon x
-                           :do [{:if "{{state.doc.canUndo}}"
-                                 :then [{:set state.closeAsk :to true}]
-                                 :else [{:run discardDocument}]}]}
-           :discardDocument [{:note "Tempera always shows a document: closing one leaves a blank one in its place."}
-                             {:image newImage :with {:width "{{state.doc.width}}" :height "{{state.doc.height}}"}}
-                             {:set state.docName :to "Untitled"}
-                             {:set state.closeAsk :to false}]
            :revert {:title "Revert" :category "File" :icon rotate-ccw :do [{:image revert}]}
            :saveProject {:title "Save..."
                          :category "File"
@@ -75,8 +63,6 @@
                         :do [{:run save :with {:args {:format jpeg}}}]}
            :showNewDialog {:title "New..." :category "File" :icon file-plus :do [{:set state.newDoc.open :to true}]}
            :setFillContents [{:set state.fill.contents :to "{{args.id}}"}]
-           :applyFill [{:run fillSelection
-                        :with {:args {:color "{{find(computed.fillContents, it.id == state.fill.contents).color ?? state.doc.foreground}}"}}}]
            :newPreset [{:set state.newDoc.width :to "{{args.width}}"} {:set state.newDoc.height :to "{{args.height}}"}]
            :levelsLayer {:title "Levels..."
                          :category "Image"
@@ -103,11 +89,6 @@
                              :icon blend
                              :do [{:run addLayer :with {:args {:kind hue-saturation :name "Black & White"}}}
                                   {:run setAdjustment :with {:args {:saturation -1}}}]}
-           :createDocument [{:run newDocument
-                             :with {:args {:width "{{clamp(number(state.newDoc.width) ?? 1, 1, 20000)}}"
-                                           :height "{{clamp(number(state.newDoc.height) ?? 1, 1, 20000)}}"
-                                           :format "{{state.newDoc.format}}"}}}
-                            {:set state.newDoc.open :to false}]
            :newSample {:title "New Sample" :category "File" :icon sparkles :do [{:run drawSample}]}
            :drawSample [{:note "The sample, 1200 × 800: a dawn sky, a sun and hills, each a layer; then no history, and the brush."}
                         {:image newImage :with {:width 1200 :height 800}}
@@ -165,17 +146,6 @@
                                                  :y "{{state.doc.bounds[1]}}"
                                                  :width "{{state.doc.bounds[2]}}"
                                                  :height "{{state.doc.bounds[3]}}"}}}]}
-           :cropToRatio {:title "Crop to a Ratio"
-                         :category "Image"
-                         :icon crop
-                         :enablement "{{state.doc.width > 0}}"
-                         :do [{:set state.cropSize
-                               :to "{{state.doc.width * args.height > state.doc.height * args.width ? [max(1, floor(state.doc.height * args.width / args.height)), state.doc.height] : [state.doc.width, max(1, floor(state.doc.width * args.height / args.width))]}}"}
-                              {:run crop
-                               :with {:args {:x "{{floor((state.doc.width - state.cropSize[0]) / 2)}}"
-                                             :y "{{floor((state.doc.height - state.cropSize[1]) / 2)}}"
-                                             :width "{{state.cropSize[0]}}"
-                                             :height "{{state.cropSize[1]}}"}}}]}
            :toggleProof {:title "Proof Colours"
                          :category "Image"
                          :icon eye
@@ -185,22 +155,6 @@
                       :category "Layer"
                       :icon folder
                       :do [{:run addLayer :with {:args {:kind group :name "{{computed.nextGroupName}}"}}}]}
-           :groupLayers {:title "Group Layers"
-                         :category "Layer"
-                         :icon folder-input
-                         :enablement "{{!empty(state.doc.active)}}"
-                         :do [{:set state.grouping :to "{{state.doc.active}}"}
-                              {:run addLayer :with {:args {:kind group :name "{{computed.nextGroupName}}"}}}
-                              {:run moveLayer :with {:args {:id "{{state.grouping}}" :into "{{state.doc.active}}"}}}]}
-           :ungroupLayers {:title "Ungroup Layers"
-                           :category "Layer"
-                           :icon folder-output
-                           :enablement "{{computed.activeLayer.kind == 'group'}}"
-                           :do [{:set state.grouping :to "{{state.doc.active}}"}
-                                {:forEach "{{reverse(computed.groupChildren)}}"
-                                 :as child
-                                 :do [{:run moveLayer :with {:args {:id "{{child.id}}" :onto "{{state.grouping}}"}}}]}
-                                {:run deleteLayer :with {:args {:id "{{state.grouping}}"}}}]}
            :duplicateActive {:title "Duplicate Layer"
                              :category "Layer"
                              :icon copy
@@ -271,19 +225,6 @@
                            :icon scaling
                            :enablement "{{computed.activeLayer.kind == 'pixel'}}"
                            :do [{:set state.transform :to {:open true :x 0 :y 0 :scaleX 100 :scaleY 100 :angle 0}}]}
-           :applyTransform [{:run transformActive
-                             :with {:args {:x "{{number(state.transform.x) ?? 0}}"
-                                           :y "{{number(state.transform.y) ?? 0}}"
-                                           :scaleX "{{number(state.transform.scaleX) ?? 100}}"
-                                           :scaleY "{{number(state.transform.scaleY) ?? 100}}"
-                                           :angle "{{number(state.transform.angle) ?? 0}}"}}}
-                            {:set state.transform.open :to false}]
-           :transformBox [{:note "The Properties panel's W, H, X and Y: the active layer moves and scales as the box (the selection, or the image) would."}
-                          {:run transformActive
-                           :with {:args {:x "{{(args.x ?? computed.box[0]) - computed.box[0]}}"
-                                         :y "{{(args.y ?? computed.box[1]) - computed.box[1]}}"
-                                         :scaleX "{{(args.w ?? computed.box[2]) * 100 / computed.box[2]}}"
-                                         :scaleY "{{(args.h ?? computed.box[3]) * 100 / computed.box[3]}}"}}}]
            :alignActive {:title "Align"
                          :category "Layer"
                          :icon align-start-vertical
@@ -388,10 +329,6 @@
                         :icon pencil
                         :enablement "{{computed.activeLayer != null}}"
                         :do [{:set state.rename :to {:open true :name "{{computed.activeLayer.name}}"}}]}
-           :applyRename [{:if "{{!empty(trim(state.rename.name ?? ''))}}"
-                          :then [{:image setLayer
-                                  :with {:id "{{state.doc.active}}" :name "{{trim(state.rename.name)}}"}}]}
-                         {:set state.rename.open :to false}]
            :selectAll {:title "All" :category "Select" :icon square :do [{:run select :with {:args {:kind all}}}]}
            :deselect {:title "Deselect"
                       :category "Select"
@@ -436,14 +373,6 @@
                          :category "View"
                          :icon eraser
                          :do [{:set state.guides :to {:vertical [] :horizontal []}}]}
-           :setAdjustment [{:run setLayer :with {:args {:adjustment "{{merge(computed.adjustment, args)}}"}}}]
-           :setBalance [{:run setLayer
-                         :with {:args {:adjustment "{{merge(computed.adjustment, {balance: map(range(3), it == args.channel ? args.value : computed.adjustment.balance[it])})}}"}}}]
-           :setFilterValue [{:set "{{'state.filter.' + keys(args)[0]}}" :to "{{values(args)[0]}}"}]
-           :toggleLayerKind [{:set state.layerFilter
-                              :to "{{ {on: true, kinds: contains(state.layerFilter.kinds, args.kind) ? filter(state.layerFilter.kinds, it != args.kind) : concat(state.layerFilter.kinds, [args.kind])} }}"}]
-           :foldGroup [{:set state.foldedGroups
-                        :to "{{contains(state.foldedGroups, args.id) ? filter(state.foldedGroups, it != args.id) : concat(state.foldedGroups, [args.id])}}"}]
            :toggleLayerFilter [{:toggle state.layerFilter.on}]
            :setStatusInfo [{:set state.statusInfo :to "{{args.id}}"}]
            :setScreenMode [{:set state.screenMode :to "{{args.mode}}"}]
@@ -457,8 +386,6 @@
                          :icon moon
                          :do [{:set state.theme :to "{{state.theme == 'dark' ? 'light' : 'dark'}}"}]}
            :showPanel [{:set "state.panels[args.slot]" :to "{{args.id}}"}]
-           :showPopout [{:set state.popout
-                         :to "{{ {history: args.id == 'history' && !state.popout.history, navigator: args.id == 'navigator' && !state.popout.navigator} }}"}]
            :showSearch {:title "Search" :category "Help" :icon search :do [{:set state.quickPick.open :to true}]}
            :resetWorkspace {:title "Reset the Workspace"
                             :category "Window"

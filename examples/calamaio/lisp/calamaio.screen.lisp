@@ -11,7 +11,7 @@
  :persist [state.settings]
  :onLoad [{:set state.assistant.lift :to 44} {:if "{{settings['inhibit-startup-screen']}}" :then [{:run splash-close}]}]
  :permissions {:allow [studio]
-               :ask ["agent(/actions)" "agent(/keys)" "agent(/menus)"]
+               :ask ["agent(/actions)" "agent(/keys)" "agent(/menus)" "agent(/program)"]
                :deny ["*(#echoArea)"]
                :reviewers [studio]
                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}

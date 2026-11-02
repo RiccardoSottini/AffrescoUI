@@ -13,6 +13,11 @@
          {:name "an agent's new behaviour is always asked"
           :revision {:author "agent/claude-code" :add {"/actions/policyExample" [{:set state.theme :to dark}]}}
           :expect ask}
+         {:name "an agent's new function is asked by its rule, in every mode, as an action is"
+          :revision {:author "agent/claude-code"
+                     :add {"/program/quaderno.lisp/policyExample" "(defn policyExample \"An agent's new function.\" [] (set \"state.theme\" \"dark\"))"}}
+          :expect ask
+          :reason "agent(/actions)"}
          {:name "twenty new panels are within the agent's budget"
           :revision {:author "agent/claude-code"
                      :patch [{:op add :path "#panel-root/children/-" :value {:id policyPanel0}}

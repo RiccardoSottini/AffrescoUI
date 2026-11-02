@@ -1,4 +1,4 @@
-{:note "Flow's team pages, included by index.screen.json: the inbox of notifications, the cycles with their burn-up, and the projects. The sidebar and the G chords switch between them and the issues."
+{:note "Flow's team pages, included by index.screen.lisp: the inbox of notifications, the cycles with their burn-up, and the projects. The sidebar and the G chords switch between them and the issues."
  :state {:page issues
          :inboxAt 0
          :cycle {:number 12
@@ -19,69 +19,6 @@
             :cycleScope "{{sum(computed.allCards, it.points ?? 0)}}"
             :cycleDone "{{sum(filter(computed.allCards, it.c == computed.lastColumn), it.points ?? 0)}}"
             :cycleTop "{{max(concat(state.cycle.scopeHistory, [computed.cycleScope])) + 4}}"}
- :actions {:addProject {:title "New project"
-                        :category "Go"
-                        :icon plus
-                        :do [{:insert projects
-                              :value {:name "{{t('projects.untitled', { n: length(data.projects) + 1 })}}"
-                                      :icon box
-                                      :color "#0d9488"
-                                      :health onTrack
-                                      :lead "{{state.me}}"
-                                      :target "{{state.cycle.end}}"
-                                      :progress 0
-                                      :issues 0}}
-                             {:set state.projectScope :to all}]}
-           :showPage [{:note "with: page, 'issues', 'inbox', 'cycles' or 'projects'"}
-                      {:set state.page :to "{{page}}"}
-                      {:set state.issueOpen :to false}]
-           :goToInbox {:title "Go to inbox" :category "Go" :icon inbox :do [{:run showPage :with {:page inbox}}]}
-           :goToIssues {:title "Go to issues" :category "Go" :icon copy :do [{:run showPage :with {:page issues}}]}
-           :goToCycles {:title "Go to sprints" :category "Go" :icon timer :do [{:run showPage :with {:page cycles}}]}
-           :goToProjects {:title "Go to projects" :category "Go" :icon box :do [{:run showPage :with {:page projects}}]}
-           :openProject [{:note "with: at, the project's index: its issues, behind a Project filter whose chip removes it"}
-                         {:set state.fProject :to "{{at}}"}
-                         {:run showPage :with {:page issues}}]
-           :pickNotification [{:note "with: at, the notification's place among the shown ones; marks it read"}
-                              {:set state.inboxAt :to "{{at}}"}
-                              {:update inbox :id "{{computed.inboxShown[at].id}}" :fields {:read true}}]
-           :nextNotification {:title "Next notification"
-                              :category "Inbox"
-                              :icon arrow-down
-                              :enablement "{{state.page == 'inbox' && state.inboxAt + 1 < length(computed.inboxShown)}}"
-                              :do [{:run pickNotification :with {:at "{{state.inboxAt + 1}}"}}]}
-           :previousNotification {:title "Previous notification"
-                                  :category "Inbox"
-                                  :icon arrow-up
-                                  :enablement "{{state.page == 'inbox' && state.inboxAt > 0}}"
-                                  :do [{:run pickNotification :with {:at "{{state.inboxAt - 1}}"}}]}
-           :toggleRead {:title "Mark read or unread"
-                        :category "Inbox"
-                        :icon mail-check
-                        :enablement "{{computed.notification != null}}"
-                        :do [{:update inbox
-                              :id "{{computed.notification.id}}"
-                              :fields {:read "{{!computed.notification.read}}"}}]}
-           :markAllRead {:title "Mark all notifications read"
-                         :category "Inbox"
-                         :icon check-check
-                         :do [{:update inbox :where {:read false} :fields {:read true}}]}
-           :snoozeNotification {:title "Snooze notification"
-                                :category "Inbox"
-                                :icon alarm-clock
-                                :enablement "{{computed.notification != null}}"
-                                :do [{:update inbox :id "{{computed.notification.id}}" :fields {:snoozed true}}
-                                     {:set state.inboxAt
-                                      :to "{{max(min(state.inboxAt, length(computed.inboxShown) - 2), 0)}}"}
-                                     {:run notify :with {:message "{{t('inbox.snoozed')}}"}}]}
-           :openNotification {:title "Open the notification's issue"
-                              :category "Inbox"
-                              :icon maximize-2
-                              :enablement "{{computed.notificationCard != null}}"
-                              :do [{:run selectCard
-                                    :with {:c "{{computed.notificationCard.c}}" :i "{{computed.notificationCard.at}}"}}
-                                   {:set state.page :to issues}
-                                   {:set state.issueOpen :to true}]}}
  :keys {"g i" {:when "{{!context.textInputFocus}}" :do goToInbox}
         "g a" {:when "{{!context.textInputFocus}}" :do goToIssues}
         "g v" {:when "{{!context.textInputFocus}}" :do goToCycles}

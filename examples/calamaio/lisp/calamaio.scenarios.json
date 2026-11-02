@@ -1886,6 +1886,306 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "eval-yanked-asks",
+			"note": "C-x C-e on a definition yanked back asks first, in a question the window draws itself; Run as Me runs it as the person's, once, and the command it defines works.",
+			"steps": [
+				{
+					"note": "A file someone shared, which the person never typed: its text is copied and pasted into *scratch*"
+				},
+				{
+					"revision": {
+						"message": "A shared file",
+						"add": {
+							"/state/files/-": {
+								"path": "~/shared.lisp",
+								"text": "(defcommand say-pasted \"Says so.\" :title \"Say Pasted\" :category \"Mine\" [] (message \"pasted, and run as you\"))"
+							}
+						}
+					}
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "shared.lisp"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "h"
+				},
+				{
+					"key": "alt+w"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "*scratch*"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+shift+period"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+y"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+e"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "button",
+							"name": "Run as Me"
+						},
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "alertdialog",
+							"name": "Run this as you?"
+						},
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"wait": 600,
+					"note": "A yes counts once the question has been shown half a second"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Run as Me"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "button",
+							"name": "Run as Me"
+						},
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "say-pasted"
+					}
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "say-pasted"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "pasted, and run as you"
+					}
+				}
+			]
+		},
+		{
+			"name": "eval-yanked-declined",
+			"note": "The same question, answered no: nothing runs, nothing is defined, and the screen had none of the keys meanwhile.",
+			"steps": [
+				{
+					"note": "A file someone shared, which the person never typed: its text is copied and pasted into *scratch*"
+				},
+				{
+					"revision": {
+						"message": "A shared file",
+						"add": {
+							"/state/files/-": {
+								"path": "~/shared.lisp",
+								"text": "(defcommand say-pasted \"Says so.\" :title \"Say Pasted\" :category \"Mine\" [] (message \"pasted, and run as you\"))"
+							}
+						}
+					}
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "shared.lisp"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "h"
+				},
+				{
+					"key": "alt+w"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "*scratch*"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "alt+shift+period"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+y"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+e"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "button",
+							"name": "Run as Me"
+						},
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "alertdialog",
+							"name": "Run this as you?"
+						},
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"type": "x"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Don't Run"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "button",
+							"name": "Don't Run"
+						},
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Error: you said no, so nothing ran"
+					}
+				},
+				{
+					"expect": {
+						"state": "bufs.b1.text",
+						"is": ";; This buffer is for notes you won't keep and for Lisp you want to try out.\n;; To visit a file, type C-x C-f; its text gets a buffer of its own.\n\n(defcommand say-pasted \"Says so.\" :title \"Say Pasted\" :category \"Mine\" [] (message \"pasted, and run as you\"))"
+					}
+				}
+			]
 		}
 	]
 }

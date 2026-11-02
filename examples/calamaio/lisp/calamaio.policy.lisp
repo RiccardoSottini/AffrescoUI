@@ -14,6 +14,11 @@
           :revision {:author studio :set {"#echoArea/height" 40}}
           :expect deny
           :reason "#echoArea"}
+         {:name "an agent's new function is asked by its rule, in every mode"
+          :revision {:author "agent/claude-code"
+                     :add {"/program/killring.lisp/policyExample" "(defn policyExample \"An agent's new function.\" [] (set \"state.theme\" \"dark\"))"}}
+          :expect ask
+          :reason "agent(/actions)"}
          {:name "no one changes the permissions"
           :revision {:author studio :set {"/permissions/allow" ["*"]}}
           :expect deny

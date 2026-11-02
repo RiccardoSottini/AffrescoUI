@@ -1,0 +1,52 @@
+{
+	"id": "lisp-streak-command-key",
+	"level": "feature",
+	"screen": "examples/streak/lisp/index.screen.lisp",
+	"request": "Add to Streak a command sortByName, titled \"Sort by name\", that sorts the habit list by name (state.sort to \"name\"), on the shortcut Cmd+Shift+O (mod+shift+o). Write it in Lisp, as a defcommand and a defkey in the program's habits.lisp.",
+	"scenarios": [
+		{
+			"name": "key",
+			"steps": [
+				{
+					"expect": {
+						"state": "sort",
+						"is": "manual"
+					}
+				},
+				{
+					"key": "mod+shift+o"
+				},
+				{
+					"expect": {
+						"state": "sort",
+						"is": "name"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-hb-name",
+						"text": "Call the family",
+						"nth": 0
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane"
+	],
+	"present": [
+		"/program/habits.lisp/sortByName"
+	],
+	"reference": [
+		{
+			"message": "Sort by name",
+			"add": {
+				"/program/habits.lisp/sortByName": "(defcommand sortByName \"Sorts the habits by name.\" :title \"Sort by name\" :category \"View\"\n  [] (set \"state.sort\" \"name\"))",
+				"/program/habits.lisp/defkey mod+shift+o": "(defkey \"mod+shift+o\" sortByName)"
+			}
+		}
+	]
+}

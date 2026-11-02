@@ -1,7 +1,7 @@
 {
 	"id": "smart-home-lights-off",
 	"level": "feature",
-	"screen": "examples/haven/json/index.screen.json",
+	"screen": "examples/haven/lisp/index.screen.lisp",
 	"request": "Add an \"All off\" button with the id allLightsOff to the Lights card that switches off every light of the room shown.",
 	"scenarios": [
 		{
@@ -47,7 +47,7 @@
 		{
 			"message": "All lights off",
 			"set": {
-				"/actions/allLightsOff": {
+				"/actions/roomLightsOff": {
 					"title": "Switch off the room's lights",
 					"category": "Lights",
 					"do": [
@@ -69,7 +69,7 @@
 						"right": 20,
 						"top": 20
 					},
-					"onClick": "allLightsOff"
+					"onClick": "roomLightsOff"
 				}
 			}
 		}

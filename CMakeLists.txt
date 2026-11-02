@@ -243,10 +243,10 @@ if(AFFRESCOUI_BUILD_TESTS)
 		add_test(NAME perf_tokens COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/perf/test_tokens.py)
 		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
 		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/json/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/tempera/json/sorter)
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/lisp/e2e_test.py ${CMAKE_BINARY_DIR})
+		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/tempera/lisp/sorter)
 		add_test(NAME tempera_sorter_e2e COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/tempera/json/sorter/e2e_test.py ${CMAKE_BINARY_DIR})
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/tempera/lisp/sorter/e2e_test.py ${CMAKE_BINARY_DIR})
 		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
 		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
@@ -255,7 +255,7 @@ if(AFFRESCOUI_BUILD_TESTS)
 			${CMAKE_CURRENT_SOURCE_DIR}/tests/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
 		# Orrery end to end, JSON only on affrescoui_launcher: MCP server, a revision, an approval, a picture (examples/orrery)
 		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/json/e2e_test.py ${CMAKE_BINARY_DIR})
+			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/lisp/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()
 endif()
 

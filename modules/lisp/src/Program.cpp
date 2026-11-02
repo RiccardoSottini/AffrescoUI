@@ -117,31 +117,59 @@ void checkExtensionFunction(const Machine& machine, const Definition& definition
 }
 
 /// @brief Adds the names a piece of compiled code uses, with the functions inside it.
+/// @brief What a definition's code uses by name, and how.
+struct Uses {
+	std::set<std::string> names;                         ///< Every name.
+	std::map<std::string, std::set<std::string>> called; ///< Those called with a text written out first: the texts.
+	std::set<std::string> otherwise;                     ///< Those used any other way.
+};
+
+/// @brief Adds what a piece of code uses by name, and what the functions inside it use.
 /// @param code The code, or nullptr.
-/// @param names Gets them.
-void addNamesUsed(const Code* code, std::set<std::string>& names) {
+/// @param uses Gets them.
+void addNamesUsed(const Code* code, Uses& uses) {
 	if(!code) return;
 	std::vector<const Code*> waiting = {code};
 	while(!waiting.empty()) {
 		const Code* next = waiting.back();
 		waiting.pop_back();
-		for(const Global* global : next->globals) names.insert(global->name);
+		std::vector<bool> named(next->globals.size(), false);
+		for(const NamedCall& call : next->named) {
+			named[call.global] = true;
+			uses.called[next->globals[call.global]->name].insert(call.text);
+		}
+		for(std::size_t at = 0; at < next->globals.size(); ++at) {
+			uses.names.insert(next->globals[at]->name);
+			if(!named[at]) uses.otherwise.insert(next->globals[at]->name);
+		}
 		waiting.insert(waiting.end(), next->functions.begin(), next->functions.end());
 	}
 }
 
 /// @brief What a definition's code uses by name.
 /// @param definition The definition.
-/// @return The names, sorted.
-std::vector<std::string> namesUsedBy(const Definition& definition) {
-	std::set<std::string> names;
-	addNamesUsed(definition.data, names);
+/// @return The names, and how.
+Uses namesUsedBy(const Definition& definition) {
+	Uses uses;
+	addNamesUsed(definition.data, uses);
 	if(const Global* global = definition.global) {
-		addNamesUsed(global->thunk, names);
+		addNamesUsed(global->thunk, uses);
 		if(global->value.kind() == Kind::Function)
-			addNamesUsed(static_cast<const ClosureObject*>(global->value.pointer())->code, names);
+			addNamesUsed(static_cast<const ClosureObject*>(global->value.pointer())->code, uses);
 	}
-	return {names.begin(), names.end()};
+	return uses;
+}
+
+/// @brief The names a definition calls with a text written out first, those texts, and which it also uses otherwise.
+/// @param uses What it uses.
+/// @return Them.
+CallsByName namedCallsOf(const Uses& uses) {
+	CallsByName named;
+	for(const auto& [name, texts] : uses.called) {
+		named.texts.emplace(name, std::vector<std::string>(texts.begin(), texts.end()));
+		if(uses.otherwise.contains(name)) named.otherwise.insert(name);
+	}
+	return named;
 }
 
 /// @brief A setting: its `type`, its `default`, then its other options, and its docstring as the description.
@@ -463,6 +491,7 @@ json Program::build(const Limits& limits) {
 	extensions_.clear();
 	undefined_.clear();
 	used_.clear();
+	named_.clear();
 	return leavingAsLispError(machine, [&] {
 		machine.workOutDefinitions(); // a value is worked out here, purely: nothing later can change one
 		BuiltParts parts;
@@ -473,7 +502,10 @@ json Program::build(const Limits& limits) {
 				checkExtensionFunction(machine, *definition);
 			}
 			buildDefinition(machine, *definition, parts);
-			used_[definition->name] = namesUsedBy(*definition);
+			const Uses uses = namesUsedBy(*definition);
+			used_[definition->name] = {uses.names.begin(), uses.names.end()};
+			if(CallsByName named = namedCallsOf(uses); !named.texts.empty())
+				named_[definition->name] = std::move(named);
 		}
 		for(const GlobalUse& use : machine.uses())
 			if(use.global->state == Global::State::Undefined)

@@ -464,6 +464,19 @@ the text stays, and history holds a plain `replace` of the entry, so RFC 6902 ho
 `/program/app.lisp` can change a function's body alone, but a change of what is built is reviewed unless that is allowed too.
 Each definition is one area, so "Always allow" remembers that one definition.
 
+**A rule on `/actions` covers the code an action runs.** A command's body, and the functions it calls, aren't in what it builds, so
+an `ask` or a `deny` rule on `/actions`, or on a path inside it (`/actions/save`, `/*/save`), and an owner of one in `review`, also cover a
+change of any definition that can run when an action would: a function, a command, a key, a `def` or a `defcustom`, a macro, a hook or
+advice, added, changed or taken away. Only a screen's definition (`defscreen`) that no other definition uses by name is left to what it
+builds: a function can't be in a tree, so all a screen does is there, judged as a JSON node is. A program that can't be built counts
+every change. The code isn't told apart by action, so a rule on `/actions/save` covers all of it: that is the simple sound side, where
+following what one action reaches through names, keys and hooks would be more to get wrong. So a JSON app's `"ask": ["agent(/actions)"]`
+goes on asking for an agent's new function after the app becomes a program, in every mode; the person's own evaluation, never
+reviewed, meets `deny` rules only, as their own change of an action in JSON does. **An `allow` rule on `/actions` doesn't allow code:**
+widening an allow by what an action may run would let through definitions its author never named, so whoever may change the code is
+allowed `/program` (or a file or definition of it) by name. The examples written as programs name `/program` in their `ask` rules too,
+which says the same. Data rules (`never`, `write`) and leases on `/actions` are judged on the tree alone.
+
 **Data rules.** `read`, `write` and `never` work on `/program/...` and on the built tree, by effect. What a limited reader gets
 was a choice, made to deny rather than leak:
 
@@ -481,7 +494,7 @@ definition that does more than what it builds (`defn`, `def`, `defmacro`, `defco
 **The changes, file by file.** The file view lists each changed `.lisp` file with its definitions' texts, comments included, and
 a row marked `"built": true` with the trees they build, side by side. Diffs and `proposalDiff` are the source's patch.
 
-**A history goes on when only the order of a file's keys changed:** the same content, in another order, is the same screen. A program replacing a JSON app (Streak and Calamaio, in this release) is another screen: its old history is kept aside, as for any changed file.
+**A history goes on when only the order of a file's keys changed:** the same content, in another order, is the same screen. A program replacing a JSON app (Streak, Calamaio, Flow, Haven, Tempo, Arcadia, Quaderno, Orrery, Tempera, Sinopia and Modello, in this release) is another screen: its old history is kept aside, as for any changed file.
 
 **Blame** answers per definition. A node a program builds has no commit of its own: blaming it says to blame its definition.
 
@@ -495,13 +508,23 @@ it, and `"file"` for what the file on disk had. Three things can't move a text t
 
 **Control steps in functions.** A revision can't add a way to run a control step, and a function counts as what it reaches: nothing runs
 but what a name reaches, and the language has no way to find a global from a value, so the build can say exactly which definitions reach a
-control or a review step, or `run`, which takes a computed name. So a handler, a key, a timer or `onLoad` a revision adds can't name one,
-as with an action that holds such a step. That is the first line. The second is at run time, however it got there: code by anyone but the
+control or a review step. A `run` of a name written out (`(run "save")`) reaches what the run step finds by that name: the document's action,
+worked out back and forth with the actions until neither grows, with any advice on it; else the program's function; else the application's
+own action, which may do anything. A `run` of a computed name reaches anything, and so does a definition that uses `run` any other way (as a
+value, through `apply`). A step's handler in a function (`:onDone`, `:do`...) takes a function of the program only, never a name or steps
+as a value, so `run` is the only way code names what it runs. So a handler, a key, a timer or `onLoad` a revision adds can't name one, as
+with an action that holds such a step.
+
+**Uses of services in functions are judged as JSON's.** `invoke`, `request` and `subscribe` naming their method or operation written out
+(`(invoke "files.read" :with {...})`), and `image` short of a file dialog, are judged by what they use, as in a document: a revision that
+adds one, or changes the definition that holds one or a macro, is checked against the declared services and connections, refused for a
+method revisions may not use, and reviewed by the person when it writes or runs; then any author's code may run it, as a button may run an
+action holding one. A function using one doesn't count as reaching a control step. Computed, the same steps stay control steps. That is the first line. The second is at run time, however it got there: code by anyone but the
 person or the app's file may not run a control step at all ([SECURITY.md](SECURITY.md), "The Lisp language"). So an agent's accepted function may
 do what a revision may add to a handler, and no more, as a proposal can't add a control step to JSON either.
 
 **The person's own input.** Evaluating a form **they typed** in a running app is a revision by the author `user` (`VersionControl::commitOwnInput()`, reached only from the step
-`evaluate`, or from `undo`, `revert` or `restore`, each on the person's own press; what they didn't type is a proposal, below, and SCREEN_FORMAT.md, "What the person typed"). It only touches `/program/`, and it lands marked `ownInput`, which the commit's hash covers. It is judged as any revision
+`evaluate`, or from `undo`, `revert` or `restore`, each on the person's own press; what they didn't type is a proposal, below, and SCREEN_FORMAT.md, "What the person typed", unless they say yes to it in the question the host draws, `evaluate`'s `confirm`, which lands the same way). It only touches `/program/`, and it lands marked `ownInput`, which the commit's hash covers. It is judged as any revision
 but for one rule: **what reaches a control step may change**, as that is what only the person may do. Everything else holds: what no revision may change (`permissions`, `channels`,
 `persist`, `services`...), deny rules, what it builds, and the limits. No peer has a way to it: a revision that says `"author": "user"` is scanned as any other, and a channel can't name its author so. Text that a commit on `main` first
 wrote stays that author's even if the person evaluates exactly it. An agent's revert of the person's change stays refused when it would change what reaches a control step.

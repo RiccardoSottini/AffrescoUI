@@ -8,26 +8,6 @@
          :uninstall {:open false}}
  :computed {:manageGame "{{find(data.games, it.id == state.manage)}}"
             :gameMenuItems "{{computed.manageGame == null ? [] : [ { title: t(computed.manageGame.status == 'ready' ? 'menu.game.play' : computed.manageGame.status == 'running' ? 'menu.game.stop' : computed.manageGame.status == 'update' ? 'menu.game.update' : computed.manageGame.status == 'downloading' ? 'menu.game.downloading' : 'menu.game.install'), enabled: computed.manageGame.status != 'downloading', run: 'primary', with: { game: computed.manageGame } }, { separator: true }, { title: t(computed.manageGame.favourite ? 'menu.game.unfavourite' : 'menu.game.favourite'), run: 'toggleFavourite', with: { id: computed.manageGame.id } }, { title: t('menu.game.page'), run: 'openGame', with: { id: computed.manageGame.id } }, { title: t('menu.game.properties'), run: 'openProperties', with: { id: computed.manageGame.id, tab: 'general' } }, { separator: true }, { title: t('menu.game.uninstall'), enabled: computed.manageGame.installed && computed.manageGame.status != 'running', run: 'askUninstall', with: { id: computed.manageGame.id } } ]}}"}
- :actions {:openGameMenu {:title "A game's menu"
-                          :category "Game"
-                          :description "Opens the menu of the game with this id at the pointer (or the focused item)."
-                          :do [{:set state.manage :to "{{id}}"}
-                               {:set state.gameMenu :to {:open true :x "{{event.x}}" :y "{{event.y}}"}}]}
-           :openProperties {:title "Properties"
-                            :category "Game"
-                            :icon settings
-                            :do [{:set state.manage :to "{{id}}"}
-                                 {:set state.properties :to {:open true :tab "{{tab ?? 'general'}}" :verify ""}}]}
-           :askUninstall {:title "Uninstall"
-                          :category "Game"
-                          :icon trash-2
-                          :do [{:set state.manage :to "{{id}}"} {:set state.uninstall.open :to true}]}
-           :uninstall {:title "Uninstall"
-                       :category "Game"
-                       :description "Removes the game's files; it stays in the library, ready to install again."
-                       :do [{:if "{{find(data.games, it.id == id).status != 'running'}}"
-                             :then [{:update games :id "{{id}}" :fields {:installed false :status none}}
-                                    {:set state.uninstall.open :to false}]}]}}
  :components {:gameMenu {:note "A game's menu (right click, Shift+F10 or the gear): play or install, favourite, properties, uninstall."
                          :params {}
                          :node (node#game-menu :use contextMenu

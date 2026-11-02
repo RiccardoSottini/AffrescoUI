@@ -1,7 +1,7 @@
 {:$schema "../../../../schema/affrescoui-screen.schema.json"
  :format affrescoui-screen
  :version 2
- :note "The ribbon's tabs, each a row of groups built from parts/ribbon.json. Commands act on the current slide and its selected objects (parts/edit.json)."
+ :note "The ribbon's tabs, each a row of groups built from parts/ribbon.lisp. Commands act on the current slide and its selected objects (parts/edit.lisp)."
  :components {:tabHome {:params {}
                         :node (row#tab-home :fitContent width :height 92 :gap 4 :color transparent
                                 (node#g-clipboard :use rbGroup :with {:title "Clipboard"}

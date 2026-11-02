@@ -1,7 +1,7 @@
 {:$schema "../../../../schema/affrescoui-screen.schema.json"
  :format affrescoui-screen
  :version 2
- :note "Editing the deck: every change first keeps the deck as it was (commit), so Undo and Redo step through up to 50 of them. Objects are changed on the current slide, the selected ones (the canvas's selection, which holds object ids); new slides take their layout's placeholders, empty, and new ids from deck.next."
+ :note "Editing the deck: every change first keeps the deck as it was (commit, in sinopia.lisp, with Undo and Redo, the slides and the selection's order, alignment, spacing and case), so Undo and Redo step through up to 50 of them. Objects are changed on the current slide, the selected ones (the canvas's selection, which holds object ids); new slides take their layout's placeholders, empty, and new ids from deck.next."
  :state {:undo [] :redo [] :clip [] :editing nil}
  :computed {:slide "{{state.deck.slides[state.current] ?? state.deck.slides[0]}}"
             :objects "{{computed.slide.objects ?? []}}"
@@ -28,46 +28,6 @@
                               {:set state.board.selection :to ["{{id}}"]}
                               {:set state.editing :to "{{id}}"}]}]
            :stopEditing [{:set state.editing :to nil} {:focus "#board"}]
-           :commit [{:push state.undo :value "{{ {deck: state.deck, current: state.current} }}"}
-                    {:if "{{length(state.undo) > 50}}" :then [{:remove state.undo :at 0}]}
-                    {:set state.redo :to []}]
-           :undo [{:if "{{computed.canUndo}}"
-                   :then [{:push state.redo :value "{{ {deck: state.deck, current: state.current} }}"}
-                          {:set state.deck :to "{{state.undo[length(state.undo) - 1].deck}}"}
-                          {:set state.current :to "{{state.undo[length(state.undo) - 1].current}}"}
-                          {:remove state.undo :at "{{length(state.undo) - 1}}"}
-                          {:set state.board.selection :to []}]}]
-           :redo [{:if "{{computed.canRedo}}"
-                   :then [{:push state.undo :value "{{ {deck: state.deck, current: state.current} }}"}
-                          {:set state.deck :to "{{state.redo[length(state.redo) - 1].deck}}"}
-                          {:set state.current :to "{{state.redo[length(state.redo) - 1].current}}"}
-                          {:remove state.redo :at "{{length(state.redo) - 1}}"}
-                          {:set state.board.selection :to []}]}]
-           :pickSlide [{:set state.current :to "{{clamp(index, 0, length(state.deck.slides) - 1)}}"}
-                       {:set state.board.selection :to []}
-                       {:set state.editing :to nil}]
-           :newSlide [{:run commit}
-                      {:set state.deck.slides
-                       :to "{{concat(slice(state.deck.slides, 0, state.current + 1), [{ id: 's' + state.deck.next, layout: layout, notes: '', transition: { kind: 'none', ms: 500 }, animations: [], objects: map(find(computed.layouts, it.id == layout).ph, { id: 'o' + (state.deck.next + 1 + index), kind: 'text', ph: it.ph, text: '' }) }], slice(state.deck.slides, state.current + 1))}}"}
-                      {:increment state.deck.next :by 20}
-                      {:set state.current :to "{{state.current + 1}}"}
-                      {:set state.board.selection :to []}]
-           :duplicateSlide [{:run commit}
-                            {:set state.deck.slides
-                             :to "{{concat(slice(state.deck.slides, 0, state.current + 1), [merge(computed.slide, { id: 's' + state.deck.next, objects: map(computed.objects, merge(it, { id: 'o' + (state.deck.next + 1 + index) })), animations: [] })], slice(state.deck.slides, state.current + 1))}}"}
-                            {:increment state.deck.next :by "{{length(computed.objects) + 2}}"}
-                            {:set state.current :to "{{state.current + 1}}"}
-                            {:set state.board.selection :to []}]
-           :deleteSlide [{:if "{{length(state.deck.slides) > 1}}"
-                          :then [{:run commit}
-                                 {:remove state.deck.slides :at "{{state.current}}"}
-                                 {:set state.current :to "{{min(state.current, length(state.deck.slides) - 1)}}"}
-                                 {:set state.board.selection :to []}]}]
-           :moveSlide [{:if "{{from >= 0 && to >= 0 && from != to && from < length(state.deck.slides) && to < length(state.deck.slides)}}"
-                        :then [{:run commit}
-                               {:set state.deck.slides
-                                :to "{{from < to ? concat(slice(state.deck.slides, 0, from), slice(state.deck.slides, from + 1, to + 1), [state.deck.slides[from]], slice(state.deck.slides, to + 1)) : concat(slice(state.deck.slides, 0, to), [state.deck.slides[from]], slice(state.deck.slides, to, from), slice(state.deck.slides, from + 1))}}"}
-                               {:set state.current :to "{{to}}"}]}]
            :hideSlide [{:run commit}
                        {:set "state.deck.slides[state.current].hidden" :to "{{!(computed.slide.hidden ?? false)}}"}]
            :setLayout [{:run commit}
@@ -99,10 +59,6 @@
                                              :color nil
                                              :highlight nil
                                              :font nil}}}]
-           :changeCase [{:if "{{length(computed.selected) > 0}}"
-                         :then [{:run commit}
-                                {:set "state.deck.slides[state.current].objects"
-                                 :to "{{map(computed.objects, contains(state.board.selection, it.id) ? merge(it, { text: how == 'upper' ? upper(it.text ?? '') : how == 'lower' ? lower(it.text ?? '') : how == 'toggle' ? join(map(split(it.text ?? '', ''), upper(it) == it ? lower(it) : upper(it)), '') : how == 'sentence' ? join(map(split(it.text ?? '', '\n'), upper(join(slice(split(it, ''), 0, indexOf(it, trim(it)) + 1), '')) + lower(join(slice(split(it, ''), indexOf(it, trim(it)) + 1), ''))), '\n') : how == 'words' ? join(map(split(it.text ?? '', '\n'), join(map(split(it, ' '), upper(join(slice(split(it, ''), 0, 1), '')) + lower(join(slice(split(it, ''), 1), ''))), ' ')), '\n') : it.text }) : it)}}"}]}]
            :placeObjects [{:run commit}
                           {:forEach moved
                            :as m
@@ -139,40 +95,6 @@
                           :with {:object "{{computed.shapes[shape].line ? { kind: 'line', shape: shape, x: 380, y: 270, w: 200, h: 0, line: 'accent1', lineWidth: 1 } : { kind: 'shape', shape: shape, x: 405, y: 195, w: 150, h: 150, fill: 'accent1', line: 'accent1.4', lineWidth: 1, text: '' }}}"}}]
            :insertTextBox [{:run insertObject
                             :with {:object {:kind text :x 330 :y 240 :w 300 :h 40 :text "Text" :size 18}}}]
-           :order [{:note "with: how, front, forward, backward or back: the selected objects move in the slide's drawing order, together"}
-                   {:if "{{length(computed.selected) > 0}}"
-                    :then [{:run orderAround
-                            :with {:how "{{how}}"
-                                   :rest "{{filter(computed.objects, !contains(state.board.selection, it.id))}}"
-                                   :next "{{computed.objects[max(computed.selectedAt) + 1].id ?? null}}"
-                                   :previous "{{min(computed.selectedAt) > 0 ? computed.objects[min(computed.selectedAt) - 1].id : null}}"}}]}]
-           :orderAround [{:note "with: how, rest (the objects not selected), next and previous (the ids of the objects just above and below the selection)"}
-                         {:run commit}
-                         {:set "state.deck.slides[state.current].objects"
-                          :to "{{how == 'front' ? concat(rest, computed.selected) : how == 'back' ? concat(computed.selected, rest) : how == 'forward' ? (next == null ? computed.objects : concat(slice(rest, 0, indexOf(map(rest, it.id), next) + 1), computed.selected, slice(rest, indexOf(map(rest, it.id), next) + 1))) : (previous == null ? computed.objects : concat(slice(rest, 0, indexOf(map(rest, it.id), previous)), computed.selected, slice(rest, indexOf(map(rest, it.id), previous))))}}"}]
-           :align [{:note "with: how, left, center, right, top, middle or bottom: one object aligns to the slide, several to the box around them"}
-                   {:if "{{length(computed.boxes) > 0}}"
-                    :then [{:run alignBoxes
-                            :with {:how "{{how}}"
-                                   :boxes "{{computed.boxes}}"
-                                   :ids "{{map(computed.boxes, it.id)}}"
-                                   :b "{{length(computed.boxes) == 1 ? computed.slideBounds : computed.selectionBounds}}"}}]}]
-           :alignBoxes [{:note "with: how, boxes (where the selected objects are), ids (theirs) and b (the bounds they align to); locked objects stay"}
-                        {:run commit}
-                        {:set "state.deck.slides[state.current].objects"
-                         :to "{{map(computed.objects, !contains(ids, it.id) || (it.locked ?? false) ? it : merge(it, how == 'left' ? { x: b.left } : how == 'center' ? { x: round(((b.left + b.right) / 2 - boxes[indexOf(ids, it.id)].w / 2) * 10) / 10 } : how == 'right' ? { x: b.right - boxes[indexOf(ids, it.id)].w } : how == 'top' ? { y: b.top } : how == 'middle' ? { y: round(((b.top + b.bottom) / 2 - boxes[indexOf(ids, it.id)].h / 2) * 10) / 10 } : { y: b.bottom - boxes[indexOf(ids, it.id)].h }))}}"}]
-           :distribute [{:note "with: axis, x or y: equal gaps between the selected objects, from the first to the last (two objects spread across the slide)"}
-                        {:if "{{length(computed.boxes) > 1}}"
-                         :then [{:run distributeBoxes
-                                 :with {:axis "{{axis}}"
-                                        :ids "{{map(sort(computed.boxes, axis), it.id)}}"
-                                        :sizes "{{map(sort(computed.boxes, axis), axis == 'x' ? it.w : it.h)}}"
-                                        :start "{{axis == 'x' ? (length(computed.boxes) == 2 ? 0 : computed.selectionBounds.left) : (length(computed.boxes) == 2 ? 0 : computed.selectionBounds.top)}}"
-                                        :span "{{length(computed.boxes) == 2 ? (axis == 'x' ? 960 : 540) : axis == 'x' ? computed.selectionBounds.right - computed.selectionBounds.left : computed.selectionBounds.bottom - computed.selectionBounds.top}}"}}]}]
-           :distributeBoxes [{:note "with: axis, ids (the selected objects in order along the axis), sizes (theirs along it), start and span (the space they spread over)"}
-                             {:run commit}
-                             {:set "state.deck.slides[state.current].objects"
-                              :to "{{map(computed.objects, !contains(ids, it.id) || (it.locked ?? false) ? it : merge(it, parseJson('{' + json(axis) + ':' + json(round((start + sum(slice(sizes, 0, indexOf(ids, it.id))) + indexOf(ids, it.id) * (span - sum(sizes)) / (length(ids) - 1)) * 10) / 10) + '}')))}}"}]
            :setTheme [{:run commit}
                       {:set state.deck.theme :to "{{theme}}"}
                       {:set state.deck.variant :to 0}

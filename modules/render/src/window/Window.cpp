@@ -3,8 +3,7 @@
 /// WindowInput.cpp. Nothing here calls the windowing system or OpenGL: the OS window is a platform::NativeWindow and
 /// drawing a detail::Renderer, and a headless window has neither.
 
-#include "affresco/render/Window.hpp"
-#include "affresco/render/Label.hpp"
+#include "Confirmation.hpp"
 
 #include "paint/GeometryCache.hpp"
 #include "paint/Renderer.hpp"
@@ -320,6 +319,10 @@ void Window::setDefaultFont(std::shared_ptr<const Font> font) {
 
 Panel* Window::panelAt(Vec2 point) {
 	updateLayout();
+	if(asking_) { // the question covers the window: nothing under it is hit
+		Panel* hit = asking_->backdrop->hitTest(point);
+		return hit ? hit : asking_->backdrop.get();
+	}
 	for(const auto& overlay : std::views::reverse(overlays_)) // above everything, the latest on top
 		if(Panel* hit = overlay->hitTest(point)) return hit;
 	return root_.hitTest(point);
@@ -366,6 +369,7 @@ void Window::updateLayout() {
 		drawn_.push_back(fullscreenHint_.get());
 	}
 	layoutInspection();
+	layoutConfirmation();
 	layingOut_ = false;
 
 	layoutDirty_ = false;

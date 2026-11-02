@@ -42,9 +42,10 @@ Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
 Runtime::~Runtime() {
 	impl_->composed.setObserver(nullptr);
 	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
-	impl_->scheduler.cancelAll();  // and its timers and deferred tasks would run on freed memory
-	impl_->calls.cancelAll();      // and what slow calls return would reach it
-	impl_->serviceCalls.cancelAll();                        // and so would what services return
+	impl_->programs.dismissQuestion(); // and so would the answer to a question it asked
+	impl_->scheduler.cancelAll();      // and its timers and deferred tasks would run on freed memory
+	impl_->calls.cancelAll();          // and what slow calls return would reach it
+	impl_->serviceCalls.cancelAll();   // and so would what services return
 	if(impl_->identity) impl_->identity->onStatus(nullptr); // and so would a sign-in
 }
 

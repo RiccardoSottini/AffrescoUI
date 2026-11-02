@@ -9,9 +9,17 @@
 
 #include <affresco/lisp/Document.hpp>
 
+#include <affresco/render/Window.hpp>
+
 #include <algorithm>
 #include <array>
+#include <cstdint>
+#include <format>
+#include <functional>
+#include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -125,6 +133,156 @@ void checkEvaluateStep(const Running& s) {
 	if(!engine.programs.hasProgram()) fail(where, "this screen has no program, so there is nothing to evaluate in");
 }
 
+/// @brief An evaluation waiting for its end: what it runs, and what `then` gets.
+struct Pending {
+	std::string text;                       ///< The text.
+	std::string file;                       ///< The file for a definition no file has.
+	json event;                             ///< The event.
+	std::shared_ptr<Scope> outcome;         ///< What `then` reads: `result`, `error`, `proposal`.
+	std::function<void()> then;             ///< The step's `then`.
+	std::optional<StepAuthority> authority; ///< Who led to the step.
+	bool hasThen = false;                   ///< Whether the step has a `then`: else an error is reported.
+};
+
+/// @brief Gives `then` what an evaluation gave.
+/// @param engine The runtime.
+/// @param evaluated What it gave.
+/// @param pending The evaluation.
+void finish(Engine& engine, const Programs::Evaluated& evaluated, const Pending& pending) {
+	pending.outcome->vars = {{"result", evaluated.printed},
+	                         {"error", evaluated.error ? json(*evaluated.error) : json()},
+	                         {"proposal", evaluated.proposal ? json(*evaluated.proposal) : json()}};
+	if(evaluated.error && !pending.hasThen) engine.report(*evaluated.error);
+	pending.then();
+	engine.reconciler.requestStateUpdate();
+}
+
+/// @brief An evaluation that runs nothing, and why.
+/// @param why Why.
+/// @return It.
+Programs::Evaluated nothingRan(std::string why) {
+	return {.printed = {}, .error = std::move(why), .proposal = std::nullopt};
+}
+
+/// @brief Tells whether a character shows as itself: not a control character but a tab or a line break, and not one
+/// that draws nothing or moves what is drawn around it (a format character: bidirectional controls, zero widths, line
+/// and paragraph separators, tags, variation selectors), or that looks like a space but is a letter (the fillers).
+/// @param c The character.
+/// @return true if it does.
+bool showsAsItself(char32_t c) noexcept {
+	if(c < 0x20U) return c == U'\t' || c == U'\n';
+	if(c < 0xA0U) return c < 0x7FU;
+	constexpr std::array<std::pair<char32_t, char32_t>, 17> hidden{{{0xAD, 0xAD},
+	                                                                {0x34F, 0x34F},
+	                                                                {0x61C, 0x61C},
+	                                                                {0x115F, 0x1160},
+	                                                                {0x17B4, 0x17B5},
+	                                                                {0x180B, 0x180F},
+	                                                                {0x200B, 0x200F},
+	                                                                {0x2028, 0x202E},
+	                                                                {0x2060, 0x206F},
+	                                                                {0x2800, 0x2800},
+	                                                                {0x3164, 0x3164},
+	                                                                {0xFE00, 0xFE0F},
+	                                                                {0xFEFF, 0xFEFF},
+	                                                                {0xFFA0, 0xFFA0},
+	                                                                {0xFFF9, 0xFFFB},
+	                                                                {0xE0000, 0xE007F},
+	                                                                {0xE0100, 0xE01EF}}};
+	return std::ranges::none_of(hidden, [c](const auto& range) { return c >= range.first && c <= range.second; });
+}
+
+/// @brief Reads the character a text has at a place, strictly: no overlong form, no surrogate, nothing past U+10FFFF.
+/// @param text The text, UTF-8.
+/// @param at Where the character starts.
+/// @return It and how many bytes it takes; std::nullopt if it isn't UTF-8.
+std::optional<std::pair<char32_t, std::size_t>> characterAt(std::string_view text, std::size_t at) {
+	const auto lead = static_cast<unsigned char>(text[at]);
+	const std::size_t length = lead < 0x80U ? 1 : lead >= 0xF0U ? 4 : lead >= 0xE0U ? 3 : 2;
+	if((lead >= 0x80U && lead < 0xC2U) || lead > 0xF4U || at + length > text.size()) return std::nullopt;
+	char32_t c = length == 1 ? lead : lead & (0xFFU >> (length + 1));
+	for(std::size_t k = 1; k < length; ++k) {
+		const auto next = static_cast<unsigned char>(text[at + k]);
+		if((next & 0xC0U) != 0x80U) return std::nullopt;
+		c = (c << 6U) | (next & 0x3FU);
+	}
+	constexpr std::array<char32_t, 5> least{0, 0, 0x80, 0x800, 0x10000};
+	if(c < least.at(length) || c > 0x10FFFFU || (c >= 0xD800U && c <= 0xDFFFU)) return std::nullopt;
+	return std::pair(c, length);
+}
+
+/// @brief Tells why a text can't be shown as it is, if it can't: a character that draws nothing, or moves what is
+/// drawn around it, would let a question show other than what runs.
+/// @param text The text, UTF-8.
+/// @return Why; std::nullopt if every character of it shows.
+std::optional<std::string> hiddenCharacter(std::string_view text) {
+	for(std::size_t i = 0; i < text.size();) {
+		const std::optional<std::pair<char32_t, std::size_t>> read = characterAt(text, i);
+		if(!read) return "the text isn't UTF-8, so it can't be shown as it is, and nothing ran";
+		const auto [c, length] = *read;
+		const bool lineEnd = c == U'\r' && i + 1 < text.size() && text[i + 1] == '\n';
+		if(!lineEnd && !showsAsItself(c))
+			return "the text holds a character that doesn't show (U+" +
+			       std::format("{:04X}", static_cast<unsigned>(c)) +
+			       "), so it can't be shown as it is, and nothing ran";
+		i += length;
+	}
+	return std::nullopt;
+}
+
+/// @brief What the person is asked about a text they didn't type.
+/// @param text The text.
+/// @return The question.
+Confirmation questionAbout(const std::string& text) {
+	const auto lines = std::ranges::count(text, '\n') + (text.empty() || text.back() == '\n' ? 0 : 1);
+	return {.title = "Run this as you?",
+	        .message =
+	            "You didn't type this here, so it has none of your authority. Running it gives it yours, this once. "
+	            "It is " +
+	            std::to_string(lines) + (lines == 1 ? " line" : " lines") + ": read all of it.",
+	        .text = text,
+	        .accept = "Run as Me",
+	        .decline = "Don't Run"};
+}
+
+/// @brief What the person's answer gives: the text run as theirs, or nothing, and why.
+/// @param engine The runtime.
+/// @param accepted Their answer.
+/// @param pending The evaluation.
+/// @param shown The program when they were asked.
+/// @return What it gave.
+Programs::Evaluated answered(Engine& engine, bool accepted, const Pending& pending, const json& shown) {
+	if(!accepted) return nothingRan("you said no, so nothing ran");
+	if(engine.versions.previewing()) return nothingRan("a proposal is being previewed, so nothing ran: end that first");
+	// What it calls is what the person saw it call: a program changed meanwhile could make it mean something else
+	if(engine.versions.sourceDocument().value("program", json()) != shown)
+		return nothingRan("the program changed while you were asked, so nothing ran: evaluate it again");
+	return engine.programs.evaluateConfirmed(pending.text, pending.file, engine.window->root(), pending.event,
+	                                         *pending.outcome);
+}
+
+/// @brief Asks the person, in a question the window draws itself, whether a text they didn't type runs as theirs;
+/// their answer finishes the evaluation.
+/// @param engine The runtime.
+/// @param pending The evaluation.
+void ask(Engine& engine, const std::shared_ptr<Pending>& pending) {
+	if(const std::optional<std::string> hidden = hiddenCharacter(pending->text))
+		return finish(engine, nothingRan(*hidden), *pending);
+	json shown = engine.versions.sourceDocument().value("program", json());
+	// NOLINTNEXTLINE(bugprone-exception-escape): what an answer throws, the window's caller reports, as with any task
+	const std::uint64_t id =
+	    engine.window->confirm(questionAbout(pending->text), [&engine, pending, shown = std::move(shown)](bool yes) {
+		    engine.programs.setQuestion(0);
+		    if(!engine.window) return;
+		    const AuthorityScope holder(engine, pending->authority ? &*pending->authority : nullptr);
+		    const DocumentContext::BudgetScope budget(engine.document);
+		    finish(engine, answered(engine, yes, *pending, shown), *pending);
+	    });
+	if(id == 0)
+		return finish(engine, nothingRan("a question waits for your answer already: answer it first"), *pending);
+	engine.programs.setQuestion(id);
+}
+
 /// @brief Runs an "evaluate" step: reads the text now, and evaluates it after the event, as revisions are.
 /// @param s The step.
 void evaluateStep(const Running& s) {
@@ -135,26 +293,28 @@ void evaluateStep(const Running& s) {
 	if(text.size() > maxEvaluatedBytes) fail(where, "the text is longer than a program's file may be");
 	const std::string file =
 	    s.step.contains("file") ? string(s.value("file"), where + ".file") : std::string(defaultFile);
+	const bool confirm = s.step.contains("confirm") && boolean(s.value("confirm"), where + ".confirm");
 	const SharedScope kept = snapshot(s.locals);
-	const auto outcome = std::make_shared<Scope>(Scope{kept.get(), kept, json::object(), {}, {}});
-	auto then = s.steps.later(s.step.value("then", json::array()), s.sender, s.event, outcome, where + ".then");
-	std::optional<StepAuthority> authority;
-	if(engine.authority) authority = *engine.authority;
+	const auto pending = std::make_shared<Pending>(
+	    Pending{.text = text,
+		        .file = file,
+		        .event = s.event,
+		        .outcome = std::make_shared<Scope>(Scope{kept.get(), kept, json::object(), {}, {}}),
+		        .then = {},
+		        .authority = engine.authority ? std::optional<StepAuthority>(*engine.authority) : std::nullopt,
+		        .hasThen = s.step.contains("then")});
+	pending->then =
+	    s.steps.later(s.step.value("then", json::array()), s.sender, s.event, pending->outcome, where + ".then");
 	// NOLINTNEXTLINE(bugprone-exception-escape): what a task throws, the scheduler's caller reports, as with any step
-	engine.scheduler.defer([&engine, text, file, outcome, then = std::move(then), sender = &s.sender, event = s.event,
-	                        authority = std::move(authority), hasThen = s.step.contains("then")] {
+	engine.scheduler.defer([&engine, pending, sender = &s.sender, confirm] {
 		Window* window = engine.window;
 		if(!window) return;
+		if(confirm && engine.programs.untyped(pending->text)) return ask(engine, pending);
 		Panel& from = engine.reconciler.recordOf(sender) ? *sender : window->root();
-		const AuthorityScope holder(engine, authority ? &*authority : nullptr);
+		const AuthorityScope holder(engine, pending->authority ? &*pending->authority : nullptr);
 		const DocumentContext::BudgetScope budget(engine.document);
-		Programs::Evaluated evaluated = engine.programs.evaluate(text, file, from, event, *outcome);
-		outcome->vars = {{"result", evaluated.printed},
-		                 {"error", evaluated.error ? json(*evaluated.error) : json()},
-		                 {"proposal", evaluated.proposal ? json(*evaluated.proposal) : json()}};
-		if(evaluated.error && !hasThen) engine.report(*evaluated.error);
-		then();
-		engine.reconciler.requestStateUpdate();
+		finish(engine, engine.programs.evaluate(pending->text, pending->file, from, pending->event, *pending->outcome),
+		       *pending);
 	});
 }
 
@@ -245,7 +405,7 @@ std::optional<bool> runLoopStep(const Running& s) {
 
 void registerLoopSteps(StepRegistry& registry) {
 	registry.add({"loop",
-	              {{"evaluate", {"file", "then"}, true},
+	              {{"evaluate", {"file", "confirm", "then"}, true},
 	               {"propose", {"as", "file", "then", "onError"}, true},
 	               {"exportChanges", {"from", "only", "into"}, true},
 	               {"runHooks", {"with"}}},
@@ -352,6 +512,33 @@ Programs::Evaluated Programs::evaluate(const std::string& text, const std::strin
 	} catch(const DocumentError& error) {
 		return {.printed = {}, .error = error.what(), .proposal = std::nullopt};
 	}
+}
+
+bool Programs::untyped(const std::string& text) {
+	try {
+		const std::vector<lisp::FormAt> forms = lisp::formsOf(text, "evaluated");
+		const json& state = engine_.versions.state();
+		return !forms.empty() &&
+		       !std::ranges::all_of(forms, [&](const lisp::FormAt& form) { return typed_.holds(form.text, state); });
+	} catch(const DocumentError&) { // LispError too: evaluate() says what is wrong with it
+		return false;
+	}
+}
+
+Programs::Evaluated Programs::evaluateConfirmed(const std::string& text, const std::string& file, Panel& sender,
+                                                const json& event, const Scope& locals) {
+	try {
+		const FormsRead read = readForms(lisp::formsOf(text, "evaluated"), sender, event, locals);
+		return runTyped(read, file, sender, event, locals);
+	} catch(const lisp::LispError& error) {
+		return {.printed = {}, .error = error.message(), .proposal = std::nullopt};
+	} catch(const DocumentError& error) {
+		return {.printed = {}, .error = error.what(), .proposal = std::nullopt};
+	}
+}
+
+void Programs::dismissQuestion() {
+	if(question_ != 0 && engine_.window) engine_.window->dismissConfirmation(std::exchange(question_, 0));
 }
 
 /* Describing */

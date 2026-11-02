@@ -474,7 +474,10 @@ json Repository::programAuthors() const {
 // A person's restore or revert brings back what someone else wrote, and it stays theirs: whoever first wrote that text
 // on main. One walk over the history, however many entries it answers for
 void Repository::keepFirstWriters(json& credited) const {
-	FirstWriters writers(mainDocument()["program"], credited);
+	const json& document = mainDocument();
+	const auto section = document.find("program");
+	if(section == document.end()) return; // a static app: no definition to credit
+	FirstWriters writers(*section, credited);
 	if(writers.done()) return;
 	const json first = documentOf(objects_.at(main_.front()));
 	if(const auto files = first.find("program"); files != first.end() && files->is_object()) {

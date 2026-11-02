@@ -10,11 +10,22 @@
 #include <cstddef>
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
 
 namespace affresco::lisp {
+
+/// @brief The names a definition's code calls with a text written out first (`(run "save")`), and those texts.
+struct CallsByName {
+	std::map<std::string, std::vector<std::string>> texts; ///< The texts each name is called with, sorted.
+	std::set<std::string>
+	    otherwise; ///< Those of the names also used another way: as a value, a computed first argument.
+};
+
+/// @brief By a definition's address, what it calls with a text written out first (Program::namedCalls()).
+using NamedCalls = std::map<std::string, CallsByName>;
 
 /// @brief One top-level form of a program.
 struct Entry {
@@ -155,6 +166,11 @@ public:
 	/// @brief The names each definition's code uses, macros' output and the functions inside it included: nothing runs
 	/// but what a name reaches, as the language has no way to find a global from a value. @return Them, by its address.
 	[[nodiscard]] const std::map<std::string, std::vector<std::string>>& namesUsed() const noexcept { return used_; }
+	/// @brief Of the names each definition uses (namesUsed()), those it calls with a text written out first, with those
+	/// texts: `(run "save")` and `(run :tidy)` give `{"run": ["save", "tidy"]}`; and which of them it also uses another
+	/// way (as a value, through `apply`, with a computed first argument). A host may follow what the texts name where
+	/// a name is used no other way, and count the rest as reaching anything. @return Them, by its address.
+	[[nodiscard]] const NamedCalls& namedCalls() const noexcept { return named_; }
 
 private:
 	std::vector<Entry> entries_;                                ///< See entries().
@@ -163,6 +179,7 @@ private:
 	std::vector<Extension> extensions_;                         ///< See extensions().
 	std::vector<UndefinedName> undefined_;                      ///< See undefinedNames().
 	std::map<std::string, std::vector<std::string>> used_;      ///< See namesUsed().
+	NamedCalls named_;                                          ///< See namedCalls().
 };
 
 } // namespace affresco::lisp

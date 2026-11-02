@@ -5,11 +5,18 @@ A game launcher built only from what an outsider has: the public docs (`README.m
 single screen document, with no C++: the stock host runs it.
 
 ```sh
-./build/affrescoui_launcher examples/arcadia/json/index.screen.json
-./build/affrescoui test examples/arcadia/json/index.scenarios.json --out out/shots
-./build/affrescoui test examples/arcadia/json/controls.scenarios.json --out out/controls
-python3 examples/arcadia/json/e2e_test.py build
+./build/affrescoui_launcher examples/arcadia/lisp/index.screen.lisp
+./build/affrescoui test examples/arcadia/lisp/index.scenarios.json --out out/shots
+./build/affrescoui test examples/arcadia/lisp/controls.scenarios.json --out out/controls
+python3 examples/arcadia/lisp/e2e_test.py build
 ```
+
+**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), as it has real behaviour: installs and
+downloads, the cart and the wishlist, the library's filters, codes, backups, friends and chat. `lisp/` is its only source,
+with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone. The screen and its parts say what is
+shown and keep their keys, the download timer and the first page as data; `lisp/arcadia.lisp` says what happens: every
+action is a command, as it was written, with its title, category and description, and the handlers name them. Lists that
+hold a game, a swap of two places and a game by its id are one function each (`has`, `toggled`, `swapped`, `gameOf`).
 
 ## What it shows
 
@@ -33,7 +40,7 @@ python3 examples/arcadia/json/e2e_test.py build
 - **Scenarios**: 33 in `index.scenarios.json`, covering each of the above, both themes, the three languages,
   keyboard-only use and the bugs found while walking the app across sizes, themes and languages.
 
-- **The client's own controls** (`parts/client.json`, `parts/hub.json`): every menu item, bar button and link does
+- **The client's own controls** (`parts/client.lisp`, `parts/hub.lisp`, their commands in `arcadia.lisp`): every menu item, bar button and link does
   something, and `controls.scenarios.json` proves each one. A Settings window (`mod+,`) with Interface, Downloads
   (a bandwidth limit, downloading while playing, clearing the cache), Storage (usage by game, uninstall) and Account
   pages; product keys and gift codes (the demo ones are in `state.productKeys` and `state.giftCodes`); a game added
@@ -65,7 +72,7 @@ buttons that keys can't express.
 | Keys | `mod+p`, `mod+shift+p`, `mod+1..5`, `mod+f`, `mod+enter`, `mod+d`, `mod+shift+d`, `alt+left`, `escape` and the chords `mod+k mod+t`, `mod+k mod+l`, `mod+k mod+s` |
 | Uninstall | The built-in `dialog`, shown only when the `launcher.confirmUninstall` setting is on |
 | Feedback | The built-in `toast`, with a progress bar animated while a game "starts" |
-| Stats | Bar, area and line charts from `examples/shared/components/charts.json`, stat cards (a local component) and a sessions `list` |
+| Stats | Bar, area and line charts from `examples/shared/components/charts.lisp`, stat cards (a local component) and a sessions `list` |
 | Settings | Declared `settings` (theme, language, cover size, sort, download speed, uninstalled games, confirmations) and the built-in `settingsPage` |
 | Look | Design tokens with dark and light variants switched by the theme setting; Lucide icons as a fallback font; rich text runs with bold, colour, a link and an icon |
 
@@ -88,5 +95,5 @@ buttons that keys can't express.
 
 - **Permissions:** `studio` peers (the person's client) change it directly; an agent's change waits for the person's review (on its card in the assistant chat, or from a `studio` peer). It keeps nothing with `persist`.
 - **Threading and ownership:** it has no C++ of its own. The stock host owns the window and the screen, and runs the document on its UI thread.
-- **Extension points:** a game is a record of `data.games` (models.json, its first ones in `seed/games.json`), a friend of `data.friends`; charts come from `../shared/components/charts.json`; `statCard` and `settingRow` are its local components.
+- **Extension points:** a game is a record of `data.games` (models.lisp, its first ones in `seed/games.lisp`), a friend of `data.friends`; charts come from `../shared/components/charts.lisp`; `statCard` and `settingRow` are its local components.
 - **Assets:** the pictures in `covers/` are simple vector drawings made for this project, under the repository's Apache-2.0 licence. The fonts' licences are with them in `../shared/fonts`.

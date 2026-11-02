@@ -549,12 +549,13 @@ TEST_CASE("vcs: reverting a commit undoes what it changed in the live state too"
 }
 
 TEST_CASE("vcs: the revision fuzzer's input that found it: a value copied in the state and moved into the document") {
-	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/flow/json/index.screen.json");
+	// It was found on the Kanban template, a program now (RFC 0005): a JSON template holds it as well
+	std::ifstream file(std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/sign-in/json/index.screen.json");
 	REQUIRE(file);
-	json kanban = json::parse(file);
-	kanban.erase("include"); // a Repository does not merge included files; this test needs none
+	json screen = json::parse(file);
+	screen.erase("include"); // a Repository does not merge included files; this test needs none
 	const affresco::format::Rules rules;
-	Repository repository(rules, kanban);
+	Repository repository(rules, screen);
 	const json document = repository.document(), state = repository.state();
 	// The input as the fuzzer wrote it: a "path" given twice, of which JSON keeps the second
 	commit(repository, json::parse(R"({"author":"studio","patch":[{"op":"add","path":"/state/extra","value":[1,2]},)"

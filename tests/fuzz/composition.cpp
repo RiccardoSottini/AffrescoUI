@@ -2,7 +2,7 @@
 /// @brief Fuzzes composition across apps (CompositionProof.hpp): a feature's manifest, its adapter and the host's
 /// contribution points are untrusted input (SECURITY.md, "Installing across apps").
 ///
-/// The input is `{ manifest, adapter, points, exports }`; the host is the Kanban template with those points and exports.
+/// The input is `{ manifest, adapter, points, exports }`; the host is the JSON template with those points and exports.
 /// Besides not crashing, every proof must check as a proof record within its size, give at least one reason, and a
 /// passed one must come with the composed document; the host's contributions must list and print.
 
@@ -34,14 +34,14 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	if(!input.is_object()) return 0;
 
 	format::ProofInputs inputs;
-	inputs.host = affresco::fuzz::kanbanTemplate();
+	inputs.host = affresco::fuzz::jsonTemplate();
 	inputs.host.erase("fonts");
 	for(const char* part : {"points", "exports"})
 		if(input.contains(part)) inputs.host[part] = input[part];
 	inputs.manifest = input.value("manifest", json());
 	inputs.adapter = input.value("adapter", json());
 	inputs.source = "app:fuzz";
-	inputs.hostName = "app:kanban";
+	inputs.hostName = "app:sign-in";
 	inputs.base = "0000000";
 	const format::ScenarioRunner none = [](const json&, const json&) { return std::vector<format::ScenarioOutcome>(); };
 	try {

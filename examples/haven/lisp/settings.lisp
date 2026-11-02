@@ -1,4 +1,4 @@
-{:note "Haven's settings page, included by index.screen.json: grouped cards of rows that open the other pages or a sub-page (devices and entities, profile, general settings from the schema, about)."
+{:note "Haven's settings page, included by index.screen.lisp: grouped cards of rows that open the other pages or a sub-page (devices and entities, profile, general settings from the schema, about)."
  :state {:settingsView main
          :langMenu false
          :genMenu false
@@ -14,8 +14,6 @@
                                   {:id general :icon sliders-horizontal :color "#6b6f80"}
                                   {:id about :icon info :color "#3f8f8a"}]}]}
  :stateTypes {:settingsView {:enum [main devices profile general about]} :settingsGroups (array :items (object))}
- :actions {:pickSetting [{:note "with: key, a settings key, and value"} {:set "{{'settings.' + key}}" :to "{{value}}"}]
-           :pickLanguage [{:note "with: lang, a language code"} {:set settings.ui.language :to "{{lang}}"}]}
  :computed {:subPages "{{['devices', 'profile', 'general', 'about']}}"
             :devInBar "{{window.width - computed.sideWidth >= 900}}"
             :devTop "{{computed.devInBar ? 56 : 104}}"

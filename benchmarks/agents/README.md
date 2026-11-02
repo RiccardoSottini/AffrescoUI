@@ -13,6 +13,11 @@ The results go into the "Agents" section of `BENCHMARKS.md`.
 - `forge`: a feature in Forge, across its feature files (a button in the title bar wired to an action, a link on the
   welcome page, a status bar item).
 
+The tasks whose ids start with `lisp-` and `json-` compare the two ways of writing an app (RFC 0005, stage 6): the same
+request, on the same app, made of a program's definitions (a keyword edit, a function's body, a `defcommand` and its
+`defkey`, an `add-hook`) or of JSON (an action's title or steps, an action and a key). `--only lisp-,json-` runs them;
+`BENCHMARKS.md`, "Lisp against JSON", has what a model did with them.
+
 Each task has:
 
 | Field | What it is |
@@ -23,6 +28,7 @@ Each task has:
 | `request` | what the client is asked, in plain words; it names the ids the scenarios look for |
 | `scenarios` | the scenarios (`SCREEN_FORMAT.md`, "Scenarios") that pass once the request is done |
 | `unchanged` | the nodes that the change must leave exactly as they were |
+| `present` | optional: the addresses the change must make (a program's definition, `/program/<file>/<name>`, or a JSON action), when the request says which way it is written |
 | `reference` | the revisions that do it (`submit_revision` arguments), which the oracle submits |
 
 The reference's output tokens also give the "feature request" budget of `tests/perf/budgets.json`: its largest
@@ -41,7 +47,8 @@ For each task, `run.py`:
    state;
 5. compares each `unchanged` node with the starting screen's.
 
-A task succeeds when its scenarios pass and every `unchanged` node is unchanged. Recorded per task: success, the
+A task succeeds when its scenarios pass, every `unchanged` node is unchanged and every `present` address is there.
+Recorded per task: success, the
 failures, tokens in (input, cached included) and out, tool calls, revisions and seconds; per run: the client, its
 version, the model, the commit, the machine (processor and system), the date and the medians.
 

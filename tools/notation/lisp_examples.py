@@ -104,6 +104,23 @@ def documents(files):
     return found
 
 
+def named_by_programs(files):
+    """The shared JSON documents that an app written as a program names in the Lisp notation (its lisp/ folder is its
+    source, so no JSON app may include them any more), with what they include."""
+    programs = [path for path in files if path.endswith(".lisp") and LISP_FOLDER in os.sep + path]
+    texts = []
+    for path in programs:
+        with open(os.path.join(EXAMPLES, path), encoding="utf-8") as file:
+            texts.append(file.read())
+    found = set()
+    for path in files:
+        if path.startswith(SHARED) and path.endswith(".json"):
+            named = as_lisp(path).replace(os.sep, "/")
+            if any(named in text for text in texts):
+                documents_of(path, found)
+    return found
+
+
 def is_named_document(path):
     """Whether a file of a json/ folder is a document its reader finds by name or is pointed at."""
     if JSON_FOLDER not in os.sep + path or os.sep + "catalog" + os.sep in path:
@@ -172,7 +189,7 @@ def scenarios_text(path):
 def write_tree(out, cli):
     """Writes every generated file, at its path from examples/, into a folder."""
     files = source_files()
-    loaded = documents(files) | {path for path in files if is_named_document(path)}
+    loaded = documents(files) | named_by_programs(files) | {path for path in files if is_named_document(path)}
     for path in files:
         if path in loaded:
             write_lisp(path, out, cli, loaded)

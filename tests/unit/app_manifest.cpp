@@ -185,10 +185,12 @@ TEST_CASE("app manifest: a screen that asks the agents uses the assistant, which
 	    json::parse(R"json({ "actions": { "send": [{ "if": "{{true}}", "then": [{ "ask": "{{state.draft}}" }] }] },
 		"root": { "children": [{ "type": "button", "onClick": { "ask": "Hello" } }] } })json");
 	const json data = json::parse(R"json({ "state": { "ask": "a key" }, "strings": { "en": { "ask": "Ask" } },
-		"permissions": { "ask": ["agent"] } })json");
+		"permissions": { "ask": ["agent"] },
+		"program": { "app.lisp": { "saveFile": "(defn saveFile [f] nil)", "ask": "(defn ask [] nil)" } } })json");
 	CHECK(affresco::format::usedCapabilities(asks).size() == 1);
 	CHECK(affresco::format::usedCapabilities(asks)[0].key() == "assistant");
-	CHECK(affresco::format::usedCapabilities(data).empty()); // a state key or a string is no step
+	// A state key, a string or a program's definition named like a step is no step
+	CHECK(affresco::format::usedCapabilities(data).empty());
 	CHECK(affresco::format::undeclaredCapabilities(app, asks).empty());
 	CHECK(affresco::format::undeclaredCapabilities(affresco::format::parseApp(fullManifest()), asks) ==
 	      std::vector<std::string>{"assistant"});

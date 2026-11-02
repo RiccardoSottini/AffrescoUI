@@ -8,10 +8,14 @@
 			"name": "apps-grid",
 			"steps": [
 				{ "expect": { "state": "page", "is": "apps" } },
-				{ "expect": { "node": "#appsCount", "text": "12 apps" } },
+				{ "expect": { "node": "#appsCount", "text": "13 apps" } },
 				{ "expect": { "node": "#cardName", "text": "Flow" } },
 				{ "expect": { "node": { "role": "button", "name": "Open Forge: An IDE with a terminal, source control and a debugger" }, "property": "shown", "is": true } },
-				{ "capture": "apps" }
+				{ "capture": "apps" },
+				{ "note": "Calamaio, a program with only its lisp folder, is listed too" },
+				{ "click": "#appSearch" },
+				{ "type": "calamaio" },
+				{ "expect": { "node": { "role": "button", "name": "Open Calamaio: A keyboard-first text editor you extend in Lisp" }, "property": "shown", "is": true } }
 			]
 		},
 		{

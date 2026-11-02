@@ -170,8 +170,8 @@ public:
 	/// @return The value.
 	/// @throws LispError If it is undefined or working it out fails.
 	Value force(Global& global);
-	/// @brief Enters a region (Interpreter::Transient): the outermost starts it, and what it runs starts a new record of
-	/// who ran.
+	/// @brief Enters a region (Interpreter::Transient): the outermost starts it, and what it runs starts a new record
+	/// of who ran.
 	void enterRegion() {
 		if(regions_++ != 0) return;
 		region_ = heap.mark();
@@ -199,8 +199,8 @@ public:
 	/// @param bytes Its size.
 	/// @throws Problem If the budget runs out.
 	void spendText(std::size_t bytes) { spend(bytes / 64); }
-	/// @brief Spends what finding a key in a map costs, beyond an operation: comparing a long key, and going through the
-	/// members of a map viewed from JSON, which has no index.
+	/// @brief Spends what finding a key in a map costs, beyond an operation: comparing a long key, and going through
+	/// the members of a map viewed from JSON, which has no index.
 	/// @param map The map.
 	/// @param key The key.
 	/// @throws Problem If the budget runs out.
@@ -298,6 +298,12 @@ private:
 	/// @param arguments Its arguments.
 	/// @return What it returns.
 	Value callHost(const NativeObject* native, std::vector<Value> arguments);
+	/// @brief The text a primitive's first argument is, when the code running names the primitive with it written out
+	/// there (CallContext::named).
+	/// @param native The primitive.
+	/// @param arguments Its arguments.
+	/// @return The text, or empty.
+	[[nodiscard]] std::string_view namedBy(const NativeObject* native, std::span<const Value> arguments) const;
 	/// @brief Gives a call's result, in place of the function and its arguments.
 	/// @param result The result.
 	/// @param count How many arguments.
@@ -314,9 +320,9 @@ private:
 	void noteRan(const Code* code) {
 		if(code->authors != ran_ && code->authors != noAuthors_) ran_ = unite(ran_, code->authors);
 	}
-	/// @brief Starts a new record of who ran, for a run with nothing around it. Inside a region it is the region's start
-	/// that does, so that who a host says led to a run (Interpreter::addAuthorsThatRan()) stays on the record, whatever the
-	/// stack holds.
+	/// @brief Starts a new record of who ran, for a run with nothing around it. Inside a region it is the region's
+	/// start that does, so that who a host says led to a run (Interpreter::addAuthorsThatRan()) stays on the record,
+	/// whatever the stack holds.
 	void startRecord() noexcept {
 		if(frames_.empty() && nesting_ == 0 && regions_ == 0) ran_ = noAuthors_;
 	}

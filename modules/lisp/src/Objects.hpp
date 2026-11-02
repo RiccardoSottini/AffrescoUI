@@ -16,6 +16,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -168,6 +169,12 @@ struct CaptureSource {
 	std::uint32_t index = 0; ///< Its index there.
 };
 
+/// @brief A call of a global whose first argument is a text written out: `(run "save")`, `(invoke :files.read)`.
+struct NamedCall {
+	std::uint32_t global = 0; ///< The global's index in Code::globals.
+	std::string text;         ///< The text: a string's, or a keyword's without its colon.
+};
+
 /// @brief A compiled function, or a thunk: what runs when a form does.
 struct Code final : Object {
 	std::string name;                    ///< The function's name, or "".
@@ -182,6 +189,7 @@ struct Code final : Object {
 	std::vector<Place> places;           ///< Where each instruction comes from.
 	std::vector<Value> constants;        ///< Op::Const's values.
 	std::vector<Global*> globals;        ///< Op::Global's globals.
+	std::vector<NamedCall> named;        ///< The globals among them that head a call with a text written out first.
 	std::vector<const Code*> functions;  ///< Op::Closure's functions.
 	std::vector<CaptureSource> captures; ///< What its closures capture.
 	std::vector<std::string> parameters; ///< Its parameters' names, without a rest parameter; "" for a pattern.
@@ -321,5 +329,11 @@ private:
 /// @return Its text.
 /// @throws Problem If it is neither.
 [[nodiscard]] std::string_view keyText(const Value& key);
+
+/// @brief A number as an index, a count or a position takes it: an integer, or a number whose value is whole (`1.0`,
+/// as JSON and an expression's arithmetic give some), up to 2^53, where every whole number has a double.
+/// @param value The value.
+/// @return Its whole value, or std::nullopt if it isn't a whole number.
+[[nodiscard]] std::optional<std::int64_t> wholeNumber(const Value& value) noexcept;
 
 } // namespace affresco::lisp

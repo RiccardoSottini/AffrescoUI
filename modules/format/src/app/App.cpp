@@ -284,7 +284,7 @@ bool showsFileDialog(const json& step) {
 }
 
 /// @brief Whether a step anywhere in a screen is one of a kind, outside its data: its state, strings, tokens and
-/// models.
+/// models, and its program's source, where a definition's name and text aren't a step (what it builds is in the rest).
 /// @param value The screen, or a part of it.
 /// @param is Whether an object is one.
 /// @param depth How deep this part is, so a deep document can't exhaust the stack.
@@ -297,7 +297,7 @@ bool hasStep(const json& value, bool (*is)(const json&), int depth = 0) {
 	if(is(value)) return true;
 	return std::ranges::any_of(value.items(), [is, depth](const auto& entry) {
 		const std::string& key = entry.key();
-		const bool data = key == "state" || key == "strings" || key == "tokens" || key == "models";
+		const bool data = key == "state" || key == "strings" || key == "tokens" || key == "models" || key == "program";
 		return (depth != 0 || !data) && hasStep(entry.value(), is, depth + 1);
 	});
 }

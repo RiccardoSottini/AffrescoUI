@@ -1,4 +1,4 @@
-{:note "Haven's floor plan and media, included by index.screen.json: the rooms on a canvas (drag to move, click to pick), the picked room's lights, the speaker's player, and the dialog that colours a light."
+{:note "Haven's floor plan and media, included by index.screen.lisp: the rooms on a canvas (drag to move, click to pick), the picked room's lights, the speaker's player, and the dialog that colours a light."
  :state {:planView {:camera {:x -40 :y -40 :zoom 1} :selection [] :guides {:vertical [] :horizontal []}}
          :planRooms [{:id r0 :x 0 :y 0 :width 300 :height 200}
                      {:id r1 :x 300 :y 0 :width 180 :height 200}
@@ -14,29 +14,6 @@
  :computed {:planItems "{{map(state.planRooms, merge(it, { color: computed.themeNow == 'dark' ? '#1a2340' : '#ffffff', borderColor: indexOf(['r0', 'r1', 'r2', 'r3'], it.id) == state.room ? (computed.themeNow == 'dark' ? '#22d3ee' : '#0891b2') : (computed.themeNow == 'dark' ? '#3a4363' : '#94a3b8'), borderWidth: indexOf(['r0', 'r1', 'r2', 'r3'], it.id) == state.room ? 3 : 2, radius: 4, text: state.rooms[indexOf(['r0', 'r1', 'r2', 'r3'], it.id)].name, textSize: 16, textColor: computed.themeNow == 'dark' ? '#e5e9f5' : '#0f172a' }))}}"
             :track "{{state.tracks[state.media.track]}}"
             :speaker "{{find(state.devices, it.id == 'speaker')}}"}
- :actions {:openColour [{:note "with: i, a light of the room: opens the dialog that colours it"}
-                        {:set state.light :to "{{i}}"}
-                        {:set state.colourOpen :to true}]
-           :moveRooms [{:note "with: moved, the canvas's items after a drag or a nudge"}
-                       {:forEach "{{moved}}"
-                        :as item
-                        :do [{:set state.planRooms
-                              :to "{{map(state.planRooms, it.id == item.id ? merge(it, { x: item.x, y: item.y, width: item.width, height: item.height }) : it)}}"}]}]
-           :planPick [{:note "with: view, the canvas's view: one room chosen becomes the room the other pages show"}
-                      {:if "{{length(view.selection) == 1 && indexOf(['r0', 'r1', 'r2', 'r3'], view.selection[0]) >= 0}}"
-                       :then [{:set state.room :to "{{indexOf(['r0', 'r1', 'r2', 'r3'], view.selection[0])}}"}]}]
-           :stepTrack [{:note "with: by, -1 or 1"}
-                       {:set state.media.track
-                        :to "{{(state.media.track + by + length(state.tracks)) % length(state.tracks)}}"}]
-           :playPause {:title "Play or pause the speaker"
-                       :category "Media"
-                       :icon play
-                       :do [{:run deviceCall :with {:i "{{indexOf(map(state.devices, it.id), 'speaker')}}"}}]}
-           :nextTrack {:title "Next track" :category "Media" :icon skip-forward :do [{:run stepTrack :with {:by 1}}]}
-           :previousTrack {:title "Previous track"
-                           :category "Media"
-                           :icon skip-back
-                           :do [{:run stepTrack :with {:by -1}}]}}
  :components {:planPage {:note "The floor plan: the rooms on a canvas, and beside it the picked room and the speaker"
                          :params {}
                          :node (node :color transparent

@@ -1,4 +1,4 @@
-{:note "Flow's card drawer, included by index.screen.json: the selected card's description (rich text, edited in place), due date with a date picker, labels, assignees, checklist, comments and attachments."
+{:note "Flow's card drawer, included by index.screen.lisp: the selected card's description (rich text, edited in place), due date with a date picker, labels, assignees, checklist, comments and attachments."
  :styles {:section (label :font small :textColor @color.muted :height 18 :align {:horizontal start :vertical center})
           :drawerInput (textarea :height 30
                          :padding 8

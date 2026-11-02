@@ -1,4 +1,4 @@
-{:note "Haven's more-info dialog, included by index.screen.json: a click on a light, the climate, the blinds or a device opens it in the middle of the window, with the big control of that kind, its details and its recent activity. Escape or a click outside closes it."
+{:note "Haven's more-info dialog, included by index.screen.lisp: a click on a light, the climate, the blinds or a device opens it in the middle of the window, with the big control of that kind, its details and its recent activity. Escape or a click outside closes it."
  :state {:info {:open false :kind light :index 0}
          :tempHistory [20.1
                        19.8
@@ -36,30 +36,6 @@
             :infoFacts "{{state.deviceFacts[computed.infoDevice.id]}}"
             :infoName "{{state.info.kind == 'light' ? computed.infoLight.name : (state.info.kind == 'device' ? computed.infoDevice.name : t('info.' + state.info.kind))}}"
             :infoState "{{state.info.kind == 'alarm' ? t('alarm.' + state.security) : state.info.kind == 'light' ? (computed.infoLight.on ? computed.infoLight.level + '%' : t('light.off')) : (state.info.kind == 'climate' ? computed.room.target + '°' : (state.info.kind == 'cover' ? t('blinds.open', { n: round(computed.room.blinds) }) : (computed.infoDevice.busy ? t('device.waiting') : t('device.' + computed.infoDevice.id + (computed.infoDevice.on ? '.on' : '.off')))))}}"}
- :actions {:openInfo [{:note "with: kind (light, climate, cover or device) and i, the light or device it shows"}
-                      {:set state.info :to {:open true :kind "{{kind}}" :index "{{i}}"}}]
-           :setLevel [{:note "with: by, a step of the shown light's brightness; it switches the light on"}
-                      {:set "state.rooms[state.room].lights[state.info.index].level"
-                       :to "{{clamp(computed.infoLight.level + by, 10, 100)}}"}
-                      {:set "state.rooms[state.room].lights[state.info.index].on" :to true}
-                      {:set state.scene :to ""}]
-           :pickLevel [{:run setLevel :with {:by "{{level - computed.infoLight.level}}"}}]
-           :levelUp [{:run setLevel :with {:by 10}}]
-           :levelDown [{:run setLevel :with {:by -10}}]
-           :pickTilt [{:animate state.coverTilt :to "{{level}}" :ms 300}]
-           :tiltUp [{:set state.coverTilt :to "{{clamp(state.coverTilt + 10, 0, 100)}}"}]
-           :tiltDown [{:set state.coverTilt :to "{{clamp(state.coverTilt - 10, 0, 100)}}"}]
-           :pickMode [{:note "with: mode, a heating mode"} {:set state.mode :to "{{mode}}"}]
-           :infoRelatedMenu [{:if "{{state.info.kind == 'device' && computed.infoFacts.related != null}}"
-                              :then [{:run openRelated}]
-                              :else [{:run showToast :with {:message "{{t('info.noRelated')}}"}}]}]
-           :openRelated [{:set state.info.open :to false}
-                         {:set state.page :to automations}
-                         {:set state.autoOpen
-                          :to "{{indexOf(map(state.automations, it.id), computed.infoFacts.related)}}"}]
-           :pickBlinds [{:animate "state.rooms[state.room].blinds" :to "{{level}}" :ms 300}]
-           :blindsUp [{:set "state.rooms[state.room].blinds" :to "{{clamp(computed.room.blinds + 10, 0, 100)}}"}]
-           :blindsDown [{:set "state.rooms[state.room].blinds" :to "{{clamp(computed.room.blinds - 10, 0, 100)}}"}]}
  :components {:iconBtn {:note "A round button with an icon, named and explained by the string tip"
                         :params {:icon "" :tip ""}
                         :node {:style round :icon "{{icon}}" :text "" :label "{{t(tip)}}" :tooltip "{{t(tip)}}"}}

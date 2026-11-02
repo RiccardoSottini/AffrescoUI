@@ -30,7 +30,7 @@ NOTICES = ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md")
 README = """AffrescoUI {version} for {platform}
 
   ./affrescoui_launcher                 the Launcher (assets/launcher): every app, opened with a click, and new ones
-  ./affrescoui_launcher <screen.json>   one template, e.g. assets/flow/json/index.screen.json (the Kanban board)
+  ./affrescoui_launcher <screen.json>   one template, e.g. assets/flow/lisp/index.screen.lisp (the Kanban board)
   ./affrescoui help                 the command-line tool: check, render, fmt, ids, run, export, import
 
 The MCP server for AI agents is in this release (the .whl file): pipx install ./affrescoui_mcp-<version>-py3-none-any.whl, then

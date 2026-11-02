@@ -24,14 +24,14 @@ struct JudgedChange {
 	const Roles& roles;         ///< Who plays which role.
 };
 
-/// @brief The first rule of a list that covers a change's author and something the change alters.
+/// @brief The first rule of a list that covers a change's author and something the change alters, or runs there.
 /// @param rules The rules, in order.
 /// @param change The change.
 /// @return The rule, or nullptr.
 const PermissionRule* firstCovering(const std::vector<PermissionRule>& rules, const JudgedChange& change) {
 	const auto it = std::ranges::find_if(rules, [&](const PermissionRule& rule) {
 		return ruleCovers(rule.author, change.author, change.roles) &&
-		       detail::changes(change.rules, change.before, change.after, rule.pattern);
+		       detail::reaches(change.rules, change.before, change.after, rule.pattern);
 	});
 	return it == rules.end() ? nullptr : &*it;
 }

@@ -4,7 +4,7 @@ Sinopia is a presentation editor. This matrix lists what a daily user of such an
 expects, and how far Sinopia goes: **done** (works as expected), **partial** (there, with less) or **missing**.
 *Start* is Sinopia as a C++ app; *Now* is Sinopia as a folder of JSON that the stock host runs,
 with its slide show, presenter view, audience window and files on library capabilities (the `windows` section,
-`saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](json/index.scenarios.json)
+`saveFile`, `openFile`, `export`, snapshots). Evidence names a scenario of [`index.scenarios.json`](lisp/index.scenarios.json)
 (without its `sinopia-` prefix), or a frame of `tests/render/scenarios/sinopia.json`, that shows it.
 
 | Area | Feature | Start | Now | Evidence |
@@ -181,7 +181,7 @@ a daily user meets it, **P2** occasionally, **P3** rarely.
 | P3 | Shell: search that runs commands (the rest of the commands) | JSON: the commands listed from the menus as well as the 33 named ones |
 | P3 | Shell: ribbon galleries (transitions and builds as galleries) | JSON: the transitions and builds as galleries, like shapes and themes |
 | P3 | Shell: collapse the ribbon (a tab shows it over the slide) | JSON: the ribbon as an overlay while collapsed |
-| P3 | Shapes: the whole gallery (all stars, callouts and arrows) | JSON: more presets in `parts/geometry.json` |
+| P3 | Shapes: the whole gallery (all stars, callouts and arrows) | Lisp: more presets in `parts/geometry.lisp` |
 | P3 | Shapes and format pane: effects (soft edges, blurred shadows) | Library: blur on path nodes' shadows and edges |
 | P3 | Arrange: distance indicators | JSON: equal-gap hints while dragging |
 | P3 | Arrange: rename in the selection pane | JSON: an editor in the row on a double click |

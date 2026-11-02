@@ -1,15 +1,20 @@
 # Orrery: a small planetarium
 
 Orrery shows a few planets going round a sun, in a 3D view and on a sky chart. It
-is one screen document, `index.screen.json` (with the sky from the ground in `sky.json`, which it includes), with no
-code of its own: the standard host runs it.
+is one screen document, `lisp/index.screen.lisp` (with the sky from the ground in `sky.lisp`, which it includes), and a
+program, `lisp/orrery.lisp`, with no C++ of its own: the standard host runs it.
+
+**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because it has behaviour: the camera's
+flights (Go to, Centre and Follow share one take-off and one landing), bodies moved in the graph, notes, bookmarks and the
+eclipse finder. The one-step actions (the toggles, the time controls) stay data in the screen. `lisp/` is its only source,
+with no `json/` beside it, and `tools/notation/lisp_examples.py` leaves it alone.
 
 It was built by an outsider to the library, as a test of the public documentation. They had only `README.md`,
 `SCREEN_FORMAT.md`, `VERSION_CONTROL.md`, the public headers (`modules/*/include/`), the other examples, the
 `affrescoui` tool and `mcp/`. It is an example, not part of the library.
 
 ```
-./build/affrescoui_launcher examples/orrery/json/index.screen.json [--socket DIR] [--data DIR]
+./build/affrescoui_launcher examples/orrery/lisp/index.screen.lisp [--socket DIR] [--data DIR]
 ```
 
 The host listens for the person's client and an agent in `DIR` (`studio.sock`, `agent.sock`). Its permissions
@@ -25,7 +30,7 @@ can give.
 | Sky chart | The sky from the ground, from the Earth at 45°N: the stars, the planets, the Sun and fourteen invented constellations over a low landscape and the cardinal points. Drag to look round and scroll to zoom; by day the sky brightens and the stars fade. Going to an eclipse turns the view to the Sun or the Moon, and a solar eclipse darkens the sky. The bar at the bottom centres the selected body, and shows or hides the constellation lines and names, the grid, the ground, the cardinal points, the atmosphere and the labels. A click selects a planet, and its azimuth, altitude, right ascension and declination are top left. From above, it is a `canvas` with stars, orbits and bodies, and you draw annotations on it: the note button adds a note with the text in the box above in the middle of the view, and the crosshair button circles the selected body and labels it with the day. The selected body's name and orbit are top left. Notes can be moved and resized. Delete removes the selected notes, and the bin button removes them all. |
 | Orbit graph | A `graph` of what orbits what. Each body's `orbits` input is linked to its parent's `satellites` output. Drag a link to another body to move a body there, or cut a link and the body orbits the Sun. A click selects the body. |
 | Events timeline | A `timeline` of the next 420 days: eclipses, inferior conjunctions and an opposition, one second per day. Scrubbing moves the playhead, and the planets with it. Click an event to jump to it. M by a track mutes that kind of event, and L locks it, so its events no longer answer a click. Play (`mod+p`), next event (`mod+n`) and back to day 0 (`mod+0`) are in the toolbar. |
-| Bodies strip | Sinopia's slide sorter (`examples/sinopia/json/features/slide-sorter`), installed from that app (see below). Click a body to select it everywhere. Drag to reorder the bodies, and duplicate adds a twin on the same orbit, half a turn away. |
+| Bodies strip | Sinopia's slide sorter (`examples/sinopia/lisp/features/slide-sorter`), installed from that app (see below). Click a body to select it everywhere. Drag to reorder the bodies, and duplicate adds a twin on the same orbit, half a turn away. |
 
 The 3D view, the chart's items, the graph's nodes and links and the timeline's tracks are all computed values,
 worked out from the same `state.bodies` and `state.time` (in days). The orbits are circles in one plane, with an
@@ -40,9 +45,9 @@ Orrery's file declares what it offers to parts written for other apps:
   And the actions `bodies.reorder`, `bodies.select` and `bodies.clone`.
 - **Point:** `bodies.dock`, a `dock` slot, which is the strip under the timeline.
 
-`affrescoui contributions examples/orrery/json/index.screen.json` lists them.
+`affrescoui contributions examples/orrery/lisp/index.screen.lisp` lists them.
 
-`orrery-sorter.adapter.json` binds the slide sorter's needs to those exports:
+`orrery-sorter.adapter.lisp` binds the slide sorter's needs to those exports:
 
 | The sorter's need | Orrery's export |
 |---|---|
@@ -55,8 +60,8 @@ Orrery's file declares what it offers to parts written for other apps:
 The proof:
 
 ```
-./build/affrescoui check --compose examples/orrery/json/index.screen.json examples/sinopia/json/features/slide-sorter \
-    --adapter examples/orrery/json/orrery-sorter.adapter.json --revision install.json
+./build/affrescoui check --compose examples/orrery/lisp/index.screen.lisp examples/sinopia/lisp/features/slide-sorter \
+    --adapter examples/orrery/lisp/orrery-sorter.adapter.lisp --revision install.json
 ```
 
 The proof plays the feature's scenarios and Orrery's own. Its revision is the install record that the shipped
@@ -78,8 +83,8 @@ need gets those names.
   `index.scenarios.json` before the strip is installed.
 
 ```
-./build/affrescoui test examples/orrery/json/index.scenarios.json examples/orrery/json/controls.scenarios.json examples/orrery/json/bodies-strip.scenarios.json
-python3 examples/orrery/json/e2e_test.py build    # or: ctest --test-dir build -R mcp_orrery
+./build/affrescoui test examples/orrery/lisp/index.scenarios.json examples/orrery/lisp/controls.scenarios.json examples/orrery/lisp/bodies-strip.scenarios.json
+python3 examples/orrery/lisp/e2e_test.py build    # or: ctest --test-dir build -R mcp_orrery
 ```
 
 `e2e_test.py` tests the whole agent loop:

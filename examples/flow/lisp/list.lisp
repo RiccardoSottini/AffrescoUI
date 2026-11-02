@@ -1,4 +1,4 @@
-{:note "Flow's list view, included by index.screen.json: every card in one list, grouped by column, a row each."
+{:note "Flow's list view, included by index.screen.lisp: every card in one list, grouped by column, a row each."
  :components {:listView {:note "The cards grouped by column: a header with the column's name and count, then a row a card"
                          :params {}
                          :node (column#list :scroll vertical :radius @radius.card :color @color.surface :role list

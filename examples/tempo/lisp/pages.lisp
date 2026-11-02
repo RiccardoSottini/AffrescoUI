@@ -42,41 +42,6 @@
             :barHeights "{{map(range(32), clamp(0.04 + (computed.spectrum[index] ?? 0) * computed.fade * (state.eqOn ? curve(state.eq, index / 31) * 2 : 1), 0.04, 1))}}"
             :bars "{{join(map(computed.barHeights, 'M ' + (index * 10 + 2) + ' ' + (84 - it * 80) + ' h 6 V 84 h -6 Z'), ' ')}}"
             :barReflections "{{join(map(computed.barHeights, 'M ' + (index * 10 + 2) + ' 86 h 6 V ' + (86 + it * 28) + ' h -6 Z'), ' ')}}"}
- :actions {:openCollection [{:note "with: kind ('album' or 'artist'), name"}
-                            {:set state.collection :to {:kind "{{kind}}" :name "{{name}}"}}
-                            {:set state.collectionPick :to nil}
-                            {:set state.page :to collection}
-                            {:focus "#collectionTable"}]
-           :playFromCollection [{:note "A row of the album or artist opened: the songs after it in the table come next"}
-                                {:run startList
-                                 :with {:list -1
-                                        :track "{{number(event.id ?? event.value)}}"
-                                        :source "{{state.collection.name}}"
-                                        :rest "{{map(slice(computed.collectionRows, indexOf(map(computed.collectionRows, it.id), event.id ?? event.value) + 1, indexOf(map(computed.collectionRows, it.id), event.id ?? event.value) + 51), '-1:' + it.id)}}"}}]
-           :playCollection [{:if "{{length(computed.collectionRows) == 0}}" :then [{:stop true}]}
-                            {:run startList
-                             :with {:list -1
-                                    :track "{{number(computed.collectionRows[0].id)}}"
-                                    :source "{{state.collection.name}}"
-                                    :rest "{{map(slice(computed.collectionRows, 1, 51), '-1:' + it.id)}}"}}]
-           :playFromSearch [{:note "A search result opened: the results after it come next"}
-                            {:run startList
-                             :with {:list -1
-                                    :track "{{number(event.id ?? event.value)}}"
-                                    :source ""
-                                    :rest "{{map(slice(computed.searchRows, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 1, indexOf(map(computed.searchRows, it.id), event.id ?? event.value) + 51), '-1:' + it.id)}}"}}]
-           :playLiked [{:note "with: key, a liked song: it plays, and the liked songs after it come next"}
-                       {:run playLikedAt :with {:at "{{indexOf(map(computed.likedSongs, it.id), key)}}"}}]
-           :playLikedAt [{:note "with: at, the liked song's place in computed.likedSongs (-1: none)"}
-                         {:if "{{at < 0}}" :then [{:stop true}]}
-                         {:run startList
-                          :with {:list "{{computed.likedSongs[at].list}}"
-                                 :track "{{computed.likedSongs[at].track}}"
-                                 :source "{{t('liked.title')}}"
-                                 :rest "{{map(slice(computed.likedSongs, at + 1, at + 51), it.id)}}"}}]
-           :setPreset [{:note "with: preset, a key of state.presets"}
-                       {:set state.eq :to {:points "{{state.presets[preset]}}"}}
-                       {:set state.eqOn :to true}]}
  :components {:browsePage {:note "Albums or artists (state.page) as tiles in a grid; a tile opens its songs"
                            :params {}
                            :node (node :dir auto :color transparent

@@ -1,8 +1,8 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
  :format affrescoui-screen
  :version 2
- :include [sky.lisp "../../shared/addons/assistant/assistant.lisp"]
- :note "Orrery, a small planetarium, all in this file and the sky from the ground in sky.json: the 3D view is a scene node bound to computed values, and each body's thumbnail is a node drawn into the image body:<id> (snapshot). The bodies strip at the bottom is Sinopia's slide sorter, installed through the bodies.dock point and orrery-sorter.adapter.json."
+ :include [sky.lisp orrery.lisp "../../shared/addons/assistant/assistant.lisp"]
+ :note "Orrery, a small planetarium, all in this file and the sky from the ground in sky.lisp and what it does in orrery.lisp: the 3D view is a scene node bound to computed values, and each body's thumbnail is a node drawn into the image body:<id> (snapshot). The bodies strip at the bottom is Sinopia's slide sorter, installed through the bodies.dock point and orrery-sorter.adapter.lisp."
  :window {:title "Orrery"
           :width 1280
           :height 860
@@ -324,134 +324,18 @@
                     :hover {:color @border}
                     :focused {:borderWidth 2 :borderColor @accent})
           :heading (label :height 26 :padding 6 :textColor @muted :font small)}
- :actions {:selectBody [{:set state.selected :to "{{args.id}}"}]
-           :reorderBody [{:if "{{args.id != args.onto && contains(computed.ids, args.id) && contains(computed.ids, args.onto)}}"
-                          :then [{:set state.bodies
-                                  :to "{{concat(slice(filter(state.bodies, it.id != args.id), 0, indexOf(computed.ids, args.onto)), [find(state.bodies, it.id == args.id)], slice(filter(state.bodies, it.id != args.id), indexOf(computed.ids, args.onto)))}}"}]}]
-           :cloneBody [{:if "{{(find(state.bodies, it.id == args.id).parent ?? '') != ''}}"
-                        :then [{:push state.bodies
-                                :value "{{merge(find(state.bodies, it.id == args.id), {id: args.id + '-' + state.nextId, name: find(state.bodies, it.id == args.id).name + ' ' + state.nextId, phase: (find(state.bodies, it.id == args.id).phase + 0.5) % 1, look: find(state.bodies, it.id == args.id).look ?? args.id, gx: (find(state.bodies, it.id == args.id).gx ?? 400) + 24, gy: (find(state.bodies, it.id == args.id).gy ?? 20) + 24})}}"}
-                               {:set state.selected :to "{{args.id + '-' + state.nextId}}"}
-                               {:increment state.nextId :by 1}]}]
-           :togglePlay [{:toggle state.playing}]
-           :nextEvent [{:if "{{computed.goal}}"
-                        :then [{:set state.playing :to false}
-                               {:animate state.time :to "{{computed.goal.time}}" :ms 600 :easing inOut}]}]
+ :actions {:togglePlay [{:toggle state.playing}]
            :rewind [{:set state.playing :to false} {:set state.time :to 0}]
            :tick [{:if "{{state.playing}}"
                    :then [{:set state.time :to "{{clamp(state.time + state.speed, 0, state.duration)}}"}
                           {:if "{{(state.speed < 0 && state.time <= 0) || (state.speed > 0 && state.time >= state.duration)}}"
                            :then [{:set state.playing :to false}]}]}]
-           :addNote [{:push state.notes
-                      :value "{{ {id: 'note-' + state.nextId, x: round(state.chart.camera.x + 230 / state.chart.camera.zoom - 50), y: round(state.chart.camera.y + 150 / state.chart.camera.zoom - 11), width: 100, height: 22, radius: 4, color: '@note', text: state.draft || 'Note', textSize: 10, textColor: '#1d2026'} }}"}
-                     {:increment state.nextId :by 1}
-                     {:set state.draft :to ""}]
-           :markSelected [{:if "{{computed.selectedPosition}}"
-                           :then [{:push state.notes
-                                   :value "{{ {id: 'mark-' + state.nextId, x: round(computed.selectedPosition.x * 22 - 16), y: round(computed.selectedPosition.z * 22 - 16), width: 32, height: 32, radius: 16, color: 'transparent', borderColor: '@mark', borderWidth: 2, text: ''} }}"}
-                                  {:push state.notes
-                                   :value "{{ {id: 'note-' + state.nextId, x: round(computed.selectedPosition.x * 22 + 18), y: round(computed.selectedPosition.z * 22 - 26), width: 130, height: 20, radius: 4, color: '@note', text: computed.selectedBody.name + ', day ' + round(state.time), textSize: 10, textColor: '#1d2026'} }}"}
-                                  {:increment state.nextId :by 1}]}]
-           :moveNotes [{:forEach "{{event.items}}"
-                        :as moved
-                        :do [{:set state.notes
-                              :to "{{map(state.notes, it.id == moved.id ? merge(it, {x: moved.x, y: moved.y, width: moved.width, height: moved.height}) : it)}}"}]}]
            :deleteNotes [{:set state.notes :to "{{filter(state.notes, !contains(state.chart.selection, it.id))}}"}]
            :clearNotes [{:set state.notes :to []}]
-           :moveGraphNodes [{:forEach "{{event.nodes}}"
-                             :as n
-                             :do [{:set state.bodies
-                                   :to "{{map(state.bodies, it.id == n.id ? merge(it, {gx: n.x, gy: n.y}) : it)}}"}]}]
-           :reparent [{:if "{{indexOf(computed.ids, event.from) >= 0 && indexOf(computed.ids, event.to) >= 0 && event.from != event.to && indexOf([computed.up1[indexOf(computed.ids, event.from)], computed.up2[indexOf(computed.ids, event.from)], computed.up3[indexOf(computed.ids, event.from)]], indexOf(computed.ids, event.to)) < 0 && computed.depth[indexOf(computed.ids, event.from)] + 1 + computed.below[indexOf(computed.ids, event.to)] <= 3}}"
-                       :then [{:set state.bodies
-                               :to "{{map(state.bodies, it.id == event.to ? merge(it, {parent: event.from, home: it.home ?? it.radius, radius: event.from == 'sun' ? it.home ?? it.radius : 0.65 + 0.35 * length(filter(state.bodies, it.parent == event.from))}) : it)}}"}]}]
-           :orbitAround [{:if "{{indexOf(computed.ids, event.to) > 0 && (find(state.bodies, it.id == event.to).parent ?? '') != 'sun' && 1 + computed.below[indexOf(computed.ids, event.to)] <= 3}}"
-                          :then [{:set state.bodies
-                                  :to "{{map(state.bodies, it.id == event.to ? merge(it, {parent: 'sun', radius: it.home ?? it.radius}) : it)}}"}]}]
            :viewPress [{:set state.grab :to "{{state.camera}}"}]
-           :viewDrag [{:if "{{state.grab}}"
-                       :then [{:set state.camera
-                               :to "{{merge(state.camera, {yaw: state.grab.yaw - event.dx * 0.008, pitch: clamp(state.grab.pitch + event.dy * 0.006, 0.05, 1.5)})}}"}]}]
            :viewRelease [{:set state.grab :to nil}]
-           :viewScroll [{:set state.camera
-                         :to "{{merge(state.camera, {distance: clamp(state.camera.distance * (1 + event.dy * 0.06), 0.5, 40)})}}"}
-                        {:animate state.camera.distance :to "{{state.camera.distance}}" :ms 1}]
-           :faster [{:set state.speed
-                     :to "{{state.speed < 0 ? max(state.speed * 10, -10) : min(state.speed * 10, 10)}}"}]
-           :slower [{:set state.speed
-                     :to "{{state.speed < 0 ? min(state.speed / 10, -0.000000578704) : max(state.speed / 10, 0.000000578704)}}"}]
            :reverse [{:set state.speed :to "{{-state.speed}}"}]
-           :realTime {:title "Real time"
-                      :icon timer
-                      :do [{:set state.speed :to "{{state.speed < 0 ? -0.000000578704 : 0.000000578704}}"}
-                           {:set state.playing :to true}]}
            :now [{:set state.time :to 0} {:set state.speed :to 0.01}]
-           :goTo {:title "Go to the selected body"
-                  :icon rocket
-                  :do [{:if "{{computed.selectedPosition}}"
-                        :then [{:set state.camera.tx :to "{{computed.target.x}}"}
-                               {:set state.camera.tz :to "{{computed.target.z}}"}
-                               {:set state.follow :to ""}
-                               {:set state.flying :to ""}
-                               {:set state.fly :to 0}
-                               {:set state.flying :to "{{state.selected}}"}
-                               {:increment state.flights :by 1}
-                               {:animate state.fly :to 1 :ms 900 :easing inOut}
-                               {:animate state.camera.distance
-                                :to "{{max(computed.selectedBody.size * 8, 1.5)}}"
-                                :ms 900
-                                :easing inOut}
-                               {:after 950
-                                :do [{:increment state.landed :by 1}
-                                     {:if "{{state.landed == state.flights && computed.flyPosition}}"
-                                      :then [{:set state.camera.tx :to "{{computed.flyPosition.x}}"}
-                                             {:set state.camera.tz :to "{{computed.flyPosition.z}}"}
-                                             {:set state.fly :to 0}
-                                             {:set state.follow :to "{{state.flying}}"}
-                                             {:set state.flying :to ""}]}]}]}]}
-           :centre {:title "Centre the selected body"
-                    :icon crosshair
-                    :do [{:if "{{computed.selectedPosition}}"
-                          :then [{:set state.camera.tx :to "{{computed.target.x}}"}
-                                 {:set state.camera.tz :to "{{computed.target.z}}"}
-                                 {:set state.follow :to ""}
-                                 {:set state.flying :to ""}
-                                 {:set state.fly :to 0}
-                                 {:set state.flying :to "{{state.selected}}"}
-                                 {:increment state.flights :by 1}
-                                 {:animate state.fly :to 1 :ms 500 :easing inOut}
-                                 {:after 550
-                                  :do [{:increment state.landed :by 1}
-                                       {:if "{{state.landed == state.flights && computed.flyPosition}}"
-                                        :then [{:set state.camera.tx :to "{{computed.flyPosition.x}}"}
-                                               {:set state.camera.tz :to "{{computed.flyPosition.z}}"}
-                                               {:set state.fly :to 0}
-                                               {:set state.flying :to ""}]}]}]}]}
-           :follow {:title "Follow the selected body"
-                    :icon locate-fixed
-                    :do [{:if "{{state.follow != '' && state.follow == state.selected}}"
-                          :then [{:set state.camera.tx :to "{{computed.target.x}}"}
-                                 {:set state.camera.tz :to "{{computed.target.z}}"}
-                                 {:set state.follow :to ""}
-                                 {:set state.flying :to ""}
-                                 {:set state.fly :to 0}]
-                          :else [{:if "{{computed.selectedPosition}}"
-                                  :then [{:set state.camera.tx :to "{{computed.target.x}}"}
-                                         {:set state.camera.tz :to "{{computed.target.z}}"}
-                                         {:set state.follow :to ""}
-                                         {:set state.flying :to ""}
-                                         {:set state.fly :to 0}
-                                         {:set state.flying :to "{{state.selected}}"}
-                                         {:increment state.flights :by 1}
-                                         {:animate state.fly :to 1 :ms 500 :easing inOut}
-                                         {:after 550
-                                          :do [{:increment state.landed :by 1}
-                                               {:if "{{state.landed == state.flights && computed.flyPosition}}"
-                                                :then [{:set state.camera.tx :to "{{computed.flyPosition.x}}"}
-                                                       {:set state.camera.tz :to "{{computed.flyPosition.z}}"}
-                                                       {:set state.fly :to 0}
-                                                       {:set state.follow :to "{{state.flying}}"}
-                                                       {:set state.flying :to ""}]}]}]}]}]}
            :toggleOrbits {:title "Show orbits" :icon orbit :do [{:toggle state.showOrbits}]}
            :toggleLabels {:title "Show labels" :icon tag :do [{:toggle state.showLabels}]}
            :toggleStars {:title "Show stars" :icon sparkles :do [{:toggle state.showStars}]}
@@ -473,64 +357,11 @@
            :brighter {:title "Show only brighter stars"
                       :icon star
                       :do [{:set state.limitMag :to "{{max(state.limitMag - 0.5, 1)}}"}]}
-           :toggleMarker {:title "Mark the selected body"
-                          :icon crosshair
-                          :do [{:if "{{indexOf(state.markers, state.selected) >= 0 || indexOf(computed.ids, state.selected) < 0}}"
-                                :then [{:set state.markers :to "{{filter(state.markers, it != state.selected)}}"}]
-                                :else [{:push state.markers :value "{{state.selected}}"}]}]}
            :toggleBrowser {:title "Show the browser" :icon list-tree :do [{:toggle state.showBrowser}]}
            :openEclipses {:title "Eclipse finder"
                           :icon moon
                           :do [{:set state.showBrowser :to true} {:set state.browserTab :to eclipses}]}
-           :addBookmark {:title "Bookmark this view"
-                         :icon bookmark-plus
-                         :do [{:set state.bookmarks
-                               :to "{{concat(state.bookmarks, [{id: 'place-' + state.nextPlace, label: (computed.selectedBody ? computed.selectedBody.name : 'Space') + ', day ' + floor(state.time), camera: merge(state.camera, {tx: computed.target.x, tz: computed.target.z}), follow: state.follow, selected: state.selected, time: state.time, zoom: state.zoom}])}}"}
-                              {:set state.bookmark :to "{{'place-' + state.nextPlace}}"}
-                              {:increment state.nextPlace :by 1}
-                              {:set state.browserTab :to places}
-                              {:set state.showBrowser :to true}]}
-           :goToBookmark [{:if "{{find(state.bookmarks, it.id == event.value)}}"
-                           :then [{:increment state.flights :by 1}
-                                  {:animate state.fly :to 0 :ms 1}
-                                  {:set state.camera.tx :to "{{computed.target.x}}"}
-                                  {:set state.camera.tz :to "{{computed.target.z}}"}
-                                  {:set state.follow :to ""}
-                                  {:set state.flying :to ""}
-                                  {:set state.fly :to 0}
-                                  {:set state.bookmark :to "{{event.value}}"}
-                                  {:set state.playing :to false}
-                                  {:set state.selected :to "{{find(state.bookmarks, it.id == event.value).selected}}"}
-                                  {:set state.camera :to "{{find(state.bookmarks, it.id == event.value).camera}}"}
-                                  {:set state.time
-                                   :to "{{find(state.bookmarks, it.id == event.value).time ?? state.time}}"}
-                                  {:set state.zoom
-                                   :to "{{find(state.bookmarks, it.id == event.value).zoom ?? state.zoom}}"}
-                                  {:set state.follow :to "{{find(state.bookmarks, it.id == event.value).follow}}"}
-                                  {:animate state.camera.distance :to "{{state.camera.distance}}" :ms 1}]}]
-           :deleteBookmark {:title "Delete the bookmark"
-                            :icon trash-2
-                            :do [{:if "{{find(state.bookmarks, it.id == state.bookmark)}}"
-                                  :then [{:set state.bookmarks
-                                          :to "{{filter(state.bookmarks, it.id != state.bookmark)}}"}
-                                         {:set state.bookmark
-                                          :to "{{length(state.bookmarks) > 0 ? state.bookmarks[length(state.bookmarks) - 1].id : ''}}"}]}]}
-           :syncScene [{:set state.sceneView :to "{{computed.sceneView}}"}]
-           :goToEclipse [{:if "{{find(computed.eclipses, it.id == event.value)}}"
-                          :then [{:set state.eclipse :to "{{event.value}}"}
-                                 {:set state.playing :to false}
-                                 {:set state.selected :to "{{find(computed.eclipses, it.id == event.value).host}}"}
-                                 {:if "{{state.follow != state.selected}}" :then [{:run follow}]}
-                                 {:set state.skyTrack
-                                  :to "{{find(computed.eclipses, it.id == event.value).solar ? 'sun' : find(computed.eclipses, it.id == event.value).moon}}"}
-                                 {:animate state.time
-                                  :to "{{find(computed.eclipses, it.id == event.value).time}}"
-                                  :ms 600
-                                  :easing inOut}]}]
-           :followSelected {:title "Follow the selected body"
-                            :icon locate-fixed
-                            :do [{:if "{{state.selected != '' && state.follow != state.selected}}"
-                                  :then [{:run follow}]}]}}
+           :syncScene [{:set state.sceneView :to "{{computed.sceneView}}"}]}
  :keys {"mod+p" togglePlay
         "mod+n" nextEvent
         "mod+0" rewind

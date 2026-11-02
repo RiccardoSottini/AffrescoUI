@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes the steps an action runs, as a document or a revision may write them, on the Kanban template's
+/// @brief Fuzzes the steps an action runs, as a document or a revision may write them, on the JSON template's
 /// state and actions: loops, nested actions, expressions, state writes.
 ///
 /// Besides not crashing, every event must stop within its work budget (SECURITY.md, "Limits"): the run's -timeout
@@ -29,7 +29,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	if(steps.is_discarded()) return 0;
 
 	// The template without its fonts, which are read from files next to it: a runtime with no window needs none
-	json document = affresco::fuzz::kanbanTemplate();
+	json document = affresco::fuzz::jsonTemplate();
 	document.erase("fonts");
 	document["actions"]["fuzz"] = steps;
 	static const affresco::format::Rules rules;
