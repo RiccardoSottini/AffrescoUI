@@ -81,10 +81,11 @@ TEST_CASE("lisp attack: what a value's size makes slow costs its size") {
 	for(int key = 0; key < 100000; ++key) object[std::to_string(key)] = key;
 	const lisp::Value viewed = interpreter.viewJson(std::make_shared<const json>(std::move(object)));
 	const std::size_t before = interpreter.budget().operations;
-	const std::optional<lisp::Value> get = interpreter.global("get");
-	REQUIRE(get.has_value());
+	const std::optional<lisp::Value> found = interpreter.global("get");
+	REQUIRE(found.has_value());
+	const lisp::Value get = found.value_or(lisp::Value());
 	const std::vector<lisp::Value> arguments = {viewed, interpreter.makeString("nothing-here")};
-	static_cast<void>(interpreter.call(*get, arguments));
+	static_cast<void>(interpreter.call(get, arguments));
 	CHECK(before - interpreter.budget().operations >= atLeast);
 }
 
