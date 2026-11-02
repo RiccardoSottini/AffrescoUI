@@ -50,13 +50,16 @@ bool renderOpenWindows(const Windows& windows) {
 }
 
 #ifndef __EMSCRIPTEN__ // the browser runs the loop, and takes no screenshots
-/// @brief How long until the first timer of any window is due.
+/// @brief How long until the first timer of any open window is due. A closed window's timers wait until it opens again
+/// (renderOpenWindows() runs none of them), so counting them would wake the loop for nothing, over and over.
 /// @param windows The windows.
-/// @return Seconds, or nothing if no window has a timer.
+/// @return Seconds, or nothing if no open window has a timer.
 std::optional<double> secondsToNextTimer(const Windows& windows) {
 	std::optional<double> wait;
-	for(const auto& window : windows)
+	for(const auto& window : windows) {
+		if(window->shouldClose()) continue;
 		if(const auto next = window->secondsToNextTimer()) wait = wait ? std::min(*wait, *next) : *next;
+	}
 	return wait;
 }
 
