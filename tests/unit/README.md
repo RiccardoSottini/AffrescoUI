@@ -37,6 +37,7 @@ job and never sleep. Only drawing needs an OpenGL context: the tests of pictures
 | `painter.cpp` | What a `Panel` asks its `Painter` to draw (shadow, rounded fill, border), and a `Painter`'s fallbacks |
 | `png.cpp` | The PNG encoder behind `render` (`modules/screen/src/Png.hpp`): each image decoded again and compared |
 | `rules.cpp` | `format::Rules::checkChange`: control steps, and the actions, handlers and `run`s that reach them |
+| `lisp_runtime.cpp` | A document's live program: handlers and bindings calling functions, reloads, limits, and the attacks on the checks by author, one per route (with the revision's scan off, so the check at run time holds by itself) |
 | `rules_sections.cpp` | `format::Rules` on the capability sections (`permissions`, `channels`, `persist`, `include`): `validate` and `checkChange`, as tables |
 | `sockets.cpp` | `channel::SocketServer` and `SocketChannel` over a real local socket in a temporary folder: lines both ways, a peer going away, the file's owner-only access, a busy or stale socket file |
 | `screen.cpp` | `Screen`'s paths: the default socket directory, where `persist` state is read from; the nesting limit on screen files |

@@ -87,7 +87,8 @@ std::string readFile(const std::filesystem::path& path) {
 }
 
 json appDocument(const std::filesystem::path& folder) {
-	if(!std::filesystem::exists(folder / "app.json")) { // its index.screen.json, or one named after its folder
+	if(!std::filesystem::exists(folder / "app.json") && !std::filesystem::exists(folder / "app.lisp")) {
+		// its index.screen.json, or one named after its folder
 		const std::filesystem::path index = folder / "index.screen.json";
 		return json::parse(
 		    readFile(std::filesystem::exists(index) ? index : folder / (folder.filename().string() + ".screen.json")));
@@ -446,14 +447,9 @@ std::vector<Workload> frameWorkloads(Context& context) {
 } // namespace
 
 std::vector<Group> screenGroups() {
-	return {{"load", loadWorkloads},
-	        {"build", buildWorkloads},
-	        {"update", updateWorkloads},
-	        {"revision", revisionWorkloads},
-	        {"layout", layoutWorkloads},
-	        {"frame", frameWorkloads},
-	        {"editor", editorWorkloads},
-	        {"forge", forgeWorkloads},
+	return {{"load", loadWorkloads},         {"build", buildWorkloads},   {"update", updateWorkloads},
+	        {"revision", revisionWorkloads}, {"layout", layoutWorkloads}, {"frame", frameWorkloads},
+	        {"editor", editorWorkloads},     {"forge", forgeWorkloads},   {"lisp", lispWorkloads},
 	        {"budgets", budgetWorkloads}};
 }
 

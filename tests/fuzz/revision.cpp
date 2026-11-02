@@ -1,6 +1,7 @@
 /// @file
 /// @brief Fuzzes a revision submitted to a vcs::Repository loaded with the Kanban template, as a peer's "revision"
-/// message is: compact edits or JSON Patch, judged by the template's permission rules.
+/// message is: compact edits or JSON Patch, judged by the template's permission rules; and the same revision on a
+/// document that holds a program, whose every edit is built.
 ///
 /// Besides not crashing, the rules VERSION_CONTROL.md promises must hold:
 /// - a revision that isn't applied changes nothing (revisions are atomic);
@@ -9,6 +10,7 @@
 #include "Fuzz.hpp"
 
 #include <affresco/format/Rules.hpp>
+#include <affresco/lisp/Document.hpp>
 #include <affresco/vcs/Repository.hpp>
 
 #include <cstddef>
@@ -67,6 +69,42 @@ void checkRevert(affresco::vcs::Repository& repository, const Snapshot& before) 
 	if(!Snapshot(repository).sameValues(before)) affresco::fuzz::broken("reverting a commit restores what it changed");
 }
 
+/// A program with something of each kind of definition, for the revisions on `/program/...`.
+constexpr const char* kProgram = R"lisp(
+(defn save "Reaches outside." [] (call "x"))
+(defn helper "Only a function." [n] (inc n))
+(def rooms "A value." [1 2])
+(defmacro twice "A macro." [x] `(do ~x ~x))
+(defcommand go "A command." :title "Go" [] (helper 1))
+(defcustom size 3 "A setting." :type integer)
+(defkey "mod+g" go)
+(add-hook after-go helper)
+(defscreen main :state {:n 1} :permissions {:allow ["studio"] :reviewers ["studio"]} (column#list (label#a :text "A")))
+)lisp";
+
+/// @brief Submits a revision to a repository, and checks what VERSION_CONTROL.md promises of it.
+/// @param repository The repository, which it changes.
+/// @param revision The revision.
+void judge(affresco::vcs::Repository& repository, const json& revision) {
+	const Snapshot before(repository);
+	const affresco::RevisionResult result = submit(repository, revision);
+
+	if(result.status != RevisionStatus::Applied) {
+		const Snapshot after(repository);
+		if(after.document != before.document || after.state != before.state || after.head != before.head)
+			affresco::fuzz::broken("a revision that isn't applied changes nothing");
+	}
+	if(result.status == RevisionStatus::Proposed) {
+		static_cast<void>(repository.proposalDiff(result.proposal));
+		if(repository.accept(result.proposal, {"studio", result.commit, false})) return; // e.g. its own author
+	}
+	if(result.status != RevisionStatus::Rejected) {
+		static_cast<void>(repository.diff(0, "HEAD"));
+		static_cast<void>(repository.programAuthors());
+		checkRevert(repository, before);
+	}
+}
+
 } // namespace
 
 /// @brief Silences the log before the first input.
@@ -89,22 +127,13 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	}
 
 	static const affresco::format::Rules rules;
-	affresco::vcs::Repository repository(rules, affresco::fuzz::kanbanTemplate()); // a new one: inputs don't add up
-	const Snapshot before(repository);
-	const affresco::RevisionResult result = submit(repository, revision);
-
-	if(result.status != RevisionStatus::Applied) {
-		const Snapshot after(repository);
-		if(after.document != before.document || after.state != before.state || after.head != before.head)
-			affresco::fuzz::broken("a revision that isn't applied changes nothing");
+	// A new one each time: inputs don't add up. An edit of a program is judged on the program alone, which costs far
+	// less
+	if(!affresco::fuzz::text(data, size).contains("/program")) {
+		affresco::vcs::Repository repository(rules, affresco::fuzz::kanbanTemplate());
+		judge(repository, revision);
 	}
-	if(result.status == RevisionStatus::Proposed) {
-		static_cast<void>(repository.proposalDiff(result.proposal));
-		if(repository.accept(result.proposal, {"studio", result.commit, false})) return 0; // e.g. its own author
-	}
-	if(result.status != RevisionStatus::Rejected) {
-		static_cast<void>(repository.diff(0, "HEAD"));
-		checkRevert(repository, before);
-	}
+	affresco::vcs::Repository program(rules, affresco::lisp::sourceDocument(kProgram, "app.lisp"));
+	judge(program, revision);
 	return 0;
 }

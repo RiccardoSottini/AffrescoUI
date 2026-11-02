@@ -1,9 +1,9 @@
 {
-	"note": "The shipped templates: each one's name and its JSON folder in examples/, which holds its index.screen.json. The tests, the tools, the web build and the release archive read this list.",
+	"note": "The shipped templates: each one's name and its folder in examples/, which holds its index.screen.json (index.screen.lisp for an app written as a program, whose lisp folder is its source). The tests, the tools, the web build and the release archive read this list.",
 	"templates": {
 		"calamaio": "calamaio/json",
 		"code-editor": "code-editor/json",
-		"habit-tracker": "streak/json",
+		"habit-tracker": "streak/lisp",
 		"kanban": "flow/json",
 		"launcher": "launcher/json",
 		"music-player": "tempo/json",

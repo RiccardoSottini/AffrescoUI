@@ -601,8 +601,8 @@ TEST_CASE("lisp: a program builds the format's sections, whatever the order of i
 			{"type": "panel", "id": "room-b", "children": [{"type": "label", "text": "Hall"}]}]},
 		"screens": {"extra": {"type": "panel", "id": "extra"}},
 		"actions": {
-			"another": {"title": "Another", "do": []},
-			"toggle": {"title": "Toggle", "category": "View", "description": "Toggles it.", "do": []}},
+			"another": {"title": "Another", "do": [{"lisp": "another"}]},
+			"toggle": {"title": "Toggle", "category": "View", "description": "Toggles it.", "do": [{"lisp": "toggle"}]}},
 		"keys": {"mod+b": "toggle", "mod+n": {"run": "another"}},
 		"settings": {"list-size": {"type": "integer", "default": 60, "minimum": 1, "description": "How many."}}
 	})");
@@ -708,7 +708,7 @@ TEST_CASE("lisp: building is pure") {
 	CHECK(ran);
 
 	// A function body that isn't called doesn't run; one that is can't reach what isn't there
-	CHECK(buildError("(defn f [] (kill))\n(defscreen main (a ~(f)))").message() == "\"kill\" is not defined");
+	CHECK(buildError("(defn f [] (kill))\n(def x (f))\n(defscreen main (a))").message() == "\"kill\" is not defined");
 	CHECK(lisp::buildText("(defn f [] (kill))\n(defscreen main (a))")["root"]["type"] == "a");
 	// The same text, again and again, the same tree
 	const std::string text = "(defmacro m [] (let [g (gensym)] `(quote ~g)))\n(defscreen main (a :x ~(str (m))))";
@@ -774,8 +774,8 @@ TEST_CASE("lisp: every example's Lisp file builds to the tree the notation's rea
 		if(entry.path().extension() != ".lisp") continue;
 		const std::string text = textOf(entry.path());
 		CAPTURE(entry.path().string());
+		if(lisp::isProgram(text)) continue; // an app written as a program: the tests of lisp_runtime.cpp
 		const json read = affresco::notation::read(text, affresco::notation::Notation::Lisp);
-		REQUIRE_FALSE(lisp::isProgram(text));
 		CHECK(lisp::buildText(text, entry.path().string()).dump() == read.dump());
 		CHECK(lisp::needsRunning(text) == std::nullopt);
 		++files;

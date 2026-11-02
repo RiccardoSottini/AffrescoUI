@@ -405,6 +405,19 @@ private:
 	/// @param id Its id.
 	/// @return It, or nullptr.
 	[[nodiscard]] const Proposal* findProposal(int id) const;
+	/// @brief Gives the first writer of a definition's text back the entries the person is credited with: a restore or
+	/// a revert by the person brings back what someone else wrote, which doesn't become theirs.
+	/// @param credited The authors: `{file: {name: author}}`.
+	void keepFirstWriters(json& credited) const;
+	/// @brief Who first wrote a definition's text on main.
+	/// @param file The file.
+	/// @param name Its address.
+	/// @param text The text.
+	/// @return The commit's author, or "file".
+	[[nodiscard]] std::string firstWriterOf(const std::string& file, const std::string& name, const json& text) const;
+	/// @brief Credits the author of the proposal shown with every definition it changes.
+	/// @param credited The authors: `{file: {name: author}}`.
+	void creditPreviewed(json& credited) const;
 	/// @brief Hashes a commit and stores it with its delta, and a snapshot if one is due (storing the same content
 	/// twice gives the same commit).
 	/// @param commit The commit, without its id, tree, delta or snapshot.

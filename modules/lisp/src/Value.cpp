@@ -229,6 +229,7 @@ Value Heap::sequence(Kind kind, std::span<const Value> items, Place place) {
 Value Heap::sequence(Kind kind, std::vector<Value>&& items, Place place) {
 	auto* storage = make<Items>(items.size() * sizeof(Value));
 	storage->values = std::move(items);
+	storage->epoch = epoch_;
 	auto* object = make<SequenceObject>();
 	object->items = storage;
 	object->size = static_cast<std::uint32_t>(storage->values.size());
@@ -256,8 +257,9 @@ Value Heap::part(const Value& from, std::size_t offset, std::size_t size) {
 Value Heap::appended(const Value& from, const Value& item) {
 	if(!from.isView()) {
 		const SequenceObject& whole = sequenceOf(from);
-		if(whole.offset + whole.size ==
-		   whole.items->values.size()) { // only values that can't see past their part share it
+		// Only values that can't see past their part share it; and a region's value goes when the region does, so it
+		// isn't put in older storage, which stays
+		if(whole.offset + whole.size == whole.items->values.size() && whole.items->epoch == epoch_) {
 			charge(sizeof(Value));
 			const_cast<Items*>(whole.items)->values.push_back(item); // NOLINT(cppcoreguidelines-pro-type-const-cast)
 			auto* object = make<SequenceObject>();

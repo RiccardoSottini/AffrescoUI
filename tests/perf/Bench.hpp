@@ -176,6 +176,11 @@ struct Group {
 /// @param context The context.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> forgeWorkloads(Context& context);
+/// @brief "lisp/...": a program's function in an event and in a binding, beside the same as steps and as an expression,
+/// and a reload when a definition changes (lisp.cpp).
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> lispWorkloads(Context& context);
 
 /// @brief The "views" group's workloads (views.cpp): a tree's 100,000-item folder opened then closed (two operations),
 /// and a 100,000-row list scrolled to a new place and drawn, on headless windows.

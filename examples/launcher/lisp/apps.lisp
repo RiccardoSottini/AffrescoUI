@@ -10,6 +10,7 @@
                      :name "Streak"
                      :tagline "A habit tracker with goals and a year heatmap"
                      :folder streak
+                     :notation lisp
                      :program host
                      :cover "../assets/covers/habit-tracker.jpg"}
                     {:id sign-in

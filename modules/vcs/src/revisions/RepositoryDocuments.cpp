@@ -170,6 +170,39 @@ bool unchangedSince(const json& head, const json& then, const std::string& part)
 	return unchanged;
 }
 
+/// @brief A definition's text in a document.
+/// @param document The document.
+/// @param file The file.
+/// @param name Its address.
+/// @return It, or nullptr.
+const json* entryIn(const json& document, const std::string& file, const std::string& name) {
+	const auto section = document.find("program");
+	if(section == document.end() || !section->is_object()) return nullptr;
+	const auto entries = section->find(file);
+	if(entries == section->end() || !entries->is_object()) return nullptr;
+	const auto text = entries->find(name);
+	return text == entries->end() ? nullptr : &*text;
+}
+
+/// @brief What an operation of a commit's delta writes at a definition, reaching it from any level above it.
+/// @param op The operation.
+/// @param file The file.
+/// @param name Its address.
+/// @return Its text, or nullptr.
+const json* writtenBy(const json& op, const std::string& file, const std::string& name) {
+	const auto value = op.find("value");
+	if(value == op.end()) return nullptr;
+	const std::vector<std::string> path = detail::segmentsOf(op.value("path", ""));
+	if(path.empty()) return entryIn(*value, file, name);
+	if(path[0] != "program") return nullptr;
+	if(path.size() == 1)
+		return value->is_object() && value->contains(file) && (*value)[file].contains(name) ? &(*value)[file][name]
+		                                                                                    : nullptr;
+	if(path[1] != file) return nullptr;
+	if(path.size() == 2) return value->is_object() && value->contains(name) ? &(*value)[name] : nullptr;
+	return path.size() == 3 && path[2] == name ? &*value : nullptr;
+}
+
 /// @brief Who last wrote each definition of a document's program, credited a commit at a time, newest first.
 class EntryAuthors {
 public:
@@ -384,7 +417,47 @@ json Repository::programAuthors() const {
 			authors.creditPath(detail::segmentsOf(op.value("path", "")), commit.author);
 	}
 	authors.creditAll("file"); // as the screen file has them
-	return authors.take();
+	json credited = authors.take();
+	keepFirstWriters(credited);
+	creditPreviewed(credited);
+	return credited;
+}
+
+// A person's restore or revert brings back what someone else wrote, and it stays theirs
+void Repository::keepFirstWriters(json& credited) const {
+	for(auto& [file, entries] : credited.items())
+		for(auto& [name, author] : entries.items()) {
+			const auto& who = author.get_ref<const std::string&>();
+			if(who != "user" && !who.starts_with("user/")) continue;
+			const json& text = mainDocument()["program"][file][name];
+			author = firstWriterOf(file, name, text);
+		}
+}
+
+std::string Repository::firstWriterOf(const std::string& file, const std::string& name, const json& text) const {
+	const json first = documentOf(objects_.at(main_.front()));
+	if(const json* held = entryIn(first, file, name); held && *held == text) return "file";
+	for(std::size_t n = 1; n < main_.size(); ++n) {
+		const Commit& commit = objects_.at(main_[n]);
+		for(const json& op : deltaOf(commit))
+			if(const json* value = writtenBy(op, file, name); value && *value == text) return commit.author;
+	}
+	return "user";
+}
+
+// What is shown is the proposal's: nothing it changed has the authority of what it replaced
+void Repository::creditPreviewed(json& credited) const {
+	if(!previewing_) return;
+	const Proposal* shown = findProposal(*previewing_);
+	const auto section = document_.find("program");
+	if(!shown || section == document_.end() || !section->is_object()) return;
+	const json& main = mainDocument();
+	for(const auto& [file, entries] : section->items()) {
+		if(!entries.is_object()) continue;
+		for(const auto& [name, text] : entries.items())
+			if(const json* before = entryIn(main, file, name); !before || *before != text)
+				credited[file][name] = shown->author;
+	}
 }
 
 } // namespace affresco::vcs

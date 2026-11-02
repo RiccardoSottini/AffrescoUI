@@ -12,6 +12,7 @@
 #include <affresco/notation/Lexer.hpp>
 
 #include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -88,14 +89,43 @@ void addSection(json& tree, const char* key, Section& section) {
 	tree[key] = std::move(object);
 }
 
-/// @brief A command's action: its options, its docstring as the description, and its steps, which stage 3 fills.
+/// @brief A command's action: its options, its docstring as the description, and the step that runs its function.
 /// @param options What it was given.
+/// @param name Its name, its function's too.
 /// @param doc Its docstring.
 /// @return The action.
-json commandAction(json options, const std::string& doc) {
+json commandAction(json options, const std::string& name, const std::string& doc) {
 	if(!doc.empty() && !options.contains("description")) options["description"] = doc;
-	if(!options.contains("do")) options["do"] = json::array();
+	if(!options.contains("do")) options["do"] = json::array({{{"lisp", name}}});
 	return options;
+}
+
+/// @brief Adds the names a piece of compiled code uses, with the functions inside it.
+/// @param code The code, or nullptr.
+/// @param names Gets them.
+void addNamesUsed(const Code* code, std::set<std::string>& names) {
+	if(!code) return;
+	std::vector<const Code*> waiting = {code};
+	while(!waiting.empty()) {
+		const Code* next = waiting.back();
+		waiting.pop_back();
+		for(const Global* global : next->globals) names.insert(global->name);
+		waiting.insert(waiting.end(), next->functions.begin(), next->functions.end());
+	}
+}
+
+/// @brief What a definition's code uses by name.
+/// @param definition The definition.
+/// @return The names, sorted.
+std::vector<std::string> namesUsedBy(const Definition& definition) {
+	std::set<std::string> names;
+	addNamesUsed(definition.data, names);
+	if(const Global* global = definition.global) {
+		addNamesUsed(global->thunk, names);
+		if(global->value.kind() == Kind::Function)
+			addNamesUsed(static_cast<const ClosureObject*>(global->value.pointer())->code, names);
+	}
+	return {names.begin(), names.end()};
 }
 
 /// @brief A setting: its `type`, its `default`, then its other options, and its docstring as the description.
@@ -132,7 +162,7 @@ void buildDefinition(Machine& machine, const Definition& definition, BuiltParts&
 	if(definition.kind == "defkey") {
 		parts.keys[name.substr(std::string_view("defkey ").size())] = valueToTree(machine, data, name);
 	} else if(definition.kind == "defcommand") {
-		parts.actions[name] = commandAction(valueToTree(machine, data, name), definition.doc);
+		parts.actions[name] = commandAction(valueToTree(machine, data, name), name, definition.doc);
 	} else if(definition.kind == "defcustom") {
 		const Value value = machine.force(*definition.global);
 		parts.settings[name] =
@@ -413,13 +443,16 @@ json Program::build(const Limits& limits) {
 	Machine& machine = interpreter.machine();
 	extensions_.clear();
 	undefined_.clear();
+	used_.clear();
 	return leavingAsLispError(machine, [&] {
+		machine.workOutDefinitions(); // a value is worked out here, purely: nothing later can change one
 		BuiltParts parts;
 		for(const auto& definition : machine.definitions()) {
 			if(definition->kind == "add-hook" || definition->kind == "advice")
 				extensions_.push_back(
 				    {definition->kind, definition->name, definition->targets, definition->doc, definition->author});
 			buildDefinition(machine, *definition, parts);
+			used_[definition->name] = namesUsedBy(*definition);
 		}
 		for(const GlobalUse& use : machine.uses())
 			if(use.global->state == Global::State::Undefined)

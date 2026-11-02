@@ -4,7 +4,9 @@
 ///
 /// Any text builds, or gives a LispError naming a place, whose message stays short, within the budget. What the
 /// notation's reader reads, a template either builds to the same tree, key order included, or refuses for a word the
-/// language runs. The same text builds to the same tree twice. A program's entries hold the whole of its text.
+/// language runs. The same text builds to the same tree twice. A program's entries hold the whole of its text. Written
+/// by an agent and run live, under a gate that holds the agent to what it may do, its functions never reach a control
+/// primitive, however they try, and what an event makes goes when it ends.
 
 #include "Fuzz.hpp"
 
@@ -16,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -115,6 +118,51 @@ void documentsBuildAlike(std::string_view text) {
 	}
 }
 
+/// @brief A text as an agent's program, loaded purely as a live program is, with every function called: the primitive
+/// it may not reach is never reached, and nothing is left of what each call made.
+/// @param text The text.
+void heldToItsAuthority(std::string_view text) {
+	using affresco::lisp::Value;
+	affresco::lisp::Interpreter interpreter(lowLimits());
+	int reached = 0;
+	const auto answer = [](affresco::lisp::Interpreter&, std::span<const Value>) { return Value(); };
+	interpreter.definePrimitive("effect", {.capability = "control",
+	                                       .pure = false,
+	                                       .call = [&reached](affresco::lisp::Interpreter&, std::span<const Value>) {
+		                                       ++reached;
+		                                       return Value();
+	                                       }});
+	interpreter.definePrimitive("reads", {.capability = "read", .pure = false, .call = answer});
+	try {
+		affresco::lisp::Program program;
+		program.addFile(text, "fuzz.lisp", "agent");
+		interpreter.setPure(true);
+		program.load(interpreter);
+		interpreter.workOutDefinitions();
+		interpreter.setPure(false);
+		interpreter.setGate([](const affresco::lisp::CallContext& call) {
+			if(call.capability == "control" && !call.ran.empty()) throw affresco::lisp::Refusal("refused");
+		});
+		const std::size_t objects = interpreter.objects();
+		for(const affresco::lisp::Entry& entry : program.entries()) {
+			if(!interpreter.isProgramFunction(entry.name)) continue;
+			const Value function = interpreter.global(entry.name).value_or(Value());
+			const std::vector<Value> arguments(affresco::lisp::Interpreter::parametersOf(function).size());
+			try {
+				const affresco::lisp::Interpreter::Transient transient(interpreter);
+				interpreter.setBudget(lowLimits().budget);
+				static_cast<void>(interpreter.print(interpreter.call(function, arguments)));
+				// NOLINTNEXTLINE(bugprone-empty-catch): refusing it is the rule
+			} catch(const affresco::lisp::LispError&) {
+			}
+			if(interpreter.objects() != objects) affresco::fuzz::broken("what an event makes goes when it ends");
+		}
+		// NOLINTNEXTLINE(bugprone-empty-catch): refusing it is the rule
+	} catch(const affresco::DocumentError&) {
+	}
+	if(reached != 0) affresco::fuzz::broken("an agent's code never reaches a control primitive");
+}
+
 } // namespace
 
 /// @brief libFuzzer's entry point: builds the input and runs it at the top level.
@@ -129,6 +177,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	entriesKeepTheText(text);
 	keywordEditKeepsTheRest(text);
 	documentsBuildAlike(text);
+	heldToItsAuthority(text);
 	affresco::lisp::Interpreter interpreter(lowLimits());
 	try {
 		const affresco::lisp::Value value = interpreter.eval(text, "fuzz", "fuzz");

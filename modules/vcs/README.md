@@ -47,7 +47,9 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **A revision's size is checked first** (`DocumentRules::checkRevision`), before any operation is applied.
 - **A document can build** (`DocumentRules::built`, a program, RFC 0005): the source is what is stored and hashed, and
   `document()`, rules and the review see what it builds with the source in it (`sourceDocument()` is the source). A revision on it
-  is applied to the source, then both sides are built (`judgeProgram`). Nothing below depends on it.
+  is applied to the source, then both sides are built (`judgeProgram`). Nothing below depends on it. What is built takes nothing a
+  person set from the live state: a definition's `state` is what a key starts from. `programAuthors()` says who wrote each definition,
+  which a text doesn't change by a person's restore or revert, or by accepting, and a preview's are its author's.
 - **Rules are judged by a change's effect** (the document before and after), never by the paths its patch happens to
   use: deny beats ask beats allow, and what no rule allows asks.
 - **Some changes are always reviewed:** after the deny rules, a change the document rules list in

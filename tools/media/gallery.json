@@ -11,7 +11,7 @@
 		{ "app": "Flow", "screen": "flow/json/index.screen.json", "scenarios": "flow/json/index.scenarios.json", "scene": "a-card-mid-drag", "output": "kanban", "runner": "render" },
 		{ "app": "Haven", "screen": "haven/json/index.screen.json", "scenarios": "haven/json/index.scenarios.json", "scene": "energy-by-device", "output": "smart-home", "runner": "render" },
 		{ "app": "Tempo", "screen": "tempo/json/index.screen.json", "scenarios": "tempo/json/index.scenarios.json", "scene": "now-playing-visualiser-and-lyrics", "output": "music-player", "runner": "render" },
-		{ "app": "Streak", "screen": "streak/json/index.screen.json", "scenarios": "streak/json/index.scenarios.json", "scene": "a-row-selects-its-habit", "output": "habit-tracker", "runner": "render" },
+		{ "app": "Streak", "screen": "streak/lisp/index.screen.lisp", "scenarios": "streak/lisp/index.scenarios.json", "scene": "a-row-selects-its-habit", "output": "habit-tracker", "runner": "render" },
 		{ "app": "Sign in", "screen": "sign-in/json/index.screen.json", "scenarios": "sign-in/json/index.scenarios.json", "scene": "password-strength", "output": "sign-in", "runner": "render", "size": [1280, 960] },
 		{ "app": "Quaderno", "screen": "code-editor/json/index.screen.json", "scenarios": "code-editor/json/index.scenarios.json", "scene": "a-problem-opens-its-file", "output": "code-editor", "runner": "render" },
 		{ "app": "Calamaio", "screen": "calamaio/json/calamaio.screen.json", "scenarios": "calamaio/json/calamaio.scenarios.json", "scene": "listings", "output": "calamaio", "runner": "render" },

@@ -34,6 +34,7 @@ struct Runtime::Impl final : ComposedHolder, Engine {
 
 Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
     : impl_(std::make_unique<Impl>(*this, versions, std::move(baseDirectory))) {
+	impl_->programs.load();
 	impl_->document.readDerived();
 	impl_->composed.setObserver(impl_.get());
 }
@@ -248,7 +249,8 @@ void Runtime::setHandlersSuspended(bool suspended) noexcept { impl_->handlersSus
 
 bool Runtime::hasAction(std::string_view name) const {
 	const json& document = impl_->versions.document();
-	return document.contains("actions") && document["actions"].contains(std::string(name));
+	return (document.contains("actions") && document["actions"].contains(std::string(name))) ||
+	       impl_->programs.defines(name);
 }
 
 bool Runtime::receiveReply(const json& reply) { return impl_->asks.receive(reply); }

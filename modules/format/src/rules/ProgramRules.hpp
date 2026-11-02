@@ -7,10 +7,34 @@
 #include "affresco/core/Json.hpp"
 
 #include <cstddef>
+#include <set>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace affresco::format {
+
+/// @brief What a document's program can do, as a revision's reviewer needs it: which names are its definitions, and
+/// which reach a control or a review step. Nothing runs but what a name reaches (lisp::Program::namesUsed()), so this
+/// is sound, and a function that reaches one counts as an action holding one.
+struct ProgramReach {
+	std::set<std::string> defined; ///< Its definitions.
+	std::set<std::string> control; ///< Those that reach a control or a review step.
+};
+
+/// @brief What a document's program can do.
+/// @param document The document.
+/// @return It; nothing for a document without a program, or one that can't be built, which the build reports.
+[[nodiscard]] ProgramReach programReach(const json& document);
+
+/// @brief The definitions of a document's program that use a step that writes records, each with its text: as a new or
+/// changed write step in a handler is, a new or changed one here is always reviewed.
+/// @param document The document.
+/// @param writes The steps that write.
+/// @param found Gets each, as `{step: true, "definition": name, "text": text}`.
+void collectProgramWrites(const json& document, std::span<const std::string_view> writes,
+                          std::multiset<std::string>& found);
 
 /// @brief "program": `file -> {definition -> its text}`, within the limits (lisp/Document.hpp). What the text means is
 /// the build's to say.

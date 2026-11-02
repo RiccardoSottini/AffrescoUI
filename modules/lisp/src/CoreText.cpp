@@ -3,6 +3,8 @@
 
 #include "Machine.hpp"
 
+#include <affresco/notation/Lexer.hpp>
+
 #include <cctype>
 #include <cstdint>
 #include <span>
@@ -118,9 +120,62 @@ Value gensym(Machine& machine, Arguments arguments) {
 	return machine.heap.symbol(start + "__" + std::to_string(++machine.gensymCounter()));
 }
 
+/// @brief `%read`, until a host gives one: a path of the running app (`state.count`) has nothing to read while
+/// building.
+/// @param arguments The path.
+/// @return Nothing: it always refuses.
+Value readWithoutApp(Machine& /*machine*/, Arguments arguments) {
+	throw Problem("\"" + notation::Lexer::excerpt(arguments.empty() ? "" : arguments[0].text()) +
+	              "\" is read while the app runs, and nothing reads it while building");
+}
+
+/// @brief A JSON value as an expression writes it.
+/// @param value The value.
+/// @return The text.
+std::string expressionOf(const json& value) {
+	if(value.is_string()) return expressionText(value.get_ref<const std::string&>());
+	if(value.is_array()) {
+		std::string text = "[";
+		for(const json& item : value) text.append(text.size() > 1 ? ", " : "").append(expressionOf(item));
+		return text + "]";
+	}
+	if(value.is_object()) {
+		std::string text = "{";
+		for(const auto& [key, member] : value.items())
+			text.append(text.size() > 1 ? ", " : "")
+			    .append(expressionText(key))
+			    .append(": ")
+			    .append(expressionOf(member));
+		return text + "}";
+	}
+	return value.dump();
+}
+
+/// @brief `%expression`: what the build worked out, as a binding's text holds it.
+/// @param machine The machine.
+/// @param arguments The value.
+/// @return The text.
+Value expressionPart(Machine& machine, Arguments arguments) {
+	return machine.heap.string(expressionOf(valueToTree(machine, arguments[0], "")));
+}
+
+/// @brief `%binding`: a binding's text, from its parts.
+/// @param machine The machine.
+/// @param arguments The parts, strings.
+/// @return The text.
+Value bindingText(Machine& machine, Arguments arguments) {
+	std::string text;
+	for(const Value& part : arguments) text += part.text();
+	machine.spend(text.size());
+	return machine.heap.string(text);
+}
+
 } // namespace
 
 void defineText(Machine& machine) {
+	machine.defineNative("%read", readWithoutApp);
+	machine.defineNative("%expression", expressionPart);
+	machine.defineNative("%binding", bindingText);
 	machine.defineNative("str", str);
 	machine.defineNative("join", join);
 	machine.defineNative("subs", subs);

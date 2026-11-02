@@ -86,13 +86,45 @@ std::optional<std::string> Interpreter::leastAuthority(const std::function<int(s
 	return *std::ranges::min_element(authors, {}, [&](const std::string& author) { return rank(author); });
 }
 
+std::vector<std::string> Interpreter::authorsThatRan() const { return machine_->authorsThatRan(); }
+
 std::string Interpreter::authorOf(const Value& function) {
 	return function.kind() == Kind::Function ? static_cast<const ClosureObject*>(function.pointer())->code->author : "";
 }
 
+std::optional<std::string> Interpreter::definitionNameOf(const Value& function) const {
+	if(function.kind() != Kind::Function) return std::nullopt;
+	const std::string& name = static_cast<const ClosureObject*>(function.pointer())->code->name;
+	const Global* cell = name.empty() ? nullptr : machine_->findGlobal(name);
+	if(!cell || cell->state != Global::State::Ready || cell->value.pointer() != function.pointer()) return std::nullopt;
+	return name;
+}
+
+std::vector<std::string> Interpreter::parametersOf(const Value& function) {
+	if(function.kind() != Kind::Function) return {};
+	return static_cast<const ClosureObject*>(function.pointer())->code->parameters;
+}
+
+bool Interpreter::isProgramFunction(std::string_view name) const {
+	const Definition* definition = machine_->definition(name);
+	return definition && definition->global && (definition->kind == "defn" || definition->kind == "defcommand");
+}
+
+void Interpreter::workOutDefinitions() { machine_->workOutDefinitions(); }
+
+std::pair<Place, std::string> Interpreter::place() const { return machine_->currentPlace(); }
+
+Interpreter::Transient::Transient(Interpreter& interpreter) : machine_(interpreter.machine()) {
+	machine_.enterRegion();
+}
+
+Interpreter::Transient::~Transient() { machine_.leaveRegion(); }
+
 void Interpreter::setBudget(const Budget& budget) noexcept { machine_->budget() = budget; }
 
 Budget Interpreter::budget() const noexcept { return machine_->budget(); }
+
+std::size_t Interpreter::objects() const noexcept { return machine_->heap.size(); }
 
 Value Interpreter::makeString(std::string_view text) {
 	return leavingAsLispError(*machine_, [&] { return machine_->heap.string(text); });

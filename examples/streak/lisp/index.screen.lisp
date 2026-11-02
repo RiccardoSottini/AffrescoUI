@@ -1,7 +1,11 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
  :format affrescoui-screen
  :version 2
- :include ["locales/en.lisp" "locales/es.lisp" "locales/fr.lisp" "../../shared/addons/assistant/assistant.lisp"]
+ :include ["locales/en.lisp"
+           "locales/es.lisp"
+           "locales/fr.lisp"
+           "../../shared/addons/assistant/assistant.lisp"
+           habits.lisp]
  :note "Streak: a habit tracker laid out for the desktop: the habits with their last days to tick on the left, the chosen habit's score, history, calendar, streaks and frequency on the right. Yes-or-no and measurable habits, frequencies, reminders, notes per day, sorting, archiving, CSV export, light, dark and pure black. In English, Italian and Arabic."
  :window {:title "Streak" :width 1280 :height 800 :minWidth 400 :minHeight 560}
  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :fallback [icons]}
@@ -65,7 +69,7 @@
           :kit.radius 4
           :kit.cardRadius 10}
  :permissions {:allow [studio]
-               :ask ["agent(/actions)"]
+               :ask ["agent(/actions)" "agent(/program)"]
                :deny ["*(#appBar)"]
                :reviewers [studio]
                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
@@ -406,270 +410,13 @@
                                            :track @c.switchTrack
                                            :knob @c.primary}
                                     :anchors {:right 16 :top "{{summary == '' ? 12 : 20}}"}))}}
- :actions {:select [{:set state.selected :to "{{data.ordered[h].id}}"}
-                    {:if "{{!computed.wide}}" :then [{:set state.page :to detail}]}]
-           :cellClick [{:note "with: h, d (a date), x, y: a yes-or-no box goes yes, skipped (if allowed), no; a measurable one asks for the number"}
-                       {:if "{{data.ordered[h].kind == 'measurable'}}"
-                        :then [{:run openPopup :with {:h "{{h}}" :d "{{d}}" :x "{{x}}" :y "{{y}}"}}]
-                        :else [{:run putEntry
-                                :with {:h "{{h}}"
-                                       :date "{{d}}"
-                                       :value "{{(split(data.ordered[h].entries, '')[daysBetween(data.ordered[h].from, d)] ?? '-') == 'y' ? (state.skipDays ? 's' : '-') : (split(data.ordered[h].entries, '')[daysBetween(data.ordered[h].from, d)] ?? '-') == 's' ? '-' : 'y'}}"}}]}]
-           :openPopup [{:set state.popup
-                        :to "{{{open: true, h: h, date: d, x: x, y: y, note: data.ordered[h].notes[d] ?? '', value: data.ordered[h].kind == 'measurable' && (computed.vals[h][daysBetween(data.ordered[h].from, d)] ?? 0) > 0 ? text(computed.vals[h][daysBetween(data.ordered[h].from, d)]) : ''}}}"}]
-           :popupSet [{:note "with: value ('y', 's' or '-'), from the popup's buttons"}
-                      {:run putEntry :with {:h "{{state.popup.h}}" :date "{{state.popup.date}}" :value "{{value}}"}}
-                      {:run popupNoteOnly}]
-           :popupSave [{:run putEntry
-                        :with {:h "{{state.popup.h}}"
-                               :date "{{state.popup.date}}"
-                               :value "{{text(max(0, number(state.popup.value) ?? 0))}}"}}
-                       {:run popupNoteOnly}]
-           :popupNoteOnly [{:update habits
-                            :id "{{data.ordered[state.popup.h].id}}"
-                            :fields {:notes "{{merge(data.ordered[state.popup.h].notes, fromEntries([{key: state.popup.date, value: trim(state.popup.note)}]))}}"}}
-                           {:set state.popup.open :to false}]
-           :putEntry [{:note "with: h, date, value (a character for yes-or-no habits, a number's text for measurable ones): writes one day's entry, extending the history when the day is before the first one"}
-                      {:if "{{date < data.ordered[h].from}}"
-                       :then [{:update habits
-                               :id "{{data.ordered[h].id}}"
-                               :fields {:entries "{{data.ordered[h].kind == 'measurable' ? trim(join(map(range(daysBetween(date, data.ordered[h].from)), '0'), ' ') + ' ' + data.ordered[h].entries) : join(map(range(daysBetween(date, data.ordered[h].from)), '-'), '') + data.ordered[h].entries}}"
-                                        :from "{{date}}"}}]}
-                      {:run putAt
-                       :with {:h "{{h}}"
-                              :at "{{daysBetween(data.ordered[h].from, date)}}"
-                              :value "{{value}}"
-                              :sep "{{data.ordered[h].kind == 'measurable' ? ' ' : ''}}"
-                              :list "{{concat(data.ordered[h].entries == '' ? [] : split(data.ordered[h].entries, data.ordered[h].kind == 'measurable' ? ' ' : ''), map(range(max(0, daysBetween(data.ordered[h].from, date) + 1 - (data.ordered[h].entries == '' ? 0 : length(split(data.ordered[h].entries, data.ordered[h].kind == 'measurable' ? ' ' : ''))))), data.ordered[h].kind == 'measurable' ? '0' : '-'))}}"}}]
-           :putAt [{:update habits
-                    :id "{{data.ordered[h].id}}"
-                    :fields {:entries "{{join(concat(slice(list, 0, at), [value], slice(list, at + 1)), sep)}}"}}]
-           :moveHabit [{:note "with: from, to (indexes in data.ordered): a row dragged onto another, in manual order"}
-                       {:if "{{state.sort == 'manual' && from != to}}"
-                        :then [{:update habits
-                                :id "{{data.ordered[from].id}}"
-                                :fields {:position "{{to <= 0 ? (filter(data.ordered, index != from)[0].position ?? 0) - 1 : to >= length(data.ordered) - 1 ? (filter(data.ordered, index != from)[length(data.ordered) - 2].position ?? 0) + 1 : (filter(data.ordered, index != from)[to - 1].position + filter(data.ordered, index != from)[to].position) / 2}}"}}]}]
-           :setSort [{:set state.sort :to "{{by}}"}]
-           :setPeriod [{:set "{{'state.' + key}}" :to "{{value}}"}]
-           :setTheme [{:set state.theme :to "{{value}}"}]
-           :setFirstDay [{:set state.firstWeekday :to "{{value}}"}]
-           :setLocale [{:set state.locale :to "{{value}}"}]
-           :newHabit [{:note "with: kind"}
-                      {:set state.edit
-                       :to "{{{open: true, id: '', kind: kind, name: '', question: '', color: (length(data.ordered) * 3 + 11) % 20, freqMode: 'daily', n: 3, unit: '', target: kind == 'measurable' ? '10' : '', targetType: 'atLeast', reminderOn: false, time: '08:00', days: [true, true, true, true, true, true, true], description: '', error: ''}}}"}]
-           :addYesNo {:title "{{t('action.addYesNo.title')}}"
-                      :category "{{t('action.addYesNo.category')}}"
-                      :do [{:run newHabit :with {:kind yesNo}}]
-                      :icon check-circle}
-           :addMeasurable {:title "{{t('action.addMeasurable.title')}}"
-                           :category "{{t('action.addMeasurable.category')}}"
-                           :do [{:run newHabit :with {:kind measurable}}]
-                           :icon ruler}
-           :editHabit {:title "{{t('action.editHabit.title')}}"
-                       :category "{{t('action.editHabit.category')}}"
-                       :do [{:set state.edit
-                             :to "{{{open: true, id: computed.h.id, kind: computed.h.kind, name: computed.h.name, question: computed.h.question, color: computed.h.color, freqMode: computed.h.frequency.days == 1 && computed.h.frequency.times == 1 ? 'daily' : computed.h.kind == 'measurable' ? (computed.h.frequency.days == 7 ? 'week' : 'month') : computed.h.frequency.times == 1 && computed.h.frequency.days != 7 && computed.h.frequency.days != 30 ? 'everyN' : computed.h.frequency.days == 7 ? 'week' : 'month', n: computed.h.frequency.times == 1 ? computed.h.frequency.days : computed.h.frequency.times, unit: computed.h.unit, target: text(computed.h.target), targetType: computed.h.targetType, reminderOn: computed.h.reminder != null, time: computed.h.reminder.time ?? '08:00', days: computed.h.reminder.days ?? [true, true, true, true, true, true, true], description: computed.h.description, error: ''}}}"}]
-                       :icon edit
-                       :enablement "{{computed.sel >= 0}}"}
-           :saveHabit [{:if "{{trim(state.edit.name) == ''}}"
-                        :then [{:set state.edit.error :to "{{t('edit.nameNeeded')}}"}
-                               {:focus "#nameField"}
-                               {:set state.edit.open :to true}
-                               {:stop true}]}
-                       {:run storeHabit
-                        :with {:fields "{{{name: trim(state.edit.name), question: trim(state.edit.question), color: state.edit.color, description: trim(state.edit.description), unit: trim(state.edit.unit), target: number(state.edit.target) ?? 0, targetType: state.edit.targetType, reminder: state.edit.reminderOn ? {time: state.edit.time, days: state.edit.days} : null, frequency: state.edit.freqMode == 'daily' ? {times: 1, days: 1} : state.edit.kind == 'measurable' ? {times: 1, days: state.edit.freqMode == 'week' ? 7 : 30} : state.edit.freqMode == 'everyN' ? {times: 1, days: state.edit.n} : {times: state.edit.n, days: state.edit.freqMode == 'week' ? 7 : 30}}}}"}}]
-           :storeHabit [{:if "{{state.edit.id == ''}}"
-                         :then [{:insert habits
-                                 :value "{{merge({id: 'habit' + state.nextId, kind: state.edit.kind, archived: false, from: state.today, entries: '', notes: {}, position: max(concat([-1], map(data.ordered, it.position))) + 1}, fields)}}"}
-                                {:set state.selected :to "{{'habit' + state.nextId}}"}
-                                {:increment state.nextId}]
-                         :else [{:update habits :id "{{computed.h.id}}" :fields "{{fields}}"}]}]
-           :archiveHabit {:title "{{t('action.archiveHabit.title')}}"
-                          :category "{{t('action.archiveHabit.category')}}"
-                          :do [{:update habits :id "{{computed.h.id}}" :fields {:archived "{{!computed.h.archived}}"}}
-                               {:push state.toasts
-                                :value "{{{message: t(computed.h.archived ? 'toast.archived' : 'toast.unarchived', {name: computed.h.name}), actions: [{title: t('undo'), run: 'archiveHabit'}]}}}"}]
-                          :icon archive
-                          :enablement "{{computed.sel >= 0}}"}
-           :confirmDelete {:title "{{t('action.confirmDelete.title')}}"
-                           :category "{{t('action.confirmDelete.category')}}"
-                           :do [{:set state.confirmDelete :to true}]
-                           :icon trash-2
-                           :enablement "{{computed.sel >= 0}}"}
-           :togglePick [{:if "{{contains(state.picked, id)}}"
-                         :then [{:set state.picked :to "{{filter(state.picked, it != id)}}"}]
-                         :else [{:push state.picked :value "{{id}}"}]}]
-           :archivePicked [{:set state.unpicked :to "{{state.picked}}"}
-                           {:update habits :id "{{state.picked}}" :fields {:archived "{{!computed.pickedArchived}}"}}
-                           {:push state.toasts
-                            :value "{{{message: t(!computed.pickedArchived ? 'toast.unarchivedN' : 'toast.archivedN', {n: length(state.picked)}), actions: [{title: t('undo'), run: 'unarchivePicked'}]}}}"}
-                           {:set state.picked :to []}]
-           :unarchivePicked [{:forEach state.unpicked
-                              :as picked
-                              :do [{:update habits
-                                    :id "{{picked}}"
-                                    :fields {:archived "{{!(find(data.ordered, it.id == picked).archived)}}"}}]}]
-           :deleteHabit [{:if "{{computed.picking}}"
-                          :then [{:push state.toasts
-                                  :value "{{{message: t('toast.deletedN', {n: length(state.picked)})}}}"}
-                                 {:delete habits :id "{{state.picked}}"}
-                                 {:set state.selected :to "{{data.ordered[0].id ?? ''}}"}
-                                 {:set state.picked :to []}]
-                          :else [{:run deleteOne}]}]
-           :deleteOne [{:push state.toasts :value "{{{message: t('toast.deleted', {name: computed.h.name})}}}"}
-                       {:delete habits :id "{{computed.h.id}}"}
-                       {:set state.selected :to "{{data.ordered[computed.order[0] ?? 0].id ?? ''}}"}
-                       {:set state.page :to list}]
-           :exportHabit {:title "{{t('action.exportHabit.title')}}"
-                         :category "{{t('action.exportHabit.category')}}"
-                         :do [{:copy "{{'Date,Value,Note\\n' + join(reverse(map(computed.v, addDays(computed.h.from, index) + ',' + (computed.h.kind == 'measurable' ? text(it) : it == 1 ? 'YES' : it == -1 ? 'SKIP' : 'NO') + ',' + (computed.h.notes[addDays(computed.h.from, index)] ?? ''))), '\\n')}}"}
-                              {:push state.toasts :value "{{{message: t('toast.copied', {n: 1})}}}"}]
-                         :icon file-down
-                         :enablement "{{computed.sel >= 0}}"}
-           :exportAll {:title "{{t('action.exportAll.title')}}"
-                       :category "{{t('action.exportAll.category')}}"
-                       :do [{:copy "{{'Habit,Date,Value\\n' + join(map(computed.csvRows, join(map(it, it.line), '\\n')), '\\n')}}"}
-                            {:push state.toasts :value "{{{message: t('toast.copied', {n: length(data.ordered)})}}}"}]
-                       :icon download}
-           :backupAll {:title "{{t('action.backupAll.title')}}"
-                       :category "{{t('action.backupAll.category')}}"
-                       :icon hard-drive-download
-                       :do [{:saveFile "{{{format: 'streak-backup', version: 1, habits: data.ordered}}}"
-                             :name "{{'streak-backup-' + state.today + '.json'}}"
-                             :onDone [{:push state.toasts
-                                       :value "{{{message: t('toast.backedUp', {n: length(data.ordered), name: result.name})}}}"}]
-                             :onError [{:push state.toasts
-                                        :value "{{{message: t('toast.notBackedUp', {message: error.message})}}}"}]}]}
-           :restoreAll {:title "{{t('action.restoreAll.title')}}"
-                        :category "{{t('action.restoreAll.category')}}"
-                        :icon hard-drive-upload
-                        :do [{:openFile state.backupFile
-                              :extensions [json]
-                              :onDone [{:run restoreHabits}]
-                              :onError [{:push state.toasts
-                                         :value "{{{message: t('toast.notRestored', {message: error.message})}}}"}]}]}
-           :restoreHabits [{:if "{{state.backupFile.format != 'streak-backup' || type(state.backupFile.habits) != 'list'}}"
-                            :then [{:push state.toasts :value "{{{message: t('toast.badBackup')}}}"}]
-                            :else [{:set state.restoredCount :to 0}
-                                   {:set state.skippedCount :to 0}
-                                   {:forEach state.backupFile.habits
-                                    :as rb
-                                    :do [{:if "{{type(rb) == 'object' && type(rb.id) == 'string' && rb.id != ''}}"
-                                          :then [{:run restoreOne
-                                                  :with {:id "{{rb.id}}"
-                                                         :fields "{{fromEntries(filter(entries(rb), contains(['name', 'question', 'color', 'kind', 'frequency', 'unit', 'target', 'targetType', 'reminder', 'description', 'archived', 'from', 'entries', 'notes', 'position'], it.key)))}}"}}]
-                                          :else [{:increment state.skippedCount}]}]}
-                                   {:push state.toasts
-                                    :value "{{{message: state.skippedCount > 0 ? t('toast.restoredSkipped', {n: state.restoredCount, skipped: state.skippedCount}) : t('toast.restored', {n: state.restoredCount})}}}"}]}
-                           {:set state.backupFile :to nil}]
-           :restoreOne [{:if "{{contains(map(data.ordered, it.id), id)}}"
-                         :then [{:update habits :id "{{id}}" :fields "{{fields}}"} {:increment state.restoredCount}]
-                         :else [{:insert habits
-                                 :value "{{merge(fields, {id: id})}}"
-                                 :then [{:increment state.restoredCount}]
-                                 :onError [{:increment state.skippedCount}]}]}]
-           :openSettings {:title "{{t('action.openSettings.title')}}"
-                          :category "Streak"
-                          :do [{:set state.settingsOpen :to true}]
-                          :icon settings}
-           :toggleTheme {:title "{{t('action.toggleTheme.title')}}"
-                         :category "Streak"
-                         :do [{:set state.theme :to "{{computed.theme == 'light' ? 'dark' : 'light'}}"}]
-                         :icon moon}
-           :toggleHideCompleted {:title "{{t('action.toggleHideCompleted.title')}}"
-                                 :category "Streak"
-                                 :do [{:toggle state.hideCompleted}]
-                                 :icon eye}
-           :toggleShowArchived {:title "{{t('action.toggleShowArchived.title')}}"
-                                :category "Streak"
-                                :do [{:toggle state.showArchived}]
-                                :icon archive}
-           :nextHabit {:title "{{t('action.nextHabit.title')}}"
-                       :category "{{t('action.nextHabit.category')}}"
-                       :do [{:set state.selected
-                             :to "{{data.ordered[computed.order[min(length(computed.order) - 1, indexOf(computed.order, computed.sel) + 1)]].id ?? state.selected}}"}]}
-           :prevHabit {:title "{{t('action.prevHabit.title')}}"
-                       :category "{{t('action.prevHabit.category')}}"
-                       :do [{:set state.selected
-                             :to "{{data.ordered[computed.order[max(0, indexOf(computed.order, computed.sel) - 1)]].id ?? state.selected}}"}]}
-           :checkToday {:title "{{t('action.checkToday.title')}}"
-                        :category "{{t('action.checkToday.category')}}"
-                        :do [{:run cellClick
-                              :with {:h "{{computed.sel}}"
-                                     :d "{{state.today}}"
-                                     :x "{{window.width / 2}}"
-                                     :y "{{window.height / 3}}"}}]
-                        :icon check
-                        :enablement "{{computed.sel >= 0}}"}
-           :tick [{:set state.today :to "{{today()}}"}
-                  {:if "{{state.reminders}}"
-                   :then [{:forEach data.ordered
-                           :as rh
-                           :index ri
-                           :do [{:if "{{!rh.archived && rh.reminder != null && rh.reminder.time == formatTime(now(), 'HH:mm') && rh.reminder.days[weekday(state.today)]}}"
-                                 :then [{:push state.toasts
-                                         :value "{{{message: t('toast.reminder', {name: rh.name}), actions: [{title: t('toast.done'), run: 'cellClick', with: {h: ri, d: state.today, x: 0, y: 0}}]}}}"}]}]}]}]
-           :syncNow {:title "{{t('action.syncNow.title')}}"
-                     :category "{{t('action.syncNow.category')}}"
-                     :do [{:if "{{computed.online}}"
-                           :then [{:run syncSend}]
-                           :else [{:push state.toasts
-                                   :value "{{{message: t('sync.' + computed.syncState, {message: state.sync.error})}}}"}]}]
-                     :icon refresh-cw}
-           :signIn {:title "{{t('action.signIn.title')}}"
-                    :category "{{t('action.signIn.category')}}"
-                    :do [{:signIn streakServer
-                          :onDone [{:push state.toasts
-                                    :value "{{{message: t('signedIn', {account: auth.streakServer.account ?? t('you')})}}}"}]
-                          :onError [{:push state.toasts
-                                     :value "{{{message: t('notSignedIn', {message: error.message})}}}"}]}]
-                    :icon log-in
-                    :enablement "{{!computed.signedIn}}"}
-           :signOut {:title "{{t('action.signOut.title')}}"
-                     :category "{{t('action.signOut.category')}}"
-                     :do [{:signOut streakServer}
-                          {:set state.sync
-                           :to "{{{revisions: state.sync.revisions, copy: null, error: '', commits: 0}}}"}]
-                     :icon log-out
-                     :enablement "{{computed.signedIn}}"}
-           "streakServer:open" [{:set state.sync.error :to ""} {:request streakServer.open}]
-           "streakServer:hello" [{:run syncReceive :with {:data "{{event.state}}"}}]
-           "streakServer:document" [{:run syncReceive :with {:data "{{event.state}}"}}]
-           "streakServer:committed" [{:increment state.sync.commits} {:request streakServer.getDocument}]
-           "streakServer:error" [{:set state.sync.error :to "{{event.message ?? event.error ?? 'error'}}"}]
-           "streakServer:closed" [{:set state.sync.copy :to nil}]
-           :syncReceive [{:if "{{data.habits != null}}"
-                          :then [{:delete habits :where {}}
-                                 {:forEach "{{data.habits}}"
-                                  :as habit
-                                  :index i
-                                  :do [{:insert habits :value "{{merge(habit, {position: i})}}"}]}
-                                 {:set state.sync.copy :to "{{computed.syncData}}"}
-                                 {:push state.toasts :value "{{{message: t('sync.received')}}}"}]}]
-           :syncSend [{:if "{{computed.online && json(computed.syncData) != json(state.sync.copy)}}"
-                       :then [{:increment state.sync.revisions}
-                              {:set state.sync.copy :to "{{computed.syncData}}"}
-                              {:request streakServer.revision
-                               :with {:id "{{'streak-' + text(state.sync.revisions)}}" :data "{{computed.syncData}}"}}]}]
-           :commandPalette {:title "{{t('action.commandPalette.title')}}"
-                            :category "Streak"
-                            :do [{:set state.quickPick.open :to true} {:set state.quickPick.query :to ""}]
-                            :icon search}}
- :keys {"mod+n" addYesNo
-        "mod+shift+n" addMeasurable
-        "mod+e" editHabit
-        "mod+backspace" confirmDelete
-        "mod+shift+h" archiveHabit
-        "mod+comma" openSettings
-        "mod+j" toggleTheme
-        "mod+k" commandPalette
-        "mod+shift+p" commandPalette
-        "mod+s" syncNow
-        "mod+down" nextHabit
-        "mod+up" prevHabit
-        "mod+enter" checkToday
-        :escape {:when "{{computed.picking || !computed.wide && state.page == 'detail'}}"
-                 :do [{:if "{{computed.picking}}" :then [{:set state.picked :to []}] :else [{:set state.page :to list}]}]}}
+ :actions {"streakServer:open" [{:lisp serverOpened}]
+           "streakServer:hello" [{:lisp serverHas}]
+           "streakServer:document" [{:lisp serverHas}]
+           "streakServer:committed" [{:lisp serverCommitted}]
+           "streakServer:error" [{:lisp serverFailed}]
+           "streakServer:closed" [{:lisp serverClosed}]}
+ :keys {:escape {:when "{{computed.picking || !computed.wide && state.page == 'detail'}}" :do [{:lisp leaveEscape}]}}
  :root (node#root :color @c.bg
          (node#body :fill 0 :color transparent :dir auto :every {:ms 60000 :do [{:run tick}]}
            (node#listPane :anchors {:left 0 :top 0 :bottom 0}
@@ -871,7 +618,7 @@
                                 :with {:open state.menus.more
                                        :width 220
                                        :placement below-end
-                                       :items "{{[{title: t('darkMode'), checked: computed.theme != 'light', keyLabel: find(commands, it.name == 'toggleTheme').keyLabel, run: 'toggleTheme'}, {title: t('settings'), keyLabel: find(commands, it.name == 'openSettings').keyLabel, run: 'openSettings'}, {title: t('exportAll'), run: 'exportAll'}, {separator: true}, {title: t('syncNow'), keyLabel: find(commands, it.name == 'syncNow').keyLabel, run: 'syncNow'}, {title: computed.signedIn ? t('signOut') : t('signIn'), run: computed.signedIn ? 'signOut' : 'signIn'}]}}"})]
+                                       :items "{{[{title: t('darkMode'), checked: computed.theme != 'light', keyLabel: find(commands, it.name == 'toggleTheme').keyLabel, run: 'toggleTheme'}, {title: t('settings'), keyLabel: find(commands, it.name == 'openSettings').keyLabel, run: 'openSettings'}, {title: t('exportAll'), run: 'exportAll'}, {separator: true}, {title: t('syncNow'), keyLabel: find(commands, it.name == 'syncNow').keyLabel, run: 'syncNow'}, {title: computed.signedIn ? t('signOut') : t('signIn'), run: computed.signedIn ? 'signOutOfServer' : 'signInToServer'}]}}"})]
                    :isOpen "{{state.menus.more}}"))
                (node#pickBar :when "{{computed.picking}}"
                  :anchors {:left 0 :right 0 :top 0 :bottom 0}
@@ -1662,7 +1409,7 @@
                                 (node#accountButton :style textButton
                                   :text "{{computed.signedIn ? t('signOut') : t('signIn')}}"
                                   :anchors {:right 8 :top 14}
-                                  :onClick {:run "{{computed.signedIn ? 'signOut' : 'signIn'}}"})))
+                                  :onClick {:run "{{computed.signedIn ? 'signOutOfServer' : 'signInToServer'}}"})))
                             (node#settingsEnd :height 4 :color transparent)]
                  :fitContent height
                  :gap 12))

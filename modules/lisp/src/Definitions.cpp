@@ -44,6 +44,14 @@ std::string docAt(const Value& form, std::size_t at) {
 	return std::string(form.at(at).text());
 }
 
+/// @brief Where a definition form's items go on after its docstring, even an empty one.
+/// @param form The form.
+/// @param at Where the docstring would be.
+/// @return The index after it, or @p at if there is none.
+std::size_t pastDoc(const Value& form, std::size_t at) {
+	return at + 1 < form.count() && form.at(at).kind() == Kind::String ? at + 1 : at;
+}
+
 /// @brief Makes `(name items...)` with a form's place.
 /// @param machine The machine.
 /// @param name The head.
@@ -220,7 +228,7 @@ Definition& Machine::define(const Value& form, const std::string& author, const 
 		made.global = &global(name);
 		setPending(*made.global, compileFunctionInto(*this, *made.global, form, context), head == "defmacro");
 	} else if(head == "def") {
-		const std::size_t at = made.doc.empty() ? 2 : 3;
+		const std::size_t at = pastDoc(form, 2);
 		if(at + 1 != form.count()) failDefinition(form, name, "def takes a name, maybe a docstring, and a value");
 		made.global = &global(name);
 		setPending(*made.global, compileValueInto(*this, *made.global, form.at(at), context), false);
@@ -255,7 +263,7 @@ Definition& Machine::addDefinition(const Value& form, const std::string& kind, c
 }
 
 Value Machine::commandData(Definition& definition, const Value& form, const CompileContext& context) {
-	std::size_t at = definition.doc.empty() ? 2 : 3;
+	std::size_t at = pastDoc(form, 2);
 	const Value data = optionsOf(*this, form, at, definition.name);
 	if(at >= form.count() || form.at(at).kind() != Kind::Vector)
 		failDefinition(form, definition.name, "defcommand takes its parameters, a vector, before its body");
@@ -269,7 +277,7 @@ Value Machine::commandData(Definition& definition, const Value& form, const Comp
 
 Value Machine::customData(Definition& definition, const Value& form, const CompileContext& context) {
 	definition.doc = docAt(form, 3);
-	std::size_t at = definition.doc.empty() ? 3 : 4;
+	std::size_t at = pastDoc(form, 3);
 	const Value data = optionsOf(*this, form, at, definition.name);
 	if(at != form.count())
 		failDefinition(form, definition.name, "defcustom takes a name, a value, maybe a docstring, and options");
@@ -279,7 +287,7 @@ Value Machine::customData(Definition& definition, const Value& form, const Compi
 }
 
 Value Machine::screenData(const Definition& definition, const Value& form) {
-	std::size_t at = definition.doc.empty() ? 2 : 3;
+	std::size_t at = pastDoc(form, 2);
 	const Value options = optionsOf(*this, form, at, definition.name);
 	if(at + 1 != form.count())
 		failDefinition(form, definition.name, "defscreen holds one root node, after its options");
@@ -297,7 +305,7 @@ void Machine::defineVocabulary(Definition& definition, const Value& form, const 
 	} else if(kind == "defscreen") {
 		data = screenData(definition, form);
 	} else if(kind == "defkey") {
-		const std::size_t at = definition.doc.empty() ? 2 : 3;
+		const std::size_t at = pastDoc(form, 2);
 		if(at + 1 != form.count())
 			failDefinition(form, definition.name, "defkey takes a key, maybe a docstring, and what it runs");
 		data = form.at(at);
@@ -395,6 +403,27 @@ const AuthorSet* Machine::unite(const AuthorSet* first, const AuthorSet* second)
 	}
 	authorUnions_.emplace(std::make_pair(first, second), made);
 	return made;
+}
+
+std::vector<std::string> Machine::authorsThatRan() const {
+	std::vector<std::string> names;
+	names.reserve(ran_->authors.size());
+	for(const std::uint32_t author : ran_->authors) names.push_back(authorNames_[author]);
+	std::ranges::sort(names);
+	return names;
+}
+
+void Machine::workOutDefinitions() {
+	for(const auto& definition : definitions_) {
+		if(!definition->global || definition->global->state != Global::State::Lazy) continue;
+		try {
+			static_cast<void>(force(*definition->global));
+		} catch(const LispError& error) {
+			if(!error.definition().empty()) throw;
+			throw LispError(error.file(), error.line(), error.column(), definition->name, error.message(),
+			                error.exhausted());
+		}
+	}
 }
 
 std::vector<std::string> Machine::authorsOnStack() const {

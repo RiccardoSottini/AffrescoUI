@@ -4,6 +4,7 @@ affrescoui_module(lisp
 	src/Reader.cpp
 	src/Compiler.cpp
 	src/CompilerForms.cpp
+	src/CompilerBindings.cpp
 	src/Definitions.cpp
 	src/Machine.cpp
 	src/CoreNumbers.cpp

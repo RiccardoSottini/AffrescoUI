@@ -106,6 +106,15 @@ class TidyTest(unittest.TestCase):
         self.assertIsNone(tidy.parse(f"{root}/build/_deps/j.hpp:1:1: warning: x [misc-y]", root, ["modules"]))
         self.assertIsNone(tidy.parse("12 warnings generated.", root, ["modules"]))
 
+    def test_a_header_is_given_every_folder_the_build_includes_from(self):
+        with tempfile.TemporaryDirectory() as build:
+            with open(os.path.join(build, "compile_commands.json"), "w") as file:
+                json.dump([{"directory": "/b", "file": "a.cpp", "command": "c++ -I/x -isystem /y -Irelative -c a.cpp"},
+                           {"directory": "/b", "file": "b.cpp", "arguments": ["c++", "-isystem/z", "-I", "/x", "b.cpp"]}], file)
+            self.assertEqual(tidy.include_arguments(build), ["--extra-arg=-I/x", "--extra-arg=-I/y",
+                                                             "--extra-arg=-I/b/relative", "--extra-arg=-I/z"])
+        self.assertEqual(tidy.include_arguments(tempfile.gettempdir()), [])
+
     def test_a_clang_tidy_that_crashes_is_a_failure(self):
         with tempfile.TemporaryDirectory() as root:
             crashing = os.path.join(root, "clang-tidy")

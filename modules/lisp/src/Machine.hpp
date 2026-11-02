@@ -139,6 +139,8 @@ public:
 	[[nodiscard]] const AuthorSet* noAuthors() const noexcept { return noAuthors_; }
 	/// @brief Every author on the stack. @return Their names, sorted.
 	[[nodiscard]] std::vector<std::string> authorsOnStack() const;
+	/// @brief Every author whose code has run since the outermost call began. @return Their names, sorted.
+	[[nodiscard]] std::vector<std::string> authorsThatRan() const;
 
 	// Running (Machine.cpp)
 	/// @brief Calls a function.
@@ -157,6 +159,14 @@ public:
 	/// @return The value.
 	/// @throws LispError If it is undefined or working it out fails.
 	Value force(Global& global);
+	/// @brief Enters a region (Interpreter::Transient): the outermost starts it.
+	void enterRegion() {
+		if(regions_++ == 0) region_ = heap.mark();
+	}
+	/// @brief Leaves a region: the outermost ends it, and gives back the stack a deep run grew.
+	void leaveRegion();
+	/// @brief Works out every global defined by a `def` and not yet.
+	void workOutDefinitions();
 	/// @brief Sets the choke point. @param gate The gate.
 	void setGate(Gate gate) { gate_ = std::move(gate); }
 	/// @brief Sets whether primitives that aren't pure are refused. @param pure Whether they are.
@@ -264,7 +274,7 @@ private:
 	/// @brief Gives a call's result, in place of the function and its arguments.
 	/// @param result The result.
 	/// @param count How many arguments.
-	void finishCall(const Value& result, std::uint32_t count);
+	void finishCall(Value result, std::uint32_t count);
 	/// @brief Pushes a frame for a thunk.
 	/// @param code The thunk.
 	/// @param storeTo The `def` it works out, if any.
@@ -273,6 +283,10 @@ private:
 	/// @param code The code it runs.
 	/// @return The set.
 	const AuthorSet* authorsFor(const Code* code);
+	/// @brief Notes that code is about to run, for authorsThatRan(). @param code The code.
+	void noteRan(const Code* code) {
+		if(code->authors != ran_ && code->authors != noAuthors_) ran_ = unite(ran_, code->authors);
+	}
 	/// @brief Takes a Build's items off the stack, spreading what `~@` marked.
 	/// @param count How many values.
 	/// @return The items.
@@ -319,6 +333,9 @@ private:
 	bool expanding_ = false;          ///< On the macro budget.
 	std::size_t macroOperations_ = 0; ///< What macro expansion may still spend.
 	Gate gate_;                       ///< See setGate().
+	const AuthorSet* ran_ = nullptr;  ///< See authorsThatRan().
+	Heap::Mark region_;               ///< Where the outermost region started.
+	std::size_t regions_ = 0;         ///< Regions inside each other.
 	bool pure_ = false;               ///< See setPure().
 	std::deque<Global> globalCells_;  ///< The cells: their addresses stay.
 	std::unordered_map<std::string_view, Global*> globals_;              ///< The cells by name.
@@ -345,6 +362,11 @@ void defineText(Machine& machine);
 /// @brief Loads the functions the language writes in itself (Prelude.cpp).
 /// @param machine The machine.
 void definePrelude(Machine& machine);
+
+/// @brief A text as an expression writes it, quoted (CompilerBindings.cpp).
+/// @param text The text.
+/// @return `'it\'s'`, with its escapes.
+[[nodiscard]] std::string expressionText(std::string_view text);
 
 /// @brief Writes a value as Lisp text (Tree.cpp).
 /// @param machine The machine, whose budget it spends.

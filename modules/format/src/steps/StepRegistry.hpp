@@ -185,5 +185,8 @@ void registerDataSteps(StepRegistry& registry);
 /// @brief Registers the window steps: openWindow, closeWindow, fullscreen (windows/WindowSteps.cpp).
 /// @param registry The registry.
 void registerWindowSteps(StepRegistry& registry);
+/// @brief Registers the step that runs a function of the document's program: lisp (programs/ProgramSteps.cpp).
+/// @param registry The registry.
+void registerProgramSteps(StepRegistry& registry);
 
 } // namespace affresco::format

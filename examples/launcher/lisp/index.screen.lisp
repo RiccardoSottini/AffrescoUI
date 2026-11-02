@@ -193,7 +193,7 @@
                       :to "{{concat([{id: id, sub: sub, name: title, modified: now()}], filter(state.mine, it.id != id))}}"}]
            :openExample [{:note "with: app"}
                          {:invoke launch.run
-                          :with {:arguments "{{app.program == 'host' ? ['affrescoui_launcher', 'examples:' + app.folder + '/' + state.notation] : [app.program]}}"}
+                          :with {:arguments "{{app.program == 'host' ? ['affrescoui_launcher', 'examples:' + app.folder + '/' + (app.notation ?? state.notation)] : [app.program]}}"}
                           :onDone [{:run toast :with {:message "{{t('toast.opening', {name: app.name})}}" :error false}}]
                           :onError [{:run toast
                                      :with {:message "{{t('toast.openFailed', {name: app.name, why: error.message})}}"

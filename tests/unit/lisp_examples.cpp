@@ -29,7 +29,7 @@ TEST_CASE("lisp examples: every example is there in both notations, and loads as
 		      Screen::fromApp(entry.path() / "json", {}, Screen::History::InMemory).documentJson());
 		++apps;
 	}
-	CHECK(apps >= 14);
+	CHECK(apps >= 13);
 }
 
 TEST_CASE("lisp examples: a lisp folder holds Lisp, but for scenarios and a signed catalogue") {
@@ -79,7 +79,8 @@ TEST_CASE("lisp examples: the two notations share one copy of an example's asset
 	for(const auto& example : std::filesystem::directory_iterator(examples)) {
 		if(!std::filesystem::is_directory(example.path() / "lisp")) continue;
 		assets += std::filesystem::is_directory(example.path() / "assets") ? 1 : 0;
-		for(const std::string notation : {"json", "lisp"})
+		for(const std::string notation : {"json", "lisp"}) {
+			if(!std::filesystem::is_directory(example.path() / notation)) continue; // an app written as a program
 			for(const auto& file : std::filesystem::recursive_directory_iterator(example.path() / notation)) {
 				const std::string extension = file.path().extension().string();
 				CAPTURE(file.path().string());
@@ -88,6 +89,7 @@ TEST_CASE("lisp examples: the two notations share one copy of an example's asset
 				CHECK((!file.is_regular_file() || extension == ".json" || extension == ".lisp" || extension == ".py" ||
 				       file.path().filename() == ".gitattributes"));
 			}
+		}
 	}
 	CHECK(assets >= 5);
 }

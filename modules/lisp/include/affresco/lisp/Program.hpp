@@ -114,9 +114,9 @@ public:
 	void load(Interpreter& interpreter) const;
 
 	/// @brief Builds the tree, in a fresh interpreter with no way out but the pure primitives (definePure()): the same
-	/// source always gives the same tree. `format` and `version` come first, then `defscreen main`'s properties and
-	/// `root`, then `screens`, `actions`, `keys` and `settings`, each sorted by name. Records what extensions() and
-	/// undefinedNames() say.
+	/// source always gives the same tree. Every `def` and `defcustom` is worked out here, used or not. `format` and
+	/// `version` come first, then `defscreen main`'s properties and `root`, then `screens`, `actions`, `keys` and
+	/// `settings`, each sorted by name. Records what extensions() and undefinedNames() say.
 	/// @param limits The limits.
 	/// @return The tree.
 	/// @throws LispError If building fails or a limit runs out, naming the place.
@@ -126,6 +126,9 @@ public:
 	[[nodiscard]] const std::vector<Extension>& extensions() const noexcept { return extensions_; }
 	/// @brief The names the last build's definitions use that nothing defines. @return Them, in order of use.
 	[[nodiscard]] const std::vector<UndefinedName>& undefinedNames() const noexcept { return undefined_; }
+	/// @brief The names each definition's code uses, macros' output and the functions inside it included: nothing runs
+	/// but what a name reaches, as the language has no way to find a global from a value. @return Them, by its address.
+	[[nodiscard]] const std::map<std::string, std::vector<std::string>>& namesUsed() const noexcept { return used_; }
 
 private:
 	std::vector<Entry> entries_;                                ///< See entries().
@@ -133,6 +136,7 @@ private:
 	std::vector<std::pair<std::string, Primitive>> primitives_; ///< See definePure().
 	std::vector<Extension> extensions_;                         ///< See extensions().
 	std::vector<UndefinedName> undefined_;                      ///< See undefinedNames().
+	std::map<std::string, std::vector<std::string>> used_;      ///< See namesUsed().
 };
 
 } // namespace affresco::lisp

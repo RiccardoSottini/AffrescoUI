@@ -4,7 +4,8 @@
 /// @brief What values point at, and the heap that owns them all.
 ///
 /// Every object of a run lives in one heap and goes with it, in one flat loop, so that freeing a long list or a chain
-/// of closures takes no recursion, and a Value is a plain copy.
+/// of closures takes no recursion, and a Value is a plain copy. A region (Heap::mark()) gives back what one event made,
+/// so that a long-running app doesn't grow.
 
 #include <affresco/lisp/Interpreter.hpp>
 #include <affresco/lisp/Value.hpp>
@@ -62,6 +63,7 @@ struct TextObject final : Object {
 /// vector's end needn't copy.
 struct Items final : Object {
 	std::vector<Value> values; ///< The items.
+	std::uint64_t epoch = 0;   ///< The region it was made in: another region's values may not be added to it.
 };
 
 /// @brief A list or a vector: a part of some Items.
@@ -182,6 +184,7 @@ struct Code final : Object {
 	std::vector<Global*> globals;        ///< Op::Global's globals.
 	std::vector<const Code*> functions;  ///< Op::Closure's functions.
 	std::vector<CaptureSource> captures; ///< What its closures capture.
+	std::vector<std::string> parameters; ///< Its parameters' names, without a rest parameter; "" for a pattern.
 };
 
 /// @brief A closure: a function and what it captured.
@@ -224,6 +227,31 @@ public:
 		objects_.push_back(std::move(object));
 		return made;
 	}
+
+	/// @brief What a region starts from: the objects made before it stay.
+	struct Mark {
+		std::size_t objects = 0; ///< How many objects there were.
+		std::size_t adopted = 0; ///< How many JSON values were kept.
+	};
+	/// @brief Starts a region: release() gives back what is made from now on.
+	/// @return Where it starts.
+	[[nodiscard]] Mark mark() noexcept {
+		++epoch_;
+		pinned_ = false;
+		return {objects_.size(), adopted_.size()};
+	}
+	/// @brief Ends a region: what it made goes, unless something lasting points at it (pin()). No value of the region
+	/// may be read afterwards.
+	/// @param start Where it started.
+	void release(const Mark& start) {
+		if(pinned_) return;
+		objects_.resize(start.objects); // in one flat loop: nothing an object points at is followed
+		adopted_.resize(start.adopted);
+	}
+	/// @brief How many objects it holds. @return The count.
+	[[nodiscard]] std::size_t size() const noexcept { return objects_.size(); }
+	/// @brief Keeps what the running region made: something lasting (a global, compiled code) may point at it.
+	void pin() noexcept { pinned_ = true; }
 
 	/// @brief Spends bytes. @param bytes How many.
 	/// @throws Problem If the budget runs out.
@@ -280,6 +308,8 @@ private:
 	Value text(Kind kind, std::string_view written, Place place);
 
 	Budget* budget_ = nullptr;                         ///< See setBudget().
+	std::uint64_t epoch_ = 0;                          ///< The region being made in (Items::epoch).
+	bool pinned_ = false;                              ///< See pin().
 	std::vector<std::unique_ptr<Object>> objects_;     ///< What it owns.
 	std::deque<std::string> files_;                    ///< See file().
 	std::vector<std::shared_ptr<const json>> adopted_; ///< See adopt().

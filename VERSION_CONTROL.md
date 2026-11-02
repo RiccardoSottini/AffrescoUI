@@ -443,11 +443,14 @@ names the definition. So does:
 - a definition over 1 MiB, or a program of more than 16,384 definitions;
 - taking away a definition that another's body still uses, which the build alone wouldn't notice;
 - an edit of what is built (`#title/text`, `/actions/kill-line`): it says to change its definition;
+- a `def` or a `defcustom` whose value can't be worked out, used or not: it is worked out at the build, purely;
 - a section both written and built with different contents, or a program building `include`, `assets`, `features` or `program`.
 
 A document can hold other sections beside `program` (a JSON screen that includes a program, an asset a revision brought): they
-are merged member by member with what it builds. A live state's keys follow the definition: a definition's changed initial
-`state` sets the live state's key, as a revision on `/state` would, and is judged as one.
+are merged member by member with what it builds. **A definition's `state` is what a key starts from, and a person's data is never
+lost to a change of the program:** a key with no live value gets it, a key still at the definition's old value follows the new one,
+and a key that was changed keeps what it holds, through the change and through its undo. What that does to the live state is judged
+as a revision on `/state` would be.
 
 **The keyword edit.** Replacing a whole form costs far more than a small change is worth, so a revision can address one keyword's
 value inside it: `{"set": {"/program/killring.lisp/kill-line/:title": "Kill"}}`, and `.../main/:window/:title` inside a map.
@@ -478,9 +481,23 @@ a row marked `"built": true` with the trees they build, side by side. Diffs and 
 
 **Blame** answers per definition. A node a program builds has no commit of its own: blaming it says to blame its definition.
 
-**Authors.** `VersionControl::programAuthors()` gives who last wrote each definition: the author of the commit on `main` that last
-changed it, and `"file"` for what the file on disk had. `lisp::programOf(section, authors)` gives a live interpreter a program
-that knows them; checking them is stage 3.
+**Authors.** `VersionControl::programAuthors()` gives who wrote each definition: the author of the commit on `main` that last changed
+it, and `"file"` for what the file on disk had. Three things can't move a text to someone with more authority:
+
+- **Accepting** isn't writing: a merged proposal's definitions stay its author's.
+- **The person's own restore or revert** that brings back a text someone else wrote leaves it theirs: for an entry the person's commit last
+  changed, the author is the first writer of that exact text on `main`.
+- **A preview**: what the proposal shown changes is its author's, for as long as it is shown.
+
+**Control steps in functions.** A revision can't add a way to run a control step, and a function counts as what it reaches: nothing runs
+but what a name reaches, and the language has no way to find a global from a value, so the build can say exactly which definitions reach a
+control or a review step, or `run`, which takes a computed name. So a handler, a key, a timer or `onLoad` a revision adds can't name one,
+as with an action that holds such a step. That is the first line. The second is at run time, however it got there: code by anyone but the
+person or the app's file may not run a control step at all ([SECURITY.md](SECURITY.md), "The Lisp language"). So an agent's accepted function may
+do what a revision may add to a handler, and no more, as a proposal can't add a control step to JSON either.
+
+**Records.** A new or changed definition that uses a step that writes records (`insert`, `update-record`, `delete`, `undoData`, `redoData`,
+`importCsv`) is always reviewed, as a new write step in a handler is.
 
 **Features.** A feature's manifest can't hold a program's definitions yet: it is refused, saying so.
 

@@ -8,6 +8,7 @@ when a changed file can't be parsed: a file clang-tidy can't read would otherwis
 import json
 import os
 import re
+import shlex
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
@@ -54,6 +55,27 @@ def relative(path, root):
     return None if path.startswith("..") else path.replace(os.sep, "/")
 
 
+def include_arguments(build):
+    """clang-tidy's arguments for a header: every folder the build includes from. A header has no compile command, so
+    clang-tidy borrows one from the file nearest it by name, which may not see what the header includes: a header of
+    `core`, which no file of its own compiles and whose JSON is opt-in, may be given a file of `render`'s flags."""
+    database = os.path.join(build, "compile_commands.json")
+    if not os.path.exists(database):
+        return []
+    with open(database) as file:
+        entries = json.load(file)
+    folders = {}
+    for entry in entries:
+        words = entry.get("arguments") or shlex.split(entry.get("command", ""))
+        for at, word in enumerate(words):
+            for flag in ("-I", "-isystem"):
+                if word == flag and at + 1 < len(words):
+                    folders.setdefault(os.path.join(entry["directory"], words[at + 1]))
+                elif word.startswith(flag) and word != flag:
+                    folders.setdefault(os.path.join(entry["directory"], word[len(flag):]))
+    return [f"--extra-arg=-I{folder}" for folder in folders]
+
+
 def run(clang_tidy, build, root, files, sources, jobs, changed_lines=None, config_file=None):
     """Runs clang-tidy on each file and returns (findings, failures). Findings are dicts (file, line, column, check,
     message, module), once each even when a header is reached from several files, and only in `sources`.
@@ -67,8 +89,11 @@ def run(clang_tidy, build, root, files, sources, jobs, changed_lines=None, confi
         command.append("--line-filter=" + json.dumps(
             [{"name": path, "lines": [list(lines) for lines in ranges]} for path, ranges in changed_lines.items()]))
 
+    headers = include_arguments(build)
+
     def check(path):
-        return path, subprocess.run([*command, path], cwd=root, capture_output=True, text=True)
+        extra = headers if path.endswith((".hpp", ".h")) else []
+        return path, subprocess.run([*command, *extra, path], cwd=root, capture_output=True, text=True)
 
     findings, failures = {}, []
     with ThreadPoolExecutor(max_workers=jobs) as pool:

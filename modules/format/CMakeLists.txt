@@ -132,6 +132,11 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/ExportSteps.cpp)
 target_link_libraries(affrescoui_format PRIVATE affrescoui::export) # the export step's PDF
 target_include_directories(affrescoui_format PRIVATE src/steps)
+# src/programs/: a document's live Lisp program: calling its functions, and the checks by author (RFC 0005)
+target_sources(affrescoui_format PRIVATE
+	src/programs/Programs.cpp
+	src/programs/ProgramSteps.cpp)
+target_include_directories(affrescoui_format PRIVATE src/programs)
 # src/calls/: asynchronous and service calls
 target_sources(affrescoui_format PRIVATE
 	src/calls/AsyncCalls.cpp

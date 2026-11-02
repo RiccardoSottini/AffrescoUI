@@ -145,6 +145,7 @@ std::shared_ptr<const BuiltProgram> buildSection(const json& section) {
 	built->tree = program.build(limits);
 	built->undefined = program.undefinedNames();
 	built->extensions = program.extensions();
+	built->namesUsed = program.namesUsed();
 	return built;
 }
 
@@ -214,8 +215,14 @@ json readDocument(std::string_view text, const std::filesystem::path& file, cons
 		// NOLINTNEXTLINE(bugprone-empty-catch): the notation's reader says what is wrong, naming the file
 	} catch(const LispError&) {
 	}
-	if(!program) return notation::readDocument(text, file);
-	return sourceDocument(text, name.empty() ? file.filename().generic_string() : name);
+	if(program) return sourceDocument(text, name.empty() ? file.filename().generic_string() : name);
+	bool runs = false;
+	try {
+		runs = needsRunning(text).has_value();
+		// NOLINTNEXTLINE(bugprone-empty-catch): the notation's reader says what is wrong, naming the file
+	} catch(const DocumentError&) {
+	}
+	return runs ? buildText(text, file.generic_string()) : notation::readDocument(text, file);
 }
 
 std::string jsonText(std::string_view text, const std::filesystem::path& file) {

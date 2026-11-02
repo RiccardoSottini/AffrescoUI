@@ -11,6 +11,7 @@
 /// - Properties: a node's evaluated values on its panel;
 /// - Events: input on the panels and the window, as handlers;
 /// - Steps: actions and their steps;
+/// - Programs: a document's Lisp program, whose functions handlers and bindings call;
 /// - Scheduler: timers, animations, debounces, transitions and deferred tasks;
 /// - and the catalog (Catalog.hpp), built from the registries.
 /// Node types (TypeRegistry), steps (StepRegistry) and document sections (SectionRegistry) register from their own
@@ -29,6 +30,7 @@
 #include "DocumentContext.hpp"
 #include "Events.hpp"
 #include "Models.hpp"
+#include "Programs.hpp"
 #include "Properties.hpp"
 #include "Reconciler.hpp"
 #include "Scheduler.hpp"
@@ -100,6 +102,10 @@ struct Engine : VersionObserver {
 	Reconciler reconciler;     ///< Records; updates.
 	Events events;             ///< Input.
 	Steps runner;              ///< Actions.
+	Programs programs;         ///< The document's live program, if it has one.
+	/// Who the steps running now come from, while a program runs them; nullptr for the screen's own
+	/// (Programs::checkStep()).
+	const StepAuthority* authority = nullptr;
 	Models models;             ///< The application's data models (their changes reach the others).
 	Connections connections;   ///< The declared connections (RFC 0003), started by "request" and "subscribe".
 	ServiceCalls serviceCalls; ///< Service calls and subscriptions (RFC 0002).

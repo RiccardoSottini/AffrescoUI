@@ -29,7 +29,7 @@ target_include_directories(affrescoui_fuzz_expression PRIVATE
 affrescoui_fuzzer(diff_functions affrescoui::format) # diffLines, atPointer, applyPatch, formatJson
 target_include_directories(affrescoui_fuzz_diff_functions PRIVATE
 	$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>) # Expression.hpp
-affrescoui_fuzzer(revision affrescoui::format affrescoui::vcs)
+affrescoui_fuzzer(revision affrescoui::format affrescoui::vcs affrescoui::lisp)
 affrescoui_fuzzer(migrate affrescoui::format) # version 1 files (SCREEN_FORMAT.md, "Migrating from version 1")
 affrescoui_fuzzer(session affrescoui::format affrescoui::vcs affrescoui::channel)
 affrescoui_fuzzer(delta affrescoui::vcs)

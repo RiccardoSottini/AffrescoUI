@@ -76,6 +76,12 @@ private:
 		std::uint32_t index = 0;                                                         ///< Its index there.
 	};
 	using SpecialForm = void (Compiler::*)(const Value&, Position);
+	/// @brief A part of a binding's text: text as it is, or a form the build works out.
+	struct BindingPart {
+		std::string text;    ///< The text.
+		Value form;          ///< The form, if `worked`.
+		bool worked = false; ///< It is a form.
+	};
 
 	/// @brief The special forms by name. @return The table.
 	static const std::unordered_map<std::string_view, SpecialForm>& specialForms();
@@ -108,6 +114,59 @@ private:
 	void compileBody(const Value& form, std::size_t from, Position position);
 	/// @brief Emits a push of a global. @param name Its name. @param place Where it is used.
 	void compileGlobal(std::string_view name, Place place);
+	/// @brief Compiles a dotted word that is a path: a local's member (`room.name`), or what the running app reads
+	/// (`state.count`), when no definition has that name.
+	/// @param form The symbol.
+	/// @return false if it isn't one.
+	bool compilePath(const Value& form);
+
+	// A top-level template's `~form` that needs the running app (CompilerBindings.cpp)
+	/// @brief Tells whether a word needs the running app: a path, or what nothing defines.
+	/// @param name The word.
+	/// @return true if it does.
+	bool isLiveWord(std::string_view name);
+	/// @brief Tells whether a list needs the running app: its head does, or what it is given.
+	/// @param form The list.
+	/// @param depth How deep it is.
+	/// @return true if it does.
+	bool isLiveCall(const Value& form, int depth);
+	/// @brief Tells whether a form needs the running app: it names something that nothing defines, or a path.
+	/// @param form The form.
+	/// @param depth How deep it is.
+	/// @return true if it does: what it gives is written as a binding.
+	bool isLive(const Value& form, int depth);
+	/// @brief Tells whether a function needs the running app: what it reaches by name reads a path, is a host's
+	/// primitive that isn't pure, or is what nothing defines.
+	/// @param function The function's global.
+	/// @return true if it does.
+	bool reachesRunningApp(Global& function);
+	/// @brief Compiles a form that needs the running app to the text of a binding: `"{{!state.open}}"`.
+	/// @param form The form.
+	void compileBinding(const Value& form);
+	/// @brief Writes a form as an expression, into parts of a binding's text.
+	/// @param form The form.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text, and the forms the build works out.
+	void lowerForm(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes a list's items as an expression's, between an opening and a ')'.
+	/// @param form The list.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @param open What comes first.
+	/// @param separator What goes between the items.
+	void lowerList(const Value& form, int depth, std::vector<BindingPart>& parts, const std::string& open,
+	               const std::string& separator);
+	/// @brief Writes a list as an expression's operator, if it is one.
+	/// @param form The list.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it is.
+	bool lowerOperator(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes a list as an expression: an operator, a function of the program, or an expression's own function.
+	/// @param form The list.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	void lowerCall(const Value& form, int depth, std::vector<BindingPart>& parts);
 
 	// The special forms (CompilerForms.cpp)
 	void formQuote(const Value& form, Position position);
@@ -132,6 +191,11 @@ private:
 	/// @param level How many backquotes it is inside.
 	/// @param depth How deep it is in the template.
 	void quasi(const Value& form, int level, int depth);
+	/// @brief Compiles a template's `~` or `~@`.
+	/// @param form It.
+	/// @param level How many backquotes it is inside.
+	/// @param depth How deep it is in the template.
+	void quasiUnquote(const Value& form, int level, int depth);
 	/// @brief Compiles a template's list or vector.
 	/// @param form It.
 	/// @param from The first item.
@@ -231,6 +295,7 @@ private:
 	CompileContext context_;      ///< See the constructor.
 	Function* current_ = nullptr; ///< The function being compiled.
 	Place place_;                 ///< The place of what is being compiled.
+	bool liveBindings_ = false;   ///< In a top-level template: a `~form` that needs the running app becomes a binding.
 };
 
 /// @brief A form's head word: a list's first item, if it is a symbol.

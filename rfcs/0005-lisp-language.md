@@ -103,12 +103,16 @@ first, so a change to one definition never reorders another.
 Bindings keep the expression machine: `~form` compiles to the same operators when it can, and otherwise calls the
 interpreter.
 
-Files of the current notation still load. As of stage 2 an app reads them through the notation's reader, as ever, and `~` works
-in `affrescoui run --print`; reading them in an app as templates is left to when an app needs it. The rule:
+Files of the current notation still load. The rule:
 **a file holding one data value is read as a template, as if backquoted.**
-Words stay data and `~` drops into code, so `(label :text ~(t "burndown.title"))` works inside it, and all 180 generated
-files keep their meaning. A bare `(not x)` in a data position becomes an error: `line 3: "not" is not a node type; to
-run it, write ~(not ...)`.
+Words stay data and `~` drops into code, so `(label :text ~(t "burndown.title"))` works inside it, and all the generated
+files keep their meaning (a file with no `~` still goes through the notation's reader, as it costs less). A bare `(not x)` in a
+data position is an error: `line 3: "not" is not a node type; to run it, write ~(not ...)`.
+
+As built, in stage 3, in a top-level template, a `~form` is **worked out at the build unless it needs the running app**: it names a dotted
+word no definition has (a path), or what nothing defines, or a function that reaches one of those or a host's primitive that isn't pure. Then
+it stays in the tree as a binding: the expression machine's text if it is an operator it has (`~(not state.x)` is `"{{!(state.x)}}"`, with an
+expression's truth), or the call `"{{lisp('name', state.x)}}"`, which can only read.
 
 ### Diffs and every other capability
 
@@ -191,13 +195,32 @@ writing Lisp against JSON, before Lisp is recommended to agents.
 
 ## Performance
 
-Nothing here has been measured yet; there is no runtime.
-
 - **JSON apps:** no new code on their path; the benchmarks must show no change.
 - **Build:** runs on load and on a revision. The budget is the Forge cold start, recorded before and after.
 - **Bindings:** the hot path. Simple `~form`s use the existing expression machine at its current speed. Calling
   interpreted functions per frame is the risk: each stage measures it with the `Benchmarks (callgrind)` job, and a
   regression beyond the existing limits blocks the stage.
+
+Measured at stage 3 (`affrescoui_bench`, a Release build, wall clock, on Apple silicon, on a shared laptop, so a few percent either way; base: stage 2):
+
+| Workload | Base | This stage | |
+|---|---|---|---|
+| `forge/open`, Forge's cold start | 215.7 ms | 216.5 ms | unchanged |
+| `load/kanban`, a JSON app | 39.4 ms | 39.8 ms | unchanged |
+| `update/400` | 8.75 ms | 8.90 ms | within the noise of repeated runs |
+| `frame/400` | 911 us | 864 us | within the noise |
+| `revision/kanban/rename-label` | 36.7 ms | 36.2 ms | unchanged |
+| `load/habit-tracker` | 42.1 ms | 45.2 ms | Streak has a program of about 100 definitions to build and load now |
+| `revision/habit-tracker/rename-label` | 39.9 ms | 42.0 ms | the same: each revision builds it |
+| `lisp/event`, an event that calls a function that reads and sets the state | | 1.11 us | |
+| `lisp/event-as-steps`, the same event as a step and an expression | | 0.75 us | 1.5 times |
+| `lisp/binding`, a binding that calls an interpreted function, per label per frame | | 5.3 us | |
+| `lisp/binding-as-expression`, the same as an expression | | 3.5 to 5.3 us | at most 1.5 times |
+| `lisp/reload-200`, one definition changed in a program of 200: build, review, new interpreter | | 3.0 ms | |
+
+So an interpreted function is about one and a half times what steps and expressions cost for the same small work; a frame of bound labels is
+dominated by what isn't the language. A run leaves nothing behind (`retainedBytes` 0 per event). JSON apps have no new code but one
+pointer checked per step, per timer and per unknown action, which no workload can tell from noise.
 - **Memory:** definitions keep their source text in the document, and what they build beside it. The history keeps only the
   source. A compiled environment isn't kept: a thread keeps its last four builds (`builtProgram`).
 
@@ -229,10 +252,17 @@ untrusted.
 - **Limited readers.** A reader whose reads are limited sees no definition its `read` doesn't name, and can't change a program,
   since a definition run at build time reads any other's value and its result lands in what its author reads. Stage 2 chose
   this over working out what a text reveals: deny rather than leak. It may be loosened when reads of definitions can be traced.
+  **As built, the authority weighed is wider than the stack:** every author whose code has run since the outermost call began, those that
+  returned too, and whoever scheduled it. See "Open questions", answered. **The attack tests run with the revision's scan off**, so the check at
+  run time holds by itself (`tests/unit/lisp_runtime.cpp`), and the scan is a first line on top: a function counts as what it reaches, which is
+  sound as the language has no way to find a global from a value (`run` counts as reaching anything).
 - **Hooks and advice** can wrap a protected action. They run with their own author's authority, under the least-authority
   rule, and adding one to a protected action needs the same review as changing that action.
 - **Secrets.** Functions reach secrets only as the existing services do; a value printed by `describe-*` or an error
   message goes through the same masking as state. An error's text must not include values read from masked paths.
+- **Who wrote it, exactly.** A definition's author is its commit's. A person's restore or revert that brings back someone else's text leaves it
+  theirs (found while attacking this: an agent's text restored by a person's undo got the person's authority); accepting a proposal doesn't change it;
+  and during a preview what the proposal changes is its author's (found too: a proposal's new text was credited to what it replaced).
 - **Timers and callbacks.** A function can only start the timers steps can. Hooks belong to their entry, and removing
   the entry removes them, including when a revision is undone.
 - **`SECURITY.md` changes.** "A file in the Lisp notation is data only, never evaluated" stops being true for programs,
@@ -261,7 +291,9 @@ untrusted.
 2. **Definitions in the document.** `program`, version control and per-file diffs on definitions, review by the built
    tree, the keyword edit, comments kept. Proved on a test fixture.
 3. **The live runtime.** Handlers and bindings call functions, authors tracked, run-time checks. Its own security
-   review and attack tests. One small app (Streak) rewritten, since its behaviour needs live functions.
+   review and attack tests. One small app (Streak) rewritten, since its behaviour needs live functions. As built, a new
+   version of the program is a new interpreter, whole; a callback is a definition's name and JSON, never a closure; and a `def` is worked out at
+   the build, purely, so nothing lasting comes of an event, which gives back all it made.
 4. **The Emacs loop.** `eval-defun`, `describe-*`, commands from functions; Calamaio's `*scratch*` and `init.lisp` really
    work.
 5. **Hooks and advice,** with their review.
@@ -279,8 +311,18 @@ untrusted.
 
 ## Open questions
 
-- **Least authority on the stack:** is it enough for callbacks an agent's code schedules, and does it make a person's
-  commands too weak when they use agent-written helpers? Stage 3's attack tests and real use should settle it.
+- **Least authority on the stack: answered by stage 3's attack tests.**
+  - *Enough for callbacks an agent's code schedules?* Yes, once the callback keeps the authors of what scheduled it, as it does: the run that fires later adds
+    them to whoever then runs. The stack alone says nothing there, as the agent's code is gone by then.
+  - *Enough at all?* **The stack alone isn't.** A person's command that calls an agent's helper, which returns `call` or the name of a person's function, then
+    runs it with only the person on the stack (`((helper) "x")`, tests "a closure, or a primitive, an agent hands..."). So the host weighs every author whose
+    code has run since the outermost call began, those that returned too (`CallContext::ran`), which keeps the stack's simple rule and closes that.
+  - *Too weak for a person's commands?* It is as weak as it says: a person's command that used an agent's helper can't then run a control step, and is
+    refused, naming the author and the step. A person who wants it to has to make the helper theirs, by reviewing and rewriting it, or by a stage-4
+    `eval-defun`, or to put the control step in a command that calls no agent code. Ordinary steps aren't touched, so most helpers in most commands
+    never notice. Real use may ask for more, and no route needs it now.
+  - *What it doesn't cover:* data. A value an earlier event's agent code left in the state reaches a person's `call` as an argument, as with any JSON
+    action whose `with` reads the state. A control step's arguments are untrusted input (SECURITY.md, "What `onCall` and `onAction` expose").
 - **`@word` tokens:** a stock EDN reader rejects them. Kept unless third-party EDN tooling turns out to matter.
 - **Conventional-syntax fixes** from the notation review (`type` as the head, `panel#id`, quoted display text, indentation,
   `fmt` keeping comments) go in their own PR before stage 1, as they apply either way. `fmt` currently deletes comments.

@@ -45,9 +45,10 @@ The program that embeds AffrescoUI (the host) is trusted, and so is everything i
 
 The screen file, its includes and the state file are read with the JSON nesting limit (256 levels), but none of the
 other checks applied to peers. A file in the Lisp notation (`.lisp`) is read to the same JSON tree with the same
-limits (256 levels, numbers of at most 40 characters, and at most 64 MiB). **A `.lisp` file that holds one data value is data only,
-never evaluated. One that is a program runs when it loads and on every revision**: its build, pure and bounded ("The Lisp
-language" below). Don't load a screen file or change set you wouldn't run as a program. The state file is the exception to "trusted": it
+limits (256 levels, numbers of at most 40 characters, and at most 64 MiB). **A `.lisp` file that holds one data value and no `~` is
+data only, never evaluated. A `~` in one runs at its build; and one that is a program runs when it loads, on every revision, and in the
+running app, with the authority of the file** ("The Lisp language" below). Don't load a screen file or change set you wouldn't run as a
+program. The state file is the exception to "trusted": it
 holds the persisted parts of the live state, which peers can change, and it is read back at the next start with only
 that nesting limit. Keep the paths a screen persists out of reach of agents you don't trust.
 
@@ -432,9 +433,11 @@ reaches the screen.
 
 ### The Lisp language
 
-`modules/lisp` is a programming language in Lisp syntax (RFC 0005). **Documents and revisions reach its build**: a program a file
-holds, and a definition a peer's revision brings, are read, compiled and built on the host's thread, before any review. Nothing else
-of it runs in an app: a function a handler might call isn't called yet (RFC 0005's stage 3).
+`modules/lisp` is a programming language in Lisp syntax (RFC 0005). **A `.lisp` file is no longer only data: a program is run.** A
+program a file holds, and a definition a peer's revision brings, are read, compiled and built on the host's thread, before any review;
+and its functions run in the app, from handlers and bindings. A data file with a `~` runs too, at its build, purely. Load
+a `.lisp` file you don't trust as you would any screen file (see "Trusted: the host and what it loads"): it can use the app's granted
+capabilities through its own control steps, since a file's author is the app itself.
 
 What a revision on a program does, and how each rule judges it, is in VERSION_CONTROL.md, "Programs":
 
@@ -446,22 +449,54 @@ What a revision on a program does, and how each rule judges it, is in VERSION_CO
 - **A limited reader** sees no definition its `read` doesn't name, and can't change a program at all: a definition runs at build
   time on any other's value, so what it builds could carry what the reader's masks hide.
 
+**Who may do what when a function runs: the authority model.** A definition carries its author, from the commit that wrote it
+(`"file"` for what the file on disk holds). Whatever a function does, it does through a step, and each step is checked when it runs,
+however it got there: directly, through `apply`, a value in a variable, a macro's output, a `(run name)`, a JSON action it runs, a timer.
+
+| A step that | Runs when |
+|---|---|
+| **reads** (a path, an expression's function) | Always |
+| **is ordinary** (`set`, `push`, `navigate`, `after`, `run`, the record steps...) | Never from a value read for the screen; otherwise always |
+| **is a control step** (`call`, `send`, `connect`, `patch`, `invoke`, `request`, `saveFile`, and any step not named above) | Everyone whose code led here is the person or the app's file; and while a proposal is previewed, only from the person's own input |
+| **is a review step** (`accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`) | Everyone whose code led here is the person or the app's file, and it comes from the person's own input: a click or a key, never a timer, a `watch` or a handler that fires by itself |
+
+- **"Everyone whose code led here"** is every author whose code has run since the outermost call began, those that returned included;
+  those whose macro wrote the code; and those who scheduled what is running. The least of them is the authority, so authority is only
+  ever lost. An agent's helper that a person's command calls doesn't gain the person's authority, and from then on the person's command
+  can't run a control step either: it is refused, with an error naming the author and the step. Stack inspection alone wouldn't do, as what an
+  agent's function returned (a function, a name to run) would then run with no agent on the stack.
+- **An author's code that isn't the person's or the file's has the authority a revision has:** it can do what a revision may add to a
+  handler. A person accepting a proposal doesn't change that, as accepting one doesn't let a revision add a control step to JSON.
+  The authors of a person's restore or revert, and of a previewed proposal, are in VERSION_CONTROL.md, "Programs". Anyone unknown counts for least.
+- **Later keeps its authority.** A callback (`after`, `debounce`, an action's own timer run from a function) keeps the authors of what
+  scheduled it. It is a definition's name and JSON arguments, never a closure, so it holds nothing of the event.
+- **A state change is no authority.** A `watch` or a binding that a function's `set` sets off runs as what its own author wrote: the steps of a
+  file's `watch` are the file's, whoever changed the state, as any revision on `/state` may set one off. A function it runs is that function's author's.
+- **Two lines.** A revision can't add a way to a control step, and a function counts as what it reaches (VERSION_CONTROL.md). The check at
+  run time holds by itself: the attack tests in `tests/unit/lisp_runtime.cpp` run with that scan turned off.
+- **A value read for the screen has no way to cause effects.** `~form` and `lisp()` can only read: any step refuses, whoever wrote it.
+  Definitions' values are worked out at the build, so reading changes nothing in the program either.
+- **No data is evaluated.** The language has no `eval` and no way to find a global from a value. A value given to a step is taken as it is: text
+  with `{{` in it stays text. A function can't be kept in the state.
+- **A change of the program** replaces the interpreter whole, so a definition taken away or undone is gone, with the callbacks of its name. A
+  function running at that moment ends on its own version, with its authors.
+
 What holds for whatever text it is given:
 
-- **No way out.** The language has no file, process, network, clock, randomness, foreign-function or host-eval primitive. The
+- **No way out of its own.** The language has no file, process, network, clock, randomness, foreign-function or host-eval primitive. The
   only way out is what a host registers, each call passing through one function that first refuses what isn't pure during a
-  build, then asks the host's gate (`modules/lisp/README.md`, "For the next stages"). `affrescoui` registers nothing.
-- **A build is pure**, so the same source gives the same tree.
+  build, then asks the host's gate (`modules/lisp/README.md`, "The way out"). `affrescoui` registers nothing. In an app, the way out is the
+  steps, as above, and what reads.
+- **A build is pure**, so the same source gives the same tree. A macro and a `def` run only then, and when a program loads, purely too.
 - **Limits.** Work, allocation, call depth and macro expansion are bounded, a `try` can't catch a limit running out, and each
-  error names its place. Recursion uses the machine's own stack, not the native one, and what is left of native recursion
-  (reader, compiler, walks over values) stops at a depth. The reader's limits are the notation's. Fuzzed: `tests/fuzz/lisp.cpp`.
+  error names its place. What a function does spends from the budget of its event or update, so a loop in a handler or a binding stops, and
+  what a call makes goes when it ends. Recursion uses the machine's own stack, not the native one, and what is left of native
+  recursion (reader, compiler, walks over values, calls through a step or a value, at most 64 deep) stops at a depth. The reader's limits are
+  the notation's. Fuzzed: `tests/fuzz/lisp.cpp`, with a gate, and `tests/fuzz/revision.cpp` on a program.
 - **Errors** say names and kinds, never a value; a `throw` nothing catches shows its message only if the form wrote it.
-- **Authors** are carried by definitions, closures and stack frames, including through tail calls and macro output, but
-  **nothing checks them yet**: that is stage 3, with its own review and attack tests. A host registering primitives today
-  has only its gate.
 
 ### What documents can't do
-A document has no scripts. Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
+A JSON document has no scripts, and a program's only way out is the steps (above). Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
 a process (the `ProcessChannel` and `StdioChannel` classes are only opened by host code), open a network connection,
 or write files, apart from the parts of the state its `persist` section lists, which go to the state file the host
 chose, and its records, which go to the data store the host chose (`Screen::setDataFile`). A `surface` node only names a GPU surface the host registered (`Screen::registerSurface`) and gives it
@@ -699,6 +734,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A pack of a history's objects, written | 16 MiB (more objects go into another pack) |
 | A text or key `affrescoui check` matches against a schema pattern (`std::regex` recurses on each character: a longer text is reported as too long to check, a longer key matches no pattern) | 10,000 characters |
 | The work of one event (a handler, an action run by code, a timer, `onLoad`, `watch`, a drag's `data`, the state path a `caret`, a `bind` or an overlay writes) or one update, nested handlers sharing the outermost one's (`WorkBudget`, `Expression.hpp`) | 100,000 steps (each `forEach` item and `while` turn is one, even with nothing to `do`); 10,000,000 expression operations (each item a list function visits counts); 64 MiB written into the state by `set` and `push`. Past one, what is running stops with an error naming its place; an update that stops refuses the version that caused it |
+| What a program's function does in one event or update | That event's or update's work budget, shared with its steps and expressions, each read of the app costing what its size costs; 20,000 calls on its own stack, and 64 through steps and values, which use the native one. A `try` catches none of these |
+| A program loading, when a definition changes | What a build may spend (2,000,000 operations, 16 MiB); its macros and values run then, purely |
 | One revision (`Rules::checkRevision`, before any of it is applied) | 100,000 operations, and 16 MiB as JSON |
 | A document, without its state (`Rules::validate`, at load and after every revision) | 32 MiB as JSON |
 | The state: the document's own, and the live state after a revision (unless it was already larger) | 32 MiB as JSON |

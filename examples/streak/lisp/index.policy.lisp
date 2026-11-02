@@ -9,7 +9,8 @@
           :expect deny
           :reason "#appBar"}
          {:name "an agent's new behaviour is always asked"
-          :revision {:author "agent/claude-code" :add {"/actions/policyExample" [{:set state.theme :to dark}]}}
+          :revision {:author "agent/claude-code"
+                     :add {"/program/habits.lisp/policyExample" "(defn policyExample \"An agent's new function.\" [] (set \"state.theme\" \"dark\"))"}}
           :expect ask}
          {:name "twenty new panels are within the agent's budget"
           :revision {:author "agent/claude-code"

@@ -143,6 +143,25 @@ def kanban_ids():
     return ids
 
 
+def program_revisions():
+    """Revisions on a document that holds a program (the fixture in tests/fuzz/revision.cpp): each kind of definition
+    replaced, added, taken away; a keyword edit; and what must be refused."""
+    at = "/program/app.lisp/"
+    return [
+        {"author": "agent", "set": {at + "helper": '(defn helper "New." [n] (+ n 2))'}},
+        {"author": "agent", "set": {at + "save": '(defn save "Mine." [] (call "y"))'}},
+        {"author": "agent", "set": {at + "go/:title": "Run"}},
+        {"author": "studio", "set": {at + "main/:state/:n": 5}},
+        {"author": "agent", "set": {at + "defkey mod+x": '(defkey "mod+x" save)'}},
+        {"author": "agent", "set": {at + "rooms": '(def rooms "Loops." (loop [] (recur)))'}},
+        {"author": "agent", "set": {at + "twice": '(defmacro twice "Runs." [x] (call "y") x)'}},
+        {"author": "agent", "patch": [{"op": "remove", "path": at + "helper"}]},
+        {"author": "agent", "patch": [{"op": "move", "from": at + "helper", "path": at + "other"}]},
+        {"author": "agent", "patch": [{"op": "copy", "from": at + "save", "path": at + "main"}]},
+        {"author": "studio", "set": {"/state/n": 9, at + "main/:state/:n": 2}},
+    ]
+
+
 def revisions():
     """Revisions for the Kanban template: from the docs, and edits of every kind to its nodes and state."""
     found = [block for block in doc_blocks() if isinstance(block, dict) and
@@ -166,6 +185,7 @@ def revisions():
         {"op": "move", "from": "/state/copy", "path": "/state/moved"}, {"op": "test", "path": "/state/moved/0", "value": 1},
         {"op": "replace", "path": "#statusText/text", "value": "Saved"}, {"op": "remove", "path": "/state/extra"}]})
     found.append({"author": "agent", "proposal": 1, "set": {"#boardName/text": "Again"}})
+    found += program_revisions()
     return [compact(revision) for revision in found]
 
 

@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco::lisp {
@@ -86,7 +87,10 @@ struct CallContext {
 	std::string_view primitive;           ///< Its name.
 	std::string_view capability;          ///< The capability it needs, or "".
 	std::span<const std::string> authors; ///< Every author on the stack (Interpreter::authorsOnStack()).
-	Place place;                          ///< The call.
+	/// Every author whose code has run since the outermost call began, those that returned too: what such code gave
+	/// back (a function, a name to run) is in what is running now, so it is what a host weighs authority by.
+	std::span<const std::string> ran;
+	Place place; ///< The call.
 };
 
 /// @brief The choke point: called before every call of a host's primitive. It throws Refusal to refuse.
@@ -133,6 +137,25 @@ public:
 	/// @param pure Whether it is on.
 	void setPure(bool pure) noexcept;
 
+	/// @brief A region: while it lives, what the interpreter makes is given back when it ends, so that a long-running
+	/// app doesn't grow with each event. Nested ones join the outermost, and no value made inside may be read after it.
+	/// A global worked out, or anything compiled, inside it keeps what the region made.
+	class Transient {
+	public:
+		/// @brief Starts one, unless one is running.
+		/// @param interpreter The interpreter; outlives it.
+		explicit Transient(Interpreter& interpreter);
+		/// @brief Ends the one it started, giving back what it made.
+		~Transient();
+		Transient(const Transient&) = delete;
+		Transient& operator=(const Transient&) = delete;
+		Transient(Transient&&) = delete;
+		Transient& operator=(Transient&&) = delete;
+
+	private:
+		Machine& machine_; ///< The machine.
+	};
+
 	/// @brief Reads and runs text at the top level: definitions take effect at once, and may replace earlier ones.
 	/// @param text The text.
 	/// @param file Its name, for errors.
@@ -165,15 +188,43 @@ public:
 	/// @param rank What an author may do, higher for more.
 	/// @return The author with the lowest rank, or std::nullopt with none on the stack.
 	[[nodiscard]] std::optional<std::string> leastAuthority(const std::function<int(std::string_view)>& rank) const;
+	/// @brief Every author whose code has run since the outermost call began, those that returned too
+	/// (CallContext::ran).
+	/// @return The authors, sorted.
+	[[nodiscard]] std::vector<std::string> authorsThatRan() const;
 	/// @brief The author of a function, which it keeps wherever it goes.
 	/// @param function A closure.
 	/// @return Its author; "" for anything else.
 	[[nodiscard]] static std::string authorOf(const Value& function);
+	/// @brief The definition a value is: a function a definition gave, as it is now the value of that name. A callback
+	/// that outlives the event is kept by this name (a closure's values go with the event).
+	/// @param function The value.
+	/// @return Its name; std::nullopt for a function made while running, a primitive or anything else.
+	[[nodiscard]] std::optional<std::string> definitionNameOf(const Value& function) const;
+	/// @brief A function's parameters, as a handler gives their values by name.
+	/// @param function The function.
+	/// @return Their names, without a rest parameter; "" for a pattern. Empty for what isn't a function a program
+	/// defined.
+	[[nodiscard]] static std::vector<std::string> parametersOf(const Value& function);
+	/// @brief Tells whether a name is a function of the program (`defn`, `defcommand`), which a handler may run by
+	/// name.
+	/// @param name The name.
+	/// @return true if it is.
+	[[nodiscard]] bool isProgramFunction(std::string_view name) const;
+	/// @brief Works out every `def` and `defcustom` that isn't yet.
+	/// @throws LispError If one fails, naming it.
+	void workOutDefinitions();
+	/// @brief Where the call being run is, for an error from a primitive.
+	/// @return Its place, and the definition it is in.
+	[[nodiscard]] std::pair<Place, std::string> place() const;
 
 	/// @brief Sets what running may spend from now on. @param budget The budget.
 	void setBudget(const Budget& budget) noexcept;
 	/// @brief What it may still spend. @return The budget.
 	[[nodiscard]] Budget budget() const noexcept;
+
+	/// @brief How many objects its heap holds, to see that what an event made is gone. @return The count.
+	[[nodiscard]] std::size_t objects() const noexcept;
 
 	/// @brief A string, in the heap. @param text Its text. @return The value.
 	[[nodiscard]] Value makeString(std::string_view text);

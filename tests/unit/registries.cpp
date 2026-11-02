@@ -120,11 +120,10 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	registerBuiltInSteps(registry);
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
-	CHECK(groups == std::vector<std::string>{"state",     "flow",       "outside", "services", "auth",
-	                                         "assistant", "attach",     "folder",  "file",     "export",
-	                                         "review",    "navigation", "editor",  "keys",     "time",
-	                                         "other",     "scene",      "image",   "audio",    "terminal",
-	                                         "data",      "windows"});
+	CHECK(groups == std::vector<std::string>{"state",  "flow",     "outside", "services", "auth",   "assistant",
+	                                         "attach", "folder",   "file",    "export",   "review", "navigation",
+	                                         "editor", "keys",     "time",    "other",    "scene",  "image",
+	                                         "audio",  "terminal", "data",    "windows",  "program"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())

@@ -278,12 +278,14 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp
 		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp
 		tests/perf/syntax.cpp
+		tests/perf/lisp.cpp
 		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples/shared apps/shared
 		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui::lisp)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui::imaging)
 	target_compile_definitions(affrescoui_bench PRIVATE
 		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples"

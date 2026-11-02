@@ -18,6 +18,8 @@ namespace {
 
 /// Most values the stack holds: its share of the memory, whatever the call depth.
 constexpr std::size_t maxStack = std::size_t{1} << 22U;
+/// The stack a run leaves behind it, in values or frames: past this one is given back when its event ends.
+constexpr std::size_t keptStack = std::size_t{1} << 14U;
 /// Most runs inside runs (a host's primitive calling back, macro expansion): each uses the native stack.
 constexpr std::size_t maxNestedRuns = 64;
 
@@ -37,9 +39,17 @@ private:
 
 } // namespace
 
+void Machine::leaveRegion() {
+	if(--regions_ != 0) return;
+	heap.release(region_);
+	if(stack_.capacity() > keptStack && frames_.empty()) std::vector<Value>().swap(stack_);
+	if(frames_.capacity() > keptStack && frames_.empty()) std::vector<Frame>().swap(frames_);
+}
+
 Machine::Machine(Interpreter& owner, const Limits& limits)
     : owner_(owner), limits_(limits), budget_(limits.budget), macroOperations_(limits.macroOperations) {
 	noAuthors_ = authorSet("");
+	ran_ = noAuthors_;
 	const Budget unlimited{static_cast<std::size_t>(-1), static_cast<std::size_t>(-1)};
 	const Budget start = budget_;
 	budget_ = unlimited; // what the language itself costs to load isn't a program's
@@ -82,6 +92,7 @@ const std::array<Machine::Handle, static_cast<std::size_t>(Op::Count)>& Machine:
 
 Value Machine::call(const Value& function, std::span<const Value> arguments) {
 	const std::vector<Value> copied(arguments.begin(), arguments.end()); // they may stand on the stack
+	if(frames_.empty()) ran_ = noAuthors_;
 	const std::size_t floor = frames_.size();
 	const std::size_t height = stack_.size();
 	const std::size_t handlers = handlers_.size();
@@ -113,6 +124,7 @@ Value Machine::call(const Value& function, std::span<const Value> arguments) {
 }
 
 Value Machine::runThunk(const Code* code) {
+	if(frames_.empty()) ran_ = noAuthors_;
 	const std::size_t floor = frames_.size();
 	const std::size_t height = stack_.size();
 	const std::size_t handlers = handlers_.size();
@@ -132,6 +144,7 @@ Value Machine::runThunk(const Code* code) {
 Value Machine::force(Global& global) {
 	ensureCompiled(global);
 	if(global.state == Global::State::Lazy) {
+		if(frames_.empty()) ran_ = noAuthors_;
 		const std::size_t floor = frames_.size();
 		const std::size_t height = stack_.size();
 		const RunGuard guard(nesting_);
@@ -157,6 +170,7 @@ void Machine::pushThunk(const Code* code, Global* storeTo) {
 	frame.base = stack_.size();
 	frame.authors = authorsFor(code);
 	frame.storeTo = storeTo;
+	noteRan(code);
 	stack_.resize(stack_.size() + code->slots);
 	frames_.push_back(frame);
 }
@@ -273,6 +287,7 @@ void Machine::bindArguments(const Code* code, std::uint32_t count) {
 void Machine::enter(const ClosureObject* closure, std::uint32_t count, bool tail) {
 	const Code* code = closure->code;
 	bindArguments(code, count);
+	noteRan(code);
 	const std::uint32_t params = code->arity + (code->variadic ? 1 : 0);
 	if(tail) {
 		Frame& frame = frames_.back();
@@ -333,8 +348,9 @@ Value Machine::callHost(const NativeObject* native, std::vector<Value> arguments
 	try {
 		if(gate_) {
 			const std::vector<std::string> authors = authorsOnStack();
+			const std::vector<std::string> ran = authorsThatRan();
 			const auto [place, definition] = currentPlace();
-			gate_({native->name, native->host.capability, authors, place});
+			gate_({native->name, native->host.capability, authors, ran, place});
 		}
 		return native->host.call(owner_, arguments);
 	} catch(const Refusal& refusal) {
@@ -342,7 +358,7 @@ Value Machine::callHost(const NativeObject* native, std::vector<Value> arguments
 	}
 }
 
-void Machine::finishCall(const Value& result, std::uint32_t count) {
+void Machine::finishCall(Value result, std::uint32_t count) { // a copy: it may stand on the stack
 	stack_.resize(stack_.size() - count - 1);
 	stack_.push_back(result);
 }
@@ -437,6 +453,7 @@ void Machine::opReturn(const Instruction& /*instruction*/) {
 	frames_.pop_back();
 	stack_.resize(frame.base - 1);
 	if(frame.storeTo) {
+		heap.pin(); // a global lasts, and what it holds with it
 		frame.storeTo->value = result;
 		frame.storeTo->state = Global::State::Ready;
 		return; // the instruction that asked for it runs again

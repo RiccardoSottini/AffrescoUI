@@ -62,7 +62,9 @@ const Code* Compiler::templateThunk(const Value& form) {
 	return compiling([&] {
 		Function state;
 		begin(state, {});
+		liveBindings_ = true;
 		quasi(form, 1, 0);
+		liveBindings_ = false;
 		return finish(state);
 	});
 }
@@ -73,6 +75,7 @@ const Code* Compiler::function(const Value& form) {
 
 void Compiler::begin(Function& state, std::string_view name) {
 	state.parent = current_;
+	machine_.heap.pin(); // compiled code lasts, and what it holds with it
 	state.code = machine_.heap.make<Code>();
 	state.code->definition = context_.definition;
 	state.code->author = context_.author;
@@ -166,7 +169,38 @@ void Compiler::compileSymbol(const Value& form) {
 		break;
 	}
 	if(isSpecial(name)) fail(form, "\"" + notation::Lexer::excerpt(name) + "\" is a form of the language, not a value");
-	compileGlobal(name, form.place());
+	if(!compilePath(form)) compileGlobal(name, form.place());
+}
+
+bool Compiler::compilePath(const Value& form) {
+	const std::string_view name = form.text();
+	const std::size_t dot = name.find('.');
+	if(dot == std::string_view::npos || context_.library) return false;
+	const std::string_view head = name.substr(0, dot);
+	if(resolve(*current_, head).kind == Variable::Kind::None) {
+		const Global* global = machine_.findGlobal(name);
+		if(global && global->state != Global::State::Undefined) return false; // a definition of that name
+		compileGlobal("%read", form.place());
+		emitConstant(machine_.heap.string(name));
+		emit(Op::Call, 1);
+		return true;
+	}
+	std::vector<std::string_view> keys; // room.name.first: a local's members
+	for(std::size_t at = dot + 1; at <= name.size();) {
+		const std::size_t end = std::min(name.find('.', at), name.size());
+		keys.push_back(name.substr(at, end - at));
+		at = end + 1;
+	}
+	const Value get = machine_.global("%get").value;
+	for(std::size_t at = 0; at < keys.size(); ++at) emitConstant(get);
+	compileSymbol(machine_.heap.symbol(head, form.place()));
+	for(const std::string_view key : keys) {
+		const bool index =
+		    !key.empty() && key.size() < 18 && std::ranges::all_of(key, [](char c) { return c >= '0' && c <= '9'; });
+		emitConstant(index ? Value::integer(std::stoll(std::string(key))) : machine_.heap.string(key));
+		emit(Op::Call, 2);
+	}
+	return true;
 }
 
 void Compiler::compileGlobal(std::string_view name, Place place) {
@@ -250,6 +284,7 @@ void Compiler::parameters(const Value& params) {
 		const Value pattern = rest ? params.at(++at) : parameter;
 		code.variadic = rest;
 		code.arity += rest ? 0 : 1;
+		if(!rest) code.parameters.emplace_back(pattern.kind() == Kind::Symbol ? pattern.text() : std::string_view());
 		patterns.emplace_back(pattern, newSlot());
 	}
 	const auto count = static_cast<std::uint32_t>(patterns.size());

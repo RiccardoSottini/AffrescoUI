@@ -2,6 +2,8 @@
 /// @brief The data layer as rules for version control (DataRules.hpp).
 
 #include "DataRules.hpp"
+
+#include "ProgramRules.hpp"
 #include "DataLayer.hpp"
 
 #include "affresco/data/Changes.hpp"
@@ -299,6 +301,8 @@ std::vector<std::string> dataReviewLines(const json& before, const json& after, 
 	std::multiset<std::string> was, now;
 	collectWrites(before, was);
 	collectWrites(after, now);
+	collectProgramWrites(before, writeSteps, was);
+	collectProgramWrites(after, writeSteps, now);
 	std::vector<std::string> added;
 	std::ranges::set_difference(now, was, std::back_inserter(added));
 	for(const std::string& step : added) {

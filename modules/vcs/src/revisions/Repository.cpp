@@ -233,10 +233,16 @@ void Repository::judgeProgram(Prepared& result, const json& document, json& afte
 	};
 	const json& oldState = stateIn(before);
 	const json& newState = stateIn(now);
+	// A definition's state is what a key starts from: it follows the definition only while the live value is still the
+	// old one, so what the person set is never lost to a change of the program
+	const auto untouched = [&](const std::string& key) {
+		const auto live = result.state.find(key);
+		return live != result.state.end() && oldState.contains(key) && *live == oldState[key];
+	};
 	for(const auto& [key, value] : newState.items())
-		if(!oldState.contains(key) || oldState[key] != value) result.state[key] = value;
+		if(!result.state.contains(key) || untouched(key)) result.state[key] = value;
 	for(const auto& [key, value] : oldState.items())
-		if(!newState.contains(key)) result.state.erase(key);
+		if(!newState.contains(key) && untouched(key)) result.state.erase(key);
 
 	result.sourceBefore = std::move(result.before);
 	result.sourceAfter = after;

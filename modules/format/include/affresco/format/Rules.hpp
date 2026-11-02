@@ -20,6 +20,12 @@ namespace affresco::format {
 
 class SectionRegistry;
 
+/// @brief Tells whether a word in a program's code is one a running app gives it: a step, or an expression's function.
+/// A tool that reads a program alone doesn't take it for a mistake.
+/// @param word The word.
+/// @return true if it is.
+[[nodiscard]] bool isRunningWord(std::string_view word);
+
 /// @brief The AffrescoUI Screen Format (SCREEN_FORMAT.md) as rules for version control (VERSION_CONTROL.md).
 ///
 /// "permissions" holds rules: `{"allow": [...], "ask": [...], "deny": [...], "reviewers": [...]}`,

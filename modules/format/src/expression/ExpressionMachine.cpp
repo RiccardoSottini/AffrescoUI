@@ -182,6 +182,12 @@ void Call::appendText(std::string& text, std::string_view piece) const { Machine
 
 const Strings* Call::strings() const noexcept { return machine_.context().strings; }
 
+json Call::callProgram(const std::string& name, std::vector<json> arguments) const {
+	const Context& context = machine_.context();
+	if(!context.program || !*context.program) fail("this screen has no program, so lisp() has nothing to call");
+	return (*context.program)(name, std::move(arguments), context.locals, context.event, "lisp('" + name + "')");
+}
+
 /* The machine */
 
 json Machine::evaluateDocument(const json& value, const Place& place) {

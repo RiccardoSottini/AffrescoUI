@@ -279,6 +279,10 @@ private:
 	/// @param scope The variables.
 	/// @param place Where it is.
 	void walkForEach(const json& step, const Scope& scope, const std::string& place);
+	/// @brief Checks a "lisp" step's function.
+	/// @param name The function.
+	/// @param place The step's place.
+	void callProgramFunction(const std::string& name, const std::string& place);
 	/// @brief Checks an action run by name, with the caller's variables (as the runtime runs it).
 	/// @param name The action.
 	/// @param scope The caller's variables.

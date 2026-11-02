@@ -9,6 +9,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <map>
 #include <memory>
 #include <span>
 #include <string>
@@ -28,6 +29,8 @@ struct BuiltProgram {
 	json tree;                            ///< The tree: `format` and `version`, `root`, and the sections it defines.
 	std::vector<UndefinedName> undefined; ///< What its definitions use that nothing defines.
 	std::vector<Extension> extensions;    ///< Its hooks and advice.
+	std::map<std::string, std::vector<std::string>>
+	    namesUsed; ///< What each definition's code uses (Program::namesUsed()).
 };
 
 /// @brief Tells whether a document holds a program.

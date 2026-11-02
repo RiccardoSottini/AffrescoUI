@@ -6,16 +6,17 @@ already understands. It has no way to the outside world but the primitives a hos
 Emacs Lisp, and the library stays agnostic: the language holds no app feature. Target: `affrescoui::lisp` (uses `core` and
 `notation`).
 
-**What runs it today:** a document holding a program: loading and every revision on it build it, purely (`Document.hpp`, and
-VERSION_CONTROL.md, "Programs"). The command line (`affrescoui run`, `affrescoui repl`) and this module's own API run the rest.
-Handlers don't call functions yet: that is RFC 0005's stage 3, and this README says what it builds on.
+**What runs it:** a document holding a program: loading and every revision on it build it, purely (`Document.hpp`, and
+VERSION_CONTROL.md, "Programs"), and `format::Programs` runs its functions in the app, from handlers and bindings, with every way out
+checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp language"; SCREEN_FORMAT.md, "Running"). The command line
+(`affrescoui run`, `affrescoui repl`) and this module's own API run the rest.
 
 ```lisp
 (defn card "One room as a node." [room]
   `(panel :id ~(str "room-" (:id room))
      (label :text ~(:name room))))
 
-(defcommand toggle-side "Shows or hides the side bar." :title "Toggle Side" [] nil)
+(defcommand toggle-side "Shows or hides the side bar." :title "Toggle Side" [] (toggle "state.side"))
 (defkey "mod+b" toggle-side)
 (defcustom max-rooms 60 "How many rooms are listed." :type integer)
 
@@ -28,8 +29,8 @@ Handlers don't call functions yet: that is RFC 0005's stage 3, and this README s
 | Header | Offers |
 |---|---|
 | `Value.hpp` | `Value`, `Kind`, `Place`: JSON's values plus symbols, keywords, lists and functions |
-| `Interpreter.hpp` | `Interpreter` (`eval`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `leastAuthority`, `authorOf`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
-| `Program.hpp` | `Program` (`addFile`, `addEntry`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`), `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `Extension`, `UndefinedName` |
+| `Interpreter.hpp` | `Interpreter` (`eval`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `authorsThatRan`, `leastAuthority`, `authorOf`, `definitionNameOf`, `parametersOf`, `isProgramFunction`, `workOutDefinitions`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`, `Transient`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
+| `Program.hpp` | `Program` (`addFile`, `addEntry`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `namesUsed`), `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `Extension`, `UndefinedName` |
 | `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits |
 
 ## Values
@@ -47,7 +48,9 @@ storage, so a loop of `conj` is linear).
 Special forms: `quote`, backquote with `~` and `~@`, `if`, `do`, `when`, `cond` (`:else`), `and` and `or` (giving an operand),
 `let`, `fn` (lexical closures; flat, as values never change), `loop` and `recur`, `try` and `catch` and `throw`. A call in tail
 position replaces the function being run. Destructuring: `[a b & more :as all]`, `{:keys [a b] :or {a 1} :as m x :x}`. A
-function has one list of parameters: there are no arities (`& rest` gives the rest as a vector).
+function has one list of parameters: there are no arities (`& rest` gives the rest as a vector). A dotted word reads a path: `room.name`
+is the member of a local `room`, and with no such local and no definition of that name (`state.count`) it calls `%read`, which the language refuses
+while building and a host gives while running.
 
 Functions: `+ - * / mod rem inc dec min max abs < > <= >= = not= not`, `nil? some? boolean? number? string? symbol? keyword?
 list? vector? map? fn? empty? contains?`, `first second last rest nth cons conj list vec concat reverse range sort sort-by
@@ -63,11 +66,11 @@ Definitions, top-level only, each with a docstring after the name (after the val
 
 | Form | Defines | Builds (`Program::build`) |
 |---|---|---|
-| `(def name "doc"? value)` | A global, worked out when first read | nothing |
+| `(def name "doc"? value)` | A global, worked out at the build or the load, purely, used or not | nothing |
 | `(defn name "doc"? [params] body...)` | A function | nothing |
 | `(defmacro name "doc"? [params] body...)` | A macro, load time only | nothing |
 | `(defscreen name "doc"? :key value ... node)` | Nothing callable | `main`: `root`, and its keys at the top level; another name: `screens.name`. The whole is a template |
-| `(defcommand name "doc"? :key value ... [params] body...)` | A function | `actions.name`: the keys (a template), `description` from the docstring, `do` empty for now (below) |
+| `(defcommand name "doc"? :key value ... [params] body...)` | A function | `actions.name`: the keys (a template), `description` from the docstring, and `do: [{"lisp": name}]`, which runs the function |
 | `(defkey "chord" "doc"? what)` | Nothing callable | `keys.chord`: a template, a word being an action's name |
 | `(defcustom name value "doc"? :key value ...)` | A global: the value | `settings.name`: `type`, `default`, the other keys, `description` |
 | `(add-hook hook "doc"? function)`, `(advice target "doc"? how... function)` | Nothing yet | Nothing: recorded in `Program::extensions()` |
@@ -80,7 +83,8 @@ one data value, a **template**.
 - **Definitions, not statements.** Every top-level form is a definition with a stable address (`Entry::name`): its name, or
   `defkey ctrl+k` and `add-hook after-save f` for those with none. A top-level call of a macro counts, named by its second
   item, and may expand to a definition or a `do` of them. Two definitions of one name are an error naming both places.
-- **Order doesn't matter.** Macros are defined first, then the rest; a `def` is worked out when first read, wherever it is, so
+- **Order doesn't matter.** Macros are defined first, then the rest; a `def` is worked out when first read, then all that are left
+  (a build reads them all, so a value that can't be worked out refuses the build), wherever it is, so
   a definition can use one below it; the sections built are sorted by name. Moving a definition changes nothing in the tree.
 - **The split keeps the text.** `splitEntries` gives each form's exact text, from the first character after the previous
   form's line, comments above it included, to the end of its own line; comments after the last form are the last entry's. So
@@ -95,8 +99,13 @@ one data value, a **template**.
   A word the language runs (`notation::languageWords`) isn't a node type in a data position: `(not x)` is the error
   `"not" is not a node type; to run it, write ~(not ...); for a node of that type, write (node :type not ...)`. So that no file
   breaks, the notation's writer never writes such a type as a head (`(node :type range ...)`), and that list leaves out `list`,
-  which is a node type: `(list ...)` in data stays a node. The notation's own reader applies this rule too. **A data file an app
-  loads goes through that reader, and `~` isn't read there**: `buildText` serves `affrescoui run --print`.
+  which is a node type: `(list ...)` in data stays a node. The notation's own reader applies this rule too. A data file an app loads
+  goes through that reader, or `buildText` when it holds a `~` (`readDocument`).
+- **A `~form` in a top-level template that needs the running app** stays in the tree as a binding (`CompilerBindings.cpp`): one that names a
+  path (a dotted word no definition has), what nothing defines, or a function reaching either, or a host's primitive that isn't pure. Those
+  the expression machine has (`not = not= < > <= >= + - * / mod if and or`) become its text, an undefined head becomes an expression's function, and a
+  function of the program or the language becomes `lisp('name', ...)`. What it holds that needs no app is worked out at the build. The rest of
+  a template, and a backquote in a function's body, run at once, as ever.
 - **In a document.** `sourceDocument` makes a file's `{file: {name: text}}`, `programOf` takes it back. `buildDocument` gives what the
   rest of the library reads: what it builds, its other sections merged in member by member (a member both give must be the same, so
   building a built document gives itself), and `program` kept. `builtProgram` keeps a thread's last four builds per section, since a
@@ -115,8 +124,11 @@ function per instruction). Calls and returns use the machine's own stack, so no 
 - Functions that call a function back (`map`, `reduce`...) are written in Lisp (`src/Prelude.cpp`). They see the language's own
   functions as constants, so a program redefining `count` doesn't change `reduce`. An error inside one names its caller's place.
 - All objects live in one `Heap`, freed in one flat loop: a long list or a chain of closures takes no recursion to free. A
-  `Value` is a plain 16-byte copy. **Nothing is freed before the interpreter goes**; stage 3 needs a mark and a release around
-  an event, or a fresh heap for what an event allocates. What a global holds must survive that.
+  `Value` is a plain 16-byte copy.
+- **A region gives back what an event made** (`Interpreter::Transient`, `Heap::mark`, `release`): objects are freed down to where it
+  started. Nothing lasting points into it: a `def`'s value is worked out before any event, compiled code too (either one pins the region, for safety,
+  rather than leave a dangling value), `conj` copies a vector older than the region rather than add to its storage, and a host keeps only
+  JSON and names across events. A value made inside isn't read after it.
 - The walks over a whole value (making a tree, printing, `=`) spend from the budget and stop at a depth (`maxValueDepth`,
   `maxNesting`). The native recursion that remains is the reader's (`maxNesting`), the compiler's (`maxCompileDepth`, macro output
   included) and runs inside runs (`maxNestedRuns`: macro expansion and a primitive calling back).
@@ -133,7 +145,8 @@ function per instruction). Calls and returns use the machine's own stack, so no 
 | Reader: text, nesting, numbers | 64 MiB, 256 levels, 40 characters | `LispError` at the place |
 
 A limit running out is never caught by a `try`, and every limit names the place. `format`'s `WorkBudget` isn't a dependency here:
-`Budget` has its `operations` and `bytes` meaning; stage 3 can copy them in with `setBudget` and out with `budget()` around a call.
+`Budget` has its `operations` and `bytes` meaning, and `format::Programs` copies them in with `setBudget` and out with `budget()` around a call
+and around each primitive.
 
 ## Errors
 
@@ -143,7 +156,7 @@ A message says names and kinds, never a value: a value may come from a masked pa
 message only if the form wrote it as a literal string; `catch` still gets the value. A condition the machine raises is
 `{:message "..."}` in `catch`.
 
-## For the next stages: the way out and who is running
+## The way out, and who is running
 
 **The host.** The language has no file, process, network, foreign-function or host-eval primitive. A host adds them:
 
@@ -151,7 +164,7 @@ message only if the form wrote it as a literal string; `catch` still gets the va
 interpreter.definePrimitive("kill", {.capability = "control", .pure = false,
     .call = [](lisp::Interpreter& in, std::span<const lisp::Value> args) { ... return lisp::Value(); }});
 interpreter.setGate([&](const lisp::CallContext& call) {
-    if(call.capability == "control" && !allowed(call.authors)) throw lisp::Refusal("...");
+    if(call.capability == "control" && !allowed(call.ran)) throw lisp::Refusal("...");
 });
 ```
 
@@ -171,20 +184,20 @@ author)` the same for what is evaluated.
 - Every stack frame carries the set of authors it runs under: its caller's plus its code's. A tail call adds to the frame's
   set rather than replacing it, so **a tail call can't launder authority**: an agent's function tail-calling a person's stays on
   the record until that frame returns. The language's own functions have no author, so `map` lends and takes nothing.
-- `Interpreter::authorsOnStack()` gives the set of the top frame, and so of the whole stack, as the gate's `CallContext::authors`
-  does; `leastAuthority(rank)` picks the lowest by the host's ranking. Nothing checks this yet: stage 3 wires its rules and
-  attack tests into the gate.
+- `CallContext::authors` (`authorsOnStack()`) is the top frame's set. **`CallContext::ran` (`authorsThatRan()`) is what a host should weigh:**
+  every author whose code has run since the outermost call began, those that returned too, since what such code returned (a function, a
+  name) is in what runs now. `leastAuthority(rank)` picks the lowest of the stack by the host's ranking.
 
-**Other seams.** `defcommand` builds `do: []`, and the body is the function of that name: stage 3 connects the action to the
-function. `Program::load(interpreter)` puts the definitions into a live interpreter, with its primitives and gate; a global is then
-replaced by `eval`, and the next call uses it (a call looks its global up each time). `Interpreter::describe` reads a
-definition's docstring, author and place (stage 4). `Program::extensions()` lists hooks and advice for stage 5.
+**`format::Programs` is the host in an app** (`modules/format/src/programs/`): the rules are in SECURITY.md, "The Lisp language". For the next
+stages:
 
-**A live program, with its authors (stage 3).** `VersionControl::sourceDocument()["program"]` is the section and
-`VersionControl::programAuthors()` who last wrote each entry, `"file"` for the app's own: `lisp::programOf(section, authors)` gives a
-`Program` whose entries carry them, ready to `load` into the interpreter. A change reaches a live program through
-`VersionObserver::documentChanged()`, after every commit, preview and undo: load the section again (a definition replaces what the
-interpreter had of its name; one no longer there has to be taken out by the host).
+- **Hooks and advice.** `Program::extensions()` lists them; `Programs::run` runs a function by name, so a hook's run is that, under an
+  `AuthorityScope` holding the authors of whatever set it off: the check needs nothing new. A hook belongs to its entry, so it goes with a new
+  interpreter when the entry goes.
+- **`eval-defun`** is a revision on `/program/...`, by the author `user` when the person's own input runs it: a primitive of capability `review`
+  is checked by author and input as it stands. `Rules::checkChange` (the scan of new ways to reach a control step) refuses any author today, the
+  person too: stage 4 must let the person's own revision past it, and only that.
+- **`describe-*`** read `Interpreter::describe` (docstring, author, place), and give no value.
 
 ## Files
 
@@ -194,8 +207,9 @@ src/
   Objects.hpp           what values point at, the heap, the instructions, compiled code
   Value.cpp             values and the heap
   Reader.hpp, .cpp      text into forms, on notation's Lexer
-  Compiler.hpp, .cpp    forms into instructions: calls, variables, functions, destructuring
+  Compiler.hpp, .cpp    forms into instructions: calls, variables, paths, functions, destructuring
   CompilerForms.cpp     the special forms and templates
+  CompilerBindings.cpp  a template's ~form that needs the running app, written as a binding
   Definitions.hpp, .cpp globals, the definition forms, authors
   Machine.hpp, .cpp     the stack, the instructions, the choke point
   CoreNumbers.cpp       the language's own functions on numbers and truth

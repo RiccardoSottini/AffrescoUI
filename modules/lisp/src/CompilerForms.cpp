@@ -6,6 +6,7 @@
 #include <affresco/notation/Lexer.hpp>
 
 #include <string>
+#include <utility>
 
 namespace affresco::lisp {
 
@@ -58,7 +59,9 @@ void Compiler::formQuote(const Value& form, Position /*position*/) {
 
 void Compiler::formBackquote(const Value& form, Position /*position*/) {
 	if(form.count() != 2) fail(form, "a backquote takes one form");
+	const bool live = std::exchange(liveBindings_, false); // a function's template gives values, whenever it runs
 	quasi(form.at(1), 1, 0);
+	liveBindings_ = live;
 }
 
 void Compiler::formIf(const Value& form, Position position) {
@@ -263,6 +266,17 @@ bool Compiler::quasiRuns(const Value& form, int level, int depth) {
 	return false;
 }
 
+void Compiler::quasiUnquote(const Value& form, int level, int depth) {
+	if(headWord(form) == "unquote-splicing" && level == 1) fail(form, "~@ goes inside a list or a vector");
+	if(level != 1) {
+		quasiSequence(form, 0, Kind::List, level - 1, depth + 1);
+	} else if(liveBindings_ && isLive(form.at(1), depth)) {
+		compileBinding(form.at(1));
+	} else {
+		compile(form.at(1), {});
+	}
+}
+
 void Compiler::quasi(const Value& form, int level, int depth) {
 	if(!quasiRuns(form, level, depth)) {
 		emitConstant(form);
@@ -270,12 +284,7 @@ void Compiler::quasi(const Value& form, int level, int depth) {
 	}
 	const std::string_view head = headWord(form);
 	if((head == "unquote" || head == "unquote-splicing") && form.count() == 2) {
-		if(head == "unquote-splicing" && level == 1) fail(form, "~@ goes inside a list or a vector");
-		if(level == 1) {
-			compile(form.at(1), {});
-			return;
-		}
-		quasiSequence(form, 0, Kind::List, level - 1, depth + 1);
+		quasiUnquote(form, level, depth);
 	} else if(head == "backquote" && form.count() == 2) {
 		quasiSequence(form, 0, Kind::List, level + 1, depth + 1);
 	} else if(head == "%map") {

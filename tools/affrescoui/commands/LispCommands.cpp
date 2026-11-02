@@ -5,6 +5,7 @@
 #include "Cli.hpp"
 #include "JsonText.hpp"
 
+#include <affresco/format/Rules.hpp>
 #include <affresco/lisp/Interpreter.hpp>
 #include <affresco/lisp/Program.hpp>
 
@@ -28,8 +29,9 @@ std::optional<Exit> runLisp(const std::filesystem::path& file, bool print) {
 		const json tree = isProgram ? program.build() : lisp::buildText(text, file.string());
 		std::cout << printText(parseText(tree.dump())) << std::flush;
 		for(const lisp::UndefinedName& name : program.undefinedNames())
-			std::cerr << file.string() << ": line " << name.line << ": \"" << name.name << "\" is not defined, in "
-			          << name.definition << '\n';
+			if(!format::isRunningWord(name.name))
+				std::cerr << file.string() << ": line " << name.line << ": \"" << name.name << "\" is not defined, in "
+				          << name.definition << '\n';
 		return Exit::Success;
 	} catch(const DocumentError& error) {
 		throw FileProblem(error.what());

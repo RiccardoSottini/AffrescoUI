@@ -6,6 +6,7 @@
 #include "CheckerShapes.hpp"
 #include "Library.hpp"
 #include "Limits.hpp"
+#include "ProgramRules.hpp"
 
 #include <algorithm>
 #include <array>
@@ -112,9 +113,11 @@ public:
 	/// @param control Those of them that may run control steps.
 	/// @param runners The components that run the actions their parameters name.
 	/// @param components The document's own "components" (an object, or null).
+	/// @param program What the document's program can do.
 	ControlScan(const json& actions, const std::set<std::string>& control, const std::set<std::string>& runners,
-	            const json& components)
-	    : actions_(actions), control_(control), runners_(runners), actionsAt_(actions), componentsAt_(components) {}
+	            const json& components, const ProgramReach& program)
+	    : actions_(actions), control_(control), runners_(runners), actionsAt_(actions), componentsAt_(components),
+	      program_(program) {}
 
 	/// @brief An action of the document.
 	/// @param name Its name.
@@ -127,15 +130,28 @@ public:
 	[[nodiscard]] const json* component(std::string_view name) const { return componentsAt_.find(name); }
 
 	/// @brief Whether running a target may run a control step: a computed one, an action the document doesn't have
-	/// (a native action, which is the application's code), or one in the control set.
+	/// (a native action, which is the application's code) unless its program defines it and it reaches none, or one in
+	/// the control set.
 	/// @param target The action name, or what computes it.
 	/// @return true if it may.
 	[[nodiscard]] bool mayControl(const json& target) const {
 		if(!target.is_string()) return true;
 		const auto& name = target.get_ref<const std::string&>();
-		if(name.contains("{{") || !actions_.is_object() || !action(name) || control_.contains(name)) return true;
+		if(name.contains("{{") || control_.contains(name)) return true;
+		if(!actions_.is_object() || !action(name))
+			return !program_.defined.contains(name) || program_.control.contains(name);
 		if(askedActions_) askedActions_->push_back(name);
 		return false;
+	}
+
+	/// @brief Whether a "lisp" step may run a control step: what it names, a function of the program and never an
+	/// action of that name, reaches one, or the program defines no such function.
+	/// @param target What it names.
+	/// @return true if it may.
+	[[nodiscard]] bool mayControlFunction(const json& target) const {
+		if(!target.is_string()) return true;
+		const auto& name = target.get_ref<const std::string&>();
+		return !program_.defined.contains(name) || program_.control.contains(name);
 	}
 
 	/// @brief Has the scan note the names it found not to run control steps, whose joining would change what it finds:
@@ -177,6 +193,22 @@ public:
 		}
 	}
 
+	/// @brief Notes what a member runs, if it may run a control step.
+	/// @param key Its key.
+	/// @param item Its value.
+	/// @param inner What runs it.
+	/// @param part What the object's strings mean.
+	/// @param found Receives the findings.
+	void noteWhatItRuns(const std::string& key, const json& item, const std::string& inner, Part part,
+	                    std::vector<std::string>& found) const {
+		const bool names = part == Part::Handlers || namesAction(key);
+		if(key == "lisp") {
+			if(mayControlFunction(item)) found.push_back(inner + ": lisp " + item.dump());
+		} else if(names && (item.is_string() || key == "run") && mayControl(item)) {
+			found.push_back(inner + ": run " + item.dump());
+		}
+	}
+
 	/// @brief Scans an object's member.
 	/// @param key Its key.
 	/// @param item Its value.
@@ -188,9 +220,7 @@ public:
 		if(part == Part::Values) return walk(item, trigger, part, found);
 		const bool triggers = namesAction(key) && key != "do" && key != "run";
 		const std::string inner = triggers || key == "every" || key == "keys" || key == "watch" ? key : trigger;
-		const bool names = part == Part::Handlers || namesAction(key);
-		if(names && (item.is_string() || key == "run") && mayControl(item))
-			found.push_back(inner + ": run " + item.dump());
+		noteWhatItRuns(key, item, inner, part, found);
 		walk(item, inner, key == "keys" || key == "watch" ? Part::Handlers : Part::Steps, found);
 	}
 
@@ -265,6 +295,7 @@ private:
 	const std::set<std::string>& runners_;        ///< The components that run the actions their parameters name.
 	const checker::Members actionsAt_;            ///< The document's actions by name.
 	const checker::Members componentsAt_;         ///< The document's own components by name.
+	const ProgramReach& program_;                 ///< What the document's program can do.
 	mutable std::size_t depth_ = 0;               ///< How many uses of the document's components are being expanded.
 	mutable std::size_t expansions_ = 0;          ///< How many more the use being scanned may be expanded through.
 	mutable std::size_t room_ = maxExpandedBytes; ///< How many more bytes the scan may expand components to.
@@ -310,8 +341,10 @@ void grow(const std::vector<std::string>& candidates, std::set<std::string>& mem
 /// say) or use such a component with computed parameters.
 /// @param doc The document.
 /// @param control The document's actions that may run control steps.
+/// @param program What the document's program can do.
 /// @return Their names.
-std::set<std::string> runningComponents(const json& doc, const std::set<std::string>& control) {
+std::set<std::string> runningComponents(const json& doc, const std::set<std::string>& control,
+                                        const ProgramReach& program) {
 	std::set<std::string> runners = actionRunningLibraryComponents();
 	const auto components = doc.find("components");
 	if(components == doc.end() || !components->is_object()) return runners;
@@ -319,7 +352,7 @@ std::set<std::string> runningComponents(const json& doc, const std::set<std::str
 		if(definition.is_object() && definition.contains("runsActions")) runners.insert(name);
 	static const json none;
 	const auto actions = doc.find("actions");
-	const ControlScan scan(actions != doc.end() ? *actions : none, control, runners, *components);
+	const ControlScan scan(actions != doc.end() ? *actions : none, control, runners, *components, program);
 	grow(checker::keysOf(*components), runners, [&](const std::string& name, std::vector<std::string>& asked) {
 		scan.note(nullptr, &asked);
 		std::vector<std::string> found;
@@ -333,13 +366,15 @@ std::set<std::string> runningComponents(const json& doc, const std::set<std::str
 /// native action or a computed one.
 /// @param doc The document.
 /// @param granted The host's actions its points pass on: they don't count (grantedActions()).
+/// @param program What the document's program can do.
 /// @return Their names.
-std::set<std::string> controlActions(const json& doc, const std::set<std::string, std::less<>>& granted) {
+std::set<std::string> controlActions(const json& doc, const std::set<std::string, std::less<>>& granted,
+                                     const ProgramReach& program) {
 	std::set<std::string> control;
 	if(!doc.contains("actions") || !doc["actions"].is_object()) return control;
 	const json& actions = doc["actions"];
 	static const json none; // actions use no component
-	const ControlScan scan(actions, control, actionRunningLibraryComponents(), none);
+	const ControlScan scan(actions, control, actionRunningLibraryComponents(), none, program);
 	std::vector<std::string> candidates = checker::keysOf(actions);
 	std::erase_if(candidates, [&](const std::string& name) { return granted.contains(name); });
 	grow(candidates, control, [&](const std::string& name, std::vector<std::string>& asked) {
@@ -357,12 +392,13 @@ std::vector<std::string> controlsIn(const json& doc, const std::set<std::string,
 	std::vector<std::string> found;
 	if(!doc.is_object()) return found;
 	static const json none; // both branches are references: the scan keeps one
-	const std::set<std::string> control = controlActions(doc, granted);
-	const std::set<std::string> runners = runningComponents(doc, control);
+	const ProgramReach program = programReach(doc);
+	const std::set<std::string> control = controlActions(doc, granted, program);
+	const std::set<std::string> runners = runningComponents(doc, control, program);
 	const ControlScan scan(doc.contains("actions") ? doc["actions"] : none, control, runners,
-	                       doc.contains("components") ? doc["components"] : none);
+	                       doc.contains("components") ? doc["components"] : none, program);
 	for(const auto& [key, value] : doc.items()) {
-		if(key == "strings") continue; // texts, never run: a key named like a step ("connect") is a word
+		if(key == "strings" || key == "program") continue; // texts, never run: a key named like a step is a word
 		if(key == "actions" && value.is_object()) {
 			for(const auto& [name, steps] : value.items()) scan.walk(steps, "actions." + name, Part::Steps, found);
 		} else {

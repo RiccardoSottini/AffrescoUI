@@ -17,6 +17,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace affresco::format {
 class Strings;
@@ -89,6 +90,12 @@ public:
 	/// @param piece What it gets.
 	/// @throws DocumentError If the text would be longer.
 	void appendText(std::string& text, std::string_view piece) const;
+	/// @brief Calls a function of the document's program for a value being read.
+	/// @param name The function.
+	/// @param arguments Its arguments.
+	/// @return What it gives.
+	/// @throws DocumentError If there is no program, it fails, or it tries to do anything.
+	[[nodiscard]] json callProgram(const std::string& name, std::vector<json> arguments) const;
 	/// @brief The translations and locale of the document evaluated.
 	/// @return They, or nullptr (a tool's evaluation: English, no keys).
 	[[nodiscard]] const Strings* strings() const noexcept;

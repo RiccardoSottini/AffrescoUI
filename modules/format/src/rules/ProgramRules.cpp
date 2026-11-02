@@ -4,6 +4,9 @@
 
 #include "ProgramRules.hpp"
 
+#include "ExpressionFunctions.hpp"
+#include "Programs.hpp"
+
 #include "affresco/format/Rules.hpp"
 
 #include <affresco/lisp/Document.hpp>
@@ -104,7 +107,70 @@ std::vector<DefinitionChange> definitionChanges(const json& before, const json& 
 	return changes;
 }
 
+/// @brief Marks the definitions from which a control or a review step can be reached.
+/// @param used What each uses by name.
+/// @return Those definitions.
+std::set<std::string> reachingControl(const std::map<std::string, std::vector<std::string>>& used) {
+	std::map<std::string, std::vector<std::string>> usedBy; // who uses each definition, to follow it back
+	std::vector<std::string> waiting;
+	std::set<std::string> control;
+	for(const auto& [name, names] : used)
+		for(const std::string& word : names) {
+			if(used.contains(word)) {
+				usedBy[word].push_back(name);
+				continue;
+			}
+			// `run` takes a computed name, so it may reach anything: as a computed "run" does in a handler
+			const StepKind kind = stepKind(stepOfWord(word));
+			const bool reaches = kind == StepKind::Control || kind == StepKind::Review || word == "run";
+			if(reaches && control.insert(name).second) waiting.push_back(name);
+		}
+	while(!waiting.empty()) {
+		const std::string name = std::move(waiting.back());
+		waiting.pop_back();
+		for(const std::string& caller : usedBy[name])
+			if(control.insert(caller).second) waiting.push_back(caller);
+	}
+	return control;
+}
+
 } // namespace
+
+bool isRunningWord(std::string_view word) {
+	return stepKind(stepOfWord(word)) != StepKind::None || detail::findFunction(word) != nullptr;
+}
+
+ProgramReach programReach(const json& document) {
+	ProgramReach reach;
+	if(!lisp::hasProgram(document)) return reach;
+	try {
+		const auto built = lisp::builtProgram(document["program"]);
+		for(const auto& [name, names] : built->namesUsed) reach.defined.insert(name);
+		reach.control = reachingControl(built->namesUsed);
+		// NOLINTNEXTLINE(bugprone-empty-catch): the build reports it; nothing counts as the program's meanwhile
+	} catch(const DocumentError&) {
+	}
+	return reach;
+}
+
+void collectProgramWrites(const json& document, std::span<const std::string_view> writes,
+                          std::multiset<std::string>& found) {
+	if(!lisp::hasProgram(document)) return;
+	try {
+		const auto built = lisp::builtProgram(document["program"]);
+		for(const auto& [file, entries] : document["program"].items())
+			for(const auto& [name, text] : entries.items()) {
+				const auto used = built->namesUsed.find(name);
+				if(used == built->namesUsed.end()) continue;
+				for(const std::string_view write : writes)
+					if(std::ranges::find(used->second, std::string(write == "update" ? "update-record" : write)) !=
+					   used->second.end())
+						found.insert(json{{write, true}, {"definition", name}, {"text", text}}.dump());
+			}
+		// NOLINTNEXTLINE(bugprone-empty-catch): the build reports it
+	} catch(const DocumentError&) {
+	}
+}
 
 void checkProgramSection(const json& value, const std::string& name) {
 	static_cast<void>(name);
