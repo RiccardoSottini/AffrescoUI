@@ -12,8 +12,8 @@
 
 #include <doctest/doctest.h>
 
-#include <chrono>
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -210,7 +210,7 @@ TEST_CASE("launcher: every app its list names opens from its folder, a program a
 		services::ProcessRun run{{"affrescoui_launcher", "examples:" + name}, {}, "/bin/false"};
 		CAPTURE(name);
 		CHECK_FALSE(shape(run));
-		CHECK(run.arguments.front() == (examples / name).string());
+		CHECK(run.arguments.front() == fs::path(examples / name).make_preferred().string());
 		opened.push_back(name);
 	}
 	CHECK(std::ranges::find(opened, "streak/lisp") != opened.end());

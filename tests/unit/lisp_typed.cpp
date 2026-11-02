@@ -276,3 +276,20 @@ TEST_CASE("lisp attack: a key that presses the person's evaluate for them") {
 	CHECK(app.errors.empty());
 	CHECK(app.hits == 1);
 }
+
+TEST_CASE("lisp attack: what a bound value's place holds now is whatever an agent made it") {
+	App app(R"lisp(
+(defn shown "" [result error] (set "state.result" result) (set "state.error" error))
+(defcommand eval-other "" :title "E" [] (evaluate state.other :then shown))
+(defkey "ctrl+e" eval-other)
+(defscreen main :state {:buffers {"99999999999999999999999" {:text ""}} :other "(+ 1 1)" :result nil :error nil}
+  (panel#root (editor#typed :bind "state.buffers.99999999999999999999999.text" :autofocus true :width 300 :height 100)))
+)lisp");
+	app.type("(+ 1 1)");
+	REQUIRE(app.state("buffers")["99999999999999999999999"]["text"] == "(+ 1 1)");
+	app.commit({{"author", "agent/x"}, {"message", "m"}, {"set", {{"/state/buffers", json::array({1, 2})}}}});
+	app.press(Key::E);
+	app.settle();
+	CHECK(app.state("result").is_null());
+	CHECK(app.state("error").get<std::string>().contains("typed"));
+}

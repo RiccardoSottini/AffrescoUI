@@ -36,6 +36,19 @@ Change changeBetween(std::string_view before, std::string_view after) {
 	return {at, before.size() - tail, after.size() - tail};
 }
 
+/// @brief A state value by its place: anything may have changed the state since.
+/// @param state The state.
+/// @param place Its JSON Pointer.
+/// @return It, or nullptr if nothing is there now.
+const json* valueAt(const json& state, const std::string& place) {
+	try {
+		const json::json_pointer pointer(place);
+		return state.contains(pointer) ? &state[pointer] : nullptr;
+	} catch(const json::exception&) { // a key of digits that is no index, if what holds it is a list now
+		return nullptr;
+	}
+}
+
 } // namespace
 
 void TypedText::follow(Held& held, std::string_view now) {
@@ -89,9 +102,9 @@ bool TypedText::holds(std::string_view form, const json& state) {
 	if(form.empty()) return true;
 	bool found = false;
 	std::erase_if(held_, [&](Held& held) {
-		const json::json_pointer pointer(held.place);
-		if(!state.contains(pointer) || !state[pointer].is_string()) return true; // it went: so did what it held
-		follow(held, state[pointer].get_ref<const std::string&>());
+		const json* value = valueAt(state, held.place);
+		if(!value || !value->is_string()) return true; // it went: so did what it held
+		follow(held, value->get_ref<const std::string&>());
 		found = found || std::ranges::any_of(held.runs, [&](const Run& run) {
 			        return std::string_view(held.text).substr(run.start, run.end - run.start).contains(form);
 		        });
