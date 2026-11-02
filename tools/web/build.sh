@@ -36,8 +36,9 @@ links="$build/site-links.html"
 : >"$links"
 python3 -I -c 'import json, sys; [print(name, folder) for name, folder in json.load(open(sys.argv[1]))["templates"].items()]' \
 	"$root/examples/templates.json" | while read -r name folder; do
-	# The app's entry screen, named by its app.json (index.screen.json in a folder without one), gives the title
-	entry=$(python3 -I -c 'import json, pathlib, sys; app = pathlib.Path(sys.argv[1], "app.json"); print(json.loads(app.read_text()).get("entry", "index.screen.json") if app.exists() else ("index.screen.lisp" if pathlib.Path(sys.argv[1], "app.lisp").exists() else "index.screen.json"))' \
+	# The app's entry screen, named by its app.json or app.lisp (index.screen.json in a folder without one), gives the
+	# title
+	entry=$(python3 -I -c 'import json, pathlib, re, sys; app = pathlib.Path(sys.argv[1], "app.json"); program = pathlib.Path(sys.argv[1], "app.lisp"); entry = re.search(r":entry\s+\"?([^\s\"}]+)", program.read_text()) if program.exists() else None; print(json.loads(app.read_text()).get("entry", "index.screen.json") if app.exists() else (entry.group(1) if entry else "index.screen.lisp") if program.exists() else "index.screen.json")' \
 		"$root/examples/$folder")
 	file="$root/examples/$folder/$entry"
 	# An app written as a program (RFC 0005) has its title in its window's Lisp
