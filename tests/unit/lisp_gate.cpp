@@ -1,7 +1,7 @@
 /// @file
 /// @brief Attacks from the independent review of RFC 0005 (SECURITY.md, "The Lisp language"), each failing on what was
-/// there before its fix: the language's natives given what they don't expect, work that wasn't paid for, what advice can
-/// keep or read, and who a hook's or an advice's run counts.
+/// there before its fix: the language's natives given what they don't expect, work that wasn't paid for, what advice
+/// can keep or read, and who a hook's or an advice's run counts.
 
 #include "LispApp.hpp"
 
@@ -67,7 +67,8 @@ TEST_CASE("lisp attack: what a value's size makes slow costs its size") {
 	lisp::Interpreter interpreter;
 	static_cast<void>(interpreter.eval(std::string("(def big ") + kMegabyte + ")", ""));
 	static_cast<void>(interpreter.eval("(def bigs [big big big big big big big big])", ""));
-	static_cast<void>(interpreter.eval(R"lisp((def far (assoc (zipmap (map str (range 40)) (range 40)) big 1)))lisp", ""));
+	static_cast<void>(
+	    interpreter.eval(R"lisp((def far (assoc (zipmap (map str (range 40)) (range 40)) big 1)))lisp", ""));
 	constexpr std::size_t atLeast = 4096; // of 1 MiB: 256 bytes for an operation, far less than a step's cost in time
 	for(const char* form : {"(count big)", "(empty? big)", "(subs big 1000000)", "(= big (str big))", "(sort bigs)",
 	                        "(get far big)", "(far big)", "(contains? far big)"}) {
@@ -188,7 +189,9 @@ TEST_CASE("lisp attack: a stranger's advice reads what it wasn't given, through 
   :actions {:start [{:run "pay" :with {:card {:number "4242"}}}]}
   (panel#root))
 )lisp");
-	app.write("spy", R"lisp((defn spy "An agent's." [] (set "state.stolen" card.number) (set "state.event" event.secret)))lisp");
+	app.write(
+	    "spy",
+	    R"lisp((defn spy "An agent's." [] (set "state.stolen" card.number) (set "state.event" event.secret)))lisp");
 	app.runtime->runAction("start", app.window->root(), json{{"secret", "hidden"}});
 	CHECK(app.state("done") == true);
 	CHECK(app.state("stolen").is_null());

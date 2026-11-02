@@ -416,14 +416,13 @@ Value range(Machine& machine, Arguments arguments) {
 	made.reserve(size);
 	// In unsigned arithmetic, which wraps: each result fits, though the product on the way to it may not
 	for(std::size_t at = 0; at < size; ++at)
-		made.push_back(Value::integer(static_cast<std::int64_t>(static_cast<std::uint64_t>(start) +
-		                                                        static_cast<std::uint64_t>(at) *
-		                                                            static_cast<std::uint64_t>(step))));
+		made.push_back(Value::integer(static_cast<std::int64_t>(
+		    static_cast<std::uint64_t>(start) + static_cast<std::uint64_t>(at) * static_cast<std::uint64_t>(step))));
 	return machine.heap.sequence(Kind::Vector, std::move(made));
 }
 
-/// @brief The natural order of two numbers or two strings: what isn't a number comes after all that are, so that it is an
-/// order, as sorting needs. Comparing costs what the texts' sizes cost.
+/// @brief The natural order of two numbers or two strings: what isn't a number comes after all that are, so that it is
+/// an order, as sorting needs. Comparing costs what the texts' sizes cost.
 /// @param machine The machine.
 /// @param first One.
 /// @param second The other.
@@ -466,7 +465,8 @@ Value sortedByKeys(Machine& machine, Arguments arguments) {
 	pairs.reserve(arguments[0].count());
 	for(std::size_t at = 0; at < arguments[0].count(); ++at)
 		pairs.emplace_back(arguments[0].at(at), arguments[1].at(at));
-	std::ranges::stable_sort(pairs, [&](const auto& a, const auto& b) { return comesFirst(machine, a.first, b.first); });
+	std::ranges::stable_sort(pairs,
+	                         [&](const auto& a, const auto& b) { return comesFirst(machine, a.first, b.first); });
 	std::vector<Value> made;
 	made.reserve(pairs.size());
 	for(const auto& [key, item] : pairs) made.push_back(item);

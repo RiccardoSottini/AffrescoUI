@@ -459,8 +459,8 @@ TEST_CASE("vcs: a history whose delta was damaged is never loaded, and the error
 
 	Repository second(rules, permissionsScreen());
 	CHECK_THROWS_WITH_AS(second.openHistory(history),
-	                     doctest::Contains(("AffrescoUI history: " + damaged.string() +
-	                                        ": commit " + last + ": its deltas don't give the document its id names")
+	                     doctest::Contains(("AffrescoUI history: " + damaged.string() + ": commit " + last +
+	                                        ": its deltas don't give the document its id names")
 	                                           .c_str()),
 	                     affresco::DocumentError);
 	CHECK(second.head().number == 0); // nothing was loaded

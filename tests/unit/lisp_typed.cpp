@@ -1,7 +1,7 @@
 /// @file
-/// @brief Unit tests for what `evaluate` gives the person's authority to (RFC 0005, decision 5; SECURITY.md, "The loop"):
-/// only what the person typed themselves, proved from the keystrokes and never assumed. The attacks are written as an
-/// agent would, one per way text gets into a buffer.
+/// @brief Unit tests for what `evaluate` gives the person's authority to (RFC 0005, decision 5; SECURITY.md, "The
+/// loop"): only what the person typed themselves, proved from the keystrokes and never assumed. The attacks are written
+/// as an agent would, one per way text gets into a buffer.
 
 #include "LispApp.hpp"
 

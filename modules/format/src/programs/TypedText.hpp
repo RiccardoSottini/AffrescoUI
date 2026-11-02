@@ -1,8 +1,8 @@
 #pragma once
 
 /// @file
-/// @brief format::TypedText: what the person typed themselves, proved from their keystrokes. It is what `evaluate` gives
-/// their authority to (RFC 0005, decision 5; SECURITY.md, "The loop").
+/// @brief format::TypedText: what the person typed themselves, proved from their keystrokes. It is what `evaluate`
+/// gives their authority to (RFC 0005, decision 5; SECURITY.md, "The loop").
 
 #include "affresco/core/Json.hpp"
 
@@ -16,9 +16,9 @@ namespace affresco::format {
 /// @brief The runs of text the person typed, in the state values their text widgets are bound to.
 ///
 /// It records what is known, never what is suspected: a text with no record is nobody's, so nothing has to mark what an
-/// agent writes, and no way of moving text around can carry a mark along. Only a keystroke of the person's, delivered to
-/// the widget directly, makes a run (Panel::takeTyped()). Whatever else changes a value is seen as a difference the next
-/// time the value is looked at, and what it changed stops being theirs: both sides stay separate runs, so taking
+/// agent writes, and no way of moving text around can carry a mark along. Only a keystroke of the person's, delivered
+/// to the widget directly, makes a run (Panel::takeTyped()). Whatever else changes a value is seen as a difference the
+/// next time the value is looked at, and what it changed stops being theirs: both sides stay separate runs, so taking
 /// characters out can't make a new form of what they typed. Nothing is kept across runs of the app.
 ///
 /// Invariants: every byte of a run came from a keystroke of the person, in this order, with nothing taken out from

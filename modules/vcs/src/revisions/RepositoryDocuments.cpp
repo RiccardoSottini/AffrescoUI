@@ -445,7 +445,8 @@ void Repository::keepFirstWriters(json& credited) const {
 		}
 	if(wanted.empty()) return;
 	const json& program = mainDocument()["program"];
-	const auto settle = [&](const std::string& file, const std::string& name, const json& text, const std::string& who) {
+	const auto settle = [&](const std::string& file, const std::string& name, const json& text,
+	                        const std::string& who) {
 		const auto found = wanted.find(std::pair(file, name));
 		if(found == wanted.end() || text != program[file][name]) return;
 		*found->second = who;

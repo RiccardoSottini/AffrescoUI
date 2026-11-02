@@ -93,8 +93,8 @@ bool TypedText::holds(std::string_view form, const json& state) {
 		if(!state.contains(pointer) || !state[pointer].is_string()) return true; // it went: so did what it held
 		follow(held, state[pointer].get_ref<const std::string&>());
 		found = found || std::ranges::any_of(held.runs, [&](const Run& run) {
-			return std::string_view(held.text).substr(run.start, run.end - run.start).contains(form);
-		});
+			        return std::string_view(held.text).substr(run.start, run.end - run.start).contains(form);
+		        });
 		return false;
 	});
 	return found;

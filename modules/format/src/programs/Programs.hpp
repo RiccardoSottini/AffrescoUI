@@ -97,10 +97,10 @@ public:
 	/// @param before What it holds.
 	/// @param after What it will hold.
 	void noteTyped(const std::string& place, const json& before, const json& after);
-	/// @brief Evaluates a text on the person's own press (the step `evaluate` has checked that). If they typed every form
-	/// in it (TypedText): each definition becomes an entry of the program in one revision of theirs, then each other
-	/// form runs for its value as code of theirs. If not, it has none of their authority: its definitions become a
-	/// proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens.
+	/// @brief Evaluates a text on the person's own press (the step `evaluate` has checked that). If they typed every
+	/// form in it (TypedText): each definition becomes an entry of the program in one revision of theirs, then each
+	/// other form runs for its value as code of theirs. If not, it has none of their authority: its definitions become
+	/// a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens.
 	/// @param text The text.
 	/// @param file The file for a definition no file has.
 	/// @param sender The panel it comes from.
@@ -441,14 +441,15 @@ private:
 	TypedText typed_;                                  ///< What the person typed themselves.
 };
 
-/// @brief Sets what running code sees of where it is called from, as long as it lives. A hook or advice by a stranger sees
-/// nothing of it: the variables and the event around it are what it wasn't given.
+/// @brief Sets what running code sees of where it is called from, as long as it lives. A hook or advice by a stranger
+/// sees nothing of it: the variables and the event around it are what it wasn't given.
 class Programs::Seeing {
 public:
 	/// @brief Sets it.
 	/// @param programs The programs.
 	/// @param frame What it sees.
-	Seeing(Programs& programs, Frame* frame) noexcept : programs_(programs), outer_(std::exchange(programs.frame_, frame)) {}
+	Seeing(Programs& programs, Frame* frame) noexcept
+	    : programs_(programs), outer_(std::exchange(programs.frame_, frame)) {}
 	/// @brief Puts back what it was.
 	~Seeing() { programs_.frame_ = outer_; }
 	Seeing(const Seeing&) = delete;

@@ -383,7 +383,8 @@ void Repository::checkOwnCommit(const Commit& commit) {
 		return op.is_object() && !op.contains("from") && op.value("path", std::string()).starts_with("/program/");
 	});
 	if(detail::channelOf(commit.author) != personChannel || !onlyProgram)
-		throw DocumentError("a commit marked as the person's own input is by someone else, or changes more than a program");
+		throw DocumentError(
+		    "a commit marked as the person's own input is by someone else, or changes more than a program");
 }
 
 Repository::Commit Repository::readObject(detail::HistoryStore& store, const std::string& id,

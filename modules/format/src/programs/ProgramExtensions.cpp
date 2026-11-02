@@ -104,8 +104,9 @@ lisp::Value Programs::callAround(lisp::Interpreter& interpreter, const std::vect
 	const lisp::Value proceed = interpreter.makeFunction(
 	    "proceed", {.capability = "read",
 		            .pure = false,
-		            .call = [this, &arounds, index, original, arguments, stranger, open, around](lisp::Interpreter& in, // NOLINT(bugprone-exception-escape)
-		                                                                                         std::span<const lisp::Value> given) {
+		            .call = [this, &arounds, index, original, arguments, stranger, open,
+		                     around](lisp::Interpreter& in, // NOLINT(bugprone-exception-escape)
+		                             std::span<const lisp::Value> given) {
 		                if(!*open) throw lisp::Refusal("what this advice went on with has ended");
 		                const Seeing seeing(*this, around);
 		                const std::vector<lisp::Value> changed(given.begin(), given.end());

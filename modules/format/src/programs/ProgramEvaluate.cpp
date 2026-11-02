@@ -277,9 +277,9 @@ Programs::Evaluated Programs::proposeUntyped(const FormsRead& read, const std::s
 	if(read.definitions.empty()) return out;
 	const RevisionResult result = engine_.versions.propose(
 	    {{"author", "plugin:evaluated"},
-	     {"message", "Evaluate " + read.definitions.back().first},
-	     {"patch",
-	      definitionPatch(engine_.versions.sourceDocument().value("program", json::object()), read.definitions, file)}});
+		 {"message", "Evaluate " + read.definitions.back().first},
+		 {"patch", definitionPatch(engine_.versions.sourceDocument().value("program", json::object()), read.definitions,
+		                           file)}});
 	if(result.status == RevisionStatus::Rejected) {
 		out.error = result.error;
 		return out;
@@ -335,8 +335,8 @@ Programs::Evaluated Programs::evaluate(const std::string& text, const std::strin
 		const std::vector<lisp::FormAt> forms = lisp::formsOf(text, "evaluated");
 		const json& state = engine_.versions.state();
 		// Only what the person's own keystrokes made is theirs: anything else can have been written by anyone
-		const bool typed = std::ranges::all_of(
-		    forms, [&](const lisp::FormAt& form) { return typed_.holds(form.text, state); });
+		const bool typed =
+		    std::ranges::all_of(forms, [&](const lisp::FormAt& form) { return typed_.holds(form.text, state); });
 		const FormsRead read = readForms(forms, sender, event, locals);
 		return typed ? runTyped(read, file, sender, event, locals) : proposeUntyped(read, file);
 	} catch(const lisp::LispError& error) {
