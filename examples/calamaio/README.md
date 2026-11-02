@@ -45,7 +45,7 @@ Lisp you type runs in the running editor, and lands in its history.
                                          ; C-k now does that. C-x C-z takes it back, exactly
 ```
 
-- **`M-x find-init`** opens your init file, your own definitions, or a start for them. `M-x eval-buffer` evaluates it: try the `say-hello` it holds with `C-c h`.
+- **`M-x find-init`** opens your init file, your own definitions, or a start for them. `M-x eval-buffer` evaluates it: try the `say-hello` it holds with `C-c h`, and save any file to see its hook on `after-save`.
 - **`M-x load-init`** treats the buffer as a file from elsewhere: a proposal in its own name, which `M-x accept-proposal` accepts and which never gets your authority. **`M-x export-init`** gives what you evaluated as a change set.
 - **`M-x what-is-here`**, `(describe-function "kill-line")`, `(describe-key "ctrl+k")`, `(apropos "yank")`: ask what is defined.
 - **What you type has your authority, and nothing else's does:** never from a timer or a handler, and an agent's code stays a proposal (SECURITY.md, "The Lisp language").

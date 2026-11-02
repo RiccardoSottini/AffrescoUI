@@ -341,6 +341,10 @@ private:
 	/// @param after The view after it, which gets what the program builds.
 	/// @throws DocumentError If the source doesn't build, or the state wouldn't stay an object.
 	void judgeProgram(Prepared& result, const json& document, json& after) const;
+	/// @brief The document rules on a change: checkOwnChange() for the person's own, checkChange() for any other.
+	/// @param before The view before it.
+	/// @param after The view after it.
+	void judgeChange(const json& before, const json& after) const;
 	/// @brief Works out built_ again, from document_.
 	/// @throws DocumentError If it can't be built.
 	void refreshBuilt();

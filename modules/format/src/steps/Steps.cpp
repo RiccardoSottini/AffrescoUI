@@ -78,6 +78,16 @@ std::function<void()> Steps::later(json steps, Panel& sender, json event, Shared
 
 void Steps::runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
                      const std::string& where) {
+	if(engine_.programs.advisesAction(name)) {
+		engine_.programs.runAdvised(name, sender, event, locals,
+		                            [&] { runNamedAction(name, sender, event, locals, where); });
+		return;
+	}
+	runNamedAction(name, sender, event, locals, where);
+}
+
+void Steps::runNamedAction(const std::string& name, Panel& sender, const json& event, const Scope& locals,
+                           const std::string& where) {
 	const json& document = engine_.versions.document();
 	const bool declared = document.contains("actions") && document["actions"].contains(name);
 	if(declared && isCommand(document["actions"][name]) && document["actions"][name].contains("do")) {

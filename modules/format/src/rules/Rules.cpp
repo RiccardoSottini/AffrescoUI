@@ -319,6 +319,7 @@ std::vector<std::string> Rules::reviewLines(const json& before, const json& afte
 	std::vector<std::string> lines = serviceReviewLines(before, after, services_);
 	std::vector<std::string> data = dataReviewLines(before, after, data_);
 	lines.insert(lines.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
+	addExtensionReviewLines(before, after, lines);
 	return lines;
 }
 

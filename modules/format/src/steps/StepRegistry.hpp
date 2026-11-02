@@ -188,7 +188,7 @@ void registerWindowSteps(StepRegistry& registry);
 /// @brief Registers the step that runs a function of the document's program: lisp (programs/ProgramSteps.cpp).
 /// @param registry The registry.
 void registerProgramSteps(StepRegistry& registry);
-/// @brief Registers the steps of a running program's loop: evaluate, propose, exportChanges.
+/// @brief Registers the steps of a running program's loop: evaluate, propose, exportChanges, runHooks.
 /// @param registry The registry.
 void registerLoopSteps(StepRegistry& registry);
 

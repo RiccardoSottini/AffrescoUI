@@ -11,6 +11,8 @@
 
 #include <affresco/lisp/Interpreter.hpp>
 
+#include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <span>
@@ -97,6 +99,27 @@ public:
 	/// @return What it gave.
 	[[nodiscard]] Evaluated evaluate(const std::string& text, const std::string& file, Panel& sender, const json& event,
 	                                 const Scope& locals);
+	/// @brief Runs the functions of a hook point, each sealed and on its share of the budget (ProgramExtensions.cpp).
+	/// @param hook The hook.
+	/// @param arguments What they are given, if their authors may see it.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @param where Its place, for errors.
+	void runHooks(const std::string& hook, std::vector<json> arguments, Panel& sender, const json& event,
+	              const Scope& locals, const std::string& where);
+	/// @brief Tells whether an action of the document that isn't a function has advice.
+	/// @param name The action.
+	/// @return true if it has; always false for a document without a program.
+	[[nodiscard]] bool advisesAction(std::string_view name) const;
+	/// @brief Runs an action with its advice.
+	/// @param name The action.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @param body What the action does.
+	void runAdvised(const std::string& name, Panel& sender, const json& event, const Scope& locals,
+	                const std::function<void()>& body);
 	/// @brief Tells whether a name is a function of the program, which a handler may run by name.
 	/// @param name The name.
 	/// @return true if it is; always false for a document without a program.
@@ -151,8 +174,68 @@ private:
 	};
 	class Entered;
 	class Linked;
+	struct Share;
 
-	/// @brief Registers what describes the program.
+	/// @brief A hook's or an advice's function.
+	struct ExtensionEntry {
+		std::string function;             ///< The function, by name.
+		std::string how;                  ///< `before`, `after` or `around`; "" for a hook.
+		std::string label;                ///< How a report calls it.
+		std::vector<std::string> authors; ///< Who added it: never empty.
+	};
+	/// @brief The hooks and advice of one version of the program: they go with it.
+	struct Extensions {
+		std::map<std::string, std::vector<ExtensionEntry>, std::less<>> hooks;  ///< By hook point.
+		std::map<std::string, std::vector<ExtensionEntry>, std::less<>> advice; ///< By what they join.
+	};
+	/// @brief Takes one hook or advice of a new version into its table.
+	/// @param interpreter Its interpreter.
+	/// @param extension The hook or advice.
+	/// @param table The table.
+	/// @throws DocumentError If it names what isn't there.
+	void addExtension(const lisp::Interpreter& interpreter, const lisp::Extension& extension, Extensions& table) const;
+	/// @brief Reads a new version's hooks and advice, and wraps the functions advised.
+	/// @param interpreter Its interpreter.
+	/// @throws DocumentError If one names what isn't there.
+	void loadExtensions(lisp::Interpreter& interpreter);
+	/// @brief The share of the budget each of some sealed runs gets.
+	/// @param interpreter The interpreter.
+	/// @param count How many.
+	/// @return It.
+	[[nodiscard]] Share shareOf(const lisp::Interpreter& interpreter, std::size_t count) const;
+	/// @brief Runs a hook or `:before` or `:after` advice, sealed and on its share. What goes wrong is reported, and
+	/// goes no further.
+	/// @param interpreter The interpreter.
+	/// @param entry It.
+	/// @param joined What it joins, for the report.
+	/// @param arguments What it is given, if its authors may see it.
+	/// @param share Its share.
+	void runSealed(lisp::Interpreter& interpreter, const ExtensionEntry& entry, const std::string& joined,
+	               std::span<const lisp::Value> arguments, const Share& share);
+	/// @brief Calls a function through its `:around` advice.
+	/// @param interpreter The interpreter.
+	/// @param arounds The advice, innermost first.
+	/// @param index How many of them are still to go.
+	/// @param original The function.
+	/// @param arguments Its arguments.
+	/// @return What the outermost gives.
+	lisp::Value callAround(lisp::Interpreter& interpreter, const std::vector<const ExtensionEntry*>& arounds,
+	                       std::size_t index, const lisp::Value& original, const std::vector<lisp::Value>& arguments);
+	/// @brief Calls a function with all its advice.
+	/// @param interpreter The interpreter.
+	/// @param table The version's advice.
+	/// @param target The function's name.
+	/// @param original The function.
+	/// @param given Its arguments.
+	/// @return What it gives.
+	lisp::Value callAdvised(lisp::Interpreter& interpreter, const Extensions& table, const std::string& target,
+	                        const lisp::Value& original, std::span<const lisp::Value> given);
+	/// @brief Runs a hook point's functions, unless it is already running.
+	/// @param interpreter The interpreter.
+	/// @param hook The hook.
+	/// @param arguments What they are given, if their authors may see it.
+	void runHookPoint(lisp::Interpreter& interpreter, const std::string& hook, std::span<const lisp::Value> arguments);
+	/// @brief Registers what describes the program, and `run-hooks`.
 	/// @param interpreter The interpreter.
 	void defineLoopPrimitives(lisp::Interpreter& interpreter);
 	/// @brief What limits the code running now in what it reads: a view for each limited reader among its authors.
@@ -308,6 +391,9 @@ private:
 	int reading_ = 0;                                  ///< Values being read: nothing but reading runs.
 	mutable WorkBudget ownBudget_;                     ///< With no event or update running (a tool).
 	bool ownInput_ = false;                            ///< What the person's own input asked to evaluate is running.
+	std::shared_ptr<const Extensions> extensions_;     ///< The hooks and advice of live_.
+	std::shared_ptr<const Extensions> extensionsNext_; ///< Those of what load() is loading.
+	std::vector<std::string> hooksRunning_;            ///< The hook points being run.
 };
 
 /// @brief Links a running interpreter's budget to the event's while it lives: the event's going in, and back when it

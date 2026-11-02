@@ -159,6 +159,12 @@ def program_revisions():
         {"author": "agent", "patch": [{"op": "move", "from": at + "helper", "path": at + "other"}]},
         {"author": "agent", "patch": [{"op": "copy", "from": at + "save", "path": at + "main"}]},
         {"author": "studio", "set": {"/state/n": 9, at + "main/:state/:n": 2}},
+        {"author": "agent", "set": {at + "add-hook after-go save": "(add-hook after-go save)"}},
+        {"author": "agent", "set": {at + "advice save around go": "(advice save :around go)"}},
+        {"author": "agent", "set": {at + "advice call before go": "(advice call :before go)"}},
+        {"author": "agent", "set": {at + "add-hook after-go call": "(add-hook after-go call)"}},
+        {"author": "agent", "patch": [{"op": "remove", "path": at + "advice helper before go"}]},
+        {"author": "agent", "set": {at + "remove-hook after-go helper": "(remove-hook after-go helper)"}},
     ]
 
 

@@ -2384,6 +2384,34 @@ them as Calamaio does (`examples/calamaio/lisp/loop.lisp`).
 
 **An init file** is a change set (VERSION_CONTROL.md, "Programs"): what a person evaluates is exported, imported and undone like any customisation.
 
+### Hooks and advice
+
+Each is an entry of its own, so several authors' merge, blame shows who added what, and taking the entry away or undoing it takes it away.
+
+```lisp
+(defhook after-save "Runs after a buffer is saved.")       ; a program declares its own hook points
+(defn saved "" [] (run-hooks after-save (:name computed.buf)))
+(add-hook after-save "Says so." note-saved)               ; a function of the program
+(remove-hook after-save someone-elses)                    ; takes one away, as an entry of its own
+(advice kill-line :before remember)                       ; a function of the program, or an action of the document
+(advice kill-line :after  tidy)
+(advice kill-line :around wrap)                           ; (defn wrap [proceed & args] ... (proceed ...))
+```
+
+`{ "runHooks": "after-save", "with": [...] }` runs a hook point from a handler. Hook names belong to the app: the library has none. Advice applies however the
+function is called: by name, `apply`, a value, a timer. Several run in the order of their definitions; for `:around`, the last is the outermost. `proceed` with no
+arguments goes on with the original ones; it can't be kept for later.
+
+| What it does | A hook, `:before`, `:after` | `:around` |
+|---|---|---|
+| Who it runs as | The least of whoever led to it, whoever wrote it and whoever added it | The same |
+| What runs after it | **Untouched:** nothing it did counts against the caller | Holds what it wraps: it counts against everything after it |
+| Failing | Reported, naming who; the others and the action go on | As a function failing |
+| Budget | Together, half of what the event has left, shared equally; running out is reported and goes no further | The event's |
+| Sees arguments | The person's and the file's do; anyone else's gets none | The same, and anyone else's `proceed` gives nil and takes no arguments |
+
+A hook point runs once at a time: run from one of its own hooks, it is reported and skipped. Advice on what recurses meets the limit on runs inside runs (64).
+
 ### A program in the document
 
 Loading a program gives a document whose `program` section holds it, one entry per definition, each its exact text with the

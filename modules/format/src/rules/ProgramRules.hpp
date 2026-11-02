@@ -23,6 +23,13 @@ struct ProgramReach {
 	std::set<std::string> control; ///< Those that reach a control or a review step.
 };
 
+/// @brief What a change's hooks and advice need: the review changing what they join needs. Adding or taking away
+/// advice, or a hook where a hook point meets a control step, is always reviewed.
+/// @param before The view before it.
+/// @param after The view after it.
+/// @param lines Gets what it says.
+void addExtensionReviewLines(const json& before, const json& after, std::vector<std::string>& lines);
+
 /// @brief What a document's program can do.
 /// @param document The document.
 /// @return It; nothing for a document without a program, or one that can't be built, which the build reports.

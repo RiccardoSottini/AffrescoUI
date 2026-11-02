@@ -251,7 +251,8 @@
                                :then [{:run message :with {:m "(Nothing to save)"}} {:stop true}]}
                               {:run write-file-to
                                :with {:b "{{computed.cur}}"
-                                      :i "{{indexOf(map(state.files, it.path), computed.buf.file)}}"}}]}
+                                      :i "{{indexOf(map(state.files, it.path), computed.buf.file)}}"}}
+                              {:lisp saved}]}
            :write-file-to [{:if "{{i >= 0}}"
                             :then [{:set "{{'state.files[' + i + '].text'}}" :to "{{state.bufs[b].text}}"}]
                             :else [{:push state.files

@@ -4,6 +4,13 @@
 ;;; history, where C-x C-z (`undo-evaluation`) takes it back and `M-x export-init` carries it to another copy. What you
 ;;; type runs as you; a file loaded with `M-x load-init` is a proposal in its own name, however it was written.
 
+;;; Hook points of this editor, which your init.lisp can add to
+
+(defhook after-save "Runs after a buffer is saved, with the buffer's name.")
+
+(defn saved "What C-x C-s runs when it has saved." []
+  (run-hooks after-save (:name computed.buf)))
+
 ;;; What is at point
 
 (defn text-here "The text of the selected window's buffer." []
@@ -58,7 +65,7 @@
 ;;; init.lisp: your own definitions, and what arrives from elsewhere
 
 (def init-starter "What M-x find-init shows before you have defined anything."
-  ";;; init.lisp --- your own definitions, in the language Calamaio is written in\n;;\n;; M-x eval-buffer evaluates all of this: each definition lands in the history as yours, and\n;; C-x C-z takes back the last evaluation. A file you got elsewhere goes through M-x load-init\n;; instead: a proposal in its own name, which you accept or leave.\n\n(defn insert-rule\n  \"Inserts a line of dashes at point.\"\n  []\n  (edit \"type\" :text \"----\\n\" :in computed.ed))\n\n(defcommand say-hello\n  \"Says hello in the echo area.\"\n  :title \"Say Hello\" :category \"Mine\"\n  []\n  (message \"Hello from your init file\"))\n\n(defkey \"ctrl+c h\" say-hello)\n")
+  ";;; init.lisp --- your own definitions, in the language Calamaio is written in\n;;\n;; M-x eval-buffer evaluates all of this: each definition lands in the history as yours, and\n;; C-x C-z takes back the last evaluation. A file you got elsewhere goes through M-x load-init\n;; instead: a proposal in its own name, which you accept or leave.\n\n(defn insert-rule\n  \"Inserts a line of dashes at point.\"\n  []\n  (edit \"type\" :text \"----\\n\" :in computed.ed))\n\n(defcommand say-hello\n  \"Says hello in the echo area.\"\n  :title \"Say Hello\" :category \"Mine\"\n  []\n  (message \"Hello from your init file\"))\n\n(defkey \"ctrl+c h\" say-hello)\n\n(defn note-saved\n  \"Says what was saved, after C-x C-s.\"\n  [name]\n  (message (str \"Saved \" name)))\n\n(add-hook after-save note-saved)\n")
 
 (defn on-proposed "Says where a file loaded went." [proposal]
   (message (str "Proposal " proposal " waits for you: M-x accept-proposal, or C-x C-z to leave it")))

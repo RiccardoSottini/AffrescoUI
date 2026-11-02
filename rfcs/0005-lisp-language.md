@@ -156,6 +156,7 @@ As built, in stages 4 and 5 (SCREEN_FORMAT.md, "The loop" and "Hooks and advice"
   `eval-last-sexp` and `eval-region` are Calamaio's Lisp, on those.
 - **`checkChange` is judged again for the person's own change only:** `VersionControl::commitOwnInput()`, a call in the host's code that only `/program/` paths pass, skips the scan of what reaches a control step and nothing else. A marker in the commit carries that into a history reloaded.
 - **`init.lisp` is a change set.** What the person evaluates lands in `/program/init.lisp` when no file has its name; `exportChanges` and `importChanges` carry it. A text that arrives from elsewhere goes through `propose`: a proposal in its own name, with no authority of the person's, even accepted.
+- **`remove-hook` and `defhook` are definitions too.** Nothing changes at run time: a program's hook points are what its entries say, in that version.
 
 This is the one deliberate difference from Emacs: its full power goes to the owner, without its whole-trust model applying
 to everyone else.
@@ -265,6 +266,10 @@ untrusted.
   sound as the language has no way to find a global from a value (`run` counts as reaching anything).
 - **Hooks and advice** can wrap a protected action. They run with their own author's authority, under the least-authority
   rule, and adding one to a protected action needs the same review as changing that action.
+  **The agent's denial of service, answered by stage 5's attack tests** (`tests/unit/lisp_hooks.cpp`): under the rule as it was, an agent's `:before` on a person's command, or its hook before the person's next step, would have taken the command's authority away:
+  a clear error, and a denial of service an agent could inflict. So a hook, `:before` and `:after`, which give nothing back, run **sealed:** what runs next doesn't count them, and it loses nothing, as nothing of theirs is in it. They can't stop it by failing (reported, naming who) or by spending (they
+  share half of what the event has left). What they can leave is data in the state, which already isn't authority (below). `:around` does hold what it wraps, so it is not sealed: going on with the original brings its author into what ran, so the original's control step is refused, naming who, and it
+  can skip the original. That is what replacing the function does, and is decided the same way: any advice is always reviewed, and undo removes it. An advice's function that isn't the person's or the file's gets no arguments and no result, and can't change the arguments.
 - **Secrets.** Functions reach secrets only as the existing services do; a value printed by `describe-*` or an error
   message goes through the same masking as state. An error's text must not include values read from masked paths.
 - **Who wrote it, exactly.** A definition's author is its commit's. A person's restore or revert that brings back someone else's text leaves it
@@ -330,6 +335,7 @@ untrusted.
     never notice. Real use may ask for more, and no route needs it now.
   - *What it doesn't cover:* data. A value an earlier event's agent code left in the state reaches a person's `call` as an argument, as with any JSON
     action whose `with` reads the state. A control step's arguments are untrusted input (SECURITY.md, "What `onCall` and `onAction` expose").
+- **Least authority and hooks: a sealed run, answered above.** The rule stays what `CallContext::ran` says, for all that gives a value back; only what gives nothing back is left out of it.
 - **`@word` tokens:** a stock EDN reader rejects them. Kept unless third-party EDN tooling turns out to matter.
 - **Conventional-syntax fixes** from the notation review (`type` as the head, `panel#id`, quoted display text, indentation,
   `fmt` keeping comments) go in their own PR before stage 1, as they apply either way. `fmt` currently deletes comments.

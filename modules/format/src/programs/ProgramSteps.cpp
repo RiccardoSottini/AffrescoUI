@@ -22,7 +22,7 @@ namespace {
 
 /// The steps the language says itself: a program has `if`, `loop`, a function's end. `stop` is a function's end too.
 constexpr auto unspoken =
-    std::to_array<std::string_view>({"if", "forEach", "while", "stop", "note", "lisp"});
+    std::to_array<std::string_view>({"if", "forEach", "while", "stop", "note", "lisp", "runHooks"});
 
 /// @brief The word of the language a step is, for the two the language has for something else.
 /// @param step The step's key.

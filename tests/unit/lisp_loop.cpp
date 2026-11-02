@@ -44,20 +44,24 @@ void typeAndEvaluate(App& app, const std::string& text) {
 
 TEST_CASE("lisp forms: the form before a position, the one around it, and all of them") {
 	const std::string text = "(defn a [] 1)\n\n(foo (+ 1 2) bar \"é\")  ; note\n(unfinished ";
-	CHECK(lisp::formBefore(text, 1, 14)->text == "(defn a [] 1)");
-	CHECK(lisp::formBefore(text, 1, 14)->kind == "defn");
-	CHECK(lisp::formBefore(text, 1, 14)->name == "a");
-	CHECK(lisp::formBefore(text, 3, 13)->text == "(+ 1 2)");
-	CHECK(lisp::formBefore(text, 3, 17)->text == "bar");
-	CHECK(lisp::formBefore(text, 3, 21)->text == "\"é\"");
-	CHECK(lisp::formBefore(text, 3, 22)->text == "(foo (+ 1 2) bar \"é\")");
-	CHECK(lisp::formBefore(text, 3, 22)->endColumn == 22);
-	CHECK(lisp::formBefore(text, 3, 30)->text == "(foo (+ 1 2) bar \"é\")"); // in the comment
+	const auto before = [&](std::size_t line, std::size_t column) {
+		return lisp::formBefore(text, line, column).value_or(lisp::FormAt{});
+	};
+	CHECK(before(1, 14).text == "(defn a [] 1)");
+	CHECK(before(1, 14).kind == "defn");
+	CHECK(before(1, 14).name == "a");
+	CHECK(before(3, 13).text == "(+ 1 2)");
+	CHECK(before(3, 17).text == "bar");
+	CHECK(before(3, 21).text == "\"é\"");
+	CHECK(before(3, 22).text == "(foo (+ 1 2) bar \"é\")");
+	CHECK(before(3, 22).endColumn == 22);
+	CHECK(before(3, 30).text == "(foo (+ 1 2) bar \"é\")"); // in the comment
 	CHECK_FALSE(lisp::formBefore(text, 1, 1).has_value());
-	CHECK(lisp::formAround(text, 3, 8)->text == "(foo (+ 1 2) bar \"é\")");
-	CHECK(lisp::formAround(text, 2, 1)->name == "a");      // the last before it
-	CHECK_FALSE(lisp::formAround(text, 4, 5).has_value()); // not finished
-	CHECK(lisp::formBefore("'x", 1, 3)->text == "'x");
+	CHECK(lisp::formAround(text, 3, 8).value_or(lisp::FormAt{}).text == "(foo (+ 1 2) bar \"é\")");
+	CHECK(lisp::formAround(text, 2, 1).value_or(lisp::FormAt{}).name == "a");       // the last before it
+	CHECK_FALSE(lisp::formAround(text, 4, 5).has_value());                          // not finished
+	CHECK(lisp::formAround("(a)(b)", 1, 4).value_or(lisp::FormAt{}).text == "(a)"); // between two: the one before
+	CHECK(lisp::formBefore("'x", 1, 3).value_or(lisp::FormAt{}).text == "'x");
 	const auto forms = lisp::formsOf("(defn a [] 1) (+ 1 2)", "");
 	REQUIRE(forms.size() == 2);
 	CHECK(forms[0].name == "a");
@@ -197,7 +201,7 @@ TEST_CASE("lisp attack: nothing else gets past with the person's own input") {
 TEST_CASE("lisp attack: evaluate from a timer, a watch, a handler or agent code") {
 	App app(R"lisp(
 (defn shown "" [result error] (set "state.result" result))
-(defn go "" [] (evaluate "(defn save [] (call \"hit\"))" :then shown))
+(defn go "" [] (evaluate "(defn save [] 2)" :then shown))
 (defn save "" [] 1)
 (defn helper "" [] 1)
 (defcommand later "Starts a timer: the key is the persons, the firing isnt." :title "L" [] (after 10 go))
@@ -235,7 +239,7 @@ TEST_CASE("lisp attack: evaluate from a timer, a watch, a handler or agent code"
 	app.runtime->runAction("go", app.window->root(), json::object());
 	CHECK(app.repository.head().number == head);
 	// Agent code, from the person's key
-	app.write("helper", R"lisp((defn helper "" [] (evaluate "(defn save [] (call \"hit\"))")))lisp");
+	app.write("helper", R"lisp((defn helper "" [] (evaluate "(defn save [] 3)")))lisp");
 	app.errors.clear();
 	app.press(Key::C);
 	app.settle();

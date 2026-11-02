@@ -507,6 +507,11 @@ doesn't move them to anyone with more authority, as with any proposal: its code 
 an **init file is a change set**: what a person evaluated is exported (`exportChanges`, `only`), imported (`importChanges`, as `plugin:<name>`, no `ownInput` mark, the scan on) and undone like any customisation, and a copy somewhere else gets
 no more authority than a change set has. To have a function's control step work there, the person evaluates it themselves.
 
+**Hooks and advice** (`defhook`, `add-hook`, `remove-hook`, `advice`) are entries like any other: they merge, blame says who added which, and undo removes them. **Adding, or taking away, any advice, or a hook whose hook point meets a
+control step (a definition reaching one that also runs hooks, or an action that does), is always reviewed, as `reviewLines` says:** the same review changing what it joins takes. A function counts as reaching what its advice reaches, and
+`run-hooks` what every hook reaches, so the scan refuses advice or a hook that would give a key's function a way to a control step. A hook or advice may only name a function of the program, and advice only what the program or the document's `actions` have: a step or a primitive can't be
+named.
+
 **Records.** A new or changed definition that uses a step that writes records (`insert`, `update-record`, `delete`, `undoData`, `redoData`,
 `importCsv`) is always reviewed, as a new write step in a handler is.
 

@@ -493,6 +493,16 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
 - **`describe-*`, `apropos` and `program-file`** give no value, and obey read masks: for code with a limited reader among its authors, what its `read` doesn't name isn't there.
 - **A history on disk with `ownInput` commits** is held to what a person's revision may do, not to the scan: a history folder is trusted to that extent, so treat one you didn't make as you would a screen file.
 
+**Hooks and advice** (`tests/unit/lisp_hooks.cpp`):
+
+- **Who decided counts:** a hook or advice runs with the least authority of whoever led to it, whoever wrote its function and whoever added it, so an agent's `(add-hook point persons-function)` or `(advice mine :after persons-function)` gets no control step.
+- **A hook, `:before` and `:after` are sealed, so an agent can't take a person's command down.** They give nothing back to what runs them, so when one ends, what comes next hasn't been touched: the person's control step after an agent's hook still runs,
+  and the agent's hook never had it. It can't stop the command by failing either, which is reported naming its author, or by spending, as all of a call's get half of what the event has left. What it can leave is what any agent's code can: data in the state, which is untrusted input (above, "What `onCall` and `onAction` expose").
+- **`:around` holds what it wraps.** It can skip it, and going on with it counts as its author having led there, so the wrapped function's control step is refused, with an error naming who. That is what replacing the function would do, so it takes the same decision: adding or taking away advice is always reviewed, and undo removes it.
+- **Advice can't read what it wasn't given:** an author other than the person or the file gets no arguments and no result, and can't change the arguments it goes on with. The same for hooks: what such an author reads is in the state, under its masks.
+- **Limits.** A hook point runs once at a time, a hook that adds a hook does it as an evaluation, for the next version of the program, from the person's own input only, and advice on what recurses meets the limit on nested runs (64).
+- **Previews.** A previewed proposal's hooks are its author's, like the rest of what it changes, and the review steps stay out of its reach.
+
 What holds for whatever text it is given:
 
 - **No way out of its own.** The language has no file, process, network, clock, randomness, foreign-function or host-eval primitive. The

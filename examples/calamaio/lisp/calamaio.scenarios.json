@@ -1622,7 +1622,7 @@
 		},
 		{
 			"name": "init-file-is-real",
-			"note": "Evaluating your init file defines what it says; what a file loads is a proposal.",
+			"note": "Evaluating your init file defines what it says, a hook on C-x C-s among it; what a file loads is a proposal.",
 			"steps": [
 				{
 					"key": "alt+x"
@@ -1657,7 +1657,7 @@
 				{
 					"expect": {
 						"state": "echo",
-						"is": "defkey ctrl+c h"
+						"is": "add-hook after-save note-saved"
 					}
 				},
 				{
@@ -1673,6 +1673,42 @@
 					"expect": {
 						"state": "echo",
 						"is": "Hello from your init file"
+					}
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "~/from-the-loop.txt"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "words"
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+s"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Saved from-the-loop.txt"
 					}
 				},
 				{

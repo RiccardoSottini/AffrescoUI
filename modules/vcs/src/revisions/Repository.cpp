@@ -372,9 +372,7 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	detail::expectNarrowEnough(result.before, after);
 
 	judgeProgram(result, document, after);
-	// With the live state: the checker reads state paths
-	if(ownInput_) rules_.checkOwnChange(result.before, after);
-	else rules_.checkChange(result.before, after);
+	judgeChange(result.before, after); // with the live state: the checker reads state paths
 	rules_.validate(result.document);
 	result.after = std::move(after);
 	return result;
@@ -461,12 +459,20 @@ std::optional<std::string> Repository::commitOwnInput(const json& revision) {
 		                    op["path"].get_ref<const std::string&>().starts_with("/program/");
 		if(!inside || op.contains("from")) return "revision: the person's own change only reaches /program/";
 	}
-	struct Own {
-		bool& flag; ///< The flag.
-		~Own() { flag = false; }
-	} own{ownInput_};
 	ownInput_ = true;
-	return commit(revision);
+	try {
+		std::optional<std::string> refused = commit(revision);
+		ownInput_ = false;
+		return refused;
+	} catch(...) {
+		ownInput_ = false;
+		throw;
+	}
+}
+
+void Repository::judgeChange(const json& before, const json& after) const {
+	if(ownInput_) rules_.checkOwnChange(before, after);
+	else rules_.checkChange(before, after);
 }
 
 RevisionResult Repository::submit(const json& revision) { return submitRevision(revision, false); }

@@ -78,7 +78,10 @@ constexpr const char* kProgram = R"lisp(
 (defcommand go "A command." :title "Go" [] (helper 1))
 (defcustom size 3 "A setting." :type integer)
 (defkey "mod+g" go)
+(defhook after-go "A hook point.")
 (add-hook after-go helper)
+(remove-hook after-go save)
+(advice helper :before go)
 (defscreen main :state {:n 1} :permissions {:allow ["studio"] :reviewers ["studio"]} (column#list (label#a :text "A")))
 )lisp";
 

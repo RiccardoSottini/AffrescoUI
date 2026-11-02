@@ -136,6 +136,80 @@ std::set<std::string> reachingControl(const std::map<std::string, std::vector<st
 
 } // namespace
 
+namespace {
+
+/// @brief What each definition uses, with what hooks and advice add: a function runs its advice, and `run-hooks` runs
+/// every hook, as nothing says which point it names.
+/// @param built What a program built.
+/// @return The names each uses.
+std::map<std::string, std::vector<std::string>> usedWithExtensions(const lisp::BuiltProgram& built) {
+	std::map<std::string, std::vector<std::string>> used = built.namesUsed;
+	std::vector<std::string> hooks;
+	for(const lisp::Extension& extension : built.extensions) {
+		if(extension.kind == "add-hook") hooks.push_back(extension.targets.back());
+		if(extension.kind == "advice" && used.contains(extension.targets.front()))
+			used[extension.targets.front()].push_back(extension.targets.back());
+	}
+	if(hooks.empty()) return used;
+	for(auto& [name, names] : used)
+		if(std::ranges::find(names, "run-hooks") != names.end()) names.insert(names.end(), hooks.begin(), hooks.end());
+	return used;
+}
+
+/// @brief Tells whether a document's hook points can stand in the way of a control step: a definition that reaches one
+/// also runs hooks, or uses what does.
+/// @param built What the program built.
+/// @param control What reaches a control step.
+/// @return true if so.
+bool hooksMeetControl(const lisp::BuiltProgram& built, const std::set<std::string>& control) {
+	std::set<std::string> running;
+	for(const auto& [name, names] : built.namesUsed)
+		if(std::ranges::find(names, "run-hooks") != names.end()) running.insert(name);
+	for(bool grew = true; grew;) {
+		grew = false;
+		for(const auto& [name, names] : built.namesUsed)
+			if(!running.contains(name) &&
+			   std::ranges::any_of(names, [&](const std::string& word) { return running.contains(word); }))
+				grew = running.insert(name).second || grew;
+	}
+	return std::ranges::any_of(running, [&](const std::string& name) { return control.contains(name); });
+}
+
+/// @brief The hooks and advice of a document's program, by address.
+/// @param document The document.
+/// @return Them; none if it can't be built, which the build reports.
+std::map<std::string, lisp::Extension> extensionsOf(const json& document) {
+	std::map<std::string, lisp::Extension> found;
+	if(!lisp::hasProgram(document)) return found;
+	try {
+		for(const lisp::Extension& extension : lisp::builtProgram(document["program"])->extensions)
+			found.emplace(extension.name, extension);
+		// NOLINTNEXTLINE(bugprone-empty-catch): the build reports it
+	} catch(const DocumentError&) {
+	}
+	return found;
+}
+
+} // namespace
+
+void addExtensionReviewLines(const json& before, const json& after, std::vector<std::string>& lines) {
+	const std::map<std::string, lisp::Extension> was = extensionsOf(before), is = extensionsOf(after);
+	const auto review = [&](const lisp::Extension& extension, const char* verb) {
+		// Advice is what its target now does, whatever it does; a hook is, where a hook point meets a control step or a
+		// reviewed action
+		if(extension.kind != "advice") {
+			const auto built = lisp::builtProgram(after["program"]);
+			const bool actions = after.contains("actions") && after["actions"].dump().contains("runHooks");
+			if(!actions && !hooksMeetControl(*built, reachingControl(built->namesUsed))) return;
+		}
+		lines.push_back(std::string(verb) + " '" + extension.name + "': the same review as changing what it joins");
+	};
+	for(const auto& [name, extension] : is)
+		if(!was.contains(name)) review(extension, "adds");
+	for(const auto& [name, extension] : was)
+		if(!is.contains(name) && lisp::hasProgram(after)) review(extension, "removes");
+}
+
 bool isRunningWord(std::string_view word) {
 	return stepKind(stepOfWord(word)) != StepKind::None || detail::findFunction(word) != nullptr;
 }
@@ -146,7 +220,7 @@ ProgramReach programReach(const json& document) {
 	try {
 		const auto built = lisp::builtProgram(document["program"]);
 		for(const auto& [name, names] : built->namesUsed) reach.defined.insert(name);
-		reach.control = reachingControl(built->namesUsed);
+		reach.control = reachingControl(usedWithExtensions(*built));
 		// NOLINTNEXTLINE(bugprone-empty-catch): the build reports it; nothing counts as the program's meanwhile
 	} catch(const DocumentError&) {
 	}

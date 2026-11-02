@@ -43,6 +43,14 @@ public:
 	/// @param locals The caller's variables.
 	/// @param where Its place, for errors.
 	/// @throws DocumentError If a step fails, or nobody handles the action.
+	/// @brief What runNamed() runs, once its advice has had its turn.
+	/// @param name The action.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @param where Its place, for errors.
+	void runNamedAction(const std::string& name, Panel& sender, const json& event, const Scope& locals,
+	                    const std::string& where);
 	void runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
 	              const std::string& where);
 	/// @brief Runs steps in order.

@@ -169,6 +169,8 @@ void heldToItsAuthority(std::string_view text) {
 /// @param data The input.
 /// @param size Its size.
 /// @return 0.
+namespace {
+
 /// @brief The forms at a position of any text: what is found is in the text, and a form evaluated for its value by an
 /// author reaches no primitive without the gate, nor defines anything.
 /// @param text The text.
@@ -206,6 +208,8 @@ void formsHold(std::string_view text) {
 	if(reached) affresco::fuzz::broken("the gate holds for what is evaluated");
 	if(interpreter.definitionNames().size() != before) affresco::fuzz::broken("what is evaluated defines nothing");
 }
+
+} // namespace
 
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
 	const std::string_view text = affresco::fuzz::text(data, size);

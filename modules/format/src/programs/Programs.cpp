@@ -24,7 +24,7 @@ constexpr auto freeSteps = std::to_array<std::string_view>(
     {"set",      "push",    "remove",    "toggle", "increment", "if",       "forEach",    "while",       "run",
 	 "stop",     "note",    "log",       "focus",  "scrollTo",  "navigate", "edit",       "press",       "after",
 	 "debounce", "animate", "copy",      "emit",   "cancel",    "camera",   "openWindow", "closeWindow", "lisp",
-	 "audio",    "dismiss", "transform", "insert", "update",    "delete",   "undoData",   "redoData"});
+	 "audio",    "dismiss", "transform", "insert", "update",    "delete",   "undoData",   "redoData",    "runHooks"});
 
 /// The steps that decide on changes: only ever from the person's own input.
 constexpr auto reviewSteps = std::to_array<std::string_view>(
@@ -55,6 +55,7 @@ StepKind stepKind(std::string_view name) {
 std::string_view stepOfWord(std::string_view word) noexcept {
 	if(word == "remove-state") return "remove";
 	if(word == "update-record") return "update";
+	if(word == "run-hooks") return "runHooks";
 	return word;
 }
 
@@ -82,6 +83,7 @@ void Programs::load() {
 	const auto section = source.find("program");
 	if(section == source.end()) {
 		live_.reset();
+		extensions_.reset();
 		loaded_ = nullptr;
 		return;
 	}
@@ -97,8 +99,10 @@ void Programs::load() {
 	program.load(*next);
 	next->workOutDefinitions();
 	next->setPure(false);
+	loadExtensions(*next);
 	next->setGate([this](const lisp::CallContext& call) { check(call); });
 	live_ = std::move(next);
+	extensions_ = std::move(extensionsNext_);
 	loaded_ = *section;
 }
 

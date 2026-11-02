@@ -40,7 +40,7 @@ if(AFFRESCOUI_TEMPLATE_SCENARIOS)
 	foreach(file IN LISTS AFFRESCOUI_TEMPLATE_SCENARIOS)
 		cmake_path(GET file PARENT_PATH folder)
 		cmake_path(GET folder FILENAME name)
-		if(name STREQUAL "json") # an example's JSON folder: named after the example
+		if(name STREQUAL "json" OR name STREQUAL "lisp") # an example's source folder: named after the example
 			cmake_path(GET folder PARENT_PATH folder)
 		endif()
 		cmake_path(GET folder FILENAME folder)

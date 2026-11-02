@@ -128,10 +128,11 @@ void evaluateStep(const Running& s) {
 	const std::string file =
 	    s.step.contains("file") ? string(s.value("file"), where + ".file") : std::string(defaultFile);
 	const SharedScope kept = snapshot(s.locals);
-	auto outcome = std::make_shared<Scope>(Scope{kept.get(), kept, json::object(), {}, {}});
+	const auto outcome = std::make_shared<Scope>(Scope{kept.get(), kept, json::object(), {}, {}});
 	auto then = s.steps.later(s.step.value("then", json::array()), s.sender, s.event, outcome, where + ".then");
 	std::optional<StepAuthority> authority;
 	if(engine.authority) authority = *engine.authority;
+	// NOLINTNEXTLINE(bugprone-exception-escape): what a task throws, the scheduler's caller reports, as with any step
 	engine.scheduler.defer([&engine, text, file, outcome, then = std::move(then), sender = &s.sender, event = s.event,
 	                        authority = std::move(authority), hasThen = s.step.contains("then")] {
 		Window* window = engine.window;
@@ -215,6 +216,15 @@ std::optional<bool> runLoopStep(const Running& s) {
 	} else if(s.step.contains("exportChanges")) {
 		s.steps.checkControl(s.where);
 		exportChangesStep(s);
+	} else if(s.step.contains("runHooks")) {
+		std::vector<json> arguments;
+		if(s.step.contains("with")) {
+			const json with = s.value("with");
+			if(!with.is_array()) fail(s.where + ".with", "expected a list: the hooks' arguments, in order");
+			arguments.assign(with.begin(), with.end());
+		}
+		s.steps.engine().programs.runHooks(string(s.value("runHooks"), s.where + ".runHooks"), std::move(arguments),
+		                                   s.sender, s.event, s.locals, s.where);
 	} else {
 		return std::nullopt;
 	}
@@ -227,7 +237,8 @@ void registerLoopSteps(StepRegistry& registry) {
 	registry.add({"loop",
 	              {{"evaluate", {"file", "then"}, true},
 	               {"propose", {"as", "file", "then", "onError"}, true},
-	               {"exportChanges", {"from", "only", "into"}, true}},
+	               {"exportChanges", {"from", "only", "into"}, true},
+	               {"runHooks", {"with"}}},
 	              runLoopStep});
 }
 
@@ -318,6 +329,16 @@ bool viewShows(const json& view, const char* section, const std::string& name) {
 	return !fileHolding(*found, name).empty();
 }
 
+/// @brief Adds what a command says of itself to what is known of it.
+/// @param action The action.
+/// @param out What is known.
+void addCommandFields(const json& action, json& out) {
+	if(!action.is_object()) return;
+	for(const char* key : {"title", "category"})
+		if(action.contains(key)) out[key] = action[key];
+	if(out.value("doc", "").empty() && action.contains("description")) out["doc"] = action["description"];
+}
+
 } // namespace
 
 json Programs::describeName(lisp::Interpreter& interpreter, const std::string& name,
@@ -340,12 +361,7 @@ json Programs::describeName(lisp::Interpreter& interpreter, const std::string& n
 	} else {
 		return nullptr;
 	}
-	if(isAction && (*actions)[name].is_object()) {
-		const json& action = (*actions)[name];
-		for(const char* key : {"title", "category"})
-			if(action.contains(key)) out[key] = action[key];
-		if(out.value("doc", "").empty() && action.contains("description")) out["doc"] = action["description"];
-	}
+	if(isAction) addCommandFields((*actions)[name], out);
 	return out;
 }
 
@@ -409,6 +425,15 @@ void Programs::defineLoopPrimitives(lisp::Interpreter& interpreter) {
 		                                               lisp::Interpreter& in, std::span<const lisp::Value> arguments) {
 			                                   return describePrimitive(what, in, arguments);
 		                                   }});
+	interpreter.definePrimitive(
+	    "run-hooks", {.capability = "step",
+		              .pure = false,
+		              .call = [this](lisp::Interpreter& in, std::span<const lisp::Value> arguments) {
+		                  if(arguments.empty() || arguments[0].kind() != lisp::Kind::String)
+			                  throw lisp::Refusal("\"run-hooks\" takes a hook, then what its functions are given");
+		                  runHookPoint(in, std::string(arguments[0].text()), arguments.subspan(1));
+		                  return lisp::Value();
+	                  }});
 }
 
 } // namespace affresco::format

@@ -12,7 +12,7 @@ the difference in the note) or **missing**. The words, the sample texts and the 
 | Frame | Scroll bar | partial | Shows where the window is; dragging it is not yet wired |
 | Frame | Splash screen | done | Its links run commands |
 | Buffers | `*scratch*` | done | Runs what you type: `C-j`, `C-x C-e` |
-| Lisp | `C-M-x`, `eval-region`, `eval-buffer`, init file | done | Calamaio's own Lisp, not the model's: a definition lands in the history as yours |
+| Lisp | `C-M-x`, `eval-region`, `eval-buffer`, init file, hooks | done | Calamaio's own Lisp, not the model's: a definition lands in the history as yours |
 | Buffers | `*Messages*` | done | Every echo is appended |
 | Buffers | `*Help*` | done | Shown in the other window; split if there is one |
 | Buffers | `*Completions*` | done | In columns, the typed part dimmed, a click chooses |

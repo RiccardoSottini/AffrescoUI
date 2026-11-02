@@ -192,6 +192,8 @@ author)` the same for what is evaluated.
 **`format::Programs` is the host in an app** (`modules/format/src/programs/`): the rules are in SECURITY.md, "The Lisp language". For the next
 stages:
 
+- **Hooks and advice** (`ProgramExtensions.cpp`). `Interpreter::extensions()` lists them. Advice wraps the function's global (`wrapGlobal`), so it applies however the function is called; the wrapper stands for it (`parametersOf`, `definitionNameOf`). A hook, `:before` and
+  `:after` run sealed (`Interpreter::Sealed`: `authorsThatRan()` goes back to what it was when one ends), with the authors of whoever added it added (`addAuthorsThatRan`). A hook belongs to its entry, so it goes with a new interpreter when the entry goes.
 - **`evaluate`** (`ProgramEvaluate.cpp`): `formsOf` splits the text, a definition goes in a revision by the author `user`, through `VersionControl::commitOwnInput()` (the step checked the person's own input), and anything else through `Interpreter::evaluate`, which compiles with purity on and runs as that author, the authors of any macro it holds with it.
 - **`describe-*`** read `Interpreter::describe` (docstring, author, place), and give no value.
 
