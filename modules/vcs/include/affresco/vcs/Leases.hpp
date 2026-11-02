@@ -95,6 +95,12 @@ public:
 	/// @brief As the base rules.
 	void validate(const json& document) const override { base_.validate(document); }
 	/// @brief As the base rules.
+	[[nodiscard]] std::optional<json> built(const json& document) const override { return base_.built(document); }
+	/// @brief As the base rules.
+	void rewriteOperation(const json& document, json& operation) const override {
+		base_.rewriteOperation(document, operation);
+	}
+	/// @brief As the base rules.
 	[[nodiscard]] std::optional<std::string> findNode(const json& document, std::string_view id) const override {
 		return base_.findNode(document, id);
 	}

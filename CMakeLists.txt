@@ -143,7 +143,7 @@ include(cmake/AffrescoUISyntax.cmake)
 #   lisp     the language: reader, compiler, machine, programs and their pure build  core, notation
 #   data     records: typed models, SQLite, queries, the journal, migrations         core
 #   render   rendering engine: windows, panels, text, OpenGL                         core
-#   format   JSON screen format: rules, expressions, building panels, actions        core, render, data
+#   format   JSON screen format: rules, expressions, building panels, actions        core, render, data, lisp
 #   themes   kits' components and themes' tokens, as JSON files built in            core
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core, notation

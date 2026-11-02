@@ -8,6 +8,7 @@
 #include <affresco/lisp/Interpreter.hpp>
 
 #include <cstddef>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -128,6 +129,7 @@ public:
 
 private:
 	std::vector<Entry> entries_;                                ///< See entries().
+	std::map<std::string, std::size_t> names_;                  ///< Where each entry is in entries_, by its name.
 	std::vector<std::pair<std::string, Primitive>> primitives_; ///< See definePure().
 	std::vector<Extension> extensions_;                         ///< See extensions().
 	std::vector<UndefinedName> undefined_;                      ///< See undefinedNames().

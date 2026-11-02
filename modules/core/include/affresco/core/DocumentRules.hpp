@@ -81,6 +81,25 @@ public:
 	/// @return The rules; parts that are locked for everyone are among the deny rules.
 	[[nodiscard]] virtual Permissions permissions(const json& document) const = 0;
 
+	/// @brief What a document builds, when it holds something that does (a `program`): the tree every rule, the
+	/// renderer and the reader of a document read, with the source kept in it. The source is what is versioned and
+	/// hashed; rules judge this. The default: nothing builds, and a document is what it says.
+	/// @param document The document as versioned.
+	/// @return The tree, or std::nullopt if the document is as it says.
+	/// @throws DocumentError If it can't be built, naming the definition.
+	// NOLINTNEXTLINE(readability-convert-member-functions-to-static): a default that implementations override
+	[[nodiscard]] virtual std::optional<json> built([[maybe_unused]] const json& document) const {
+		return std::nullopt;
+	}
+
+	/// @brief Rewrites an operation that addresses inside a source's text (a keyword inside a definition) into one on
+	/// the whole value, as history keeps it: a plain replace, so that text and structure can't disagree. Called only
+	/// for paths at "/program/". The default rewrites nothing.
+	/// @param document The document as it is before the operation, with the live state as its "state".
+	/// @param operation The operation, changed in place.
+	/// @throws DocumentError If it can't be done.
+	virtual void rewriteOperation([[maybe_unused]] const json& document, [[maybe_unused]] json& operation) const {}
+
 	/// @brief Checks changes the format forbids for everyone (e.g. editing the permissions).
 	/// @param before The document now, with the live state as its "state".
 	/// @param after The document after the change, with the live state after it.

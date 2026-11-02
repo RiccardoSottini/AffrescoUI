@@ -45,8 +45,9 @@ The program that embeds AffrescoUI (the host) is trusted, and so is everything i
 
 The screen file, its includes and the state file are read with the JSON nesting limit (256 levels), but none of the
 other checks applied to peers. A file in the Lisp notation (`.lisp`) is read to the same JSON tree with the same
-limits (256 levels, numbers of at most 40 characters, and at most 64 MiB); it is data only, never evaluated, when an app loads it: the Lisp language ("The Lisp language" below) isn't
-connected to loading documents yet, so nothing an app loads runs. Don't load a screen file or change set you wouldn't run as a program. The state file is the exception to "trusted": it
+limits (256 levels, numbers of at most 40 characters, and at most 64 MiB). **A `.lisp` file that holds one data value is data only,
+never evaluated. One that is a program runs when it loads and on every revision**: its build, pure and bounded ("The Lisp
+language" below). Don't load a screen file or change set you wouldn't run as a program. The state file is the exception to "trusted": it
 holds the persisted parts of the live state, which peers can change, and it is read back at the next start with only
 that nesting limit. Keep the paths a screen persists out of reach of agents you don't trust.
 
@@ -431,12 +432,21 @@ reaches the screen.
 
 ### The Lisp language
 
-`modules/lisp` is a programming language in Lisp syntax (RFC 0005). **Today only `affrescoui run` on a program or with
-`--print`, `affrescoui repl` and code using the module's API run it: an app's documents, revisions and peers' messages never
-reach it**, so "a `.lisp` file is data" still holds for everything an app loads. This section will change when the language is
-connected to apps, as RFC 0005's review says.
+`modules/lisp` is a programming language in Lisp syntax (RFC 0005). **Documents and revisions reach its build**: a program a file
+holds, and a definition a peer's revision brings, are read, compiled and built on the host's thread, before any review. Nothing else
+of it runs in an app: a function a handler might call isn't called yet (RFC 0005's stage 3).
 
-What holds already, for whatever text it is given:
+What a revision on a program does, and how each rule judges it, is in VERSION_CONTROL.md, "Programs":
+
+- **Its rules hold on what is built.** Today's rules judge the built tree, before and after, so what a revision may not add it may
+  not build, however it is computed.
+- **A build is the cost of a revision, and bounded for it:** 2,000,000 operations and 16 MiB, a definition of at most 1 MiB and a
+  program of at most 16,384, and the revision's own limits. A build that exhausts its budget refuses the revision. Measured in a
+  Release build on Apple silicon: the costliest of five kinds tried (spinning, big strings, big lists, sorting, maps) takes 14 ms.
+- **A limited reader** sees no definition its `read` doesn't name, and can't change a program at all: a definition runs at build
+  time on any other's value, so what it builds could carry what the reader's masks hide.
+
+What holds for whatever text it is given:
 
 - **No way out.** The language has no file, process, network, clock, randomness, foreign-function or host-eval primitive. The
   only way out is what a host registers, each call passing through one function that first refuses what isn't pure during a

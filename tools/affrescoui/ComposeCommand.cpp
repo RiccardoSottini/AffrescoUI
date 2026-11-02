@@ -13,6 +13,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/core/Log.hpp>
+#include <affresco/lisp/Document.hpp>
 #include <affresco/notation/Notation.hpp>
 
 #include <algorithm>
@@ -61,7 +62,7 @@ json loadDocument(const std::filesystem::path& path, const std::string& text) {
 /// @throws FileProblem If it can't be read.
 std::string documentText(const Arguments& arguments, const std::filesystem::path& screen) {
 	const std::filesystem::path source = arguments.value("--document").value_or(screen.string());
-	return notation::jsonText(readFile(source), source);
+	return lisp::jsonText(readFile(source), source);
 }
 
 /// @brief Reads an untrusted file, in the notation its name says: a manifest or an adapter.

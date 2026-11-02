@@ -8,6 +8,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/format/App.hpp>
 #include <affresco/format/Literals.hpp>
+#include <affresco/lisp/Document.hpp>
 #include <affresco/notation/Notation.hpp>
 
 #include <algorithm>
@@ -64,7 +65,7 @@ struct Splice {
 /// @throws FileProblem If it isn't a value in its notation.
 json readDocument(const fs::path& path) {
 	try {
-		return notation::read(readFile(path), notation::notationOf(path));
+		return lisp::readDocument(readFile(path), path); // a program: its definitions, unbuilt
 	} catch(const json::parse_error& error) {
 		throw FileProblem(path.string() + ": invalid JSON: " + error.what());
 	} catch(const DocumentError& error) {
@@ -102,7 +103,7 @@ Screen screenOf(const fs::path& entry) {
 	} catch(const DocumentError&) { // it belongs to no app
 	}
 	if(!manifest.empty() && fs::exists(manifest)) return Screen::fromApp(manifest, {}, Screen::History::InMemory);
-	return Screen::fromString(notation::jsonText(readFile(entry), entry), entry.parent_path());
+	return Screen::fromString(lisp::jsonText(readFile(entry), entry), entry.parent_path());
 }
 
 /// @brief Reads a screen, or the screen of an app's folder, as the library loads it.

@@ -3,7 +3,8 @@
 `notation` turns text into the JSON tree of a document and back. A document can be written in **JSON**, as it always
 was, or in the **Lisp notation**: S-expressions that are only another spelling of the very same tree. Nothing here is ever
 evaluated: the Lisp notation is data, never code (no functions, no macros, no `eval`); the language built on these tokens is
-`modules/lisp`, and no app loads it yet. The module knows text and
+`modules/lisp`. A word the language runs (`isLanguageWord`) isn't a node's type here: `(not x)` is an error saying how to write it.
+The module knows text and
 JSON only; it doesn't know screens, nodes' meanings, revisions or files' places. Target: `affrescoui::notation` (uses
 `core`, for its JSON type and limits, and nlohmann::json).
 

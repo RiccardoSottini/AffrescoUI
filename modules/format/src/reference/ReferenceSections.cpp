@@ -140,6 +140,12 @@ constexpr auto sectionTable = std::to_array<KeyReference>({
 	 "`name → {type, size, sha256}`: files revisions brought, kept with the history, read as `\"asset:<name>\"` "
 	 "(see Assets).",
 	 "sections"},
+    {"program", R"json({"type": "object", "maxProperties": 1024,
+		"description": "A program's definitions, as text: file -> definition's address -> its form, with its comments",
+		"additionalProperties": {"type": "object", "additionalProperties": {"type": "string", "maxLength": 1048576}}})json",
+	 "`file → { definition → text }`: a program, each top-level form its exact text with its comments, addressed "
+	 "`/program/<file>/<definition>`. It builds the sections it defines (see The Lisp language).",
+	 "sections"},
     {"stateTypes", R"json({"type": "object",
 		"description": "A type per state key, written as JSON Schema: type, enum, const, properties, required, additionalProperties, items, minimum, maximum, minLength, maxLength, minItems, maxItems",
 		"additionalProperties": {"$ref": "#/$defs/v2/stateType"}})json",

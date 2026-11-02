@@ -245,7 +245,8 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	json upgraded;
 	json document = reading(store.objectFile(head.id), [&] {
 		json rebuilt = rebuild(objects, head); // checked against the head's tree
-		rules_.checkChange(*objects.at(main.front()).snapshot, rebuilt);
+		json first, last;
+		rules_.checkChange(judged(*objects.at(main.front()).snapshot, first), judged(rebuilt, last));
 		upgraded = rebuilt;
 		static_cast<void>(rules_.upgrade(upgraded)); // a version 1 head is read as the current version
 		rules_.validate(upgraded);
@@ -260,7 +261,9 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	}
 
 	// All read and checked: put it in place, and back if the observer can't show it
-	json state = document.contains("state") ? document["state"] : json::object();
+	json builtTree;
+	const json& shown = judged(document, builtTree);
+	json state = shown.contains("state") ? shown["state"] : json::object();
 	const auto exchange = [&] {
 		std::swap(objects_, objects);
 		std::swap(main_, main);
@@ -476,8 +479,10 @@ void Repository::completeProposal(Proposal& proposal, const std::unordered_map<s
 }
 
 void Repository::recheckProposal(Proposal& proposal, const json& base) const {
-	const json state = base.contains("state") ? base["state"] : json::object();
 	try {
+		json builtTree;
+		const json& shown = judged(base, builtTree);
+		const json state = shown.contains("state") ? shown["state"] : json::object();
 		const Prepared next = prepare(proposal.patch, base, state);
 		const Verdict verdict = evaluate(next.before, next.after, proposal.author, true, proposal.run);
 		proposal.remember = verdict.kind == Verdict::Kind::Deny

@@ -6,9 +6,9 @@ already understands. It has no way to the outside world but the primitives a hos
 Emacs Lisp, and the library stays agnostic: the language holds no app feature. Target: `affrescoui::lisp` (uses `core` and
 `notation`).
 
-**What runs it today:** the command line (`affrescoui run`, `affrescoui repl`) and this module's own API. An app's
-documents still load through `notation`, as data: nothing here is connected to the app's loading, version control or
-handlers yet. Those are RFC 0005's stages 2 and 3, and this README says what they build on.
+**What runs it today:** a document holding a program: loading and every revision on it build it, purely (`Document.hpp`, and
+VERSION_CONTROL.md, "Programs"). The command line (`affrescoui run`, `affrescoui repl`) and this module's own API run the rest.
+Handlers don't call functions yet: that is RFC 0005's stage 3, and this README says what it builds on.
 
 ```lisp
 (defn card "One room as a node." [room]
@@ -30,6 +30,7 @@ handlers yet. Those are RFC 0005's stages 2 and 3, and this README says what the
 | `Value.hpp` | `Value`, `Kind`, `Place`: JSON's values plus symbols, keywords, lists and functions |
 | `Interpreter.hpp` | `Interpreter` (`eval`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `leastAuthority`, `authorOf`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
 | `Program.hpp` | `Program` (`addFile`, `addEntry`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`), `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `Extension`, `UndefinedName` |
+| `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits |
 
 ## Values
 
@@ -94,8 +95,17 @@ one data value, a **template**.
   A word the language runs (`notation::languageWords`) isn't a node type in a data position: `(not x)` is the error
   `"not" is not a node type; to run it, write ~(not ...); for a node of that type, write (node :type not ...)`. So that no file
   breaks, the notation's writer never writes such a type as a head (`(node :type range ...)`), and that list leaves out `list`,
-  which is a node type: `(list ...)` in data stays a node. **The notation's own reader doesn't apply this rule**: `(not x)` still
-  reads as a node there, as it is what loads apps until stage 2.
+  which is a node type: `(list ...)` in data stays a node. The notation's own reader applies this rule too. **A data file an app
+  loads goes through that reader, and `~` isn't read there**: `buildText` serves `affrescoui run --print`.
+- **In a document.** `sourceDocument` makes a file's `{file: {name: text}}`, `programOf` takes it back. `buildDocument` gives what the
+  rest of the library reads: what it builds, its other sections merged in member by member (a member both give must be the same, so
+  building a built document gives itself), and `program` kept. `builtProgram` keeps a thread's last four builds per section, since a
+  revision judges before and after, and a build under a document has tighter limits than running does (`maxBuildOperations`,
+  `maxBuildBytes`), as every revision pays for one.
+- **The keyword edit.** `replaceKeyword` finds an option's value by tokens, so every other byte stays: `(defcommand c "Doc."
+  :title "x" [] nil)`'s `:title`, after the name and the docstring of `defcommand` and `defscreen`, after the value of `defcustom`, and
+  inside a map through further keywords. It reads no body: options stop at the first thing that isn't a key. The new value must be
+  exactly one form, and the result one definition of the same address.
 
 ## How it runs
 
@@ -168,9 +178,13 @@ author)` the same for what is evaluated.
 **Other seams.** `defcommand` builds `do: []`, and the body is the function of that name: stage 3 connects the action to the
 function. `Program::load(interpreter)` puts the definitions into a live interpreter, with its primitives and gate; a global is then
 replaced by `eval`, and the next call uses it (a call looks its global up each time). `Interpreter::describe` reads a
-definition's docstring, author and place (stage 4). `Program::extensions()` lists hooks and advice for stage 5. Stage 2's
-`(defcommand ... :title "x")` keyword edit has to find the offset of a keyword in an entry's text; the reader has the offsets
-(`src/Reader.hpp`) but no API for that.
+definition's docstring, author and place (stage 4). `Program::extensions()` lists hooks and advice for stage 5.
+
+**A live program, with its authors (stage 3).** `VersionControl::sourceDocument()["program"]` is the section and
+`VersionControl::programAuthors()` who last wrote each entry, `"file"` for the app's own: `lisp::programOf(section, authors)` gives a
+`Program` whose entries carry them, ready to `load` into the interpreter. A change reaches a live program through
+`VersionObserver::documentChanged()`, after every commit, preview and undo: load the section again (a definition replaces what the
+interpreter had of its name; one no longer there has to be taken out by the host).
 
 ## Files
 
@@ -192,5 +206,6 @@ src/
   TopLevel.hpp          what the interpreter and programs share
   Interpreter.cpp       the machine, seen from outside
   Program.cpp           the split, loading, the build
+  Document.cpp          documents holding programs: reading them, what they build, the keyword edit
 CMakeLists.txt          the affrescoui_lisp target
 ```

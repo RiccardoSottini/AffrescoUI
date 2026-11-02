@@ -252,6 +252,11 @@ class Checker:
         self.run("run", "--print", write("mistake.lisp", "(defscreen main (not x))\n"), expect=1)
         self.run("run", "--print", os.path.join(self.scratch, "nowhere.lisp"), expect=3)
         self.run("run", "--print", write("a.json", "{}"), expect=2)
+        self.run("check", write("fine.screen.lisp", '(defcommand go "Go." :title "Go" [] nil)\n(defkey "mod+g" go)\n'
+                                                    '(defscreen main (panel#a))\n'))
+        self.run("check", write("bad.screen.lisp", '(defscreen main :nonsense 1 (panel#a))\n'), expect=1)
+        self.run("check", write("loops.screen.lisp", '(def x (loop [] (recur)))\n(defscreen main (label :text ~x))\n'),
+                 expect=1)
         commented = write("commented.lisp", "; top\n(row#a ; the row\n  (label) ; one\n  )\n")
         before = Path(commented).read_text(encoding="utf-8")
         self.run("fmt", commented)

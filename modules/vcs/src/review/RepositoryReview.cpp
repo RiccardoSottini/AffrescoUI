@@ -178,7 +178,7 @@ std::string Repository::approve(Proposal& proposal, const std::string& reviewer)
 
 std::pair<std::string, std::string> Repository::reviewNeeds(const json& before, const json& after,
                                                             const std::vector<std::string>& approvals) const {
-	const ReviewPolicy policy = rules_.permissions(mainDocument()).review;
+	const ReviewPolicy policy = rules_.permissions(rulesDocument()).review;
 	std::size_t required = static_cast<std::size_t>(std::max(policy.approvals, 1));
 	if(policy.behaviourApprovals > policy.approvals && !rules_.behaviourLines(before, after).empty())
 		required = static_cast<std::size_t>(policy.behaviourApprovals);
@@ -212,7 +212,7 @@ std::pair<std::string, std::string> Repository::reviewNeeds(const json& before, 
 
 std::string Repository::grantsExpire(const Approval& approval) const {
 	const std::optional<long long> asked = secondsOf(approval.duration);
-	const std::optional<long long> longest = secondsOf(rules_.permissions(mainDocument()).review.grantsLast);
+	const std::optional<long long> longest = secondsOf(rules_.permissions(rulesDocument()).review.grantsLast);
 	if(!asked && !longest) return {};
 	return detail::utcAfter(std::min(asked.value_or(std::numeric_limits<long long>::max()),
 	                                 longest.value_or(std::numeric_limits<long long>::max())));

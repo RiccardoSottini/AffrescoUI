@@ -103,7 +103,9 @@ first, so a change to one definition never reorders another.
 Bindings keep the expression machine: `~form` compiles to the same operators when it can, and otherwise calls the
 interpreter.
 
-Files of the current notation still load: **a file holding one data value is read as a template, as if backquoted.**
+Files of the current notation still load. As of stage 2 an app reads them through the notation's reader, as ever, and `~` works
+in `affrescoui run --print`; reading them in an app as templates is left to when an app needs it. The rule:
+**a file holding one data value is read as a template, as if backquoted.**
 Words stay data and `~` drops into code, so `(label :text ~(t "burndown.title"))` works inside it, and all 180 generated
 files keep their meaning. A bare `(not x)` in a data position becomes an error: `line 3: "not" is not a node type; to
 run it, write ~(not ...)`.
@@ -123,7 +125,7 @@ The source is what is versioned, one entry per definition, inside the document h
 | **Blame** | Per definition, from the entry's commit |
 | **Permissions** | `read`, `write` and `never` work on `/program/...` paths, and on the built tree (below) |
 | **Proposals, preview** | Accepting builds the proposed source; the preview is what accepting produces, because build code is pure |
-| **Features, change sets** | A feature's definitions are entries under its namespace (RFC 0004). `provides` and `needs` are worked out from the built tree |
+| **Features, change sets** | A change set's patches apply to `/program/...`. A feature's definitions would be entries under its namespace (RFC 0004), with `provides` and `needs` worked out from the built tree; stage 2 stops at refusing a manifest with a `program`, as namespacing them needs a pass of its own over a function's names and calls |
 | **Agents** | `get_screen` reads definitions, `submit_revision` replaces them. Every definition has a stable address |
 
 **Review by effect keeps working for what a program builds.** A revision is applied to a copy, the copy is built in the
@@ -174,10 +176,18 @@ real `kill-line` and `other` definitions, with the Lisp written by hand for this
 | The same logic used at three sites | 97 | 55 (one function, three calls) |
 | **Change only a command's title** | **21** | **77** (the whole form is replaced) |
 
-**Functions win when logic repeats; small edits lose if a form can only be replaced whole.** That is a real regression for
-agents, so stage 2 must add an edit of one keyword inside a form (`{"set": "/program/killring.lisp/kill-line/:title",
-...}`), and measure it. Whole-app numbers come at stage 6, with an edit-accuracy test of agents writing Lisp against
-JSON, before Lisp is recommended to agents.
+**Functions win when logic repeats; small edits lose if a form can only be replaced whole.** That was a real regression for
+agents, so stage 2 adds an edit of one keyword inside a form. Measured the same way on the same `kill-line`, the edit alone as
+compact JSON without its message:
+
+| Change a command's title | Tokens |
+|---|---|
+| Today, in JSON: `{"set":{"/actions/kill-line/title":"Kill to End"}}` | 15 |
+| Replacing the form: `{"set":{"/program/killring.lisp/kill-line":"(defcommand ..."}}` | 82 |
+| **The keyword edit: `{"set":{"/program/killring.lisp/kill-line/:title":"Kill to End"}}`** | **21** |
+
+The difference with JSON left is the longer path. Whole-app numbers come at stage 6, with an edit-accuracy test of agents
+writing Lisp against JSON, before Lisp is recommended to agents.
 
 ## Performance
 
@@ -188,8 +198,8 @@ Nothing here has been measured yet; there is no runtime.
 - **Bindings:** the hot path. Simple `~form`s use the existing expression machine at its current speed. Calling
   interpreted functions per frame is the risk: each stage measures it with the `Benchmarks (callgrind)` job, and a
   regression beyond the existing limits blocks the stage.
-- **Memory:** definitions keep their source text in the document, and the environment adds the compiled forms; measured
-  at stage 2.
+- **Memory:** definitions keep their source text in the document, and what they build beside it. The history keeps only the
+  source. A compiled environment isn't kept: a thread keeps its last four builds (`builtProgram`).
 
 ## Security review
 
@@ -214,7 +224,11 @@ untrusted.
   input. Timers, `watch`, hooks and agent-authored code can't reach them, by the same check.
 - **Preview.** While a proposal is previewed, its functions run under the rule that exists today: control steps only from
   the person's own input.
-- **Build code** is pure and has no step access. A build that exceeds its budget refuses the revision.
+- **Build code** is pure and has no step access. A build that exceeds its budget refuses the revision. Its budget is
+  tighter than running's, as a revision pays for it before any review: 2,000,000 operations and 16 MiB.
+- **Limited readers.** A reader whose reads are limited sees no definition its `read` doesn't name, and can't change a program,
+  since a definition run at build time reads any other's value and its result lands in what its author reads. Stage 2 chose
+  this over working out what a text reveals: deny rather than leak. It may be loosened when reads of definitions can be traced.
 - **Hooks and advice** can wrap a protected action. They run with their own author's authority, under the least-authority
   rule, and adding one to a protected action needs the same review as changing that action.
 - **Secrets.** Functions reach secrets only as the existing services do; a value printed by `describe-*` or an error
@@ -245,9 +259,9 @@ untrusted.
    showed screens, and goes on showing them: a program, or `--print`, prints what it builds) and a REPL in the CLI, fuzzing.
    Every existing `lisp/` file gives an identical tree. No live part.
 2. **Definitions in the document.** `program`, version control and per-file diffs on definitions, review by the built
-   tree, the keyword edit, comments kept. One small app (Streak) rewritten.
+   tree, the keyword edit, comments kept. Proved on a test fixture.
 3. **The live runtime.** Handlers and bindings call functions, authors tracked, run-time checks. Its own security
-   review and attack tests.
+   review and attack tests. One small app (Streak) rewritten, since its behaviour needs live functions.
 4. **The Emacs loop.** `eval-defun`, `describe-*`, commands from functions; Calamaio's `*scratch*` and `init.lisp` really
    work.
 5. **Hooks and advice,** with their review.
@@ -267,8 +281,6 @@ untrusted.
 
 - **Least authority on the stack:** is it enough for callbacks an agent's code schedules, and does it make a person's
   commands too weak when they use agent-written helpers? Stage 3's attack tests and real use should settle it.
-- **The keyword edit's address:** the `:title` path above is a sketch. It must not make a form's text and its structure
-  disagree.
 - **`@word` tokens:** a stock EDN reader rejects them. Kept unless third-party EDN tooling turns out to matter.
 - **Conventional-syntax fixes** from the notation review (`type` as the head, `panel#id`, quoted display text, indentation,
   `fmt` keeping comments) go in their own PR before stage 1, as they apply either way. `fmt` currently deletes comments.

@@ -156,6 +156,14 @@ public:
 
 	/// @brief The document: main's head, or the proposal being previewed.
 	[[nodiscard]] virtual const json& document() const = 0;
+	/// @brief The document as versioned: its `program` as text, without what that builds, which document() has too.
+	/// @return It; for a document that builds nothing, document() itself.
+	[[nodiscard]] virtual const json& sourceDocument() const { return document(); }
+	/// @brief Who last wrote each definition of the document's `program`: the author of the commit on main that last
+	/// changed it, "file" for what the file on disk had. For a host to give a live interpreter
+	/// (lisp::programOf(section, authors)).
+	/// @return `{file: {name: author}}`, empty without a program.
+	[[nodiscard]] virtual json programAuthors() const { return json::object(); }
 	/// @brief The live state: changed freely by actions, patched by revisions.
 	[[nodiscard]] virtual json& state() = 0;
 	/// @brief The live state.

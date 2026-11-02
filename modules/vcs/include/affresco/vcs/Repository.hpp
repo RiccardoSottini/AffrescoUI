@@ -76,7 +76,9 @@ public:
 	void setObserver(VersionObserver* observer) override { observer_ = observer; }
 
 	/* Working copy */
-	[[nodiscard]] const json& document() const override { return document_; }
+	[[nodiscard]] const json& document() const override { return built_.is_null() ? document_ : built_; }
+	[[nodiscard]] const json& sourceDocument() const override { return document_; }
+	[[nodiscard]] json programAuthors() const override;
 	[[nodiscard]] json& state() override { return state_; }
 	[[nodiscard]] const json& state() const override { return state_; }
 	[[nodiscard]] CommitInfo head() const override { return info(mainHead()); }
@@ -292,6 +294,7 @@ private:
 	struct Prepared {
 		json before, after;               ///< As rules see them (detail::view): the live state at "/state".
 		json document, state;             ///< The new document and live state.
+		json sourceBefore, sourceAfter;   ///< For a program: as versioned, before and after; else null.
 		json patch = json::array();       ///< Its operations as plain JSON Patch ("set" became replace or add).
 		std::vector<std::string> touches; ///< What its operations touch (detail::area), each once.
 	};
@@ -309,6 +312,35 @@ private:
 	[[nodiscard]] const json& mainDocument() const { return previewing_ ? committedDocument_ : document_; }
 	/// @brief The live state as committed (the preview has its own).
 	[[nodiscard]] const json& committedState() const { return previewing_ ? committedState_ : state_; }
+	/// @brief main's head's document as rules read it: what a program builds in it (the preview has its own).
+	/// @return The document.
+	[[nodiscard]] const json& rulesDocument() const {
+		if(previewing_) return committedBuilt_.is_null() ? committedDocument_ : committedBuilt_;
+		return document();
+	}
+	/// @brief A document as rules read it: what its program builds.
+	/// @param source The document as versioned.
+	/// @param storage Holds the tree when there is one.
+	/// @return The tree, or @p source if it builds nothing.
+	/// @throws DocumentError If it can't be built, naming the definition.
+	const json& judged(const json& source, json& storage) const;
+	/// @brief An operation as history keeps it: a keyword edit inside a definition becomes a replace of its text.
+	/// @param operation The operation, as written.
+	/// @param view The document as it is before the operation, with the live state as its "state".
+	/// @param storage Holds the new operation when there is one.
+	/// @return The new operation, or @p operation if it is as it should be.
+	/// @throws DocumentError If it can't be done.
+	const json& rewriteProgramEdit(const json& operation, const json& view, json& storage) const;
+	/// @brief Makes a revision on a program be judged by what it builds, before and after, and carries a change of a
+	/// definition's initial state over to the live state. Nothing happens for a document that holds no program.
+	/// @param result The revision so far: `before` and `document`, `state` after its operations.
+	/// @param document The document before it.
+	/// @param after The view after it, which gets what the program builds.
+	/// @throws DocumentError If the source doesn't build, or the state wouldn't stay an object.
+	void judgeProgram(Prepared& result, const json& document, json& after) const;
+	/// @brief Works out built_ again, from document_.
+	/// @throws DocumentError If it can't be built.
+	void refreshBuilt();
 	/// @brief A commit's document: main's head's as it is, any other rebuilt from the nearest snapshot.
 	/// @param commit The commit.
 	/// @return The document.
@@ -728,12 +760,14 @@ private:
 
 	json document_;               ///< main's head, or the proposal being previewed.
 	json state_ = json::object(); ///< The live state.
+	json built_;                  ///< What document_'s program builds; null if it has none.
 
 	std::vector<Proposal> proposals_;   ///< Open proposals, oldest first.
 	int nextProposal_ = 1;              ///< Next proposal id.
 	std::optional<int> previewing_;     ///< Proposal shown in place of main's head.
 	json committedState_;               ///< The live state, kept aside during a preview.
 	json committedDocument_;            ///< main's head's document, kept aside during a preview.
+	json committedBuilt_;               ///< What that builds, kept aside during a preview.
 	Mode mode_ = Mode::Default;         ///< The mode in force: see setMode() and setModeForThisRun().
 	Mode keptMode_ = Mode::Default;     ///< The mode the history keeps: the one a reviewer last chose (setMode()).
 	std::vector<Grant> grants_;         ///< "Don't ask again" rules.

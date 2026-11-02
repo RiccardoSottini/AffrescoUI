@@ -1243,6 +1243,18 @@
 							}
 						}
 					},
+					"program": {
+						"type": "object",
+						"maxProperties": 1024,
+						"description": "A program's definitions, as text: file -> definition's address -> its form, with its comments",
+						"additionalProperties": {
+							"type": "object",
+							"additionalProperties": {
+								"type": "string",
+								"maxLength": 1048576
+							}
+						}
+					},
 					"root": {
 						"$ref": "#/$defs/v2/node",
 						"description": "The window's root panel: it always fills the window"

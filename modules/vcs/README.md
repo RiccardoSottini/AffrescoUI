@@ -45,6 +45,9 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **A refused operation says where:** the error names the operation, the path as written and resolved, and the
   document rules' hint (`DocumentRules::pathHint`, "did you mean '#title'?").
 - **A revision's size is checked first** (`DocumentRules::checkRevision`), before any operation is applied.
+- **A document can build** (`DocumentRules::built`, a program, RFC 0005): the source is what is stored and hashed, and
+  `document()`, rules and the review see what it builds with the source in it (`sourceDocument()` is the source). A revision on it
+  is applied to the source, then both sides are built (`judgeProgram`). Nothing below depends on it.
 - **Rules are judged by a change's effect** (the document before and after), never by the paths its patch happens to
   use: deny beats ask beats allow, and what no rule allows asks.
 - **Some changes are always reviewed:** after the deny rules, a change the document rules list in

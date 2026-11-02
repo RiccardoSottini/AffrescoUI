@@ -419,6 +419,71 @@ file's diff, and offers preview, accept and reject, or undo for an applied chang
 - **It adds no way to approve.** Its buttons are the person's, through the same `acceptProposal`, `rejectProposal` and
   revert the rest of the library uses, and the deny rules and review policies apply to them as ever.
 
+## Programs
+
+A document can hold a program (RFC 0005, [SCREEN_FORMAT.md](SCREEN_FORMAT.md), "The Lisp language"): definitions, each kept as
+its exact text with its comments, in a section `program`:
+
+```json
+{ "program": { "killring.lisp": { "kill-line": ";; Kills.\n(defcommand kill-line \"Kills.\" :title \"Kill\" [] nil)" } } }
+```
+
+**Definitions are ordinary values, so nothing about the history changes.** Revisions, commits, hashes, revert, restore,
+proposals, rebases, change sets and blame work on `/program/<file>/<name>` as on any path (`/` in a name is `~1`, `~` is
+`~0`). The source is what is hashed and kept; what it builds is worked out from it. `VersionControl::document()` is what it
+builds with `program` kept, for the renderer and whatever reads a screen, and `sourceDocument()` is the source.
+
+**Rules judge what is built.** On a revision that touches `program`, the source before and after is built, purely, and every
+rule of this file judges the built trees, with `program` in them. So a definition that builds a `permissions` section, a
+protected step, or a `channels` or `persist` change is refused as it is in JSON, however it is computed: by a macro, a function, a
+keyword edit. A build that fails or exhausts its budget (2,000,000 operations, 16 MiB) refuses the revision, and the error
+names the definition. So does:
+
+- a text that isn't one form with the name of its address, or a name another file defines;
+- a definition over 1 MiB, or a program of more than 16,384 definitions;
+- taking away a definition that another's body still uses, which the build alone wouldn't notice;
+- an edit of what is built (`#title/text`, `/actions/kill-line`): it says to change its definition;
+- a section both written and built with different contents, or a program building `include`, `assets`, `features` or `program`.
+
+A document can hold other sections beside `program` (a JSON screen that includes a program, an asset a revision brought): they
+are merged member by member with what it builds. A live state's keys follow the definition: a definition's changed initial
+`state` sets the live state's key, as a revision on `/state` would, and is judged as one.
+
+**The keyword edit.** Replacing a whole form costs far more than a small change is worth, so a revision can address one keyword's
+value inside it: `{"set": {"/program/killring.lisp/kill-line/:title": "Kill"}}`, and `.../main/:window/:title` inside a map.
+It reaches the options of `defcommand`, `defscreen` and `defcustom`, never a function's body. A string stays a string,
+another value is written in the notation, and `{"$form": "(str 1)"}` is exactly one form, or refused. Every other byte of
+the text stays, and history holds a plain `replace` of the entry, so RFC 6902 holds and text and structure can't disagree.
+
+**`allow`, `ask`, `deny`** cover `/program/...` paths and nodes alike, and `allow` must cover all a change does: an author allowed
+`/program/app.lisp` can change a function's body alone, but a change of what is built is reviewed unless that is allowed too.
+Each definition is one area, so "Always allow" remembers that one definition.
+
+**Data rules.** `read`, `write` and `never` work on `/program/...` and on the built tree, by effect. What a limited reader gets
+was a choice, made to deny rather than leak:
+
+- **A limited reader sees no definition its `read` doesn't name**, whatever its other limits are: a text may hold a value that is
+  masked elsewhere, or show how a function reads a masked path. What is built reaches it masked by its rules as any tree does.
+  A definition a `read` names is given whole, literals included.
+- **A limited reader can't change a program at all.** A definition runs when it is built, on any other definition's value, and
+  its result lands in what its author reads, so the masks wouldn't hold. Its revision is refused, saying so. An author with
+  only `write` rules isn't a limited reader, and may write what they name.
+
+**Impact and behaviour.** Impact per layer counts the built trees' view, logic and model changes, and to the logic each changed
+definition that does more than what it builds (`defn`, `def`, `defmacro`, `defcommand`, a hook or advice); `behaviourLines` lists them
+(`changes the definition 'kill-line' of killring.lisp`).
+
+**The changes, file by file.** The file view lists each changed `.lisp` file with its definitions' texts, comments included, and
+a row marked `"built": true` with the trees they build, side by side. Diffs and `proposalDiff` are the source's patch.
+
+**Blame** answers per definition. A node a program builds has no commit of its own: blaming it says to blame its definition.
+
+**Authors.** `VersionControl::programAuthors()` gives who last wrote each definition: the author of the commit on `main` that last
+changed it, and `"file"` for what the file on disk had. `lisp::programOf(section, authors)` gives a live interpreter a program
+that knows them; checking them is stage 3.
+
+**Features.** A feature's manifest can't hold a program's definitions yet: it is refused, saying so.
+
 ## Impact per layer
 
 A screen is four layers: the view (nodes, styles, bindings), the logic (actions, `computed`, `queries`, the
@@ -677,4 +742,5 @@ agent's, an in-screen `features.compose` is `features`'. A person can ask an age
 | History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff`, `blame` | `getHistory` (`limit`), `diff`, `blame` (`target`), `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `get_blame`, `revert_revision`, `restore_revision` |
 | Change sets | `exportChanges`, `importChanges`, `hasImported` | `exportChanges` | `export_changes` |
 | History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |
+| Programs | `sourceDocument`, `programAuthors` | `source` in `hello` and `document` | `get_screen`, `find_nodes`, `submit_revision` |
 | In the screen file | `permissions` (`allow`, `ask`, `deny`, `reviewers`), `locked`, steps `accept`/`reject`/`preview`/`endPreview`/`restore`/`revert`/`undo`, variables `proposals`/`history`/`preview`/`mode` | | |

@@ -145,6 +145,12 @@ private:
 	bool handleConvert(const Incoming& in);
 	/// @brief The "review" message: proposals, preview, mode and grants.
 	[[nodiscard]] json reviewState() const;
+	/// @brief Adds what a program's document is written as to a message that carries the document, as `source`: its
+	/// `document` is what it builds, with its definitions. A reader whose reads are limited gets only the masked
+	/// document.
+	/// @param message The message.
+	/// @param limited Whether the peer's reads are limited.
+	void addSource(json& message, bool limited) const;
 
 	Channel& channel_;               ///< The transport.
 	VersionControl& versions_;       ///< The document.

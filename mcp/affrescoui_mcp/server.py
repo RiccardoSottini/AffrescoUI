@@ -260,6 +260,10 @@ class Server:
         document = dict(reply.get("document") or {})
         document["state"] = reply.get("state")  # the live state, once (the file's initial state isn't needed)
         info = screen_info(reply)
+        # A program's document as it is written, when asked for whole: what it builds costs a read and can't be edited
+        written = reply.get("source")
+        whole = {**written, "state": reply.get("state")} if isinstance(written, dict) and not args.get("built") \
+            else document
         depth = args.get("depth")
         depth = max(0, int(depth)) if isinstance(depth, (int, float)) and not isinstance(depth, bool) else None
         lisp = args.get("notation") == "lisp"
@@ -270,19 +274,21 @@ class Server:
                 pointer, node = locate(document, args["at"])
                 address = str(args["at"]) if str(args["at"]).startswith("#") else pointer
                 node = pruned(node, address, depth) if depth is not None else node
+                if lisp and pointer.startswith("/program/") and isinstance(node, str):
+                    return compact({**info, "at": pointer}) + "\n" + node, False  # a definition, exactly as written
                 if lisp:
                     return self.in_lisp({**info, "at": pointer}, node)
                 return compact({**info, "at": pointer, "node": node}), False
         except ValueError as failure:
             return f"error: {failure}", True
         if self.seen is not None and not args.get("full"):
-            changes = changes_since(self.seen, document)
-            self.seen = document
+            changes = changes_since(self.seen, whole)
+            self.seen = whole
             return compact({**info, "changes": changes} if changes else {**info, "unchanged": True}), False
-        self.seen = document
+        self.seen = whole
         if lisp:
-            return self.in_lisp(info, document)
-        return compact({**info, "document": document}), False
+            return self.in_lisp(info, whole)
+        return compact({**info, "document": whole}), False
 
     def in_lisp(self, info, value):
         """A read in the Lisp notation: the facts as JSON on the first line, then the value as Lisp text, written by

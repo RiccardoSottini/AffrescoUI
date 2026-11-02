@@ -10,6 +10,7 @@
 #include "affresco/format/Migrate.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
+#include "affresco/lisp/Document.hpp"
 #include "affresco/notation/Notation.hpp"
 #include "affresco/themes/Themes.hpp"
 
@@ -65,10 +66,11 @@ constexpr std::uintmax_t maxIncludeBytes = 16U << 20; ///< An included file, at 
 
 /// @brief Reads an included file.
 /// @param path The file.
+/// @param name What a program calls it, as the include names it.
 /// @return Its JSON object.
 /// @throws ScreenError If it can't be read, isn't a plain file of at most 16 MiB, isn't a JSON object, or nests too
 /// deeply.
-json readInclude(const std::filesystem::path& path) {
+json readInclude(const std::filesystem::path& path, const std::string& name) {
 	std::error_code error;
 	if(!std::filesystem::is_regular_file(path, error)) // a device or a pipe would read without end
 		throw ScreenError("AffrescoUI screen: include: " + path.string() + " is not a file");
@@ -83,10 +85,12 @@ json readInclude(const std::filesystem::path& path) {
 		throw ScreenError("AffrescoUI screen: include: " + path.string() + " is over 16 MiB");
 	json part;
 	try {
-		part = notation::readDocument(text, path);
+		part = lisp::readDocument(text, path, name);
 	} catch(const json::parse_error&) { // NOLINT(bugprone-empty-catch): reported below, as not a JSON object
 	} catch(const notation::NotationError&) {
 		throw; // names the file, the line and the column already
+	} catch(const lisp::LispError&) {
+		throw; // the same
 	} catch(const DocumentError& deep) {
 		throw ScreenError("AffrescoUI screen: include: " + path.string() + ": " + deep.what());
 	}
@@ -186,7 +190,8 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
 		checkInside(path, roots);
-		json part = readInclude(path);
+		json part =
+		    readInclude(path, std::filesystem::path(name.get<std::string>()).lexically_normal().generic_string());
 		if(!format::migrate(part).empty()) migrated = true;
 		SourceMap partSources;
 		resolveIncludes(part, path.parent_path(), migrated, roots, depth + 1,
@@ -294,7 +299,7 @@ Screen Screen::fromFile(const std::filesystem::path& path, const std::filesystem
 
 	std::stringstream content;
 	content << file.rdbuf();
-	Screen screen = fromString(notation::jsonText(content.str(), path), path.parent_path()); // JSON or Lisp
+	Screen screen = fromString(lisp::jsonText(content.str(), path), path.parent_path()); // JSON, Lisp or a program
 	screen.impl_->repairs.setTemplateName(detail::templateName(path));
 	screen.impl_->entryFile = path.filename().string();
 	// The history first: it sets the live state that the "persist" paths are then loaded into

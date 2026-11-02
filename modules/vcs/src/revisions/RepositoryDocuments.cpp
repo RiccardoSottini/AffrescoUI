@@ -170,6 +170,68 @@ bool unchangedSince(const json& head, const json& then, const std::string& part)
 	return unchanged;
 }
 
+/// @brief Who last wrote each definition of a document's program, credited a commit at a time, newest first.
+class EntryAuthors {
+public:
+	/// @brief Starts with no entry credited.
+	/// @param head The document; it must outlive this.
+	explicit EntryAuthors(const json& head) {
+		const auto program = head.find("program");
+		if(program == head.end() || !program->is_object()) return;
+		section_ = &*program;
+		for(const auto& [file, entries] : section_->items())
+			if(entries.is_object()) missing_ += entries.size();
+	}
+	/// @brief Credits what an operation's path reaches: an entry, a file or the whole program.
+	/// @param path The path's segments.
+	/// @param author The commit's author.
+	void creditPath(const std::vector<std::string>& path, const std::string& author) {
+		if(path.empty() || path[0] != "program") return;
+		if(path.size() >= 3) credit(path[1], path[2], author);
+		else if(path.size() == 2) creditFile(path[1], author);
+		else creditAll(author);
+	}
+	/// @brief Credits every entry not credited yet.
+	/// @param author The author.
+	void creditAll(const std::string& author) {
+		if(!section_) return;
+		for(const auto& [file, entries] : section_->items()) creditFile(file, author);
+	}
+	/// @brief Tells whether some entry has no author yet.
+	/// @return Whether one has none.
+	[[nodiscard]] bool missing() const noexcept { return missing_ > 0; }
+	/// @brief The authors.
+	/// @return `{file: {name: author}}`.
+	[[nodiscard]] json take() { return std::move(authors_); }
+
+private:
+	/// @brief Credits one entry, if it is there and has no author yet.
+	/// @param file Its file.
+	/// @param name Its address.
+	/// @param author The author.
+	void credit(const std::string& file, const std::string& name, const std::string& author) {
+		if(!section_) return;
+		const auto entries = section_->find(file);
+		if(entries == section_->end() || !entries->is_object() || !entries->contains(name)) return;
+		json& ofFile = authors_[file];
+		if(ofFile.contains(name)) return;
+		ofFile[name] = author;
+		--missing_;
+	}
+	/// @brief Credits a file's entries that have no author yet.
+	/// @param file The file.
+	/// @param author The author.
+	void creditFile(const std::string& file, const std::string& author) {
+		const auto entries = section_ ? section_->find(file) : json::const_iterator();
+		if(!section_ || entries == section_->end() || !entries->is_object()) return;
+		for(const auto& [name, text] : entries->items()) credit(file, name, author);
+	}
+
+	const json* section_ = nullptr; ///< The program, if it has one.
+	json authors_ = json::object(); ///< See take().
+	std::size_t missing_ = 0;       ///< How many entries have no author.
+};
+
 } // namespace
 
 // Only revisions that reach the live state can change it: what actions change between commits isn't a commit's
@@ -259,7 +321,7 @@ CommitInfo Repository::blame(std::string_view target) const {
 
 	const json& head = mainDocument();
 	const std::string pointer = resolvePath(head, text, "blame");
-	if(!detail::locate(head, pointer)) fail("blame", "nothing at '" + text + "' on main's head");
+	if(!detail::locate(head, pointer)) fail("blame", "nothing at '" + text + "' on main's head" + hintFor(head, text));
 	Trail trail(head, pointer);
 	for(std::size_t n = main_.size() - 1; n > 0; --n) {
 		const Commit& commit = objects_.at(main_[n]);
@@ -308,7 +370,21 @@ json Repository::diff(const json& from, const json& to) const {
 }
 
 json Repository::impact(const json& from, const json& to) const {
-	return rules_.impact(documentOf(find(from)), documentOf(find(to)));
+	json builtFrom, builtTo;
+	const json before = documentOf(find(from)), after = documentOf(find(to));
+	return rules_.impact(judged(before, builtFrom), judged(after, builtTo));
+}
+
+// Newest first: the first commit met that changed an entry, or held it whole, is who last wrote it
+json Repository::programAuthors() const {
+	EntryAuthors authors(mainDocument());
+	for(std::size_t n = main_.size() - 1; n > 0 && authors.missing(); --n) {
+		const Commit& commit = objects_.at(main_[n]);
+		for(const json& op : deltaOf(commit))
+			authors.creditPath(detail::segmentsOf(op.value("path", "")), commit.author);
+	}
+	authors.creditAll("file"); // as the screen file has them
+	return authors.take();
 }
 
 } // namespace affresco::vcs

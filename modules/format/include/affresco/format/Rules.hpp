@@ -40,6 +40,17 @@ public:
 	/// @param document The document.
 	/// @throws DocumentError If something is wrong; what() names the place.
 	void validate(const json& document) const override;
+	/// @brief What a document's `program` builds, beside its other sections (lisp::buildDocument()).
+	/// @param document The document as versioned.
+	/// @return The tree, with `program` kept; std::nullopt without a program.
+	/// @throws DocumentError If it can't be built, naming the definition.
+	[[nodiscard]] std::optional<json> built(const json& document) const override;
+	/// @brief Turns an edit of one keyword inside a definition (`/program/file/name/:title`) into a replace of its
+	/// text, every other byte kept (lisp::replaceKeyword()).
+	/// @param document The document before the operation.
+	/// @param operation The operation, changed in place when it is such an edit.
+	/// @throws DocumentError If it can't be done: no such keyword, or a value that isn't one form.
+	void rewriteOperation(const json& document, json& operation) const override;
 
 	/// @brief Finds a node by "id" in "root", then in "screens", "templates", "overlays" and the components
 	/// (findNodeWithId()).

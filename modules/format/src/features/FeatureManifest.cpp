@@ -103,8 +103,10 @@ bool localName(std::string_view text) {
 /// @throws DocumentError On an unknown key.
 template<std::size_t N>
 void knownKeys(const json& value, const std::array<std::string_view, N>& keys, const std::string& place) {
-	for(const auto& [key, item] : value.items())
+	for(const auto& [key, item] : value.items()) {
+		if(key == "program") fail(concatenate(place, ".", key), "a feature can't hold a program's definitions yet");
 		if(!among(keys, key)) fail(concatenate(place, ".", key), "unknown key");
+	}
 }
 
 /// @brief Reads an object of names, each checked.

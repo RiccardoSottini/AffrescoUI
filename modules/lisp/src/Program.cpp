@@ -70,14 +70,21 @@ void advance(std::string_view text, std::size_t& line, std::size_t& column) {
 /// @brief A section of the tree: its members by name, so that the order of definitions doesn't change it.
 using Section = std::map<std::string, json>;
 
-/// @brief Adds a section to the tree, if it has anything.
+/// @brief Adds a section to the tree, if it has anything; `defscreen main` may have given some of it.
 /// @param tree The tree.
 /// @param key The section's key.
 /// @param section The section.
+/// @throws Problem If `defscreen main` gave something other than an object there, or a member both give.
 void addSection(json& tree, const char* key, Section& section) {
 	if(section.empty()) return;
-	json object = json::object();
-	for(auto& [name, value] : section) object[name] = std::move(value);
+	json object = tree.contains(key) ? std::move(tree[key]) : json::object();
+	if(!object.is_object())
+		throw Problem(std::string("defscreen main gives \"") + key + "\" as something other than a map");
+	for(auto& [name, value] : section) {
+		if(object.contains(name))
+			throw Problem("\"" + name + "\" of \"" + key + "\" is given by defscreen main and by a definition");
+		object[name] = std::move(value);
+	}
 	tree[key] = std::move(object);
 }
 
@@ -351,14 +358,17 @@ void Program::addEntry(Entry entry) {
 	const auto read = reader.next();
 	if(!read || reader.next())
 		throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
-	if(definitionAddress(read->form).second != entry.name)
+	auto [kind, address] = definitionAddress(read->form);
+	if(address != entry.name)
 		throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text defines its own name");
-	for(const Entry& known : entries_)
-		if(known.name == entry.name)
-			throw LispError(entry.file, entry.line, entry.column, entry.name,
-			                "\"" + notation::Lexer::excerpt(entry.name) + "\" is defined twice: at " + known.file +
-			                    ": line " + std::to_string(known.line) + " and at " + entry.file + ": line " +
-			                    std::to_string(entry.line));
+	if(const auto [known, added] = names_.try_emplace(entry.name, entries_.size()); !added) {
+		const Entry& other = entries_[known->second];
+		throw LispError(entry.file, entry.line, entry.column, entry.name,
+		                "\"" + notation::Lexer::excerpt(entry.name) + "\" is defined twice: at " + other.file +
+		                    ": line " + std::to_string(other.line) + " and at " + entry.file + ": line " +
+		                    std::to_string(entry.line));
+	}
+	entry.kind = std::move(kind);
 	entries_.push_back(std::move(entry));
 }
 

@@ -836,6 +836,9 @@ def lisp_seeds():
     seeds = [text for text in examples if len(text) < 4096][:40]
     seeds += ['(defn f "doc" [n & more] (if (< n 1) more (f (- n 1) n)))\n(defscreen main (panel#a :x ~(f 3)))',
               '(defmacro m [a & b] `(do ~a ~@b))\n(defn g [] (m 1 2))\n(def x (g))\n(defcustom y 1 "d" :type integer)',
+              '(defcommand c :title "T" :category "K" [a] a)',
+              '(defscreen main :window {:title "T" :width 300} :state {:n 1} (panel#a))',
+              '(defcustom s 60 "d" :title "T" :type integer)',
               '(defcommand c "d" :title "T" [a] (other a))\n(defkey "mod+k" c)\n(add-hook h c)\n(advice c :around g)',
               '(let [[a & b :as c] [1 2 3] {:keys [d] :or {d 4} e :f} {:f 5}] (try (throw {:a a}) (catch x [x b c d e])))',
               '(loop [i 0 v []] (if (< i 9) (recur (inc i) (conj v i)) (map inc (filter (fn [x] (mod x 2)) v))))',

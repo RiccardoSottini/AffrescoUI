@@ -226,15 +226,17 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author,
 	// Introduce ourselves: whoever is on the other end gets the full picture to work from (the part its data rules let
 	// it read, VERSION_CONTROL.md "Data rules")
 	const std::optional<json> readable = versions_.readable(author_);
-	send({{"type", "hello"},
-	      {"format", "affrescoui-screen"},
-	      {"revision", versions_.head().number},
-	      {"head", toJson(versions_.head())},
-	      {"document", readable ? *readable : versions_.document()},
-	      {"state", readable ? readable->value("state", json::object()) : versions_.state()},
-	      {"mode", toString(versions_.mode())},
-	      {"you", author_},
-	      {"canReview", versions_.mayReview(author_)}});
+	json hello = {{"type", "hello"},
+	              {"format", "affrescoui-screen"},
+	              {"revision", versions_.head().number},
+	              {"head", toJson(versions_.head())},
+	              {"document", readable ? *readable : versions_.document()},
+	              {"state", readable ? readable->value("state", json::object()) : versions_.state()},
+	              {"mode", toString(versions_.mode())},
+	              {"you", author_},
+	              {"canReview", versions_.mayReview(author_)}};
+	addSource(hello, readable.has_value());
+	send(hello);
 	versions_.join(this, author_); // after hello: joining tells every peer, this one included
 }
 
@@ -461,6 +463,12 @@ int Session::proposalOf(const Incoming& in) {
 	return expect::integer(in.message.value("proposal", json()), in.type + ".proposal");
 }
 
+void Session::addSource(json& message, bool limited) const {
+	if(limited) return;
+	const json& source = versions_.sourceDocument();
+	if(&source != &versions_.document()) message["source"] = source;
+}
+
 // getDocument, getCatalog, getHistory, diff, exportChanges, render: reads, which change nothing
 bool Session::handleQuery(const Incoming& in) {
 	const json& m = in.message;
@@ -468,18 +476,20 @@ bool Session::handleQuery(const Incoming& in) {
 	if(in.type == "getDocument") {
 		const json state = reviewState();
 		const std::optional<json> readable = versions_.readable(author_);
-		send({{"type", "document"},
-		      {"revision", versions_.head().number},
-		      {"head", toJson(versions_.head())},
-		      {"document", readable ? *readable : versions_.document()},
-		      {"state", readable ? readable->value("state", json::object()) : versions_.state()},
-		      {"proposals", state["proposals"]},
-		      {"previewing", state["previewing"]},
-		      {"mode", state["mode"]},
-		      {"grants", state["grants"]},
-		      {"you", author_},
-		      {"canReview", versions_.mayReview(author_)},
-		      {"id", in.id}});
+		json reply = {{"type", "document"},
+		              {"revision", versions_.head().number},
+		              {"head", toJson(versions_.head())},
+		              {"document", readable ? *readable : versions_.document()},
+		              {"state", readable ? readable->value("state", json::object()) : versions_.state()},
+		              {"proposals", state["proposals"]},
+		              {"previewing", state["previewing"]},
+		              {"mode", state["mode"]},
+		              {"grants", state["grants"]},
+		              {"you", author_},
+		              {"canReview", versions_.mayReview(author_)},
+		              {"id", in.id}};
+		addSource(reply, readable.has_value());
+		send(reply);
 	} else if(in.type == "getCatalog") {
 		send({{"type", "catalog"}, {"catalog", catalog_ ? catalog_() : json::object()}, {"id", in.id}});
 	} else if(in.type == "getHistory") {

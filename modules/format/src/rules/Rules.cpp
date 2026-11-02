@@ -10,8 +10,11 @@
 #include "SectionRegistry.hpp"
 #include "ServiceRules.hpp"
 #include "Limits.hpp"
+#include "ProgramRules.hpp"
 #include "RulesControl.hpp"
 #include "StateTypes.hpp"
+
+#include <affresco/lisp/Document.hpp>
 
 #include <optional>
 #include <string_view>
@@ -156,7 +159,10 @@ void Rules::checkRevision(const json& patch) const {
 }
 
 // The document's own "state" must match its types; the live state is checked by checkChange() and findings()
-void Rules::validate(const json& doc) const {
+void Rules::validate(const json& document) const {
+	json built;
+	if(lisp::hasProgram(document)) built = lisp::buildDocument(document);
+	const json& doc = built.is_null() ? document : built; // what a program builds is judged like any document
 	sections_->validate(doc);
 	checkDocumentSize(doc);
 	json composed;
@@ -248,6 +254,7 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 			fail("revision", "permission denied: revisions can't change \"" + section.name + "\"");
 	}
 	checkAudioChange(rawBefore, rawAfter); // sounds of the screen's files or its assets only; the person accepts them
+	checkProgramChange(rawBefore, rawAfter);
 	json composedBefore, composedAfter;
 	const json& before = screenOf(rawBefore, composedBefore);
 	const json& after = screenOf(rawAfter, composedAfter);
@@ -309,6 +316,10 @@ std::vector<std::string> Rules::reviewLines(const json& before, const json& afte
 	return lines;
 }
 
-json Rules::impact(const json& before, const json& after) const { return dataImpact(before, after, data_); }
+json Rules::impact(const json& before, const json& after) const {
+	json impact = dataImpact(before, after, data_);
+	impact["logic"] = impact["logic"].get<std::size_t>() + programLogic(before, after); // what the tree doesn't show
+	return impact;
+}
 
 } // namespace affresco::format

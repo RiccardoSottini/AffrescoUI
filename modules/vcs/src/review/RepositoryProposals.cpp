@@ -69,7 +69,9 @@ json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 		document = std::move(next.document);
 	}
 
-	const json before = detail::view(mainDocument(), committedState()), after = detail::view(document, state);
+	json builtTree;
+	const json before = detail::view(rulesDocument(), committedState()),
+	           after = detail::view(judged(document, builtTree), state);
 	if(run.size() > 1000) fail("revision.run", "a proposal runs at most 1,000 steps");
 	if(!run.empty()) rules_.checkRun(after, run); // on the document it will run on
 	const Verdict verdict = evaluate(before, after, proposal.author, true, run);
@@ -162,6 +164,7 @@ json Repository::proposalDiff(int proposal) const {
 	const Proposal* open = findProposal(proposal);
 	if(!open) fail("diff", "no proposal " + std::to_string(proposal));
 	const Prepared next = prepare(open->patch, mainDocument(), committedState());
+	if(!next.sourceAfter.is_null()) return json::diff(next.sourceBefore, next.sourceAfter); // what accepting applies
 	return json::diff(next.before, next.after);
 }
 
@@ -250,6 +253,8 @@ std::optional<std::string> Repository::preview(int proposal) {
 		Prepared next = prepare(open->patch, document_, state_);
 		committedState_ = std::exchange(state_, std::move(next.state));
 		committedDocument_ = std::exchange(document_, std::move(next.document));
+		committedBuilt_ = std::move(built_);
+		built_ = json();
 		previewing_ = proposal;
 		documentChanged();
 	} catch(const DocumentError& error) {

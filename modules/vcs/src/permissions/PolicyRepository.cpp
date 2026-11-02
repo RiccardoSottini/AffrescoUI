@@ -91,9 +91,9 @@ std::vector<std::string> allowedPatterns(const JudgedChange& change, const std::
 } // namespace
 
 void Repository::checkReadable(const json& patch, const std::string& author) const {
-	const detail::Policy policy = detail::policyOf(mainDocument());
+	const detail::Policy policy = detail::policyOf(rulesDocument());
 	if(!detail::readLimited(policy, author, roles_)) return;
-	const json view = detail::view(mainDocument(), committedState());
+	const json view = detail::view(rulesDocument(), committedState());
 	if(const auto unreadable = detail::unreadablePath(rules_, policy, view, patch, {author, roles_}))
 		throw DocumentError("AffrescoUI screen: revision: permission denied: " + *unreadable);
 }
@@ -101,17 +101,17 @@ void Repository::checkReadable(const json& patch, const std::string& author) con
 json Repository::committedView() const { return detail::view(mainDocument(), committedState()); }
 
 std::optional<json> Repository::readable(std::string_view author) const {
-	const detail::Policy policy = detail::policyOf(mainDocument());
+	const detail::Policy policy = detail::policyOf(rulesDocument());
 	if(!detail::readLimited(policy, author, roles_)) return std::nullopt;
-	return detail::readableView(policy, detail::view(document_, state_), author, roles_);
+	return detail::readableView(policy, detail::view(document(), state_), author, roles_);
 }
 
 // Deny beats ask beats allow; what no rule allows asks. Rules are judged by the change's effect.
 Repository::Verdict Repository::evaluate(const json& before, const json& after, const std::string& author,
                                          bool reviewed, const json& run) const {
 	using Kind = Verdict::Kind;
-	const Permissions permissions = rules_.permissions(mainDocument());
-	const detail::Policy policy = detail::policyOf(mainDocument());
+	const Permissions permissions = rules_.permissions(rulesDocument());
+	const detail::Policy policy = detail::policyOf(rulesDocument());
 	const JudgedChange change{rules_, before, after, author, roles_};
 
 	if(auto refused = refusal(change, permissions.deny, policy)) return {Kind::Deny, std::move(*refused)};
@@ -140,7 +140,7 @@ Repository::Verdict Repository::evaluate(const json& before, const json& after, 
 
 // Without rules anyone may; otherwise the reviewers, by exact name or channel ("studio" covers "studio/riccardo")
 bool Repository::mayReview(std::string_view author) const {
-	const Permissions permissions = rules_.permissions(mainDocument());
+	const Permissions permissions = rules_.permissions(rulesDocument());
 	if(!permissions.configured) return true;
 	return std::ranges::any_of(permissions.reviewers, [&](const std::string& reviewer) {
 		return reviewer == author || reviewer == detail::channelOf(author);

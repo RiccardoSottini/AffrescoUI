@@ -163,6 +163,11 @@ private:
 		const bool hasId = hash != std::string_view::npos;
 		if(token.kind != TokenKind::Word || !isPlainWord(type) || (hasId && !isPlainWord(token.text.substr(hash + 1))))
 			lexer_.fail(token.offset, "expected the node's type, or node, after '(', found " + Lexer::shown(token));
+		if(isLanguageWord(type)) {
+			const std::string shown = Lexer::excerpt(type);
+			lexer_.fail(token.offset, "\"" + shown + "\" is not a node type; to run it, write ~(" + shown +
+			                              " ...); for a node of that type, write (node :type " + shown + " ...)");
+		}
 		if(type != untypedHead) object.add("type", std::string(type));
 		if(hasId) object.add("id", std::string(token.text.substr(hash + 1)));
 	}

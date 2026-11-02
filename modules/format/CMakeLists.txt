@@ -6,7 +6,7 @@ target_link_libraries(affrescoui_format PUBLIC affrescoui::core affrescoui::rend
 if(APPLE)
 	target_link_libraries(affrescoui_format PRIVATE "-framework CoreFoundation") # systemLocale()
 endif()
-target_link_libraries(affrescoui_format PRIVATE affrescoui::services)
+target_link_libraries(affrescoui_format PRIVATE affrescoui::services affrescoui::lisp) # lisp: programs (RFC 0005)
 target_include_directories(affrescoui_format SYSTEM PRIVATE ${AFFRESCOUI_MONOCYPHER_DIR} ${AFFRESCOUI_MONOCYPHER_DIR}/optional)
 # Monocypher's warnings are not ours to fix. Source properties are per directory, so they are set here, where the
 # target is (cmake/AffrescoUISignatures.cmake runs in the top directory, where they wouldn't reach this target)
@@ -77,7 +77,8 @@ target_sources(affrescoui_format PRIVATE
 	src/rules/Limits.cpp
 	src/rules/Migrate.cpp
 	src/rules/ServiceRules.cpp
-	src/rules/AssetRules.cpp)
+	src/rules/AssetRules.cpp
+	src/rules/ProgramRules.cpp)
 target_include_directories(affrescoui_format PRIVATE src/rules)
 # src/runtime/: the engine, its document context, settings, scheduler and usage
 target_sources(affrescoui_format PRIVATE

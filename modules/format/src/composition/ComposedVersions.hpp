@@ -32,6 +32,12 @@ public:
 	void setObserver(VersionObserver* observer) override { observer_ = observer; }
 	/// @brief The composed screen, or the inner document when it has nothing to compose.
 	[[nodiscard]] const json& document() const override;
+	/// @brief The document as versioned.
+	/// @return The inner one's.
+	[[nodiscard]] const json& sourceDocument() const override { return inner_.sourceDocument(); }
+	/// @brief Who last wrote each definition.
+	/// @return The inner one's.
+	[[nodiscard]] json programAuthors() const override { return inner_.programAuthors(); }
 	/// @copydoc VersionControl::state
 	[[nodiscard]] json& state() override { return inner_.state(); }
 	/// @copydoc VersionControl::state

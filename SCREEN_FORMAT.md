@@ -75,6 +75,7 @@ Every part of the format follows these, and so should every extension:
 | `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and isn't built while its `when` doesn't hold. |
 | `state` | The app's data, any JSON object. |
 | `assets` | `name → {type, size, sha256}`: files revisions brought, kept with the history, read as `"asset:<name>"` (see Assets). |
+| `program` | `file → { definition → text }`: a program, each top-level form its exact text with its comments, addressed `/program/<file>/<definition>`. It builds the sections it defines (see The Lisp language). |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `models` | `collection → { "version", "fields", "seed", "migrations" }`: the records' models (see Data). |
 | `queries` | `name → { "from", "where", "sort", "limit" }`: records read as `data.<name>`. |
@@ -1887,7 +1888,7 @@ line:
 
 | Direction | Message |
 |---|---|
-| → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect |
+| → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect. For a program, `document` is what it builds with `program` in it, and `source` the document as written (not to a reader whose reads are limited: "Data rules") |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
 | → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `done` |
@@ -2174,8 +2175,9 @@ is exactly
 ```
 
 **It is never evaluated.** The Lisp notation is data, not code: there are no functions, macros, quoting or `eval`,
-and a list is never called. Expressions stay `{{...}}` strings, as in JSON. The language that runs Lisp is another thing, which
-apps don't load yet ("The Lisp language").
+and a list is never called. Expressions stay `{{...}}` strings, as in JSON. The language that runs Lisp is another thing ("The
+Lisp language"): a file that is a program is run to build its tree, and a word the language runs isn't a node's type in a file of
+this notation either: `(not x)` is an error saying how to write it.
 
 | JSON | Lisp |
 |---|---|
@@ -2225,8 +2227,9 @@ converted to JSON before it is submitted:
 ## The Lisp language
 
 Besides the notation, `.lisp` text can be a **program**, in a language with a runtime (RFC 0005, `modules/lisp/README.md`):
-Clojure's syntax, Emacs's vocabulary. **An app's documents don't load it yet**: `affrescoui run` prints what a program builds,
-and `affrescoui repl` tries the language.
+Clojure's syntax, Emacs's vocabulary. A screen, an include or an app's entry that is a program loads, builds and shows what it
+builds; its definitions are versioned (below). **Functions don't run in the app yet:** building is what runs, and a
+`defcommand`'s `do` stays empty. `affrescoui run` prints what a program builds, and `affrescoui repl` tries the language.
 
 ```lisp
 ;;; rooms.lisp
@@ -2274,11 +2277,33 @@ builds
   for functions (`map filter reduce find first rest cons conj assoc dissoc get get-in merge keys vals count str range apply not
   not= = < > <= >= + - * / mod` and similar: `modules/lisp/README.md`). `nil`, booleans, numbers, strings, vectors and maps are JSON's.
   It has no file, process, network, clock or randomness, and building is pure: the same source gives the same tree.
-- **Limits** (10 million operations, 64 MiB allocated, 20,000 nested calls, a budget of its own for macros) end anything that
+- **Limits** (for running, 10 million operations, 64 MiB allocated, 20,000 nested calls, a budget of its own for macros) end anything that
   would run away, with an error naming the file, line, column and definition, never a value.
 
 `affrescoui convert` refuses a program, naming the first definition that needs running, since a program can't be converted to
 JSON and back; `affrescoui fmt` refuses one for now.
+
+### A program in the document
+
+Loading a program gives a document whose `program` section holds it, one entry per definition, each its exact text with the
+comments above it and on its line:
+
+```json
+{ "format": "affrescoui-screen", "version": 2,
+  "program": { "rooms.lisp": { "card": ";; One room.\n(defn card ...)", "defkey mod+~1b": "(defkey \"mod+/b\" toggle-side)" } } }
+```
+
+(The second key's address is `/program/rooms.lisp/defkey mod+~1b`, as `/` is `~1` in a JSON Pointer.)
+
+- **What is shown is what it builds,** merged with any other section the document has. A member both give must be the same. A
+  program can't build `include` (list a program's files in a data file's `include`, or an app's entry), `assets`, `features` or
+  `program`.
+- **A revision changes definitions,** never what they build: `{"set": {"/program/rooms.lisp/card": "(defn card ...)"}}`, or one
+  keyword's value inside a form, far cheaper: `{"set": {"/program/rooms.lisp/toggle-side/:title": "Toggle"}}`. Rules judge what the
+  new source builds, and a build that fails is refused, naming the definition ([VERSION_CONTROL.md](VERSION_CONTROL.md),
+  "Programs").
+- **Limits:** a definition is at most 1 MiB and its address 1,024 bytes, a program at most 16,384 definitions. A build spends at
+  most 2,000,000 operations and 16 MiB. A file the app's own disk holds is under the same limits, since every revision builds it again.
 
 ## Migrating from version 1
 

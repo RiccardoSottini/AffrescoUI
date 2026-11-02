@@ -10,6 +10,7 @@
 
 #include <affresco/Screen.hpp>
 #include <affresco/core/Executor.hpp>
+#include <affresco/lisp/Document.hpp>
 #include <affresco/notation/Notation.hpp>
 #include <affresco/render/Application.hpp>
 
@@ -67,7 +68,9 @@ public:
 /// @param result Receives its failures and pictures.
 void play(const Scenario& scenario, const std::string& document, const Options& options,
           const std::filesystem::path& scratch, ScenarioResult& result) {
-	const json settings = parseUntrusted(document).value("window", json::object());
+	json read = parseUntrusted(document);
+	if(lisp::hasProgram(read)) read = lisp::buildDocument(read); // its window is among what it builds
+	const json settings = read.value("window", json::object());
 	const int width = sizeIn(settings, "width", 800), height = sizeIn(settings, "height", 600);
 	const std::string title = settings.is_object() && settings.contains("title") && settings["title"].is_string()
 	                              ? settings["title"].get<std::string>()
@@ -154,7 +157,7 @@ json Report::toJson() const {
 
 std::string screenDocument(const std::filesystem::path& screen) {
 	const std::filesystem::path manifest = Screen::appOf(screen);
-	if(manifest.empty()) return notation::jsonText(readText(screen), screen); // JSON or Lisp
+	if(manifest.empty()) return lisp::jsonText(readText(screen), screen); // JSON, Lisp or a program
 	return Screen::fromApp(manifest, {}, Screen::History::InMemory).documentJson();
 }
 
