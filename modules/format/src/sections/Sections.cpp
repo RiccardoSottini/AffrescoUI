@@ -1,6 +1,7 @@
 /// @file
 /// @brief format::SectionRegistry, and the built-in sections that aren't capabilities.
 
+#include "ProgramRules.hpp"
 #include "SectionRegistry.hpp"
 #include "ContributionPoints.hpp"
 #include "Contributions.hpp"
@@ -155,6 +156,7 @@ void registerBuiltInSections(SectionRegistry& registry) {
 	registry.add({"exports", checkExportsSection});   // what features read as app.<name>
 	registry.add({"imports", checkImportsSection});   // aliases for features' components
 	registry.add({.name = "points", .validate = checkPointsSection, .capability = true}); // ContributionPoints.hpp
+	registry.add({"program", checkProgramSection}); // a program's definitions, as text (ProgramRules.hpp)
 	registry.add({"root", nullptr, "missing \"root\""});
 }
 

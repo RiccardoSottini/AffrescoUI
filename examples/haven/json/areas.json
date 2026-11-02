@@ -20,13 +20,13 @@
 						"color": "@header",
 						"role": "banner",
 						"children": [
-							{ "id": "areasTitle", "type": "label", "text": "{{t('page.areas')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 },
+							{ "type": "label", "id": "areasTitle", "text": "{{t('page.areas')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 },
 								"fitText": true, "align": { "horizontal": "start", "vertical": "center" } }
 						]
 					},
 					{
-						"id": "areaList",
 						"type": "column",
+						"id": "areaList",
 						"anchors": { "left": 24, "right": 24, "top": 56, "bottom": 0 },
 						"gap": 0,
 						"scroll": "vertical",

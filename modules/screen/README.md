@@ -97,7 +97,7 @@ include/affresco/
   Screen.hpp             the Screen class
   affresco.hpp           the umbrella header
 src/
-  Screen.cpp             loading (with "include": resolveIncludes, mergeInclude; menus merge menu by menu, so
+  Screen.cpp             loading (files go through lisp::readDocument, so a screen or an include may be a program; with "include": resolveIncludes, mergeInclude; menus merge menu by menu, so
                          feature files add to one menu), the data and socket folders, building, lookups
   ScreenImpl.hpp / .cpp  Screen::Impl: the parts put together, the "persist" state file, the peers
   ScreenChannels.cpp     the channels a file declares, and the peers the screen connects or listens for

@@ -111,6 +111,11 @@ using NodeLookup = std::function<json(std::string_view id)>;
 /// name is none of them. The value stays valid for the whole evaluation.
 using VariableLookup = std::function<const json*(std::string_view name)>;
 
+/// @brief Calls a function of the document's program for a value being read (the expression function `lisp`): its name,
+/// its arguments, the variables and event around it, and its place for errors. It can only read (format::Programs).
+using ProgramCall =
+    std::function<json(const std::string&, std::vector<json>, const Scope&, const json&, const std::string&)>;
+
 /// @brief What a path can see while a value is evaluated.
 struct Context {
 	const json& state;                    ///< The live state.
@@ -129,6 +134,7 @@ struct Context {
 	/// `computed.<name>` read in place, valid for the whole evaluation (none: copied from `computed`), so a large
 	/// computed list isn't copied by every value that reads one item of it.
 	const VariableLookup* computedValues = nullptr;
+	const ProgramCall* program = nullptr; ///< For the function `lisp` (none: there is no program to call).
 };
 
 /// @brief Evaluates templates, expressions and operators, recursing into objects and arrays.

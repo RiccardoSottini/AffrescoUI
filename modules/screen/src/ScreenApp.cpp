@@ -11,6 +11,7 @@
 #include "affresco/data/Query.hpp"
 #include "affresco/format/Adapters.hpp"
 #include "affresco/format/Migrate.hpp"
+#include "affresco/lisp/Document.hpp"
 #include "affresco/notation/Notation.hpp"
 #include "affresco/themes/Themes.hpp"
 
@@ -275,7 +276,7 @@ Screen Screen::fromApp(const std::filesystem::path& location, const std::filesys
 	const std::filesystem::path entry = inside(app, app.manifest.entry, "entry");
 	json document;
 	try {
-		document = notation::readDocument(readWhole(entry, maxPartBytes), entry);
+		document = lisp::readDocument(readWhole(entry, maxPartBytes), entry);
 	} catch(const json::parse_error& parse) {
 		fail(entry.string(), std::string("invalid JSON: ") + parse.what());
 	}

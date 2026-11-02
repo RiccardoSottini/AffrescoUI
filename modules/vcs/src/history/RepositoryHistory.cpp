@@ -5,6 +5,7 @@
 #include "affresco/vcs/Repository.hpp"
 
 #include "history/HistoryStore.hpp"
+#include "revisions/Deltas.hpp"
 #include "permissions/Permissions.hpp"
 #include "Reasons.hpp"
 #include "Sha256.hpp"
@@ -233,7 +234,8 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	// A history begun on a version 1 screen began on this one, if the screen file was migrated since
 	json original = *objects.at(main.front()).snapshot;
 	static_cast<void>(rules_.upgrade(original));
-	if(original != mainDocument()) return false;
+	// The same screen, written with its keys in another order, is the same screen: its history goes on
+	if(!detail::sameContent(original, mainDocument())) return false;
 
 	for(Proposal& proposal : refs.proposals) {
 		completeProposal(proposal, objects, main, store.refsFile());
@@ -245,7 +247,12 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	json upgraded;
 	json document = reading(store.objectFile(head.id), [&] {
 		json rebuilt = rebuild(objects, head); // checked against the head's tree
-		rules_.checkChange(*objects.at(main.front()).snapshot, rebuilt);
+		json first, last;
+		// What the person's own input changed in a program is the one thing their commits may add
+		const bool own = std::ranges::any_of(main, [&](const std::string& id) { return objects.at(id).ownInput; });
+		for(const std::string& id : main) checkOwnCommit(objects.at(id));
+		if(own) rules_.checkOwnChange(judged(*objects.at(main.front()).snapshot, first), judged(rebuilt, last));
+		else rules_.checkChange(judged(*objects.at(main.front()).snapshot, first), judged(rebuilt, last));
 		upgraded = rebuilt;
 		static_cast<void>(rules_.upgrade(upgraded)); // a version 1 head is read as the current version
 		rules_.validate(upgraded);
@@ -260,7 +267,9 @@ bool Repository::loadHistory(detail::HistoryStore& store) {
 	}
 
 	// All read and checked: put it in place, and back if the observer can't show it
-	json state = document.contains("state") ? document["state"] : json::object();
+	json builtTree;
+	const json& shown = judged(document, builtTree);
+	json state = shown.contains("state") ? shown["state"] : json::object();
 	const auto exchange = [&] {
 		std::swap(objects_, objects);
 		std::swap(main_, main);
@@ -368,6 +377,16 @@ Repository::readDocument(detail::HistoryStore& store, const std::string& id, con
 	return documents.emplace(id, std::make_shared<const json>(std::move(document))).first->second;
 }
 
+void Repository::checkOwnCommit(const Commit& commit) {
+	if(!commit.ownInput) return;
+	const bool onlyProgram = std::ranges::all_of(commit.patch, [](const json& op) {
+		return op.is_object() && !op.contains("from") && op.value("path", std::string()).starts_with("/program/");
+	});
+	if(detail::channelOf(commit.author) != personChannel || !onlyProgram)
+		throw DocumentError(
+		    "a commit marked as the person's own input is by someone else, or changes more than a program");
+}
+
 Repository::Commit Repository::readObject(detail::HistoryStore& store, const std::string& id,
                                           const std::filesystem::path& namedIn,
                                           std::unordered_map<std::string, std::shared_ptr<const json>>& documents) {
@@ -389,6 +408,10 @@ Repository::Commit Repository::readObject(detail::HistoryStore& store, const std
 		if(const auto run = object.find("run"); run != object.end()) { // only a commit that runs steps has it
 			if(!run->is_array() || run->empty()) expect::fail("run", "expected a list of steps");
 			commit.run = std::move(*run);
+		}
+		if(const auto own = object.find("ownInput"); own != object.end()) { // only the person's own commit has it
+			if(!own->is_boolean() || !own->get<bool>()) expect::fail("ownInput", "expected true");
+			commit.ownInput = true;
 		}
 		// Version 2: a delta, and the document only for a snapshot. Version 1: always the document
 		if(const auto delta = object.find("delta"); delta != object.end() && !commit.parents.empty()) {
@@ -476,8 +499,10 @@ void Repository::completeProposal(Proposal& proposal, const std::unordered_map<s
 }
 
 void Repository::recheckProposal(Proposal& proposal, const json& base) const {
-	const json state = base.contains("state") ? base["state"] : json::object();
 	try {
+		json builtTree;
+		const json& shown = judged(base, builtTree);
+		const json state = shown.contains("state") ? shown["state"] : json::object();
 		const Prepared next = prepare(proposal.patch, base, state);
 		const Verdict verdict = evaluate(next.before, next.after, proposal.author, true, proposal.run);
 		proposal.remember = verdict.kind == Verdict::Kind::Deny
@@ -502,6 +527,7 @@ json Repository::objectOf(const Commit& commit) {
 	               {"time", commit.time},       {"proposal", commit.proposal}, {"message", commit.message},
 	               {"patch", commit.patch},     {"tree", commit.tree}};
 	if(!commit.run.is_null()) object["run"] = commit.run;
+	if(commit.ownInput) object["ownInput"] = true;
 	if(!commit.delta.is_null()) { // a commit loaded from version 1 has none, and its document is written
 		object["delta"] = commit.delta;
 		object["snapshot"] = commit.snapshot != nullptr;

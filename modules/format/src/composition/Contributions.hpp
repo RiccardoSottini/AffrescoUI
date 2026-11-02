@@ -14,8 +14,8 @@ namespace affresco::format {
 struct Engine;
 
 /// The keys of a command, an action written as an object that describes itself.
-inline constexpr std::array<std::string_view, 6> commandKeys = {"title",      "category",    "icon",
-                                                                "enablement", "description", "do"};
+inline constexpr std::array<std::string_view, 7> commandKeys = {"title",       "category", "icon",     "enablement",
+                                                                "description", "do",       "arguments"};
 
 /// @brief Tells whether an action is a command: an object with "do" or a key only commands have, and only command
 /// keys.
@@ -46,8 +46,8 @@ void checkCommand(const json& action, const std::string& where);
 /// @return true if it is enabled; false if its "enablement" fails (which is reported).
 [[nodiscard]] bool commandEnabled(Engine& engine, std::string_view name);
 
-/// @brief Checks the "menus" section: `"<menu>": { "<item>": { run, with, submenu, group, order, when, title, icon } }`,
-/// a "submenu" naming another menu.
+/// @brief Checks the "menus" section: `"<menu>": { "<item>": { run, with, submenu, group, order, when, title, icon }
+/// }`, a "submenu" naming another menu.
 /// @param section The section.
 /// @param name "menus".
 /// @throws DocumentError If an item is malformed.

@@ -372,7 +372,7 @@
 						              { "id": "line", "title": "Line", "width": 60 }],
 						  "onOpen": { "run": "lspPeekOpen" } }
 					  ] },
-					{ "use": "dialog", "id": "lsp-rename-dialog",
+					{ "id": "lsp-rename-dialog", "use": "dialog",
 					  "with": { "open": "state.lsp.rename.open", "height": 150, "title": "Rename Symbol", "message": "",
 					            "buttons": [{ "title": "Rename", "run": "lspRenameSend" }, { "title": "Cancel" }] },
 					  "children": [
@@ -381,7 +381,7 @@
 						  "textColor": "@color.text", "placeholderColor": "@color.muted", "placeholder": "New name",
 						  "onSubmit": { "run": "lspRenameSend" } }
 					  ] },
-					{ "use": "dialog", "id": "lsp-review-dialog",
+					{ "id": "lsp-review-dialog", "use": "dialog",
 					  "with": { "open": "state.lsp.review.open", "height": 320,
 					            "title": "{{state.lsp.review.kind == 'rename' ? 'Rename Symbol' : 'Format Document'}}",
 					            "message": "{{'Apply ' + plural(length(state.lsp.review.edits), 'edit') + ' in ' + plural(state.lsp.review.files, 'file') + '? Open files are changed in their editors and left unsaved; others are written.'}}",

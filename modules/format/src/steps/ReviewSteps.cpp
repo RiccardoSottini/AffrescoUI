@@ -30,11 +30,27 @@ json evaluateControl(const Running& s) {
 	return control;
 }
 
+/// @brief Commits what the person's undo gives: when it is the person's input and only touches the program, as
+/// evaluating did, so that what an evaluation added to what reaches a control step can be undone by the same hand.
+/// @param versions The version control.
+/// @param revision The revision.
+/// @param ownInput Whether the person's own input started it.
+/// @return An error, or std::nullopt.
+std::optional<std::string> commitOwn(VersionControl& versions, const json& revision, bool ownInput) {
+	const auto patch = revision.find("patch");
+	const bool onlyProgram =
+	    patch != revision.end() && patch->is_array() && std::ranges::all_of(*patch, [](const json& op) {
+		    return op.value("path", std::string()).starts_with("/program/") && !op.contains("from");
+	    });
+	return ownInput && onlyProgram ? versions.commitOwnInput(revision) : versions.commit(revision);
+}
+
 /// @brief Carries out an evaluated review or history step on the version control.
 /// @param versions The version control.
 /// @param control The step, its values evaluated.
+/// @param ownInput Whether the person's own input started it.
 /// @return An error, or std::nullopt.
-std::optional<std::string> carryOut(VersionControl& versions, const json& control) {
+std::optional<std::string> carryOut(VersionControl& versions, const json& control, bool ownInput) {
 	try {
 		if(control.contains("accept"))
 			return versions.accept(control["accept"].get<int>(), {"user", control["head"].get<std::string>(), false});
@@ -47,9 +63,11 @@ std::optional<std::string> carryOut(VersionControl& versions, const json& contro
 			versions.endPreview();
 			return std::nullopt;
 		}
-		if(control.contains("restore")) return versions.commit(versions.restoreRevision(control["restore"], "user"));
-		if(control.contains("revert")) return versions.commit(versions.revertRevision(control["revert"], "user"));
-		return versions.commit(versions.revertRevision("HEAD", "user")); // undo
+		if(control.contains("restore"))
+			return commitOwn(versions, versions.restoreRevision(control["restore"], "user"), ownInput);
+		if(control.contains("revert"))
+			return commitOwn(versions, versions.revertRevision(control["revert"], "user"), ownInput);
+		return commitOwn(versions, versions.revertRevision("HEAD", "user"), ownInput); // undo
 	} catch(const DocumentError& failure) {
 		return failure.what();
 	}
@@ -70,8 +88,8 @@ std::optional<bool> runReviewStep(const Running& s) {
 	json control = evaluateControl(s);
 	if(!engine.window) return true;
 
-	engine.scheduler.defer([&engine, control = std::move(control)] {
-		if(const std::optional<std::string> error = carryOut(engine.versions, control)) engine.report(*error);
+	engine.scheduler.defer([&engine, control = std::move(control), own = engine.window->routingOwnPress()] {
+		if(const std::optional<std::string> error = carryOut(engine.versions, control, own)) engine.report(*error);
 		engine.reconciler.requestReconcile();
 	});
 	return true;

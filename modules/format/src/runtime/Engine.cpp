@@ -20,7 +20,8 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		      "AffrescoUI screen: no handler for action '" + action + "' (from '" + sender.id() + "')");
       }),
       document(*this, std::move(baseDirectory)), builder(*this), scheduler(*this), properties(*this), reconciler(*this),
-      events(*this), runner(*this), models(*this), connections(*this), serviceCalls(*this), asks(*this), calls(*this) {
+      events(*this), runner(*this), programs(*this), models(*this), connections(*this), serviceCalls(*this),
+      asks(*this), calls(*this) {
 	registerBuiltInTypes(types);
 	attachImageDocuments(*this);
 	addContributionVariables(*this);
@@ -53,6 +54,7 @@ Engine::~Engine() {
 
 void Engine::documentChanged() {
 	data.documentChanged();  // the records follow its models first: records that don't fit refuse the version
+	programs.load();         // and its program: one that can't be loaded refuses it too
 	builder.forgetVersion(); // what was compiled belongs to the version before
 	document.readDerived();
 	document.bumpStateVersion(); // a revision may change the state too

@@ -78,7 +78,9 @@ Repository::Repository(const DocumentRules& rules, json document) : rules_(rules
 		    LogLevel::Info,
 		    "AffrescoUI history: the screen was written for an older format version, read as the current one");
 	rules_.validate(document);
-	if(document.contains("state")) state_ = expect::object(document["state"], "state");
+	json builtTree;
+	if(const json& shown = judged(document, builtTree); shown.contains("state"))
+		state_ = expect::object(shown["state"], "state");
 
 	Commit first;
 	first.author = first.committer = "file";
@@ -86,6 +88,7 @@ Repository::Repository(const DocumentRules& rules, json document) : rules_(rules
 	first.time = detail::utcNow();
 	main_.push_back(store(std::move(first), document, nullptr).id);
 	document_ = std::move(document);
+	built_ = std::move(builtTree);
 }
 
 /* Objects */
@@ -106,6 +109,7 @@ std::string Repository::idOf(const Commit& commit) {
 	          detail::sha256(commit.patch.dump()) + "\n";
 	if(commit.proposal) object += "proposal " + std::to_string(commit.proposal) + "\n";
 	if(!commit.run.is_null()) object += "run " + detail::sha256(commit.run.dump()) + "\n"; // only when it runs any
+	if(commit.ownInput) object += "ownInput\n";
 	object += "\n" + commit.message;
 	return detail::sha256(object);
 }
@@ -178,7 +182,14 @@ const Repository::Proposal* Repository::findProposal(int id) const {
 	return it == proposals_.end() ? nullptr : &*it;
 }
 
+void Repository::refreshBuilt() {
+	json tree;
+	static_cast<void>(judged(document_, tree));
+	built_ = std::move(tree);
+}
+
 void Repository::documentChanged() {
+	refreshBuilt();
 	if(observer_) observer_->documentChanged();
 }
 
@@ -188,6 +199,57 @@ void Repository::proposalsChanged() {
 }
 
 /* Checks */
+
+const json& Repository::judged(const json& source, json& storage) const {
+	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass documents they hold
+	if(!source.contains("program")) return source;
+	std::optional<json> tree = rules_.built(source);
+	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass documents they hold
+	if(!tree) return source;
+	storage = std::move(*tree);
+	return storage;
+}
+
+const json& Repository::rewriteProgramEdit(const json& operation, const json& view, json& storage) const {
+	const auto path = operation.is_object() ? operation.find("path") : operation.end();
+	const bool edit = operation.is_object() && path != operation.end() && path->is_string() &&
+	                  path->get_ref<const std::string&>().starts_with("/program/");
+	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass operations they hold
+	if(!edit) return operation;
+	storage = operation;
+	rules_.rewriteOperation(view, storage);
+	return storage;
+}
+
+void Repository::judgeProgram(Prepared& result, const json& document, json& after) const {
+	if(!document.contains("program") && !result.document.contains("program")) return;
+	json builtBefore, builtAfter;
+	const json& before = judged(document, builtBefore);
+	const json& now = judged(result.document, builtAfter);
+	const json none = json::object();
+	const auto stateIn = [&](const json& tree) -> const json& {
+		const auto state = tree.find("state");
+		if(state != tree.end() && !state->is_object()) fail("state", "a program's state must be an object");
+		return state == tree.end() ? none : *state;
+	};
+	const json& oldState = stateIn(before);
+	const json& newState = stateIn(now);
+	// A definition's state is what a key starts from: it follows the definition only while the live value is still the
+	// old one, so what the person set is never lost to a change of the program
+	const auto untouched = [&](const std::string& key) {
+		const auto live = result.state.find(key);
+		return live != result.state.end() && oldState.contains(key) && *live == oldState[key];
+	};
+	for(const auto& [key, value] : newState.items())
+		if(!result.state.contains(key) || untouched(key)) result.state[key] = value;
+	for(const auto& [key, value] : oldState.items())
+		if(!newState.contains(key) && untouched(key)) result.state.erase(key);
+
+	result.sourceBefore = std::move(result.before);
+	result.sourceAfter = after;
+	result.before = detail::view(before, result.sourceBefore["state"]);
+	after = detail::view(now, result.state);
+}
 
 std::string Repository::hintFor(const json& view, const std::string& path) const {
 	const std::string hint = rules_.pathHint(view, path);
@@ -278,7 +340,9 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	json after = result.before;
 	for(std::size_t i = 0; i < patch.size(); ++i) {
 		const std::string at = std::format("revision.patch[{}]", i);
-		json op = expect::object(patch[i], at);
+		json rewritten;
+		const json& asWritten = rewriteProgramEdit(patch[i], after, rewritten);
+		json op = expect::object(asWritten, at);
 		const std::string written = op.contains("path") && op["path"].is_string() ? op["path"].get<std::string>() : "";
 		const std::string kind = op.contains("op") && op["op"].is_string() ? op["op"].get<std::string>() : "";
 		const std::string where = std::format("{} ({} {})", at, kind, written);
@@ -289,9 +353,9 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 		if(op.contains("path") && op["path"].is_string() && op["path"].get<std::string>().starts_with("/assets/") &&
 		   !after.contains("assets"))
 			after["assets"] = json::object();
-		result.patch.push_back(normalise(op, patch[i], after));
+		result.patch.push_back(normalise(op, asWritten, after));
 		budget.spend(after, op, where);
-		apply(after, std::move(op), patch[i], where);
+		apply(after, std::move(op), asWritten, where);
 	}
 	if(!after.is_object() || !after.contains("state") || !after["state"].is_object())
 		fail("revision.patch", "the state must stay an object");
@@ -308,7 +372,8 @@ Repository::Prepared Repository::prepare(const json& patch, const json& document
 	expectShallowEnough(result.before, after);
 	detail::expectNarrowEnough(result.before, after);
 
-	rules_.checkChange(result.before, after); // with the live state: the checker reads state paths
+	judgeProgram(result, document, after);
+	judgeChange(result.before, after); // with the live state: the checker reads state paths
 	rules_.validate(result.document);
 	result.after = std::move(after);
 	return result;
@@ -377,12 +442,38 @@ std::optional<std::string> Repository::commit(const json& revision) {
 		c.time = detail::utcNow();
 		c.patch = std::move(next.patch);
 		c.run = run;
+		c.ownInput = ownInput_;
 		land(std::move(c), std::move(next.document), std::move(next.state));
 		staged.keep();
 	} catch(const DocumentError& error) {
 		return error.what();
 	}
 	return std::nullopt;
+}
+
+std::optional<std::string> Repository::commitOwnInput(const json& revision) {
+	const auto patch = revision.find("patch");
+	if(!revision.is_object() || patch == revision.end() || !patch->is_array())
+		return "revision: the person's own change is a patch of the program";
+	for(const json& op : *patch) {
+		const bool inside = op.is_object() && op.contains("path") && op["path"].is_string() &&
+		                    op["path"].get_ref<const std::string&>().starts_with("/program/");
+		if(!inside || op.contains("from")) return "revision: the person's own change only reaches /program/";
+	}
+	ownInput_ = true;
+	try {
+		std::optional<std::string> refused = commit(revision);
+		ownInput_ = false;
+		return refused;
+	} catch(...) {
+		ownInput_ = false;
+		throw;
+	}
+}
+
+void Repository::judgeChange(const json& before, const json& after) const {
+	if(ownInput_) rules_.checkOwnChange(before, after);
+	else rules_.checkChange(before, after);
 }
 
 RevisionResult Repository::submit(const json& revision) { return submitRevision(revision, false); }

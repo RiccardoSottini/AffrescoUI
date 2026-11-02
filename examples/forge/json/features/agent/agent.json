@@ -277,8 +277,8 @@
 					  "text": "The host's catalogue lists no features." },
 					{ "type": "column", "id": "features-list", "role": "listbox", "label": "Features", "width": "100%", "grow": 1, "scroll": "vertical",
 					  "children": [
-						{ "type": "row", "repeat": { "for": "f", "in": "{{computed.featureCards}}", "index": "fi", "key": "{{f.name}}" },
-						  "id": "{{'feature-' + f.name}}", "role": "option", "label": "{{f.title + '. ' + f.description}}", "width": "100%", "height": 48,
+						{ "type": "row", "id": "{{'feature-' + f.name}}",
+						  "repeat": { "for": "f", "in": "{{computed.featureCards}}", "index": "fi", "key": "{{f.name}}" }, "role": "option", "label": "{{f.title + '. ' + f.description}}", "width": "100%", "height": 48,
 						  "alignItems": "center", "gap": 8, "focusable": true, "cursor": "hand",
 						  "color": "{{state.features.selected == f.name ? '@color.selection' : '@color.sideBar'}}", "hover": { "color": "@color.hover" },
 						  "onClick": [{ "set": "state.features.selected", "to": "{{f.name}}" }],

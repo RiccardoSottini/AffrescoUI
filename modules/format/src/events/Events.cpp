@@ -241,6 +241,7 @@ void Events::forget(const Panel& panel) noexcept {
 }
 
 void Events::valueChanged(Panel& panel, const json& value) {
+	const bool typed = panel.takeTyped(); // first: a handler below may edit the same panel
 	Record* record = engine_.reconciler.recordOf(&panel);
 	if(!record) return;
 	if(record->bind) {
@@ -254,7 +255,9 @@ void Events::valueChanged(Panel& panel, const json& value) {
 			    setting ? *setting
 				        : format::statePointer(*record->bind, engine_.document.context(*record->locals, json::object()),
 				                               where);
-			statePlace(engine_.versions.state(), pointer, where) = value;
+			json& place = statePlace(engine_.versions.state(), pointer, where);
+			if(typed && !setting) engine_.programs.noteTyped(pointer.to_string(), place, value);
+			place = value;
 			engine_.document.markStateChanged(pointer);
 			engine_.reconciler.requestStateUpdate();
 		} catch(const DocumentError& error) {

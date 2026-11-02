@@ -198,7 +198,7 @@ std::string area(const DocumentRules& rules, const json& view, const std::string
 		}
 		if(segments[0] == "root") return "/root";
 	}
-	return join(segments, std::min<std::size_t>(2, segments.size()));
+	return join(segments, std::min<std::size_t>(segments[0] == "program" ? 3 : 2, segments.size()));
 }
 
 bool narrow(std::string_view area) { return area.starts_with('#') || split(area).size() >= 2; }

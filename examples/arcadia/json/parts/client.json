@@ -325,8 +325,8 @@
 						"arrows": "horizontal",
 						"children": [
 							{
-								"repeat": { "for": "o", "in": "{{options}}" },
 								"id": "{{'setting-' + slug(key) + '-' + o.value}}",
+								"repeat": { "for": "o", "in": "{{options}}" },
 								"use": "choice",
 								"with": { "title": "{{o.title}}", "key": "{{key}}", "value": "{{o.value}}", "current": "{{current}}" }
 							}
@@ -353,14 +353,14 @@
 				},
 				"children": [
 					{
-						"id": "settings-body",
 						"type": "row",
+						"id": "settings-body",
 						"anchors": { "left": 20, "right": 20, "top": 52, "bottom": 60 },
 						"gap": 20,
 						"children": [
 							{
-								"id": "settings-pages",
 								"type": "column",
+								"id": "settings-pages",
 								"width": 150,
 								"alignSelf": "stretch",
 								"gap": 2,
@@ -368,9 +368,9 @@
 								"arrows": "vertical",
 								"children": [
 									{
-										"repeat": { "for": "page", "in": "{{['interface', 'downloads', 'storage', 'account']}}" },
-										"id": "{{'settings-page-' + page}}",
 										"type": "label",
+										"id": "{{'settings-page-' + page}}",
+										"repeat": { "for": "page", "in": "{{['interface', 'downloads', 'storage', 'account']}}" },
 										"anchors": { "left": 0, "right": 0 },
 										"height": 30,
 										"padding": 10,
@@ -475,16 +475,16 @@
 						}
 					},
 					{
-						"id": "settings-while-playing",
 						"type": "row",
+						"id": "settings-while-playing",
 						"anchors": { "left": 0, "right": 0, "top": 72 },
 						"height": 30,
 						"alignItems": "center",
 						"children": [
 							{ "type": "label", "grow": 1, "height": 22, "text": "{{t('settings.whilePlaying')}}", "textColor": "@color.text" },
 							{
-								"id": "settings-while-playing-toggle",
 								"type": "toggle",
+								"id": "settings-while-playing-toggle",
 								"width": 40,
 								"height": 22,
 								"label": "{{t('settings.whilePlaying')}}",
@@ -522,8 +522,8 @@
 				"children": [
 					{ "style": "sectionCaps", "text": "{{upper(t('settings.drive'))}}" },
 					{
-						"id": "storage-used",
 						"type": "label",
+						"id": "storage-used",
 						"font": "small",
 						"anchors": { "left": 0, "right": 0, "top": 22 },
 						"height": 18,
@@ -531,8 +531,8 @@
 						"textColor": "@color.text"
 					},
 					{
-						"id": "storage-bar",
 						"type": "row",
+						"id": "storage-bar",
 						"anchors": { "left": 0, "right": 0, "top": 46 },
 						"height": 12,
 						"radius": 6,
@@ -549,15 +549,15 @@
 						]
 					},
 					{
-						"id": "storage-games",
 						"type": "column",
+						"id": "storage-games",
 						"anchors": { "left": 0, "right": 0, "top": 72, "bottom": 0 },
 						"scroll": "vertical",
 						"children": [
 							{
-								"repeat": { "for": "g", "in": "{{computed.installedGames}}", "index": "i" },
-								"id": "{{'storage-' + g.id}}",
 								"type": "row",
+								"id": "{{'storage-' + g.id}}",
+								"repeat": { "for": "g", "in": "{{computed.installedGames}}", "index": "i" },
 								"anchors": { "left": 0, "right": 0 },
 								"height": 32,
 								"gap": 10,
@@ -579,8 +579,8 @@
 										"textColor": "@color.muted"
 									},
 									{
-										"id": "{{'storage-uninstall-' + g.id}}",
 										"type": "label",
+										"id": "{{'storage-uninstall-' + g.id}}",
 										"font": "small",
 										"fitText": true,
 										"padding": 6,
@@ -634,8 +634,8 @@
 					},
 					{ "style": "sectionCaps", "anchors": { "left": 0, "right": 0, "top": 88 }, "text": "{{upper(t('settings.wallet'))}}" },
 					{
-						"id": "settings-wallet",
 						"type": "label",
+						"id": "settings-wallet",
 						"font": "heading",
 						"anchors": { "left": 0, "top": 110 },
 						"fitText": true,
@@ -676,8 +676,8 @@
 				},
 				"children": [
 					{
-						"id": "code-text",
 						"type": "textarea",
+						"id": "code-text",
 						"height": 32,
 						"padding": 8,
 						"anchors": { "left": 20, "right": 20, "top": 80 },
@@ -696,9 +696,9 @@
 						"onSubmit": { "run": "submitCode" }
 					},
 					{
+						"type": "label",
 						"id": "code-error",
 						"when": "{{state.code.error != ''}}",
-						"type": "label",
 						"font": "small",
 						"anchors": { "left": 20, "right": 20, "top": 118 },
 						"height": 18,
@@ -726,8 +726,8 @@
 				},
 				"children": [
 					{
-						"id": "add-game-name",
 						"type": "textarea",
+						"id": "add-game-name",
 						"height": 32,
 						"padding": 8,
 						"anchors": { "left": 20, "right": 20, "top": 80 },
@@ -802,9 +802,9 @@
 			"note": "In place of the store and friends while offline.",
 			"params": {},
 			"node": {
+				"type": "column",
 				"id": "offline-page",
 				"fill": true,
-				"type": "column",
 				"justify": "center",
 				"alignItems": "center",
 				"color": "@color.page",
@@ -833,10 +833,10 @@
 			"note": "After signing out: the account to sign back in to.",
 			"params": {},
 			"node": {
+				"type": "column",
 				"id": "signed-out",
 				"overlay": { "placement": "window", "open": "state.session.signedOut", "modal": true },
 				"fill": true,
-				"type": "column",
 				"justify": "center",
 				"alignItems": "center",
 				"gradient": { "kind": "radial", "stops": ["@color.raised", "@color.top"] },
@@ -894,8 +894,8 @@
 						"onClick": "leaveCouch"
 					},
 					{
-						"id": "couch-shelf",
 						"type": "row",
+						"id": "couch-shelf",
 						"anchors": { "left": 48, "right": 48, "top": 140 },
 						"height": 330,
 						"gap": 24,
@@ -912,10 +912,10 @@
 						},
 						"children": [
 							{
+								"type": "image",
+								"id": "{{'couch-' + g.id}}",
 								"repeat": { "for": "g", "in": "{{slice(computed.couchGames, max(0, state.couch.at - 1), max(0, state.couch.at - 1) + 6)}}", "index": "i" },
 								"let": { "on": "{{g.id == computed.couchGame.id}}" },
-								"id": "{{'couch-' + g.id}}",
-								"type": "image",
 								"role": "option",
 								"label": "{{g.title}}",
 								"selected": "{{on}}",

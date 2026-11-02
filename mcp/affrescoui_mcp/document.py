@@ -236,11 +236,33 @@ def data_models(document):
     return "models: " + "; ".join(said) if said else ""
 
 
+def definition_kind(text):
+    """A definition's form, from its text: the head after its comments ("defcommand"), or "" if none shows."""
+    for line in text.splitlines():
+        line = line.strip()
+        if line and not line.startswith(";"):
+            return line.lstrip("(").split(" ")[0].rstrip(")")
+    return ""
+
+
+def definitions(document):
+    """A document's program, as (address, form, text), one for each definition: every definition has a stable address,
+    which get_screen's `at` reads, and a revision sets (RFC 6901: "/" in a name is "~1")."""
+    program = document.get("program")
+    found = []
+    for file, entries in (program.items() if isinstance(program, dict) else ()):
+        for name, text in (entries.items() if isinstance(entries, dict) else ()):
+            if isinstance(text, str):
+                found.append((member(member("/program", file), name), definition_kind(text), text))
+    return found
+
+
 def outline(document, at=None, depth=None):
     """The node tree, one line per node: its address, then summary(). `at` (a node's address or pointer, found with
     locate) starts it there; `depth` stops it that many levels down, and a node with more inside says how many
     ("+12"). Enough to choose where to edit, without the styling. The whole outline starts with the state's types,
-    when the screen declares them, and its assets (the files revisions brought, read as "asset:<name>")."""
+    when the screen declares them, its assets (the files revisions brought, read as "asset:<name>"), and a program's
+    definitions, one line each: what a revision changes, since what they build isn't edited itself."""
     starts = [locate(document, at)] if at else trees(document)
     styles = document.get("styles")
     lines = [[state_types(document), 0]] if not at and state_types(document) else []  # [text, nodes not shown]
@@ -248,6 +270,8 @@ def outline(document, at=None, depth=None):
         lines.append([data_models(document), 0])
     if not at and assets_line(document):
         lines.append([assets_line(document), 0])
+    if not at:
+        lines.extend([f"{address} {kind}".rstrip(), 0] for address, kind, _ in definitions(document))
     for pointer, start in starts:
         cut = None  # the last line at the deepest level shown: what is below it isn't
         for node, address, level, _ in walk_nodes(start, pointer):
@@ -295,7 +319,8 @@ def pruned(node, address, depth):
 def find_nodes(document, kind=None, text=None, prop=None, value=None, limit=20):
     """The nodes that match every criterion given: their type (`kind`, or the component of a use), text (in their
     text, placeholder or tooltip, any case), and a property they have (`prop`), with a value (`value`, compared as
-    written). One line each, as in the outline, with the parent's address."""
+    written). One line each, as in the outline, with the parent's address. A program's definitions match too, by their
+    form (`kind`: "defn") and anything in their text, when no property is asked for."""
     needle = text.lower() if isinstance(text, str) else None
     styles = document.get("styles")
     found = []
@@ -305,6 +330,9 @@ def find_nodes(document, kind=None, text=None, prop=None, value=None, limit=20):
                     and matches_property(node, prop, value)):
                 continue
             found.append(f"{address} {summary(node, address, styles)}".rstrip() + (f" in {parent}" if parent else ""))
+    for address, form, written in definitions(document) if not prop and (kind or needle is not None) else ():
+        if (not kind or kind == form) and (needle is None or needle in written.lower()):
+            found.append(f"{address} {form}".rstrip())
     shown = found[:max(1, int(limit))]
     more = f"\n... and {len(found) - len(shown)} more: narrow the search or raise limit" if len(found) > len(shown) \
         else ""

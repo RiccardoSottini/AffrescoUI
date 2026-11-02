@@ -90,7 +90,11 @@ DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirec
       nodeLookup_([this](std::string_view id) { return node(id); }),
       modelLookup_([this](std::string_view place) { return engine_.models.at(place); }),
       variableLookup_([this](std::string_view name) { return variable(name); }),
-      computedValueLookup_([this](std::string_view name) { return &computedValue(name); }) {
+      computedValueLookup_([this](std::string_view name) { return &computedValue(name); }),
+      programCall_([this](const std::string& name, std::vector<json> arguments, const Scope& locals, const json& event,
+	                      const std::string& where) {
+	      return engine_.programs.read(name, std::move(arguments), locals, event, where);
+      }) {
 	if(baseDirectory_.empty()) return;
 	images_.allowDirectory(baseDirectory_);
 	images_.allowDirectory(format::notationAssets(baseDirectory_)); // nothing if there is no such folder
@@ -248,7 +252,8 @@ Context DocumentContext::context(const Scope& locals, const json& event) const {
 	               &modelLookup_,
 	               &variableLookup_,
 	               &strings_,
-	               &computedValueLookup_};
+	               &computedValueLookup_,
+	               &programCall_};
 }
 
 void DocumentContext::addVariable(std::string name, std::function<json()> build) {

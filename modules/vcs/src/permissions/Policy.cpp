@@ -183,6 +183,8 @@ std::optional<json> filtered(const json& value, Segments& path, const Filter& fi
 /// @param section The section, escaped.
 /// @return true if only its "read" paths of it are readable.
 bool readLimitedIn(const Applied& applied, const std::string& section) {
+	// A definition's text may hold, or a function's read, what is masked anywhere: only what "read" names is readable
+	if(section == "program") return true;
 	return applied.hasRead && std::ranges::find(applied.scope, section) != applied.scope.end();
 }
 
@@ -403,6 +405,13 @@ std::optional<std::string> unreadablePath(const DocumentRules& rules, const Poli
 		for(const char* key : {"path", "from"}) {
 			const std::optional<std::string> path = namedPath(rules, view, operation, key);
 			if(!path) continue;
+			// What a program builds runs at build time on any definition's value, the masked ones' too, and lands in
+			// what its author reads
+			if(key == std::string_view("path") && (*path == "/program" || path->starts_with("/program/")) &&
+			   operation.contains("op") && operation["op"] != "test")
+				return "data rule: '" + std::string(actor.author) +
+				       "' may not change a program while its reads are limited: what it writes could build what it may "
+				       "not read";
 			if(const auto why = unreadable(limits, *path))
 				return "data rule: '" + std::string(actor.author) + "' may not read " + *why;
 		}

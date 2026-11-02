@@ -1,11 +1,11 @@
 {
   "format": "affrescoui-scenarios",
   "version": 2,
-  "screens": "../../../examples/streak/json",
+  "screens": "../../../examples/streak/lisp",
   "scenarios": [
     {
       "name": "habit-tracker",
-      "screen": "index.screen.json",
+      "screen": "index.screen.lisp",
       "steps": [
         {
           "expect": {

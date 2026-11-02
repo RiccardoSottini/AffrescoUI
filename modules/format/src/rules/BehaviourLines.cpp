@@ -2,6 +2,8 @@
 /// @brief Rules::behaviourLines(): what a change does to a screen's behaviour, as lines a reviewer reads. A review
 /// policy may ask more approvals for such a change, and a proposal's evidence lists them (VERSION_CONTROL.md).
 
+#include "ProgramRules.hpp"
+
 #include "affresco/format/NodeIds.hpp"
 #include "affresco/format/Rules.hpp"
 
@@ -94,6 +96,9 @@ std::vector<std::string> Rules::behaviourLines(const json& before, const json& a
 	}
 	for(const auto& [name, value] : was)
 		if(!is.contains(name)) line("removes " + name);
+	std::vector<std::string> definitions; // what a function does isn't in the tree it builds
+	addProgramLines(before, after, definitions);
+	for(std::string& definition : definitions) line(std::move(definition));
 	if(more) lines.push_back("and " + std::to_string(more) + " more");
 	return lines;
 }

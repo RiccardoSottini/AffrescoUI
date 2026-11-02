@@ -48,9 +48,9 @@
 				"children": [
 					{ "type": "label", "font": "iconsMedium", "icon": "{{icon}}", "text": "", "textColor": "{{selected ? '@onNavSelected' : '@muted'}}", "anchors": { "left": 8, "top": 8 },
 						"width": 24, "height": 24, "align": "center" },
-					{ "when": "{{!state.sidebarCollapsed}}", "type": "label", "text": "{{title}}", "textColor": "{{selected ? '@onNavSelected' : '@text'}}",
+					{ "type": "label", "when": "{{!state.sidebarCollapsed}}", "text": "{{title}}", "textColor": "{{selected ? '@onNavSelected' : '@text'}}",
 						"anchors": { "left": 48, "right": 40, "top": 0, "bottom": 0 }, "align": { "horizontal": "start", "vertical": "center" } },
-					{ "when": "{{badge > 0}}", "type": "label", "font": "small", "text": "{{min(badge, 9)}}", "textColor": "@onAccent", "color": "@accent",
+					{ "type": "label", "when": "{{badge > 0}}", "font": "small", "text": "{{min(badge, 9)}}", "textColor": "@onAccent", "color": "@accent",
 						"anchors": { "left": "{{state.sidebarCollapsed ? 22 : 196}}", "top": "{{state.sidebarCollapsed ? 2 : 10}}" }, "width": 20, "height": 20,
 						"radius": 10, "align": "center" }
 				]
@@ -100,13 +100,13 @@
 						{ "type": "textarea", "bind": "{{base + '.query'}}", "autofocus": true, "placeholder": "{{provider.placeholder ?? ''}}", "label": "{{provider.placeholder ?? ''}}",
 							"anchors": { "left": 40, "right": 44, "top": 8 }, "height": 32, "padding": 6, "color": "transparent", "textColor": "@text", "placeholderColor": "@muted",
 							"onChange": [{ "set": "{{base + '.index'}}", "to": 0 }, { "set": "{{base + '.top'}}", "to": 0 }] },
-						{ "when": "{{q != ''}}", "type": "label", "font": "icons", "icon": "x", "text": "", "textColor": "@muted", "anchors": { "right": 6, "top": 6 }, "width": 36, "height": 36, "radius": 18,
+						{ "type": "label", "when": "{{q != ''}}", "font": "icons", "icon": "x", "text": "", "textColor": "@muted", "anchors": { "right": 6, "top": 6 }, "width": 36, "height": 36, "radius": 18,
 							"align": "center", "hover": { "color": "@cardHover" }, "cursor": "hand", "role": "button", "label": "{{t('quick.clear')}}", "tooltip": "{{t('quick.clear')}}",
 							"onClick": [{ "set": "{{base + '.query'}}", "to": "" }, { "set": "{{base + '.index'}}", "to": 0 }, { "set": "{{base + '.top'}}", "to": 0 }] },
 						{ "anchors": { "left": 0, "right": 0, "bottom": 0 }, "height": 1, "color": "@accent" }
 					] },
 					{ "anchors": { "left": 0, "right": 0, "top": 79 }, "height": 1, "color": "@divider" },
-					{ "when": "{{total == 0}}", "type": "label", "text": "{{t('quick.none')}}", "textColor": "@muted", "anchors": { "left": 24, "top": 100 }, "fitText": true },
+					{ "type": "label", "when": "{{total == 0}}", "text": "{{t('quick.none')}}", "textColor": "@muted", "anchors": { "left": 24, "top": 100 }, "fitText": true },
 					{ "type": "column", "anchors": { "left": 0, "right": 0, "top": 88 }, "height": "{{min(total, rows) * rowHeight}}",
 						"onScroll": { "set": "{{base + '.top'}}", "to": "{{clamp(top + (event.dy < 0 ? 1 : event.dy > 0 ? -1 : 0), 0, max(0, total - rows))}}" },
 						"children": [{
@@ -127,7 +127,7 @@
 								{ "type": "label", "font": "icons", "icon": "{{r.item.icon ?? 'circle'}}", "text": "", "textColor": "@muted", "color": "@raised", "anchors": { "left": 24, "top": "{{(rowHeight - 40) / 2}}" },
 									"width": 40, "height": 40, "radius": 20, "align": "center" },
 								{ "type": "row", "anchors": { "left": 80, "right": 24, "top": "{{rowHeight / 2 - 19}}" }, "height": 18,
-									"children": [{ "repeat": { "for": "p", "in": "{{r.parts}}" }, "type": "label", "text": "{{p.text}}", "textColor": "{{p.match ? '@accent' : '@text'}}", "fitText": true }] },
+									"children": [{ "type": "label", "repeat": { "for": "p", "in": "{{r.parts}}" }, "text": "{{p.text}}", "textColor": "{{p.match ? '@accent' : '@text'}}", "fitText": true }] },
 								{ "type": "label", "font": "small", "text": "{{top + i < length(recentHits) ? t('quick.recent') : r.item.detail ?? ''}}", "textColor": "@muted",
 									"anchors": { "left": 80, "top": "{{rowHeight / 2 + 1}}" }, "fitText": true }
 							]
@@ -206,12 +206,12 @@
 				"style": "card", "height": 72, "hover": { "color": "@cardHover" }, "cursor": "hand", "role": "group", "label": "{{t('alarm.title')}}",
 				"onClick": { "run": "openInfo", "with": { "kind": "alarm", "i": 0 } },
 				"children": [
-					{ "id": "alarmIcon", "type": "label", "icon": "{{state.security == 'off' ? 'shield-off' : 'shield-check'}}", "text": "",
+					{ "type": "label", "id": "alarmIcon", "icon": "{{state.security == 'off' ? 'shield-off' : 'shield-check'}}", "text": "",
 						"textColor": "{{computed.alarmColor}}", "color": "{{state.security == 'off' ? '@okSoft' : '@alertSoft'}}",
 						"anchors": { "left": 12, "top": 18 }, "width": 36, "height": 36, "radius": 18, "align": "center" },
-					{ "id": "alarmName", "type": "label", "text": "{{t('alarm.title')}}", "textColor": "@text", "anchors": { "left": 60, "top": 17 }, "height": 18, "fitText": true },
+					{ "type": "label", "id": "alarmName", "text": "{{t('alarm.title')}}", "textColor": "@text", "anchors": { "left": 60, "top": 17 }, "height": 18, "fitText": true },
 					{ "id": "alarmState", "style": "caption", "text": "{{t('alarm.' + state.security)}}", "anchors": { "left": 60, "top": 38 }, "live": "polite" },
-					{ "id": "alarmModes", "type": "row", "anchors": { "right": 12, "top": 18 }, "width": 280, "height": 36, "gap": 6, "justify": "end", "role": "toolbar", "arrows": "horizontal",
+					{ "type": "row", "id": "alarmModes", "anchors": { "right": 12, "top": 18 }, "width": 280, "height": 36, "gap": 6, "justify": "end", "role": "toolbar", "arrows": "horizontal",
 						"children": [{
 							"id": "alarmMode", "repeat": { "for": "mode", "in": "state.securityModes" },
 							"style": "{{mode == state.security ? 'choiceOn' : 'choice'}}", "font": "small", "text": "{{t('alarm.do.' + mode)}}", "padding": 12, "fitText": true,
@@ -231,10 +231,10 @@
 			"node": {
 				"anchors": { "left": 0, "right": 0, "top": 120, "bottom": 0 }, "color": "transparent",
 				"children": [
-					{ "id": "alarmCode", "type": "label", "text": "{{empty(state.alarmCode) ? t('alarm.code') : join(map(split(state.alarmCode, ''), '●'), ' ')}}",
+					{ "type": "label", "id": "alarmCode", "text": "{{empty(state.alarmCode) ? t('alarm.code') : join(map(split(state.alarmCode, ''), '●'), ' ')}}",
 						"textColor": "{{empty(state.alarmCode) ? '@muted' : '@text'}}", "anchors": { "left": 100, "right": 100, "top": 0 }, "height": 40, "align": "center",
 						"color": "@field", "radius": 8, "label": "{{t('alarm.code')}}" },
-					{ "id": "alarmKeys", "type": "grid", "columns": 3, "gap": 10, "anchors": { "left": 92, "right": 92, "top": 56 }, "height": 230, "role": "group",
+					{ "type": "grid", "id": "alarmKeys", "columns": 3, "gap": 10, "anchors": { "left": 92, "right": 92, "top": 56 }, "height": 230, "role": "group",
 						"label": "{{t('alarm.keypad')}}",
 						"children": [{
 							"id": "alarmKey", "repeat": { "for": "key", "in": "{{['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'back']}}" },
@@ -244,7 +244,7 @@
 							"onClick": { "set": "state.alarmCode",
 								"to": "{{key == 'clear' ? '' : key == 'back' ? slice(state.alarmCode, 0, max(0, length(state.alarmCode) - 1)) : slice(state.alarmCode + key, 0, 8)}}" }
 						}] },
-					{ "id": "alarmActions", "type": "row", "anchors": { "left": 24, "right": 24, "top": 300 }, "height": 40, "gap": 8, "justify": "center", "role": "toolbar",
+					{ "type": "row", "id": "alarmActions", "anchors": { "left": 24, "right": 24, "top": 300 }, "height": 40, "gap": 8, "justify": "center", "role": "toolbar",
 						"arrows": "horizontal",
 						"children": [{
 							"id": "alarmAction", "repeat": { "for": "mode", "in": "state.securityModes" },

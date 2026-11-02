@@ -12,6 +12,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -182,6 +183,40 @@ TEST_CASE("launcher: an example's json and lisp folders have a socket each, so b
 		REQUIRE_FALSE(shape(run));
 		CHECK(run.arguments.back() == (folder.path() / "sockets" / ("examples-flow-" + notation)).string());
 	}
+}
+
+TEST_CASE("launcher: every app its list names opens from its folder, a program among them") {
+	const TemporaryFolder folder;
+#ifdef _WIN32
+	const std::string exe = ".exe"; // a program's file there
+#else
+	const std::string exe;
+#endif
+	writeFile(folder.path() / "bin" / ("affrescoui_launcher" + exe), "");
+	const fs::path examples = fs::canonical(AFFRESCOUI_EXAMPLES_DIRECTORY);
+	services::AppPrograms grant;
+	grant.folder = folder.path() / "bin";
+	grant.programs = {{"affrescoui_launcher", true, true}};
+	grant.roots = {{"examples", examples}};
+	grant.dataDirectory = folder.path() / "data";
+	grant.socketDirectory = folder.path() / "sockets";
+	const services::ProcessShaper shape = services::appProgramsShaper(grant);
+	std::ifstream file(examples / "launcher" / "json" / "apps.json", std::ios::binary);
+	const affresco::json apps = affresco::json::parse(file);
+	std::vector<std::string> opened;
+	for(const affresco::json& app : apps["state"]["examples"]) {
+		if(app.value("program", "") != "host") continue;
+		const std::string name = app["folder"].get<std::string>() + "/" + app.value("notation", "json");
+		services::ProcessRun run{{"affrescoui_launcher", "examples:" + name}, {}, "/bin/false"};
+		CAPTURE(name);
+		CHECK_FALSE(shape(run));
+		CHECK(run.arguments.front() == fs::path(examples / name).make_preferred().string());
+		opened.push_back(name);
+	}
+	CHECK(std::ranges::find(opened, "streak/lisp") != opened.end());
+	// Not listed, but it has a folder of its own that the same route opens
+	services::ProcessRun calamaio{{"affrescoui_launcher", "examples:calamaio/lisp"}, {}, "/bin/false"};
+	CHECK_FALSE(shape(calamaio));
 }
 
 TEST_CASE("launcher: the app-programs grant starts only its programs, on screens inside its roots") {

@@ -645,7 +645,7 @@ TEST_CASE("channel: convert reads text in the Lisp notation into its value, and 
 		"value": {"type": "label", "id": "hi", "text": "Hi"}, "id": 1})"));
 
 	peer.channel.receive(R"({"type": "convert", "notation": "lisp", "value": {"type": "label", "id": "hi"}, "id": 2})");
-	CHECK(peer.channel.sent.back()["text"] == "(label #hi)\n");
+	CHECK(peer.channel.sent.back()["text"] == "(label#hi)\n");
 
 	// A mistake is rejected with its line and column; a message that says neither or both, or another notation, too
 	peer.channel.receive(R"({"type": "convert", "notation": "lisp", "text": "(label\n  #hi", "id": 3})");

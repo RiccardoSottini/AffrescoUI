@@ -133,8 +133,8 @@
 					  "onClick": [{ "set": "state.tab", "to": "file" }, { "set": "state.ribbon", "to": true }] },
 					{ "id": "command-divider", "width": 1, "height": 20, "color": "@rbLine" },
 					{ "id": "command-pad-2", "width": 6, "height": 1, "color": "transparent" },
-					{ "repeat": { "for": "t", "in": "{{computed.tabs}}", "key": "{{t.id}}" },
-					  "type": "label", "id": "{{'tab-' + t.id + '-label'}}", "style": "{{state.tab == t.id && state.ribbon ? 'tabOn' : 'tab'}}", "selected": "{{state.tab == t.id}}",
+					{ "type": "label",
+					  "id": "{{'tab-' + t.id + '-label'}}", "repeat": { "for": "t", "in": "{{computed.tabs}}", "key": "{{t.id}}" }, "style": "{{state.tab == t.id && state.ribbon ? 'tabOn' : 'tab'}}", "selected": "{{state.tab == t.id}}",
 					  "runs": [{ "text": "{{t.title}}", "size": 12 }],
 					  "onClick": [{ "set": "state.tab", "to": "{{t.id}}" }, { "set": "state.ribbon", "to": true }] },
 					{ "id": "command-gap", "grow": 1, "height": 1, "color": "transparent" },
@@ -206,8 +206,8 @@
 								  "onClick": { "run": "newSlide", "with": { "layout": "content" } } },
 								{ "id": "thumbs-top-pad-end", "width": 8, "height": 1, "color": "transparent" }
 							] },
-							{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "index": "i", "key": "{{s.id}}" },
-							  "type": "column", "id": "{{'thumb-' + s.id}}", "fitContent": "height", "width": 200, "color": "transparent",
+							{ "type": "column",
+							  "id": "{{'thumb-' + s.id}}", "repeat": { "for": "s", "in": "{{state.deck.slides}}", "index": "i", "key": "{{s.id}}" }, "fitContent": "height", "width": 200, "color": "transparent",
 							  "children": [
 								{ "type": "label", "id": "{{'thumb-' + s.id + '-section'}}", "when": "{{computed.sectionAt[i] != null}}", "width": 200, "height": 24, "padding": 8,
 								  "textColor": "@rbMuted", "cursor": "hand", "role": "button", "label": "{{computed.sectionAt[i].name}}",

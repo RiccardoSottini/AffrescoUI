@@ -325,13 +325,13 @@
 						"strokeWidth": 1
 					},
 					{
+						"type": "label",
+						"id": "{{'sky-grid-label-' + g.id}}",
 						"repeat": {
 							"for": "g",
 							"in": "{{filter(computed.skyShown, it.kind == 'gridLabel' && indexOf(['0°', '90°', '180°', '270°'], it.text) < 0)}}",
 							"key": "{{g.id}}"
 						},
-						"type": "label",
-						"id": "{{'sky-grid-label-' + g.id}}",
 						"x": "{{g.x + 3}}",
 						"y": "{{g.y - 15}}",
 						"height": 14,
@@ -370,13 +370,13 @@
 						"fillColor": "#ffe2b8"
 					},
 					{
+						"type": "label",
+						"id": "{{'sky-name-' + c.id}}",
 						"repeat": {
 							"for": "c",
 							"in": "{{state.skyLayers.names ? filter(computed.skyShown, it.kind == 'name') : []}}",
 							"key": "{{c.id}}"
 						},
-						"type": "label",
-						"id": "{{'sky-name-' + c.id}}",
 						"x": "{{c.x - 60}}",
 						"y": "{{c.y - 8}}",
 						"width": 120,
@@ -397,13 +397,13 @@
 						"strokeWidth": 1
 					},
 					{
+						"type": "panel",
+						"id": "{{'sky-body-' + b.id}}",
 						"repeat": {
 							"for": "b",
 							"in": "{{filter(computed.skyShown, it.kind == 'body' && (it.up > -0.01 || !state.skyLayers.ground))}}",
 							"key": "{{b.id}}"
 						},
-						"type": "panel",
-						"id": "{{'sky-body-' + b.id}}",
 						"x": "{{b.x - 12}}",
 						"y": "{{b.y - 12}}",
 						"width": 24,
@@ -434,13 +434,13 @@
 						"borderColor": "#2dd4bf"
 					},
 					{
+						"type": "label",
+						"id": "{{'sky-label-' + b.id}}",
 						"repeat": {
 							"for": "b",
 							"in": "{{state.skyLayers.labels ? filter(computed.skyShown, it.kind == 'body' && (it.up > -0.01 || !state.skyLayers.ground)) : []}}",
 							"key": "{{b.id}}"
 						},
-						"type": "label",
-						"id": "{{'sky-label-' + b.id}}",
 						"x": "{{b.x + 10}}",
 						"y": "{{b.parent == 'earth' ? b.y + 2 : b.y - 16}}",
 						"height": 16,
@@ -450,13 +450,13 @@
 						"textColor": "{{b.id == state.selected ? '@accent' : '#e9d9b0'}}"
 					},
 					{
+						"type": "label",
+						"id": "{{'sky-cardinal-' + p.id}}",
 						"repeat": {
 							"for": "p",
 							"in": "{{state.skyLayers.cardinal ? filter(computed.skyShown, it.kind == 'cardinal') : []}}",
 							"key": "{{p.id}}"
 						},
-						"type": "label",
-						"id": "{{'sky-cardinal-' + p.id}}",
 						"x": "{{p.x - 10}}",
 						"y": "{{p.y - 24}}",
 						"width": 20,
@@ -467,8 +467,8 @@
 						"textColor": "#5eead4"
 					},
 					{
-						"use": "toolbar",
 						"id": "sky-bar",
+						"use": "toolbar",
 						"anchors": {
 							"right": 8,
 							"bottom": 6

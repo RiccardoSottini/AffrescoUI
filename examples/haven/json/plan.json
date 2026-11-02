@@ -69,8 +69,8 @@
 						"anchors": { "left": 32, "right": 336, "top": 104, "bottom": 24 },
 						"children": [
 							{
-								"id": "plan",
 								"type": "canvas",
+								"id": "plan",
 								"fill": 8,
 								"bind": "state.planView",
 								"focusable": true,
@@ -97,17 +97,17 @@
 							{ "id": "planRoomSummary", "style": "caption", "anchors": { "left": 24, "top": 46 },
 								"text": "{{t('plan.room', { temp: computed.room.temp, lights: computed.lightsOn })}}" },
 							{
-								"id": "planLights",
 								"type": "stack",
+								"id": "planLights",
 								"anchors": { "left": 16, "right": 16, "top": 76, "bottom": 60 },
 								"gap": 4,
 								"scroll": "vertical",
 								"role": "list",
 								"children": [
 									{
+										"type": "label",
 										"id": "planLight",
 										"repeat": { "for": "light", "in": "computed.room.lights", "index": "i" },
-										"type": "label",
 										"icon": "{{light.on ? 'lightbulb' : 'lightbulb-off'}}",
 										"text": "  {{light.name}}",
 										"anchors": { "left": 0, "right": 0 },
@@ -148,12 +148,12 @@
 					{ "id": "mediaState", "style": "caption", "anchors": { "right": 24, "top": 24 },
 						"text": "{{computed.speaker.busy ? t('device.waiting') : t('device.speaker.' + (computed.speaker.on ? 'on' : 'off'))}}",
 						"textColor": "{{computed.speaker.on ? '@accent' : '@muted'}}" },
-					{ "id": "mediaTrack", "type": "label", "text": "{{computed.track.title}}", "textColor": "@text", "anchors": { "left": 24, "right": 24, "top": 54 }, "height": 20,
+					{ "type": "label", "id": "mediaTrack", "text": "{{computed.track.title}}", "textColor": "@text", "anchors": { "left": 24, "right": 24, "top": 54 }, "height": 20,
 						"align": { "horizontal": "start", "vertical": "center" }, "live": "polite" },
 					{ "id": "mediaArtist", "style": "caption", "text": "{{computed.track.artist}}", "anchors": { "left": 24, "top": 76 } },
 					{
-						"id": "mediaButtons",
 						"type": "row",
+						"id": "mediaButtons",
 						"anchors": { "left": 24, "right": 24, "top": 100 },
 						"height": 36,
 						"gap": 8,
@@ -168,8 +168,8 @@
 								"label": "{{t('media.next')}}", "tooltip": "{{t('media.next')}}", "onClick": "nextTrack" }
 						]
 					},
-					{ "id": "mediaVolumeIcon", "type": "label", "icon": "volume-2", "text": "", "textColor": "@muted", "anchors": { "left": 24, "top": 152 }, "width": 20, "height": 20 },
-					{ "id": "mediaVolume", "type": "slider", "anchors": { "left": 56, "right": 24, "top": 152 }, "height": 20, "step": 5, "bind": "state.media.volume",
+					{ "type": "label", "id": "mediaVolumeIcon", "icon": "volume-2", "text": "", "textColor": "@muted", "anchors": { "left": 24, "top": 152 }, "width": 20, "height": 20 },
+					{ "type": "slider", "id": "mediaVolume", "anchors": { "left": 56, "right": 24, "top": 152 }, "height": 20, "step": 5, "bind": "state.media.volume",
 						"label": "{{t('media.volume')}}", "tooltip": "{{t('media.volume')}}", "trackColor": "@off", "activeColor": "@accent", "knobColor": "@knob" }
 				]
 			}
@@ -189,9 +189,9 @@
 				"role": "dialog",
 				"label": "{{t('colour.title')}}",
 				"children": [
-					{ "id": "colourTitle", "type": "label", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 16 }, "fitText": true,
+					{ "type": "label", "id": "colourTitle", "font": "heading", "textColor": "@text", "anchors": { "left": 20, "top": 16 }, "fitText": true,
 						"text": "{{computed.room.lights[state.light].name ?? t('colour.title')}}" },
-					{ "id": "colourPicker", "type": "colorPicker", "anchors": { "left": 20, "right": 20, "top": 48 }, "height": 320, "focusable": true,
+					{ "type": "colorPicker", "id": "colourPicker", "anchors": { "left": 20, "right": 20, "top": 48 }, "height": 320, "focusable": true,
 						"label": "{{t('colour.title')}}", "bind": "state.rooms[state.room].lights[state.light].color", "textColor": "@text", "accentColor": "@accent",
 						"swatches": ["#ffd58aff", "#fff4e0ff", "#ffc078ff", "#8ab4ffff", "#ff9ad5ff", "#9af5c0ff"] },
 					{ "id": "colourWarm", "style": "button", "text": "{{t('colour.warm')}}", "anchors": { "left": 20, "bottom": 20 }, "width": 116, "height": 32,

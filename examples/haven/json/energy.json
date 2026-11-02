@@ -63,7 +63,7 @@
 					{ "anchors": { "top": "{{nameTop == 0 ? 20 : 0}}" }, "x": 12, "width": 72, "height": 72, "radius": 36, "color": "@card", "borderWidth": 3, "borderColor": "{{color}}",
 						"children": [
 							{ "type": "label", "icon": "{{icon}}", "text": "", "textColor": "{{color}}", "anchors": { "left": 0, "right": 0, "top": 12 }, "height": 22, "align": "center" },
-							{ "id": "{{figureId}}", "type": "label", "font": "small", "textColor": "@text", "text": "{{figure}}", "anchors": { "left": 0, "right": 0, "top": 36 }, "height": 20, "align": "center" }
+							{ "type": "label", "id": "{{figureId}}", "font": "small", "textColor": "@text", "text": "{{figure}}", "anchors": { "left": 0, "right": 0, "top": 36 }, "height": 20, "align": "center" }
 						] }
 				]
 			}
@@ -82,23 +82,23 @@
 						"color": "@header",
 						"role": "banner",
 						"children": [
-							{ "id": "energyTitle", "type": "label", "text": "{{t('page.energy')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 },
+							{ "type": "label", "id": "energyTitle", "text": "{{t('page.energy')}}", "font": "heading", "textColor": "@onHeader", "anchors": { "left": 24, "top": 0, "bottom": 0 },
 								"fitText": true, "align": { "horizontal": "start", "vertical": "center" } },
-							{ "id": "energyNext", "type": "label", "font": "iconsMedium", "icon": "chevron-right", "mirror": true, "text": "", "textColor": "@off", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
+							{ "type": "label", "id": "energyNext", "font": "iconsMedium", "icon": "chevron-right", "mirror": true, "text": "", "textColor": "@off", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "role": "button", "label": "{{t('energy.next')}}",
 								"tooltip": "{{t('energy.onlyToday')}}", "cursor": "arrow", "disabled": true },
-							{ "id": "energyDay", "type": "label", "text": "{{t('energy.today')}}", "textColor": "@onHeader", "anchors": { "right": 60, "top": 8 }, "width": 72, "height": 40, "align": "center" },
-							{ "id": "energyPrev", "type": "label", "font": "iconsMedium", "icon": "chevron-left", "mirror": true, "text": "", "textColor": "@off", "anchors": { "right": 136, "top": 8 }, "width": 40, "height": 40,
+							{ "type": "label", "id": "energyDay", "text": "{{t('energy.today')}}", "textColor": "@onHeader", "anchors": { "right": 60, "top": 8 }, "width": 72, "height": 40, "align": "center" },
+							{ "type": "label", "id": "energyPrev", "font": "iconsMedium", "icon": "chevron-left", "mirror": true, "text": "", "textColor": "@off", "anchors": { "right": 136, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "role": "button", "label": "{{t('energy.prev')}}",
 								"tooltip": "{{t('energy.onlyToday')}}", "cursor": "arrow", "disabled": true },
-							{ "id": "energyPick", "type": "label", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@off", "anchors": { "right": 184, "top": 8 }, "width": 40, "height": 40,
+							{ "type": "label", "id": "energyPick", "font": "iconsMedium", "icon": "calendar", "text": "", "textColor": "@off", "anchors": { "right": 184, "top": 8 }, "width": 40, "height": 40,
 								"radius": 20, "align": "center", "role": "button", "label": "{{t('energy.pick')}}",
 								"tooltip": "{{t('energy.onlyToday')}}", "cursor": "arrow", "disabled": true }
 						]
 					},
 					{
-						"id": "energyTop",
 						"type": "row",
+						"id": "energyTop",
 						"anchors": { "left": 24, "right": 24, "top": 72 },
 						"height": "{{computed.compact ? 236 : 300}}",
 						"gap": 16,
@@ -112,8 +112,8 @@
 								"children": [
 									{ "id": "label-usage", "style": "cardTitle", "text": "{{t('usage.title')}}" },
 									{
-										"id": "usageLegend",
 										"type": "row",
+										"id": "usageLegend",
 										"anchors": { "right": 24, "top": 24 },
 										"width": 220,
 										"height": 18,
@@ -129,8 +129,8 @@
 										]
 									},
 									{
-										"id": "usagePeak",
 										"type": "row",
+										"id": "usagePeak",
 										"anchors": { "left": 24, "top": 52 },
 										"width": 220,
 										"height": 18,
@@ -138,7 +138,7 @@
 										"alignItems": "center",
 										"children": [
 											{ "id": "label-peak-hour", "style": "caption", "text": "{{t('stat.peak')}}" },
-											{ "id": "peakFigure", "type": "label", "font": "small", "textColor": "@text", "fitText": true, "text": "{{pad(computed.peakHour, 2)}}:00" }
+											{ "type": "label", "id": "peakFigure", "font": "small", "textColor": "@text", "fitText": true, "text": "{{pad(computed.peakHour, 2)}}:00" }
 										]
 									},
 									{ "id": "usageAxis", "anchors": { "left": 24, "right": 24, "top": 80, "bottom": 36 }, "color": "transparent", "children": [{
@@ -153,12 +153,12 @@
 										"anchors": { "left": 64, "right": 24, "top": 80, "bottom": 37 }, "role": "img",
 										"label": "{{t('usage.label', { hour: pad(computed.peakHour, 2) + ':00' })}}" },
 									{
-										"id": "hours",
 										"type": "row",
+										"id": "hours",
 										"anchors": { "left": 64, "right": 24, "bottom": 10 },
 										"height": 18,
 										"children": [
-											{ "id": "hour", "repeat": { "for": "h", "in": "{{['00:00', '06:00', '12:00', '18:00', '23:00']}}" }, "type": "label", "text": "{{h}}",
+											{ "type": "label", "id": "hour", "repeat": { "for": "h", "in": "{{['00:00', '06:00', '12:00', '18:00', '23:00']}}" }, "text": "{{h}}",
 												"font": "small", "textColor": "@muted", "anchors": { "top": 0, "bottom": 0 }, "grow": 1,
 												"align": { "horizontal": "{{index == 0 ? 'start' : (index == 4 ? 'end' : 'center')}}", "vertical": "center" } }
 										]
@@ -174,8 +174,8 @@
 								"children": [
 									{ "id": "label-flow", "style": "cardTitle", "text": "{{t('flow.title')}}" },
 									{
-										"id": "flowCentre",
 										"type": "row",
+										"id": "flowCentre",
 										"anchors": { "left": 0, "right": 0, "top": 52, "bottom": 8 },
 										"justify": "center",
 										"alignItems": "center",
@@ -189,11 +189,11 @@
 												"role": "img",
 												"label": "{{t('flow.label', { solar: fixed(computed.solarMade, 1), grid: fixed(computed.gridIn, 1), back: fixed(computed.gridOut, 1) })}}",
 												"children": [
-													{ "id": "flowSolarHome", "type": "path", "fill": 0, "viewBox": "{{'0 0 300 ' + computed.flowHeight}}", "fit": "fill", "d": "{{'M 164 96 C 164 ' + (computed.flowY - 20) + ' 190 ' + computed.flowY + ' 214 ' + computed.flowY}}",
+													{ "type": "path", "id": "flowSolarHome", "fill": 0, "viewBox": "{{'0 0 300 ' + computed.flowHeight}}", "fit": "fill", "d": "{{'M 164 96 C 164 ' + (computed.flowY - 20) + ' 190 ' + computed.flowY + ' 214 ' + computed.flowY}}",
 														"stroke": "@solar", "strokeWidth": 3, "strokeCap": "round" },
-													{ "id": "flowSolarGrid", "type": "path", "fill": 0, "viewBox": "{{'0 0 300 ' + computed.flowHeight}}", "fit": "fill", "d": "{{'M 136 96 C 136 ' + (computed.flowY - 20) + ' 110 ' + computed.flowY + ' 86 ' + computed.flowY}}",
+													{ "type": "path", "id": "flowSolarGrid", "fill": 0, "viewBox": "{{'0 0 300 ' + computed.flowHeight}}", "fit": "fill", "d": "{{'M 136 96 C 136 ' + (computed.flowY - 20) + ' 110 ' + computed.flowY + ' 86 ' + computed.flowY}}",
 														"stroke": "@gridOut", "strokeWidth": 3, "strokeCap": "round" },
-													{ "id": "flowGridHome", "type": "path", "fill": 0, "viewBox": "{{'0 0 300 ' + computed.flowHeight}}", "fit": "fill", "d": "{{'M 86 ' + computed.flowY + ' H 214'}}",
+													{ "type": "path", "id": "flowGridHome", "fill": 0, "viewBox": "{{'0 0 300 ' + computed.flowHeight}}", "fit": "fill", "d": "{{'M 86 ' + computed.flowY + ' H 214'}}",
 														"stroke": "@grid", "strokeWidth": 3, "strokeCap": "round" },
 													{ "id": "flowSolar", "use": "energyNode", "with": { "icon": "sun", "color": "@solar", "figure": "{{t('kwh', { n: fixed(computed.solarMade, 1) })}}",
 														"name": "{{t('flow.solar')}}", "figureId": "solarFigure", "x": 102, "y": 0 } },
@@ -210,8 +210,8 @@
 						]
 					},
 					{
-						"id": "energyBottom",
 						"type": "row",
+						"id": "energyBottom",
 						"anchors": { "left": 24, "right": 24, "top": "#energyTop.bottom + 16", "bottom": 16 },
 						"gap": 16,
 						"children": [
@@ -224,32 +224,32 @@
 								"children": [
 									{ "id": "label-sources", "style": "cardTitle", "text": "{{t('sources.title')}}" },
 									{
-										"id": "sources",
 										"type": "column",
+										"id": "sources",
 										"anchors": { "left": 24, "right": 24, "top": 60 },
 										"alignItems": "stretch",
 										"height": 192,
 										"role": "table",
 										"label": "{{t('sources.title')}}",
 										"children": [
-											{ "id": "sourcesHead", "type": "row", "height": 28, "gap": 8, "alignItems": "center", "children": [
-												{ "id": "label-source", "type": "label", "font": "small", "textColor": "@muted", "text": "{{t('sources.source')}}", "height": 18, "grow": 1, "align": "start" },
-												{ "id": "label-source-energy", "type": "label", "font": "small", "textColor": "@muted", "text": "{{t('sources.energy')}}", "width": 72, "height": 18, "align": "end" },
-												{ "id": "label-source-cost", "type": "label", "font": "small", "textColor": "@muted", "text": "{{t('sources.cost')}}", "width": 60, "height": 18, "align": "end" }
+											{ "type": "row", "id": "sourcesHead", "height": 28, "gap": 8, "alignItems": "center", "children": [
+												{ "type": "label", "id": "label-source", "font": "small", "textColor": "@muted", "text": "{{t('sources.source')}}", "height": 18, "grow": 1, "align": "start" },
+												{ "type": "label", "id": "label-source-energy", "font": "small", "textColor": "@muted", "text": "{{t('sources.energy')}}", "width": 72, "height": 18, "align": "end" },
+												{ "type": "label", "id": "label-source-cost", "font": "small", "textColor": "@muted", "text": "{{t('sources.cost')}}", "width": 60, "height": 18, "align": "end" }
 											] },
-											{ "id": "source", "repeat": { "for": "s", "in": "computed.sources" }, "type": "column", "height": 41, "alignItems": "stretch", "children": [
+											{ "type": "column", "id": "source", "repeat": { "for": "s", "in": "computed.sources" }, "height": 41, "alignItems": "stretch", "children": [
 												{ "id": "sourceLine", "height": 1, "color": "@divider" },
-												{ "id": "sourceRow", "type": "row", "height": 40, "gap": 8, "alignItems": "center", "children": [
+												{ "type": "row", "id": "sourceRow", "height": 40, "gap": 8, "alignItems": "center", "children": [
 												{ "id": "sourceSwatch", "width": 12, "height": 12, "radius": 3, "color": "{{s.color}}" },
-												{ "id": "sourceName", "type": "label", "textColor": "@text", "text": "{{t('sources.' + s.id)}}", "height": 20, "grow": 1, "align": "start" },
-												{ "id": "sourceKwh", "type": "label", "textColor": "@text", "text": "{{s.kwh}}", "width": 72, "height": 20, "align": "end" },
-												{ "id": "sourceCost", "type": "label", "textColor": "@text", "text": "{{s.cost}}", "width": 60, "height": 20, "align": "end" }
+												{ "type": "label", "id": "sourceName", "textColor": "@text", "text": "{{t('sources.' + s.id)}}", "height": 20, "grow": 1, "align": "start" },
+												{ "type": "label", "id": "sourceKwh", "textColor": "@text", "text": "{{s.kwh}}", "width": 72, "height": 20, "align": "end" },
+												{ "type": "label", "id": "sourceCost", "textColor": "@text", "text": "{{s.cost}}", "width": 60, "height": 20, "align": "end" }
 												] }
 											] },
 											{ "id": "sourcesLine", "height": 1, "color": "@divider" },
-											{ "id": "sourcesTotal", "type": "row", "height": 40, "gap": 8, "alignItems": "center", "children": [
-												{ "id": "label-total-cost", "type": "label", "font": "heading", "textColor": "@text", "text": "{{t('sources.total')}}", "height": 22, "grow": 1, "align": "start" },
-												{ "id": "netCost", "type": "label", "font": "heading", "textColor": "@text", "text": "{{computed.netCost}}", "width": 100, "height": 22, "align": "end" }
+											{ "type": "row", "id": "sourcesTotal", "height": 40, "gap": 8, "alignItems": "center", "children": [
+												{ "type": "label", "id": "label-total-cost", "font": "heading", "textColor": "@text", "text": "{{t('sources.total')}}", "height": 22, "grow": 1, "align": "start" },
+												{ "type": "label", "id": "netCost", "font": "heading", "textColor": "@text", "text": "{{computed.netCost}}", "width": 100, "height": 22, "align": "end" }
 											] }
 										]
 									}
@@ -264,8 +264,8 @@
 								"children": [
 									{ "id": "label-balance", "style": "cardTitle", "text": "{{t('gauge.title')}}" },
 									{
-										"id": "gauges",
 										"type": "row",
+										"id": "gauges",
 										"anchors": { "left": 8, "right": 8, "top": 64 },
 										"height": 150,
 										"justify": "space-evenly",
@@ -274,9 +274,9 @@
 											{ "id": "selfSufficiencyGauge", "use": "energyGauge", "with": { "share": "{{computed.selfSufficiency}}", "color": "@accent", "caption": "{{t('gauge.selfSufficiency')}}" }, "width": 140 }
 										]
 									},
-									{ "id": "label-budget-today", "type": "label", "font": "small", "textColor": "@muted", "text": "{{t('budget.today', { n: computed.today })}}",
+									{ "type": "label", "id": "label-budget-today", "font": "small", "textColor": "@muted", "text": "{{t('budget.today', { n: computed.today })}}",
 										"anchors": { "left": 24, "right": 24, "bottom": 96 }, "height": 18, "align": "start" },
-									{ "id": "budgetTrack", "anchors": { "left": 24, "right": 24, "bottom": 76 }, "height": 8, "radius": 4, "color": "@raised", "type": "row",
+									{ "type": "row", "id": "budgetTrack", "anchors": { "left": 24, "right": 24, "bottom": 76 }, "height": 8, "radius": 4, "color": "@raised",
 										"children": [
 										{ "id": "budgetFill", "radius": 4, "height": 8, "basis": 0, "grow": "{{clamp(number(computed.today) / settings.energy.dailyBudget, 0.001, 1)}}",
 											"color": "{{number(computed.today) > settings.energy.dailyBudget ? '@warm' : '@accent'}}" },
@@ -284,15 +284,15 @@
 									] },
 									{ "id": "budgetLine", "anchors": { "left": 24, "right": 24, "bottom": 56 }, "height": 1, "color": "@divider" },
 									{
-										"id": "budget",
 										"type": "row",
+										"id": "budget",
 										"anchors": { "left": 24, "right": 24, "bottom": 16 },
 										"height": 40,
 										"gap": 8,
 										"alignItems": "center",
 										"children": [
-									{ "id": "label-budget", "type": "label", "textColor": "@muted", "text": "{{t('stat.budget')}}", "height": 20, "grow": 1, "align": "start" },
-											{ "id": "budgetFigure", "type": "label", "font": "heading", "text": "{{t('kwh', { n: settings.energy.dailyBudget })}}", "width": 100, "height": 22, "align": "end",
+									{ "type": "label", "id": "label-budget", "textColor": "@muted", "text": "{{t('stat.budget')}}", "height": 20, "grow": 1, "align": "start" },
+											{ "type": "label", "id": "budgetFigure", "font": "heading", "text": "{{t('kwh', { n: settings.energy.dailyBudget })}}", "width": 100, "height": 22, "align": "end",
 												"textColor": "{{number(computed.today) > settings.energy.dailyBudget ? '@warm' : '@text'}}",
 												"tooltip": "{{t('budget.today', { n: computed.today })}}" }
 										]
@@ -307,10 +307,10 @@
 								"basis": 0,
 								"children": [
 									{ "id": "label-week-caption", "style": "cardTitle", "text": "{{state.energyView == 'day' ? t('week.byDay') : state.energyView == 'device' ? t('week.byDevice') : t('byRoom.title')}}" },
-									{ "id": "label-this-week", "type": "label", "font": "heading", "textColor": "@text", "text": "{{t('kwh', { n: computed.energyTotal })}}", "anchors": { "right": 24, "top": 16 }, "width": 120, "height": 22, "align": "end" },
+									{ "type": "label", "id": "label-this-week", "font": "heading", "textColor": "@text", "text": "{{t('kwh', { n: computed.energyTotal })}}", "anchors": { "right": 24, "top": 16 }, "width": 120, "height": 22, "align": "end" },
 									{
-										"id": "energyViews",
 										"type": "row",
+										"id": "energyViews",
 										"anchors": { "left": 24, "right": 24, "top": 52 },
 										"height": 28,
 										"gap": 4,
@@ -329,21 +329,21 @@
 										"anchors": { "left": 24, "right": 24, "top": 92, "bottom": 36 }, "role": "img",
 										"label": "{{state.energyView == 'day' ? t('week.byDay') : t('week.byDevice')}}" },
 									{
-										"id": "weekDays",
 										"type": "row",
+										"id": "weekDays",
 										"when": "{{state.energyView != 'room'}}",
 										"anchors": { "left": 24, "right": 24, "bottom": 10 },
 										"height": 18,
 										"children": [
-											{ "id": "weekDay", "when": "{{state.energyView == 'day'}}", "repeat": { "for": "d", "in": "data.energy" }, "type": "label", "text": "{{t('day.' + d.day)}}", "font": "small",
+											{ "type": "label", "id": "weekDay", "when": "{{state.energyView == 'day'}}", "repeat": { "for": "d", "in": "data.energy" }, "text": "{{t('day.' + d.day)}}", "font": "small",
 												"textColor": "{{d.day == computed.peakDay ? '@warm' : '@muted'}}", "anchors": { "top": 0, "bottom": 0 }, "grow": 1, "basis": 0, "align": "center" },
-											{ "id": "weekDevice", "when": "{{state.energyView == 'device'}}", "repeat": { "for": "d", "in": "state.deviceEnergy" }, "type": "label", "text": "{{t('use.' + d.id)}}", "font": "small",
+											{ "type": "label", "id": "weekDevice", "when": "{{state.energyView == 'device'}}", "repeat": { "for": "d", "in": "state.deviceEnergy" }, "text": "{{t('use.' + d.id)}}", "font": "small",
 												"tooltip": "{{t('use.' + d.id)}}: {{d.kwh}} kWh", "textColor": "@muted", "anchors": { "top": 0, "bottom": 0 }, "grow": 1, "basis": 0, "align": "center", "fitText": false }
 										]
 									},
 									{
-										"id": "roomTable",
 										"type": "table",
+										"id": "roomTable",
 										"when": "{{state.energyView == 'room'}}",
 										"anchors": { "left": 12, "right": 12, "top": 92, "bottom": 12 },
 										"rowHeight": 30,

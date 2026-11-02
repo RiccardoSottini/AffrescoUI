@@ -119,8 +119,25 @@ Value typeName(const Call& call) {
 	return Value::fromText("object");
 }
 
+/// @brief `lisp(name, ...)`: a function of the document's program, for a value it reads.
+/// @param call [name, arguments...].
+/// @return What it gives.
+Value callLisp(const Call& call) {
+	if(!call[0].isText()) call.fail("expected the name of a function of the program");
+	std::vector<json> arguments;
+	arguments.reserve(call.size() - 1);
+	for(std::size_t at = 1; at < call.size(); ++at) arguments.push_back(call[at].toJson());
+	return Value::ownJson(call.callProgram(std::string(call[0].text()), std::move(arguments)));
+}
+
 /// The table.
 constexpr auto table = std::to_array<Function>({
+    {.name = "lisp",
+	 .arguments = "name, ...",
+	 .about = "What a function of the document's program gives for these arguments; it can only read (RFC 0005)",
+	 .group = Group::Syntax,
+	 .fewest = 1,
+	 .apply = callLisp},
     {.name = "if",
 	 .arguments = "condition, then, else",
 	 .about = "then if the condition is true, else else; evaluates only that one",

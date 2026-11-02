@@ -179,6 +179,7 @@
 				"children": [
 					{ "use": "slideBackground", "with": { "slide": "{{slide}}", "prefix": "{{prefix}}" } },
 					{
+						"id": "{{prefix + 'build-' + o.id}}",
 						"repeat": { "for": "o", "in": "{{slide.objects}}", "key": "{{o.id}}" },
 						"let": {
 							"a": "{{find(timings, it.target == o.id)}}",
@@ -187,8 +188,7 @@
 							"ph": "{{find(layout.ph, it.ph == o.ph) ?? {}}}",
 							"box": "{{{ x: o.x ?? ph.x ?? 0, y: o.y ?? ph.y ?? 0, w: o.w ?? ph.w ?? 100, h: o.h ?? ph.h ?? 100 }}}",
 							"effect": "{{q >= 1 ? 'none' : a.effect ?? 'appear'}}"
-						},
-						"id": "{{prefix + 'build-' + o.id}}", "when": "{{q > 0}}", "color": "transparent",
+						}, "when": "{{q > 0}}", "color": "transparent",
 						"x": 0, "y": 0, "width": "{{effect == 'wipe' ? box.x + box.w * q : 960}}", "height": 540,
 						"translate": "{{effect == 'fly' ? [0, (1 - q) * (560 - box.y)] : [0, 0]}}",
 						"scale": "{{effect == 'zoom' ? max(q, 0.01) : 1}}",
@@ -305,8 +305,8 @@
 					{ "type": "grid", "id": "presenter-navigator", "when": "{{state.show.navigator}}", "anchors": { "left": 24, "top": 60, "right": 384, "bottom": 76 },
 					  "columns": 4, "gap": 12, "scroll": "vertical", "color": "#141a19", "role": "list", "label": "All slides",
 					  "children": [
-						{ "repeat": { "for": "s", "in": "{{state.deck.slides}}", "index": "i", "key": "{{s.id}}" },
-						  "type": "column", "id": "{{'navigator-' + s.id}}", "width": 200, "height": 136, "gap": 4, "alignItems": "center", "color": "transparent",
+						{ "type": "column",
+						  "id": "{{'navigator-' + s.id}}", "repeat": { "for": "s", "in": "{{state.deck.slides}}", "index": "i", "key": "{{s.id}}" }, "width": 200, "height": 136, "gap": 4, "alignItems": "center", "color": "transparent",
 						  "cursor": "hand", "role": "listitem", "label": "{{'Slide ' + (i + 1)}}",
 						  "onClick": [{ "run": "showGo", "with": { "index": "{{i}}", "built": false } }, { "set": "state.show.navigator", "to": false }],
 						  "children": [

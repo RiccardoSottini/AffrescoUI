@@ -20,6 +20,12 @@ namespace affresco::format {
 
 class SectionRegistry;
 
+/// @brief Tells whether a word in a program's code is one a running app gives it: a step, or an expression's function.
+/// A tool that reads a program alone doesn't take it for a mistake.
+/// @param word The word.
+/// @return true if it is.
+[[nodiscard]] bool isRunningWord(std::string_view word);
+
 /// @brief The AffrescoUI Screen Format (SCREEN_FORMAT.md) as rules for version control (VERSION_CONTROL.md).
 ///
 /// "permissions" holds rules: `{"allow": [...], "ask": [...], "deny": [...], "reviewers": [...]}`,
@@ -40,6 +46,17 @@ public:
 	/// @param document The document.
 	/// @throws DocumentError If something is wrong; what() names the place.
 	void validate(const json& document) const override;
+	/// @brief What a document's `program` builds, beside its other sections (lisp::buildDocument()).
+	/// @param document The document as versioned.
+	/// @return The tree, with `program` kept; std::nullopt without a program.
+	/// @throws DocumentError If it can't be built, naming the definition.
+	[[nodiscard]] std::optional<json> built(const json& document) const override;
+	/// @brief Turns an edit of one keyword inside a definition (`/program/file/name/:title`) into a replace of its
+	/// text, every other byte kept (lisp::replaceKeyword()).
+	/// @param document The document before the operation.
+	/// @param operation The operation, changed in place when it is such an edit.
+	/// @throws DocumentError If it can't be done: no such keyword, or a value that isn't one form.
+	void rewriteOperation(const json& document, json& operation) const override;
 
 	/// @brief Finds a node by "id" in "root", then in "screens", "templates", "overlays" and the components
 	/// (findNodeWithId()).
@@ -61,6 +78,9 @@ public:
 	/// @param after The document after the change, with the live state after it.
 	/// @throws DocumentError If the change is forbidden; what() lists the new findings, each with its place.
 	void checkChange(const json& before, const json& after) const override;
+	/// @brief checkChange() but for the scan of what reaches a control step: the person's own input may change that.
+	/// Capabilities, granted actions, services and models stay refused. @copydetails DocumentRules::checkOwnChange
+	void checkOwnChange(const json& before, const json& after) const override;
 
 	/// @brief Migrates a version 1 document to version 2 (format::migrate()).
 	/// @param document The document, changed in place.
@@ -158,6 +178,12 @@ public:
 	[[nodiscard]] json impact(const json& before, const json& after) const override;
 
 private:
+	/// @brief What checkChange() and checkOwnChange() share.
+	/// @param before The document before.
+	/// @param after The document after.
+	/// @param scanControls Whether what reaches a control step may not change.
+	void judgeChange(const json& before, const json& after, bool scanControls) const;
+
 	std::set<std::string, std::less<>> nativeActions_; ///< From addNativeAction().
 	std::shared_ptr<const SectionRegistry> sections_;  ///< The sections; shared by copies, never changed.
 	const services::Services* services_ = nullptr;     ///< See setServices().

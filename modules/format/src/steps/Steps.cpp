@@ -63,17 +63,31 @@ void Steps::handle(const json& handler, Panel& sender, const json& event, const 
 }
 
 std::function<void()> Steps::later(json steps, Panel& sender, json event, SharedScope locals, std::string where) {
+	// What a program scheduled keeps its authors: running later lends it nothing
+	std::optional<StepAuthority> authority;
+	if(engine_.authority) authority = *engine_.authority;
 	return [this, steps = std::move(steps), sender = &sender, event = std::move(event), locals = std::move(locals),
-	        where = std::move(where)] {
+	        where = std::move(where), authority = std::move(authority)] {
 		Window* window = engine_.window;
 		if(!window) return;
 		Panel& from = engine_.reconciler.recordOf(sender) ? *sender : window->root();
+		const AuthorityScope holder(engine_, authority ? &*authority : nullptr);
 		handle(steps, from, event, *locals, where);
 	};
 }
 
 void Steps::runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
                      const std::string& where) {
+	if(engine_.programs.advisesAction(name)) {
+		engine_.programs.runAdvised(name, sender, event, locals,
+		                            [&] { runNamedAction(name, sender, event, locals, where); });
+		return;
+	}
+	runNamedAction(name, sender, event, locals, where);
+}
+
+void Steps::runNamedAction(const std::string& name, Panel& sender, const json& event, const Scope& locals,
+                           const std::string& where) {
 	const json& document = engine_.versions.document();
 	const bool declared = document.contains("actions") && document["actions"].contains(name);
 	if(declared && isCommand(document["actions"][name]) && document["actions"][name].contains("do")) {
@@ -83,9 +97,13 @@ void Steps::runNamed(const std::string& name, Panel& sender, const json& event, 
 		const json steps = document["actions"][name]; // a copy: the steps may revise the document
 		checkCommand(steps, "actions." + name);
 		runSteps(steps, sender, event, locals, "actions." + name);
+	} else if(engine_.programs.defines(name)) {
+		engine_.programs.run(name, sender, event, locals, where);
 	} else if(const auto it = engine_.nativeActions.find(name); it != engine_.nativeActions.end()) {
+		if(engine_.authority) engine_.programs.checkNative(name, where);
 		it->second(sender);
 	} else if(engine_.unhandled) {
+		if(engine_.authority) engine_.programs.checkNative(name, where);
 		engine_.unhandled(name, sender);
 	} else {
 		fail(where, "unknown action '" + name + "'");
@@ -120,14 +138,16 @@ bool Steps::runSteps(const json& steps, Panel& sender, const json& event, const 
 bool Steps::runStep(const json& step, Panel& sender, const json& event, const Scope& locals, const std::string& where) {
 	object(step, where);
 	engine_.document.spendStep(where);
+	if(engine_.authority) engine_.programs.checkStep(step, where);
 	if(const std::optional<bool> keepGoing = engine_.steps->run(Running{*this, step, sender, event, locals, where}))
 		return *keepGoing;
 
-	fail(where,
-	     "unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, "
-	     "send, connect, patch, focus, scrollTo, navigate, press, after, debounce, animate, copy, log, stop, note, "
-	     "accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut or "
-	     "chooseFolder)");
+	fail(
+	    where,
+	    "unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, call, emit, "
+	    "send, connect, patch, focus, scrollTo, navigate, press, after, debounce, animate, copy, log, stop, note, "
+	    "accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, "
+	    "chooseFolder or lisp)");
 }
 
 // While a proposal is previewed its document runs, timers and all: a control step then runs only from the user's own

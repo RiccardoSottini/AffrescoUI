@@ -76,7 +76,11 @@ public:
 	void setObserver(VersionObserver* observer) override { observer_ = observer; }
 
 	/* Working copy */
-	[[nodiscard]] const json& document() const override { return document_; }
+	[[nodiscard]] const json& document() const override { return built_.is_null() ? document_ : built_; }
+	[[nodiscard]] const json& sourceDocument() const override { return document_; }
+	[[nodiscard]] json programAuthors() const override;
+	/// @copydoc VersionControl::commitOwnInput
+	std::optional<std::string> commitOwnInput(const json& revision) override;
 	[[nodiscard]] json& state() override { return state_; }
 	[[nodiscard]] const json& state() const override { return state_; }
 	[[nodiscard]] CommitInfo head() const override { return info(mainHead()); }
@@ -120,7 +124,7 @@ public:
 	/// sets").
 	/// @param revision The revision, as for submit(); it can't push to a proposal.
 	/// @return Proposed or rejected, never applied.
-	RevisionResult propose(const json& revision);
+	RevisionResult propose(const json& revision) override;
 	std::optional<std::string> commit(const json& revision) override;
 	[[nodiscard]] CommitInfo resolve(const json& revision) const override { return info(find(revision)); }
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
@@ -230,6 +234,7 @@ private:
 		/// removed. A revert needs them as they are, as it needs the parts of the document.
 		json stateAfter;
 		json run; ///< The steps it runs once when it lands on main (the revision's "run"), or null; the id covers it.
+		bool ownInput = false; ///< The person's own input made it (commitOwnInput()); the id covers it.
 	};
 
 	/// @brief An open proposal: a branch from `base` to `head`.
@@ -292,6 +297,7 @@ private:
 	struct Prepared {
 		json before, after;               ///< As rules see them (detail::view): the live state at "/state".
 		json document, state;             ///< The new document and live state.
+		json sourceBefore, sourceAfter;   ///< For a program: as versioned, before and after; else null.
 		json patch = json::array();       ///< Its operations as plain JSON Patch ("set" became replace or add).
 		std::vector<std::string> touches; ///< What its operations touch (detail::area), each once.
 	};
@@ -309,6 +315,39 @@ private:
 	[[nodiscard]] const json& mainDocument() const { return previewing_ ? committedDocument_ : document_; }
 	/// @brief The live state as committed (the preview has its own).
 	[[nodiscard]] const json& committedState() const { return previewing_ ? committedState_ : state_; }
+	/// @brief main's head's document as rules read it: what a program builds in it (the preview has its own).
+	/// @return The document.
+	[[nodiscard]] const json& rulesDocument() const {
+		if(previewing_) return committedBuilt_.is_null() ? committedDocument_ : committedBuilt_;
+		return document();
+	}
+	/// @brief A document as rules read it: what its program builds.
+	/// @param source The document as versioned.
+	/// @param storage Holds the tree when there is one.
+	/// @return The tree, or @p source if it builds nothing.
+	/// @throws DocumentError If it can't be built, naming the definition.
+	const json& judged(const json& source, json& storage) const;
+	/// @brief An operation as history keeps it: a keyword edit inside a definition becomes a replace of its text.
+	/// @param operation The operation, as written.
+	/// @param view The document as it is before the operation, with the live state as its "state".
+	/// @param storage Holds the new operation when there is one.
+	/// @return The new operation, or @p operation if it is as it should be.
+	/// @throws DocumentError If it can't be done.
+	const json& rewriteProgramEdit(const json& operation, const json& view, json& storage) const;
+	/// @brief Makes a revision on a program be judged by what it builds, before and after, and carries a change of a
+	/// definition's initial state over to the live state. Nothing happens for a document that holds no program.
+	/// @param result The revision so far: `before` and `document`, `state` after its operations.
+	/// @param document The document before it.
+	/// @param after The view after it, which gets what the program builds.
+	/// @throws DocumentError If the source doesn't build, or the state wouldn't stay an object.
+	void judgeProgram(Prepared& result, const json& document, json& after) const;
+	/// @brief The document rules on a change: checkOwnChange() for the person's own, checkChange() for any other.
+	/// @param before The view before it.
+	/// @param after The view after it.
+	void judgeChange(const json& before, const json& after) const;
+	/// @brief Works out built_ again, from document_.
+	/// @throws DocumentError If it can't be built.
+	void refreshBuilt();
 	/// @brief A commit's document: main's head's as it is, any other rebuilt from the nearest snapshot.
 	/// @param commit The commit.
 	/// @return The document.
@@ -373,6 +412,13 @@ private:
 	/// @param id Its id.
 	/// @return It, or nullptr.
 	[[nodiscard]] const Proposal* findProposal(int id) const;
+	/// @brief Gives the first writer of a definition's text back the entries the person is credited with: a restore or
+	/// a revert by the person brings back what someone else wrote, which doesn't become theirs.
+	/// @param credited The authors: `{file: {name: author}}`.
+	void keepFirstWriters(json& credited) const;
+	/// @brief Credits the author of the proposal shown with every definition it changes.
+	/// @param credited The authors: `{file: {name: author}}`.
+	void creditPreviewed(json& credited) const;
 	/// @brief Hashes a commit and stores it with its delta, and a snapshot if one is due (storing the same content
 	/// twice gives the same commit).
 	/// @param commit The commit, without its id, tree, delta or snapshot.
@@ -583,6 +629,11 @@ private:
 	[[nodiscard]] static std::shared_ptr<const json>
 	readDocument(detail::HistoryStore& store, const std::string& id, const std::filesystem::path& namedIn,
 	             std::unordered_map<std::string, std::shared_ptr<const json>>& documents);
+	/// @brief Refuses a commit of a history that says it is the person's own input and can't be: by another channel, or
+	/// beyond the program (commitOwnInput()).
+	/// @param commit The commit.
+	/// @throws DocumentError If it can't be.
+	static void checkOwnCommit(const Commit& commit);
 	/// @brief Reads a commit object, and its document if it is a snapshot, and checks them against their ids. A
 	/// commit's delta isn't covered by its id: rebuild() checks the documents deltas give against their trees.
 	/// @param store The history.
@@ -728,16 +779,19 @@ private:
 
 	json document_;               ///< main's head, or the proposal being previewed.
 	json state_ = json::object(); ///< The live state.
+	json built_;                  ///< What document_'s program builds; null if it has none.
 
 	std::vector<Proposal> proposals_;   ///< Open proposals, oldest first.
 	int nextProposal_ = 1;              ///< Next proposal id.
 	std::optional<int> previewing_;     ///< Proposal shown in place of main's head.
 	json committedState_;               ///< The live state, kept aside during a preview.
 	json committedDocument_;            ///< main's head's document, kept aside during a preview.
+	json committedBuilt_;               ///< What that builds, kept aside during a preview.
 	Mode mode_ = Mode::Default;         ///< The mode in force: see setMode() and setModeForThisRun().
 	Mode keptMode_ = Mode::Default;     ///< The mode the history keeps: the one a reviewer last chose (setMode()).
 	std::vector<Grant> grants_;         ///< "Don't ask again" rules.
 	bool importing_ = false;            ///< Commits are announced once the whole change set is in.
+	bool ownInput_ = false;             ///< The revision being prepared is the person's own (commitOwnInput()).
 	std::vector<std::string> imported_; ///< The change sets applied, by id (hasImported()), oldest first.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
 	Roles roles_;                                   ///< Who plays which role, for this run (never kept in the history).

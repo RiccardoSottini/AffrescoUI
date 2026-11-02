@@ -6,6 +6,7 @@
 
 #include <affresco/core/Json.hpp>
 #include <affresco/format/NodeIds.hpp>
+#include <affresco/lisp/Program.hpp>
 #include <affresco/notation/Notation.hpp>
 
 #include <algorithm>
@@ -51,14 +52,18 @@ TextValue parsed(const std::filesystem::path& file, const std::string& text) {
 	}
 }
 
-/// @brief A file in the Lisp notation, written canonically.
+/// @brief A file in the Lisp notation, written canonically, its comments kept.
 /// @param file The file.
 /// @param text Its text.
 /// @return The canonical text.
 /// @throws FileProblem If it isn't a value in the Lisp notation, naming the file, the line and the column.
 std::string writeLisp(const std::filesystem::path& file, const std::string& text) {
 	try {
-		return notation::write(notation::read(text, notation::Notation::Lisp), notation::Notation::Lisp);
+		if(const std::optional<std::string> running = lisp::needsRunning(text))
+			throw FileProblem(file.string() + ": fmt lays out data, and this is a program: " + *running + " needs running");
+		std::string formatted = notation::format(text);
+		static_cast<void>(lisp::buildText(text, file.string())); // `(not x)` isn't made a node it never meant to be
+		return formatted;
 	} catch(const DocumentError& error) {
 		throw FileProblem(file.string() + ": " + error.what());
 	}

@@ -1,0 +1,29 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "program",
+			"screen": "program.screen.lisp",
+			"note": "A program (RFC 0005): what it builds is drawn. A revision on a definition changes the screen, and its undo brings it back to the pixel.",
+			"steps": [
+				{ "expect": { "image": "first-frame" } },
+				{
+					"revision": {
+						"author": "app",
+						"message": "A third room",
+						"set": {
+							"/program/program.screen.lisp/rooms": ";; The rooms the screen lists. Building reads them; nothing here reads the state.\n(def rooms \"The rooms shown.\" [{:id \"kitchen\" :name \"Kitchen\"} {:id \"hall\" :name \"Hall\"} {:id \"attic\" :name \"Attic\"}])"
+						}
+					}
+				},
+				{ "expect": { "node": "#room-attic", "text": "Attic" } },
+				{ "expect": { "image": "revised" } },
+				{ "action": "undo-last" },
+				{ "expect": { "node": "#room-attic", "exists": false } },
+				{ "expect": { "image": "first-frame" } }
+			]
+		}
+	]
+}

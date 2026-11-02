@@ -329,13 +329,18 @@ void TextEditor::beginEdit(Edit kind) {
 	lastEdit_ = kind;
 }
 
+void TextEditor::markTyped() noexcept { typedNext_ = window() && window()->routingOwnPress(); }
+
 void TextEditor::endEdit() {
+	const bool typed = std::exchange(typedNext_, false);
 	model_->endStep();
 	recordCursorStep();
 	editing_ = false;
 	preferredX_ = -1.0f;
 	revealCaret();
+	typedNow_ = typed;
 	if(!onTextChanged.empty()) onTextChanged(model_->text());
+	typedNow_ = false;
 	onCaretMoved(caret_);
 }
 

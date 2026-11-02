@@ -219,8 +219,8 @@
 				},
 				"children": [
 					{
-						"id": "note-text",
 						"type": "textarea",
+						"id": "note-text",
 						"wrap": true,
 						"anchors": { "left": 20, "right": 20, "top": 76 },
 						"height": 96,
@@ -246,23 +246,23 @@
 				"type": "row",
 				"fill": true,
 				"children": [
-					{ "use": "librarySidebar", "id": "library-sidebar" },
+					{ "id": "library-sidebar", "use": "librarySidebar" },
 					{
 						"id": "library-main",
 						"grow": 1,
 						"anchors": { "top": 0, "bottom": 0 },
 						"gradient": { "kind": "linear", "stops": ["@color.main", "@color.page"] },
 						"children": [
-							{ "when": "{{computed.here.page == 'home'}}", "use": "libraryHome", "id": "library-home" },
+							{ "id": "library-home", "when": "{{computed.here.page == 'home'}}", "use": "libraryHome" },
 							{
+								"id": "game-page",
 								"when": "{{computed.here.page == 'game' && computed.game != null}}",
-								"use": "gamePage",
-								"id": "game-page"
+								"use": "gamePage"
 							},
 							{
+								"id": "hub-page",
 								"when": "{{computed.here.page == 'hub' && computed.game != null}}",
-								"use": "hubPage",
-								"id": "hub-page"
+								"use": "hubPage"
 							}
 						]
 					}
@@ -286,8 +286,8 @@
 						"alignItems": "center",
 						"children": [
 							{
-								"id": "library-home-button",
 								"type": "label",
+								"id": "library-home-button",
 								"grow": 1,
 								"height": 40,
 								"font": "strong",
@@ -318,8 +318,8 @@
 						"alignItems": "center",
 						"children": [
 							{
-								"id": "library-kind",
 								"type": "label",
+								"id": "library-kind",
 								"font": "caps",
 								"text": "{{t('lib.games')}}",
 								"icon": "chevron-down",
@@ -357,8 +357,8 @@
 						"children": [
 							{ "type": "panel", "width": 10, "height": 1, "color": "transparent" },
 							{
-								"id": "library-search",
 								"type": "textarea",
+								"id": "library-search",
 								"grow": 1,
 								"height": 28,
 								"padding": 8,
@@ -410,8 +410,8 @@
 						]
 					},
 					{
-						"id": "library-list",
 						"type": "column",
+						"id": "library-list",
 						"grow": 1,
 						"anchors": { "left": 0, "right": 0 },
 						"scroll": "vertical",
@@ -420,19 +420,19 @@
 						"label": "{{t('lib.games')}}",
 						"children": [
 							{
+								"type": "column",
 								"repeat": { "for": "section", "in": "{{computed.sections}}", "key": "{{section.id}}" },
 								"let": {
 									"games": "{{filter(computed.libList, contains(section.ids ?? section.games, it.id))}}",
 									"open": "{{!(state.collapsed[section.id] ?? false)}}"
 								},
-								"type": "column",
 								"anchors": { "left": 0, "right": 0 },
 								"height": "{{30 + (open ? length(games) * 28 : 0)}}",
 								"when": "{{length(games) > 0 || empty(state.query)}}",
 								"children": [
 									{
-										"id": "{{'section-' + section.id}}",
 										"type": "label",
+										"id": "{{'section-' + section.id}}",
 										"font": "caps",
 										"height": 30,
 										"anchors": { "left": 0, "right": 0 },
@@ -449,11 +449,11 @@
 										"onClick": { "set": "{{'state.collapsed.' + section.id}}", "to": "{{open}}" }
 									},
 									{
+										"id": "{{'row-' + section.id + '-' + g.id}}",
 										"when": "{{open}}",
 										"repeat": { "for": "g", "in": "{{games}}", "key": "{{section.id + g.id}}" },
 										"use": "gameRow",
-										"with": { "game": "{{g}}" },
-										"id": "{{'row-' + section.id + '-' + g.id}}"
+										"with": { "game": "{{g}}" }
 									}
 								]
 							}
@@ -554,8 +554,8 @@
 						"fitText": true
 					},
 					{
-						"when": "{{count != null}}",
 						"type": "label",
+						"when": "{{count != null}}",
 						"font": "caps",
 						"text": "({{count}})",
 						"textColor": "@color.muted",
@@ -570,28 +570,28 @@
 			"note": "The library's home: what's new, recent games grouped by day, a shelf per collection and every game.",
 			"params": {},
 			"node": {
-				"id": "home-scroll",
 				"type": "column",
+				"id": "home-scroll",
 				"fill": true,
 				"scroll": "vertical",
 				"children": [
 					{
-						"id": "home-content",
 						"type": "column",
+						"id": "home-content",
 						"anchors": { "left": 28, "right": 28 },
 						"gap": 6,
 						"height": "{{412 + 286 * length(filter(computed.sections, it.id != 'uncategorised' && length(it.ids ?? it.games) > 0)) + 239 * ceil(length(computed.owned) / max(1, floor(((nodes['home-scroll'].width ?? 1008) - 42) / 164)))}}",
 						"children": [
 							{ "type": "panel", "height": 10, "width": 1, "color": "transparent" },
 							{
-								"use": "shelfHeader",
 								"id": "news-header",
+								"use": "shelfHeader",
 								"with": { "title": "{{t('lib.whatsNew')}}" },
 								"children": [
 									{
+										"id": "news-settings",
 										"style": "iconButton",
 										"icon": "settings",
-										"id": "news-settings",
 										"tooltip": "{{t('lib.whatsNewSettings')}}",
 										"isOpen": "{{state.newsOpen}}",
 										"onClick": { "toggle": "state.newsOpen" },
@@ -610,9 +610,9 @@
 								]
 							},
 							{
+								"type": "row",
 								"id": "news-shelf",
 								"when": "{{state.showNews}}",
-								"type": "row",
 								"height": 222,
 								"anchors": { "left": 0, "right": 0 },
 								"gap": 14,
@@ -620,10 +620,10 @@
 								"arrows": "horizontal",
 								"children": [
 									{
+										"type": "column",
+										"id": "{{'news-' + i}}",
 										"repeat": { "for": "n", "in": "{{data.news}}", "index": "i" },
 										"let": { "g": "{{find(data.games, it.id == n.game)}}" },
-										"id": "{{'news-' + i}}",
-										"type": "column",
 										"width": 232,
 										"height": 216,
 										"style": "card",
@@ -683,18 +683,18 @@
 									}
 								]
 							},
-							{ "use": "shelfHeader", "id": "recent-header", "with": { "title": "{{t('lib.recent')}}" } },
+							{ "id": "recent-header", "use": "shelfHeader", "with": { "title": "{{t('lib.recent')}}" } },
 							{
-								"id": "recent-shelf",
 								"type": "row",
+								"id": "recent-shelf",
 								"height": 262,
 								"anchors": { "left": 0, "right": 0 },
 								"gap": 18,
 								"scroll": "horizontal",
 								"children": [
 									{
-										"repeat": { "for": "group", "in": "{{computed.recentGroups}}", "index": "gi" },
 										"type": "column",
+										"repeat": { "for": "group", "in": "{{computed.recentGroups}}", "index": "gi" },
 										"gap": 8,
 										"height": 256,
 										"width": "{{gi == 0 ? 345 + (length(group.games) - 1) * 164 : length(group.games) * 164 - 14}}",
@@ -715,22 +715,22 @@
 												"arrows": "horizontal",
 												"children": [
 													{
+														"type": "stack",
 														"repeat": { "for": "g", "in": "{{group.games}}", "index": "i" },
 														"children": [
 															{
+																"id": "{{'recent-big-' + g.id}}",
 																"when": "{{gi == 0 && i == 0}}",
 																"use": "bigCapsule",
-																"with": { "game": "{{g}}" },
-																"id": "{{'recent-big-' + g.id}}"
+																"with": { "game": "{{g}}" }
 															},
 															{
+																"id": "{{'recent-' + g.id}}",
 																"when": "{{!(gi == 0 && i == 0)}}",
 																"use": "capsule",
-																"with": { "game": "{{g}}" },
-																"id": "{{'recent-' + g.id}}"
+																"with": { "game": "{{g}}" }
 															}
 														],
-														"type": "stack",
 														"width": "{{gi == 0 && i == 0 ? 345 : 150}}",
 														"height": 225
 													}
@@ -741,6 +741,7 @@
 								]
 							},
 							{
+								"type": "column",
 								"repeat": {
 									"for": "section",
 									"in": "{{slice(computed.sections, 0, length(computed.sections) - 1)}}",
@@ -749,7 +750,6 @@
 								"let": {
 									"games": "{{filter(computed.owned, contains(section.ids ?? section.games, it.id))}}"
 								},
-								"type": "column",
 								"anchors": { "left": 0, "right": 0 },
 								"height": 280,
 								"gap": 6,
@@ -768,18 +768,18 @@
 										"arrows": "horizontal",
 										"children": [
 											{
+												"id": "{{'shelf-' + section.id + '-' + g.id}}",
 												"repeat": { "for": "g", "in": "{{games}}" },
 												"use": "capsule",
-												"with": { "game": "{{g}}" },
-												"id": "{{'shelf-' + section.id + '-' + g.id}}"
+												"with": { "game": "{{g}}" }
 											}
 										]
 									}
 								]
 							},
 							{
-								"use": "shelfHeader",
 								"id": "all-header",
+								"use": "shelfHeader",
 								"with": { "title": "{{t('lib.allGames')}}", "count": "{{length(computed.owned)}}" },
 								"children": [
 									{
@@ -790,8 +790,8 @@
 										"fitText": true
 									},
 									{
-										"id": "sort-button",
 										"type": "label",
+										"id": "sort-button",
 										"font": "small",
 										"text": "{{t('sort.' + settings.library.sortBy)}}",
 										"icon": "chevron-down",
@@ -840,18 +840,18 @@
 								]
 							},
 							{
-								"id": "all-grid",
 								"type": "row",
+								"id": "all-grid",
 								"wrap": true,
 								"gap": 14,
 								"anchors": { "left": 0, "right": 0 },
 								"height": "{{ceil(length(computed.owned) / max(1, floor(((nodes['home-scroll'].width ?? 1008) - 42) / 164))) * 239}}",
 								"children": [
 									{
+										"id": "{{'all-' + g.id}}",
 										"repeat": { "for": "g", "in": "{{computed.allGames}}", "key": "{{g.id}}" },
 										"use": "capsule",
-										"with": { "game": "{{g}}" },
-										"id": "{{'all-' + g.id}}"
+										"with": { "game": "{{g}}" }
 									}
 								]
 							},
@@ -929,8 +929,8 @@
 			"note": "A game's page: the banner and logo, play and the stats, the sections, the activity and the side panels.",
 			"params": {},
 			"node": {
-				"id": "game-scroll",
 				"type": "column",
+				"id": "game-scroll",
 				"fill": true,
 				"scroll": "vertical",
 				"let": { "g": "{{computed.game}}" },
@@ -941,8 +941,8 @@
 						"anchors": { "left": 0, "right": 0 },
 						"children": [
 							{
-								"id": "hero-image",
 								"type": "image",
+								"id": "hero-image",
 								"file": "{{'../assets/art/' + (g.art ?? g.id) + '/hero.svg'}}",
 								"fill": true,
 								"fit": "cover"
@@ -964,8 +964,8 @@
 								"fitText": true
 							},
 							{
-								"id": "details-title",
 								"type": "label",
+								"id": "details-title",
 								"font": "logo",
 								"text": "{{g.title}}",
 								"textColor": "{{g.logo}}",
@@ -976,8 +976,8 @@
 						]
 					},
 					{
-						"id": "play-bar",
 						"type": "row",
+						"id": "play-bar",
 						"height": 80,
 						"anchors": { "left": 0, "right": 0 },
 						"alignItems": "center",
@@ -986,15 +986,15 @@
 						"children": [
 							{ "type": "panel", "width": 6, "height": 1, "color": "transparent" },
 							{
-								"id": "play-group",
 								"type": "row",
+								"id": "play-group",
 								"height": 48,
 								"width": "{{g.status == 'ready' ? 196 : 210}}",
 								"radius": 24,
 								"children": [
 									{
-										"id": "play-button",
 										"type": "label",
+										"id": "play-button",
 										"grow": 1,
 										"height": 48,
 										"font": "button",
@@ -1011,8 +1011,8 @@
 										"onClick": { "run": "primary", "with": { "game": "{{g}}" } }
 									},
 									{
-										"id": "play-more",
 										"type": "label",
+										"id": "play-more",
 										"width": 34,
 										"height": 48,
 										"icon": "chevron-down",
@@ -1059,21 +1059,21 @@
 								]
 							},
 							{
-								"use": "stat",
 								"id": "stat-last",
+								"use": "stat",
 								"with": { "title": "{{t('game.lastPlayed')}}", "value": "{{computed.lastPlayed}}" }
 							},
 							{
-								"use": "stat",
 								"id": "stat-time",
+								"use": "stat",
 								"with": {
 									"title": "{{t('game.playTime')}}",
 									"value": "{{t('game.hours', { n: formatNumber(g.hours, 0, 1) })}}"
 								}
 							},
 							{
-								"id": "stat-achievements",
 								"type": "column",
+								"id": "stat-achievements",
 								"width": 128,
 								"height": 40,
 								"gap": 4,
@@ -1124,8 +1124,8 @@
 								]
 							},
 							{
-								"use": "stat",
 								"id": "stat-cloud",
+								"use": "stat",
 								"with": {
 									"title": "{{t('game.cloud')}}",
 									"value": "{{t(g.installed ? 'game.cloudOk' : 'game.cloudNone')}}",
@@ -1152,13 +1152,13 @@
 								"onClick": { "toggle": "state.infoOpen" },
 								"children": [
 									{
+										"type": "column",
 										"id": "info-card",
 										"overlay": {
 											"placement": "below-end",
 											"open": "state.infoOpen",
 											"dismiss": "outside"
 										},
-										"type": "column",
 										"width": 340,
 										"height": 196,
 										"color": "@kit.surface",
@@ -1178,8 +1178,8 @@
 												"align": { "vertical": "end" }
 											},
 											{
-												"id": "details-blurb",
 												"type": "label",
+												"id": "details-blurb",
 												"text": "{{g.blurb}}",
 												"textColor": "@color.text",
 												"wrap": true,
@@ -1228,19 +1228,19 @@
 						]
 					},
 					{
-						"id": "game-sections",
 						"type": "row",
+						"id": "game-sections",
 						"height": 46,
 						"anchors": { "left": 24, "right": 24 },
 						"alignItems": "center",
 						"arrows": "horizontal",
 						"children": [
 							{
+								"id": "{{'section-link-' + s}}",
 								"repeat": {
 									"for": "s",
 									"in": "{{g.local ? ['support'] : ['store', 'dlc', 'hub', 'discussions', 'guides', 'support']}}"
 								},
-								"id": "{{'section-link-' + s}}",
 								"style": "sectionLink",
 								"text": "{{t('game.section.' + s)}}",
 								"onClick": [
@@ -1267,15 +1267,15 @@
 					},
 					{ "type": "panel", "height": 1, "anchors": { "left": 32, "right": 32 }, "color": "@color.border" },
 					{
-						"id": "game-columns",
 						"type": "row",
+						"id": "game-columns",
 						"anchors": { "left": 32, "right": 32 },
 						"gap": 24,
 						"height": "{{max(700, 150 + length(filter(data.activity, it.game == g.id)) * 96 + length(filter(data.news, it.game == g.id)) * 120)}}",
 						"children": [
 							{
-								"id": "activity",
 								"type": "column",
+								"id": "activity",
 								"grow": 1,
 								"gap": 12,
 								"anchors": { "top": 16, "bottom": 0 },
@@ -1289,8 +1289,8 @@
 										"anchors": { "left": 0, "right": 0 }
 									},
 									{
-										"id": "post-box",
 										"type": "textarea",
+										"id": "post-box",
 										"height": 44,
 										"anchors": { "left": 0, "right": 0 },
 										"padding": 12,
@@ -1304,12 +1304,12 @@
 										"focused": { "borderWidth": 1, "borderColor": "@color.accent" }
 									},
 									{
+										"type": "row",
 										"repeat": {
 											"for": "n",
 											"in": "{{filter(data.news, it.game == g.id)}}",
 											"index": "i"
 										},
-										"type": "row",
 										"height": 108,
 										"anchors": { "left": 0, "right": 0 },
 										"style": "card",
@@ -1368,13 +1368,13 @@
 										]
 									},
 									{
+										"type": "row",
 										"repeat": {
 											"for": "a",
 											"in": "{{filter(data.activity, it.game == g.id)}}",
 											"index": "i"
 										},
 										"let": { "f": "{{find(data.friends, it.id == a.who)}}" },
-										"type": "row",
 										"height": "{{a.kind == 'screenshot' ? 168 : 84}}",
 										"anchors": { "left": 0, "right": 0 },
 										"style": "card",
@@ -1414,8 +1414,8 @@
 														]
 													},
 													{
-														"when": "{{a.detail != null}}",
 														"type": "label",
+														"when": "{{a.detail != null}}",
 														"font": "small",
 														"text": "{{a.detail}}",
 														"textColor": "@color.muted",
@@ -1423,8 +1423,8 @@
 														"height": 16
 													},
 													{
-														"when": "{{a.kind == 'screenshot'}}",
 														"type": "image",
+														"when": "{{a.kind == 'screenshot'}}",
 														"file": "{{'../assets/art/' + (g.art ?? g.id) + '/shot' + a.shot + '.svg'}}",
 														"width": 160,
 														"height": 90,
@@ -1444,8 +1444,8 @@
 										]
 									},
 									{
-										"when": "{{length(filter(data.activity, it.game == g.id)) + length(filter(data.news, it.game == g.id)) == 0}}",
 										"type": "label",
+										"when": "{{length(filter(data.activity, it.game == g.id)) + length(filter(data.news, it.game == g.id)) == 0}}",
 										"text": "{{t('game.noActivity')}}",
 										"textColor": "@color.muted",
 										"height": 40,
@@ -1454,22 +1454,22 @@
 								]
 							},
 							{
-								"id": "game-side",
 								"type": "column",
+								"id": "game-side",
 								"width": 312,
 								"gap": 14,
 								"anchors": { "top": 16, "bottom": 0 },
 								"children": [
 									{
-										"use": "sideCard",
 										"id": "friends-card",
+										"use": "sideCard",
 										"with": { "title": "{{t('game.friendsWhoPlay')}}", "height": 118 },
 										"children": [
 											{
+												"type": "column",
 												"let": {
 													"who": "{{filter(data.friends, it.game == g.id || g.hours > 40 && (it.presence == 'online' || it.avatar == 'owl'))}}"
 												},
-												"type": "column",
 												"anchors": { "left": 14, "right": 14, "top": 40 },
 												"height": 70,
 												"gap": 8,
@@ -1489,8 +1489,8 @@
 														"anchors": { "left": 0, "right": 0 },
 														"children": [
 															{
-																"repeat": { "for": "f", "in": "{{slice(who, 0, 7)}}" },
 																"type": "image",
+																"repeat": { "for": "f", "in": "{{slice(who, 0, 7)}}" },
 																"file": "{{'../assets/art/avatars/' + f.avatar + '.svg'}}",
 																"width": 34,
 																"height": 34,
@@ -1507,8 +1507,8 @@
 										]
 									},
 									{
-										"use": "sideCard",
 										"id": "achievements-card",
+										"use": "sideCard",
 										"with": { "title": "{{t('game.achievements')}}", "height": 150 },
 										"children": [
 											{
@@ -1551,12 +1551,12 @@
 														"anchors": { "left": 0, "right": 0 },
 														"children": [
 															{
+																"type": "label",
 																"repeat": {
 																	"for": "icon",
 																	"in": "{{['trophy', 'flame', 'gem', 'crown', 'swords']}}",
 																	"index": "k"
 																},
-																"type": "label",
 																"icon": "{{icon}}",
 																"text": "",
 																"font": "heading",
@@ -1588,8 +1588,8 @@
 										]
 									},
 									{
-										"use": "sideCard",
 										"id": "screenshots-card",
+										"use": "sideCard",
 										"with": { "title": "{{t('game.screenshots')}}", "height": 132 },
 										"children": [
 											{
@@ -1599,8 +1599,8 @@
 												"height": 80,
 												"children": [
 													{
-														"repeat": { "for": "k", "in": "{{[1, 2, 3]}}" },
 														"type": "image",
+														"repeat": { "for": "k", "in": "{{[1, 2, 3]}}" },
 														"file": "{{'../assets/art/' + (g.art ?? g.id) + '/shot' + k + '.svg'}}",
 														"grow": 1,
 														"height": 80,
@@ -1612,8 +1612,8 @@
 										]
 									},
 									{
-										"use": "sideCard",
 										"id": "controller-card",
+										"use": "sideCard",
 										"with": { "title": "{{t('game.controller')}}", "height": 74 },
 										"children": [
 											{
@@ -1627,8 +1627,8 @@
 										]
 									},
 									{
-										"use": "sideCard",
 										"id": "notes-card",
+										"use": "sideCard",
 										"with": { "title": "{{t('game.notes')}}", "height": 74 },
 										"children": [
 											{

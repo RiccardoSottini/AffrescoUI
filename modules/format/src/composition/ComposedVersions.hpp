@@ -32,6 +32,12 @@ public:
 	void setObserver(VersionObserver* observer) override { observer_ = observer; }
 	/// @brief The composed screen, or the inner document when it has nothing to compose.
 	[[nodiscard]] const json& document() const override;
+	/// @brief The document as versioned.
+	/// @return The inner one's.
+	[[nodiscard]] const json& sourceDocument() const override { return inner_.sourceDocument(); }
+	/// @brief Who last wrote each definition.
+	/// @return The inner one's.
+	[[nodiscard]] json programAuthors() const override { return inner_.programAuthors(); }
 	/// @copydoc VersionControl::state
 	[[nodiscard]] json& state() override { return inner_.state(); }
 	/// @copydoc VersionControl::state
@@ -54,6 +60,14 @@ public:
 	}
 	/// @copydoc VersionControl::submit
 	RevisionResult submit(const json& revision) override { return inner_.submit(revision); }
+	/// @copydoc VersionControl::propose
+	RevisionResult propose(const json& revision) override { return inner_.propose(revision); }
+	/// @copydoc VersionControl::commitOwnInput
+	std::optional<std::string> commitOwnInput(const json& revision) override { return inner_.commitOwnInput(revision); }
+	/// @copydoc VersionControl::readable
+	[[nodiscard]] std::optional<json> readable(std::string_view author) const override {
+		return inner_.readable(author);
+	}
 	/// @copydoc VersionControl::commit
 	std::optional<std::string> commit(const json& revision) override { return inner_.commit(revision); }
 	/// @copydoc VersionControl::resolve

@@ -9,6 +9,7 @@
 #include <affresco/core/Log.hpp>
 #include <affresco/format/App.hpp>
 #include <affresco/format/Rules.hpp>
+#include <affresco/lisp/Document.hpp>
 #include <affresco/notation/Notation.hpp>
 
 #include <algorithm>
@@ -59,7 +60,8 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	std::vector<Problem> problems;
 	json document;
 	try {
-		document = notation::readDocument(text, path);
+		document = lisp::readDocument(text, path);
+		if(lisp::hasProgram(document)) document = lisp::buildDocument(document); // what is judged is what it builds
 	} catch(const std::exception& error) {
 		problems.push_back({std::string(notation::nameOf(spelling)), "", error.what()});
 		return problems;
@@ -69,7 +71,7 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	for(SchemaProblem& problem : schema.check(document))
 		problems.push_back({"schema", std::move(problem.place), std::move(problem.problem)});
 
-	const auto loaded = load(notation::jsonText(text, path), path.parent_path(), problems);
+	const auto loaded = load(lisp::jsonText(text, path), path.parent_path(), problems);
 	const format::Rules rules;
 	const json& checked = loaded ? loaded->first : document;
 	for(std::string& finding :
@@ -95,7 +97,9 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 	const std::filesystem::path entry = manifest.parent_path() / app.entry;
 	try {
 		Schema schema(json::parse(embeddedSchema()));
-		for(SchemaProblem& problem : schema.check(notation::readDocument(readFile(entry), entry)))
+		json screen = lisp::readDocument(readFile(entry), entry);
+		if(lisp::hasProgram(screen)) screen = lisp::buildDocument(screen);
+		for(SchemaProblem& problem : schema.check(screen))
 			problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
 	} catch(const std::exception& error) {
 		problems.push_back({"json", app.entry, error.what()});

@@ -279,10 +279,10 @@
 				"size": 36
 			},
 			"node": {
+				"type": "panel",
 				"let": {
 					"p": "{{presence}}"
 				},
-				"type": "panel",
 				"width": "{{size}}",
 				"height": "{{size}}",
 				"radius": 4,
@@ -303,12 +303,12 @@
 				"friend": {}
 			},
 			"node": {
+				"type": "row",
+				"id": "{{'friend-' + friend.id}}",
 				"let": {
 					"p": "{{friend.presence}}",
 					"here": "{{state.chatWith == friend.id}}"
 				},
-				"id": "{{'friend-' + friend.id}}",
-				"type": "row",
 				"height": 52,
 				"anchors": {
 					"left": 0,
@@ -378,8 +378,8 @@
 						]
 					},
 					{
-						"when": "{{count(data.messages, it.friend == friend.id && !it.mine && it.at > (state.read[friend.id] ?? 0)) > 0 && !here}}",
 						"type": "panel",
+						"when": "{{count(data.messages, it.friend == friend.id && !it.mine && it.at > (state.read[friend.id] ?? 0)) > 0 && !here}}",
 						"width": 8,
 						"height": 8,
 						"radius": 4,
@@ -399,8 +399,8 @@
 			"note": "The left column: your own card with its status menu, a search, and the friends grouped by presence.",
 			"params": {},
 			"node": {
-				"id": "friends-side",
 				"type": "column",
+				"id": "friends-side",
 				"width": 300,
 				"anchors": {
 					"top": 0,
@@ -409,8 +409,8 @@
 				"color": "@color.side",
 				"children": [
 					{
-						"id": "me-card",
 						"type": "row",
+						"id": "me-card",
 						"height": 76,
 						"anchors": {
 							"left": 0,
@@ -453,8 +453,8 @@
 										"height": 22
 									},
 									{
-										"id": "my-status",
 										"type": "label",
+										"id": "my-status",
 										"font": "small",
 										"fitText": true,
 										"padding": 2,
@@ -521,8 +521,8 @@
 						"alignItems": "center",
 						"children": [
 							{
-								"id": "friends-search",
 								"type": "textarea",
+								"id": "friends-search",
 								"grow": 1,
 								"height": 28,
 								"padding": 8,
@@ -554,8 +554,8 @@
 						]
 					},
 					{
-						"id": "friends-scroll",
 						"type": "column",
+						"id": "friends-scroll",
 						"grow": 1,
 						"anchors": {
 							"left": 0,
@@ -566,13 +566,13 @@
 						"label": "{{t('nav.community')}}",
 						"children": [
 							{
+								"type": "column",
+								"id": "{{'friends-group-' + group.key}}",
 								"repeat": {
 									"for": "group",
 									"in": "{{computed.friendGroups}}",
 									"key": "{{group.key}}"
 								},
-								"id": "{{'friends-group-' + group.key}}",
-								"type": "column",
 								"anchors": {
 									"left": 0,
 									"right": 0
@@ -607,8 +607,8 @@
 								]
 							},
 							{
-								"when": "{{sum(computed.friendGroups, length(it.friends)) == 0}}",
 								"type": "label",
+								"when": "{{sum(computed.friendGroups, length(it.friends)) == 0}}",
 								"height": 60,
 								"anchors": {
 									"left": 14,
@@ -630,10 +630,10 @@
 				"friend": {}
 			},
 			"node": {
+				"type": "row",
 				"let": {
 					"g": "{{m.game == null ? null : find(data.games, it.id == m.game)}}"
 				},
-				"type": "row",
 				"anchors": {
 					"left": 0,
 					"right": 0
@@ -646,8 +646,8 @@
 				"label": "{{(m.mine ? state.user.name : friend.name) + ': ' + (g == null ? m.text : t('chat.invite', { game: g.title }))}}",
 				"children": [
 					{
-						"when": "{{!m.mine}}",
 						"type": "image",
+						"when": "{{!m.mine}}",
 						"file": "{{'../assets/art/avatars/' + friend.avatar + '.svg'}}",
 						"width": 28,
 						"height": 28,
@@ -661,8 +661,8 @@
 						"alignItems": "{{m.mine ? 'end' : 'start'}}",
 						"children": [
 							{
-								"when": "{{g == null}}",
 								"type": "label",
+								"when": "{{g == null}}",
 								"text": "{{m.text}}",
 								"wrap": true,
 								"fitText": {
@@ -675,8 +675,8 @@
 								"textColor": "{{m.mine ? '@chat.onMine' : '@color.text'}}"
 							},
 							{
-								"when": "{{g != null}}",
 								"type": "row",
+								"when": "{{g != null}}",
 								"width": 320,
 								"height": 96,
 								"gap": 12,
@@ -729,9 +729,9 @@
 												"textColor": "@color.bright"
 											},
 											{
-												"when": "{{!m.mine}}",
-												"id": "{{'join-' + m.id}}",
 												"type": "label",
+												"id": "{{'join-' + m.id}}",
+												"when": "{{!m.mine}}",
 												"font": "strong",
 												"fitText": true,
 												"padding": 6,
@@ -786,8 +786,8 @@
 				"color": "@color.main",
 				"children": [
 					{
-						"when": "{{computed.chatFriend == null}}",
 						"type": "column",
+						"when": "{{computed.chatFriend == null}}",
 						"fill": true,
 						"justify": "center",
 						"alignItems": "center",
@@ -802,8 +802,8 @@
 								"textColor": "@color.dim"
 							},
 							{
-								"id": "chat-empty",
 								"type": "label",
+								"id": "chat-empty",
 								"fitText": true,
 								"textColor": "@color.muted",
 								"text": "{{t('chat.choose')}}"
@@ -811,16 +811,16 @@
 						]
 					},
 					{
+						"type": "column",
 						"when": "{{computed.chatFriend != null}}",
 						"let": {
 							"friend": "{{computed.chatFriend}}"
 						},
-						"type": "column",
 						"fill": true,
 						"children": [
 							{
-								"id": "chat-header",
 								"type": "row",
+								"id": "chat-header",
 								"height": 68,
 								"anchors": {
 									"left": 0,
@@ -852,8 +852,8 @@
 										"alignSelf": "center",
 										"children": [
 											{
-												"id": "chat-name",
 												"type": "label",
+												"id": "chat-name",
 												"font": "heading",
 												"text": "{{friend.name}}",
 												"textColor": "@color.bright",
@@ -877,8 +877,8 @@
 										]
 									},
 									{
-										"id": "chat-invite",
 										"type": "label",
+										"id": "chat-invite",
 										"font": "strong",
 										"fitText": true,
 										"padding": 9,
@@ -925,8 +925,8 @@
 								"color": "transparent",
 								"children": [
 									{
-										"id": "chat-messages",
 										"type": "column",
+										"id": "chat-messages",
 										"fill": true,
 										"scroll": "vertical",
 										"gap": 10,
@@ -945,13 +945,13 @@
 												"height": 8
 											},
 											{
+												"type": "column",
 												"repeat": {
 													"for": "m",
 													"in": "{{computed.chat}}",
 													"index": "i",
 													"key": "{{m.id}}"
 												},
-												"type": "column",
 												"anchors": {
 													"left": 24,
 													"right": 24
@@ -960,8 +960,8 @@
 												"gap": 10,
 												"children": [
 													{
-														"when": "{{i == 0 || floor(computed.chat[i - 1].at / 86400000) != floor(m.at / 86400000)}}",
 														"type": "row",
+														"when": "{{i == 0 || floor(computed.chat[i - 1].at / 86400000) != floor(m.at / 86400000)}}",
 														"height": 20,
 														"anchors": {
 															"left": 0,
@@ -1000,9 +1000,9 @@
 												]
 											},
 											{
-												"when": "{{state.typing == friend.id}}",
-												"id": "chat-typing",
 												"type": "label",
+												"id": "chat-typing",
+												"when": "{{state.typing == friend.id}}",
 												"font": "small",
 												"height": 18,
 												"anchors": {
@@ -1015,8 +1015,8 @@
 												"text": "{{t('chat.typing', { name: friend.name })}}"
 											},
 											{
-												"id": "chat-end",
 												"type": "panel",
+												"id": "chat-end",
 												"color": "transparent",
 												"height": 8,
 												"anchors": {
@@ -1046,8 +1046,8 @@
 										"height": 1
 									},
 									{
-										"id": "chat-input",
 										"type": "textarea",
+										"id": "chat-input",
 										"grow": 1,
 										"height": 36,
 										"padding": 10,
@@ -1068,8 +1068,8 @@
 										}
 									},
 									{
-										"id": "chat-send",
 										"type": "label",
+										"id": "chat-send",
 										"font": "heading",
 										"icon": "send",
 										"text": "",
@@ -1124,8 +1124,8 @@
 				},
 				"children": [
 					{
-						"id": "add-friend-name",
 						"type": "textarea",
+						"id": "add-friend-name",
 						"height": 32,
 						"padding": 8,
 						"anchors": {
@@ -1157,8 +1157,8 @@
 			"note": "Friends: the list on the left, the chat on the right.",
 			"params": {},
 			"node": {
-				"id": "friends-page",
 				"type": "row",
+				"id": "friends-page",
 				"fill": true,
 				"color": "@color.page",
 				"children": [
@@ -1191,8 +1191,8 @@
 				"id": ""
 			},
 			"node": {
-				"id": "{{id}}",
 				"type": "column",
+				"id": "{{id}}",
 				"width": 120,
 				"height": 56,
 				"gap": 2,
@@ -1231,14 +1231,14 @@
 				"color": "@color.page",
 				"children": [
 					{
-						"id": "profile-scroll",
 						"type": "column",
+						"id": "profile-scroll",
 						"fill": true,
 						"scroll": "vertical",
 						"children": [
 							{
-								"id": "profile-banner",
 								"type": "row",
+								"id": "profile-banner",
 								"height": 196,
 								"anchors": {
 									"left": 0,
@@ -1274,8 +1274,8 @@
 										"alignSelf": "center",
 										"children": [
 											{
-												"id": "profile-name",
 												"type": "label",
+												"id": "profile-name",
 												"font": "logo",
 												"text": "{{state.user.name}}",
 												"textColor": "@color.bright",
@@ -1299,8 +1299,8 @@
 										]
 									},
 									{
-										"id": "profile-level",
 										"type": "column",
+										"id": "profile-level",
 										"width": 140,
 										"height": 120,
 										"gap": 6,
@@ -1338,8 +1338,8 @@
 								]
 							},
 							{
-								"id": "profile-stats",
 								"type": "row",
+								"id": "profile-stats",
 								"height": 88,
 								"anchors": {
 									"left": 40,
@@ -1424,8 +1424,8 @@
 												"text": "{{t('profile.showcase')}}"
 											},
 											{
-												"id": "profile-showcase",
 												"type": "row",
+												"id": "profile-showcase",
 												"height": 180,
 												"gap": 14,
 												"anchors": {
@@ -1459,13 +1459,13 @@
 												"text": "{{t('profile.recent')}}"
 											},
 											{
+												"type": "row",
+												"id": "{{'profile-recent-' + g.id}}",
 												"repeat": {
 													"for": "g",
 													"in": "{{computed.profileRecent}}",
 													"key": "{{g.id}}"
 												},
-												"id": "{{'profile-recent-' + g.id}}",
-												"type": "row",
 												"height": 84,
 												"anchors": {
 													"left": 0,
@@ -1534,8 +1534,8 @@
 														]
 													},
 													{
-														"when": "{{g.achievements != null}}",
 														"type": "column",
+														"when": "{{g.achievements != null}}",
 														"width": 180,
 														"height": 28,
 														"gap": 6,
@@ -1590,8 +1590,8 @@
 										]
 									},
 									{
-										"id": "profile-friends",
 										"type": "column",
+										"id": "profile-friends",
 										"width": 260,
 										"gap": 8,
 										"alignSelf": "stretch",
@@ -1614,12 +1614,12 @@
 												"text": "{{t('profile.friendsCount', { n: length(data.friends) })}}"
 											},
 											{
+												"type": "row",
 												"repeat": {
 													"for": "f",
 													"in": "{{slice(sort(data.friends, it.presence == 'offline' ? 1 : 0), 0, 8)}}",
 													"key": "{{f.id}}"
 												},
-												"type": "row",
 												"height": 40,
 												"anchors": {
 													"left": 0,
@@ -1650,10 +1650,10 @@
 														}
 													},
 													{
+														"type": "label",
 														"let": {
 															"p": "{{f.presence}}"
 														},
-														"type": "label",
 														"grow": 1,
 														"height": 18,
 														"text": "{{f.name}}",

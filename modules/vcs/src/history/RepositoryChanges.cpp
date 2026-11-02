@@ -122,7 +122,7 @@ json Repository::tryChanges(const json& changes) const {
 	const json current = currentChanges(rules_, changes);
 	const std::string author = "plugin:" + current.value("name", std::string("changes"));
 	json document = mainDocument(), state = committedState();
-	json view = detail::view(document, state);
+	json view = detail::view(rulesDocument(), state);
 	for(std::size_t i = 0; i < current["revisions"].size(); ++i) {
 		const std::string where = "changes.revisions[" + std::to_string(i) + "]";
 		try {

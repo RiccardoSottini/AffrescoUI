@@ -68,6 +68,7 @@ struct RunOptions {
 	std::filesystem::path data = Screen::defaultDataDirectory();              ///< The history and "persist" state.
 	std::optional<Mode> mode;                                                 ///< For this run only, if given.
 	std::vector<std::string> plugins;                                         ///< Change sets to apply once.
+	bool print = false; ///< Print a Lisp file's built tree instead of showing it.
 };
 
 /// @brief Reads `run`'s command line. Options repeat (--plugin), so Arguments doesn't read it.
@@ -81,6 +82,10 @@ RunOptions runOptions(std::span<const std::string_view> args) {
 		if(!arg.starts_with('-')) {
 			if(!options.file.empty()) throw UsageError("unexpected " + std::string(arg));
 			options.file = arg;
+			continue;
+		}
+		if(arg == "--print") {
+			options.print = true;
 			continue;
 		}
 		if(i + 1 >= args.size()) throw UsageError(std::string(arg) + " needs a value, or isn't an option of run");
@@ -99,6 +104,7 @@ RunOptions runOptions(std::span<const std::string_view> args) {
 
 Exit runScreen(std::span<const std::string_view> args) {
 	const RunOptions options = runOptions(args);
+	if(const std::optional<Exit> built = runLisp(options.file, options.print)) return *built;
 	Application app;
 	Screen screen = Screen::fromFile(options.file, options.data);
 	registerApplicationTypes(screen);

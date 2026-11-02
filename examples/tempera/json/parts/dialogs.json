@@ -21,7 +21,7 @@
 		"temperaTransformDialog": {
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
-				"use": "dialog", "id": "transform-dialog",
+				"id": "transform-dialog", "use": "dialog",
 				"with": { "open": "state.transform.open", "title": "Free Transform", "message": "", "width": 340, "height": 270,
 				          "buttons": [{ "title": "Cancel" }, { "title": "OK", "run": "applyTransform", "default": true }] },
 				"children": [
@@ -41,7 +41,7 @@
 		"temperaImageSizeDialog": {
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
-				"use": "dialog", "id": "image-size-dialog",
+				"id": "image-size-dialog", "use": "dialog",
 				"with": { "open": "state.resize.open", "title": "Image Size", "message": "", "width": 340, "height": 220,
 				          "buttons": [{ "title": "Cancel" }, { "title": "OK", "run": "applyImageSize", "default": true }] },
 				"children": [
@@ -65,7 +65,7 @@
 		"temperaCanvasSizeDialog": {
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
-				"use": "dialog", "id": "canvas-size-dialog",
+				"id": "canvas-size-dialog", "use": "dialog",
 				"with": { "open": "state.canvasSize.open", "title": "Canvas Size", "message": "", "width": 340, "height": 262,
 				          "buttons": [{ "title": "Cancel" }, { "title": "OK", "run": "applyCanvasSize", "default": true }] },
 				"children": [
@@ -76,8 +76,8 @@
 						{ "type": "row", "width": "100%", "height": 72, "gap": 8, "children": [
 							{ "style": "dim", "fitText": false, "text": "Anchor", "width": 90, "height": 20 },
 							{ "type": "grid", "id": "canvas-anchor", "columns": 3, "width": 72, "height": 72, "gap": 2, "children": [{
-								"repeat": { "for": "a", "in": "{{['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right']}}" },
-								"id": "anchor-{{a}}", "role": "radio", "label": "{{a}}", "focusable": true, "checked": "{{state.canvasSize.anchor == a}}",
+								"id": "anchor-{{a}}",
+								"repeat": { "for": "a", "in": "{{['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right']}}" }, "role": "radio", "label": "{{a}}", "focusable": true, "checked": "{{state.canvasSize.anchor == a}}",
 								"width": 22, "height": 22, "radius": 4, "color": "{{state.canvasSize.anchor == a ? '@accent' : '@input'}}",
 								"borderWidth": 1, "borderColor": "@border", "hover": { "borderColor": "@accent" },
 								"onClick": [{ "set": "state.canvasSize.anchor", "to": "{{a}}" }]
@@ -92,7 +92,7 @@
 		"temperaRenameDialog": {
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
-				"use": "dialog", "id": "rename-dialog",
+				"id": "rename-dialog", "use": "dialog",
 				"with": { "open": "state.rename.open", "title": "Rename Layer", "message": "", "width": 340, "height": 150,
 				          "buttons": [{ "title": "Cancel" }, { "title": "OK", "run": "applyRename", "default": true }] },
 				"children": [
@@ -111,14 +111,14 @@
 		"temperaFillDialog": {
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
-				"use": "dialog", "id": "fill-dialog",
+				"id": "fill-dialog", "use": "dialog",
 				"with": { "open": "state.fill.open", "title": "Fill", "message": "", "width": 340, "height": 150,
 				          "buttons": [{ "title": "Cancel" }, { "title": "OK", "run": "applyFill", "default": true }] },
 				"children": [
 					{ "type": "row", "id": "fill-fields", "anchors": { "left": 20, "right": 20, "top": 48 }, "height": 28, "gap": 8, "alignItems": "center",
 					  "children": [
 						{ "style": "dim", "fitText": false, "text": "Contents", "width": 70, "height": 20 },
-						{ "use": "tPicker", "id": "fill-contents", "with": { "title": "{{find(computed.fillContents, it.id == state.fill.contents).title}}", "tip": "What fills the selection",
+						{ "id": "fill-contents", "use": "tPicker", "with": { "title": "{{find(computed.fillContents, it.id == state.fill.contents).title}}", "tip": "What fills the selection",
 						  "width": 200, "open": "state.fill.menu", "inDialog": true,
 						  "items": "{{map(computed.fillContents, {title: it.title, checked: it.id == state.fill.contents, run: 'setFillContents', with: {args: {id: it.id}}})}}" } }
 					  ] }
@@ -130,7 +130,7 @@
 		"temperaCloseDialog": {
 			"node": {
 				"style": "clear", "width": 0, "height": 0, "children": [{
-				"use": "dialog", "id": "close-dialog",
+				"id": "close-dialog", "use": "dialog",
 				"with": { "open": "state.closeAsk", "title": "Close {{state.docName}}?", "width": 380, "height": 150,
 				          "message": "Its changes since it was opened or saved will be lost.",
 				          "buttons": [{ "title": "Cancel", "default": true }, { "title": "Close", "run": "discardDocument" }] }

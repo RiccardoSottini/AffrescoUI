@@ -17,6 +17,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace affresco::format {
 class Strings;
@@ -84,11 +85,21 @@ public:
 	/// @param message What is wrong.
 	/// @throws DocumentError Always.
 	[[noreturn]] void fail(const std::string& message) const;
+	/// @brief Spends from the running event's budget what a function does beyond an operation.
+	/// @param operations How many operations it comes to.
+	/// @throws DocumentError If the budget runs out.
+	void spend(std::size_t operations) const;
 	/// @brief Adds a piece to a text the function builds, which stays within textLimit.
 	/// @param text The text.
 	/// @param piece What it gets.
 	/// @throws DocumentError If the text would be longer.
 	void appendText(std::string& text, std::string_view piece) const;
+	/// @brief Calls a function of the document's program for a value being read.
+	/// @param name The function.
+	/// @param arguments Its arguments.
+	/// @return What it gives.
+	/// @throws DocumentError If there is no program, it fails, or it tries to do anything.
+	[[nodiscard]] json callProgram(const std::string& name, std::vector<json> arguments) const;
 	/// @brief The translations and locale of the document evaluated.
 	/// @return They, or nullptr (a tool's evaluation: English, no keys).
 	[[nodiscard]] const Strings* strings() const noexcept;
@@ -148,6 +159,8 @@ struct Function {
 /// @brief The table of the logic functions: `if`, `and`, `coalesce`, ... (ExpressionFunctionsLogic.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> logicFunctions();
+/// @brief Functions on forms of Lisp in a text (ExpressionFunctionsForms.cpp). @return The table.
+[[nodiscard]] std::span<const Function> formsFunctions();
 /// @brief The table of the number functions: `clamp`, `round`, `max`, ... (ExpressionFunctionsNumbers.cpp).
 /// @return Its rows.
 [[nodiscard]] std::span<const Function> numberFunctions();

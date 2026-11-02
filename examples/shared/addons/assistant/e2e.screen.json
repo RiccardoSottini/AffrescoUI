@@ -34,7 +34,7 @@
 	"root": {
 		"color": "#ffffff",
 		"children": [
-			{ "id": "pageTitle", "type": "label", "text": "Tasks", "textColor": "#1f2328", "anchors": { "left": 24, "top": 24 },
+			{ "type": "label", "id": "pageTitle", "text": "Tasks", "textColor": "#1f2328", "anchors": { "left": 24, "top": 24 },
 			  "fitText": true },
 			{
 				"id": "person", "anchors": { "left": 0, "top": 0 }, "width": 1, "height": 1,

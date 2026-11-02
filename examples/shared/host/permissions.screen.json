@@ -104,29 +104,30 @@
 		"color": "@prompt.background",
 		"children": [
 			{
-				"id": "content",
 				"type": "column",
+				"id": "content",
 				"fill": 24,
 				"gap": 12,
 				"alignItems": "stretch",
 				"children": [
 					{
-						"id": "title",
 						"type": "label",
+						"id": "title",
 						"height": 32,
 						"font": "title",
 						"textColor": "@prompt.text",
 						"text": "{{t('permissions.asks', { name: state.app.name })}}"
 					},
 					{
-						"id": "list",
 						"type": "column",
+						"id": "list",
 						"grow": 1,
 						"gap": 8,
 						"scroll": "vertical",
 						"alignItems": "stretch",
 						"children": [
 							{
+								"type": "row",
 								"id": "capability",
 								"repeat": {
 									"for": "capability",
@@ -134,7 +135,6 @@
 									"index": "i",
 									"key": "{{capability.key}}"
 								},
-								"type": "row",
 								"fitContent": "height",
 								"minHeight": 64,
 								"gap": 12,
@@ -146,8 +146,8 @@
 								"children": [
 									{ "id": "inset", "width": 2 },
 									{
-										"id": "allowed",
 										"type": "checkbox",
+										"id": "allowed",
 										"width": 20,
 										"height": 20,
 										"checked": "{{capability.allowed}}",
@@ -158,16 +158,16 @@
 										}
 									},
 									{
-										"id": "about",
 										"type": "column",
+										"id": "about",
 										"grow": 1,
 										"fitContent": "height",
 										"alignItems": "stretch",
 										"children": [
 											{ "id": "top", "height": 6, "color": "transparent" },
 											{
-												"id": "what",
 												"type": "label",
+												"id": "what",
 												"padding": 4,
 												"wrap": true,
 												"fitText": { "maxWidth": "{{window.width - 116}}" },
@@ -175,9 +175,9 @@
 												"text": "{{t('permissions.' + capability.kind, { name: capability.name })}}"
 											},
 											{
+												"type": "label",
 												"id": "why",
 												"when": "{{capability.why != ''}}",
-												"type": "label",
 												"padding": 4,
 												"wrap": true,
 												"fitText": { "maxWidth": "{{window.width - 116}}" },
@@ -193,24 +193,24 @@
 						]
 					},
 					{
-						"id": "hint",
 						"type": "label",
+						"id": "hint",
 						"height": 40,
 						"wrap": true,
 						"textColor": "@prompt.muted",
 						"text": "{{t('permissions.hint')}}"
 					},
 					{
-						"id": "buttons",
 						"type": "row",
+						"id": "buttons",
 						"height": 40,
 						"gap": 12,
 						"justify": "end",
 						"alignItems": "stretch",
 						"children": [
 							{
-								"id": "none",
 								"type": "label",
+								"id": "none",
 								"width": 150,
 								"radius": 8,
 								"color": "@prompt.surface",
@@ -220,8 +220,8 @@
 								"onClick": { "run": "decide", "with": { "all": false } }
 							},
 							{
-								"id": "allow",
 								"type": "label",
+								"id": "allow",
 								"width": 170,
 								"radius": 8,
 								"color": "@prompt.accent",

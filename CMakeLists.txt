@@ -140,9 +140,10 @@ include(cmake/AffrescoUISyntax.cmake)
 #
 #   core     interfaces + Signal: Executor, Channel, VersionControl, DocumentRules   (header-only)
 #   notation the notations documents are written in: JSON, and Lisp (S-expressions)  core
+#   lisp     the language: reader, compiler, machine, programs and their pure build  core, notation
 #   data     records: typed models, SQLite, queries, the journal, migrations         core
 #   render   rendering engine: windows, panels, text, OpenGL                         core
-#   format   JSON screen format: rules, expressions, building panels, actions        core, render, data
+#   format   JSON screen format: rules, expressions, building panels, actions        core, render, data, lisp
 #   themes   kits' components and themes' tokens, as JSON files built in            core
 #   vcs      version control: commits, branches, permission rules, review, change sets  core
 #   channel  communication: process/stdio channels, the live protocol                core, notation
@@ -168,7 +169,7 @@ endfunction()
 if(AFFRESCOUI_AUDIO)
 	add_subdirectory(modules/audio) # before format and screen, which use it
 endif()
-foreach(module core notation data render export format themes vcs channel net services screen automation intelligence)
+foreach(module core notation lisp data render export format themes vcs channel net services screen automation intelligence)
 	add_subdirectory(modules/${module})
 endforeach()
 add_subdirectory(modules/scene3d) # general 3D: the scene, glTF, picking, gizmos, the PBR renderer
@@ -277,12 +278,14 @@ if(AFFRESCOUI_BUILD_BENCHMARKS)
 		tests/perf/scaling_engine.cpp tests/perf/watch.cpp tests/perf/editor.cpp
 		tests/perf/search.cpp tests/perf/forge.cpp tests/perf/canvas.cpp tests/perf/graph.cpp tests/perf/budgets.cpp
 		tests/perf/syntax.cpp
+		tests/perf/lisp.cpp
 		tests/perf/tempera.cpp)
 	# Expression.hpp and render's Headless.hpp (a frame drawn without presenting it) stay private
 	target_include_directories(affrescoui_bench PRIVATE examples/shared apps/shared
 		$<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES> modules/render/src)
 	target_include_directories(affrescoui_bench SYSTEM PRIVATE $<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui)
+	target_link_libraries(affrescoui_bench PRIVATE affrescoui::lisp)
 	target_link_libraries(affrescoui_bench PRIVATE affrescoui::imaging)
 	target_compile_definitions(affrescoui_bench PRIVATE
 		AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples"

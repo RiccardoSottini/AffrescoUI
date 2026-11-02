@@ -6,6 +6,7 @@
 #include "CheckerImpl.hpp"
 #include "Contributions.hpp"
 #include "Models.hpp"
+#include "ProgramRules.hpp"
 #include "Shortcuts.hpp"
 
 #include <format>
@@ -23,17 +24,17 @@ constexpr auto nodeKeys = std::to_array<std::string_view>(
 
 /// The steps the runtime knows, by the key that names each, in the order the runtime looks for them (Steps.cpp).
 constexpr auto stepNames = std::to_array<std::string_view>(
-    {"set",       "push",          "remove",        "toggle",       "increment", "if",
-	 "forEach",   "while",         "run",           "call",         "cancel",    "emit",
-	 "send",      "connect",       "patch",         "accept",       "reject",    "preview",
-	 "restore",   "revert",        "undo",          "endPreview",   "focus",     "scrollTo",
-	 "press",     "navigate",      "dismiss",       "after",        "debounce",  "animate",
-	 "copy",      "log",           "stop",          "note",         "invoke",    "request",
-	 "subscribe", "respond",       "ask",           "signIn",       "signOut",   "camera",
-	 "transform", "image",         "chooseFolder",  "edit",         "audio",     "insert",
-	 "update",    "delete",        "undoData",      "redoData",     "importCsv", "attach",
-	 "cancelAsk", "openWindow",    "closeWindow",   "fullscreen",   "saveFile",  "openFile",
-	 "export",    "runInTerminal", "clearTerminal", "closeTerminal"});
+    {"set",       "push",          "remove",        "toggle",        "increment", "if",
+	 "forEach",   "while",         "run",           "call",          "cancel",    "emit",
+	 "send",      "connect",       "patch",         "accept",        "reject",    "preview",
+	 "restore",   "revert",        "undo",          "endPreview",    "focus",     "scrollTo",
+	 "press",     "navigate",      "dismiss",       "after",         "debounce",  "animate",
+	 "copy",      "log",           "stop",          "note",          "invoke",    "request",
+	 "subscribe", "respond",       "ask",           "signIn",        "signOut",   "camera",
+	 "transform", "image",         "chooseFolder",  "edit",          "audio",     "insert",
+	 "update",    "delete",        "undoData",      "redoData",      "importCsv", "attach",
+	 "cancelAsk", "openWindow",    "closeWindow",   "fullscreen",    "saveFile",  "openFile",
+	 "export",    "runInTerminal", "clearTerminal", "closeTerminal", "lisp"});
 
 /// The data layer's write steps (DataSteps.cpp): `then` sees `result`, `onError` sees `error` ({code, message}).
 constexpr auto dataSteps =
@@ -519,12 +520,18 @@ void Checker::walkStep(const json& step, const Scope& scope, const std::string& 
 		       "reject, "
 		       "preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, signIn, signOut, "
 		       "chooseFolder, audio, "
-		       "attach, saveFile, openFile, export, openWindow, closeWindow, fullscreen, runInTerminal, clearTerminal "
-		       "or closeTerminal");
+		       "attach, saveFile, openFile, export, openWindow, closeWindow, fullscreen, runInTerminal, clearTerminal, "
+		       "closeTerminal or lisp");
 		return;
 	}
 	if(*kind == "run") return walkRun(step, scope, place);
 	if(*kind == "forEach") return walkForEach(step, scope, place);
+	if(*kind == "lisp") {
+		if(const json* with = step.is_object() && step.contains("with") ? &step["with"] : nullptr)
+			read(*with, scope, place + ".with");
+		if(step["lisp"].is_string()) return callProgramFunction(step["lisp"].get<std::string>(), place);
+		return report(place, "\"lisp\" names a function of the program");
+	}
 
 	walkWrite(*kind, step, scope, place);
 	walkStepValues(*kind, step, scope, place);
@@ -601,6 +608,10 @@ void Checker::walkForEach(const json& step, const Scope& scope, const std::strin
 	if(const auto steps = step.find("do"); steps != step.end()) walkSteps(*steps, layer, place + ".do");
 }
 
+void Checker::callProgramFunction(const std::string& name, const std::string& place) {
+	if(!programReach(document_).defined.contains(name)) report(place, "the program has no function '" + name + "'");
+}
+
 void Checker::callAction(const std::string& name, const Scope& scope, const std::string& place) {
 	if(const json* steps = definition("actions", name)) {
 		actionsReached_.insert(name);
@@ -618,6 +629,8 @@ void Checker::callAction(const std::string& name, const Scope& scope, const std:
 		return;
 	}
 	if(nativeActions_.contains(name)) return;
+	if(const auto program = programReach(document_); program.defined.contains(name))
+		return; // a function of its program
 	report(place, "unknown action '" + name + "'", hint([&] {
 		       std::vector<std::string> names = definedNames("actions");
 		       names.insert(names.end(), nativeActions_.begin(), nativeActions_.end());

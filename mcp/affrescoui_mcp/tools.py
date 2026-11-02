@@ -51,9 +51,16 @@ TOOLS = [
                     "first, then the nodes you change with at. notation=\"lisp\" writes the document or the node "
                     "in the Lisp notation instead of JSON: the same tree as S-expressions, e.g. (label #title "
                     ":text Hello) for {\"type\": \"label\", \"id\": \"title\", \"text\": \"Hello\"} "
-                    "(get_format_guide topic \"Lisp notation\"); what changed since a read stays a JSON Patch.",
+                    "(get_format_guide topic \"Lisp notation\"); what changed since a read stays a JSON Patch. "
+                    "A program (get_format_guide topic \"The Lisp language\") reads as its definitions, each at "
+                    "/program/<file>/<name> as exact text with its comments, and the outline lists them; built=true "
+                    "adds the tree they build, which outline, at and find_nodes read anyway. Change a definition, not "
+                    "what it builds.",
      "inputSchema": object_schema({"full": {"type": "boolean", "description": "Everything, not what changed"},
                                    "notation": NOTATION,
+                                   "built": {"type": "boolean",
+                                             "description": "For a program: with the tree it builds, beside its "
+                                                            "definitions"},
                                    "at": {"type": "string", "description": "Only this node: \"#id\" or a JSON Pointer"},
                                    "outline": {"type": "boolean",
                                                "description": "The node tree: one line per node (address, type, text, "
@@ -65,7 +72,8 @@ TOOLS = [
      "description": "Search the screen's nodes (root, screens, templates, components) and get one line per match, as "
                     "in the outline, with its parent: by type (\"label\", or a component's name), by text (in the "
                     "text, placeholder or tooltip, any case), by a property it has (property, optionally with value). "
-                    "Criteria combine. Cheaper than reading the whole screen to find where to change something.",
+                    "Criteria combine. Cheaper than reading the whole screen to find where to change something. A "
+                    "program's definitions match too: by form (type \"defn\") or by anything in their text.",
      "inputSchema": object_schema({"type": {"type": "string", "description": "A node type or component name"},
                                    "text": {"type": "string", "description": "Text the node shows (part of it)"},
                                    "property": {"type": "string", "description": "A property the node has"},
@@ -147,7 +155,12 @@ TOOLS = [
                     "run is always proposed, and only the person accepts it (get_format_guide topic \"Assets\"). "
                     "With notation=\"lisp\", write the change in `revision` as Lisp text instead: an object with "
                     "the same keys, e.g. {:set {:\"#statusBar/color\" @topBar} :add {:\"#list/children/-\" (label "
-                    "#hello :text Hello)}}; it becomes the same JSON before it is committed.",
+                    "#hello :text Hello)}}; it becomes the same JSON before it is committed. In a program, a revision "
+                    "sets a definition's whole text at /program/<file>/<name> (\"/\" in a name is \"~1\"), or one "
+                    "keyword's value inside it, far cheaper: {\"set\": {\"/program/killring.lisp/kill-line/:title\": "
+                    "\"Kill\"}} (a string stays a string, {\"$form\": \"(str 1)\"} is written as one form). Rules "
+                    "judge what the new source builds: a build that fails, or that adds what no revision may, is "
+                    "refused, naming the definition.",
      "inputSchema": object_schema({
          "message": {"type": "string", "description": "One line, for the reviewer, saying what the change does"},
          "notation": NOTATION,

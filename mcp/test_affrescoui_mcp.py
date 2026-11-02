@@ -86,6 +86,52 @@ class Outline(unittest.TestCase):
         self.assertEqual(mcp.summary(node, "#label-long"), '"A sentence much longer t..."')
 
 
+class Programs(unittest.TestCase):
+    """A program's definitions: their addresses, in the outline and the search, and what get_screen reads."""
+
+    DOCUMENT = {"program": {"lib/kill.lisp": {
+        "kill-line": ";; Kills.\n(defcommand kill-line \"Kills.\" :title \"Kill\" [] nil)",
+        "defkey mod+/": "(defkey \"mod+/\" kill-line)"}},
+        "root": {"id": "panel-root", "children": [{"id": "title", "type": "label", "text": "Kill"}]}}
+
+    def test_definitions_have_addresses_that_round_trip(self):
+        found = mcp.definitions(self.DOCUMENT)
+        self.assertEqual([(a, k) for a, k, _ in found],
+                         [("/program/lib~1kill.lisp/kill-line", "defcommand"),
+                          ("/program/lib~1kill.lisp/defkey mod+~1", "defkey")])
+        for address, _, text in found:
+            self.assertEqual(mcp.locate(self.DOCUMENT, address), (address, text))
+
+    def test_the_outline_lists_them_before_the_nodes(self):
+        self.assertEqual(mcp.outline(self.DOCUMENT).splitlines()[:3],
+                         ["/program/lib~1kill.lisp/kill-line defcommand", "/program/lib~1kill.lisp/defkey mod+~1 defkey",
+                          "#panel-root"])
+        self.assertNotIn("/program", mcp.outline(self.DOCUMENT, "#title"))
+
+    def test_the_search_finds_them_by_form_and_text(self):
+        self.assertIn("/program/lib~1kill.lisp/defkey mod+~1 defkey", mcp.find_nodes(self.DOCUMENT, kind="defkey"))
+        found = mcp.find_nodes(self.DOCUMENT, text="kills")
+        self.assertTrue(found.startswith("1 found"), found)
+        self.assertIn("kill-line defcommand", found)
+        self.assertTrue(mcp.find_nodes(self.DOCUMENT, text="kill", prop="text").startswith("1 found"))  # a node
+
+    def test_get_screen_reads_the_source_unless_asked(self):
+        class Stub:
+            def request(self, message):
+                return {"type": "document", "revision": 1, "document": {**Programs.DOCUMENT, "state": {}},
+                        "source": {"program": Programs.DOCUMENT["program"]}, "state": {"n": 1}}
+
+        server = mcp.Server.__new__(mcp.Server)
+        server.host, server.seen, server.client = Stub(), None, "agent"
+        text, failed = server.get_screen({})
+        self.assertFalse(failed)
+        self.assertNotIn("panel-root", text)
+        self.assertIn("kill-line", text)
+        self.assertIn("panel-root", server.get_screen({"built": True, "full": True})[0])
+        text = server.get_screen({"at": "/program/lib~1kill.lisp/kill-line", "notation": "lisp"})[0]
+        self.assertTrue(text.endswith(';; Kills.\n(defcommand kill-line "Kills." :title "Kill" [] nil)'), text)
+
+
 class Nodes(unittest.TestCase):
     def test_locate_by_id_and_pointer(self):
         self.assertEqual(mcp.locate(SCREEN, "#logo"), ("/root/children/0/children/0", SCREEN["root"]["children"][0]

@@ -18,9 +18,10 @@ struct Engine;
 ///
 /// Invariants: actions nest at most maxActionDepth deep; errors in a handler are reported, never thrown into the
 /// event loop; a handler that changed the state asks for one update. While a proposal is previewed, control steps run
-/// only from the user's input (checkControl()). Callers: the events subsystem, the scheduler (timers, "every"), the
-/// reconciler (onShow, onHide, watch), Runtime::runAction() and build() (onLoad), and the step groups for nested
-/// steps. Main thread only.
+/// only from the user's input (checkControl()). While a program's code leads to a step, it is checked against who wrote
+/// that code (Programs::checkStep()), and what it schedules keeps them. Callers: the events subsystem, the scheduler
+/// (timers, "every"), the reconciler (onShow, onHide, watch), Runtime::runAction() and build() (onLoad), and the step
+/// groups for nested steps. Main thread only.
 class Steps {
 public:
 	/// @brief The step runner of an engine.
@@ -34,13 +35,22 @@ public:
 	/// @param locals The sender's variables.
 	/// @param where Its place, for errors.
 	void handle(const json& handler, Panel& sender, const json& event, const Scope& locals, const std::string& where);
-	/// @brief Runs an action from "actions", else a native one, else the unhandled fallback.
+	/// @brief Runs an action from "actions", else a function of the document's program, else a native one, else the
+	/// unhandled fallback.
 	/// @param name The action.
 	/// @param sender The panel it comes from.
 	/// @param event The event.
 	/// @param locals The caller's variables.
 	/// @param where Its place, for errors.
 	/// @throws DocumentError If a step fails, or nobody handles the action.
+	/// @brief What runNamed() runs, once its advice has had its turn.
+	/// @param name The action.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @param where Its place, for errors.
+	void runNamedAction(const std::string& name, Panel& sender, const json& event, const Scope& locals,
+	                    const std::string& where);
 	void runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
 	              const std::string& where);
 	/// @brief Runs steps in order.

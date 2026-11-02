@@ -48,6 +48,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/format/App.hpp>
+#include <affresco/lisp/Document.hpp>
 #include <affresco/notation/Notation.hpp>
 #include <affresco/format/Locale.hpp>
 #include <affresco/intelligence/Intelligence.hpp>
@@ -208,7 +209,7 @@ affresco::Screen bareScreen(const std::filesystem::path& file) {
 	if(!in)
 		throw affresco::ScreenError("AffrescoUI screen: could not open " + std::filesystem::absolute(file).string());
 	const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-	return affresco::Screen::fromString(text, file.parent_path());
+	return affresco::Screen::fromString(affresco::lisp::jsonText(text, file), file.parent_path());
 }
 
 /// @brief Finds what to open and reads what it asks for, keeping nothing on disk: an app's folder or its app.json, a

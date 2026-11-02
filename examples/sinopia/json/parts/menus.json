@@ -230,12 +230,12 @@
 					{ "type": "label", "id": "colors-none", "height": 24, "padding": 4, "style": "rbButton", "anchors": { "left": 8, "right": 8 },
 					  "runs": [{ "icon": "ban", "size": 14 }, { "text": "{{' ' + drop.none}}", "size": 12 }],
 					  "onClick": { "run": "pickColor", "with": { "id": "{{state.colors.id}}", "value": null } } },
-					{ "repeat": { "for": "sec", "in": "{{drop.sections}}", "index": "s" },
-					  "type": "column", "id": "{{'colors-s' + s}}", "anchors": { "left": 8, "right": 8 }, "height": "{{20 + ceil(length(sec.cells) / sec.columns) * 22 - 4}}", "gap": 4, "color": "transparent", "alignItems": "stretch", "children": [
+					{ "type": "column",
+					  "id": "{{'colors-s' + s}}", "repeat": { "for": "sec", "in": "{{drop.sections}}", "index": "s" }, "anchors": { "left": 8, "right": 8 }, "height": "{{20 + ceil(length(sec.cells) / sec.columns) * 22 - 4}}", "gap": 4, "color": "transparent", "alignItems": "stretch", "children": [
 						{ "type": "label", "id": "{{'colors-s' + s + '-title'}}", "height": 16, "textColor": "@rbMuted", "runs": [{ "text": "{{sec.title}}", "size": 11, "bold": true }] },
 						{ "type": "grid", "id": "{{'colors-s' + s + '-grid'}}", "columns": "{{sec.columns}}", "gap": 4, "height": "{{ceil(length(sec.cells) / sec.columns) * 22 - 4}}", "color": "transparent", "children": [
-							{ "repeat": { "for": "c", "in": "{{sec.cells}}", "index": "k" },
-							  "id": "{{'colors-s' + s + '-' + k}}", "width": "{{sec.columns > 6 ? 18 : 32}}", "height": 18, "radius": 3, "cursor": "hand", "role": "menuitem",
+							{ "id": "{{'colors-s' + s + '-' + k}}",
+							  "repeat": { "for": "c", "in": "{{sec.cells}}", "index": "k" }, "width": "{{sec.columns > 6 ? 18 : 32}}", "height": 18, "radius": 3, "cursor": "hand", "role": "menuitem",
 							  "let": { "line": "{{slice(c, 0, 5) == 'line:'}}", "slot": "{{slice(c, 0, 5) == 'line:' ? slice(c, 5) : c}}" },
 							  "color": "{{line ? '@card' : computed.palette[slot] ?? slot}}",
 							  "borderWidth": "{{line ? 2 : 1}}", "borderColor": "{{line ? computed.palette[slot] : '@rbFieldLine'}}", "hover": { "borderColor": "@brand" },

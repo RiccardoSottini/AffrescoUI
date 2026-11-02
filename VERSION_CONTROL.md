@@ -419,6 +419,108 @@ file's diff, and offers preview, accept and reject, or undo for an applied chang
 - **It adds no way to approve.** Its buttons are the person's, through the same `acceptProposal`, `rejectProposal` and
   revert the rest of the library uses, and the deny rules and review policies apply to them as ever.
 
+## Programs
+
+A document can hold a program (RFC 0005, [SCREEN_FORMAT.md](SCREEN_FORMAT.md), "The Lisp language"): definitions, each kept as
+its exact text with its comments, in a section `program`:
+
+```json
+{ "program": { "killring.lisp": { "kill-line": ";; Kills.\n(defcommand kill-line \"Kills.\" :title \"Kill\" [] nil)" } } }
+```
+
+**A program is there from the start.** A revision, a change set or a person's evaluation can't give an app with no program a `program`, or take the whole of one away: a JSON app is parsed and displayed, and gains no code.
+
+**Definitions are ordinary values, so nothing about the history changes.** Revisions, commits, hashes, revert, restore,
+proposals, rebases, change sets and blame work on `/program/<file>/<name>` as on any path (`/` in a name is `~1`, `~` is
+`~0`). The source is what is hashed and kept; what it builds is worked out from it. `VersionControl::document()` is what it
+builds with `program` kept, for the renderer and whatever reads a screen, and `sourceDocument()` is the source.
+
+**Rules judge what is built.** On a revision that touches `program`, the source before and after is built, purely, and every
+rule of this file judges the built trees, with `program` in them. So a definition that builds a `permissions` section, a
+protected step, or a `channels` or `persist` change is refused as it is in JSON, however it is computed: by a macro, a function, a
+keyword edit. A build that fails or exhausts its budget (2,000,000 operations, 16 MiB) refuses the revision, and the error
+names the definition. So does:
+
+- a text that isn't one form with the name of its address, or a name another file defines;
+- a definition over 1 MiB, or a program of more than 16,384 definitions;
+- taking away a definition that another's body still uses, which the build alone wouldn't notice;
+- an edit of what is built (`#title/text`, `/actions/kill-line`): it says to change its definition;
+- a `def` or a `defcustom` whose value can't be worked out, used or not: it is worked out at the build, purely;
+- a section both written and built with different contents, or a program building `include`, `assets`, `features` or `program`.
+
+A document can hold other sections beside `program` (a JSON screen that includes a program, an asset a revision brought): they
+are merged member by member with what it builds. **A definition's `state` is what a key starts from, and a person's data is never
+lost to a change of the program:** a key with no live value gets it, a key still at the definition's old value follows the new one,
+and a key that was changed keeps what it holds, through the change and through its undo. What that does to the live state is judged
+as a revision on `/state` would be.
+
+**The keyword edit.** Replacing a whole form costs far more than a small change is worth, so a revision can address one keyword's
+value inside it: `{"set": {"/program/killring.lisp/kill-line/:title": "Kill"}}`, and `.../main/:window/:title` inside a map.
+It reaches the options of `defcommand`, `defscreen` and `defcustom`, never a function's body. A string stays a string,
+another value is written in the notation, and `{"$form": "(str 1)"}` is exactly one form, or refused. Every other byte of
+the text stays, and history holds a plain `replace` of the entry, so RFC 6902 holds and text and structure can't disagree.
+
+**`allow`, `ask`, `deny`** cover `/program/...` paths and nodes alike, and `allow` must cover all a change does: an author allowed
+`/program/app.lisp` can change a function's body alone, but a change of what is built is reviewed unless that is allowed too.
+Each definition is one area, so "Always allow" remembers that one definition.
+
+**Data rules.** `read`, `write` and `never` work on `/program/...` and on the built tree, by effect. What a limited reader gets
+was a choice, made to deny rather than leak:
+
+- **A limited reader sees no definition its `read` doesn't name**, whatever its other limits are: a text may hold a value that is
+  masked elsewhere, or show how a function reads a masked path. What is built reaches it masked by its rules as any tree does.
+  A definition a `read` names is given whole, literals included.
+- **A limited reader can't change a program at all.** A definition runs when it is built, on any other definition's value, and
+  its result lands in what its author reads, so the masks wouldn't hold. Its revision is refused, saying so. An author with
+  only `write` rules isn't a limited reader, and may write what they name.
+
+**Impact and behaviour.** Impact per layer counts the built trees' view, logic and model changes, and to the logic each changed
+definition that does more than what it builds (`defn`, `def`, `defmacro`, `defcommand`, a hook or advice); `behaviourLines` lists them
+(`changes the definition 'kill-line' of killring.lisp`).
+
+**The changes, file by file.** The file view lists each changed `.lisp` file with its definitions' texts, comments included, and
+a row marked `"built": true` with the trees they build, side by side. Diffs and `proposalDiff` are the source's patch.
+
+**A history goes on when only the order of a file's keys changed:** the same content, in another order, is the same screen. A program replacing a JSON app (Streak and Calamaio, in this release) is another screen: its old history is kept aside, as for any changed file.
+
+**Blame** answers per definition. A node a program builds has no commit of its own: blaming it says to blame its definition.
+
+**Authors.** `VersionControl::programAuthors()` gives who wrote each definition: the author of the commit on `main` that last changed
+it, and `"file"` for what the file on disk had. Three things can't move a text to someone with more authority:
+
+- **Accepting** isn't writing: a merged proposal's definitions stay its author's.
+- **The person's own restore or revert** that brings back a text someone else wrote leaves it theirs: for an entry the person's commit last
+  changed, the author is the first writer of that exact text on `main`.
+- **A preview**: what the proposal shown changes is its author's, for as long as it is shown.
+
+**Control steps in functions.** A revision can't add a way to run a control step, and a function counts as what it reaches: nothing runs
+but what a name reaches, and the language has no way to find a global from a value, so the build can say exactly which definitions reach a
+control or a review step, or `run`, which takes a computed name. So a handler, a key, a timer or `onLoad` a revision adds can't name one,
+as with an action that holds such a step. That is the first line. The second is at run time, however it got there: code by anyone but the
+person or the app's file may not run a control step at all ([SECURITY.md](SECURITY.md), "The Lisp language"). So an agent's accepted function may
+do what a revision may add to a handler, and no more, as a proposal can't add a control step to JSON either.
+
+**The person's own input.** Evaluating a form **they typed** in a running app is a revision by the author `user` (`VersionControl::commitOwnInput()`, reached only from the step
+`evaluate`, or from `undo`, `revert` or `restore`, each on the person's own press; what they didn't type is a proposal, below, and SCREEN_FORMAT.md, "What the person typed"). It only touches `/program/`, and it lands marked `ownInput`, which the commit's hash covers. It is judged as any revision
+but for one rule: **what reaches a control step may change**, as that is what only the person may do. Everything else holds: what no revision may change (`permissions`, `channels`,
+`persist`, `services`...), deny rules, what it builds, and the limits. No peer has a way to it: a revision that says `"author": "user"` is scanned as any other, and a channel can't name its author so. Text that a commit on `main` first
+wrote stays that author's even if the person evaluates exactly it. An agent's revert of the person's change stays refused when it would change what reaches a control step.
+
+**What arrives from elsewhere** is a proposal. The step `propose` takes definitions as text (an `init.lisp`) or a change set, and proposes them in the name `plugin:<name>`, whatever the rules would let it do; the step `evaluate` does that with what the person didn't type, in the name `plugin:evaluated`. Accepting
+doesn't move them to anyone with more authority, as with any proposal: its code has what a revision has, so a control step in it is refused when it runs, and one a key or a handler reaches is refused when it arrives. A form that isn't a definition can't be in it. So
+an **init file is a change set**: what a person evaluated is exported (`exportChanges`, `only`), imported (`importChanges`, as `plugin:<name>`, no `ownInput` mark, the scan on) and undone like any customisation, and a copy somewhere else gets
+no more authority than a change set has. To have a function's control step work there, the person evaluates it themselves.
+
+**Hooks and advice** (`defhook`, `add-hook`, `remove-hook`, `advice`) are entries like any other: they merge, blame says who added which, and undo removes them. **Adding, or taking away, any advice, or a hook whose hook point meets a
+control step (a definition reaching one that also runs hooks, or an action that does), is always reviewed, as `reviewLines` says:** the same review changing what it joins takes. A function counts as reaching what its advice reaches, and
+`run-hooks` what every hook reaches, so the scan refuses advice or a hook that would give a key's function a way to a control step. A hook or advice may only name a function of the program, and advice only what the program or the document's `actions` have: a step or a primitive can't be
+named.
+
+**Records.** A new or changed definition that uses a step that writes records (`insert`, `update-record`, `delete`, `undoData`, `redoData`,
+`importCsv`) is always reviewed, as a new write step in a handler is.
+
+**Features.** A feature's manifest can't hold a program's definitions yet: it is refused, saying so.
+
 ## Impact per layer
 
 A screen is four layers: the view (nodes, styles, bindings), the logic (actions, `computed`, `queries`, the
@@ -677,4 +779,5 @@ agent's, an in-screen `features.compose` is `features`'. A person can ask an age
 | History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff`, `blame` | `getHistory` (`limit`), `diff`, `blame` (`target`), `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `get_blame`, `revert_revision`, `restore_revision` |
 | Change sets | `exportChanges`, `importChanges`, `hasImported` | `exportChanges` | `export_changes` |
 | History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |
+| Programs | `sourceDocument`, `programAuthors` | `source` in `hello` and `document` | `get_screen`, `find_nodes`, `submit_revision` |
 | In the screen file | `permissions` (`allow`, `ask`, `deny`, `reviewers`), `locked`, steps `accept`/`reject`/`preview`/`endPreview`/`restore`/`revert`/`undo`, variables `proposals`/`history`/`preview`/`mode` | | |

@@ -52,8 +52,8 @@ json contextOf(Engine& engine) {
 		const Record* record = engine.reconciler.recordOf(p);
 		if(!record || !record->context.is_object()) continue;
 		try { // an inner node's keys win
-			context.update(engine.document.evaluate(record->context, *record->locals, json::object(),
-			                                        record->path + ".context"));
+			context.update(
+			    engine.document.evaluate(record->context, *record->locals, json::object(), record->path + ".context"));
 		} catch(const DocumentError& error) {
 			engine.report(error.what());
 		}
@@ -85,8 +85,10 @@ void addBindings(Engine& engine, json& list, const json& keys, const std::string
 		const json bindings = isBindingList(handler) ? handler : json::array({handler});
 		for(const json& binding : bindings) {
 			const json& run = isBinding(binding) ? binding["do"] : binding;
-			json entry = {{"key", key},       {"keyLabel", keyLabel(key, notation)},
-			              {"command", nullptr}, {"title", nullptr},
+			json entry = {{"key", key},
+			              {"keyLabel", keyLabel(key, notation)},
+			              {"command", nullptr},
+			              {"title", nullptr},
 			              {"when", isBinding(binding) ? binding.value("when", json()) : json()},
 			              {"scope", scope}};
 			if(run.is_string()) {
@@ -109,9 +111,9 @@ json keybindingsOf(Engine& engine) {
 	const json& document = engine.versions.document();
 	const json actions = document.value("actions", json::object());
 	const json window = document.value("window", json::object());
-	const std::string notation =
-	    window.is_object() && window.contains("keyLabels") && window["keyLabels"].is_string() ? window["keyLabels"]
-	                                                                                           : "platform";
+	const std::string notation = window.is_object() && window.contains("keyLabels") && window["keyLabels"].is_string()
+	                                 ? window["keyLabels"]
+	                                 : "platform";
 	json list = json::array();
 	addBindings(engine, list, document.value("keys", json()), "screen", actions, notation);
 	json nodes = json::array();
@@ -145,6 +147,8 @@ json commandsOf(Engine& engine) {
 		                {"enabled", commandEnabled(engine, name)},
 		                {"key", nullptr},
 		                {"keyLabel", nullptr}};
+		if(const auto arguments = action.find("arguments"); arguments != action.end())
+			command["arguments"] = *arguments;
 		if(bindings)
 			for(const json& binding : *bindings)
 				if(binding["command"] == name) {
@@ -387,7 +391,8 @@ void showMenuBar(Engine& engine) {
 				const std::string at = "window.menuBar[" + std::to_string(i) + "]";
 				const json& top = expect::object(menuBar[i], at);
 				const std::string& name = expect::string(top.contains("menu") ? top["menu"] : json(), at + ".menu");
-				if(!menus || !menus->contains(name)) expect::fail(at + ".menu", "there is no menu '" + name + "' in \"menus\"");
+				if(!menus || !menus->contains(name))
+					expect::fail(at + ".menu", "there is no menu '" + name + "' in \"menus\"");
 				if(top.contains("title")) static_cast<void>(expect::string(top["title"], at + ".title"));
 				bar.push_back(
 				    {{"title", declaredText(engine, top, "title", name, at + ".title")}, {"submenu", (*menus)[name]}});
@@ -421,12 +426,14 @@ void checkMenus(const json& section, const std::string& name) {
 			const std::string at = std::format("{}.{}.{}", name, menu, key);
 			for(const auto& [property, value] : expect::object(item, at).items())
 				if(std::ranges::find(keys, property) == keys.end())
-					expect::fail(at, "unknown key '" + property + "' (a menu item has run, with, submenu, group, order, "
-					                 "when, title, icon)");
+					expect::fail(at, "unknown key '" + property +
+					                     "' (a menu item has run, with, submenu, group, order, "
+					                     "when, title, icon)");
 			if(!item.contains("run") && !item.contains("submenu"))
 				expect::fail(at, R"(a menu item needs "run" or "submenu")");
 			if(item.contains("submenu") && !section.contains(expect::string(item["submenu"], at + ".submenu")))
-				expect::fail(at + ".submenu", "there is no menu '" + item["submenu"].get<std::string>() + "' in \"menus\"");
+				expect::fail(at + ".submenu",
+				             "there is no menu '" + item["submenu"].get<std::string>() + "' in \"menus\"");
 			if(item.contains("order") && !item["order"].is_number()) expect::fail(at + ".order", "expected a number");
 			if(item.contains("group")) (void)expect::string(item["group"], at + ".group");
 		}
@@ -444,9 +451,8 @@ bool isCommand(const json& action) {
 
 void checkCommand(const json& action, const std::string& where) {
 	if(!action.is_object()) return;
-	const bool command = std::ranges::any_of(action.items(), [](const auto& item) {
-		return commandKey(item.key()) && item.key() != "do";
-	});
+	const bool command = std::ranges::any_of(
+	    action.items(), [](const auto& item) { return commandKey(item.key()) && item.key() != "do"; });
 	const bool steps = std::ranges::any_of(action.items(), [](const auto& item) { return !commandKey(item.key()); });
 	if(command && steps)
 		fail(where, "an action is a command (title, category, icon, enablement, description, do) or steps, not both");

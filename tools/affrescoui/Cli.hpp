@@ -161,6 +161,19 @@ Exit formatScreen(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit convertFile(std::span<const std::string_view> args);
 
+/// @brief What `affrescoui run` does for a Lisp file it doesn't show: prints the tree it builds, for a program (which has
+/// no window before the language is connected to apps) or with `--print`.
+/// @param file The file.
+/// @param print `--print` was given.
+/// @return How it ended, or std::nullopt if the file is to be shown as any screen is.
+/// @throws FileProblem If it can't be built, naming the place.
+std::optional<Exit> runLisp(const std::filesystem::path& file, bool print);
+
+/// @brief `affrescoui repl`: reads forms and prints their values; nothing here reaches outside the program.
+/// @param args Nothing.
+/// @return Success.
+Exit lispRepl(std::span<const std::string_view> args);
+
 /// @brief `ids`: gives readable ids to the nodes of a file that have none.
 /// @param args The arguments.
 /// @return How it ended.

@@ -60,9 +60,9 @@
 	"state": {
 		"theme": "forge-dark",
 		"themes": [
-			{ "id": "forge-dark", "name": "Forge Dark", "type": "dark" },
-			{ "id": "forge-light", "name": "Forge Light", "type": "light" },
-			{ "id": "forge-high-contrast", "name": "Forge High Contrast", "type": "hc" }
+			{ "type": "dark", "id": "forge-dark", "name": "Forge Dark" },
+			{ "type": "light", "id": "forge-light", "name": "Forge Light" },
+			{ "type": "hc", "id": "forge-high-contrast", "name": "Forge High Contrast" }
 		],
 		"imported": null,
 		"importedFile": "",

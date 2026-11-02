@@ -179,6 +179,7 @@ void LanguageEditor::typeCharacter(const CharEvent& event) {
 		setSelection(start, end);
 		return endEdit();
 	}
+	markTyped();
 	beginEdit(Edit::Typing);
 	replaceSelection(std::u32string{c, closerOf(c)});
 	const Position inside{at.line, at.column + 1};
@@ -192,6 +193,7 @@ bool LanguageEditor::deleteEmptyPair() {
 	if(!language_ || hasSelection() || !cursors().empty() || c.column == 0 || c.column >= text.size() ||
 	   closerOf(text[c.column - 1]) != text[c.column])
 		return false;
+	markTyped();
 	beginEdit(Edit::Deleting);
 	erase({c.line, c.column - 1}, {c.line, c.column + 1});
 	setSelection({c.line, c.column - 1}, {c.line, c.column - 1});

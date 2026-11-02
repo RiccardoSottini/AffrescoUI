@@ -46,7 +46,7 @@ struct Sides {
 		for(const char* key : {"path", "from"})
 			if(operation.contains(key) && operation[key].is_string()) {
 				std::string path = operation[key].get<std::string>();
-				if(sectionOf(path) != "assets") paths.insert(std::move(path));
+				if(sectionOf(path) != "assets" && sectionOf(path) != "program") paths.insert(std::move(path));
 			}
 	}
 	return paths;
@@ -64,7 +64,7 @@ void project(const json& value, const std::string& pointer, const std::string& f
              const std::set<std::string>& touched, json& out) {
 	for(const auto& [key, member] : value.items()) {
 		const std::string path = detail::SourceMap::child(pointer, key);
-		if(pointer.empty() && key == "assets") continue;
+		if(pointer.empty() && (key == "assets" || key == "program")) continue; // listed on their own
 		if(sectionOf(path) == "state") {
 			const auto near = [&path](const std::string& t) {
 				return t == path || t.starts_with(path + '/') || path.starts_with(t + '/');
@@ -166,15 +166,13 @@ void project(const json& value, const std::string& pointer, const std::string& f
 
 /// @brief One file's row: its counts and, when asked for, its texts.
 /// @param shown The name to show.
-/// @param before The file's part before the change.
-/// @param after The file's part after it.
-/// @param lisp Whether in the Lisp notation.
+/// @param original The file's text before the change.
+/// @param modified Its text after it.
 /// @param withText Whether to give the texts.
 /// @return `{"file", "added", "removed", "before"?, "after"?}`, or with `"tooLarge": true`.
-[[nodiscard]] json fileRow(const std::string& shown, const json& before, const json& after, bool lisp, bool withText) {
+[[nodiscard]] json textRow(const std::string& shown, const std::string& original, const std::string& modified,
+                           bool withText) {
 	json row = {{"file", shown}};
-	const std::string original = printed(before, lisp);
-	const std::string modified = printed(after, lisp);
 	if(original.size() > mostFileText || modified.size() > mostFileText) {
 		row["tooLarge"] = true;
 		return row;
@@ -194,6 +192,50 @@ void project(const json& value, const std::string& pointer, const std::string& f
 		row["after"] = modified;
 	}
 	return row;
+}
+
+/// @brief A program's file as a reviewer reads it: its definitions' texts, comments and all, one after another.
+/// @param document The document.
+/// @param file The file.
+/// @return The text; nothing if the document has no such file.
+[[nodiscard]] std::string programText(const json& document, const std::string& file) {
+	std::string text;
+	const auto section = document.find("program");
+	if(section == document.end() || !section->contains(file)) return text;
+	for(const auto& [name, entry] : (*section)[file].items()) {
+		if(!text.empty()) text += "\n\n";
+		text += entry.get<std::string>();
+	}
+	return text;
+}
+
+/// @brief The rows of the program's files a change touches.
+/// @param sides The two sides.
+/// @param wanted The file to give the text of.
+/// @param files Gets them.
+void addProgramRows(const Sides& sides, const std::string& wanted, json& files) {
+	std::set<std::string> names;
+	for(const json* side : {&sides.before, &sides.after})
+		if(const auto section = side->find("program"); section != side->end())
+			for(const auto& [file, entries] : section->items()) names.insert(file);
+	for(const std::string& file : names) {
+		const std::string before = programText(sides.before, file), after = programText(sides.after, file);
+		if(before != after) files.push_back(textRow(file, before, after, file == wanted));
+	}
+}
+
+/// @brief What a side of a change builds, as a reviewer reads it: the tree without the source or the live state.
+/// @param rules The rules.
+/// @param side The side, its live state in it.
+/// @param lisp Whether in the Lisp notation.
+/// @return The text; nothing if it holds no program.
+[[nodiscard]] std::string builtText(const DocumentRules& rules, const json& side, bool lisp) {
+	json source = side;
+	source.erase("state");
+	std::optional<json> tree = rules.built(source);
+	if(!tree) return {};
+	tree->erase("program");
+	return printed(*tree, lisp);
 }
 
 /// @brief The name a reviewer knows a file by: its path from the screen's folder, without the climb to a shared folder.
@@ -231,7 +273,15 @@ json Screen::Impl::fileChanges(const json& request) const {
 		json after = json::object();
 		project(sides.before, "", owner, sources, touched, before);
 		project(sides.after, "", owner, sources, touched, after);
-		files.push_back(fileRow(shown, before, after, lisp, shown == wanted));
+		files.push_back(textRow(shown, printed(before, lisp), printed(after, lisp), shown == wanted));
+	}
+	addProgramRows(sides, wanted, files);
+	// Beside the definitions, what they build: it is what the running app shows
+	if(const std::string before = builtText(rules, sides.before, lisp), after = builtText(rules, sides.after, lisp);
+	   before != after) {
+		json row = textRow("what it builds", before, after, wanted == "what it builds");
+		row["built"] = true;
+		files.push_back(std::move(row));
 	}
 	json answer = sides.description;
 	answer["files"] = std::move(files);

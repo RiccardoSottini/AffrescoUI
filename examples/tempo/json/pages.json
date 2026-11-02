@@ -116,8 +116,8 @@
 					{ "id": "browseSummary", "style": "caption", "anchors": { "left": 32, "top": 70 },
 						"text": "{{t(state.page == 'artists' ? 'browse.artists' : 'browse.albums', { n: length(computed.browseItems) })}}" },
 					{
-						"id": "browseGrid",
 						"type": "grid",
+						"id": "browseGrid",
 						"anchors": { "left": 24, "right": 24, "top": 100, "bottom": 0 },
 						"columns": "{{computed.browseColumns}}",
 						"gap": 8,
@@ -139,10 +139,10 @@
 								"label": "{{t('browse.label', { name: item.name, songs: t('songs', { n: item.count }) })}}",
 								"onClick": { "run": "openCollection", "with": { "kind": "{{item.kind}}", "name": "{{item.name}}" } },
 								"children": [
-									{ "id": "tileArt", "type": "label", "text": "{{slice(item.name, 0, 1)}}", "font": "large", "align": "center", "textColor": "#141826",
+									{ "type": "label", "id": "tileArt", "text": "{{slice(item.name, 0, 1)}}", "font": "large", "align": "center", "textColor": "#141826",
 										"anchors": { "left": 8, "right": 8, "top": 8 }, "height": 140, "radius": "{{item.kind == 'artist' ? 40 : 14}}",
 										"color": "{{state.tileColors[item.hue % 8]}}" },
-									{ "id": "tileName", "type": "label", "text": "{{item.name}}", "textColor": "@text", "align": "center", "anchors": { "left": 8, "right": 8, "top": 156 }, "height": 20 },
+									{ "type": "label", "id": "tileName", "text": "{{item.name}}", "textColor": "@text", "align": "center", "anchors": { "left": 8, "right": 8, "top": 156 }, "height": 20 },
 									{ "id": "tileCount", "style": "caption", "text": "{{t('songs', { n: item.count })}}", "align": "center", "fitText": false, "anchors": { "left": 8, "right": 8, "top": 180 }, "height": 16 }
 								]
 							}
@@ -168,19 +168,19 @@
 							{ "id": "collectionBack", "style": "control", "icon": "arrow-left", "mirror": true, "anchors": { "left": 12, "top": 12 }, "width": 32,
 								"color": "@surface", "focusable": true, "role": "button", "label": "{{t('collection.back')}}", "tooltip": "{{t('collection.back')}}",
 								"onClick": { "set": "state.page", "to": "{{state.collection.kind == 'artist' ? 'artists' : 'albums'}}" } },
-							{ "id": "collectionArt", "type": "label", "text": "{{slice(state.collection.name, 0, 1)}}", "font": "large", "align": "center", "textColor": "#141826",
+							{ "type": "label", "id": "collectionArt", "text": "{{slice(state.collection.name, 0, 1)}}", "font": "large", "align": "center", "textColor": "#141826",
 								"anchors": { "left": 56, "top": 24 }, "width": 84, "height": 84, "radius": "{{state.collection.kind == 'artist' ? 24 : 12}}",
 								"color": "{{state.tileColors[max(computed.collectionHue, 0) % 8]}}" },
 							{ "id": "collectionKind", "style": "caption", "text": "{{t(state.collection.kind == 'artist' ? 'collection.artist' : 'collection.album')}}", "anchors": { "left": 164, "top": 28 } },
-							{ "id": "collectionName", "type": "label", "text": "{{state.collection.name}}", "font": "large", "textColor": "@text", "anchors": { "left": 162, "top": 44 }, "fitText": true },
+							{ "type": "label", "id": "collectionName", "text": "{{state.collection.name}}", "font": "large", "textColor": "@text", "anchors": { "left": 162, "top": 44 }, "fitText": true },
 							{ "id": "collectionCount", "style": "caption", "text": "{{t('songs', { n: length(computed.collectionRows) })}}", "anchors": { "left": 164, "top": 88 } },
 							{ "id": "playCollectionButton", "style": "playButton", "text": "{{t('play')}}", "anchors": { "right": 32, "top": 50 },
 								"label": "{{t('play.label', { name: state.collection.name })}}", "onClick": "playCollection" }
 						]
 					},
 					{
-						"id": "collectionTable",
 						"type": "table",
+						"id": "collectionTable",
 						"anchors": { "left": 24, "right": 24, "top": 148, "bottom": 8 },
 						"color": "transparent",
 						"rowHeight": 30,
@@ -219,10 +219,10 @@
 						"height": 132,
 						"color": "@surface",
 						"children": [
-							{ "id": "likedArt", "type": "label", "icon": "heart", "text": "", "font": "iconsLarge", "align": "center", "textColor": "@onAccent",
+							{ "type": "label", "id": "likedArt", "icon": "heart", "text": "", "font": "iconsLarge", "align": "center", "textColor": "@onAccent",
 								"anchors": { "left": 32, "top": 24 }, "width": 84, "height": 84, "radius": 6, "color": "@accent" },
 							{ "id": "likedCaption", "style": "caption", "text": "{{t('liked.caption')}}", "anchors": { "left": 140, "top": 28 } },
-							{ "id": "likedName", "type": "label", "text": "{{t('liked.title')}}", "font": "large", "textColor": "@text", "anchors": { "left": 138, "top": 44 }, "fitText": true },
+							{ "type": "label", "id": "likedName", "text": "{{t('liked.title')}}", "font": "large", "textColor": "@text", "anchors": { "left": 138, "top": 44 }, "fitText": true },
 							{ "id": "likedCount", "style": "caption", "text": "{{t('songs', { n: length(computed.likedRows) })}}", "anchors": { "left": 140, "top": 88 } },
 							{ "id": "playLikedButton", "style": "playButton", "text": "{{t('play')}}", "anchors": { "right": 32, "top": 50 }, "when": "{{length(computed.likedRows) > 0}}",
 								"label": "{{t('play.label', { name: t('liked.title') })}}", "onClick": { "run": "playLiked", "with": { "key": "{{computed.likedRows[0].id}}" } } }
@@ -231,8 +231,8 @@
 					{ "id": "likedEmpty", "style": "caption", "when": "{{length(computed.likedRows) == 0}}", "text": "{{t('liked.empty')}}",
 						"anchors": { "left": 32, "right": 32, "top": 164 }, "wrap": true },
 					{
-						"id": "likedTable",
 						"type": "table",
+						"id": "likedTable",
 						"when": "{{length(computed.likedRows) > 0}}",
 						"anchors": { "left": 24, "right": 24, "top": 148, "bottom": 8 },
 						"color": "transparent",
@@ -267,8 +267,8 @@
 				"children": [
 					{ "id": "searchTitle", "style": "pageTitle", "text": "{{t('menu.search')}}" },
 					{
-						"id": "searchField",
 						"type": "textarea",
+						"id": "searchField",
 						"anchors": { "left": 32, "right": 32, "top": 72 },
 						"height": 36,
 						"padding": 10,
@@ -288,8 +288,8 @@
 					{ "id": "searchCount", "style": "caption", "live": "polite", "anchors": { "left": 32, "top": 118 },
 						"text": "{{trim(state.search) == '' ? t('search.hint') : t('search.found', { n: length(computed.searchRows) })}}" },
 					{
-						"id": "searchTable",
 						"type": "table",
+						"id": "searchTable",
 						"anchors": { "left": 24, "right": 24, "top": 144, "bottom": 8 },
 						"color": "transparent",
 						"rowHeight": 30,
@@ -321,11 +321,11 @@
 				"dir": "auto",
 				"color": "transparent",
 				"children": [
-					{ "id": "nowCover", "type": "image", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 8, "anchors": { "left": 32, "top": 32 }, "width": 160, "height": 160,
+					{ "type": "image", "id": "nowCover", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 8, "anchors": { "left": 32, "top": 32 }, "width": 160, "height": 160,
 						"role": "img", "label": "{{computed.playingName}}" },
 					{ "id": "nowCaption", "style": "caption", "text": "{{state.isPlaying ? t('queue.now') : t('now.paused')}}", "anchors": { "left": 216, "top": 56 } },
-					{ "id": "nowTitle", "type": "label", "text": "{{computed.track.title}}", "font": "large", "textColor": "@text", "anchors": { "left": 214, "right": 32, "top": 76 }, "height": 40 },
-					{ "id": "nowArtist", "type": "label", "text": "{{computed.track.artist}}  ·  {{computed.track.album}}", "textColor": "@muted", "anchors": { "left": 216, "right": 32, "top": 122 }, "height": 20 },
+					{ "type": "label", "id": "nowTitle", "text": "{{computed.track.title}}", "font": "large", "textColor": "@text", "anchors": { "left": 214, "right": 32, "top": 76 }, "height": 40 },
+					{ "type": "label", "id": "nowArtist", "text": "{{computed.track.artist}}  ·  {{computed.track.album}}", "textColor": "@muted", "anchors": { "left": 216, "right": 32, "top": 122 }, "height": 20 },
 					{ "id": "nowCrossfade", "when": "{{computed.crossfading}}", "style": "caption", "live": "polite", "textColor": "@accent", "anchors": { "left": 216, "top": 150 },
 						"text": "{{t('now.crossfading', { title: computed.nextTitle })}}" },
 					{
@@ -338,17 +338,17 @@
 						"role": "img",
 						"label": "{{t('now.visualiser')}}",
 						"children": [
-							{ "id": "visualiserBars", "type": "path", "d": "{{computed.bars}}", "viewBox": "0 0 320 120", "fit": "fill",
+							{ "type": "path", "id": "visualiserBars", "d": "{{computed.bars}}", "viewBox": "0 0 320 120", "fit": "fill",
 								"anchors": { "left": 8, "right": 8, "top": 0, "bottom": 0 },
 								"fillGradient": { "kind": "linear", "angle": 90, "stops": [{ "at": 0, "color": "@accentHover" }, { "at": 1, "color": "@accent" }] } },
-							{ "id": "visualiserReflections", "type": "path", "d": "{{computed.barReflections}}", "viewBox": "0 0 320 120", "fit": "fill",
+							{ "type": "path", "id": "visualiserReflections", "d": "{{computed.barReflections}}", "viewBox": "0 0 320 120", "fit": "fill",
 								"anchors": { "left": 8, "right": 8, "top": 0, "bottom": 0 }, "fillColor": "@accentSoft" }
 						]
 					},
 					{ "id": "lyricsCaption", "style": "caption", "text": "{{t('now.lyrics')}}", "anchors": { "left": 32, "top": 356 } },
 					{
-						"id": "lyrics",
 						"type": "stack",
+						"id": "lyrics",
 						"anchors": { "left": 32, "right": 32, "top": 380 },
 						"height": 140,
 						"gap": 2,
@@ -356,9 +356,9 @@
 						"label": "{{t('now.lyrics')}}",
 						"children": [
 							{
+								"type": "label",
 								"id": "lyric",
 								"repeat": { "for": "line", "in": "computed.lyricWindow" },
-								"type": "label",
 								"role": "listitem",
 								"text": "{{line.text}}",
 								"font": "{{line.current ? 'heading' : 'default'}}",
@@ -388,13 +388,13 @@
 				"children": [
 					{ "id": "soundTitle", "style": "pageTitle", "text": "{{t('menu.sound')}}" },
 					{ "id": "equaliserCaption", "style": "caption", "text": "{{t('sound.equaliser')}}", "anchors": { "left": 32, "top": 80 } },
-					{ "id": "equaliserNote", "type": "label", "text": "{{t('sound.equaliserNote')}}", "font": "small", "textColor": "@muted", "anchors": { "left": 140, "top": 80 }, "fitText": true },
-					{ "id": "equaliserOnLabel", "type": "label", "text": "{{t('sound.equaliserOn')}}", "font": "small", "textColor": "@muted", "anchors": { "right": 84, "top": 78 }, "fitText": true },
-					{ "id": "equaliserOn", "type": "toggle", "role": "switch", "label": "{{t('sound.equaliserOn')}}", "focusable": true, "anchors": { "right": 32, "top": 76 }, "width": 40, "height": 22,
+					{ "type": "label", "id": "equaliserNote", "text": "{{t('sound.equaliserNote')}}", "font": "small", "textColor": "@muted", "anchors": { "left": 140, "top": 80 }, "fitText": true },
+					{ "type": "label", "id": "equaliserOnLabel", "text": "{{t('sound.equaliserOn')}}", "font": "small", "textColor": "@muted", "anchors": { "right": 84, "top": 78 }, "fitText": true },
+					{ "type": "toggle", "id": "equaliserOn", "role": "switch", "label": "{{t('sound.equaliserOn')}}", "focusable": true, "anchors": { "right": 32, "top": 76 }, "width": 40, "height": 22,
 						"checked": "{{state.eqOn}}", "trackColor": "@faint", "activeColor": "@accent", "onChange": { "set": "state.eqOn", "to": "{{event.value}}" } },
 					{
-						"id": "equaliser",
 						"type": "curves",
+						"id": "equaliser",
 						"anchors": { "left": 32, "right": 32, "top": 108 },
 						"height": 168,
 						"focusable": true,
@@ -406,20 +406,20 @@
 						"accentColor": "@accent"
 					},
 					{
-						"id": "bands",
 						"type": "grid",
+						"id": "bands",
 						"anchors": { "left": 32, "right": 32, "top": 284 },
 						"height": 20,
 						"columns": 5,
 						"children": [
-							{ "id": "band", "repeat": { "for": "band", "in": "state.bands" }, "type": "label", "font": "small", "align": "center",
+							{ "type": "label", "id": "band", "repeat": { "for": "band", "in": "state.bands" }, "font": "small", "align": "center",
 								"textColor": "{{state.eqOn ? '@text' : '@muted'}}", "height": 20,
 								"text": "{{band.label}}  {{round((curve(state.eq, band.at) - 0.5) * 24) > 0 ? '+' : ''}}{{round((curve(state.eq, band.at) - 0.5) * 24)}} dB" }
 						]
 					},
 					{
-						"id": "presets",
 						"type": "stack",
+						"id": "presets",
 						"direction": "row",
 						"anchors": { "left": 32, "right": 32, "top": 314 },
 						"height": 30,
@@ -432,14 +432,14 @@
 						]
 					},
 					{ "id": "crossfadeCaption", "style": "caption", "text": "{{t('sound.crossfade')}}", "anchors": { "left": 32, "top": 364 } },
-					{ "id": "crossfade", "type": "slider", "anchors": { "left": 32, "top": 388 }, "width": 240, "height": 16, "min": 0, "max": 12, "step": 1,
+					{ "type": "slider", "id": "crossfade", "anchors": { "left": 32, "top": 388 }, "width": 240, "height": 16, "min": 0, "max": 12, "step": 1,
 						"focusable": true, "label": "{{t('sound.crossfadeLabel')}}", "bind": "settings.playback.crossfade",
 						"trackColor": "@faint", "activeColor": "@accent", "knobColor": "@text" },
-					{ "id": "crossfadeValue", "type": "label", "text": "{{t('sound.crossfadeValue', { n: settings.playback.crossfade })}}", "textColor": "@text", "anchors": { "left": 288, "top": 386 }, "fitText": true },
+					{ "type": "label", "id": "crossfadeValue", "text": "{{t('sound.crossfadeValue', { n: settings.playback.crossfade })}}", "textColor": "@text", "anchors": { "left": 288, "top": 386 }, "fitText": true },
 					{ "id": "appearanceCaption", "style": "caption", "text": "{{t('sound.appearance')}}", "anchors": { "left": 32, "top": 428 } },
 					{
-						"id": "themes",
 						"type": "stack",
+						"id": "themes",
 						"direction": "row",
 						"anchors": { "left": 32, "right": 32, "top": 452 },
 						"height": 30,
@@ -453,8 +453,8 @@
 						]
 					},
 					{
-						"id": "languages",
 						"type": "stack",
+						"id": "languages",
 						"direction": "row",
 						"anchors": { "left": 32, "right": 32, "top": 490 },
 						"height": 30,
@@ -488,8 +488,8 @@
 						"radius": 12,
 						"color": "@surface",
 						"children": [
-							{ "id": "miniCover", "type": "image", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 6, "anchors": { "left": 20, "top": 20 }, "width": 112, "height": 112 },
-							{ "id": "miniTitle", "type": "label", "text": "{{computed.track.title}}", "font": "heading", "textColor": "@text", "anchors": { "left": 148, "right": 52, "top": 24 }, "height": 24 },
+							{ "type": "image", "id": "miniCover", "file": "{{computed.playing.cover}}", "fit": "cover", "radius": 6, "anchors": { "left": 20, "top": 20 }, "width": 112, "height": 112 },
+							{ "type": "label", "id": "miniTitle", "text": "{{computed.track.title}}", "font": "heading", "textColor": "@text", "anchors": { "left": 148, "right": 52, "top": 24 }, "height": 24 },
 							{ "id": "miniArtist", "style": "caption", "text": "{{computed.track.artist}}", "anchors": { "left": 148, "top": 50 } },
 							{ "id": "miniExpand", "style": "control", "icon": "maximize-2", "anchors": { "right": 12, "top": 12 }, "width": 32, "color": "@surface",
 								"focusable": true, "role": "button", "label": "{{t('player.full')}}", "tooltip": "{{t('player.full')}}", "onClick": "toggleMini" },
@@ -501,7 +501,7 @@
 							{ "id": "miniNext", "style": "control", "icon": "skip-forward", "anchors": { "left": 238, "top": 88 }, "width": 32, "color": "@surface",
 								"focusable": true, "role": "button", "label": "{{t('player.next')}}", "onClick": "next" },
 							{ "id": "miniElapsed", "style": "caption", "text": "{{computed.elapsedText}}", "anchors": { "left": 20, "top": 152 } },
-							{ "id": "miniSeek", "type": "slider", "anchors": { "left": 64, "right": 64, "top": 152 }, "height": 16, "max": "{{computed.duration}}", "step": 1,
+							{ "type": "slider", "id": "miniSeek", "anchors": { "left": 64, "right": 64, "top": 152 }, "height": 16, "max": "{{computed.duration}}", "step": 1,
 								"focusable": true, "label": "{{t('player.seek')}}", "bind": "state.elapsed", "trackColor": "@faint", "activeColor": "@accent", "knobColor": "@text" },
 							{ "id": "miniTime", "style": "caption", "text": "{{computed.track.time}}", "anchors": { "right": 20, "top": 152 } }
 						]

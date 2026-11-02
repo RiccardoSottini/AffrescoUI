@@ -308,7 +308,7 @@
 				"children": [
 					{ "use": "forgeViewTitle", "with": { "text": "Search" } },
 					{
-						"use": "forgeInset", "id": "search-query-row", "height": 26,
+						"id": "search-query-row", "use": "forgeInset", "height": 26,
 						"children": [
 							{ "type": "row", "id": "search-query-box", "grow": 1, "height": 26, "color": "@color.input", "alignItems": "center", "children": [
 								{ "use": "forgeSearchField", "with": { "field": "query", "hint": "Search" }, "onSubmit": { "run": "runSearch" } },
@@ -319,7 +319,7 @@
 						]
 					},
 					{
-						"use": "forgeInset", "id": "search-replace-row", "height": 26, "alignItems": "center",
+						"id": "search-replace-row", "use": "forgeInset", "height": 26, "alignItems": "center",
 						"children": [
 							{ "use": "forgeSearchField", "with": { "field": "replace", "hint": "Replace" } },
 							{ "type": "label", "id": "search-replace-all", "role": "button", "label": "Replace All", "icon": "replace-all", "font": "icons",
@@ -334,7 +334,7 @@
 						"children": [
 							{ "type": "label", "id": "search-summary", "text": "{{state.search.busy ? 'Searching... ' + computed.searchSummary : computed.searchSummary}}",
 							  "textColor": "@color.muted", "grow": 1, "height": 22 },
-							{ "when": "{{state.search.result != null}}", "type": "label", "id": "search-open-editor", "role": "button",
+							{ "type": "label", "id": "search-open-editor", "when": "{{state.search.result != null}}", "role": "button",
 							  "label": "Open Results in Editor", "icon": "file-text", "font": "icons", "width": 22, "height": 22, "align": "center",
 							  "cursor": "hand", "radius": 3, "tooltip": "Open Results in Editor", "textColor": "@color.text",
 							  "hover": { "color": "@color.hover" }, "onClick": { "run": "openSearchEditor" } }
@@ -360,7 +360,7 @@
 						]
 					},
 					{
-						"use": "contextMenu", "id": "search-menu",
+						"id": "search-menu", "use": "contextMenu",
 						"with": { "open": "state.search.menu", "items": "{{menus.searchResult}}", "x": "{{state.search.x}}", "y": "{{state.search.y}}" }
 					},
 					{

@@ -173,22 +173,22 @@
 				"role": "dialog",
 				"label": "{{t('notify.title')}}",
 				"children": [
-					{ "id": "notificationsTitle", "type": "label", "font": "heading", "icon": "bell", "text": " {{t('notify.title')}}", "textColor": "@text",
+					{ "type": "label", "id": "notificationsTitle", "font": "heading", "icon": "bell", "text": " {{t('notify.title')}}", "textColor": "@text",
 						"anchors": { "left": 16, "top": 14 }, "fitText": true },
 					{ "id": "notificationsClear", "style": "button", "font": "small", "text": "{{t('notify.clear')}}", "anchors": { "right": 12, "top": 12 }, "width": 96, "height": 26,
 						"onClick": "clearNotifications" },
 					{ "id": "notificationsEmpty", "when": "{{length(state.notifications) == 0}}", "style": "caption", "text": "{{t('notify.empty')}}",
 						"anchors": { "left": 16, "top": 60 } },
 					{
-						"id": "notificationList",
 						"type": "column",
+						"id": "notificationList",
 						"anchors": { "left": 8, "right": 8, "top": 50, "bottom": 8 },
 						"gap": 4,
 						"scroll": "vertical",
 						"role": "list",
 						"live": "polite",
 						"children": [
-							{ "id": "notification", "repeat": { "for": "note", "in": "state.notifications", "key": "{{note.id}}" }, "type": "label", "font": "small",
+							{ "type": "label", "id": "notification", "repeat": { "for": "note", "in": "state.notifications", "key": "{{note.id}}" }, "font": "small",
 								"icon": "{{note.icon}}", "text": "  {{note.message}}", "anchors": { "left": 0, "right": 0 }, "height": 34, "padding": 10, "radius": 6,
 								"align": { "horizontal": "start", "vertical": "center" }, "color": "@raised", "textColor": "@text", "role": "listitem" }
 						]
@@ -258,12 +258,12 @@
 				"color": "transparent",
 				"children": [
 					{ "id": "automationsBar", "anchors": { "left": 0, "right": 0, "top": 0 }, "height": 56, "color": "@header", "role": "banner" },
-					{ "id": "automationsTitle", "when": "{{state.autoOpen < 0 || state.autoTab == 'flow'}}", "type": "label", "font": "heading", "text": "{{t('page.automations')}}",
+					{ "type": "label", "id": "automationsTitle", "when": "{{state.autoOpen < 0 || state.autoTab == 'flow'}}", "font": "heading", "text": "{{t('page.automations')}}",
 						"textColor": "@onHeader", "anchors": { "left": 24, "right": 24, "top": 0 }, "height": 56, "align": { "horizontal": "start", "vertical": "center" } },
 					{
-						"id": "autoTabs",
-							"when": "{{state.autoOpen < 0 || state.autoTab == 'flow'}}",
 						"type": "row",
+							"id": "autoTabs",
+						"when": "{{state.autoOpen < 0 || state.autoTab == 'flow'}}",
 						"anchors": { "left": 32, "top": 68 },
 						"width": 260,
 						"height": 28,
@@ -280,7 +280,7 @@
 					{ "id": "autoSearchBox", "when": "{{state.autoTab == 'list' && state.autoOpen < 0}}", "anchors": { "left": 308, "top": 64 }, "width": 300, "height": 36, "radius": 18,
 						"color": "@field", "children": [
 							{ "type": "label", "icon": "search", "text": "", "textColor": "@muted", "anchors": { "left": 10, "top": 0, "bottom": 0 }, "width": 24, "align": "center" },
-							{ "id": "autoSearch", "type": "textarea", "bind": "state.autoQuery", "placeholder": "{{t('auto.search')}}", "placeholderColor": "@muted", "textColor": "@text",
+							{ "type": "textarea", "id": "autoSearch", "bind": "state.autoQuery", "placeholder": "{{t('auto.search')}}", "placeholderColor": "@muted", "textColor": "@text",
 								"color": "transparent", "anchors": { "left": 38, "right": 12, "top": 0, "bottom": 0 }, "label": "{{t('auto.search')}}" }
 						] },
 					{ "id": "autoNew", "when": "{{state.autoTab == 'list' && state.autoOpen < 0}}", "style": "button", "icon": "plus", "text": " {{t('auto.new')}}",
@@ -358,7 +358,7 @@
 							{ "id": "autoBack", "style": "button", "icon": "arrow-left", "mirror": true, "text": "", "color": "transparent", "hover": { "color": "@headerHover" }, "textColor": "@onHeader",
 									"anchors": { "left": 12, "top": 8 }, "width": 40, "height": 40, "radius": 20,
 								"label": "{{t('auto.back')}}", "tooltip": "{{t('auto.back')}}", "onClick": { "run": "openAutomation", "with": { "i": -1 } } },
-							{ "id": "autoName", "type": "label", "font": "heading", "icon": "{{computed.openAuto.icon}}",
+							{ "type": "label", "id": "autoName", "font": "heading", "icon": "{{computed.openAuto.icon}}",
 								"text": "  {{t('rule.' + (computed.openAuto.title ?? computed.openAuto.id))}}", "textColor": "@onHeader", "anchors": { "left": 64, "right": 72, "top": 0 }, "height": 56,
 								"align": { "horizontal": "start", "vertical": "center" } },
 							{ "id": "autoMoreAnchor", "anchors": { "right": 16, "top": 8 }, "width": 40, "height": 40, "color": "transparent", "children": [
@@ -384,8 +384,8 @@
 										"onClick": { "run": "rowAction", "with": { "i": "{{state.autoOpen}}", "what": "enable" } } }
 								] },
 							{
-								"id": "autoParts",
 								"type": "column",
+								"id": "autoParts",
 								"anchors": { "left": 32, "right": "{{computed.compact ? 32 : 364}}", "top": "{{computed.openAuto.on ? 88 : 144}}", "bottom": 0 },
 								"gap": 12,
 								"scroll": "vertical",
@@ -434,9 +434,9 @@
 					},
 					{ "id": "automationsSummary", "when": "{{state.autoTab == 'flow'}}", "style": "caption", "text": "{{t('auto.summary')}}", "anchors": { "left": 308, "top": 73 } },
 					{
+						"type": "row",
 						"id": "autoAdd",
 						"when": "{{state.autoTab == 'flow'}}",
-						"type": "row",
 						"anchors": { "right": 32, "top": 28 },
 						"width": 330,
 						"height": 30,
@@ -460,8 +460,8 @@
 						"anchors": { "left": 32, "right": 32, "top": 104, "bottom": "#scheduleCard.top - 16" },
 						"children": [
 							{
-								"id": "autoGraph",
 								"type": "graph",
+								"id": "autoGraph",
 								"fill": 8,
 								"focusable": true,
 								"label": "{{t('auto.graph')}}",
@@ -495,8 +495,8 @@
 						"children": [
 							{ "id": "scheduleTitle", "style": "caption", "icon": "calendar-clock", "text": " {{t('schedule.title')}}", "anchors": { "left": 16, "top": 12 } },
 							{
-								"id": "schedule",
 								"type": "timeline",
+								"id": "schedule",
 								"anchors": { "left": 8, "right": 8, "top": 34, "bottom": 8 },
 								"tracks": "{{computed.scheduleTracks}}",
 								"duration": 24,
@@ -514,7 +514,7 @@
 								"accentColor": "@accent",
 								"onClipChange": "changeSchedule",
 								"children": [
-									{ "id": "scheduleHeader", "repeat": { "for": "track", "in": "computed.scheduleTracks" }, "type": "label", "font": "small", "text": "{{track.label}}",
+									{ "type": "label", "id": "scheduleHeader", "repeat": { "for": "track", "in": "computed.scheduleTracks" }, "font": "small", "text": "{{track.label}}",
 										"textColor": "@text", "fill": 0, "padding": 10, "align": { "horizontal": "start", "vertical": "center" } }
 								]
 							}

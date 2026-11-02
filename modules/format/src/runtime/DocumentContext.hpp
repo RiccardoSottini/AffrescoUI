@@ -167,6 +167,9 @@ public:
 		WorkBudget budget_;        ///< The budget, if this scope started it.
 		bool outermost_ = false;   ///< Whether it did.
 	};
+	/// @brief The running budget.
+	/// @return It, or nullptr with no event or update running.
+	[[nodiscard]] WorkBudget* budget() const noexcept { return budget_; }
 	/// @brief Spends one step from the running budget.
 	/// @param where The step's place, for the error.
 	/// @throws DocumentError If the budget has no step left.
@@ -353,6 +356,7 @@ private:
 	NodeLookup modelLookup_;                     ///< Models::at(), for expressions.
 	VariableLookup variableLookup_;              ///< variable(), for expressions.
 	VariableLookup computedValueLookup_;         ///< computedValue(), for expressions to read in place.
+	ProgramCall programCall_;                    ///< The program's functions, for the function `lisp`.
 	std::map<std::string, std::function<json()>, std::less<>> builders_; ///< See addVariable().
 	mutable std::map<std::string, json, std::less<>> built_;             ///< Variables built since they were stale.
 	mutable std::vector<std::string> building_;                          ///< Variables being built (finds circles).

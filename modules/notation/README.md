@@ -1,16 +1,18 @@
 # notation: the notations a document is written in
 
 `notation` turns text into the JSON tree of a document and back. A document can be written in **JSON**, as it always
-was, or in the **Lisp notation**: S-expressions that are only another spelling of the very same tree. Nothing is ever
-evaluated: the Lisp notation is data, never code (no functions, no macros, no `eval`). The module knows text and
+was, or in the **Lisp notation**: S-expressions that are only another spelling of the very same tree. Nothing here is ever
+evaluated: the Lisp notation is data, never code (no functions, no macros, no `eval`); the language built on these tokens is
+`modules/lisp`. A word the language runs (`isLanguageWord`) isn't a node's type here: `(not x)` is an error saying how to write it.
+The module knows text and
 JSON only; it doesn't know screens, nodes' meanings, revisions or files' places. Target: `affrescoui::notation` (uses
 `core`, for its JSON type and limits, and nlohmann::json).
 
 ```lisp
 ; Flow's insights panel
-(panel #insights :color transparent
-  (node #burndownTitle :style caption :anchors {:left 0 :top 0} :text "{{t('burndown.title')}}")
-  (column #list :gap 4))
+(panel#insights :color transparent
+  (node#burndownTitle :style caption :anchors {:left 0 :top 0} :text "{{t('burndown.title')}}")
+  (column#list :gap 4))
 ```
 
 is
@@ -27,17 +29,21 @@ The spelling rules are in SCREEN_FORMAT.md, "The Lisp notation".
 
 | Header | Offers |
 |---|---|
-| `Notation.hpp` | `Notation` (`Json`, `Lisp`); `notationOf(file)` (`.lisp` is Lisp, anything else JSON), `notationNamed`, `nameOf`; `read(text, notation)`, `write(value, notation)`; `readDocument(text, file)` and `jsonText(text, file)`, the one way documents on disk are read; `NotationError` (a `DocumentError` with `line()`, `column()` and `message()`); `maxLispBytes` |
+| `Notation.hpp` | `Notation` (`Json`, `Lisp`); `notationOf(file)` (`.lisp` is Lisp, anything else JSON), `notationNamed`, `nameOf`; `read(text, notation)`, `write(value, notation)`, `format(text)` (canonical, comments kept); `readDocument(text, file)` and `jsonText(text, file)`, the one way documents on disk are read; `NotationError` (a `DocumentError` with `line()`, `column()` and `message()`); `maxLispBytes` |
+| `Lexer.hpp` | The tokens of Lisp text (`Lexer`, `Token`, `TokenKind`), shared with the language (`modules/lisp`), so the two read every word, string and number the same |
+| `Words.hpp` | What the reader, the writer and the language agree on: `isPlainWord`, `isLanguageWord` (the words the language runs, which the writer doesn't write as a node's head), `untypedHead` |
 
 ## Invariants
 
 - **The same tree, exactly.** `read(write(x))` is `x` for every value, key order included, so a document converted to
   the Lisp notation and back is the same document, and a commit made from it has the same hash. Every key keeps its
-  place: a node's head is its `type` only when `type` is its first key; otherwise the head is `node` and `:type` is
-  written where it is.
+  place: a node's head is its `type` only when `type` is its first key, and `#id` follows it only when `id` is the next
+  key; otherwise the head is `node` and `:type` and `:id` are written where they are.
 - **Canonical.** `write` depends only on the value: the same value always gives the same text, so `write(read(t))` is
-  stable, and `affrescoui fmt` has one layout to give a Lisp file. Comments (`;`) are dropped when a file is converted;
-  a `note` key keeps its text.
+  stable, and `affrescoui fmt` has one layout to give a Lisp file. `format` (what `fmt` runs) keeps comments and `#_`
+  discarded forms where they were; a comment between a key and its value moves to the end of the value's line. A
+  container holding a comment goes over several lines. Comments are dropped only when a file is converted to JSON,
+  which has none; a `note` key keeps its text.
 - **JSON is untouched.** `read(text, Json)` is `parseUntrusted(text)`: the same parser, the same errors, the same
   limits. `readDocument` and `jsonText` give JSON files to it as they are.
 - **Version control never sees Lisp.** History, commits, patches, blame and permissions are JSON (RFC 6902). A peer's
@@ -59,11 +65,14 @@ node opened at line 1, column 1` (the file when `readDocument` read it; columns 
 ## Files
 
 ```
-include/affresco/notation/Notation.hpp  the notations, reading and writing
+include/affresco/notation/
+  Notation.hpp      the notations, reading and writing
+  Lexer.hpp         the tokens, for the two readers
+  Words.hpp         what they agree on: bare words, reserved words, the head `node`, the language's words
 src/
   Notation.cpp      which notation a file is in; reading and writing in either; NotationError
   Lisp.hpp          the Lisp reader's and writer's entry points
-  Words.hpp         what both agree on: bare words, reserved words, the head `node`
+  Lexer.cpp         the tokens: spaces and commas skipped, comments kept when asked, `#_` forms discarded
   LispReader.cpp    text into the tree: a token at a time, one call per container, bounded
   LispWriter.cpp    the tree into canonical text: one line when it fits in 120 columns, else one member per line
 CMakeLists.txt      the affrescoui_notation target

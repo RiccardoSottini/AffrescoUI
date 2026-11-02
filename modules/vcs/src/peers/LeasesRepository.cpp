@@ -63,7 +63,7 @@ RevisionResult Repository::submitFrom(const void* connection, const json& revisi
 }
 
 std::optional<std::string> Repository::leaseBeyondRules(std::string_view target, const std::string& author) {
-	const json before = detail::view(document_, state_);
+	const json before = detail::view(document(), state_);
 	const std::optional<std::string> pointer = target.starts_with('#') ? rules_.findNode(before, target.substr(1))
 	                                           : target.starts_with('/') && detail::locate(before, std::string(target))
 	                                               ? std::optional(std::string(target))
@@ -87,7 +87,7 @@ std::optional<std::string> Repository::lease(const void* connection, std::string
 		if(each.holder == holder && each.peer != peer->id)
 			return "another connection holds leases as '" + std::string(holder) + "'";
 	if(const auto beyond = leaseBeyondRules(target, std::string(holder))) return beyond;
-	auto result = leases_.acquire(detail::view(document_, state_), target, holder, peer->id,
+	auto result = leases_.acquire(detail::view(document(), state_), target, holder, peer->id,
 	                              std::chrono::seconds(std::clamp(seconds, 1, 3600)), Leases::Clock::now());
 	if(const std::string* refused = std::get_if<std::string>(&result)) return *refused;
 	onReviewChanged();

@@ -10,8 +10,11 @@
 #include "SectionRegistry.hpp"
 #include "ServiceRules.hpp"
 #include "Limits.hpp"
+#include "ProgramRules.hpp"
 #include "RulesControl.hpp"
 #include "StateTypes.hpp"
+
+#include <affresco/lisp/Document.hpp>
 
 #include <optional>
 #include <string_view>
@@ -156,7 +159,10 @@ void Rules::checkRevision(const json& patch) const {
 }
 
 // The document's own "state" must match its types; the live state is checked by checkChange() and findings()
-void Rules::validate(const json& doc) const {
+void Rules::validate(const json& document) const {
+	json built;
+	if(lisp::hasProgram(document)) built = lisp::buildDocument(document);
+	const json& doc = built.is_null() ? document : built; // what a program builds is judged like any document
 	sections_->validate(doc);
 	checkDocumentSize(doc);
 	json composed;
@@ -241,13 +247,20 @@ Permissions Rules::permissions(const json& doc) const {
 }
 
 // On the composed screens: what a feature brings is checked as if the app had it
-void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
+void Rules::checkChange(const json& rawBefore, const json& rawAfter) const { judgeChange(rawBefore, rawAfter, true); }
+
+void Rules::checkOwnChange(const json& rawBefore, const json& rawAfter) const {
+	judgeChange(rawBefore, rawAfter, false);
+}
+
+void Rules::judgeChange(const json& rawBefore, const json& rawAfter, bool scanControls) const {
 	for(const SectionType& section : sections_->sections()) {
 		if(!section.capability) continue;
 		if(rawBefore.value(section.name, json()) != rawAfter.value(section.name, json()))
 			fail("revision", "permission denied: revisions can't change \"" + section.name + "\"");
 	}
 	checkAudioChange(rawBefore, rawAfter); // sounds of the screen's files or its assets only; the person accepts them
+	checkProgramChange(rawBefore, rawAfter);
 	json composedBefore, composedAfter;
 	const json& before = screenOf(rawBefore, composedBefore);
 	const json& after = screenOf(rawAfter, composedAfter);
@@ -258,7 +271,7 @@ void Rules::checkChange(const json& rawBefore, const json& rawAfter) const {
 	const auto granted = grantedActions(rawBefore); // the host's: a revision can't change what its points pass on
 	if(granted != grantedActions(rawAfter))
 		fail("revision", "permission denied: revisions can't change the actions a contribution point passes on");
-	if(controlsIn(before, granted) != controlsIn(after, granted))
+	if(scanControls && controlsIn(before, granted) != controlsIn(after, granted))
 		fail("revision",
 		     "permission denied: revisions can't add, change or move accept, reject, preview, endPreview, "
 		     "restore, revert, undo, patch, call, send, connect or respond steps, nor run an action that has them, "
@@ -306,9 +319,14 @@ std::vector<std::string> Rules::reviewLines(const json& before, const json& afte
 	std::vector<std::string> lines = serviceReviewLines(before, after, services_);
 	std::vector<std::string> data = dataReviewLines(before, after, data_);
 	lines.insert(lines.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
+	addExtensionReviewLines(before, after, lines);
 	return lines;
 }
 
-json Rules::impact(const json& before, const json& after) const { return dataImpact(before, after, data_); }
+json Rules::impact(const json& before, const json& after) const {
+	json impact = dataImpact(before, after, data_);
+	impact["logic"] = impact["logic"].get<std::size_t>() + programLogic(before, after); // what the tree doesn't show
+	return impact;
+}
 
 } // namespace affresco::format

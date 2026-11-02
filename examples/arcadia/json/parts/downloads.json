@@ -195,8 +195,8 @@
 			"note": "The network rate as bars and the disk rate as a line over the last samples, newest on the right.",
 			"params": {},
 			"node": {
-				"id": "dl-graph",
 				"type": "row",
+				"id": "dl-graph",
 				"width": 336,
 				"height": 110,
 				"gap": 1,
@@ -262,16 +262,16 @@
 				"color": "@dl.band",
 				"children": [
 					{
-						"when": "{{computed.download != null}}",
 						"type": "image",
+						"when": "{{computed.download != null}}",
 						"fill": true,
 						"fit": "cover",
 						"file": "{{'../assets/art/' + computed.download.id + '/hero.svg'}}"
 					},
 					{ "fill": true, "color": "@dl.shade" },
 					{
-						"when": "{{computed.download == null}}",
 						"type": "label",
+						"when": "{{computed.download == null}}",
 						"font": "heading",
 						"text": "{{t('dl.idle')}}",
 						"fill": true,
@@ -279,8 +279,8 @@
 						"textColor": "@color.muted"
 					},
 					{
-						"when": "{{computed.download != null}}",
 						"type": "row",
+						"when": "{{computed.download != null}}",
 						"anchors": { "left": 24, "right": 24, "top": 24, "bottom": 24 },
 						"gap": 20,
 						"children": [
@@ -301,8 +301,8 @@
 								"gap": 6,
 								"children": [
 									{
-										"id": "dl-title",
 										"type": "label",
+										"id": "dl-title",
 										"font": "title",
 										"text": "{{computed.downloadGame.title}}",
 										"height": 36,
@@ -345,8 +345,8 @@
 												]
 											},
 											{
-												"id": "dl-pause",
 												"type": "label",
+												"id": "dl-pause",
 												"icon": "{{state.dlPaused ? 'play' : 'pause'}}",
 												"text": "",
 												"width": 30,
@@ -498,8 +498,8 @@
 										"children": [
 											{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
 											{
-												"id": "dl-next",
 												"type": "row",
+												"id": "dl-next",
 												"height": 44,
 												"anchors": { "left": 0, "right": 0 },
 												"gap": 8,
@@ -543,8 +543,8 @@
 												]
 											},
 											{
-												"when": "{{length(computed.dlQueue) == 0}}",
 												"type": "label",
+												"when": "{{length(computed.dlQueue) == 0}}",
 												"font": "small",
 												"text": "{{t('dl.queueEmpty')}}",
 												"height": 30,
@@ -552,14 +552,14 @@
 												"textColor": "@color.dim"
 											},
 											{
+												"type": "row",
+												"id": "{{'dl-q-' + q.d.id}}",
 												"repeat": {
 													"for": "q",
 													"in": "{{computed.dlQueue}}",
 													"index": "k",
 													"key": "{{q.d.id}}"
 												},
-												"id": "{{'dl-q-' + q.d.id}}",
-												"type": "row",
 												"height": 86,
 												"anchors": { "left": 0, "right": 0 },
 												"gap": 16,
@@ -621,8 +621,8 @@
 														"align": { "horizontal": "start", "vertical": "center" }
 													},
 													{
-														"id": "{{'dl-up-' + q.d.id}}",
 														"type": "label",
+														"id": "{{'dl-up-' + q.d.id}}",
 														"icon": "arrow-up",
 														"text": "",
 														"width": 30,
@@ -654,8 +654,8 @@
 														}
 													},
 													{
-														"id": "{{'dl-down-' + q.d.id}}",
 														"type": "label",
+														"id": "{{'dl-down-' + q.d.id}}",
 														"icon": "arrow-down",
 														"text": "",
 														"width": 30,
@@ -687,8 +687,8 @@
 														}
 													},
 													{
-														"id": "{{'dl-start-' + q.d.id}}",
 														"type": "label",
+														"id": "{{'dl-start-' + q.d.id}}",
 														"icon": "download",
 														"text": "",
 														"width": 30,
@@ -709,8 +709,8 @@
 														"onClick": { "run": "dlStart", "with": { "id": "{{q.d.id}}" } }
 													},
 													{
-														"id": "{{'dl-unschedule-' + q.d.id}}",
 														"type": "label",
+														"id": "{{'dl-unschedule-' + q.d.id}}",
 														"icon": "clock-3",
 														"text": "",
 														"width": 30,
@@ -734,8 +734,8 @@
 														}
 													},
 													{
-														"id": "{{'dl-remove-' + q.d.id}}",
 														"type": "label",
+														"id": "{{'dl-remove-' + q.d.id}}",
 														"icon": "x",
 														"font": "icons",
 														"text": "",
@@ -766,8 +766,8 @@
 											},
 											{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
 											{
-												"id": "dl-parked",
 												"type": "row",
+												"id": "dl-parked",
 												"height": 44,
 												"anchors": { "left": 0, "right": 0 },
 												"gap": 8,
@@ -796,13 +796,13 @@
 												]
 											},
 											{
+												"type": "row",
+												"id": "{{'dl-p-' + d.id}}",
 												"repeat": {
 													"for": "d",
 													"in": "{{computed.dlParked}}",
 													"key": "{{d.id}}"
 												},
-												"id": "{{'dl-p-' + d.id}}",
-												"type": "row",
 												"height": 86,
 												"anchors": { "left": 0, "right": 0 },
 												"gap": 16,
@@ -864,8 +864,8 @@
 														"align": { "horizontal": "start", "vertical": "center" }
 													},
 													{
-														"id": "{{'dl-start-' + d.id}}",
 														"type": "label",
+														"id": "{{'dl-start-' + d.id}}",
 														"icon": "download",
 														"text": "",
 														"width": 30,
@@ -886,8 +886,8 @@
 														"onClick": { "run": "dlStart", "with": { "id": "{{d.id}}" } }
 													},
 													{
-														"id": "{{'dl-remove-' + d.id}}",
 														"type": "label",
+														"id": "{{'dl-remove-' + d.id}}",
 														"icon": "x",
 														"font": "icons",
 														"text": "",
@@ -918,8 +918,8 @@
 											},
 											{ "type": "panel", "color": "transparent", "height": 8, "width": 1 },
 											{
-												"id": "dl-done",
 												"type": "row",
+												"id": "dl-done",
 												"height": 44,
 												"anchors": { "left": 0, "right": 0 },
 												"gap": 8,
@@ -946,8 +946,8 @@
 														"height": 1
 													},
 													{
-														"id": "dl-clear",
 														"type": "label",
+														"id": "dl-clear",
 														"font": "small",
 														"text": "{{t('dl.clearAll')}}",
 														"fitText": true,
@@ -963,13 +963,13 @@
 												]
 											},
 											{
+												"type": "row",
+												"id": "{{'dl-d-' + d.id}}",
 												"repeat": {
 													"for": "d",
 													"in": "{{computed.dlDone}}",
 													"key": "{{d.id}}"
 												},
-												"id": "{{'dl-d-' + d.id}}",
-												"type": "row",
 												"height": 86,
 												"anchors": { "left": 0, "right": 0 },
 												"gap": 16,
@@ -1032,8 +1032,8 @@
 													},
 													{ "use": "playButton", "with": { "id": "{{d.id}}" } },
 													{
-														"id": "{{'dl-forget-' + d.id}}",
 														"type": "label",
+														"id": "{{'dl-forget-' + d.id}}",
 														"icon": "x",
 														"font": "icons",
 														"text": "",

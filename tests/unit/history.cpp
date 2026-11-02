@@ -299,6 +299,66 @@ TEST_CASE("vcs: a history that began with another version of the screen is set a
 	CHECK(third.head().id == second.head().id);
 }
 
+TEST_CASE("vcs: the same screen with its keys in another order keeps its history") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+	const json written = {{"format", "affrescoui-screen"},
+	                      {"version", 2},
+	                      {"state", {{"n", 0}}},
+	                      {"root", {{"id", "root"}, {"type", "panel"}}}};
+	json reordered = {{"format", "affrescoui-screen"},
+	                  {"version", 2},
+	                  {"root", {{"type", "panel"}, {"id", "root"}}},
+	                  {"state", {{"n", 0}}}};
+	{
+		Repository first(rules, written);
+		first.openHistory(history);
+		REQUIRE_FALSE(first.commit({{"author", "agent"}, {"message", "m"}, {"set", {{"/state/n", 7}}}}).has_value());
+	}
+	Repository second(rules, reordered);
+	const auto opened = second.openHistory(history);
+	CHECK(opened.loaded);
+	CHECK(opened.setAside.empty());
+	CHECK(second.head().number == 1);
+	// A value that differs is another screen, as ever
+	reordered["root"]["id"] = "other";
+	Repository third(rules, reordered);
+	CHECK_FALSE(third.openHistory(history).loaded);
+}
+
+TEST_CASE("vcs: a history written by hand can't mark what isn't the person's as their own input") {
+	const affresco::format::Rules rules;
+	const TemporaryFolder folder;
+	const std::filesystem::path history = folder.path() / "board.history";
+	std::string root;
+	{
+		Repository first(rules, permissionsScreen());
+		first.openHistory(history);
+		root = first.head().id;
+	}
+	json document = permissionsScreen();
+	document["actions"] = {{"approve", json::array({{{"accept", 1}}})}};
+	json patch = json::array({{{"op", "add"}, {"path", "/actions"}, {"value", document["actions"]}}});
+	std::string author = "user";
+	SUBCASE("by another channel") { author = "agent"; }
+	SUBCASE("beyond the program") {}
+	const std::string forged = forgeCommit(history, {{"parents", {root}},
+	                                                 {"author", author},
+	                                                 {"committer", author},
+	                                                 {"time", "2026-10-19T00:00:00Z"},
+	                                                 {"proposal", 0},
+	                                                 {"message", "Forged"},
+	                                                 {"patch", patch},
+	                                                 {"ownInput", true},
+	                                                 {"document", document}});
+	forgeRefs(history, [&](json& refs) { refs["main"] = forged; });
+	Repository second(rules, permissionsScreen());
+	CHECK_THROWS_WITH_AS(second.openHistory(history), doctest::Contains("the person's own input"),
+	                     affresco::DocumentError);
+	CHECK(second.head().number == 0);
+}
+
 TEST_CASE("vcs: a damaged history is never loaded, and the error names the file") {
 	const affresco::format::Rules rules;
 	const TemporaryFolder folder;
@@ -399,8 +459,8 @@ TEST_CASE("vcs: a history whose delta was damaged is never loaded, and the error
 
 	Repository second(rules, permissionsScreen());
 	CHECK_THROWS_WITH_AS(second.openHistory(history),
-	                     doctest::Contains(("AffrescoUI history: " + damaged.string() +
-	                                        ": commit " + last + ": its deltas don't give the document its id names")
+	                     doctest::Contains(("AffrescoUI history: " + damaged.string() + ": commit " + last +
+	                                        ": its deltas don't give the document its id names")
 	                                           .c_str()),
 	                     affresco::DocumentError);
 	CHECK(second.head().number == 0); // nothing was loaded

@@ -29,6 +29,8 @@ affresco::Screen loadTemplate(const std::string& name) {
 	affresco::Screen screen = [&] {
 		if(std::filesystem::exists(directory / "app.json"))
 			return affresco::Screen::fromApp(directory / "app.json", {}, affresco::Screen::History::InMemory);
+		if(std::filesystem::exists(directory / "app.lisp")) // an app written as a program
+			return affresco::Screen::fromApp(directory / "app.lisp", {}, affresco::Screen::History::InMemory);
 		const std::ifstream file(directory / "index.screen.json");
 		REQUIRE(file);
 		std::stringstream text;

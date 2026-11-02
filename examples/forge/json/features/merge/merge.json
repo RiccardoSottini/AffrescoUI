@@ -80,10 +80,10 @@
 				"type": "row", "id": "conflict-bar", "width": "100%", "height": 28, "gap": 2, "alignItems": "center", "color": "@color.tabs",
 				"children": [
 					{ "type": "label", "id": "conflict-summary", "text": "{{computed.conflictSummary}}", "textColor": "@color.muted", "grow": 1, "height": 22, "padding": 8 },
-					{ "use": "forgeConflictButton", "id": "conflict-accept-current", "with": { "run": "acceptCurrentChange", "text": "Accept Current" } },
-					{ "use": "forgeConflictButton", "id": "conflict-accept-incoming", "with": { "run": "acceptIncomingChange", "text": "Accept Incoming" } },
-					{ "use": "forgeConflictButton", "id": "conflict-accept-both", "with": { "run": "acceptBothChanges", "text": "Accept Both" } },
-					{ "use": "forgeConflictButton", "id": "conflict-next", "with": { "run": "nextConflict", "text": "Next" } }
+					{ "id": "conflict-accept-current", "use": "forgeConflictButton", "with": { "run": "acceptCurrentChange", "text": "Accept Current" } },
+					{ "id": "conflict-accept-incoming", "use": "forgeConflictButton", "with": { "run": "acceptIncomingChange", "text": "Accept Incoming" } },
+					{ "id": "conflict-accept-both", "use": "forgeConflictButton", "with": { "run": "acceptBothChanges", "text": "Accept Both" } },
+					{ "id": "conflict-next", "use": "forgeConflictButton", "with": { "run": "nextConflict", "text": "Next" } }
 				]
 			}
 		}

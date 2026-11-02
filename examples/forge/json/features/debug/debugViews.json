@@ -178,7 +178,7 @@
 						  "textColor": "@color.error", "tooltip": "Stop (Shift+F5)", "hover": { "color": "@color.hover" },
 						  "onClick": { "run": "debugStop" } }
 					  ] },
-					{ "use": "dialog", "id": "debug-edit-dialog",
+					{ "id": "debug-edit-dialog", "use": "dialog",
 					  "with": { "open": "state.debug.edit.open", "height": 230, "title": "Edit Breakpoint",
 					            "message": "", "buttons": [{ "title": "OK", "run": "debugSaveBreakpoint" }, { "title": "Cancel" }] },
 					  "children": [
@@ -196,7 +196,7 @@
 						  "placeholder": "Log message: log it instead of breaking; {expression} inserts a value",
 						  "onSubmit": { "run": "debugSaveBreakpoint" } }
 					  ] },
-					{ "use": "dialog", "id": "debug-value-dialog",
+					{ "id": "debug-value-dialog", "use": "dialog",
 					  "with": { "open": "state.debug.setValue.open", "height": 150, "title": "{{'Set Value of ' + state.debug.setValue.name}}",
 					            "message": "", "buttons": [{ "title": "Set", "run": "debugSetValue" }, { "title": "Cancel" }] },
 					  "children": [
@@ -205,7 +205,7 @@
 						  "textColor": "@color.text", "placeholderColor": "@color.muted", "placeholder": "New value",
 						  "onSubmit": { "run": "debugSetValue" } }
 					  ] },
-					{ "use": "dialog", "id": "debug-outside-dialog",
+					{ "id": "debug-outside-dialog", "use": "dialog",
 					  "with": { "open": "state.debug.outside.open", "title": "Open a source outside the folder?",
 					            "message": "{{'The debugger stopped in ' + (state.debug.outside.frame.path || state.debug.outside.frame.name || 'a frame') + ', outside the open folder. Forge asks the debugger for its text and shows it read-only.'}}",
 					            "buttons": [{ "title": "Open", "run": "debugOpenOutside" }, { "title": "Cancel" }] } }

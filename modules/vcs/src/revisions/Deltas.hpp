@@ -20,6 +20,12 @@ namespace affresco::vcs::detail {
 /// @return Operations "add", "remove" and "replace", with numeric list positions (never "-").
 [[nodiscard]] json delta(const json& from, const json& to);
 
+/// @brief Tells whether two documents say the same, whatever order their objects' keys are written in.
+/// @param a One.
+/// @param b The other.
+/// @return true if they do.
+[[nodiscard]] bool sameContent(const json& a, const json& b);
+
 /// @brief Applies one JSON Patch operation, its paths resolved, refusing one that adds a value inside a number, a
 /// string or a boolean.
 ///

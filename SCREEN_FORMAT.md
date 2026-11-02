@@ -75,6 +75,7 @@ Every part of the format follows these, and so should every extension:
 | `overlays` | `name → node`: laid over the window, above the root and its own overlays, e.g. from an `include`d add-on. Each is an `overlay` placed in the window by its own anchors unless it says otherwise; it may `use` a component, and isn't built while its `when` doesn't hold. |
 | `state` | The app's data, any JSON object. |
 | `assets` | `name → {type, size, sha256}`: files revisions brought, kept with the history, read as `"asset:<name>"` (see Assets). |
+| `program` | `file → { definition → text }`: a program, each top-level form its exact text with its comments, addressed `/program/<file>/<definition>`. It builds the sections it defines (see The Lisp language). |
 | `stateTypes` | `key → type`: what each state key holds, written as JSON Schema (see Typed state). |
 | `models` | `collection → { "version", "fields", "seed", "migrations" }`: the records' models (see Data). |
 | `queries` | `name → { "from", "where", "sort", "limit" }`: records read as `data.<name>`. |
@@ -1033,7 +1034,8 @@ Wherever a value is expected it can be computed:
   `dateMs(date)`, `isDate(text)`, `passwordStrength(text)`, `isEmail(text)`, `pathTree(list, key?)`,
   `keyLabel(chord, notation?)`, `qrCode(text, level?)`, `diffLines(original, modified, options?)`,
   `atPointer(value, pointer)`, `applyPatch(value, patch)`, `formatJson(value, indent?)`,
-  `gitStatus(output)` (up to 10000 files), `gitBranches(output)` (up to 10000 branches);
+  `gitStatus(output)` (up to 10000 files), `gitBranches(output)` (up to 10000 branches),
+  `formBefore(text, line, column)`, `formAround(text, line, column)`, `printForm(value)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
@@ -1319,6 +1321,11 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `debounce` | `{ "debounce": 300, "do": [...] }`: later, unless run again in the meantime (search boxes) |
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
+| `lisp`, `only` | `{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too) |
+| `evaluate` | `{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text, on the person's own press, never a timer or a handler that fires by itself. What they typed themselves: each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code. Anything else: its definitions are a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens. `then` gets `result`, the last one's value as Lisp, `error` and `proposal` |
+| `propose` | `{ "propose": "{{state.text}}", "as": "init.lisp", "file": "init.lisp", "then": [...], "onError": [...] }`: Lisp text of definitions, or a change set, as a proposal in the name `plugin:<as>`, whatever the rules would let it do; `then` gets `proposal`, `onError` gets `error` |
+| `exportChanges` | `{ "exportChanges": "my init", "only": "/program/init.lisp", "from": 0, "into": "state.changes" }`: the commits on main after `from`, those that only touch what starts with `only`, as a change set |
+| `runHooks` | `{ "runHooks": "after-save", "with": ["{{item.name}}"] }`: runs a program's functions added to that hook point (`defhook`, `add-hook`), each under its own author's authority |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
 | `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images) |
@@ -1887,7 +1894,7 @@ line:
 
 | Direction | Message |
 |---|---|
-| → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect |
+| → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect. For a program, `document` is what it builds with `program` in it, and `source` the document as written (not to a reader whose reads are limited: "Data rules") |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
 | → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `done` |
@@ -2160,9 +2167,9 @@ other way round.
 
 ```lisp
 ; Flow's insights panel: a comment runs to the end of the line
-(panel #insights :color transparent
-  (node #burndownTitle :style caption :anchors {:left 0 :top 0} :text "{{t('burndown.title')}}")
-  (column #list :gap 4))
+(panel#insights :color transparent
+  (node#burndownTitle :style caption :anchors {:left 0 :top 0} :text "{{t('burndown.title')}}")
+  (column#list :gap 4))
 ```
 
 is exactly
@@ -2174,36 +2181,44 @@ is exactly
 ```
 
 **It is never evaluated.** The Lisp notation is data, not code: there are no functions, macros, quoting or `eval`,
-and a list is never called. Expressions stay `{{...}}` strings, as in JSON.
+and a list is never called. Expressions stay `{{...}}` strings, as in JSON. The language that runs Lisp is another thing ("The
+Lisp language"): a file that is a program is run to build its tree, and a word the language runs isn't a node's type in a file of
+this notation either: `(not x)` is an error saying how to write it.
 
 | JSON | Lisp |
 |---|---|
-| an object with an `id` that is a string (a node) | `(type #id :key value ... child child ...)` |
-| any other object | `{:key value ...}` |
+| an object with a `type`, a `use` or `children`, or one in a list of children (a node) | `(type#id :key value ... child child ...)` |
+| any other object | `{:key value ...}`; a key that isn't a plain word is a string: `{"ctrl+f" find}` |
 | an array | `[a b c]` |
-| a string that is a plain word | the word: `transparent`, `@color.accent`, `state.items` |
-| any other string | in quotes, with JSON's escapes: `"Hello, world"`, `"{{state.count + 1}}"`, `"12px"`, `"true"` |
+| a string that is a plain word and doesn't start with a capital | the word: `transparent`, `@color.accent`, `state.items` |
+| any other string | in quotes, with JSON's escapes: `"Cut"`, `"Hello, world"`, `"{{state.count + 1}}"`, `"12px"`, `"true"` |
 | a number, `true`, `false`, `null` | `4`, `-2.5`, `1e-3`, `true`, `false`, `nil` |
 
 - **A node** is written `(head ...)`. The head is the node's `type` when `type` is its first key and a plain word other
-  than `node`; otherwise the head is `node` and the type, if any, is a key where it is (`(node #title :type label
-  ...)` for `{"id": "title", "type": "label"}`). `#id` is its `id`. Every other key is `:key value`, in the order of
-  the object, so converting never reorders keys: a commit made from either spelling has the same hash.
+  than `node` or a word the language runs ("The Lisp language"); otherwise the head is `node` and the type, if any, is a
+  key where it is (`(node#title :type label ...)` for `{"id": "title", "type": "label"}`). `#id` right after the head
+  (`panel#x`) is its `id`, when that is the next key and a plain word; otherwise `:id "..."`, where it is. `(panel #x)`
+  and `(panel #"a b")` still read. Every other key is `:key value`, in the order of the object, so converting never
+  reorders keys: a commit made from either spelling has the same hash.
 - **Children** are written after the properties, one per line: they are the node's `children` list when it is its
   last key and isn't empty. `:children [...]` is written for an empty list or one that isn't the last key.
 - **Plain words** start with a letter, `_`, `@` or `$`, and go on with letters, digits, `_`, `.`, `@`, `$` and `-`
-  (ASCII). `true`, `false` and `nil` are values, so the strings `"true"`, `"false"` and `"nil"` are quoted.
-- **Keys and ids** that aren't plain words are quoted: `:"#root/color"`, `#"{{'nav-' + tab}}"`.
-- **Comments** start with `;` (outside a string) and run to the end of the line. They are not part of the tree, so
-  converting a file drops them; a `note` key keeps text that must stay.
+  (ASCII). `true`, `false` and `nil` are values, so the strings `"true"`, `"false"` and `"nil"` are quoted. Text that
+  starts with a capital is written in quotes, so it keeps them when it gains a space; `Cut` bare still reads.
+- **Keys** that aren't plain words are strings in a map, `{"#root/color" red}`, and `:"a b"` in a node, where a bare
+  string is a child. `{:"a b" 1}` still reads.
+- **Comments** start with `;` (outside a string) and run to the end of the line, and `#_` discards the next form
+  (`#_x` with no space is still the id `_x`). Neither is part of the tree, so converting a file to JSON drops them; a
+  `note` key keeps text that must stay. Commas are spaces.
 - **A key appears once** in an object or a node; properties come before the children. A mistake names its place:
   `AffrescoUI screen: board.lisp: line 3, column 8: expected ')' to close the node opened at line 1, column 1`.
 - **Limits** as JSON's: 256 levels deep (a node's children count as a list inside it, as in JSON), numbers of at most
   40 characters, a file of at most 64 MiB.
 
 The printer is canonical: a tree always gives the same text (a list, an object or a node on one line when it fits in
-120 columns, else one member a line), and reading it back gives the tree. `affrescoui convert board.screen.json` writes
-it (`--to json` the other way, `-o FILE` to a file), `affrescoui fmt` lays out a `.lisp` file canonically, and
+120 columns, else one member a line, a map's and a list's aligned one column past the bracket and a node's two spaces
+in), and reading it back gives the tree. `affrescoui convert board.screen.json` writes it (`--to json` the other way,
+`-o FILE` to a file), `affrescoui fmt` lays out a `.lisp` file canonically and keeps its comments, and
 `affrescoui check` checks a `.lisp` file against the same schema, as the tree it spells.
 
 **Version control stays JSON.** The history, commits, patches, blame and permissions never see Lisp: a peer reads and
@@ -2212,8 +2227,216 @@ and `submit_revision` take `notation: "lisp"`. A revision written in Lisp is an 
 converted to JSON before it is submitted:
 
 ```lisp
-{:set {:"#statusBar/color" @topBar} :add {:"#list/children/-" (label #hello :text Hello)}}
+{:set {"#statusBar/color" @topBar} :add {"#list/children/-" (label#hello :text "Hello")}}
 ```
+
+## The Lisp language
+
+Besides the notation, `.lisp` text can be a **program**, in a language with a runtime (RFC 0005, `modules/lisp/README.md`):
+Clojure's syntax, Emacs's vocabulary. A screen, an include or an app's entry that is a program loads, builds and shows what it
+builds; its definitions are versioned (below), and handlers and bindings call its functions ("Running", below).
+`affrescoui run` prints what a program builds, and `affrescoui repl` tries the language.
+
+```lisp
+;;; rooms.lisp
+(defn card "One room, as a node." [room]
+  `(panel :id ~(str "room-" (:id room))
+     (label :text ~(:name room))))
+
+(defcommand toggle-side "Shows or hides the side bar." :title "Toggle Side" :category "View" [] nil)
+(defkey "mod+b" toggle-side)
+(defcustom list-size 60 "How many rooms are listed." :type integer)
+
+(defscreen main :window {:title "Rooms"}
+  (column#rooms ~@(map card [{:id "a" :name "Kitchen"} {:id "b" :name "Hall"}])))
+```
+
+builds
+
+```json
+{ "format": "affrescoui-screen", "version": 2, "window": { "title": "Rooms" },
+  "root": { "type": "column", "id": "rooms", "children": [
+    { "type": "panel", "id": "room-a", "children": [{ "type": "label", "text": "Kitchen" }] },
+    { "type": "panel", "id": "room-b", "children": [{ "type": "label", "text": "Hall" }] } ] },
+  "actions": { "toggle-side": { "title": "Toggle Side", "category": "View", "description": "Shows or hides the side bar.", "do": [{ "lisp": "toggle-side" }] } },
+  "keys": { "mod+b": "toggle-side" },
+  "settings": { "list-size": { "type": "integer", "default": 60, "description": "How many rooms are listed." } } }
+```
+
+| Form | Builds |
+|---|---|
+| `(defscreen main "doc"? :key value ... node)` | `root`, and its keys at the top of the document; another name: `screens.name` |
+| `(defcommand name "doc"? :key value ... [params] body...)` | `actions.name`, whose `do` runs the function `name` |
+| `(defkey "chord" "doc"? what)` | `keys.chord` |
+| `(defcustom name value "doc"? :key value ...)` | `settings.name`, and the global `name` |
+| `(def name "doc"? value)`, `(defn ...)`, `(defmacro ...)` | Nothing: what the others use |
+| `(defhook name "doc"?)`, `(add-hook hook "doc"? f)`, `(remove-hook hook "doc"? f)`, `(advice target "doc"? :before/:after/:around f)` | Nothing it builds: they run in the app ("Hooks and advice", below) |
+
+- **A program** is a file with several top-level forms, or one that is a definition. Each form is a definition with a name, the
+  order doesn't matter, a name twice is an error naming both places, and the sections are sorted by name.
+- **A data file is a template**, read as if backquoted, and builds to exactly the tree the notation gives, whether an app loads it
+  or `affrescoui run` does. Words stay data, and
+  `~` drops into code: `(label :text ~(str "a" 1))`. A word the language runs isn't a node type here: `(not x)` gives
+  `"not" is not a node type; to run it, write ~(not ...); for a node of that type, write (node :type not ...)`, and the printer
+  writes such a type that way. `list` is a node type, and stays one.
+- **The language:** `def defn defmacro fn let if do when cond and or quote loop recur try catch throw`, backquote with `~` and
+  `~@`, lexical closures, proper tail calls, destructuring of vectors and maps, docstrings on every definition, and Clojure's names
+  for functions (`map filter reduce find first rest cons conj assoc dissoc get get-in merge keys vals count str range apply not
+  not= = < > <= >= + - * / mod` and similar: `modules/lisp/README.md`). `nil`, booleans, numbers, strings, vectors and maps are JSON's.
+  It has no file, process, network, clock or randomness of its own, and building is pure: the same source gives the same tree. A
+  `def` is worked out at the build, so it can't read the running app: a function can.
+- **Limits** (for running, 10 million operations, 64 MiB allocated, 20,000 nested calls, a budget of its own for macros) end anything that
+  would run away, with an error naming the file, line, column and definition, never a value.
+
+`affrescoui convert` refuses a program, naming the first definition that needs running, since a program can't be converted to
+JSON and back; `affrescoui fmt` refuses one for now.
+
+### Running
+
+Handlers and bindings call a program's functions. A function reads the running app, and changes it only through the steps
+every handler has, so one rule set governs both. Its checks are SECURITY.md's, "The Lisp language".
+
+```lisp
+(defn add "Reads the state, and changes it with a step." [by]
+  (set "state.n" (+ state.n by)))
+
+(defn shown "What a label shows: it can only read." [n]
+  (str n " done"))
+
+(defn note-it "Runs later." [what]
+  (push "state.log" what))
+
+(defcommand reset "Runs from a key, a menu or the palette." :title ~(t "reset") :enablement ~(> state.n 0) []
+  (set "state.n" 0)
+  (after 500 note-it "reset"))
+
+(defkey "mod+0" reset)
+
+(defscreen main :state {:n 0 :log []}
+  (column
+    (label :text ~(shown state.n))                         ; a binding that calls a function
+    (label :text "Nothing yet" :visible ~(not state.n))    ; a binding that is an expression
+    (button :text "Add" :onClick {:run "add" :with {:by 1}})))
+```
+
+- **Calling a function.** A handler names one where it names an action: `"onClick": "reset"`, `{"run": "add", "with": {"by": 1}}`, a key,
+  a menu item. Its parameters come by name from the variables around it (`with`, a repeat's, `result` and `error` in a step's
+  callback), `event` from the event, and nil if nothing has that name. The step `{"lisp": "move", "with": [1, 2]}` gives them in order. A
+  `defcommand`'s `do` is that step, so a command runs as its function does, and a document's action of the same name wins.
+- **Reading.** A dotted word that nothing defines is a path of the running app: `state.count`, `data.ordered`, `computed.h`,
+  `auth.server.account`, `event.x`; `item.name` of a local `item` is its member. A value read is a copy, and costs what its size
+  costs. The expressions' functions that the language doesn't have under another name are there: `(t "key" {:n 1})`, `(today)`, `(trim s)`,
+  `(daysBetween a b)`, `(indexOf list x)`.
+- **Changing.** Each step is a function of its name, except `remove-state` and `update-record` for `remove` and `update`, whose names the
+  language has for something else, and those a program says itself (`if`, `forEach`, `while`, `stop`, `note`). After the step's first
+  value comes its next, if the step has one, or `:key value` pairs: `(set "state.x" 1)`, `(push "state.list" {:id 1})`,
+  `(insert "songs" :value {:title "A"} :then added :onError failed)`, `(undo)`. A value is taken as it is: text with `{{` in
+  it stays text, as no data is ever evaluated. A function where a step takes steps runs it: `:then added`.
+- **Later.** `(after 500 tick 1 2)` and `(debounce 300 search text)` run a function later with those arguments, as the steps do and
+  under their limits. A callback is a function a definition gives, kept by its name with its arguments as JSON, so a closure isn't one (its values
+  go when the event ends) and a function can't be kept in the state. If the definition is gone by then, nothing runs. It runs with the authority of
+  who scheduled it.
+- **A binding.** In a top-level template (a data file, `defscreen`, a `defcommand`'s options), a `~form` that names a path, or what
+  nothing defines, or a function that reads the running app (through what it calls too), stays in the tree as a binding, and
+  anything else is worked out at the build. It is written as the expression machine's own text when it can be: `~(not state.x)` is
+  `"{{!(state.x)}}"`, `~(if (> state.n 1) "a" "b")` is `"{{((state.n > 1) ? 'a' : 'b')}}"`, `~(t "key")` is `"{{t('key')}}"`. So those run at an
+  expression's speed and **with an expression's truth, where 0, "" and an empty list are false too**. A call of a function of the program is
+  `"{{lisp('name', state.x)}}"`, and the function `lisp(name, ...)` can be written in any expression. A binding has no `let` or `fn`: define
+  a function. **A value read for the screen only reads:** any step it reaches is refused, whoever wrote it. A template inside a
+  function (`` `(a ~x) ``) gives values, whenever it runs.
+- **Limits.** What a function does spends from the budget of the event or the update it runs in, with the steps' and the expressions': a
+  loop ends with an error naming its place, and a `try` doesn't catch a limit. What a call makes goes when it ends. Calls through steps
+  and values nest at most 64 deep.
+- **A change of the program** takes effect at once, whole: a new version of it replaces the one before, so a definition taken away is
+  gone, and an undo gives back exactly the definitions it had. A function running at that moment ends on its own version. The live state stays, what is
+  scheduled goes on (and finds the new definition of its name).
+
+### The loop: evaluating from inside the app
+
+Evaluating a form is submitting a revision. These are the library's tools for it, generic: a code editor or a spreadsheet would use
+them as Calamaio does (`examples/calamaio/lisp/loop.lisp`).
+
+```lisp
+(defn show "Shows what was evaluated." [result error] (set "state.echo" (or error result)))
+(defcommand eval-defun "Evaluates the definition around point." :title "Evaluate Definition" []
+  (let [at state.caret
+        form (formAround state.text (:line at) (:column at))]
+    (when form (evaluate (:text form) :file "init.lisp" :then show))))
+```
+
+| Step or function | What it does |
+|---|---|
+| `{ "evaluate": text, "file": "init.lisp", "then": steps }` | Each definition in the text becomes an entry of the program, all in one revision by the person: a definition of that name is replaced where it is, a new one goes in `file`. Then each other form runs for its value, as the person's code; history doesn't move for them. `then` gets `result`, the last form's value printed as Lisp (a definition's address, for a definition), `error` and `proposal`. **Only on the person's own press:** a key or a click, never a timer, a `watch`, a key pressed for the screen or a handler that fires by itself, and not while a proposal is previewed. **Only what they typed:** a form that isn't, whole, what their keystrokes made in a text widget bound to the state, since this run of the app, has none of their authority (below) |
+| `{ "propose": text or change set, "as": "init.lisp", "file": "init.lisp", "then": steps, "onError": steps }` | The same text as something from elsewhere: a proposal in the name `plugin:<as>`, whatever the rules would let it do. It holds definitions only, and what a revision may not do it may not do. `then` gets `proposal`, `onError` gets `error` |
+| `{ "exportChanges": "name", "only": "/program/init.lisp", "from": 0, "into": "state.changes" }` | The commits on `main` after `from` as a change set, only those wholly under `only` |
+| `formBefore(text, line, column)` | The form that ends at or before a position, however deep: `{text, line, column, endLine, endColumn, kind, name}`, or null. Lines and columns count from 1, as an editor's `caret` does |
+| `formAround(text, line, column)` | The top-level form around a position, or else the last before it, or else the next; null if the one around it isn't finished |
+| `printForm(value)`, `(pr-str value)` | A value as Lisp text |
+| `(describe-function name)`, `(describe-variable name)` | What is known of a definition or a command: `{name, kind, doc, author, file, line, arguments}`, with `title` and `category` for a command; never a value; nil if it isn't there |
+| `(describe-key "ctrl+k")` | `{key, runs, command}`: what a key runs, and that described |
+| `(apropos "text")` | Everything defined whose name holds the text, each described |
+| `(program-file "init.lisp")` | A file of the program, its entries one after another |
+
+**What the person typed.** Text in the state can be anyone's: a revision writes it, a key's step types it, a paste brings what any code put on the clipboard. So `evaluate` doesn't go by where the text is, and nothing marks what a stranger writes: the runtime records the bytes of each bound value that came from the person's own keystrokes, delivered to the widget itself (a character, Enter, Tab, Backspace, Delete; no paste, undo, `edit` step, `press` step or several cursors at once), and a form has their authority only if it is, whole, one run of those. Whatever else changes a value ends what it changed, and the two sides stay separate runs. A text that isn't: its definitions are a proposal in the name `plugin:evaluated`, which accepted has what a revision has, and if it holds anything but definitions nothing runs. To make it theirs, a person retypes it. Nothing is kept across runs of the app, a secret field is never recorded, and a form copied by the person's own command is theirs as long as what it was copied from is.
+
+**Commands.** A `defcommand` is callable by name (`{ "run": "kill-word", "with": { "times": 2 } }`, a command palette, `M-x`): its action has `title`,
+`category`, `description` from the docstring and `arguments`, its function's parameters, and the `commands` variable lists them.
+
+**`describe-*` and `apropos` obey read masks:** for code whose authors include a limited reader, a definition its `read` doesn't name isn't there.
+
+**An init file** is a change set (VERSION_CONTROL.md, "Programs"): what a person evaluates is exported, imported and undone like any customisation.
+
+### Hooks and advice
+
+Each is an entry of its own, so several authors' merge, blame shows who added what, and taking the entry away or undoing it takes it away.
+
+```lisp
+(defhook after-save "Runs after a buffer is saved.")       ; a program declares its own hook points
+(defn saved "" [] (run-hooks after-save (:name computed.buf)))
+(add-hook after-save "Says so." note-saved)               ; a function of the program
+(remove-hook after-save someone-elses)                    ; takes one away, as an entry of its own
+(advice kill-line :before remember)                       ; a function of the program, or an action of the document
+(advice kill-line :after  tidy)
+(advice kill-line :around wrap)                           ; (defn wrap [proceed & args] ... (proceed ...))
+```
+
+`{ "runHooks": "after-save", "with": [...] }` runs a hook point from a handler. Hook names belong to the app: the library has none. Advice applies however the
+function is called: by name, `apply`, a value, a timer. Several run in the order of their definitions; for `:around`, the last is the outermost. `proceed` with no
+arguments goes on with the original ones; it can't be kept for later.
+
+| What it does | A hook, `:before`, `:after` | `:around` |
+|---|---|---|
+| Who it runs as | The least of whoever led to it, whoever wrote it and whoever added it | The same |
+| What runs after it | **Untouched:** nothing it did counts against the caller | Holds what it wraps: it counts against everything after it |
+| Failing | Reported, naming who; the others and the action go on | As a function failing |
+| Budget | Together, half of what the event has left, shared equally; running out is reported and goes no further | The event's |
+| Sees arguments | The person's and the file's do; anyone else's gets none | The same, and anyone else's `proceed` gives nil and takes no arguments |
+
+A hook point runs once at a time: run from one of its own hooks, it is reported and skipped. Advice on what recurses meets the limit on runs inside runs (64).
+
+### A program in the document
+
+Loading a program gives a document whose `program` section holds it, one entry per definition, each its exact text with the
+comments above it and on its line:
+
+```json
+{ "format": "affrescoui-screen", "version": 2,
+  "program": { "rooms.lisp": { "card": ";; One room.\n(defn card ...)", "defkey mod+~1b": "(defkey \"mod+/b\" toggle-side)" } } }
+```
+
+(The second key's address is `/program/rooms.lisp/defkey mod+~1b`, as `/` is `~1` in a JSON Pointer.)
+
+- **What is shown is what it builds,** merged with any other section the document has. A member both give must be the same. A
+  program can't build `include` (list a program's files in a data file's `include`, or an app's entry), `assets`, `features` or
+  `program`.
+- **A definition's `state` is what a key starts from.** A key nothing has set yet follows the definition's value; a key the person, or a
+  function, has changed keeps what it holds, whatever the definition then says, and an undo leaves it.
+- **A revision changes definitions,** never what they build: `{"set": {"/program/rooms.lisp/card": "(defn card ...)"}}`, or one
+  keyword's value inside a form, far cheaper: `{"set": {"/program/rooms.lisp/toggle-side/:title": "Toggle"}}`. Rules judge what the
+  new source builds, and a build that fails is refused, naming the definition ([VERSION_CONTROL.md](VERSION_CONTROL.md),
+  "Programs").
+- **Limits:** a definition is at most 1 MiB and its address 1,024 bytes, a program at most 16,384 definitions. A build spends at
+  most 2,000,000 operations and 16 MiB. A file the app's own disk holds is under the same limits, since every revision builds it again.
 
 ## Migrating from version 1
 

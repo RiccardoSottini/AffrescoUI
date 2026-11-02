@@ -35,6 +35,8 @@
               way they arrive (bytes in memory or a stream, the chunk size, the encoding hinted).
 - key_press:  key chords, as the "keys" of a screen and the "press" step write them.
 - notation:   the templates as JSON (written in the Lisp notation by the target), and Lisp texts of every kind.
+- lisp:       the examples' Lisp files, and programs of every construct of the language: closures, macros, tail calls,
+              conditions, templates, the forms that define, and what runs out each limit.
 
 Generated rather than checked in, so the seeds follow the templates and the docs as they change; the inputs that found
 a bug are checked in, in regressions/<target>/, and added as they are.
@@ -141,6 +143,31 @@ def kanban_ids():
     return ids
 
 
+def program_revisions():
+    """Revisions on a document that holds a program (the fixture in tests/fuzz/revision.cpp): each kind of definition
+    replaced, added, taken away; a keyword edit; and what must be refused."""
+    at = "/program/app.lisp/"
+    return [
+        {"author": "agent", "set": {at + "helper": '(defn helper "New." [n] (+ n 2))'}},
+        {"author": "agent", "set": {at + "save": '(defn save "Mine." [] (call "y"))'}},
+        {"author": "agent", "set": {at + "go/:title": "Run"}},
+        {"author": "studio", "set": {at + "main/:state/:n": 5}},
+        {"author": "agent", "set": {at + "defkey mod+x": '(defkey "mod+x" save)'}},
+        {"author": "agent", "set": {at + "rooms": '(def rooms "Loops." (loop [] (recur)))'}},
+        {"author": "agent", "set": {at + "twice": '(defmacro twice "Runs." [x] (call "y") x)'}},
+        {"author": "agent", "patch": [{"op": "remove", "path": at + "helper"}]},
+        {"author": "agent", "patch": [{"op": "move", "from": at + "helper", "path": at + "other"}]},
+        {"author": "agent", "patch": [{"op": "copy", "from": at + "save", "path": at + "main"}]},
+        {"author": "studio", "set": {"/state/n": 9, at + "main/:state/:n": 2}},
+        {"author": "agent", "set": {at + "add-hook after-go save": "(add-hook after-go save)"}},
+        {"author": "agent", "set": {at + "advice save around go": "(advice save :around go)"}},
+        {"author": "agent", "set": {at + "advice call before go": "(advice call :before go)"}},
+        {"author": "agent", "set": {at + "add-hook after-go call": "(add-hook after-go call)"}},
+        {"author": "agent", "patch": [{"op": "remove", "path": at + "advice helper before go"}]},
+        {"author": "agent", "set": {at + "remove-hook after-go helper": "(remove-hook after-go helper)"}},
+    ]
+
+
 def revisions():
     """Revisions for the Kanban template: from the docs, and edits of every kind to its nodes and state."""
     found = [block for block in doc_blocks() if isinstance(block, dict) and
@@ -164,6 +191,7 @@ def revisions():
         {"op": "move", "from": "/state/copy", "path": "/state/moved"}, {"op": "test", "path": "/state/moved/0", "value": 1},
         {"op": "replace", "path": "#statusText/text", "value": "Saved"}, {"op": "remove", "path": "/state/extra"}]})
     found.append({"author": "agent", "proposal": 1, "set": {"#boardName/text": "Again"}})
+    found += program_revisions()
     return [compact(revision) for revision in found]
 
 
@@ -818,12 +846,34 @@ def notation_seeds():
     """The notation target's seeds: the templates as JSON (the target writes each in the Lisp notation and reads it
     back), Lisp texts of every construct, and nesting at the limit."""
     seeds = [path.read_text(encoding="utf-8") for path in templates("*.json")]
-    seeds += ['(panel #insights :color transparent\n  (node #title :style caption :anchors {:left 0 :top 0} '
+    seeds += ['; a comment\n(panel#insights :color transparent ; another\n  ; before\n  (node#a) #_ (x :y z)\n  )\n[1, 2]',
+              '(panel #insights :color transparent\n  (node #title :style caption :anchors {:left 0 :top 0} '
               ':text "{{t(\'burndown.title\')}}")\n  (column #list :gap 4))\n',
               '{:format affrescoui-screen :version 2 ; a comment\n :root (node :type node #"{{\'nav-\' + tab}}" '
               ':children [])}',
               '[1 -2.5 1e10 -0 true false nil "" "a\\n\\u00e9" $t @color.accent :x {:"#root/color" red}]',
               "[" * MAX_NESTING + "]" * MAX_NESTING, "(row #r " * (MAX_NESTING // 2) + ")" * (MAX_NESTING // 2)]
+    return seeds
+
+
+def lisp_seeds():
+    """The lisp target's seeds: the smaller Lisp examples, and every construct of the language."""
+    examples = [path.read_text(encoding="utf-8") for path in sorted(EXAMPLES.glob("*/lisp/**/*.lisp"))]
+    seeds = [text for text in examples if len(text) < 4096][:40]
+    seeds += ['(defn f "doc" [n & more] (if (< n 1) more (f (- n 1) n)))\n(defscreen main (panel#a :x ~(f 3)))',
+              '(defmacro m [a & b] `(do ~a ~@b))\n(defn g [] (m 1 2))\n(def x (g))\n(defcustom y 1 "d" :type integer)',
+              '(defcommand c :title "T" :category "K" [a] a)',
+              '(defscreen main :window {:title "T" :width 300} :state {:n 1} (panel#a))',
+              '(defcustom s 60 "d" :title "T" :type integer)',
+              '(defcommand c "d" :title "T" [a] (other a))\n(defkey "mod+k" c)\n(add-hook h c)\n(advice c :around g)',
+              '(let [[a & b :as c] [1 2 3] {:keys [d] :or {d 4} e :f} {:f 5}] (try (throw {:a a}) (catch x [x b c d e])))',
+              '(loop [i 0 v []] (if (< i 9) (recur (inc i) (conj v i)) (map inc (filter (fn [x] (mod x 2)) v))))',
+              '(reduce + 0 (range 10))', '(apply str (sort-by identity ["b" "a"]))', '(get-in {:a [1]} [:a 0])',
+              '`(a ~(b) ~@[c] {:d ~e} `(f ~(g ~h)))', '(panel :when ~(not x) "(not x)" (not x))',
+              '(node :type not (list#a) (map) ~@(list 1))', '{"a b" 1 :c 2, #_ :d #_ 3}', "'x '(y) ~z ~@w",
+              '(defn d [n] (+ 1 (d n))) (d 0)', '(loop [] (recur))', '(loop [a [1]] (recur [a a]))',
+              '(defmacro m [] `(m)) (m)', '(def a b) (def b a) a', "(" * MAX_NESTING + ")" * MAX_NESTING,
+              "`~" * (MAX_NESTING // 2) + "x", "'" * MAX_NESTING + "x"]
     return seeds
 
 
@@ -961,6 +1011,10 @@ def main():
     out = parser.parse_args().out
     words = dictionaries()
     write(out, "json", json_seeds() + settings_file_seeds(), words["json"])
+    write(out, "lisp", lisp_seeds(), ["(", ")", "[", "]", "{", "}", "#_", ":", '"', ";", "'", "`", "~", "~@", "nil", "true",
+                                      "def ", "defn ", "defmacro ", "defscreen ", "defcommand ", "defkey ", "defcustom ",
+                                      "fn ", "let ", "loop ", "recur ", "try ", "catch ", "throw ", "if ", "do ", "map ",
+                                      "reduce ", "apply ", "gensym", "& "])
     write(out, "notation", notation_seeds(), ["(", ")", "[", "]", "{", "}", "#", ":", '"', ";", "\n", "nil", "true",
                                               "false", "node", "\\u", "\\n", "-", "1e", "#\"", ':"', "\xEF\xBB\xBF"])
     write(out, "expression", expression_seeds() + ["hexColor('#AbC')", "hexColor(state.colors['editor.background'])",

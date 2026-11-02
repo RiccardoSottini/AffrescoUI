@@ -164,6 +164,14 @@ void nameComponent(const json& document, const std::string& place, const std::st
 		NodeNamer(document).name(component["node"], place + "/node", name);
 }
 
+/// @brief Tells whether a path that finds nothing in a document may be something its program builds.
+/// @param document The document as versioned.
+/// @param path The path, as written.
+/// @return true if the document holds a program, and the path is neither in it nor in the live state.
+bool mayBeBuilt(const json& document, std::string_view path) {
+	return document.contains("program") && !path.starts_with("/program") && !path.starts_with("/state");
+}
+
 } // namespace
 
 // Most nodes come with their ids: then nothing is named, and the document's ids aren't collected (a revision of many
@@ -179,6 +187,8 @@ void Rules::nameNodes(const json& document, std::string_view pointer, bool repla
 }
 
 std::string Rules::pathHint(const json& document, std::string_view path) const {
+	if(mayBeBuilt(document, path))
+		return "a program builds what isn't written here: change its definition, under /program";
 	std::string pointer(path), base, name; // a "#id" path: its node's pointer and "#id", which name what is inside
 	if(path.starts_with('#')) {
 		const std::size_t slash = path.find('/');

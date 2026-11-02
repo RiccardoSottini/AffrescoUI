@@ -156,6 +156,14 @@ public:
 
 	/// @brief The document: main's head, or the proposal being previewed.
 	[[nodiscard]] virtual const json& document() const = 0;
+	/// @brief The document as versioned: its `program` as text, without what that builds, which document() has too.
+	/// @return It; for a document that builds nothing, document() itself.
+	[[nodiscard]] virtual const json& sourceDocument() const { return document(); }
+	/// @brief Who last wrote each definition of the document's `program`: the author of the commit on main that last
+	/// changed it, "file" for what the file on disk had. For a host to give a live interpreter
+	/// (lisp::programOf(section, authors)).
+	/// @return `{file: {name: author}}`, empty without a program.
+	[[nodiscard]] virtual json programAuthors() const { return json::object(); }
 	/// @brief The live state: changed freely by actions, patched by revisions.
 	[[nodiscard]] virtual json& state() = 0;
 	/// @brief The live state.
@@ -200,11 +208,23 @@ public:
 	/// @param revision The revision.
 	/// @return What happened.
 	virtual RevisionResult submit(const json& revision) = 0;
+	/// @brief As submit(), but it always becomes a proposal, whatever the rules would let it do: what arrives from
+	/// elsewhere.
+	/// @param revision The revision.
+	/// @return As submit().
+	virtual RevisionResult propose(const json& revision) { return submit(revision); }
 
 	/// @brief Commits a revision from the application itself: not reviewed, but deny rules apply. Ends any preview.
 	/// @param revision The revision.
 	/// @return The error, or std::nullopt if committed.
 	virtual std::optional<std::string> commit(const json& revision) = 0;
+	/// @brief commit() of a change of a document's program that the person made by their own input: evaluating a form,
+	/// undoing that. It may do what only the person may: change what reaches a control step. Everything else holds:
+	/// deny rules, what no revision may change, and what its text may build. Every path must be under /program/. Only
+	/// the host's own code calls this, after checking that it is the person's input; no peer has a way to it.
+	/// @param revision The revision.
+	/// @return Why it was refused; std::nullopt if it landed.
+	virtual std::optional<std::string> commitOwnInput(const json& revision) { return commit(revision); }
 
 	/// @brief Finds a commit, like `git rev-parse`.
 	/// @param revision A number on main, a commit id or prefix, "main", "HEAD", "HEAD~n" or "proposal/<id>".

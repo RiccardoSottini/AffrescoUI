@@ -114,6 +114,12 @@ std::string TextArea::removeLast(std::size_t count) {
 
 std::u32string TextArea::shownText() const { return secret_ ? std::u32string(text_.size(), U'\u2022') : text_; }
 
+void TextArea::reportKey() {
+	typedNow_ = !secret_ && window() && window()->routingOwnPress();
+	onTextChanged(text());
+	typedNow_ = false;
+}
+
 void TextArea::keyEvent(const KeyEvent& event) {
 	if(secret_ && event.key == Key::C) return; // a secret is never copied
 	Label::keyEvent(event);                    // first: a binding that runs for the key keeps it from the text
@@ -122,14 +128,14 @@ void TextArea::keyEvent(const KeyEvent& event) {
 	if(event.key == Key::Backspace && !text_.empty()) {
 		text_.pop_back();
 		invalidate();
-		onTextChanged(text());
+		reportKey();
 	}
 
 	if(isPaste(event) && window() && insert(pastedLine(window()->clipboardText()))) onTextChanged(text());
 }
 
 void TextArea::charEvent(const CharEvent& event) {
-	if(insert(std::u32string_view(&event.codepoint, 1))) onTextChanged(text());
+	if(insert(std::u32string_view(&event.codepoint, 1))) reportKey();
 
 	Label::charEvent(event);
 }

@@ -4,7 +4,7 @@
 /// Any text either reads or throws a NotationError whose message stays short, and what reads nests at most maxNesting
 /// levels. What reads is written as text that reads back as the same value, key order included, and is canonical:
 /// writing it again gives the same text. Text that is JSON is also written in the Lisp notation and read back, the
-/// same.
+/// same. Formatting a text keeps its tree and every comment, and formatting again changes nothing.
 
 #include "Fuzz.hpp"
 
@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 using affresco::json;
 using affresco::notation::Notation;
@@ -36,6 +37,18 @@ void roundTrips(const json& value) {
 	if(affresco::notation::write(back, Notation::Lisp) != text) affresco::fuzz::broken("the writer is canonical");
 }
 
+/// @brief Formats a text that reads: the tree is the same, a comment stays in the text, and twice is once.
+/// @param text The text.
+/// @param value What it reads as.
+void formats(std::string_view text, const json& value) {
+	const std::string once = affresco::notation::format(text);
+	if(affresco::notation::read(once, Notation::Lisp).dump() != value.dump())
+		affresco::fuzz::broken("formatting keeps the tree");
+	if(affresco::notation::format(once) != once) affresco::fuzz::broken("formatting twice is formatting once");
+	if(text.contains(';') && !text.contains('"') && !text.contains("#_") && !once.contains(';'))
+		affresco::fuzz::broken("formatting keeps comments");
+}
+
 } // namespace
 
 /// @brief libFuzzer's entry point: reads the input as Lisp, and as JSON, and writes what reads.
@@ -49,6 +62,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		if(affresco::nestingDepth(value) > affresco::maxNesting)
 			affresco::fuzz::broken("the reader keeps to maxNesting");
 		roundTrips(value);
+		formats(text, value);
 	} catch(const affresco::notation::NotationError& error) { // refusing it is the rule, in a few words
 		if(error.message().size() > maxMessage) affresco::fuzz::broken("an error quotes only the start of the text");
 	}

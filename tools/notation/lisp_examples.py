@@ -3,7 +3,8 @@
 
 An example holds the same app twice, examples/<app>/json/ and examples/<app>/lisp/. The json/ folder is the source, so a
 change is made there and this is run again; `--check` fails if what is there isn't what it would write
-(`ctest -R cli_lisp_examples`).
+(`ctest -R cli_lisp_examples`). An app written as a program (RFC 0005) has no json/ folder: its lisp/ folder is its only
+source, and this leaves it alone.
 
 Every document becomes a .lisp file: an app's manifest, its entry and every other screen, what they include, its themes,
 models and seed data, its policies, adapters and features' manifests. Two kinds stay JSON and are copied: scenarios, and
@@ -45,8 +46,12 @@ def source_files():
 
 
 def is_generated(path):
-    """Whether a file of examples/ is one the generator writes."""
-    return LISP_FOLDER in os.sep + path or (path.startswith(SHARED) and path.endswith(".lisp"))
+    """Whether a file of examples/ is one the generator writes: not one of an app that is a program, with no json/ folder
+    (RFC 0005), whose lisp/ folder is its source."""
+    if path.startswith(SHARED):
+        return path.endswith(".lisp")
+    place = (os.sep + path).find(LISP_FOLDER)
+    return place >= 0 and os.path.isdir(os.path.join(EXAMPLES, path[:place], "json"))
 
 
 def read_json(path):

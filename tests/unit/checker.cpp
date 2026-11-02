@@ -90,6 +90,10 @@ void mergeEntry(json& entry, const std::string& section, const json& part) {
 /// @return The document.
 json screenTemplate(const std::string& name) {
 	const std::filesystem::path directory = templateDirectory(AFFRESCOUI_EXAMPLES_DIRECTORY, name);
+	if(std::filesystem::exists(directory /
+	                           "app.lisp")) // an app written as a program: what it builds, as a host opens it
+		return json::parse(
+		    affresco::Screen::fromApp(directory / "app.lisp", {}, affresco::Screen::History::InMemory).documentJson());
 	const std::ifstream file(directory / "index.screen.json");
 	REQUIRE(file);
 	std::stringstream content;
@@ -355,11 +359,12 @@ TEST_CASE("checker: references to what a section defines") {
 	    {"steps it doesn't know",
 		 R"("root": {"onClick": [{"sett": "state.x", "to": 1}, {"note": "fine"}]})",
 		 {"root.onClick[0]: unknown step (expected set, push, remove, toggle, increment, if, forEach, while, run, "
-		  "call, emit, send, connect, patch, focus, scrollTo, navigate, press, dismiss, after, debounce, animate, copy, log, "
+		  "call, emit, send, connect, patch, focus, scrollTo, navigate, press, dismiss, after, debounce, animate, "
+		  "copy, log, "
 		  "stop, "
 		  "note, accept, reject, preview, endPreview, restore, revert, undo, invoke, subscribe, respond, ask, "
 		  "signIn, signOut, chooseFolder, audio, attach, saveFile, openFile, export, openWindow, closeWindow, "
-		  "fullscreen, runInTerminal, clearTerminal or closeTerminal)"}},
+		  "fullscreen, runInTerminal, clearTerminal, closeTerminal or lisp)"}},
 	    {"expressions that don't parse, and writes outside the state",
 		 R"("root": {"text": "{{1 +}}", "onClick": {"set": "card.title", "to": 1}})",
 		 {"root.onClick.set: can only change values under 'state', not 'card.title'",

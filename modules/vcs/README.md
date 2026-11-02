@@ -45,6 +45,11 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **A refused operation says where:** the error names the operation, the path as written and resolved, and the
   document rules' hint (`DocumentRules::pathHint`, "did you mean '#title'?").
 - **A revision's size is checked first** (`DocumentRules::checkRevision`), before any operation is applied.
+- **A document can build** (`DocumentRules::built`, a program, RFC 0005): the source is what is stored and hashed, and
+  `document()`, rules and the review see what it builds with the source in it (`sourceDocument()` is the source). A revision on it
+  is applied to the source, then both sides are built (`judgeProgram`). Nothing below depends on it. What is built takes nothing a
+  person set from the live state: a definition's `state` is what a key starts from. `programAuthors()` says who wrote each definition,
+  which a text doesn't change by a person's restore or revert, or by accepting, and a preview's are its author's.
 - **Rules are judged by a change's effect** (the document before and after), never by the paths its patch happens to
   use: deny beats ask beats allow, and what no rule allows asks.
 - **Some changes are always reviewed:** after the deny rules, a change the document rules list in
@@ -61,6 +66,7 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   is read from main when each approval arrives. Grants may carry `expires`; expired ones no longer allow.
 - **Evidence is never the author's:** a revision carrying `evidence` or `behaviour` is refused; the host gathers both
   (VERSION_CONTROL.md, "Evidence").
+- **`commitOwnInput()`** is the person's own change of a program, from the host's code alone: only `/program/` paths, judged by the rules' `checkOwnChange`, and marked in its commit (VERSION_CONTROL.md, "Programs").
 - **The document rules' `checkChange` runs on every change,** so what the format forbids for everyone (widening a
   capability, for example) is refused even for a reviewer.
 - **On disk** (history version 2), commits carry their deltas, documents are written for snapshots only, and every

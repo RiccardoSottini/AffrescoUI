@@ -138,7 +138,9 @@ def template_files(root):
     for name in sorted(templates):  # each folder's index.screen.json, or, in a root from before it, <name>.screen.json
         folder = os.path.join(root, "examples", templates[name])
         index = os.path.join(folder, "index" + SUFFIX)
-        paths.append((name, index if os.path.exists(index) else os.path.join(folder, name + SUFFIX)))
+        path = index if os.path.exists(index) else os.path.join(folder, name + SUFFIX)
+        if os.path.exists(path):  # an app written as a program has no JSON to count
+            paths.append((name, path))
     return paths
 
 

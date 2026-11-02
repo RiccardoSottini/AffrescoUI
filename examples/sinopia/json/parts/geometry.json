@@ -191,8 +191,8 @@
 						"strokeDash": "{{o.dash == 'dot' ? [lw, lw] : o.dash == 'dash' ? [4 * lw, 3 * lw] : o.dash == 'dashDot' ? [4 * lw, 3 * lw, lw, 3 * lw] : o.dash == 'longDash' ? [8 * lw, 3 * lw] : []}}"
 					},
 					{
-						"repeat": { "for": "f", "in": "{{g.light || g.dark ? [{ id: 'light', faces: g.light ?? [], color: '#ffffff40' }, { id: 'dark', faces: g.dark ?? [], color: '#00000033' }] : []}}", "key": "{{f.id}}" },
-						"type": "path", "id": "{{name + '-' + f.id}}",
+						"type": "path",
+						"id": "{{name + '-' + f.id}}", "repeat": { "for": "f", "in": "{{g.light || g.dark ? [{ id: 'light', faces: g.light ?? [], color: '#ffffff40' }, { id: 'dark', faces: g.dark ?? [], color: '#00000033' }] : []}}", "key": "{{f.id}}" },
 						"x": "{{-e}}", "y": "{{-e}}", "width": "{{w + 2 * e}}", "height": "{{h + 2 * e}}", "fit": "fill",
 						"scale": "{{[o.flipH ? -1 : 1, o.flipV ? -1 : 1]}}", "viewBox": "{{-e + ' ' + -e + ' ' + (w + 2 * e) + ' ' + (h + 2 * e)}}",
 						"d": "{{join(map(f.faces, 'M' + join(map(it, fixed(it[0] * w + (it[2] ?? 0) * m, 2) + ' ' + fixed(it[1] * h + (it[3] ?? 0) * m, 2)), 'L') + 'Z'), '')}}",

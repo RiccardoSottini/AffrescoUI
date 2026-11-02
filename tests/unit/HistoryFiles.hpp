@@ -102,6 +102,7 @@ inline std::string forgeCommit(const std::filesystem::path& history, json commit
 	          commit.at("committer").get<std::string>() + "\ntime " + commit.at("time").get<std::string>() +
 	          "\npatch " + sha256(commit.at("patch").dump()) + "\n";
 	if(const int proposal = commit.value("proposal", 0)) object += "proposal " + std::to_string(proposal) + "\n";
+	if(commit.value("ownInput", false)) object += "ownInput\n";
 	object += "\n" + commit.at("message").get<std::string>();
 	const std::string id = sha256(object);
 	commit.erase("document");

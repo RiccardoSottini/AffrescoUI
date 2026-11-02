@@ -1,15 +1,18 @@
 /// @file
 /// @brief `affrescoui convert`: a file written in the other notation (modules/notation): JSON as AffrescoUI files are
-/// written (`fmt`), Lisp canonically. Comments in a Lisp file are dropped; `note` keys keep their text.
+/// written (`fmt`), Lisp canonically. Comments in a Lisp file are dropped, as JSON has none; `note` keys keep their text.
 
 #include "Cli.hpp"
 #include "JsonText.hpp"
 
 #include <affresco/core/Json.hpp>
+#include <affresco/lisp/Program.hpp>
 #include <affresco/notation/Notation.hpp>
 
 #include <array>
 #include <iostream>
+#include <optional>
+#include <string>
 
 namespace affresco::cli {
 
@@ -26,7 +29,12 @@ Exit convertFile(std::span<const std::string_view> args) {
 
 	json value;
 	try {
-		value = notation::read(readFile(file), from);
+		const std::string text = readFile(file);
+		if(from == notation::Notation::Lisp)
+			if(const std::optional<std::string> running = lisp::needsRunning(text))
+				throw FileProblem(file.string() + ": this is a program, not a value: " + *running +
+				                  " needs running (`affrescoui run --print` writes what it builds)");
+		value = notation::read(text, from);
 	} catch(const json::parse_error& error) {
 		throw FileProblem(file.string() + ": invalid JSON: " + error.what());
 	} catch(const DocumentError& error) {
