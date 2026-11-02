@@ -300,6 +300,11 @@ public:
 	/// What only the user starts, such as filling the display, asks this.
 	/// @return true while one of them runs.
 	[[nodiscard]] bool routingPress() const noexcept { return pressing_ > 0; }
+	/// @brief Whether the user's press is being delivered and nothing presses for the screen meanwhile: the press came
+	/// from outside the window, and no binding of it is pressing another (pressKey()). What only the person may start or
+	/// make, whichever handler a key has, asks this.
+	/// @return true while routingPress() is, outside pressKey().
+	[[nodiscard]] bool routingOwnPress() const noexcept { return pressing_ > 0 && pressedForScreen_ == 0; }
 	/// @brief Whether the hint that Esc leaves full screen is shown (setFullscreen()), drawn above everything.
 	/// @return true for the few seconds after the window starts filling the display.
 	[[nodiscard]] bool showsFullscreenHint() const noexcept { return fullscreenHintShown_; }

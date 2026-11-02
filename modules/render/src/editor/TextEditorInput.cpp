@@ -112,7 +112,11 @@ bool TextEditor::editingKey(const KeyEvent& event) {
 	switch(event.key) {
 	case Key::Enter:
 	case Key::KeypadEnter:
-		if(editable() && !command) newLine();
+		if(editable() && !command) {
+			markTyped();
+			newLine();
+			typedNext_ = false;
+		}
 		return true;
 	case Key::Tab:
 		if(!editable() || command) return true;
@@ -120,13 +124,18 @@ bool TextEditor::editingKey(const KeyEvent& event) {
 			indentLines(m.shift());
 			return true;
 		}
+		markTyped();
 		beginEdit(Edit::Typing);
 		replaceSelection(std::u32string(tabSize_ - caret_.column % tabSize_, U' '));
 		endEdit();
 		return true;
 	case Key::Backspace:
 	case Key::Delete:
-		if(editable()) deleteKey(event.key == Key::Delete, m);
+		if(editable()) {
+			markTyped();
+			deleteKey(event.key == Key::Delete, m);
+			typedNext_ = false;
+		}
 		return true;
 	default:
 		return false;
@@ -186,6 +195,7 @@ void TextEditor::charEvent(const CharEvent& event) {
 	if(event.codepoint < 0x20 || !editable()) return;
 	const std::u32string typed(1, event.codepoint);
 	if(!cursors_.empty()) return forEachCursor(Edit::Typing, [&] { replaceSelection(typed); });
+	markTyped();
 	beginEdit(Edit::Typing);
 	replaceSelection(typed);
 	endEdit();

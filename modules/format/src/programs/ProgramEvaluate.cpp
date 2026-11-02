@@ -117,9 +117,9 @@ json patchOfArrival(const json& value, const json& section, const std::string& f
 void evaluateStep(const Running& s) {
 	Engine& engine = s.steps.engine();
 	const std::string& where = s.where;
-	if(!engine.window || !engine.window->routingInput())
-		fail(where, "\"evaluate\" runs only from the person's own input: a key or a click, never a timer, a watch or a "
-		            "handler that fires by itself");
+	if(!engine.window || !engine.window->routingOwnPress())
+		fail(where, "\"evaluate\" runs only from the person's own input: a key or a click, never a timer, a watch, a "
+		            "key pressed for the screen or a handler that fires by itself");
 	if(engine.asks.deciding()) fail(where, "an agent's reply runs this action: a reply is never the person's input");
 	if(engine.versions.previewing()) fail(where, "a proposal is being previewed: end that first");
 	if(!engine.programs.hasProgram()) fail(where, "this screen has no program, so there is nothing to evaluate in");
@@ -141,7 +141,9 @@ void evaluateStep(const Running& s) {
 		const AuthorityScope holder(engine, authority ? &*authority : nullptr);
 		const DocumentContext::BudgetScope budget(engine.document);
 		Programs::Evaluated evaluated = engine.programs.evaluate(text, file, from, event, *outcome);
-		outcome->vars = {{"result", evaluated.printed}, {"error", evaluated.error ? json(*evaluated.error) : json()}};
+		outcome->vars = {{"result", evaluated.printed},
+		                 {"error", evaluated.error ? json(*evaluated.error) : json()},
+		                 {"proposal", evaluated.proposal ? json(*evaluated.proposal) : json()}};
 		if(evaluated.error && !hasThen) engine.report(*evaluated.error);
 		then();
 		engine.reconciler.requestStateUpdate();
@@ -242,66 +244,106 @@ void registerLoopSteps(StepRegistry& registry) {
 	              runLoopStep});
 }
 
+void Programs::noteTyped(const std::string& place, const json& before, const json& after) {
+	if(!live_ || !after.is_string()) return; // only a program evaluates anything
+	static const std::string nothing;
+	typed_.typed(place, before.is_string() ? before.get_ref<const std::string&>() : nothing,
+	             after.get_ref<const std::string&>());
+}
+
+Programs::FormsRead Programs::readForms(const std::vector<lisp::FormAt>& forms, Panel& sender, const json& event,
+                                        const Scope& locals) {
+	FormsRead read;
+	const Entered entered(*this, {&sender, &event, &locals});
+	lisp::Interpreter& interpreter = entered.interpreter();
+	for(const lisp::FormAt& form : forms) {
+		if(form.kind.empty() && !interpreter.expandsToDefinition(form.text)) {
+			read.expressions.push_back(form.text);
+			read.lastName.clear();
+			continue;
+		}
+		read.lastName = form.kind.empty() ? addressOf(form.text) : form.name;
+		read.definitions.emplace_back(read.lastName, form.text);
+	}
+	return read;
+}
+
+Programs::Evaluated Programs::proposeUntyped(const FormsRead& read, const std::string& file) {
+	Evaluated out;
+	if(!read.expressions.empty()) {
+		out.error = "this text isn't what you typed here, so it doesn't run: what runs as you is what you type";
+		return out;
+	}
+	if(read.definitions.empty()) return out;
+	const RevisionResult result = engine_.versions.propose(
+	    {{"author", "plugin:evaluated"},
+	     {"message", "Evaluate " + read.definitions.back().first},
+	     {"patch",
+	      definitionPatch(engine_.versions.sourceDocument().value("program", json::object()), read.definitions, file)}});
+	if(result.status == RevisionStatus::Rejected) {
+		out.error = result.error;
+		return out;
+	}
+	out.proposal = result.proposal;
+	out.printed = "proposal " + std::to_string(result.proposal) +
+	              " waits for your review: this text isn't what you typed here, so it isn't yours";
+	return out;
+}
+
+Programs::Evaluated Programs::runTyped(const FormsRead& read, const std::string& file, Panel& sender, const json& event,
+                                       const Scope& locals) {
+	Evaluated out;
+	if(!read.definitions.empty()) {
+		const json revision = {
+		    {"author", "user"},
+		    {"message", "Evaluate " + read.definitions.back().first},
+		    {"patch", definitionPatch(engine_.versions.sourceDocument().value("program", json::object()),
+			                          read.definitions, file)}};
+		if(const std::optional<std::string> refused = engine_.versions.commitOwnInput(revision)) {
+			out.error = *refused;
+			return out;
+		}
+	}
+	out.printed = read.lastName;
+	const Entered entered(*this, {&sender, &event, &locals});
+	lisp::Interpreter& interpreter = entered.interpreter();
+	ownInput_ = true;
+	/// @brief Ends the person's own input with the evaluation, whatever ends it.
+	class Own {
+	public:
+		/// @brief Remembers it. @param flag The flag.
+		explicit Own(bool& flag) : flag_(flag) {}
+		/// @brief Clears it.
+		~Own() { flag_ = false; }
+		Own(const Own&) = delete;
+		Own& operator=(const Own&) = delete;
+		Own(Own&&) = delete;
+		Own& operator=(Own&&) = delete;
+
+	private:
+		bool& flag_; ///< The flag.
+	};
+	const Own own(ownInput_);
+	for(const std::string& expression : read.expressions)
+		out.printed = interpreter.print(interpreter.evaluate(expression, "evaluated", "user"));
+	return out;
+}
+
 Programs::Evaluated Programs::evaluate(const std::string& text, const std::string& file, Panel& sender,
                                        const json& event, const Scope& locals) {
-	Evaluated out;
 	try {
-		std::vector<std::pair<std::string, std::string>> definitions;
-		std::vector<std::string> expressions;
-		std::string lastName;
 		const std::vector<lisp::FormAt> forms = lisp::formsOf(text, "evaluated");
-		{
-			const Entered entered(*this, {&sender, &event, &locals});
-			lisp::Interpreter& interpreter = entered.interpreter();
-			for(const lisp::FormAt& form : forms) {
-				if(form.kind.empty() && !interpreter.expandsToDefinition(form.text)) {
-					expressions.push_back(form.text);
-					lastName.clear();
-					continue;
-				}
-				lastName = form.kind.empty() ? addressOf(form.text) : form.name;
-				definitions.emplace_back(lastName, form.text);
-			}
-		}
-		if(!definitions.empty()) {
-			const json revision = {
-			    {"author", "user"},
-			    {"message", "Evaluate " + definitions.back().first},
-			    {"patch", definitionPatch(engine_.versions.sourceDocument().value("program", json::object()),
-				                          definitions, file)}};
-			if(const std::optional<std::string> refused = engine_.versions.commitOwnInput(revision)) {
-				out.error = *refused;
-				return out;
-			}
-		}
-		out.printed = lastName;
-		const Entered entered(*this, {&sender, &event, &locals});
-		lisp::Interpreter& interpreter = entered.interpreter();
-		ownInput_ = true;
-		/// @brief Ends the person's own input with the evaluation, whatever ends it.
-		class Own {
-		public:
-			/// @brief Remembers it. @param flag The flag.
-			explicit Own(bool& flag) : flag_(flag) {}
-			/// @brief Clears it.
-			~Own() { flag_ = false; }
-			Own(const Own&) = delete;
-			Own& operator=(const Own&) = delete;
-			Own(Own&&) = delete;
-			Own& operator=(Own&&) = delete;
-
-		private:
-			bool& flag_; ///< The flag.
-		};
-		const Own own(ownInput_);
-		for(const std::string& expression : expressions)
-			out.printed = interpreter.print(interpreter.evaluate(expression, "evaluated", "user"));
+		const json& state = engine_.versions.state();
+		// Only what the person's own keystrokes made is theirs: anything else can have been written by anyone
+		const bool typed = std::ranges::all_of(
+		    forms, [&](const lisp::FormAt& form) { return typed_.holds(form.text, state); });
+		const FormsRead read = readForms(forms, sender, event, locals);
+		return typed ? runTyped(read, file, sender, event, locals) : proposeUntyped(read, file);
 	} catch(const lisp::LispError& error) {
-		out.error = error.message();
+		return {.printed = {}, .error = error.message(), .proposal = std::nullopt};
 	} catch(const DocumentError& error) {
-		out.error = error.what();
+		return {.printed = {}, .error = error.what(), .proposal = std::nullopt};
 	}
-	return out;
 }
 
 /* Describing */

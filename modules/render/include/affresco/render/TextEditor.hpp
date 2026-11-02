@@ -394,6 +394,9 @@ public:
 	/// @return See View.
 	[[nodiscard]] View view() const;
 
+	/// @copydoc Panel::takeTyped
+	[[nodiscard]] bool takeTyped() noexcept override { return std::exchange(typedNow_, false); }
+
 	Signal<const std::string&> onTextChanged; ///< The user edited the text (not setText()); UTF-8.
 	Signal<Position> onCaretMoved;            ///< The caret or the selection changed, by the user or by an edit.
 	Signal<Vec2> onScrolled;                  ///< The scroll offset changed (by the wheel, the caret or setScroll()).
@@ -493,6 +496,9 @@ protected:
 
 	/* Editing API for subclasses: call beginEdit(), change the text, set the selection, then endEdit() */
 
+	/// @brief Says that the next endEdit() ends what the person's own keystroke asked for, when it is one: it goes in one
+	/// place, as what the key says. A paste, an undo, or anything a script does never does this.
+	void markTyped() noexcept;
 	/// @brief Starts an undo step, keeping the caret and selection to restore.
 	/// @param kind The edit; consecutive typing (or deleting) is one undo step.
 	void beginEdit(Edit kind);
@@ -929,6 +935,8 @@ private:
 	Position lastClickAt_;              ///< Where it happened.
 	int clicks_ = 0;                    ///< Presses in a row at one place (1, 2 or 3).
 	bool editing_ = false;              ///< This editor is changing the model: its caret is set by the edit, not moved.
+	bool typedNext_ = false;            ///< The next endEdit() ends a keystroke of the person's (markTyped()).
+	bool typedNow_ = false;             ///< What onTextChanged reports now is that (takeTyped()).
 	bool readOnly_ = false;             ///< See setReadOnly().
 
 	Edit lastEdit_ = Edit::Other;        ///< The edit that made the newest undo step (Other: start a new step).

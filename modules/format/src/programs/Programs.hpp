@@ -6,10 +6,12 @@
 /// there (SECURITY.md, "The Lisp language").
 
 #include "Expression.hpp"
+#include "TypedText.hpp"
 
 #include "affresco/core/Json.hpp"
 
 #include <affresco/lisp/Interpreter.hpp>
+#include <affresco/lisp/Program.hpp>
 
 #include <functional>
 #include <map>
@@ -18,6 +20,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco {
@@ -85,12 +88,19 @@ public:
 	struct Evaluated {
 		std::string printed;              ///< The last form's value, as Lisp; a definition's address.
 		std::optional<std::string> error; ///< What went wrong: names and kinds, no value.
+		std::optional<int> proposal;      ///< The proposal it became, when the person didn't type it.
 	};
 	/// @brief Tells whether the document has a program. @return true if it has.
 	[[nodiscard]] bool hasProgram() const noexcept;
-	/// @brief Evaluates a text the person's own input gave (the step `evaluate` has checked that): each definition
-	/// becomes an entry of the program in one revision of theirs, then each other form runs for its value as code of
-	/// theirs.
+	/// @brief Notes what the person's own keystroke did to a bound value (TypedText).
+	/// @param place The value's JSON Pointer in the state.
+	/// @param before What it holds.
+	/// @param after What it will hold.
+	void noteTyped(const std::string& place, const json& before, const json& after);
+	/// @brief Evaluates a text on the person's own press (the step `evaluate` has checked that). If they typed every form
+	/// in it (TypedText): each definition becomes an entry of the program in one revision of theirs, then each other
+	/// form runs for its value as code of theirs. If not, it has none of their authority: its definitions become a
+	/// proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens.
 	/// @param text The text.
 	/// @param file The file for a definition no file has.
 	/// @param sender The panel it comes from.
@@ -175,6 +185,34 @@ private:
 	class Entered;
 	class Linked;
 	struct Share;
+	/// @brief The forms of a text, as `evaluate` takes them.
+	struct FormsRead {
+		std::vector<std::pair<std::string, std::string>> definitions; ///< Each definition's address and text.
+		std::vector<std::string> expressions;                         ///< The rest, in order.
+		std::string lastName;                                         ///< The last form's address, if it defines.
+	};
+	/// @brief Sorts a text's forms into definitions and the rest: a call of a macro that defines counts as defining.
+	/// @param forms The forms.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @return What it holds.
+	[[nodiscard]] FormsRead readForms(const std::vector<lisp::FormAt>& forms, Panel& sender, const json& event,
+	                                  const Scope& locals);
+	/// @brief What becomes of a text the person didn't type.
+	/// @param read Its forms.
+	/// @param file The file for a definition no file has.
+	/// @return The proposal it made, or why not.
+	[[nodiscard]] Evaluated proposeUntyped(const FormsRead& read, const std::string& file);
+	/// @brief Runs a text the person typed.
+	/// @param read Its forms.
+	/// @param file The file for a definition no file has.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @return What it gave.
+	[[nodiscard]] Evaluated runTyped(const FormsRead& read, const std::string& file, Panel& sender, const json& event,
+	                                 const Scope& locals);
 
 	/// @brief A hook's or an advice's function.
 	struct ExtensionEntry {
@@ -394,6 +432,7 @@ private:
 	std::shared_ptr<const Extensions> extensions_;     ///< The hooks and advice of live_.
 	std::shared_ptr<const Extensions> extensionsNext_; ///< Those of what load() is loading.
 	std::vector<std::string> hooksRunning_;            ///< The hook points being run.
+	TypedText typed_;                                  ///< What the person typed themselves.
 };
 
 /// @brief Links a running interpreter's budget to the event's while it lives: the event's going in, and back when it

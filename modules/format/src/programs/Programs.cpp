@@ -174,7 +174,7 @@ std::optional<std::string> Programs::refusal(std::string_view what, StepKind kin
 	if(stranger != ran.end())
 		return "code by \"" + *stranger + "\" led here, and only the person's own code and the app's file may run " +
 		       step;
-	const bool input = ownInput_ || (engine_.window && engine_.window->routingInput());
+	const bool input = ownInput_ || (engine_.window && engine_.window->routingOwnPress());
 	if(kind == StepKind::Review && !input) return step + " runs only from the person's own input";
 	if(engine_.versions.previewing() && !input)
 		return "while a proposal is previewed, control steps run only from the user's input";

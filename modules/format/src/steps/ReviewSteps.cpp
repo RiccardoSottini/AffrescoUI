@@ -88,7 +88,7 @@ std::optional<bool> runReviewStep(const Running& s) {
 	json control = evaluateControl(s);
 	if(!engine.window) return true;
 
-	engine.scheduler.defer([&engine, control = std::move(control), own = engine.window->routingInput()] {
+	engine.scheduler.defer([&engine, control = std::move(control), own = engine.window->routingOwnPress()] {
 		if(const std::optional<std::string> error = carryOut(engine.versions, control, own)) engine.report(*error);
 		engine.reconciler.requestReconcile();
 	});

@@ -28,14 +28,19 @@ constexpr const char* kLoop = R"lisp(
 (defkey "ctrl+e" eval-it)
 (defkey "ctrl+a" a)
 (defkey "ctrl+c" c)
-(defscreen main :state {:text "" :result nil :error nil :out nil} (panel#root))
+(defcommand clear-text "Empties the buffer." :title "Clear" [] (set "state.text" ""))
+(defkey "ctrl+w" clear-text)
+(defscreen main :state {:text "" :result nil :error nil :out nil}
+  (panel#root (editor#typed :bind "state.text" :autofocus true :width 300 :height 100)))
 )lisp";
 
-/// @brief Puts a text in the state and evaluates it with the person's key.
+/// @brief Empties the buffer, types a text and evaluates it with the person's key.
 /// @param app The app.
 /// @param text The text.
 void typeAndEvaluate(App& app, const std::string& text) {
-	app.repository.state()["text"] = text;
+	app.press(Key::W);
+	app.settle();
+	app.type(text);
 	app.press(Key::E);
 	app.settle();
 }

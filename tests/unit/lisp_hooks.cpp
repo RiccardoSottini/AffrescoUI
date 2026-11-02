@@ -449,13 +449,18 @@ TEST_CASE("lisp attack: a hook adding a hook, recursion among hooks, and budgets
 (defkey "ctrl+d" d)
 (defscreen main :state {:noops 0 :again 0} (panel#root))
 )lisp");
-	// A hook adding a hook: it is for the next run, in a new version of the program
+	// A hook adding a hook: it is for the next run, in a new version of the program, and what it evaluates isn't what
+	// the person typed, so it waits for them
 	const int head = app.repository.head().number;
 	app.press(Key::A);
 	app.settle();
 	CHECK(app.errors.empty());
 	CHECK(app.state("noops") == 0);
-	CHECK(app.repository.head().number == head + 1);
+	CHECK(app.repository.head().number == head);
+	REQUIRE(app.repository.proposals().size() == 1);
+	REQUIRE_FALSE(
+	    app.repository.accept(app.repository.proposals()[0].id, {"user", app.repository.proposals()[0].head, false})
+	        .has_value());
 	app.write("adder", "(defn adder \"\" [] nil)", "user");
 	app.press(Key::A);
 	CHECK(app.state("noops") == 1);

@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace affresco {
 
@@ -84,12 +85,20 @@ protected:
 	void focusEvent(bool focused) override;
 	void paint(Painter& painter) const override;
 
+	/// @copydoc Panel::takeTyped
+	[[nodiscard]] bool takeTyped() noexcept override { return std::exchange(typedNow_, false); }
+
 private:
+	/// @brief Reports what a key of the person's changed: as typing, unless the field is a secret or the key was pressed
+	/// for the screen.
+	void reportKey();
+
 	std::u32string placeholder_;             ///< See setPlaceholder().
 	Color placeholderColor_ = colors::muted; ///< See setPlaceholderColor().
 	bool secret_ = false;                    ///< See setSecret().
 	std::size_t maxLength_ = 0;              ///< See setMaxLength().
 	Accept accept_ = Accept::Any;            ///< See setAccept().
+	bool typedNow_ = false;                  ///< What onTextChanged reports now is the person's typing.
 };
 
 } // namespace affresco

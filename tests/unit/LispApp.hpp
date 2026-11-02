@@ -105,6 +105,20 @@ struct App {
 		window->render();
 	}
 
+	/// @brief Types a text, a key at a time, as the person does, into what has the focus.
+	/// @param text The text.
+	void type(const std::string& text) const {
+		for(const char c : text) {
+			if(c == '\n') {
+				window->routeKey({Key::Enter, 0, affresco::Action::Press, affresco::Mods{}});
+				window->routeKey({Key::Enter, 0, affresco::Action::Release, affresco::Mods{}});
+			} else {
+				window->routeChar({static_cast<char32_t>(static_cast<unsigned char>(c))});
+			}
+		}
+		window->render();
+	}
+
 	/// @brief Lets what was deferred from an event happen: a revision, an evaluation.
 	void settle() const {
 		window->render();

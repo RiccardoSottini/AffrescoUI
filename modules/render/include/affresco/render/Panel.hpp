@@ -547,6 +547,12 @@ public:
 	Signal<bool> onFocusChanged;                   ///< Focus gained (true) or lost (false).
 	Signal<bool> onHover; ///< Pointer entered (true) or left (false) this panel or one of its descendants.
 
+	/// @brief Asks, once, whether the change a widget is reporting now is what the person typed on the keyboard: a
+	/// character or a key of their own going into it, not a paste, an undo, a script or a key pressed for the screen. Only
+	/// a text widget ever says so, and never for a secret.
+	/// @return true if it is; it says so to the first who asks.
+	[[nodiscard]] virtual bool takeTyped() noexcept { return false; }
+
 protected:
 	/* Event hooks called by the Window. Widgets override them; call the base to keep the signals firing. */
 
