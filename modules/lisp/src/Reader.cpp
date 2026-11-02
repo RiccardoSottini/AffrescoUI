@@ -9,8 +9,8 @@
 
 #include <algorithm>
 #include <optional>
+#include <set>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -74,15 +74,16 @@ void Reader::shallowEnough(const Token& token, int levels) const {
 
 Place Reader::placeAt(std::size_t offset) {
 	const std::string_view text = lexer_.text();
+	// Places are asked for in order, so what has been gone through isn't gone through again: a long line stays linear
 	for(; scanned_ < offset && scanned_ < text.size(); ++scanned_) {
-		if(text[scanned_] != '\n') continue;
-		++line_;
-		lineStart_ = scanned_ + 1;
+		if(text[scanned_] == '\n') {
+			++line_;
+			column_ = 1;
+		} else if((static_cast<unsigned char>(text[scanned_]) & 0xC0U) != 0x80U) {
+			++column_; // a UTF-8 continuation byte isn't one
+		}
 	}
-	std::size_t column = 1;
-	for(std::size_t at = lineStart_; at < offset && at < text.size(); ++at)
-		if((static_cast<unsigned char>(text[at]) & 0xC0U) != 0x80U) ++column; // a UTF-8 continuation byte isn't one
-	if(line_ == 0) column += firstColumn_ - 1;
+	const std::size_t column = line_ == 0 ? column_ + firstColumn_ - 1 : column_;
 	return {file_, static_cast<std::uint32_t>(firstLine_ + line_), static_cast<std::uint32_t>(column)};
 }
 
@@ -193,7 +194,7 @@ Value Reader::map(const Token& open, int depth) {
 	shallowEnough(open, depth + 1);
 	const Place place = placeAt(open.offset);
 	std::vector<Value> pairs;
-	std::unordered_set<std::string_view> seen;
+	std::set<std::string_view> seen;
 	bool literal = true;
 	for(Token item = lexer_.next(); item.kind != TokenKind::CloseMap; item = lexer_.next()) {
 		if(item.kind == TokenKind::End)

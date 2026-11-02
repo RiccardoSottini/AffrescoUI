@@ -8,6 +8,7 @@
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/lisp/Program.hpp>
 
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -308,4 +309,20 @@ TEST_CASE("lisp attack: native re-entry through steps is bounded, and closures d
 	CHECK_FALSE(app.errors.empty());
 	for(int turn = 0; turn < 5; ++turn) app.press(Key::G); // each event gives back what it made, and sees base whole
 	CHECK(app.state("seen") == json::array({4, 3, 3}));
+}
+
+TEST_CASE("lisp attack: reading a long text is linear, on one line and form by form") {
+	using Clock = std::chrono::steady_clock;
+	std::string words = "(def x '[";
+	for(int at = 0; at < 180000; ++at) words += "a ";
+	words += "])";
+	const auto started = Clock::now();
+	lisp::Program one;
+	one.addFile(words, "app.lisp");
+	CHECK(Clock::now() - started < std::chrono::seconds(10));
+	std::string forms;
+	for(int at = 0; at < 500000; ++at) forms += "(a)";
+	const auto again = Clock::now();
+	CHECK(lisp::formsOf(forms, "").size() == 500000);
+	CHECK(Clock::now() - again < std::chrono::seconds(10));
 }

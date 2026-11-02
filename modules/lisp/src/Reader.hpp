@@ -94,7 +94,7 @@ private:
 	std::size_t firstColumn_;   ///< See the constructor.
 	std::size_t scanned_ = 0;   ///< How far placeAt() has looked.
 	std::size_t line_ = 0;      ///< Line breaks before scanned_.
-	std::size_t lineStart_ = 0; ///< Where the line of scanned_ starts.
+	std::size_t column_ = 1;    ///< The column of scanned_, in characters.
 };
 
 /// @brief Tells whether a word can be a symbol: ASCII letters, digits and `_ . @ $ - + * / < > = ! ? & %`, not starting

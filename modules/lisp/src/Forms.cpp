@@ -40,14 +40,14 @@ std::size_t offsetOf(std::string_view text, std::size_t line, std::size_t column
 	return at;
 }
 
-/// @brief A place in a text, as a text editor counts.
+/// @brief Moves a place in a text forward, as a text editor counts.
 /// @param text The text.
-/// @param offset The place, in bytes.
-/// @return Its line and its column, from 1, in characters.
-std::pair<std::size_t, std::size_t> placeOf(std::string_view text, std::size_t offset) {
-	std::size_t line = 1;
-	std::size_t column = 1;
-	for(std::size_t at = 0; at < offset && at < text.size(); ++at) {
+/// @param at The place, in bytes; moved.
+/// @param to Where to, in bytes.
+/// @param line Its line; moved.
+/// @param column Its column, in characters; moved.
+void goForward(std::string_view text, std::size_t& at, std::size_t to, std::size_t& line, std::size_t& column) {
+	for(; at < to && at < text.size(); ++at) {
 		if(text[at] == '\n') {
 			++line;
 			column = 1;
@@ -55,6 +55,17 @@ std::pair<std::size_t, std::size_t> placeOf(std::string_view text, std::size_t o
 			++column;
 		}
 	}
+}
+
+/// @brief A place in a text, as a text editor counts.
+/// @param text The text.
+/// @param offset The place, in bytes.
+/// @return Its line and its column, from 1, in characters.
+std::pair<std::size_t, std::size_t> placeOf(std::string_view text, std::size_t offset) {
+	std::size_t line = 1;
+	std::size_t column = 1;
+	std::size_t at = 0;
+	goForward(text, at, offset, line, column);
 	return {line, column};
 }
 
@@ -176,11 +187,18 @@ std::vector<FormAt> formsOf(std::string_view text, const std::string& file) {
 	Heap heap;
 	Reader reader(heap, text, file);
 	std::vector<FormAt> forms;
-	while(const auto read = reader.next()) {
+	std::size_t line = 1;
+	std::size_t column = 1;
+	std::size_t at = 0;
+	while(const auto read = reader.next()) { // from where the last one ended: a text of many forms stays linear
 		FormAt found;
 		found.text = std::string(text.substr(read->start, read->end - read->start));
-		std::tie(found.line, found.column) = placeOf(text, read->start);
-		std::tie(found.endLine, found.endColumn) = placeOf(text, read->end);
+		goForward(text, at, read->start, line, column);
+		found.line = line;
+		found.column = column;
+		goForward(text, at, read->end, line, column);
+		found.endLine = line;
+		found.endColumn = column;
 		readHead(read->form, found);
 		forms.push_back(std::move(found));
 	}
