@@ -428,6 +428,8 @@ its exact text with its comments, in a section `program`:
 { "program": { "killring.lisp": { "kill-line": ";; Kills.\n(defcommand kill-line \"Kills.\" :title \"Kill\" [] nil)" } } }
 ```
 
+**A program is there from the start.** A revision, a change set or a person's evaluation can't give an app with no program a `program`, or take the whole of one away: a JSON app is parsed and displayed, and gains no code.
+
 **Definitions are ordinary values, so nothing about the history changes.** Revisions, commits, hashes, revert, restore,
 proposals, rebases, change sets and blame work on `/program/<file>/<name>` as on any path (`/` in a name is `~1`, `~` is
 `~0`). The source is what is hashed and kept; what it builds is worked out from it. `VersionControl::document()` is what it
@@ -496,13 +498,13 @@ as with an action that holds such a step. That is the first line. The second is 
 person or the app's file may not run a control step at all ([SECURITY.md](SECURITY.md), "The Lisp language"). So an agent's accepted function may
 do what a revision may add to a handler, and no more, as a proposal can't add a control step to JSON either.
 
-**The person's own input.** Evaluating a form in a running app is a revision by the author `user` (`VersionControl::commitOwnInput()`, reached only from the step
-`evaluate`, or from `undo`, `revert` or `restore`, each from the person's input). It only touches `/program/`, and it lands marked `ownInput`, which the commit's hash covers. It is judged as any revision
+**The person's own input.** Evaluating a form **they typed** in a running app is a revision by the author `user` (`VersionControl::commitOwnInput()`, reached only from the step
+`evaluate`, or from `undo`, `revert` or `restore`, each on the person's own press; what they didn't type is a proposal, below, and SCREEN_FORMAT.md, "What the person typed"). It only touches `/program/`, and it lands marked `ownInput`, which the commit's hash covers. It is judged as any revision
 but for one rule: **what reaches a control step may change**, as that is what only the person may do. Everything else holds: what no revision may change (`permissions`, `channels`,
 `persist`, `services`...), deny rules, what it builds, and the limits. No peer has a way to it: a revision that says `"author": "user"` is scanned as any other, and a channel can't name its author so. Text that a commit on `main` first
 wrote stays that author's even if the person evaluates exactly it. An agent's revert of the person's change stays refused when it would change what reaches a control step.
 
-**What arrives from elsewhere** is a proposal. The step `propose` takes definitions as text (an `init.lisp`) or a change set, and proposes them in the name `plugin:<name>`, whatever the rules would let it do. Accepting
+**What arrives from elsewhere** is a proposal. The step `propose` takes definitions as text (an `init.lisp`) or a change set, and proposes them in the name `plugin:<name>`, whatever the rules would let it do; the step `evaluate` does that with what the person didn't type, in the name `plugin:evaluated`. Accepting
 doesn't move them to anyone with more authority, as with any proposal: its code has what a revision has, so a control step in it is refused when it runs, and one a key or a handler reaches is refused when it arrives. A form that isn't a definition can't be in it. So
 an **init file is a change set**: what a person evaluated is exported (`exportChanges`, `only`), imported (`importChanges`, as `plugin:<name>`, no `ownInput` mark, the scan on) and undone like any customisation, and a copy somewhere else gets
 no more authority than a change set has. To have a function's control step work there, the person evaluates it themselves.

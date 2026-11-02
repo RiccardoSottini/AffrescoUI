@@ -2,7 +2,8 @@
 ;;;
 ;;; Type a form anywhere and evaluate it: `(+ 1 2)` shows its value, and a definition takes effect at once and lands in the
 ;;; history, where C-x C-z (`undo-evaluation`) takes it back and `M-x export-init` carries it to another copy. What you
-;;; type runs as you; a file loaded with `M-x load-init` is a proposal in its own name, however it was written.
+;;; type runs as you. Text you didn't type here, whoever put it in the buffer, a file you opened, what you pasted or yanked,
+;;; has none of your authority: its definitions are a proposal, in its own name, and anything else in it doesn't run.
 
 ;;; Hook points of this editor, which your init.lisp can add to
 
@@ -65,7 +66,7 @@
 ;;; init.lisp: your own definitions, and what arrives from elsewhere
 
 (def init-starter "What M-x find-init shows before you have defined anything."
-  ";;; init.lisp --- your own definitions, in the language Calamaio is written in\n;;\n;; M-x eval-buffer evaluates all of this: each definition lands in the history as yours, and\n;; C-x C-z takes back the last evaluation. A file you got elsewhere goes through M-x load-init\n;; instead: a proposal in its own name, which you accept or leave.\n\n(defn insert-rule\n  \"Inserts a line of dashes at point.\"\n  []\n  (edit \"type\" :text \"----\\n\" :in computed.ed))\n\n(defcommand say-hello\n  \"Says hello in the echo area.\"\n  :title \"Say Hello\" :category \"Mine\"\n  []\n  (message \"Hello from your init file\"))\n\n(defkey \"ctrl+c h\" say-hello)\n\n(defn note-saved\n  \"Says what was saved, after C-x C-s.\"\n  [name]\n  (message (str \"Saved \" name)))\n\n(add-hook after-save note-saved)\n")
+  ";;; init.lisp --- your own definitions, in the language Calamaio is written in\n;;\n;; Typed here, a definition lands in the history as yours, with C-x C-e, and C-x C-z takes it\n;; back. M-x eval-buffer on this start, which you didn't type, is a proposal: M-x accept-proposal\n;; takes it, with no authority of yours. A file from elsewhere goes the same way, by M-x load-init.\n\n(defn insert-rule\n  \"Inserts a line of dashes at point.\"\n  []\n  (edit \"type\" :text \"----\\n\" :in computed.ed))\n\n(defcommand say-hello\n  \"Says hello in the echo area.\"\n  :title \"Say Hello\" :category \"Mine\"\n  []\n  (message \"Hello from your init file\"))\n\n(defkey \"ctrl+c h\" say-hello)\n\n(defn note-saved\n  \"Says what was saved, after C-x C-s.\"\n  [name]\n  (message (str \"Saved \" name)))\n\n(add-hook after-save note-saved)\n")
 
 (defn on-proposed "Says where a file loaded went." [proposal]
   (message (str "Proposal " proposal " waits for you: M-x accept-proposal, or C-x C-z to leave it")))

@@ -138,7 +138,7 @@ function per instruction). Calls and returns use the machine's own stack, so no 
 
 | Limit | Default | Exceeded |
 |---|---|---|
-| `Budget::operations`, each instruction and each item a function walks | 10,000,000 | `LispError` with `exhausted()` |
+| `Budget::operations`, each instruction, each item a function walks, each 64 bytes of a text compared or counted, each 16 members of a map viewed from JSON searched, and each 8 locals a name is looked for among | 10,000,000 | `LispError` with `exhausted()` |
 | `Budget::bytes`, each object, string and item made | 64 MiB | the same |
 | `Limits::callDepth`, calls waiting to return | 20,000 | the same |
 | `Limits::macroOperations`, macro expansion's own operations | 1,000,000 | the same |
@@ -173,6 +173,7 @@ interpreter.setGate([&](const lisp::CallContext& call) {
   call, `apply`, a value in a variable, a hook. It refuses what isn't `pure` while `setPure(true)`, then calls the gate, then the
   primitive. A primitive or the gate throws `Refusal`, a condition the program may catch; any other exception leaves as it is.
 - **`Primitive::capability`** is free text for the gate: this module doesn't interpret it.
+- **`CallContext::ran` starts with the outermost run, or the outermost `Interpreter::Transient` when a host has one:** what a host adds with `addAuthorsThatRan` stays on the record, whatever the stack holds then.
 - A primitive's span lives only for the call. A primitive that wants to call a function back uses `Interpreter::call`, which
   nests a native run, up to 64 deep.
 
@@ -194,7 +195,7 @@ stages:
 
 - **Hooks and advice** (`ProgramExtensions.cpp`). `Interpreter::extensions()` lists them. Advice wraps the function's global (`wrapGlobal`), so it applies however the function is called; the wrapper stands for it (`parametersOf`, `definitionNameOf`). A hook, `:before` and
   `:after` run sealed (`Interpreter::Sealed`: `authorsThatRan()` goes back to what it was when one ends), with the authors of whoever added it added (`addAuthorsThatRan`). A hook belongs to its entry, so it goes with a new interpreter when the entry goes.
-- **`evaluate`** (`ProgramEvaluate.cpp`): `formsOf` splits the text, a definition goes in a revision by the author `user`, through `VersionControl::commitOwnInput()` (the step checked the person's own input), and anything else through `Interpreter::evaluate`, which compiles with purity on and runs as that author, the authors of any macro it holds with it.
+- **`evaluate`** (`ProgramEvaluate.cpp`): `formsOf` splits the text. If every form is one run of what the person typed (`TypedText.hpp`), a definition goes in a revision by the author `user`, through `VersionControl::commitOwnInput()` (the step checked the person's own press), and anything else through `Interpreter::evaluate`, which compiles with purity on and runs as that author, the authors of any macro it holds with it. If not, its definitions are a proposal in the name `plugin:evaluated`, and anything else doesn't run.
 - **`describe-*`** read `Interpreter::describe` (docstring, author, place), and give no value.
 
 ## Files

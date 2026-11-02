@@ -416,12 +416,6 @@ private:
 	/// a revert by the person brings back what someone else wrote, which doesn't become theirs.
 	/// @param credited The authors: `{file: {name: author}}`.
 	void keepFirstWriters(json& credited) const;
-	/// @brief Who first wrote a definition's text on main.
-	/// @param file The file.
-	/// @param name Its address.
-	/// @param text The text.
-	/// @return The commit's author, or "file".
-	[[nodiscard]] std::string firstWriterOf(const std::string& file, const std::string& name, const json& text) const;
 	/// @brief Credits the author of the proposal shown with every definition it changes.
 	/// @param credited The authors: `{file: {name: author}}`.
 	void creditPreviewed(json& credited) const;

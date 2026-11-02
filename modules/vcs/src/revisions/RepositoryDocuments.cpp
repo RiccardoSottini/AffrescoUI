@@ -11,6 +11,7 @@
 #include "Sha256.hpp"
 
 #include <algorithm>
+#include <map>
 #include <array>
 #include <cctype>
 #include <ranges>
@@ -184,23 +185,33 @@ const json* entryIn(const json& document, const std::string& file, const std::st
 	return text == entries->end() ? nullptr : &*text;
 }
 
-/// @brief What an operation of a commit's delta writes at a definition, reaching it from any level above it.
+/// @brief Goes through the definitions an operation of a commit's delta writes, reaching them from any level above.
+/// @tparam Each What to call: (file, name, text).
 /// @param op The operation.
-/// @param file The file.
-/// @param name Its address.
-/// @return Its text, or nullptr.
-const json* writtenBy(const json& op, const std::string& file, const std::string& name) {
+/// @param each What to call.
+template <class Each> void eachWritten(const json& op, const Each& each) {
 	const auto value = op.find("value");
-	if(value == op.end()) return nullptr;
+	if(value == op.end()) return;
 	const std::vector<std::string> path = detail::segmentsOf(op.value("path", ""));
-	if(path.empty()) return entryIn(*value, file, name);
-	if(path[0] != "program") return nullptr;
-	if(path.size() == 1)
-		return value->is_object() && value->contains(file) && (*value)[file].contains(name) ? &(*value)[file][name]
-		                                                                                    : nullptr;
-	if(path[1] != file) return nullptr;
-	if(path.size() == 2) return value->is_object() && value->contains(name) ? &(*value)[name] : nullptr;
-	return path.size() == 3 && path[2] == name ? &*value : nullptr;
+	if(path.size() >= 3) {
+		if(path[0] == "program" && path.size() == 3) each(path[1], path[2], *value);
+		return;
+	}
+	if(!path.empty() && path[0] != "program") return;
+	const json* files = &*value;
+	if(path.empty()) { // the whole document
+		const auto section = value->find("program");
+		if(section == value->end()) return;
+		files = &*section;
+	}
+	if(!files->is_object()) return;
+	if(path.size() == 2) {
+		for(const auto& [name, text] : files->items()) each(path[1], name, text);
+		return;
+	}
+	for(const auto& [file, entries] : files->items())
+		if(entries.is_object())
+			for(const auto& [name, text] : entries.items()) each(file, name, text);
 }
 
 /// @brief Who last wrote each definition of a document's program, credited a commit at a time, newest first.
@@ -423,26 +434,36 @@ json Repository::programAuthors() const {
 	return credited;
 }
 
-// A person's restore or revert brings back what someone else wrote, and it stays theirs
+// A person's restore or revert brings back what someone else wrote, and it stays theirs: whoever first wrote that text
+// on main. One walk over the history, however many entries it answers for
 void Repository::keepFirstWriters(json& credited) const {
+	std::map<std::pair<std::string, std::string>, json*> wanted;
 	for(auto& [file, entries] : credited.items())
 		for(auto& [name, author] : entries.items()) {
 			const auto& who = author.get_ref<const std::string&>();
-			if(who != "user" && !who.starts_with("user/")) continue;
-			const json& text = mainDocument()["program"][file][name];
-			author = firstWriterOf(file, name, text);
+			if(who == "user" || who.starts_with("user/")) wanted.emplace(std::pair(file, name), &author);
 		}
-}
-
-std::string Repository::firstWriterOf(const std::string& file, const std::string& name, const json& text) const {
+	if(wanted.empty()) return;
+	const json& program = mainDocument()["program"];
+	const auto settle = [&](const std::string& file, const std::string& name, const json& text, const std::string& who) {
+		const auto found = wanted.find(std::pair(file, name));
+		if(found == wanted.end() || text != program[file][name]) return;
+		*found->second = who;
+		wanted.erase(found);
+	};
 	const json first = documentOf(objects_.at(main_.front()));
-	if(const json* held = entryIn(first, file, name); held && *held == text) return "file";
-	for(std::size_t n = 1; n < main_.size(); ++n) {
+	if(const auto files = first.find("program"); files != first.end() && files->is_object())
+		for(const auto& [file, entries] : files->items())
+			if(entries.is_object())
+				for(const auto& [name, text] : entries.items()) settle(file, name, text, "file");
+	for(std::size_t n = 1; n < main_.size() && !wanted.empty(); ++n) {
 		const Commit& commit = objects_.at(main_[n]);
 		for(const json& op : deltaOf(commit))
-			if(const json* value = writtenBy(op, file, name); value && *value == text) return commit.author;
+			eachWritten(op, [&](const std::string& file, const std::string& name, const json& text) {
+				settle(file, name, text, commit.author);
+			});
 	}
-	return "user";
+	for(const auto& [entry, author] : wanted) *author = "user"; // written by nobody it can name: a person's commit
 }
 
 // What is shown is the proposal's: nothing it changed has the authority of what it replaced

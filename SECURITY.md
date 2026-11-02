@@ -478,20 +478,22 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
   Definitions' values are worked out at the build, so reading changes nothing in the program either.
 - **No data is evaluated.** The language has no `eval` and no way to find a global from a value. A value given to a step is taken as it is: text
   with `{{` in it stays text. A function can't be kept in the state.
+- **A JSON app stays one.** A revision, a change set or a person's evaluation can't give an app with no program a `program`, or take the whole of one away: a JSON app is displayed, not run.
 - **A change of the program** replaces the interpreter whole, so a definition taken away or undone is gone, with the callbacks of its name. A
   function running at that moment ends on its own version, with its authors.
 
 **The loop: evaluating from inside the app** (`tests/unit/lisp_loop.cpp`). The step `evaluate` is what makes an app extensible from inside, and it is what the person may do and nobody else:
 
-- **Only from the person's own input,** checked at the step, whoever's code or JSON holds it: never a timer, a `watch`, a handler that fires by itself, a key pressed for the screen, or an agent's reply. An author who isn't the person or the file can't reach it at all, and
+- **Only on the person's own press,** checked at the step, whoever's code or JSON holds it: never a timer, a `watch`, a handler that fires by itself, a key pressed for the screen, even from a binding of their own key, or an agent's reply. An author who isn't the person or the file can't reach it at all, and
   no revision may add it. While a proposal is previewed it is refused.
+- **Only what they typed has their authority** (RFC 0005, decision 5). Text in a buffer can be anyone's, and can hide past the visible screen: a revision on `/state` writes it, a key's `edit` or `press` step types it, a paste brings what any code's `copy` put on the clipboard, undo brings it back, and a person's own command copies it on. So nothing marks what a stranger writes, as a mark can be lost: `format::TypedText` records what is known, the bytes of a bound value that came from the person's own keystrokes, delivered to the widget itself (`Panel::takeTyped()`, `Window::routingOwnPress()`). Any other change is seen as a difference when the value is next looked at, what it changed stops being theirs, and the two sides stay separate runs, so an agent can't make a form by taking characters out. A form that isn't, whole, one run has **none** of their authority: its definitions go through `propose` in the name `plugin:evaluated`, and text holding anything else doesn't run. The record isn't kept across runs of the app, and a secret field is never recorded. Input from the desktop itself (an accessibility tool, another program sending keystrokes, the C API) counts as the person's, as it does for every other step.
 - **It may change what reaches a control step,** and no more (VERSION_CONTROL.md, "Programs"): what no revision may change, it can't either. No peer has a way to that: it is a call in the host's code, not a message or a name an author can claim. An evaluated form is the
   person's decision about text they have in front of them, as a line typed in a terminal is.
 - **An agent's macro in it stays the agent's:** the person's function or expression holding what it wrote has its authority. A macro runs while the form is read, reaching nothing.
-- **What isn't a definition** runs as the person's code, with no change to history, and has only what the person's code has. Its result is printed; its error says names and kinds, no value.
+- **What isn't a definition,** when they typed it, runs as the person's code, with no change to history, and has only what the person's code has. Its result is printed; its error says names and kinds, no value.
 - **What arrives from elsewhere is a proposal** (`propose`), in its own name, never with the person's authority; it holds definitions only, so nothing in it runs by arriving.
 - **`describe-*`, `apropos` and `program-file`** give no value, and obey read masks: for code with a limited reader among its authors, what its `read` doesn't name isn't there.
-- **A history on disk with `ownInput` commits** is held to what a person's revision may do, not to the scan: a history folder is trusted to that extent, so treat one you didn't make as you would a screen file.
+- **A history on disk with `ownInput` commits** is held to what a person's revision may do, not to the scan: a commit so marked must be by the person's channel and only touch the program, or the history is refused, but anyone who can write that folder can write such a commit (below, "A history on disk is only as safe as its folder"). Treat a history you didn't make as you would a screen file.
 
 **Hooks and advice** (`tests/unit/lisp_hooks.cpp`):
 
@@ -499,7 +501,8 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
 - **A hook, `:before` and `:after` are sealed, so an agent can't take a person's command down.** They give nothing back to what runs them, so when one ends, what comes next hasn't been touched: the person's control step after an agent's hook still runs,
   and the agent's hook never had it. It can't stop the command by failing either, which is reported naming its author, or by spending, as all of a call's get half of what the event has left. What it can leave is what any agent's code can: data in the state, which is untrusted input (above, "What `onCall` and `onAction` expose").
 - **`:around` holds what it wraps.** It can skip it, and going on with it counts as its author having led there, so the wrapped function's control step is refused, with an error naming who. That is what replacing the function would do, so it takes the same decision: adding or taking away advice is always reviewed, and undo removes it.
-- **Advice can't read what it wasn't given:** an author other than the person or the file gets no arguments and no result, and can't change the arguments it goes on with. The same for hooks: what such an author reads is in the state, under its masks.
+- **Advice can't read what it wasn't given:** an author other than the person or the file gets no arguments and no result, and can't change the arguments it goes on with, and the variables and the event around it aren't there for it. The same for hooks: what such an author reads is in the state, under its masks.
+- **What advice goes on with ends with the call.** A function `:around` was given and kept past it refuses, whoever calls it.
 - **Limits.** A hook point runs once at a time, a hook that adds a hook does it as an evaluation, for the next version of the program, from the person's own input only, and advice on what recurses meets the limit on nested runs (64).
 - **Previews.** A previewed proposal's hooks are its author's, like the rest of what it changes, and the review steps stay out of its reach.
 
@@ -511,7 +514,7 @@ What holds for whatever text it is given:
   steps, as above, and what reads.
 - **A build is pure**, so the same source gives the same tree. A macro and a `def` run only then, and when a program loads, purely too.
 - **Limits.** Work, allocation, call depth and macro expansion are bounded, a `try` can't catch a limit running out, and each
-  error names its place. What a function does spends from the budget of its event or update, so a loop in a handler or a binding stops, and
+  error names its place. What a function does per byte or per member (counting a text, part of one, comparing two, finding a long key or one in a map viewed from JSON, a name among many locals) costs what its size costs, and what grows (`str`, `join`) is charged as it grows. Maps and globals are kept in ordered containers, so keys chosen to collide cost nothing more. What a function does spends from the budget of its event or update, so a loop in a handler or a binding stops, and
   what a call makes goes when it ends. Recursion uses the machine's own stack, not the native one, and what is left of native
   recursion (reader, compiler, walks over values, calls through a step or a value, at most 64 deep) stops at a depth. The reader's limits are
   the notation's. Fuzzed: `tests/fuzz/lisp.cpp`, with a gate, and `tests/fuzz/revision.cpp` on a program.

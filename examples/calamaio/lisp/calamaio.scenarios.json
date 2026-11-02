@@ -1622,7 +1622,7 @@
 		},
 		{
 			"name": "init-file-is-real",
-			"note": "Evaluating your init file defines what it says, a hook on C-x C-s among it; what a file loads is a proposal.",
+			"note": "Evaluating the start of your init file, which you didn't type, is a proposal that defines what it says, a hook on C-x C-s among it; what a file loads is one too.",
 			"steps": [
 				{
 					"key": "alt+x"
@@ -1657,8 +1657,23 @@
 				{
 					"expect": {
 						"state": "echo",
-						"is": "add-hook after-save note-saved"
+						"is": "proposal 1 waits for your review: this text isn't what you typed here, so it isn't yours"
 					}
+				},
+				{
+					"key": "alt+x"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "accept-proposal"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
 				},
 				{
 					"key": "ctrl+c"
@@ -1750,7 +1765,7 @@
 				{
 					"expect": {
 						"state": "echo",
-						"is": "Proposal 1 waits for you: M-x accept-proposal, or C-x C-z to leave it"
+						"is": "Proposal 2 waits for you: M-x accept-proposal, or C-x C-z to leave it"
 					}
 				}
 			]

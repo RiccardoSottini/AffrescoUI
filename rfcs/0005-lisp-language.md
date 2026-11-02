@@ -132,6 +132,8 @@ The source is what is versioned, one entry per definition, inside the document h
 | **Features, change sets** | A change set's patches apply to `/program/...`. A feature's definitions would be entries under its namespace (RFC 0004), with `provides` and `needs` worked out from the built tree; stage 2 stops at refusing a manifest with a `program`, as namespacing them needs a pass of its own over a function's names and calls |
 | **Agents** | `get_screen` reads definitions, `submit_revision` replaces them. Every definition has a stable address |
 
+**Only an app that has a program can change one.** A revision can't give a static JSON app a `program`, or take the whole of one away, as a JSON app gains no code: a person's evaluation can't either, and `evaluate` says so.
+
 **Review by effect keeps working for what a program builds.** A revision is applied to a copy, the copy is built in the
 sandbox, and today's rules judge the built tree. A proposal whose `defscreen` adds a `permissions` section is refused as
 it is now, however it was computed.
@@ -152,10 +154,11 @@ Evaluating a form is submitting a revision.
 
 As built, in stages 4 and 5 (SCREEN_FORMAT.md, "The loop" and "Hooks and advice"):
 
-- **The tools are the library's, and generic.** A step `evaluate` (text from the person's own input), `formBefore`, `formAround`, `printForm`, `describe-function`, `describe-variable`, `describe-key`, `apropos`. The commands `eval-defun`,
+- **The tools are the library's, and generic.** A step `evaluate` (text on the person's own press), `formBefore`, `formAround`, `printForm`, `describe-function`, `describe-variable`, `describe-key`, `apropos`. The commands `eval-defun`,
   `eval-last-sexp` and `eval-region` are Calamaio's Lisp, on those.
 - **`checkChange` is judged again for the person's own change only:** `VersionControl::commitOwnInput()`, a call in the host's code that only `/program/` paths pass, skips the scan of what reaches a control step and nothing else. A marker in the commit carries that into a history reloaded.
 - **`init.lisp` is a change set.** What the person evaluates lands in `/program/init.lisp` when no file has its name; `exportChanges` and `importChanges` carry it. A text that arrives from elsewhere goes through `propose`: a proposal in its own name, with no authority of the person's, even accepted.
+- **Decision 5 is enforced by proof, not by marks.** The person's authority goes only to what the person typed: `format::TypedText` records the runs of a bound value that came from their own keystrokes, and anything else `evaluate` is given, a buffer an agent wrote, a paste, an undo, a copy by their own command of what they didn't type, or text loaded from a file, is a proposal in the name `plugin:evaluated`, and doesn't run if it holds anything but definitions. The price: what the person didn't type here has to be retyped to get their authority. A confirmation that shows the whole form could lift that, and it would have to be drawn by the host, as nothing a document draws can be trusted for it; it isn't built.
 - **`remove-hook` and `defhook` are definitions too.** Nothing changes at run time: a program's hook points are what its entries say, in that version.
 
 This is the one deliberate difference from Emacs: its full power goes to the owner, without its whole-trust model applying
@@ -277,6 +280,7 @@ untrusted.
   and during a preview what the proposal changes is its author's (found too: a proposal's new text was credited to what it replaced).
 - **Timers and callbacks.** A function can only start the timers steps can. Hooks belong to their entry, and removing
   the entry removes them, including when a revision is undone.
+- **Found by the last review, with attacks in `tests/unit/lisp_gate.cpp` and `lisp_typed.cpp`:** a form an agent wrote into a buffer ran with the person's authority; who added a hook or advice wasn't counted when it ran from outside any function, so an agent's hook on a person's function ran its control step; a kept `proceed` referred to what its call held; a stranger's advice read the variables around it; and the language's `%` functions read arguments they weren't given.
 - **`SECURITY.md` changes.** "A file in the Lisp notation is data only, never evaluated" stops being true for programs,
   and the guidance on loading untrusted files has to say so.
 
@@ -319,7 +323,7 @@ untrusted.
 4. **Undo restores definitions exactly;** data a function already changed stays. This matches today's rule that state
    changes aren't undone (`VERSION_CONTROL.md`).
 5. **`*scratch*` has the person's full authority** for what they type themselves, never from a timer or a handler that
-   fires by itself, as the `patch` step already is.
+   fires by itself, as the `patch` step already is. As built: only for what they typed, proved from the keystrokes ("The Emacs loop").
 
 ## Open questions
 

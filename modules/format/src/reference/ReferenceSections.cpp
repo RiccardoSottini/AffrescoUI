@@ -496,7 +496,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "steps"},
     {"only", "", "", "steps"},
     {"evaluate", "",
-	 R"(`{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text from the person's own input, never a timer or a handler that fires by itself. Each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code; `then` gets `result`, the last one's value as Lisp, and `error`)",
+	 R"(`{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text, on the person's own press, never a timer or a handler that fires by itself. What they typed themselves: each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code. Anything else: its definitions are a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens. `then` gets `result`, the last one's value as Lisp, `error` and `proposal`)",
 	 "steps"},
     {"propose", "",
 	 R"(`{ "propose": "{{state.text}}", "as": "init.lisp", "file": "init.lisp", "then": [...], "onError": [...] }`: Lisp text of definitions, or a change set, as a proposal in the name `plugin:<as>`, whatever the rules would let it do; `then` gets `proposal`, `onError` gets `error`)",

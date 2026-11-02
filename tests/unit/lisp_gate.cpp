@@ -255,3 +255,57 @@ TEST_CASE("lisp attack: a program's channels, built by it, are pointed nowhere w
 	CHECK(state["closed"].get<std::string>().contains("isn't allowed"));
 	std::filesystem::remove_all(folder);
 }
+
+TEST_CASE("lisp attack: what a limited reader can't write, it can't write through the root") {
+	App app(R"lisp(
+(defn secret-fn "" [] 1)
+(defscreen main :state {:secret "hunter2"}
+  :permissions {:allow ["reader"] :reviewers ["studio"] :data [{:author "reader" :read ["/state/secret"]}]}
+  (panel#root))
+)lisp");
+	json whole = app.repository.sourceDocument();
+	whole["program"]["app.lisp"]["secret-fn"] = R"lisp((defn secret-fn "Mine." [] 2))lisp";
+	const auto result = app.repository.submit(
+	    {{"author", "reader"}, {"message", "m"}, {"patch", {{{"op", "replace"}, {"path", ""}, {"value", whole}}}}});
+	CHECK(result.status == RevisionStatus::Rejected);
+	CHECK(app.repository.sourceDocument()["program"]["app.lisp"]["secret-fn"].get<std::string>().find("Mine") ==
+	      std::string::npos);
+}
+
+TEST_CASE("lisp attack: a person's undo of many definitions doesn't take the main thread") {
+	// An agent adds them, takes them away, and the person's undo brings them all back: each is the agent's, at one walk
+	App app("(defn f [] 1) (defscreen main (panel#root))");
+	json some = json::object();
+	for(int at = 0; at < 2000; ++at) {
+		const std::string name = "many" + std::to_string(at);
+		some[name] = "(defn " + name + R"lisp( "" [] 1))lisp";
+	}
+	app.commit({{"author", "agent/x"}, {"message", "m"}, {"set", {{"/program/more.lisp", some}}}});
+	app.commit({{"author", "agent/x"}, {"message", "m"}, {"remove", json::array({"/program/more.lisp"})}});
+	app.commit(app.repository.revertRevision("HEAD", "user"));
+	const json authors = app.repository.programAuthors();
+	CHECK(authors["more.lisp"]["many0"] == "agent/x");
+	CHECK(authors["more.lisp"]["many1999"] == "agent/x");
+}
+
+TEST_CASE("lisp attack: native re-entry through steps is bounded, and closures don't outlive what they hold") {
+	App app(R"lisp(
+(def base "A vector that lasts." [1 2 3])
+(defn again "" [] (run "again"))
+(defn grow "" []
+  (let [more (conj base 4)
+        tail (rest base)
+        keep (fn [] (conj tail 5))]
+    (set "state.seen" [(count more) (count (keep)) (count base)])))
+(defcommand a "" :title "A" [] (again))
+(defcommand g "" :title "G" [] (grow))
+(defkey "ctrl+a" a)
+(defkey "ctrl+g" g)
+(defscreen main :state {:seen nil} (panel#root))
+)lisp");
+	app.errors.clear();
+	app.press(Key::A);
+	CHECK_FALSE(app.errors.empty());
+	for(int turn = 0; turn < 5; ++turn) app.press(Key::G); // each event gives back what it made, and sees base whole
+	CHECK(app.state("seen") == json::array({4, 3, 3}));
+}
