@@ -170,14 +170,7 @@
           :onDrop ~(handler moveToLane event.data.from event.data.at c member.who)
           {:id laneColumnName :style caption :text ~column.name :anchors {:left 8 :top 4}}
           (stack#laneCards :gap 4 :scroll vertical :anchors {:left 4 :right 4 :top 22 :bottom 4}
-            ~(repeat [row
-                      (sort-by (fn [it]
-                                 (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
-                                       (= state.order "due") (or-else it.due "9999-12-31")
-                                       :else it.at))
-                               (filter (fn [it] (= it.c c)) computed.allCards))
-                      :index
-                      k]
+            ~(repeat [row (cards-in-order c) :index k]
               (lane-card member column c row)))))))
 
 (defview card-timeline "The timeline: a track a member, a clip a card with dates." []

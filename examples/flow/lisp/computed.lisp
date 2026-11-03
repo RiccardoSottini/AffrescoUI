@@ -17,27 +17,8 @@
 (defcomputed counts (map (fn [it] (count it.cards)) computed.columns))
 
 (defcomputed allCards
-  (parseJson (str "["
-                    (join ","
-                          (filter (fn [it] (not= it ""))
-                                  (map-indexed (fn [index it]
-                                                 (slice (join (str "{\"c\":" index ",\"at\":")
-                                                              (split (json (map-indexed (fn [index it]
-                                                                                          {:at index
-                                                                                           :ref it.ref
-                                                                                           :priority it.priority
-                                                                                           :due it.due
-                                                                                           :points it.points
-                                                                                           :start it.start
-                                                                                           :tag it.tag
-                                                                                           :title it.title
-                                                                                           :who it.who})
-                                                                                        it.cards))
-                                                                     "{\"at\":"))
-                                                        1
-                                                        (- 1)))
-                                               computed.columns)))
-                    "]")))
+  "Every card shown, with its column `c` and its place `at`: the table's rows, the pickers and the timeline."
+  (cardsWithPlaces computed.columns))
 
 (defcomputed over
   (map (fn [it] (and (some? it.limit) (> (count it.cards) it.limit) (= (count computed.activeFilters) 0)))

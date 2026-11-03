@@ -122,7 +122,8 @@ std::string pathExpression(std::string_view word) {
 	return text + (dot == std::string_view::npos ? "" : membersText(word.substr(dot + 1)));
 }
 
-void Compiler::lowerForm(const Value& form, int depth, std::vector<BindingPart>& parts) {
+void Compiler::lowerForm(const Value& written, int depth, std::vector<BindingPart>& parts) {
+	const Value form = written.kind() == Kind::List ? expanded(written) : written;
 	if(depth > maxCompileDepth)
 		fail(form, "nested too deeply to compile, more than " + std::to_string(maxCompileDepth) + " levels");
 	if(!isLive(form, depth)) {

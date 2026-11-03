@@ -160,6 +160,11 @@ private:
 	/// @param form The form.
 	/// @param depth How deep it is.
 	void compileViewValue(const Value& form, int depth);
+	/// @brief A form with the macro its head names expanded, again until its head is no macro: in a binding a macro
+	/// writes the form that is then written as an expression.
+	/// @param form The form.
+	/// @return The form expanded, or itself.
+	Value expanded(const Value& form);
 	/// @brief Tells whether a form is worked out at the build whatever it uses: a view's call, a special form that
 	/// isn't an operator, a macro's call, or one of the language's own forms for views (`handler`, `repeat`).
 	/// @param form The form.
@@ -377,7 +382,8 @@ private:
 	bool inView_ = false;         ///< Building a view: a backquote is a template whose `~form` may become a binding.
 	bool symbolic_ = false;       ///< Writing a binding where the locals hold names of the running app.
 	std::vector<Rename> renames_; ///< The parameters of the functions a binding is writing, innermost last.
-	std::vector<std::string_view> itemNames_; ///< The parameters of functions a liveness check is inside.
+	std::vector<std::string_view> itemNames_;           ///< The parameters of functions a liveness check is inside.
+	std::unordered_map<const void*, Value> expansions_; ///< Each macro call's expansion, made once (expanded()).
 };
 
 /// @brief A form's head word: a list's first item, if it is a symbol.

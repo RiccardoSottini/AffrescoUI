@@ -133,14 +133,7 @@ void Compiler::compileList(const Value& form, Position position) {
 			return;
 		}
 		if(Global* global = machine_.findGlobal(head); global && global->macro) {
-			std::vector<Value> arguments;
-			arguments.reserve(form.count() - 1);
-			for(std::size_t at = 1; at < form.count(); ++at) arguments.push_back(form.at(at));
-			const Value expanded = machine_.expand(*global, arguments, form.place());
-			if(const Value macro = global->value; macro.kind() == Kind::Function)
-				current_->authors = machine_.unite(current_->authors,
-				                                   static_cast<const ClosureObject*>(macro.pointer())->code->authors);
-			compile(expanded, position);
+			compile(expanded(form), position); // once a call, as a binding reads it too
 			return;
 		}
 	}

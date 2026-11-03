@@ -124,10 +124,35 @@ bool Compiler::isLive(const Value& form, int depth) {
 		return std::ranges::any_of(std::views::iota(std::size_t{0}, form.count()),
 		                           [&](std::size_t at) { return isLive(form.valueAt(at), depth + 1); });
 	case Kind::List:
-		return isLiveCall(form, depth);
+		return isLiveCall(expanded(form), depth);
 	default:
 		return false;
 	}
+}
+
+Value Compiler::expanded(const Value& form) {
+	Value at = form;
+	for(int times = 0; times <= maxCompileDepth; ++times) {
+		const std::string_view head = headWord(at);
+		if(head.empty() || isLocalWord(head) || isSpecial(head)) return at;
+		Global* global = machine_.findGlobal(head);
+		if(!global || !global->macro) return at;
+		// Once a call: the liveness check, the binding and the code all read the same expansion, its gensyms too
+		if(const auto known = expansions_.find(at.pointer()); known != expansions_.end()) {
+			at = known->second;
+			continue;
+		}
+		std::vector<Value> arguments;
+		arguments.reserve(at.count() - 1);
+		for(std::size_t item = 1; item < at.count(); ++item) arguments.push_back(at.at(item));
+		const Value result = machine_.expand(*global, arguments, at.place());
+		if(const Value macro = global->value; macro.kind() == Kind::Function) // its author wrote this code
+			current_->authors =
+			    machine_.unite(current_->authors, static_cast<const ClosureObject*>(macro.pointer())->code->authors);
+		expansions_.emplace(at.pointer(), result);
+		at = result;
+	}
+	fail(form, "macros nested too deeply");
 }
 
 bool Compiler::buildsAtOnce(const Value& form) {
@@ -136,7 +161,7 @@ bool Compiler::buildsAtOnce(const Value& form) {
 	if(isSpecial(head))
 		return head != "if" && head != "and" && head != "or" && head != "cond" && head != "when" && head != "fn";
 	const Global* global = machine_.findGlobal(head);
-	return global && (global->macro || global->view || (global->library && head == "handler"));
+	return global && (global->view || (global->library && head == "handler"));
 }
 
 void Compiler::localsIn(const Value& form, int depth, std::vector<std::string_view>& locals) {
@@ -162,7 +187,8 @@ void Compiler::emitSymbolicTest(const std::vector<std::string_view>& locals) {
 	emit(Op::Call, static_cast<std::uint32_t>(locals.size()));
 }
 
-void Compiler::compileViewValue(const Value& form, int depth) {
+void Compiler::compileViewValue(const Value& written, int depth) {
+	const Value form = expanded(written);
 	if(const Global* global = machine_.findGlobal(headWord(form));
 	   headWord(form) == "handler" && global && global->library && !isLocalWord("handler")) {
 		// (handler move-card event.data.from c): each argument as a node's value would be, a path its binding

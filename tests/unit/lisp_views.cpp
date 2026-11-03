@@ -200,6 +200,9 @@ TEST_CASE("lisp views: a binding's form is the expression machine's, at its spee
 	CHECK(binding("(join \", \" state.names)") == "{{join(state.names, ', ')}}");
 	CHECK(binding("(- state.n)") == "{{-(state.n)}}");
 	CHECK(binding("(* state.r 0.000001)") == "{{(state.r * 0.000001)}}"); // an expression reads no exponent
+	// A macro writes the form, which is then an expression: once a call, its gensyms the same
+	CHECK(binding("(ordered state.c)", "(defmacro ordered \"\" [c] `(filter (fn [it] (= it.c ~c)) state.xs))") ==
+	      "{{filter(state.xs, (it.c == state.c))}}");
 	// A function inside another can't use the outer one's item: both are `it`
 	CHECK(buildError("(defscreen main (node :x ~(filter (fn [a] (some (fn [b] (= a b)) state.ys)) state.xs)))")
 	          .contains("outer one's"));

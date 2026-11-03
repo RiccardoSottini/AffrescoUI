@@ -101,6 +101,19 @@
         (remember)
         (update-record "issues" :id (:id card) :fields {:who who})))))
 
+;;; Every card
+
+(defn cardsWithPlaces
+  "The cards of the columns, one list, each with its column `c` and its place `at` in it."
+  [columns]
+  (vec (mapcat (fn [c]
+                 (map-indexed (fn [at card]
+                                {:c c :at at :ref (:ref card) :priority (:priority card) :due (:due card)
+                                 :points (:points card) :start (:start card) :tag (:tag card) :title (:title card)
+                                 :who (:who card)})
+                              (:cards (get columns c))))
+               (range (count columns)))))
+
 ;;; Selecting
 
 (defn announcePresence "Tells the other people on this board which card is open." []

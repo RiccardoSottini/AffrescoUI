@@ -65,6 +65,16 @@
 
 ;;; The board
 
+(defmacro cards-in-order
+  ;; A macro, not a function: what it writes is a repeat's list, which stays an expression, worked out at its speed.
+  "A column's cards, in the order the Display menu chose: by priority, by due date (none last), or as placed."
+  [c]
+  `(sort-by (fn [it]
+              (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
+                    (= state.order "due") (or-else it.due "9999-12-31")
+                    :else it.at))
+            (filter (fn [it] (= it.c ~c)) computed.allCards)))
+
 (defview column-view "A column of the board: its title, its cards, and a drop target for cards from another."
   [column c]
   `(node#column :anchors {:top 0 :bottom 0}
@@ -84,14 +94,7 @@
        ~(column-more column c)
        ~(column-add column c)
        (stack#cards :anchors {:left 6 :right 6 :top 40 :bottom 6} :gap 6 :scroll vertical
-         ~(repeat [row
-                   (sort-by (fn [it]
-                              (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
-                                    (= state.order "due") (or-else it.due "9999-12-31")
-                                    :else it.at))
-                            (filter (fn [it] (= it.c c)) computed.allCards))
-                   :index
-                   k]
+         ~(repeat [row (cards-in-order c) :index k]
            (card-view column c row))))))
 
 (defview column-title "A column's title: its colour, name and count, red while it is over its limit." [column c]

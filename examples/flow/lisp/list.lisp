@@ -21,14 +21,7 @@
                                                                                      :right 0
                                                                                      :top 36
                                                                                      :bottom 0}
-            ~(repeat [row
-                      (sort-by (fn [it]
-                                 (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
-                                       (= state.order "due") (or-else it.due "9999-12-31")
-                                       :else it.at))
-                               (filter (fn [it] (= it.c c)) computed.allCards))
-                      :index
-                      k]
+            ~(repeat [row (cards-in-order c) :index k]
               (list-row column c row)))))))
 
 ;;; Views
