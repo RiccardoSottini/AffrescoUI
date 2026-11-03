@@ -28,7 +28,7 @@
        :textColor @color.text
        :selectedBackground @color.selection
        :accentColor @color.accent
-       :onChange {:run outlinePicked})))
+       :onChange outlinePicked)))
 
 (defcomponent forgeBreadcrumbs "The forgeBreadcrumbs component."
   {:path ""}
@@ -39,7 +39,7 @@
      :alignItems center
      :color @color.editor
      :gap 2
-     {:id breadcrumbs-start :width 10}
+     (node#breadcrumbs-start :width 10)
      ~(repeat [segment (split path "/") :index si]
        `(label#breadcrumb :role button
           :label ~segment
@@ -51,8 +51,8 @@
           :textColor @color.muted
           :hover {:textColor @color.text}
           :onClick [{:if ~(< si (- (count (split path "/")) 1))
-                     :then [{:run revealFolder :with {:path ~(join "/" (slice (split path "/") 0 (+ si 1)))}}]
-                     :else [{:run goToSymbol}]}]))
+                     :then [~(handler revealFolder (join "/" (slice (split path "/") 0 (+ si 1))))]
+                     :else [goToSymbol]}]))
      ~(repeat [symbol computed.symbolTrail]
        `(label#breadcrumb-symbol :role button
           :label ~(trim symbol.label)
@@ -63,7 +63,7 @@
           :cursor hand
           :textColor @color.muted
           :hover {:textColor @color.text}
-          :onClick {:run goToSymbol}))))
+          :onClick goToSymbol))))
 
 (defcomponent forgeSettingsJsonPage "The forgeSettingsJsonPage component."
   {}
@@ -108,7 +108,7 @@
        :textColor @color.muted
        :tooltip ~(t "outline-refresh.tip")
        :hover {:color @color.hover}
-       :onClick {:run refreshOutline})
+       :onClick refreshOutline)
      (label#outline-close :role button
        :label ~(t "outline-close.label")
        :icon x
@@ -118,7 +118,7 @@
        :textColor @color.muted
        :tooltip ~(t "outline-close.tip")
        :hover {:color @color.hover}
-       :onClick {:run toggleSecondarySidebar})))
+       :onClick toggleSecondarySidebar)))
 
 (defview settings-json-head "#settings-json-head." []
   `(row#settings-json-head :width "100%" :height 30 :alignItems center :gap 8
@@ -138,5 +138,5 @@
        :color @color.accent
        :textColor "#ffffff"
        :focusable true
-       :onClick {:run applySettingsJson})
-     {:id settings-json-end :width 4}))
+       :onClick applySettingsJson)
+     (node#settings-json-end :width 4)))

@@ -1,12 +1,16 @@
-;;; index.screen.lisp --- Forge, a demo IDE
+;;; index.screen.lisp --- Forge: a workbench for code, written as a program
 ;;;
-;;; This file only names the window, the fonts and the features; each feature (features/<name>/<name>.json)
-;;; contributes its state, commands, menus, keys, settings, tokens and components, merged by include. The open folder
-;;; is the host's workspace root (Open Folder chooses it): files reads and writes in it, fileChanges watches it and
-;;; search searches it; the features service offers the example catalogue (catalog/).
+;;; The window names its fonts and its parts; each feature of features/<name>/ brings its state, functions,
+;;; commands, keys, settings and views (<name>.lisp and views.lisp), and menus.lisp gathers their menus. The open
+;;; folder is the host's workspace root (Open Folder chooses it): the files service reads and writes in it,
+;;; fileChanges watches it and search searches it; the features service offers the example catalogue (catalog/),
+;;; and what it installs is kept in features.lisp. forge.lisp opens the folder and installs features.
 
-(include "features.lisp"
-         "locales/en.lisp"
+(include "locales/en.lisp"
+         "locales/es.lisp"
+         "locales/fr.lisp"
+         "features.lisp"
+         "forge.lisp"
          "menus.lisp"
          "features/editor/editor.lisp"
          "features/editor/views.lisp"
@@ -34,7 +38,6 @@
          "features/lsp/views.lisp"
          "features/debug/debug.lisp"
          "features/debug/views.lisp"
-         "features/debug/views.lisp"
          "features/editing/editing.lisp"
          "features/editing/views.lisp"
          "features/workbench/workbench.lisp"
@@ -44,46 +47,54 @@
          "../../shared/languages/languages.lisp"
          "../../shared/addons/assistant/assistant.lisp")
 
-(defstate featureRows [])
+;;; The window, and what is in it, in the order it is drawn
 
-(defstate featureStatus "")
+(defscreen main "Forge's one window: the workbench, and what opens over it."
+  :window {:title "Forge"
+           :width 1200
+           :height 760
+           :minWidth 800
+           :minHeight 500
+           :menuBar [{:menu file :title ~(t "menu.file")}
+                     {:menu view :title ~(t "menu.view")}
+                     {:menu go :title ~(t "menu.go")}
+                     {:menu preferences :title ~(t "menu.preferences")}
+                     {:menu help :title ~(t "menu.help")}]}
+  :strings {:default en :locale ~settings.workbench.language :keep ["Forge" "AffrescoUI" "Forge Dark" "Forge Light" "Forge High Contrast"]}
+  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [icons]}
+          :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 28}
+          :icons {:file "../../shared/fonts/Lucide.ttf" :size 13}
+          :iconsLarge {:file "../../shared/fonts/Lucide.ttf" :size 22}
+          :iconsRail {:file "../../shared/fonts/Lucide.ttf" :size 19}
+          :code {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 13 :fallback [icons]}}
+  :persist [state.layout state.theme state.themes state.settings state.iconTheme state.quickPick.recent]
+  :permissions {:allow [studio] :ask ["agent(/actions)"] :reviewers [studio]}
+  :theme ~state.theme
+  (node#root :color @color.editor
+    ~(workbench)
+    (node :use forgeNotificationCentre)
+    (node :use forgePalette)
+    (node :use forgeDebugOverlays)
+    (node :use forgeLsp)
+    ~(progress-toast)
+    ~(about-dialog)))
 
-(deftokens assistant-colours "Tokens."
-  {:assistant.accent @color.accent
-   :assistant.accentHover @color.selection
-   :assistant.onAccent "#ffffff"
-   :assistant.surface @color.widget
-   :assistant.raised @color.input
-   :assistant.border @color.border
-   :assistant.text @color.text
-   :assistant.dim @color.muted
-   :assistant.dot @color.muted
-   :assistant.success @color.info
-   :assistant.danger @color.error
-   :assistant.warningBackground @color.hover})
+;;; Its parts
 
-(defpart index
-         "What index adds."
-         :services {:features {:provider features}
-                    :files {:provider fs :root workspace}
-                    :fileChanges {:provider watch
-                                  :root workspace
-                                  :debounce 100
-                                  :ignore [".git/**"
-                                           "**/node_modules/**"
-                                           "**/build/**"
-                                           "**/out/**"
-                                           "**/dist/**"
-                                           "**/target/**"]}
-                    :search {:provider search :root workspace}}
-         :onLoad openWorkspace
-         :exports {:editor.text (string :value ~(or-else computed.activeDoc.text "")
-                                        :description "The text of the editor in focus.")
-                   :workspace.files (array :value ~(map (fn [it] {:id it.id :name it.label :text it.text})
-                                                        (filter (fn [it] (= it.kind "file")) state.docs))
-                                           :description "The open files: id, name and text.")})
+(defview workbench
+  "The workbench: the title bar, the view rail, the side bars around the editors and the panel, the status bar."
+  []
+  `(column#workbench :fill true
+     (node :when ~(not state.layout.zen) :use forgeTitleBar)
+     (row#middle :width "100%" :grow 1
+       (node :when ~(and (not state.layout.zen) settings.workbench.activityBar.visible) :use forgeActivityBar)
+       ~(main-split)
+       (node :when ~(and state.layout.secondary (not state.layout.zen)) :use forgeSecondarySideBar))
+     (node :when ~(and (not state.layout.zen) settings.workbench.statusBar.visible) :use forgeStatusBar)))
 
-(defview main-split "#main-split." []
+(defview main-split
+  "The side bar beside the editors, and the panel under them, each beyond a sash that keeps its place."
+  []
   `(split#main-split :grow 1
      :height "100%"
      :bind state.layout.sizes
@@ -101,74 +112,9 @@
        (node :visible ~(not (and state.layout.panelMax state.layout.panel (not state.layout.zen))) :use forgeEditors)
        (node :visible ~(and state.layout.panel (not state.layout.zen)) :use forgePanel))))
 
-(defscreen main
-  :window {:title ~(t "window.title")
-           :width 1200
-           :height 760
-           :minWidth 800
-           :minHeight 500
-           :menuBar [{:menu file :title ~(t "menu.file")}
-                     {:menu view :title ~(t "menu.view")}
-                     {:menu go :title ~(t "menu.go")}
-                     {:menu preferences :title ~(t "menu.preferences")}
-                     {:menu help :title ~(t "menu.help")}]}
-  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [icons]}
-          :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 28}
-          :icons {:file "../../shared/fonts/Lucide.ttf" :size 13}
-          :iconsLarge {:file "../../shared/fonts/Lucide.ttf" :size 22}
-          :iconsRail {:file "../../shared/fonts/Lucide.ttf" :size 19}
-          :code {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 13 :fallback [icons]}}
-  :persist [state.layout state.theme state.themes state.settings state.iconTheme state.quickPick.recent]
-  :permissions {:allow [studio] :ask ["agent(/actions)"] :reviewers [studio]}
-  :theme ~state.theme
-  (node#root :color @color.editor
-    (column#workbench :fill true
-      (node :when ~(not state.layout.zen) :use forgeTitleBar)
-      (row#middle :width "100%" :grow 1
-        (node :when ~(and (not state.layout.zen) settings.workbench.activityBar.visible) :use forgeActivityBar)
-        ~(main-split)
-        (node :when ~(and state.layout.secondary (not state.layout.zen)) :use forgeSecondarySideBar))
-      (node :when ~(and (not state.layout.zen) settings.workbench.statusBar.visible) :use forgeStatusBar))
-    (node :use forgeNotificationCentre)
-    (node :use forgePalette)
-    (node :use forgeDebugOverlays)
-    (node :use forgeLsp)
-    (node :use toast :with {:open state.toast.open :message ~state.toast.message :progress ~state.toast.progress})
-    (node :use dialog
-      :with {:open state.about
-             :title "Forge"
-             :message "A demo IDE built with AffrescoUI: its whole workbench is a screen document that people and agents change while it runs."
-             :buttons [{:title ~(t "about.ok")}]})))
+(defview progress-toast "The toast in the corner: a notice, with a bar while a long task runs." []
+  `(node :use toast :with {:open state.toast.open :message ~state.toast.message :progress ~state.toast.progress}))
 
-;;; Functions
-
-(defmacro doseq "Runs its body once for each item of a list, for what it does: [item list]."
-  [binding & body]
-  `(do (map (fn [~(first binding)] ~@body) ~(second binding)) nil))
-
-(defn refreshFeatures "TODO" []
-  (invoke "features.catalog" :into "state.featureRows"))
-
-(defn installFeature "event: name. Installs a feature from the example catalogue, by a revision the permissions review"
-  []
-  (invoke "features.install" :with {:name event.name} :onDone installFeatureDone :onError installFeatureFailed))
-
-(defn upgradeFeature "event: name" []
-  (invoke "features.upgrade" :with {:name event.name} :onDone upgradeFeatureDone :onError upgradeFeatureFailed))
-
-(defn openWorkspace "TODO" []
-  (set "state.folder.root" (or-else services.files.folder ""))
-  (explorerRefresh)
-  (when (not (empty? state.folder.root)) (indexFolder)))
-
-(defn installFeatureDone "What installFeature does when it is done." [result]
-  (set "state.featureStatus" result.status))
-
-(defn installFeatureFailed "What installFeature does when it fails." [error]
-  (set "state.featureStatus" error.message))
-
-(defn upgradeFeatureDone "What upgradeFeature does when it is done." [result]
-  (set "state.featureStatus" result.status))
-
-(defn upgradeFeatureFailed "What upgradeFeature does when it fails." [error]
-  (set "state.featureStatus" error.message))
+(defview about-dialog "Help > About: what Forge is." []
+  `(node :use dialog
+     :with {:open state.about :title "Forge" :message ~(t "about.message") :buttons [{:title ~(t "about.ok")}]}))

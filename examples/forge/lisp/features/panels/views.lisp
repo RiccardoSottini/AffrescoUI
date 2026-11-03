@@ -1,8 +1,8 @@
-;;; views.lisp --- what panels.lisp shows
+;;; views.lisp --- the panel under the editors: its tabs and buttons, Problems, Output, a terminal or the debug console
 
-;;; Views
+;;; The panel
 
-(defcomponent forgePanel "The forgePanel component."
+(defcomponent forgePanel "The panel: its head, then the page of the tab chosen."
   {}
   `(column#panel :role region :label ~(t "panel.label") :color @color.panel
      ~(panel-head)
@@ -24,7 +24,7 @@
        :columns [{:id message :title ~(t "problems.message") :width 420}
                  {:id file :title ~(t "problems.file") :width 160}
                  {:id line :title ~(t "problems.line") :width 60}]
-       :onOpen {:run goToProblem})
+       :onOpen goToProblem)
      (list#output :when ~(= state.panelTab "output")
        :role log
        :label ~(t "output.label")
@@ -39,7 +39,7 @@
      (node :when ~(= state.panelTab "terminal") :use forgeTerminal)
      (node :when ~(= state.panelTab "debugConsole") :use forgeDebugConsole)))
 
-(defview panel-tabs-view "#panel-tabs." []
+(defview panel-tabs "The panel's tabs; Problems says how many there are." []
   `(tabs#panel-tabs :role tablist
      :label ~(t "panel-tabs.label")
      :width 420
@@ -51,27 +51,27 @@
      :activeBackground @color.panel
      :accentColor @color.accent
      :tabs ~[{:id "problems"
-              :label (str "Problems" (if (> (count state.problems) 0) (str " " (count state.problems)) ""))
+              :label (str (t "panel.problems") (if (> (count state.problems) 0) (str " " (count state.problems)) ""))
               :closable false}
-             {:id "output" :label "Output" :closable false}
-             {:id "debugConsole" :label "Debug Console" :closable false}
-             {:id "terminal" :label "Terminal" :closable false}]))
+             {:id "output" :label (t "panel.output") :closable false}
+             {:id "debugConsole" :label (t "panel.debugConsole") :closable false}
+             {:id "terminal" :label (t "panel.terminal") :closable false}]))
 
-(defview panel-head "#panel-head." []
+(defview panel-head "The panel's head: its tabs, then its buttons: a new terminal, clear, maximize and hide." []
   `(row#panel-head :width "100%" :height 32 :alignItems center
-     ~(panel-tabs-view)
-     {:id panel-gap :grow 1}
+     ~(panel-tabs)
+     (node#panel-gap :grow 1)
      (node#panel-new-terminal :use forgeTitleButton
        :when ~(= state.panelTab "terminal")
        :with {:icon plus :tip ~(t "panel-new-terminal.tip")}
-       :onClick {:run terminalNew})
+       :onClick terminalNew)
      (node#panel-clear-output :use forgeTitleButton
        :when ~(= state.panelTab "output")
        :with {:icon list-x :tip ~(t "panel-clear-output.tip")}
-       :onClick {:run clearOutput})
+       :onClick clearOutput)
      (node#panel-maximize :use forgeTitleButton
        :with {:icon ~(if state.layout.panelMax "chevron-down" "chevron-up")
-              :tip ~(if state.layout.panelMax "Restore Panel Size" "Maximize Panel Size")}
-       :onClick {:run toggleMaximizedPanel})
-     (node#panel-close :use forgeTitleButton :with {:icon x :tip ~(t "panel-close.tip")} :onClick {:run togglePanel})
-     {:id panel-end :width 8}))
+              :tip ~(if state.layout.panelMax (t "panel-maximize.restore") (t "panel-maximize.tip"))}
+       :onClick toggleMaximizedPanel)
+     (node#panel-close :use forgeTitleButton :with {:icon x :tip ~(t "panel-close.tip")} :onClick togglePanel)
+     (node#panel-end :width 8)))

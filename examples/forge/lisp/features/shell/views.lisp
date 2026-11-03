@@ -19,26 +19,26 @@
                        {:name "go" :title "Go" :items menus.go}
                        {:name "preferences" :title "Preferences" :items menus.preferences}
                        {:name "help" :title "Help" :items menus.help}]})
-     {:id title-left :grow 1}
+     (node#title-left :grow 1)
      (node#title-back :use forgeTitleButton
        :with {:icon arrow-left :tip ~(t "title-back.tip") :on ~(> (count state.nav.back) 0)}
-       :onClick {:run navigateBack})
+       :onClick navigateBack)
      (node#title-forward :use forgeTitleButton
        :with {:icon arrow-right :tip ~(t "title-forward.tip") :on ~(> (count state.nav.forward) 0)}
-       :onClick {:run navigateForward})
-     {:id title-centre-gap :width 4}
+       :onClick navigateForward)
+     (node#title-centre-gap :width 4)
      ~(command-centre-view)
-     {:id title-right :grow 1}
+     (node#title-right :grow 1)
      (node#title-sidebar :use forgeTitleButton
        :with {:icon panel-left :tip ~(t "title-sidebar.tip") :on ~state.layout.sidebar}
-       :onClick {:run toggleSidebar})
+       :onClick toggleSidebar)
      (node#title-panel :use forgeTitleButton
        :with {:icon panel-bottom :tip ~(t "title-panel.tip") :on ~state.layout.panel}
-       :onClick {:run togglePanel})
+       :onClick togglePanel)
      (node#title-secondary :use forgeTitleButton
        :with {:icon panel-right :tip ~(t "title-secondary.tip") :on ~state.layout.secondary}
-       :onClick {:run toggleSecondarySidebar})
-     {:id title-end :width 8}))
+       :onClick toggleSecondarySidebar)
+     (node#title-end :width 8)))
 
 (defcomponent forgeTitleButton "The forgeTitleButton component."
   {:icon "" :tip "" :on false}
@@ -66,10 +66,10 @@
      :color @color.activityBar
      :cursor hand
      :tooltip ~tip
-     {:id ~(str "activity-" view "-indicator")
-      :anchors {:left 5 :top 4 :right 5 :bottom 4}
-      :radius 8
-      :color ~(if (and state.layout.sidebar (= state.sideView view)) "@color.selection" "@color.activityBar")}
+     (node :id ~(str "activity-" view "-indicator")
+       :anchors {:left 5 :top 4 :right 5 :bottom 4}
+       :radius 8
+       :color ~(if (and state.layout.sidebar (= state.sideView view)) "@color.selection" "@color.activityBar"))
      (label :icon ~icon
        :font iconsRail
        :anchors {:left 5 :top 4 :right 5 :bottom 4}
@@ -94,56 +94,59 @@
 (defcomponent forgeActivityBar "The forgeActivityBar component."
   {}
   `(column#activity-bar :role tablist :label ~(t "activity-bar.label") :width 44 :height "100%" :color @color.activityBar
-     {:id activity-top :height 4}
+     (node#activity-top :height 4)
      (node :use forgeActivityItem
        :with {:view explorer
               :icon folder-tree
               :label ~(t "activityBar.explorer.label")
               :tip ~(t "activityBar.explorerCmdShift.tip")}
-       :onClick {:run showExplorer})
+       :onClick showExplorer)
      (node :use forgeActivityItem
        :with {:view search
               :icon text-search
               :label ~(t "activityBar.search.label")
               :tip ~(t "activityBar.searchCmdShift.tip")}
-       :onClick {:run showSearch})
+       :onClick showSearch)
      (node :use forgeActivityItem
        :with {:view scm
               :icon git-fork
               :label ~(t "activityBar.sourceControl.label")
               :tip ~(t "activityBar.sourceControlCmd.tip")
               :badge ~state.scm.status.count}
-       :onClick {:run showSourceControl})
+       :onClick showSourceControl)
      (node :use forgeActivityItem
        :with {:view debug
               :icon bug-play
               :label ~(t "activityBar.debugger.label")
               :tip ~(t "activityBar.debuggerCmdShift.tip")}
-       :onClick {:run showDebug})
+       :onClick showDebug)
      (node :use forgeActivityItem
        :with {:view features
               :icon puzzle
               :label ~(t "activityBar.features.label")
               :tip ~(t "activityBar.featuresCmdShift.tip")}
-       :onClick {:run showFeatures})
+       :onClick showFeatures)
      (node :use forgeActivityItem
        :with {:view agent :icon sparkles :label ~(t "activityBar.agent.label") :tip ~(t "activityBar.agentCmdAlt.tip")}
-       :onClick {:run showAgent})
-     {:id activity-gap :grow 1}
+       :onClick showAgent)
+     (node#activity-gap :grow 1)
      (node :use forgeAccountsStatus)
-     (label#activity-settings :role button
-       :label ~(t "activity-settings.label")
-       :icon settings
-       :font iconsRail
-       :width 44
-       :height 42
-       :align center
-       :cursor hand
-       :tooltip ~(t "activity-settings.tip")
-       :textColor @color.muted
-       :hover {:textColor @color.text}
-       :onClick {:run openSettings})
-     {:id activity-bottom :height 4}))
+     ~(activity-settings)
+     (node#activity-bottom :height 4)))
+
+(defview activity-settings "#activity-settings, in forgeActivityBar." []
+  `(label#activity-settings :role button
+     :label ~(t "activity-settings.label")
+     :icon settings
+     :font iconsRail
+     :width 44
+     :height 42
+     :align center
+     :cursor hand
+     :tooltip ~(t "activity-settings.tip")
+     :textColor @color.muted
+     :hover {:textColor @color.text}
+     :onClick openSettings))
 
 (defcomponent forgeViewTitle "The forgeViewTitle component."
   {:text ""}
@@ -171,9 +174,9 @@
 (defcomponent forgeWelcome "The forgeWelcome component."
   {}
   `(row#welcome :width "100%" :grow 1 :color @color.editor
-     {:id welcome-margin :grow 1}
+     (node#welcome-margin :grow 1)
      ~(welcome-body)
-     {:id welcome-end :grow 1}))
+     (node#welcome-end :grow 1)))
 
 (defcomponent forgeStatusItem "The forgeStatusItem component."
   {:text "" :icon "" :tip ""}
@@ -200,64 +203,79 @@
      :color @color.statusBar
      :alignItems center
      :gap 2
-     {:id status-start :width 6}
-     (label#status-remote :role button
-       :label ~(t "status-remote.label")
-       :icon cloud
-       :width 28
-       :height 20
-       :radius 5
-       :align center
-       :cursor hand
-       :textColor @color.accent
-       :hover {:color @color.hover}
-       :tooltip ~(t "status-remote.tip")
-       :onClick {:run accountsMenu})
+     (node#status-start :width 6)
+     ~(status-remote)
      (node#status-branch :use forgeStatusItem
        :when ~(not (empty? state.scm.status.branch.head))
        :with {:icon git-branch :text ~computed.scmBranchText :tip ~(t "status-branch.tip")}
-       :onClick {:run scmBranches})
+       :onClick scmBranches)
      (node#status-sync :use forgeStatusItem
        :when ~(not (empty? state.scm.status.branch.head))
        :with {:icon refresh-cw :tip ~(t "status-sync.tip")}
-       :onClick {:run scmRefresh})
+       :onClick scmRefresh)
      ~(status-problems-view)
-     {:id status-gap :grow 1}
-     (node#status-position :use forgeStatusItem
-       :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
-       :with {:tip ~(t "status-position.tip")
-              :text ~(str "Ln "
-                          (text state.caret.line)
-                          ", Col "
-                          (text state.caret.column)
-                          (if (> state.caret.selected 0) (str " (" (text state.caret.selected) " selected)") ""))}
-       :onClick {:run goToLinePick})
-     (node#status-indent :use forgeStatusItem
-       :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
-       :with {:text ~(str "Spaces: " (text (or-else settings.editor.tabSize 4))) :tip ~(t "status-indent.tip")}
-       :onClick {:run changeIndentation})
-     (node#status-encoding :use forgeStatusItem
-       :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
-       :with {:text ~(t "status-encoding") :tip ~(t "status-encoding.tip")}
-       :disabled true
-       :cursor arrow
-       :textColor @color.muted)
+     (node#status-gap :grow 1)
+     ~(status-position)
+     ~(status-indent)
+     ~(status-encoding)
      (node#status-eol :use forgeStatusItem
        :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
        :with {:text ~(or-else computed.activeDoc.eol "LF") :tip ~(t "status-eol.tip")}
-       :onClick {:run changeEndOfLine})
+       :onClick changeEndOfLine)
      (node#status-language-status :use forgeStatusItem
        :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
        :with {:icon braces :tip ~(t "status-language-status.tip")}
-       :onClick {:run showOutput})
-     (node#status-language :use forgeStatusItem
-       :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
-       :with {:text ~(or computed.activeDoc.language "Plain Text") :tip ~(t "status-language.tip")}
-       :onClick {:run changeLanguageMode})
+       :onClick showOutput)
+     ~(status-language)
      (node#status-notifications :use forgeStatusItem
        :with {:icon ~(if (> (count state.notifications) 0) "bell-dot" "bell") :tip ~(t "status-notifications.tip")}
-       :onClick {:run showNotifications})
-     {:id status-end :width 6}))
+       :onClick showNotifications)
+     (node#status-end :width 6)))
+
+(defview status-language "#status-language, in forgeStatusBar." []
+  `(node#status-language :use forgeStatusItem
+     :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
+     :with {:text ~(or computed.activeDoc.language "Plain Text") :tip ~(t "status-language.tip")}
+     :onClick changeLanguageMode))
+
+(defview status-indent "#status-indent, in forgeStatusBar." []
+  `(node#status-indent :use forgeStatusItem
+     :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
+     :with {:text ~(str "Spaces: " (text (or-else settings.editor.tabSize 4))) :tip ~(t "status-indent.tip")}
+     :onClick changeIndentation))
+
+(defview status-encoding "#status-encoding, in forgeStatusBar." []
+  `(node#status-encoding :use forgeStatusItem
+     :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
+     :with {:text ~(t "status-encoding") :tip ~(t "status-encoding.tip")}
+     :disabled true
+     :cursor arrow
+     :textColor @color.muted))
+
+(defview status-remote "#status-remote, in forgeStatusBar." []
+  `(label#status-remote :role button
+     :label ~(t "status-remote.label")
+     :icon cloud
+     :width 28
+     :height 20
+     :radius 5
+     :align center
+     :cursor hand
+     :textColor @color.accent
+     :hover {:color @color.hover}
+     :tooltip ~(t "status-remote.tip")
+     :onClick accountsMenu))
+
+(defview status-position "#status-position, in forgeStatusBar." []
+  `(node#status-position :use forgeStatusItem
+     :when ~(and computed.activeDoc (= computed.activeDoc.kind "file"))
+     :with {:tip ~(t "status-position.tip")
+            :text ~(str "Ln "
+                        (text state.caret.line)
+                        ", Col "
+                        (text state.caret.column)
+                        (if (> state.caret.selected 0) (str " (" (text state.caret.selected) " selected)") ""))}
+     :onClick goToLinePick))
 
 (defcomponent forgeNotificationCentre "The forgeNotificationCentre component."
   {}
@@ -277,11 +295,11 @@
          :padding 10)
        (node#notification-centre-clear :use forgeTitleButton
          :with {:icon list-x :tip ~(t "notification-centre-clear.tip")}
-         :onClick {:run clearNotifications})
+         :onClick clearNotifications)
        (node#notification-centre-hide :use forgeTitleButton
          :with {:icon chevron-down :tip ~(t "notification-centre-hide.tip")}
          :onClick {:set state.notificationCentre :to false})
-       {:id notification-centre-end :width 4})
+       (node#notification-centre-end :width 4))
      (list#notifications :label ~(t "notifications.label")
        :when ~(not (empty? state.notifications))
        :width "100%"
@@ -306,8 +324,8 @@
      :cursor hand
      :tooltip ~(t "command-centre.tip")
      :hover {:color @color.hover}
-     :onClick {:run quickOpen}
-     {:id command-centre-start :width 6}
+     :onClick quickOpen
+     (node#command-centre-start :width 6)
      (label#command-centre-icon :icon search :textColor @color.muted :fitText true)
      (label#command-centre-text :text
                                 ~(str "Search " computed.folderName)
@@ -317,7 +335,7 @@
                                 true
                                 :height
                                 20)
-     {:id command-centre-end :grow 1}
+     (node#command-centre-end :grow 1)
      (label#command-centre-hint :text ~(t "command-centre-hint")
        :textColor @color.muted
        :fitText true
@@ -326,7 +344,7 @@
        :radius 4
        :borderWidth 1
        :borderColor @color.border)
-     {:id command-centre-hint-end :width 4}))
+     (node#command-centre-hint-end :width 4)))
 
 (defview side-bar-empty "#side-bar-empty." []
   `(column#side-bar-empty :when ~(and (= state.sideView "explorer") (empty? state.folder.root))
@@ -352,7 +370,7 @@
        :radius 6
        :cursor hand
        :focusable true
-       :onClick {:run openFolder})))
+       :onClick openFolder)))
 
 (defview welcome-open-view "#welcome-open." []
   `(label#welcome-open :role button
@@ -372,7 +390,7 @@
      :tooltip ~(t "welcome-open.tip")
      :hover {:color @color.hover :borderColor @color.accent}
      :focused {:borderColor @color.accent}
-     :onClick {:run openFolder}))
+     :onClick openFolder))
 
 (defview welcome-files-view "#welcome-files." []
   `(label#welcome-files :role button
@@ -392,7 +410,7 @@
      :tooltip ~(t "welcome-files.tip")
      :hover {:color @color.hover :borderColor @color.accent}
      :focused {:borderColor @color.accent}
-     :onClick {:run quickOpen}))
+     :onClick quickOpen))
 
 (defview welcome-commands-view "#welcome-commands." []
   `(label#welcome-commands :role button
@@ -412,7 +430,7 @@
      :tooltip ~(t "welcome-commands.tip")
      :hover {:color @color.hover :borderColor @color.accent}
      :focused {:borderColor @color.accent}
-     :onClick {:run showCommands}))
+     :onClick showCommands))
 
 (defview welcome-theme-view "#welcome-theme." []
   `(label#welcome-theme :role button
@@ -432,7 +450,7 @@
      :tooltip ~(t "welcome-theme.tip")
      :hover {:color @color.hover :borderColor @color.accent}
      :focused {:borderColor @color.accent}
-     :onClick {:run pickTheme}))
+     :onClick pickTheme))
 
 (defview welcome-settings-view "#welcome-settings." []
   `(label#welcome-settings :role button
@@ -452,7 +470,7 @@
      :tooltip ~(t "welcome-settings.tip")
      :hover {:color @color.hover :borderColor @color.accent}
      :focused {:borderColor @color.accent}
-     :onClick {:run openSettings}))
+     :onClick openSettings))
 
 (defview shell-view-view "#." [file fi]
   `(label :id ~(str "welcome-recent-" fi)
@@ -470,22 +488,22 @@
      :tooltip ~file.id
      :hover {:color @color.hover}
      :focused {:color @color.hover}
-     :onClick {:run openPath :with {:path ~file.id :label ~file.title}}))
+     :onClick ~(handler openPath file.id file.title)))
 
 (defview welcome-body "#welcome-body." []
   `(column#welcome-body :width 400 :height "100%" :gap 8
-     {:id welcome-top :height 96}
-     {:id welcome-mark :width 36 :height 4 :radius 2 :color @color.accent}
+     (node#welcome-top :height 96)
+     (node#welcome-mark :width 36 :height 4 :radius 2 :color @color.accent)
      (label#welcome-title :text ~(t "welcome-title") :font title :textColor @color.text :fitText true)
      (label#welcome-subtitle :text ~(t "welcome-subtitle") :textColor @color.muted :fitText true)
-     {:id welcome-gap :height 12}
+     (node#welcome-gap :height 12)
      (label#welcome-start :text ~(t "welcome-start") :textColor @color.muted :fitText true)
      ~(welcome-open-view)
      ~(welcome-files-view)
      ~(welcome-commands-view)
      ~(welcome-theme-view)
      ~(welcome-settings-view)
-     {:id welcome-recent-gap :when ~(not (empty? computed.welcomeRecent)) :height 12}
+     (node#welcome-recent-gap :when ~(not (empty? computed.welcomeRecent)) :height 12)
      (label#welcome-recent :when ~(not (empty? computed.welcomeRecent))
        :text ~(t "welcome-recent")
        :textColor @color.muted
@@ -509,4 +527,4 @@
      :textColor @color.statusText
      :tooltip ~(t "status-problems.tip")
      :hover {:color @color.hover}
-     :onClick {:run showProblems}))
+     :onClick showProblems))

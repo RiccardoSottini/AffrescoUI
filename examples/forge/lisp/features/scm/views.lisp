@@ -19,20 +19,9 @@
   {}
   `(column#scm-view :width "100%" :grow 1 :color @color.sideBar :gap 4
      ~(scm-head)
-     (label#scm-empty :when ~(empty? state.folder.root)
-       :wrap true
-       :width "100%"
-       :padding 12
-       :textColor @color.text
-       :text ~(t "scm-empty"))
+     ~(scm-empty)
      ~(scm-no-repo)
-     (label#scm-error :when ~(not (empty? state.scm.error))
-       :icon circle-x
-       :wrap true
-       :width "100%"
-       :padding 12
-       :textColor @color.text
-       :text ~state.scm.error)
+     ~(scm-error)
      (node :visible ~computed.scmHasRepo :use forgeInset :height 26
        (label#scm-branch :icon git-branch
          :text ~computed.scmBranchText
@@ -41,7 +30,7 @@
          :textColor @color.text
          :cursor hand
          :tooltip ~(t "scm-branch.tip")
-         :onClick {:run scmBranches}))
+         :onClick scmBranches))
      (node :visible ~computed.scmHasRepo :use forgeInset :height 26
        (textarea#scm-message :grow 1
          :height 26
@@ -51,7 +40,7 @@
          :placeholderColor @color.muted
          :bind state.scm.message
          :placeholder ~(str "Message (Enter to commit on " (or state.scm.status.branch.head "HEAD") ")")
-         :onSubmit {:run scmCommit}))
+         :onSubmit scmCommit))
      (node :visible ~computed.scmHasRepo :use forgeInset :height 28
        (label#scm-commit :icon check
          :text ~(t "scm-commit")
@@ -65,35 +54,58 @@
          :color ~(if (and (not (empty? (trim state.scm.message))) (> (count state.scm.status.staged) 0))
                      "@color.accent"
                      "@color.border")
-         :onClick {:run scmCommit}))
+         :onClick scmCommit))
      ~(scm-staged-head)
-     (list#scm-staged :visible ~computed.scmHasRepo
-       :width "100%"
-       :grow 1
-       :items ~computed.scmStagedRows
-       :bind state.scm.selectedStaged
-       :rowHeight 22
-       :color @color.sideBar
-       :textColor @color.text
-       :selectedTextColor @color.text
-       :selectedBackground @color.selection
-       :accentColor @color.accent
-       :onOpen {:run scmOpenDiff})
+     ~(scm-staged)
      ~(scm-changes-head)
-     (list#scm-changes :visible ~computed.scmHasRepo
-       :width "100%"
-       :grow 2
-       :items ~computed.scmChangeRows
-       :bind state.scm.selectedChange
-       :rowHeight 22
-       :color @color.sideBar
-       :textColor @color.text
-       :selectedTextColor @color.text
-       :selectedBackground @color.selection
-       :accentColor @color.accent
-       :onOpen {:run scmOpenDiff})
+     ~(scm-changes)
      ~(scm-branch-list)
      ~(scm-history)))
+
+(defview scm-empty "#scm-empty, in forgeScmView." []
+  `(label#scm-empty :when ~(empty? state.folder.root)
+     :wrap true
+     :width "100%"
+     :padding 12
+     :textColor @color.text
+     :text ~(t "scm-empty")))
+
+(defview scm-error "#scm-error, in forgeScmView." []
+  `(label#scm-error :when ~(not (empty? state.scm.error))
+     :icon circle-x
+     :wrap true
+     :width "100%"
+     :padding 12
+     :textColor @color.text
+     :text ~state.scm.error))
+
+(defview scm-staged "#scm-staged, in forgeScmView." []
+  `(list#scm-staged :visible ~computed.scmHasRepo
+     :width "100%"
+     :grow 1
+     :items ~computed.scmStagedRows
+     :bind state.scm.selectedStaged
+     :rowHeight 22
+     :color @color.sideBar
+     :textColor @color.text
+     :selectedTextColor @color.text
+     :selectedBackground @color.selection
+     :accentColor @color.accent
+     :onOpen scmOpenDiff))
+
+(defview scm-changes "#scm-changes, in forgeScmView." []
+  `(list#scm-changes :visible ~computed.scmHasRepo
+     :width "100%"
+     :grow 2
+     :items ~computed.scmChangeRows
+     :bind state.scm.selectedChange
+     :rowHeight 22
+     :color @color.sideBar
+     :textColor @color.text
+     :selectedTextColor @color.text
+     :selectedBackground @color.selection
+     :accentColor @color.accent
+     :onOpen scmOpenDiff))
 
 (defcomponent forgeDiffEditor "The forgeDiffEditor component."
   {:d 0}
@@ -124,7 +136,7 @@
        :textColor ~(if state.scm.busy "@color.accent" "@color.muted")
        :tooltip ~(t "scm-refresh.tip")
        :hover {:textColor @color.text}
-       :onClick {:run scmRefresh})
+       :onClick scmRefresh)
      (label#scm-branches-toggle :icon git-branch
        :padding 6
        :fitText true
@@ -132,18 +144,11 @@
        :textColor @color.muted
        :tooltip ~(t "scm-branches-toggle.tip")
        :hover {:textColor @color.text}
-       :onClick {:run scmBranches})
+       :onClick scmBranches)
      (node#scm-fetch :when ~computed.scmHasRepo
        :use forgeScmTool
        :with {:icon refresh-ccw-dot :tip ~(t "scm-fetch.tip") :action scmFetch :on ~computed.scmHasRepo})
-     (node#scm-pull :when ~computed.scmHasRepo
-       :use forgeScmTool
-       :with {:icon arrow-down-to-line
-              :action scmPull
-              :tip ~(if (empty? state.scm.status.branch.upstream)
-                        "Pull (the branch has no upstream)"
-                        (str "Pull from " state.scm.status.branch.upstream))
-              :on ~(and computed.scmHasRepo (not (empty? state.scm.status.branch.upstream)))})
+     ~(scm-pull)
      (node#scm-push :when ~computed.scmHasRepo
        :use forgeScmTool
        :with {:icon ~(if (empty? state.scm.status.branch.upstream) "cloud-upload" "arrow-up-from-line")
@@ -155,6 +160,16 @@
      (node#scm-history-toggle :when ~computed.scmHasRepo
        :use forgeScmTool
        :with {:icon history :tip ~(t "scm-history-toggle.tip") :action scmHistory :on true})))
+
+(defview scm-pull "#scm-pull, in scm-head." []
+  `(node#scm-pull :when ~computed.scmHasRepo
+     :use forgeScmTool
+     :with {:icon arrow-down-to-line
+            :action scmPull
+            :tip ~(if (empty? state.scm.status.branch.upstream)
+                      "Pull (the branch has no upstream)"
+                      (str "Pull from " state.scm.status.branch.upstream))
+            :on ~(and computed.scmHasRepo (not (empty? state.scm.status.branch.upstream)))}))
 
 (defview scm-no-repo "#scm-no-repo." []
   `(column#scm-no-repo :when ~(and (not (empty? state.folder.root)) (not computed.scmHasRepo) (empty? state.scm.error))
@@ -179,7 +194,7 @@
          :focusable true
          :color @color.accent
          :textColor "#ffffff"
-         :onClick {:run scmInit}))
+         :onClick scmInit))
      (node :use forgeInset :height 28
        (label#scm-open-folder :role button
          :label ~(t "scm-open-folder.label")
@@ -192,7 +207,7 @@
          :focusable true
          :color @color.input
          :textColor @color.text
-         :onClick {:run openFolder}))))
+         :onClick openFolder))))
 
 (defview scm-staged-head "#scm-staged-head." []
   `(row#scm-staged-head :visible ~computed.scmHasRepo :width "100%" :height 22 :alignItems center
@@ -208,7 +223,7 @@
        :textColor @color.muted
        :tooltip ~(t "scm-unstage.tip")
        :hover {:textColor @color.text}
-       :onClick {:run scmUnstage})
+       :onClick scmUnstage)
      (label#scm-unstage-all :icon list-minus
        :padding 4
        :fitText true
@@ -216,7 +231,7 @@
        :textColor @color.muted
        :tooltip ~(t "scm-unstage-all.tip")
        :hover {:textColor @color.text}
-       :onClick {:run scmUnstageAll})))
+       :onClick scmUnstageAll)))
 
 (defview scm-changes-head "#scm-changes-head." []
   `(row#scm-changes-head :visible ~computed.scmHasRepo :width "100%" :height 22 :alignItems center
@@ -232,7 +247,7 @@
        :textColor @color.muted
        :tooltip ~(t "scm-stage.tip")
        :hover {:textColor @color.text}
-       :onClick {:run scmStage})
+       :onClick scmStage)
      (node#scm-stash :use forgeScmTool
        :with {:icon archive :tip ~(t "scm-stash.tip") :action scmStash :on ~(> state.scm.status.count 0)})
      (node#scm-stash-pop :use forgeScmTool
@@ -249,7 +264,7 @@
        :textColor @color.muted
        :tooltip ~(t "scm-stage-all.tip")
        :hover {:textColor @color.text}
-       :onClick {:run scmStageAll})))
+       :onClick scmStageAll)))
 
 (defview scm-branch-list-head "#scm-branch-list-head." []
   `(row#scm-branch-list-head :width "100%" :height 22 :alignItems center
@@ -285,7 +300,7 @@
        :selectedTextColor @color.text
        :selectedBackground @color.selection
        :accentColor @color.accent
-       :onOpen {:run scmSwitch})
+       :onOpen scmSwitch)
      (textarea#scm-new-branch :width "100%"
        :height 26
        :padding 6
@@ -294,24 +309,11 @@
        :placeholderColor @color.muted
        :bind state.scm.branchName
        :placeholder ~(t "scm-new-branch.placeholder")
-       :onSubmit {:run scmCreateBranch})))
+       :onSubmit scmCreateBranch)))
 
 (defview scm-history "#scm-history." []
   `(column#scm-history :when ~state.scm.showHistory :width "100%" :grow 2
-     (row#scm-history-head :width "100%" :height 22 :alignItems center
-       (label#scm-history-title :text ~(str "COMMITS  " (count (filter (fn [it] (not (empty? it.hash))) state.scm.log)))
-         :textColor @color.muted
-         :grow 1
-         :padding 8
-         :height 22)
-       (label#scm-history-close :icon x
-         :padding 4
-         :fitText true
-         :cursor hand
-         :textColor @color.muted
-         :tooltip ~(t "scm-history-close.tip")
-         :hover {:textColor @color.text}
-         :onClick {:set state.scm.showHistory :to false}))
+     ~(scm-history-head)
      (list#scm-commits :label ~(t "scm-commits.label")
        :font code
        :width "100%"
@@ -324,7 +326,7 @@
        :selectedTextColor @color.text
        :selectedBackground @color.selection
        :accentColor @color.accent
-       :onChange {:run scmPickCommit})
+       :onChange scmPickCommit)
      (list#scm-commit-files :label ~(t "scm-commit-files.label")
        :when ~(not (empty? state.scm.commit.files))
        :width "100%"
@@ -337,7 +339,23 @@
        :selectedTextColor @color.text
        :selectedBackground @color.selection
        :accentColor @color.accent
-       :onOpen {:run scmOpenCommitFile})))
+       :onOpen scmOpenCommitFile)))
+
+(defview scm-history-head "#scm-history-head, in scm-history." []
+  `(row#scm-history-head :width "100%" :height 22 :alignItems center
+     (label#scm-history-title :text ~(str "COMMITS  " (count (filter (fn [it] (not (empty? it.hash))) state.scm.log)))
+       :textColor @color.muted
+       :grow 1
+       :padding 8
+       :height 22)
+     (label#scm-history-close :icon x
+       :padding 4
+       :fitText true
+       :cursor hand
+       :textColor @color.muted
+       :tooltip ~(t "scm-history-close.tip")
+       :hover {:textColor @color.text}
+       :onClick {:set state.scm.showHistory :to false})))
 
 (defview diff-head "#diff-head." [d]
   `(row#diff-head :width "100%" :height 28 :alignItems center :gap 8
@@ -352,7 +370,7 @@
        :text ~(t "diff-truncated")
        :textColor @color.muted
        :fitText true)
-     {:id diff-head-gap :grow 1}
+     (node#diff-head-gap :grow 1)
      (label#diff-mode :role button
        :label ~(t "diff-mode.label")
        :text ~(if settings.diffEditor.renderSideBySide "Inline" "Side by Side")
@@ -362,4 +380,4 @@
        :cursor hand
        :textColor @color.muted
        :hover {:color @color.hover}
-       :onClick {:run toggleDiffInline})))
+       :onClick toggleDiffInline)))

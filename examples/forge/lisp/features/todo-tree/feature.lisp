@@ -38,5 +38,4 @@
                                                          :width "100%"
                                                          :cursor hand
                                                          :text "{{trim(todo)}}"
-                                                         :onClick {:run showTab
-                                                                   :with {:id "{{file.id}}" :label "{{file.name}}"}})))}}}}
+                                                         :onClick ~(handler showTab "{{file.id}}" "{{file.name}}"))))}}}}

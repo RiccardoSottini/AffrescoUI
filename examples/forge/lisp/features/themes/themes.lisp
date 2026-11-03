@@ -1,17 +1,28 @@
-;;; themes.lisp --- Forge's themes: every colour of the workbench is a token with one variant per theme, so a theme is a set of values and switching is one state change
+;;; themes.lisp --- Forge's colour themes and its file icons
 ;;;
-;;; Importing a colour theme adds a variant to each token through a patch. Importing reads the file with openFile and
-;;; maps the theme format's colour keys to the tokens with themeSources. The file icon theme maps names and extensions
-;;; to icons, which the explorer shows.
+;;; Every colour of the workbench is a token with one value per theme (colours.lisp), so a theme is a set of values
+;;; and switching is one state change. A colour theme read from a file (VS Code's .json) becomes a new theme: its
+;;; colours, by a revision, added to the tokens they map to (state.themeSources), the rest its kind's defaults.
 
-;;; State and definitions
+;;; The themes
 
 (defstate theme forge-dark)
 
 (defstate themes
-  [(dark#forge-dark :name "Forge Dark")
-   (light#forge-light :name "Forge Light")
-   (hc#forge-high-contrast :name "Forge High Contrast")])
+  [{:type dark :id forge-dark :name "Forge Dark"}
+   {:type light :id forge-light :name "Forge Light"}
+   {:type hc :id forge-high-contrast :name "Forge High Contrast"}])
+
+(defcommand pickTheme "Choose the workbench's colour theme."
+  :title ~(t "command.pickTheme") :category ~(t "category.preferences") :icon "palette"
+  :description ~(t "command.pickTheme.about") []
+  (set "state.quickPick.open" true)
+  (set "state.quickPick.query" "theme "))
+
+(defn setTheme "A theme picked in the palette becomes the workbench's." [item]
+  (set "state.theme" item.id))
+
+;;; Importing a colour theme
 
 (defstate imported nil)
 
@@ -56,6 +67,62 @@
    {:token widget :keys [editorWidget.background quickInput.background] :dark "#23201d" :light "#f7f4f0" :hc "#1a0f05"}
    {:token text :keys [foreground sideBar.foreground editor.foreground] :dark "#ddd6cd" :light "#2d2925" :hc "#ffffff"}])
 
+(defcommand importTheme "Read a colour theme (.json) and add it as a theme."
+  :title ~(t "command.importTheme") :category ~(t "category.preferences") :icon "palette"
+  :description ~(t "command.importTheme.about") []
+  (openFile "state.imported"
+            :comments true
+            :title (t "importTheme.dialog")
+            :extensions ["json"]
+            :onDone importThemeDone
+            :onError importThemeFailed))
+
+(defn importThemeDone "A theme file read: its name noted, then it is added." [result]
+  (set "state.importedFile" result.name)
+  (readTheme))
+
+(defn importThemeFailed "Says why no theme was read." [error]
+  (notify "info" (t "notify.themeNotImported" {:error error.message})))
+
+(defn readTheme "The colour theme read into state.imported, added as a theme." []
+  (readThemeOf state.imported state.importedFile))
+
+(defn readThemeOf "A theme file's name (else its file's), its kind (light, dark or high contrast) and its colours."
+  [theme file]
+  (if (not= (type theme) "object")
+    (notify "info" (t "notify.themeNotObject"))
+    (addTheme (cond
+                (= (type theme.name) "string") theme.name
+                (= (slice file (- 5)) ".json") (slice file 0 (- 5))
+                :else file)
+              (cond
+                (not= (type theme.type) "string") "dark"
+                (or (= theme.type "light") (= theme.type "vs")) "light"
+                (or (= (slice theme.type 0 2) "hc") (= theme.type "high-contrast")) "hc"
+                :else "dark")
+              (if (= (type theme.colors) "object") theme.colors nil))))
+
+(defn addTheme "Each token takes the first colour the theme gives of its keys, else its default for the theme's kind; the theme's id is made of its name."
+  [name kind colors]
+  (addThemeAs (if (empty? (slug name 40)) "imported" (slug name 40))
+              name
+              (if (= kind "light") "light" "dark")
+              (map (fn [it]
+                     {:token it.token
+                      :value (or-else (find (fn [it] (some? it)) (map (fn [it] (hexColor (get colors it))) it.keys))
+                                      (get it kind))})
+                   state.themeSources)))
+
+(defn addThemeAs "Adds a theme's colours to the tokens, by one revision, lists it and switches to it."
+  [id name type values]
+  (patch (map (fn [it] {:op "add" :path (str "/tokens/color." it.token "/" id) :value it.value}) values)
+         :message (t "revision.importTheme" {:name name}))
+  (set "state.themes" (concat (filter (fn [it] (not= it.id id)) state.themes) [{:id id :name name :type type}]))
+  (set "state.theme" id)
+  (notify "info" (t "notify.themeImported" {:name name})))
+
+;;; File icons
+
 (defstate iconTheme
   {:file {:icon file :color "#98a0a9"}
    :folder {:icon folder :color "#d1a35e"}
@@ -78,70 +145,7 @@
 (defcustom workbench.fileIcons
   true "Show the file icon theme's icons in the explorer." :description ~(t "settings.workbench.fileIcons.about") :type boolean :title ~(t "settings.workbench.fileIcons"))
 
-;;; Functions and commands
-
-(defcommand pickTheme "Choose the workbench's colour theme."
-  :title ~(t "command.pickTheme") :category ~(t "category.preferences") :icon "palette"
-  :description ~(t "command.pickTheme.about") []
-  (set "state.quickPick.open" true)
-  (set "state.quickPick.query" "theme "))
-
-(defn setTheme "TODO" [item]
-  (set "state.theme" item.id))
-
-(defcommand importTheme "Read a colour theme (.json) and add it as a theme."
-  :title ~(t "command.importTheme") :category ~(t "category.preferences") :icon "palette"
-  :description ~(t "command.importTheme.about") []
-  (openFile "state.imported"
-            :comments true
-            :title "Import Color Theme"
-            :extensions ["json"]
-            :onDone importThemeDone
-            :onError importThemeFailed))
-
-(defn readTheme "The colour theme read into state.imported: its name (else its file's), its type and its colours" []
-  (readThemeOf state.imported state.importedFile))
-
-(defn readThemeOf "TODO" [theme file]
-  (if (not= (type theme) "object")
-    (notify "info" "Theme not imported: not a colour theme: the file isn't a JSON object")
-    (addTheme (cond
-                (= (type theme.name) "string") theme.name
-                (= (slice file (- 5)) ".json") (slice file 0 (- 5))
-                :else file)
-              (cond
-                (not= (type theme.type) "string") "dark"
-                (or (= theme.type "light") (= theme.type "vs")) "light"
-                (or (= (slice theme.type 0 2) "hc") (= theme.type "high-contrast")) "hc"
-                :else "dark")
-              (if (= (type theme.colors) "object") theme.colors nil))))
-
-(defn addTheme "Each token takes the first of its keys the theme gives a colour, else its default for the theme's kind; the theme's id is made of its name"
-  [name kind colors]
-  (addThemeAs (or (slug name 40) "imported")
-              name
-              (if (= kind "light") "light" "dark")
-              (map (fn [it]
-                     {:token it.token
-                      :value (or-else (find (fn [it] (some? it)) (map (fn [it] (hexColor (get colors it))) it.keys))
-                                      (get it kind))})
-                   state.themeSources)))
-
-(defn addThemeAs "TODO" [id name type values]
-  (patch (map (fn [it] {:op "add" :path (str "/tokens/color." it.token "/" id) :value it.value}) values)
-         :message (str "Import the " name " theme"))
-  (set "state.themes" (concat (filter (fn [it] (not= it.id id)) state.themes) [{:id id :name name :type type}]))
-  (set "state.theme" id)
-  (notify "info" (str "Imported the " name " theme")))
-
 (defcommand toggleIcons "Toggle File Icons"
   :title ~(t "command.toggleIcons") :category ~(t "category.preferences") :icon "file" []
   (set "settings.workbench.fileIcons" (not settings.workbench.fileIcons))
   (reindex))
-
-(defn importThemeDone "What importTheme does when it is done." [result]
-  (set "state.importedFile" result.name)
-  (readTheme))
-
-(defn importThemeFailed "What importTheme does when it fails." [error]
-  (notify "info" (str "Theme not imported: " error.message)))

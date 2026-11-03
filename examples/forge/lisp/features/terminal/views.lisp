@@ -29,7 +29,7 @@
        :activeBackground @color.panel
        :accentColor @color.accent
        :tabs ~state.terminals.list
-       :onClose {:run terminalClose :with {:id ~event.id}})
+       :onClose ~(handler terminalClose event.id))
      (label#terminal-new :icon plus
        :textColor @color.muted
        :padding 8
@@ -37,4 +37,4 @@
        :cursor hand
        :tooltip ~(t "terminal-new.tip")
        :hover {:color @color.hover}
-       :onClick {:run terminalNew})))
+       :onClick terminalNew)))

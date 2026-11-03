@@ -25,21 +25,13 @@
                  :wholeWord state.search.wholeWord
                  :caseSensitive state.search.caseSensitive})
      :keys {:enter openSearchEditorLine}
-     :onDoubleClick {:run openSearchEditorLine}))
+     :onDoubleClick openSearchEditorLine))
 
 (defcomponent forgeSearchPage "The forgeSearchPage component."
   {}
   `(column#search-page :width "100%" :grow 1 :gap 4
      (node :use forgeViewTitle :with {:text ~(t "searchPage.search")})
-     (node#search-query-row :use forgeInset :height 26
-       (row#search-query-box :grow 1 :height 26 :color @color.input :alignItems center
-         (node :use forgeSearchField :with {:field query :hint ~(t "searchPage.search.hint")} :onSubmit {:run runSearch})
-         (node :use forgeSearchOption
-           :with {:option case :bind caseSensitive :icon case-sensitive :tip ~(t "searchPage.matchCase.tip")})
-         (node :use forgeSearchOption
-           :with {:option word :bind wholeWord :icon whole-word :tip ~(t "searchPage.matchWholeWord.tip")})
-         (node :use forgeSearchOption
-           :with {:option regex :bind regex :icon regex :tip ~(t "searchPage.useRegularExpression.tip")})))
+     ~(search-query-row)
      (node#search-replace-row :use forgeInset :height 26 :alignItems center
        (node :use forgeSearchField :with {:field replace :hint ~(t "searchPage.replace.hint")})
        (label#search-replace-all :role button
@@ -53,7 +45,7 @@
          :tooltip ~(t "search-replace-all.tip")
          :textColor @color.text
          :hover {:color @color.hover}
-         :onClick {:run askReplace}))
+         :onClick askReplace))
      (node :use forgeSearchFilter
        :with {:title ~(t "searchPage.filesToInclude") :filter include :example ~(t "searchPage.eGSrc.example")})
      (node :use forgeSearchFilter
@@ -76,6 +68,17 @@
                             "")
               :buttons [{:title ~(t "searchPage.replace") :run replaceAll} {:title ~(t "searchPage.cancel")}]})))
 
+(defview search-query-row "#search-query-row, in forgeSearchPage." []
+  `(node#search-query-row :use forgeInset :height 26
+     (row#search-query-box :grow 1 :height 26 :color @color.input :alignItems center
+       (node :use forgeSearchField :with {:field query :hint ~(t "searchPage.search.hint")} :onSubmit runSearch)
+       (node :use forgeSearchOption
+         :with {:option case :bind caseSensitive :icon case-sensitive :tip ~(t "searchPage.matchCase.tip")})
+       (node :use forgeSearchOption
+         :with {:option word :bind wholeWord :icon whole-word :tip ~(t "searchPage.matchWholeWord.tip")})
+       (node :use forgeSearchOption
+         :with {:option regex :bind regex :icon regex :tip ~(t "searchPage.useRegularExpression.tip")}))))
+
 (defcomponent forgeInset "The forgeInset component."
   {}
   `(row :width "100%"
@@ -97,7 +100,7 @@
              :grow
              0
              :onSubmit
-             {:run runSearch}))))
+             runSearch))))
 
 (defcomponent forgeSearchField "The forgeSearchField component."
   {:field "" :hint ""}
@@ -153,7 +156,7 @@
        :tooltip ~(t "search-open-editor.tip")
        :textColor @color.text
        :hover {:color @color.hover}
-       :onClick {:run openSearchEditor})))
+       :onClick openSearchEditor)))
 
 (defview search-results "#search-results." []
   `(tree#search-results :when ~(some? state.search.result)
@@ -172,7 +175,7 @@
                  :to ~(if event.expanded
                           (filter (fn [it] (not= it event.id)) state.search.collapsed)
                           (concat state.search.collapsed [event.id]))}]
-     :onOpen {:run openSearchHit}
+     :onOpen openSearchHit
      :keys {:delete searchDismiss :backspace searchDismiss}
      :onContextMenu [{:set state.search.x :to ~event.x}
                      {:set state.search.y :to ~event.y}

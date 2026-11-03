@@ -1,8 +1,8 @@
-;;; views.lisp --- what palette.lisp shows
+;;; views.lisp --- the palette over the workbench, and the settings and keyboard shortcuts pages
 
-;;; Views
+;;; The palette
 
-(defcomponent forgePalette "The forgePalette component."
+(defcomponent forgePalette "The quick pick: each provider its prefix, its items, what a pick runs and its hint."
   {}
   `(node#palette :use quickPick
      :with {:width 600
@@ -25,13 +25,15 @@
                         {:prefix "eol " :items ~computed.eolItems :placeholder ~(t "palette.selectTheEnd")}
                         {:prefix "language " :items ~computed.languageItems :placeholder ~(t "palette.selectALanguage")}]}))
 
-(defcomponent forgeSettingsPage "The forgeSettingsPage component."
+;;; The settings page
+
+(defcomponent forgeSettingsPage "The settings page: its groups on the left, the settings they hold on the right."
   {}
   `(row#settings-editor :width "100%" :grow 1 :color @color.editor
-     ~(settings-toc-view)
+     ~(settings-toc)
      ~(settings-page)))
 
-(defcomponent forgeSettingRow "The forgeSettingRow component."
+(defcomponent forgeSettingRow "A setting `s`: its title and what it is, the control its type asks for, and Reset."
   {}
   `(node :label ~s.title
      :width "100%"
@@ -39,43 +41,15 @@
      :color @color.editor
      :hover {:color @color.hover}
      :radius 4
-     {:when ~s.modified :anchors {:left 0 :top 8 :bottom 8} :width 2 :color @color.accent}
-     (label#setting-title :text
-                          ~s.title
-                          :textColor
-                          @color.text
-                          :fitText
-                          true
-                          :tooltip
-                          ~s.key
-                          :anchors
-                          {:left 16 :top 8})
-     (checkbox#setting-check :when ~(= s.type "boolean")
-       :label ~s.title
-       :bind ~(str "settings." s.key)
-       :width 14
-       :height 14
-       :anchors {:left 16 :top 33}
-       :activeColor @color.accent
-       :trackColor @color.input
-       :knobColor @color.text)
+     (node :when ~s.modified :anchors {:left 0 :top 8 :bottom 8} :width 2 :color @color.accent)
+     ~(setting-title)
+     ~(setting-check)
      (label#setting-description :text ~(or-else s.description "")
        :textColor @color.muted
        :height 18
        :anchors {:left ~(if (= s.type "boolean") 38 16) :right 90 :top 31})
      ~(setting-choices)
-     (slider#setting-slider :when ~(and (not= s.type "boolean") (some? s.minimum) (some? s.maximum))
-       :label ~s.title
-       :bind ~(str "settings." s.key)
-       :min ~(or-else s.minimum 0)
-       :max ~(or-else s.maximum 1)
-       :step ~(if (= s.type "integer") 1 0)
-       :width 200
-       :height 20
-       :anchors {:left 16 :top 56}
-       :activeColor @color.accent
-       :trackColor @color.input
-       :knobColor @color.text)
+     ~(setting-slider)
      (label#setting-slider-value :when ~(and (not= s.type "boolean") (some? s.minimum) (some? s.maximum))
        :text ~(text s.value)
        :textColor @color.text
@@ -90,31 +64,67 @@
        :anchors {:left 16 :top 52}
        :color @color.input
        :textColor @color.text)
-     (textarea#setting-number :when ~(and (not= s.type "boolean")
-                                          (not= s.type "string")
-                                          (or (nil? s.minimum) (nil? s.maximum)))
-       :label ~s.title
-       :text ~(text s.value)
-       :width 120
-       :height 26
-       :padding 5
-       :anchors {:left 16 :top 52}
-       :color @color.input
-       :textColor @color.text
-       :onChange {:if ~(some? (number event.value)) :then [{:set ~(str "settings." s.key) :to ~(number event.value)}]})
-     (label#setting-reset :when ~s.modified
-       :role button
-       :text ~(t "setting-reset")
-       :label ~(str "Reset " s.title)
-       :tooltip ~(t "setting-reset.tip")
-       :textColor @color.muted
-       :hover {:textColor @color.text}
-       :cursor hand
-       :fitText true
-       :anchors {:right 16 :top 8}
-       :onClick {:remove ~(str "settings." s.key)})))
+     ~(setting-number)
+     ~(setting-reset)))
 
-(defcomponent forgeKeybindingsPage "The forgeKeybindingsPage component."
+(defview setting-check "A boolean setting's check box." []
+  `(checkbox#setting-check :when ~(= s.type "boolean")
+     :label ~s.title
+     :bind ~(str "settings." s.key)
+     :width 14
+     :height 14
+     :anchors {:left 16 :top 33}
+     :activeColor @color.accent
+     :trackColor @color.input
+     :knobColor @color.text))
+
+(defview setting-title "A setting's title; its key in the tooltip." []
+  `(label#setting-title :text ~s.title :textColor @color.text :fitText true :tooltip ~s.key :anchors {:left 16 :top 8}))
+
+(defview setting-reset "Reset, on a setting changed from its default." []
+  `(label#setting-reset :when ~s.modified
+     :role button
+     :text ~(t "setting-reset")
+     :label ~(t "setting-reset.label" {:title s.title})
+     :tooltip ~(t "setting-reset.tip")
+     :textColor @color.muted
+     :hover {:textColor @color.text}
+     :cursor hand
+     :fitText true
+     :anchors {:right 16 :top 8}
+     :onClick ~(handler resetSetting s.key)))
+
+(defview setting-slider "A number setting with bounds: a slider." []
+  `(slider#setting-slider :when ~(and (not= s.type "boolean") (some? s.minimum) (some? s.maximum))
+     :label ~s.title
+     :bind ~(str "settings." s.key)
+     :min ~(or-else s.minimum 0)
+     :max ~(or-else s.maximum 1)
+     :step ~(if (= s.type "integer") 1 0)
+     :width 200
+     :height 20
+     :anchors {:left 16 :top 56}
+     :activeColor @color.accent
+     :trackColor @color.input
+     :knobColor @color.text))
+
+(defview setting-number "A number setting without bounds: a field, kept while it reads as a number." []
+  `(textarea#setting-number :when ~(and (not= s.type "boolean")
+                                        (not= s.type "string")
+                                        (or (nil? s.minimum) (nil? s.maximum)))
+     :label ~s.title
+     :text ~(text s.value)
+     :width 120
+     :height 26
+     :padding 5
+     :anchors {:left 16 :top 52}
+     :color @color.input
+     :textColor @color.text
+     :onChange ~(handler setNumberSetting s.key event.value)))
+
+;;; The keyboard shortcuts page
+
+(defcomponent forgeKeybindingsPage "The keyboard shortcuts page: every key, searchable, with its command and when it applies."
   {}
   `(column#keybindings-page :width "100%" :grow 1 :color @color.editor :gap 8
      (textarea#keybindings-search :role searchbox
@@ -141,9 +151,9 @@
                  {:id when :title ~(t "keybindings-table.when") :width 200}
                  {:id source :title ~(t "keybindings-table.source") :width 100}])))
 
-(defview settings-toc-view "#settings-toc." []
+(defview settings-toc "The settings' groups: a click shows only that group's." []
   `(column#settings-toc :label ~(t "settings-toc.label") :width 176 :height "100%" :color @color.editor :gap 2
-     {:width "100%" :height 6 :color @color.editor}
+     (node :width "100%" :height 6 :color @color.editor)
      ~(repeat [group computed.settingsToc]
        `(node#settings-toc-item :role button
           :label ~group.label
@@ -152,14 +162,14 @@
           :cursor hand
           :radius 4
           :color ~(if (= state.settingsQuery group.query) "@color.selection" "@color.editor")
-          :tooltip ~(if (empty? group.query) "Show every setting" (str "Show the " group.label " settings"))
-          :onClick {:set state.settingsQuery :to ~group.query}
+          :tooltip ~(if (empty? group.query) (t "settings-toc.every") (t "settings-toc.group" {:group group.label}))
+          :onClick ~(handler showSettingsGroup group.query)
           (label :text ~group.label
             :anchors {:left 16 :top 5}
             :fitText true
             :textColor ~(if (= state.settingsQuery group.query) "@color.text" "@color.muted"))))))
 
-(defview settings-page "#settings-page." []
+(defview settings-page "The settings, searchable: a row for each." []
   `(column#settings-page :height "100%" :grow 1 :color @color.editor :gap 8
      (textarea#settings-search :role searchbox
        :label ~(t "settings-search.label")
@@ -181,7 +191,7 @@
        ~(repeat [s computed.settingsRows]
          `(node#settings-row :use forgeSettingRow)))))
 
-(defview setting-choices "#setting-choices." []
+(defview setting-choices "A setting with a few values: a button for each, the chosen one outlined." []
   `(row#setting-choices :when ~(and (= s.type "string") (some? s.enum))
      :gap 4
      :width 480
@@ -202,4 +212,4 @@
           :borderColor ~(if (= s.value choice) "@color.accent" "@color.border")
           :color ~(if (= s.value choice) "@color.selection" "@color.input")
           :textColor @color.text
-          :onClick {:set ~(str "settings." s.key) :to ~choice}))))
+          :onClick ~(handler setSetting s.key choice)))))

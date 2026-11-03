@@ -20,7 +20,7 @@
        :bind ~bind
        :width 16
        :height 16
-       :onChange {:run findStep :with {:step first}})
+       :onChange ~(handler findStep "first"))
      (label :text ~text :textColor @color.text :fitText true)))
 
 (defcomponent forgeFindButton "The forgeFindButton component."
@@ -50,8 +50,8 @@
        :placeholderColor @color.muted
        :placeholder ~(t "find-text.placeholder")
        :autofocus true
-       :onChange {:run findStep :with {:step first}}
-       :onSubmit {:run findNext})
+       :onChange ~(handler findStep "first")
+       :onSubmit findNext)
      (node :use forgeFindOption :with {:option case :bind state.findBar.caseSensitive :text ~(t "findBar.aa")})
      (node :use forgeFindOption :with {:option word :bind state.findBar.wholeWord :text ~(t "findBar.word")})
      (node :use forgeFindOption :with {:option regex :bind state.findBar.regex :text ".*"})
@@ -75,7 +75,7 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :placeholder ~(t "replace-text.placeholder")
-       :onSubmit {:run replaceOne})
+       :onSubmit replaceOne)
      (node :use
            forgeFindButton
            :with

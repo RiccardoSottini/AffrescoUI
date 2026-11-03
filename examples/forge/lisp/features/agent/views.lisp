@@ -30,18 +30,7 @@
        :height 36
        :padding 8
        :textColor @color.muted)
-     (column#agent-empty :when ~(= (count state.agent.log) 0) :width "100%" :grow 2 :alignItems center :justify center :gap 8
-       (label#agent-empty-icon :icon bot :font iconsLarge :textColor @color.accent :fitText true)
-       (label#agent-empty-title :text ~(t "agent-empty-title") :textColor @color.text :fitText true)
-       (label#agent-empty-text :wrap true
-         :width "100%"
-         :height 72
-         :padding 12
-         :align center
-         :textColor @color.muted
-         :text ~(if state.agent.connected
-                    "Ask for a change below. The agent edits the documents of this window, and each change waits under Review until you accept it."
-                    "An agent joins through the socket of the host, for example with the MCP server. Once it is connected, ask for a change below; each change it makes waits under Review.")))
+     ~(agent-empty)
      (list#agent-log :when ~(> (count state.agent.log) 0)
        :width "100%"
        :grow 2
@@ -51,23 +40,8 @@
        :color @color.sideBar
        :textColor @color.text
        :accentColor @color.accent)
-     (textarea#agent-draft :width "100%"
-       :height 52
-       :padding 6
-       :wrap true
-       :color @color.input
-       :textColor @color.text
-       :placeholderColor @color.muted
-       :bind state.agent.draft
-       :placeholder ~(t "agent-draft.placeholder")
-       :onSubmit {:run agentAsk})
-     (row#agent-ask-row :width "100%" :height 30 :justify end
-       (node :use forgeAgentButton
-         :with {:id agent-ask
-                :text ~(t "agentView.ask")
-                :icon send
-                :action agentAsk
-                :on ~(not (empty? (trim state.agent.draft)))}))
+     ~(agent-draft)
+     ~(agent-ask-row)
      (label#agent-review-title :text ~(str "REVIEW  " (count proposals))
        :textColor @color.muted
        :width "100%"
@@ -80,19 +54,57 @@
        :padding 8
        :textColor @color.muted
        :text ~(t "agent-review-empty"))
-     (list#agent-proposals :when ~(> (count proposals) 0)
-       :width "100%"
-       :grow 1
-       :items ~computed.agentProposalRows
-       :bind state.agent.selected
-       :rowHeight 22
-       :color @color.sideBar
-       :textColor @color.text
-       :selectedTextColor @color.text
-       :selectedBackground @color.selection
-       :accentColor @color.accent
-       :onOpen {:run agentOpenChanges})
+     ~(agent-proposals)
      (node :use forgeAgentReview :when ~(some? computed.agentCurrent))))
+
+(defview agent-ask-row "#agent-ask-row, in forgeAgentView." []
+  `(row#agent-ask-row :width "100%" :height 30 :justify end
+     (node :use forgeAgentButton
+       :with {:id agent-ask
+              :text ~(t "agentView.ask")
+              :icon send
+              :action agentAsk
+              :on ~(not (empty? (trim state.agent.draft)))})))
+
+(defview agent-draft "#agent-draft, in forgeAgentView." []
+  `(textarea#agent-draft :width "100%"
+     :height 52
+     :padding 6
+     :wrap true
+     :color @color.input
+     :textColor @color.text
+     :placeholderColor @color.muted
+     :bind state.agent.draft
+     :placeholder ~(t "agent-draft.placeholder")
+     :onSubmit agentAsk))
+
+(defview agent-proposals "#agent-proposals, in forgeAgentView." []
+  `(list#agent-proposals :when ~(> (count proposals) 0)
+     :width "100%"
+     :grow 1
+     :items ~computed.agentProposalRows
+     :bind state.agent.selected
+     :rowHeight 22
+     :color @color.sideBar
+     :textColor @color.text
+     :selectedTextColor @color.text
+     :selectedBackground @color.selection
+     :accentColor @color.accent
+     :onOpen agentOpenChanges))
+
+(defview agent-empty "#agent-empty, in forgeAgentView." []
+  `(column#agent-empty :when ~(= (count state.agent.log) 0) :width "100%" :grow 2 :alignItems center :justify center :gap 8
+     (label#agent-empty-icon :icon bot :font iconsLarge :textColor @color.accent :fitText true)
+     (label#agent-empty-title :text ~(t "agent-empty-title") :textColor @color.text :fitText true)
+     (label#agent-empty-text :wrap true
+       :width "100%"
+       :height 72
+       :padding 12
+       :align center
+       :textColor @color.muted
+       :text ~(if state.agent.connected
+                  "Ask for a change below. The agent edits the documents of this window, and each change waits under Review until you accept it."
+                  "An agent joins through the socket of the host, for example with the MCP server. Once it is connected, ask for a change below; each change it makes waits under Review."))))
 
 (defcomponent forgeAgentReview "The forgeAgentReview component."
   {}
@@ -122,14 +134,7 @@
        :padding 8
        :textColor @color.muted
        :text ~(t "agent-evidence-none"))
-     (label#agent-evidence-behaviour :when ~(and (some? computed.agentEvidence)
-                                                 (not (empty? computed.agentEvidence.behaviour)))
-       :icon activity
-       :wrap true
-       :width "100%"
-       :padding 8
-       :textColor @color.text
-       :text ~(slice (text computed.agentEvidence.behaviour) 0 2000))
+     ~(agent-evidence-behaviour)
      ~(agent-evidence-shots)
      (list#agent-scenarios :when ~(> (count computed.agentScenarioRows) 0)
        :width "100%"
@@ -141,6 +146,16 @@
        :textColor @color.text
        :accentColor @color.accent)
      ~(agent-decide)))
+
+(defview agent-evidence-behaviour "#agent-evidence-behaviour, in forgeAgentReview." []
+  `(label#agent-evidence-behaviour :when ~(and (some? computed.agentEvidence)
+                                               (not (empty? computed.agentEvidence.behaviour)))
+     :icon activity
+     :wrap true
+     :width "100%"
+     :padding 8
+     :textColor @color.text
+     :text ~(slice (text computed.agentEvidence.behaviour) 0 2000)))
 
 (defcomponent forgeFeaturesView "The forgeFeaturesView component."
   {}
@@ -154,7 +169,7 @@
          :textColor ~(if state.features.busy "@color.accent" "@color.muted")
          :tooltip ~(t "features-refresh.tip")
          :hover {:textColor @color.text}
-         :onClick {:run featuresRefresh}))
+         :onClick featuresRefresh))
      (textarea#features-filter :width "100%"
        :height 26
        :padding 6
@@ -210,7 +225,7 @@
      (node :use
            forgeAgentButton
            :with
-           {:id agent-accept :text ~(t "agentReview.accept") :icon check :action agentAccept})
+           (node#agent-accept :text ~(t "agentReview.accept") :icon check :action agentAccept))
      (node :use forgeAgentButton
        :with {:id agent-reject
               :icon x
@@ -256,7 +271,7 @@
        :align center
        :textColor ~(if (and f.installed f.enabled) "@color.accent" "@color.muted"))
      ~(view f)
-     {:id ~(str "feature-end-" f.name) :width 8}))
+     (node :id ~(str "feature-end-" f.name) :width 8)))
 
 (defview features-detail "#features-detail." []
   `(column#features-detail :when ~(some? computed.featureCurrent) :width "100%" :gap 4

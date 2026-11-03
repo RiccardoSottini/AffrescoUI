@@ -47,7 +47,7 @@
               :tip ~(t "explorer-collapse.tip")
               :run explorerCollapseAll
               :enabled ~(not (empty? state.explorer.expanded))})
-     {:id side-bar-title-end :width 6}))
+     (node#side-bar-title-end :width 6)))
 
 (defcomponent forgeExplorer "The forgeExplorer component."
   {}
@@ -80,9 +80,9 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent
-     :onExpand {:run explorerExpand}
-     :onOpen {:run openExplorerItem}
-     :onDrop {:run explorerDrop}
+     :onExpand explorerExpand
+     :onOpen openExplorerItem
+     :onDrop explorerDrop
      :onContextMenu [{:set state.explorerEdit.x :to ~event.x}
                      {:set state.explorerEdit.y :to ~event.y}
                      {:set state.explorerEdit.menu :to true}]))
@@ -107,4 +107,4 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :placeholder ~(t "explorer-name.placeholder")
-       :onSubmit {:run explorerSubmitName})))
+       :onSubmit explorerSubmitName)))

@@ -30,7 +30,7 @@
                      (and (= auth.accountsServer.state "signingIn") (some? auth.accountsServer.code)) (str "Code " auth.accountsServer.code " at " auth.accountsServer.verificationUrl)
                      :else "Sign in")
      :hover {:textColor @color.text}
-     :onClick {:run accountsMenu}))
+     :onClick accountsMenu))
 
 (defview status-accounts-peers "#status-accounts-peers." []
   `(column#status-accounts-peers :color @color.sideBar
@@ -52,4 +52,4 @@
        :cursor hand
        :textColor @color.statusText
        :hover {:color @color.hover}
-       :onClick {:run accountsSignOut})))
+       :onClick accountsSignOut)))

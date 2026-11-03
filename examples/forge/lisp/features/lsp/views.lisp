@@ -65,7 +65,7 @@
           :gap 8
           :color ~(if (= c.index state.lsp.completion.index) "@color.selection" "@color.widget")
           :cursor hand
-          :onClick {:run lspComplete :with {:index ~c.index}}
+          :onClick ~(handler lspComplete c.index)
           (label#lsp-completion-label :font code :fitText true :textColor @color.text :text ~c.item.label)
           (label#lsp-completion-detail :grow 1 :textColor @color.muted :text ~c.item.detail)))))
 
@@ -88,7 +88,7 @@
        :columns [{:id text :title "" :width 360}
                  {:id file :title ~(t "lsp-peek-list.file") :width 200}
                  {:id line :title ~(t "lsp-peek-list.line") :width 60}]
-       :onOpen {:run lspPeekOpen})))
+       :onOpen lspPeekOpen)))
 
 (defview lsp-rename-dialog-view "#lsp-rename-dialog." []
   `(node#lsp-rename-dialog :use dialog
@@ -106,7 +106,7 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :placeholder ~(t "lsp-rename-name.placeholder")
-       :onSubmit {:run lspRenameSend})))
+       :onSubmit lspRenameSend)))
 
 (defview lsp-review-dialog-view "#lsp-review-dialog." []
   `(node#lsp-review-dialog :use dialog
