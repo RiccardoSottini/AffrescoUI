@@ -1,4 +1,13 @@
-;;; index.screen.lisp --- TODO
+;;; index.screen.lisp --- Tempo, a music player
+;;;
+;;; Playlists, a library of 3,000 songs in a table, albums and artists in a grid, search, a queue to reorder by dragging
+;;; or with Alt and the arrows, now playing with a visualiser of the spectrum of what plays and lyrics, an equaliser on a
+;;; curves control, crossfade and a mini player; light and dark themes, English, Spanish and French. Cmd+P finds a song
+;;; and Cmd+Shift+P runs any command; Space plays or pauses, the arrows skip and set the volume (keys.lisp has them all).
+;;; A right click (or Shift+F10) on a song opens its menu. The songs are simulated: what plays is one beatbox loop
+;;; (audio/beatbox.wav, made by audio/make_beat.py), on hosts that give the screen sound; a song may name a sound of its
+;;; own (its "sound", a sound of the audio section), which then plays instead. The equaliser and the crossfade are
+;;; visual only.
 
 (include "locales/en.lisp"
          "locales/es.lisp"
@@ -14,12 +23,15 @@
          "player.lisp"
          "pages.lisp"
          "nowplaying.lisp"
+         "dialogs.lisp"
          "../../shared/addons/assistant/assistant.lisp"
          "tempo.lisp")
 
-(defscreen main
+;;; The window, and what is in it, in the order it is drawn
+
+(defscreen main "Tempo's one window: the sidebar, the page and the queue, the player, and what opens over them."
   :window {:title "Tempo: an AffrescoUI template" :width 1280 :height 800 :minWidth 1040 :minHeight 640}
-  :strings {:default en :locale ~settings.ui.language}
+  :strings {:default en :locale ~settings.ui.language :keep ["Tempo" "Tempo: an AffrescoUI template"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :fallback [icons]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [iconsSmall]}
           :heading {:file "../../shared/fonts/Roboto-Regular.ttf" :size 17 :fallback [icons]}
@@ -40,46 +52,9 @@
     ~(sidebar)
     ~(main-area)
     ~(player)
-    (node#statusBar :when ~(not state.mini) :anchors {:left 0 :right 0 :bottom 0} :height 32 :color @sidebar
-      {:id panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border}
-      (label#statusText :text ~(str "Revision " revision.number "  ·  " revision.author ": " revision.message)
-        :font small
-        :textColor @muted
-        :anchors {:left 24 :top 0 :bottom 0 :right 200}
-        :align {:horizontal start :vertical center})
-      (label#statusSize :text ~(str window.width " × " window.height)
-        :font small
-        :textColor @muted
-        :anchors {:right 24 :top 0 :bottom 0}
-        :width 160
-        :align {:horizontal end :vertical center}))
+    ~(status-bar)
     (node#miniView :when ~state.mini :use miniPlayer :fill true)
-    (node#songMenu :use contextMenu
-      :with {:open state.songMenu.open
-             :items ~computed.songMenuItems
-             :x ~state.songMenu.x
-             :y ~state.songMenu.y
-             :width 240
-             :color @menu
-             :textColor @text
-             :dimColor @faint
-             :highlight @accentSoft})
-    (node#listMenu :use contextMenu
-      :with {:open state.listMenu.open :items ~computed.listMenuItems :x ~state.listMenu.x :y ~state.listMenu.y :width 180})
-    (node#deleteDialog :use dialog
-      :with {:open state.deleting
-             :title ~(t "playlist.deleteTitle")
-             :message ~(t "playlist.deleteMessage" {:name (or-else computed.list.name "")})
-             :primaryLast true
-             :buttons [{:title ~(t "dialog.cancel")}
-                       {:title ~(t "playlist.delete") :default true :run deleteList :with {:list ~state.current}}]})
-    (node#quickPick :when ~state.quickPick.open
-      :use quickPick
-      :with {:color @menu
-             :textColor @text
-             :dimColor @muted
-             :accent @accent
-             :highlight @accentSoft
-             :field @field
-             :providers [{:items ~computed.picks :run playFromPick :placeholder ~(t "pick.songs")}
-                         {:prefix ">" :items ~computed.palette :placeholder ~(t "pick.commands")}]})))
+    ~(song-menu)
+    ~(list-menu)
+    ~(delete-dialog)
+    ~(quick-pick)))

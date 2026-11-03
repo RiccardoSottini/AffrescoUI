@@ -1,6 +1,9 @@
-;;; look.lisp --- TODO
+;;; look.lisp --- Tempo's looks: its colours, dark and light, the assistant's and the shared kit's, and the styles its
+;;; controls share
 
-(defpart colours "TODO"
+;;; Colours
+
+(defpart colours "Every colour, dark and light, by name: @name in a view."
   :colors {:background {:dark "#10131c" :light "#f6f3ec"}
            :sidebar {:dark "#0b0d14" :light "#ece7dc"}
            :surface {:dark "#161a26" :light "#fffdf8"}
@@ -20,7 +23,7 @@
            :menu {:dark "#1a1f2d" :light "#fffdf8"}
            :field {:dark "#10131c" :light "#f6f3ec"}})
 
-(deftokens tokens "Tokens."
+(deftokens tokens "The assistant's and the shared kit's colours, from Tempo's."
   {:assistant.accent @accent
    :assistant.accentHover @accentHover
    :assistant.onAccent @onAccent
@@ -50,11 +53,15 @@
    :kit.radius 10
    :kit.cardRadius 16})
 
-(defstyle caption (label :font small :textColor @muted :fitText true))
+;;; Styles
 
-(defstyle pageTitle (label :font large :textColor @text :anchors {:left 32 :top 24} :fitText true))
+(defstyle caption "A small, muted caption."
+  (label :font small :textColor @muted :fitText true))
 
-(defstyle control
+(defstyle pageTitle "A page's title."
+  (label :font large :textColor @text :anchors {:left 32 :top 24} :fitText true))
+
+(defstyle control "A round icon button."
   (label :text ""
     :height 32
     :radius 16
@@ -67,7 +74,7 @@
     :focusable true
     :role button))
 
-(defstyle chip
+(defstyle chip "A choice among several, as a chip."
   (label :font small
     :padding 9
     :radius 15
@@ -83,7 +90,7 @@
     :focusable true
     :role button))
 
-(defstyle playButton
+(defstyle playButton "The large Play button."
   (label :icon play
     :text "  Play"
     :font heading

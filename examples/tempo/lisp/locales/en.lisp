@@ -176,4 +176,5 @@
                 :settings.crossfade.about "How many seconds the end of a song overlaps the start of the next; 0 for none."
                 :settings.language "Language"
                 :settings.language.about "English, Spanish or French."
-                :sound.band "{label}  {gain} dB"}}}
+                :sound.band "{label}  {gain} dB"
+                :status.revision "Revision {number}  ·  {author}: {message}"}}}
