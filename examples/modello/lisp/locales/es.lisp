@@ -558,4 +558,5 @@
                 :command.addMarker.about "Agrega un marcador en el fotograma actual."
                 :command.deleteMarker.about "Quita el marcador del fotograma actual."
                 :command.prevMarker.about "Va al marcador anterior."
-                :command.nextMarker.about "Va al marcador siguiente."}}}
+                :command.nextMarker.about "Va al marcador siguiente."
+                :unit.m " m"}}}

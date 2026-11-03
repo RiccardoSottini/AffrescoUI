@@ -558,4 +558,5 @@
                 :command.addMarker.about "Adds a marker at the current frame."
                 :command.deleteMarker.about "Takes the marker at the current frame away."
                 :command.prevMarker.about "Goes to the marker before."
-                :command.nextMarker.about "Goes to the next marker."}}}
+                :command.nextMarker.about "Goes to the next marker."
+                :unit.m " m"}}}

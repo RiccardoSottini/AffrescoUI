@@ -118,7 +118,7 @@
      (node#editTarget :anchors {:left 0 :right 0}
        :height 58
        :color transparent
-       :children [{:id label-t-edit-target :style caption :text ~(t "edit.target") :anchors {:left 2 :top 0}}
+       :children [(node#label-t-edit-target :style caption :text ~(t "edit.target") :anchors {:left 2 :top 0})
                   ~(row-edit-target)]
        :when ~(= state.edit.kind "measurable"))
      (node#editFrequency :anchors {:left 0 :right 0} :height 58 :color transparent
@@ -309,12 +309,12 @@
      :disabled ~(not state.edit.reminderOn)
      :placeholder "08:00")
      ~(repeat [wd computed.weekdays]
-       `{:id dayChip
-         :style ~(if (and (get state.edit.days wd) state.edit.reminderOn) "chipOn" "chip")
-         :role checkbox
-         :padding 6
-         :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
-         :selected ~(get state.edit.days wd)
-         :disabled ~(not state.edit.reminderOn)
-         :onClick {:toggle ~(str "state.edit.days[" wd "]")}})))
+       `(node#dayChip
+        :style ~(if (and (get state.edit.days wd) state.edit.reminderOn) "chipOn" "chip")
+        :role checkbox
+        :padding 6
+        :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
+        :selected ~(get state.edit.days wd)
+        :disabled ~(not state.edit.reminderOn)
+        :onClick {:toggle ~(str "state.edit.days[" wd "]")}))))
 

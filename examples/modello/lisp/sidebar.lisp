@@ -106,7 +106,7 @@
      (column :fill 6 :gap 6 :color transparent
        (node
          :use vectorField
-         :with {:title ~(t "transform.location") :values ~state.cursor :key cursor :unit " m" :step 0.01})
+         :with {:title ~(t "transform.location") :values ~state.cursor :key cursor :unit ~(t "unit.m") :step 0.01})
        (node#cursor-reset :height 20
          :width "100%"
          :color @widget
@@ -137,7 +137,7 @@
        :with {:title ~(t "transform.location")
               :values ~computed.activeNode.translation
               :key translation
-              :unit " m"
+              :unit ~(t "unit.m")
               :step 0.01
               :lockable true})
      (node :use vectorField

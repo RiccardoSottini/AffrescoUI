@@ -9,7 +9,7 @@
      :label ~(t "settings")
      (column#settingsList :anchors {:left 0 :right 0 :top 56 :bottom 0} :scroll vertical :alignItems center
        (column#settingsColumn :width ~(min 720 window.width)
-         :children [{:id settingsTop :height 4 :color transparent}
+         :children [(node#settingsTop :height 4 :color transparent)
                     ~(settings-interface)
                     (column#settingsNotifications :style card :anchors {:left 0 :right 0} :fitContent height
                       (label#label-t-set-notifications

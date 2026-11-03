@@ -67,81 +67,83 @@
                                    :run "confirmDelete"}]})]
      :isOpen ~state.menus.detail))
 
-(defview detail-cards "The detail's cards, in a scrolling column: the overview, the target, the score, the history, the calendar, the streaks, the frequency and the notes." []
+(defview detail-cards "The detail's cards, in a scrolling column, in order." []
   `(column#detailCards :when ~(>= computed.sel 0)
      :anchors {:left 0 :right 0 :top 56 :bottom 0}
      :scroll vertical
      :gap 12
      :alignItems center
      (node#panel-detail-cards :height 0 :width 10 :color transparent)
-     (node#subtitle :style card :width ~computed.cardWidth :height ~(if (not= computed.h.description "") 92 70)
-       (label#label-h-question :text ~computed.h.question
-         :textColor ~computed.col
-         :anchors {:left 16 :right 16 :top 12}
-         :height 20)
-       ~(subtitle-facts)
-       (label#label-h-description :text ~computed.h.description
-         :when ~(not= computed.h.description "")
-         :font small
-         :textColor @c.text
-         :anchors {:left 16 :right 16 :top 64}
-         :height 18))
-     (node#overviewCard :style card :width ~computed.cardWidth :height 112 :role region :label ~(t "card.overview")
-       (node#label-t-card-overview :style cardTitle :text ~(t "card.overview") :textColor ~computed.col)
-       ~(overview-stats))
-     (node#targetCard :style card
-       :width ~computed.cardWidth
-       :height 232
-       :role region
-       :label ~(t "card.target")
-       :children [{:id label-t-card-target :style cardTitle :text ~(t "card.target") :textColor ~computed.col}
-                  (column#goalRows :anchors {:left 16 :right 16 :top 48} :height 170 :gap 6
-                    ~(repeat [g computed.goalRows]
-                      (goal-row g)))]
-       :when ~(= computed.h.kind "measurable"))
+     ~(subtitle-card)
+     ~(overview-card)
+     ~(target-card)
      ~(score-card)
-     (node#historyCard :style card :width ~computed.cardWidth :height 240 :role region :label ~(t "card.history")
-       (node#label-t-card-history :style cardTitle :text ~(t "card.history") :textColor ~computed.col)
-       (node#period-button-history-card :use periodButton
-         :with {:key historyPeriod :color ~computed.col}
-         :anchors {:right 8 :top 8})
-       ~(history-plot)
-       (row#historyLabels :dir ltr :anchors {:left 16 :right 16 :bottom 8} :height 30
-         ~(repeat [lb computed.historyLabels]
-           `(node#historyLabel :grow 1 :anchors {:top 0 :bottom 0} :color transparent
-              (node#label-lb-a-2 :style axis :text ~lb.a)
-              (node#label-lb-b-2 :style axis2 :text ~lb.b)))))
+     ~(history-card)
      ~(calendar-card)
-     (node#streaksCard :style card
-       :width ~computed.cardWidth
-       :height ~(+ (* (max 1 (count computed.streaks)) 26) 60)
-       :role region
-       :label ~(t "card.streaks")
-       (node#label-t-card-streaks :style cardTitle :text ~(t "card.streaks") :textColor ~computed.col)
-       (node#label-t-no-streaks
-       :style caption
-       :text ~(t "noStreaks")
-       :when ~(= (count computed.streaks) 0)
-       :anchors {:left 16 :top 46})
-       (column#streakRows :anchors {:left 16 :right 16 :top 46} :height ~(* (count computed.streaks) 26) :gap 4
-         ~(repeat [st computed.streaks]
-           (streak-row st))))
+     ~(streaks-card)
      ~(frequency-card)
-     (node#notesCard :style card
-       :width ~computed.cardWidth
-       :height ~(+ (* (max 1 (count computed.notes)) 44) 60)
-       :role region
-       :label ~(t "card.notes")
-       (node#label-t-card-notes :style cardTitle :text ~(t "card.notes") :textColor ~computed.col)
-       (node#label-t-no-notes
-       :style caption
-       :text ~(t "noNotes")
-       :when ~(= (count computed.notes) 0)
-       :anchors {:left 16 :top 46})
-       (column#noteRows :anchors {:left 0 :right 0 :top 44} :height ~(* (count computed.notes) 44)
-         ~(repeat [nt computed.notes]
-           (note-row nt))))
+     ~(notes-card)
      (node#panel-detail-cards-2 :height 12 :width 10 :color transparent)))
+
+(defview subtitle-card "The habit's question, its facts, and its description." []
+  `(node#subtitle :style card :width ~computed.cardWidth :height ~(if (not= computed.h.description "") 92 70)
+     (label#label-h-question :text ~computed.h.question :textColor ~computed.col :anchors {:left 16 :right 16 :top 12} :height 20)
+     ~(subtitle-facts)
+     (label#label-h-description :text ~computed.h.description
+       :when ~(not= computed.h.description "")
+       :font small
+       :textColor @c.text
+       :anchors {:left 16 :right 16 :top 64}
+       :height 18)))
+
+(defview overview-card "The overview's card." []
+  `(node#overviewCard :style card :width ~computed.cardWidth :height 112 :role region :label ~(t "card.overview")
+     (node#label-t-card-overview :style cardTitle :text ~(t "card.overview") :textColor ~computed.col)
+     ~(overview-stats)))
+
+(defview target-card "A measurable habit's goals." []
+  `(node#targetCard :style card
+     :width ~computed.cardWidth
+     :height 232
+     :role region
+     :label ~(t "card.target")
+     :children [(node#label-t-card-target :style cardTitle :text ~(t "card.target") :textColor ~computed.col)
+                (column#goalRows :anchors {:left 16 :right 16 :top 48} :height 170 :gap 6
+                  ~(repeat [g computed.goalRows] (goal-row g)))]
+     :when ~(= computed.h.kind "measurable")))
+
+(defview history-card "The history: its period's button, its bars, and their labels." []
+  `(node#historyCard :style card :width ~computed.cardWidth :height 240 :role region :label ~(t "card.history")
+     (node#label-t-card-history :style cardTitle :text ~(t "card.history") :textColor ~computed.col)
+     (node#period-button-history-card :use periodButton :with {:key historyPeriod :color ~computed.col} :anchors {:right 8 :top 8})
+     ~(history-plot)
+     (row#historyLabels :dir ltr :anchors {:left 16 :right 16 :bottom 8} :height 30
+       ~(repeat [lb computed.historyLabels]
+          `(node#historyLabel :grow 1 :anchors {:top 0 :bottom 0} :color transparent
+             (node#label-lb-a-2 :style axis :text ~lb.a)
+             (node#label-lb-b-2 :style axis2 :text ~lb.b))))))
+
+(defview streaks-card "The best streaks, or that there is none yet." []
+  `(node#streaksCard :style card
+     :width ~computed.cardWidth
+     :height ~(+ (* (max 1 (count computed.streaks)) 26) 60)
+     :role region
+     :label ~(t "card.streaks")
+     (node#label-t-card-streaks :style cardTitle :text ~(t "card.streaks") :textColor ~computed.col)
+     (node#label-t-no-streaks :style caption :text ~(t "noStreaks") :when ~(= (count computed.streaks) 0) :anchors {:left 16 :top 46})
+     (column#streakRows :anchors {:left 16 :right 16 :top 46} :height ~(* (count computed.streaks) 26) :gap 4
+       ~(repeat [st computed.streaks] (streak-row st)))))
+
+(defview notes-card "The habit's notes, or that there is none yet." []
+  `(node#notesCard :style card
+     :width ~computed.cardWidth
+     :height ~(+ (* (max 1 (count computed.notes)) 44) 60)
+     :role region
+     :label ~(t "card.notes")
+     (node#label-t-card-notes :style cardTitle :text ~(t "card.notes") :textColor ~computed.col)
+     (node#label-t-no-notes :style caption :text ~(t "noNotes") :when ~(= (count computed.notes) 0) :anchors {:left 16 :top 46})
+     (column#noteRows :anchors {:left 0 :right 0 :top 44} :height ~(* (count computed.notes) 44)
+       ~(repeat [nt computed.notes] (note-row nt)))))
 
 (defview subtitle-facts "Under the name: how often the habit is, its target, and its reminder." []
   `(row#subtitleFacts :anchors {:left 16 :right 16 :top 38} :height 20 :gap 20
@@ -231,7 +233,7 @@
 (defview score-plot "The score over time, as a line with its axis labels." []
   `(node#scorePlot :dir ltr :anchors {:left 16 :right 52 :top 56 :bottom 44} :color transparent
      ~(repeat [g (range 5)]
-       `{:id gridLine :anchors {:left 0 :right 0 :top ~(str (* g 25) "%")} :height 1 :color @c.divider})
+       `(node#gridLine :anchors {:left 0 :right 0 :top ~(str (* g 25) "%")} :height 1 :color @c.divider))
      (path#scoreLine :fill 0
        :viewBox "0 0 1000 100"
        :fit fill
@@ -287,12 +289,12 @@
               (cal-cell w r)))))
      (column#calWeekdays :anchors {:right 12 :top 65} :width 36 :height 180 :gap 3
        ~(repeat [wd computed.weekdays]
-         `{:id calWeekday
-           :style tiny
-           :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
-           :height 22
-           :width 36
-           :align {:horizontal start :vertical center}}))))
+         `(node#calWeekday
+          :style tiny
+          :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
+          :height 22
+          :width 36
+          :align {:horizontal start :vertical center})))))
 
 (defview cal-cell "A day of the calendar: done, skipped, or not; a click marks it, a right click opens its popup." [w r]
   `(node#calCell :let {:d ~(addDays computed.weekStart (- r (* 7 w)))
@@ -367,12 +369,12 @@
             :align center))))
      (column#freqWeekdays :anchors {:right 12 :top 48} :width 36 :height 168
        ~(repeat [wd computed.weekdays]
-         `{:id freqWeekday
-           :style tiny
-           :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
-           :height 24
-           :width 36
-           :align {:horizontal start :vertical center}}))))
+         `(node#freqWeekday
+          :style tiny
+          :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
+          :height 24
+          :width 36
+          :align {:horizontal start :vertical center})))))
 
 (defview freq-dot "A dot of the frequency: how often a weekday of a month was done." [mo wd]
   `(node#freqDot :let {:c ~(count (filter (fn [it]

@@ -558,4 +558,5 @@
                 :command.addMarker.about "Ajoute un marqueur à l'image courante."
                 :command.deleteMarker.about "Retire le marqueur de l'image courante."
                 :command.prevMarker.about "Va au marqueur précédent."
-                :command.nextMarker.about "Va au marqueur suivant."}}}
+                :command.nextMarker.about "Va au marqueur suivant."
+                :unit.m " m"}}}
