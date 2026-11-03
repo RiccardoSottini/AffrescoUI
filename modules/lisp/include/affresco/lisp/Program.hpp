@@ -133,6 +133,11 @@ public:
 	/// @param entry The entry.
 	/// @throws LispError If it isn't, or the name is taken, naming both places.
 	void addEntry(Entry entry);
+	/// @brief Adds one entry as addEntry() does, its text read only by load() and build(), which refuse it then as
+	/// addEntry() would: for a document's section that is loaded or built next (programOf()), read once, not twice.
+	/// @param entry The entry.
+	/// @throws LispError If the name is taken, naming both places.
+	void addEntryUnread(Entry entry);
 	/// @brief The entries, in the order added. @return Them.
 	[[nodiscard]] const std::vector<Entry>& entries() const noexcept { return entries_; }
 
@@ -146,8 +151,11 @@ public:
 	/// worked out when first read. Nothing is built, and the interpreter's own primitives, gate and author checks apply
 	/// when functions run. Definitions replace what the interpreter had of those names.
 	/// @param interpreter The interpreter.
+	/// @param everything Compile every definition now; else only what runs, functions and macros: a view, a component
+	/// and what a definition builds are compiled when called, as a host that runs the program and never builds it
+	/// needs (the build compiled all of them, and refused what doesn't compile).
 	/// @throws LispError If a definition can't be compiled.
-	void load(Interpreter& interpreter) const;
+	void load(Interpreter& interpreter, bool everything = true) const;
 
 	/// @brief Builds the tree, in a fresh interpreter with no way out but the pure primitives (definePure()): the same
 	/// source always gives the same tree. Every `def` and `defcustom` is worked out here, used or not. `format` and

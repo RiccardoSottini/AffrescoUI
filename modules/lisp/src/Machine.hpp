@@ -112,7 +112,9 @@ public:
 	/// @return true if it is.
 	[[nodiscard]] static bool isDefinitionForm(const Value& form);
 	/// @brief Compiles every definition not compiled yet.
-	void compilePending();
+	/// @param functionsOnly Only functions and macros that run: views (`defview`) and what definitions build wait
+	/// until called, or for compilePending(false).
+	void compilePending(bool functionsOnly = false);
 	/// @brief Compiles a global, if it is waiting to be.
 	/// @param cell The global.
 	static void ensureCompiled(Global& cell);

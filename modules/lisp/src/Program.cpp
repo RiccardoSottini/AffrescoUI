@@ -531,13 +531,24 @@ void Program::addEntry(Entry entry) {
 	entries_.push_back(std::move(entry));
 }
 
+void Program::addEntryUnread(Entry entry) {
+	if(const auto [known, added] = names_.try_emplace(entry.name, entries_.size()); !added) {
+		const Entry& other = entries_[known->second];
+		throw LispError(entry.file, entry.line, entry.column, entry.name,
+		                "\"" + notation::Lexer::excerpt(entry.name) + "\" is defined twice: at " + other.file +
+		                    ": line " + std::to_string(other.line) + " and at " + entry.file + ": line " +
+		                    std::to_string(entry.line));
+	}
+	entries_.push_back(std::move(entry));
+}
+
 void Program::definePure(const std::string& name, Primitive primitive) {
 	if(!primitive.pure || !primitive.capability.empty())
 		throw std::invalid_argument("a primitive build code may call is pure and needs no capability");
 	primitives_.emplace_back(name, std::move(primitive));
 }
 
-void Program::load(Interpreter& interpreter) const {
+void Program::load(Interpreter& interpreter, bool everything) const {
 	Machine& machine = interpreter.machine();
 	static_cast<void>(leavingAsLispError(machine, [&] {
 		std::vector<std::pair<Value, const Entry*>> forms;
@@ -559,7 +570,7 @@ void Program::load(Interpreter& interpreter) const {
 		for(const auto& [form, entry] : forms)
 			if(headWord(form) != "defmacro")
 				defineTopLevel(machine, form, entry->author, authorsOf(*entry), form.place());
-		machine.compilePending();
+		machine.compilePending(!everything);
 		return true;
 	}));
 }

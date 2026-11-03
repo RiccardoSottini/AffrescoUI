@@ -320,7 +320,7 @@ Program programOf(const json& section, const json& authors) {
 			if(const json* of = authors.is_object() && authors.contains(file) ? &authors[file] : nullptr;
 			   of && of->is_object() && of->contains(name) && (*of)[name].is_string())
 				entry.author = (*of)[name].get<std::string>();
-			program.addEntry(std::move(entry));
+			program.addEntryUnread(std::move(entry)); // load() and build() read it, and refuse what addEntry() would
 		}
 	return program;
 }

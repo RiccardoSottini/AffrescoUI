@@ -102,7 +102,7 @@ void Programs::load() {
 	auto next = std::make_shared<lisp::Interpreter>(limits);
 	definePrimitives(*next);
 	next->setPure(true); // macros run now, and values are worked out: neither reaches anything
-	program.load(*next);
+	program.load(*next, false); // what runs: the build compiled everything, views too, and refused what didn't compile
 	next->workOutDefinitions();
 	next->setPure(false);
 	loadExtensions(*next);

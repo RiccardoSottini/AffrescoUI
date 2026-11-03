@@ -442,7 +442,13 @@ void Machine::defineVocabulary(Definition& definition, const Value& form, const 
 	definition.pending = compileDataInto(*this, definition, data, context);
 }
 
-void Machine::compilePending() {
+void Machine::compilePending(bool functionsOnly) {
+	if(functionsOnly) { // compiled_ stays: a full compilePending() later still compiles the rest
+		for(std::size_t at = compiled_; at < definitions_.size(); ++at)
+			if(Definition& definition = *definitions_[at]; definition.global && !definition.global->view)
+				ensureCompiled(*definition.global);
+		return;
+	}
 	for(; compiled_ < definitions_.size(); ++compiled_) {
 		Definition& definition = *definitions_[compiled_];
 		if(definition.global) ensureCompiled(*definition.global);
