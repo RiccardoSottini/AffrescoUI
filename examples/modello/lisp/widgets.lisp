@@ -119,9 +119,9 @@
      :label ~label
      :tooltip ~(str label ": drag to change; arrows step it")
      :onPress {:set state.dragStart :to ~value}
-     :onDrag {:run setFrameField :with {:args {:key ~key :value ~(+ state.dragStart (* event.dx 0.2))}}}
-     :keys {:right {:run setFrameField :with {:args {:key ~key :value ~(+ value 1)}}}
-            :left {:run setFrameField :with {:args {:key ~key :value ~(- value 1)}}}}
+     :onDrag {:run setFrameField :with {:key ~key :value ~(+ state.dragStart (* event.dx 0.2))}}
+     :keys {:right {:run setFrameField :with {:key ~key :value ~(+ value 1)}}
+            :left {:run setFrameField :with {:key ~key :value ~(- value 1)}}}
      (label :when ~(not= key "frame") :text ~label :textColor @dim :x 7 :anchors {:top 0 :bottom 0} :fitText true)
      (label :text ~value
        :textColor @text
@@ -221,7 +221,7 @@
        :focusable true
        :textColor @text
        :accentColor @kit.accent
-       :onChange {:run setColor :with {:args {:target ~target :value ~event.value}}})))
+       :onChange {:run setColor :with {:target ~target :value ~event.value}})))
 
 (defcomponent vectorField "The vectorField component."
   {:title "" :values [0 0 0] :key "" :unit "" :step 0.01 :digits 4 :exact false :lockable false}
@@ -302,26 +302,26 @@
                          (not (contains ["redo" "lens" "cursor" "whole"] key)))
                 :then [{:run snapshot}]}]
      :onDrag {:run setField
-              :with {:args {:key ~key
+              :with {:key ~key
                             :axis ~axis
                             :path ~path
-                            :min ~min
-                            :max ~max
-                            :value ~(+ state.dragStart (* event.dx step))}}}
+                            :low ~min
+                            :high ~max
+                            :value ~(+ state.dragStart (* event.dx step))}}
      :keys {:right {:run setField
-                    :with {:args {:key ~key
+                    :with {:key ~key
                                   :axis ~axis
                                   :path ~path
-                                  :min ~min
-                                  :max ~max
-                                  :value ~(+ value (* step 10))}}}
+                                  :low ~min
+                                  :high ~max
+                                  :value ~(+ value (* step 10))}}
             :left {:run setField
-                   :with {:args {:key ~key
+                   :with {:key ~key
                                  :axis ~axis
                                  :path ~path
-                                 :min ~min
-                                 :max ~max
-                                 :value ~(- value (* step 10))}}}}
+                                 :low ~min
+                                 :high ~max
+                                 :value ~(- value (* step 10))}}}
      (label :text ~text :textColor @text :align center :fill true)))
 
 (defview lock-view "#lock--." [label text key axis lockable]
@@ -337,7 +337,7 @@
      :tooltip ~(if (= (get-in computed.activeNode [(str "lock_" key) axis]) true)
                    "Locked: moving with the gizmo or G, R and S leaves it"
                    "Lock it against the gizmo and G, R and S")
-     :onClick {:run toggleLock :with {:args {:key ~key :axis ~axis}}}
+     :onClick {:run toggleLock :with {:key ~key :axis ~axis}}
      (label :font iconsSmall
        :text ""
        :align center

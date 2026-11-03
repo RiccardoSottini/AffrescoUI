@@ -88,104 +88,6 @@
        :radius {:bottomRight 8}
        ~(shader-sidebar-column))))
 
-(defpart shader "What shader adds."
-  :actions {:newMaterial {:title "New Material"
-                          :category "Material"
-                          :icon plus
-                          :enablement ~(= computed.activeNode.kind "mesh")
-                          :do [{:dismiss true}
-                               {:if ~(not= computed.activeNode.kind "mesh") :then [{:stop true}]}
-                               {:run snapshot}
-                               {:increment state.added :by 1}
-                               {:set state.tmp :to ~{:n 0 :name "Material" :id (str "material-" state.added)}}
-                               {:while ~(some (fn [it] (= it.name state.tmp.name)) state.scene.materials)
-                                :do [{:increment state.tmp.n :by 1}
-                                     {:set state.tmp.name :to ~(str "Material." (pad state.tmp.n 3 "0"))}]}
-                               {:push state.scene.materials
-                                :value ~{:id state.tmp.id
-                                         :name state.tmp.name
-                                         :baseColor [0.8 0.8 0.8 1]
-                                         :metallic 0
-                                         :roughness 0.5}}
-                               {:set "state.scene.nodes[computed.activeIndex].material" :to ~state.tmp.id}
-                               {:set state.last :to "New Material"}]}
-            :assignMaterial [{:dismiss true}
-                             {:if ~(or (not= computed.activeNode.kind "mesh") (= computed.activeNode.material args.id))
-                              :then [{:stop true}]}
-                             {:run snapshot}
-                             {:set "state.scene.nodes[computed.activeIndex].material" :to ~args.id}
-                             {:set state.last :to "Assign Material"}]
-            :unlinkMaterial {:title "Unlink Material"
-                             :category "Material"
-                             :icon x
-                             :enablement ~(>= computed.activeMaterialIndex 0)
-                             :do [{:if ~(< computed.activeMaterialIndex 0) :then [{:stop true}]}
-                                  {:run snapshot}
-                                  {:set "state.scene.nodes[computed.activeIndex].material" :to nil}
-                                  {:set state.last :to "Unlink Material"}]}
-            :shaderGraphEnsure [{:if ~(and (>= computed.activeMaterialIndex 0)
-                                           (nil? (get-in state.scene.materials [computed.activeMaterialIndex :graph])))
-                                 :then [{:set "state.scene.materials[computed.activeMaterialIndex].graph"
-                                         :to ~computed.shaderGraph}]}]
-            :addShaderNode {:title "Add Shader Node"
-                            :category "Shader"
-                            :do [{:dismiss true}
-                                 {:if ~(or (< computed.activeMaterialIndex 0)
-                                           (nil? (get computed.shaderOps args.op))
-                                           (= args.op "output"))
-                                  :then [{:stop true}]}
-                                 {:run snapshot}
-                                 {:run shaderGraphEnsure}
-                                 {:increment state.added :by 1}
-                                 {:set state.tmp :to ~{:id (str args.op "-" state.added) :n (count computed.shaderGraph.nodes)}}
-                                 {:push "state.scene.materials[computed.activeMaterialIndex].graph.nodes"
-                                  :value ~(merge {:id state.tmp.id
-                                                  :op args.op
-                                                  :x (or-else args.x (+ 40 (* (mod state.tmp.n 3) 30)))
-                                                  :y (or-else args.y (+ 20 (* (mod (- state.tmp.n 1) 6) 70)))}
-                                                 (cond (= args.op "color") {:value [0.8 0.8 0.8]}
-                                                       (= args.op "number") {:value 0.5}
-                                                       :else {}))}
-                                 {:set state.shaderSelected :to ~[state.tmp.id]}
-                                 {:set state.last :to ~(str "Add " (get-in computed.shaderOps [args.op :title]))}]}
-            :shaderConnect [{:run snapshot}
-                            {:run shaderGraphEnsure}
-                            {:set "state.scene.materials[computed.activeMaterialIndex].graph.links"
-                             :to ~(concat (filter (fn [it] (not (and (= it.to event.to) (= it.input event.input))))
-                                                  computed.shaderGraph.links)
-                                          [{:from event.from :output event.output :to event.to :input event.input}])}
-                            {:set state.last :to "Link Nodes"}]
-            :shaderDisconnect [{:run snapshot}
-                               {:set "state.scene.materials[computed.activeMaterialIndex].graph.links"
-                                :to ~(filter (fn [it index] (not= index event.index)) computed.shaderGraph.links)}
-                               {:set state.last :to "Unlink Nodes"}]
-            :shaderMove [{:run shaderGraphEnsure}
-                         {:set "state.scene.materials[computed.activeMaterialIndex].graph.nodes"
-                          :to ~(map (fn [it]
-                                      (if (contains event.ids it.id)
-                                          (merge it {:x (round (+ it.x event.dx)) :y (round (+ it.y event.dy))})
-                                          it))
-                                    computed.shaderGraph.nodes)}]
-            :deleteShaderNodes {:title "Delete Nodes"
-                                :category "Shader"
-                                :enablement ~(some (fn [it] (contains computed.shaderDeletable it)) state.shaderSelected)
-                                :do [{:set state.tmp
-                                      :to ~(filter (fn [it] (contains computed.shaderDeletable it)) state.shaderSelected)}
-                                     {:if ~(= (count state.tmp) 0) :then [{:stop true}]}
-                                     {:run snapshot}
-                                     {:set "state.scene.materials[computed.activeMaterialIndex].graph"
-                                      :to ~{:nodes (filter (fn [it] (not (contains state.tmp it.id)))
-                                                           computed.shaderGraph.nodes)
-                                            :links (filter (fn [it]
-                                                             (and (not (contains state.tmp it.from))
-                                                                  (not (contains state.tmp it.to))))
-                                                           computed.shaderGraph.links)}}
-                                     {:set state.shaderSelected :to []}
-                                     {:set state.last :to "Delete Nodes"}]}
-            :setShaderColor [{:if ~(or (< computed.shaderNodeIndex 0) (nil? (colorList args.value))) :then [{:stop true}]}
-                             {:set "state.scene.materials[computed.activeMaterialIndex].graph.nodes[computed.shaderNodeIndex].value"
-                              :to ~(slice (colorList args.value) 0 3)}]})
-
 (defview shader-header "#shader-header." []
   `(row#shader-header :anchors {:left 0 :right 0 :top 0}
      :height 26
@@ -204,7 +106,7 @@
                              (merge it
                                     {:checked (= it.id "shader")
                                      :run "swapEditor"
-                                     :with {:args {:from "shader" :to it.id}}}))
+                                     :with {:from "shader" :to it.id}}))
                            computed.editorTypes)})
      (node :use gap :with {:width 6})
      (node#shader-add :use hButton
@@ -288,7 +190,7 @@
        :focusable true
        :textColor @text
        :accentColor @kit.accent
-       :onChange {:run setShaderColor :with {:args {:value ~event.value}}})
+       :onChange {:run setShaderColor :with {:value ~event.value}})
      (node :when ~(= computed.shaderOp "number")
        :use numberField
        :with {:label "Value"

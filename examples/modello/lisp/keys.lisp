@@ -6,46 +6,46 @@
 
 (defkey "s" {:do resize})
 
-(defkey "x" [{:when ~(some? state.modal) :do lockAxis :with {:args {:axis x}}} {:do deleteMenu}])
+(defkey "x" [{:when ~(some? state.modal) :do lockAxis :with {:axis x}} {:do deleteMenu}])
 
-(defkey "y" [{:when ~(some? state.modal) :do lockAxis :with {:args {:axis y}}}])
+(defkey "y" [{:when ~(some? state.modal) :do lockAxis :with {:axis y}}])
 
 (defkey "z"
-  [{:when ~(some? state.modal) :do lockAxis :with {:args {:axis z}}} {:do openPie :with {:args {:menu shading}}}])
+  [{:when ~(some? state.modal) :do lockAxis :with {:axis z}} {:do openPie :with {:menu shading}}])
 
-(defkey "grave" {:when ~(nil? state.modal) :do openPie :with {:args {:menu view}}})
+(defkey "grave" {:when ~(nil? state.modal) :do openPie :with {:menu view}})
 
-(defkey "shift+x" {:when ~(some? state.modal) :do lockAxis :with {:args {:axis yz}}})
+(defkey "shift+x" {:when ~(some? state.modal) :do lockAxis :with {:axis yz}})
 
-(defkey "shift+y" {:when ~(some? state.modal) :do lockAxis :with {:args {:axis zx}}})
+(defkey "shift+y" {:when ~(some? state.modal) :do lockAxis :with {:axis zx}})
 
-(defkey "shift+z" {:when ~(some? state.modal) :do lockAxis :with {:args {:axis xy}}})
+(defkey "shift+z" {:when ~(some? state.modal) :do lockAxis :with {:axis xy}})
 
-(defkey "0" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "0"}}}])
+(defkey "0" [{:when ~(some? state.modal) :do typeDigit :with {:key "0"}}])
 
-(defkey "1" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "1"}}}])
+(defkey "1" [{:when ~(some? state.modal) :do typeDigit :with {:key "1"}}])
 
-(defkey "2" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "2"}}}])
+(defkey "2" [{:when ~(some? state.modal) :do typeDigit :with {:key "2"}}])
 
-(defkey "3" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "3"}}}])
+(defkey "3" [{:when ~(some? state.modal) :do typeDigit :with {:key "3"}}])
 
-(defkey "4" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "4"}}}])
+(defkey "4" [{:when ~(some? state.modal) :do typeDigit :with {:key "4"}}])
 
-(defkey "5" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "5"}}}])
+(defkey "5" [{:when ~(some? state.modal) :do typeDigit :with {:key "5"}}])
 
-(defkey "6" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "6"}}}])
+(defkey "6" [{:when ~(some? state.modal) :do typeDigit :with {:key "6"}}])
 
-(defkey "7" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "7"}}}])
+(defkey "7" [{:when ~(some? state.modal) :do typeDigit :with {:key "7"}}])
 
-(defkey "8" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "8"}}}])
+(defkey "8" [{:when ~(some? state.modal) :do typeDigit :with {:key "8"}}])
 
-(defkey "9" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "9"}}}])
+(defkey "9" [{:when ~(some? state.modal) :do typeDigit :with {:key "9"}}])
 
-(defkey "period" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "."}}}])
+(defkey "period" [{:when ~(some? state.modal) :do typeDigit :with {:key "."}}])
 
-(defkey "minus" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key "-"}}}])
+(defkey "minus" [{:when ~(some? state.modal) :do typeDigit :with {:key "-"}}])
 
-(defkey "backspace" [{:when ~(some? state.modal) :do typeDigit :with {:args {:key back}}}])
+(defkey "backspace" [{:when ~(some? state.modal) :do typeDigit :with {:key back}}])
 
 (defkey "enter" [{:when ~(some? state.modal) :do confirmTransform}])
 
@@ -93,17 +93,17 @@
 
 (defkey "home" {:do frameAll})
 
-(defkey "numpad4" {:do orbitView :with {:args {:orbit [-15 0]}}})
+(defkey "numpad4" {:do orbitView :with {:orbit [-15 0]}})
 
-(defkey "numpad6" {:do orbitView :with {:args {:orbit [15 0]}}})
+(defkey "numpad6" {:do orbitView :with {:orbit [15 0]}})
 
-(defkey "numpad8" {:do orbitView :with {:args {:orbit [0 -15]}}})
+(defkey "numpad8" {:do orbitView :with {:orbit [0 -15]}})
 
-(defkey "numpad2" {:do orbitView :with {:args {:orbit [0 15]}}})
+(defkey "numpad2" {:do orbitView :with {:orbit [0 15]}})
 
-(defkey "numpadplus" {:do zoomView :with {:args {:steps 1}}})
+(defkey "numpadplus" {:do zoomView :with {:steps 1}})
 
-(defkey "numpadminus" {:do zoomView :with {:args {:steps -1}}})
+(defkey "numpadminus" {:do zoomView :with {:steps -1}})
 
 (defkey "mod+z" {:do undo})
 

@@ -139,7 +139,7 @@
      :selected ~(= state.workspace w.title)
      :color ~(if (= state.workspace w.title) "@widget" "transparent")
      :hover {:color ~(cond (= state.workspace w.title) "@widget" (some? w.needs) "transparent" :else "@view")}
-     :onClick {:run setWorkspace :with {:args {:id ~w.id :title ~w.title}}}
+     :onClick {:run setWorkspace :with {:id ~w.id :title ~w.title}}
      (label :text ~w.title
        :textColor ~(cond (= state.workspace w.title) "@active" (some? w.needs) "@faint" :else "@dim")
        :align center

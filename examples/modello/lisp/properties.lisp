@@ -156,7 +156,7 @@
                              (merge it
                                     {:checked (= it.id "properties")
                                      :run "swapEditor"
-                                     :with {:args {:from "properties" :to it.id}}}))
+                                     :with {:from "properties" :to it.id}}))
                            computed.editorTypes)})
      (node#properties-search :use searchField :with {:bind state.propertiesFilter :label "Search the properties"})
      (node#properties-pin :use hButton
@@ -180,7 +180,7 @@
      :selected ~(= state.propTab t.id)
      :color ~(if (= state.propTab t.id) "@panel" "transparent")
      :hover {:color @widget}
-     :onClick {:run setOption :with {:args {:key propTab :value ~t.id}}}
+     :onClick {:run setOption :with {:key propTab :value ~t.id}}
      (label :font icons
        :icon ~t.icon
        :text ""
@@ -195,19 +195,19 @@
               :label "Selectable"
               :checked ~(not= computed.activeNode.selectable false)
               :run toggleFlag
-              :with {:args {:id ~(or-else computed.activeNode.id "") :key selectable}}})
+              :with {:id ~(or-else computed.activeNode.id "") :key selectable}})
      (node :use checkRow
        :with {:id prop-visible
               :label "Show in Viewports"
               :checked ~(not= computed.activeNode.visible false)
               :run toggleFlag
-              :with {:args {:id ~(or-else computed.activeNode.id "") :key visible}}})
+              :with {:id ~(or-else computed.activeNode.id "") :key visible}})
      (node :use checkRow
        :with {:id prop-render
               :label "Show in Renders"
               :checked ~(not= computed.activeNode.render false)
               :run toggleFlag
-              :with {:args {:id ~(or-else computed.activeNode.id "") :key render}}})))
+              :with {:id ~(or-else computed.activeNode.id "") :key render}})))
 
 (defview properties-panels-node-view "#properties-panels-node-view." []
   `(node :when ~(contains computed.propShown "frameRange") :use propPanel :with {:key frameRange :body 56}
@@ -261,19 +261,19 @@
               :label "Selectable"
               :checked ~(not= computed.activeCollectionData.selectable false)
               :run toggleCollection
-              :with {:args {:id ~computed.activeCollectionData.id :key selectable}}})
+              :with {:id ~computed.activeCollectionData.id :key selectable}})
      (node :use checkRow
        :with {:id prop-collection-visible
               :label "Show in Viewports"
               :checked ~(not= computed.activeCollectionData.visible false)
               :run toggleCollection
-              :with {:args {:id ~computed.activeCollectionData.id :key visible}}})
+              :with {:id ~computed.activeCollectionData.id :key visible}})
      (node :use checkRow
        :with {:id prop-collection-render
               :label "Show in Renders"
               :checked ~(not= computed.activeCollectionData.render false)
               :run toggleCollection
-              :with {:args {:id ~computed.activeCollectionData.id :key render}}})))
+              :with {:id ~computed.activeCollectionData.id :key render}})))
 
 (defview properties-panels-node-4 "#properties-panels-node-4." []
   `(node :when ~(= computed.activeNode.kind "camera")
@@ -313,7 +313,7 @@
             :color ~(if (= computed.activeNode.light.type lt.0) "@sel" "@widget")
             :hover {:color @widgetHover}
             :radius ~(cond (= lt.0 "point") {:topLeft 4 :bottomLeft 4} (= lt.0 "spot") {:topRight 4 :bottomRight 4} :else 0)
-            :onClick {:run setLight :with {:args {:key type :value ~lt.0}}}
+            :onClick {:run setLight :with {:key type :value ~lt.0}}
             (label :text ~lt.1 :textColor @text :align center :fill true))))))
 
 (defview properties-panels-node-6 "#properties-panels-node-6." []
@@ -367,7 +367,7 @@
                              {:title it.name
                               :checked (= it.id computed.activeNode.material)
                               :run "assignMaterial"
-                              :with {:args {:id it.id}}})
+                              :with {:id it.id}})
                            state.scene.materials)})
      (node :grow 1 :height 20 :radius 4 :color @field
        (label#material-name :anchors {:left 8 :right 4 :top 0 :bottom 0}
@@ -447,7 +447,7 @@
          :textColor @text
          :color transparent
          :label "Object name"
-         :onSubmit {:run rename :with {:args {:id nil :name ~event.text}}}))
+         :onSubmit {:run rename :with {:id nil :name ~event.text}}))
      (node :when ~(contains computed.propShown "transform") :use transformPanel)
      ~(properties-panels-node)
      (node :when ~(contains computed.propShown "activeTool") :use propPanel :with {:key activeTool :body 80}

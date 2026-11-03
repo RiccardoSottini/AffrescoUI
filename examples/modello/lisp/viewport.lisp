@@ -298,7 +298,7 @@
                              (merge it
                                     {:checked (= it.id "viewport")
                                      :run "swapEditor"
-                                     :with {:args {:from "viewport" :to it.id}}}))
+                                     :with {:from "viewport" :to it.id}}))
                            computed.editorTypes)})
      (node :use gap :with {:width 6})
      (node#mode :use hButton
@@ -402,7 +402,7 @@
               :width 24
               :tooltip "Show Gizmo"
               :run toggleOption
-              :with {:args {:key gizmos}}
+              :with {:key gizmos}
               :radius {:topLeft 4 :bottomLeft 4}})
      (node#gizmos-menu :use hButton
        :with {:icon ""
@@ -442,7 +442,7 @@
                  :width 24
                  :tooltip ~(str "Viewport Shading: " s.title)
                  :run setOption
-                 :with {:args {:key shading :value ~s.id}}
+                 :with {:key shading :value ~s.id}
                  :radius ~(if (= i 0) {:topLeft 4 :bottomLeft 4} 0)}))
      (node#shading-menu :use hButton
        :with {:icon ""
@@ -470,7 +470,7 @@
             :back transparent
             :disabled ~(= t.disabled true)
             :run setTool
-            :with {:args {:tool ~t.id}}}
+            :with {:tool ~t.id}}
      :height 30))
 
 (defview nav-ball "#nav-ball." []
@@ -505,7 +505,7 @@
           :role button
           :label ~(str "View " (+ (upper-case (slice a.view 0 1)) (slice a.view 1)))
           :hover {:color ~(slice a.color 0 7)}
-          :onClick {:run viewAxis :with {:args {:view ~a.view}}}
+          :onClick {:run viewAxis :with {:view ~a.view}}
           (label :text ~a.label :textColor "#151515" :font small :align center :fill true)))))
 
 (defview nav-button "#nav-." [b]
@@ -521,8 +521,8 @@
      :focusable true
      :onPress {:set state.dragLast :to [0 0]}
      :onDrag [{:run navDrag
-               :with {:args {:id ~b.id :dx ~(- event.dx state.dragLast.0) :dy ~(- event.dy state.dragLast.1)}}}
+               :with {:id ~b.id :dx ~(- event.dx state.dragLast.0) :dy ~(- event.dy state.dragLast.1)}}
               {:set state.dragLast :to ~[event.dx event.dy]}]
-     :onClick {:run navClick :with {:args {:id ~b.id}}}
+     :onClick {:run navClick :with {:id ~b.id}}
      (label :font icons :icon ~b.icon :text "" :textColor @text :align center :fill true)))
 

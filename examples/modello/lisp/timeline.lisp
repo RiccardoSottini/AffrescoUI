@@ -68,7 +68,7 @@
                              (merge it
                                     {:checked (= it.id "timeline")
                                      :run "swapEditor"
-                                     :with {:args {:from "timeline" :to it.id}}}))
+                                     :with {:from "timeline" :to it.id}}))
                            computed.editorTypes)})
      (node :use gap :with {:width 6})
      ~(repeat [m ["Playback" "Keying" "View" "Marker"]]
@@ -89,7 +89,7 @@
               :tooltip "Auto Keying: moving the selection keys it"
               :on ~(= state.autoKey true)
               :run toggleOption
-              :with {:args {:key autoKey}}})
+              :with {:key autoKey}})
      (node :use gap :with {:width 6})
      ~(repeat [b [["skip-back" "Jump to Endpoint" "jumpStart"] ["chevrons-left" "Jump to Keyframe" "prevKey"] ["play" "Play Animation in Reverse" "playReverse"] ["play" "Play Animation" "play"] ["chevrons-right" "Jump to Keyframe" "nextKey"] ["skip-forward" "Jump to Endpoint" "jumpEnd"]] :index i]
        `(node :id ~(str "timeline-" b.2)
@@ -144,6 +144,6 @@
      :accentColor @sel
      :clipColor @active
      :label "Timeline"
-     :onScrub {:run setFrame :with {:args {:value ~(+ (round (* event.time 24)) 1)}}}
+     :onScrub {:run setFrame :with {:value ~(+ (round (* event.time 24)) 1)}}
      :onKeyframeMove {:run moveKeyframe}))
 

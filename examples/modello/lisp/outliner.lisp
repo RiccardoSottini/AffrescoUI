@@ -57,7 +57,7 @@
      :let {:open ~(= (get state.outlinerOpen expand) true)
            :editing ~(or (and (some? node) (not= data "") (= state.renaming node.id))
                          (and (some? coll) (= state.renaming (str "coll:" coll.id))))}
-     :onClick [{:if ~(some? node) :then [{:run selectNode :with {:args {:id ~node.id :shift ~event.shift}}}]}
+     :onClick [{:if ~(some? node) :then [{:run selectNode :with {:id ~node.id :shift ~event.shift}}]}
                {:if ~(some? coll) :then [{:set state.activeCollection :to ~coll.id}]}
                {:if ~(some? onSelect) :then [{:set state.propTab :to ~onSelect}]}]
      :onDoubleClick [{:if ~(and (some? node) (not= data ""))
@@ -66,11 +66,11 @@
                       :then [{:set state.renaming :to ~(str "coll:" coll.id)} {:focus "#outliner-rename"}]}]
      :onContextMenu [{:if ~(some? coll)
                       :then [{:set state.activeCollection :to ~coll.id}
-                             {:run openPopup :with {:args {:menu collectionContext :x ~event.x :y ~event.y}}}]}
+                             {:run openPopup :with {:menu collectionContext :x ~event.x :y ~event.y}}]}
                      {:if ~(some? node)
                       :then [{:if ~(not (contains state.view.selection node.id))
-                              :then [{:run selectNode :with {:args {:id ~node.id :shift false}}}]}
-                             {:run openPopup :with {:args {:menu outlinerContext :x ~event.x :y ~event.y}}}]}]
+                              :then [{:run selectNode :with {:id ~node.id :shift false}}]}
+                             {:run openPopup :with {:menu outlinerContext :x ~event.x :y ~event.y}}]}]
      ~(outliner--chevron depth name icon node key expand)
      (label :font icons
        :icon ~icon
@@ -98,8 +98,8 @@
        :keys {:escape {:set state.renaming :to nil}}
        :onBlur {:set state.renaming :to nil}
        :onSubmit [{:if ~(some? coll)
-                   :then [{:run renameCollection :with {:args {:id ~coll.id :name ~event.text}}}]
-                   :else [{:run rename :with {:args {:id ~node.id :name ~event.text}}}]}
+                   :then [{:run renameCollection :with {:id ~coll.id :name ~event.text}}]
+                   :else [{:run rename :with {:id ~node.id :name ~event.text}}]}
                   {:set state.renaming :to nil}])
      (label :when ~(and (not= data "") (not editing))
        :font iconsSmall
@@ -168,8 +168,8 @@
      :tooltip ~t.title
      :selected ~on
      :onClick {:if ~(some? node)
-               :then [{:run toggleFlag :with {:args {:id ~node.id :key ~t.key}}}]
-               :else [{:run toggleCollection :with {:args {:id ~coll.id :key ~t.key}}}]}
+               :then [{:run toggleFlag :with {:id ~node.id :key ~t.key}}]
+               :else [{:run toggleCollection :with {:id ~coll.id :key ~t.key}}]}
      (label :font
             iconsSmall
             :icon
@@ -201,7 +201,7 @@
                              (merge it
                                     {:checked (= it.id "outliner")
                                      :run "swapEditor"
-                                     :with {:args {:from "outliner" :to it.id}}}))
+                                     :with {:from "outliner" :to it.id}}))
                            computed.editorTypes)})
      (node#outliner-display :use hButton
        :with {:icon ~(if (= state.outlinerMode "list") "list" "layers-2")
@@ -220,7 +220,7 @@
               :open state.open.outlinerFilter
               :items ~computed.outlinerFilterItems})
      (node#outliner-new :use hButton
-       :with {:icon folder-plus :width 24 :tooltip "New Collection" :run newCollection :with {:args {:move false}}})
+       :with {:icon folder-plus :width 24 :tooltip "New Collection" :run newCollection :with {:move false}})
      (node :use gap)))
 
 (defview outliner-rows-column "#outliner-rows-column." [item i]

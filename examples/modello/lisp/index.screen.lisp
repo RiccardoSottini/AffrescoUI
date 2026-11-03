@@ -1,6 +1,9 @@
 ;;; index.screen.lisp --- Modello, a 3D modeller
 
-(include "look.lisp"
+(include "locales/en.lisp"
+         "locales/es.lisp"
+         "locales/fr.lisp"
+         "look.lisp"
          "state.lisp"
          "scene.lisp"
          "widgets.lisp"
@@ -13,12 +16,18 @@
          "properties.lisp"
          "timeline.lisp"
          "shader.lisp"
-         "actions.lisp"
          "../../shared/addons/assistant/assistant.lisp"
-         "modello.lisp")
+         "modello.lisp"
+         "transform.lisp"
+         "collections.lisp"
+         "navigation.lisp"
+         "animation.lisp"
+         "materials.lisp"
+         "files.lisp")
 
 (defscreen main
   :window {:title "Modello" :width 1440 :height 900 :minWidth 1000 :minHeight 640}
+  :strings {:default en :locale ~settings.appearance.language :keep ["Modello"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [icons]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 11 :fallback [icons]}
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 14}

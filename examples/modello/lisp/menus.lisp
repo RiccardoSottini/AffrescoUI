@@ -54,56 +54,56 @@
   {:mesh {:submenu addMesh :title "Mesh" :icon triangle :group "1_add" :order 1}
    :light {:submenu addLight :title "Light" :icon lightbulb :group "2_add" :order 1}
    :camera {:run addObject
-            :with {:args {:kind camera :name "Camera"}}
+            :with {:kind camera :name "Camera"}
             :title "Camera"
             :icon video
             :group "2_add"
             :order 2}
-   :empty {:run addObject :with {:args {:kind empty :name "Empty"}} :title "Empty" :icon axis-3-d :group "2_add" :order 3}})
+   :empty {:run addObject :with {:kind empty :name "Empty"} :title "Empty" :icon axis-3-d :group "2_add" :order 3}})
 
 (defmenu shaderAdd
-  {:color {:run addShaderNode :with {:args {:op color}} :title "Color" :icon palette :group "1_input" :order 1}
-   :number {:run addShaderNode :with {:args {:op number}} :title "Value" :icon hash :group "1_input" :order 2}
-   :fresnel {:run addShaderNode :with {:args {:op fresnel}} :title "Fresnel" :icon aperture :group "1_input" :order 3}
-   :height {:run addShaderNode :with {:args {:op height}} :title "Height" :icon arrow-up-down :group "1_input" :order 4}
+  {:color {:run addShaderNode :with {:op color} :title "Color" :icon palette :group "1_input" :order 1}
+   :number {:run addShaderNode :with {:op number} :title "Value" :icon hash :group "1_input" :order 2}
+   :fresnel {:run addShaderNode :with {:op fresnel} :title "Fresnel" :icon aperture :group "1_input" :order 3}
+   :height {:run addShaderNode :with {:op height} :title "Height" :icon arrow-up-down :group "1_input" :order 4}
    :checker {:run addShaderNode
-             :with {:args {:op checker}}
+             :with {:op checker}
              :title "Checker Texture"
              :icon grid-3x3
              :group "2_texture"
              :order 1}
-   :noise {:run addShaderNode :with {:args {:op noise}} :title "Noise Texture" :icon waves :group "2_texture" :order 2}
-   :mix {:run addShaderNode :with {:args {:op mix}} :title "Mix" :icon blend :group "3_color" :order 1}
-   :multiply {:run addShaderNode :with {:args {:op multiply}} :title "Multiply" :icon x :group "3_color" :order 2}
-   :add {:run addShaderNode :with {:args {:op add}} :title "Add" :icon plus :group "3_color" :order 3}
-   :scale {:run addShaderNode :with {:args {:op scale}} :title "Scale" :icon scaling :group "3_color" :order 4}
-   :invert {:run addShaderNode :with {:args {:op invert}} :title "Invert" :icon contrast :group "4_converter" :order 1}})
+   :noise {:run addShaderNode :with {:op noise} :title "Noise Texture" :icon waves :group "2_texture" :order 2}
+   :mix {:run addShaderNode :with {:op mix} :title "Mix" :icon blend :group "3_color" :order 1}
+   :multiply {:run addShaderNode :with {:op multiply} :title "Multiply" :icon x :group "3_color" :order 2}
+   :add {:run addShaderNode :with {:op add} :title "Add" :icon plus :group "3_color" :order 3}
+   :scale {:run addShaderNode :with {:op scale} :title "Scale" :icon scaling :group "3_color" :order 4}
+   :invert {:run addShaderNode :with {:op invert} :title "Invert" :icon contrast :group "4_converter" :order 1}})
 
 (defmenu addMesh
-  {:plane {:run addObject :with {:args {:kind mesh :mesh plane :name "Plane"}} :title "Plane" :icon square :order 1}
-   :cube {:run addObject :with {:args {:kind mesh :mesh cube :name "Cube"}} :title "Cube" :icon box :order 2}
-   :sphere {:run addObject :with {:args {:kind mesh :mesh sphere :name "Sphere"}} :title "UV Sphere" :icon globe :order 3}
+  {:plane {:run addObject :with {:kind mesh :mesh plane :name "Plane"} :title "Plane" :icon square :order 1}
+   :cube {:run addObject :with {:kind mesh :mesh cube :name "Cube"} :title "Cube" :icon box :order 2}
+   :sphere {:run addObject :with {:kind mesh :mesh sphere :name "Sphere"} :title "UV Sphere" :icon globe :order 3}
    :cylinder {:run addObject
-              :with {:args {:kind mesh :mesh cylinder :name "Cylinder"}}
+              :with {:kind mesh :mesh cylinder :name "Cylinder"}
               :title "Cylinder"
               :icon cylinder
               :order 4}
-   :cone {:run addObject :with {:args {:kind mesh :mesh cone :name "Cone"}} :title "Cone" :icon cone :order 5}
-   :torus {:run addObject :with {:args {:kind mesh :mesh torus :name "Torus"}} :title "Torus" :icon torus :order 6}})
+   :cone {:run addObject :with {:kind mesh :mesh cone :name "Cone"} :title "Cone" :icon cone :order 5}
+   :torus {:run addObject :with {:kind mesh :mesh torus :name "Torus"} :title "Torus" :icon torus :order 6}})
 
 (defmenu addLight
   {:point {:run addObject
-           :with {:args {:kind light :name "Point" :light (point :intensity 60)}}
+           :with {:kind light :name "Point" :light (point :intensity 60)}
            :title "Point"
            :icon lightbulb
            :order 1}
    :sun {:run addObject
-         :with {:args {:kind light :name "Sun" :light (directional :intensity 3)}}
+         :with {:kind light :name "Sun" :light (directional :intensity 3)}
          :title "Sun"
          :icon sun
          :order 2}
    :spot {:run addObject
-          :with {:args {:kind light :name "Spot" :light (spot :intensity 60)}}
+          :with {:kind light :name "Spot" :light (spot :intensity 60)}
           :title "Spot"
           :icon cone
           :order 3}})
@@ -157,14 +157,14 @@
 (defmenu delete {:delete {:run deleteSelected :title "Delete" :group "1"}})
 
 (defmenu shading
-  {:wireframe {:run setOption :with {:args {:key shading :value wireframe}} :title "Wireframe" :icon globe :order 1}
-   :solid {:run setOption :with {:args {:key shading :value solid}} :title "Solid" :icon circle :order 2}
+  {:wireframe {:run setOption :with {:key shading :value wireframe} :title "Wireframe" :icon globe :order 1}
+   :solid {:run setOption :with {:key shading :value solid} :title "Solid" :icon circle :order 2}
    :material {:run setOption
-              :with {:args {:key shading :value material}}
+              :with {:key shading :value material}
               :title "Material Preview"
               :icon circle-dot
               :order 3}
-   :rendered {:run setOption :with {:args {:key shading :value rendered}} :title "Rendered" :icon sun :order 4}})
+   :rendered {:run setOption :with {:key shading :value rendered} :title "Rendered" :icon sun :order 4}})
 
 (defcomputed searchItems
   (map (fn [it] {:title it.title :detail (or-else it.keyLabel it.category) :icon it.icon :run it.name})
@@ -174,22 +174,22 @@
   (cond (= state.pie.menu "shading") [{:title "Wireframe"
             :icon "globe"
             :run "setOption"
-            :with {:args {:key "shading" :value "wireframe"}}
+            :with {:key "shading" :value "wireframe"}
             :checked (= state.shading "wireframe")}
            {:title "Rendered"
             :icon "sun"
             :run "setOption"
-            :with {:args {:key "shading" :value "rendered"}}
+            :with {:key "shading" :value "rendered"}
             :checked (= state.shading "rendered")}
            {:title "Solid"
             :icon "circle"
             :run "setOption"
-            :with {:args {:key "shading" :value "solid"}}
+            :with {:key "shading" :value "solid"}
             :checked (= state.shading "solid")}
            {:title "Material Preview"
             :icon "circle-dot"
             :run "setOption"
-            :with {:args {:key "shading" :value "material"}}
+            :with {:key "shading" :value "material"}
             :checked (= state.shading "material")}
            {:title "Toggle X-Ray" :icon "square-dashed-bottom" :run "toggleXray" :checked state.xray}]
           (= state.pie.menu "view") [{:title "Left" :run "viewLeft"}
@@ -203,7 +203,7 @@
           :else []))
 
 (defcomputed modeItems
-  [{:title "Object Mode" :icon "box" :checked (= state.mode "object") :run "setMode" :with {:args {:mode "object"}}}
+  [{:title "Object Mode" :icon "box" :checked (= state.mode "object") :run "setMode" :with {:mode "object"}}
      {:title "Edit Mode" :icon "pen-tool" :enabled false :keyLabel "Not yet"}])
 
 (defcomputed orientationItems
@@ -213,14 +213,14 @@
                {:title it
                 :checked (= state.orientation (lower-case it))
                 :run "setOption"
-                :with {:args {:key "orientation" :value (lower-case it)}}}))
+                :with {:key "orientation" :value (lower-case it)}}))
          ["Global" "Local" "Normal" "Gimbal" "View" "Cursor"]))
 
 (defcomputed pivotItems
   (map (fn [it]
            (if (= it.0 "individual")
                {:title it.1 :enabled false :keyLabel "Not yet"}
-               {:title it.1 :checked (= state.pivot it.0) :run "setOption" :with {:args {:key "pivot" :value it.0}}}))
+               {:title it.1 :checked (= state.pivot it.0) :run "setOption" :with {:key "pivot" :value it.0}}))
          [["bounds" "Bounding Box Center"]
           ["cursor" "3D Cursor"]
           ["individual" "Individual Origins"]
@@ -234,7 +234,7 @@
                    {:title it.1
                     :checked (= (or-else state.snapStep "unit") it.0)
                     :run "setOption"
-                    :with {:args {:key "snapStep" :value it.0}}})
+                    :with {:key "snapStep" :value it.0}})
                  [["fine" "Increment 0.1 m, 1°"] ["unit" "Increment 1 m, 5°"] ["coarse" "Increment 10 m, 15°"]])))
 
 (defcomputed kinds [["mesh" "Meshes"] ["light" "Lights"] ["camera" "Cameras"] ["empty" "Empties"]])
@@ -244,39 +244,39 @@
                    {:title (str it.1 " Visible")
                     :checked (not (contains state.hiddenKinds it.0))
                     :run "toggleKind"
-                    :with {:args {:list "hiddenKinds" :kind it.0}}})
+                    :with {:which "hiddenKinds" :kind it.0}})
                  computed.kinds)
             [{:separator true}]
             (map (fn [it]
                    {:title (str it.1 " Selectable")
                     :checked (not (contains state.unselectableKinds it.0))
                     :run "toggleKind"
-                    :with {:args {:list "unselectableKinds" :kind it.0}}})
+                    :with {:which "unselectableKinds" :kind it.0}})
                  computed.kinds)))
 
 (defcomputed gizmoItems
-  [{:title "Navigate" :checked (not= state.navGizmo false) :run "toggleOption" :with {:args {:key "navGizmo"}}}
+  [{:title "Navigate" :checked (not= state.navGizmo false) :run "toggleOption" :with {:key "navGizmo"}}
      {:title "Active Tools"
       :checked (not= state.toolGizmos false)
       :run "toggleOption"
-      :with {:args {:key "toolGizmos"}}}
+      :with {:key "toolGizmos"}}
      {:separator true}
      {:title "Object Gizmo: Move"
       :checked (= state.objectGizmo "translate")
       :run "setObjectGizmo"
-      :with {:args {:mode "translate"}}}
+      :with {:mode "translate"}}
      {:title "Object Gizmo: Rotate"
       :checked (= state.objectGizmo "rotate")
       :run "setObjectGizmo"
-      :with {:args {:mode "rotate"}}}
+      :with {:mode "rotate"}}
      {:title "Object Gizmo: Scale"
       :checked (= state.objectGizmo "scale")
       :run "setObjectGizmo"
-      :with {:args {:mode "scale"}}}])
+      :with {:mode "scale"}}])
 
 (defcomputed overlayItems
   (map (fn [it]
-           {:title it.1 :checked (= (get state.overlay it.0) true) :run "toggleOverlay" :with {:args {:key it.0}}})
+           {:title it.1 :checked (= (get state.overlay it.0) true) :run "toggleOverlay" :with {:key it.0}})
          [["grid" "Grid"]
           ["axes" "Floor Axes"]
           ["cursor" "3D Cursor"]
@@ -288,12 +288,12 @@
   [{:title "Scene Lights"
       :checked (= state.sceneLights true)
       :run "toggleOption"
-      :with {:args {:key "sceneLights"}}
+      :with {:key "sceneLights"}
       :keyLabel "Material Preview"}
      {:title "Scene World"
       :checked (= state.sceneWorld true)
       :run "toggleOption"
-      :with {:args {:key "sceneWorld"}}
+      :with {:key "sceneWorld"}
       :keyLabel "Material Preview"}
      {:separator true}
      {:title "X-Ray" :checked (= state.xray true) :run "toggleXray" :keyLabel "Alt Z"}])
@@ -361,15 +361,15 @@
               {:title "Auto Keying"
                :checked (= state.autoKey true)
                :run "toggleOption"
-               :with {:args {:key "autoKey"}}}]
+               :with {:key "autoKey"}}]
      :view [{:title "Show Seconds"
              :checked (= state.timeSeconds true)
              :run "toggleOption"
-             :with {:args {:key "timeSeconds"}}}
+             :with {:key "timeSeconds"}}
             {:title "Show Markers"
              :checked (not= state.hideMarkers true)
              :run "toggleOption"
-             :with {:args {:key "hideMarkers"}}}
+             :with {:key "hideMarkers"}}
             {:separator true}
             {:title "Go to Current Frame" :run "frameCurrent"}]
      :marker [{:title "Add Marker" :run "addMarker"}
@@ -389,12 +389,12 @@
       :icon "layers-2"
       :checked (not= state.outlinerMode "list")
       :run "setOption"
-      :with {:args {:key "outlinerMode" :value "layer"}}}
+      :with {:key "outlinerMode" :value "layer"}}
      {:title "Object List"
       :icon "list"
       :checked (= state.outlinerMode "list")
       :run "setOption"
-      :with {:args {:key "outlinerMode" :value "list"}}}
+      :with {:key "outlinerMode" :value "list"}}
      {:separator true}
      {:title "Scenes" :icon "shapes" :enabled false :keyLabel "Not yet"}
      {:title "Orphan Data" :icon "trash-2" :enabled false :keyLabel "Not yet"}])
@@ -404,13 +404,13 @@
                    {:title it.1
                     :checked (not (contains state.outlinerHide it.0))
                     :run "toggleKind"
-                    :with {:args {:list "outlinerHide" :kind it.0}}})
+                    :with {:which "outlinerHide" :kind it.0}})
                  [["mesh" "Meshes"] ["light" "Lights"] ["camera" "Cameras"] ["empty" "Empties"]])
             [{:separator true}
              {:title "Only Selected"
               :checked (= state.outlinerSelectedOnly true)
               :run "toggleOption"
-              :with {:args {:key "outlinerSelectedOnly"}}}]))
+              :with {:key "outlinerSelectedOnly"}}]))
 
 (defcomputed shaderAddItems
   (map (fn [it]
@@ -420,7 +420,7 @@
             :group it.1
             :enabled (>= computed.activeMaterialIndex 0)
             :run "addShaderNode"
-            :with {:args {:op it.0}}})
+            :with {:op it.0}})
          [["color" "Input" "palette"]
           ["number" "Input" "hash"]
           ["fresnel" "Input" "aperture"]
