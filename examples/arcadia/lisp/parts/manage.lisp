@@ -40,7 +40,8 @@
       :run "askUninstall"
       :with {:id computed.manageGame.id}}]))
 
-(defcomponent gameMenu "A game's menu (right click, Shift+F10 or the gear): play or install, favourite, properties, uninstall."
+(defcomponent gameMenu
+  "A game's menu (right click, Shift+F10 or the gear): play or install, favourite, properties, uninstall."
   {}
   `(node#game-menu :use contextMenu
      :with {:open state.gameMenu.open
@@ -55,7 +56,8 @@
 
 ;;; Properties
 
-(defcomponent propertiesDialog "A game's properties: launch options and in-game settings, updates, installed files, extra content."
+(defcomponent propertiesDialog
+  "A game's properties: launch options and in-game settings, updates, installed files, extra content."
   {}
   `(node :use dialog
      :with {:open state.properties.open
@@ -95,7 +97,11 @@
            :onClick ~(handler showPropertiesTab tab)))))
 
 (defview caps-title "A section's title in caps, at a height of the page." [key top]
-  `(label :font caps :text ~(upper-case (t key)) :textColor @color.muted :anchors {:left 0 :right 0 :top ~top} :height 18))
+  `(label :font caps
+     :text ~(upper-case (t key))
+     :textColor @color.muted
+     :anchors {:left 0 :right 0 :top ~top}
+     :height 18))
 
 (defview general-page "The general page: the launch options, and the overlay and cloud saves." []
   `(node :when ~(= state.properties.tab "general") :fill true :color transparent
@@ -116,7 +122,11 @@
        :label ~(t "properties.launch")
        :text ~(or-else computed.manageGame.launchOptions "")
        :onChange ~(handler setLaunchOptions event.value))
-     (label :font small :text ~(t "properties.launchNote") :textColor @color.dim :anchors {:left 0 :right 0 :top 62} :height 18)
+     (label :font small
+       :text ~(t "properties.launchNote")
+       :textColor @color.dim
+       :anchors {:left 0 :right 0 :top 62}
+       :height 18)
      ~(caps-title "properties.inGame" 100)
      (row#properties-overlay :anchors {:left 0 :right 0 :top 124} :height 30 :alignItems center
        (label :grow 1 :height 22 :text ~(t "properties.overlay") :textColor @color.text)
@@ -180,7 +190,8 @@
 (defview files-page "The installed files page: the size, the folder, and checking the files." []
   `(node :when ~(= state.properties.tab "files") :fill true :color transparent
      ~(caps-title "properties.size" 0)
-     (label#properties-size :text ~(t "properties.sizeValue" {:size (formatNumber (or-else computed.manageGame.sizeGb 0))})
+     (label#properties-size :text ~(t "properties.sizeValue"
+                                      {:size (formatNumber (or-else computed.manageGame.sizeGb 0))})
        :textColor @color.text
        :font default
        :anchors {:left 0 :right 0 :top 24}

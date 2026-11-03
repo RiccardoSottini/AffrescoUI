@@ -25,7 +25,8 @@
   ;; A macro, not a function: the list it writes stays an expression, worked out at its speed.
   "The friends whose presence passes `test` (of `it`), and whose name matches the search."
   [test]
-  `(filter (fn [it] (and ~test (or (empty? state.friendQuery) (some? (fuzzy state.friendQuery it.name))))) data.friends))
+  `(filter (fn [it] (and ~test (or (empty? state.friendQuery) (some? (fuzzy state.friendQuery it.name)))))
+           data.friends))
 
 (defcomputed friendGroups "The friends in a game, online (or away), and offline, each group only if it has someone."
   (filter (fn [it] (> (count it.friends) 0))
@@ -39,7 +40,9 @@
 
 (defcomputed inviteGame "The game an invitation is to: the one running, else the installed one played last."
   (or-else (find (fn [it] (= it.id state.running)) data.games)
-           (get (sort-by (fn [it] it.lastPlayed) > (filter (fn [it] (and it.installed (some? it.lastPlayed))) computed.owned))
+           (get (sort-by (fn [it] it.lastPlayed)
+                         >
+                         (filter (fn [it] (and it.installed (some? it.lastPlayed))) computed.owned))
                 0)))
 
 (deftokens chat-colours "The colours of your own chat bubbles."
@@ -55,12 +58,14 @@
          (or (= ~p "offline") (= ~p "invisible")) "@color.offline"
          :else "@color.online"))
 
-(defcomponent avatar "A person's avatar with a frame in their presence's colour: in a game lime, online lilac, offline grey."
+(defcomponent avatar
+  "A person's avatar with a frame in their presence's colour: in a game lime, online lilac, offline grey."
   {:avatar fox :presence online :size 36}
   `(panel :let {:p ~presence} :width ~size :height ~size :radius 4 :color ~(presence-colour p)
      (image :file ~(str "../assets/art/avatars/" avatar ".svg") :fill 2 :fit cover)))
 
-(defcomponent friendRow "A friend in the list: avatar, name in their presence's colour, what they are doing; opens the chat."
+(defcomponent friendRow
+  "A friend in the list: avatar, name in their presence's colour, what they are doing; opens the chat."
   {:friend {}}
   `(row :id ~(str "friend-" friend.id)
      :let {:p ~friend.presence :here ~(= state.chatWith friend.id)}
@@ -92,7 +97,9 @@
 
 (defview unread-dot "A dot on a friend's row while they have written since their chat was last open." []
   `(panel :when ~(and (> (count (filter (fn [it]
-                                          (and (= it.friend friend.id) (not it.mine) (> it.at (or-else (get state.read friend.id) 0))))
+                                          (and (= it.friend friend.id)
+                                               (not it.mine)
+                                               (> it.at (or-else (get state.read friend.id) 0))))
                                         data.messages))
                          0)
                       (not here))
@@ -112,7 +119,8 @@
      (node :use chatPane)
      (node :use addFriendDialog)))
 
-(defcomponent friendsList "The left column: your own card with its status menu, a search, and the friends grouped by presence."
+(defcomponent friendsList
+  "The left column: your own card with its status menu, a search, and the friends grouped by presence."
   {}
   `(column#friends-side :width 300 :anchors {:top 0 :bottom 0} :color @color.side
      ~(me-card)
@@ -147,38 +155,47 @@
      (panel :color transparent :width 10 :height 1)))
 
 (defview my-status "Your status under your name, and the menu that changes it." []
-  `(label#my-status :font small
-     :fitText true
-     :padding 2
-     :height 18
-     :cursor hand
-     :focusable true
-     :role button
+  `(label#my-status :font small :fitText true :padding 2 :height 18 :cursor hand :focusable true :role button
      ;; (+ ...), not (str ...): text ending in a space, written around an expression, loses the space
-     :runs [{:text ~(+ (t (str "presence." state.user.status)) " ")} {:icon chevron-down}]
-     :textColor @color.muted
-     :label ~(t "friends.status")
-     :hover {:textColor @color.bright}
-     :isOpen ~state.statusOpen
-     :onClick {:toggle state.statusOpen}
+     :runs
+     [{:text ~(+ (t (str "presence." state.user.status)) " ")} {:icon chevron-down}]
+     :textColor
+     @color.muted
+     :label
+     ~(t "friends.status")
+     :hover
+     {:textColor @color.bright}
+     :isOpen
+     ~state.statusOpen
+     :onClick
+     {:toggle state.statusOpen}
      (node :use menu
        :with {:open state.statusOpen
               :width 180
-              :items ~(map (fn [it] {:title (t (str "presence." it)) :checked (= state.user.status it) :run "setStatus" :with {:status it}})
+              :items ~(map (fn [it]
+                             {:title (t (str "presence." it))
+                              :checked (= state.user.status it)
+                              :run "setStatus"
+                              :with {:status it}})
                            ["online" "away" "invisible" "offline"])})))
 
 (defview friend-groups "The friends, a caps heading over each group; a line when the search matches no one." []
-  `(column#friends-scroll :grow 1 :anchors {:left 0 :right 0} :scroll vertical :role list :label ~(t "nav.community")
+  `(column#friends-scroll :grow 1
+     :anchors {:left 0 :right 0}
+     :scroll vertical
+     :role list
+     :label ~(t "nav.community")
      ~(repeat [group computed.friendGroups :key group.key]
-        `(column :id ~(str "friends-group-" group.key) :anchors {:left 0 :right 0} :height ~(+ 34 (* 52 (count group.friends)))
+        `(column :id ~(str "friends-group-" group.key)
+           :anchors {:left 0 :right 0}
+           :height ~(+ 34 (* 52 (count group.friends)))
            (label :style caps
              :height 34
              :anchors {:left 14 :right 14}
              :align {:vertical center}
              :role heading
              :text ~(t (str "friends.group." group.key) {:n (count group.friends)}))
-           ~(repeat [f group.friends :key f.id]
-              `(node :use friendRow :with {:friend ~f}))))
+           ~(repeat [f group.friends :key f.id] `(node :use friendRow :with {:friend ~f}))))
      (label :when ~(= (sum computed.friendGroups (fn [it] (count it.friends))) 0)
        :height 60
        :anchors {:left 14 :right 14}
@@ -186,14 +203,16 @@
        :textColor @color.muted
        :text ~(t "friends.noMatch" {:query state.friendQuery}))))
 
-(defcomponent addFriendDialog "Add a friend by name: the request goes out and they show as offline until they accept."
+(defcomponent addFriendDialog
+  "Add a friend by name: the request goes out and they show as offline until they accept."
   {}
   `(node :use dialog
      :with {:open state.addFriend.open
             :title ~(t "friends.add")
             :height 180
             :message ~(t "friends.addHelp" {:code state.user.code})
-            :buttons [{:title ~(t "friends.sendRequest") :run addFriend :default true} {:title ~(t "dialog.cancel")}]}
+            :buttons [{:title ~(t "friends.sendRequest") :run addFriend :default true}
+                      {:title ~(t "dialog.cancel")}]}
      (textarea#add-friend-name :height 32
        :padding 8
        :anchors {:left 20 :right 20 :top 80}
@@ -221,8 +240,7 @@
      (column :when ~(some? computed.chatFriend) :let {:friend ~computed.chatFriend} :fill true
        ~(chat-header)
        (panel :height 1 :anchors {:left 0 :right 0} :color @color.border)
-       (node :grow 1 :height 0 :alignSelf stretch :color transparent
-         ~(chat-messages))
+       (node :grow 1 :height 0 :alignSelf stretch :color transparent ~(chat-messages))
        ~(chat-composer))))
 
 (defview chat-header "The chat's header: the friend's avatar, name and what they are doing, and Invite to play." []
@@ -230,7 +248,11 @@
      (panel :color transparent :width 18 :height 1)
      (node :use avatar :with {:avatar ~friend.avatar :presence ~friend.presence :size 40})
      (column :grow 1 :height 40 :gap 2 :alignSelf center
-       (label#chat-name :font heading :text ~friend.name :textColor @color.bright :anchors {:left 0 :right 0} :height 22)
+       (label#chat-name :font heading
+         :text ~friend.name
+         :textColor @color.bright
+         :anchors {:left 0 :right 0}
+         :height 22)
        (label :font small
          :anchors {:left 0 :right 0}
          :height 16
@@ -255,7 +277,9 @@
      :textColor @color.text
      :hover {:color @color.hover :textColor @color.bright}
      :disabled ~(nil? computed.inviteGame)
-     :tooltip ~(if (nil? computed.inviteGame) (t "chat.nothingToInvite") (t "chat.inviteTo" {:game computed.inviteGame.title}))
+     :tooltip ~(if (nil? computed.inviteGame)
+                 (t "chat.nothingToInvite")
+                 (t "chat.inviteTo" {:game computed.inviteGame.title}))
      :text ~(t "chat.inviteButton")
      :onClick ~(handler inviteToPlay)))
 
@@ -282,7 +306,8 @@
      (panel#chat-end :color transparent :height 8 :anchors {:left 0 :right 0})))
 
 (defview day-line "A line with the day (today, yesterday or the date) over a day's first message." [m i]
-  `(row :when ~(or (= i 0) (not= (floor (/ (get-in computed.chat [(- i 1) :at]) 86400000)) (floor (/ m.at 86400000))))
+  `(row :when ~(or (= i 0)
+                   (not= (floor (/ (get-in computed.chat [(- i 1) :at]) 86400000)) (floor (/ m.at 86400000))))
      :height 20
      :anchors {:left 0 :right 0}
      :gap 12
@@ -305,8 +330,15 @@
      :justify ~(if m.mine "end" "start")
      :alignItems end
      :role listitem
-     :label ~(str (if m.mine state.user.name friend.name) ": " (if (nil? g) m.text (t "chat.invite" {:game g.title})))
-     (image :when ~(not m.mine) :file ~(str "../assets/art/avatars/" friend.avatar ".svg") :width 28 :height 28 :fit cover :radius 14)
+     :label ~(str (if m.mine state.user.name friend.name)
+                  ": "
+                  (if (nil? g) m.text (t "chat.invite" {:game g.title})))
+     (image :when ~(not m.mine)
+       :file ~(str "../assets/art/avatars/" friend.avatar ".svg")
+       :width 28
+       :height 28
+       :fit cover
+       :radius 14)
      (column :fitContent true :gap 3 :alignItems ~(if m.mine "end" "start")
        (label :when ~(nil? g)
          :text ~m.text
@@ -336,7 +368,10 @@
      (panel :color transparent :width 2 :height 1)
      (image :file ~(str "../assets/art/" g.id "/cover.svg") :width 48 :height 72 :fit cover :radius 3)
      (column :grow 1 :height 64 :gap 4 :alignSelf center
-       (label :style caps :height 16 :anchors {:left 0 :right 0} :text ~(t (if m.mine "chat.invited" "chat.invites")))
+       (label :style caps
+         :height 16
+         :anchors {:left 0 :right 0}
+         :text ~(t (if m.mine "chat.invited" "chat.invites")))
        (label :font strong :height 18 :anchors {:left 0 :right 0} :text ~g.title :textColor @color.bright)
        (label :id ~(str "join-" m.id)
          :when ~(not m.mine)
@@ -351,11 +386,14 @@
          :text ~(t (if g.installed "chat.join" "chat.install"))
          :gradient {:kind linear
                     :angle 90
-                    :stops [~(if g.installed "@color.play" "@color.warm") ~(if g.installed "@color.playEnd" "@color.warmEnd")]}
+                    :stops [~(if g.installed "@color.play" "@color.warm")
+                            ~(if g.installed "@color.playEnd" "@color.warmEnd")]}
          :textColor "#ffffff"
          :onClick ~(handler primary g)))))
 
-(defview chat-composer "The box to write in, which Enter sends, and the send button, lit once there is something to send." []
+(defview chat-composer
+  "The box to write in, which Enter sends, and the send button, lit once there is something to send."
+  []
   `(row :height 64 :anchors {:left 0 :right 0} :gap 10 :alignItems center :color @color.panel
      (panel :color transparent :width 18 :height 1)
      (textarea#chat-input :grow 1

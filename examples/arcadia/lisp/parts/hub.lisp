@@ -22,7 +22,8 @@
 
 ;;; The hub page
 
-(defcomponent hubPage "The hub of the game on the page: its name, the three sections and the posts of the one chosen."
+(defcomponent hubPage
+  "The hub of the game on the page: its name, the three sections and the posts of the one chosen."
   {}
   `(column :fill true :scroll vertical :let {:g ~computed.game}
      ~(hub-header)
@@ -32,12 +33,15 @@
        :gap 8
        :role list
        :label ~(t "hub.subtitle")
-       ~(repeat [p (hub-posts-shown)]
-          (hub-post p)))))
+       ~(repeat [p (hub-posts-shown)] (hub-post p)))))
 
 (defview hub-header "The game's cover and name over the hub's subtitle, and the way back to the game's page." []
   `(row :height 84 :anchors {:left 32 :right 32} :gap 16 :alignItems center
-     (image :file ~(str "../assets/art/" (or-else g.art g.id) "/cover.svg") :width 40 :height 60 :radius 6 :fit cover)
+     (image :file ~(str "../assets/art/" (or-else g.art g.id) "/cover.svg")
+       :width 40
+       :height 60
+       :radius 6
+       :fit cover)
      (column :grow 1 :height 48
        (label :font heading :height 26 :anchors {:left 0 :right 0} :text ~g.title :textColor @color.bright)
        (label :font small :height 18 :anchors {:left 0 :right 0} :text ~(t "hub.subtitle") :textColor @color.muted))
@@ -67,7 +71,10 @@
      :color @color.panel
      :radius 8
      (panel :width 2 :height 1 :color transparent)
-     (label :icon ~(if (= p.kind "guides") "book-open" "messages-square") :text "" :fitText true :textColor @color.accent)
+     (label :icon ~(if (= p.kind "guides") "book-open" "messages-square")
+       :text ""
+       :fitText true
+       :textColor @color.accent)
      ~(hub-post-title p)
      (label :font small :fitText true :icon thumbs-up :text ~(formatNumber p.votes) :textColor @color.muted)
      (label :font small :fitText true :icon message-circle :text ~(formatNumber p.replies) :textColor @color.muted)
@@ -75,7 +82,11 @@
 
 (defview hub-post-title "A post's title, with the game's name in it, over who wrote it." [p]
   `(column :grow 1 :height 40
-     (label :font strong :height 22 :anchors {:left 0 :right 0} :text ~(t p.key {:game g.title}) :textColor @color.text)
+     (label :font strong
+       :height 22
+       :anchors {:left 0 :right 0}
+       :text ~(t p.key {:game g.title})
+       :textColor @color.text)
      (label :font small
        :height 18
        :anchors {:left 0 :right 0}

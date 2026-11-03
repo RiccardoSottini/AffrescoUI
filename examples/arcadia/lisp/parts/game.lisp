@@ -20,7 +20,8 @@
 
 ;;; The page
 
-(defcomponent gamePage "A game's page: the banner and logo, play and the stats, the sections, the activity and the side panels."
+(defcomponent gamePage
+  "A game's page: the banner and logo, play and the stats, the sections, the activity and the side panels."
   {}
   `(column#game-scroll :fill true :scroll vertical :let {:g ~computed.game}
      ~(hero)
@@ -36,27 +37,41 @@
 (defview hero "The banner, darker at the bottom, with the game's name as its logo over a shadow." []
   `(node#hero :height 310 :anchors {:left 0 :right 0}
      (image#hero-image :file ~(str "../assets/art/" (or-else g.art g.id) "/hero.svg") :fill true :fit cover)
-     (node :fill true :color transparent :gradient {:kind linear :stops [{:at 0.55 :color "#00000000"} {:at 1 :color "#0d0a10c0"}]})
+     (node :fill true
+       :color transparent
+       :gradient {:kind linear :stops [{:at 0.55 :color "#00000000"} {:at 1 :color "#0d0a10c0"}]})
      (label :font logo :text ~g.title :textColor "#000000a0" :anchors {:left 42 :bottom 34} :fitText true)
-     (label#details-title :font logo :text ~g.title :textColor ~g.logo :anchors {:left 40 :bottom 36} :fitText true :role heading)))
+     (label#details-title :font logo
+       :text ~g.title
+       :textColor ~g.logo
+       :anchors {:left 40 :bottom 36}
+       :fitText true
+       :role heading)))
 
-(defview section-links "The links to the game's sections: the store page, extra content, the hub, discussions, guides, support." []
+(defview section-links
+  "The links to the game's sections: the store page, extra content, the hub, discussions, guides, support."
+  []
   `(row#game-sections :height 46 :anchors {:left 24 :right 24} :alignItems center :arrows horizontal
      ~(repeat [s (if g.local ["support"] ["store" "dlc" "hub" "discussions" "guides" "support"])]
-        `(node :id ~(str "section-link-" s) :style sectionLink :text ~(t (str "game.section." s)) :onClick ~(handler openSection g.id s)))))
+        `(node :id ~(str "section-link-" s)
+           :style sectionLink
+           :text ~(t (str "game.section." s))
+           :onClick ~(handler openSection g.id s)))))
 
 ;;; The play bar
 
-(defview play-bar "Play (with its menu), when it was last played, the hours, the achievements, cloud saves, and the buttons." []
+(defview play-bar
+  "Play (with its menu), when it was last played, the hours, the achievements, cloud saves, and the buttons."
+  []
   `(row#play-bar :height 80 :anchors {:left 0 :right 0} :alignItems center :gap 26 :color @color.shade
      (panel :width 6 :height 1 :color transparent)
-     (row#play-group :height 48 :width ~(if (= g.status "ready") 196 210) :radius 24
-       ~(play-button)
-       ~(play-more))
+     (row#play-group :height 48 :width ~(if (= g.status "ready") 196 210) :radius 24 ~(play-button) ~(play-more))
      (node#stat-last :use stat :with {:title ~(t "game.lastPlayed") :value ~computed.lastPlayed})
-     (node#stat-time :use stat :with {:title ~(t "game.playTime") :value ~(t "game.hours" {:n (formatNumber g.hours 0 1)})})
+     (node#stat-time :use stat
+       :with {:title ~(t "game.playTime") :value ~(t "game.hours" {:n (formatNumber g.hours 0 1)})})
      ~(achievements-stat)
-     (node#stat-cloud :use stat :with {:title ~(t "game.cloud") :value ~(t (if g.installed "game.cloudOk" "game.cloudNone")) :icon cloud})
+     (node#stat-cloud :use stat
+       :with {:title ~(t "game.cloud") :value ~(t (if g.installed "game.cloudOk" "game.cloudNone")) :icon cloud})
      (panel :grow 1 :height 1 :color transparent)
      (node#game-settings :style iconButton
        :font heading
@@ -64,7 +79,12 @@
        :tooltip ~(t "game.manage")
        :label ~(t "game.manage")
        :onClick ~(handler openGameMenu g.id))
-     (node#game-info :style iconButton :font heading :icon info :tooltip ~(t "game.info") :isOpen ~state.infoOpen :onClick {:toggle state.infoOpen}
+     (node#game-info :style iconButton
+       :font heading
+       :icon info
+       :tooltip ~(t "game.info")
+       :isOpen ~state.infoOpen
+       :onClick {:toggle state.infoOpen}
        ~(info-card))
      (node#game-favourite :style iconButton
        :font heading
@@ -80,7 +100,10 @@
      :height 48
      :font button
      :align center
-     :icon ~(cond (= g.status "ready") "play" (= g.status "running") "square" (= g.status "downloading") "pause" :else "download")
+     :icon ~(cond (= g.status "ready") "play"
+                  (= g.status "running") "square"
+                  (= g.status "downloading") "pause"
+                  :else "download")
      :text ~(t (str "status.button." g.status))
      :textColor @color.onAccent
      :focusable true
@@ -112,8 +135,14 @@
      (node :use menu
        :with {:open state.playOpen
               :width 240
-              :items [{:title ~(t "game.play" {:title g.title}) :enabled ~(= g.status "ready") :run play :with {:id ~g.id}}
-                      {:title ~(t "game.playSafe") :enabled ~(= g.status "ready") :run play :with {:id ~g.id :safe true}}
+              :items [{:title ~(t "game.play" {:title g.title})
+                       :enabled ~(= g.status "ready")
+                       :run play
+                       :with {:id ~g.id}}
+                      {:title ~(t "game.playSafe")
+                       :enabled ~(= g.status "ready")
+                       :run play
+                       :with {:id ~g.id :safe true}}
                       {:separator true}
                       {:title ~(t "game.launchOptions") :run openProperties :with {:id ~g.id :tab general}}]})))
 
@@ -131,7 +160,11 @@
 
 (defview achievements-stat "The achievements in the play bar: how many are won, over a bar." []
   `(column#stat-achievements :width 128 :height 40 :gap 4
-     (label :font caps :text ~(upper-case (t "game.achievements")) :textColor @color.muted :height 15 :anchors {:left 0 :right 0})
+     (label :font caps
+       :text ~(upper-case (t "game.achievements"))
+       :textColor @color.muted
+       :height 15
+       :anchors {:left 0 :right 0})
      (row :height 18 :gap 8 :alignItems center :anchors {:left 0 :right 0}
        (label :font small :text ~(str g.achievements.0 "/" g.achievements.1) :textColor @color.bright :fitText true)
        (node#achievement-track :grow 1 :height 6 :radius 3 :color @color.raised
@@ -150,17 +183,38 @@
      :role dialog
      :label ~g.title
      :shadow {:y 8 :blur 24 :color "#00000090"}
-     (label :font strong :text ~g.title :textColor @color.bright :anchors {:left 16 :right 16} :height 34 :align {:vertical end})
+     (label :font strong
+       :text ~g.title
+       :textColor @color.bright
+       :anchors {:left 16 :right 16}
+       :height 34
+       :align {:vertical end})
      (label#details-blurb :text ~g.blurb :textColor @color.text :wrap true :anchors {:left 16 :right 16} :height 60)
-     (label :font small :text ~(str (t "game.developer") ": " g.developer) :textColor @color.muted :anchors {:left 16 :right 16} :height 18)
-     (label :font small :text ~(str (t "game.publisher") ": " g.publisher) :textColor @color.muted :anchors {:left 16 :right 16} :height 18)
-     (label :font small :text ~(str (t "game.release") ": " g.release) :textColor @color.muted :anchors {:left 16 :right 16} :height 18)))
+     (label :font small
+       :text ~(str (t "game.developer") ": " g.developer)
+       :textColor @color.muted
+       :anchors {:left 16 :right 16}
+       :height 18)
+     (label :font small
+       :text ~(str (t "game.publisher") ": " g.publisher)
+       :textColor @color.muted
+       :anchors {:left 16 :right 16}
+       :height 18)
+     (label :font small
+       :text ~(str (t "game.release") ": " g.release)
+       :textColor @color.muted
+       :anchors {:left 16 :right 16}
+       :height 18)))
 
 ;;; Activity
 
 (defview activity "What's happened in the game: a box to post in, its news, and what friends did in it." []
   `(column#activity :grow 1 :gap 12 :anchors {:top 16 :bottom 0}
-     (label :font caps :text ~(upper-case (t "game.activity")) :textColor @color.text :height 22 :anchors {:left 0 :right 0})
+     (label :font caps
+       :text ~(upper-case (t "game.activity"))
+       :textColor @color.text
+       :height 22
+       :anchors {:left 0 :right 0})
      (textarea#post-box :height 44
        :anchors {:left 0 :right 0}
        :padding 12
@@ -172,10 +226,8 @@
        :radius 3
        :label ~(t "game.say")
        :focused {:borderWidth 1 :borderColor @color.accent})
-     ~(repeat [n (of-game data.news) :index i]
-        (game-news n))
-     ~(repeat [a (of-game data.activity) :index i]
-        (friend-activity a))
+     ~(repeat [n (of-game data.news) :index i] (game-news n))
+     ~(repeat [a (of-game data.activity) :index i] (friend-activity a))
      (label :when ~(= (+ (count (of-game data.activity)) (count (of-game data.news))) 0)
        :text ~(t "game.noActivity")
        :textColor @color.muted
@@ -184,7 +236,11 @@
 
 (defview game-news "A piece of the game's news: its banner, kind and age, title and text." [n]
   `(row :height 108 :anchors {:left 0 :right 0} :style card :gap 14 :alignItems center
-     (image :file ~(str "../assets/art/" (or-else g.art g.id) "/hero.svg") :width 180 :height 108 :fit cover :radius {:topLeft 3 :bottomLeft 3})
+     (image :file ~(str "../assets/art/" (or-else g.art g.id) "/hero.svg")
+       :width 180
+       :height 108
+       :fit cover
+       :radius {:topLeft 3 :bottomLeft 3})
      (column :grow 1 :height 84 :gap 4
        (label :font caps
          :anchors {:left 0 :right 0}
@@ -194,7 +250,9 @@
        (label :font strong :text ~n.title :textColor @color.bright :anchors {:left 0 :right 0} :height 20)
        (label :font small :text ~n.text :textColor @color.muted :wrap true :anchors {:left 0 :right 12} :height 36))))
 
-(defview friend-activity "What a friend did in the game: their avatar, what it was, and a screenshot if they took one." [a]
+(defview friend-activity
+  "What a friend did in the game: their avatar, what it was, and a screenshot if they took one."
+  [a]
   `(row :let {:f ~(find (fn [it] (= it.id a.who)) data.friends)}
      :height ~(if (= a.kind "screenshot") 168 84)
      :anchors {:left 0 :right 0}
@@ -207,20 +265,32 @@
        :fit cover
        :radius 2
        :borderWidth 1
-       :borderColor ~(cond (= f.presence "ingame") "@color.ingame" (= f.presence "offline") "@color.offline" :else "@color.online"))
+       :borderColor ~(cond (= f.presence "ingame") "@color.ingame"
+                           (= f.presence "offline") "@color.offline"
+                           :else "@color.online"))
      (column :grow 1 :gap 4 :anchors {:top 14 :bottom 10}
        (label :anchors {:left 0 :right 0}
          :height 18
-         :runs [{:text ~(str f.name "\u00a0") :color @color.online :bold true}  ; a space that doesn't break
+         :runs [{:text ~(str f.name "\u00a0") :color @color.online :bold true}
+                ; a space that doesn't break
                 {:text ~(t (str "activity." a.kind) {:text a.text}) :color @color.text}])
-       (label :when ~(some? a.detail) :font small :text ~a.detail :textColor @color.muted :anchors {:left 0 :right 0} :height 16)
+       (label :when ~(some? a.detail)
+         :font small
+         :text ~a.detail
+         :textColor @color.muted
+         :anchors {:left 0 :right 0}
+         :height 16)
        (image :when ~(= a.kind "screenshot")
          :file ~(str "../assets/art/" (or-else g.art g.id) "/shot" a.shot ".svg")
          :width 160
          :height 90
          :fit cover
          :radius 2)
-       (label :font small :text ~(t "time.daysAgo" {:n a.ago}) :textColor @color.dim :anchors {:left 0 :right 0} :height 16))))
+       (label :font small
+         :text ~(t "time.daysAgo" {:n a.ago})
+         :textColor @color.dim
+         :anchors {:left 0 :right 0}
+         :height 16))))
 
 ;;; The side panels
 
@@ -230,17 +300,26 @@
      (label :font caps :text ~(upper-case title) :textColor @color.text :anchors {:left 14 :top 14} :fitText true)
      (node :slot true)))
 
-(defview side-panels "The side panels: friends who play it, achievements, screenshots, the controller and your note." []
+(defview side-panels
+  "The side panels: friends who play it, achievements, screenshots, the controller and your note."
+  []
   `(column#game-side :width 312 :gap 14 :anchors {:top 16 :bottom 0}
-     (node#friends-card :use sideCard :with {:title ~(t "game.friendsWhoPlay") :height 118}
-       ~(friends-who-play))
+     (node#friends-card :use sideCard :with {:title ~(t "game.friendsWhoPlay") :height 118} ~(friends-who-play))
      ~(achievements-card)
      (node#screenshots-card :use sideCard :with {:title ~(t "game.screenshots") :height 132}
        (row :gap 6 :anchors {:left 14 :right 14 :top 40} :height 80
          ~(repeat [k [1 2 3]]
-            `(image :file ~(str "../assets/art/" (or-else g.art g.id) "/shot" k ".svg") :grow 1 :height 80 :fit cover :radius 2))))
+            `(image :file ~(str "../assets/art/" (or-else g.art g.id) "/shot" k ".svg")
+               :grow 1
+               :height 80
+               :fit cover
+               :radius 2))))
      (node#controller-card :use sideCard :with {:title ~(t "game.controller") :height 74}
-       (label :icon gamepad-2 :text ~(t (str "controller." g.controller)) :textColor @color.text :anchors {:left 14 :right 14 :top 42} :height 20))
+       (label :icon gamepad-2
+         :text ~(t (str "controller." g.controller))
+         :textColor @color.text
+         :anchors {:left 14 :right 14 :top 42}
+         :height 20))
      (node#notes-card :use sideCard :with {:title ~(t "game.notes") :height 74}
        (label#write-note :icon pencil
          :text ~(if (empty? g.note) (t "game.writeNote") g.note)
@@ -255,11 +334,18 @@
          :hover {:textColor @color.bright}))))
 
 (defview friends-who-play "How many friends play the game, and their avatars, lime for those playing it now." []
-  `(column :let {:who ~(filter (fn [it] (or (= it.game g.id) (and (> g.hours 40) (or (= it.presence "online") (= it.avatar "owl"))))) data.friends)}
+  `(column :let {:who ~(filter (fn [it]
+                                 (or (= it.game g.id)
+                                     (and (> g.hours 40) (or (= it.presence "online") (= it.avatar "owl")))))
+                               data.friends)}
      :anchors {:left 14 :right 14 :top 40}
      :height 70
      :gap 8
-     (label :font small :text ~(t "game.friendsCount" {:n (count who)}) :textColor @color.muted :anchors {:left 0 :right 0} :height 16)
+     (label :font small
+       :text ~(t "game.friendsCount" {:n (count who)})
+       :textColor @color.muted
+       :anchors {:left 0 :right 0}
+       :height 16)
      (row :gap 6 :height 36 :anchors {:left 0 :right 0}
        ~(repeat [f (slice who 0 7)]
           `(image :file ~(str "../assets/art/avatars/" f.avatar ".svg")
@@ -279,9 +365,14 @@
          :anchors {:left 0 :right 0}
          :height 16
          :text ~(t "game.unlocked"
-                   {:got g.achievements.0 :total g.achievements.1 :percent (floor (* (/ g.achievements.0 (max 1 g.achievements.1)) 100))}))
+                   {:got g.achievements.0
+                    :total g.achievements.1
+                    :percent (floor (* (/ g.achievements.0 (max 1 g.achievements.1)) 100))}))
        (node#achievement-track-side :height 6 :radius 3 :color @color.raised :anchors {:left 0 :right 0}
-         (node :anchors {:left 0 :top 0 :bottom 0} :radius 3 :width ~(achieved-width) :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]}))
+         (node :anchors {:left 0 :top 0 :bottom 0}
+           :radius 3
+           :width ~(achieved-width)
+           :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]}))
        (row :gap 6 :height 44 :anchors {:left 0 :right 0}
          ~(repeat [icon ["trophy" "flame" "gem" "crown" "swords"] :index k]
             `(label :icon ~icon

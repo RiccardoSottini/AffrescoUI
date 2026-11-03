@@ -56,15 +56,12 @@
      (panel :color transparent :height 20 :width 1)
      (row :height 480 :anchors {:left 0 :right 0} :gap 16 :alignItems start
        ~(about-game g)
-       (column :width 308 :height 480 :gap 12
-         ~(features g)
-         ~(languages)))
+       (column :width 308 :height 480 :gap 12 ~(features g) ~(languages)))
      ~(section-heading "store.reviews")
      (panel :color transparent :height 10 :width 1)
      ~(review-summary g)
      (panel :color transparent :height 10 :width 1)
-     (column#reviews :height 432 :anchors {:left 0 :right 0} :gap 10
-       ~(repeat [r state.reviews] (review r)))))
+     (column#reviews :height 432 :anchors {:left 0 :right 0} :gap 10 ~(repeat [r state.reviews] (review r)))))
 
 (defview breadcrumbs "The way back: All games, then the game's genre (its games), then the game's name." [g]
   `(row :height 22 :anchors {:left 0 :right 0} :gap 6 :alignItems center
@@ -93,11 +90,7 @@
 (defview section-heading "A heading of the page, in capitals, over a line that fades out to the right." [key]
   `(column :height 34 :anchors {:left 0 :right 0}
      (panel :color transparent :height 10 :width 1)
-     (label :font caps
-       :text ~(upper-case (t key))
-       :textColor @color.bright
-       :height 20
-       :anchors {:left 0 :right 0})
+     (label :font caps :text ~(upper-case (t key)) :textColor @color.bright :height 20 :anchors {:left 0 :right 0})
      (panel :height 1
        :anchors {:left 0 :right 0}
        :color transparent
@@ -290,15 +283,14 @@
              :textColor @store.chipText
              :color "#00000033")
            (label :font small
-             :text ~(if (= f.id "controller")
-                      (t (str "controller." g.controller))
-                      (t (str "store.feature." f.id)))
+             :text ~(if (= f.id "controller") (t (str "controller." g.controller)) (t (str "store.feature." f.id)))
              :grow 1
              :textColor @store.chipText
              :height 30
              :align {:horizontal start :vertical center})))))
 
-(defview languages "The languages the game speaks: a tick for its interface, its audio and its subtitles in each." []
+(defview languages "The languages the game speaks: a tick for its interface, its audio and its subtitles in each."
+  []
   `(column#languages :height 150 :anchors {:left 0 :right 0} :color @store.card
      (panel :color transparent :height 8 :width 1)
      (row :height 22 :anchors {:left 10 :right 10}
@@ -453,7 +445,8 @@
          :anchors {:left 0 :right 0}
          :textColor @color.muted))))
 
-(defview helpful-votes "Was this review helpful? Yes, no or funny, the vote given lit; a vote again takes it back." [r]
+(defview helpful-votes "Was this review helpful? Yes, no or funny, the vote given lit; a vote again takes it back."
+  [r]
   `(row :height 22 :anchors {:left 0 :right 0} :gap 4 :alignItems center
      (label :text ~(t "store.helpful") :fitText true :font small :textColor @color.dim)
      ~(repeat [b ["yes" "no" "funny"]]

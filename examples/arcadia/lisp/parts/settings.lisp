@@ -5,36 +5,44 @@
 
 ;;; The settings
 
-(defcustom appearance.theme "dark" "Dark or light colours for the whole client."
+(defcustom appearance.theme "dark"
+  "Dark or light colours for the whole client."
   :type string
   :enum [dark light]
   :title ~(t "setting.theme")
   :description ~(t "setting.theme.about"))
 
-(defcustom appearance.language "en" "English, Spanish or French."
+(defcustom appearance.language "en"
+  "English, Spanish or French."
   :type string
   :enum [en es fr]
   :title ~(t "setting.language")
   :description ~(t "setting.language.about"))
 
-(defcustom appearance.startPage "library" "The page Arcadia opens on."
+(defcustom appearance.startPage "library"
+  "The page Arcadia opens on."
   :type string
   :enum [library store community]
   :title ~(t "setting.startPage")
   :description ~(t "setting.startPage.about"))
 
-(defcustom downloads.limit 0 "The most MB/s a download takes; 0 for no limit."
+(defcustom downloads.limit
+  0
+  "The most MB/s a download takes; 0 for no limit."
   :type number
   :enum [0 10 25]
   :title ~(t "setting.limit")
   :description ~(t "setting.limit.about"))
 
-(defcustom downloads.whilePlaying true "Off, downloads wait while a game is running."
+(defcustom downloads.whilePlaying
+  true
+  "Off, downloads wait while a game is running."
   :type boolean
   :title ~(t "setting.whilePlaying")
   :description ~(t "setting.whilePlaying.about"))
 
-(defcustom library.sortBy "name" "Name from A to Z, the most hours, or the most recently played."
+(defcustom library.sortBy "name"
+  "Name from A to Z, the most hours, or the most recently played."
   :type string
   :enum [name playtime recent]
   :title ~(t "setting.sortBy")
@@ -52,7 +60,8 @@
 
 ;;; Its looks: a caps title, a pill, a setting's choices
 
-(defstyle sectionCaps "A section's title, in small capitals." (label :font caps :textColor @color.muted :anchors {:left 0 :right 0} :height 18))
+(defstyle sectionCaps "A section's title, in small capitals."
+  (label :font caps :textColor @color.muted :anchors {:left 0 :right 0} :height 18))
 
 (defstyle pillButton "A rounded button, raised from the page."
   (label :fitText true
@@ -130,7 +139,8 @@
 
 ;;; Interface
 
-(defcomponent settingsInterface "The interface page: the colours, the language, the page to open on and the library's order."
+(defcomponent settingsInterface
+  "The interface page: the colours, the language, the page to open on and the library's order."
   {}
   `(node :fill true :color transparent
      (node :use choiceRow
@@ -160,7 +170,8 @@
 
 ;;; Downloads
 
-(defcomponent settingsDownloads "The downloads page: the speed limit, downloading while playing, and the download cache."
+(defcomponent settingsDownloads
+  "The downloads page: the speed limit, downloading while playing, and the download cache."
   {}
   `(node :fill true :color transparent
      (node :use choiceRow
@@ -168,7 +179,9 @@
               :title ~(t "settings.limit")
               :key downloads.limit
               :current ~settings.downloads.limit
-              :options ~(map (fn [it] {:value it :title (if (= it 0) (t "settings.noLimit") (t "settings.limitValue" {:n it}))})
+              :options ~(map (fn [it]
+                               {:value it
+                                :title (if (= it 0) (t "settings.noLimit") (t "settings.limitValue" {:n it}))})
                              [0 10 25])})
      (row#settings-while-playing :anchors {:left 0 :right 0 :top 72} :height 30 :alignItems center
        (label :grow 1 :height 22 :text ~(t "settings.whilePlaying") :textColor @color.text)
@@ -185,7 +198,10 @@
        :height 36
        :text ~(t "settings.cacheNote")
        :textColor @color.muted)
-     (node#settings-clear-cache :style pillButton :anchors {:left 0 :top 186} :text ~(t "settings.clearCache") :onClick clearCache)))
+     (node#settings-clear-cache :style pillButton
+       :anchors {:left 0 :top 186}
+       :text ~(t "settings.clearCache")
+       :onClick clearCache)))
 
 ;;; Storage
 
@@ -201,18 +217,26 @@
   [i]
   `(get ["@color.accent" "@color.play" "@color.online" "@color.warm" "@color.link"] (mod ~i 5)))
 
-(defcomponent settingsStorage "The storage page: the drive's use, a bar of the games on it, and each game with a way to uninstall it."
+(defcomponent settingsStorage
+  "The storage page: the drive's use, a bar of the games on it, and each game with a way to uninstall it."
   {}
   `(node :fill true :color transparent
      (node :style sectionCaps :text ~(upper-case (t "settings.drive")))
-     (label#storage-used :font small :anchors {:left 0 :right 0 :top 22} :height 18 :text ~(used-text) :textColor @color.text)
-     (row#storage-bar :anchors {:left 0 :right 0 :top 46} :height 12 :radius 6 :color @color.raised :label ~(used-text)
+     (label#storage-used :font small
+       :anchors {:left 0 :right 0 :top 22}
+       :height 18
+       :text ~(used-text)
+       :textColor @color.text)
+     (row#storage-bar :anchors {:left 0 :right 0 :top 46}
+       :height 12
+       :radius 6
+       :color @color.raised
+       :label ~(used-text)
        (node :width "18%" :alignSelf stretch :color @color.dim)
        ~(repeat [g computed.installedGames :index i]
           `(node :width ~(str (text (/ g.sizeGb 10)) "%") :alignSelf stretch :color ~(game-colour i))))
      (column#storage-games :anchors {:left 0 :right 0 :top 72 :bottom 0} :scroll vertical
-       ~(repeat [g computed.installedGames :index i]
-          (storage-game g i)))))
+       ~(repeat [g computed.installedGames :index i] (storage-game g i)))))
 
 (defview storage-game "An installed game on the storage page: its colour, name and size, and Uninstall." [g i]
   `(row :id ~(str "storage-" g.id) :anchors {:left 0 :right 0} :height 32 :gap 10 :alignItems center
@@ -259,5 +283,11 @@
        :fitText true
        :text ~(formatCurrency state.user.wallet "EUR")
        :textColor @color.text)
-     (node#settings-redeem :style pillButton :anchors {:left 0 :top 144} :text ~(t "menu.redeem") :onClick ~(handler openCode "redeem"))
-     (node#settings-sign-out :style pillButton :anchors {:left 0 :top 196} :text ~(t "account.signOut") :onClick signOut)))
+     (node#settings-redeem :style pillButton
+       :anchors {:left 0 :top 144}
+       :text ~(t "menu.redeem")
+       :onClick ~(handler openCode "redeem"))
+     (node#settings-sign-out :style pillButton
+       :anchors {:left 0 :top 196}
+       :text ~(t "account.signOut")
+       :onClick signOut)))

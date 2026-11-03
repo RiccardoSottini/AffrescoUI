@@ -96,7 +96,8 @@
 
 ;;; Backups, information and notices
 
-(defcomponent backupDialog "Back up which games are installed (and how they are set up) to a file, or put a backup back."
+(defcomponent backupDialog
+  "Back up which games are installed (and how they are set up) to a file, or put a backup back."
   {}
   `(node :use dialog
      :with {:open state.backup.open
@@ -154,7 +155,11 @@
      :gradient {:kind radial :stops [@color.raised @color.top]}
      (column :width 320 :height 300 :gap 14 :alignItems center :role dialog :label ~(t "signIn.title")
        (label :font logo :fitText true :text "Arcadia" :textColor @color.accent)
-       (image :file ~(str "../assets/art/avatars/" state.user.avatar ".svg") :width 72 :height 72 :radius 36 :fit cover)
+       (image :file ~(str "../assets/art/avatars/" state.user.avatar ".svg")
+         :width 72
+         :height 72
+         :radius 36
+         :fit cover)
        (label :font heading :fitText true :text ~state.user.name :textColor @color.bright)
        (node#sign-in :style pillButton
          :color @color.accent
@@ -166,13 +171,18 @@
 
 ;;; Couch mode
 
-(defcomponent couchMode "Couch mode: big tiles of the games played last; left and right choose, Enter plays, Escape leaves."
+(defcomponent couchMode
+  "Couch mode: big tiles of the games played last; left and right choose, Enter plays, Escape leaves."
   {}
   `(node#couch :overlay {:placement window :open state.couch.open :modal true}
      :fill true
      :gradient {:kind linear :angle 160 :stops [@color.select @color.top]}
      (label :font logo :anchors {:left 48 :top 32} :fitText true :text "Arcadia" :textColor @color.accent)
-     (node#couch-leave :style pillButton :anchors {:right 48 :top 44} :icon x :text ~(t "couch.leave") :onClick leaveCouch)
+     (node#couch-leave :style pillButton
+       :anchors {:right 48 :top 44}
+       :icon x
+       :text ~(t "couch.leave")
+       :onClick leaveCouch)
      ~(couch-shelf)
      (label :font logo
        :anchors {:left 48 :right 48 :top 500}
@@ -195,7 +205,10 @@
             :right ~(handler couchMove 1)
             :enter ~(handler primary computed.couchGame)
             :escape leaveCouch}
-     ~(repeat [g (slice computed.couchGames (max 0 (- state.couch.at 1)) (+ (max 0 (- state.couch.at 1)) 6)) :index i]
+     ~(repeat [g
+               (slice computed.couchGames (max 0 (- state.couch.at 1)) (+ (max 0 (- state.couch.at 1)) 6))
+               :index
+               i]
         (couch-cover g))))
 
 (defview couch-cover "A game's cover on the couch shelf; a click chooses it." [g]

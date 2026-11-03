@@ -13,7 +13,8 @@
 
 ;;; The page
 
-(defcomponent profilePage "The profile: the banner, the numbers, then the showcase and recent games beside the friends."
+(defcomponent profilePage
+  "The profile: the banner, the numbers, then the showcase and recent games beside the friends."
   {}
   `(node#profile-page :fill true :color @color.page
      (column#profile-scroll :fill true :scroll vertical
@@ -33,12 +34,18 @@
      (panel :color transparent :width 16 :height 1)
      (node :use avatar :with {:avatar ~state.user.avatar :presence ~state.user.status :size 132})
      (column :grow 1 :height 84 :gap 6 :alignSelf center
-       (label#profile-name :font logo :text ~state.user.name :textColor @color.bright :anchors {:left 0 :right 0} :height 58 :role heading)
+       (label#profile-name :font logo
+         :text ~state.user.name
+         :textColor @color.bright
+         :anchors {:left 0 :right 0}
+         :height 58
+         :role heading)
        (label :anchors {:left 0 :right 0}
          :height 20
          :textColor @color.muted
          :text ~(t "profile.sinceStatus"
-                   {:since (t "profile.since" {:year (text state.user.since)}) :status (t (str "presence." state.user.status))})))
+                   {:since (t "profile.since" {:year (text state.user.since)})
+                    :status (t (str "presence." state.user.status))})))
      (column#profile-level :width 140 :height 120 :gap 6 :alignItems center :alignSelf center
        (label :font small :text ~(t "profile.level") :textColor @color.muted :fitText true)
        (label :font nav
@@ -63,7 +70,9 @@
   `(row#profile-stats :height 88 :anchors {:left 40 :right 40} :gap 24 :alignItems center
      (node :use profileStat :with {:id stat-games :value ~(count computed.owned) :title ~(t "profile.games")})
      (node :use profileStat
-       :with {:id stat-hours :value ~(formatNumber (sum computed.owned (fn [it] it.hours)) 0 0) :title ~(t "profile.hours")})
+       :with {:id stat-hours
+              :value ~(formatNumber (sum computed.owned (fn [it] it.hours)) 0 0)
+              :title ~(t "profile.hours")})
      (node :use profileStat
        :with {:id stat-achievements
               :value ~(sum computed.owned (fn [it] (or-else it.achievements.0 0)))
@@ -80,10 +89,10 @@
        ~(repeat [g (slice (filter (fn [it] it.favourite) computed.owned) 0 5) :key g.id]
           `(node :use capsule :with {:game ~g :width 116})))
      (label :style caps :height 18 :anchors {:left 0 :right 0} :role heading :text ~(t "profile.recent"))
-     ~(repeat [g computed.profileRecent :key g.id]
-        (recent-game g))))
+     ~(repeat [g computed.profileRecent :key g.id] (recent-game g))))
 
-(defview recent-game "A game played lately: its banner, name and hours, and how many of its achievements are won." [g]
+(defview recent-game "A game played lately: its banner, name and hours, and how many of its achievements are won."
+  [g]
   `(row :id ~(str "profile-recent-" g.id)
      :height 84
      :anchors {:left 0 :right 0}
@@ -100,7 +109,11 @@
      (image :file ~(str "../assets/art/" g.id "/hero.svg") :width 150 :height 64 :fit cover :radius 3)
      (column :grow 1 :height 40 :gap 4 :alignSelf center
        (label :font strong :text ~g.title :textColor @color.bright :anchors {:left 0 :right 0} :height 18)
-       (label :font small :anchors {:left 0 :right 0} :height 16 :textColor @color.muted :text ~(t "game.hoursTotal" {:n g.hours})))
+       (label :font small
+         :anchors {:left 0 :right 0}
+         :height 16
+         :textColor @color.muted
+         :text ~(t "game.hoursTotal" {:n g.hours})))
      ~(achievements g)
      (panel :color transparent :width 16 :height 1)))
 
@@ -122,7 +135,11 @@
 (defview profile-friends "The friends, those online first: eight, each opening their chat." []
   `(column#profile-friends :width 260 :gap 8 :alignSelf stretch
      (panel :color transparent :width 1 :height 16)
-     (label :style caps :height 18 :anchors {:left 0 :right 0} :role heading :text ~(t "profile.friendsCount" {:n (count data.friends)}))
+     (label :style caps
+       :height 18
+       :anchors {:left 0 :right 0}
+       :role heading
+       :text ~(t "profile.friendsCount" {:n (count data.friends)}))
      ~(repeat [f (slice (sort-by (fn [it] (if (= it.presence "offline") 1 0)) data.friends) 0 8) :key f.id]
         (profile-friend f))))
 

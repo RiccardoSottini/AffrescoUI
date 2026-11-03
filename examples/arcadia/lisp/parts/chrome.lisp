@@ -26,9 +26,11 @@
    {:icon user-plus :text notice.friend :who "NightDrifter" :unread true}
    {:icon tag :text notice.sale :n 2 :unread false}])
 
-(defcomputed download "The download in progress, if one is." (find (fn [it] (= it.status "downloading")) state.downloads))
+(defcomputed download "The download in progress, if one is."
+  (find (fn [it] (= it.status "downloading")) state.downloads))
 
-(defcomputed downloadGame "The game the download in progress is of." (find (fn [it] (= it.id computed.download.id)) data.games))
+(defcomputed downloadGame "The game the download in progress is of."
+  (find (fn [it] (= it.id computed.download.id)) data.games))
 
 (defcomputed unread "How many notifications are unread." (count (filter (fn [it] it.unread) state.notifications)))
 
@@ -62,11 +64,17 @@
   {}
   `(row :height 30 :anchors {:left 0 :right 0} :color @color.top :alignItems center
      ~(menu-bar)
-     (node#tv-button :style barButton :icon sofa :text "" :tooltip ~(t "menu.tv") :label ~(t "menu.tv") :onClick enterCouch)
+     (node#tv-button :style barButton
+       :icon sofa
+       :text ""
+       :tooltip ~(t "menu.tv")
+       :label ~(t "menu.tv")
+       :onClick enterCouch)
      ~(bell)
      ~(account-button)))
 
-(defview menu-bar "The client's menus, in the order a desktop app has them: Arcadia, View, Friends, Games and Help." []
+(defview menu-bar "The client's menus, in the order a desktop app has them: Arcadia, View, Friends, Games and Help."
+  []
   `(node#menus :use menuBar
      :grow 1
      :with {:height 30
@@ -77,58 +85,62 @@
             :menus [~(app-menu) ~(view-menu) ~(friends-menu) ~(games-menu) ~(help-menu)]}))
 
 (defview app-menu "The Arcadia menu: the account, offline mode, updates, the backup and Settings." []
-  `{:name app
-    :title ~(t "menu.app")
-    :items [{:title ~(t "menu.changeAccount") :run signOut}
-            {:title ~(t "menu.offline") :run toggleOffline :checked ~state.session.offline}
-            {:separator true}
-            {:title ~(t "menu.updates") :run checkUpdates}
-            {:title ~(t "menu.backup") :run openBackup}
-            {:title ~(t "menu.settings") :run openSettings :with {:page interface} :keyLabel "⌘,"}
-            {:separator true}
-            {:title ~(t "menu.exit") :enabled false}]})
+  `(node :name app
+     :title ~(t "menu.app")
+     :items [{:title ~(t "menu.changeAccount") :run signOut}
+             {:title ~(t "menu.offline") :run toggleOffline :checked ~state.session.offline}
+             {:separator true}
+             {:title ~(t "menu.updates") :run checkUpdates}
+             {:title ~(t "menu.backup") :run openBackup}
+             {:title ~(t "menu.settings") :run openSettings :with {:page interface} :keyLabel "⌘,"}
+             {:separator true}
+             {:title ~(t "menu.exit") :enabled false}]))
 
 (defview view-menu "The View menu: couch mode, the pages, the theme and the language." []
-  `{:name view
-    :title ~(t "menu.view")
-    :items [{:title ~(t "menu.tv") :run enterCouch}
-            {:separator true}
-            {:title ~(t "nav.store") :run showStore :keyLabel "⌘1"}
-            {:title ~(t "nav.library") :run showLibrary :keyLabel "⌘2"}
-            {:title ~(t "nav.community") :run showCommunity :keyLabel "⌘3"}
-            {:title ~(t "menu.downloads") :run showDownloads}
-            {:separator true}
-            {:title ~(t "menu.theme") :run toggleTheme}
-            {:title ~(t "menu.language") :run nextLanguage}]})
+  `(node :name view
+     :title ~(t "menu.view")
+     :items [{:title ~(t "menu.tv") :run enterCouch}
+             {:separator true}
+             {:title ~(t "nav.store") :run showStore :keyLabel "⌘1"}
+             {:title ~(t "nav.library") :run showLibrary :keyLabel "⌘2"}
+             {:title ~(t "nav.community") :run showCommunity :keyLabel "⌘3"}
+             {:title ~(t "menu.downloads") :run showDownloads}
+             {:separator true}
+             {:title ~(t "menu.theme") :run toggleTheme}
+             {:title ~(t "menu.language") :run nextLanguage}]))
 
-(defview presence-item "An item of the Friends menu that sets how the person shows to friends, checked when it is so."
+(defview presence-item
+  "An item of the Friends menu that sets how the person shows to friends, checked when it is so."
   [status]
-  `{:title ~(t (str "presence." status)) :checked ~(= state.user.status status) :run setStatus :with {:status ~status}})
+  `(node :title ~(t (str "presence." status))
+     :checked ~(= state.user.status status)
+     :run setStatus
+     :with {:status ~status}))
 
 (defview friends-menu "The Friends menu: the list, adding a friend, and how the person shows to friends." []
-  `{:name friends
-    :title ~(t "menu.friends")
-    :items [{:title ~(t "menu.friendsList") :run showCommunity}
-            {:title ~(t "menu.addFriend") :run addFriendDialog}
-            {:separator true}
-            ~@(map presence-item ["online" "away" "invisible" "offline"])]})
+  `(node :name friends
+     :title ~(t "menu.friends")
+     :items [{:title ~(t "menu.friendsList") :run showCommunity}
+             {:title ~(t "menu.addFriend") :run addFriendDialog}
+             {:separator true}
+             ~@(map presence-item ["online" "away" "invisible" "offline"])]))
 
 (defview games-menu "The Games menu: the library, product keys, gift codes and a game from this computer." []
-  `{:name games
-    :title ~(t "menu.games")
-    :items [{:title ~(t "menu.viewLibrary") :run showLibrary}
-            {:title ~(t "menu.activate") :run openCode :with {:kind activate}}
-            {:title ~(t "menu.redeem") :run openCode :with {:kind redeem}}
-            {:title ~(t "menu.addOther") :run openAddGame}]})
+  `(node :name games
+     :title ~(t "menu.games")
+     :items [{:title ~(t "menu.viewLibrary") :run showLibrary}
+             {:title ~(t "menu.activate") :run openCode :with {:kind activate}}
+             {:title ~(t "menu.redeem") :run openCode :with {:kind redeem}}
+             {:title ~(t "menu.addOther") :run openAddGame}]))
 
 (defview help-menu "The Help menu: support, privacy, the system's details and About." []
-  `{:name help
-    :title ~(t "menu.help")
-    :items [{:title ~(t "menu.support") :run showInfo :with {:kind support}}
-            {:title ~(t "menu.privacy") :run showInfo :with {:kind privacy}}
-            {:title ~(t "menu.system") :run showInfo :with {:kind system}}
-            {:separator true}
-            {:title ~(t "menu.about") :run showInfo :with {:kind about}}]})
+  `(node :name help
+     :title ~(t "menu.help")
+     :items [{:title ~(t "menu.support") :run showInfo :with {:kind support}}
+             {:title ~(t "menu.privacy") :run showInfo :with {:kind privacy}}
+             {:title ~(t "menu.system") :run showInfo :with {:kind system}}
+             {:separator true}
+             {:title ~(t "menu.about") :run showInfo :with {:kind about}}]))
 
 (defview bell "The bell, lit with the number of unread notifications, and their menu." []
   `(node#bell :style barButton
@@ -145,7 +157,10 @@
               :icons true
               :placement below-end
               :items ~(map-indexed (fn [index it]
-                                     {:title (t it.text {:game (or-else it.game "") :who (or-else it.who "") :n (or-else it.n 0)})
+                                     {:title (t it.text
+                                                {:game (or-else it.game "")
+                                                 :who (or-else it.who "")
+                                                 :n (or-else it.n 0)})
                                       :icon it.icon
                                       :run "openNotice"
                                       :with {:i index}})
@@ -171,11 +186,16 @@
        :borderWidth 1
        :borderColor @color.online)
      (label#account-name :font small :text ~state.user.name :textColor @color.online :fitText true)
-     (label#account-wallet :font small :text ~(formatCurrency state.user.wallet "EUR") :textColor @color.muted :fitText true)
+     (label#account-wallet :font small
+       :text ~(formatCurrency state.user.wallet "EUR")
+       :textColor @color.muted
+       :fitText true)
      (label#account-chevron :font small :icon chevron-down :text "" :textColor @color.muted :fitText true)
      ~(account-menu)))
 
-(defview account-menu "The account's menu: the profile, the account's details, the wallet, the language, signing out." []
+(defview account-menu
+  "The account's menu: the profile, the account's details, the wallet, the language, signing out."
+  []
   `(node :use menu
      :with {:open state.accountOpen
             :width 240
@@ -235,7 +255,13 @@
      :hover {:textColor @color.bright}))
 
 (defview nav-tabs "The store, the library, friends and the profile: one segmented group, the page shown lit." []
-  `(row#nav-tabs :height 38 :fitContent width :gap 2 :radius 19 :alignItems center :color @color.side :arrows horizontal
+  `(row#nav-tabs :height 38
+     :fitContent width
+     :gap 2
+     :radius 19
+     :alignItems center
+     :color @color.side
+     :arrows horizontal
      :role tablist
      (panel :width 2 :height 1 :color transparent)
      ~(repeat [tab ["store" "library" "community" "profile"]]
@@ -297,7 +323,9 @@
          :percent (floor (* (/ computed.download.doneGb computed.downloadGame.sizeGb) 100))})
      (t "bottom.manage")))
 
-(defview downloads-status "The download in progress, with its bar, in the middle of the bottom bar: it opens the downloads." []
+(defview downloads-status
+  "The download in progress, with its bar, in the middle of the bottom bar: it opens the downloads."
+  []
   `(row#downloads-status :width 340
      :height 34
      :gap 10
@@ -309,7 +337,11 @@
      :hover {:color @color.hover}
      :onClick showDownloads
      :label ~(download-line)
-     (label :icon download :text "" :textColor ~(if computed.download "@color.accent" "@color.muted") :fitText true :padding 6)
+     (label :icon download
+       :text ""
+       :textColor ~(if computed.download "@color.accent" "@color.muted")
+       :fitText true
+       :padding 6)
      (column :grow 1 :height 30 :gap 5
        (label#downloads-text :font small
          :anchors {:left 0 :right 0}
@@ -319,7 +351,11 @@
        ~(download-track))))
 
 (defview download-track "The download's progress, a bar that fills from the left." []
-  `(node#downloads-track :when ~(some? computed.download) :anchors {:left 0 :right 0} :height 4 :color @color.raised :radius 2
+  `(node#downloads-track :when ~(some? computed.download)
+     :anchors {:left 0 :right 0}
+     :height 4
+     :color @color.raised
+     :radius 2
      (node#downloads-fill :anchors {:left 0 :top 0 :bottom 0}
        :radius 2
        :width ~(str (text (floor (/ (* 100 computed.download.doneGb) computed.downloadGame.sizeGb))) "%")
@@ -327,6 +363,7 @@
 
 ;;; A page not made yet
 
-(defcomponent comingSoon "A page of the navigation Arcadia has no page for yet: its name, dimmed." {}
+(defcomponent comingSoon "A page of the navigation Arcadia has no page for yet: its name, dimmed."
+  {}
   `(node :fill true :color @color.page
      (label :font heading :text ~(t (str "nav." computed.here.tab)) :textColor @color.muted :align center :fill true)))

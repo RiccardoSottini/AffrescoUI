@@ -10,8 +10,54 @@
 (defstate dlTick 0)
 
 (defstate dlRate
-  [22 31 38 35 41 44 39 36 42 47 45 40 38 43 49 52 46 41 39 44 48 45 42 40
-   37 41 46 50 47 43 39 36 40 44 47 45 41 38 42 46 49 45 41 39 43 46 44 38])
+  [22
+   31
+   38
+   35
+   41
+   44
+   39
+   36
+   42
+   47
+   45
+   40
+   38
+   43
+   49
+   52
+   46
+   41
+   39
+   44
+   48
+   45
+   42
+   40
+   37
+   41
+   46
+   50
+   47
+   43
+   39
+   36
+   40
+   44
+   47
+   45
+   41
+   38
+   42
+   46
+   49
+   45
+   41
+   39
+   43
+   46
+   44
+   38])
 
 (defcomputed dlSize "The size of the download in progress, in GB."
   (if (nil? computed.download) 0 (or-else computed.download.sizeGb computed.downloadGame.sizeGb)))
@@ -19,7 +65,8 @@
 (defcomputed dlQueue "The downloads waiting, each with its place in the list of downloads."
   (filter (fn [it] (= it.d.status "queued")) (map-indexed (fn [index it] {:d it :at index}) state.downloads)))
 
-(defcomputed dlParked "The downloads taken off the schedule." (filter (fn [it] (= it.status "paused")) state.downloads))
+(defcomputed dlParked "The downloads taken off the schedule."
+  (filter (fn [it] (= it.status "paused")) state.downloads))
 
 (defcomputed dlDone "The downloads finished." (filter (fn [it] (= it.status "done")) state.downloads))
 
@@ -59,11 +106,13 @@
 
 ;;; The page
 
-(defcomponent downloadsPage "Downloads: the current one with its graph, the queue to reorder, unscheduled items and completed ones."
+(defcomponent downloadsPage
+  "Downloads: the current one with its graph, the queue to reorder, unscheduled items and completed ones."
   {}
   `(node#downloads :fill true :color @color.page :every {:ms 1000 :do downloadTick}
      (column#dl-scroll :fill true :scroll vertical
-       (column :height ~(+ 420 (* 92 (+ (count computed.dlQueue) (count computed.dlParked) (count computed.dlDone))))
+       (column :height ~(+ 420
+                           (* 92 (+ (count computed.dlQueue) (count computed.dlParked) (count computed.dlDone))))
          :anchors {:left 0 :right 0}
          (node :use dlCurrent)
          ~(download-lists)))))
@@ -85,19 +134,16 @@
        :height 30
        :anchors {:left 0 :right 0}
        :textColor @color.dim)
-     ~(repeat [q computed.dlQueue :index k :key q.d.id]
-        (queued-download q k))
+     ~(repeat [q computed.dlQueue :index k :key q.d.id] (queued-download q k))
      (panel :color transparent :height 8 :width 1)
      (row#dl-parked :height 44 :anchors {:left 0 :right 0} :gap 8 :alignItems center
        (label :text ~(upper-case (t "dl.unscheduled")) :fitText true :font caps :textColor @color.bright)
        (label :text ~(str "(" (count computed.dlParked) ")") :fitText true :font small :textColor @color.muted)
        (panel :color transparent :grow 1 :height 1))
-     ~(repeat [d computed.dlParked :key d.id]
-        (parked-download d))
+     ~(repeat [d computed.dlParked :key d.id] (parked-download d))
      (panel :color transparent :height 8 :width 1)
      ~(done-heading)
-     ~(repeat [d computed.dlDone :key d.id]
-        (done-download d))))
+     ~(repeat [d computed.dlDone :key d.id] (done-download d))))
 
 (defview done-heading "The completed downloads' heading, with Clear all." []
   `(row#dl-done :height 44 :anchors {:left 0 :right 0} :gap 8 :alignItems center
@@ -118,12 +164,21 @@
 
 ;;; The download in progress
 
-(defcomponent dlCurrent "The current download over its art: capsule, title, progress, pause, and the graph with its figures."
+(defcomponent dlCurrent
+  "The current download over its art: capsule, title, progress, pause, and the graph with its figures."
   {}
   `(node#dl-current :height 230 :anchors {:left 0 :right 0} :color @dl.band
-     (image :when ~(some? computed.download) :fill true :fit cover :file ~(str "../assets/art/" computed.download.id "/hero.svg"))
+     (image :when ~(some? computed.download)
+       :fill true
+       :fit cover
+       :file ~(str "../assets/art/" computed.download.id "/hero.svg"))
      (node :fill true :color @dl.shade)
-     (label :when ~(nil? computed.download) :font heading :text ~(t "dl.idle") :fill true :align center :textColor @color.muted)
+     (label :when ~(nil? computed.download)
+       :font heading
+       :text ~(t "dl.idle")
+       :fill true
+       :align center
+       :textColor @color.muted)
      (row :when ~(some? computed.download) :anchors {:left 24 :right 24 :top 24 :bottom 24} :gap 20
        (image :file ~(str "../assets/art/" computed.download.id "/hero.svg")
          :fit cover
@@ -135,9 +190,14 @@
        ~(current-progress)
        ~(current-graph))))
 
-(defview current-progress "The game's title, what it is doing, its bar with Pause, and how much is done and left." []
+(defview current-progress "The game's title, what it is doing, its bar with Pause, and how much is done and left."
+  []
   `(column :grow 1 :height 182 :gap 6
-     (label#dl-title :font title :text ~computed.downloadGame.title :height 36 :anchors {:left 0 :right 0} :textColor @color.bright)
+     (label#dl-title :font title
+       :text ~computed.downloadGame.title
+       :height 36
+       :anchors {:left 0 :right 0}
+       :textColor @color.bright)
      (label :font caps
        :text ~(upper-case (cond state.dlPaused (t "dl.paused")
                                 (= computed.download.kind "update") (t "dl.updating")
@@ -148,12 +208,16 @@
      (panel :color transparent :height 8 :width 1)
      ~(progress-bar)
      (row :height 20 :anchors {:left 0 :right 0} :gap 16
-       (label :text ~(t "dl.sizeOf" {:done (formatNumber computed.download.doneGb 1 1) :size (formatNumber computed.dlSize 1 1)})
+       (label :text ~(t "dl.sizeOf"
+                        {:done (formatNumber computed.download.doneGb 1 1) :size (formatNumber computed.dlSize 1 1)})
          :fitText true
          :font small
          :textColor @color.text)
        (panel :color transparent :grow 1 :height 1)
-       (label :text ~(if state.dlPaused "" (t "dl.left" {:n computed.dlLeft})) :fitText true :font small :textColor @color.muted))))
+       (label :text ~(if state.dlPaused "" (t "dl.left" {:n computed.dlLeft}))
+         :fitText true
+         :font small
+         :textColor @color.muted))))
 
 (defview progress-bar "The download's bar, grey while paused, and the button that pauses or resumes it." []
   `(row :height 30 :anchors {:left 0 :right 0} :gap 12 :alignItems center
@@ -181,12 +245,18 @@
   `(column :width 336 :height 182 :gap 8
      (node :use dlGraph)
      (row :height 40 :anchors {:left 0 :right 0} :gap 4
-       (node :use dlStat :with {:label ~(t "dl.current") :value ~(t "dl.rate" {:n (formatNumber computed.dlNow 1 1)}) :color @dl.net})
+       (node :use dlStat
+         :with {:label ~(t "dl.current")
+                :value ~(t "dl.rate" {:n (formatNumber computed.dlNow 1 1)})
+                :color @dl.net})
        (node :use dlStat :with {:label ~(t "dl.peak") :value ~(t "dl.rate" {:n (formatNumber computed.dlPeak 1 1)})})
        (node :use dlStat
-         :with {:label ~(t "dl.disk") :value ~(t "dl.rate" {:n (formatNumber (* computed.dlNow 0.82) 1 1)}) :color @dl.disk}))))
+         :with {:label ~(t "dl.disk")
+                :value ~(t "dl.rate" {:n (formatNumber (* computed.dlNow 0.82) 1 1)})
+                :color @dl.disk}))))
 
-(defcomponent dlGraph "The network rate as bars and the disk rate as a line over the last samples, newest on the right."
+(defcomponent dlGraph
+  "The network rate as bars and the disk rate as a line over the last samples, newest on the right."
   {}
   `(row#dl-graph :width 336 :height 110 :gap 1 :alignItems end :color "#00000033"
      ~(repeat [r state.dlRate :index k]
@@ -234,7 +304,13 @@
        :textColor @color.muted)))
 
 (defview queued-download "A download in the queue: up, down, download now, unschedule and remove." [q k]
-  `(row :id ~(str "dl-q-" q.d.id) :height 86 :anchors {:left 0 :right 0} :gap 16 :alignItems center :color @dl.row :radius 2
+  `(row :id ~(str "dl-q-" q.d.id)
+     :height 86
+     :anchors {:left 0 :right 0}
+     :gap 16
+     :alignItems center
+     :color @dl.row
+     :radius 2
      :hover {:color @dl.rowHover}
      (panel :color transparent :width 8 :height 1)
      ~(download-art 'q.d.id)
@@ -267,7 +343,13 @@
      (panel :color transparent :width 8 :height 1)))
 
 (defview parked-download "An unscheduled download: download now, and remove." [d]
-  `(row :id ~(str "dl-p-" d.id) :height 86 :anchors {:left 0 :right 0} :gap 16 :alignItems center :color @dl.row :radius 2
+  `(row :id ~(str "dl-p-" d.id)
+     :height 86
+     :anchors {:left 0 :right 0}
+     :gap 16
+     :alignItems center
+     :color @dl.row
+     :radius 2
      :hover {:color @dl.rowHover}
      (panel :color transparent :width 8 :height 1)
      ~(download-art 'd.id)
@@ -278,7 +360,13 @@
      (panel :color transparent :width 8 :height 1)))
 
 (defview done-download "A completed download: its size, Play, and remove from the list." [d]
-  `(row :id ~(str "dl-d-" d.id) :height 86 :anchors {:left 0 :right 0} :gap 16 :alignItems center :color @dl.row :radius 2
+  `(row :id ~(str "dl-d-" d.id)
+     :height 86
+     :anchors {:left 0 :right 0}
+     :gap 16
+     :alignItems center
+     :color @dl.row
+     :radius 2
      :hover {:color @dl.rowHover}
      (panel :color transparent :width 8 :height 1)
      ~(download-art 'd.id)
@@ -291,7 +379,8 @@
          :cursor hand
          :onClick ~(handler openGame d.id))
        (label :font small
-         :text ~(t "dl.doneSize" {:n (formatNumber (or-else d.sizeGb (:sizeGb (find (fn [it] (= it.id d.id)) data.games))) 1 1)})
+         :text ~(t "dl.doneSize"
+                   {:n (formatNumber (or-else d.sizeGb (:sizeGb (find (fn [it] (= it.id d.id)) data.games))) 1 1)})
          :height 18
          :anchors {:left 0 :right 0}
          :textColor @color.muted))

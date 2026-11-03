@@ -40,8 +40,7 @@
 
 (defcomputed storeRows "The eight games of the list's tab: the newest, the most reviewed, or the biggest discounts."
   (cond (= state.storeList "top") (slice (sort-by (fn [it] it.reviewCount) > computed.storeGames) 0 8)
-        (= state.storeList "specials")
-          (slice (sort-by (fn [it] it.discount) > (filter (fn [it] (> it.discount 0)) computed.storeGames)) 0 8)
+        (= state.storeList "specials") (slice (sort-by (fn [it] it.discount) > (filter (fn [it] (> it.discount 0)) computed.storeGames)) 0 8)
         :else (slice (reverse computed.storeGames) 0 8)))
 
 (defcomputed storePreview "The game previewed beside the list: the one under the pointer, else the first."
@@ -87,7 +86,8 @@
 
 ;;; The store's looks
 
-(deftokens store-colours "The store's colours: cards, chips, prices, the list's preview, the green buttons, the dots."
+(deftokens store-colours
+  "The store's colours: cards, chips, prices, the list's preview, the green buttons, the dots."
   {:store.glow {:dark "#3f2f4c" :light "#f0e3d2"}
    :store.card {:dark "#0000003d" :light "#ffffffd0"}
    :store.cardHover {:dark "#ffffff14" :light "#ffffff"}
@@ -280,7 +280,8 @@
        :hover {:textColor "#ffffff"}
        :onClick showCart)))
 
-(defview bar-link "A store bar link: Categories opens a menu of genres; Rewards and Experiments are for later." [item]
+(defview bar-link "A store bar link: Categories opens a menu of genres; Rewards and Experiments are for later."
+  [item]
   `(label :id ~(str "store-bar-" item)
      :let {:later ~(contains ["points" "labs"] item)}
      :fitText true
@@ -302,8 +303,16 @@
        :with {:open state.storeCatsOpen
               :width 200
               :items ~(map (fn [it] {:title (t (str "genre." it)) :run "storeSearch" :with {:query it}})
-                           ["Action" "Adventure" "Horror" "Platformer" "Puzzle"
-                            "Racing" "RPG" "Shooter" "Simulation" "Strategy"])})))
+                           ["Action"
+                            "Adventure"
+                            "Horror"
+                            "Platformer"
+                            "Puzzle"
+                            "Racing"
+                            "RPG"
+                            "Shooter"
+                            "Simulation"
+                            "Strategy"])})))
 
 (defview store-search "The store's search field, round, with a magnifier at its end." []
   `(textarea#store-search :width 200
@@ -388,7 +397,8 @@
        :gradient {:kind linear :stops ["#1a1220" "#2a1d33"]}
        ~(featured-details))))
 
-(defview featured-details "The featured game's name, its screenshots, why it is featured, its tags and its price." []
+(defview featured-details "The featured game's name, its screenshots, why it is featured, its tags and its price."
+  []
   `(column :anchors {:left 10 :right 10 :top 8 :bottom 10} :gap 6
      (label :font title :text ~computed.feature.title :textColor "#ffffff" :height 38 :anchors {:left 0 :right 0})
      ~(featured-shots)
@@ -413,7 +423,8 @@
        (panel :color transparent :grow 1 :height 1)
        (node :use priceTag :with {:g ~computed.feature}))))
 
-(defview featured-shots "Four of the featured game's pictures; the one under the pointer shows in the big picture." []
+(defview featured-shots "Four of the featured game's pictures; the one under the pointer shows in the big picture."
+  []
   `(row :wrap true :gap 4 :height 176 :anchors {:left 0 :right 0}
      ~(repeat [n [1 2 3 4]]
         `(node :width 150
@@ -628,7 +639,8 @@
 
 ;;; Search results
 
-(defcomponent storeResults "The search results: how many games were found, a button that clears the search, the games."
+(defcomponent storeResults
+  "The search results: how many games were found, a button that clears the search, the games."
   {}
   `(column#store-results :height ~(results-height) :anchors {:left 0 :right 0} :gap 5
      (row :height 50 :anchors {:left 0 :right 0} :alignItems center :gap 10

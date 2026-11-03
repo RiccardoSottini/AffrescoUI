@@ -30,14 +30,17 @@
 
 ;;; The window, and what is in it, in the order it is drawn
 
-(defscreen main "Arcadia's one window: the menu row, the navigation, the page, the bottom bar, and what opens over them."
+(defscreen main
+  "Arcadia's one window: the menu row, the navigation, the page, the bottom bar, and what opens over them."
   :window {:title "Arcadia"
            :width 1280
            :height 800
            :minWidth 1024
            :minHeight 680
            :focusRing {:color "#f5a524" :width 2 :offset 1}}
-  :strings {:default en :locale ~settings.appearance.language :keep ["Arcadia" "English" "Español" "Français" "XXXXX-XXXXX-XXXXX" "GIFT-XXXX-XXXX"]}
+  :strings {:default en
+            :locale ~settings.appearance.language
+            :keep ["Arcadia" "English" "Español" "Français" "XXXXX-XXXXX-XXXXX" "GIFT-XXXX-XXXX"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [icons]}
           :caps {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :bold true :fallback [icons]}

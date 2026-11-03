@@ -46,17 +46,13 @@
 (defcomponent storeCart
   "The cart: the games and their prices, the estimated total from the wallet, and a receipt after buying."
   {}
-  `(column#store-cart-page :height ~(+ 140 (cart-height))
-     :anchors {:left 0 :right 0}
+  `(column#store-cart-page :height ~(+ 140 (cart-height)) :anchors {:left 0 :right 0}
      (label :font title
        :text ~(upper-case (t "store.yourCart"))
        :textColor @color.bright
        :height 60
        :anchors {:left 0 :right 0})
-     (row :height ~(cart-height)
-       :anchors {:left 0 :right 0}
-       :gap 16
-       :alignItems start
+     (row :height ~(cart-height) :anchors {:left 0 :right 0} :gap 16 :alignItems start
        ~(cart-games)
        ~(cart-summary))))
 
@@ -78,7 +74,8 @@
          (node :use quietButton :with {:title ~(t "store.continue")} :onClick storeHome)))
      ~(repeat [g computed.cartGames :key g.id] (cart-item g))))
 
-(defview cart-item "A game in the cart: its banner, which opens its page, its name, what to do with it, its price." [g]
+(defview cart-item "A game in the cart: its banner, which opens its page, its name, what to do with it, its price."
+  [g]
   `(row :id ~(str "cart-" g.id)
      :height 100
      :anchors {:left 0 :right 0}
@@ -121,7 +118,8 @@
        :hover {:textColor @color.bright}
        :onClick ~(handler toWishlist g.id))))
 
-(defview cart-summary "The total, the taxes note, what the wallet will have left, Purchase and Continue shopping." []
+(defview cart-summary "The total, the taxes note, what the wallet will have left, Purchase and Continue shopping."
+  []
   `(column#cart-summary :width 308 :height 236 :color @store.card :radius 2 :gap 8
      (panel :color transparent :height 8 :width 1)
      (row :height 30 :anchors {:left 16 :right 16} :alignItems center
@@ -153,7 +151,8 @@
      (row :height 34 :anchors {:left 16 :right 16} :alignItems center
        (node :use quietButton :with {:title ~(t "store.continue")} :grow 1 :align center :onClick storeHome))))
 
-(defview receipt-card "After buying: thanks, each game bought with a button to install it, the way to the library." []
+(defview receipt-card "After buying: thanks, each game bought with a button to install it, the way to the library."
+  []
   `(column#receipt :when ~(> (count state.receipt) 0)
      :height ~(+ (* (count state.receipt) 40) 130)
      :anchors {:left 0 :right 0}
@@ -185,8 +184,7 @@
 (defcomponent storeWishlist
   "The wishlist: ranked games with their price and Add to Cart, searched, sorted, and moved up or down."
   {}
-  `(column#store-wishlist-page :height ~(wishlist-height)
-     :anchors {:left 0 :right 0}
+  `(column#store-wishlist-page :height ~(wishlist-height) :anchors {:left 0 :right 0}
      (row :height 60 :anchors {:left 0 :right 0} :alignItems center :gap 12
        (image :file ~(str "../assets/art/avatars/" state.user.avatar ".svg") :width 40 :height 40 :radius 2)
        (label :font title
@@ -299,7 +297,8 @@
        :hover {:textColor "#ffffff"}
        :onClick ~(handler wishDown i))))
 
-(defview wish-details "A wished game's name (which opens its page), reviews, release, tags, and when it was added." [g]
+(defview wish-details "A wished game's name (which opens its page), reviews, release, tags, and when it was added."
+  [g]
   `(column :grow 1 :height 100 :gap 4
      (label :font heading
        :text ~g.title
