@@ -1,391 +1,279 @@
-{:note "Haven's shell, included by index.screen.lisp: the sidebar's entries (open or folded to icons), the rooms as view tabs in the top bar, the entity search, and the alarm tile with its keypad."
- :state {:sidebarCollapsed false :alarmCode ""}
- :computed {:sideWidth "{{state.sidebarCollapsed ? 56 : 256}}"
-            :navPages "{{filter(state.pages, it.id != 'settings')}}"
-            :alarmColor "{{state.security == 'off' ? '@ok' : '@alert'}}"
-            :entities "{{concat(computed.lightEntities, map(state.rooms, { title: t('info.climate'), detail: it.name, icon: 'thermometer', run: 'openEntity', with: { room: index, kind: 'climate', i: 0 } }), map(state.rooms, { title: t('info.cover'), detail: it.name, icon: 'blinds', run: 'openEntity', with: { room: index, kind: 'cover', i: 0 } }), map(state.devices, { title: it.name, detail: t('info.home'), icon: it.icon, run: 'openEntity', with: { room: null, kind: 'device', i: index } }), [{ title: t('alarm.title'), detail: t('info.home'), icon: 'shield', run: 'openEntity', with: { room: null, kind: 'alarm', i: 0 } }])}}"
-            :lightEntities "{{concat(map(state.rooms[0].lights, { title: it.name, detail: state.rooms[0].name, icon: 'lightbulb', run: 'openEntity', with: { room: 0, kind: 'light', i: index } }), map(state.rooms[1].lights, { title: it.name, detail: state.rooms[1].name, icon: 'lightbulb', run: 'openEntity', with: { room: 1, kind: 'light', i: index } }), map(state.rooms[2].lights, { title: it.name, detail: state.rooms[2].name, icon: 'lightbulb', run: 'openEntity', with: { room: 2, kind: 'light', i: index } }), map(state.rooms[3].lights, { title: it.name, detail: state.rooms[3].name, icon: 'lightbulb', run: 'openEntity', with: { room: 3, kind: 'light', i: index } }))}}"}
- :components {:sideItem {:note "A sidebar entry: its icon, its title while the sidebar is open, and a count of what waits; the shown page is a filled pill"
-                         :params {:icon "" :title "" :selected false :keyLabel "" :badge 0}
-                         :node (node :anchors {:left 0 :right 0}
-                                 :height 40
-                                 :radius 20
-                                 :color "{{selected ? '@navSelected' : '@sidebar'}}"
-                                 :hover {:color "{{selected ? '@navSelected' : '@raised'}}"}
-                                 :cursor hand
-                                 :focusable true
-                                 :selected "{{selected}}"
-                                 :label "{{title}}"
-                                 :tooltip "{{state.sidebarCollapsed ? title + (keyLabel ? ' (' + keyLabel + ')' : '') : keyLabel}}"
-                                 (label :font iconsMedium
-                                   :icon "{{icon}}"
-                                   :text ""
-                                   :textColor "{{selected ? '@onNavSelected' : '@muted'}}"
-                                   :anchors {:left 8 :top 8}
-                                   :width 24
-                                   :height 24
-                                   :align center)
-                                 (label :when "{{!state.sidebarCollapsed}}"
-                                   :text "{{title}}"
-                                   :textColor "{{selected ? '@onNavSelected' : '@text'}}"
-                                   :anchors {:left 48 :right 40 :top 0 :bottom 0}
-                                   :align {:horizontal start :vertical center})
-                                 (label :when "{{badge > 0}}"
-                                   :font small
-                                   :text "{{min(badge, 9)}}"
-                                   :textColor @onAccent
-                                   :color @accent
-                                   :anchors {:left "{{state.sidebarCollapsed ? 22 : 196}}"
-                                             :top "{{state.sidebarCollapsed ? 2 : 10}}"}
-                                   :width 20
-                                   :height 20
-                                   :radius 10
-                                   :align center))}
-              :quickPick {:note "Replaces the kit's quick pick with the same search and keys: a rounded dialog with a filled field (a magnifier and a clear button), then each result's icon, name and area"
-                          :params {:name quickPick
-                                   :providers []
-                                   :rows 7
-                                   :rowHeight 56
-                                   :width 560
-                                   :limit 1000
-                                   :recentLimit 10
-                                   :highlight @accentSoft}
-                          :node (node :overlay {:placement window
-                                                :open "{{'state.' + name + '.open'}}"
-                                                :dismiss outside
-                                                :modal true}
-                                  :x "{{max(0, (window.width - width) / 2)}}"
-                                  :y 48
-                                  :width "{{width}}"
-                                  :height "{{104 + max(1, min(total, rows)) * rowHeight}}"
-                                  :color @card
-                                  :radius 24
-                                  :shadow {:y 8 :blur 24 :color "#00000047"}
-                                  :role dialog
-                                  :label "{{provider.placeholder}}"
-                                  :let {:base "{{'state.' + name}}"
-                                        :qp "{{state[name]}}"
-                                        :q "{{qp.query ?? ''}}"
-                                        :provider "{{find(providers, length(it.prefix ?? '') > 0 && indexOf(q, it.prefix) == 0) ?? find(providers, length(it.prefix ?? '') == 0)}}"
-                                        :search "{{slice(q, length(provider.prefix ?? ''))}}"
-                                        :key "{{provider.key ?? 'title'}}"
-                                        :home "{{length(provider.prefix ?? '') == 0}}"
-                                        :recent "{{home ? qp.recent ?? [] : []}}"
-                                        :recentKeys "{{map(recent, it[key])}}"
-                                        :recentHits "{{fuzzySort(recent, search, key)}}"
-                                        :results "{{slice(concat(recentHits, filter(fuzzySort(provider.items, search, key, limit + length(recent)), !contains(recentKeys, it.item[key]))), 0, limit)}}"
-                                        :total "{{length(results)}}"
-                                        :sel "{{clamp(qp.index ?? 0, 0, max(0, total - 1))}}"
-                                        :top "{{clamp(qp.top ?? 0, 0, max(0, total - rows))}}"}
-                                  :keys {:down [{:set "{{base + '.top'}}"
-                                                 :to "{{max(top, min(sel + 1, total - 1) - rows + 1)}}"}
-                                                {:set "{{base + '.index'}}" :to "{{min(sel + 1, max(0, total - 1))}}"}]
-                                         :up [{:set "{{base + '.top'}}" :to "{{min(top, max(sel - 1, 0))}}"}
-                                              {:set "{{base + '.index'}}" :to "{{max(sel - 1, 0)}}"}]
-                                         :enter [{:if "{{total > 0}}"
-                                                  :then [{:forEach "{{[results[sel]]}}"
-                                                          :as pick
-                                                          :do [{:set "{{base + '.open'}}" :to false}
-                                                               {:if "{{home}}"
-                                                                :then [{:set "{{base + '.recent'}}"
-                                                                        :to "{{slice(concat([pick.item], filter(qp.recent ?? [], it[key] != pick.item[key])), 0, recentLimit)}}"}]}
-                                                               {:forEach "{{[provider.run]}}"
-                                                                :as providerRun
-                                                                :do [{:set "{{base + '.query'}}" :to ""}
-                                                                     {:set "{{base + '.index'}}" :to 0}
-                                                                     {:set "{{base + '.top'}}" :to 0}
-                                                                     {:if "{{pick.item.run != null}}"
-                                                                      :then [{:run "{{pick.item.run}}"
-                                                                              :with "{{pick.item.with}}"}]
-                                                                      :else [{:if "{{providerRun != null}}"
-                                                                              :then [{:run "{{providerRun}}"
-                                                                                      :with "{{ {item: pick.item} }}"}]}]}]}]}]}]}
-                                  (node :anchors {:left 16 :right 16 :top 16}
-                                    :height 48
-                                    :radius {:topLeft 4 :topRight 4}
-                                    :color @raised
-                                    (label :font icons
-                                      :icon search
-                                      :text ""
-                                      :textColor @muted
-                                      :anchors {:left 10 :top 12}
-                                      :width 24
-                                      :height 24
-                                      :align center)
-                                    (textarea :bind "{{base + '.query'}}"
-                                      :autofocus true
-                                      :placeholder "{{provider.placeholder ?? ''}}"
-                                      :label "{{provider.placeholder ?? ''}}"
-                                      :anchors {:left 40 :right 44 :top 8}
-                                      :height 32
-                                      :padding 6
-                                      :color transparent
-                                      :textColor @text
-                                      :placeholderColor @muted
-                                      :onChange [{:set "{{base + '.index'}}" :to 0} {:set "{{base + '.top'}}" :to 0}])
-                                    (label :when "{{q != ''}}"
-                                      :font icons
-                                      :icon x
-                                      :text ""
-                                      :textColor @muted
-                                      :anchors {:right 6 :top 6}
-                                      :width 36
-                                      :height 36
-                                      :radius 18
-                                      :align center
-                                      :hover {:color @cardHover}
-                                      :cursor hand
-                                      :role button
-                                      :label "{{t('quick.clear')}}"
-                                      :tooltip "{{t('quick.clear')}}"
-                                      :onClick [{:set "{{base + '.query'}}" :to ""}
-                                                {:set "{{base + '.index'}}" :to 0}
-                                                {:set "{{base + '.top'}}" :to 0}])
-                                    (node :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @accent))
-                                  (node :anchors {:left 0 :right 0 :top 79} :height 1 :color @divider)
-                                  (label :when "{{total == 0}}"
-                                    :text "{{t('quick.none')}}"
-                                    :textColor @muted
-                                    :anchors {:left 24 :top 100}
-                                    :fitText true)
-                                  (column :anchors {:left 0 :right 0 :top 88}
-                                    :height "{{min(total, rows) * rowHeight}}"
-                                    :onScroll {:set "{{base + '.top'}}"
-                                               :to "{{clamp(top + (event.dy < 0 ? 1 : event.dy > 0 ? -1 : 0), 0, max(0, total - rows))}}"}
-                                    (node :repeat {:for r :in "{{slice(results, top, top + rows)}}" :index i}
-                                      :anchors {:left 0 :right 0}
-                                      :height "{{rowHeight}}"
-                                      :cursor hand
-                                      :role option
-                                      :label "{{r.item.title}}"
-                                      :selected "{{top + i == sel}}"
-                                      :color "{{top + i == sel ? highlight : '@card'}}"
-                                      :hover {:color "{{top + i == sel ? highlight : '@cardHover'}}"}
-                                      :onClick [{:set "{{base + '.index'}}" :to "{{top + i}}"}
-                                                {:forEach "{{[r]}}"
-                                                 :as pick
-                                                 :do [{:set "{{base + '.open'}}" :to false}
-                                                      {:if "{{home}}"
-                                                       :then [{:set "{{base + '.recent'}}"
-                                                               :to "{{slice(concat([pick.item], filter(qp.recent ?? [], it[key] != pick.item[key])), 0, recentLimit)}}"}]}
-                                                      {:forEach "{{[provider.run]}}"
-                                                       :as providerRun
-                                                       :do [{:set "{{base + '.query'}}" :to ""}
-                                                            {:set "{{base + '.index'}}" :to 0}
-                                                            {:set "{{base + '.top'}}" :to 0}
-                                                            {:if "{{pick.item.run != null}}"
-                                                             :then [{:run "{{pick.item.run}}"
-                                                                     :with "{{pick.item.with}}"}]
-                                                             :else [{:if "{{providerRun != null}}"
-                                                                     :then [{:run "{{providerRun}}"
-                                                                             :with "{{ {item: pick.item} }}"}]}]}]}]}]
-                                      (label :font icons
-                                        :icon "{{r.item.icon ?? 'circle'}}"
-                                        :text ""
-                                        :textColor @muted
-                                        :color @raised
-                                        :anchors {:left 24 :top "{{(rowHeight - 40) / 2}}"}
-                                        :width 40
-                                        :height 40
-                                        :radius 20
-                                        :align center)
-                                      (row :anchors {:left 80 :right 24 :top "{{rowHeight / 2 - 19}}"} :height 18
-                                        (label :repeat {:for p :in "{{r.parts}}"}
-                                          :text "{{p.text}}"
-                                          :textColor "{{p.match ? '@accent' : '@text'}}"
-                                          :fitText true))
-                                      (label :font small
-                                        :text "{{top + i < length(recentHits) ? t('quick.recent') : r.item.detail ?? ''}}"
-                                        :textColor @muted
-                                        :anchors {:left 80 :top "{{rowHeight / 2 + 1}}"}
-                                        :fitText true))))}
-              :popMenu {:note "An overflow menu open at the state path: a raised, rounded list of items (title, icon, run and its with, or a separator) under its button"
-                        :params {:open "" :items [] :width 200}
-                        :node (node :overlay {:placement below-end :open "{{open}}" :dismiss outside :modal true}
-                                :width "{{width}}"
-                                :height "{{16 + sum(items, it.separator == true ? 17 : 48)}}"
-                                :radius 8
-                                :color @card
-                                :shadow {:y 4 :blur 16 :color "#00000047"}
-                                (column :fill 8 :color transparent :role menu :arrows vertical
-                                  (node :repeat {:for item :in "{{items}}"}
-                                    :anchors {:left 0 :right 0}
-                                    :height "{{item.separator == true ? 17 : 48}}"
-                                    :color transparent
-                                    (node :when "{{item.separator == true}}"
-                                      :role separator
-                                      :anchors {:left 0 :right 0 :top 8}
-                                      :height 1
-                                      :color @divider)
-                                    (node :when "{{item.separator != true}}"
-                                      :fill 0
-                                      :color transparent
-                                      :hover {:color @cardHover}
-                                      :focused {:color @cardHover}
-                                      :cursor hand
-                                      :focusable true
-                                      :role menuitem
-                                      :label "{{item.title}}"
-                                      :onClick [{:set "{{open}}" :to false} {:run "{{item.run}}" :with "{{item.with}}"}]
-                                      (label :icon "{{item.icon}}"
-                                        :text ""
-                                        :textColor @muted
-                                        :anchors {:left 16 :top 12}
-                                        :width 24
-                                        :height 24
-                                        :align center)
-                                      (label :text "{{item.title}}"
-                                        :textColor @text
-                                        :anchors {:left 56 :right 16 :top 0 :bottom 0}
-                                        :align {:horizontal start :vertical center})))))}
-              :levelBar {:note "A tile's rounded bar, filled from the start to level (0 to 1), with a mark at the fill's end; a transparent slider over it drags it"
-                         :params {:level 0 :fill @accent :back @raised}
-                         :node (node :height 40 :radius 12 :color "{{back}}"
-                                 (node :when "{{level > 0}}"
-                                   :anchors {:left 0 :top 0 :bottom 0}
-                                   :width "{{clamp(level, 0, 1) * 100 + '%'}}"
-                                   :minWidth 24
-                                   :radius 12
-                                   :color "{{fill}}"
-                                   (node :anchors {:right 8 :top 12} :width 4 :height 16 :radius 2 :color "#ffffffcc")))}
-              :snackbar {:note "A short message in a dark bar at the bottom centre, with Dismiss and, while a call runs, its progress"
-                         :params {:open state.toast.open :message "" :progress nil}
-                         :node (node :overlay {:placement window :open "{{open}}"}
-                                 :anchors {:bottom 24}
-                                 :x "{{(window.width - min(480, window.width - 32)) / 2}}"
-                                 :width "{{min(480, window.width - 32)}}"
-                                 :height 48
-                                 :color @snack
-                                 :radius 4
-                                 :shadow {:y 3 :blur 10 :color "#00000052"}
-                                 :role status
-                                 :live polite
-                                 (label :text "{{message}}"
-                                   :textColor "#ffffffde"
-                                   :anchors {:left 16 :right 104 :top 0 :bottom 0}
-                                   :align {:horizontal start :vertical center})
-                                 (node :when "{{progress == null}}"
-                                   :style button
-                                   :text "{{t('snack.dismiss')}}"
-                                   :color transparent
-                                   :hover {:color "#ffffff14"}
-                                   :textColor @snackAction
-                                   :anchors {:right 8 :top 6}
-                                   :width 88
-                                   :height 36
-                                   :radius 4
-                                   :onClick {:set "{{open}}" :to false})
-                                 (node :when "{{progress != null}}"
-                                   :anchors {:left 0 :right 0 :bottom 0}
-                                   :height 3
-                                   :color "#ffffff1f"
-                                   (node :anchors {:left 0 :top 0 :bottom 0}
-                                     :width "{{clamp(progress ?? 0, 0, 1) * 100 + '%'}}"
-                                     :color @snackAction)))}
-              :viewTab {:note "A view in the top bar: its title in a pill, filled while it is the one shown"
-                        :params {:title "" :selected false}
-                        :node (label :text "{{title}}"
-                                :textColor "{{selected ? '@onNavSelected' : '@onHeaderDim'}}"
-                                :color "{{selected ? '@navSelected' : 'transparent'}}"
-                                :anchors {:top 10 :bottom 10}
-                                :fitText true
-                                :padding 16
-                                :radius 18
-                                :align center
-                                :hover {:color "{{selected ? '@navSelected' : '@headerHover'}}"}
-                                :cursor hand
-                                :focusable true
-                                :role tab
-                                :selected "{{selected}}")}
-              :alarmTile {:note "The alarm panel as a tile: the shield in the state's colour, the state, and a button per mode; the tile opens the keypad"
-                          :params {}
-                          :node (node :style card
-                                  :height 72
-                                  :hover {:color @cardHover}
-                                  :cursor hand
-                                  :role group
-                                  :label "{{t('alarm.title')}}"
-                                  :onClick {:run openInfo :with {:kind alarm :i 0}}
-                                  (label#alarmIcon :icon "{{state.security == 'off' ? 'shield-off' : 'shield-check'}}"
-                                    :text ""
-                                    :textColor "{{computed.alarmColor}}"
-                                    :color "{{state.security == 'off' ? '@okSoft' : '@alertSoft'}}"
-                                    :anchors {:left 12 :top 18}
-                                    :width 36
-                                    :height 36
-                                    :radius 18
-                                    :align center)
-                                  (label#alarmName :text "{{t('alarm.title')}}"
-                                    :textColor @text
-                                    :anchors {:left 60 :top 17}
-                                    :height 18
-                                    :fitText true)
-                                  (node#alarmState :style caption
-                                    :text "{{t('alarm.' + state.security)}}"
-                                    :anchors {:left 60 :top 38}
-                                    :live polite)
-                                  (row#alarmModes :anchors {:right 12 :top 18}
-                                    :width 280
-                                    :height 36
-                                    :gap 6
-                                    :justify end
-                                    :role toolbar
-                                    :arrows horizontal
-                                    (node#alarmMode :repeat {:for mode :in state.securityModes}
-                                      :style "{{mode == state.security ? 'choiceOn' : 'choice'}}"
-                                      :font small
-                                      :text "{{t('alarm.do.' + mode)}}"
-                                      :padding 12
-                                      :fitText true
-                                      :anchors {:top 0 :bottom 0}
-                                      :radius 18
-                                      :selected "{{mode == state.security}}"
-                                      :color "{{mode == state.security ? (mode == 'off' ? '@okSoft' : '@alertSoft') : '@raised'}}"
-                                      :textColor "{{mode == state.security ? (mode == 'off' ? '@ok' : '@alert') : '@text'}}"
-                                      :onClick {:if "{{mode == 'off'}}"
-                                                :then [{:run openInfo :with {:kind alarm :i 0}}]
-                                                :else [{:run armAlarm :with {:mode "{{mode}}"}}]})))}
-              :alarmKeypad {:note "The keypad of the alarm's more-info: the typed code as dots, the digits, clear, and the modes"
-                            :params {}
-                            :node (node :anchors {:left 0 :right 0 :top 120 :bottom 0} :color transparent
-                                    (label#alarmCode :text "{{empty(state.alarmCode) ? t('alarm.code') : join(map(split(state.alarmCode, ''), '●'), ' ')}}"
-                                      :textColor "{{empty(state.alarmCode) ? '@muted' : '@text'}}"
-                                      :anchors {:left 100 :right 100 :top 0}
-                                      :height 40
-                                      :align center
-                                      :color @field
-                                      :radius 8
-                                      :label "{{t('alarm.code')}}")
-                                    (grid#alarmKeys :columns 3
-                                      :gap 10
-                                      :anchors {:left 92 :right 92 :top 56}
-                                      :height 230
-                                      :role group
-                                      :label "{{t('alarm.keypad')}}"
-                                      (node#alarmKey :repeat {:for key
-                                                              :in "{{['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'back']}}"}
-                                        :style button
-                                        :height 50
-                                        :radius 25
-                                        :font "{{length(key) == 1 ? 'heading' : 'icons'}}"
-                                        :icon "{{key == 'clear' ? 'x' : key == 'back' ? 'delete' : ''}}"
-                                        :text "{{length(key) == 1 ? key : ''}}"
-                                        :label "{{length(key) == 1 ? key : t('alarm.' + key)}}"
-                                        :onClick {:set state.alarmCode
-                                                  :to "{{key == 'clear' ? '' : key == 'back' ? slice(state.alarmCode, 0, max(0, length(state.alarmCode) - 1)) : slice(state.alarmCode + key, 0, 8)}}"}))
-                                    (row#alarmActions :anchors {:left 24 :right 24 :top 300}
-                                      :height 40
-                                      :gap 8
-                                      :justify center
-                                      :role toolbar
-                                      :arrows horizontal
-                                      (node#alarmAction :repeat {:for mode :in state.securityModes}
-                                        :style "{{mode == state.security ? 'choiceOn' : 'choice'}}"
-                                        :text "{{t('alarm.do.' + mode)}}"
-                                        :width 108
-                                        :height 40
-                                        :radius 20
-                                        :color "{{mode == state.security ? (mode == 'off' ? '@okSoft' : '@alertSoft') : '@raised'}}"
-                                        :textColor "{{mode == state.security ? (mode == 'off' ? '@ok' : '@alert') : '@text'}}"
-                                        :selected "{{mode == state.security}}"
-                                        :onClick {:run armAlarm :with {:mode "{{mode}}"}})))}}}
+;;; shell.lisp --- Haven's shell: the sidebar, the pages' frame, the status bar, and what opens over the pages
+;;;
+;;; The sidebar lists the pages (open, or folded to icons), then Settings, the notifications' bell and the person
+;;; signed in. Each page fills the rest of the window above the status bar. Over them: the dialogs, each over a scrim,
+;;; and the notes in the corner. The small parts every page uses (a menu, a level bar, a note, a tab) are here too.
+
+;;; What the shell keeps
+
+(defstate sidebarCollapsed false "Whether the sidebar is folded to its icons.")
+
+(defcomputed sideWidth "The sidebar's width, open or folded." (if state.sidebarCollapsed 56 256))
+
+(defcomputed navPages "The pages the sidebar lists above its foot, where Settings is."
+  (filter (fn [it] (not= it.id "settings")) state.pages))
+
+;;; The sidebar
+
+(defview sidebar "The sidebar: the menu button and the name, the pages, and its foot." []
+  `(node#sidebar :anchors {:left 0 :top 0 :bottom 0} :width ~computed.sideWidth :color @sidebar :role navigation
+     (node#sidebarHeader :anchors {:left 0 :right 0 :top 0} :height 56 :color transparent
+       ~(fold-button)
+       (label#logo :when ~(not state.sidebarCollapsed)
+         :text "Haven"
+         :font heading
+         :textColor @text
+         :anchors {:left 64 :top 0 :bottom 0}
+         :fitText true
+         :align {:horizontal start :vertical center}))
+     {:id sidebarRule :anchors {:left 0 :right 0 :top 56} :height 1 :color @divider}
+     (stack#nav :anchors {:left 8 :right 8 :top 64} :height 344 :gap 4 :role tablist :arrows vertical
+       ~(repeat [p computed.navPages]
+         `(node#navItem :use sideItem
+            :with {:icon ~p.icon :title ~(t (str "page." p.id)) :selected ~(= p.id state.page) :keyLabel ~p.key}
+            :role tab
+            :onClick ~(handler goPage p.id))))
+     ~(sidebar-foot)
+     {:id sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @divider}))
+
+(defview fold-button "The button that folds the sidebar to its icons, or opens it." []
+  `(label#menuButton :font iconsMedium
+     :icon menu
+     :text ""
+     :textColor @muted
+     :anchors {:left 8 :top 8}
+     :width 40
+     :height 40
+     :radius 20
+     :align center
+     :hover {:color @cardHover}
+     :cursor hand
+     :focusable true
+     :role button
+     :label ~(t (if state.sidebarCollapsed "sidebar.open" "sidebar.fold"))
+     :tooltip ~(t (if state.sidebarCollapsed "sidebar.open" "sidebar.fold"))
+     :onClick toggleSidebar))
+
+(defview sidebar-foot "The sidebar's foot: Settings, the notifications' bell with its count, and the person." []
+  `(stack#sidebarFoot :anchors {:left 8 :right 8 :bottom 8} :height 148 :gap 4
+     (node#settingsItem :use sideItem
+       :role tab
+       :with {:icon settings
+              :title ~(t "page.settings")
+              :selected ~(and (= state.page "settings") (not= state.settingsView "profile"))
+              :keyLabel "Cmd+,"}
+       :onClick goSettings)
+     (node#bellButton :use sideItem
+       :role button
+       :isOpen ~state.notificationsOpen
+       :with {:icon bell :title ~(t "notify.title") :badge ~(count state.notifications)}
+       :label ~(t "notify.count" {:n (count state.notifications)})
+       :onClick toggleNotifications)
+     {:id footRule :anchors {:left -8 :right -8} :height 1 :color @divider}
+     ~(user-item)))
+
+(defview user-item "The person signed in: their initial and name; it opens their profile." []
+  `(node#userItem :anchors {:left 0 :right 0}
+     :height 48
+     :radius 24
+     :color ~(if computed.onProfile "@navSelected" "@sidebar")
+     :hover {:color ~(if computed.onProfile "@navSelected" "@raised")}
+     :selected ~computed.onProfile
+     :cursor hand
+     :focusable true
+     :role button
+     :label ~(t "user.profile")
+     :tooltip ~(t "user.profile")
+     :onClick [{:set state.settingsView :to profile} {:set state.page :to settings}]
+     (label#userAvatar :font small
+       :text "A"
+       :textColor @onAccent
+       :color @primary
+       :anchors {:left 4 :top 8}
+       :width 32
+       :height 32
+       :radius 16
+       :align center)
+     (label#userName :when ~(not state.sidebarCollapsed)
+       :text "Alex"
+       :textColor ~(if computed.onProfile "@onNavSelected" "@text")
+       :anchors {:left 52 :top 0 :bottom 0}
+       :fitText true
+       :align {:horizontal start :vertical center})))
+
+;; The page shown is a filled pill.
+(defcomponent sideItem "A sidebar entry: its icon, its title while the sidebar is open, and a count of what waits."
+  {:icon "" :title "" :selected false :keyLabel "" :badge 0}
+  `(node :anchors {:left 0 :right 0}
+     :height 40
+     :radius 20
+     :color ~(if selected "@navSelected" "@sidebar")
+     :hover {:color ~(if selected "@navSelected" "@raised")}
+     :cursor hand
+     :focusable true
+     :selected ~selected
+     :label ~title
+     :tooltip ~(if state.sidebarCollapsed (+ title (if keyLabel (str " (" keyLabel ")") "")) keyLabel)
+     (label :font iconsMedium
+       :icon ~icon
+       :text ""
+       :textColor ~(if selected "@onNavSelected" "@muted")
+       :anchors {:left 8 :top 8}
+       :width 24
+       :height 24
+       :align center)
+     (label :when ~(not state.sidebarCollapsed)
+       :text ~title
+       :textColor ~(if selected "@onNavSelected" "@text")
+       :anchors {:left 48 :right 40 :top 0 :bottom 0}
+       :align {:horizontal start :vertical center})
+     (label :when ~(> badge 0)
+       :font small
+       :text ~(min badge 9)
+       :textColor @onAccent
+       :color @accent
+       :anchors {:left ~(if state.sidebarCollapsed 22 196) :top ~(if state.sidebarCollapsed 2 10)}
+       :width 20
+       :height 20
+       :radius 10
+       :align center)))
+
+;;; The pages and the status bar
+
+(defview page "A page of the app, beside the sidebar and above the status bar, while it is the one shown."
+  [id page use dir]
+  `(node :id ~id :dir ~dir :when ~(= state.page page) :use ~use :anchors {:left ~computed.sideWidth :right 0 :top 0
+                                                                          :bottom 32}))
+
+(defview status-bar "The status bar: the revision shown and who made it, and the window's size." []
+  `(node#statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color @sidebar
+     {:id panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border}
+     (label#statusText :text ~(t "status.revision" {:number revision.number :author revision.author
+                                                    :message revision.message})
+       :font small
+       :textColor @muted
+       :anchors {:left 32 :top 0 :bottom 0 :right 200}
+       :align {:horizontal start :vertical center})
+     (label#statusSize :text ~(str window.width " × " window.height)
+       :font small
+       :textColor @muted
+       :anchors {:right 32 :top 0 :bottom 0}
+       :width 160
+       :align {:horizontal end :vertical center})))
+
+;;; Over the pages
+
+(defview dialogs
+  "The dialogs, each over a scrim that dims the page: a light's colour, the details of a control, a card's editor."
+  []
+  [`(node#scrim-app :use scrim :with {:open state.colourOpen})
+   `(node#colourDialog :use colourDialog)
+   `(node#scrim-app-2 :use scrim :with {:open state.info.open})
+   `(node#moreInfo :use moreInfo)
+   `(node#scrim-app-3 :use scrim :with {:open state.cardEdit.open})
+   `(node#cardEditor :use cardEditor)])
+
+(defview notes "The notes at the bottom: the last message, and the progress of a device's call while it runs." []
+  [`(node#toast :dir auto :use snackbar :with {:open state.toast.open :message ~state.toast.message})
+   `(node#busyToast :dir auto
+      :when ~(some? computed.busyDevice)
+      :use snackbar
+      :with {:open true
+             :message ~(t "device.busy" {:name (lower-case computed.busyDevice.name)})
+             :progress ~computed.busyDevice.progress})])
+
+;;; Parts every page uses
+
+;; Each item has a title, an icon, a run and its with, or is a separator.
+(defcomponent popMenu "An overflow menu open at the state path: a raised, rounded list of items under its button."
+  {:open "" :items [] :width 200}
+  `(node :overlay {:placement below-end :open ~open :dismiss outside :modal true}
+     :width ~width
+     :height ~(+ 16 (sum items (fn [it] (if (= it.separator true) 17 48))))
+     :radius 8
+     :color @card
+     :shadow {:y 4 :blur 16 :color "#00000047"}
+     (column :fill 8 :color transparent :role menu :arrows vertical
+       ~(repeat [item items]
+         (menu-item open item)))))
+
+(defview menu-item "An item of a menu: its icon and title, which runs its action and closes the menu; or a separator."
+  [open item]
+  `(node :anchors {:left 0 :right 0} :height ~(if (= item.separator true) 17 48) :color transparent
+     {:when ~(= item.separator true) :role separator :anchors {:left 0 :right 0 :top 8} :height 1 :color @divider}
+     (node :when ~(not= item.separator true)
+       :fill 0
+       :color transparent
+       :hover {:color @cardHover}
+       :focused {:color @cardHover}
+       :cursor hand
+       :focusable true
+       :role menuitem
+       :label ~item.title
+       :onClick ~(handler pickMenuItem open item.run item.with)
+       (label :icon ~item.icon :text "" :textColor @muted :anchors {:left 16 :top 12} :width 24 :height 24
+         :align center)
+       (label :text ~item.title
+         :textColor @text
+         :anchors {:left 56 :right 16 :top 0 :bottom 0}
+         :align {:horizontal start :vertical center}))))
+
+;; A transparent slider over it drags it.
+(defcomponent levelBar "A tile's rounded bar, filled from the start to level (0 to 1), a mark at the fill's end."
+  {:level 0 :fill @accent :back @raised}
+  `(node :height 40 :radius 12 :color ~back
+     (node :when ~(> level 0)
+       :anchors {:left 0 :top 0 :bottom 0}
+       :width ~(str (* (clamp level 0 1) 100) "%")
+       :minWidth 24
+       :radius 12
+       :color ~fill
+       {:anchors {:right 8 :top 12} :width 4 :height 16 :radius 2 :color "#ffffffcc"})))
+
+(defcomponent snackbar "A short message in a dark bar at the bottom centre: Dismiss, or the progress of a call."
+  {:open state.toast.open :message "" :progress nil}
+  `(node :overlay {:placement window :open ~open}
+     :anchors {:bottom 24}
+     :x ~(/ (- window.width (min 480 (- window.width 32))) 2)
+     :width ~(min 480 (- window.width 32))
+     :height 48
+     :color @snack
+     :radius 4
+     :shadow {:y 3 :blur 10 :color "#00000052"}
+     :role status
+     :live polite
+     (label :text ~message
+       :textColor "#ffffffde"
+       :anchors {:left 16 :right 104 :top 0 :bottom 0}
+       :align {:horizontal start :vertical center})
+     {:when ~(nil? progress)
+      :style button
+      :text ~(t "snack.dismiss")
+      :color transparent
+      :hover {:color "#ffffff14"}
+      :textColor @snackAction
+      :anchors {:right 8 :top 6}
+      :width 88
+      :height 36
+      :radius 4
+      :onClick ~(handler closeAt open)}
+     (node :when ~(some? progress) :anchors {:left 0 :right 0 :bottom 0} :height 3 :color "#ffffff1f"
+       {:anchors {:left 0 :top 0 :bottom 0}
+        :width ~(str (* (clamp (or-else progress 0) 0 1) 100) "%")
+        :color @snackAction})))
+
+(defcomponent viewTab "A view in the top bar: its title in a pill, filled while it is the one shown."
+  {:title "" :selected false}
+  `(label :text ~title
+     :textColor ~(if selected "@onNavSelected" "@onHeaderDim")
+     :color ~(if selected "@navSelected" "transparent")
+     :anchors {:top 10 :bottom 10}
+     :fitText true
+     :padding 16
+     :radius 18
+     :align center
+     :hover {:color ~(if selected "@navSelected" "@headerHover")}
+     :cursor hand
+     :focusable true
+     :role tab
+     :selected ~selected))
