@@ -198,11 +198,11 @@
 
 ;;; File commands
 
-(def file-open "When a command needs a file open." "{{state.active >= 0}}")
+(defmacro file-open "When a command needs a file open: a binding's form." [] '(>= state.active 0))
 
 (defcommand save "Saves this file."
   :description ~(t "command.save.about") :title ~(t "command.save") :category ~(t "category.file") :icon save
-  :enablement ~file-open []
+  :enablement ~(file-open) []
   (saveFile state.active)
   (run "findProblems"))
 
@@ -213,25 +213,25 @@
 
 (defcommand closeTab "Closes this file."
   :description ~(t "command.closeTab.about") :title ~(t "command.closeTab") :category ~(t "category.file") :icon x
-  :enablement ~file-open []
+  :enablement ~(file-open) []
   (close state.active))
 
 (defcommand closeAll "Closes every saved file, then asks about the first unsaved one."
   :description ~(t "command.closeAll.about") :title ~(t "command.closeAll")
-  :category ~(t "category.file") :enablement "{{length(state.tabs) > 0}}"
+  :category ~(t "category.file") :enablement ~(> (count state.tabs) 0)
   []
   (closeSaved state.tabs)
   (when (> (count state.tabs) 0) (close (first state.tabs))))
 
 (defcommand closeOthers "Closes the other saved files."
   :description ~(t "command.closeOthers.about") :title ~(t "command.closeOthers") :category ~(t "category.file")
-  :enablement "{{length(state.tabs) > 1}}"
+  :enablement ~(> (count state.tabs) 1)
   []
   (closeSaved (filter (fn [f] (not= f state.active)) state.tabs)))
 
 (defcommand reopenClosed "Opens the file closed last."
   :description ~(t "command.reopenClosed.about") :title ~(t "command.reopenClosed") :category ~(t "category.file")
-  :enablement "{{length(state.closed) > 0}}"
+  :enablement ~(> (count state.closed) 0)
   []
   (open (last state.closed))
   (remove-state "state.closed" :at (dec (count state.closed))))
@@ -265,17 +265,17 @@
     (set where (not (get state.findBar option)))
     (findStep "first")))
 
-(def find-open "When the find panel is open." "{{state.findBar.open}}")
+(defmacro find-open "When the find panel is open: a binding's form." [] 'state.findBar.open)
 
 (defcommand findNext ""
-  :title ~(t "command.findNext") :category ~(t "category.find") :enablement ~find-open [] (findStep "next"))
+  :title ~(t "command.findNext") :category ~(t "category.find") :enablement ~(find-open) [] (findStep "next"))
 (defcommand findPrevious ""
-  :title ~(t "command.findPrevious") :category ~(t "category.find") :enablement ~find-open [] (findStep "previous"))
+  :title ~(t "command.findPrevious") :category ~(t "category.find") :enablement ~(find-open) [] (findStep "previous"))
 (defcommand replaceOne ""
-  :title ~(t "command.replaceOne") :category ~(t "category.find") :enablement ~find-open [] (findStep "replace"))
+  :title ~(t "command.replaceOne") :category ~(t "category.find") :enablement ~(find-open) [] (findStep "replace"))
 (defcommand replaceAllInFile ""
   :title ~(t "command.replaceAllInFile") :category ~(t "category.find")
-  :enablement ~find-open [] (findStep "replaceAll"))
+  :enablement ~(find-open) [] (findStep "replaceAll"))
 (defcommand toggleFindRegex ""
   :title ~(t "command.toggleFindRegex") :category ~(t "category.find") [] (toggleFind "regex"))
 (defcommand toggleFindCase ""
@@ -329,7 +329,7 @@
 
 (defcommand toggleComment "Comments the lines out, or back in, with the language's mark."
   :description ~(t "command.toggleComment.about") :title ~(t "command.toggleComment")
-  :category ~(t "category.edit") :icon message-square :enablement ~file-open
+  :category ~(t "category.edit") :icon message-square :enablement ~(file-open)
   []
   (edit "toggleComment" :in "#editor" :prefix computed.commentMark))
 
