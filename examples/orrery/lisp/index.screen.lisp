@@ -2,13 +2,14 @@
 ;;;
 ;;; The 3D view on the left, with a browser of the bodies, places and eclipses over it; the sky chart (from above, or
 ;;; the sky from the ground) and the orbit graph on the right; the timeline of events and the bodies strip under them.
-;;; The strip is Sinopia's slide sorter, installed through the bodies.dock point (features.lisp). What it does is in
+;;; The strip is Sinopia's slide sorter, installed through the bodies.dock point (offers.lisp, features.lisp). What it does is in
 ;;; orrery.lisp. Space plays, J reverses, K and L slow down and speed up, G goes to the selected body, C centres it,
 ;;; F follows it, B shows the browser, Cmd+D bookmarks the view.
 
 (include "locales/en.lisp"
          "locales/es.lisp"
          "locales/fr.lisp"
+         "offers.lisp"
          "features.lisp"
          "state.lisp"
          "bodies.lisp"

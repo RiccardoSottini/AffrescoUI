@@ -1,31 +1,9 @@
-;;; features.lisp --- what Orrery offers features, and the features it has installed
+;;; features.lisp --- the features Orrery has installed, as the catalogue gives them
 ;;;
-;;; The exports and the points are the contract a feature from another app binds to (an action's value is an
-;;; expression that names it, so those three are written as expressions). The installed feature is Sinopia's slide
-;;; sorter, signed and pinned by its digest: data, written as the catalogue gives it, so that its text and its digest
-;;; stay the same. orrery-sorter.adapter.lisp binds it to the bodies dock.
+;;; Sinopia's slide sorter, signed and pinned by its digest: data, written as its manifest is, so that its text and its
+;;; digest stay the same. It sits in the bodies dock, through offers.lisp's point and orrery-sorter.adapter.lisp.
 
-{:exports {:sky.bodies (array :kind list
-                         :value ~computed.catalogue
-                         :description "Every body in the orrery, in order: id, name, the id of the body it orbits (empty for the Sun) and a thumbnail image."
-                         :item {:id string :name string :parent string :thumbnail image})
-           :sky.selected (string :kind state :value ~state.selected :description "The selected body's id.")
-           :bodies.reorder (string :kind action
-                             :value "{{'reorderBody'}}"
-                             :description "Moves body args.id to the place of body args.onto."
-                             :arguments {:args object})
-           :bodies.select (string :kind action
-                            :value "{{'selectBody'}}"
-                            :description "Selects body args.id."
-                            :arguments {:args object})
-           :bodies.clone (string :kind action
-                           :value "{{'cloneBody'}}"
-                           :description "Adds a twin of body args.id on the same orbit, half a turn away."
-                           :arguments {:args object})}
- :points {:bodies.dock {:slot dock
-                        :receives [sky.bodies sky.selected bodies.reorder bodies.select bodies.clone]
-                        :description "The strip under the timeline, across the window."}}
- :features {:slideSorter {:release "1.0.0"
+{:features {:slideSorter {:release "1.0.0"
                           :title "Slide sorter"
                           :source "app:sinopia"
                           :digest "sha512:9kHJ4TytpjXMOg4IPjbNpIrBgsN4AodRwHOhIPKTExprjWpGlYyJRHVHxvqPpDfVjT7urDYkuSzYY7OEPqHUbQ"
