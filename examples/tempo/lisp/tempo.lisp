@@ -519,3 +519,12 @@
 
 (defn likedMenu "A right click on a liked song: its menu." []
   (when (some? state.likedPick) (openSongMenu (listOf state.likedPick) (trackOf state.likedPick))))
+
+(defn switchEqualiser "The equaliser's switch: on or off." []
+  (set "state.eqOn" event.value))
+
+(defn setTheme "A theme chosen: dark or light." [theme]
+  (set "state.theme" theme))
+
+(defn setLanguage "A language chosen: en, es or fr." [language]
+  (set "settings.ui.language" language))
