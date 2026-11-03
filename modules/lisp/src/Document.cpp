@@ -176,6 +176,7 @@ std::shared_ptr<const BuiltProgram> buildSection(const json& section) {
 	auto built = std::make_shared<BuiltProgram>();
 	built->tree = program.build(limits);
 	built->undefined = program.undefinedNames();
+	built->truth = program.truthTests();
 	built->extensions = program.extensions();
 	built->namesUsed = program.namesUsed();
 	built->namedCalls = program.namedCalls();

@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <vector>
 
 using affresco::json;
 using affresco::RevisionStatus;
@@ -284,4 +285,84 @@ TEST_CASE("lisp views: what only builds is judged by what it builds, and a view 
 	    {"message", "m"},
 	    {"set", {{"/program/app.lisp/hello", ";; Hi.\n(defview hello \"Hi.\" [] `(label#hi :text \"hi\"))"}}}};
 	CHECK(screen.submitRevision(view.dump()).status != RevisionStatus::Applied);
+}
+
+TEST_CASE("lisp views: a macro writing a map, a vector or a word inside a binding's vector or map builds, not crashes") {
+	const json tree = built(R"lisp(
+(defmacro tr "An item." [id k] `{:id ~id :label (t ~k)})
+(defmacro w "A path." [] 'state.x)
+(defmacro five "A constant." [] 5)
+(defcomputed items "Items." [(tr "e" "k")])
+(defscreen main (n#root :x ~[(tr 1 2) [(w)] (five)] :y ~{:z (tr 3 4)} :v ~[(w)]))
+)lisp");
+	CHECK(tree["computed"]["items"] == "{{[{'id': 'e', 'label': t('k')}]}}");
+	CHECK(tree["root"]["x"] == "{{[{'id': 1, 'label': t(2)}, [state.x], 5]}}");
+	CHECK(tree["root"]["y"] == "{{{'z': {'id': 3, 'label': t(4)}}}}");
+	CHECK(tree["root"]["v"] == "{{[state.x]}}");
+}
+
+TEST_CASE("lisp views: str keeps the spaces around one value, and writes what the build knows as text") {
+	CHECK(binding("(str \"  \" state.x)") == "{{'  '}}{{state.x}}");
+	CHECK(binding("(str (t \"k\") \" \")") == "{{t('k')}}{{' '}}");
+	CHECK(binding("(str \"\" state.x)") == "{{''}}{{state.x}}"); // text, not the value itself
+	CHECK(binding("(str \"a \" state.x)") == "a {{state.x}}");
+	CHECK(binding("(str state.x state.y)") == "{{state.x}}{{state.y}}");
+	const json tree = built(R"lisp(
+(defview v "A label." [prefix n] `(label :a ~(str prefix state.x) :b ~(str n state.x " ")))
+(defview by "A label of an item." [c] `(label :a ~(str "#" c.id " ")))
+(defscreen main (column#root ~(v "Hello " 3) ~(v "a{{b}}" nil) ~(repeat [c state.cs] (by c))))
+)lisp");
+	const json& children = tree["root"]["children"];
+	CHECK(children[0]["a"] == "Hello {{state.x}}");
+	CHECK(children[0]["b"] == "3{{state.x}} ");
+	CHECK(children[1]["a"] == "{{'a{{b}}'}}{{state.x}}"); // text with braces stays a literal: never an expression
+	CHECK(children[1]["b"] == "{{state.x}}{{' '}}");
+	CHECK(children[2]["a"] == "#{{c.id}} ");
+}
+
+TEST_CASE("lisp views: a word that names the language's function, uncalled in a binding, is the running app's name") {
+	const json tree = built(R"lisp(
+(defview v "A label." [name] `(label :text ~name :up ~(upper-case name)))
+(defscreen main (column#root :let {:name state.n :max 3}
+  (label :a ~name :b ~(str "x" name) :c ~(> max state.y) :d ~drop)
+  (label :e ~(sort-by count [[1 2] [3]]) :f ~(apply max [1 5]))
+  ~(v "Fixed") ~(repeat [name state.names] (v name))))
+)lisp");
+	const json& children = tree["root"]["children"];
+	CHECK(children[0] == json{{"type", "label"}, {"a", "{{name}}"}, {"b", "x{{name}}"}, {"c", "{{(max > state.y)}}"},
+	                          {"d", "{{drop}}"}});
+	CHECK(children[1]["e"] == json::parse("[[3], [1, 2]]")); // a function a function of the language is given
+	CHECK(children[1]["f"] == 5);
+	CHECK(children[2]["text"] == "Fixed"); // a local of that name still wins
+	CHECK(children[2]["up"] == "FIXED");
+	CHECK(children[3]["text"] == "{{name}}");
+	CHECK(children[3]["up"] == "{{upper(name)}}");
+}
+
+TEST_CASE("lisp views: ~~form writes a binding's ~form into the template a macro gives") {
+	const json tree = built(R"lisp(
+(defmacro defedit "A command with a translated title." [name key]
+  `(defcommand ~name "" :title ~~(list 't key) :enablement ~~'(>= state.active 0) [] nil))
+(defedit save "command.save")
+(defscreen main (panel#root))
+)lisp");
+	CHECK(tree["actions"]["save"]["title"] == "{{t('command.save')}}");
+	CHECK(tree["actions"]["save"]["enablement"] == "{{(state.active >= 0)}}");
+}
+
+TEST_CASE("lisp views: truthy? is an expression's truth, and a function testing a path with Lisp's truth is noted") {
+	CHECK(binding("(truthy? state.q)") == "{{!(!(state.q))}}");
+	lisp::Program program;
+	program.addFile(R"lisp(
+(defn f "Tests paths." [x] (when state.query (if (not computed.list) 1 2) (when (and x state.on) 3)) (if (truthy? state.n) 1 2))
+(defscreen main (panel#root :visible ~(if state.shown 1 2)))
+)lisp",
+	                "app.lisp");
+	static_cast<void>(program.build());
+	std::vector<std::string> paths;
+	for(const lisp::UndefinedName& test : program.truthTests()) paths.push_back(test.name);
+	CHECK(paths == std::vector<std::string>{"state.query", "computed.list", "state.on"}); // a binding isn't one
+	CHECK(program.truthTests().front().definition == "f");
+	CHECK(lisp::buildText("[~(truthy? \"\") ~(truthy? 0) ~(truthy? 0.0) ~(truthy? {}) ~(truthy? \"a\") ~(truthy? 2)]",
+	                      "t") == json::parse("[false, false, false, false, true, true]"));
 }

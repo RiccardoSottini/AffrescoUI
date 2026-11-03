@@ -11,7 +11,7 @@
      (node#displayButton :style ~(if state.displayOpen "toolButtonOn" "toolButton")
        :anchors {:right 12 :top 8}
        :icon sliders-horizontal
-       :text ~(str " " (t "display.button"))
+       :text ~(t "display.button")
        :label ~(t "display.button")
        :tooltip ~(t "display.button")
        :isOpen ~state.displayOpen

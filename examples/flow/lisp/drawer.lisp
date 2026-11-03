@@ -84,7 +84,7 @@
   `{:id detailOwner
     :style caption
     :icon user
-    :text ~(str " " (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members)) computed.card.who))
+    :text ~(or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members)) computed.card.who)
     :anchors {:left 12}
     :height 18})
 
@@ -164,7 +164,7 @@
           :textColor @color.text
           :font small
           :runs [{:text ~(or-else (:name (find (fn [it] (= it.who note.who)) state.members)) note.who) :bold true}
-                 ~(str "  " note.text)]))))
+                 ~note.text]))))
 
 (defview detail-notes "The description, its bold words and link drawn." []
   `(label#detailNotes :when ~(not state.draft.editing)
@@ -196,7 +196,7 @@
 
 (defview detail-head "The drawer's top: the card's label, its column and points." []
   `(node#detailHead :anchors {:left 12 :right 12} :height 24 :color transparent
-     (label#detailTag :text ~(str " " (t (str "tag." computed.card.tag)))
+     (label#detailTag :text ~(t (str "tag." computed.card.tag))
        :icon ~(get state.tagIcons computed.card.tag)
        :font small
        :anchors {:left 0 :top 0}
@@ -217,7 +217,7 @@
      ~(repeat [file computed.card.attachments :index k]
        `(node#attachment :anchors {:left 0 :right 0} :height 28 :color transparent
           (label#attachmentName :icon paperclip
-            :text ~(str " " file)
+            :text ~file
             :textColor @color.text
             :font small
             :anchors {:left 0 :right 30 :top 0 :bottom 0}
@@ -332,10 +332,9 @@
       :focusable true
       :role button
       :isOpen ~state.dueOpen
-      :text ~(str " "
-                  (if (nil? computed.card.due)
+      :text ~(if (nil? computed.card.due)
                       (t "drawer.noDue")
-                      (formatDate (dateMs computed.card.due) "MMM d" "utc")))
+                      (formatDate (dateMs computed.card.due) "MMM d" "utc"))
       :onClick {:toggle state.dueOpen}}
      (label#dueState :font small
        :when ~(some? computed.dueDays)

@@ -77,6 +77,14 @@ Value follow(Value current, std::span<const PathKey> keys) {
 				}
 			if(key.name == "length" && current.isList())
 				return Value::fromInteger(static_cast<std::int64_t>(current.size()));
+			if(current.isList() && !key.name.empty() && key.name.size() < 19 &&
+			   std::ranges::all_of(key.name, [](char c) { return c >= '0' && c <= '9'; })) {
+				// "state.list.0", a path written as text: a numbered name is a position, as `list.0` is in an expression
+				const auto index = static_cast<std::size_t>(std::stoull(std::string(key.name)));
+				if(index >= current.size()) return {};
+				current = current.item(index);
+				continue;
+			}
 			if(key.name == "length" && current.isText())
 				return Value::fromInteger(static_cast<std::int64_t>(current.text().size()));
 			return {};

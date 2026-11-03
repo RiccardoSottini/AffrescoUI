@@ -589,6 +589,9 @@ json Program::build(const Limits& limits) {
 			if(CallsByName named = namedCallsOf(uses); !named.texts.empty())
 				named_[definition->name] = std::move(named);
 		}
+		truth_.clear();
+		for(const auto& [path, place, definition] : machine.truthTests())
+			truth_.push_back({path, place.file ? *place.file : "", place.line, place.column, definition});
 		for(const GlobalUse& use : machine.uses())
 			if(use.global->state == Global::State::Undefined)
 				undefined_.push_back({use.global->name, use.place.file ? *use.place.file : "", use.place.line,

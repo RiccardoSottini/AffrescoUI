@@ -797,3 +797,42 @@ TEST_CASE("lisp runtime: an error's text carries no value, and describes nothing
 	CHECK_FALSE(app.reported("12345"));
 	CHECK(app.errors.size() == 2);
 }
+
+TEST_CASE("lisp runtime: a path's numbered segment is a position in a list, in a function as in an expression") {
+	const App app(R"lisp(
+(defcomputed pair "Two numbers." (vec [10 20]))
+(defcommand a "" :title "A" []
+  (set "state.first" state.list.0)
+  (set "state.second" computed.pair.1)
+  (set "state.name" state.rows.1.name)
+  (set "state.none" state.list.5))
+(defkey "ctrl+a" a)
+(defscreen main :state {:list ["x" "y"] :rows [{:name "a"} {:name "b"}]} (panel#root))
+)lisp");
+	app.press(Key::A);
+	CHECK(app.errors.empty());
+	CHECK(app.state("first") == "x");
+	CHECK(app.state("second") == 20);
+	CHECK(app.state("name") == "b");
+	CHECK(app.state("none").is_null());
+}
+
+TEST_CASE("lisp runtime: a joined text shows its spaces, and a :let named like the language's function reads the app") {
+	const App app(R"lisp(
+(defscreen main :state {:n 7 :who "Ann"}
+  (column#root :let {:name ~state.who}
+    (label#lead :text ~(str "  " state.n))
+    (label#trail :text ~(str state.n " "))
+    (label#empty :text ~(str "" state.n))
+    (label#named :text ~name)))
+)lisp");
+	const auto text = [&](const char* id) {
+		const auto* label = dynamic_cast<affresco::Label*>(app.window->root().findById(id));
+		REQUIRE(label);
+		return label->text();
+	};
+	CHECK(text("lead") == "  7");
+	CHECK(text("trail") == "7 ");
+	CHECK(text("empty") == "7");
+	CHECK(text("named") == "Ann");
+}

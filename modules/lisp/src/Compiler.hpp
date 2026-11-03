@@ -85,6 +85,7 @@ private:
 		std::vector<BindingPart> inner; ///< For a form that uses locals: its text when one of them is a name of the
 		                                ///< running app (a symbol), else it is worked out (`worked`).
 		std::vector<std::string_view> locals; ///< Those locals, when `inner` is used.
+		bool asText = false; ///< A `worked` part of a joined text: written as text when it is one (`%text`).
 	};
 	/// @brief A name a function in a binding gives its item, its index or the value so far: `(fn [card] ...)` in
 	/// `(filter (fn [card] ...) list)` writes `card` as `it`.
@@ -101,6 +102,13 @@ private:
 	/// @param form The form.
 	/// @param position What can follow it.
 	void compile(const Value& form, Position position);
+	/// @brief Compiles a condition's test, noting one that tests a path of the running app with the language's truth
+	/// (Program::truthTests()): a dotted word, `(not word)`, or an operand of `and` or `or` holding one.
+	/// @param test The test.
+	void compileTest(const Value& test);
+	/// @brief Notes a test of compileTest(), and the operands of an `and` or an `or` in it.
+	/// @param test The test.
+	void noteTruthTest(const Value& test);
 	/// @brief Compiles a list: a special form, a macro call or a call.
 	/// @param form The list.
 	/// @param position What can follow it.
@@ -136,6 +144,10 @@ private:
 	/// @param name The word.
 	/// @return true if it does.
 	bool isLiveWord(std::string_view name);
+	/// @brief Tells whether a global holds a function, which no tree can hold.
+	/// @param global The global, or null.
+	/// @return true if it does.
+	static bool namesFunction(const Global* global);
 	/// @brief Tells whether a list needs the running app: its head does, or what it is given.
 	/// @param form The list.
 	/// @param depth How deep it is.
@@ -184,7 +196,8 @@ private:
 	void emitSymbolicTest(const std::vector<std::string_view>& locals);
 	/// @brief Emits what makes a binding's text from its parts, without the braces it may have among them.
 	/// @param parts The parts.
-	void emitParts(const std::vector<BindingPart>& parts);
+	/// @param joined Whose text `str` joined, which stays text even if it is one placeholder.
+	void emitParts(const std::vector<BindingPart>& parts, bool joined = false);
 	/// @brief Adds a part the build works out, or, if it uses a local, one whose text depends on that local.
 	/// @param form The form.
 	/// @param depth How deep it is.
@@ -380,6 +393,7 @@ private:
 	Place place_;                 ///< The place of what is being compiled.
 	bool liveBindings_ = false;   ///< In a top-level template: a `~form` that needs the running app becomes a binding.
 	bool inView_ = false;         ///< Building a view: a backquote is a template whose `~form` may become a binding.
+	bool functionArgument_ = false; ///< Checking an argument of a function that takes functions (CompilerBindings.cpp).
 	bool symbolic_ = false;       ///< Writing a binding where the locals hold names of the running app.
 	std::vector<Rename> renames_; ///< The parameters of the functions a binding is writing, innermost last.
 	std::vector<std::string_view> itemNames_;           ///< The parameters of functions a liveness check is inside.

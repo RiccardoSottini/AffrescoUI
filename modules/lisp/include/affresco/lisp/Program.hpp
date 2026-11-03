@@ -163,6 +163,11 @@ public:
 	[[nodiscard]] const std::vector<Extension>& extensions() const noexcept { return extensions_; }
 	/// @brief The names the last build's definitions use that nothing defines. @return Them, in order of use.
 	[[nodiscard]] const std::vector<UndefinedName>& undefinedNames() const noexcept { return undefined_; }
+	/// @brief Where the last build's functions test a path of the running app with the language's truth: `(if
+	/// state.query ...)`, `(when (not computed.list) ...)`, an operand of `and` or `or`. There "", 0 and [] are true,
+	/// as only nil and false are false, while in a binding they are false (an expression's truth); `name` holds the
+	/// path. @return Them, in order of compiling.
+	[[nodiscard]] const std::vector<UndefinedName>& truthTests() const noexcept { return truth_; }
 	/// @brief The names each definition's code uses, macros' output and the functions inside it included: nothing runs
 	/// but what a name reaches, as the language has no way to find a global from a value. @return Them, by its address.
 	[[nodiscard]] const std::map<std::string, std::vector<std::string>>& namesUsed() const noexcept { return used_; }
@@ -182,6 +187,7 @@ private:
 	std::vector<std::pair<std::string, Primitive>> primitives_; ///< See definePure().
 	std::vector<Extension> extensions_;                         ///< See extensions().
 	std::vector<UndefinedName> undefined_;                      ///< See undefinedNames().
+	std::vector<UndefinedName> truth_;                          ///< See truthTests().
 	std::map<std::string, std::vector<std::string>> used_;      ///< See namesUsed().
 	NamedCalls named_;                                          ///< See namedCalls().
 	std::set<std::pair<std::string, std::string>> defaulted_;   ///< See defaulted().

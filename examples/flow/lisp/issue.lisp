@@ -215,11 +215,10 @@
           :anchors {:left 40 :right 40}
           :height 22
           :align {:horizontal start :vertical center}
-          :text ~(str "  "
-                      (t (str "activity." entry.key)
+          :text ~(t (str "activity." entry.key)
                          {:who (or-else (:name (find (fn [it] (= it.who entry.who)) state.members)) entry.who)
                           :title entry.title
-                          :column entry.column}))))
+                          :column entry.column})))
      ~(repeat [note computed.card.comments]
        (issue-comment note))
      ~(issue-new-comment)))
@@ -272,10 +271,9 @@
      :anchors {:left 40 :right 40}
      :height 22
      :align {:horizontal start :vertical center}
-     :text ~(str "  "
-                 (t "issue.created"
+     :text ~(t "issue.created"
                     {:who (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
-                                   computed.card.who)}))))
+                                   computed.card.who)})))
 
 (defview issue-notes-buttons "Save and Cancel, under the issue page's description being edited." []
   `(row#issueNotesButtons :when ~state.draft.editing :gap 8 :anchors {:left 40 :right 40} :height 30
@@ -342,7 +340,7 @@
      ~(repeat [column computed.columns :index k]
        `(node#statusPick :style pickRow
           :icon ~(or-else (get state.statusIcons k) "circle")
-          :text ~(str "  " column.name)
+          :text ~column.name
           :selected ~(= k state.selected.c)
           :children [(label#statusCheck :when ~(= k state.selected.c)
                        :icon check
@@ -361,7 +359,7 @@
      ~(repeat [icon state.priorities :index p]
        `(node#priorityPick :style pickRow
           :icon ~icon
-          :text ~(str "  " (t (str "priority." p)))
+          :text ~(t (str "priority." p))
           :selected ~(= p (or-else computed.card.priority 0))
           :children [(label#priorityCheck :when ~(= p (or-else computed.card.priority 0))
                        :icon check
@@ -423,7 +421,7 @@
       :icon triangle
       :isOpen ~state.issueEstimateOpen
       :label ~(t "card.points" {:n (or-else computed.card.points 0)})
-      :text ~(str "  " (t "card.points" {:n (or-else computed.card.points 0)}))
+      :text ~(t "card.points" {:n (or-else computed.card.points 0)})
       :onClick {:toggle state.issueEstimateOpen}}
      (node#estimatePicker :style pickMenu
        :overlay {:placement below :open state.issueEstimateOpen :dismiss outside :modal true}
@@ -433,7 +431,7 @@
          `{:id estimatePick
            :style pickRow
            :icon triangle
-           :text ~(str "  " (t "card.points" {:n n}))
+           :text ~(t "card.points" {:n n})
            :selected ~(= n (or-else computed.card.points 0))
            :onClick ~(handler setEstimate n)}))))
 
@@ -449,7 +447,7 @@
      :isOpen ~state.issueTagOpen
      :onClick {:toggle state.issueTagOpen}
      :runs [{:text "●" :font symbols :size 10 :color ~(str "@" computed.card.tag)}
-            ~(str " " (t (str "tag." computed.card.tag)))]
+            ~(t (str "tag." computed.card.tag))]
      (node#tagPicker :style pickMenu
        :overlay {:placement below :open state.issueTagOpen :dismiss outside :modal true}
        :height ~(+ 8 (* 30 (count (keys state.tagIcons))))
@@ -458,7 +456,7 @@
          `{:id tagPick
            :style pickRow
            :icon ~(get state.tagIcons tag)
-           :text ~(str "  " (t (str "tag." tag)))
+           :text ~(t (str "tag." tag))
            :selected ~(= tag computed.card.tag)
            :onClick ~(handler setTag tag)}))))
 
@@ -486,7 +484,7 @@
          `{:id labelPick
            :style pickRow
            :icon ~(if (contains (or-else computed.card.labels []) name) "square-check" "square")
-           :text ~(str "  " (t (str "label." name)))
+           :text ~(t (str "label." name))
            :selected ~(contains (or-else computed.card.labels []) name)
            :onClick ~(handler toggleListItem "labels" name)}))))
 
@@ -580,9 +578,8 @@
       :style propValue
       :icon circle-user
       :isOpen ~state.issueWhoOpen
-      :text ~(str "  "
-                  (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
-                           (t "issue.noAssignee")))
+      :text ~(or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
+                           (t "issue.noAssignee"))
       :onClick {:toggle state.issueWhoOpen}}
      (node#whoPicker :style pickMenu
        :overlay {:placement below :open state.issueWhoOpen :dismiss outside :modal true}
@@ -602,9 +599,8 @@
                            (not= state.selected.c computed.lastColumn))
                       "@bug"
                       "@color.text")
-      :text ~(str "  "
-                  (if (nil? computed.card.due)
+      :text ~(if (nil? computed.card.due)
                       (t "drawer.noDue")
-                      (formatDate (dateMs computed.card.due) "MMM d" "utc")))
+                      (formatDate (dateMs computed.card.due) "MMM d" "utc"))
       :onClick {:toggle state.issueDueOpen}}
      ~(issue-due-picker)))
