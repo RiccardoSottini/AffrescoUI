@@ -336,3 +336,10 @@
 ;; A part, not a defcomponent: its items run actions (runsActions), which a component's definition says.
 (defpart pieMenu "The pie menu, as a component: items, open, and where its middle is."
   :components {:pieMenu {:runsActions items :params {:items [] :open state.pie.open :x 0 :y 0 :title ""} :node ~(pie-menu)}})
+
+;;; Editor types
+
+(defmacro editor-choices [editor]
+  ;; A macro, not a function: what it writes stays an expression.
+  "The Editor Type dropdown's items for an editor: its own checked, the others swapped in."
+  `(map (fn [it] (merge it {:checked (= it.id ~editor) :run "swapEditor" :with {:from ~editor :to it.id}})) computed.editorTypes))

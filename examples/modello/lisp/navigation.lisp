@@ -218,3 +218,11 @@
   [id]
   (cond (= id "camera") (viewCamera)
         (= id "ortho") (toggleProjection)))
+
+(defn orbitByDrag "The navigation ball dragged: the view turns by half a degree a pixel." []
+  (camera "#viewport" :orbit [(* (- (first state.dragLast) event.dx) 0.5) (* (- (second state.dragLast) event.dy) 0.5)])
+  (set "state.dragLast" [event.dx event.dy]))
+
+(defn dragNav "A navigation button dragged: navDrag with how far the pointer went since the last move." [id]
+  (navDrag id (- event.dx (first state.dragLast)) (- event.dy (second state.dragLast)))
+  (set "state.dragLast" [event.dx event.dy]))
