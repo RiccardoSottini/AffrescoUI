@@ -222,9 +222,13 @@ public:
 	std::map<std::string, int> calls; ///< How many times each method was invoked.
 
 	CountedServices() {
-		specs_["read"] = {.name = "read", .effect = services::Effect::Read, .about = "reads"};
-		specs_["write"] = {.name = "write", .effect = services::Effect::Write, .about = "writes"};
-		specs_["secret"] = {.name = "secret", .effect = services::Effect::Write, .revisable = false, .about = "writes"};
+		specs_["read"] = {.name = "read", .effect = services::Effect::Read, .arguments = {}, .about = "reads"};
+		specs_["write"] = {.name = "write", .effect = services::Effect::Write, .arguments = {}, .about = "writes"};
+		specs_["secret"] = {.name = "secret",
+		                    .effect = services::Effect::Write,
+		                    .revisable = false,
+		                    .arguments = {},
+		                    .about = "writes"};
 	}
 	/// @copydoc Services::load
 	[[nodiscard]] std::vector<std::string> load(const json& /*section*/) override { return {}; }
