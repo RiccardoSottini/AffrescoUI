@@ -265,3 +265,44 @@
              (not= (get computed.activeNode.light key) value))
     (snapshot)
     (set (str "state.scene.nodes[" computed.activeIndex "].light." key) value)))
+
+;;; The widgets (widgets.lisp)
+
+(defn pressButton "A header button pressed: it opens its dropdown (the state open names), or runs its function." [open action with]
+  (if (not= open "")
+    (toggle open)
+    (when (some? action) (run action :with with))))
+
+(defn pressCheck "A check row pressed: it runs its function, or switches the state at its path." [path action with]
+  (if (some? action) (run action :with with) (toggle path)))
+
+(defn runItem "A pie menu's item chosen: the menu closes and its function runs." [action with]
+  (dismiss)
+  (run action :with with))
+
+(defn togglePanel "A panel's header pressed: the panel opens or closes." [key]
+  (toggle (str "state.panels." key)))
+
+(defn startDrag "A field pressed: where a drag starts from." [value]
+  (set "state.dragStart" value))
+
+(defn pressField "A number field pressed: where a drag starts from, and an undo step when it changes the scene." [key path value]
+  (startDrag value)
+  (when (if (= key "") (= (slice path 0 6) "scene.") (not (contains ["redo" "lens" "cursor" "whole"] key)))
+    (snapshot)))
+
+(defn openColor "A colour swatch pressed: its picker opens or closes, and an undo step comes first for the scene's colours."
+  [target key]
+  (when (and (not= target "world") (not= (get state.panels key) true)) (snapshot))
+  (togglePanel key))
+
+;;; The top bar and the areas (bars.lisp)
+
+(defn hoverArea "The pointer over an area: Shift A, Delete and the pie menus act on its editor." [slot]
+  (set "state.hoverSlot" slot))
+
+(defn renameScene "The scene's name typed in the top bar, if it isn't empty." [text]
+  (when (not= (trim text) "") (set "state.sceneName" (slice (trim text) 0 63))))
+
+(defn renameLayer "The view layer's name typed in the top bar, if it isn't empty." [text]
+  (when (not= (trim text) "") (set "state.layerName" (slice (trim text) 0 63))))
