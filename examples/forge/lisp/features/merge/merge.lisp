@@ -1,75 +1,123 @@
-{:$schema "../../../../../schema/affrescoui-screen.schema.json"
- :format affrescoui-screen
- :version 2
- :note "Forge's merge conflicts: in a file with git's conflict markers (<<<<<<<, an optional |||||||, =======, >>>>>>>), each side is tinted and a bar over the editor accepts the current change, the incoming one or both for the conflict at the caret (or the first), and moves to the next; the file stays unsaved until Save."
- :computed {:conflictLines "{{computed.activeDoc != null && computed.activeDoc.kind == 'file' && contains(computed.activeDoc.text ?? '', '<<<<<<<') ? split(computed.activeDoc.text, '\\n') : []}}"
-            :conflictMarkers "{{filter(map(computed.conflictLines, slice(it, 0, 7) == '<<<<<<<' ? {kind: 'start', line: index} : slice(it, 0, 7) == '|||||||' ? {kind: 'base', line: index} : it == '=======' ? {kind: 'mid', line: index} : slice(it, 0, 7) == '>>>>>>>' ? {kind: 'end', line: index} : null), it != null)}}"
-            :conflictBlocks "{{filter(map(computed.conflictMarkers, it.kind != 'start' ? null : (computed.conflictMarkers[index + 1] ?? {}).kind == 'mid' && (computed.conflictMarkers[index + 2] ?? {}).kind == 'end' ? {start: it.line, base: -1, mid: computed.conflictMarkers[index + 1].line, end: computed.conflictMarkers[index + 2].line} : (computed.conflictMarkers[index + 1] ?? {}).kind == 'base' && (computed.conflictMarkers[index + 2] ?? {}).kind == 'mid' && (computed.conflictMarkers[index + 3] ?? {}).kind == 'end' ? {start: it.line, base: computed.conflictMarkers[index + 1].line, mid: computed.conflictMarkers[index + 2].line, end: computed.conflictMarkers[index + 3].line} : null), it != null)}}"
-            :conflictAtCaret "{{find(computed.conflictBlocks, (state.caret.line ?? 1) - 1 >= it.start && (state.caret.line ?? 1) - 1 <= it.end) ?? computed.conflictBlocks[0]}}"
-            :conflictNext "{{find(computed.conflictBlocks, it.start > (state.caret.line ?? 1) - 1) ?? computed.conflictBlocks[0]}}"
-            :conflictSummary "{{some(computed.conflictBlocks, (state.caret.line ?? 1) - 1 >= it.start && (state.caret.line ?? 1) - 1 <= it.end) ? 'Merge conflict ' + count(computed.conflictBlocks, it.start <= (state.caret.line ?? 1) - 1) + ' of ' + length(computed.conflictBlocks) : plural(length(computed.conflictBlocks), 'merge conflict')}}"
-            :conflictDecorations "{{filter(flat(map(computed.conflictBlocks, [{line: it.start, kind: 'background', color: '#7f7f7f40'}, {line: it.start + 1, endLine: (it.base >= 0 ? it.base : it.mid) - 1, kind: 'background', color: '#3fa66b40'}, {line: it.base, endLine: it.mid, kind: 'background', color: '#7f7f7f40'}, {line: it.mid, kind: 'background', color: '#7f7f7f40'}, {line: it.mid + 1, endLine: it.end - 1, kind: 'background', color: '#3f86d640'}, {line: it.end, kind: 'background', color: '#7f7f7f40'}])), it.line >= 0 && (it.endLine ?? it.line) >= it.line)}}"}
- :actions {:acceptCurrentChange {:title "Accept Current Change"
-                                 :category "Merge Conflict"
-                                 :icon arrow-up
-                                 :description "Keep the lines above the conflict's =======, the file's own, and drop the markers."
-                                 :enablement "{{computed.conflictAtCaret != null}}"
-                                 :do [{:run acceptConflict :with {:keep current}}]}
-           :acceptIncomingChange {:title "Accept Incoming Change"
-                                  :category "Merge Conflict"
-                                  :icon arrow-down
-                                  :description "Keep the lines below the conflict's =======, the ones being merged in, and drop the markers."
-                                  :enablement "{{computed.conflictAtCaret != null}}"
-                                  :do [{:run acceptConflict :with {:keep incoming}}]}
-           :acceptBothChanges {:title "Accept Both Changes"
-                               :category "Merge Conflict"
-                               :icon list-plus
-                               :description "Keep both sides, the current one first, and drop the markers."
-                               :enablement "{{computed.conflictAtCaret != null}}"
-                               :do [{:run acceptConflict :with {:keep both}}]}
-           :nextConflict {:title "Next Conflict"
-                          :category "Merge Conflict"
-                          :icon chevron-down
-                          :enablement "{{computed.conflictNext != null}}"
-                          :do [{:set state.goTo.line :to "{{computed.conflictNext.start + 1}}"}
-                               {:set state.goTo.column :to 1}
-                               {:increment state.goTo.request :by 1}]}
-           :acceptConflict [{:note "keep: current, incoming or both"}
-                            {:if "{{computed.conflictAtCaret != null}}"
-                             :then [{:run setConflictText
-                                     :with {:id "{{computed.activeDoc.id}}"
-                                            :text "{{join(concat(slice(computed.conflictLines, 0, computed.conflictAtCaret.start), keep != 'incoming' ? slice(computed.conflictLines, computed.conflictAtCaret.start + 1, computed.conflictAtCaret.base >= 0 ? computed.conflictAtCaret.base : computed.conflictAtCaret.mid) : [], keep != 'current' ? slice(computed.conflictLines, computed.conflictAtCaret.mid + 1, computed.conflictAtCaret.end) : [], slice(computed.conflictLines, computed.conflictAtCaret.end + 1)), '\\n')}}"}}]}]
-           :setConflictText [{:set state.docs :to "{{map(state.docs, it.id == id ? merge(it, {text: text}) : it)}}"}
-                             {:forEach "{{filter(state.docs, it.id == id)}}"
-                              :as doc
-                              :do [{:run markDirty
-                                    :with {:id "{{id}}" :dirty "{{doc.text != doc.saved || doc.eol != doc.savedEol}}"}}]}]}
- :components {:forgeConflictButton {:params {:run "" :text ""}
-                                    :node (label :role button
-                                            :text "{{text}}"
-                                            :fitText true
-                                            :padding 6
-                                            :height 22
-                                            :radius 3
-                                            :cursor hand
-                                            :textColor @color.accent
-                                            :hover {:color @color.hover}
-                                            :onClick {:run "{{run}}"})}
-              :forgeConflictBar {:node (row#conflict-bar :width "100%"
-                                         :height 28
-                                         :gap 2
-                                         :alignItems center
-                                         :color @color.tabs
-                                         (label#conflict-summary :text "{{computed.conflictSummary}}"
-                                           :textColor @color.muted
-                                           :grow 1
-                                           :height 22
-                                           :padding 8)
-                                         (node#conflict-accept-current :use forgeConflictButton
-                                           :with {:run acceptCurrentChange :text "Accept Current"})
-                                         (node#conflict-accept-incoming :use forgeConflictButton
-                                           :with {:run acceptIncomingChange :text "Accept Incoming"})
-                                         (node#conflict-accept-both :use forgeConflictButton
-                                           :with {:run acceptBothChanges :text "Accept Both"})
-                                         (node#conflict-next :use forgeConflictButton
-                                           :with {:run nextConflict :text "Next"}))}}}
+;;; merge.lisp --- Forge's merge conflicts: each side tinted, and a bar that resolves the one at the caret
+;;;
+;;; In a file with git's conflict markers (<<<<<<<, an optional |||||||, =======, >>>>>>>), each side is tinted and
+;;; a bar over the editor keeps the current change, the incoming one or both for the conflict at the caret (or the
+;;; first), and moves to the next; the file stays unsaved until Save.
+
+;;; Conflicts, and resolving them
+
+(defcomputed conflictLines
+  (if (and (some? computed.activeDoc)
+             (= computed.activeDoc.kind "file")
+             (contains (or-else computed.activeDoc.text "") "<<<<<<<"))
+        (split computed.activeDoc.text "\n")
+        []))
+
+(defcomputed conflictMarkers
+  (filter (fn [it] (some? it))
+            (map-indexed (fn [index it]
+                           (cond (= (slice it 0 7) "<<<<<<<") {:kind "start" :line index}
+                                 (= (slice it 0 7) "|||||||") {:kind "base" :line index}
+                                 (= it "=======") {:kind "mid" :line index}
+                                 (= (slice it 0 7) ">>>>>>>") {:kind "end" :line index}
+                                 :else nil))
+                         computed.conflictLines)))
+
+(defcomputed conflictBlocks
+  (filter (fn [it] (some? it))
+            (map-indexed (fn [index it]
+                           (cond (not= it.kind "start") nil
+                                 (and (= (:kind (or-else (get computed.conflictMarkers (+ index 1)) {})) "mid")
+                                      (= (:kind (or-else (get computed.conflictMarkers (+ index 2)) {})) "end")) {:start it.line
+                                  :base (- 1)
+                                  :mid (get-in computed.conflictMarkers [(+ index 1) :line])
+                                  :end (get-in computed.conflictMarkers [(+ index 2) :line])}
+                                 (and (= (:kind (or-else (get computed.conflictMarkers (+ index 1)) {})) "base")
+                                      (= (:kind (or-else (get computed.conflictMarkers (+ index 2)) {})) "mid")
+                                      (= (:kind (or-else (get computed.conflictMarkers (+ index 3)) {})) "end")) {:start it.line
+                                  :base (get-in computed.conflictMarkers [(+ index 1) :line])
+                                  :mid (get-in computed.conflictMarkers [(+ index 2) :line])
+                                  :end (get-in computed.conflictMarkers [(+ index 3) :line])}
+                                 :else nil))
+                         computed.conflictMarkers)))
+
+(defcomputed conflictAtCaret
+  (or-else (find (fn [it]
+                     (and (>= (- (or-else state.caret.line 1) 1) it.start)
+                          (<= (- (or-else state.caret.line 1) 1) it.end)))
+                   computed.conflictBlocks)
+             computed.conflictBlocks.0))
+
+(defcomputed conflictNext
+  (or-else (find (fn [it] (> it.start (- (or-else state.caret.line 1) 1))) computed.conflictBlocks)
+             computed.conflictBlocks.0))
+
+(defcomputed conflictSummary
+  (if (some (fn [it]
+                (and (>= (- (or-else state.caret.line 1) 1) it.start) (<= (- (or-else state.caret.line 1) 1) it.end)))
+              computed.conflictBlocks)
+        (t "conflict.at" {:n (count (filter (fn [it] (<= it.start (- (or-else state.caret.line 1) 1))) computed.conflictBlocks))
+                          :of (count computed.conflictBlocks)})
+        (t "conflict.count" {:n (count computed.conflictBlocks)})))
+
+(defcomputed conflictDecorations
+  (filter (fn [it] (and (>= it.line 0) (>= (or-else it.endLine it.line) it.line)))
+            (flat (map (fn [it]
+                         [{:line it.start :kind "background" :color "#7f7f7f40"}
+                          {:line (+ it.start 1)
+                           :endLine (- (if (>= it.base 0) it.base it.mid) 1)
+                           :kind "background"
+                           :color "#3fa66b40"}
+                          {:line it.base :endLine it.mid :kind "background" :color "#7f7f7f40"}
+                          {:line it.mid :kind "background" :color "#7f7f7f40"}
+                          {:line (+ it.mid 1) :endLine (- it.end 1) :kind "background" :color "#3f86d640"}
+                          {:line it.end :kind "background" :color "#7f7f7f40"}])
+                       computed.conflictBlocks))))
+
+(defcommand acceptCurrentChange "Keep the lines above the conflict's =======, the file's own, and drop the markers."
+  :title ~(t "command.acceptCurrentChange") :category ~(t "category.mergeConflict") :icon "arrow-up"
+  :description ~(t "command.acceptCurrentChange.about") :enablement ~(some? computed.conflictAtCaret) []
+  (acceptConflict "current"))
+
+(defcommand acceptIncomingChange
+  "Keep the lines below the conflict's =======, the ones being merged in, and drop the markers."
+  :title ~(t "command.acceptIncomingChange") :category ~(t "category.mergeConflict") :icon "arrow-down"
+  :description ~(t "command.acceptIncomingChange.about") :enablement ~(some? computed.conflictAtCaret) []
+  (acceptConflict "incoming"))
+
+(defcommand acceptBothChanges "Keep both sides, the current one first, and drop the markers."
+  :title ~(t "command.acceptBothChanges") :category ~(t "category.mergeConflict") :icon "list-plus"
+  :description ~(t "command.acceptBothChanges.about") :enablement ~(some? computed.conflictAtCaret) []
+  (acceptConflict "both"))
+
+(defcommand nextConflict "Next Conflict"
+  :title ~(t "command.nextConflict")
+  :description ~(t "command.nextConflict") :category ~(t "category.mergeConflict") :icon "chevron-down"
+  :enablement ~(some? computed.conflictNext) []
+  (set "state.goTo.line" (+ computed.conflictNext.start 1))
+  (set "state.goTo.column" 1)
+  (increment "state.goTo.request" :by 1))
+
+(defn acceptConflict "Resolves the conflict at the caret, keeping the current side, the incoming one or both (`keep`)."
+  [keep]
+  (when (some? computed.conflictAtCaret)
+    (setConflictText
+      computed.activeDoc.id
+      (join "\n"
+            (concat (slice computed.conflictLines 0 computed.conflictAtCaret.start)
+                    (if (not= keep "incoming")
+                      (slice computed.conflictLines
+                             (+ computed.conflictAtCaret.start 1)
+                             (if (>= computed.conflictAtCaret.base 0)
+                               computed.conflictAtCaret.base
+                               computed.conflictAtCaret.mid))
+                      [])
+                    (if (not= keep "current")
+                      (slice computed.conflictLines (+ computed.conflictAtCaret.mid 1) computed.conflictAtCaret.end)
+                      [])
+                    (slice computed.conflictLines (+ computed.conflictAtCaret.end 1)))))))
+
+(defn setConflictText "A file's new text, after a conflict is resolved: dirty while it isn't the one saved." [id text]
+  (set "state.docs" (map (fn [it] (if (= it.id id) (merge it {:text text}) it)) state.docs))
+  (doseq [doc (filter (fn [it] (= it.id id)) state.docs)]
+    (markDirty id (or (not= doc.text doc.saved) (not= doc.eol doc.savedEol)))))

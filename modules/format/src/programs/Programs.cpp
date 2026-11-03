@@ -143,10 +143,18 @@ void Programs::runWith(const std::string& name, std::vector<json> arguments, Pan
 	}
 	const Entered entered(*this, {&sender, &event, &locals});
 	lisp::Interpreter& interpreter = entered.interpreter();
+	const lisp::Value function = functionOf(interpreter, name, where);
+	// The parameters past those given come by name from the variables around it, as run's do: a callback given its
+	// first arguments ([opened path]) reads `result` or `error` so
+	const std::vector<std::string> parameters = lisp::Interpreter::parametersOf(function);
+	for(std::size_t at = arguments.size(); at < parameters.size(); ++at) {
+		const json* value = parameters[at].empty() ? nullptr : locals.find(parameters[at]);
+		arguments.push_back(value ? *value : parameters[at] == "event" ? event : json());
+	}
 	std::vector<lisp::Value> values;
 	values.reserve(arguments.size());
 	for(json& argument : arguments) values.push_back(viewOf(interpreter, std::move(argument)));
-	static_cast<void>(interpreter.call(functionOf(interpreter, name, where), values));
+	static_cast<void>(interpreter.call(function, values));
 }
 
 json Programs::read(const std::string& name, std::vector<json> arguments, const Scope& locals, const json& event,

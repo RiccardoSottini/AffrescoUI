@@ -16,6 +16,23 @@
 
 using affresco::Screen;
 
+namespace {
+
+/// @brief A value without its members named "title", at any depth.
+/// @param value The value.
+/// @return It, untitled.
+affresco::json untitled(affresco::json value) {
+	if(value.is_object()) {
+		value.erase("title");
+		for(auto& [key, member] : value.items()) member = untitled(member);
+	} else if(value.is_array()) {
+		for(auto& item : value) item = untitled(item);
+	}
+	return value;
+}
+
+} // namespace
+
 TEST_CASE("lisp examples: every example is there in both notations, and loads as the same document") {
 	const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
 	int apps = 0;
@@ -41,9 +58,10 @@ TEST_CASE("lisp examples: every example is there in both notations, and loads as
 			    return !file.key().starts_with("../"); // a program of its own, not only a shared add-on's
 		    });
 		if(own) {
-			// A program builds what its JSON writes out, its logic in functions: the same app, not the same document
-			CHECK(affresco::json::parse(written.documentJson())["window"] ==
-			      affresco::json::parse(spelled.documentJson())["window"]);
+			// A program builds what its JSON writes out, its logic in functions: the same app, not the same document.
+			// The same window, but for its titles, which a program may give through its locales (t)
+			CHECK(untitled(affresco::json::parse(written.documentJson())["window"]) ==
+			      untitled(affresco::json::parse(spelled.documentJson())["window"]));
 			++programs;
 		} else {
 			// The generated ones: their own document the same; what a shared add-on's program builds says the same
@@ -64,7 +82,7 @@ TEST_CASE("lisp examples: every example is there in both notations, and loads as
 			++apps;
 		}
 	}
-	CHECK(apps >= 3);      // the generated ones: Sign in, Forge and the Launcher
+	CHECK(apps >= 2);      // the generated ones: Sign in and the Launcher
 	CHECK(programs >= 11); // the programs, all but Calamaio with their JSON beside them
 }
 

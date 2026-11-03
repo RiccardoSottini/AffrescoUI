@@ -1,209 +1,156 @@
-{:$schema "../../../../../schema/affrescoui-screen.schema.json"
- :format affrescoui-screen
- :version 2
- :note "Forge's themes: every colour of the workbench is a token with one variant per theme, so a theme is a set of values and switching is one state change. Importing a colour theme adds a variant to each token through a patch. Importing reads the file with openFile and maps the theme format's colour keys to the tokens with themeSources. The file icon theme maps names and extensions to icons, which the explorer shows."
- :tokens {:kit.background {:forge-dark "#1f1d1b" :forge-light "#fbf9f6" :forge-high-contrast "#000000"}
-          :kit.surface {:forge-dark "#23201d" :forge-light "#ffffff" :forge-high-contrast "#0a0a0a"}
-          :kit.bar {:forge-dark "#141211" :forge-light "#e9e4dd" :forge-high-contrast "#000000"}
-          :kit.barHover {:forge-dark "#2a2623" :forge-light "#e2dcd4" :forge-high-contrast "#1f1a16"}
-          :kit.field {:forge-dark "#262320" :forge-light "#ffffff" :forge-high-contrast "#000000"}
-          :kit.text {:forge-dark "#ddd6cd" :forge-light "#2d2925" :forge-high-contrast "#ffffff"}
-          :kit.dim {:forge-dark "#968d83" :forge-light "#6e655c" :forge-high-contrast "#cfc6bc"}
-          :kit.body {:forge-dark "#b3aaa0" :forge-light "#5a524a" :forge-high-contrast "#e6ded5"}
-          :kit.selection {:forge-dark "#46311f" :forge-light "#f2d6bf" :forge-high-contrast "#5a2e0c"}
-          :kit.border {:forge-dark "#3a3430" :forge-light "#dbd3c9" :forge-high-contrast "#ffa552"}
-          :kit.primary {:forge-dark "#cf6d26" :forge-light "#b0531a" :forge-high-contrast "#c25a12"}
-          :kit.onPrimary {:forge-dark "#1a0f05" :forge-light "#ffffff" :forge-high-contrast "#000000"}
-          :kit.secondary {:forge-dark "#2f2a26" :forge-light "#e6dfd6" :forge-high-contrast "#1f1a16"}
-          :kit.onSecondary {:forge-dark "#ddd6cd" :forge-light "#2d2925" :forge-high-contrast "#ffffff"}
-          :kit.accent {:forge-dark "#e08a4a" :forge-light "#b0531a" :forge-high-contrast "#ffa552"}
-          :kit.focus {:forge-dark "#e08a4a" :forge-light "#b0531a" :forge-high-contrast "#ffa552"}
-          :kit.backdrop {:forge-dark "#00000088" :forge-light "#2d292540" :forge-high-contrast "#000000aa"}
-          :kit.info {:forge-dark "#6fa8dc" :forge-light "#2268a8" :forge-high-contrast "#8cc4f2"}
-          :kit.warning {:forge-dark "#d9a441" :forge-light "#946800" :forge-high-contrast "#f0c75a"}
-          :kit.error {:forge-dark "#ec6a5e" :forge-light "#c8382a" :forge-high-contrast "#ff8a80"}
-          :kit.success {:forge-dark "#8cbf73" :forge-light "#3d7a28" :forge-high-contrast "#a6e08c"}
-          :kit.radius 5
-          :kit.cardRadius 9
-          :color.titleBar {:forge-dark "#141211" :forge-light "#e9e4dd" :forge-high-contrast "#000000"}
-          :color.activityBar {:forge-dark "#141211" :forge-light "#e9e4dd" :forge-high-contrast "#000000"}
-          :color.sideBar {:forge-dark "#1a1816" :forge-light "#f3efea" :forge-high-contrast "#000000"}
-          :color.editor {:forge-dark "#1f1d1b" :forge-light "#fbf9f6" :forge-high-contrast "#000000"}
-          :color.editorText {:forge-dark "#ddd6cd" :forge-light "#2d2925" :forge-high-contrast "#ffffff"}
-          :color.tabs {:forge-dark "#1a1816" :forge-light "#efeae4" :forge-high-contrast "#000000"}
-          :color.tabActive {:forge-dark "#1f1d1b" :forge-light "#fbf9f6" :forge-high-contrast "#000000"}
-          :color.panel {:forge-dark "#1a1816" :forge-light "#f3efea" :forge-high-contrast "#000000"}
-          :color.statusBar {:forge-dark "#141211" :forge-light "#e9e4dd" :forge-high-contrast "#000000"}
-          :color.statusText {:forge-dark "#a69d93" :forge-light "#5a524a" :forge-high-contrast "#ffffff"}
-          :color.accent {:forge-dark "#cf6d26" :forge-light "#b0531a" :forge-high-contrast "#c25a12"}
-          :color.selection {:forge-dark "#46311f" :forge-light "#f2d6bf" :forge-high-contrast "#5a2e0c"}
-          :color.hover {:forge-dark "#2a2623" :forge-light "#e2dcd4" :forge-high-contrast "#1f1a16"}
-          :color.input {:forge-dark "#262320" :forge-light "#ffffff" :forge-high-contrast "#000000"}
-          :color.border {:forge-dark "#2d2926" :forge-light "#dbd3c9" :forge-high-contrast "#ffa552"}
-          :color.muted {:forge-dark "#968d83" :forge-light "#6e655c" :forge-high-contrast "#cfc6bc"}
-          :color.error {:forge-dark "#ec6a5e" :forge-light "#c8382a" :forge-high-contrast "#ff8a80"}
-          :color.warning {:forge-dark "#d9a441" :forge-light "#946800" :forge-high-contrast "#f0c75a"}
-          :color.info {:forge-dark "#6fa8dc" :forge-light "#2268a8" :forge-high-contrast "#8cc4f2"}
-          :color.widget {:forge-dark "#23201d" :forge-light "#f7f4f0" :forge-high-contrast "#1a0f05"}
-          :color.text {:forge-dark "#ddd6cd" :forge-light "#2d2925" :forge-high-contrast "#ffffff"}
-          :syntax.keyword {:forge-dark "#e07b9a" :forge-light "#b4245a" :forge-high-contrast "#ff93b4"}
-          :syntax.type {:forge-dark "#7cc4d6" :forge-light "#12708a" :forge-high-contrast "#8fe3f2"}
-          :syntax.string {:forge-dark "#cdb46e" :forge-light "#876b12" :forge-high-contrast "#ead68c"}
-          :syntax.number {:forge-dark "#b49cf0" :forge-light "#6b46c1" :forge-high-contrast "#cbb8ff"}
-          :syntax.comment {:forge-dark "#6e8572" :forge-light "#5f7a63" :forge-high-contrast "#92bb97"}
-          :syntax.heading {:forge-dark "#e07b9a" :forge-light "#b4245a" :forge-high-contrast "#ff93b4"}}
- :state {:theme forge-dark
-         :themes [(dark#forge-dark :name "Forge Dark")
-                  (light#forge-light :name "Forge Light")
-                  (hc#forge-high-contrast :name "Forge High Contrast")]
-         :imported nil
-         :importedFile ""
-         :themeSources [{:token titleBar
-                         :keys [titleBar.activeBackground editorGroupHeader.tabsBackground]
-                         :dark "#141211"
-                         :light "#e9e4dd"
-                         :hc "#000000"}
-                        {:token activityBar
-                         :keys [activityBar.background sideBar.background]
-                         :dark "#141211"
-                         :light "#e9e4dd"
-                         :hc "#000000"}
-                        {:token sideBar
-                         :keys [sideBar.background editor.background]
-                         :dark "#1a1816"
-                         :light "#f3efea"
-                         :hc "#000000"}
-                        {:token editor :keys [editor.background] :dark "#1f1d1b" :light "#fbf9f6" :hc "#000000"}
-                        {:token editorText
-                         :keys [editor.foreground foreground]
-                         :dark "#ddd6cd"
-                         :light "#2d2925"
-                         :hc "#ffffff"}
-                        {:token tabs
-                         :keys [editorGroupHeader.tabsBackground tab.inactiveBackground]
-                         :dark "#1a1816"
-                         :light "#efeae4"
-                         :hc "#000000"}
-                        {:token tabActive
-                         :keys [tab.activeBackground editor.background]
-                         :dark "#1f1d1b"
-                         :light "#fbf9f6"
-                         :hc "#000000"}
-                        {:token panel
-                         :keys [panel.background editor.background]
-                         :dark "#1a1816"
-                         :light "#f3efea"
-                         :hc "#000000"}
-                        {:token statusBar :keys [statusBar.background] :dark "#141211" :light "#e9e4dd" :hc "#000000"}
-                        {:token statusText :keys [statusBar.foreground] :dark "#a69d93" :light "#5a524a" :hc "#ffffff"}
-                        {:token accent
-                         :keys [focusBorder activityBarBadge.background button.background]
-                         :dark "#cf6d26"
-                         :light "#b0531a"
-                         :hc "#c25a12"}
-                        {:token selection
-                         :keys [list.activeSelectionBackground editor.selectionBackground]
-                         :dark "#46311f"
-                         :light "#f2d6bf"
-                         :hc "#5a2e0c"}
-                        {:token hover :keys [list.hoverBackground] :dark "#2a2623" :light "#e2dcd4" :hc "#1f1a16"}
-                        {:token input
-                         :keys [input.background dropdown.background]
-                         :dark "#262320"
-                         :light "#ffffff"
-                         :hc "#000000"}
-                        {:token border
-                         :keys [panel.border editorGroup.border contrastBorder]
-                         :dark "#2d2926"
-                         :light "#dbd3c9"
-                         :hc "#ffa552"}
-                        {:token muted
-                         :keys [descriptionForeground tab.inactiveForeground]
-                         :dark "#968d83"
-                         :light "#6e655c"
-                         :hc "#cfc6bc"}
-                        {:token error
-                         :keys [editorError.foreground errorForeground]
-                         :dark "#ec6a5e"
-                         :light "#c8382a"
-                         :hc "#ff8a80"}
-                        {:token warning :keys [editorWarning.foreground] :dark "#d9a441" :light "#946800" :hc "#f0c75a"}
-                        {:token info :keys [editorInfo.foreground] :dark "#6fa8dc" :light "#2268a8" :hc "#8cc4f2"}
-                        {:token widget
-                         :keys [editorWidget.background quickInput.background]
-                         :dark "#23201d"
-                         :light "#f7f4f0"
-                         :hc "#1a0f05"}
-                        {:token text
-                         :keys [foreground sideBar.foreground editor.foreground]
-                         :dark "#ddd6cd"
-                         :light "#2d2925"
-                         :hc "#ffffff"}]
-         :iconTheme {:file {:icon file :color "#98a0a9"}
-                     :folder {:icon folder :color "#d1a35e"}
-                     :extensions {:c {:icon file-code :color "#5ea7cf"}
-                                  :cpp {:icon file-code :color "#5ea7cf"}
-                                  :h {:icon file-code :color "#b48ad8"}
-                                  :hpp {:icon file-code :color "#b48ad8"}
-                                  :json {:icon braces :color "#d4b84a"}
-                                  :md {:icon file-text :color "#5ea7cf"}
-                                  :txt {:icon file-text :color "#98a0a9"}
-                                  :cmake {:icon hammer :color "#7f9198"}
-                                  :py {:icon file-code :color "#4c88bd"}
-                                  :js {:icon file-code :color "#d4b84a"}
-                                  :ts {:icon file-code :color "#5ea7cf"}
-                                  :sh {:icon file-terminal :color "#6a8a74"}}
-                     :names {:CMakeLists.txt {:icon hammer :color "#7f9198"}
-                             :README.md {:icon info :color "#5ea7cf"}
-                             :LICENSE {:icon file-text :color "#d4b84a"}}}}
- :actions {:pickTheme {:title "Color Theme"
-                       :category "Preferences"
-                       :icon palette
-                       :description "Choose the workbench's colour theme."
-                       :do [{:set state.quickPick.open :to true} {:set state.quickPick.query :to "theme "}]}
-           :setTheme [{:set state.theme :to "{{item.id}}"}]
-           :importTheme {:title "Import Color Theme..."
-                         :category "Preferences"
-                         :icon palette
-                         :description "Read a colour theme (.json) and add it as a theme."
-                         :do [{:openFile state.imported
-                               :comments true
-                               :title "Import Color Theme"
-                               :extensions [json]
-                               :onDone [{:set state.importedFile :to "{{result.name}}"} {:run readTheme}]
-                               :onError [{:run notify
-                                          :with {:severity info :message "{{'Theme not imported: ' + error.message}}"}}]}]}
-           :readTheme [{:note "The colour theme read into state.imported: its name (else its file's), its type and its colours"}
-                       {:run readThemeOf :with {:theme "{{state.imported}}" :file "{{state.importedFile}}"}}]
-           :readThemeOf [{:if "{{type(theme) != 'object'}}"
-                          :then [{:run notify
-                                  :with {:severity info
-                                         :message "Theme not imported: not a colour theme: the file isn't a JSON object"}}]
-                          :else [{:run addTheme
-                                  :with {:name "{{type(theme.name) == 'string' ? theme.name : (slice(file, -5) == '.json' ? slice(file, 0, -5) : file)}}"
-                                         :kind "{{type(theme.type) != 'string' ? 'dark' : theme.type == 'light' || theme.type == 'vs' ? 'light' : slice(theme.type, 0, 2) == 'hc' || theme.type == 'high-contrast' ? 'hc' : 'dark'}}"
-                                         :colors "{{type(theme.colors) == 'object' ? theme.colors : null}}"}}]}]
-           :addTheme [{:note "Each token takes the first of its keys the theme gives a colour, else its default for the theme's kind; the theme's id is made of its name"}
-                      {:run addThemeAs
-                       :with (node :id "{{slug(name, 40) || 'imported'}}"
-                               :name "{{name}}"
-                               :kind "{{kind}}"
-                               :type "{{kind == 'light' ? 'light' : 'dark'}}"
-                               :values "{{map(state.themeSources, {token: it.token, value: find(map(it.keys, hexColor(colors[it])), it != null) ?? it[kind]})}}")}]
-           :addThemeAs [{:patch "{{map(values, {op: 'add', path: '/tokens/color.' + it.token + '/' + id, value: it.value})}}"
-                         :message "{{'Import the ' + name + ' theme'}}"}
-                        {:set state.themes
-                         :to "{{concat(filter(state.themes, it.id != id), [{id: id, name: name, type: type}])}}"}
-                        {:set state.theme :to "{{id}}"}
-                        {:run notify :with {:severity info :message "{{'Imported the ' + name + ' theme'}}"}}]
-           :toggleIcons {:title "Toggle File Icons"
-                         :category "Preferences"
-                         :icon file
-                         :do [{:set settings.workbench.fileIcons :to "{{!settings.workbench.fileIcons}}"}
-                              {:run reindex}]}}
- :settings {:workbench.fileIcons (boolean :default true
-                                   :title "File icons"
-                                   :description "Show the file icon theme's icons in the explorer.")}
- :menus {:preferences {:theme {:run pickTheme :group "2_themes" :order 1}
-                       :importTheme {:run importTheme :group "2_themes" :order 2}
-                       :icons {:run toggleIcons :group "2_themes" :order 3}}}}
+;;; themes.lisp --- Forge's colour themes and its file icons
+;;;
+;;; Every colour of the workbench is a token with one value per theme (colours.lisp), so a theme is a set of values
+;;; and switching is one state change. A colour theme read from a file (VS Code's .json) becomes a new theme: its
+;;; colours, by a revision, added to the tokens they map to (state.themeSources), the rest its kind's defaults.
+
+;;; The themes
+
+(defstate theme forge-dark)
+
+(defstate themes
+  [{:type dark :id forge-dark :name "Forge Dark"}
+   {:type light :id forge-light :name "Forge Light"}
+   {:type hc :id forge-high-contrast :name "Forge High Contrast"}])
+
+(defcommand pickTheme "Choose the workbench's colour theme."
+  :title ~(t "command.pickTheme") :category ~(t "category.preferences") :icon "palette"
+  :description ~(t "command.pickTheme.about") []
+  (set "state.quickPick.open" true)
+  (set "state.quickPick.query" "theme "))
+
+(defn setTheme "A theme picked in the palette becomes the workbench's." [item]
+  (set "state.theme" item.id))
+
+;;; Importing a colour theme
+
+(defstate imported nil)
+
+(defstate importedFile "")
+
+(defstate themeSources
+  [{:token titleBar
+    :keys [titleBar.activeBackground editorGroupHeader.tabsBackground]
+    :dark "#141211"
+    :light "#e9e4dd"
+    :hc "#000000"}
+   {:token activityBar :keys [activityBar.background sideBar.background] :dark "#141211" :light "#e9e4dd" :hc "#000000"}
+   {:token sideBar :keys [sideBar.background editor.background] :dark "#1a1816" :light "#f3efea" :hc "#000000"}
+   {:token editor :keys [editor.background] :dark "#1f1d1b" :light "#fbf9f6" :hc "#000000"}
+   {:token editorText :keys [editor.foreground foreground] :dark "#ddd6cd" :light "#2d2925" :hc "#ffffff"}
+   {:token tabs
+    :keys [editorGroupHeader.tabsBackground tab.inactiveBackground]
+    :dark "#1a1816"
+    :light "#efeae4"
+    :hc "#000000"}
+   {:token tabActive :keys [tab.activeBackground editor.background] :dark "#1f1d1b" :light "#fbf9f6" :hc "#000000"}
+   {:token panel :keys [panel.background editor.background] :dark "#1a1816" :light "#f3efea" :hc "#000000"}
+   {:token statusBar :keys [statusBar.background] :dark "#141211" :light "#e9e4dd" :hc "#000000"}
+   {:token statusText :keys [statusBar.foreground] :dark "#a69d93" :light "#5a524a" :hc "#ffffff"}
+   {:token accent
+    :keys [focusBorder activityBarBadge.background button.background]
+    :dark "#cf6d26"
+    :light "#b0531a"
+    :hc "#c25a12"}
+   {:token selection
+    :keys [list.activeSelectionBackground editor.selectionBackground]
+    :dark "#46311f"
+    :light "#f2d6bf"
+    :hc "#5a2e0c"}
+   {:token hover :keys [list.hoverBackground] :dark "#2a2623" :light "#e2dcd4" :hc "#1f1a16"}
+   {:token input :keys [input.background dropdown.background] :dark "#262320" :light "#ffffff" :hc "#000000"}
+   {:token border :keys [panel.border editorGroup.border contrastBorder] :dark "#2d2926" :light "#dbd3c9" :hc "#ffa552"}
+   {:token muted :keys [descriptionForeground tab.inactiveForeground] :dark "#968d83" :light "#6e655c" :hc "#cfc6bc"}
+   {:token error :keys [editorError.foreground errorForeground] :dark "#ec6a5e" :light "#c8382a" :hc "#ff8a80"}
+   {:token warning :keys [editorWarning.foreground] :dark "#d9a441" :light "#946800" :hc "#f0c75a"}
+   {:token info :keys [editorInfo.foreground] :dark "#6fa8dc" :light "#2268a8" :hc "#8cc4f2"}
+   {:token widget :keys [editorWidget.background quickInput.background] :dark "#23201d" :light "#f7f4f0" :hc "#1a0f05"}
+   {:token text :keys [foreground sideBar.foreground editor.foreground] :dark "#ddd6cd" :light "#2d2925" :hc "#ffffff"}])
+
+(defcommand importTheme "Read a colour theme (.json) and add it as a theme."
+  :title ~(t "command.importTheme") :category ~(t "category.preferences") :icon "palette"
+  :description ~(t "command.importTheme.about") []
+  (openFile "state.imported"
+            :comments true
+            :title (t "importTheme.dialog")
+            :extensions ["json"]
+            :onDone importThemeDone
+            :onError importThemeFailed))
+
+(defn importThemeDone "A theme file read: its name noted, then it is added." [result]
+  (set "state.importedFile" result.name)
+  (readTheme))
+
+(defn importThemeFailed "Says why no theme was read." [error]
+  (notify "info" (t "notify.themeNotImported" {:error error.message})))
+
+(defn readTheme "The colour theme read into state.imported, added as a theme." []
+  (readThemeOf state.imported state.importedFile))
+
+(defn readThemeOf "A theme file's name (else its file's), its kind (light, dark or high contrast) and its colours."
+  [theme file]
+  (if (not= (type theme) "object")
+    (notify "info" (t "notify.themeNotObject"))
+    (addTheme (cond
+                (= (type theme.name) "string") theme.name
+                (= (slice file (- 5)) ".json") (slice file 0 (- 5))
+                :else file)
+              (cond
+                (not= (type theme.type) "string") "dark"
+                (or (= theme.type "light") (= theme.type "vs")) "light"
+                (or (= (slice theme.type 0 2) "hc") (= theme.type "high-contrast")) "hc"
+                :else "dark")
+              (if (= (type theme.colors) "object") theme.colors nil))))
+
+(defn addTheme
+  "Each token takes the first colour the theme gives of its keys, else its kind's default; the id is the name's."
+  [name kind colors]
+  (addThemeAs (if (empty? (slug name 40)) "imported" (slug name 40))
+              name
+              (if (= kind "light") "light" "dark")
+              (map (fn [it]
+                     {:token it.token
+                      :value (or-else (find (fn [it] (some? it)) (map (fn [it] (hexColor (get colors it))) it.keys))
+                                      (get it kind))})
+                   state.themeSources)))
+
+(defn addThemeAs "Adds a theme's colours to the tokens, by one revision, lists it and switches to it."
+  [id name type values]
+  (patch (map (fn [it] {:op "add" :path (str "/tokens/color." it.token "/" id) :value it.value}) values)
+         :message (t "revision.importTheme" {:name name}))
+  (set "state.themes" (concat (filter (fn [it] (not= it.id id)) state.themes) [{:id id :name name :type type}]))
+  (set "state.theme" id)
+  (notify "info" (t "notify.themeImported" {:name name})))
+
+;;; File icons
+
+(defstate iconTheme
+  {:file {:icon file :color "#98a0a9"}
+   :folder {:icon folder :color "#d1a35e"}
+   :extensions {:c {:icon file-code :color "#5ea7cf"}
+                :cpp {:icon file-code :color "#5ea7cf"}
+                :h {:icon file-code :color "#b48ad8"}
+                :hpp {:icon file-code :color "#b48ad8"}
+                :json {:icon braces :color "#d4b84a"}
+                :md {:icon file-text :color "#5ea7cf"}
+                :txt {:icon file-text :color "#98a0a9"}
+                :cmake {:icon hammer :color "#7f9198"}
+                :py {:icon file-code :color "#4c88bd"}
+                :js {:icon file-code :color "#d4b84a"}
+                :ts {:icon file-code :color "#5ea7cf"}
+                :sh {:icon file-terminal :color "#6a8a74"}}
+   :names {:CMakeLists.txt {:icon hammer :color "#7f9198"}
+           :README.md {:icon info :color "#5ea7cf"}
+           :LICENSE {:icon file-text :color "#d4b84a"}}})
+
+(defcustom workbench.fileIcons true
+  "Show the file icon theme's icons in the explorer."
+  :description ~(t "settings.workbench.fileIcons.about")
+  :type boolean
+  :title ~(t "settings.workbench.fileIcons"))
+
+(defcommand toggleIcons "Toggle File Icons"
+  :title ~(t "command.toggleIcons")
+  :description ~(t "command.toggleIcons") :category ~(t "category.preferences") :icon "file" []
+  (set "settings.workbench.fileIcons" (not settings.workbench.fileIcons))
+  (reindex))

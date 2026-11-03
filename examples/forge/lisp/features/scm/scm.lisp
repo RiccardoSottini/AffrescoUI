@@ -1,626 +1,501 @@
-{:$schema "../../../../../schema/affrescoui-screen.schema.json"
- :format affrescoui-screen
- :version 2
- :note "Forge's source control: the open folder's git status (staged changes and changes), staging, the diff of a change against HEAD, commits and branches, and the gutter marks of each compared file (state.scm.gutters). git runs through the process service the host granted: only the git grant's commands, as arrays, in the open folder's repository. Its output is read strictly by gitStatus() and gitBranches(), and diffLines() compares a file with HEAD (its hunks make the gutter marks). A commit message goes to git's input, never its arguments. The actions that take what git wrote as an event (scmApplyStatus, scmApplyBranches, scmCompare) let a scenario or an agent show a status or a diff without a repository."
- :services {:git {:provider process :process git :root workspace}}
- :state {:scm {:status {:branch {:head "" :upstream "" :ahead 0 :behind 0} :files [] :staged [] :changes [] :count 0}
-               :branches {:current "" :branches []}
-               :message ""
-               :branchName ""
-               :stashes 0
-               :error ""
-               :busy false
-               :showBranches false
-               :showHistory false
-               :log []
-               :selectedCommit nil
-               :commit {:hash "" :files [] :before ""}
-               :selectedCommitFile nil
-               :selectedStaged nil
-               :selectedChange nil
-               :selectedBranch nil
-               :compare {:path "" :original "" :modified ""}
-               :gutters []}}
- :computed {:scmStagedRows "{{map(state.scm.status.staged, {id: it.id, label: it.label + (empty(it.detail) ? '' : '  ' + it.detail) + '  ' + it.badge, icon: it.kind == 'added' || it.kind == 'untracked' ? 'file-plus' : it.kind == 'deleted' ? 'file-minus' : it.kind == 'unmerged' ? 'alert-triangle' : it.kind == 'renamed' || it.kind == 'copied' ? 'file-symlink' : 'file-diff', iconColor: it.kind == 'added' || it.kind == 'untracked' ? '#2ea043' : it.kind == 'deleted' || it.kind == 'unmerged' ? '#f85149' : '#d4a63a'})}}"
-            :scmChangeRows "{{map(state.scm.status.changes, {id: it.id, label: it.label + (empty(it.detail) ? '' : '  ' + it.detail) + '  ' + it.badge, icon: it.kind == 'added' || it.kind == 'untracked' ? 'file-plus' : it.kind == 'deleted' ? 'file-minus' : it.kind == 'unmerged' ? 'alert-triangle' : it.kind == 'renamed' || it.kind == 'copied' ? 'file-symlink' : 'file-diff', iconColor: it.kind == 'added' || it.kind == 'untracked' ? '#2ea043' : it.kind == 'deleted' || it.kind == 'unmerged' ? '#f85149' : '#d4a63a'})}}"
-            :scmHasRepo "{{!empty(state.scm.status.branch.head)}}"
-            :scmCanPush "{{!empty(state.scm.status.branch.head) && state.scm.status.branch.head != '(detached)'}}"
-            :scmCommitRows "{{map(state.scm.log, empty(it.hash) ? {id: '-' + index, label: it.graph} : {id: it.hash, label: it.graph + (empty(it.graph) ? '' : ' ') + (empty(it.refs) ? '' : '(' + it.refs + ') ') + it.subject + '  ' + it.author + ', ' + it.when, icon: empty(it.graph) ? 'git-commit' : ''})}}"
-            :scmCommitFileRows "{{map(state.scm.commit.files, {id: it.path, label: reverse(split(it.path, '/'))[0] + '  ' + join(slice(split(it.path, '/'), 0, -1), '/') + '  ' + it.status, icon: it.status == 'A' ? 'file-plus' : it.status == 'D' ? 'file-minus' : 'file-diff'})}}"
-            :scmBranchRows "{{map(state.scm.branches.branches, {id: it.id, label: it.label, icon: it.current ? 'check' : 'git-branch'})}}"
-            :scmBranchText "{{(empty(state.scm.status.branch.head) ? 'No repository' : state.scm.status.branch.head) + (state.scm.status.branch.ahead > 0 ? '  ↑' + state.scm.status.branch.ahead : '') + (state.scm.status.branch.behind > 0 ? '  ↓' + state.scm.status.branch.behind : '')}}"}
- :actions {:showSourceControl {:title "Show Source Control"
-                               :category "View"
-                               :icon git-branch
-                               :do [{:run forgeShowView :with {:view scm}}
-                                    {:if "{{state.sideView == 'scm' && !empty(state.folder.root)}}"
-                                     :then [{:run scmRefresh}]}]}
-           :scmRefresh {:title "Refresh"
-                        :category "Source Control"
-                        :icon refresh-cw
-                        :description "Read the open folder's git status again."
-                        :enablement "{{!empty(state.folder.root)}}"
-                        :do [{:invoke git.run
-                              :id scm-status
-                              :loading state.scm.busy
-                              :with {:arguments [status "--porcelain=v2" "-z" "--branch" "--untracked-files=all"]
-                                     :collect true}
-                              :onError [{:set state.scm.error :to "{{'git did not run: ' + error.message}}"}]
-                              :onDone [{:if "{{result.code != 0}}"
-                                        :then [{:set state.scm.error :to ""}
-                                               {:set state.scm.status
-                                                :to {:branch {:head "" :upstream "" :ahead 0 :behind 0}
-                                                     :files []
-                                                     :staged []
-                                                     :changes []
-                                                     :count 0}}]
-                                        :else [{:run scmStatusRead :with {:read "{{gitStatus(result.output)}}"}}
-                                               {:run scmStashCount}
-                                               {:if "{{state.scm.showHistory}}" :then [{:run scmLog}]}]}]}]}
-           :scmStashCount [{:invoke git.run
-                            :id scm-stashes
-                            :with {:arguments [stash list "--format=%gd"] :collect true}
-                            :onDone [{:set state.scm.stashes
-                                      :to "{{result.code == 0 ? length(filter(split(result.output, '\n'), !empty(trim(it)))) : 0}}"}]}]
-           :scmFetch {:title "Fetch"
-                      :category "Source Control"
-                      :icon refresh-ccw-dot
-                      :description "Fetch the remotes' branches (git fetch --prune); what is behind shows on the branch row."
-                      :enablement "{{computed.scmHasRepo}}"
-                      :do [{:run scmGit :with {:arguments [fetch "--prune"] :input ""}}]}
-           :scmPull {:title "Pull"
-                     :category "Source Control"
-                     :icon arrow-down-to-line
-                     :description "Bring the branch up to its upstream, only where that needs no merge (git pull --ff-only)."
-                     :enablement "{{computed.scmHasRepo && !empty(state.scm.status.branch.upstream)}}"
-                     :do [{:run scmGit :with {:arguments [pull "--ff-only"] :input ""}}]}
-           :scmPush {:title "Push"
-                     :category "Source Control"
-                     :icon arrow-up-from-line
-                     :description "Send the branch's commits to its upstream, or publish it to origin when it has none."
-                     :enablement "{{computed.scmCanPush}}"
-                     :do [{:run scmGit
-                           :with {:arguments "{{empty(state.scm.status.branch.upstream) ? ['push', '-u', 'origin', 'HEAD'] : ['push']}}"
-                                  :input ""}}]}
-           :scmStash {:title "Stash Changes"
-                      :category "Source Control"
-                      :icon archive
-                      :description "Put every change aside, new files too (git stash push --include-untracked)."
-                      :enablement "{{state.scm.status.count > 0}}"
-                      :do [{:run scmGit :with {:arguments [stash push "--include-untracked"] :input ""}}]}
-           :scmStashPop {:title "Pop Latest Stash"
-                         :category "Source Control"
-                         :icon archive-restore
-                         :description "Bring back the changes put aside last, and drop them from the stashes (git stash pop)."
-                         :enablement "{{state.scm.stashes > 0}}"
-                         :do [{:run scmGit :with {:arguments [stash pop] :input ""}}]}
-           :scmInit {:title "Create Repository"
-                     :category "Source Control"
-                     :icon git-branch-plus
-                     :description "Make the open folder a git repository (git init), to track its changes."
-                     :enablement "{{!empty(state.folder.root) && !computed.scmHasRepo}}"
-                     :do [{:run scmGit :with {:arguments [init] :input ""}}]}
-           :scmApplyStatus [{:run scmStatusRead :with {:read "{{gitStatus(event.output)}}"}}]
-           :scmStatusRead [{:if "{{read == null}}"
-                            :then [{:set state.scm.error
-                                    :to "git's status could not be read: it is not the output this view asks for."}]
-                            :else [{:set state.scm.error :to ""}
-                                   {:set state.scm.status
-                                    :to "{{merge(read, {items: map(filter(read.files, it.kind != 'ignored'), {id: it.path, label: reverse(split(it.path, '/'))[0], detail: join(slice(split(it.path, '/'), 0, length(split(it.path, '/')) - 1), '/'), badge: it.kind == 'added' ? 'A' : it.kind == 'deleted' ? 'D' : it.kind == 'renamed' ? 'R' : it.kind == 'copied' ? 'C' : it.kind == 'unmerged' ? '!' : it.kind == 'untracked' ? 'U' : 'M', kind: it.kind, staged: it.staged, unstaged: it.unstaged})})}}"}
-                                   {:set state.scm.status.staged :to "{{filter(state.scm.status.items, it.staged)}}"}
-                                   {:set state.scm.status.changes :to "{{filter(state.scm.status.items, it.unstaged)}}"}
-                                   {:set state.scm.status.count
-                                    :to "{{length(state.scm.status.staged) + length(state.scm.status.changes)}}"}]}]
-           :scmGit [{:invoke git.run
-                     :loading state.scm.busy
-                     :with {:arguments "{{arguments}}" :input "{{input}}" :collect true}
-                     :onError [{:run notify :with {:severity error :message "{{'git did not run: ' + error.message}}"}}]
-                     :onDone [{:if "{{result.code != 0}}"
-                               :then [{:run notify
-                                       :with {:severity error
-                                              :message "{{'git ' + arguments[0] + ' failed' + (empty(trim(result.output)) ? '' : ': ' + slice(trim(result.output), 0, 300))}}"}}]
-                               :else [{:if "{{arguments[0] == 'commit'}}"
-                                       :then [{:set state.scm.message :to ""}
-                                              {:run log
-                                               :with {:text "{{'Committed: ' + slice(trim(result.output), 0, 200)}}"}}]}
-                                      {:if "{{contains(['fetch', 'pull', 'push', 'stash'], arguments[0])}}"
-                                       :then [{:run log
-                                               :with {:text "{{'git ' + join(arguments, ' ') + (empty(trim(result.output)) ? '' : ': ' + slice(trim(result.output), 0, 200))}}"}}]}]}
-                              {:run scmRefresh}
-                              {:if "{{arguments[0] == 'switch'}}" :then [{:run scmBranches}]}]}]
-           :scmStage {:title "Stage Changes"
-                      :category "Source Control"
-                      :icon plus
-                      :enablement "{{!empty(event.id ?? state.scm.selectedChange)}}"
-                      :do [{:forEach "{{filter([event.id ?? state.scm.selectedChange], !empty(it))}}"
-                            :as path
-                            :do [{:run scmGit :with {:arguments "{{['add', '--', path]}}" :input ""}}]}]}
-           :scmUnstage {:title "Unstage Changes"
-                        :category "Source Control"
-                        :icon minus
-                        :enablement "{{!empty(event.id ?? state.scm.selectedStaged)}}"
-                        :do [{:forEach "{{filter([event.id ?? state.scm.selectedStaged], !empty(it))}}"
-                              :as path
-                              :do [{:run scmGit :with {:arguments "{{['restore', '--staged', '--', path]}}" :input ""}}]}]}
-           :scmStageAll {:title "Stage All Changes"
-                         :category "Source Control"
-                         :icon list-plus
-                         :enablement "{{length(state.scm.status.changes) > 0}}"
-                         :do [{:run scmGit :with {:arguments [add "--" "."] :input ""}}]}
-           :scmUnstageAll {:title "Unstage All Changes"
-                           :category "Source Control"
-                           :icon list-minus
-                           :enablement "{{length(state.scm.status.staged) > 0}}"
-                           :do [{:run scmGit :with {:arguments [restore "--staged" "--" "."] :input ""}}]}
-           :scmCommit {:title "Commit"
-                       :category "Source Control"
-                       :icon check
-                       :description "Commit the staged changes with the message (it goes to git's input, never its arguments)."
-                       :enablement "{{!empty(trim(state.scm.message)) && length(state.scm.status.staged) > 0}}"
-                       :do [{:if "{{empty(trim(state.scm.message)) || length(state.scm.status.staged) == 0}}"
-                             :then [{:run notify
-                                     :with {:severity info
-                                            :message "{{length(state.scm.status.staged) == 0 ? 'There are no staged changes to commit.' : 'Write a commit message first.'}}"}}]
-                             :else [{:run scmGit
-                                     :with {:arguments [commit "-F" "-"] :input "{{trim(state.scm.message) + '\n'}}"}}]}]}
-           :scmBranches {:title "Show Branches"
-                         :category "Source Control"
-                         :icon git-branch
-                         :enablement "{{!empty(state.folder.root)}}"
-                         :do [{:set state.scm.showBranches :to true}
-                              {:invoke git.run
-                               :id scm-branches
-                               :with {:arguments [for-each-ref "--format=%(HEAD)%00%(refname:short)" "refs/heads/"]
-                                      :collect true}
-                               :onError [{:set state.scm.error :to "{{'git did not run: ' + error.message}}"}]
-                               :onDone [{:if "{{result.code == 0}}"
-                                         :then [{:run scmBranchesRead :with {:read "{{gitBranches(result.output)}}"}}]}]}]}
-           :scmHistory {:title "Show Commits"
-                        :category "Source Control"
-                        :icon history
-                        :description "List the branch's last hundred commits; pick one to see the files it changed, and open a file to compare it with the commit before."
-                        :enablement "{{!empty(state.folder.root)}}"
-                        :do [{:set state.scm.showHistory :to true} {:run scmLog}]}
-           :scmLog [{:invoke git.run
-                     :id scm-log
-                     :with {:arguments [log "--graph" "-n" "100" "--format=%x1e%D%x1e%h%x1f%H%x1f%an%x1f%ar%x1f%s"]
-                            :collect true}
-                     :onError [{:set state.scm.error :to "{{'git did not run: ' + error.message}}"}]
-                     :onDone [{:set state.scm.log :to []}
-                              {:if "{{result.code == 0}}" :then [{:run scmLogRead :with {:output "{{result.output}}"}}]}]}]
-           :scmApplyLog [{:set state.scm.showHistory :to true} {:run scmLogRead :with {:output "{{event.output}}"}}]
-           :scmLogRead [{:note "output: git log --graph's lines, each the graph, the refs and then the short hash, hash, author, when and subject split by the unit separator (the graph and refs before record separators, and optional); a line of the graph alone joins two commits. Other lines are left out"}
-                        {:set state.scm.log
-                         :to "{{slice(map(filter(map(split(output, '\n'), {graph: length(split(it, '\u001e')) == 3 ? slice(split(it, '\u001e')[0], 0, 60) : contains(it, '\u001f') ? '' : slice(it, 0, 60), refs: length(split(it, '\u001e')) == 3 ? slice(split(it, '\u001e')[1], 0, 120) : '', f: contains(reverse(split(it, '\u001e'))[0], '\u001f') ? split(reverse(split(it, '\u001e'))[0], '\u001f') : []}), (length(it.f) >= 5 && length(it.f[1]) == 40) || (length(it.f) == 0 && !empty(trim(it.graph)) && every(split(it.graph, ''), contains('|/\\\\_*. -', it)))), length(it.f) == 0 ? {short: '', hash: '', author: '', when: '', subject: '', refs: '', graph: it.graph} : {short: slice(it.f[0], 0, 12), hash: it.f[1], author: slice(it.f[2], 0, 80), when: slice(it.f[3], 0, 40), subject: slice(join(slice(it.f, 4), ' '), 0, 200), refs: it.refs, graph: it.graph}), 0, 300)}}"}]
-           :scmPickCommit [{:forEach "{{filter([event.value ?? state.scm.selectedCommit], length(it ?? '') == 40 && slice(it, 0, 1) != '-')}}"
-                            :as hash
-                            :do [{:set state.scm.commit :to "{{ {hash: hash, files: [], before: ''} }}"}
-                                 {:invoke git.run
-                                  :id scm-commit-files
-                                  :with {:arguments "{{['-c', 'core.quotePath=false', 'show', '--name-status', '--format=', '-M', hash]}}"
-                                         :collect true}
-                                  :onError [{:run notify
-                                             :with {:severity error :message "{{'git did not run: ' + error.message}}"}}]
-                                  :onDone [{:if "{{result.code == 0}}"
-                                            :then [{:run scmCommitFilesRead
-                                                    :with {:hash "{{hash}}" :output "{{result.output}}"}}]}]}]}]
-           :scmApplyCommitFiles [{:run scmCommitFilesRead :with {:hash "{{event.hash}}" :output "{{event.output}}"}}]
-           :scmCommitFilesRead [{:note "output: git show --name-status's lines (a status letter, a tab, the path; a rename or copy has the old path first). Kept while the commit is still the one picked"}
-                                {:if "{{hash == state.scm.commit.hash}}"
-                                 :then [{:set state.scm.commit.files
-                                         :to "{{slice(map(filter(map(split(output, '\n'), split(it, '\t')), length(it) >= 2 && !empty(it[1])), {status: slice(it[0], 0, 1), from: it[1], path: reverse(it)[0]}), 0, 500)}}"}]}]
-           :scmOpenCommitFile [{:forEach "{{filter(state.scm.commit.files, it.path == (event.id ?? state.scm.selectedCommitFile))}}"
-                                :as file
-                                :do [{:invoke git.run
-                                      :id scm-commit-before
-                                      :with {:arguments "{{['show', '--no-textconv', state.scm.commit.hash + '^:' + file.from]}}"
-                                             :collect true}
-                                      :onError [{:run notify
-                                                 :with {:severity error
-                                                        :message "{{'git did not run: ' + error.message}}"}}]
-                                      :onDone [{:set state.scm.commit.before
-                                                :to "{{result.code == 0 ? result.output : ''}}"}
-                                               {:invoke git.run
-                                                :id scm-commit-after
-                                                :with {:arguments "{{['show', '--no-textconv', state.scm.commit.hash + ':' + file.path]}}"
-                                                       :collect true}
-                                                :onDone [{:run scmCommitCompare
-                                                          :with {:event "{{ {hash: state.scm.commit.hash, path: file.path, original: state.scm.commit.before, modified: result.code == 0 ? result.output : ''} }}"}}]}]}]}]
-           :scmCommitCompare [{:note "event: { hash, path, original, modified }: a file before and after a commit, in a diff tab"}
-                              {:forEach "{{[ {id: 'commit:' + slice(event.hash, 0, 12) + ':' + event.path, label: reverse(split(event.path, '/'))[0] + ' (' + slice(event.hash, 0, 7) + ')', diff: merge(diffLines(event.original ?? '', event.modified ?? '', {context: -1}), {path: event.path, original: event.original ?? '', modified: event.modified ?? ''})} ]}}"
-                               :as page
-                               :do [{:set state.docs :to "{{filter(state.docs, it.id != page.id)}}"}
-                                    {:push state.docs
-                                     :value "{{ {id: page.id, label: page.label, kind: 'diff', text: '', dirty: false, language: '', diff: page.diff} }}"}
-                                    {:run showTab :with {:id "{{page.id}}" :label "{{page.label}}"}}]}]
-           :scmApplyBranches [{:set state.scm.showBranches :to true}
-                              {:run scmBranchesRead :with {:read "{{gitBranches(event.output)}}"}}]
-           :scmBranchesRead [{:if "{{read == null}}"
-                              :then [{:set state.scm.error
-                                      :to "git's branch list could not be read: it is not the output this view asks for."}]
-                              :else [{:set state.scm.branches :to "{{read}}"}]}]
-           :scmSwitch {:title "Switch Branch"
-                       :category "Source Control"
-                       :icon git-branch
-                       :enablement "{{!empty(event.id ?? state.scm.selectedBranch)}}"
-                       :do [{:forEach "{{filter([event.id ?? state.scm.selectedBranch], !empty(it) && it != state.scm.branches.current)}}"
-                             :as name
-                             :do [{:run scmGit :with {:arguments "{{['switch', name]}}" :input ""}}]}]}
-           :scmCreateBranch {:title "Create Branch"
-                             :category "Source Control"
-                             :icon git-branch
-                             :description "Create a branch with the name typed under Branches and switch to it."
-                             :enablement "{{!empty(trim(event.text ?? state.scm.branchName))}}"
-                             :do [{:forEach "{{filter([trim(event.text ?? state.scm.branchName)], !empty(it))}}"
-                                   :as name
-                                   :do [{:set state.scm.branchName :to ""}
-                                        {:run scmGit :with {:arguments "{{['switch', '-c', name]}}" :input ""}}]}]}
-           :scmOpenDiff [{:forEach "{{filter([event.id ?? state.scm.selectedChange ?? state.scm.selectedStaged], !empty(it))}}"
-                          :as path
-                          :do [{:set state.scm.compare :to "{{ {path: path, original: '', modified: ''} }}"}
-                               {:invoke git.run
-                                :id scm-show
-                                :with {:arguments "{{['show', '--no-textconv', 'HEAD:' + path]}}" :collect true}
-                                :onError [{:run notify
-                                           :with {:severity error :message "{{'git did not run: ' + error.message}}"}}]
-                                :onDone [{:set state.scm.compare.original
-                                          :to "{{result.code == 0 ? result.output : ''}}"}
-                                         {:invoke files.read
-                                          :with {:path "{{path}}"}
-                                          :onError [{:run scmShowDiff}]
-                                          :onDone [{:set state.scm.compare.modified :to "{{result.text}}"}
-                                                   {:run scmShowDiff}]}]}]}]
-           :scmCompare [{:set state.scm.compare
-                         :to "{{ {path: event.path, original: event.original ?? '', modified: event.modified ?? ''} }}"}
-                        {:run scmShowDiff}]
-           :scmShowDiff [{:run scmDiffShow
-                          :with {:diff "{{diffLines(state.scm.compare.original, state.scm.compare.modified, {context: -1})}}"
-                                 :changes "{{diffLines(state.scm.compare.original, state.scm.compare.modified, {context: 0}).hunks}}"}}]
-           :scmDiffShow [{:set state.scm.gutters
-                          :to "{{concat(filter(state.scm.gutters, it.path != state.scm.compare.path), [{path: state.scm.compare.path, marks: map(changes, {line: max(it.newStart, 1), endLine: it.newLines == 0 ? max(it.newStart, 1) : it.newStart + it.newLines - 1, kind: 'gutter', color: it.oldLines == 0 ? '#2ea043' : it.newLines == 0 ? '#f85149' : '#0078d4', text: it.oldLines == 0 ? 'added' : it.newLines == 0 ? 'deleted' : 'modified'})}])}}"}
-                         {:forEach "{{[ {id: 'diff:' + state.scm.compare.path, label: reverse(split(state.scm.compare.path, '/'))[0] + ' (Working Tree)', diff: merge(diff, {path: state.scm.compare.path, original: state.scm.compare.original, modified: state.scm.compare.modified, items: map(diff.hunks[0].lines ?? [], {id: text(index), label: (it.kind == 'insert' ? '+ ' : it.kind == 'delete' ? '- ' : '  ') + it.text, icon: it.kind == 'insert' ? 'plus' : it.kind == 'delete' ? 'minus' : '', iconColor: it.kind == 'insert' ? '#2ea043' : '#f85149'})})} ]}}"
-                          :as page
-                          :do [{:set state.docs :to "{{filter(state.docs, it.id != page.id)}}"}
-                               {:push state.docs
-                                :value "{{ {id: page.id, label: page.label, kind: 'diff', text: '', dirty: false, language: '', diff: page.diff} }}"}
-                               {:run showTab :with {:id "{{page.id}}" :label "{{page.label}}"}}]}]}
- :keys {"mod+shift+g" showSourceControl}
- :menus {:view {:scm {:run showSourceControl :group "1_views" :order 2}}}
- :components {:forgeScmTool {:params {:icon "" :tip "" :action "" :on true}
-                             :node (label :icon "{{icon}}"
-                                     :padding 6
-                                     :fitText true
-                                     :role button
-                                     :label "{{tip}}"
-                                     :tooltip "{{tip}}"
-                                     :cursor "{{on ? 'hand' : 'arrow'}}"
-                                     :textColor "{{on ? '@color.muted' : '@color.border'}}"
-                                     :hover {:textColor "{{on ? '@color.text' : '@color.border'}}"}
-                                     :onClick {:run "{{action}}"})}
-              :forgeScmView {:node (column#scm-view :width "100%" :grow 1 :color @color.sideBar :gap 4
-                                     (row#scm-head :width "100%" :height 35 :alignItems center
-                                       (label#scm-title :text "Source Control"
-                                         :textColor @color.muted
-                                         :grow 1
-                                         :height 35
-                                         :padding 12)
-                                       (label#scm-refresh :icon refresh-cw
-                                         :padding 6
-                                         :fitText true
-                                         :cursor hand
-                                         :textColor "{{state.scm.busy ? '@color.accent' : '@color.muted'}}"
-                                         :tooltip "Refresh"
-                                         :hover {:textColor @color.text}
-                                         :onClick {:run scmRefresh})
-                                       (label#scm-branches-toggle :icon git-branch
-                                         :padding 6
-                                         :fitText true
-                                         :cursor hand
-                                         :textColor @color.muted
-                                         :tooltip "Branches"
-                                         :hover {:textColor @color.text}
-                                         :onClick {:run scmBranches})
-                                       (node#scm-fetch :when "{{computed.scmHasRepo}}"
-                                         :use forgeScmTool
-                                         :with {:icon refresh-ccw-dot
-                                                :tip "Fetch"
-                                                :action scmFetch
-                                                :on "{{computed.scmHasRepo}}"})
-                                       (node#scm-pull :when "{{computed.scmHasRepo}}"
-                                         :use forgeScmTool
-                                         :with {:icon arrow-down-to-line
-                                                :action scmPull
-                                                :tip "{{empty(state.scm.status.branch.upstream) ? 'Pull (the branch has no upstream)' : 'Pull from ' + state.scm.status.branch.upstream}}"
-                                                :on "{{computed.scmHasRepo && !empty(state.scm.status.branch.upstream)}}"})
-                                       (node#scm-push :when "{{computed.scmHasRepo}}"
-                                         :use forgeScmTool
-                                         :with {:icon "{{empty(state.scm.status.branch.upstream) ? 'cloud-upload' : 'arrow-up-from-line'}}"
-                                                :tip "{{empty(state.scm.status.branch.upstream) ? 'Publish Branch to origin' : 'Push to ' + state.scm.status.branch.upstream}}"
-                                                :action scmPush
-                                                :on "{{computed.scmCanPush}}"})
-                                       (node#scm-history-toggle :when "{{computed.scmHasRepo}}"
-                                         :use forgeScmTool
-                                         :with {:icon history :tip "Commits" :action scmHistory :on true}))
-                                     (label#scm-empty :when "{{empty(state.folder.root)}}"
-                                       :wrap true
-                                       :width "100%"
-                                       :padding 12
-                                       :textColor @color.text
-                                       :text "Open a folder that is a git repository to see its changes.")
-                                     (column#scm-no-repo :when "{{!empty(state.folder.root) && !computed.scmHasRepo && empty(state.scm.error)}}"
-                                       :width "100%"
-                                       :height 150
-                                       :gap 8
-                                       (label#scm-no-repo-text :wrap true
-                                         :width "100%"
-                                         :height 70
-                                         :padding 12
-                                         :textColor @color.text
-                                         :text "This folder isn't a git repository yet. Create one to track its changes, or open a folder that has one.")
-                                       (node :use forgeInset :height 28
-                                         (label#scm-init :role button
-                                           :label "Create Repository"
-                                           :text "Create Repository"
-                                           :grow 1
-                                           :height 28
-                                           :align center
-                                           :radius 2
-                                           :cursor hand
-                                           :focusable true
-                                           :color @color.accent
-                                           :textColor "#ffffff"
-                                           :onClick {:run scmInit}))
-                                       (node :use forgeInset :height 28
-                                         (label#scm-open-folder :role button
-                                           :label "Open Folder"
-                                           :text "Open Folder"
-                                           :grow 1
-                                           :height 28
-                                           :align center
-                                           :radius 2
-                                           :cursor hand
-                                           :focusable true
-                                           :color @color.input
-                                           :textColor @color.text
-                                           :onClick {:run openFolder})))
-                                     (label#scm-error :when "{{!empty(state.scm.error)}}"
-                                       :icon circle-x
-                                       :wrap true
-                                       :width "100%"
-                                       :padding 12
-                                       :textColor @color.text
-                                       :text "{{state.scm.error}}")
-                                     (node :visible "{{computed.scmHasRepo}}" :use forgeInset :height 26
-                                       (label#scm-branch :icon git-branch
-                                         :text "{{computed.scmBranchText}}"
-                                         :grow 1
-                                         :height 26
-                                         :textColor @color.text
-                                         :cursor hand
-                                         :tooltip "Branches"
-                                         :onClick {:run scmBranches}))
-                                     (node :visible "{{computed.scmHasRepo}}" :use forgeInset :height 26
-                                       (textarea#scm-message :grow 1
-                                         :height 26
-                                         :padding 6
-                                         :color @color.input
-                                         :textColor @color.text
-                                         :placeholderColor @color.muted
-                                         :bind state.scm.message
-                                         :placeholder "{{'Message (Enter to commit on ' + (state.scm.status.branch.head || 'HEAD') + ')'}}"
-                                         :onSubmit {:run scmCommit}))
-                                     (node :visible "{{computed.scmHasRepo}}" :use forgeInset :height 28
-                                       (label#scm-commit :icon check
-                                         :text "Commit"
-                                         :grow 1
-                                         :height 28
-                                         :align center
-                                         :radius 2
-                                         :cursor hand
-                                         :focusable true
-                                         :textColor "#ffffff"
-                                         :color "{{!empty(trim(state.scm.message)) && length(state.scm.status.staged) > 0 ? '@color.accent' : '@color.border'}}"
-                                         :onClick {:run scmCommit}))
-                                     (row#scm-staged-head :visible "{{computed.scmHasRepo}}"
-                                       :width "100%"
-                                       :height 22
-                                       :alignItems center
-                                       (label#scm-staged-title :text "{{'STAGED CHANGES  ' + length(state.scm.status.staged)}}"
-                                         :textColor @color.muted
-                                         :grow 1
-                                         :padding 8
-                                         :height 22)
-                                       (label#scm-unstage :icon minus
-                                         :padding 4
-                                         :fitText true
-                                         :cursor hand
-                                         :textColor @color.muted
-                                         :tooltip "Unstage the selected change"
-                                         :hover {:textColor @color.text}
-                                         :onClick {:run scmUnstage})
-                                       (label#scm-unstage-all :icon list-minus
-                                         :padding 4
-                                         :fitText true
-                                         :cursor hand
-                                         :textColor @color.muted
-                                         :tooltip "Unstage All Changes"
-                                         :hover {:textColor @color.text}
-                                         :onClick {:run scmUnstageAll}))
-                                     (list#scm-staged :visible "{{computed.scmHasRepo}}"
-                                       :width "100%"
-                                       :grow 1
-                                       :items "{{computed.scmStagedRows}}"
-                                       :bind state.scm.selectedStaged
-                                       :rowHeight 22
-                                       :color @color.sideBar
-                                       :textColor @color.text
-                                       :selectedTextColor @color.text
-                                       :selectedBackground @color.selection
-                                       :accentColor @color.accent
-                                       :onOpen {:run scmOpenDiff})
-                                     (row#scm-changes-head :visible "{{computed.scmHasRepo}}"
-                                       :width "100%"
-                                       :height 22
-                                       :alignItems center
-                                       (label#scm-changes-title :text "{{'CHANGES  ' + length(state.scm.status.changes)}}"
-                                         :textColor @color.muted
-                                         :grow 1
-                                         :padding 8
-                                         :height 22)
-                                       (label#scm-stage :icon plus
-                                         :padding 4
-                                         :fitText true
-                                         :cursor hand
-                                         :textColor @color.muted
-                                         :tooltip "Stage the selected change"
-                                         :hover {:textColor @color.text}
-                                         :onClick {:run scmStage})
-                                       (node#scm-stash :use forgeScmTool
-                                         :with {:icon archive
-                                                :tip "Stash Changes"
-                                                :action scmStash
-                                                :on "{{state.scm.status.count > 0}}"})
-                                       (node#scm-stash-pop :use forgeScmTool
-                                         :with {:icon archive-restore
-                                                :action scmStashPop
-                                                :tip "{{state.scm.stashes > 0 ? 'Pop Latest Stash (' + state.scm.stashes + ' stashed)' : 'No stashed changes'}}"
-                                                :on "{{state.scm.stashes > 0}}"})
-                                       (label#scm-stage-all :icon list-plus
-                                         :padding 4
-                                         :fitText true
-                                         :cursor hand
-                                         :textColor @color.muted
-                                         :tooltip "Stage All Changes"
-                                         :hover {:textColor @color.text}
-                                         :onClick {:run scmStageAll}))
-                                     (list#scm-changes :visible "{{computed.scmHasRepo}}"
-                                       :width "100%"
-                                       :grow 2
-                                       :items "{{computed.scmChangeRows}}"
-                                       :bind state.scm.selectedChange
-                                       :rowHeight 22
-                                       :color @color.sideBar
-                                       :textColor @color.text
-                                       :selectedTextColor @color.text
-                                       :selectedBackground @color.selection
-                                       :accentColor @color.accent
-                                       :onOpen {:run scmOpenDiff})
-                                     (column#scm-branch-list :when "{{state.scm.showBranches}}" :width "100%" :grow 1
-                                       (row#scm-branch-list-head :width "100%" :height 22 :alignItems center
-                                         (label#scm-branch-list-title :text "BRANCHES"
-                                           :textColor @color.muted
-                                           :grow 1
-                                           :padding 8
-                                           :height 22)
-                                         (label#scm-branch-list-close :icon x
-                                           :padding 4
-                                           :fitText true
-                                           :cursor hand
-                                           :textColor @color.muted
-                                           :tooltip "Hide Branches"
-                                           :hover {:textColor @color.text}
-                                           :onClick {:set state.scm.showBranches :to false}))
-                                       (list#scm-branch-items :width "100%"
-                                         :grow 1
-                                         :items "{{computed.scmBranchRows}}"
-                                         :bind state.scm.selectedBranch
-                                         :rowHeight 22
-                                         :color @color.sideBar
-                                         :textColor @color.text
-                                         :selectedTextColor @color.text
-                                         :selectedBackground @color.selection
-                                         :accentColor @color.accent
-                                         :onOpen {:run scmSwitch})
-                                       (textarea#scm-new-branch :width "100%"
-                                         :height 26
-                                         :padding 6
-                                         :color @color.input
-                                         :textColor @color.text
-                                         :placeholderColor @color.muted
-                                         :bind state.scm.branchName
-                                         :placeholder "New branch name (Enter to create and switch)"
-                                         :onSubmit {:run scmCreateBranch}))
-                                     (column#scm-history :when "{{state.scm.showHistory}}" :width "100%" :grow 2
-                                       (row#scm-history-head :width "100%" :height 22 :alignItems center
-                                         (label#scm-history-title :text "{{'COMMITS  ' + count(state.scm.log, !empty(it.hash))}}"
-                                           :textColor @color.muted
-                                           :grow 1
-                                           :padding 8
-                                           :height 22)
-                                         (label#scm-history-close :icon x
-                                           :padding 4
-                                           :fitText true
-                                           :cursor hand
-                                           :textColor @color.muted
-                                           :tooltip "Hide Commits"
-                                           :hover {:textColor @color.text}
-                                           :onClick {:set state.scm.showHistory :to false}))
-                                       (list#scm-commits :label "Commits"
-                                         :font code
-                                         :width "100%"
-                                         :grow 1
-                                         :items "{{computed.scmCommitRows}}"
-                                         :bind state.scm.selectedCommit
-                                         :rowHeight 22
-                                         :color @color.sideBar
-                                         :textColor @color.text
-                                         :selectedTextColor @color.text
-                                         :selectedBackground @color.selection
-                                         :accentColor @color.accent
-                                         :onChange {:run scmPickCommit})
-                                       (list#scm-commit-files :label "Files of the commit"
-                                         :when "{{!empty(state.scm.commit.files)}}"
-                                         :width "100%"
-                                         :grow 1
-                                         :items "{{computed.scmCommitFileRows}}"
-                                         :bind state.scm.selectedCommitFile
-                                         :rowHeight 22
-                                         :color @color.sideBar
-                                         :textColor @color.text
-                                         :selectedTextColor @color.text
-                                         :selectedBackground @color.selection
-                                         :accentColor @color.accent
-                                         :onOpen {:run scmOpenCommitFile})))}
-              :forgeDiffEditor {:params {:d 0}
-                                :node (column#diff-editor :width "100%"
-                                        :grow 1
-                                        :color @color.editor
-                                        :note "The working tree against HEAD: a diff node, side by side or inline (diffEditor.renderSideBySide); diffLines() counts the lines."
-                                        (row#diff-head :width "100%" :height 28 :alignItems center :gap 8
-                                          (label#diff-path :icon git-compare
-                                            :text "{{state.docs[d].diff.path}}"
-                                            :textColor @color.text
-                                            :padding 8
-                                            :fitText true)
-                                          (label#diff-added :text "{{'+' + state.docs[d].diff.added}}"
-                                            :textColor "#2ea043"
-                                            :fitText true)
-                                          (label#diff-removed :text "{{'-' + state.docs[d].diff.removed}}"
-                                            :textColor "#f85149"
-                                            :fitText true)
-                                          (label#diff-truncated :when "{{state.docs[d].diff.truncated}}"
-                                            :text "(too large: the first rows only)"
-                                            :textColor @color.muted
-                                            :fitText true)
-                                          (node#diff-head-gap :grow 1)
-                                          (label#diff-mode :role button
-                                            :label "Toggle Inline View"
-                                            :text "{{settings.diffEditor.renderSideBySide ? 'Inline' : 'Side by Side'}}"
-                                            :icon columns
-                                            :padding 6
-                                            :fitText true
-                                            :cursor hand
-                                            :textColor @color.muted
-                                            :hover {:color @color.hover}
-                                            :onClick {:run toggleDiffInline}))
-                                        (diff#diff-view :font code
-                                          :width "100%"
-                                          :grow 1
-                                          :original "{{state.docs[d].diff.original ?? ''}}"
-                                          :modified "{{state.docs[d].diff.modified ?? ''}}"
-                                          :mode "{{settings.diffEditor.renderSideBySide ? 'split' : 'inline'}}"
-                                          :language "{{state.docs[d].diff.path}}"
-                                          :color @color.editor
-                                          :textColor @color.editorText
-                                          :deletedColor "#f8514933"
-                                          :insertedColor "#2ea04333"))}}}
+;;; scm.lisp --- Forge's source control: git's status, staging, diffs, commits, branches and the history
+;;;
+;;; git runs through the process service (git.run), its output read by the expressions' gitStatus and gitBranches,
+;;; and by this file for the log and a commit's files. A change's diff against HEAD opens in a diff tab, side by side
+;;; or inline; the gutters of an open file mark its changed lines. The commit message goes to git's input, never its
+;;; arguments.
+
+;;; The view, and git's status
+
+(defstate scm
+  {:status {:branch {:head "" :upstream "" :ahead 0 :behind 0} :files [] :staged [] :changes [] :count 0}
+   :branches {:current "" :branches []}
+   :message ""
+   :branchName ""
+   :stashes 0
+   :error ""
+   :busy false
+   :showBranches false
+   :showHistory false
+   :log []
+   :selectedCommit nil
+   :commit {:hash "" :files [] :before ""}
+   :selectedCommitFile nil
+   :selectedStaged nil
+   :selectedChange nil
+   :selectedBranch nil
+   :compare {:path "" :original "" :modified ""}
+   :gutters []})
+
+(defpart scm-service "git, run by the process service in the open folder."
+  :services {:git {:provider process :process git :root workspace}})
+
+(defcommand showSourceControl "Show Source Control"
+  :title ~(t "command.showSourceControl")
+  :description ~(t "command.showSourceControl") :category ~(t "category.view") :icon "git-branch" []
+  (forgeShowView "scm")
+  (when (and (= state.sideView "scm") (not (empty? state.folder.root))) (scmRefresh)))
+
+(defcommand scmRefresh "Read the open folder's git status again."
+  :title ~(t "command.scmRefresh") :category ~(t "category.sourceControl") :icon "refresh-cw"
+  :description ~(t "command.scmRefresh.about") :enablement ~(not (empty? state.folder.root)) []
+  (invoke "git.run"
+          :id "scm-status"
+          :loading "state.scm.busy"
+          :with {:arguments ["status" "--porcelain=v2" "-z" "--branch" "--untracked-files=all"] :collect true}
+          :onError scmGitDidNotRun
+          :onDone scmStatusDone))
+
+(defn scmStatusDone "git's status read; outside a repository, nothing to show." [result]
+  (if (not= result.code 0)
+    (do
+      (set "state.scm.error" "")
+      (set "state.scm.status"
+           {:branch {:head "" :upstream "" :ahead 0 :behind 0} :files [] :staged [] :changes [] :count 0}))
+    (do (scmStatusRead (gitStatus result.output)) (scmStashCount) (when state.scm.showHistory (scmLog)))))
+
+(defn scmGitDidNotRun "Says, in the view, that git didn't run." [error]
+  (set "state.scm.error" (t "scm.didNotRun" {:error error.message})))
+
+(defn scmApplyStatus "Plays git's status given in the event (`event.output`), as the scenarios do." []
+  (scmStatusRead (gitStatus event.output)))
+
+(defn scmStatusRead "git's status, read: each file's row with its badge, staged or not." [read]
+  (if (nil? read)
+    (set "state.scm.error" (t "scm.statusUnread"))
+    (do
+      (set "state.scm.error" "")
+      (set "state.scm.status"
+           (merge read
+                  {:items (map (fn [it]
+                                 {:id it.path
+                                  :label (baseName it.path)
+                                  :detail (join "/" (slice (split it.path "/") 0 (- (count (split it.path "/")) 1)))
+                                  :badge (cond
+                                           (= it.kind "added") "A"
+                                           (= it.kind "deleted") "D"
+                                           (= it.kind "renamed") "R"
+                                           (= it.kind "copied") "C"
+                                           (= it.kind "unmerged") "!"
+                                           (= it.kind "untracked") "U"
+                                           :else "M")
+                                  :kind it.kind
+                                  :staged it.staged
+                                  :unstaged it.unstaged})
+                               (filter (fn [it] (not= it.kind "ignored")) read.files))}))
+      (set "state.scm.status.staged" (filter (fn [it] it.staged) state.scm.status.items))
+      (set "state.scm.status.changes" (filter (fn [it] it.unstaged) state.scm.status.items))
+      (set "state.scm.status.count" (+ (count state.scm.status.staged) (count state.scm.status.changes))))))
+
+(defcomputed scmStagedRows
+  (map (fn [it]
+           {:id it.id
+            :label (+ it.label (if (empty? it.detail) "" (str "  " it.detail)) "  " it.badge)
+            :icon (cond (or (= it.kind "added") (= it.kind "untracked")) "file-plus"
+                        (= it.kind "deleted") "file-minus"
+                        (= it.kind "unmerged") "alert-triangle"
+                        (or (= it.kind "renamed") (= it.kind "copied")) "file-symlink"
+                        :else "file-diff")
+            :iconColor (cond (or (= it.kind "added") (= it.kind "untracked")) "#2ea043"
+                             (or (= it.kind "deleted") (= it.kind "unmerged")) "#f85149"
+                             :else "#d4a63a")})
+         state.scm.status.staged))
+
+(defcomputed scmChangeRows
+  (map (fn [it]
+           {:id it.id
+            :label (+ it.label (if (empty? it.detail) "" (str "  " it.detail)) "  " it.badge)
+            :icon (cond (or (= it.kind "added") (= it.kind "untracked")) "file-plus"
+                        (= it.kind "deleted") "file-minus"
+                        (= it.kind "unmerged") "alert-triangle"
+                        (or (= it.kind "renamed") (= it.kind "copied")) "file-symlink"
+                        :else "file-diff")
+            :iconColor (cond (or (= it.kind "added") (= it.kind "untracked")) "#2ea043"
+                             (or (= it.kind "deleted") (= it.kind "unmerged")) "#f85149"
+                             :else "#d4a63a")})
+         state.scm.status.changes))
+
+(defcomputed scmHasRepo (not (empty? state.scm.status.branch.head)))
+
+(defcomputed scmCanPush
+  (and (not (empty? state.scm.status.branch.head)) (not= state.scm.status.branch.head "(detached)")))
+
+(defn scmStashCount "Counts the stashes, for the Stash Pop button." []
+  (invoke "git.run"
+          :id "scm-stashes"
+          :with {:arguments ["stash" "list" "--format=%gd"] :collect true}
+          :onDone scmStashesCounted))
+
+(defn scmStashesCounted "The stashes, counted." [result]
+  (set "state.scm.stashes"
+       (if (= result.code 0) (count (filter (fn [it] (not (empty? (trim it)))) (split result.output "\n"))) 0)))
+
+(defkey "mod+shift+g" showSourceControl)
+
+;;; Running git
+
+(defn scmGit "Runs git with arguments, and its input; then reads the status again." [arguments input]
+  (invoke "git.run"
+          :loading "state.scm.busy"
+          :with {:arguments arguments :input input :collect true}
+          :onError scmGitFailed
+          :onDone [scmGitDone arguments]))
+
+(defn scmGitDone "git ran: a failure is a notice, a commit or a fetch a line in Output." [arguments result]
+  (if (not= result.code 0)
+    (notify "error"
+            (t (if (empty? (trim result.output)) "scm.failed" "scm.failedWith")
+               {:command arguments.0 :output (slice (trim result.output) 0 300)}))
+    (do
+      (when (= arguments.0 "commit")
+        (set "state.scm.message" "")
+        (log (t "log.committed" {:output (slice (trim result.output) 0 200)})))
+      (when (contains ["fetch" "pull" "push" "stash"] arguments.0)
+        (log (str "git "
+                  (join " " arguments)
+                  (if (empty? (trim result.output)) "" (str ": " (slice (trim result.output) 0 200))))))))
+  (scmRefresh)
+  (when (= arguments.0 "switch") (scmBranches)))
+
+(defn scmGitFailed "Says that git didn't run." [error]
+  (notify "error" (t "scm.didNotRun" {:error error.message})))
+
+(defcommand scmFetch "Fetch the remotes' branches (git fetch --prune); what is behind shows on the branch row."
+  :title ~(t "command.scmFetch") :category ~(t "category.sourceControl") :icon "refresh-ccw-dot"
+  :description ~(t "command.scmFetch.about") :enablement ~computed.scmHasRepo []
+  (scmGit ["fetch" "--prune"] ""))
+
+(defcommand scmPull "Bring the branch up to its upstream, only where that needs no merge (git pull --ff-only)."
+  :title ~(t "command.scmPull") :category ~(t "category.sourceControl") :icon "arrow-down-to-line"
+  :description ~(t "command.scmPull.about")
+  :enablement ~(and computed.scmHasRepo (not (empty? state.scm.status.branch.upstream))) []
+  (scmGit ["pull" "--ff-only"] ""))
+
+(defcommand scmPush "Send the branch's commits to its upstream, or publish it to origin when it has none."
+  :title ~(t "command.scmPush") :category ~(t "category.sourceControl") :icon "arrow-up-from-line"
+  :description ~(t "command.scmPush.about") :enablement ~computed.scmCanPush []
+  (scmGit (if (empty? state.scm.status.branch.upstream) ["push" "-u" "origin" "HEAD"] ["push"]) ""))
+
+(defcommand scmStash "Put every change aside, new files too (git stash push --include-untracked)."
+  :title ~(t "command.scmStash") :category ~(t "category.sourceControl") :icon "archive"
+  :description ~(t "command.scmStash.about") :enablement ~(> state.scm.status.count 0) []
+  (scmGit ["stash" "push" "--include-untracked"] ""))
+
+(defcommand scmStashPop "Bring back the changes put aside last, and drop them from the stashes (git stash pop)."
+  :title ~(t "command.scmStashPop") :category ~(t "category.sourceControl") :icon "archive-restore"
+  :description ~(t "command.scmStashPop.about") :enablement ~(> state.scm.stashes 0) []
+  (scmGit ["stash" "pop"] ""))
+
+(defcommand scmInit "Make the open folder a git repository (git init), to track its changes."
+  :title ~(t "command.scmInit") :category ~(t "category.sourceControl") :icon "git-branch-plus"
+  :description ~(t "command.scmInit.about")
+  :enablement ~(and (not (empty? state.folder.root)) (not computed.scmHasRepo)) []
+  (scmGit ["init"] ""))
+
+;;; Staging and committing
+
+(defcommand scmStage "Stage Changes"
+  :title ~(t "command.scmStage")
+  :description ~(t "command.scmStage") :category ~(t "category.sourceControl") :icon "plus"
+  :enablement ~(not (empty? (or-else event.id state.scm.selectedChange))) []
+  (let [path (or-else event.id state.scm.selectedChange)] (when (not (empty? path)) (scmGit ["add" "--" path] ""))))
+
+(defcommand scmUnstage "Unstage Changes"
+  :title ~(t "command.scmUnstage")
+  :description ~(t "command.scmUnstage") :category ~(t "category.sourceControl") :icon "minus"
+  :enablement ~(not (empty? (or-else event.id state.scm.selectedStaged))) []
+  (let [path (or-else event.id state.scm.selectedStaged)]
+    (when (not (empty? path)) (scmGit ["restore" "--staged" "--" path] ""))))
+
+(defcommand scmStageAll "Stage All Changes"
+  :title ~(t "command.scmStageAll")
+  :description ~(t "command.scmStageAll") :category ~(t "category.sourceControl") :icon "list-plus"
+  :enablement ~(> (count state.scm.status.changes) 0) []
+  (scmGit ["add" "--" "."] ""))
+
+(defcommand scmUnstageAll "Unstage All Changes"
+  :title ~(t "command.scmUnstageAll")
+  :description ~(t "command.scmUnstageAll") :category ~(t "category.sourceControl") :icon "list-minus"
+  :enablement ~(> (count state.scm.status.staged) 0) []
+  (scmGit ["restore" "--staged" "--" "."] ""))
+
+(defcommand scmCommit "Commit the staged changes with the message (it goes to git's input, never its arguments)."
+  :title ~(t "command.scmCommit") :category ~(t "category.sourceControl") :icon "check"
+  :description ~(t "command.scmCommit.about")
+  :enablement ~(and (not (empty? (trim state.scm.message))) (> (count state.scm.status.staged) 0)) []
+  (if (or (empty? (trim state.scm.message)) (= (count state.scm.status.staged) 0))
+    (notify "info"
+            (if (= (count state.scm.status.staged) 0)
+              (t "scm.nothingStaged")
+              (t "scm.noMessage")))
+    (scmGit ["commit" "-F" "-"] (str (trim state.scm.message) "\n"))))
+
+;;; Branches
+
+(defn scmHideBranches "Hides the branches." []
+  (set "state.scm.showBranches" false))
+
+(defcomputed scmBranchRows
+  (map (fn [it] {:id it.id :label it.label :icon (if it.current "check" "git-branch")}) state.scm.branches.branches))
+
+(defcomputed scmBranchText
+  (str (if (empty? state.scm.status.branch.head) (t "scm.noRepository") state.scm.status.branch.head)
+       (if (> state.scm.status.branch.ahead 0) (str "  ↑" state.scm.status.branch.ahead) "")
+       (if (> state.scm.status.branch.behind 0) (str "  ↓" state.scm.status.branch.behind) "")))
+
+(defcommand scmBranches "Show Branches"
+  :title ~(t "command.scmBranches")
+  :description ~(t "command.scmBranches") :category ~(t "category.sourceControl") :icon "git-branch"
+  :enablement ~(not (empty? state.folder.root)) []
+  (set "state.scm.showBranches" true)
+  (invoke "git.run"
+          :id "scm-branches"
+          :with {:arguments ["for-each-ref" "--format=%(HEAD)%00%(refname:short)" "refs/heads/"] :collect true}
+          :onError scmGitDidNotRun
+          :onDone scmBranchesListed))
+
+(defn scmBranchesListed "The branches, listed." [result]
+  (when (= result.code 0) (scmBranchesRead (gitBranches result.output))))
+
+(defn scmApplyBranches "Plays git's branch list given in the event, as the scenarios do." []
+  (set "state.scm.showBranches" true)
+  (scmBranchesRead (gitBranches event.output)))
+
+(defn scmBranchesRead "git's branch list, read." [read]
+  (if (nil? read)
+    (set "state.scm.error" (t "scm.branchesUnread"))
+    (set "state.scm.branches" read)))
+
+(defcommand scmSwitch "Switch Branch"
+  :title ~(t "command.scmSwitch")
+  :description ~(t "command.scmSwitch") :category ~(t "category.sourceControl") :icon "git-branch"
+  :enablement ~(not (empty? (or-else event.id state.scm.selectedBranch))) []
+  (let [name (or-else event.id state.scm.selectedBranch)]
+    (when (and (not (empty? name)) (not= name state.scm.branches.current)) (scmGit ["switch" name] ""))))
+
+(defcommand scmCreateBranch "Create a branch with the name typed under Branches and switch to it."
+  :title ~(t "command.scmCreateBranch") :category ~(t "category.sourceControl") :icon "git-branch"
+  :description ~(t "command.scmCreateBranch.about")
+  :enablement ~(not (empty? (trim (or-else event.text state.scm.branchName)))) []
+  (let [name (trim (or-else event.text state.scm.branchName))]
+    (when (not (empty? name)) (set "state.scm.branchName" "") (scmGit ["switch" "-c" name] ""))))
+
+;;; The history
+
+(defn scmHideHistory "Hides the history." []
+  (set "state.scm.showHistory" false))
+
+(defcomputed scmCommitRows
+  (map-indexed (fn [index it]
+                   (if (empty? it.hash)
+                       {:id (str "-" index) :label it.graph}
+                       {:id it.hash
+                        :label (+ it.graph
+                                  (if (empty? it.graph) "" " ")
+                                  (if (empty? it.refs) "" (str "(" it.refs ") "))
+                                  it.subject
+                                  "  "
+                                  it.author
+                                  ", "
+                                  it.when)
+                        :icon (if (empty? it.graph) "git-commit" "")}))
+                 state.scm.log))
+
+(defcomputed scmCommitFileRows
+  (map (fn [it]
+           {:id it.path
+            :label (str (get (reverse (split it.path "/")) 0)
+                        "  "
+                        (join "/" (slice (split it.path "/") 0 (- 1)))
+                        "  "
+                        it.status)
+            :icon (cond (= it.status "A") "file-plus" (= it.status "D") "file-minus" :else "file-diff")})
+         state.scm.commit.files))
+
+(defcommand scmHistory
+  "Lists the branch's last hundred commits; a commit shows its files, a file compares it with the commit before."
+  :title ~(t "command.scmHistory") :category ~(t "category.sourceControl") :icon "history"
+  :description ~(t "command.scmHistory.about") :enablement ~(not (empty? state.folder.root)) []
+  (set "state.scm.showHistory" true)
+  (scmLog))
+
+(defn scmLog "Reads the branch's last hundred commits." []
+  (invoke "git.run"
+          :id "scm-log"
+          :with {:arguments ["log" "--graph" "-n" "100" "--format=%x1e%D%x1e%h%x1f%H%x1f%an%x1f%ar%x1f%s"]
+                 :collect true}
+          :onError scmGitDidNotRun
+          :onDone scmLogListed))
+
+(defn scmLogListed "The commits, read." [result]
+  (set "state.scm.log" [])
+  (when (= result.code 0) (scmLogRead result.output)))
+
+(defn scmApplyLog "Plays git's log given in the event, as the scenarios do." []
+  (set "state.scm.showHistory" true)
+  (scmLogRead event.output))
+
+(defn scmLogRead
+  "git log --graph's lines (`output`): the graph, the refs, the hashes, author, when and subject of each commit."
+  [output]
+  (set "state.scm.log"
+       (slice (map (fn [it]
+                     (if (= (count it.f) 0)
+                       {:short "" :hash "" :author "" :when "" :subject "" :refs "" :graph it.graph}
+                       {:short (slice it.f.0 0 12)
+                        :hash it.f.1
+                        :author (slice it.f.2 0 80)
+                        :when (slice it.f.3 0 40)
+                        :subject (slice (join " " (slice it.f 4)) 0 200)
+                        :refs it.refs
+                        :graph it.graph}))
+                   (filter (fn [it]
+                             (or (and (>= (count it.f) 5) (= (count it.f.1) 40))
+                                 (and (= (count it.f) 0)
+                                      (not (empty? (trim it.graph)))
+                                      (every? (fn [it] (contains "|/\\_*. -" it)) (split it.graph "")))))
+                           (map (fn [it]
+                                  {:graph (cond
+                                            (= (count (split it "\u001e")) 3) (slice (get (split it "\u001e") 0) 0 60)
+                                            (contains it "\u001f") ""
+                                            :else (slice it 0 60))
+                                   :refs (if (= (count (split it "\u001e")) 3)
+                                           (slice (get (split it "\u001e") 1) 0 120)
+                                           "")
+                                   :f (if (contains (get (reverse (split it "\u001e")) 0) "\u001f")
+                                        (split (get (reverse (split it "\u001e")) 0) "\u001f")
+                                        [])})
+                                (split output "\n"))))
+              0
+              300)))
+
+(defn scmPickCommit "A commit chosen in the history: lists the files it changed." []
+  (let [hash (or-else event.value state.scm.selectedCommit)]
+    (when (and (= (count (or-else hash "")) 40) (not= (slice hash 0 1) "-"))
+      (set "state.scm.commit" {:hash hash :files [] :before ""})
+      (invoke "git.run"
+              :id "scm-commit-files"
+              :with {:arguments ["-c" "core.quotePath=false" "show" "--name-status" "--format=" "-M" hash]
+                     :collect true}
+              :onError scmGitFailed
+              :onDone [scmCommitFilesListed hash]))))
+
+(defn scmCommitFilesListed "A commit's files, listed." [hash result]
+  (when (= result.code 0) (scmCommitFilesRead hash result.output)))
+
+(defn scmApplyCommitFiles "Plays a commit's files given in the event, as the scenarios do." []
+  (scmCommitFilesRead event.hash event.output))
+
+(defn scmCommitFilesRead
+  "git show --name-status's lines (`output`): each file's status and path, kept while the commit is chosen."
+  [hash output]
+  (when (= hash state.scm.commit.hash)
+    (set "state.scm.commit.files"
+         (slice (map (fn [it] {:status (slice it.0 0 1) :from it.1 :path (get (reverse it) 0)})
+                     (filter (fn [it] (and (>= (count it) 2) (not (empty? it.1))))
+                             (map (fn [it] (split it "\t")) (split output "\n"))))
+                0
+                500))))
+
+(defn scmOpenCommitFile "A file of a commit, opened: its text before the commit, then after it, in a diff tab." []
+  (doseq [file (filter (fn [it] (= it.path (or-else event.id state.scm.selectedCommitFile))) state.scm.commit.files)]
+    (invoke "git.run"
+            :id "scm-commit-before"
+            :with {:arguments ["show" "--no-textconv" (str state.scm.commit.hash "^:" file.from)] :collect true}
+            :onError scmGitFailed
+            :onDone [scmCommitFileBefore file])))
+
+(defn scmCommitFileBefore "The file before the commit; then reads it after." [file result]
+  (set "state.scm.commit.before" (if (= result.code 0) result.output ""))
+  (invoke "git.run"
+          :id "scm-commit-after"
+          :with {:arguments ["show" "--no-textconv" (str state.scm.commit.hash ":" file.path)] :collect true}
+          :onDone [scmCommitFileAfter file]))
+
+(defn scmCommitFileAfter "The file after the commit: both in a diff tab." [file result]
+  (scmCommitCompare
+    {:hash state.scm.commit.hash
+     :path file.path
+     :original state.scm.commit.before
+     :modified (if (= result.code 0) result.output "")}))
+
+(defn scmCommitCompare "A file before and after a commit (`event`: hash, path, original, modified), in a diff tab."
+  [event]
+  (let [page
+        {:id (str "commit:" (slice event.hash 0 12) ":" event.path)
+         :label (str (baseName event.path) " (" (slice event.hash 0 7) ")")
+         :diff (merge (diffLines (or-else event.original "") (or-else event.modified "") {:context (- 1)})
+                      {:path event.path :original (or-else event.original "") :modified (or-else event.modified "")})}]
+    (set "state.docs" (filter (fn [it] (not= it.id page.id)) state.docs))
+    (push "state.docs"
+          {:id page.id :label page.label :kind "diff" :text "" :dirty false :language "" :diff page.diff})
+    (showTab page.id page.label)))
+
+;;; Diffs
+
+(defn scmOpenDiff "A change chosen: its file at HEAD and in the folder, compared in a diff tab." []
+  (let [path (or-else event.id state.scm.selectedChange state.scm.selectedStaged)]
+    (when (not (empty? path))
+      (set "state.scm.compare" {:path path :original "" :modified ""})
+      (invoke "git.run"
+              :id "scm-show"
+              :with {:arguments ["show" "--no-textconv" (str "HEAD:" path)] :collect true}
+              :onError scmGitFailed
+              :onDone [scmDiffOriginal path]))))
+
+(defn scmDiffOriginal "The file at HEAD; then reads it in the folder." [path result]
+  (set "state.scm.compare.original" (if (= result.code 0) result.output ""))
+  (invoke "files.read" :with {:path path} :onError scmDiffNoFile :onDone scmDiffModified))
+
+(defn scmDiffModified "The file in the folder: the diff is shown." [result]
+  (set "state.scm.compare.modified" result.text)
+  (scmShowDiff))
+
+(defn scmDiffNoFile "A file deleted in the folder: compared with nothing." []
+  (scmShowDiff))
+
+(defn scmCompare "Plays a comparison given in the event (`event`: path, original, modified), as the scenarios do." []
+  (set "state.scm.compare"
+       {:path event.path :original (or-else event.original "") :modified (or-else event.modified "")})
+  (scmShowDiff))
+
+(defn scmShowDiff "Compares the file's two texts, line by line." []
+  (scmDiffShow (diffLines state.scm.compare.original state.scm.compare.modified {:context (- 1)})
+               (:hunks (diffLines state.scm.compare.original state.scm.compare.modified {:context 0}))))
+
+(defn scmDiffShow "A comparison shown: the file's gutters mark its changed lines, and a diff tab shows both sides."
+  [diff changes]
+  (set "state.scm.gutters"
+       (concat (filter (fn [it] (not= it.path state.scm.compare.path)) state.scm.gutters)
+               [{:path state.scm.compare.path
+                 :marks (map (fn [it]
+                               {:line (max it.newStart 1)
+                                :endLine (if (= it.newLines 0) (max it.newStart 1) (- (+ it.newStart it.newLines) 1))
+                                :kind "gutter"
+                                :color (cond (= it.oldLines 0) "#2ea043" (= it.newLines 0) "#f85149" :else "#0078d4")
+                                :text (cond (= it.oldLines 0) "added" (= it.newLines 0) "deleted" :else "modified")})
+                             changes)}]))
+  (let [page
+        {:id (str "diff:" state.scm.compare.path)
+         :label (str (baseName state.scm.compare.path) " (Working Tree)")
+         :diff (merge diff
+                      {:path state.scm.compare.path
+                       :original state.scm.compare.original
+                       :modified state.scm.compare.modified
+                       :items (map-indexed (fn [index it]
+                                             {:id (text index)
+                                              :label (str (cond
+                                                            (= it.kind "insert") "+ "
+                                                            (= it.kind "delete") "- "
+                                                            :else "  ")
+                                                          it.text)
+                                              :icon (cond
+                                                      (= it.kind "insert") "plus"
+                                                      (= it.kind "delete") "minus"
+                                                      :else "")
+                                              :iconColor (if (= it.kind "insert") "#2ea043" "#f85149")})
+                                           (or-else diff.hunks.0.lines []))})}]
+    (set "state.docs" (filter (fn [it] (not= it.id page.id)) state.docs))
+    (push "state.docs"
+          {:id page.id :label page.label :kind "diff" :text "" :dirty false :language "" :diff page.diff})
+    (showTab page.id page.label)))

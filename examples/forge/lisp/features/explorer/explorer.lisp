@@ -1,279 +1,341 @@
-{:$schema "../../../../../schema/affrescoui-screen.schema.json"
- :format affrescoui-screen
- :version 2
- :note "Forge's explorer: the open folder's tree, listed a folder at a time through the files service as it is opened and listed again when the fileChanges watcher reports a change; new file and folder, rename, delete behind a confirm dialog, copy and paste, move by drag and drop, and reveal of the active file. state.explorerTree holds what is listed, state.explorerEdit what the dialogs and the context menu are doing."
- :state {:explorerTree {:entries [] :listed []}
-         :explorerEdit {:mode "" :id "" :name "" :naming false :confirm false :menu false :x 0 :y 0 :clipboard ""}}
- :computed {:explorerTarget "{{state.explorer.selected ?? ''}}"
-            :explorerTargetName "{{reverse(split(computed.explorerTarget, '/'))[0] ?? ''}}"
-            :explorerTargetKind "{{(find(state.explorerTree.entries, it.path == computed.explorerTarget) ?? {}).kind ?? ''}}"
-            :explorerTargetFolder "{{computed.explorerTargetKind == 'folder' ? computed.explorerTarget : join(slice(split(computed.explorerTarget, '/'), 0, -1), '/')}}"
-            :explorerShown "{{filter(state.explorerTree.entries, indexOf(it.name, '.') != 0 && !(it.kind == 'folder' && contains(['build', 'node_modules', 'out', 'target', 'dist', '__pycache__'], it.name)))}}"
-            :explorerLooks "{{map(computed.explorerShown, {path: it.path, folder: it.kind == 'folder', look: (settings.workbench.fileIcons ? (it.kind == 'folder' ? state.iconTheme.folder : state.iconTheme.names[it.name] ?? (contains(it.name, '.') ? state.iconTheme.extensions[lower(reverse(split(it.name, '.'))[0])] : null) ?? state.iconTheme.file) : null) ?? {}})}}"
-            :explorerItems "{{pathTree(map(computed.explorerLooks, {path: it.path, icon: it.look.icon, iconColor: it.look.color, expandable: it.folder}))}}"}
- :actions {:explorerRefresh {:title "Refresh Explorer"
-                             :category "Files"
-                             :icon refresh-cw
-                             :do [{:if "{{!empty(state.folder.root)}}"
-                                   :then [{:subscribe fileChanges.changes
-                                           :id explorer-changes
-                                           :do [{:run explorerChanged :with {:batch "{{event}}"}}]}
-                                          {:forEach "{{concat([''], sortText(state.explorerTree.listed))}}"
-                                           :as folder
-                                           :do [{:run explorerList :with {:folder "{{folder}}"}}]}]}]}
-           :explorerChanged [{:note "batch: an event of the file watcher, {changes: [{path, kind}], rescan}. Lists again the folders it touched"}
-                             {:if "{{batch.rescan}}"
-                              :then [{:run explorerRefresh}]
-                              :else [{:run explorerRelist
-                                      :with {:parents "{{map(batch.changes, join(slice(split(it.path, '/'), 0, -1), '/'))}}"}}]}]
-           :explorerRelist [{:forEach "{{filter(concat([''], state.explorerTree.listed), contains(parents, it))}}"
-                             :as folder
-                             :do [{:run explorerList :with {:folder "{{folder}}"}}]}]
-           :explorerList [{:note "folder: a folder's path ('' for the root). Lists it, replacing what was listed of it"}
-                          {:invoke files.list
-                           :with {:path "{{empty(folder) ? '.' : folder}}"}
-                           :onDone [{:run explorerListed
-                                     :with {:folder "{{folder}}"
-                                            :prefix "{{empty(folder) ? '' : folder + '/'}}"
-                                            :entries "{{result.entries}}"
-                                            :folders "{{map(filter(result.entries, it.kind == 'folder'), it.name)}}"}}]
-                           :onError [{:run explorerListed
-                                      :with {:folder "{{folder}}" :prefix "{{folder + '/'}}" :entries [] :folders []}}
-                                     {:set state.explorerTree.listed
-                                      :to "{{filter(state.explorerTree.listed, it != folder)}}"}]}]
-           :explorerListed [{:note "Keeps what is listed under the folders still there, drops the rest"}
-                            {:set state.explorerTree.entries
-                             :to "{{concat(filter(state.explorerTree.entries, it.parent != folder && (indexOf(it.path, prefix) != 0 || contains(folders, split(slice(it.path, length(prefix)), '/')[0]))), map(entries, {path: prefix + it.name, name: it.name, kind: it.kind, parent: folder}))}}"}
-                            {:set state.explorerTree.listed
-                             :to "{{concat(filter(state.explorerTree.listed, it != folder && (indexOf(it, prefix) != 0 || contains(folders, split(slice(it, length(prefix)), '/')[0]))), empty(folder) ? [] : [folder])}}"}]
-           :explorerExpand [{:set state.explorer.expanded
-                             :to "{{event.expanded ? concat(state.explorer.expanded, [event.id]) : filter(state.explorer.expanded, it != event.id)}}"}
-                            {:if "{{event.expanded && !contains(state.explorerTree.listed, event.id)}}"
-                             :then [{:run explorerList :with {:folder "{{event.id}}"}}]}]
-           :explorerNewFile {:title "New File..."
-                             :category "Files"
-                             :icon file-plus
-                             :enablement "{{!empty(state.folder.root)}}"
-                             :do [{:run explorerAskName :with {:mode newFile :name ""}}]}
-           :explorerNewFolder {:title "New Folder..."
-                               :category "Files"
-                               :icon folder-plus
-                               :enablement "{{!empty(state.folder.root)}}"
-                               :do [{:run explorerAskName :with {:mode newFolder :name ""}}]}
-           :explorerRename {:title "Rename..."
-                            :category "Files"
-                            :icon pencil
-                            :enablement "{{!empty(computed.explorerTarget)}}"
-                            :do [{:run explorerAskName :with {:mode rename :name "{{computed.explorerTargetName}}"}}]}
-           :explorerAskName [{:set state.layout.sidebar :to true}
-                             {:set state.explorerEdit
-                              :to "{{ {mode: mode, id: mode == 'rename' ? computed.explorerTarget : computed.explorerTargetFolder, name: name, naming: true, confirm: false, menu: false, x: 0, y: 0, clipboard: state.explorerEdit.clipboard} }}"}]
-           :explorerSubmitName [{:set state.explorerEdit.naming :to false}
-                                {:run explorerMake
-                                 :with {:edit "{{state.explorerEdit}}"
-                                        :to "{{join(filter(concat(slice(split(state.explorerEdit.id, '/'), 0, state.explorerEdit.mode == 'rename' ? -1 : 1000), split(state.explorerEdit.name, '/')), !empty(it)), '/')}}"}}]
-           :explorerMake [{:note "edit: state.explorerEdit; to: the path it names"}
-                          {:if "{{empty(trim(edit.name)) || contains(split(edit.name, '/'), '..')}}"
-                           :then [{:run notify
-                                   :with {:severity error :message "{{'A file or folder name must be given'}}"}}]
-                           :else [{:if "{{edit.mode == 'rename'}}"
-                                   :then [{:invoke files.rename
-                                           :with {:path "{{edit.id}}" :to "{{to}}"}
-                                           :onError [{:run notify
-                                                      :with {:severity error
-                                                             :message "{{'Cannot rename: ' + error.message}}"}}]
-                                           :onDone [{:run explorerMoved :with {:from "{{edit.id}}" :to "{{to}}"}}]}]
-                                   :else [{:invoke files.stat
-                                           :with {:path "{{to}}"}
-                                           :onDone [{:if "{{result.exists}}"
-                                                     :then [{:run notify
-                                                             :with {:severity error
-                                                                    :message "{{'A file or folder ' + edit.name + ' already exists at this location'}}"}}]
-                                                     :else [{:if "{{edit.mode == 'newFolder'}}"
-                                                             :then [{:invoke files.mkdir
-                                                                     :with {:path "{{to}}"}
-                                                                     :onError [{:run notify
-                                                                                :with {:severity error
-                                                                                       :message "{{'Cannot create: ' + error.message}}"}}]
-                                                                     :onDone [{:run explorerShow :with {:id "{{to}}"}}]}]
-                                                             :else [{:invoke files.write
-                                                                     :with {:path "{{to}}" :text ""}
-                                                                     :onError [{:run notify
-                                                                                :with {:severity error
-                                                                                       :message "{{'Cannot create: ' + error.message}}"}}]
-                                                                     :onDone [{:run explorerShow :with {:id "{{to}}"}}
-                                                                              {:run openPath
-                                                                               :with {:path "{{to}}"
-                                                                                      :label "{{reverse(split(to, '/'))[0]}}"}}]}]}]}]}]}]}]
-           :explorerMoved [{:note "from, to: a file or folder moved. Tabs follow it; the explorer shows it"}
-                           {:set state.docs
-                            :to "{{map(state.docs, it.id == from || indexOf(it.id, from + '/') == 0 ? merge(it, {id: to + slice(it.id, length(from)), label: reverse(split(to + slice(it.id, length(from)), '/'))[0]}) : it)}}"}
-                           {:set state.groups
-                            :to "{{map(state.groups, merge(it, {active: it.active == from || indexOf(it.active ?? '', from + '/') == 0 ? to + slice(it.active, length(from)) : it.active, tabs: map(it.tabs, it.id == from || indexOf(it.id, from + '/') == 0 ? merge(it, {id: to + slice(it.id, length(from)), label: reverse(split(to + slice(it.id, length(from)), '/'))[0]}) : it)}))}}"}
-                           {:run explorerList :with {:folder "{{join(slice(split(from, '/'), 0, -1), '/')}}"}}
-                           {:run explorerShow :with {:id "{{to}}"}}]
-           :explorerShow [{:note "id: a path. Lists and opens its folders, then selects it"}
-                          {:forEach "{{map(range(length(split(id, '/'))), join(slice(split(id, '/'), 0, it), '/'))}}"
-                           :as folder
-                           :do [{:run explorerList :with {:folder "{{folder}}"}}]}
-                          {:set state.explorer.expanded
-                           :to "{{concat(filter(state.explorer.expanded, !contains(map(range(length(split(id, '/')) - 1), join(slice(split(id, '/'), 0, it + 1), '/')), it)), map(range(length(split(id, '/')) - 1), join(slice(split(id, '/'), 0, it + 1), '/')))}}"}
-                          {:set state.explorer.selected :to "{{id}}"}]
-           :explorerDelete {:title "Delete..."
-                            :category "Files"
-                            :icon trash-2
-                            :enablement "{{!empty(computed.explorerTarget)}}"
-                            :do [{:set state.layout.sidebar :to true}
-                                 {:set state.explorerEdit
-                                  :to "{{merge(state.explorerEdit, {id: computed.explorerTarget, name: computed.explorerTargetName, mode: computed.explorerTargetKind, menu: false, confirm: true})}}"}]}
-           :explorerDeleteConfirmed [{:set state.explorerEdit.confirm :to false}
-                                     {:invoke files.delete
-                                      :with {:path "{{state.explorerEdit.id}}"}
-                                      :onError [{:run notify
-                                                 :with {:severity error
-                                                        :message "{{'Cannot delete: ' + error.message}}"}}]
-                                      :onDone [{:set state.explorer.selected :to nil}
-                                               {:run explorerList
-                                                :with {:folder "{{join(slice(split(state.explorerEdit.id, '/'), 0, -1), '/')}}"}}]}]
-           :explorerCopy {:title "Copy"
-                          :category "Files"
-                          :icon copy
-                          :enablement "{{!empty(computed.explorerTarget)}}"
-                          :do [{:set state.explorerEdit.clipboard :to "{{computed.explorerTarget}}"}]}
-           :explorerPaste {:title "Paste"
-                           :category "Files"
-                           :icon clipboard-paste
-                           :enablement "{{!empty(state.explorerEdit.clipboard)}}"
-                           :do [{:invoke files.copy
-                                 :with {:path "{{state.explorerEdit.clipboard}}"
-                                        :free true
-                                        :to "{{join(filter([computed.explorerTargetFolder, reverse(split(state.explorerEdit.clipboard, '/'))[0]], !empty(it)), '/')}}"}
-                                 :onError [{:run notify
-                                            :with {:severity error :message "{{'Cannot paste: ' + error.message}}"}}]
-                                 :onDone [{:run explorerShow :with {:id "{{result.path}}"}}]}]}
-           :explorerDrop [{:note "event: {data: {ids}, id, place}. Moves the files and folders dragged into the folder dropped on (or the one holding the file)"}
-                          {:forEach "{{event.data.ids ?? []}}"
-                           :as from
-                           :do [{:run explorerMove
-                                 :with {:from "{{from}}"
-                                        :into "{{event.place == 'inside' && some(state.explorerTree.entries, it.path == event.id && it.kind == 'folder') ? event.id : join(slice(split(event.id ?? '', '/'), 0, -1), '/')}}"}}]}]
-           :explorerMove [{:if "{{into == from || indexOf(into, from + '/') == 0}}"
-                           :then [{:run notify
-                                   :with {:severity error
-                                          :message "{{'Cannot move ' + reverse(split(from, '/'))[0] + ' into itself'}}"}}]
-                           :else [{:if "{{into != join(slice(split(from, '/'), 0, -1), '/')}}"
-                                   :then [{:invoke files.rename
-                                           :with {:path "{{from}}"
-                                                  :to "{{join(filter([into, reverse(split(from, '/'))[0]], !empty(it)), '/')}}"}
-                                           :onError [{:run notify
-                                                      :with {:severity error
-                                                             :message "{{'Cannot move: ' + error.message}}"}}]
-                                           :onDone [{:run explorerMoved :with {:from "{{from}}" :to "{{result.path}}"}}]}]}]}]
-           :explorerCollapseAll {:title "Collapse Folders in Explorer"
-                                 :category "Files"
-                                 :icon copy-minus
-                                 :enablement "{{!empty(state.explorer.expanded)}}"
-                                 :do [{:set state.explorer.expanded :to []}]}
-           :explorerReveal {:title "Reveal Active File in Explorer"
-                            :category "Files"
-                            :icon locate
-                            :enablement "{{computed.activeDoc != null && computed.activeDoc.kind == 'file'}}"
-                            :do [{:set state.layout.sidebar :to true}
-                                 {:set state.sideView :to explorer}
-                                 {:run explorerShow :with {:id "{{computed.activeDoc.id}}"}}]}}
- :menus {:file {:newFile {:run explorerNewFile :group "0_new" :order 1}
-                :newFolder {:run explorerNewFolder :group "0_new" :order 2}}
-         :explorer {:newFile {:run explorerNewFile :group "1_new" :order 1}
-                    :newFolder {:run explorerNewFolder :group "1_new" :order 2}
-                    :reveal {:run explorerReveal :group "2_reveal" :order 1}
-                    :copy {:run explorerCopy :group "3_clipboard" :order 1}
-                    :paste {:run explorerPaste :group "3_clipboard" :order 2}
-                    :rename {:run explorerRename :group "4_edit" :order 1}
-                    :delete {:run explorerDelete :group "4_edit" :order 2}
-                    :refresh {:run explorerRefresh :group "5_refresh" :order 1}}}
- :components {:forgeExplorerAction {:params {:icon "" :tip "" :run "" :enabled true}
-                                    :node (label :role button
-                                            :label "{{tip}}"
-                                            :icon "{{icon}}"
-                                            :width 26
-                                            :height 26
-                                            :align center
-                                            :radius 6
-                                            :focusable "{{enabled}}"
-                                            :disabled "{{!enabled}}"
-                                            :cursor "{{enabled ? 'hand' : 'arrow'}}"
-                                            :tooltip "{{tip}}"
-                                            :textColor "{{enabled ? '@color.muted' : '@color.border'}}"
-                                            :hover {:textColor @color.text :color @color.hover}
-                                            :onClick {:run "{{run}}"})}
-              :forgeExplorerTitle {:node (row#side-bar-title :width "100%" :height 35 :alignItems center :gap 2
-                                           (label#side-bar-title-text :text "Files"
-                                             :textColor @color.muted
-                                             :grow 1
-                                             :height 35
-                                             :padding 12)
-                                           (node#explorer-new-file :when "{{!empty(state.folder.root)}}"
-                                             :use forgeExplorerAction
-                                             :with {:icon file-plus :tip "New File..." :run explorerNewFile})
-                                           (node#explorer-new-folder :when "{{!empty(state.folder.root)}}"
-                                             :use forgeExplorerAction
-                                             :with {:icon folder-plus :tip "New Folder..." :run explorerNewFolder})
-                                           (node#explorer-refresh :when "{{!empty(state.folder.root)}}"
-                                             :use forgeExplorerAction
-                                             :with {:icon refresh-cw :tip "Refresh Explorer" :run explorerRefresh})
-                                           (node#explorer-collapse :when "{{!empty(state.folder.root)}}"
-                                             :use forgeExplorerAction
-                                             :with {:icon copy-minus
-                                                    :tip "Collapse Folders in Explorer"
-                                                    :run explorerCollapseAll
-                                                    :enabled "{{!empty(state.explorer.expanded)}}"})
-                                           (node#side-bar-title-end :width 6))}
-              :forgeExplorer {:node (column#explorer-view :width "100%" :grow 1
-                                      (tree#explorer :role tree
-                                        :label "Files Explorer"
-                                        :width "100%"
-                                        :grow 1
-                                        :drag {}
-                                        :items "{{computed.explorerItems}}"
-                                        :expanded "{{state.explorer.expanded}}"
-                                        :bind state.explorer.selected
-                                        :rowHeight 22
-                                        :color @color.sideBar
-                                        :textColor @color.text
-                                        :selectedTextColor @color.text
-                                        :selectedBackground @color.selection
-                                        :accentColor @color.accent
-                                        :onExpand {:run explorerExpand}
-                                        :onOpen {:run openExplorerItem}
-                                        :onDrop {:run explorerDrop}
-                                        :onContextMenu [{:set state.explorerEdit.x :to "{{event.x}}"}
-                                                        {:set state.explorerEdit.y :to "{{event.y}}"}
-                                                        {:set state.explorerEdit.menu :to true}])
-                                      (node#explorer-menu :use contextMenu
-                                        :with {:open state.explorerEdit.menu
-                                               :items "{{menus.explorer}}"
-                                               :x "{{state.explorerEdit.x}}"
-                                               :y "{{state.explorerEdit.y}}"})
-                                      (node#explorer-name-dialog :use dialog
-                                        :with {:open state.explorerEdit.naming
-                                               :height 150
-                                               :title "{{state.explorerEdit.mode == 'rename' ? 'Rename' : state.explorerEdit.mode == 'newFolder' ? 'New Folder' : 'New File'}}"
-                                               :message ""
-                                               :buttons [{:title "OK" :run explorerSubmitName} {:title "Cancel"}]}
-                                        (textarea#explorer-name :label "Name"
-                                          :bind state.explorerEdit.name
-                                          :autofocus true
-                                          :anchors {:left 20 :right 20 :top 48}
-                                          :height 28
-                                          :padding 7
-                                          :color @color.input
-                                          :textColor @color.text
-                                          :placeholderColor @color.muted
-                                          :placeholder "Name"
-                                          :onSubmit {:run explorerSubmitName}))
-                                      (node#explorer-delete-dialog :use dialog
-                                        :with {:open state.explorerEdit.confirm
-                                               :title "{{'Delete ' + state.explorerEdit.name + '?'}}"
-                                               :message "{{state.explorerEdit.mode == 'folder' ? 'The folder and everything in it will be deleted. This cannot be undone.' : 'The file will be deleted. This cannot be undone.'}}"
-                                               :buttons [{:title "Delete" :run explorerDeleteConfirmed}
-                                                         {:title "Cancel"}]}))}}}
+;;; explorer.lisp --- Forge's explorer: the open folder's tree, and what is done to its files
+;;;
+;;; The tree is listed a folder at a time through the files service as it is opened, and listed again when the
+;;; fileChanges watcher reports a change. New file and folder, rename, delete behind a confirm dialog, copy and paste,
+;;; move by drag and drop, and reveal of the active file. state.explorerTree holds what is listed, state.explorerEdit
+;;; what the dialogs and the context menu are doing.
+
+;;; Listing the tree
+
+(defstate explorerTree {:entries [] :listed []})
+
+(defcomputed explorerShown
+  (filter (fn [it]
+              (and (not= (indexOf it.name ".") 0)
+                   (not (and (= it.kind "folder")
+                             (contains ["build" "node_modules" "out" "target" "dist" "__pycache__"] it.name)))))
+            state.explorerTree.entries))
+
+(defcomputed explorerLooks
+  (map (fn [it]
+           {:path it.path
+            :folder (= it.kind "folder")
+            :look (or-else (if settings.workbench.fileIcons
+                               (if (= it.kind "folder")
+                                   state.iconTheme.folder
+                                   (or-else (get state.iconTheme.names it.name)
+                                            (if (contains it.name ".")
+                                                (get state.iconTheme.extensions
+                                                     (lower-case (get (reverse (split it.name ".")) 0)))
+                                                nil)
+                                            state.iconTheme.file))
+                               nil)
+                           {})})
+         computed.explorerShown))
+
+(defcomputed explorerItems
+  (pathTree (map (fn [it] {:path it.path :icon it.look.icon :iconColor it.look.color :expandable it.folder})
+                   computed.explorerLooks)))
+
+(defcommand explorerRefresh "Refresh Explorer"
+  :title ~(t "command.explorerRefresh")
+  :description ~(t "command.explorerRefresh") :category ~(t "category.files") :icon "refresh-cw" []
+  (when (not (empty? state.folder.root))
+    (subscribe "fileChanges.changes" :id "explorer-changes" :do explorerWatched)
+    (doseq [folder (concat [""] (sortText state.explorerTree.listed))] (explorerList folder))))
+
+(defn explorerWatched "The file watcher's events, as they come." [event]
+  (explorerChanged event))
+
+(defn explorerChanged
+  "An event of the file watcher (`batch`: changes, rescan): lists again the folders it touched, or everything."
+  [batch]
+  (if batch.rescan
+    (explorerRefresh)
+    (explorerRelist (map (fn [it] (join "/" (slice (split it.path "/") 0 (- 1)))) batch.changes))))
+
+(defn explorerRelist "Lists again the folders listed among `parents`." [parents]
+  (doseq [folder (filter (fn [it] (contains parents it)) (concat [""] state.explorerTree.listed))]
+    (explorerList folder)))
+
+(defn explorerList "Lists a folder ('' for the root), replacing what was listed of it." [folder]
+  (invoke "files.list"
+          :with {:path (if (empty? folder) "." folder)}
+          :onDone [explorerListRead folder]
+          :onError [explorerListFailed folder]))
+
+(defn explorerListRead "A folder's entries, listed." [folder result]
+  (explorerListed
+    folder
+    (if (empty? folder) "" (str folder "/"))
+    result.entries
+    (map (fn [it] it.name) (filter (fn [it] (= it.kind "folder")) result.entries))))
+
+(defn explorerListFailed "A folder that couldn't be listed: what was listed of it is dropped." [folder]
+  (explorerListed folder (str folder "/") [] [])
+  (set "state.explorerTree.listed" (filter (fn [it] (not= it folder)) state.explorerTree.listed)))
+
+(defn explorerListed
+  "A folder's entries in the tree: what is listed under its folders still there stays, the rest goes."
+  [folder prefix entries folders]
+  (set "state.explorerTree.entries"
+       (concat (filter (fn [it]
+                         (and (not= it.parent folder)
+                              (or (not= (indexOf it.path prefix) 0)
+                                  (contains folders (get (split (slice it.path (count prefix)) "/") 0)))))
+                       state.explorerTree.entries)
+               (map (fn [it] {:path (str prefix it.name) :name it.name :kind it.kind :parent folder}) entries)))
+  (set "state.explorerTree.listed"
+       (concat (filter (fn [it]
+                         (and (not= it folder)
+                              (or (not= (indexOf it prefix) 0)
+                                  (contains folders (get (split (slice it (count prefix)) "/") 0)))))
+                       state.explorerTree.listed)
+               (if (empty? folder) [] [folder]))))
+
+(defn explorerExpand "A folder opened or closed (`event.expanded`): remembered, and listed the first time it opens."
+  []
+  (set "state.explorer.expanded"
+       (if event.expanded
+         (concat state.explorer.expanded [event.id])
+         (filter (fn [it] (not= it event.id)) state.explorer.expanded)))
+  (when (and event.expanded (not (contains state.explorerTree.listed event.id))) (explorerList event.id)))
+
+;;; Choosing
+
+(defstate explorerEdit {:mode "" :id "" :name "" :naming false :confirm false :menu false :x 0 :y 0 :clipboard ""})
+
+(defcomputed explorerTarget (or-else state.explorer.selected ""))
+
+(defcomputed explorerTargetName (or-else (get (reverse (split computed.explorerTarget "/")) 0) ""))
+
+(defcomputed explorerTargetKind
+  (or-else (:kind (or-else (find (fn [it] (= it.path computed.explorerTarget)) state.explorerTree.entries) {})) ""))
+
+(defcomputed explorerTargetFolder
+  (if (= computed.explorerTargetKind "folder")
+        computed.explorerTarget
+        (join "/" (slice (split computed.explorerTarget "/") 0 (- 1)))))
+
+(defn explorerMenu "The explorer's menu, opened where the right-click was." []
+  (set "state.explorerEdit.x" event.x)
+  (set "state.explorerEdit.y" event.y)
+  (set "state.explorerEdit.menu" true))
+
+;;; New files and folders, and renaming
+
+(defcommand explorerNewFile "New File..."
+  :title ~(t "command.explorerNewFile")
+  :description ~(t "command.explorerNewFile") :category ~(t "category.files") :icon "file-plus"
+  :enablement ~(not (empty? state.folder.root)) []
+  (explorerAskName "newFile" ""))
+
+(defcommand explorerNewFolder "New Folder..."
+  :title ~(t "command.explorerNewFolder")
+  :description ~(t "command.explorerNewFolder") :category ~(t "category.files") :icon "folder-plus"
+  :enablement ~(not (empty? state.folder.root)) []
+  (explorerAskName "newFolder" ""))
+
+(defcommand explorerRename "Rename..."
+  :title ~(t "command.explorerRename")
+  :description ~(t "command.explorerRename") :category ~(t "category.files") :icon "pencil"
+  :enablement ~(not (empty? computed.explorerTarget)) []
+  (explorerAskName "rename" computed.explorerTargetName))
+
+(defn explorerAskName "Asks for a name: a new file's, a new folder's, or a new name for the entry chosen." [mode name]
+  (set "state.layout.sidebar" true)
+  (set "state.explorerEdit"
+       {:mode mode
+        :id (if (= mode "rename") computed.explorerTarget computed.explorerTargetFolder)
+        :name name
+        :naming true
+        :confirm false
+        :menu false
+        :x 0
+        :y 0
+        :clipboard state.explorerEdit.clipboard}))
+
+(defn explorerSubmitName "The name typed, made a path in the folder chosen." []
+  (set "state.explorerEdit.naming" false)
+  (explorerMake state.explorerEdit
+                (join "/"
+                      (filter (fn [it] (not (empty? it)))
+                              (concat (slice (split state.explorerEdit.id "/")
+                                             0
+                                             (if (= state.explorerEdit.mode "rename") (- 1) 1000))
+                                      (split state.explorerEdit.name "/"))))))
+
+(defn explorerMake
+  "Makes what the dialog asked for (`edit`) at a path (`to`): renames, or creates once nothing is there."
+  [edit to]
+  (cond
+    (or (empty? (trim edit.name)) (contains (split edit.name "/") ".."))
+      (notify "error" (t "notify.nameMissing"))
+    (= edit.mode "rename")
+      (invoke "files.rename"
+              :with {:path edit.id :to to}
+              :onError explorerRenameFailed
+              :onDone [explorerRenamed edit to])
+    :else (invoke "files.stat" :with {:path to} :onDone [explorerNameChecked edit to])))
+
+(defn explorerRenamed "An entry renamed: tabs follow it." [edit to]
+  (explorerMoved edit.id to))
+
+(defn explorerRenameFailed "Says why the entry couldn't be renamed." [error]
+  (notify "error" (t "notify.cannotRename" {:error error.message})))
+
+(defn explorerNameChecked "Nothing is at the path: the new file or folder is made; else says so." [edit to result]
+  (cond
+    result.exists (notify "error" (t "notify.nameTaken" {:name edit.name}))
+    (= edit.mode "newFolder")
+      (invoke "files.mkdir" :with {:path to} :onError explorerCreateFailed :onDone [explorerFolderMade to])
+    :else
+      (invoke "files.write"
+              :with {:path to :text ""}
+              :onError explorerCreateFailed
+              :onDone [explorerFileMade to])))
+
+(defn explorerFolderMade "A new folder: the explorer shows it." [to]
+  (explorerShow to))
+
+(defn explorerFileMade "A new file: the explorer shows it, and it opens." [to]
+  (explorerShow to)
+  (openPath to (baseName to)))
+
+(defn explorerCreateFailed "Says why the file or folder couldn't be made." [error]
+  (notify "error" (t "notify.cannotCreate" {:error error.message})))
+
+(defn explorerMoved "A file or folder moved (`from`, `to`): tabs follow it, and the explorer shows it." [from to]
+  (set "state.docs"
+       (map (fn [it]
+              (if (or (= it.id from) (= (indexOf it.id (str from "/")) 0))
+                (merge it
+                       {:id (str to (slice it.id (count from))) :label (baseName (str to (slice it.id (count from))))})
+                it))
+            state.docs))
+  (set "state.groups"
+       (map (fn [it]
+              (merge it
+                     {:active (if (or (= it.active from) (= (indexOf (or-else it.active "") (str from "/")) 0))
+                                (str to (slice it.active (count from)))
+                                it.active)
+                      :tabs (map (fn [it]
+                                   (if (or (= it.id from) (= (indexOf it.id (str from "/")) 0))
+                                     (merge it
+                                            {:id (str to (slice it.id (count from)))
+                                             :label (baseName (str to (slice it.id (count from))))})
+                                     it))
+                                 it.tabs)}))
+            state.groups))
+  (explorerList (join "/" (slice (split from "/") 0 (- 1))))
+  (explorerShow to))
+
+(defn explorerShow "Lists and opens the folders holding a path, then selects it." [id]
+  (doseq [folder (map (fn [it] (join "/" (slice (split id "/") 0 it))) (range (count (split id "/"))))]
+    (explorerList folder))
+  (set "state.explorer.expanded"
+       (concat (filter (fn [it]
+                         (not (contains (map (fn [it] (join "/" (slice (split id "/") 0 (+ it 1))))
+                                             (range (- (count (split id "/")) 1)))
+                                        it)))
+                       state.explorer.expanded)
+               (map (fn [it] (join "/" (slice (split id "/") 0 (+ it 1)))) (range (- (count (split id "/")) 1)))))
+  (set "state.explorer.selected" id))
+
+;;; Deleting
+
+(defcommand explorerDelete "Delete..."
+  :title ~(t "command.explorerDelete")
+  :description ~(t "command.explorerDelete") :category ~(t "category.files") :icon "trash-2"
+  :enablement ~(not (empty? computed.explorerTarget)) []
+  (set "state.layout.sidebar" true)
+  (set "state.explorerEdit"
+       (merge state.explorerEdit
+              {:id computed.explorerTarget
+               :name computed.explorerTargetName
+               :mode computed.explorerTargetKind
+               :menu false
+               :confirm true})))
+
+(defn explorerDeleteConfirmed "Deletes the entry, once the dialog said yes." []
+  (set "state.explorerEdit.confirm" false)
+  (invoke "files.delete"
+          :with {:path state.explorerEdit.id}
+          :onError explorerDeleteFailed
+          :onDone explorerDeleted))
+
+(defn explorerDeleted "An entry deleted: its folder listed again." []
+  (set "state.explorer.selected" nil)
+  (explorerList (join "/" (slice (split state.explorerEdit.id "/") 0 (- 1)))))
+
+(defn explorerDeleteFailed "Says why the entry couldn't be deleted." [error]
+  (notify "error" (t "notify.cannotDelete" {:error error.message})))
+
+;;; Copying, pasting and moving
+
+(defcommand explorerCopy "Copy"
+  :title ~(t "command.explorerCopy")
+  :description ~(t "command.explorerCopy") :category ~(t "category.files") :icon "copy"
+  :enablement ~(not (empty? computed.explorerTarget)) []
+  (set "state.explorerEdit.clipboard" computed.explorerTarget))
+
+(defcommand explorerPaste "Paste"
+  :title ~(t "command.explorerPaste")
+  :description ~(t "command.explorerPaste") :category ~(t "category.files") :icon "clipboard-paste"
+  :enablement ~(not (empty? state.explorerEdit.clipboard)) []
+  (invoke "files.copy"
+          :with {:path state.explorerEdit.clipboard
+                 :free true
+                 :to (join "/"
+                           (filter (fn [it] (not (empty? it)))
+                                   [computed.explorerTargetFolder (baseName state.explorerEdit.clipboard)]))}
+          :onError explorerPasteFailed
+          :onDone explorerPasted))
+
+(defn explorerPasted "A copy pasted: the explorer shows it." [result]
+  (explorerShow result.path))
+
+(defn explorerPasteFailed "Says why the copy couldn't be pasted." [error]
+  (notify "error" (t "notify.cannotPaste" {:error error.message})))
+
+(defn explorerDrop
+  "Entries dropped (`event`: data.ids, id): moved into the folder dropped on, or the one holding the file."
+  []
+  (doseq [from (or-else event.data.ids [])]
+    (explorerMove from
+                  (if (and (= event.place "inside")
+                           (some (fn [it] (and (= it.path event.id) (= it.kind "folder"))) state.explorerTree.entries))
+                    event.id
+                    (join "/" (slice (split (or-else event.id "") "/") 0 (- 1)))))))
+
+(defn explorerMove "Moves an entry into a folder, unless it is already there or the folder is inside it." [from into]
+  (cond
+    (or (= into from) (= (indexOf into (str from "/")) 0))
+      (notify "error" (t "notify.moveIntoItself" {:name (baseName from)}))
+    (not= into (join "/" (slice (split from "/") 0 (- 1))))
+      (invoke "files.rename"
+              :with {:path from :to (join "/" (filter (fn [it] (not (empty? it))) [into (baseName from)]))}
+              :onError explorerMoveFailed
+              :onDone [explorerMovedTo from])))
+
+(defn explorerMovedTo "An entry moved: tabs follow it." [from result]
+  (explorerMoved from result.path))
+
+(defn explorerMoveFailed "Says why the entry couldn't be moved." [error]
+  (notify "error" (t "notify.cannotMove" {:error error.message})))
+
+;;; Folders and the active file
+
+(defcommand explorerCollapseAll "Collapse Folders in Explorer"
+  :title ~(t "command.explorerCollapseAll")
+  :description ~(t "command.explorerCollapseAll") :category ~(t "category.files") :icon "copy-minus"
+  :enablement ~(not (empty? state.explorer.expanded)) []
+  (set "state.explorer.expanded" []))
+
+(defcommand explorerReveal "Reveal Active File in Explorer"
+  :title ~(t "command.explorerReveal")
+  :description ~(t "command.explorerReveal") :category ~(t "category.files") :icon "locate"
+  :enablement ~(and (some? computed.activeDoc) (= computed.activeDoc.kind "file")) []
+  (set "state.layout.sidebar" true)
+  (set "state.sideView" "explorer")
+  (explorerShow computed.activeDoc.id))

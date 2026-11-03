@@ -109,34 +109,33 @@ def write_lisp(build, document, path):
 
 
 def copy_without_strip(build, work):
-    """Writes Orrery's screen without its installed part, as it was before the install, next to the parts it
-    includes (its program among them) and a link to the examples' shared folder (fonts, the assistant add-on);
-    returns its path."""
-    document = read_lisp(build, SCREEN)
-    document.pop("features", None)
+    """Writes Orrery's folder without its installed part, as it was before the install: the program and its files,
+    features.lisp empty, and a copy of the examples' shared folder (fonts, the assistant add-on); returns the entry's
+    path."""
     folder = os.path.join(work, "orrery", "lisp")
-    os.makedirs(folder)
-    os.symlink(os.path.join(ROOT, "examples", "shared"), os.path.join(work, "shared"))
-    screen = os.path.join(folder, "index.screen.lisp")
-    write_lisp(build, document, screen)
-    for scenarios in SCENARIOS:
-        shutil.copy(scenarios, folder)
-    for part in document.get("include", []):
-        if not part.startswith(".."):
-            shutil.copy(os.path.join(os.path.dirname(SCREEN), part), folder)
-    return screen
+    shutil.copytree(os.path.dirname(SCREEN), folder, ignore=shutil.ignore_patterns("*.py", "__pycache__"))
+    # a copy, not a link: a program's include must be in the shared folder itself, not reached through a link
+    shutil.copytree(os.path.join(ROOT, "examples", "shared"), os.path.join(work, "shared"))
+    with open(os.path.join(folder, "features.lisp"), "w", encoding="utf-8") as f:
+        f.write("{}\n")
+    return os.path.join(folder, "index.screen.lisp")
 
 
 def starts_with_odd_bodies(build, work):
-    """Opens Orrery for one frame on its screen with bodies whose id or parent isn't text (the screen takes them; a
-    colour that isn't one the screen refuses itself), and exits non-zero with a reason if it doesn't start."""
-    document = read_lisp(build, SCREEN)
-    bodies = document["state"]["bodies"]
+    """Opens Orrery for one frame with bodies whose id or parent isn't text (the screen takes them; a colour that
+    isn't one the screen refuses itself), and exits non-zero with a reason if it doesn't start. The bodies are the
+    JSON version's, with two made odd, in a data file the entry includes: a document's state replaces a defstate's."""
+    with open(os.path.join(ROOT, "examples", "orrery", "json", "index.screen.json"), encoding="utf-8") as f:
+        bodies = json.load(f)["state"]["bodies"]
     bodies[3]["parent"] = 3
     bodies[4]["id"] = 4
-    screen = os.path.join(work, "orrery", "lisp", "odd.screen.json")
+    folder = os.path.join(work, "orrery", "lisp")
+    write_lisp(build, {"state": {"bodies": bodies}}, os.path.join(folder, "odd-bodies.lisp"))
+    with open(os.path.join(folder, "index.screen.lisp"), encoding="utf-8") as f:
+        entry = f.read()
+    screen = os.path.join(folder, "odd.screen.lisp")
     with open(screen, "w", encoding="utf-8") as f:
-        json.dump(document, f, indent="\t")
+        f.write(entry.replace('(include "locales/en.lisp"', '(include "odd-bodies.lisp"\n         "locales/en.lisp"', 1))
     shot = os.path.join(work, "odd.ppm")
     env = dict(os.environ, AFFRESCOUI_SOCKET_DIR=os.path.join(work, "s"), AFFRESCOUI_SCREENSHOT=shot)
     run = subprocess.run([os.path.join(build, "affrescoui_launcher"), screen, "--socket", os.path.join(work, "s"),
