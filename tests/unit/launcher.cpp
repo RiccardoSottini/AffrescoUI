@@ -648,11 +648,16 @@ TEST_CASE("launcher attack: a new app's name can't write code into the program i
 		REQUIRE(copy.app() != nullptr);
 		CHECK(copy.app()->name == name);
 		CHECK(json::parse(copy.documentJson())["window"]["title"] == name);
-		// Its program is Flow's, definition for definition: the name added none
+		// Its program is Flow's, definition for definition: the name added none, and is only main's window title, text
 		affresco::Screen flow =
 		    affresco::Screen::fromApp(examples / "flow" / "lisp", {}, affresco::Screen::History::InMemory);
-		CHECK(copy.versions().sourceDocument().value("program", json()) ==
-		      flow.versions().sourceDocument().value("program", json()));
+		json copied = copy.versions().sourceDocument().value("program", json());
+		json original = flow.versions().sourceDocument().value("program", json());
+		REQUIRE(copied.contains("index.screen.lisp"));
+		CHECK(copied["index.screen.lisp"]["main"].get<std::string>().contains(":title " + json(name).dump()));
+		copied["index.screen.lisp"].erase("main");
+		original["index.screen.lisp"].erase("main");
+		CHECK(copied == original);
 		++copies;
 	}
 	CHECK(copies == 1);

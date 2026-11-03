@@ -12,6 +12,7 @@
 #include <affresco/lisp/Document.hpp>
 
 #include <algorithm>
+#include <array>
 #include <map>
 #include <set>
 #include <string>
@@ -55,11 +56,24 @@ const json* entryAt(const json& document, const std::string& file, const std::st
 	return text == entries->end() || !text->is_string() ? nullptr : &*text;
 }
 
+/// @brief The kinds of definition that only build a part of the tree, with nothing a handler can call: a section's
+/// member (`defstate`, `defcomputed`, `defstyle`, `defcomponent`, `defmenu`, `deftokens`) or several (`defpart`,
+/// `defdefaults`). What one does is in what it builds, judged as a JSON section is.
+/// @param kind The form's head.
+/// @return Whether it is one.
+bool isBuiltOnly(std::string_view kind) {
+	static constexpr std::array<std::string_view, 8> kinds = {"defstate", "defcomputed", "defstyle", "defcomponent",
+	                                                          "defmenu",  "deftokens",   "defpart",  "defdefaults"};
+	return std::ranges::find(kinds, kind) != kinds.end();
+}
+
 /// @brief The kinds of definition that do something beyond what they build: a function a handler may call one day, what
 /// a macro writes, a value they read, a hook.
 /// @param kind The form's head.
 /// @return Whether it is one.
-bool isBehaviour(const std::string& kind) { return kind != "defscreen" && kind != "defkey" && kind != "defcustom"; }
+bool isBehaviour(const std::string& kind) {
+	return kind != "defscreen" && kind != "defkey" && kind != "defcustom" && !isBuiltOnly(kind);
+}
 
 /// @brief What a change does to one view's definitions.
 struct DefinitionChange {
@@ -439,13 +453,16 @@ std::optional<std::set<std::string>> namesUsedIn(const json& document) {
 	return names;
 }
 
-/// @brief Tells whether a definition's text, before or after a change, is a screen's.
+/// @brief Tells whether a definition's text, before or after a change, is a screen's, or one that only builds a part of
+/// the tree (isBuiltOnly()).
 /// @param view The view.
 /// @param change The change.
 /// @return true if it is, or there is no text there.
 bool screenOrNone(const json& view, const DefinitionChange& change) {
 	const json* text = entryAt(view, change.file, change.name);
-	return !text || kindOf(text->get<std::string>()) == "defscreen";
+	if(!text) return true;
+	const std::string kind = kindOf(text->get<std::string>());
+	return kind == "defscreen" || isBuiltOnly(kind);
 }
 
 } // namespace

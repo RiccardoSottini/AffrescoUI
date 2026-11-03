@@ -8,6 +8,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -34,13 +35,32 @@ TEST_CASE("lisp examples: every example is there in both notations, and loads as
 		const Screen spelled = Screen::fromApp(entry.path() / "json", {}, Screen::History::InMemory);
 		REQUIRE(spelled.app() != nullptr);
 		CHECK(spelled.app()->id == written.app()->id);
-		if(written.versions().sourceDocument().contains("program")) {
+		const affresco::json& source = written.versions().sourceDocument();
+		const bool own =
+		    source.contains("program") && std::ranges::any_of(source["program"].items(), [](const auto& file) {
+			    return !file.key().starts_with("../"); // a program of its own, not only a shared add-on's
+		    });
+		if(own) {
 			// A program builds what its JSON writes out, its logic in functions: the same app, not the same document
 			CHECK(affresco::json::parse(written.documentJson())["window"] ==
 			      affresco::json::parse(spelled.documentJson())["window"]);
 			++programs;
 		} else {
-			CHECK(written.documentJson() == spelled.documentJson());
+			// The generated ones: their own document the same; what a shared add-on's program builds says the same
+			// in Lisp forms, so its bindings' text differs from the JSON's (proven by affrescoui lisp-binding --prove,
+			// and drawn the same by the lisp_parity check): the same sections, with the same members
+			const affresco::json document = affresco::json::parse(written.documentJson());
+			const affresco::json json = affresco::json::parse(spelled.documentJson());
+			CHECK(document["root"] == json["root"]);
+			for(const auto& [key, value] : json.items()) {
+				CAPTURE(key);
+				REQUIRE(document.contains(key));
+				if(!value.is_object()) continue;
+				for(const auto& [member, given] : value.items()) {
+					CAPTURE(member);
+					CHECK(document[key].contains(member));
+				}
+			}
 			++apps;
 		}
 	}
@@ -145,8 +165,18 @@ TEST_CASE("lisp examples attack: an agent's change to an app's program is review
 		Screen screen = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
 		const affresco::json source = screen.versions().sourceDocument();
 		if(!source.contains("program")) continue;
-		const auto file = source["program"].begin();
-		const auto definition = file->begin();
+		// A function of the app's own program: what builds a part of the tree is judged by what it builds
+		auto file = source["program"].end();
+		affresco::json::const_iterator definition;
+		for(auto at = source["program"].begin(); at != source["program"].end() && file == source["program"].end(); ++at)
+			for(auto text = at->begin(); text != at->end(); ++text)
+				if(!at.key().starts_with("../") && (text->get<std::string>().contains("\n(defn ") ||
+				                                    text->get<std::string>().starts_with("(defn "))) {
+					file = at;
+					definition = text;
+					break;
+				}
+		if(file == source["program"].end()) continue;
 		screen.versions().setMode(affresco::Mode::AcceptEdits);
 		const affresco::json revision = {{"author", "agent/x"},
 		                                 {"message", "m"},

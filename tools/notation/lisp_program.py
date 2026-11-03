@@ -11,10 +11,13 @@ It is a draft: the views are cut where the tree is long, named after their nodes
 that; a person names them, writes what they are for, turns step maps into functions and puts the text in the locales.
 The draft builds to the same tree as the data file, so the app draws the same (`ctest -R lisp_parity`).
 
-    python3 tools/notation/lisp_program.py <file.lisp> [--entry] [--lines 15] [-o out.lisp] [--cli build/affrescoui]
+    python3 tools/notation/lisp_program.py <file.lisp> [--entry] [--lines 15] [-o out.lisp] [--locales locales]
+                                           [--defaults] [--cli build/affrescoui]
 
 --entry writes the screen's own sections (window, fonts, strings, persist, permissions, theme) as defscreen main's
-options, and its includes as an include form; without it, they go in a defpart. A text it can't translate stays as
+options, and its includes as an include form; without it, they go in a defpart. --locales moves each language of
+its strings section to a data file of its own (locales/en.lisp), which it includes. --defaults, for a shared add-on,
+writes its tokens, keys and default language as a defdefaults, which an app's own replace. A text it can't translate stays as
 written, and is listed on standard error. Only the standard library, and the built affrescoui program.
 """
 
@@ -48,10 +51,13 @@ class Draft:
         self.untranslated = []
         self.counter = 0
 
-    def marker(self):
-        """A word the printer writes as it is, replaced afterwards."""
+    def marker(self, filling=""):
+        """A word the printer writes as it is, replaced afterwards: as long as what replaces it, on its first line, so
+        that the printer breaks the lines where they will be long."""
         self.counter += 1
-        return f"@@m{self.counter}@@"
+        mark = f"@@m{self.counter}@@"
+        width = min(len(filling.split("\n")[0]), 110) if "\n" in filling else min(len(filling), 110)
+        return mark + "x" * max(0, width - len(mark))
 
 
 def run(command, given=None):
@@ -101,7 +107,8 @@ def kebab(name):
 
 def view_name(draft, node, parent):
     """A name for a view of a node, which nothing else has."""
-    base = kebab(node.get("id") or f"{parent}-{node.get('type', 'node')}")
+    base = kebab(re.sub(r"\{\{.*?\}\}", "", str(node.get("id") or f"{parent}-{node.get('type', 'node')}")))
+    base = re.sub(r"[^a-z0-9-]+", "-", base).strip("-") or "view"
     name = base if base not in draft.names and base not in TAKEN else base + "-view"
     number = 2
     while name in draft.names or name in TAKEN:
@@ -133,9 +140,9 @@ class Writer:
             if form is None:
                 self.draft.untranslated.append(value)
                 return value
-            mark = self.draft.marker()
+            mark = self.draft.marker("~" + form)
             self.fills[mark] = "~" + form
-            return mark
+            return mark + "!" if key == "id" else mark  # not a plain word: the printer writes :id, not #id
         if isinstance(value, list):
             return [self.value(item) for item in value]
         if isinstance(value, dict):
@@ -181,8 +188,10 @@ class Writer:
             options += " :key " + (translated or json.dumps(key))
         used = [name for name in inner if uses([text], name)]
         call = self.view_call(body, text, used, parent) if len(text.split("\n")) > self.draft.lines else None
-        mark = self.draft.marker()
-        self.fills[mark] = f"~(repeat [{item} {source_text}{options}] " + (call or "`" + text) + ")"
+        body = call or "`" + text.replace("\n", "\n ")
+        filling = f"~(repeat [{item} {source_text}{options}]\n  " + body.replace("\n", "\n  ") + ")"
+        mark = self.draft.marker(filling)
+        self.fills[mark] = filling
         return mark
 
     def maybe_view(self, child, scope, parent, depth):
@@ -191,14 +200,15 @@ class Writer:
         if len(text.split("\n")) <= self.draft.lines:
             return self.reparse(text)
         used = [name for name in scope if uses([text], name)]
-        mark = self.draft.marker()
-        self.fills[mark] = "~" + self.view_call(child, text, used, parent)
+        call = "~" + self.view_call(child, text, used, parent)
+        mark = self.draft.marker(call)
+        self.fills[mark] = call
         return mark
 
     def view_call(self, node, text, params, parent):
         """Cuts a view out: its definition is kept, and its call returned."""
         name = view_name(self.draft, node, parent)
-        doc = node.get("note") if isinstance(node.get("note"), str) else f"#{node.get('id', name)}."
+        doc = node.get("note") if isinstance(node.get("note"), str) else "#" + re.sub(r"\{\{.*?\}\}", "", str(node.get("id", name))) + "."
         body = "\n".join(("  `" if at == 0 else "   ") + line for at, line in enumerate(text.split("\n")))
         self.draft.views.append(f"(defview {name} {json.dumps(doc, ensure_ascii=False)} [{' '.join(params)}]\n"
                                 f"{body})")
@@ -210,21 +220,110 @@ class Writer:
 
     def reparse(self, text):
         """A child already written as text: a marker for it."""
-        mark = self.draft.marker()
+        mark = self.draft.marker(text)
         self.fills[mark] = text
         return mark
 
 
+WIDTH = 116
+# Forms whose body goes on the next lines, two spaces in
+BODY_FORMS = {"fn", "let", "when", "do", "loop", "repeat", "defview", "defn", "defcomponent"}
+
+
+def parse_form(text):
+    """A form's text as nested (opening, items) tuples and atoms, a prefix (~, `, ') kept with what it is before."""
+    tokens = re.findall(r'"(?:\\.|[^"\\])*"|[()\[\]{}]|[~`\']@?|[^\s()\[\]{}"~`\']+', text)
+    position = 0
+
+    def read():
+        nonlocal position
+        token = tokens[position]
+        position += 1
+        if token in ("~", "`", "'", "~@"):
+            return (token, read())
+        if token in "([{":
+            closing = {"(": ")", "[": "]", "{": "}"}[token]
+            items = []
+            while tokens[position] != closing:
+                items.append(read())
+            position += 1
+            return (token, items)
+        return token
+
+    return read()
+
+
+def flat(node):
+    """A parsed form on one line."""
+    if isinstance(node, str):
+        return node
+    opening, inner = node
+    if opening in ("~", "`", "'", "~@"):
+        return opening + flat(inner)
+    closing = {"(": ")", "[": "]", "{": "}"}[opening]
+    return opening + " ".join(flat(item) for item in inner) + closing
+
+
+def pretty(node, column):
+    """A parsed form laid out to fit the width: on one line when it fits, else one argument a line."""
+    text = flat(node)
+    if isinstance(node, str) or column + len(text) <= WIDTH:
+        return text
+    opening, inner = node
+    if opening in ("~", "`", "'", "~@"):
+        return opening + pretty(inner, column + len(opening))
+    closing = {"(": ")", "[": "]", "{": "}"}[opening]
+    if opening == "{":  # a key and its value on a line
+        lines, at = [], 0
+        while at < len(inner):
+            key = flat(inner[at])
+            value = pretty(inner[at + 1], column + 2 + len(key)) if at + 1 < len(inner) else ""
+            lines.append(f"{key} {value}".rstrip())
+            at += 2
+        return "{" + ("\n" + " " * (column + 1)).join(lines) + "}"
+    if opening == "[" or not inner or not isinstance(inner[0], str):
+        return opening + ("\n" + " " * (column + 1)).join(pretty(item, column + 1) for item in inner) + closing
+    head, rest = inner[0], inner[1:]
+    if not rest:
+        return text
+    if head in BODY_FORMS or head == "cond":
+        indent = column + 2
+        first = pretty(rest[0], column + len(head) + 2)
+        items = rest[1:]
+        if head == "cond":  # a test and its value on a line
+            pairs = [rest[at:at + 2] for at in range(0, len(rest), 2)]
+            indent = column + len(head) + 2
+            lines = [" ".join(pretty(item, indent) for item in pair) for pair in pairs]
+            return f"({head} " + ("\n" + " " * indent).join(lines) + ")"
+        return f"({head} {first}" + "".join("\n" + " " * indent + pretty(item, indent) for item in items) + ")"
+    indent = column + len(head) + 2
+    return f"({head} " + ("\n" + " " * indent).join(pretty(item, indent) for item in rest) + ")"
+
+
+def laid_out(text, column):
+    """A form's text laid out from a column: as it is when it fits, or when it doesn't parse."""
+    if "\n" in text or column + len(text) <= WIDTH:
+        return text
+    try:
+        return pretty(parse_form(text), column)
+    except (IndexError, KeyError):
+        return text
+
+
 def fill(text, fills):
     """Puts each marker's text where it is, indenting its later lines under the marker's column."""
-    pattern = re.compile(r"@@m\d+@@")
+    pattern = re.compile(r'"@@m\d+@@x*!"|@@m\d+@@x*')
     while True:
         found = pattern.search(text)
         if not found:
             return text
-        filling = fills.get(found.group(0), found.group(0).strip("@"))
+        mark = found.group(0).strip('"!')
+        filling = fills.get(mark, mark.strip("@x"))
         column = found.start() - (text.rfind("\n", 0, found.start()) + 1)
-        filling = filling.replace("\n", "\n" + " " * column)
+        if "\n" in filling:  # its lines are indented from its first one
+            filling = filling.replace("\n", "\n" + " " * column)
+        else:  # laid out where it stands
+            filling = laid_out(filling, column)
         text = text[:found.start()] + filling + text[found.end():]
 
 
@@ -270,7 +369,7 @@ def member_forms(draft, writer, document):
                 form = writer.forms.get(value) if isinstance(value, str) and "{{" in value else None
                 if form is None and isinstance(value, str) and "{{" in value:
                     draft.untranslated.append(value)
-                out.append(definition(head, name, form or writer.text_of(writer.value(value))))
+                out.append(definition(head, name, laid_out(form, 2) if form else writer.text_of(writer.value(value))))
             elif section == "components" and isinstance(value, dict) and set(value) <= {"note", "params", "node"}:
                 params = writer.text_of(writer.value(value.get("params", {})))
                 node = writer.text_of(writer.node(value.get("node", {}), list(value.get("params", {})), name, 1))
@@ -295,7 +394,25 @@ def member_forms(draft, writer, document):
     return out
 
 
-def draft_program(path, entry, cli, lines):
+def split_locales(draft, document, folder, locales):
+    """Moves a document's languages out of its strings section, one data file a language in a folder; the files to
+    include."""
+    strings = document.get("strings")
+    if not locales or not isinstance(strings, dict):
+        return []
+    named = []
+    os.makedirs(os.path.join(folder, locales), exist_ok=True)
+    for language in [key for key, value in strings.items() if isinstance(value, dict)]:
+        target = os.path.join(folder, locales, language + ".lisp")
+        with open(target, "w", encoding="utf-8", newline="\n") as file:
+            file.write(printed(draft, {"strings": {language: strings.pop(language)}}) + "\n")
+        named.append(f"{locales}/{language}.lisp")
+    if not strings:
+        document.pop("strings")
+    return named
+
+
+def draft_program(path, entry, cli, lines, locales=None, defaults=False):
     """The program text for a data file."""
     document = json.loads(run([cli, "convert", path, "--to", "json"]))
     folder = os.path.dirname(os.path.abspath(path))
@@ -305,6 +422,16 @@ def draft_program(path, entry, cli, lines):
             with open(os.path.join(folder, name), encoding="utf-8") as file:
                 avoid.update(re.findall(r"^\((?:def\w*) ([^\s()]+)", file.read(), re.M))
     draft = Draft(cli, lines, avoid)
+    locale_files = split_locales(draft, document, folder, locales)
+    fallback = {}
+    if defaults:  # what an app including this gives instead: its tokens, its default language
+        for section in ("tokens", "keys"):
+            if section in document:
+                fallback[section] = document.pop(section)
+        if isinstance(document.get("strings"), dict) and "default" in document["strings"]:
+            fallback["strings"] = {"default": document["strings"].pop("default")}
+            if not document["strings"]:
+                document.pop("strings")
     texts = set()
     texts_in({key: value for key, value in document.items() if key != "note"}, texts)
     for value in document.get("root", {}), *(document.get("components", {}).values()):
@@ -316,11 +443,16 @@ def draft_program(path, entry, cli, lines):
         draft.names.update(word.split(".")[0] for word in re.findall(r"[A-Za-z_$][\w.$?-]*", form or ""))
     writer = Writer(draft, forms)
     out = member_forms(draft, writer, document)
+    if fallback:
+        out.insert(0, definition("defdefaults", os.path.basename(path).split(".")[0], options_text(writer, fallback),
+                                 "What an app that includes this gives instead, if it gives its own."))
     handled = set(MEMBER_FORMS) | {"stateTypes", "tokens", "keys", "settings", "note", "root", "screens", "$schema",
                                    "format", "version", "include"}
     screen_options = SCREEN_OPTIONS if entry else ()
     rest = {key: value for key, value in document.items() if key not in handled and key not in screen_options}
     stem = os.path.basename(path).split(".")[0]
+    if isinstance(rest.get("overlays"), dict):  # each overlay a node, cut into views as the root is
+        rest["overlays"] = {name: writer.maybe_view(node, [], name, 1) for name, node in rest["overlays"].items()}
     if rest:
         out.append(definition("defpart", stem, options_text(writer, rest), f"What {stem} adds."))
     screens = []
@@ -336,7 +468,7 @@ def draft_program(path, entry, cli, lines):
     if ". " in note:
         header += [";;;"] + [";;; " + line for line in wrap(note.split(". ", 1)[1], 114)]
     includes = document.get("include", [])
-    includes = [includes] if isinstance(includes, str) else includes
+    includes = ([includes] if isinstance(includes, str) else includes) + locale_files
     parts = ["\n".join(header)]
     if includes:
         parts.append("(include " + "\n         ".join(json.dumps(name) for name in includes) + ")")
@@ -380,6 +512,9 @@ def main():
     parser.add_argument("--entry", action="store_true", help="the app's entry screen")
     parser.add_argument("--lines", type=int, default=15, help="a child longer than this becomes a view")
     parser.add_argument("-o", dest="out", help="write here, else to standard output")
+    parser.add_argument("--locales", help="write each language of its strings to this folder, beside it, and include it")
+    parser.add_argument("--defaults", action="store_true",
+                        help="an add-on: its tokens, keys and default language are defaults an app replaces")
     parser.add_argument("--cli", default=os.path.join(ROOT, "build", "affrescoui"))
     arguments = parser.parse_args()
     with open(os.path.join(ROOT, "modules", "notation", "include", "affresco", "notation", "Words.hpp"),
@@ -387,7 +522,8 @@ def main():
         block = words.read().split("languageWords")[1].split("});")[0]
     TAKEN.update(re.findall(r'"([^"]+)"', block))
     TAKEN.update(("main", "list", "nil?", "some?", "empty?", "every?", "str", "t", "state", "computed", "event", "it", "index"))
-    text, untranslated = draft_program(arguments.file, arguments.entry, arguments.cli, arguments.lines)
+    text, untranslated = draft_program(arguments.file, arguments.entry, arguments.cli, arguments.lines,
+                                       arguments.locales, arguments.defaults)
     if arguments.out:
         with open(arguments.out, "w", encoding="utf-8", newline="\n") as file:
             file.write(text)

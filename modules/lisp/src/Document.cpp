@@ -200,7 +200,10 @@ void mergeWritten(json& tree, const std::string& key, const json& written,
 	const auto found = tree.find(key);
 	if(found == tree.end()) {
 		tree[key] = written;
-	} else if(*found == written) { // NOLINT(bugprone-branch-clone): nothing to do
+	} else if(*found == written) {                       // NOLINT(bugprone-branch-clone): nothing to do
+	} else if(found->is_array() && written.is_array()) { // a list joins, as an include's does: `persist`
+		for(const json& item : written)
+			if(std::ranges::find(*found, item) == found->end()) found->push_back(item);
 	} else if(found->is_object() && written.is_object()) {
 		for(const auto& [member, value] : written.items()) {
 			const auto built = found->find(member);

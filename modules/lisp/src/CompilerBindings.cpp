@@ -74,6 +74,10 @@ bool Compiler::isLiveWord(std::string_view name) {
 	if(std::ranges::find(itemNames_, head) != itemNames_.end()) return false;
 	if(isLocalWord(name)) return symbolic_; // a name of the running app, when the binding is written for one
 	const Global* global = machine_.findGlobal(name);
+	if(const Definition* definition = machine_.definition(name);
+	   global && !global->library && definition &&
+	   (definition->kind == "defn" || definition->kind == "defcommand" || definition->kind == "defview"))
+		return true; // a function is no value of a tree: a word that names one, uncalled, is a name of the running app
 	return !isSpecial(name) && (!global || global->state == Global::State::Undefined);
 }
 

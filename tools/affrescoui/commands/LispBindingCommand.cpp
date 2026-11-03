@@ -16,6 +16,8 @@
 #include <affresco/notation/Words.hpp>
 
 #include <algorithm>
+#include <array>
+#include <charconv>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -165,6 +167,13 @@ private:
 			return text + "]";
 		}
 		if(value.is_object()) throw Untranslatable("an object where a value was expected");
+		if(value.is_number_float()) { // 0.000001, not 1e-06
+			std::array<char, 400> digits{};
+			const auto end = std::to_chars(digits.data(), digits.data() + digits.size(), value.get<double>(),
+			                               std::chars_format::fixed);
+			const std::string text(digits.data(), end.ptr);
+			return text.contains('.') ? text : text + ".0";
+		}
 		return value.dump(-1, ' ', false, json::error_handler_t::replace);
 	}
 
@@ -248,13 +257,15 @@ private:
 		return text + " :else " + form(*next) + ")";
 	}
 
-	/// @brief `+`: `(str "a" x)` when it starts with text, which it joins; else `(+ ...)`.
+	/// @brief `+`: `(str "a" x)` when one of its first two operands is text, so it joins text; else `(+ ...)`.
 	/// @param arguments The operands.
 	/// @return The form.
 	std::string add(const json& arguments) {
-		const bool text = !arguments.empty() && arguments[0].is_object() && arguments[0].contains("$value") &&
-		                  arguments[0]["$value"].is_string();
-		return call(text ? "str" : "+", arguments);
+		const auto isText = [&](std::size_t at) {
+			return arguments.size() > at && arguments[at].is_object() && arguments[at].contains("$value") &&
+			       arguments[at]["$value"].is_string();
+		};
+		return call(isText(0) || isText(1) ? "str" : "+", arguments); // text in the first two: it joins text
 	}
 
 	/// @brief `lisp('name', ...)`: a call of the program's function.

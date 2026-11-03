@@ -241,7 +241,9 @@ void Compiler::lowerKey(const Value& key, int depth, std::vector<BindingPart>& p
 
 void Compiler::lowerStr(const Value& form, int depth, std::vector<BindingPart>& parts) {
 	parts.push_back({"(", {}, false, {}, {}});
-	const bool text = form.count() > 1 && form.at(1).kind() == Kind::String;
+	// '+' joins text once one side is text: one of the first two being written as text says so
+	const bool text = (form.count() > 1 && form.at(1).kind() == Kind::String) ||
+	                  (form.count() > 2 && form.at(2).kind() == Kind::String);
 	if(!text) parts.push_back({form.count() > 1 ? "'' + " : "''", {}, false, {}, {}});
 	for(std::size_t at = 1; at < form.count(); ++at) {
 		if(at != 1) parts.push_back({" + ", {}, false, {}, {}});
