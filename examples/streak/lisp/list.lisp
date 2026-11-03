@@ -154,7 +154,11 @@
   `(row#row-day-header :anchors {:right 8 :top 4 :bottom 0} :width ~(* computed.cols 44)
      ~(repeat [d computed.days :key d]
        `(node#dayColumn :width 44 :anchors {:top 0 :bottom 0} :color transparent
-          (node#todayPill :when ~(= d state.today) :anchors {:left 5 :right 5 :top 0 :bottom 4} :radius 12 :color @c.primary)
+          (node#todayPill
+            :when ~(= d state.today)
+            :anchors {:left 5 :right 5 :top 0 :bottom 4}
+            :radius 12
+            :color @c.primary)
           (label#label-format-date-date-2 :text ~(formatDate (dateMs d) "d" "utc")
             :font default
             :textColor ~(if (= d state.today) "@c.onPrimary" "@c.text")
@@ -245,14 +249,16 @@
        :height 18
        :align center
        :text ~(formatNumber v 0 1)
-       :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col :else "@c.faint"))
+       :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col
+                     :else "@c.faint"))
      (label#label-hb-unit :when ~(and (= hb.kind "measurable") (some? v))
        :anchors {:left 0 :right 0 :top 27}
        :height 14
        :align center
        :font tiny
        :text ~hb.unit
-       :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col :else "@c.faint"))
+       :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col
+                     :else "@c.faint"))
      (node#panel-cell
      :when ~(not= (trim (or-else (get hb.notes d) "")) "")
      :anchors {:top 8 :right 8}
@@ -262,7 +268,11 @@
      :color ~col)))
 
 (defview empty-list "What the list says while it has no habit." []
-  `(node#emptyList :when ~(= (count computed.order) 0) :anchors {:left 0 :right 0 :top 160} :height 120 :color transparent
+  `(node#emptyList
+     :when ~(= (count computed.order) 0)
+     :anchors {:left 0 :right 0 :top 160}
+     :height 120
+     :color transparent
      (label#label-empty-list :text ""
        :font icons
        :icon list-checks

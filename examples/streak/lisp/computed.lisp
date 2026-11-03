@@ -147,9 +147,11 @@
                         :s 0}))
                data.ordered))
 
-(defcomputed now "Each habit's score today." (map (fn [it] (if (> (count it) 0) (get-in it [(- (count it) 1) :s]) 0)) computed.score))
+(defcomputed now "Each habit's score today." (map (fn [it] (if (> (count it) 0) (get-in it [(- (count it) 1)
+                                                                                             :s]) 0)) computed.score))
 
-(defcomputed done "Whether each habit is done today." (map (fn [it] (and (> (count it) 0) (>= (get-in it [(- (count it) 1) :r]) 1))) computed.ratio))
+(defcomputed done "Whether each habit is done today." (map (fn [it] (and (> (count it) 0) (>= (get-in it [(- (count it) 1)
+                                                                                                           :r]) 1))) computed.ratio))
 
 (defcomputed visible "The habits shown: not archived, not done today, as the filter says."
   (filter (fn [it]

@@ -27,7 +27,13 @@
        :anchors {:left ~(if computed.wide 44 80) :right 100 :top 16}
        :height 24
        :role heading)
-     (row#detailActions :when ~(>= computed.sel 0) :anchors {:right 4 :top 8} :width 84 :height 40 :gap 4 :arrows horizontal
+     (row#detailActions
+       :when ~(>= computed.sel 0)
+       :anchors {:right 4 :top 8}
+       :width 84
+       :height 40
+       :gap 4
+       :arrows horizontal
        (node#editButton
        :style iconButton
        :icon edit
@@ -298,7 +304,8 @@
      :radius 3
      :visible ~(<= d state.today)
      :color ~(cond (nil? cv) "@c.track"
-                   (= computed.h.kind "measurable") (if (> cv 0) (+ computed.col (cond (>= cr 1) "" (>= cr 0.5) "b0" :else "60")) "@c.track")
+                   (= computed.h.kind "measurable") (if (> cv 0) (+ computed.col (cond (>= cr 1) "" (>= cr 0.5) "b0"
+                                                                                   :else "60")) "@c.track")
                    (= cv 1) computed.col
                    (= cv (- 1)) (str computed.col "60")
                    (>= cr 1) (str computed.col "60")

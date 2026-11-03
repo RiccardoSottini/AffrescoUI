@@ -12,7 +12,10 @@
          :children [{:id settingsTop :height 4 :color transparent}
                     ~(settings-interface)
                     (column#settingsNotifications :style card :anchors {:left 0 :right 0} :fitContent height
-                      (label#label-t-set-notifications :text ~(t "set.notifications") :style sectionTitle :anchors {:left 0 :right 0})
+                      (label#label-t-set-notifications
+                        :text ~(t "set.notifications")
+                        :style sectionTitle
+                        :anchors {:left 0 :right 0})
                       (node#remindersRow :use toggleRow
                         :with {:title ~(t "set.reminders") :summary ~(t "set.remindersHint") :bind state.reminders :on ~state.reminders}))
                     ~(settings-data)
@@ -22,7 +25,11 @@
      ~(settings-bar)))
 
 (defview settings-bar "The settings' bar: back, and the title." []
-  `(node#settingsBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @c.bar :shadow {:y 2 :blur 4 :color "#00000030"}
+  `(node#settingsBar
+     :anchors {:left 0 :right 0 :top 0}
+     :height 56
+     :color @c.bar
+     :shadow {:y 2 :blur 4 :color "#00000030"}
      (node#settingsBack
      :style iconButton
      :icon arrow-left
