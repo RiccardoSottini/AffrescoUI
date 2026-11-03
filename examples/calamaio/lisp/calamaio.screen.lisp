@@ -67,5 +67,5 @@
       ~(top-bar)
       ~(windows-in-rows)
       ~(windows-in-columns)
-      (node#completions-root :when ~(and state.mb.open (some? state.mb.comp)) :use completions :alignSelf stretch)
-      (node#echoArea :use echoArea :alignSelf stretch))))
+      ~(completions-window)
+      ~(echo-area))))

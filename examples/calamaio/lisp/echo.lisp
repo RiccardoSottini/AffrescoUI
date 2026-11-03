@@ -27,6 +27,9 @@
 
 ;;; The echo area
 
+(defview echo-area "The echo area, across the foot of the frame." []
+  `(node#echoArea :use echoArea :alignSelf stretch))
+
 (defcomponent echoArea
   "The echo area: a message, or the minibuffer's prompt, answer and note; and the reader C-h k listens with." {}
   `(node :height 26 :color @bar
@@ -55,6 +58,9 @@
      :width ~(max 30 (+ (* (count state.mb.text) 8.4) 10))))
 
 ;;; *Completions*
+
+(defview completions-window "The *Completions* window, above the echo area while the minibuffer lists its matches." []
+  `(node#completions-root :when ~(and state.mb.open (some? state.mb.comp)) :use completions :alignSelf stretch))
 
 (defcomponent completions
   "The *Completions* window: the candidates in columns, the typed part in its own face; a click chooses one."
