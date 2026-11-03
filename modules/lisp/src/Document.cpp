@@ -5,6 +5,7 @@
 #include <affresco/lisp/Document.hpp>
 
 #include "Reader.hpp"
+#include "TopLevel.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 #include <affresco/notation/Notation.hpp>
@@ -272,8 +273,8 @@ void checkProgramShape(const json& section) {
 }
 
 json sourceDocument(std::string_view text, const std::string& file) {
-	Program program;
-	program.addFile(text, file); // two definitions of one name are an error, which an object's keys wouldn't say
+	Program program; // two definitions of one name are an error, which an object's keys wouldn't say
+	for(Entry& entry : splitEntries(text, file)) program.addEntryUnread(std::move(entry)); // the split read each
 	json entries = json::object();
 	for(const Entry& entry : program.entries()) entries[entry.name] = entry.text;
 	return {{"format", "affrescoui-screen"}, {"version", 2}, {"program", {{file, std::move(entries)}}}};
@@ -281,22 +282,25 @@ json sourceDocument(std::string_view text, const std::string& file) {
 
 json readDocument(std::string_view text, const std::filesystem::path& file, const std::string& name) {
 	if(notation::notationOf(file) != notation::Notation::Lisp) return notation::readDocument(text, file);
-	bool program = false;
-	try {
-		program = isProgram(text);
-		// NOLINTNEXTLINE(bugprone-empty-catch): the notation's reader says what is wrong, naming the file
-	} catch(const LispError&) {
-	}
+	// By tokens first: a data file's one form is then read once, by the notation's reader
+	const std::optional<bool> byTokens = isProgramByTokens(text);
+	bool program = byTokens.value_or(false);
+	if(!byTokens) try {
+			program = isProgram(text);
+			// NOLINTNEXTLINE(bugprone-empty-catch): the notation's reader says what is wrong, naming the file
+		} catch(const LispError&) {
+		}
 	if(program) {
 		const std::string named = name.empty() ? file.filename().generic_string() : name;
 		json includes = json::array();
-		json document = sourceDocument(withoutIncludes(text, named, includes), named);
+		json document =
+		    sourceDocument(text.contains("include") ? withoutIncludes(text, named, includes) : std::string(text), named);
 		if(!includes.empty()) document["include"] = std::move(includes);
 		return document;
 	}
 	bool runs = false;
 	try {
-		runs = needsRunning(text).has_value();
+		runs = byTokens ? firstUnquote(text).has_value() : needsRunning(text).has_value();
 		// NOLINTNEXTLINE(bugprone-empty-catch): the notation's reader says what is wrong, naming the file
 	} catch(const DocumentError&) {
 	}

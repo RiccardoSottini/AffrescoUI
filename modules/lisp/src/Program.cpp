@@ -430,6 +430,7 @@ std::vector<Entry> splitEntries(std::string_view text, const std::string& file, 
 }
 
 bool isProgram(std::string_view text) {
+	if(const std::optional<bool> byTokens = isProgramByTokens(text)) return *byTokens; // no form made
 	Heap heap;
 	Reader reader(heap, text, "");
 	const auto first = reader.next();
@@ -437,11 +438,6 @@ bool isProgram(std::string_view text) {
 	return reader.next().has_value() || isDefinitionWord(headWord(first->form));
 }
 
-namespace {
-
-/// @brief The place of the first `~`, or a quote, in a text.
-/// @param text The text.
-/// @return The place as an answer of needsRunning(), or std::nullopt.
 std::optional<std::string> firstUnquote(std::string_view text) {
 	notation::Lexer lexer(text, true);
 	for(notation::Token token = lexer.next(); token.kind != notation::TokenKind::End; token = lexer.next())
@@ -450,7 +446,46 @@ std::optional<std::string> firstUnquote(std::string_view text) {
 	return std::nullopt;
 }
 
-} // namespace
+std::optional<bool> isProgramByTokens(std::string_view text) {
+	using notation::TokenKind;
+	try {
+		notation::Lexer lexer(text, true);
+		std::size_t depth = 0;
+		std::size_t forms = 0;
+		bool prefixed = false; // after 'x, `x or ~x at the top: the form it prefixes is the same form
+		bool wantHead = false; // the token after the first form's own "("
+		std::string_view head;
+		const auto startsForm = [&] { // a form starting at the top level: true once there are two
+			if(depth != 0) return false;
+			const bool second = !prefixed && ++forms == 2;
+			prefixed = false;
+			return second;
+		};
+		for(notation::Token token = lexer.next(); token.kind != TokenKind::End; token = lexer.next()) {
+			if(std::exchange(wantHead, false) && token.kind == TokenKind::Word) head = token.text;
+			if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) {
+				if(depth == 0 && !prefixed && ++forms == 2) return true;
+				if(depth == 0) prefixed = true;
+			} else if(token.kind == TokenKind::OpenNode || token.kind == TokenKind::OpenList ||
+			          token.kind == TokenKind::OpenMap) {
+				const bool first = depth == 0 && !prefixed && forms == 0;
+				if(startsForm()) return true;
+				wantHead = first && token.kind == TokenKind::OpenNode;
+				++depth;
+			} else if(token.kind == TokenKind::CloseNode || token.kind == TokenKind::CloseList ||
+			          token.kind == TokenKind::CloseMap) {
+				if(depth == 0) return std::nullopt; // a bracket that closes nothing: the reader says so
+				--depth;
+			} else if(startsForm()) {
+				return true;
+			}
+		}
+		if(depth != 0) return std::nullopt;
+		return forms == 1 && isDefinitionWord(head);
+	} catch(const DocumentError&) {
+		return std::nullopt;
+	}
+}
 
 namespace {
 
