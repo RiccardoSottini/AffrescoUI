@@ -28,7 +28,7 @@
   :title ~(t "command.closeDocument") :description ~(t "command.closeDocument.about") :category ~(t "category.file")
   :icon "x"
   []
-  (if state.doc.canUndo (set "state.closeAsk" true) (discardDocument)))
+  (if (truthy? state.doc.canUndo) (set "state.closeAsk" true) (discardDocument)))
 
 (defcommand saveProject "Saves the document as a Tempera project, its layers kept."
   :title ~(t "command.saveProject") :description ~(t "command.saveProject.about") :category ~(t "category.file")
@@ -397,7 +397,7 @@
   []
   (setLayer {:clipped (not computed.activeLayer.clipped)}))
 
-(defcommand alignActive "Lines the active layer up with the selection, or the image: args.edge says which edge."
+(defcommand alignActive "Lines an edge of the active layer up with the selection's, or the image's: args.edge, which."
   :title ~(t "command.alignActive") :description ~(t "command.alignActive.about") :category ~(t "category.layer")
   :icon "align-start-vertical" :enablement ~(= computed.activeLayer.kind "pixel")
   [args]
@@ -554,7 +554,7 @@
   []
   (set "state.about" true))
 
-(defcommand unavailable "What a menu item Tempera can't do yet runs: it is never enabled."
+(defcommand unavailable "What Tempera can't do yet: a menu item that runs it is never enabled."
   :title ~(t "command.unavailable") :description ~(t "command.unavailable.about") :enablement false
   []
   (set "state.doc.message" (t "command.unavailable")))

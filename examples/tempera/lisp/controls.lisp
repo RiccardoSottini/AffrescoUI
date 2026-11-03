@@ -46,7 +46,7 @@
 
 ;;; Numbers
 
-(defcomponent tRange "A slider for a number from low to high: dragged or arrowed, it runs run with value / scale at key."
+(defcomponent tRange "A slider for a number from low to high: dragged or arrowed, it runs run, value / scale at key."
   {:title "" :key "" :value 0 :low 0 :high 100 :scale 1 :run setOptions :args {} :width 120}
   `(node :let {:shown ~(round (* value scale)) :span ~(- high low)}
      :role slider
@@ -73,8 +73,8 @@
 
 (defcomponent tField
   "A number's field, its title before it and its unit after; with pop, a chevron opens a slider under it."
-  {:title "" :key "" :value 0 :low 0 :high 100 :scale 1 :unit "%" :run setOptions :args {} :width 46 :pop true :off false
-   :tip ""}
+  {:title "" :key "" :value 0 :low 0 :high 100 :scale 1 :unit "%" :run setOptions :args {} :width 46 :pop true
+   :off false :tip ""}
   `(row :let {:shown ~(round (* value scale)) :where ~(str "state.pop." key run)}
      :width ~(+ (if (empty? title) 0 (+ (* (count title) 6) 10)) width (if pop 14 0))
      :height 22
@@ -126,7 +126,8 @@
 
 ;;; Choices
 
-(defcomponent tCheck "A check box with its title: it sets the tool's option key." {:title "" :key "" :checked false :off false}
+(defcomponent tCheck "A check box with its title: it sets the tool's option key."
+  {:title "" :key "" :checked false :off false}
   `(row :width ~(+ (* (count title) 6) 26) :height 24 :alignItems center :gap 5
      (checkbox :label ~title
        :width 13
@@ -143,9 +144,14 @@
   {:tabs [] :value "" :key "" :tip ""}
   `(row :role group :label ~tip :width ~(* (count tabs) 25) :height 22 :gap 1
      ~(repeat [c tabs]
-       `(node :use tIcon :with {:icon ~c.icon :tip ~c.title :on ~(= c.id value) :run setOptions :args ~(fromEntries [{:key key :value c.id}])}))))
+       `(node :use tIcon
+          :with {:icon ~c.icon
+                 :tip ~c.title
+                 :on ~(= c.id value)
+                 :run setOptions
+                 :args ~(fromEntries [{:key key :value c.id}])}))))
 
-(defcomponent tPicker "A button showing a choice, that opens a menu of the others; in a dialog, a choice only closes it."
+(defcomponent tPicker "A button showing a choice, opening a menu of the others; in a dialog, a choice only closes it."
   {:title "" :tip "" :open "" :items [] :width 64 :inDialog false}
   `(label :role button
      :label ~tip

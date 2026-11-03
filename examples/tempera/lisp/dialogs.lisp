@@ -1,4 +1,4 @@
-;;; dialogs.lisp --- Tempera's dialogs: a filter, New, Free Transform, Image Size, Canvas Size, Rename, Fill, Close, About
+;;; dialogs.lisp --- Tempera's dialogs: a filter, New, Free Transform, Image and Canvas Size, Rename, Fill, Close, About
 ;;;
 ;;; Each is the shared kit's dialog, open while its part of the state says so (state.filter, state.newDoc,
 ;;; state.transform...), with fields bound to that part; its OK runs a function of tempera.lisp that applies it. The
@@ -29,7 +29,13 @@
      (node :style dim :fitText false :text ~title :width 80 :height 20)
      (node :id ~(str "filter-" key)
        :use tRange
-       :with {:title ~title :key ~key :value ~(get state.filter key) :low ~low :high ~high :run setFilterValue :width 196})
+       :with {:title ~title
+              :key ~key
+              :value ~(get state.filter key)
+              :low ~low
+              :high ~high
+              :run setFilterValue
+              :width 196})
      (textarea :label ~(t "filter.value" {:title title})
        :text ~(round (get state.filter key))
        :width 40
@@ -58,7 +64,8 @@
               :message ""
               :width 380
               :height 250
-              :buttons ~[{:title (t "dialog.cancel") :run "discardFilter"} {:title (t "dialog.ok") :run "commitFilter" :default true}]}
+              :buttons ~[{:title (t "dialog.cancel") :run "discardFilter"}
+                         {:title (t "dialog.ok") :run "commitFilter" :default true}]}
        ~(fields "filter-fields" 2
           `(node :use tFilterSlider
              :when ~(and (not= state.filter.kind "add-noise") (not= state.filter.kind "motion-blur"))
@@ -101,7 +108,8 @@
   `(row#new-preset-row :width "100%" :height 28 :gap 8 :alignItems center
      (node :style dim :fitText false :text ~(t "newDoc.preset") :width 70 :height 20)
      (node#new-preset :use tPicker
-       :with {:title ~(t (str "preset." (or-else (:name (find (fn [it] (preset-chosen it)) state.newPresets)) "custom")))
+       :with {:title ~(t (str "preset."
+                              (or-else (:name (find (fn [it] (preset-chosen it)) state.newPresets)) "custom")))
               :tip ~(t "newDoc.presets")
               :width 200
               :open state.newPresetMenu
@@ -135,7 +143,8 @@
      (tabs#new-format :width 200
        :height 24
        :bind state.newDoc.format
-       :tabs [{:id rgba8 :label ~(t "newDoc.8bit") :closable false} {:id rgba16f :label ~(t "newDoc.16bit") :closable false}]
+       :tabs [{:id rgba8 :label ~(t "newDoc.8bit") :closable false}
+              {:id rgba16f :label ~(t "newDoc.16bit") :closable false}]
        :textColor @muted
        :activeTextColor @text
        :activeBackground @selected
@@ -158,7 +167,8 @@
 (defview number-row "A tNumberRow, its title and unit text keys." [title key path unit]
   `(node :use tNumberRow :with {:title ~(t title) :key ~key :path ~path :unit ~(t unit)}))
 
-(defview image-size-dialog "The Image Size dialog: a width, and a height that follows it unless the proportions are free." []
+(defview image-size-dialog "The Image Size dialog: a width, and a height that follows it unless proportions are free."
+  []
   (dialog-host
     `(node#image-size-dialog :use dialog
        :with {:open state.resize.open :title ~(t "imageSize.title") :message "" :width 340 :height 220
@@ -168,23 +178,29 @@
           `(node :use tNumberRow
              :when ~(not state.resize.linked)
              :with {:title ~(t "imageSize.height") :key height :path resize :unit ~(t "unit.pixels")})
-          `(node :style dim
-             :fitText false
-             :when ~state.resize.linked
-             :width "100%"
-             :height 28
-             :text ~(t "imageSize.follows"
-                       {:height (text (round (/ (* state.doc.height (or-else (number state.resize.width) state.doc.width))
-                                                (max state.doc.width 1))))}))
-          `(row :width "100%" :height 28 :gap 8 :alignItems center
-             (checkbox#image-size-linked :label ~(t "imageSize.keep")
-               :width 14
-               :height 14
-               :bind state.resize.linked
-               :activeColor @accent
-               :trackColor @border
-               :knobColor @input)
-             (label :text ~(t "imageSize.keep") :textColor @text :fitText true))))))
+          (height-follows)
+          (keep-proportions)))))
+
+(defview height-follows "While the proportions are kept, the height the width gives." []
+  `(node :style dim
+     :fitText false
+     :when ~state.resize.linked
+     :width "100%"
+     :height 28
+     :text ~(t "imageSize.follows"
+               {:height (text (round (/ (* state.doc.height (or-else (number state.resize.width) state.doc.width))
+                                        (max state.doc.width 1))))})))
+
+(defview keep-proportions "Keep the proportions: a check box, and its title." []
+  `(row :width "100%" :height 28 :gap 8 :alignItems center
+     (checkbox#image-size-linked :label ~(t "imageSize.keep")
+       :width 14
+       :height 14
+       :bind state.resize.linked
+       :activeColor @accent
+       :trackColor @border
+       :knobColor @input)
+     (label :text ~(t "imageSize.keep") :textColor @text :fitText true)))
 
 (defview canvas-size-dialog "The Canvas Size dialog: a width and a height, and where the image stays in them." []
   (dialog-host
@@ -194,12 +210,19 @@
        ~(fields "canvas-size-fields" 4
           (number-row "imageSize.width" "width" "canvasSize" "unit.pixels")
           (number-row "imageSize.height" "height" "canvasSize" "unit.pixels")
-          `(row :width "100%" :height 72 :gap 8
-             (node :style dim :fitText false :text ~(t "canvasSize.anchor") :width 90 :height 20)
-             (grid#canvas-anchor :columns 3 :width 72 :height 72 :gap 2
-               ~@(map anchor-cell ["top-left" "top" "top-right" "left" "center" "right" "bottom-left" "bottom" "bottom-right"])))))))
+          (anchor-row)))))
 
-(defview anchor-cell "A place of the anchor's grid: chosen, the image stays there as the canvas grows or shrinks." [place]
+(def anchors "The anchor's places, row by row."
+  ["top-left" "top" "top-right" "left" "center" "right" "bottom-left" "bottom" "bottom-right"])
+
+(defview anchor-row "The anchor: a grid of three by three places, one of them chosen." []
+  `(row :width "100%" :height 72 :gap 8
+     (node :style dim :fitText false :text ~(t "canvasSize.anchor") :width 90 :height 20)
+     (grid#canvas-anchor :columns 3 :width 72 :height 72 :gap 2
+       ~@(map anchor-cell anchors))))
+
+(defview anchor-cell "A place of the anchor's grid: chosen, the image stays there as the canvas grows or shrinks."
+  [place]
   `(node :id ~(str "anchor-" place)
      :role radio
      :label ~(t (str "anchor." place))
@@ -264,7 +287,8 @@
               :width 380
               :height 150
               :message ~(t "closeDialog.message")
-              :buttons ~[{:title (t "dialog.cancel") :default true} {:title (t "closeDialog.close") :run "discardDocument"}]})))
+              :buttons ~[{:title (t "dialog.cancel") :default true}
+                         {:title (t "closeDialog.close") :run "discardDocument"}]})))
 
 (defview about-dialog "The About dialog: what Tempera is." []
   `(node#about-dialog :use dialog

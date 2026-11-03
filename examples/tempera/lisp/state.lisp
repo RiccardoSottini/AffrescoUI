@@ -54,7 +54,8 @@
 (defstate tools
   [[{:id move :name move :icon move :key "V"}]
    []
-   [{:id marquee :name marquee :icon box-select :key "M"} {:id ellipse :name ellipse :icon circle-dashed :key "Shift+M"}]
+   [{:id marquee :name marquee :icon box-select :key "M"}
+    {:id ellipse :name ellipse :icon circle-dashed :key "Shift+M"}]
    [{:id lasso :name lasso :icon lasso :key "L"} {:id polygon :name polygon :icon pentagon :key "Shift+L"}]
    [{:id wand :name wand :icon wand :key "W"}]
    [{:id crop :name crop :icon crop :key "C"}]
@@ -102,7 +103,8 @@
   "The gradient the options bar edits and gives the tool.")
 
 (defstate blends
-  [normal "-" darken multiply "-" lighten screen "-" overlay soft-light "-" difference "-" hue saturation color luminosity]
+  [normal "-" darken multiply "-" lighten screen "-" overlay soft-light "-" difference "-"
+   hue saturation color luminosity]
   "The blend modes, in the Layers panel's menu: \"-\" is a separator.")
 
 (defstate adjustments
@@ -173,7 +175,8 @@
 ;;; The dialogs
 
 (defstate filter
-  {:open false :kind gaussian-blur :radius 4 :amount 100 :threshold 0 :angle 0 :distance 12 :live true :apply 0 :cancel 0}
+  {:open false :kind gaussian-blur :radius 4 :amount 100 :threshold 0 :angle 0 :distance 12 :live true :apply 0
+   :cancel 0}
   "The filter dialog: watches preview it while it changes, and apply or cancel it (tempera.lisp).")
 
 (defstate newDoc {:open false :width 1200 :height 800 :format rgba8} "The New dialog.")

@@ -12,7 +12,11 @@
      (node :style dim :fitText false :text ~title :width 74 :height 20)
      (node :use tRange
        :with {:title ~title :key ~key :value ~value :low ~low :high ~high :scale ~scale :run setAdjustment :width 112})
-     (label :text ~(round (* value scale)) :textColor @text :width 34 :height 20 :align {:horizontal end :vertical center})))
+     (label :text ~(round (* value scale))
+       :textColor @text
+       :width 34
+       :height 20
+       :align {:horizontal end :vertical center})))
 
 (defcomponent tBalanceSlider "One channel of the active Colour Balance layer, from -100 to 100." {:title "" :channel 0}
   `(row :height 26 :alignItems center :gap 6 :width "100%"
@@ -72,7 +76,9 @@
      (node#properties-name :style dim
        :when ~(and computed.activeLayer (not computed.adjustment))
        :text ~(t "properties.summary"
-                 {:name computed.activeLayer.name :blend computed.blendTitle :opacity (text computed.activeLayer.opacity)}))
+                 {:name computed.activeLayer.name
+                  :blend computed.blendTitle
+                  :opacity (text computed.activeLayer.opacity)}))
      (node#properties-line :width "100%" :height 1 :color @border)
      ~@(levels-values)
      ~@(curve-values)
@@ -94,8 +100,9 @@
    (adjust-slider "adjust-output-black" "levels" "outputBlack" 0 255 255)
    (adjust-slider "adjust-output-white" "levels" "outputWhite" 0 255 255)])
 
-(defmacro tones "The image's tones for a chart: each bin at most four times the average, so one peak doesn't flatten the rest." []
-  '(map (fn [it] (min it (/ (* 4 (sum state.doc.histogram)) (count state.doc.histogram)))) (or-else state.doc.histogram [])))
+(defmacro tones "The image's tones for a chart: each bin at most four times the average, so a peak flattens nothing." []
+  '(map (fn [it] (min it (/ (* 4 (sum state.doc.histogram)) (count state.doc.histogram))))
+        (or-else state.doc.histogram [])))
 
 (defview adjust-slider "An adjustment's slider, id its node's, shown for one kind of adjustment: key names its value."
   [id kind key low high scale]
@@ -197,7 +204,7 @@
         :with {:icon flip-vertical :tip ~(t "transform.flipVertical") :run flipLayerVertical
                :off ~(not= computed.activeLayer.kind "pixel")}))])
 
-(defview box-field "A field of the box, its number at place in computed.box: typing one moves or scales the active layer."
+(defview box-field "A field of the box, its number at place in computed.box: a number typed moves or scales the layer."
   [id key place low]
   `(node :id ~id
      :use tField

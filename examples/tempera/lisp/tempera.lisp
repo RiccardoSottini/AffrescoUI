@@ -3,12 +3,13 @@
 ;;; The views (menubar.lisp, options.lisp, panels.lisp...) say what is shown; this file says what happens. An operation
 ;;; on the image is the image step, its name written out, `(image "moveLayer" :with args)`, so the revision rules judge
 ;;; exactly what it reaches; the library then puts the image's snapshot in state.doc. Handlers, keys, menus, scenarios
-;;; and a feature's adapter run these functions by name, their arguments in `args`: {:run moveLayer :with {:args {...}}}.
-;;; The commands people choose from the menus are in commands.lisp; this file's functions are what they call.
+;;; and a feature's adapter run these functions by name, their arguments in `args`:
+;;; {:run moveLayer :with {:args {...}}}. The commands of the menus are in commands.lisp, and call these.
 
 ;;; Reading what a dialog was given
 
-(defn typed "A number typed in a dialog, kept between 1 and most; one that isn't a number is fallback." [text fallback most]
+(defn typed "A number typed in a dialog, kept between 1 and most; one that isn't a number is fallback."
+  [text fallback most]
   (clamp (or-else (number text) fallback) 1 most))
 
 (defn toggled "A list with an item taken out if it is there, else added at its end." [items item]
@@ -87,7 +88,7 @@
     (image "setTool" :with args)
     (when leavingPencil (setOptions {:hardness state.brushHardness}))))
 
-(defn perform "Runs a function or an action by its name with its arguments, for the scenarios: event.run and event.args." []
+(defn perform "Runs a function or an action by its name, for the scenarios: event.run with event.args." []
   (run event.run :with {:args event.args}))
 
 ;;; The sample
@@ -99,7 +100,8 @@
                (range 49))
           [{:x 1200 :y 800} {:x 0 :y 800}]))
 
-(defn drawSample "The sample, 1200 × 800: a dawn sky, a sun and hills, each a layer; then no history, and the brush." []
+(defn drawSample "The sample, 1200 × 800: a dawn sky, a sun and hills, each a layer; then no history, and the brush."
+  []
   (image "newImage" :with {:width 1200 :height 800})
   (image "setLayer" :with {:id state.doc.active :name (t "sample.sky")})
   (image "setTool" :with {:tool "gradient"})
@@ -139,7 +141,9 @@
 (defn applyImageSize "Resizes the image as the Image Size dialog says; linked, the height follows the width." []
   (image "imageSize"
     :with {:width (clamp (or-else (number state.resize.width) state.doc.width) 1 30000)
-           :height (if state.resize.linked nil (clamp (or-else (number state.resize.height) state.doc.height) 1 30000))})
+           :height (if (truthy? state.resize.linked)
+                     nil
+                     (clamp (or-else (number state.resize.height) state.doc.height) 1 30000))})
   (set "state.resize.open" false))
 
 (defn applyCanvasSize "Resizes the canvas as the Canvas Size dialog says, around its anchor." []
@@ -165,7 +169,8 @@
   (set "state.transform.open" false))
 
 (defn transformBox
-  "The Properties panel's W, H, X and Y: the active layer moves and scales as the box (the selection, or the image) would."
+  "The Properties panel's W, H, X and Y: the active layer moves and scales as the box (the selection, or the image)
+would."
   [args]
   (let [[x y w h] computed.box]
     (transformActive {:x (- (or-else (:x args) x) x)
@@ -220,15 +225,16 @@
   (let [key (first (keys args))]
     (set (str "state.filter." key) (get args key))))
 
-(defn typeFilterValue "A filter's value typed in its field: a number within its range, or else the value it had." [key low high]
+(defn typeFilterValue "A filter's value typed in its field: a number within its range, or else the value it had."
+  [key low high]
   (setFilterValue {key (clamp (or-else (number (trim event.text)) (get state.filter key)) low high)}))
 
 (defn previewFilterNow "Previews the filter on the canvas while its dialog is open and Preview is on." []
-  (when (and state.filter.open state.filter.live)
+  (when (and (truthy? state.filter.open) (truthy? state.filter.live))
     (image "previewFilter" :with state.filter)))
 
 (defn liveChanged "Preview turned on previews; turned off, the canvas goes back." []
-  (if state.filter.live (previewFilterNow) (image "cancelFilter")))
+  (if (truthy? state.filter.live) (previewFilterNow) (image "cancelFilter")))
 
 (defn commitFilter "Applies the filter to the image, and closes its dialog." []
   (image "applyFilter" :with state.filter)
@@ -238,7 +244,7 @@
   (image "cancelFilter")
   (set "state.filter.open" false))
 
-(defpart previews "The filter dialog's values preview as they change; the image's tones are measured for Levels and Curves."
+(defpart previews "The filter dialog's values preview as they change; the tones are measured for Levels and Curves."
   :watch {:state.filter.open previewFilterNow
           :state.filter.kind previewFilterNow
           :state.filter.radius previewFilterNow
@@ -276,7 +282,8 @@
 (defn setScreenMode "Chooses the screen mode: standard, or full without the panels." [args]
   (set "state.screenMode" args.mode))
 
-(defn addGuide "Adds a guide where a ruler was clicked: args.axis vertical or horizontal, args.at in image pixels." [args]
+(defn addGuide "Adds a guide where a ruler was clicked: args.axis vertical or horizontal, args.at in image pixels."
+  [args]
   (push (str "state.guides." args.axis) (round args.at)))
 
 (defn guideAcross "A click on the top ruler adds an upright guide there." []
@@ -288,14 +295,16 @@
 (defn zoomTyped "The zoom typed in the status bar, in per cent." []
   (zoom {:to (/ (clamp (or-else (number (trim (first (split event.text "%")))) computed.zoomPercent) 1 3200) 100)}))
 
-(defpart review "The scenarios accept an agent's proposal as the person's client would. A review step runs from a step the
-person's input or a scenario plays, not from a function, so this one stays a step."
+(defpart review "The scenarios accept an agent's proposal as the person's client would.
+A review step runs from a step that the person's input or a scenario plays, not from a function: this one stays a step."
   :actions {:acceptAgentProposal [{:accept ~proposals.0.id :head ~proposals.0.head}]})
 
 ;;; What the controls run (controls.lisp, menu.lisp)
 
-(defn runWith "Runs a function or an action by its name, its arguments in args: what a control was told to run." [action args]
-  (run action :with {:args args}))
+(defn runWith "Runs a function or an action by its name, its arguments in args: what a control was told to run."
+  [action args]
+  (when (and (some? action) (not= action ""))
+    (run action :with {:args args})))
 
 (defn toggleOpen "Opens what a path of the state says is open, or closes it: a menu, a section, a slider." [path]
   (toggle path))
@@ -306,14 +315,16 @@ person's input or a scenario plays, not from a function, so this one stays a ste
     (set "state.slide" value)
     (runWith action (assoc args key (/ value scale)))))
 
-(defn dragSlider "A slider dragged: the value it was pressed at, moved as far as the pointer." [action args key low high scale]
-  (runWith action
-    (assoc args key (/ (clamp (round (+ state.slide (* (/ event.dx (max 1 event.width)) (- high low)))) low high) scale))))
+(defn dragSlider "A slider dragged: the value it was pressed at, moved as far as the pointer."
+  [action args key low high scale]
+  (let [value (clamp (round (+ state.slide (* (/ event.dx (max 1 event.width)) (- high low)))) low high)]
+    (runWith action (assoc args key (/ value scale)))))
 
-(defn stepSlider "The arrow keys on a slider: one less, not under low, or one more, not over high." [action args key shown by low high scale]
+(defn stepSlider "The arrow keys on a slider: one less, not under low, or one more, not over high."
+  [action args key shown by low high scale]
   (runWith action (assoc args key (/ (if (< by 0) (max low (+ shown by)) (min high (+ shown by))) scale))))
 
-(defn submitField "A number typed in an option's field, without its unit, kept within its range: one that isn't a number keeps shown."
+(defn submitField "A number typed in an option's field, its unit left out, kept within its range; else it stays shown."
   [action args key shown low high scale]
   (let [typedValue (number (trim (first (split (first (split event.text "%")) " "))))]
     (runWith action (assoc args key (/ (clamp (or-else typedValue shown) low high) scale)))))

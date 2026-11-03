@@ -43,7 +43,7 @@
 
 ;;; Painting
 
-(defview paint-options "A painting tool's options: the brush, the mode, opacity and flow, and what isn't available yet." []
+(defview paint-options "A painting tool's options: the brush, the mode, opacity and flow, and what isn't there yet." []
   `(row#options-paint :when ~computed.paints :alignItems center :gap 8 :height 30 :grow 100
      ~(brush-picker)
      (node#brush-settings :use tIcon :with {:icon sliders-horizontal :tip ~(t "option.brushSettings") :off true})
@@ -54,15 +54,18 @@
               :width 84
               :open state.paintModeMenu
               :items ~[{:title (t "blend.normal") :checked true}]})
-     (node#option-opacity :use tField :with {:title ~(t "option.opacity") :key opacity :value ~state.doc.options.opacity})
+     (node#option-opacity :use tField
+       :with {:title ~(t "option.opacity") :key opacity :value ~state.doc.options.opacity})
      (node#opacity-pressure :use tIcon :with {:icon pencil-line :tip ~(t "option.opacityPressure") :off true})
      (node#option-flow :use tField :with {:title ~(t "option.flow") :key flow :value ~state.doc.options.flow})
      (node#airbrush :use tIcon :with {:icon spray-can :tip ~(t "option.airbrush") :off true})
      (node#option-smoothing :use tField
-       :with {:title ~(t "option.smoothing") :key smoothing :value 0 :off true :width 40 :tip ~(t "option.smoothing.off")})
+       :with {:title ~(t "option.smoothing") :key smoothing :value 0 :off true :width 40
+              :tip ~(t "option.smoothing.off")})
      (label :icon rotate-cw :textColor @muted :width 14 :height 20 :align center :tooltip ~(t "option.brushAngle"))
      (node#option-angle :use tField
-       :with {:title "" :key angle :value 0 :unit "°" :pop false :off true :width 36 :tip ~(t "option.brushAngle.off")})
+       :with {:title "" :key angle :value 0 :unit "°" :pop false :off true :width 36
+              :tip ~(t "option.brushAngle.off")})
      (node#size-pressure :use tIcon :with {:icon pencil-line :tip ~(t "option.sizePressure") :off true})))
 
 (defview brush-picker "The brush's button: its tip at its size and its size; it opens the brush's sizes and presets." []
@@ -102,9 +105,9 @@
      :borderColor @border
      :shadow {:y 3 :blur 10 :color "#00000060"}
      :gap 4
-     ~(brush-option "size" 500 " px")
-     ~(brush-option "hardness" 100 "%")
-     ~(brush-option "spacing" 200 "%")
+     ~(brush-option "size" 500 "unit.pxValue")
+     ~(brush-option "hardness" 100 "unit.percentValue")
+     ~(brush-option "spacing" 200 "unit.percentValue")
      (node :width "100%" :height 1 :color @border)
      (column :role list :label ~(t "option.brushPresets") :width "100%" :grow 1
        ~(repeat [b state.brushes]
@@ -119,13 +122,19 @@
             :hover {:color @menuHover}
             :onClick ~(handler chooseBrush b.preset))))))
 
-(defview brush-option "One of the brush's numbers, from 1 to high: its title, its slider and its value." [key high unit]
+(defview brush-option "One of the brush's numbers, from 1 to high: its title, its slider, its value in unit (a key)."
+  [key high unit]
   `(row :id ~(str "option-" key) :width "100%" :height 26 :alignItems center :gap 8
      (node :width 2 :height 1 :style clear)
      (node :style dim :fitText false :text ~(str (t (str "option." key)) ":") :width 62 :height 16)
      (node :use tRange
-       :with {:title ~(t (str "option." key)) :key ~key :value ~(get state.doc.options key) :low 1 :high ~high :width 112})
-     (label :text ~(str (get state.doc.options key) unit) :textColor @text :fitText true)))
+       :with {:title ~(t (str "option." key))
+              :key ~key
+              :value ~(get state.doc.options key)
+              :low 1
+              :high ~high
+              :width 112})
+     (label :text ~(t unit {:n (text (get state.doc.options key))}) :textColor @text :fitText true)))
 
 ;;; Selecting and filling
 
@@ -236,7 +245,10 @@
       :text ~(if state.doc.options.autoSelect (t "move.underPointer") (t "move.active")))])
 
 (defview view-options "The hand's and the zoom's options: zoom in, zoom out, and 100% or fit." []
-  `(row#options-view :when ~(or (= state.doc.tool "hand") (= state.doc.tool "zoom")) :alignItems center :gap 4 :height 30
+  `(row#options-view :when ~(or (= state.doc.tool "hand") (= state.doc.tool "zoom"))
+     :alignItems center
+     :gap 4
+     :height 30
      :grow 100
      (node#view-zoom-in :use tIcon :with {:icon zoom-in :run zoomIn :tip ~(t "command.zoomIn")})
      (node#view-zoom-out :use tIcon :with {:icon zoom-out :run zoomOut :tip ~(t "command.zoomOut")})

@@ -37,7 +37,8 @@
      (node :when ~(empty? g) :x 14 :y 2 :width 3 :height 3 :radius 999 :color @border)
      ~(tool-button g n)))
 
-(defview tool-button "A group's tool, the one chosen or its first: chosen by a click; a right click opens the group's other tools." [g n]
+(defview tool-button "A group's tool, the one chosen or its first: a click chooses it, a right click opens the others."
+  [g n]
   `(label :id ~(str "tool-" (or-else tool.id n))
      :when ~(not (empty? g))
      :role button
@@ -65,22 +66,25 @@
        :radius 999
        :color ~(if (= tool.id state.doc.tool) "@accent" "@muted")
        :anchors {:right 2 :bottom 2})
-     (node :use tMenu
-       :when ~(> (count g) 1)
-       :with {:open ~(str "state.flyout.g" n)
-              :placement right
-              :icons true
-              :mark square
-              :width 230
-              :items ~(map (fn [it]
-                             {:title (t (str "tool." it.name))
-                              :icon it.icon
-                              :enabled (some? it.id)
-                              :checked (= it.id state.doc.tool)
-                              :keyLabel (slice (or-else it.key "") (max 0 (- (count (or-else it.key "")) 1)))
-                              :run "setTool"
-                              :with {:args {:tool it.id}}})
-                           g)})))
+     ~(tool-flyout g n)))
+
+(defview tool-flyout "A group's other tools, opened to its right by a right click: each with its key's letter." [g n]
+  `(node :use tMenu
+     :when ~(> (count g) 1)
+     :with {:open ~(str "state.flyout.g" n)
+            :placement right
+            :icons true
+            :mark square
+            :width 230
+            :items ~(map (fn [it]
+                           {:title (t (str "tool." it.name))
+                            :icon it.icon
+                            :enabled (some? it.id)
+                            :checked (= it.id state.doc.tool)
+                            :keyLabel (slice (or-else it.key "") (max 0 (- (count (or-else it.key "")) 1)))
+                            :run "setTool"
+                            :with {:args {:tool it.id}}})
+                         g)}))
 
 ;;; The colours and the modes
 
@@ -115,7 +119,8 @@
        (node :x 3 :y 3 :width 6 :height 6 :radius 999 :color "#ffffff" :borderWidth 1 :borderColor @muted)
        (node :width 6 :height 6 :radius 999 :color "#000000" :borderWidth 1 :borderColor @muted))))
 
-(defview colour-chip "A colour's round chip at x, y, value its path: a click shows the Colour panel." [id value x y title]
+(defview colour-chip "A colour's round chip at x, y, value its path, title a text key: a click shows the Colour panel."
+  [id value x y title]
   `(node :id ~id
      :role button
      :label ~(t title)

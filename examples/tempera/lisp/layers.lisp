@@ -79,7 +79,8 @@
        :with {:title ~(t "layers.fill") :key fill :value 100 :run setLayer :width 40 :off true
               :tip ~(t "layers.fill.off")})))
 
-(defview lock-icon "A lock of the active layer, key its name: on while it is locked; a click turns it." [id icon key tip]
+(defview lock-icon "A lock of the active layer, key its name: on while it is locked; a click turns it."
+  [id icon key tip]
   `(node :id ~id
      :use tIcon
      :with {:icon ~icon
@@ -118,10 +119,12 @@
        :textColor @text
        :onClick ~(handler setLayer {:id layer.id :visible (not layer.visible)}))
      (node :style clear :width ~(* layer.depth 14) :height 1)
-     ~@(layer-marks layer)
+     ~@(layer-badges layer)
+     ~@(layer-picture layer)
+     ~@(layer-name layer)
      (node :width 6 :height 1 :style clear)))
 
-(defview layer-marks "What a row shows of its layer: a group's fold, the clip, the picture, the mask, the name, the lock." [layer]
+(defview layer-badges "A group's fold, and the mark of a layer clipped to the one below." [layer]
   [`(label :id ~(str "layer-fold-" layer.id)
       :when ~(= layer.kind "group")
       :role button
@@ -137,8 +140,14 @@
       :cursor hand
       :onClick ~(handler foldGroup {:id layer.id}))
    `(label :id ~(str "layer-clip-" layer.id)
-      :when ~layer.clipped :icon corner-left-down :textColor @muted :width 14 :tooltip ~(t "layers.clipped"))
-   `(image :id ~(str "layer-thumb-" layer.id)
+      :when ~layer.clipped
+      :icon corner-left-down
+      :textColor @muted
+      :width 14
+      :tooltip ~(t "layers.clipped"))])
+
+(defview layer-picture "A layer's thumbnail, or its kind's icon, then its mask, linked." [layer]
+  [`(image :id ~(str "layer-thumb-" layer.id)
       :when ~(not (empty? layer.thumbnail))
       :source ~layer.thumbnail
       :fit contain
@@ -156,10 +165,22 @@
       :align center
       :textColor @text)
    `(label :id ~(str "layer-mask-" layer.id)
-      :when ~layer.mask :icon link :font small :textColor @muted :width 10 :tooltip ~(t "layers.maskLinked"))
-   `(node :when ~layer.mask :width 30 :height 28 :color "#ffffff" :borderWidth 1 :borderColor @border
-      :tooltip ~(t "layers.mask"))
-   `(label :id ~(str "layer-name-" layer.id)
+      :when ~layer.mask
+      :icon link
+      :font small
+      :textColor @muted
+      :width 10
+      :tooltip ~(t "layers.maskLinked"))
+   `(node :when ~layer.mask
+      :width 30
+      :height 28
+      :color "#ffffff"
+      :borderWidth 1
+      :borderColor @border
+      :tooltip ~(t "layers.mask"))])
+
+(defview layer-name "A layer's name, and a lock if any of its locks is on." [layer]
+  [`(label :id ~(str "layer-name-" layer.id)
       :text ~layer.name
       :textColor @text
       :grow 1

@@ -31,8 +31,8 @@
      :accentEdge top
      :tabs [{:id doc
              :closable true
-             :label ~(str computed.docName " — " (or-else computed.activeLayer.name "") " · " (round computed.zoomPercent)
-                          "% · " computed.mode)}]
+             :label ~(str computed.docName " — " (or-else computed.activeLayer.name "") " · "
+                          (round computed.zoomPercent) "% · " computed.mode)}]
      :value doc
      :textColor @muted
      :activeTextColor @text
@@ -43,20 +43,20 @@
 (defview guides "The guides over the image, upright and level, where they are in the image." []
   [(repeat [g state.guides.vertical]
      `(node#guide-v :when ~state.view.guides
-      :x ~(+ (/ computed.canvasWidth 2) (* (- g state.doc.view.x) computed.px))
-      :width 1
-      :anchors {:top 0 :bottom 0}
-      :color @guide))
+        :x ~(+ (/ computed.canvasWidth 2) (* (- g state.doc.view.x) computed.px))
+        :width 1
+        :anchors {:top 0 :bottom 0}
+        :color @guide))
    (repeat [g state.guides.horizontal]
      `(node#guide-h :when ~state.view.guides
-      :y ~(+ (/ computed.canvasHeight 2) (* (- g state.doc.view.y) computed.px))
-      :height 1
-      :anchors {:left 0 :right 0}
-      :color @guide))])
+        :y ~(+ (/ computed.canvasHeight 2) (* (- g state.doc.view.y) computed.px))
+        :height 1
+        :anchors {:left 0 :right 0}
+        :color @guide))])
 
 ;;; The rulers
 
-(defview top-ruler "The horizontal ruler, with the corner before it: small ticks, numbered ticks; a click adds a guide." []
+(defview top-ruler "The horizontal ruler after its corner: small ticks, numbered ticks; a click adds a guide." []
   `(row#ruler-row :when ~state.view.rulers :width "100%" :height 16
      (node#ruler-corner :width 16 :height 16 :color @ruler)
      (node#ruler-top :label ~(t "canvas.rulerAcross")
@@ -134,9 +134,7 @@
 (defview document-facts "The facts the status bar can show, one at a time: sizes, dimensions, profile, undo memory." []
   [`(node#status-doc :style dim
       :when ~(= state.statusInfo "doc")
-      :text ~(t "status.docSize"
-                {:size (fixed (/ (* state.doc.width state.doc.height (if (= state.doc.format "rgba16f") 6 3)) 1048576)
-                              2)}))
+      :text ~(t "status.docSize" {:size (fixed (/ (* state.doc.width state.doc.height (bytes-per-pixel)) 1048576) 2)}))
    `(node#status-size :style dim
       :when ~(= state.statusInfo "size")
       :text ~(t "status.dimensions" {:width (text state.doc.width) :height (text state.doc.height)}))
@@ -146,6 +144,9 @@
    `(node#status-memory :style dim
       :when ~(= state.statusInfo "memory")
       :text ~(t "status.undoMemory" {:size (fixed (/ state.doc.memory 1048576) 1)}))])
+
+(defmacro bytes-per-pixel "What a pixel of the image takes, as the status bar counts it: 16-bit float or 8-bit RGB." []
+  '(if (= state.doc.format "rgba16f") 6 3))
 
 (defview status-menu "The chevron at the status bar's end, and the menu of what it can show." []
   `(label#status-info :role button

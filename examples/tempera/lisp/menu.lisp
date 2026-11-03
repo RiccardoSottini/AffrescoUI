@@ -34,26 +34,30 @@
 
 (defview menu-row-labels "A row's icon or check mark, its title, and its key or a submenu's chevron." []
   [`(label :when ~(and (not item.separator)
-                        (or (and (= item.checked true) (= mark "check")) (and (> indent 26) (some? item.icon))))
-       :icon ~(if (and (= item.checked true) (= mark "check")) "check" item.icon)
-       :textColor ~(if (= item.enabled false) "@muted" "@text")
-       :anchors {:left ~(if (= mark "square") 20 7) :top 4}
-       :fitText true)
+                       (or (and (= item.checked true) (= mark "check")) (and (> indent 26) (some? item.icon))))
+      :icon ~(if (and (= item.checked true) (= mark "check")) "check" item.icon)
+      :textColor ~(if (= item.enabled false) "@muted" "@text")
+      :anchors {:left ~(if (= mark "square") 20 7) :top 4}
+      :fitText true)
    `(label :when ~(not item.separator)
-       :text ~(or-else item.title "")
-       :textColor ~(if (= item.enabled false) "@muted" "@text")
-       :anchors {:left ~indent :top 4}
-       :fitText true)
+      :text ~(or-else item.title "")
+      :textColor ~(if (= item.enabled false) "@muted" "@text")
+      :anchors {:left ~indent :top 4}
+      :fitText true)
    `(label :when ~(not item.separator)
-       :icon ~(if (some? item.submenu) "chevron-right" "")
-       :text ~(if (some? item.submenu) "" (join "↑" (split (join "↓" (split (or-else item.keyLabel "") "Down")) "Up")))
-       :textColor @muted
-       :anchors {:right 10 :top 4}
-       :fitText true)])
+      :icon ~(if (some? item.submenu) "chevron-right" "")
+      :text ~(if (some? item.submenu) "" (key-label item.keyLabel))
+      :textColor @muted
+      :anchors {:right 10 :top 4}
+      :fitText true)])
+
+(defmacro key-label "A key's label as a menu shows it: Down and Up as arrows." [label]
+  `(join "↑" (split (join "↓" (split (or-else ~label "") "Down")) "Up")))
 
 ;;; Menus
 
-(defview menu-box "What a menu and a submenu share: a card over the window, as tall as its rows, and the rows." [placement content]
+(defview menu-box "What a menu and a submenu share: a card over the window, as tall as its rows, and the rows."
+  [placement content]
   `(column :let {:rows ~(menu-rows items)}
      :overlay {:placement ~placement :open ~open :dismiss outside :modal true}
      :role menu

@@ -7,7 +7,7 @@
 
 (defcomputed activeLayer "The active layer, or nil." (find (fn [it] (= it.id state.doc.active)) state.doc.layers))
 
-(defcomputed layersAfterActive "The layers under the active one, in the panel's order: a group's are its children first."
+(defcomputed layersAfterActive "The layers under the active one, in the panel's order: a group's children come first."
   (slice state.doc.layers (+ (indexOf (map (fn [it] it.id) state.doc.layers) state.doc.active) 1)))
 
 (defcomputed layerBelow "The layer Merge Down merges into: the next one at the active layer's depth or above."
@@ -25,7 +25,8 @@
 
 (defcomputed adjustment "The active adjustment layer's values, or nil." computed.activeLayer.adjustment)
 
-(defcomputed adjustmentKind "The active adjustment layer's kind, or nothing." (or-else computed.activeLayer.adjustment.kind ""))
+(defcomputed adjustmentKind "The active adjustment layer's kind, or nothing."
+  (or-else computed.activeLayer.adjustment.kind ""))
 
 (defcomputed blendTitle "The active layer's blend mode, as the Layers panel shows it."
   (t (str "blend." (or-else computed.activeLayer.blend "normal"))))
@@ -49,7 +50,8 @@
 
 ;;; The selection and the image
 
-(defcomputed docName "The document's name: the first one is Untitled 1." (if (empty? state.docName) (t "document.first") state.docName))
+(defcomputed docName "The document's name: the first one is Untitled 1."
+  (if (empty? state.docName) (t "document.first") state.docName))
 
 (defcomputed box "The selection's box, or else the image's: x, y, width and height."
   (if state.doc.selection state.doc.bounds [0 0 state.doc.width state.doc.height]))
@@ -68,7 +70,9 @@
    {:id "white" :title (t "fill.white") :color "#ffffff"}])
 
 (defcomputed filterTitle "The open filter's name, the filter dialog's title."
-  (if (some (fn [it] (= it.id state.filter.kind)) state.filters) (t (str "filter." state.filter.kind)) (t "filter.any")))
+  (if (some (fn [it] (= it.id state.filter.kind)) state.filters)
+    (t (str "filter." state.filter.kind))
+    (t "filter.any")))
 
 ;;; The tool
 
@@ -79,7 +83,8 @@
 
 (defcomputed toolTitle "The current tool's name, as its tooltip says it." (t (str "tool." computed.tool.name)))
 
-(defcomputed toolName "The current tool's short name, on the options bar." (t (str "tool." computed.tool.name ".short")))
+(defcomputed toolName "The current tool's short name, on the options bar."
+  (t (str "tool." computed.tool.name ".short")))
 
 (defcomputed paints "The tool paints." (contains ["brush" "pencil" "eraser" "clone"] state.doc.tool))
 

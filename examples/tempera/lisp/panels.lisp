@@ -41,7 +41,8 @@
      :focused {:borderWidth 1 :borderColor @accent}
      :onClick ~(handler showPanel {:slot slot :id tab.id})))
 
-(defcomponent tPopout "An icon of the strip, and the panel (the children) it pops out to its left." {:name "" :icon "" :title "" :height 300}
+(defcomponent tPopout "An icon of the strip, and the panel (the children) it pops out to its left."
+  {:name "" :icon "" :title "" :height 300}
   `(node :id ~(str name "-popout-anchor") :style clear :width 30 :height 28
      (node :id ~(str name "-button")
        :use tIcon
@@ -112,7 +113,8 @@
      :height 236
      :shrink 1
      :minHeight 96
-     :with {:slot properties :tabs ~[{:id "properties" :label (t "panel.properties")} {:id "adjustments" :label (t "panel.adjust")}]}
+     :with {:slot properties
+            :tabs ~[{:id "properties" :label (t "panel.properties")} {:id "adjustments" :label (t "panel.adjust")}]}
      ~(properties-panel)
      ~(adjustments-panel)))
 
@@ -139,7 +141,8 @@
        ~(edit-chip "colour-chip-background" "background" 'state.doc.background 13)
        (node :x 0 :y 0 :width 24 :height 24 :radius 999 :color @panel)
        ~(edit-chip "colour-chip-foreground" "foreground" 'state.doc.foreground 1))
-     (colorPicker#colour-picker :label ~(if (= state.colourTarget "background") (t "colour.background") (t "colour.foreground"))
+     (colorPicker#colour-picker
+       :label ~(if (= state.colourTarget "background") (t "colour.background") (t "colour.foreground"))
        :anchors {:left 52 :right 8 :top 6 :bottom 6}
        :value ~(if (= state.colourTarget "background") state.doc.background state.doc.foreground)
        :fields false
@@ -148,7 +151,8 @@
        :accentColor @accent
        :onChange ~(handler setOption state.colourTarget event.value))))
 
-(defview edit-chip "A colour's chip, at an offset: a click makes it the colour the picker edits, outlined." [id target value at]
+(defview edit-chip "A colour's chip, at an offset: a click makes it the colour the picker edits, outlined."
+  [id target value at]
   `(node :id ~id
      :role button
      :label ~(t (str "colour.edit." target))
