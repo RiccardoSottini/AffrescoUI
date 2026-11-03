@@ -226,3 +226,6 @@
 (defn dragNav "A navigation button dragged: navDrag with how far the pointer went since the last move." [id]
   (navDrag id (- event.dx (first state.dragLast)) (- event.dy (second state.dragLast)))
   (set "state.dragLast" [event.dx event.dy]))
+
+(defn chooseSidebarTab "A tab of the viewport's sidebar chosen: Item, Tool or View." [tab]
+  (set "state.sidebarTab" tab))

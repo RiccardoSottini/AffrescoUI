@@ -306,3 +306,37 @@
 
 (defn renameLayer "The view layer's name typed in the top bar, if it isn't empty." [text]
   (when (not= (trim text) "") (set "state.layerName" (slice (trim text) 0 63))))
+
+;;; The outliner (outliner.lisp): a row is an object's (id) or a collection's (collection)
+
+(defn pickRow "A row clicked: its object is selected (with Shift, added), its collection made active, its tab shown."
+  [id collection tab shift]
+  (when (some? id) (selectNode id shift))
+  (when (some? collection) (set "state.activeCollection" collection))
+  (when (some? tab) (set "state.propTab" tab)))
+
+(defn startRowRename "A row double-clicked: its object or collection is renamed in place." [id collection data]
+  (when (and (some? id) (not= data ""))
+    (set "state.renaming" id)
+    (focusRename))
+  (when (some? collection)
+    (set "state.renaming" (str "coll:" collection))
+    (focusRename)))
+
+(defn rowMenu "A row right-clicked: its collection's menu, or its object's, the object selected first." [id collection]
+  (when (some? collection)
+    (set "state.activeCollection" collection)
+    (openPopup "collectionContext" event.x event.y))
+  (when (some? id)
+    (when (not (contains state.view.selection id)) (selectNode id false))
+    (openPopup "outlinerContext" event.x event.y)))
+
+(defn submitRowRename "A name typed in a row: its collection or its object takes it." [id collection text]
+  (if (some? collection) (renameCollection collection text) (rename id text))
+  (set "state.renaming" nil))
+
+(defn toggleOpen "A row's chevron: what is under the row is shown or hidden." [key]
+  (set "state.outlinerOpen" (assoc state.outlinerOpen key (not (get state.outlinerOpen key)))))
+
+(defn toggleRowFlag "A row's switch: its object's, or else its collection's." [id collection key]
+  (if (some? id) (toggleFlag id key) (toggleCollection collection key)))
