@@ -1,9 +1,10 @@
-;;; orrery.lisp --- what Orrery does: the bodies, the notes, the camera's flights and the bookmarks
+;;; orrery.lisp --- what Orrery does: its commands and functions
 ;;;
-;;; The screen (index.screen.lisp) says what is shown and keeps the one-step actions (the toggles, the time controls);
-;;; this file holds what has logic. A function reads the running app through paths (`state.bodies`, `computed.target`,
-;;; `event.from`) and changes it only through steps (`set`, `push`, `animate`...). A handler runs one by name, as it
-;;; would an action: `:onConnect reparent`, `~(handler goToEclipse)`.
+;;; The views (view.lisp, chart.lisp, browser.lisp...) say what is shown; this file says what happens: the bodies,
+;;; the notes, time, the camera's flights, the bookmarks, and what the views' toggles and lists choose. A function reads
+;;; the running app through paths (`state.bodies`, `computed.target`, `event.from`) and changes it only through steps
+;;; (`set`, `push`, `animate`...). A handler runs one by name (`:onConnect reparent`) or with its arguments
+;;; (`~(handler chooseBody event.value)`); keys.lisp binds the keys.
 
 ;;; The bodies
 
@@ -123,6 +124,11 @@
     (set "state.notes"
          (placeEach state.notes event.items (fn [m] {:x (:x m) :y (:y m) :width (:width m) :height (:height m)})))))
 
+(defn deleteNotes "Deletes the notes chosen on the chart." []
+  (set "state.notes" (filter (fn [it] (not (contains state.chart.selection it.id))) state.notes)))
+
+(defn clearNotes "Deletes every note on the chart." [] (set "state.notes" []))
+
 ;;; Time
 
 (def slowest "The slowest speed, in days a frame: real time." 0.000000578704)
@@ -145,6 +151,26 @@
   []
   (set "state.speed" (if (< state.speed 0) (- slowest) slowest))
   (set "state.playing" true))
+
+(defn togglePlay "Plays the days, or pauses them." [] (toggle "state.playing"))
+
+(defn rewind "Pauses and goes back to day 0." [] (set "state.playing" false) (set "state.time" 0))
+
+(defn tick "Every 50 ms while playing: time moves on at its rate, and stops at either end." []
+  (when state.playing
+    (let [time (clamp (+ state.time state.speed) 0 state.duration)]
+      (set "state.time" time)
+      (when (or (and (< state.speed 0) (<= time 0)) (and (> state.speed 0) (>= time state.duration)))
+        (set "state.playing" false)))))
+
+(defn reverse "Runs time the other way." [] (set "state.speed" (- state.speed)))
+
+(defn dayZero
+  ;; Not `now`: a function of the program named so would be what (now) calls everywhere, the add-ons' too.
+  "Back to day 0, at the starting rate."
+  []
+  (set "state.time" 0)
+  (set "state.speed" 0.01))
 
 ;;; The camera
 
@@ -282,35 +308,6 @@
       (when (not= state.follow state.selected) (follow))
       (set "state.skyTrack" (if (:solar eclipse) "sun" (:moon eclipse)))
       (animate "state.time" :to (:time eclipse) :ms 600 :easing "inOut"))))
-
-;;; Time
-
-(defn togglePlay "Plays the days, or pauses them." [] (toggle "state.playing"))
-
-(defn rewind "Pauses and goes back to day 0." [] (set "state.playing" false) (set "state.time" 0))
-
-(defn tick "Every 50 ms while playing: time moves on at its rate, and stops at either end." []
-  (when state.playing
-    (let [time (clamp (+ state.time state.speed) 0 state.duration)]
-      (set "state.time" time)
-      (when (or (and (< state.speed 0) (<= time 0)) (and (> state.speed 0) (>= time state.duration)))
-        (set "state.playing" false)))))
-
-(defn reverse "Runs time the other way." [] (set "state.speed" (- state.speed)))
-
-(defn dayZero
-  ;; Not `now`: a function of the program named so would be what (now) calls everywhere, the add-ons' too.
-  "Back to day 0, at the starting rate."
-  []
-  (set "state.time" 0)
-  (set "state.speed" 0.01))
-
-;;; The chart's notes
-
-(defn deleteNotes "Deletes the notes chosen on the chart." []
-  (set "state.notes" (filter (fn [it] (not (contains state.chart.selection it.id))) state.notes)))
-
-(defn clearNotes "Deletes every note on the chart." [] (set "state.notes" []))
 
 ;;; The 3D view
 

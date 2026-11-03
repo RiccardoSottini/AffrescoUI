@@ -288,35 +288,41 @@
      ~(scene-view)
      ~(repeat [t computed.marked :key t.id]
         `(panel :id ~(str "view-marker-" t.id) :x ~t.x :y ~t.y :width ~t.w :height ~t.h :color "#f0abfc"))
-     ~(repeat [b computed.projected :key b.id]
-        `(label :id ~(str "view-label-" b.id)
-           :x ~(if (and (not= b.parent "") (not= b.parent "sun")) (- (- b.px b.r) 4) (+ b.px b.r 6))
-           :y ~(if (and (not= b.parent "") (not= b.parent "sun")) (+ b.py b.r 2) (- b.py 9))
-           :height 18
-           :fitText true
-           :font small
-           :text ~b.name
-           :textColor ~(if (= b.id state.selected) "@accent" "#b9c7c2")
-           :visible ~(and state.showLabels (> b.depth 0.3))))
-     ~(repeat [b (filter (fn [it] (= (or-else it.look "") "")) state.bodies) :key b.id]
-        `(panel :id ~(str "thumb-" b.id)
-           :snapshot ~{:image (str "body:" b.id) :scale 1}
-           :width 96
-           :height 64
-           :color "#07090e"
-           (panel :id ~(str "thumb-disc-" b.id)
-             :x 25
-             :y 9
-             :width 46
-             :height 46
-             :radius 999
-             :color ~b.hex
-             :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})))
+     ~(repeat [b computed.projected :key b.id] (body-label b))
+     ~(repeat [b (filter (fn [it] (= (or-else it.look "") "")) state.bodies) :key b.id] (thumbnail b))
      ~(info-card)
      ~(clock-card)
      ~(browser)
      ~(view-hint)
      ~(optics)))
+
+(defview body-label "A body's name beside it on the view; a moon's name goes under it." [b]
+  `(label :id ~(str "view-label-" b.id)
+     :x ~(if (and (not= b.parent "") (not= b.parent "sun")) (- (- b.px b.r) 4) (+ b.px b.r 6))
+     :y ~(if (and (not= b.parent "") (not= b.parent "sun")) (+ b.py b.r 2) (- b.py 9))
+     :height 18
+     :fitText true
+     :font small
+     :text ~b.name
+     :textColor ~(if (= b.id state.selected) "@accent" "#b9c7c2")
+     :visible ~(and state.showLabels (> b.depth 0.3))))
+
+(defview thumbnail
+  "A body's thumbnail, a disc in its colour drawn into the image body:<id> for the features that show it."
+  [b]
+  `(panel :id ~(str "thumb-" b.id)
+     :snapshot ~{:image (str "body:" b.id) :scale 1}
+     :width 96
+     :height 64
+     :color "#07090e"
+     (panel :id ~(str "thumb-disc-" b.id)
+       :x 25
+       :y 9
+       :width 46
+       :height 46
+       :radius 999
+       :color ~b.hex
+       :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})))
 
 (defview scene-view "The 3D scene, bound to the computed camera; a left click selects a body." []
   `(scene#view-scene :fill true
