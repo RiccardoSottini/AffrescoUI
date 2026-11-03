@@ -513,3 +513,9 @@
 
 (defn showPlayingList "The player's cover clicked: the list playing, or the library." []
   (if (>= state.playingList 0) (openList state.playingList) (show "library")))
+
+(defn browseBack "Back from an album or an artist to the tiles it was opened from." []
+  (show (if (= state.collection.kind "artist") "artists" "albums")))
+
+(defn likedMenu "A right click on a liked song: its menu." []
+  (when (some? state.likedPick) (openSongMenu (listOf state.likedPick) (trackOf state.likedPick))))

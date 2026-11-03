@@ -156,11 +156,7 @@
      :color transparent
      :rowHeight 30
      :items ~computed.library
-     :columns [{:id number :title ~(t "column.number") :width 60}
-               {:id title :title ~(t "column.title") :width 230}
-               {:id artist :title ~(t "column.artist") :width 150}
-               {:id album :title ~(t "column.album") :width 170}
-               {:id time :title ~(t "column.time") :width 64}]
+     :columns ~(song-table-columns)
      :sort ~state.librarySort
      :bind state.libraryPick
      :label ~(t "library.label")
