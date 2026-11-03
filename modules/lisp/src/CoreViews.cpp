@@ -116,17 +116,26 @@ Value repeatNode(Machine& machine, Arguments arguments) {
 
 /// @brief `%component`: what `defcomponent` builds.
 /// @param machine The machine.
-/// @param arguments Its docstring, its parameters with their defaults, and its node.
-/// @return `{note, params, node}`.
+/// @param arguments Its docstring, its parameters with their defaults, its `:runsActions` (nil, a parameter's name or
+/// true), and its node.
+/// @return `{note, params, runsActions, node}`.
 Value component(Machine& machine, Arguments arguments) {
-	if(arguments.size() != 3 || arguments[0].kind() != Kind::String || arguments[1].kind() != Kind::Map)
+	if(arguments.size() != 4 || arguments[0].kind() != Kind::String || arguments[1].kind() != Kind::Map)
 		throw Problem("\"%component\" is defcomponent's own");
-	if(arguments[2].kind() != Kind::Map && arguments[2].kind() != Kind::List)
-		throw Problem("a component's body gives one node, and gave " + std::string(describeKind(arguments[2])));
+	if(arguments[3].kind() != Kind::Map && arguments[3].kind() != Kind::List)
+		throw Problem("a component's body gives one node, and gave " + std::string(describeKind(arguments[3])));
+	const Value& runs = arguments[2];
+	bool named = false; // a parameter's name, as a word, a keyword or a text
+	if(runs.kind() == Kind::Symbol || runs.kind() == Kind::String || runs.kind() == Kind::Keyword)
+		for(std::size_t key = 0; key < arguments[1].count(); ++key) named = named || arguments[1].keyAt(key) == runs.text();
+	if(!runs.isNil() && !named && !(runs.kind() == Kind::Boolean && runs.truthy()))
+		throw Problem(":runsActions names one of the component's parameters, or is true");
 	std::vector<MapEntry> members;
 	if(!arguments[0].text().empty()) members.push_back({"note", arguments[0]});
 	members.push_back({"params", arguments[1]});
-	members.push_back({"node", arguments[2]});
+	if(named) members.push_back({"runsActions", machine.heap.string(runs.text())});
+	else if(!runs.isNil()) members.push_back({"runsActions", runs});
+	members.push_back({"node", arguments[3]});
 	return machine.heap.map(std::move(members));
 }
 

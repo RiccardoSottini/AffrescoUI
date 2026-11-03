@@ -2272,7 +2272,7 @@ builds
 | `(defkey "chord" "doc"? what)` | `keys.chord` |
 | `(defcustom name value "doc"? :key value ...)` | `settings.name`, and the global `name` |
 | `(defview name "doc"? [params] body...)` | Nothing callable later: a function the build calls, whose templates hold bindings ("Views", below) |
-| `(defcomponent name "doc"? {:param default ...} body...)` | `components.name`: `note` from the docstring, `params`, and the node its body gives, each parameter a name of the running app |
+| `(defcomponent name "doc"? {:param default ...} :runsActions items? body...)` | `components.name`: `note` from the docstring, `params`, `runsActions` (a parameter's name, or `true`: "Components"), and the node its body gives, each parameter a name of the running app |
 | `(defstate name value "doc"? :type schema)` | `state.name`, and `stateTypes.name` with `:type`; as Emacs's `defvar`, a value the document gives the key (a revision on `/state/name`) wins |
 | `(defcomputed name "doc"? form)` | `computed.name`: the form as a binding, as `~form` is |
 | `(defstyle name "doc"? node)`, `(defmenu name "doc"? items)` | `styles.name`, `menus.name`: templates |

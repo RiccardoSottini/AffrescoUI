@@ -93,7 +93,7 @@ member is addressed as `state.view`, `computed.card`, `styles.chip`, `components
 | `(defcustom name value "doc"? :key value ...)` | A global: the value | `settings.name`: `type`, `default`, the other keys, `description` |
 | `(defhook name "doc"?)` | A global: its own name, as text | Nothing: a hook point, for `run-hooks` and `describe-*` |
 | `(defview name "doc"? [params] body...)` | A function the build calls: its templates hold bindings (below), and a template's call of it is never a binding | nothing |
-| `(defcomponent name "doc"? {:param default ...} body...)` | Nothing callable | `components.name`: `note`, `params`, and the node the body gives, each parameter bound to its own name as a symbol |
+| `(defcomponent name "doc"? {:param default ...} :runsActions items? body...)` | Nothing callable | `components.name`: `note`, `params`, `runsActions` (a parameter's name, or `true`), and the node the body gives, each parameter bound to its own name as a symbol |
 | `(defstate name value "doc"? :type schema)` | Nothing callable | `state.name` (a template), `stateTypes.name`; a document's own value of the key wins, as with `defvar` |
 | `(defcomputed name "doc"? form)` | Nothing callable | `computed.name`: the form as a `~form` in a template, a binding when it needs the app |
 | `(defstyle name "doc"? value)`, `(defmenu ...)`, `(deftokens ...)` | Nothing callable | `styles.name`, `menus.name` (templates); `deftokens` its map's members, in `tokens` |

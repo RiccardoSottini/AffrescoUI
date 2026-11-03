@@ -164,6 +164,22 @@ TEST_CASE("lisp views: defcomponent, handler, and the sections as definitions") 
 	CHECK(buildError("(defstate x 1 \"Doc.\" :default 2)\n(defscreen main (column))").contains("only option is :type"));
 }
 
+TEST_CASE("lisp views: a defcomponent says which parameter's items it runs") {
+	const json tree = built(R"lisp(
+(defcomponent pie "A pie menu: each item runs its action." {:items [] :open false} :runsActions items
+  `(column :visible ~open))
+(defcomponent keeper "Runs actions it keeps in the state." {} :runsActions true `(column))
+(defscreen main (column))
+)lisp");
+	CHECK(tree["components"]["pie"]["runsActions"] == "items");
+	CHECK(tree["components"]["pie"]["node"]["visible"] == "{{open}}");
+	CHECK(tree["components"]["keeper"]["runsActions"] == true);
+	CHECK(buildError("(defcomponent a \"\" {:x 1} :runsActions y `(column))\n(defscreen main (column))")
+	          .contains("names one of the component's parameters"));
+	CHECK(buildError("(defcomponent a \"\" {:x 1} :look x `(column))\n(defscreen main (column))")
+	          .contains("only option is :runsActions"));
+}
+
 TEST_CASE("lisp views: defdefaults yields to any other definition, and to the document's own value") {
 	const std::string program = R"lisp(
 (defdefaults addon "An add-on's colours and key." :tokens {:addon.accent "#00f" :addon.text "#000"} :keys {"mod+a" open})
