@@ -110,59 +110,59 @@
                  (filter (fn [it] (= (type it) "object")) listed)))))
 
 (defn debugMakeConfigurations
-  "Each configuration's arguments for its adapter, from what it says; one that can't run is left out."
+  "Each configuration as its adapter takes it, from what it says; one that can't run is left out."
   [total known]
-  (debugKeepConfigurations
-    total
-    (filter (fn [it] (some? it))
-            (map (fn [it]
-                   (if (cond
-                         (= it.request "launch") (and (= (type it.c.program) "string") (<= (count it.c.program) 4096))
-                         (= it.adapter "python")
-                           (and (= (type it.port) "number")
-                                (= (round it.port) it.port)
-                                (>= it.port 1)
-                                (<= it.port 65535))
-                         :else (and (= (type it.c.pid) "number") (= (round it.c.pid) it.c.pid) (> it.c.pid 0)))
-                     {:name (if (and (= (type it.c.name) "string") (not= it.c.name "") (<= (count it.c.name) 200))
-                              it.c.name
-                              (str it.adapter " " it.request))
-                      :type it.adapter
-                      :request it.request
-                      :arguments (merge (if (and (= (type it.c.program) "string") (<= (count it.c.program) 4096))
-                                          {:program it.c.program}
-                                          {})
-                                        (if (and (= (type it.c.cwd) "string") (<= (count it.c.cwd) 4096))
-                                          {:cwd it.c.cwd}
-                                          {})
-                                        (if (= (type it.c.stopOnEntry) "boolean") {:stopOnEntry it.c.stopOnEntry} {})
-                                        (if (= (type it.c.args) "list")
-                                          {:args (slice (filter (fn [it]
-                                                                  (and (= (type it) "string") (<= (count it) 4096)))
-                                                                it.c.args)
-                                                        0
-                                                        1000)}
-                                          {})
-                                        (if (= (type it.c.env) "object")
-                                          {:env (fromEntries (slice (filter (fn [it]
-                                                                              (and (= (type it.value) "string")
-                                                                                   (<= (count it.value) 4096)))
-                                                                            (entries it.c.env))
-                                                                    0
-                                                                    1000))}
-                                          {})
-                                        (cond
-                                          (not= (type it.c.console) "string") {}
-                                          (= it.adapter "python")
-                                            {:console (if it.terminal "integratedTerminal" "internalConsole")}
-                                          it.terminal {:runInTerminal true}
-                                          :else {})
-                                        (cond
-                                          (not= it.request "attach") {}
-                                          (= it.adapter "python") {:connect {:host "127.0.0.1" :port it.port}}
-                                          :else {:pid it.c.pid}))}
-                     nil))
-                 known))))
+  (debugKeepConfigurations total
+                           (filter some? (map (fn [config] (when (debugRunnable? config) (debugConfiguration config)))
+                                              known))))
+
+(defn debugRunnable? "Whether a configuration can run: a program to launch, a port or a process to attach to." [config]
+  (cond
+    (= config.request "launch") (and (= (type config.c.program) "string") (<= (count config.c.program) 4096))
+    (= config.adapter "python")
+      (and (= (type config.port) "number")
+           (= (round config.port) config.port)
+           (>= config.port 1)
+           (<= config.port 65535))
+    :else (and (= (type config.c.pid) "number") (= (round config.c.pid) config.c.pid) (> config.c.pid 0))))
+
+(defn debugConfiguration "A configuration as the debug view lists it: its name, adapter, request and arguments."
+  [config]
+  {:name (if (and (= (type config.c.name) "string") (not= config.c.name "") (<= (count config.c.name) 200))
+           config.c.name
+           (str config.adapter " " config.request))
+   :type config.adapter
+   :request config.request
+   :arguments (merge (debugLaunchArguments config.c) (debugConsoleArguments config) (debugAttachArguments config))})
+
+(defn debugLaunchArguments
+  "What a configuration gives to launch: its program, cwd, stopOnEntry, args and env, each bounded."
+  [c]
+  (merge (if (and (= (type c.program) "string") (<= (count c.program) 4096)) {:program c.program} {})
+         (if (and (= (type c.cwd) "string") (<= (count c.cwd) 4096)) {:cwd c.cwd} {})
+         (if (= (type c.stopOnEntry) "boolean") {:stopOnEntry c.stopOnEntry} {})
+         (if (= (type c.args) "list")
+           {:args (slice (filter (fn [it] (and (= (type it) "string") (<= (count it) 4096))) c.args) 0 1000)}
+           {})
+         (if (= (type c.env) "object")
+           {:env (fromEntries (slice (filter (fn [it] (and (= (type it.value) "string") (<= (count it.value) 4096)))
+                                             (entries c.env))
+                                     0
+                                     1000))}
+           {})))
+
+(defn debugConsoleArguments "Where the program's output goes: debugpy's console, or lldb-dap's terminal." [config]
+  (cond
+    (not= (type config.c.console) "string") {}
+    (= config.adapter "python") {:console (if config.terminal "integratedTerminal" "internalConsole")}
+    config.terminal {:runInTerminal true}
+    :else {}))
+
+(defn debugAttachArguments "What attaching needs: debugpy's host and port, or lldb-dap's process." [config]
+  (cond
+    (not= config.request "attach") {}
+    (= config.adapter "python") {:connect {:host "127.0.0.1" :port config.port}}
+    :else {:pid config.c.pid}))
 
 (defn debugKeepConfigurations "The first 100 configurations; the rest are counted as skipped." [total kept]
   (debugApplyConfigurations {:configurations (slice kept 0 100) :skipped (- total (min (count kept) 100))}))

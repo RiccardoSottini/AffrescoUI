@@ -85,7 +85,10 @@
                :tab (= (slice it.row 0 1) "\t")
                :kind (if (= (slice it.code 0 6) "class ") "class" "function")
                :rest (trim (slice it.code
-                                  (cond (= (slice it.code 0 10) "async def ") 10 (= (slice it.code 0 4) "def ") 4 :else 6)))})
+                                  (cond
+                                    (= (slice it.code 0 10) "async def ") 10
+                                    (= (slice it.code 0 4) "def ") 4
+                                    :else 6)))})
             (filter (fn [it]
                       (or (= (slice it.code 0 4) "def ")
                           (= (slice it.code 0 6) "class ")
