@@ -24,12 +24,12 @@
    :brighter {:run brighter :group "3_fov" :order 4}})
 
 (defmenu time
-  {:faster {:run faster :title "10x faster" :group "1_rate" :order 1}
-   :slower {:run slower :title "10x slower" :group "1_rate" :order 2}
-   :freeze {:run togglePlay :title "Freeze" :group "1_rate" :order 3}
+  {:faster {:run faster :title ~(t "time.tenFaster") :group "1_rate" :order 1}
+   :slower {:run slower :title ~(t "time.tenSlower") :group "1_rate" :order 2}
+   :freeze {:run togglePlay :title ~(t "time.freeze") :group "1_rate" :order 3}
    :realTime {:run realTime :group "1_rate" :order 4}
-   :reverse {:run reverse :title "Reverse time" :group "1_rate" :order 5}
-   :now {:run dayZero :title "Back to day 0" :group "2_set" :order 1}
+   :reverse {:run reverse :title ~(t "time.reverseTime") :group "1_rate" :order 5}
+   :now {:run dayZero :title ~(t "time.dayZero") :group "2_set" :order 1}
    :eclipses {:run openEclipses :group "2_set" :order 2}})
 
 (defcomputed viewMenu
@@ -52,9 +52,9 @@
      :use menuBar
      :width 56
      :with {:open state.menuBar
-            :menus ~[{:name "view" :title "View" :items computed.viewMenu}
+            :menus ~[{:name "view" :title (t "menu.view") :items computed.viewMenu}
                      {:name "time"
-                      :title "Time"
+                      :title (t "menu.time")
                       :items (map (fn [it]
                                     (merge it
                                            {:checked (cond (= it.run "realTime") (and state.playing computed.realTime)
@@ -71,68 +71,63 @@
 ;;; The toolbar and the status bar
 
 (defcomputed toolbarItems
-  [{:title "Back to day 0" :icon "skip-back" :keyLabel "Ctrl+0" :run "rewind"}
-     {:title (if state.playing "Pause" "Play")
+  [{:title (t "time.dayZero") :icon "skip-back" :keyLabel "Ctrl+0" :run "rewind"}
+     {:title (if state.playing (t "time.pause") (t "time.play"))
       :icon (if state.playing "pause" "play")
       :keyLabel "Space"
       :run "togglePlay"}
-     {:title (if (< state.speed 0) "Previous event" "Next event")
+     {:title (if (< state.speed 0) (t "time.previousEvent") (t "time.nextEvent"))
       :icon (if (< state.speed 0) "skip-back" "skip-forward")
       :keyLabel "Ctrl+N"
       :run "nextEvent"}
      {:separator true}
-     {:title "Slower" :icon "chevrons-left" :keyLabel "K" :run "slower"}
-     {:title "Reverse" :icon "arrow-left-right" :keyLabel "J" :checked (< state.speed 0) :run "reverse"}
-     {:title "Faster" :icon "chevrons-right" :keyLabel "L" :run "faster"}
-     {:title "Real time"
+     {:title (t "time.slower") :icon "chevrons-left" :keyLabel "K" :run "slower"}
+     {:title (t "time.reverse") :icon "arrow-left-right" :keyLabel "J" :checked (< state.speed 0) :run "reverse"}
+     {:title (t "time.faster") :icon "chevrons-right" :keyLabel "L" :run "faster"}
+     {:title (t "command.realTime")
       :icon "timer"
       :keyLabel "Shift+K"
       :checked (and state.playing computed.realTime)
       :run "realTime"}
      {:separator true}
-     {:title "Go to the selected body" :icon "rocket" :keyLabel "G" :run "goTo"}
-     {:title "Centre the selected body" :icon "crosshair" :keyLabel "C" :run "centre"}
-     {:title "Follow the selected body"
+     {:title (t "command.goTo") :icon "rocket" :keyLabel "G" :run "goTo"}
+     {:title (t "command.centre") :icon "crosshair" :keyLabel "C" :run "centre"}
+     {:title (t "command.follow")
       :icon "locate-fixed"
       :keyLabel "F"
       :checked (and (not= state.follow "") (some? state.follow))
       :run "follow"}
-     {:title "Mark the selected body"
+     {:title (t "command.toggleMarker")
       :icon "scan"
       :keyLabel "M"
       :checked (>= (indexOf state.markers state.selected) 0)
       :run "toggleMarker"}
      {:separator true}
-     {:title "Orbits" :icon "orbit" :keyLabel "O" :checked state.showOrbits :run "toggleOrbits"}
-     {:title "Labels" :icon "tag" :keyLabel "P" :checked state.showLabels :run "toggleLabels"}
-     {:title "Browser" :icon "list-tree" :keyLabel "B" :checked state.showBrowser :run "toggleBrowser"}
+     {:title (t "view.orbits") :icon "orbit" :keyLabel "O" :checked state.showOrbits :run "toggleOrbits"}
+     {:title (t "view.labels") :icon "tag" :keyLabel "P" :checked state.showLabels :run "toggleLabels"}
+     {:title (t "view.browser") :icon "list-tree" :keyLabel "B" :checked state.showBrowser :run "toggleBrowser"}
      {:separator true}
-     {:title "Render options" :icon "sliders-horizontal" :keyLabel "Ctrl+," :run "openRender"}])
+     {:title (t "command.openRender") :icon "sliders-horizontal" :keyLabel "Ctrl+," :run "openRender"}])
 
 (defcomputed statusItems
-  [{:text (str "Day " (/ (round (* state.time 10)) 10)) :color "@accent"}
-     {:text (if computed.goal
-                (+ (if (< state.speed 0) "Previous: " "Next: ")
-                   computed.goal.label
-                   " on day "
-                   (round computed.goal.time)
-                   " ("
-                   (if (< state.speed 0)
-                       (str (round (- state.time computed.goal.time)) " days ago)")
-                       (str "in " (round (- computed.goal.time state.time)) " days)")))
-                "No more events in this window")}
+  [{:text (t "status.day" {:day (text (/ (round (* state.time 10)) 10))}) :color "@accent"}
+     {:text (cond (not computed.goal) (t "status.noEvents")
+                  (< state.speed 0) (t "status.previous"
+                                       {:event computed.goal.label
+                                        :day (text (round computed.goal.time))
+                                        :n (text (round (- state.time computed.goal.time)))})
+                  :else (t "status.next"
+                           {:event computed.goal.label
+                            :day (text (round computed.goal.time))
+                            :n (text (round (- computed.goal.time state.time)))}))}
      {:side "end"
-      :text (if computed.selectedBody
-                (+ computed.selectedBody.name
-                   (if computed.selectedBody.parent
-                       (str ", orbits "
-                            (or-else (:name (find (fn [it] (= it.id computed.selectedBody.parent)) state.bodies))
-                                     computed.selectedBody.parent)
-                            " every "
-                            computed.selectedBody.period
-                            " days")
-                       ", at the centre"))
-                "Nothing selected")}])
+      :text (cond (not computed.selectedBody) (t "status.nothing")
+                  computed.selectedBody.parent (t "status.orbits"
+                                                  {:name computed.selectedBody.name
+                                                   :parent (or-else (:name (find (fn [it] (= it.id computed.selectedBody.parent)) state.bodies))
+                                                                    computed.selectedBody.parent)
+                                                   :days (text computed.selectedBody.period)})
+                  :else (t "status.centre" {:name computed.selectedBody.name}))}])
 
 ;;; The top bar, the side and the status bar
 

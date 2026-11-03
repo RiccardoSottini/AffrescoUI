@@ -37,20 +37,13 @@
      :times (/ state.zoom 1.1)})
 
 (defcomputed fovText
-  (str "FOV: "
-         (floor computed.fov.deg)
-         "° "
-         (pad (floor (* (- computed.fov.deg (floor computed.fov.deg)) 60)) 2 "0")
-         "′ ("
-         (fixed computed.fov.times 2)
-         "x)"))
+  (t "view.fov"
+     {:degrees (text (floor computed.fov.deg))
+      :minutes (pad (floor (* (- computed.fov.deg (floor computed.fov.deg)) 60)) 2 "0")
+      :times (fixed computed.fov.times 2)}))
 
 (defcomputed magText
-  (str "Limiting magnitude: "
-         (fixed state.limitMag 1)
-         " ("
-         (count (filter (fn [it] (<= it.mag state.limitMag)) computed.stars))
-         " stars)"))
+  (t "view.magnitude" {:mag (fixed state.limitMag 1) :n (text (count (filter (fn [it] (<= it.mag state.limitMag)) computed.stars)))}))
 
 ;;; The bodies and the stars on the view
 
@@ -274,11 +267,11 @@
                           :roughness 1}])})
 
 (defcomputed renderOptions
-  [{:id "orbits" :title "Orbits" :on state.showOrbits :run "toggleOrbits"}
-     {:id "labels" :title "Labels" :on state.showLabels :run "toggleLabels"}
-     {:id "stars" :title "Stars" :on state.showStars :run "toggleStars"}
-     {:id "shading" :title "Lit side" :on state.showShading :run "toggleShading"}
-     {:id "glow" :title "Sun glow" :on state.showGlow :run "toggleGlow"}])
+  [{:id "orbits" :title (t "view.orbits") :on state.showOrbits :run "toggleOrbits"}
+     {:id "labels" :title (t "view.labels") :on state.showLabels :run "toggleLabels"}
+     {:id "stars" :title (t "view.stars") :on state.showStars :run "toggleStars"}
+     {:id "shading" :title (t "view.litSide") :on state.showShading :run "toggleShading"}
+     {:id "glow" :title (t "view.sunGlow") :on state.showGlow :run "toggleGlow"}])
 
 ;;; The view pane
 
@@ -353,23 +346,23 @@
        :fitText true
        :font small
        :textColor @onSkyMuted
-       :text ~(str "Distance: " (fixed computed.info.distance 2) " AU"))
+       :text ~(t "info.distance" {:au (fixed computed.info.distance 2)}))
      (label#info-radius :height 18
        :fitText true
        :font small
        :textColor @onSkyMuted
-       :text ~(str "Radius: " computed.selectedBody.km " km"))
+       :text ~(t "info.radius" {:km (text computed.selectedBody.km)}))
      (label#info-apparent :height 18
        :fitText true
        :font small
        :textColor @onSkyMuted
-       :text ~(str "Apparent diameter: " computed.apparentText))
+       :text ~(t "info.apparent" {:size computed.apparentText}))
      (label#info-phase :height 18
        :fitText true
        :font small
        :textColor @onSkyMuted
        :visible ~(not= computed.selectedBody.parent "")
-       :text ~(str "Phase: " (round (* computed.info.lit 100)) "% lit"))))
+       :text ~(t "info.phase" {:percent (text (round (* computed.info.lit 100)))}))))
 
 (defview view-time "#view-time." []
   `(column#view-time :anchors {:left ~(max (/ (- (- window.width 461) 300) 2) 12) :top 10}
@@ -414,15 +407,15 @@
      :height 20
      :font small
      :textColor @onSkyMuted
-     :text "Drag to turn, scroll to zoom; G go to, C centre, F follow; B browser"
+     :text ~(t "view.hint")
      :visible ~(and (not state.showBrowser) (>= (- window.width 461) 600))))
 
 (defview render "#render." []
   `(node#render :use dialog
      :with {:open state.renderOpen
-            :title "Render options"
-            :message "What the 3D view draws"
-            :buttons [{:title "Done"}]
+            :title ~(t "command.openRender")
+            :message ~(t "render.message")
+            :buttons [{:title ~(t "render.done")}]
             :width 340
             :height 330}
      (column#render-options :gap 6

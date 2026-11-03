@@ -13,9 +13,9 @@
      :borderColor @border
      (tabs#browser-tabs :width ~(if (= state.browserTab "eclipses") 360 220)
        :height 30
-       :tabs [{:id bodies :label "Bodies" :closable false}
-              {:id places :label "Places" :closable false}
-              {:id eclipses :label "Eclipses" :closable false}]
+       :tabs [{:id bodies :label ~(t "browser.bodies") :closable false}
+              {:id places :label ~(t "browser.places") :closable false}
+              {:id eclipses :label ~(t "events.eclipses") :closable false}]
        :bind state.browserTab
        :color @panel
        :textColor @muted
@@ -80,7 +80,7 @@
        :width 170
        :height 28
        :icon bookmark-plus
-       :text "Bookmark this view"
+       :text ~(t "command.addBookmark")
        :font small
        :role button
        :onClick addBookmark)
@@ -89,6 +89,6 @@
        :height 28
        :icon trash-2
        :role button
-       :label "Delete the bookmark"
-       :tooltip "Delete the bookmark"
+       :label ~(t "command.deleteBookmark")
+       :tooltip ~(t "command.deleteBookmark")
        :onClick deleteBookmark)))

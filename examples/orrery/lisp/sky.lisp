@@ -300,30 +300,26 @@
 
 (defcomputed skyInfo
   (if computed.skySelected
-        [(str "Az./Alt.: "
-              (fixed (mod (+ (degrees (atan2 computed.skySelected.e computed.skySelected.n)) 360) 360) 1)
-              "° / "
-              (fixed (degrees (asin computed.skySelected.up)) 1)
-              "°")
-         (str "RA/Dec.: "
-              (fixed (mod (+ (/ (degrees computed.skySelected.t) 15) 24) 24) 2)
-              "h / "
-              (fixed (degrees (asin computed.skySelected.u)) 1)
-              "°")]
+        [(t "sky.azAlt"
+            {:az (fixed (mod (+ (degrees (atan2 computed.skySelected.e computed.skySelected.n)) 360) 360) 1)
+             :alt (fixed (degrees (asin computed.skySelected.up)) 1)})
+         (t "sky.raDec"
+            {:ra (fixed (mod (+ (/ (degrees computed.skySelected.t) 15) 24) 24) 2)
+             :dec (fixed (degrees (asin computed.skySelected.u)) 1)})]
         []))
 
 (defcomputed skyBar
-  [{:title "Centre on the selected body"
+  [{:title (t "command.skyCentre")
       :icon "locate-fixed"
       :checked (and (not= state.skyTrack "") (= state.skyTrack state.selected))
       :run "skyCentre"}
-     {:title "Constellation lines" :icon "waypoints" :checked state.skyLayers.lines :run "toggleSkyLines"}
-     {:title "Constellation names" :icon "baseline" :checked state.skyLayers.names :run "toggleSkyNames"}
-     {:title "Azimuthal grid" :icon "grid-3-x-3" :checked state.skyLayers.grid :run "toggleSkyGrid"}
-     {:title "Ground" :icon "mountain" :checked state.skyLayers.ground :run "toggleSkyGround"}
-     {:title "Cardinal points" :icon "compass" :checked state.skyLayers.cardinal :run "toggleSkyCardinal"}
-     {:title "Atmosphere" :icon "cloud-sun" :checked state.skyLayers.atmosphere :run "toggleSkyAtmosphere"}
-     {:title "Planet labels" :icon "tag" :checked state.skyLayers.labels :run "toggleSkyLabels"}])
+     {:title (t "command.toggleSkyLines") :icon "waypoints" :checked state.skyLayers.lines :run "toggleSkyLines"}
+     {:title (t "command.toggleSkyNames") :icon "baseline" :checked state.skyLayers.names :run "toggleSkyNames"}
+     {:title (t "command.toggleSkyGrid") :icon "grid-3-x-3" :checked state.skyLayers.grid :run "toggleSkyGrid"}
+     {:title (t "command.toggleSkyGround") :icon "mountain" :checked state.skyLayers.ground :run "toggleSkyGround"}
+     {:title (t "command.toggleSkyCardinal") :icon "compass" :checked state.skyLayers.cardinal :run "toggleSkyCardinal"}
+     {:title (t "command.toggleSkyAtmosphere") :icon "cloud-sun" :checked state.skyLayers.atmosphere :run "toggleSkyAtmosphere"}
+     {:title (t "command.toggleSkyLabels") :icon "tag" :checked state.skyLayers.labels :run "toggleSkyLabels"}])
 
 (defcomputed skyStarShapes
   (map (fn [it]
@@ -404,7 +400,7 @@
   {}
   `(panel :fill true
      :color ~computed.skyColor
-     :label "Sky from the ground"
+     :label ~(t "sky.label")
      :onPress skyPress
      :onDrag skyDrag
      :onScroll skyScroll
@@ -476,7 +472,7 @@
      :anchors {:right 8 :bottom 6}
      :with {:items ~computed.skyBar
             :width 272
-            :label "Sky layers"
+            :label ~(t "sky.layers")
             :color "#0b1514d8"
             :textColor @onSky
             :dimColor @onSkyMuted
@@ -489,14 +485,11 @@
      :fitText true
      :font small
      :textColor @onSkyMuted
-     :text ~(str "Earth, "
-                 (abs state.sky.latitude)
-                 "°"
-                 (if (< state.sky.latitude 0) "S" "N")
-                 "   FOV "
-                 (fixed (degrees state.sky.fov) 1)
-                 "°   "
-                 computed.clock)))
+     :text ~(t "sky.place"
+               {:latitude (text (abs state.sky.latitude))
+                :side (t (if (< state.sky.latitude 0) "sky.south" "sky.north"))
+                :fov (fixed (degrees state.sky.fov) 1)
+                :clock computed.clock})))
 
 ;;; Views
 

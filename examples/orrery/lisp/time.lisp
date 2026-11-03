@@ -5,25 +5,28 @@
 
 ;;; The day and the rate
 
-(defcomputed clock
-  (str (formatDate (+ (dateMs "2030-01-01") (* state.time 86400000)) "yyyy-MM-dd HH:mm:ss" "utc") " UTC"))
+(defcomputed clock "The day shown, as a date and a time in UTC."
+  (t "time.clock" {:date (formatDate (+ (dateMs "2030-01-01") (* state.time 86400000)) "yyyy-MM-dd HH:mm:ss" "utc")}))
 
 (defcomputed realTime "Whether time runs at real time."
   (< (abs (- (* (abs state.speed) 1728000) 1)) 0.01))
 
-(defcomputed rate
-  (if state.playing
-        (+ (if (< state.speed 0) "Reversed, " "")
-           (if computed.realTime
-               "Real time"
-               (str (formatNumber (* (abs state.speed) 1728000) 0 0)
-                    "x faster"
-                    (if (< (abs state.speed) 0.0005)
-                        ""
-                        (str ": "
-                             (fixed (* (abs state.speed) 20) (if (< (abs state.speed) 0.05) 2 0))
-                             " days a second")))))
-        "Paused"))
+(defmacro speed-text
+  ;; A macro: the text stays an expression, for the rate to say forwards or reversed.
+  "How fast time runs: real time, or so many times faster, with how many days a second when that is a figure to read."
+  []
+  `(if computed.realTime
+     (t "time.realTime")
+     (t "time.timesFaster"
+        {:times (formatNumber (* (abs state.speed) 1728000) 0 0)
+         :perSecond (if (< (abs state.speed) 0.0005)
+                      ""
+                      (t "time.perSecond" {:days (fixed (* (abs state.speed) 20) (if (< (abs state.speed) 0.05) 2 0))}))})))
+
+(defcomputed rate "How fast time runs, said in words: paused, or the speed, reversed or not."
+  (cond (not state.playing) (t "time.paused")
+        (< state.speed 0) (t "time.reversed" {:speed (speed-text)})
+        :else (speed-text)))
 
 ;;; Events
 
@@ -85,7 +88,7 @@
                             {:id it.id
                              :time it.time
                              :kind "eclipse"
-                             :label (if it.solar "Solar eclipse" "Lunar eclipse")})
+                             :label (t (if it.solar "events.solarEclipse" "events.lunarEclipse"))})
                           computed.eclipses))))
 
 (defcomputed next
@@ -104,36 +107,30 @@
 (defcomputed eclipseRows
   (map (fn [it]
            {:id it.id
-            :label (str (formatDate (+ (dateMs "2030-01-01") (* (- it.time (/ it.hours 48)) 86400000))
-                                    "yyyy-MM-dd HH:mm"
-                                    "utc")
-                        "   "
-                        (floor it.hours)
-                        " h "
-                        (round (* (mod it.hours 1) 60))
-                        " min   "
-                        (if it.solar "Solar, " "Lunar, ")
-                        it.hostName
-                        " and the "
-                        it.moonName)
+            :label (t (if it.solar "eclipse.solarRow" "eclipse.lunarRow")
+                       {:date (formatDate (+ (dateMs "2030-01-01") (* (- it.time (/ it.hours 48)) 86400000)) "yyyy-MM-dd HH:mm" "utc")
+                        :hours (text (floor it.hours))
+                        :minutes (text (round (* (mod it.hours 1) 60)))
+                        :host it.hostName
+                        :moon it.moonName})
             :icon (if it.solar "sun" "moon")})
          computed.eclipses))
 
 (defcomputed tracks
   [{:id "eclipses"
-      :label "Eclipses"
+      :label (t "events.eclipses")
       :locked (>= (indexOf state.locked "eclipse") 0)
       :muted (>= (indexOf state.muted "eclipse") 0)
       :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color "#7c3aed"})
                   (filter (fn [it] (= it.kind "eclipse")) computed.events))}
      {:id "conjunctions"
-      :label "Conjunctions"
+      :label (t "events.conjunctions")
       :locked (>= (indexOf state.locked "conjunction") 0)
       :muted (>= (indexOf state.muted "conjunction") 0)
       :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color "#be185d"})
                   (filter (fn [it] (= it.kind "conjunction")) computed.events))}
      {:id "oppositions"
-      :label "Oppositions"
+      :label (t "events.oppositions")
       :locked (>= (indexOf state.locked "opposition") 0)
       :muted (>= (indexOf state.muted "opposition") 0)
       :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color "#b45309"})
@@ -158,7 +155,7 @@
      :textColor @text
      :accentColor @accent
      :color @background
-     :label "Upcoming events, by day; M mutes a kind of event, L locks its events in place"
+     :label ~(t "events.label")
      :onChange [{:if ~(= event.type "track")
                  :then [{:set state.muted
                          :to ~(if event.muted

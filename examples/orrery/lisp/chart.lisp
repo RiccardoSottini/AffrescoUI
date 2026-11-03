@@ -54,8 +54,8 @@
        :radius 4
        :color @background
        :textColor @text
-       :label "Annotation text"
-       :placeholder "Note"
+       :label ~(t "chart.noteText")
+       :placeholder ~(t "chart.note")
        :onSubmit addNote)
      ~(add-note)
      {:id mark
@@ -63,8 +63,8 @@
       :style button
       :icon crosshair
       :role button
-      :label "Mark the selected body"
-      :tooltip "Mark the selected body"
+      :label ~(t "command.toggleMarker")
+      :tooltip ~(t "command.toggleMarker")
       :onClick markSelected
       :width 30}
      {:id clear-notes
@@ -72,8 +72,8 @@
       :style button
       :icon trash-2
       :role button
-      :label "Clear the annotations"
-      :tooltip "Clear the annotations"
+      :label ~(t "chart.clearNotes")
+      :tooltip ~(t "chart.clearNotes")
       :onClick clearNotes
       :width 30}))
 
@@ -81,8 +81,8 @@
   `{:id sky-mode-ground
     :style button
     :role button
-    :text "From the ground"
-    :label "The sky from the ground"
+    :text ~(t "chart.fromGround")
+    :label ~(t "command.skyGround")
     :selected ~(= state.skyMode "ground")
     :color ~(if (= state.skyMode "ground") "@raised" "@panel")
     :fitText true
@@ -92,8 +92,8 @@
   `{:id sky-mode-above
     :style button
     :role button
-    :text "From above"
-    :label "The chart from above"
+    :text ~(t "chart.fromAbove")
+    :label ~(t "chart.fromAboveLabel")
     :selected ~(= state.skyMode "above")
     :color ~(if (= state.skyMode "above") "@raised" "@panel")
     :fitText true
@@ -105,8 +105,8 @@
     :style button
     :icon sticky-note
     :role button
-    :label "Add a note in the middle of the chart"
-    :tooltip "Add a note in the middle of the chart"
+    :label ~(t "chart.addNote")
+    :tooltip ~(t "chart.addNote")
     :onClick addNote
     :width 30})
 
@@ -119,7 +119,7 @@
        :snap false
        :accentColor @accent
        :items ~computed.chartItems
-       :label "Sky chart"
+       :label ~(t "chart.label")
        :onTransform moveNotes
        :keys {:delete deleteNotes :backspace deleteNotes}
        :anchors {:left 0 :right 0 :top 0 :bottom 0})
@@ -142,16 +142,14 @@
        :fitText true
        :font small
        :textColor ~(if (= state.skyMode "ground") "#dfe7f2" "@onSkyMuted")
-       :text ~(cond (= state.skyMode "ground") (or-else computed.skyInfo.0 "Where you stand")
-                    (= computed.selectedBody.parent "") "The centre of the chart"
-                    :else (str (fixed (/ (hypot computed.selectedPosition.x computed.selectedPosition.z) 4.3) 2)
-                         " AU from the Sun, orbits "
-                         (if (= computed.selectedBody.parent "sun")
-                             "the Sun"
-                             (:name (find (fn [it] (= it.id computed.selectedBody.parent)) state.bodies)))
-                         " every "
-                         computed.selectedBody.period
-                         " days")))
+       :text ~(cond (= state.skyMode "ground") (or-else computed.skyInfo.0 (t "chart.whereYouStand"))
+                    (= computed.selectedBody.parent "") (t "chart.centre")
+                    :else (t "chart.orbit"
+                             {:au (fixed (/ (hypot computed.selectedPosition.x computed.selectedPosition.z) 4.3) 2)
+                              :parent (if (= computed.selectedBody.parent "sun")
+                                        (t "chart.theSun")
+                                        (:name (find (fn [it] (= it.id computed.selectedBody.parent)) state.bodies)))
+                              :days (text computed.selectedBody.period)})))
      (label#chart-info-sky :visible ~(= state.skyMode "ground")
        :height 18
        :fitText true
