@@ -501,3 +501,24 @@
 
 (defn couchChoose "Chooses a game on the couch shelf, by its id." [id]
   (set "state.couch.at" (indexOf (map (fn [it] (:id it)) computed.couchGames) id)))
+
+(defn showPropertiesTab "Shows a page of a game's properties: general, updates, files or dlc." [tab]
+  (set "state.properties.tab" tab))
+
+(defn setLaunchOptions "Keeps the launch options typed for the game being managed." [text]
+  (update-record "games" :id computed.manageGame.id :fields {:launchOptions text}))
+
+(defn setOverlay "Turns the in-game overlay on or off for the game being managed." [on]
+  (update-record "games" :id computed.manageGame.id :fields {:overlay on}))
+
+(defn setCloud "Turns cloud saves on or off for the game being managed." [on]
+  (update-record "games" :id computed.manageGame.id :fields {:cloud on}))
+
+(defn setUpdates "How the game being managed updates: auto, launch or high." [way]
+  (update-record "games" :id computed.manageGame.id :fields {:updates way}))
+
+(defn filesVerified "Says the game's files were checked." [] (set "state.properties.verify" "done"))
+
+(defn verifyFiles "Checks the game's files: a moment, then they are fine." []
+  (set "state.properties.verify" "running")
+  (after 1500 filesVerified))

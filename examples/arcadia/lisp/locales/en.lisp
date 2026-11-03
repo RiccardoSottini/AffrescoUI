@@ -470,4 +470,5 @@
                 :settings.limitValue "{n} MB/s"
                 :profile.sinceStatus "{since} · {status}"
                 :dl.sizeOf "{done} GB / {size} GB"
-                :dl.rate "{n} MB/s"}}}
+                :dl.rate "{n} MB/s"
+                :properties.folderPath "Arcadia/games/{game}"}}}

@@ -263,7 +263,7 @@
        :label ~(t "dl.unschedule")
        :tooltip ~(t "dl.unschedule")
        :onClick ~(handler dlUnschedule q.d.id))
-     ~(remove-button "dl-remove-" 'q.d)
+     ~(remove-button 'q.d)
      (panel :color transparent :width 8 :height 1)))
 
 (defview parked-download "An unscheduled download: download now, and remove." [d]
@@ -274,7 +274,7 @@
      ~(download-name d)
      ~(download-kind d)
      ~(start-button d)
-     ~(remove-button "dl-remove-" d)
+     ~(remove-button d)
      (panel :color transparent :width 8 :height 1)))
 
 (defview done-download "A completed download: its size, Play, and remove from the list." [d]
@@ -297,7 +297,13 @@
          :textColor @color.muted))
      ~(download-kind d)
      (node :use playButton :with {:id ~d.id})
-     ~(remove-button "dl-forget-" d)
+     (label :id ~(str "dl-forget-" d.id)
+       :style roundButton
+       :icon x
+       :font icons
+       :label ~(t "dl.remove")
+       :tooltip ~(t "dl.remove")
+       :onClick ~(handler dlRemove d.id))
      (panel :color transparent :width 8 :height 1)))
 
 (defview start-button "Download now: the item to the top of the queue, started." [d]
@@ -310,8 +316,8 @@
      :tooltip ~(t "dl.startNow")
      :onClick ~(handler dlStart d.id)))
 
-(defview remove-button "Remove from the downloads; `prefix` starts its id." [prefix d]
-  `(label :id ~(str prefix d.id)
+(defview remove-button "Remove from the downloads." [d]
+  `(label :id ~(str "dl-remove-" d.id)
      :style roundButton
      :icon x
      :font icons
