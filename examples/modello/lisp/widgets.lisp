@@ -120,6 +120,9 @@
 (defview row-label "A row's label, on the left of its field." [label]
   `(label :text ~label :textColor @dim :align {:horizontal end :vertical center} :anchors {:left 0 :top 0 :bottom 0} :width "38%"))
 
+(defview caption "A row's label, on the left of its field: the locale's text of a key." [key]
+  `(label :text ~(t key) :textColor @dim :align {:horizontal end :vertical center} :anchors {:left 0 :top 0 :bottom 0} :width "38%"))
+
 (defview number-slider
   "The field itself: dragged across, or stepped with the arrows; its corners round where a vector's fields start and end."
   [label value text key axis step first last path min max]

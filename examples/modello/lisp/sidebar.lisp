@@ -122,7 +122,7 @@
               :digits 1
               :lockable true})
      (node :height 20 :width "100%" :color transparent
-       (label :text ~(t "transform.mode") :textColor @dim :align {:horizontal end :vertical center} :anchors {:left 0 :top 0 :bottom 0} :width "38%")
+       ~(caption "transform.mode")
        ~(rotation-mode))
      (node :use vectorField
        :with {:title ~(t "transform.scale")
