@@ -454,4 +454,17 @@
                 :hub.post.controller "Best controller layout for {game}?"
                 :hub.post.beginner "A beginner's guide to {game}"
                 :hub.post.coop "Looking for people to play {game} with this weekend"
-                :hub.post.secrets "Ten secrets in {game} most players miss"}}}
+                :hub.post.secrets "Ten secrets in {game} most players miss"
+                :setting.theme "Theme"
+                :setting.theme.about "Dark or light colours for the whole client."
+                :setting.language "Language"
+                :setting.language.about "English, Spanish or French."
+                :setting.startPage "Start page"
+                :setting.startPage.about "The page Arcadia opens on."
+                :setting.limit "Download speed limit"
+                :setting.limit.about "The most MB/s a download takes; 0 for no limit."
+                :setting.whilePlaying "Download while playing"
+                :setting.whilePlaying.about "Off, downloads wait while a game is running."
+                :setting.sortBy "Sort the library by"
+                :setting.sortBy.about "Name from A to Z, the most hours, or the most recently played."
+                :settings.limitValue "{n} MB/s"}}}

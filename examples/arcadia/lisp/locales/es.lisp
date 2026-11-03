@@ -454,4 +454,17 @@
                 :hub.post.controller "¿La mejor configuración de mando para {game}?"
                 :hub.post.beginner "Guía de {game} para principiantes"
                 :hub.post.coop "Busco gente para jugar a {game} este fin de semana"
-                :hub.post.secrets "Diez secretos de {game} que casi nadie ve"}}}
+                :hub.post.secrets "Diez secretos de {game} que casi nadie ve"
+                :setting.theme "Tema"
+                :setting.theme.about "Colores oscuros o claros para todo el cliente."
+                :setting.language "Idioma"
+                :setting.language.about "Inglés, español o francés."
+                :setting.startPage "Página de inicio"
+                :setting.startPage.about "La página con la que se abre Arcadia."
+                :setting.limit "Límite de velocidad de descarga"
+                :setting.limit.about "Los MB/s máximos que usa una descarga; 0 para no tener límite."
+                :setting.whilePlaying "Descargar mientras juegas"
+                :setting.whilePlaying.about "Desactivado, las descargas esperan mientras un juego está abierto."
+                :setting.sortBy "Ordenar la biblioteca por"
+                :setting.sortBy.about "Nombre de la A a la Z, más horas o jugado más recientemente."
+                :settings.limitValue "{n} MB/s"}}}

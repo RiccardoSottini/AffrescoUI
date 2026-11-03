@@ -467,3 +467,11 @@
   (set "state.wishlist" (filter (fn [w] (not (has state.cart w))) state.wishlist))
   (set "state.receipt" state.cart)
   (set "state.cart" []))
+
+;;; What the views choose
+
+(defn showSettingsPage "Shows a page of Settings: interface, downloads, storage or account." [page]
+  (set "state.settingsDialog.page" page))
+
+(defn couchChoose "Chooses a game on the couch shelf, by its id." [id]
+  (set "state.couch.at" (indexOf (map (fn [it] (:id it)) computed.couchGames) id)))
