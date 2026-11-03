@@ -62,9 +62,10 @@ def render_scenarios():
         for scenario in area["scenarios"]:
             yield os.path.normpath(os.path.join(RENDER_SCENARIOS, area["screens"])), scenario
 
+# A text of the locales: the Kanban template is a program, whose tokens and nodes a change set edits under /program
 CHANGES = {"format": "affrescoui-changes", "version": 2, "name": "cli-check",
-           "revisions": [{"author": "cli-check", "message": "A colour for the tool's check",
-                          "patch": [{"op": "add", "path": "/tokens/color.cliCheck", "value": "#123456"}]}]}
+           "revisions": [{"author": "cli-check", "message": "A text for the tool's check",
+                          "patch": [{"op": "add", "path": "/strings/en/cli.check", "value": "#123456"}]}]}
 
 
 class Checker:
@@ -204,7 +205,8 @@ class Checker:
         """A policy test file that gives roles: each one is set, and one that isn't text is refused (the roles were
         read from a temporary that was gone, which GCC's AddressSanitizer reported)."""
         case = {"name": "a designer's change waits for review", "expect": "ask",
-                "revision": {"author": "agent/claude-code", "set": {"#panel-root/color": "#000000"}}}
+                "revision": {"author": "agent/claude-code",
+                             "set": {"/program/index.screen.lisp/main/:window/:title": "Designed"}}}
         for role, expect in [("design", 0), (7, 1)]:
             path = os.path.join(self.scratch, "roles.policy.json")
             with open(path, "w", encoding="utf-8") as file:
