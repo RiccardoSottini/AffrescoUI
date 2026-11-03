@@ -1,97 +1,42 @@
 {:screen index.screen.lisp
  :cases [{:name "the studio changes the screen"
-          :revision {:author studio :set {"#panel-root/color" "#000000"}}
+          :revision {:author studio
+                     :set {"/program/parts~1look.lisp/styles.caption" "(defstyle caption \"A small caption.\" (label :font small :textColor \"#000000\" :fitText true))"}}
           :expect allow}
          {:name "an agent's change waits for review"
-          :revision {:author "agent/claude-code" :set {"#panel-root/color" "#000000"}}
+          :revision {:author "agent/claude-code"
+                     :set {"/program/parts~1look.lisp/styles.caption" "(defstyle caption \"A small caption.\" (label :font small :textColor \"#000000\" :fitText true))"}}
           :expect ask
-          :reason "no rule allows"}
+          :reason "agent(/program)"}
          {:name "no one changes the status bar"
-          :revision {:author studio :remove "#statusBar"}
+          :revision {:author studio
+                     :set {"/program/window.lisp/status-bar" "(defview status-bar \"The status bar: the problems, the caret, the file's size, its syntax and the theme.\" []\n  `(node#statusBar :tooltip \"x\" :dir ~state.dir :when ~(not state.zen) :anchors {:left 0 :right 0 :bottom 0} :height 24\n     :color @sidebar\n     {:id statusEdge :anchors {:left 0 :right 0 :top 0} :height 1 :color @border}\n     (label#panelSwitcher :text \"\"\n       :icon square-terminal\n       :font small\n       :anchors {:left 6 :top 2}\n       :width 22\n       :height 20\n       :align center\n       :radius 4\n       :color transparent\n       :textColor ~(if state.panelOpen \"@accent\" \"@muted\")\n       :hover {:textColor @text :color @hover}\n       :cursor hand\n       :tooltip ~(t \"bar.showOrHideThePanel\")\n       :onClick togglePanel)\n     {:id statusText\n      :style statusItem\n      :text main\n      :icon git-branch\n      :textColor @faint\n      :anchors {:left 36}\n      :tooltip ~(t \"bar.branchSwitchingBranchesIsnT\")}\n     ~(status-problems)\n     ~(status-size)\n     {:id statusIndent\n      :style statusItem\n      :text ~(if computed.file (t \"bar.spaces4\") \"\")\n      :textColor @faint\n      :anchors {:right 140}\n      :tooltip ~(t \"bar.indentation4SpacesChangingIt\")}\n     {:id statusSyntax\n      :style statusItem\n      :text ~(if computed.file (or computed.file.language \"Plain Text\") \"\")\n      :hover {:textColor @text}\n      :anchors {:right 16}\n      :cursor hand\n      :tooltip ~(t \"bar.selectTheSyntax\")\n      :onClick selectSyntax}))"}}
           :expect deny
           :reason "#statusBar"}
          {:name "an agent's new behaviour is always asked"
-          :revision {:author "agent/claude-code" :add {"/actions/policyExample" [{:set state.theme :to dark}]}}
+          :revision {:author "agent/claude-code"
+                     :add {"/program/quaderno.lisp/policyExample" "(defcommand policyExample \"An agent's new command.\" :title \"Policy\" [] (set \"state.theme\" \"dark\"))"}}
           :expect ask}
          {:name "an agent's new function is asked by its rule, in every mode, as an action is"
           :revision {:author "agent/claude-code"
-                     :add {"/program/quaderno.lisp/policyExample" "(defn policyExample \"An agent's new function.\" [] (set \"state.theme\" \"dark\"))"}}
+                     :add {"/program/quaderno.lisp/policyFunction" "(defn policyFunction \"An agent's new function.\" [] (set \"state.theme\" \"dark\"))"}}
           :expect ask
           :reason "agent(/actions)"}
          {:name "twenty new panels are within the agent's budget"
           :revision {:author "agent/claude-code"
-                     :patch [{:op add :path "#panel-root/children/-" :value {:id policyPanel0}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel1}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel2}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel3}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel4}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel5}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel6}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel7}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel8}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel9}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel10}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel11}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel12}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel13}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel14}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel15}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel16}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel17}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel18}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel19}}]}
-          :expect ask
-          :reason "no rule allows"}
+                     :set {"/program/index.screen.lisp/main" "(defscreen main\n  :window {:title \"Quaderno: an AffrescoUI template\" :width 1280 :height 800 :minWidth 1040 :minHeight 640\n           :focusRing false}\n  :strings {:default en :locale ~settings.appearance.language :keep [\"Quaderno\" \"Quaderno: an AffrescoUI template\"]}\n  :fonts {:default {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 14 :fallback [icons code]}\n          :small {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 12 :fallback [icons code]}\n          :code {:file \"../../shared/fonts/JetBrainsMono-Regular.ttf\" :size 14}\n          :icons {:file \"../../shared/fonts/Lucide.ttf\" :size 18}}\n  :permissions {:allow [studio]\n                :ask [\"agent(/actions)\" \"agent(/program)\"]\n                :deny [\"*(#statusBar)\"]\n                :reviewers [studio]\n                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}\n  :theme ~computed.theme\n  (node#panel-root :color @background\n    ~(title-bar)\n    (split#workbench :dir ~state.dir\n      :anchors {:left 0 :right 0 :top ~(if state.zen 0 26) :bottom ~(+ (if state.zen 0 24) computed.findHeight)}\n      :bind state.sizes\n      :defaultSizes [232]\n      :minSize [160 480]\n      :sashSize 2\n      :sashColor @border\n      :sashActiveColor @accent\n      ~(explorer)\n      ~(editor-column))\n    ~(find-panel)\n    ~(status-bar)\n    ~(close-dialog)\n    ~(about-dialog)\n    ~(command-palette)\n    ~(symbol-pick)\n    ~(quick-pick)\n    ~(tab-menu)\n    ~(editor-menu)\n    ~(theme-pick)\n    ~(syntax-pick)\n    ~@(map (fn [n] `(node :id ~(str \"policyPanel\" n))) (range 20))))"}}
+          :expect ask}
          {:name "a twenty-first is over it"
           :revision {:author "agent/claude-code"
-                     :patch [{:op add :path "#panel-root/children/-" :value {:id policyPanel0}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel1}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel2}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel3}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel4}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel5}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel6}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel7}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel8}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel9}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel10}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel11}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel12}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel13}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel14}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel15}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel16}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel17}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel18}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel19}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel20}}]}
+                     :set {"/program/index.screen.lisp/main" "(defscreen main\n  :window {:title \"Quaderno: an AffrescoUI template\" :width 1280 :height 800 :minWidth 1040 :minHeight 640\n           :focusRing false}\n  :strings {:default en :locale ~settings.appearance.language :keep [\"Quaderno\" \"Quaderno: an AffrescoUI template\"]}\n  :fonts {:default {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 14 :fallback [icons code]}\n          :small {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 12 :fallback [icons code]}\n          :code {:file \"../../shared/fonts/JetBrainsMono-Regular.ttf\" :size 14}\n          :icons {:file \"../../shared/fonts/Lucide.ttf\" :size 18}}\n  :permissions {:allow [studio]\n                :ask [\"agent(/actions)\" \"agent(/program)\"]\n                :deny [\"*(#statusBar)\"]\n                :reviewers [studio]\n                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}\n  :theme ~computed.theme\n  (node#panel-root :color @background\n    ~(title-bar)\n    (split#workbench :dir ~state.dir\n      :anchors {:left 0 :right 0 :top ~(if state.zen 0 26) :bottom ~(+ (if state.zen 0 24) computed.findHeight)}\n      :bind state.sizes\n      :defaultSizes [232]\n      :minSize [160 480]\n      :sashSize 2\n      :sashColor @border\n      :sashActiveColor @accent\n      ~(explorer)\n      ~(editor-column))\n    ~(find-panel)\n    ~(status-bar)\n    ~(close-dialog)\n    ~(about-dialog)\n    ~(command-palette)\n    ~(symbol-pick)\n    ~(quick-pick)\n    ~(tab-menu)\n    ~(editor-menu)\n    ~(theme-pick)\n    ~(syntax-pick)\n    ~@(map (fn [n] `(node :id ~(str \"policyPanel\" n))) (range 21))))"}}
           :expect deny
           :reason "over the budget"}
          {:name "the budget is the agent's only"
           :revision {:author studio
-                     :patch [{:op add :path "#panel-root/children/-" :value {:id policyPanel0}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel1}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel2}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel3}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel4}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel5}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel6}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel7}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel8}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel9}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel10}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel11}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel12}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel13}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel14}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel15}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel16}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel17}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel18}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel19}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel20}}]}
+                     :set {"/program/index.screen.lisp/main" "(defscreen main\n  :window {:title \"Quaderno: an AffrescoUI template\" :width 1280 :height 800 :minWidth 1040 :minHeight 640\n           :focusRing false}\n  :strings {:default en :locale ~settings.appearance.language :keep [\"Quaderno\" \"Quaderno: an AffrescoUI template\"]}\n  :fonts {:default {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 14 :fallback [icons code]}\n          :small {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 12 :fallback [icons code]}\n          :code {:file \"../../shared/fonts/JetBrainsMono-Regular.ttf\" :size 14}\n          :icons {:file \"../../shared/fonts/Lucide.ttf\" :size 18}}\n  :permissions {:allow [studio]\n                :ask [\"agent(/actions)\" \"agent(/program)\"]\n                :deny [\"*(#statusBar)\"]\n                :reviewers [studio]\n                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}\n  :theme ~computed.theme\n  (node#panel-root :color @background\n    ~(title-bar)\n    (split#workbench :dir ~state.dir\n      :anchors {:left 0 :right 0 :top ~(if state.zen 0 26) :bottom ~(+ (if state.zen 0 24) computed.findHeight)}\n      :bind state.sizes\n      :defaultSizes [232]\n      :minSize [160 480]\n      :sashSize 2\n      :sashColor @border\n      :sashActiveColor @accent\n      ~(explorer)\n      ~(editor-column))\n    ~(find-panel)\n    ~(status-bar)\n    ~(close-dialog)\n    ~(about-dialog)\n    ~(command-palette)\n    ~(symbol-pick)\n    ~(quick-pick)\n    ~(tab-menu)\n    ~(editor-menu)\n    ~(theme-pick)\n    ~(syntax-pick)\n    ~@(map (fn [n] `(node :id ~(str \"policyPanel\" n))) (range 21))))"}}
           :expect allow}
          {:name "no one changes the permissions"
-          :revision {:author studio :set {"/permissions/allow" ["*"]}}
+          :revision {:author studio
+                     :set {"/program/index.screen.lisp/main/:permissions/:allow" ["*"]}}
           :expect deny
-          :reason "can't change \"permissions\""}]}
+          :reason "permissions"}]}

@@ -6,6 +6,16 @@
 ;;; `computed.objects`) and changes it only through steps (`set`, `push`...). A handler runs one by name, as it would an
 ;;; action: {:run moveSlide :with {:from 2 :to 0}}.
 
+;;; Two forms the others use
+
+(defmacro spaced "Text after some spaces, as an expression: a binding's text that is spaces and one value loses them."
+  [spaces value]
+  `(+ ~spaces ~value))
+
+(defmacro each "Runs the body once for each item of a list, the item bound to a name: (each [o objects] (f o))."
+  [[item items] & body]
+  `(reduce (fn [_ ~item] ~@body nil) nil ~items))
+
 ;;; Undo and redo
 
 (defn either "A value, or another when it is nil: an expression's ??." [v otherwise]
@@ -71,7 +81,8 @@
     (set "state.deck.slides"
          (after-current (merge computed.slide
                                {:id (str "s" next)
-                                :objects (map-indexed (fn [i o] (merge o {:id (str "o" (+ next 1 i))})) computed.objects)
+                                :objects (map-indexed (fn [i o] (merge o {:id (str "o" (+ next 1 i))}))
+                                                      computed.objects)
                                 :animations []}))))
   (increment "state.deck.next" :by (+ (count computed.objects) 2))
   (show-next))
@@ -111,7 +122,8 @@
     (cond (= how "upper") (upper text)
           (= how "lower") (lower text)
           (= how "toggle") (join "" (map (fn [c] (if (= (upper c) c) (lower c) (upper c))) (split text "")))
-          (= how "sentence") (join "\n" (map (fn [line] (capital line (inc (indexOf line (trim line))))) (split text "\n")))
+          (= how "sentence") (join "\n" (map (fn [line] (capital line (inc (indexOf line (trim line)))))
+                                             (split text "\n")))
           (= how "words")
           (join "\n" (map (fn [line] (join " " (map (fn [word] (capital word 1)) (split line " ")))) (split text "\n")))
           :else (:text object))))
@@ -159,7 +171,9 @@
                             (= how "middle") {:y (tenth (- (/ (+ (:top b) (:bottom b)) 2) (/ (:h box) 2)))}
                             :else {:y (- (:bottom b) (:h box))})))]
         (commit)
-        (set-objects (map (fn [o] (if (or (not (contains ids (:id o))) (either (:locked o) false)) o (merge o (place o))))
+        (set-objects (map (fn [o] (if (or (not (contains ids (:id o))) (either (:locked o) false))
+                                    o
+                                    (merge o (place o))))
                           computed.objects))))))
 
 ;; From the first to the last, or across the slide for two objects; locked objects stay
