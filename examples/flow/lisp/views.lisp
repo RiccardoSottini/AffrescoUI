@@ -158,24 +158,27 @@
       :style caption
       :anchors {:left "#laneName.right + 10" :top 15}
       :text ~(t "lane.cards" {:n (count (filter (fn [it] (= it.who member.who)) computed.allCards))})}
-     (row#laneColumns :gap 6 :anchors {:left 8 :right 8 :top 42 :bottom 8}
-       ~(repeat [column computed.columns :index c]
-         `(node#laneColumn :grow 1
-            :anchors {:top 0 :bottom 0}
-            :radius @radius.chip
-            :color @color.field
-            :onDrop ~(handler moveToLane event.data.from event.data.at c member.who)
-            {:id laneColumnName :style caption :text ~column.name :anchors {:left 8 :top 4}}
-            (stack#laneCards :gap 4 :scroll vertical :anchors {:left 4 :right 4 :top 22 :bottom 4}
-              ~(repeat [row
-                        (sort-by (fn [it]
-                                   (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
-                                         (= state.order "due") (or-else it.due "9999-12-31")
-                                         :else it.at))
-                                 (filter (fn [it] (= it.c c)) computed.allCards))
-                        :index
-                        k]
-                (lane-card member column c row))))))))
+     ~(lane-columns member)))
+
+(defview lane-columns "A swimlane's columns, side by side." [member]
+  `(row#laneColumns :gap 6 :anchors {:left 8 :right 8 :top 42 :bottom 8}
+     ~(repeat [column computed.columns :index c]
+       `(node#laneColumn :grow 1
+          :anchors {:top 0 :bottom 0}
+          :radius @radius.chip
+          :color @color.field
+          :onDrop ~(handler moveToLane event.data.from event.data.at c member.who)
+          {:id laneColumnName :style caption :text ~column.name :anchors {:left 8 :top 4}}
+          (stack#laneCards :gap 4 :scroll vertical :anchors {:left 4 :right 4 :top 22 :bottom 4}
+            ~(repeat [row
+                      (sort-by (fn [it]
+                                 (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
+                                       (= state.order "due") (or-else it.due "9999-12-31")
+                                       :else it.at))
+                               (filter (fn [it] (= it.c c)) computed.allCards))
+                      :index
+                      k]
+              (lane-card member column c row)))))))
 
 (defview card-timeline "The timeline: a track a member, a clip a card with dates." []
   `(timeline#cardTimeline :anchors {:left 8 :right 8 :top 36 :bottom 8}

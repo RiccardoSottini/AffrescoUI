@@ -218,15 +218,7 @@
       :radius 3
       :color @color.accent
       :anchors {:left 8 :top 27}}
-     {:id inboxWho
-      :style badge
-      :text ~n.who
-      :width 24
-      :height 24
-      :radius 999
-      :anchors {:left 20 :top 10}
-      :color ~(or-else (:color (find (fn [it] (= it.who n.who)) state.members)) "@color.muted")
-      :textColor "#ffffff"}
+     ~(inbox-who n)
      (label#inboxRef :font small
        :width 44
        :textColor @color.muted
@@ -235,28 +227,48 @@
        :anchors {:left 54 :top 8}
        :height 22
        :align {:horizontal start :vertical center})
-     (label#inboxTitle :font small
-       :anchors {:left 98 :right 64 :top 8}
-       :height 22
-       :padding 0
-       :textColor ~(if n.read "@color.muted" "@color.text")
-       :align {:horizontal start :vertical center}
-       :text ~(or-else (:title (find (fn [it] (= it.ref n.ref)) computed.allCards)) ""))
-     {:id inboxWhat
-      :style caption
-      :anchors {:left 54 :right 16 :top 30}
-      :height 20
-      :align {:horizontal start :vertical center}
-      :text ~(t (str "inbox." n.kind)
-                {:who (or-else (:name (find (fn [it] (= it.who n.who)) state.members)) n.who) :to (or-else n.to "")})}
-     {:id inboxWhen
-      :style caption
-      :anchors {:right 16 :top 8}
-      :height 22
-      :width 48
-      :fitText false
-      :align {:horizontal end :vertical center}
-      :text ~(formatDate (dateMs n.when) "MMM d" "utc")}))
+     ~(inbox-title n)
+     ~(inbox-what n)
+     ~(inbox-when n)))
+
+(defview inbox-when "When a notification came." [n]
+  `{:id inboxWhen
+    :style caption
+    :anchors {:right 16 :top 8}
+    :height 22
+    :width 48
+    :fitText false
+    :align {:horizontal end :vertical center}
+    :text ~(formatDate (dateMs n.when) "MMM d" "utc")})
+
+(defview inbox-who "Who a notification is from." [n]
+  `{:id inboxWho
+    :style badge
+    :text ~n.who
+    :width 24
+    :height 24
+    :radius 999
+    :anchors {:left 20 :top 10}
+    :color ~(or-else (:color (find (fn [it] (= it.who n.who)) state.members)) "@color.muted")
+    :textColor "#ffffff"})
+
+(defview inbox-what "What a notification says happened." [n]
+  `{:id inboxWhat
+    :style caption
+    :anchors {:left 54 :right 16 :top 30}
+    :height 20
+    :align {:horizontal start :vertical center}
+    :text ~(t (str "inbox." n.kind)
+              {:who (or-else (:name (find (fn [it] (= it.who n.who)) state.members)) n.who) :to (or-else n.to "")})})
+
+(defview inbox-title "The title of a notification's issue." [n]
+  `(label#inboxTitle :font small
+     :anchors {:left 98 :right 64 :top 8}
+     :height 22
+     :padding 0
+     :textColor ~(if n.read "@color.muted" "@color.text")
+     :align {:horizontal start :vertical center}
+     :text ~(or-else (:title (find (fn [it] (= it.ref n.ref)) computed.allCards)) "")))
 
 (defview inbox-detail-event "What happened, in the inbox's detail: who did what." []
   `(node#inboxDetailEvent :anchors {:left 40 :right 40 :top 144} :height 64 :radius @radius.card :color @color.column
@@ -348,15 +360,7 @@
        :runs [{:text ~(t "cycle.name" {:n state.cycle.number}) :bold true}
               "   "
               {:text ~(t "cycle.current") :color @color.accent}])
-     {:id cycleDates
-      :style caption
-      :anchors {:left 20 :top 36}
-      :height 20
-      :text ~(str (formatDate (dateMs state.cycle.start) "MMM d" "utc")
-                  " – "
-                  (formatDate (dateMs state.cycle.end) "MMM d" "utc")
-                  "  ·  "
-                  (t "cycle.left" {:n (daysBetween state.today state.cycle.end)}))}
+     ~(cycle-dates)
      (node#cycleScope :use cycleStat
        :with {:text ~(t "cycle.scope") :value ~computed.cycleScope :color @color.text}
        :anchors {:left 20 :top 70})
@@ -366,13 +370,7 @@
                            (fn [it] (or-else it.points 0)))
               :color "#d97706"}
        :anchors {:left 160 :top 70})
-     (node#cycleCompleted :use cycleStat
-       :with {:text ~(t "cycle.completed")
-              :value ~(str computed.cycleDone
-                           "  ·  "
-                           (formatPercent (/ computed.cycleDone (max computed.cycleScope 1))))
-              :color @color.accent}
-       :anchors {:left 300 :top 70})
+     ~(cycle-completed)
      {:id cycleChartBase :anchors {:left 20 :right 20 :bottom 20} :height 1 :color @color.border}
      (node#cycleScopeArea :use areaChart
        :with {:values ~(concat state.cycle.scopeHistory [computed.cycleScope])
@@ -380,24 +378,50 @@
               :color "#0d94881f"}
        :anchors {:left 20 :right 20 :bottom 21}
        :height 90)
-     (node#cycleScopeLine :use lineChart
-       :with {:values ~(concat state.cycle.scopeHistory [computed.cycleScope])
-              :top ~computed.cycleTop
-              :color "#9ca3af"
-              :lineWidth 1.5}
-       :anchors {:left 20 :right 20 :bottom 21}
-       :height 90
-       :role img
-       :label ~(t "cycle.scope"))
-     (node#cycleDoneLine :use lineChart
-       :with {:values ~(concat state.cycle.doneHistory [computed.cycleDone])
-              :top ~computed.cycleTop
-              :color @color.accent
-              :lineWidth 2}
-       :anchors {:left 20 :right 20 :bottom 21}
-       :height 90
-       :role img
-       :label ~(t "cycle.completed"))))
+     ~(cycle-scope-line)
+     ~(cycle-done-line)))
+
+(defview cycle-completed "The sprint's completed points." []
+  `(node#cycleCompleted :use cycleStat
+     :with {:text ~(t "cycle.completed")
+            :value ~(str computed.cycleDone
+                         "  ·  "
+                         (formatPercent (/ computed.cycleDone (max computed.cycleScope 1))))
+            :color @color.accent}
+     :anchors {:left 300 :top 70}))
+
+(defview cycle-scope-line "The burn-up's scope line." []
+  `(node#cycleScopeLine :use lineChart
+     :with {:values ~(concat state.cycle.scopeHistory [computed.cycleScope])
+            :top ~computed.cycleTop
+            :color "#9ca3af"
+            :lineWidth 1.5}
+     :anchors {:left 20 :right 20 :bottom 21}
+     :height 90
+     :role img
+     :label ~(t "cycle.scope")))
+
+(defview cycle-done-line "The burn-up's completed line." []
+  `(node#cycleDoneLine :use lineChart
+     :with {:values ~(concat state.cycle.doneHistory [computed.cycleDone])
+            :top ~computed.cycleTop
+            :color @color.accent
+            :lineWidth 2}
+     :anchors {:left 20 :right 20 :bottom 21}
+     :height 90
+     :role img
+     :label ~(t "cycle.completed")))
+
+(defview cycle-dates "The sprint's dates." []
+  `{:id cycleDates
+    :style caption
+    :anchors {:left 20 :top 36}
+    :height 20
+    :text ~(str (formatDate (dateMs state.cycle.start) "MMM d" "utc")
+                " – "
+                (formatDate (dateMs state.cycle.end) "MMM d" "utc")
+                "  ·  "
+                (t "cycle.left" {:n (daysBetween state.today state.cycle.end)}))})
 
 (defview cycle-issue "An issue of the current sprint." [card]
   `(node#cycleIssue :anchors {:left 0 :right 0}
@@ -415,12 +439,7 @@
                     {:set state.page :to issues}
                     {:set state.issueOpen :to true}]}
      {:id cycleIssueLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}
-     (label#cycleIssuePriority :icon ~(get state.priorities (or-else card.priority 0))
-       :text ""
-       :fitText true
-       :textColor ~(if (= card.priority 1) "@bug" "@color.muted")
-       :anchors {:left 12 :top 0 :bottom 0}
-       :align center)
+     ~(cycle-issue-priority card)
      {:id cycleIssueRef
       :style caption
       :text ~card.ref
@@ -428,12 +447,7 @@
       :fitText false
       :anchors {:left 36 :top 0 :bottom 0}
       :align {:horizontal start :vertical center}}
-     (label#cycleIssueStatus :icon ~(or-else (get state.statusIcons card.c) "circle")
-       :text ""
-       :fitText true
-       :textColor ~(get-in computed.columns [card.c :color])
-       :anchors {:left 100 :top 0 :bottom 0}
-       :align center)
+     ~(cycle-issue-status card)
      (label#cycleIssueTitle :font small
        :text ~card.title
        :textColor @color.text
@@ -446,16 +460,35 @@
       :fitText false
       :anchors {:right 44 :top 0 :bottom 0}
       :align {:horizontal end :vertical center}}
-     {:id cycleIssueOwner
-      :style badge
-      :font tiny
-      :text ~card.who
-      :width 20
-      :height 20
-      :radius 999
-      :anchors {:right 12 :top 8}
-      :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
-      :textColor "#ffffff"}))
+     ~(cycle-issue-owner card)))
+
+(defview cycle-issue-status "An issue of the sprint's status icon." [card]
+  `(label#cycleIssueStatus :icon ~(or-else (get state.statusIcons card.c) "circle")
+     :text ""
+     :fitText true
+     :textColor ~(get-in computed.columns [card.c :color])
+     :anchors {:left 100 :top 0 :bottom 0}
+     :align center))
+
+(defview cycle-issue-priority "An issue of the sprint's priority icon." [card]
+  `(label#cycleIssuePriority :icon ~(get state.priorities (or-else card.priority 0))
+     :text ""
+     :fitText true
+     :textColor ~(if (= card.priority 1) "@bug" "@color.muted")
+     :anchors {:left 12 :top 0 :bottom 0}
+     :align center))
+
+(defview cycle-issue-owner "An issue of the sprint's owner." [card]
+  `{:id cycleIssueOwner
+    :style badge
+    :font tiny
+    :text ~card.who
+    :width 20
+    :height 20
+    :radius 999
+    :anchors {:right 12 :top 8}
+    :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
+    :textColor "#ffffff"})
 
 (defview cycle-row "An upcoming or past sprint, as a row." [cycle]
   `(node#cycleRow :anchors {:left 0 :right 0}
@@ -464,15 +497,7 @@
      :role listitem
      :label ~(t "cycle.name" {:n cycle.number})
      {:id cycleRowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}
-     (label#cycleRowIcon :icon ~(cond (or (>= cycle.done cycle.scope) (< cycle.number state.cycle.number))
-                                      "check-circle-2"
-                                      (= cycle.done 0) "circle-dashed"
-                                      :else "circle-dot")
-       :text ""
-       :fitText true
-       :textColor ~(if (= cycle.done 0) "@color.muted" "@color.accent")
-       :anchors {:left 8 :top 0 :bottom 0}
-       :align center)
+     ~(cycle-row-icon cycle)
      (label#cycleRowName :font small
        :text ~(t "cycle.name" {:n cycle.number})
        :textColor @color.text
@@ -505,6 +530,17 @@
       :anchors {:right 8 :top 0 :bottom 0}
       :align {:horizontal end :vertical center}
       :text ~(formatPercent (/ cycle.done (max cycle.scope 1)))}))
+
+(defview cycle-row-icon "A sprint's icon: done, started or not." [cycle]
+  `(label#cycleRowIcon :icon ~(cond (or (>= cycle.done cycle.scope) (< cycle.number state.cycle.number))
+                                    "check-circle-2"
+                                    (= cycle.done 0) "circle-dashed"
+                                    :else "circle-dot")
+     :text ""
+     :fitText true
+     :textColor ~(if (= cycle.done 0) "@color.muted" "@color.accent")
+     :anchors {:left 8 :top 0 :bottom 0}
+     :align center))
 
 (defview projects-columns "The projects table's header." []
   `(node#projectsColumns :anchors {:left 0 :right 0 :top 48} :height 32 :color transparent
@@ -570,34 +606,9 @@
        :textColor @color.text
        :anchors {:left 52 :right 560 :top 0 :bottom 0}
        :align {:horizontal start :vertical center})
-     (label#projectHealth :font small
-       :icon circle
-       :text ~(str " " (t (str "health." project.health)))
-       :textColor ~(get state.healthColors project.health)
-       :anchors {:right 440 :top 0 :bottom 0}
-       :width 110
-       :align {:horizontal start :vertical center})
-     {:id projectLead
-      :style badge
-      :text ~project.lead
-      :width 22
-      :height 22
-      :radius 999
-      :anchors {:right 398 :top 11}
-      :color ~(or-else (:color (find (fn [it] (= it.who project.lead)) state.members)) "@color.muted")
-      :textColor "#ffffff"
-      :tooltip ~(or-else (:name (find (fn [it] (= it.who project.lead)) state.members)) project.lead)}
-     {:id projectTarget
-      :style caption
-      :width 100
-      :fitText false
-      :anchors {:right 240 :top 0 :bottom 0}
-      :align {:horizontal start :vertical center}
-      :icon calendar
-      :text ~(str " " (formatDate (dateMs project.target) "MMM d" "utc"))
-      :textColor ~(if (and (< (daysBetween state.today project.target) 0) (< project.progress 1))
-                      "@bug"
-                      "@color.muted")}
+     ~(project-health project)
+     ~(project-lead project)
+     ~(project-target project)
      (node#projectBar :use progressBar
        :with {:ratio ~project.progress :color ~project.color :width 120}
        :anchors {:right 100 :top 20})
@@ -608,3 +619,37 @@
       :anchors {:right 24 :top 0 :bottom 0}
       :align {:horizontal end :vertical center}
       :text ~(str (formatPercent project.progress) "  ·  " project.issues)}))
+
+(defview project-health "A project's health, on track or at risk." [project]
+  `(label#projectHealth :font small
+     :icon circle
+     :text ~(str " " (t (str "health." project.health)))
+     :textColor ~(get state.healthColors project.health)
+     :anchors {:right 440 :top 0 :bottom 0}
+     :width 110
+     :align {:horizontal start :vertical center}))
+
+(defview project-lead "A project's lead." [project]
+  `{:id projectLead
+    :style badge
+    :text ~project.lead
+    :width 22
+    :height 22
+    :radius 999
+    :anchors {:right 398 :top 11}
+    :color ~(or-else (:color (find (fn [it] (= it.who project.lead)) state.members)) "@color.muted")
+    :textColor "#ffffff"
+    :tooltip ~(or-else (:name (find (fn [it] (= it.who project.lead)) state.members)) project.lead)})
+
+(defview project-target "A project's target date." [project]
+  `{:id projectTarget
+    :style caption
+    :width 100
+    :fitText false
+    :anchors {:right 240 :top 0 :bottom 0}
+    :align {:horizontal start :vertical center}
+    :icon calendar
+    :text ~(str " " (formatDate (dateMs project.target) "MMM d" "utc"))
+    :textColor ~(if (and (< (daysBetween state.today project.target) 0) (< project.progress 1))
+                    "@bug"
+                    "@color.muted")})

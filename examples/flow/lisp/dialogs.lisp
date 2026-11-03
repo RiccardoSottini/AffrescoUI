@@ -21,48 +21,11 @@
       :borderWidth 0
       :text ~(str "›  " (t "composer.title"))
       :anchors {:left "#composerTeam.right" :top 14}}
-     (textarea#newCard :anchors {:left 10 :right 16 :top 42}
-       :height 40
-       :padding 6
-       :font title
-       :color transparent
-       :focused {:color transparent}
-       :textColor @color.text
-       :placeholder ~(t "composer.placeholder")
-       :label ~(t "composer.placeholder")
-       :placeholderColor @color.muted
-       :autofocus true
-       :bind state.newCard
-       :onSubmit addCard
-       :keys {:escape {:set state.composer.open :to false}})
-     (textarea#composerNotes :anchors {:left 10 :right 16 :top 84}
-       :height 30
-       :padding 6
-       :color transparent
-       :focused {:color transparent}
-       :textColor @color.text
-       :placeholder ~(t "composer.notes")
-       :label ~(t "composer.notes")
-       :placeholderColor @color.muted
-       :bind state.composer.notes
-       :keys {:escape {:set state.composer.open :to false}})
+     ~(new-card)
+     ~(composer-notes)
      ~(composer-chips)
      {:id composerLine :anchors {:left 0 :right 0 :bottom 48} :height 1 :color @color.border}
-     (label#composerMore :font small
-       :fitText true
-       :height 28
-       :anchors {:right "#composerCreate.left" :bottom 10}
-       :padding 10
-       :runs [{:icon ~(if state.composer.more "toggle-right" "toggle-left")
-               :color ~(if state.composer.more "@color.accent" "@color.muted")}
-              ~(str "  " (t "composer.more"))]
-       :textColor @color.muted
-       :cursor hand
-       :focusable true
-       :role switch
-       :selected ~state.composer.more
-       :label ~(t "composer.more")
-       :onClick {:toggle state.composer.more})
+     ~(composer-more)
      (label#composerCreate :font small
        :text ~(t "composer.create")
        :fitText true
@@ -77,6 +40,52 @@
        :role button
        :align center
        :onClick addCard)))
+
+(defview composer-notes "The composer's notes, under the title." []
+  `(textarea#composerNotes :anchors {:left 10 :right 16 :top 84}
+     :height 30
+     :padding 6
+     :color transparent
+     :focused {:color transparent}
+     :textColor @color.text
+     :placeholder ~(t "composer.notes")
+     :label ~(t "composer.notes")
+     :placeholderColor @color.muted
+     :bind state.composer.notes
+     :keys {:escape {:set state.composer.open :to false}}))
+
+(defview new-card "The composer's title field: Enter creates the card." []
+  `(textarea#newCard :anchors {:left 10 :right 16 :top 42}
+     :height 40
+     :padding 6
+     :font title
+     :color transparent
+     :focused {:color transparent}
+     :textColor @color.text
+     :placeholder ~(t "composer.placeholder")
+     :label ~(t "composer.placeholder")
+     :placeholderColor @color.muted
+     :autofocus true
+     :bind state.newCard
+     :onSubmit addCard
+     :keys {:escape {:set state.composer.open :to false}}))
+
+(defview composer-more "The composer's Create more switch, which keeps it open." []
+  `(label#composerMore :font small
+     :fitText true
+     :height 28
+     :anchors {:right "#composerCreate.left" :bottom 10}
+     :padding 10
+     :runs [{:icon ~(if state.composer.more "toggle-right" "toggle-left")
+             :color ~(if state.composer.more "@color.accent" "@color.muted")}
+            ~(str "  " (t "composer.more"))]
+     :textColor @color.muted
+     :cursor hand
+     :focusable true
+     :role switch
+     :selected ~state.composer.more
+     :label ~(t "composer.more")
+     :onClick {:toggle state.composer.more}))
 
 (defview composer-chips "The composer's chips: the new card's status, priority, owner and label." []
   `(row#composerChips :gap 6 :anchors {:left 16 :right 16 :bottom 60} :height 26
@@ -99,19 +108,7 @@
       :role button
       :label ~(t "quick.priority")
       :onClick nextComposerPriority}
-     {:id composerWho
-      :style cardChip
-      :icon circle-user
-      :text ~(str " " (:name (find (fn [it] (= it.who state.composer.who)) state.members)))
-      :cursor hand
-      :focusable true
-      :role button
-      :label ~(t "quick.assignee")
-      :onClick {:set state.composer.who
-                :to ~(get-in state.members
-                             [(mod (+ (indexOf (map (fn [it] it.who) state.members) state.composer.who) 1)
-                                   (count state.members))
-                              :who])}}
+     ~(composer-who)
      {:id composerTag
       :style cardChip
       :runs [{:text "●" :font symbols :size 10 :color ~(str "@" state.composer.tag)}
@@ -123,6 +120,21 @@
       :onClick {:set state.composer.tag
                 :to ~(get state.filters
                           (+ (mod (indexOf state.filters state.composer.tag) (- (count state.filters) 1)) 1))}}))
+
+(defview composer-who "The composer's owner chip, which goes round the members." []
+  `{:id composerWho
+    :style cardChip
+    :icon circle-user
+    :text ~(str " " (:name (find (fn [it] (= it.who state.composer.who)) state.members)))
+    :cursor hand
+    :focusable true
+    :role button
+    :label ~(t "quick.assignee")
+    :onClick {:set state.composer.who
+              :to ~(get-in state.members
+                           [(mod (+ (indexOf (map (fn [it] it.who) state.members) state.composer.who) 1)
+                                 (count state.members))
+                            :who])}})
 
 ;;; The edit dialog
 
@@ -157,16 +169,7 @@
 
 (defview bulk-actions "The selection bar's buttons: the count, then what to do with every marked card." []
   `(row#row-bulk-bar :gap 4 :alignItems center :color transparent :anchors {:left 6 :right 6 :top 6 :bottom 6}
-     (label#bulkCount :font small
-       :text ~(t "bulk.count" {:n (count state.marked)})
-       :textColor @color.text
-       :fitText true
-       :height 28
-       :padding 8
-       :radius 6
-       :borderWidth 1
-       :borderColor @color.border
-       :align {:horizontal start :vertical center})
+     ~(bulk-count)
      {:id bulkClear
       :style propValue
       :icon x
@@ -196,15 +199,30 @@
       :text ~(str " " (t "issue.assignee"))
       :tooltip ~(t "key.a")
       :onClick changeAssignee}
-     {:id bulkDelete
-      :style propValue
-      :icon trash-2
-      :text ""
-      :width 28
-      :fitText false
-      :padding 0
-      :align center
-      :textColor @bug
-      :tooltip ~(t "bulk.delete")
-      :label ~(t "bulk.delete")
-      :onClick bulkDelete}))
+     ~(bulk-delete)))
+
+(defview bulk-delete "The selection bar's Delete button." []
+  `{:id bulkDelete
+    :style propValue
+    :icon trash-2
+    :text ""
+    :width 28
+    :fitText false
+    :padding 0
+    :align center
+    :textColor @bug
+    :tooltip ~(t "bulk.delete")
+    :label ~(t "bulk.delete")
+    :onClick bulkDelete})
+
+(defview bulk-count "How many cards the selection bar acts on." []
+  `(label#bulkCount :font small
+     :text ~(t "bulk.count" {:n (count state.marked)})
+     :textColor @color.text
+     :fitText true
+     :height 28
+     :padding 8
+     :radius 6
+     :borderWidth 1
+     :borderColor @color.border
+     :align {:horizontal start :vertical center}))

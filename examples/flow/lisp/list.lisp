@@ -119,71 +119,92 @@
      :onDoubleClick [~(handler selectCard c i) ~(handler openIssue)]
      :onContextMenu ~(handler openCardMenu c i)
      {:id rowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}
-     (label#rowPriority :when ~(not (contains state.hidden "priority"))
-       :icon ~(get state.priorities (or-else card.priority 0))
-       :text ""
-       :fitText true
-       :textColor ~(if (= card.priority 1) "@bug" "@color.muted")
-       :anchors {:right 136 :top 0 :bottom 0}
-       :width 22
-       :align center
-       :tooltip ~(t (str "priority." (or-else card.priority 0))))
-     (label#rowRef :when ~(not (contains state.hidden "id"))
-       :font small
-       :text ~(or-else card.ref "")
-       :textColor @color.muted
-       :width 56
-       :anchors {:right 252 :top 0 :bottom 0}
-       :align {:horizontal end :vertical center})
-     (label#rowStatus :icon ~(or-else (get state.statusIcons c) "circle")
-       :text ""
-       :fitText true
-       :textColor ~column.color
-       :anchors {:left 18 :top 0 :bottom 0}
-       :align center
-       :tooltip ~column.name)
+     ~(row-priority)
+     ~(row-ref)
+     ~(row-status column c)
      (label#rowTitle :text ~card.title
        :textColor @color.text
        :anchors {:left 44 :right 316 :top 0 :bottom 0}
        :align {:horizontal start :vertical center})
-     (label#rowTag :when ~(not (contains state.hidden "label"))
-       :font small
-       :runs [{:text "●" :font symbols :size 10 :color ~(str "@" card.tag)} ~(str " " (t (str "tag." card.tag)))]
-       :fitText true
-       :padding 6
-       :height 22
-       :radius 999
-       :borderWidth 1
-       :borderColor @color.border
-       :color transparent
-       :textColor @color.text
-       :anchors {:right 166 :top 7})
-     {:id rowDue
-      :style caption
-      :when ~(and (not (contains state.hidden "due")) (some? card.due))
-      :text ~(formatDate (dateMs card.due) "MMM d" "utc")
-      :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
-                      "@bug"
-                      "@color.muted")
-      :width 48
-      :anchors {:right 80 :top 0 :bottom 0}
-      :align {:horizontal end :vertical center}}
-     {:id rowPoints
-      :when ~(not (contains state.hidden "estimate"))
-      :style caption
-      :text ~card.points
-      :width 20
-      :anchors {:right 52 :top 0 :bottom 0}
-      :align {:horizontal end :vertical center}
-      :tooltip ~(t "card.points" {:n card.points})}
-     {:id rowWho
-      :when ~(not (contains state.hidden "assignee"))
-      :style badge
-      :text ~card.who
-      :width 22
-      :height 22
-      :radius 999
-      :anchors {:right 20 :top 7}
-      :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
-      :textColor "#ffffff"
-      :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)}))
+     ~(row-tag)
+     ~(row-due c)
+     ~(row-points)
+     ~(row-who)))
+
+(defview row-status "A list row's status icon." [column c]
+  `(label#rowStatus :icon ~(or-else (get state.statusIcons c) "circle")
+     :text ""
+     :fitText true
+     :textColor ~column.color
+     :anchors {:left 18 :top 0 :bottom 0}
+     :align center
+     :tooltip ~column.name))
+
+(defview row-ref "A list row's id." []
+  `(label#rowRef :when ~(not (contains state.hidden "id"))
+     :font small
+     :text ~(or-else card.ref "")
+     :textColor @color.muted
+     :width 56
+     :anchors {:right 252 :top 0 :bottom 0}
+     :align {:horizontal end :vertical center}))
+
+(defview row-points "A list row's points." []
+  `{:id rowPoints
+    :when ~(not (contains state.hidden "estimate"))
+    :style caption
+    :text ~card.points
+    :width 20
+    :anchors {:right 52 :top 0 :bottom 0}
+    :align {:horizontal end :vertical center}
+    :tooltip ~(t "card.points" {:n card.points})})
+
+(defview row-priority "A list row's priority icon." []
+  `(label#rowPriority :when ~(not (contains state.hidden "priority"))
+     :icon ~(get state.priorities (or-else card.priority 0))
+     :text ""
+     :fitText true
+     :textColor ~(if (= card.priority 1) "@bug" "@color.muted")
+     :anchors {:right 136 :top 0 :bottom 0}
+     :width 22
+     :align center
+     :tooltip ~(t (str "priority." (or-else card.priority 0)))))
+
+(defview row-who "A list row's owner." []
+  `{:id rowWho
+    :when ~(not (contains state.hidden "assignee"))
+    :style badge
+    :text ~card.who
+    :width 22
+    :height 22
+    :radius 999
+    :anchors {:right 20 :top 7}
+    :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
+    :textColor "#ffffff"
+    :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)})
+
+(defview row-tag "A list row's label." []
+  `(label#rowTag :when ~(not (contains state.hidden "label"))
+     :font small
+     :runs [{:text "●" :font symbols :size 10 :color ~(str "@" card.tag)} ~(str " " (t (str "tag." card.tag)))]
+     :fitText true
+     :padding 6
+     :height 22
+     :radius 999
+     :borderWidth 1
+     :borderColor @color.border
+     :color transparent
+     :textColor @color.text
+     :anchors {:right 166 :top 7}))
+
+(defview row-due "A list row's due date." [c]
+  `{:id rowDue
+    :style caption
+    :when ~(and (not (contains state.hidden "due")) (some? card.due))
+    :text ~(formatDate (dateMs card.due) "MMM d" "utc")
+    :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
+                    "@bug"
+                    "@color.muted")
+    :width 48
+    :anchors {:right 80 :top 0 :bottom 0}
+    :align {:horizontal end :vertical center}})

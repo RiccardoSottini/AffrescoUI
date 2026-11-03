@@ -188,31 +188,40 @@
      :onClick ~(handler selectCard c i)
      :onDoubleClick [~(handler selectCard c i) ~(handler openIssue)]
      :onContextMenu ~(handler openCardMenu c i)
-     (label#cardRef :when ~(not (contains state.hidden "id"))
-       :font small
-       :text ~(or-else card.ref "")
-       :textColor @color.muted
-       :fitText true
-       :anchors {:left 12 :top 10})
-     {:id cardOwner
-      :when ~(not (contains state.hidden "assignee"))
-      :style badge
-      :font tiny
-      :text ~card.who
-      :width 18
-      :height 18
-      :radius 999
-      :anchors {:right 10 :top 8}
-      :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
-      :textColor "#ffffff"
-      :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)}
-     (label#cardTitle :text ~card.title
-       :textColor @color.text
-       :anchors {:left 12 :right 12 :top 30}
-       :height ~(if (> (count card.title) (/ (- (/ (- window.width 260) 4) 36) 5.8)) 34 17)
-       :wrap true
-       :align {:horizontal start :vertical start})
+     ~(card-ref)
+     ~(card-owner)
+     ~(card-title)
      ~(card-chips c)))
+
+(defview card-ref "A card's id, struck through once it is done." []
+  `(label#cardRef :when ~(not (contains state.hidden "id"))
+     :font small
+     :text ~(or-else card.ref "")
+     :textColor @color.muted
+     :fitText true
+     :anchors {:left 12 :top 10}))
+
+(defview card-title "A card's title, which Enter edits in place." []
+  `(label#cardTitle :text ~card.title
+     :textColor @color.text
+     :anchors {:left 12 :right 12 :top 30}
+     :height ~(if (> (count card.title) (/ (- (/ (- window.width 260) 4) 36) 5.8)) 34 17)
+     :wrap true
+     :align {:horizontal start :vertical start}))
+
+(defview card-owner "A card's owner, as their initials in a circle." []
+  `{:id cardOwner
+    :when ~(not (contains state.hidden "assignee"))
+    :style badge
+    :font tiny
+    :text ~card.who
+    :width 18
+    :height 18
+    :radius 999
+    :anchors {:right 10 :top 8}
+    :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
+    :textColor "#ffffff"
+    :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)})
 
 (defview card-chips "A card's chips: its priority, label, due date, points and owner, as the Display menu shows them."
   [c]
@@ -238,15 +247,7 @@
       :style cardChip
       :text ~(str "+" (count (or-else card.labels [])))
       :tooltip ~(join ", " (map (fn [it] (t (str "label." it))) (or-else card.labels [])))}
-     {:id cardDue
-      :style cardChip
-      :when ~(and (not (contains state.hidden "due")) (some? card.due))
-      :icon calendar
-      :text ~(formatDate (dateMs card.due) "MMM d" "utc")
-      :tooltip ~(formatDate (dateMs card.due) "medium" "utc")
-      :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
-                      "@bug"
-                      "@color.muted")}
+     ~(card-due c)
      {:id cardNotes
       :style cardChip
       :borderWidth 0
@@ -261,6 +262,17 @@
       :icon triangle
       :text ~card.points
       :tooltip ~(t "card.points" {:n card.points})}))
+
+(defview card-due "A card's due date, red once it is past." [c]
+  `{:id cardDue
+    :style cardChip
+    :when ~(and (not (contains state.hidden "due")) (some? card.due))
+    :icon calendar
+    :text ~(formatDate (dateMs card.due) "MMM d" "utc")
+    :tooltip ~(formatDate (dateMs card.due) "medium" "utc")
+    :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
+                    "@bug"
+                    "@color.muted")})
 
 ;;; The table
 

@@ -13,13 +13,17 @@ The draft builds to the same tree as the data file, so the app draws the same (`
 
     python3 tools/notation/lisp_program.py <file.lisp> [--entry] [--lines 15] [-o out.lisp] [--locales locales]
                                            [--defaults] [--cli build/affrescoui]
-    python3 tools/notation/lisp_program.py <file.lisp> --bindings | --handlers
+    python3 tools/notation/lisp_program.py <file.lisp> --bindings | --handlers | --split 40
 
 --bindings only rewrites a file's "{{...}}" texts as the forms they mean, in place: for a program already written, or a
 data file that stays data (models.lisp), whose ~forms then build to the same text.
 
 --handlers only rewrites a file's `{:run f :with {...}}` steps that call a function of the program (a defn or a
 defcommand of its folder) as `~(handler f args...)`, the arguments in the function's order.
+
+--split 40 cuts the longest child with an id of each view or component over 40 lines into a view of its own, called with
+the parameters it uses, until each is at most 40 lines or has no such child: its docstring names the node, for a person
+to write what it is.
 
 --entry writes the screen's own sections (window, fonts, strings, persist, permissions, theme) as defscreen main's
 options, and its includes as an include form; without it, they go in a defpart. --locales moves each language of
@@ -610,6 +614,78 @@ def handlers_in_place(path):
     return count
 
 
+def spans(text):
+    """The forms of a text with their places: (start, end, opening, children), strings and comments skipped."""
+    stack, top, at = [(0, None, "", [])], None, 0
+    while at < len(text):
+        c = text[at]
+        if c == '"':
+            at += 1
+            while at < len(text) and text[at] != '"':
+                at += 2 if text[at] == "\\" else 1
+        elif c == ";":
+            while at < len(text) and text[at] != "\n":
+                at += 1
+            continue
+        elif c in "([{":
+            stack.append((at, None, c, []))
+        elif c in ")]}":
+            start, _, opening, children = stack.pop()
+            stack[-1][3].append((start, at + 1, opening, children))
+        at += 1
+    return stack[0][3]
+
+
+def split_long(path, most):
+    """Cuts the long children of a file's views and components into views of their own, until each is at most `most`
+    lines or has no child with an id left to cut; the views it made."""
+    made = []
+    for _ in range(200):
+        with open(path, encoding="utf-8") as file:
+            text = file.read()
+        taken = set(re.findall(r"^\(def\w* ([^\s()]+)", text, re.M)) | TAKEN
+        cut = None
+        for start, end, _, children in spans(text):
+            head = re.match(r"\((defview|defcomponent) (\S+)", text[start:end])
+            if not head or text[start:end].count("\n") + 1 <= most:
+                continue
+            params = re.search(r"\[([^\]]*)\]|\{([^}]*)\}", text[start:end])
+            names = (params.group(1) or "").split() if params and params.group(1) is not None else \
+                [key.lstrip(":") for key in re.findall(r":[\w-]+", params.group(2) or "")] if params else []
+            body = [child for child in children if text[child[0] - 1] == "`" and child[2] == "("]
+            if not body:
+                continue
+            candidates = [child for child in body[0][3] if child[2] in "({" and
+                          re.match(r"[({](?:[\w-]+#[\w-]+|\S*\s*:id [\w-]+)", text[child[0]:child[1]]) and
+                          text[child[0]:child[1]].count("\n") >= 3 and "~" not in text[child[0] - 1:child[0]]]
+            if candidates:
+                cut = (head, names, max(candidates, key=lambda c: c[1] - c[0]))
+                break
+        if cut is None:
+            return made
+        (head, names, (start, end, _, _)) = cut
+        child = text[start:end]
+        found = re.match(r"[({](?:[\w-]+#([\w-]+)|\S*\s*:id ([\w-]+))", child)
+        base = kebab(found.group(1) or found.group(2))
+        name = base if base not in taken else base + "-view"
+        number = 2
+        while name in taken:
+            name, number = f"{base}-{number}", number + 1
+        column = start - (text.rfind("\n", 0, start) + 1)
+        lines = child.split("\n")
+        child = "\n".join([lines[0]] + [line[column:] if line[:column].strip() == "" else line for line in lines[1:]])
+        used = [param for param in names if uses([child], param)]
+        call = f"~({name}{''.join(' ' + param for param in used)})"
+        view = (f"(defview {name} \"#{found.group(1) or found.group(2)}, in {head.group(2)}.\" [{' '.join(used)}]\n"
+                + "\n".join(("  `" if at == 0 else "   ") + line for at, line in enumerate(child.split("\n"))) + ")")
+        definition_end = next(e for s, e, _, _ in spans(text) if s <= start < e)
+        text = text[:start] + call + text[end:definition_end] + "\n\n" + view + text[definition_end:]
+        with open(path, "w", encoding="utf-8", newline="\n") as file:
+            file.write(text)
+        made.append(name)
+    return made
+
+
 def main():
     """Writes the draft; returns the exit code."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -623,9 +699,15 @@ def main():
     parser.add_argument("--cli", default=os.path.join(ROOT, "build", "affrescoui"))
     parser.add_argument("--bindings", action="store_true",
                         help="only rewrite the file's {{...}} texts as Lisp forms, in place (a program or a template)")
+    parser.add_argument("--split", type=int, metavar="LINES",
+                        help="only cut the long children of the file's views into views, until each is at most LINES")
     parser.add_argument("--handlers", action="store_true",
                         help="only rewrite the file's {:run f :with {...}} handlers as (handler f ...), in place")
     arguments = parser.parse_args()
+    if arguments.split:
+        made = split_long(arguments.file, arguments.split)
+        print(f"{len(made)} views cut out: {' '.join(made)}", file=sys.stderr)
+        return 0
     if arguments.handlers:
         print(f"{handlers_in_place(arguments.file)} handlers rewritten", file=sys.stderr)
         return 0

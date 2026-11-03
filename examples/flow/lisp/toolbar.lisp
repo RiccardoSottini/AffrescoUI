@@ -232,33 +232,9 @@
      :borderColor @color.border
      :color @color.menu
      {:id displayLayout :style caption :text ~(t "display.layout") :anchors {:left 12 :top 12}}
-     (row#views :gap 4 :anchors {:left 12 :right 12 :top 34} :height 52 :role radiogroup :arrows horizontal
-       (node#viewBoard :use layoutChoice
-         :with {:icon kanban :text ~(trim (t "view.board")) :on ~(= state.view "board")}
-         :onClick showBoard)
-       (node#viewList :use layoutChoice
-         :with {:icon layout-list :text ~(trim (t "view.list")) :on ~(= state.view "list")}
-         :onClick showList)
-       (node#viewTable :use layoutChoice
-         :with {:icon table :text ~(trim (t "view.table")) :on ~(= state.view "table")}
-         :onClick showTable)
-       (node#viewTimeline :use layoutChoice
-         :with {:icon chart-gantt :text ~(trim (t "view.timeline")) :on ~(= state.view "timeline")}
-         :onClick showTimeline))
+     ~(views)
      {:id displayGrouping :style caption :text ~(t "display.grouping") :anchors {:left 12 :top 100}}
-     (row#groupings :gap 4 :anchors {:left 120 :right 12 :top 96} :height 24 :role radiogroup :arrows horizontal
-       ~(repeat [g ["status" "assignee"]]
-         `{:id grouping
-           :let {:on ~(= state.swimlanes (= g "assignee"))}
-           :style displayPill
-           :role radio
-           :text ~(t (str "prop." g))
-           :selected ~on
-           :disabled ~(not= state.view "board")
-           :borderColor ~(if on "@color.accent" "@color.border")
-           :textColor ~(if (and on (= state.view "board")) "@color.text" "@color.muted")
-           :tooltip ~(if (= g "assignee") (t "view.lanes") "")
-           :onClick ~(handler groupBy on)}))
+     ~(groupings)
      {:id displayOrdering :style caption :text ~(t "display.ordering") :anchors {:left 12 :top 134}}
      (row#orderings :gap 4 :anchors {:left 12 :right 12 :top 154} :height 24 :role radiogroup :arrows horizontal
        ~(repeat [o ["manual" "priority" "due"]]
@@ -283,3 +259,33 @@
            :borderColor ~(if on "@color.chipHover" "@color.border")
            :textColor ~(if on "@color.text" "@color.muted")
            :onClick ~(handler toggleProperty prop)}))))
+
+(defview groupings "The Display menu's grouping choices." []
+  `(row#groupings :gap 4 :anchors {:left 120 :right 12 :top 96} :height 24 :role radiogroup :arrows horizontal
+     ~(repeat [g ["status" "assignee"]]
+       `{:id grouping
+         :let {:on ~(= state.swimlanes (= g "assignee"))}
+         :style displayPill
+         :role radio
+         :text ~(t (str "prop." g))
+         :selected ~on
+         :disabled ~(not= state.view "board")
+         :borderColor ~(if on "@color.accent" "@color.border")
+         :textColor ~(if (and on (= state.view "board")) "@color.text" "@color.muted")
+         :tooltip ~(if (= g "assignee") (t "view.lanes") "")
+         :onClick ~(handler groupBy on)})))
+
+(defview views "The Display menu's layouts: board, list, table and timeline." []
+  `(row#views :gap 4 :anchors {:left 12 :right 12 :top 34} :height 52 :role radiogroup :arrows horizontal
+     (node#viewBoard :use layoutChoice
+       :with {:icon kanban :text ~(trim (t "view.board")) :on ~(= state.view "board")}
+       :onClick showBoard)
+     (node#viewList :use layoutChoice
+       :with {:icon layout-list :text ~(trim (t "view.list")) :on ~(= state.view "list")}
+       :onClick showList)
+     (node#viewTable :use layoutChoice
+       :with {:icon table :text ~(trim (t "view.table")) :on ~(= state.view "table")}
+       :onClick showTable)
+     (node#viewTimeline :use layoutChoice
+       :with {:icon chart-gantt :text ~(trim (t "view.timeline")) :on ~(= state.view "timeline")}
+       :onClick showTimeline)))

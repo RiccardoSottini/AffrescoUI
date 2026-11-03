@@ -2,9 +2,9 @@
 ;;;
 ;;; The screen and its views (index.screen.lisp, toolbar.lisp, columns.lisp...) say what is shown; this file says
 ;;; what happens. A function reads the running app through paths (`state.selected`, `computed.card`, `data.inbox`) and
-;;; changes it only through steps (`set`, `insert`, `update-record`...). A view runs one by name, its parameters taken by
-;;; name from the variables around it (`:onClick sortTable`), or with its arguments, (handler moveCard event.data.from
-;;; event.data.at c). The keys are in keys.lisp.
+;;; changes it only through steps (`set`, `insert`, `update-record`...). A view runs one by name, its parameters
+;;; taken by name from the variables around it (`:onClick sortTable`), or with its arguments, (handler moveCard
+;;; event.data.from event.data.at c). The keys are in keys.lisp.
 
 ;;; The cards
 
@@ -34,7 +34,7 @@
   (remember)
   (update-record "issues" :id computed.card.id :fields fields))
 
-(defn hideToast "" [] (set "state.toast.open" false))
+(defn hideToast "Hides the notice in the corner." [] (set "state.toast.open" false))
 
 (defn notify "A toast in the corner for a few seconds; it offers Undo when what sent it remembered the columns first."
   [message]
@@ -243,16 +243,16 @@
   (updateCard {:checklist (map-indexed (fn [index item] (if (= index at) (merge item {:done value}) item))
                                        computed.card.checklist)}))
 
-(defn editNotes "" []
+(defn editNotes "Edits the chosen card's description in place." []
   (when computed.card (set "state.draft" {:editing true :notes (or computed.card.notes "")})))
 
-(defn saveNotes "" []
+(defn saveNotes "Keeps the description being edited." []
   (when computed.card
     (updateCard {:notes state.draft.notes})
     (set "state.draft.editing" false)
     (notify (t "toast.saved"))))
 
-(defn cancelNotes "" [] (set "state.draft.editing" false))
+(defn cancelNotes "Leaves the description as it was." [] (set "state.draft.editing" false))
 
 (defn saveCard "The edit dialog's title." []
   (let [title (trim state.edit.title)]
@@ -262,7 +262,7 @@
       (notify (t "toast.renamed"))
       (logActivity "renamed" title ""))))
 
-(defn closeEdit "" [] (set "state.edit.open" false))
+(defn closeEdit "Closes the edit dialog." [] (set "state.edit.open" false))
 
 ;;; The timeline
 
@@ -294,7 +294,7 @@
   (when (and (some? computed.card) (not (contains state.marked computed.card.ref)))
     (push "state.marked" computed.card.ref)))
 
-(defn bulkChanged "" [] (notify (t "bulk.changed" {:n (count state.marked)})))
+(defn bulkChanged "Says how many marked cards changed." [] (notify (t "bulk.changed" {:n (count state.marked)})))
 
 (defn bulkPriority "Every marked card's priority." [p]
   (remember)
@@ -618,7 +618,7 @@
   :title ~(t "command.openSettings") :description ~(t "command.openSettings.about")
   :category ~(t "category.view") :icon "settings" [] (set "state.settingsOpen" true))
 
-(defn closeSettings "" [] (set "state.settingsOpen" false))
+(defn closeSettings "Closes the settings." [] (set "state.settingsOpen" false))
 
 (defcommand changeLanguage "Shows Flow in the next language."
   :title ~(t "command.changeLanguage") :description ~(t "command.changeLanguage.about") :category ~(t "category.view")

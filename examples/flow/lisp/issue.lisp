@@ -197,89 +197,17 @@
        :anchors {:left 40 :right 40}
        :height 44
        :onDoubleClick editCard)
-     (label#issueNotes :when ~(not state.draft.editing)
-       :anchors {:left 40 :right 40}
-       :height 64
-       :wrap true
-       :cursor ibeam
-       :textColor ~(if (or (nil? computed.card.notes) (= computed.card.notes "")) "@color.muted" "@color.text")
-       :runs ~(concat (if (or (nil? computed.card.notes) (= computed.card.notes ""))
-                          [(t "detail.noNotes")]
-                          (map-indexed (fn [index it] {:text it :bold (= (mod index 2) 1)})
-                                       (split computed.card.notes "*")))
-                      [" " {:text (or-else computed.card.linkText "") :link (or-else computed.card.link "")}])
-       :onClick editNotes
-       :onLink copyLink)
-     (editor#issueNotesEditor :when ~state.draft.editing
-       :anchors {:left 40 :right 40}
-       :height 110
-       :radius @radius.chip
-       :color @color.input
-       :textColor @color.text
-       :wrap true
-       :grammar markdown
-       :bind state.draft.notes
-       :autofocus true
-       :label ~(t "detail.editNotes")
-       :keys {"mod+enter" saveNotes :escape cancelNotes})
-     (row#issueNotesButtons :when ~state.draft.editing :gap 8 :anchors {:left 40 :right 40} :height 30
-       {:id issueNotesSave
-        :style detailButton
-        :text ~(t "detail.save")
-        :focusable true
-        :role button
-        :onClick saveNotes}
-       {:id issueNotesCancel
-        :style detailButton
-        :text ~(t "detail.cancel")
-        :focusable true
-        :role button
-        :onClick cancelNotes})
-     (row#issueAddSub :when ~(and (= (count (or-else computed.card.checklist [])) 0) (not state.subOpen))
-       :anchors {:left 40 :right 40}
-       :height 28
-       {:id issueAddSubButton
-        :style propValue
-        :icon plus
-        :text ~(str " " (t "issue.addSubs"))
-        :textColor @color.muted
-        :onClick {:set state.subOpen :to true}})
-     {:id issueSubTitle
-      :when ~(> (count (or-else computed.card.checklist [])) 0)
-      :style section
-      :anchors {:left 40 :right 40}
-      :height 28
-      :text ~(t "issue.subIssues" {:done computed.checklistDone :total (count (or-else computed.card.checklist []))})}
+     ~(issue-notes)
+     ~(issue-notes-editor)
+     ~(issue-notes-buttons)
+     ~(issue-add-sub)
+     ~(issue-sub-title)
      (column#issueSubs :anchors {:left 40 :right 40} :height ~(* (count (or-else computed.card.checklist [])) 34)
        ~(repeat [item computed.card.checklist :index k]
          (issue-sub item k)))
-     {:id issueNewSub
-      :when ~(or (> (count (or-else computed.card.checklist [])) 0) state.subOpen)
-      :autofocus ~state.subOpen
-      :style drawerInput
-      :anchors {:left 40 :right 40}
-      :placeholder ~(t "issue.addSub")
-      :label ~(t "issue.addSub")
-      :bind state.newItem
-      :onSubmit [{:run addToCard
-                  :with {:field checklist :input ~state.newItem :value {:text ~(trim state.newItem) :done false}}}
-                 {:set state.newItem :to ""}]}
-     (label#issueActivityTitle :font heading
-       :text ~(t "issue.activity")
-       :textColor @color.text
-       :anchors {:left 40 :right 40}
-       :height 40
-       :align {:horizontal start :vertical end})
-     (label#issueCreated :font small
-       :icon circle-plus
-       :textColor @color.muted
-       :anchors {:left 40 :right 40}
-       :height 22
-       :align {:horizontal start :vertical center}
-       :text ~(str "  "
-                   (t "issue.created"
-                      {:who (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
-                                     computed.card.who)})))
+     ~(issue-new-sub)
+     ~(issue-activity-title)
+     ~(issue-created)
      ~(repeat [entry computed.issueEvents]
        `(label#issueEvent :font small
           :icon history
@@ -294,18 +222,117 @@
                           :column entry.column}))))
      ~(repeat [note computed.card.comments]
        (issue-comment note))
-     {:id issueNewComment
-      :style drawerInput
-      :anchors {:left 40 :right 40}
-      :height 44
-      :placeholder ~(t "issue.comment")
-      :label ~(t "issue.comment")
-      :bind state.newComment
-      :onSubmit [{:run addToCard
-                  :with {:field comments
-                         :input ~state.newComment
-                         :value {:who ~state.me :text ~(trim state.newComment)}}}
-                 {:set state.newComment :to ""}]}))
+     ~(issue-new-comment)))
+
+(defview issue-activity-title "The heading of the issue page's activity." []
+  `(label#issueActivityTitle :font heading
+     :text ~(t "issue.activity")
+     :textColor @color.text
+     :anchors {:left 40 :right 40}
+     :height 40
+     :align {:horizontal start :vertical end}))
+
+(defview issue-sub-title "The heading of the issue page's sub-issues." []
+  `{:id issueSubTitle
+    :when ~(> (count (or-else computed.card.checklist [])) 0)
+    :style section
+    :anchors {:left 40 :right 40}
+    :height 28
+    :text ~(t "issue.subIssues" {:done computed.checklistDone :total (count (or-else computed.card.checklist []))})})
+
+(defview issue-add-sub "The issue page's button that adds a sub-issue." []
+  `(row#issueAddSub :when ~(and (= (count (or-else computed.card.checklist [])) 0) (not state.subOpen))
+     :anchors {:left 40 :right 40}
+     :height 28
+     {:id issueAddSubButton
+      :style propValue
+      :icon plus
+      :text ~(str " " (t "issue.addSubs"))
+      :textColor @color.muted
+      :onClick {:set state.subOpen :to true}}))
+
+(defview issue-notes-editor "The issue page's description, being edited." []
+  `(editor#issueNotesEditor :when ~state.draft.editing
+     :anchors {:left 40 :right 40}
+     :height 110
+     :radius @radius.chip
+     :color @color.input
+     :textColor @color.text
+     :wrap true
+     :grammar markdown
+     :bind state.draft.notes
+     :autofocus true
+     :label ~(t "detail.editNotes")
+     :keys {"mod+enter" saveNotes :escape cancelNotes}))
+
+(defview issue-created "When the issue was created, and by whom." []
+  `(label#issueCreated :font small
+     :icon circle-plus
+     :textColor @color.muted
+     :anchors {:left 40 :right 40}
+     :height 22
+     :align {:horizontal start :vertical center}
+     :text ~(str "  "
+                 (t "issue.created"
+                    {:who (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
+                                   computed.card.who)}))))
+
+(defview issue-notes-buttons "Save and Cancel, under the issue page's description being edited." []
+  `(row#issueNotesButtons :when ~state.draft.editing :gap 8 :anchors {:left 40 :right 40} :height 30
+     {:id issueNotesSave
+      :style detailButton
+      :text ~(t "detail.save")
+      :focusable true
+      :role button
+      :onClick saveNotes}
+     {:id issueNotesCancel
+      :style detailButton
+      :text ~(t "detail.cancel")
+      :focusable true
+      :role button
+      :onClick cancelNotes}))
+
+(defview issue-new-comment "The issue page's field that adds a comment." []
+  `{:id issueNewComment
+    :style drawerInput
+    :anchors {:left 40 :right 40}
+    :height 44
+    :placeholder ~(t "issue.comment")
+    :label ~(t "issue.comment")
+    :bind state.newComment
+    :onSubmit [{:run addToCard
+                :with {:field comments
+                       :input ~state.newComment
+                       :value {:who ~state.me :text ~(trim state.newComment)}}}
+               {:set state.newComment :to ""}]})
+
+(defview issue-new-sub "The issue page's field that names a new sub-issue." []
+  `{:id issueNewSub
+    :when ~(or (> (count (or-else computed.card.checklist [])) 0) state.subOpen)
+    :autofocus ~state.subOpen
+    :style drawerInput
+    :anchors {:left 40 :right 40}
+    :placeholder ~(t "issue.addSub")
+    :label ~(t "issue.addSub")
+    :bind state.newItem
+    :onSubmit [{:run addToCard
+                :with {:field checklist :input ~state.newItem :value {:text ~(trim state.newItem) :done false}}}
+               {:set state.newItem :to ""}]})
+
+(defview issue-notes "The issue page's description." []
+  `(label#issueNotes :when ~(not state.draft.editing)
+     :anchors {:left 40 :right 40}
+     :height 64
+     :wrap true
+     :cursor ibeam
+     :textColor ~(if (or (nil? computed.card.notes) (= computed.card.notes "")) "@color.muted" "@color.text")
+     :runs ~(concat (if (or (nil? computed.card.notes) (= computed.card.notes ""))
+                        [(t "detail.noNotes")]
+                        (map-indexed (fn [index it] {:text it :bold (= (mod index 2) 1)})
+                                     (split computed.card.notes "*")))
+                    [" " {:text (or-else computed.card.linkText "") :link (or-else computed.card.link "")}])
+     :onClick editNotes
+     :onLink copyLink))
 
 (defview status-picker "The issue page's status menu." []
   `(node#statusPicker :style pickMenu
@@ -503,61 +530,13 @@
                ~(str "  " (get-in computed.columns [state.selected.c :name]))]
         :onClick {:toggle state.issueStatusOpen}}
        ~(status-picker))
-     (row#propPriority :anchors {:left 8 :right 16} :height 32 :alignItems center
-       {:id propPriorityValue
-        :style propValue
-        :isOpen ~state.issuePriorityOpen
-        :label ~(t (str "priority." (or-else computed.card.priority 0)))
-        :runs [{:icon ~(get state.priorities (or-else computed.card.priority 0))
-                :color ~(if (= computed.card.priority 1) "@bug" "@color.muted")}
-               ~(str "  " (t (str "priority." (or-else computed.card.priority 0))))]
-        :onClick {:toggle state.issuePriorityOpen}}
-       ~(priority-picker))
-     (row#propWho :anchors {:left 8 :right 16} :height 32 :alignItems center
-       {:id propWhoValue
-        :style propValue
-        :icon circle-user
-        :isOpen ~state.issueWhoOpen
-        :text ~(str "  "
-                    (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
-                             (t "issue.noAssignee")))
-        :onClick {:toggle state.issueWhoOpen}}
-       (node#whoPicker :style pickMenu
-         :overlay {:placement below :open state.issueWhoOpen :dismiss outside :modal true}
-         :height ~(+ 8 (* 30 (count state.members)))
-         :role menu
-         ~(repeat [member state.members]
-           (who-pick member))))
-     (row#propDue :anchors {:left 8 :right 16} :height 32 :alignItems center
-       {:id propDueValue
-        :style propValue
-        :icon calendar
-        :isOpen ~state.issueDueOpen
-        :textColor ~(if (and (some? computed.dueDays)
-                             (< computed.dueDays 0)
-                             (not= state.selected.c computed.lastColumn))
-                        "@bug"
-                        "@color.text")
-        :text ~(str "  "
-                    (if (nil? computed.card.due)
-                        (t "drawer.noDue")
-                        (formatDate (dateMs computed.card.due) "MMM d" "utc")))
-        :onClick {:toggle state.issueDueOpen}}
-       ~(issue-due-picker))
+     ~(prop-priority)
+     ~(prop-who)
+     ~(prop-due)
      ~(prop-estimate)
      {:id issueSideGap :height 10 :width 1 :color transparent}
      ~(prop-labels)
-     (column#propProject :anchors {:left 8 :right 16} :height 56 :alignItems start
-       {:id propProjectName :style propName :height 24 :padding 8 :width 200 :text ~(t "issue.project")}
-       {:id propProjectValue
-        :style propValue
-        :focusable false
-        :role text
-        :cursor arrow
-        :hover {:color transparent}
-        :tooltip ~(t "issue.projectFollows")
-        :let {:project ~(get data.projects (or-else (get state.projectOf computed.card.tag) 0))}
-        :runs [{:icon ~project.icon :color ~project.color} ~(str "  " project.name)]})
+     ~(prop-project)
      (column#propCycle :anchors {:left 8 :right 16} :height 56 :alignItems start
        {:id propCycleName :style propName :height 24 :padding 8 :width 200 :text ~(t "issue.cycle")}
        {:id propCycleValue
@@ -569,3 +548,63 @@
         :icon refresh-cw
         :textColor @color.text
         :text ~(str "  " (t "cycle.name" {:n state.cycle.number}))})))
+
+(defview prop-project "The issue page's project, which its label sets." []
+  `(column#propProject :anchors {:left 8 :right 16} :height 56 :alignItems start
+     {:id propProjectName :style propName :height 24 :padding 8 :width 200 :text ~(t "issue.project")}
+     {:id propProjectValue
+      :style propValue
+      :focusable false
+      :role text
+      :cursor arrow
+      :hover {:color transparent}
+      :tooltip ~(t "issue.projectFollows")
+      :let {:project ~(get data.projects (or-else (get state.projectOf computed.card.tag) 0))}
+      :runs [{:icon ~project.icon :color ~project.color} ~(str "  " project.name)]}))
+
+(defview prop-priority "The issue page's priority, with its menu." []
+  `(row#propPriority :anchors {:left 8 :right 16} :height 32 :alignItems center
+     {:id propPriorityValue
+      :style propValue
+      :isOpen ~state.issuePriorityOpen
+      :label ~(t (str "priority." (or-else computed.card.priority 0)))
+      :runs [{:icon ~(get state.priorities (or-else computed.card.priority 0))
+              :color ~(if (= computed.card.priority 1) "@bug" "@color.muted")}
+             ~(str "  " (t (str "priority." (or-else computed.card.priority 0))))]
+      :onClick {:toggle state.issuePriorityOpen}}
+     ~(priority-picker)))
+
+(defview prop-who "The issue page's assignee, with its menu." []
+  `(row#propWho :anchors {:left 8 :right 16} :height 32 :alignItems center
+     {:id propWhoValue
+      :style propValue
+      :icon circle-user
+      :isOpen ~state.issueWhoOpen
+      :text ~(str "  "
+                  (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
+                           (t "issue.noAssignee")))
+      :onClick {:toggle state.issueWhoOpen}}
+     (node#whoPicker :style pickMenu
+       :overlay {:placement below :open state.issueWhoOpen :dismiss outside :modal true}
+       :height ~(+ 8 (* 30 (count state.members)))
+       :role menu
+       ~(repeat [member state.members]
+         (who-pick member)))))
+
+(defview prop-due "The issue page's due date, with its date picker." []
+  `(row#propDue :anchors {:left 8 :right 16} :height 32 :alignItems center
+     {:id propDueValue
+      :style propValue
+      :icon calendar
+      :isOpen ~state.issueDueOpen
+      :textColor ~(if (and (some? computed.dueDays)
+                           (< computed.dueDays 0)
+                           (not= state.selected.c computed.lastColumn))
+                      "@bug"
+                      "@color.text")
+      :text ~(str "  "
+                  (if (nil? computed.card.due)
+                      (t "drawer.noDue")
+                      (formatDate (dateMs computed.card.due) "MMM d" "utc")))
+      :onClick {:toggle state.issueDueOpen}}
+     ~(issue-due-picker)))

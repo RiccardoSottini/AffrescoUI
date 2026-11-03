@@ -1,4 +1,5 @@
-;;; settings.lisp --- The intelligence settings, to include: which provider of intelligence (Anthropic, OpenAI, an OpenAI-compatible server, Claude Code) and which model every app's assistant uses
+;;; settings.lisp --- The intelligence settings, to include: which provider of intelligence (Anthropic, OpenAI, an
+;;; OpenAI-compatible server, Claude Code) and which model every app's assistant uses
 ;;;
 ;;; Put { "use": "intelligenceSettings" } in a container (the AffrescoUI Launcher's settingsIntelligence). It calls
 ;;; the host's intelligence.* natives (modules/intelligence/include/affresco/intelligence/Intelligence.hpp), which
@@ -13,7 +14,7 @@
 
 ;;; Definitions
 
-(defdefaults settings "What an app that includes this gives instead, if it gives its own."
+(defdefaults settings "The colours and the default language an app that includes this replaces with its own."
   :tokens {:intelligence.accent {:light "#0969da" :dark "#4493f8"}
            :intelligence.accentHover {:light "#0550ae" :dark "#2f81f7"}
            :intelligence.onAccent {:light "#ffffff" :dark "#ffffff"}
@@ -124,7 +125,7 @@
                                                :es "El más rápido, para cambios pequeños y rápidos."
                                                :fr "Le plus rapide, pour les petits changements rapides."}}]}]}})
 
-(defcomponent intelligenceButton "The intelligenceButton component."
+(defcomponent intelligenceButton "A button of the settings: filled when it is the main one."
   {:text "" :run "" :primary false :enabled true :width 150}
   `(label#label-text :text ~text
      :width ~width
@@ -143,7 +144,8 @@
      :disabled ~(not enabled)
      :onClick [{:run ~run}]))
 
-(defcomponent intelligenceSettings "The intelligenceSettings component."
+(defcomponent intelligenceSettings
+  "The provider of intelligence the Launcher's Settings choose: the provider, its key and its model."
   {}
   `(node#intelligenceSettings :fill true
      :color transparent
@@ -156,10 +158,11 @@
                                 state.intelligence.data.providers.0)}
      ~(intelligence-column)))
 
-(defpart settings "What settings adds."
+(defpart settings "The settings' state, and the actions that load, choose, check and keep a provider."
   :actions {:intelligence.load [{:note "The first provider until the host says which is in use; without the natives (the rendering check) the call fails and the stand-in data stays. The host's list may leave out the stand-in's first provider: then its own first is chosen, as the form shows it"}
                                 {:if ~(= state.intelligence.selected "")
-                                 :then [{:run intelligence.choose :with {:id ~state.intelligence.data.providers.0.id}}]}
+                                 :then [{:run intelligence.choose
+                                         :with {:id ~state.intelligence.data.providers.0.id}}]}
                                 {:call intelligence.providers
                                  :into state.intelligence.data
                                  :onError []
@@ -168,15 +171,21 @@
                                          :then [{:set state.intelligence.loaded :to true}
                                                 {:run intelligence.choose
                                                  :with {:id ~(cond (not= state.intelligence.data.current.provider "") state.intelligence.data.current.provider
-                                                                   (some (fn [it] (= it.id state.intelligence.selected))
+                                                                   (some (fn [it]
+                                                                           (= it.id state.intelligence.selected))
                                                                          state.intelligence.data.providers) state.intelligence.selected
-                                                                   :else (or-else state.intelligence.data.providers.0.id ""))}}]}]}]
+                                                                   :else (or-else state.intelligence.data.providers.0.id
+                                                                                  ""))}}]}]}]
             :intelligence.pick [{:run intelligence.choose :with {:id ~id}} {:run intelligence.resetKey}]
             :intelligence.choose [{:set state.intelligence.selected :to ~id}
                                   {:set state.intelligence.baseUrl
-                                   :to ~(or-else (:baseUrl (find (fn [it] (= it.id id)) state.intelligence.data.providers)) "")}
+                                   :to ~(or-else (:baseUrl (find (fn [it] (= it.id id))
+                                                                 state.intelligence.data.providers))
+                                                 "")}
                                   {:set state.intelligence.model
-                                   :to ~(or-else (:model (find (fn [it] (= it.id id)) state.intelligence.data.providers)) "")}
+                                   :to ~(or-else (:model (find (fn [it] (= it.id id))
+                                                               state.intelligence.data.providers))
+                                                 "")}
                                   {:set state.intelligence.query :to ""}
                                   {:set state.intelligence.models :to []}
                                   {:set state.intelligence.test :to nil}
@@ -194,7 +203,8 @@
             :intelligence.apply [{:set state.intelligence.error :to ""}
                                  {:set state.intelligence.test :to nil}
                                  {:if ~(not state.intelligence.native)
-                                  :then [{:set state.intelligence.error :to ~(t "intelligence.launcherOnly")} {:stop true}]}
+                                  :then [{:set state.intelligence.error :to ~(t "intelligence.launcherOnly")}
+                                         {:stop true}]}
                                  {:call intelligence.save
                                   :into state.intelligence.data
                                   :with {:provider ~state.intelligence.selected
@@ -219,14 +229,16 @@
                                       :into state.intelligence.data
                                       :onError [{:set state.intelligence.error :to ~error}]}
                                      {:run intelligence.resetKey}]
-            :intelligence.getKey [{:call intelligence.openKeyHelp :with {:provider ~state.intelligence.selected} :onError []}]
+            :intelligence.getKey [{:call intelligence.openKeyHelp
+                                   :with {:provider ~state.intelligence.selected}
+                                   :onError []}]
             :intelligence.resetKey [{:note "The key field isn't bound to the state: building it again empties it"}
                                     {:set state.intelligence.keyShown :to false}
                                     {:after 0 :do [{:set state.intelligence.keyShown :to true}]}]})
 
 ;;; Views
 
-(defview intelligence-provider "#intelligenceProvider." [provider p]
+(defview intelligence-provider "A provider to choose, as a row." [provider p]
   `(node :id ~(str "intelligenceProvider" p)
      :height 56
      :radius 8
@@ -267,7 +279,7 @@
          :textColor @intelligence.dim
          :text ~(t (str "intelligence.status." iStatus))))))
 
-(defview intelligence-key "#intelligenceKey." []
+(defview intelligence-key "The provider's key, hidden as it is typed." []
   `(textarea#intelligenceKey :when ~state.intelligence.keyShown
      :secret true
      :grow 1
@@ -286,7 +298,7 @@
      :onChange [{:call intelligence.stageKey :with {:provider ~iProvider.id :key ~event.value} :onError []}]
      :onSubmit [{:run intelligence.apply}]))
 
-(defview intelligence-model-search "#intelligenceModelSearch." []
+(defview intelligence-model-search "The field that searches the provider's models." []
   `(textarea#intelligenceModelSearch :height 32
      :padding 8
      :radius 6
@@ -306,7 +318,7 @@
                                (some (fn [it] (= it.id (trim state.intelligence.query))) iProvider.models)))
                  :then [{:run intelligence.pickModel :with {:id ~(trim state.intelligence.query)}}]}]))
 
-(defview intelligence-model "#intelligenceModel." [model m]
+(defview intelligence-model "A model to choose, as a row." [model m]
   `(node :id ~(str "intelligenceModel" m)
      :height ~(if (some? model.description) 46 30)
      :radius 6
@@ -331,7 +343,7 @@
        :textColor @intelligence.dim
        :text ~(or-else (get model.description (slice locale 0 2)) model.description.en ""))))
 
-(defview intelligence-use-model "#intelligenceUseModel." []
+(defview intelligence-use-model "The button that uses the model chosen." []
   `(node#intelligenceUseModel :when ~(and (not iProvider.fixedModels)
                                           (> (count (trim state.intelligence.query)) 0)
                                           (not (some (fn [it] (= it.id (trim state.intelligence.query))) iMatches)))
@@ -349,7 +361,7 @@
        :textColor @intelligence.accent
        :text ~(t "intelligence.useModel" {:model (trim state.intelligence.query)}))))
 
-(defview intelligence-models "#intelligenceModels." []
+(defview intelligence-models "The provider's models, searched." []
   `(column#intelligenceModels :gap 2
      :alignItems stretch
      :fitContent height
@@ -379,7 +391,7 @@
        (intelligence-model model m))
      ~(intelligence-use-model)))
 
-(defview intelligence-form "#intelligenceForm." []
+(defview intelligence-form "The provider's form: its address, key and model." []
   `(column#intelligenceForm :gap 10
      :fitContent height
      :color @intelligence.surface
@@ -489,7 +501,7 @@
                     (some? state.intelligence.test) state.intelligence.test.message
                     :else state.intelligence.notice))))
 
-(defview intelligence-column "#intelligenceColumn." []
+(defview intelligence-column "The settings' column: the providers, then the form." []
   `(column#intelligenceColumn :gap 14
      :alignItems stretch
      :fitContent height

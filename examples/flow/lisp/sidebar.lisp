@@ -55,21 +55,7 @@
       :hover {:color @color.sidebarHover}
       :tooltip ~(t "goTo.tooltip")
       :onClick goToCardCommand}
-     {:id sidebarNew
-      :style topButton
-      :text ""
-      :icon edit
-      :anchors {:right 12 :top 10}
-      :height 28
-      :width 28
-      :padding 0
-      :align center
-      :color @color.card
-      :borderWidth 1
-      :borderColor @color.border
-      :hover {:color @color.sidebarHover}
-      :tooltip ~(t "nav.newTooltip")
-      :onClick newCardCommand}
+     ~(sidebar-new)
      ~(sidebar-nav)
      {:id navHelp
       :style topButton
@@ -83,6 +69,23 @@
       :hover {:color @color.sidebarHover}
       :tooltip ~(t "nav.commands")
       :onClick commandPalette}))
+
+(defview sidebar-new "The sidebar's button that opens the composer." []
+  `{:id sidebarNew
+    :style topButton
+    :text ""
+    :icon edit
+    :anchors {:right 12 :top 10}
+    :height 28
+    :width 28
+    :padding 0
+    :align center
+    :color @color.card
+    :borderWidth 1
+    :borderColor @color.border
+    :hover {:color @color.sidebarHover}
+    :tooltip ~(t "nav.newTooltip")
+    :onClick newCardCommand})
 
 ;;; Views
 
@@ -129,16 +132,7 @@
      :isOpen ~state.workspaceOpen
      :keys {:enter {:toggle state.workspaceOpen} :space {:toggle state.workspaceOpen}}
      :onClick {:toggle state.workspaceOpen}
-     (node#workspaceMenu :overlay {:placement below :open state.workspaceOpen :dismiss outside}
-       :y 4
-       :width 240
-       :height 108
-       :radius @radius.card
-       :shadow {:y 6 :blur 16 :color "#0000002e"}
-       :borderWidth 1
-       :borderColor @color.border
-       :color @color.menu
-       ~(workspace-items))
+     ~(workspace-menu)
      (label#workspaceMark :font small
        :text ~(t "key.l")
        :textColor "#ffffff"
@@ -154,18 +148,33 @@
        :fitText true
        :height 28
        :align {:horizontal start :vertical center})
-     (label#workspaceMore :font
-                          small
-                          :icon
-                          chevron-down
-                          :textColor
-                          @color.muted
-                          :fitText
-                          true
-                          :height
-                          28
-                          :align
-                          center)))
+     ~(workspace-more)))
+
+(defview workspace-menu "The workspace menu, below its name." []
+  `(node#workspaceMenu :overlay {:placement below :open state.workspaceOpen :dismiss outside}
+     :y 4
+     :width 240
+     :height 108
+     :radius @radius.card
+     :shadow {:y 6 :blur 16 :color "#0000002e"}
+     :borderWidth 1
+     :borderColor @color.border
+     :color @color.menu
+     ~(workspace-items)))
+
+(defview workspace-more "The workspace's menu button." []
+  `(label#workspaceMore :font
+                        small
+                        :icon
+                        chevron-down
+                        :textColor
+                        @color.muted
+                        :fitText
+                        true
+                        :height
+                        28
+                        :align
+                        center))
 
 (defview sidebar-nav "The sidebar's rows: the inbox, my issues, the boards, the sprints and the projects." []
   `(column#sidebarNav :anchors {:left 12 :right 12 :top 50 :bottom 48} :gap 1 :scroll vertical :role navigation
@@ -192,14 +201,7 @@
                  ~(handler switchBoard state.boards.0.id)
                  {:set state.owner :to ""}
                  ~(handler showBoard)])
-     (node#navIssues :use navItem
-       :with {:icon copy
-              :text ~(t "nav.issues")
-              :active ~(and (= state.page "issues") (not= state.owner state.me) (= state.boardId state.boards.0.id))}
-       :padding 26
-       :onClick [~(handler showPage "issues")
-                 ~(handler switchBoard state.boards.0.id)
-                 {:set state.owner :to ""}])
+     ~(nav-issues)
      (node#navCycles :use navItem
        :with {:icon timer :text ~(t "nav.cycles") :active ~(= state.page "cycles")}
        :padding 26
@@ -208,3 +210,13 @@
        :with {:icon box :text ~(t "nav.projects") :active ~(= state.page "projects")}
        :padding 26
        :onClick goToProjects)))
+
+(defview nav-issues "The sidebar's Issues row, which shows the board." []
+  `(node#navIssues :use navItem
+     :with {:icon copy
+            :text ~(t "nav.issues")
+            :active ~(and (= state.page "issues") (not= state.owner state.me) (= state.boardId state.boards.0.id))}
+     :padding 26
+     :onClick [~(handler showPage "issues")
+               ~(handler switchBoard state.boards.0.id)
+               {:set state.owner :to ""}]))

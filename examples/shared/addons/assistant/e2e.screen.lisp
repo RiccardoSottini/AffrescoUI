@@ -1,4 +1,5 @@
-;;; e2e.screen.lisp --- The assistant add-on end to end (e2e_test.py): a page that includes it, where a timer stands in for the person
+;;; e2e.screen.lisp --- The assistant add-on end to end (e2e_test.py): a page that includes it, where a timer stands
+;;; in for the person
 ;;;
 ;;; It asks once before any agent is connected (the offline answer), then, once one is, asks for a new title and
 ;;; accepts the proposal card that comes back, then asks for a colour and rejects that card, as a person would with
@@ -10,7 +11,7 @@
 
 (defstate step offline)
 
-(defpart e2e "What e2e adds."
+(defpart e2e "The end-to-end screen's state, its first steps and how the person decides."
   :onLoad [{:run assistant.open} {:run assistant.ask :with {:text "Is anyone there?"}} {:set state.step :to waiting}]
   :actions {:person.decide [{:if ~(= state.step "rename")
                              :then [{:run assistant.accept :with {:id ~card.id}}

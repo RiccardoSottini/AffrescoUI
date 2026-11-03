@@ -11,7 +11,9 @@
 
 ;;; Definitions
 
-(defdefaults assistant "What an app that includes this gives instead, if it gives its own."
+(defdefaults assistant
+  ;; The colours, the key and the default language an app that includes the assistant replaces with its own.
+  "The colours, the key and the default language an app that includes the assistant replaces with."
   :tokens {:assistant.accent {:light "#0969da" :dark "#4493f8"}
            :assistant.accentHover {:light "#0550ae" :dark "#2f81f7"}
            :assistant.onAccent {:light "#ffffff" :dark "#ffffff"}
@@ -47,7 +49,7 @@
    :picked nil
    :copied nil})
 
-(defcomponent assistantChip "The assistantChip component."
+(defcomponent assistantChip "A small chip in the assistant: an icon and a text."
   {:text ""}
   `(label :text ~text
      :textColor @assistant.text
@@ -65,7 +67,10 @@
      :justifySelf start
      :onClick [{:run assistant.ask :with {:text ~text}}]))
 
-(defcomponent assistantFile "A file as a card, as chat apps show attachments: an icon of its kind (a picture, a sound, any other file), its name, and its length (a sound) or size; removable from the files of the next message"
+(defcomponent assistantFile
+  ;; A file as a card, as chat apps show attachments: an icon of its kind (a picture, a sound, any other file), its
+  ;; name, and its length (a sound) or size; removable from the files of the next message
+  "A file as a card, as chat apps show attachments: an icon of its kind (a picture, a sound."
   {:file {} :removable false}
   `(row :fitContent width
      :height 44
@@ -93,9 +98,13 @@
            :strokeJoin round)))
      (column :fitContent true :gap 1
        (label :text ~file.name :textColor @assistant.text :fitText {:maxWidth 180})
-       (label :runs [{:text ~(cond (some? file.duration) (str (floor (/ file.duration 60)) ":" (pad (floor (mod file.duration 60)) 2))
-                                   (>= (or-else file.size 0) 1048576) (str (formatNumber (/ file.size 1048576) 0 1) " MB")
-                                   (>= (or-else file.size 0) 1024) (str (formatNumber (floor (/ file.size 1024))) " KB")
+       (label :runs [{:text ~(cond (some? file.duration) (str (floor (/ file.duration 60))
+                                                              ":"
+                                                              (pad (floor (mod file.duration 60)) 2))
+                                   (>= (or-else file.size 0) 1048576) (str (formatNumber (/ file.size 1048576) 0 1)
+                                                                           " MB")
+                                   (>= (or-else file.size 0) 1024) (str (formatNumber (floor (/ file.size 1024)))
+                                                                        " KB")
                                    :else (str (or-else file.size 0) " B"))
                       :size 12}]
          :textColor @assistant.dim
@@ -103,7 +112,10 @@
      ~(assistant-file-node file removable)
      {:width 2 :height 1 :color transparent}))
 
-(defcomponent assistantExtras "What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is previewed) and its run-once steps, a line each"
+(defcomponent assistantExtras
+  ;; What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is
+  ;; previewed) and its run-once steps, a line each
+  "What a proposal adds beside its edits: its assets (a file card each."
   {:id 0 :assets [] :run []}
   `(column :fitContent height :width 340 :gap 6 :color transparent :role list
      ~(repeat [asset assets :index a]
@@ -121,10 +133,12 @@
      ~(repeat [step run :index r]
        (assistant-run id step r))))
 
-(defpart assistant "What assistant adds."
+(defpart assistant "The assistant's watch, persist, actions and overlays: its launcher and its panel."
   :watch {:state.assistant.picked [{:if ~(some? state.assistant.picked) :then [{:run assistant.attachPicked}]}]}
   :persist [state.assistant.messages state.assistant.decided state.assistant.model]
-  :actions {:assistant.toggle [{:if ~state.assistant.open :then [{:run assistant.close}] :else [{:run assistant.open}]}]
+  :actions {:assistant.toggle [{:if ~state.assistant.open
+                                :then [{:run assistant.close}]
+                                :else [{:run assistant.open}]}]
             :assistant.open [{:set state.assistant.open :to true}
                              {:set state.assistant.unread :to 0}
                              {:set state.assistant.anim :to 0}
@@ -132,8 +146,10 @@
                              {:focus "#assistantComposer"}
                              {:scrollTo "#assistantEnd"}]
             :assistant.close [{:set state.assistant.open :to false} {:focus "#assistantLauncher"}]
-            :assistant.start [{:run assistant.open} {:run assistant.ask :with {:text ~(trim (or-else event.text ""))}}]
-            :assistant.send [{:run assistant.ask :with {:text ~(trim state.assistant.draft)}} {:set state.assistant.draft :to ""}]
+            :assistant.start [{:run assistant.open}
+                              {:run assistant.ask :with {:text ~(trim (or-else event.text ""))}}]
+            :assistant.send [{:run assistant.ask :with {:text ~(trim state.assistant.draft)}}
+                             {:set state.assistant.draft :to ""}]
             :assistant.ask [{:if ~(= (count text) 0) :then [{:stop true}]}
                             {:if ~(> (count state.assistant.attachments) 0)
                              :then [{:push state.assistant.messages
@@ -144,7 +160,8 @@
                             {:ask ~text
                              :attachments ~(map (fn [it] it.id) state.assistant.attachments)
                              :into state.assistant.pending
-                             :options ~(if (and (some? state.assistant.models) (not= state.assistant.models.default ""))
+                             :options ~(if (and (some? state.assistant.models)
+                                                (not= state.assistant.models.default ""))
                                            {:model (if (some (fn [it] (= it.id state.assistant.model))
                                                              state.assistant.models.models)
                                                        state.assistant.model
@@ -155,15 +172,21 @@
             :assistant.attach [{:note "The file dialog: what the person picks lands in picked, and the watch adds it to the next message's files"}
                                {:attach {:multiple true :title ~(t "assistant.attach")}
                                 :into state.assistant.picked
-                                :onError [{:run assistant.attachFailed :with {:message ~(:message (merge {:message ""} error))}}]}]
+                                :onError [{:run assistant.attachFailed :with {:message ~(:message (merge {:message ""}
+                                                                                                         error))}}]}]
             :assistant.drop [{:note "with: files, dropped on the panel from the OS (onDrop's event.files): attached like picked ones"}
                              {:if ~(= (count (or-else files [])) 0) :then [{:stop true}]}
                              {:attach {:from ~files :multiple true}
                               :into state.assistant.picked
-                              :onError [{:run assistant.attachFailed :with {:message ~(:message (merge {:message ""} error))}}]}]
+                              :onError [{:run assistant.attachFailed :with {:message ~(:message (merge {:message ""}
+                                                                                                       error))}}]}]
             :assistant.attachFailed [{:note "with: message, why a file couldn't be attached (its type, its size): said in the conversation"}
                                      {:push state.assistant.messages
-                                      :value ~{:mine false :from (t "assistant.title") :text message :time (now) :error true}}
+                                      :value ~{:mine false
+                                               :from (t "assistant.title")
+                                               :text message
+                                               :time (now)
+                                               :error true}}
                                      {:run assistant.trim}
                                      {:scrollTo "#assistantEnd"}]
             :assistant.attachPicked [{:set state.assistant.attachments
@@ -187,7 +210,9 @@
                          {:push state.assistant.messages
                           :value ~{:mine false
                                    :from event.from
-                                   :text (if (> (count (or-else event.error "")) 0) event.error (or-else event.text ""))
+                                   :text (if (> (count (or-else event.error "")) 0)
+                                             event.error
+                                             (or-else event.text ""))
                                    :time event.time
                                    :error (> (count (or-else event.error "")) 0)
                                    :asked (or-else (:text (find (fn [it] (= it.id event.request)) requests)) "")}}
@@ -219,10 +244,14 @@
                                        :time (now)
                                        :error false
                                        :note true
-                                       :asked (or-else (:text (find (fn [it] (= it.id state.assistant.pending)) requests)) "")}}
+                                       :asked (or-else (:text (find (fn [it] (= it.id state.assistant.pending))
+                                                                    requests))
+                                                       "")}}
                              {:cancelAsk ~(map (fn [it] it.id)
-                                               (filter (fn [it] (or (= it.state "sent") (= it.state "working"))) requests))}
-                             {:if ~(some? state.assistant.simulate) :then [{:set state.assistant.simulate.working :to false}]}
+                                               (filter (fn [it] (or (= it.state "sent") (= it.state "working")))
+                                                       requests))}
+                             {:if ~(some? state.assistant.simulate)
+                              :then [{:set state.assistant.simulate.working :to false}]}
                              {:run assistant.trim}
                              {:focus "#assistantComposer"}
                              {:scrollTo "#assistantEnd"}]
@@ -251,12 +280,15 @@
                                     :onError [{:set state.assistant.models :to nil}]}]
             :assistant.pickModel [{:note "The person's default is kept as '': it follows a later change of the default in the Launcher's Settings"}
                                   {:set state.assistant.model
-                                   :to ~(if (= id (:default (or-else state.assistant.simulate.models state.assistant.models)))
+                                   :to ~(if (= id
+                                               (:default (or-else state.assistant.simulate.models
+                                                                  state.assistant.models)))
                                             ""
                                             id)}
                                   {:set state.assistant.modelMenu :to false}]
             :assistant.clear [{:set state.assistant.messages :to []} {:set state.assistant.decided :to {}}]}
-  :overlays {:assistantLauncher (node#assistantLauncher :when ~(or (or-else state.assistant.simulate.online (> (count peers) 0))
+  :overlays {:assistantLauncher (node#assistantLauncher :when ~(or (or-else state.assistant.simulate.online
+                                                                            (> (count peers) 0))
                                                                    (> (count state.assistant.messages) 0)
                                                                    state.assistant.show)
                                   :use chatLauncher
@@ -275,7 +307,7 @@
 
 ;;; Views
 
-(defview assistant-file-node "#assistant-file-node." [file removable]
+(defview assistant-file-node "A file of a message, as a card." [file removable]
   `(node :when ~removable
      :width 22
      :height 22
@@ -298,7 +330,7 @@
        :strokeWidth 2.5
        :strokeCap round)))
 
-(defview assistant-run "#assistantRun." [id step r]
+(defview assistant-run "A run-once step a proposal holds, as a line." [id step r]
   `(label :id ~(str "assistantRun" r)
      :textColor @assistant.dim
      :wrap true
@@ -318,7 +350,7 @@
                                           0
                                           80)})))))
 
-(defview assistant-header "#assistantHeader." []
+(defview assistant-header "The panel's header: the title, who is connected, the model and the buttons." []
   `(node#assistantHeader :height 56
      :alignSelf stretch
      :color transparent
@@ -356,7 +388,7 @@
        {:anchors {:left 7 :top 15} :width 18 :height 2 :radius 1 :rotate -45 :color @assistant.dim})
      {:anchors {:left 0 :right 0 :bottom 0} :height 1 :color @assistant.border}))
 
-(defview assistant-copy "#assistantCopy." [message m]
+(defview assistant-copy "A message's Copy button." [message m]
   `(node :id ~(str "assistantCopy" m)
      :when ~(not= message.note true)
      :width 26
@@ -383,7 +415,7 @@
        :strokeCap round
        :strokeJoin round)))
 
-(defview assistant-retry "#assistantRetry." [message m]
+(defview assistant-retry "A message's Retry button." [message m]
   `(node :id ~(str "assistantRetry" m)
      :when ~(> (count (or-else message.asked "")) 0)
      :width 26
@@ -408,7 +440,7 @@
        :strokeCap round
        :strokeJoin round)))
 
-(defview assistant-message "#assistantMessage." [message m]
+(defview assistant-message "A message of the conversation: the person's, an agent's or a note." [message m]
   `(column :id ~(str "assistantMessage" m)
      :when ~(= (or-else message.kind "message") "message")
      :fitContent height
@@ -442,7 +474,8 @@
        ~(assistant-copy message m)
        ~(assistant-retry message m))))
 
-(defview assistant-card "#assistantCard." [message m]
+(defview assistant-card "A proposal as a card: its title, its changes, and Preview, Review, Accept and Reject."
+  [message m]
   `(node :id ~(str "assistantCard" message.id)
      :when ~(= message.kind "card")
      :use proposalCard
@@ -474,7 +507,7 @@
             :accentTextColor @assistant.onAccent
             :buttonColor @assistant.raised}))
 
-(defview assistant-waiting "#assistantWaiting." [proposal l]
+(defview assistant-waiting "A proposal waiting for review that no message brought." [proposal l]
   `(node :id ~(str "assistantWaiting" proposal.id)
      :use proposalCard
      :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) l 1)}
@@ -506,7 +539,7 @@
             :accentTextColor @assistant.onAccent
             :buttonColor @assistant.raised}))
 
-(defview assistant-messages "#assistantMessages." []
+(defview assistant-messages "The conversation, newest last, scrolled to the end." []
   `(grid#assistantMessages :columns ["1fr" 8]
      :columnGap 0
      :rowGap 8
@@ -574,7 +607,7 @@
       :color transparent
       :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) 2)}}))
 
-(defview assistant-attach "#assistantAttach." []
+(defview assistant-attach "The button that attaches files to the next message." []
   `(node#assistantAttach :width 32
      :height 32
      :radius 8
@@ -596,7 +629,7 @@
        :strokeWidth 2
        :strokeCap round)))
 
-(defview assistant-model-picker "#assistantModelPicker." []
+(defview assistant-model-picker "The menu of the models the host's agent can use." []
   `(row#assistantModelPicker :when ~(> (count (or-else assistantModels.models [])) 0)
      :fitContent width
      :height 32
@@ -642,7 +675,7 @@
               :dimColor @assistant.dim
               :highlight @assistant.border})))
 
-(defview assistant-composer "#assistantComposer." []
+(defview assistant-composer "The field the person writes in: Enter sends." []
   `(node#assistantComposer :use chatComposer
      :anchors {:left 1 :right 1 :top 1 :bottom 1}
      :with {:bind state.assistant.draft
@@ -667,7 +700,7 @@
      ~(assistant-attach)
      ~(assistant-model-picker)))
 
-(defview assistant-input-card "#assistantInputCard." []
+(defview assistant-input-card "The bottom of the panel: the files to send, the field and its buttons." []
   `(column#assistantInputCard :anchors {:left 12 :right 12 :top 0 :bottom 12}
      :color @assistant.surface
      :radius 16
@@ -689,7 +722,7 @@
      (node :alignSelf stretch :height 100 :color transparent
        ~(assistant-composer))))
 
-(defview assistant-panel "#assistantPanel." []
+(defview assistant-panel "The assistant's panel over the app: the header, the conversation and the field." []
   `(column#assistantPanel :dir auto
      :width 380
      :height ~(min 560 (- (- window.height 120) state.assistant.lift))
