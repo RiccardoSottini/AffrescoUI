@@ -14,28 +14,29 @@
 
 (defcomputed gameMenuItems
   (if (nil? computed.manageGame)
-        []
-        [{:title (t (cond (= computed.manageGame.status "ready") "menu.game.play"
-                          (= computed.manageGame.status "running") "menu.game.stop"
-                          (= computed.manageGame.status "update") "menu.game.update"
-                          (= computed.manageGame.status "downloading") "menu.game.downloading"
-                          :else "menu.game.install"))
-          :enabled (not= computed.manageGame.status "downloading")
-          :run "primary"
-          :with {:game computed.manageGame}}
-         {:separator true}
-         {:title (t (if computed.manageGame.favourite "menu.game.unfavourite" "menu.game.favourite"))
-          :run "toggleFavourite"
-          :with {:id computed.manageGame.id}}
-         {:title (t "menu.game.page") :run "openGame" :with {:id computed.manageGame.id}}
-         {:title (t "menu.game.properties") :run "openProperties" :with {:id computed.manageGame.id :tab "general"}}
-         {:separator true}
-         {:title (t "menu.game.uninstall")
-          :enabled (and computed.manageGame.installed (not= computed.manageGame.status "running"))
-          :run "askUninstall"
-          :with {:id computed.manageGame.id}}]))
+    []
+    [{:title (t (cond (= computed.manageGame.status "ready") "menu.game.play"
+                      (= computed.manageGame.status "running") "menu.game.stop"
+                      (= computed.manageGame.status "update") "menu.game.update"
+                      (= computed.manageGame.status "downloading") "menu.game.downloading"
+                      :else "menu.game.install"))
+      :enabled (not= computed.manageGame.status "downloading")
+      :run "primary"
+      :with {:game computed.manageGame}}
+     {:separator true}
+     {:title (t (if computed.manageGame.favourite "menu.game.unfavourite" "menu.game.favourite"))
+      :run "toggleFavourite"
+      :with {:id computed.manageGame.id}}
+     {:title (t "menu.game.page") :run "openGame" :with {:id computed.manageGame.id}}
+     {:title (t "menu.game.properties") :run "openProperties" :with {:id computed.manageGame.id :tab "general"}}
+     {:separator true}
+     {:title (t "menu.game.uninstall")
+      :enabled (and computed.manageGame.installed (not= computed.manageGame.status "running"))
+      :run "askUninstall"
+      :with {:id computed.manageGame.id}}]))
 
-(defcomponent gameMenu "A game's menu (right click, Shift+F10 or the gear): play or install, favourite, properties, uninstall."
+(defcomponent gameMenu
+  "A game's menu (right click, Shift+F10 or the gear): play or install, favourite, properties, uninstall."
   {}
   `(node#game-menu :use contextMenu
      :with {:open state.gameMenu.open
@@ -48,7 +49,8 @@
             :highlight @color.hover
             :items ~computed.gameMenuItems}))
 
-(defcomponent propertiesDialog "A game's properties: launch options and in-game settings, updates, installed files, extra content."
+(defcomponent propertiesDialog
+  "A game's properties: launch options and in-game settings, updates, installed files, extra content."
   {}
   `(node :use dialog
      :with {:open state.properties.open
@@ -86,21 +88,21 @@
 
 (defview properties-tabs "#properties-tabs." []
   `(column#properties-tabs :width 150 :alignSelf stretch :gap 2 :role tablist :arrows vertical
-     ~(repeat [tab ["general", "updates", "files", "dlc"]]
-       `(label :id ~(str "properties-tab-" tab)
-          :anchors {:left 0 :right 0}
-          :height 30
-          :padding 10
-          :radius 3
-          :role tab
-          :focusable true
-          :cursor hand
-          :selected ~(= state.properties.tab tab)
-          :text ~(t (str "properties.tab." tab))
-          :color ~(if (= state.properties.tab tab) "@color.select" "transparent")
-          :textColor ~(if (= state.properties.tab tab) "@color.bright" "@color.muted")
-          :hover {:textColor @color.bright}
-          :onClick {:set state.properties.tab :to ~tab}))))
+     ~(repeat [tab ["general" , "updates" , "files" , "dlc"]]
+        `(label :id ~(str "properties-tab-" tab)
+           :anchors {:left 0 :right 0}
+           :height 30
+           :padding 10
+           :radius 3
+           :role tab
+           :focusable true
+           :cursor hand
+           :selected ~(= state.properties.tab tab)
+           :text ~(t (str "properties.tab." tab))
+           :color ~(if (= state.properties.tab tab) "@color.select" "transparent")
+           :textColor ~(if (= state.properties.tab tab) "@color.bright" "@color.muted")
+           :hover {:textColor @color.bright}
+           :onClick {:set state.properties.tab :to ~tab}))))
 
 (defview properties-launch "#properties-launch." []
   `(textarea#properties-launch :anchors {:left 0 :right 0 :top 24}
@@ -175,12 +177,12 @@
        :borderWidth 2
        :borderColor ~(if (= (or-else computed.manageGame.updates "auto") "auto") "@color.accent" "@color.dim")
        :color transparent
-       {:when ~(= (or-else computed.manageGame.updates "auto") "auto")
-        :anchors {:left 3 :top 3}
-        :width 4
-        :height 4
-        :radius 2
-        :color @color.accent})
+       (node :when ~(= (or-else computed.manageGame.updates "auto") "auto")
+         :anchors {:left 3 :top 3}
+         :width 4
+         :height 4
+         :radius 2
+         :color @color.accent))
      (label :grow 1 :height 22 :text ~(t "properties.updates.auto") :textColor @color.text)))
 
 (defview properties-updates-launch "#properties-updates-launch." []
@@ -203,12 +205,12 @@
        :borderWidth 2
        :borderColor ~(if (= (or-else computed.manageGame.updates "auto") "launch") "@color.accent" "@color.dim")
        :color transparent
-       {:when ~(= (or-else computed.manageGame.updates "auto") "launch")
-        :anchors {:left 3 :top 3}
-        :width 4
-        :height 4
-        :radius 2
-        :color @color.accent})
+       (node :when ~(= (or-else computed.manageGame.updates "auto") "launch")
+         :anchors {:left 3 :top 3}
+         :width 4
+         :height 4
+         :radius 2
+         :color @color.accent))
      (label :grow 1 :height 22 :text ~(t "properties.updates.launch") :textColor @color.text)))
 
 (defview properties-updates-high "#properties-updates-high." []
@@ -231,12 +233,12 @@
        :borderWidth 2
        :borderColor ~(if (= (or-else computed.manageGame.updates "auto") "high") "@color.accent" "@color.dim")
        :color transparent
-       {:when ~(= (or-else computed.manageGame.updates "auto") "high")
-        :anchors {:left 3 :top 3}
-        :width 4
-        :height 4
-        :radius 2
-        :color @color.accent})
+       (node :when ~(= (or-else computed.manageGame.updates "auto") "high")
+         :anchors {:left 3 :top 3}
+         :width 4
+         :height 4
+         :radius 2
+         :color @color.accent))
      (label :grow 1 :height 22 :text ~(t "properties.updates.high") :textColor @color.text)))
 
 (defview properties-page-node-view "#properties-page-node-view." []
@@ -267,7 +269,8 @@
        :height 32
        :with {:title ~(t "properties.verify") :icon shield-check}
        :disabled ~(= state.properties.verify "running")
-       :onClick [{:set state.properties.verify :to running} {:after 1500 :do [{:set state.properties.verify :to done}]}])
+       :onClick [{:set state.properties.verify :to running}
+                 {:after 1500 :do [{:set state.properties.verify :to done}]}])
      (label#properties-verify-result :live polite
        :font small
        :anchors {:left 0 :right 0 :top 168}

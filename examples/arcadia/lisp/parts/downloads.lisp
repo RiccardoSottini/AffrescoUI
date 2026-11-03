@@ -71,19 +71,20 @@
 
 (defcomputed dlLeft
   (if (or (nil? computed.download) (= computed.dlNow 0))
-        0
-        (ceil (/ (/ (* (- computed.dlSize computed.download.doneGb) 1024) computed.dlNow) 60))))
+    0
+    (ceil (/ (/ (* (- computed.dlSize computed.download.doneGb) 1024) computed.dlNow) 60))))
 
-(defcomponent dlGraph "The network rate as bars and the disk rate as a line over the last samples, newest on the right."
+(defcomponent dlGraph
+  "The network rate as bars and the disk rate as a line over the last samples, newest on the right."
   {}
   `(row#dl-graph :width 336 :height 110 :gap 1 :alignItems end :color "#00000033"
      ~(repeat [r state.dlRate :index k]
-       `(node :width 6 :height 110 :color transparent
-          {:anchors {:left 0 :right 0 :bottom 0}
-           :height ~(round (* r 1.8))
-           :color transparent
-           :gradient {:kind linear :stops [@dl.net @dl.netSoft]}}
-          {:anchors {:left 0 :right 0 :bottom ~(round (* r 1.8 0.82))} :height 2 :color @dl.disk}))))
+        `(node :width 6 :height 110 :color transparent
+           (node :anchors {:left 0 :right 0 :bottom 0}
+             :height ~(round (* r 1.8))
+             :color transparent
+             :gradient {:kind linear :stops [@dl.net @dl.netSoft]})
+           (node :anchors {:left 0 :right 0 :bottom ~(round (* r 1.8 0.82))} :height 2 :color @dl.disk)))))
 
 (defcomponent dlStat "One figure under the graph: a caps label over a value."
   {:label "" :value "" :color @color.bright}
@@ -91,14 +92,15 @@
      (label :font small :text ~(upper-case label) :height 16 :anchors {:left 0 :right 0} :textColor @color.muted)
      (label :font strong :text ~value :height 20 :anchors {:left 0 :right 0} :textColor ~color)))
 
-(defcomponent dlCurrent "The current download over its art: capsule, title, progress, pause, and the graph with its figures."
+(defcomponent dlCurrent
+  "The current download over its art: capsule, title, progress, pause, and the graph with its figures."
   {}
   `(node#dl-current :height 230 :anchors {:left 0 :right 0} :color @dl.band
      (image :when ~(some? computed.download)
        :fill true
        :fit cover
        :file ~(str "../assets/art/" computed.download.id "/hero.svg"))
-     {:fill true :color @dl.shade}
+     (node :fill true :color @dl.shade)
      (label :when ~(nil? computed.download)
        :font heading
        :text ~(t "dl.idle")
@@ -107,7 +109,8 @@
        :textColor @color.muted)
      ~(dl-current-row-view)))
 
-(defcomponent downloadsPage "Downloads: the current one with its graph, the queue to reorder, unscheduled items and completed ones."
+(defcomponent downloadsPage
+  "Downloads: the current one with its graph, the queue to reorder, unscheduled items and completed ones."
   {}
   `(node#downloads :fill true
      :color @color.page
@@ -119,10 +122,10 @@
                           {:set state.dlRate
                            :to ~(concat (slice state.dlRate 1)
                                         [(if (> settings.downloads.limit 0)
-                                             (min settings.downloads.limit
-                                                  (- (+ 34 (* state.dlTick 7))
-                                                     (* (floor (/ (* state.dlTick 7) 19)) 19)))
-                                             (- (+ 34 (* state.dlTick 7)) (* (floor (/ (* state.dlTick 7) 19)) 19)))])}
+                                           (min settings.downloads.limit
+                                                (- (+ 34 (* state.dlTick 7))
+                                                   (* (floor (/ (* state.dlTick 7) 19)) 19)))
+                                           (- (+ 34 (* state.dlTick 7)) (* (floor (/ (* state.dlTick 7) 19)) 19)))])}
                           {:forEach state.downloads
                            :as d
                            :index i
@@ -132,7 +135,8 @@
                           {:if ~(>= computed.download.doneGb computed.dlSize)
                            :then [~(handler dlFinish computed.download.id)]}]}]}
      (column#dl-scroll :fill true :scroll vertical
-       (column :height ~(+ 420 (* 92 (+ (count computed.dlQueue) (count computed.dlParked) (count computed.dlDone))))
+       (column :height ~(+ 420
+                           (* 92 (+ (count computed.dlQueue) (count computed.dlParked) (count computed.dlDone))))
          :anchors {:left 0 :right 0}
          (node :use dlCurrent)
          ~(dl-scroll-column)))))
@@ -174,11 +178,11 @@
        :role progressbar
        :label ~(t "dl.progress")
        :value ~(/ computed.download.doneGb computed.dlSize)
-       {:anchors {:left 0 :top 0}
-        :height 8
-        :radius 4
-        :width ~(str (text (floor (/ (* 100 computed.download.doneGb) computed.dlSize))) "%")
-        :color ~(if state.dlPaused "@color.muted" "@dl.net")})
+       (node :anchors {:left 0 :top 0}
+         :height 8
+         :radius 4
+         :width ~(str (text (floor (/ (* 100 computed.download.doneGb) computed.dlSize))) "%")
+         :color ~(if state.dlPaused "@color.muted" "@dl.net")))
      (label#dl-pause :icon ~(if state.dlPaused "play" "pause")
        :text ""
        :width 30
@@ -212,7 +216,10 @@
      (panel :color transparent :height 8 :width 1)
      ~(dl-current-row)
      (row :height 20 :anchors {:left 0 :right 0} :gap 16
-       (label :text ~(str (formatNumber computed.download.doneGb 1 1) " GB / " (formatNumber computed.dlSize 1 1) " GB")
+       (label :text ~(str (formatNumber computed.download.doneGb 1 1)
+                          " GB / "
+                          (formatNumber computed.dlSize 1 1)
+                          " GB")
          :fitText true
          :font small
          :textColor @color.text)
@@ -239,7 +246,9 @@
            :with {:label ~(t "dl.current") :value ~(str (formatNumber computed.dlNow 1 1) " MB/s") :color @dl.net})
          (node :use dlStat :with {:label ~(t "dl.peak") :value ~(str (formatNumber computed.dlPeak 1 1) " MB/s")})
          (node :use dlStat
-           :with {:label ~(t "dl.disk") :value ~(str (formatNumber (* computed.dlNow 0.82) 1 1) " MB/s") :color @dl.disk})))))
+           :with {:label ~(t "dl.disk")
+                  :value ~(str (formatNumber (* computed.dlNow 0.82) 1 1) " MB/s")
+                  :color @dl.disk})))))
 
 (defview downloads-column "#downloads-column." [q]
   `(column :grow 1 :height 52 :gap 4
@@ -524,19 +533,16 @@
        :height 30
        :anchors {:left 0 :right 0}
        :textColor @color.dim)
-     ~(repeat [q computed.dlQueue :index k :key q.d.id]
-       (downloads-view-5 q k))
+     ~(repeat [q computed.dlQueue :index k :key q.d.id] (downloads-view-5 q k))
      (panel :color transparent :height 8 :width 1)
      (row#dl-parked :height 44 :anchors {:left 0 :right 0} :gap 8 :alignItems center
        (label :text ~(upper-case (t "dl.unscheduled")) :fitText true :font caps :textColor @color.bright)
        (label :text ~(str "(" (count computed.dlParked) ")") :fitText true :font small :textColor @color.muted)
        (panel :color transparent :grow 1 :height 1))
-     ~(repeat [d computed.dlParked :key d.id]
-       (downloads-view-8 d))
+     ~(repeat [d computed.dlParked :key d.id] (downloads-view-8 d))
      (panel :color transparent :height 8 :width 1)
      ~(dl-done)
-     ~(repeat [d computed.dlDone :key d.id]
-       (downloads-view-10 d))))
+     ~(repeat [d computed.dlDone :key d.id] (downloads-view-10 d))))
 
 (defview dl-done "#dl-done, in dl-scroll-column." []
   `(row#dl-done :height 44 :anchors {:left 0 :right 0} :gap 8 :alignItems center

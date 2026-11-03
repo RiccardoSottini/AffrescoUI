@@ -22,21 +22,21 @@
 
 (defcomputed friendGroups
   (filter (fn [it] (> (count it.friends) 0))
-            [{:key "ingame"
-              :friends (filter (fn [it]
-                                 (and (= it.presence "ingame")
-                                      (or (empty? state.friendQuery) (some? (fuzzy state.friendQuery it.name)))))
-                               data.friends)}
-             {:key "online"
-              :friends (filter (fn [it]
-                                 (and (or (= it.presence "online") (= it.presence "away"))
-                                      (or (empty? state.friendQuery) (some? (fuzzy state.friendQuery it.name)))))
-                               data.friends)}
-             {:key "offline"
-              :friends (filter (fn [it]
-                                 (and (= it.presence "offline")
-                                      (or (empty? state.friendQuery) (some? (fuzzy state.friendQuery it.name)))))
-                               data.friends)}]))
+          [{:key "ingame"
+            :friends (filter (fn [it]
+                               (and (= it.presence "ingame")
+                                    (or (empty? state.friendQuery) (some? (fuzzy state.friendQuery it.name)))))
+                             data.friends)}
+           {:key "online"
+            :friends (filter (fn [it]
+                               (and (or (= it.presence "online") (= it.presence "away"))
+                                    (or (empty? state.friendQuery) (some? (fuzzy state.friendQuery it.name)))))
+                             data.friends)}
+           {:key "offline"
+            :friends (filter (fn [it]
+                               (and (= it.presence "offline")
+                                    (or (empty? state.friendQuery) (some? (fuzzy state.friendQuery it.name)))))
+                             data.friends)}]))
 
 (defcomputed chatFriend (find (fn [it] (= it.id state.chatWith)) data.friends))
 
@@ -44,15 +44,16 @@
 
 (defcomputed inviteGame
   (or-else (find (fn [it] (= it.id state.running)) data.games)
-             (get (sort-by (fn [it] it.lastPlayed)
-                           >
-                           (filter (fn [it] (and it.installed (some? it.lastPlayed))) computed.owned))
-                  0)))
+           (get (sort-by (fn [it] it.lastPlayed)
+                         >
+                         (filter (fn [it] (and it.installed (some? it.lastPlayed))) computed.owned))
+                0)))
 
 (defcomputed profileRecent
   (slice (sort-by (fn [it] it.lastPlayed) > (filter (fn [it] (some? it.lastPlayed)) computed.owned)) 0 4))
 
-(defcomponent avatar "A person's avatar with a frame in their presence's colour: in a game lime, online lilac, offline grey."
+(defcomponent avatar
+  "A person's avatar with a frame in their presence's colour: in a game lime, online lilac, offline grey."
   {:avatar fox :presence online :size 36}
   `(panel :let {:p ~presence}
      :width ~size
@@ -63,7 +64,8 @@
                    :else "@color.online")
      (image :file ~(str "../assets/art/avatars/" avatar ".svg") :fill 2 :fit cover)))
 
-(defcomponent friendRow "A friend in the list: avatar, name in their presence's colour, what they are doing; opens the chat."
+(defcomponent friendRow
+  "A friend in the list: avatar, name in their presence's colour, what they are doing; opens the chat."
   {:friend {}}
   `(row :id ~(str "friend-" friend.id)
      :let {:p ~friend.presence :here ~(= state.chatWith friend.id)}
@@ -110,7 +112,8 @@
        :label ~(t "friends.unread"))
      (panel :color transparent :width 14 :height 1)))
 
-(defcomponent friendsList "The left column: your own card with its status menu, a search, and the friends grouped by presence."
+(defcomponent friendsList
+  "The left column: your own card with its status menu, a search, and the friends grouped by presence."
   {}
   `(column#friends-side :width 300 :anchors {:top 0 :bottom 0} :color @color.side
      (row#me-card :height 76 :anchors {:left 0 :right 0} :gap 12 :alignItems center :color @color.sideTop
@@ -119,13 +122,12 @@
        (column :grow 1 :height 42 :gap 2 :alignSelf center
          (label :font heading :text ~state.user.name :textColor @color.online :anchors {:left 0 :right 0} :height 22)
          ~(my-status))
-       {:id add-friend
-        :style iconButton
-        :font heading
-        :icon user-plus
-        :tooltip ~(t "friends.add")
-        :label ~(t "friends.add")
-        :onClick ~(handler addFriendDialog)}
+       (node#add-friend :style iconButton
+         :font heading
+         :icon user-plus
+         :tooltip ~(t "friends.add")
+         :label ~(t "friends.add")
+         :onClick ~(handler addFriendDialog))
        (panel :color transparent :width 10 :height 1))
      (row :height 48 :anchors {:left 12 :right 12} :alignItems center
        (textarea#friends-search :grow 1
@@ -142,7 +144,8 @@
          (label :icon search :text "" :textColor @color.dim :fitText true :anchors {:right 8 :top 6})))
      ~(friends-scroll)))
 
-(defcomponent chatMessage "One message: a bubble on the right for yours, on the left with the friend's avatar for theirs; an invitation to play is a card with the game's cover and Join."
+(defcomponent chatMessage
+  "One message: a bubble on the right for yours, on the left with the friend's avatar for theirs; an invitation to play is a card with the game's cover and Join."
   {:m {} :friend {}}
   `(row :let {:g ~(if (nil? m.game) nil (find (fn [it] (= it.id m.game)) data.games))}
      :anchors {:left 0 :right 0}
@@ -151,7 +154,9 @@
      :justify ~(if m.mine "end" "start")
      :alignItems end
      :role listitem
-     :label ~(str (if m.mine state.user.name friend.name) ": " (if (nil? g) m.text (t "chat.invite" {:game g.title})))
+     :label ~(str (if m.mine state.user.name friend.name)
+                  ": "
+                  (if (nil? g) m.text (t "chat.invite" {:game g.title})))
      (image :when ~(not m.mine)
        :file ~(str "../assets/art/avatars/" friend.avatar ".svg")
        :width 28
@@ -160,7 +165,8 @@
        :radius 14)
      ~(chat-message-column m)))
 
-(defcomponent chatPane "The chat with the friend chosen on the left: their name and presence, the messages with a line for each day, the friend typing, and a box to write in (Enter sends)."
+(defcomponent chatPane
+  "The chat with the friend chosen on the left: their name and presence, the messages with a line for each day, the friend typing, and a box to write in (Enter sends)."
   {}
   `(node#chat :grow 1 :anchors {:top 0 :bottom 0} :color @color.main
      (column :when ~(nil? computed.chatFriend) :fill true :justify center :alignItems center :gap 8
@@ -168,14 +174,16 @@
        (label#chat-empty :fitText true :textColor @color.muted :text ~(t "chat.choose")))
      ~(chat-column)))
 
-(defcomponent addFriendDialog "Add a friend by name: the request goes out and they show as offline until they accept."
+(defcomponent addFriendDialog
+  "Add a friend by name: the request goes out and they show as offline until they accept."
   {}
   `(node :use dialog
      :with {:open state.addFriend.open
             :title ~(t "friends.add")
             :height 180
             :message ~(t "friends.addHelp" {:code state.user.code})
-            :buttons [{:title ~(t "friends.sendRequest") :run addFriend :default true} {:title ~(t "dialog.cancel")}]}
+            :buttons [{:title ~(t "friends.sendRequest") :run addFriend :default true}
+                      {:title ~(t "dialog.cancel")}]}
      (textarea#add-friend-name :height 32
        :padding 8
        :anchors {:left 20 :right 20 :top 80}
@@ -206,7 +214,8 @@
      (label :font nav :text ~value :textColor @color.bright :anchors {:left 0 :right 0} :height 26)
      (label :font small :text ~title :textColor @color.muted :anchors {:left 0 :right 0} :height 16)))
 
-(defcomponent profilePage "The profile: the banner with the avatar, level and status; numbers; a showcase of favourites; the games played lately with their hours and achievements; and friends."
+(defcomponent profilePage
+  "The profile: the banner with the avatar, level and status; numbers; a showcase of favourites; the games played lately with their hours and achievements; and friends."
   {}
   `(node#profile-page :fill true :color @color.page
      (column#profile-scroll :fill true :scroll vertical
@@ -214,7 +223,9 @@
        (row#profile-stats :height 88 :anchors {:left 40 :right 40} :gap 24 :alignItems center
          (node :use profileStat :with {:id stat-games :value ~(count computed.owned) :title ~(t "profile.games")})
          (node :use profileStat
-           :with {:id stat-hours :value ~(formatNumber (sum computed.owned (fn [it] it.hours)) 0 0) :title ~(t "profile.hours")})
+           :with {:id stat-hours
+                  :value ~(formatNumber (sum computed.owned (fn [it] it.hours)) 0 0)
+                  :title ~(t "profile.hours")})
          (node :use profileStat
            :with {:id stat-achievements
                   :value ~(sum computed.owned (fn [it] (or-else it.achievements.0 0)))
@@ -256,19 +267,22 @@
                            ["online" "away" "invisible" "offline"])})))
 
 (defview friends-scroll "#friends-scroll." []
-  `(column#friends-scroll :grow 1 :anchors {:left 0 :right 0} :scroll vertical :role list :label ~(t "nav.community")
+  `(column#friends-scroll :grow 1
+     :anchors {:left 0 :right 0}
+     :scroll vertical
+     :role list
+     :label ~(t "nav.community")
      ~(repeat [group computed.friendGroups :key group.key]
-       `(column :id ~(str "friends-group-" group.key)
-          :anchors {:left 0 :right 0}
-          :height ~(+ 34 (* 52 (count group.friends)))
-          (label :style caps
-            :height 34
-            :anchors {:left 14 :right 14}
-            :align {:vertical center}
-            :role heading
-            :text ~(t (str "friends.group." group.key) {:n (count group.friends)}))
-          ~(repeat [f group.friends :key f.id]
-            `(node :use friendRow :with {:friend ~f}))))
+        `(column :id ~(str "friends-group-" group.key)
+           :anchors {:left 0 :right 0}
+           :height ~(+ 34 (* 52 (count group.friends)))
+           (label :style caps
+             :height 34
+             :anchors {:left 14 :right 14}
+             :align {:vertical center}
+             :role heading
+             :text ~(t (str "friends.group." group.key) {:n (count group.friends)}))
+           ~(repeat [f group.friends :key f.id] `(node :use friendRow :with {:friend ~f}))))
      (label :when ~(= (sum computed.friendGroups (fn [it] (count it.friends))) 0)
        :height 60
        :anchors {:left 14 :right 14}
@@ -290,9 +304,8 @@
      :text ~(t (if g.installed "chat.join" "chat.install"))
      :gradient {:kind linear
                 :angle 90
-                :stops [~(if g.installed "@color.play" "@color.warm") ~(if g.installed
-                                                                           "@color.playEnd"
-                                                                           "@color.warmEnd")]}
+                :stops [~(if g.installed "@color.play" "@color.warm")
+                        ~(if g.installed "@color.playEnd" "@color.warmEnd")]}
      :textColor "#ffffff"
      :onClick ~(handler primary g)))
 
@@ -319,7 +332,10 @@
        (panel :color transparent :width 2 :height 1)
        (image :file ~(str "../assets/art/" g.id "/cover.svg") :width 48 :height 72 :fit cover :radius 3)
        (column :grow 1 :height 64 :gap 4 :alignSelf center
-         (label :style caps :height 16 :anchors {:left 0 :right 0} :text ~(t (if m.mine "chat.invited" "chat.invites")))
+         (label :style caps
+           :height 16
+           :anchors {:left 0 :right 0}
+           :text ~(t (if m.mine "chat.invited" "chat.invites")))
          (label :font strong :height 18 :anchors {:left 0 :right 0} :text ~g.title :textColor @color.bright)
          ~(community-view m)))
      (label :font small
@@ -342,8 +358,8 @@
      :hover {:color @color.hover :textColor @color.bright}
      :disabled ~(nil? computed.inviteGame)
      :tooltip ~(if (nil? computed.inviteGame)
-                   (t "chat.nothingToInvite")
-                   (t "chat.inviteTo" {:game computed.inviteGame.title}))
+                 (t "chat.nothingToInvite")
+                 (t "chat.inviteTo" {:game computed.inviteGame.title}))
      :text ~(t "chat.inviteButton")
      :onClick ~(handler inviteToPlay)))
 
@@ -356,20 +372,22 @@
      :onShow [{:scrollTo "#chat-end"}]
      (panel :color transparent :width 1 :height 8)
      ~(repeat [m computed.chat :index i :key m.id]
-       `(column :anchors {:left 24 :right 24} :fitContent height :gap 10
-          (row :when ~(or (= i 0) (not= (floor (/ (get-in computed.chat [(- i 1) :at]) 86400000)) (floor (/ m.at 86400000))))
-            :height 20
-            :anchors {:left 0 :right 0}
-            :gap 12
-            :alignItems center
-            (panel :grow 1 :height 1 :color @color.border)
-            (label :style caps
-              :fitText true
-              :text ~(cond (>= m.at state.today) (t "time.today")
-                           (>= m.at (- state.today 86400000)) (t "time.yesterday")
-                           :else (formatDate m.at "medium" "utc")))
-            (panel :grow 1 :height 1 :color @color.border))
-          (node :use chatMessage :with {:m ~m :friend ~friend})))
+        `(column :anchors {:left 24 :right 24} :fitContent height :gap 10
+           (row :when ~(or (= i 0)
+                           (not= (floor (/ (get-in computed.chat [(- i 1) :at]) 86400000))
+                                 (floor (/ m.at 86400000))))
+             :height 20
+             :anchors {:left 0 :right 0}
+             :gap 12
+             :alignItems center
+             (panel :grow 1 :height 1 :color @color.border)
+             (label :style caps
+               :fitText true
+               :text ~(cond (>= m.at state.today) (t "time.today")
+                            (>= m.at (- state.today 86400000)) (t "time.yesterday")
+                            :else (formatDate m.at "medium" "utc")))
+             (panel :grow 1 :height 1 :color @color.border))
+           (node :use chatMessage :with {:m ~m :friend ~friend})))
      (label#chat-typing :when ~(= state.typing friend.id)
        :font small
        :height 18
@@ -420,19 +438,22 @@
        (panel :color transparent :width 18 :height 1)
        (node :use avatar :with {:avatar ~friend.avatar :presence ~friend.presence :size 40})
        (column :grow 1 :height 40 :gap 2 :alignSelf center
-         (label#chat-name :font heading :text ~friend.name :textColor @color.bright :anchors {:left 0 :right 0} :height 22)
+         (label#chat-name :font heading
+           :text ~friend.name
+           :textColor @color.bright
+           :anchors {:left 0 :right 0}
+           :height 22)
          (label :font small
            :anchors {:left 0 :right 0}
            :height 16
            :textColor @color.muted
            :text ~(if (= friend.presence "ingame")
-                      (t "friends.playing" {:game (:title (find (fn [it] (= it.id friend.game)) data.games))})
-                      (t (str "presence." friend.presence)))))
+                    (t "friends.playing" {:game (:title (find (fn [it] (= it.id friend.game)) data.games))})
+                    (t (str "presence." friend.presence)))))
        ~(chat-invite)
        (panel :color transparent :width 18 :height 1))
      (panel :height 1 :anchors {:left 0 :right 0} :color @color.border)
-     (node :grow 1 :height 0 :alignSelf stretch :color transparent
-       ~(chat-messages))
+     (node :grow 1 :height 0 :alignSelf stretch :color transparent ~(chat-messages))
      ~(chat-row)))
 
 (defview profile-banner "#profile-banner." []
@@ -453,7 +474,9 @@
        (label :anchors {:left 0 :right 0}
          :height 20
          :textColor @color.muted
-         :text ~(str (t "profile.since" {:year (text state.user.since)}) " · " (t (str "presence." state.user.status)))))
+         :text ~(str (t "profile.since" {:year (text state.user.since)})
+                     " · "
+                     (t (str "presence." state.user.status)))))
      (column#profile-level :width 140 :height 120 :gap 6 :alignItems center :alignSelf center
        (label :font small :text ~(t "profile.level") :textColor @color.muted :fitText true)
        (label :font nav
@@ -497,10 +520,10 @@
          :textColor @color.muted
          :text ~(t "profile.achieved" {:got g.achievements.0 :total g.achievements.1}))
        (node :height 6 :radius 3 :anchors {:left 0 :right 0} :color @color.raised
-         {:anchors {:left 0 :top 0 :bottom 0}
-          :radius 3
-          :width ~(str (text (floor (/ (* 100 g.achievements.0) (max 1 g.achievements.1)))) "%")
-          :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]}}))
+         (node :anchors {:left 0 :top 0 :bottom 0}
+           :radius 3
+           :width ~(str (text (floor (/ (* 100 g.achievements.0) (max 1 g.achievements.1)))) "%")
+           :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]})))
      (panel :color transparent :width 16 :height 1)))
 
 (defview profile-friends-row "#profile-friends-row." [f]
@@ -530,10 +553,9 @@
        (label :style caps :height 18 :anchors {:left 0 :right 0} :role heading :text ~(t "profile.showcase"))
        (row#profile-showcase :height 180 :gap 14 :anchors {:left 0 :right 0}
          ~(repeat [g (slice (filter (fn [it] it.favourite) computed.owned) 0 5) :key g.id]
-           `(node :use capsule :with {:game ~g :width 116})))
+            `(node :use capsule :with {:game ~g :width 116})))
        (label :style caps :height 18 :anchors {:left 0 :right 0} :role heading :text ~(t "profile.recent"))
-       ~(repeat [g computed.profileRecent :key g.id]
-         (community-view-view g)))
+       ~(repeat [g computed.profileRecent :key g.id] (community-view-view g)))
      (column#profile-friends :width 260 :gap 8 :alignSelf stretch
        (panel :color transparent :width 1 :height 16)
        (label :style caps
@@ -542,4 +564,4 @@
          :role heading
          :text ~(t "profile.friendsCount" {:n (count data.friends)}))
        ~(repeat [f (slice (sort-by (fn [it] (if (= it.presence "offline") 1 0)) data.friends) 0 8) :key f.id]
-         (profile-friends-row f)))))
+          (profile-friends-row f)))))

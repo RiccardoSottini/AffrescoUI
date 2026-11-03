@@ -55,17 +55,17 @@
   {}
   `(row :height 30 :anchors {:left 0 :right 0} :color @color.top :alignItems center
      ~(menus)
-     {:id tv-button
-      :style barButton
-      :icon sofa
-      :text ""
-      :tooltip ~(t "menu.tv")
-      :label ~(t "menu.tv")
-      :onClick enterCouch}
+     (node#tv-button :style barButton
+       :icon sofa
+       :text ""
+       :tooltip ~(t "menu.tv")
+       :label ~(t "menu.tv")
+       :onClick enterCouch)
      ~(bell)
      ~(account-view)))
 
-(defcomponent navRow "The navigation: back and forward on the left, then discover, my games, friends and the profile as one segmented group in the middle, the current one lit."
+(defcomponent navRow
+  "The navigation: back and forward on the left, then discover, my games, friends and the profile as one segmented group in the middle, the current one lit."
   {}
   `(row :height 50 :anchors {:left 0 :right 0} :color @color.top :alignItems center
      (panel :width 12 :height 1 :color transparent)
@@ -102,7 +102,8 @@
      (panel :grow 1 :height 1 :color transparent)
      (panel :width 80 :height 1 :color transparent)))
 
-(defcomponent bottomBar "The bottom bar: add a game, the download in progress (or a link to the downloads) and friends and chat."
+(defcomponent bottomBar
+  "The bottom bar: add a game, the download in progress (or a link to the downloads) and friends and chat."
   {}
   `(row :height 40
      :anchors {:left 0 :right 0}
@@ -126,12 +127,11 @@
      (panel :grow 1 :height 1 :color transparent)
      ~(downloads-status)
      (panel :grow 1 :height 1 :color transparent)
-     {:id friends-chat
-      :style barButton
-      :font default
-      :icon message-square
-      :text ~(t "bottom.friends")
-      :onClick ~(handler showCommunity)}
+     (node#friends-chat :style barButton
+       :font default
+       :icon message-square
+       :text ~(t "bottom.friends")
+       :onClick ~(handler showCommunity))
      (panel :width 8 :height 1 :color transparent)))
 
 (defcomponent comingSoon "The comingSoon component."
@@ -221,7 +221,9 @@
               :placement below-end
               :items ~(map-indexed (fn [index it]
                                      {:title (t it.text
-                                                {:game (or-else it.game "") :who (or-else it.who "") :n (or-else it.n 0)})
+                                                {:game (or-else it.game "")
+                                                 :who (or-else it.who "")
+                                                 :n (or-else it.n 0)})
                                       :icon it.icon
                                       :run "openNotice"
                                       :with {:i index}})
@@ -263,14 +265,10 @@
                       {:title ~(t "account.signOut") :run signOut}]})))
 
 (defview account-wallet "#account-wallet, in account-view." []
-  `(label#account-wallet :font
-                         small
-                         :text
-                         ~(formatCurrency state.user.wallet "EUR")
-                         :textColor
-                         @color.muted
-                         :fitText
-                         true))
+  `(label#account-wallet :font small
+     :text ~(formatCurrency state.user.wallet "EUR")
+     :textColor @color.muted
+     :fitText true))
 
 (defview nav-tabs "#nav-tabs." []
   `(row#nav-tabs :height 38
@@ -283,15 +281,15 @@
      :role tablist
      (panel :width 2 :height 1 :color transparent)
      ~(repeat [tab ["store" "library" "community" "profile"]]
-       `{:id ~(str "nav-" tab)
-         :style navTab
-         :text ~(if (= tab "profile") state.user.name (t (str "nav." tab)))
-         :textColor ~(if (= computed.here.tab tab) "@color.onAccent" "@color.text")
-         :color ~(if (= computed.here.tab tab) "@color.accent" "transparent")
-         :hover {:textColor ~(if (= computed.here.tab tab) "@color.onAccent" "@color.bright")
-                 :color ~(if (= computed.here.tab tab) "@color.accent" "@color.raised")}
-         :selected ~(= computed.here.tab tab)
-         :onClick ~(handler go tab "home" nil)})
+        `(node :id ~(str "nav-" tab)
+           :style navTab
+           :text ~(if (= tab "profile") state.user.name (t (str "nav." tab)))
+           :textColor ~(if (= computed.here.tab tab) "@color.onAccent" "@color.text")
+           :color ~(if (= computed.here.tab tab) "@color.accent" "transparent")
+           :hover {:textColor ~(if (= computed.here.tab tab) "@color.onAccent" "@color.bright")
+                   :color ~(if (= computed.here.tab tab) "@color.accent" "@color.raised")}
+           :selected ~(= computed.here.tab tab)
+           :onClick ~(handler go tab "home" nil)))
      (panel :width 2 :height 1 :color transparent)))
 
 (defview downloads-status-column "#downloads-status-column." []
@@ -301,20 +299,19 @@
        :height 15
        :textColor @color.text
        :text ~(if computed.download
-                  (t "bottom.downloading"
-                     {:title computed.downloadGame.title
-                      :percent (floor (* (/ computed.download.doneGb computed.downloadGame.sizeGb) 100))})
-                  (t "bottom.manage")))
+                (t "bottom.downloading"
+                   {:title computed.downloadGame.title
+                    :percent (floor (* (/ computed.download.doneGb computed.downloadGame.sizeGb) 100))})
+                (t "bottom.manage")))
      (node#downloads-track :when ~(some? computed.download)
        :anchors {:left 0 :right 0}
        :height 4
        :color @color.raised
        :radius 2
-       {:id downloads-fill
-        :anchors {:left 0 :top 0 :bottom 0}
-        :radius 2
-        :width ~(str (text (floor (/ (* 100 computed.download.doneGb) computed.downloadGame.sizeGb))) "%")
-        :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]}})))
+       (node#downloads-fill :anchors {:left 0 :top 0 :bottom 0}
+         :radius 2
+         :width ~(str (text (floor (/ (* 100 computed.download.doneGb) computed.downloadGame.sizeGb))) "%")
+         :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]}))))
 
 (defview downloads-status "#downloads-status." []
   `(row#downloads-status :width 340
@@ -328,10 +325,10 @@
      :hover {:color @color.hover}
      :onClick showDownloads
      :label ~(if computed.download
-                 (t "bottom.downloading"
-                    {:title computed.downloadGame.title
-                     :percent (floor (* (/ computed.download.doneGb computed.downloadGame.sizeGb) 100))})
-                 (t "bottom.manage"))
+               (t "bottom.downloading"
+                  {:title computed.downloadGame.title
+                   :percent (floor (* (/ computed.download.doneGb computed.downloadGame.sizeGb) 100))})
+               (t "bottom.manage"))
      (label :icon download
        :text ""
        :textColor ~(if computed.download "@color.accent" "@color.muted")

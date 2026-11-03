@@ -106,23 +106,38 @@
 
 (defkey "mod+," {:do ~(handler openSettings "interface")})
 
-(defcustom appearance.theme
-  "dark" "Dark or light colours for the whole client." :type string :enum [dark light] :title "Theme")
+(defcustom appearance.theme "dark"
+  "Dark or light colours for the whole client."
+  :type string
+  :enum [dark light]
+  :title "Theme")
 
 (defcustom appearance.language "en" "English, Spanish or French." :type string :enum [en es fr] :title "Language")
 
-(defcustom appearance.startPage
-  "library" "The page Arcadia opens on." :type string :enum [library store community] :title "Start page")
+(defcustom appearance.startPage "library"
+  "The page Arcadia opens on."
+  :type string
+  :enum [library store community]
+  :title "Start page")
 
 (defcustom downloads.limit
-  0 "The most MB/s a download takes; 0 for no limit." :type number :enum [0 10 25] :title "Download speed limit")
+  0
+  "The most MB/s a download takes; 0 for no limit."
+  :type number
+  :enum [0 10 25]
+  :title "Download speed limit")
 
 (defcustom downloads.whilePlaying
-  true "Off, downloads wait while a game is running." :type boolean :title "Download while playing")
+  true
+  "Off, downloads wait while a game is running."
+  :type boolean
+  :title "Download while playing")
 
-(defcustom library.sortBy
-  "name" "Name from A to Z, the most hours, or the most recently played."
-  :type string :enum [name playtime recent] :title "Sort the library by")
+(defcustom library.sortBy "name"
+  "Name from A to Z, the most hours, or the most recently played."
+  :type string
+  :enum [name playtime recent]
+  :title "Sort the library by")
 
 (defpart index "What index adds."
   :onLoad [{:if ~(not= settings.appearance.startPage "library")
@@ -160,7 +175,8 @@
         (node :when ~(and (= computed.here.tab "community") (not state.session.offline)) :use friendsPage)
         (node :when ~(and (contains ["store" "community"] computed.here.tab) state.session.offline) :use offlinePage)
         (node :when ~(= computed.here.tab "profile") :use profilePage)
-        (node#elsewhere :when ~(not (contains ["library" "store" "downloads" "community" "profile"] computed.here.tab))
+        (node#elsewhere :when ~(not (contains ["library" "store" "downloads" "community" "profile"]
+                                              computed.here.tab))
           :use comingSoon))
       (node#bottom-bar :use bottomBar))
     (node#settings-dialog :use settingsDialog)

@@ -43,50 +43,50 @@
 
 (defcomputed sections
   (concat [{:id "favourites"
-              :title (t "lib.favourites")
-              :ids (map (fn [it] it.id) (filter (fn [it] it.favourite) computed.owned))}]
-            state.collections
-            [{:id "uncategorised"
-              :title (t "lib.uncategorised")
-              :ids (map (fn [it] it.id)
-                        (filter (fn [it] (and (not it.favourite) (not (contains computed.collected it.id))))
-                                computed.owned))}]))
+            :title (t "lib.favourites")
+            :ids (map (fn [it] it.id) (filter (fn [it] it.favourite) computed.owned))}]
+          state.collections
+          [{:id "uncategorised"
+            :title (t "lib.uncategorised")
+            :ids (map (fn [it] it.id)
+                      (filter (fn [it] (and (not it.favourite) (not (contains computed.collected it.id))))
+                              computed.owned))}]))
 
 (defcomputed recent
   (slice (sort-by (fn [it] it.lastPlayed) > (filter (fn [it] (some? it.lastPlayed)) computed.owned)) 0 10))
 
 (defcomputed recentGroups
   (filter (fn [it] (> (count it.games) 0))
-            [{:label (t "time.today")
-              :games (filter (fn [it] (< (- state.today it.lastPlayed) 86400000)) computed.recent)}
-             {:label (t "time.yesterday")
-              :games (filter (fn [it]
-                               (and (>= (- state.today it.lastPlayed) 86400000)
-                                    (< (- state.today it.lastPlayed) 172800000)))
-                             computed.recent)}
-             {:label (t "time.thisWeek")
-              :games (filter (fn [it]
-                               (and (>= (- state.today it.lastPlayed) 172800000)
-                                    (< (- state.today it.lastPlayed) 604800000)))
-                             computed.recent)}
-             {:label (t "time.lastWeek")
-              :games (filter (fn [it]
-                               (and (>= (- state.today it.lastPlayed) 604800000)
-                                    (< (- state.today it.lastPlayed) 1209600000)))
-                             computed.recent)}
-             {:label (t "time.earlier")
-              :games (filter (fn [it] (>= (- state.today it.lastPlayed) 1209600000)) computed.recent)}]))
+          [{:label (t "time.today")
+            :games (filter (fn [it] (< (- state.today it.lastPlayed) 86400000)) computed.recent)}
+           {:label (t "time.yesterday")
+            :games (filter (fn [it]
+                             (and (>= (- state.today it.lastPlayed) 86400000)
+                                  (< (- state.today it.lastPlayed) 172800000)))
+                           computed.recent)}
+           {:label (t "time.thisWeek")
+            :games (filter (fn [it]
+                             (and (>= (- state.today it.lastPlayed) 172800000)
+                                  (< (- state.today it.lastPlayed) 604800000)))
+                           computed.recent)}
+           {:label (t "time.lastWeek")
+            :games (filter (fn [it]
+                             (and (>= (- state.today it.lastPlayed) 604800000)
+                                  (< (- state.today it.lastPlayed) 1209600000)))
+                           computed.recent)}
+           {:label (t "time.earlier")
+            :games (filter (fn [it] (>= (- state.today it.lastPlayed) 1209600000)) computed.recent)}]))
 
 (defcomputed allGames
   (cond (= settings.library.sortBy "playtime") (sort-by (fn [it] it.hours) > computed.owned)
-          (= settings.library.sortBy "recent") (sort-by (fn [it] (or-else it.lastPlayed 0)) > computed.owned)
-          :else (sort-by (fn [it] (lower-case it.title)) computed.owned)))
+        (= settings.library.sortBy "recent") (sort-by (fn [it] (or-else it.lastPlayed 0)) > computed.owned)
+        :else (sort-by (fn [it] (lower-case it.title)) computed.owned)))
 
 (defcomputed lastPlayed
   (cond (nil? computed.game.lastPlayed) (t "time.never")
-          (< (- state.today computed.game.lastPlayed) 86400000) (t "time.today")
-          (< (- state.today computed.game.lastPlayed) 172800000) (t "time.yesterday")
-          :else (formatDate computed.game.lastPlayed "d MMM" "utc")))
+        (< (- state.today computed.game.lastPlayed) 86400000) (t "time.today")
+        (< (- state.today computed.game.lastPlayed) 172800000) (t "time.yesterday")
+        :else (formatDate computed.game.lastPlayed "d MMM" "utc")))
 
 (defstyle caps (label :font caps :textColor @color.muted :fitText true))
 
@@ -140,12 +140,15 @@
   {}
   `(row :fill true
      (node#library-sidebar :use librarySidebar)
-     (node#library-main :grow 1 :anchors {:top 0 :bottom 0} :gradient {:kind linear :stops [@color.main @color.page]}
+     (node#library-main :grow 1
+       :anchors {:top 0 :bottom 0}
+       :gradient {:kind linear :stops [@color.main @color.page]}
        (node#library-home :when ~(= computed.here.page "home") :use libraryHome)
        (node#game-page :when ~(and (= computed.here.page "game") (some? computed.game)) :use gamePage)
        (node#hub-page :when ~(and (= computed.here.page "hub") (some? computed.game)) :use hubPage))))
 
-(defcomponent librarySidebar "Home, the games filter with recent-first and ready-to-play, search, and the games by collection."
+(defcomponent librarySidebar
+  "Home, the games filter with recent-first and ready-to-play, search, and the games by collection."
   {}
   `(column :width 272 :anchors {:top 0 :bottom 0} :color @color.side
      ~(library-sidebar-row)
@@ -157,10 +160,10 @@
        :arrows vertical
        :role list
        :label ~(t "lib.games")
-       ~(repeat [section computed.sections :key section.id]
-         (library-list-column section)))))
+       ~(repeat [section computed.sections :key section.id] (library-list-column section)))))
 
-(defcomponent gameRow "A game in the list: its cover as an icon and its name in its play-state colour, with what it is doing."
+(defcomponent gameRow
+  "A game in the list: its cover as an icon and its name in its play-state colour, with what it is doing."
   {:game {}}
   `(row :height 28
      :anchors {:left 0 :right 0}
@@ -177,16 +180,11 @@
      :onDoubleClick ~(handler primary game)
      :onContextMenu ~(handler openGameMenu game.id)
      (panel :width 18 :height 1 :color transparent)
-     (image :file
-            ~(str "../assets/art/" (or-else game.art game.id) "/cover.svg")
-            :width
-            18
-            :height
-            18
-            :fit
-            cover
-            :radius
-            2)
+     (image :file ~(str "../assets/art/" (or-else game.art game.id) "/cover.svg")
+       :width 18
+       :height 18
+       :fit cover
+       :radius 2)
      (label :grow 1
        :height 18
        :font small
@@ -200,7 +198,8 @@
                          game.installed "@color.text"
                          :else "@color.dim"))))
 
-(defcomponent capsule "A game's cover, 2:3, that lifts and glows under the pointer; dimmed when the game isn't installed."
+(defcomponent capsule
+  "A game's cover, 2:3, that lifts and glows under the pointer; dimmed when the game isn't installed."
   {:game {} :width 150}
   `(node :width ~width
      :height ~(* width 1.5)
@@ -217,7 +216,7 @@
      :onClick ~(handler openGame game.id)
      :onContextMenu ~(handler openGameMenu game.id)
      (image :file ~(str "../assets/art/" (or-else game.art game.id) "/cover.svg") :fill true :fit cover :radius 12)
-     {:when ~(not game.installed) :fill true :color "#100c1480" :radius 12}))
+     (node :when ~(not game.installed) :fill true :color "#100c1480" :radius 12)))
 
 (defcomponent shelfHeader "The shelfHeader component."
   {:title "" :count nil}
@@ -225,12 +224,12 @@
      (label :font caps :text ~(upper-case title) :textColor @color.text :fitText true)
      (label :when ~(some? count) :font caps :text ~(str "(" count ")") :textColor @color.muted :fitText true)
      (panel :grow 1 :height 1 :color transparent)
-     {:slot true}))
+     (node :slot true)))
 
-(defcomponent libraryHome "The library's home: what's new, recent games grouped by day, a shelf per collection and every game."
+(defcomponent libraryHome
+  "The library's home: what's new, recent games grouped by day, a shelf per collection and every game."
   {}
-  `(column#home-scroll :fill true :scroll vertical
-     ~(home-content)))
+  `(column#home-scroll :fill true :scroll vertical ~(home-content)))
 
 (defcomponent bigCapsule "The latest game played, wide: its banner and logo, play time and a play button."
   {:game {}}
@@ -246,10 +245,10 @@
      :hover {:scale 1.02 :shadow {:y 6 :blur 18 :color "#f5a52455"}}
      :onClick ~(handler openGame game.id)
      (image :file ~(str "../assets/art/" (or-else game.art game.id) "/hero.svg") :fill true :fit cover :radius 12)
-     {:fill true
-      :radius 12
-      :color transparent
-      :gradient {:kind linear :stops [{:at 0.35 :color "#00000000"} {:at 1 :color "#000000d0"}]}}
+     (node :fill true
+       :radius 12
+       :color transparent
+       :gradient {:kind linear :stops [{:at 0.35 :color "#00000000"} {:at 1 :color "#000000d0"}]})
      (label :font heading :text ~game.title :textColor ~game.logo :anchors {:left 14 :bottom 40} :fitText true)
      (label :font small
        :anchors {:left 14 :bottom 18}
@@ -267,14 +266,15 @@
        :textColor "#ffffff"
        :gradient {:kind linear :angle 90 :stops [@color.play @color.playEnd]})))
 
-(defcomponent gamePage "A game's page: the banner and logo, play and the stats, the sections, the activity and the side panels."
+(defcomponent gamePage
+  "A game's page: the banner and logo, play and the stats, the sections, the activity and the side panels."
   {}
   `(column#game-scroll :fill true :scroll vertical :let {:g ~computed.game}
      (node#hero :height 310 :anchors {:left 0 :right 0}
        (image#hero-image :file ~(str "../assets/art/" (or-else g.art g.id) "/hero.svg") :fill true :fit cover)
-       {:fill true
-        :color transparent
-        :gradient {:kind linear :stops [{:at 0.55 :color "#00000000"} {:at 1 :color "#0d0a10c0"}]}}
+       (node :fill true
+         :color transparent
+         :gradient {:kind linear :stops [{:at 0.55 :color "#00000000"} {:at 1 :color "#0d0a10c0"}]})
        (label :font logo :text ~g.title :textColor "#000000a0" :anchors {:left 42 :bottom 34} :fitText true)
        (label#details-title :font logo
          :text ~g.title
@@ -285,16 +285,16 @@
      ~(play-bar)
      (row#game-sections :height 46 :anchors {:left 24 :right 24} :alignItems center :arrows horizontal
        ~(repeat [s (if g.local ["support"] ["store" "dlc" "hub" "discussions" "guides" "support"])]
-         `{:id ~(str "section-link-" s)
-           :style sectionLink
-           :text ~(t (str "game.section." s))
-           :onClick [{:if ~(= s "store")
-                      :then [~(handler openStore g.id)]
-                      :else [{:if ~(= s "dlc")
-                              :then [~(handler openProperties g.id "dlc")]
-                              :else [{:if ~(= s "support")
-                                      :then [~(handler showInfo "support")]
-                                      :else [~(handler openHub g.id s)]}]}]}]}))
+          `(node :id ~(str "section-link-" s)
+             :style sectionLink
+             :text ~(t (str "game.section." s))
+             :onClick [{:if ~(= s "store")
+                        :then [~(handler openStore g.id)]
+                        :else [{:if ~(= s "dlc")
+                                :then [~(handler openProperties g.id "dlc")]
+                                :else [{:if ~(= s "support")
+                                        :then [~(handler showInfo "support")]
+                                        :else [~(handler openHub g.id s)]}]}]}])))
      (panel :height 1 :anchors {:left 32 :right 32} :color @color.border)
      (row#game-columns :anchors {:left 32 :right 32}
        :gap 24
@@ -315,7 +315,7 @@
   {:title "" :height 100}
   `(node :anchors {:left 0 :right 0} :height ~height :style card
      (label :font caps :text ~(upper-case title) :textColor @color.text :anchors {:left 14 :top 14} :fitText true)
-     {:slot true}))
+     (node :slot true)))
 
 ;;; Views
 
@@ -334,15 +334,14 @@
        :color ~(if (= computed.here.page "home") "@color.hover" "transparent")
        :hover {:color @color.hover}
        :onClick libraryHome)
-     {:id library-collections
-      :style iconButton
-      :icon ~(if (some (fn [it] (not (or-else (get state.collapsed it.id) false))) computed.sections)
-                 "list-collapse"
-                 "list")
-      :tooltip ~(t (if (some (fn [it] (not (or-else (get state.collapsed it.id) false))) computed.sections)
-                       "lib.collapseAll"
-                       "lib.expandAll"))
-      :onClick toggleCollections}))
+     (node#library-collections :style iconButton
+       :icon ~(if (some (fn [it] (not (or-else (get state.collapsed it.id) false))) computed.sections)
+                "list-collapse"
+                "list")
+       :tooltip ~(t (if (some (fn [it] (not (or-else (get state.collapsed it.id) false))) computed.sections)
+                      "lib.collapseAll"
+                      "lib.expandAll"))
+       :onClick toggleCollections)))
 
 (defview library-sidebar-row-view "#library-sidebar-row-view." []
   `(row :height 36 :anchors {:left 0 :right 0} :alignItems center
@@ -353,20 +352,18 @@
        :grow 1
        :padding 14
        :height 36)
-     {:id library-recent
-      :style iconButton
-      :icon clock-3
-      :tooltip ~(t "lib.recentFirst")
-      :textColor ~(if state.recentFirst "@color.accent" "@color.muted")
-      :selected ~state.recentFirst
-      :onClick {:toggle state.recentFirst}}
-     {:id library-ready
-      :style iconButton
-      :icon circle-play
-      :tooltip ~(t "lib.readyOnly")
-      :textColor ~(if state.readyOnly "@color.accent" "@color.muted")
-      :selected ~state.readyOnly
-      :onClick {:toggle state.readyOnly}}
+     (node#library-recent :style iconButton
+       :icon clock-3
+       :tooltip ~(t "lib.recentFirst")
+       :textColor ~(if state.recentFirst "@color.accent" "@color.muted")
+       :selected ~state.recentFirst
+       :onClick {:toggle state.recentFirst})
+     (node#library-ready :style iconButton
+       :icon circle-play
+       :tooltip ~(t "lib.readyOnly")
+       :textColor ~(if state.readyOnly "@color.accent" "@color.muted")
+       :selected ~state.readyOnly
+       :onClick {:toggle state.readyOnly})
      (panel :width 6 :height 1 :color transparent)))
 
 (defview library-sidebar-row-2 "#library-sidebar-row-2." []
@@ -393,9 +390,15 @@
        (node :use menu
          :with {:open state.filterOpen
                 :width 230
-                :items [{:title ~(t "lib.readyOnly") :checked ~state.readyOnly :run toggleFilter :with {:key readyOnly}}
+                :items [{:title ~(t "lib.readyOnly")
+                         :checked ~state.readyOnly
+                         :run toggleFilter
+                         :with {:key readyOnly}}
                         {:title ~(t "lib.favOnly") :checked ~state.favOnly :run toggleFilter :with {:key favOnly}}
-                        {:title ~(t "lib.recentFirst") :checked ~state.recentFirst :run toggleFilter :with {:key recentFirst}}
+                        {:title ~(t "lib.recentFirst")
+                         :checked ~state.recentFirst
+                         :run toggleFilter
+                         :with {:key recentFirst}}
                         {:separator true}
                         {:title ~(t "lib.clearFilters") :run clearFilters}]}))
      (panel :width 6 :height 1 :color transparent)))
@@ -422,7 +425,7 @@
        :hover {:textColor @color.bright}
        :onClick {:set ~(str "state.collapsed." section.id) :to ~open})
      ~(repeat [g games :key (+ section.id g.id)]
-       `(node :id ~(str "row-" section.id "-" g.id) :when ~open :use gameRow :with {:game ~g}))))
+        `(node :id ~(str "row-" section.id "-" g.id) :when ~open :use gameRow :with {:game ~g}))))
 
 (defview library-view "#." [n i]
   `(column :id ~(str "news-" i)
@@ -457,17 +460,16 @@
      (label :font small :text ~group.label :textColor @color.muted :height 18 :anchors {:left 0 :right 0})
      (row :gap 14 :height 225 :anchors {:left 0 :right 0} :arrows horizontal
        ~(repeat [g group.games :index i]
-         `(stack :children [(node :id
-                                  ~(str "recent-big-" g.id)
-                                  :when
-                                  ~(and (= gi 0) (= i 0))
-                                  :use
-                                  bigCapsule
-                                  :with
-                                  {:game ~g})
-                            (node :id ~(str "recent-" g.id) :when ~(not (and (= gi 0) (= i 0))) :use capsule :with {:game ~g})]
-            :width ~(if (and (= gi 0) (= i 0)) 345 150)
-            :height 225)))))
+          `(stack :children [(node :id ~(str "recent-big-" g.id)
+                               :when ~(and (= gi 0) (= i 0))
+                               :use bigCapsule
+                               :with {:game ~g})
+                             (node :id ~(str "recent-" g.id)
+                               :when ~(not (and (= gi 0) (= i 0)))
+                               :use capsule
+                               :with {:game ~g})]
+             :width ~(if (and (= gi 0) (= i 0)) 345 150)
+             :height 225)))))
 
 (defview sort-button "#sort-button." []
   `(label#sort-button :font small
@@ -488,7 +490,10 @@
        :with {:open state.sortOpen
               :width 180
               :placement below-end
-              :items [{:title ~(t "sort.name") :checked ~(= settings.library.sortBy "name") :run setSort :with {:by name}}
+              :items [{:title ~(t "sort.name")
+                       :checked ~(= settings.library.sortBy "name")
+                       :run setSort
+                       :with {:by name}}
                       {:title ~(t "sort.playtime")
                        :checked ~(= settings.library.sortBy "playtime")
                        :run setSort
@@ -503,7 +508,8 @@
      :gap 6
      :height ~(+ 412
                  (* 286
-                    (count (filter (fn [it] (and (not= it.id "uncategorised") (> (count (or-else it.ids it.games)) 0)))
+                    (count (filter (fn [it]
+                                     (and (not= it.id "uncategorised") (> (count (or-else it.ids it.games)) 0)))
                                    computed.sections)))
                  (* 239
                     (ceil (/ (count computed.owned)
@@ -516,22 +522,20 @@
        :gap 14
        :scroll horizontal
        :arrows horizontal
-       ~(repeat [n data.news :index i]
-         (library-view n i)))
+       ~(repeat [n data.news :index i] (library-view n i)))
      (node#recent-header :use shelfHeader :with {:title ~(t "lib.recent")})
      (row#recent-shelf :height 262 :anchors {:left 0 :right 0} :gap 18 :scroll horizontal
-       ~(repeat [group computed.recentGroups :index gi]
-         (recent-shelf-column group gi)))
+       ~(repeat [group computed.recentGroups :index gi] (recent-shelf-column group gi)))
      ~(repeat [section (slice computed.sections 0 (- (count computed.sections) 1)) :key section.id]
-       `(column :let {:games ~(filter (fn [it] (contains (or-else section.ids section.games) it.id)) computed.owned)}
-          :anchors {:left 0 :right 0}
-          :height 280
-          :gap 6
-          :when ~(> (count games) 0)
-          (node :use shelfHeader :with {:title ~section.title :count ~(count games)})
-          (row :height 236 :anchors {:left 0 :right 0} :gap 14 :scroll horizontal :arrows horizontal
-            ~(repeat [g games]
-              `(node :id ~(str "shelf-" section.id "-" g.id) :use capsule :with {:game ~g})))))
+        `(column :let {:games ~(filter (fn [it] (contains (or-else section.ids section.games) it.id))
+                                       computed.owned)}
+           :anchors {:left 0 :right 0}
+           :height 280
+           :gap 6
+           :when ~(> (count games) 0)
+           (node :use shelfHeader :with {:title ~section.title :count ~(count games)})
+           (row :height 236 :anchors {:left 0 :right 0} :gap 14 :scroll horizontal :arrows horizontal
+             ~(repeat [g games] `(node :id ~(str "shelf-" section.id "-" g.id) :use capsule :with {:game ~g})))))
      (node#all-header :use shelfHeader :with {:title ~(t "lib.allGames") :count ~(count computed.owned)}
        (label :font caps :text ~(t "lib.sortBy") :textColor @color.muted :fitText true)
        ~(sort-button))
@@ -545,8 +549,7 @@
      :height ~(* (ceil (/ (count computed.owned)
                           (max 1 (floor (/ (- (or-else (get-in nodes ["home-scroll" :width]) 1008) 42) 164)))))
                  239)
-     ~(repeat [g computed.allGames :key g.id]
-       `(node :id ~(str "all-" g.id) :use capsule :with {:game ~g}))))
+     ~(repeat [g computed.allGames :key g.id] `(node :id ~(str "all-" g.id) :use capsule :with {:game ~g}))))
 
 (defview news-header "#news-header, in home-content." []
   `(node#news-header :use shelfHeader :with {:title ~(t "lib.whatsNew")}
@@ -559,7 +562,10 @@
          :with {:open state.newsOpen
                 :width 220
                 :placement below-end
-                :items [{:title ~(t "lib.showNews") :checked ~state.showNews :run toggleFilter :with {:key showNews}}]}))))
+                :items [{:title ~(t "lib.showNews")
+                         :checked ~state.showNews
+                         :run toggleFilter
+                         :with {:key showNews}}]}))))
 
 (defview play-button "#play-button." []
   `(label#play-button :grow 1
@@ -648,23 +654,20 @@
 (defview play-bar "#play-bar." []
   `(row#play-bar :height 80 :anchors {:left 0 :right 0} :alignItems center :gap 26 :color @color.shade
      (panel :width 6 :height 1 :color transparent)
-     (row#play-group :height 48 :width ~(if (= g.status "ready") 196 210) :radius 24
-       ~(play-button)
-       ~(play-more))
+     (row#play-group :height 48 :width ~(if (= g.status "ready") 196 210) :radius 24 ~(play-button) ~(play-more))
      (node#stat-last :use stat :with {:title ~(t "game.lastPlayed") :value ~computed.lastPlayed})
-     (node#stat-time :use stat :with {:title ~(t "game.playTime") :value ~(t "game.hours"
-                                                                             {:n (formatNumber g.hours 0 1)})})
+     (node#stat-time :use stat
+       :with {:title ~(t "game.playTime") :value ~(t "game.hours" {:n (formatNumber g.hours 0 1)})})
      ~(stat-achievements)
      (node#stat-cloud :use stat
        :with {:title ~(t "game.cloud") :value ~(t (if g.installed "game.cloudOk" "game.cloudNone")) :icon cloud})
      (panel :grow 1 :height 1 :color transparent)
-     {:id game-settings
-      :style iconButton
-      :font heading
-      :icon settings
-      :tooltip ~(t "game.manage")
-      :label ~(t "game.manage")
-      :onClick ~(handler openGameMenu g.id)}
+     (node#game-settings :style iconButton
+       :font heading
+       :icon settings
+       :tooltip ~(t "game.manage")
+       :label ~(t "game.manage")
+       :onClick ~(handler openGameMenu g.id))
      (node#game-info :style iconButton
        :font heading
        :icon info
@@ -672,14 +675,13 @@
        :isOpen ~state.infoOpen
        :onClick {:toggle state.infoOpen}
        ~(info-card))
-     {:id game-favourite
-      :style iconButton
-      :font heading
-      :icon star
-      :textColor ~(if g.favourite "#ffc82c" "@color.muted")
-      :selected ~g.favourite
-      :tooltip ~(t (if g.favourite "game.unfavourite" "game.favourite"))
-      :onClick ~(handler toggleFavourite g.id)}
+     (node#game-favourite :style iconButton
+       :font heading
+       :icon star
+       :textColor ~(if g.favourite "#ffc82c" "@color.muted")
+       :selected ~g.favourite
+       :tooltip ~(t (if g.favourite "game.unfavourite" "game.favourite"))
+       :onClick ~(handler toggleFavourite g.id))
      (panel :width 14 :height 1 :color transparent)))
 
 (defview stat-achievements "#stat-achievements, in play-bar." []
@@ -692,10 +694,11 @@
      (row :height 18 :gap 8 :alignItems center :anchors {:left 0 :right 0}
        (label :font small :text ~(str g.achievements.0 "/" g.achievements.1) :textColor @color.bright :fitText true)
        (node#achievement-track :grow 1 :height 6 :radius 3 :color @color.raised
-         {:anchors {:left 0 :top 0 :bottom 0}
-          :radius 3
-          :width ~(str (text (floor (/ (* 100 (or-else g.achievements.0 0)) (max 1 (or-else g.achievements.1 0))))) "%")
-          :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]}}))))
+         (node :anchors {:left 0 :top 0 :bottom 0}
+           :radius 3
+           :width ~(str (text (floor (/ (* 100 (or-else g.achievements.0 0)) (max 1 (or-else g.achievements.1 0)))))
+                        "%")
+           :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]})))))
 
 (defview activity-column "#activity-column." [a]
   `(column :grow 1 :gap 4 :anchors {:top 14 :bottom 10}
@@ -715,16 +718,11 @@
        :height 90
        :fit cover
        :radius 2)
-     (label :font
-            small
-            :text
-            ~(t "time.daysAgo" {:n a.ago})
-            :textColor
-            @color.dim
-            :anchors
-            {:left 0 :right 0}
-            :height
-            16)))
+     (label :font small
+       :text ~(t "time.daysAgo" {:n a.ago})
+       :textColor @color.dim
+       :anchors {:left 0 :right 0}
+       :height 16)))
 
 (defview activity-row "#activity-row." [a]
   `(row :let {:f ~(find (fn [it] (= it.id a.who)) data.friends)}
@@ -746,34 +744,33 @@
 
 (defview activity-view "#activity." []
   `(column#activity :grow 1 :gap 12 :anchors {:top 16 :bottom 0}
-     (label :font
-            caps
-            :text
-            ~(upper-case (t "game.activity"))
-            :textColor
-            @color.text
-            :height
-            22
-            :anchors
-            {:left 0 :right 0})
+     (label :font caps
+       :text ~(upper-case (t "game.activity"))
+       :textColor @color.text
+       :height 22
+       :anchors {:left 0 :right 0})
      ~(post-box)
      ~(repeat [n (filter (fn [it] (= it.game g.id)) data.news) :index i]
-       `(row :height 108 :anchors {:left 0 :right 0} :style card :gap 14 :alignItems center
-          (image :file ~(str "../assets/art/" (or-else g.art g.id) "/hero.svg")
-            :width 180
-            :height 108
-            :fit cover
-            :radius {:topLeft 3 :bottomLeft 3})
-          (column :grow 1 :height 84 :gap 4
-            (label :font caps
-              :anchors {:left 0 :right 0}
-              :height 16
-              :runs [{:text ~(upper-case (t (str "news." n.kind))) :color @color.link}
-                     {:text ~(str " · " (t "time.daysAgo" {:n n.ago})) :color @color.muted}])
-            (label :font strong :text ~n.title :textColor @color.bright :anchors {:left 0 :right 0} :height 20)
-            (label :font small :text ~n.text :textColor @color.muted :wrap true :anchors {:left 0 :right 12} :height 36))))
-     ~(repeat [a (filter (fn [it] (= it.game g.id)) data.activity) :index i]
-       (activity-row a))
+        `(row :height 108 :anchors {:left 0 :right 0} :style card :gap 14 :alignItems center
+           (image :file ~(str "../assets/art/" (or-else g.art g.id) "/hero.svg")
+             :width 180
+             :height 108
+             :fit cover
+             :radius {:topLeft 3 :bottomLeft 3})
+           (column :grow 1 :height 84 :gap 4
+             (label :font caps
+               :anchors {:left 0 :right 0}
+               :height 16
+               :runs [{:text ~(upper-case (t (str "news." n.kind))) :color @color.link}
+                      {:text ~(str " · " (t "time.daysAgo" {:n n.ago})) :color @color.muted}])
+             (label :font strong :text ~n.title :textColor @color.bright :anchors {:left 0 :right 0} :height 20)
+             (label :font small
+               :text ~n.text
+               :textColor @color.muted
+               :wrap true
+               :anchors {:left 0 :right 12}
+               :height 36))))
+     ~(repeat [a (filter (fn [it] (= it.game g.id)) data.activity) :index i] (activity-row a))
      (label :when ~(= (+ (count (filter (fn [it] (= it.game g.id)) data.activity))
                          (count (filter (fn [it] (= it.game g.id)) data.news)))
                       0)
@@ -810,27 +807,27 @@
        :height 16)
      (row :gap 6 :height 36 :anchors {:left 0 :right 0}
        ~(repeat [f (slice who 0 7)]
-         `(image :file ~(str "../assets/art/avatars/" f.avatar ".svg")
-            :width 34
-            :height 34
-            :fit cover
-            :radius 2
-            :tooltip ~f.name
-            :borderWidth 1
-            :borderColor ~(if (= f.game g.id) "@color.ingame" "@color.online"))))))
+          `(image :file ~(str "../assets/art/avatars/" f.avatar ".svg")
+             :width 34
+             :height 34
+             :fit cover
+             :radius 2
+             :tooltip ~f.name
+             :borderWidth 1
+             :borderColor ~(if (= f.game g.id) "@color.ingame" "@color.online"))))))
 
 (defview achievements-card-row "#achievements-card-row." []
   `(row :gap 6 :height 44 :anchors {:left 0 :right 0}
      ~(repeat [icon ["trophy" "flame" "gem" "crown" "swords"] :index k]
-       `(label :icon ~icon
-          :text ""
-          :font heading
-          :width 42
-          :height 44
-          :align center
-          :radius 3
-          :textColor ~(if (< k 4) g.logo "@color.dim")
-          :gradient {:kind linear :stops [@color.hover @color.raised]}))
+        `(label :icon ~icon
+           :text ""
+           :font heading
+           :width 42
+           :height 44
+           :align center
+           :radius 3
+           :textColor ~(if (< k 4) g.logo "@color.dim")
+           :gradient {:kind linear :stops [@color.hover @color.raised]}))
      (label :font strong
        :text ~(str "+" (max 0 (- g.achievements.1 5)))
        :width 44
@@ -852,21 +849,25 @@
                     :total g.achievements.1
                     :percent (floor (* (/ g.achievements.0 (max 1 g.achievements.1)) 100))}))
        (node#achievement-track-side :height 6 :radius 3 :color @color.raised :anchors {:left 0 :right 0}
-         {:anchors {:left 0 :top 0 :bottom 0}
-          :radius 3
-          :width ~(str (text (floor (/ (* 100 (or-else g.achievements.0 0)) (max 1 (or-else g.achievements.1 0))))) "%")
-          :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]}})
+         (node :anchors {:left 0 :top 0 :bottom 0}
+           :radius 3
+           :width ~(str (text (floor (/ (* 100 (or-else g.achievements.0 0)) (max 1 (or-else g.achievements.1 0)))))
+                        "%")
+           :gradient {:kind linear :angle 90 :stops [@color.warm @color.accent]}))
        ~(achievements-card-row))))
 
 (defview game-side "#game-side." []
   `(column#game-side :width 312 :gap 14 :anchors {:top 16 :bottom 0}
-     (node#friends-card :use sideCard :with {:title ~(t "game.friendsWhoPlay") :height 118}
-       ~(friends-card-column))
+     (node#friends-card :use sideCard :with {:title ~(t "game.friendsWhoPlay") :height 118} ~(friends-card-column))
      ~(achievements-card)
      (node#screenshots-card :use sideCard :with {:title ~(t "game.screenshots") :height 132}
        (row :gap 6 :anchors {:left 14 :right 14 :top 40} :height 80
          ~(repeat [k [1 2 3]]
-           `(image :file ~(str "../assets/art/" (or-else g.art g.id) "/shot" k ".svg") :grow 1 :height 80 :fit cover :radius 2))))
+            `(image :file ~(str "../assets/art/" (or-else g.art g.id) "/shot" k ".svg")
+               :grow 1
+               :height 80
+               :fit cover
+               :radius 2))))
      (node#controller-card :use sideCard :with {:title ~(t "game.controller") :height 74}
        (label :icon gamepad-2
          :text ~(t (str "controller." g.controller))
