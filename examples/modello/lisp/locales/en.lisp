@@ -453,4 +453,14 @@
                 :properties.new "New"
                 :properties.baseColor "Base Color"
                 :properties.metallic "Metallic"
-                :properties.roughness "Roughness"}}}
+                :properties.roughness "Roughness"
+                :timeline.toEndpoint "Jump to Endpoint"
+                :timeline.toKeyframe "Jump to Keyframe"
+                :timeline.autoKeyTip "Auto Keying: moving the selection keys it"
+                :timeline.currentFrame "Current Frame"
+                :timeline.menu.Playback "Playback"
+                :timeline.menu.Keying "Keying"
+                :timeline.menu.View "View"
+                :timeline.menu.Marker "Marker"
+                :timeline.previewRangeTip "Use Preview Range: Start and End then set a range of their own for playback"
+                :timeline.start "Start"}}}

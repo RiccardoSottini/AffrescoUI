@@ -180,3 +180,6 @@
   (dismiss)
   (let [later (markers-where (fn [f] (> f state.frame)))]
     (when (not (empty? later)) (setFrame (apply min later)))))
+
+(defn scrubTo "The timeline scrubbed: the frame at that time." [time]
+  (setFrame (frame-at time)))
