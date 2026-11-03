@@ -1,6 +1,8 @@
-;;; detail.lisp --- TODO
+;;; detail.lisp --- the detail of the selected habit: its bar, its facts, and its cards (overview, target, score,
+;;; history, calendar, streaks, frequency and notes)
 
-(defview detail-bar "#detailBar." []
+;;; The detail
+(defview detail-bar "The detail's bar: back to the list on narrow windows, the habit's name, and its menu." []
   `(node#detailBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @c.bar :shadow {:y 1 :blur 3 :color "#00000020"}
      (node#backButton
      :style iconButton
@@ -35,7 +37,7 @@
        :onClick editHabit)
        ~(detail-more))))
 
-(defview detail-more "#detailMore." []
+(defview detail-more "The detail's menu: edit, archive, export, delete." []
   `(node#detailMore :style iconButton
      :icon ellipsis
      :label ~(t "more")
@@ -59,7 +61,7 @@
                                    :run "confirmDelete"}]})]
      :isOpen ~state.menus.detail))
 
-(defview detail-cards "#detailCards." []
+(defview detail-cards "The detail's cards, in a scrolling column: the overview, the target, the score, the history, the calendar, the streaks, the frequency and the notes." []
   `(column#detailCards :when ~(>= computed.sel 0)
      :anchors {:left 0 :right 0 :top 56 :bottom 0}
      :scroll vertical
@@ -135,7 +137,7 @@
            (note-row nt))))
      (node#panel-detail-cards-2 :height 12 :width 10 :color transparent)))
 
-(defview subtitle-facts "#subtitleFacts." []
+(defview subtitle-facts "Under the name: how often the habit is, its target, and its reminder." []
   `(row#subtitleFacts :anchors {:left 16 :right 16 :top 38} :height 20 :gap 20
      (node#label-freq-text :style caption :text ~computed.freqText :icon repeat :height 20)
      (node#label-h-reminder-null
@@ -157,7 +159,7 @@
      :icon archive
      :height 20)))
 
-(defview overview-stats "#overviewStats." []
+(defview overview-stats "The overview: the score now, this month's and this year's change, and the total." []
   `(row#overviewStats :anchors {:left 16 :right 16 :top 44} :height 56 :justify space-around :alignItems center
      (node#ring-overview-stats :use
                                ring
@@ -176,7 +178,7 @@
      (node#stat-overview-stats-4 :use stat
        :with {:value ~(formatNumber computed.stats.total 0 1) :caption ~(t "stat.total") :color ~computed.col})))
 
-(defview goal-row "#goalRow." [g]
+(defview goal-row "One goal of a measurable habit: its period, how far it is, and a bar." [g]
   `(node#goalRow :anchors {:left 0 :right 0}
      :height 28
      :color transparent
@@ -199,7 +201,7 @@
        :width ~(str (* (clamp (/ g.value (max 0.001 g.goal)) 0 1) 100) "%")
        :color ~(if (and (= computed.h.targetType "atMost") (> g.value g.goal)) "@c.danger" computed.col)))))
 
-(defview score-card "#scoreCard." []
+(defview score-card "The score card: its period's button and the plot." []
   `(node#scoreCard :style card :width ~computed.cardWidth :height 240 :role region :label ~(t "card.score")
      (node#label-t-card-score :style cardTitle :text ~(t "card.score") :textColor ~computed.col)
      (node#period-button-score-card :use periodButton
@@ -220,7 +222,7 @@
             (node#label-lb-a :style axis :text ~lb.a)
             (node#label-lb-b :style axis2 :text ~lb.b))))))
 
-(defview score-plot "#scorePlot." []
+(defview score-plot "The score over time, as a line with its axis labels." []
   `(node#scorePlot :dir ltr :anchors {:left 16 :right 52 :top 56 :bottom 44} :color transparent
      ~(repeat [g (range 5)]
        `{:id gridLine :anchors {:left 0 :right 0 :top ~(str (* g 25) "%")} :height 1 :color @c.divider})
@@ -243,7 +245,7 @@
             :radius 4
             :color ~computed.col))))))
 
-(defview history-plot "#historyPlot." []
+(defview history-plot "How many times, or how much, a period at a time, as bars." []
   `(node#historyPlot :dir ltr :anchors {:left 16 :right 16 :top 56 :bottom 44} :color transparent
      (node#panel-history-plot :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @c.divider)
      (row#row-history-plot :fill 0
@@ -262,7 +264,7 @@
               :height 12
               :align center))))))
 
-(defview calendar-card "#calendarCard." []
+(defview calendar-card "The calendar: the last weeks, a cell a day." []
   `(node#calendarCard :style card :width ~computed.cardWidth :height 268 :role region :label ~(t "card.calendar")
      (node#label-t-card-calendar :style cardTitle :text ~(t "card.calendar") :textColor ~computed.col)
      (row#calendarWeeks :dir rtl :anchors {:left 16 :right 52 :top 48} :height 210 :gap 3
@@ -286,7 +288,7 @@
            :width 36
            :align {:horizontal start :vertical center}}))))
 
-(defview cal-cell "#calCell." [w r]
+(defview cal-cell "A day of the calendar: done, skipped, or not; a click marks it, a right click opens its popup." [w r]
   `(node#calCell :let {:d ~(addDays computed.weekStart (- r (* 7 w)))
                        :li ~(daysBetween computed.h.from d)
                        :cv ~(if (>= li 0) (get computed.v li) nil)
@@ -312,7 +314,7 @@
        :align center
        :textColor ~(if (and (some? cv) (or (not= cv 0) (>= cr 1))) computed.onColor "@c.muted"))))
 
-(defview streak-row "#streakRow." [st]
+(defview streak-row "A streak: from when to when, its length as a bar." [st]
   `(row#streakRow :anchors {:left 0 :right 0}
      :height 22
      :justify center
@@ -342,7 +344,7 @@
      :height 14
      :align start)))
 
-(defview frequency-card "#frequencyCard." []
+(defview frequency-card "The frequency: which weekdays the habit is done, month by month." []
   `(node#frequencyCard :style card :width ~computed.cardWidth :height 252 :role region :label ~(t "card.frequency")
      (node#label-t-card-frequency :style cardTitle :text ~(t "card.frequency") :textColor ~computed.col)
      (row#freqGrid :dir ltr :anchors {:left 16 :right 52 :top 48} :height 196
@@ -365,7 +367,7 @@
            :width 36
            :align {:horizontal start :vertical center}}))))
 
-(defview freq-dot "#freqDot." [mo wd]
+(defview freq-dot "A dot of the frequency: how often a weekday of a month was done." [mo wd]
   `(node#freqDot :let {:c ~(count (filter (fn [it]
                                             (and (= (weekday (addDays (str mo "-01") it)) wd)
                                                  (> (or-else (get computed.v
@@ -386,7 +388,7 @@
      :radius 20
      :color ~(if (= c 0) "@c.track" (+ computed.col (get ["59" "80" "a6" "cc" "f2"] (- (min c 5) 1)))))))
 
-(defview note-row "#noteRow." [nt]
+(defview note-row "A day's note: the date and what was written; a click opens the day." [nt]
   `(node#noteRow :anchors {:left 0 :right 0}
      :height 44
      :color transparent

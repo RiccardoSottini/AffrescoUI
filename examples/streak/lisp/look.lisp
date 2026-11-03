@@ -1,5 +1,6 @@
-;;; look.lisp --- TODO
+;;; look.lisp --- Streak's colours, light, dark and pure black, and its styles
 
+;;; Colours and styles
 (deftokens tokens "Tokens."
   {:c.bg {:light "#f2efec" :dark "#1f1d1c" :black "#000000"}
    :c.card {:light "#ffffff" :dark "#2d2a28" :black "#0f0f0f"}
@@ -52,7 +53,7 @@
    :kit.radius 4
    :kit.cardRadius 10})
 
-(defstyle iconButton
+(defstyle iconButton "A round icon button."
   (label :font icons
     :width 40
     :height 40
@@ -65,23 +66,23 @@
     :hover {:color "#8080802e"}
     :focused {:color "#80808040"}))
 
-(defstyle card {:color @c.card :radius 14 :shadow {:y 1 :blur 3 :color "#0000002e"}})
+(defstyle card "A card of the detail." {:color @c.card :radius 14 :shadow {:y 1 :blur 3 :color "#0000002e"}})
 
-(defstyle cardTitle (label :font heading :anchors {:left 16 :top 14} :fitText true))
+(defstyle cardTitle "A card's title." (label :font heading :anchors {:left 16 :top 14} :fitText true))
 
-(defstyle small (label :font small :textColor @c.muted))
+(defstyle small "Small text." (label :font small :textColor @c.muted))
 
-(defstyle caption {:style small :fitText true})
+(defstyle caption "A caption." {:style small :fitText true})
 
-(defstyle tiny (label :font tiny :textColor @c.muted))
+(defstyle tiny "The smallest text." (label :font tiny :textColor @c.muted))
 
-(defstyle axis {:style tiny :anchors {:left 0 :right 0 :top 2} :height 12 :align center})
+(defstyle axis "A chart's axis label." {:style tiny :anchors {:left 0 :right 0 :top 2} :height 12 :align center})
 
-(defstyle axis2 {:style axis :anchors {:left 0 :right 0 :top 16}})
+(defstyle axis2 "A chart's second axis label." {:style axis :anchors {:left 0 :right 0 :top 16}})
 
-(defstyle body (label :textColor @c.text :fitText true))
+(defstyle body "Body text." (label :textColor @c.text :fitText true))
 
-(defstyle field
+(defstyle field "A text field."
   (textarea :height 40
     :padding 10
     :color @c.card
@@ -92,7 +93,7 @@
     :placeholderColor @c.muted
     :focused {:borderColor ~computed.accent :borderWidth 2}))
 
-(defstyle textButton
+(defstyle textButton "A text button."
   (label :height 36
     :padding 10
     :radius 4
@@ -104,7 +105,7 @@
     :hover {:color @c.hover}
     :focused {:color @c.hover}))
 
-(defstyle chip
+(defstyle chip "A choice, as a chip."
   (label :height 32
     :padding 10
     :radius 16
@@ -118,7 +119,7 @@
     :textColor @c.text
     :hover {:color @c.hover}))
 
-(defstyle chipOn
+(defstyle chipOn "The chip chosen."
   (label :height 32
     :padding 10
     :radius 16
@@ -132,6 +133,6 @@
     :color ~(str computed.accent "1f")
     :textColor ~computed.accent))
 
-(defstyle sectionTitle
+(defstyle sectionTitle "A section's title."
   (label :font small :textColor @c.primary :height 40 :fitText true :padding 16 :align {:horizontal start :vertical end}))
 

@@ -1,6 +1,7 @@
-;;; settings.lisp --- TODO
+;;; settings.lisp --- the settings page: the interface and the data
 
-(defview settings-page "#settingsPage." []
+;;; Settings
+(defview settings-page "The settings, a page over the app." []
   `(node#settingsPage :overlay {:placement window :open state.settingsOpen :dismiss outside :modal true}
      :fill 0
      :color @c.bg
@@ -20,7 +21,7 @@
          :gap 12))
      ~(settings-bar)))
 
-(defview settings-bar "#settingsBar." []
+(defview settings-bar "The settings' bar: back, and the title." []
   `(node#settingsBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @c.bar :shadow {:y 2 :blur 4 :color "#00000030"}
      (node#settingsBack
      :style iconButton
@@ -38,7 +39,7 @@
        :fitText true
        :role heading)))
 
-(defview settings-interface "#settingsInterface." []
+(defview settings-interface "The interface: theme, pure black, first weekday, the days' order, skips, reminders and the language." []
   `(column#settingsInterface :style card :anchors {:left 0 :right 0} :fitContent height
      (label#label-t-set-interface :text ~(t "set.interface") :style sectionTitle :anchors {:left 0 :right 0})
      (node#themeRow :use prefRow
@@ -88,7 +89,7 @@
                                 :with {:value it}})
                              ["en" "es" "fr"])}))))
 
-(defview settings-data "#settingsData." []
+(defview settings-data "The data: export, back up and restore." []
   `(column#settingsData :style card :anchors {:left 0 :right 0} :fitContent height
      (label#label-t-set-data :text ~(t "set.data") :style sectionTitle :anchors {:left 0 :right 0})
      (node#exportRow :use prefRow :with {:title ~(t "set.export") :summary ~(t "set.exportHint")} :onClick exportAll)

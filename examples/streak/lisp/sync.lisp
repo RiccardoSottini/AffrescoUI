@@ -1,6 +1,10 @@
-;;; sync.lisp --- TODO
+;;; sync.lisp --- the document server: Streak's habits in the person's own document (~streak), synced both ways
+;;;
+;;; A placeholder provider signs in: put your own here and in the host's allowed origins. habits.lisp has what the
+;;; channel's events run.
 
-(defpart index "What index adds."
+;;; The server
+(defpart server "The server's channel, what it sends, the sync's watch, and the channel's events."
   :connections {:streakServer {:url "ws://127.0.0.1:7420/live"
                                :auth {:flow device
                                       :deviceUrl "https://id.example.com/oauth/device"

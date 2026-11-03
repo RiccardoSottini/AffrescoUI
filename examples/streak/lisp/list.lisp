@@ -1,6 +1,8 @@
-;;; list.lisp --- TODO
+;;; list.lisp --- the list of habits: the app bar (add, filter, the menu, the pick bar), the days' header, a row a habit
+;;; with its last days to tick, and what the list says while empty
 
-(defview app-bar "#appBar." []
+;;; The list
+(defview app-bar "The app bar: the flame and the name, add, filter and the menu; the pick bar over it while picking." []
   `(node#appBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @c.bar :shadow {:y 2 :blur 4 :color "#00000030"}
      (label#appMark :font icons
        :icon flame
@@ -28,7 +30,7 @@
          :isOpen ~state.menus.more))
      ~(pick-bar)))
 
-(defview pick-bar "#pickBar." []
+(defview pick-bar "While rows are picked: how many, archive and delete them, or let them go." []
   `(node#pickBar :when ~computed.picking
      :anchors {:left 0 :right 0 :top 0 :bottom 0}
      :color @c.actionBar
@@ -64,7 +66,7 @@
        :textColor "#ffffff"
        :onClick {:set state.confirmDelete :to true}))))
 
-(defview add-button "#addButton." []
+(defview add-button "Add, and its menu: a yes-or-no habit or a measurable one." []
   `(node#addButton :style iconButton
      :icon plus
      :label ~(t "add")
@@ -88,7 +90,7 @@
                                    :with {:kind "measurable"}}]})]
      :isOpen ~state.menus.add))
 
-(defview filter-button "#filterButton." []
+(defview filter-button "Filter, and its menu: the sort, and what is shown." []
   `(node#filterButton :style iconButton
      :icon sliders-horizontal
      :label ~(t "filter")
@@ -110,7 +112,7 @@
                                           {:title (t "showArchived") :checked state.showArchived :run "toggleShowArchived"}])})]
      :isOpen ~state.menus.filter))
 
-(defview menu-more-button "#menu-more-button." []
+(defview menu-more-button "The menu: dark mode, settings, export, sync and signing in." []
   `(node#menu-more-button :use menu
      :with {:open state.menus.more
             :width 220
@@ -130,7 +132,7 @@
                      {:title (if computed.signedIn (t "signOut") (t "signIn"))
                       :run (if computed.signedIn "signOutOfServer" "signInToServer")}]}))
 
-(defview list-pane "#listPane." []
+(defview list-pane "The list: the days' header, the habits, the empty message, and the app bar." []
   `(node#listPane :anchors {:left 0 :top 0 :bottom 0}
      :width ~computed.listWidth
      :visible ~(or computed.wide (= state.page "list"))
@@ -148,7 +150,7 @@
      ~(empty-list)
      ~(app-bar)))
 
-(defview row-day-header "#row-day-header." []
+(defview row-day-header "The days over the rows, today on a pill." []
   `(row#row-day-header :anchors {:right 8 :top 4 :bottom 0} :width ~(* computed.cols 44)
      ~(repeat [d computed.days :key d]
        `(node#dayColumn :width 44 :anchors {:top 0 :bottom 0} :color transparent
@@ -167,7 +169,7 @@
           :align center
           :textColor ~(if (= d state.today) "@c.onPrimary" "@c.muted"))))))
 
-(defview habit-row "#habitRow." [h]
+(defview habit-row "A habit: its ring, its name, its last days; a click shows it, a right click picks it, a drag moves it." [h]
   `(node#habitRow :let {:hb ~(get data.ordered h)
                         :col ~(if hb.archived "@c.muted" (get computed.pal hb.color))
                         :on ~(and computed.wide (= hb.id state.selected) (not computed.picking))
@@ -207,7 +209,7 @@
        ~(repeat [d computed.days :key d]
          (cell-view h d)))))
 
-(defview cell-view "#cell." [h d]
+(defview cell-view "A day of a habit's row: a box to tick, or the number entered; a dot when it has a note." [h d]
   `(node#cell :let {:li ~(daysBetween hb.from d)
                     :v ~(if (>= li 0) (get-in computed.vals [h li]) nil)
                     :r ~(if (>= li 0) (get-in computed.ratio [h li :r]) 0)
@@ -259,7 +261,7 @@
      :radius 3
      :color ~col)))
 
-(defview empty-list "#emptyList." []
+(defview empty-list "What the list says while it has no habit." []
   `(node#emptyList :when ~(= (count computed.order) 0) :anchors {:left 0 :right 0 :top 160} :height 120 :color transparent
      (label#label-empty-list :text ""
        :font icons

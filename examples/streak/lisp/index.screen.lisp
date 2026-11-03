@@ -1,4 +1,7 @@
-;;; index.screen.lisp --- TODO
+;;; index.screen.lisp --- Streak, a habit tracker laid out for the desktop
+;;;
+;;; The habits with their last days to tick on the left, the selected habit's detail on the right (one of them on a
+;;; narrow window); the popup of a day, the dialog that edits a habit, the settings, sync with the document server.
 
 (include "locales/en.lisp"
          "locales/es.lisp"
@@ -15,7 +18,9 @@
          "sync.lisp"
          "habits.lisp")
 
-(defview body "#body." []
+;;; The app
+
+(defview body "The app: the list beside the detail on wide windows, one of them on narrow ones; then what opens over them." []
   `(node#body :fill 0 :color transparent :dir auto :every {:ms 60000 :do [{:run tick}]}
      ~(list-pane)
      (node#paneDivider
@@ -67,7 +72,9 @@
                   :with
                   {:name toasts :width 344 :color @c.snack :textColor @c.snackText :accent @c.snackAction})))
 
-(defscreen main
+;;; The window
+
+(defscreen main "Streak's one window: the list, the detail, and what opens over them."
   :window {:title "Streak" :width 1280 :height 800 :minWidth 400 :minHeight 560}
   :strings {:default en :locale ~state.locale :required true :keep ["Streak"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :fallback [icons]}

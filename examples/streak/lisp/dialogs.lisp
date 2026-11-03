@@ -1,6 +1,7 @@
-;;; dialogs.lisp --- TODO
+;;; dialogs.lisp --- what opens over the app: the day's popup, and the dialog that adds or edits a habit
 
-(defview entry-popup "#entryPopup." []
+;;; The day's popup
+(defview entry-popup "The day's popup: the value or yes, skip, no, and a note." []
   `(node#entryPopup :overlay {:placement window :open state.popup.open :dismiss outside :modal true}
      :let {:ph ~(get data.ordered state.popup.h)
            :pcol ~(get computed.pal ph.color)
@@ -65,7 +66,7 @@
      :anchors {:right 12 :bottom 10}
      :onClick popupSave)))
 
-(defview popup-buttons "#popupButtons." []
+(defview popup-buttons "The popup's yes, skip and no." []
   `(row#popupButtons :when ~(not meas)
      :anchors {:left 8 :right 8 :bottom 10}
      :height 40
@@ -93,7 +94,7 @@
      :mnemonic n
      :onClick ~(handler popupSet "-"))))
 
-(defview edit-fields "#editFields." []
+(defview edit-fields "The dialog's fields: name, colour, question, unit, target, frequency and reminder." []
   `(column#editFields :anchors {:left 20 :right 20 :top 48 :bottom 56} :gap 6
      (node#editName :anchors {:left 0 :right 0} :height 58 :color transparent
        (node#label-t-edit-name :style caption :text ~(t "edit.name") :anchors {:left 2 :top 0})
@@ -142,7 +143,7 @@
        :width 400
        :live assertive)))
 
-(defview swatch "#swatch." [sw]
+(defview swatch "A colour of the palette." [sw]
   `(node#swatch :width 32
      :height 32
      :radius 16
@@ -163,7 +164,7 @@
        :fill 0
        :align center)))
 
-(defview color-button "#colorButton." []
+(defview color-button "The colour's button, and its palette when open." []
   `(node#colorButton :anchors {:right 4 :top 20}
      :width 36
      :height 36
@@ -188,7 +189,7 @@
          ~(repeat [sw (range 20)]
            (swatch sw))))))
 
-(defview row-edit-target "#row-edit-target." []
+(defview row-edit-target "A measurable habit's target: at least or at most, and how much." []
   `(row#row-edit-target :anchors {:left 0 :right 0 :top 18} :height 40 :gap 8 :alignItems center
      (node#atLeast
      :style ~(if (= state.edit.targetType "atLeast") "chipOn" "chip")
@@ -208,7 +209,7 @@
      :width 140
      :placeholder ~(t "edit.unitPh"))))
 
-(defview row-edit-frequency "#row-edit-frequency." []
+(defview row-edit-frequency "How often: every day, every n days, n times a week or a month." []
   `(row#row-edit-frequency :anchors {:left 0 :right 0 :top 20}
      :height 32
      :gap 6
@@ -260,7 +261,7 @@
      :when ~(= state.edit.kind "measurable"))
      ~(freq-stepper)))
 
-(defview freq-stepper "#freqStepper." []
+(defview freq-stepper "The frequency's times, with minus and plus." []
   `(row#freqStepper :when ~(and (not= state.edit.kind "measurable") (not= state.edit.freqMode "daily"))
      :width 112
      :height 32
@@ -294,7 +295,7 @@
      :label "+"
      :onClick ~(handler stepTimes 1))))
 
-(defview row-edit-reminder "#row-edit-reminder." []
+(defview row-edit-reminder "The reminder's time, if any." []
   `(row#row-edit-reminder :anchors {:left 0 :right 0 :top 20} :height 32 :gap 6 :alignItems center
      (node#reminderToggle :use switch
        :with {:on ~state.edit.reminderOn :path state.edit.reminderOn :label ~(t "edit.reminder")})
