@@ -2283,8 +2283,10 @@ builds
 | `(def name "doc"? value)`, `(defn ...)`, `(defmacro ...)` | Nothing: what the others use |
 | `(defhook name "doc"?)`, `(add-hook hook "doc"? f)`, `(remove-hook hook "doc"? f)`, `(advice target "doc"? :before/:after/:around f)` | Nothing it builds: they run in the app ("Hooks and advice", below) |
 
-- **A program** is a file with several top-level forms, or one that is a definition. Each form is a definition with a name, the
-  order doesn't matter, a name twice is an error naming both places, and the sections are sorted by name.
+- **A program** is a file with several top-level forms, or one that is a definition. Each form is a definition with a name, a name
+  twice is an error naming both places, and a definition may use one below it. A section's members come in the order of their
+  definitions, as a JSON file's in the order written (overlays are drawn in that order, the `keybindings` variable lists the
+  screen's keys so, and a command shows its first key): files in the order an app's includes merge, then each file's.
 - **A data file is a template**, read as if backquoted, and builds to exactly the tree the notation gives, whether an app loads it
   or `affrescoui run` does. Words stay data, and
   `~` drops into code: `(label :text ~(str "a" 1))`. A word the language runs isn't a node type here: `(not x)` gives

@@ -302,8 +302,6 @@
   (set "state.lsp.completion.request" state.lsp.request)
   (set "state.lsp.completion.word" ""))
 
-(defkey "ctrl+space" triggerSuggest)
-
 ;;; Navigating
 
 (defstate symbolPick {:open false :query ""})
@@ -371,14 +369,6 @@
   (when (and state.symbolPick.open (= (slice event.value 0 1) "#") (> (count event.value) 1))
     (lspAsk "workspaceSymbols" nil nil nil (slice event.value 1))))
 
-(defkey "f12" goToDefinition)
-
-(defkey "shift+f12" findReferences)
-
-(defkey "mod+shift+o" goToSymbol)
-
-(defkey "mod+t" goToWorkspaceSymbol)
-
 ;;; Renaming and formatting
 
 (defcommand renameSymbol "Rename Symbol"
@@ -436,6 +426,12 @@
 (defn lspApplyToDoneFailed "Says why a changed file couldn't be written." [file error]
   (notify "error" (t "lsp.notAppliedTo" {:file file :error error.message})))
 
-(defkey "f2" renameSymbol)
+;;; Keys, in the order the keyboard shortcuts page lists them
 
+(defkey "f12" goToDefinition)
+(defkey "shift+f12" findReferences)
+(defkey "f2" renameSymbol)
 (defkey "shift+alt+f" formatDocument)
+(defkey "ctrl+space" triggerSuggest)
+(defkey "mod+shift+o" goToSymbol)
+(defkey "mod+t" goToWorkspaceSymbol)

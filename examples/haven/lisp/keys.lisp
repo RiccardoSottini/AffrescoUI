@@ -12,6 +12,12 @@
 
 (defkey "alt+up" previousRoom)
 
+;;; The window
+
+(defkey "mod+t" toggleTheme)
+
+(defkey "mod+l" switchLanguage)
+
 ;;; Pages
 
 (defkey "mod+1" goHome)
@@ -32,17 +38,13 @@
 
 (defkey "mod+shift+p" commandPalette)
 
-(defkey "mod+k" commandPalette)
+(defkey "e" searchEntities)
 
 (defkey "c" commandPalette)
 
-(defkey "e" searchEntities)
+(defkey "mod+k" commandPalette)
 
-;;; The window and security
-
-(defkey "mod+t" toggleTheme)
-
-(defkey "mod+l" switchLanguage)
+;;; Security and notifications
 
 (defkey "mod+shift+a" cycleSecurity)
 

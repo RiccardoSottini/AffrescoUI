@@ -109,9 +109,13 @@ one data value, a **template**.
 - **Definitions, not statements.** Every top-level form is a definition with a stable address (`Entry::name`): its name, or
   `defkey ctrl+k` and `add-hook after-save f` for those with none. A top-level call of a macro counts, named by its second
   item, and may expand to a definition or a `do` of them. Two definitions of one name are an error naming both places.
-- **Order doesn't matter.** Macros are defined first, then the rest; a `def` is worked out when first read, then all that are left
-  (a build reads them all, so a value that can't be worked out refuses the build), wherever it is, so
-  a definition can use one below it; the sections built are sorted by name. Moving a definition changes nothing in the tree.
+- **Where a definition is doesn't change what it means.** Macros are defined first, then the rest; a `def` is worked out when first
+  read, then all that are left (a build reads them all, so a value that can't be worked out refuses the build), wherever it is, so
+  a definition can use one below it. **A section's members come in the order of their definitions**, files in the order the document
+  lists them (an app's includes, as a JSON file's merge), as a JSON file's members come in the order written: an overlay's place
+  among the overlays, the order of watches, the screen's keys as `keybindings` lists them. A `defdefaults` member takes its place where
+  its definition is, and a definition that gives it later replaces its value there, as a JSON include's member and the including
+  file's. Changing a definition never moves another; moving one moves its member, as moving a key in a JSON file does.
 - **The split keeps the text.** `splitEntries` gives each form's exact text, from the first character after the previous
   form's line, comments above it included, to the end of its own line; comments after the last form are the last entry's. So
   every word and comment of a file is in exactly one entry. Stage 2 versions these. `Program::addEntry` takes one back, and

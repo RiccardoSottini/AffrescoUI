@@ -141,7 +141,7 @@ TEST_CASE("lisp views: defcomponent, handler, and the sections as definitions") 
 	      json{{"note", "A chip."},
 	           {"params", {{"label", ""}, {"on", false}}},
 	           {"node", {{"type", "label"}, {"text", "{{label}}"}, {"style", "{{(on ? 'chipOn' : 'chip')}}"}}}});
-	CHECK(tree["state"] == json{{"cards", json::array()}, {"view", "board"}});
+	CHECK(tree["state"].dump() == R"({"view":"board","cards":[]})"); // in the order of the definitions
 	CHECK(tree["stateTypes"] == json{{"view", {{"enum", {"board", "list"}}}}});
 	CHECK(tree["computed"]["open"] == "{{filter(state.cards, (it.id != state.sel))}}");
 	CHECK(tree["styles"]["caption"] == json{{"type", "label"}, {"font", "small"}});
@@ -173,6 +173,17 @@ TEST_CASE("lisp views: defdefaults yields to any other definition, and to the do
 	const json tree = built(program);
 	CHECK(tree["tokens"] == json{{"addon.accent", "#f00"}, {"addon.text", "#000"}});
 	CHECK(tree["keys"]["mod+a"] == "open");
+	// In the order of the definitions: a default where its definition is, its value replaced there, as a JSON include's
+	const json ordered = built(R"lisp(
+(defkey "mod+z" undo)
+(defdefaults addon "An add-on's keys." :keys {"mod+a" open "mod+b" close} :overlays {:panel (node#addonPanel)})
+(defkey "mod+b" shut)
+(defkey "mod+c" copy)
+(defpart mine "The app's overlay, over the add-on's." :overlays {:mine (node#mine)})
+(defscreen main (column))
+)lisp");
+	CHECK(ordered["keys"].dump() == R"({"mod+z":"undo","mod+a":"open","mod+b":"shut","mod+c":"copy"})");
+	CHECK(ordered["overlays"].begin().key() == "panel");
 	// A document's own value replaces a default; one a definition gives must still be the same
 	json source = lisp::sourceDocument(program, "app.lisp");
 	source["tokens"] = {{"addon.text", "#111"}};

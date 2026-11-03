@@ -21,8 +21,8 @@
          "browser.lisp"
          "chart.lisp"
          "sky.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
-         "orrery.lisp")
+         "orrery.lisp"
+         "../../shared/addons/assistant/assistant.lisp")
 
 ;;; The window, and what is in it, in the order it is drawn
 
