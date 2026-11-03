@@ -430,3 +430,26 @@
 
 (defcommand flatEqualiser "" :title "Reset the equaliser" :category "Sound" :icon "sliders-horizontal" [] (setPreset "flat"))
 (defcommand playLibrary "" :title "Play the library" :category "Playback" :icon "disc-3" [] (play -1 0))
+
+;;; The sound, and what the app does by itself
+
+(defpart sound "TODO"
+  :audio {:beat {:file "../assets/audio/beatbox.wav"
+                 :loop true
+                 :volume 0.7
+                 :into state.beat
+                 :bands 32
+                 :updates 50
+                 :note "The sound of a song without a sound of its own: a beatbox loop made for Tempo (audio/make_beat.py)"}})
+
+(defpart reactions "TODO"
+  :watch {:state.isPlaying [{:run followPlaying}]
+          :state.playingTrack [{:run songChanged}]
+          :state.playingList [{:run songChanged}]
+          :state.volume [{:run followVolume}]
+          :state.muted [{:run followVolume}]
+          :state.page [{:run placeChanged}]
+          :state.mini [{:run liftAssistant}]
+          :state.current [{:run placeChanged}]
+          :state.collection [{:run placeChanged}]}
+  :onLoad [{:run liftAssistant} {:run buildLibrary}])
