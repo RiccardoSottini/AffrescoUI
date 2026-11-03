@@ -143,7 +143,7 @@ TEST_CASE("lisp action rules: a JSON app is judged as before") {
 	    {"permissions", {{"ask", {"agent(/actions)"}}, {"reviewers", {"studio"}}}},
 	    {"root", {{"id", "root"}, {"type", "column"}, {"children", {{{"id", "a"}, {"type", "label"}, {"text", "x"}}}}}},
 	    {"actions", {{"plain", json::array({{{"set", "state.out"}, {"to", 1}}})}}}};
-	Rules rules;
+	const Rules rules;
 	Repository repository(rules, document);
 	repository.setModeForThisRun(Mode::AcceptEdits);
 	CHECK(repository.submit(setting("#a/text", "y")).status == RevisionStatus::Applied);
