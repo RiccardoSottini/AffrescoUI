@@ -92,7 +92,7 @@
                 :settings.folderText "Your apps are in the folder {folder}, in your home folder: one folder per app, beside the fonts and parts they share."
                 :settings.notation "Example apps"
                 :settings.notationLabel "Written in"
-                :settings.notationText "Every example app is here twice, written in JSON and in Lisp. They look and work the same, and each keeps its own data."
+                :settings.notationText "Every example app is written in JSON and in Lisp, but Calamaio, in Lisp only. Both look and work the same, and each keeps its own data."
                 :settings.keys "Keyboard"
                 :settings.keyPages "Apps, My apps, Settings"
                 :settings.keyNew "Create an app"
@@ -108,4 +108,10 @@
                 :toast.opening "Opening {name}…"
                 :toast.openFailed "{name} couldn't be opened: {why}"
                 :toast.deleted "{name} was deleted."
-                :toast.duplicated "{name} is ready."}}}
+                :toast.duplicated "{name} is ready."
+                :category.view "View"
+                :command.showApps.about "Shows the Apps page."
+                :command.showMine.about "Shows My apps."
+                :command.showCreate.about "Shows the Create page, its name field focused."
+                :command.showSettings.about "Shows the settings."
+                :command.findApp.about "Shows the Apps page, its search focused."}}}

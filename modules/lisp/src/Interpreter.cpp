@@ -43,6 +43,8 @@ Interpreter::Interpreter(Limits limits) : machine_(std::make_unique<Machine>(*th
 
 Interpreter::~Interpreter() = default;
 
+void Interpreter::addAppVariable(const std::string& name) { machine_->addAppVariable(name); }
+
 void Interpreter::definePrimitive(const std::string& name, Primitive primitive) {
 	machine_->definePrimitive(name, std::move(primitive));
 }
@@ -175,6 +177,11 @@ std::vector<Extension> Interpreter::extensions() const {
 
 Value Interpreter::wrapGlobal(const std::string& name, Primitive primitive) {
 	Global* cell = machine_->findGlobal(name);
+	if(cell && cell->state == Global::State::Deferred) // a function loaded to be compiled when called
+		static_cast<void>(leavingAsLispError(*machine_, [&] {
+			Machine::ensureCompiled(*cell);
+			return true;
+		}));
 	if(!cell || cell->state != Global::State::Ready || cell->value.kind() != Kind::Function)
 		throw std::invalid_argument("no function to wrap: " + name);
 	auto* native = machine_->heap.make<NativeObject>();

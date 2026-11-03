@@ -326,7 +326,7 @@
        :height 20
        :textColor @rbInk
        :runs [{:text ~(t "bar.slides") :size 12 :bold true}
-              {:text ~(spaced "  " (count state.deck.slides)) :size 11 :color @rbMuted}])
+              {:text ~(str "  " (count state.deck.slides)) :size 11 :color @rbMuted}])
      (node#thumbs-top-gap :grow 1 :height 1 :color transparent)
      (label#thumbs-add :style barIcon
        :width 26
@@ -348,9 +348,9 @@
      :label ~(get-in computed.sectionAt [i :name])
      :tooltip ~(if (get computed.folded i) (t "bar.expandTheSection") (t "bar.collapseTheSection"))
      :runs [{:icon ~(if (get computed.folded i) "chevron-right" "chevron-down") :size 11}
-            {:text ~(spaced " " (upper-case (get-in computed.sectionAt [i :name]))) :size 9 :bold true}
+            {:text ~(str " " (upper-case (get-in computed.sectionAt [i :name]))) :size 9 :bold true}
             {:text ~(if (get computed.folded i)
-                      (spaced "  " (plural (count (filter (fn [it] (= it (get-in computed.sectionAt [i :id])))
+                      (str "  " (plural (count (filter (fn [it] (= it (get-in computed.sectionAt [i :id])))
                                                           computed.sectionOf))
                                            "slide"))
                       "")

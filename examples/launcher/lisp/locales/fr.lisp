@@ -92,7 +92,7 @@
                 :settings.folderText "Vos apps sont dans le dossier {folder}, dans votre dossier personnel : un dossier par app, à côté des polices et des parties qu'elles partagent."
                 :settings.notation "Apps d'exemple"
                 :settings.notationLabel "Écrites en"
-                :settings.notationText "Chaque app d'exemple est présente deux fois, écrite en JSON et en Lisp. Elles ont le même aspect et le même fonctionnement, et chacune garde ses propres données."
+                :settings.notationText "Chaque app d'exemple est écrite en JSON et en Lisp, sauf Calamaio, en Lisp seulement. Les deux ont le même aspect et le même fonctionnement, et chacune garde ses propres données."
                 :settings.keys "Clavier"
                 :settings.keyPages "Apps, Mes apps, Réglages"
                 :settings.keyNew "Créer une app"
@@ -108,4 +108,10 @@
                 :toast.opening "Ouverture de {name}…"
                 :toast.openFailed "{name} n'a pas pu s'ouvrir : {why}"
                 :toast.deleted "{name} a été supprimée."
-                :toast.duplicated "{name} est prête."}}}
+                :toast.duplicated "{name} est prête."
+                :category.view "Affichage"
+                :command.showApps.about "Affiche la page Apps."
+                :command.showMine.about "Affiche Mes apps."
+                :command.showCreate.about "Affiche la page Créer, le champ du nom actif."
+                :command.showSettings.about "Affiche les paramètres."
+                :command.findApp.about "Affiche la page Apps, la recherche active."}}}

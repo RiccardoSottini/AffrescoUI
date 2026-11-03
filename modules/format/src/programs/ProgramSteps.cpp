@@ -116,6 +116,11 @@ void Programs::definePrimitives(lisp::Interpreter& interpreter) {
 	                             .call = [this](lisp::Interpreter& in, std::span<const lisp::Value> arguments) {
 		                             return readPath(in, arguments);
 	                             }});
+	// The expressions' bare variables, which a step's name (`preview`) would otherwise hide from code
+	for(const char* name : {"window", "revision", "proposals", "history", "preview", "mode", "theme", "locale", "screen",
+	                        "context", "commands", "keybindings", "menus", "settings", "settingsList", "services",
+	                        "connections", "auth", "requests", "peers", "windows"})
+		interpreter.addAppVariable(name);
 	defineSteps(interpreter);
 	defineFunctions(interpreter);
 	defineLoopPrimitives(interpreter);
@@ -143,6 +148,7 @@ void Programs::defineFunctions(lisp::Interpreter& interpreter) {
 		interpreter.definePrimitive(
 		    name, {.capability = "read",
 			       .pure = false,
+			       .reserved = true,
 			       .call = [this, word = name](lisp::Interpreter& in, std::span<const lisp::Value> arguments) {
 			           return callFunction(word, in, arguments);
 		           }});

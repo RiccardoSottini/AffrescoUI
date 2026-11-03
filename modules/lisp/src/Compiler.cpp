@@ -142,7 +142,13 @@ void Compiler::compileList(const Value& form, Position position) {
 
 void Compiler::compileCall(const Value& form, Position position) {
 	const std::size_t globals = current_->code->globals.size();
+	if(form.at(0).kind() == Kind::Symbol && form.at(0).text() == "+" && !isLocalWord("+") && !context_.library &&
+	   std::ranges::any_of(std::views::iota(std::size_t{1}, form.count()),
+	                       [&](std::size_t at) { return form.at(at).kind() == Kind::String; }))
+		machine_.noteTruthTest("+", form.place(), context_.definition); // an expression's way to join texts
+	compilingHead_ = form.at(0).kind() == Kind::Symbol; // read by compileSymbol(), first thing
 	compile(form.at(0), {});
+	compilingHead_ = false;
 	// (run "save"): the head is one global, the first argument a text written out, which a host's scan can follow
 	const Value head = form.at(0);
 	if(head.kind() == Kind::Symbol && !head.text().contains('.') && form.count() > 1 &&
@@ -155,6 +161,7 @@ void Compiler::compileCall(const Value& form, Position position) {
 }
 
 void Compiler::compileSymbol(const Value& form) {
+	const bool called = std::exchange(compilingHead_, false);
 	const std::string_view name = form.text();
 	const Variable variable = resolve(*current_, name);
 	if(form.place().line != 0) place_ = form.place();
@@ -172,7 +179,15 @@ void Compiler::compileSymbol(const Value& form) {
 		break;
 	}
 	if(isSpecial(name)) fail(form, "\"" + notation::Lexer::excerpt(name) + "\" is a form of the language, not a value");
-	if(!compilePath(form)) compileGlobal(name, form.place());
+	if(compilePath(form)) return;
+	if(!called && !context_.library && machine_.isAppVariable(name) &&
+	   !machine_.definition(name)) { // `preview`, a variable of the running app, though a step has that name
+		compileGlobal("%read", form.place());
+		emitConstant(machine_.heap.string(name));
+		emit(Op::Call, 1);
+		return;
+	}
+	compileGlobal(name, form.place());
 }
 
 bool Compiler::compilePath(const Value& form) {

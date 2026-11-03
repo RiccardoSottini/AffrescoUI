@@ -1,97 +1,39 @@
 {:screen index.screen.lisp
  :cases [{:name "the studio changes the screen"
-          :revision {:author studio :set {"#panel-root/color" "#000000"}}
+          :revision {:author studio :set {"/program/look.lisp/styles.caption" "(defstyle caption \"A small, muted line of text.\"\n  (label :font small :textColor \"#000000\" :fitText true))"}}
           :expect allow}
          {:name "an agent's change waits for review"
-          :revision {:author "agent/claude-code" :set {"#panel-root/color" "#000000"}}
+          :revision {:author "agent/claude-code" :set {"/program/look.lisp/styles.caption" "(defstyle caption \"A small, muted line of text.\"\n  (label :font small :textColor \"#000000\" :fitText true))"}}
           :expect ask
-          :reason "no rule allows"}
+          :reason "agent(/program)"}
          {:name "no one changes the status bar"
-          :revision {:author studio :remove "#statusBar"}
+          :revision {:author studio :set {"/program/shell.lisp/status-bar" "(defview status-bar \"The status bar: the revision shown and who made it, and the window's size.\" []\n  `(node#statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color \"#000000\"\n     {:id panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border}\n     (label#statusText :text ~(t \"status.revision\" {:number revision.number :author revision.author\n                                                    :message revision.message})\n       :font small\n       :textColor @muted\n       :anchors {:left 32 :top 0 :bottom 0 :right 200}\n       :align {:horizontal start :vertical center})\n     (label#statusSize :text ~(str window.width \" × \" window.height)\n       :font small\n       :textColor @muted\n       :anchors {:right 32 :top 0 :bottom 0}\n       :width 160\n       :align {:horizontal end :vertical center})))"}}
           :expect deny
           :reason "#statusBar"}
          {:name "an agent's new behaviour is always asked"
-          :revision {:author "agent/claude-code" :add {"/actions/policyExample" [{:set state.theme :to dark}]}}
+          :revision {:author "agent/claude-code"
+                     :add {"/program/haven.lisp/policyExample" "(defcommand policyExample \"An agent's new command.\" :title \"Policy\" [] (set \"state.theme\" \"dark\"))"}}
           :expect ask}
          {:name "an agent's new function is asked by its rule, in every mode, as an action is"
           :revision {:author "agent/claude-code"
-                     :add {"/program/haven.lisp/policyExample" "(defn policyExample \"An agent's new function.\" [] (set \"state.theme\" \"dark\"))"}}
+                     :add {"/program/haven.lisp/policyFunction" "(defn policyFunction \"An agent's new function.\" [] (set \"state.theme\" \"dark\"))"}}
           :expect ask
           :reason "agent(/actions)"}
-         {:name "twenty new panels are within the agent's budget"
-          :revision {:author "agent/claude-code"
-                     :patch [{:op add :path "#panel-root/children/-" :value {:id policyPanel0}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel1}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel2}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel3}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel4}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel5}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel6}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel7}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel8}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel9}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel10}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel11}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel12}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel13}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel14}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel15}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel16}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel17}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel18}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel19}}]}
+         {:name "an agent's edit of a command's title, by its keyword, waits for review"
+          :revision {:author "agent/claude-code" :set {"/program/haven.lisp/goHome/:title" "Home"}}
           :expect ask
-          :reason "no rule allows"}
+          :reason "asks for review"}
+         {:name "twenty new panels are within the agent's budget"
+          :revision {:author "agent/claude-code" :set {"/program/index.screen.lisp/main" "(defscreen main \"Haven's one window: the sidebar, the page shown, the status bar, and what opens over them.\"\n  :window {:title \"Haven: an AffrescoUI template\" :width 1280 :height 800 :minWidth 1040 :minHeight 640}\n  :strings {:default en\n            :locale ~settings.ui.language\n            :keep [\"Haven\" \"Haven: an AffrescoUI template\" \"Alex\" \"A\" \"English\" \"Español\" \"Français\" \"Apache-2.0\"]}\n  :fonts {:default {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 15 :fallback [icons symbols]}\n          :small {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 13 :fallback [iconsSmall]}\n          :heading {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 17 :fallback [icons symbols]}\n          :title {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 26 :fallback [iconsLarge]}\n          :figure {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 48}\n          :icons {:file \"../../shared/fonts/Lucide.ttf\" :size 18}\n          :iconsSmall {:file \"../../shared/fonts/Lucide.ttf\" :size 13}\n          :iconsLarge {:file \"../../shared/fonts/Lucide.ttf\" :size 26}\n          :iconsMedium {:file \"../../shared/fonts/Lucide.ttf\" :size 22}\n          :symbols {:file \"../../shared/fonts/JetBrainsMono-Regular.ttf\" :size 14}}\n  :persist [state.theme state.settings state.security]\n  :permissions {:allow [studio]\n                :ask [\"agent(/actions)\" \"agent(/program)\"]\n                :deny [\"*(#statusBar)\"]\n                :reviewers [studio]\n                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}\n  :theme ~computed.themeNow\n  (node#panel-root :color @background\n    (node#app :dir auto :anchors {:left 0 :right 0 :top 0 :bottom 0} :color transparent\n      ~(sidebar)\n      ~(home-page)\n      ~(page \"areasPageView\" \"areas\" \"areasPage\" \"auto\")\n      ~(page \"logbookPageView\" \"logbook\" \"logbookPage\" \"auto\")\n      ~(page \"historyPageView\" \"history\" \"historyPage\" \"auto\")\n      ~(page \"energyPage\" \"energy\" \"energyPage\" \"auto\")\n      ~(page \"planPage\" \"plan\" \"planPage\" \"ltr\")\n      ~(page \"automationsPage\" \"automations\" \"automationsPage\" \"ltr\")\n      ~(page \"settingsPageView\" \"settings\" \"settingsPageMain\" \"auto\")\n      ~(status-bar)\n      ~@(dialogs)\n      (node#notificationsPanel :use notificationsPanel)\n      (node#simulator :use simulator)\n      ~@(notes)\n      ~@(search))\n      ~@(map (fn [n] `(node :id ~(str \"policyPanel\" n))) (range 20))))"}}
+          :expect ask}
          {:name "a twenty-first is over it"
-          :revision {:author "agent/claude-code"
-                     :patch [{:op add :path "#panel-root/children/-" :value {:id policyPanel0}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel1}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel2}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel3}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel4}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel5}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel6}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel7}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel8}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel9}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel10}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel11}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel12}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel13}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel14}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel15}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel16}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel17}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel18}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel19}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel20}}]}
+          :revision {:author "agent/claude-code" :set {"/program/index.screen.lisp/main" "(defscreen main \"Haven's one window: the sidebar, the page shown, the status bar, and what opens over them.\"\n  :window {:title \"Haven: an AffrescoUI template\" :width 1280 :height 800 :minWidth 1040 :minHeight 640}\n  :strings {:default en\n            :locale ~settings.ui.language\n            :keep [\"Haven\" \"Haven: an AffrescoUI template\" \"Alex\" \"A\" \"English\" \"Español\" \"Français\" \"Apache-2.0\"]}\n  :fonts {:default {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 15 :fallback [icons symbols]}\n          :small {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 13 :fallback [iconsSmall]}\n          :heading {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 17 :fallback [icons symbols]}\n          :title {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 26 :fallback [iconsLarge]}\n          :figure {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 48}\n          :icons {:file \"../../shared/fonts/Lucide.ttf\" :size 18}\n          :iconsSmall {:file \"../../shared/fonts/Lucide.ttf\" :size 13}\n          :iconsLarge {:file \"../../shared/fonts/Lucide.ttf\" :size 26}\n          :iconsMedium {:file \"../../shared/fonts/Lucide.ttf\" :size 22}\n          :symbols {:file \"../../shared/fonts/JetBrainsMono-Regular.ttf\" :size 14}}\n  :persist [state.theme state.settings state.security]\n  :permissions {:allow [studio]\n                :ask [\"agent(/actions)\" \"agent(/program)\"]\n                :deny [\"*(#statusBar)\"]\n                :reviewers [studio]\n                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}\n  :theme ~computed.themeNow\n  (node#panel-root :color @background\n    (node#app :dir auto :anchors {:left 0 :right 0 :top 0 :bottom 0} :color transparent\n      ~(sidebar)\n      ~(home-page)\n      ~(page \"areasPageView\" \"areas\" \"areasPage\" \"auto\")\n      ~(page \"logbookPageView\" \"logbook\" \"logbookPage\" \"auto\")\n      ~(page \"historyPageView\" \"history\" \"historyPage\" \"auto\")\n      ~(page \"energyPage\" \"energy\" \"energyPage\" \"auto\")\n      ~(page \"planPage\" \"plan\" \"planPage\" \"ltr\")\n      ~(page \"automationsPage\" \"automations\" \"automationsPage\" \"ltr\")\n      ~(page \"settingsPageView\" \"settings\" \"settingsPageMain\" \"auto\")\n      ~(status-bar)\n      ~@(dialogs)\n      (node#notificationsPanel :use notificationsPanel)\n      (node#simulator :use simulator)\n      ~@(notes)\n      ~@(search))\n      ~@(map (fn [n] `(node :id ~(str \"policyPanel\" n))) (range 21))))"}}
           :expect deny
           :reason "over the budget"}
          {:name "the budget is the agent's only"
-          :revision {:author studio
-                     :patch [{:op add :path "#panel-root/children/-" :value {:id policyPanel0}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel1}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel2}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel3}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel4}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel5}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel6}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel7}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel8}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel9}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel10}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel11}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel12}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel13}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel14}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel15}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel16}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel17}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel18}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel19}}
-                             {:op add :path "#panel-root/children/-" :value {:id policyPanel20}}]}
+          :revision {:author studio :set {"/program/index.screen.lisp/main" "(defscreen main \"Haven's one window: the sidebar, the page shown, the status bar, and what opens over them.\"\n  :window {:title \"Haven: an AffrescoUI template\" :width 1280 :height 800 :minWidth 1040 :minHeight 640}\n  :strings {:default en\n            :locale ~settings.ui.language\n            :keep [\"Haven\" \"Haven: an AffrescoUI template\" \"Alex\" \"A\" \"English\" \"Español\" \"Français\" \"Apache-2.0\"]}\n  :fonts {:default {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 15 :fallback [icons symbols]}\n          :small {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 13 :fallback [iconsSmall]}\n          :heading {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 17 :fallback [icons symbols]}\n          :title {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 26 :fallback [iconsLarge]}\n          :figure {:file \"../../shared/fonts/Roboto-Regular.ttf\" :size 48}\n          :icons {:file \"../../shared/fonts/Lucide.ttf\" :size 18}\n          :iconsSmall {:file \"../../shared/fonts/Lucide.ttf\" :size 13}\n          :iconsLarge {:file \"../../shared/fonts/Lucide.ttf\" :size 26}\n          :iconsMedium {:file \"../../shared/fonts/Lucide.ttf\" :size 22}\n          :symbols {:file \"../../shared/fonts/JetBrainsMono-Regular.ttf\" :size 14}}\n  :persist [state.theme state.settings state.security]\n  :permissions {:allow [studio]\n                :ask [\"agent(/actions)\" \"agent(/program)\"]\n                :deny [\"*(#statusBar)\"]\n                :reviewers [studio]\n                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}\n  :theme ~computed.themeNow\n  (node#panel-root :color @background\n    (node#app :dir auto :anchors {:left 0 :right 0 :top 0 :bottom 0} :color transparent\n      ~(sidebar)\n      ~(home-page)\n      ~(page \"areasPageView\" \"areas\" \"areasPage\" \"auto\")\n      ~(page \"logbookPageView\" \"logbook\" \"logbookPage\" \"auto\")\n      ~(page \"historyPageView\" \"history\" \"historyPage\" \"auto\")\n      ~(page \"energyPage\" \"energy\" \"energyPage\" \"auto\")\n      ~(page \"planPage\" \"plan\" \"planPage\" \"ltr\")\n      ~(page \"automationsPage\" \"automations\" \"automationsPage\" \"ltr\")\n      ~(page \"settingsPageView\" \"settings\" \"settingsPageMain\" \"auto\")\n      ~(status-bar)\n      ~@(dialogs)\n      (node#notificationsPanel :use notificationsPanel)\n      (node#simulator :use simulator)\n      ~@(notes)\n      ~@(search))\n      ~@(map (fn [n] `(node :id ~(str \"policyPanel\" n))) (range 21))))"}}
           :expect allow}
          {:name "no one changes the permissions"
-          :revision {:author studio :set {"/permissions/allow" ["*"]}}
+          :revision {:author studio :set {"/program/index.screen.lisp/main/:permissions/:allow" ["*"]}}
           :expect deny
-          :reason "can't change \"permissions\""}]}
+          :reason permissions}]}

@@ -6,11 +6,7 @@
 ;;; `computed.objects`) and changes it only through steps (`set`, `push`...). A handler runs one by name, as it would an
 ;;; action: {:run moveSlide :with {:from 2 :to 0}}.
 
-;;; Two forms the others use
-
-(defmacro spaced "Text after some spaces, as an expression: a binding's text that is spaces and one value loses them."
-  [spaces value]
-  `(+ ~spaces ~value))
+;;; A form the others use
 
 (defmacro each "Runs the body once for each item of a list, the item bound to a name: (each [o objects] (f o))."
   [[item items] & body]

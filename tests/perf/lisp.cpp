@@ -7,6 +7,7 @@
 
 #include <affresco/lisp/Document.hpp>
 
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -59,8 +60,34 @@ std::string programOfMany() {
 
 } // namespace
 
+/// @brief "lisp/open-<app>" and "lisp/open-<app>-json": opening an example written as a program and as JSON, as a
+/// scenario does each time (read, built, judged, its program loaded, the screen built into a window): what an app
+/// written as a program costs beside its JSON version, once the process has opened it before.
+/// @param context The context.
+/// @param workloads Gets them.
+void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
+	for(const char* app : {"flow", "sinopia", "code-editor"})
+		for(const char* notation : {"lisp", "json"}) {
+			const std::filesystem::path folder = context.examples() / app / notation;
+			const auto window = std::make_shared<Window*>(nullptr);
+			Workload open{.name = std::string("lisp/open-") + app + (std::string(notation) == "json" ? "-json" : ""),
+			              .unit = "ms",
+			              .runs = 5};
+			open.prepare = [&context, folder, window] {
+				*window = &context.openWindow(json::parse(
+				    Screen::fromApp(folder, {}, Screen::History::InMemory).documentJson()));
+			};
+			open.step = [folder, window] {
+				Screen screen = Screen::fromApp(folder, {}, Screen::History::InMemory);
+				screen.build(**window);
+			};
+			workloads.push_back(std::move(open));
+		}
+}
+
 std::vector<Workload> lispWorkloads(Context& context) {
 	std::vector<Workload> workloads;
+	addOpenWorkloads(context, workloads);
 	const json bound = lisp::sourceDocument(programWithBindings(), "bench.lisp");
 	const LoadedScreen lisp = context.load(bound, {});
 	const LoadedScreen plain = context.load(documentWithExpressions(), {});

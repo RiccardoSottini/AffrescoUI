@@ -2339,8 +2339,17 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
 - **Reading.** A dotted word that nothing defines is a path of the running app: `state.count`, `data.ordered`, `computed.h`,
   `auth.server.account`, `event.x`; `item.name` of a local `item` is its member, and a member that is a number an index
   (`state.frames.0.id` is the binding's `state.frames[0].id`). A value read is a copy, and costs what its size
-  costs. The expressions' functions that the language doesn't have under another name are there: `(t "key" {:n 1})`, `(today)`, `(trim s)`,
-  `(daysBetween a b)`, `(indexOf list x)`.
+  costs. A bare word that names a variable of the expressions (`preview`, `locale`, `mode`, `theme`, `history`, `window`...) reads it
+  too, unless a local or a definition has that name; called, `(preview ...)`, it is the step. The expressions' functions that the
+  language doesn't have under another name are there: `(t "key" {:n 1})`, `(today)`, `(trim s)`, `(daysBetween a b)`,
+  `(indexOf list x)`. **They are reserved:** no definition of a program takes one's name (`(defn now ...)` is refused), since
+  every file's code means the expression's function by it, a shared add-on's too; a command may share a step's name (`undo`).
+- **Truth.** In a function only `nil` and `false` are false, as in Lisp: `""`, `0` and `[]` are true, where an expression, and so a
+  binding, counts them false. A handler that was a step map tested `state.query` with an expression's truth; as a function,
+  `(if state.query ...)` is true for `""`. Say which you mean: `(truthy? x)` is an expression's truth (and is one in a binding),
+  `(some? x)` tells nil apart, `(not (empty? x))` a text or a list with something in it. `+` adds numbers only: `(str a b)` joins
+  texts, where an expression's `+` would. `affrescoui check --truth <app>` lists every place a function tests a path of the
+  running app directly, or gives `+` a text written out, for a person to look at.
 - **Changing.** Each step is a function of its name, except `remove-state` and `update-record` for `remove` and `update`, whose names the
   language has for something else, and those a program says itself (`if`, `forEach`, `while`, `stop`, `note`). After the step's first
   value comes its next, if the step has one, or `:key value` pairs: `(set "state.x" 1)`, `(push "state.list" {:id 1})`,
@@ -2356,16 +2365,22 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
   past them by name from the variables around it (`result`, `error`), as a handler's `{"lisp": "f", "with": [...]}` does.
 - **A binding.** In a top-level template (a data file, `defscreen`, a `defcommand`'s options), a `~form` that names a path, or what
   nothing defines, or a function that reads the running app (through what it calls too), stays in the tree as a binding, and
-  anything else is worked out at the build. A word that names a function of the program, uncalled, is a name of the running
-  app there (a function can't be in a tree), so a shared file's `~at` stays `{{at}}` in an app that defines `at`. It is written as the expression machine's own text when it can be: `~(not state.x)` is
+  anything else is worked out at the build. A word that names a function, of the program, of the language or of the host,
+  uncalled, is a name of the running app there (a function can't be in a tree): a shared file's `~at` stays `{{at}}` in an app
+  that defines `at`, and `:let {:name ...}` is read by `~name`, though `name` is the language's function; a local of that name
+  wins, and the function a function of the language takes (`(sort-by count xs)`, `(apply max xs)`) stays that function. It is written as the expression machine's own text when it can be: `~(not state.x)` is
   `"{{!(state.x)}}"`, `~(if (> state.n 1) "a" "b")` is `"{{((state.n > 1) ? 'a' : 'b')}}"`, `~(t "key")` is `"{{t('key')}}"`. So those run at an
   expression's speed and **with an expression's truth, where 0, "" and an empty list are false too**. A call of a function of the program is
   `"{{lisp('name', state.x)}}"`, and the function `lisp(name, ...)` can be written in any expression. The language's functions the
   expressions have are written as theirs: `(count x)` is `length(x)`, `(:title card)` and `(get card :title)` are `card.title`,
-  `(get-in x [a :b])` is `x[a].b`, `(str "a" x)` is the text `a{{x}}` (or `('a' + x)` inside a larger form), `(or-else a b)` is
+  `(get-in x [a :b])` is `x[a].b`, `(str "a" x)` is the text `a{{x}}` (or `('a' + x)` inside a larger form; what the build knows is
+  written as text, `(str prefix x)` with `prefix` "Hi " as `Hi {{x}}`, but a text with a brace stays a quoted literal, so no value
+  becomes an expression; spaces around one value are kept as placeholders of their own, `(str "  " x)` as `{{'  '}}{{x}}`, since
+  `"  {{x}}"` would be x's value alone), `(or-else a b)` is
   `a ?? b`, `(nil? x)` is `x == null`, `cond` and `when` are `?:`, and `filter`, `remove`, `map`, `map-indexed`, `find`, `some`,
   `every?`, `sort-by` and `reduce` given `(fn [x] body)` are the expressions' own, the item `it`, the index `index` and the value so
-  far `acc`: `(filter (fn [card] (not= card.id state.sel)) state.cards)` is `filter(state.cards, it.id != state.sel)`. An
+  far `acc` (only `map-indexed` gives the index in a function too: `affrescoui lisp-binding` refuses the others reading it), `(truthy? x)`
+  is `!(!(x))`: `(filter (fn [card] (not= card.id state.sel)) state.cards)` is `filter(state.cards, it.id != state.sel)`. An
   expression's own function given a function names its parameters as the expression does: `(sum state.items (fn [it] it.price))`. A
   binding has no `let`: define a function. **A value read for the screen only reads:** any step it reaches is refused, whoever wrote it. A template inside a
   function (`` `(a ~x) ``) gives values, whenever it runs.
@@ -2408,7 +2423,9 @@ builds `{"id": "layout-board", "icon": "kanban", "selected": "{{(state.view == '
   symbol is a name of the running app too: `(context-menu "cardMenu" "state.cardMenu" 'menus.card)` gives `{{menus.card}}`.
 - **A call of a view** in a template is always worked out at the build, never a binding. **A macro's call** is expanded first,
   once, and what it writes is then a binding or a value as any form: a macro shares a binding's form between views and keeps it an
-  expression (Flow's `cards-in-order`), where a function would be `lisp('name', ...)`.
+  expression (Flow's `cards-in-order`), where a function would be `lisp('name', ...)`. A macro that writes a template's binding
+  writes `~~form`: `` `(defcommand ~name "" :title ~~(list 't key) [] ...) `` gives the command `:title ~(t "...")`, as
+  `(list 'unquote form)` would.
 - **Handlers.** `(handler f arg...)` is the step `{"lisp": "f", "with": [...]}`, which calls a `defn` or a `defcommand` with these
   arguments; in a template, an argument that reads the running app is its binding: `:onDrop ~(handler moveCard event.data.from
   event.data.at c)`. A handler that names a function (`:onClick sortTable`) gives it its parameters by name from the variables
@@ -2425,7 +2442,8 @@ lisp_parity`). These are the rules its files follow, for anyone writing an app t
   (`app.lisp`), `models.lisp`, `seed/`, `locales/`, `*.policy.lisp`, syntax tables.
 - **The entry names the other files.** `(include "state.lisp" "toolbar.lisp" ...)` at the top of the file the app loads (its
   manifest's `entry`) lists them, as a data file's `include` does, with the same checks: read with the file from the app's folder or
-  the shared folder, never by a revision (SECURITY.md, "The Lisp language"). A file it includes may include others.
+  the shared folder, never by a revision (SECURITY.md, "The Lisp language"). A file it includes may include others. The shared
+  folder counts only where it is a folder, not a link, for a program's include and a data file's alike: a link leads anywhere.
 - **`defscreen main` is an outline.** Its options are the window, fonts, strings, permissions and persist; its root lists the
   window's parts in the order they are drawn, each a view: `~(top-bar)`, `~(toolbar)`, `~(work-area)`...
 - **Views are small.** About 40 lines at most and shallow: a long one calls others. A view's docstring says what it shows.
@@ -2433,7 +2451,12 @@ lisp_parity`). These are the rules its files follow, for anyone writing an app t
   `defcommand`, `defcustom`, and `defpart` for the rest (watch, channels, onLoad). A shared add-on gives what an app may replace
   (its colours, keys, default language) with `defdefaults`.
 - **No `"{{...}}"` text in a program.** A binding is a Lisp form: `~(and (= state.view "board") (not state.swimlanes))`. A data file
-  holds `~forms` too (`:where {:board ~state.boardId}`).
+  holds `~forms` too (`:where {:board ~state.boardId}`). The one exception is an expression whose value is a constant that a
+  reader evaluates again (a feature's export value, `"{{'reorderBody'}}"`), which no form gives, as `~"reorderBody"` builds the
+  text itself: `affrescoui lisp-binding` keeps such a text as written.
+- **Functions have Lisp's truth.** A step map that becomes a function tests with Lisp's truth, where `""`, `0` and `[]` are true
+  ("Running", "Truth"): run `affrescoui check --truth` on the app and say which you mean, `(truthy? x)` for the expression's.
+- **A docstring may span lines**, as a string may; a definition's text is still the one form.
 - **Handlers call named functions.** A handler names a function or a command (`:onClick sortTable`), or calls one with its
   arguments (`~(handler selectCard c i)`); a step map holding an expression becomes a function. A plain step with nothing to work
   out (`{:toggle state.composer.more}`) may stay.
@@ -2448,7 +2471,11 @@ The tools: `affrescoui lisp-binding '{{state.n > 1}}'` writes an expression as i
 shows that it does for every text there (each translated, built back and parsed again: the same tree);
 `tools/notation/lisp_program.py` drafts a data file as a program (sections as definitions, views cut out of long trees, repeats,
 every `{{...}}` a form), `--bindings` and `--handlers` rewrite a program's texts and step maps in place, and
-`tools/notation/lisp_metrics.py` measures a folder: the longest definition, the deepest line, the texts left.
+`tools/notation/lisp_metrics.py` measures a folder: the longest definition, the deepest line, the texts left, the first frame and the
+scenarios beside the JSON version's. Opening a program costs about what opening its JSON version does once the process has read
+it before: each file's document and each entry's form are kept for the process by their exact text (and file, name and place),
+since reading them is pure, and an interpreter that runs a program compiles its functions, not its views (`tests/perf`,
+`lisp/open-<app>`).
 
 ### The loop: evaluating from inside the app
 
