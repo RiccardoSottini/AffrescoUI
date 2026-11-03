@@ -244,3 +244,49 @@
       (when (not= state.follow state.selected) (follow))
       (set "state.skyTrack" (if (:solar eclipse) "sun" (:moon eclipse)))
       (animate "state.time" :to (:time eclipse) :ms 600 :easing "inOut"))))
+
+;;; What runs by itself, and the screen's actions
+
+(defpart screen "What runs by itself: the scene follows the camera, the time and the bodies."
+  :watch {:state.camera [{:run syncScene}]
+          :state.zoom [{:run syncScene}]
+          :state.follow [{:run syncScene}]
+          :state.fly [{:run syncScene}]
+          :state.time [{:run syncScene}]
+          :state.selected [{:run syncScene}]
+          :state.bodies [{:run syncScene}]}
+  :onLoad [{:run syncScene}]
+  :actions {:togglePlay [{:toggle state.playing}]
+            :rewind [{:set state.playing :to false} {:set state.time :to 0}]
+            :tick [{:if ~state.playing
+                    :then [{:set state.time :to ~(clamp (+ state.time state.speed) 0 state.duration)}
+                           {:if ~(or (and (< state.speed 0) (<= state.time 0))
+                                     (and (> state.speed 0) (>= state.time state.duration)))
+                            :then [{:set state.playing :to false}]}]}]
+            :deleteNotes [{:set state.notes :to ~(filter (fn [it] (not (contains state.chart.selection it.id))) state.notes)}]
+            :clearNotes [{:set state.notes :to []}]
+            :viewPress [{:set state.grab :to ~state.camera}]
+            :viewRelease [{:set state.grab :to nil}]
+            :reverse [{:set state.speed :to ~(- state.speed)}]
+            :now [{:set state.time :to 0} {:set state.speed :to 0.01}]
+            :toggleOrbits {:title "Show orbits" :icon orbit :do [{:toggle state.showOrbits}]}
+            :toggleLabels {:title "Show labels" :icon tag :do [{:toggle state.showLabels}]}
+            :toggleStars {:title "Show stars" :icon sparkles :do [{:toggle state.showStars}]}
+            :toggleShading {:title "Show the lit side" :icon moon :do [{:toggle state.showShading}]}
+            :toggleGlow {:title "Show the Sun's glow" :icon sun :do [{:toggle state.showGlow}]}
+            :toggleTheme {:title "Light theme"
+                          :icon sun-moon
+                          :do [{:set state.theme :to ~(if (= state.theme "dark") "light" "dark")}]}
+            :openRender {:title "Render options" :icon sliders-horizontal :do [{:set state.renderOpen :to true}]}
+            :zoomIn {:title "Narrow the field of view" :icon zoom-in :do [{:set state.zoom :to ~(min (* state.zoom 1.25) 20)}]}
+            :zoomOut {:title "Widen the field of view" :icon zoom-out :do [{:set state.zoom :to ~(max (/ state.zoom 1.25) 0.5)}]}
+            :fainter {:title "Show fainter stars" :icon sparkle :do [{:set state.limitMag :to ~(min (+ state.limitMag 0.5) 6.5)}]}
+            :brighter {:title "Show only brighter stars"
+                       :icon star
+                       :do [{:set state.limitMag :to ~(max (- state.limitMag 0.5) 1)}]}
+            :toggleBrowser {:title "Show the browser" :icon list-tree :do [{:toggle state.showBrowser}]}
+            :openEclipses {:title "Eclipse finder"
+                           :icon moon
+                           :do [{:set state.showBrowser :to true} {:set state.browserTab :to eclipses}]}
+            :syncScene [{:set state.sceneView :to ~computed.sceneView}]}
+  )

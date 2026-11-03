@@ -1,0 +1,440 @@
+;;; view.lisp --- the 3D view: the bodies, their orbits and the stars, from the camera
+;;;
+;;; The scene node is bound to computed values; the labels, the marks and the readouts are drawn over it. Each body's
+;;; thumbnail is a node drawn into the image body:<id>, for the features that show the bodies.
+
+;;; The camera
+
+(defcomputed pane "The 3D view's size."
+  {:w (max (- window.width 461) 200) :h (max (- window.height 324) 160)})
+
+(defcomputed view
+  {:w computed.pane.w
+     :h computed.pane.h
+     :f (* state.zoom (min computed.pane.w computed.pane.h))
+     :distance state.camera.distance
+     :cy (cos state.camera.yaw)
+     :sy (sin state.camera.yaw)
+     :cp (cos state.camera.pitch)
+     :sp (sin state.camera.pitch)})
+
+(defcomputed target
+  (if (and (not= state.follow "") computed.followed)
+        {:x computed.followed.x :z computed.followed.z}
+        {:x (+ state.camera.tx (* (if computed.flyPosition (- computed.flyPosition.x state.camera.tx) 0) state.fly))
+         :z (+ state.camera.tz (* (if computed.flyPosition (- computed.flyPosition.z state.camera.tz) 0) state.fly))}))
+
+(defcomputed sceneView
+  {:camera {:target [computed.target.x 0 computed.target.z]
+              :yaw state.camera.yaw
+              :pitch state.camera.pitch
+              :distance computed.view.distance
+              :fieldOfView (* 2 (atan (/ computed.view.h (* 2 computed.view.f))))}
+     :selection (if (not= state.selected "") [state.selected] [])})
+
+(defcomputed fov
+  {:deg (degrees (* 2 (atan (/ (min computed.view.w computed.view.h) (* 2 computed.view.f)))))
+     :times (/ state.zoom 1.1)})
+
+(defcomputed fovText
+  (str "FOV: "
+         (floor computed.fov.deg)
+         "° "
+         (pad (floor (* (- computed.fov.deg (floor computed.fov.deg)) 60)) 2 "0")
+         "′ ("
+         (fixed computed.fov.times 2)
+         "x)"))
+
+(defcomputed magText
+  (str "Limiting magnitude: "
+         (fixed state.limitMag 1)
+         " ("
+         (count (filter (fn [it] (<= it.mag state.limitMag)) computed.stars))
+         " stars)"))
+
+;;; The bodies and the stars on the view
+
+(defcomputed stars
+  (map-indexed (fn [index it]
+                   {:u (- (* (mod (abs (* (sin (* index 12.9898)) 43758.5453)) 1) 2) 1)
+                    :t (* (mod (abs (* (sin (* index 78.233)) 12543.917)) 1) 2 (pi))
+                    :mag (+ 0.5 (* 6 (sqrt (mod (abs (* (sin (* index 39.425)) 24634.633)) 1))))})
+                 (range 400)))
+
+(defcomputed starVectors
+  (map (fn [it]
+           {:x (* (sqrt (- 1 (* it.u it.u))) (cos it.t))
+            :y it.u
+            :z (* (sqrt (- 1 (* it.u it.u))) (sin it.t))
+            :mag it.mag})
+         computed.stars))
+
+(defcomputed turned
+  (map (fn [it]
+           (merge it
+                  {:x1 (- (* (- it.x computed.target.x) computed.view.cy)
+                          (* (- it.z computed.target.z) computed.view.sy))
+                   :z1 (+ (* (- it.x computed.target.x) computed.view.sy)
+                          (* (- it.z computed.target.z) computed.view.cy))}))
+         computed.placed))
+
+(defcomputed projected
+  (sort-by (fn [it] it.depth)
+             >
+             (map (fn [it]
+                    (merge it
+                           {:depth (- computed.view.distance (* it.z1 computed.view.cp))
+                            :px (+ (/ computed.view.w 2)
+                                   (/ (* it.x1 computed.view.f) (- computed.view.distance (* it.z1 computed.view.cp))))
+                            :py (+ (/ computed.view.h 2)
+                                   (/ (* it.z1 computed.view.sp computed.view.f)
+                                      (- computed.view.distance (* it.z1 computed.view.cp))))
+                            :r (min (max 3
+                                         (/ (* it.size computed.view.f)
+                                            (- computed.view.distance (* it.z1 computed.view.cp))))
+                                    (* computed.view.h 0.4))}))
+                  computed.turned)))
+
+(defcomputed shaded
+  (map (fn [it]
+           (merge it
+                  {:k (if (= it.parent "")
+                          1
+                          (/ (+ 1
+                                (/ (+ (* (- computed.sun.x1 it.x1) (- it.x1))
+                                      (* (- computed.sun.z1 it.z1)
+                                         (- (* computed.view.distance computed.view.cp) it.z1)))
+                                   (max (* (hypot (- computed.sun.x1 it.x1) (- computed.sun.z1 it.z1))
+                                           (sqrt (+ (- (+ (* it.x1 it.x1)
+                                                          (* computed.view.distance computed.view.distance))
+                                                       (* 2 computed.view.distance it.z1 computed.view.cp))
+                                                    (* it.z1 it.z1))))
+                                        0.000001)))
+                             2))
+                   :ux (/ (- computed.sun.x1 it.x1)
+                          (max (hypot (- computed.sun.x1 it.x1) (* (- computed.sun.z1 it.z1) computed.view.sp))
+                               0.000001))
+                   :uy (/ (* (- computed.sun.z1 it.z1) computed.view.sp)
+                          (max (hypot (- computed.sun.x1 it.x1) (* (- computed.sun.z1 it.z1) computed.view.sp))
+                               0.000001))}))
+         computed.projected))
+
+(defcomputed sight "The selected body, on the view."
+  (find (fn [it] (= it.id state.selected)) computed.projected))
+
+(defcomputed sun "The Sun, in the camera's frame."
+  (find (fn [it] (= it.parent "")) computed.turned))
+
+(defcomputed range
+  (if computed.sight
+        (sqrt (+ (- (+ (* computed.sight.x1 computed.sight.x1) (* computed.view.distance computed.view.distance))
+                    (* 2 computed.view.distance computed.sight.z1 computed.view.cp))
+                 (* computed.sight.z1 computed.sight.z1)))
+        0))
+
+(defcomputed info
+  (if computed.sight
+        {:name computed.selectedBody.name
+         :distance (/ computed.range 4.3)
+         :lit (if (= computed.sight.parent "")
+                  1
+                  (/ (+ 1
+                        (/ (+ (* (- computed.sun.x1 computed.sight.x1) (- computed.sight.x1))
+                              (* (- computed.sun.z1 computed.sight.z1)
+                                 (- (* computed.view.distance computed.view.cp) computed.sight.z1)))
+                           (max (* (hypot (- computed.sun.x1 computed.sight.x1) (- computed.sun.z1 computed.sight.z1))
+                                   computed.range)
+                                0.000001)))
+                     2))}
+        nil))
+
+(defcomputed apparent
+  (if (and computed.sight (> computed.range 0)) (degrees (* 2 (atan (/ computed.sight.size computed.range)))) 0))
+
+(defcomputed apparentText
+  (cond (>= computed.apparent 1) (str (fixed computed.apparent 2) "°")
+          (>= (* computed.apparent 60) 1) (str (fixed (* computed.apparent 60) 1) "′")
+          :else (str (fixed (* computed.apparent 3600) 1) "″")))
+
+(defcomputed marks "The marked bodies in front of the camera."
+  (filter (fn [it] (and (>= (indexOf state.markers it.id) 0) (> it.depth 0.3))) computed.projected))
+
+(defcomputed marked
+  (map-indexed (fn [index it]
+                   {:id (str (get-in computed.marks [(floor (/ index 4)) :id]) "-" (mod index 4))
+                    :x (cond (< (mod index 4) 2) (- (get-in computed.marks [(floor (/ index 4)) :px]) 1)
+                             (= (mod index 4) 2) (- (- (get-in computed.marks [(floor (/ index 4)) :px])
+                                   (get-in computed.marks [(floor (/ index 4)) :r]))
+                                12)
+                             :else (+ (get-in computed.marks [(floor (/ index 4)) :px])
+                                (get-in computed.marks [(floor (/ index 4)) :r])
+                                5))
+                    :y (cond (= (mod index 4) 0) (- (- (get-in computed.marks [(floor (/ index 4)) :py])
+                                   (get-in computed.marks [(floor (/ index 4)) :r]))
+                                12)
+                             (= (mod index 4) 1) (+ (get-in computed.marks [(floor (/ index 4)) :py])
+                                (get-in computed.marks [(floor (/ index 4)) :r])
+                                5)
+                             :else (- (get-in computed.marks [(floor (/ index 4)) :py]) 1))
+                    :w (if (< (mod index 4) 2) 2 7)
+                    :h (if (< (mod index 4) 2) 7 2)})
+                 (range (* (count computed.marks) 4))))
+
+;;; The scene
+
+(defcomputed orbitRings
+  (map (fn [it] {:id it.id :cx it.cx :cz it.cz :radius it.radius})
+         (filter (fn [it] (not= it.parent "")) computed.placed)))
+
+(defcomputed orbitSegments
+  (if state.showOrbits
+        (map-indexed (fn [index it]
+                       {:id (str "orbit-" (get-in computed.orbitRings [(floor (/ index 64)) :id]) "-" (mod index 64))
+                        :translation [(+ (get-in computed.orbitRings [(floor (/ index 64)) :cx])
+                                         (* (get-in computed.orbitRings [(floor (/ index 64)) :radius])
+                                            (cos (/ (* (+ (mod index 64) 0.5) (pi)) 32))))
+                                      0
+                                      (+ (get-in computed.orbitRings [(floor (/ index 64)) :cz])
+                                         (* (get-in computed.orbitRings [(floor (/ index 64)) :radius])
+                                            (sin (/ (* (+ (mod index 64) 0.5) (pi)) 32))))]
+                        :rotationDegrees [0 (- 90 (* (+ (mod index 64) 0.5) 5.625)) 0]
+                        :scale [(/ (* (get-in computed.orbitRings [(floor (/ index 64)) :radius]) (pi)) 62)
+                                (/ (* computed.view.distance 0.6) computed.view.f)
+                                (/ (* computed.view.distance 0.6) computed.view.f)]
+                        :mesh "cube"
+                        :material (if (= (get-in computed.orbitRings [(floor (/ index 64)) :id]) state.selected)
+                                      "orbit-on"
+                                      "orbit")})
+                     (range (* (count computed.orbitRings) 64)))
+        []))
+
+(defcomputed starNodes
+  (if state.showStars
+        (map-indexed (fn [index it]
+                       {:id (str "star-" index)
+                        :translation [(+ computed.target.x (* it.x 300))
+                                      (* it.y 300)
+                                      (+ computed.target.z (* it.z 300))]
+                        :scale [(/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)
+                                (/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)
+                                (/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)]
+                        :mesh "cube"
+                        :material "star"})
+                     (filter (fn [it] (<= it.mag state.limitMag)) computed.starVectors))
+        []))
+
+(defcomputed bodyNodes
+  (map (fn [it]
+           {:id (str "" it.id)
+            :name it.name
+            :translation [it.x 0 it.z]
+            :scale [(max it.size (/ (* 3 it.depth) computed.view.f))
+                    (max it.size (/ (* 3 it.depth) computed.view.f))
+                    (max it.size (/ (* 3 it.depth) computed.view.f))]
+            :mesh "sphere"
+            :material (str "m-" it.id)
+            :visible (> it.depth 0.3)})
+         computed.projected))
+
+(defcomputed bodyMaterials
+  (map (fn [it]
+           (cond (= it.parent "") {:id (str "m-" it.id)
+                  :baseColor [0 0 0 1]
+                  :emissive (if state.showGlow [1.5 0.85 0.22] [1.1 0.65 0.18])
+                  :roughness 1}
+                 state.showShading {:id (str "m-" it.id) :baseColor it.color :roughness 0.9}
+                 :else {:id (str "m-" it.id)
+                  :baseColor [0 0 0 1]
+                  :emissive [(* it.color.0 0.8) (* it.color.1 0.8) (* it.color.2 0.8)]
+                  :roughness 1}))
+         state.bodies))
+
+(defcomputed sceneGraph
+  {:nodes (concat computed.bodyNodes
+                    [{:id "sunlight"
+                      :translation (if computed.sun [computed.sun.x 0 computed.sun.z] [0 0 0])
+                      :light {:type "point" :color [1 0.95 0.85] :intensity 60}}]
+                    (if (and state.showGlow computed.sun)
+                        [{:id "halo"
+                          :translation [computed.sun.x 0 computed.sun.z]
+                          :scale [1.7 1.7 1.7]
+                          :mesh "sphere"
+                          :material "halo"}]
+                        [])
+                    computed.orbitSegments
+                    computed.starNodes)
+     :materials (concat computed.bodyMaterials
+                        [{:id "orbit" :baseColor [0 0 0 1] :emissive [0.1 0.09 0.07] :roughness 1}
+                         {:id "orbit-on" :baseColor [0 0 0 1] :emissive [0.18 0.8 0.7] :roughness 1}
+                         {:id "star" :baseColor [0 0 0 1] :emissive [0.75 0.8 0.9] :roughness 1}
+                         {:id "halo"
+                          :baseColor [1 0.6 0.1 0.12]
+                          :emissive [0.5 0.3 0.05]
+                          :alphaMode "blend"
+                          :roughness 1}])})
+
+(defcomputed renderOptions
+  [{:id "orbits" :title "Orbits" :on state.showOrbits :run "toggleOrbits"}
+     {:id "labels" :title "Labels" :on state.showLabels :run "toggleLabels"}
+     {:id "stars" :title "Stars" :on state.showStars :run "toggleStars"}
+     {:id "shading" :title "Lit side" :on state.showShading :run "toggleShading"}
+     {:id "glow" :title "Sun glow" :on state.showGlow :run "toggleGlow"}])
+
+;;; The view pane
+
+(defview view-pane "The view is a picture of the sky: its markers, labels and readouts keep left to right in every locale." []
+  `(panel#view-pane :dir ltr
+     :note "The view is a picture of the sky: its markers, labels and readouts keep left to right in every locale."
+     :grow 1
+     :alignSelf stretch
+     :color @sky
+     :onPress viewPress
+     :onDrag viewDrag
+     :onRelease viewRelease
+     :onScroll viewScroll
+     ~(view-scene)
+     ~(repeat [t computed.marked :key t.id]
+       `(panel :id ~(str "view-marker-" t.id) :x ~t.x :y ~t.y :width ~t.w :height ~t.h :color "#f0abfc"))
+     ~(repeat [b computed.projected :key b.id]
+       `(label :id ~(str "view-label-" b.id)
+          :x ~(if (and (not= b.parent "") (not= b.parent "sun")) (- (- b.px b.r) 4) (+ b.px b.r 6))
+          :y ~(if (and (not= b.parent "") (not= b.parent "sun")) (+ b.py b.r 2) (- b.py 9))
+          :height 18
+          :fitText true
+          :font small
+          :text ~b.name
+          :textColor ~(if (= b.id state.selected) "@accent" "#b9c7c2")
+          :visible ~(and state.showLabels (> b.depth 0.3))))
+     ~(repeat [b (filter (fn [it] (= (or-else it.look "") "")) state.bodies) :key b.id]
+       `(panel :id ~(str "thumb-" b.id) :snapshot ~{:image (str "body:" b.id) :scale 1} :width 96 :height 64 :color "#07090e"
+          (panel :id ~(str "thumb-disc-" b.id)
+            :x 25
+            :y 9
+            :width 46
+            :height 46
+            :radius 999
+            :color ~b.hex
+            :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})))
+     ~(view-info)
+     ~(view-time)
+     ~(browser)
+     ~(view-hint)
+     ~(view-optics)))
+
+(defview view-scene "#view-scene, in view-pane." []
+  `(scene#view-scene :fill true
+     :bind state.sceneView
+     :scene ~computed.sceneGraph
+     :grid false
+     :axes false
+     :background "#070b0c"
+     :outlineColor @accent
+     :controls {:orbit none :pan none :zoom false :select left :selects false}
+     :onSelect [{:if ~(and (= event.button "left")
+                           (>= (indexOf computed.ids (if (= event.id "halo") "sun" (or-else event.id ""))) 0))
+                 :then [{:set state.selected :to ~(if (= event.id "halo") "sun" event.id)}]}]))
+
+(defview view-info "#view-info, in view-pane." []
+  `(panel#view-info :anchors {:left 12 :bottom 12}
+     :width 252
+     :height 116
+     :color @hud
+     :radius 10
+     :borderWidth 1
+     :borderColor @hudBorder
+     :visible ~(some? computed.info)
+     (panel#info-stripe :x 0 :y 12 :width 3 :height 92 :radius 2 :color @accent)
+     ~(info-lines)))
+
+(defview info-lines "#info-lines." []
+  `(column#info-lines :x 14 :y 8 :width 230 :height 110 :gap 2
+     (label#info-name :height 22 :fitText true :font title :textColor @onSky :text ~computed.info.name)
+     (label#info-distance :height 18
+       :fitText true
+       :font small
+       :textColor @onSkyMuted
+       :text ~(str "Distance: " (fixed computed.info.distance 2) " AU"))
+     (label#info-radius :height 18
+       :fitText true
+       :font small
+       :textColor @onSkyMuted
+       :text ~(str "Radius: " computed.selectedBody.km " km"))
+     (label#info-apparent :height 18
+       :fitText true
+       :font small
+       :textColor @onSkyMuted
+       :text ~(str "Apparent diameter: " computed.apparentText))
+     (label#info-phase :height 18
+       :fitText true
+       :font small
+       :textColor @onSkyMuted
+       :visible ~(not= computed.selectedBody.parent "")
+       :text ~(str "Phase: " (round (* computed.info.lit 100)) "% lit"))))
+
+(defview view-time "#view-time." []
+  `(column#view-time :anchors {:left ~(max (/ (- (- window.width 461) 300) 2) 12) :top 10}
+     :width 300
+     :gap 0
+     :justify center
+     :color @hud
+     :radius 22
+     :borderWidth 1
+     :borderColor @hudBorder
+     :children [(label#time-date :height 20
+                  :width 300
+                  :align {:horizontal center :vertical center}
+                  :font small
+                  :textColor @onSky
+                  :text ~computed.clock) (label#time-rate :height 18
+                                           :width 300
+                                           :align {:horizontal center :vertical center}
+                                           :font small
+                                           :textColor ~(if state.playing "@accent" "@onSkyMuted")
+                                           :text ~computed.rate)]
+     :height 44))
+
+(defview view-optics "#view-optics, in view-pane." []
+  `(row#view-optics :anchors {:right 12 :bottom 12}
+     :fitContent width
+     :height 28
+     :gap 12
+     :alignItems center
+     :color @hud
+     :radius 14
+     :borderWidth 1
+     :borderColor @hudBorder
+     (panel#optics-start :width 2 :height 2)
+     (label#view-fov :fitText true :height 20 :font small :textColor @onSky :text ~computed.fovText)
+     (label#view-mag :fitText true :height 20 :font small :textColor @onSkyMuted :text ~computed.magText)
+     (panel#optics-end :width 2 :height 2)))
+
+(defview view-hint "#view-hint, in view-pane." []
+  `(label#view-hint :anchors {:right 14 :bottom 46}
+     :fitText true
+     :height 20
+     :font small
+     :textColor @onSkyMuted
+     :text "Drag to turn, scroll to zoom; G go to, C centre, F follow; B browser"
+     :visible ~(and (not state.showBrowser) (>= (- window.width 461) 600))))
+
+(defview render "#render." []
+  `(node#render :use dialog
+     :with {:open state.renderOpen
+            :title "Render options"
+            :message "What the 3D view draws"
+            :buttons [{:title "Done"}]
+            :width 340
+            :height 330}
+     (column#render-options :gap 6
+       :children [~(repeat [o computed.renderOptions :key o.id]
+                    `(row :id ~(str "render-" o.id) :width "100%" :height 30
+                       (label :id ~(str "render-" o.id "-title") :text ~o.title :textColor @text :width 200 :height 30)
+                       (toggle :id ~(str "render-" o.id "-toggle")
+                         :width 44
+                         :height 24
+                         :label ~o.title
+                         :checked ~o.on
+                         :activeColor @accent
+                         :trackColor @border
+                         :onChange {:run ~o.run})))]
+       :anchors {:left 20 :right 20 :top 76 :bottom 64})))
