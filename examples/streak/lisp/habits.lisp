@@ -391,12 +391,12 @@
 (defn notSignedIn "" [error] (toast (t "notSignedIn" {:message (:message error)})))
 
 (defcommand signInToServer "Signs in to the document server."
-  :title ~(t "action.signIn.title")
+  :title ~(t "action.signIn.title") :description ~(t "action.signInToServer.about")
   :category ~(t "action.signIn.category") :icon "log-in" :enablement ~(not computed.signedIn) []
   (signIn "streakServer" :onDone signedIn :onError notSignedIn))
 
 (defcommand signOutOfServer "Signs out of the document server."
-  :title ~(t "action.signOut.title")
+  :title ~(t "action.signOut.title") :description ~(t "action.signOutOfServer.about")
   :category ~(t "action.signOut.category") :icon "log-out" :enablement ~computed.signedIn []
   (signOut "streakServer")
   (set "state.sync" {:revisions state.sync.revisions :copy nil :error "" :commits 0}))
