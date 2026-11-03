@@ -29,24 +29,24 @@
 
 (defcomputed fontTitle
   (cond (= (or-else computed.first.font "default") "mono") "JetBrains Mono"
-          (or computed.titleLike (= computed.first.ph "title") (= computed.first.ph "ctrTitle")) "Roboto (Headings)"
-          :else "Roboto (Body)"))
+          (or computed.titleLike (= computed.first.ph "title") (= computed.first.ph "ctrTitle")) (t "menu.robotoHeadings")
+          :else (t "menu.robotoBody")))
 
 (defcomputed dropItems (if state.drop.open (or-else (get computed (str "menu-" state.drop.id)) []) []))
 
 (defcomputed menu-b-paste
-  [{:title "Paste" :icon "clipboard-paste" :keyLabel "Ctrl+V" :run "pasteObjects" :enabled (> (count state.clip) 0)}
-     {:title "Keep Text Only" :icon "type" :run "pasteText" :enabled (> (count state.clip) 0)}
-     {:title "Duplicate" :icon "copy-plus" :keyLabel "Ctrl+D" :run "duplicateObjects" :enabled computed.anyText}])
+  [{:title (t "ribbon.paste") :icon "clipboard-paste" :keyLabel "Ctrl+V" :run "pasteObjects" :enabled (> (count state.clip) 0)}
+     {:title (t "menu.keepTextOnly") :icon "type" :run "pasteText" :enabled (> (count state.clip) 0)}
+     {:title (t "menu.duplicate") :icon "copy-plus" :keyLabel "Ctrl+D" :run "duplicateObjects" :enabled computed.anyText}])
 
 (defcomputed menu-b-copy
-  [{:title "Copy" :icon "copy" :keyLabel "Ctrl+C" :run "copyObjects" :enabled computed.anyText}
-     {:title "Duplicate" :icon "copy-plus" :keyLabel "Ctrl+D" :run "duplicateObjects" :enabled computed.anyText}])
+  [{:title (t "ribbon.copy") :icon "copy" :keyLabel "Ctrl+C" :run "copyObjects" :enabled computed.anyText}
+     {:title (t "menu.duplicate") :icon "copy-plus" :keyLabel "Ctrl+D" :run "duplicateObjects" :enabled computed.anyText}])
 
 (defcomputed menu-b-new-slide
-  (concat (map (fn [it] {:title it.name :icon "layout-panel-top" :run "newSlide" :with {:layout it.id}})
+  (concat (map (fn [it] {:title (t (str "layout." it.id)) :icon "layout-panel-top" :run "newSlide" :with {:layout it.id}})
                  computed.layouts)
-            [{:separator true} {:title "Duplicate Slide" :icon "copy" :run "duplicateSlide"}]))
+            [{:separator true} {:title (t "menu.duplicateSlide") :icon "copy" :run "duplicateSlide"}]))
 
 (defcomputed menu-b-ins-new-slide (get computed "menu-b-new-slide"))
 
@@ -56,35 +56,35 @@
           :else computed.canvasCtxItems))
 
 (defcomputed slideCtxItems
-  [{:title "New Slide" :icon "layout-panel-top" :keyLabel "Ctrl+M" :run "newSlide" :with {:layout "content"}}
-     {:title "Duplicate Slide" :icon "copy-plus" :run "duplicateSlide"}
-     {:title "Delete Slide" :icon "trash-2" :run "deleteSlide" :enabled (> (count state.deck.slides) 1)}
+  [{:title (t "menu.newSlide") :icon "layout-panel-top" :keyLabel "Ctrl+M" :run "newSlide" :with {:layout "content"}}
+     {:title (t "menu.duplicateSlide") :icon "copy-plus" :run "duplicateSlide"}
+     {:title (t "menu.deleteSlide") :icon "trash-2" :run "deleteSlide" :enabled (> (count state.deck.slides) 1)}
      {:separator true}
-     {:title "Add Section" :icon "list-start" :run "addSection"}
+     {:title (t "menu.addSection") :icon "list-start" :run "addSection"}
      {:separator true}
-     {:title "Reset Slide" :icon "rotate-ccw" :run "resetSlide"}
-     {:title "Format Background…" :icon "paint-bucket" :run "formatBackground"}
-     {:title (if (or-else computed.slide.hidden false) "Show Slide" "Hide Slide")
+     {:title (t "menu.resetSlide") :icon "rotate-ccw" :run "resetSlide"}
+     {:title (t "menu.formatBackground") :icon "paint-bucket" :run "formatBackground"}
+     {:title (if (or-else computed.slide.hidden false) (t "menu.showSlide") (t "menu.hideSlide"))
       :icon "eye-off"
       :checked (or-else computed.slide.hidden false)
       :run "hideSlide"}])
 
 (defcomputed objectCtxItems
-  [{:title "Cut" :icon "scissors" :keyLabel "Ctrl+X" :run "cutObjects"}
-     {:title "Copy" :icon "copy" :keyLabel "Ctrl+C" :run "copyObjects"}
-     {:title "Paste" :icon "clipboard-paste" :keyLabel "Ctrl+V" :run "pasteObjects" :enabled (> (count state.clip) 0)}
+  [{:title (t "ribbon.cut") :icon "scissors" :keyLabel "Ctrl+X" :run "cutObjects"}
+     {:title (t "ribbon.copy") :icon "copy" :keyLabel "Ctrl+C" :run "copyObjects"}
+     {:title (t "ribbon.paste") :icon "clipboard-paste" :keyLabel "Ctrl+V" :run "pasteObjects" :enabled (> (count state.clip) 0)}
      {:separator true}
-     {:title "Bring to Front" :icon "bring-to-front" :run "order" :with {:how "front"}}
-     {:title "Send to Back" :icon "send-to-back" :run "order" :with {:how "back"}}
+     {:title (t "arrange.front") :icon "bring-to-front" :run "order" :with {:how "front"}}
+     {:title (t "arrange.back") :icon "send-to-back" :run "order" :with {:how "back"}}
      {:separator true}
-     {:title "Format Shape…" :icon "paintbrush" :run "openFormatPane"}
-     {:title "Delete" :icon "trash-2" :keyLabel "Del" :run "deleteObjects"}])
+     {:title (t "menu.formatShape") :icon "paintbrush" :run "openFormatPane"}
+     {:title (t "menu.delete") :icon "trash-2" :keyLabel "Del" :run "deleteObjects"}])
 
 (defcomputed canvasCtxItems
-  [{:title "Paste" :icon "clipboard-paste" :keyLabel "Ctrl+V" :run "pasteObjects" :enabled (> (count state.clip) 0)}
+  [{:title (t "ribbon.paste") :icon "clipboard-paste" :keyLabel "Ctrl+V" :run "pasteObjects" :enabled (> (count state.clip) 0)}
      {:separator true}
-     {:title "Reset Slide" :icon "rotate-ccw" :run "resetSlide"}
-     {:title "Format Background…" :icon "paint-bucket" :run "formatBackground"}])
+     {:title (t "menu.resetSlide") :icon "rotate-ccw" :run "resetSlide"}
+     {:title (t "menu.formatBackground") :icon "paint-bucket" :run "formatBackground"}])
 
 (defcomputed menu-b-ins-icons
   (map (fn [it]
@@ -92,18 +92,18 @@
             :icon it.1
             :run "insertObject"
             :with {:object {:kind "icon" :icon it.1 :x 420 :y 210 :w 120 :h 120 :color "accent1"}}})
-         [["Star" "star"]
-          ["Heart" "heart"]
-          ["Lightbulb" "lightbulb"]
-          ["Flag" "flag"]
-          ["Calendar" "calendar"]
-          ["Clock" "clock"]
-          ["Map Pin" "map-pin"]
-          ["People" "users"]
-          ["Chat" "message-circle"]
-          ["Check" "circle-check"]
-          ["Warning" "triangle-alert"]
-          ["Music" "music"]]))
+         [[(t "menu.star") "star"]
+          [(t "menu.heart") "heart"]
+          [(t "menu.lightbulb") "lightbulb"]
+          [(t "menu.flag") "flag"]
+          [(t "menu.calendar") "calendar"]
+          [(t "menu.clock") "clock"]
+          [(t "menu.mapPin") "map-pin"]
+          [(t "menu.people") "users"]
+          [(t "menu.chat") "message-circle"]
+          [(t "bar.check") "circle-check"]
+          [(t "menu.warning") "triangle-alert"]
+          [(t "menu.music") "music"]]))
 
 (defcomputed menu-b-ins-art-text
   (map (fn [it]
@@ -115,7 +115,7 @@
                             :y 210
                             :w 600
                             :h 120
-                            :text "Your text here"
+                            :text (t "menu.yourTextHere")
                             :size 54
                             :bold true
                             :align "center"
@@ -123,32 +123,32 @@
                             :color it.1
                             :fill (or-else it.2 "none")
                             :shadow it.3}}})
-         [["Accent, Bold" "accent1" nil false]
-          ["Accent, Bold, Shadow" "accent1" nil true]
-          ["Dark, Bold, Shadow" "dark1" nil true]
-          ["Light on Accent" "light1" "accent1" false]
-          ["Accent 2 on Light" "accent2" "light2" false]]))
+         [[(t "menu.accentBold") "accent1" nil false]
+          [(t "menu.accentBoldShadow") "accent1" nil true]
+          [(t "menu.darkBoldShadow") "dark1" nil true]
+          [(t "menu.lightOnAccent") "light1" "accent1" false]
+          [(t "menu.accent2OnLight") "accent2" "light2" false]]))
 
 (defcomputed menu-b-ins-symbol
   (map (fn [it] {:title it :run "insertSymbol" :with {:symbol it}})
          ["©" "®" "™" "€" "£" "¥" "°" "±" "×" "÷" "≈" "≠" "≤" "≥" "→" "←" "↑" "↓" "•" "…" "§" "¶" "π" "Ω"]))
 
 (defcomputed menu-b-ins-header
-  [{:title "Slide Numbers" :icon "hash" :checked (or-else state.deck.slideNumbers false) :run "toggleSlideNumbers"}
-     {:title (if (nil? (or-else state.deck.footer nil)) "Footer Text…" (str "Footer: " state.deck.footer))
+  [{:title (t "menu.slideNumbers") :icon "hash" :checked (or-else state.deck.slideNumbers false) :run "toggleSlideNumbers"}
+     {:title (if (nil? (or-else state.deck.footer nil)) (t "menu.footerText") (t "menu.footerIs" {:text state.deck.footer}))
       :icon "panel-bottom"
       :run "askFooter"}])
 
 (defcomputed menu-b-layout
-  (map (fn [it] {:title it.name :checked (= computed.slide.layout it.id) :run "setLayout" :with {:layout it.id}})
+  (map (fn [it] {:title (t (str "layout." it.id)) :checked (= computed.slide.layout it.id) :run "setLayout" :with {:layout it.id}})
          computed.layouts))
 
 (defcomputed menu-b-section
-  [{:title "Add Section" :icon "list-plus" :run "addSection"}
-     {:title "Rename Section" :icon "pencil" :run "askSectionName" :enabled (some? computed.sectionHere)}
-     {:title "Remove Section" :icon "list-minus" :run "removeSection" :enabled (some? computed.sectionHere)}
+  [{:title (t "menu.addSection") :icon "list-plus" :run "addSection"}
+     {:title (t "menu.renameSection") :icon "pencil" :run "askSectionName" :enabled (some? computed.sectionHere)}
+     {:title (t "menu.removeSection") :icon "list-minus" :run "removeSection" :enabled (some? computed.sectionHere)}
      {:separator true}
-     {:title "Remove All Sections"
+     {:title (t "menu.removeAllSections")
       :icon "list-x"
       :run "removeSections"
       :enabled (> (count (or-else state.deck.sections [])) 0)}])
@@ -173,14 +173,14 @@
 
 (defcomputed menu-b-case
   (map (fn [it] {:title it.0 :enabled computed.anyText :run "changeCase" :with {:how it.1}})
-         [["Sentence case." "sentence"]
+         [[(t "menu.sentenceCase") "sentence"]
           ["lowercase" "lower"]
           ["UPPERCASE" "upper"]
-          ["Capitalize Each Word" "words"]
-          ["tOGGLE cASE" "toggle"]]))
+          [(t "menu.capitalizeEachWord") "words"]
+          [(t "menu.toggleCase") "toggle"]]))
 
 (defcomputed menu-b-bullets
-  (concat [{:title "None"
+  (concat [{:title (t "ribbon.none")
               :icon "ban"
               :run "setObjects"
               :with {:props {:bullets false :numbering nil}}
@@ -195,22 +195,22 @@
                     :enabled computed.anyText
                     :run "setObjects"
                     :with {:props {:bullets true :numbering nil :bulletIcon (if (= it.1 "dot") nil it.1)}}})
-                 [["Filled Round" "dot"]
-                  ["Hollow Round" "circle"]
-                  ["Filled Square" "square"]
-                  ["Dash" "minus"]
-                  ["Arrow" "chevron-right"]
-                  ["Check" "check"]])))
+                 [[(t "menu.filledRound") "dot"]
+                  [(t "menu.hollowRound") "circle"]
+                  [(t "menu.filledSquare") "square"]
+                  [(t "menu.dash") "minus"]
+                  [(t "menu.arrow") "chevron-right"]
+                  [(t "bar.check") "check"]])))
 
 (defcomputed menu-b-numbering
-  (concat [{:title "None" :icon "ban" :run "setObjects" :with {:props {:numbering nil}} :enabled computed.anyText}]
+  (concat [{:title (t "ribbon.none") :icon "ban" :run "setObjects" :with {:props {:numbering nil}} :enabled computed.anyText}]
             (map (fn [it]
                    {:title it.0
                     :checked (= computed.first.numbering it.1)
                     :enabled computed.anyText
                     :run "setObjects"
                     :with {:props {:bullets true :numbering it.1}}})
-                 [["1. 2. 3." "1."] ["1) 2) 3)" "1)"] ["A. B. C." "A."] ["a) b) c)" "a)"] ["I. II. III." "I."]])))
+                 [["1. 2. 3." "1."] ["1) 2) 3)" "1)"] ["A. B. C." "A."] ["a) b) c)" "a)"] [(t "menu.iIiIii") "I."]])))
 
 (defcomputed menu-b-line-spacing
   (map (fn [it]
@@ -229,7 +229,7 @@
             :enabled computed.anyText
             :run "setObjects"
             :with {:props {:columns (if (= it.1 1) nil it.1)}}})
-         [["One Column" 1 "square"] ["Two Columns" 2 "columns-2"] ["Three Columns" 3 "columns-3"]]))
+         [[(t "menu.oneColumn") 1 "square"] [(t "menu.twoColumns") 2 "columns-2"] [(t "menu.threeColumns") 3 "columns-3"]]))
 
 (defcomputed menu-b-direction
   (map (fn [it]
@@ -239,9 +239,9 @@
             :enabled computed.anyText
             :run "setObjects"
             :with {:props {:textRotate (if (= it.1 0) nil it.1)}}})
-         [["Horizontal" 0 "move-horizontal"]
-          ["Rotate All Text 90°" 90 "redo-2"]
-          ["Rotate All Text 270°" 270 "undo-2"]]))
+         [[(t "menu.horizontal") 0 "move-horizontal"]
+          [(t "menu.rotateAllText90") 90 "redo-2"]
+          [(t "menu.rotateAllText270") 270 "undo-2"]]))
 
 (defcomputed menu-b-anchor
   (map (fn [it]
@@ -252,18 +252,18 @@
             :enabled computed.anyText
             :run "setObjects"
             :with {:props {:anchor it.1}}})
-         [["Top" "top" "align-vertical-justify-start"]
-          ["Middle" "middle" "align-vertical-justify-center"]
-          ["Bottom" "bottom" "align-vertical-justify-end"]]))
+         [[(t "menu.top") "top" "align-vertical-justify-start"]
+          [(t "menu.middle") "middle" "align-vertical-justify-center"]
+          [(t "menu.bottom") "bottom" "align-vertical-justify-end"]]))
 
 (defcomputed menu-b-select
-  [{:title "Select All" :icon "mouse-pointer-2" :keyLabel "Ctrl+A" :run "selectAll"}
-     {:title "Select Text" :icon "type" :run "selectKind" :with {:kinds ["text"]}}
-     {:title "Select Shapes" :icon "shapes" :run "selectKind" :with {:kinds ["shape" "line"]}}
+  [{:title (t "menu.selectAll") :icon "mouse-pointer-2" :keyLabel "Ctrl+A" :run "selectAll"}
+     {:title (t "menu.selectText") :icon "type" :run "selectKind" :with {:kinds ["text"]}}
+     {:title (t "menu.selectShapes") :icon "shapes" :run "selectKind" :with {:kinds ["shape" "line"]}}
      {:separator true}
-     {:title "Select None" :icon "square-dashed" :run "selectKind" :with {:kinds []}}
+     {:title (t "menu.selectNone") :icon "square-dashed" :run "selectKind" :with {:kinds []}}
      {:separator true}
-     {:title "Selection Pane"
+     {:title (t "menu.selectionPane")
       :icon "layers"
       :checked (and (= state.sidePane "select") (not state.formatPane))
       :run "openSidePane"
@@ -272,90 +272,90 @@
 (defcomputed menu-b-arrange computed.arrangeItems)
 
 (defcomputed commands
-  [{:title "New Slide"
+  [{:title (t "menu.newSlide")
       :icon "plus"
       :run "runSearched"
       :with {:action "newSlide" :args {:layout "content"}}
       :keyLabel "Ctrl+M"}
-     {:title "Duplicate Slide" :icon "copy-plus" :run "runSearched" :with {:action "duplicateSlide" :args {}}}
-     {:title "Delete Slide"
+     {:title (t "menu.duplicateSlide") :icon "copy-plus" :run "runSearched" :with {:action "duplicateSlide" :args {}}}
+     {:title (t "menu.deleteSlide")
       :icon "trash-2"
       :run "runSearched"
       :with {:action "deleteSlide" :args {}}
       :enabled (> (count state.deck.slides) 1)}
-     {:title "Hide Slide" :icon "eye-off" :run "runSearched" :with {:action "hideSlide" :args {}}}
-     {:title "Reset Slide" :icon "rotate-ccw" :run "runSearched" :with {:action "resetSlide" :args {}}}
-     {:title "Add Section" :icon "folder-plus" :run "runSearched" :with {:action "addSection" :args {}}}
-     {:title "Text Box" :icon "text-cursor-input" :run "runSearched" :with {:action "insertTextBox" :args {}}}
-     {:title "Find"
+     {:title (t "menu.hideSlide") :icon "eye-off" :run "runSearched" :with {:action "hideSlide" :args {}}}
+     {:title (t "menu.resetSlide") :icon "rotate-ccw" :run "runSearched" :with {:action "resetSlide" :args {}}}
+     {:title (t "menu.addSection") :icon "folder-plus" :run "runSearched" :with {:action "addSection" :args {}}}
+     {:title (t "ribbon.textBox2") :icon "text-cursor-input" :run "runSearched" :with {:action "insertTextBox" :args {}}}
+     {:title (t "ribbon.find")
       :icon "search"
       :run "runSearched"
       :with {:action "openFind" :args {:replace false}}
       :keyLabel "Ctrl+F"}
-     {:title "Replace"
+     {:title (t "ribbon.replace")
       :icon "replace"
       :run "runSearched"
       :with {:action "openFind" :args {:replace true}}
       :keyLabel "Ctrl+H"}
-     {:title "Select All"
+     {:title (t "menu.selectAll")
       :icon "mouse-pointer-2"
       :run "runSearched"
       :with {:action "selectAll" :args {}}
       :keyLabel "Ctrl+A"}
-     {:title "Selection Pane" :icon "layers" :run "runSearched" :with {:action "openSidePane" :args {:pane "select"}}}
-     {:title "Animation Pane"
+     {:title (t "menu.selectionPane") :icon "layers" :run "runSearched" :with {:action "openSidePane" :args {:pane "select"}}}
+     {:title (t "menu.animationPane")
       :icon "list-ordered"
       :run "runSearched"
       :with {:action "openSidePane" :args {:pane "motion"}}}
-     {:title "Show Comments"
+     {:title (t "menu.showComments")
       :icon "messages-square"
       :run "runSearched"
       :with {:action "openSidePane" :args {:pane "comments"}}}
-     {:title "New Comment" :icon "message-square-plus" :run "runSearched" :with {:action "newComment" :args {}}}
-     {:title "Check Accessibility"
+     {:title (t "menu.newComment") :icon "message-square-plus" :run "runSearched" :with {:action "newComment" :args {}}}
+     {:title (t "menu.checkAccessibility")
       :icon "accessibility"
       :run "runSearched"
       :with {:action "openSidePane" :args {:pane "access"}}}
-     {:title "Keyboard Shortcuts"
+     {:title (t "menu.keyboardShortcuts")
       :icon "keyboard"
       :run "runSearched"
       :with {:action "openSidePane" :args {:pane "keys"}}}
-     {:title "Format Background" :icon "paint-bucket" :run "runSearched" :with {:action "formatBackground" :args {}}}
-     {:title "Present from the Start"
+     {:title (t "menu.formatBackground2") :icon "paint-bucket" :run "runSearched" :with {:action "formatBackground" :args {}}}
+     {:title (t "menu.presentFromTheStart")
       :icon "play"
       :run "runSearched"
       :with {:action "present" :args {:from 0}}
       :keyLabel "F5"}
-     {:title "Present from This Slide"
+     {:title (t "menu.presentFromThisSlide")
       :icon "presentation"
       :run "runSearched"
       :with {:action "present" :args {:from state.current}}
       :keyLabel "Shift+F5"}
-     {:title "Preview Transition and Builds" :icon "play" :run "runSearched" :with {:action "previewSlide" :args {}}}
-     {:title "Reading View"
+     {:title (t "menu.previewTransitionAndBuilds") :icon "play" :run "runSearched" :with {:action "previewSlide" :args {}}}
+     {:title (t "menu.readingView")
       :icon "book-open"
       :run "runSearched"
       :with {:action "readingView" :args {:from state.current}}}
-     {:title "Rehearse Timings" :icon "timer" :run "runSearched" :with {:action "rehearse" :args {}}}
-     {:title "Clear Ink on the Slide" :icon "eraser" :run "runSearched" :with {:action "clearInk" :args {}}}
-     {:title "Apply Transition to All"
+     {:title (t "menu.rehearseTimings") :icon "timer" :run "runSearched" :with {:action "rehearse" :args {}}}
+     {:title (t "menu.clearInkOnTheSlide") :icon "eraser" :run "runSearched" :with {:action "clearInk" :args {}}}
+     {:title (t "menu.applyTransitionToAll")
       :icon "copy-check"
       :run "runSearched"
       :with {:action "transitionToAll" :args {}}}
-     {:title "Slide Numbers" :icon "hash" :run "runSearched" :with {:action "toggleSlideNumbers" :args {}}}
-     {:title "Footer" :icon "panel-bottom" :run "runSearched" :with {:action "askFooter" :args {}}}
-     {:title "Save" :icon "save" :run "runSearched" :with {:action "saveDeck" :args {}} :keyLabel "Ctrl+S"}
-     {:title "Open" :icon "folder-open" :run "runSearched" :with {:action "openDeck" :args {}} :keyLabel "Ctrl+O"}
-     {:title "Export to PDF" :icon "file-down" :run "runSearched" :with {:action "exportPdf" :args {}}}
-     {:title "Export Slide as Picture" :icon "image" :run "runSearched" :with {:action "exportPng" :args {}}}
-     {:title "Dark Mode" :icon "moon" :run "runSearched" :with {:action "toggleTheme" :args {}}}
-     {:title "Undo"
+     {:title (t "menu.slideNumbers") :icon "hash" :run "runSearched" :with {:action "toggleSlideNumbers" :args {}}}
+     {:title (t "menu.footer") :icon "panel-bottom" :run "runSearched" :with {:action "askFooter" :args {}}}
+     {:title (t "ribbon.save") :icon "save" :run "runSearched" :with {:action "saveDeck" :args {}} :keyLabel "Ctrl+S"}
+     {:title (t "ribbon.open") :icon "folder-open" :run "runSearched" :with {:action "openDeck" :args {}} :keyLabel "Ctrl+O"}
+     {:title (t "menu.exportToPdf") :icon "file-down" :run "runSearched" :with {:action "exportPdf" :args {}}}
+     {:title (t "menu.exportSlideAsPicture") :icon "image" :run "runSearched" :with {:action "exportPng" :args {}}}
+     {:title (t "menu.darkMode") :icon "moon" :run "runSearched" :with {:action "toggleTheme" :args {}}}
+     {:title (t "menu.undo")
       :icon "undo-2"
       :run "runSearched"
       :with {:action "undo" :args {}}
       :keyLabel "Ctrl+Z"
       :enabled computed.canUndo}
-     {:title "Redo"
+     {:title (t "menu.redo")
       :icon "redo-2"
       :run "runSearched"
       :with {:action "redo" :args {}}
@@ -370,49 +370,45 @@
                        0
                        10)
                 [{:separator true}
-                 {:title (str "Find “" (trim state.search) "” in the slides") :icon "search" :run "searchSlides"}])))
+                 {:title (t "menu.findInSlides" {:text (trim state.search)}) :icon "search" :run "searchSlides"}])))
 
 (defcomputed menu-b-colors
-  (concat [{:title "From the Theme" :checked (nil? state.deck.colors) :run "setColorSet" :with {:id nil}}
+  (concat [{:title (t "menu.fromTheTheme") :checked (nil? state.deck.colors) :run "setColorSet" :with {:id nil}}
              {:separator true}]
-            (map (fn [it] {:title it.name :checked (= state.deck.colors it.id) :run "setColorSet" :with {:id it.id}})
+            (map (fn [it] {:title (t (str "theme." it.id)) :checked (= state.deck.colors it.id) :run "setColorSet" :with {:id it.id}})
                  computed.themes)))
 
-(defcomputed menu-b-fonts
+(defcomputed menu-b-fonts "The Fonts menu: the heading and body fonts, Roboto or JetBrains Mono."
   (map (fn [it]
-           {:title (+ (if (= it.0 "mono") "JetBrains Mono" "Roboto")
-                      (if (= it.0 it.1) "" (str " and " (if (= it.1 "mono") "JetBrains Mono" "Roboto"))))
-            :checked (and (= computed.headingFont it.0) (= computed.bodyFont it.1))
-            :run "setFonts"
-            :with {:heading it.0 :body it.1}})
-         [["default" "default"] ["mono" "default"] ["mono" "mono"]]))
+         {:title (if (= it.0 it.1)
+                   (if (= it.0 "mono") "JetBrains Mono" "Roboto")
+                   (t "menu.fontPair" {:heading (if (= it.0 "mono") "JetBrains Mono" "Roboto")
+                                       :body (if (= it.1 "mono") "JetBrains Mono" "Roboto")}))
+          :checked (and (= computed.headingFont it.0) (= computed.bodyFont it.1))
+          :run "setFonts"
+          :with {:heading it.0 :body it.1}})
+       [["default" "default"] ["mono" "default"] ["mono" "mono"]]))
 
-(defcomputed menu-b-ins-link
+(defmacro slide-title "A slide's title, as a link to it shows it: the first line of its title placeholder's text."
+  [slide]
+  `(or-else (get (split (or-else (:text (or-else (find (fn [it] (contains ["title" "ctrTitle"] (or-else it.ph "")))
+                                                       (or-else (:objects ~slide) []))
+                                                 {}))
+                                 "")
+                        "\n")
+                 0)
+            ""))
+
+(defcomputed menu-b-ins-link "The Link menu: every slide, by its number and title, and Remove Link."
   (concat (map-indexed (fn [index it]
-                           {:title (str "Slide "
-                                        (+ index 1)
-                                        ": "
-                                        (or-else (get (split (or-else (:text (or-else (find (fn [it]
-                                                                                              (contains ["title"
-                                                                                                         "ctrTitle"]
-                                                                                                        (or-else it.ph
-                                                                                                                 "")))
-                                                                                            (or-else it.objects []))
-                                                                                      {}))
-                                                                      "")
-                                                             "\n")
-                                                      0)
-                                                 ""))
-                            :checked (= computed.linkOf it.id)
-                            :run "setLink"
-                            :with {:slide it.id}})
-                         state.deck.slides)
-            [{:separator true}
-             {:title "Remove Link"
-              :icon "unlink"
-              :run "setLink"
-              :with {:slide nil}
-              :enabled (some (fn [it] (some? it.link)) computed.selected)}]))
+                         {:title (t "menu.slideTitled" {:n (+ index 1) :title (slide-title it)})
+                          :checked (= computed.linkOf it.id)
+                          :run "setLink"
+                          :with {:slide it.id}})
+                       state.deck.slides)
+          [{:separator true}
+           {:title (t "menu.removeLink") :icon "unlink" :run "setLink" :with {:slide nil}
+            :enabled (some (fn [it] (some? it.link)) computed.selected)}]))
 
 (defcomputed linkOf
   (if (and (> (count computed.selected) 0)
@@ -423,21 +419,21 @@
 (defcomputed menu-gal-shapes (get computed "menu-b-ins-shapes"))
 
 (defcomputed menu-b-delete-comment
-  [{:title "Delete All Comments on This Slide"
+  [{:title (t "menu.deleteAllCommentsOnThis")
       :icon "message-square-x"
       :run "deleteComments"
       :with {:all false}
       :enabled (> (count computed.comments) 0)}
-     {:title "Delete All Comments in This Deck" :icon "trash-2" :run "deleteComments" :with {:all true}}])
+     {:title (t "menu.deleteAllCommentsInThis") :icon "trash-2" :run "deleteComments" :with {:all true}}])
 
 (defcomputed menu-gal-themes
-  (map (fn [it] {:title it.name :checked (= state.deck.theme it.id) :run "setTheme" :with {:theme it.id}})
+  (map (fn [it] {:title (t (str "theme." it.id)) :checked (= state.deck.theme it.id) :run "setTheme" :with {:theme it.id}})
          computed.themes))
 
 (defcomputed menu-b-effects computed.effectItems)
 
 (defcomputed menu-b-ins-shapes
-  (map (fn [it] {:title (or-else (get-in computed.shapes [it :name]) it) :run "insertShape" :with {:shape it}})
+  (map (fn [it] {:title (t (str "shape." it)) :run "insertShape" :with {:shape it}})
          ["rect"
           "roundRect"
           "ellipse"
@@ -478,33 +474,33 @@
 
 (defcomputed colors-b-color
   {:key "color"
-     :none "Automatic"
-     :sections [{:title "Theme Colors" :columns 10 :cells computed.themeGrid}
-                {:title "Standard Colors" :columns 10 :cells computed.standardColors}]})
+     :none (t "menu.automatic")
+     :sections [{:title (t "menu.themeColors") :columns 10 :cells computed.themeGrid}
+                {:title (t "menu.standardColors") :columns 10 :cells computed.standardColors}]})
 
 (defcomputed colors-b-fill
   {:key "fill"
-     :none "No Fill"
-     :sections [{:title "Theme Colors" :columns 10 :cells computed.themeGrid}
-                {:title "Standard Colors" :columns 10 :cells computed.standardColors}]})
+     :none (t "menu.noFill")
+     :sections [{:title (t "menu.themeColors") :columns 10 :cells computed.themeGrid}
+                {:title (t "menu.standardColors") :columns 10 :cells computed.standardColors}]})
 
 (defcomputed colors-b-outline
   {:key "line"
-     :none "No Outline"
-     :sections [{:title "Theme Colors" :columns 10 :cells computed.themeGrid}
-                {:title "Standard Colors" :columns 10 :cells computed.standardColors}]})
+     :none (t "menu.noOutline")
+     :sections [{:title (t "menu.themeColors") :columns 10 :cells computed.themeGrid}
+                {:title (t "menu.standardColors") :columns 10 :cells computed.standardColors}]})
 
 (defcomputed colors-b-highlight
   {:key "highlight"
-     :none "No Color"
-     :sections [{:title "Highlight Colors" :columns 5 :cells computed.highlightColors}]})
+     :none (t "menu.noColor")
+     :sections [{:title (t "menu.highlightColors") :columns 5 :cells computed.highlightColors}]})
 
 (defcomputed colors-b-quick-styles
   {:key "style"
-     :none "No Style"
-     :sections [{:title "Filled" :columns 6 :cells (map (fn [it] (str "accent" (+ it 1))) (range 6))}
-                {:title "Light" :columns 6 :cells (map (fn [it] (str "accent" (+ it 1) ".1")) (range 6))}
-                {:title "Outlined" :columns 6 :cells (map (fn [it] (str "line:accent" (+ it 1))) (range 6))}]})
+     :none (t "menu.noStyle")
+     :sections [{:title (t "menu.filled") :columns 6 :cells (map (fn [it] (str "accent" (+ it 1))) (range 6))}
+                {:title (t "menu.light") :columns 6 :cells (map (fn [it] (str "accent" (+ it 1) ".1")) (range 6))}
+                {:title (t "menu.outlined") :columns 6 :cells (map (fn [it] (str "line:accent" (+ it 1))) (range 6))}]})
 
 (defcomputed colorDrop (if state.colors.open (get computed (str "colors-" state.colors.id)) nil))
 
@@ -539,7 +535,7 @@
      :borderColor @rbLine
      :shadow {:y 4 :blur 14 :color "#00000033"}
      :role menu
-     :label "Colours"
+     :label ~(t "menu.colours")
      :overlay {:anchor ~(str "#" state.colors.id) :placement below :open state.colors.open :dismiss outside :modal true}
      :let {:drop ~(or-else computed.colorDrop {:sections [] :none ""})}
      (node#colors-top :height 4 :color transparent)
@@ -576,10 +572,10 @@
      :borderColor @rbLine
      :shadow {:y 4 :blur 14 :color "#00000033"}
      :role dialog
-     :label ~(cond (= state.find.ask "section") "Rename Section"
-                   (= state.find.ask "footer") "Footer"
-                   state.find.replace "Replace"
-                   :else "Find")
+     :label ~(cond (= state.find.ask "section") (t "menu.renameSection")
+                   (= state.find.ask "footer") (t "menu.footer")
+                   state.find.replace (t "ribbon.replace")
+                   :else (t "ribbon.find"))
      :overlay {:anchor ~(cond (= state.find.ask "section") "#b-section"
                               (= state.find.ask "footer") "#b-ins-header"
                               state.find.replace "#b-replace"
@@ -605,10 +601,10 @@
   `(label#find-title :anchors {:left 10 :right 10}
      :height 18
      :textColor @rbInk
-     :runs [{:text ~(cond (= state.find.ask "section") "Section name"
-                          (= state.find.ask "footer") "Footer text (empty: none)"
-                          state.find.replace "Replace"
-                          :else "Find what")
+     :runs [{:text ~(cond (= state.find.ask "section") (t "menu.sectionName")
+                          (= state.find.ask "footer") (t "menu.footerTextEmptyNone")
+                          state.find.replace (t "ribbon.replace")
+                          :else (t "menu.findWhat"))
              :size 12
              :bold true}]))
 
@@ -623,7 +619,7 @@
      :borderColor @rbFieldLine
      :textColor @rbInk
      :bind state.find.with
-     :placeholder "Replace with"
+     :placeholder ~(t "menu.replaceWith")
      :placeholderColor @rbMuted
      :onSubmit replaceOne))
 
@@ -638,9 +634,9 @@
      :textColor @rbInk
      :bind state.find.text
      :autofocus true
-     :placeholder ~(cond (= state.find.ask "section") (or-else computed.sectionHere.name "Untitled Section")
-                         (= state.find.ask "footer") (or-else state.deck.footer "Footer")
-                         :else "Text in the slides")
+     :placeholder ~(cond (= state.find.ask "section") (or-else computed.sectionHere.name (t "section.untitled"))
+                         (= state.find.ask "footer") (or-else state.deck.footer (t "menu.footer"))
+                         :else (t "menu.textInTheSlides"))
      :placeholderColor @rbMuted
      :onSubmit submitFind))
 
@@ -708,28 +704,28 @@
        :height 26
        :fitText true
        :padding 10
-       :runs [{:text ~(if (= state.find.ask "section") "Rename" "Apply") :size 12}]
+       :runs [{:text ~(if (= state.find.ask "section") (t "menu.rename") (t "menu.apply")) :size 12}]
        :onClick answer)
      (label#find-next :when ~(= (or-else state.find.ask "") "")
        :style rbButton
        :height 26
        :fitText true
        :padding 8
-       :runs [{:text "Find Next" :size 12}]
+       :runs [{:text ~(t "menu.findNext") :size 12}]
        :onClick findNext)
      (label#find-replace :when ~(and state.find.replace (= (or-else state.find.ask "") ""))
        :style rbButton
        :height 26
        :fitText true
        :padding 8
-       :runs [{:text "Replace" :size 12}]
+       :runs [{:text ~(t "ribbon.replace") :size 12}]
        :onClick replaceOne)
      (label#find-replace-all :when ~(and state.find.replace (= (or-else state.find.ask "") ""))
        :style rbButtonOn
        :height 26
        :fitText true
        :padding 10
-       :runs [{:text "Replace All" :size 12}]
+       :runs [{:text ~(t "menu.replaceAll") :size 12}]
        :onClick replaceAll)))
 
 ;;; Opening the menus and panes
@@ -902,7 +898,7 @@
 
 (defn findNext "Selects the next object that holds the text, on this slide or the next that has one." []
   (if (= computed.hitCount 0)
-    (set "state.find.status" (if (= computed.findQuery "") "" "Not found."))
+    (set "state.find.status" (if (= computed.findQuery "") "" (t "menu.notFound")))
     (let [here (get computed.hitsBySlide state.current)]
       (findAfter (indexOf here (or-else (get state.board.selection 0) "")) here))))
 
@@ -914,7 +910,7 @@
     (let [slides (count state.deck.slides)]
       (findOn (find (fn [it] (> (count (get computed.hitsBySlide it)) 0))
                     (map (fn [it] (mod (+ state.current 1 it) slides)) (range slides))))))
-  (set "state.find.status" (str computed.hitCount (if (= computed.hitCount 1) " match" " matches") " in the deck.")))
+  (set "state.find.status" (t "menu.matches" {:n computed.hitCount})))
 
 (defn findOn "Shows a slide and selects its first hit." [slide]
   (pickSlide slide)
@@ -932,7 +928,7 @@
 
 (defn replaceAll "Replaces the text everywhere in the deck, as one change." []
   (if (> computed.hitCount 0)
-    (do (set "state.find.status" (str "Replaced " computed.hitCount (if (= computed.hitCount 1) " object" " objects") "."))
+    (do (set "state.find.status" (t "menu.replaced" {:n computed.hitCount}))
         (commit)
         (set "state.deck.slides"
              (map (fn [slide]
@@ -941,4 +937,4 @@
                                                           o))
                                                 (or-else slide.objects []))}))
                   state.deck.slides)))
-    (set "state.find.status" "Not found.")))
+    (set "state.find.status" (t "menu.notFound"))))

@@ -24,7 +24,7 @@
        :height 18
        :align center
        :disabled ~(not enabled)
-       :tooltip "More options"
+       :tooltip ~(t "ribbon.moreOptions")
        :style ~(if (not enabled) "rbButtonOff" "rbButton")
        :runs [{:icon chevron-down :size 10}]
        :onClick ~(handler openDrop drop))))
@@ -52,7 +52,7 @@
      (label :grow 1 :height 20 :padding 7 :textColor @rbInk :runs [{:text ~text :size 12}])
      (label :width 16 :height 20 :align center :textColor @rbInk :runs [{:icon chevron-down :size 11}])))
 
-(defcomponent rbGroup "A group is a card: its title in small capitals along the top, the launcher at the title's end (it opens the format pane), its commands below."
+(defcomponent rbGroup "A group is a card: its title in small capitals along the top, the launcher at the title's end (it opens the format pane; `launcher` is its id), its commands below."
   {:title "" :launcher false}
   `(column :fitContent width :height 92 :radius 10 :color @card :borderWidth 1 :borderColor @rbLine :alignItems stretch
      ~(rb-group-row title launcher)
@@ -98,7 +98,7 @@
        :height ~(if (nil? tint) 24 21)
        :align center
        :disabled ~(not enabled)
-       :tooltip "More options"
+       :tooltip ~(t "ribbon.moreOptions")
        :style ~(if (not enabled) "rbButtonOff" "rbButton")
        :runs [{:icon chevron-down :size 10}]
        :onClick ~(handler openMenu colors drop))))
@@ -108,15 +108,15 @@
      {:width 6 :height 1 :color transparent}
      (label :style rbGroupTitle :fitText true :runs [{:text ~(upper-case title) :size 9 :bold true}])
      {:grow 1 :height 1 :color transparent}
-     (label :id ~(str "launch-" (join "-" (split (lower-case title) " ")))
+     (label :id ~launcher
        :when ~launcher
        :width 16
        :height 16
        :style rbButton
        :align center
-       :tooltip ~(str "More " (lower-case title) " options")
+       :tooltip ~(t "ribbon.moreGroupOptions" {:group (lower-case title)})
        :role button
-       :label ~(str title " options")
+       :label ~(t "ribbon.groupOptions" {:group title})
        :runs [{:icon settings-2 :size 10}]
        :onClick openFormatPane)
      {:width 4 :height 1 :color transparent}))
@@ -127,13 +127,13 @@
        :height 22
        :style rbButtonOff
        :align center
-       :tooltip "Every item is shown"
+       :tooltip ~(t "ribbon.everyItemIsShown")
        :runs [{:icon chevron-up :size 10}])
      (label :width 16
        :height 22
        :style rbButtonOff
        :align center
-       :tooltip "Every item is shown"
+       :tooltip ~(t "ribbon.everyItemIsShown")
        :runs [{:icon chevron-down :size 10}])
      (label :id ~(str more "-all")
        :width 16
@@ -141,7 +141,7 @@
        :style ~(if (= more "") "rbButtonOff" "rbButton")
        :align center
        :disabled ~(= more "")
-       :tooltip ~(if (= more "") "Every item is shown" "The whole list")
+       :tooltip ~(if (= more "") (t "ribbon.everyItemIsShown") (t "ribbon.theWholeList"))
        :runs [{:icon chevrons-down :size 10}]
        :onClick ~(handler openDrop more))))
 

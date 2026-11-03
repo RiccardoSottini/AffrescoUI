@@ -53,18 +53,18 @@
 ;;; The ribbon's tabs
 
 (defcomputed tabs "The ribbon's tabs, in their order."
-  [{:id "file" :title "File"}
-   {:id "home" :title "Home"}
-   {:id "insert" :title "Insert"}
-   {:id "draw" :title "Ink"}
-   {:id "design" :title "Design"}
-   {:id "transitions" :title "Transitions"}
-   {:id "animations" :title "Motion"}
-   {:id "slideShow" :title "Present"}
-   {:id "record" :title "Record"}
-   {:id "review" :title "Check"}
-   {:id "view" :title "View"}
-   {:id "help" :title "Help"}])
+  [{:id "file" :title (t "bar.file")}
+   {:id "home" :title (t "bar.home")}
+   {:id "insert" :title (t "bar.insert")}
+   {:id "draw" :title (t "bar.ink")}
+   {:id "design" :title (t "bar.design")}
+   {:id "transitions" :title (t "bar.transitions")}
+   {:id "animations" :title (t "bar.motion")}
+   {:id "slideShow" :title (t "bar.present")}
+   {:id "record" :title (t "bar.record")}
+   {:id "review" :title (t "bar.check")}
+   {:id "view" :title (t "bar.view")}
+   {:id "help" :title (t "bar.help")}])
 
 ;;; The canvas and its zoom
 
@@ -176,8 +176,8 @@
      ~(doc-title)
      (node#command-divider :width 1 :height 20 :color @rbLine)
      (node#command-pad-2 :width 6 :height 1 :color transparent)
-     ~(repeat [t computed.tabs :key t.id]
-       (tab-title t))
+     ~(repeat [tab computed.tabs :key tab.id]
+       (tab-title tab))
      (node#command-gap :grow 1 :height 1 :color transparent)
      ~(search)
      (node#command-gap-2 :width 8 :height 1 :color transparent)
@@ -201,15 +201,15 @@
      :cursor hand
      :hover {:color @rbHover}
      :runs [{:text ~state.deck.title :size 13 :bold true}]
-     :tooltip "Open, save or export the deck"
+     :tooltip ~(t "bar.openSaveOrExportThe")
      :onClick ~(handler showTab "file")))
 
-(defview tab-title "A tab's title in the command bar: `t` is the repeat's tab." [t]
-  `(label :id ~(str "tab-" t.id "-label")
-     :style ~(if (and (= state.tab t.id) state.ribbon) "tabOn" "tab")
-     :selected ~(= state.tab t.id)
-     :runs [{:text ~t.title :size 12}]
-     :onClick ~(handler showTab t.id)))
+(defview tab-title "A tab's title in the command bar: `tab` is the repeat's tab." [tab]
+  `(label :id ~(str "tab-" tab.id "-label")
+     :style ~(if (and (= state.tab tab.id) state.ribbon) "tabOn" "tab")
+     :selected ~(= state.tab tab.id)
+     :runs [{:text ~tab.title :size 12}]
+     :onClick ~(handler showTab tab.id)))
 
 (defview search "The search box: commands whose names hold its text, and a search of the slides." []
   `(textarea#search :width 200
@@ -221,39 +221,39 @@
      :borderColor @rbFieldLine
      :textColor @rbInk
      :bind state.search
-     :placeholder "Search commands (Alt+Q)"
+     :placeholder ~(t "bar.searchCommandsAltQ")
      :placeholderColor @rbMuted
-     :label "Search commands"
-     :tooltip "Type what you want to do, then Enter"
+     :label ~(t "bar.searchCommands")
+     :tooltip ~(t "bar.typeWhatYouWantTo")
      :onSubmit ~(handler openDrop "search")))
 
 (defview quick-commands "Undo, Redo, Save and Present from the start, as icons in the command bar." []
   [`(label#qat-undo :style barIcon
       :runs [{:icon undo-2 :size 16}]
       :textColor ~(if computed.canUndo "@rbInk" "@inkFaded")
-      :tooltip "Undo (Ctrl+Z)"
+      :tooltip ~(t "bar.undoCtrlZ")
       :onClick undo)
    `(label#qat-redo :style barIcon
       :runs [{:icon redo-2 :size 16}]
       :textColor ~(if computed.canRedo "@rbInk" "@inkFaded")
-      :tooltip "Redo (Ctrl+Y)"
+      :tooltip ~(t "bar.redoCtrlY")
       :onClick redo)
-   `(label#qat-save :style barIcon :runs [{:icon hard-drive-download :size 16}] :tooltip "Save (Ctrl+S)" :onClick saveDeck)
+   `(label#qat-save :style barIcon :runs [{:icon hard-drive-download :size 16}] :tooltip ~(t "bar.saveCtrlS") :onClick saveDeck)
    `(label#qat-present :style barIcon
       :runs [{:icon skip-back :size 16}]
-      :tooltip "Present from the start (F5)"
+      :tooltip ~(t "bar.presentFromTheStartF5")
       :onClick ~(handler present 0))])
 
 (defview ribbon-collapse "The button that hides the ribbon, or shows it again." []
   `(label#ribbon-collapse :style barIcon
      :runs [{:icon ~(if state.ribbon "panel-top-close" "panel-top-open") :size 16}]
-     :tooltip ~(if state.ribbon "Hide the commands (Ctrl+F1)" "Show the commands (Ctrl+F1)")
+     :tooltip ~(if state.ribbon (t "bar.hideTheCommandsCtrlF1") (t "bar.showTheCommandsCtrlF1"))
      :onClick [{:toggle state.ribbon}]))
 
 (defview present-button "Present, from the slide shown." []
   `(label#present-button :style pillButton
-     :runs [{:icon play :size 13} {:text " Present" :size 12 :bold true}]
-     :tooltip "Present from this slide (Shift+F5)"
+     :runs [{:icon play :size 13} {:text ~(t "bar.present2") :size 12 :bold true}]
+     :tooltip ~(t "bar.presentFromThisSlideShift")
      :onClick ~(handler present state.current)))
 
 ;;; The ribbon
@@ -297,7 +297,7 @@
      :gap 0
      :focusable true
      :role list
-     :label "Slides"
+     :label ~(t "bar.slides")
      :onContextMenu ~(handler openContext event.x event.y "slide")
      :keys {:up ~(handler pickSlide (- state.current 1))
             :down ~(handler pickSlide (+ state.current 1))
@@ -321,14 +321,14 @@
      (label#thumbs-title :fitText true
        :height 20
        :textColor @rbInk
-       :runs [{:text "Slides" :size 12 :bold true}
+       :runs [{:text ~(t "bar.slides") :size 12 :bold true}
               {:text ~(spaced "  " (count state.deck.slides)) :size 11 :color @rbMuted}])
      (node#thumbs-top-gap :grow 1 :height 1 :color transparent)
      (label#thumbs-add :style barIcon
        :width 26
        :height 26
        :runs [{:icon plus :size 15}]
-       :tooltip "New Slide (Ctrl+M)"
+       :tooltip ~(t "bar.newSlideCtrlM")
        :onClick ~(handler newSlide "content"))
      (node#thumbs-top-pad-end :width 8 :height 1 :color transparent)))
 
@@ -342,7 +342,7 @@
      :cursor hand
      :role button
      :label ~(get-in computed.sectionAt [i :name])
-     :tooltip ~(if (get computed.folded i) "Expand the section" "Collapse the section")
+     :tooltip ~(if (get computed.folded i) (t "bar.expandTheSection") (t "bar.collapseTheSection"))
      :runs [{:icon ~(if (get computed.folded i) "chevron-right" "chevron-down") :size 11}
             {:text ~(spaced " " (upper-case (get-in computed.sectionAt [i :name]))) :size 9 :bold true}
             {:text ~(if (get computed.folded i)
@@ -363,7 +363,7 @@
      :role listitem
      :alignItems center
      :selected ~(= i state.current)
-     :label ~(str "Slide " (+ i 1))
+     :label ~(t "slide.n" {:n (+ i 1)})
      :drag {:data {:slide ~i}}
      :onDrop ~(handler moveSlide (or-else event.data.slide (- 1)) i)
      :onClick ~(handler chooseSlide i "#thumbnails")
@@ -398,12 +398,12 @@
        :when ~(or (not= (or-else s.transition.kind "none") "none") (> (count (or-else s.animations [])) 0))
        :width 14 :height 16 :align center :textColor @rbMuted
        :runs [{:icon wand-sparkles :size 10}]
-       :tooltip "Has a transition or animations")
+       :tooltip ~(t "bar.hasATransitionOrAnimations"))
      (label :id ~(str "thumb-" s.id "-hidden")
        :when ~(or-else s.hidden false)
        :width 14 :height 16 :align center :textColor @rbMuted
        :runs [{:icon eye-off :size 10}]
-       :tooltip "Hidden in the show")))
+       :tooltip ~(t "bar.hiddenInTheShow"))))
 
 ;;; The slide and its notes
 
@@ -427,7 +427,9 @@
      :snap true
      :rulers ~state.ruler
      :grid ~(if state.gridlines 12 0)
-     :label ~(str "Slide " (+ state.current 1) (if (= computed.slideTitle "") "" (str ", " computed.slideTitle)))
+     :label ~(if (= computed.slideTitle "")
+               (t "slide.n" {:n (+ state.current 1)})
+               (t "slide.titled" {:n (+ state.current 1) :title computed.slideTitle}))
      :onChange ~(handler viewChanged event.value)
      :onTransform ~(handler placeObjects event.items)
      (node :x 0 :y 0 :width 960 :height 540 :color "#ffffff" :shadow {:x 0 :y 1 :blur 4 :color "#00000033"}
@@ -445,13 +447,13 @@
        :width 400
        :height 20
        :textColor @faint
-       :runs [{:text ~(if (= (or-else computed.slide.notes "") "") "Click to add notes" "") :size 13}])
+       :runs [{:text ~(if (= (or-else computed.slide.notes "") "") (t "bar.clickToAddNotes") "") :size 13}])
      (editor#notes :fill 4
        :color transparent
        :wrap true
        :textColor @rbInk
        :lineColor transparent
-       :label "Notes"
+       :label ~(t "bar.notes")
        :bind ~(str "state.deck.slides[" state.current "].notes"))))
 
 ;;; The status bar
@@ -462,48 +464,48 @@
      ~(status-views)
      (node#status-gap-1 :width 6 :height 1 :color transparent)
      (label#status-slide :style barButton
-       :runs [{:text ~(str "Slide " (+ state.current 1) " of " (count state.deck.slides)) :size 11}])
+       :runs [{:text ~(t "slide.nOfCount" {:n (+ state.current 1) :count (count state.deck.slides)}) :size 11}])
      (label#status-notes :style ~(if state.notes "barButtonOn" "barButton")
-       :runs [{:icon notebook-pen :size 13} {:text " Notes" :size 11}]
+       :runs [{:icon notebook-pen :size 13} {:text ~(t "bar.notes2") :size 11}]
        :onClick [{:toggle state.notes}])
      ~(status-comments)
      (node#status-gap :grow 1 :height 1 :color transparent)
      ~@(zoom-controls)
      (node#status-pad-end :width 8 :height 1 :color transparent)))
 
-(defview view-button "A button of the status bar that shows a view of the deck." [id view icon tooltip]
+(defview view-button "A button of the status bar that shows a view of the deck; `tooltip` is a key." [id view icon tooltip]
   `(label :id ~id
      :style ~(if (= state.view view) "barButtonOn" "barButton")
      :height 20
      :runs [{:icon ~icon :size 13}]
-     :tooltip ~tooltip
+     :tooltip ~(t tooltip)
      :onClick [{:set state.view :to ~view}]))
 
 (defview status-views "The views of the deck, and Present from this slide." []
   `(row#status-views :fitContent width :height 22 :radius 11 :color @card :borderWidth 1 :borderColor @rbLine
      :alignItems center
-     ~(view-button "status-normal" "normal" "panel-left" "Normal")
-     ~(view-button "status-outline" "outline" "list-tree" "Outline")
-     ~(view-button "status-sorter" "sorter" "layout-grid" "Slide Sorter")
+     ~(view-button "status-normal" "normal" "panel-left" "bar.normal")
+     ~(view-button "status-outline" "outline" "list-tree" "bar.outline")
+     ~(view-button "status-sorter" "sorter" "layout-grid" "bar.slideSorter")
      (label#status-show :style barButton
        :height 20
        :runs [{:icon play :size 13}]
-       :tooltip "Present from this slide"
+       :tooltip ~(t "bar.presentFromThisSlide")
        :onClick ~(handler present state.current))))
 
 (defview status-comments "Comments, and how many the slide has: a click opens them beside the slide." []
   `(label#status-comments :style ~(if (and (= state.sidePane "comments") (not state.formatPane)) "barButtonOn" "barButton")
      :runs [{:icon message-square :size 13}
-            {:text ~(if (> (count computed.comments) 0) (str " Comments (" (count computed.comments) ")") " Comments")
+            {:text ~(if (> (count computed.comments) 0) (t "bar.commentsCount" {:n (count computed.comments)}) (t "bar.comments"))
              :size 11}]
      :onClick ~(handler openSidePane "comments")))
 
 (defview zoom-controls "Fit, the zoom slider between its buttons, and the zoom in percent, in the status bar." []
   [`(label#zoom-fit :style ~(if state.fit "barButtonOn" "barButton")
-      :runs [{:icon scan :size 13} {:text " Fit" :size 11}]
-      :tooltip "Fit slide to current window"
+      :runs [{:icon scan :size 13} {:text ~(t "bar.fit") :size 11}]
+      :tooltip ~(t "bar.fitSlideToCurrentWindow")
       :onClick fit)
-   `(label#zoom-out :style barButton :runs [{:icon zoom-out :size 13}] :tooltip "Zoom Out" :onClick ~(handler zoomBy 0.9))
+   `(label#zoom-out :style barButton :runs [{:icon zoom-out :size 13}] :tooltip ~(t "bar.zoomOut") :onClick ~(handler zoomBy 0.9))
    `(slider#zoom-slider :width 110
       :height 16
       :trackColor @rbFieldLine
@@ -512,9 +514,9 @@
       :min 10
       :max 400
       :value ~(round (* computed.zoom 100))
-      :label "Zoom"
+      :label ~(t "bar.zoom")
       :onChange ~(handler zoomBy (/ (/ event.value 100) computed.zoom)))
-   `(label#zoom-in :style barButton :runs [{:icon zoom-in :size 13}] :tooltip "Zoom In" :onClick ~(handler zoomBy 1.1))
+   `(label#zoom-in :style barButton :runs [{:icon zoom-in :size 13}] :tooltip ~(t "bar.zoomIn") :onClick ~(handler zoomBy 1.1))
    `(label#zoom-percent :style barButton
       :width 42
       :align center

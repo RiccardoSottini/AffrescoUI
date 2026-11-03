@@ -18,7 +18,7 @@ namespace {
 /// @brief Sinopia's screen as a repository holds it: its Lisp program, every file the entry includes.
 /// @return It.
 json sinopiaScreen() {
-	const affresco::Screen screen =
+	affresco::Screen screen =
 	    affresco::Screen::fromApp(std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "sinopia" / "lisp", {},
 	                              affresco::Screen::History::InMemory);
 	return screen.versions().sourceDocument();

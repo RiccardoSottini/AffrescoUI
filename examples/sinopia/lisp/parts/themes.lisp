@@ -7,7 +7,6 @@
 
 (defcomputed themes
   '[{:id default
-    :name "Default"
     :background light1
     :colors {:dark1 "#000000"
              :light1 "#ffffff"
@@ -36,7 +35,6 @@
     :decor []
     :titleDecor []}
    {:id tide
-    :name "Tide"
     :background light1
     :colors {:dark1 "#0b2a35"
              :light1 "#ffffff"
@@ -57,7 +55,6 @@
                  {:id edge :kind shape :shape rect :x 300 :y 0 :w 10 :h 540 :fill accent2}]
     :titleArea {:x 350 :w 570}}
    {:id ember
-    :name "Ember"
     :background dark2
     :colors {:dark1 "#ffffff"
              :light1 "#2b1d17"
@@ -74,7 +71,6 @@
     :titleDecor [{:id stripe :kind shape :shape rect :x 0 :y 440 :w 960 :h 100 :fill accent1}
                  {:id thin :kind shape :shape rect :x 0 :y 430 :w 960 :h 4 :fill accent2}]}
    {:id grove
-    :name "Grove"
     :background light1
     :colors {:dark1 "#1d2b1f"
              :light1 "#fbfdf8"
@@ -94,7 +90,6 @@
     :titleDecor [{:id leaf :kind shape :shape ellipse :x 640 :y -160 :w 480 :h 480 :fill accent2.1}
                  {:id seed :kind shape :shape ellipse :x 760 :y 360 :w 140 :h 140 :fill accent1}]}
    {:id slate
-    :name "Slate"
     :background dark2
     :colors {:dark1 "#f2f4f7"
              :light1 "#1c2128"
@@ -110,7 +105,6 @@
     :decor [{:id line :kind shape :shape rect :x 66 :y 26 :w 120 :h 4 :fill accent1}]
     :titleDecor [{:id line :kind shape :shape rect :x 120 :y 276 :w 720 :h 3 :fill accent1}]}
    {:id bloom
-    :name "Bloom"
     :background light1
     :colors {:dark1 "#2d1b33"
              :light1 "#ffffff"
@@ -130,7 +124,6 @@
     :titleDecor [{:id wedge :kind shape :shape rtTriangle :flipH true :x 600 :y 180 :w 360 :h 360 :fill accent1.1}
                  {:id wedge2 :kind shape :shape rtTriangle :flipH true :x 780 :y 360 :w 180 :h 180 :fill accent1}]}
    {:id dune
-    :name "Dune"
     :background light2
     :colors {:dark1 "#3b2f25"
              :light1 "#ffffff"
@@ -147,7 +140,6 @@
     :titleDecor [{:id base :kind shape :shape rect :x 0 :y 380 :w 960 :h 160 :fill accent1.2}
                  {:id rule :kind shape :shape rect :x 0 :y 376 :w 960 :h 4 :fill accent1}]}
    {:id ink
-    :name "Ink"
     :background light1
     :colors {:dark1 "#ffffff"
              :light1 "#0d0d0d"
@@ -165,52 +157,45 @@
 
 (defcomputed baseLayouts
   '[{:id title
-    :name "Title Slide"
     :ph [{:ph ctrTitle :x 120 :y 88 :w 720 :h 188 :size 60 :anchor bottom :align center}
          {:ph subTitle :x 120 :y 284 :w 720 :h 130 :size 24 :anchor top :align center}]}
    {:id content
-    :name "Title and Content"
     :ph [{:ph title :x 66 :y 29 :w 828 :h 105 :size 44 :anchor middle}
          {:ph body :x 66 :y 144 :w 828 :h 344 :size 28 :bullets true :content true}]}
    {:id section
-    :name "Section Header"
     :ph [{:ph title :x 65 :y 135 :w 828 :h 225 :size 60 :anchor bottom}
          {:ph body :x 65 :y 362 :w 828 :h 118 :size 24 :color dark1.3}]}
    {:id two
-    :name "Two Content"
     :ph [{:ph title :x 66 :y 29 :w 828 :h 105 :size 44 :anchor middle}
          {:ph body :x 66 :y 144 :w 408 :h 344 :size 28 :bullets true :content true}
          {:ph body2 :x 486 :y 144 :w 408 :h 344 :size 28 :bullets true :content true}]}
    {:id comparison
-    :name "Comparison"
     :ph [{:ph title :x 66 :y 29 :w 828 :h 105 :size 44 :anchor middle}
          {:ph head :x 66 :y 132 :w 406 :h 65 :size 24 :bold true :anchor bottom}
          {:ph body :x 66 :y 197 :w 406 :h 291 :size 24 :bullets true :content true}
          {:ph head2 :x 486 :y 132 :w 408 :h 65 :size 24 :bold true :anchor bottom}
          {:ph body2 :x 486 :y 197 :w 408 :h 291 :size 24 :bullets true :content true}]}
-   {:id titleOnly :name "Title Only" :ph [{:ph title :x 66 :y 29 :w 828 :h 105 :size 44 :anchor middle}]}
-   {:id blank :name "Blank" :ph []}
+   {:id titleOnly :ph [{:ph title :x 66 :y 29 :w 828 :h 105 :size 44 :anchor middle}]}
+   {:id blank :ph []}
    {:id caption
-    :name "Content with Caption"
     :ph [{:ph title :x 66 :y 36 :w 310 :h 126 :size 32 :anchor bottom}
          {:ph body :x 408 :y 78 :w 486 :h 384 :size 32 :bullets true :content true}
          {:ph caption :x 66 :y 162 :w 310 :h 301 :size 16}]}
    {:id picture
-    :name "Picture with Caption"
     :ph [{:ph title :x 66 :y 36 :w 310 :h 126 :size 32 :anchor bottom}
          {:ph pic :x 408 :y 78 :w 486 :h 384 :size 32}
          {:ph caption :x 66 :y 162 :w 310 :h 301 :size 16}]}])
 
 (defcomputed prompts
-  {:ctrTitle "Click to add title"
-   :title "Click to add title"
-   :subTitle "Click to add subtitle"
-   :body "Click to add text"
-   :body2 "Click to add text"
-   :head "Click to add text"
-   :head2 "Click to add text"
-   :caption "Click to add text"
-   :pic "Click icon to add picture"})
+  {:ctrTitle (t "theme.clickToAddTitle")
+   :title (t "theme.clickToAddTitle")
+   :subTitle (t "theme.clickToAddSubtitle")
+   :body (t "theme.clickToAddText")
+   :body2 (t "theme.clickToAddText")
+   :head (t "theme.clickToAddText")
+   :head2 (t "theme.clickToAddText")
+   :caption (t "theme.clickToAddText")
+   :pic (t "theme.clickIconToAddPicture")})
 
 (defcomputed standardColors
   ["#c00000" "#ff0000" "#ffc000" "#ffff00" "#92d050" "#00b050" "#00b0f0" "#0070c0" "#002060" "#7030a0"])
@@ -218,33 +203,33 @@
 (defcomputed slotNames '[light1 dark1 light2 dark2 accent1 accent2 accent3 accent4 accent5 accent6])
 
 (defcomputed slotTitles
-  {:light1 "Background 1"
-   :dark1 "Text 1"
-   :light2 "Background 2"
-   :dark2 "Text 2"
-   :accent1 "Accent 1"
-   :accent2 "Accent 2"
-   :accent3 "Accent 3"
-   :accent4 "Accent 4"
-   :accent5 "Accent 5"
-   :accent6 "Accent 6"})
+  {:light1 (t "theme.background1")
+   :dark1 (t "theme.text1")
+   :light2 (t "theme.background2")
+   :dark2 (t "theme.text2")
+   :accent1 (t "theme.accent1")
+   :accent2 (t "theme.accent2")
+   :accent3 (t "theme.accent3")
+   :accent4 (t "theme.accent4")
+   :accent5 (t "theme.accent5")
+   :accent6 (t "theme.accent6")})
 
 (defcomputed tints
-  {:light [{:to "#000000" :by 0.05 :name "Darker 5%"}
-           {:to "#000000" :by 0.15 :name "Darker 15%"}
-           {:to "#000000" :by 0.25 :name "Darker 25%"}
-           {:to "#000000" :by 0.35 :name "Darker 35%"}
-           {:to "#000000" :by 0.5 :name "Darker 50%"}]
-   :dark [{:to "#ffffff" :by 0.5 :name "Lighter 50%"}
-          {:to "#ffffff" :by 0.35 :name "Lighter 35%"}
-          {:to "#ffffff" :by 0.25 :name "Lighter 25%"}
-          {:to "#ffffff" :by 0.15 :name "Lighter 15%"}
-          {:to "#ffffff" :by 0.05 :name "Lighter 5%"}]
-   :accent [{:to "#ffffff" :by 0.8 :name "Lighter 80%"}
-            {:to "#ffffff" :by 0.6 :name "Lighter 60%"}
-            {:to "#ffffff" :by 0.4 :name "Lighter 40%"}
-            {:to "#000000" :by 0.25 :name "Darker 25%"}
-            {:to "#000000" :by 0.5 :name "Darker 50%"}]})
+  {:light [{:to "#000000" :by 0.05 :name (t "theme.darker5")}
+           {:to "#000000" :by 0.15 :name (t "theme.darker15")}
+           {:to "#000000" :by 0.25 :name (t "theme.darker25")}
+           {:to "#000000" :by 0.35 :name (t "theme.darker35")}
+           {:to "#000000" :by 0.5 :name (t "theme.darker50")}]
+   :dark [{:to "#ffffff" :by 0.5 :name (t "theme.lighter50")}
+          {:to "#ffffff" :by 0.35 :name (t "theme.lighter35")}
+          {:to "#ffffff" :by 0.25 :name (t "theme.lighter25")}
+          {:to "#ffffff" :by 0.15 :name (t "theme.lighter15")}
+          {:to "#ffffff" :by 0.05 :name (t "theme.lighter5")}]
+   :accent [{:to "#ffffff" :by 0.8 :name (t "theme.lighter80")}
+            {:to "#ffffff" :by 0.6 :name (t "theme.lighter60")}
+            {:to "#ffffff" :by 0.4 :name (t "theme.lighter40")}
+            {:to "#000000" :by 0.25 :name (t "theme.darker25")}
+            {:to "#000000" :by 0.5 :name (t "theme.darker50")}]})
 
 (defcomputed theme (or-else (find (fn [it] (= it.id state.deck.theme)) computed.themes) computed.themes.0))
 

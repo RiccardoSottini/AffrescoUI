@@ -176,7 +176,7 @@
      :textColor ~ink
      :caretColor ~ink
      :selectionColor "#2a9d8f55"
-     :label "Slide text"))
+     :label ~(t "slide.slideText")))
 
 (defview paragraph-mark "Paragraph `n`'s bullet or number." [o prefix n]
   `(label :id ~(str prefix o.id "-p" n "-b")

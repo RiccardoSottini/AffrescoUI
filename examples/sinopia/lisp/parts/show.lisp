@@ -173,7 +173,7 @@
        :width 960
        :height 24
        :align center
-       :runs [{:text "End of the slide show. Click to leave." :size 14 :color "#ccd6d2"}])))
+       :runs [{:text ~(t "show.endOfTheSlideShow") :size 14 :color "#ccd6d2"}])))
 
 (defview show-from "The slide before, under the slide shown, pushed away or faded out." []
   `(node#show-from :when ~(and (some? computed.showFrom)
@@ -220,7 +220,7 @@
   `(node#show-view :color "#000000"
      :focusable true
      :role dialog
-     :label "Slide show"
+     :label ~(t "show.slideShow")
      :every {:ms 1000 :do showSecond}
      :onClick ~(handler showViewClick event.left event.top event.width event.height)
      (image#show-image :when ~(or (not state.presenterView) state.show.preview) :fill 0 :source audience :fit contain)
@@ -240,7 +240,7 @@
        :scroll vertical
        :color "#141a19"
        :role list
-       :label "All slides"
+       :label ~(t "show.allSlides")
        ~(repeat [s state.deck.slides :index i :key s.id]
          (navigator-slide s i)))
      ~(presenter-side)
@@ -308,7 +308,7 @@
 
 (defpart show
          "What show adds."
-         :windows {:audience {:title "Slide show"
+         :windows {:audience {:title ~(t "show.slideShow")
                      :image audience
                      :background "#000000"
                      :fullscreen true
@@ -359,13 +359,13 @@
      :color "#141a19ee"
      :alignItems center
      :role toolbar
-     :label "Rehearsal"
+     :label ~(t "show.rehearsal")
      :onClick [{:note "a click on the bar isn't a click on the show"}]
      (node#rehearsal-start :width 0 :height 1 :color transparent)
      ~(rehearsal-next)
      (label#rehearsal-pause :style presenterButton
        :runs [{:icon ~(if state.show.paused "play" "pause") :size 15}]
-       :tooltip ~(if state.show.paused "Resume" "Pause")
+       :tooltip ~(if state.show.paused (t "show.resume") (t "show.pause"))
        :onClick [{:toggle state.show.paused}])
      (label#rehearsal-slide :fitText true
        :height 32
@@ -376,7 +376,7 @@
                :bold true}])
      (label#rehearsal-repeat :style presenterButton
        :runs [{:icon rotate-ccw :size 15}]
-       :tooltip "Time this slide again"
+       :tooltip ~(t "show.timeThisSlideAgain")
        :onClick retimeSlide)
      (label#rehearsal-total :fitText true
        :height 32
@@ -386,18 +386,18 @@
      (node#rehearsal-end :width 0 :height 1 :color transparent)))
 
 (defview rehearsal-next "The rehearsal's Next." []
-  `(label#rehearsal-next :style presenterButton :runs [{:icon arrow-right :size 15}] :tooltip "Next" :onClick showNext))
+  `(label#rehearsal-next :style presenterButton :runs [{:icon arrow-right :size 15}] :tooltip ~(t "pane.next") :onClick showNext))
 
 (defview presenter-top "The presenter view's top: the timer, its buttons, and the time of day." []
   `(row#presenter-top :anchors {:left 24 :right 24 :top 12} :height 36 :gap 8 :alignItems center :color transparent
      (label#presenter-timer :fitText true :height 32 :textColor "#eef3f1" :runs [{:text ~computed.showTimer :size 22}])
      (label#presenter-pause :style presenterButton
        :runs [{:icon ~(if state.show.paused "play" "pause") :size 15}]
-       :tooltip ~(if state.show.paused "Resume the timer" "Pause the timer")
+       :tooltip ~(if state.show.paused (t "show.resumeTheTimer") (t "show.pauseTheTimer"))
        :onClick [{:toggle state.show.paused}])
      (label#presenter-reset :style presenterButton
        :runs [{:icon rotate-ccw :size 15}]
-       :tooltip "Restart the timer"
+       :tooltip ~(t "show.restartTheTimer")
        :onClick [{:set state.show.seconds :to 0}])
      (node#presenter-top-gap :grow 1 :height 1 :color transparent)
      (label#presenter-clock :fitText true
@@ -431,7 +431,7 @@
      :color transparent
      :cursor hand
      :role listitem
-     :label ~(str "Slide " (+ i 1))
+     :label ~(t "slide.n" {:n (+ i 1)})
      :onClick ~(handler showJump i)
      ~(navigator-picture s i)
      (label :id ~(str "navigator-" s.id "-number")
@@ -439,31 +439,31 @@
        :height 18
        :align center
        :textColor "#a3b1ac"
-       :runs [{:text ~(str (+ i 1) (if (or-else s.hidden false) " (hidden)" "")) :size 12}])))
+       :runs [{:text ~(if (or-else s.hidden false) (t "show.hiddenN" {:n (+ i 1)}) (str (+ i 1))) :size 12}])))
 
 (defview presenter-side "The presenter view's side: the next slide, and the notes, larger or smaller." []
   `(column#presenter-side :width 336 :anchors {:right 24 :top 60 :bottom 76} :gap 8 :color transparent :alignItems stretch
      (label#presenter-next-title :height 20
        :textColor "#a3b1ac"
-       :runs [{:text ~(if (some? computed.showNext) "Next" "End of the slide show") :size 13}])
+       :runs [{:text ~(if (some? computed.showNext) (t "pane.next") (t "show.endOfTheSlideShow2")) :size 13}])
      (node#presenter-next :height 189 :color "#000000" :radius 4
        (image#presenter-next-image :fill 0
          :when ~(some? computed.showNext)
          :source ~(str "slide-" (get-in state.deck.slides [computed.showNext :id]))
          :fit contain))
      (row#presenter-notes-bar :height 24 :gap 4 :alignItems center :color transparent
-       (label#presenter-notes-title :grow 1 :height 20 :textColor "#a3b1ac" :runs [{:text "Notes" :size 13}])
+       (label#presenter-notes-title :grow 1 :height 20 :textColor "#a3b1ac" :runs [{:text ~(t "bar.notes") :size 13}])
        (label#presenter-notes-smaller :style presenterButton
          :height 24
          :padding 6
          :runs [{:icon a-arrow-down :size 14}]
-         :tooltip "Smaller notes"
+         :tooltip ~(t "show.smallerNotes")
          :onClick ~(handler notesBy -2))
        (label#presenter-notes-larger :style presenterButton
          :height 24
          :padding 6
          :runs [{:icon a-arrow-up :size 14}]
-         :tooltip "Larger notes"
+         :tooltip ~(t "show.largerNotes")
          :onClick ~(handler notesBy 2)))
      (column#presenter-notes-box :grow 1 :scroll vertical :color transparent
        (label#presenter-notes :width 336
@@ -471,7 +471,7 @@
          :fitText {:maxWidth 336}
          :align start
          :runs [{:text ~(if (= (or-else computed.showSlide.notes "") "")
-                            "No notes for this slide."
+                            (t "show.noNotesForThisSlide")
                             computed.showSlide.notes)
                  :size ~state.show.notesSize
                  :color ~(if (= (or-else computed.showSlide.notes "") "") "#7a8884" "#eef3f1")}]))))
@@ -480,25 +480,25 @@
   `(row#presenter-controls :anchors {:left 24 :right 24 :bottom 22} :height 36 :gap 8 :alignItems center :color transparent
      (label#presenter-previous :style presenterButton
        :runs [{:icon chevron-left :size 16}]
-       :tooltip "Previous (Left)"
+       :tooltip ~(t "show.previousLeft")
        :onClick showPrevious)
      (label#presenter-where :fitText true
        :height 32
        :padding 6
        :textColor "#eef3f1"
-       :runs [{:text ~(str "Slide " computed.showPosition " of " (count computed.showOrder)) :size 14}])
+       :runs [{:text ~(t "slide.nOfCount" {:n computed.showPosition :count (count computed.showOrder)}) :size 14}])
      (label#presenter-forward :style presenterButton
        :runs [{:icon chevron-right :size 16}]
-       :tooltip "Next (Right)"
+       :tooltip ~(t "show.nextRight")
        :onClick showNext)
      (label#presenter-black :style ~(if state.show.black "presenterButtonOn" "presenterButton")
-       :runs [{:icon square :size 14} {:text " Black (B)" :size 13}]
+       :runs [{:icon square :size 14} {:text ~(t "show.blackB") :size 13}]
        :onClick showBlack)
      (label#presenter-all :style ~(if state.show.navigator "presenterButtonOn" "presenterButton")
-       :runs [{:icon layout-grid :size 14} {:text " See All Slides" :size 13}]
+       :runs [{:icon layout-grid :size 14} {:text ~(t "show.seeAllSlides") :size 13}]
        :onClick [{:toggle state.show.navigator}])
      (node#presenter-gap :grow 1 :height 1 :color transparent)
-     (label#presenter-end :style presenterButton :runs [{:text "End Slide Show" :size 13}] :onClick showEnd)))
+     (label#presenter-end :style presenterButton :runs [{:text ~(t "show.endSlideShow") :size 13}] :onClick showEnd)))
 
 ;;; Starting and ending
 

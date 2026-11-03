@@ -7,6 +7,8 @@
 ;;; views, then what its buttons do.
 
 (include "locales/en.lisp"
+         "locales/es.lisp"
+         "locales/fr.lisp"
          "parts/window.lisp"
          "parts/keys.lisp"
          "parts/themes.lisp"
@@ -27,7 +29,7 @@
 
 (defscreen main "Sinopia's window: the bars, the ribbon, the slide and its views; the show over them."
   :window {:title "Sinopia" :width 1280 :height 800 :minWidth 960 :minHeight 600}
-  :strings {:default en :locale ~settings.appearance.language :keep ["Sinopia"]}
+  :strings {:default en :locale ~settings.appearance.language :keep ["Sinopia" "Aa"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [icons]}
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 12}
           :mono {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 12 :fallback [icons]}
