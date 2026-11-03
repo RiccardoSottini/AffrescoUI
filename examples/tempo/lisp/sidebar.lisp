@@ -14,7 +14,13 @@
      (node#label-an-affresco-ui :style caption :text ~(t "app.tagline") :anchors {:left 28 :top 62})
      ~@(history-buttons)
      ~@(look-buttons)
-     (stack#menu :anchors {:left 12 :right 12 :top 96} :height 264 :gap 2 :role tablist :arrows vertical :label ~(t "menu.label")
+     (stack#menu
+       :anchors {:left 12 :right 12 :top 96}
+       :height 264
+       :gap 2
+       :role tablist
+       :arrows vertical
+       :label ~(t "menu.label")
        ~(repeat [item state.menu] (page-tab item)))
      (node#label-playlists :style caption :text ~(t "playlists.caption") :anchors {:left 28 :top 372})
      (node#newPlaylist :style control
@@ -27,7 +33,12 @@
        :label ~(t "playlist.create")
        :tooltip ~(t "playlist.create")
        :onClick ~(handler newPlaylist false))
-     (stack#playlists :anchors {:left 12 :right 12 :top 394 :bottom 12} :gap 4 :scroll vertical :role list :label ~(t "playlists.label")
+     (stack#playlists
+       :anchors {:left 12 :right 12 :top 394 :bottom 12}
+       :gap 4
+       :scroll vertical
+       :role list
+       :label ~(t "playlists.label")
        ~(repeat [playlist data.playlists] (playlist-row playlist)))))
 
 (defview history-buttons "Back and forward through the pages shown: two buttons." []
@@ -119,7 +130,10 @@
      :tooltip ~(t "playlist.play")
      (image#image-list-cover :file ~list.cover :fit cover :radius 10 :anchors {:left 10 :top 8} :width 40 :height 40)
      (label#label-list-name :text ~list.name :textColor @text :anchors {:left 62 :top 10} :fitText true)
-     (node#label-plural-list-tracks :style caption :text ~(t "songs" {:n (count list.tracks)}) :anchors {:left 62 :top 31})
+     (node#label-plural-list-tracks
+       :style caption
+       :text ~(t "songs" {:n (count list.tracks)})
+       :anchors {:left 62 :top 31})
      (node#panel-playlist :when ~(and (= index state.playingList) state.isPlaying)
        :anchors {:right 14 :top 25}
        :width 6

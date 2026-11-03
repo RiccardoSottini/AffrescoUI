@@ -128,8 +128,16 @@
      (node#collectionKind :style caption
        :text ~(t (if (= state.collection.kind "artist") "collection.artist" "collection.album"))
        :anchors {:left 164 :top 28})
-     (label#collectionName :text ~state.collection.name :font large :textColor @text :anchors {:left 162 :top 44} :fitText true)
-     (node#collectionCount :style caption :text ~(t "songs" {:n (count computed.collectionRows)}) :anchors {:left 164 :top 88})
+     (label#collectionName
+       :text ~state.collection.name
+       :font large
+       :textColor @text
+       :anchors {:left 162 :top 44}
+       :fitText true)
+     (node#collectionCount
+       :style caption
+       :text ~(t "songs" {:n (count computed.collectionRows)})
+       :anchors {:left 164 :top 88})
      (node#playCollectionButton :style playButton
        :text ~(t "play")
        :anchors {:right 32 :top 50}

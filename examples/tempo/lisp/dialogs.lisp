@@ -6,7 +6,8 @@
 (defview status-bar "The status bar: the revision shown, and the window's size." []
   `(node#statusBar :when ~(not state.mini) :anchors {:left 0 :right 0 :bottom 0} :height 32 :color @sidebar
      (node#panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border)
-     (label#statusText :text ~(t "status.revision" {:number revision.number :author revision.author :message revision.message})
+     (label#statusText
+       :text ~(t "status.revision" {:number revision.number :author revision.author :message revision.message})
        :font small
        :textColor @muted
        :anchors {:left 24 :top 0 :bottom 0 :right 200}

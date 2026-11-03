@@ -49,10 +49,25 @@
 
 (defcomponent nowPlayingPage "The song playing: its cover, the visualiser (the spectrum of what plays, as bars) and the lyrics, line by line" {}
   `(node :dir auto :color transparent
-     (image#nowCover :file ~computed.playing.cover :fit cover :radius 8 :anchors {:left 32 :top 32} :width 160 :height 160 :role img
+     (image#nowCover
+       :file ~computed.playing.cover
+       :fit cover
+       :radius 8
+       :anchors {:left 32 :top 32}
+       :width 160
+       :height 160
+       :role img
        :label ~computed.playingName)
-     (node#nowCaption :style caption :text ~(if state.isPlaying (t "queue.now") (t "now.paused")) :anchors {:left 216 :top 56})
-     (label#nowTitle :text ~computed.track.title :font large :textColor @text :anchors {:left 214 :right 32 :top 76} :height 40)
+     (node#nowCaption
+       :style caption
+       :text ~(if state.isPlaying (t "queue.now") (t "now.paused"))
+       :anchors {:left 216 :top 56})
+     (label#nowTitle
+       :text ~computed.track.title
+       :font large
+       :textColor @text
+       :anchors {:left 214 :right 32 :top 76}
+       :height 40)
      (label#nowArtist :text ~(str computed.track.artist "  ·  " computed.track.album)
        :textColor @muted
        :anchors {:left 216 :right 32 :top 122}
@@ -84,7 +99,8 @@
 
 ;; low and flat when nothing plays, or the host gives no sound
 (defview visualiser "32 bars from the spectrum of the sound playing (its bands), and their faint reflection." []
-  `(node#visualiser :note "32 bars from the spectrum of the sound playing (its \"bands\"), and their faint reflection; low and flat when nothing plays, or the host gives no sound"
+  `(node#visualiser
+     :note "32 bars from the spectrum of the sound playing (its \"bands\"), and their faint reflection; low and flat when nothing plays, or the host gives no sound"
      :color @surface
      :anchors {:left 32 :right 32 :top 216}
      :height 120
@@ -110,20 +126,48 @@
      ~@(equaliser)
      (grid#bands :anchors {:left 32 :right 32 :top 284} :height 20 :columns 5
        ~(repeat [band state.bands] (band-gain band)))
-     (stack#presets :direction row :anchors {:left 32 :right 32 :top 314} :height 30 :gap 8 :role toolbar :label ~(t "sound.presets")
+     (stack#presets
+       :direction row
+       :anchors {:left 32 :right 32 :top 314}
+       :height 30
+       :gap 8
+       :role toolbar
+       :label ~(t "sound.presets")
        ~(repeat [preset (keys state.presets)]
           `(node#preset :style chip :text ~(t (str "preset." preset)) :onClick ~(handler setPreset preset))))
      ~@(crossfade)
      (node#appearanceCaption :style caption :text ~(t "sound.appearance") :anchors {:left 32 :top 428})
-     (stack#themes :direction row :anchors {:left 32 :right 32 :top 452} :height 30 :gap 8 :role toolbar :label ~(t "theme.toggle")
+     (stack#themes
+       :direction row
+       :anchors {:left 32 :right 32 :top 452}
+       :height 30
+       :gap 8
+       :role toolbar
+       :label ~(t "theme.toggle")
        ~(repeat [theme ["dark" "light"]] (theme-choice theme)))
-     (stack#languages :direction row :anchors {:left 32 :right 32 :top 490} :height 30 :gap 8 :role toolbar :label ~(t "language.toggle")
+     (stack#languages
+       :direction row
+       :anchors {:left 32 :right 32 :top 490}
+       :height 30
+       :gap 8
+       :role toolbar
+       :label ~(t "language.toggle")
        ~(repeat [language ["en" "es" "fr"]] (language-choice language)))))
 
 (defview equaliser "The equaliser's caption and note, its switch, and its curve: five nodes." []
   [`(node#equaliserCaption :style caption :text ~(t "sound.equaliser") :anchors {:left 32 :top 80})
-   `(label#equaliserNote :text ~(t "sound.equaliserNote") :font small :textColor @muted :anchors {:left 140 :top 80} :fitText true)
-   `(label#equaliserOnLabel :text ~(t "sound.equaliserOn") :font small :textColor @muted :anchors {:right 84 :top 78} :fitText true)
+   `(label#equaliserNote
+      :text ~(t "sound.equaliserNote")
+      :font small
+      :textColor @muted
+      :anchors {:left 140 :top 80}
+      :fitText true)
+   `(label#equaliserOnLabel
+      :text ~(t "sound.equaliserOn")
+      :font small
+      :textColor @muted
+      :anchors {:right 84 :top 78}
+      :fitText true)
    `(toggle#equaliserOn :role switch
       :label ~(t "sound.equaliserOn")
       :focusable true

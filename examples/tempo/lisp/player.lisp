@@ -172,8 +172,19 @@
      :height 192
      :radius 12
      :color @surface
-     (image#miniCover :file ~computed.playing.cover :fit cover :radius 6 :anchors {:left 20 :top 20} :width 112 :height 112)
-     (label#miniTitle :text ~computed.track.title :font heading :textColor @text :anchors {:left 148 :right 52 :top 24} :height 24)
+     (image#miniCover
+       :file ~computed.playing.cover
+       :fit cover
+       :radius 6
+       :anchors {:left 20 :top 20}
+       :width 112
+       :height 112)
+     (label#miniTitle
+       :text ~computed.track.title
+       :font heading
+       :textColor @text
+       :anchors {:left 148 :right 52 :top 24}
+       :height 24)
      (node#miniArtist :style caption :text ~computed.track.artist :anchors {:left 148 :top 50})
      (node#miniExpand :style control
        :icon maximize-2

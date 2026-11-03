@@ -46,7 +46,14 @@
      :height 264
      :color @surface
      :gradient {:kind linear :angle 90 :stops [@accentSoft @surface]}
-     (image#cover :file ~computed.list.cover :fit cover :radius 24 :anchors {:right 40 :top 48} :width 168 :height 168 :role img
+     (image#cover
+       :file ~computed.list.cover
+       :fit cover
+       :radius 24
+       :anchors {:right 40 :top 48}
+       :width 168
+       :height 168
+       :role img
        :label ~computed.list.name)
      (node#label-playlist :style caption :text ~(t "playlist.caption") :anchors {:left 40 :top 62})
      (label#listName :when ~(not state.renaming)
@@ -58,7 +65,11 @@
        :tooltip ~(t "playlist.rename")
        :onDoubleClick startRename)
      ~(name-field)
-     (label#listDescription :text ~computed.list.description :textColor @muted :anchors {:left 40 :top 140} :fitText true)
+     (label#listDescription
+       :text ~computed.list.description
+       :textColor @muted
+       :anchors {:left 40 :top 140}
+       :fitText true)
      (node#label-plural-list-tracks-2 :style caption
        :text ~(str (t "songs" {:n (count computed.list.tracks)}) "  ·  " (t "playlist.minutes" {:n computed.listMinutes}))
        :textColor @text
@@ -127,7 +138,11 @@
        :anchors {:left 12 :top 0 :bottom 0}
        :width 30
        :align {:horizontal start :vertical center})
-     (label#label-track-title :text ~track.title :textColor ~(if playing "@accent" "@text") :anchors {:left 52 :top 3} :fitText true)
+     (label#label-track-title
+       :text ~track.title
+       :textColor ~(if playing "@accent" "@text")
+       :anchors {:left 52 :top 3}
+       :fitText true)
      (node#label-track-artist :style caption :text ~track.artist :anchors {:left 52 :top 22})
      (label#label-track-album :text ~track.album :textColor @muted :x "55%" :y 11 :fitText true)
      (label#label-track-time :text ~track.time :textColor @muted :anchors {:right 16 :top 11} :fitText true)))
@@ -141,10 +156,24 @@
 
 (defview library-header "The library's cover, name and size, and Play." []
   `(node#libraryHeader :anchors {:left 0 :right 0 :top 0} :height 132 :color @surface
-     (image#libraryCover :file ~state.libraryInfo.cover :fit cover :radius 6 :anchors {:left 32 :top 24} :width 84 :height 84)
+     (image#libraryCover
+       :file ~state.libraryInfo.cover
+       :fit cover
+       :radius 6
+       :anchors {:left 32 :top 24}
+       :width 84
+       :height 84)
      (node#label-library :style caption :text ~(t "library.caption") :anchors {:left 140 :top 28})
-     (label#libraryName :text ~(t "library.all") :font large :textColor @text :anchors {:left 138 :top 44} :fitText true)
-     (node#libraryCount :style caption :text ~(t "library.count" {:n (count computed.library)}) :anchors {:left 140 :top 88})
+     (label#libraryName
+       :text ~(t "library.all")
+       :font large
+       :textColor @text
+       :anchors {:left 138 :top 44}
+       :fitText true)
+     (node#libraryCount
+       :style caption
+       :text ~(t "library.count" {:n (count computed.library)})
+       :anchors {:left 140 :top 88})
      (node#playLibraryButton :style playButton
        :text ~(t "play")
        :label ~(t "play.label" {:name (t "library.all")})

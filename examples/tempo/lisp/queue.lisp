@@ -6,19 +6,37 @@
 (defview queue-pane "The queue: the song playing, then the songs up next." []
   `(node#queuePane :when ~state.queueOpen :dir auto :color @surface :role complementary :label ~(t "queue.upNext")
      (node#label-now-playing :style caption :text ~(t "queue.now") :anchors {:left 20 :top 22})
-     (image#queueCover :file ~computed.playing.cover :fit cover :radius 12 :anchors {:left 20 :top 48} :width 96 :height 96)
+     (image#queueCover
+       :file ~computed.playing.cover
+       :fit cover
+       :radius 12
+       :anchors {:left 20 :top 48}
+       :width 96
+       :height 96)
      (node#queueFrom :style caption :text ~(t "queue.from" {:name computed.playingName}) :anchors {:left 132 :top 54})
-     (label#queueTitle :text ~computed.track.title :font heading :textColor @text :anchors {:left 20 :top 160} :fitText true)
+     (label#queueTitle
+       :text ~computed.track.title
+       :font heading
+       :textColor @text
+       :anchors {:left 20 :top 160}
+       :fitText true)
      (label#queueArtist :text ~(str computed.track.artist "  ·  " computed.track.album)
        :textColor @muted
        :anchors {:left 20 :top 184}
        :fitText true)
      ~@(waveform)
-     (node#queueTime :style caption :text ~(str computed.elapsedText " / " computed.track.time) :anchors {:left 20 :top 270})
+     (node#queueTime
+       :style caption
+       :text ~(str computed.elapsedText " / " computed.track.time)
+       :anchors {:left 20 :top 270})
      (node#label-up-next :style caption :text ~(t "queue.upNext") :anchors {:left 20 :top 304})
      (node#queueNote :style caption :live polite :text ~state.queueNote :anchors {:right 20 :top 304})
      ~(up-next)
-     (node#queueEmpty :when ~(= (count computed.upNext) 0) :style caption :text ~(t "queue.empty") :anchors {:left 20 :top 330})))
+     (node#queueEmpty
+       :when ~(= (count computed.upNext) 0)
+       :style caption
+       :text ~(t "queue.empty")
+       :anchors {:left 20 :top 330})))
 
 (defview waveform "The song's waveform, the part played in the accent colour: two paths over each other." []
   [`(path#wavePlayed :d ~computed.wavePlayed
