@@ -96,6 +96,8 @@
                 :slow "شبكة بطيئة"
                 :slowTooltip "{on, select, true {شبكة بطيئة (تجربة): مفعّلة} other {شبكة بطيئة (تجربة): معطّلة}}"
                 :command "{name, select, toggleTheme {التبديل بين الفاتح والداكن} nextLanguage {اللغة التالية} togglePassword {إظهار كلمة المرور أو إخفاؤها} openShortcuts {اختصارات لوحة المفاتيح} toggleSlow {شبكة بطيئة (تجربة)} signOut {تسجيل الخروج} other {}}"
+                :category "{name, select, account {الحساب} view {العرض} help {المساعدة} other {}}"
+                :commandAbout "{name, select, signOut {ينهي الجلسة على هذا الجهاز} toggleTheme {يبدّل بين الألوان الفاتحة والداكنة} nextLanguage {يعرض اللغة التالية: الإنجليزية ثم الإيطالية ثم العربية} togglePassword {يُظهر كلمات المرور نصًا، أو يخفيها من جديد} openShortcuts {يعرض الأوامر ومفاتيحها} toggleSlow {يجيب الخادم الوهمي بعد 800 ملّي ثانية، لرؤية حالات الانتظار} other {}}"
                 :continue "متابعة"
                 :notYou "لست أنت؟"
                 :capsLock "مفتاح الأحرف الكبيرة مُفعّل"
