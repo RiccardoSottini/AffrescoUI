@@ -49,8 +49,10 @@
           :bigIcons {:file "../../shared/fonts/Lucide.ttf" :size 22}
           :heroIcons {:file "../../shared/fonts/Lucide.ttf" :size 44}}
   :persist [state.theme state.locale state.notation]
-  :permissions {:allow [studio] :ask [agent] :reviewers [studio] :budgets [{:author agent :added 20 :removed 5
-                                                                            :changed 50}]}
+  :permissions {:allow [studio]
+                :ask [agent]
+                :reviewers [studio]
+                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
   :theme ~(if (= state.theme "system") window.colorScheme state.theme)
   (node#launcher :color @c.bg
     ~(sidebar)
