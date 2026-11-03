@@ -167,7 +167,7 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	          std::string("components.inboxPage.node.children[0].with.icno: unknown parameter 'icno' of component ") +
 	              "'pageHeader' (did you mean 'icon'?)",
 	          "root.children[0].children[3].children[0].children[0].style: unknown style 'captoin' (did you mean "
-			  "'caption'?)",
+	          "'caption'?)",
 	          std::string(
 	              "root.children[0].children[3].children[0].children[1].children[0].hover.color: unknown color ") +
 	              "'@color.chipHovery' (did you mean '@color.chipHover'?)",

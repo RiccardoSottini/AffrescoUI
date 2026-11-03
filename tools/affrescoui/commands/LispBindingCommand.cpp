@@ -627,8 +627,8 @@ Exit lispBinding(std::span<const std::string_view> args) {
 		for(const json& text : json::parse(input)) {
 			try {
 				Translator translator(language);
-				answers.push_back({{"form", translate(text.get<std::string>(), translator)},
-				                   {"locals", translator.localNames()}});
+				answers.push_back(
+				    {{"form", translate(text.get<std::string>(), translator)}, {"locals", translator.localNames()}});
 			} catch(const std::exception& error) {
 				answers.push_back({{"error", error.what()}});
 			}
