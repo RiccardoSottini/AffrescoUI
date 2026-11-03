@@ -602,6 +602,8 @@ json Program::build(const Limits& limits) {
 		for(auto& [key, section] : parts.sections) addSection(tree, key.c_str(), section);
 		addValues(tree, parts.values);
 		defaulted_.clear();
+		for(const auto& definition : machine.definitions()) // a key's starting value, as defvar's: a document's wins
+			if(definition->kind == "defstate") defaulted_.emplace("state", definition->name.substr(6));
 		for(auto& [key, section] : parts.defaults) // a default is a member no definition gives
 			for(auto& [member, value] : section) {
 				json& into = tree[key];

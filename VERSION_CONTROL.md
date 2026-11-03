@@ -446,7 +446,8 @@ names the definition. So does:
 - taking away a definition that another's body still uses, which the build alone wouldn't notice;
 - an edit of what is built (`#title/text`, `/actions/kill-line`): it says to change its definition;
 - a `def` or a `defcustom` whose value can't be worked out, used or not: it is worked out at the build, purely;
-- a section both written and built with different contents (but a `defdefaults` member, which the written one replaces, and a list
+- a section both written and built with different contents (but a `defdefaults` member or a `defstate`'s key, which the written
+  one replaces, as a revision on `/state/lanes` does; and a list
   such as `persist`, which joins), or a program building `include`, `assets`, `features` or `program`;
 - an `(include ...)` form: the file an app loads names its others with one, read with the file, and it is never an entry.
 

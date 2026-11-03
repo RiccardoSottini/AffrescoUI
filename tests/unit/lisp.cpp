@@ -817,6 +817,10 @@ TEST_CASE("lisp: every example's Lisp file builds to the tree the notation's rea
 		const std::string text = textOf(entry.path());
 		CAPTURE(entry.path().string());
 		if(lisp::isProgram(text)) continue; // an app written as a program: the tests of lisp_runtime.cpp
+		if(lisp::needsRunning(text)) {      // a template of a program's app (models.lisp, ~state.boardId): it builds
+			CHECK_NOTHROW(static_cast<void>(lisp::buildText(text, entry.path().string())));
+			continue;
+		}
 		const json read = affresco::notation::read(text, affresco::notation::Notation::Lisp);
 		CHECK(lisp::buildText(text, entry.path().string()).dump() == read.dump());
 		CHECK(lisp::needsRunning(text) == std::nullopt);

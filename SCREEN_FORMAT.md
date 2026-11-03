@@ -2273,7 +2273,7 @@ builds
 | `(defcustom name value "doc"? :key value ...)` | `settings.name`, and the global `name` |
 | `(defview name "doc"? [params] body...)` | Nothing callable later: a function the build calls, whose templates hold bindings ("Views", below) |
 | `(defcomponent name "doc"? {:param default ...} body...)` | `components.name`: `note` from the docstring, `params`, and the node its body gives, each parameter a name of the running app |
-| `(defstate name value "doc"? :type schema)` | `state.name`, and `stateTypes.name` with `:type` |
+| `(defstate name value "doc"? :type schema)` | `state.name`, and `stateTypes.name` with `:type`; as Emacs's `defvar`, a value the document gives the key (a revision on `/state/name`) wins |
 | `(defcomputed name "doc"? form)` | `computed.name`: the form as a binding, as `~form` is |
 | `(defstyle name "doc"? node)`, `(defmenu name "doc"? items)` | `styles.name`, `menus.name`: templates |
 | `(deftokens name "doc"? {:token value ...})` | Its tokens, in `tokens` |
@@ -2523,7 +2523,7 @@ comments above it and on its line:
 (The second key's address is `/program/rooms.lisp/defkey mod+~1b`, as `/` is `~1` in a JSON Pointer.)
 
 - **What is shown is what it builds,** merged with any other section the document has. A member both give must be the same, but a
-  `defdefaults` member, which the document's own replaces; a list both give (`persist`) joins. A program can't build `include` (the
+  `defdefaults` member or a `defstate`'s key, which the document's own replaces; a list both give (`persist`) joins. A program can't build `include` (the
   file an app loads names its others with an `(include ...)` form, read with the file and never an entry of the program; or a data
   file's `include`, or an app's entry), `assets`, `features` or `program`.
 - **A definition's `state` is what a key starts from.** A key nothing has set yet follows the definition's value; a key the person, or a

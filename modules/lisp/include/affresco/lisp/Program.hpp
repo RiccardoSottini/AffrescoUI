@@ -171,8 +171,9 @@ public:
 	/// way (as a value, through `apply`, with a computed first argument). A host may follow what the texts name where
 	/// a name is used no other way, and count the rest as reaching anything. @return Them, by its address.
 	[[nodiscard]] const NamedCalls& namedCalls() const noexcept { return named_; }
-	/// @brief The members the last build took from a `defdefaults`, as no other definition gave them: a document's own
-	/// value of one wins over it (buildDocument()). @return Them, as section and member.
+	/// @brief The members the last build took from a `defdefaults`, as no other definition gave them, and the state's keys
+	/// a `defstate` starts: a document's own value of one wins over it (buildDocument()), as a `defvar` gives a variable
+	/// a value only if it has none. @return Them, as section and member.
 	[[nodiscard]] const std::set<std::pair<std::string, std::string>>& defaulted() const noexcept { return defaulted_; }
 
 private:
