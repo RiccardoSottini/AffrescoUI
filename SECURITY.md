@@ -454,6 +454,19 @@ What a revision on a program does, and how each rule judges it, is in VERSION_CO
   `/actions` or a path inside it now covers a change of any definition but a screen's that nothing else uses; an `allow` rule doesn't
   widen. VERSION_CONTROL.md, "Programs".
 
+- **A program names its files only as it is read from disk.** The file an app loads may begin with `(include "a.lisp" ...)`
+  (SCREEN_FORMAT.md, "Writing an app as a program"): `lisp::readDocument` takes the form out of the text into the document's
+  `include`, which the loader reads as a data file's, inside the app's folder and the shared folder beside it, links resolved, at
+  most 8 deep, 16 MiB a file. The form is never an entry of the program, and a revision's text holding one is refused
+  (`definitionAddress`), so no revision gains a way to read a file (`tests/unit/lisp_views.cpp`, "attack").
+- **What a definition that only builds does is in what it builds.** `defstate`, `defcomputed`, `defstyle`, `defcomponent`,
+  `defmenu`, `deftokens`, `defpart` and `defdefaults` have no function a handler can call, so a change to one is judged by the tree it
+  builds, as a `defscreen`'s is; a `defview` is a function, so the rule on `/actions` covers it as it covers a `defn`. A `defdefaults`
+  member yields to the document's own: a revision's value of it wins, judged as that section's change.
+- **A shared add-on written as a program puts a `program` section in the apps that include it**, the generated Lisp versions
+  (sign-in, the Launcher, Forge's catalogue apps) too. An agent's new function there is code, reviewed by those apps' `ask` rules on
+  `/actions` as in a program app; their JSON versions include the add-on's JSON, and gain no code.
+
 **Who may do what when a function runs: the authority model.** A definition carries its author, from the commit that wrote it
 (`"file"` for what the file on disk holds). Whatever a function does, it does through a step, and each step is checked when it runs,
 however it got there: directly, through `apply`, a value in a variable, a macro's output, a `(run name)`, a JSON action it runs, a timer.

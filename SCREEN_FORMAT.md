@@ -2271,6 +2271,15 @@ builds
 | `(defcommand name "doc"? :key value ... [params] body...)` | `actions.name`, whose `do` runs the function `name` |
 | `(defkey "chord" "doc"? what)` | `keys.chord` |
 | `(defcustom name value "doc"? :key value ...)` | `settings.name`, and the global `name` |
+| `(defview name "doc"? [params] body...)` | Nothing callable later: a function the build calls, whose templates hold bindings ("Views", below) |
+| `(defcomponent name "doc"? {:param default ...} body...)` | `components.name`: `note` from the docstring, `params`, and the node its body gives, each parameter a name of the running app |
+| `(defstate name value "doc"? :type schema)` | `state.name`, and `stateTypes.name` with `:type` |
+| `(defcomputed name "doc"? form)` | `computed.name`: the form as a binding, as `~form` is |
+| `(defstyle name "doc"? node)`, `(defmenu name "doc"? items)` | `styles.name`, `menus.name`: templates |
+| `(deftokens name "doc"? {:token value ...})` | Its tokens, in `tokens` |
+| `(defpart name "doc"? :section value ...)` | Each section's members, as definitions of each would; a list (`persist`) joins the others |
+| `(defdefaults name "doc"? :section {...} ...)` | Members that yield to any other definition, or to the document's own value: an add-on's colours an app replaces |
+| `(include "file.lisp" ...)` | Nothing: the file an app loads from its folder names its other files ("Writing an app as a program") |
 | `(def name "doc"? value)`, `(defn ...)`, `(defmacro ...)` | Nothing: what the others use |
 | `(defhook name "doc"?)`, `(add-hook hook "doc"? f)`, `(remove-hook hook "doc"? f)`, `(advice target "doc"? :before/:after/:around f)` | Nothing it builds: they run in the app ("Hooks and advice", below) |
 
@@ -2344,11 +2353,18 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
   who scheduled it.
 - **A binding.** In a top-level template (a data file, `defscreen`, a `defcommand`'s options), a `~form` that names a path, or what
   nothing defines, or a function that reads the running app (through what it calls too), stays in the tree as a binding, and
-  anything else is worked out at the build. It is written as the expression machine's own text when it can be: `~(not state.x)` is
+  anything else is worked out at the build. A word that names a function of the program, uncalled, is a name of the running
+  app there (a function can't be in a tree), so a shared file's `~at` stays `{{at}}` in an app that defines `at`. It is written as the expression machine's own text when it can be: `~(not state.x)` is
   `"{{!(state.x)}}"`, `~(if (> state.n 1) "a" "b")` is `"{{((state.n > 1) ? 'a' : 'b')}}"`, `~(t "key")` is `"{{t('key')}}"`. So those run at an
   expression's speed and **with an expression's truth, where 0, "" and an empty list are false too**. A call of a function of the program is
-  `"{{lisp('name', state.x)}}"`, and the function `lisp(name, ...)` can be written in any expression. A binding has no `let` or `fn`: define
-  a function. **A value read for the screen only reads:** any step it reaches is refused, whoever wrote it. A template inside a
+  `"{{lisp('name', state.x)}}"`, and the function `lisp(name, ...)` can be written in any expression. The language's functions the
+  expressions have are written as theirs: `(count x)` is `length(x)`, `(:title card)` and `(get card :title)` are `card.title`,
+  `(get-in x [a :b])` is `x[a].b`, `(str "a" x)` is the text `a{{x}}` (or `('a' + x)` inside a larger form), `(or-else a b)` is
+  `a ?? b`, `(nil? x)` is `x == null`, `cond` and `when` are `?:`, and `filter`, `remove`, `map`, `map-indexed`, `find`, `some`,
+  `every?`, `sort-by` and `reduce` given `(fn [x] body)` are the expressions' own, the item `it`, the index `index` and the value so
+  far `acc`: `(filter (fn [card] (not= card.id state.sel)) state.cards)` is `filter(state.cards, it.id != state.sel)`. An
+  expression's own function given a function names its parameters as the expression does: `(sum state.items (fn [it] it.price))`. A
+  binding has no `let`: define a function. **A value read for the screen only reads:** any step it reaches is refused, whoever wrote it. A template inside a
   function (`` `(a ~x) ``) gives values, whenever it runs.
 - **Limits.** What a function does spends from the budget of the event or the update it runs in, with the steps' and the expressions': a
   loop ends with an error naming its place, and a `try` doesn't catch a limit. What a call makes goes when it ends. Calls through steps
@@ -2356,6 +2372,78 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
 - **A change of the program** takes effect at once, whole: a new version of it replaces the one before, so a definition taken away is
   gone, and an undo gives back exactly the definitions it had. A function running at that moment ends on its own version. The live state stays, what is
   scheduled goes on (and finds the new definition of its name).
+
+### Views
+
+A **view** is a function that builds part of the tree, called by a `defscreen`, a `defcomponent` or another view, at the build:
+
+```lisp
+(defview layout-choice "One layout in the Display menu, outlined while it is shown." [view icon]
+  `(node :id ~(str "layout-" view) :icon ~icon :selected ~(= state.view view)))
+
+(defview card-view "A card of a column: `card` is the repeat's card, `i` its place." [card i]
+  `(node#card :text ~card.title :hot ~(= (:tag card) "bug") :onClick ~(handler selectCard c i)))
+
+(defscreen main
+  (column#board
+    ~(layout-choice "board" "kanban")
+    ~(repeat [card computed.cards :index i :key card.id] (card-view card i))))
+```
+
+builds `{"id": "layout-board", "icon": "kanban", "selected": "{{(state.view == 'board')}}"}` and a node whose `repeat` is
+`{"for": "card", "in": "computed.cards", "index": "i", "key": "{{card.id}}"}`, its text `"{{card.title}}"`.
+
+- **In a view's templates** (a backquote in its body, a `defscreen`, a `defcomponent`, and a backquote inside the code of any
+  of them), a `~form` that needs the running app is a binding, as in a top-level template; what the view was given, its
+  arguments and locals, is written into it: `~(= state.view view)` with `"board"` is `{{(state.view == 'board')}}`. A view's code
+  outside a template can't read the running app: it runs at the build.
+- **A name of the running app is a symbol.** `(repeat [card list :index i :key form] body)` gives one node for each item of a list
+  of the running app: its body runs once, `card` and `i` bound to the symbols `card` and `i`, and gives the node, to which it adds
+  `repeat` (after its type and its id). A `defcomponent`'s parameters are symbols the same way. A `~form` that uses a local holding
+  a symbol is a binding that reads that name (`~card.title` is `{{card.title}}`); one that uses a local holding a value is worked
+  out at the build. So a view takes either: `(card-view card i)` in a repeat, or `(card-view {:title "Draft"} 0)`. A quoted
+  symbol is a name of the running app too: `(context-menu "cardMenu" "state.cardMenu" 'menus.card)` gives `{{menus.card}}`.
+- **A call of a view** in a template is always worked out at the build, never a binding.
+- **Handlers.** `(handler f arg...)` is the step `{"lisp": "f", "with": [...]}`, which calls a `defn` or a `defcommand` with these
+  arguments; in a template, an argument that reads the running app is its binding: `:onDrop ~(handler moveCard event.data.from
+  event.data.at c)`. A handler that names a function (`:onClick sortTable`) gives it its parameters by name from the variables
+  around it ("Running", above).
+
+### Writing an app as a program
+
+An app's `lisp/` folder can be a program to read, not the JSON tree in parentheses: Flow's is the example
+([examples/flow/lisp/](examples/flow/lisp/)), its first frame the same as its `json/` folder's, pixel for pixel (`ctest -R
+lisp_parity`). These are the rules its files follow, for anyone writing an app this way:
+
+- **Every `.lisp` file is a program, but data.** A file starts with a `;;;` header that says what it is, then named definitions,
+  each with a docstring, grouped under `;;;` sections. Data stays data, as well-formatted Lisp literals: the manifest
+  (`app.lisp`), `models.lisp`, `seed/`, `locales/`, `*.policy.lisp`, syntax tables.
+- **The entry names the other files.** `(include "state.lisp" "toolbar.lisp" ...)` at the top of the file the app loads (its
+  manifest's `entry`) lists them, as a data file's `include` does, with the same checks: read with the file from the app's folder or
+  the shared folder, never by a revision (SECURITY.md, "The Lisp language"). A file it includes may include others.
+- **`defscreen main` is an outline.** Its options are the window, fonts, strings, permissions and persist; its root lists the
+  window's parts in the order they are drawn, each a view: `~(top-bar)`, `~(toolbar)`, `~(work-area)`...
+- **Views are small.** About 40 lines at most and shallow: a long one calls others. A view's docstring says what it shows.
+- **Sections are definitions.** `defstate`, `defcomputed`, `defstyle`, `defcomponent`, `defmenu`, `deftokens`, `defkey`,
+  `defcommand`, `defcustom`, and `defpart` for the rest (watch, channels, onLoad). A shared add-on gives what an app may replace
+  (its colours, keys, default language) with `defdefaults`.
+- **No `"{{...}}"` text in a program.** A binding is a Lisp form: `~(and (= state.view "board") (not state.swimlanes))`. A data file
+  holds `~forms` too (`:where {:board ~state.boardId}`).
+- **Handlers call named functions.** A handler names a function or a command (`:onClick sortTable`), or calls one with its
+  arguments (`~(handler selectCard c i)`); a step map holding an expression becomes a function. A plain step with nothing to work
+  out (`{:toggle state.composer.more}`) may stay.
+- **All visible text goes through `(t "key")`**, its languages in `locales/<language>.lisp`: the views' text, commands' titles,
+  categories and descriptions (`:title ~(t "command.undo") :description ~(t "command.undo.about")`), settings' titles and
+  descriptions. The examples speak English, Spanish and French (sign-in keeps its English, Italian and Arabic); English is the
+  default, and a setting chooses (`:strings {:default en :locale ~settings.appearance.language}`). A product name stays as written,
+  in `:keep`. `affrescoui strings report` counts what is left, the program's text included.
+- **Ids stay as the JSON version's**: scenarios, permissions (`#statusBar`) and agents address nodes by them.
+
+The tools: `affrescoui lisp-binding '{{state.n > 1}}'` writes an expression as its form (`~(> state.n 1)`), and `--prove <folders>`
+shows that it does for every text there (each translated, built back and parsed again: the same tree);
+`tools/notation/lisp_program.py` drafts a data file as a program (sections as definitions, views cut out of long trees, repeats,
+every `{{...}}` a form), `--bindings` and `--handlers` rewrite a program's texts and step maps in place, and
+`tools/notation/lisp_metrics.py` measures a folder: the longest definition, the deepest line, the texts left.
 
 ### The loop: evaluating from inside the app
 
@@ -2434,9 +2522,10 @@ comments above it and on its line:
 
 (The second key's address is `/program/rooms.lisp/defkey mod+~1b`, as `/` is `~1` in a JSON Pointer.)
 
-- **What is shown is what it builds,** merged with any other section the document has. A member both give must be the same. A
-  program can't build `include` (list a program's files in a data file's `include`, or an app's entry), `assets`, `features` or
-  `program`.
+- **What is shown is what it builds,** merged with any other section the document has. A member both give must be the same, but a
+  `defdefaults` member, which the document's own replaces; a list both give (`persist`) joins. A program can't build `include` (the
+  file an app loads names its others with an `(include ...)` form, read with the file and never an entry of the program; or a data
+  file's `include`, or an app's entry), `assets`, `features` or `program`.
 - **A definition's `state` is what a key starts from.** A key nothing has set yet follows the definition's value; a key the person, or a
   function, has changed keeps what it holds, whatever the definition then says, and an undo leaves it.
 - **A revision changes definitions,** never what they build: `{"set": {"/program/rooms.lisp/card": "(defn card ...)"}}`, or one

@@ -446,7 +446,9 @@ names the definition. So does:
 - taking away a definition that another's body still uses, which the build alone wouldn't notice;
 - an edit of what is built (`#title/text`, `/actions/kill-line`): it says to change its definition;
 - a `def` or a `defcustom` whose value can't be worked out, used or not: it is worked out at the build, purely;
-- a section both written and built with different contents, or a program building `include`, `assets`, `features` or `program`.
+- a section both written and built with different contents (but a `defdefaults` member, which the written one replaces, and a list
+  such as `persist`, which joins), or a program building `include`, `assets`, `features` or `program`;
+- an `(include ...)` form: the file an app loads names its others with one, read with the file, and it is never an entry.
 
 A document can hold other sections beside `program` (a JSON screen that includes a program, an asset a revision brought): they
 are merged member by member with what it builds. **A definition's `state` is what a key starts from, and a person's data is never
@@ -468,7 +470,9 @@ Each definition is one area, so "Always allow" remembers that one definition.
 an `ask` or a `deny` rule on `/actions`, or on a path inside it (`/actions/save`, `/*/save`), and an owner of one in `review`, also cover a
 change of any definition that can run when an action would: a function, a command, a key, a `def` or a `defcustom`, a macro, a hook or
 advice, added, changed or taken away. Only a screen's definition (`defscreen`) that no other definition uses by name is left to what it
-builds: a function can't be in a tree, so all a screen does is there, judged as a JSON node is. A program that can't be built counts
+builds: a function can't be in a tree, so all a screen does is there, judged as a JSON node is. So is a definition that only builds
+a section (`defstate`, `defcomputed`, `defstyle`, `defcomponent`, `defmenu`, `deftokens`, `defpart`, `defdefaults`); a `defview` is a
+function, and counts as code. A program that can't be built counts
 every change. The code isn't told apart by action, so a rule on `/actions/save` covers all of it: that is the simple sound side, where
 following what one action reaches through names, keys and hooks would be more to get wrong. So a JSON app's `"ask": ["agent(/actions)"]`
 goes on asking for an agent's new function after the app becomes a program, in every mode; the person's own evaluation, never
