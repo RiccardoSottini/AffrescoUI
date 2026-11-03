@@ -47,7 +47,7 @@
                                 :else false)}))
        menus.view))
 
-(defview menu-bar "#menu-bar." []
+(defview menu-bar "The View and Time menus, drawn in the window when it has no menu bar of its own." []
   `(node#menu-bar :when ~(not window.nativeMenuBar)
      :use menuBar
      :width 56
@@ -153,7 +153,7 @@
      ~(chart-frame)
      (row#graph-bar :width "100%" :height 28 :color @panel
        (label#graph-title :style heading :text ~(t "graph.title") :grow 1))
-     ~(orbits-view)))
+     ~(orbit-graph)))
 
 (defview status-bar "The status bar: the day, the next event and the selected body." []
   `(node#status-bar :use statusBar

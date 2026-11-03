@@ -2,7 +2,7 @@
 
 ;;; The browser
 
-(defview browser "#browser." []
+(defview browser "The browser over the view: its tabs, then the bodies, the bookmarked places or the eclipses." []
   `(column#browser :anchors {:right 12 :top 66}
      :width ~(if (= state.browserTab "eclipses") 360 220)
      :height ~(clamp (- window.height 526) 150 250)
@@ -22,8 +22,8 @@
        :activeTextColor @text
        :activeBackground @raised
        :accentColor @accent)
-     ~(browser-bodies)
-     ~(browser-places)
+     ~(body-tree)
+     ~(places)
      (list#browser-eclipses :width ~(if (= state.browserTab "eclipses") 360 220)
        :height 220
        :visible ~(= state.browserTab "eclipses")
@@ -38,7 +38,7 @@
        :selectedBackground @raised
        :accentColor @accent)))
 
-(defview browser-bodies "#browser-bodies." []
+(defview body-tree "The bodies as a tree: choosing one selects it, opening one flies to it." []
   `(tree#browser-bodies :width 220
      :height 220
      :visible ~(= state.browserTab "bodies")
@@ -55,7 +55,7 @@
      :selectedBackground @raised
      :accentColor @accent))
 
-(defview browser-places "#browser-places, in browser." []
+(defview places "The bookmarked places, and the bar to add or delete one." []
   `(column#browser-places :width 220 :height 220 :visible ~(= state.browserTab "places") :color @panel
      (list#browser-bookmarks :width 220
        :height 186
@@ -71,7 +71,7 @@
        :accentColor @accent)
      ~(places-bar)))
 
-(defview places-bar "#places-bar." []
+(defview places-bar "Bookmark this view, and delete the bookmark chosen." []
   `(row#places-bar :width 220 :height 34 :gap 6 :alignItems center
      (label#add-bookmark :style button
        :width 170

@@ -118,29 +118,32 @@
           :icon (if it.solar "sun" "moon")})
        computed.eclipses))
 
-(defcomputed tracks "The timeline's tracks: eclipses, conjunctions and oppositions, each with its events."
-  [{:id "eclipses"
-    :label (t "events.eclipses")
-    :locked (>= (indexOf state.locked "eclipse") 0)
-    :muted (>= (indexOf state.muted "eclipse") 0)
-    :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color "#7c3aed"})
-                (filter (fn [it] (= it.kind "eclipse")) computed.events))}
-   {:id "conjunctions"
-    :label (t "events.conjunctions")
-    :locked (>= (indexOf state.locked "conjunction") 0)
-    :muted (>= (indexOf state.muted "conjunction") 0)
-    :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color "#be185d"})
-                (filter (fn [it] (= it.kind "conjunction")) computed.events))}
-   {:id "oppositions"
-    :label (t "events.oppositions")
-    :locked (>= (indexOf state.locked "opposition") 0)
-    :muted (>= (indexOf state.muted "opposition") 0)
-    :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color "#b45309"})
-                (filter (fn [it] (= it.kind "opposition")) computed.events))}])
+(defn track-form
+  ;; Run while the tracks' macro expands, so it writes the form, not a value.
+  "A track of the timeline, as a form: a kind of event, its title, whether it is muted or locked, its events as clips."
+  [id kind title colour]
+  `{:id ~id
+    :label (t ~title)
+    :locked (>= (indexOf state.locked ~kind) 0)
+    :muted (>= (indexOf state.muted ~kind) 0)
+    :clips (map (fn [it] {:id it.id :label it.label :start (- it.time 2) :duration 4 :color ~colour})
+                (filter (fn [it] (= it.kind ~kind)) computed.events))})
+
+(defmacro all-tracks
+  ;; A macro writing the vector: a macro called inside a vector of a defcomputed stops the build.
+  "The timeline's three tracks, as one expression."
+  []
+  [(track-form "eclipses" "eclipse" "events.eclipses" "#7c3aed")
+   (track-form "conjunctions" "conjunction" "events.conjunctions" "#be185d")
+   (track-form "oppositions" "opposition" "events.oppositions" "#b45309")])
+
+(defcomputed tracks "The timeline's tracks: eclipses, conjunctions and oppositions, each with its events." (all-tracks))
 
 ;;; The timeline
 
-(defview events-view "#events." []
+(defview timeline
+  "The events by day: eclipses, conjunctions and oppositions, each on its track; scrub to change the day."
+  []
   `(timeline#events :width "100%"
      :height 128
      :tracks ~computed.tracks

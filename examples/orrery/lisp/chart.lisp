@@ -43,10 +43,11 @@
                (filter (fn [it] (= it.parent "sun")) computed.placed))
           state.notes))
 
-(defview chart-bar "#chart-bar." []
+(defview chart-bar "The chart's bar: from the ground or from above, and, from above, the note's text and its tools."
+  []
   `(row#chart-bar :width "100%" :height 40 :gap 6 :alignItems center :color @panel
-     ~(sky-mode-ground)
-     ~(sky-mode-above)
+     ~(ground-button)
+     ~(above-button)
      (textarea#note-text :visible ~(= state.skyMode "above")
        :bind state.draft
        :grow 1
@@ -57,7 +58,7 @@
        :label ~(t "chart.noteText")
        :placeholder ~(t "chart.note")
        :onSubmit addNote)
-     ~(add-note)
+     ~(add-note-button)
      (node#mark :visible ~(= state.skyMode "above")
        :style button
        :icon crosshair
@@ -75,7 +76,7 @@
        :onClick clearNotes
        :width 30)))
 
-(defview sky-mode-ground "#sky-mode-ground, in chart-bar." []
+(defview ground-button "From the ground: the sky as you see it, standing on the Earth." []
   `(node#sky-mode-ground :style button
      :role button
      :text ~(t "chart.fromGround")
@@ -85,7 +86,7 @@
      :fitText true
      :onClick skyGround))
 
-(defview sky-mode-above "#sky-mode-above, in chart-bar." []
+(defview above-button "From above: the chart of the system, with its notes." []
   `(node#sky-mode-above :style button
      :role button
      :text ~(t "chart.fromAbove")
@@ -95,7 +96,7 @@
      :fitText true
      :onClick skyAbove))
 
-(defview add-note "#add-note, in chart-bar." []
+(defview add-note-button "Add a note in the middle of the chart, from above." []
   `(node#add-note :visible ~(= state.skyMode "above")
      :style button
      :icon sticky-note
@@ -105,7 +106,9 @@
      :onClick addNote
      :width 30))
 
-(defview chart-frame "#chart-frame." []
+(defview chart-frame
+  "The chart: the canvas from above, or the sky from the ground, with what is known of the selected body."
+  []
   `(panel#chart-frame :width "100%" :height ~(clamp (- window.height 524) 120 300)
      (canvas#chart :visible ~(= state.skyMode "above")
        :bind state.chart
@@ -123,7 +126,7 @@
        :anchors {:left 0 :right 0 :top 0 :bottom 0})
      ~(chart-info)))
 
-(defview chart-info "#chart-info." []
+(defview chart-info "The selected body's name, and where it is or what it orbits." []
   `(column#chart-info :visible ~(some? computed.selectedPosition)
      :height ~(if (= state.skyMode "ground") 62 42)
      :anchors {:left 8 :top 6}
@@ -151,7 +154,7 @@
 
 ;;; What orbits what
 
-(defview orbits-view "#orbits." []
+(defview orbit-graph "What orbits what, as a graph: drag a link to make a body orbit another." []
   `(graph#orbits :width "100%"
      :grow 1
      :color @background

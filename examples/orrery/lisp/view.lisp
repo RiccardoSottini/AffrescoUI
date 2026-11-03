@@ -285,7 +285,7 @@
      :onDrag viewDrag
      :onRelease viewRelease
      :onScroll viewScroll
-     ~(view-scene)
+     ~(scene-view)
      ~(repeat [t computed.marked :key t.id]
         `(panel :id ~(str "view-marker-" t.id) :x ~t.x :y ~t.y :width ~t.w :height ~t.h :color "#f0abfc"))
      ~(repeat [b computed.projected :key b.id]
@@ -312,13 +312,13 @@
              :radius 999
              :color ~b.hex
              :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})))
-     ~(view-info)
-     ~(view-time)
+     ~(info-card)
+     ~(clock-card)
      ~(browser)
      ~(view-hint)
-     ~(view-optics)))
+     ~(optics)))
 
-(defview view-scene "#view-scene, in view-pane." []
+(defview scene-view "The 3D scene, bound to the computed camera; a left click selects a body." []
   `(scene#view-scene :fill true
      :bind state.sceneView
      :scene ~computed.sceneGraph
@@ -329,7 +329,7 @@
      :controls {:orbit none :pan none :zoom false :select left :selects false}
      :onSelect ~(handler pickInScene event.button event.id)))
 
-(defview view-info "#view-info, in view-pane." []
+(defview info-card "The card of the selected body, at the bottom left." []
   `(panel#view-info :anchors {:left 12 :bottom 12}
      :width 252
      :height 116
@@ -341,7 +341,7 @@
      (panel#info-stripe :x 0 :y 12 :width 3 :height 92 :radius 2 :color @accent)
      ~(info-lines)))
 
-(defview info-lines "#info-lines." []
+(defview info-lines "The selected body's name, distance, radius, apparent size and phase." []
   `(column#info-lines :x 14 :y 8 :width 230 :height 110 :gap 2
      (label#info-name :height 22 :fitText true :font title :textColor @onSky :text ~computed.info.name)
      (label#info-distance :height 18
@@ -366,7 +366,7 @@
        :visible ~(not= computed.selectedBody.parent "")
        :text ~(t "info.phase" {:percent (text (round (* computed.info.lit 100)))}))))
 
-(defview view-time "#view-time." []
+(defview clock-card "The day and the rate, at the top of the view." []
   `(column#view-time :anchors {:left ~(max (/ (- (- window.width 461) 300) 2) 12) :top 10}
      :width 300
      :gap 0
@@ -376,7 +376,12 @@
      :borderWidth 1
      :borderColor @hudBorder
      :height 44
-     (label#time-date :height 20 :width 300 :align {:horizontal center :vertical center} :font small :textColor @onSky :text ~computed.clock)
+     (label#time-date :height 20
+       :width 300
+       :align {:horizontal center :vertical center}
+       :font small
+       :textColor @onSky
+       :text ~computed.clock)
      (label#time-rate :height 18
        :width 300
        :align {:horizontal center :vertical center}
@@ -384,7 +389,7 @@
        :textColor ~(if state.playing "@accent" "@onSkyMuted")
        :text ~computed.rate)))
 
-(defview view-optics "#view-optics, in view-pane." []
+(defview optics "The field of view and the faintest stars shown, at the bottom right." []
   `(row#view-optics :anchors {:right 12 :bottom 12}
      :fitContent width
      :height 28
@@ -399,7 +404,7 @@
      (label#view-mag :fitText true :height 20 :font small :textColor @onSkyMuted :text ~computed.magText)
      (panel#optics-end :width 2 :height 2)))
 
-(defview view-hint "#view-hint, in view-pane." []
+(defview view-hint "How to move about the view, while the browser is closed and the view is wide enough." []
   `(label#view-hint :anchors {:right 14 :bottom 46}
      :fitText true
      :height 20
@@ -408,7 +413,7 @@
      :text ~(t "view.hint")
      :visible ~(and (not state.showBrowser) (>= (- window.width 461) 600))))
 
-(defview render "#render." []
+(defview render-dialog "The render options: what the 3D view draws." []
   `(node#render :use dialog
      :with {:open state.renderOpen
             :title ~(t "command.openRender")
@@ -417,8 +422,7 @@
             :width 340
             :height 330}
      (column#render-options :gap 6 :anchors {:left 20 :right 20 :top 76 :bottom 64}
-       ~(repeat [o computed.renderOptions :key o.id]
-          (render-option o)))))
+       ~(repeat [o computed.renderOptions :key o.id] (render-option o)))))
 
 (defview render-option "One thing the 3D view can draw, and the switch that turns it on or off." [o]
   `(row :id ~(str "render-" o.id) :width "100%" :height 30

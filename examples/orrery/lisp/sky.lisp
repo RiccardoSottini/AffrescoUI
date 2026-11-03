@@ -416,9 +416,15 @@
 
 ;;; The sky view
 
-(defcomponent skyFromGround "The sky from where you stand on the Earth: the grid, the stars, the figures, the bodies, the ground."
+(defcomponent skyFromGround
+  "The sky from where you stand on the Earth: the grid, the stars, the figures, the bodies, the ground."
   {}
-  `(panel :fill true :color ~computed.skyColor :label ~(t "sky.label") :onPress skyPress :onDrag skyDrag :onScroll skyScroll
+  `(panel :fill true
+     :color ~computed.skyColor
+     :label ~(t "sky.label")
+     :onPress skyPress
+     :onDrag skyDrag
+     :onScroll skyScroll
      ~@(sky-grid)
      (path#sky-figures :fill true :d ~computed.skyFigurePath :stroke ~computed.figureColor :strokeWidth 1)
      ~(star-path "sky-stars-blue" 0 "#c9d8ff")
@@ -431,10 +437,8 @@
        :fillColor ~computed.groundColor
        :stroke "#6e6347"
        :strokeWidth 1)
-     ~(repeat [b (bodies-up) :key b.id]
-        (sky-body b))
-     ~(repeat [b (if state.skyLayers.labels (bodies-up) []) :key b.id]
-        (sky-label b))
+     ~(repeat [b (bodies-up) :key b.id] (sky-body b))
+     ~(repeat [b (if state.skyLayers.labels (bodies-up) []) :key b.id] (sky-label b))
      ~(cardinal-points)
      ~(sky-bar)
      ~(sky-place)))
@@ -443,12 +447,16 @@
   ;; A macro, not a function: the list it writes stays an expression, worked out at its speed.
   "The bodies on the sky view: those above the horizon, or all of them while the ground isn't drawn."
   []
-  `(filter (fn [it] (and (= it.kind "body") (or (> it.up (- 0.01)) (not state.skyLayers.ground)))) computed.skyShown))
+  `(filter (fn [it] (and (= it.kind "body") (or (> it.up (- 0.01)) (not state.skyLayers.ground))))
+           computed.skyShown))
 
 (defview sky-grid "The azimuthal grid, and its labels but the four cardinal ones: two nodes, spliced in." []
   `[(path#sky-grid :fill true :d ~computed.skyGridPath :stroke "#5c5240" :strokeWidth 1)
-    ~(repeat [g (filter (fn [it] (and (= it.kind "gridLabel") (< (indexOf ["0°" "90°" "180°" "270°"] it.text) 0))) computed.skyShown)
-              :key g.id]
+    ~(repeat [g
+              (filter (fn [it] (and (= it.kind "gridLabel") (< (indexOf ["0°" "90°" "180°" "270°"] it.text) 0)))
+                      computed.skyShown)
+              :key
+              g.id]
        `(label :id ~(str "sky-grid-label-" g.id)
           :x ~(+ g.x 3)
           :y ~(- g.y 15)
@@ -522,7 +530,9 @@
                 :fov (fixed (degrees state.sky.fov) 1)
                 :clock computed.clock})))
 
-(defview sky-body "A body on the sky: its disc (the Moon dark in a solar eclipse, red in a lunar one); a click selects it." [b]
+(defview sky-body
+  "A body on the sky: its disc (the Moon dark in a solar eclipse, red in a lunar one); a click selects it."
+  [b]
   `(panel :id ~(str "sky-body-" b.id)
      :x ~(- b.x 12)
      :y ~(- b.y 12)

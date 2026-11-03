@@ -25,7 +25,8 @@
 
 ;;; The window, and what is in it, in the order it is drawn
 
-(defscreen main "Orrery's one window: the bars, the view beside the chart, the timeline, the bodies strip, the status bar."
+(defscreen main
+  "Orrery's one window: the bars, the view beside the chart, the timeline, the bodies strip, the status bar."
   :window {:title ~(t "app.title")
            :width 1280
            :height 860
@@ -42,10 +43,8 @@
   (node#root :color @background :every {:ms 50 :do tick}
     (column#layout :fill true
       ~(top-bar)
-      (row#main :width "100%" :grow 1 :gap 1 :color @border
-        ~(view-pane)
-        ~(side))
-      ~(events-view)
+      (row#main :width "100%" :grow 1 :gap 1 :color @border ~(view-pane) ~(side))
+      ~(timeline)
       (column#dock :point bodies.dock :width "100%" :height 136 :color @panel :children [])
       ~(status-bar))
-    ~(render)))
+    ~(render-dialog)))
