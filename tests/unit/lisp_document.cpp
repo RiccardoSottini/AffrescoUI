@@ -743,7 +743,7 @@ TEST_CASE("lisp document: a feature's manifest can't hold a program yet") {
 
 TEST_CASE("lisp document: who wrote a program's entries, asked of a document with no program, is nobody") {
 	// Found by the revision fuzzer: the first writers were read from a key a JSON document doesn't have
-	Rules rules;
+	const Rules rules;
 	Repository repository(
 	    rules, json{{"format", "affrescoui-screen"}, {"version", 2}, {"root", {{"type", "panel"}, {"id", "views"}}}});
 	static_cast<void>(repository.submit(json{{"author", "agent"}, {"remove", json::array({"#views"})}}));
