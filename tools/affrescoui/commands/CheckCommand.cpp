@@ -146,7 +146,12 @@ std::vector<std::string> truthNotes(const std::filesystem::path& file, const std
 		const json document = json::parse(screen.documentJson());
 		if(lisp::hasProgram(document))
 			for(const lisp::UndefinedName& test : lisp::builtProgram(document["program"])->truth)
-				notes.push_back(std::format("{}: in {}, line {}: {} is tested with Lisp's truth (\"\", 0 and [] are "
+				notes.push_back(
+				    test.name == "+"
+				        ? std::format("{}: in {}, line {}: + is given a text: an expression joins texts with it, a "
+				                      "function can't: write (str ...)",
+				                      test.file, test.definition, test.line)
+				        : std::format("{}: in {}, line {}: {} is tested with Lisp's truth (\"\", 0 and [] are "
 				                            "true): if it can be one, write (truthy? {}), (some? ...) or "
 				                            "(not (empty? ...))",
 				                            test.file, test.definition, test.line, test.name, test.name));

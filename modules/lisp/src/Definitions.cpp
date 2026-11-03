@@ -262,6 +262,7 @@ void Machine::definePrimitive(const std::string& name, Primitive primitive) {
 	cell.state = Global::State::Ready;
 	cell.macro = false;
 	cell.library = false;
+	cell.host = native->host.reserved;
 }
 
 bool Machine::isDefinitionForm(const Value& form) { return isDefinitionWord(headWord(form)); }
@@ -271,6 +272,12 @@ Definition& Machine::define(const Value& form, const std::string& author, const 
 	const auto [kind, name] = definitionAddress(form);
 	if(form.count() < leastItems(head)) failDefinition(form, name, head + " is missing what it defines");
 	if(head != "defkey" && !isExtensionWord(head)) checkName(form, name);
+	// A host's function (an expression's `now`, a step's `set`) means the same in every file, a shared add-on's too
+	if(const Global* existing = findGlobal(name); existing && existing->host && head != "defkey" && !isExtensionWord(head))
+		failDefinition(form, name,
+		               "\"" + notation::Lexer::excerpt(name) +
+		                   "\" is the host's function, as the expressions have it: a definition of that name would change "
+		                   "it for every file, a shared add-on's too; name yours otherwise");
 	Definition& made = addDefinition(form, kind, name, author, strict);
 	made.authors = authors ? authors : authorSet(author);
 	const CompileContext context{name, author, made.authors, false};

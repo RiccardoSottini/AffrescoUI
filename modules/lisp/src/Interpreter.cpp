@@ -43,6 +43,8 @@ Interpreter::Interpreter(Limits limits) : machine_(std::make_unique<Machine>(*th
 
 Interpreter::~Interpreter() = default;
 
+void Interpreter::addAppVariable(const std::string& name) { machine_->addAppVariable(name); }
+
 void Interpreter::definePrimitive(const std::string& name, Primitive primitive) {
 	machine_->definePrimitive(name, std::move(primitive));
 }

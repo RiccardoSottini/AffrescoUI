@@ -8,6 +8,7 @@
 
 #include <affresco/affresco.hpp>
 #include <affresco/lisp/Document.hpp>
+#include <affresco/lisp/Interpreter.hpp>
 #include <affresco/lisp/Program.hpp>
 #include <affresco/notation/Notation.hpp>
 
@@ -15,6 +16,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -356,13 +358,14 @@ TEST_CASE("lisp views: truthy? is an expression's truth, and a function testing 
 	lisp::Program program;
 	program.addFile(R"lisp(
 (defn f "Tests paths." [x] (when state.query (if (not computed.list) 1 2) (when (and x state.on) 3)) (if (truthy? state.n) 1 2))
+(defn g "Joins texts as an expression would." [] (+ "a" state.n))
 (defscreen main (panel#root :visible ~(if state.shown 1 2)))
 )lisp",
 	                "app.lisp");
 	static_cast<void>(program.build());
 	std::vector<std::string> paths;
 	for(const lisp::UndefinedName& test : program.truthTests()) paths.push_back(test.name);
-	CHECK(paths == std::vector<std::string>{"state.query", "computed.list", "state.on"}); // a binding isn't one
+	CHECK(paths == std::vector<std::string>{"state.query", "computed.list", "state.on", "+"}); // a binding isn't one
 	CHECK(program.truthTests().front().definition == "f");
 	CHECK(lisp::buildText("[~(truthy? \"\") ~(truthy? 0) ~(truthy? 0.0) ~(truthy? {}) ~(truthy? \"a\") ~(truthy? 2)]",
 	                      "t") == json::parse("[false, false, false, false, true, true]"));
@@ -375,4 +378,29 @@ TEST_CASE("lisp views: a string may span lines, as a docstring of several lines 
 	CHECK(affresco::notation::read("{:a \"x\ny\"}", affresco::notation::Notation::Lisp) == json{{"a", "x\ny"}});
 	CHECK_THROWS(static_cast<void>(lisp::buildText("{:a \"x\\\ny\"}", "t"))); // a backslash before a line break is no escape
 	CHECK_THROWS(static_cast<void>(lisp::buildText("{:a \"x\x01y\"}", "t")));
+}
+
+TEST_CASE("lisp views: no definition takes a reserved host function's name, which every file's code means") {
+	const auto loads = [](const std::string& text) {
+		lisp::Interpreter interpreter;
+		interpreter.definePrimitive("now", {.capability = "read", .reserved = true,
+		                                    .call = [](lisp::Interpreter&, std::span<const lisp::Value>) {
+			                                    return lisp::Value::integer(1);
+		                                    }});
+		interpreter.definePrimitive("undo", {.capability = "history", .call = [](lisp::Interpreter&, std::span<const lisp::Value>) {
+			                                     return lisp::Value();
+		                                     }});
+		lisp::Program program;
+		program.addFile(text, "app.lisp");
+		try {
+			program.load(interpreter);
+		} catch(const lisp::LispError& error) {
+			return std::string(error.what());
+		}
+		return std::string();
+	};
+	CHECK(loads("(defn now \"Mine.\" [] 2)").contains("\"now\" is the host's function"));
+	CHECK(loads("(def now 2)").contains("\"now\" is the host's function"));
+	CHECK(loads("(defcommand undo \"A command may share a step's name.\" :title \"U\" [] nil)").empty());
+	CHECK(loads("(defn clock \"Mine, by its own name.\" [] (now))").empty());
 }

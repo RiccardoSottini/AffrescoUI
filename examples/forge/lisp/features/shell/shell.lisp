@@ -81,7 +81,7 @@
   (set "state.folder.root" result.name)
   (explorerRefresh)
   (indexFolder)
-  (log (t "log.opened" {:folder result.name})))
+  (log-line (t "log.opened" {:folder result.name})))
 
 (defn openFolderFailed "Says why no folder was opened." [error]
   (notify "error" (t "notify.noFolder" {:error error.message})))

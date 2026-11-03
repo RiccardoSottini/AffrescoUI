@@ -865,3 +865,20 @@ TEST_CASE("lisp runtime: a joined text shows its spaces, and a :let named like t
 	CHECK(text("empty") == "7");
 	CHECK(text("named") == "Ann");
 }
+
+TEST_CASE("lisp runtime: a bare word naming a variable of the running app reads it, though a step has that name") {
+	const App app(R"lisp(
+(defcommand a "" :title "A" [] (set "state.p" preview) (set "state.l" locale) (set "state.f" (fn? preview)))
+(defn mine "A local of that name wins." [preview] (set "state.own" preview))
+(defcommand b "" :title "B" [] (mine 3))
+(defkey "ctrl+a" a)
+(defkey "ctrl+b" b)
+(defscreen main (panel#root))
+)lisp");
+	app.press(Key::A);
+	CHECK(app.errors.empty());
+	CHECK(app.state("f") == false); // the variable, not the step
+	CHECK(app.state("p").is_null());  // nothing previewed
+	app.press(Key::B);
+	CHECK(app.state("own") == 3);
+}

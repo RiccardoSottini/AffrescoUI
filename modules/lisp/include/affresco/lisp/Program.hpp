@@ -166,7 +166,8 @@ public:
 	/// @brief Where the last build's functions test a path of the running app with the language's truth: `(if
 	/// state.query ...)`, `(when (not computed.list) ...)`, an operand of `and` or `or`. There "", 0 and [] are true,
 	/// as only nil and false are false, while in a binding they are false (an expression's truth); `name` holds the
-	/// path. @return Them, in order of compiling.
+	/// path. And where they add a text written out with `+`, which joins texts in an expression and is an error in a
+	/// function (`str` joins them): `name` is then `+`. @return Them, in order of compiling.
 	[[nodiscard]] const std::vector<UndefinedName>& truthTests() const noexcept { return truth_; }
 	/// @brief The names each definition's code uses, macros' output and the functions inside it included: nothing runs
 	/// but what a name reaches, as the language has no way to find a global from a value. @return Them, by its address.

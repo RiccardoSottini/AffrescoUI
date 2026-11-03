@@ -18,6 +18,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <utility>
+#include <set>
 #include <tuple>
 #include <vector>
 
@@ -93,6 +94,11 @@ public:
 	/// @param name Its name.
 	/// @param primitive It.
 	void definePrimitive(const std::string& name, Primitive primitive);
+	/// @brief See Interpreter::addAppVariable(). @param name The word.
+	void addAppVariable(const std::string& name) { appVariables_.insert(name); }
+	/// @brief Whether a word names a variable of the running app (Interpreter::addAppVariable()). @param name The word.
+	/// @return true if it does.
+	[[nodiscard]] bool isAppVariable(std::string_view name) const { return appVariables_.contains(name); }
 	/// @brief Runs a top-level form that is a definition.
 	/// @param form The form.
 	/// @param author Its author.
@@ -404,6 +410,7 @@ private:
 	std::map<std::string, std::size_t, std::less<>> definitionNames_;    ///< definitions_'s indexes by name.
 	std::size_t compiled_ = 0;                                           ///< How many of definitions_ are compiled.
 	std::vector<GlobalUse> uses_;                                        ///< See uses().
+	std::set<std::string, std::less<>> appVariables_;                    ///< See addAppVariable().
 	std::vector<std::tuple<std::string, Place, std::string>> truthTests_; ///< See truthTests().
 	int compileDepth_ = 0;                                               ///< See compileDepth().
 	std::uint64_t gensym_ = 0;                                           ///< See gensymCounter().

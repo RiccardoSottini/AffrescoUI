@@ -194,4 +194,4 @@
                                                   (split doc.text "\n")))))
                 0
                 1000)))
-  (log (t "log.problems" {:n (count state.problems)})))
+  (log-line (t "log.problems" {:n (count state.problems)})))

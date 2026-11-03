@@ -393,6 +393,7 @@ private:
 	Place place_;                 ///< The place of what is being compiled.
 	bool liveBindings_ = false;   ///< In a top-level template: a `~form` that needs the running app becomes a binding.
 	bool inView_ = false;         ///< Building a view: a backquote is a template whose `~form` may become a binding.
+	bool compilingHead_ = false; ///< Compiling a call's head: a word there is the function, never a variable.
 	bool functionArgument_ = false; ///< Checking an argument of a function that takes functions (CompilerBindings.cpp).
 	bool symbolic_ = false;       ///< Writing a binding where the locals hold names of the running app.
 	std::vector<Rename> renames_; ///< The parameters of the functions a binding is writing, innermost last.
