@@ -203,8 +203,7 @@
        (map (fn [it]
               (if (or (= it.id from) (= (indexOf it.id (str from "/")) 0))
                 (merge it
-                       {:id (str to (slice it.id (count from)))
-                        :label (get (reverse (split (str to (slice it.id (count from))) "/")) 0)})
+                       {:id (str to (slice it.id (count from))) :label (baseName (str to (slice it.id (count from))))})
                 it))
             state.docs))
   (set "state.groups"
@@ -217,7 +216,7 @@
                                    (if (or (= it.id from) (= (indexOf it.id (str from "/")) 0))
                                      (merge it
                                             {:id (str to (slice it.id (count from)))
-                                             :label (get (reverse (split (str to (slice it.id (count from))) "/")) 0)})
+                                             :label (baseName (str to (slice it.id (count from))))})
                                      it))
                                  it.tabs)}))
             state.groups))

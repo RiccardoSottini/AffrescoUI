@@ -1,13 +1,14 @@
-;;; views.lisp --- what terminal.lisp shows
+;;; views.lisp --- the Terminal tab: the terminals' tabs, and the one shown
 
-;;; Views
+;;; The terminals
 
-(defcomponent forgeTerminal "The forgeTerminal component."
+(defcomponent forgeTerminal "The Terminal tab: a tab per terminal, then the active one's shell."
   {}
   `(column#terminal-panel :width "100%" :grow 1 :color @color.panel
      ~(terminal-head)
-     ~(repeat [t (filter (fn [it] (= it state.terminals.active)) (map (fn [it] it.id) state.terminals.list)) :key t]
-       `(terminal#terminal :session ~t
+     ~(repeat [session (filter (fn [it] (= it state.terminals.active)) (map (fn [it] it.id) state.terminals.list))
+               :key session]
+       `(terminal#terminal :session ~session
           :font code
           :width "100%"
           :grow 1
@@ -18,7 +19,7 @@
           :focusable true
           :keys {:tab terminalKeepTab "shift+tab" terminalKeepTab}))))
 
-(defview terminal-head "#terminal-head." []
+(defview terminal-head "The terminals' tabs, each closable, and a button for a new one." []
   `(row#terminal-head :width "100%" :height 28 :alignItems center
      (tabs#terminal-tabs :grow 1
        :height 28

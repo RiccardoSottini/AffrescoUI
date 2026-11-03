@@ -162,21 +162,22 @@
 (defcommand agentOpenChanges "Open Proposal Changes"
   :title ~(t "command.agentOpenChanges") :category ~(t "category.agent") :icon "git-compare"
   :enablement ~(some? computed.agentCurrent) []
-  (doseq [proposal (filter (fn [it] (some? it)) [computed.agentCurrent])]
-    (set "state.docs" (filter (fn [it] (not= it.id (str "proposal:" proposal.id))) state.docs))
-    (push "state.docs"
-          {:id (str "proposal:" proposal.id)
-           :label (str "Proposal #" proposal.id)
-           :kind "diff"
-           :text ""
-           :dirty false
-           :language ""
-           :diff {:path (str "#" proposal.id "  " proposal.message)
-                  :added (count computed.agentChangeRows)
-                  :removed 0
-                  :truncated (> (count (or-else proposal.changes [])) 200)
-                  :items computed.agentChangeRows}})
-    (showTab (str "proposal:" proposal.id) (str "Proposal #" proposal.id))))
+  (let [proposal computed.agentCurrent]
+    (when (some? proposal)
+      (set "state.docs" (filter (fn [it] (not= it.id (str "proposal:" proposal.id))) state.docs))
+      (push "state.docs"
+            {:id (str "proposal:" proposal.id)
+             :label (str "Proposal #" proposal.id)
+             :kind "diff"
+             :text ""
+             :dirty false
+             :language ""
+             :diff {:path (str "#" proposal.id "  " proposal.message)
+                    :added (count computed.agentChangeRows)
+                    :removed 0
+                    :truncated (> (count (or-else proposal.changes [])) 200)
+                    :items computed.agentChangeRows}})
+      (showTab (str "proposal:" proposal.id) (str "Proposal #" proposal.id)))))
 
 (defn featuresStore "TODO" [list]
   (set "state.features.catalog"
@@ -220,11 +221,12 @@
             :onDone featuresInstallDone)))
 
 (defn featuresSwitch "TODO" [on]
-  (doseq [feature (filter (fn [it] (and (some? it) it.installed (not= it.enabled on))) [computed.featureCurrent])]
-    (patch [{:op "replace" :path (str "/features/" feature.name "/enabled") :value on}]
-           :message (str (if on "Enable" "Disable") " the feature " feature.name))
-    (set "state.features.catalog"
-         (map (fn [it] (if (= it.name feature.name) (merge it {:enabled on}) it)) state.features.catalog))))
+  (let [feature computed.featureCurrent]
+    (when (and (some? feature) feature.installed (not= feature.enabled on))
+      (patch [{:op "replace" :path (str "/features/" feature.name "/enabled") :value on}]
+             :message (str (if on "Enable" "Disable") " the feature " feature.name))
+      (set "state.features.catalog"
+           (map (fn [it] (if (= it.name feature.name) (merge it {:enabled on}) it)) state.features.catalog)))))
 
 (defcommand featuresEnable "Enable Feature"
   :title ~(t "command.featuresEnable") :category ~(t "category.features") :icon "circle-check"
