@@ -191,7 +191,7 @@ std::pair<std::string, std::string> Repository::reviewNeeds(const json& before, 
 		missing = std::to_string(more) + (more == 1 ? " more approval" : " more approvals");
 	}
 	for(const auto& [pattern, owners] : policy.owners) {
-		if(!detail::changes(rules_, before, after, pattern)) continue;
+		if(!detail::reaches(rules_, before, after, pattern)) continue;
 		std::string names;
 		for(const std::string& owner : owners) {
 			if(!names.empty()) names += ", ";

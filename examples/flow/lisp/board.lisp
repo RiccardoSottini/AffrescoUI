@@ -1,4 +1,4 @@
-{:note "Flow's board logic, included by index.screen.json: undo, the activity feed, work-in-progress limits, moves by keyboard and between swimlanes, the card drawer's edits, the timeline's tracks, presence from the host's channel, and the settings."
+{:note "Flow's board, included by index.screen.lisp: its settings and state, the work-in-progress counts, the timeline's watch, presence from the host's channel, and the keys for undo and moves. What they run is in flow.lisp."
  :settings {:appearance.language (string :enum [en es fr]
                                    :default en
                                    :title "Language"
@@ -38,118 +38,7 @@
  :watch {:computed.columns buildTimeline :state.members buildTimeline}
  :onLoad buildTimeline
  :channels {:team {:socket studio.sock :reconnect {:after 2000}}}
- :actions {:remember [{:note "Marks a change for undoChange (the last 20): the records' undo takes back the event's writes"}
-                      {:push state.undoStack :value true}
-                      {:set state.toastUndo :to true}
-                      {:if "{{length(state.undoStack) > 20}}" :then [{:remove state.undoStack :at 0}]}]
-           :logActivity [{:note "with: key, title, column. Newest first, the last 30"}
-                         {:set state.activity
-                          :to "{{concat([{ who: 'RS', key: key, title: title, column: column }], slice(state.activity, 0, 29))}}"}]
-           :checkLimit [{:note "with: c. A notice when the column is over its limit"}
-                        {:if "{{settings.board.wipWarnings && computed.columns[c].limit != null && length(computed.columns[c].cards) > computed.columns[c].limit}}"
-                         :then [{:run notify
-                                 :with {:message "{{t('toast.wip', { column: computed.columns[c].name, limit: computed.columns[c].limit })}}"}}]}]
-           :undoChange {:title "Undo"
-                        :category "Issue"
-                        :icon undo-2
-                        :do [{:if "{{length(state.undoStack) == 0}}"
-                              :then [{:run notify :with {:message "{{t('toast.nothingToUndo')}}"}} {:stop true}]}
-                             {:undoData true}
-                             {:remove state.undoStack :at "{{length(state.undoStack) - 1}}"}
-                             {:set state.selected :to nil}
-                             {:run logActivity :with {:key undone :title "" :column ""}}
-                             {:run notify :with {:message "{{t('toast.undone')}}"}}]}
-           :reorderCard [{:note "with: c, i, by (-1 or 1): swaps the card with its neighbour in the column"}
-                         {:if "{{i + by < 0 || i + by >= length(computed.columns[c].cards)}}" :then [{:stop true}]}
-                         {:run remember}
-                         {:forEach "{{[{ id: computed.columns[c].cards[i].id, order: computed.columns[c].cards[i + by].order }, { id: computed.columns[c].cards[i + by].id, order: computed.columns[c].cards[i].order }]}}"
-                          :as swap
-                          :do [{:update issues :id "{{swap.id}}" :fields {:order "{{swap.order}}"}}]}
-                         {:set state.selected :to {:c "{{c}}" :i "{{i + by}}"}}]
-           :moveUp {:title "Move issue up"
-                    :category "Issue"
-                    :icon arrow-up
-                    :enablement "{{computed.card != null && state.selected.i > 0}}"
-                    :do [{:run reorderCard :with {:c "{{state.selected.c}}" :i "{{state.selected.i}}" :by -1}}]}
-           :moveDown {:title "Move issue down"
-                      :category "Issue"
-                      :icon arrow-down
-                      :enablement "{{computed.card != null && state.selected.i < length(computed.columns[state.selected.c].cards) - 1}}"
-                      :do [{:run reorderCard :with {:c "{{state.selected.c}}" :i "{{state.selected.i}}" :by 1}}]}
-           :moveToLane [{:note "with: from, at, to, who: a card dropped in a swimlane takes that column and that owner"}
-                        {:if "{{from != to}}"
-                         :then [{:run moveCard :with {:from "{{from}}" :at "{{at}}" :to "{{to}}"}}
-                                {:update issues
-                                 :id "{{computed.columns[to].cards[length(computed.columns[to].cards) - 1].id}}"
-                                 :fields {:who "{{who}}"}}]
-                         :else [{:if "{{computed.columns[from].cards[at].who == who}}" :then [{:stop true}]}
-                                {:run remember}
-                                {:update issues :id "{{computed.columns[from].cards[at].id}}" :fields {:who "{{who}}"}}]}]
-           :buildTimeline [{:note "One track per member, a clip per card with a start and a due date; days are frames"}
-                           {:set state.timelineTracks :to []}
-                           {:forEach state.members
-                            :as m
-                            :do [{:push state.timelineTracks
-                                  :value {:id "{{m.who}}"
-                                          :label "{{m.name}}"
-                                          :clips "{{map(filter(computed.allCards, it.who == m.who && it.due != null), { id: it.c + '-' + it.at, label: it.title, start: max(0, daysBetween(state.sprintStart, it.start ?? it.due)), duration: max(1, daysBetween(it.start ?? it.due, it.due)), color: computed.columns[it.c].color })}}"}}]}]
-           :changeClip [{:note "A timeline clip moved or trimmed: its card gets the new dates, and the track's owner"}
-                        {:run setCardDates
-                         :with {:c "{{number(split(event.id, '-')[0])}}"
-                                :i "{{number(split(event.id, '-')[1])}}"
-                                :start "{{addDays(state.sprintStart, round(event.start))}}"
-                                :due "{{addDays(state.sprintStart, round(event.start + event.duration))}}"
-                                :who "{{event.track}}"}}]
-           :setCardDates [{:note "with: c, i, start, due, who"}
-                          {:run remember}
-                          {:update issues
-                           :id "{{computed.columns[c].cards[i].id}}"
-                           :fields {:start "{{start}}" :due "{{due}}" :who "{{who}}"}}]
-           :setDue [{:note "with: date, or null to clear it"}
-                    {:if "{{computed.card == null}}" :then [{:stop true}]}
-                    {:run remember}
-                    {:update issues
-                     :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                     :fields {:due "{{date}}"}}
-                    {:set state.dueOpen :to false}]
-           :toggleListItem [{:note "with: field (labels or assignees), value: adds or removes it on the selected card"}
-                            {:if "{{computed.card == null}}" :then [{:stop true}]}
-                            {:run remember}
-                            {:update issues
-                             :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                             :fields "{{fromEntries([{key: field, value: contains(computed.card[field] ?? [], value) ? filter(computed.card[field], it != value) : concat(computed.card[field] ?? [], [value])}])}}"}]
-           :addToCard [{:note "with: field (checklist, comments or attachments), value, input (the text typed: nothing is added while it is blank)"}
-                       {:if "{{computed.card == null || length(trim(input ?? '')) == 0}}" :then [{:stop true}]}
-                       {:run remember}
-                       {:update issues
-                        :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                        :fields "{{fromEntries([{key: field, value: concat(computed.card[field] ?? [], [value])}])}}"}
-                       {:if "{{field == 'comments'}}"
-                        :then [{:run logActivity :with {:key commented :title "{{computed.card.title}}" :column ""}}]}]
-           :removeFromCard [{:note "with: field, at"}
-                            {:run remember}
-                            {:update issues
-                             :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                             :fields "{{fromEntries([{key: field, value: concat(slice(computed.card[field] ?? [], 0, at), slice(computed.card[field] ?? [], at + 1))}])}}"}]
-           :checkItem [{:note "with: at, value"}
-                       {:run remember}
-                       {:update issues
-                        :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                        :fields {:checklist "{{map(computed.card.checklist, index == at ? merge(it, { done: value }) : it)}}"}}]
-           :editNotes [{:if "{{computed.card == null}}" :then [{:stop true}]}
-                       {:set state.draft :to {:editing true :notes "{{computed.card.notes ?? ''}}"}}]
-           :saveNotes [{:if "{{computed.card == null}}" :then [{:stop true}]}
-                       {:run remember}
-                       {:update issues
-                        :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                        :fields {:notes "{{state.draft.notes}}"}}
-                       {:set state.draft.editing :to false}
-                       {:run notify :with {:message "{{t('toast.saved')}}"}}]
-           :cancelNotes [{:set state.draft.editing :to false}]
-           :announcePresence [{:note "Tells the other people on this board which card is open"}
-                              {:emit presence
-                               :data {:who "RS" :card "{{computed.card == null ? null : computed.card.title}}"}}]
-           "team:committed" [{:note "Someone changed the board: the feed shows it and its author is here"}
+ :actions {"team:committed" [{:note "Someone changed the board: the feed shows it and its author is here"}
                              {:set state.activity
                               :to "{{concat([{ who: event.author ?? '?', key: 'revised', title: event.message ?? '', column: '' }], slice(state.activity, 0, 29))}}"}
                              {:set "state.presence[event.author ?? '?']"
@@ -157,26 +46,7 @@
            "team:event" [{:note "presence: { who, card } from another person's Flow"}
                          {:if "{{event.name != 'presence' || event.data.who == 'RS'}}" :then [{:stop true}]}
                          {:set "state.presence[event.data.who]" :to "{{event.data.card ?? ''}}"}]
-           "team:closed" [{:set state.presence :to {}}]
-           :showTimeline {:title "Show the timeline"
-                          :category "View"
-                          :icon chart-gantt
-                          :do [{:set state.view :to timeline}]}
-           :toggleSwimlanes {:title "Swimlanes by member"
-                             :category "View"
-                             :icon rows-2
-                             :do [{:set state.view :to board} {:toggle state.swimlanes}]}
-           :openSettings {:title "Settings…" :category "View" :icon settings :do [{:set state.settingsOpen :to true}]}
-           :closeSettings [{:set state.settingsOpen :to false}]
-           :changeLanguage {:title "Change the language"
-                            :category "View"
-                            :icon languages
-                            :do [{:set settings.appearance.language
-                                  :to "{{settings.appearance.language == 'en' ? 'es' : settings.appearance.language == 'es' ? 'fr' : 'en'}}"}]}
-           :focusSearch {:title "Search issues"
-                         :category "Go"
-                         :icon search
-                         :do [{:set state.searchOpen :to true} {:focus "#search"}]}}
+           "team:closed" [{:set state.presence :to {}}]}
  :keys {"mod+z" undoChange
         "mod+l" changeLanguage
         "mod+f" focusSearch

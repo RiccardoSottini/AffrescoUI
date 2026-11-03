@@ -237,25 +237,34 @@ if(AFFRESCOUI_BUILD_TESTS)
 	if(Python3_FOUND)
 		add_test(NAME mcp COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/mcp/test_affrescoui_mcp.py)
 		# tests/perf/tokens.py reads a screen's includes as the host merges them
-		# examples/lisp/ is what tools/notation/lisp_examples.py writes from the JSON apps
+		# examples/<app>/lisp/ is what tools/notation/lisp_examples.py writes from the JSON apps, but for programs
 		add_test(NAME cli_lisp_examples COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/tools/notation/lisp_examples.py --check --cli $<TARGET_FILE:affrescoui_cli>)
 		add_test(NAME perf_tokens COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/tests/perf/test_tokens.py)
-		# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
-		add_test(NAME mcp_game_launcher COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/json/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone (examples/tempera/json/sorter)
-		add_test(NAME tempera_sorter_e2e COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/tempera/json/sorter/e2e_test.py ${CMAKE_BINARY_DIR})
+		# The end-to-end tests of the apps written both as JSON and as a Lisp program: each version has its own
+		# (<name> for the JSON, <name>_lisp for the program)
+		foreach(notation json lisp)
+			set(suffix "")
+			if(notation STREQUAL "lisp")
+				set(suffix _lisp)
+			endif()
+			# The game launcher example, end to end: host, MCP server, a proposal, an approval, a picture
+			add_test(NAME mcp_game_launcher${suffix} COMMAND Python3::Interpreter
+				${CMAKE_CURRENT_SOURCE_DIR}/examples/arcadia/${notation}/e2e_test.py ${CMAKE_BINARY_DIR})
+			# Sinopia's slide sorter installed into Tempera by an agent, reviewed, docked and undone
+			# (examples/tempera/<notation>/sorter)
+			add_test(NAME tempera_sorter_e2e${suffix} COMMAND Python3::Interpreter
+				${CMAKE_CURRENT_SOURCE_DIR}/examples/tempera/${notation}/sorter/e2e_test.py ${CMAKE_BINARY_DIR})
+			# Orrery end to end on affrescoui_launcher: MCP server, a revision, an approval, a picture (examples/orrery)
+			add_test(NAME mcp_orrery${suffix} COMMAND Python3::Interpreter
+				${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/${notation}/e2e_test.py ${CMAKE_BINARY_DIR})
+		endforeach()
 		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
 		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
 		# The host's own agent end to end, no MCP: an openai-compatible fake server on the loopback, --ask, a proposal
 		add_test(NAME intelligence_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/tests/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
-		# Orrery end to end, JSON only on affrescoui_launcher: MCP server, a revision, an approval, a picture (examples/orrery)
-		add_test(NAME mcp_orrery COMMAND Python3::Interpreter
-			${CMAKE_CURRENT_SOURCE_DIR}/examples/orrery/json/e2e_test.py ${CMAKE_BINARY_DIR})
 	endif()
 endif()
 

@@ -120,6 +120,38 @@ Token firstOption(Lexer& lexer, const std::string& where) {
 	return token.kind == TokenKind::String ? lexer.next() : token;
 }
 
+/// @brief Finds a keyword's value in one form, by tokens: among a definition form's options (firstOption()), or a
+/// map's pairs when `maps` is true; each further keyword inside the map that is the previous one's value.
+/// @param form The form's text.
+/// @param keywords The keywords, without their ':'; at least one.
+/// @param maps Whether a map at the top has keywords too.
+/// @param where The entry's address, for errors.
+/// @param missing Set to what is missing when there is no such value.
+/// @return Its place in the form, or std::nullopt.
+/// @throws LispError If the form is neither, or a keyword is there twice.
+std::optional<Span> keywordIn(std::string_view form, std::span<const std::string> keywords, bool maps,
+                              const std::string& where, std::string& missing) {
+	Span span{0, form.size(), TokenKind::End};
+	bool top = true;
+	for(const std::string& keyword : keywords) {
+		Lexer lexer(form.substr(span.start, span.end - span.start), true);
+		if(!top && span.kind != TokenKind::OpenMap) {
+			missing = "the value before :" + Lexer::excerpt(keyword) + " isn't a map";
+			return std::nullopt;
+		}
+		const bool options = top && (!maps || Lexer(form, true).next().kind != TokenKind::OpenMap);
+		const Token first = options ? firstOption(lexer, where) : (static_cast<void>(lexer.next()), lexer.next());
+		const std::optional<Span> found = findKey(lexer, first, keyword, where);
+		if(!found) {
+			missing = "it has no keyword :" + Lexer::excerpt(keyword);
+			return std::nullopt;
+		}
+		span = {span.start + found->start, span.start + found->end, found->kind};
+		top = false;
+	}
+	return span;
+}
+
 /// @brief Refuses text that isn't exactly one form.
 /// @param value The text.
 /// @param where The entry's address, for errors.
@@ -146,6 +178,7 @@ std::shared_ptr<const BuiltProgram> buildSection(const json& section) {
 	built->undefined = program.undefinedNames();
 	built->extensions = program.extensions();
 	built->namesUsed = program.namesUsed();
+	built->namedCalls = program.namedCalls();
 	return built;
 }
 
@@ -277,24 +310,45 @@ json buildDocument(const json& source) {
 std::string replaceKeyword(std::string_view text, std::span<const std::string> keywords, std::string_view value,
                            const std::string& where) {
 	expectOneForm(value, where);
-	Span span{0, text.size(), TokenKind::End};
-	bool top = true;
-	for(const std::string& keyword : keywords) {
-		const std::string_view inside = text.substr(span.start, span.end - span.start);
-		Lexer lexer(inside, true);
-		if(!top && span.kind != TokenKind::OpenMap)
-			throw problemIn(where, "the value before :" + Lexer::excerpt(keyword) + " isn't a map");
-		const Token first = top ? firstOption(lexer, where) : (static_cast<void>(lexer.next()), lexer.next());
-		const std::optional<Span> found = findKey(lexer, first, keyword, where);
-		if(!found) throw problemIn(where, "it has no keyword :" + Lexer::excerpt(keyword));
-		span = {span.start + found->start, span.start + found->end, found->kind};
-		top = false;
-	}
-	std::string result(text.substr(0, span.start));
-	result.append(value).append(text.substr(span.end));
+	std::string missing;
+	const std::optional<Span> span = keywordIn(text, keywords, false, where, missing);
+	if(!span) throw problemIn(where, missing);
+	std::string result(text.substr(0, span->start));
+	result.append(value).append(text.substr(span->end));
 	const std::vector<Entry> entries = splitEntries(result, "");
 	if(entries.size() != 1 || entries.front().name != where)
 		throw problemIn(where, "the edit would make the text something other than this one definition");
+	return result;
+}
+
+std::optional<std::pair<std::size_t, std::size_t>> findKeyword(std::string_view text,
+                                                               std::span<const std::string> keywords) {
+	if(keywords.empty()) return std::nullopt;
+	Lexer lexer(text, true);
+	for(Token token = lexer.next(); token.kind != TokenKind::End; token = lexer.next()) {
+		const std::size_t start = token.offset;
+		const std::size_t end = formEnd(lexer, token, "");
+		const std::string_view form = text.substr(start, end - start);
+		Lexer head(form, true);
+		const Token open = head.next();
+		const Token word = head.next();
+		const bool options = open.kind == TokenKind::OpenNode && word.kind == TokenKind::Word &&
+		                     (word.text == "defcommand" || word.text == "defscreen" || word.text == "defcustom");
+		if(open.kind != TokenKind::OpenMap && !options) continue;
+		std::string missing;
+		if(const std::optional<Span> span = keywordIn(form, keywords, true, "", missing))
+			return std::pair{start + span->start, start + span->end};
+	}
+	return std::nullopt;
+}
+
+std::optional<std::string> withKeyword(std::string_view text, std::span<const std::string> keywords,
+                                       std::string_view value) {
+	expectOneForm(value, "");
+	const auto span = findKeyword(text, keywords);
+	if(!span) return std::nullopt;
+	std::string result(text.substr(0, span->first));
+	result.append(value).append(text.substr(span->second));
 	return result;
 }
 

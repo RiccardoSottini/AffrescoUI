@@ -74,7 +74,7 @@ TEST_CASE("notation: every example file reads back exactly from its Lisp text, w
 		roundTrips(affresco::parseUntrusted(textOf(entry.path())));
 		++files;
 	}
-	CHECK(files > 150);
+	CHECK(files > 100); // the apps that stay JSON, their scenarios, and every app's: one written as a program has no JSON
 }
 
 TEST_CASE("notation: a node is written with its type and id as its head, its children one per line") {

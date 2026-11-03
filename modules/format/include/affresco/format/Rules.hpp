@@ -57,6 +57,14 @@ public:
 	/// @param operation The operation, changed in place when it is such an edit.
 	/// @throws DocumentError If it can't be done: no such keyword, or a value that isn't one form.
 	void rewriteOperation(const json& document, json& operation) const override;
+	/// @brief A pattern on the actions (`/actions`, or a path inside it) also covers a change of a program's definition
+	/// that can run when an action would (programRunsChanged()). A narrower pattern than `/actions` is judged as it:
+	/// the code is not told apart by action.
+	/// @param before The document now.
+	/// @param after The document after the change.
+	/// @param pattern The rule's pattern.
+	/// @return true if it is on the actions and such a definition changed.
+	[[nodiscard]] bool changesCodeUnder(const json& before, const json& after, std::string_view pattern) const override;
 
 	/// @brief Finds a node by "id" in "root", then in "screens", "templates", "overlays" and the components
 	/// (findNodeWithId()).

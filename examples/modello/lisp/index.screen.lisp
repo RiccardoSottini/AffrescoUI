@@ -1,7 +1,7 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
  :format affrescoui-screen
  :version 2
- :note "Modello, a 3D modeller, written only in the format: the stock host runs it. This file names the window, the fonts, the colours, the state and the areas; parts/commands.json holds the actions, keys and menus, parts/viewport.json the 3D viewport and its header, parts/editors.json the other editors (outliner, properties, timeline) and the bars, parts/shader.json the Shader Editor."
+ :note "Modello, a 3D modeller, written only in the format: the stock host runs it. This file names the window, the fonts, the colours, the state and the areas; modello.lisp holds the program, parts/commands.lisp the other actions, the keys and the menus, parts/viewport.lisp the 3D viewport and its header, parts/editors.lisp the other editors (outliner, properties, timeline) and the bars, parts/shader.lisp the Shader Editor."
  :window {:title "Modello" :width 1440 :height 900 :minWidth 1000 :minHeight 640}
  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [icons]}
          :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 11 :fallback [icons]}
@@ -11,7 +11,8 @@
            "parts/viewport.lisp"
            "parts/editors.lisp"
            "parts/shader.lisp"
-           "../../shared/addons/assistant/assistant.lisp"]
+           "../../shared/addons/assistant/assistant.lisp"
+           modello.lisp]
  :theme "{{state.theme}}"
  :tokens {:gap {:dark "#0e1116" :light "#9aa3ae"}
           :bar {:dark "#161a21" :light "#c9d0d8"}

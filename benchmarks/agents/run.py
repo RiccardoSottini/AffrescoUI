@@ -11,7 +11,8 @@ Per task: a host (`affrescoui run`, mode acceptEdits) on a socket folder of its 
 accepts every proposal (the changes rules send to review, e.g. to actions), the client connected through
 mcp/affrescoui_mcp.py, then `affrescoui test --document` on the screen as the host has it. A task passes when its
 scenarios pass, every node it lists as unchanged is unchanged and, for the oracle, its scenarios failed before (so they
-test the request). Recorded: success, tokens in and out, tool calls, revisions and time, into one JSON per run. API
+test the request); a task that says how the change is written (`present`: a program's definition, or a JSON action)
+needs it there. Recorded: success, tokens in and out, tool calls, revisions and time, into one JSON per run. API
 keys are the client's business, from the environment: nothing of the environment is written, and the client's output
 is read for its counts only.
 """
@@ -261,6 +262,18 @@ def changed_nodes(mcp, task, before, after):
     return changed
 
 
+def missing_nodes(mcp, task, after):
+    """The addresses the task says the change must make that it didn't: where the request says how it is written (a
+    program's definition, or a JSON action), so that a change written the other way doesn't count."""
+    missing = []
+    for address in task.get("present", []):
+        try:
+            mcp.locate(after, address)
+        except ValueError:
+            missing.append(address)
+    return missing
+
+
 def run_task(task, args, mcp):
     """One task from a fresh host: the client's counts, the checks and the time, as a result."""
     folder = tempfile.mkdtemp(prefix="aui-")  # short: a socket's path is at most 104 bytes
@@ -278,9 +291,11 @@ def run_task(task, args, mcp):
         end = host.settled()
         passed, failures = play(affrescoui, task, as_played(end), folder, "after")
         changed = changed_nodes(mcp, task, start["document"], end["document"])
+        missing = missing_nodes(mcp, task, end["document"])
         result.update(counts, seconds=round(seconds, 2), revisions=end["revision"] - start["revision"],
-                      scenariosPassed=passed, failures=failures, changed=changed, failedBefore=failed_before)
-        result["success"] = passed and not changed and (failed_before or args.client != "oracle")
+                      scenariosPassed=passed, failures=failures, changed=changed, missing=missing,
+                      failedBefore=failed_before)
+        result["success"] = passed and not changed and not missing and (failed_before or args.client != "oracle")
     except (RuntimeError, OSError, ValueError, subprocess.TimeoutExpired) as failure:
         result["error"] = str(failure)[:300]
     finally:

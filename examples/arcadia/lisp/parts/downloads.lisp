@@ -66,60 +66,6 @@
             :dlNow "{{state.dlPaused || computed.download == null ? 0 : state.dlRate[47]}}"
             :dlPeak "{{max(state.dlRate)}}"
             :dlLeft "{{computed.download == null || computed.dlNow == 0 ? 0 : ceil((computed.dlSize - computed.download.doneGb) * 1024 / computed.dlNow / 60)}}"}
- :actions {:showDownloads {:title "Downloads"
-                           :category "Downloads"
-                           :icon download
-                           :do [{:run go :with {:tab downloads :page home :id nil}}]}
-           :dlPause {:title "Pause or resume downloads"
-                     :category "Downloads"
-                     :icon pause
-                     :do [{:toggle state.dlPaused}]}
-           :dlStart {:title "Download now"
-                     :category "Downloads"
-                     :icon download
-                     :description "Moves the item `id` to the top and starts it; what was downloading waits at the head of the queue."
-                     :do [{:forEach state.downloads
-                           :as d
-                           :index i
-                           :do [{:if "{{d.status == 'downloading'}}"
-                                 :then [{:set "state.downloads[i].status" :to queued}]}
-                                {:if "{{d.id == id}}" :then [{:set "state.downloads[i].status" :to downloading}]}]}
-                          {:set state.dlPaused :to false}]}
-           :dlMove {:title "Move in the queue"
-                    :category "Downloads"
-                    :description "Swaps the downloads at positions i and j."
-                    :do [{:set state.downloads
-                          :to "{{map(state.downloads, index == i ? state.downloads[j] : index == j ? state.downloads[i] : it)}}"}]}
-           :dlUnschedule {:title "Unschedule"
-                          :category "Downloads"
-                          :do [{:forEach state.downloads
-                                :as d
-                                :index i
-                                :do [{:if "{{d.id == id}}" :then [{:set "state.downloads[i].status" :to paused}]}]}]}
-           :dlRemove {:title "Remove from downloads"
-                      :category "Downloads"
-                      :icon x
-                      :do [{:if "{{find(data.games, it.id == id).status == 'downloading'}}"
-                            :then [{:update games
-                                    :id "{{id}}"
-                                    :fields {:status "{{find(data.games, it.id == id).installed ? 'update' : 'none'}}"}}]}
-                           {:set state.downloads :to "{{filter(state.downloads, it.id != id)}}"}]}
-           :dlClear {:title "Clear completed downloads"
-                     :category "Downloads"
-                     :do [{:set state.downloads :to "{{filter(state.downloads, it.status != 'done')}}"}]}
-           :dlFinish {:title "Finish the current download"
-                      :category "Downloads"
-                      :description "Marks the download `id` done, its game ready, and starts the next in the queue."
-                      :do [{:forEach state.downloads
-                            :as d
-                            :index i
-                            :do [{:if "{{d.id == id}}"
-                                  :then [{:set "state.downloads[i].status" :to done}
-                                         {:set "state.downloads[i].doneGb"
-                                          :to "{{d.sizeGb ?? find(data.games, it.id == id).sizeGb}}"}]}]}
-                           {:update games :id "{{id}}" :fields {:status ready :installed true}}
-                           {:if "{{find(state.downloads, it.status == 'queued') != null}}"
-                            :then [{:run dlStart :with {:id "{{find(state.downloads, it.status == 'queued').id}}"}}]}]}}
  :components {:dlGraph {:note "The network rate as bars and the disk rate as a line over the last samples, newest on the right."
                         :params {}
                         :node (row#dl-graph :width 336 :height 110 :gap 1 :alignItems end :color "#00000033"

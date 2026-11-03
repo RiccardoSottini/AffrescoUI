@@ -18,11 +18,11 @@ using affresco::json;
 
 namespace {
 
-/// @brief Evaluates a value as a screen would, with the Kanban template's state.
+/// @brief Evaluates a value as a screen would, with the JSON template's state.
 /// @param value The value.
 /// @throws DocumentError If the value is invalid.
 void evaluate(const json& value) {
-	static const json state = affresco::fuzz::kanbanTemplate().at("state");
+	static const json state = affresco::fuzz::jsonTemplate().at("state");
 	static const json window = {{"width", 1280}, {"height", 800}};
 	static const json revision = 3, event = {{"x", 10}, {"y", 20}, {"key", "Enter"}, {"text", "a"}};
 	static const json globals = {{"mode", "default"},        {"proposals", json::array()},

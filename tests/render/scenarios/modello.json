@@ -1,11 +1,11 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/modello/json",
+	"screens": "../../../examples/modello/lisp",
 	"scenarios": [
 		{
 			"name": "modello",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"note": "Modello, JSON only: the Layout workspace, Shift+A's Add menu, a typed move, the sidebar, the about dialog, the light theme",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },

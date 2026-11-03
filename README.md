@@ -118,9 +118,9 @@ natively, and shaped by the people who use them while they run.
 
 Twelve applications, from everyday apps to professional tools, all in the same format. They are examples
 ([`examples/`](examples/README.md)), not part of the library, and each carries the AI **assistant** in its bottom right
-corner: ask for a change in plain words, then review the proposal it becomes. Streak and Calamaio are Lisp programs
-(`examples/<app>/lisp/` only). The others are JSON documents (`examples/<app>/json/`), each with a Lisp spelling of
-the same document next to it (`lisp/`): choose which opens in the Launcher's Settings.
+corner: ask for a change in plain words, then review the proposal it becomes. Most are Lisp programs
+(`examples/<app>/lisp/` only). Forge, Sign in and the Launcher are JSON documents (`examples/<app>/json/`), each with a
+Lisp spelling of the same document next to it (`lisp/`): choose which opens in the Launcher's Settings.
 
 <div align="center">
 
@@ -136,15 +136,15 @@ made blank, from an example or from a description, and the AI provider every app
 <table>
 <tr>
 <td width="50%" valign="top"><img src=".github/media/forge.png" alt="Forge, an IDE with an explorer, editor tabs, source control and a terminal"><br/><b>Forge</b> · an IDE<br/><sub>Explorer, editor tabs and split editors, find and replace, quick open and a command palette, problems, output and a terminal, source control, a debugger and language servers, in dark, light and high-contrast themes. <code>examples/forge/json/index.screen.json</code>, with <code>--folder DIR</code> to open a folder</sub></td>
-<td width="50%" valign="top"><img src=".github/media/tempera.png" alt="Tempera, an image editor with tools, a canvas, colour, properties and layers panels"><br/><b>Tempera</b> · an image editor<br/><sub>Tools with flyouts and a context options bar, layers with masks, groups and adjustment layers, brushes, selections, history and a navigator, on a tiled image engine. Agents may only propose: every change is reviewed. <code>examples/tempera/json/index.screen.json</code></sub></td>
+<td width="50%" valign="top"><img src=".github/media/tempera.png" alt="Tempera, an image editor with tools, a canvas, colour, properties and layers panels"><br/><b>Tempera</b> · an image editor<br/><sub>Tools with flyouts and a context options bar, layers with masks, groups and adjustment layers, brushes, selections, history and a navigator, on a tiled image engine. Agents may only propose: every change is reviewed. <code>examples/tempera/lisp/index.screen.lisp</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/sinopia.png" alt="Sinopia, a presentation editor with a ribbon, slide thumbnails and a slide canvas"><br/><b>Sinopia</b> · a presentation editor<br/><sub>A ribbon with tabs and galleries, slide thumbnails in sections, a canvas with shapes, zoom and fit, speaker notes and undo. Its slide sorter is a part that other applications install. <code>examples/sinopia/json/index.screen.json</code></sub></td>
-<td valign="top"><img src=".github/media/modello.png" alt="Modello, a 3D modeller with a viewport, an outliner, properties and a timeline"><br/><b>Modello</b> · a 3D modeller<br/><sub>A lit 3D viewport with gizmos, an outliner, a properties editor, a timeline, search over every command and glTF import. Every scene edit is a revision, reviewed and undoable. No C++ of its own. <code>examples/modello/json/index.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/sinopia.png" alt="Sinopia, a presentation editor with a ribbon, slide thumbnails and a slide canvas"><br/><b>Sinopia</b> · a presentation editor<br/><sub>A ribbon with tabs and galleries, slide thumbnails in sections, a canvas with shapes, zoom and fit, speaker notes and undo. Its slide sorter is a part that other applications install. <code>examples/sinopia/lisp/index.screen.lisp</code></sub></td>
+<td valign="top"><img src=".github/media/modello.png" alt="Modello, a 3D modeller with a viewport, an outliner, properties and a timeline"><br/><b>Modello</b> · a 3D modeller<br/><sub>A lit 3D viewport with gizmos, an outliner, a properties editor, a timeline, search over every command and glTF import. Every scene edit is a revision, reviewed and undoable. No C++ of its own. <code>examples/modello/lisp/index.screen.lisp</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/code-editor.png" alt="Quaderno, a code editor with a side bar, tabs and a minimap"><br/><b>Quaderno</b> · a code editor<br/><sub>Open files and folders, tabs, a minimap, a quick switcher over files, symbols and lines, Find in Files, a command palette and a console. <code>examples/code-editor/json/index.screen.json</code></sub></td>
-<td valign="top"><img src=".github/media/orrery.png" alt="Orrery, a planetarium with a 3D solar system, a sky chart, an orbit graph and an events timeline"><br/><b>Orrery</b> · a planetarium<br/><sub>A 3D solar system, the sky from the ground, an orbit graph and a timeline of eclipses. Its bodies strip is Sinopia's slide sorter, installed from that app. Built by an outsider from the public docs. <code>examples/orrery/json/index.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/code-editor.png" alt="Quaderno, a code editor with a side bar, tabs and a minimap"><br/><b>Quaderno</b> · a code editor<br/><sub>Open files and folders, tabs, a minimap, a quick switcher over files, symbols and lines, Find in Files, a command palette and a console. <code>examples/code-editor/lisp/index.screen.lisp</code></sub></td>
+<td valign="top"><img src=".github/media/orrery.png" alt="Orrery, a planetarium with a 3D solar system, a sky chart, an orbit graph and an events timeline"><br/><b>Orrery</b> · a planetarium<br/><sub>A 3D solar system, the sky from the ground, an orbit graph and a timeline of eclipses. Its bodies strip is Sinopia's slide sorter, installed from that app. Built by an outsider from the public docs. <code>examples/orrery/lisp/index.screen.lisp</code></sub></td>
 </tr>
 </table>
 
@@ -152,15 +152,15 @@ made blank, from an example or from a description, and the AI provider every app
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home dashboard with rooms, device tiles and a floor plan"><br/><b>Haven</b> · a smart-home dashboard<br/><sub>Rooms by floor, a floor plan, scenes, lights, climate, blinds and media, automations as a node graph with schedules, energy charts, security and notifications, on simulated devices. <code>examples/haven/json/index.screen.json</code></sub></td>
-<td width="50%" valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player with playlists, a song table and a queue"><br/><b>Tempo</b> · a music player<br/><sub>Playlists, a 3,000-song library, albums and artists, a queue to reorder, now playing with a visualiser and lyrics, an equaliser and a mini player. Playback is simulated. <code>examples/tempo/json/index.screen.json</code></sub></td>
+<td width="50%" valign="top"><img src=".github/media/smart-home.png" alt="Haven, a smart-home dashboard with rooms, device tiles and a floor plan"><br/><b>Haven</b> · a smart-home dashboard<br/><sub>Rooms by floor, a floor plan, scenes, lights, climate, blinds and media, automations as a node graph with schedules, energy charts, security and notifications, on simulated devices. <code>examples/haven/lisp/index.screen.lisp</code></sub></td>
+<td width="50%" valign="top"><img src=".github/media/music-player.png" alt="Tempo, a music player with playlists, a song table and a queue"><br/><b>Tempo</b> · a music player<br/><sub>Playlists, a 3,000-song library, albums and artists, a queue to reorder, now playing with a visualiser and lyrics, an equaliser and a mini player. Playback is simulated. <code>examples/tempo/lisp/index.screen.lisp</code></sub></td>
 </tr>
 <tr>
 <td valign="top"><img src=".github/media/habit-tracker.png" alt="Streak, a habit tracker with daily habits, a score chart and a history chart"><br/><b>Streak</b> · a habit tracker<br/><sub>Daily habits with goals and schedules, scores, charts, a calendar, notes and reminders, all kept on disk, written as a Lisp program. <code>examples/streak/lisp/index.screen.lisp</code></sub></td>
-<td valign="top"><img src=".github/media/arcadia.png" alt="Arcadia, a game launcher with a library, a store and game pages"><br/><b>Arcadia</b> · a game launcher<br/><sub>A library and a store with carousels, game pages, downloads, a wishlist and a cart. Built by an outsider from the public docs. <code>examples/arcadia/json/index.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/arcadia.png" alt="Arcadia, a game launcher with a library, a store and game pages"><br/><b>Arcadia</b> · a game launcher<br/><sub>A library and a store with carousels, game pages, downloads, a wishlist and a cart. Built by an outsider from the public docs. <code>examples/arcadia/lisp/index.screen.lisp</code></sub></td>
 </tr>
 <tr>
-<td valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with a sidebar and four columns of issues"><br/><b>Flow</b> · a Kanban board<br/><sub>Boards with swimlanes, a table and a timeline of every card, a card drawer, a burndown, drag and drop with a keyboard alternative, undo and a command palette. The host's default. <code>examples/flow/json/index.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with a sidebar and four columns of issues"><br/><b>Flow</b> · a Kanban board<br/><sub>Boards with swimlanes, a table and a timeline of every card, a card drawer, a burndown, drag and drop with a keyboard alternative, undo and a command palette. The host's default. <code>examples/flow/lisp/index.screen.lisp</code></sub></td>
 <td valign="top"><img src=".github/media/sign-in.png" alt="Sign in, a form with validated fields and a password strength meter"><br/><b>Sign in</b> · accounts<br/><sub>Sign in and sign up, two-step codes, a password reset, a sample external provider, an account page and session expiry, all validated in the document. <code>examples/sign-in/json/index.screen.json</code></sub></td>
 </tr>
 </table>
@@ -174,7 +174,9 @@ and Sign in speak English, Spanish and French.
 JSON stays the format for applications that are only shown: the engine parses the document and draws it as it is.
 Lisp is now a programming language with its own runtime ([`modules/lisp`](modules/lisp/README.md),
 [RFC 0005](rfcs/0005-lisp-language.md)). An app written in it is a program. The program builds the document the
-engine draws, and its functions run when a button is pressed, a key is typed or a value is bound.
+engine draws, and its functions run when a button is pressed, a key is typed or a value is bound. Most of the example
+applications are programs now. In tests of the same changes made both ways, an AI agent edited Lisp as accurately as
+JSON, at about the same cost ([BENCHMARKS.md](BENCHMARKS.md)).
 
 The model is Emacs: an app you change from inside while it runs. In **Calamaio**, the text editor among the examples,
 open the scratch buffer (`C-x b *scratch* RET`), type a command's new definition and evaluate it with `C-M-x`:
@@ -192,7 +194,8 @@ That freedom stays inside version control:
   undone like any other change.
 - **Agent code is reviewed.** An agent's code is a proposal, rebuilt from its source and judged by what it builds.
   Once accepted, it still runs with the agent's authority, never the person's.
-- **Your authority covers only what you typed.** Text that was pasted or written by someone else runs with less.
+- **Your authority covers only what you typed.** Text that was pasted or written by someone else runs with less,
+  unless you read it in a question the app itself draws (no document or agent can draw or answer it) and say yes.
 - **Hooks and advice can't take your commands down.** An agent's hooks and advice run sealed: they can't stop a
   person's command from working.
 
@@ -442,9 +445,9 @@ changes the running board and the change comes back as a proposal: **Accept** it
 **Always allow** to stop being asked about that part of the screen.
 
 ```sh
-./build/affrescoui_launcher examples/haven/json/index.screen.json                # any application, no C++
-./build/affrescoui_launcher examples/flow/json/index.screen.json --mode acceptEdits # agent changes apply unless a rule asks
-./build/affrescoui_launcher examples/flow/json/index.screen.json --plugin my.json   # start with a change set applied
+./build/affrescoui_launcher examples/haven/lisp/index.screen.lisp                # any application, no C++
+./build/affrescoui_launcher examples/flow/lisp/index.screen.lisp --mode acceptEdits # agent changes apply unless a rule asks
+./build/affrescoui_launcher examples/flow/lisp/index.screen.lisp --plugin my.json   # start with a change set applied
 ```
 
 Requires CMake 3.25 or later and a C++23 compiler; CMake fetches the pinned dependencies

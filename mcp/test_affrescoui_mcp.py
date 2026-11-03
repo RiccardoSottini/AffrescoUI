@@ -465,7 +465,7 @@ with open(args[args.index("--revision") + 1], "w") as file:
     def test_only_a_screen_file_is_a_host(self):
         server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
         self.assertEqual(server.call_tool("check_composition", {"screen": "settings.json", "feature": "f"}),
-                         ("error: screen: expected the running app's *.screen.json file", True))
+                         ("error: screen: expected the running app's *.screen.json or *.screen.lisp file", True))
 
 
 class Rereads(unittest.TestCase):

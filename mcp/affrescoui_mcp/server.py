@@ -19,6 +19,7 @@ from .repository import ROOT, confined_path, find_cli, guide_path
 from .tools import INSTRUCTIONS, PROMPTS, SERVE_PROMPT, TOOLS
 
 OUTSIDE = "error: {}: must be inside the repository, the working folder or a --root folder"
+SCREEN_FILES = (".screen.json", ".screen.lisp")  # a screen file, in JSON or in the Lisp notation
 
 PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
 
@@ -303,8 +304,8 @@ class Server:
         screen = confined_path(str(args.get("file", "")), self.roots)
         if screen is None:
             return OUTSIDE.format("file"), True
-        if not screen.endswith(".screen.json"):
-            return "error: file: expected a *.screen.json file", True
+        if not screen.endswith(SCREEN_FILES):
+            return "error: file: expected a *.screen.json or *.screen.lisp file", True
         with tempfile.TemporaryDirectory(prefix="affrescoui-contributions-") as scratch:
             command = [find_cli(), "contributions", screen]
             if args.get("running"):
@@ -323,8 +324,8 @@ class Server:
         screen, feature = (confined_path(str(args.get(key, "")), self.roots) for key in ("screen", "feature"))
         if screen is None or feature is None:
             return OUTSIDE.format("screen" if screen is None else "feature"), True
-        if not screen.endswith(".screen.json"):
-            return "error: screen: expected the running app's *.screen.json file", True
+        if not screen.endswith(SCREEN_FILES):
+            return "error: screen: expected the running app's *.screen.json or *.screen.lisp file", True
         reply = self.host.request({"type": "getDocument"})
         with tempfile.TemporaryDirectory(prefix="affrescoui-compose-") as scratch:
             document, revision = os.path.join(scratch, "document.json"), os.path.join(scratch, "install.json")

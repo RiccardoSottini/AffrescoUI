@@ -137,9 +137,11 @@ def template_files(root):
     paths = []
     for name in sorted(templates):  # each folder's index.screen.json, or, in a root from before it, <name>.screen.json
         folder = os.path.join(root, "examples", templates[name])
+        if os.path.basename(folder) == "lisp":  # a program's folder: its JSON version beside it is what is counted
+            folder = os.path.join(os.path.dirname(folder), "json")
         index = os.path.join(folder, "index" + SUFFIX)
         path = index if os.path.exists(index) else os.path.join(folder, name + SUFFIX)
-        if os.path.exists(path):  # an app written as a program has no JSON to count
+        if os.path.exists(path):  # an app with only a program (Calamaio) has no JSON to count
             paths.append((name, path))
     return paths
 

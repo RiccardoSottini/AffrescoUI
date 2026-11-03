@@ -1,7 +1,7 @@
 /// @file
 /// @brief Fuzzes checkManifest (format/src/features/FeatureManifest.hpp): a feature's manifest is untrusted input (RFC 0004).
 ///
-/// Any text is refused with json::parse_error or DocumentError, or is a manifest whose record composes into the Kanban
+/// Any text is refused with json::parse_error or DocumentError, or is a manifest whose record composes into the JSON
 /// template, giving a screen or problems, never another error.
 
 #include "Fuzz.hpp"
@@ -29,7 +29,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	} catch(const affresco::DocumentError&) {
 		return 0;
 	}
-	json document = affresco::fuzz::kanbanTemplate();
+	json document = affresco::fuzz::jsonTemplate();
 	document["features"][manifest["name"].get<std::string>()] =
 	    affresco::format::recordFor(manifest, "fuzz", "", "", 10);
 	try {

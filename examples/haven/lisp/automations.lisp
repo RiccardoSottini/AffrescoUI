@@ -1,4 +1,4 @@
-{:note "Haven's automations, security and simulated service, included by index.screen.json: rules as a node graph, schedules on a timeline, the security mode, the notifications beside the sidebar's bell, and a timer that stands in for the devices (rooms drift towards their target; motion while away)."
+{:note "Haven's automations, security and simulated service, included by index.screen.lisp: rules as a node graph, schedules on a timeline, the security mode, the notifications beside the sidebar's bell, and a timer that stands in for the devices (rooms drift towards their target; motion while away)."
  :settings {:security.motionAlerts (boolean :default true
                                      :title "Motion alerts"
                                      :description "While the security mode is Away, motion in the hall sends a notification.")
@@ -75,91 +75,18 @@
                               {:id heatEvening :key evening :start 17 :duration 6}]}
                      {:id lights :clips [{:id lightsNight :key night :start 19 :duration 4}]}
                      {:id vacuum :clips [{:id vacuumClean :key clean :start 10 :duration 2}]}]}
+ :stateTypes {:automations (array :items (object :properties {:id (string)
+                                                              :title (string)
+                                                              :icon (string)
+                                                              :on (boolean)
+                                                              :ran (string)
+                                                              :steps (array)}))}
  :computed {:autoGraph "{{map(state.autoNodes, merge(it, { title: t('auto.' + it.kind), width: 170, inputs: map(it.inputs ?? [], merge(it, { label: t('port.' + it.id) })), outputs: map(it.outputs ?? [], merge(it, { label: t('port.' + it.id) })) }))}}"
             :scheduleTracks "{{map(state.schedules, { id: it.id, label: t('schedule.' + it.id), clips: map(it.clips, { id: it.id, label: t('schedule.' + it.key), start: it.start, duration: it.duration }) })}}"
             :openAuto "{{state.automations[max(state.autoOpen, 0)]}}"
             :autoOnCount "{{length(filter(state.automations, it.on))}}"
             :autoShown "{{length(filter(state.automations, (state.autoQuery == '' || contains(lower(t('rule.' + (it.title ?? it.id))), lower(trim(state.autoQuery))))))}}"
             :securityLabel "{{t('security.' + state.security)}}"}
- :actions {:notify [{:note "with: message, icon. Keeps the newest twenty notifications, the newest first"}
-                    {:increment state.notifyCount :by 1}
-                    {:set state.notifications
-                     :to "{{filter(concat([{ id: 'n' + state.notifyCount, message: message, icon: icon }], state.notifications), index < 20)}}"}]
-           :cycleSecurity {:title "Change the security mode"
-                           :category "Security"
-                           :icon shield
-                           :do [{:set state.security
-                                 :to "{{state.securityModes[(indexOf(state.securityModes, state.security) + 1) % 3]}}"}
-                                {:run notify
-                                 :with {:message "{{t('security.changed', { mode: t('security.' + state.security) })}}"
-                                        :icon shield}}]}
-           :toggleNotifications {:title "Show the notifications"
-                                 :category "Security"
-                                 :icon bell
-                                 :do [{:toggle state.notificationsOpen}]}
-           :clearNotifications {:title "Clear the notifications"
-                                :category "Security"
-                                :icon bell-off
-                                :do [{:set state.notifications :to []}]}
-           :simulate [{:note "The simulated service, every ten seconds: each room 0.5° nearer its target; every fourth tick while away, motion in the hall"}
-                      {:if "{{settings.simulation.enabled}}"
-                       :then [{:increment state.tick :by 1}
-                              {:forEach state.rooms
-                               :index r
-                               :do [{:set "state.rooms[r].temp"
-                                     :to "{{state.rooms[r].temp + clamp(state.rooms[r].target - state.rooms[r].temp, -0.5, 0.5)}}"}]}
-                              {:if "{{state.security == 'away' && settings.security.motionAlerts && state.tick % 4 == 0}}"
-                               :then [{:run notify :with {:message "{{t('notify.motion')}}" :icon siren}}]}]}]
-           :addAutoNode [{:note "with: kind and the node's ports: a new node to the right of the others, chosen"}
-                         {:set state.autoNodes
-                          :to "{{concat(state.autoNodes, [merge(node, { id: node.kind + length(state.autoNodes), x: 640, y: 20 + 80 * (length(state.autoNodes) % 4) })])}}"}
-                         {:set state.autoSelected :to "{{[node.kind + (length(state.autoNodes) - 1)]}}"}]
-           :openAutomation [{:note "with: i, the automation to edit (-1 for the list)"}
-                            {:set state.autoOpen :to "{{i}}"}]
-           :newAutomation {:title "New automation"
-                           :category "Automations"
-                           :icon plus
-                           :do [{:set state.automations
-                                 :to "{{concat(state.automations, [{ id: 'new' + length(state.automations), title: 'untitled', icon: 'sparkles', on: true, ran: 'never', steps: [] }])}}"}
-                                {:set state.autoTab :to list}
-                                {:set state.autoOpen :to "{{length(state.automations) - 1}}"}]}
-           :addStep [{:note "with: part (when, if or do): the part's preset, at the end of the open automation"}
-                     {:set "state.automations[state.autoOpen].steps"
-                      :to "{{concat(state.automations[state.autoOpen].steps, [state.autoPresets[part]])}}"}]
-           :duplicateAutomation [{:note "A copy of the open automation, at the end of the list, opened"}
-                                 {:set state.automations
-                                  :to "{{concat(state.automations, [merge(computed.openAuto, { id: computed.openAuto.id + '-' + length(state.automations), title: computed.openAuto.title ?? computed.openAuto.id, ran: 'never' })])}}"}
-                                 {:set state.autoOpen :to "{{length(state.automations) - 1}}"}]
-           :stepAction [{:note "with: s, a step of the open automation, and what: duplicate or delete"}
-                        {:set "state.automations[state.autoOpen].steps"
-                         :to "{{what == 'delete' ? filter(state.automations[state.autoOpen].steps, index != s) : concat(slice(state.automations[state.autoOpen].steps, 0, s + 1), slice(state.automations[state.autoOpen].steps, s))}}"}]
-           :confirmDelete [{:set state.autoTarget :to "{{state.autoOpen}}"} {:set state.autoConfirm :to true}]
-           :rowAction [{:note "with: i, an automation in the list, and what: its row menu's choice (run, duplicate, enable or delete)"}
-                       {:if "{{what == 'run'}}"
-                        :then [{:set "{{'state.automations[' + i + '].ran'}}" :to now}
-                               {:run notify
-                                :with {:message "{{t('auto.ranNote', { name: t('rule.' + (state.automations[i].title ?? state.automations[i].id)) })}}"
-                                       :icon play}}]}
-                       {:if "{{what == 'duplicate'}}"
-                        :then [{:set state.autoOpen :to "{{i}}"} {:run duplicateAutomation}]}
-                       {:if "{{what == 'enable'}}"
-                        :then [{:set "{{'state.automations[' + i + '].on'}}" :to "{{!state.automations[i].on}}"}]}
-                       {:if "{{what == 'delete'}}"
-                        :then [{:set state.autoTarget :to "{{i}}"} {:set state.autoConfirm :to true}]}]
-           :deleteAutomation [{:note "Deletes the target automation, once confirmed, and goes back to the list"}
-                              {:run notify
-                               :with {:message "{{t('auto.deletedNote', { name: t('rule.' + (state.automations[state.autoTarget].title ?? state.automations[state.autoTarget].id)) })}}"
-                                      :icon trash-2}}
-                              {:set state.automations :to "{{filter(state.automations, index != state.autoTarget)}}"}
-                              {:set state.autoOpen :to -1}]
-           :runAutomation [{:note "Runs the open automation now: it reports in the notifications and its trace starts again"}
-                           {:set "state.automations[state.autoOpen].ran" :to now}
-                           {:run notify
-                            :with {:message "{{t('auto.ranNote', { name: t('rule.' + (computed.openAuto.title ?? computed.openAuto.id)) })}}"
-                                   :icon play}}]
-           :changeSchedule [{:note "A schedule clip moved or trimmed: whole hours, at least one; it stays on its own track"}
-                            {:set state.schedules
-                             :to "{{map(state.schedules, it.id != (event.fromTrack ?? event.track) ? it : merge(it, { clips: map(it.clips, it.id != event.id ? it : merge(it, { start: clamp(round(event.start), 0, 23), duration: max(1, round(event.duration)) })) }))}}"}]}
  :components {:notificationsPanel {:note "The notifications, beside the bell; Escape or a click outside closes them"
                                    :params {}
                                    :node (node :dir auto

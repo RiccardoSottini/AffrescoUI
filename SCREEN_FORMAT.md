@@ -1035,7 +1035,8 @@ Wherever a value is expected it can be computed:
   `keyLabel(chord, notation?)`, `qrCode(text, level?)`, `diffLines(original, modified, options?)`,
   `atPointer(value, pointer)`, `applyPatch(value, patch)`, `formatJson(value, indent?)`,
   `gitStatus(output)` (up to 10000 files), `gitBranches(output)` (up to 10000 branches),
-  `formBefore(text, line, column)`, `formAround(text, line, column)`, `printForm(value)`;
+  `formBefore(text, line, column)`, `formAround(text, line, column)`, `printForm(value)`, `formKeyword(text, keywords)`,
+  `setFormKeyword(text, keywords, value)`;
 - per item, with the item as `it` and its position as `index`: `filter(list, condition)`, `map(list, expression)`,
   `count(list, condition?)`, `sum(list, expression?)`, `find(list, condition)`, `some(list, condition)`,
   `every(list, condition)`, `sort(list, key?, 'desc'?)`, `reduce(list, expression, initial?)`,
@@ -1322,7 +1323,7 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `animate` | `{ "animate": "state.progress", "to": 100, "ms": 300, "easing": "out" }` (`linear`, `in`, `out`, `inOut`) |
 | `copy` | `{ "copy": "{{state.link}}" }`: to the clipboard |
 | `lisp`, `only` | `{ "lisp": "kill-line" }` or `{ "lisp": "move", "with": ["{{item.id}}", 2] }`: a function of the document's program, its parameters by name from the variables, or given in order (RFC 0005; `"run"` names one too) |
-| `evaluate` | `{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text, on the person's own press, never a timer or a handler that fires by itself. What they typed themselves: each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code. Anything else: its definitions are a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens. `then` gets `result`, the last one's value as Lisp, `error` and `proposal` |
+| `evaluate` | `{ "evaluate": "{{state.text}}", "file": "init.lisp", "then": "shown" }`: Lisp text, on the person's own press, never a timer or a handler that fires by itself. What they typed themselves: each definition becomes an entry in one revision of theirs, then the other forms run for their values as their code. Anything else: its definitions are a proposal in the name `plugin:evaluated`, and if it holds anything else, nothing happens; with `"confirm": true`, the window asks the person first, showing the whole text, and only their own yes runs it as theirs, once. `then` gets `result`, the last one's value as Lisp, `error` and `proposal` |
 | `propose` | `{ "propose": "{{state.text}}", "as": "init.lisp", "file": "init.lisp", "then": [...], "onError": [...] }`: Lisp text of definitions, or a change set, as a proposal in the name `plugin:<as>`, whatever the rules would let it do; `then` gets `proposal`, `onError` gets `error` |
 | `exportChanges` | `{ "exportChanges": "my init", "only": "/program/init.lisp", "from": 0, "into": "state.changes" }`: the commits on main after `from`, those that only touch what starts with `only`, as a change set |
 | `runHooks` | `{ "runHooks": "after-save", "with": ["{{item.name}}"] }`: runs a program's functions added to that hook point (`defhook`, `add-hook`), each under its own author's authority |
@@ -1819,7 +1820,7 @@ without `app.json` reads `app.lisp`. A generated example:
   folder (no `..`, no link leading out), and is refused otherwise. The entry screen's `include`s, and theirs, are
   files in the folder or in the `shared` folder beside it (where the apps of a folder keep the kits they share, as a
   release lays them out; a folder, not a link), once links are resolved. An app in a folder named `json` or `lisp`, one
-  notation of an example (`flow/json/`, `flow/lisp/`), may also use the `shared` folder beside that example.
+  notation of an example (`sign-in/json/`, `sign-in/lisp/`), may also use the `shared` folder beside that example.
 - **`themes`**: files of `components`, `styles`, `tokens`, `colors` and `fonts`, merged into the entry screen after
   its own `include` files, so the screen's own entries win. A theme can't hold actions or nodes.
 - **`data.models`**: a file of `models` and `queries`, merged the same way. **`data.seed`**: a collection's first
@@ -2062,7 +2063,8 @@ needs OpenGL. A scenario may name its own `screen`, and `screens` gives the fold
 
 A target is `"#id"`, the centre of the first shown node with that id (`"nth": 2` picks the third),
 `{ "role": "button", "name": "Save" }`, the first shown node with that role and accessible name (`name` is optional;
-see `role` and `label`), as a person or a screen reader finds it, or `[x, y]` in window units. Expectations:
+see `role` and `label`), as a person or a screen reader finds it, or `[x, y]` in window units. While the window asks a
+question of its own (`evaluate`'s `confirm`), a role target is looked for in it first: `{ "click": { "role": "button", "name": "Run as Me" } }`. Expectations:
 
 | Expectation | Holds when |
 |---|---|
@@ -2283,6 +2285,8 @@ builds
   `~@`, lexical closures, proper tail calls, destructuring of vectors and maps, docstrings on every definition, and Clojure's names
   for functions (`map filter reduce find first rest cons conj assoc dissoc get get-in merge keys vals count str range apply not
   not= = < > <= >= + - * / mod` and similar: `modules/lisp/README.md`). `nil`, booleans, numbers, strings, vectors and maps are JSON's.
+  A whole number that is a double (`13.0`) stays one, and is an index or a count wherever an integer is (`(get v 1.0)`), and `str`
+  shows it `13`, as an expression's text does.
   It has no file, process, network, clock or randomness of its own, and building is pure: the same source gives the same tree. A
   `def` is worked out at the build, so it can't read the running app: a function can.
 - **Limits** (for running, 10 million operations, 64 MiB allocated, 20,000 nested calls, a budget of its own for macros) end anything that
@@ -2331,7 +2335,9 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
   language has for something else, and those a program says itself (`if`, `forEach`, `while`, `stop`, `note`). After the step's first
   value comes its next, if the step has one, or `:key value` pairs: `(set "state.x" 1)`, `(push "state.list" {:id 1})`,
   `(insert "songs" :value {:title "A"} :then added :onError failed)`, `(undo)`. A value is taken as it is: text with `{{` in
-  it stays text, as no data is ever evaluated. A function where a step takes steps runs it: `:then added`.
+  it stays text, as no data is ever evaluated. A function where a step takes steps runs it: `:then added`; a name or steps given there
+  are refused, so `(run "name")` is how code runs an action by name. A `run`, `invoke`, `request` or `subscribe` whose name is written out
+  (`(invoke "files.read" ...)`) is judged as in JSON (VERSION_CONTROL.md, "Programs"); a computed one counts as reaching anything.
 - **Later.** `(after 500 tick 1 2)` and `(debounce 300 search text)` run a function later with those arguments, as the steps do and
   under their limits. A callback is a function a definition gives, kept by its name with its arguments as JSON, so a closure isn't one (its values
   go when the event ends) and a function can't be kept in the state. If the definition is gone by then, nothing runs. It runs with the authority of
@@ -2366,7 +2372,7 @@ them as Calamaio does (`examples/calamaio/lisp/loop.lisp`).
 
 | Step or function | What it does |
 |---|---|
-| `{ "evaluate": text, "file": "init.lisp", "then": steps }` | Each definition in the text becomes an entry of the program, all in one revision by the person: a definition of that name is replaced where it is, a new one goes in `file`. Then each other form runs for its value, as the person's code; history doesn't move for them. `then` gets `result`, the last form's value printed as Lisp (a definition's address, for a definition), `error` and `proposal`. **Only on the person's own press:** a key or a click, never a timer, a `watch`, a key pressed for the screen or a handler that fires by itself, and not while a proposal is previewed. **Only what they typed:** a form that isn't, whole, what their keystrokes made in a text widget bound to the state, since this run of the app, has none of their authority (below) |
+| `{ "evaluate": text, "file": "init.lisp", "confirm": true, "then": steps }` | Each definition in the text becomes an entry of the program, all in one revision by the person: a definition of that name is replaced where it is, a new one goes in `file`. Then each other form runs for its value, as the person's code; history doesn't move for them. `then` gets `result`, the last form's value printed as Lisp (a definition's address, for a definition), `error` and `proposal`. **Only on the person's own press:** a key or a click, never a timer, a `watch`, a key pressed for the screen or a handler that fires by itself, and not while a proposal is previewed. **Only what they typed,** or what they say yes to: a form that isn't, whole, what their keystrokes made in a text widget bound to the state, since this run of the app, has none of their authority (below), unless `confirm` asks them |
 | `{ "propose": text or change set, "as": "init.lisp", "file": "init.lisp", "then": steps, "onError": steps }` | The same text as something from elsewhere: a proposal in the name `plugin:<as>`, whatever the rules would let it do. It holds definitions only, and what a revision may not do it may not do. `then` gets `proposal`, `onError` gets `error` |
 | `{ "exportChanges": "name", "only": "/program/init.lisp", "from": 0, "into": "state.changes" }` | The commits on `main` after `from` as a change set, only those wholly under `only` |
 | `formBefore(text, line, column)` | The form that ends at or before a position, however deep: `{text, line, column, endLine, endColumn, kind, name}`, or null. Lines and columns count from 1, as an editor's `caret` does |
@@ -2377,7 +2383,9 @@ them as Calamaio does (`examples/calamaio/lisp/loop.lisp`).
 | `(apropos "text")` | Everything defined whose name holds the text, each described |
 | `(program-file "init.lisp")` | A file of the program, its entries one after another |
 
-**What the person typed.** Text in the state can be anyone's: a revision writes it, a key's step types it, a paste brings what any code put on the clipboard. So `evaluate` doesn't go by where the text is, and nothing marks what a stranger writes: the runtime records the bytes of each bound value that came from the person's own keystrokes, delivered to the widget itself (a character, Enter, Tab, Backspace, Delete; no paste, undo, `edit` step, `press` step or several cursors at once), and a form has their authority only if it is, whole, one run of those. Whatever else changes a value ends what it changed, and the two sides stay separate runs. A text that isn't: its definitions are a proposal in the name `plugin:evaluated`, which accepted has what a revision has, and if it holds anything but definitions nothing runs. To make it theirs, a person retypes it. Nothing is kept across runs of the app, a secret field is never recorded, and a form copied by the person's own command is theirs as long as what it was copied from is.
+**What the person typed.** Text in the state can be anyone's: a revision writes it, a key's step types it, a paste brings what any code put on the clipboard. So `evaluate` doesn't go by where the text is, and nothing marks what a stranger writes: the runtime records the bytes of each bound value that came from the person's own keystrokes, delivered to the widget itself (a character, Enter, Tab, Backspace, Delete; no paste, undo, `edit` step, `press` step or several cursors at once), and a form has their authority only if it is, whole, one run of those. Whatever else changes a value ends what it changed, and the two sides stay separate runs. A text that isn't: its definitions are a proposal in the name `plugin:evaluated`, which accepted has what a revision has, and if it holds anything but definitions nothing runs. To make it theirs, a person retypes it, or says yes to it. Nothing is kept across runs of the app, a secret field is never recorded, and a form copied by the person's own command is theirs as long as what it was copied from is.
+
+**Asking the person: `"confirm": true`.** For a text they didn't type, the window draws a question itself, above everything the screen draws, that shows the whole text, its lines numbered and wrapped, and asks whether it runs as them. Their own click on **Run as Me**, or Enter, pressed once it has been shown half a second and let go, runs that text, exactly as shown, as if they had typed it, once; **Don't Run** or Escape runs nothing, and `then` gets the error `you said no, so nothing ran`. Nothing a document draws can cover it or answer it: while it is shown the screen gets no input, and a timer, a `press` step or an agent can neither bring it up nor answer it. Nothing runs, with an `error` saying why, if the program changed while it was shown (what the text calls could mean something else), if a proposal is being previewed, if the text holds a character that doesn't show as itself (a control or format character, such as a right-to-left override, or a letter that draws as a space), or if a question is shown already. Text a commit first wrote stays its author's, confirmed or not (VERSION_CONTROL.md, "Programs").
 
 **Commands.** A `defcommand` is callable by name (`{ "run": "kill-word", "with": { "times": 2 } }`, a command palette, `M-x`): its action has `title`,
 `category`, `description` from the docstring and `arguments`, its function's parameters, and the `commands` variable lists them.
@@ -2435,6 +2443,9 @@ comments above it and on its line:
   keyword's value inside a form, far cheaper: `{"set": {"/program/rooms.lisp/toggle-side/:title": "Toggle"}}`. Rules judge what the
   new source builds, and a build that fails is refused, naming the definition ([VERSION_CONTROL.md](VERSION_CONTROL.md),
   "Programs").
+- **A new definition is an `add` at its address,** in the file it goes in, its text one form: the name, or for a form with none, its
+  head and the words that name it: `{"add": {"/program/rooms.lisp/count-rooms": "(defcommand count-rooms ...)", "/program/rooms.lisp/defkey ctrl+c r": "(defkey \"ctrl+c r\" count-rooms)", "/program/rooms.lisp/add-hook after-save note": "(add-hook after-save note)"}}`.
+  A command and its key are two definitions; a hook is a function of the program and an `add-hook` (above, "Hooks and advice").
 - **Limits:** a definition is at most 1 MiB and its address 1,024 bytes, a program at most 16,384 definitions. A build spends at
   most 2,000,000 operations and 16 MiB. A file the app's own disk holds is under the same limits, since every revision builds it again.
 

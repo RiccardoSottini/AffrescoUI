@@ -34,16 +34,17 @@ struct CaseResult {
 /// @brief Loads a policy file's screen as the library does ("include"s in place), with its log quiet.
 /// @param policyFile The policy file.
 /// @param policy Its content.
-/// @return The screen's document, its live state in "state".
+/// @return The screen's document as version control keeps it (a program's source, not what it builds, which a
+/// repository builds again and would find written twice), its live state in "state".
 /// @throws FileProblem If the screen can't be read or loaded.
 json screenOf(const std::filesystem::path& policyFile, const json& policy) {
 	const std::filesystem::path file =
 	    policyFile.parent_path() / expect::string(policy.value("screen", json()), "screen");
 	setLogSink([](LogLevel, std::string_view) {});
 	try {
-		const Screen screen = Screen::fromString(lisp::jsonText(readFile(file), file), file.parent_path());
+		Screen screen = Screen::fromString(lisp::jsonText(readFile(file), file), file.parent_path());
 		setLogSink({});
-		json document = json::parse(screen.documentJson());
+		json document = screen.versions().sourceDocument();
 		document["state"] = json::parse(screen.stateJson());
 		return document;
 	} catch(const std::exception& error) {

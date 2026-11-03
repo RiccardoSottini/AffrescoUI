@@ -1,0 +1,57 @@
+{
+	"id": "lisp-calamaio-body",
+	"level": "feature",
+	"screen": "examples/calamaio/lisp/calamaio.screen.lisp",
+	"request": "In Calamaio, C-y with an empty kill ring should say \"Nothing to paste\" in the echo area instead of \"The kill ring is empty\". Change the body of the command yank, a Lisp function in the program's killring.lisp.",
+	"scenarios": [
+		{
+			"name": "empty",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "b"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "*scratch*"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+y"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Nothing to paste"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"/program/killring.lisp/kill-line",
+		"/program/loop.lisp/eval-defun",
+		"/actions/kill-buffer",
+		"/program/killring.lisp/yank-pop"
+	],
+	"reference": [
+		{
+			"message": "C-y says Nothing to paste",
+			"set": {
+				"/program/killring.lisp/yank": "(defcommand yank \"Inserts the last killed text at point, and sets the mark at its start.\"\n  :title \"Paste\" :category \"Killing\"\n  []\n  (when (editable?)\n    (if (= (count state.kills) 0)\n      (message \"Nothing to paste\")\n      (let [here (caret)]\n        (deactivate)\n        (set \"state.arg\" nil)\n        (yank-at 0 {:line (:line here) :column (:column here)})))))"
+			}
+		}
+	]
+}

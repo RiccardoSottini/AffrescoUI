@@ -73,32 +73,15 @@ private:
 
 /// @brief The shipped screens' folder.
 /// @return It.
-std::filesystem::path screens() { return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow" / "json"; }
+std::filesystem::path screens() { return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow" / "lisp"; }
 
-/// @brief A JSON file.
-/// @param path Its path.
-/// @return Its document.
-json readJson(const std::filesystem::path& path) {
-	const std::ifstream in(path);
-	std::stringstream text;
-	text << in.rdbuf();
-	return json::parse(text.str());
-}
-
-/// @brief The Kanban template, as shipped or changed, with its include merged in as Screen loads it (its own entries
-/// win), since a Repository takes a whole document.
+/// @brief The Kanban template, as shipped or changed: what its app builds (a program, RFC 0005), its include merged in,
+/// since a Repository takes a whole document.
 /// @param change Changes it (may be empty).
 /// @return The document.
 json kanban(const std::function<void(json&)>& change = {}) {
-	json document = readJson(screens() / "index.screen.json");
-	for(const json& file : document["include"]) {
-		const json part = readJson(screens() / file.get<std::string>()); // a loop over a temporary's items dangles
-		for(const auto& [section, entries] : part.items())
-			if(entries.is_object())
-				for(const auto& [name, entry] : entries.items())
-					if(!document[section].contains(name)) document[section][name] = entry;
-	}
-	document.erase("include");
+	json document = json::parse(
+	    affresco::Screen::fromApp(screens() / "app.lisp", {}, affresco::Screen::History::InMemory).documentJson());
 	if(change) change(document);
 	return document;
 }

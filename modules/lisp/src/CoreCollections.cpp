@@ -5,8 +5,10 @@
 #include "Machine.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -171,7 +173,7 @@ Value assocVector(Machine& machine, Arguments arguments) {
 	items.reserve(arguments[0].count() + 1);
 	for(std::size_t at = 0; at < arguments[0].count(); ++at) items.push_back(arguments[0].at(at));
 	for(std::size_t at = 1; at + 1 < arguments.size(); at += 2) {
-		const std::int64_t index = arguments[at].kind() == Kind::Integer ? arguments[at].asInteger() : -1;
+		const std::int64_t index = wholeNumber(arguments[at]).value_or(-1);
 		if(index < 0 || static_cast<std::size_t>(index) > items.size())
 			throw Problem("\"assoc\": an index outside the vector");
 		if(static_cast<std::size_t>(index) == items.size()) items.push_back(arguments[at + 1]);
@@ -228,7 +230,7 @@ Value getMember(Machine& machine, Arguments arguments) {
 		return found ? member : fallback;
 	}
 	if(from.isSequence()) {
-		const std::int64_t index = arguments[1].kind() == Kind::Integer ? arguments[1].asInteger() : -1;
+		const std::int64_t index = wholeNumber(arguments[1]).value_or(-1);
 		return index >= 0 && static_cast<std::size_t>(index) < from.count() ? from.at(static_cast<std::size_t>(index))
 		                                                                    : fallback;
 	}
@@ -242,8 +244,9 @@ Value getMember(Machine& machine, Arguments arguments) {
 Value nthItem(Machine& machine, Arguments arguments) {
 	needCount(arguments, 2, 3, "nth");
 	const Value items = sequenceOf(machine, arguments[0], "nth");
-	if(arguments[1].kind() != Kind::Integer) throw Problem("\"nth\" takes an integer index");
-	const std::int64_t index = arguments[1].asInteger();
+	const std::optional<std::int64_t> whole = wholeNumber(arguments[1]);
+	if(!whole) throw Problem("\"nth\" takes a whole number as its index");
+	const std::int64_t index = *whole;
 	if(index >= 0 && static_cast<std::size_t>(index) < items.count()) return items.at(static_cast<std::size_t>(index));
 	if(arguments.size() == 3) return arguments[2];
 	throw Problem("\"nth\": an index outside the collection");
@@ -255,9 +258,10 @@ Value nthItem(Machine& machine, Arguments arguments) {
 /// @return The item, or nil.
 Value patternItem(Machine& machine, Arguments arguments) {
 	needCount(arguments, 2, 2, "%nth");
-	if(arguments[1].kind() != Kind::Integer || arguments[1].asInteger() < 0) throw Problem("\"%nth\" takes an index");
+	const std::int64_t whole = wholeNumber(arguments[1]).value_or(-1);
+	if(whole < 0) throw Problem("\"%nth\" takes an index");
 	const Value items = sequenceOf(machine, arguments[0], "a vector pattern");
-	const auto index = static_cast<std::size_t>(arguments[1].asInteger());
+	const auto index = static_cast<std::size_t>(whole);
 	return index < items.count() ? items.at(index) : Value();
 }
 
@@ -267,9 +271,10 @@ Value patternItem(Machine& machine, Arguments arguments) {
 /// @return Its items from there.
 Value patternRest(Machine& machine, Arguments arguments) {
 	needCount(arguments, 2, 2, "%drop");
-	if(arguments[1].kind() != Kind::Integer || arguments[1].asInteger() < 0) throw Problem("\"%drop\" takes an index");
+	const std::int64_t whole = wholeNumber(arguments[1]).value_or(-1);
+	if(whole < 0) throw Problem("\"%drop\" takes an index");
 	const Value items = sequenceOf(machine, arguments[0], "a vector pattern");
-	const auto index = static_cast<std::size_t>(arguments[1].asInteger());
+	const auto index = static_cast<std::size_t>(whole);
 	return index < items.count() ? machine.heap.part(items, index, items.count() - index)
 	                             : machine.heap.sequence(items.kind(), std::vector<Value>());
 }
@@ -352,9 +357,8 @@ Value containsMember(Machine& machine, Arguments arguments) {
 		static_cast<void>(arguments[0].lookup(key, &found));
 		return Value::boolean(found);
 	}
-	if(arguments[0].isSequence() && arguments[1].kind() == Kind::Integer)
-		return Value::boolean(arguments[1].asInteger() >= 0 &&
-		                      static_cast<std::size_t>(arguments[1].asInteger()) < arguments[0].count());
+	if(const std::optional<std::int64_t> index = wholeNumber(arguments[1]); arguments[0].isSequence() && index)
+		return Value::boolean(*index >= 0 && static_cast<std::size_t>(*index) < arguments[0].count());
 	return Value::boolean(false);
 }
 
@@ -402,11 +406,15 @@ Value reversed(Machine& machine, Arguments arguments) {
 /// @return The vector of integers, within the budget.
 Value range(Machine& machine, Arguments arguments) {
 	needCount(arguments, 1, 3, "range");
-	for(const Value& argument : arguments)
-		if(argument.kind() != Kind::Integer) throw Problem("\"range\" takes integers");
-	const std::int64_t start = arguments.size() > 1 ? arguments[0].asInteger() : 0;
-	const std::int64_t end = arguments.size() > 1 ? arguments[1].asInteger() : arguments[0].asInteger();
-	const std::int64_t step = arguments.size() > 2 ? arguments[2].asInteger() : 1;
+	std::array<std::int64_t, 3> whole{};
+	for(std::size_t at = 0; at < arguments.size(); ++at) {
+		const std::optional<std::int64_t> number = wholeNumber(arguments[at]);
+		if(!number) throw Problem("\"range\" takes whole numbers");
+		whole.at(at) = *number;
+	}
+	const std::int64_t start = arguments.size() > 1 ? whole[0] : 0;
+	const std::int64_t end = arguments.size() > 1 ? whole[1] : whole[0];
+	const std::int64_t step = arguments.size() > 2 ? whole[2] : 1;
 	if(step == 0) throw Problem("\"range\": a step of zero never ends");
 	const double steps = (static_cast<double>(end) - static_cast<double>(start)) / static_cast<double>(step);
 	const std::size_t size = steps > 0 ? static_cast<std::size_t>(std::min(steps + 0.999999, 1e15)) : 0;

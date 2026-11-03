@@ -1,4 +1,4 @@
-{:note "Haven's areas page, included by index.screen.json: the rooms as picture cards grouped by floor, each with its climate and lights; a card opens the room on the home page."
+{:note "Haven's areas page, included by index.screen.lisp: the rooms as picture cards grouped by floor, each with its climate and lights; a card opens the room on the home page."
  :computed {:areaFloors "{{[{ id: 'ground', rooms: [0, 1] }, { id: 'upper', rooms: [2, 3] }]}}"
             :areaHeight "{{computed.compact ? 176 : 212}}"}
  :components {:areasPage {:params {}

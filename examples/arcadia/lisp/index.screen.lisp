@@ -20,7 +20,8 @@
            "parts/manage.lisp"
            "parts/client.lisp"
            "parts/hub.lisp"
-           "../../shared/addons/assistant/assistant.lisp"]
+           "../../shared/addons/assistant/assistant.lisp"
+           arcadia.lisp]
  :theme "{{settings.appearance.theme}}"
  :permissions {:allow [studio] :ask [agent] :reviewers [studio]}
  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons]}
@@ -113,35 +114,6 @@
             :here "{{state.nav[state.at]}}"
             :owned "{{filter(data.games, it.owned)}}"
             :game "{{find(data.games, it.id == (computed.here.id ?? state.selected))}}"}
- :actions {:go {:title "Go to a page"
-                :category "View"
-                :description "Goes to { tab, page, id }, dropping the pages ahead of this one, as a browser does."
-                :do [{:if "{{tab != computed.here.tab || page != computed.here.page || id != computed.here.id}}"
-                      :then [{:set state.nav
-                              :to "{{concat(slice(state.nav, 0, state.at + 1), [{ tab: tab, page: page, id: id }])}}"}
-                             {:set state.at :to "{{state.at + 1}}"}]}]}
-           :back {:title "Back"
-                  :category "View"
-                  :icon arrow-left
-                  :enablement "{{state.at > 0}}"
-                  :do [{:set state.at :to "{{max(0, state.at - 1)}}"}]}
-           :forward {:title "Forward"
-                     :category "View"
-                     :icon arrow-right
-                     :enablement "{{state.at < length(state.nav) - 1}}"
-                     :do [{:set state.at :to "{{min(length(state.nav) - 1, state.at + 1)}}"}]}
-           :showStore {:title "Discover" :category "View" :do [{:run go :with {:tab store :page home :id nil}}]}
-           :showLibrary {:title "My games" :category "View" :do [{:run go :with {:tab library :page home :id nil}}]}
-           :showCommunity {:title "Friends" :category "View" :do [{:run go :with {:tab community :page home :id nil}}]}
-           :showProfile {:title "Profile" :category "View" :do [{:run go :with {:tab profile :page home :id nil}}]}
-           :toggleTheme {:title "Switch between dark and light"
-                         :category "View"
-                         :do [{:set settings.appearance.theme
-                               :to "{{settings.appearance.theme == 'dark' ? 'light' : 'dark'}}"}]}
-           :nextLanguage {:title "Next language"
-                          :category "View"
-                          :do [{:set settings.appearance.language
-                                :to "{{settings.appearance.language == 'en' ? 'es' : settings.appearance.language == 'es' ? 'fr' : 'en'}}"}]}}
  :keys {"alt+left" back
         "alt+right" forward
         "mod+1" showStore

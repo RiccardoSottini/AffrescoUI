@@ -2,8 +2,7 @@
 /// @brief Window's input: routing the platform's typed events to the focused, hovered or grabbed panel, hover and
 /// its tooltip, and the cursor. Tests and automation call the same functions.
 
-#include "affresco/render/Window.hpp"
-#include "affresco/render/Label.hpp"
+#include "Confirmation.hpp"
 
 #include "paint/GeometryCache.hpp"
 #include "paint/RetainedGeometry.hpp"
@@ -64,8 +63,12 @@ void Window::routeKey(const KeyEvent& event) {
 	keyInput_ = true;
 	keyTaken_ = false; // a new press or a release: what a binding took before is over
 	capsLock_ = event.mods.capsLock();
-	if(focused_ && focused_->isShown()) focused_->keyEvent(event);
-	onKey(event);
+	if(asking_) { // the question the window asks has every key; the screen hears none
+		confirmationKey(event);
+	} else {
+		if(focused_ && focused_->isShown()) focused_->keyEvent(event);
+		onKey(event);
+	}
 
 	--pressing_;
 	if(--routing_ == 0) runDeferred();
@@ -76,6 +79,7 @@ void Window::routeChar(const CharEvent& event) {
 	const char32_t codepoint = event.codepoint;
 	if((codepoint >= 0xD800U && codepoint <= 0xDFFFU) || codepoint > 0x10FFFFU) return;
 	if(std::exchange(keyTaken_, false)) return; // the character of a key a binding took
+	if(asking_) return;                         // the question's text is read only, and the screen hears nothing
 	++routing_;
 	++pressing_;
 	if(focused_ && focused_->isShown()) focused_->charEvent(event);
@@ -111,7 +115,7 @@ void Window::routeMouseMove(Vec2 position) {
 
 	const MouseMoveEvent event{position};
 	if(Panel* target = grabbed_ ? grabbed_ : hovered_) target->mouseMoveEvent(inSpaceOf(*target, event));
-	onMouseMove(event);
+	if(!asking_) onMouseMove(event);
 
 	if(--routing_ == 0) runDeferred();
 }
@@ -122,6 +126,12 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 	cursor_ = event.position;
 	Panel* hit = panelAt(event.position);
 	setHovered(hit);
+	if(asking_) { // only the question hears it: the screen under it doesn't
+		confirmationButton(event, hit);
+		--pressing_;
+		if(--routing_ == 0) runDeferred();
+		return;
+	}
 
 	if(event.action == Action::Press) {
 		if(tooltipShown_ || tooltipTimer_) { // a press dismisses the tooltip until the pointer moves to another panel
@@ -159,7 +169,7 @@ void Window::routeScroll(const ScrollEvent& event) {
 		for(Panel* panel = target; panel; panel = panel->parent_)
 			if(panel->scrollContent({-event.offset.x * scrollSpeed, -event.offset.y * scrollSpeed})) break;
 	}
-	onScroll(event);
+	if(!asking_) onScroll(event);
 
 	if(--routing_ == 0) runDeferred();
 }
@@ -180,7 +190,7 @@ void Window::routeDrop(const DropEvent& event) {
 	++routing_;
 	cursor_ = event.position;
 	setHovered(panelAt(event.position));
-	onDrop(event);
+	if(!asking_) onDrop(event); // files dropped on the question go nowhere
 
 	if(--routing_ == 0) runDeferred();
 }
@@ -200,7 +210,7 @@ void Window::routeDisplay(const DisplayEvent& event) {
 
 // NOLINTNEXTLINE(performance-unnecessary-value-param): the header's signature, kept as it is
 void Window::runChosen(std::function<void()> run) {
-	if(!run) return;
+	if(!run || asking_) return; // the question is answered first
 	++routing_;
 	++pressing_;
 	run();

@@ -206,6 +206,12 @@ json Programs::stepFrom(const StepType& type, lisp::Interpreter& interpreter, st
                         Scope& scope) {
 	json step = json::object();
 	const auto put = [&](const std::string& key, const lisp::Value& value) {
+		// A name or steps given as a value would run what no name in the code says, past what reaches it (Rules)
+		if(holdsSteps(key) && key != "loading" && !isFunction(value)) {
+			if(value.isNil()) return;
+			throw lisp::Refusal("\"" + key + "\" of \"" + type.name +
+			                    "\" takes a function of the program, by its name: never a name or steps as a value");
+		}
 		step[key] = holdsSteps(key) && isFunction(value) ? callbackSteps(interpreter, value, {}, scope)
 		                                                 : inertValue(interpreter, value, scope);
 	};

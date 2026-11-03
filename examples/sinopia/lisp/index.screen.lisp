@@ -1,7 +1,7 @@
 {:$schema "../../../schema/affrescoui-screen.schema.json"
  :format affrescoui-screen
  :version 2
- :note "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.json), its themes and layouts in parts/themes.json, its shapes in parts/geometry.json, and every slide is drawn by parts/slide.json, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.json and parts/tabs.json; editing is parts/edit.json."
+ :note "Sinopia, a presentation editor, written only in the format: the deck lives in state.deck (parts/sample-deck.lisp), its themes and layouts in parts/themes.lisp, its shapes in parts/geometry.lisp, and every slide is drawn by parts/slide.lisp, in the thumbnails and on the canvas alike. The ribbon is parts/ribbon.lisp and parts/tabs.lisp; editing is parts/edit.lisp, and the program sinopia.lisp."
  :include ["parts/themes.lisp"
            "parts/geometry.lisp"
            "parts/slide.lisp"
@@ -13,7 +13,8 @@
            "parts/views.lisp"
            "parts/menus.lisp"
            "parts/review.lisp"
-           "../../shared/addons/assistant/assistant.lisp"]
+           "../../shared/addons/assistant/assistant.lisp"
+           sinopia.lisp]
  :theme "{{state.theme}}"
  :tokens {:assistant.accent {:light "#0e7c6b" :dark "#3cc2aa"}
           :assistant.accentHover {:light "#0b6a5b" :dark "#62d6c1"}

@@ -116,6 +116,48 @@ TEST_CASE("lisp: arithmetic and comparisons") {
 	CHECK(errorOf("(+ 1 \"secret\")").message() == "\"+\" takes numbers, and was given a string"); // never the value
 }
 
+TEST_CASE("lisp: a whole number that is a double is an index and shows as an expression shows it") {
+	// A number keeps its kind, as JSON's: printed to read back, 13.0 stays 13.0
+	CHECK(run("(* 26 0.5)") == "13.0");
+	CHECK(run("(pr-str (* 26 0.5))") == "\"13.0\"");
+	CHECK(run("(pr-str [13.0])") == "\"[13.0]\"");
+	// As text, a whole double is what an expression shows ('' + 13.0 is "13"); a fraction, or one inside, as JSON's
+	CHECK(run("(str (* 26 0.5))") == "\"13\"");
+	CHECK(run("(str \"Track \" 13.0 \" of \" 20)") == "\"Track 13 of 20\"");
+	CHECK(run("(str -0.0 \" \" 2.5 \" \" [1.0] \" \" 1e15 \" \" 1e300)") == "\"0 2.5 [1.0] 1e+15 1e+300\"");
+	CHECK(run("(join \", \" [1.0 2.5 3])") == "\"1, 2.5, 3\"");
+	// A whole double is an index, a count or a position wherever an integer is
+	CHECK(run("(get [:a :b :c] 1.0)") == ":b");
+	CHECK(run("(get [:a :b :c] 1.5)") == "nil");
+	CHECK(run("(nth [:a :b :c] (/ 4 2.0))") == ":c");
+	CHECK(run("(contains? [:a :b] 1.0)") == "true");
+	CHECK(run("(assoc [:a :b] 1.0 :x)") == "[:a :x]");
+	CHECK(run("(range 3.0)") == "[0 1 2]");
+	CHECK(run("(subs \"abcd\" 1.0 3.0)") == "\"bc\"");
+	CHECK(run("(let [[a b] [1 2]] b)") == "2");
+	CHECK(errorOf("(nth [1] 0.5)").message() == "\"nth\" takes a whole number as its index");
+	CHECK(errorOf("(range 1.5)").message() == "\"range\" takes whole numbers");
+	CHECK(run("(get [:a] 1e300)") == "nil"); // far past every index
+}
+
+TEST_CASE("lisp attack: a double that isn't a small whole number is no index, and leads nowhere") {
+	const std::string infinity = "(* 1e308 10)";
+	const std::string notANumber = "(- " + infinity + " " + infinity + ")";
+	CHECK(run("(get [:a] " + notANumber + ")") == "nil");
+	CHECK(run("(get [:a] " + infinity + ")") == "nil");
+	CHECK(run("(get [:a] (- " + infinity + "))") == "nil");
+	CHECK(run("(get [:a :b] -1.0)") == "nil");
+	CHECK(run("(get [:a] -0.0)") == ":a");
+	CHECK(run("(get [:a] 9007199254740994.0)") == "nil"); // past 2^53, where doubles skip whole numbers
+	CHECK(run("(contains? [:a] " + notANumber + ")") == "false");
+	CHECK(errorOf("(nth [:a] " + notANumber + ")").message() == "\"nth\" takes a whole number as its index");
+	CHECK(errorOf("(nth [:a] " + infinity + ")").message() == "\"nth\" takes a whole number as its index");
+	CHECK(errorOf("(subs \"ab\" -1.0)").message() == "\"subs\" takes indexes from 0");
+	CHECK(errorOf("(assoc [:a] 1e300 :x)").message() == "\"assoc\": an index outside the vector");
+	CHECK(errorOf("(range " + infinity + ")").message() == "\"range\" takes whole numbers");
+	CHECK(errorOf("(range 9007199254740992.0)").exhausted()); // the largest it takes, stopped by the budget
+}
+
 TEST_CASE("lisp: truth, and and or give an operand") {
 	CHECK(run("(if nil 1 2)") == "2");
 	CHECK(run("(if false 1 2)") == "2");

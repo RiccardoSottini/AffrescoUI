@@ -2,9 +2,9 @@
 /// @brief Fuzzes a history read back from disk (Repository::openHistory, VERSION_CONTROL.md "History on disk"): the
 /// folder may have been damaged by a crash, a full disk or anyone who can write to it.
 ///
-/// A Kanban history is written once to a template folder. Each input is copied over one of its files: refs.json when
-/// the first byte is even, otherwise the first object file. Opening the damaged copy must load it or throw
-/// DocumentError (what() naming the file); any other exception, or a crash, is a bug.
+/// A JSON template's history is written once to a template folder. Each input is copied over one of its files:
+/// refs.json when the first byte is even, otherwise the first object file. Opening the damaged copy must load it or
+/// throw DocumentError (what() naming the file); any other exception, or a crash, is a bug.
 
 #include "Fuzz.hpp"
 
@@ -36,19 +36,19 @@ fs::path folder(const std::string& name) {
 	return fs::temp_directory_path() / ("affrescoui-fuzz-" + name + "-" + std::to_string(getpid()));
 }
 
-/// @brief The document every history here holds: the Kanban template without its include, which a screen's loader
+/// @brief The document every history here holds: the JSON template without its include, which a screen's loader
 /// resolves before a history ever sees the document.
 /// @return The document.
 const affresco::json& document() {
-	static const affresco::json kanban = [] {
-		affresco::json copy = affresco::fuzz::kanbanTemplate();
+	static const affresco::json held = [] {
+		affresco::json copy = affresco::fuzz::jsonTemplate();
 		copy.erase("include");
 		return copy;
 	}();
-	return kanban;
+	return held;
 }
 
-/// @brief Writes the Kanban history to the template folder, once.
+/// @brief Writes the template's history to the template folder, once.
 /// @return The template folder.
 const fs::path& templateHistory() {
 	static const fs::path directory = [] {

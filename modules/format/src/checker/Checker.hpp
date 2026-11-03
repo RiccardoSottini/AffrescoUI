@@ -11,7 +11,8 @@
 /// - steps it doesn't know, and expressions that don't parse.
 ///
 /// What the state holds is learnt from its values plus what steps write (`set`, `push`, `bind`, ...), so a key that
-/// an action creates can be read. A value the checker can't know (an event, a native call's result, an empty object)
+/// an action creates can be read; a state path a program's source names may hold anything, as its functions aren't
+/// run. A value the checker can't know (an event, a native call's result, an empty object)
 /// is never reported: it would rather miss a typo than report one that isn't there.
 
 #include "affresco/core/Json.hpp"

@@ -4,8 +4,8 @@
 - json:       the templates (examples/templates.json), the JSON examples in the docs, nesting at the limit, settings
               and colour theme files with comments and trailing commas;
 - expression: every {{...}} and every "$" operator in the templates and in SCREEN_FORMAT.md;
-- revision:   the revisions in the docs, and edits of every kind to the Kanban template's nodes and state;
-- delta:      the Kanban template and changed copies of it (keys reordered, a node added), with deltas to apply;
+- revision:   the revisions in the docs, and edits of every kind to the JSON template's nodes and state;
+- delta:      the JSON template and changed copies of it (keys reordered, a node added), with deltas to apply;
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
               and in short conversations between the agent and the reviewer (lines starting with '>');
 - text:       every text of the templates and of the rendering check's screens;
@@ -50,13 +50,14 @@ import json
 import re
 import shutil
 import struct
+import subprocess
 import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
 DOCS = [ROOT / "SCREEN_FORMAT.md", ROOT / "VERSION_CONTROL.md"]
-KANBAN = EXAMPLES / "flow" / "json" / "index.screen.json"
+TEMPLATE = EXAMPLES / "sign-in" / "json" / "index.screen.json"
 MAX_NESTING = 256  # maxNesting in modules/core/include/affresco/core/Json.hpp
 
 # Values for the fields the protocol table names, and the fields of the messages it lists without them
@@ -134,10 +135,10 @@ def expression_seeds():
     return sorted(seeds)
 
 
-def kanban_ids():
-    """The ids of the Kanban template's nodes, in document order."""
+def template_ids():
+    """The ids of the JSON template's nodes, in document order."""
     ids = []
-    for value in walk(json.loads(KANBAN.read_text(encoding="utf-8")).get("root", {})):
+    for value in walk(json.loads(TEMPLATE.read_text(encoding="utf-8")).get("root", {})):
         if isinstance(value, dict) and isinstance(value.get("id"), str) and value["id"] not in ids:
             ids.append(value["id"])
     return ids
@@ -169,12 +170,12 @@ def program_revisions():
 
 
 def revisions():
-    """Revisions for the Kanban template: from the docs, and edits of every kind to its nodes and state."""
+    """Revisions for the JSON template: from the docs, and edits of every kind to its nodes and state."""
     found = [block for block in doc_blocks() if isinstance(block, dict) and
              any(key in block for key in ("set", "add", "remove", "move", "patch"))]
     found = [{key: value for key, value in block.items() if key != "type"} for block in found]
-    ids = kanban_ids()
-    state = json.loads(KANBAN.read_text(encoding="utf-8"))["state"]
+    ids = template_ids()
+    state = json.loads(TEMPLATE.read_text(encoding="utf-8"))["state"]
     for index, node in enumerate(ids):
         author = ("studio", "agent")[index % 2]
         found.append({"author": author, "message": "Recolour", "set": {f"#{node}/color": "#1e293b"}})
@@ -235,18 +236,18 @@ def session_seeds():
 
 
 def delta_seeds():
-    """The delta target's seeds: the Kanban template and changed copies of it, and deltas that may or may not apply."""
-    kanban = json.loads(KANBAN.read_text(encoding="utf-8"))
-    renamed = json.loads(json.dumps(kanban))
+    """The delta target's seeds: the JSON template and changed copies of it, and deltas that may or may not apply."""
+    template = json.loads(TEMPLATE.read_text(encoding="utf-8"))
+    renamed = json.loads(json.dumps(template))
     renamed["state"]["board"] = "Renamed"
-    reordered = dict(reversed(list(kanban.items())))  # the same fields in another order
-    added = json.loads(json.dumps(kanban))
+    reordered = dict(reversed(list(template.items())))  # the same fields in another order
+    added = json.loads(json.dumps(template))
     added["root"]["children"].insert(0, {"type": "label", "id": "first", "text": "First"})
     deltas = [[{"op": "replace", "path": "/state/board", "value": "x"}], [{"op": "remove", "path": "/root/children/0"}],
               [{"op": "add", "path": "/root/children/0/x", "value": 1}], [{"op": "move", "from": "/a", "path": "/a/b"}],
               [{"op": "add", "path": "/window/width/x", "value": 1}], [{"op": "copy", "from": "", "path": "/c"}], {}]
-    seeds = [compact({"from": kanban, "to": to, "delta": delta})
-             for to, delta in zip([renamed, reordered, added, {}, [kanban], 1, kanban], deltas)]
+    seeds = [compact({"from": template, "to": to, "delta": delta})
+             for to, delta in zip([renamed, reordered, added, {}, [template], 1, template], deltas)]
     seeds += [compact({"from": [1, 2, 3], "to": [3, 1.0, -0.0], "delta": [{"op": "add", "path": "/0/x", "value": 1}]}),
               compact({"from": {"a/b": {"~": 1}, "c": [1]}, "to": {"c": [], "a/b": None}, "delta": []})]
     return seeds
@@ -535,19 +536,37 @@ def feature_seeds():
 
 
 def app_seeds():
-    """Every app's manifest (app.json), and the templates, which read as screens using capabilities."""
+    """Every app's manifest (app.json, and an app.lisp where a program's lisp folder is its only source, read through
+    the build's CLI), and the templates, which read as screens using capabilities."""
     manifests = sorted(ROOT.glob("examples/*/json/app.json")) + sorted(ROOT.glob("apps/*/app.json"))
-    return [path.read_text(encoding="utf-8") for path in manifests] + [path.read_text(encoding="utf-8")
-                                                                       for path in templates("*.screen.json")]
+    programs = [lisp_as_json(path) for path in sorted(ROOT.glob("examples/*/lisp/app.lisp"))
+                if not (path.parent.parent / "json").is_dir()]
+    return ([path.read_text(encoding="utf-8") for path in manifests] + [compact(app) for app in programs if app]
+            + [path.read_text(encoding="utf-8") for path in templates("*.screen.json")])
+
+
+CLI = None  # the affrescoui command, in the build the corpus is written for (main()), to read Lisp files
+
+
+def lisp_as_json(path):
+    """A file in the Lisp notation as the JSON tree it spells (`affrescoui convert`), or None without a built CLI."""
+    if CLI is None:
+        return None
+    run = subprocess.run([str(CLI), "convert", str(path), "--to", "json"], capture_output=True, text=True)
+    return json.loads(run.stdout) if run.returncode == 0 else None
 
 
 def composition_seeds():
-    """The slide sorter's manifest with each of Tempera's adapters, and Tempera's points and exports (examples/tempera/json/sorter)."""
+    """The slide sorter's manifest (examples/sinopia/lisp) with each of Tempera's adapters, and Tempera's points and exports
+    (examples/tempera/lisp): Lisp, read through the build's CLI, and left out without one."""
     examples = ROOT / "examples"
-    manifest = json.loads((examples / "sinopia" / "json" / "features" / "slide-sorter" / "feature.json").read_text(encoding="utf-8"))
-    tempera = json.loads((examples / "tempera" / "json" / "index.screen.json").read_text(encoding="utf-8"))
+    manifest = lisp_as_json(examples / "sinopia" / "lisp" / "features" / "slide-sorter" / "feature.lisp")
+    if manifest is None:
+        return []
+    tempera = lisp_as_json(examples / "tempera" / "lisp" / "index.screen.lisp") or {}
     host = {part: tempera[part] for part in ("points", "exports") if part in tempera}
-    adapters = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((examples / "tempera" / "json" / "sorter").glob("*.adapter.json"))]
+    read = (lisp_as_json(path) for path in sorted((examples / "tempera" / "lisp" / "sorter").glob("*.adapter.lisp")))
+    adapters = [adapter for adapter in read if adapter is not None]
     return [compact({"manifest": manifest, "adapter": adapter, **host}) for adapter in [None] + adapters]
 
 
@@ -903,7 +922,7 @@ def dictionaries():
                    "<=", ">=", "=>", "?", ":", "[", "]", "'", ".length"]
     edits = ["set", "add", "remove", "move", "patch", "op", "path", "from", "value", "author", "message", "parent",
              "proposal", "replace", "copy", "test", "/state/", "/children/-", "#", "/actions/", "studio", "agent"]
-    edits += [f"#{node}" for node in kanban_ids()]
+    edits += [f"#{node}" for node in template_ids()]
     session = sorted({message["type"] for _, message in protocol_messages()}) + list(FIELD_VALUES) + ["type", "id"]
     tokens = ["{", "}", "[", "]", ",", ":", "true", "false", "null", "\\u0000", "\\ud83d", "1e400", "-0", "/*", "*/",
               "//"]
@@ -916,13 +935,13 @@ def dictionaries():
     # Characters shaping treats apart: joiners, variation selectors, marks, spaces, line breaks, right-to-left letters
     text = ["\u200d", "\ufe0f", "\u0301", "\u0323", " ", "\n", "\t", "\u0627\u0644", "\u094d", "\U0001F1EE",
             "\U0001F3FD", "fi", "ffl", "->", "!=="]
-    # The steps and keys of scenarios files (SCREEN_FORMAT.md, "Scenarios"), and the Kanban template's ids
+    # The steps and keys of scenarios files (SCREEN_FORMAT.md, "Scenarios"), and the JSON template's ids
     scenarios = tokens + ["version", "screen", "scenarios", "name", "steps", "note", "nth", "toNth", "moves", "dx",
                           "dy", "event", "capture", "move", "click", "press", "release", "drag", "to", "scroll", "type",
                           "key", "revision", "action", "resize", "wait", "choose", "expect", "state", "node", "image",
                           "is", "exists", "text", "property", "shown", "focused", "cmd+", "mod+", "shift+", "enter",
                           "escape", ".length", "[0]"]
-    scenarios += [f"#{node}" for node in kanban_ids()]
+    scenarios += [f"#{node}" for node in template_ids()]
     pngs = ["PNG", "IHDR", "IDAT", "IEND", "x\x01", "x^", "\x00\x00\x00\x0d"]  # ASCII: the dictionary is written UTF-8
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
             "delta": delta, "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words(),
@@ -1009,6 +1028,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", type=Path, default=ROOT / "build" / "fuzz-corpus", help="where to write them")
     out = parser.parse_args().out
+    global CLI  # the build's command line tool, next to the corpus (fuzz.sh writes it in BUILD/fuzz-corpus)
+    CLI = next((path for path in (out.parent / "affrescoui", ROOT / "build" / "affrescoui") if path.exists()), None)
     words = dictionaries()
     write(out, "json", json_seeds() + settings_file_seeds(), words["json"])
     write(out, "lisp", lisp_seeds(), ["(", ")", "[", "]", "{", "}", "#_", ":", '"', ";", "'", "`", "~", "~@", "nil", "true",

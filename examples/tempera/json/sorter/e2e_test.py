@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """End-to-end: add Sinopia's slide sorter to Tempera.
 
-Starts Tempera, which is JSON only, in affrescoui_launcher, connects as a `studio` peer (the person's client) and asks an agent to install the sorter in a
+Starts Tempera, in its JSON version (lisp/sorter/e2e_test.py runs its Lisp program), in affrescoui_launcher, connects as a `studio` peer (the person's client) and asks an agent to install the sorter in a
 request. A scripted fake agent (fake_agent.py) reads the contributions through the MCP server, writes the adapter,
 checks the composition and submits the install; the `studio` peer accepts the proposal. Then the live document plays
 the sorter docked and reordering Tempera's layers, the install shows in history and blame, and undoing it removes it.

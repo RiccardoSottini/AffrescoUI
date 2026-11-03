@@ -14,7 +14,6 @@
 #include <doctest/doctest.h>
 
 #include <filesystem>
-#include <fstream>
 #include <string>
 
 using affresco::json;
@@ -33,11 +32,17 @@ json stateAt(const affresco::Screen& screen, const char* pointer) {
 	return json::parse(screen.stateJson()).value(json::json_pointer(pointer), json());
 }
 
+/// @brief Tempo's folder: a program (RFC 0005), whose lisp folder is its source.
+/// @return The folder.
+std::filesystem::path tempoFolder() { return std::filesystem::path(AFFRESCOUI_EXAMPLES_ASSETS) / "tempo" / "lisp"; }
+
 } // namespace
 
 TEST_CASE("tempo: a song with a sound of its own plays it, a song without one plays the beat") {
-	const std::filesystem::path folder = std::filesystem::path(AFFRESCOUI_EXAMPLES_ASSETS) / "tempo" / "json";
-	json document = json::parse(std::ifstream(folder / "index.screen.json"));
+	const std::filesystem::path folder = tempoFolder();
+	// The document the app's folder gives, its program with it: the sections its program doesn't build can be changed
+	json document = json::parse(
+	    affresco::Screen::fromApp(folder / "app.lisp", {}, affresco::Screen::History::InMemory).documentJson());
 	document["audio"]["own"] = {{"tone", {{"frequency", 330}, {"seconds", 30}}}, {"into", "state.sounds.own"}};
 	document["models"]["playlists"]["seed"][0]["tracks"][2]["sound"] = "own"; // the song Tempo opens on
 
@@ -81,13 +86,11 @@ TEST_CASE("tempo: a song with a sound of its own plays it, a song without one pl
 }
 
 TEST_CASE("tempo: a file the person attaches becomes a song's sound in one proposal the person accepts") {
-	const std::filesystem::path folder = std::filesystem::path(AFFRESCOUI_EXAMPLES_ASSETS) / "tempo" / "json";
 	ThreadExecutor executor;
 	const ManualClock clock;
 	const auto window = createHeadlessWindow(1280, 800, clock);
-	std::ifstream file(folder / "index.screen.json");
 	affresco::Screen screen =
-	    affresco::Screen::fromString(std::string(std::istreambuf_iterator<char>(file), {}), folder);
+	    affresco::Screen::fromApp(tempoFolder() / "app.lisp", {}, affresco::Screen::History::InMemory);
 	audio::EngineOptions options;
 	options.output = audio::Output::Manual;
 	options.channels = 2;

@@ -448,6 +448,11 @@ What a revision on a program does, and how each rule judges it, is in VERSION_CO
   Release build on Apple silicon: the costliest of five kinds tried (spinning, big strings, big lists, sorting, maps) takes 14 ms.
 - **A limited reader** sees no definition its `read` doesn't name, and can't change a program at all: a definition runs at build
   time on any other's value, so what it builds could carry what the reader's masks hide.
+- **A rule on `/actions` holds for the code actions run** (`tests/unit/lisp_action_rules.cpp`). A function's or a command's body is
+  under `/program`, not in what it builds, so a JSON app moved to a program kept an `ask` rule that no longer met an agent's new
+  function, and a reviewer's `acceptEdits` applied it unreviewed (found by stage 6's review). An `ask` or `deny` rule, or an owner, on
+  `/actions` or a path inside it now covers a change of any definition but a screen's that nothing else uses; an `allow` rule doesn't
+  widen. VERSION_CONTROL.md, "Programs".
 
 **Who may do what when a function runs: the authority model.** A definition carries its author, from the commit that wrote it
 (`"file"` for what the file on disk holds). Whatever a function does, it does through a step, and each step is checked when it runs,
@@ -457,7 +462,8 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
 |---|---|
 | **reads** (a path, an expression's function) | Always |
 | **is ordinary** (`set`, `push`, `navigate`, `after`, `run`, the record steps...) | Never from a value read for the screen; otherwise always |
-| **is a control step** (`call`, `send`, `connect`, `patch`, `invoke`, `request`, `saveFile`, and any step not named above) | Everyone whose code led here is the person or the app's file; and while a proposal is previewed, only from the person's own input |
+| **is judged by its use**: `invoke`, `request` or `subscribe` whose code names the method written out (`(invoke "files.read")`), or `image` short of a file dialog | As an ordinary step: the revision that wrote the code was judged as JSON's are (below) |
+| **is a control step** (`call`, `send`, `connect`, `patch`, `saveFile`, `invoke` and the others above with a computed name, and any step not named above) | Everyone whose code led here is the person or the app's file; and while a proposal is previewed, only from the person's own input |
 | **is a review step** (`accept`, `reject`, `preview`, `endPreview`, `restore`, `revert`, `undo`, `evaluate`) | Everyone whose code led here is the person or the app's file, and it comes from the person's own input: a click or a key, never a timer, a `watch` or a handler that fires by itself |
 
 - **"Everyone whose code led here"** is every author whose code has run since the outermost call began, those that returned included;
@@ -472,12 +478,22 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
   scheduled it. It is a definition's name and JSON arguments, never a closure, so it holds nothing of the event.
 - **A state change is no authority.** A `watch` or a binding that a function's `set` sets off runs as what its own author wrote: the steps of a
   file's `watch` are the file's, whoever changed the state, as any revision on `/state` may set one off. A function it runs is that function's author's.
-- **Two lines.** A revision can't add a way to a control step, and a function counts as what it reaches (VERSION_CONTROL.md). The check at
-  run time holds by itself: the attack tests in `tests/unit/lisp_runtime.cpp` run with that scan turned off.
+- **Two lines.** A revision can't add a way to a control step, and a function counts as what it reaches (VERSION_CONTROL.md): a `run` of a
+  name written out reaches what that name runs, worked out at the build, and a computed one anything. The check at run time holds by itself:
+  the attack tests in `tests/unit/lisp_runtime.cpp` and `lisp_reach.cpp` run with that scan turned off.
+- **Uses of services, as JSON judges them** (`tests/unit/lisp_reach.cpp`). A step a capability gates is judged by what it uses when the code
+  that calls it names it written out: the language records each call of a primitive whose first argument is a text in the code
+  (`CallContext::named`), and the host lets it run from anyone's code, as a button may run an action holding the same step. That code's
+  revision was judged as a JSON revision is: every such use in a definition, beside a computed one too, and in what a macro writes into it,
+  must name a declared service and a method revisions may use, and one that writes or runs is reviewed by the person, as is a change of the
+  definition that holds it or of a macro. So an agent's function gets what a JSON revision gets, no more: a computed name, the step taken as
+  a value, `apply`, or another name than the one written out are control steps, and an agent's code passing `invoke` to a person's function
+  doesn't make the person's code name it. Arguments are another author's data, as an action's `with` is in JSON.
 - **A value read for the screen has no way to cause effects.** `~form` and `lisp()` can only read: any step refuses, whoever wrote it.
   Definitions' values are worked out at the build, so reading changes nothing in the program either.
 - **No data is evaluated.** The language has no `eval` and no way to find a global from a value. A value given to a step is taken as it is: text
-  with `{{` in it stays text. A function can't be kept in the state.
+  with `{{` in it stays text. A function can't be kept in the state. A step's handler (`:onDone`, `:onError`, `:do`, `:then`...) takes a
+  function of the program, by its name, never a name or steps as a value, so `run` is the only way code names what it runs.
 - **A JSON app stays one.** A revision, a change set or a person's evaluation can't give an app with no program a `program`, or take the whole of one away: a JSON app is displayed, not run.
 - **A change of the program** replaces the interpreter whole, so a definition taken away or undone is gone, with the callbacks of its name. A
   function running at that moment ends on its own version, with its authors.
@@ -487,6 +503,7 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
 - **Only on the person's own press,** checked at the step, whoever's code or JSON holds it: never a timer, a `watch`, a handler that fires by itself, a key pressed for the screen, even from a binding of their own key, or an agent's reply. An author who isn't the person or the file can't reach it at all, and
   no revision may add it. While a proposal is previewed it is refused.
 - **Only what they typed has their authority** (RFC 0005, decision 5). Text in a buffer can be anyone's, and can hide past the visible screen: a revision on `/state` writes it, a key's `edit` or `press` step types it, a paste brings what any code's `copy` put on the clipboard, undo brings it back, and a person's own command copies it on. So nothing marks what a stranger writes, as a mark can be lost: `format::TypedText` records what is known, the bytes of a bound value that came from the person's own keystrokes, delivered to the widget itself (`Panel::takeTyped()`, `Window::routingOwnPress()`). Any other change is seen as a difference when the value is next looked at, what it changed stops being theirs, and the two sides stay separate runs, so an agent can't make a form by taking characters out. A form that isn't, whole, one run has **none** of their authority: its definitions go through `propose` in the name `plugin:evaluated`, and text holding anything else doesn't run. The record isn't kept across runs of the app, and a secret field is never recorded. Input from the desktop itself (an accessibility tool, another program sending keystrokes, the C API) counts as the person's, as it does for every other step.
+- **Unless the person says yes, in a question the host draws** (`"confirm": true`; `tests/unit/lisp_confirm.cpp`). For a text they didn't type, `Window::confirm()` asks them: a question the window draws itself, last, above everything a screen draws (overlays, the inspection layer and the full-screen hint included), with the whole text, its lines numbered and wrapped so nothing is past an edge or out of reach, and two buttons. No document has a way to it: it isn't in the screen's tree, so no id, `press` step, revision or overlay reaches it; while it is shown every key, click, wheel turn and drop goes to it and none to the screen. Only the person's own press answers it (`routingOwnPress()`): a click begun and ended on a button, or Enter or Escape pressed and let go while it is shown, so the key that brought it up can't answer it; and a yes only from a press begun once it has been shown half a second, so a press already on its way when it comes up (a double click's second click on where Run as Me then is, Enter typed on after the evaluating key) can't say yes to a text not read. A yes runs **exactly the text it showed**, as if they had typed it, **once**: a buffer changed meanwhile changes nothing, and nothing runs if the program changed while it was shown (what the text calls could mean something else), if a proposal is being previewed, or if a question is shown already. A text holding a character that doesn't show as itself (a control character, a bidirectional or zero-width format character, a line separator, a variation selector, a letter that draws as a space, invalid UTF-8) isn't asked about: nothing runs. Text a commit on `main` first wrote stays its author's, confirmed or not (VERSION_CONTROL.md, "Programs"). **What it doesn't tell:** the person reads what runs, but not what a name in it means beyond what they see (a function the text calls is the program's, under the authority rules above); names that look alike, in different scripts, look alike there too; and screen readers don't see the question yet (the window's accessibility tree is the screen's).
 - **It may change what reaches a control step,** and no more (VERSION_CONTROL.md, "Programs"): what no revision may change, it can't either. No peer has a way to that: it is a call in the host's code, not a message or a name an author can claim. An evaluated form is the
   person's decision about text they have in front of them, as a line typed in a terminal is.
 - **An agent's macro in it stays the agent's:** the person's function or expression holding what it wrote has its authority. A macro runs while the form is read, reaching nothing.
@@ -495,6 +512,7 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
 - **What arrives from elsewhere is a proposal** (`propose`), in its own name, never with the person's authority; it holds definitions only, so nothing in it runs by arriving.
 - **`describe-*`, `apropos` and `program-file`** give no value, and obey read masks: for code with a limited reader among its authors, what its `read` doesn't name isn't there.
 - **A history on disk with `ownInput` commits** is held to what a person's revision may do, not to the scan: a commit so marked must be by the person's channel and only touch the program, or the history is refused, but anyone who can write that folder can write such a commit (below, "A history on disk is only as safe as its folder"). Treat a history you didn't make as you would a screen file.
+  **Decided: the mark isn't signed.** It relies on the trust of the app's history folder, as everything else in it does: anyone who can write that folder can claim the person's typing, as they can already change anything in it. A signature would need a key that same folder's owner holds, so it would protect nothing more.
 
 **Hooks and advice** (`tests/unit/lisp_hooks.cpp`):
 

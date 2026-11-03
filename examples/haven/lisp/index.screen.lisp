@@ -16,7 +16,8 @@
            history.lisp
            settings.lisp
            shell.lisp
-           edit.lisp]
+           edit.lisp
+           haven.lisp]
  :window {:title "Haven: an AffrescoUI template" :width 1280 :height 800 :minWidth 1040 :minHeight 640}
  :persist [state.theme state.settings state.security]
  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 15 :fallback [icons symbols]}
@@ -108,7 +109,7 @@
           :kit.focus {:dark "#9ea3ff" :light "#4048b0"}
           :kit.backdrop {:dark "#00000052" :light "#00000052"}}
  :permissions {:allow [studio]
-               :ask ["agent(/actions)"]
+               :ask ["agent(/actions)" "agent(/program)"]
                :deny ["*(#statusBar)"]
                :reviewers [studio]
                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
@@ -279,106 +280,6 @@
           :pageTitle (label :font title :textColor @text :anchors {:left 32 :top 28} :fitText true)
           :stat {:style card :anchors {:top 0 :bottom 0} :grow 1}
           :statFigure (label :font title :textColor @text :anchors {:left 20 :top 36} :fitText true)}
- :actions {:sceneMorning {:title "Scene: Morning"
-                          :category "Scenes"
-                          :icon sunrise
-                          :do [{:forEach computed.room.lights
-                                :index i
-                                :do [{:set "state.rooms[state.room].lights[i].on" :to true}
-                                     {:set "state.rooms[state.room].lights[i].level" :to 80}]}
-                               {:animate "state.rooms[state.room].blinds" :to 100 :ms "{{settings.scenes.blindsMs}}"}
-                               {:set state.scene :to "Morning"}]}
-           :sceneMovie {:title "Scene: Movie night"
-                        :category "Scenes"
-                        :icon clapperboard
-                        :do [{:forEach computed.room.lights
-                              :index i
-                              :do [{:set "state.rooms[state.room].lights[i].level" :to 20}]}
-                             {:animate "state.rooms[state.room].blinds" :to 0 :ms "{{settings.scenes.blindsMs}}"}
-                             {:set state.scene :to "Movie night"}]}
-           :sceneAway {:title "Scene: Away"
-                       :category "Scenes"
-                       :icon plane
-                       :do [{:forEach state.rooms
-                             :index r
-                             :do [{:forEach "state.rooms[r].lights"
-                                   :index i
-                                   :do [{:set "state.rooms[r].lights[i].on" :to false}]}
-                                  {:set "state.rooms[r].target" :to "{{settings.climate.awayTarget}}"}]}
-                            {:set state.scene :to "Away"}]}
-           :sceneNight {:title "Scene: Good night"
-                        :category "Scenes"
-                        :icon moon
-                        :do [{:forEach state.rooms
-                              :index r
-                              :do [{:forEach "state.rooms[r].lights"
-                                    :index i
-                                    :do [{:set "state.rooms[r].lights[i].on" :to false}]}
-                                   {:set "state.rooms[r].blinds" :to 0}]}
-                             {:set state.scene :to "Good night"}]}
-           :setTarget [{:note "with: by (degrees)"}
-                       {:set "state.rooms[state.room].target" :to "{{clamp(computed.room.target + by, 16, 28)}}"}]
-           :pickRoom [{:note "with: id, a row of the rooms tree (r0 to r3; the floors only open and close)"}
-                      {:if "{{indexOf(['r0', 'r1', 'r2', 'r3'], id) >= 0}}"
-                       :then [{:set state.room :to "{{indexOf(['r0', 'r1', 'r2', 'r3'], id)}}"}]}]
-           :deviceCall [{:note "with: i. A device call takes a while: the tile shows its progress, then the new state and a toast. A host would make it a call with onAsyncCall; here a timer stands in for the device."}
-                        {:if "{{computed.busyDevice == null}}"
-                         :then [{:set "state.devices[i].busy" :to true}
-                                {:set "state.devices[i].progress" :to 0}
-                                {:animate "state.devices[i].progress" :to 1 :ms 900}
-                                {:after 900
-                                 :do [{:set "state.devices[i].busy" :to false}
-                                      {:toggle "state.devices[i].on"}
-                                      {:if "{{settings.devices.notify}}"
-                                       :then [{:run showToast
-                                               :with {:message "{{t('toast.device', { name: state.devices[i].name, state: lower(t('device.' + state.devices[i].id + (state.devices[i].on ? '.on' : '.off'))) })}}"}}]}]}]}]
-           :showToast [{:note "with: message. A note in the corner for a few seconds, kept in the notifications too"}
-                       {:set state.toast :to {:open true :message "{{message}}"}}
-                       {:run notify :with {:message "{{message}}" :icon bell}}
-                       {:debounce 4000 :do [{:set state.toast.open :to false}]}]
-           :stepRoom [{:note "with: by, -1 or 1: the previous or next room, wrapping"}
-                      {:set state.room :to "{{(state.room + by + length(state.rooms)) % length(state.rooms)}}"}]
-           :goHome {:title "Go to Home" :category "Go" :icon home :do [{:set state.page :to home}]}
-           :goEnergy {:title "Go to Energy" :category "Go" :icon zap :do [{:set state.page :to energy}]}
-           :goPlan {:title "Go to the floor plan" :category "Go" :icon map :do [{:set state.page :to plan}]}
-           :goAutomations {:title "Go to Automations"
-                           :category "Go"
-                           :icon workflow
-                           :do [{:set state.page :to automations}]}
-           :goAreas {:title "Go to Rooms" :category "Go" :icon door-open :do [{:set state.page :to areas}]}
-           :goLogbook {:title "Go to the activity log"
-                       :category "Go"
-                       :icon scroll-text
-                       :do [{:set state.page :to logbook}]}
-           :goHistory {:title "Go to History" :category "Go" :icon activity :do [{:set state.page :to history}]}
-           :goSettings {:title "Go to Settings"
-                        :category "Go"
-                        :icon settings
-                        :do [{:set state.settingsView :to main} {:set state.page :to settings}]}
-           :commandPalette {:title "Show all commands"
-                            :category "Go"
-                            :icon command
-                            :do [{:set state.quickPick.query :to ">"} {:set state.quickPick.open :to true}]}
-           :toggleTheme {:title "Switch light and dark"
-                         :category "View"
-                         :icon moon
-                         :do [{:set state.theme :to "{{computed.themeNow == 'dark' ? 'light' : 'dark'}}"}]}
-           :switchLanguage {:title "Change the language"
-                            :category "View"
-                            :icon languages
-                            :do [{:set settings.ui.language
-                                  :to "{{settings.ui.language == 'en' ? 'es' : settings.ui.language == 'es' ? 'fr' : 'en'}}"}]}
-           :nextRoom {:title "Next room" :category "Rooms" :icon arrow-down :do [{:run stepRoom :with {:by 1}}]}
-           :previousRoom {:title "Previous room" :category "Rooms" :icon arrow-up :do [{:run stepRoom :with {:by -1}}]}
-           :allLightsOff {:title "Switch every light off"
-                          :category "Rooms"
-                          :icon lightbulb-off
-                          :do [{:forEach state.rooms
-                                :index r
-                                :do [{:forEach "state.rooms[r].lights"
-                                      :index i
-                                      :do [{:set "state.rooms[r].lights[i].on" :to false}]}]}
-                               {:set state.scene :to ""}]}}
  :keys {:up {:run setTarget :with {:by 0.5}}
         :down {:run setTarget :with {:by -0.5}}
         "alt+down" nextRoom

@@ -1,5 +1,5 @@
 /// @file
-/// @brief Fuzzes a revision submitted to a vcs::Repository loaded with the Kanban template, as a peer's "revision"
+/// @brief Fuzzes a revision submitted to a vcs::Repository loaded with the JSON template, as a peer's "revision"
 /// message is: compact edits or JSON Patch, judged by the template's permission rules; and the same revision on a
 /// document that holds a program, whose every edit is built.
 ///
@@ -133,7 +133,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	// A new one each time: inputs don't add up. An edit of a program is judged on the program alone, which costs far
 	// less
 	if(!affresco::fuzz::text(data, size).contains("/program")) {
-		affresco::vcs::Repository repository(rules, affresco::fuzz::kanbanTemplate());
+		affresco::vcs::Repository repository(rules, affresco::fuzz::jsonTemplate());
 		judge(repository, revision);
 	}
 	affresco::vcs::Repository program(rules, affresco::lisp::sourceDocument(kProgram, "app.lisp"));

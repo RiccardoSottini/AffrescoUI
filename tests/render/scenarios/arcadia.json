@@ -1,11 +1,11 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/arcadia/json",
+	"screens": "../../../examples/arcadia/lisp",
 	"scenarios": [
 		{
 			"name": "arcadia",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"note": "Arcadia's library: the home, a game's page with its info card, a game that isn't installed, the store home, a store page, the cart and the wishlist, then light and French",
 			"steps": [
 				{ "expect": { "image": "library-home" } },

@@ -1,0 +1,66 @@
+{
+	"id": "json-calamaio-hook",
+	"level": "feature",
+	"screen": "examples/calamaio/lisp/calamaio.screen.lisp",
+	"request": "In Calamaio, count the buffers saved with C-x C-s in state.saves (a number, from 0), with a step added at the end of the command save-buffer, a JSON action in actions.",
+	"scenarios": [
+		{
+			"name": "saves",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "~/notes.txt"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "words"
+				},
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+s"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "saves",
+						"is": 1
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"/program/killring.lisp/kill-line",
+		"/program/loop.lisp/eval-defun",
+		"/actions/kill-buffer",
+		"/program/loop.lisp/saved"
+	],
+	"reference": [
+		{
+			"message": "Saves are counted",
+			"add": {
+				"/actions/save-buffer/do/-": {
+					"set": "state.saves",
+					"to": "{{(state.saves ?? 0) + 1}}"
+				}
+			}
+		}
+	]
+}

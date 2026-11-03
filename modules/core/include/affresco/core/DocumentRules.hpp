@@ -131,6 +131,19 @@ public:
 	/// @throws DocumentError If it is too large.
 	virtual void checkRevision([[maybe_unused]] const json& patch) const {}
 
+	/// @brief Tells whether a change alters what runs where a rule's pattern points, beyond the tree there: a program's
+	/// definition that runs when an action would, whose text isn't in the actions it builds. The `ask` and `deny` rules
+	/// and the owners of a part count such a change as one to what the pattern covers; `allow` rules don't, so nothing
+	/// is let through that the pattern doesn't name. The default: nothing runs that the tree doesn't hold.
+	/// @param before The document now, with the live state as its "state".
+	/// @param after The document after the change, with the live state after it.
+	/// @param pattern The rule's pattern (VersionControl's rules: a JSON Pointer or "#id" path; empty for everything).
+	/// @return true if it does.
+	[[nodiscard]] virtual bool changesCodeUnder([[maybe_unused]] const json& before, [[maybe_unused]] const json& after,
+	                                            [[maybe_unused]] std::string_view pattern) const {
+		return false;
+	}
+
 	/// @brief What a change does that a person must always review, whoever makes it and whatever the rules allow (e.g.
 	/// a new step that writes files). Version control turns any line into a proposal. The default has none.
 	/// @param before The document now, with the live state as its "state".

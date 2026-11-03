@@ -46,6 +46,12 @@ void creditTheRest(const json& section, json& authors) {
 
 } // namespace
 
+bool judgedByUse(std::string_view step, std::string_view name) {
+	if(name.empty() || name.contains("{{")) return false;
+	if(step == "invoke" || step == "request" || step == "subscribe") return true;
+	return step == "image" && name != "open" && name != "save";
+}
+
 StepKind stepKind(std::string_view name) {
 	if(std::ranges::find(reviewSteps, name) != reviewSteps.end()) return StepKind::Review;
 	if(std::ranges::find(freeSteps, name) != freeSteps.end()) return StepKind::Free;
@@ -188,16 +194,23 @@ void Programs::check(const lisp::CallContext& call) const {
 		                    "\" can't run there");
 	std::vector<std::string> ran(call.ran.begin(), call.ran.end());
 	if(engine_.authority) ran.insert(ran.end(), engine_.authority->authors.begin(), engine_.authority->authors.end());
-	const StepKind kind = call.capability == "review"    ? StepKind::Review
-	                      : call.capability == "control" ? StepKind::Control
-	                                                     : StepKind::Free;
+	StepKind kind = call.capability == "review"    ? StepKind::Review
+	                : call.capability == "control" ? StepKind::Control
+	                                               : StepKind::Free;
+	// What the calling code names written out is judged by its use, as its text was (ServiceRules.cpp)
+	if(kind == StepKind::Control && judgedByUse(call.primitive, call.named)) kind = StepKind::Free;
 	if(const std::optional<std::string> why = refusal(call.primitive, kind, ran)) throw lisp::Refusal(*why);
 }
 
 void Programs::checkStep(const json& step, const std::string& where) const {
 	if(!step.is_object()) return;
-	for(const auto& [key, value] : step.items())
-		if(const auto why = refusal(key, stepKind(key), engine_.authority->authors)) fail(where, *why);
+	for(const auto& [key, value] : step.items()) {
+		StepKind kind = stepKind(key);
+		// A use written out in the document, judged by its use as the revision that wrote it was
+		if(kind == StepKind::Control && value.is_string() && judgedByUse(key, value.get_ref<const std::string&>()))
+			kind = StepKind::Free;
+		if(const auto why = refusal(key, kind, engine_.authority->authors)) fail(where, *why);
+	}
 }
 
 void Programs::checkNative(const std::string& name, const std::string& where) const {

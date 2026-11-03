@@ -10,7 +10,6 @@
                      :name "Streak"
                      :tagline "A habit tracker with goals and a year heatmap"
                      :folder streak
-                     :notation lisp
                      :program host
                      :cover "../assets/covers/habit-tracker.jpg"}
                     {:id sign-in
@@ -73,4 +72,12 @@
                      :tagline "A planetarium with a sky chart and the planets"
                      :folder orrery
                      :program host
-                     :cover "../assets/covers/orrery.jpg"}]}}
+                     :cover "../assets/covers/orrery.jpg"}
+                    {:id calamaio
+                     :name "Calamaio"
+                     :tagline "A keyboard-first text editor you extend in Lisp"
+                     :folder calamaio
+                     :notation lisp
+                     :program host
+                     :starter false
+                     :cover "../assets/covers/calamaio.jpg"}]}}

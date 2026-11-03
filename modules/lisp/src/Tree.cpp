@@ -8,6 +8,9 @@
 #include <affresco/notation/Lexer.hpp>
 #include <affresco/notation/Words.hpp>
 
+#include <cmath>
+#include <cstdint>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -187,7 +190,7 @@ public:
 		machine_.spend(1);
 		if(value.isSequence()) sequence(value, depth);
 		else if(value.kind() == Kind::Map) map(value, depth);
-		else if(value.isNumber()) add(value.numberAsJson().dump());
+		else if(value.isNumber()) number(value, depth);
 		else if(value.kind() == Kind::String) string(value, depth);
 		else if(value.kind() == Kind::Nil) add(readable_ || depth > 0 ? "nil" : "");
 		else if(value.kind() == Kind::Boolean) add(value.asBoolean() ? "true" : "false");
@@ -197,6 +200,21 @@ public:
 	}
 
 private:
+	/// @brief Writes a number as JSON does; as text that isn't meant to read back (`str`), a whole number that is a
+	/// double as an expression shows it, without ".0".
+	/// @param value It.
+	/// @param depth How many values hold it.
+	void number(const Value& value, int depth) {
+		constexpr double shownWhole = 1e15; // as format's Value::toText()
+		if(!readable_ && depth == 0 && value.kind() == Kind::Float && std::abs(value.asDouble()) < shownWhole) {
+			if(const std::optional<std::int64_t> whole = wholeNumber(value)) {
+				add(std::to_string(*whole));
+				return;
+			}
+		}
+		add(value.numberAsJson().dump());
+	}
+
 	/// @brief Writes a string: in quotes when it is meant to read back, or inside something.
 	/// @param value It.
 	/// @param depth How many values hold it.

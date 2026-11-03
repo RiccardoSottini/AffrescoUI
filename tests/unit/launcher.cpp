@@ -13,6 +13,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -206,17 +207,33 @@ TEST_CASE("launcher: every app its list names opens from its folder, a program a
 	std::vector<std::string> opened;
 	for(const affresco::json& app : apps["state"]["examples"]) {
 		if(app.value("program", "") != "host") continue;
-		const std::string name = app["folder"].get<std::string>() + "/" + app.value("notation", "json");
-		services::ProcessRun run{{"affrescoui_launcher", "examples:" + name}, {}, "/bin/false"};
-		CAPTURE(name);
-		CHECK_FALSE(shape(run));
-		CHECK(run.arguments.front() == fs::path(examples / name).make_preferred().string());
-		opened.push_back(name);
+		// Each opens in the notation Settings choose, json or lisp, unless its entry pins the only one it has
+		const std::vector<std::string> notations = app.contains("notation")
+		                                               ? std::vector<std::string>{app["notation"].get<std::string>()}
+		                                               : std::vector<std::string>{"json", "lisp"};
+		for(const std::string& notation : notations) {
+			const std::string name = app["folder"].get<std::string>() + "/" + notation;
+			services::ProcessRun run{{"affrescoui_launcher", "examples:" + name}, {}, "/bin/false"};
+			CAPTURE(name);
+			CHECK_FALSE(shape(run));
+			CHECK(run.arguments.front() == fs::path(examples / name).make_preferred().string());
+			opened.push_back(name);
+		}
 	}
-	CHECK(std::ranges::find(opened, "streak/lisp") != opened.end());
-	// Not listed, but it has a folder of its own that the same route opens
-	services::ProcessRun calamaio{{"affrescoui_launcher", "examples:calamaio/lisp"}, {}, "/bin/false"};
-	CHECK_FALSE(shape(calamaio));
+	// The apps written as programs open from either folder; Calamaio, Lisp only, from its lisp folder whatever the
+	// setting says
+	CHECK(std::ranges::find(opened, "flow/json") != opened.end());
+	CHECK(std::ranges::find(opened, "flow/lisp") != opened.end());
+	CHECK(std::ranges::find(opened, "streak/json") != opened.end());
+	CHECK(std::ranges::find(opened, "calamaio/lisp") != opened.end());
+	CHECK(std::ranges::find(opened, "calamaio/json") == opened.end());
+	for(const affresco::json& app : apps["state"]["examples"]) {
+		// A pin for exactly the apps with no json folder, so none opens a folder that isn't there
+		CAPTURE(app["folder"].get<std::string>());
+		const bool pinned = app.value("notation", "json") == "lisp";
+		CHECK(fs::exists(examples / app["folder"].get<std::string>() / "json") != pinned);
+		CHECK(fs::exists(examples / app["folder"].get<std::string>() / "lisp"));
+	}
 }
 
 TEST_CASE("launcher: the app-programs grant starts only its programs, on screens inside its roots") {
@@ -445,4 +462,198 @@ TEST_CASE("launcher: an app is created blank and from an example, listed, duplic
 	CHECK(built.failed() == 0);
 }
 
+TEST_CASE("launcher: with Lisp chosen in Settings, an app is created from an example written as a program, listed, "
+          "duplicated and opened") {
+	const TemporaryFolder folder;
+	const fs::path apps = folder.path() / "AffrescoUI", examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	fs::create_directories(apps);
+	const auto grant = [&](affresco::Screen& screen) {
+		screen.services().addRoot("examples", examples, true);
+		screen.services().addRoot("apps", apps);
+	};
+	const json scenarios = json::parse(R"json([{ "name": "create", "steps": [
+		{ "key": "mod+comma" },
+		{ "click": { "role": "radio", "name": "Lisp" } },
+		{ "key": "mod+1" },
+		{ "key": "mod+n" },
+		{ "click": "#createName" },
+		{ "type": "Team board" },
+		{ "click": { "role": "radio", "name": "Flow" } },
+		{ "key": "mod+enter" },
+		{ "wait": 10 },
+		{ "expect": { "state": "create.error", "is": "" } },
+		{ "expect": { "state": "mine[0].id", "is": "team-board" } },
+		{ "expect": { "state": "mine[0].sub", "is": "/lisp" } },
+		{ "key": "mod+n" },
+		{ "click": "#createName" },
+		{ "type": "My habits" },
+		{ "click": { "role": "radio", "name": "Streak" } },
+		{ "key": "mod+enter" },
+		{ "wait": 10 },
+		{ "expect": { "state": "mine.length", "is": 2 } },
+		{ "click": { "role": "button", "name": "Duplicate My habits" } },
+		{ "wait": 10 },
+		{ "expect": { "state": "mine.length", "is": 3 } },
+		{ "action": "launcher.refresh" },
+		{ "wait": 10 },
+		{ "expect": { "state": "mine.length", "is": 3 } },
+		{ "expect": { "state": "mineError", "is": "" } }
+	] }])json");
+	const automation::Report report = play(scenarios, examples / "launcher" / "json" / "index.screen.json", "", grant);
+	INFO(report.text());
+	CHECK(report.failed() == 0);
+	// The copies are the programs' lisp folders: titled and named by a keyword edit, every other character as it was
+	const fs::path board = apps / "team-board" / "lisp", habits = apps / "my-habits" / "lisp";
+	const std::string boardScreen = readFile(board / "index.screen.lisp");
+	CHECK(boardScreen.contains(":window {:title \"Team board\" :width 1280"));
+	CHECK(boardScreen.size() == readFile(examples / "flow" / "lisp" / "index.screen.lisp").size() +
+	                                std::string("Team board").size() -
+	                                std::string("Flow: an AffrescoUI template").size());
+	CHECK(fs::exists(board / "flow.lisp"));
+	CHECK(readFile(board / "app.lisp").contains(":id \"team-board\"\n :name \"Team board\""));
+	CHECK(readFile(habits / "app.lisp").contains(":id \"my-habits\"\n :name \"My habits\""));
+	CHECK(readFile(apps / "my-habits-copy" / "lisp" / "app.lisp").contains(":name \"My habits (copy)\""));
+	CHECK(readFile(apps / "my-habits-copy" / "lisp" / "index.screen.lisp").contains(":title \"My habits (copy)\""));
+	CHECK(fs::exists(apps / "shared" / "addons" / "assistant" / "assistant.lisp"));
+	// Each copy opens where it is, its program built: its includes and fonts found in the shared folder beside it
+	const json opened = json::parse(R"json([{ "name": "open", "steps": [
+		{ "expect": { "node": "#panel-root", "exists": true } }
+	] }])json");
+	const automation::Report boardOpened = play(opened, board / "index.screen.lisp", "", nullptr);
+	INFO(boardOpened.text());
+	CHECK(boardOpened.failed() == 0);
+	const json openedHabits = json::parse(R"json([{ "name": "open", "steps": [
+		{ "expect": { "node": "#root", "exists": true } }
+	] }])json");
+	const automation::Report habitsOpened = play(openedHabits, habits / "index.screen.lisp", "", nullptr);
+	INFO(habitsOpened.text());
+	CHECK(habitsOpened.failed() == 0);
+}
+
+TEST_CASE("launcher: with Lisp chosen, every example that starts an app makes one from its lisp folder that opens, "
+          "titled") {
+	const fs::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	std::ifstream file(examples / "launcher" / "json" / "apps.json", std::ios::binary);
+	const json list = json::parse(file);
+	int made = 0;
+	for(const json& app : list["state"]["examples"]) {
+		if(!app.value("starter", true)) continue;
+		// An apps folder each: listing several copies of programs nests past 32 actions where calls end at once
+		const TemporaryFolder folder;
+		const fs::path apps = folder.path() / "AffrescoUI";
+		fs::create_directories(apps);
+		const auto grant = [&](affresco::Screen& screen) {
+			screen.services().addRoot("examples", examples, true);
+			screen.services().addRoot("apps", apps);
+		};
+		const std::string name = "Made from " + app["name"].get<std::string>();
+		CAPTURE(name);
+		const json steps = {json{{"revision", {{"message", "lisp"}, {"set", {{"/state/notation", "lisp"}}}}}},
+		                    json{{"key", "mod+n"}}, json{{"click", "#createName"}}, json{{"type", name}},
+		                    // its tile may be scrolled out of sight: chosen as a click on it chooses it
+		                    json{{"revision", {{"message", "from"}, {"set", {{"/state/create/from", app["id"]}}}}}},
+		                    json{{"key", "mod+enter"}}, json{{"wait", 10}},
+		                    json{{"expect", {{"state", "create.error"}, {"is", ""}}}},
+		                    json{{"expect", {{"state", "mine[0].sub"}, {"is", "/lisp"}}}},
+		                    json{{"expect", {{"state", "mine[0].name"}, {"is", name}}}}};
+		const json scenarios = json::array({{{"name", "create"}, {"steps", steps}}});
+		const automation::Report report =
+		    play(scenarios, examples / "launcher" / "json" / "index.screen.json", "", grant);
+		INFO(report.text());
+		CHECK(report.failed() == 0);
+		// The copy is a lisp folder, with no json one, that opens as an app with its new window title
+		std::string id = name;
+		std::ranges::transform(id, id.begin(),
+		                       [](char c) { return c == ' ' ? '-' : static_cast<char>(std::tolower(c)); });
+		CHECK_FALSE(fs::exists(apps / id / "json"));
+		REQUIRE(fs::exists(apps / id / "lisp" / "app.lisp"));
+		const affresco::Screen copy =
+		    affresco::Screen::fromApp(apps / id / "lisp", {}, affresco::Screen::History::InMemory);
+		REQUIRE(copy.app() != nullptr);
+		CHECK(copy.app()->id == id);
+		CHECK(json::parse(copy.documentJson())["window"]["title"] == name);
+		++made;
+	}
+	CHECK(made >= 11); // the programs (Flow, Streak, Quaderno, Haven, Tempo, Arcadia, Orrery, Tempera, Sinopia,
+	                   // Modello) and Sign in, whose lisp folder is generated
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
+
+// A program's app.lisp names its entry, and duplicating one wrote the copy's title into the file it names: an app put
+// in the folder with an :entry going up and into another app had that other app's file rewritten
+TEST_CASE("launcher attack: duplicating an app whose entry leaves its folder writes nothing outside the copy") {
+	const TemporaryFolder folder;
+	const fs::path apps = folder.path() / "AffrescoUI", examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	const std::string victim = "(defscreen main :window {:title \"Victim\"} (panel#root))\n";
+	writeFile(apps / "victim" / "lisp" / "app.lisp",
+	          "{:format affrescoui-app :version 1 :id victim :name \"Victim\" :entry index.screen.lisp}\n");
+	for(const std::string entry : {"../../victim/lisp/index.screen.lisp", "../../victim/lisp/./index.screen.lisp"}) {
+		CAPTURE(entry);
+		writeFile(apps / "victim" / "lisp" / "index.screen.lisp", victim);
+		writeFile(apps / "hostile" / "lisp" / "app.lisp",
+		          R"({:format affrescoui-app :version 1 :id hostile :name "Hostile" :entry ")" + entry + "\"}\n");
+		writeFile(apps / "hostile" / "lisp" / "index.screen.lisp",
+		          "(defscreen main :window {:title \"Hostile\"} (panel#root))\n");
+		const auto grant = [&](affresco::Screen& screen) {
+			screen.services().addRoot("examples", examples, true);
+			screen.services().addRoot("apps", apps);
+		};
+		const json scenarios = json::parse(R"json([{ "name": "duplicate", "steps": [
+			{ "key": "mod+2" },
+			{ "wait": 10 },
+			{ "click": { "role": "button", "name": "Duplicate Hostile" } },
+			{ "wait": 10 }
+		] }])json");
+		const automation::Report report =
+		    play(scenarios, examples / "launcher" / "json" / "index.screen.json", "", grant);
+		INFO(report.text());
+		CHECK(readFile(apps / "victim" / "lisp" / "index.screen.lisp") == victim);
+		// The copy is made, and titled where its own entry would be
+		CHECK(readFile(apps / "hostile-copy" / "lisp" / "app.lisp").contains(":name \"Hostile (copy)\""));
+		fs::remove_all(apps / "hostile-copy");
+	}
+}
+
+// The new app's name is written into its program's text by a keyword edit: a name that closes the string and goes on
+// as code stays the string's text, in its screen and in its app.lisp
+TEST_CASE("launcher attack: a new app's name can't write code into the program it copies") {
+	const TemporaryFolder folder;
+	const fs::path apps = folder.path() / "AffrescoUI", examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	fs::create_directories(apps);
+	const auto grant = [&](affresco::Screen& screen) {
+		screen.services().addRoot("examples", examples, true);
+		screen.services().addRoot("apps", apps);
+	};
+	const std::string name = R"(Evil" :id "x"} (call "hit") \" ~(call "hit") ;)";
+	const json steps = {json{{"key", "mod+n"}},
+	                    json{{"click", "#createName"}},
+	                    json{{"type", name}},
+	                    json{{"revision", {{"message", "lisp"}, {"set", {{"/state/notation", "lisp"}}}}}},
+	                    json{{"revision", {{"message", "from"}, {"set", {{"/state/create/from", "flow"}}}}}},
+	                    json{{"key", "mod+enter"}},
+	                    json{{"wait", 10}},
+	                    json{{"expect", {{"state", "create.error"}, {"is", ""}}}},
+	                    json{{"expect", {{"state", "mine[0].name"}, {"is", name}}}}};
+	const automation::Report report = play(json::array({{{"name", "create"}, {"steps", steps}}}),
+	                                       examples / "launcher" / "json" / "index.screen.json", "", grant);
+	INFO(report.text());
+	CHECK(report.failed() == 0);
+	int copies = 0;
+	for(const auto& entry : fs::directory_iterator(apps)) {
+		if(entry.path().filename() == "shared") continue;
+		CAPTURE(entry.path().filename().string());
+		affresco::Screen copy =
+		    affresco::Screen::fromApp(entry.path() / "lisp", {}, affresco::Screen::History::InMemory);
+		REQUIRE(copy.app() != nullptr);
+		CHECK(copy.app()->name == name);
+		CHECK(json::parse(copy.documentJson())["window"]["title"] == name);
+		// Its program is Flow's, definition for definition: the name added none
+		affresco::Screen flow =
+		    affresco::Screen::fromApp(examples / "flow" / "lisp", {}, affresco::Screen::History::InMemory);
+		CHECK(copy.versions().sourceDocument().value("program", json()) ==
+		      flow.versions().sourceDocument().value("program", json()));
+		++copies;
+	}
+	CHECK(copies == 1);
+}

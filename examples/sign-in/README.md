@@ -2,6 +2,8 @@
 
 Sign in, create an account, two-step verification, a password reset, provider sign-in with a made-up provider (Example ID), session expiry and an account page, in English, Italian and Arabic, light and dark. The `sign-in` template: a screen document with no C++ of its own, which the stock host runs.
 
+**JSON or Lisp:** it has real behaviour (validation of every field, password strength, two-step codes, session expiry), and it stays JSON on purpose: it is the reference JSON app, the template the fuzzers and some version-control tests read (`tests/fuzz`), and one of the templates the benchmarks load (`tests/perf`), so a JSON app keeps being measured and attacked as Lisp apps join. `json/` is its source.
+
 ```sh
 ./build/affrescoui_launcher examples/sign-in/json/index.screen.json
 ./build/affrescoui test examples/sign-in/json/index.scenarios.json

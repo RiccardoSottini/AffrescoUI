@@ -3,6 +3,7 @@
 
 #include "ServiceRules.hpp"
 #include "ConnectionSpec.hpp"
+#include "ProgramRules.hpp"
 #include "TerminalView.hpp"
 
 #include <algorithm>
@@ -62,6 +63,7 @@ std::vector<std::string> usesIn(const json& document) {
 	if(!document.is_object()) return found;
 	for(const auto& [key, value] : document.items())
 		if(key != "state" && key != "services" && key != "connections") collectUses(value, found);
+	collectProgramUses(document, found);
 	std::ranges::sort(found);
 	return found;
 }

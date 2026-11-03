@@ -1,6 +1,6 @@
 /// @file
-/// @brief Each example holds its app twice, in a json and a lisp folder: both load as exactly the same document, and
-/// the lisp folder's app is in the Lisp notation.
+/// @brief Each example holds its app twice, in a json and a lisp folder: both load as exactly the same document (a
+/// program, written by hand, as the same app), and the lisp folder's app is in the Lisp notation.
 
 #include <affresco/affresco.hpp>
 #include <affresco/format/App.hpp>
@@ -18,18 +18,34 @@ using affresco::Screen;
 TEST_CASE("lisp examples: every example is there in both notations, and loads as the same document") {
 	const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
 	int apps = 0;
+	int programs = 0; // apps written as programs (RFC 0005): their lisp folder is a source of its own, beside the JSON
 	for(const auto& entry : std::filesystem::directory_iterator(examples)) {
-		if(!std::filesystem::is_regular_file(entry.path() / "json" / "app.json")) continue;
+		if(!std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp")) continue;
 		CAPTURE(entry.path().filename().string());
-		REQUIRE(std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp"));
-		const Screen written = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
+		Screen written = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
 		REQUIRE(written.app() != nullptr);
 		CHECK(written.app()->entry.ends_with(".lisp"));
-		CHECK(written.documentJson() ==
-		      Screen::fromApp(entry.path() / "json", {}, Screen::History::InMemory).documentJson());
-		++apps;
+		if(!std::filesystem::is_regular_file(entry.path() / "json" / "app.json")) {
+			// Lisp only: Calamaio
+			CHECK(written.versions().sourceDocument().contains("program"));
+			++programs;
+			continue;
+		}
+		const Screen spelled = Screen::fromApp(entry.path() / "json", {}, Screen::History::InMemory);
+		REQUIRE(spelled.app() != nullptr);
+		CHECK(spelled.app()->id == written.app()->id);
+		if(written.versions().sourceDocument().contains("program")) {
+			// A program builds what its JSON writes out, its logic in functions: the same app, not the same document
+			CHECK(affresco::json::parse(written.documentJson())["window"] ==
+			      affresco::json::parse(spelled.documentJson())["window"]);
+			++programs;
+		} else {
+			CHECK(written.documentJson() == spelled.documentJson());
+			++apps;
+		}
 	}
-	CHECK(apps >= 12);
+	CHECK(apps >= 3);      // the generated ones: Sign in, Forge and the Launcher
+	CHECK(programs >= 11); // the programs, all but Calamaio with their JSON beside them
 }
 
 TEST_CASE("lisp examples: a lisp folder holds Lisp, but for scenarios and a signed catalogue") {
@@ -69,6 +85,7 @@ TEST_CASE("lisp examples: a file found by its name reads the same in either nota
 		return notation::readDocument(text, file);
 	};
 	CHECK(read(notation::namedDocument(lisp, "feature")) == read(notation::namedDocument(written, "feature")));
+	// Tempera is a program, its lisp folder written by hand: its adapter still reads as its JSON one
 	CHECK(read(examples / "tempera" / "lisp" / "sorter" / "sorter.adapter.lisp") ==
 	      read(examples / "tempera" / "json" / "sorter" / "sorter.adapter.json"));
 }
@@ -102,4 +119,44 @@ TEST_CASE("lisp examples: only a json or a lisp folder reads the assets folder b
 	CHECK(affresco::format::notationAssets("/a/flow").empty());
 	CHECK(affresco::format::notationAssets("").empty());
 	CHECK(affresco::format::notationAssets("/a/flow/parts").empty());
+}
+
+namespace {
+
+/// @brief A name as a JSON Pointer's segment: "~" as "~0", "/" as "~1".
+/// @param name The name.
+/// @return The segment.
+std::string segment(const std::string& name) {
+	std::string escaped;
+	for(const char c : name) escaped += c == '~' ? std::string("~0") : c == '/' ? std::string("~1") : std::string(1, c);
+	return escaped;
+}
+
+} // namespace
+
+// The apps that moved to programs kept their JSON permissions, whose ask rules name /actions: an agent's change to a
+// function or a command is under /program, so in acceptEdits it was applied unreviewed, where JSON asked for it
+TEST_CASE("lisp examples attack: an agent's change to an app's program is reviewed, as its actions were, in any mode") {
+	const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	int programs = 0;
+	for(const auto& entry : std::filesystem::directory_iterator(examples)) {
+		if(!std::filesystem::is_regular_file(entry.path() / "lisp" / "app.lisp")) continue;
+		CAPTURE(entry.path().filename().string());
+		Screen screen = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
+		const affresco::json source = screen.versions().sourceDocument();
+		if(!source.contains("program")) continue;
+		const auto file = source["program"].begin();
+		const auto definition = file->begin();
+		screen.versions().setMode(affresco::Mode::AcceptEdits);
+		const affresco::json revision = {{"author", "agent/x"},
+		                                 {"message", "m"},
+		                                 {"set",
+		                                  {{"/program/" + segment(file.key()) + "/" + segment(definition.key()),
+		                                    ";; changed\n" + definition->get<std::string>()}}}};
+		const affresco::RevisionResult result = screen.submitRevision(revision.dump());
+		CAPTURE(result.error);
+		CHECK(result.status != affresco::RevisionStatus::Applied);
+		++programs;
+	}
+	CHECK(programs >= 11);
 }

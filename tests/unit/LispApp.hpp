@@ -39,6 +39,9 @@ public:
 	/// @brief Sets it up.
 	/// @param scan Whether to run the scan after all.
 	explicit WithoutTheScan(bool scan) : scan_(scan) {}
+	/// @brief Gives the rules the host's services, which judge the uses of them a revision adds.
+	/// @param services They.
+	void setServices(const affresco::services::Services* services) noexcept { rules_.setServices(services); }
 	/// @copydoc DocumentRules::validate
 	void validate(const json& document) const override { rules_.validate(document); }
 	/// @copydoc DocumentRules::findNode

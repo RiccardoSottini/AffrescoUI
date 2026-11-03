@@ -386,14 +386,28 @@ std::set<std::string> controlActions(const json& doc, const std::set<std::string
 	return control;
 }
 
+/// The most rounds controlsIn() takes to settle what reaches a control step back and forth between the program and the
+/// actions; past them, every action a function runs by name counts as reaching one.
+constexpr int maxReachRounds = 16;
+
 } // namespace
 
 std::vector<std::string> controlsIn(const json& doc, const std::set<std::string, std::less<>>& granted) {
 	std::vector<std::string> found;
 	if(!doc.is_object()) return found;
 	static const json none; // both branches are references: the scan keeps one
-	const ProgramReach program = programReach(doc);
-	const std::set<std::string> control = controlActions(doc, granted, program);
+	// A function that runs an action by name reaches what the action does, and an action that runs a function what the
+	// function does: from nothing known, each round adds what the last found, until neither grows. Both only grow
+	const std::set<std::string> nothing;
+	ProgramReach program = programReach(doc, &nothing);
+	std::set<std::string> control = controlActions(doc, granted, program);
+	for(int round = 0;; ++round) {
+		ProgramReach next = programReach(doc, round < maxReachRounds ? &control : nullptr);
+		if(next.control == program.control) break;
+		program = std::move(next);
+		control = controlActions(doc, granted, program);
+		if(round >= maxReachRounds) break; // every action counted: nothing can grow after it
+	}
 	const std::set<std::string> runners = runningComponents(doc, control, program);
 	const ControlScan scan(doc.contains("actions") ? doc["actions"] : none, control, runners,
 	                       doc.contains("components") ? doc["components"] : none, program);

@@ -29,12 +29,10 @@ namespace {
 /// @brief The Kanban template's document, its state in "state", as a host gives it to its repository.
 /// @return The document.
 json kanban() {
-	const std::filesystem::path directory = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow" / "json";
-	const std::ifstream file(directory / "index.screen.json");
-	REQUIRE(file);
-	std::stringstream text;
-	text << file.rdbuf();
-	affresco::Screen screen = affresco::Screen::fromString(text.str(), directory);
+	// A program (RFC 0005): what its app builds, as a host opens it
+	const std::filesystem::path app =
+	    std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "flow" / "lisp" / "app.lisp";
+	affresco::Screen screen = affresco::Screen::fromApp(app, {}, affresco::Screen::History::InMemory);
 	screen.setPlaceholderTypes(true);
 	json document = json::parse(screen.documentJson());
 	document["state"] = json::parse(screen.stateJson());
@@ -134,8 +132,10 @@ TEST_CASE("roles: an agent can't give itself a role, a lease beyond its rules, o
 	const json beyond = ada.ask({{"type", "lease"}, {"author", "ada"}, {"target", "#statusBar"}});
 	CHECK(beyond["type"] == "rejected");
 	CHECK(beyond["error"].get<std::string>().find("beyond") != std::string::npos);
-	CHECK(ada.ask({{"type", "lease"}, {"author", "ada"}, {"target", "/state/lanes/launch/2"}, {"seconds", 99999}})
-	          ["seconds"] == 3600);
+	CHECK(ada.ask({{"type", "lease"},
+	               {"author", "ada"},
+	               {"target", "/state/lanes/launch/2"},
+	               {"seconds", 99999}})["seconds"] == 3600);
 
 	// A reviewer sets an agent's role and ends a lease; nobody sets their own role
 	CHECK(studio.ask({{"type", "setRole"}, {"author", "agent/ada"}, {"role", "design"}})["type"] == "done");

@@ -57,14 +57,24 @@ if(AFFRESCOUI_BUILD_TESTS)
 	# The schema and SCREEN_FORMAT.md's tables are generated from the registries: fails if they are out of date
 	add_test(NAME cli-reference COMMAND affrescoui_cli schema -o schema/affrescoui-screen.schema.json --types examples
 		--doc SCREEN_FORMAT.md --check WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-	# Sinopia's slide sorter into Tempera (examples/tempera/json/sorter): proven with its adapter, playing Tempera's
-	# scenarios; not proven without one, nor with the broken one
-	set(sorter examples/tempera/json/index.screen.json examples/sinopia/json/features/slide-sorter)
-	add_test(NAME tempera_sorter_proof COMMAND affrescoui_cli check --compose ${sorter}
-		--adapter examples/tempera/json/sorter/sorter.adapter.json WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-	add_test(NAME tempera_sorter_unadapted COMMAND affrescoui_cli check --compose ${sorter}
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-	add_test(NAME tempera_sorter_broken COMMAND affrescoui_cli check --compose ${sorter}
-		--adapter examples/tempera/json/sorter/broken.adapter.json WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-	set_tests_properties(tempera_sorter_unadapted tempera_sorter_broken PROPERTIES WILL_FAIL TRUE)
+	# Sinopia's slide sorter into Tempera (examples/tempera/<notation>/sorter): proven with its adapter, playing Tempera's
+	# scenarios; not proven without one, nor with the broken one. In each version of the two apps: <name> for the JSON,
+	# <name>_lisp for the Lisp programs
+	foreach(notation json lisp)
+		set(suffix "")
+		set(entry index.screen.json)
+		if(notation STREQUAL "lisp")
+			set(suffix _lisp)
+			set(entry index.screen.lisp)
+		endif()
+		set(sorter examples/tempera/${notation}/${entry} examples/sinopia/${notation}/features/slide-sorter)
+		set(adapters examples/tempera/${notation}/sorter)
+		add_test(NAME tempera_sorter_proof${suffix} COMMAND affrescoui_cli check --compose ${sorter}
+			--adapter ${adapters}/sorter.adapter.${notation} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+		add_test(NAME tempera_sorter_unadapted${suffix} COMMAND affrescoui_cli check --compose ${sorter}
+			WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+		add_test(NAME tempera_sorter_broken${suffix} COMMAND affrescoui_cli check --compose ${sorter}
+			--adapter ${adapters}/broken.adapter.${notation} WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+		set_tests_properties(tempera_sorter_unadapted${suffix} tempera_sorter_broken${suffix} PROPERTIES WILL_FAIL TRUE)
+	endforeach()
 endif()

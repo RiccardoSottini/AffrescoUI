@@ -351,12 +351,27 @@ Value Machine::callHost(const NativeObject* native, std::vector<Value> arguments
 			const std::vector<std::string> authors = authorsOnStack();
 			const std::vector<std::string> ran = authorsThatRan();
 			const auto [place, definition] = currentPlace();
-			gate_({native->name, native->host.capability, authors, ran, place});
+			gate_({native->name, native->host.capability, authors, ran, place, namedBy(native, arguments)});
 		}
 		return native->host.call(owner_, arguments);
 	} catch(const Refusal& refusal) {
 		throw Problem(refusal.what());
 	}
+}
+
+std::string_view Machine::namedBy(const NativeObject* native, std::span<const Value> arguments) const {
+	if(frames_.empty() || arguments.empty()) return {};
+	const Kind kind = arguments[0].kind();
+	if(kind != Kind::String && kind != Kind::Keyword) return {};
+	// The code calling it is the frame's: a native runs in its caller's frame, and `apply` or a function given a value
+	// uses the step as a value, which no text written out covers
+	const Code& code = *frames_.back().code;
+	for(const NamedCall& call : code.named) {
+		const Global& global = *code.globals[call.global];
+		if(call.text == arguments[0].text() && global.value.kind() == Kind::Native && global.value.pointer() == native)
+			return call.text;
+	}
+	return {};
 }
 
 void Machine::finishCall(Value result, std::uint32_t count) { // a copy: it may stand on the stack

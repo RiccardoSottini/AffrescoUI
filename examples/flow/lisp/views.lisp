@@ -1,4 +1,4 @@
-{:note "Flow's other views, included by index.screen.json: the insights beside the board (burndown and activity), swimlanes by member, the timeline of due dates, and the settings."
+{:note "Flow's other views, included by index.screen.lisp: the insights beside the board (burndown and activity), swimlanes by member, the timeline of due dates, and the settings."
  :components {:insights {:note "The sprint burndown and the activity feed, under the cards-per-column chart while no card is chosen"
                          :params {}
                          :node (node#insights :color transparent

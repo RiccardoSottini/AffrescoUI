@@ -8,8 +8,8 @@ Launcher ([`../../examples/launcher`](../../examples/launcher/README.md)), which
 
 ```sh
 ./build/affrescoui_launcher [app folder | app.json | screen.json] [--socket DIR] [--data DIR] [--grant KEY ...]
-./build/affrescoui_launcher --permissions examples/tempo/json                # forget what the person allowed Tempo
-AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_launcher examples/flow/json # the first frame, then exit
+./build/affrescoui_launcher --permissions examples/tempo/lisp                # forget what the person allowed Tempo
+AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_launcher examples/flow/lisp # the first frame, then exit
 ```
 
 Ctrl+Shift+D (Cmd+Shift+D on macOS), or *Review changes* on a card in the app's assistant, opens the host's window on a

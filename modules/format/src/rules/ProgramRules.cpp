@@ -107,31 +107,132 @@ std::vector<DefinitionChange> definitionChanges(const json& before, const json& 
 	return changes;
 }
 
+/// @brief What a `run` written out may name, in the order the run step looks (Steps::runNamedAction): an action of the
+/// document, then a function of the program, then the application's own.
+struct RunTargets {
+	const json* actions = nullptr; ///< The document's actions, or nullptr.
+	/// Those that may run a control step, or nullptr when that isn't known: then any may.
+	const std::set<std::string>* controlActions = nullptr;
+	std::map<std::string, std::vector<std::string>> advice; ///< The functions that advise each action.
+};
+
+/// @brief What a definition's words reach: the definitions they name, and whether one reaches a control or a review
+/// step by itself.
+class Reach {
+public:
+	/// @brief Sets it up.
+	/// @param used What each definition uses by name.
+	/// @param named What each only calls with a text written out first.
+	/// @param targets What a `run` written out may name.
+	Reach(const std::map<std::string, std::vector<std::string>>& used, const lisp::NamedCalls& named,
+	      const RunTargets& targets)
+	    : used_(used), named_(named), targets_(targets) {}
+
+	/// @brief The definitions from which a control or a review step can be reached.
+	/// @return Them.
+	std::set<std::string> control() {
+		for(const auto& [name, names] : used_)
+			for(const std::string& word : names) note(name, word);
+		while(!waiting_.empty()) {
+			const std::string name = std::move(waiting_.back());
+			waiting_.pop_back();
+			for(const std::string& caller : usedBy_[name]) reaches(caller);
+		}
+		return std::move(control_);
+	}
+
+private:
+	/// @brief Notes what one word of a definition reaches.
+	/// @param name The definition.
+	/// @param word The word.
+	void note(const std::string& name, const std::string& word) {
+		if(used_.contains(word)) {
+			usedBy_[word].push_back(name);
+			return;
+		}
+		const std::vector<std::string>* texts = textsOf(name, word);
+		if(word == "run") {
+			// A computed name may run anything, as a computed "run" in a handler; a name written out runs what it names
+			if(!texts) return reaches(name);
+			for(const std::string& target : *texts) follow(name, target);
+			return;
+		}
+		const std::string_view step = stepOfWord(word);
+		const StepKind kind = stepKind(step);
+		if(kind != StepKind::Control && kind != StepKind::Review) return;
+		const bool byUse =
+		    kind == StepKind::Control && texts &&
+		    std::ranges::all_of(*texts, [&](const std::string& text) { return judgedByUse(step, text); });
+		if(!byUse) reaches(name);
+	}
+
+	/// @brief Notes what a `run` of a name written out reaches, as the run step finds it.
+	/// @param name The definition.
+	/// @param target What it runs.
+	void follow(const std::string& name, const std::string& target) {
+		if(target.contains("{{")) return reaches(name);
+		if(targets_.actions && targets_.actions->is_object() && targets_.actions->contains(target)) {
+			if(!targets_.controlActions || targets_.controlActions->contains(target)) reaches(name);
+			if(const auto advice = targets_.advice.find(target); advice != targets_.advice.end())
+				for(const std::string& function : advice->second) {
+					if(used_.contains(function)) usedBy_[function].push_back(name);
+					else reaches(name);
+				}
+			return;
+		}
+		if(used_.contains(target)) usedBy_[target].push_back(name);
+		else reaches(name); // the application's own action: its code, which may do anything
+	}
+
+	/// @brief The texts a definition only calls a word with.
+	/// @param name The definition.
+	/// @param word The word.
+	/// @return Them, or nullptr if it uses the word any other way.
+	[[nodiscard]] const std::vector<std::string>* textsOf(const std::string& name, const std::string& word) const {
+		const auto calls = named_.find(name);
+		if(calls == named_.end() || calls->second.otherwise.contains(word)) return nullptr;
+		const auto texts = calls->second.texts.find(word);
+		return texts == calls->second.texts.end() ? nullptr : &texts->second;
+	}
+
+	/// @brief Marks a definition as reaching one.
+	/// @param name It.
+	void reaches(const std::string& name) {
+		if(control_.insert(name).second) waiting_.push_back(name);
+	}
+
+	const std::map<std::string, std::vector<std::string>>& used_; ///< What each definition uses.
+	const lisp::NamedCalls& named_;                               ///< What each calls with a text written out.
+	const RunTargets& targets_;                                   ///< What a run written out may name.
+	std::map<std::string, std::vector<std::string>> usedBy_;      ///< Who uses each definition, to follow it back.
+	std::vector<std::string> waiting_;                            ///< Those found to reach one, not followed back yet.
+	std::set<std::string> control_;                               ///< Those found to reach one.
+};
+
+/// @brief What a `run` written out may name in a document.
+/// @param document The document.
+/// @param built What its program built.
+/// @param controlActions Its actions that may run a control step, or nullptr when that isn't known.
+/// @return Them.
+RunTargets runTargetsOf(const json& document, const lisp::BuiltProgram& built,
+                        const std::set<std::string>* controlActions) {
+	RunTargets targets;
+	if(const auto actions = document.find("actions"); actions != document.end()) targets.actions = &*actions;
+	targets.controlActions = controlActions;
+	for(const lisp::Extension& extension : built.extensions)
+		if(extension.kind == "advice" && !built.namesUsed.contains(extension.targets.front()))
+			targets.advice[extension.targets.front()].push_back(extension.targets.back());
+	return targets;
+}
+
 /// @brief Marks the definitions from which a control or a review step can be reached.
 /// @param used What each uses by name.
+/// @param named What each only calls with a text written out first.
+/// @param targets What a `run` written out may name.
 /// @return Those definitions.
-std::set<std::string> reachingControl(const std::map<std::string, std::vector<std::string>>& used) {
-	std::map<std::string, std::vector<std::string>> usedBy; // who uses each definition, to follow it back
-	std::vector<std::string> waiting;
-	std::set<std::string> control;
-	for(const auto& [name, names] : used)
-		for(const std::string& word : names) {
-			if(used.contains(word)) {
-				usedBy[word].push_back(name);
-				continue;
-			}
-			// `run` takes a computed name, so it may reach anything: as a computed "run" does in a handler
-			const StepKind kind = stepKind(stepOfWord(word));
-			const bool reaches = kind == StepKind::Control || kind == StepKind::Review || word == "run";
-			if(reaches && control.insert(name).second) waiting.push_back(name);
-		}
-	while(!waiting.empty()) {
-		const std::string name = std::move(waiting.back());
-		waiting.pop_back();
-		for(const std::string& caller : usedBy[name])
-			if(control.insert(caller).second) waiting.push_back(caller);
-	}
-	return control;
+std::set<std::string> reachingControl(const std::map<std::string, std::vector<std::string>>& used,
+                                      const lisp::NamedCalls& named, const RunTargets& targets) {
+	return Reach(used, named, targets).control();
 }
 
 } // namespace
@@ -200,7 +301,10 @@ void addExtensionReviewLines(const json& before, const json& after, std::vector<
 		if(extension.kind != "advice") {
 			const auto built = lisp::builtProgram(after["program"]);
 			const bool actions = after.contains("actions") && after["actions"].dump().contains("runHooks");
-			if(!actions && !hooksMeetControl(*built, reachingControl(built->namesUsed))) return;
+			const RunTargets targets =
+			    runTargetsOf(after, *built, nullptr); // any action may: the review is the safe side
+			if(!actions && !hooksMeetControl(*built, reachingControl(built->namesUsed, built->namedCalls, targets)))
+				return;
 		}
 		lines.push_back(std::string(verb) + " '" + extension.name + "': the same review as changing what it joins");
 	};
@@ -214,13 +318,14 @@ bool isRunningWord(std::string_view word) {
 	return stepKind(stepOfWord(word)) != StepKind::None || detail::findFunction(word) != nullptr;
 }
 
-ProgramReach programReach(const json& document) {
+ProgramReach programReach(const json& document, const std::set<std::string>* controlActions) {
 	ProgramReach reach;
 	if(!lisp::hasProgram(document)) return reach;
 	try {
 		const auto built = lisp::builtProgram(document["program"]);
 		for(const auto& [name, names] : built->namesUsed) reach.defined.insert(name);
-		reach.control = reachingControl(usedWithExtensions(*built));
+		reach.control = reachingControl(usedWithExtensions(*built), built->namedCalls,
+		                                runTargetsOf(document, *built, controlActions));
 		// NOLINTNEXTLINE(bugprone-empty-catch): the build reports it; nothing counts as the program's meanwhile
 	} catch(const DocumentError&) {
 	}
@@ -240,6 +345,37 @@ void collectProgramWrites(const json& document, std::span<const std::string_view
 					if(std::ranges::find(used->second, std::string(write == "update" ? "update-record" : write)) !=
 					   used->second.end())
 						found.insert(json{{write, true}, {"definition", name}, {"text", text}}.dump());
+			}
+		// NOLINTNEXTLINE(bugprone-empty-catch): the build reports it
+	} catch(const DocumentError&) {
+	}
+}
+
+void collectProgramUses(const json& document, std::vector<std::string>& found) {
+	if(!lisp::hasProgram(document)) return;
+	try {
+		const auto built = lisp::builtProgram(document["program"]);
+		// What a macro writes into a definition is in its use too, as its text doesn't change with it
+		std::string macros;
+		for(const auto& [file, entries] : document["program"].items())
+			for(const auto& [name, text] : entries.items())
+				if(kindOf(text.get<std::string>()) == "defmacro") macros += "\n" + text.get<std::string>();
+		for(const auto& [file, entries] : document["program"].items())
+			for(const auto& [name, text] : entries.items()) {
+				const auto calls = built->namedCalls.find(name);
+				if(calls == built->namedCalls.end()) continue;
+				for(const char* step : {"invoke", "request", "subscribe"}) {
+					// Every call written out, used otherwise too or not: the check when it runs lets each through
+					const auto texts = calls->second.texts.find(step);
+					if(texts == calls->second.texts.end()) continue;
+					// "<step> <name>", then what judges a change of its arguments: the text that gives them
+					for(const std::string& method : texts->second)
+						if(judgedByUse(step, method)) {
+							std::string use = std::string(step) + " ";
+							use.append(method).append("\n").append(text.get_ref<const std::string&>()).append(macros);
+							found.push_back(std::move(use));
+						}
+				}
 			}
 		// NOLINTNEXTLINE(bugprone-empty-catch): the build reports it
 	} catch(const DocumentError&) {
@@ -283,6 +419,55 @@ std::size_t programLogic(const json& before, const json& after) {
 	for(const DefinitionChange& change : definitionChanges(before, after))
 		if(isBehaviour(change.kind)) ++count;
 	return count;
+}
+
+namespace {
+
+/// @brief The names some definition of a program uses, or std::nullopt if it can't be built.
+/// @param document The document.
+/// @return Them; none without a program.
+std::optional<std::set<std::string>> namesUsedIn(const json& document) {
+	std::set<std::string> names;
+	if(!lisp::hasProgram(document)) return names;
+	try {
+		for(const auto& [name, words] : lisp::builtProgram(document["program"])->namesUsed)
+			for(const std::string& word : words)
+				if(word != name) names.insert(word);
+	} catch(const DocumentError&) {
+		return std::nullopt;
+	}
+	return names;
+}
+
+/// @brief Tells whether a definition's text, before or after a change, is a screen's.
+/// @param view The view.
+/// @param change The change.
+/// @return true if it is, or there is no text there.
+bool screenOrNone(const json& view, const DefinitionChange& change) {
+	const json* text = entryAt(view, change.file, change.name);
+	return !text || kindOf(text->get<std::string>()) == "defscreen";
+}
+
+} // namespace
+
+bool programRunsChanged(const json& before, const json& after) {
+	const std::vector<DefinitionChange> changes = definitionChanges(before, after);
+	if(changes.empty()) return false;
+	const std::optional<std::set<std::string>> was = namesUsedIn(before), is = namesUsedIn(after);
+	if(!was || !is) return true; // what can't be built can't be told apart: every definition counts
+	return std::ranges::any_of(changes, [&](const DefinitionChange& change) {
+		// A screen's text builds a tree and nothing else, as a function can't be in a tree: what it does is judged in
+		// what it builds, unless another definition uses its name
+		const bool screen = screenOrNone(before, change) && screenOrNone(after, change);
+		return !screen || was->contains(change.name) || is->contains(change.name);
+	});
+}
+
+// A rule on the actions, or on what "*" may make one: /actions, /actions/save, /*/save
+bool Rules::changesCodeUnder(const json& before, const json& after, std::string_view pattern) const {
+	const std::string_view first = pattern.substr(0, pattern.find('/', 1));
+	if(first != "/actions" && first != "/*") return false;
+	return programRunsChanged(before, after);
 }
 
 std::optional<json> Rules::built(const json& document) const {

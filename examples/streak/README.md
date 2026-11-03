@@ -2,8 +2,7 @@
 
 Habits to check day by day, with scores, charts, a calendar and notes, kept as records of a `habits` model (SCREEN_FORMAT.md, "Data: models and records"). The `habit-tracker` template: an app with no C++ of its own, which the stock host runs.
 
-**It is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"): `lisp/` is its only source, with no `json/` beside it, and
-`tools/notation/lisp_examples.py` leaves it alone. The screen says what is shown; `lisp/habits.lisp` says what happens: its behaviour is in
+**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"): `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone. The screen says what is shown; `lisp/habits.lisp` says what happens: its behaviour is in
 functions and commands, which read the running app through paths and change it through steps, and its handlers name them.
 
 ```sh

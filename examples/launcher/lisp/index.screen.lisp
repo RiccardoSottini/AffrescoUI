@@ -132,7 +132,7 @@
             :askText "{{trim(trim(state.create.describe) + (length(state.create.features) > 0 ? '\n\nAlso add these features from other apps: ' + join(map(filter(state.featureChoices, contains(state.create.features, it.id)), it.ask), '; ') + '.' : ''))}}"
             :createError "{{trim(state.create.name) == '' ? 'create.error.empty' : length(trim(state.create.name)) > 80 ? 'create.error.long' : contains(state.create.name, '{' + '{') || contains(state.create.name, '}' + '}') ? 'create.error.braces' : computed.slug == '' ? 'create.error.letters' : contains(computed.reserved, computed.slug) ? 'create.error.reserved' : contains(computed.myIds, computed.slug) ? 'create.error.exists' : length(computed.askText) > 4000 ? 'create.error.describe' : ''}}"
             :fromName "{{state.create.from == 'blank' ? t('create.blank') : (find(state.examples, it.id == state.create.from).name ?? '')}}"
-            :excluded "{{['*.cpp', '*.hpp', '*.h', '*.c', '*.cc', '*.mm', '*.cmake', 'CMakeLists.txt', '*.py', '*.lisp', '.*']}}"}
+            :excluded "{{['*.cpp', '*.hpp', '*.h', '*.c', '*.cc', '*.mm', '*.cmake', 'CMakeLists.txt', '*.py', '.*']}}"}
  :actions {:go [{:note "with: page"} {:set state.page :to "{{page}}"}]
            :toast [{:note "with: message, error"}
                    {:push state.toasts :value {:message "{{message}}" :color "{{error ? '@c.danger' : '@c.accent'}}"}}
@@ -156,7 +156,7 @@
                            {:set state.mine :to "{{event.mine ?? []}}"}
                            {:set state.mineError :to ""}
                            {:set state.mineLoaded :to true}]
-           :loadMine [{:note "with: i, run. Reads the apps one after another (an fs service runs 16 calls at once): each folder's screen's modified time and window title; the last changed first. A folder holds its screen, or a json folder (a copy of an example: loadMineCopy)"}
+           :loadMine [{:note "with: i, run. Reads the apps one after another (an fs service runs 16 calls at once): each folder's screen's modified time and window title; the last changed first. A folder holds its screen, or a json folder (a copy of an example: loadMineCopy), or a lisp folder (a copy of an example written as a program: loadMineProgram). Each call's answer runs the next action by name, so a long list nests no deeper than it must where calls are answered at once"}
                       {:if "{{run != state.mineRun}}" :then [{:stop true}]}
                       {:if "{{i >= length(state.mineScan)}}"
                        :then [{:set state.mine :to "{{sort(state.mineNext, it.modified, 'desc')}}"}
@@ -164,31 +164,36 @@
                               {:stop true}]}
                       {:invoke apps.stat
                        :with {:path "{{state.mineScan[i].name + '/index.screen.json'}}"}
-                       :onDone [{:if "{{result.exists != true || result.kind != 'file'}}"
-                                 :then [{:run loadMineCopy :with {:i "{{i}}" :run "{{run}}"}} {:stop true}]}
-                                {:run readMine
+                       :onDone [{:run "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMineCopy'}}"
                                  :with {:i "{{i}}" :sub "" :modified "{{result.modified ?? 0}}" :run "{{run}}"}}]
                        :onError [{:run loadMineCopy :with {:i "{{i}}" :run "{{run}}"}}]}]
            :loadMineCopy [{:note "with: i, run"}
                           {:invoke apps.stat
                            :with {:path "{{state.mineScan[i].name + '/json/index.screen.json'}}"}
-                           :onDone [{:if "{{result.exists != true || result.kind != 'file'}}"
-                                     :then [{:run loadMine :with {:i "{{i + 1}}" :run "{{run}}"}} {:stop true}]}
-                                    {:run readMine
+                           :onDone [{:run "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMineProgram'}}"
                                      :with {:i "{{i}}" :sub "/json" :modified "{{result.modified ?? 0}}" :run "{{run}}"}}]
-                           :onError [{:run loadMine :with {:i "{{i + 1}}" :run "{{run}}"}}]}]
-           :readMine [{:note "with: i, sub, modified, run"}
+                           :onError [{:run loadMineProgram :with {:i "{{i}}" :run "{{run}}"}}]}]
+           :loadMineProgram [{:note "with: i, run. A copy of an example written as a program: a lisp folder, with its app.lisp; a folder with none of the three is left out"}
+                             {:invoke apps.stat
+                              :with {:path "{{state.mineScan[i].name + '/lisp/app.lisp'}}"}
+                              :onDone [{:run "{{result.exists == true && result.kind == 'file' ? 'readMine' : 'loadMine'}}"
+                                        :with {:i "{{result.exists == true && result.kind == 'file' ? i : i + 1}}"
+                                               :sub "/lisp"
+                                               :modified "{{result.modified ?? 0}}"
+                                               :run "{{run}}"}}]
+                              :onError [{:run loadMine :with {:i "{{i + 1}}" :run "{{run}}"}}]}]
+           :readMine [{:note "with: i, sub, modified, run. The name is the window title of a JSON app's screen, or a program's name in its app.lisp"}
                       {:invoke apps.read
-                       :with {:path "{{state.mineScan[i].name + sub + '/index.screen.json'}}"}
+                       :with {:path "{{state.mineScan[i].name + sub + (sub == '/lisp' ? '/app.lisp' : '/index.screen.json')}}"}
                        :onDone [{:if "{{run != state.mineRun}}" :then [{:stop true}]}
                                 {:push state.mineNext
                                  :value {:id "{{state.mineScan[i].name}}"
                                          :sub "{{sub}}"
-                                         :name "{{(parseJson(result.text) ?? {}).window.title ?? state.mineScan[i].name}}"
+                                         :name "{{(sub == '/lisp' ? formKeyword(result.text, 'name') : (parseJson(result.text) ?? {}).window.title) ?? state.mineScan[i].name}}"
                                          :modified "{{modified}}"}}
                                 {:run loadMine :with {:i "{{i + 1}}" :run "{{run}}"}}]
                        :onError [{:run loadMine :with {:i "{{i + 1}}" :run "{{run}}"}}]}]
-           :listNew [{:note "with: id, sub, title. Shows an app just made at the top of the list at once, before the folder is read again (launcher.refresh)"}
+           :listNew [{:note "with: id, sub, title. Shows an app just made at the top of the list at once, before the folder is read again (launcher.refresh, a moment later: after the calls that made it have ended, so what reads the folder doesn't nest in them)"}
                      {:set state.mine
                       :to "{{concat([{id: id, sub: sub, name: title, modified: now()}], filter(state.mine, it.id != id))}}"}]
            :openExample [{:note "with: app"}
@@ -200,7 +205,7 @@
                                             :error true}}]}]
            :openMine [{:note "with: id, name, ask (empty for none)"}
                       {:invoke launch.run
-                       :with {:arguments "{{concat(['affrescoui_launcher', 'apps:' + id + ((find(state.mine, it.id == id) ?? {}).sub ?? '') + '/index.screen.json'], ask != '' ? ['--ask', ask] : [])}}"}
+                       :with {:arguments "{{concat(['affrescoui_launcher', 'apps:' + id + ((find(state.mine, it.id == id) ?? {}).sub == '/lisp' ? '/lisp' : ((find(state.mine, it.id == id) ?? {}).sub ?? '') + '/index.screen.json')], ask != '' ? ['--ask', ask] : [])}}"}
                        :onDone [{:run toast :with {:message "{{t('toast.opening', {name: name})}}" :error false}}]
                        :onError [{:run toast
                                   :with {:message "{{t('toast.openFailed', {name: name, why: error.message})}}"
@@ -216,7 +221,7 @@
                          :with {:path "{{state.confirm.id}}"}
                          :onDone [{:run toast
                                    :with {:message "{{t('toast.deleted', {name: state.confirm.name})}}" :error false}}
-                                  {:run launcher.refresh}]
+                                  {:after 1 :do [{:run launcher.refresh}]}]
                          :onError [{:run toast :with {:message "{{error.message}}" :error true}}]}]
            :duplicateMine [{:note "with: id, name. The copy's folder is the first free <id>-copy, <id>-copy-2, ..."}
                            {:run copyMine
@@ -235,8 +240,12 @@
                        :onError [{:run toast :with {:message "{{error.message}}" :error true}}]}]
            :copied [{:run listNew :with {:id "{{id}}" :sub "{{sub}}" :title "{{title}}"}}
                     {:run toast :with {:message "{{t('toast.duplicated', {name: title})}}" :error false}}
-                    {:run launcher.refresh}]
-           :retitle [{:note "with: id, sub (where the app's files are in its folder: '' or '/json'), title, then (an action, run with the same variables). Sets the window title of its index.screen.json, as text, so the file keeps its layout"}
+                    {:after 1 :do [{:run launcher.refresh}]}]
+           :retitle [{:note "with: id, sub (where the app's files are in its folder: '', '/json' or '/lisp'), title, then (an action, run with the same variables). Sets the window title of its index.screen.json, as text, so the file keeps its layout; a program's through its keywords (retitleProgram)"}
+                     {:if "{{sub == '/lisp'}}"
+                      :then [{:run retitleProgram
+                              :with {:id "{{id}}" :title "{{title}}" :ask "{{ask}}" :then "{{then}}"}}
+                             {:stop true}]}
                      {:invoke apps.read
                       :with {:path "{{id + sub + '/index.screen.json'}}"}
                       :onDone [{:invoke apps.write
@@ -250,6 +259,46 @@
                                                  :then "{{then}}"}}]
                                 :onError [{:run createFailed :with {:id "{{id}}" :why "{{error.message}}" :keep false}}]}]
                       :onError [{:run createFailed :with {:id "{{id}}" :why "{{error.message}}" :keep false}}]}]
+           :retitleProgram [{:note "with: id, title, ask, then. A program copied into a lisp folder: the :window :title of the entry its app.lisp names is set, by a keyword edit that keeps every other character, then its app.lisp's :id and :name"}
+                            {:invoke apps.read
+                             :with {:path "{{id + '/lisp/app.lisp'}}"}
+                             :onDone [{:run retitleEntry
+                                       :with {:id "{{id}}"
+                                              :entry "{{formKeyword(result.text, 'entry') ?? 'index.screen.lisp'}}"
+                                              :title "{{title}}"
+                                              :ask "{{ask}}"
+                                              :then "{{then}}"}}]
+                             :onError [{:run createFailed :with {:id "{{id}}" :why "{{error.message}}" :keep false}}]}]
+           :retitleEntry [{:note "with: id, entry, title, ask, then. The entry an app.lisp names is a file of its folder: one going elsewhere (a path, a folder up) is taken as index.screen.lisp, so a copy never writes outside itself"}
+                          {:if "{{type(entry) != 'string' || entry == '' || slice(entry, 0, 1) == '.' || contains(entry, '/') || contains(entry, '\\\\') || contains(entry, ':')}}"
+                           :then [{:run retitleEntry
+                                   :with {:id "{{id}}"
+                                          :entry index.screen.lisp
+                                          :title "{{title}}"
+                                          :ask "{{ask}}"
+                                          :then "{{then}}"}}
+                                  {:stop true}]}
+                          {:invoke apps.read
+                           :with {:path "{{id + '/lisp/' + entry}}"}
+                           :onDone [{:invoke apps.write
+                                     :with {:path "{{id + '/lisp/' + entry}}"
+                                            :text "{{setFormKeyword(result.text, ['window', 'title'], title) ?? result.text}}"}
+                                     :onDone [{:run reidentifyProgram
+                                               :with {:id "{{id}}" :title "{{title}}" :ask "{{ask}}" :then "{{then}}"}}]
+                                     :onError [{:run createFailed
+                                                :with {:id "{{id}}" :why "{{error.message}}" :keep false}}]}]
+                           :onError [{:run createFailed :with {:id "{{id}}" :why "{{error.message}}" :keep false}}]}]
+           :reidentifyProgram [{:note "with: id, title, ask, then. Gives the copy's app.lisp the new app's :id and :name, as reidentify does an app.json"}
+                               {:invoke apps.read
+                                :with {:path "{{id + '/lisp/app.lisp'}}"}
+                                :onDone [{:invoke apps.write
+                                          :with {:path "{{id + '/lisp/app.lisp'}}"
+                                                 :text "{{setFormKeyword(setFormKeyword(result.text, 'id', id) ?? result.text, 'name', title) ?? result.text}}"}
+                                          :onDone [{:run "{{then}}"
+                                                    :with {:id "{{id}}" :sub "/lisp" :title "{{title}}" :ask "{{ask}}"}}]
+                                          :onError [{:run createFailed
+                                                     :with {:id "{{id}}" :why "{{error.message}}" :keep false}}]}]
+                                :onError [{:run createFailed :with {:id "{{id}}" :why "{{error.message}}" :keep false}}]}]
            :reidentify [{:note "with: id, sub, title, ask, then. Gives a copy's app.json (a starter has none) the new app's id and name, as text, so it keeps its data and permissions apart from the app it was copied from"}
                         {:invoke apps.read
                          :with {:path "{{id + sub + '/app.json'}}"}
@@ -281,6 +330,7 @@
                                :title "{{trim(state.create.name)}}"
                                :ask "{{computed.askText}}"
                                :folder "{{(find(state.examples, it.id == state.create.from) ?? {}).folder ?? ''}}"
+                               :sub "{{((find(state.examples, it.id == state.create.from) ?? {}).notation ?? state.notation) == 'lisp' ? '/lisp' : '/json'}}"
                                :then createShared}}]
            :createBlank [{:note "with: id, title, ask, then. A folder, and the blank starter in it"}
                          {:invoke apps.mkdir
@@ -301,13 +351,13 @@
                                      :with {:id "{{id}}"
                                             :why "{{error.code == 'exists' ? t('create.error.taken', {folder: id}) : error.message}}"
                                             :keep true}}]}]
-           :createCopy [{:note "with: id, title, ask, folder, then. A copy of an example's JSON folder and its assets, without its C++, into a json folder and an assets folder: its paths lead to the shared folder from there"}
+           :createCopy [{:note "with: id, title, ask, folder, sub, then. A copy of an example's folder in the notation Settings choose, or the one its entry pins (sub: '/json' or '/lisp') and its assets, without its C++, into a folder of that name and an assets folder: its paths lead to the shared folder from there"}
                         {:invoke apps.mkdir
                          :with {:path "{{id}}"}
                          :onDone [{:invoke apps.copy
                                    :with {:from examples
-                                          :path "{{folder + '/json'}}"
-                                          :to "{{id + '/json'}}"
+                                          :path "{{folder + sub}}"
+                                          :to "{{id + sub}}"
                                           :exclude "{{computed.excluded}}"}
                                    :onDone [{:invoke apps.copy
                                              :with {:from examples
@@ -316,13 +366,13 @@
                                                     :exclude "{{computed.excluded}}"}
                                              :onDone [{:run retitle
                                                        :with {:id "{{id}}"
-                                                              :sub "/json"
+                                                              :sub "{{sub}}"
                                                               :title "{{title}}"
                                                               :ask "{{ask}}"
                                                               :then "{{then}}"}}]
                                              :onError [{:run retitle
                                                         :with {:id "{{id}}"
-                                                               :sub "/json"
+                                                               :sub "{{sub}}"
                                                                :title "{{title}}"
                                                                :ask "{{ask}}"
                                                                :then "{{then}}"}}]}]
@@ -339,7 +389,7 @@
                                     {:run resetCreate}
                                     {:set state.page :to mine}
                                     {:run openMine :with {:id "{{id}}" :name "{{title}}" :ask "{{ask}}"}}
-                                    {:run launcher.refresh}]
+                                    {:after 1 :do [{:run launcher.refresh}]}]
                            :onError [{:run createFailed :with {:id "{{id}}" :why "{{error.message}}" :keep false}}]}]
            :createFailed [{:note "with: id, why, keep (the folder isn't the new app's: it was there, or never made)"}
                           {:set state.create.busy :to false}

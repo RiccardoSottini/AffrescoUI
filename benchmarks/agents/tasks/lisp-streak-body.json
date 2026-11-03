@@ -1,0 +1,42 @@
+{
+	"id": "lisp-streak-body",
+	"level": "feature",
+	"screen": "examples/streak/lisp/index.screen.lisp",
+	"request": "In Streak, Cmd+J (the command toggleTheme, a Lisp function in the program's habits.lisp) should also show the toast \"Theme changed\", with the program's own toast function.",
+	"scenarios": [
+		{
+			"name": "toast",
+			"steps": [
+				{
+					"expect": {
+						"state": "toasts.length",
+						"is": 0
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"state": "toasts[0].message",
+						"is": "Theme changed"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane",
+		"/program/habits.lisp/toggleHideCompleted"
+	],
+	"reference": [
+		{
+			"message": "Cmd+J says Theme changed",
+			"set": {
+				"/program/habits.lisp/toggleTheme": "(defcommand toggleTheme \"Between light and dark.\"\n  :title ~(t \"action.toggleTheme.title\") :category \"Streak\" :icon \"moon\"\n  []\n  (set \"state.theme\" (if (= computed.theme \"light\") \"dark\" \"light\"))\n  (toast \"Theme changed\"))"
+			}
+		}
+	]
+}

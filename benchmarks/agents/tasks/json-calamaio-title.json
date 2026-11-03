@@ -1,0 +1,46 @@
+{
+	"id": "json-calamaio-title",
+	"level": "edit",
+	"screen": "examples/calamaio/lisp/calamaio.screen.lisp",
+	"request": "In Calamaio's Edit menu, the item Undo (the command undo, a JSON action in actions) should read \"Undo Last Change\". Change only its title.",
+	"scenarios": [
+		{
+			"name": "menu",
+			"steps": [
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Edit"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "menuitem",
+							"name": "Undo Last Change"
+						},
+						"property": "shown",
+						"is": true
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"/program/killring.lisp/kill-line",
+		"/program/loop.lisp/eval-defun",
+		"/actions/kill-buffer",
+		"/program/killring.lisp/yank"
+	],
+	"reference": [
+		{
+			"message": "Undo is Undo Last Change",
+			"set": {
+				"/actions/undo/title": "Undo Last Change"
+			}
+		}
+	]
+}

@@ -1,29 +1,10 @@
-{:note "Haven's shell, included by index.screen.json: the sidebar's entries (open or folded to icons), the rooms as view tabs in the top bar, the entity search, and the alarm tile with its keypad."
+{:note "Haven's shell, included by index.screen.lisp: the sidebar's entries (open or folded to icons), the rooms as view tabs in the top bar, the entity search, and the alarm tile with its keypad."
  :state {:sidebarCollapsed false :alarmCode ""}
  :computed {:sideWidth "{{state.sidebarCollapsed ? 56 : 256}}"
             :navPages "{{filter(state.pages, it.id != 'settings')}}"
             :alarmColor "{{state.security == 'off' ? '@ok' : '@alert'}}"
             :entities "{{concat(computed.lightEntities, map(state.rooms, { title: t('info.climate'), detail: it.name, icon: 'thermometer', run: 'openEntity', with: { room: index, kind: 'climate', i: 0 } }), map(state.rooms, { title: t('info.cover'), detail: it.name, icon: 'blinds', run: 'openEntity', with: { room: index, kind: 'cover', i: 0 } }), map(state.devices, { title: it.name, detail: t('info.home'), icon: it.icon, run: 'openEntity', with: { room: null, kind: 'device', i: index } }), [{ title: t('alarm.title'), detail: t('info.home'), icon: 'shield', run: 'openEntity', with: { room: null, kind: 'alarm', i: 0 } }])}}"
             :lightEntities "{{concat(map(state.rooms[0].lights, { title: it.name, detail: state.rooms[0].name, icon: 'lightbulb', run: 'openEntity', with: { room: 0, kind: 'light', i: index } }), map(state.rooms[1].lights, { title: it.name, detail: state.rooms[1].name, icon: 'lightbulb', run: 'openEntity', with: { room: 1, kind: 'light', i: index } }), map(state.rooms[2].lights, { title: it.name, detail: state.rooms[2].name, icon: 'lightbulb', run: 'openEntity', with: { room: 2, kind: 'light', i: index } }), map(state.rooms[3].lights, { title: it.name, detail: state.rooms[3].name, icon: 'lightbulb', run: 'openEntity', with: { room: 3, kind: 'light', i: index } }))}}"}
- :actions {:openEntity [{:note "with: room (null keeps the room shown), kind and i: picks the room, then opens that entity's more-info"}
-                        {:if "{{room != null}}" :then [{:set state.room :to "{{room}}"}]}
-                        {:run openInfo :with {:kind "{{kind}}" :i "{{i}}"}}]
-           :searchEntities {:title "Search controls"
-                            :category "Go"
-                            :icon search
-                            :do [{:set state.quickPick.query :to ""} {:set state.quickPick.open :to true}]}
-           :toggleSidebar {:title "Fold the sidebar"
-                           :category "View"
-                           :icon panel-left
-                           :do [{:toggle state.sidebarCollapsed}]}
-           :armAlarm [{:note "with: mode (off, home or away). Disarming takes the code typed on the keypad, any four digits or more here, as the simulated panel has no stored code"}
-                      {:if "{{mode == 'off' && state.security != 'off' && length(state.alarmCode) < 4}}"
-                       :then [{:run showToast :with {:message "{{t('alarm.needCode')}}"}}]
-                       :else [{:set state.security :to "{{mode}}"}
-                              {:set state.alarmCode :to ""}
-                              {:run notify
-                               :with {:message "{{t('security.changed', { mode: t('security.' + mode) })}}"
-                                      :icon shield}}]}]}
  :components {:sideItem {:note "A sidebar entry: its icon, its title while the sidebar is open, and a count of what waits; the shown page is a filled pill"
                          :params {:icon "" :title "" :selected false :keyLabel "" :badge 0}
                          :node (node :anchors {:left 0 :right 0}

@@ -62,12 +62,13 @@ Value subs(Machine& machine, Arguments arguments) {
 	if(arguments.size() < 2 || arguments.size() > 3 || arguments[0].kind() != Kind::String)
 		throw Problem("\"subs\" takes a string, a start and maybe an end");
 	for(const Value& index : arguments.subspan(1))
-		if(index.kind() != Kind::Integer || index.asInteger() < 0) throw Problem("\"subs\" takes indexes from 0");
+		if(wholeNumber(index).value_or(-1) < 0) throw Problem("\"subs\" takes indexes from 0");
 	const std::string_view text = arguments[0].text();
 	machine.spendText(text.size());
-	const std::size_t start = offsetOf(text, static_cast<std::size_t>(arguments[1].asInteger()));
-	const std::size_t end =
-	    arguments.size() == 3 ? offsetOf(text, static_cast<std::size_t>(arguments[2].asInteger())) : text.size();
+	const std::size_t start = offsetOf(text, static_cast<std::size_t>(wholeNumber(arguments[1]).value_or(0)));
+	const std::size_t end = arguments.size() == 3
+	                            ? offsetOf(text, static_cast<std::size_t>(wholeNumber(arguments[2]).value_or(0)))
+	                            : text.size();
 	if(start == std::string_view::npos || end == std::string_view::npos || end < start)
 		throw Problem("\"subs\": indexes outside the string");
 	return machine.heap.string(text.substr(start, end - start));

@@ -3,7 +3,9 @@
 ;;; Type a form anywhere and evaluate it: `(+ 1 2)` shows its value, and a definition takes effect at once and lands in the
 ;;; history, where C-x C-z (`undo-evaluation`) takes it back and `M-x export-init` carries it to another copy. What you
 ;;; type runs as you. Text you didn't type here, whoever put it in the buffer, a file you opened, what you pasted or yanked,
-;;; has none of your authority: its definitions are a proposal, in its own name, and anything else in it doesn't run.
+;;; has none of your authority: C-x C-e, C-M-x, C-j and M-x eval-region ask you first, in a question the window draws
+;;; itself with the whole of it, and run it as you, once, only if you say so. M-x eval-buffer doesn't ask: its definitions
+;;; are a proposal, in its own name, and anything else in it doesn't run.
 
 ;;; Hook points of this editor, which your init.lisp can add to
 
@@ -27,7 +29,7 @@
 
 (defn evaluate-form "Evaluates a form found at point, whichever way it was found." [form then]
   (if form
-    (evaluate (:text form) :file "init.lisp" :then then)
+    (evaluate (:text form) :file "init.lisp" :confirm true :then then)
     (message "No form here")))
 
 ;;; The commands
@@ -56,7 +58,7 @@
   (if (= (or (:selected (caret)) 0) 0)
     (message "The region is empty: C-SPC sets the mark")
     (do (edit "cut" :span "selection" :in computed.ed :into "state.killTmp" :keep true)
-        (evaluate state.killTmp :file "init.lisp" :then show-result))))
+        (evaluate state.killTmp :file "init.lisp" :confirm true :then show-result))))
 
 (defcommand eval-buffer "Evaluates every form in this buffer."
   :title "Evaluate Buffer" :category "Lisp"

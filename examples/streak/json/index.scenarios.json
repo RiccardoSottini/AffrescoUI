@@ -1,0 +1,1633 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "What Streak does, checked headless: affrescoui test index.scenarios.json",
+	"screen": "index.screen.json",
+	"scenarios": [
+		{
+			"name": "check-a-habit",
+			"note": "A click on an empty box ticks it, a second skips the day, a third clears it",
+			"steps": [
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 40,
+						"property": "name",
+						"is": "Thu 15 Oct: 1 cups"
+					}
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 48,
+						"property": "name",
+						"is": "Thu 15 Oct: on target"
+					}
+				},
+				{
+					"click": "#cell",
+					"nth": 48
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 48,
+						"property": "name",
+						"is": "Thu 15 Oct: done"
+					}
+				},
+				{
+					"click": "#cell",
+					"nth": 48
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 48,
+						"property": "name",
+						"is": "Thu 15 Oct: skipped"
+					}
+				},
+				{
+					"click": "#cell",
+					"nth": 48
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 48,
+						"property": "name",
+						"is": "Thu 15 Oct: on target"
+					}
+				}
+			]
+		},
+		{
+			"name": "a-row-selects-its-habit",
+			"note": "A click on a habit's name shows it in the detail pane",
+			"steps": [
+				{
+					"expect": {
+						"state": "selected",
+						"is": "meditate"
+					}
+				},
+				{
+					"click": [
+						100,
+						248
+					]
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "read"
+					}
+				},
+				{
+					"expect": {
+						"node": "#detailBar",
+						"property": "name",
+						"is": "Read"
+					}
+				}
+			]
+		},
+		{
+			"name": "enter-a-number",
+			"note": "A measurable box asks for the number; Enter saves it",
+			"steps": [
+				{
+					"click": "#cell",
+					"nth": 40
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#popupValue",
+						"exists": true
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "4"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 40,
+						"property": "name",
+						"is": "Thu 15 Oct: 4 cups"
+					}
+				},
+				{
+					"expect": {
+						"state": "popup.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "a-note-on-a-day",
+			"note": "The day's menu (Shift+F10) writes a note; the notes card shows it",
+			"steps": [
+				{
+					"click": "#cell",
+					"nth": 0
+				},
+				{
+					"click": "#cell",
+					"nth": 0
+				},
+				{
+					"click": "#cell",
+					"nth": 0
+				},
+				{
+					"key": "shift+f10"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#popupNote",
+						"exists": true
+					}
+				},
+				{
+					"type": "Felt calm"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "popup.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "sort-by-name",
+			"note": "The filter menu sorts the list by name and back by hand",
+			"steps": [
+				{
+					"click": "#filterButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "By name"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "sort",
+						"is": "name"
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Call the family"
+					}
+				},
+				{
+					"click": "#filterButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Manually"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "sort",
+						"is": "manual"
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Meditate"
+					}
+				}
+			]
+		},
+		{
+			"name": "hide-completed",
+			"note": "Hiding the completed habits leaves only those still due today",
+			"steps": [
+				{
+					"click": "#filterButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Hide completed"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "hideCompleted",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Run"
+					}
+				}
+			]
+		},
+		{
+			"name": "show-archived",
+			"note": "Archived habits come back with the filter",
+			"steps": [
+				{
+					"expect": {
+						"node": "#habitRow",
+						"nth": 7,
+						"exists": false
+					}
+				},
+				{
+					"click": "#filterButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Show archived"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "showArchived",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"nth": 7,
+						"property": "name",
+						"is": "Guitar"
+					}
+				}
+			]
+		},
+		{
+			"name": "drag-to-reorder",
+			"note": "Dragging a habit onto another moves it there",
+			"steps": [
+				{
+					"drag": "#habitRow",
+					"nth": 1,
+					"to": "#habitRow",
+					"toNth": 0,
+					"moves": 6
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Run"
+					}
+				},
+				{
+					"expect": {
+						"state": "sort",
+						"is": "manual"
+					}
+				}
+			]
+		},
+		{
+			"name": "create-a-habit",
+			"note": "Cmd+N, a name, a colour and Save add a yes-or-no habit and select it",
+			"steps": [
+				{
+					"key": "mod+n"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "Stretch"
+				},
+				{
+					"click": "#colorButton"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#swatch",
+					"nth": 3
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 9
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[8].name",
+						"is": "Stretch"
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[8].color",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[8].kind",
+						"is": "yesNo"
+					}
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "habit1"
+					}
+				},
+				{
+					"expect": {
+						"state": "edit.open",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "a-habit-needs-a-name",
+			"note": "Save with no name keeps the dialog open and marks the field",
+			"steps": [
+				{
+					"key": "mod+n"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"state": "edit.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#nameField",
+						"property": "focused",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "create-a-measurable-habit",
+			"note": "Cmd+Shift+N asks for a unit and a target, at least or at most",
+			"steps": [
+				{
+					"key": "mod+shift+n"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "Water"
+				},
+				{
+					"click": "#targetField"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "8"
+				},
+				{
+					"click": "#unitField"
+				},
+				{
+					"type": "glasses"
+				},
+				{
+					"click": "#atMost"
+				},
+				{
+					"click": "#per_week"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered[8].kind",
+						"is": "measurable"
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[8].unit",
+						"is": "glasses"
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[8].target",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[8].targetType",
+						"is": "atMost"
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[8].frequency.days",
+						"is": 7
+					}
+				}
+			]
+		},
+		{
+			"name": "edit-a-habit",
+			"note": "Cmd+E opens the selected habit; a new name is saved",
+			"steps": [
+				{
+					"key": "mod+e"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#nameField",
+						"text": "Meditate"
+					}
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "Sit"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered[0].name",
+						"is": "Sit"
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Sit"
+					}
+				}
+			]
+		},
+		{
+			"name": "every-n-days",
+			"note": "A frequency of every three days",
+			"steps": [
+				{
+					"key": "mod+e"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#freq_everyN"
+				},
+				{
+					"click": "#freqMore"
+				},
+				{
+					"click": "#freqMore"
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered[0].frequency.days",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[0].frequency.times",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "a-reminder",
+			"note": "A reminder at a time on chosen days",
+			"steps": [
+				{
+					"key": "mod+e"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#timeField"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"key": "backspace"
+				},
+				{
+					"type": "06:45"
+				},
+				{
+					"click": "#dayChip",
+					"nth": 6
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Save"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered[0].reminder.time",
+						"is": "06:45"
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[0].reminder.days[0]",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "archive-and-undo",
+			"note": "Archive hides the habit and offers to undo",
+			"steps": [
+				{
+					"key": "mod+shift+h"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered[0].archived",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#habitRow",
+						"property": "name",
+						"is": "Run"
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Undo"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered[0].archived",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "pick-several-and-archive",
+			"note": "A right click picks habits; the bar archives them all and Undo brings them back",
+			"steps": [
+				{
+					"click": [
+						100,
+						248
+					]
+				},
+				{
+					"key": "shift+f10"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "picked",
+						"is": [
+							"read"
+						]
+					}
+				},
+				{
+					"click": [
+						100,
+						308
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "picked.length",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"node": "#pickBar",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"click": "#archivePicked"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered[2].archived",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[3].archived",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "picked.length",
+						"is": 0
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Undo"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered[2].archived",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[3].archived",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "pick-several-and-delete",
+			"note": "Deleting picked habits asks once; Escape leaves the selection",
+			"steps": [
+				{
+					"click": [
+						100,
+						128
+					]
+				},
+				{
+					"key": "shift+f10"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": [
+						100,
+						188
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#clearPick"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "picked.length",
+						"is": 0
+					}
+				},
+				{
+					"click": [
+						100,
+						128
+					]
+				},
+				{
+					"key": "shift+f10"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "picked.length",
+						"is": 0
+					}
+				},
+				{
+					"key": "shift+f10"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": [
+						100,
+						188
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#deletePicked"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "confirmDelete",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Delete"
+					},
+					"nth": 1
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 6
+					}
+				},
+				{
+					"expect": {
+						"state": "picked.length",
+						"is": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "the-assistant-opens",
+			"note": "Cmd+Shift+A opens the assistant chat; Escape closes it",
+			"steps": [
+				{
+					"key": "mod+shift+a"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#assistantPanel",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "assistant.open",
+						"is": false
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[0].archived",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "delete-asks-first",
+			"note": "Delete asks; Cancel keeps the habit, Delete removes it",
+			"steps": [
+				{
+					"key": "mod+backspace"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "confirmDelete",
+						"is": true
+					}
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Cancel"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
+					}
+				},
+				{
+					"key": "mod+backspace"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Delete"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 7
+					}
+				},
+				{
+					"expect": {
+						"state": "confirmDelete",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "settings-theme-and-week",
+			"note": "Settings switch the theme, pure black and the first day of the week",
+			"steps": [
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "settingsOpen",
+						"is": true
+					}
+				},
+				{
+					"click": "#pureBlackRow"
+				},
+				{
+					"expect": {
+						"state": "pureBlack",
+						"is": true
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"state": "theme",
+						"is": "dark"
+					}
+				},
+				{
+					"click": "#firstDayRow"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Sunday"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "firstWeekday",
+						"is": 0
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "settingsOpen",
+						"is": false
+					}
+				}
+			]
+		},
+		{
+			"name": "speak-spanish",
+			"note": "The language menu switches the whole app",
+			"steps": [
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#languageRow"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Español"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "locale",
+						"is": "es"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"property": "name",
+						"is": "jue 15 oct: hecho",
+						"nth": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "speak-french",
+			"note": "The language menu switches to French",
+			"steps": [
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": "#languageRow"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Français"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "locale",
+						"is": "fr"
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"property": "name",
+						"is": "jeu. 15 oct. : fait",
+						"nth": 0
+					}
+				}
+			]
+		},
+		{
+			"name": "keyboard-only",
+			"note": "The keyboard moves between habits and checks today",
+			"steps": [
+				{
+					"key": "mod+down"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "run"
+					}
+				},
+				{
+					"key": "mod+down"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "read"
+					}
+				},
+				{
+					"key": "mod+up"
+				},
+				{
+					"expect": {
+						"state": "selected",
+						"is": "run"
+					}
+				},
+				{
+					"key": "mod+up"
+				},
+				{
+					"key": "mod+enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 0,
+						"property": "name",
+						"is": "Thu 15 Oct: skipped"
+					}
+				}
+			]
+		},
+		{
+			"name": "the-command-palette",
+			"note": "Cmd+K finds a command by name",
+			"steps": [
+				{
+					"key": "mod+k"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "quickPick.open",
+						"is": true
+					}
+				},
+				{
+					"type": "settings"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "settingsOpen",
+						"is": true
+					}
+				}
+			]
+		},
+		{
+			"name": "export-csv",
+			"note": "Export copies the habit's history as CSV and says so",
+			"steps": [
+				{
+					"click": "#detailMore"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Export as CSV"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toasts.length",
+						"is": 1
+					}
+				}
+			]
+		},
+		{
+			"name": "backup-and-restore",
+			"note": "Settings saves every habit to a backup file and restores a deleted one from it; another app's file, a damaged entry and a cancelled dialog change nothing",
+			"steps": [
+				{
+					"choose": "habits.json"
+				},
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Back up to a file"
+					}
+				},
+				{
+					"wait": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toasts.length",
+						"is": 1
+					}
+				},
+				{
+					"click": "#settingsBack"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "mod+backspace"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Delete"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 7
+					}
+				},
+				{
+					"key": "mod+comma"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"scroll": "#settingsList",
+					"dy": -10
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Restore from a file"
+					}
+				},
+				{
+					"wait": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"state": "restoredCount",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"state": "backupFile",
+						"is": null
+					}
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "Another app's file",
+						"set": {
+							"/state/backupFile": {
+								"format": "other",
+								"habits": [
+									{
+										"id": "x",
+										"name": "X",
+										"kind": "yesNo"
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"action": "restoreHabits"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
+					}
+				},
+				{
+					"expect": {
+						"state": "backupFile",
+						"is": null
+					}
+				},
+				{
+					"revision": {
+						"type": "revision",
+						"message": "A damaged backup",
+						"set": {
+							"/state/backupFile": {
+								"format": "streak-backup",
+								"version": 1,
+								"habits": [
+									{
+										"id": "nameless",
+										"kind": "yesNo"
+									},
+									5
+								]
+							}
+						}
+					}
+				},
+				{
+					"action": "restoreHabits"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "skippedCount",
+						"is": 2
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
+					}
+				},
+				{
+					"choose": null
+				},
+				{
+					"click": {
+						"role": "button",
+						"name": "Restore from a file"
+					}
+				},
+				{
+					"wait": 0
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"data": "ordered.length",
+						"is": 8
+					}
+				}
+			]
+		},
+		{
+			"name": "score-period",
+			"note": "The score card's period button switches to months",
+			"steps": [
+				{
+					"click": {
+						"role": "button",
+						"name": "Period: Week"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Month"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "scorePeriod",
+						"is": "month"
+					}
+				}
+			]
+		},
+		{
+			"name": "narrow-shows-one-pane",
+			"note": "In a narrow window the list fills it; a habit opens its detail, Escape comes back",
+			"steps": [
+				{
+					"resize": [
+						520,
+						800
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#detailPane",
+						"property": "shown",
+						"is": false
+					}
+				},
+				{
+					"click": [
+						100,
+						188
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "page",
+						"is": "detail"
+					}
+				},
+				{
+					"expect": {
+						"node": "#detailPane",
+						"property": "shown",
+						"is": true
+					}
+				},
+				{
+					"key": "escape"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "page",
+						"is": "list"
+					}
+				},
+				{
+					"resize": [
+						1280,
+						800
+					]
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": "#detailPane",
+						"property": "shown",
+						"is": true
+					}
+				}
+			]
+		}
+	]
+}

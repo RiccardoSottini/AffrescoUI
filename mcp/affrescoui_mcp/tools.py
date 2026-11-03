@@ -96,9 +96,10 @@ TOOLS = [
                     "points (slot, the exports each receives), its typed exports (state, lists, actions, models, "
                     "surfaces, images) and the installable parts it ships (each one's needs and provides), one line "
                     "each. file is an app's screen file: another app's (e.g. "
-                    "\"examples/sinopia/json/index.screen.json\"), to pick a part to install from it, or the running "
+                    "\"examples/sinopia/lisp/index.screen.lisp\"), to pick a part to install from it, or the running "
                     "app's with running=true, to read the running document's.",
-     "inputSchema": object_schema({"file": {"type": "string", "description": "An app's *.screen.json"},
+     "inputSchema": object_schema({"file": {"type": "string",
+                                            "description": "An app's *.screen.json, or *.screen.lisp in the Lisp notation"},
                                    "running": {"type": "boolean",
                                                "description": "The running document, with file's folder"}},
                                   ["file"]),
@@ -158,7 +159,9 @@ TOOLS = [
                     "#hello :text Hello)}}; it becomes the same JSON before it is committed. In a program, a revision "
                     "sets a definition's whole text at /program/<file>/<name> (\"/\" in a name is \"~1\"), or one "
                     "keyword's value inside it, far cheaper: {\"set\": {\"/program/killring.lisp/kill-line/:title\": "
-                    "\"Kill\"}} (a string stays a string, {\"$form\": \"(str 1)\"} is written as one form). Rules "
+                    "\"Kill\"}} (a string stays a string, {\"$form\": \"(str 1)\"} is written as one form). A new "
+                    "definition is an add at its address: its name, or for a form with none its head and words, "
+                    "e.g. /program/<file>/defkey ctrl+c k or /program/<file>/add-hook after-save my-fn. Rules "
                     "judge what the new source builds: a build that fails, or that adds what no revision may, is "
                     "refused, naming the definition.",
      "inputSchema": object_schema({
@@ -205,7 +208,7 @@ TOOLS = [
      "description": "Check your work with the screen's own scenarios (scripted clicks, typing, waits and expectations "
                     "of state and nodes, played headless): on main as it runs now, or with an open proposal applied "
                     "(`proposal`, e.g. the one submit_revision just opened). `file` is the scenarios file shipped "
-                    "next to the screen (examples/flow/json/index.scenarios.json). Pass `scenarios` (a list of "
+                    "next to the screen (examples/flow/lisp/index.scenarios.json). Pass `scenarios` (a list of "
                     "{name, steps}) to play your own instead of the file's, `only` for one by name. Answers in a few "
                     "lines: the totals, then \"FAILED <scenario>, step <n>: <what>\" per failure. Nothing changes: "
                     "scenarios play on a copy, without a window. SCREEN_FORMAT.md, \"Scenarios\", lists the steps.",

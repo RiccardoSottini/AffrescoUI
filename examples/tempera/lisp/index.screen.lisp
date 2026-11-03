@@ -13,7 +13,8 @@
            "parts/panels.lisp"
            "parts/dialogs.lisp"
            "../../shared/addons/assistant/assistant.lisp"
-           "../../shared/components/charts.lisp"]
+           "../../shared/components/charts.lisp"
+           tempera.lisp]
  :theme "{{state.theme}}"
  :tokens {:background {:light "#aab4a6" :dark "#141815"}
           :panel {:light "#eef1ea" :dark "#242a25"}

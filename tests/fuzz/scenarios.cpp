@@ -1,6 +1,6 @@
 /// @file
 /// @brief Fuzzes scenarios files (modules/automation): an agent can write one and have it played, so reading it and
-/// playing its steps headless on the Kanban template must never crash, whatever it asks for.
+/// playing its steps headless on the JSON template must never crash, whatever it asks for.
 ///
 /// The input is a scenarios file. Reading it gives scenarios or throws a DocumentError; playing them gives a report,
 /// every failure with a problem to show. Pictures are off (no OpenGL here), so a scenario that draws fails to start.
@@ -23,10 +23,10 @@ namespace {
 /// of 28 took 76 s). Play every scenario when it is fast again.
 constexpr std::size_t playedScenarios = 2;
 
-/// @brief The Kanban template's text, which every scenario plays on.
+/// @brief The JSON template's text, which every scenario plays on.
 /// @return It.
-const std::string& kanbanText() {
-	static const std::string text = affresco::fuzz::kanbanTemplate().dump();
+const std::string& templateText() {
+	static const std::string text = affresco::fuzz::jsonTemplate().dump();
 	return text;
 }
 
@@ -57,7 +57,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	if(file.scenarios.size() > playedScenarios) file.scenarios.resize(playedScenarios);
 	automation::Options options;
 	options.pictures = false;
-	options.document = kanbanText();
+	options.document = templateText();
 	const automation::Report report = automation::run(file, options);
 	if(report.scenarios.size() != file.scenarios.size()) affresco::fuzz::broken("every scenario is reported");
 	for(const automation::ScenarioResult& scenario : report.scenarios)

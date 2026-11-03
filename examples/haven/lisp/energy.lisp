@@ -1,4 +1,4 @@
-{:note "Haven's energy page, included by index.screen.json: today's use hour by hour split between the grid and the solar panels, where the energy went, what it cost, how much of the home the sun ran, and the week by day or by device."
+{:note "Haven's energy page, included by index.screen.lisp: today's use hour by hour split between the grid and the solar panels, where the energy went, what it cost, how much of the home the sun ran, and the week by day or by device."
  :state {:solar [0 0 0 0 0 0 0.1 0.4 0.9 1.4 1.8 2.1 2.2 2.0 1.7 1.2 0.7 0.3 0.1 0 0 0 0 0]
          :prices {:buy 0.3 :sell 0.08}}
  :stateTypes {:solar (array :items (number)) :prices (object :properties {:buy (number) :sell (number)})}

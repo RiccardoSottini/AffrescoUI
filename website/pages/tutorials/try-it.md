@@ -26,8 +26,8 @@ The host listens for peers on local sockets (in `/tmp/affrescoui-<uid>` on macOS
 An app is a folder under `examples/` with an `index.screen.json`, and any of them opens the same way, with no C++:
 
 ```sh
-./build/affrescoui_launcher examples/flow/json/index.screen.json
-./build/affrescoui_launcher examples/haven/json/index.screen.json
+./build/affrescoui_launcher examples/flow/lisp/index.screen.lisp
+./build/affrescoui_launcher examples/haven/lisp/index.screen.lisp
 ./build/affrescoui run website/recipes/todo-list.screen.json
 ```
 

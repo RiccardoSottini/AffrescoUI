@@ -128,8 +128,8 @@ constexpr int fuzzyCount = 100000;
 /// @brief fuzzyCount path-like texts, as a large project's file list.
 /// @return The state, with the texts at `files`.
 json fuzzyFiles() {
-	static constexpr std::array<const char*, 6> folders{"src", "include/app", "modules/core", "tests/unit", "docs",
-	                                                    "examples/shared"};
+	static constexpr std::array<const char*, 6> folders{"src",        "include/app", "modules/core",
+	                                                    "tests/unit", "docs",        "examples/shared"};
 	static constexpr std::array<const char*, 6> names{"main", "window", "panel", "layout", "render", "screen"};
 	static constexpr std::array<const char*, 4> extensions{".cpp", ".hpp", ".json", ".md"};
 	json files = json::array();
@@ -175,8 +175,11 @@ void commitRenames(vcs::Repository& repository) {
 /// @return The workload.
 std::vector<Workload> commitWorkloads(const Context& context) {
 	const auto rules = std::make_shared<const format::Rules>();
-	const auto document =
-	    std::make_shared<const json>(screenDocument(context.templateFolder("kanban") / "index.screen.json"));
+	const std::filesystem::path folder = context.templateFolder("kanban"); // a JSON app's entry, or a program's
+	const std::filesystem::path entry = std::filesystem::exists(folder / "index.screen.json")
+	                                        ? folder / "index.screen.json"
+	                                        : folder / "index.screen.lisp";
+	const auto document = std::make_shared<const json>(screenDocument(entry));
 	const auto repository = std::make_shared<std::unique_ptr<vcs::Repository>>();
 	Workload workload{.name = "commits", .runs = 3, .operations = commitCount};
 	workload.prepare = [rules, document, repository] {

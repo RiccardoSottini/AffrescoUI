@@ -11,9 +11,11 @@
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco::lisp {
@@ -30,7 +32,8 @@ struct BuiltProgram {
 	std::vector<UndefinedName> undefined; ///< What its definitions use that nothing defines.
 	std::vector<Extension> extensions;    ///< Its hooks and advice.
 	std::map<std::string, std::vector<std::string>>
-	    namesUsed; ///< What each definition's code uses (Program::namesUsed()).
+	    namesUsed;         ///< What each definition's code uses (Program::namesUsed()).
+	NamedCalls namedCalls; ///< What each calls with a text written out first (Program::namedCalls()).
 };
 
 /// @brief Tells whether a document holds a program.
@@ -106,6 +109,25 @@ void checkProgramShape(const json& section);
 /// @throws DocumentError If it has no such keyword, has it twice, or the value isn't one form.
 [[nodiscard]] std::string replaceKeyword(std::string_view text, std::span<const std::string> keywords,
                                          std::string_view value, const std::string& where);
+
+/// @brief Where a keyword's value is in a text of Lisp, read by tokens, with nothing run: in the first top-level form
+/// that has it, a map or the options of `defcommand`, `defscreen` or `defcustom` (as replaceKeyword() reads them), a
+/// further keyword looking inside the map that is the previous one's value (`:window`, `:title`).
+/// @param text The text: a data file or a program.
+/// @param keywords The keywords, without their ':'.
+/// @return Where the value starts and ends in the text, or std::nullopt if no form has it.
+/// @throws LispError If the text doesn't read as forms, or a form has a keyword twice.
+[[nodiscard]] std::optional<std::pair<std::size_t, std::size_t>> findKeyword(std::string_view text,
+                                                                             std::span<const std::string> keywords);
+
+/// @brief A text of Lisp with one keyword's value replaced (findKeyword() finds it), and every other byte as it was.
+/// @param text The text: a data file or a program.
+/// @param keywords The keywords, without their ':'.
+/// @param value The new value's text, exactly one form with nothing around it.
+/// @return The new text, or std::nullopt if no form has that keyword.
+/// @throws LispError If the text doesn't read as forms, a form has a keyword twice, or the value isn't one form.
+[[nodiscard]] std::optional<std::string> withKeyword(std::string_view text, std::span<const std::string> keywords,
+                                                     std::string_view value);
 
 /// @brief The form of a value for replaceKeyword(): a string as a string, `{"$form": "text"}` as that text, any other
 /// value as the notation writes it.

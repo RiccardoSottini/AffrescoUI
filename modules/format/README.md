@@ -408,7 +408,9 @@ keys it reads entries in `ReferenceSections.cpp`, and regenerate the schema and 
 `affrescoui schema` (as above). If the step reaches outside the document (a program, a file, the network, history), it is a
 control step: mark it `control`, add it to `controlSteps` in `RulesControl.cpp` so a revision can't add it, and test that
 refusal in `tests/unit/rules.cpp`. Every step is also a function of a document's program, and one not named in `freeSteps`
-(`Programs.cpp`) needs the person's or the file's authority there: add it only if any author may run it.
+(`Programs.cpp`) needs the person's or the file's authority there: add it only if any author may run it. A step a
+capability already gates, whose revision rules judge it by what it uses (`invoke`, `request`, `subscribe`, `image` short
+of a dialog), is judged so in a program too when the code names it written out (`judgedByUse`, `collectProgramUses`).
 
 **Add a document section.** A `SectionType` with its validator, added in `registerBuiltInSections` (`Sections.cpp`);
 a section that grants a capability goes in `CapabilitySections.cpp` with `capability = true`, which `checkChange`

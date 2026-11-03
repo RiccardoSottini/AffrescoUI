@@ -1,11 +1,11 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/haven/json",
+	"screens": "../../../examples/haven/lisp",
 	"scenarios": [
 		{
 			"name": "smart-home",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#toggle-rooms-room-lights", "nth": 2 },
@@ -22,7 +22,7 @@
 		},
 		{
 			"name": "smart-home-devices",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"steps": [
 				{ "click": "#deviceAction", "nth": 1 },
 				{ "wait": 450 },
@@ -35,7 +35,7 @@
 		},
 		{
 			"name": "smart-home-info",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"steps": [
 				{ "click": "#light", "nth": 1 },
 				{ "expect": { "image": "light-info" } },
@@ -57,7 +57,7 @@
 		},
 		{
 			"name": "smart-home-pages",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"steps": [
 				{ "key": "mod+2" },
 				{ "expect": { "image": "energy" } },
@@ -111,7 +111,7 @@
 		},
 		{
 			"name": "smart-home-shell",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"steps": [
 				{ "click": "#searchButton" },
 				{ "wait": 100 },
@@ -149,7 +149,7 @@
 		},
 		{
 			"name": "smart-home-history",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"steps": [
 				{ "key": "mod+5" },
 				{ "expect": { "image": "logbook" } },

@@ -31,6 +31,17 @@ std::string kindOf(const json& step) {
 	return "note";
 }
 
+/// @brief Where a target is looked for: the question the window asks (Window::confirm()), when it is shown and holds a
+/// node of that role and name, as a person sees it on top; else the screen.
+/// @param window The window.
+/// @param target "#id" or { "role", "name"? }.
+/// @return The panel to look in.
+Panel& whereToFind(Window& window, const json& target) {
+	Panel* asked = window.confirmation();
+	if(asked && target.is_object() && findTarget(*asked, target, 0, true)) return *asked;
+	return window.root();
+}
+
 } // namespace
 
 Player::~Player() {
@@ -197,8 +208,9 @@ void Player::expect(const json& expect, std::size_t number) {
 	stage_.window.runDeferredTasks();
 	static_cast<void>(stage_.window.panelAt({}));
 	const std::string problem = expect.contains("state") ? checkState(stage_.screen, expect)
-	                            : expect.contains("data") ? checkData(stage_.screen, expect)
-	                                                      : checkNode(stage_.window.root(), expect);
+	                            : expect.contains("data")
+	                                ? checkData(stage_.screen, expect)
+	                                : checkNode(whereToFind(stage_.window, expect["node"]), expect);
 	if(!problem.empty()) result_.failures.push_back({number, problem});
 }
 
@@ -206,7 +218,7 @@ Vec2 Player::pointOf(const json& target, int nth) {
 	if(target.is_array()) return {target[0].get<float>(), target[1].get<float>()};
 
 	static_cast<void>(stage_.window.panelAt({})); // lays out, so the bounds are current
-	const Panel* panel = findTarget(stage_.window.root(), target, nth, true);
+	const Panel* panel = findTarget(whereToFind(stage_.window, target), target, nth, true);
 	if(!panel)
 		throw StepError("no shown node " + (target.is_string() ? "'" + target.get<std::string>() + "'" +
 		                                                             (nth ? " (nth " + std::to_string(nth) + ")" : "")

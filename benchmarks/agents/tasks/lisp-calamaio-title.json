@@ -1,0 +1,46 @@
+{
+	"id": "lisp-calamaio-title",
+	"level": "edit",
+	"screen": "examples/calamaio/lisp/calamaio.screen.lisp",
+	"request": "In Calamaio's Edit menu, the item Paste (the command yank, defined in the program's killring.lisp) should read \"Paste from Kill Ring\". Change only its title.",
+	"scenarios": [
+		{
+			"name": "menu",
+			"steps": [
+				{
+					"click": {
+						"role": "menuitem",
+						"name": "Edit"
+					}
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"node": {
+							"role": "menuitem",
+							"name": "Paste from Kill Ring"
+						},
+						"property": "shown",
+						"is": true
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"/program/killring.lisp/kill-line",
+		"/program/loop.lisp/eval-defun",
+		"/actions/kill-buffer",
+		"/actions/undo"
+	],
+	"reference": [
+		{
+			"message": "Paste is Paste from Kill Ring",
+			"set": {
+				"/program/killring.lisp/yank/:title": "Paste from Kill Ring"
+			}
+		}
+	]
+}

@@ -4,6 +4,8 @@ The home of AffrescoUI's apps: every example as a card to open with a click, the
 create a new one, and the settings. It is a screen document like the others, with no C++ of its own: `affrescoui_launcher`
 opens it when it is started without a file.
 
+**JSON or Lisp:** it has real behaviour (listing, creating, duplicating and deleting apps, the assistant's settings), so it is to be written as a Lisp program too (RFC 0005, stage 6), as Flow, Haven, Tempo, Arcadia, Quaderno, Orrery, Tempera, Sinopia and Modello are beside their JSON; until then `json/` is its source and `lisp/` is generated. What holds it back: its behaviour is chains of file calls whose answers need what the call was for (which folder of the list, which read, the new app's name and first request), and a program's callback is a function's name with no arguments of its own (`:onDone`), so that would have to go through the state. It opens every example from the folder of the notation its Settings choose, but one with a single folder (Calamaio, `notation` in `apps.json`), and makes a person's app from one the same way. A copy of a `lisp/` folder holding a program is retitled and renamed by a keyword edit of its program's text (`setFormKeyword`), every other character as it was.
+
 ```sh
 ./build/affrescoui_launcher                      # the Launcher; your apps go to ~/AffrescoUI
 ./build/affrescoui_launcher --apps /some/folder  # another apps folder
@@ -15,17 +17,19 @@ opens it when it is started without a file.
 - **Apps:** every app as a grid of cards, the person's own first, then the examples of [`apps.json`](json/apps.json) (cover,
   name, a tagline in the person's language). Each card is tagged **Yours** or **Example**. A search field, and Enter or a
   click to open one. A host-run example can also start a new app.
-- **My apps:** each folder of the apps folder that holds an `index.screen.json`, named by its window's title, the last
+- **My apps:** each folder of the apps folder that holds an `index.screen.json` (or a `json/` folder with one, or a `lisp/`
+  folder with an `app.lisp`: a copy of an example, or of a program), named by its window's title (a program's `:name`), the last
   changed first (an app just made or duplicated is at the top at once, before the folder is read again): open,
   duplicate, show in its folder, and delete after a confirm dialog (Delete on a focused row asks too).
 - **Create:** a name (checked as it is typed: its folder's name, the names the examples keep, the apps there already,
   no double curly braces, which the new app's file would read as an expression; a folder of that name holding
   something else is said to be there, and kept),
   a starting point (a blank app, [`starters/blank.screen.json`](json/starters/blank.screen.json), or a copy of a host-run
-  example, without its C++, except those `apps.json` marks `"starter": false`), an optional description and features from other apps, which become the first request
+  example's `json/` or `lisp/` folder, as Settings choose, without its C++, except those `apps.json` marks `"starter": false`), an optional description and features from other apps, which become the first request
   to the new app's assistant (`--ask`). The app opens at once.
 - **Settings:** theme and language (kept with `persist`), whether the examples open from their `json` or their `lisp`
-  folder (also kept), the apps folder, the keyboard shortcuts, and the container
+  folder, and which one a new app is copied from (also kept; Calamaio, which `apps.json` marks `"notation": "lisp"`,
+  has only its `lisp` folder and always opens from it), the apps folder, the keyboard shortcuts, and the container
   `settingsIntelligence` for the intelligence settings.
 - English, Spanish and French ([`locales/`](json/locales)), light and dark, the keyboard
   throughout (Cmd+1, Cmd+2, Cmd+N, Cmd+, and Cmd+F), from 800 × 600 up.
@@ -49,7 +53,7 @@ opens it when it is started without a file.
 |---|---|
 | `index.screen.json` | The screen document |
 | `locales/` | Its text, one file per language |
-| `apps.json` | The examples: id, name, tagline, folder, program, cover |
+| `apps.json` | The examples: id, name, tagline, folder, program, cover; `notation` for one with a single folder, `starter: false` for one a new app isn't copied from |
 | `covers/` | The examples' pictures, 480 pixels wide (from `.github/media/`) |
 | `starters/blank.screen.json` | A new blank app, with the assistant open; its changes wait for the person's review |
 | `index.scenarios.json` | Its scenarios; its pictures are in `tests/render/scenarios/launcher.json` |

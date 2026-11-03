@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """End-to-end agent loop for Orrery, the planetarium example.
 
-Starts Orrery, which is JSON only, in affrescoui_launcher on a private socket folder, on a copy of the screen without
-its bodies strip, and drives it the way an agent would through the MCP server: it reads the screen, proves that
-Sinopia's slide sorter fits Orrery through Orrery's adapter, and installs it, which is a revision the agent may only
-propose. The agent gets a picture of the proposal and plays the strip's scenarios on it, a `studio` peer approves it, and
-the strip is on main. Then it plays Orrery's own scenarios headless on the screen as shipped, and opens Orrery on bodies
-whose id or parent isn't text.
+Starts Orrery's JSON version (lisp/e2e_test.py runs its Lisp program) in affrescoui_launcher on a private socket folder,
+on a copy of the screen without its bodies strip, and drives it the way an agent would through the MCP server: it reads
+the screen, proves that Sinopia's slide sorter fits Orrery through Orrery's adapter, and installs it, which is a
+revision the agent may only propose. The agent gets a picture of the proposal and plays the strip's scenarios on it, a
+`studio` peer approves it, and the strip is on main. Then it plays Orrery's own scenarios headless on the screen as
+shipped, and opens Orrery on bodies whose id or parent isn't text.
 
 Usage: e2e_test.py BUILD_DIR
 """

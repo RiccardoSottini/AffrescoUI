@@ -3,8 +3,10 @@
 
 #include "Objects.hpp"
 
+#include <cmath>
 #include <iterator>
 #include <limits>
+#include <optional>
 
 namespace affresco::lisp {
 
@@ -300,6 +302,25 @@ std::string_view keyText(const Value& key) {
 	if(key.kind() != Kind::String && key.kind() != Kind::Keyword)
 		throw Problem("a map's key is a keyword or a string, not " + std::string(describeKind(key)));
 	return key.text();
+}
+
+std::optional<std::int64_t> wholeNumber(const Value& value) noexcept {
+	constexpr double exact = 9007199254740992.0; // 2^53
+	switch(value.kind()) {
+	case Kind::Integer:
+		return value.asInteger();
+	case Kind::Unsigned:
+		if(value.asUnsigned() > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))
+			return std::nullopt;
+		return static_cast<std::int64_t>(value.asUnsigned());
+	case Kind::Float: {
+		const double real = value.asDouble();
+		if(!std::isfinite(real) || std::trunc(real) != real || std::abs(real) > exact) return std::nullopt;
+		return static_cast<std::int64_t>(real);
+	}
+	default:
+		return std::nullopt;
+	}
 }
 
 } // namespace affresco::lisp

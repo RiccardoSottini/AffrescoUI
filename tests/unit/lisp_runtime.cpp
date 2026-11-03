@@ -142,8 +142,8 @@ TEST_CASE("lisp attack: an agent's code reaching control and review steps direct
 	for(const char* form :
 	    {R"((call "hit"))", R"((send "x" :data 1))", R"((connect "x"))", R"((patch []))", R"((accept 1 :head "abc"))",
 	     R"((reject 1))", R"((undo))", R"((restore 0))", R"((revert 0))", R"((preview 1))", R"((endPreview))",
-	     R"((ask "x"))", R"((signIn "x"))", R"((saveFile "x"))", R"((fullscreen true))", R"((invoke "x"))",
-	     R"((importCsv "h" :text "a"))", R"((image "open"))"}) {
+	     R"((ask "x"))", R"((signIn "x"))", R"((saveFile "x"))", R"((fullscreen true))",
+	     R"((invoke (str "files." "write")))", R"((importCsv "h" :text "a"))", R"((image "open"))"}) {
 		CAPTURE(form);
 		app.write("helper", std::string("(defn helper \"Mine.\" [] ") + form + ")");
 		app.errors.clear();

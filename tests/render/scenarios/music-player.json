@@ -1,11 +1,11 @@
 {
 	"format": "affrescoui-scenarios",
 	"version": 2,
-	"screens": "../../../examples/tempo/json",
+	"screens": "../../../examples/tempo/lisp",
 	"scenarios": [
 		{
 			"name": "music-player",
-			"screen": "index.screen.json",
+			"screen": "index.screen.lisp",
 			"steps": [
 				{ "expect": { "image": "first-frame" } },
 				{ "click": "#track", "nth": 4 },

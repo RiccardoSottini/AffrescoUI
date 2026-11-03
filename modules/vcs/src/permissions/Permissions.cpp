@@ -177,6 +177,10 @@ bool changes(const DocumentRules& rules, const json& before, const json& after, 
 	});
 }
 
+bool reaches(const DocumentRules& rules, const json& before, const json& after, const std::string& pattern) {
+	return changes(rules, before, after, pattern) || rules.changesCodeUnder(before, after, pattern);
+}
+
 bool onlyInside(const DocumentRules& rules, const json& before, const json& after,
                 const std::vector<std::string>& patterns) {
 	return mask(rules, before, patterns) == mask(rules, after, patterns);

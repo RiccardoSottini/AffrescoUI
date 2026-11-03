@@ -273,6 +273,34 @@ Checker::Checker(const json& document, const json& state, const std::set<std::st
 			state_.get_ref<Shape::object_t&>().emplace_back(key, shapeOfData(value));
 	learnTypes();
 	learnData();
+	learnProgramWrites();
+}
+
+void Checker::learnProgramWrites() {
+	const auto program = document_.find("program");
+	if(program == document_.end() || !program->is_object()) return;
+	constexpr std::string_view mark = "\"state.";
+	for(const auto& [file, entries] : program->items()) {
+		if(!entries.is_object()) continue;
+		for(const auto& [name, text] : entries.items()) {
+			if(!text.is_string()) continue;
+			const std::string_view source = text.get_ref<const std::string&>();
+			std::string place = "program.";
+			place.append(file).append(".").append(name);
+			for(std::size_t at = source.find(mark); at != std::string_view::npos; at = source.find(mark, at + 1)) {
+				// The path up to where the text ends or a computed part starts, without a dot left at its end
+				const std::size_t start = at + 1;
+				std::size_t end = source.find_first_of("\"[\\ ", start);
+				if(end == std::string_view::npos) end = source.size();
+				std::string_view path = source.substr(start, end - start);
+				while(path.ends_with('.')) path.remove_suffix(1);
+				if(path == "state") continue;
+				write(json(std::string(path)), anything, Change::set, Scope(), place);
+				if(exhausted_) return;
+			}
+		}
+	}
+	findings_.clear(); // a path it couldn't read is a text of the program's, not a finding
 }
 
 std::optional<std::vector<Finding>> Checker::run() {

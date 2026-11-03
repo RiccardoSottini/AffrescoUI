@@ -148,11 +148,10 @@ TEST_CASE("checker: the templates have no findings") {
 TEST_CASE("checker: typos planted in the Kanban template are each found, with their place") {
 	std::string text = screenTemplate("kanban").dump();
 	const std::vector<std::pair<std::string, std::string>> typos = {
-	    {"{{state.toast.message}}", "{{state.toast.mesage}}"},
+	    {"{{state.toast.message}}", "{{state.toats.message}}"}, // the program writes state.toast: inside, anything
 	    {R"("@color.accentSoft")", R"("@color.accentSofty")"},
 	    {R"("onSubmit":"addCard")", R"("onSubmit":"addCrad")"},
 	    {R"("with":{"icon":"inbox")", R"("with":{"icno":"inbox")"},
-	    {"to < 0 ||", "too < 0 ||"},
 	    {"computed.lastColumn}}", "computed.lastColum}}"},
 	    {"{{member.name}}", "{{member.nmae}}"},
 	    {R"("style":"caption")", R"("style":"captoin")"}};
@@ -161,20 +160,29 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 		REQUIRE(at != std::string::npos);
 		text.replace(at, from.size(), to);
 	}
-	const std::string drawer = "components.cardDrawer.node.children";
+	// The first place of each is where the app's built document has it: the program's commands come first
 	CHECK(
 	    lines(json::parse(text)) ==
 	    std::vector<std::string>{
-	        "actions.moveCard[1].if: unknown variable 'too' (did you mean 'to'?)",
-	        drawer + "[0].children[1].style: unknown style 'captoin' (did you mean 'caption'?)",
-	        drawer + "[12].children[0].label: 'member.nmae' doesn't exist (did you mean 'member.name'?)",
-	        drawer + "[6].children[3].when: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
-	        "components.sidebar.node.children[4].children[0].with.icno: unknown parameter 'icno' of component "
-	        "'navItem' (did you mean 'icon'?)",
-	        "components.swimlanes.node.children[0].children[3].children[0].children[1].children[0].dragging.color: "
-	        "unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
-	        "root.children[10].with.message: 'state.toast.mesage' doesn't exist (did you mean 'state.toast.message'?)",
+	        "actions.moveRight.enablement: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
+	        "components.cycleStat.node.children[0].style: unknown style 'captoin' (did you mean 'caption'?)",
+	        std::string("components.inboxPage.node.children[0].with.icno: unknown parameter 'icno' of component ") +
+	            "'pageHeader' (did you mean 'icon'?)",
+	        std::string("components.issuePage.node.children[3].children[4].children[1].children[0].text: ") +
+	            "'member.nmae' doesn't exist (did you mean 'member.name'?)",
+	        std::string("components.swimlanes.node.children[0].children[3].children[0].children[1].children[0].") +
+	            "dragging.color: unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
+	        "root.children[10].with.message: 'state.toats' doesn't exist (did you mean 'state.toast'?)",
 	        "root.children[9].children[0].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)"});
+}
+
+TEST_CASE("checker: what a program writes may hold anything, at a place it names or one it computes") {
+	checkAll({{"a program's writes",
+	           R"("state": {"files": [{"name": "a"}], "user": {"name": "Ada"}},
+	        "program": {"app.lisp": {"open": "(defn open [f] (set (str \"state.files[\" f \"].readOnly\") true)) ",
+	                                 "draft": "(defn draft [] (set \"state.draft\" \"\")) "}},
+	        "root": {"text": "{{state.files[0].readOnly}} {{state.draft}} {{state.user.email}}"})",
+	           {"root.text: 'state.user.email' doesn't exist (state.user has name)"}}});
 }
 
 TEST_CASE("checker: state paths") {

@@ -1,4 +1,4 @@
-{:note "Flow's issue page, included by index.screen.json: the selected card on a page of its own, its description and activity on the left, its properties on the right."
+{:note "Flow's issue page, included by index.screen.lisp: the selected card on a page of its own, its description and activity on the left, its properties on the right."
  :state {:issueOpen false
          :subOpen false
          :issueStatusOpen false
@@ -44,58 +44,6 @@
                       :radius @radius.card
                       :shadow {:y 6 :blur 16 :color "#0000002e"}
                       :color @color.menu)}
- :actions {:setPriority [{:note "with: p, the priority from 0 (none) to 4 (low); every marked card while some are"}
-                         {:if "{{length(state.marked) > 0}}"
-                          :then [{:run bulkPriority :with {:p "{{p}}"}} {:stop true}]}
-                         {:if "{{computed.card == null}}" :then [{:stop true}]}
-                         {:run remember}
-                         {:update issues
-                          :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                          :fields {:priority "{{p}}"}}
-                         {:set state.issuePriorityOpen :to false}]
-           :setEstimate [{:note "with: n, the points"}
-                         {:set state.issueEstimateOpen :to false}
-                         {:if "{{computed.card == null}}" :then [{:stop true}]}
-                         {:run remember}
-                         {:update issues
-                          :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                          :fields {:points "{{n}}"}}]
-           :setTag [{:note "with: tag, the issue's main label; its project follows it"}
-                    {:set state.issueTagOpen :to false}
-                    {:if "{{computed.card == null}}" :then [{:stop true}]}
-                    {:run remember}
-                    {:update issues
-                     :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                     :fields {:tag "{{tag}}"}}]
-           :setAssignee [{:note "with: who, a member's initials; every marked card while some are"}
-                         {:if "{{length(state.marked) > 0}}"
-                          :then [{:run bulkAssignee :with {:who "{{who}}"}} {:stop true}]}
-                         {:if "{{computed.card == null}}" :then [{:stop true}]}
-                         {:run remember}
-                         {:update issues
-                          :id "{{computed.columns[state.selected.c].cards[state.selected.i].id}}"
-                          :fields {:who "{{who}}"}}
-                         {:set state.issueWhoOpen :to false}]
-           :setStatus [{:note "with: to, the column the selected card moves to; every marked card while some are"}
-                       {:if "{{length(state.marked) > 0}}"
-                        :then [{:set state.issueStatusOpen :to false}
-                               {:run bulkStatus :with {:to "{{to}}"}}
-                               {:stop true}]}
-                       {:set state.issueStatusOpen :to false}
-                       {:if "{{computed.card == null}}" :then [{:stop true}]}
-                       {:run moveCard :with {:from "{{state.selected.c}}" :at "{{state.selected.i}}" :to "{{to}}"}}]
-           :openIssue {:title "Open issue"
-                       :category "Issue"
-                       :icon maximize-2
-                       :enablement "{{computed.card != null}}"
-                       :do [{:set state.issueOpen :to true}]}
-           :closeIssue {:title "Close issue"
-                        :category "Issue"
-                        :icon arrow-left
-                        :enablement "{{state.issueOpen}}"
-                        :do [{:set state.issueOpen :to false}
-                             {:set state.issueDueOpen :to false}
-                             {:set state.subOpen :to false}]}}
  :components {:issuePage {:note "The selected card as a page: a header with the way back, the title, description, sub-issues and activity, and a properties panel"
                           :params {}
                           :node (node#panel-issue-page :color @color.surface

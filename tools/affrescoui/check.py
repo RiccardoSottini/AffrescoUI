@@ -39,7 +39,8 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 EXAMPLES = os.path.join(ROOT, "examples")
 with open(os.path.join(EXAMPLES, "templates.json"), encoding="utf-8") as templates_file:
     TEMPLATE_FOLDERS = {os.path.join(EXAMPLES, folder) for folder in json.load(templates_file)["templates"].values()}
-KANBAN = os.path.join(EXAMPLES, "flow", "json")  # the Kanban template's folder
+KANBAN = os.path.join(EXAMPLES, "flow", "lisp")  # the Kanban template's folder: a program (RFC 0005)
+KANBAN_SCREEN = "index.screen.lisp"  # its entry
 RENDER_SCENARIOS = os.path.join(ROOT, "tests", "render", "scenarios")
 sys.path.insert(0, os.path.join(ROOT, "tools", "media"))
 import pngfile  # noqa: E402 (tools/media/: reads the PNGs the tool and the runner write)
@@ -145,13 +146,13 @@ class Checker:
         self.expect(report["failed"] == 0 and report["passed"] >= least, f"test --json {path}: {report}")
         wrong = os.path.join(self.scratch, "wrong.scenarios.json")
         with open(wrong, "w", encoding="utf-8") as file:
-            json.dump({"version": 2, "screens": KANBAN, "screen": "index.screen.json", "scenarios": [
+            json.dump({"version": 2, "screens": KANBAN, "screen": KANBAN_SCREEN, "scenarios": [
                 {"name": "wrong", "steps": [{"expect": {"state": "board", "is": "Not the board"}}]}]}, file)
         output = self.run("test", wrong, expect=1)
         self.expect('FAILED wrong, step 1: state board is "Product launch", expected "Not the board"' in output,
                     f"test: a failing expectation: {output}")
         with open(wrong, "w", encoding="utf-8") as file:
-            json.dump({"version": 2, "screens": KANBAN, "screen": "index.screen.json",
+            json.dump({"version": 2, "screens": KANBAN, "screen": KANBAN_SCREEN,
                        "scenarios": [{"name": "a", "steps": [{"clik": "#card"}]}]}, file)
         self.run("test", wrong, expect=1)
 
@@ -207,7 +208,7 @@ class Checker:
         for role, expect in [("design", 0), (7, 1)]:
             path = os.path.join(self.scratch, "roles.policy.json")
             with open(path, "w", encoding="utf-8") as file:
-                json.dump({"screen": os.path.join(KANBAN, "index.screen.json"),
+                json.dump({"screen": os.path.join(KANBAN, KANBAN_SCREEN),
                            "roles": {"agent/claude-code": role}, "cases": [case]}, file)
             self.run("policy", "test", path, expect=expect)
 
@@ -354,7 +355,7 @@ class Checker:
         self.run("check", path)
         self.run("strings", "check", path, expect=0)
         report = json.loads(self.run("strings", "report", os.path.join(KANBAN), "--json"))  # an app's folder, its entry
-        self.expect(report["file"].endswith("index.screen.json"), f"strings report: read {report['file']}")
+        self.expect(report["file"].endswith(KANBAN_SCREEN), f"strings report: read {report['file']}")
         lisp = os.path.join(folder, "index.screen.lisp")
         self.run("convert", path, "-o", lisp)
         self.run("strings", "extract", lisp, expect=1)  # Lisp files are generated
@@ -400,7 +401,7 @@ def check_templates(checker, headless):
             checker.render(screens, scenario, path)
     for path in template_files("*.scenarios.json"):
         checker.test(path)
-    checker.history(os.path.join(KANBAN, "index.screen.json"))
+    checker.history(os.path.join(KANBAN, KANBAN_SCREEN))
     return templates
 
 
