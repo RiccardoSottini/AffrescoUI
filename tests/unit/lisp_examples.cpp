@@ -170,8 +170,8 @@ TEST_CASE("lisp examples attack: an agent's change to an app's program is review
 		affresco::json::const_iterator definition;
 		for(auto at = source["program"].begin(); at != source["program"].end() && file == source["program"].end(); ++at)
 			for(auto text = at->begin(); text != at->end(); ++text)
-				if(!at.key().starts_with("../") && (text->get<std::string>().contains("\n(defn ") ||
-				                                    text->get<std::string>().starts_with("(defn "))) {
+				if(!at.key().starts_with("../") &&
+				   (text->get<std::string>().contains("\n(defn ") || text->get<std::string>().starts_with("(defn "))) {
 					file = at;
 					definition = text;
 					break;
