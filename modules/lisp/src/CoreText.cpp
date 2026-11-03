@@ -201,6 +201,9 @@ Value bindingText(Machine& machine, Arguments arguments) {
 
 std::string expressionOfValue(Machine& machine, const Value& value) {
 	if(value.kind() == Kind::Symbol) return pathExpression(value.text());
+	if(value.kind() == Kind::Function || value.kind() == Kind::Native)
+		throw Problem("a binding was given a function: a name it reads from the running app is also a definition's, "
+		              "or a parameter's; rename one");
 	return expressionOf(valueToTree(machine, value, ""));
 }
 

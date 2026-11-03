@@ -179,15 +179,19 @@ std::shared_ptr<const BuiltProgram> buildSection(const json& section) {
 	built->extensions = program.extensions();
 	built->namesUsed = program.namesUsed();
 	built->namedCalls = program.namedCalls();
+	built->defaulted = program.defaulted();
 	return built;
 }
 
-/// @brief Puts one written section into the built tree. A member both give must be the same.
+/// @brief Puts one written section into the built tree. A member both give must be the same, but one a `defdefaults`
+/// gave, which the written one replaces.
 /// @param tree The tree.
 /// @param key The section's name.
 /// @param written Its value.
+/// @param defaulted The members a `defdefaults` gave.
 /// @throws LispError If a member is both built and written differently.
-void mergeWritten(json& tree, const std::string& key, const json& written) {
+void mergeWritten(json& tree, const std::string& key, const json& written,
+                  const std::set<std::pair<std::string, std::string>>& defaulted) {
 	const auto conflict = [&](const std::string& what) {
 		return problemIn("", "\"" + what +
 		                         "\" is built by the program and written in the document differently: change "
@@ -200,7 +204,7 @@ void mergeWritten(json& tree, const std::string& key, const json& written) {
 	} else if(found->is_object() && written.is_object()) {
 		for(const auto& [member, value] : written.items()) {
 			const auto built = found->find(member);
-			if(built == found->end()) (*found)[member] = value;
+			if(built == found->end() || defaulted.contains({key, member})) (*found)[member] = value;
 			else if(*built != value) throw conflict(std::format("{}.{}", key, member));
 		}
 	} else if(key != "format" && key != "version") {
@@ -332,14 +336,15 @@ std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 
 json buildDocument(const json& source) {
 	const json& section = source.at("program");
-	json tree = builtProgram(section)->tree;
+	const std::shared_ptr<const BuiltProgram> built = builtProgram(section);
+	json tree = built->tree;
 	for(const std::string_view key : unbuildable)
 		if(tree.contains(key))
 			throw problemIn("", "a program can't build \"" + std::string(key) + "\": " +
 			                        (key == "include" ? "a data file or an app lists a program's files"
 			                                          : "a revision or a file brings it"));
 	for(const auto& [key, value] : source.items())
-		if(key != "program") mergeWritten(tree, key, value);
+		if(key != "program") mergeWritten(tree, key, value, built->defaulted);
 	tree["program"] = section;
 	return tree;
 }

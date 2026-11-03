@@ -49,7 +49,16 @@ Value orElse(Machine& /*machine*/, Arguments arguments) {
 /// @return The text.
 Value repeatSource(Machine& machine, const Value& list) {
 	if(list.kind() == Kind::Symbol) return machine.heap.string(pathExpression(list.text()));
-	if(list.kind() == Kind::String) return list;
+	if(list.kind() == Kind::String) { // "{{state.items}}" is the path state.items, as a repeat writes it
+		const std::string_view text = list.text();
+		const std::string_view inside = text.size() > 4 && text.starts_with("{{") && text.ends_with("}}")
+		                                    ? text.substr(2, text.size() - 4)
+		                                    : std::string_view();
+		const bool path = !inside.empty() && std::ranges::all_of(inside, [](char c) {
+			return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '.';
+		});
+		return path ? machine.heap.string(inside) : list;
+	}
 	return machine.heap.string("{{" + expressionOfValue(machine, list) + "}}");
 }
 

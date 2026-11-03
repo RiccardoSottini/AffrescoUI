@@ -48,6 +48,8 @@ const std::unordered_map<std::string_view, Compiler::SpecialForm>& Compiler::spe
 	    {"defstyle", &Compiler::formMisplaced},
 	    {"defmenu", &Compiler::formMisplaced},
 	    {"deftokens", &Compiler::formMisplaced},
+	    {"defpart", &Compiler::formMisplaced},
+	    {"defdefaults", &Compiler::formMisplaced},
 	    {"include", &Compiler::formMisplaced},
 	    {"repeat", &Compiler::formRepeat},
 	    {"%view", &Compiler::formView},

@@ -40,7 +40,7 @@ namespace {
 std::size_t leastItems(std::string_view head) noexcept {
 	if(head == "def" || head == "defscreen" || head == "defkey" || head == "defcustom") return 3;
 	if(head == "defn" || head == "defmacro" || head == "defcommand" || head == "defview") return 3;
-	if(!sectionOfForm(head).empty()) return 3;
+	if(!sectionOfForm(head).empty() || head == "defpart" || head == "defdefaults") return 3;
 	if(head == "add-hook" || head == "remove-hook" || head == "advice") return 3;
 	if(head == "defhook") return 2;
 	return 0;
@@ -220,6 +220,8 @@ std::pair<std::string, std::string> definitionAddress(const Value& form) {
 		return {head, name};
 	}
 	if(form.at(1).kind() != Kind::Symbol) failDefinition(form, "", head + " takes a name first");
+	if(head == "defpart" || head == "defdefaults")
+		return {head, (head == "defpart" ? "part." : "defaults.") + std::string(form.at(1).text())};
 	if(const std::string_view section = sectionOfForm(head); !section.empty()) {
 		if(form.at(1).text().contains('.')) failDefinition(form, "", head + " takes a name without a dot");
 		return {head, std::string(section) + "." + std::string(form.at(1).text())};
@@ -413,6 +415,11 @@ void Machine::defineVocabulary(Definition& definition, const Value& form, const 
 		return;
 	} else if(!sectionOfForm(kind).empty()) {
 		data = sectionData(definition, form);
+	} else if(kind == "defpart" || kind == "defdefaults") {
+		std::size_t at = pastDoc(form, 2);
+		data = optionsOf(*this, form, at, definition.name);
+		if(at != form.count() || data.count() == 0)
+			failDefinition(form, definition.name, kind + " takes a name, maybe a docstring, and :section value pairs");
 	} else if(kind == "defkey") {
 		const std::size_t at = pastDoc(form, 2);
 		if(at + 1 != form.count())

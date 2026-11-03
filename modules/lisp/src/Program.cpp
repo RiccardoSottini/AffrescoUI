@@ -194,6 +194,8 @@ struct BuiltParts {
 	Section keys;                            ///< The shortcuts.
 	Section settings;                        ///< The settings.
 	std::map<std::string, Section> sections; ///< What `defstate`, `defcomputed`... add to the other sections.
+	std::map<std::string, json> values; ///< What `defpart` gives that isn't a map: a list joins, a value is given once.
+	std::map<std::string, Section> defaults; ///< What `defdefaults` gives: each member unless another gives it.
 };
 
 /// @brief Adds a member to a section: one defined twice, as `deftokens` can, is an error naming it.
@@ -206,6 +208,46 @@ void addMember(Section& section, std::string_view kind, const std::string& name,
 	if(!section.emplace(name, std::move(value)).second)
 		throw Problem("\"" + notation::Lexer::excerpt(name) + "\" is given twice, the second time by " +
 		              std::string(kind));
+}
+
+/// @brief Builds what `defpart` gives: each section's members, as a definition of each would.
+/// @param machine The machine.
+/// @param definition The definition.
+/// @param data Its options.
+/// @param parts Gets them.
+void buildPart(Machine& machine, const Definition& definition, const Value& data, BuiltParts& parts) {
+	json options = valueToTree(machine, data, definition.name);
+	const bool defaults = definition.kind == "defdefaults";
+	for(auto& [key, value] : options.items()) {
+		if(defaults) {
+			if(!value.is_object()) throw Problem("defdefaults gives members of sections: \"" + key + "\" isn't a map");
+			for(auto& [member, given] : value.items()) addMember(parts.defaults[key], "defdefaults", member, given);
+			continue;
+		}
+		if(value.is_object()) {
+			for(auto& [member, given] : value.items()) addMember(parts.sections[key], "defpart", member, given);
+			continue;
+		}
+		const auto [found, added] = parts.values.try_emplace(key, value);
+		if(added) continue;
+		if(found->second.is_array() && value.is_array())
+			found->second.insert(found->second.end(), value.begin(), value.end());
+		else if(found->second != value)
+			throw Problem("\"" + notation::Lexer::excerpt(key) + "\" is given twice, differently, by defpart");
+	}
+}
+
+/// @brief Adds what `defpart` gives that isn't a map to the tree: a list joins the one there, a value must be the same.
+/// @param tree The tree.
+/// @param values The values.
+void addValues(json& tree, std::map<std::string, json>& values) {
+	for(auto& [key, value] : values) {
+		const auto found = tree.find(key);
+		if(found == tree.end()) tree[key] = std::move(value);
+		else if(found->is_array() && value.is_array()) found->insert(found->end(), value.begin(), value.end());
+		else if(*found != value)
+			throw Problem("\"" + notation::Lexer::excerpt(key) + "\" is given by defscreen main and by defpart");
+	}
 }
 
 /// @brief Builds the part of a form that defines a member of a section (sectionOfForm()).
@@ -250,6 +292,8 @@ void buildDefinition(Machine& machine, const Definition& definition, BuiltParts&
 		    customSetting(valueToTree(machine, data, name), valueToTree(machine, value, name), definition.doc);
 	} else if(!sectionOfForm(definition.kind).empty()) {
 		buildSectionMember(machine, definition, data, parts);
+	} else if(definition.kind == "defpart" || definition.kind == "defdefaults") {
+		buildPart(machine, definition, data, parts);
 	} else if(name == "main") {
 		// A named tree: a loop over a temporary's items() reads it after it is gone
 		json settings = valueToTree(machine, data.at(0), name);
@@ -556,6 +600,16 @@ json Program::build(const Limits& limits) {
 		addSection(tree, "keys", parts.keys);
 		addSection(tree, "settings", parts.settings);
 		for(auto& [key, section] : parts.sections) addSection(tree, key.c_str(), section);
+		addValues(tree, parts.values);
+		defaulted_.clear();
+		for(auto& [key, section] : parts.defaults) // a default is a member no definition gives
+			for(auto& [member, value] : section) {
+				json& into = tree[key];
+				if(!into.is_object()) into = json::object();
+				if(into.contains(member)) continue;
+				into[member] = std::move(value);
+				defaulted_.emplace(key, member);
+			}
 		return tree;
 	});
 }

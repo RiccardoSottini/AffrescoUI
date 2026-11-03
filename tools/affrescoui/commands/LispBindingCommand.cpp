@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -606,11 +607,26 @@ Exit prove(const std::vector<std::string>& paths, bool verbose) {
 
 Exit lispBinding(std::span<const std::string_view> args) {
 	const std::array<std::string_view, 0> valued{};
-	const std::array<std::string_view, 2> flags = {"--prove", "--verbose"};
+	const std::array<std::string_view, 3> flags = {"--prove", "--verbose", "--batch"};
 	const Arguments arguments(args, valued, flags);
+	lisp::Interpreter language;
+	if(arguments.flag("--batch")) { // a JSON list of texts in, a list of {form} or {error} out, for a tool
+		std::string input((std::istreambuf_iterator<char>(std::cin)), std::istreambuf_iterator<char>());
+		json answers = json::array();
+		for(const json& text : json::parse(input)) {
+			try {
+				Translator translator(language);
+				answers.push_back({{"form", translate(text.get<std::string>(), translator)},
+				                   {"locals", translator.localNames()}});
+			} catch(const std::exception& error) {
+				answers.push_back({{"error", error.what()}});
+			}
+		}
+		std::cout << answers.dump() << '\n';
+		return Exit::Success;
+	}
 	if(arguments.positional().empty()) throw UsageError("give a text, or --prove and files or folders");
 	if(arguments.flag("--prove")) return prove(arguments.positional(), arguments.flag("--verbose"));
-	lisp::Interpreter language;
 	for(const std::string& text : arguments.positional()) {
 		try {
 			Translator translator(language);

@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <map>
+#include <set>
 #include <memory>
 #include <optional>
 #include <span>
@@ -34,6 +35,7 @@ struct BuiltProgram {
 	std::map<std::string, std::vector<std::string>>
 	    namesUsed;         ///< What each definition's code uses (Program::namesUsed()).
 	NamedCalls namedCalls; ///< What each calls with a text written out first (Program::namedCalls()).
+	std::set<std::pair<std::string, std::string>> defaulted; ///< Members a `defdefaults` gave (Program::defaulted()).
 };
 
 /// @brief Tells whether a document holds a program.

@@ -27,9 +27,9 @@ std::span<const Command> commands() {
 		 "it builds",
 		 runScreen},
 	    {"repl", "", "Read Lisp forms and print their values", lispRepl},
-	    {"lisp-binding", "<text>... | --prove <file or folder>... [--verbose]",
+	    {"lisp-binding", "<text>... | --prove <file or folder>... [--verbose] | --batch",
 		 "Write a value's text with {{...}} as the Lisp form a program writes for it; --prove translates every such "
-		 "text in JSON files, builds it back and compares the parsed trees",
+		 "text in JSON files, builds it back and compares the parsed trees; --batch reads a JSON list of texts",
 		 lispBinding},
 	    {"check",
 		 "<file> [--json] | --compose <screen> <feature> [--adapter FILE] [--base COMMIT] [--scenarios FILE|none] "
