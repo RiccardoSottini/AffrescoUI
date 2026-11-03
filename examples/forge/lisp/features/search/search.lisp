@@ -31,7 +31,8 @@
    :error ""})
 
 (defcommand findInFiles "Shows the Search view, its query field focused."
-  :title ~(t "command.findInFiles") :category ~(t "category.search") :icon "search" []
+  :title ~(t "command.findInFiles")
+  :description ~(t "command.findInFiles") :category ~(t "category.search") :icon "search" []
   (set "state.sideView" "search")
   (set "state.layout.sidebar" true)
   (after 0 findInFilesLater))
@@ -39,7 +40,8 @@
 (defn findInFilesLater "Focuses the query field once the view is shown." []
   (focus "#search-query"))
 
-(defn runSearch "Searches again for the query, after cancelling the search running; nothing without a query or a folder."
+(defn runSearch
+  "Searches again for the query, after cancelling the search running; nothing without a query or a folder."
   []
   (cancel "forge-search")
   (set "state.search.error" "")
@@ -83,7 +85,8 @@
 (defn startSearchFailed "Says why the search failed, unless it was cancelled." [error]
   (when (not= error.code "cancelled") (set "state.search.result" nil) (set "state.search.error" error.message)))
 
-(defn searchFound "One file's matches (`found`: file, matches): a tree item with a child per match, each naming its place in hits."
+(defn searchFound
+  "One file's matches (`found`: file, matches): a tree item with a child per match, each naming its place in hits."
   [found]
   (set "state.search.result"
        (merge state.search.result
@@ -112,7 +115,8 @@
                :matches (+ state.search.result.matches (count found.matches))})))
 
 (defcommand cancelSearch "Cancel Search"
-  :title ~(t "command.cancelSearch") :category ~(t "category.search") :icon "close" :enablement ~state.search.busy []
+  :title ~(t "command.cancelSearch") :description ~(t "command.cancelSearch") :category ~(t "category.search")
+  :icon "close" :enablement ~state.search.busy []
   (cancel "forge-search"))
 
 (defkey "mod+shift+f" findInFiles)
@@ -216,7 +220,8 @@
 
 (defcomputed searchEditorText (join "\n" (map (fn [it] it.text) computed.searchEditorRows)))
 
-(defcommand openSearchEditor "Show the search's results as text in an editor tab; Enter or a double click on a line opens it."
+(defcommand openSearchEditor
+  "Show the search's results as text in an editor tab; Enter or a double click on a line opens it."
   :title ~(t "command.openSearchEditor") :category ~(t "category.search") :icon "file-text"
   :description ~(t "command.openSearchEditor.about") :enablement ~(some? state.search.result) []
   (openPage "forge:search-results" (t "page.searchResults") "searchResults"))
@@ -288,7 +293,8 @@
   (set "state.search.replacing.failed" (concat state.search.replacing.failed [{:file file :error message}]))
   (replaceNext))
 
-(defn replaceFinished "Replacing is over: the open files that changed read again, a notice of what was done, the search run again."
+(defn replaceFinished
+  "Replacing is over: the open files that changed read again, a notice of what was done, the search run again."
   [done]
   (set "state.search.replacing" nil)
   (set "state.search.reload" (filter (fn [it] (contains computed.docIds it)) done.changed))

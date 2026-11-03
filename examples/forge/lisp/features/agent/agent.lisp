@@ -24,7 +24,7 @@
   :channels {:forgeAgent {:socket studio.sock :reconnect {:after 2000}}})
 
 (defcommand showAgent "Show Agent"
-  :title ~(t "command.showAgent") :category ~(t "category.view") :icon "bot" []
+  :title ~(t "command.showAgent") :description ~(t "command.showAgent") :category ~(t "category.view") :icon "bot" []
   (forgeShowView "agent"))
 
 (defcomputed agentLogRows
@@ -114,7 +114,8 @@
 (defn forgeAgentReview "The proposals waiting: the conversation says when a new one arrives." []
   (when (> (count (or-else event.proposals [])) state.agent.seen)
     (agentLog "review"
-              (t "agent.waitingReview" {:id (text (:id (last event.proposals))) :author (text (:author (last event.proposals)))})))
+              (t "agent.waitingReview"
+                 {:id (text (:id (last event.proposals))) :author (text (:author (last event.proposals)))})))
   (set "state.agent.seen" (count (or-else event.proposals []))))
 
 (defcommand agentPreview "Show the chosen proposal live, as accepting it would, until the preview ends."
@@ -143,7 +144,8 @@
       (set "state.agent.rejecting" computed.agentCurrent.id))))
 
 (defcommand agentOpenChanges "Open Proposal Changes"
-  :title ~(t "command.agentOpenChanges") :category ~(t "category.agent") :icon "git-compare"
+  :title ~(t "command.agentOpenChanges")
+  :description ~(t "command.agentOpenChanges") :category ~(t "category.agent") :icon "git-compare"
   :enablement ~(some? computed.agentCurrent) []
   (let [proposal computed.agentCurrent]
     (when (some? proposal)
@@ -175,12 +177,14 @@
 (defcomputed featureCurrent (find (fn [it] (= it.name state.features.selected)) state.features.catalog))
 
 (defcommand showFeatures "Show Features"
-  :title ~(t "command.showFeatures") :category ~(t "category.view") :icon "blocks" []
+  :title ~(t "command.showFeatures")
+  :description ~(t "command.showFeatures") :category ~(t "category.view") :icon "blocks" []
   (forgeShowView "features")
   (featuresRefresh))
 
 (defcommand featuresRefresh "Refresh Features"
-  :title ~(t "command.featuresRefresh") :category ~(t "category.features") :icon "refresh-cw" []
+  :title ~(t "command.featuresRefresh")
+  :description ~(t "command.featuresRefresh") :category ~(t "category.features") :icon "refresh-cw" []
   (invoke "features.catalog"
           :id "features-catalog"
           :loading "state.features.busy"
@@ -197,7 +201,8 @@
 (defn featuresApplyCatalog "Plays a catalogue given in the event, as the scenarios do." []
   (featuresStore event.features))
 
-(defn featuresStore "The catalogue's features, each checked and bounded: a name that can't be a path, a title, a release."
+(defn featuresStore
+  "The catalogue's features, each checked and bounded: a name that can't be a path, a title, a release."
   [features]
   (set "state.features.catalog"
        (map (fn [it]
@@ -216,7 +221,8 @@
                     (slice (if (= (type features) "list") features []) 0 500))))
   (set "state.features.error" ""))
 
-(defcommand featuresInstall "Ask the host to install the chosen feature from its catalogue; the install is a revision to review."
+(defcommand featuresInstall
+  "Ask the host to install the chosen feature from its catalogue; the install is a revision to review."
   :title ~(t "command.featuresInstall") :category ~(t "category.features") :icon "download"
   :description ~(t "command.featuresInstall.about")
   :enablement ~(and (some? computed.featureCurrent) (not computed.featureCurrent.installed)) []
@@ -246,12 +252,17 @@
            (map (fn [it] (if (= it.name feature.name) (merge it {:enabled on}) it)) state.features.catalog)))))
 
 (defcommand featuresEnable "Enable Feature"
-  :title ~(t "command.featuresEnable") :category ~(t "category.features") :icon "circle-check"
-  :enablement ~(and (some? computed.featureCurrent) computed.featureCurrent.installed (not computed.featureCurrent.enabled)) []
+  :title ~(t "command.featuresEnable") :description ~(t "command.featuresEnable") :category ~(t "category.features")
+  :icon "circle-check"
+  :enablement ~(and (some? computed.featureCurrent)
+                    computed.featureCurrent.installed
+                    (not computed.featureCurrent.enabled))
+  []
   (featuresSwitch true))
 
 (defcommand featuresDisable "Disable Feature"
-  :title ~(t "command.featuresDisable") :category ~(t "category.features") :icon "circle-pause"
+  :title ~(t "command.featuresDisable") :description ~(t "command.featuresDisable")
+  :category ~(t "category.features") :icon "circle-pause"
   :enablement ~(and (some? computed.featureCurrent) computed.featureCurrent.installed computed.featureCurrent.enabled) []
   (featuresSwitch false))
 

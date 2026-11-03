@@ -124,7 +124,8 @@
 
 ;;; The keyboard shortcuts page
 
-(defcomponent forgeKeybindingsPage "The keyboard shortcuts page: every key, searchable, with its command and when it applies."
+(defcomponent forgeKeybindingsPage
+  "The keyboard shortcuts page: every key, searchable, with its command and when it applies."
   {}
   `(column#keybindings-page :width "100%" :grow 1 :color @color.editor :gap 8
      (textarea#keybindings-search :role searchbox

@@ -3,7 +3,8 @@
 
 ;;; Run and Debug
 
-(defcomponent forgeDebugView "Run and Debug: the configuration and Start, the status, then the variables, watches, call stack and breakpoints, each a section that folds."
+(defcomponent forgeDebugView
+  "Run and Debug: the configuration, the status, the variables, watches, stack and breakpoints, each folding."
   {}
   `(column#debug-view :width "100%" :grow 1 :color @color.sideBar :gap 2
      ~(debug-head)
@@ -355,7 +356,8 @@
               :buttons [{:title ~(t "debug-outside-dialog.open") :run debugOpenOutside}
                         {:title ~(t "debug-outside-dialog.cancel")}]})))
 
-(defview debug-toolbar "The toolbar over the editors while a session runs: Continue or Pause, Step Over, Into and Out, Restart, Stop."
+(defview debug-toolbar
+  "The toolbar over the editors while a session runs: Continue or Pause, Step Over, Into and Out, Restart, Stop."
   []
   `(row#debug-toolbar :color @color.sideBar
      :borderWidth 1

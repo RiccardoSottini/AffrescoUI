@@ -79,7 +79,8 @@
   :description ~(t "command.acceptCurrentChange.about") :enablement ~(some? computed.conflictAtCaret) []
   (acceptConflict "current"))
 
-(defcommand acceptIncomingChange "Keep the lines below the conflict's =======, the ones being merged in, and drop the markers."
+(defcommand acceptIncomingChange
+  "Keep the lines below the conflict's =======, the ones being merged in, and drop the markers."
   :title ~(t "command.acceptIncomingChange") :category ~(t "category.mergeConflict") :icon "arrow-down"
   :description ~(t "command.acceptIncomingChange.about") :enablement ~(some? computed.conflictAtCaret) []
   (acceptConflict "incoming"))
@@ -90,7 +91,8 @@
   (acceptConflict "both"))
 
 (defcommand nextConflict "Next Conflict"
-  :title ~(t "command.nextConflict") :category ~(t "category.mergeConflict") :icon "chevron-down"
+  :title ~(t "command.nextConflict")
+  :description ~(t "command.nextConflict") :category ~(t "category.mergeConflict") :icon "chevron-down"
   :enablement ~(some? computed.conflictNext) []
   (set "state.goTo.line" (+ computed.conflictNext.start 1))
   (set "state.goTo.column" 1)

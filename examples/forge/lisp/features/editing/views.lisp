@@ -2,7 +2,8 @@
 
 ;;; The find bar
 
-(defcomponent forgeFindBar "The find bar: Escape closes it, Shift+Enter finds the previous match, Alt+L finds in the selection."
+(defcomponent forgeFindBar
+  "The find bar: Escape closes it, Shift+Enter finds the previous match, Alt+L finds in the selection."
   {}
   `(column#find-bar :width "100%"
      :height ~(if state.findBar.replacing 60 30)
@@ -51,7 +52,8 @@
      (node :use forgeFindButton
        :with {:name replace-all :icon replace-all :label ~(t "findBar.replaceAll.label") :run replaceAllInFile})))
 
-(defcomponent forgeFindOption "An option of the query, a check box bound to `bind`; changing it finds again from the top."
+(defcomponent forgeFindOption
+  "An option of the query, a check box bound to `bind`; changing it finds again from the top."
   {:option "" :bind "" :text ""}
   `(row :id ~(str "find-" option) :height 26 :gap 4 :alignItems center
      (checkbox :id ~(str "find-" option "-box")

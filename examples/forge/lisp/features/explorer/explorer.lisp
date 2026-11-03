@@ -38,7 +38,8 @@
                    computed.explorerLooks)))
 
 (defcommand explorerRefresh "Refresh Explorer"
-  :title ~(t "command.explorerRefresh") :category ~(t "category.files") :icon "refresh-cw" []
+  :title ~(t "command.explorerRefresh")
+  :description ~(t "command.explorerRefresh") :category ~(t "category.files") :icon "refresh-cw" []
   (when (not (empty? state.folder.root))
     (subscribe "fileChanges.changes" :id "explorer-changes" :do explorerWatched)
     (doseq [folder (concat [""] (sortText state.explorerTree.listed))] (explorerList folder))))
@@ -46,7 +47,8 @@
 (defn explorerWatched "The file watcher's events, as they come." [event]
   (explorerChanged event))
 
-(defn explorerChanged "An event of the file watcher (`batch`: changes, rescan): lists again the folders it touched, or everything."
+(defn explorerChanged
+  "An event of the file watcher (`batch`: changes, rescan): lists again the folders it touched, or everything."
   [batch]
   (if batch.rescan
     (explorerRefresh)
@@ -73,7 +75,8 @@
   (explorerListed folder (str folder "/") [] [])
   (set "state.explorerTree.listed" (filter (fn [it] (not= it folder)) state.explorerTree.listed)))
 
-(defn explorerListed "A folder's entries in the tree: what is listed under its folders still there stays, the rest goes."
+(defn explorerListed
+  "A folder's entries in the tree: what is listed under its folders still there stays, the rest goes."
   [folder prefix entries folders]
   (set "state.explorerTree.entries"
        (concat (filter (fn [it]
@@ -122,17 +125,20 @@
 ;;; New files and folders, and renaming
 
 (defcommand explorerNewFile "New File..."
-  :title ~(t "command.explorerNewFile") :category ~(t "category.files") :icon "file-plus"
+  :title ~(t "command.explorerNewFile")
+  :description ~(t "command.explorerNewFile") :category ~(t "category.files") :icon "file-plus"
   :enablement ~(not (empty? state.folder.root)) []
   (explorerAskName "newFile" ""))
 
 (defcommand explorerNewFolder "New Folder..."
-  :title ~(t "command.explorerNewFolder") :category ~(t "category.files") :icon "folder-plus"
+  :title ~(t "command.explorerNewFolder")
+  :description ~(t "command.explorerNewFolder") :category ~(t "category.files") :icon "folder-plus"
   :enablement ~(not (empty? state.folder.root)) []
   (explorerAskName "newFolder" ""))
 
 (defcommand explorerRename "Rename..."
-  :title ~(t "command.explorerRename") :category ~(t "category.files") :icon "pencil"
+  :title ~(t "command.explorerRename")
+  :description ~(t "command.explorerRename") :category ~(t "category.files") :icon "pencil"
   :enablement ~(not (empty? computed.explorerTarget)) []
   (explorerAskName "rename" computed.explorerTargetName))
 
@@ -159,7 +165,8 @@
                                              (if (= state.explorerEdit.mode "rename") (- 1) 1000))
                                       (split state.explorerEdit.name "/"))))))
 
-(defn explorerMake "Makes what the dialog asked for (`edit`) at a path (`to`): renames, or creates once nothing is there."
+(defn explorerMake
+  "Makes what the dialog asked for (`edit`) at a path (`to`): renames, or creates once nothing is there."
   [edit to]
   (cond
     (or (empty? (trim edit.name)) (contains (split edit.name "/") ".."))
@@ -238,7 +245,8 @@
 ;;; Deleting
 
 (defcommand explorerDelete "Delete..."
-  :title ~(t "command.explorerDelete") :category ~(t "category.files") :icon "trash-2"
+  :title ~(t "command.explorerDelete")
+  :description ~(t "command.explorerDelete") :category ~(t "category.files") :icon "trash-2"
   :enablement ~(not (empty? computed.explorerTarget)) []
   (set "state.layout.sidebar" true)
   (set "state.explorerEdit"
@@ -266,12 +274,14 @@
 ;;; Copying, pasting and moving
 
 (defcommand explorerCopy "Copy"
-  :title ~(t "command.explorerCopy") :category ~(t "category.files") :icon "copy"
+  :title ~(t "command.explorerCopy")
+  :description ~(t "command.explorerCopy") :category ~(t "category.files") :icon "copy"
   :enablement ~(not (empty? computed.explorerTarget)) []
   (set "state.explorerEdit.clipboard" computed.explorerTarget))
 
 (defcommand explorerPaste "Paste"
-  :title ~(t "command.explorerPaste") :category ~(t "category.files") :icon "clipboard-paste"
+  :title ~(t "command.explorerPaste")
+  :description ~(t "command.explorerPaste") :category ~(t "category.files") :icon "clipboard-paste"
   :enablement ~(not (empty? state.explorerEdit.clipboard)) []
   (invoke "files.copy"
           :with {:path state.explorerEdit.clipboard
@@ -288,7 +298,8 @@
 (defn explorerPasteFailed "Says why the copy couldn't be pasted." [error]
   (notify "error" (t "notify.cannotPaste" {:error error.message})))
 
-(defn explorerDrop "Entries dropped (`event`: data.ids, id): moved into the folder dropped on, or the one holding the file."
+(defn explorerDrop
+  "Entries dropped (`event`: data.ids, id): moved into the folder dropped on, or the one holding the file."
   []
   (doseq [from (or-else event.data.ids [])]
     (explorerMove from
@@ -316,12 +327,14 @@
 ;;; Folders and the active file
 
 (defcommand explorerCollapseAll "Collapse Folders in Explorer"
-  :title ~(t "command.explorerCollapseAll") :category ~(t "category.files") :icon "copy-minus"
+  :title ~(t "command.explorerCollapseAll")
+  :description ~(t "command.explorerCollapseAll") :category ~(t "category.files") :icon "copy-minus"
   :enablement ~(not (empty? state.explorer.expanded)) []
   (set "state.explorer.expanded" []))
 
 (defcommand explorerReveal "Reveal Active File in Explorer"
-  :title ~(t "command.explorerReveal") :category ~(t "category.files") :icon "locate"
+  :title ~(t "command.explorerReveal")
+  :description ~(t "command.explorerReveal") :category ~(t "category.files") :icon "locate"
   :enablement ~(and (some? computed.activeDoc) (= computed.activeDoc.kind "file")) []
   (set "state.layout.sidebar" true)
   (set "state.sideView" "explorer")

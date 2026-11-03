@@ -13,7 +13,8 @@
   :services {:terminal {:provider pty :process shell :root workspace}})
 
 (defcommand terminalNew "New Terminal"
-  :title ~(t "command.terminalNew") :category ~(t "category.terminal") :icon "terminal"
+  :title ~(t "command.terminalNew")
+  :description ~(t "command.terminalNew") :category ~(t "category.terminal") :icon "terminal"
   :enablement ~(< (count state.terminals.list) 8) []
   (push "state.terminals.list"
         {:id (str "t" state.terminals.next) :label (t "terminal.label" {:n state.terminals.next}) :closable true})
@@ -34,18 +35,21 @@
   (when (and (= (count state.terminals.list) 0) (= state.panelTab "terminal")) (set "state.panelTab" "output")))
 
 (defcommand terminalKill "Kill the Active Terminal"
-  :title ~(t "command.terminalKill") :category ~(t "category.terminal") :icon "trash-2"
+  :title ~(t "command.terminalKill")
+  :description ~(t "command.terminalKill") :category ~(t "category.terminal") :icon "trash-2"
   :enablement ~(not (empty? state.terminals.active)) []
   (terminalClose state.terminals.active))
 
 (defcommand showTerminal "Focus Terminal"
-  :title ~(t "command.showTerminal") :category ~(t "category.view") :icon "terminal" []
+  :title ~(t "command.showTerminal")
+  :description ~(t "command.showTerminal") :category ~(t "category.view") :icon "terminal" []
   (if (= (count state.terminals.list) 0)
     (terminalNew)
     (do (set "state.layout.panel" true) (set "state.panelTab" "terminal") (after 0 focusTerminal))))
 
 (defcommand terminalClear "Clear Terminal"
-  :title ~(t "command.terminalClear") :category ~(t "category.terminal") :icon "eraser"
+  :title ~(t "command.terminalClear")
+  :description ~(t "command.terminalClear") :category ~(t "category.terminal") :icon "eraser"
   :enablement ~(not (empty? state.terminals.active)) []
   (clearTerminal state.terminals.active))
 
@@ -69,13 +73,15 @@
   (tasksLoad "build"))
 
 (defcommand rerunLastTask "Rerun Last Task"
-  :title ~(t "command.rerunLastTask") :category ~(t "category.terminal") :icon "refresh-cw"
+  :title ~(t "command.rerunLastTask")
+  :description ~(t "command.rerunLastTask") :category ~(t "category.terminal") :icon "refresh-cw"
   :enablement ~(not= state.tasks.last "") []
   (taskStart (find (fn [it] (= it.title state.tasks.last)) state.tasks.items)))
 
 (defkey "mod+shift+b" runBuildTask)
 
-(defn tasksLoad "Reads .forge/tasks.json, then picks a task (`then` pick), runs the build task (build), or only lists them ('')."
+(defn tasksLoad
+  "Reads .forge/tasks.json, then picks a task (`then` pick), runs the build task (build), or only lists them ('')."
   [then]
   (if (empty? state.folder.root)
     (tasksApply {:tasks [] :skipped 0} then)
@@ -102,7 +108,8 @@
     (tasksFail (t "tasks.notJson"))
     (tasksRead then (if (and (= (type file) "object") (= (type file.tasks) "list")) file.tasks []))))
 
-(defn tasksRead "The tasks Forge runs: type shell (its command a line for the shell) or process (one program), with plain text args, each quoted by shellLine(); ${workspaceFolder} becomes '.' (the terminal starts in the folder), and a task naming another variable is skipped. The first 100 are kept, the others counted as skipped."
+(defn tasksRead
+  "The tasks Forge runs (shell or process; ${workspaceFolder} as '.', other variables skipped), the first 100 kept."
   [then listed]
   (tasksQuote then
               (count listed)

@@ -2,7 +2,8 @@
 
 ;;; The pane
 
-(defcomponent forgeAgentView "The agent pane: its status, the conversation, the proposals to review, and the request field."
+(defcomponent forgeAgentView
+  "The agent pane: its status, the conversation, the proposals to review, and the request field."
   {}
   `(column#agent-view :width "100%" :grow 1 :color @color.sideBar :gap 4
      (label#agent-title :text ~(t "agent-title") :textColor @color.muted :width "100%" :height 32 :padding 12)
@@ -108,7 +109,8 @@
 
 ;;; Reviewing a proposal
 
-(defcomponent forgeAgentReview "The proposal chosen: its message, its changes, its evidence, and Preview, Accept and Reject."
+(defcomponent forgeAgentReview
+  "The proposal chosen: its message, its changes, its evidence, and Preview, Accept and Reject."
   {}
   `(column#agent-review :width "100%" :grow 2 :gap 4
      (label#agent-proposal-message :wrap true

@@ -38,19 +38,21 @@
           :else (t "find.matches" {:n computed.findMatches})))
 
 (defcommand openFind "Find"
-  :title ~(t "command.openFind") :category ~(t "category.edit") :icon "search" []
+  :title ~(t "command.openFind") :description ~(t "command.openFind") :category ~(t "category.edit") :icon "search" []
   (set "state.findBar.open" true)
   (set "state.findBar.replacing" false)
   (focus "#find-text"))
 
 (defcommand openReplace "Replace"
-  :title ~(t "command.openReplace") :category ~(t "category.edit") :icon "replace" []
+  :title ~(t "command.openReplace")
+  :description ~(t "command.openReplace") :category ~(t "category.edit") :icon "replace" []
   (set "state.findBar.open" true)
   (set "state.findBar.replacing" true)
   (focus "#find-text"))
 
 (defcommand closeFind "Close Find"
-  :title ~(t "command.closeFind") :category ~(t "category.edit") :enablement ~state.findBar.open []
+  :title ~(t "command.closeFind")
+  :description ~(t "command.closeFind") :category ~(t "category.edit") :enablement ~state.findBar.open []
   (set "state.findBar.open" false)
   (set "state.findBar.inSelection" false)
   (after 0 closeFindLater))
@@ -63,23 +65,28 @@
   (increment "state.findBar.request" :by 1))
 
 (defcommand findNext "Find Next"
-  :title ~(t "command.findNext") :category ~(t "category.edit") :enablement ~state.findBar.open []
+  :title ~(t "command.findNext")
+  :description ~(t "command.findNext") :category ~(t "category.edit") :enablement ~state.findBar.open []
   (findStep "next"))
 
 (defcommand findPrevious "Find Previous"
-  :title ~(t "command.findPrevious") :category ~(t "category.edit") :enablement ~state.findBar.open []
+  :title ~(t "command.findPrevious")
+  :description ~(t "command.findPrevious") :category ~(t "category.edit") :enablement ~state.findBar.open []
   (findStep "previous"))
 
 (defcommand replaceOne "Replace"
-  :title ~(t "command.replaceOne") :category ~(t "category.edit") :enablement ~state.findBar.open []
+  :title ~(t "command.replaceOne")
+  :description ~(t "command.replaceOne") :category ~(t "category.edit") :enablement ~state.findBar.open []
   (findStep "replace"))
 
 (defcommand replaceAllInFile "Replace All"
-  :title ~(t "command.replaceAllInFile") :category ~(t "category.edit") :enablement ~state.findBar.open []
+  :title ~(t "command.replaceAllInFile")
+  :description ~(t "command.replaceAllInFile") :category ~(t "category.edit") :enablement ~state.findBar.open []
   (findStep "replaceAll"))
 
 (defcommand toggleFindInSelection "Toggle Find in Selection"
-  :title ~(t "command.toggleFindInSelection") :category ~(t "category.edit") []
+  :title ~(t "command.toggleFindInSelection")
+  :description ~(t "command.toggleFindInSelection") :category ~(t "category.edit") []
   (set "state.findBar.inSelection" (not state.findBar.inSelection)))
 
 (defkey "mod+f" openFind)
@@ -88,20 +95,34 @@
 
 ;;; The editor's settings
 
-(defcustom editor.tabSize
-  4 "Spaces per indentation level: what Tab inserts and an opened file's tabs become." :description ~(t "settings.editor.tabSize.about") :type integer :minimum 1 :maximum 16 :title ~(t "settings.editor.tabSize"))
+(defcustom editor.tabSize 4
+  "Spaces per indentation level: what Tab inserts and an opened file's tabs become."
+  :description ~(t "settings.editor.tabSize.about")
+  :type integer
+  :minimum 1
+  :maximum 16
+  :title ~(t "settings.editor.tabSize"))
 
-(defcustom editor.wordWrap
-  false "Wrap lines that don't fit the editor's width." :description ~(t "settings.editor.wordWrap.about") :type boolean :title ~(t "settings.editor.wordWrap"))
+(defcustom editor.wordWrap false
+  "Wrap lines that don't fit the editor's width."
+  :description ~(t "settings.editor.wordWrap.about")
+  :type boolean
+  :title ~(t "settings.editor.wordWrap"))
 
-(defcustom editor.bracketMatching
-  true "Highlight the bracket that pairs with the one at the caret." :description ~(t "settings.editor.bracketMatching.about") :type boolean :title ~(t "settings.editor.bracketMatching"))
+(defcustom editor.bracketMatching true
+  "Highlight the bracket that pairs with the one at the caret."
+  :description ~(t "settings.editor.bracketMatching.about")
+  :type boolean
+  :title ~(t "settings.editor.bracketMatching"))
 
-(defcustom editor.guides.indentation
-  true "Draw a line at each indentation level." :description ~(t "settings.editor.guides.indentation.about") :type boolean :title ~(t "settings.editor.guides.indentation"))
+(defcustom editor.guides.indentation true
+  "Draw a line at each indentation level."
+  :description ~(t "settings.editor.guides.indentation.about")
+  :type boolean
+  :title ~(t "settings.editor.guides.indentation"))
 
 (defcommand toggleWordWrap "Toggle Word Wrap"
-  :title ~(t "command.toggleWordWrap") :category ~(t "category.view") []
+  :title ~(t "command.toggleWordWrap") :description ~(t "command.toggleWordWrap") :category ~(t "category.view") []
   (set "settings.editor.wordWrap" (not settings.editor.wordWrap)))
 
 (defkey "alt+z" toggleWordWrap)

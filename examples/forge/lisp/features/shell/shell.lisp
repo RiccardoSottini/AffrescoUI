@@ -11,16 +11,19 @@
   {:sidebar true :panel false :panelMax false :zen false :secondary false :sizes [240] :panelSizes [480] :groupSizes []})
 
 (defcommand toggleSidebar "Toggle Left Side Bar"
-  :title ~(t "command.toggleSidebar") :category ~(t "category.view") :icon "panel-left" []
+  :title ~(t "command.toggleSidebar")
+  :description ~(t "command.toggleSidebar") :category ~(t "category.view") :icon "panel-left" []
   (toggle "state.layout.sidebar"))
 
 (defcommand togglePanel "Toggle Panel"
-  :title ~(t "command.togglePanel") :category ~(t "category.view") :icon "panel-bottom" []
+  :title ~(t "command.togglePanel")
+  :description ~(t "command.togglePanel") :category ~(t "category.view") :icon "panel-bottom" []
   (toggle "state.layout.panel")
   (set "state.layout.panelMax" false))
 
 (defcommand toggleMaximizedPanel "Maximize Panel Size"
-  :title ~(t "command.toggleMaximizedPanel") :category ~(t "category.view") :icon "chevron-up" []
+  :title ~(t "command.toggleMaximizedPanel")
+  :description ~(t "command.toggleMaximizedPanel") :category ~(t "category.view") :icon "chevron-up" []
   (set "state.layout.panel" true)
   (toggle "state.layout.panelMax"))
 
@@ -45,11 +48,13 @@
     (do (set "state.sideView" view) (set "state.layout.sidebar" true))))
 
 (defcommand showExplorer "Show Explorer"
-  :title ~(t "command.showExplorer") :category ~(t "category.view") :icon "files" []
+  :title ~(t "command.showExplorer")
+  :description ~(t "command.showExplorer") :category ~(t "category.view") :icon "files" []
   (forgeShowView "explorer"))
 
 (defcommand showSearch "Show Search"
-  :title ~(t "command.showSearch") :category ~(t "category.view") :icon "search" []
+  :title ~(t "command.showSearch")
+  :description ~(t "command.showSearch") :category ~(t "category.view") :icon "search" []
   (forgeShowView "search"))
 
 ;;; The open folder
@@ -66,7 +71,8 @@
   (if (empty? state.folder.root) (t "folder.none") (get (reverse (split state.folder.root "/")) 0)))
 
 (defcommand openFolder "Open Folder..."
-  :title ~(t "command.openFolder") :category ~(t "category.file") :icon "folder-open" []
+  :title ~(t "command.openFolder")
+  :description ~(t "command.openFolder") :category ~(t "category.file") :icon "folder-open" []
   (chooseFolder "workspace" :title (t "dialog.openFolder") :onError openFolderFailed :onDone openFolderDone))
 
 (defn openFolderDone "The folder chosen: its tree listed and its files indexed, from nothing." [result]
@@ -156,7 +162,7 @@
   (showTab id label))
 
 (defcommand closeEditor "Close Editor"
-  :title ~(t "command.closeEditor") :category ~(t "category.view") :icon "x"
+  :title ~(t "command.closeEditor") :description ~(t "command.closeEditor") :category ~(t "category.view") :icon "x"
   :enablement ~(not (empty? (get-in state.groups [state.activeGroup :active]))) []
   (closeTab state.activeGroup (activeTabId)))
 
@@ -176,14 +182,16 @@
 (defstate nav {:back [] :forward [] :moving false})
 
 (defcommand navigateBack "Go Back"
-  :title ~(t "command.navigateBack") :category ~(t "category.go") :icon "arrow-left"
+  :title ~(t "command.navigateBack")
+  :description ~(t "command.navigateBack") :category ~(t "category.go") :icon "arrow-left"
   :enablement ~(> (count state.nav.back) 0) []
   (set "state.nav.forward" (concat (filter (fn [it] (= it.id (activeTabId))) (activeTabs)) state.nav.forward))
   (forgeNavigateTo (last state.nav.back))
   (set "state.nav.back" (slice state.nav.back 0 (- (count state.nav.back) 1))))
 
 (defcommand navigateForward "Go Forward"
-  :title ~(t "command.navigateForward") :category ~(t "category.go") :icon "arrow-right"
+  :title ~(t "command.navigateForward")
+  :description ~(t "command.navigateForward") :category ~(t "category.go") :icon "arrow-right"
   :enablement ~(> (count state.nav.forward) 0) []
   (set "state.nav.back" (concat state.nav.back (filter (fn [it] (= it.id (activeTabId))) (activeTabs))))
   (forgeNavigateTo state.nav.forward.0)
@@ -194,7 +202,8 @@
   (showTab tab.id tab.label)
   (set "state.nav.moving" false))
 
-(defn forgeRecordNav "Before a tab (`id`) is shown: the one shown now goes into the history Go Back walks (the last 50), unless Go Back or Go Forward is moving."
+(defn forgeRecordNav
+  "Before a tab (`id`) is shown: the one shown goes into the history (the last 50), unless Back or Forward moves."
   [id]
   (when (and (not state.nav.moving) (not (empty? (activeTabId))) (not= (activeTabId) id))
     (set "state.nav"
@@ -219,5 +228,5 @@
 (defstate notificationCentre false)
 
 (defcommand about "About Forge"
-  :title ~(t "command.about") :category ~(t "category.help") :icon "info" []
+  :title ~(t "command.about") :description ~(t "command.about") :category ~(t "category.help") :icon "info" []
   (set "state.about" true))

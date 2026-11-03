@@ -111,7 +111,8 @@
      :with {:view ~view :icon ~icon :label ~(t (str "activity." view)) :tip ~(t (str "activity." view ".tip"))}
      :onClick ~run))
 
-(defcomponent forgeActivityItem "A view's button on the rail: outlined while its view is shown, with a badge if it counts something."
+(defcomponent forgeActivityItem
+  "A view's button on the rail: outlined while its view is shown, with a badge if it counts something."
   {:view "" :icon "" :label "" :tip "" :badge 0}
   `(node :id ~(str "activity-" view)
      :role tab
@@ -289,7 +290,8 @@
      :tooltip ~tip
      :hover {:color @color.hover}))
 
-(defcomponent forgeStatusBar "The status bar: the server, the branch, the problems, then the active file's place, indentation, encoding, line endings and language."
+(defcomponent forgeStatusBar
+  "The status bar: the server, the branch, the problems; the active file's place, indentation, line endings, language."
   {}
   `(row#status-bar :role status
      :label ~(t "status-bar.label")

@@ -31,7 +31,8 @@
   :services {:git {:provider process :process git :root workspace}})
 
 (defcommand showSourceControl "Show Source Control"
-  :title ~(t "command.showSourceControl") :category ~(t "category.view") :icon "git-branch" []
+  :title ~(t "command.showSourceControl")
+  :description ~(t "command.showSourceControl") :category ~(t "category.view") :icon "git-branch" []
   (forgeShowView "scm")
   (when (and (= state.sideView "scm") (not (empty? state.folder.root))) (scmRefresh)))
 
@@ -194,23 +195,27 @@
 ;;; Staging and committing
 
 (defcommand scmStage "Stage Changes"
-  :title ~(t "command.scmStage") :category ~(t "category.sourceControl") :icon "plus"
+  :title ~(t "command.scmStage")
+  :description ~(t "command.scmStage") :category ~(t "category.sourceControl") :icon "plus"
   :enablement ~(not (empty? (or-else event.id state.scm.selectedChange))) []
   (let [path (or-else event.id state.scm.selectedChange)] (when (not (empty? path)) (scmGit ["add" "--" path] ""))))
 
 (defcommand scmUnstage "Unstage Changes"
-  :title ~(t "command.scmUnstage") :category ~(t "category.sourceControl") :icon "minus"
+  :title ~(t "command.scmUnstage")
+  :description ~(t "command.scmUnstage") :category ~(t "category.sourceControl") :icon "minus"
   :enablement ~(not (empty? (or-else event.id state.scm.selectedStaged))) []
   (let [path (or-else event.id state.scm.selectedStaged)]
     (when (not (empty? path)) (scmGit ["restore" "--staged" "--" path] ""))))
 
 (defcommand scmStageAll "Stage All Changes"
-  :title ~(t "command.scmStageAll") :category ~(t "category.sourceControl") :icon "list-plus"
+  :title ~(t "command.scmStageAll")
+  :description ~(t "command.scmStageAll") :category ~(t "category.sourceControl") :icon "list-plus"
   :enablement ~(> (count state.scm.status.changes) 0) []
   (scmGit ["add" "--" "."] ""))
 
 (defcommand scmUnstageAll "Unstage All Changes"
-  :title ~(t "command.scmUnstageAll") :category ~(t "category.sourceControl") :icon "list-minus"
+  :title ~(t "command.scmUnstageAll")
+  :description ~(t "command.scmUnstageAll") :category ~(t "category.sourceControl") :icon "list-minus"
   :enablement ~(> (count state.scm.status.staged) 0) []
   (scmGit ["restore" "--staged" "--" "."] ""))
 
@@ -239,7 +244,8 @@
        (if (> state.scm.status.branch.behind 0) (str "  ↓" state.scm.status.branch.behind) "")))
 
 (defcommand scmBranches "Show Branches"
-  :title ~(t "command.scmBranches") :category ~(t "category.sourceControl") :icon "git-branch"
+  :title ~(t "command.scmBranches")
+  :description ~(t "command.scmBranches") :category ~(t "category.sourceControl") :icon "git-branch"
   :enablement ~(not (empty? state.folder.root)) []
   (set "state.scm.showBranches" true)
   (invoke "git.run"
@@ -261,7 +267,8 @@
     (set "state.scm.branches" read)))
 
 (defcommand scmSwitch "Switch Branch"
-  :title ~(t "command.scmSwitch") :category ~(t "category.sourceControl") :icon "git-branch"
+  :title ~(t "command.scmSwitch")
+  :description ~(t "command.scmSwitch") :category ~(t "category.sourceControl") :icon "git-branch"
   :enablement ~(not (empty? (or-else event.id state.scm.selectedBranch))) []
   (let [name (or-else event.id state.scm.selectedBranch)]
     (when (and (not (empty? name)) (not= name state.scm.branches.current)) (scmGit ["switch" name] ""))))
@@ -305,7 +312,8 @@
             :icon (cond (= it.status "A") "file-plus" (= it.status "D") "file-minus" :else "file-diff")})
          state.scm.commit.files))
 
-(defcommand scmHistory "List the branch's last hundred commits; pick one to see the files it changed, and open a file to compare it with the commit before."
+(defcommand scmHistory
+  "Lists the branch's last hundred commits; a commit shows its files, a file compares it with the commit before."
   :title ~(t "command.scmHistory") :category ~(t "category.sourceControl") :icon "history"
   :description ~(t "command.scmHistory.about") :enablement ~(not (empty? state.folder.root)) []
   (set "state.scm.showHistory" true)
@@ -327,7 +335,8 @@
   (set "state.scm.showHistory" true)
   (scmLogRead event.output))
 
-(defn scmLogRead "git log --graph's lines (`output`): each the graph, the refs, then the short hash, hash, author, when and subject split by the unit separator; a line of the graph only joins the commits."
+(defn scmLogRead
+  "git log --graph's lines (`output`): the graph, the refs, the hashes, author, when and subject of each commit."
   [output]
   (set "state.scm.log"
        (slice (map (fn [it]
@@ -377,7 +386,8 @@
 (defn scmApplyCommitFiles "Plays a commit's files given in the event, as the scenarios do." []
   (scmCommitFilesRead event.hash event.output))
 
-(defn scmCommitFilesRead "git show --name-status's lines (`output`): a status letter, a tab, the path (a rename or a copy has the old path first); kept while the commit is still the one chosen."
+(defn scmCommitFilesRead
+  "git show --name-status's lines (`output`): each file's status and path, kept while the commit is chosen."
   [hash output]
   (when (= hash state.scm.commit.hash)
     (set "state.scm.commit.files"

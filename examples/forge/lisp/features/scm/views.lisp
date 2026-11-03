@@ -6,7 +6,8 @@
 
 ;;; The view
 
-(defcomponent forgeScmView "The Source Control view: its head, the commit message, the changes, the branches and the history."
+(defcomponent forgeScmView
+  "The Source Control view: its head, the commit message, the changes, the branches and the history."
   {}
   `(column#scm-view :width "100%" :grow 1 :color @color.sideBar :gap 4
      ~(scm-head)

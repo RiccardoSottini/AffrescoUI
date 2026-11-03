@@ -25,17 +25,19 @@
         []))
 
 (defcommand quickOpen "Go to File..."
-  :title ~(t "command.quickOpen") :category ~(t "category.go") :icon "search" []
+  :title ~(t "command.quickOpen") :description ~(t "command.quickOpen") :category ~(t "category.go") :icon "search" []
   (set "state.quickPick.query" "")
   (set "state.quickPick.open" true))
 
 (defcommand showCommands "Run a Command..."
-  :title ~(t "command.showCommands") :category ~(t "category.view") :icon "search" []
+  :title ~(t "command.showCommands")
+  :description ~(t "command.showCommands") :category ~(t "category.view") :icon "search" []
   (set "state.quickPick.query" ">")
   (set "state.quickPick.open" true))
 
 (defcommand goToLinePick "Go to Line..."
-  :title ~(t "command.goToLinePick") :category ~(t "category.go") :icon "hash" []
+  :title ~(t "command.goToLinePick")
+  :description ~(t "command.goToLinePick") :category ~(t "category.go") :icon "hash" []
   (set "state.quickPick.query" ":")
   (set "state.quickPick.open" true))
 
@@ -82,19 +84,22 @@
        (concat (filter (fn [it index] (= (indexOf (vals state.languages) it) index)) (vals state.languages)) [""])))
 
 (defcommand changeIndentation "Change Indentation"
-  :title ~(t "command.changeIndentation") :category ~(t "category.view") :icon "indent-increase"
+  :title ~(t "command.changeIndentation")
+  :description ~(t "command.changeIndentation") :category ~(t "category.view") :icon "indent-increase"
   :enablement ~(= computed.activeDoc.kind "file") []
   (set "state.quickPick.query" "indent ")
   (set "state.quickPick.open" true))
 
 (defcommand changeEndOfLine "Change End of Line Sequence"
-  :title ~(t "command.changeEndOfLine") :category ~(t "category.view") :icon "corner-down-left"
+  :title ~(t "command.changeEndOfLine")
+  :description ~(t "command.changeEndOfLine") :category ~(t "category.view") :icon "corner-down-left"
   :enablement ~(= computed.activeDoc.kind "file") []
   (set "state.quickPick.query" "eol ")
   (set "state.quickPick.open" true))
 
 (defcommand changeLanguageMode "Change Language Mode"
-  :title ~(t "command.changeLanguageMode") :category ~(t "category.view") :icon "braces"
+  :title ~(t "command.changeLanguageMode")
+  :description ~(t "command.changeLanguageMode") :category ~(t "category.view") :icon "braces"
   :enablement ~(= computed.activeDoc.kind "file") []
   (set "state.quickPick.query" "language ")
   (set "state.quickPick.open" true))
@@ -147,11 +152,13 @@
                          keybindings)))
 
 (defcommand openSettings "Open Settings"
-  :title ~(t "command.openSettings") :category ~(t "category.preferences") :icon "settings" []
+  :title ~(t "command.openSettings")
+  :description ~(t "command.openSettings") :category ~(t "category.preferences") :icon "settings" []
   (openPage "forge:settings" (t "page.settings") "settings"))
 
 (defcommand openKeybindings "Open Keyboard Shortcuts"
-  :title ~(t "command.openKeybindings") :category ~(t "category.preferences") :icon "keyboard" []
+  :title ~(t "command.openKeybindings")
+  :description ~(t "command.openKeybindings") :category ~(t "category.preferences") :icon "keyboard" []
   (openPage "forge:keybindings" (t "page.keybindings") "keybindings"))
 
 (defkey "mod+," openSettings)
@@ -172,14 +179,27 @@
 (defn resetSetting "A setting back to its default: the value set is taken away." [key]
   (remove-state (str "settings." key)))
 
-(defcustom workbench.statusBar.visible
-  true "Show the status bar at the bottom of the window." :description ~(t "settings.workbench.statusBar.visible.about") :type boolean :title ~(t "settings.workbench.statusBar.visible"))
+(defcustom workbench.statusBar.visible true
+  "Show the status bar at the bottom of the window."
+  :description ~(t "settings.workbench.statusBar.visible.about")
+  :type boolean
+  :title ~(t "settings.workbench.statusBar.visible"))
 
-(defcustom workbench.activityBar.visible
-  true "Show the activity bar on the left." :description ~(t "settings.workbench.activityBar.visible.about") :type boolean :title ~(t "settings.workbench.activityBar.visible"))
+(defcustom workbench.activityBar.visible true
+  "Show the activity bar on the left."
+  :description ~(t "settings.workbench.activityBar.visible.about")
+  :type boolean
+  :title ~(t "settings.workbench.activityBar.visible"))
 
-(defcustom workbench.startupEditor
-  "welcome" "What the editor area shows when no file is open." :description ~(t "settings.workbench.startupEditor.about") :type string :enum [welcome none] :title ~(t "settings.workbench.startupEditor"))
+(defcustom workbench.startupEditor "welcome"
+  "What the editor area shows when no file is open."
+  :description ~(t "settings.workbench.startupEditor.about")
+  :type string
+  :enum [welcome none]
+  :title ~(t "settings.workbench.startupEditor"))
 
-(defcustom editor.lineNumbers
-  true "Show line numbers in the editor's gutter." :description ~(t "settings.editor.lineNumbers.about") :type boolean :title ~(t "settings.editor.lineNumbers"))
+(defcustom editor.lineNumbers true
+  "Show line numbers in the editor's gutter."
+  :description ~(t "settings.editor.lineNumbers.about")
+  :type boolean
+  :title ~(t "settings.editor.lineNumbers"))

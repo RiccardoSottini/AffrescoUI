@@ -66,7 +66,8 @@
 
 ;;; The right-click menus
 
-(defmenu searchResult "The search results' right-click menu: take a file or a match out of the results." {:dismiss {:run searchDismiss :group "1_dismiss" :order 1}})
+(defmenu searchResult "The search results' right-click menu: take a file or a match out of the results."
+  {:dismiss {:run searchDismiss :group "1_dismiss" :order 1}})
 
 (defmenu help "The Help menu: About Forge."
   {:keybindings {:run openKeybindings :group "1_help" :order 1} :about {:run about :group "2_about" :order 1}})

@@ -27,7 +27,8 @@
         nil
         (or-else (get state.lsp.languages (lower-case (get (reverse (split computed.activeDoc.id ".")) 0))) nil)))
 
-(defpart lsp-service "The language server, started when first asked; and the symbol picker's query, sent as it is typed."
+(defpart lsp-service
+  "The language server, started when first asked; and the symbol picker's query, sent as it is typed."
   :services {:lsp {:provider lsp
                    :process clangd
                    :root workspace
@@ -36,7 +37,8 @@
                    :restart {:times 3 :after 1000}}}
   :watch {:state.symbolPick.query searchWorkspaceSymbols})
 
-(defn lspAsk "Asks the server about the active file, its text sent along (the service keeps the version when it is unchanged); line and column from 0, or nil for the caret's."
+(defn lspAsk
+  "Asks the server about the active file, its text sent along; line and column from 0, or nil for the caret's."
   [kind line column newName query]
   (when (not= kind "outline") (increment "state.lsp.request" :by 1))
   (when (some? computed.lspLanguage)
@@ -57,7 +59,7 @@
       (set "state.lsp.open" (slice (concat state.lsp.open [computed.activeDoc.id]) (- 256))))))
 
 (defn lspCall
-  "Asks the server one kind of question, each a step that names its method written out; the silent kinds cancel their older call. Every answer goes to lspAnswer."
+  "Asks one kind of question, each a step naming its method; the silent kinds cancel the last. Answers go to lspAnswer."
   [kind request path arguments]
   (let [done [lspAnswered kind request path]
         failed [lspFailed kind request path]]
@@ -80,7 +82,8 @@
 (defn lspFailed "The server's refusal of a question." [kind request path error]
   (lspAnswer {:kind kind :request request :path path :result nil :error error}))
 
-(defn lspPlay "Plays an answer the service gave (`event`: kind, result, path, request, error; kind diagnostics for a published file), as the scenarios do."
+(defn lspPlay
+  "Plays an answer the service gave (`event`: kind, result, path, request, error), as the scenarios do."
   []
   (if (= event.kind "diagnostics")
     (lspPublished event.result)
@@ -92,7 +95,9 @@
 
 ;;; Its answers
 
-(defn lspAnswer "An answer (`answer`: kind, request, path, result, error; its positions from 0), shown as its kind asks." [answer]
+(defn lspAnswer
+  "An answer (`answer`: kind, request, path, result, error; its positions from 0), shown as its kind asks."
+  [answer]
   (if (some? answer.error)
     (lspRefused answer)
     (do
@@ -168,7 +173,8 @@
 
 ;;; Diagnostics
 
-(defn lspListen "Listens to the server's diagnostics, file by file, from its first request on (again after the stream ends)."
+(defn lspListen
+  "Listens to the server's diagnostics, file by file, from its first request on (again after the stream ends)."
   []
   (when (not state.lsp.listening)
     (set "state.lsp.listening" true)
@@ -180,7 +186,8 @@
 (defn lspListenFailed "The stream ended: the next request listens again." []
   (set "state.lsp.listening" false))
 
-(defn lspPublished "A file's diagnostics (`published`: path, diagnostics, truncated; positions from 0): squiggles in its editor, rows (from 1) in Problems."
+(defn lspPublished
+  "A file's diagnostics (`published`, from 0): squiggles in its editor, and rows (from 1) in Problems."
   [published]
   (set "state.lsp.files"
        (concat (filter (fn [it] (not= it.id published.path)) state.lsp.files)
@@ -216,7 +223,8 @@
 
 ;;; Keeping the server's files
 
-(defn lspChanged "An edited file (`id`): one the server has open gets its new text once typing pauses, so its diagnostics follow."
+(defn lspChanged
+  "An edited file (`id`): one the server has open gets its new text once typing pauses, so its diagnostics follow."
   [id]
   (when (contains state.lsp.open id) (debounce 500 lspChangedLater id)))
 
@@ -287,7 +295,8 @@
   (set "state.lsp.completion.open" false))
 
 (defcommand triggerSuggest "Trigger Suggest"
-  :title ~(t "command.triggerSuggest") :category ~(t "category.edit") :icon "list"
+  :title ~(t "command.triggerSuggest")
+  :description ~(t "command.triggerSuggest") :category ~(t "category.edit") :icon "list"
   :enablement ~(some? computed.activeDoc) []
   (lspAsk "completion" nil nil nil nil)
   (set "state.lsp.completion.request" state.lsp.request)
@@ -318,12 +327,14 @@
                  state.lsp.peek.items))
 
 (defcommand goToDefinition "Go to Definition"
-  :title ~(t "command.goToDefinition") :category ~(t "category.go") :icon "arrow-right"
+  :title ~(t "command.goToDefinition")
+  :description ~(t "command.goToDefinition") :category ~(t "category.go") :icon "arrow-right"
   :enablement ~(some? computed.activeDoc) []
   (lspAsk "definition" nil nil nil nil))
 
 (defcommand findReferences "Find All References"
-  :title ~(t "command.findReferences") :category ~(t "category.go") :icon "list"
+  :title ~(t "command.findReferences")
+  :description ~(t "command.findReferences") :category ~(t "category.go") :icon "list"
   :enablement ~(some? computed.activeDoc) []
   (lspAsk "references" nil nil nil nil))
 
@@ -338,14 +349,16 @@
   (set "state.lsp.peek.open" false))
 
 (defcommand goToSymbol "Go to Symbol in Editor..."
-  :title ~(t "command.goToSymbol") :category ~(t "category.go") :icon "hash" :enablement ~(some? computed.activeDoc) []
+  :title ~(t "command.goToSymbol") :description ~(t "command.goToSymbol") :category ~(t "category.go") :icon "hash"
+  :enablement ~(some? computed.activeDoc) []
   (set "state.lsp.symbols" [])
   (set "state.symbolPick.query" "@")
   (set "state.symbolPick.open" true)
   (lspAsk "symbols" nil nil nil nil))
 
 (defcommand goToWorkspaceSymbol "Go to Symbol in Workspace..."
-  :title ~(t "command.goToWorkspaceSymbol") :category ~(t "category.go") :icon "hash"
+  :title ~(t "command.goToWorkspaceSymbol")
+  :description ~(t "command.goToWorkspaceSymbol") :category ~(t "category.go") :icon "hash"
   :enablement ~(some? computed.activeDoc) []
   (set "state.lsp.symbols" [])
   (set "state.symbolPick.query" "#")
@@ -369,7 +382,8 @@
 ;;; Renaming and formatting
 
 (defcommand renameSymbol "Rename Symbol"
-  :title ~(t "command.renameSymbol") :category ~(t "category.edit") :icon "pencil"
+  :title ~(t "command.renameSymbol")
+  :description ~(t "command.renameSymbol") :category ~(t "category.edit") :icon "pencil"
   :enablement ~(some? computed.activeDoc) []
   (set "state.lsp.rename" {:open true :name ""}))
 
@@ -378,11 +392,13 @@
   (when (not (empty? (trim state.lsp.rename.name))) (lspAsk "rename" nil nil (trim state.lsp.rename.name) nil)))
 
 (defcommand formatDocument "Format Document"
-  :title ~(t "command.formatDocument") :category ~(t "category.edit") :icon "align-left"
+  :title ~(t "command.formatDocument")
+  :description ~(t "command.formatDocument") :category ~(t "category.edit") :icon "align-left"
   :enablement ~(some? computed.activeDoc) []
   (lspAsk "format" nil nil nil nil))
 
-(defn lspApply "Applies the edits reviewed: an open file changes in its editor (one undo step, left unsaved); any other is read, changed and written."
+(defn lspApply
+  "Applies the edits reviewed: in an open file's editor (one undo step, unsaved), else read, changed and written."
   []
   (doseq [file (keys (fromEntries (map (fn [it] {:key it.path :value true}) state.lsp.review.edits)))]
     (lspApplyTo file

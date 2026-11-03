@@ -15,7 +15,8 @@
   :type string
   :title ~(t "settings.accounts.document"))
 
-(defpart accounts-connections "The two connections to the document server: the person's settings, and the shared document."
+(defpart accounts-connections
+  "The two connections to the document server: the person's settings, and the shared document."
   :connections {:accountsServer {:url "ws://127.0.0.1:7420/live"
                                  :auth {:flow device
                                         :deviceUrl "https://id.example.com/oauth/device"
@@ -75,11 +76,13 @@
 (defn accountsServerCommitted "The server committed a revision: reads the document again." []
   (request "accountsServer.getDocument"))
 
-(defn accountsReceive "Settings from the server, kept as synced, so they aren't sent back; a document without settings changes nothing."
+(defn accountsReceive
+  "Settings from the server, kept as synced, so they aren't sent back; a document without settings changes nothing."
   [settings]
   (when (some? settings) (set "state.accounts.synced" settings) (set "state.settings" settings)))
 
-(defn accountsSend "The settings changed here, sent to the server as a revision of ~settings, once they differ from what it has."
+(defn accountsSend
+  "The settings changed here, sent to the server as a revision of ~settings, once they differ from what it has."
   []
   (when (and connections.accountsServer.online (not= state.settings state.accounts.synced))
     (set "state.accounts.revisions" (+ state.accounts.revisions 1))

@@ -15,7 +15,8 @@
      :hover {:color @color.hover}
      :onClick {:run ~run}))
 
-(defcomponent forgeConflictBar "The bar: which conflict the caret is in, and Accept Current, Accept Incoming, Accept Both and Next."
+(defcomponent forgeConflictBar
+  "The bar: which conflict the caret is in, and Accept Current, Accept Incoming, Accept Both and Next."
   {}
   `(row#conflict-bar :width "100%" :height 28 :gap 2 :alignItems center :color @color.tabs
      (label#conflict-summary :text ~computed.conflictSummary :textColor @color.muted :grow 1 :height 22 :padding 8)

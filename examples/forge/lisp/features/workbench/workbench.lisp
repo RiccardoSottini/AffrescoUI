@@ -31,7 +31,8 @@
   (refreshOutline))
 
 (defcommand refreshOutline "Refresh Outline"
-  :title ~(t "command.refreshOutline") :category ~(t "category.outline") :icon "refresh-cw" []
+  :title ~(t "command.refreshOutline")
+  :description ~(t "command.refreshOutline") :category ~(t "category.outline") :icon "refresh-cw" []
   (if (= computed.activeDoc.kind "file")
     (do
       (when (some? computed.lspLanguage) (lspAsk "outline" nil nil "" ""))
@@ -48,7 +49,8 @@
                    (= computed.activeDoc.language "Python"))))
     (do (set "state.outline" []) (set "state.outlineSymbols" ""))))
 
-(defn outlineOf "A file's outline from its lines (`rows`: line, row, code; `headings`: a Markdown file's # lines; `python`: whether the rows are Python): headings, or the lines that define something."
+(defn outlineOf
+  "A file's outline from its lines (`rows`, `headings`, whether `python`): headings, or the lines that define."
   [rows headings python]
   (set "state.outline"
        (slice (concat (map (fn [it]
@@ -140,14 +142,20 @@
                     []
                     (filter (fn [it] (<= it.line state.caret.line)) state.outline))))
 
-(defcustom breadcrumbs.enabled
-  true "Show the file's folders and the symbol at the caret above the editor." :description ~(t "settings.breadcrumbs.enabled.about") :type boolean :title ~(t "settings.breadcrumbs.enabled"))
+(defcustom breadcrumbs.enabled true
+  "Show the file's folders and the symbol at the caret above the editor."
+  :description ~(t "settings.breadcrumbs.enabled.about")
+  :type boolean
+  :title ~(t "settings.breadcrumbs.enabled"))
 
 (defcommand toggleBreadcrumbs "Toggle Breadcrumbs"
-  :title ~(t "command.toggleBreadcrumbs") :category ~(t "category.view") :icon "chevrons-right" []
+  :title ~(t "command.toggleBreadcrumbs")
+  :description ~(t "command.toggleBreadcrumbs") :category ~(t "category.view") :icon "chevrons-right" []
   (set "settings.breadcrumbs.enabled" (not settings.breadcrumbs.enabled)))
 
-(defn breadcrumbClicked "A breadcrumb clicked: a folder (the `si`th part of `path`) opens in the explorer, the file's name shows its symbols." [path si]
+(defn breadcrumbClicked
+  "A breadcrumb clicked: a folder (the `si`th part of `path`) opens in the explorer, the file's name shows its symbols."
+  [path si]
   (if (< si (- (count (split path "/")) 1))
     (revealFolder (join "/" (slice (split path "/") 0 (+ si 1))))
     (goToSymbol)))
@@ -160,18 +168,26 @@
   (set "state.sideView" "explorer")
   (set "state.layout.sidebar" true))
 
-(defcustom editor.minimap.enabled
-  false "Show a narrow overview of the file at the editor's right edge; press or drag it to scroll." :description ~(t "settings.editor.minimap.enabled.about") :type boolean :title ~(t "settings.editor.minimap.enabled"))
+(defcustom editor.minimap.enabled false
+  "Show a narrow overview of the file at the editor's right edge; press or drag it to scroll."
+  :description ~(t "settings.editor.minimap.enabled.about")
+  :type boolean
+  :title ~(t "settings.editor.minimap.enabled"))
 
 (defcommand toggleMinimap "Toggle Minimap"
-  :title ~(t "command.toggleMinimap") :category ~(t "category.view") :icon "map" []
+  :title ~(t "command.toggleMinimap")
+  :description ~(t "command.toggleMinimap") :category ~(t "category.view") :icon "map" []
   (set "settings.editor.minimap.enabled" (not settings.editor.minimap.enabled)))
 
-(defcustom diffEditor.renderSideBySide
-  true "Compare a changed file side by side; off, inline (the deleted lines above the inserted ones)." :description ~(t "settings.diffEditor.renderSideBySide.about") :type boolean :title ~(t "settings.diffEditor.renderSideBySide"))
+(defcustom diffEditor.renderSideBySide true
+  "Compare a changed file side by side; off, inline (the deleted lines above the inserted ones)."
+  :description ~(t "settings.diffEditor.renderSideBySide.about")
+  :type boolean
+  :title ~(t "settings.diffEditor.renderSideBySide"))
 
 (defcommand toggleDiffInline "Toggle Inline View"
-  :title ~(t "command.toggleDiffInline") :category ~(t "category.compare") :icon "columns" []
+  :title ~(t "command.toggleDiffInline")
+  :description ~(t "command.toggleDiffInline") :category ~(t "category.compare") :icon "columns" []
   (set "settings.diffEditor.renderSideBySide" (not settings.diffEditor.renderSideBySide)))
 
 ;;; Recently opened files
@@ -191,7 +207,7 @@
   (quickOpen))
 
 (defcommand clearRecent "Clear Recently Opened"
-  :title ~(t "command.clearRecent") :category ~(t "category.file") :icon "trash"
+  :title ~(t "command.clearRecent") :description ~(t "command.clearRecent") :category ~(t "category.file") :icon "trash"
   :enablement ~(> (count (or-else state.quickPick.recent [])) 0) []
   (set "state.quickPick.recent" []))
 
@@ -199,13 +215,13 @@
 
 ;;; Editor groups and tabs
 
-(defn moveTabToGroup "A tab dropped on a group's strip (`id`, the group `to`, the place `at`): it leaves the group it was in, which closes if empty."
+(defn moveTabToGroup
+  "A tab dropped on group `to`'s strip at `at`: it leaves its group, which closes if empty."
   [id to at]
   (when (holdingTab id to)
     (set (str "state.groups[" to "].tabs")
          (concat (slice (filter (fn [it] (not= it.id id)) (get-in state.groups [to :tabs])) 0 at)
-                 [(find (fn [it] (= it.id id))
-                        (:tabs (get state.groups (holdingTab id to))))]
+                 [(find (fn [it] (= it.id id)) (:tabs (get state.groups (holdingTab id to))))]
                  (slice (filter (fn [it] (not= it.id id)) (get-in state.groups [to :tabs])) at)))
     (set (str "state.groups[" to "].active") id)
     (closeTab (indexOf (map-indexed (fn [index it] (and (not= index to) (contains (map (fn [it] it.id) it.tabs) id)))
@@ -230,24 +246,30 @@
 (defcommand moveEditorToNextGroup "Move the active editor into the group at its right, splitting if there is none."
   :title ~(t "command.moveEditorToNextGroup") :category ~(t "category.view") :icon "arrow-right"
   :description ~(t "command.moveEditorToNextGroup.about")
-  :enablement ~(and (not (empty? (get-in state.groups [state.activeGroup :active]))) (or (< state.activeGroup (- (count state.groups) 1)) (> (count (get-in state.groups [state.activeGroup :tabs])) 1))) []
+  :enablement ~(and (not (empty? (get-in state.groups [state.activeGroup :active])))
+                    (or (< state.activeGroup (- (count state.groups) 1))
+                        (> (count (get-in state.groups [state.activeGroup :tabs])) 1)))
+  []
   (when (= state.activeGroup (- (count state.groups) 1)) (push "state.groups" {:tabs [] :active nil}))
   (moveTabToGroup (activeTabId) (+ state.activeGroup 1) 1000))
 
 (defcommand moveEditorToPreviousGroup "Move Editor into Previous Group"
-  :title ~(t "command.moveEditorToPreviousGroup") :category ~(t "category.view") :icon "arrow-left"
+  :title ~(t "command.moveEditorToPreviousGroup")
+  :description ~(t "command.moveEditorToPreviousGroup") :category ~(t "category.view") :icon "arrow-left"
   :enablement ~(and (not (empty? (get-in state.groups [state.activeGroup :active]))) (> state.activeGroup 0)) []
   (moveTabToGroup (activeTabId) (- state.activeGroup 1) 1000))
 
 (defcommand focusFirstGroup "Focus First Editor Group"
-  :title ~(t "command.focusFirstGroup") :category ~(t "category.view") []
+  :title ~(t "command.focusFirstGroup") :description ~(t "command.focusFirstGroup") :category ~(t "category.view") []
   (set "state.activeGroup" 0))
 
 (defcommand focusSecondGroup "Focus Second Editor Group"
-  :title ~(t "command.focusSecondGroup") :category ~(t "category.view") :enablement ~(> (count state.groups) 1) []
+  :title ~(t "command.focusSecondGroup")
+  :description ~(t "command.focusSecondGroup") :category ~(t "category.view") :enablement ~(> (count state.groups) 1) []
   (set "state.activeGroup" 1))
 
-(defcommand pinEditor "Keep the active editor at the start of its group, without a close button; Close Other Editors leaves it open."
+(defcommand pinEditor
+  "Keep the active editor at the start of its group, without a close button; Close Other Editors leaves it open."
   :title ~(t "command.pinEditor") :category ~(t "category.view") :icon "pin"
   :description ~(t "command.pinEditor.about")
   :enablement ~(some (fn [it] (and (= it.id (get-in state.groups [state.activeGroup :active])) (not it.sticky))) (get-in state.groups [state.activeGroup :tabs])) []
@@ -259,8 +281,11 @@
                        (get-in state.groups [state.activeGroup :tabs])))))
 
 (defcommand unpinEditor "Unpin Editor"
-  :title ~(t "command.unpinEditor") :category ~(t "category.view") :icon "pin-off"
-  :enablement ~(some (fn [it] (and (= it.id (get-in state.groups [state.activeGroup :active])) it.sticky)) (get-in state.groups [state.activeGroup :tabs])) []
+  :title ~(t "command.unpinEditor") :description ~(t "command.unpinEditor") :category ~(t "category.view")
+  :icon "pin-off"
+  :enablement ~(some (fn [it] (and (= it.id (get-in state.groups [state.activeGroup :active])) it.sticky))
+                     (get-in state.groups [state.activeGroup :tabs]))
+  []
   (set (str "state.groups[" state.activeGroup "].tabs")
        (concat (filter (fn [it] (and it.sticky (not= it.id (activeTabId)))) (activeTabs))
                (map (fn [it] (merge it {:sticky false})) (filter (fn [it] (= it.id (activeTabId))) (activeTabs)))
@@ -269,7 +294,9 @@
 (defcommand closeOtherEditors "Close the active group's editors but the active one and the pinned ones."
   :title ~(t "command.closeOtherEditors") :category ~(t "category.view")
   :description ~(t "command.closeOtherEditors.about")
-  :enablement ~(some (fn [it] (and (not= it.id (get-in state.groups [state.activeGroup :active])) (not it.sticky))) (get-in state.groups [state.activeGroup :tabs])) []
+  :enablement ~(some (fn [it] (and (not= it.id (get-in state.groups [state.activeGroup :active])) (not it.sticky)))
+                     (get-in state.groups [state.activeGroup :tabs]))
+  []
   (doseq [tab (filter (fn [it] (and (not= it.id (activeTabId)) (not it.sticky))) (activeTabs))]
     (closeTab state.activeGroup tab.id)))
 
@@ -304,12 +331,14 @@
   (openPage "forge:settings.json" "settings.json" "settingsJson"))
 
 (defcommand applySettingsJson "Apply Settings (JSON)"
-  :title ~(t "command.applySettingsJson") :category ~(t "category.preferences") :icon "check" []
+  :title ~(t "command.applySettingsJson")
+  :description ~(t "command.applySettingsJson") :category ~(t "category.preferences") :icon "check" []
   (if (= (type (parseJson state.settingsJson)) "object")
     (do (set "state.settings" (parseJson state.settingsJson)) (set "state.settingsJsonError" ""))
     (set "state.settingsJsonError" (t "settingsJson.notObject"))))
 
-(defcommand openKeybindingsJson "The keys every feature contributes, as JSON (read-only: a feature's keys section changes them)."
+(defcommand openKeybindingsJson
+  "The keys every feature contributes, as JSON (read-only: a feature's keys section changes them)."
   :title ~(t "command.openKeybindingsJson") :category ~(t "category.preferences") :icon "braces"
   :description ~(t "command.openKeybindingsJson.about") []
   (openPage "forge:keybindings.json" "keybindings.json" "keybindingsJson"))

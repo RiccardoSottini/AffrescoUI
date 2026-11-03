@@ -102,7 +102,8 @@
                 :else "dark")
               (if (= (type theme.colors) "object") theme.colors nil))))
 
-(defn addTheme "Each token takes the first colour the theme gives of its keys, else its default for the theme's kind; the theme's id is made of its name."
+(defn addTheme
+  "Each token takes the first colour the theme gives of its keys, else its kind's default; the id is the name's."
   [name kind colors]
   (addThemeAs (if (empty? (slug name 40)) "imported" (slug name 40))
               name
@@ -142,10 +143,14 @@
            :README.md {:icon info :color "#5ea7cf"}
            :LICENSE {:icon file-text :color "#d4b84a"}}})
 
-(defcustom workbench.fileIcons
-  true "Show the file icon theme's icons in the explorer." :description ~(t "settings.workbench.fileIcons.about") :type boolean :title ~(t "settings.workbench.fileIcons"))
+(defcustom workbench.fileIcons true
+  "Show the file icon theme's icons in the explorer."
+  :description ~(t "settings.workbench.fileIcons.about")
+  :type boolean
+  :title ~(t "settings.workbench.fileIcons"))
 
 (defcommand toggleIcons "Toggle File Icons"
-  :title ~(t "command.toggleIcons") :category ~(t "category.preferences") :icon "file" []
+  :title ~(t "command.toggleIcons")
+  :description ~(t "command.toggleIcons") :category ~(t "category.preferences") :icon "file" []
   (set "settings.workbench.fileIcons" (not settings.workbench.fileIcons))
   (reindex))

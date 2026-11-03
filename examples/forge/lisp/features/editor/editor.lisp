@@ -56,7 +56,8 @@
 
 ;;; Tabs
 
-(defn showFileTab "Shows an open file's tab in the active group: pinned, or as the preview, which replaces the last one."
+(defn showFileTab
+  "Shows an open file's tab in the active group: pinned, or as the preview, which replaces the last one."
   [id label preview]
   (forgeRecordNav id)
   (cond
@@ -118,12 +119,12 @@
   (when dirty (pinTab id)))
 
 (defcommand save "Writes the active file."
-  :title ~(t "command.save") :category ~(t "category.file") :icon "save"
+  :title ~(t "command.save") :description ~(t "command.save") :category ~(t "category.file") :icon "save"
   :enablement ~(= computed.activeDoc.kind "file") []
   (saveFile computed.activeDoc))
 
 (defcommand saveAll "Writes every file with unsaved edits."
-  :title ~(t "command.saveAll") :category ~(t "category.file") :icon "save-all"
+  :title ~(t "command.saveAll") :description ~(t "command.saveAll") :category ~(t "category.file") :icon "save-all"
   :enablement ~(> (count computed.dirtyIds) 0) []
   (doseq [doc (filter (fn [it] (and (= it.kind "file") it.dirty)) state.docs)] (saveFile doc)))
 
@@ -157,7 +158,8 @@
 (defn revertFileFailed "Says why the file couldn't be read again." [error]
   (notify "error" (t "notify.cannotRevert" {:error error.message})))
 
-(defn reloaded "An open file's text as it is now on disk (`text`), kept as the editor shows it, so undoing back to it is clean."
+(defn reloaded
+  "An open file's text as it is now on disk (`text`), kept as the editor shows it, so undoing back to it is clean."
   [id text]
   (set "state.docs"
        (map (fn [it]

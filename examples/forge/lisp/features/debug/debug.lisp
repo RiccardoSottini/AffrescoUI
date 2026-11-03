@@ -64,7 +64,7 @@
              :debugTerminal {:provider pty :process sh :root workspace}})
 
 (defcommand showDebug "Show Debugger"
-  :title ~(t "command.showDebug") :category ~(t "category.view") :icon "bug" []
+  :title ~(t "command.showDebug") :description ~(t "command.showDebug") :category ~(t "category.view") :icon "bug" []
   (forgeShowView "debug")
   (when (and (= state.sideView "debug") (= state.debug.status "inactive")) (debugLoadConfigurations)))
 
@@ -92,7 +92,8 @@
     (debugReadConfigurations
       (if (and (= (type launch) "object") (= (type launch.configurations) "list")) launch.configurations []))))
 
-(defn debugReadConfigurations "The configurations Forge runs (type lldb or lldb-dap, python or debugpy; request launch with a program, or attach), each made plain; the others are counted as skipped."
+(defn debugReadConfigurations
+  "The configurations Forge runs (lldb or python, launch or attach), each made plain; the others are skipped."
   [listed]
   (debugMakeConfigurations
     (count listed)
@@ -108,7 +109,8 @@
                     :terminal (or (= it.console "integratedTerminal") (= it.console "externalTerminal"))})
                  (filter (fn [it] (= (type it) "object")) listed)))))
 
-(defn debugMakeConfigurations "Each configuration's arguments for its adapter, from what it says; one that can't run is left out."
+(defn debugMakeConfigurations
+  "Each configuration's arguments for its adapter, from what it says; one that can't run is left out."
   [total known]
   (debugKeepConfigurations
     total
@@ -179,11 +181,12 @@
 ;;; A session
 
 (defcommand debugContinueOrStart "Start Debugging or Continue"
-  :title ~(t "command.debugContinueOrStart") :category ~(t "category.debug") :icon "play" []
+  :title ~(t "command.debugContinueOrStart")
+  :description ~(t "command.debugContinueOrStart") :category ~(t "category.debug") :icon "play" []
   (cond (= state.debug.status "stopped") (debugContinue) (= state.debug.status "inactive") (debugStart)))
 
 (defcommand debugStart "Start Debugging"
-  :title ~(t "command.debugStart") :category ~(t "category.debug") :icon "play"
+  :title ~(t "command.debugStart") :description ~(t "command.debugStart") :category ~(t "category.debug") :icon "play"
   :enablement ~(= state.debug.status "inactive") []
   (if (nil? computed.debugConfiguration)
     (notify "info" (t "debug.noConfiguration"))
@@ -205,7 +208,8 @@
                      :supportsVariablePaging true
                      :supportsRunInTerminalRequest true}))))
 
-(defn debugBegin "Starts a session with a configuration: the adapter's events listened to, initialize asked, the console shown."
+(defn debugBegin
+  "Starts a session with a configuration: the adapter's events listened to, initialize asked, the console shown."
   [configuration]
   (set "state.debug.type" configuration.type)
   (set "state.debug.status" "starting")
@@ -222,7 +226,8 @@
   (set "state.layout.panel" true)
   (set "state.panelTab" "debugConsole"))
 
-(defn debugApplySession "Plays a session's start given in the event (its configuration and capabilities), as the scenarios do."
+(defn debugApplySession
+  "Plays a session's start given in the event (its configuration and capabilities), as the scenarios do."
   []
   (set "state.debug.configurations" [event.configuration])
   (set "state.debug.selected" "0")
@@ -242,7 +247,8 @@
 (defn debugSubscribeFailed "The adapter's events stopped: the session ends, saying why." [error]
   (debugEnd error.message))
 
-(defn debugOnInitialize "The adapter initialized: its capabilities and exception filters kept, then the program launched or attached."
+(defn debugOnInitialize
+  "The adapter initialized: its capabilities and exception filters kept, then the program launched or attached."
   [body]
   (set "state.debug.capabilities" body)
   (debugApplyFilters (or-else body.exceptionBreakpointFilters []))
@@ -260,7 +266,8 @@
 (defn debugOnLaunch "The program launched: the session runs." []
   (when (= state.debug.status "starting") (set "state.debug.status" "running")))
 
-(defn debugConfigure "The adapter is ready: every file's breakpoints and the exception filters sent, then configurationDone."
+(defn debugConfigure
+  "The adapter is ready: every file's breakpoints and the exception filters sent, then configurationDone."
   []
   (set "state.debug.configured" true)
   (doseq [path (distinct (map (fn [it] it.path) state.debug.breakpoints))]
@@ -287,22 +294,25 @@
 
 ;;; Requests and their answers
 
-(defn debugRequest "A request to the session's adapter: `answer` names the function its answer runs, `refused` the one its refusal runs ('' for none), `context` what they are given."
+(defn debugRequest
+  "A request to the adapter: `answer` and `refused` name the functions its answer and refusal run, with `context`."
   [command answer context refused arguments]
   (if (= state.debug.type "python")
     (debugRequestPython command arguments answer context refused)
     (debugRequestLldb command arguments answer context refused)))
 
-(defn debugRequestPython "A request to the Python adapter (debugpy), each a step that names its method written out." [command arguments answer context refused]
-  (let [done [debugAnswered answer context]
-        failed [debugRefused command refused context]]
+(defn debugRequestPython "A request to the Python adapter (debugpy), each a step that names its method written out."
+  [command arguments answer context refused]
+  (let [done [debugAnswered answer context] failed [debugRefused command refused context]]
     (cond
       (= command "initialize") (invoke "debugPython.initialize" :with arguments :onDone done :onError failed)
       (= command "launch") (invoke "debugPython.launch" :with arguments :timeout 60000 :onDone done :onError failed)
       (= command "attach") (invoke "debugPython.attach" :with arguments :timeout 60000 :onDone done :onError failed)
-      (= command "configurationDone") (invoke "debugPython.configurationDone" :with arguments :onDone done :onError failed)
+      (= command "configurationDone")
+        (invoke "debugPython.configurationDone" :with arguments :onDone done :onError failed)
       (= command "setBreakpoints") (invoke "debugPython.setBreakpoints" :with arguments :onDone done :onError failed)
-      (= command "setExceptionBreakpoints") (invoke "debugPython.setExceptionBreakpoints" :with arguments :onDone done :onError failed)
+      (= command "setExceptionBreakpoints")
+        (invoke "debugPython.setExceptionBreakpoints" :with arguments :onDone done :onError failed)
       (= command "threads") (invoke "debugPython.threads" :with arguments :onDone done :onError failed)
       (= command "stackTrace") (invoke "debugPython.stackTrace" :with arguments :onDone done :onError failed)
       (= command "scopes") (invoke "debugPython.scopes" :with arguments :onDone done :onError failed)
@@ -320,16 +330,18 @@
       (= command "completions") (invoke "debugPython.completions" :with arguments :onDone done :onError failed)
       (= command "exceptionInfo") (invoke "debugPython.exceptionInfo" :with arguments :onDone done :onError failed))))
 
-(defn debugRequestLldb "A request to lldb-dap, each a step that names its method written out." [command arguments answer context refused]
-  (let [done [debugAnswered answer context]
-        failed [debugRefused command refused context]]
+(defn debugRequestLldb "A request to lldb-dap, each a step that names its method written out."
+  [command arguments answer context refused]
+  (let [done [debugAnswered answer context] failed [debugRefused command refused context]]
     (cond
       (= command "initialize") (invoke "debugLldb.initialize" :with arguments :onDone done :onError failed)
       (= command "launch") (invoke "debugLldb.launch" :with arguments :timeout 60000 :onDone done :onError failed)
       (= command "attach") (invoke "debugLldb.attach" :with arguments :timeout 60000 :onDone done :onError failed)
-      (= command "configurationDone") (invoke "debugLldb.configurationDone" :with arguments :onDone done :onError failed)
+      (= command "configurationDone")
+        (invoke "debugLldb.configurationDone" :with arguments :onDone done :onError failed)
       (= command "setBreakpoints") (invoke "debugLldb.setBreakpoints" :with arguments :onDone done :onError failed)
-      (= command "setExceptionBreakpoints") (invoke "debugLldb.setExceptionBreakpoints" :with arguments :onDone done :onError failed)
+      (= command "setExceptionBreakpoints")
+        (invoke "debugLldb.setExceptionBreakpoints" :with arguments :onDone done :onError failed)
       (= command "threads") (invoke "debugLldb.threads" :with arguments :onDone done :onError failed)
       (= command "stackTrace") (invoke "debugLldb.stackTrace" :with arguments :onDone done :onError failed)
       (= command "scopes") (invoke "debugLldb.scopes" :with arguments :onDone done :onError failed)
@@ -347,11 +359,13 @@
       (= command "completions") (invoke "debugLldb.completions" :with arguments :onDone done :onError failed)
       (= command "exceptionInfo") (invoke "debugLldb.exceptionInfo" :with arguments :onDone done :onError failed))))
 
-(defn debugAnswered "An adapter's answer: the function it names runs with the answer's `body` and the request's `context`."
+(defn debugAnswered
+  "An adapter's answer: the function it names runs with the answer's `body` and the request's `context`."
   [answer context result]
   (when (not (empty? answer)) (run answer :with {:body (or-else result {}) :context context})))
 
-(defn debugRefused "An adapter's refusal: the function the request named runs, or the session ends if it couldn't start, or the console says why."
+(defn debugRefused
+  "An adapter's refusal: the request's function runs, the session ends if it couldn't start, or the console says why."
   [command refused context error]
   (when (not (= error.code "ended"))
     (cond
@@ -373,7 +387,8 @@
 
 ;;; The adapter's events
 
-(defn debugEvent "An event of the adapter (`message`): initialized, stopped, continued, output, breakpoint, exited or terminated."
+(defn debugEvent
+  "An event of the adapter (`message`): initialized, stopped, continued, output, breakpoint, exited or terminated."
   [message]
   (when (= message.event "initialized") (debugConfigure))
   (when (= message.event "stopped") (debugStopped (or-else message.body {})))
@@ -421,22 +436,26 @@
 ;;; Running, stepping and stopping
 
 (defcommand debugContinue "Continue"
-  :title ~(t "command.debugContinue") :category ~(t "category.debug") :icon "play"
+  :title ~(t "command.debugContinue")
+  :description ~(t "command.debugContinue") :category ~(t "category.debug") :icon "play"
   :enablement ~(= state.debug.status "stopped") []
   (debugStep "continue"))
 
 (defcommand debugStepOver "Step Over"
-  :title ~(t "command.debugStepOver") :category ~(t "category.debug") :icon "redo-dot"
+  :title ~(t "command.debugStepOver")
+  :description ~(t "command.debugStepOver") :category ~(t "category.debug") :icon "redo-dot"
   :enablement ~(= state.debug.status "stopped") []
   (debugStep "next"))
 
 (defcommand debugStepInto "Step Into"
-  :title ~(t "command.debugStepInto") :category ~(t "category.debug") :icon "arrow-down-to-dot"
+  :title ~(t "command.debugStepInto")
+  :description ~(t "command.debugStepInto") :category ~(t "category.debug") :icon "arrow-down-to-dot"
   :enablement ~(= state.debug.status "stopped") []
   (debugStep "stepIn"))
 
 (defcommand debugStepOut "Step Out"
-  :title ~(t "command.debugStepOut") :category ~(t "category.debug") :icon "arrow-up-from-dot"
+  :title ~(t "command.debugStepOut")
+  :description ~(t "command.debugStepOut") :category ~(t "category.debug") :icon "arrow-up-from-dot"
   :enablement ~(= state.debug.status "stopped") []
   (debugStep "stepOut"))
 
@@ -447,7 +466,7 @@
     (debugRequest command "" {} "" {:threadId state.debug.threadId})))
 
 (defcommand debugPause "Pause"
-  :title ~(t "command.debugPause") :category ~(t "category.debug") :icon "pause"
+  :title ~(t "command.debugPause") :description ~(t "command.debugPause") :category ~(t "category.debug") :icon "pause"
   :enablement ~(= state.debug.status "running") []
   (debugRequest "threads" "debugOnThreadsPause" {} "" {}))
 
@@ -456,7 +475,7 @@
   (when (> (count state.debug.threads) 0) (debugRequest "pause" "" {} "" {:threadId state.debug.threads.0.id})))
 
 (defcommand debugStop "Stop"
-  :title ~(t "command.debugStop") :category ~(t "category.debug") :icon "square"
+  :title ~(t "command.debugStop") :description ~(t "command.debugStop") :category ~(t "category.debug") :icon "square"
   :enablement ~(not= state.debug.status "inactive") []
   (when (not= state.debug.status "inactive")
     (debugRequest "disconnect" "debugOnDisconnect" {} "" {:terminateDebuggee true})))
@@ -465,7 +484,8 @@
   (debugEnd ""))
 
 (defcommand debugRestart "Restart"
-  :title ~(t "command.debugRestart") :category ~(t "category.debug") :icon "rotate-ccw"
+  :title ~(t "command.debugRestart")
+  :description ~(t "command.debugRestart") :category ~(t "category.debug") :icon "rotate-ccw"
   :enablement ~(not= state.debug.status "inactive") []
   (if (or-else state.debug.capabilities.supportsRestartRequest false)
     (do
@@ -555,7 +575,8 @@
     (some? (find (fn [it] (= (str "f:" it.id) id)) state.debug.frames))
       (debugSelectFrame (find (fn [it] (= (str "f:" it.id) id)) state.debug.frames) true)))
 
-(defn debugSelectFrame "Shows a frame (`frame`): its scopes read, its source opened at its line, or asked about when it is outside the folder (`ask`)."
+(defn debugSelectFrame
+  "Shows a frame: its scopes read, its source opened at its line, or asked about (`ask`) when outside the folder."
   [frame ask]
   (set "state.debug.frameId" frame.id)
   (set "state.debug.selectedStack" (str "f:" frame.id))
@@ -642,7 +663,8 @@
 (defn debugExpand "Expands or collapses a row of the variables, by its path." [path]
   (debugExpandRow (find (fn [it] (= it.path path)) state.debug.variables)))
 
-(defn debugExpandRow "Expands a row (`row`): its variables read; collapses it if it is open; a 'more' row reads the next hundred."
+(defn debugExpandRow
+  "Expands a row (`row`): its variables read; collapses it if it is open; a 'more' row reads the next hundred."
   [row]
   (cond
     (and (some? row) (= row.kind "more"))
@@ -674,7 +696,8 @@
                 (merge {:variablesReference ref}
                        (if (> indexed 0) {:filter "indexed" :start start :count (min 100 (- indexed start))} {}))))
 
-(defn debugOnVariables "A row's variables, inserted under it (the next hundred replace its 'more' row); the rows are bounded."
+(defn debugOnVariables
+  "A row's variables, inserted under it (the next hundred replace its 'more' row); the rows are bounded."
   [context body]
   (when (and (= context.frameId state.debug.frameId)
              (>= (indexOf (map (fn [it] it.path) state.debug.variables)
@@ -715,7 +738,8 @@
        (concat (slice state.debug.variables 0 at) rows (slice state.debug.variables (+ at skip)))))
 
 (defcommand debugEditValue "Set Value"
-  :title ~(t "command.debugEditValue") :category ~(t "category.debug") :icon "pencil"
+  :title ~(t "command.debugEditValue")
+  :description ~(t "command.debugEditValue") :category ~(t "category.debug") :icon "pencil"
   :enablement ~(= state.debug.status "stopped") []
   (debugEditValueOf (find (fn [it] (= it.path state.debug.selectedVariable)) state.debug.variables)))
 
@@ -744,7 +768,8 @@
             state.debug.variables))
   (debugRefreshWatches))
 
-(defn debugToggleSection "Collapses a section of the view (variables, watch, stack or breakpoints), or expands it again."
+(defn debugToggleSection
+  "Collapses a section of the view (variables, watch, stack or breakpoints), or expands it again."
   [section]
   (set "state.debug.collapsed"
        (if (contains state.debug.collapsed section)
@@ -804,7 +829,8 @@
             :iconColor (if (= it.kind "input") "#3794ff" "#f85149")})
          state.debug.console))
 
-(defn debugPrintLines "Lines in the debug console, of a kind (console, stdout, stderr, input, result, error); the last 2000 are kept."
+(defn debugPrintLines
+  "Lines in the debug console, of a kind (console, stdout, stderr, input, result, error); the last 2000 are kept."
   [lines kind]
   (set "state.debug.console"
        (slice (concat state.debug.console
@@ -872,11 +898,13 @@
       (set "state.debug.completions" []))))
 
 (defcommand debugClearConsole "Clear Console"
-  :title ~(t "command.debugClearConsole") :category ~(t "category.debug") :icon "eraser" []
+  :title ~(t "command.debugClearConsole")
+  :description ~(t "command.debugClearConsole") :category ~(t "category.debug") :icon "eraser" []
   (set "state.debug.console" []))
 
 (defcommand showDebugConsole "Show Debug Console"
-  :title ~(t "command.showDebugConsole") :category ~(t "category.view") :icon "terminal" []
+  :title ~(t "command.showDebugConsole")
+  :description ~(t "command.showDebugConsole") :category ~(t "category.view") :icon "terminal" []
   (set "state.layout.panel" true)
   (set "state.panelTab" "debugConsole"))
 
@@ -940,12 +968,14 @@
     (increment "state.debug.breakpointNext" :by 1)))
 
 (defcommand debugToggleBreakpointAtCaret "Toggle Breakpoint"
-  :title ~(t "command.debugToggleBreakpointAtCaret") :category ~(t "category.debug") :icon "circle-dot"
+  :title ~(t "command.debugToggleBreakpointAtCaret")
+  :description ~(t "command.debugToggleBreakpointAtCaret") :category ~(t "category.debug") :icon "circle-dot"
   :enablement ~(and (some? computed.activeDoc) (= computed.activeDoc.kind "file")) []
   (when (and (some? computed.activeDoc) (= computed.activeDoc.kind "file"))
     (debugToggleBreakpoint computed.activeDoc.id state.caret.line)))
 
-(defn debugGutterClick "A click in an editor's gutter: a breakpoint toggled; with Shift, edited; with Alt, enabled or disabled."
+(defn debugGutterClick
+  "A click in an editor's gutter: a breakpoint toggled; with Shift, edited; with Alt, enabled or disabled."
   [path]
   (cond
     event.shift (debugEditBreakpointAt path (+ event.line 1))
@@ -970,11 +1000,13 @@
          (merge {:open true :id id} (or-else (find (fn [it] (= it.id id)) state.debug.breakpoints) {})))))
 
 (defcommand debugEditSelectedBreakpoint "Edit Breakpoint"
-  :title ~(t "command.debugEditSelectedBreakpoint") :category ~(t "category.debug") :icon "pencil"
+  :title ~(t "command.debugEditSelectedBreakpoint")
+  :description ~(t "command.debugEditSelectedBreakpoint") :category ~(t "category.debug") :icon "pencil"
   :enablement ~(some? state.debug.selectedBreakpoint) []
   (debugEditBreakpoint (or-else state.debug.selectedBreakpoint "")))
 
-(defn debugSaveBreakpoint "Keeps the breakpoint's condition, hit count and log message, and sends its file's breakpoints."
+(defn debugSaveBreakpoint
+  "Keeps the breakpoint's condition, hit count and log message, and sends its file's breakpoints."
   []
   (set "state.debug.edit.open" false)
   (set "state.debug.breakpoints"
@@ -1030,7 +1062,8 @@
   (reduce (fn [seen x] (if (some (fn [y] (= y x)) seen) seen (conj seen x))) [] items))
 
 (defcommand debugRemoveAllBreakpoints "Remove All Breakpoints"
-  :title ~(t "command.debugRemoveAllBreakpoints") :category ~(t "category.debug") :icon "list-x" []
+  :title ~(t "command.debugRemoveAllBreakpoints")
+  :description ~(t "command.debugRemoveAllBreakpoints") :category ~(t "category.debug") :icon "list-x" []
   (doseq [path (distinct (map (fn [it] it.path) state.debug.breakpoints))]
     (set "state.debug.breakpoints" (filter (fn [it] (not= it.path path)) state.debug.breakpoints))
     (debugSendBreakpoints path))
@@ -1053,7 +1086,8 @@
                                      (filter (fn [it] (and (= it.path path) it.enabled)) state.debug.breakpoints))
                    :sourceModified false})))
 
-(defn debugOnSetBreakpoints "The adapter's answer for a file's breakpoints: each verified or not, at the line it moved to."
+(defn debugOnSetBreakpoints
+  "The adapter's answer for a file's breakpoints: each verified or not, at the line it moved to."
   [context body]
   (set "state.debug.breakpoints"
        (map (fn [it]
@@ -1078,7 +1112,9 @@
        (map (fn [it] (if (= it.filter filter) (merge it {:enabled (not it.enabled)}) it))
             state.debug.exceptionFilters))
   (set "state.debug.filterChoices"
-       (assoc state.debug.filterChoices filter (:enabled (find (fn [it] (= it.filter filter)) state.debug.exceptionFilters))))
+       (assoc state.debug.filterChoices
+              filter
+              (:enabled (find (fn [it] (= it.filter filter)) state.debug.exceptionFilters))))
   (debugSendFilters))
 
 (defkey "f9" debugToggleBreakpointAtCaret)
@@ -1122,7 +1158,8 @@
 (defn debugPythonRunInTerminal "debugpy asks to run the program on a terminal." []
   (debugRunInTerminal))
 
-(defn debugRunInTerminal "The adapter's runInTerminal: its program runs on the debug terminal, in its cwd (inside the folder), as `exec` and the line shellLine() quotes, typed into the POSIX shell sh, never the person's login shell."
+(defn debugRunInTerminal
+  "The adapter's runInTerminal: its program runs, quoted by shellLine(), on the debug terminal's POSIX shell sh."
   []
   (debugRunLine (and (= (type event.args) "list") (not (empty? event.args)))
                 (if (= (type event.args) "list")

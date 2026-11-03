@@ -2,7 +2,8 @@
 
 ;;; The Search view
 
-(defcomponent forgeSearchEditor "The results as text in a tab, the matches highlighted; Enter or a double click opens one."
+(defcomponent forgeSearchEditor
+  "The results as text in a tab, the matches highlighted; Enter or a double click opens one."
   {}
   `(editor#search-editor :label ~(t "search-editor.label")
      :font code
@@ -27,7 +28,8 @@
      :keys {:enter openSearchEditorLine}
      :onDoubleClick openSearchEditorLine))
 
-(defcomponent forgeSearchPage "The Search view: the query and its options, the replacement, the file filters, the results."
+(defcomponent forgeSearchPage
+  "The Search view: the query and its options, the replacement, the file filters, the results."
   {}
   `(column#search-page :width "100%" :grow 1 :gap 4
      (node :use forgeViewTitle :with {:text ~(t "searchPage.search")})

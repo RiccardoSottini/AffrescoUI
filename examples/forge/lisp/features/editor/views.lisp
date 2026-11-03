@@ -83,7 +83,8 @@
 (defmacro doc-of "A field of the open document `d`." [d field]
   `(get-in state.docs [~d ~field]))
 
-(defview editor "A file's editor: its text, the language server's marks and colours, the debugger's, and its keys." [gi d]
+(defview editor "A file's editor: its text, the language server's marks and colours, the debugger's, and its keys."
+  [gi d]
   `(editor#editor :when ~(file-page? d)
      :font code
      :width "100%"

@@ -31,7 +31,8 @@
     (goToLine p.line)))
 
 (defcommand showProblems "Focus Problems"
-  :title ~(t "command.showProblems") :category ~(t "category.view") :icon "alert-triangle" []
+  :title ~(t "command.showProblems")
+  :description ~(t "command.showProblems") :category ~(t "category.view") :icon "alert-triangle" []
   (set "state.layout.panel" true)
   (set "state.panelTab" "problems"))
 
@@ -60,12 +61,13 @@
   (set "state.toast.open" false))
 
 (defcommand showOutput "Focus Output"
-  :title ~(t "command.showOutput") :category ~(t "category.view") :icon "terminal" []
+  :title ~(t "command.showOutput")
+  :description ~(t "command.showOutput") :category ~(t "category.view") :icon "terminal" []
   (set "state.layout.panel" true)
   (set "state.panelTab" "output"))
 
 (defcommand clearOutput "Clear Output"
-  :title ~(t "command.clearOutput") :category ~(t "category.output") []
+  :title ~(t "command.clearOutput") :description ~(t "command.clearOutput") :category ~(t "category.output") []
   (set "state.output" []))
 
 (defkey "mod+shift+u" showOutput)
@@ -79,11 +81,13 @@
                  (reverse state.notifications)))
 
 (defcommand showNotifications "Show Notifications"
-  :title ~(t "command.showNotifications") :category ~(t "category.view") :icon "bell" []
+  :title ~(t "command.showNotifications")
+  :description ~(t "command.showNotifications") :category ~(t "category.view") :icon "bell" []
   (toggle "state.notificationCentre"))
 
 (defcommand clearNotifications "Clear All Notifications"
-  :title ~(t "command.clearNotifications") :category ~(t "category.notifications") []
+  :title ~(t "command.clearNotifications")
+  :description ~(t "command.clearNotifications") :category ~(t "category.notifications") []
   (set "state.notifications" [])
   (set "state.toast.open" false)
   (set "state.notificationCentre" false))
