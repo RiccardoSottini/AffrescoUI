@@ -20,7 +20,13 @@
        :use hButton
        :anchors {:right 0 :top 44}
        :with {:icon chevron-left :width 14 :back transparent :tooltip ~(t "viewport.sidebarTip") :run toggleSidebar :textColor @dim})
-     (label#modal-hint :when ~(some? state.modal) :live polite :text ~state.modalText :textColor @text :anchors {:left 52 :bottom 12} :fitText true)
+     (label#modal-hint
+       :when ~(some? state.modal)
+       :live polite
+       :text ~state.modalText
+       :textColor @text
+       :anchors {:left 52 :bottom 12}
+       :fitText true)
      (node :when ~(and (nil? state.modal) (some? state.lastOp)) :use redoPanel)))
 
 (defview viewport-scene "The scene, as the viewport's shading, overlays and gizmo show it; a click picks, a drag transforms." []
@@ -62,7 +68,12 @@
                        :else "side.user"))})))
 
 (defview view-texts "The view's name, the frame and the active object's collection and name, and the counts: three labels." []
-  [`(label#view-name :when ~(and state.overlays state.overlay.text) :text ~computed.viewName :textColor @text :anchors {:left 54 :top 42} :fitText true)
+  [`(label#view-name
+      :when ~(and state.overlays state.overlay.text)
+      :text ~computed.viewName
+      :textColor @text
+      :anchors {:left 54 :top 42}
+      :fitText true)
    `(label#view-collection :when ~(and state.overlays state.overlay.text)
       :text ~(str "(" state.frame ") "
                   (if computed.activeNode
@@ -148,7 +159,11 @@
      :role region
      :label ~(t "command.adjustLastPanel")
      ~(redo-header)
-     (node :when ~(and state.redoOpen (some? state.lastOp.values)) :anchors {:left 4 :right 0 :top 26} :height 62 :color transparent
+     (node
+       :when ~(and state.redoOpen (some? state.lastOp.values))
+       :anchors {:left 4 :right 0 :top 26}
+       :height 62
+       :color transparent
        (node :use vectorField
          :with {:title ~(or-else state.lastOp.label
                                  (cond (= state.lastOp.kind "scale") (t "op.scale")
@@ -177,7 +192,11 @@
        :align center
        :anchors {:left 4 :top 0 :bottom 0}
        :width 14)
-     (label :text ~state.lastOp.title :textColor @text :align {:horizontal start :vertical center} :anchors {:left 22 :right 4 :top 0 :bottom 0})))
+     (label
+       :text ~state.lastOp.title
+       :textColor @text
+       :align {:horizontal start :vertical center}
+       :anchors {:left 22 :right 4 :top 0 :bottom 0})))
 
 ;;; The header
 
@@ -253,7 +272,9 @@
      (node :use gap)
      ~@(snap-buttons)
      (node :use gap)
-     (node#proportional :use hButton :with {:icon circle-dot-dashed :width 24 :tooltip ~(t "viewport.proportionalTip") :disabled true})
+     (node#proportional
+       :use hButton
+       :with {:icon circle-dot-dashed :width 24 :tooltip ~(t "viewport.proportionalTip") :disabled true})
      (node :use gap)))
 
 (defview snap-buttons "Snapping on or off, and what it snaps to: two halves of one button." []
@@ -287,7 +308,9 @@
      (node :use gap)
      ~@(overlay-buttons)
      (node :use gap)
-     (node#xray :use hButton :with {:icon square-dashed-bottom :on ~state.xray :width 24 :tooltip ~(t "viewport.xrayTip") :run toggleXray})
+     (node#xray
+       :use hButton
+       :with {:icon square-dashed-bottom :on ~state.xray :width 24 :tooltip ~(t "viewport.xrayTip") :run toggleXray})
      (node :use gap)
      ~(repeat [s computed.shadingModes :index i] (shading-button s i))
      (node#shading-menu :use hButton
@@ -429,7 +452,12 @@
    {:id "ortho" :icon "grid-3-x-3" :title (t "nav.ortho")}])
 
 (defcomponent navigator "The navigation gizmo, and its buttons under it." {}
-  `(node#navigator :dir ltr :anchors {:right ~(if state.sidebar 254 14) :top 44} :width 84 :height 212 :color transparent
+  `(node#navigator
+     :dir ltr
+     :anchors {:right ~(if state.sidebar 254 14) :top 44}
+     :width 84
+     :height 212
+     :color transparent
      ~(nav-ball)
      (column#nav-buttons :anchors {:top 94} :x 28 :width 28 :height 112 :gap 0 :color @navButton :radius 8
        ~(repeat [b computed.navButtons] (nav-button b)))))

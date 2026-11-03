@@ -70,7 +70,13 @@
    {:id "jumpEnd" :icon "skip-forward" :title (t "timeline.toEndpoint")}])
 
 (defview timeline-header "The header: editor type, the menus, auto keying, the transport, the frame, the range." []
-  `(row#timeline-header :anchors {:left 0 :right 0 :top 0} :height 26 :color @header :radius {:topLeft 8 :topRight 8} :alignItems center :gap 2
+  `(row#timeline-header
+     :anchors {:left 0 :right 0 :top 0}
+     :height 26
+     :color @header
+     :radius {:topLeft 8 :topRight 8}
+     :alignItems center
+     :gap 2
      (node :use gap)
      (node#editor-type-timeline :use hButton
        :with {:icon clock-3
@@ -88,7 +94,9 @@
      (node :use gap :with {:width 6})
      ~(repeat [b computed.transport :index i] (transport-button b i))
      (node :use gap :with {:width 6})
-     (node#frame-current :use frameField :with {:label ~(t "timeline.currentFrame") :value ~state.frame :width 56 :key frame})
+     (node#frame-current
+       :use frameField
+       :with {:label ~(t "timeline.currentFrame") :value ~state.frame :width 56 :key frame})
      {:grow 1 :height 1 :color transparent}
      ~@(range-fields)
      (node :use gap)))

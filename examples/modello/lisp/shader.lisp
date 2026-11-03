@@ -50,7 +50,8 @@
                      :outputs (if (= (or-else (get-in computed.shaderOps [it.op :out]) "") "")
                                   []
                                   [{:id "out"
-                                    :label (if (= (get-in computed.shaderOps [it.op :out]) "color") (t "shader.color") (t "shader.number"))
+                                    :label (if (= (get-in computed.shaderOps [it.op
+                                                                               :out]) "color") (t "shader.color") (t "shader.number"))
                                     :kind (get-in computed.shaderOps [it.op :out])}])}
                     {:bodyHeight (if (contains ["color" "number"] it.op) 26 0)}))
            computed.shaderGraph.nodes)))
@@ -92,7 +93,13 @@
        ~(shader-node-settings))))
 
 (defview shader-header "The header: editor type, Add, Delete, and the material's name." []
-  `(row#shader-header :anchors {:left 0 :right 0 :top 0} :height 26 :color @header :radius {:topLeft 8 :topRight 8} :alignItems center :gap 2
+  `(row#shader-header
+     :anchors {:left 0 :right 0 :top 0}
+     :height 26
+     :color @header
+     :radius {:topLeft 8 :topRight 8}
+     :alignItems center
+     :gap 2
      (node :use gap)
      (node#editor-type-shader :use hButton
        :with {:icon git-fork
@@ -172,7 +179,8 @@
        :textColor @text
        :text ~(if (nil? computed.shaderNode)
                 ""
-                (t "shader.nodeTitle" {:title (get-in computed.shaderOps [computed.shaderOp :title]) :id computed.shaderNode.id})))
+                (t "shader.nodeTitle" {:title (get-in computed.shaderOps [computed.shaderOp
+                                                                           :title]) :id computed.shaderNode.id})))
      (colorPicker#shader-color :when ~(= computed.shaderOp "color")
        :width "100%"
        :height 180

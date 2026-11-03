@@ -78,7 +78,8 @@
 ;;; Moving
 
 (defcomputed modalName "The transform running's name, or nothing."
-  (if state.modal (cond (= state.modal.mode "translate") (t "op.move") (= state.modal.mode "rotate") (t "op.rotate") :else (t "op.resize")) ""))
+  (if state.modal (cond (= state.modal.mode "translate") (t "op.move") (= state.modal.mode "rotate") (t "op.rotate")
+                    :else (t "op.resize")) ""))
 
 (defcomputed boundsCentre "The middle of the selected objects' bounds, or nil."
   (if (= (count computed.selectedNodes) 0)

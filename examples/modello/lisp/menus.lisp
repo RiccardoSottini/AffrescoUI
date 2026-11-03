@@ -84,8 +84,16 @@
            :title ~(t "light.point")
            :icon lightbulb
            :order 1}
-   :sun {:run addObject :with {:kind light :name "Sun" :light (directional :intensity 3)} :title ~(t "light.sun") :icon sun :order 2}
-   :spot {:run addObject :with {:kind light :name "Spot" :light (spot :intensity 60)} :title ~(t "light.spot") :icon cone :order 3}})
+   :sun {:run addObject
+         :with {:kind light :name "Sun" :light (directional :intensity 3)}
+         :title ~(t "light.sun")
+         :icon sun
+         :order 2}
+   :spot {:run addObject
+          :with {:kind light :name "Spot" :light (spot :intensity 60)}
+          :title ~(t "light.spot")
+          :icon cone
+          :order 3}})
 
 (defmenu object "The viewport's Object menu."
   {:transform {:submenu objectTransform :title ~(t "menu.transform") :group "1_transform" :order 1}

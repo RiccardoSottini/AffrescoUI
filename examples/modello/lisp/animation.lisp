@@ -10,9 +10,9 @@
 
 (defn keySelected "Keys the selected objects where they are, at the current frame." []
   (change-nodes selected?
-                (fn [n] (assoc n "keyframes"
-                               (sort-by :frame (concat (remove (fn [k] (= (:frame k) state.frame)) (or (:keyframes n) []))
-                                                       [(key-of n)]))))))
+                (fn [n]
+                  (let [others (remove (fn [k] (= (:frame k) state.frame)) (or (:keyframes n) []))]
+                    (assoc n "keyframes" (sort-by :frame (concat others [(key-of n)])))))))
 
 (defn autoKey "Keys the selected objects after a change, while Auto Keying is on." []
   (when (= state.autoKey true) (keySelected)))
@@ -56,7 +56,8 @@
     (when (and (not= from to) (not (contains computed.keyFrames to)) (contains computed.keyFrames from))
       (when (not= state.keyDragAt from) (snapshot))
       (set "state.keyDragAt" to)
-      (change-keys (fn [keyframes] (sort-by :frame (map (fn [k] (if (= (:frame k) from) (merge k {:frame to}) k)) keyframes))))
+      (change-keys (fn [keyframes]
+                     (sort-by :frame (map (fn [k] (if (= (:frame k) from) (merge k {:frame to}) k)) keyframes))))
       (poseFrame))))
 
 ;;; Posing between keyframes

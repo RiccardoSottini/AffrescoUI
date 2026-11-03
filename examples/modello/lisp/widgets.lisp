@@ -118,10 +118,20 @@
      ~(lock-button label key axis lockable)))
 
 (defview row-label "A row's label, on the left of its field." [label]
-  `(label :text ~label :textColor @dim :align {:horizontal end :vertical center} :anchors {:left 0 :top 0 :bottom 0} :width "38%"))
+  `(label
+     :text ~label
+     :textColor @dim
+     :align {:horizontal end :vertical center}
+     :anchors {:left 0 :top 0 :bottom 0}
+     :width "38%"))
 
 (defview caption "A row's label, on the left of its field: the locale's text of a key." [key]
-  `(label :text ~(t key) :textColor @dim :align {:horizontal end :vertical center} :anchors {:left 0 :top 0 :bottom 0} :width "38%"))
+  `(label
+     :text ~(t key)
+     :textColor @dim
+     :align {:horizontal end :vertical center}
+     :anchors {:left 0 :top 0 :bottom 0}
+     :width "38%"))
 
 (defview number-slider
   "The field itself: dragged across, or stepped with the arrows; its corners round where a vector's fields start and end."
@@ -198,8 +208,19 @@
      :onClick ~(handler pressCheck path run with)
      (node :anchors {:left "41%" :top 0 :bottom 0 :right 4} :color transparent
        (node :x 0 :y 3 :width 14 :height 14 :radius 3 :color ~(if checked "@kit.accent" "@widget")
-         (label :when ~(= checked true) :font iconsSmall :icon check :text "" :textColor @text :align center :fill true))
-       (label :text ~label :textColor @text :align {:horizontal start :vertical center} :anchors {:left 20 :top 0 :bottom 0 :right 0}))))
+         (label
+           :when ~(= checked true)
+           :font iconsSmall
+           :icon check
+           :text ""
+           :textColor @text
+           :align center
+           :fill true))
+       (label
+         :text ~label
+         :textColor @text
+         :align {:horizontal start :vertical center}
+         :anchors {:left 20 :top 0 :bottom 0 :right 0}))))
 
 (defcomponent infoRow "A label and a text beside it, read only." {:label "" :text "" :id ""}
   `(node :height 20 :width "100%" :color transparent
@@ -332,7 +353,14 @@
      :overlay {:placement window :open ~open :dismiss outside :modal true}
      :x ~(- x 180)
      :y ~(- y 120)
-     (node :anchors {:left 168 :top 108} :width 24 :height 24 :radius 12 :color @toolGroup :borderWidth 1 :borderColor @faint)
+     (node
+       :anchors {:left 168 :top 108}
+       :width 24
+       :height 24
+       :radius 12
+       :color @toolGroup
+       :borderWidth 1
+       :borderColor @faint)
      (label :text ~title :textColor @dim :anchors {:left 0 :right 0 :top 138} :height 16 :align center)
      ~(repeat [item items :index i] (pie-item item i))))
 

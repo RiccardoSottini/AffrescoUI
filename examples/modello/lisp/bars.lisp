@@ -38,7 +38,16 @@
 (defcomponent topBar "The top bar: the app's icon and menus, the workspaces in the middle, the scene and the layer at the end." {}
   `(row#top-bar :width "100%" :height 28 :color @bar :alignItems center :gap 0
      (node :use gap :with {:width 6})
-     (label#app-icon :font icons :icon cuboid :text "" :textColor @kit.accent :width 26 :height 26 :align center :role img :label "Modello")
+     (label#app-icon
+       :font icons
+       :icon cuboid
+       :text ""
+       :textColor @kit.accent
+       :width 26
+       :height 26
+       :align center
+       :role img
+       :label "Modello")
      ~(menu-bar)
      {:grow 1 :height 1 :color transparent}
      ~(workspace-tabs)
@@ -97,7 +106,9 @@
        :fill true)))
 
 (defview scene-picker "The scene's picker (one scene for now), then its name, typed in place: two nodes." []
-  [`(node#scene-picker :use hButton :with {:icon shapes :chevron true :width 38 :disabled true :tooltip ~(t "topbar.oneScene")})
+  [`(node#scene-picker
+      :use hButton
+      :with {:icon shapes :chevron true :width 38 :disabled true :tooltip ~(t "topbar.oneScene")})
    `(node#scene-name :width 100 :height 20 :color @field :radius 4
       (textarea#scene-name-field :anchors {:left 3 :top 1 :bottom 1 :right 2}
         :color transparent
@@ -107,7 +118,9 @@
         :onSubmit ~(handler renameScene event.text)))])
 
 (defview layer-picker "The view layer's picker (one layer for now), then its name, typed in place: two nodes." []
-  [`(node#layer-picker :use hButton :with {:icon images :chevron true :width 38 :disabled true :tooltip ~(t "topbar.oneLayer")})
+  [`(node#layer-picker
+      :use hButton
+      :with {:icon images :chevron true :width 38 :disabled true :tooltip ~(t "topbar.oneLayer")})
    `(node#layer-name :width 100 :height 20 :color @field :radius 4
       (textarea#layer-name-field :anchors {:left 3 :top 1 :bottom 1 :right 2}
         :color transparent

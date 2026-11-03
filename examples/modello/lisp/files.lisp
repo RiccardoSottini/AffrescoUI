@@ -64,7 +64,12 @@
   :category ~(t "category.file") :icon "file-output" :enablement ~(contains (vals state.areas) "viewport") []
   (dismiss)
   (when (contains (vals state.areas) "viewport")
-    (export "gltf" :pages ["viewport"] :animations computed.gltfClips :name "scene" :onDone exported :onError notExported)))
+    (export "gltf"
+      :pages ["viewport"]
+      :animations computed.gltfClips
+      :name "scene"
+      :onDone exported
+      :onError notExported)))
 
 ;;; Rendering
 
@@ -77,4 +82,9 @@
 (defcommand saveRender "Saves the render as a PNG image."
   :title ~(t "command.saveRender") :description ~(t "command.saveRender.about")
   :category ~(t "category.render") :icon "save" :enablement ~state.rendering []
-  (export "png" :pages ["render-image"] :title (t "file.renderTitle") :name "render.png" :onDone saved :onError notSaved))
+  (export "png"
+    :pages ["render-image"]
+    :title (t "file.renderTitle")
+    :name "render.png"
+    :onDone saved
+    :onError notSaved))

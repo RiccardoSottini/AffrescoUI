@@ -103,7 +103,13 @@
      ~(properties-panels)))
 
 (defview properties-header "The header: editor type, the search, and the pin (to come)." []
-  `(row#properties-header :anchors {:left 0 :right 0 :top 0} :height 26 :color @header :radius {:topLeft 8 :topRight 8} :alignItems center :gap 2
+  `(row#properties-header
+     :anchors {:left 0 :right 0 :top 0}
+     :height 26
+     :color @header
+     :radius {:topLeft 8 :topRight 8}
+     :alignItems center
+     :gap 2
      (node :use gap)
      (node#editor-type-properties :use hButton
        :with {:icon sliders-horizontal
@@ -113,7 +119,9 @@
               :open state.open.editorProperties
               :items ~(editor-choices "properties")})
      (node#properties-search :use searchField :with {:bind state.propertiesFilter :label ~(t "properties.search")})
-     (node#properties-pin :use hButton :with {:icon pin :width 24 :back transparent :disabled true :tooltip ~(t "properties.pinTip")})
+     (node#properties-pin
+       :use hButton
+       :with {:icon pin :width 24 :back transparent :disabled true :tooltip ~(t "properties.pinTip")})
      (node :use gap)))
 
 (defview prop-tab "A tab: its icon; one to come is greyed, and says why." [tab]
@@ -149,8 +157,13 @@
      ~(color-management-panel)
      ~(frame-range-panel)
      ~(scene-panel)
-     (node :when ~(contains computed.propShown "surfaceWorld") :use propPanel :with {:key surfaceWorld :body ~(if state.panels.pickWorld 216 32)}
-       (node :use colorRow :with {:label ~(t "properties.color") :value ~state.world.color :target world :key pickWorld}))
+     (node
+       :when ~(contains computed.propShown "surfaceWorld")
+       :use propPanel
+       :with {:key surfaceWorld :body ~(if state.panels.pickWorld 216 32)}
+       (node
+         :use colorRow
+         :with {:label ~(t "properties.color") :value ~state.world.color :target world :key pickWorld}))
      ~(restrictions-panel)
      ~(data-panel)
      ~(material-slot)
@@ -181,7 +194,12 @@
        :height 20)))
 
 (defview object-name "The Object tab's name field." []
-  `(node#object-name :when ~(and (= state.propTab "object") (some? computed.activeNode)) :width "100%" :height 24 :color @field :radius 4
+  `(node#object-name
+     :when ~(and (= state.propTab "object") (some? computed.activeNode))
+     :width "100%"
+     :height 24
+     :color @field
+     :radius 4
      (label :font iconsSmall :icon square :text "" :textColor @object :x 6 :width 14 :anchors {:top 0 :bottom 0})
      (textarea#object-name-field :anchors {:left 24 :right 4 :top 2 :bottom 2}
        :text ~computed.activeNode.name
@@ -215,7 +233,9 @@
   `(node :when ~(contains computed.propShown "activeTool") :use propPanel :with {:key activeTool :body 80}
      (node :use infoRow :with {:id tool-name :label ~(t "properties.tool") :text ~computed.toolName})
      (node :use checkRow :with {:id prop-snap :label ~(t "sidebar.snap") :path state.snap :checked ~state.snap})
-     (node :use checkRow :with {:id prop-gizmos :label ~(t "sidebar.toolGizmos") :path state.toolGizmos :checked ~(not= state.toolGizmos false)})))
+     (node
+       :use checkRow
+       :with {:id prop-gizmos :label ~(t "sidebar.toolGizmos") :path state.toolGizmos :checked ~(not= state.toolGizmos false)})))
 
 (defview color-management-panel "The Render tab's exposure." []
   `(node :when ~(contains computed.propShown "colorManagement") :use propPanel :with {:key colorManagement :body 32}
@@ -344,7 +364,12 @@
 (defview light-type "A light's type: point, sun or spot, as three buttons in a row." []
   `(node :when ~(= computed.activeNode.kind "light") :height 20 :width "100%" :color transparent
      ~(caption "properties.type")
-     (row :anchors {:left "41%" :right 22 :top 0 :bottom 0} :gap 1 :color transparent :role radiogroup :label ~(t "properties.lightType")
+     (row
+       :anchors {:left "41%" :right 22 :top 0 :bottom 0}
+       :gap 1
+       :color transparent
+       :role radiogroup
+       :label ~(t "properties.lightType")
        ~(repeat [kind ["point" "directional" "spot"]] (light-type-button kind)))))
 
 (defview light-type-button "One light type; the ends round the row's corners." [kind]
@@ -364,7 +389,8 @@
 ;;; The Material tab
 
 (defview material-slot "The active mesh's material: browse the materials, its name, a new one, unlink it." []
-  `(row#material-slot :when ~(and (= state.propTab "material") (= computed.activeNode.kind "mesh") (= (or-else state.propertiesFilter "") ""))
+  `(row#material-slot
+     :when ~(and (= state.propTab "material") (= computed.activeNode.kind "mesh") (= (or-else state.propertiesFilter "") ""))
      :width "100%"
      :height 24
      :gap 2
@@ -398,12 +424,16 @@
   `(or-else (get-in state.scene.materials [(max computed.activeMaterialIndex 0) ~key]) ~default))
 
 (defview surface-panel "The material's surface: its base colour, metallic and roughness." []
-  `(node :when ~(contains computed.propShown "surfaceMaterial") :use propPanel :with {:key surfaceMaterial :body ~(if state.panels.pickMaterial 264 80)}
+  `(node
+     :when ~(contains computed.propShown "surfaceMaterial")
+     :use propPanel
+     :with {:key surfaceMaterial :body ~(if state.panels.pickMaterial 264 80)}
      (node :use colorRow
        :with {:label ~(t "properties.baseColor")
               :target material
               :key pickMaterial
-              :value ~(or-else (hexColor (get-in state.scene.materials [(max computed.activeMaterialIndex 0) :baseColor])) "#ccccccff")})
+              :value ~(or-else (hexColor (get-in state.scene.materials [(max computed.activeMaterialIndex 0)
+                                                                         :baseColor])) "#ccccccff")})
      (node :use numberField
        :with {:label ~(t "properties.metallic")
               :path ~(str "scene.materials[" computed.activeMaterialIndex "].metallic")

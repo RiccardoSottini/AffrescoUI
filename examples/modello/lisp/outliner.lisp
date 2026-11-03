@@ -49,7 +49,13 @@
           (outliner-item item i)))))
 
 (defview outliner-header "The header: editor type, display mode, the search, the filter, and a new collection." []
-  `(row#outliner-header :anchors {:left 0 :right 0 :top 0} :height 26 :color @header :radius {:topLeft 8 :topRight 8} :alignItems center :gap 2
+  `(row#outliner-header
+     :anchors {:left 0 :right 0 :top 0}
+     :height 26
+     :color @header
+     :radius {:topLeft 8 :topRight 8}
+     :alignItems center
+     :gap 2
      (node :use gap)
      (node#editor-type-outliner :use hButton
        :with {:icon list-tree
@@ -151,7 +157,15 @@
      :onDoubleClick ~(handler startRowRename node.id coll.id data)
      :onContextMenu ~(handler rowMenu node.id coll.id)
      ~(outliner-chevron depth name node key expand)
-     (label :font icons :icon ~icon :text "" :textColor ~iconColor :x ~(+ (* depth 18) 18) :width 18 :anchors {:top 0 :bottom 0} :align center)
+     (label
+       :font icons
+       :icon ~icon
+       :text ""
+       :textColor ~iconColor
+       :x ~(+ (* depth 18) 18)
+       :width 18
+       :anchors {:top 0 :bottom 0}
+       :align center)
      (label :when ~(not editing)
        :text ~name
        :textColor ~(if (and node (= node.visible false)) "@dim" "@text")
@@ -168,7 +182,13 @@
        :width 16
        :anchors {:top 0 :bottom 0}
        :align center)
-     (row :when ~(or (not= data "") (some? coll)) :anchors {:right 4 :top 0 :bottom 0} :width 66 :gap 4 :alignItems center :color transparent
+     (row
+       :when ~(or (not= data "") (some? coll))
+       :anchors {:right 4 :top 0 :bottom 0}
+       :width 66
+       :gap 4
+       :alignItems center
+       :color transparent
        ~(repeat [flag computed.outlinerFlags] (row-flag node coll flag)))))
 
 (defview outliner-chevron "A row's chevron: it opens or closes what is under the row." [depth name node key expand]
@@ -182,7 +202,13 @@
      :label ~(if open (t "outliner.collapse" {:name name}) (t "outliner.expand" {:name name}))
      :isOpen ~open
      :onClick ~(handler toggleOpen expand)
-     (label :font iconsSmall :icon ~(if open "chevron-down" "chevron-right") :text "" :textColor @dim :align center :fill true)))
+     (label
+       :font iconsSmall
+       :icon ~(if open "chevron-down" "chevron-right")
+       :text ""
+       :textColor @dim
+       :align center
+       :fill true)))
 
 (defview rename-field "The field that renames the row's object or collection, while it is being renamed." [depth name node coll]
   `(textarea#outliner-rename :when ~editing
@@ -212,4 +238,10 @@
      :tooltip ~flag.title
      :selected ~on
      :onClick ~(handler toggleRowFlag node.id coll.id flag.key)
-     (label :font iconsSmall :icon ~(if on flag.on flag.off) :text "" :textColor ~(if on "@text" "@faint") :align center :fill true)))
+     (label
+       :font iconsSmall
+       :icon ~(if on flag.on flag.off)
+       :text ""
+       :textColor ~(if on "@text" "@faint")
+       :align center
+       :fill true)))
