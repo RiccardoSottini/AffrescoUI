@@ -15,6 +15,7 @@
          "detail.lisp"
          "dialogs.lisp"
          "settings.lisp"
+         "server.lisp"
          "sync.lisp"
          "habits.lisp")
 
