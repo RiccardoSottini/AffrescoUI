@@ -174,6 +174,12 @@ std::optional<Exit> runLisp(const std::filesystem::path& file, bool print);
 /// @return Success.
 Exit lispRepl(std::span<const std::string_view> args);
 
+/// @brief `affrescoui lisp-binding`: writes an expression's text as the Lisp form a program writes for it; with
+/// `--prove`, translates every such text in some JSON files, builds each back and compares the parsed trees.
+/// @param args The texts, or `--prove` (and `--verbose`) and files or folders.
+/// @return Success, or Problems if one can't be translated or proven.
+Exit lispBinding(std::span<const std::string_view> args);
+
 /// @brief `ids`: gives readable ids to the nodes of a file that have none.
 /// @param args The arguments.
 /// @return How it ended.

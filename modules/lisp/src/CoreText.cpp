@@ -5,7 +5,9 @@
 
 #include <affresco/notation/Lexer.hpp>
 
+#include <array>
 #include <cctype>
+#include <charconv>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -148,6 +150,13 @@ Value readWithoutApp(Machine& /*machine*/, Arguments arguments) {
 /// @return The text.
 std::string expressionOf(const json& value) {
 	if(value.is_string()) return expressionText(value.get_ref<const std::string&>());
+	if(value.is_number_float()) { // an expression reads no exponent: 0.000001, not 1e-06
+		std::array<char, 400> digits{};
+		const auto end =
+		    std::to_chars(digits.data(), digits.data() + digits.size(), value.get<double>(), std::chars_format::fixed);
+		std::string text(digits.data(), end.ptr);
+		return text.contains('.') ? text : text + ".0";
+	}
 	if(value.is_array()) {
 		std::string text = "[";
 		for(const json& item : value) text.append(text.size() > 1 ? ", " : "").append(expressionOf(item));

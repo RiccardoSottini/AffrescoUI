@@ -53,7 +53,9 @@ struct SameFunction {
 };
 
 /// Those functions.
-constexpr std::array<SameFunction, 12> sameFunctions{{{"count", "length", 1, 1},
+constexpr std::array<SameFunction, 14> sameFunctions{{{"count", "length", 1, 1},
+                                                      {"range", "range", 1, 1},
+                                                      {"sort", "sort", 1, 1},
                                                       {"concat", "concat", 1, 16},
                                                       {"merge", "merge", 1, 16},
                                                       {"keys", "keys", 1, 1},
@@ -75,14 +77,14 @@ struct ItemFunction {
 };
 
 /// Those functions.
-constexpr std::array<ItemFunction, 8> itemFunctions{{{"filter", "filter", {"it", ""}, 1},
-                                                     {"remove", "filter", {"it", ""}, 1},
-                                                     {"map", "map", {"it", ""}, 1},
+constexpr std::array<ItemFunction, 8> itemFunctions{{{"filter", "filter", {"it", "index"}, 2},
+                                                     {"remove", "filter", {"it", "index"}, 2},
+                                                     {"map", "map", {"it", "index"}, 2},
                                                      {"map-indexed", "map", {"index", "it"}, 2},
-                                                     {"find", "find", {"it", ""}, 1},
-                                                     {"some", "some", {"it", ""}, 1},
-                                                     {"every?", "every", {"it", ""}, 1},
-                                                     {"sort-by", "sort", {"it", ""}, 1}}};
+                                                     {"find", "find", {"it", "index"}, 2},
+                                                     {"some", "some", {"it", "index"}, 2},
+                                                     {"every?", "every", {"it", "index"}, 2},
+                                                     {"sort-by", "sort", {"it", "index"}, 2}}};
 
 /// @brief Tells whether a word is what an expression calls a function or a key without quotes.
 /// @param word The word.
@@ -251,10 +253,10 @@ void Compiler::lowerStr(const Value& form, int depth, std::vector<BindingPart>& 
 void Compiler::lowerFunctionBody(const Value& function, std::span<const std::string_view> names, int depth,
                                  std::vector<BindingPart>& parts) {
 	const Value params = function.at(1);
-	if(function.count() != 3 || params.count() != names.size() ||
+	if(function.count() != 3 || params.count() == 0 || params.count() > names.size() ||
 	   std::ranges::any_of(std::views::iota(std::size_t{0}, params.count()),
 	                       [&](std::size_t at) { return params.at(at).kind() != Kind::Symbol; }))
-		fail(function, "a function in a binding takes " + std::to_string(names.size()) +
+		fail(function, "a function in a binding takes 1 to " + std::to_string(names.size()) +
 		                   " plain parameters and has one form: define a function for more");
 	const std::size_t before = renames_.size();
 	std::vector<bool> hidden; // an outer item named as one of this function's is out of reach inside it
@@ -262,7 +264,8 @@ void Compiler::lowerFunctionBody(const Value& function, std::span<const std::str
 		hidden.push_back(outer.hidden);
 		if(std::ranges::find(names, std::string_view(outer.as)) != names.end()) outer.hidden = true;
 	}
-	for(std::size_t at = 0; at < names.size(); ++at) renames_.push_back({params.at(at).text(), std::string(names[at])});
+	for(std::size_t at = 0; at < params.count(); ++at)
+		renames_.push_back({params.at(at).text(), std::string(names[at])});
 	lowerForm(function.at(2), depth + 1, parts);
 	renames_.resize(before);
 	for(std::size_t at = 0; at < before; ++at) renames_[at].hidden = hidden[at];
@@ -366,7 +369,25 @@ void Compiler::lowerCall(const Value& form, int depth, std::vector<BindingPart>&
 	}
 	if(!isPlainName(head))
 		fail(form, "nothing defines \"" + notation::Lexer::excerpt(head) + "\", and no expression can call it");
-	lowerList(form, depth, parts, std::string(head) + "(", ", ");
+	// An expression's own function: one on each item takes a function whose parameters are named as it names them
+	parts.push_back({std::string(head) + "(", {}, false, {}, {}});
+	for(std::size_t at = 1; at < form.count(); ++at) {
+		if(at != 1) parts.push_back({", ", {}, false, {}, {}});
+		const Value item = form.at(at);
+		if(headWord(item) != "fn" || item.count() < 2 || item.at(1).kind() != Kind::Vector) {
+			lowerForm(item, depth + 1, parts);
+			continue;
+		}
+		std::vector<std::string_view> names;
+		for(std::size_t name = 0; name < item.at(1).count(); ++name) {
+			const std::string_view word = item.at(1).at(name).kind() == Kind::Symbol ? item.at(1).at(name).text() : "";
+			if(word != "it" && word != "index" && word != "acc")
+				fail(item, "a function given to an expression's own function names its parameters it, index or acc");
+			names.push_back(word);
+		}
+		lowerFunctionBody(item, names, depth, parts);
+	}
+	parts.push_back({")", {}, false, {}, {}});
 }
 
 } // namespace affresco::lisp

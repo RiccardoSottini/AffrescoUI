@@ -18,7 +18,8 @@ add_executable(affrescoui_cli main.cpp Cli.cpp ComposeCommand.cpp JsonText.cpp S
 target_sources(affrescoui_cli PRIVATE commands/CheckCommand.cpp commands/FormatCommands.cpp commands/WindowCommands.cpp
 	commands/HistoryCommands.cpp commands/TestCommand.cpp commands/PolicyCommand.cpp commands/SchemaCommand.cpp
 	commands/SignCommand.cpp commands/ImportCommand.cpp commands/MigrateCommand.cpp
-	commands/ConvertCommand.cpp commands/StringsCommand.cpp commands/LispCommands.cpp)
+	commands/ConvertCommand.cpp commands/StringsCommand.cpp commands/LispCommands.cpp
+	commands/LispBindingCommand.cpp)
 target_include_directories(affrescoui_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}) # for commands/: Cli.hpp
 set_target_properties(affrescoui_cli PROPERTIES OUTPUT_NAME affrescoui CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
