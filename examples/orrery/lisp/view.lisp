@@ -5,277 +5,277 @@
 
 ;;; The camera
 
-(defcomputed pane "The 3D view's size."
-  {:w (max (- window.width 461) 200) :h (max (- window.height 324) 160)})
+(defcomputed pane "The 3D view's size." {:w (max (- window.width 461) 200) :h (max (- window.height 324) 160)})
 
-(defcomputed view
+(defcomputed view "The 3D view's camera: its size, focal length, the point it looks at and its turn and tilt."
   {:w computed.pane.w
-     :h computed.pane.h
-     :f (* state.zoom (min computed.pane.w computed.pane.h))
-     :distance state.camera.distance
-     :cy (cos state.camera.yaw)
-     :sy (sin state.camera.yaw)
-     :cp (cos state.camera.pitch)
-     :sp (sin state.camera.pitch)})
+   :h computed.pane.h
+   :f (* state.zoom (min computed.pane.w computed.pane.h))
+   :distance state.camera.distance
+   :cy (cos state.camera.yaw)
+   :sy (sin state.camera.yaw)
+   :cp (cos state.camera.pitch)
+   :sp (sin state.camera.pitch)})
 
-(defcomputed target
+(defcomputed target "The point the camera looks at: the body it follows, else the camera's own."
   (if (and (not= state.follow "") computed.followed)
-        {:x computed.followed.x :z computed.followed.z}
-        {:x (+ state.camera.tx (* (if computed.flyPosition (- computed.flyPosition.x state.camera.tx) 0) state.fly))
-         :z (+ state.camera.tz (* (if computed.flyPosition (- computed.flyPosition.z state.camera.tz) 0) state.fly))}))
+    {:x computed.followed.x :z computed.followed.z}
+    {:x (+ state.camera.tx (* (if computed.flyPosition (- computed.flyPosition.x state.camera.tx) 0) state.fly))
+     :z (+ state.camera.tz (* (if computed.flyPosition (- computed.flyPosition.z state.camera.tz) 0) state.fly))}))
 
-(defcomputed sceneView
+(defcomputed sceneView "The 3D view's camera, as the scene takes it."
   {:camera {:target [computed.target.x 0 computed.target.z]
-              :yaw state.camera.yaw
-              :pitch state.camera.pitch
-              :distance computed.view.distance
-              :fieldOfView (* 2 (atan (/ computed.view.h (* 2 computed.view.f))))}
-     :selection (if (not= state.selected "") [state.selected] [])})
+            :yaw state.camera.yaw
+            :pitch state.camera.pitch
+            :distance computed.view.distance
+            :fieldOfView (* 2 (atan (/ computed.view.h (* 2 computed.view.f))))}
+   :selection (if (not= state.selected "") [state.selected] [])})
 
-(defcomputed fov
+(defcomputed fov "The 3D view's field of view, in degrees, across and up."
   {:deg (degrees (* 2 (atan (/ (min computed.view.w computed.view.h) (* 2 computed.view.f)))))
-     :times (/ state.zoom 1.1)})
+   :times (/ state.zoom 1.1)})
 
-(defcomputed fovText
+(defcomputed fovText "The field of view, as the view's readout says it."
   (t "view.fov"
      {:degrees (text (floor computed.fov.deg))
       :minutes (pad (floor (* (- computed.fov.deg (floor computed.fov.deg)) 60)) 2 "0")
       :times (fixed computed.fov.times 2)}))
 
-(defcomputed magText
-  (t "view.magnitude" {:mag (fixed state.limitMag 1) :n (text (count (filter (fn [it] (<= it.mag state.limitMag)) computed.stars)))}))
+(defcomputed magText "The faintest stars shown, as the view's readout says it."
+  (t "view.magnitude"
+     {:mag (fixed state.limitMag 1) :n (text (count (filter (fn [it] (<= it.mag state.limitMag)) computed.stars)))}))
 
 ;;; The bodies and the stars on the view
 
-(defcomputed stars
+(defcomputed stars "The background stars, each with its direction."
   (map-indexed (fn [index it]
-                   {:u (- (* (mod (abs (* (sin (* index 12.9898)) 43758.5453)) 1) 2) 1)
-                    :t (* (mod (abs (* (sin (* index 78.233)) 12543.917)) 1) 2 (pi))
-                    :mag (+ 0.5 (* 6 (sqrt (mod (abs (* (sin (* index 39.425)) 24634.633)) 1))))})
-                 (range 400)))
+                 {:u (- (* (mod (abs (* (sin (* index 12.9898)) 43758.5453)) 1) 2) 1)
+                  :t (* (mod (abs (* (sin (* index 78.233)) 12543.917)) 1) 2 (pi))
+                  :mag (+ 0.5 (* 6 (sqrt (mod (abs (* (sin (* index 39.425)) 24634.633)) 1))))})
+               (range 400)))
 
-(defcomputed starVectors
+(defcomputed starVectors "The background stars' directions as unit vectors."
   (map (fn [it]
-           {:x (* (sqrt (- 1 (* it.u it.u))) (cos it.t))
-            :y it.u
-            :z (* (sqrt (- 1 (* it.u it.u))) (sin it.t))
-            :mag it.mag})
-         computed.stars))
+         {:x (* (sqrt (- 1 (* it.u it.u))) (cos it.t))
+          :y it.u
+          :z (* (sqrt (- 1 (* it.u it.u))) (sin it.t))
+          :mag it.mag})
+       computed.stars))
 
-(defcomputed turned
+(defcomputed turned "Each body in the camera's frame."
   (map (fn [it]
-           (merge it
-                  {:x1 (- (* (- it.x computed.target.x) computed.view.cy)
-                          (* (- it.z computed.target.z) computed.view.sy))
-                   :z1 (+ (* (- it.x computed.target.x) computed.view.sy)
-                          (* (- it.z computed.target.z) computed.view.cy))}))
-         computed.placed))
+         (merge it
+                {:x1 (- (* (- it.x computed.target.x) computed.view.cy)
+                        (* (- it.z computed.target.z) computed.view.sy))
+                 :z1 (+ (* (- it.x computed.target.x) computed.view.sy)
+                        (* (- it.z computed.target.z) computed.view.cy))}))
+       computed.placed))
 
-(defcomputed projected
+(defcomputed projected "Each body on the view, farthest first, with its size on screen."
   (sort-by (fn [it] it.depth)
-             >
-             (map (fn [it]
-                    (merge it
-                           {:depth (- computed.view.distance (* it.z1 computed.view.cp))
-                            :px (+ (/ computed.view.w 2)
-                                   (/ (* it.x1 computed.view.f) (- computed.view.distance (* it.z1 computed.view.cp))))
-                            :py (+ (/ computed.view.h 2)
-                                   (/ (* it.z1 computed.view.sp computed.view.f)
-                                      (- computed.view.distance (* it.z1 computed.view.cp))))
-                            :r (min (max 3
-                                         (/ (* it.size computed.view.f)
-                                            (- computed.view.distance (* it.z1 computed.view.cp))))
-                                    (* computed.view.h 0.4))}))
-                  computed.turned)))
+           >
+           (map (fn [it]
+                  (merge it
+                         {:depth (- computed.view.distance (* it.z1 computed.view.cp))
+                          :px (+ (/ computed.view.w 2)
+                                 (/ (* it.x1 computed.view.f) (- computed.view.distance (* it.z1 computed.view.cp))))
+                          :py (+ (/ computed.view.h 2)
+                                 (/ (* it.z1 computed.view.sp computed.view.f)
+                                    (- computed.view.distance (* it.z1 computed.view.cp))))
+                          :r (min (max 3
+                                       (/ (* it.size computed.view.f)
+                                          (- computed.view.distance (* it.z1 computed.view.cp))))
+                                  (* computed.view.h 0.4))}))
+                computed.turned)))
 
-(defcomputed shaded
+(defcomputed shaded "Each body's lit side, as the Sun lights it."
   (map (fn [it]
-           (merge it
-                  {:k (if (= it.parent "")
-                          1
-                          (/ (+ 1
-                                (/ (+ (* (- computed.sun.x1 it.x1) (- it.x1))
-                                      (* (- computed.sun.z1 it.z1)
-                                         (- (* computed.view.distance computed.view.cp) it.z1)))
-                                   (max (* (hypot (- computed.sun.x1 it.x1) (- computed.sun.z1 it.z1))
-                                           (sqrt (+ (- (+ (* it.x1 it.x1)
-                                                          (* computed.view.distance computed.view.distance))
-                                                       (* 2 computed.view.distance it.z1 computed.view.cp))
-                                                    (* it.z1 it.z1))))
-                                        0.000001)))
-                             2))
-                   :ux (/ (- computed.sun.x1 it.x1)
-                          (max (hypot (- computed.sun.x1 it.x1) (* (- computed.sun.z1 it.z1) computed.view.sp))
-                               0.000001))
-                   :uy (/ (* (- computed.sun.z1 it.z1) computed.view.sp)
-                          (max (hypot (- computed.sun.x1 it.x1) (* (- computed.sun.z1 it.z1) computed.view.sp))
-                               0.000001))}))
-         computed.projected))
+         (merge it
+                {:k (if (= it.parent "")
+                      1
+                      (/ (+ 1
+                            (/ (+ (* (- computed.sun.x1 it.x1) (- it.x1))
+                                  (* (- computed.sun.z1 it.z1)
+                                     (- (* computed.view.distance computed.view.cp) it.z1)))
+                               (max (* (hypot (- computed.sun.x1 it.x1) (- computed.sun.z1 it.z1))
+                                       (sqrt
+                                         (+ (- (+ (* it.x1 it.x1) (* computed.view.distance computed.view.distance))
+                                               (* 2 computed.view.distance it.z1 computed.view.cp))
+                                            (* it.z1 it.z1))))
+                                    0.000001)))
+                         2))
+                 :ux (/ (- computed.sun.x1 it.x1)
+                        (max (hypot (- computed.sun.x1 it.x1) (* (- computed.sun.z1 it.z1) computed.view.sp))
+                             0.000001))
+                 :uy (/ (* (- computed.sun.z1 it.z1) computed.view.sp)
+                        (max (hypot (- computed.sun.x1 it.x1) (* (- computed.sun.z1 it.z1) computed.view.sp))
+                             0.000001))}))
+       computed.projected))
 
-(defcomputed sight "The selected body, on the view."
-  (find (fn [it] (= it.id state.selected)) computed.projected))
+(defcomputed sight "The selected body, on the view." (find (fn [it] (= it.id state.selected)) computed.projected))
 
-(defcomputed sun "The Sun, in the camera's frame."
-  (find (fn [it] (= it.parent "")) computed.turned))
+(defcomputed sun "The Sun, in the camera's frame." (find (fn [it] (= it.parent "")) computed.turned))
 
-(defcomputed range
+(defcomputed range "How far the selected body is from the camera."
   (if computed.sight
-        (sqrt (+ (- (+ (* computed.sight.x1 computed.sight.x1) (* computed.view.distance computed.view.distance))
-                    (* 2 computed.view.distance computed.sight.z1 computed.view.cp))
-                 (* computed.sight.z1 computed.sight.z1)))
-        0))
+    (sqrt (+ (- (+ (* computed.sight.x1 computed.sight.x1) (* computed.view.distance computed.view.distance))
+                (* 2 computed.view.distance computed.sight.z1 computed.view.cp))
+             (* computed.sight.z1 computed.sight.z1)))
+    0))
 
-(defcomputed info
+(defcomputed info "What the view's card says of the selected body: name, distance, how much is lit."
   (if computed.sight
-        {:name computed.selectedBody.name
-         :distance (/ computed.range 4.3)
-         :lit (if (= computed.sight.parent "")
-                  1
-                  (/ (+ 1
-                        (/ (+ (* (- computed.sun.x1 computed.sight.x1) (- computed.sight.x1))
-                              (* (- computed.sun.z1 computed.sight.z1)
-                                 (- (* computed.view.distance computed.view.cp) computed.sight.z1)))
-                           (max (* (hypot (- computed.sun.x1 computed.sight.x1) (- computed.sun.z1 computed.sight.z1))
-                                   computed.range)
-                                0.000001)))
-                     2))}
-        nil))
+    {:name computed.selectedBody.name
+     :distance (/ computed.range 4.3)
+     :lit (if (= computed.sight.parent "")
+            1
+            (/ (+ 1
+                  (/ (+ (* (- computed.sun.x1 computed.sight.x1) (- computed.sight.x1))
+                        (* (- computed.sun.z1 computed.sight.z1)
+                           (- (* computed.view.distance computed.view.cp) computed.sight.z1)))
+                     (max (* (hypot (- computed.sun.x1 computed.sight.x1) (- computed.sun.z1 computed.sight.z1))
+                             computed.range)
+                          0.000001)))
+               2))}
+    nil))
 
-(defcomputed apparent
+(defcomputed apparent "How wide the selected body looks, in degrees."
   (if (and computed.sight (> computed.range 0)) (degrees (* 2 (atan (/ computed.sight.size computed.range)))) 0))
 
-(defcomputed apparentText
+(defcomputed apparentText "How wide the selected body looks, in degrees, minutes or seconds."
   (cond (>= computed.apparent 1) (str (fixed computed.apparent 2) "°")
-          (>= (* computed.apparent 60) 1) (str (fixed (* computed.apparent 60) 1) "′")
-          :else (str (fixed (* computed.apparent 3600) 1) "″")))
+        (>= (* computed.apparent 60) 1) (str (fixed (* computed.apparent 60) 1) "′")
+        :else (str (fixed (* computed.apparent 3600) 1) "″")))
 
 (defcomputed marks "The marked bodies in front of the camera."
   (filter (fn [it] (and (>= (indexOf state.markers it.id) 0) (> it.depth 0.3))) computed.projected))
 
-(defcomputed marked
+(defcomputed marked "The marks' corners, drawn around the marked bodies."
   (map-indexed (fn [index it]
-                   {:id (str (get-in computed.marks [(floor (/ index 4)) :id]) "-" (mod index 4))
-                    :x (cond (< (mod index 4) 2) (- (get-in computed.marks [(floor (/ index 4)) :px]) 1)
-                             (= (mod index 4) 2) (- (- (get-in computed.marks [(floor (/ index 4)) :px])
-                                   (get-in computed.marks [(floor (/ index 4)) :r]))
-                                12)
-                             :else (+ (get-in computed.marks [(floor (/ index 4)) :px])
-                                (get-in computed.marks [(floor (/ index 4)) :r])
-                                5))
-                    :y (cond (= (mod index 4) 0) (- (- (get-in computed.marks [(floor (/ index 4)) :py])
-                                   (get-in computed.marks [(floor (/ index 4)) :r]))
-                                12)
-                             (= (mod index 4) 1) (+ (get-in computed.marks [(floor (/ index 4)) :py])
-                                (get-in computed.marks [(floor (/ index 4)) :r])
-                                5)
-                             :else (- (get-in computed.marks [(floor (/ index 4)) :py]) 1))
-                    :w (if (< (mod index 4) 2) 2 7)
-                    :h (if (< (mod index 4) 2) 7 2)})
-                 (range (* (count computed.marks) 4))))
+                 {:id (str (get-in computed.marks [(floor (/ index 4)) :id]) "-" (mod index 4))
+                  :x (cond (< (mod index 4) 2) (- (get-in computed.marks [(floor (/ index 4)) :px]) 1)
+                           (= (mod index 4) 2) (- (- (get-in computed.marks [(floor (/ index 4)) :px])
+                                 (get-in computed.marks [(floor (/ index 4)) :r]))
+                              12)
+                           :else (+ (get-in computed.marks [(floor (/ index 4)) :px])
+                              (get-in computed.marks [(floor (/ index 4)) :r])
+                              5))
+                  :y (cond (= (mod index 4) 0) (- (- (get-in computed.marks [(floor (/ index 4)) :py])
+                                 (get-in computed.marks [(floor (/ index 4)) :r]))
+                              12)
+                           (= (mod index 4) 1) (+ (get-in computed.marks [(floor (/ index 4)) :py])
+                              (get-in computed.marks [(floor (/ index 4)) :r])
+                              5)
+                           :else (- (get-in computed.marks [(floor (/ index 4)) :py]) 1))
+                  :w (if (< (mod index 4) 2) 2 7)
+                  :h (if (< (mod index 4) 2) 7 2)})
+               (range (* (count computed.marks) 4))))
 
 ;;; The scene
 
-(defcomputed orbitRings
+(defcomputed orbitRings "Each orbit: its centre and its radius."
   (map (fn [it] {:id it.id :cx it.cx :cz it.cz :radius it.radius})
-         (filter (fn [it] (not= it.parent "")) computed.placed)))
+       (filter (fn [it] (not= it.parent "")) computed.placed)))
 
-(defcomputed orbitSegments
+(defcomputed orbitSegments "The orbits as the scene's lines, while they are shown."
   (if state.showOrbits
-        (map-indexed (fn [index it]
-                       {:id (str "orbit-" (get-in computed.orbitRings [(floor (/ index 64)) :id]) "-" (mod index 64))
-                        :translation [(+ (get-in computed.orbitRings [(floor (/ index 64)) :cx])
-                                         (* (get-in computed.orbitRings [(floor (/ index 64)) :radius])
-                                            (cos (/ (* (+ (mod index 64) 0.5) (pi)) 32))))
-                                      0
-                                      (+ (get-in computed.orbitRings [(floor (/ index 64)) :cz])
-                                         (* (get-in computed.orbitRings [(floor (/ index 64)) :radius])
-                                            (sin (/ (* (+ (mod index 64) 0.5) (pi)) 32))))]
-                        :rotationDegrees [0 (- 90 (* (+ (mod index 64) 0.5) 5.625)) 0]
-                        :scale [(/ (* (get-in computed.orbitRings [(floor (/ index 64)) :radius]) (pi)) 62)
-                                (/ (* computed.view.distance 0.6) computed.view.f)
-                                (/ (* computed.view.distance 0.6) computed.view.f)]
-                        :mesh "cube"
-                        :material (if (= (get-in computed.orbitRings [(floor (/ index 64)) :id]) state.selected)
-                                      "orbit-on"
-                                      "orbit")})
-                     (range (* (count computed.orbitRings) 64)))
-        []))
+    (map-indexed (fn [index it]
+                   {:id (str "orbit-" (get-in computed.orbitRings [(floor (/ index 64)) :id]) "-" (mod index 64))
+                    :translation [(+ (get-in computed.orbitRings [(floor (/ index 64)) :cx])
+                                     (* (get-in computed.orbitRings [(floor (/ index 64)) :radius])
+                                        (cos (/ (* (+ (mod index 64) 0.5) (pi)) 32))))
+                                  0
+                                  (+ (get-in computed.orbitRings [(floor (/ index 64)) :cz])
+                                     (* (get-in computed.orbitRings [(floor (/ index 64)) :radius])
+                                        (sin (/ (* (+ (mod index 64) 0.5) (pi)) 32))))]
+                    :rotationDegrees [0 (- 90 (* (+ (mod index 64) 0.5) 5.625)) 0]
+                    :scale [(/ (* (get-in computed.orbitRings [(floor (/ index 64)) :radius]) (pi)) 62)
+                            (/ (* computed.view.distance 0.6) computed.view.f)
+                            (/ (* computed.view.distance 0.6) computed.view.f)]
+                    :mesh "cube"
+                    :material (if (= (get-in computed.orbitRings [(floor (/ index 64)) :id]) state.selected)
+                                "orbit-on"
+                                "orbit")})
+                 (range (* (count computed.orbitRings) 64)))
+    []))
 
-(defcomputed starNodes
+(defcomputed starNodes "The background stars as the scene's points, while they are shown."
   (if state.showStars
-        (map-indexed (fn [index it]
-                       {:id (str "star-" index)
-                        :translation [(+ computed.target.x (* it.x 300))
-                                      (* it.y 300)
-                                      (+ computed.target.z (* it.z 300))]
-                        :scale [(/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)
-                                (/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)
-                                (/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)]
-                        :mesh "cube"
-                        :material "star"})
-                     (filter (fn [it] (<= it.mag state.limitMag)) computed.starVectors))
-        []))
+    (map-indexed (fn [index it]
+                   {:id (str "star-" index)
+                    :translation [(+ computed.target.x (* it.x 300))
+                                  (* it.y 300)
+                                  (+ computed.target.z (* it.z 300))]
+                    :scale [(/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)
+                            (/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)
+                            (/ (* 310 (- 1.3 (* it.mag 0.13))) computed.view.f)]
+                    :mesh "cube"
+                    :material "star"})
+                 (filter (fn [it] (<= it.mag state.limitMag)) computed.starVectors))
+    []))
 
-(defcomputed bodyNodes
+(defcomputed bodyNodes "The bodies as the scene's spheres."
   (map (fn [it]
-           {:id (str "" it.id)
-            :name it.name
-            :translation [it.x 0 it.z]
-            :scale [(max it.size (/ (* 3 it.depth) computed.view.f))
-                    (max it.size (/ (* 3 it.depth) computed.view.f))
-                    (max it.size (/ (* 3 it.depth) computed.view.f))]
-            :mesh "sphere"
-            :material (str "m-" it.id)
-            :visible (> it.depth 0.3)})
-         computed.projected))
+         {:id (str "" it.id)
+          :name it.name
+          :translation [it.x 0 it.z]
+          :scale [(max it.size (/ (* 3 it.depth) computed.view.f))
+                  (max it.size (/ (* 3 it.depth) computed.view.f))
+                  (max it.size (/ (* 3 it.depth) computed.view.f))]
+          :mesh "sphere"
+          :material (str "m-" it.id)
+          :visible (> it.depth 0.3)})
+       computed.projected))
 
-(defcomputed bodyMaterials
+(defcomputed bodyMaterials "Each body's colour and glow, as the scene's materials."
   (map (fn [it]
-           (cond (= it.parent "") {:id (str "m-" it.id)
-                  :baseColor [0 0 0 1]
-                  :emissive (if state.showGlow [1.5 0.85 0.22] [1.1 0.65 0.18])
-                  :roughness 1}
-                 state.showShading {:id (str "m-" it.id) :baseColor it.color :roughness 0.9}
-                 :else {:id (str "m-" it.id)
-                  :baseColor [0 0 0 1]
-                  :emissive [(* it.color.0 0.8) (* it.color.1 0.8) (* it.color.2 0.8)]
-                  :roughness 1}))
-         state.bodies))
+         (cond (= it.parent "") {:id (str "m-" it.id)
+                :baseColor [0 0 0 1]
+                :emissive (if state.showGlow [1.5 0.85 0.22] [1.1 0.65 0.18])
+                :roughness 1}
+               state.showShading {:id (str "m-" it.id) :baseColor it.color :roughness 0.9}
+               :else {:id (str "m-" it.id)
+                :baseColor [0 0 0 1]
+                :emissive [(* it.color.0 0.8) (* it.color.1 0.8) (* it.color.2 0.8)]
+                :roughness 1}))
+       state.bodies))
 
-(defcomputed sceneGraph
+(defcomputed sceneGraph "The 3D scene: the bodies, the orbits, the stars and the Sun's light."
   {:nodes (concat computed.bodyNodes
-                    [{:id "sunlight"
-                      :translation (if computed.sun [computed.sun.x 0 computed.sun.z] [0 0 0])
-                      :light {:type "point" :color [1 0.95 0.85] :intensity 60}}]
-                    (if (and state.showGlow computed.sun)
-                        [{:id "halo"
-                          :translation [computed.sun.x 0 computed.sun.z]
-                          :scale [1.7 1.7 1.7]
-                          :mesh "sphere"
-                          :material "halo"}]
-                        [])
-                    computed.orbitSegments
-                    computed.starNodes)
-     :materials (concat computed.bodyMaterials
-                        [{:id "orbit" :baseColor [0 0 0 1] :emissive [0.1 0.09 0.07] :roughness 1}
-                         {:id "orbit-on" :baseColor [0 0 0 1] :emissive [0.18 0.8 0.7] :roughness 1}
-                         {:id "star" :baseColor [0 0 0 1] :emissive [0.75 0.8 0.9] :roughness 1}
-                         {:id "halo"
-                          :baseColor [1 0.6 0.1 0.12]
-                          :emissive [0.5 0.3 0.05]
-                          :alphaMode "blend"
-                          :roughness 1}])})
+                  [{:id "sunlight"
+                    :translation (if computed.sun [computed.sun.x 0 computed.sun.z] [0 0 0])
+                    :light {:type "point" :color [1 0.95 0.85] :intensity 60}}]
+                  (if (and state.showGlow computed.sun)
+                    [{:id "halo"
+                      :translation [computed.sun.x 0 computed.sun.z]
+                      :scale [1.7 1.7 1.7]
+                      :mesh "sphere"
+                      :material "halo"}]
+                    [])
+                  computed.orbitSegments
+                  computed.starNodes)
+   :materials (concat computed.bodyMaterials
+                      [{:id "orbit" :baseColor [0 0 0 1] :emissive [0.1 0.09 0.07] :roughness 1}
+                       {:id "orbit-on" :baseColor [0 0 0 1] :emissive [0.18 0.8 0.7] :roughness 1}
+                       {:id "star" :baseColor [0 0 0 1] :emissive [0.75 0.8 0.9] :roughness 1}
+                       {:id "halo"
+                        :baseColor [1 0.6 0.1 0.12]
+                        :emissive [0.5 0.3 0.05]
+                        :alphaMode "blend"
+                        :roughness 1}])})
 
-(defcomputed renderOptions
+(defcomputed renderOptions "What the 3D view can draw, each on or off."
   [{:id "orbits" :title (t "view.orbits") :on state.showOrbits :run "toggleOrbits"}
-     {:id "labels" :title (t "view.labels") :on state.showLabels :run "toggleLabels"}
-     {:id "stars" :title (t "view.stars") :on state.showStars :run "toggleStars"}
-     {:id "shading" :title (t "view.litSide") :on state.showShading :run "toggleShading"}
-     {:id "glow" :title (t "view.sunGlow") :on state.showGlow :run "toggleGlow"}])
+   {:id "labels" :title (t "view.labels") :on state.showLabels :run "toggleLabels"}
+   {:id "stars" :title (t "view.stars") :on state.showStars :run "toggleStars"}
+   {:id "shading" :title (t "view.litSide") :on state.showShading :run "toggleShading"}
+   {:id "glow" :title (t "view.sunGlow") :on state.showGlow :run "toggleGlow"}])
 
 ;;; The view pane
 
-(defview view-pane "The view is a picture of the sky: its markers, labels and readouts keep left to right in every locale." []
+(defview view-pane
+  "The view is a picture of the sky: its markers, labels and readouts keep left to right in every locale."
+  []
   `(panel#view-pane :dir ltr
      :note "The view is a picture of the sky: its markers, labels and readouts keep left to right in every locale."
      :grow 1
@@ -287,27 +287,31 @@
      :onScroll viewScroll
      ~(view-scene)
      ~(repeat [t computed.marked :key t.id]
-       `(panel :id ~(str "view-marker-" t.id) :x ~t.x :y ~t.y :width ~t.w :height ~t.h :color "#f0abfc"))
+        `(panel :id ~(str "view-marker-" t.id) :x ~t.x :y ~t.y :width ~t.w :height ~t.h :color "#f0abfc"))
      ~(repeat [b computed.projected :key b.id]
-       `(label :id ~(str "view-label-" b.id)
-          :x ~(if (and (not= b.parent "") (not= b.parent "sun")) (- (- b.px b.r) 4) (+ b.px b.r 6))
-          :y ~(if (and (not= b.parent "") (not= b.parent "sun")) (+ b.py b.r 2) (- b.py 9))
-          :height 18
-          :fitText true
-          :font small
-          :text ~b.name
-          :textColor ~(if (= b.id state.selected) "@accent" "#b9c7c2")
-          :visible ~(and state.showLabels (> b.depth 0.3))))
+        `(label :id ~(str "view-label-" b.id)
+           :x ~(if (and (not= b.parent "") (not= b.parent "sun")) (- (- b.px b.r) 4) (+ b.px b.r 6))
+           :y ~(if (and (not= b.parent "") (not= b.parent "sun")) (+ b.py b.r 2) (- b.py 9))
+           :height 18
+           :fitText true
+           :font small
+           :text ~b.name
+           :textColor ~(if (= b.id state.selected) "@accent" "#b9c7c2")
+           :visible ~(and state.showLabels (> b.depth 0.3))))
      ~(repeat [b (filter (fn [it] (= (or-else it.look "") "")) state.bodies) :key b.id]
-       `(panel :id ~(str "thumb-" b.id) :snapshot ~{:image (str "body:" b.id) :scale 1} :width 96 :height 64 :color "#07090e"
-          (panel :id ~(str "thumb-disc-" b.id)
-            :x 25
-            :y 9
-            :width 46
-            :height 46
-            :radius 999
-            :color ~b.hex
-            :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})))
+        `(panel :id ~(str "thumb-" b.id)
+           :snapshot ~{:image (str "body:" b.id) :scale 1}
+           :width 96
+           :height 64
+           :color "#07090e"
+           (panel :id ~(str "thumb-disc-" b.id)
+             :x 25
+             :y 9
+             :width 46
+             :height 46
+             :radius 999
+             :color ~b.hex
+             :shadow {:blur 14 :color ~(if (= b.parent "") "#ffc94d99" "#00000000")})))
      ~(view-info)
      ~(view-time)
      ~(browser)
@@ -378,12 +382,13 @@
                   :align {:horizontal center :vertical center}
                   :font small
                   :textColor @onSky
-                  :text ~computed.clock) (label#time-rate :height 18
-                                           :width 300
-                                           :align {:horizontal center :vertical center}
-                                           :font small
-                                           :textColor ~(if state.playing "@accent" "@onSkyMuted")
-                                           :text ~computed.rate)]
+                  :text ~computed.clock)
+                (label#time-rate :height 18
+                  :width 300
+                  :align {:horizontal center :vertical center}
+                  :font small
+                  :textColor ~(if state.playing "@accent" "@onSkyMuted")
+                  :text ~computed.rate)]
      :height 44))
 
 (defview view-optics "#view-optics, in view-pane." []
@@ -420,14 +425,18 @@
             :height 330}
      (column#render-options :gap 6
        :children [~(repeat [o computed.renderOptions :key o.id]
-                    `(row :id ~(str "render-" o.id) :width "100%" :height 30
-                       (label :id ~(str "render-" o.id "-title") :text ~o.title :textColor @text :width 200 :height 30)
-                       (toggle :id ~(str "render-" o.id "-toggle")
-                         :width 44
-                         :height 24
-                         :label ~o.title
-                         :checked ~o.on
-                         :activeColor @accent
-                         :trackColor @border
-                         :onChange {:run ~o.run})))]
+                     `(row :id ~(str "render-" o.id) :width "100%" :height 30
+                        (label :id ~(str "render-" o.id "-title")
+                          :text ~o.title
+                          :textColor @text
+                          :width 200
+                          :height 30)
+                        (toggle :id ~(str "render-" o.id "-toggle")
+                          :width 44
+                          :height 24
+                          :label ~o.title
+                          :checked ~o.on
+                          :activeColor @accent
+                          :trackColor @border
+                          :onChange {:run ~o.run})))]
        :anchors {:left 20 :right 20 :top 76 :bottom 64})))

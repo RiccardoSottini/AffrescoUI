@@ -5,43 +5,43 @@
 
 ;;; The chart
 
-(defcomputed chartItems
+(defcomputed chartItems "The chart's items: the stars, each planet's orbit and name, and the notes."
   (concat state.stars
-            (map (fn [it]
-                   {:id (str "ring-" it.id)
-                    :x (- (* it.cx 22) (* it.radius 22))
-                    :y (- (* it.cz 22) (* it.radius 22))
-                    :width (* it.radius 44)
-                    :height (* it.radius 44)
-                    :radius (* it.radius 22)
-                    :color "transparent"
-                    :borderColor "#2f3a55"
-                    :borderWidth 1})
-                 (filter (fn [it] (not= it.parent "")) computed.placed))
-            (map (fn [it]
-                   {:id (str "body-" it.id)
-                    :x (- (* it.x 22) (if (= it.parent "") 9 (+ 4 (* it.size 10))))
-                    :y (- (* it.z 22) (if (= it.parent "") 9 (+ 4 (* it.size 10))))
-                    :width (if (= it.parent "") 18 (+ 8 (* it.size 20)))
-                    :height (if (= it.parent "") 18 (+ 8 (* it.size 20)))
-                    :radius (if (= it.parent "") 9 (+ 4 (* it.size 10)))
-                    :color it.hex
-                    :borderColor (if (= it.id state.selected) "#fbbf24" "transparent")
-                    :borderWidth 2})
-                 computed.placed)
-            (map (fn [it]
-                   {:id (str "label-" it.id)
-                    :x (+ (* it.x 22) 10)
-                    :y (- (* it.z 22) 10)
-                    :width 110
-                    :height 20
-                    :color "transparent"
-                    :borderWidth 0
-                    :text it.name
-                    :textSize 16
-                    :textColor "#aab2c5"})
-                 (filter (fn [it] (= it.parent "sun")) computed.placed))
-            state.notes))
+          (map (fn [it]
+                 {:id (str "ring-" it.id)
+                  :x (- (* it.cx 22) (* it.radius 22))
+                  :y (- (* it.cz 22) (* it.radius 22))
+                  :width (* it.radius 44)
+                  :height (* it.radius 44)
+                  :radius (* it.radius 22)
+                  :color "transparent"
+                  :borderColor "#2f3a55"
+                  :borderWidth 1})
+               (filter (fn [it] (not= it.parent "")) computed.placed))
+          (map (fn [it]
+                 {:id (str "body-" it.id)
+                  :x (- (* it.x 22) (if (= it.parent "") 9 (+ 4 (* it.size 10))))
+                  :y (- (* it.z 22) (if (= it.parent "") 9 (+ 4 (* it.size 10))))
+                  :width (if (= it.parent "") 18 (+ 8 (* it.size 20)))
+                  :height (if (= it.parent "") 18 (+ 8 (* it.size 20)))
+                  :radius (if (= it.parent "") 9 (+ 4 (* it.size 10)))
+                  :color it.hex
+                  :borderColor (if (= it.id state.selected) "#fbbf24" "transparent")
+                  :borderWidth 2})
+               computed.placed)
+          (map (fn [it]
+                 {:id (str "label-" it.id)
+                  :x (+ (* it.x 22) 10)
+                  :y (- (* it.z 22) 10)
+                  :width 110
+                  :height 20
+                  :color "transparent"
+                  :borderWidth 0
+                  :text it.name
+                  :textSize 16
+                  :textColor "#aab2c5"})
+               (filter (fn [it] (= it.parent "sun")) computed.placed))
+          state.notes))
 
 (defview chart-bar "#chart-bar." []
   `(row#chart-bar :width "100%" :height 40 :gap 6 :alignItems center :color @panel
@@ -58,57 +58,52 @@
        :placeholder ~(t "chart.note")
        :onSubmit addNote)
      ~(add-note)
-     {:id mark
-      :visible ~(= state.skyMode "above")
-      :style button
-      :icon crosshair
-      :role button
-      :label ~(t "command.toggleMarker")
-      :tooltip ~(t "command.toggleMarker")
-      :onClick markSelected
-      :width 30}
-     {:id clear-notes
-      :visible ~(= state.skyMode "above")
-      :style button
-      :icon trash-2
-      :role button
-      :label ~(t "chart.clearNotes")
-      :tooltip ~(t "chart.clearNotes")
-      :onClick clearNotes
-      :width 30}))
+     (node#mark :visible ~(= state.skyMode "above")
+       :style button
+       :icon crosshair
+       :role button
+       :label ~(t "command.toggleMarker")
+       :tooltip ~(t "command.toggleMarker")
+       :onClick markSelected
+       :width 30)
+     (node#clear-notes :visible ~(= state.skyMode "above")
+       :style button
+       :icon trash-2
+       :role button
+       :label ~(t "chart.clearNotes")
+       :tooltip ~(t "chart.clearNotes")
+       :onClick clearNotes
+       :width 30)))
 
 (defview sky-mode-ground "#sky-mode-ground, in chart-bar." []
-  `{:id sky-mode-ground
-    :style button
-    :role button
-    :text ~(t "chart.fromGround")
-    :label ~(t "command.skyGround")
-    :selected ~(= state.skyMode "ground")
-    :color ~(if (= state.skyMode "ground") "@raised" "@panel")
-    :fitText true
-    :onClick skyGround})
+  `(node#sky-mode-ground :style button
+     :role button
+     :text ~(t "chart.fromGround")
+     :label ~(t "command.skyGround")
+     :selected ~(= state.skyMode "ground")
+     :color ~(if (= state.skyMode "ground") "@raised" "@panel")
+     :fitText true
+     :onClick skyGround))
 
 (defview sky-mode-above "#sky-mode-above, in chart-bar." []
-  `{:id sky-mode-above
-    :style button
-    :role button
-    :text ~(t "chart.fromAbove")
-    :label ~(t "chart.fromAboveLabel")
-    :selected ~(= state.skyMode "above")
-    :color ~(if (= state.skyMode "above") "@raised" "@panel")
-    :fitText true
-    :onClick skyAbove})
+  `(node#sky-mode-above :style button
+     :role button
+     :text ~(t "chart.fromAbove")
+     :label ~(t "chart.fromAboveLabel")
+     :selected ~(= state.skyMode "above")
+     :color ~(if (= state.skyMode "above") "@raised" "@panel")
+     :fitText true
+     :onClick skyAbove))
 
 (defview add-note "#add-note, in chart-bar." []
-  `{:id add-note
-    :visible ~(= state.skyMode "above")
-    :style button
-    :icon sticky-note
-    :role button
-    :label ~(t "chart.addNote")
-    :tooltip ~(t "chart.addNote")
-    :onClick addNote
-    :width 30})
+  `(node#add-note :visible ~(= state.skyMode "above")
+     :style button
+     :icon sticky-note
+     :role button
+     :label ~(t "chart.addNote")
+     :tooltip ~(t "chart.addNote")
+     :onClick addNote
+     :width 30))
 
 (defview chart-frame "#chart-frame." []
   `(panel#chart-frame :width "100%" :height ~(clamp (- window.height 524) 120 300)
@@ -123,12 +118,9 @@
        :onTransform moveNotes
        :keys {:delete deleteNotes :backspace deleteNotes}
        :anchors {:left 0 :right 0 :top 0 :bottom 0})
-     (node#sky-view :use
-                    skyFromGround
-                    :visible
-                    ~(= state.skyMode "ground")
-                    :anchors
-                    {:left 0 :right 0 :top 0 :bottom 0})
+     (node#sky-view :use skyFromGround
+       :visible ~(= state.skyMode "ground")
+       :anchors {:left 0 :right 0 :top 0 :bottom 0})
      ~(chart-info)))
 
 (defview chart-info "#chart-info." []
@@ -145,11 +137,11 @@
        :text ~(cond (= state.skyMode "ground") (or-else computed.skyInfo.0 (t "chart.whereYouStand"))
                     (= computed.selectedBody.parent "") (t "chart.centre")
                     :else (t "chart.orbit"
-                             {:au (fixed (/ (hypot computed.selectedPosition.x computed.selectedPosition.z) 4.3) 2)
-                              :parent (if (= computed.selectedBody.parent "sun")
-                                        (t "chart.theSun")
-                                        (:name (find (fn [it] (= it.id computed.selectedBody.parent)) state.bodies)))
-                              :days (text computed.selectedBody.period)})))
+                       {:au (fixed (/ (hypot computed.selectedPosition.x computed.selectedPosition.z) 4.3) 2)
+                        :parent (if (= computed.selectedBody.parent "sun")
+                                  (t "chart.theSun")
+                                  (:name (find (fn [it] (= it.id computed.selectedBody.parent)) state.bodies)))
+                        :days (text computed.selectedBody.period)})))
      (label#chart-info-sky :visible ~(= state.skyMode "ground")
        :height 18
        :fitText true

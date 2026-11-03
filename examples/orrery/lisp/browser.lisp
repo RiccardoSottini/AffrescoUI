@@ -50,8 +50,8 @@
      :onOpen [{:set state.selected :to ~event.value} ~(handler goTo)]
      :onExpand [{:set state.expandedBodies
                  :to ~(if event.expanded
-                          (concat (filter (fn [it] (not= it event.id)) state.expandedBodies) [event.id])
-                          (filter (fn [it] (not= it event.id)) state.expandedBodies))}]
+                        (concat (filter (fn [it] (not= it event.id)) state.expandedBodies) [event.id])
+                        (filter (fn [it] (not= it event.id)) state.expandedBodies))}]
      :color @panel
      :textColor @text
      :selectedTextColor @text

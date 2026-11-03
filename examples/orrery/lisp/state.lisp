@@ -234,7 +234,8 @@
 
 ;;; Settings
 
-(defcustom appearance.language "en" "English, Spanish or French."
+(defcustom appearance.language "en"
+  "English, Spanish or French."
   :type string
   :enum [en es fr]
   :title ~(t "setting.language")
