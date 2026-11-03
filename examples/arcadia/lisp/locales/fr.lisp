@@ -468,4 +468,6 @@
                 :setting.sortBy "Trier la bibliothèque par"
                 :setting.sortBy.about "Nom de A à Z, le plus d'heures ou le plus récemment joué."
                 :settings.limitValue "{n} Mo/s"
-                :profile.sinceStatus "{since} · {status}"}}}
+                :profile.sinceStatus "{since} · {status}"
+                :dl.sizeOf "{done} Go / {size} Go"
+                :dl.rate "{n} Mo/s"}}}

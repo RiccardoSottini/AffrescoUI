@@ -308,6 +308,32 @@
   (let [queued (find (fn [d] (= (:status d) "queued")) state.downloads)]
     (when (some? queued) (dlStart (:id queued)))))
 
+(defn dlUp "Moves the queued download at place k of the queue up one, unless it is first." [k]
+  (when (> k 0)
+    (dlMove (get-in computed.dlQueue [k :at]) (get-in computed.dlQueue [(dec k) :at]))))
+
+(defn dlDown "Moves the queued download at place k of the queue down one, unless it is last." [k]
+  (when (< k (dec (count computed.dlQueue)))
+    (dlMove (get-in computed.dlQueue [k :at]) (get-in computed.dlQueue [(inc k) :at]))))
+
+(defn nextRate "The next sample of the rate, in MB/s: a wave that repeats, under the speed limit if there is one." []
+  (let [rate (- (+ 34 (* state.dlTick 7)) (* (floor (/ (* state.dlTick 7) 19)) 19))]
+    (if (> settings.downloads.limit 0) (min settings.downloads.limit rate) rate)))
+
+(defn downloadTick
+  ;; Not while a game runs, unless Settings allow it.
+  "Every second while a download runs: a new sample of the rate, the download moved on by it, finished when it's there."
+  []
+  (when (and (some? computed.download) (not state.dlPaused) (or settings.downloads.whilePlaying (nil? state.running)))
+    (set "state.dlTick" (inc state.dlTick))
+    (set "state.dlRate" (concat (rest state.dlRate) [(nextRate)]))
+    (map-indexed (fn [i d]
+                   (when (= (:status d) "downloading")
+                     (set (downloadPath i "doneGb") (min computed.dlSize (+ (:doneGb d) (/ (get state.dlRate 47) 1024))))))
+                 state.downloads)
+    (when (>= computed.download.doneGb computed.dlSize)
+      (dlFinish computed.download.id))))
+
 ;;; A game's hub and the library
 
 (defcommand openHub "section is hub (everything), discussions or guides."

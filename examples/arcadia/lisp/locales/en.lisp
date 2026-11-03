@@ -468,4 +468,6 @@
                 :setting.sortBy "Sort the library by"
                 :setting.sortBy.about "Name from A to Z, the most hours, or the most recently played."
                 :settings.limitValue "{n} MB/s"
-                :profile.sinceStatus "{since} · {status}"}}}
+                :profile.sinceStatus "{since} · {status}"
+                :dl.sizeOf "{done} GB / {size} GB"
+                :dl.rate "{n} MB/s"}}}
