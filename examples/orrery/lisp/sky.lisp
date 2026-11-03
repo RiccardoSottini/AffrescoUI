@@ -498,31 +498,6 @@
                  "°   "
                  computed.clock)))
 
-(defpart sky "What sky adds."
-  :actions {:toggleSkyLines {:title "Constellation lines" :do [{:toggle state.skyLayers.lines}]}
-            :toggleSkyNames {:title "Constellation names" :do [{:toggle state.skyLayers.names}]}
-            :toggleSkyGrid {:title "Azimuthal grid" :do [{:toggle state.skyLayers.grid}]}
-            :toggleSkyGround {:title "Ground" :do [{:toggle state.skyLayers.ground}]}
-            :toggleSkyCardinal {:title "Cardinal points" :do [{:toggle state.skyLayers.cardinal}]}
-            :toggleSkyAtmosphere {:title "Atmosphere" :do [{:toggle state.skyLayers.atmosphere}]}
-            :toggleSkyLabels {:title "Planet labels" :do [{:toggle state.skyLayers.labels}]}
-            :skyGround {:title "The sky from the ground" :do [{:set state.skyMode :to ground}]}
-            :skyAbove {:title "The sky chart from above" :do [{:set state.skyMode :to above}]}
-            :skyPress [{:set state.sky :to ~computed.skyView}
-                       {:set state.skyTrack :to ""}
-                       {:set state.skyGrab :to ~computed.skyView}]
-            :skyDrag [{:if ~state.skyGrab
-                       :then [{:set state.sky
-                               :to ~(merge state.sky
-                                           {:azimuth (- state.skyGrab.azimuth (/ (* event.dx state.sky.fov) 460))
-                                            :altitude (clamp (+ state.skyGrab.altitude (/ (* event.dy state.sky.fov) 460))
-                                                             (- 0.3)
-                                                             1.45)})}]}]
-            :skyScroll [{:set state.sky.fov :to ~(clamp (* state.sky.fov (+ 1 (* event.dy 0.06))) 0.09 1.75)}]
-            :skyCentre {:title "Centre on the selected body"
-                        :do [{:set state.skyTrack
-                              :to ~(if (or (= state.skyTrack state.selected) (= state.selected "earth")) "" state.selected)}]}})
-
 ;;; Views
 
 (defview view "#." [b]

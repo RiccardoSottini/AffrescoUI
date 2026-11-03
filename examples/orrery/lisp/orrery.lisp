@@ -125,7 +125,9 @@
 (defn slower "Ten times slower, down to real time." []
   (set "state.speed" (if (< state.speed 0) (min (/ state.speed 10) (- slowest)) (max (/ state.speed 10) slowest))))
 
-(defcommand realTime "Plays at real time, in the direction time runs." :title "Real time" :icon timer []
+(defcommand realTime "Plays at real time, in the direction time runs."
+  :title ~(t "command.realTime") :description ~(t "command.realTime.about") :icon timer
+  []
   (set "state.speed" (if (< state.speed 0) (- slowest) slowest))
   (set "state.playing" true))
 
@@ -162,31 +164,35 @@
     (when follow (set "state.follow" state.flying))
     (set "state.flying" "")))
 
-(defcommand goTo "Flies to the selected body, near it, and follows it." :title "Go to the selected body" :icon rocket []
+(defcommand goTo "Flies to the selected body, near it, and follows it."
+  :title ~(t "command.goTo") :description ~(t "command.goTo.about") :icon rocket
+  []
   (when computed.selectedPosition
     (takeOff 900)
     (animate "state.camera.distance" :to (max (* computed.selectedBody.size 8) 1.5) :ms 900 :easing "inOut")
     (after 950 land true)))
 
-(defcommand centre "Turns to the selected body, from where the camera is." :title "Centre the selected body" :icon crosshair
+(defcommand centre "Turns to the selected body, from where the camera is."
+  :title ~(t "command.centre") :description ~(t "command.centre.about") :icon crosshair
   []
   (when computed.selectedPosition
     (takeOff 500)
     (after 550 land false)))
 
-(defcommand follow "Follows the selected body, or stops following it." :title "Follow the selected body" :icon locate-fixed
+(defcommand follow "Follows the selected body, or stops following it."
+  :title ~(t "command.follow") :description ~(t "command.follow.about") :icon locate-fixed
   []
   (cond (and (not= state.follow "") (= state.follow state.selected)) (hold)
         computed.selectedPosition (do (takeOff 500) (after 550 land true))))
 
-(defcommand followSelected "Follows the selected body, if it isn't already." :title "Follow the selected body"
-  :icon locate-fixed
+(defcommand followSelected "Follows the selected body, if it isn't already."
+  :title ~(t "command.followSelected") :description ~(t "command.followSelected.about") :icon locate-fixed
   []
   (when (and (not= state.selected "") (not= state.follow state.selected))
     (follow)))
 
-(defcommand toggleMarker "Marks the selected body in the view, or takes its mark away." :title "Mark the selected body"
-  :icon crosshair
+(defcommand toggleMarker "Marks the selected body in the view, or takes its mark away."
+  :title ~(t "command.toggleMarker") :description ~(t "command.toggleMarker.about") :icon crosshair
   []
   (if (or (>= (indexOf state.markers state.selected) 0) (< (at state.selected) 0))
     (set "state.markers" (filter (fn [m] (not= m state.selected)) state.markers))
@@ -197,8 +203,8 @@
 (defn bookmark "The bookmark of an id, or nil." [id]
   (find (fn [b] (= (:id b) id)) state.bookmarks))
 
-(defcommand addBookmark "Keeps where the camera is, what it follows, the day and the zoom as a place." :title "Bookmark this view"
-  :icon bookmark-plus
+(defcommand addBookmark "Keeps where the camera is, what it follows, the day and the zoom as a place."
+  :title ~(t "command.addBookmark") :description ~(t "command.addBookmark.about") :icon bookmark-plus
   []
   (set "state.bookmarks"
        (conj state.bookmarks {:id (str "place-" state.nextPlace)
@@ -229,7 +235,8 @@
       (set "state.follow" (:follow place))
       (animate "state.camera.distance" :to state.camera.distance :ms 1))))
 
-(defcommand deleteBookmark "Deletes the bookmark picked; the last one left is picked." :title "Delete the bookmark" :icon trash-2
+(defcommand deleteBookmark "Deletes the bookmark picked; the last one left is picked."
+  :title ~(t "command.deleteBookmark") :description ~(t "command.deleteBookmark.about") :icon trash-2
   []
   (when (bookmark state.bookmark)
     (set "state.bookmarks" (filter (fn [b] (not= (:id b) state.bookmark)) state.bookmarks))
@@ -245,48 +252,190 @@
       (set "state.skyTrack" (if (:solar eclipse) "sun" (:moon eclipse)))
       (animate "state.time" :to (:time eclipse) :ms 600 :easing "inOut"))))
 
-;;; What runs by itself, and the screen's actions
+;;; Time
 
-(defpart screen "What runs by itself: the scene follows the camera, the time and the bodies."
-  :watch {:state.camera [{:run syncScene}]
-          :state.zoom [{:run syncScene}]
-          :state.follow [{:run syncScene}]
-          :state.fly [{:run syncScene}]
-          :state.time [{:run syncScene}]
-          :state.selected [{:run syncScene}]
-          :state.bodies [{:run syncScene}]}
-  :onLoad [{:run syncScene}]
-  :actions {:togglePlay [{:toggle state.playing}]
-            :rewind [{:set state.playing :to false} {:set state.time :to 0}]
-            :tick [{:if ~state.playing
-                    :then [{:set state.time :to ~(clamp (+ state.time state.speed) 0 state.duration)}
-                           {:if ~(or (and (< state.speed 0) (<= state.time 0))
-                                     (and (> state.speed 0) (>= state.time state.duration)))
-                            :then [{:set state.playing :to false}]}]}]
-            :deleteNotes [{:set state.notes :to ~(filter (fn [it] (not (contains state.chart.selection it.id))) state.notes)}]
-            :clearNotes [{:set state.notes :to []}]
-            :viewPress [{:set state.grab :to ~state.camera}]
-            :viewRelease [{:set state.grab :to nil}]
-            :reverse [{:set state.speed :to ~(- state.speed)}]
-            :now [{:set state.time :to 0} {:set state.speed :to 0.01}]
-            :toggleOrbits {:title "Show orbits" :icon orbit :do [{:toggle state.showOrbits}]}
-            :toggleLabels {:title "Show labels" :icon tag :do [{:toggle state.showLabels}]}
-            :toggleStars {:title "Show stars" :icon sparkles :do [{:toggle state.showStars}]}
-            :toggleShading {:title "Show the lit side" :icon moon :do [{:toggle state.showShading}]}
-            :toggleGlow {:title "Show the Sun's glow" :icon sun :do [{:toggle state.showGlow}]}
-            :toggleTheme {:title "Light theme"
-                          :icon sun-moon
-                          :do [{:set state.theme :to ~(if (= state.theme "dark") "light" "dark")}]}
-            :openRender {:title "Render options" :icon sliders-horizontal :do [{:set state.renderOpen :to true}]}
-            :zoomIn {:title "Narrow the field of view" :icon zoom-in :do [{:set state.zoom :to ~(min (* state.zoom 1.25) 20)}]}
-            :zoomOut {:title "Widen the field of view" :icon zoom-out :do [{:set state.zoom :to ~(max (/ state.zoom 1.25) 0.5)}]}
-            :fainter {:title "Show fainter stars" :icon sparkle :do [{:set state.limitMag :to ~(min (+ state.limitMag 0.5) 6.5)}]}
-            :brighter {:title "Show only brighter stars"
-                       :icon star
-                       :do [{:set state.limitMag :to ~(max (- state.limitMag 0.5) 1)}]}
-            :toggleBrowser {:title "Show the browser" :icon list-tree :do [{:toggle state.showBrowser}]}
-            :openEclipses {:title "Eclipse finder"
-                           :icon moon
-                           :do [{:set state.showBrowser :to true} {:set state.browserTab :to eclipses}]}
-            :syncScene [{:set state.sceneView :to ~computed.sceneView}]}
-  )
+(defn togglePlay "Plays the days, or pauses them." [] (toggle "state.playing"))
+
+(defn rewind "Pauses and goes back to day 0." []
+  (set "state.playing" false)
+  (set "state.time" 0))
+
+(defn tick "Every 50 ms while playing: time moves on at its rate, and stops at either end." []
+  (when state.playing
+    (let [time (clamp (+ state.time state.speed) 0 state.duration)]
+      (set "state.time" time)
+      (when (or (and (< state.speed 0) (<= time 0)) (and (> state.speed 0) (>= time state.duration)))
+        (set "state.playing" false)))))
+
+(defn reverse "Runs time the other way." [] (set "state.speed" (- state.speed)))
+
+(defn dayZero
+  ;; Not `now`: a function of the program named so would be what (now) calls everywhere, the add-ons' too.
+  "Back to day 0, at the starting rate."
+  []
+  (set "state.time" 0)
+  (set "state.speed" 0.01))
+
+
+;;; The chart's notes
+
+(defn deleteNotes "Deletes the notes chosen on the chart." []
+  (set "state.notes" (filter (fn [it] (not (contains state.chart.selection it.id))) state.notes)))
+
+(defn clearNotes "Deletes every note on the chart." [] (set "state.notes" []))
+
+
+;;; The 3D view
+
+(defn viewPress "Holds the camera where it is, as a drag starts." [] (set "state.grab" state.camera))
+
+(defn viewRelease "Lets go of the camera, as a drag ends." [] (set "state.grab" nil))
+
+(defn syncScene "Gives the scene the camera worked out from the state." [] (set "state.sceneView" computed.sceneView))
+
+(defpart scene "The scene follows the camera, the day, the selection and the bodies, from the start."
+  :watch {:state.camera syncScene
+          :state.zoom syncScene
+          :state.follow syncScene
+          :state.fly syncScene
+          :state.time syncScene
+          :state.selected syncScene
+          :state.bodies syncScene}
+  :onLoad syncScene)
+
+
+;;; What the views show
+
+(defcommand toggleOrbits "Shows or hides the orbits in the 3D view."
+  :title ~(t "command.toggleOrbits") :description ~(t "command.toggleOrbits.about") :icon "orbit"
+  []
+  (toggle "state.showOrbits"))
+
+(defcommand toggleLabels "Shows or hides the bodies' names in the 3D view."
+  :title ~(t "command.toggleLabels") :description ~(t "command.toggleLabels.about") :icon "tag"
+  []
+  (toggle "state.showLabels"))
+
+(defcommand toggleStars "Shows or hides the background stars in the 3D view."
+  :title ~(t "command.toggleStars") :description ~(t "command.toggleStars.about") :icon "sparkles"
+  []
+  (toggle "state.showStars"))
+
+(defcommand toggleShading "Shows each body's lit side, or lights it all."
+  :title ~(t "command.toggleShading") :description ~(t "command.toggleShading.about") :icon "moon"
+  []
+  (toggle "state.showShading"))
+
+(defcommand toggleGlow "Shows or hides the glow around the Sun."
+  :title ~(t "command.toggleGlow") :description ~(t "command.toggleGlow.about") :icon "sun"
+  []
+  (toggle "state.showGlow"))
+
+(defcommand toggleTheme "Switches between the dark and the light theme."
+  :title ~(t "command.toggleTheme") :description ~(t "command.toggleTheme.about") :icon "sun-moon"
+  []
+  (set "state.theme" (if (= state.theme "dark") "light" "dark")))
+
+(defcommand openRender "Opens the options of what the 3D view draws."
+  :title ~(t "command.openRender") :description ~(t "command.openRender.about") :icon "sliders-horizontal"
+  []
+  (set "state.renderOpen" true))
+
+(defcommand zoomIn "Narrows the 3D view's field of view, as a telescope does."
+  :title ~(t "command.zoomIn") :description ~(t "command.zoomIn.about") :icon "zoom-in"
+  []
+  (set "state.zoom" (min (* state.zoom 1.25) 20)))
+
+(defcommand zoomOut "Widens the 3D view's field of view."
+  :title ~(t "command.zoomOut") :description ~(t "command.zoomOut.about") :icon "zoom-out"
+  []
+  (set "state.zoom" (max (/ state.zoom 1.25) 0.5)))
+
+(defcommand fainter "Shows fainter stars, half a magnitude more."
+  :title ~(t "command.fainter") :description ~(t "command.fainter.about") :icon "sparkle"
+  []
+  (set "state.limitMag" (min (+ state.limitMag 0.5) 6.5)))
+
+(defcommand brighter "Shows only brighter stars, half a magnitude less."
+  :title ~(t "command.brighter") :description ~(t "command.brighter.about") :icon "star"
+  []
+  (set "state.limitMag" (max (- state.limitMag 0.5) 1)))
+
+(defcommand toggleBrowser "Shows or hides the browser over the view."
+  :title ~(t "command.toggleBrowser") :description ~(t "command.toggleBrowser.about") :icon "list-tree"
+  []
+  (toggle "state.showBrowser"))
+
+(defcommand openEclipses "Opens the browser at the eclipses."
+  :title ~(t "command.openEclipses") :description ~(t "command.openEclipses.about") :icon "moon"
+  []
+  (set "state.showBrowser" true)
+  (set "state.browserTab" "eclipses"))
+
+
+;;; The sky from the ground
+
+(defcommand toggleSkyLines "Shows or hides the constellations' lines."
+  :title ~(t "command.toggleSkyLines") :description ~(t "command.toggleSkyLines.about")
+  []
+  (toggle "state.skyLayers.lines"))
+
+(defcommand toggleSkyNames "Shows or hides the constellations' names."
+  :title ~(t "command.toggleSkyNames") :description ~(t "command.toggleSkyNames.about")
+  []
+  (toggle "state.skyLayers.names"))
+
+(defcommand toggleSkyGrid "Shows or hides the azimuthal grid."
+  :title ~(t "command.toggleSkyGrid") :description ~(t "command.toggleSkyGrid.about")
+  []
+  (toggle "state.skyLayers.grid"))
+
+(defcommand toggleSkyGround "Shows or hides the ground."
+  :title ~(t "command.toggleSkyGround") :description ~(t "command.toggleSkyGround.about")
+  []
+  (toggle "state.skyLayers.ground"))
+
+(defcommand toggleSkyCardinal "Shows or hides the cardinal points."
+  :title ~(t "command.toggleSkyCardinal") :description ~(t "command.toggleSkyCardinal.about")
+  []
+  (toggle "state.skyLayers.cardinal"))
+
+(defcommand toggleSkyAtmosphere "Shows the sky's daylight, or a night sky all day."
+  :title ~(t "command.toggleSkyAtmosphere") :description ~(t "command.toggleSkyAtmosphere.about")
+  []
+  (toggle "state.skyLayers.atmosphere"))
+
+(defcommand toggleSkyLabels "Shows or hides the planets' names."
+  :title ~(t "command.toggleSkyLabels") :description ~(t "command.toggleSkyLabels.about")
+  []
+  (toggle "state.skyLayers.labels"))
+
+(defcommand skyGround "Shows the sky from the ground, where you stand on the Earth."
+  :title ~(t "command.skyGround") :description ~(t "command.skyGround.about")
+  []
+  (set "state.skyMode" "ground"))
+
+(defcommand skyAbove "Shows the chart of the system from above."
+  :title ~(t "command.skyAbove") :description ~(t "command.skyAbove.about")
+  []
+  (set "state.skyMode" "above"))
+
+(defcommand skyCentre "Keeps the sky view on the selected body, or lets it go."
+  :title ~(t "command.skyCentre") :description ~(t "command.skyCentre.about")
+  []
+  (set "state.skyTrack" (if (or (= state.skyTrack state.selected) (= state.selected "earth")) "" state.selected)))
+
+(defn skyPress "Holds the sky view where it is, as a drag starts, and stops tracking." []
+  (set "state.sky" computed.skyView)
+  (set "state.skyTrack" "")
+  (set "state.skyGrab" computed.skyView))
+
+(defn skyDrag "Turns the sky view as the pointer drags it." [event]
+  (when state.skyGrab
+    (set "state.sky"
+         (merge state.sky
+                {:azimuth (- state.skyGrab.azimuth (/ (* event.dx state.sky.fov) 460))
+                 :altitude (clamp (+ state.skyGrab.altitude (/ (* event.dy state.sky.fov) 460)) (- 0.3) 1.45)}))))
+
+(defn skyScroll "Zooms the sky view as the wheel turns." [event]
+  (set "state.sky.fov" (clamp (* state.sky.fov (+ 1 (* event.dy 0.06))) 0.09 1.75)))

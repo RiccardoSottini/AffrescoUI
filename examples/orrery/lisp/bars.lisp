@@ -29,7 +29,7 @@
    :freeze {:run togglePlay :title "Freeze" :group "1_rate" :order 3}
    :realTime {:run realTime :group "1_rate" :order 4}
    :reverse {:run reverse :title "Reverse time" :group "1_rate" :order 5}
-   :now {:run now :title "Back to day 0" :group "2_set" :order 1}
+   :now {:run dayZero :title "Back to day 0" :group "2_set" :order 1}
    :eclipses {:run openEclipses :group "2_set" :order 2}})
 
 (defcomputed viewMenu
