@@ -48,6 +48,8 @@ struct CompileContext {
 	const AuthorSet* authors = nullptr; ///< Its author and those of the macros it came through.
 	bool library = false; ///< The language's own: a global already defined is taken as a constant, so that
 	                      ///< a program redefining `count` doesn't change what `reduce` does.
+	bool view = false;    ///< Code that builds a view: each backquote in it is a template whose `~form` that needs
+	                      ///< the running app becomes a binding (`defview`, `defcomponent`).
 };
 
 /// @brief A use of a global a definition's code makes.
@@ -262,6 +264,14 @@ private:
 	/// @brief What `defscreen` builds. @param definition It. @param form Its form. @return A vector of its options and
 	/// its node, as a template.
 	Value screenData(const Definition& definition, const Value& form);
+	/// @brief What a form that defines a member of a section builds (`defstate`, `defcomputed`, `defstyle`, `defmenu`,
+	/// `deftokens`): its value as a template; `defstate`'s with its options, a vector; `defcomputed`'s as a `~form`.
+	/// @param definition It. @param form Its form. @return What it builds.
+	Value sectionData(Definition& definition, const Value& form);
+	/// @brief What `defcomponent` builds: code that binds each parameter to its own name, as a symbol, and gives
+	/// `(%component doc params node)`.
+	/// @param definition It. @param form Its form. @return The code.
+	Value componentData(Definition& definition, const Value& form);
 	/// @brief What the forms that build a tree mean: `defcommand`, `defcustom`, `defscreen`, `defkey`, and the recorded
 	/// `add-hook` and `advice`.
 	/// @param definition The definition.
@@ -398,6 +408,8 @@ void defineNumbers(Machine& machine);
 void defineCollections(Machine& machine);
 /// @copydoc defineNumbers
 void defineText(Machine& machine);
+/// @copydoc defineNumbers
+void defineViews(Machine& machine);
 /// @brief Loads the functions the language writes in itself (Prelude.cpp).
 /// @param machine The machine.
 void definePrelude(Machine& machine);
@@ -406,6 +418,19 @@ void definePrelude(Machine& machine);
 /// @param text The text.
 /// @return `'it\'s'`, with its escapes.
 [[nodiscard]] std::string expressionText(std::string_view text);
+
+/// @brief Writes a dotted word as an expression's path: `state.my-key.0` is `state['my-key'][0]`
+/// (CompilerLowering.cpp).
+/// @param word The word.
+/// @return The path.
+[[nodiscard]] std::string pathExpression(std::string_view word);
+
+/// @brief A value the build worked out as an expression writes it: a symbol is a name of the running app, its path;
+/// anything else its JSON, as a literal (CoreText.cpp).
+/// @param machine The machine, whose budget it spends.
+/// @param value The value.
+/// @return The text.
+[[nodiscard]] std::string expressionOfValue(Machine& machine, const Value& value);
 
 /// @brief Writes a value as Lisp text (Tree.cpp).
 /// @param machine The machine, whose budget it spends.

@@ -208,6 +208,37 @@ void mergeWritten(json& tree, const std::string& key, const json& written) {
 	}
 }
 
+/// @brief Takes a program file's `(include "a.lisp" ...)` forms out of its text, each character but a line's end made a
+/// space, so every other form keeps its line and column. They are read with the file, and are no entry of the program:
+/// a revision has no way to add one.
+/// @param text The file's text.
+/// @param file Its name, for errors.
+/// @param includes Gets the files they name, in order.
+/// @return The text without them.
+/// @throws LispError If one names something other than a file.
+std::string withoutIncludes(std::string_view text, const std::string& file, json& includes) {
+	std::string kept(text);
+	Heap heap;
+	Reader reader(heap, text, file);
+	while(const auto read = reader.next()) {
+		const Value& form = read->form;
+		if(form.kind() != Kind::List || form.count() == 0 || form.at(0).kind() != Kind::Symbol ||
+		   form.at(0).text() != "include")
+			continue;
+		for(std::size_t at = 1; at < form.count(); ++at) {
+			const Kind kind = form.at(at).kind();
+			if((kind != Kind::String && kind != Kind::Symbol) || form.at(at).text().empty()) {
+				const Place place = form.at(at).place().line != 0 ? form.at(at).place() : form.place();
+				throw LispError(file, place.line, place.column, "", "include names files, each a string");
+			}
+			includes.push_back(std::string(form.at(at).text()));
+		}
+		for(std::size_t at = read->start; at < read->end; ++at)
+			if(kept[at] != '\n' && kept[at] != '\r') kept[at] = ' ';
+	}
+	return kept;
+}
+
 } // namespace
 
 bool hasProgram(const json& document) { return document.is_object() && document.contains("program"); }
@@ -248,7 +279,13 @@ json readDocument(std::string_view text, const std::filesystem::path& file, cons
 		// NOLINTNEXTLINE(bugprone-empty-catch): the notation's reader says what is wrong, naming the file
 	} catch(const LispError&) {
 	}
-	if(program) return sourceDocument(text, name.empty() ? file.filename().generic_string() : name);
+	if(program) {
+		const std::string named = name.empty() ? file.filename().generic_string() : name;
+		json includes = json::array();
+		json document = sourceDocument(withoutIncludes(text, named, includes), named);
+		if(!includes.empty()) document["include"] = std::move(includes);
+		return document;
+	}
 	bool runs = false;
 	try {
 		runs = needsRunning(text).has_value();

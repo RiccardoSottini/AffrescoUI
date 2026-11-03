@@ -56,6 +56,7 @@ Machine::Machine(Interpreter& owner, const Limits& limits)
 	defineNumbers(*this);
 	defineCollections(*this);
 	defineText(*this);
+	defineViews(*this);
 	definePrelude(*this);
 	budget_ = start;
 	heap.setBudget(&budget_);

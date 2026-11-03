@@ -59,19 +59,22 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	const notation::Notation spelling = notation::notationOf(path);
 	std::vector<Problem> problems;
 	json document;
+	bool whole = true; // a program that includes its other files builds only with them: it is judged as loaded
 	try {
 		document = lisp::readDocument(text, path);
-		if(lisp::hasProgram(document)) document = lisp::buildDocument(document); // what is judged is what it builds
+		whole = !lisp::hasProgram(document) || !document.contains("include");
+		if(lisp::hasProgram(document) && whole) document = lisp::buildDocument(document); // what it builds is judged
 	} catch(const std::exception& error) {
 		problems.push_back({std::string(notation::nameOf(spelling)), "", error.what()});
 		return problems;
 	}
 
 	Schema schema(json::parse(embeddedSchema()));
-	for(SchemaProblem& problem : schema.check(document))
+	const auto loaded = load(lisp::jsonText(text, path), path.parent_path(), problems);
+	if(!whole && !loaded) return problems;
+	for(SchemaProblem& problem : schema.check(whole ? document : loaded->first))
 		problems.push_back({"schema", std::move(problem.place), std::move(problem.problem)});
 
-	const auto loaded = load(lisp::jsonText(text, path), path.parent_path(), problems);
 	const format::Rules rules;
 	const json& checked = loaded ? loaded->first : document;
 	for(std::string& finding :
@@ -98,9 +101,11 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 	try {
 		Schema schema(json::parse(embeddedSchema()));
 		json screen = lisp::readDocument(readFile(entry), entry);
-		if(lisp::hasProgram(screen)) screen = lisp::buildDocument(screen);
-		for(SchemaProblem& problem : schema.check(screen))
-			problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
+		// A program that includes its other files builds only with them: its schema is checked on the app loaded
+		if(lisp::hasProgram(screen) && !screen.contains("include")) screen = lisp::buildDocument(screen);
+		if(!lisp::hasProgram(screen))
+			for(SchemaProblem& problem : schema.check(screen))
+				problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
 	} catch(const std::exception& error) {
 		problems.push_back({"json", app.entry, error.what()});
 		return problems;
@@ -110,6 +115,9 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 		const Screen screen = Screen::fromApp(manifest, {}, Screen::History::InMemory);
 		setLogSink({});
 		const json document = json::parse(screen.documentJson());
+		if(lisp::hasProgram(document))
+			for(SchemaProblem& problem : Schema(json::parse(embeddedSchema())).check(document))
+				problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
 		for(std::string& finding : format::Rules().findings(document, json::parse(screen.stateJson())))
 			problems.push_back({"checker", app.entry, std::move(finding)});
 		for(const std::string& key : format::undeclaredCapabilities(app, document))

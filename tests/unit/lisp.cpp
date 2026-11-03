@@ -828,13 +828,16 @@ TEST_CASE("lisp: every example's Lisp file builds to the tree the notation's rea
 TEST_CASE("lisp: the notation's list of the language's words is the language's") {
 	lisp::Interpreter interpreter;
 	// Every plain word the language gives a meaning to is on the list, but list, which is a node type
-	const std::vector<std::string> forms = {"quote",     "backquote",  "unquote", "unquote-splicing",
-	                                        "if",        "do",         "when",    "cond",
-	                                        "and",       "or",         "let",     "loop",
-	                                        "recur",     "fn",         "try",     "catch",
-	                                        "throw",     "def",        "defn",    "defmacro",
-	                                        "defscreen", "defcommand", "defkey",  "defcustom",
-	                                        "add-hook",  "advice",     "defhook", "remove-hook"};
+	const std::vector<std::string> forms = {"quote",     "backquote",    "unquote",   "unquote-splicing",
+	                                        "if",        "do",           "when",      "cond",
+	                                        "and",       "or",           "let",       "loop",
+	                                        "recur",     "fn",           "try",       "catch",
+	                                        "throw",     "def",          "defn",      "defmacro",
+	                                        "defscreen", "defcommand",   "defkey",    "defcustom",
+	                                        "add-hook",  "advice",       "defhook",   "remove-hook",
+	                                        "defview",   "defcomponent", "defstate",  "defcomputed",
+	                                        "defstyle",  "defmenu",      "deftokens", "repeat",
+	                                        "include"};
 	for(const std::string& form : forms) {
 		CAPTURE(form);
 		CHECK(affresco::notation::isLanguageWord(form));

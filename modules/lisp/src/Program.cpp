@@ -188,12 +188,48 @@ json customSetting(const json& options, json value, const std::string& doc) {
 
 /// @brief What a build gathers: the tree's parts, each in its order.
 struct BuiltParts {
-	json main = json::object(); ///< `defscreen main`'s properties and `root`.
-	Section screens;            ///< The other screens.
-	Section actions;            ///< The commands.
-	Section keys;               ///< The shortcuts.
-	Section settings;           ///< The settings.
+	json main = json::object();              ///< `defscreen main`'s properties and `root`.
+	Section screens;                         ///< The other screens.
+	Section actions;                         ///< The commands.
+	Section keys;                            ///< The shortcuts.
+	Section settings;                        ///< The settings.
+	std::map<std::string, Section> sections; ///< What `defstate`, `defcomputed`... add to the other sections.
 };
+
+/// @brief Adds a member to a section: one defined twice, as `deftokens` can, is an error naming it.
+/// @param section The section.
+/// @param kind The form that adds it.
+/// @param name The member.
+/// @param value Its value.
+/// @throws Problem If the section has it already.
+void addMember(Section& section, std::string_view kind, const std::string& name, json value) {
+	if(!section.emplace(name, std::move(value)).second)
+		throw Problem("\"" + notation::Lexer::excerpt(name) + "\" is given twice, the second time by " +
+		              std::string(kind));
+}
+
+/// @brief Builds the part of a form that defines a member of a section (sectionOfForm()).
+/// @param machine The machine.
+/// @param definition The definition.
+/// @param data What it built.
+/// @param parts Gets it.
+void buildSectionMember(Machine& machine, const Definition& definition, const Value& data, BuiltParts& parts) {
+	const std::string& name = definition.name;
+	const std::string member = name.substr(name.find('.') + 1);
+	const std::string section(sectionOfForm(definition.kind));
+	if(definition.kind == "defstate") {
+		addMember(parts.sections["state"], definition.kind, member, valueToTree(machine, data.at(0), name));
+		json options = valueToTree(machine, data.at(1), name);
+		if(options.contains("type")) addMember(parts.sections["stateTypes"], definition.kind, member, options["type"]);
+	} else if(definition.kind == "deftokens") {
+		json tokens = valueToTree(machine, data, name);
+		if(!tokens.is_object()) throw Problem("deftokens takes a map of tokens");
+		for(auto& [token, value] : tokens.items())
+			addMember(parts.sections[section], definition.kind, token, std::move(value));
+	} else {
+		addMember(parts.sections[section], definition.kind, member, valueToTree(machine, data, name));
+	}
+}
 
 /// @brief Builds one definition's part of the tree.
 /// @param machine The machine.
@@ -212,6 +248,8 @@ void buildDefinition(Machine& machine, const Definition& definition, BuiltParts&
 		const Value value = machine.force(*definition.global);
 		parts.settings[name] =
 		    customSetting(valueToTree(machine, data, name), valueToTree(machine, value, name), definition.doc);
+	} else if(!sectionOfForm(definition.kind).empty()) {
+		buildSectionMember(machine, definition, data, parts);
 	} else if(name == "main") {
 		// A named tree: a loop over a temporary's items() reads it after it is gone
 		json settings = valueToTree(machine, data.at(0), name);
@@ -517,6 +555,7 @@ json Program::build(const Limits& limits) {
 		addSection(tree, "actions", parts.actions);
 		addSection(tree, "keys", parts.keys);
 		addSection(tree, "settings", parts.settings);
+		for(auto& [key, section] : parts.sections) addSection(tree, key.c_str(), section);
 		return tree;
 	});
 }

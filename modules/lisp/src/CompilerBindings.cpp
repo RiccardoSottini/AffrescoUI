@@ -1,14 +1,15 @@
 /// @file
-/// @brief A top-level template's `~form` that needs the running app (Compiler.hpp). What can be known at the build is
-/// worked out at the build; a form that reads a path, or names what nothing defines, stays in the tree as a binding:
-/// the expression machine's own text when it can be, a call of the program's function otherwise (`lisp('name', ...)`).
+/// @brief A template's `~form` that needs the running app (Compiler.hpp). What can be known at the build is worked out
+/// at the build; a form that reads a path, or names what nothing defines, stays in the tree as a binding: the
+/// expression machine's own text when it can be (CompilerLowering.cpp), a call of the program's function otherwise
+/// (`lisp('name', ...)`). In a template that builds a view, a local may hold a name of the running app (a symbol:
+/// `repeat`'s item, a component's parameter): a form using one is a binding too, which the build decides as it runs.
 
 #include "Compiler.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
-#include <array>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -17,60 +18,6 @@
 #include <vector>
 
 namespace affresco::lisp {
-
-namespace {
-
-/// @brief An operator of the language that an expression writes the same way.
-struct InfixOperator {
-	std::string_view word;       ///< The language's word.
-	std::string_view expression; ///< What an expression writes.
-	std::size_t fewest = 2;      ///< The fewest operands it takes as an operator.
-	std::size_t most = 2;        ///< The most.
-};
-
-/// The language's operators an expression has. Another count of operands is a call of the language's function.
-constexpr std::array<InfixOperator, 13> infixOperators{{{"=", "==", 2, 2},
-                                                        {"not=", "!=", 2, 2},
-                                                        {"<", "<", 2, 2},
-                                                        {">", ">", 2, 2},
-                                                        {"<=", "<=", 2, 2},
-                                                        {">=", ">=", 2, 2},
-                                                        {"+", "+", 2, 16},
-                                                        {"-", "-", 2, 16},
-                                                        {"*", "*", 2, 16},
-                                                        {"/", "/", 2, 2},
-                                                        {"mod", "%", 2, 2},
-                                                        {"and", "&&", 1, 16},
-                                                        {"or", "||", 1, 16}}};
-
-/// @brief Tells whether a word is what an expression calls a function or a key without quotes.
-/// @param word The word.
-/// @return true if it is.
-bool isPlainName(std::string_view word) {
-	const auto letter = [](char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; };
-	return !word.empty() && letter(word.front()) &&
-	       std::ranges::all_of(word, [&](char c) { return letter(c) || (c >= '0' && c <= '9'); });
-}
-
-/// @brief Writes a dotted word as an expression's path: `state.my-key.0` is `state['my-key'][0]`.
-/// @param word The word.
-/// @return The path.
-std::string pathText(std::string_view word) {
-	std::string text;
-	std::size_t at = 0;
-	while(at <= word.size()) {
-		const std::size_t end = std::min(word.find('.', at), word.size());
-		const std::string_view segment = word.substr(at, end - at);
-		if(at != 0 && !segment.empty() && std::ranges::all_of(segment, [](char c) { return c >= '0' && c <= '9'; }))
-			text.append("[").append(segment).append("]");
-		else if(isPlainName(segment)) text.append(at == 0 ? "" : ".").append(segment);
-		else text.append("[").append(expressionText(segment)).append("]");
-		at = end + 1;
-	}
-	return text;
-}
-
-} // namespace
 
 std::string expressionText(std::string_view text) {
 	std::string quoted = "'";
@@ -88,7 +35,7 @@ bool Compiler::reachesRunningApp(Global& function) {
 	std::unordered_set<const Global*> seen = {&function};
 	const auto look = [&](Global& global) {
 		if(global.name == "%read") return true;
-		if(global.library) return false;
+		if(global.library || global.view) return false; // a view's call is worked out at the build
 		if(global.state == Global::State::Deferred && global.pending) Machine::ensureCompiled(global);
 		switch(global.state) {
 		case Global::State::Undefined:
@@ -117,21 +64,41 @@ bool Compiler::reachesRunningApp(Global& function) {
 	return false;
 }
 
+bool Compiler::isLocalWord(std::string_view name) {
+	return resolve(*current_, name.substr(0, name.find('.'))).kind != Variable::Kind::None;
+}
+
 bool Compiler::isLiveWord(std::string_view name) {
-	if(resolve(*current_, name.substr(0, name.find('.'))).kind != Variable::Kind::None) return false;
+	const std::string_view head = name.substr(0, name.find('.'));
+	if(std::ranges::find(renames_, head, &Rename::name) != renames_.end()) return true; // an item being written
+	if(std::ranges::find(itemNames_, head) != itemNames_.end()) return false;
+	if(isLocalWord(name)) return symbolic_; // a name of the running app, when the binding is written for one
 	const Global* global = machine_.findGlobal(name);
 	return !isSpecial(name) && (!global || global->state == Global::State::Undefined);
 }
 
 bool Compiler::isLiveCall(const Value& form, int depth) {
 	const std::string_view head = headWord(form);
-	if(head.empty()) return false;
-	const bool local = resolve(*current_, head.substr(0, head.find('.'))).kind != Variable::Kind::None;
+	if(head.empty()) // (:title card): a keyword reads a member
+		return form.count() > 0 && form.at(0).kind() == Kind::Keyword && form.count() == 2 &&
+		       isLive(form.at(1), depth + 1);
+	const bool local = std::ranges::find(renames_, head, &Rename::name) == renames_.end() && isLocalWord(head);
+	if(!local && head == "fn" && form.count() >= 3 && form.at(1).kind() == Kind::Vector) {
+		// What a function's body reads: its parameters are its own, not the app's
+		const std::size_t before = itemNames_.size();
+		for(std::size_t at = 0; at < form.at(1).count(); ++at)
+			if(form.at(1).at(at).kind() == Kind::Symbol) itemNames_.push_back(form.at(1).at(at).text());
+		const bool live = std::ranges::any_of(std::views::iota(std::size_t{2}, form.count()),
+		                                      [&](std::size_t at) { return isLive(form.at(at), depth + 1); });
+		itemNames_.resize(before);
+		return live;
+	}
 	if(!local && isSpecial(head)) {
-		if(head != "if" && head != "and" && head != "or") return false; // what binds names is compiled as it is
+		if(head != "if" && head != "and" && head != "or" && head != "cond" && head != "when")
+			return false; // what binds names is compiled as it is
 	} else if(!local) {
 		const Global* global = machine_.findGlobal(head);
-		if(global && global->macro) return false;
+		if(global && (global->macro || global->view)) return false;
 		if(!global || global->state == Global::State::Undefined || reachesRunningApp(machine_.global(head)))
 			return true;
 	}
@@ -159,111 +126,131 @@ bool Compiler::isLive(const Value& form, int depth) {
 	}
 }
 
-void Compiler::compileBinding(const Value& form) {
-	std::vector<BindingPart> parts = {{"{{", {}, false}};
-	lowerForm(form, 0, parts);
-	parts.push_back({"}}", {}, false});
-	const auto worked = std::ranges::any_of(parts, &BindingPart::worked);
-	if(!worked) {
-		std::string text;
-		for(const BindingPart& part : parts) text += part.text;
-		emitConstant(machine_.heap.string(text));
+bool Compiler::buildsAtOnce(const Value& form) {
+	const std::string_view head = headWord(form);
+	if(head.empty() || isLocalWord(head)) return false;
+	if(isSpecial(head))
+		return head != "if" && head != "and" && head != "or" && head != "cond" && head != "when" && head != "fn";
+	const Global* global = machine_.findGlobal(head);
+	return global && (global->macro || global->view || (global->library && head == "handler"));
+}
+
+void Compiler::localsIn(const Value& form, int depth, std::vector<std::string_view>& locals) {
+	if(depth > maxCompileDepth)
+		fail(form, "nested too deeply to compile, more than " + std::to_string(maxCompileDepth) + " levels");
+	machine_.spend(1);
+	if(form.kind() == Kind::Symbol) {
+		const std::string_view head = form.text().substr(0, form.text().find('.'));
+		if(isLocalWord(head) && std::ranges::find(locals, head) == locals.end()) locals.push_back(head);
 		return;
 	}
-	const auto count = static_cast<std::uint32_t>(parts.size());
+	if(headWord(form) == "quote") return;
+	if(form.kind() == Kind::Map) {
+		for(std::size_t at = 0; at < form.count(); ++at) localsIn(form.valueAt(at), depth + 1, locals);
+	} else if(form.isSequence()) {
+		for(std::size_t at = 0; at < form.count(); ++at) localsIn(form.at(at), depth + 1, locals);
+	}
+}
+
+void Compiler::emitSymbolicTest(const std::vector<std::string_view>& locals) {
+	emitConstant(machine_.global("%symbolic?").value);
+	for(const std::string_view local : locals) compileSymbol(machine_.heap.symbol(local, place_));
+	emit(Op::Call, static_cast<std::uint32_t>(locals.size()));
+}
+
+void Compiler::compileViewValue(const Value& form, int depth) {
+	if(buildsAtOnce(form)) {
+		compile(form, {});
+		return;
+	}
+	if(isLive(form, depth)) {
+		compileBinding(form);
+		return;
+	}
+	std::vector<std::string_view> locals;
+	localsIn(form, depth, locals);
+	if(locals.empty()) {
+		compile(form, {});
+		return;
+	}
+	// A local may hold a name of the running app: then the form is a binding, else what it gives now
+	emitSymbolicTest(locals);
+	const std::uint32_t plain = emit(Op::JumpIfFalse);
+	const bool symbolic = std::exchange(symbolic_, true);
+	compileBinding(form);
+	symbolic_ = symbolic;
+	const std::uint32_t end = emit(Op::Jump);
+	patch(plain);
+	compile(form, {});
+	patch(end);
+}
+
+void Compiler::addWorkedPart(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	BindingPart part{"", form, true, {}, {}};
+	if(form.kind() != Kind::Symbol || form.text().contains('.')) localsIn(form, depth, part.locals);
+	if(!part.locals.empty()) { // its text, should one of them be a name of the running app
+		const bool symbolic = std::exchange(symbolic_, true);
+		lowerForm(form, depth, part.inner);
+		symbolic_ = symbolic;
+	}
+	parts.push_back(std::move(part));
+}
+
+void Compiler::emitParts(const std::vector<BindingPart>& parts) {
 	emitConstant(machine_.global("%binding").value);
-	const bool live = std::exchange(liveBindings_, false);
 	for(const BindingPart& part : parts) {
 		if(!part.worked) {
 			emitConstant(machine_.heap.string(part.text));
 			continue;
 		}
+		std::uint32_t end = 0;
+		if(!part.locals.empty()) {
+			emitSymbolicTest(part.locals);
+			const std::uint32_t plain = emit(Op::JumpIfFalse);
+			emitParts(part.inner);
+			end = emit(Op::Jump);
+			patch(plain);
+		}
 		emitConstant(machine_.global("%expression").value);
 		compile(part.form, {});
 		emit(Op::Call, 1);
+		if(!part.locals.empty()) patch(end);
 	}
-	liveBindings_ = live;
-	emit(Op::Call, count);
+	emit(Op::Call, static_cast<std::uint32_t>(parts.size()));
 }
 
-void Compiler::lowerForm(const Value& form, int depth, std::vector<BindingPart>& parts) {
-	if(depth > maxCompileDepth)
-		fail(form, "nested too deeply to compile, more than " + std::to_string(maxCompileDepth) + " levels");
-	if(!isLive(form, depth)) {
-		parts.push_back({"", form, true});
-		return;
-	}
-	if(form.kind() == Kind::Symbol) {
-		parts.push_back({pathText(form.text()), {}, false});
-	} else if(form.kind() == Kind::List) {
-		lowerCall(form, depth, parts);
-	} else if(form.kind() == Kind::Vector) {
-		parts.push_back({"[", {}, false});
-		for(std::size_t at = 0; at < form.count(); ++at) {
-			if(at != 0) parts.push_back({", ", {}, false});
-			lowerForm(form.at(at), depth + 1, parts);
+void Compiler::compileBinding(const Value& form) {
+	std::vector<BindingPart> parts;
+	const std::string_view head = headWord(form);
+	const Global* str = head == "str" && !isLocalWord(head) ? machine_.findGlobal(head) : nullptr;
+	const bool joined = str && str->library && form.count() > 2 &&
+	                    std::ranges::all_of(std::views::iota(std::size_t{1}, form.count()), [&](std::size_t at) {
+		                    return form.at(at).kind() != Kind::String || !form.at(at).text().contains("{{");
+	                    });
+	if(joined) { // (str "Hello, " name) is the text "Hello, {{name}}"
+		for(std::size_t at = 1; at < form.count(); ++at) {
+			if(form.at(at).kind() == Kind::String) {
+				parts.push_back({std::string(form.at(at).text()), {}, false, {}, {}});
+				continue;
+			}
+			parts.push_back({"{{", {}, false, {}, {}});
+			lowerForm(form.at(at), 1, parts);
+			parts.push_back({"}}", {}, false, {}, {}});
 		}
-		parts.push_back({"]", {}, false});
 	} else {
-		parts.push_back({"{", {}, false});
-		for(std::size_t at = 0; at < form.count(); ++at) {
-			parts.push_back({(at != 0 ? ", " : "") + expressionText(form.keyAt(at)) + ": ", {}, false});
-			lowerForm(form.valueAt(at), depth + 1, parts);
-		}
-		parts.push_back({"}", {}, false});
+		parts.push_back({"{{", {}, false, {}, {}});
+		lowerForm(form, 0, parts);
+		parts.push_back({"}}", {}, false, {}, {}});
 	}
-}
-
-void Compiler::lowerList(const Value& form, int depth, std::vector<BindingPart>& parts, const std::string& open,
-                         const std::string& separator) {
-	parts.push_back({open, {}, false});
-	for(std::size_t at = 1; at < form.count(); ++at) {
-		if(at != 1) parts.push_back({separator, {}, false});
-		lowerForm(form.at(at), depth + 1, parts);
-	}
-	parts.push_back({")", {}, false});
-}
-
-bool Compiler::lowerOperator(const Value& form, int depth, std::vector<BindingPart>& parts) {
-	const std::string_view head = headWord(form);
-	const std::size_t operands = form.count() - 1;
-	if(head == "if" && (operands == 2 || operands == 3)) {
-		parts.push_back({"(", {}, false});
-		lowerForm(form.at(1), depth + 1, parts);
-		parts.push_back({" ? ", {}, false});
-		lowerForm(form.at(2), depth + 1, parts);
-		parts.push_back({" : ", {}, false});
-		if(operands == 3) lowerForm(form.at(3), depth + 1, parts);
-		else parts.push_back({"null", {}, false});
-		parts.push_back({")", {}, false});
-		return true;
-	}
-	if(head == "not" && operands == 1) {
-		lowerList(form, depth, parts, "!(", "");
-		return true;
-	}
-	const auto infix = std::ranges::find(infixOperators, head, &InfixOperator::word);
-	if(infix == infixOperators.end() || operands < infix->fewest || operands > infix->most) return false;
-	lowerList(form, depth, parts, "(", " " + std::string(infix->expression) + " ");
-	return true;
-}
-
-void Compiler::lowerCall(const Value& form, int depth, std::vector<BindingPart>& parts) {
-	const std::string_view head = headWord(form);
-	const Global* global = machine_.findGlobal(head);
-	const bool defined = global && global->state != Global::State::Undefined;
-	// A program's own function of that name isn't the expression's operator
-	if((isSpecial(head) || (defined && global->library)) && lowerOperator(form, depth, parts)) return;
-	if(isSpecial(head) || resolve(*current_, head.substr(0, head.find('.'))).kind != Variable::Kind::None)
-		fail(form,
-		     "a value read while the app runs is an expression or a call of a function: define a function for this");
-	if(defined) {
-		lowerList(form, depth, parts, "lisp(" + expressionText(head) + (form.count() > 1 ? ", " : ""), ", ");
+	if(std::ranges::none_of(parts, &BindingPart::worked)) {
+		std::string text;
+		for(const BindingPart& part : parts) text += part.text;
+		emitConstant(machine_.heap.string(text));
 		return;
 	}
-	if(!isPlainName(head))
-		fail(form, "nothing defines \"" + notation::Lexer::excerpt(head) + "\", and no expression can call it");
-	lowerList(form, depth, parts, std::string(head) + "(", ", ");
+	const bool live = std::exchange(liveBindings_, false);
+	emitParts(parts);
+	liveBindings_ = live;
 }
 
 } // namespace affresco::lisp

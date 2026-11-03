@@ -8,6 +8,7 @@
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <string>
 #include <utility>
@@ -16,12 +17,30 @@ namespace affresco::lisp {
 
 namespace {
 
+/// @brief The forms that define one member of a section of the document, and that section.
+constexpr std::array<std::pair<std::string_view, std::string_view>, 6> sectionForms{{{"defstate", "state"},
+                                                                                     {"defcomputed", "computed"},
+                                                                                     {"defstyle", "styles"},
+                                                                                     {"defcomponent", "components"},
+                                                                                     {"defmenu", "menus"},
+                                                                                     {"deftokens", "tokens"}}};
+
+} // namespace
+
+std::string_view sectionOfForm(std::string_view head) noexcept {
+	const auto* found = std::ranges::find(sectionForms, head, &std::pair<std::string_view, std::string_view>::first);
+	return found == sectionForms.end() ? std::string_view() : found->second;
+}
+
+namespace {
+
 /// @brief The definition forms that hold code or data of their own, and how many items they need at least.
 /// @param head A form's head.
 /// @return The least items, or 0 if it is no such form.
 std::size_t leastItems(std::string_view head) noexcept {
 	if(head == "def" || head == "defscreen" || head == "defkey" || head == "defcustom") return 3;
-	if(head == "defn" || head == "defmacro" || head == "defcommand") return 3;
+	if(head == "defn" || head == "defmacro" || head == "defcommand" || head == "defview") return 3;
+	if(!sectionOfForm(head).empty()) return 3;
 	if(head == "add-hook" || head == "remove-hook" || head == "advice") return 3;
 	if(head == "defhook") return 2;
 	return 0;
@@ -124,12 +143,14 @@ std::function<void()> compileValueInto(Machine& machine, Global& global, const V
 /// @param definition The definition.
 /// @param data The template.
 /// @param context Who the code belongs to.
+/// @param code Whether it is code that gives what it builds, rather than a template.
 /// @return What compiles it.
 std::function<void()> compileDataInto(Machine& machine, Definition& definition, const Value& data,
-                                      CompileContext context) {
-	return [&machine, &definition, data, context = std::move(context)] {
+                                      CompileContext context, bool code = false) {
+	return [&machine, &definition, data, context = std::move(context), code] {
 		const std::uint64_t saved = std::exchange(machine.gensymCounter(), 0);
-		definition.data = Compiler(machine, context).templateThunk(data);
+		Compiler compiler(machine, context);
+		definition.data = code ? compiler.thunk(data) : compiler.templateThunk(data);
 		machine.gensymCounter() = saved;
 	};
 }
@@ -179,6 +200,10 @@ bool isExtensionWord(std::string_view word) noexcept {
 
 std::pair<std::string, std::string> definitionAddress(const Value& form) {
 	const std::string head(headWord(form));
+	if(head == "include")
+		failDefinition(form, "",
+		               "include is read with the file an app loads from its folder: no entry of a program, so a "
+		               "revision can't add one");
 	if(head.empty() || form.count() < 2)
 		failDefinition(form, "", "a program's top level holds definitions, each with a name");
 	if(head == "defkey") {
@@ -195,6 +220,10 @@ std::pair<std::string, std::string> definitionAddress(const Value& form) {
 		return {head, name};
 	}
 	if(form.at(1).kind() != Kind::Symbol) failDefinition(form, "", head + " takes a name first");
+	if(const std::string_view section = sectionOfForm(head); !section.empty()) {
+		if(form.at(1).text().contains('.')) failDefinition(form, "", head + " takes a name without a dot");
+		return {head, std::string(section) + "." + std::string(form.at(1).text())};
+	}
 	return {head, std::string(form.at(1).text())};
 }
 
@@ -244,9 +273,12 @@ Definition& Machine::define(const Value& form, const std::string& author, const 
 	made.authors = authors ? authors : authorSet(author);
 	const CompileContext context{name, author, made.authors, false};
 	made.doc = docAt(form, 2);
-	if(head == "defn" || head == "defmacro") {
+	if(head == "defn" || head == "defmacro" || head == "defview") {
 		made.global = &global(name);
-		setPending(*made.global, compileFunctionInto(*this, *made.global, form, context), head == "defmacro");
+		CompileContext code = context;
+		code.view = head == "defview";
+		setPending(*made.global, compileFunctionInto(*this, *made.global, form, std::move(code)), head == "defmacro");
+		made.global->view = head == "defview";
 	} else if(head == "def") {
 		const std::size_t at = pastDoc(form, 2);
 		if(at + 1 != form.count()) failDefinition(form, name, "def takes a name, maybe a docstring, and a value");
@@ -321,6 +353,50 @@ Value Machine::screenData(const Definition& definition, const Value& form) {
 	return heap.sequence(Kind::Vector, std::span<const Value>(both), form.place());
 }
 
+Value Machine::sectionData(Definition& definition, const Value& form) {
+	const bool state = definition.kind == "defstate";
+	std::size_t at = pastDoc(form, 2);
+	if(state) { // (defstate name value "doc"? :type schema): the docstring may be the last item
+		at = 3;
+		if(at < form.count() && form.at(at).kind() == Kind::String) definition.doc = std::string(form.at(at++).text());
+		const Value options = optionsOf(*this, form, at, definition.name);
+		if(at != form.count())
+			failDefinition(form, definition.name, "defstate takes a name, a value, maybe a docstring, and :type");
+		for(std::size_t key = 0; key < options.count(); ++key)
+			if(options.keyAt(key) != "type") failDefinition(form, definition.name, "defstate's only option is :type");
+		const std::vector<Value> both = {form.at(2), options};
+		return heap.sequence(Kind::Vector, std::span<const Value>(both), form.place());
+	}
+	if(at + 1 != form.count())
+		failDefinition(form, definition.name, definition.kind + " takes a name, maybe a docstring, and one value");
+	if(definition.kind == "defcomputed") // worked out as a `~form` is: a binding when it needs the running app
+		return listOf(*this, "unquote", {form.at(at)}, form.place());
+	return form.at(at);
+}
+
+Value Machine::componentData(Definition& definition, const Value& form) {
+	const std::size_t at = pastDoc(form, 2);
+	if(at + 1 >= form.count() || form.at(at).kind() != Kind::Map)
+		failDefinition(form, definition.name,
+		               "defcomponent takes a name, maybe a docstring, its parameters as a map of their defaults, and "
+		               "a body that gives its node");
+	const Value params = form.at(at);
+	std::vector<Value> bindings; // each parameter is a name of the running app: `on` is "{{on}}"
+	for(std::size_t key = 0; key < params.count(); ++key) {
+		const Value name = heap.symbol(params.keyAt(key), form.place());
+		if(name.text().empty() || name.text().contains('.') || Compiler::isSpecial(name.text()))
+			failDefinition(form, definition.name, "a component's parameter is a plain name");
+		bindings.push_back(name);
+		bindings.push_back(listOf(*this, "quote", {name}, form.place()));
+	}
+	std::vector<Value> body = {heap.string(definition.doc), listOf(*this, "quote", {params}, form.place())};
+	std::vector<Value> forms;
+	for(std::size_t item = at + 1; item < form.count(); ++item) forms.push_back(form.at(item));
+	body.push_back(listOf(*this, "do", std::move(forms), form.place()));
+	const Value made = listOf(*this, "%component", std::move(body), form.place());
+	return listOf(*this, "let", {heap.sequence(Kind::Vector, std::move(bindings), form.place()), made}, form.place());
+}
+
 void Machine::defineVocabulary(Definition& definition, const Value& form, const CompileContext& context) {
 	const std::string& kind = definition.kind;
 	Value data;
@@ -330,6 +406,13 @@ void Machine::defineVocabulary(Definition& definition, const Value& form, const 
 		data = customData(definition, form, context);
 	} else if(kind == "defscreen") {
 		data = screenData(definition, form);
+	} else if(kind == "defcomponent") {
+		CompileContext code = context;
+		code.view = true;
+		definition.pending = compileDataInto(*this, definition, componentData(definition, form), std::move(code), true);
+		return;
+	} else if(!sectionOfForm(kind).empty()) {
+		data = sectionData(definition, form);
 	} else if(kind == "defkey") {
 		const std::size_t at = pastDoc(form, 2);
 		if(at + 1 != form.count())

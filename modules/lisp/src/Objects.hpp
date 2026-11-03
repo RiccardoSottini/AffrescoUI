@@ -157,6 +157,7 @@ struct Global {
 	const Code* thunk = nullptr;    ///< What works out a `def`.
 	bool macro = false;             ///< A macro, not a function.
 	bool library = false;           ///< One of the language's own.
+	bool view = false;              ///< A `defview`: what calls it in a template runs at the build, never later.
 	std::function<void()> pending;  ///< What compiles it.
 };
 

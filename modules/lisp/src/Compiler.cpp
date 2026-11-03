@@ -38,6 +38,7 @@ std::string_view headWord(const Value& form) {
 
 Compiler::Compiler(Machine& machine, CompileContext context) : machine_(machine), context_(std::move(context)) {
 	if(!context_.authors) context_.authors = machine_.authorSet(context_.author);
+	inView_ = context_.view;
 }
 
 const Code* Compiler::compiling(const std::function<const Code*()>& compilation) const {
@@ -63,7 +64,9 @@ const Code* Compiler::templateThunk(const Value& form) {
 		Function state;
 		begin(state, {});
 		liveBindings_ = true;
+		inView_ = true; // what its code backquotes builds the same tree
 		quasi(form, 1, 0);
+		inView_ = context_.view;
 		liveBindings_ = false;
 		return finish(state);
 	});

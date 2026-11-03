@@ -171,7 +171,7 @@ std::string expressionOf(const json& value) {
 /// @return The text.
 Value expressionPart(Machine& machine, Arguments arguments) {
 	if(arguments.size() != 1) throw Problem("\"%expression\" takes one value");
-	return machine.heap.string(expressionOf(valueToTree(machine, arguments[0], "")));
+	return machine.heap.string(expressionOfValue(machine, arguments[0]));
 }
 
 /// @brief `%binding`: a binding's text, from its parts.
@@ -189,6 +189,11 @@ Value bindingText(Machine& machine, Arguments arguments) {
 }
 
 } // namespace
+
+std::string expressionOfValue(Machine& machine, const Value& value) {
+	if(value.kind() == Kind::Symbol) return pathExpression(value.text());
+	return expressionOf(valueToTree(machine, value, ""));
+}
 
 void defineText(Machine& machine) {
 	machine.defineNative("%read", readWithoutApp);
