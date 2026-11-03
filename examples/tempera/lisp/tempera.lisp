@@ -196,17 +196,16 @@ would."
   (set "state.fill.contents" args.id))
 
 (defn applyFill "Fills the selection with what the Fill dialog chose." []
-  (fillSelection {:color (or-else (:color (find (fn [c] (= (:id c) state.fill.contents)) computed.fillContents))
-                                  state.doc.foreground)}))
+  (let [chosen (find (fn [c] (= (:id c) state.fill.contents)) computed.fillContents)]
+    (fillSelection {:color (or-else (:color chosen) state.doc.foreground)})))
 
 (defn setAdjustment "Changes some of the active adjustment layer's values." [args]
   (setLayer {:adjustment (merge computed.adjustment args)}))
 
 (defn setBalance "Changes one channel of the active Colour Balance layer." [args]
-  (let [balance (:balance computed.adjustment)]
-    (setLayer {:adjustment (merge computed.adjustment
-                                  {:balance (map (fn [c] (if (= c (:channel args)) (:value args) (get balance c)))
-                                                 (range 3))})})))
+  (let [balance (:balance computed.adjustment)
+        changed (map (fn [c] (if (= c (:channel args)) (:value args) (get balance c))) (range 3))]
+    (setLayer {:adjustment (merge computed.adjustment {:balance changed})})))
 
 (defn setCurve "The Curves layer's curve, as its editor drew it." [points]
   (setLayer {:adjustment (merge computed.adjustment {:curve points})}))
