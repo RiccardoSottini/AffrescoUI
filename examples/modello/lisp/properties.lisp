@@ -322,7 +322,7 @@
        :use infoRow
        :with {:id primitive
               :label ~(t "properties.primitive")
-              :text ~(+ (upper-case (slice (or-else computed.activeNode.mesh "") 0 1)) (slice (or-else computed.activeNode.mesh "") 1))})
+              :text ~(str (upper-case (slice (or-else computed.activeNode.mesh "") 0 1)) (slice (or-else computed.activeNode.mesh "") 1))})
      ~(camera-lens)
      ~(light-type)
      (node :when ~(= computed.activeNode.kind "light")

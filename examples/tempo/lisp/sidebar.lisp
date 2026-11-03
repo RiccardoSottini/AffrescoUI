@@ -82,7 +82,7 @@
                                     (and (= item.id "albums") (= state.page "collection") (= state.collection.kind "album"))
                                     (and (= item.id "artists") (= state.page "collection") (= state.collection.kind "artist")))}
      :icon ~item.icon
-     :text ~(str "    " (t (str "menu." item.id)))
+     :text ~(t (str "menu." item.id))
      :anchors {:left 0 :right 0}
      :height 36
      :padding 16

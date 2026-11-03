@@ -120,7 +120,7 @@
       :use outlinerRow
       :with {:depth ~(+ computed.outlinerDepth 1)
              :key ~(str n.id "-data")
-             :name ~(+ (upper-case (slice (or-else n.mesh "") 0 1)) (slice (or-else n.mesh "") 1))
+             :name ~(str (upper-case (slice (or-else n.mesh "") 0 1)) (slice (or-else n.mesh "") 1))
              :icon triangle
              :iconColor @data
              :onSelect data})

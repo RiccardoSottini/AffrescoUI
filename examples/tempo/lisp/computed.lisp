@@ -108,7 +108,7 @@
            {:title it.title
             :detail (if it.key
                         (join "+"
-                              (map (fn [it] (if (= it "mod") "Cmd" (+ (upper-case (slice it 0 1)) (slice it 1))))
+                              (map (fn [it] (if (= it "mod") "Cmd" (str (upper-case (slice it 0 1)) (slice it 1))))
                                    (split it.key "+")))
                         it.category)
             :run it.name})

@@ -149,7 +149,7 @@
                       [{:text (t "status.select") :icon "mouse-left"}
                        {:text (t "status.rotateView") :icon "mouse"}
                        {:text (t "status.object") :icon "mouse-right"}
-                       {:text (+ (if (not= state.fileStatus "") (str state.fileStatus " | ") "") computed.stats "Modello 1.0")
+                       {:text (str (if (not= state.fileStatus "") (str state.fileStatus " | ") "") computed.stats "Modello 1.0")
                         :side "end"}])}))
 
 ;;; The render window

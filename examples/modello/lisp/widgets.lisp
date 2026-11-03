@@ -189,7 +189,7 @@
                  :first ~(= a 0)
                  :last ~(= a 2)
                  :lockable ~lockable
-                 :text ~(+ (if exact (fixed v digits) (formatNumber v 0 digits)) unit)}))))
+                 :text ~(str (if exact (fixed v digits) (formatNumber v 0 digits)) unit)}))))
 
 ;;; Rows of the properties
 
