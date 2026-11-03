@@ -5,22 +5,22 @@
 (defview detail-bar "The detail's bar: back to the list on narrow windows, the habit's name, and its menu." []
   `(node#detailBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @c.bar :shadow {:y 1 :blur 3 :color "#00000020"}
      (node#backButton
-     :style iconButton
-     :icon arrow-left
-     :label ~(t "back")
-     :tooltip ~(t "back")
-     :textColor @c.text
-     :onClick {:set state.page :to list}
-     :when ~(not computed.wide)
-     :anchors {:left 4 :top 8}
-     :mirror true)
+       :style iconButton
+       :icon arrow-left
+       :label ~(t "back")
+       :tooltip ~(t "back")
+       :textColor @c.text
+       :onClick {:set state.page :to list}
+       :when ~(not computed.wide)
+       :anchors {:left 4 :top 8}
+       :mirror true)
      (node#detailBadge
-     :when ~(>= computed.sel 0)
-     :anchors {:left ~(if computed.wide 20 56) :top 21}
-     :width 14
-     :height 14
-     :radius 5
-     :color ~computed.col)
+       :when ~(>= computed.sel 0)
+       :anchors {:left ~(if computed.wide 20 56) :top 21}
+       :width 14
+       :height 14
+       :radius 5
+       :color ~computed.col)
      (label#label-sel-0-h :text ~(if (>= computed.sel 0) computed.h.name (t "app"))
        :font title
        :textColor ~computed.col
@@ -35,12 +35,12 @@
        :gap 4
        :arrows horizontal
        (node#editButton
-       :style iconButton
-       :icon edit
-       :label ~(t "edit")
-       :tooltip ~(t "edit")
-       :textColor @c.text
-       :onClick editHabit)
+         :style iconButton
+         :icon edit
+         :label ~(t "edit")
+         :tooltip ~(t "edit")
+         :textColor @c.text
+         :onClick editHabit)
        ~(detail-more))))
 
 (defview detail-more "The detail's menu: edit, archive, export, delete." []
@@ -149,8 +149,8 @@
   `(row#subtitleFacts :anchors {:left 16 :right 16 :top 38} :height 20 :gap 20
      (node#label-freq-text :style caption :text ~computed.freqText :icon repeat :height 20)
      (node#label-h-reminder-null
-     :style caption
-     :text ~(if (nil? computed.h.reminder)
+       :style caption
+       :text ~(if (nil? computed.h.reminder)
                  (t "reminderOff")
                  (formatTime (+ (dateMs "2000-01-01")
                                 (* (+ (* (number (slice computed.h.reminder.time 0 2)) 60)
@@ -161,18 +161,16 @@
      :icon ~(if (nil? computed.h.reminder) "bell-off" "bell")
      :height 20)
      (node#label-t-archived-tag
-     :style caption
-     :text ~(t "archivedTag")
-     :when ~computed.h.archived
-     :icon archive
-     :height 20)))
+       :style caption
+       :text ~(t "archivedTag")
+       :when ~computed.h.archived
+       :icon archive
+       :height 20)))
 
 (defview overview-stats "The overview: the score now, this month's and this year's change, and the total." []
   `(row#overviewStats :anchors {:left 16 :right 16 :top 44} :height 56 :justify space-around :alignItems center
-     (node#ring-overview-stats :use
-                               ring
-                               :with
-                               {:value ~computed.stats.score :color ~computed.col :size 48 :stroke 2.5})
+     (node#ring-overview-stats :use ring
+       :with {:value ~computed.stats.score :color ~computed.col :size 48 :stroke 2.5})
      (node#stat-overview-stats :use stat
        :with {:value ~(formatPercent computed.stats.score) :caption ~(t "stat.score") :color ~computed.col})
      (node#stat-overview-stats-2 :use stat
@@ -199,15 +197,15 @@
        :anchors {:left 0 :top 0}
        :fitText true)
      (node#label-t-goal-of
-     :style caption
-     :text ~(str (t "goalOf" {:value (formatNumber g.value 0 1) :goal (formatNumber g.goal 0 1)}) " " computed.h.unit)
-     :anchors {:right 0 :top 0})
+       :style caption
+       :text ~(str (t "goalOf" {:value (formatNumber g.value 0 1) :goal (formatNumber g.goal 0 1)}) " " computed.h.unit)
+       :anchors {:right 0 :top 0})
      (node#panel-goal-row :anchors {:left 0 :right 0 :top 19} :height 6 :radius 3 :color @c.track
        (node#panel-goal-row-2
-       :anchors {:left 0 :top 0 :bottom 0}
-       :radius 3
-       :width ~(str (* (clamp (/ g.value (max 0.001 g.goal)) 0 1) 100) "%")
-       :color ~(if (and (= computed.h.targetType "atMost") (> g.value g.goal)) "@c.danger" computed.col)))))
+         :anchors {:left 0 :top 0 :bottom 0}
+         :radius 3
+         :width ~(str (* (clamp (/ g.value (max 0.001 g.goal)) 0 1) 100) "%")
+         :color ~(if (and (= computed.h.targetType "atMost") (> g.value g.goal)) "@c.danger" computed.col)))))
 
 (defview score-card "The score card: its period's button and the plot." []
   `(node#scoreCard :style card :width ~computed.cardWidth :height 240 :role region :label ~(t "card.score")
@@ -246,12 +244,12 @@
        ~(repeat [pt computed.scorePts :index i]
          `(node#scoreSlot :grow 1 :anchors {:top 0 :bottom 0} :color transparent :tooltip ~(formatPercent pt)
             (node#panel-score-slot
-            :anchors {:left "50%" :top ~(str (- 100 (* pt 100)) "%")}
-            :translate [-3.5 -3.5]
-            :width 7
-            :height 7
-            :radius 4
-            :color ~computed.col))))))
+              :anchors {:left "50%" :top ~(str (- 100 (* pt 100)) "%")}
+              :translate [-3.5 -3.5]
+              :width 7
+              :height 7
+              :radius 4
+              :color ~computed.col))))))
 
 (defview history-plot "How many times, or how much, a period at a time, as bars." []
   `(node#historyPlot :dir ltr :anchors {:left 16 :right 16 :top 56 :bottom 44} :color transparent
@@ -260,10 +258,10 @@
        ~(repeat [hv computed.historyVals :index i]
          `(node#historySlot :grow 1 :anchors {:top 0 :bottom 0} :color transparent :tooltip ~(formatNumber hv 0 1)
             (node#panel-history-slot
-            :anchors {:left "22%" :right "22%" :bottom 1}
-            :height ~(str (* (/ hv computed.historyMax) 86) "%")
-            :color ~computed.col
-            :radius {:topLeft 2 :topRight 2})
+              :anchors {:left "22%" :right "22%" :bottom 1}
+              :height ~(str (* (/ hv computed.historyMax) 86) "%")
+              :color ~computed.col
+              :radius {:topLeft 2 :topRight 2})
             (label#label-hv-0-format :text ~(if (> hv 0) (formatNumber hv 0 0) "")
               :font tiny
               :textColor ~computed.col
@@ -279,8 +277,8 @@
        ~(repeat [w (range computed.weeks)]
          `(column#calWeek :dir ltr :width 22 :anchors {:top 0 :bottom 0} :gap 3
             (node#label-number-format-date
-            :style tiny
-            :text ~(if (<= (number (formatDate (dateMs (addDays computed.weekStart (* (- 7) w))) "d" "utc")) 7)
+              :style tiny
+              :text ~(if (<= (number (formatDate (dateMs (addDays computed.weekStart (* (- 7) w))) "d" "utc")) 7)
                         (formatDate (dateMs (addDays computed.weekStart (* (- 7) w))) "MMM" "utc")
                         "")
             :height 14
@@ -290,11 +288,11 @@
      (column#calWeekdays :anchors {:right 12 :top 65} :width 36 :height 180 :gap 3
        ~(repeat [wd computed.weekdays]
          `(node#calWeekday
-          :style tiny
-          :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
-          :height 22
-          :width 36
-          :align {:horizontal start :vertical center})))))
+            :style tiny
+            :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
+            :height 22
+            :width 36
+            :align {:horizontal start :vertical center})))))
 
 (defview cal-cell "A day of the calendar: done, skipped, or not; a click marks it, a right click opens its popup." [w r]
   `(node#calCell :let {:d ~(addDays computed.weekStart (- r (* 7 w)))
@@ -336,22 +334,22 @@
                   ": "
                   (t "days" {:n st.len}))
      (node#label-format-date-date-4
-     :style tiny
-     :text ~(formatDate (dateMs st.from) "d MMM yyyy" "utc")
-     :width 80
-     :height 14
-     :align end)
+       :style tiny
+       :text ~(formatDate (dateMs st.from) "d MMM yyyy" "utc")
+       :width 80
+       :height 14
+       :align end)
      (node#panel-streak-row :height 22
        :width ~(max 28 (/ (* (- computed.cardWidth 224) st.len) computed.streakMax))
        :radius 2
        :color ~(if (= st.len computed.streakMax) computed.col (str computed.col "aa"))
        (label#label-text-st-len :text ~(text st.len) :font small :textColor ~computed.onColor :fill 0 :align center))
      (node#label-format-date-date-5
-     :style tiny
-     :text ~(formatDate (dateMs st.to) "d MMM yyyy" "utc")
-     :width 80
-     :height 14
-     :align start)))
+       :style tiny
+       :text ~(formatDate (dateMs st.to) "d MMM yyyy" "utc")
+       :width 80
+       :height 14
+       :align start)))
 
 (defview frequency-card "The frequency: which weekdays the habit is done, month by month." []
   `(node#frequencyCard :style card :width ~computed.cardWidth :height 252 :role region :label ~(t "card.frequency")
@@ -362,19 +360,19 @@
             ~(repeat [wd computed.weekdays]
               (freq-dot mo wd))
             (node#label-format-date-date-6
-            :style tiny
-            :text ~(formatDate (dateMs (str mo "-01")) "MMM" "utc")
-            :anchors {:left 0 :right 0}
-            :height 20
-            :align center))))
+              :style tiny
+              :text ~(formatDate (dateMs (str mo "-01")) "MMM" "utc")
+              :anchors {:left 0 :right 0}
+              :height 20
+              :align center))))
      (column#freqWeekdays :anchors {:right 12 :top 48} :width 36 :height 168
        ~(repeat [wd computed.weekdays]
          `(node#freqWeekday
-          :style tiny
-          :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
-          :height 24
-          :width 36
-          :align {:horizontal start :vertical center})))))
+            :style tiny
+            :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
+            :height 24
+            :width 36
+            :align {:horizontal start :vertical center})))))
 
 (defview freq-dot "A dot of the frequency: how often a weekday of a month was done." [mo wd]
   `(node#freqDot :let {:c ~(count (filter (fn [it]
@@ -390,12 +388,12 @@
      :color transparent
      :tooltip ~(text c)
      (node#panel-freq-dot
-     :anchors {:left "50%" :top 12}
-     :translate ~[(- (if (= c 0) 2 (+ 4 (* c 2)))) (- (if (= c 0) 2 (+ 4 (* c 2))))]
-     :width ~(if (= c 0) 4 (+ 8 (* c 4)))
-     :height ~(if (= c 0) 4 (+ 8 (* c 4)))
-     :radius 20
-     :color ~(if (= c 0) "@c.track" (+ computed.col (get ["59" "80" "a6" "cc" "f2"] (- (min c 5) 1)))))))
+       :anchors {:left "50%" :top 12}
+       :translate ~[(- (if (= c 0) 2 (+ 4 (* c 2)))) (- (if (= c 0) 2 (+ 4 (* c 2))))]
+       :width ~(if (= c 0) 4 (+ 8 (* c 4)))
+       :height ~(if (= c 0) 4 (+ 8 (* c 4)))
+       :radius 20
+       :color ~(if (= c 0) "@c.track" (+ computed.col (get ["59" "80" "a6" "cc" "f2"] (- (min c 5) 1)))))))
 
 (defview note-row "A day's note: the date and what was written; a click opens the day." [nt]
   `(node#noteRow :anchors {:left 0 :right 0}

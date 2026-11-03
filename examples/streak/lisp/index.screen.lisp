@@ -25,10 +25,10 @@
   `(node#body :fill 0 :color transparent :dir auto :every {:ms 60000 :do [{:run tick}]}
      ~(list-pane)
      (node#paneDivider
-     :when ~computed.wide
-     :anchors {:left ~computed.listWidth :top 0 :bottom 0}
-     :width 1
-     :color @c.divider)
+       :when ~computed.wide
+       :anchors {:left ~computed.listWidth :top 0 :bottom 0}
+       :width 1
+       :color @c.divider)
      (node#detailPane :anchors {:right 0 :top 0 :bottom 0}
        :width ~computed.detailWidth
        :visible ~(or computed.wide (= state.page "detail"))
@@ -42,36 +42,37 @@
          :align center)
        ~(detail-bar))
      ~(entry-popup)
-     (node#editDialog :use dialog
-       :with {:open state.edit.open
-              :title ~(if (= state.edit.id "") (t "edit.new") (t "edit.edit"))
-              :message ""
-              :width 600
-              :height ~(if (= state.edit.kind "measurable") 500 436)
-              :highlight ~computed.accent
-              :buttons ~[{:title (t "save") :run "saveHabit"} {:title (t "cancel")}]}
-       ~(edit-fields))
-     (node#deleteDialog :use dialog
-       :with {:open state.confirmDelete
-              :title ~(t (if computed.picking "delete.titleN" "delete.title"))
-              :message ~(if computed.picking
-                            (t "delete.messageN" {:n (count state.picked)})
-                            (t "delete.message" {:name (if (>= computed.sel 0) computed.h.name "")}))
-              :highlight @c.danger
-              :buttons ~[{:title (t "delete") :run "deleteHabit"} {:title (t "cancel")}]})
-     ~(settings-page)
-     (node#palette :use quickPick
-       :with {:providers ~[{:placeholder (t "palettePlaceholder") :items computed.palette :key "title"}]
-              :color @c.card
-              :textColor @c.text
-              :dimColor @c.muted
-              :accent @c.primary
-              :highlight @c.selected
-              :field @c.bg})
-     (node#toasts :use
-                  toasts
-                  :with
-                  {:name toasts :width 344 :color @c.snack :textColor @c.snackText :accent @c.snackAction})))
+     ~@(over-the-app)
+     ~(settings-page)))
+
+(defview over-the-app "The dialog that edits a habit, the one that deletes, the command palette and the toasts: four nodes." []
+  [`(node#editDialog :use dialog
+      :with {:open state.edit.open
+             :title ~(if (= state.edit.id "") (t "edit.new") (t "edit.edit"))
+             :message ""
+             :width 600
+             :height ~(if (= state.edit.kind "measurable") 500 436)
+             :highlight ~computed.accent
+             :buttons ~[{:title (t "save") :run "saveHabit"} {:title (t "cancel")}]}
+      ~(edit-fields))
+   `(node#deleteDialog :use dialog
+      :with {:open state.confirmDelete
+             :title ~(t (if computed.picking "delete.titleN" "delete.title"))
+             :message ~(if computed.picking
+                           (t "delete.messageN" {:n (count state.picked)})
+                           (t "delete.message" {:name (if (>= computed.sel 0) computed.h.name "")}))
+             :highlight @c.danger
+             :buttons ~[{:title (t "delete") :run "deleteHabit"} {:title (t "cancel")}]})
+   `(node#palette :use quickPick
+      :with {:providers ~[{:placeholder (t "palettePlaceholder") :items computed.palette :key "title"}]
+             :color @c.card
+             :textColor @c.text
+             :dimColor @c.muted
+             :accent @c.primary
+             :highlight @c.selected
+             :field @c.bg})
+   `(node#toasts :use toasts
+      :with {:name toasts :width 344 :color @c.snack :textColor @c.snackText :accent @c.snackAction})])
 
 ;;; The window
 

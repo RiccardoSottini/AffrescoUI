@@ -20,51 +20,48 @@
        :textColor ~pcol
        :anchors {:left 16 :top 14}
        :fitText true)
-     (node#popupValue
-     :when ~meas
-     :style field
-     :bind state.popup.value
-     :autofocus true
-     :label ~(t "popup.value")
-     :placeholder ~(t "popup.value")
-     :anchors {:left 16 :right 80 :top 44}
-     :onSubmit popupSave)
-     (label#label-ph-unit :text
-                          ~ph.unit
-                          :when
-                          ~meas
-                          :textColor
-                          @c.muted
-                          :anchors
-                          {:right 16 :top 56}
-                          :width
-                          56
-                          :height
-                          18)
-     (node#popupNote
-     :when ~(not meas)
-     :style field
-     :bind state.popup.note
-     :autofocus true
-     :label ~(t "popup.note")
-     :placeholder ~(t "popup.note")
-     :anchors {:left 16 :right 16 :top 44}
-     :onSubmit popupNoteOnly)
-     (node#popupMeasNote
-     :when ~meas
-     :style field
-     :bind state.popup.note
-     :label ~(t "popup.note")
-     :placeholder ~(t "popup.note")
-     :anchors {:left 16 :right 16 :top 92}
-     :onSubmit popupSave)
+     ~@(popup-fields)
      ~(popup-buttons)
      (node#popupSave
-     :style textButton
-     :when ~meas
-     :text ~(upper-case (t "popup.save"))
-     :anchors {:right 12 :bottom 10}
-     :onClick popupSave)))
+       :style textButton
+       :when ~meas
+       :text ~(upper-case (t "popup.save"))
+       :anchors {:right 12 :bottom 10}
+       :onClick popupSave)))
+
+(defview popup-fields "The value and its unit, or the note, and a measurable habit's note: four fields." []
+  [`(node#popupValue
+      :when ~meas
+      :style field
+      :bind state.popup.value
+      :autofocus true
+      :label ~(t "popup.value")
+      :placeholder ~(t "popup.value")
+      :anchors {:left 16 :right 80 :top 44}
+      :onSubmit popupSave)
+   `(label#label-ph-unit :text ~ph.unit
+      :when ~meas
+      :textColor @c.muted
+      :anchors {:right 16 :top 56}
+      :width 56
+      :height 18)
+   `(node#popupNote
+      :when ~(not meas)
+      :style field
+      :bind state.popup.note
+      :autofocus true
+      :label ~(t "popup.note")
+      :placeholder ~(t "popup.note")
+      :anchors {:left 16 :right 16 :top 44}
+      :onSubmit popupNoteOnly)
+   `(node#popupMeasNote
+      :when ~meas
+      :style field
+      :bind state.popup.note
+      :label ~(t "popup.note")
+      :placeholder ~(t "popup.note")
+      :anchors {:left 16 :right 16 :top 92}
+      :onSubmit popupSave)])
 
 (defview popup-buttons "The popup's yes, skip and no." []
   `(row#popupButtons :when ~(not meas)
@@ -73,48 +70,48 @@
      :justify space-around
      :arrows horizontal
      (node#popupYes
-     :style textButton
-     :icon check
-     :text ~(t "popup.yes")
-     :textColor ~pcol
-     :mnemonic y
-     :onClick ~(handler popupSet "y"))
+       :style textButton
+       :icon check
+       :text ~(t "popup.yes")
+       :textColor ~pcol
+       :mnemonic y
+       :onClick ~(handler popupSet "y"))
      (node#popupSkip
-     :style textButton
-     :icon chevrons-right
-     :text ~(t "popup.skip")
-     :textColor ~pcol
-     :mnemonic s
-     :onClick ~(handler popupSet "s"))
+       :style textButton
+       :icon chevrons-right
+       :text ~(t "popup.skip")
+       :textColor ~pcol
+       :mnemonic s
+       :onClick ~(handler popupSet "s"))
      (node#popupNo
-     :style textButton
-     :icon x
-     :text ~(t "popup.no")
-     :textColor @c.muted
-     :mnemonic n
-     :onClick ~(handler popupSet "-"))))
+       :style textButton
+       :icon x
+       :text ~(t "popup.no")
+       :textColor @c.muted
+       :mnemonic n
+       :onClick ~(handler popupSet "-"))))
 
 (defview edit-fields "The dialog's fields: name, colour, question, unit, target, frequency and reminder." []
   `(column#editFields :anchors {:left 20 :right 20 :top 48 :bottom 56} :gap 6
      (node#editName :anchors {:left 0 :right 0} :height 58 :color transparent
        (node#label-t-edit-name :style caption :text ~(t "edit.name") :anchors {:left 2 :top 0})
        (node#nameField
-       :style field
-       :bind state.edit.name
-       :autofocus true
-       :label ~(t "edit.name")
-       :placeholder ~(t "edit.namePh")
-       :anchors {:left 0 :right 52 :top 18}
-       :borderColor ~(if (not= state.edit.error "") "@c.danger" "@c.divider"))
+         :style field
+         :bind state.edit.name
+         :autofocus true
+         :label ~(t "edit.name")
+         :placeholder ~(t "edit.namePh")
+         :anchors {:left 0 :right 52 :top 18}
+         :borderColor ~(if (not= state.edit.error "") "@c.danger" "@c.divider"))
        ~(color-button))
      (node#editQuestion :anchors {:left 0 :right 0} :height 58 :color transparent
        (node#label-t-edit-question :style caption :text ~(t "edit.question") :anchors {:left 2 :top 0})
        (node#questionField
-       :style field
-       :bind state.edit.question
-       :label ~(t "edit.question")
-       :placeholder ~(t "edit.questionPh")
-       :anchors {:left 0 :right 0 :top 18}))
+         :style field
+         :bind state.edit.question
+         :label ~(t "edit.question")
+         :placeholder ~(t "edit.questionPh")
+         :anchors {:left 0 :right 0 :top 18}))
      (node#editTarget :anchors {:left 0 :right 0}
        :height 58
        :color transparent
@@ -130,11 +127,11 @@
      (node#editNotes :anchors {:left 0 :right 0} :height 58 :color transparent
        (node#label-t-edit-notes :style caption :text ~(t "edit.notes") :anchors {:left 2 :top 0})
        (node#notesField
-       :style field
-       :bind state.edit.description
-       :label ~(t "edit.notes")
-       :placeholder ~(t "edit.notesPh")
-       :anchors {:left 0 :right 0 :top 18}))
+         :style field
+         :bind state.edit.description
+         :label ~(t "edit.notes")
+         :placeholder ~(t "edit.notesPh")
+         :anchors {:left 0 :right 0 :top 18}))
      (label#label-edit-error :text ~state.edit.error
        :when ~(not= state.edit.error "")
        :font small
@@ -192,22 +189,22 @@
 (defview row-edit-target "A measurable habit's target: at least or at most, and how much." []
   `(row#row-edit-target :anchors {:left 0 :right 0 :top 18} :height 40 :gap 8 :alignItems center
      (node#atLeast
-     :style ~(if (= state.edit.targetType "atLeast") "chipOn" "chip")
-     :text ~(t "chip.atLeast")
-     :selected ~(= state.edit.targetType "atLeast")
-     :onClick {:set state.edit.targetType :to atLeast})
+       :style ~(if (= state.edit.targetType "atLeast") "chipOn" "chip")
+       :text ~(t "chip.atLeast")
+       :selected ~(= state.edit.targetType "atLeast")
+       :onClick {:set state.edit.targetType :to atLeast})
      (node#atMost
-     :style ~(if (= state.edit.targetType "atMost") "chipOn" "chip")
-     :text ~(t "chip.atMost")
-     :selected ~(= state.edit.targetType "atMost")
-     :onClick {:set state.edit.targetType :to atMost})
+       :style ~(if (= state.edit.targetType "atMost") "chipOn" "chip")
+       :text ~(t "chip.atMost")
+       :selected ~(= state.edit.targetType "atMost")
+       :onClick {:set state.edit.targetType :to atMost})
      (node#targetField :style field :bind state.edit.target :label ~(t "edit.target") :width 96 :placeholder "10")
      (node#unitField
-     :style field
-     :bind state.edit.unit
-     :label ~(t "edit.unit")
-     :width 140
-     :placeholder ~(t "edit.unitPh"))))
+       :style field
+       :bind state.edit.unit
+       :label ~(t "edit.unit")
+       :width 140
+       :placeholder ~(t "edit.unitPh"))))
 
 (defview row-edit-frequency "How often: every day, every n days, n times a week or a month." []
   `(row#row-edit-frequency :anchors {:left 0 :right 0 :top 20}
@@ -218,47 +215,47 @@
      :role radiogroup
      :label ~(t "edit.frequency")
      (node#freq_daily
-     :style ~(if (= state.edit.freqMode "daily") "chipOn" "chip")
-     :text ~(t "chip.daily")
-     :selected ~(= state.edit.freqMode "daily")
-     :onClick {:set state.edit.freqMode :to daily}
-     :when ~(not= state.edit.kind "measurable"))
+       :style ~(if (= state.edit.freqMode "daily") "chipOn" "chip")
+       :text ~(t "chip.daily")
+       :selected ~(= state.edit.freqMode "daily")
+       :onClick {:set state.edit.freqMode :to daily}
+       :when ~(not= state.edit.kind "measurable"))
      (node#freq_everyN
-     :style ~(if (= state.edit.freqMode "everyN") "chipOn" "chip")
-     :text ~(t "chip.everyN")
-     :selected ~(= state.edit.freqMode "everyN")
-     :onClick {:set state.edit.freqMode :to everyN}
-     :when ~(not= state.edit.kind "measurable"))
+       :style ~(if (= state.edit.freqMode "everyN") "chipOn" "chip")
+       :text ~(t "chip.everyN")
+       :selected ~(= state.edit.freqMode "everyN")
+       :onClick {:set state.edit.freqMode :to everyN}
+       :when ~(not= state.edit.kind "measurable"))
      (node#freq_week
-     :style ~(if (= state.edit.freqMode "week") "chipOn" "chip")
-     :text ~(t "chip.week")
-     :selected ~(= state.edit.freqMode "week")
-     :onClick {:set state.edit.freqMode :to week}
-     :when ~(not= state.edit.kind "measurable"))
+       :style ~(if (= state.edit.freqMode "week") "chipOn" "chip")
+       :text ~(t "chip.week")
+       :selected ~(= state.edit.freqMode "week")
+       :onClick {:set state.edit.freqMode :to week}
+       :when ~(not= state.edit.kind "measurable"))
      (node#freq_month
-     :style ~(if (= state.edit.freqMode "month") "chipOn" "chip")
-     :text ~(t "chip.month")
-     :selected ~(= state.edit.freqMode "month")
-     :onClick {:set state.edit.freqMode :to month}
-     :when ~(not= state.edit.kind "measurable"))
+       :style ~(if (= state.edit.freqMode "month") "chipOn" "chip")
+       :text ~(t "chip.month")
+       :selected ~(= state.edit.freqMode "month")
+       :onClick {:set state.edit.freqMode :to month}
+       :when ~(not= state.edit.kind "measurable"))
      (node#per_daily
-     :style ~(if (= state.edit.freqMode "daily") "chipOn" "chip")
-     :text ~(t "chip.perDay")
-     :selected ~(= state.edit.freqMode "daily")
-     :onClick {:set state.edit.freqMode :to daily}
-     :when ~(= state.edit.kind "measurable"))
+       :style ~(if (= state.edit.freqMode "daily") "chipOn" "chip")
+       :text ~(t "chip.perDay")
+       :selected ~(= state.edit.freqMode "daily")
+       :onClick {:set state.edit.freqMode :to daily}
+       :when ~(= state.edit.kind "measurable"))
      (node#per_week
-     :style ~(if (= state.edit.freqMode "week") "chipOn" "chip")
-     :text ~(t "chip.week")
-     :selected ~(= state.edit.freqMode "week")
-     :onClick {:set state.edit.freqMode :to week}
-     :when ~(= state.edit.kind "measurable"))
+       :style ~(if (= state.edit.freqMode "week") "chipOn" "chip")
+       :text ~(t "chip.week")
+       :selected ~(= state.edit.freqMode "week")
+       :onClick {:set state.edit.freqMode :to week}
+       :when ~(= state.edit.kind "measurable"))
      (node#per_month
-     :style ~(if (= state.edit.freqMode "month") "chipOn" "chip")
-     :text ~(t "chip.month")
-     :selected ~(= state.edit.freqMode "month")
-     :onClick {:set state.edit.freqMode :to month}
-     :when ~(= state.edit.kind "measurable"))
+       :style ~(if (= state.edit.freqMode "month") "chipOn" "chip")
+       :text ~(t "chip.month")
+       :selected ~(= state.edit.freqMode "month")
+       :onClick {:set state.edit.freqMode :to month}
+       :when ~(= state.edit.kind "measurable"))
      ~(freq-stepper)))
 
 (defview freq-stepper "The frequency's times, with minus and plus." []
@@ -267,13 +264,13 @@
      :height 32
      :alignItems center
      (node#freqLess
-     :style iconButton
-     :font iconsSmall
-     :icon minus
-     :width 32
-     :height 32
-     :label "−"
-     :onClick ~(handler stepTimes -1))
+       :style iconButton
+       :font iconsSmall
+       :icon minus
+       :width 32
+       :height 32
+       :label "−"
+       :onClick ~(handler stepTimes -1))
      (label#label-text-edit-n :text
                               ~(text state.edit.n)
                               :textColor
@@ -287,34 +284,34 @@
                               :role
                               status)
      (node#freqMore
-     :style iconButton
-     :font iconsSmall
-     :icon plus
-     :width 32
-     :height 32
-     :label "+"
-     :onClick ~(handler stepTimes 1))))
+       :style iconButton
+       :font iconsSmall
+       :icon plus
+       :width 32
+       :height 32
+       :label "+"
+       :onClick ~(handler stepTimes 1))))
 
 (defview row-edit-reminder "The reminder's time, if any." []
   `(row#row-edit-reminder :anchors {:left 0 :right 0 :top 20} :height 32 :gap 6 :alignItems center
      (node#reminderToggle :use switch
        :with {:on ~state.edit.reminderOn :path state.edit.reminderOn :label ~(t "edit.reminder")})
      (node#timeField
-     :style field
-     :bind state.edit.time
-     :label ~(t "edit.reminder")
-     :width 72
-     :height 32
-     :padding 6
-     :disabled ~(not state.edit.reminderOn)
-     :placeholder "08:00")
+       :style field
+       :bind state.edit.time
+       :label ~(t "edit.reminder")
+       :width 72
+       :height 32
+       :padding 6
+       :disabled ~(not state.edit.reminderOn)
+       :placeholder "08:00")
      ~(repeat [wd computed.weekdays]
        `(node#dayChip
-        :style ~(if (and (get state.edit.days wd) state.edit.reminderOn) "chipOn" "chip")
-        :role checkbox
-        :padding 6
-        :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
-        :selected ~(get state.edit.days wd)
-        :disabled ~(not state.edit.reminderOn)
-        :onClick {:toggle ~(str "state.edit.days[" wd "]")}))))
+          :style ~(if (and (get state.edit.days wd) state.edit.reminderOn) "chipOn" "chip")
+          :role checkbox
+          :padding 6
+          :text ~(formatDate (dateMs (addDays "2000-01-02" wd)) "EEE" "utc")
+          :selected ~(get state.edit.days wd)
+          :disabled ~(not state.edit.reminderOn)
+          :onClick {:toggle ~(str "state.edit.days[" wd "]")}))))
 

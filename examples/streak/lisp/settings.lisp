@@ -31,14 +31,14 @@
      :color @c.bar
      :shadow {:y 2 :blur 4 :color "#00000030"}
      (node#settingsBack
-     :style iconButton
-     :icon arrow-left
-     :label ~(t "back")
-     :tooltip ~(t "back")
-     :textColor @c.text
-     :onClick {:set state.settingsOpen :to false}
-     :anchors {:left 4 :top 8}
-     :mirror true)
+       :style iconButton
+       :icon arrow-left
+       :label ~(t "back")
+       :tooltip ~(t "back")
+       :textColor @c.text
+       :onClick {:set state.settingsOpen :to false}
+       :anchors {:left 4 :top 8}
+       :mirror true)
      (label#label-t-settings :text ~(t "settings")
        :font title
        :textColor @c.text
@@ -101,16 +101,13 @@
      (label#label-t-set-data :text ~(t "set.data") :style sectionTitle :anchors {:left 0 :right 0})
      (node#exportRow :use prefRow :with {:title ~(t "set.export") :summary ~(t "set.exportHint")} :onClick exportAll)
      (node#backupRow :use prefRow :with {:title ~(t "set.backup") :summary ~(t "set.backupHint")} :onClick backupAll)
-     (node#restoreRow :use
-                      prefRow
-                      :with
-                      {:title ~(t "set.restore") :summary ~(t "set.restoreHint")}
-                      :onClick
-                      restoreAll)
+     (node#restoreRow :use prefRow
+       :with {:title ~(t "set.restore") :summary ~(t "set.restoreHint")}
+       :onClick restoreAll)
      (node#syncRow :use prefRow :with {:title ~(t "set.sync") :summary ~computed.syncText} :onClick syncNow
        (node#accountButton
-       :style textButton
-       :text ~(if computed.signedIn (t "signOut") (t "signIn"))
-       :anchors {:right 8 :top 14}
-       :onClick {:run ~(if computed.signedIn "signOutOfServer" "signInToServer")}))))
+         :style textButton
+         :text ~(if computed.signedIn (t "signOut") (t "signIn"))
+         :anchors {:right 8 :top 14}
+         :onClick {:run ~(if computed.signedIn "signOutOfServer" "signInToServer")}))))
 
