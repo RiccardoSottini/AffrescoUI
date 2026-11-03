@@ -48,7 +48,8 @@
          :with {:icon layout-template :title ~(t "ribbon.layout") :menu true}
          :tooltip ~(t "ribbon.layout")
          :onClick ~(handler openDrop "b-layout"))
-       (node#b-reset :use rbSmall :with {:icon rotate-ccw :title ~(t "ribbon.reset")} :tooltip ~(t "ribbon.reset") :onClick resetSlide)
+       (node#b-reset :use rbSmall :with {:icon rotate-ccw :title ~(t "ribbon.reset")} :tooltip ~(t "ribbon.reset")
+         :onClick resetSlide)
        (node#b-section :use rbSmall
          :with {:icon layout-list :title ~(t "ribbon.section") :menu true}
          :tooltip ~(t "ribbon.section")
@@ -61,7 +62,8 @@
        :tooltip ~(t "ribbon.pasteCtrlV")
        :onClick pasteObjects)
      (node#s-clipboard :use rbStack
-       (node#b-cut :use rbSmall :with {:icon scissors :title ~(t "ribbon.cut")} :tooltip ~(t "ribbon.cutCtrlX") :onClick cutObjects)
+       (node#b-cut :use rbSmall :with {:icon scissors :title ~(t "ribbon.cut")} :tooltip ~(t "ribbon.cutCtrlX")
+         :onClick cutObjects)
        (node#b-copy :use rbSmall
          :with {:icon copy :title ~(t "ribbon.copy") :menu true :drop b-copy}
          :tooltip ~(t "ribbon.copyCtrlC")
@@ -240,7 +242,8 @@
          :wrap true
          :padding 4
          :textColor @rbMuted
-         :runs [{:text ~(if (= state.fileStatus "") (t "ribbon.nothingSavedOrExportedYet") state.fileStatus) :size 12}]))))
+         :runs [{:text ~(if (= state.fileStatus "") (t "ribbon.nothingSavedOrExportedYet") state.fileStatus)
+                 :size 12}]))))
 
 (defcomponent tabMotion "The Motion tab: the preview, the builds' effects, their timing, and the animation pane."
   {}
@@ -306,7 +309,8 @@
 (defview r-font-1 "The font, its size, larger, smaller, and clear the formatting." []
   `(node#r-font-1 :use rbRow
      (node#f-font :use rbField :with {:text ~computed.fontTitle :width 150 :drop f-font} :tooltip ~(t "ribbon.font"))
-     (node#f-size :use rbField :with {:text ~(text computed.textSize) :width 46 :drop f-size} :tooltip ~(t "ribbon.fontSize"))
+     (node#f-size :use rbField :with {:text ~(text computed.textSize) :width 46 :drop f-size}
+       :tooltip ~(t "ribbon.fontSize"))
      (node#b-grow :use rbSmall
        :with {:icon a-arrow-up}
        :tooltip ~(t "ribbon.increaseFontSizeCtrlShift")
@@ -390,7 +394,7 @@
 
 (defview r-para-2 "The text's alignment, its direction, its place in the box." []
   `(node#r-para-2 :use rbRow
-     ~(repeat [a [["left" "align-left" (t "ribbon.alignLeftCtrlL")] ["center" "align-center" (t "ribbon.centerCtrlE")] ["right" "align-right" (t "ribbon.alignRightCtrlR")] ["justify" "align-justify" (t "ribbon.justifyCtrlJ")]]]
+     ~(repeat [a computed.alignments]
        `(node :id ~(str "b-align-" a.0)
           :use rbSmall
           :with {:icon ~a.1
@@ -455,7 +459,7 @@
   `(node#g-drawing :use rbGroup :with {:title ~(t "ribbon.drawing") :launcher "launch-drawing"}
      (node#gal-shapes :use rbGallery :with {:width 168 :more gal-shapes}
        (grid#gal-shapes-grid :columns 6 :width 148 :height 66 :gap 1 :color transparent
-         ~(repeat [k ["textBox" "rect" "ellipse" "triangle" "rtTriangle" "line" "lineArrow" "roundRect" "rightArrow" "downArrow" "star5" "curvedRightArrow" "leftBrace" "rightBrace" "smileyFace" "heart" "cloud" "wedgeRoundRectCallout"] :index n]
+         ~(repeat [k computed.galleryShapes :index n]
            (gallery-shape k))))
      (node#b-arrange :use rbBig
        :with {:icon layers-2 :title ~(t "ribbon.arrange") :menu true :width 52}
@@ -530,7 +534,7 @@
 (defview g-transition-to "The transitions, and the side the transition comes from." []
   `(node#g-transition-to :use rbGroup :with {:title ~(t "ribbon.transitionToThisSlide")}
      (node#gal-transitions :use rbGallery :with {:width 520}
-       ~(repeat [k [["none" "ban" (t "ribbon.none")] ["glide" "blend" (t "ribbon.glide")] ["fade" "sun-dim" (t "ribbon.fade")] ["push" "arrow-left-to-line" (t "ribbon.push")] ["wipe" "chevrons-left" (t "ribbon.wipe")] ["split" "columns-2" (t "ribbon.split")] ["reveal" "arrow-left-from-line" (t "ribbon.reveal")] ["cover" "square-stack" (t "ribbon.cover")]]]
+       ~(repeat [k computed.transitionKinds]
          `(label :id ~(str "tr-" k.0)
             :width 60
             :height 64
@@ -554,12 +558,14 @@
          :height 22
          :textColor @rbInk
          :runs ~[{:icon "clock-3" :size 14}
-                 {:text (t "ribbon.duration" {:seconds (fixed (/ (or-else computed.slide.transition.ms 500) 1000) 2)}) :size 12}])
+                 {:text (t "ribbon.duration" {:seconds (fixed (/ (or-else computed.slide.transition.ms 500) 1000) 2)})
+                  :size 12}])
        (node#timing-shorter :use rbSmall
                             :with {:icon minus}
                             :tooltip ~(t "ribbon.shorter")
                             :onClick ~(handler durationBy -250))
-       (node#timing-longer :use rbSmall :with {:icon plus} :tooltip ~(t "ribbon.longer") :onClick ~(handler durationBy 250)))
+       (node#timing-longer :use rbSmall :with {:icon plus} :tooltip ~(t "ribbon.longer")
+         :onClick ~(handler durationBy 250)))
      (label#timing-apply :height 22
        :style rbButton
        :padding 2
@@ -592,7 +598,7 @@
 (defview g-effects "The build effects for the selected objects, and As Exit." []
   `(node#g-effects :use rbGroup :with {:title ~(if (= a.kind "exit") (t "ribbon.exit") (t "ribbon.entrance"))}
      (node#gal-effects :use rbGallery :with {:width 380}
-       ~(repeat [e [["none" "ban" (t "ribbon.none")] ["appear" "square" (t "ribbon.appear")] ["fade" "sun-dim" (t "ribbon.fade")] ["wipe" "chevrons-right" (t "ribbon.wipe")] ["fly" "move-up" (t "ribbon.fly")] ["zoom" "zoom-in" (t "bar.zoom")]]]
+       ~(repeat [e computed.buildEffects]
          `(label :id ~(str "fx-" e.0)
             :width 60
             :height 64
@@ -600,7 +606,8 @@
             :align {:horizontal center :vertical center}
             :style ~(cond (not on) "rbButtonOff" (= (or-else a.effect "none") e.0) "rbButtonOn" :else "rbButton")
             :runs ~[{:icon e.1 :size 24} {:text (str "\n" e.2) :size 11}]
-            :onClick ~(handler setAnimation e.0 (or-else a.kind "entrance") (or-else a.start "click") (or-else a.ms 500)))))
+            :onClick ~(handler setAnimation e.0 (or-else a.kind "entrance") (or-else a.start "click")
+                                (or-else a.ms 500)))))
      (node#b-exit :use rbBig
        :with {:icon log-out :title ~(t "ribbon.asExit") :on ~(= a.kind "exit") :enabled ~(some? a) :width 46}
        :tooltip ~(t "ribbon.leaveTheSlideInsteadOf")
@@ -622,7 +629,8 @@
        (label#motion-duration :width 120
          :height 22
          :textColor @rbInk
-         :runs ~[{:icon "clock-3" :size 14} {:text (t "ribbon.duration" {:seconds (fixed (/ (or-else a.ms 500) 1000) 2)}) :size 12}])
+         :runs ~[{:icon "clock-3" :size 14}
+                 {:text (t "ribbon.duration" {:seconds (fixed (/ (or-else a.ms 500) 1000) 2)}) :size 12}])
        (node#motion-shorter :use rbSmall
          :with {:icon minus :enabled ~(some? a)}
          :tooltip ~(t "ribbon.shorter")
@@ -637,6 +645,36 @@
                                                :clicks (count (filter (fn [it] (= it.start "click"))
                                                                       (or-else computed.slide.animations [])))})
                :size 12}])))
+
+;;; What the galleries list
+
+(defcomputed alignments "The text's alignments: each with its icon and its button's tooltip."
+  [["left" "align-left" (t "ribbon.alignLeftCtrlL")]
+   ["center" "align-center" (t "ribbon.centerCtrlE")]
+   ["right" "align-right" (t "ribbon.alignRightCtrlR")]
+   ["justify" "align-justify" (t "ribbon.justifyCtrlJ")]])
+
+(defcomputed galleryShapes "The shapes of the Home tab's gallery, a text box first."
+  ["textBox" "rect" "ellipse" "triangle" "rtTriangle" "line" "lineArrow" "roundRect" "rightArrow" "downArrow" "star5"
+   "curvedRightArrow" "leftBrace" "rightBrace" "smileyFace" "heart" "cloud" "wedgeRoundRectCallout"])
+
+(defcomputed transitionKinds "The transitions of the gallery: each with its icon and its name."
+  [["none" "ban" (t "ribbon.none")]
+   ["glide" "blend" (t "ribbon.glide")]
+   ["fade" "sun-dim" (t "ribbon.fade")]
+   ["push" "arrow-left-to-line" (t "ribbon.push")]
+   ["wipe" "chevrons-left" (t "ribbon.wipe")]
+   ["split" "columns-2" (t "ribbon.split")]
+   ["reveal" "arrow-left-from-line" (t "ribbon.reveal")]
+   ["cover" "square-stack" (t "ribbon.cover")]])
+
+(defcomputed buildEffects "The build effects of the gallery: each with its icon and its name."
+  [["none" "ban" (t "ribbon.none")]
+   ["appear" "square" (t "ribbon.appear")]
+   ["fade" "sun-dim" (t "ribbon.fade")]
+   ["wipe" "chevrons-right" (t "ribbon.wipe")]
+   ["fly" "move-up" (t "ribbon.fly")]
+   ["zoom" "zoom-in" (t "bar.zoom")]])
 
 ;;; What the ribbon does
 

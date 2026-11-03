@@ -9,47 +9,51 @@
 
 ;;; Definitions
 
-(defstate inkTool nil)
+(defstate inkTool nil "The ink tool chosen: pen, highlighter, eraser, or nil to select.")
 
 (defstate inkColor "#1f2933")
 
-(defstate inkWidth 3)
+(defstate inkWidth 3 "The pen's width.")
 
-(defstate stroke [])
+(defstate stroke [] "The points of the stroke being drawn.")
 
-(defstate strokeFrom [0 0])
+(defstate strokeFrom [0 0] "Where the stroke started, in slide points.")
 
-(defstate sidePane nil)
+(defstate sidePane nil "The side pane shown: comments, select, motion, access, keys, about, or nil.")
 
-(defstate commentFocus nil)
+(defstate commentFocus nil "The comment that takes the focus when shown.")
 
-(defcomputed inkPens "The pens' colours, each with its name." '[["#1f2933" "black"] ["#e03131" "red"] ["#1c7ed6" "blue"] ["#2f9e44" "green"] ["#f08c00" "orange"]])
+(defcomputed inkPens "The pens' colours, each with its name."
+  '[["#1f2933" "black"] ["#e03131" "red"] ["#1c7ed6" "blue"] ["#2f9e44" "green"] ["#f08c00" "orange"]])
 
 (defcomputed inkHighlights "The highlighter's colours, each with its name."
   '[["#ffe680" "yellow"] ["#b2f2bb" "green"] ["#a5d8ff" "blue"] ["#fcc2d7" "pink"]])
 
-(defcomputed inkSwatches (if computed.inkHighlight computed.inkHighlights computed.inkPens))
+(defcomputed inkSwatches "The colours shown: the highlighter's or the pens'."
+  (if computed.inkHighlight computed.inkHighlights computed.inkPens))
 
 (defcomputed inkWidths "The pen's widths, each with its name." '[[1.5 "thin"] [3 "medium"] [6 "thick"]])
 
-(defcomputed inkHighlight (= state.inkTool "highlighter"))
+(defcomputed inkHighlight "Whether the highlighter is chosen." (= state.inkTool "highlighter"))
 
-(defcomputed strokeColor state.inkColor)
+(defcomputed strokeColor "The stroke's colour." state.inkColor)
 
-(defcomputed strokeWidth (if computed.inkHighlight 14 state.inkWidth))
+(defcomputed strokeWidth "The stroke's width: wide for the highlighter." (if computed.inkHighlight 14 state.inkWidth))
 
-(defcomputed liveStroke
+(defcomputed liveStroke "The stroke being drawn, as a path on the canvas."
   (str "M "
-         (join " L "
-               (map (fn [it]
-                      (str (fixed (* (- it.0 computed.view.camera.x) computed.view.camera.zoom) 1)
-                           " "
-                           (fixed (* (- it.1 computed.view.camera.y) computed.view.camera.zoom) 1)))
-                    state.stroke))))
+       (join " L "
+             (map (fn [it]
+                    (str (fixed (* (- it.0 computed.view.camera.x) computed.view.camera.zoom) 1)
+                         " "
+                         (fixed (* (- it.1 computed.view.camera.y) computed.view.camera.zoom) 1)))
+                  state.stroke))))
 
-(defcomputed slideInk (count (filter (fn [it] (= it.kind "ink")) computed.objects)))
+(defcomputed slideInk "How many ink strokes the slide has."
+  (count (filter (fn [it] (= it.kind "ink")) computed.objects)))
 
-(defcomputed timed (count (filter (fn [it] (some? it.advanceAfter)) state.deck.slides)))
+(defcomputed timed "How many slides have a timing."
+  (count (filter (fn [it] (some? it.advanceAfter)) state.deck.slides)))
 
 (defmacro object-name "An object's name: its own, else its kind (or its placeholder's) and a number." [o number]
   `(or-else (:name ~o)
@@ -62,38 +66,38 @@
 (defcomputed objectNames "Each object's name, as the selection pane shows it."
   (map-indexed (fn [index it] (object-name it (+ index 1))) computed.objects))
 
-(defcomputed motionRows
+(defcomputed motionRows "The slide's builds in the order they play, each with its object's name."
   (map (fn [it]
-           (merge it
-                  {:name (or-else (get computed.objectNames
-                                       (indexOf (map (fn [it] it.id) computed.objects) it.target))
-                                  "")}))
-         (scan (or-else computed.slide.animations [])
-               (fn [acc it] (merge it {:step (+ acc.step (if (= it.start "click") 1 0))}))
-               {:step 0})))
+         (merge it
+                {:name (or-else (get computed.objectNames
+                                     (indexOf (map (fn [it] it.id) computed.objects) it.target))
+                                "")}))
+       (scan (or-else computed.slide.animations [])
+             (fn [acc it] (merge it {:step (+ acc.step (if (= it.start "click") 1 0))}))
+             {:step 0})))
 
-(defcomputed comments (or-else computed.slide.comments []))
+(defcomputed comments "The slide's comments." (or-else computed.slide.comments []))
 
-(defcomputed commented
+(defcomputed commented "The indexes of the slides with comments."
   (filter (fn [it] (> (count (or-else (get-in state.deck.slides [it :comments]) [])) 0))
-            (range (count state.deck.slides))))
+          (range (count state.deck.slides))))
 
-(defcomputed untitled
+(defcomputed untitled "How many slides have no title."
   (count (filter (fn [it]
-                     (not (some (fn [it]
-                                  (and (contains ["title" "ctrTitle"] (or-else it.ph ""))
-                                       (not= (trim (or-else it.text "")) "")))
-                                (or-else it.objects []))))
-                   state.deck.slides)))
+                   (not (some (fn [it]
+                                (and (contains ["title" "ctrTitle"] (or-else it.ph ""))
+                                     (not= (trim (or-else it.text "")) "")))
+                              (or-else it.objects []))))
+                 state.deck.slides)))
 
-(defcomputed accessIssues
+(defcomputed accessIssues "How many findings the accessibility check has."
   (+ computed.untitled
-       (count (filter (fn [it]
-                        (or (and (some? it.ph) (= (trim (or-else it.text "")) ""))
-                            (and (or (= it.kind "icon") (= it.kind "ink")) (= (trim (or-else it.alt "")) ""))))
-                      (flat (map (fn [it] (or-else it.objects [])) state.deck.slides))))))
+     (count (filter (fn [it]
+                      (or (and (some? it.ph) (= (trim (or-else it.text "")) ""))
+                          (and (or (= it.kind "icon") (= it.kind "ink")) (= (trim (or-else it.alt "")) ""))))
+                    (flat (map (fn [it] (or-else it.objects [])) state.deck.slides))))))
 
-(defcomputed shortcuts
+(defcomputed shortcuts "The keyboard shortcuts the Help pane lists: keys and what they do."
   [["F5" (t "pane.presentFromTheBeginning")]
    [(t "pane.shiftF5") (t "bar.presentFromThisSlide")]
    [(t "pane.ctrlM") (t "pane.newSlide")]
@@ -134,7 +138,8 @@
          :with {:icon history :title ~(t "pane.inkReplay") :width 46 :enabled false}
          :tooltip ~(t "pane.replayingInkIsnTAvailable")))))
 
-(defcomponent inkLayer "Over the slide while a pen is chosen: a press, a drag and a release draw (or erase) in slide points, the camera's place plus the pointer's over the zoom."
+(defcomponent inkLayer
+  "Over the slide while a pen is chosen: a press, a drag and a release draw, or erase, in slide points."
   {}
   `(node#ink-layer :fill 0
      :color transparent
@@ -191,13 +196,15 @@
                 :width 62}
          :onClick ~(handler openSidePane "keys"))
        (node#b-about :use rbBig
-         :with {:icon info :title ~(t "pane.about") :on ~(and (= state.sidePane "about") (not state.formatPane)) :width 46}
+         :with {:icon info :title ~(t "pane.about") :on ~(and (= state.sidePane "about") (not state.formatPane))
+                :width 46}
          :onClick ~(handler openSidePane "about"))
        (node#b-feedback :use rbBig
          :with {:icon message-circle-heart :title ~(t "pane.feedback") :width 54 :enabled false}
          :tooltip ~(t "pane.sendingFeedbackIsnTAvailable")))))
 
-(defcomponent sidePane "The comments, the accessibility check, the shortcuts or About, by state.sidePane, where the format pane goes."
+(defcomponent sidePane
+  "The comments, the accessibility check, the shortcuts or About, by state.sidePane, where the format pane goes."
   {}
   `(column#side-pane :width 260
      :color @rb
@@ -262,7 +269,8 @@
      ~(repeat [c computed.comments :index n :key c.id]
        (comment c n))))
 
-(defcomponent selectionList "The slide's objects, front first, by their names: a click selects one, the eye shows or hides it."
+(defcomponent selectionList
+  "The slide's objects, front first, by their names: a click selects one, the eye shows or hides it."
   {}
   `(column#selection-list :width 236 :fitContent height :gap 2 :alignItems stretch :color transparent
      (row#selection-all :height 26 :gap 6 :color transparent
@@ -287,7 +295,8 @@
      ~(repeat [o (reverse computed.objects) :index n :key o.id]
        (selection-row o n))))
 
-(defcomponent motionList "The slide's builds in the order they play, each with its click (a number where a click starts it): a click selects its object, the arrows play it earlier or later, the cross takes it off."
+(defcomponent motionList
+  "The slide's builds in the order they play: a click selects one's object, the arrows move it, the cross removes it."
   {}
   `(column#motion-list :width 236 :fitContent height :gap 2 :alignItems stretch :color transparent
      (row#motion-all :height 26 :gap 6 :color transparent
@@ -307,7 +316,8 @@
      ~(repeat [a computed.motionRows :index n :key a.id]
        (motion-row a n))))
 
-(defcomponent accessList "Each slide's findings: no title, an empty placeholder, an icon or ink without alternative text (which the format pane sets). A click goes to it."
+(defcomponent accessList
+  "Each slide's findings: no title, an empty placeholder, an icon or ink without alt text; a click goes there."
   {}
   `(column#access-list :width 236 :fitContent height :gap 2 :alignItems stretch :color transparent
      (label#access-summary :height 36
@@ -321,7 +331,8 @@
        `(column :id ~(str "access-" s.id) :fitContent height :gap 2 :alignItems stretch :color transparent
           (label :id ~(str "access-" s.id "-title")
             :when ~(not (some (fn [it]
-                                (and (contains ["title" "ctrTitle"] (or-else it.ph "")) (not= (trim (or-else it.text "")) "")))
+                                (and (contains ["title" "ctrTitle"] (or-else it.ph ""))
+                                     (not= (trim (or-else it.text "")) "")))
                               (or-else s.objects [])))
             :style rbButton
             :height 24
@@ -383,7 +394,8 @@
          :tooltip ~(t "pane.inTheShowEachTimed"))
        (label#timings-count :height 20
          :textColor @rbMuted
-         :runs [{:text ~(if (= computed.timed 0) (t "pane.noSlideIsTimed") (t "pane.slidesTimed" {:n computed.timed})) :size 11}]))))
+         :runs [{:text ~(if (= computed.timed 0) (t "pane.noSlideIsTimed") (t "pane.slidesTimed" {:n computed.timed}))
+                 :size 11}]))))
 
 (defview g-comments "New, delete and show the comments, and go through the slides that have some." []
   `(node#g-comments :use rbGroup :with {:title ~(t "ribbon.comments")}
@@ -392,7 +404,8 @@
        :tooltip ~(t "ribbon.commentOnThisSlide")
        :onClick newComment)
      (node#b-delete-comment :use rbBig
-       :with {:icon message-square-x :title ~(t "menu.delete") :menu true :width 46 :enabled ~(> (count computed.commented) 0)}
+       :with {:icon message-square-x :title ~(t "menu.delete") :menu true :width 46
+              :enabled ~(> (count computed.commented) 0)}
        :onClick ~(handler openDrop "b-delete-comment"))
      (node#comments-nav :use rbStack
        (node#b-comment-previous :use rbSmall
@@ -541,7 +554,8 @@
      :padding 4
      :tooltip ~(if (some? o.ph) (t "pane.fillItInOrDelete") (t "pane.describeItInAltText"))
      :runs [{:icon ~(if (some? o.ph) "square-dashed-bottom" "image-off") :size 13}
-            {:text ~(t "pane.slideIssue" {:n (+ n 1) :issue (cond (some? o.ph) "placeholder" (= o.kind "ink") "ink" :else "icon")})
+            {:text ~(t "pane.slideIssue"
+                       {:n (+ n 1) :issue (cond (some? o.ph) "placeholder" (= o.kind "ink") "ink" :else "icon")})
              :size 12}]
      :onClick ~(handler goToIssue n o.id)))
 
@@ -596,7 +610,9 @@
       (addInk (apply min xs) (apply min ys) (apply max xs) (apply max ys))))
   (set "state.stroke" []))
 
-(defn addInk "Adds the stroke as an ink object: its points as a path in a box around them, its half width wide; a highlighter's goes behind the other objects." [left top right bottom]
+(defn addInk
+  "Adds the stroke as an ink object, a path in a box around its points; a highlighter's goes behind the others."
+  [left top right bottom]
   (let [pad (+ (/ computed.strokeWidth 2) 1)
         w (+ (- right left) (* 2 pad))
         h (+ (- bottom top) (* 2 pad))
@@ -697,7 +713,8 @@
 (defn deleteComments "Deletes the slide's comments, or every slide's." [all]
   (commit)
   (set "state.deck.slides"
-       (map-indexed (fn [index it] (if (or all (= index state.current)) (merge it {:comments []}) it)) state.deck.slides)))
+       (map-indexed (fn [index it] (if (or all (= index state.current)) (merge it {:comments []}) it))
+                    state.deck.slides)))
 
 (defn goToComment "Shows the next slide with comments (or the previous), round to the first (or the last)." [forward]
   (when (> (count computed.commented) 0)

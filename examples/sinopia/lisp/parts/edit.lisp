@@ -44,7 +44,8 @@
 
 ;;; Where the selection is
 
-(defcomputed phNames "The placeholder names of the slide's layout." (map (fn [it] it.ph) (or-else computed.layout.ph [])))
+(defcomputed phNames "The placeholder names of the slide's layout."
+  (map (fn [it] it.ph) (or-else computed.layout.ph [])))
 
 (defcomputed boxes "Each selected object's box: its own place, else its placeholder's, else 100 by 100 at the corner."
   (map (fn [it]
@@ -57,11 +58,11 @@
 
 (defcomputed selectionBounds "The box around the selected objects, or the page when nothing is selected."
   (if (= (count computed.boxes) 0)
-    computed.slideBounds
-    {:left (min (map (fn [it] it.x) computed.boxes))
-     :top (min (map (fn [it] it.y) computed.boxes))
-     :right (max (map (fn [it] (+ it.x it.w)) computed.boxes))
-     :bottom (max (map (fn [it] (+ it.y it.h)) computed.boxes))}))
+      computed.slideBounds
+      {:left (min (map (fn [it] it.x) computed.boxes))
+       :top (min (map (fn [it] it.y) computed.boxes))
+       :right (max (map (fn [it] (+ it.x it.w)) computed.boxes))
+       :bottom (max (map (fn [it] (+ it.y it.h)) computed.boxes))}))
 
 ;;; Text
 
@@ -105,7 +106,9 @@
 
 (defcomputed effectItems "The Shape Effects menu: none, a shadow or a glow on the selected objects."
   (map (fn [it]
-         {:title (t (str "effect." (or-else it "none"))) :run "setObjects" :with {:props {:effect it}}
+         {:title (t (str "effect." (or-else it "none")))
+          :run "setObjects"
+          :with {:props {:effect it}}
           :enabled (> (count computed.selected) 0)})
        [nil "shadow" "glow"]))
 
@@ -146,7 +149,8 @@
                 {:layout layout
                  :objects (concat (filter (fn [it] (or (nil? it.ph) (contains wanted it.ph))) computed.objects)
                                   (map-indexed (fn [index it]
-                                                 {:id (str "o" (+ state.deck.next index)) :kind "text" :ph it.ph :text ""})
+                                                 {:id (str "o" (+ state.deck.next index)) :kind "text" :ph it.ph
+                                                  :text ""})
                                                (filter (fn [it] (not (contains had it.ph))) holders)))})))
   (increment "state.deck.next" :by 10))
 
@@ -178,7 +182,8 @@
                          (or-else (find (fn [it] (< it size)) (reverse computed.sizes)) (max (- size 1) 1)))})))
 
 (defn clearFormatting "Takes every text style off the selection: its theme's look comes back." []
-  (setObjects {:bold nil :italic nil :underline nil :strike nil :shadow nil :size nil :color nil :highlight nil :font nil}))
+  (setObjects {:bold nil :italic nil :underline nil :strike nil :shadow nil :size nil :color nil :highlight nil
+               :font nil}))
 
 (defn toggleLock "Locks the selected objects, or unlocks them if all are." []
   (setObjects {:locked (not (every? (fn [it] (or-else it.locked false)) computed.selected))}))
@@ -188,7 +193,8 @@
   (when (and (>= k 0) (not (or-else (get-in computed.objects [k :locked]) false)))
     (set (str "state.deck.slides[state.current].objects[" k "]")
          (merge (get computed.objects k)
-                {:x (tenth m.x) :y (tenth m.y) :w (tenth m.width) :h (tenth m.height) :rotate (tenth (or-else m.rotate 0))}))))
+                {:x (tenth m.x) :y (tenth m.y) :w (tenth m.width) :h (tenth m.height)
+                 :rotate (tenth (or-else m.rotate 0))}))))
 
 (defn placeObjects "Keeps where the canvas moved, sized or turned the objects, as one change." [moved]
   (commit)
@@ -310,4 +316,5 @@
   (when (some? computed.animation)
     (commit)
     (set "state.deck.slides[state.current].animations"
-         (map (fn [it] (if (contains state.board.selection it.target) (merge it props) it)) computed.slide.animations))))
+         (map (fn [it] (if (contains state.board.selection it.target) (merge it props) it))
+              computed.slide.animations))))

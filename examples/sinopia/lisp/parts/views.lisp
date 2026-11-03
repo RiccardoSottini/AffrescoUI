@@ -24,7 +24,8 @@
 
 (defcomputed outlineText "Each slide's text for the outline: its objects' text, a line each."
   (map (fn [it]
-         (join "\n" (filter (fn [it] (not= it "")) (map (fn [it] (trim (or-else it.text ""))) (or-else it.objects [])))))
+         (join "\n"
+               (filter (fn [it] (not= it "")) (map (fn [it] (trim (or-else it.text ""))) (or-else it.objects [])))))
        state.deck.slides))
 
 ;;; Keys
@@ -35,7 +36,8 @@
 
 ;;; The format pane
 
-(defcomponent swatches "The theme's colours and none, as a row of swatches; a click sets the selection's `key`, or the slide's background."
+(defcomponent swatches
+  "The theme's colours and none, as a row of swatches; a click sets the selection's `key`, or the slide's background."
   {:prefix "" :chosen "" :run "" :key ""}
   `(row :id ~(str prefix "-swatches") :height 22 :gap 3 :color transparent
      ~(repeat [slot (if (= key "background") (slice computed.fillSlots 1) computed.fillSlots)]
@@ -75,7 +77,8 @@
        :tooltip ~(t "view.more")
        :onClick ~(handler setProperty key (clamp (+ value step) low high)))))
 
-(defcomponent formatPane "The selected objects' fill, line, size, place and rotation, their lock and the first one's alt text; with nothing selected, the slide's background."
+(defcomponent formatPane
+  "The format pane: the selected objects' fill, line, place, lock and alt text, or the slide's background."
   {}
   `(column#format-pane :width 260
      :color @rb
@@ -93,7 +96,8 @@
          :height 22
          :textColor @rbInk
          :runs [{:text ~(if (nil? 'o) (t "menu.formatBackground2") (t "view.formatShape")) :size 14 :bold true}])
-       (node#format-close :use rbSmall :with {:icon x} :tooltip ~(t "pane.close") :onClick [{:set state.formatPane :to false}]))
+       (node#format-close :use rbSmall :with {:icon x} :tooltip ~(t "pane.close")
+         :onClick [{:set state.formatPane :to false}]))
      ~(format-background)
      ~(format-object)))
 
@@ -133,12 +137,13 @@
 (defview stepper "A stepper of the format pane: a number of the selection, `value` or else `fallback`, titled by a key."
   [prefix title value fallback unit key step low high]
   `(node :use paneStepper
-     :with {:prefix ~prefix :title ~(t title) :value ~(or-else value fallback) :unit ~unit :key ~key :step ~step :low ~low
+     :with {:prefix ~prefix :title ~(t title) :value ~(or-else value fallback) :unit ~unit :key ~key :step ~step
+            :low ~low
             :high ~high}))
 
 (defview format-effects "No effect, a shadow or a glow, for the selected objects." []
   `(row#format-effects :width 236 :height 26 :gap 4 :color transparent
-     ~(repeat [fx [["none", (t "view.noEffect")], ["shadow", (t "effect.shadow")], ["glow", (t "effect.glow")]] :key fx.0]
+     ~(repeat [fx [["none" (t "view.noEffect")] ["shadow" (t "effect.shadow")] ["glow" (t "effect.glow")]] :key fx.0]
        `(label :id ~(str "format-effect-" fx.0)
           :style ~(if (= (or-else o.effect "none") fx.0) "rbButtonOn" "rbButton")
           :height 26
@@ -211,7 +216,8 @@
        :color ~(if (= i state.current) "@brandLine" "transparent")
        :hover {:color ~(if (= i state.current) "@brandLine" "@thumbHover")}
        :dragOver {:color @brandLine}
-       (image :id ~(str "sorter-" s.id "-image") :x 3 :y 3 :width 214 :height 122 :source ~(str "slide-" s.id) :fit fill)
+       (image :id ~(str "sorter-" s.id "-image") :x 3 :y 3 :width 214 :height 122 :source ~(str "slide-" s.id)
+         :fit fill)
        (node :id ~(str "sorter-" s.id "-veil") :when ~(or-else s.hidden false) :x 3 :y 3 :width 214 :height 122
          :color "#ffffff99"))
      ~(sorter-caption s i)))
@@ -281,7 +287,8 @@
        :fitText {:maxWidth 230}
        :padding 2
        :textColor @rbInk
-       :runs [{:text ~(if (= (get computed.outlineText i) "") (t "view.noText") (get computed.outlineText i)) :size 12}])))
+       :runs [{:text ~(if (= (get computed.outlineText i) "") (t "view.noText") (get computed.outlineText i))
+               :size 12}])))
 
 ;;; What the format pane and the views do
 
@@ -310,7 +317,8 @@
   (fileStatus (t "file.notSaved" {:why error.message})))
 
 (defn saveDeck "Saves the deck as JSON, where the person chooses." []
-  (saveFile state.deck :name (str computed.deckName ".json") :title (t "view.saveTheDeck") :onDone saved :onError notSaved))
+  (saveFile state.deck :name (str computed.deckName ".json") :title (t "view.saveTheDeck") :onDone saved
+    :onError notSaved))
 
 (defn opened "Takes the deck just opened, by its file's name." [result]
   (deckOpened result.name))

@@ -1,4 +1,5 @@
-;;; window.lisp --- the window around the slide: the command bar, the thumbnails, the canvas, the notes and the status bar
+;;; window.lisp --- the window around the slide: the command bar, the thumbnails, the canvas, the notes and the status
+;;; bar
 ;;;
 ;;; The ribbon under the command bar is parts/ribbon.lisp and parts/tabs.lisp; the other views of the deck (the
 ;;; outline, the sorter) and the panes beside the canvas are parts/views.lisp and parts/review.lisp.
@@ -116,17 +117,19 @@
 ;;; Sections
 
 (defcomputed slideTitle "The slide's title: the first line of its title placeholder's text."
-  (trim (get (split (or-else (:text (find (fn [it] (or (= it.ph "title") (= it.ph "ctrTitle"))) computed.objects)) "")
+  (trim (get (split (or-else (:text (find (fn [it] (or (= it.ph "title") (= it.ph "ctrTitle"))) computed.objects))
+                             "")
                     "\n")
              0)))
 
-(defcomputed sectionFirsts "The index of each section's first slide." (map (fn [it] it.first) (or-else state.deck.sections [])))
+(defcomputed sectionFirsts "The index of each section's first slide."
+  (map (fn [it] it.first) (or-else state.deck.sections [])))
 
 (defcomputed sectionAt "For each slide, the section that starts there, or nil."
   (map-indexed (fn [index it]
                  (if (< (indexOf computed.sectionFirsts index) 0)
-                   nil
-                   (get state.deck.sections (indexOf computed.sectionFirsts index))))
+                     nil
+                     (get state.deck.sections (indexOf computed.sectionFirsts index))))
                state.deck.slides))
 
 (defcomputed sectionOf "For each slide, the id of the section it is in, or nil."
@@ -238,7 +241,8 @@
       :textColor ~(if computed.canRedo "@rbInk" "@inkFaded")
       :tooltip ~(t "bar.redoCtrlY")
       :onClick redo)
-   `(label#qat-save :style barIcon :runs [{:icon hard-drive-download :size 16}] :tooltip ~(t "bar.saveCtrlS") :onClick saveDeck)
+   `(label#qat-save :style barIcon :runs [{:icon hard-drive-download :size 16}] :tooltip ~(t "bar.saveCtrlS")
+      :onClick saveDeck)
    `(label#qat-present :style barIcon
       :runs [{:icon skip-back :size 16}]
       :tooltip ~(t "bar.presentFromTheStartF5")
@@ -473,7 +477,8 @@
      ~@(zoom-controls)
      (node#status-pad-end :width 8 :height 1 :color transparent)))
 
-(defview view-button "A button of the status bar that shows a view of the deck; `tooltip` is a key." [id view icon tooltip]
+(defview view-button "A button of the status bar that shows a view of the deck; `tooltip` is a key."
+  [id view icon tooltip]
   `(label :id ~id
      :style ~(if (= state.view view) "barButtonOn" "barButton")
      :height 20
@@ -494,9 +499,12 @@
        :onClick ~(handler present state.current))))
 
 (defview status-comments "Comments, and how many the slide has: a click opens them beside the slide." []
-  `(label#status-comments :style ~(if (and (= state.sidePane "comments") (not state.formatPane)) "barButtonOn" "barButton")
+  `(label#status-comments
+     :style ~(if (and (= state.sidePane "comments") (not state.formatPane)) "barButtonOn" "barButton")
      :runs [{:icon message-square :size 13}
-            {:text ~(if (> (count computed.comments) 0) (t "bar.commentsCount" {:n (count computed.comments)}) (t "bar.comments"))
+            {:text ~(if (> (count computed.comments) 0)
+                      (t "bar.commentsCount" {:n (count computed.comments)})
+                      (t "bar.comments"))
              :size 11}]
      :onClick ~(handler openSidePane "comments")))
 
@@ -505,7 +513,8 @@
       :runs [{:icon scan :size 13} {:text ~(t "bar.fit") :size 11}]
       :tooltip ~(t "bar.fitSlideToCurrentWindow")
       :onClick fit)
-   `(label#zoom-out :style barButton :runs [{:icon zoom-out :size 13}] :tooltip ~(t "bar.zoomOut") :onClick ~(handler zoomBy 0.9))
+   `(label#zoom-out :style barButton :runs [{:icon zoom-out :size 13}] :tooltip ~(t "bar.zoomOut")
+      :onClick ~(handler zoomBy 0.9))
    `(slider#zoom-slider :width 110
       :height 16
       :trackColor @rbFieldLine
@@ -516,7 +525,8 @@
       :value ~(round (* computed.zoom 100))
       :label ~(t "bar.zoom")
       :onChange ~(handler zoomBy (/ (/ event.value 100) computed.zoom)))
-   `(label#zoom-in :style barButton :runs [{:icon zoom-in :size 13}] :tooltip ~(t "bar.zoomIn") :onClick ~(handler zoomBy 1.1))
+   `(label#zoom-in :style barButton :runs [{:icon zoom-in :size 13}] :tooltip ~(t "bar.zoomIn")
+      :onClick ~(handler zoomBy 1.1))
    `(label#zoom-percent :style barButton
       :width 42
       :align center

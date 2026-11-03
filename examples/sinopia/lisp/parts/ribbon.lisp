@@ -1,11 +1,14 @@
-;;; ribbon.lisp --- The ribbon's parts: large buttons (an icon over a one- or two-line title), small ones (an icon, a title, a menu arrow), icon-only ones, drop-down fields, galleries, and groups, each a card with its title along the top
+;;; ribbon.lisp --- The ribbon's parts: large buttons (an icon over a one- or two-line title), small ones (an icon, a
+;;; title, a menu arrow), icon-only ones, drop-down fields, galleries, and groups, each a card with its title along the
+;;; top
 ;;;
 ;;; Each tab is a component of groups; the screen shows the chosen one. A button is a label, so the use gives it its
 ;;; onClick, tooltip and menu.
 
 ;;; Definitions
 
-(defcomponent rbBig "With drop (the button's own id), a split button: the arrow under the title (id: drop + '-more') opens that menu, the rest runs the use's onClick."
+(defcomponent rbBig
+  "A large button; with drop (its id), a split one: the arrow under the title opens that menu."
   {:icon "" :title "" :menu false :on false :enabled true :width 48 :drop ""}
   `(column :width ~width :height 70 :color transparent :disabled ~(not enabled)
      (label :width ~width
@@ -29,7 +32,8 @@
        :runs [{:icon chevron-down :size 10}]
        :onClick ~(handler openDrop drop))))
 
-(defcomponent rbSmall "With drop (the button's own id), a split button: its arrow (id: drop + '-arrow') opens that menu (or, with colors, the colour grid), the rest runs the use's onClick."
+(defcomponent rbSmall
+  "A small button; with drop (its id), a split one: its arrow opens that menu, or with colors the colour grid."
   {:icon "" :title "" :menu false :on false :enabled true :tint nil :drop "" :colors false}
   `(column :fitContent width :height 24 :color transparent :disabled ~(not enabled)
      ~(rb-small-row icon title menu on enabled tint drop colors)
@@ -52,7 +56,8 @@
      (label :grow 1 :height 20 :padding 7 :textColor @rbInk :runs [{:text ~text :size 12}])
      (label :width 16 :height 20 :align center :textColor @rbInk :runs [{:icon chevron-down :size 11}])))
 
-(defcomponent rbGroup "A group is a card: its title in small capitals along the top, the launcher at the title's end (it opens the format pane; `launcher` is its id), its commands below."
+(defcomponent rbGroup
+  "A group: a card with its title along the top, a launcher (its id `launcher`), and its commands below."
   {:title "" :launcher false}
   `(column :fitContent width :height 92 :radius 10 :color @card :borderWidth 1 :borderColor @rbLine :alignItems stretch
      ~(rb-group-row title launcher)
@@ -72,7 +77,8 @@
   `(row :fitContent width :height 24 :gap 1 :color transparent :alignItems center
      {:slot true}))
 
-(defcomponent rbGallery "A ribbon gallery: one row of cells (the use's children). Every cell is shown, so the arrows that scroll are off; the last opens the whole list as a menu (more, the gallery's own id), when there is one."
+(defcomponent rbGallery
+  "A gallery: a row of cells, all shown, so its scroll arrows are off; the last opens the whole list, `more`."
   {:width 200 :more ""}
   `(row :width ~width :height 70 :color @rbFieldBg :borderWidth 1 :borderColor @rbFieldLine :radius 10
      {:width 4 :height 68 :color transparent}
@@ -83,7 +89,8 @@
 
 ;;; Views
 
-(defview rb-small-row "A small button's row: its icon and title, and the arrow of its menu." [icon title menu on enabled tint drop colors]
+(defview rb-small-row "A small button's row: its icon and title, and the arrow of its menu."
+  [icon title menu on enabled tint drop colors]
   `(row :fitContent width :height ~(if (nil? tint) 24 21) :color transparent
      (label :height ~(if (nil? tint) 24 21)
        :fitText true

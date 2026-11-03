@@ -10,7 +10,7 @@
 
 ;;; Definitions
 
-(defcomputed shapes
+(defcomputed shapes "Every shape, by its name: a path, a polygon, sides, a roundness, or a line with its ends."
   '{:line {:line true}
    :lineArrow {:line true :tail arrow}
    :lineDoubleArrow {:line true :head arrow :tail arrow}
@@ -345,7 +345,7 @@
                   :pad 0.13}
    :borderCallout1 {:poly [[[0 0] [1 0] [1 1] [0 1]] [[0 1.12 -0.0 0] [0.25 1]]] :pad 0.13}})
 
-(defcomputed shapeGallery
+(defcomputed shapeGallery "The shape gallery's sections, each with its shapes."
   '[{:id lines :shapes [line lineArrow lineDoubleArrow lineDot]}
    {:id rectangles :shapes [rect roundRect snip1Rect snip2SameRect snip2DiagRect stadium]}
    {:id basic
@@ -671,7 +671,11 @@
                         :else fill)}
      ~(shape-effect o name)
      ~(shape-outline o name)
-     ~(repeat [f (if (or g.light g.dark) [{:id "light" :faces (or-else g.light []) :color "#ffffff40"} {:id "dark" :faces (or-else g.dark []) :color "#00000033"}] []) :key f.id]
+     ~(repeat [f (if (or g.light g.dark)
+                   [{:id "light" :faces (or-else g.light []) :color "#ffffff40"}
+                    {:id "dark" :faces (or-else g.dark []) :color "#00000033"}]
+                   [])
+               :key f.id]
        (shape-feature o name f))))
 
 ;;; Views

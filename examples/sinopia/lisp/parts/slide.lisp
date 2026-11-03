@@ -1,4 +1,5 @@
-;;; slide.lisp --- A slide drawn from the deck, on a 960 by 540 page: its background and the theme's decorations (slideBackground), then its objects (slideObject)
+;;; slide.lisp --- A slide drawn from the deck, on a 960 by 540 page: its background and the theme's decorations
+;;; (slideBackground), then its objects (slideObject)
 ;;;
 ;;; The canvas holds them as its own children, so the objects are what it selects and moves; the thumbnails, the slide
 ;;; show and the presenter view draw the whole page (slidePage). An object in a placeholder takes the layout's frame
@@ -16,7 +17,10 @@
      :width 960
      :height 540
      :color ~(or-else (get computed.palette (or-else slide.background computed.theme.background)) slide.background)
-     ~(repeat [d (if (or (= slide.layout "title") (= slide.layout "section")) computed.theme.titleDecor computed.theme.decor) :key d.id]
+     ~(repeat [d (if (or (= slide.layout "title") (= slide.layout "section"))
+                   computed.theme.titleDecor
+                   computed.theme.decor)
+               :key d.id]
        `(node :id ~(str prefix "decor-" d.id)
           :color transparent
           :x ~d.x
@@ -25,7 +29,8 @@
           :height ~d.h
           :overflow visible
           (node :use shapePath
-            :with {:o ~(merge {:line "none" :flipH false :flipV false :gradient nil :lineWidth 0 :dash nil :effect nil} d)
+            :with {:o ~(merge {:line "none" :flipH false :flipV false :gradient nil :lineWidth 0 :dash nil
+                               :effect nil} d)
                    :name ~(str prefix "decor-" d.id)})))
      (label :id ~(str prefix "footer")
        :when ~(and (some? (or-else state.deck.footer nil)) (not= slide.layout "title"))
@@ -144,7 +149,9 @@
 
 ;;; Views
 
-(defview text-editor "The editor over an object whose text is edited. The editor's own gutter (12 px) and top padding (6 px), at its 48 px font scaled to the size, are taken off, and its first line is placed where the text's is, by the anchor" [o]
+(defview text-editor
+  "The editor over an object whose text is edited, its first line where the text's is."
+  [o]
   `(editor :id ~(str "edit-" o.id)
      :when ~editing
      :autofocus true
@@ -154,7 +161,7 @@
                  "].objects["
                  (indexOf (map (fn [it] it.id) computed.objects) o.id)
                  "].text")
-     :note "The editor's own gutter (12 px) and top padding (6 px), at its 48 px font scaled to the size, are taken off, and its first line is placed where the text's is, by the anchor"
+     :note "Its gutter (12 px) and top padding (6 px), at its 48 px font scaled, are taken off; the anchor places it"
      :let {:k ~(/ size 48)
            :block ~(* (count (split (or-else o.text "") "\n")) size 1.2)
            :top ~(- (- (+ frame.y
