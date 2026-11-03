@@ -429,3 +429,6 @@
 (defkey "mod+down" nextHabit)
 (defkey "mod+up" prevHabit)
 (defkey "mod+enter" checkToday)
+
+(defkey "escape"
+  {:when ~(or computed.picking (and (not computed.wide) (= state.page "detail"))) :do [{:lisp leaveEscape}]})
