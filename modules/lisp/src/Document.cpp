@@ -5,6 +5,7 @@
 #include <affresco/lisp/Document.hpp>
 
 #include "Reader.hpp"
+#include "TopLevel.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 #include <affresco/notation/Notation.hpp>
@@ -12,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <mutex>
 #include <optional>
 #include <utility>
 
@@ -176,6 +178,7 @@ std::shared_ptr<const BuiltProgram> buildSection(const json& section) {
 	auto built = std::make_shared<BuiltProgram>();
 	built->tree = program.build(limits);
 	built->undefined = program.undefinedNames();
+	built->truth = program.truthTests();
 	built->extensions = program.extensions();
 	built->namesUsed = program.namesUsed();
 	built->namedCalls = program.namedCalls();
@@ -271,36 +274,103 @@ void checkProgramShape(const json& section) {
 }
 
 json sourceDocument(std::string_view text, const std::string& file) {
-	Program program;
-	program.addFile(text, file); // two definitions of one name are an error, which an object's keys wouldn't say
+	Program program; // two definitions of one name are an error, which an object's keys wouldn't say
+	for(Entry& entry : splitEntries(text, file)) program.addEntryUnread(std::move(entry)); // the split read each
 	json entries = json::object();
 	for(const Entry& entry : program.entries()) entries[entry.name] = entry.text;
 	return {{"format", "affrescoui-screen"}, {"version", 2}, {"program", {{file, std::move(entries)}}}};
 }
 
+namespace {
+
+/// Lisp files read, kept for the process by their exact text, file and name: an app reads its files each time it opens.
+constexpr std::size_t keptDocumentBytes = 64U << 20U;
+
+/// @brief The Lisp files read lately (readDocument() is pure: the same text, file and name give the same value).
+class KeptDocuments {
+public:
+	/// @brief Finds one. @param key Its key. @return A copy of its value, or std::nullopt.
+	std::optional<json> find(const std::string& key) {
+		const std::scoped_lock lock(mutex_);
+		const auto found = std::ranges::find(kept_, key, &Kept::key);
+		if(found == kept_.end()) return std::nullopt;
+		std::rotate(kept_.begin(), found, found + 1); // the most recent first
+		return kept_.front().value;
+	}
+	/// @brief Keeps one, letting the least recent go past keptDocumentBytes. @param key Its key. @param value Its value.
+	void keep(std::string key, const json& value) {
+		const std::scoped_lock lock(mutex_);
+		const std::size_t bytes = key.size() * 4; // its value costs a few times its text
+		if(bytes > keptDocumentBytes / 4 || std::ranges::contains(kept_, key, &Kept::key)) return;
+		kept_.insert(kept_.begin(), {std::move(key), value, bytes});
+		bytes_ += bytes;
+		while(bytes_ > keptDocumentBytes) {
+			bytes_ -= kept_.back().bytes;
+			kept_.pop_back();
+		}
+	}
+
+private:
+	/// @brief A file read.
+	struct Kept {
+		std::string key;   ///< Its name, file and text.
+		json value;        ///< What it read to.
+		std::size_t bytes; ///< What it costs.
+	};
+	std::mutex mutex_;       ///< Files are read on any thread.
+	std::vector<Kept> kept_; ///< The most recent first: an app has tens of files.
+	std::size_t bytes_ = 0;  ///< What they cost.
+};
+
+/// @brief readDocument() of a Lisp file, not kept.
+/// @param text The text.
+/// @param file The file.
+/// @param name What a program calls it.
+/// @return The value.
+json readLispDocument(std::string_view text, const std::filesystem::path& file, const std::string& name);
+
+} // namespace
+
 json readDocument(std::string_view text, const std::filesystem::path& file, const std::string& name) {
 	if(notation::notationOf(file) != notation::Notation::Lisp) return notation::readDocument(text, file);
-	bool program = false;
-	try {
-		program = isProgram(text);
-		// NOLINTNEXTLINE(bugprone-empty-catch): the notation's reader says what is wrong, naming the file
-	} catch(const LispError&) {
-	}
+	static KeptDocuments kept;
+	std::string key = name;
+	key.append(1, '\0').append(file.generic_string()).append(1, '\0').append(text);
+	if(std::optional<json> found = kept.find(key)) return std::move(*found);
+	json value = readLispDocument(text, file, name);
+	kept.keep(std::move(key), value);
+	return value;
+}
+
+namespace {
+
+json readLispDocument(std::string_view text, const std::filesystem::path& file, const std::string& name) {
+	// By tokens first: a data file's one form is then read once, by the notation's reader
+	const std::optional<bool> byTokens = isProgramByTokens(text);
+	bool program = byTokens.value_or(false);
+	if(!byTokens) try {
+			program = isProgram(text);
+			// NOLINTNEXTLINE(bugprone-empty-catch): the notation's reader says what is wrong, naming the file
+		} catch(const LispError&) {
+		}
 	if(program) {
 		const std::string named = name.empty() ? file.filename().generic_string() : name;
 		json includes = json::array();
-		json document = sourceDocument(withoutIncludes(text, named, includes), named);
+		json document =
+		    sourceDocument(text.contains("include") ? withoutIncludes(text, named, includes) : std::string(text), named);
 		if(!includes.empty()) document["include"] = std::move(includes);
 		return document;
 	}
 	bool runs = false;
 	try {
-		runs = needsRunning(text).has_value();
+		runs = byTokens ? firstUnquote(text).has_value() : needsRunning(text).has_value();
 		// NOLINTNEXTLINE(bugprone-empty-catch): the notation's reader says what is wrong, naming the file
 	} catch(const DocumentError&) {
 	}
 	return runs ? buildText(text, file.generic_string()) : notation::readDocument(text, file);
 }
+
+} // namespace
 
 std::string jsonText(std::string_view text, const std::filesystem::path& file) {
 	if(notation::notationOf(file) != notation::Notation::Lisp) return std::string(text);
@@ -319,7 +389,7 @@ Program programOf(const json& section, const json& authors) {
 			if(const json* of = authors.is_object() && authors.contains(file) ? &authors[file] : nullptr;
 			   of && of->is_object() && of->contains(name) && (*of)[name].is_string())
 				entry.author = (*of)[name].get<std::string>();
-			program.addEntry(std::move(entry));
+			program.addEntryUnread(std::move(entry)); // load() and build() read it, and refuse what addEntry() would
 		}
 	return program;
 }

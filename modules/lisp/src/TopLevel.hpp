@@ -54,4 +54,27 @@ Value evalTopLevel(Machine& machine, const Value& form, const std::string& autho
 void defineTopLevel(Machine& machine, const Value& form, const std::string& author, const AuthorSet* authors,
                     Place where);
 
+/// @brief Reads an entry's text, which must be one form, through the process's kept forms (FormCache.cpp): read once,
+/// then copied into the heap that asks. What it makes there is charged to the heap's budget, if it has one.
+/// @param heap Where the form goes.
+/// @param text The text.
+/// @param file Its file, for places.
+/// @param line Its first line.
+/// @param column Its first column.
+/// @return The form, or std::nullopt if the text isn't exactly one form.
+/// @throws LispError If it can't be read, as Reader does.
+[[nodiscard]] std::optional<Value> readEntry(Heap& heap, std::string_view text, const std::string& file,
+                                             std::size_t line, std::size_t column);
+
+/// @brief isProgram() by tokens alone, without making the forms: a data file's one form is read once, by the notation's
+/// reader, not twice more to find it is one.
+/// @param text The text.
+/// @return Whether it is a program, or std::nullopt if the text doesn't lex (isProgram() says what is wrong).
+[[nodiscard]] std::optional<bool> isProgramByTokens(std::string_view text);
+
+/// @brief The place of the first `~`, or a quote, in a text, by tokens (needsRunning() for a text that isn't a program).
+/// @param text The text.
+/// @return Its place, as needsRunning() says it, or std::nullopt.
+[[nodiscard]] std::optional<std::string> firstUnquote(std::string_view text);
+
 } // namespace affresco::lisp

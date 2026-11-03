@@ -1,7 +1,7 @@
 ;;; panels.lisp --- Forge's panel: Problems, Output, the notification centre and progress
 ;;;
 ;;; Problems lists the TODO and FIXME lines of the open files and the language server's diagnostics, and a click goes
-;;; to the line; Output is a log every feature writes to with notify and log; the notification centre over the
+;;; to the line; Output is a log every feature writes to with notify and log-line; the notification centre over the
 ;;; status bar's bell keeps the toasts' history; a long task shows a toast with a bar. The panel's tabs and the
 ;;; status bar's counts come from this state.
 
@@ -45,7 +45,7 @@
 (defcomputed outputRows
   (map-indexed (fn [index it] {:id index :label (str (time it.time "HH:mm:ss") "  " it.text)}) state.output))
 
-(defn log "A line in Output." [text]
+(defn log-line "A line in Output." [text]
   (push "state.output" {:time (now) :text text}))
 
 (defn notify "A notice: in Output with its severity, in the notification centre, and as a toast for a few seconds."
@@ -114,7 +114,7 @@
 (defn reindexDone "The folder's files indexed for Go to File; Output says how many." [result]
   (indexed result.files)
   (set "state.toast.progress" 1)
-  (log (t (if result.truncated "log.indexedTruncated" "log.indexed") {:n (count result.files)}))
+  (log-line (t (if result.truncated "log.indexedTruncated" "log.indexed") {:n (count result.files)}))
   (debounce 1500 hideToast))
 
 (defn reindexFailed "Says why the folder couldn't be indexed." [error]

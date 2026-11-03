@@ -619,7 +619,7 @@
        :padding 4
        :style rbButton
        :anchors {:left 8 :right 8}
-       :runs [{:icon ban :size 14} {:text ~(spaced " " drop.none) :size 12}]
+       :runs [{:icon ban :size 14} {:text ~(str " " drop.none) :size 12}]
        :onClick ~(handler pickColor state.colors.id nil))
      ~(repeat [sec drop.sections :index s]
        `(column :id ~(str "colors-s" s)

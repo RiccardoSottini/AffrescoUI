@@ -262,7 +262,7 @@
     :when ~(= state.settingsView "devices")
     :style button
     :icon filter
-    :text ~(str " " (t "dev.filters"))
+    :text ~(t "dev.filters")
     :color transparent
     :hover {:color transparent}
     :textColor @muted
@@ -318,7 +318,7 @@
     :when ~(= state.settingsView "devices")
     :style button
     :icon plus
-    :text ~(str " " (t (str "dev.add." state.devTab)))
+    :text ~(t (str "dev.add." state.devTab))
     :color @raised
     :hover {:color @raised}
     :textColor @muted

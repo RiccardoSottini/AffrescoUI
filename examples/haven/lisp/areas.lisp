@@ -70,7 +70,7 @@
           :role group
           :label ~(t (str "floor." f.id))
           (label :icon layers-2
-            :text ~(str "  " (t (str "floor." f.id)))
+            :text ~(t (str "floor." f.id))
             :font heading
             :textColor @text
             :anchors {:left 0 :top 16}
@@ -83,7 +83,7 @@
   `{:id areasAdd
     :style button
     :icon plus
-    :text ~(str " " (t "areas.add"))
+    :text ~(t "areas.add")
     :color @raised
     :hover {:color @raised}
     :textColor @muted

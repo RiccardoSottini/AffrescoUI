@@ -430,6 +430,7 @@ std::vector<Entry> splitEntries(std::string_view text, const std::string& file, 
 }
 
 bool isProgram(std::string_view text) {
+	if(const std::optional<bool> byTokens = isProgramByTokens(text)) return *byTokens; // no form made
 	Heap heap;
 	Reader reader(heap, text, "");
 	const auto first = reader.next();
@@ -437,11 +438,6 @@ bool isProgram(std::string_view text) {
 	return reader.next().has_value() || isDefinitionWord(headWord(first->form));
 }
 
-namespace {
-
-/// @brief The place of the first `~`, or a quote, in a text.
-/// @param text The text.
-/// @return The place as an answer of needsRunning(), or std::nullopt.
 std::optional<std::string> firstUnquote(std::string_view text) {
 	notation::Lexer lexer(text, true);
 	for(notation::Token token = lexer.next(); token.kind != notation::TokenKind::End; token = lexer.next())
@@ -450,7 +446,46 @@ std::optional<std::string> firstUnquote(std::string_view text) {
 	return std::nullopt;
 }
 
-} // namespace
+std::optional<bool> isProgramByTokens(std::string_view text) {
+	using notation::TokenKind;
+	try {
+		notation::Lexer lexer(text, true);
+		std::size_t depth = 0;
+		std::size_t forms = 0;
+		bool prefixed = false; // after 'x, `x or ~x at the top: the form it prefixes is the same form
+		bool wantHead = false; // the token after the first form's own "("
+		std::string_view head;
+		const auto startsForm = [&] { // a form starting at the top level: true once there are two
+			if(depth != 0) return false;
+			const bool second = !prefixed && ++forms == 2;
+			prefixed = false;
+			return second;
+		};
+		for(notation::Token token = lexer.next(); token.kind != TokenKind::End; token = lexer.next()) {
+			if(std::exchange(wantHead, false) && token.kind == TokenKind::Word) head = token.text;
+			if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) {
+				if(depth == 0 && !prefixed && ++forms == 2) return true;
+				if(depth == 0) prefixed = true;
+			} else if(token.kind == TokenKind::OpenNode || token.kind == TokenKind::OpenList ||
+			          token.kind == TokenKind::OpenMap) {
+				const bool first = depth == 0 && !prefixed && forms == 0;
+				if(startsForm()) return true;
+				wantHead = first && token.kind == TokenKind::OpenNode;
+				++depth;
+			} else if(token.kind == TokenKind::CloseNode || token.kind == TokenKind::CloseList ||
+			          token.kind == TokenKind::CloseMap) {
+				if(depth == 0) return std::nullopt; // a bracket that closes nothing: the reader says so
+				--depth;
+			} else if(startsForm()) {
+				return true;
+			}
+		}
+		if(depth != 0) return std::nullopt;
+		return forms == 1 && isDefinitionWord(head);
+	} catch(const DocumentError&) {
+		return std::nullopt;
+	}
+}
 
 namespace {
 
@@ -513,11 +548,9 @@ void Program::addFile(std::string_view text, const std::string& file, const std:
 
 void Program::addEntry(Entry entry) {
 	Heap heap;
-	Reader reader(heap, entry.text, entry.file, entry.line, entry.column);
-	const auto read = reader.next();
-	if(!read || reader.next())
-		throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
-	auto [kind, address] = definitionAddress(read->form);
+	const std::optional<Value> read = readEntry(heap, entry.text, entry.file, entry.line, entry.column);
+	if(!read) throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
+	auto [kind, address] = definitionAddress(*read);
 	if(address != entry.name)
 		throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text defines its own name");
 	if(const auto [known, added] = names_.try_emplace(entry.name, entries_.size()); !added) {
@@ -531,26 +564,43 @@ void Program::addEntry(Entry entry) {
 	entries_.push_back(std::move(entry));
 }
 
+void Program::addEntryUnread(Entry entry) {
+	if(const auto [known, added] = names_.try_emplace(entry.name, entries_.size()); !added) {
+		const Entry& other = entries_[known->second];
+		throw LispError(entry.file, entry.line, entry.column, entry.name,
+		                "\"" + notation::Lexer::excerpt(entry.name) + "\" is defined twice: at " + other.file +
+		                    ": line " + std::to_string(other.line) + " and at " + entry.file + ": line " +
+		                    std::to_string(entry.line));
+	}
+	entries_.push_back(std::move(entry));
+}
+
 void Program::definePure(const std::string& name, Primitive primitive) {
 	if(!primitive.pure || !primitive.capability.empty())
 		throw std::invalid_argument("a primitive build code may call is pure and needs no capability");
 	primitives_.emplace_back(name, std::move(primitive));
 }
 
-void Program::load(Interpreter& interpreter) const {
+void Program::load(Interpreter& interpreter, bool everything) const {
 	Machine& machine = interpreter.machine();
 	static_cast<void>(leavingAsLispError(machine, [&] {
 		std::vector<std::pair<Value, const Entry*>> forms;
 		forms.reserve(entries_.size());
 		for(const Entry& entry : entries_) {
-			Reader reader(machine.heap, entry.text, entry.file, entry.line, entry.column);
-			const auto read = readUncharged(machine.heap, reader, machine.budget());
-			if(!read || readUncharged(machine.heap, reader, machine.budget()))
-				throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
-			if(definitionAddress(read->form).second != entry.name)
+			machine.heap.setBudget(nullptr); // reading is bounded by the text's size, so it spends nothing
+			std::optional<Value> read;
+			try {
+				read = readEntry(machine.heap, entry.text, entry.file, entry.line, entry.column);
+			} catch(...) {
+				machine.heap.setBudget(&machine.budget());
+				throw;
+			}
+			machine.heap.setBudget(&machine.budget());
+			if(!read) throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
+			if(definitionAddress(*read).second != entry.name)
 				throw LispError(entry.file, entry.line, entry.column, entry.name,
 				                "an entry's text defines its own name");
-			forms.emplace_back(read->form, &entry);
+			forms.emplace_back(*read, &entry);
 		}
 		const auto authorsOf = [&machine](const Entry& entry) { return machine.authorSet(entry.author); };
 		for(const auto& [form, entry] : forms)
@@ -559,7 +609,7 @@ void Program::load(Interpreter& interpreter) const {
 		for(const auto& [form, entry] : forms)
 			if(headWord(form) != "defmacro")
 				defineTopLevel(machine, form, entry->author, authorsOf(*entry), form.place());
-		machine.compilePending();
+		machine.compilePending(!everything);
 		return true;
 	}));
 }
@@ -589,6 +639,9 @@ json Program::build(const Limits& limits) {
 			if(CallsByName named = namedCallsOf(uses); !named.texts.empty())
 				named_[definition->name] = std::move(named);
 		}
+		truth_.clear();
+		for(const auto& [path, place, definition] : machine.truthTests())
+			truth_.push_back({path, place.file ? *place.file : "", place.line, place.column, definition});
 		for(const GlobalUse& use : machine.uses())
 			if(use.global->state == Global::State::Undefined)
 				undefined_.push_back({use.global->name, use.place.file ? *use.place.file : "", use.place.line,

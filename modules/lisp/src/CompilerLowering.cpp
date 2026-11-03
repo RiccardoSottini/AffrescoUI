@@ -219,6 +219,11 @@ bool Compiler::lowerOperator(const Value& form, int depth, std::vector<BindingPa
 		lowerList(form, depth, parts, "!(", "");
 		return true;
 	}
+	if(head == "truthy?" && operands == 1) { // an expression's own truth
+		lowerList(form, depth, parts, "!(!(", "");
+		parts.back().text = "))";
+		return true;
+	}
 	if(head == "-" && operands == 1) {
 		lowerList(form, depth, parts, "-(", "");
 		return true;

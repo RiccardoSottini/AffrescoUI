@@ -11,7 +11,7 @@
      :padding 8
      :radius @radius.chip
      :icon ~icon
-     :text ~(str "  " text)
+     :text ~text
      :textColor @color.text
      :color ~(if active "@color.sidebarOn" "transparent")
      :hover {:color ~(if active "@color.sidebarOn" "@color.sidebarHover")}
@@ -94,7 +94,7 @@
      {:id settingsButton
       :style menuRow
       :icon settings
-      :text ~(str "  " (t "settings.title"))
+      :text ~(t "settings.title")
       :role menuitem
       :label ~(t "settings.title")
       :tooltip ~(t "key.settings")
@@ -102,7 +102,7 @@
      {:id themeToggle
       :style menuRow
       :icon ~(if (= state.theme "light") "moon" "sun")
-      :text ~(str "  " (t "theme.menu"))
+      :text ~(t "theme.menu")
       :role menuitem
       :label ~(t "theme.tooltip")
       :tooltip ~(t "key.theme")
@@ -110,7 +110,7 @@
      {:id languageButton
       :style menuRow
       :icon languages
-      :text ~(str "  " (t "locale.menu" {:code (upper-case settings.appearance.language)}))
+      :text ~(t "locale.menu" {:code (upper-case settings.appearance.language)})
       :role menuitem
       :label ~(t "locale.tooltip")
       :tooltip ~(t "key.language")

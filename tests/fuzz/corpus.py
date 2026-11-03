@@ -901,6 +901,10 @@ def lisp_seeds():
               '(defpart p :persist [a] :watch {:x y})\n(defdefaults d :tokens {:c 2} :keys {"k" z})',
               '(defscreen main (n :x ~(reduce (fn [acc x] (+ acc x.n)) 0 (sort-by (fn [x] x.n) > state.xs))'
               ' :y ~(str "a" (or-else state.z (count state.w))) :z ~(cond (nil? a) 1 :else (get-in b [c :d]))))',
+              # A macro writing a map, a vector or a word inside a binding's vector or map (a crash once)
+              '(defmacro tr [id k] `{:id ~id :label (t ~k)})\n(defcomputed a "x" [(tr "e" "k")])\n'
+              '(defmacro w [] (quote state.x))\n(defmacro v [] [state.y])\n'
+              '(defscreen main (n :x ~[(tr 1 2) [(w)]] :y ~{:z (v)} :s ~(str "  " state.n " ")))',
               "`~" * (MAX_NESTING // 2) + "x", "'" * MAX_NESTING + "x"]
     return seeds
 

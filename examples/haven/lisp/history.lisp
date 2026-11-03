@@ -114,7 +114,7 @@
 
 (defview entity-button "Choose an entity: it opens the search over the controls." []
   `(label#histTarget :icon plus
-     :text ~(str "  " (t "hist.choose"))
+     :text ~(t "hist.choose")
      :textColor @accent
      :width 320
      :height 48
@@ -211,7 +211,7 @@
 (defview period-field "The period shown, in a field that doesn't open, as only these days are kept." [id key tip]
   `(label :id ~id
      :icon calendar
-     :text ~(str "  " (t key))
+     :text ~(t key)
      :textColor @text
      :width 280
      :height 48

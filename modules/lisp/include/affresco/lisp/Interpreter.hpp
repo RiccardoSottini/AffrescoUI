@@ -104,6 +104,9 @@ using Gate = std::function<void(const CallContext&)>;
 struct Primitive {
 	std::string capability{}; ///< What it needs, for the gate: "" if it needs nothing.
 	bool pure = false;        ///< It reads and changes nothing outside its arguments, so build code may call it.
+	/// No definition of a program may take its name: code calling it means it in every file, a shared add-on's too
+	/// (an expression's function, `now`), as a definition would replace it for all of them.
+	bool reserved = false;
 	/// What it does. It must not keep its span. It may throw Refusal.
 	std::function<Value(Interpreter&, std::span<const Value>)> call{};
 };
@@ -143,6 +146,11 @@ public:
 	/// @param name Its name.
 	/// @param primitive What it is.
 	void definePrimitive(const std::string& name, Primitive primitive);
+	/// @brief Names a variable of the running app that code reads by its bare word, through `%read` as a path's
+	/// (`preview`, `locale`), where no local or definition of the program has that name, and where the word isn't
+	/// called: `(preview ...)` is still the function of that name. Code compiled from then on reads it so.
+	/// @param name The word.
+	void addAppVariable(const std::string& name);
 	/// @brief Sets the choke point (Gate). Without one, every primitive runs.
 	/// @param gate The gate.
 	void setGate(Gate gate);

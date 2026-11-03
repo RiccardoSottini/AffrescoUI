@@ -48,7 +48,7 @@
   `(node#pageHeader :anchors {:left 0 :right 0 :top 0} :height 48 :color transparent
      (label#pageTitle :font small
        :icon ~icon
-       :text ~(str " " text)
+       :text ~text
        :textColor @color.text
        :fitText true
        :anchors {:left 20 :top 0 :bottom 0}
@@ -103,7 +103,7 @@
      {:id inboxDivider :anchors {:left 360 :top 48 :bottom 0} :width 1 :color @color.border}
      (label#inboxEmpty :when ~(nil? computed.notification)
        :icon inbox
-       :text ~(str " " (t "inbox.empty"))
+       :text ~(t "inbox.empty")
        :textColor @color.muted
        :anchors {:left 361 :right 0 :top 48 :bottom 0}
        :align center)
@@ -159,7 +159,7 @@
      {:id newProject
       :style topButton
       :icon plus
-      :text ~(str " " (t "projects.new"))
+      :text ~(t "projects.new")
       :fitText true
       :height 28
       :anchors {:right 12 :top 10}
@@ -329,19 +329,19 @@
      {:id inboxOpen
       :style propValue
       :icon maximize-2
-      :text ~(str " " (t "inbox.open"))
+      :text ~(t "inbox.open")
       :onClick openNotification
       :tooltip ~(t "key.enter")}
      {:id inboxSnooze
       :style propValue
       :icon alarm-clock
-      :text ~(str " " (t "inbox.snooze"))
+      :text ~(t "inbox.snooze")
       :onClick snoozeNotification
       :tooltip ~(t "key.h")}
      {:id inboxRead
       :style propValue
       :icon ~(if computed.notification.read "mail" "mail-check")
-      :text ~(str " " (t (if computed.notification.read "inbox.markUnread" "inbox.markRead")))
+      :text ~(t (if computed.notification.read "inbox.markUnread" "inbox.markRead"))
       :onClick toggleRead
       :tooltip ~(t "key.u")}))
 
@@ -623,7 +623,7 @@
 (defview project-health "A project's health, on track or at risk." [project]
   `(label#projectHealth :font small
      :icon circle
-     :text ~(str " " (t (str "health." project.health)))
+     :text ~(t (str "health." project.health))
      :textColor ~(get state.healthColors project.health)
      :anchors {:right 440 :top 0 :bottom 0}
      :width 110
@@ -649,7 +649,7 @@
     :anchors {:right 240 :top 0 :bottom 0}
     :align {:horizontal start :vertical center}
     :icon calendar
-    :text ~(str " " (formatDate (dateMs project.target) "MMM d" "utc"))
+    :text ~(formatDate (dateMs project.target) "MMM d" "utc")
     :textColor ~(if (and (< (daysBetween state.today project.target) 0) (< project.progress 1))
                     "@bug"
                     "@color.muted")})

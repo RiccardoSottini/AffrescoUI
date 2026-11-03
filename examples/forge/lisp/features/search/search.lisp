@@ -80,7 +80,7 @@
                :skipped result.skipped
                :truncated result.truncated
                :done true}))
-  (log (t "log.search" {:matches state.search.result.matches :files state.search.result.files})))
+  (log-line (t "log.search" {:matches state.search.result.matches :files state.search.result.files})))
 
 (defn startSearchFailed "Says why the search failed, unless it was cancelled." [error]
   (when (not= error.code "cancelled") (set "state.search.result" nil) (set "state.search.error" error.message)))

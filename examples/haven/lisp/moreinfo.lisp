@@ -188,7 +188,7 @@
      ~(mode-field)
      (label#infoHistoryTitle :textColor @text
        :icon history
-       :text ~(str " " (t "info.history"))
+       :text ~(t "info.history")
        :anchors {:left 24 :top 348}
        :fitText true)
      (node#infoHistory :style card
@@ -303,21 +303,21 @@
      :gap 0
      :role list
      (label#infoBattery :icon battery-medium
-       :text ~(str "  " (t "info.battery" {:n computed.infoFacts.battery}))
+       :text ~(t "info.battery" {:n computed.infoFacts.battery})
        :textColor @text
        :role listitem
        :anchors {:left 0 :right 0}
        :height 40
        :align {:horizontal start :vertical center})
      (label#infoChanged :icon history
-       :text ~(str "  " (t "info.changed" {:time computed.infoFacts.changed}))
+       :text ~(t "info.changed" {:time computed.infoFacts.changed})
        :textColor @text
        :role listitem
        :anchors {:left 0 :right 0}
        :height 40
        :align {:horizontal start :vertical center})
      (label#infoRelated :icon workflow
-       :text ~(str "  " (t "info.related" {:name (t (str "rule." computed.infoFacts.related))}))
+       :text ~(t "info.related" {:name (t (str "rule." computed.infoFacts.related))})
        :textColor @accent
        :anchors {:left 0 :right 0}
        :height 40
@@ -354,7 +354,7 @@
      ~(device-facts)
      (label#infoLogTitle :textColor @text
        :icon activity
-       :text ~(str " " (t "info.activity"))
+       :text ~(t "info.activity")
        :anchors {:left 24 :top ~(if (= computed.infoDevice.id "speaker") 416 412)}
        :fitText true)
      (stack#infoLog :anchors {:left 24 :right 24 :top ~(if (= computed.infoDevice.id "speaker") 446 444)}

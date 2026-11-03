@@ -10,6 +10,7 @@
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
+#include <array>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -29,6 +30,65 @@ std::string expressionText(std::string_view text) {
 	}
 	return quoted += '\'';
 }
+
+namespace {
+
+/// @brief Whether a text is one placeholder and nothing else, as the expression machine finds a placeholder's end
+/// (quotes and braces inside it skipped): its value is then the expression's, not text.
+/// @param text The text, without spaces around it.
+/// @return true if so.
+bool isWholePlaceholder(std::string_view text) noexcept {
+	if(!text.starts_with("{{") || !text.ends_with("}}")) return false;
+	char quote = 0;
+	int braces = 0;
+	for(std::size_t i = 2; i + 1 < text.size(); ++i) {
+		if(quote) {
+			if(text[i] == '\\') ++i;
+			else if(text[i] == quote) quote = 0;
+		} else if(text[i] == '\'' || text[i] == '"') {
+			quote = text[i];
+		} else if(text[i] == '{') {
+			++braces;
+		} else if(text[i] == '}' && braces > 0) {
+			--braces;
+		} else if(text[i] == '}' && text[i + 1] == '}') {
+			return i == text.size() - 2;
+		}
+	}
+	return false;
+}
+
+} // namespace
+
+std::string keptSpaces(std::string text) {
+	const auto space = [](char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f'; };
+	std::size_t start = 0;
+	while(start < text.size() && space(text[start])) ++start;
+	std::size_t end = text.size();
+	while(end > start && space(text[end - 1])) --end;
+	if((start == 0 && end == text.size()) || end - start < 4) return text;
+	const std::string_view inner = std::string_view(text).substr(start, end - start);
+	if(!isWholePlaceholder(inner)) return text; // text already
+	std::string kept = start > 0 ? "{{" + expressionText(text.substr(0, start)) + "}}" : "";
+	kept.append(inner);
+	if(end < text.size()) kept.append("{{" + expressionText(text.substr(end)) + "}}");
+	return kept;
+}
+
+std::string joinedText(std::string text) {
+	text = keptSpaces(std::move(text));
+	// "{{x}}", as when the texts around x were empty: x's text, not its value
+	return isWholePlaceholder(text) ? "{{''}}" + text : text;
+}
+
+namespace {
+
+/// The language's functions that take a function: a word they are given that names one is that function.
+constexpr std::array<std::string_view, 14> functionTakers = {
+    "apply", "map", "map-indexed", "mapcat", "filter", "remove", "find", "some", "every?", "reduce", "sort-by",
+    "update", "update-in", "run-hooks"};
+
+} // namespace
 
 bool Compiler::reachesRunningApp(Global& function) {
 	std::vector<const Code*> waiting;
@@ -78,6 +138,8 @@ bool Compiler::isLiveWord(std::string_view name) {
 	   global && !global->library && definition &&
 	   (definition->kind == "defn" || definition->kind == "defcommand" || definition->kind == "defview"))
 		return true; // a function is no value of a tree: a word that names one, uncalled, is a name of the running app
+	if(namesFunction(global) && !name.contains('.') && !functionArgument_)
+		return true; // the language's or a host's function, uncalled: a `:let`'s `name`, a repeat's `max`
 	return !isSpecial(name) && (!global || global->state == Global::State::Undefined);
 }
 
@@ -106,8 +168,19 @@ bool Compiler::isLiveCall(const Value& form, int depth) {
 		if(!global || global->state == Global::State::Undefined || reachesRunningApp(machine_.global(head)))
 			return true;
 	}
-	return std::ranges::any_of(std::views::iota(std::size_t{1}, form.count()),
-	                           [&](std::size_t at) { return isLive(form.at(at), depth + 1); });
+	// (sort-by count xs): the language's function a function of the language is given stays that function
+	const bool takesFunctions = !local && std::ranges::find(functionTakers, head) != functionTakers.end();
+	return std::ranges::any_of(std::views::iota(std::size_t{1}, form.count()), [&](std::size_t at) {
+		const bool argument = std::exchange(functionArgument_, takesFunctions && form.at(at).kind() == Kind::Symbol);
+		const bool live = isLive(form.at(at), depth + 1);
+		functionArgument_ = argument;
+		return live;
+	});
+}
+
+bool Compiler::namesFunction(const Global* global) {
+	if(!global || global->state != Global::State::Ready) return false;
+	return global->value.kind() == Kind::Function || global->value.kind() == Kind::Native;
 }
 
 bool Compiler::isLive(const Value& form, int depth) {
@@ -123,8 +196,11 @@ bool Compiler::isLive(const Value& form, int depth) {
 	case Kind::Map:
 		return std::ranges::any_of(std::views::iota(std::size_t{0}, form.count()),
 		                           [&](std::size_t at) { return isLive(form.valueAt(at), depth + 1); });
-	case Kind::List:
-		return isLiveCall(expanded(form), depth);
+	case Kind::List: {
+		const Value call = expanded(form);
+		// A macro may write any form: a map, a vector, a word, a constant
+		return call.kind() == Kind::List ? isLiveCall(call, depth) : isLive(call, depth + 1);
+	}
 	default:
 		return false;
 	}
@@ -238,8 +314,8 @@ void Compiler::addWorkedPart(const Value& form, int depth, std::vector<BindingPa
 	parts.push_back(std::move(part));
 }
 
-void Compiler::emitParts(const std::vector<BindingPart>& parts) {
-	emitConstant(machine_.global("%binding").value);
+void Compiler::emitParts(const std::vector<BindingPart>& parts, bool joined) {
+	emitConstant(machine_.global(joined ? "%joined" : "%binding").value);
 	for(const BindingPart& part : parts) {
 		if(!part.worked) {
 			emitConstant(machine_.heap.string(part.text));
@@ -253,7 +329,7 @@ void Compiler::emitParts(const std::vector<BindingPart>& parts) {
 			end = emit(Op::Jump);
 			patch(plain);
 		}
-		emitConstant(machine_.global("%expression").value);
+		emitConstant(machine_.global(part.asText ? "%text" : "%expression").value);
 		compile(part.form, {});
 		emit(Op::Call, 1);
 		if(!part.locals.empty()) patch(end);
@@ -275,6 +351,16 @@ void Compiler::compileBinding(const Value& form) {
 				parts.push_back({std::string(form.at(at).text()), {}, false, {}, {}});
 				continue;
 			}
+			if(!isLive(form.at(at), 1)) { // worked out at the build: its text, as itself
+				addWorkedPart(form.at(at), 1, parts);
+				BindingPart& part = parts.back();
+				part.asText = true;
+				if(!part.inner.empty()) { // a name of the running app after all: a placeholder
+					part.inner.insert(part.inner.begin(), {"{{", {}, false, {}, {}});
+					part.inner.push_back({"}}", {}, false, {}, {}});
+				}
+				continue;
+			}
 			parts.push_back({"{{", {}, false, {}, {}});
 			lowerForm(form.at(at), 1, parts);
 			parts.push_back({"}}", {}, false, {}, {}});
@@ -287,11 +373,11 @@ void Compiler::compileBinding(const Value& form) {
 	if(std::ranges::none_of(parts, &BindingPart::worked)) {
 		std::string text;
 		for(const BindingPart& part : parts) text += part.text;
-		emitConstant(machine_.heap.string(text));
+		emitConstant(machine_.heap.string(joined ? joinedText(std::move(text)) : keptSpaces(std::move(text))));
 		return;
 	}
 	const bool live = std::exchange(liveBindings_, false);
-	emitParts(parts);
+	emitParts(parts, joined);
 	liveBindings_ = live;
 }
 

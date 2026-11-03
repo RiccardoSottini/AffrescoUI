@@ -216,7 +216,7 @@
                     :else 68)
      {:style cardTitle
       :icon ~(get computed.cardIcon state.cardEdit.id)
-      :text ~(str " " (or state.cardEdit.draft.title (get computed.cardTitle state.cardEdit.id)))
+      :text ~(or state.cardEdit.draft.title (get computed.cardTitle state.cardEdit.id))
       :anchors {:left 24 :right 16 :top 20}
       :fitText false
       :height 28}

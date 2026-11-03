@@ -183,6 +183,23 @@ Value expressionPart(Machine& machine, Arguments arguments) {
 	return machine.heap.string(expressionOfValue(machine, arguments[0]));
 }
 
+/// @brief `%text`: what the build worked out, as a part of a binding's text that `str` joins: a text or a number as
+/// itself (`(str prefix x)` with `prefix` "Hello" is `"Hello{{x}}"`), anything else as a placeholder. A text holding a
+/// brace is a placeholder too, so no value becomes an expression.
+/// @param machine The machine.
+/// @param arguments The value.
+/// @return The text.
+Value textPart(Machine& machine, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("\"%text\" takes one value");
+	const Value& value = arguments[0];
+	const bool plain = value.isNil() || value.kind() == Kind::Boolean || value.isNumber() ||
+	                   (value.kind() == Kind::String && !value.text().contains('{') && !value.text().contains('}'));
+	if(!plain) return machine.heap.string("{{" + expressionOfValue(machine, value) + "}}");
+	std::string text;
+	printValue(machine, value, text, false);
+	return machine.heap.string(text);
+}
+
 /// @brief `%binding`: a binding's text, from its parts.
 /// @param machine The machine.
 /// @param arguments The parts, strings.
@@ -194,7 +211,16 @@ Value bindingText(Machine& machine, Arguments arguments) {
 		text += part.text();
 	}
 	machine.spend(text.size());
-	return machine.heap.string(text);
+	return machine.heap.string(keptSpaces(std::move(text)));
+}
+
+/// @brief `%joined`: the text of a `str` a binding joins, from its parts (joinedText()).
+/// @param machine The machine.
+/// @param arguments The parts, strings.
+/// @return The text.
+Value joinedBinding(Machine& machine, Arguments arguments) {
+	const Value text = bindingText(machine, arguments);
+	return machine.heap.string(joinedText(std::string(text.text())));
 }
 
 } // namespace
@@ -211,6 +237,8 @@ void defineText(Machine& machine) {
 	machine.defineNative("%read", readWithoutApp);
 	machine.defineNative("%expression", expressionPart);
 	machine.defineNative("%binding", bindingText);
+	machine.defineNative("%text", textPart);
+	machine.defineNative("%joined", joinedBinding);
 	machine.defineNative("str", str);
 	machine.defineNative("join", join);
 	machine.defineNative("pr-str", printed);

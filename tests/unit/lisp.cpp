@@ -826,7 +826,7 @@ TEST_CASE("lisp: every example's Lisp file builds to the tree the notation's rea
 		CHECK(lisp::needsRunning(text) == std::nullopt);
 		++files;
 	}
-	CHECK(files > 150);
+	CHECK(files > 100); // the data files: an app written as a program has fewer
 }
 
 TEST_CASE("lisp: the notation's list of the language's words is the language's") {
