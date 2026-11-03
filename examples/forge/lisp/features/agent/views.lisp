@@ -1,30 +1,13 @@
-;;; views.lisp --- what agent.lisp shows
+;;; views.lisp --- the agent pane: the conversation, the proposals to review; and the Features view
 
-;;; Views
+;;; The pane
 
-(defcomponent forgeAgentButton "The forgeAgentButton component."
-  {:id "" :text "" :icon "" :action "" :on true}
-  `(label :id ~id
-     :icon ~icon
-     :text ~text
-     :height 26
-     :padding 8
-     :fitText true
-     :align center
-     :radius 2
-     :cursor hand
-     :focusable true
-     :role button
-     :textColor ~(if on "#ffffff" "@color.muted")
-     :color ~(if on "@color.accent" "@color.border")
-     :onClick {:run ~action}))
-
-(defcomponent forgeAgentView "The forgeAgentView component."
+(defcomponent forgeAgentView "The agent pane: its status, the conversation, the proposals to review, and the request field."
   {}
   `(column#agent-view :width "100%" :grow 1 :color @color.sideBar :gap 4
      (label#agent-title :text ~(t "agent-title") :textColor @color.muted :width "100%" :height 32 :padding 12)
      (label#agent-status :icon ~(if state.agent.connected "plug" "unplug")
-       :text ~state.agent.status
+       :text ~(if (empty? state.agent.status) (t "agent.notConnected") state.agent.status)
        :wrap true
        :width "100%"
        :height 36
@@ -42,7 +25,7 @@
        :accentColor @color.accent)
      ~(agent-draft)
      ~(agent-ask-row)
-     (label#agent-review-title :text ~(str "REVIEW  " (count proposals))
+     (label#agent-review-title :text ~(t "agent-review-title" {:n (count proposals)})
        :textColor @color.muted
        :width "100%"
        :height 22
@@ -57,28 +40,21 @@
      ~(agent-proposals)
      (node :use forgeAgentReview :when ~(some? computed.agentCurrent))))
 
-(defview agent-ask-row "#agent-ask-row, in forgeAgentView." []
-  `(row#agent-ask-row :width "100%" :height 30 :justify end
-     (node :use forgeAgentButton
-       :with {:id agent-ask
-              :text ~(t "agentView.ask")
-              :icon send
-              :action agentAsk
-              :on ~(not (empty? (trim state.agent.draft)))})))
+(defview agent-empty "Before the first request: what the pane does, or how an agent joins." []
+  `(column#agent-empty :when ~(= (count state.agent.log) 0) :width "100%" :grow 2 :alignItems center :justify center :gap 8
+     (label#agent-empty-icon :icon bot :font iconsLarge :textColor @color.accent :fitText true)
+     (label#agent-empty-title :text ~(t "agent-empty-title") :textColor @color.text :fitText true)
+     (label#agent-empty-text :wrap true
+       :width "100%"
+       :height 72
+       :padding 12
+       :align center
+       :textColor @color.muted
+       :text ~(if state.agent.connected
+                  (t "agent-empty.connected")
+                  (t "agent-empty.notConnected")))))
 
-(defview agent-draft "#agent-draft, in forgeAgentView." []
-  `(textarea#agent-draft :width "100%"
-     :height 52
-     :padding 6
-     :wrap true
-     :color @color.input
-     :textColor @color.text
-     :placeholderColor @color.muted
-     :bind state.agent.draft
-     :placeholder ~(t "agent-draft.placeholder")
-     :onSubmit agentAsk))
-
-(defview agent-proposals "#agent-proposals, in forgeAgentView." []
+(defview agent-proposals "The proposals waiting for review: one is chosen." []
   `(list#agent-proposals :when ~(> (count proposals) 0)
      :width "100%"
      :grow 1
@@ -92,33 +68,56 @@
      :accentColor @color.accent
      :onOpen agentOpenChanges))
 
-(defview agent-empty "#agent-empty, in forgeAgentView." []
-  `(column#agent-empty :when ~(= (count state.agent.log) 0) :width "100%" :grow 2 :alignItems center :justify center :gap 8
-     (label#agent-empty-icon :icon bot :font iconsLarge :textColor @color.accent :fitText true)
-     (label#agent-empty-title :text ~(t "agent-empty-title") :textColor @color.text :fitText true)
-     (label#agent-empty-text :wrap true
-       :width "100%"
-       :height 72
-       :padding 12
-       :align center
-       :textColor @color.muted
-       :text ~(if state.agent.connected
-                  "Ask for a change below. The agent edits the documents of this window, and each change waits under Review until you accept it."
-                  "An agent joins through the socket of the host, for example with the MCP server. Once it is connected, ask for a change below; each change it makes waits under Review."))))
+(defview agent-ask-row "The request field and its Ask button." []
+  `(row#agent-ask-row :width "100%" :height 30 :justify end
+     (node :use forgeAgentButton
+       :with {:id agent-ask
+              :text ~(t "agentView.ask")
+              :icon send
+              :action agentAsk
+              :on ~(not (empty? (trim state.agent.draft)))})))
 
-(defcomponent forgeAgentReview "The forgeAgentReview component."
+(defview agent-draft "The request, typed: Enter sends it." []
+  `(textarea#agent-draft :width "100%"
+     :height 52
+     :padding 6
+     :wrap true
+     :color @color.input
+     :textColor @color.text
+     :placeholderColor @color.muted
+     :bind state.agent.draft
+     :placeholder ~(t "agent-draft.placeholder")
+     :onSubmit agentAsk))
+
+(defcomponent forgeAgentButton "A button of the pane: an icon and a text, which runs `action`; accented while `on`."
+  {:id "" :text "" :icon "" :action "" :on true}
+  `(label :id ~id
+     :icon ~icon
+     :text ~text
+     :height 26
+     :padding 8
+     :fitText true
+     :align center
+     :radius 2
+     :cursor hand
+     :focusable true
+     :role button
+     :textColor ~(if on "#ffffff" "@color.muted")
+     :color ~(if on "@color.accent" "@color.border")
+     :onClick {:run ~action}))
+
+;;; Reviewing a proposal
+
+(defcomponent forgeAgentReview "The proposal chosen: its message, its changes, its evidence, and Preview, Accept and Reject."
   {}
   `(column#agent-review :width "100%" :grow 2 :gap 4
      (label#agent-proposal-message :wrap true
        :width "100%"
        :padding 8
        :textColor @color.text
-       :text ~(str computed.agentCurrent.message
-                   "  ("
-                   computed.agentCurrent.operations
-                   " changes by "
-                   computed.agentCurrent.author
-                   ")"))
+       :text ~(t "agent-proposal-message" {:message computed.agentCurrent.message
+                                            :n computed.agentCurrent.operations
+                                            :author computed.agentCurrent.author}))
      (list#agent-changes :width "100%"
        :grow 1
        :items ~computed.agentChangeRows
@@ -147,7 +146,7 @@
        :accentColor @color.accent)
      ~(agent-decide)))
 
-(defview agent-evidence-behaviour "#agent-evidence-behaviour, in forgeAgentReview." []
+(defview agent-evidence-behaviour "What the agent says its change does." []
   `(label#agent-evidence-behaviour :when ~(and (some? computed.agentEvidence)
                                                (not (empty? computed.agentEvidence.behaviour)))
      :icon activity
@@ -157,7 +156,43 @@
      :textColor @color.text
      :text ~(slice (text computed.agentEvidence.behaviour) 0 2000)))
 
-(defcomponent forgeFeaturesView "The forgeFeaturesView component."
+(defview agent-evidence-shots "The screenshots before and after the change, side by side." []
+  `(row#agent-evidence-shots :when ~(and (some? computed.agentEvidence)
+                                         (= (type computed.agentEvidence.before) "string")
+                                         (= (type computed.agentEvidence.after) "string"))
+     :width "100%"
+     :height 120
+     :gap 4
+     (image#agent-evidence-before :source ~computed.agentEvidence.before
+       :grow 1
+       :height "100%"
+       :fit contain
+       :label ~(t "agent-evidence-before.label"))
+     (image#agent-evidence-after :source ~computed.agentEvidence.after
+       :grow 1
+       :height "100%"
+       :fit contain
+       :label ~(t "agent-evidence-after.label"))))
+
+(defview agent-decide "Preview, Accept and Reject; Reject asks once before it rejects." []
+  `(row#agent-decide :width "100%" :gap 4
+     (node :use forgeAgentButton
+       :with {:id agent-preview
+              :action agentPreview
+              :on false
+              :icon ~(if (= computed.agentCurrent.id preview) "eye-off" "eye")
+              :text ~(if (= computed.agentCurrent.id preview) (t "agent-preview.end") (t "agent-preview"))})
+     (node :use forgeAgentButton :with {:id agent-accept :text ~(t "agentReview.accept") :icon check :action agentAccept})
+     (node :use forgeAgentButton
+       :with {:id agent-reject
+              :icon x
+              :action agentReject
+              :on false
+              :text ~(if (= state.agent.rejecting computed.agentCurrent.id) (t "agent-reject.confirm") (t "agent-reject"))})))
+
+;;; Features
+
+(defcomponent forgeFeaturesView "The Features view: the catalogue, searchable, and the feature chosen."
   {}
   `(column#features-view :width "100%" :grow 1 :color @color.sideBar :gap 4
      (row#features-head :width "100%" :height 35 :alignItems center
@@ -193,65 +228,10 @@
        :text ~(t "features-empty"))
      (column#features-list :role listbox :label ~(t "features-list.label") :width "100%" :grow 1 :scroll vertical
        ~(repeat [f computed.featureCards :index fi :key f.name]
-         (agent-view-view f)))
+         (feature-row f)))
      ~(features-detail)))
 
-(defview agent-evidence-shots "#agent-evidence-shots." []
-  `(row#agent-evidence-shots :when ~(and (some? computed.agentEvidence)
-                                         (= (type computed.agentEvidence.before) "string")
-                                         (= (type computed.agentEvidence.after) "string"))
-     :width "100%"
-     :height 120
-     :gap 4
-     (image#agent-evidence-before :source ~computed.agentEvidence.before
-       :grow 1
-       :height "100%"
-       :fit contain
-       :label ~(t "agent-evidence-before.label"))
-     (image#agent-evidence-after :source ~computed.agentEvidence.after
-       :grow 1
-       :height "100%"
-       :fit contain
-       :label ~(t "agent-evidence-after.label"))))
-
-(defview agent-decide "#agent-decide." []
-  `(row#agent-decide :width "100%" :gap 4
-     (node :use forgeAgentButton
-       :with {:id agent-preview
-              :action agentPreview
-              :on false
-              :icon ~(if (= computed.agentCurrent.id preview) "eye-off" "eye")
-              :text ~(if (= computed.agentCurrent.id preview) "End Preview" "Preview")})
-     (node :use
-           forgeAgentButton
-           :with
-           (node#agent-accept :text ~(t "agentReview.accept") :icon check :action agentAccept))
-     (node :use forgeAgentButton
-       :with {:id agent-reject
-              :icon x
-              :action agentReject
-              :on false
-              :text ~(if (= state.agent.rejecting computed.agentCurrent.id) "Confirm Reject" "Reject")})))
-
-(defview view "#." [f]
-  `(column :id ~(str "feature-text-" f.name) :grow 1 :height 40
-     (label :id ~(str "feature-title-" f.name)
-       :width "100%"
-       :height 20
-       :textColor @color.text
-       :text ~(+ f.title (if (empty? f.release) "" (str "  " f.release))))
-     (label :id
-            ~(str "feature-description-" f.name)
-            :width
-            "100%"
-            :height
-            20
-            :textColor
-            @color.muted
-            :text
-            ~f.description)))
-
-(defview agent-view-view "#." [f]
+(defview feature-row "A feature of the catalogue: its icon says whether it is installed and on; a click chooses it." [f]
   `(row :id ~(str "feature-" f.name)
      :role option
      :label ~(str f.title ". " f.description)
@@ -263,25 +243,34 @@
      :cursor hand
      :color ~(if (= state.features.selected f.name) "@color.selection" "@color.sideBar")
      :hover {:color @color.hover}
-     :onClick [{:set state.features.selected :to ~f.name}]
+     :onClick ~(handler featuresChoose f.name)
      (label :id ~(str "feature-icon-" f.name)
        :icon ~(cond (not f.installed) "download" f.enabled "circle-check" :else "circle-pause")
        :width 32
        :height 48
        :align center
        :textColor ~(if (and f.installed f.enabled) "@color.accent" "@color.muted"))
-     ~(view f)
+     ~(feature-text f)
      (node :id ~(str "feature-end-" f.name) :width 8)))
 
-(defview features-detail "#features-detail." []
+(defview feature-text "A feature's title and release, over its description." [f]
+  `(column :id ~(str "feature-text-" f.name) :grow 1 :height 40
+     (label :id ~(str "feature-title-" f.name)
+       :width "100%"
+       :height 20
+       :textColor @color.text
+       :text ~(+ f.title (if (empty? f.release) "" (str "  " f.release))))
+     (label :id ~(str "feature-description-" f.name) :width "100%" :height 20 :textColor @color.muted :text ~f.description)))
+
+(defview features-detail "The feature chosen: its title, its description, and Install, Enable or Disable." []
   `(column#features-detail :when ~(some? computed.featureCurrent) :width "100%" :gap 4
      (label#features-detail-title :width "100%"
        :padding 4
        :textColor @color.text
-       :text ~(+ computed.featureCurrent.title
-                 (if computed.featureCurrent.installed
-                     (if computed.featureCurrent.enabled "  (enabled)" "  (disabled)")
-                     "")))
+       :text ~(str computed.featureCurrent.title
+                   (if computed.featureCurrent.installed
+                       (if computed.featureCurrent.enabled (t "features.enabled") (t "features.disabled"))
+                       "")))
      (label#features-detail-description :wrap true
        :width "100%"
        :padding 4
