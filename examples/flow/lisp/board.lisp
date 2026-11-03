@@ -2,7 +2,6 @@
 ;;;
 ;;; What they run is in flow.lisp.
 
-;;; Definitions
 
 (defstate query "")
 

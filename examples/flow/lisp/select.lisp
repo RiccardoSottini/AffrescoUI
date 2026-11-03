@@ -2,7 +2,6 @@
 ;;;
 ;;; Each bulk change is one undo step.
 
-;;; Definitions
 
 (defstate marked [])
 

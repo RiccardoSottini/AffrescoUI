@@ -2,7 +2,6 @@
 ;;;
 ;;; The sidebar and the G chords switch between them and the issues.
 
-;;; Definitions
 
 (defstate page issues)
 
@@ -174,9 +173,7 @@
 
 (defkey "enter" {:when ~(and (not context.textInputFocus) (= state.page "inbox")) :do openNotification})
 
-;;; Views
-
-(defview inbox-item "#inboxItem." [n k]
+(defview inbox-item "A notification in the inbox's list." [n k]
   `(node#inboxItem :anchors {:left 0 :right 0}
      :height 60
      :color ~(if (= k state.inboxAt) "@color.accentSoft" "transparent")
@@ -234,7 +231,7 @@
       :align {:horizontal end :vertical center}
       :text ~(formatDate (dateMs n.when) "MMM d" "utc")}))
 
-(defview inbox-detail-event "#inboxDetailEvent." []
+(defview inbox-detail-event "What happened, in the inbox's detail: who did what." []
   `(node#inboxDetailEvent :anchors {:left 40 :right 40 :top 144} :height 64 :radius @radius.card :color @color.column
      {:id inboxDetailWho
       :style badge
@@ -261,7 +258,7 @@
       :align {:horizontal start :vertical center}
       :text ~(or-else computed.notification.text "")}))
 
-(defview inbox-props "#inboxProps." []
+(defview inbox-props "The issue's properties, in the inbox's detail." []
   `(row#inboxProps :gap 6
      :anchors {:left 40 :right 40 :top 102}
      :height 24
@@ -288,7 +285,7 @@
       :textColor @color.text
       :runs [{:text "●" :font symbols :size 10 :color ~(str "@" card.tag)} ~(str " " (t (str "tag." card.tag)))]}))
 
-(defview inbox-actions "#inboxActions." []
+(defview inbox-actions "The inbox's detail buttons: open the issue, mark it read, snooze it." []
   `(row#inboxActions :gap 8 :anchors {:left 40 :right 40 :top 224} :height 28
      {:id inboxOpen
       :style propValue
@@ -309,7 +306,7 @@
       :onClick toggleRead
       :tooltip "U"}))
 
-(defview cycle-current "#cycleCurrent." []
+(defview cycle-current "The current sprint: its dates, its figures and its burn-up." []
   `(node#cycleCurrent :anchors {:left 24 :right 24 :top 72}
      :height 236
      :radius @radius.card
@@ -371,7 +368,7 @@
        :role img
        :label ~(t "cycle.completed"))))
 
-(defview cycle-issue "#cycleIssue." [card]
+(defview cycle-issue "An issue of the current sprint." [card]
   `(node#cycleIssue :anchors {:left 0 :right 0}
      :height 36
      :color transparent
@@ -429,7 +426,7 @@
       :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
       :textColor "#ffffff"}))
 
-(defview cycle-row "#cycleRow." [cycle]
+(defview cycle-row "An upcoming or past sprint, as a row." [cycle]
   `(node#cycleRow :anchors {:left 0 :right 0}
      :height 44
      :color transparent
@@ -475,7 +472,7 @@
       :align {:horizontal end :vertical center}
       :text ~(formatPercent (/ cycle.done (max cycle.scope 1)))}))
 
-(defview projects-columns "#projectsColumns." []
+(defview projects-columns "The projects table's header." []
   `(node#projectsColumns :anchors {:left 0 :right 0 :top 48} :height 32 :color transparent
      {:id projectsColumnName
       :style caption
@@ -512,7 +509,7 @@
       :align {:horizontal start :vertical center}}
      {:id projectsColumnsLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}))
 
-(defview project-row "#projectRow." [project]
+(defview project-row "A project as a row of the table." [project]
   `(node#projectRow :anchors {:left 0 :right 0}
      :height 44
      :color transparent

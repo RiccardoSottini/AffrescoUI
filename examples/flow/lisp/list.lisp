@@ -1,6 +1,5 @@
 ;;; list.lisp --- Flow's list view, included by index.screen.lisp: every card in one list, grouped by column, a row each.
 
-;;; Definitions
 
 (defcomponent listView "The cards grouped by column: a header with the column's name and count, then a row a card"
   {}
@@ -20,9 +19,7 @@
             ~(repeat [row (sort-by (fn [it] (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority) (= state.order "due") (or-else it.due "9999-12-31") :else it.at)) (filter (fn [it] (= it.c c)) computed.allCards)) :index k]
               (list-row column c row)))))))
 
-;;; Views
-
-(defview list-collapse "#listCollapse." [column c]
+(defview list-collapse "A group's chevron in the list, which folds its rows." [column c]
   `(label#listCollapse :icon ~(if (contains state.collapsedGroups c) "chevron-right" "chevron-down")
      :text ""
      :textColor @color.muted
@@ -41,7 +38,7 @@
                         (filter (fn [it] (not= it c)) state.collapsedGroups)
                         (concat state.collapsedGroups [c]))}))
 
-(defview list-header "#listHeader." [column c]
+(defview list-header "A group's header in the list: its column's name and count." [column c]
   `(node#listHeader :anchors {:left 0 :right 0 :top 0} :height 36 :color @color.column
      ~(list-collapse column c)
      (label#listStatus :icon ~(or-else (get state.statusIcons c) "circle")
@@ -80,7 +77,7 @@
        :tooltip ~(t "composer.in" {:column column.name})
        :onClick ~(handler openComposer c))))
 
-(defview list-row "#listRow." [column c row]
+(defview list-row "A card as a row of the list." [column c row]
   `(node#listRow :let {:i ~row.at :card ~(get column.cards row.at)}
      :when ~(contains computed.visibleRefs card.ref)
      :anchors {:left 0 :right 0}

@@ -1,6 +1,5 @@
 ;;; sidebar.lisp --- Flow's sidebar, included by index.screen.lisp: the workspace, the personal pages, the team's pages and its boards.
 
-;;; Definitions
 
 (defcomponent navItem "One row of the sidebar: an icon, a name and a count; the use gives its onClick"
   {:icon circle :text "" :active false :count ""}
@@ -41,7 +40,7 @@
   {}
   `(node#sidebarPanel :dir auto :anchors {:left 0 :top 0 :bottom 0} :width 220 :color @color.sidebar
      {:id sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @color.border}
-     ~(workspace-view)
+     ~(workspace-switcher)
      {:id sidebarSearch
       :style topButton
       :text ""
@@ -83,9 +82,7 @@
       :tooltip ~(t "nav.commands")
       :onClick commandPalette}))
 
-;;; Views
-
-(defview workspace-items "#workspaceItems." []
+(defview workspace-items "The workspace menu's items." []
   `(column#workspaceItems :anchors {:left 6 :right 6 :top 6 :bottom 6} :gap 2 :role menu :arrows vertical
      {:id settingsButton
       :style menuRow
@@ -112,7 +109,7 @@
       :tooltip "Cmd+L"
       :onClick [{:set state.workspaceOpen :to false} ~(handler changeLanguage)]}))
 
-(defview workspace-view "#workspace." []
+(defview workspace-switcher "The workspace's name at the top of the sidebar, which opens its menu." []
   `(row#workspace :anchors {:left 12 :top 10}
      :width 132
      :height 28
@@ -166,7 +163,7 @@
                           :align
                           center)))
 
-(defview sidebar-nav "#sidebarNav." []
+(defview sidebar-nav "The sidebar's rows: the inbox, my issues, the boards, the sprints and the projects." []
   `(column#sidebarNav :anchors {:left 12 :right 12 :top 50 :bottom 48} :gap 1 :scroll vertical :role navigation
      (node#navInbox :use navItem
        :with {:icon inbox

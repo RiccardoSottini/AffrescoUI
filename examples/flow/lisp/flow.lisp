@@ -526,8 +526,11 @@
   (set "state.selected" nil))
 
 (defcommand showBoard "" :title "Show the board" :category "View" :icon "kanban" [] (set "state.view" "board"))
+
 (defcommand showList "" :title "Show the list" :category "View" :icon "layout-list" [] (set "state.view" "list"))
+
 (defcommand showTable "" :title "Show the table" :category "View" :icon "table" [] (set "state.view" "table"))
+
 (defcommand showTimeline "" :title "Show the timeline" :category "View" :icon "chart-gantt" []
   (set "state.view" "timeline"))
 
@@ -542,6 +545,7 @@
   (toggle "state.peek"))
 
 (defcommand openSettings "" :title "Settings…" :category "View" :icon "settings" [] (set "state.settingsOpen" true))
+
 (defn closeSettings "" [] (set "state.settingsOpen" false))
 
 (defcommand changeLanguage "" :title "Change the language" :category "View"
@@ -559,8 +563,11 @@
   (set "state.projectScope" "all"))
 
 (defcommand goToInbox "" :title "Go to inbox" :category "Go" :icon "inbox" [] (showPage "inbox"))
+
 (defcommand goToIssues "" :title "Go to issues" :category "Go" :icon "copy" [] (showPage "issues"))
+
 (defcommand goToCycles "" :title "Go to sprints" :category "Go" :icon "timer" [] (showPage "cycles"))
+
 (defcommand goToProjects "" :title "Go to projects" :category "Go" :icon "box" [] (showPage "projects"))
 
 (defcommand nextNotification "" :title "Next notification" :category "Inbox" :icon "arrow-down"

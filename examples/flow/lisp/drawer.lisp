@@ -1,6 +1,5 @@
 ;;; drawer.lisp --- Flow's card drawer, included by index.screen.lisp: the selected card's description (rich text, edited in place), due date with a date picker, labels, assignees, checklist, comments and attachments.
 
-;;; Definitions
 
 (defstyle section (label :font small :textColor @color.muted :height 18 :align {:horizontal start :vertical center}))
 
@@ -179,9 +178,7 @@
       :onSubmit [~(handler addToCard "attachments" (trim state.newAttachment) state.newAttachment)
                  {:set state.newAttachment :to ""}]}))
 
-;;; Views
-
-(defview detail-actions "#detailActions." []
+(defview detail-actions "The drawer's buttons: open the card as a page, move it, and its menu." []
   `(row#detailActions :gap 8 :anchors {:left 12 :right 12} :height 30 :arrows horizontal :role toolbar
      {:id detailEdit
       :style detailButton
@@ -243,7 +240,7 @@
       :label ~(t "detail.more")
       :onClick ~(handler openCardMenu state.selected.c state.selected.i)}))
 
-(defview due-picker "#duePicker." []
+(defview due-picker "The drawer's date picker, below the due date." []
   `(node#duePicker :overlay {:placement below :open state.dueOpen :dismiss outside :modal true}
      :y 6
      :width 280
@@ -266,7 +263,7 @@
        :keys {:escape {:set state.dueOpen :to false}}
        :onChange ~(handler setDue event.value))))
 
-(defview due-row "#dueRow." []
+(defview due-row "The drawer's due date, which opens the date picker." []
   `(row#dueRow :gap 8 :anchors {:left 12 :right 12} :height 30
      {:id dueButton
       :style detailButton
@@ -295,7 +292,7 @@
       :onClick ~(handler setDue nil)}
      ~(due-picker)))
 
-(defview assignee "#assignee." [member]
+(defview assignee "A member as a pill in the drawer, on while they are an assignee of the card." [member]
   `{:id assignee
     :style badge
     :let {:on ~(contains (or-else computed.card.assignees []) member.who)}
@@ -313,7 +310,7 @@
     :textColor ~(if on "#ffffff" "@color.muted")
     :onClick ~(handler toggleListItem "assignees" member.who)})
 
-(defview check-row "#checkRow." [item k]
+(defview check-row "One item of the card's checklist: a check box, its text and an x." [item k]
   `(node#checkRow :anchors {:left 0 :right 0} :height 28 :color transparent
      (checkbox#checkBox :checked ~item.done
        :label ~item.text

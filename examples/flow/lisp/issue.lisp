@@ -1,6 +1,5 @@
 ;;; issue.lisp --- Flow's issue page, included by index.screen.lisp: the selected card on a page of its own, its description and activity on the left, its properties on the right.
 
-;;; Definitions
 
 (defstate issueOpen false)
 
@@ -71,9 +70,7 @@
      {:id issueSideLine :anchors {:right 300 :top 48 :bottom 0} :width 1 :color @color.border}
      ~(issue-side)))
 
-;;; Views
-
-(defview issue-nav "#issueNav." []
+(defview issue-nav "The issue page's arrows to the previous and next issue, and the way back." []
   `(row#issueNav :gap 2 :alignItems center :justify end :anchors {:right 12 :top 10} :width 140 :height 28
      (label#issuePosition :font small
        :fitText true
@@ -105,7 +102,7 @@
       :disabled ~(nil? computed.next)
       :onClick selectNext}))
 
-(defview issue-header "#issueHeader." []
+(defview issue-header "The issue page's top bar: the board, the issue's id and the arrows." []
   `(node#issueHeader :anchors {:left 0 :right 0 :top 0} :height 48 :color transparent
      {:id issueBack
       :style propValue
@@ -130,7 +127,7 @@
      ~(issue-nav)
      {:id issueHeaderLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}))
 
-(defview issue-sub "#issueSub." [item k]
+(defview issue-sub "A sub-issue of the issue page: a check box and its text." [item k]
   `(node#issueSub :anchors {:left 0 :right 0} :height 34 :color transparent :hover {:color @color.column}
      {:id issueSubLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}
      (checkbox#issueSubBox :checked ~item.done
@@ -151,7 +148,7 @@
       :label ~(t "drawer.remove" {:name item.text})
       :onClick ~(handler removeFromCard "checklist" k)}))
 
-(defview issue-comment "#issueComment." [note]
+(defview issue-comment "A comment on the issue page: who wrote it and what it says." [note]
   `(node#issueComment :anchors {:left 40 :right 40}
      :height 64
      :radius @radius.card
@@ -179,7 +176,7 @@
        :wrap true
        :anchors {:left 40 :right 12 :top 32 :bottom 6})))
 
-(defview issue-main "#issueMain." []
+(defview issue-main "The issue page's main column: the title, the description, the sub-issues and the activity." []
   `(column#issueMain :anchors {:left 0 :right 301 :top 49 :bottom 0} :scroll vertical :gap 12 :color transparent
      {:id issueTop :height 28 :width 1 :color transparent}
      (label#issueTitle :font display
@@ -292,7 +289,7 @@
                   :with {:field comments :input ~state.newComment :value {:who ~state.me :text ~(trim state.newComment)}}}
                  {:set state.newComment :to ""}]}))
 
-(defview status-picker "#statusPicker." []
+(defview status-picker "The issue page's status menu." []
   `(node#statusPicker :style pickMenu
      :overlay {:placement below :open state.issueStatusOpen :dismiss outside :modal true}
      :height ~(+ 8 (* 30 (count computed.columns)))
@@ -311,7 +308,7 @@
                        :anchors {:right 0 :top 0 :bottom 0})]
           :onClick ~(handler setStatus k)))))
 
-(defview priority-picker "#priorityPicker." []
+(defview priority-picker "The issue page's priority menu." []
   `(node#priorityPicker :style pickMenu
      :overlay {:placement below :open state.issuePriorityOpen :dismiss outside :modal true}
      :height 158
@@ -330,7 +327,7 @@
                        :anchors {:right 0 :top 0 :bottom 0})]
           :onClick ~(handler setPriority p)))))
 
-(defview who-pick "#whoPick." [member]
+(defview who-pick "A member in the issue page's assignee menu." [member]
   `(node#whoPick :style pickRow
      :text ~member.name
      :padding 36
@@ -353,7 +350,7 @@
       :color ~member.color
       :textColor "#ffffff"}))
 
-(defview issue-due-picker "#issueDuePicker." []
+(defview issue-due-picker "The issue page's date picker." []
   `(node#issueDuePicker :overlay {:placement below :open state.issueDueOpen :dismiss outside :modal true}
      :y 6
      :width 280
@@ -374,7 +371,7 @@
        :pickedTextColor @color.chipOnText
        :onChange [~(handler setDue event.value) {:set state.issueDueOpen :to false}])))
 
-(defview prop-estimate "#propEstimate." []
+(defview prop-estimate "The issue page's estimate: its points, with a menu of the sizes." []
   `(row#propEstimate :anchors {:left 8 :right 16} :height 32 :alignItems center
      {:id propEstimateValue
       :style propValue
@@ -395,7 +392,7 @@
            :selected ~(= n (or-else computed.card.points 0))
            :onClick ~(handler setEstimate n)}))))
 
-(defview prop-tag "#propTag." []
+(defview prop-tag "The issue page's label, with a menu of the labels." []
   `(node#propTag :style cardChip
      :height 24
      :textColor @color.text
@@ -420,7 +417,7 @@
            :selected ~(= tag computed.card.tag)
            :onClick ~(handler setTag tag)}))))
 
-(defview prop-label-add "#propLabelAdd." []
+(defview prop-label-add "The issue page's + button for labels, with a menu of them." []
   `(node#propLabelAdd :style cardChip
      :height 24
      :width 24
@@ -448,7 +445,7 @@
            :selected ~(contains (or-else computed.card.labels []) name)
            :onClick ~(handler toggleListItem "labels" name)}))))
 
-(defview prop-labels "#propLabels." []
+(defview prop-labels "The issue page's labels: a chip each, and the + button." []
   `(column#propLabels :anchors {:left 8 :right 16}
      :height ~(if (> (count (or-else computed.card.labels [])) 2) 84 56)
      :alignItems start
@@ -469,7 +466,7 @@
            :onClick ~(handler toggleListItem "labels" name)})
        ~(prop-label-add))))
 
-(defview issue-side "#issueSide." []
+(defview issue-side "The issue page's properties panel: status, priority, assignee, due date, estimate and labels." []
   `(column#issueSide :anchors {:right 0 :top 49 :bottom 0}
      :width 300
      :gap 2
