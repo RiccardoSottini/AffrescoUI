@@ -39,7 +39,7 @@
   (node#panel-root :color @background :every {:ms 1000 :do tick}
     ~(sidebar)
     ~(main-area)
-    ~(player-view)
+    ~(player)
     (node#statusBar :when ~(not state.mini) :anchors {:left 0 :right 0 :bottom 0} :height 32 :color @sidebar
       {:id panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border}
       (label#statusText :text ~(str "Revision " revision.number "  ·  " revision.author ": " revision.message)

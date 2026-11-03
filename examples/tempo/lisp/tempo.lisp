@@ -510,3 +510,6 @@
 
 (defn sortLibrary "The library's table sorted by a column, its header clicked." []
   (set "state.librarySort" {:column event.column :descending event.descending}))
+
+(defn showPlayingList "The player's cover clicked: the list playing, or the library." []
+  (if (>= state.playingList 0) (openList state.playingList) (show "library")))
