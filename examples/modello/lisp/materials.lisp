@@ -114,3 +114,6 @@
   (let [colour (colorList value)]
     (when (and (>= computed.shaderNodeIndex 0) (some? colour))
       (set (graph-path (str ".nodes[" computed.shaderNodeIndex "].value")) (slice colour 0 3)))))
+
+(defn selectShaderNodes "Nodes selected in the graph." []
+  (set "state.shaderSelected" event.ids))

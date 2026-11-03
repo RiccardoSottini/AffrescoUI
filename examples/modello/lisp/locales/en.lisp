@@ -463,4 +463,14 @@
                 :timeline.menu.View "View"
                 :timeline.menu.Marker "Marker"
                 :timeline.previewRangeTip "Use Preview Range: Start and End then set a range of their own for playback"
-                :timeline.start "Start"}}}
+                :timeline.start "Start"
+                :shader.output "Material Output"
+                :socket.emission "Emission"
+                :socket.factor "Factor"
+                :shader.empty "Select an object with a material to edit its nodes"
+                :shader.addNeeds "The active object has no material: add one in the Material tab"
+                :shader.addTip "Add a node (Shift+A)"
+                :shader.deleteTip "Delete the selected nodes (Delete)"
+                :shader.material "Material: {name}"
+                :shader.nodes "Shader nodes"
+                :shader.nodeTitle "{title} ({id})"}}}
