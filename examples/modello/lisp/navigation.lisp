@@ -67,9 +67,14 @@
 (defn toggleOverlay "One of the overlays shown or hidden: the grid, the axes, the 3D cursor..." [key]
   (toggle (str "state.overlay." key)))
 
-(defn toggleKind "A kind of object (meshes, lights...) made visible or not (which is hiddenKinds), or selectable or not."
+(defn kinds-in "The kinds a list of the state holds: hiddenKinds, unselectableKinds or outlinerHide." [which]
+  (cond (= which "hiddenKinds") state.hiddenKinds
+        (= which "unselectableKinds") state.unselectableKinds
+        :else state.outlinerHide))
+
+(defn toggleKind "A kind of object (meshes, lights...) taken out of a list of kinds, or put in: hidden, unselectable, unlisted."
   [which kind]
-  (let [kinds (if (= which "hiddenKinds") state.hiddenKinds state.unselectableKinds)]
+  (let [kinds (kinds-in which)]
     (set (str "state." which) (if (contains kinds kind) (without kinds kind) (concat kinds [kind]))))
   (set "state.view.selection" (filter (fn [id] (contains computed.pickable id)) state.view.selection)))
 
@@ -118,9 +123,9 @@
       (when (some? there) (set (str "state.areas." there) from)))))
 
 ;; A workspace sets the editors, the timeline's height, the shading and the properties' tab it is made for.
-(defn setWorkspace "A workspace tab chosen: Layout, Modeling, Shading, Animation or Rendering." [id title]
+(defn setWorkspace "A workspace tab chosen: Layout, Model, Materials, Animate or Render." [id name]
   (dismiss)
-  (set "state.workspace" title)
+  (set "state.workspace" name)
   (set "state.areas" {:a "viewport" :b (if (= id "shading") "shader" "timeline") :c "outliner" :d "properties"})
   (set "state.sizes.left" [(cond (= id "animation") 520 (= id "shading") 470 (= id "modeling") 790 :else 720)])
   (set "state.shading" (cond (= id "shading") "material" (= id "rendering") "rendered" :else "solid"))
@@ -130,8 +135,8 @@
 
 (defn workspace-after "The workspace a step away from the one shown, round the tabs that need nothing." [step]
   (let [tabs (filter (fn [w] (nil? (:needs w))) computed.workspaces)
-        next (get tabs (mod (+ (indexOf (map :title tabs) state.workspace) step (count tabs)) (count tabs)))]
-    (setWorkspace (:id next) (:title next))))
+        next (get tabs (mod (+ (indexOf (map :name tabs) state.workspace) step (count tabs)) (count tabs)))]
+    (setWorkspace (:id next) (:name next))))
 
 (defcommand nextWorkspace "Shows the next workspace."
   :title ~(t "command.nextWorkspace") :category ~(t "category.window") :icon "arrow-right" []

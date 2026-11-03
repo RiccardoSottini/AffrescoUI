@@ -136,12 +136,12 @@
      :label ~w.title
      :disabled ~(some? w.needs)
      :tooltip ~(if (some? w.needs) (str w.title " isn't available yet: it needs " w.needs) "")
-     :selected ~(= state.workspace w.title)
-     :color ~(if (= state.workspace w.title) "@widget" "transparent")
-     :hover {:color ~(cond (= state.workspace w.title) "@widget" (some? w.needs) "transparent" :else "@view")}
-     :onClick {:run setWorkspace :with {:id ~w.id :title ~w.title}}
+     :selected ~(= state.workspace w.name)
+     :color ~(if (= state.workspace w.name) "@widget" "transparent")
+     :hover {:color ~(cond (= state.workspace w.name) "@widget" (some? w.needs) "transparent" :else "@view")}
+     :onClick {:run setWorkspace :with {:id ~w.id :name ~w.name}}
      (label :text ~w.title
-       :textColor ~(cond (= state.workspace w.title) "@active" (some? w.needs) "@faint" :else "@dim")
+       :textColor ~(cond (= state.workspace w.name) "@active" (some? w.needs) "@faint" :else "@dim")
        :align center
        :fill true)))
 

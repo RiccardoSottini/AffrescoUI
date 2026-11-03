@@ -1,10 +1,14 @@
-;;; keys.lisp --- TODO
+;;; keys.lisp --- Modello's keyboard shortcuts, as in other 3D modellers: each runs a command or a function
+;;;
+;;; A key that does one thing while a transform runs and another otherwise lists both, the first that applies winning.
 
-(defkey "g" {:do grab})
+;;; Moving, turning and scaling after the pointer: the keys work while a transform runs
 
-(defkey "r" {:do rotate})
+(defkey "g" grab)
 
-(defkey "s" {:do resize})
+(defkey "r" rotate)
+
+(defkey "s" resize)
 
 (defkey "x" [{:when ~(some? state.modal) :do lockAxis :with {:axis x}} {:do deleteMenu}])
 
@@ -12,8 +16,6 @@
 
 (defkey "z"
   [{:when ~(some? state.modal) :do lockAxis :with {:axis z}} {:do openPie :with {:menu shading}}])
-
-(defkey "grave" {:when ~(nil? state.modal) :do openPie :with {:menu view}})
 
 (defkey "shift+x" {:when ~(some? state.modal) :do lockAxis :with {:axis yz}})
 
@@ -51,47 +53,67 @@
 
 (defkey "escape" [{:when ~(some? state.modal) :do cancelTransform}])
 
-(defkey "shift+a" {:do addMenu})
+;;; Objects
+
+(defkey "shift+a" addMenu)
 
 (defkey "delete" [{:when ~(= (get state.areas state.hoverSlot) "shader") :do deleteShaderNodes} {:do deleteSelected}])
 
-(defkey "shift+d" {:do duplicate})
+(defkey "shift+d" duplicate)
 
-(defkey "h" {:do hideSelected})
+(defkey "h" hideSelected)
 
-(defkey "m" {:do moveToCollectionMenu})
+(defkey "m" moveToCollectionMenu)
 
-(defkey "f2" {:do startRename})
+(defkey "f2" startRename)
 
-(defkey "shift+h" {:do hideUnselected})
+(defkey "shift+h" hideUnselected)
 
-(defkey "alt+h" {:do revealHidden})
+(defkey "alt+h" revealHidden)
 
-(defkey "a" {:do selectAll})
+(defkey "a" selectAll)
 
-(defkey "alt+a" {:do selectNone})
+(defkey "alt+a" selectNone)
 
-(defkey "mod+i" {:do selectInvert})
+(defkey "mod+i" selectInvert)
 
-(defkey "numpad1" {:do viewFront})
+(defkey "mod+c" {:when ~(not context.textInputFocus) :do copyObjects})
 
-(defkey "mod+numpad1" {:do viewBack})
+(defkey "mod+v" {:when ~(and (not context.textInputFocus) (nil? state.modal)) :do pasteObjects})
 
-(defkey "numpad3" {:do viewRight})
+(defkey "alt+g" {:when ~(nil? state.modal) :do clearLocation})
 
-(defkey "mod+numpad3" {:do viewLeft})
+(defkey "alt+r" {:when ~(nil? state.modal) :do clearRotation})
 
-(defkey "numpad7" {:do viewTop})
+(defkey "alt+s" {:when ~(nil? state.modal) :do clearScale})
 
-(defkey "mod+numpad7" {:do viewBottom})
+(defkey "shift+s" snapMenu)
 
-(defkey "numpad5" {:do toggleProjection})
+(defkey "shift+tab" {:when ~(not context.textInputFocus) :do toggleSnap})
 
-(defkey "numpad0" {:do viewCamera})
+;;; The view: the numpad turns it, as in other 3D modellers
 
-(defkey "numpadperiod" {:do frameSelected})
+(defkey "grave" {:when ~(nil? state.modal) :do openPie :with {:menu view}})
 
-(defkey "home" {:do frameAll})
+(defkey "numpad1" viewFront)
+
+(defkey "mod+numpad1" viewBack)
+
+(defkey "numpad3" viewRight)
+
+(defkey "mod+numpad3" viewLeft)
+
+(defkey "numpad7" viewTop)
+
+(defkey "mod+numpad7" viewBottom)
+
+(defkey "numpad5" toggleProjection)
+
+(defkey "numpad0" viewCamera)
+
+(defkey "numpadperiod" frameSelected)
+
+(defkey "home" frameAll)
 
 (defkey "numpad4" {:do orbitView :with {:orbit [-15 0]}})
 
@@ -105,65 +127,54 @@
 
 (defkey "numpadminus" {:do zoomView :with {:steps -1}})
 
-(defkey "mod+z" {:do undo})
+(defkey "alt+z" toggleXray)
 
-(defkey "mod+c" {:when ~(not context.textInputFocus) :do copyObjects})
+(defkey "shift+alt+z" toggleOverlays)
 
-(defkey "mod+v" {:when ~(and (not context.textInputFocus) (nil? state.modal)) :do pasteObjects})
+(defkey "n" toggleSidebar)
 
-(defkey "f12" {:do renderImage})
-
-(defkey "mod+shift+z" {:do redo})
-
-(defkey "n" {:do toggleSidebar})
-
-(defkey "f3" {:do search})
-
-(defkey "f9" {:when ~(some? state.lastOp) :do adjustLastPanel})
-
-(defkey "t" {:do toggleToolbar})
-
-(defkey "alt+z" {:do toggleXray})
-
-(defkey "shift+alt+z" {:do toggleOverlays})
-
-(defkey "shift+tab" {:when ~(not context.textInputFocus) :do toggleSnap})
-
-(defkey "alt+g" {:when ~(nil? state.modal) :do clearLocation})
-
-(defkey "alt+r" {:when ~(nil? state.modal) :do clearRotation})
-
-(defkey "alt+s" {:when ~(nil? state.modal) :do clearScale})
-
-(defkey "shift+s" {:do snapMenu})
+(defkey "t" toggleToolbar)
 
 (defkey "ctrl+space" {:when ~(not context.textInputFocus) :do toggleMaximize})
 
-(defkey "i" {:do insertKeyframe})
+;;; Animation
 
-(defkey "alt+i" {:do deleteKeyframe})
+(defkey "i" insertKeyframe)
 
-(defkey "shift+alt+i" {:do clearKeyframes})
+(defkey "alt+i" deleteKeyframe)
+
+(defkey "shift+alt+i" clearKeyframes)
 
 (defkey "up" {:when ~(and (not context.textInputFocus) (nil? state.modal)) :do nextKey})
 
 (defkey "down" {:when ~(and (not context.textInputFocus) (nil? state.modal)) :do prevKey})
 
-(defkey "shift+ctrl+space" {:when ~(not context.textInputFocus) :do playReverse})
-
 (defkey "space" {:when ~(not context.textInputFocus) :do play})
 
-(defkey "shift+left" {:do jumpStart})
+(defkey "shift+ctrl+space" {:when ~(not context.textInputFocus) :do playReverse})
 
-(defkey "shift+right" {:do jumpEnd})
+(defkey "shift+left" jumpStart)
 
-(defkey "mod+n" {:do newScene})
+(defkey "shift+right" jumpEnd)
 
-(defkey "mod+s" {:do saveScene})
+;;; Editing, files and the window
 
-(defkey "mod+o" {:do openScene})
+(defkey "mod+z" undo)
 
-(defkey "mod+pagedown" {:do nextWorkspace})
+(defkey "mod+shift+z" redo)
 
-(defkey "mod+pageup" {:do previousWorkspace})
+(defkey "f3" search)
 
+(defkey "f9" {:when ~(some? state.lastOp) :do adjustLastPanel})
+
+(defkey "f12" renderImage)
+
+(defkey "mod+n" newScene)
+
+(defkey "mod+s" saveScene)
+
+(defkey "mod+o" openScene)
+
+(defkey "mod+pagedown" nextWorkspace)
+
+(defkey "mod+pageup" previousWorkspace)

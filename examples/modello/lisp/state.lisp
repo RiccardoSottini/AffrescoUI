@@ -1,20 +1,43 @@
-;;; state.lisp --- TODO
+;;; state.lisp --- what Modello keeps while it runs, and where each value starts
+;;;
+;;; Each defstate is one key of the state, with the value it starts from. The start scene has a camera, a cube and a
+;;; light; onLoad keeps it, for New.
 
-(defstate theme dark)
+;;; The window and the editors
 
-(defstate workspace "Layout")
+(defstate theme dark "dark or light.")
 
-(defstate mode object)
+(defstate workspace "Layout" "The workspace shown, by its title.")
 
-(defstate tool select)
+(defstate menuBar {} "Which of the top bar's menus is open.")
 
-(defstate menuBar {})
+(defstate open {} "Which dropdowns of the headers are open.")
 
-(defstate open {})
+(defstate sizes {:main [1102] :left [720] :right [262]}
+  "The splits' sizes: the main one, the left column's and the right column's.")
 
-(defstate view {:camera {:target [0 0 0] :yaw 0.7 :pitch 0.58 :distance 17.5 :fieldOfView 0.68} :selection [cube]})
+(defstate areas {:a viewport :b timeline :c outliner :d properties}
+  "The editor each area shows: a and b on the left, c and d on the right.")
 
-(defstate active cube)
+(defstate maximized nil "The area that fills the window, or nil.")
+
+(defstate hoverSlot nil "The area under the pointer: a, b, c or d.")
+
+(defstate ctx {:open false :menu "" :items nil :x 0 :y 0} "The menu that popped up: open, which, its items and where.")
+
+(defstate pie {:open false :menu "" :x 0 :y 0} "The pie menu: open, which, and where.")
+
+(defstate about false "Whether the About dialog is shown.")
+
+(defstate quickPick {:open false :query ""} "F3's search: open, and what is typed.")
+
+(defstate rendering false "Whether the render window is shown.")
+
+(defstate sceneName "Scene" "The scene's name, in the top bar.")
+
+(defstate layerName "Main Layer" "The view layer's name, in the top bar.")
+
+;;; The scene and the selection
 
 (defstate scene
   {:nodes [{:id camera
@@ -40,95 +63,109 @@
             :rotationDegrees [37.3 3.2 106.9]
             :scale [1 1 1]}]
    :materials [{:id material :name "Material" :baseColor [0.8 0.8 0.8 1] :roughness 0.5}]
-   :collections [{:id collection :name "Collection"}]})
+   :collections [{:id collection :name "Collection"}]}
+  "The scene: its objects (nodes), materials and collections.")
 
-(defstate cursor [0 0 0])
+(defstate view {:camera {:target [0 0 0] :yaw 0.7 :pitch 0.58 :distance 17.5 :fieldOfView 0.68} :selection [cube]}
+  "The viewport's camera and the selected objects' ids.")
 
-(defstate pivot median)
+(defstate active cube "The active object's id: the last one picked.")
 
-(defstate orientation global)
+(defstate mode object "The mode: object.")
 
-(defstate snap false)
+(defstate tool select "The toolbar's tool: select, cursor, move, rotate, scale, measure or add.")
 
-(defstate snapStep unit)
+(defstate added 0 "How many objects have been added: the number in a new id.")
 
-(defstate shading solid)
+(defstate copied [] "The objects Copy kept, for Paste.")
 
-(defstate sceneLights false)
+(defstate renaming nil "The id of what the outliner is renaming (coll: before a collection's), or nil.")
 
-(defstate sceneWorld false)
+(defstate activeCollection collection "The collection new objects go into.")
 
-(defstate world {:color "#3a3f47"})
+;;; Moving, the 3D cursor and snapping
 
-(defstate render {:exposure 1})
+(defstate cursor [0 0 0] "The 3D cursor's place.")
 
-(defstate propertiesFilter "")
+(defstate pivot median "What objects turn and scale about: median, bounds, cursor or active.")
 
-(defstate overlays true)
+(defstate orientation global "The transform's axes: global, local, normal or cursor.")
 
-(defstate overlay {:grid true :axes true :cursor true :text true :stats false :extras true})
+(defstate snap false "Whether moving snaps to increments.")
 
-(defstate gizmos true)
+(defstate snapStep unit "The increments: fine, unit or coarse.")
 
-(defstate navGizmo true)
+(defstate modal nil "The transform running: its mode, the axis locked and the amount typed; nil when none runs.")
 
-(defstate toolGizmos true)
+(defstate modalText "" "What the transform running says.")
 
-(defstate objectGizmo nil)
+(defstate measure {:points [] :screen [] :camera nil}
+  "The Measure tool's points, where they are on the screen, and the camera they were picked with.")
 
-(defstate hiddenKinds [])
+(defstate lastOp nil "The last operation, for Adjust Last Operation: its title, kind, objects before it and amounts.")
 
-(defstate activeCollection collection)
+(defstate lastBase [] "The objects of the last transform as they were before it.")
 
-(defstate outlinerMode layer)
+(defstate redoOpen true "Whether the Adjust Last Operation panel is open.")
 
-(defstate outlinerHide [])
+;;; Undo, and what happened
 
-(defstate outlinerSelectedOnly false)
+(defstate undoStack [] "The scenes Undo goes back to.")
 
-(defstate outlinerOpen {:root true :collection true})
+(defstate redoStack [] "The scenes Redo brings back.")
 
-(defstate renaming nil)
+(defstate last "" "What the last operation was, for the status bar.")
 
-(defstate unselectableKinds [])
+(defstate fileStatus "" "What the last file operation did.")
 
-(defstate measure {:points [] :screen [] :camera nil})
+(defstate opened nil "A file read by Open, before it is checked.")
 
-(defstate xray false)
+(defstate openedName nil "That file's name.")
 
-(defstate modal nil)
+;;; Shading, overlays and gizmos
 
-(defstate modalText "")
+(defstate shading solid "The viewport's shading: wireframe, solid, material or rendered.")
 
-(defstate undoStack [])
+(defstate sceneLights false "Whether Material Preview lights the scene with its own lights.")
 
-(defstate redoStack [])
+(defstate sceneWorld false "Whether Material Preview shows the scene's world.")
 
-(defstate last "")
+(defstate world {:color "#3a3f47"} "The world's colour.")
 
-(defstate added 0)
+(defstate render {:exposure 1} "The render's exposure.")
 
-(defstate frame 1)
+(defstate xray false "Whether X-Ray is on.")
 
-(defstate start 1)
+(defstate overlays true "Whether the overlays are shown.")
 
-(defstate end 250)
+(defstate overlay {:grid true :axes true :cursor true :text true :stats false :extras true}
+  "Each overlay, shown or not.")
 
-(defstate playing false)
+(defstate gizmos true "Whether the gizmos are shown.")
 
-(defstate autoKey false)
+(defstate navGizmo true "Whether the navigation gizmo is shown.")
 
-(defstate maximized nil)
+(defstate toolGizmos true "Whether the active tool's gizmo is shown.")
 
-(defstate hoverSlot nil)
+(defstate objectGizmo nil "The gizmo the Select tool shows on the selection, or nil.")
 
-(defstate previewRange nil)
+(defstate hiddenKinds [] "The kinds of objects not shown.")
 
-(defstate markers [])
+(defstate unselectableKinds [] "The kinds of objects that cannot be picked.")
 
-(defstate timelineOffset -0.4)
+;;; The outliner, the properties and the sidebar
 
-(defstate propTab object)
+(defstate outlinerMode layer "The outliner's display: layer or list.")
+
+(defstate outlinerHide [] "The kinds of objects the outliner leaves out.")
+
+(defstate outlinerSelectedOnly false "Whether the outliner lists only the selected objects.")
+
+(defstate outlinerOpen {:root true :collection true} "Which of the outliner's rows are open.")
+
+(defstate propertiesFilter "" "The properties editor's search.")
+
+(defstate propTab object "The properties editor's tab.")
 
 (defstate panels
   {:transform true
@@ -141,45 +178,35 @@
    :surfaceWorld true
    :restrictions true
    :dataPanel true
-   :surfaceMaterial true})
+   :surfaceMaterial true}
+  "Each of the properties' panels, open or not.")
 
-(defstate sidebar false)
+(defstate sidebar false "Whether the viewport's sidebar is shown.")
 
-(defstate sidebarTab "Item")
+(defstate sidebarTab "Item" "The sidebar's tab.")
 
-(defstate ctx {:open false :menu "" :items nil :x 0 :y 0})
+;;; Animation
 
-(defstate pie {:open false :menu "" :x 0 :y 0})
+(defstate frame 1 "The current frame.")
 
-(defstate about false)
+(defstate start 1 "The scene's first frame.")
 
-(defstate lastOp nil)
+(defstate end 250 "The scene's last frame.")
 
-(defstate lastBase [])
+(defstate playing false "forward, reverse, or false when the animation is stopped.")
 
-(defstate redoOpen true)
+(defstate autoKey false "Whether changes are keyed as they are made.")
 
-(defstate quickPick {:open false :query ""})
+(defstate previewRange nil "The preview range {start, end} the timeline plays, or nil.")
 
-(defstate fileStatus "")
+(defstate markers [] "The timeline's markers.")
 
-(defstate copied [])
+(defstate timelineOffset -0.4 "Where the timeline is scrolled to, in seconds.")
 
-(defstate shaderSelected [])
+;;; The Shader Editor
 
-(defstate rendering false)
+(defstate shaderSelected [] "The Shader Editor's selected nodes.")
 
-(defstate opened nil)
+;;; Starting
 
-(defstate openedName nil)
-
-(defstate sizes {:main [1102] :left [720] :right [262]})
-
-(defstate areas {:a viewport :b timeline :c outliner :d properties})
-
-(defstate sceneName "Scene")
-
-(defstate layerName "Main Layer")
-
-(defpart index "What index adds." :onLoad {:set state.startScene :to ~state.scene})
-
+(defpart start "The scene Modello opens with, kept for New." :onLoad {:set state.startScene :to ~state.scene})
