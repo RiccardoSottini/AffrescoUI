@@ -1,8 +1,9 @@
-;;; views.lisp --- what lsp.lisp shows
+;;; views.lisp --- what the language server shows over the editor: the hover, the signature, completions, the
+;;; peek, the rename and review dialogs, and the symbol picker
 
-;;; Views
+;;; Over the editor
 
-(defcomponent forgeLsp "The forgeLsp component."
+(defcomponent forgeLsp "What the language server shows over the editor, each an overlay: the hover first."
   {}
   `(column#lsp :width 0 :height 0
      (column#lsp-hover :width 420
@@ -21,11 +22,11 @@
      ~(lsp-signature)
      ~(lsp-completion)
      ~(lsp-peek)
-     ~(lsp-rename-dialog-view)
-     ~(lsp-review-dialog-view)
-     ~(lsp-symbols-view)))
+     ~(lsp-rename-dialog)
+     ~(lsp-review-dialog)
+     ~(lsp-symbols)))
 
-(defview lsp-signature "#lsp-signature." []
+(defview lsp-signature "The signature of the call at the caret, and its documentation." []
   `(column#lsp-signature :width 420
      :color @color.widget
      :borderWidth 1
@@ -51,7 +52,7 @@
        :textColor @color.muted
        :text ~state.lsp.signature.documentation)))
 
-(defview lsp-completion "#lsp-completion." []
+(defview lsp-completion "The completions at the caret: Up and Down choose, Enter inserts." []
   `(column#lsp-completion :width 360
      :color @color.widget
      :borderWidth 1
@@ -69,7 +70,7 @@
           (label#lsp-completion-label :font code :fitText true :textColor @color.text :text ~c.item.label)
           (label#lsp-completion-detail :grow 1 :textColor @color.muted :text ~c.item.detail)))))
 
-(defview lsp-peek "#lsp-peek." []
+(defview lsp-peek "Definitions or references, listed: a row opens its place." []
   `(column#lsp-peek :width 640
      :height 260
      :color @color.widget
@@ -90,11 +91,13 @@
                  {:id line :title ~(t "lsp-peek-list.line") :width 60}]
        :onOpen lspPeekOpen)))
 
-(defview lsp-rename-dialog-view "#lsp-rename-dialog." []
+;;; Dialogs and the symbol picker
+
+(defview lsp-rename-dialog "Asks for the symbol's new name." []
   `(node#lsp-rename-dialog :use dialog
      :with {:open state.lsp.rename.open
             :height 150
-            :title "Rename Symbol"
+            :title ~(t "command.renameSymbol")
             :message ""
             :buttons [{:title ~(t "lsp-rename-dialog.rename") :run lspRenameSend} {:title ~(t "lsp-rename-dialog.cancel")}]}
      (textarea#lsp-rename-name :bind state.lsp.rename.name
@@ -108,16 +111,12 @@
        :placeholder ~(t "lsp-rename-name.placeholder")
        :onSubmit lspRenameSend)))
 
-(defview lsp-review-dialog-view "#lsp-review-dialog." []
+(defview lsp-review-dialog "The edits a rename or a format proposes, to apply or not." []
   `(node#lsp-review-dialog :use dialog
      :with {:open state.lsp.review.open
             :height 320
-            :title ~(if (= state.lsp.review.kind "rename") "Rename Symbol" "Format Document")
-            :message ~(str "Apply "
-                           (plural (count state.lsp.review.edits) "edit")
-                           " in "
-                           (plural state.lsp.review.files "file")
-                           "? Open files are changed in their editors and left unsaved; others are written.")
+            :title ~(if (= state.lsp.review.kind "rename") (t "command.renameSymbol") (t "command.formatDocument"))
+            :message ~(t "lsp-review-dialog.message" {:edits (count state.lsp.review.edits) :files state.lsp.review.files})
             :buttons [{:title ~(t "lsp-review-dialog.apply") :run lspApply} {:title ~(t "lsp-review-dialog.cancel")}]}
      (table#lsp-review-list :anchors {:left 20 :right 20 :top 80 :bottom 56}
        :items ~(map-indexed (fn [index it]
@@ -133,7 +132,7 @@
                  {:id at :title ~(t "lsp-review-list.at") :width 70}
                  {:id text :title ~(t "lsp-review-list.newText") :width 260}])))
 
-(defview lsp-symbols-view "#lsp-symbols." []
+(defview lsp-symbols "The symbol picker: the file's symbols after @, the workspace's after #." []
   `(node#lsp-symbols :use quickPick
      :with {:name symbolPick
             :width 600

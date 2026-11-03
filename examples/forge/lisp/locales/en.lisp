@@ -608,4 +608,13 @@
                 :agent-reject.confirm "Confirm Reject"
                 :agent-proposal-message "{message}  ({n} changes by {author})"
                 :features.enabled "  (enabled)"
-                :features.disabled "  (disabled)"}}}
+                :features.disabled "  (disabled)"
+                :lsp.notApplied "Not applied: {error}"
+                :lsp.refused "Language server: {error}"
+                :lsp.definitions "Definitions: {n}{more}"
+                :lsp.references "References: {n}{more}"
+                :lsp.nothingToChange "Language server: nothing to change"
+                :lsp.applied "Applied {edits, plural, one {# edit} other {# edits}} in {files, plural, one {# file} other {# files}}"
+                :lsp.notAppliedTo "Not applied to {file}: {error}"
+                :lsp.overlap "Not applied to {file}: an edit is past its text, or two overlap"
+                :lsp-review-dialog.message "Apply {edits, plural, one {# edit} other {# edits}} in {files, plural, one {# file} other {# files}}? Open files are changed in their editors and left unsaved; others are written."}}}
