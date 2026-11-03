@@ -1,8 +1,9 @@
-;;; debugViews.lisp --- The debugger's views (debug.json has the logic; the source page's actions are here): the Run and Debug side bar (configurations, variables, watches, the call stack and the breakpoints), the Debug Console panel, the floating toolbar and the dialogs, and the read-only page for a source outside the open folder.
+;;; views.lisp --- the debugger's views: Run and Debug in the side bar, the debug console, the toolbar over the
+;;; editors, its dialogs, and a source outside the folder
 
-;;; Views
+;;; Run and Debug
 
-(defcomponent forgeDebugView "The forgeDebugView component."
+(defcomponent forgeDebugView "Run and Debug: the configuration and Start, the status, then the variables, watches, call stack and breakpoints, each a section that folds."
   {}
   `(column#debug-view :width "100%" :grow 1 :color @color.sideBar :gap 2
      ~(debug-head)
@@ -37,163 +38,7 @@
           :onClick ~(handler debugToggleFilter f.filter)))
      ~(debug-breakpoints)))
 
-(defview debug-watch-input "#debug-watch-input, in forgeDebugView." []
-  `(textarea#debug-watch-input :when ~(not (contains state.debug.collapsed "watch"))
-     :width "100%"
-     :height 24
-     :padding 5
-     :color @color.input
-     :textColor @color.text
-     :placeholderColor @color.muted
-     :bind state.debug.watchDraft
-     :placeholder ~(t "debug-watch-input.placeholder")
-     :onSubmit debugAddWatch))
-
-(defview debug-watches "#debug-watches, in forgeDebugView." []
-  `(list#debug-watches :when ~(not (contains state.debug.collapsed "watch"))
-     :width "100%"
-     :grow 1
-     :font code
-     :items ~computed.debugWatchRows
-     :bind state.debug.selectedWatch
-     :rowHeight 20
-     :color @color.sideBar
-     :textColor @color.text
-     :selectedTextColor @color.text
-     :selectedBackground @color.selection
-     :accentColor @color.accent))
-
-(defview debug-status "#debug-status, in forgeDebugView." []
-  `(label#debug-status :when ~(not= state.debug.status "inactive")
-     :width "100%"
-     :height 22
-     :padding 8
-     :icon bug
-     :textColor ~(if (= state.debug.status "stopped") "#e5c07b" "@color.muted")
-     :text ~(cond (= state.debug.status "stopped") (str "Paused on " state.debug.reason)
-                  (= state.debug.status "starting") "Starting…"
-                  :else "Running")))
-
-(defview debug-breakpoints "#debug-breakpoints, in forgeDebugView." []
-  `(list#debug-breakpoints :when ~(not (contains state.debug.collapsed "breakpoints"))
-     :width "100%"
-     :grow 1
-     :items ~computed.debugBreakpointRows
-     :bind state.debug.selectedBreakpoint
-     :rowHeight 22
-     :color @color.sideBar
-     :textColor @color.text
-     :selectedTextColor @color.text
-     :selectedBackground @color.selection
-     :accentColor @color.accent
-     :onOpen debugOpenBreakpoint))
-
-(defview debug-stack "#debug-stack, in forgeDebugView." []
-  `(list#debug-stack :when ~(not (contains state.debug.collapsed "stack"))
-     :width "100%"
-     :grow 1
-     :items ~computed.debugStackRows
-     :bind state.debug.selectedStack
-     :rowHeight 22
-     :color @color.sideBar
-     :textColor @color.text
-     :selectedTextColor @color.text
-     :selectedBackground @color.selection
-     :accentColor @color.accent
-     :onChange ~(handler debugSelectStack (or-else event.value ""))))
-
-(defview debug-stack-title "#debug-stack-title, in forgeDebugView." []
-  `(label#debug-stack-title :role button
-     :label ~(t "debug-stack-title.label")
-     :icon ~(if (contains state.debug.collapsed "stack") "chevron-right" "chevron-down")
-     :text ~(t "debug-stack-title")
-     :cursor hand
-     :focusable true
-     :isOpen ~(not (contains state.debug.collapsed "stack"))
-     :onClick ~(handler debugToggleSection "stack")
-     :width "100%"
-     :height 22
-     :textColor @color.text
-     :padding 4))
-
-(defview debug-variables "#debug-variables, in forgeDebugView." []
-  `(list#debug-variables :when ~(not (contains state.debug.collapsed "variables"))
-     :width "100%"
-     :grow 2
-     :font code
-     :items ~computed.debugVariableRows
-     :bind state.debug.selectedVariable
-     :rowHeight 20
-     :color @color.sideBar
-     :textColor @color.text
-     :selectedTextColor @color.text
-     :selectedBackground @color.selection
-     :accentColor @color.accent
-     :onOpen ~(handler debugExpand event.id)))
-
-(defview debug-configurations "#debug-configurations, in forgeDebugView." []
-  `(list#debug-configurations :when ~(> (count state.debug.configurations) 0)
-     :width "100%"
-     :height ~(* (min 4 (count state.debug.configurations)) 22)
-     :items ~computed.debugConfigurationRows
-     :bind state.debug.selected
-     :rowHeight 22
-     :color @color.sideBar
-     :textColor @color.text
-     :selectedTextColor @color.text
-     :selectedBackground @color.selection
-     :accentColor @color.accent
-     :onOpen debugStart))
-
-(defcomponent forgeDebugConsole "The forgeDebugConsole component."
-  {}
-  `(column#debug-console :width "100%" :grow 1 :color @color.panel
-     (list#debug-console-lines :width "100%"
-       :grow 1
-       :font code
-       :items ~computed.debugConsoleRows
-       :rowHeight 18
-       :color @color.panel
-       :textColor @color.text
-       :selectedTextColor @color.text
-       :selectedBackground @color.selection
-       :accentColor @color.accent)
-     (label#debug-completions :when ~(> (count state.debug.completions) 1)
-       :width "100%"
-       :height 20
-       :padding 4
-       :font code
-       :textColor @color.muted
-       :text ~(join "  " state.debug.completions))
-     ~(debug-console-input-row)))
-
-(defcomponent forgeDebugOverlays "The forgeDebugOverlays component."
-  {}
-  `(column#debug-overlays
-     ~(debug-toolbar)
-     ~(debug-edit-dialog-view)
-     ~(debug-value-dialog-view)
-     (node#debug-outside-dialog :use dialog
-       :with {:open state.debug.outside.open
-              :title "Open a source outside the folder?"
-              :message ~(str "The debugger stopped in "
-                             (or state.debug.outside.frame.path state.debug.outside.frame.name "a frame")
-                             ", outside the open folder. Forge asks the debugger for its text and shows it read-only.")
-              :buttons [{:title ~(t "debug-outside-dialog.open") :run debugOpenOutside}
-                        {:title ~(t "debug-outside-dialog.cancel")}]})))
-
-(defcomponent forgeDebugSource "The forgeDebugSource component."
-  {:doc {}}
-  `(column#debug-source :width "100%" :grow 1 :color @color.editor
-     (label#debug-source-note :width "100%"
-       :height 22
-       :padding 6
-       :icon file-code
-       :textColor @color.muted
-       :text ~(t "debug-source-note"))
-     ~(debug-source-lines doc)))
-
-(defview debug-head "#debug-head." []
+(defview debug-head "The view's title, and Start and Reload." []
   `(row#debug-head :width "100%" :height 35 :alignItems center
      (label#debug-title :text ~(t "debug-title") :textColor @color.muted :grow 1 :height 35 :padding 12)
      (label#debug-start :icon play
@@ -213,7 +58,21 @@
        :hover {:textColor @color.text}
        :onClick debugLoadConfigurations)))
 
-(defview debug-empty "#debug-empty." []
+(defview debug-configurations "The launch configurations, one chosen, and Start." []
+  `(list#debug-configurations :when ~(> (count state.debug.configurations) 0)
+     :width "100%"
+     :height ~(* (min 4 (count state.debug.configurations)) 22)
+     :items ~computed.debugConfigurationRows
+     :bind state.debug.selected
+     :rowHeight 22
+     :color @color.sideBar
+     :textColor @color.text
+     :selectedTextColor @color.text
+     :selectedBackground @color.selection
+     :accentColor @color.accent
+     :onOpen debugStart))
+
+(defview debug-empty "No configuration: how to add one, and how many were left out." []
   `(column#debug-empty :when ~(and (= (count state.debug.configurations) 0)
                                    (empty? state.debug.error)
                                    (= state.debug.status "inactive"))
@@ -239,14 +98,21 @@
        :height 70
        :padding 12
        :textColor @color.text
-       :text ~(str "To choose what runs, add a configuration of type lldb or python to "
-                   (if (empty? state.folder.root) "the open folder" "this folder")
-                   "'s .forge/launch.json."
-                   (if (> state.debug.skipped 0)
-                       (str " " (plural state.debug.skipped "configuration") " Forge can't run were left out.")
-                       "")))))
+       :text ~(str (if (empty? state.folder.root) (t "debug-empty.noFolder") (t "debug-empty.folder"))
+                   (if (> state.debug.skipped 0) (t "debug-empty.skipped" {:n state.debug.skipped}) "")))))
 
-(defview debug-variables-head "#debug-variables-head." []
+(defview debug-status "Whether the program is running, starting or paused, and why." []
+  `(label#debug-status :when ~(not= state.debug.status "inactive")
+     :width "100%"
+     :height 22
+     :padding 8
+     :icon bug
+     :textColor ~(if (= state.debug.status "stopped") "#e5c07b" "@color.muted")
+     :text ~(cond (= state.debug.status "stopped") (t "debug-status.paused" {:reason state.debug.reason})
+                  (= state.debug.status "starting") (t "debug-status.starting")
+                  :else (t "debug-status.running"))))
+
+(defview debug-variables-head "The variables' title, and Set Value." []
   `(row#debug-variables-head :width "100%" :height 22 :alignItems center
      (label#debug-variables-title :role button
        :label ~(t "debug-variables-title.label")
@@ -269,7 +135,22 @@
        :hover {:textColor @color.text}
        :onClick debugEditValue)))
 
-(defview debug-watch-head "#debug-watch-head." []
+(defview debug-variables "The variables of the frame shown, a tree that reads a row's children as it opens." []
+  `(list#debug-variables :when ~(not (contains state.debug.collapsed "variables"))
+     :width "100%"
+     :grow 2
+     :font code
+     :items ~computed.debugVariableRows
+     :bind state.debug.selectedVariable
+     :rowHeight 20
+     :color @color.sideBar
+     :textColor @color.text
+     :selectedTextColor @color.text
+     :selectedBackground @color.selection
+     :accentColor @color.accent
+     :onOpen ~(handler debugExpand event.id)))
+
+(defview debug-watch-head "The watches' title, and Remove." []
   `(row#debug-watch-head :width "100%" :height 22 :alignItems center
      (label#debug-watch-title :role button
        :label ~(t "debug-watch-title.label")
@@ -292,7 +173,61 @@
        :hover {:textColor @color.text}
        :onClick debugRemoveWatch)))
 
-(defview debug-breakpoints-head "#debug-breakpoints-head." []
+(defview debug-watch-input "The expression to watch: Enter adds it." []
+  `(textarea#debug-watch-input :when ~(not (contains state.debug.collapsed "watch"))
+     :width "100%"
+     :height 24
+     :padding 5
+     :color @color.input
+     :textColor @color.text
+     :placeholderColor @color.muted
+     :bind state.debug.watchDraft
+     :placeholder ~(t "debug-watch-input.placeholder")
+     :onSubmit debugAddWatch))
+
+(defview debug-watches "The watches, each its value in the frame shown." []
+  `(list#debug-watches :when ~(not (contains state.debug.collapsed "watch"))
+     :width "100%"
+     :grow 1
+     :font code
+     :items ~computed.debugWatchRows
+     :bind state.debug.selectedWatch
+     :rowHeight 20
+     :color @color.sideBar
+     :textColor @color.text
+     :selectedTextColor @color.text
+     :selectedBackground @color.selection
+     :accentColor @color.accent))
+
+(defview debug-stack-title "The call stack's title." []
+  `(label#debug-stack-title :role button
+     :label ~(t "debug-stack-title.label")
+     :icon ~(if (contains state.debug.collapsed "stack") "chevron-right" "chevron-down")
+     :text ~(t "debug-stack-title")
+     :cursor hand
+     :focusable true
+     :isOpen ~(not (contains state.debug.collapsed "stack"))
+     :onClick ~(handler debugToggleSection "stack")
+     :width "100%"
+     :height 22
+     :textColor @color.text
+     :padding 4))
+
+(defview debug-stack "The call stack: threads, and the stopped one's frames; a row shows its frame." []
+  `(list#debug-stack :when ~(not (contains state.debug.collapsed "stack"))
+     :width "100%"
+     :grow 1
+     :items ~computed.debugStackRows
+     :bind state.debug.selectedStack
+     :rowHeight 22
+     :color @color.sideBar
+     :textColor @color.text
+     :selectedTextColor @color.text
+     :selectedBackground @color.selection
+     :accentColor @color.accent
+     :onChange ~(handler debugSelectStack (or-else event.value ""))))
+
+(defview debug-breakpoints-head "The breakpoints' title, and Edit, Enable, Remove and Remove All." []
   `(row#debug-breakpoints-head :width "100%" :height 22 :alignItems center
      ~(debug-breakpoints-title)
      (label#debug-breakpoint-edit :icon pencil
@@ -328,7 +263,7 @@
        :hover {:textColor @color.text}
        :onClick debugRemoveAllBreakpoints)))
 
-(defview debug-breakpoints-title "#debug-breakpoints-title, in debug-breakpoints-head." []
+(defview debug-breakpoints-title "The breakpoints' title, which folds the section." []
   `(label#debug-breakpoints-title :role button
      :label ~(t "debug-breakpoints-title.label")
      :icon ~(if (contains state.debug.collapsed "breakpoints") "chevron-right" "chevron-down")
@@ -342,7 +277,46 @@
      :height 22
      :padding 4))
 
-(defview debug-console-input-row "#debug-console-input-row." []
+(defview debug-breakpoints "The breakpoints: a row opens its place." []
+  `(list#debug-breakpoints :when ~(not (contains state.debug.collapsed "breakpoints"))
+     :width "100%"
+     :grow 1
+     :items ~computed.debugBreakpointRows
+     :bind state.debug.selectedBreakpoint
+     :rowHeight 22
+     :color @color.sideBar
+     :textColor @color.text
+     :selectedTextColor @color.text
+     :selectedBackground @color.selection
+     :accentColor @color.accent
+     :onOpen debugOpenBreakpoint))
+
+;;; The debug console
+
+(defcomponent forgeDebugConsole "The debug console: what the program printed and the answers, and the input."
+  {}
+  `(column#debug-console :width "100%" :grow 1 :color @color.panel
+     (list#debug-console-lines :width "100%"
+       :grow 1
+       :font code
+       :items ~computed.debugConsoleRows
+       :rowHeight 18
+       :color @color.panel
+       :textColor @color.text
+       :selectedTextColor @color.text
+       :selectedBackground @color.selection
+       :accentColor @color.accent)
+     (label#debug-completions :when ~(> (count state.debug.completions) 1)
+       :width "100%"
+       :height 20
+       :padding 4
+       :font code
+       :textColor @color.muted
+       :text ~(join "  " state.debug.completions))
+     ~(debug-console-input-row)))
+
+(defview debug-console-input-row "The console's input: Enter evaluates it, Up and Down walk the history, Tab completes."
+  []
   `(row#debug-console-input-row :width "100%" :height 26 :alignItems center
      (label#debug-console-prompt :icon chevron-right :padding 4 :fitText true :textColor @color.info)
      (textarea#debug-console-input :grow 1
@@ -353,9 +327,7 @@
        :textColor @color.text
        :placeholderColor @color.muted
        :bind state.debug.input
-       :placeholder ~(if (= state.debug.status "inactive")
-                         "Start a debug session to evaluate expressions"
-                         "Evaluate (Enter; Up and Down for history; Tab to complete)")
+       :placeholder ~(if (= state.debug.status "inactive") (t "debug-console.inactive") (t "debug-console.placeholder"))
        :onSubmit debugEvaluate
        :keys {:up debugHistoryBack :down debugHistoryForward :tab debugComplete})
      (label#debug-console-clear :icon trash-2
@@ -367,7 +339,24 @@
        :hover {:textColor @color.text}
        :onClick debugClearConsole)))
 
-(defview debug-toolbar "#debug-toolbar." []
+;;; Over the workbench
+
+(defcomponent forgeDebugOverlays "What the debugger shows over the workbench: the toolbar and its dialogs."
+  {}
+  `(column#debug-overlays
+     ~(debug-toolbar)
+     ~(debug-edit-dialog)
+     ~(debug-value-dialog)
+     (node#debug-outside-dialog :use dialog
+       :with {:open state.debug.outside.open
+              :title ~(t "debug-outside-dialog.title")
+              :message ~(t "debug-outside-dialog.message"
+                           {:frame (or state.debug.outside.frame.path state.debug.outside.frame.name (t "debug.aFrame"))})
+              :buttons [{:title ~(t "debug-outside-dialog.open") :run debugOpenOutside}
+                        {:title ~(t "debug-outside-dialog.cancel")}]})))
+
+(defview debug-toolbar "The toolbar over the editors while a session runs: Continue or Pause, Step Over, Into and Out, Restart, Stop."
+  []
   `(row#debug-toolbar :color @color.sideBar
      :borderWidth 1
      :borderColor @color.border
@@ -404,17 +393,17 @@
        :hover {:color @color.hover}
        :onClick debugStop)))
 
-(defview debug-toolbar-out "#debug-toolbar-out, in debug-toolbar." []
-  `(label#debug-toolbar-out :icon arrow-up-from-dot
+(defview debug-toolbar-continue "Continue while paused, Pause while running." []
+  `(label#debug-toolbar-continue :icon ~(if (= state.debug.status "stopped") "play" "pause")
      :padding 6
      :fitText true
      :cursor hand
-     :textColor ~(if (= state.debug.status "stopped") "@color.info" "@color.muted")
-     :tooltip ~(t "debug-toolbar-out.tip")
+     :textColor @color.accent
+     :tooltip ~(if (= state.debug.status "stopped") (t "debug-toolbar.continue") (t "debug-toolbar.pause"))
      :hover {:color @color.hover}
-     :onClick debugStepOut))
+     :onClick {:run ~(if (= state.debug.status "stopped") "debugContinue" "debugPause")}))
 
-(defview debug-toolbar-into "#debug-toolbar-into, in debug-toolbar." []
+(defview debug-toolbar-into "Step Into." []
   `(label#debug-toolbar-into :icon arrow-down-to-dot
      :padding 6
      :fitText true
@@ -424,21 +413,21 @@
      :hover {:color @color.hover}
      :onClick debugStepInto))
 
-(defview debug-toolbar-continue "#debug-toolbar-continue, in debug-toolbar." []
-  `(label#debug-toolbar-continue :icon ~(if (= state.debug.status "stopped") "play" "pause")
+(defview debug-toolbar-out "Step Out." []
+  `(label#debug-toolbar-out :icon arrow-up-from-dot
      :padding 6
      :fitText true
      :cursor hand
-     :textColor @color.accent
-     :tooltip ~(if (= state.debug.status "stopped") "Continue (F5)" "Pause (F6)")
+     :textColor ~(if (= state.debug.status "stopped") "@color.info" "@color.muted")
+     :tooltip ~(t "debug-toolbar-out.tip")
      :hover {:color @color.hover}
-     :onClick {:run ~(if (= state.debug.status "stopped") "debugContinue" "debugPause")}))
+     :onClick debugStepOut))
 
-(defview debug-edit-dialog-view "#debug-edit-dialog." []
+(defview debug-edit-dialog "A breakpoint's condition, hit count and log message." []
   `(node#debug-edit-dialog :use dialog
      :with {:open state.debug.edit.open
             :height 230
-            :title "Edit Breakpoint"
+            :title ~(t "command.debugEditSelectedBreakpoint")
             :message ""
             :buttons [{:title ~(t "debug-edit-dialog.ok") :run debugSaveBreakpoint}
                       {:title ~(t "debug-edit-dialog.cancel")}]}
@@ -474,11 +463,11 @@
        :placeholder ~(t "debug-edit-log.placeholder")
        :onSubmit debugSaveBreakpoint)))
 
-(defview debug-value-dialog-view "#debug-value-dialog." []
+(defview debug-value-dialog "A variable's new value." []
   `(node#debug-value-dialog :use dialog
      :with {:open state.debug.setValue.open
             :height 150
-            :title ~(str "Set Value of " state.debug.setValue.name)
+            :title ~(t "debug-value-dialog.title" {:name state.debug.setValue.name})
             :message ""
             :buttons [{:title ~(t "debug-value-dialog.set") :run debugSetValue} {:title ~(t "debug-value-dialog.cancel")}]}
      (textarea#debug-value :bind state.debug.setValue.value
@@ -493,7 +482,20 @@
        :placeholder ~(t "debug-value.placeholder")
        :onSubmit debugSetValue)))
 
-(defview debug-source-lines "#debug-source-lines." [doc]
+;;; A source outside the folder
+
+(defcomponent forgeDebugSource "A source outside the folder, read-only, its lines numbered: `doc` the open document."
+  {:doc {}}
+  `(column#debug-source :width "100%" :grow 1 :color @color.editor
+     (label#debug-source-note :width "100%"
+       :height 22
+       :padding 6
+       :icon file-code
+       :textColor @color.muted
+       :text ~(t "debug-source-note"))
+     ~(debug-source-lines doc)))
+
+(defview debug-source-lines "A debugged source's lines, numbered, as a list." [doc]
   `(list#debug-source-lines :width "100%"
      :grow 1
      :font code
@@ -512,34 +514,3 @@
      :selectedTextColor @color.text
      :selectedBackground @color.selection
      :accentColor @color.accent))
-
-;;; Functions
-
-(defn debugOpenOutside "TODO" []
-  (when (some? state.debug.outside.frame)
-    (debugRequest "source"
-                  "debugOnSource"
-                  {:frame state.debug.outside.frame}
-                  "debugOnSourceRefused"
-                  {:source (merge (if (empty? state.debug.outside.frame.path)
-                                    {}
-                                    {:path state.debug.outside.frame.path})
-                                  {:sourceReference state.debug.outside.frame.reference})
-                   :sourceReference state.debug.outside.frame.reference})))
-
-(defn debugOnSource "TODO" [context body]
-  (debugShowSource
-    (str "debug-source:" (if (empty? context.frame.path) (str "ref:" context.frame.reference) context.frame.path))
-    (str (if (empty? context.frame.path) context.frame.name (baseName context.frame.path)) " (read-only)")
-    (slice (text (or-else body.content "")) 0 4194304)))
-
-(defn debugOnSourceRefused "TODO" [message]
-  (notify "info" (str "The debugger has no source for this frame: " message)))
-
-(defn debugShowSource "TODO" [id label content]
-  (set "state.docs" (filter (fn [it] (not= it.id id)) state.docs))
-  (push "state.docs" {:id id :label label :kind "debugSource" :text content :dirty false :language ""})
-  (showTab id label))
-
-(defn debugApplySource "TODO" []
-  (debugShowSource (str "debug-source:" event.path) event.label event.content))
