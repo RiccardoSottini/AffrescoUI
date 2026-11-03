@@ -145,7 +145,7 @@
            :text ~(t (str "projects." scope))
            :role tab
            :selected ~(= state.projectScope scope)
-           :onClick {:set state.projectScope :to ~scope}}))
+           :onClick ~(handler chooseProjectScope scope)}))
      {:id newProject
       :style topButton
       :icon plus
@@ -191,7 +191,7 @@
                   (t (str "inbox." n.kind)
                      {:who (or-else (:name (find (fn [it] (= it.who n.who)) state.members)) n.who)
                       :to (or-else n.to "")}))
-     :onClick {:run pickNotification :with {:at ~k}}
+     :onClick ~(handler pickNotification k)
      :onDoubleClick openNotification
      {:id inboxUnread :when ~(not n.read) :width 6 :height 6 :radius 3 :color @color.accent :anchors {:left 8 :top 27}}
      {:id inboxWho
@@ -380,10 +380,10 @@
      :focusable true
      :role listitem
      :label ~(str card.ref " " card.title)
-     :onClick [{:run selectCard :with {:c ~card.c :i ~card.at}}
+     :onClick [~(handler selectCard card.c card.at)
                {:set state.page :to issues}
                {:set state.issueOpen :to true}]
-     :keys {:enter [{:run selectCard :with {:c ~card.c :i ~card.at}}
+     :keys {:enter [~(handler selectCard card.c card.at)
                     {:set state.page :to issues}
                     {:set state.issueOpen :to true}]}
      {:id cycleIssueLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}
@@ -522,8 +522,8 @@
      :role listitem
      :label ~(str project.name ", " (t (str "health." project.health)) ", " (formatPercent project.progress))
      :tooltip ~(t "projects.open")
-     :onClick {:run openProject :with {:at ~(indexOf (map (fn [it] it.name) data.projects) project.name)}}
-     :keys {:enter {:run openProject :with {:at ~(indexOf (map (fn [it] it.name) data.projects) project.name)}}}
+     :onClick ~(handler openProject (indexOf (map (fn [it] it.name) data.projects) project.name))
+     :keys {:enter ~(handler openProject (indexOf (map (fn [it] it.name) data.projects) project.name))}
      {:id projectRowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}
      (label#projectIcon :icon ~project.icon
        :text ""

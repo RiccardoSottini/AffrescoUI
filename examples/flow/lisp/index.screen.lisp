@@ -571,7 +571,7 @@
      :role menuitemradio
      :selected ~(= state.owner member.who)
      :label ~member.name
-     :onClick [{:set state.owner :to ~(if (= state.owner member.who) "" member.who)} {:set state.membersOpen :to false}]
+     :onClick ~(handler toggleOwner member.who)
      {:id label-member-who
       :style badge
       :text ~member.who
@@ -643,7 +643,7 @@
            :text ~(t (str "scope." scope))
            :role tab
            :selected ~(= state.scope scope)
-           :onClick {:set state.scope :to ~scope}}))
+           :onClick ~(handler chooseScope scope)}))
      ~(members-view)))
 
 (defview filter-field "#filterField." []
@@ -658,15 +658,7 @@
      :label ~(t "filter.placeholder")
      :autofocus true
      :bind state.filterQuery
-     :onSubmit [{:if ~(and (= state.filterProp "") (> (count computed.filterPropsShown) 0))
-                 :then [{:set state.filterProp :to ~computed.filterPropsShown.0.0}
-                        {:set state.filterQuery :to ""}
-                        {:focus "#filterField"}]
-                 :else [{:if ~(and (not= state.filterProp "") (> (count computed.filterOptionsShown) 0))
-                         :then [{:run setFilter
-                                 :with {:prop ~state.filterProp
-                                        :v ~computed.filterOptionsShown.0.v
-                                        :on ~computed.filterOptionsShown.0.on}}]}]}]
+     :onSubmit submitFilter
      :keys {:escape {:set state.filterOpen :to false}}))
 
 (defview filter-list "#filterList." []
@@ -677,7 +669,7 @@
           :runs [{:icon ~p.1 :color @color.muted} ~(str "  " (t (str "filter." p.0)))]
           :role menuitem
           :label ~(t (str "filter." p.0))
-          :onClick [{:set state.filterProp :to ~p.0} {:set state.filterQuery :to ""} {:focus "#filterField"}]
+          :onClick ~(handler pickFilterProp p.0)
           (label#label-filter-prop :font small
             :icon chevron-right
             :mirror true
@@ -695,7 +687,7 @@
          :role menuitemcheckbox
          :selected ~opt.on
          :label ~opt.title
-         :onClick {:run setFilter :with {:prop ~state.filterProp :v ~opt.v :on ~opt.on}}})))
+         :onClick ~(handler setFilter state.filterProp opt.v opt.on)})))
 
 (defview filter-button "#filterButton." []
   `(node#filterButton :style toolButton
@@ -760,7 +752,7 @@
        :focusable true
        :role button
        :label ~(t "filter.clear")
-       :onClick {:run clearFilter :with {:prop ~f.prop}})))
+       :onClick ~(handler clearFilter f.prop))))
 
 (defview filter-bar "#filterBar." []
   `(row#filterBar :gap 4 :alignItems center :anchors {:left 12 :right 200 :top 8} :height 28
@@ -818,7 +810,7 @@
            :borderColor ~(if on "@color.accent" "@color.border")
            :textColor ~(if (and on (= state.view "board")) "@color.text" "@color.muted")
            :tooltip ~(if (= g "assignee") (t "view.lanes") "")
-           :onClick [{:if ~(not on) :then [{:run toggleSwimlanes}]}]}))
+           :onClick ~(handler groupBy on)}))
      {:id displayOrdering :style caption :text ~(t "display.ordering") :anchors {:left 12 :top 134}}
      (row#orderings :gap 4 :anchors {:left 12 :right 12 :top 154} :height 24 :role radiogroup :arrows horizontal
        ~(repeat [o ["manual" "priority" "due"]]
@@ -829,7 +821,7 @@
            :selected ~(= state.order o)
            :borderColor ~(if (= state.order o) "@color.accent" "@color.border")
            :textColor ~(if (= state.order o) "@color.text" "@color.muted")
-           :onClick {:set state.order :to ~o}}))
+           :onClick ~(handler orderBy o)}))
      {:id displayProperties :style caption :text ~(t "display.properties") :anchors {:left 12 :top 192}}
      (row#displayProps :wrap true :gap 4 :anchors {:left 12 :right 12 :top 212} :height 76
        ~(repeat [prop ["id" "priority" "label" "due" "estimate" "assignee"]]
@@ -842,9 +834,7 @@
            :color ~(if on "@color.chipHover" "transparent")
            :borderColor ~(if on "@color.chipHover" "@color.border")
            :textColor ~(if on "@color.text" "@color.muted")
-           :onClick {:set state.hidden :to ~(if on
-                                                (concat state.hidden [prop])
-                                                (filter (fn [it] (not= it prop)) state.hidden))}}))))
+           :onClick ~(handler toggleProperty prop)}))))
 
 (defview column-title "#columnTitle." [column c]
   `(row#columnTitle :gap 8 :alignItems center :anchors {:left 36 :right 72 :top 0} :height 40
@@ -887,7 +877,7 @@
      :role button
      :tooltip ~(t "column.more")
      :label ~(t "column.more")
-     :onClick {:run openColumnMenu :with {:c ~c}}))
+     :onClick ~(handler openColumnMenu c)))
 
 (defview column-add "#columnAdd." [column c]
   `(label#columnAdd :icon plus
@@ -905,7 +895,7 @@
      :role button
      :tooltip ~(t "composer.in" {:column column.name})
      :label ~(t "composer.in" {:column column.name})
-     :onClick {:run openComposer :with {:c ~c}}))
+     :onClick ~(handler openComposer c)))
 
 (defview card-chips "#cardChips." [c]
   `(row#cardChips :gap 4 :alignItems center :anchors {:left 10 :right 10 :bottom 9} :height 22
@@ -976,13 +966,13 @@
                  :tag (t (str "tag." card.tag))
                  :who (or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)
                  :column column.name})
-     :onFocus {:run selectCard :with {:c ~c :i ~i}}
+     :onFocus ~(handler selectCard c i)
      :keys {:enter editCard :space togglePeek}
      :drag {:data {:from ~c :at ~i}}
      :dragging {:color @color.column :borderColor @color.border :shadow {:y 0 :blur 0 :color "#00000000"}}
-     :onClick {:run selectCard :with {:c ~c :i ~i}}
-     :onDoubleClick [{:run selectCard :with {:c ~c :i ~i}} {:run openIssue}]
-     :onContextMenu {:run openCardMenu :with {:c ~c :i ~i}}
+     :onClick ~(handler selectCard c i)
+     :onDoubleClick [~(handler selectCard c i) ~(handler openIssue)]
+     :onContextMenu ~(handler openCardMenu c i)
      (label#cardRef :when ~(not (contains state.hidden "id"))
        :font small
        :text ~(or-else card.ref "")
@@ -1013,7 +1003,7 @@
   `(node#column :anchors {:top 0 :bottom 0}
      :grow 1
      :color transparent
-     :onDrop {:run moveCard :with {:from ~event.data.from :at ~event.data.at :to ~c}}
+     :onDrop ~(handler moveCard event.data.from event.data.at c)
      (node#columnBody :fill 4 :radius @radius.card :color @color.column
        (label#columnStatus :icon ~(or-else (get state.statusIcons c) "circle")
          :text ""
@@ -1046,9 +1036,9 @@
      :accentColor @color.accent
      :onChange openRow
      :keys {:space togglePeek}
-     :onOpen [{:run openRow} {:run editCard}]
-     :onSort {:set state.tableSort :to {:column ~event.column :descending ~event.descending}}
-     :onColumnResize {:set "state.columnWidths[event.column]" :to ~event.width}))
+     :onOpen [~(handler openRow) ~(handler editCard)]
+     :onSort sortTable
+     :onColumnResize resizeTableColumn))
 
 (defview detail-body "#detailBody." []
   `(node#detailBody :fill 6 :radius @radius.card :color @color.surface
@@ -1143,7 +1133,7 @@
       :focusable true
       :role button
       :label ~(t "composer.in" {:column (get-in computed.columns [state.composer.c :name])})
-      :onClick {:set state.composer.c :to ~(mod (+ state.composer.c 1) (count computed.columns))}}
+      :onClick nextComposerColumn}
      {:id composerPriority
       :style cardChip
       :icon ~(get state.priorities state.composer.p)
@@ -1152,7 +1142,7 @@
       :focusable true
       :role button
       :label ~(t "quick.priority")
-      :onClick {:set state.composer.p :to ~(mod (+ state.composer.p 1) (count state.priorities))}}
+      :onClick nextComposerPriority}
      {:id composerWho
       :style cardChip
       :icon circle-user
@@ -1238,7 +1228,7 @@
        :role switch
        :selected ~state.composer.more
        :label ~(t "composer.more")
-       :onClick {:set state.composer.more :to ~(not state.composer.more)})
+       :onClick {:toggle state.composer.more})
      (label#composerCreate :font small
        :text ~(t "composer.create")
        :fitText true

@@ -14,7 +14,7 @@
           :color transparent
           :role group
           :label ~column.name
-          :onDrop {:run moveCard :with {:from ~event.data.from :at ~event.data.at :to ~c}}
+          :onDrop ~(handler moveCard event.data.from event.data.at c)
           ~(list-header column c)
           (column#listRows :when ~(not (contains state.collapsedGroups c)) :anchors {:left 0 :right 0 :top 36 :bottom 0}
             ~(repeat [row (sort-by (fn [it] (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority) (= state.order "due") (or-else it.due "9999-12-31") :else it.at)) (filter (fn [it] (= it.c c)) computed.allCards)) :index k]
@@ -78,7 +78,7 @@
        :role button
        :label ~(t "composer.in" {:column column.name})
        :tooltip ~(t "composer.in" {:column column.name})
-       :onClick {:run openComposer :with {:c ~c}})))
+       :onClick ~(handler openComposer c))))
 
 (defview list-row "#listRow." [column c row]
   `(node#listRow :let {:i ~row.at :card ~(get column.cards row.at)}
@@ -101,12 +101,12 @@
                  :tag (t (str "tag." card.tag))
                  :who (or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)
                  :column column.name})
-     :onFocus {:run selectCard :with {:c ~c :i ~i}}
+     :onFocus ~(handler selectCard c i)
      :keys {:enter editCard :space togglePeek}
      :drag {:data {:from ~c :at ~i}}
-     :onClick {:run selectCard :with {:c ~c :i ~i}}
-     :onDoubleClick [{:run selectCard :with {:c ~c :i ~i}} {:run openIssue}]
-     :onContextMenu {:run openCardMenu :with {:c ~c :i ~i}}
+     :onClick ~(handler selectCard c i)
+     :onDoubleClick [~(handler selectCard c i) ~(handler openIssue)]
+     :onContextMenu ~(handler openCardMenu c i)
      {:id rowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}
      (label#rowPriority :when ~(not (contains state.hidden "priority"))
        :icon ~(get state.priorities (or-else card.priority 0))

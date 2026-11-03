@@ -83,16 +83,6 @@
   :watch {:computed.columns buildTimeline :state.members buildTimeline}
   :onLoad buildTimeline
   :channels {:team {:socket studio.sock :reconnect {:after 2000}}}
-  :actions {"team:committed" [{:note "Someone changed the board: the feed shows it and its author is here"}
-                              {:set state.activity
-                               :to ~(concat [{:who (or-else event.author "?")
-                                              :key "revised"
-                                              :title (or-else event.message "")
-                                              :column ""}]
-                                            (slice state.activity 0 29))}
-                              {:set "state.presence[event.author ?? '?']"
-                               :to ~(or-else (get state.presence (or-else event.author "?")) "")}]
-            "team:event" [{:note "presence: { who, card } from another person's Flow"}
-                          {:if ~(or (not= event.name "presence") (= event.data.who "RS")) :then [{:stop true}]}
-                          {:set "state.presence[event.data.who]" :to ~(or-else event.data.card "")}]
-            "team:closed" [{:set state.presence :to {}}]})
+  :actions {"team:committed" [~(handler teamCommitted)]
+            "team:event" [~(handler teamEvent)]
+            "team:closed" [~(handler teamClosed)]})

@@ -130,7 +130,8 @@ template <std::size_t N>
 void checkPart(const std::filesystem::path& file, const std::array<std::string_view, N>& keys) {
 	json part;
 	try {
-		part = notation::readDocument(readWhole(file, maxPartBytes), file);
+		// A template's ~form is read as the include reads it; a program holds `program`, which a part can't
+		part = lisp::readDocument(readWhole(file, maxPartBytes), file);
 	} catch(const json::parse_error& parse) {
 		fail(file.string(), std::string("invalid JSON: ") + parse.what());
 	}

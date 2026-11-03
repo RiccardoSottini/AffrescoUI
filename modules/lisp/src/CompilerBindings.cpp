@@ -163,6 +163,18 @@ void Compiler::emitSymbolicTest(const std::vector<std::string_view>& locals) {
 }
 
 void Compiler::compileViewValue(const Value& form, int depth) {
+	if(const Global* global = machine_.findGlobal(headWord(form));
+	   headWord(form) == "handler" && global && global->library && !isLocalWord("handler")) {
+		// (handler move-card event.data.from c): each argument as a node's value would be, a path its binding
+		emitConstant(global->value);
+		for(std::size_t at = 1; at < form.count(); ++at) {
+			if(at == 1) compile(form.at(at), {});
+			else compileViewValue(form.at(at), depth + 1);
+		}
+		place_ = form.place();
+		emit(Op::Call, static_cast<std::uint32_t>(form.count() - 1));
+		return;
+	}
 	if(buildsAtOnce(form)) {
 		compile(form, {});
 		return;

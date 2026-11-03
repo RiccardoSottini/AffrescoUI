@@ -326,40 +326,110 @@
   (set "state.inboxAt" at)
   (update-record "inbox" :id (:id (get computed.inboxShown at)) :fields {:read true}))
 
+;;; What the controls of the views do
+
+(defn toggleOwner "Shows only a member's cards, or everyone's again, and closes the members menu." [who]
+  (set "state.owner" (if (= state.owner who) "" who))
+  (set "state.membersOpen" false))
+
+(defn showMyIssues "The sidebar's My issues: the issues page, only the person's cards, or everyone's again." []
+  (showPage "issues")
+  (set "state.owner" (if (= state.owner state.me) "" state.me)))
+
+(defn chooseScope "Shows every card, the active ones or the backlog." [scope]
+  (set "state.scope" scope))
+
+(defn chooseProjectScope "Shows every project, or only some of them." [scope]
+  (set "state.projectScope" scope))
+
+(defn pickFilterProp "Lists the values of one property in the Filter menu." [prop]
+  (set "state.filterProp" prop)
+  (set "state.filterQuery" "")
+  (focus "#filterField"))
+
+(defn submitFilter "Enter in the Filter menu's field: the first property listed, or the first value of the one chosen." []
+  (cond (and (= state.filterProp "") (> (count computed.filterPropsShown) 0))
+        (pickFilterProp (first (first computed.filterPropsShown)))
+        (and (not= state.filterProp "") (> (count computed.filterOptionsShown) 0))
+        (let [option (first computed.filterOptionsShown)]
+          (setFilter state.filterProp (:v option) (:on option)))))
+
+(defn groupBy "The Display menu's grouping: the swimlanes, unless they are the grouping already." [grouped]
+  (when (not grouped) (toggleSwimlanes)))
+
+(defn orderBy "The Display menu's ordering: manual, by priority or by due date." [order]
+  (set "state.order" order))
+
+(defn toggleProperty "Shows or hides one property on the cards." [prop]
+  (set "state.hidden" (if (some (fn [hidden] (= hidden prop)) state.hidden)
+                        (filter (fn [hidden] (not= hidden prop)) state.hidden)
+                        (conj state.hidden prop))))
+
+(defn sortTable "A table header clicked: sorts the table by that column." []
+  (set "state.tableSort" {:column event.column :descending event.descending}))
+
+(defn resizeTableColumn "A table column's edge dragged: its width is kept." []
+  (set (str "state.columnWidths." event.column) event.width))
+
+(defn nextComposerColumn "The composer's status chip: the next column, round to the first." []
+  (set "state.composer.c" (mod (inc state.composer.c) (count computed.columns))))
+
+(defn nextComposerPriority "The composer's priority chip: the next priority, round to none." []
+  (set "state.composer.p" (mod (inc state.composer.p) (count state.priorities))))
+
+(defn copyLink "A link clicked in a description: copied, and a notice says so." []
+  (copy event.link)
+  (notify (t "toast.linkCopied" {:link event.link})))
+
+;;; What other people's Flow says, through the host's channel (board.lisp)
+
+(defn teamCommitted "Someone changed the board: the feed shows it, and its author is here." []
+  (let [who (or event.author "?")]
+    (set "state.activity" (concat [{:who who :key "revised" :title (or event.message "") :column ""}]
+                                  (take 29 state.activity)))
+    (set (str "state.presence." who) (or (get state.presence who) ""))))
+
+(defn teamEvent "Another person's Flow says which card they have open." []
+  (when (and (= event.name "presence") (not= event.data.who "RS"))
+    (set (str "state.presence." event.data.who) (or event.data.card ""))))
+
+(defn teamClosed "The channel closed: nobody else is here." []
+  (set "state.presence" {}))
+
 ;;; Commands: the palette (Cmd+Shift+P), the menus and the keys run these
 
 (defcommand columnNew "A new card in the column whose menu is open."
-  :title "New issue in this status" :icon "plus" :enablement "{{state.columnMenu}}" []
+  :title "New issue in this status" :icon "plus" :enablement ~state.columnMenu []
   (set "state.columnMenu" false)
   (openComposer state.menuColumn))
 
 (defcommand columnSelect "Marks every card shown in the column whose menu is open."
-  :title "Select all in this status" :icon "list-checks" :enablement "{{state.columnMenu}}" []
+  :title "Select all in this status" :icon "list-checks" :enablement ~state.columnMenu []
   (set "state.columnMenu" false)
   (set "state.marked" (map :ref (filter (fn [card] (= (:c card) state.menuColumn)) computed.visible))))
 
 (defcommand selectNext "" :title "Select the next issue" :category "Go" :icon "arrow-down"
-  :enablement "{{computed.next != null}}" []
+  :enablement ~(some? computed.next) []
   (selectCard computed.next.c computed.next.at))
 
 (defcommand selectPrev "" :title "Select the previous issue" :category "Go" :icon "arrow-up"
-  :enablement "{{computed.prev != null}}" []
+  :enablement ~(some? computed.prev) []
   (selectCard computed.prev.c computed.prev.at))
 
 (defcommand changeStatus "" :title "Change status…" :category "Issue" :icon "circle-dashed"
-  :enablement "{{computed.card != null || length(state.marked) > 0}}" []
+  :enablement ~(or (some? computed.card) (> (count state.marked) 0)) []
   (openPropPick "status"))
 
 (defcommand changePriority "" :title "Change priority…" :category "Issue" :icon "chevrons-up"
-  :enablement "{{computed.card != null || length(state.marked) > 0}}" []
+  :enablement ~(or (some? computed.card) (> (count state.marked) 0)) []
   (openPropPick "priority"))
 
 (defcommand changeAssignee "" :title "Assign to…" :category "Issue" :icon "user"
-  :enablement "{{computed.card != null || length(state.marked) > 0}}" []
+  :enablement ~(or (some? computed.card) (> (count state.marked) 0)) []
   (openPropPick "assignee"))
 
 (defcommand assignToMe "" :title "Assign to me" :category "Issue" :icon "user-check"
-  :enablement "{{computed.card != null}}" []
+  :enablement ~(some? computed.card) []
   (setAssignee state.me))
 
 (defcommand newCardCommand "" :title "New issue" :category "Issue" :icon "plus" []
@@ -374,11 +444,11 @@
   (set "state.quickPick.open" true))
 
 (defcommand editCard "" :title "Edit issue…" :category "Issue" :icon "pencil"
-  :enablement "{{computed.card != null}}" []
+  :enablement ~(some? computed.card) []
   (set "state.edit" {:open true :title computed.card.title}))
 
 (defcommand deleteCard "" :title "Delete issue" :category "Issue" :icon "trash-2"
-  :enablement "{{computed.card != null}}" []
+  :enablement ~(some? computed.card) []
   (let [card computed.card]
     (remember)
     (notify (t "toast.deleted" {:title (:title card)}))
@@ -387,19 +457,20 @@
     (set "state.selected" nil)))
 
 (defcommand moveRight "" :title "Move issue right" :category "Issue" :icon "arrow-right"
-  :enablement "{{computed.card != null && state.selected.c < computed.lastColumn}}" []
+  :enablement ~(and (some? computed.card) (< state.selected.c computed.lastColumn)) []
   (moveSelected 1))
 
 (defcommand moveLeft "" :title "Move issue left" :category "Issue" :icon "arrow-left"
-  :enablement "{{computed.card != null && state.selected.c > 0}}" []
+  :enablement ~(and (some? computed.card) (> state.selected.c 0)) []
   (moveSelected -1))
 
 (defcommand moveUp "" :title "Move issue up" :category "Issue" :icon "arrow-up"
-  :enablement "{{computed.card != null && state.selected.i > 0}}" []
+  :enablement ~(and (some? computed.card) (> state.selected.i 0)) []
   (reorderCard state.selected.c state.selected.i -1))
 
 (defcommand moveDown "" :title "Move issue down" :category "Issue" :icon "arrow-down"
-  :enablement "{{computed.card != null && state.selected.i < length(computed.columns[state.selected.c].cards) - 1}}" []
+  :enablement ~(and (some? computed.card)
+                    (< state.selected.i (- (count (get-in computed.columns [state.selected.c :cards])) 1))) []
   (reorderCard state.selected.c state.selected.i 1))
 
 (defcommand undoChange "" :title "Undo" :category "Issue" :icon "undo-2" []
@@ -412,42 +483,42 @@
         (notify (t "toast.undone")))))
 
 (defcommand openIssue "" :title "Open issue" :category "Issue" :icon "maximize-2"
-  :enablement "{{computed.card != null}}" []
+  :enablement ~(some? computed.card) []
   (set "state.issueOpen" true))
 
-(defcommand closeIssue "" :title "Close issue" :category "Issue" :icon "arrow-left" :enablement "{{state.issueOpen}}" []
+(defcommand closeIssue "" :title "Close issue" :category "Issue" :icon "arrow-left" :enablement ~state.issueOpen []
   (set "state.issueOpen" false)
   (set "state.issueDueOpen" false)
   (set "state.subOpen" false))
 
 (defcommand toggleMark "" :title "Select or deselect the issue" :category "Issue" :icon "square-check"
-  :enablement "{{computed.card != null}}" []
+  :enablement ~(some? computed.card) []
   (let [ref computed.card.ref]
     (set "state.marked" (if (contains state.marked ref)
                           (filter (fn [marked] (not= marked ref)) state.marked)
                           (concat state.marked [ref])))))
 
 (defcommand markNext "" :title "Extend the selection down" :category "Issue" :icon "chevrons-down"
-  :enablement "{{computed.card != null && computed.next != null}}" []
+  :enablement ~(and (some? computed.card) (some? computed.next)) []
   (markSelected)
   (selectNext)
   (markSelected))
 
 (defcommand markPrevious "" :title "Extend the selection up" :category "Issue" :icon "chevrons-up"
-  :enablement "{{computed.card != null && computed.prev != null}}" []
+  :enablement ~(and (some? computed.card) (some? computed.prev)) []
   (markSelected)
   (selectPrev)
   (markSelected))
 
 (defcommand clearMarks "" :title "Clear the selection" :category "Issue" :icon "x"
-  :enablement "{{length(state.marked) > 0}}" []
+  :enablement ~(> (count state.marked) 0) []
   (set "state.marked" []))
 
 (defcommand markAll "" :title "Select all issues" :category "Issue" :icon "list-checks" []
   (set "state.marked" (map :ref computed.visible)))
 
 (defcommand bulkDelete "" :title "Delete the selected issues" :category "Issue" :icon "trash-2"
-  :enablement "{{length(state.marked) > 0}}" []
+  :enablement ~(> (count state.marked) 0) []
   (remember)
   (notify (t "bulk.deleted" {:n (count state.marked)}))
   (delete "issues" :id state.marked)
@@ -493,28 +564,28 @@
 (defcommand goToProjects "" :title "Go to projects" :category "Go" :icon "box" [] (showPage "projects"))
 
 (defcommand nextNotification "" :title "Next notification" :category "Inbox" :icon "arrow-down"
-  :enablement "{{state.page == 'inbox' && state.inboxAt + 1 < length(computed.inboxShown)}}" []
+  :enablement ~(and (= state.page "inbox") (< (+ state.inboxAt 1) (count computed.inboxShown))) []
   (pickNotification (inc state.inboxAt)))
 
 (defcommand previousNotification "" :title "Previous notification" :category "Inbox" :icon "arrow-up"
-  :enablement "{{state.page == 'inbox' && state.inboxAt > 0}}" []
+  :enablement ~(and (= state.page "inbox") (> state.inboxAt 0)) []
   (pickNotification (dec state.inboxAt)))
 
 (defcommand toggleRead "" :title "Mark read or unread" :category "Inbox" :icon "mail-check"
-  :enablement "{{computed.notification != null}}" []
+  :enablement ~(some? computed.notification) []
   (update-record "inbox" :id computed.notification.id :fields {:read (not computed.notification.read)}))
 
 (defcommand markAllRead "" :title "Mark all notifications read" :category "Inbox" :icon "check-check" []
   (update-record "inbox" :where {:read false} :fields {:read true}))
 
 (defcommand snoozeNotification "" :title "Snooze notification" :category "Inbox" :icon "alarm-clock"
-  :enablement "{{computed.notification != null}}" []
+  :enablement ~(some? computed.notification) []
   (update-record "inbox" :id computed.notification.id :fields {:snoozed true})
   (set "state.inboxAt" (max (min state.inboxAt (- (count computed.inboxShown) 2)) 0))
   (notify (t "inbox.snoozed")))
 
 (defcommand openNotification "" :title "Open the notification's issue" :category "Inbox" :icon "maximize-2"
-  :enablement "{{computed.notificationCard != null}}" []
+  :enablement ~(some? computed.notificationCard) []
   (selectCard computed.notificationCard.c computed.notificationCard.at)
   (set "state.page" "issues")
   (set "state.issueOpen" true))

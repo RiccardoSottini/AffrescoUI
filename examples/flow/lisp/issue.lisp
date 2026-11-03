@@ -140,7 +140,7 @@
        :height 18
        :activeColor @color.accent
        :trackColor @color.border
-       :onChange {:run checkItem :with {:at ~k :value ~event.value}})
+       :onChange ~(handler checkItem k event.value))
      (label#issueSubText :text ~item.text
        :textColor ~(if item.done "@color.muted" "@color.text")
        :anchors {:left 36 :right 30 :top 0 :bottom 0}
@@ -149,7 +149,7 @@
       :style removeButton
       :anchors {:right 4 :top 5}
       :label ~(t "drawer.remove" {:name item.text})
-      :onClick {:run removeFromCard :with {:field checklist :at ~k}}}))
+      :onClick ~(handler removeFromCard "checklist" k)}))
 
 (defview issue-comment "#issueComment." [note]
   `(node#issueComment :anchors {:left 40 :right 40}
@@ -201,7 +201,7 @@
                                        (split computed.card.notes "*")))
                       [" " {:text (or-else computed.card.linkText "") :link (or-else computed.card.link "")}])
        :onClick editNotes
-       :onLink [{:copy ~event.link} {:run notify :with {:message ~(t "toast.linkCopied" {:link event.link})}}])
+       :onLink copyLink)
      (editor#issueNotesEditor :when ~state.draft.editing
        :anchors {:left 40 :right 40}
        :height 110
@@ -309,7 +309,7 @@
                        :align center
                        :textColor @color.text
                        :anchors {:right 0 :top 0 :bottom 0})]
-          :onClick {:run setStatus :with {:to ~k}}))))
+          :onClick ~(handler setStatus k)))))
 
 (defview priority-picker "#priorityPicker." []
   `(node#priorityPicker :style pickMenu
@@ -328,14 +328,14 @@
                        :align center
                        :textColor @color.text
                        :anchors {:right 0 :top 0 :bottom 0})]
-          :onClick {:run setPriority :with {:p ~p}}))))
+          :onClick ~(handler setPriority p)))))
 
 (defview who-pick "#whoPick." [member]
   `(node#whoPick :style pickRow
      :text ~member.name
      :padding 36
      :selected ~(= member.who computed.card.who)
-     :onClick {:run setAssignee :with {:who ~member.who}}
+     :onClick ~(handler setAssignee member.who)
      (label#whoCheck :when ~(= member.who computed.card.who)
        :icon check
        :text ""
@@ -372,7 +372,7 @@
        :textColor @color.text
        :accentColor @color.accent
        :pickedTextColor @color.chipOnText
-       :onChange [{:run setDue :with {:date ~event.value}} {:set state.issueDueOpen :to false}])))
+       :onChange [~(handler setDue event.value) {:set state.issueDueOpen :to false}])))
 
 (defview prop-estimate "#propEstimate." []
   `(row#propEstimate :anchors {:left 8 :right 16} :height 32 :alignItems center
@@ -393,7 +393,7 @@
            :icon triangle
            :text ~(str "  " (t "card.points" {:n n}))
            :selected ~(= n (or-else computed.card.points 0))
-           :onClick {:run setEstimate :with {:n ~n}}}))))
+           :onClick ~(handler setEstimate n)}))))
 
 (defview prop-tag "#propTag." []
   `(node#propTag :style cardChip
@@ -418,7 +418,7 @@
            :icon ~(get state.tagIcons tag)
            :text ~(str "  " (t (str "tag." tag)))
            :selected ~(= tag computed.card.tag)
-           :onClick {:run setTag :with {:tag ~tag}}}))))
+           :onClick ~(handler setTag tag)}))))
 
 (defview prop-label-add "#propLabelAdd." []
   `(node#propLabelAdd :style cardChip
@@ -446,7 +446,7 @@
            :icon ~(if (contains (or-else computed.card.labels []) name) "square-check" "square")
            :text ~(str "  " (t (str "label." name)))
            :selected ~(contains (or-else computed.card.labels []) name)
-           :onClick {:run toggleListItem :with {:field labels :value ~name}}}))))
+           :onClick ~(handler toggleListItem "labels" name)}))))
 
 (defview prop-labels "#propLabels." []
   `(column#propLabels :anchors {:left 8 :right 16}
@@ -466,7 +466,7 @@
            :focusable true
            :role button
            :label ~(t (str "label." name))
-           :onClick {:run toggleListItem :with {:field labels :value ~name}}})
+           :onClick ~(handler toggleListItem "labels" name)})
        ~(prop-label-add))))
 
 (defview issue-side "#issueSide." []

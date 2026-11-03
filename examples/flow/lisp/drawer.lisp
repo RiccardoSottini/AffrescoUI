@@ -71,7 +71,7 @@
                           (map-indexed (fn [index it] {:text it :bold (= (mod index 2) 1)})
                                        (split computed.card.notes "*")))
                       [" " {:text (or-else computed.card.linkText "") :link (or-else computed.card.link "")}])
-       :onLink [{:copy ~event.link} {:run notify :with {:message ~(t "toast.linkCopied" {:link event.link})}}])
+       :onLink copyLink)
      (editor#notesEditor :when ~state.draft.editing
        :anchors {:left 12 :right 12}
        :height 110
@@ -103,7 +103,7 @@
            :borderWidth 1
            :borderColor ~(if on "@color.accent" "@color.border")
            :textColor ~(if on "@color.text" "@color.muted")
-           :onClick {:run toggleListItem :with {:field labels :value ~name}}}))
+           :onClick ~(handler toggleListItem "labels" name)}))
      {:id assigneesTitle :style section :text ~(t "drawer.assignees") :anchors {:left 12 :right 12}}
      (row#assignees :gap 6 :anchors {:left 12 :right 12} :height 30 :arrows horizontal
        ~(repeat [member state.members]
@@ -169,14 +169,14 @@
              :style removeButton
              :anchors {:right 0 :top 2}
              :label ~(t "drawer.remove" {:name file})
-             :onClick {:run removeFromCard :with {:field attachments :at ~k}}})))
+             :onClick ~(handler removeFromCard "attachments" k)})))
      {:id newAttachment
       :style drawerInput
       :anchors {:left 12 :right 12}
       :placeholder ~(t "drawer.addAttachment")
       :label ~(t "drawer.addAttachment")
       :bind state.newAttachment
-      :onSubmit [{:run addToCard :with {:field attachments :input ~state.newAttachment :value ~(trim state.newAttachment)}}
+      :onSubmit [~(handler addToCard "attachments" (trim state.newAttachment) state.newAttachment)
                  {:set state.newAttachment :to ""}]}))
 
 ;;; Views
@@ -241,7 +241,7 @@
       :role button
       :tooltip ~(t "detail.more")
       :label ~(t "detail.more")
-      :onClick {:run openCardMenu :with {:c ~state.selected.c :i ~state.selected.i}}}))
+      :onClick ~(handler openCardMenu state.selected.c state.selected.i)}))
 
 (defview due-picker "#duePicker." []
   `(node#duePicker :overlay {:placement below :open state.dueOpen :dismiss outside :modal true}
@@ -264,7 +264,7 @@
        :accentColor @color.accent
        :pickedTextColor @color.chipOnText
        :keys {:escape {:set state.dueOpen :to false}}
-       :onChange {:run setDue :with {:date ~event.value}})))
+       :onChange ~(handler setDue event.value))))
 
 (defview due-row "#dueRow." []
   `(row#dueRow :gap 8 :anchors {:left 12 :right 12} :height 30
@@ -292,7 +292,7 @@
       :anchors {:top 3}
       :tooltip ~(t "drawer.clearDue")
       :label ~(t "drawer.clearDue")
-      :onClick {:run setDue :with {:date nil}}}
+      :onClick ~(handler setDue nil)}
      ~(due-picker)))
 
 (defview assignee "#assignee." [member]
@@ -311,7 +311,7 @@
     :cursor hand
     :color ~(if on member.color "@color.field")
     :textColor ~(if on "#ffffff" "@color.muted")
-    :onClick {:run toggleListItem :with {:field assignees :value ~member.who}}})
+    :onClick ~(handler toggleListItem "assignees" member.who)})
 
 (defview check-row "#checkRow." [item k]
   `(node#checkRow :anchors {:left 0 :right 0} :height 28 :color transparent
@@ -322,7 +322,7 @@
        :height 18
        :activeColor @color.accent
        :trackColor @color.border
-       :onChange {:run checkItem :with {:at ~k :value ~event.value}})
+       :onChange ~(handler checkItem k event.value))
      (label#checkText :text ~item.text
        :textColor ~(if item.done "@color.muted" "@color.text")
        :anchors {:left 28 :right 30 :top 0 :bottom 0}
@@ -331,4 +331,4 @@
       :style removeButton
       :anchors {:right 0 :top 2}
       :label ~(t "drawer.remove" {:name item.text})
-      :onClick {:run removeFromCard :with {:field checklist :at ~k}}}))
+      :onClick ~(handler removeFromCard "checklist" k)}))

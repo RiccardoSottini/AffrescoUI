@@ -94,7 +94,7 @@
       :role menuitem
       :label ~(t "settings.title")
       :tooltip "Cmd+,"
-      :onClick [{:set state.workspaceOpen :to false} {:run openSettings}]}
+      :onClick [{:set state.workspaceOpen :to false} ~(handler openSettings)]}
      {:id themeToggle
       :style menuRow
       :icon ~(if (= state.theme "light") "moon" "sun")
@@ -102,7 +102,7 @@
       :role menuitem
       :label ~(t "theme.tooltip")
       :tooltip "Cmd+J"
-      :onClick [{:set state.workspaceOpen :to false} {:run toggleTheme}]}
+      :onClick [{:set state.workspaceOpen :to false} ~(handler toggleTheme)]}
      {:id languageButton
       :style menuRow
       :icon languages
@@ -110,7 +110,7 @@
       :role menuitem
       :label ~(t "locale.tooltip")
       :tooltip "Cmd+L"
-      :onClick [{:set state.workspaceOpen :to false} {:run changeLanguage}]}))
+      :onClick [{:set state.workspaceOpen :to false} ~(handler changeLanguage)]}))
 
 (defview workspace-view "#workspace." []
   `(row#workspace :anchors {:left 12 :top 10}
@@ -176,28 +176,28 @@
        :onClick goToInbox)
      (node#navMine :use navItem
        :with {:icon circle-user :text ~(t "nav.mine") :active ~(and (= state.page "issues") (= state.owner state.me))}
-       :onClick [{:run showPage :with {:page issues}} {:set state.owner :to ~(if (= state.owner state.me) "" state.me)}])
+       :onClick showMyIssues)
      (node#navHeadingBoards :use navHeading :with {:text ~(t "nav.boards")})
      ~(repeat [b state.boards :key b.id]
        `(node#navBoard :use navItem
           :with {:icon layers-2
                  :text ~b.label
                  :active ~(and (= b.id state.boardId) (not= b.id state.boards.0.id) (= state.page "issues"))}
-          :onClick [{:run showPage :with {:page issues}} {:run switchBoard :with {:id ~b.id}}]))
+          :onClick [~(handler showPage "issues") ~(handler switchBoard b.id)]))
      (node#navHeadingTeams :use navHeading :with {:text ~(t "nav.teams")})
      (node#navTeam :use navItem
        :with {:icon square :text "Flow"}
-       :onClick [{:run showPage :with {:page issues}}
-                 {:run switchBoard :with {:id ~state.boards.0.id}}
+       :onClick [~(handler showPage "issues")
+                 ~(handler switchBoard state.boards.0.id)
                  {:set state.owner :to ""}
-                 {:run showBoard}])
+                 ~(handler showBoard)])
      (node#navIssues :use navItem
        :with {:icon copy
               :text ~(t "nav.issues")
               :active ~(and (= state.page "issues") (not= state.owner state.me) (= state.boardId state.boards.0.id))}
        :padding 26
-       :onClick [{:run showPage :with {:page issues}}
-                 {:run switchBoard :with {:id ~state.boards.0.id}}
+       :onClick [~(handler showPage "issues")
+                 ~(handler switchBoard state.boards.0.id)
                  {:set state.owner :to ""}])
      (node#navCycles :use navItem
        :with {:icon timer :text ~(t "nav.cycles") :active ~(= state.page "cycles")}

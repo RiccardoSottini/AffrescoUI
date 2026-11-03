@@ -13,6 +13,13 @@ The draft builds to the same tree as the data file, so the app draws the same (`
 
     python3 tools/notation/lisp_program.py <file.lisp> [--entry] [--lines 15] [-o out.lisp] [--locales locales]
                                            [--defaults] [--cli build/affrescoui]
+    python3 tools/notation/lisp_program.py <file.lisp> --bindings | --handlers
+
+--bindings only rewrites a file's "{{...}}" texts as the forms they mean, in place: for a program already written, or a
+data file that stays data (models.lisp), whose ~forms then build to the same text.
+
+--handlers only rewrites a file's `{:run f :with {...}}` steps that call a function of the program (a defn or a
+defcommand of its folder) as `~(handler f args...)`, the arguments in the function's order.
 
 --entry writes the screen's own sections (window, fonts, strings, persist, permissions, theme) as defscreen main's
 options, and its includes as an include form; without it, they go in a defpart. --locales moves each language of
@@ -505,6 +512,104 @@ def wrap(text, width):
     return lines + ([line] if line else [])
 
 
+def bindings_in_place(path, cli):
+    """Rewrites a file's `"{{...}}"` texts as the Lisp forms they mean, in place; the texts it can't translate."""
+    with open(path, encoding="utf-8") as file:
+        text = file.read()
+    strings = re.compile(r'"(?:\\.|[^"\\])*"')
+    found = [token for token in strings.findall(text) if "{{" in token]
+    forms = translations(Draft(cli, 0, ()), sorted({json.loads(token) for token in found}))
+    untranslated = []
+
+    def replace(match):
+        token = match.group(0)
+        if "{{" not in token:
+            return token
+        value = json.loads(token)
+        if forms.get(value) is None:
+            untranslated.append(value)
+            return token
+        column = match.start() - (text.rfind("\n", 0, match.start()) + 1)
+        return laid_out("~" + forms[value], column)
+
+    with open(path, "w", encoding="utf-8", newline="\n") as file:
+        file.write(strings.sub(replace, text))
+    return untranslated
+
+
+def parameters_in(folder):
+    """The parameters of each function and command the programs of a folder define, by name."""
+    found = {}
+    for name in os.listdir(folder):
+        if not name.endswith(".lisp"):
+            continue
+        with open(os.path.join(folder, name), encoding="utf-8") as file:
+            text = file.read()
+        for match in re.finditer(r"^\((defn|defcommand) ([^\s()]+)", text, re.M):
+            params = re.search(r"\[([^\]]*)\]", text[match.end():])
+            if params:
+                found[match.group(2)] = params.group(1).split()
+    return found
+
+
+def pairs_of(text):
+    """The `:key value` pairs of a map's inside, each value's text: a ~form, a word, a string or a number."""
+    pairs, at = [], 0
+    while at < len(text):
+        key = re.match(r"\s*:([\w.$-]+)\s+", text[at:])
+        if not key:
+            return None
+        at += key.end()
+        start, depth = at, 0
+        if text[at:at + 1] == '"':
+            at = text.index('"', at + 1) + 1 if "\\" not in text[at:] else None
+            if at is None:
+                return None
+        else:
+            while at < len(text) and (depth > 0 or text[at] not in " \n"):
+                depth += text[at] in "([{"
+                depth -= text[at] in ")]}"
+                at += 1
+        pairs.append((key.group(1), text[start:at]))
+    return pairs
+
+
+def as_code(value):
+    """A map's value as code: `~form` its form, a word its text, anything else as it is."""
+    if value.startswith("~"):
+        return value[1:]
+    if re.fullmatch(r"[A-Za-z_][\w.$-]*", value) and value not in ("true", "false", "nil"):
+        return json.dumps(value)
+    return value
+
+
+def handlers_in_place(path):
+    """Rewrites a file's `{:run f :with {...}}` handlers that call a function of the program as `~(handler f ...)`,
+    its arguments in the function's order; how many it rewrote."""
+    params = parameters_in(os.path.dirname(os.path.abspath(path)))
+    with open(path, encoding="utf-8") as file:
+        text = file.read()
+    count = 0
+
+    def replace(match):
+        nonlocal count
+        name, inside = match.group(1), match.group(2) or ""
+        pairs = pairs_of(inside) if inside.strip() else []
+        if name not in params or pairs is None or any(key not in params[name] for key, _ in pairs):
+            return match.group(0)
+        given = dict(pairs)
+        order = params[name]
+        last = max((order.index(key) for key in given), default=-1)
+        arguments = [as_code(given[key]) if key in given else "nil" for key in order[:last + 1]]
+        count += 1
+        return "~(handler " + " ".join([name] + arguments) + ")"
+
+    text = re.sub(r"\{:run ([\w.-]+)(?: :with \{([^{}]*)\})?\}", replace, text)
+    with open(path, "w", encoding="utf-8", newline="\n") as file:
+        file.write(text)
+    return count
+
+
 def main():
     """Writes the draft; returns the exit code."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -516,7 +621,18 @@ def main():
     parser.add_argument("--defaults", action="store_true",
                         help="an add-on: its tokens, keys and default language are defaults an app replaces")
     parser.add_argument("--cli", default=os.path.join(ROOT, "build", "affrescoui"))
+    parser.add_argument("--bindings", action="store_true",
+                        help="only rewrite the file's {{...}} texts as Lisp forms, in place (a program or a template)")
+    parser.add_argument("--handlers", action="store_true",
+                        help="only rewrite the file's {:run f :with {...}} handlers as (handler f ...), in place")
     arguments = parser.parse_args()
+    if arguments.handlers:
+        print(f"{handlers_in_place(arguments.file)} handlers rewritten", file=sys.stderr)
+        return 0
+    if arguments.bindings:
+        for value in bindings_in_place(arguments.file, arguments.cli):
+            print(f"left as written: {value}", file=sys.stderr)
+        return 0
     with open(os.path.join(ROOT, "modules", "notation", "include", "affresco", "notation", "Words.hpp"),
               encoding="utf-8") as words:
         block = words.read().split("languageWords")[1].split("});")[0]

@@ -116,8 +116,8 @@
      :cursor hand
      :drag {:data {:from ~c :at ~i}}
      :dragging {:color @color.accentSoft}
-     :onClick {:run selectCard :with {:c ~c :i ~i}}
-     :onFocus {:run selectCard :with {:c ~c :i ~i}}))
+     :onClick ~(handler selectCard c i)
+     :onFocus ~(handler selectCard c i)))
 
 (defview lane-view "#lane." [member]
   `(node#lane :anchors {:left 0 :right 0}
@@ -146,7 +146,7 @@
             :anchors {:top 0 :bottom 0}
             :radius @radius.chip
             :color @color.field
-            :onDrop {:run moveToLane :with {:from ~event.data.from :at ~event.data.at :to ~c :who ~member.who}}
+            :onDrop ~(handler moveToLane event.data.from event.data.at c member.who)
             {:id laneColumnName :style caption :text ~column.name :anchors {:left 8 :top 4}}
             (stack#laneCards :gap 4 :scroll vertical :anchors {:left 4 :right 4 :top 22 :bottom 4}
               ~(repeat [row (sort-by (fn [it] (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority) (= state.order "due") (or-else it.due "9999-12-31") :else it.at)) (filter (fn [it] (= it.c c)) computed.allCards)) :index k]

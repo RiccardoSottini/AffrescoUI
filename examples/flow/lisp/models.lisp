@@ -43,7 +43,7 @@
                            :when (string :description "ISO 8601, UTC.")
                            :read (boolean :default false)
                            :snoozed (boolean :default false)}}}
- :queries {:lane0 {:from issues :where {:board "{{state.boardId}}" :status 0} :sort [order]}
-           :lane1 {:from issues :where {:board "{{state.boardId}}" :status 1} :sort [order]}
-           :lane2 {:from issues :where {:board "{{state.boardId}}" :status 2} :sort [order]}
-           :lane3 {:from issues :where {:board "{{state.boardId}}" :status 3} :sort [order]}}}
+ :queries {:lane0 {:from issues :where {:board ~state.boardId :status 0} :sort [order]}
+           :lane1 {:from issues :where {:board ~state.boardId :status 1} :sort [order]}
+           :lane2 {:from issues :where {:board ~state.boardId :status 2} :sort [order]}
+           :lane3 {:from issues :where {:board ~state.boardId :status 3} :sort [order]}}}
