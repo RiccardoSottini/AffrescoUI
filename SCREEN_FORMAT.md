@@ -2403,7 +2403,9 @@ builds `{"id": "layout-board", "icon": "kanban", "selected": "{{(state.view == '
   a symbol is a binding that reads that name (`~card.title` is `{{card.title}}`); one that uses a local holding a value is worked
   out at the build. So a view takes either: `(card-view card i)` in a repeat, or `(card-view {:title "Draft"} 0)`. A quoted
   symbol is a name of the running app too: `(context-menu "cardMenu" "state.cardMenu" 'menus.card)` gives `{{menus.card}}`.
-- **A call of a view** in a template is always worked out at the build, never a binding.
+- **A call of a view** in a template is always worked out at the build, never a binding. **A macro's call** is expanded first,
+  once, and what it writes is then a binding or a value as any form: a macro shares a binding's form between views and keeps it an
+  expression (Flow's `cards-in-order`), where a function would be `lisp('name', ...)`.
 - **Handlers.** `(handler f arg...)` is the step `{"lisp": "f", "with": [...]}`, which calls a `defn` or a `defcommand` with these
   arguments; in a template, an argument that reads the running app is its binding: `:onDrop ~(handler moveCard event.data.from
   event.data.at c)`. A handler that names a function (`:onClick sortTable`) gives it its parameters by name from the variables

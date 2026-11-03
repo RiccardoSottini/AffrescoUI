@@ -138,7 +138,8 @@ one data value, a **template**.
   with its arguments swapped, `get`, `get-in`, a keyword's call, `first`, `inc`, `nil?`, `str` as `+` or, whole, as the text
   `a{{x}}`), and the functions on each item given `(fn [x i] body)` (`filter`, `remove`, `map`, `map-indexed`, `find`, `some`,
   `every?`, `sort-by` with `>` for descending, `reduce` with `[acc x]`), their parameters written `it`, `index` and `acc`; an inner
-  function's item hides an outer one's, an error if it is used. An expression's own function may take `(fn [it] ...)` too.
+  function's item hides an outer one's, an error if it is used. An expression's own function may take `(fn [it] ...)` too. A macro's
+  call is expanded first, once a call (`Compiler::expanded`), for the liveness check, the binding and the code alike.
 - **`include`.** `readDocument` takes a program file's top-level `(include "a.lisp" ...)` forms out of its text (each character a
   space but line ends, so places stay) into the document's `include`: the loader reads them as a data file's, with its checks. They
   are never entries, so a revision can't add one: `definitionAddress` refuses the form.
