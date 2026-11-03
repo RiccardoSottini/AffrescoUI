@@ -13,6 +13,7 @@
          "locales/es.lisp"
          "locales/fr.lisp"
          "models.lisp"
+         "sound.lisp"
          "state.lisp"
          "computed.lisp"
          "look.lisp"

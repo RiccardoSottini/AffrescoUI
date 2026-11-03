@@ -486,16 +486,7 @@
   :title ~(t "command.playLibrary") :description ~(t "command.playLibrary.about")
   :category ~(t "category.playback") :icon "disc-3" [] (play -1 0))
 
-;;; The sound, and what the app does by itself
-
-(defpart sound "The beat: the sound of a song without one of its own, a beatbox loop made for Tempo (audio/make_beat.py)."
-  :audio {:beat {:file "../assets/audio/beatbox.wav"
-                 :loop true
-                 :volume 0.7
-                 :into state.beat
-                 :bands 32
-                 :updates 50
-                 :note "The sound of a song without a sound of its own: a beatbox loop made for Tempo (audio/make_beat.py)"}})
+;;; What the app does by itself
 
 (defpart reactions "What the state watches (the sound follows the player, going back follows the page), and what runs on load."
   :watch {:state.isPlaying [{:run followPlaying}]
