@@ -49,8 +49,8 @@
 	"unchanged": [
 		"/program/killring.lisp/kill-line",
 		"/program/loop.lisp/eval-defun",
-		"/actions/kill-buffer",
-		"/actions/save-buffer"
+		"/program/buffers.lisp/kill-buffer",
+		"/program/files.lisp/save-buffer"
 	],
 	"present": [
 		"/program/loop.lisp/add-hook after-save count-save"

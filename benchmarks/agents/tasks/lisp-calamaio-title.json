@@ -32,8 +32,8 @@
 	"unchanged": [
 		"/program/killring.lisp/kill-line",
 		"/program/loop.lisp/eval-defun",
-		"/actions/kill-buffer",
-		"/actions/undo"
+		"/program/buffers.lisp/kill-buffer",
+		"/program/editing.lisp/undo"
 	],
 	"reference": [
 		{
