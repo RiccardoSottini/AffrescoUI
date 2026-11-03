@@ -13,6 +13,7 @@
          "parts/data.lisp"
          "parts/chrome.lisp"
          "parts/library.lisp"
+         "parts/game.lisp"
          "parts/store.lisp"
          "parts/downloads.lisp"
          "parts/friends.lisp"

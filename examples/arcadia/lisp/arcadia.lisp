@@ -522,3 +522,12 @@
 (defn verifyFiles "Checks the game's files: a moment, then they are fine." []
   (set "state.properties.verify" "running")
   (after 1500 filesVerified))
+
+(defn foldSection "Folds a section of the game list if it is open, or unfolds it." [id open]
+  (set (str "state.collapsed." id) open))
+
+(defn openSection "Opens a section of a game: its store page, its extra content, support, or a part of its hub." [id section]
+  (cond (= section "store") (openStore id)
+        (= section "dlc") (openProperties id "dlc")
+        (= section "support") (showInfo "support")
+        :else (openHub id section)))
