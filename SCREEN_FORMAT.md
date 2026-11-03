@@ -2382,7 +2382,10 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
   `a ?? b`, `(nil? x)` is `x == null`, `cond` and `when` are `?:`, and `filter`, `remove`, `map`, `map-indexed`, `find`, `some`,
   `every?`, `sort-by` and `reduce` given `(fn [x] body)` are the expressions' own, the item `it`, the index `index` and the value so
   far `acc` (only `map-indexed` gives the index in a function too: `affrescoui lisp-binding` refuses the others reading it), `(truthy? x)`
-  is `!(!(x))`: `(filter (fn [card] (not= card.id state.sel)) state.cards)` is `filter(state.cards, it.id != state.sel)`. An
+  is `!(!(x))`: `(filter (fn [card] (not= card.id state.sel)) state.cards)` is `filter(state.cards, it.id != state.sel)`. A
+  keyword given to them is the function that looks it up, as in Clojure: `(sort-by :due > state.cards)` is
+  `sort(state.cards, it.due, 'desc')`, and `affrescoui lisp-binding` writes an item's member so. (`sort(list, 'due')` sorts by
+  the text `'due'`, the same for every item, so not at all: the binding for a member is `it.due`.) An
   expression's own function given a function names its parameters as the expression does: `(sum state.items (fn [it] it.price))`. A
   binding has no `let`: define a function. **A value read for the screen only reads:** any step it reaches is refused, whoever wrote it. A template inside a
   function (`` `(a ~x) ``) gives values, whenever it runs.

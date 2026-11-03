@@ -150,7 +150,8 @@ one data value, a **template**.
   `not`, unary `-`, `or-else` (`??`), the language's functions the expressions have (`count` as `length`, `vals` as `values`, `join`
   with its arguments swapped, `get`, `get-in`, a keyword's call, `first`, `inc`, `nil?`, `str` as `+` or, whole, as the text
   `a{{x}}`), and the functions on each item given `(fn [x i] body)` (`filter`, `remove`, `map`, `map-indexed`, `find`, `some`,
-  `every?`, `sort-by` with `>` for descending, `reduce` with `[acc x]`), their parameters written `it`, `index` and `acc`; an inner
+  `every?`, `sort-by` with `>` for descending, `reduce` with `[acc x]`), their parameters written `it`, `index` and `acc`, or
+  given a keyword, which looks it up (`(sort-by :d xs)` is `sort(xs, it.d)`); an inner
   function's item hides an outer one's, an error if it is used. An expression's own function may take `(fn [it] ...)` too. A macro's
   call is expanded first, once a call (`Compiler::expanded`), for the liveness check, the binding and the code alike.
 - **What is noted.** `Program::truthTests()` lists where a function tests a path of the running app with the language's truth

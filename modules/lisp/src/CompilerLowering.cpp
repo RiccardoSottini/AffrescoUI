@@ -298,11 +298,19 @@ bool Compiler::lowerItemFunction(const Value& form, int depth, std::vector<Bindi
 	const auto* found = std::ranges::find(itemFunctions, head, &ItemFunction::word);
 	const bool descending = head == "sort-by" && form.count() == 4 && headWord(form) == "sort-by" &&
 	                        form.at(2).kind() == Kind::Symbol && form.at(2).text() == ">";
-	if(found == itemFunctions.end() || (form.count() != 3 && !descending) || !isFunction(form.at(1))) return false;
+	// A keyword is the function that looks it up, as in Clojure: (sort-by :d xs) is sort(xs, it.d)
+	const bool keyword = form.at(1).kind() == Kind::Keyword && head != "map-indexed";
+	if(found == itemFunctions.end() || (form.count() != 3 && !descending) || !(keyword || isFunction(form.at(1))))
+		return false;
 	parts.push_back({std::string(found->expression) + "(", {}, false, {}, {}});
 	lowerForm(form.at(form.count() - 1), depth + 1, parts);
 	parts.push_back({head == "remove" ? ", !(" : ", ", {}, false, {}, {}});
-	lowerFunctionBody(form.at(1), std::span(found->names).first(found->parameters), depth, parts);
+	if(keyword) {
+		parts.push_back({"it", {}, false, {}, {}});
+		lowerKey(form.at(1), depth, parts);
+	} else {
+		lowerFunctionBody(form.at(1), std::span(found->names).first(found->parameters), depth, parts);
+	}
 	parts.push_back({head == "remove" ? "))" : descending ? ", 'desc')" : ")", {}, false, {}, {}});
 	return true;
 }

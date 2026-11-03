@@ -22,6 +22,7 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <regex>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -300,6 +301,17 @@ private:
 		return false;
 	}
 
+	/// @brief The function an item's value is worked out by: a keyword for one of its members, as in Clojure
+	/// (`it.title` is `:title`), else a function of the item.
+	/// @param body The value, of `it`.
+	/// @return The form.
+	std::string keyOrLambda(const json& body) {
+		std::string function = lambda("it", body);
+		static const std::regex member(R"(\(fn \[it\] it\.([A-Za-z_][A-Za-z0-9_]*)\))");
+		if(std::smatch found; std::regex_match(function, found, member)) return ":" + found[1].str();
+		return function;
+	}
+
 	/// @brief A function on each item: `filter(list, c)` is `(filter (fn [it] c) list)`.
 	/// @param name The function.
 	/// @param arguments Its arguments.
@@ -322,7 +334,7 @@ private:
 			return "(" + std::string(found->second) + " " + lambda(params, body) + " " + form(list) + ")";
 		if(name == "map" && arguments.size() == 2)
 			return readsIndex(body) ? "(map-indexed " + lambda("index it", body) + " " + form(list) + ")"
-			                        : "(map " + lambda("it", body) + " " + form(list) + ")";
+			                        : "(map " + keyOrLambda(body) + " " + form(list) + ")";
 		if(name == "count" && arguments.size() == 2)
 			return "(count (filter " + lambda(params, body) + " " + form(list) + "))";
 		if(name == "sort" && (arguments.size() == 2 || arguments.size() == 3)) {
@@ -330,7 +342,8 @@ private:
 			if(order != json{{"$value", "asc"}} && order != json{{"$value", "desc"}})
 				throw Untranslatable("sort with an order that isn't written 'asc' or 'desc'");
 			const bool descending = order == json{{"$value", "desc"}};
-			return "(sort-by " + lambda(params, body) + (descending ? " > " : " ") + form(list) + ")";
+			return "(sort-by " + (params == "it" ? keyOrLambda(body) : lambda(params, body)) + (descending ? " > " : " ") +
+			       form(list) + ")";
 		}
 		if(name == "reduce" && (arguments.size() == 2 || arguments.size() == 3))
 			return "(reduce " + lambda("acc it", body) + " " + (arguments.size() == 3 ? form(arguments[2]) : "nil") +

@@ -226,6 +226,12 @@ TEST_CASE("lisp views: a binding's form is the expression machine's, at its spee
 	CHECK(binding("(map-indexed (fn [i x] (+ i x.n)) state.xs)") == "{{map(state.xs, (index + it.n))}}");
 	CHECK(binding("(remove (fn [x] x.done) state.xs)") == "{{filter(state.xs, !(it.done))}}");
 	CHECK(binding("(sort-by (fn [x] x.n) > state.xs)") == "{{sort(state.xs, it.n, 'desc')}}");
+	// A keyword is the function that looks it up, as in Clojure
+	CHECK(binding("(sort-by :n state.xs)") == "{{sort(state.xs, it.n)}}");
+	CHECK(binding("(sort-by :n > state.xs)") == "{{sort(state.xs, it.n, 'desc')}}");
+	CHECK(binding("(map :title state.xs)") == "{{map(state.xs, it.title)}}");
+	CHECK(binding("(remove :done state.xs)") == "{{filter(state.xs, !(it.done))}}");
+	CHECK(binding("(filter :my-key state.xs)") == "{{filter(state.xs, it['my-key'])}}");
 	CHECK(binding("(reduce (fn [total x] (+ total x.n)) 0 state.xs)") == "{{reduce(state.xs, (acc + it.n), 0)}}");
 	CHECK(binding("(sum state.xs (fn [it] it.n))") == "{{sum(state.xs, it.n)}}");
 	CHECK(binding("(join \", \" state.names)") == "{{join(state.names, ', ')}}");

@@ -248,6 +248,11 @@ class Checker:
         self.expect(app["window"]["title"].startswith("Flow") and "program" in app, "run --print: an app's document")
         for given in (os.path.join(KANBAN, "app.lisp"), os.path.join(KANBAN, "index.screen.lisp")):
             self.expect(json.loads(self.run("run", "--print", given)) == app, f"run --print: {given} as its app")
+        # lisp-binding writes an item's member as the keyword that looks it up, and a constant key as it is
+        written = self.run("lisp-binding", "{{sort(state.xs, it.d, 'desc')}}", "{{map(state.xs, it.name)}}",
+                           "{{sort(state.xs, 'd')}}").splitlines()
+        self.expect(written == ["~(sort-by :d > state.xs)", "~(map :name state.xs)", '~(sort-by (fn [it] "d") state.xs)'],
+                    f"lisp-binding: {written}")
         template = write("template.lisp", '(label :text ~(str "a" 1))\n')
         self.expect(json.loads(self.run("run", "--print", template)) == {"type": "label", "text": "a1"},
                     "run --print: a template's tree")
