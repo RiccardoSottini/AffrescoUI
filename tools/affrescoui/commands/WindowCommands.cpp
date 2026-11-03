@@ -2,11 +2,13 @@
 /// @brief `affrescoui run` and `affrescoui render`: the commands that open a window.
 
 #include "Cli.hpp"
+#include "JsonText.hpp"
 
 #include "SocketDir.hpp" // from apps/shared: the socket folder's checks, shared with affrescoui_launcher
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp> // unconnectedScreen()
+#include <affresco/notation/Notation.hpp>
 
 #include "Png.hpp" // the library's PNG encoder (modules/screen/src)
 
@@ -15,6 +17,7 @@
 #include <charconv>
 #include <format>
 #include <iostream>
+#include <optional>
 
 namespace affresco::cli {
 
@@ -100,13 +103,33 @@ RunOptions runOptions(std::span<const std::string_view> args) {
 	return options;
 }
 
+/// @brief The app a file opens as: an app's folder, its app.json or app.lisp, or the entry screen its manifest names,
+/// in either notation (a program's entry names its other files with an `include` form only an app's loader reads).
+/// @param file The file, or a folder.
+/// @return The app's folder, or nothing for a screen of its own.
+/// @throws ScreenError If the manifest beside it can't be read.
+std::optional<std::filesystem::path> appLocation(const std::filesystem::path& file) {
+	std::error_code error;
+	if(std::filesystem::is_directory(file, error)) return file;
+	if(notation::isNamedDocument(file, "app")) return file.parent_path();
+	if(!Screen::appOf(file).empty()) return file.parent_path();
+	return std::nullopt;
+}
+
 } // namespace
 
 Exit runScreen(std::span<const std::string_view> args) {
 	const RunOptions options = runOptions(args);
-	if(const std::optional<Exit> built = runLisp(options.file, options.print)) return *built;
+	const std::optional<std::filesystem::path> location = appLocation(options.file);
+	if(location && options.print) { // the app's document, as the host loads it: its program built, its files merged
+		const Screen loaded = Screen::fromApp(*location, {}, Screen::History::InMemory);
+		std::cout << printText(parseText(loaded.documentJson())) << std::flush;
+		return Exit::Success;
+	}
+	if(!location)
+		if(const std::optional<Exit> built = runLisp(options.file, options.print)) return *built;
 	Application app;
-	Screen screen = Screen::fromFile(options.file, options.data);
+	Screen screen = location ? Screen::fromApp(*location, options.data) : Screen::fromFile(options.file, options.data);
 	registerApplicationTypes(screen);
 	if(options.mode) screen.setModeForThisRun(*options.mode);
 	screen.setSocketDirectory(options.socketDirectory); // its channels reach this program's sockets only
