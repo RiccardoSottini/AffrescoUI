@@ -4,7 +4,7 @@
 ;;; says what happens. Every action is a command, as an outsider wrote them: a title, a category, and what a person or an
 ;;; agent may run by name from the palette. A command reads the running app through paths (`state.cart`, `data.games`,
 ;;; `computed.here`) and changes it only through steps (`set`, `update-record`, `insert`...). A handler runs one by name,
-;;; its parameters by name: {:run openGame :with {:id "g1"}}.
+;;; its parameters by name: ~(handler openGame "g1").
 
 ;;; Lists, games and places
 
@@ -40,11 +40,11 @@
       (set "state.nav" (concat (take (inc state.at) state.nav) [{:tab tab :page page :id id}]))
       (set "state.at" (inc state.at)))))
 
-(defcommand back "" :title "Back" :category "View" :icon "arrow-left" :enablement "{{state.at > 0}}" []
+(defcommand back "" :title "Back" :category "View" :icon "arrow-left" :enablement ~(> state.at 0) []
   (set "state.at" (max 0 (dec state.at))))
 
 (defcommand forward "" :title "Forward" :category "View" :icon "arrow-right"
-  :enablement "{{state.at < length(state.nav) - 1}}"
+  :enablement ~(< state.at (- (count state.nav) 1))
   []
   (set "state.at" (min (dec (count state.nav)) (inc state.at))))
 
@@ -234,7 +234,7 @@
     (after 3200 reply)))
 
 (defcommand sendMessage "" :title "Send the message" :category "Friends" :icon "send"
-  :enablement "{{computed.chatFriend != null && trim(state.chatDraft) != ''}}"
+  :enablement ~(and (some? computed.chatFriend) (not= (trim state.chatDraft) ""))
   []
   (when (and (some? computed.chatFriend) (not= (trim state.chatDraft) ""))
     (insert "messages" :value {:friend state.chatWith :mine true :at (now) :text (trim state.chatDraft)})
@@ -243,7 +243,7 @@
     (awaitReply)))
 
 (defcommand inviteToPlay "" :title "Invite to play" :category "Friends" :icon "gamepad-2"
-  :enablement "{{computed.chatFriend != null && computed.inviteGame != null}}"
+  :enablement ~(and (some? computed.chatFriend) (some? computed.inviteGame))
   []
   (when (and (some? computed.chatFriend) (some? computed.inviteGame))
     (insert "messages" :value {:friend state.chatWith :mine true :at (now) :game computed.inviteGame.id})
@@ -460,7 +460,7 @@
 
 (defcommand purchase "Pays from the wallet: the games join the library, not installed, and leave the wishlist."
   :title "Purchase for myself" :category "Store" :icon "credit-card"
-  :enablement "{{length(state.cart) > 0 && computed.cartTotal <= state.user.wallet}}"
+  :enablement ~(and (> (count state.cart) 0) (<= computed.cartTotal state.user.wallet))
   []
   (update-record "games" :id state.cart :fields {:owned true})
   (set "state.user.wallet" (/ (round (* (- state.user.wallet computed.cartTotal) 100)) 100))
