@@ -35,7 +35,7 @@
 		{
 			"message": "Cmd+J says Theme changed",
 			"set": {
-				"/program/habits.lisp/toggleTheme": "(defcommand toggleTheme \"Between light and dark.\"\n  :title ~(t \"action.toggleTheme.title\") :category \"Streak\" :icon \"moon\"\n  []\n  (set \"state.theme\" (if (= computed.theme \"light\") \"dark\" \"light\"))\n  (toast \"Theme changed\"))"
+				"/program/habits.lisp/toggleTheme": "(defcommand toggleTheme \"Between light and dark.\"\n  :title ~(t \"action.toggleTheme.title\") :description ~(t \"action.toggleTheme.about\")\n  :category \"Streak\" :icon \"moon\" []\n  (set \"state.theme\" (if (= computed.theme \"light\") \"dark\" \"light\"))\n  (toast \"Theme changed\"))"
 			}
 		}
 	]
