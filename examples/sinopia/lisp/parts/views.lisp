@@ -1,362 +1,366 @@
-{:$schema "../../../../schema/affrescoui-screen.schema.json"
- :format affrescoui-screen
- :version 2
- :note "The views beside Normal: the sorter (every slide's image in a grid, dragged to reorder) and the outline (the slides' titles and text); the format pane at the right (the selected objects, else the slide); and the deck as a file: saved and opened as JSON through the system's dialogs, exported as a PDF of the slides shown or a PNG of one."
- :state {:formatPane false :fileStatus "" :opened nil}
- :computed {:directions [left up right down]
-            :directionIcons {:left arrow-left :up arrow-up :right arrow-right :down arrow-down}
-            :fillSlots [none light1 dark1 light2 dark2 accent1 accent2 accent3 accent4 accent5 accent6]
-            :deckName "{{(state.deck.title ?? '') == '' ? 'Untitled deck' : state.deck.title}}"
-            :outlineText "{{map(state.deck.slides, join(filter(map(it.objects ?? [], trim(it.text ?? '')), it != ''), '\n'))}}"}
- :actions {:saveDeck [{:saveFile "{{state.deck}}"
-                       :name "{{computed.deckName + '.json'}}"
-                       :title "Save the deck"
-                       :onDone [{:set state.fileStatus :to "{{'Saved ' + result.name + '.'}}"}]
-                       :onError [{:set state.fileStatus :to "{{'Not saved: ' + error.message}}"}]}]
-           :openDeck [{:openFile state.opened
-                       :extensions [json]
-                       :title "Open a deck"
-                       :onDone [{:run deckOpened :with {:name "{{result.name}}"}}]
-                       :onError [{:set state.fileStatus :to "{{'Not opened: ' + error.message}}"}]}]
-           :deckOpened [{:if "{{type(state.opened.slides) == 'list' && length(state.opened.slides) > 0 && type(state.opened.next) == 'number'}}"
-                         :then [{:run commit}
-                                {:set state.deck :to "{{state.opened}}"}
-                                {:set state.current :to 0}
-                                {:set state.board.selection :to []}
-                                {:set state.fileStatus :to "{{'Opened ' + name + '.'}}"}]
-                         :else [{:set state.fileStatus :to "{{'Not opened: ' + name + ' is not a deck.'}}"}]}
-                        {:set state.opened :to nil}]
-           :exportPdf [{:export pdf
-                        :pages "{{map(computed.showOrder, 'page-' + state.deck.slides[it].id)}}"
-                        :size [720 405]
-                        :title "{{computed.deckName}}"
-                        :onDone [{:set state.fileStatus
-                                  :to "{{'Exported ' + result.name + ', ' + result.pages + ' pages.'}}"}]
-                        :onError [{:set state.fileStatus :to "{{'Not exported: ' + error.message}}"}]}]
-           :exportPng [{:export png
-                        :pages "{{['page-' + computed.slide.id]}}"
-                        :scale 2
-                        :name "{{computed.deckName + ' ' + (state.current + 1)}}"
-                        :onDone [{:set state.fileStatus :to "{{'Exported ' + result.name + '.'}}"}]
-                        :onError [{:set state.fileStatus :to "{{'Not exported: ' + error.message}}"}]}]
-           :toggleTheme [{:set state.theme :to "{{state.theme == 'dark' ? 'light' : 'dark'}}"}]
-           :setBackground [{:run commit} {:set "state.deck.slides[state.current].background" :to "{{slot}}"}]}
- :keys {"mod+s" [{:when "{{!state.show.on}}" :do saveDeck}] "mod+o" [{:when "{{!state.show.on}}" :do openDeck}]}
- :components {:swatches {:params {:prefix "" :chosen "" :run "" :key ""}
-                         :note "The theme's colours and none, as a row of swatches; a click runs setObjects with { key: slot }, or setBackground."
-                         :node (row :id "{{prefix + '-swatches'}}" :height 22 :gap 3 :color transparent
-                                 (node :id "{{prefix + '-' + slot}}"
-                                   :repeat {:for slot
-                                            :in "{{key == 'background' ? slice(computed.fillSlots, 1) : computed.fillSlots}}"}
-                                   :width 18
-                                   :height 18
-                                   :radius 3
-                                   :cursor hand
-                                   :color "{{slot == 'none' ? '@rbFieldBg' : computed.palette[slot]}}"
-                                   :borderWidth "{{slot == chosen ? 2 : 1}}"
-                                   :borderColor "{{slot == chosen ? '@brandLine' : '@rbFieldLine'}}"
-                                   :tooltip "{{slot == 'none' ? 'None' : computed.slotTitles[slot]}}"
-                                   :role button
-                                   :label "{{slot}}"
-                                   :onClick [{:if "{{run == 'setBackground'}}"
-                                              :then [{:run setBackground :with {:slot "{{slot}}"}}]
-                                              :else [{:run setObjects
-                                                      :with {:props "{{parseJson('{' + json(key) + ':' + json(slot) + '}')}}"}}]}]
-                                   (label :when "{{slot == 'none'}}"
-                                     :fill 0
-                                     :align center
-                                     :textColor @rbMuted
-                                     :runs [{:icon ban :size 12}])))}
-              :paneStepper {:params {:title "" :value 0 :unit "" :key "" :step 1 :low 0 :high 1000 :prefix ""}
-                            :node (row :id "{{prefix}}" :height 24 :gap 2 :alignItems center :color transparent
-                                    (label :id "{{prefix + '-title'}}"
-                                      :width 84
-                                      :height 22
-                                      :textColor @rbInk
-                                      :runs [{:text "{{title}}" :size 12}])
-                                    (label :id "{{prefix + '-value'}}"
-                                      :width 64
-                                      :height 22
-                                      :align end
-                                      :padding 4
-                                      :textColor @rbInk
-                                      :runs [{:text "{{fixed(value, 1) + unit}}" :size 12}])
-                                    (node :id "{{prefix + '-less'}}"
-                                      :use rbSmall
-                                      :with {:icon minus}
-                                      :tooltip "Less"
-                                      :onClick {:run setObjects
-                                                :with {:props "{{parseJson('{' + json(key) + ':' + json(clamp(value - step, low, high)) + '}')}}"}})
-                                    (node :id "{{prefix + '-more'}}"
-                                      :use rbSmall
-                                      :with {:icon plus}
-                                      :tooltip "More"
-                                      :onClick {:run setObjects
-                                                :with {:props "{{parseJson('{' + json(key) + ':' + json(clamp(value + step, low, high)) + '}')}}"}}))}
-              :formatPane {:params {}
-                           :note "The selected objects' fill, line, size, place and rotation, their lock and the first one's alt text; with nothing selected, the slide's background."
-                           :node (column#format-pane :width 260
-                                   :color @rb
-                                   :borderWidth 1
-                                   :borderColor @rbLine
-                                   :gap 6
-                                   :alignItems center
-                                   :scroll vertical
-                                   :role region
-                                   :label "Format"
-                                   :let {:o "{{computed.first}}"
-                                         :box "{{computed.first == null ? {} : merge(computed.firstPlaceholder, computed.first)}}"}
-                                   (node#format-top :width 1 :height 4 :color transparent)
-                                   (row#format-head :width 236 :height 24 :alignItems center :color transparent
-                                     (label#format-title :grow 1
-                                       :height 22
-                                       :textColor @rbInk
-                                       :runs [{:text "{{o == null ? 'Format Background' : 'Format Shape'}}"
-                                               :size 14
-                                               :bold true}])
-                                     (node#format-close :use rbSmall
-                                       :with {:icon x}
-                                       :tooltip "Close"
-                                       :onClick [{:set state.formatPane :to false}]))
-                                   (column#format-slide :when "{{o == null}}"
-                                     :width 236
-                                     :fitContent height
-                                     :alignItems stretch
-                                     :gap 6
-                                     :color transparent
-                                     (label#format-background-title :height 18
-                                       :textColor @rbMuted
-                                       :runs [{:text "Fill" :size 12}])
-                                     (node :use swatches
-                                       :with {:prefix format-background
-                                              :chosen "{{computed.slide.background ?? computed.theme.background}}"
-                                              :run setBackground
-                                              :key background})
-                                     (label#format-background-reset :style rbButton
-                                       :height 24
-                                       :fitText true
-                                       :padding 4
-                                       :runs [{:icon rotate-ccw :size 13} {:text " The theme's background" :size 12}]
-                                       :onClick {:run setBackground :with {:slot nil}}))
-                                   (column#format-object :when "{{o != null}}"
-                                     :width 236
-                                     :fitContent height
-                                     :alignItems stretch
-                                     :gap 6
-                                     :color transparent
-                                     (label#format-fill-title :height 18
-                                       :textColor @rbMuted
-                                       :runs [{:text "Fill" :size 12}])
-                                     (node :use swatches
-                                       :with {:prefix format-fill
-                                              :chosen "{{o.fill ?? 'none'}}"
-                                              :run setObjects
-                                              :key fill})
-                                     (label#format-line-title :height 18
-                                       :textColor @rbMuted
-                                       :runs [{:text "Line" :size 12}])
-                                     (node :use swatches
-                                       :with {:prefix format-line
-                                              :chosen "{{o.line ?? 'none'}}"
-                                              :run setObjects
-                                              :key line})
-                                     (node :use paneStepper
-                                       :with {:prefix format-line-width
-                                              :title "Width"
-                                              :value "{{o.lineWidth ?? 1}}"
-                                              :unit " pt"
-                                              :key lineWidth
-                                              :step 0.5
-                                              :low 0
-                                              :high 50})
-                                     (label#format-effects-title :height 18
-                                       :textColor @rbMuted
-                                       :runs [{:text "Effects" :size 12}])
-                                     (row#format-effects :width 236 :height 26 :gap 4 :color transparent
-                                       (label :id "{{'format-effect-' + fx[0]}}"
-                                         :repeat {:for fx
-                                                  :in [[none "No effect"] [shadow "Shadow"] [glow "Glow"]]
-                                                  :key "{{fx[0]}}"}
-                                         :style "{{(o.effect ?? 'none') == fx[0] ? 'rbButtonOn' : 'rbButton'}}"
-                                         :height 26
-                                         :fitText true
-                                         :padding 6
-                                         :runs [{:text "{{fx[1]}}" :size 12}]
-                                         :onClick {:run setObjects
-                                                   :with {:props {:effect "{{fx[0] == 'none' ? null : fx[0]}}"}}}))
-                                     (label#format-size-title :height 18
-                                       :textColor @rbMuted
-                                       :runs [{:text "Size and place" :size 12}])
-                                     (node :use paneStepper
-                                       :with {:prefix format-w
-                                              :title "Width"
-                                              :value "{{box.w ?? 100}}"
-                                              :key w
-                                              :step 10
-                                              :low 1
-                                              :high 4000})
-                                     (node :use paneStepper
-                                       :with {:prefix format-h
-                                              :title "Height"
-                                              :value "{{box.h ?? 100}}"
-                                              :key h
-                                              :step 10
-                                              :low 0
-                                              :high 4000})
-                                     (node :use paneStepper
-                                       :with {:prefix format-x
-                                              :title "Left"
-                                              :value "{{box.x ?? 0}}"
-                                              :key x
-                                              :step 10
-                                              :low -2000
-                                              :high 4000})
-                                     (node :use paneStepper
-                                       :with {:prefix format-y
-                                              :title "Top"
-                                              :value "{{box.y ?? 0}}"
-                                              :key y
-                                              :step 10
-                                              :low -2000
-                                              :high 4000})
-                                     (node :use paneStepper
-                                       :with {:prefix format-rotate
-                                              :title "Rotation"
-                                              :value "{{o.rotate ?? 0}}"
-                                              :unit "°"
-                                              :key rotate
-                                              :step 15
-                                              :low -360
-                                              :high 360})
-                                     (label#format-lock :style "{{computed.locked ? 'rbButtonOn' : 'rbButton'}}"
-                                       :height 26
-                                       :fitText true
-                                       :padding 6
-                                       :runs [{:icon "{{computed.locked ? 'lock' : 'lock-open'}}" :size 14}
-                                              {:text "{{computed.locked ? ' Locked' : ' Lock'}}" :size 12}]
-                                       :tooltip "A locked object stays where it is and isn't deleted"
-                                       :onClick toggleLock)
-                                     (label#format-alt-title :height 18
-                                       :textColor @rbMuted
-                                       :runs [{:text "Alt Text" :size 12}])
-                                     (editor#format-alt :height 54
-                                       :wrap true
-                                       :color @rbFieldBg
-                                       :lineColor transparent
-                                       :textColor @rbInk
-                                       :label "Alt text: what a screen reader says for this object"
-                                       :bind "{{'state.deck.slides[' + state.current + '].objects[' + indexOf(map(computed.objects, it.id), o.id) + '].alt'}}")))}
-              :sorterView {:params {}
-                           :note "Every slide's image in a grid; a click picks it, a double-click opens it in Normal, a drag onto another moves it there."
-                           :node (column#sorter :grow 1 :color @work :alignItems stretch
-                                   (node#sorter-top :height 20 :color transparent)
-                                   (grid#sorter-grid :grow 1
-                                     :color @work
-                                     :scroll vertical
-                                     :columns "{{max(floor((window.width - 40) / 236), 1)}}"
-                                     :gap 16
-                                     :justifyItems center
-                                     :focusable true
-                                     :role list
-                                     :label "Slides"
-                                     :keys {:left {:run pickSlide :with {:index "{{state.current - 1}}"}}
-                                            :right {:run pickSlide :with {:index "{{state.current + 1}}"}}
-                                            :enter [{:set state.view :to normal}]
-                                            :delete deleteSlide}
-                                     (column :id "{{'sorter-' + s.id}}"
-                                       :repeat {:for s :in "{{state.deck.slides}}" :index i :key "{{s.id}}"}
-                                       :width 220
-                                       :height 148
-                                       :gap 4
-                                       :alignItems stretch
-                                       :color transparent
-                                       :cursor hand
-                                       :role listitem
-                                       :selected "{{i == state.current}}"
-                                       :label "{{'Slide ' + (i + 1)}}"
-                                       :drag {:data {:slide "{{i}}"}}
-                                       :onDrop {:run moveSlide :with {:from "{{event.data.slide ?? -1}}" :to "{{i}}"}}
-                                       :onClick [{:run pickSlide :with {:index "{{i}}"}} {:focus "#sorter-grid"}]
-                                       :onDoubleClick [{:run pickSlide :with {:index "{{i}}"}}
-                                                       {:set state.view :to normal}]
-                                       (node :id "{{'sorter-' + s.id + '-frame'}}"
-                                         :width 220
-                                         :height 128
-                                         :radius 6
-                                         :color "{{i == state.current ? '@brandLine' : 'transparent'}}"
-                                         :hover {:color "{{i == state.current ? '@brandLine' : '@thumbHover'}}"}
-                                         :dragOver {:color @brandLine}
-                                         (image :id "{{'sorter-' + s.id + '-image'}}"
-                                           :x 3
-                                           :y 3
-                                           :width 214
-                                           :height 122
-                                           :source "{{'slide-' + s.id}}"
-                                           :fit fill)
-                                         (node :id "{{'sorter-' + s.id + '-veil'}}"
-                                           :when "{{s.hidden ?? false}}"
-                                           :x 3
-                                           :y 3
-                                           :width 214
-                                           :height 122
-                                           :color "#ffffff99"))
-                                       (row :id "{{'sorter-' + s.id + '-caption'}}" :height 16 :gap 4 :color transparent
-                                         (label :id "{{'sorter-' + s.id + '-number'}}"
-                                           :fitText true
-                                           :height 16
-                                           :textColor @rbInk
-                                           :runs [{:text "{{text(i + 1)}}" :size 12 :bold "{{i == state.current}}"}])
-                                         (label :id "{{'sorter-' + s.id + '-hidden'}}"
-                                           :when "{{s.hidden ?? false}}"
-                                           :fitText true
-                                           :height 16
-                                           :textColor @rbMuted
-                                           :runs [{:icon eye-off :size 11}]
-                                           :tooltip "Hidden in the show")
-                                         (label :id "{{'sorter-' + s.id + '-star'}}"
-                                           :when "{{(s.transition.kind ?? 'none') != 'none' || length(s.animations ?? []) > 0}}"
-                                           :fitText true
-                                           :height 16
-                                           :textColor @rbMuted
-                                           :runs [{:icon star :size 10}]
-                                           :tooltip "Has a transition or animations")))))}
-              :outlineView {:params {}
-                            :note "The slides' text in place of the thumbnails: each slide's number and its lines; a click picks the slide."
-                            :node (column#outline :width 300
-                                    :color @rbFieldBg
-                                    :scroll vertical
-                                    :gap 8
-                                    :alignItems center
-                                    :focusable true
-                                    :role list
-                                    :label "Outline"
-                                    :keys {:up {:run pickSlide :with {:index "{{state.current - 1}}"}}
-                                           :down {:run pickSlide :with {:index "{{state.current + 1}}"}}}
-                                    (node#outline-top :width 1 :height 4 :color transparent)
-                                    (row :id "{{'outline-' + s.id}}"
-                                      :repeat {:for s :in "{{state.deck.slides}}" :index i :key "{{s.id}}"}
-                                      :fitContent height
-                                      :width 276
-                                      :gap 6
-                                      :cursor hand
-                                      :radius 4
-                                      :role listitem
-                                      :selected "{{i == state.current}}"
-                                      :label "{{'Slide ' + (i + 1)}}"
-                                      :color "{{i == state.current ? '@rbChecked' : 'transparent'}}"
-                                      :hover {:color "{{i == state.current ? '@rbChecked' : '@rbHover'}}"}
-                                      :onClick [{:run pickSlide :with {:index "{{i}}"}} {:focus "#outline"}]
-                                      (label :id "{{'outline-' + s.id + '-number'}}"
-                                        :width 34
-                                        :height 18
-                                        :padding 2
-                                        :textColor @rbMuted
-                                        :runs [{:text "{{text(i + 1)}}" :size 12} {:icon presentation :size 11}])
-                                      (label :id "{{'outline-' + s.id + '-text'}}"
-                                        :width 230
-                                        :wrap true
-                                        :fitText {:maxWidth 230}
-                                        :padding 2
-                                        :textColor @rbInk
-                                        :runs [{:text "{{computed.outlineText[i] == '' ? '(No text)' : computed.outlineText[i]}}"
-                                                :size 12}])))}}}
+;;; views.lisp --- the views beside Normal, the format pane, and the deck as a file
+;;;
+;;; The sorter shows every slide's picture in a grid, dragged to reorder; the outline, the slides' titles and text. The
+;;; format pane at the right changes the selected objects, else the slide. The deck is saved and opened as JSON through
+;;; the system's dialogs, and exported as a PDF of the slides shown or a PNG of one.
+
+;;; What the views keep
+
+(defstate formatPane false "Whether the format pane is shown.")
+
+(defstate fileStatus "" "What the last save, open or export did.")
+
+(defstate opened nil "The deck a file held, until it is checked.")
+
+(defcomputed directions "The sides a transition comes from." '[left up right down])
+
+(defcomputed directionIcons "Each side's arrow." '{:left arrow-left :up arrow-up :right arrow-right :down arrow-down})
+
+(defcomputed fillSlots "The swatches of the fill and line rows: none, then the theme's colours."
+  '[none light1 dark1 light2 dark2 accent1 accent2 accent3 accent4 accent5 accent6])
+
+(defcomputed deckName "The deck's title, or Untitled deck."
+  (if (= (or-else state.deck.title "") "") "Untitled deck" state.deck.title))
+
+(defcomputed outlineText "Each slide's text for the outline: its objects' text, a line each."
+  (map (fn [it]
+         (join "\n" (filter (fn [it] (not= it "")) (map (fn [it] (trim (or-else it.text ""))) (or-else it.objects [])))))
+       state.deck.slides))
+
+;;; Keys
+
+(defkey "mod+s" {:when ~(not state.show.on) :do saveDeck})
+
+(defkey "mod+o" {:when ~(not state.show.on) :do openDeck})
+
+;;; The format pane
+
+(defcomponent swatches "The theme's colours and none, as a row of swatches; a click sets the selection's `key`, or the slide's background."
+  {:prefix "" :chosen "" :run "" :key ""}
+  `(row :id ~(str prefix "-swatches") :height 22 :gap 3 :color transparent
+     ~(repeat [slot (if (= key "background") (slice computed.fillSlots 1) computed.fillSlots)]
+       `(node :id ~(str prefix "-" slot)
+          :width 18
+          :height 18
+          :radius 3
+          :cursor hand
+          :color ~(if (= slot "none") "@rbFieldBg" (get computed.palette slot))
+          :borderWidth ~(if (= slot chosen) 2 1)
+          :borderColor ~(if (= slot chosen) "@brandLine" "@rbFieldLine")
+          :tooltip ~(if (= slot "none") "None" (get computed.slotTitles slot))
+          :role button
+          :label ~slot
+          :onClick ~(handler pickSwatch run key slot)
+          (label :when ~(= slot "none") :fill 0 :align center :textColor @rbMuted :runs [{:icon ban :size 12}])))))
+
+(defcomponent paneStepper "A number of the selected objects, `key`, with buttons that step it between `low` and `high`."
+  {:title "" :value 0 :unit "" :key "" :step 1 :low 0 :high 1000 :prefix ""}
+  `(row :id ~prefix :height 24 :gap 2 :alignItems center :color transparent
+     (label :id ~(str prefix "-title") :width 84 :height 22 :textColor @rbInk :runs [{:text ~title :size 12}])
+     (label :id ~(str prefix "-value")
+       :width 64
+       :height 22
+       :align end
+       :padding 4
+       :textColor @rbInk
+       :runs [{:text ~(str (fixed value 1) unit) :size 12}])
+     (node :id ~(str prefix "-less")
+       :use rbSmall
+       :with {:icon minus}
+       :tooltip "Less"
+       :onClick ~(handler setProperty key (clamp (- value step) low high)))
+     (node :id ~(str prefix "-more")
+       :use rbSmall
+       :with {:icon plus}
+       :tooltip "More"
+       :onClick ~(handler setProperty key (clamp (+ value step) low high)))))
+
+(defcomponent formatPane "The selected objects' fill, line, size, place and rotation, their lock and the first one's alt text; with nothing selected, the slide's background."
+  {}
+  `(column#format-pane :width 260
+     :color @rb
+     :borderWidth 1
+     :borderColor @rbLine
+     :gap 6
+     :alignItems center
+     :scroll vertical
+     :role region
+     :label "Format"
+     :let {:o ~computed.first :box ~(if (nil? computed.first) {} (merge computed.firstPlaceholder computed.first))}
+     (node#format-top :width 1 :height 4 :color transparent)
+     (row#format-head :width 236 :height 24 :alignItems center :color transparent
+       (label#format-title :grow 1
+         :height 22
+         :textColor @rbInk
+         :runs [{:text ~(if (nil? 'o) "Format Background" "Format Shape") :size 14 :bold true}])
+       (node#format-close :use rbSmall :with {:icon x} :tooltip "Close" :onClick [{:set state.formatPane :to false}]))
+     ~(format-background)
+     ~(format-object)))
+
+(defview format-background "The slide's background colour, when nothing is selected." []
+  `(column#format-slide :when ~(nil? 'o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
+     (label#format-background-title :height 18 :textColor @rbMuted :runs [{:text "Fill" :size 12}])
+     (node :use swatches
+       :with {:prefix format-background
+              :chosen ~(or-else computed.slide.background computed.theme.background)
+              :run setBackground
+              :key background})
+     (label#format-background-reset :style rbButton
+       :height 24
+       :fitText true
+       :padding 4
+       :runs [{:icon rotate-ccw :size 13} {:text " The theme's background" :size 12}]
+       :onClick ~(handler setBackground nil))))
+
+(defview format-object "The selected objects' fill, line, effects, size and place, lock and alt text." []
+  `(column#format-object :when ~(some? 'o) :width 236 :fitContent height :alignItems stretch :gap 6 :color transparent
+     (label#format-fill-title :height 18 :textColor @rbMuted :runs [{:text "Fill" :size 12}])
+     (node :use swatches :with {:prefix format-fill :chosen ~(or-else o.fill "none") :run setObjects :key fill})
+     (label#format-line-title :height 18 :textColor @rbMuted :runs [{:text "Line" :size 12}])
+     (node :use swatches :with {:prefix format-line :chosen ~(or-else o.line "none") :run setObjects :key line})
+     ~(stepper "format-line-width" "Width" 'o.lineWidth 1 " pt" "lineWidth" 0.5 0 50)
+     (label#format-effects-title :height 18 :textColor @rbMuted :runs [{:text "Effects" :size 12}])
+     ~(format-effects)
+     (label#format-size-title :height 18 :textColor @rbMuted :runs [{:text "Size and place" :size 12}])
+     ~(stepper "format-w" "Width" 'box.w 100 "" "w" 10 1 4000)
+     ~(stepper "format-h" "Height" 'box.h 100 "" "h" 10 0 4000)
+     ~(stepper "format-x" "Left" 'box.x 0 "" "x" 10 -2000 4000)
+     ~(stepper "format-y" "Top" 'box.y 0 "" "y" 10 -2000 4000)
+     ~(stepper "format-rotate" "Rotation" 'o.rotate 0 "°" "rotate" 15 -360 360)
+     ~(format-lock)
+     (label#format-alt-title :height 18 :textColor @rbMuted :runs [{:text "Alt Text" :size 12}])
+     ~(format-alt)))
+(defview stepper "A stepper of the format pane: a number of the selection, `value` or else `fallback`."
+  [prefix title value fallback unit key step low high]
+  `(node :use paneStepper
+     :with {:prefix ~prefix :title ~title :value ~(or-else value fallback) :unit ~unit :key ~key :step ~step :low ~low
+            :high ~high}))
+
+(defview format-effects "No effect, a shadow or a glow, for the selected objects." []
+  `(row#format-effects :width 236 :height 26 :gap 4 :color transparent
+     ~(repeat [fx [["none", "No effect"], ["shadow", "Shadow"], ["glow", "Glow"]] :key fx.0]
+       `(label :id ~(str "format-effect-" fx.0)
+          :style ~(if (= (or-else o.effect "none") fx.0) "rbButtonOn" "rbButton")
+          :height 26
+          :fitText true
+          :padding 6
+          :runs [{:text ~fx.1 :size 12}]
+          :onClick ~(handler setEffect fx.0)))))
+
+(defview format-lock "Lock: a locked object stays where it is and isn't deleted." []
+  `(label#format-lock :style ~(if computed.locked "rbButtonOn" "rbButton")
+     :height 26
+     :fitText true
+     :padding 6
+     :runs [{:icon ~(if computed.locked "lock" "lock-open") :size 14}
+            {:text ~(if computed.locked " Locked" " Lock") :size 12}]
+     :tooltip "A locked object stays where it is and isn't deleted"
+     :onClick toggleLock))
+
+(defview format-alt "The first selected object's alt text, edited in place." []
+  `(editor#format-alt :height 54
+     :wrap true
+     :color @rbFieldBg
+     :lineColor transparent
+     :textColor @rbInk
+     :label "Alt text: what a screen reader says for this object"
+     :bind ~(str "state.deck.slides[" state.current "].objects[" (indexOf (map (fn [it] it.id) computed.objects) o.id)
+                 "].alt")))
+
+;;; The sorter
+
+(defcomponent sorterView "Every slide's picture in a grid: a click picks one, a double-click opens it, a drag moves it."
+  {}
+  `(column#sorter :grow 1 :color @work :alignItems stretch
+     (node#sorter-top :height 20 :color transparent)
+     (grid#sorter-grid :grow 1
+       :color @work
+       :scroll vertical
+       :columns ~(max (floor (/ (- window.width 40) 236)) 1)
+       :gap 16
+       :justifyItems center
+       :focusable true
+       :role list
+       :label "Slides"
+       :keys {:left ~(handler pickSlide (- state.current 1))
+              :right ~(handler pickSlide (+ state.current 1))
+              :enter [{:set state.view :to normal}]
+              :delete deleteSlide}
+       ~(repeat [s state.deck.slides :index i :key s.id]
+         (sorter-slide s i)))))
+
+(defview sorter-slide "Slide `s` in the sorter: its picture, then its number." [s i]
+  `(column :id ~(str "sorter-" s.id)
+     :width 220
+     :height 148
+     :gap 4
+     :alignItems stretch
+     :color transparent
+     :cursor hand
+     :role listitem
+     :selected ~(= i state.current)
+     :label ~(str "Slide " (+ i 1))
+     :drag {:data {:slide ~i}}
+     :onDrop ~(handler moveSlide (or-else event.data.slide (- 1)) i)
+     :onClick ~(handler chooseSlide i "#sorter-grid")
+     :onDoubleClick ~(handler openSlide i)
+     (node :id ~(str "sorter-" s.id "-frame")
+       :width 220
+       :height 128
+       :radius 6
+       :color ~(if (= i state.current) "@brandLine" "transparent")
+       :hover {:color ~(if (= i state.current) "@brandLine" "@thumbHover")}
+       :dragOver {:color @brandLine}
+       (image :id ~(str "sorter-" s.id "-image") :x 3 :y 3 :width 214 :height 122 :source ~(str "slide-" s.id) :fit fill)
+       (node :id ~(str "sorter-" s.id "-veil") :when ~(or-else s.hidden false) :x 3 :y 3 :width 214 :height 122
+         :color "#ffffff99"))
+     ~(sorter-caption s i)))
+
+(defview sorter-caption "Under a slide in the sorter: its number, and marks for a hidden slide and its motion." [s i]
+  `(row :id ~(str "sorter-" s.id "-caption") :height 16 :gap 4 :color transparent
+     (label :id ~(str "sorter-" s.id "-number")
+       :fitText true
+       :height 16
+       :textColor @rbInk
+       :runs [{:text ~(text (+ i 1)) :size 12 :bold ~(= i state.current)}])
+     (label :id ~(str "sorter-" s.id "-hidden")
+       :when ~(or-else s.hidden false)
+       :fitText true
+       :height 16
+       :textColor @rbMuted
+       :runs [{:icon eye-off :size 11}]
+       :tooltip "Hidden in the show")
+     (label :id ~(str "sorter-" s.id "-star")
+       :when ~(or (not= (or-else s.transition.kind "none") "none") (> (count (or-else s.animations [])) 0))
+       :fitText true
+       :height 16
+       :textColor @rbMuted
+       :runs [{:icon star :size 10}]
+       :tooltip "Has a transition or animations")))
+
+;;; The outline
+
+(defcomponent outlineView "The slides' text in place of the thumbnails: each slide's number and its lines."
+  {}
+  `(column#outline :width 300
+     :color @rbFieldBg
+     :scroll vertical
+     :gap 8
+     :alignItems center
+     :focusable true
+     :role list
+     :label "Outline"
+     :keys {:up ~(handler pickSlide (- state.current 1))
+            :down ~(handler pickSlide (+ state.current 1))}
+     (node#outline-top :width 1 :height 4 :color transparent)
+     ~(repeat [s state.deck.slides :index i :key s.id]
+       (outline-slide s i))))
+
+(defview outline-slide "Slide `s` in the outline: its number and its text; a click picks it." [s i]
+  `(row :id ~(str "outline-" s.id)
+     :fitContent height
+     :width 276
+     :gap 6
+     :cursor hand
+     :radius 4
+     :role listitem
+     :selected ~(= i state.current)
+     :label ~(str "Slide " (+ i 1))
+     :color ~(if (= i state.current) "@rbChecked" "transparent")
+     :hover {:color ~(if (= i state.current) "@rbChecked" "@rbHover")}
+     :onClick ~(handler chooseSlide i "#outline")
+     (label :id ~(str "outline-" s.id "-number")
+       :width 34
+       :height 18
+       :padding 2
+       :textColor @rbMuted
+       :runs [{:text ~(text (+ i 1)) :size 12} {:icon presentation :size 11}])
+     (label :id ~(str "outline-" s.id "-text")
+       :width 230
+       :wrap true
+       :fitText {:maxWidth 230}
+       :padding 2
+       :textColor @rbInk
+       :runs [{:text ~(if (= (get computed.outlineText i) "") "(No text)" (get computed.outlineText i)) :size 12}])))
+
+;;; What the format pane and the views do
+
+(defn setProperty "Sets one property of the selected objects." [key value]
+  (setObjects (assoc {} key value)))
+
+(defn pickSwatch "A swatch chosen: the slide's background, or the selection's fill or line." [run key slot]
+  (if (= run "setBackground") (setBackground slot) (setProperty key slot)))
+
+(defn setEffect "Gives the selected objects an effect: none, shadow or glow." [effect]
+  (setObjects {:effect (if (= effect "none") nil effect)}))
+
+(defn openSlide "Opens a slide of the sorter in the Normal view." [index]
+  (pickSlide index)
+  (set "state.view" "normal"))
+
+;;; Files
+
+(defn fileStatus "Says what the last save, open or export did, on the File tab." [text]
+  (set "state.fileStatus" text))
+
+(defn saved "Says the deck was saved." [result]
+  (fileStatus (str "Saved " result.name ".")))
+
+(defn notSaved "Says why the deck wasn't saved." [error]
+  (fileStatus (str "Not saved: " error.message)))
+
+(defn saveDeck "Saves the deck as JSON, where the person chooses." []
+  (saveFile state.deck :name (str computed.deckName ".json") :title "Save the deck" :onDone saved :onError notSaved))
+
+(defn opened "Takes the deck just opened, by its file's name." [result]
+  (deckOpened result.name))
+
+(defn notOpened "Says why no deck was opened." [error]
+  (fileStatus (str "Not opened: " error.message)))
+
+(defn openDeck "Opens a deck the person chooses." []
+  (openFile "state.opened" :extensions ["json"] :title "Open a deck" :onDone opened :onError notOpened))
+
+(defn deckOpened "Shows the deck opened from a file, if it is one, as a change Undo takes back." [name]
+  (if (and (vector? state.opened.slides) (> (count state.opened.slides) 0) (number? state.opened.next))
+    (do (commit)
+        (set "state.deck" state.opened)
+        (set "state.current" 0)
+        (set "state.board.selection" [])
+        (fileStatus (str "Opened " name ".")))
+    (fileStatus (str "Not opened: " name " is not a deck.")))
+  (set "state.opened" nil))
+
+(defn pdfExported "Says the PDF was exported, and how many pages it has." [result]
+  (fileStatus (str "Exported " result.name ", " result.pages " pages.")))
+
+(defn pngExported "Says the picture was exported." [result]
+  (fileStatus (str "Exported " result.name ".")))
+
+(defn notExported "Says why nothing was exported." [error]
+  (fileStatus (str "Not exported: " error.message)))
+
+(defn exportPdf "Exports the slides the show would show as a PDF, a page each." []
+  (export "pdf"
+          :pages (map (fn [it] (str "page-" (get-in state.deck.slides [it :id]))) computed.showOrder)
+          :size [720 405]
+          :title computed.deckName
+          :onDone pdfExported
+          :onError notExported))
+
+(defn exportPng "Exports the slide shown as a PNG picture, at twice its size." []
+  (export "png"
+          :pages [(str "page-" computed.slide.id)]
+          :scale 2
+          :name (str computed.deckName " " (+ state.current 1))
+          :onDone pngExported
+          :onError notExported))
+
+;;; The look
+
+(defn toggleTheme "Switches the window between light and dark." []
+  (set "state.theme" (if (= state.theme "dark") "light" "dark")))
+
+(defn setBackground "Gives the slide a background colour, a theme slot." [slot]
+  (commit)
+  (set "state.deck.slides[state.current].background" slot))
