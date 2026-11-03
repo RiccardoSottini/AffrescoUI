@@ -287,15 +287,12 @@
 
 ;;; The editor's own commands
 
-(defn bound "A form as the binding ~form, in a template a macro writes." [form]
-  (list 'unquote form))
-
 (defmacro defedit
   "A command that is the editor's own edit of the same name, while a file is open; its title and category are keys."
   [name category icon]
-  `(defcommand ~name "" :title ~(bound (list 't (str "command." name)))
-     :category ~(bound (list 't (str "category." category)))
-     :icon ~icon :enablement ~(bound '(>= state.active 0)) []
+  `(defcommand ~name "" :title ~~(list 't (str "command." name))
+     :category ~~(list 't (str "category." category))
+     :icon ~icon :enablement ~~'(>= state.active 0) []
      (edit ~(str name) :in "#editor")))
 
 (defedit undo edit undo-2)
