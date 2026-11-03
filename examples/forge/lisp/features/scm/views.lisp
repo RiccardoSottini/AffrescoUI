@@ -14,45 +14,54 @@
      ~(scm-empty)
      ~(scm-no-repo)
      ~(scm-error)
-     (node :visible ~computed.scmHasRepo :use forgeInset :height 26
-       (label#scm-branch :icon git-branch
-         :text ~computed.scmBranchText
-         :grow 1
-         :height 26
-         :textColor @color.text
-         :cursor hand
-         :tooltip ~(t "scm-branch.tip")
-         :onClick scmBranches))
-     (node :visible ~computed.scmHasRepo :use forgeInset :height 26
-       (textarea#scm-message :grow 1
-         :height 26
-         :padding 6
-         :color @color.input
-         :textColor @color.text
-         :placeholderColor @color.muted
-         :bind state.scm.message
-         :placeholder ~(t "scm-message.placeholder" {:branch (or state.scm.status.branch.head "HEAD")})
-         :onSubmit scmCommit))
-     (node :visible ~computed.scmHasRepo :use forgeInset :height 28
-       (label#scm-commit :icon check
-         :text ~(t "scm-commit")
-         :grow 1
-         :height 28
-         :align center
-         :radius 2
-         :cursor hand
-         :focusable true
-         :textColor "#ffffff"
-         :color ~(if (and (not (empty? (trim state.scm.message))) (> (count state.scm.status.staged) 0))
-                     "@color.accent"
-                     "@color.border")
-         :onClick scmCommit))
+     ~(scm-branch-row)
+     ~(scm-message-row)
+     ~(scm-commit-row)
      ~(scm-staged-head)
      ~(scm-staged)
      ~(scm-changes-head)
      ~(scm-changes)
      ~(scm-branch-list)
      ~(scm-history)))
+
+(defview scm-branch-row "The branch, ahead and behind its upstream; a click shows the branches." []
+  `(node :visible ~computed.scmHasRepo :use forgeInset :height 26
+     (label#scm-branch :icon git-branch
+       :text ~computed.scmBranchText
+       :grow 1
+       :height 26
+       :textColor @color.text
+       :cursor hand
+       :tooltip ~(t "scm-branch.tip")
+       :onClick scmBranches)))
+
+(defview scm-message-row "The commit message: Enter commits." []
+  `(node :visible ~computed.scmHasRepo :use forgeInset :height 26
+     (textarea#scm-message :grow 1
+       :height 26
+       :padding 6
+       :color @color.input
+       :textColor @color.text
+       :placeholderColor @color.muted
+       :bind state.scm.message
+       :placeholder ~(t "scm-message.placeholder" {:branch (or state.scm.status.branch.head "HEAD")})
+       :onSubmit scmCommit)))
+
+(defview scm-commit-row "Commit, accented once something is staged and a message written." []
+  `(node :visible ~computed.scmHasRepo :use forgeInset :height 28
+     (label#scm-commit :icon check
+       :text ~(t "scm-commit")
+       :grow 1
+       :height 28
+       :align center
+       :radius 2
+       :cursor hand
+       :focusable true
+       :textColor "#ffffff"
+       :color ~(if (and (not (empty? (trim state.scm.message))) (> (count state.scm.status.staged) 0))
+                   "@color.accent"
+                   "@color.border")
+       :onClick scmCommit)))
 
 (defview scm-head "The view's head: its title, then refresh, branches, fetch, pull, push and history." []
   `(row#scm-head :width "100%" :height 35 :alignItems center

@@ -53,74 +53,68 @@
   "A file's outline from its lines (`rows`, `headings`, whether `python`): headings, or the lines that define."
   [rows headings python]
   (set "state.outline"
-       (slice (concat (map (fn [it]
-                             {:line it.line
-                              :depth (- (indexOf it.row " ") 1)
-                              :label (slice (trim (slice it.row (indexOf it.row " "))) 0 120)})
-                           (filter (fn [it]
-                                     (contains ["# " "## " "### " "#### "]
-                                               (slice it.row 0 (+ (indexOf it.row " ") 1))))
-                                   headings))
-                      (map (fn [it]
-                             {:line it.line
-                              :depth (min (cond
-                                            it.tab it.indent
-                                            (>= it.indent 12) 3
-                                            (>= it.indent 8) 2
-                                            (>= it.indent 1) 1
-                                            :else 0)
-                                          3)
-                              :kind it.kind
-                              :label (slice (slice it.rest
-                                                   0
-                                                   (cond
-                                                     (> (indexOf it.rest "(") 0) (indexOf it.rest "(")
-                                                     (> (indexOf it.rest ":") 0) (indexOf it.rest ":")
-                                                     :else (count it.rest)))
-                                            0
-                                            120)})
-                           (map (fn [it]
-                                  {:line it.line
-                                   :indent (indexOf it.row it.code)
-                                   :tab (= (slice it.row 0 1) "\t")
-                                   :kind (if (= (slice it.code 0 6) "class ") "class" "function")
-                                   :rest (trim (slice it.code
-                                                      (cond
-                                                        (= (slice it.code 0 10) "async def ") 10
-                                                        (= (slice it.code 0 4) "def ") 4
-                                                        :else 6)))})
-                                (filter (fn [it]
-                                          (and python
-                                               (or (= (slice it.code 0 4) "def ")
-                                                   (= (slice it.code 0 6) "class ")
-                                                   (= (slice it.code 0 10) "async def "))))
-                                        rows)))
-                      (map (fn [it]
-                             {:line it.line
-                              :depth (if (= it.indent 0) 0 1)
-                              :label it.label
-                              :kind (cond
-                                      (contains ["class " "struct" "interf"] (slice it.label 0 6)) "class"
-                                      (= (slice it.label 0 10) "namespace ") "namespace"
-                                      (and (contains it.label "(")
-                                           (not (contains ["if " "if(" "for" "whi" "swi"] (slice it.label 0 3))))
-                                        "function"
-                                      :else nil)})
-                           (filter (fn [it]
-                                     (and (not (empty? it.label))
-                                          (or (= it.indent 0) (if it.tab (= it.indent 1) (<= it.indent 4)))))
-                                   (map (fn [it]
-                                          {:line it.line
-                                           :indent (indexOf it.row it.code)
-                                           :tab (= (slice it.row 0 1) "\t")
-                                           :label (slice (trim (slice it.code 0 (- 1))) 0 120)})
-                                        (filter (fn [it]
-                                                  (and (not python)
-                                                       (= (slice it.code (- 1)) "{")
-                                                       (not (contains ["}" "/" "#"] (slice it.code 0 1)))))
-                                                rows)))))
+       (slice (concat (markdownOutline headings)
+                      (if python (pythonOutline rows) [])
+                      (if python [] (braceOutline rows)))
               0
               2000)))
+
+(defn markdownOutline "A Markdown file's headings (# to ####), each at its level." [headings]
+  (map (fn [it]
+         {:line it.line
+          :depth (- (indexOf it.row " ") 1)
+          :label (slice (trim (slice it.row (indexOf it.row " "))) 0 120)})
+       (filter (fn [it] (contains ["# " "## " "### " "#### "] (slice it.row 0 (+ (indexOf it.row " ") 1)))) headings)))
+
+(defn pythonOutline "A Python file's classes and functions, each as deep as it is indented (3 levels at most)." [rows]
+  (map (fn [it]
+         {:line it.line
+          :depth (min (cond it.tab it.indent (>= it.indent 12) 3 (>= it.indent 8) 2 (>= it.indent 1) 1 :else 0) 3)
+          :kind it.kind
+          :label (slice (slice it.rest
+                               0
+                               (cond
+                                 (> (indexOf it.rest "(") 0) (indexOf it.rest "(")
+                                 (> (indexOf it.rest ":") 0) (indexOf it.rest ":")
+                                 :else (count it.rest)))
+                        0
+                        120)})
+       (map (fn [it]
+              {:line it.line
+               :indent (indexOf it.row it.code)
+               :tab (= (slice it.row 0 1) "\t")
+               :kind (if (= (slice it.code 0 6) "class ") "class" "function")
+               :rest (trim (slice it.code
+                                  (cond (= (slice it.code 0 10) "async def ") 10 (= (slice it.code 0 4) "def ") 4 :else 6)))})
+            (filter (fn [it]
+                      (or (= (slice it.code 0 4) "def ")
+                          (= (slice it.code 0 6) "class ")
+                          (= (slice it.code 0 10) "async def ")))
+                    rows))))
+
+(defn braceOutline
+  "A file's lines that open a block with {, at the top or one level in: classes, namespaces and functions."
+  [rows]
+  (map (fn [it]
+         {:line it.line
+          :depth (if (= it.indent 0) 0 1)
+          :label it.label
+          :kind (cond
+                  (contains ["class " "struct" "interf"] (slice it.label 0 6)) "class"
+                  (= (slice it.label 0 10) "namespace ") "namespace"
+                  (and (contains it.label "(") (not (contains ["if " "if(" "for" "whi" "swi"] (slice it.label 0 3))))
+                    "function"
+                  :else nil)})
+       (filter (fn [it]
+                 (and (not (empty? it.label)) (or (= it.indent 0) (if it.tab (= it.indent 1) (<= it.indent 4)))))
+               (map (fn [it]
+                      {:line it.line
+                       :indent (indexOf it.row it.code)
+                       :tab (= (slice it.row 0 1) "\t")
+                       :label (slice (trim (slice it.code 0 (- 1))) 0 120)})
+                    (filter (fn [it]
+                              (and (= (slice it.code (- 1)) "{") (not (contains ["}" "/" "#"] (slice it.code 0 1)))))
+                            rows)))))
 
 (defn outlinePicked "A symbol of the outline, picked: the caret goes to its line." []
   (when (> (number (get (split event.value ":") 0)) 0) (goToLine (number (get (split event.value ":") 0)))))
