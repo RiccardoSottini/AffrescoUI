@@ -116,6 +116,7 @@ std::string membersText(std::string_view members) {
 } // namespace
 
 std::string pathExpression(std::string_view word) {
+	if(word.starts_with('(')) return std::string(word); // an expression a view was given (Compiler::compileLiveName())
 	const std::size_t dot = word.find('.');
 	const std::string_view first = word.substr(0, dot);
 	std::string text = isPlainName(first) ? std::string(first) : "[" + expressionText(first) + "]";

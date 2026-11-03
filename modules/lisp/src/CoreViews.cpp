@@ -33,6 +33,21 @@ Value symbolic(Machine& /*machine*/, Arguments arguments) {
 	return Value::boolean(std::ranges::any_of(arguments, [](const Value& v) { return v.kind() == Kind::Symbol; }));
 }
 
+/// @brief `%as-name`: a binding's text, `{{expression}}`, as a name of the running app, the symbol `(expression)`: what
+/// a view is given for an argument that needs the running app (Compiler::compileLiveName()). Only while building, where
+/// the program alone wrote the text.
+/// @param machine The machine.
+/// @param arguments The text.
+/// @return The symbol.
+Value asName(Machine& machine, Arguments arguments) {
+	const std::string_view text =
+	    arguments.size() == 1 && arguments[0].kind() == Kind::String ? arguments[0].text() : "";
+	if(!machine.pure() || text.size() < 5 || !text.starts_with("{{") || !text.ends_with("}}") ||
+	   text.substr(2).contains("{{"))
+		throw Problem("\"%as-name\" is a view's call's own");
+	return machine.heap.symbol("(" + std::string(text.substr(2, text.size() - 4)) + ")");
+}
+
 /// @brief `or-else`: the first value that isn't nil, as an expression's `??`.
 /// @param machine The machine.
 /// @param arguments The values, at least one.
@@ -127,7 +142,8 @@ Value component(Machine& machine, Arguments arguments) {
 	const Value& runs = arguments[2];
 	bool named = false; // a parameter's name, as a word, a keyword or a text
 	if(runs.kind() == Kind::Symbol || runs.kind() == Kind::String || runs.kind() == Kind::Keyword)
-		for(std::size_t key = 0; key < arguments[1].count(); ++key) named = named || arguments[1].keyAt(key) == runs.text();
+		for(std::size_t key = 0; key < arguments[1].count(); ++key)
+			named = named || arguments[1].keyAt(key) == runs.text();
 	if(!runs.isNil() && !named && !(runs.kind() == Kind::Boolean && runs.truthy()))
 		throw Problem(":runsActions names one of the component's parameters, or is true");
 	std::vector<MapEntry> members;
@@ -163,6 +179,7 @@ Value callStep(Machine& machine, Arguments arguments) {
 
 void defineViews(Machine& machine) {
 	machine.defineNative("%symbolic?", symbolic);
+	machine.defineNative("%as-name", asName);
 	machine.defineNative("%repeat", repeatNode);
 	machine.defineNative("%component", component);
 	machine.defineNative("handler", callStep);

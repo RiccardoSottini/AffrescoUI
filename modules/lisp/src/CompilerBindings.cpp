@@ -84,9 +84,9 @@ std::string joinedText(std::string text) {
 namespace {
 
 /// The language's functions that take a function: a word they are given that names one is that function.
-constexpr std::array<std::string_view, 14> functionTakers = {
-    "apply", "map", "map-indexed", "mapcat", "filter", "remove", "find", "some", "every?", "reduce", "sort-by",
-    "update", "update-in", "run-hooks"};
+constexpr std::array<std::string_view, 14> functionTakers = {"apply",   "map",    "map-indexed", "mapcat",   "filter",
+                                                             "remove",  "find",   "some",        "every?",   "reduce",
+                                                             "sort-by", "update", "update-in",   "run-hooks"};
 
 } // namespace
 
@@ -278,6 +278,11 @@ void Compiler::compileViewValue(const Value& written, int depth) {
 		return;
 	}
 	if(buildsAtOnce(form)) {
+		if(const std::string_view head = headWord(form); !isLocalWord(head) && !isSpecial(head))
+			if(const Global* view = machine_.findGlobal(head); view && view->view) {
+				compileViewCall(form, depth);
+				return;
+			}
 		compile(form, {});
 		return;
 	}
@@ -301,6 +306,34 @@ void Compiler::compileViewValue(const Value& written, int depth) {
 	patch(plain);
 	compile(form, {});
 	patch(end);
+}
+
+void Compiler::compileViewCall(const Value& form, int depth) {
+	compile(form.at(0), {});
+	for(std::size_t at = 1; at < form.count(); ++at) {
+		if(isLive(form.at(at), depth + 1)) compileLiveName(form.at(at));
+		else compile(form.at(at), {});
+	}
+	place_ = form.place();
+	emit(Op::Call, static_cast<std::uint32_t>(form.count() - 1));
+}
+
+void Compiler::compileLiveName(const Value& form) {
+	emitConstant(machine_.global("%as-name").value);
+	std::vector<BindingPart> parts = {{"{{", {}, false, {}, {}}};
+	lowerForm(form, 0, parts);
+	parts.push_back({"}}", {}, false, {}, {}});
+	if(std::ranges::none_of(parts, &BindingPart::worked)) {
+		std::string text;
+		for(const BindingPart& part : parts) text += part.text;
+		emitConstant(machine_.heap.string(std::move(text)));
+	} else {
+		const bool live = std::exchange(liveBindings_, false);
+		emitParts(parts, false);
+		liveBindings_ = live;
+	}
+	place_ = form.place();
+	emit(Op::Call, 1);
 }
 
 void Compiler::addWorkedPart(const Value& form, int depth, std::vector<BindingPart>& parts) {

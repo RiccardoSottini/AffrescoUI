@@ -164,6 +164,20 @@ TEST_CASE("lisp views: defcomponent, handler, and the sections as definitions") 
 	CHECK(buildError("(defstate x 1 \"Doc.\" :default 2)\n(defscreen main (column))").contains("only option is :type"));
 }
 
+TEST_CASE("lisp views: a view is given what needs the running app as a name of it, as a repeat's item") {
+	const json tree = built(R"lisp(
+(defview caption "A caption." [text n]
+  `(label :text ~text :tip ~(str text "!") :id ~(str "cap" n)))
+(defview card "A card." [p] `(row ~(caption (t "card" {:n p.n}) 3)))
+(defscreen main (column ~(caption (t "title") 2) ~(caption "plain" 5) ~(repeat [p state.ps] (card p))))
+)lisp");
+	const json& children = tree["root"]["children"];
+	CHECK(children[0] ==
+	      json{{"type", "label"}, {"text", "{{(t('title'))}}"}, {"tip", "{{(t('title'))}}!"}, {"id", "cap2"}});
+	CHECK(children[1]["text"] == "plain");
+	CHECK(children[2]["children"][0]["text"] == "{{(t('card', {'n': p.n}))}}");
+}
+
 TEST_CASE("lisp views: a defcomponent says which parameter's items it runs") {
 	const json tree = built(R"lisp(
 (defcomponent pie "A pie menu: each item runs its action." {:items [] :open false} :runsActions items
@@ -323,7 +337,8 @@ TEST_CASE("lisp views: what only builds is judged by what it builds, and a view 
 	CHECK(screen.submitRevision(view.dump()).status != RevisionStatus::Applied);
 }
 
-TEST_CASE("lisp views: a macro writing a map, a vector or a word inside a binding's vector or map builds, not crashes") {
+TEST_CASE(
+    "lisp views: a macro writing a map, a vector or a word inside a binding's vector or map builds, not crashes") {
 	const json tree = built(R"lisp(
 (defmacro tr "An item." [id k] `{:id ~id :label (t ~k)})
 (defmacro w "A path." [] 'state.x)
@@ -365,8 +380,10 @@ TEST_CASE("lisp views: a word that names the language's function, uncalled in a 
   ~(v "Fixed") ~(repeat [name state.names] (v name))))
 )lisp");
 	const json& children = tree["root"]["children"];
-	CHECK(children[0] == json{{"type", "label"}, {"a", "{{name}}"}, {"b", "x{{name}}"}, {"c", "{{(max > state.y)}}"},
-	                          {"d", "{{drop}}"}});
+	CHECK(
+	    children[0] ==
+	    json{
+	        {"type", "label"}, {"a", "{{name}}"}, {"b", "x{{name}}"}, {"c", "{{(max > state.y)}}"}, {"d", "{{drop}}"}});
 	CHECK(children[1]["e"] == json::parse("[[3], [1, 2]]")); // a function a function of the language is given
 	CHECK(children[1]["f"] == 5);
 	CHECK(children[2]["text"] == "Fixed"); // a local of that name still wins
@@ -404,25 +421,28 @@ TEST_CASE("lisp views: truthy? is an expression's truth, and a function testing 
 	                      "t") == json::parse("[false, false, false, false, true, true]"));
 }
 
-TEST_CASE("lisp views: a string may span lines, as a docstring of several lines does; other control characters stay refused") {
-	const json tree = built("(defcommand c \"Line one.\n  Line two.\" :title \"T\" [] 1)\n(defscreen main (panel#root))");
+TEST_CASE("lisp views: a string may span lines, as a docstring of several lines does; other control characters stay "
+          "refused") {
+	const json tree =
+	    built("(defcommand c \"Line one.\n  Line two.\" :title \"T\" [] 1)\n(defscreen main (panel#root))");
 	CHECK(tree["actions"]["c"]["description"] == "Line one.\n  Line two.");
 	CHECK(lisp::buildText("{:a \"x\r\n\ty\"}", "t") == json{{"a", "x\r\n\ty"}});
 	CHECK(affresco::notation::read("{:a \"x\ny\"}", affresco::notation::Notation::Lisp) == json{{"a", "x\ny"}});
-	CHECK_THROWS(static_cast<void>(lisp::buildText("{:a \"x\\\ny\"}", "t"))); // a backslash before a line break is no escape
+	CHECK_THROWS(
+	    static_cast<void>(lisp::buildText("{:a \"x\\\ny\"}", "t"))); // a backslash before a line break is no escape
 	CHECK_THROWS(static_cast<void>(lisp::buildText("{:a \"x\x01y\"}", "t")));
 }
 
 TEST_CASE("lisp views: no definition takes a reserved host function's name, which every file's code means") {
 	const auto loads = [](const std::string& text) {
 		lisp::Interpreter interpreter;
-		interpreter.definePrimitive("now", {.capability = "read", .reserved = true,
-		                                    .call = [](lisp::Interpreter&, std::span<const lisp::Value>) {
-			                                    return lisp::Value::integer(1);
-		                                    }});
-		interpreter.definePrimitive("undo", {.capability = "history", .call = [](lisp::Interpreter&, std::span<const lisp::Value>) {
-			                                     return lisp::Value();
-		                                     }});
+		interpreter.definePrimitive(
+		    "now", {.capability = "read",
+			        .reserved = true,
+			        .call = [](lisp::Interpreter&, std::span<const lisp::Value>) { return lisp::Value::integer(1); }});
+		interpreter.definePrimitive(
+		    "undo", {.capability = "history",
+			         .call = [](lisp::Interpreter&, std::span<const lisp::Value>) { return lisp::Value(); }});
 		lisp::Program program;
 		program.addFile(text, "app.lisp");
 		try {

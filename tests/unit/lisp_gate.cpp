@@ -41,10 +41,26 @@ std::size_t operationsOf(lisp::Interpreter& interpreter, const std::string& text
 } // namespace
 
 TEST_CASE("lisp attack: the language's own % functions, called by a program") {
-	for(const char* form :
-	    {"(%nth)", "(%nth [1])", "(%nth [1] :a)", "(%drop)", "(%drop [1])", "(%drop [1] :a)", "(%sort-by-keys)",
-	     "(%sort-by-keys [1])", "(%sort-by-keys [1 2 3] [])", "(%sort-by-keys [] [1 2 3])", "(%sort-by-keys 1 2)",
-	     "(%sort-by-keys {:a 1} {:b 2})", "(%expression)", "(%binding 1)", "(%seq)", "(%get)", "(gensym 1)"}) {
+	for(const char* form : {"(%nth)",
+	                        "(%nth [1])",
+	                        "(%nth [1] :a)",
+	                        "(%drop)",
+	                        "(%drop [1])",
+	                        "(%drop [1] :a)",
+	                        "(%sort-by-keys)",
+	                        "(%sort-by-keys [1])",
+	                        "(%sort-by-keys [1 2 3] [])",
+	                        "(%sort-by-keys [] [1 2 3])",
+	                        "(%sort-by-keys 1 2)",
+	                        "(%sort-by-keys {:a 1} {:b 2})",
+	                        "(%expression)",
+	                        "(%binding 1)",
+	                        "(%seq)",
+	                        "(%get)",
+	                        "(gensym 1)",
+	                        "(%as-name)",
+	                        "(%as-name \"{{state.x}}\")",
+	                        "(%as-name \"{{a}} {{b}}\")"}) {
 		CAPTURE(form);
 		lisp::Interpreter interpreter;
 		try {
@@ -53,6 +69,13 @@ TEST_CASE("lisp attack: the language's own % functions, called by a program") {
 			CHECK_FALSE(error.exhausted());
 		}
 	}
+}
+
+TEST_CASE("lisp attack: a running program can't make a name of the running app from text") {
+	// %as-name gives a view an argument's binding while building; while running, text stays text
+	lisp::Interpreter interpreter;
+	CHECK_THROWS_WITH_AS(static_cast<void>(interpreter.eval("(%as-name \"{{state.secret}}\")", "")),
+	                     doctest::Contains("a view's call's own"), lisp::LispError);
 }
 
 TEST_CASE("lisp attack: an integer overflow in range is no undefined behaviour") {

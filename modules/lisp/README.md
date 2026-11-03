@@ -144,6 +144,8 @@ one data value, a **template**.
   type and id (`%repeat`); `(handler f args...)` gives the step `{"lisp": "f", "with": [...]}`, an argument that reads the app its
   binding. A word that names a function (of the program, the language or a host), uncalled, is a name of the running app in a binding,
   unless a local has it, or a function of the language that takes functions is given it (`apply`, `map`, `filter`, `sort-by`...).
+  A view's call in a template gives the view an argument that needs the running app as a name of it, the symbol `(expression)`
+  (`%as-name`, refused but while building), so `~(caption (t "key"))` works out its binding in the view.
   `(str ...)` joined as a text writes what the build knows as text (`%text`; a text with a brace as a quoted literal), and keeps
   the spaces around a lone value as placeholders of their own (`keptSpaces`): `"  {{x}}"` would be x's value alone.
 - **Lowering.** A binding's form is written as the expression machine's text when it can be: the operators, `if`, `when`, `cond`,
