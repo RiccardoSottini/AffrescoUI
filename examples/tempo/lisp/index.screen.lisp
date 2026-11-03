@@ -37,8 +37,8 @@
                 :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
   :theme ~state.theme
   (node#panel-root :color @background :every {:ms 1000 :do tick}
-    ~(sidebar-view)
-    ~(main-view)
+    ~(sidebar)
+    ~(main-area)
     ~(player-view)
     (node#statusBar :when ~(not state.mini) :anchors {:left 0 :right 0 :bottom 0} :height 32 :color @sidebar
       {:id panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border}
