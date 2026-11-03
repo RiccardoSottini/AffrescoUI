@@ -53,7 +53,7 @@
            :color ~(if (= state.hubTab s) "@color.select" "transparent")
            :textColor ~(if (= state.hubTab s) "@color.bright" "@color.text")
            :text ~(t (if (= s "hub") "hub.all" (str "game.section." s)))
-           :onClick {:set state.hubTab :to ~s}))))
+           :onClick ~(handler showHubTab s)))))
 
 ;;; A post
 

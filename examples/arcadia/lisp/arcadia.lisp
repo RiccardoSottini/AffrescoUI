@@ -580,3 +580,10 @@
 
 (defn wishDown "Moves the wishlist's game at rank i down one, unless it is last." [i]
   (when (< i (- (count state.wishlist) 1)) (wishMove i (+ i 1))))
+
+(defn openStartPage "Opens Arcadia on the page Settings choose, when it isn't the library." []
+  (when (not= settings.appearance.startPage "library")
+    (set "state.nav" [{:tab settings.appearance.startPage :page "home" :id nil}])))
+
+(defn showHubTab "Shows a section of a game's hub: everything, the discussions or the guides." [tab]
+  (set "state.hubTab" tab))
