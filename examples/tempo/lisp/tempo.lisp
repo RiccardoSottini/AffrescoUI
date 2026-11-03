@@ -1,9 +1,10 @@
 ;;; tempo.lisp --- what Tempo does: its functions and commands
 ;;;
-;;; The screen and its pages (index.screen.lisp, pages.lisp) say what is shown; this file says what happens. A function
-;;; reads the running app through paths (`state.queue`, `computed.playingKey`, `settings.playback.crossfade`) and changes
-;;; it only through steps (`set`, `audio`, `insert`...). A handler runs one by name, its parameters by name:
-;;; {:run play :with {:list -1 :track 0}}. The keys and what the state watches stay in the screen, as data.
+;;; The views (sidebar.lisp, library.lisp, player.lisp, pages.lisp...) say what is shown; this file says what happens. A
+;;; function reads the running app through paths (`state.queue`, `computed.playingKey`, `settings.playback.crossfade`)
+;;; and changes it only through steps (`set`, `audio`, `insert`...). A view runs one by name (`:onClick playPause`) or
+;;; with its arguments, ~(handler play index 0); keys.lisp binds the keys. At the end, the sound and what the app does by
+;;; itself: what the state watches, and what runs on load.
 
 ;;; Songs, as keys
 
@@ -487,7 +488,7 @@
 
 ;;; The sound, and what the app does by itself
 
-(defpart sound "TODO"
+(defpart sound "The beat: the sound of a song without one of its own, a beatbox loop made for Tempo (audio/make_beat.py)."
   :audio {:beat {:file "../assets/audio/beatbox.wav"
                  :loop true
                  :volume 0.7
@@ -496,7 +497,7 @@
                  :updates 50
                  :note "The sound of a song without a sound of its own: a beatbox loop made for Tempo (audio/make_beat.py)"}})
 
-(defpart reactions "TODO"
+(defpart reactions "What the state watches (the sound follows the player, going back follows the page), and what runs on load."
   :watch {:state.isPlaying [{:run followPlaying}]
           :state.playingTrack [{:run songChanged}]
           :state.playingList [{:run songChanged}]
