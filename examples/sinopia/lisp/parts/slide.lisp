@@ -53,30 +53,7 @@
 (defcomponent slideObject "An object of a slide: a shape, a line, an icon, ink or text, at its place."
   {:o nil :prefix "" :layout nil :edit false}
   `(node :id ~(str prefix o.id)
-     :let {:p ~(or-else (find (fn [it] (= it.ph o.ph)) layout.ph) {})
-           :box ~{:x (or-else o.x p.x 0) :y (or-else o.y p.y 0) :w (or-else o.w p.w 100) :h (or-else o.h p.h 100)}
-           :shape ~(or (= o.kind "shape")
-                       (= o.kind "line")
-                       (not= (or-else o.fill "none") "none")
-                       (not= (or-else o.line "none") "none"))
-           :inset ~(if (= o.kind "shape")
-                       (or-else (get-in computed.shapes [(or-else o.shape "rect") :text]) [0 0 0 0])
-                       [0 0 0 0])
-           :size ~(or-else o.size p.size 18)
-           :empty ~(= (trim (or-else o.text "")) "")
-           :editing ~(and edit (= state.editing o.id))
-           :prompt ~(and edit empty (some? o.ph) (not editing))
-           :outline ~(str prefix o.id "-ph")
-           :lines ~(if prompt [(or-else (get computed.prompts o.ph) "")] (split (or-else o.text "") "\n"))
-           :bullets ~(or-else o.bullets p.bullets false)
-           :anchor ~(or-else o.anchor p.anchor (if (= o.kind "shape") "middle" "top"))
-           :align ~(or-else o.align p.align (if (= o.kind "shape") "center" "left"))
-           :ink ~(or-else (get computed.palette (or-else o.color p.color (if (= o.kind "shape") "light1" "dark1")))
-                          o.color)
-           :frame ~{:x (+ (* box.w inset.0) 7.2)
-                    :y (+ (* box.h inset.1) 3.6)
-                    :w (max (- (* box.w (- (- 1 inset.0) inset.2)) 14.4) 1)
-                    :h (max (- (* box.h (- (- 1 inset.1) inset.3)) 7.2) 1)}}
+     :let ~(object-measures)
      :color transparent
      :x ~box.x
      :y ~box.y
@@ -85,56 +62,95 @@
      :rotate ~(or-else o.rotate 0)
      :overflow visible
      :visible ~(not (or-else o.hidden false))
-     (node :use shapePath
-       :when ~shape
-       :with {:o ~(merge {:shape (if (= o.kind "text") "rect" "rect")
-                          :fill (if (= o.kind "shape") "accent1" "none")
-                          :line (if (= o.kind "text") "none" nil)
-                          :lineWidth 1
-                          :flipH false
-                          :flipV false
-                          :gradient nil
-                          :dash nil
-                          :effect nil}
-                         (merge o box))
-              :name ~(str prefix o.id)})
-     (label :id ~(str prefix o.id "-icon")
-       :when ~(= o.kind "icon")
-       :x 0
-       :y 0
-       :width ~box.w
-       :height ~box.h
-       :align center
-       :textColor ~ink
-       :runs [{:icon ~(or-else o.icon "star") :size ~(* (min box.w box.h) 0.9)}])
-     (path :id ~(str prefix o.id "-ink")
-       :when ~(= o.kind "ink")
-       :x 0
-       :y 0
-       :width ~box.w
-       :height ~box.h
-       :d ~(or-else o.d "")
-       :viewBox ~(str "0 0 " (or-else o.vw box.w) " " (or-else o.vh box.h))
-       :fit fill
-       :stroke ~(or-else o.color "#1f2933")
-       :strokeWidth ~(or-else o.width 3)
-       :strokeCap round
-       :strokeJoin round)
-     (node :use shapePath
-       :when ~prompt
-       :with {:o ~(merge box
-                         {:shape "rect"
-                          :fill "none"
-                          :line "#8c8c8c"
-                          :lineWidth 0.75
-                          :flipH false
-                          :flipV false
-                          :gradient nil
-                          :dash "dash"
-                          :effect nil})
-              :name ~outline})
+     ~(object-shape)
+     ~(object-icon)
+     ~(object-ink)
+     ~(placeholder-outline)
      ~(text-editor o)
      ~(object-text o prefix)))
+
+(defview object-measures "What object `o` is drawn from: its placeholder `p`, its box, its text and colour."
+  []
+  `{:p ~(or-else (find (fn [it] (= it.ph o.ph)) layout.ph) {})
+    :box ~{:x (or-else o.x p.x 0) :y (or-else o.y p.y 0) :w (or-else o.w p.w 100) :h (or-else o.h p.h 100)}
+    :shape ~(or (= o.kind "shape")
+                (= o.kind "line")
+                (not= (or-else o.fill "none") "none")
+                (not= (or-else o.line "none") "none"))
+    :inset ~(if (= o.kind "shape")
+                (or-else (get-in computed.shapes [(or-else o.shape "rect") :text]) [0 0 0 0])
+                [0 0 0 0])
+    :size ~(or-else o.size p.size 18)
+    :empty ~(= (trim (or-else o.text "")) "")
+    :editing ~(and edit (= state.editing o.id))
+    :prompt ~(and edit empty (some? o.ph) (not editing))
+    :outline ~(str prefix o.id "-ph")
+    :lines ~(if prompt [(or-else (get computed.prompts o.ph) "")] (split (or-else o.text "") "\n"))
+    :bullets ~(or-else o.bullets p.bullets false)
+    :anchor ~(or-else o.anchor p.anchor (if (= o.kind "shape") "middle" "top"))
+    :align ~(or-else o.align p.align (if (= o.kind "shape") "center" "left"))
+    :ink ~(or-else (get computed.palette (or-else o.color p.color (if (= o.kind "shape") "light1" "dark1")))
+                   o.color)
+    :frame ~{:x (+ (* box.w inset.0) 7.2)
+             :y (+ (* box.h inset.1) 3.6)
+             :w (max (- (* box.w (- (- 1 inset.0) inset.2)) 14.4) 1)
+             :h (max (- (* box.h (- (- 1 inset.1) inset.3)) 7.2) 1)}})
+
+(defview object-shape "Object `o`'s shape or line, or the fill and line a text box has." []
+  `(node :use shapePath
+     :when ~shape
+     :with {:o ~(merge {:shape (if (= o.kind "text") "rect" "rect")
+                        :fill (if (= o.kind "shape") "accent1" "none")
+                        :line (if (= o.kind "text") "none" nil)
+                        :lineWidth 1
+                        :flipH false
+                        :flipV false
+                        :gradient nil
+                        :dash nil
+                        :effect nil}
+                       (merge o box))
+            :name ~(str prefix o.id)}))
+
+(defview object-icon "Object `o` if it is an icon." []
+  `(label :id ~(str prefix o.id "-icon")
+     :when ~(= o.kind "icon")
+     :x 0
+     :y 0
+     :width ~box.w
+     :height ~box.h
+     :align center
+     :textColor ~ink
+     :runs [{:icon ~(or-else o.icon "star") :size ~(* (min box.w box.h) 0.9)}]))
+
+(defview object-ink "Object `o` if it is ink: its stroke, a path in its own box." []
+  `(path :id ~(str prefix o.id "-ink")
+     :when ~(= o.kind "ink")
+     :x 0
+     :y 0
+     :width ~box.w
+     :height ~box.h
+     :d ~(or-else o.d "")
+     :viewBox ~(str "0 0 " (or-else o.vw box.w) " " (or-else o.vh box.h))
+     :fit fill
+     :stroke ~(or-else o.color "#1f2933")
+     :strokeWidth ~(or-else o.width 3)
+     :strokeCap round
+     :strokeJoin round))
+
+(defview placeholder-outline "The dashed outline of an empty placeholder, while the slide is edited." []
+  `(node :use shapePath
+     :when ~prompt
+     :with {:o ~(merge box
+                       {:shape "rect"
+                        :fill "none"
+                        :line "#8c8c8c"
+                        :lineWidth 0.75
+                        :flipH false
+                        :flipV false
+                        :gradient nil
+                        :dash "dash"
+                        :effect nil})
+            :name ~outline}))
 
 (defcomponent slidePage "A whole slide: its background and its objects, as the show and the pictures draw it."
   {:slide nil :prefix ""}
