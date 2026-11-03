@@ -404,8 +404,8 @@ listed without its text.
 request names a `proposal`, or a `to` and optionally a `from` (default: the commit's parent), with `notation` and the `file`
 to give the text of. An author whose reads are limited is refused, so a list is never silently shorter than the change.
 
-**The window.** `affrescoui_launcher` shows it in a window of its own (`examples/shared/host/changes.screen.json`,
-`apps/host/ChangesWindow.cpp`), opened by a screen's `{"call": "changes.open", "with": {"proposal": id}}`, as the assistant's
+**The window.** `affrescoui_launcher` shows it in a window of its own (`examples/shared/host/changes.screen.json`, or its Lisp program
+`changes.screen.lisp` for an app opened from its Lisp version, both read from the host's assets; `apps/host/ChangesWindow.cpp`), opened by a screen's `{"call": "changes.open", "with": {"proposal": id}}`, as the assistant's
 cards do, or by Ctrl+Shift+D (Cmd+Shift+D on macOS). It lists the proposals waiting and the changes applied, shows each
 file's diff, and offers preview, accept and reject, or undo for an applied change.
 
