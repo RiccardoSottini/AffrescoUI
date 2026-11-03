@@ -276,9 +276,13 @@ Shape Checker::shapeOfOperator(const std::string& name, const json& raw, const S
 	if(name == "$value") return shapeOfData(raw);
 	if(name == "$equals" || name == "$notEquals") checkComparison(raw, place);
 	if(name == "$get") return shapeOfGet(raw, scope, place);
-	if(name == "$t") // a translation: its key and parameters against "strings" (Strings.hpp)
-		if(const std::string problem = checkTranslation(document_.value("strings", json()), raw); !problem.empty())
+	if(name == "$t") { // a translation: its key and parameters against "strings" (Strings.hpp), read in place
+		static const json none;
+		const auto strings = document_.is_object() ? document_.find("strings") : document_.end();
+		if(const std::string problem = checkTranslation(strings != document_.end() ? *strings : none, raw);
+		   !problem.empty())
 			report(place, problem);
+	}
 	if(name == "$path") return raw.is_string() ? shapeOfPath(raw.get<std::string>(), scope, place) : anything; // copied
 	if(name == "$object") {
 		if(!raw.is_object() || raw.empty()) return anything;

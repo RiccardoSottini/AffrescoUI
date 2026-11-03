@@ -151,7 +151,7 @@
 
 (defn lspReview "A rename's or a format's edits, to review before they apply." [answer]
   (if (= (count answer.result.edits) 0)
-    (log (t "lsp.nothingToChange"))
+    (log-line (t "lsp.nothingToChange"))
     (set "state.lsp.review"
          {:open true
           :kind answer.kind
@@ -405,7 +405,7 @@
                 (map (fn [it]
                        {:line it.line :column it.column :endLine it.endLine :endColumn it.endColumn :text it.text})
                      (filter (fn [it] (= it.path file)) state.lsp.review.edits))))
-  (log (t "lsp.applied" {:edits (count state.lsp.review.edits) :files state.lsp.review.files}))
+  (log-line (t "lsp.applied" {:edits (count state.lsp.review.edits) :files state.lsp.review.files}))
   (set "state.lsp.review.open" false))
 
 (defn lspApplyTo "Applies edits to a file, in its editor if it is open." [file edits]

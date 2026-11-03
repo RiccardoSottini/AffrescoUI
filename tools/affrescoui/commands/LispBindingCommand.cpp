@@ -312,7 +312,12 @@ private:
 		if(!arguments.is_array() || arguments.size() < 2) return "";
 		const json& list = arguments[0];
 		const json& body = arguments[1];
-		const std::string params = readsIndex(body) ? "it index" : "it";
+		// The language's filter, find, sort-by... give their function the item only: an item's index is map-indexed's
+		// alone, so a form that reads it would mean something else in a function than in a binding
+		if(readsIndex(body) && name != "map" && name != "sum" && name != "scan")
+			throw Untranslatable(std::string(name) + "() reading index: only map has the index in Lisp "
+			                                         "(map-indexed); write a function of the program for it");
+		const std::string params = readsIndex(body) ? "it index" : "it"; // sum's own function takes both
 		if(const auto found = same.find(name); found != same.end() && arguments.size() == 2)
 			return "(" + std::string(found->second) + " " + lambda(params, body) + " " + form(list) + ")";
 		if(name == "map" && arguments.size() == 2)
@@ -409,7 +414,14 @@ std::vector<TextPart> partsOf(std::string_view text) {
 /// @throws Untranslatable If it can't.
 std::string translate(std::string_view text, Translator& translator) {
 	const std::vector<TextPart> parts = partsOf(text);
-	if(parts.size() == 1 && parts[0].expression) return translator.form(format::detail::parse(parts[0].text, "text"));
+	if(parts.size() == 1 && parts[0].expression) {
+		const json tree = format::detail::parse(parts[0].text, "text");
+		// "{{'reorderBody'}}" is an expression whose value is a constant: a value a reader evaluates again (a feature's
+		// export) tells it from the text "reorderBody", which ~"reorderBody" would build, so it stays as written
+		if(tree.is_object() && tree.size() == 1 && tree.contains("$value") && !tree["$value"].is_structured())
+			return json(std::string(text)).dump(-1, ' ', false, json::error_handler_t::replace);
+		return translator.form(tree);
+	}
 	std::string form = "(str";
 	for(const TextPart& part : parts)
 		form.append(" ").append(part.expression ? translator.form(format::detail::parse(part.text, "text"))

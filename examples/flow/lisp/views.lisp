@@ -56,7 +56,7 @@
      :label ~(t "settings.title")
      (label#settingsTitle :font heading
        :icon settings
-       :text ~(str " " (t "settings.title"))
+       :text ~(t "settings.title")
        :textColor @color.text
        :anchors {:left 20 :top 16}
        :fitText true)

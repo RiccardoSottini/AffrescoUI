@@ -109,7 +109,8 @@ TEST_CASE("literals: a text in another script counts, and symbols, icons and emo
 }
 
 TEST_CASE("literals: a text moved to a message shows exactly as it was written") {
-	for(const std::string text : {"Plain", "Don't stop", "A {brace} here", "''", "'{'", "a } b", "100% # {x}, 'y'"}) {
+	for(const std::string text : {"Plain", "Don't stop", "A {brace} here", "''", "'{'", "a } b", "100% # {x}, 'y'", "'#1", "end'", "''{x}'",
+	                              "workbench's"}) {
 		CAPTURE(text);
 		const json document = {{"format", "affrescoui-screen"},
 		                       {"version", 2},
@@ -124,6 +125,8 @@ TEST_CASE("literals: a text moved to a message shows exactly as it was written")
 		screen.runAction("look", *screen.find("root"));
 		CHECK(json::parse(screen.stateJson())["shown"] == text);
 	}
+	CHECK(format::messageOfText("workbench's") == "workbench's"); // a quote is doubled only where it must be
+	CHECK(format::messageOfText("'{") == "'''{'");
 }
 
 TEST_CASE("declared text: a title with a key follows the language, and plain text shows as written") {

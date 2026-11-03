@@ -133,6 +133,11 @@ public:
 	/// @param entry The entry.
 	/// @throws LispError If it isn't, or the name is taken, naming both places.
 	void addEntry(Entry entry);
+	/// @brief Adds one entry as addEntry() does, its text read only by load() and build(), which refuse it then as
+	/// addEntry() would: for a document's section that is loaded or built next (programOf()), read once, not twice.
+	/// @param entry The entry.
+	/// @throws LispError If the name is taken, naming both places.
+	void addEntryUnread(Entry entry);
 	/// @brief The entries, in the order added. @return Them.
 	[[nodiscard]] const std::vector<Entry>& entries() const noexcept { return entries_; }
 
@@ -146,8 +151,11 @@ public:
 	/// worked out when first read. Nothing is built, and the interpreter's own primitives, gate and author checks apply
 	/// when functions run. Definitions replace what the interpreter had of those names.
 	/// @param interpreter The interpreter.
+	/// @param everything Compile every definition now; else only what runs, functions and macros: a view, a component
+	/// and what a definition builds are compiled when called, as a host that runs the program and never builds it
+	/// needs (the build compiled all of them, and refused what doesn't compile).
 	/// @throws LispError If a definition can't be compiled.
-	void load(Interpreter& interpreter) const;
+	void load(Interpreter& interpreter, bool everything = true) const;
 
 	/// @brief Builds the tree, in a fresh interpreter with no way out but the pure primitives (definePure()): the same
 	/// source always gives the same tree. Every `def` and `defcustom` is worked out here, used or not. `format` and
@@ -163,6 +171,12 @@ public:
 	[[nodiscard]] const std::vector<Extension>& extensions() const noexcept { return extensions_; }
 	/// @brief The names the last build's definitions use that nothing defines. @return Them, in order of use.
 	[[nodiscard]] const std::vector<UndefinedName>& undefinedNames() const noexcept { return undefined_; }
+	/// @brief Where the last build's functions test a path of the running app with the language's truth: `(if
+	/// state.query ...)`, `(when (not computed.list) ...)`, an operand of `and` or `or`. There "", 0 and [] are true,
+	/// as only nil and false are false, while in a binding they are false (an expression's truth); `name` holds the
+	/// path. And where they add a text written out with `+`, which joins texts in an expression and is an error in a
+	/// function (`str` joins them): `name` is then `+`. @return Them, in order of compiling.
+	[[nodiscard]] const std::vector<UndefinedName>& truthTests() const noexcept { return truth_; }
 	/// @brief The names each definition's code uses, macros' output and the functions inside it included: nothing runs
 	/// but what a name reaches, as the language has no way to find a global from a value. @return Them, by its address.
 	[[nodiscard]] const std::map<std::string, std::vector<std::string>>& namesUsed() const noexcept { return used_; }
@@ -182,6 +196,7 @@ private:
 	std::vector<std::pair<std::string, Primitive>> primitives_; ///< See definePure().
 	std::vector<Extension> extensions_;                         ///< See extensions().
 	std::vector<UndefinedName> undefined_;                      ///< See undefinedNames().
+	std::vector<UndefinedName> truth_;                          ///< See truthTests().
 	std::map<std::string, std::vector<std::string>> used_;      ///< See namesUsed().
 	NamedCalls named_;                                          ///< See namedCalls().
 	std::set<std::pair<std::string, std::string>> defaulted_;   ///< See defaulted().

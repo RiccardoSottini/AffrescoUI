@@ -333,8 +333,11 @@ std::vector<LiteralText> literalTexts(const json& document, const TextVocabulary
 
 std::string messageOfText(std::string_view text) {
 	std::string message;
-	for(const char c : text) {
-		if(c == '\'') message += "''";
+	for(std::size_t at = 0; at < text.size(); ++at) {
+		const char c = text[at];
+		// A quote is itself unless one, a brace or '#' follows it ("workbench's" stays as written); then it is ''
+		const char next = at + 1 < text.size() ? text[at + 1] : '\0';
+		if(c == '\'' && (next == '\'' || next == '{' || next == '}' || next == '#')) message += "''";
 		else if(c == '{') message += "'{'";
 		else if(c == '}') message += "'}'";
 		else message += c;

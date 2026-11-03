@@ -82,9 +82,28 @@ void Compiler::formBackquote(const Value& form, Position /*position*/) {
 	liveBindings_ = live;
 }
 
+void Compiler::noteTruthTest(const Value& test) {
+	const Value word = headWord(test) == "not" && test.count() == 2 ? test.at(1) : test;
+	if(headWord(test) == "and" || headWord(test) == "or") {
+		for(std::size_t at = 1; at < test.count(); ++at) noteTruthTest(test.at(at));
+		return;
+	}
+	if(word.kind() != Kind::Symbol || context_.library) return;
+	const std::string_view name = word.text();
+	const std::size_t dot = name.find('.');
+	if(dot == std::string_view::npos || resolve(*current_, name.substr(0, dot)).kind != Variable::Kind::None) return;
+	if(const Global* global = machine_.findGlobal(name); global && global->state != Global::State::Undefined) return;
+	machine_.noteTruthTest(std::string(name), word.place().line != 0 ? word.place() : test.place(), context_.definition);
+}
+
+void Compiler::compileTest(const Value& test) {
+	noteTruthTest(test);
+	compile(test, {});
+}
+
 void Compiler::formIf(const Value& form, Position position) {
 	if(form.count() < 3 || form.count() > 4) fail(form, "if takes a test, a form and maybe another form");
-	compile(form.at(1), {});
+	compileTest(form.at(1));
 	const std::uint32_t otherwise = emit(Op::JumpIfFalse);
 	compile(form.at(2), position);
 	const std::uint32_t end = emit(Op::Jump);
@@ -98,7 +117,7 @@ void Compiler::formDo(const Value& form, Position position) { compileBody(form, 
 
 void Compiler::formWhen(const Value& form, Position position) {
 	if(form.count() < 2) fail(form, "when takes a test");
-	compile(form.at(1), {});
+	compileTest(form.at(1));
 	const std::uint32_t otherwise = emit(Op::JumpIfFalse);
 	compileBody(form, 2, position);
 	const std::uint32_t end = emit(Op::Jump);
@@ -118,7 +137,7 @@ void Compiler::formCond(const Value& form, Position position) {
 			ends.push_back(emit(Op::Jump));
 			continue;
 		}
-		compile(test, {});
+		compileTest(test);
 		const std::uint32_t next = emit(Op::JumpIfFalse);
 		compile(form.at(at + 1), position);
 		ends.push_back(emit(Op::Jump));
@@ -286,8 +305,20 @@ bool Compiler::quasiRuns(const Value& form, int level, int depth) {
 
 void Compiler::quasiUnquote(const Value& form, int level, int depth) {
 	if(headWord(form) == "unquote-splicing" && level == 1) fail(form, "~@ goes inside a list or a vector");
+	const Value inner = form.count() == 2 ? form.at(1) : Value();
+	const std::string_view innerHead = headWord(inner);
 	if(level != 1) {
 		quasiSequence(form, 0, Kind::List, level - 1, depth + 1);
+	} else if(headWord(form) == "unquote" && inner.count() == 2 &&
+	          (innerHead == "unquote" || innerHead == "unquote-splicing")) {
+		// ~~form writes ~ and what form gives (~~@form, ~@): a macro writing a template's binding,
+		// `(defcommand ~name :title ~~title [] ...)`, without (list 'unquote title)
+		emitConstant(inner.at(0));
+		compile(inner.at(1), {});
+		place_ = inner.place();
+		Code& code = *current_->code;
+		code.constants.push_back(inner);
+		emit(Op::BuildList, 2, static_cast<std::uint32_t>(code.constants.size() - 1));
 	} else if(liveBindings_) {
 		compileViewValue(form.at(1), depth);
 	} else {

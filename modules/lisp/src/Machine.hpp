@@ -18,6 +18,8 @@
 #include <string_view>
 #include <unordered_map>
 #include <utility>
+#include <set>
+#include <tuple>
 #include <vector>
 
 namespace affresco::lisp {
@@ -92,6 +94,11 @@ public:
 	/// @param name Its name.
 	/// @param primitive It.
 	void definePrimitive(const std::string& name, Primitive primitive);
+	/// @brief See Interpreter::addAppVariable(). @param name The word.
+	void addAppVariable(const std::string& name) { appVariables_.insert(name); }
+	/// @brief Whether a word names a variable of the running app (Interpreter::addAppVariable()). @param name The word.
+	/// @return true if it does.
+	[[nodiscard]] bool isAppVariable(std::string_view name) const { return appVariables_.contains(name); }
 	/// @brief Runs a top-level form that is a definition.
 	/// @param form The form.
 	/// @param author Its author.
@@ -105,7 +112,9 @@ public:
 	/// @return true if it is.
 	[[nodiscard]] static bool isDefinitionForm(const Value& form);
 	/// @brief Compiles every definition not compiled yet.
-	void compilePending();
+	/// @param functionsOnly Only functions and macros that run: views (`defview`) and what definitions build wait
+	/// until called, or for compilePending(false).
+	void compilePending(bool functionsOnly = false);
 	/// @brief Compiles a global, if it is waiting to be.
 	/// @param cell The global.
 	static void ensureCompiled(Global& cell);
@@ -118,6 +127,17 @@ public:
 	/// @brief Notes a use of a global, for undefined names.
 	/// @param use The use.
 	void noteUse(GlobalUse use) { uses_.push_back(std::move(use)); }
+	/// @brief Notes a test of a path of the running app with the language's truth (Program::truthTests()).
+	/// @param path The path.
+	/// @param place Where.
+	/// @param definition The definition it is in.
+	void noteTruthTest(std::string path, Place place, std::string definition) {
+		truthTests_.push_back({std::move(path), place, std::move(definition)});
+	}
+	/// @brief Every test noted. @return Them: the path, its place and its definition.
+	[[nodiscard]] const std::vector<std::tuple<std::string, Place, std::string>>& truthTests() const noexcept {
+		return truthTests_;
+	}
 	/// @brief Every use of a global noted. @return Them.
 	[[nodiscard]] const std::vector<GlobalUse>& uses() const noexcept { return uses_; }
 	/// @brief Expands a macro call.
@@ -392,6 +412,8 @@ private:
 	std::map<std::string, std::size_t, std::less<>> definitionNames_;    ///< definitions_'s indexes by name.
 	std::size_t compiled_ = 0;                                           ///< How many of definitions_ are compiled.
 	std::vector<GlobalUse> uses_;                                        ///< See uses().
+	std::set<std::string, std::less<>> appVariables_;                    ///< See addAppVariable().
+	std::vector<std::tuple<std::string, Place, std::string>> truthTests_; ///< See truthTests().
 	int compileDepth_ = 0;                                               ///< See compileDepth().
 	std::uint64_t gensym_ = 0;                                           ///< See gensymCounter().
 	std::vector<std::string> authorNames_;                               ///< Authors by number.
@@ -418,6 +440,19 @@ void definePrelude(Machine& machine);
 /// @param text The text.
 /// @return `'it\'s'`, with its escapes.
 [[nodiscard]] std::string expressionText(std::string_view text);
+
+/// @brief A binding's text that would lose its spaces: one placeholder with spaces around it is read as that
+/// placeholder's value alone (SCREEN_FORMAT.md, a whole placeholder), so the spaces are written as placeholders of
+/// their own, `"  {{x}}"` as `"{{'  '}}{{x}}"`, which shows the same text (CompilerBindings.cpp).
+/// @param text The text.
+/// @return It, or the same text with its spaces kept.
+[[nodiscard]] std::string keptSpaces(std::string text);
+
+/// @brief The text of a `str` a binding joins: keptSpaces(), and one placeholder alone, as when the texts around it are
+/// empty, written `"{{''}}{{x}}"`, so it shows x's text rather than giving its value (CompilerBindings.cpp).
+/// @param text The text.
+/// @return It, as text.
+[[nodiscard]] std::string joinedText(std::string text);
 
 /// @brief Writes a dotted word as an expression's path: `state.my-key.0` is `state['my-key'][0]`
 /// (CompilerLowering.cpp).

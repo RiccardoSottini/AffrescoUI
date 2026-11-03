@@ -497,7 +497,7 @@
        :role button
        :textColor ~(if (or-else o.hidden false) "@rbMuted" "@rbInk")
        :label ~title
-       :runs [{:text ~(spaced "  " title) :size 12 :italic ~(or-else o.hidden false)}]
+       :runs [{:text ~(str "  " title) :size 12 :italic ~(or-else o.hidden false)}]
        :onClick ~(handler selectObject o.id o.hidden))
      (node :id ~(str "selection-" o.id "-eye")
        :use rbSmall

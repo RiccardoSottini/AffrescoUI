@@ -149,9 +149,9 @@
     (do
       (when (= arguments.0 "commit")
         (set "state.scm.message" "")
-        (log (t "log.committed" {:output (slice (trim result.output) 0 200)})))
+        (log-line (t "log.committed" {:output (slice (trim result.output) 0 200)})))
       (when (contains ["fetch" "pull" "push" "stash"] arguments.0)
-        (log (str "git "
+        (log-line (str "git "
                   (join " " arguments)
                   (if (empty? (trim result.output)) "" (str ": " (slice (trim result.output) 0 200))))))))
   (scmRefresh)
