@@ -18,11 +18,11 @@
 (defview body "#body." []
   `(node#body :fill 0 :color transparent :dir auto :every {:ms 60000 :do [{:run tick}]}
      ~(list-pane)
-     {:id paneDivider
-      :when ~computed.wide
-      :anchors {:left ~computed.listWidth :top 0 :bottom 0}
-      :width 1
-      :color @c.divider}
+     (node#paneDivider
+     :when ~computed.wide
+     :anchors {:left ~computed.listWidth :top 0 :bottom 0}
+     :width 1
+     :color @c.divider)
      (node#detailPane :anchors {:right 0 :top 0 :bottom 0}
        :width ~computed.detailWidth
        :visible ~(or computed.wide (= state.page "detail"))

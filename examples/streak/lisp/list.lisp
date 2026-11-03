@@ -34,14 +34,14 @@
      :color @c.actionBar
      :role toolbar
      :label ~(t "picked" {:n (count state.picked)})
-     {:id clearPick
-      :style iconButton
-      :icon x
-      :label ~(t "clearPick")
-      :tooltip ~(t "clearPick")
-      :textColor "#ffffff"
-      :onClick {:set state.picked :to []}
-      :anchors {:left 4 :top 8}}
+     (node#clearPick
+     :style iconButton
+     :icon x
+     :label ~(t "clearPick")
+     :tooltip ~(t "clearPick")
+     :textColor "#ffffff"
+     :onClick {:set state.picked :to []}
+     :anchors {:left 4 :top 8})
      (label#label-t-picked-n :text ~(t "picked" {:n (count state.picked)})
        :font title
        :textColor "#ffffff"
@@ -49,20 +49,20 @@
        :fitText true
        :live polite)
      (row#row-pick-bar :anchors {:right 4 :top 8} :width 84 :height 40 :gap 4 :arrows horizontal
-       {:id archivePicked
-        :style iconButton
-        :icon archive
-        :label ~(t "archive")
-        :tooltip ~(t "archive")
-        :textColor "#ffffff"
-        :onClick archivePicked}
-       {:id deletePicked
-        :style iconButton
-        :icon trash-2
-        :label ~(t "delete")
-        :tooltip ~(t "delete")
-        :textColor "#ffffff"
-        :onClick {:set state.confirmDelete :to true}})))
+       (node#archivePicked
+       :style iconButton
+       :icon archive
+       :label ~(t "archive")
+       :tooltip ~(t "archive")
+       :textColor "#ffffff"
+       :onClick archivePicked)
+       (node#deletePicked
+       :style iconButton
+       :icon trash-2
+       :label ~(t "delete")
+       :tooltip ~(t "delete")
+       :textColor "#ffffff"
+       :onClick {:set state.confirmDelete :to true}))))
 
 (defview add-button "#addButton." []
   `(node#addButton :style iconButton
@@ -152,20 +152,20 @@
   `(row#row-day-header :anchors {:right 8 :top 4 :bottom 0} :width ~(* computed.cols 44)
      ~(repeat [d computed.days :key d]
        `(node#dayColumn :width 44 :anchors {:top 0 :bottom 0} :color transparent
-          {:id todayPill :when ~(= d state.today) :anchors {:left 5 :right 5 :top 0 :bottom 4} :radius 12 :color @c.primary}
+          (node#todayPill :when ~(= d state.today) :anchors {:left 5 :right 5 :top 0 :bottom 4} :radius 12 :color @c.primary)
           (label#label-format-date-date-2 :text ~(formatDate (dateMs d) "d" "utc")
             :font default
             :textColor ~(if (= d state.today) "@c.onPrimary" "@c.text")
             :anchors {:left 0 :right 0 :top 4}
             :height 18
             :align center)
-          {:id label-format-date-date
-           :style tiny
-           :text ~(formatDate (dateMs d) "EEE" "utc")
-           :anchors {:left 0 :right 0 :top 23}
-           :height 14
-           :align center
-           :textColor ~(if (= d state.today) "@c.onPrimary" "@c.muted")}))))
+          (node#label-format-date-date
+          :style tiny
+          :text ~(formatDate (dateMs d) "EEE" "utc")
+          :anchors {:left 0 :right 0 :top 23}
+          :height 14
+          :align center
+          :textColor ~(if (= d state.today) "@c.onPrimary" "@c.muted"))))))
 
 (defview habit-row "#habitRow." [h]
   `(node#habitRow :let {:hb ~(get data.ordered h)
@@ -185,20 +185,18 @@
      :focused {:borderWidth 2 :borderColor @c.primary}
      :drag {:data {:from ~h}}
      :dragOver {:borderWidth 2 :borderColor ~col}
-     :onDrop {:run moveHabit :with {:from ~event.data.from :to ~h}}
-     :onClick {:if ~computed.picking
-               :then [{:run togglePick :with {:id ~hb.id}}]
-               :else [{:run select :with {:h ~h}}]}
-     :onContextMenu {:run togglePick :with {:id ~hb.id}}
-     :keys {:space {:run cellClick :with {:h ~h :d ~state.today :x ~(/ window.width 2) :y ~(/ window.height 3)}}
+     :onDrop ~(handler moveHabit event.data.from h)
+     :onClick ~(handler clickRow h hb.id)
+     :onContextMenu ~(handler togglePick hb.id)
+     :keys {:space ~(handler cellClick h state.today (/ window.width 2) (/ window.height 3))
             "shift+space" {:run openPopup
                            :with {:h ~h :d ~state.today :x ~(/ window.width 2) :y ~(/ window.height 3)}}}
-     {:id tint
-      :visible ~(or on pk)
-      :anchors {:left 0 :right 0 :top 0 :bottom 0}
-      :radius 14
-      :color ~(+ (get computed.pal hb.color) (if pk "30" "18"))}
-     {:id rowAccent :anchors {:left 0 :top 10 :bottom 10} :width 4 :radius 2 :color ~col}
+     (node#tint
+     :visible ~(or on pk)
+     :anchors {:left 0 :right 0 :top 0 :bottom 0}
+     :radius 14
+     :color ~(+ (get computed.pal hb.color) (if pk "30" "18")))
+     (node#rowAccent :anchors {:left 0 :top 10 :bottom 10} :width 4 :radius 2 :color ~col)
      (node#ring-habit-row :use ring :with {:value ~(get computed.now h) :color ~col} :anchors {:left 18 :top 18})
      (label#label-hb-name :text ~hb.name
        :textColor ~col
@@ -226,8 +224,8 @@
                    (= v (- 1)) (t "cell.skip" {:date date})
                    (>= r 1) (t "cell.auto" {:date date})
                    :else (t "cell.no" {:date date}))
-     :onClick {:run cellClick :with {:h ~h :d ~d :x ~event.x :y ~event.y}}
-     :onContextMenu {:run openPopup :with {:h ~h :d ~d :x ~event.x :y ~event.y}}
+     :onClick ~(handler cellClick h d event.x event.y)
+     :onContextMenu ~(handler openPopup h d event.x event.y)
      (label#label-cell :when ~(not= hb.kind "measurable")
        :font icons
        :align center
@@ -253,13 +251,13 @@
        :font tiny
        :text ~hb.unit
        :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col :else "@c.faint"))
-     {:id panel-cell
-      :when ~(not= (trim (or-else (get hb.notes d) "")) "")
-      :anchors {:top 8 :right 8}
-      :width 5
-      :height 5
-      :radius 3
-      :color ~col}))
+     (node#panel-cell
+     :when ~(not= (trim (or-else (get hb.notes d) "")) "")
+     :anchors {:top 8 :right 8}
+     :width 5
+     :height 5
+     :radius 3
+     :color ~col)))
 
 (defview empty-list "#emptyList." []
   `(node#emptyList :when ~(= (count computed.order) 0) :anchors {:left 0 :right 0 :top 160} :height 120 :color transparent
@@ -276,10 +274,10 @@
        :anchors {:left 0 :right 0 :top 40}
        :height 22
        :align center)
-     {:id label-t-empty-hint
-      :style small
-      :text ~(t "emptyHint")
-      :anchors {:left 0 :right 0 :top 66}
-      :height 18
-      :align center}))
+     (node#label-t-empty-hint
+     :style small
+     :text ~(t "emptyHint")
+     :anchors {:left 0 :right 0 :top 66}
+     :height 18
+     :align center)))
 

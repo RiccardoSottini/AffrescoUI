@@ -15,22 +15,22 @@
                       (node#remindersRow :use toggleRow
                         :with {:title ~(t "set.reminders") :summary ~(t "set.remindersHint") :bind state.reminders :on ~state.reminders}))
                     ~(settings-data)
-                    {:id settingsEnd :height 4 :color transparent}]
+                    (node#settingsEnd :height 4 :color transparent)]
          :fitContent height
          :gap 12))
      ~(settings-bar)))
 
 (defview settings-bar "#settingsBar." []
   `(node#settingsBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @c.bar :shadow {:y 2 :blur 4 :color "#00000030"}
-     {:id settingsBack
-      :style iconButton
-      :icon arrow-left
-      :label ~(t "back")
-      :tooltip ~(t "back")
-      :textColor @c.text
-      :onClick {:set state.settingsOpen :to false}
-      :anchors {:left 4 :top 8}
-      :mirror true}
+     (node#settingsBack
+     :style iconButton
+     :icon arrow-left
+     :label ~(t "back")
+     :tooltip ~(t "back")
+     :textColor @c.text
+     :onClick {:set state.settingsOpen :to false}
+     :anchors {:left 4 :top 8}
+     :mirror true)
      (label#label-t-settings :text ~(t "settings")
        :font title
        :textColor @c.text
@@ -100,9 +100,9 @@
                       :onClick
                       restoreAll)
      (node#syncRow :use prefRow :with {:title ~(t "set.sync") :summary ~computed.syncText} :onClick syncNow
-       {:id accountButton
-        :style textButton
-        :text ~(if computed.signedIn (t "signOut") (t "signIn"))
-        :anchors {:right 8 :top 14}
-        :onClick {:run ~(if computed.signedIn "signOutOfServer" "signInToServer")}})))
+       (node#accountButton
+       :style textButton
+       :text ~(if computed.signedIn (t "signOut") (t "signIn"))
+       :anchors {:right 8 :top 14}
+       :onClick {:run ~(if computed.signedIn "signOutOfServer" "signInToServer")}))))
 

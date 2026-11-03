@@ -120,12 +120,12 @@
                      :description "" :error ""}))
 
 (defcommand addYesNo "A new yes-or-no habit."
-  :title ~(t "action.addYesNo.title") :category ~(t "action.addYesNo.category") :icon "check-circle"
-  [] (newHabit "yesNo"))
+  :title ~(t "action.addYesNo.title") :description ~(t "action.addYesNo.about")
+   :category ~(t "action.addYesNo.category") :icon "check-circle" [] (newHabit "yesNo"))
 
 (defcommand addMeasurable "A new measurable habit."
-  :title ~(t "action.addMeasurable.title") :category ~(t "action.addMeasurable.category") :icon "ruler"
-  [] (newHabit "measurable"))
+  :title ~(t "action.addMeasurable.title") :description ~(t "action.addMeasurable.about")
+   :category ~(t "action.addMeasurable.category") :icon "ruler" [] (newHabit "measurable"))
 
 (defn freqModeOf "Which frequency choice a habit's frequency is." [habit]
   (let [days (:days (:frequency habit)) times (:times (:frequency habit))]
@@ -136,9 +136,8 @@
           :else "month")))
 
 (defcommand editHabit "Opens the dialog on the selected habit."
-  :title ~(t "action.editHabit.title") :category ~(t "action.editHabit.category") :icon "edit"
-  :enablement ~(>= computed.sel 0)
-  []
+  :title ~(t "action.editHabit.title") :description ~(t "action.editHabit.about")
+   :category ~(t "action.editHabit.category") :icon "edit" :enablement ~(>= computed.sel 0) []
   (let [h computed.h frequency (:frequency h) reminder (:reminder h)]
     (set "state.edit" {:open true :id (:id h) :kind (:kind h) :name (:name h) :question (:question h)
                        :color (:color h) :freqMode (freqModeOf h)
@@ -181,17 +180,15 @@
 ;;; Archiving, picking and deleting
 
 (defcommand archiveHabit "Archives the selected habit, or brings it back."
-  :title ~(t "action.archiveHabit.title") :category ~(t "action.archiveHabit.category") :icon "archive"
-  :enablement ~(>= computed.sel 0)
-  []
+  :title ~(t "action.archiveHabit.title") :description ~(t "action.archiveHabit.about")
+   :category ~(t "action.archiveHabit.category") :icon "archive" :enablement ~(>= computed.sel 0) []
   (update-record "habits" :id computed.h.id :fields {:archived (not computed.h.archived)})
   (push "state.toasts" {:message (t (if computed.h.archived "toast.archived" "toast.unarchived") {:name computed.h.name})
                         :actions [{:title (t "undo") :run "archiveHabit"}]}))
 
 (defcommand confirmDelete "Asks before deleting."
-  :title ~(t "action.confirmDelete.title") :category ~(t "action.confirmDelete.category") :icon "trash-2"
-  :enablement ~(>= computed.sel 0)
-  [] (set "state.confirmDelete" true))
+  :title ~(t "action.confirmDelete.title") :description ~(t "action.confirmDelete.about")
+   :category ~(t "action.confirmDelete.category") :icon "trash-2" :enablement ~(>= computed.sel 0) [] (set "state.confirmDelete" true))
 
 (defn togglePick "Picks a row, or lets it go." [id]
   (if (contains state.picked id)
@@ -234,9 +231,8 @@
         :else "NO"))
 
 (defcommand exportHabit "Copies the selected habit as CSV."
-  :title ~(t "action.exportHabit.title") :category ~(t "action.exportHabit.category") :icon "file-down"
-  :enablement ~(>= computed.sel 0)
-  []
+  :title ~(t "action.exportHabit.title") :description ~(t "action.exportHabit.about")
+   :category ~(t "action.exportHabit.category") :icon "file-down" :enablement ~(>= computed.sel 0) []
   (let [h computed.h
         lines (map-indexed (fn [index value]
                              (let [date (addDays (:from h) index)]
@@ -246,8 +242,8 @@
     (toast (t "toast.copied" {:n 1}))))
 
 (defcommand exportAll "Copies every habit as CSV."
-  :title ~(t "action.exportAll.title") :category ~(t "action.exportAll.category") :icon "download"
-  []
+  :title ~(t "action.exportAll.title") :description ~(t "action.exportAll.about")
+   :category ~(t "action.exportAll.category") :icon "download" []
   (copy (str "Habit,Date,Value\n" (join "\n" (map (fn [rows] (join "\n" (map :line rows))) computed.csvRows))))
   (toast (t "toast.copied" {:n (count data.ordered)})))
 
@@ -258,8 +254,8 @@
   (toast (t "toast.notBackedUp" {:message (:message error)})))
 
 (defcommand backupAll "Saves every habit to a file the person chooses."
-  :title ~(t "action.backupAll.title") :category ~(t "action.backupAll.category") :icon "hard-drive-download"
-  []
+  :title ~(t "action.backupAll.title") :description ~(t "action.backupAll.about")
+   :category ~(t "action.backupAll.category") :icon "hard-drive-download" []
   (saveFile {:format "streak-backup" :version 1 :habits data.ordered}
     :name (str "streak-backup-" state.today ".json")
     :onDone backedUp
@@ -300,50 +296,49 @@
   (toast (t "toast.notRestored" {:message (:message error)})))
 
 (defcommand restoreAll "Restores habits from a file the person chooses."
-  :title ~(t "action.restoreAll.title") :category ~(t "action.restoreAll.category") :icon "hard-drive-upload"
-  []
+  :title ~(t "action.restoreAll.title") :description ~(t "action.restoreAll.about")
+   :category ~(t "action.restoreAll.category") :icon "hard-drive-upload" []
   (openFile "state.backupFile" :extensions ["json"] :onDone restoreHabits :onError notRestored))
 
 ;;; The window's commands
 
 (defcommand openSettings "Opens the settings."
-  :title ~(t "action.openSettings.title") :category "Streak" :icon "settings"
-  [] (set "state.settingsOpen" true))
+  :title ~(t "action.openSettings.title") :description ~(t "action.openSettings.about")
+   :category "Streak" :icon "settings" [] (set "state.settingsOpen" true))
 
 (defcommand toggleTheme "Between light and dark."
-  :title ~(t "action.toggleTheme.title") :category "Streak" :icon "moon"
-  [] (set "state.theme" (if (= computed.theme "light") "dark" "light")))
+  :title ~(t "action.toggleTheme.title") :description ~(t "action.toggleTheme.about")
+   :category "Streak" :icon "moon" [] (set "state.theme" (if (= computed.theme "light") "dark" "light")))
 
 (defcommand toggleHideCompleted "Shows or hides what is done today."
-  :title ~(t "action.toggleHideCompleted.title") :category "Streak" :icon "eye"
-  [] (toggle "state.hideCompleted"))
+  :title ~(t "action.toggleHideCompleted.title") :description ~(t "action.toggleHideCompleted.about")
+   :category "Streak" :icon "eye" [] (toggle "state.hideCompleted"))
 
 (defcommand toggleShowArchived "Shows or hides what is archived."
-  :title ~(t "action.toggleShowArchived.title") :category "Streak" :icon "archive"
-  [] (toggle "state.showArchived"))
+  :title ~(t "action.toggleShowArchived.title") :description ~(t "action.toggleShowArchived.about")
+   :category "Streak" :icon "archive" [] (toggle "state.showArchived"))
 
 (defcommand nextHabit "Selects the habit below."
-  :title ~(t "action.nextHabit.title") :category ~(t "action.nextHabit.category")
-  []
+  :title ~(t "action.nextHabit.title") :description ~(t "action.nextHabit.about")
+   :category ~(t "action.nextHabit.category") []
   (let [order computed.order
         row (get order (min (dec (count order)) (inc (indexOf order computed.sel))))]
     (set "state.selected" (or (:id (get data.ordered row)) state.selected))))
 
 (defcommand prevHabit "Selects the habit above."
-  :title ~(t "action.prevHabit.title") :category ~(t "action.prevHabit.category")
-  []
+  :title ~(t "action.prevHabit.title") :description ~(t "action.prevHabit.about")
+   :category ~(t "action.prevHabit.category") []
   (let [order computed.order
         row (get order (max 0 (dec (indexOf order computed.sel))))]
     (set "state.selected" (or (:id (get data.ordered row)) state.selected))))
 
 (defcommand checkToday "Marks today on the selected habit."
-  :title ~(t "action.checkToday.title") :category ~(t "action.checkToday.category") :icon "check"
-  :enablement ~(>= computed.sel 0)
-  [] (checkToday-at computed.sel))
+  :title ~(t "action.checkToday.title") :description ~(t "action.checkToday.about")
+   :category ~(t "action.checkToday.category") :icon "check" :enablement ~(>= computed.sel 0) [] (checkToday-at computed.sel))
 
 (defcommand commandPalette "Opens the list of commands."
-  :title ~(t "action.commandPalette.title") :category "Streak" :icon "search"
-  []
+  :title ~(t "action.commandPalette.title") :description ~(t "action.commandPalette.about")
+   :category "Streak" :icon "search" []
   (set "state.quickPick.open" true)
   (set "state.quickPick.query" ""))
 
@@ -378,8 +373,8 @@
     (request "streakServer.revision" :with {:id (str "streak-" (text state.sync.revisions)) :data computed.syncData})))
 
 (defcommand syncNow "Syncs now, or says why it can't."
-  :title ~(t "action.syncNow.title") :category ~(t "action.syncNow.category") :icon "refresh-cw"
-  []
+  :title ~(t "action.syncNow.title") :description ~(t "action.syncNow.about")
+   :category ~(t "action.syncNow.category") :icon "refresh-cw" []
   (if computed.online
     (syncSend)
     (toast (t (str "sync." computed.syncState) {:message state.sync.error}))))
@@ -388,14 +383,12 @@
 (defn notSignedIn "" [error] (toast (t "notSignedIn" {:message (:message error)})))
 
 (defcommand signInToServer "Signs in to the document server."
-  :title ~(t "action.signIn.title") :category ~(t "action.signIn.category") :icon "log-in"
-  :enablement ~(not computed.signedIn)
-  [] (signIn "streakServer" :onDone signedIn :onError notSignedIn))
+  :title ~(t "action.signIn.title")
+   :category ~(t "action.signIn.category") :icon "log-in" :enablement ~(not computed.signedIn) [] (signIn "streakServer" :onDone signedIn :onError notSignedIn))
 
 (defcommand signOutOfServer "Signs out of the document server."
-  :title ~(t "action.signOut.title") :category ~(t "action.signOut.category") :icon "log-out"
-  :enablement ~computed.signedIn
-  []
+  :title ~(t "action.signOut.title")
+   :category ~(t "action.signOut.category") :icon "log-out" :enablement ~computed.signedIn []
   (signOut "streakServer")
   (set "state.sync" {:revisions state.sync.revisions :copy nil :error "" :commits 0}))
 
@@ -432,3 +425,20 @@
 
 (defkey "escape"
   {:when ~(or computed.picking (and (not computed.wide) (= state.page "detail"))) :do [{:lisp leaveEscape}]})
+
+;;; The views' handlers
+
+(defn clickRow "A row clicked: picked or let go while picking, else shown in the detail." [h id]
+  (if (truthy? computed.picking) (togglePick id) (select h)))
+
+(defn stepTimes "The frequency's times, one less or one more: at least 1, at most 7 a week or 31 a month." [by]
+  (set "state.edit.n" (if (< by 0)
+                        (max 1 (- state.edit.n 1))
+                        (min (if (= state.edit.freqMode "week") 7 31) (+ state.edit.n 1)))))
+
+(defn pickColor "A colour of the palette chosen for the habit edited; the palette closes." [colour]
+  (set "state.edit.color" colour)
+  (set "state.colorOpen" false))
+
+(defn openPeriodMenu "Opens a card's period menu: the score's or the history's." [key]
+  (set (str "state.menus." (if (= key "scorePeriod") "score" "history")) true))

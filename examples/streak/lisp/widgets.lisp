@@ -34,7 +34,7 @@
      :runs [~(str (upper-case (t (str "period." (get state key)))) " ") {:icon chevron-down}]
      :label ~(str (t "period") ": " (t (str "period." (get state key))))
      :isOpen ~(get state.menus (if (= key "scorePeriod") "score" "history"))
-     :onClick {:set ~(str "state.menus." (if (= key "scorePeriod") "score" "history")) :to true}
+     :onClick ~(handler openPeriodMenu key)
      (node#menu-text-button :use menu
        :with {:open ~(str "state.menus." (if (= key "scorePeriod") "score" "history"))
               :width 160
@@ -102,19 +102,19 @@
      :cursor hand
      :disabled ~(not enabled)
      :onClick {:toggle ~path}
-     {:id panel-switch-2
-      :anchors {:left 3 :right 3 :top 5}
-      :height 14
-      :radius 7
-      :color ~(if (and on enabled) (if (not= track "") track (str computed.accent "80")) "@c.faint")}
-     {:id panel-switch-3
-      :anchors {:left ~(if on 18 0) :top 1}
-      :width 22
-      :height 22
-      :radius 11
-      :color ~(if (and on enabled) (if (not= knob "") knob computed.accent) "@c.knob")
-      :shadow {:y 1 :blur 3 :color "#00000050"}
-      :focused {:borderWidth 2 :borderColor @c.text}}))
+     (node#panel-switch-2
+     :anchors {:left 3 :right 3 :top 5}
+     :height 14
+     :radius 7
+     :color ~(if (and on enabled) (if (not= track "") track (str computed.accent "80")) "@c.faint"))
+     (node#panel-switch-3
+     :anchors {:left ~(if on 18 0) :top 1}
+     :width 22
+     :height 22
+     :radius 11
+     :color ~(if (and on enabled) (if (not= knob "") knob computed.accent) "@c.knob")
+     :shadow {:y 1 :blur 3 :color "#00000050"}
+     :focused {:borderWidth 2 :borderColor @c.text})))
 
 (defcomponent toggleRow "A settings row with a switch bound to a state path."
   {:title "" :summary "" :bind state.reminders :on false}
