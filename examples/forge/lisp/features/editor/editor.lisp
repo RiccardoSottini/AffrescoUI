@@ -1,216 +1,197 @@
-{:$schema "../../../../../schema/affrescoui-screen.schema.json"
- :format affrescoui-screen
- :version 2
- :note "Forge's editor: each open file's text is in state.docs (text, and saved: what is on disk), read and written through the files service and shown by the editors of every group with \"bind\". A click in the explorer opens a preview tab, which the next preview replaces; a double click, an edit or Keep Editor pins it. A dirty file's tab has a marker; Save, Save All and Revert File write or read it again. It owns openPath, closeTab, scanProblems and forgeEditors (the shell and the panels use them)."
- :actions {:openPath [{:run openBuffer :with {:path "{{path}}" :label "{{label}}" :preview false}}]
-           :openPreview [{:run openBuffer :with {:path "{{path}}" :label "{{label}}" :preview true}}]
-           :openBuffer [{:if "{{contains(computed.docIds, path)}}"
-                         :then [{:run showFileTab :with {:id "{{path}}" :label "{{label}}" :preview "{{preview}}"}}]
-                         :else [{:invoke files.read
-                                 :with {:path "{{path}}"}
-                                 :onError [{:run notify
-                                            :with {:severity error
-                                                   :message "{{'Cannot open ' + label + ': ' + error.message}}"}}]
-                                 :onDone [{:push state.docs
-                                           :value "{{ {id: path, label: label, kind: 'file', text: join(split(join(split(result.text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), saved: join(split(join(split(result.text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), eol: contains(result.text, '\r\n') ? 'CRLF' : 'LF', savedEol: contains(result.text, '\r\n') ? 'CRLF' : 'LF', dirty: false, language: label == 'CMakeLists.txt' ? 'CMake' : state.languages[lower(reverse(split(label, '.'))[0])] ?? ''} }}"}
-                                          {:run showFileTab
-                                           :with {:id "{{path}}" :label "{{label}}" :preview "{{preview}}"}}]}]}]
-           :showFileTab [{:run forgeRecordNav :with {:id "{{id}}"}}
-                         {:if "{{some(state.groups[state.activeGroup].tabs, it.id == id)}}"
-                          :then [{:if "{{!preview}}" :then [{:run pinTab :with {:id "{{id}}"}}]}]
-                          :else [{:if "{{preview && some(state.groups[state.activeGroup].tabs, it.preview)}}"
-                                  :then [{:run replacePreview
-                                          :with {:id "{{id}}"
-                                                 :label "{{label}}"
-                                                 :old "{{find(state.groups[state.activeGroup].tabs, it.preview).id}}"}}]
-                                  :else [{:push "state.groups[state.activeGroup].tabs"
-                                          :value "{{ {id: id, label: label, preview: preview} }}"}]}]}
-                         {:set "state.groups[state.activeGroup].active" :to "{{id}}"}
-                         {:run rememberRecent :with {:id "{{id}}" :label "{{label}}"}}]
-           :replacePreview [{:set "state.groups[state.activeGroup].tabs"
-                             :to "{{map(state.groups[state.activeGroup].tabs, it.preview ? {id: id, label: label, preview: true} : it)}}"}
-                            {:run releaseBuffer :with {:id "{{old}}"}}]
-           :pinTab [{:set state.groups
-                     :to "{{map(state.groups, merge(it, {tabs: map(it.tabs, it.id == id ? merge(it, {preview: false}) : it)}))}}"}]
-           :releaseBuffer [{:if "{{!contains(map(state.groups, contains(map(it.tabs, it.id), id)), true) && some(state.docs, it.id == id && it.kind == 'file' && !it.dirty)}}"
-                            :then [{:set state.docs :to "{{filter(state.docs, it.id != id)}}"}
-                                   {:run lspClosed :with {:id "{{id}}"}}]}]
-           :closeTab [{:set "state.groups[gi].tabs" :to "{{filter(state.groups[gi].tabs, it.id != id)}}"}
-                      {:if "{{state.groups[gi].active == id}}"
-                       :then [{:set "state.groups[gi].active"
-                               :to "{{length(state.groups[gi].tabs) > 0 ? state.groups[gi].tabs[0].id : null}}"}]}
-                      {:if "{{length(state.groups[gi].tabs) == 0 && length(state.groups) > 1}}"
-                       :then [{:remove state.groups :at "{{gi}}"}
-                              {:set state.activeGroup :to 0}
-                              {:set state.layout.groupSizes :to []}]}
-                      {:run releaseBuffer :with {:id "{{id}}"}}]
-           :markDirty [{:set state.docs :to "{{map(state.docs, it.id == id ? merge(it, {dirty: dirty}) : it)}}"}
-                       {:if "{{dirty}}" :then [{:run pinTab :with {:id "{{id}}"}}]}]
-           :save {:title "Save"
-                  :category "File"
-                  :icon save
-                  :enablement "{{computed.activeDoc.kind == 'file'}}"
-                  :do [{:run saveFile :with {:doc "{{computed.activeDoc}}"}}]}
-           :saveAll {:title "Save All"
-                     :category "File"
-                     :icon save-all
-                     :enablement "{{length(computed.dirtyIds) > 0}}"
-                     :do [{:forEach "{{filter(state.docs, it.kind == 'file' && it.dirty)}}"
-                           :as doc
-                           :do [{:run saveFile :with {:doc "{{doc}}"}}]}]}
-           :revertFile {:title "Revert File"
-                        :category "File"
-                        :icon undo
-                        :description "Read the file again, dropping the edits."
-                        :enablement "{{computed.activeDoc.kind == 'file' && computed.activeDoc.dirty}}"
-                        :do [{:invoke files.read
-                              :with {:path "{{computed.activeDoc.id}}"}
-                              :onError [{:run notify
-                                         :with {:severity error :message "{{'Cannot revert: ' + error.message}}"}}]
-                              :onDone [{:run reloaded :with {:id "{{computed.activeDoc.id}}" :text "{{result.text}}"}}]}]}
-           :keepEditor {:title "Keep Editor"
-                        :category "View"
-                        :icon pin
-                        :description "Pin the preview tab, so the next preview opens beside it."
-                        :enablement "{{some(state.groups[state.activeGroup].tabs, it.preview)}}"
-                        :do [{:run pinTab :with {:id "{{state.groups[state.activeGroup].active}}"}}]}
-           :scanProblems {:title "Scan Open Files for Problems"
-                          :category "Problems"
-                          :icon search
-                          :description "List the TODO and FIXME lines of the open files in Problems."
-                          :do [{:set state.problems :to "{{filter(state.problems, it.server ?? false)}}"}
-                               {:forEach "{{filter(state.docs, it.kind == 'file' && length(it.text) <= 1000000)}}"
-                                :as doc
-                                :do [{:set state.problems
-                                      :to "{{slice(concat(state.problems, map(filter(map(split(doc.text, '\\n'), {line: index + 1, row: trim(it)}), contains(it.row, 'TODO') || contains(it.row, 'FIXME')), {severity: contains(it.row, 'FIXME') ? 'warning' : 'info', message: slice(it.row, 0, 120), file: doc.id, label: doc.label, line: it.line})), 0, 1000)}}"}]}
-                               {:run log :with {:text "{{'Problems: ' + plural(length(state.problems), 'item')}}"}}]}
-           :textChanged [{:note "id: a file's; event.value: its text. The file is dirty while its text isn't the one saved"}
-                         {:forEach "{{filter(state.docs, it.id == id)}}"
-                          :as doc
-                          :do [{:if "{{(event.value != doc.saved || doc.eol != doc.savedEol) != doc.dirty}}"
-                                :then [{:run markDirty
-                                        :with {:id "{{id}}"
-                                               :dirty "{{event.value != doc.saved || doc.eol != doc.savedEol}}"}}]}]}
-                         {:run lspChanged :with {:id "{{id}}"}}]
-           :saveFile [{:note "doc: an open file. Writes its text, with its line endings, and marks it saved"}
-                      {:invoke files.write
-                       :with {:path "{{doc.id}}"
-                              :text "{{doc.eol == 'CRLF' ? join(split(doc.text, '\n'), '\r\n') : doc.text}}"}
-                       :onError [{:run notify
-                                  :with {:severity error
-                                         :message "{{'Cannot save ' + doc.label + ': ' + error.message}}"}}]
-                       :onDone [{:set state.docs
-                                 :to "{{map(state.docs, it.id == doc.id ? merge(it, {saved: doc.text, savedEol: doc.eol, dirty: it.text != doc.text || it.eol != doc.eol}) : it)}}"}]}]
-           :reloaded [{:note "id: an open file; text: what it now holds on disk. Kept as the editor shows it (tabs as the tab size's spaces, no carriage returns), its line endings noted, so undoing back to it is clean"}
-                      {:set state.docs
-                       :to "{{map(state.docs, it.id == id ? merge(it, {text: join(split(join(split(text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), saved: join(split(join(split(text, '\r'), ''), '\\t'), pad('', settings.editor.tabSize ?? 4, ' ')), eol: contains(text, '\r\n') ? 'CRLF' : 'LF', savedEol: contains(text, '\r\n') ? 'CRLF' : 'LF', dirty: false}) : it)}}"}]}
- :watch {:state.explorer.selected [{:if "{{(find(state.explorerTree.entries, it.path == event.value) ?? {}).kind == 'file'}}"
-                                    :then [{:run openPreview
-                                            :with {:path "{{event.value}}"
-                                                   :label "{{reverse(split(event.value, '/'))[0]}}"}}]}]}
- :keys {"mod+s" save "mod+alt+s" saveAll}
- :menus {:file {:save {:run save :group "3_save" :order 1}
-                :saveAll {:run saveAll :group "3_save" :order 2}
-                :revertFile {:run revertFile :group "3_save" :order 3}}}
- :components {:forgeEditors {:node (split#editor-groups :bind state.layout.groupSizes
-                                     :minSize 160
-                                     :sashSize 4
-                                     :sashColor @color.border
-                                     :sashActiveColor @color.accent
-                                     (column#group :repeat {:for g :in state.groups :index gi}
-                                       :color @color.editor
-                                       :onClick {:set state.activeGroup :to "{{gi}}"}
-                                       (tabs#group-tabs :width "100%"
-                                         :height 34
-                                         :bind "state.groups[gi].active"
-                                         :color @color.tabs
-                                         :textColor @color.muted
-                                         :activeTextColor @color.text
-                                         :activeBackground @color.tabActive
-                                         :accentEdge bottom
-                                         :accentColor "{{gi == state.activeGroup ? '@color.accent' : '@color.border'}}"
-                                         :tabs "{{map(g.tabs, merge(it, {italic: it.preview == true, marker: contains(computed.dirtyIds, it.id), closable: !it.sticky, icon: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).icon, iconColor: (settings.workbench.fileIcons && contains(it.label, '.') ? state.iconTheme.names[it.label] ?? state.iconTheme.extensions[lower(reverse(split(it.label, '.'))[0])] ?? state.iconTheme.file : null).color}))}}"
-                                         :onClose {:run closeTab :with {:gi "{{gi}}" :id "{{event.id}}"}}
-                                         :drag {}
-                                         :onDrop {:run moveTabToGroup
-                                                  :with {:id "{{event.data.id}}" :to "{{gi}}" :at "{{event.index}}"}}
-                                         :onMove {:run reorderTab
-                                                  :with {:gi "{{gi}}" :from "{{event.from}}" :to "{{event.to}}"}})
-                                       (node :when "{{settings.breadcrumbs.enabled && some(state.docs, it.id == g.active && it.kind == 'file')}}"
-                                         :use forgeBreadcrumbs
-                                         :with {:path "{{g.active}}"})
-                                       (node :when "{{empty(g.active) && gi == 0 && settings.workbench.startupEditor == 'welcome'}}"
-                                         :use forgeWelcome)
-                                       (column#group-body :repeat {:for d
-                                                                   :in "{{filter([indexOf(computed.docIds, g.active)], it >= 0)}}"
-                                                                   :key "{{d}}"}
-                                         :width "100%"
-                                         :grow 1
-                                         (node :when "{{state.findBar.open && gi == state.activeGroup && state.docs[d].kind == 'file'}}"
-                                           :use forgeFindBar)
-                                         (node :when "{{state.docs[d].kind == 'file'}}"
-                                           :use forgeConflictBar
-                                           :visible "{{gi == state.activeGroup && !empty(computed.conflictBlocks)}}")
-                                         (editor#editor :when "{{state.docs[d].kind == 'file'}}"
-                                           :font code
-                                           :width "100%"
-                                           :grow 1
-                                           :bind "state.docs[d].text"
-                                           :onChange {:run textChanged :with {:id "{{state.docs[d].id}}"}}
-                                           :language "{{state.docs[d].language}}"
-                                           :grammar "{{state.docs[d].label}}"
-                                           :lineNumbers "{{settings.editor.lineNumbers}}"
-                                           :goTo "{{gi == state.activeGroup && state.goTo.request > 0 ? {line: max(state.goTo.line - 1, 0), column: max((state.goTo.column ?? 1) - 1, 0), request: state.goTo.request} : null}}"
-                                           :caret state.caret
-                                           :wrap "{{settings.editor.wordWrap}}"
-                                           :minimap "{{settings.editor.minimap.enabled}}"
-                                           :scrollMarks true
-                                           :brackets "{{settings.editor.bracketMatching}}"
-                                           :indentGuides "{{settings.editor.guides.indentation}}"
-                                           :tabSize "{{settings.editor.tabSize ?? 4}}"
-                                           :find "{{gi == state.activeGroup ? computed.findQuery : null}}"
-                                           :decorations "{{concat((find(state.lsp.files, it.id == state.docs[d].id) ?? {}).decorations ?? [], map(filter(computed.debugMarks, it.path == state.docs[d].id), it.mark), gi == state.activeGroup ? computed.conflictDecorations : [])}}"
-                                           :tokens "{{(find(state.lsp.files, it.id == state.docs[d].id) ?? {}).tokens ?? []}}"
-                                           :onTextHover lspHoverAt
-                                           :onType lspTyped
-                                           :popup "{{gi == state.activeGroup && state.lsp.completion.open}}"
-                                           :onPopupKey lspPopupKey
-                                           :insert "{{gi == state.activeGroup && state.lsp.insert.request > 0 ? state.lsp.insert : null}}"
-                                           :color @color.editor
-                                           :textColor @color.editorText
-                                           :lineNumberColor @color.muted
-                                           :activeLineNumberColor @color.text
-                                           :lineColor @color.hover
-                                           :selectionColor @color.selection
-                                           :caretColor @color.text
-                                           :onGutterClick {:run debugGutterClick :with {:path "{{state.docs[d].id}}"}}
-                                           :onWordHover {:run debugHover :with {:path "{{state.docs[d].id}}"}}
-                                           :keys {:f5 debugContinueOrStart
-                                                  "shift+f5" debugStop
-                                                  "mod+shift+f5" debugRestart
-                                                  :f6 debugPause
-                                                  :f9 debugToggleBreakpointAtCaret
-                                                  :f10 debugStepOver
-                                                  :f11 debugStepInto
-                                                  "shift+f11" debugStepOut}
-                                           :commands {"mod+/" toggleComment
-                                                      "alt+up" moveLinesUp
-                                                      "alt+down" moveLinesDown
-                                                      "mod+shift+k" deleteLines
-                                                      "mod+[" outdentLines
-                                                      "mod+]" indentLines
-                                                      "mod+c" copyLine
-                                                      "mod+x" cutLine})
-                                         (node :when "{{state.docs[d].kind == 'settings'}}" :use forgeSettingsPage)
-                                         (node :when "{{state.docs[d].kind == 'keybindings'}}" :use forgeKeybindingsPage)
-                                         (node :when "{{state.docs[d].kind == 'searchResults'}}" :use forgeSearchEditor)
-                                         (node :when "{{state.docs[d].kind == 'settingsJson'}}"
-                                           :use forgeSettingsJsonPage)
-                                         (node :when "{{state.docs[d].kind == 'keybindingsJson'}}"
-                                           :use forgeKeybindingsJsonPage)
-                                         (node :when "{{state.docs[d].kind == 'diff'}}"
-                                           :use forgeDiffEditor
-                                           :with {:d "{{d}}"})
-                                         (node :when "{{state.docs[d].kind == 'debugSource'}}"
-                                           :use forgeDebugSource
-                                           :with {:doc "{{state.docs[d]}}"}))))}}}
+;;; editor.lisp --- Forge's editor: the open files, their tabs, and saving them
+;;;
+;;; Each open file's text is in state.docs (`text`, and `saved`: what is on disk), read and written through the
+;;; files service and shown by the editors of every group (views.lisp). A click in the explorer opens a preview tab,
+;;; which the next preview replaces; a double click, an edit or Keep Editor pins it. A dirty file's tab has a
+;;; marker; Save, Save All and Revert File write it or read it again. The shell and the panels use openPath and
+;;; closeTab.
+
+;;; Opening files
+
+(defn openPath "Opens a file in a pinned tab of the active group: its path in the folder, and its label." [path label]
+  (openBuffer path label false))
+
+(defn openPreview "Opens a file in the preview tab, which the next preview replaces." [path label]
+  (openBuffer path label true))
+
+(defn openBuffer "Shows a file already open, or reads it first." [path label preview]
+  (if (contains computed.docIds path)
+    (showFileTab path label preview)
+    (invoke "files.read"
+            :with {:path path}
+            :onError [openBufferFailed label]
+            :onDone [openBufferDone path label preview])))
+
+(defn openBufferDone "A file just read: kept as the editor shows it, its language told by its name, then shown."
+  [path label preview result]
+  (push "state.docs"
+        {:id path
+         :label label
+         :kind "file"
+         :text (asShown result.text)
+         :saved (asShown result.text)
+         :eol (lineEndings result.text)
+         :savedEol (lineEndings result.text)
+         :dirty false
+         :language (if (= label "CMakeLists.txt")
+                     "CMake"
+                     (or-else (get state.languages (lower-case (get (reverse (split label ".")) 0))) ""))})
+  (showFileTab path label preview))
+
+(defn openBufferFailed "Says why a file couldn't be opened." [label error]
+  (notify "error" (t "notify.cannotOpen" {:file label :error error.message})))
+
+(defn asShown "A file's text as the editor shows it: no carriage returns, and a tab as the tab size's spaces." [text]
+  (join (pad "" (or-else settings.editor.tabSize 4) " ") (split (join "" (split text "\r")) "\t")))
+
+(defn lineEndings "Which line endings a file's text has: CRLF or LF." [text]
+  (if (contains text "\r\n") "CRLF" "LF"))
+
+(defn previewSelectedFile "The explorer's selection, a file, opens in the preview tab." []
+  (when (= (:kind (or-else (find (fn [it] (= it.path event.value)) state.explorerTree.entries) {})) "file")
+    (openPreview event.value (baseName event.value))))
+
+(defpart follow-explorer "A file chosen in the explorer opens in the preview tab."
+  :watch {:state.explorer.selected previewSelectedFile})
+
+;;; Tabs
+
+(defn showFileTab
+  "Shows an open file's tab in the active group: pinned, or as the preview, which replaces the last one."
+  [id label preview]
+  (forgeRecordNav id)
+  (cond
+    (some (fn [it] (= it.id id)) (activeTabs)) (when (not preview) (pinTab id))
+    (and preview (some (fn [it] it.preview) (activeTabs)))
+      (replacePreview id label (:id (find (fn [it] it.preview) (activeTabs))))
+    :else (push (str "state.groups[" state.activeGroup "].tabs") {:id id :label label :preview preview}))
+  (set (str "state.groups[" state.activeGroup "].active") id)
+  (rememberRecent id label))
+
+(defn replacePreview "The preview tab becomes another file's; the file it showed is let go." [id label old]
+  (set (str "state.groups[" state.activeGroup "].tabs")
+       (map (fn [it] (if it.preview {:id id :label label :preview true} it))
+            (get-in state.groups [state.activeGroup :tabs])))
+  (releaseBuffer old))
+
+(defn pinTab "A preview tab stays: the next preview opens beside it." [id]
+  (set "state.groups"
+       (map (fn [it] (merge it {:tabs (map (fn [it] (if (= it.id id) (merge it {:preview false}) it)) it.tabs)}))
+            state.groups)))
+
+(defcommand keepEditor "Pins the preview tab, so the next preview opens beside it."
+  :title ~(t "command.keepEditor") :category ~(t "category.view") :icon "pin"
+  :description ~(t "command.keepEditor.about")
+  :enablement ~(some (fn [it] it.preview) (get-in state.groups [state.activeGroup :tabs])) []
+  (pinTab (activeTabId)))
+
+(defn releaseBuffer "Lets go of a file no tab shows any more, unless it has unsaved edits." [id]
+  (when (and (not (contains (map (fn [it] (contains (map (fn [it] it.id) it.tabs) id)) state.groups) true))
+             (some (fn [it] (and (= it.id id) (= it.kind "file") (not it.dirty))) state.docs))
+    (set "state.docs" (filter (fn [it] (not= it.id id)) state.docs))
+    (lspClosed id)))
+
+(defn focusGroup "A click in an editor group makes it the active one." [gi]
+  (set "state.activeGroup" gi))
+
+(defn closeTab "Closes a tab of a group; a group left empty closes too, unless it is the last." [gi id]
+  (set (str "state.groups[" gi "].tabs") (filter (fn [it] (not= it.id id)) (get-in state.groups [gi :tabs])))
+  (when (= (get-in state.groups [gi :active]) id)
+    (set (str "state.groups[" gi "].active")
+         (if (> (count (get-in state.groups [gi :tabs])) 0) (get-in state.groups [gi :tabs 0 :id]) nil)))
+  (when (and (= (count (get-in state.groups [gi :tabs])) 0) (> (count state.groups) 1))
+    (remove-state "state.groups" :at gi)
+    (set "state.activeGroup" 0)
+    (set "state.layout.groupSizes" []))
+  (releaseBuffer id))
+
+;;; Editing and saving
+
+(defn textChanged "A file's editor changed its text (`event.value`): it is dirty while the text isn't the one saved."
+  [id]
+  (doseq [doc (filter (fn [it] (= it.id id)) state.docs)]
+    (let [dirty (or (not= event.value doc.saved) (not= doc.eol doc.savedEol))]
+      (when (not= dirty doc.dirty) (markDirty id dirty))))
+  (lspChanged id))
+
+(defn markDirty "Marks a file as edited or saved; an edit pins its tab." [id dirty]
+  (set "state.docs" (map (fn [it] (if (= it.id id) (merge it {:dirty dirty}) it)) state.docs))
+  (when dirty (pinTab id)))
+
+(defcommand save "Writes the active file."
+  :title ~(t "command.save") :description ~(t "command.save") :category ~(t "category.file") :icon "save"
+  :enablement ~(= computed.activeDoc.kind "file") []
+  (saveFile computed.activeDoc))
+
+(defcommand saveAll "Writes every file with unsaved edits."
+  :title ~(t "command.saveAll") :description ~(t "command.saveAll") :category ~(t "category.file") :icon "save-all"
+  :enablement ~(> (count computed.dirtyIds) 0) []
+  (doseq [doc (filter (fn [it] (and (= it.kind "file") it.dirty)) state.docs)] (saveFile doc)))
+
+(defn saveFile "Writes an open file's text, with its line endings, and marks it saved." [doc]
+  (invoke "files.write"
+          :with {:path doc.id :text (if (= doc.eol "CRLF") (join "\r\n" (split doc.text "\n")) doc.text)}
+          :onError [saveFileFailed doc]
+          :onDone [saveFileDone doc]))
+
+(defn saveFileDone "The text written is the file's saved text; edits made since keep it dirty." [doc]
+  (set "state.docs"
+       (map (fn [it]
+              (if (= it.id doc.id)
+                (merge it
+                       {:saved doc.text :savedEol doc.eol :dirty (or (not= it.text doc.text) (not= it.eol doc.eol))})
+                it))
+            state.docs)))
+
+(defn saveFileFailed "Says why a file couldn't be saved." [doc error]
+  (notify "error" (t "notify.cannotSave" {:file doc.label :error error.message})))
+
+(defcommand revertFile "Reads the file again, dropping the edits."
+  :title ~(t "command.revertFile") :category ~(t "category.file") :icon "undo"
+  :description ~(t "command.revertFile.about")
+  :enablement ~(and (= computed.activeDoc.kind "file") computed.activeDoc.dirty) []
+  (invoke "files.read" :with {:path computed.activeDoc.id} :onError revertFileFailed :onDone revertFileDone))
+
+(defn revertFileDone "The file as it is on disk replaces the edited text." [result]
+  (reloaded computed.activeDoc.id result.text))
+
+(defn revertFileFailed "Says why the file couldn't be read again." [error]
+  (notify "error" (t "notify.cannotRevert" {:error error.message})))
+
+(defn reloaded
+  "An open file's text as it is now on disk (`text`), kept as the editor shows it, so undoing back to it is clean."
+  [id text]
+  (set "state.docs"
+       (map (fn [it]
+              (if (= it.id id)
+                (merge it
+                       {:text (asShown text) :saved (asShown text) :eol (lineEndings text) :savedEol (lineEndings text)
+                        :dirty false})
+                it))
+            state.docs)))
+
+(defkey "mod+s" save)
+
+(defkey "mod+alt+s" saveAll)
+
+;;; Problems
+
+(defcommand scanProblems "Lists the TODO and FIXME lines of the open files in Problems, after the language server's."
+  :title ~(t "command.scanProblems") :category ~(t "category.problems") :icon "search"
+  :description ~(t "command.scanProblems.about") []
+  (set "state.problems" (filter (fn [it] (or-else it.server false)) state.problems))
+  (doseq [doc (filter (fn [it] (and (= it.kind "file") (<= (count it.text) 1000000))) state.docs)]
+    (set "state.problems"
+         (slice (concat state.problems
+                        (map (fn [it]
+                               {:severity (if (contains it.row "FIXME") "warning" "info")
+                                :message (slice it.row 0 120)
+                                :file doc.id
+                                :label doc.label
+                                :line it.line})
+                             (filter (fn [it] (or (contains it.row "TODO") (contains it.row "FIXME")))
+                                     (map-indexed (fn [index it] {:line (+ index 1) :row (trim it)})
+                                                  (split doc.text "\n")))))
+                0
+                1000)))
+  (log (t "log.problems" {:n (count state.problems)})))
