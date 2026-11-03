@@ -209,6 +209,12 @@ json Programs::stepFrom(const StepType& type, lisp::Interpreter& interpreter, st
 		// A name or steps given as a value would run what no name in the code says, past what reaches it (Rules)
 		if(holdsSteps(key) && key != "loading" && !isFunction(value)) {
 			if(value.isNil()) return;
+			if(value.kind() == lisp::Kind::Vector && value.count() > 0 && isFunction(value.at(0))) { // [opened path]
+				std::vector<lisp::Value> given;
+				for(std::size_t item = 1; item < value.count(); ++item) given.push_back(value.at(item));
+				step[key] = callbackSteps(interpreter, value.at(0), given, scope);
+				return;
+			}
 			throw lisp::Refusal("\"" + key + "\" of \"" + type.name +
 			                    "\" takes a function of the program, by its name: never a name or steps as a value");
 		}

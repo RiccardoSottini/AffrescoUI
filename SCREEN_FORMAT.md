@@ -2334,7 +2334,7 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
 
 - **Calling a function.** A handler names one where it names an action: `"onClick": "reset"`, `{"run": "add", "with": {"by": 1}}`, a key,
   a menu item. Its parameters come by name from the variables around it (`with`, a repeat's, `result` and `error` in a step's
-  callback), `event` from the event, and nil if nothing has that name. The step `{"lisp": "move", "with": [1, 2]}` gives them in order. A
+  callback), `event` from the event, and nil if nothing has that name. The step `{"lisp": "move", "with": [1, 2]}` gives them in order, and those past it by name. A
   `defcommand`'s `do` is that step, so a command runs as its function does, and a document's action of the same name wins.
 - **Reading.** A dotted word that nothing defines is a path of the running app: `state.count`, `data.ordered`, `computed.h`,
   `auth.server.account`, `event.x`; `item.name` of a local `item` is its member. A value read is a copy, and costs what its size
@@ -2350,7 +2350,9 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
 - **Later.** `(after 500 tick 1 2)` and `(debounce 300 search text)` run a function later with those arguments, as the steps do and
   under their limits. A callback is a function a definition gives, kept by its name with its arguments as JSON, so a closure isn't one (its values
   go when the event ends) and a function can't be kept in the state. If the definition is gone by then, nothing runs. It runs with the authority of
-  who scheduled it.
+  who scheduled it. A step's callback takes its first arguments the same way, in a vector: `(invoke "files.read" :with
+  {:path path} :onDone [opened path label])` calls `(defn opened [path label result] ...)` with those two, and the parameters
+  past them by name from the variables around it (`result`, `error`), as a handler's `{"lisp": "f", "with": [...]}` does.
 - **A binding.** In a top-level template (a data file, `defscreen`, a `defcommand`'s options), a `~form` that names a path, or what
   nothing defines, or a function that reads the running app (through what it calls too), stays in the tree as a binding, and
   anything else is worked out at the build. A word that names a function of the program, uncalled, is a name of the running

@@ -268,6 +268,24 @@ TEST_CASE("lisp attack: a closure can't be a callback, and a person's timer has 
 	CHECK(app.hits == 1);
 }
 
+TEST_CASE("lisp runtime: a callback given its first arguments takes the rest by name") {
+	const App app(R"lisp(
+(defn failed "Its first argument given, `error` by name." [label error] (set "state.out" [label error]))
+(defn begin "Calls what the host doesn't answer, then failed with the label." [label]
+  (call "nothing" :onError [failed label]))
+(defcommand a "" :title "A" [] (begin "file"))
+(defcommand b "A vector that doesn't start with a function is refused." :title "B" [] (call "hit" :then ["failed"]))
+(defkey "ctrl+a" a)
+(defkey "ctrl+b" b)
+(defscreen main :state {:out nil} (panel#root))
+)lisp");
+	app.press(Key::A);
+	CHECK(app.state("out") == json::array({"file", "no native action 'nothing' registered"}));
+	app.press(Key::B);
+	CHECK(app.hits == 0);
+	CHECK(app.reported("takes a function of the program"));
+}
+
 TEST_CASE("lisp attack: a timer or a watch that runs an agent's function") {
 	App app(R"lisp(
 (defn on-change "" [] nil)
