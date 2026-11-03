@@ -102,9 +102,17 @@ def main():
         text = mcp.tool("get_screen", {"at": "#details-title"})[0]["text"]
         assert "details-title" in text, text
 
-        # 2. ... and proposes a change: agents need a reviewer's approval in this screen
+        # 2. ... and proposes a change: agents need a reviewer's approval in this screen. The blurb is built by the
+        # program's info-card view (parts/game.lisp), so the change is a new version of that definition
+        with open(os.path.join(HERE, "parts", "game.lisp"), encoding="utf-8") as file:
+            source = file.read()
+        start = source.index("(defview info-card ")
+        end = source.index("\n\n", start)
+        view = source[start:end].replace("(label#details-blurb :text ~g.blurb :textColor @color.text",
+                                         "(label#details-blurb :text ~g.blurb :textColor @color.muted")
+        assert "@color.muted :wrap" in view, "the info-card view no longer has the blurb's colour where it was"
         text = mcp.tool("submit_revision", {"message": "Dim the blurb",
-                                            "set": {"#details-blurb/textColor": "@color.muted"}})[0]["text"]
+                                            "set": {"/program/parts~1game.lisp/info-card": view}})[0]["text"]
         assert text.startswith("proposed as proposal "), text
         proposal = int(text.split()[3])
 
