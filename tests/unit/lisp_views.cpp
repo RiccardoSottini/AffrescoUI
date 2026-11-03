@@ -169,13 +169,18 @@ TEST_CASE("lisp views: a view is given what needs the running app as a name of i
 (defview caption "A caption." [text n]
   `(label :text ~text :tip ~(str text "!") :id ~(str "cap" n)))
 (defview card "A card." [p] `(row ~(caption (t "card" {:n p.n}) 3)))
-(defscreen main (column ~(caption (t "title") 2) ~(caption "plain" 5) ~(repeat [p state.ps] (card p))))
+(defn pick "Picks." [] nil)
+(defview button "A button." [f] `(node :onClick ~(handler f)))
+(defscreen main (column ~(caption (t "title") 2) ~(caption "plain" 5) ~(repeat [p state.ps] (card p))
+                        ~(caption state.name 6) ~(button pick)))
 )lisp");
 	const json& children = tree["root"]["children"];
 	CHECK(children[0] ==
 	      json{{"type", "label"}, {"text", "{{(t('title'))}}"}, {"tip", "{{(t('title'))}}!"}, {"id", "cap2"}});
 	CHECK(children[1]["text"] == "plain");
 	CHECK(children[2]["children"][0]["text"] == "{{(t('card', {'n': p.n}))}}");
+	CHECK(children[3]["text"] == "{{state.name}}");
+	CHECK(children[4]["onClick"] == json{{"lisp", "pick"}, {"with", json::array()}}); // a function is given as itself
 }
 
 TEST_CASE("lisp views: a defcomponent says which parameter's items it runs") {

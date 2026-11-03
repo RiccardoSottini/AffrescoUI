@@ -311,14 +311,25 @@ void Compiler::compileViewValue(const Value& written, int depth) {
 void Compiler::compileViewCall(const Value& form, int depth) {
 	compile(form.at(0), {});
 	for(std::size_t at = 1; at < form.count(); ++at) {
-		if(isLive(form.at(at), depth + 1)) compileLiveName(form.at(at));
-		else compile(form.at(at), {});
+		const Value& argument = form.at(at);
+		// A function, named, is given as itself: a view may make a handler of it
+		const Definition* named = argument.kind() == Kind::Symbol ? machine_.definition(argument.text()) : nullptr;
+		const bool function =
+		    argument.kind() == Kind::Symbol && !isLocalWord(argument.text()) &&
+		    ((named && (named->kind == "defn" || named->kind == "defcommand" || named->kind == "defview")) ||
+			 namesFunction(machine_.findGlobal(argument.text())));
+		if(!function && isLive(argument, depth + 1)) compileLiveName(argument);
+		else compile(argument, {});
 	}
 	place_ = form.place();
 	emit(Op::Call, static_cast<std::uint32_t>(form.count() - 1));
 }
 
 void Compiler::compileLiveName(const Value& form) {
+	if(form.kind() == Kind::Symbol && !isLocalWord(form.text())) { // a path: the name itself, as 'state.x' gives
+		emitConstant(machine_.heap.symbol(form.text(), form.place()));
+		return;
+	}
 	emitConstant(machine_.global("%as-name").value);
 	std::vector<BindingPart> parts = {{"{{", {}, false, {}, {}}};
 	lowerForm(form, 0, parts);
