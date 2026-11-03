@@ -118,6 +118,25 @@ void documentsBuildAlike(std::string_view text) {
 	}
 }
 
+/// @brief A text read as the file an app loads: an `include` form names files and is no entry of its program, and the
+/// rest of the program keeps its places.
+/// @param text The text.
+void includesStayOut(std::string_view text) {
+	try {
+		const json document = affresco::lisp::readDocument(text, "fuzz.lisp");
+		if(!document.contains("program")) return;
+		if(document.contains("include"))
+			for(const json& name : document["include"])
+				if(!name.is_string() || name.get_ref<const std::string&>().empty())
+					affresco::fuzz::broken("an include names files");
+		for(const auto& [file, entries] : document["program"].items())
+			for(const auto& [name, entry] : entries.items())
+				if(name == "include") affresco::fuzz::broken("an include is never an entry");
+		// NOLINTNEXTLINE(bugprone-empty-catch): refusing it is the rule
+	} catch(const affresco::DocumentError&) {
+	}
+}
+
 /// @brief A text as an agent's program, loaded purely as a live program is, with every function called: the primitive
 /// it may not reach is never reached, and nothing is left of what each call made.
 /// @param text The text.
@@ -220,6 +239,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	entriesKeepTheText(text);
 	keywordEditKeepsTheRest(text);
 	documentsBuildAlike(text);
+	includesStayOut(text);
 	heldToItsAuthority(text);
 	affresco::lisp::Interpreter interpreter(lowLimits());
 	try {

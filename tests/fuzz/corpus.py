@@ -892,6 +892,15 @@ def lisp_seeds():
               '(node :type not (list#a) (map) ~@(list 1))', '{"a b" 1 :c 2, #_ :d #_ 3}', "'x '(y) ~z ~@w",
               '(defn d [n] (+ 1 (d n))) (d 0)', '(loop [] (recur))', '(loop [a [1]] (recur [a a]))',
               '(defmacro m [] `(m)) (m)', '(def a b) (def b a) a', "(" * MAX_NESTING + ")" * MAX_NESTING,
+              # Views, repeats, components, handlers, sections as definitions, include (SCREEN_FORMAT.md, "Views")
+              '(include "a.lisp" b.lisp)\n(defview v "d" [x i] `(node#n :t ~x.title :h ~(handler f x i)))\n'
+              '(defn f "d" [a b] nil)\n(defscreen main (column ~(repeat [c state.cs :index i :key c.id] (v c i))))',
+              '(defcomponent k "d" {:on false :t ""} `(label :text ~t :style ~(if on "a" "b")))\n'
+              '(defstate s [1] "d" :type (array))\n(defcomputed c (filter (fn [x] (not= x.id state.s)) state.xs))',
+              '(defstyle st (label :font small))\n(defmenu m {:a {:run x}})\n(deftokens t {:c 1})\n'
+              '(defpart p :persist [a] :watch {:x y})\n(defdefaults d :tokens {:c 2} :keys {"k" z})',
+              '(defscreen main (n :x ~(reduce (fn [acc x] (+ acc x.n)) 0 (sort-by (fn [x] x.n) > state.xs))'
+              ' :y ~(str "a" (or-else state.z (count state.w))) :z ~(cond (nil? a) 1 :else (get-in b [c :d]))))',
               "`~" * (MAX_NESTING // 2) + "x", "'" * MAX_NESTING + "x"]
     return seeds
 
