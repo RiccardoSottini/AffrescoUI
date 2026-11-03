@@ -1,4 +1,4 @@
-{:note "Calamaio's own languages, each coloured by the @syntax.* tokens of look.json; Python, C and Markdown take their grammar."
+{:note "Calamaio's own languages, each coloured by the @syntax.* colours of look.lisp; Python, C and Markdown take their grammar."
  :languages {:lisp {:title "Lisp"
                     :aliases [lisp-interaction]
                     :files ["*.el" "*.lisp"]
