@@ -60,7 +60,9 @@
                      {:menu go :title ~(t "menu.go")}
                      {:menu preferences :title ~(t "menu.preferences")}
                      {:menu help :title ~(t "menu.help")}]}
-  :strings {:default en :locale ~settings.workbench.language :keep ["Forge" "AffrescoUI" "Forge Dark" "Forge Light" "Forge High Contrast"]}
+  :strings {:default en
+            :locale ~settings.workbench.language
+            :keep ["Forge" "AffrescoUI" "Forge Dark" "Forge Light" "Forge High Contrast"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 13 :fallback [icons]}
           :title {:file "../../shared/fonts/Roboto-Regular.ttf" :size 28}
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 13}
