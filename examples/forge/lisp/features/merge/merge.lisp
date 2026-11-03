@@ -1,6 +1,10 @@
-;;; merge.lisp --- Forge's merge conflicts: in a file with git's conflict markers (<<<<<<<, an optional |||||||, =======, >>>>>>>), each side is tinted and a bar over the editor accepts the current change, the incoming one or both for the conflict at the caret (or the first), and moves to the next; the file stays unsaved until Save.
+;;; merge.lisp --- Forge's merge conflicts: each side tinted, and a bar that resolves the one at the caret
+;;;
+;;; In a file with git's conflict markers (<<<<<<<, an optional |||||||, =======, >>>>>>>), each side is tinted and
+;;; a bar over the editor keeps the current change, the incoming one or both for the conflict at the caret (or the
+;;; first), and moves to the next; the file stays unsaved until Save.
 
-;;; State and definitions
+;;; Conflicts, and resolving them
 
 (defcomputed conflictLines
   (if (and (some? computed.activeDoc)
@@ -52,11 +56,9 @@
   (if (some (fn [it]
                 (and (>= (- (or-else state.caret.line 1) 1) it.start) (<= (- (or-else state.caret.line 1) 1) it.end)))
               computed.conflictBlocks)
-        (str "Merge conflict "
-             (count (filter (fn [it] (<= it.start (- (or-else state.caret.line 1) 1))) computed.conflictBlocks))
-             " of "
-             (count computed.conflictBlocks))
-        (plural (count computed.conflictBlocks) "merge conflict")))
+        (t "conflict.at" {:n (count (filter (fn [it] (<= it.start (- (or-else state.caret.line 1) 1))) computed.conflictBlocks))
+                          :of (count computed.conflictBlocks)})
+        (t "conflict.count" {:n (count computed.conflictBlocks)})))
 
 (defcomputed conflictDecorations
   (filter (fn [it] (and (>= it.line 0) (>= (or-else it.endLine it.line) it.line)))
@@ -71,8 +73,6 @@
                           {:line (+ it.mid 1) :endLine (- it.end 1) :kind "background" :color "#3f86d640"}
                           {:line it.end :kind "background" :color "#7f7f7f40"}])
                        computed.conflictBlocks))))
-
-;;; Functions and commands
 
 (defcommand acceptCurrentChange "Keep the lines above the conflict's =======, the file's own, and drop the markers."
   :title ~(t "command.acceptCurrentChange") :category ~(t "category.mergeConflict") :icon "arrow-up"
@@ -96,7 +96,8 @@
   (set "state.goTo.column" 1)
   (increment "state.goTo.request" :by 1))
 
-(defn acceptConflict "keep: current, incoming or both" [keep]
+(defn acceptConflict "Resolves the conflict at the caret, keeping the current side, the incoming one or both (`keep`)."
+  [keep]
   (when (some? computed.conflictAtCaret)
     (setConflictText
       computed.activeDoc.id
@@ -114,7 +115,7 @@
                       [])
                     (slice computed.conflictLines (+ computed.conflictAtCaret.end 1)))))))
 
-(defn setConflictText "TODO" [id text]
+(defn setConflictText "A file's new text, after a conflict is resolved: dirty while it isn't the one saved." [id text]
   (set "state.docs" (map (fn [it] (if (= it.id id) (merge it {:text text}) it)) state.docs))
   (doseq [doc (filter (fn [it] (= it.id id)) state.docs)]
     (markDirty id (or (not= doc.text doc.saved) (not= doc.eol doc.savedEol)))))

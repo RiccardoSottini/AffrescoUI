@@ -1,8 +1,8 @@
-;;; views.lisp --- what editing.lisp shows
+;;; views.lisp --- the find bar over the active editor: the query, its options and its buttons; the replacement
 
-;;; Views
+;;; The find bar
 
-(defcomponent forgeFindBar "The forgeFindBar component."
+(defcomponent forgeFindBar "The find bar: Escape closes it, Shift+Enter finds the previous match, Alt+L finds in the selection."
   {}
   `(column#find-bar :width "100%"
      :height ~(if state.findBar.replacing 60 30)
@@ -13,33 +13,7 @@
      ~(find-row)
      ~(replace-row)))
 
-(defcomponent forgeFindOption "The forgeFindOption component."
-  {:option "" :bind "" :text ""}
-  `(row :id ~(str "find-" option) :height 26 :gap 4 :alignItems center
-     (checkbox :id ~(str "find-" option "-box")
-       :bind ~bind
-       :width 16
-       :height 16
-       :onChange ~(handler findStep "first"))
-     (label :text ~text :textColor @color.text :fitText true)))
-
-(defcomponent forgeFindButton "The forgeFindButton component."
-  {:name "" :icon "" :label "" :run ""}
-  `(label :id ~(str "find-" name)
-     :role button
-     :label ~label
-     :tooltip ~label
-     :icon ~icon
-     :width 24
-     :height 24
-     :radius 4
-     :cursor hand
-     :focusable true
-     :textColor @color.text
-     :hover {:color @color.hover}
-     :onClick {:run ~run}))
-
-(defview find-row "#find-row." []
+(defview find-row "The query, its options, how many matches, and Previous, Next and Close." []
   `(row#find-row :width "100%" :height 26 :gap 6 :alignItems center
      (textarea#find-text :bind state.findBar.text
        :grow 1
@@ -59,13 +33,10 @@
      (label#find-count :text ~computed.findSummary :width 80 :textColor @color.muted)
      (node :use forgeFindButton
        :with {:name previous :icon arrow-up :label ~(t "findBar.previousMatch.label") :run findPrevious})
-     (node :use
-           forgeFindButton
-           :with
-           {:name next :icon arrow-down :label ~(t "findBar.nextMatch.label") :run findNext})
+     (node :use forgeFindButton :with {:name next :icon arrow-down :label ~(t "findBar.nextMatch.label") :run findNext})
      (node :use forgeFindButton :with {:name close :icon x :label ~(t "findBar.close.label") :run closeFind})))
 
-(defview replace-row "#replace-row." []
+(defview replace-row "The replacement, and Replace and Replace All." []
   `(row#replace-row :when ~state.findBar.replacing :width "100%" :height 26 :gap 6 :alignItems center
      (textarea#replace-text :bind state.findBar.replace
        :grow 1
@@ -76,9 +47,32 @@
        :placeholderColor @color.muted
        :placeholder ~(t "replace-text.placeholder")
        :onSubmit replaceOne)
-     (node :use
-           forgeFindButton
-           :with
-           {:name replace :icon replace :label ~(t "findBar.replace.label") :run replaceOne})
+     (node :use forgeFindButton :with {:name replace :icon replace :label ~(t "findBar.replace.label") :run replaceOne})
      (node :use forgeFindButton
        :with {:name replace-all :icon replace-all :label ~(t "findBar.replaceAll.label") :run replaceAllInFile})))
+
+(defcomponent forgeFindOption "An option of the query, a check box bound to `bind`; changing it finds again from the top."
+  {:option "" :bind "" :text ""}
+  `(row :id ~(str "find-" option) :height 26 :gap 4 :alignItems center
+     (checkbox :id ~(str "find-" option "-box")
+       :bind ~bind
+       :width 16
+       :height 16
+       :onChange ~(handler findStep "first"))
+     (label :text ~text :textColor @color.text :fitText true)))
+
+(defcomponent forgeFindButton "A button of the bar, an icon that runs `run`."
+  {:name "" :icon "" :label "" :run ""}
+  `(label :id ~(str "find-" name)
+     :role button
+     :label ~label
+     :tooltip ~label
+     :icon ~icon
+     :width 24
+     :height 24
+     :radius 4
+     :cursor hand
+     :focusable true
+     :textColor @color.text
+     :hover {:color @color.hover}
+     :onClick {:run ~run}))

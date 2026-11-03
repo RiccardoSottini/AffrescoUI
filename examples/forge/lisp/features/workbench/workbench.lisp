@@ -1,17 +1,15 @@
-;;; workbench.lisp --- Forge's workbench extras: the secondary side bar with the Outline (the active file's symbols from the language server, else its headings or the lines that open a block), moving tabs between editor groups (by dragging, or Move Editor into Next or Previous Group), the breadcrumbs over the editor, the recently opened files (first in Go to File, kept by persist), the minimap setting, and the settings and keyboard shortcuts as JSON
+;;; workbench.lisp --- Forge's workbench extras: the outline, breadcrumbs, recent files, editor groups, settings.json
 ;;;
-;;; The editor groups (features/editor) use forgeBreadcrumbs and the pages; the shell (features/shell) has
-;;; state.layout.secondary.
+;;; The secondary side bar shows the Outline: the active file's symbols from the language server, else its headings
+;;; or the lines that define something. Breadcrumbs over the editor show the file's folders and the symbol at the
+;;; caret. Tabs move between groups and along their strip; a pinned tab stays at the start. Recently opened files
+;;; come first in Go to File. The settings you changed open as JSON to edit, and the keys as JSON to read.
 
-;;; State and definitions
+;;; The outline
 
 (defstate outline [])
 
 (defstate outlineSymbols "")
-
-(defstate settingsJson "")
-
-(defstate settingsJsonError "")
 
 (defcomputed outlineItems
   (map-indexed (fn [index it]
@@ -25,47 +23,6 @@
                                 (contains ["enum" "enumMember"] it.kind) "list-tree"
                                 :else "hash")})
                  state.outline))
-
-(defcomputed symbolTrail
-  (filter (fn [it] (some? it))
-            (reduce (fn [acc it]
-                      (concat (slice (concat acc [nil nil nil nil nil nil nil nil]) 0 (min it.depth 7)) [it]))
-                    []
-                    (filter (fn [it] (<= it.line state.caret.line)) state.outline))))
-
-(defcomputed keybindingsJson
-  (json (map (fn [it] {:key it.key :command it.command :when (or-else it.when "")}) keybindings)))
-
-(defkey "mod+alt+b" toggleSecondarySidebar)
-
-(defkey "mod+ctrl+right" moveEditorToNextGroup)
-
-(defkey "mod+ctrl+left" moveEditorToPreviousGroup)
-
-(defkey "ctrl+r" openRecent)
-
-(defkey "mod+1" focusFirstGroup)
-
-(defkey "mod+2" focusSecondGroup)
-
-(defkey "mod+k shift+enter" pinEditor)
-
-(defkey "mod+k mod+shift+enter" unpinEditor)
-
-(defkey "mod+k u" closeOtherEditors)
-
-(defcustom editor.minimap.enabled
-  false "Show a narrow overview of the file at the editor's right edge; press or drag it to scroll." :description ~(t "settings.editor.minimap.enabled.about") :type boolean :title ~(t "settings.editor.minimap.enabled"))
-
-(defcustom breadcrumbs.enabled
-  true "Show the file's folders and the symbol at the caret above the editor." :description ~(t "settings.breadcrumbs.enabled.about") :type boolean :title ~(t "settings.breadcrumbs.enabled"))
-
-(defcustom diffEditor.renderSideBySide
-  true "Compare a changed file side by side; off, inline (the deleted lines above the inserted ones)." :description ~(t "settings.diffEditor.renderSideBySide.about") :type boolean :title ~(t "settings.diffEditor.renderSideBySide"))
-
-(defpart workbench "What workbench adds." :watch {:state.caret outlineFollowsCaret})
-
-;;; Functions and commands
 
 (defcommand toggleSecondarySidebar "Show or hide the side bar at the right, with the Outline of the active file."
   :title ~(t "command.toggleSecondarySidebar") :category ~(t "category.view") :icon "panel-right"
@@ -91,7 +48,7 @@
                    (= computed.activeDoc.language "Python"))))
     (do (set "state.outline" []) (set "state.outlineSymbols" ""))))
 
-(defn outlineOf "rows: a file's lines (line, row, code: the row trimmed); headings: a Markdown file's lines that start with #; python: whether rows are Python's. The outline: the headings, Python's classes and functions by their indentation, or the lines of code that open a block, at the first or second level"
+(defn outlineOf "A file's outline from its lines (`rows`: line, row, code; `headings`: a Markdown file's # lines; `python`: whether the rows are Python): headings, or the lines that define something."
   [rows headings python]
   (set "state.outline"
        (slice (concat (map (fn [it]
@@ -163,22 +120,39 @@
               0
               2000)))
 
-(defn outlinePicked "TODO" []
+(defn outlinePicked "A symbol of the outline, picked: the caret goes to its line." []
   (when (> (number (get (split event.value ":") 0)) 0) (goToLine (number (get (split event.value ":") 0)))))
 
-(defcommand toggleMinimap "Toggle Minimap"
-  :title ~(t "command.toggleMinimap") :category ~(t "category.view") :icon "map" []
-  (set "settings.editor.minimap.enabled" (not settings.editor.minimap.enabled)))
+(defn outlineFollowsCaret "The caret moved: the outline is read again once it rests 300 ms." []
+  (debounce 300 refreshOutline))
 
-(defcommand toggleDiffInline "Toggle Inline View"
-  :title ~(t "command.toggleDiffInline") :category ~(t "category.compare") :icon "columns" []
-  (set "settings.diffEditor.renderSideBySide" (not settings.diffEditor.renderSideBySide)))
+(defpart outline-follows "The outline follows the caret, once it rests."
+  :watch {:state.caret outlineFollowsCaret})
+
+(defkey "mod+alt+b" toggleSecondarySidebar)
+
+;;; Breadcrumbs, the minimap and the diff's layout
+
+(defcomputed symbolTrail
+  (filter (fn [it] (some? it))
+            (reduce (fn [acc it]
+                      (concat (slice (concat acc [nil nil nil nil nil nil nil nil]) 0 (min it.depth 7)) [it]))
+                    []
+                    (filter (fn [it] (<= it.line state.caret.line)) state.outline))))
+
+(defcustom breadcrumbs.enabled
+  true "Show the file's folders and the symbol at the caret above the editor." :description ~(t "settings.breadcrumbs.enabled.about") :type boolean :title ~(t "settings.breadcrumbs.enabled"))
 
 (defcommand toggleBreadcrumbs "Toggle Breadcrumbs"
   :title ~(t "command.toggleBreadcrumbs") :category ~(t "category.view") :icon "chevrons-right" []
   (set "settings.breadcrumbs.enabled" (not settings.breadcrumbs.enabled)))
 
-(defn revealFolder "path: a folder's path. Opens the explorer with that folder and its parents open" [path]
+(defn breadcrumbClicked "A breadcrumb clicked: a folder (the `si`th part of `path`) opens in the explorer, the file's name shows its symbols." [path si]
+  (if (< si (- (count (split path "/")) 1))
+    (revealFolder (join "/" (slice (split path "/") 0 (+ si 1))))
+    (goToSymbol)))
+
+(defn revealFolder "Opens the explorer with a folder and its parents open, the folder chosen." [path]
   (explorerShow path)
   (when (not (contains state.explorer.expanded path))
     (set "state.explorer.expanded" (concat state.explorer.expanded [path]))
@@ -186,7 +160,23 @@
   (set "state.sideView" "explorer")
   (set "state.layout.sidebar" true))
 
-(defn rememberRecent "id, label: a file just shown. Puts it first in the recently opened files (Go to File lists them first)"
+(defcustom editor.minimap.enabled
+  false "Show a narrow overview of the file at the editor's right edge; press or drag it to scroll." :description ~(t "settings.editor.minimap.enabled.about") :type boolean :title ~(t "settings.editor.minimap.enabled"))
+
+(defcommand toggleMinimap "Toggle Minimap"
+  :title ~(t "command.toggleMinimap") :category ~(t "category.view") :icon "map" []
+  (set "settings.editor.minimap.enabled" (not settings.editor.minimap.enabled)))
+
+(defcustom diffEditor.renderSideBySide
+  true "Compare a changed file side by side; off, inline (the deleted lines above the inserted ones)." :description ~(t "settings.diffEditor.renderSideBySide.about") :type boolean :title ~(t "settings.diffEditor.renderSideBySide"))
+
+(defcommand toggleDiffInline "Toggle Inline View"
+  :title ~(t "command.toggleDiffInline") :category ~(t "category.compare") :icon "columns" []
+  (set "settings.diffEditor.renderSideBySide" (not settings.diffEditor.renderSideBySide)))
+
+;;; Recently opened files
+
+(defn rememberRecent "A file just shown (`id`, `label`) comes first in the recently opened files."
   [id label]
   (set "state.quickPick.recent"
        (slice (concat [{:id id :title label :detail (join "/" (slice (split id "/") 0 (- (count (split id "/")) 1)))}]
@@ -205,7 +195,11 @@
   :enablement ~(> (count (or-else state.quickPick.recent [])) 0) []
   (set "state.quickPick.recent" []))
 
-(defn moveTabToGroup "id, to, at: a tab dropped on group to's strip at place at. It leaves the group it was in (closed if empty)"
+(defkey "ctrl+r" openRecent)
+
+;;; Editor groups and tabs
+
+(defn moveTabToGroup "A tab dropped on a group's strip (`id`, the group `to`, the place `at`): it leaves the group it was in, which closes if empty."
   [id to at]
   (when (holdingTab id to)
     (set (str "state.groups[" to "].tabs")
@@ -227,7 +221,7 @@
 (defn without "A list without its item at `at`." [items at]
   (concat (take at items) (drop (inc at) items)))
 
-(defn reorderTab "gi, from, to: a tab dragged along its strip" [gi from to]
+(defn reorderTab "A tab dragged along its strip, from one place to another." [gi from to]
   (set (str "state.groups[" gi "].tabs")
        (concat (slice (without (get-in state.groups [gi :tabs]) from) 0 to)
                [(get-in state.groups [gi :tabs from])]
@@ -279,6 +273,29 @@
   (doseq [tab (filter (fn [it] (and (not= it.id (activeTabId)) (not it.sticky))) (activeTabs))]
     (closeTab state.activeGroup tab.id)))
 
+(defkey "mod+ctrl+right" moveEditorToNextGroup)
+
+(defkey "mod+ctrl+left" moveEditorToPreviousGroup)
+
+(defkey "mod+1" focusFirstGroup)
+
+(defkey "mod+2" focusSecondGroup)
+
+(defkey "mod+k shift+enter" pinEditor)
+
+(defkey "mod+k mod+shift+enter" unpinEditor)
+
+(defkey "mod+k u" closeOtherEditors)
+
+;;; settings.json and keybindings.json
+
+(defstate settingsJson "")
+
+(defstate settingsJsonError "")
+
+(defcomputed keybindingsJson
+  (json (map (fn [it] {:key it.key :command it.command :when (or-else it.when "")}) keybindings)))
+
 (defcommand openSettingsJson "The settings you changed, as JSON: edit them and Apply."
   :title ~(t "command.openSettingsJson") :category ~(t "category.preferences") :icon "braces"
   :description ~(t "command.openSettingsJson.about") []
@@ -290,15 +307,9 @@
   :title ~(t "command.applySettingsJson") :category ~(t "category.preferences") :icon "check" []
   (if (= (type (parseJson state.settingsJson)) "object")
     (do (set "state.settings" (parseJson state.settingsJson)) (set "state.settingsJsonError" ""))
-    (set "state.settingsJsonError" "Not applied: the text isn't a JSON object of settings.")))
+    (set "state.settingsJsonError" (t "settingsJson.notObject"))))
 
 (defcommand openKeybindingsJson "The keys every feature contributes, as JSON (read-only: a feature's keys section changes them)."
   :title ~(t "command.openKeybindingsJson") :category ~(t "category.preferences") :icon "braces"
   :description ~(t "command.openKeybindingsJson.about") []
   (openPage "forge:keybindings.json" "keybindings.json" "keybindingsJson"))
-
-(defn outlineFollowsCaret "TODO" []
-  (debounce 300 outlineFollowsCaretLater))
-
-(defn outlineFollowsCaretLater "What outlineFollowsCaret does when its time comes." []
-  (refreshOutline))

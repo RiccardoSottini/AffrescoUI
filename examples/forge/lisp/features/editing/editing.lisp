@@ -1,9 +1,10 @@
-;;; editing.lisp --- Forge's editing: the find and replace bar over the active editor (mod+f, mod+alt+f), plain, whole word, case-sensitive or a regular expression, in the whole file or in the selection, with the match count; and the editor's settings (word wrap, bracket matching, indentation guides)
+;;; editing.lisp --- Forge's editing: find and replace in the active editor, and the editor's settings
 ;;;
-;;; The editor node (features/editor) reads state.findBar and the settings; the status bar shows Ln and Col from
-;;; state.caret.
+;;; The find bar over the active editor (Cmd+F, Cmd+Alt+F) finds plain text, whole words, case-sensitive text or a
+;;; regular expression, in the file or the selection; the editor highlights the matches and counts them. Its line
+;;; commands (toggle comment, move, delete, indent) are the editor's own, on its keys (views.lisp of the editor).
 
-;;; State and definitions
+;;; The find bar
 
 (defstate findBar
   {:open false
@@ -33,28 +34,8 @@
 
 (defcomputed findSummary
   (cond (empty? state.findBar.text) ""
-          (= computed.findMatches 0) "No results"
-          :else (plural computed.findMatches "match" "matches")))
-
-(defkey "mod+f" openFind)
-
-(defkey "mod+alt+f" openReplace)
-
-(defkey "alt+z" toggleWordWrap)
-
-(defcustom editor.tabSize
-  4 "Spaces per indentation level: what Tab inserts and an opened file's tabs become." :description ~(t "settings.editor.tabSize.about") :type integer :minimum 1 :maximum 16 :title ~(t "settings.editor.tabSize"))
-
-(defcustom editor.wordWrap
-  false "Wrap lines that don't fit the editor's width." :description ~(t "settings.editor.wordWrap.about") :type boolean :title ~(t "settings.editor.wordWrap"))
-
-(defcustom editor.bracketMatching
-  true "Highlight the bracket that pairs with the one at the caret." :description ~(t "settings.editor.bracketMatching.about") :type boolean :title ~(t "settings.editor.bracketMatching"))
-
-(defcustom editor.guides.indentation
-  true "Draw a line at each indentation level." :description ~(t "settings.editor.guides.indentation.about") :type boolean :title ~(t "settings.editor.guides.indentation"))
-
-;;; Functions and commands
+          (= computed.findMatches 0) (t "search.none")
+          :else (t "find.matches" {:n computed.findMatches})))
 
 (defcommand openFind "Find"
   :title ~(t "command.openFind") :category ~(t "category.edit") :icon "search" []
@@ -74,7 +55,10 @@
   (set "state.findBar.inSelection" false)
   (after 0 closeFindLater))
 
-(defn findStep "TODO" [step]
+(defn closeFindLater "The editor gets the focus back once the bar is closed." []
+  (focus "#editor"))
+
+(defn findStep "Asks the editor to find the next or previous match, or to replace one or all." [step]
   (set "state.findBar.step" step)
   (increment "state.findBar.request" :by 1))
 
@@ -98,9 +82,26 @@
   :title ~(t "command.toggleFindInSelection") :category ~(t "category.edit") []
   (set "state.findBar.inSelection" (not state.findBar.inSelection)))
 
+(defkey "mod+f" openFind)
+
+(defkey "mod+alt+f" openReplace)
+
+;;; The editor's settings
+
+(defcustom editor.tabSize
+  4 "Spaces per indentation level: what Tab inserts and an opened file's tabs become." :description ~(t "settings.editor.tabSize.about") :type integer :minimum 1 :maximum 16 :title ~(t "settings.editor.tabSize"))
+
+(defcustom editor.wordWrap
+  false "Wrap lines that don't fit the editor's width." :description ~(t "settings.editor.wordWrap.about") :type boolean :title ~(t "settings.editor.wordWrap"))
+
+(defcustom editor.bracketMatching
+  true "Highlight the bracket that pairs with the one at the caret." :description ~(t "settings.editor.bracketMatching.about") :type boolean :title ~(t "settings.editor.bracketMatching"))
+
+(defcustom editor.guides.indentation
+  true "Draw a line at each indentation level." :description ~(t "settings.editor.guides.indentation.about") :type boolean :title ~(t "settings.editor.guides.indentation"))
+
 (defcommand toggleWordWrap "Toggle Word Wrap"
   :title ~(t "command.toggleWordWrap") :category ~(t "category.view") []
   (set "settings.editor.wordWrap" (not settings.editor.wordWrap)))
 
-(defn closeFindLater "What closeFind does when its time comes." []
-  (focus "#editor"))
+(defkey "alt+z" toggleWordWrap)

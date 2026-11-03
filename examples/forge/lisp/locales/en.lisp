@@ -617,4 +617,8 @@
                 :lsp.applied "Applied {edits, plural, one {# edit} other {# edits}} in {files, plural, one {# file} other {# files}}"
                 :lsp.notAppliedTo "Not applied to {file}: {error}"
                 :lsp.overlap "Not applied to {file}: an edit is past its text, or two overlap"
-                :lsp-review-dialog.message "Apply {edits, plural, one {# edit} other {# edits}} in {files, plural, one {# file} other {# files}}? Open files are changed in their editors and left unsaved; others are written."}}}
+                :lsp-review-dialog.message "Apply {edits, plural, one {# edit} other {# edits}} in {files, plural, one {# file} other {# files}}? Open files are changed in their editors and left unsaved; others are written."
+                :find.matches "{n, plural, one {# match} other {# matches}}"
+                :settingsJson.notObject "Not applied: the text isn't a JSON object of settings."
+                :conflict.at "Merge conflict {n} of {of}"
+                :conflict.count "{n, plural, one {# merge conflict} other {# merge conflicts}}"}}}

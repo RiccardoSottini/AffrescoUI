@@ -1,8 +1,8 @@
-;;; views.lisp --- what workbench.lisp shows
+;;; views.lisp --- the secondary side bar with the Outline, the breadcrumbs, and the JSON pages of settings and keys
 
-;;; Views
+;;; The Outline
 
-(defcomponent forgeSecondarySideBar "The forgeSecondarySideBar component."
+(defcomponent forgeSecondarySideBar "The side bar at the right: the Outline of the active file, a row a symbol."
   {}
   `(column#secondary-side-bar :role complementary
      :label ~(t "secondary-side-bar.label")
@@ -30,73 +30,7 @@
        :accentColor @color.accent
        :onChange outlinePicked)))
 
-(defcomponent forgeBreadcrumbs "The forgeBreadcrumbs component."
-  {:path ""}
-  `(row#breadcrumbs :role navigation
-     :label ~(t "breadcrumbs.label")
-     :width "100%"
-     :height 22
-     :alignItems center
-     :color @color.editor
-     :gap 2
-     (node#breadcrumbs-start :width 10)
-     ~(repeat [segment (split path "/") :index si]
-       `(label#breadcrumb :role button
-          :label ~segment
-          :text ~segment
-          :icon ~(if (> si 0) "chevron-right" "")
-          :fitText true
-          :padding 2
-          :cursor hand
-          :textColor @color.muted
-          :hover {:textColor @color.text}
-          :onClick [{:if ~(< si (- (count (split path "/")) 1))
-                     :then [~(handler revealFolder (join "/" (slice (split path "/") 0 (+ si 1))))]
-                     :else [goToSymbol]}]))
-     ~(repeat [symbol computed.symbolTrail]
-       `(label#breadcrumb-symbol :role button
-          :label ~(trim symbol.label)
-          :text ~(trim symbol.label)
-          :icon chevron-right
-          :fitText true
-          :padding 2
-          :cursor hand
-          :textColor @color.muted
-          :hover {:textColor @color.text}
-          :onClick goToSymbol))))
-
-(defcomponent forgeSettingsJsonPage "The forgeSettingsJsonPage component."
-  {}
-  `(column#settings-json-page :width "100%" :grow 1 :color @color.editor
-     ~(settings-json-head)
-     (editor#settings-json :font code
-       :width "100%"
-       :grow 1
-       :bind state.settingsJson
-       :grammar json
-       :lineNumbers true
-       :color @color.editor
-       :textColor @color.editorText
-       :lineNumberColor @color.muted
-       :selectionColor @color.selection
-       :caretColor @color.text
-       :keys {"mod+enter" applySettingsJson})))
-
-(defcomponent forgeKeybindingsJsonPage "The forgeKeybindingsJsonPage component."
-  {}
-  `(editor#keybindings-json :font code
-     :width "100%"
-     :grow 1
-     :readOnly true
-     :text ~computed.keybindingsJson
-     :grammar json
-     :lineNumbers true
-     :color @color.editor
-     :textColor @color.editorText
-     :lineNumberColor @color.muted
-     :selectionColor @color.selection))
-
-(defview outline-head "#outline-head." []
+(defview outline-head "The Outline's title, and Refresh." []
   `(row#outline-head :width "100%" :height 32 :alignItems center
      (label#outline-title :text ~(t "outline-title") :textColor @color.muted :grow 1 :height 32 :padding 12)
      (label#outline-refresh :role button
@@ -120,7 +54,61 @@
        :hover {:color @color.hover}
        :onClick toggleSecondarySidebar)))
 
-(defview settings-json-head "#settings-json-head." []
+;;; Breadcrumbs
+
+(defcomponent forgeBreadcrumbs "Over the editor: the file's folders, then the symbols around the caret."
+  {:path ""}
+  `(row#breadcrumbs :role navigation
+     :label ~(t "breadcrumbs.label")
+     :width "100%"
+     :height 22
+     :alignItems center
+     :color @color.editor
+     :gap 2
+     (node#breadcrumbs-start :width 10)
+     ~(repeat [segment (split path "/") :index si]
+       `(label#breadcrumb :role button
+          :label ~segment
+          :text ~segment
+          :icon ~(if (> si 0) "chevron-right" "")
+          :fitText true
+          :padding 2
+          :cursor hand
+          :textColor @color.muted
+          :hover {:textColor @color.text}
+          :onClick ~(handler breadcrumbClicked path si)))
+     ~(repeat [symbol computed.symbolTrail]
+       `(label#breadcrumb-symbol :role button
+          :label ~(trim symbol.label)
+          :text ~(trim symbol.label)
+          :icon chevron-right
+          :fitText true
+          :padding 2
+          :cursor hand
+          :textColor @color.muted
+          :hover {:textColor @color.text}
+          :onClick goToSymbol))))
+
+;;; The JSON pages
+
+(defcomponent forgeSettingsJsonPage "settings.json: the settings changed, as JSON to edit and Apply."
+  {}
+  `(column#settings-json-page :width "100%" :grow 1 :color @color.editor
+     ~(settings-json-head)
+     (editor#settings-json :font code
+       :width "100%"
+       :grow 1
+       :bind state.settingsJson
+       :grammar json
+       :lineNumbers true
+       :color @color.editor
+       :textColor @color.editorText
+       :lineNumberColor @color.muted
+       :selectionColor @color.selection
+       :caretColor @color.text
+       :keys {"mod+enter" applySettingsJson})))
+
+(defview settings-json-head "settings.json's head: what it is, Apply, and why the last Apply failed." []
   `(row#settings-json-head :width "100%" :height 30 :alignItems center :gap 8
      (label#settings-json-hint :text ~(t "settings-json-hint") :textColor @color.muted :padding 8 :grow 1)
      (label#settings-json-error :when ~(not (empty? state.settingsJsonError))
@@ -140,3 +128,17 @@
        :focusable true
        :onClick applySettingsJson)
      (node#settings-json-end :width 4)))
+
+(defcomponent forgeKeybindingsJsonPage "keybindings.json: every key, as JSON to read."
+  {}
+  `(editor#keybindings-json :font code
+     :width "100%"
+     :grow 1
+     :readOnly true
+     :text ~computed.keybindingsJson
+     :grammar json
+     :lineNumbers true
+     :color @color.editor
+     :textColor @color.editorText
+     :lineNumberColor @color.muted
+     :selectionColor @color.selection))
