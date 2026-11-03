@@ -49,7 +49,7 @@
 
 (defn previewSelectedFile "The explorer's selection, a file, opens in the preview tab." []
   (when (= (:kind (or-else (find (fn [it] (= it.path event.value)) state.explorerTree.entries) {})) "file")
-    (openPreview event.value (get (reverse (split event.value "/")) 0))))
+    (openPreview event.value (baseName event.value))))
 
 (defpart follow-explorer "A file chosen in the explorer opens in the preview tab."
   :watch {:state.explorer.selected previewSelectedFile})
@@ -60,9 +60,9 @@
   [id label preview]
   (forgeRecordNav id)
   (cond
-    (some (fn [it] (= it.id id)) (get-in state.groups [state.activeGroup :tabs])) (when (not preview) (pinTab id))
-    (and preview (some (fn [it] it.preview) (get-in state.groups [state.activeGroup :tabs])))
-      (replacePreview id label (:id (find (fn [it] it.preview) (get-in state.groups [state.activeGroup :tabs]))))
+    (some (fn [it] (= it.id id)) (activeTabs)) (when (not preview) (pinTab id))
+    (and preview (some (fn [it] it.preview) (activeTabs)))
+      (replacePreview id label (:id (find (fn [it] it.preview) (activeTabs))))
     :else (push (str "state.groups[" state.activeGroup "].tabs") {:id id :label label :preview preview}))
   (set (str "state.groups[" state.activeGroup "].active") id)
   (rememberRecent id label))
@@ -82,7 +82,7 @@
   :title ~(t "command.keepEditor") :category ~(t "category.view") :icon "pin"
   :description ~(t "command.keepEditor.about")
   :enablement ~(some (fn [it] it.preview) (get-in state.groups [state.activeGroup :tabs])) []
-  (pinTab (get-in state.groups [state.activeGroup :active])))
+  (pinTab (activeTabId)))
 
 (defn releaseBuffer "Lets go of a file no tab shows any more, unless it has unsaved edits." [id]
   (when (and (not (contains (map (fn [it] (contains (map (fn [it] it.id) it.tabs) id)) state.groups) true))

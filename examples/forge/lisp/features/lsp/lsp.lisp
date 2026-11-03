@@ -188,12 +188,12 @@
   (set "state.lsp.completion.index" 0)
   (when (or (= event.text "(") (= event.text ",")) (lspAsk "signature" event.line event.column nil nil))
   (when (= event.text ")") (set "state.lsp.signature.open" false))
-  (if (and (empty? event.word) (not= event.text "."))
-    (set "state.lsp.completion.open" false)
-    (do
-      (when (or (= event.text ".") (= (count event.word) 1) (not state.lsp.completion.open))
+  (cond
+    (and (empty? event.word) (not= event.text ".")) (set "state.lsp.completion.open" false)
+    (or (= event.text ".") (= (count event.word) 1) (not state.lsp.completion.open))
+      (do
         (lspAsk "completion" event.line event.column nil nil)
-        (set "state.lsp.completion.request" state.lsp.request)))))
+        (set "state.lsp.completion.request" state.lsp.request))))
 
 (defn lspPopupKey "TODO" []
   (when (or (= event.key "escape") (= (count computed.lspCompletions) 0)) (set "state.lsp.completion.open" false))
@@ -218,15 +218,15 @@
 (defn lspAnswer "answer: { kind, request, path, result, error }, its positions from 0" [answer]
   (if (some? answer.error)
     (do
-      (if (or (= answer.kind "rename") (= answer.kind "format"))
-        (notify "warning" (str "Not applied: " answer.error.message))
-        (do
-          (when (and (not= answer.kind "hover")
-                     (not= answer.kind "completion")
-                     (not= answer.kind "signature")
-                     (not= answer.kind "tokens")
-                     (not= answer.kind "outline"))
-            (notify "info" (str "Language server: " answer.error.message))))))
+      (cond
+        (or (= answer.kind "rename") (= answer.kind "format"))
+          (notify "warning" (str "Not applied: " answer.error.message))
+        (and (not= answer.kind "hover")
+             (not= answer.kind "completion")
+             (not= answer.kind "signature")
+             (not= answer.kind "tokens")
+             (not= answer.kind "outline"))
+          (notify "info" (str "Language server: " answer.error.message))))
     (do
       (when (and (= answer.kind "hover") (= answer.request state.lsp.hover.request))
         (set "state.lsp.hover"
@@ -306,7 +306,7 @@
                       {:severity (if (= it.severity "hint") "info" it.severity)
                        :message (if (empty? it.source) it.message (str it.message " (" it.source ")"))
                        :file published.path
-                       :label (get (reverse (split published.path "/")) 0)
+                       :label (baseName published.path)
                        :line (+ it.line 1)
                        :column (+ it.column 1)
                        :source "lsp"
@@ -325,7 +325,7 @@
                 :error (or-else event.error nil)})))
 
 (defn lspOpenLocation "at: { path, line, column } from 0" [at]
-  (openPath at.path (get (reverse (split at.path "/")) 0))
+  (openPath at.path (baseName at.path))
   (set "state.goTo.line" (+ at.line 1))
   (set "state.goTo.column" (+ at.column 1))
   (increment "state.goTo.request" :by 1))

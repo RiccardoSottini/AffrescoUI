@@ -296,7 +296,7 @@
 
 (defcommand debugContinueOrStart "Start Debugging or Continue"
   :title ~(t "command.debugContinueOrStart") :category ~(t "category.debug") :icon "play" []
-  (if (= state.debug.status "stopped") (debugContinue) (when (= state.debug.status "inactive") (debugStart))))
+  (cond (= state.debug.status "stopped") (debugContinue) (= state.debug.status "inactive") (debugStart)))
 
 (defcommand debugStart "Start Debugging"
   :title ~(t "command.debugStart") :category ~(t "category.debug") :icon "play"
@@ -695,7 +695,7 @@
        (slice (concat state.debug.console
                       (map-indexed (fn [index it]
                                      {:id (str "c" (+ state.debug.consoleNext index)) :text it :kind kind})
-                                   (slice lines 0 (- (count lines) (if (empty? (get lines (- (count lines) 1))) 1 0)))))
+                                   (slice lines 0 (- (count lines) (if (empty? (last lines)) 1 0)))))
               (- 2000)))
   (increment "state.debug.consoleNext" :by (count lines)))
 
@@ -821,14 +821,14 @@
     (do (set "state.debug.restartAfter" true) (debugStop))))
 
 (defn debugSelectStack "TODO" [id]
-  (if (= (slice id 0 2) "t:")
-    (do
-      (when (and (= state.debug.status "stopped") (not= (slice id 2) (text state.debug.threadId)))
-        (set "state.debug.threadId" (:id (find (fn [it] (= (text it.id) (slice id 2))) state.debug.threads)))
-        (debugLoadStack)))
-    (do
-      (when (some? (find (fn [it] (= (str "f:" it.id) id)) state.debug.frames))
-        (debugSelectFrame (find (fn [it] (= (str "f:" it.id) id)) state.debug.frames) true)))))
+  (cond
+    (= (slice id 0 2) "t:")
+      (do
+        (when (and (= state.debug.status "stopped") (not= (slice id 2) (text state.debug.threadId)))
+          (set "state.debug.threadId" (:id (find (fn [it] (= (text it.id) (slice id 2))) state.debug.threads)))
+          (debugLoadStack)))
+    (some? (find (fn [it] (= (str "f:" it.id) id)) state.debug.frames))
+      (debugSelectFrame (find (fn [it] (= (str "f:" it.id) id)) state.debug.frames) true)))
 
 (defn debugSelectFrame "TODO" [frame ask]
   (set "state.debug.frameId" frame.id)
@@ -844,7 +844,7 @@
   (debugRefreshWatches)
   (cond
     (and frame.inside (not (empty? frame.relative)))
-      (do (openPath frame.relative (get (reverse (split frame.relative "/")) 0)) (goToLine frame.line))
+      (do (openPath frame.relative (baseName frame.relative)) (goToLine frame.line))
     (contains computed.docIds state.debug.current.path)
       (showTab state.debug.current.path (:label (find (fn [it] (= it.id state.debug.current.path)) state.docs)))
     :else
@@ -1070,16 +1070,17 @@
   (set "state.panelTab" "debugConsole"))
 
 (defn debugHover "TODO" [path]
-  (if (or (not= state.debug.status "stopped") (empty? event.word) (nil? event.line))
-    (set "state.debug.hover" {:path "" :word "" :line 0 :value ""})
-    (do
-      (when (or (not= event.word state.debug.hover.word) (not= event.line state.debug.hover.line))
+  (cond
+    (or (not= state.debug.status "stopped") (empty? event.word) (nil? event.line))
+      (set "state.debug.hover" {:path "" :word "" :line 0 :value ""})
+    (or (not= event.word state.debug.hover.word) (not= event.line state.debug.hover.line))
+      (do
         (set "state.debug.hover" {:path path :word event.word :line event.line :value ""})
         (debugRequest "evaluate"
                       "debugOnHover"
                       {:word event.word :line event.line}
                       "debugIgnore"
-                      {:expression event.word :frameId state.debug.frameId :context "hover"})))))
+                      {:expression event.word :frameId state.debug.frameId :context "hover"}))))
 
 (defn debugOnHover "TODO" [context body]
   (when (and (= context.word state.debug.hover.word) (= context.line state.debug.hover.line))
@@ -1179,7 +1180,7 @@
     (debugGoTo (find (fn [it] (= it.id event.id)) state.debug.breakpoints))))
 
 (defn debugGoTo "TODO" [breakpoint]
-  (openPath breakpoint.path (get (reverse (split breakpoint.path "/")) 0))
+  (openPath breakpoint.path (baseName breakpoint.path))
   (goToLine breakpoint.line))
 
 (defn debugRemoveBreakpoint "TODO" []

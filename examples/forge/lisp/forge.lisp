@@ -67,7 +67,16 @@
    :assistant.danger @color.error
    :assistant.warningBackground @color.hover})
 
-;;; A macro the others use
+;;; What the others use
+
+(defn activeTabs "The active editor group's tabs." []
+  (get-in state.groups [state.activeGroup :tabs]))
+
+(defn activeTabId "The id of the active group's tab shown: a file's path, or a page's id." []
+  (get-in state.groups [state.activeGroup :active]))
+
+(defn baseName "A path's last part: a file's or a folder's name." [path]
+  (last (split path "/")))
 
 (defmacro doseq "Runs its body once for each item of a list, for what it does: (doseq [item list] body...)."
   [binding & body]

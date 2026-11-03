@@ -238,12 +238,12 @@
   :description ~(t "command.moveEditorToNextGroup.about")
   :enablement ~(and (not (empty? (get-in state.groups [state.activeGroup :active]))) (or (< state.activeGroup (- (count state.groups) 1)) (> (count (get-in state.groups [state.activeGroup :tabs])) 1))) []
   (when (= state.activeGroup (- (count state.groups) 1)) (push "state.groups" {:tabs [] :active nil}))
-  (moveTabToGroup (get-in state.groups [state.activeGroup :active]) (+ state.activeGroup 1) 1000))
+  (moveTabToGroup (activeTabId) (+ state.activeGroup 1) 1000))
 
 (defcommand moveEditorToPreviousGroup "Move Editor into Previous Group"
   :title ~(t "command.moveEditorToPreviousGroup") :category ~(t "category.view") :icon "arrow-left"
   :enablement ~(and (not (empty? (get-in state.groups [state.activeGroup :active]))) (> state.activeGroup 0)) []
-  (moveTabToGroup (get-in state.groups [state.activeGroup :active]) (- state.activeGroup 1) 1000))
+  (moveTabToGroup (activeTabId) (- state.activeGroup 1) 1000))
 
 (defcommand focusFirstGroup "Focus First Editor Group"
   :title ~(t "command.focusFirstGroup") :category ~(t "category.view") []
@@ -268,21 +268,15 @@
   :title ~(t "command.unpinEditor") :category ~(t "category.view") :icon "pin-off"
   :enablement ~(some (fn [it] (and (= it.id (get-in state.groups [state.activeGroup :active])) it.sticky)) (get-in state.groups [state.activeGroup :tabs])) []
   (set (str "state.groups[" state.activeGroup "].tabs")
-       (concat (filter (fn [it] (and it.sticky (not= it.id (get-in state.groups [state.activeGroup :active]))))
-                       (get-in state.groups [state.activeGroup :tabs]))
-               (map (fn [it] (merge it {:sticky false}))
-                    (filter (fn [it] (= it.id (get-in state.groups [state.activeGroup :active])))
-                            (get-in state.groups [state.activeGroup :tabs])))
-               (filter (fn [it] (and (not it.sticky) (not= it.id (get-in state.groups [state.activeGroup :active]))))
-                       (get-in state.groups [state.activeGroup :tabs])))))
+       (concat (filter (fn [it] (and it.sticky (not= it.id (activeTabId)))) (activeTabs))
+               (map (fn [it] (merge it {:sticky false})) (filter (fn [it] (= it.id (activeTabId))) (activeTabs)))
+               (filter (fn [it] (and (not it.sticky) (not= it.id (activeTabId)))) (activeTabs)))))
 
 (defcommand closeOtherEditors "Close the active group's editors but the active one and the pinned ones."
   :title ~(t "command.closeOtherEditors") :category ~(t "category.view")
   :description ~(t "command.closeOtherEditors.about")
   :enablement ~(some (fn [it] (and (not= it.id (get-in state.groups [state.activeGroup :active])) (not it.sticky))) (get-in state.groups [state.activeGroup :tabs])) []
-  (doseq [tab
-          (filter (fn [it] (and (not= it.id (get-in state.groups [state.activeGroup :active])) (not it.sticky)))
-                  (get-in state.groups [state.activeGroup :tabs]))]
+  (doseq [tab (filter (fn [it] (and (not= it.id (activeTabId)) (not it.sticky))) (activeTabs))]
     (closeTab state.activeGroup tab.id)))
 
 (defcommand openSettingsJson "The settings you changed, as JSON: edit them and Apply."

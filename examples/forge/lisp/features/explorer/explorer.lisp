@@ -215,8 +215,7 @@
                  :free true
                  :to (join "/"
                            (filter (fn [it] (not (empty? it)))
-                                   [computed.explorerTargetFolder
-                                    (get (reverse (split state.explorerEdit.clipboard "/")) 0)]))}
+                                   [computed.explorerTargetFolder (baseName state.explorerEdit.clipboard)]))}
           :onError explorerPasteFailed
           :onDone explorerPasteDone))
 
@@ -230,15 +229,14 @@
                     (join "/" (slice (split (or-else event.id "") "/") 0 (- 1)))))))
 
 (defn explorerMove "TODO" [from into]
-  (if (or (= into from) (= (indexOf into (str from "/")) 0))
-    (notify "error" (str "Cannot move " (get (reverse (split from "/")) 0) " into itself"))
-    (do
-      (when (not= into (join "/" (slice (split from "/") 0 (- 1))))
-        (invoke "files.rename"
-                :with {:path from
-                       :to (join "/" (filter (fn [it] (not (empty? it))) [into (get (reverse (split from "/")) 0)]))}
-                :onError explorerMoveFailed
-                :onDone [explorerMoveDone from])))))
+  (cond
+    (or (= into from) (= (indexOf into (str from "/")) 0))
+      (notify "error" (str "Cannot move " (baseName from) " into itself"))
+    (not= into (join "/" (slice (split from "/") 0 (- 1))))
+      (invoke "files.rename"
+              :with {:path from :to (join "/" (filter (fn [it] (not (empty? it))) [into (baseName from)]))}
+              :onError explorerMoveFailed
+              :onDone [explorerMoveDone from])))
 
 (defcommand explorerCollapseAll "Collapse Folders in Explorer"
   :title ~(t "command.explorerCollapseAll") :category ~(t "category.files") :icon "copy-minus"
@@ -294,7 +292,7 @@
 
 (defn explorerMakeDone2Done2 "What explorerMakeDone2 does when it is done." [to]
   (explorerShow to)
-  (openPath to (get (reverse (split to "/")) 0)))
+  (openPath to (baseName to)))
 
 (defn explorerDeleteConfirmedFailed "What explorerDeleteConfirmed does when it fails." [error]
   (notify "error" (str "Cannot delete: " error.message)))

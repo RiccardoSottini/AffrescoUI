@@ -167,7 +167,7 @@
            (merge read
                   {:items (map (fn [it]
                                  {:id it.path
-                                  :label (get (reverse (split it.path "/")) 0)
+                                  :label (baseName it.path)
                                   :detail (join "/" (slice (split it.path "/") 0 (- (count (split it.path "/")) 1)))
                                   :badge (cond
                                            (= it.kind "added") "A"
@@ -323,7 +323,7 @@
   [event]
   (doseq [page
           [{:id (str "commit:" (slice event.hash 0 12) ":" event.path)
-            :label (str (get (reverse (split event.path "/")) 0) " (" (slice event.hash 0 7) ")")
+            :label (str (baseName event.path) " (" (slice event.hash 0 7) ")")
             :diff (merge (diffLines (or-else event.original "") (or-else event.modified "") {:context (- 1)})
                          {:path event.path
                           :original (or-else event.original "")
@@ -390,7 +390,7 @@
                              changes)}]))
   (doseq [page
           [{:id (str "diff:" state.scm.compare.path)
-            :label (str (get (reverse (split state.scm.compare.path "/")) 0) " (Working Tree)")
+            :label (str (baseName state.scm.compare.path) " (Working Tree)")
             :diff (merge diff
                          {:path state.scm.compare.path
                           :original state.scm.compare.original

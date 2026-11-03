@@ -530,8 +530,7 @@
 (defn debugOnSource "TODO" [context body]
   (debugShowSource
     (str "debug-source:" (if (empty? context.frame.path) (str "ref:" context.frame.reference) context.frame.path))
-    (str (if (empty? context.frame.path) context.frame.name (get (reverse (split context.frame.path "/")) 0))
-         " (read-only)")
+    (str (if (empty? context.frame.path) context.frame.name (baseName context.frame.path)) " (read-only)")
     (slice (text (or-else body.content "")) 0 4194304)))
 
 (defn debugOnSourceRefused "TODO" [message]
