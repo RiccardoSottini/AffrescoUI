@@ -54,7 +54,8 @@
 (defcomputed decided "Whether nothing waits: a commit, or a proposal decided." (not computed.open))
 
 (defcomputed extras "What the change adds beside its files: its assets, then its steps that run once."
-  (concat (map (fn [a] (if (= a.removed true) (t "changes.removed" {:name a.name}) a.name)) (or-else state.view.assets []))
+  (concat (map (fn [a] (if (= a.removed true) (t "changes.removed" {:name a.name}) a.name))
+               (or-else state.view.assets []))
           (map (fn [r] (json r)) (or-else state.view.run []))))
 
 ;;; What the host asks for, and what it answers
@@ -308,7 +309,10 @@
 (defview files "The change's files, then what it adds beside them." []
   `(column#changesFiles :width 240 :gap 2 :alignItems stretch :anchors {:top 0 :bottom 0} :scroll vertical
      (label#changesFilesTitle :text ~(t "changes.files") :font small :textColor @c.muted :height 20)
-     (label#changesNoFiles :when ~(= (count state.view.files) 0) :text ~(t "changes.none") :textColor @c.muted :height 20)
+     (label#changesNoFiles :when ~(= (count state.view.files) 0)
+       :text ~(t "changes.none")
+       :textColor @c.muted
+       :height 20)
      ~(repeat [f state.view.files] (file-row f))
      (label#changesExtrasTitle :when ~(> (count computed.extras) 0)
        :text ~(str (t "changes.assets") " · " (t "changes.run"))
@@ -351,12 +355,15 @@
     (label#changesSummary :when ~(some? state.view)
       :text ~(str (t "changes.by" {:author state.view.author})
                   "   "
-                  (t "changes.filesSummary" {:n (count state.view.files) :added computed.added :removed computed.removed})
+                  (t "changes.filesSummary"
+                     {:n (count state.view.files) :added computed.added :removed computed.removed})
                   (if (nil? state.view.impact)
                     ""
                     (str "   "
                          (t "changes.layers"
-                            {:view state.view.impact.view :logic state.view.impact.logic :data state.view.impact.data}))))
+                            {:view state.view.impact.view
+                             :logic state.view.impact.logic
+                             :data state.view.impact.data}))))
       :textColor @c.muted
       :height 20)
     (label#changesStale :when ~(and state.stale (not state.closed))
@@ -382,7 +389,8 @@
 
 ;;; Deciding
 
-(defview action-button "A button that decides: its text from a key, shown while `shown`." [id width shown accent key on-click]
+(defview action-button "A button that decides: its text from a key, shown while `shown`."
+  [id width shown accent key on-click]
   `(node :id ~id
      :when ~shown
      :role button
@@ -404,7 +412,8 @@
        :align center)))
 
 (defview actions "Why, Preview, Reject and Accept for a proposal; Undo for a commit after the first." []
-  `(row#changesActions :when ~(or computed.open (and (some? state.view) (= state.view.kind "commit") (> state.view.revision 0)))
+  `(row#changesActions
+     :when ~(or computed.open (and (some? state.view) (= state.view.kind "commit") (> state.view.revision 0)))
      :gap 8
      :height 32
      (textarea#changesReason :when ~computed.open
@@ -461,5 +470,9 @@
         (row#changesBody :when ~(some? state.view) :grow 1 :gap 12
           ~(files)
           ~(pane))
-        (label#changesMessage :when ~(not= state.message "") :wrap true :text ~state.message :textColor @c.warning :height 36)
+        (label#changesMessage :when ~(not= state.message "")
+          :wrap true
+          :text ~state.message
+          :textColor @c.warning
+          :height 36)
         ~(actions)))))
