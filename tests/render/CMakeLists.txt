@@ -20,6 +20,11 @@ find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
 	add_test(NAME rendering COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/check.py --build ${PROJECT_BINARY_DIR}
 	         WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+	# Each example's Lisp version draws its first frame exactly as its JSON version (parity.py): a few seconds
+	if(AFFRESCOUI_BUILD_EXAMPLES)
+		add_test(NAME lisp_parity COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/parity.py --build
+		         ${PROJECT_BINARY_DIR} WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+	endif()
 endif()
 
 # The templates' own scenarios (in their folders, examples/templates.json), Forge's, Modello's, Sinopia's and Tempera's: what each one
