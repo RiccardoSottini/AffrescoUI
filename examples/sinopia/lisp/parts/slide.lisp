@@ -8,7 +8,7 @@
 
 ;;; Definitions
 
-(defcomponent slideBackground "The slideBackground component."
+(defcomponent slideBackground "A slide's background: its colour, and its theme's decorations."
   {:slide nil :prefix ""}
   `(node :id ~(str prefix "bg")
      :x 0
@@ -45,9 +45,9 @@
        :textColor ~(or-else computed.palette.dark2 computed.palette.dark1)
        :runs [{:text ~(text (+ (indexOf (map (fn [it] it.id) state.deck.slides) slide.id) 1)) :size 12}])))
 
-(defcomponent slideObject "The slideObject component."
+(defcomponent slideObject "An object of a slide: a shape, a line, an icon, ink or text, at its place."
   {:o nil :prefix "" :layout nil :edit false}
-  `(node :id ~(+ prefix o.id)
+  `(node :id ~(str prefix o.id)
      :let {:p ~(or-else (find (fn [it] (= it.ph o.ph)) layout.ph) {})
            :box ~{:x (or-else o.x p.x 0) :y (or-else o.y p.y 0) :w (or-else o.w p.w 100) :h (or-else o.h p.h 100)}
            :shape ~(or (= o.kind "shape")
@@ -61,7 +61,7 @@
            :empty ~(= (trim (or-else o.text "")) "")
            :editing ~(and edit (= state.editing o.id))
            :prompt ~(and edit empty (some? o.ph) (not editing))
-           :outline ~(+ prefix o.id "-ph")
+           :outline ~(str prefix o.id "-ph")
            :lines ~(if prompt [(or-else (get computed.prompts o.ph) "")] (split (or-else o.text "") "\n"))
            :bullets ~(or-else o.bullets p.bullets false)
            :anchor ~(or-else o.anchor p.anchor (if (= o.kind "shape") "middle" "top"))
@@ -92,8 +92,8 @@
                           :dash nil
                           :effect nil}
                          (merge o box))
-              :name ~(+ prefix o.id)})
-     (label :id ~(+ prefix o.id "-icon")
+              :name ~(str prefix o.id)})
+     (label :id ~(str prefix o.id "-icon")
        :when ~(= o.kind "icon")
        :x 0
        :y 0
@@ -102,7 +102,7 @@
        :align center
        :textColor ~ink
        :runs [{:icon ~(or-else o.icon "star") :size ~(* (min box.w box.h) 0.9)}])
-     (path :id ~(+ prefix o.id "-ink")
+     (path :id ~(str prefix o.id "-ink")
        :when ~(= o.kind "ink")
        :x 0
        :y 0
@@ -128,10 +128,10 @@
                           :dash "dash"
                           :effect nil})
               :name ~outline})
-     ~(view-12 o)
-     ~(view-16 o prefix)))
+     ~(text-editor o)
+     ~(object-text o prefix)))
 
-(defcomponent slidePage "The slidePage component."
+(defcomponent slidePage "A whole slide: its background and its objects, as the show and the pictures draw it."
   {:slide nil :prefix ""}
   `(node :id ~(str prefix "page") :color transparent :x 0 :y 0 :width 960 :height 540
      (node :use slideBackground :with {:slide ~slide :prefix ~prefix})
@@ -144,7 +144,7 @@
 
 ;;; Views
 
-(defview view-12 "The editor's own gutter (12 px) and top padding (6 px), at its 48 px font scaled to the size, are taken off, and its first line is placed where the text's is, by the anchor" [o]
+(defview text-editor "The editor over an object whose text is edited. The editor's own gutter (12 px) and top padding (6 px), at its 48 px font scaled to the size, are taken off, and its first line is placed where the text's is, by the anchor" [o]
   `(editor :id ~(str "edit-" o.id)
      :when ~editing
      :autofocus true
@@ -178,8 +178,8 @@
      :selectionColor "#2a9d8f55"
      :label "Slide text"))
 
-(defview view-13 "#." [o prefix n]
-  `(label :id ~(+ prefix o.id "-p" n "-b")
+(defview paragraph-mark "Paragraph `n`'s bullet or number." [o prefix n]
+  `(label :id ~(str prefix o.id "-p" n "-b")
      :when ~(and bullets (not prompt))
      :width ~mark
      :height ~(ceil (* pt 1.2))
@@ -219,8 +219,8 @@
                    (some? o.bulletIcon) {:icon o.bulletIcon :size (* pt 0.75) :color ink}
                    :else {:text "•" :size pt :color ink})]))
 
-(defview view-14 "#." [o prefix n]
-  `(label :id ~(+ prefix o.id "-p" n "-t")
+(defview paragraph-text "Paragraph `n`'s text, wrapped to the box less its mark." [o prefix n]
+  `(label :id ~(str prefix o.id "-p" n "-t")
      :wrap true
      :fitText {:maxWidth ~(max (- (- (/ (- (if turned frame.h frame.w) (* size (- cols 1))) cols) lead)
                                   (if (and bullets (not prompt)) mark 0))
@@ -240,8 +240,8 @@
              :background ~(if prompt nil (or-else o.highlight nil))
              :shadow ~(if (and (not prompt) (or-else o.shadow false)) "#00000059" nil)}]))
 
-(defview view-15 "#." [o prefix n]
-  `(row :id ~(+ prefix o.id "-p" n)
+(defview paragraph "Paragraph `n` of object `o`: its mark and its text, at its list level." [o prefix n]
+  `(row :id ~(str prefix o.id "-p" n)
      :fitContent true
      :overflow visible
      :let {:line ~(get lines n)
@@ -256,12 +256,12 @@
                                                                    (range n))))
                                               1)
                                            (+ n 1))))}
-     {:id ~(+ prefix o.id "-p" n "-in") :color transparent :width ~lead :height 1 :when ~(> lead 0)}
-     ~(view-13 o prefix n)
-     ~(view-14 o prefix n)))
+     {:id ~(str prefix o.id "-p" n "-in") :color transparent :width ~lead :height 1 :when ~(> lead 0)}
+     ~(paragraph-mark o prefix n)
+     ~(paragraph-text o prefix n)))
 
-(defview view-16 "#." [o prefix]
-  `(row :id ~(+ prefix o.id "-text")
+(defview object-text "Object `o`'s text, a paragraph a line, unless it is being edited." [o prefix]
+  `(row :id ~(str prefix o.id "-text")
      :when ~(and (or (not empty) prompt) (not editing))
      :overflow visible
      :gap ~size
@@ -295,7 +295,7 @@
      :height ~(if turned frame.w frame.h)
      :rotate ~(or-else o.textRotate 0)
      ~(repeat [k (range cols)]
-       `(column :id ~(+ prefix o.id "-text-c" k)
+       `(column :id ~(str prefix o.id "-text-c" k)
           :overflow visible
           :width ~colWidth
           :height ~(if turned frame.w frame.h)
@@ -303,4 +303,4 @@
           :alignItems ~(cond (= align "center") "center" (= align "right") "end" :else "start")
           :gap ~(+ (if bullets (* size 0.35) 0) (* size (- (if prompt 1 (or-else o.spacing 1)) 1)))
           ~(repeat [n (filter (fn [it] (= (get column it) k)) (range (count lines)))]
-            (view-15 o prefix n))))))
+            (paragraph o prefix n))))))

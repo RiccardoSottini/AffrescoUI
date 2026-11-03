@@ -62,12 +62,12 @@
          {:slot true})
        {:width 3 :height 1 :color transparent})))
 
-(defcomponent rbStack "The rbStack component."
+(defcomponent rbStack "Small buttons in a column, three to a group."
   {}
   `(column :fitContent width :height 72 :gap 0 :color transparent :justify space-evenly
      {:slot true}))
 
-(defcomponent rbRow "The rbRow component."
+(defcomponent rbRow "Small buttons in a row."
   {}
   `(row :fitContent width :height 24 :gap 1 :color transparent :alignItems center
      {:slot true}))
@@ -83,7 +83,7 @@
 
 ;;; Views
 
-(defview rb-small-row "#rb-small-row." [icon title menu on enabled tint drop colors]
+(defview rb-small-row "A small button's row: its icon and title, and the arrow of its menu." [icon title menu on enabled tint drop colors]
   `(row :fitContent width :height ~(if (nil? tint) 24 21) :color transparent
      (label :height ~(if (nil? tint) 24 21)
        :fitText true
@@ -101,9 +101,9 @@
        :tooltip "More options"
        :style ~(if (not enabled) "rbButtonOff" "rbButton")
        :runs [{:icon chevron-down :size 10}]
-       :onClick {:run ~(if colors "openColors" "openDrop") :with {:id ~drop}})))
+       :onClick ~(handler openMenu colors drop))))
 
-(defview rb-group-row "#rb-group-row." [title launcher]
+(defview rb-group-row "A group's caption and, if it has one, its launcher." [title launcher]
   `(row :fitContent width :height 18 :color transparent :alignItems center :gap 4
      {:width 6 :height 1 :color transparent}
      (label :style rbGroupTitle :fitText true :runs [{:text ~(upper-case title) :size 9 :bold true}])
@@ -121,7 +121,7 @@
        :onClick openFormatPane)
      {:width 4 :height 1 :color transparent}))
 
-(defview rb-gallery-column "#rb-gallery-column." [width more]
+(defview rb-gallery-column "A gallery's arrows: up, down, and every item." [width more]
   `(column :width 16 :height 68 :color transparent
      (label :width 16
        :height 22
@@ -144,3 +144,8 @@
        :tooltip ~(if (= more "") "Every item is shown" "The whole list")
        :runs [{:icon chevrons-down :size 10}]
        :onClick ~(handler openDrop more))))
+
+;;; What the ribbon's parts do
+
+(defn openMenu "Opens a button's drop-down, or its colour grid." [colors id]
+  (if colors (openColors id) (openDrop id)))

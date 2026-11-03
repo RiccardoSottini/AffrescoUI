@@ -510,7 +510,7 @@
     :name "Callouts"
     :shapes [wedgeRectCallout wedgeRoundRectCallout wedgeEllipseCallout cloudCallout borderCallout1]}])
 
-(defcomponent shapePath "The shapePath component."
+(defcomponent shapePath "A shape of the gallery drawn in its box: its effect, its outline and its extra paths."
   {:o nil :name ""}
   `(node :id ~(str name "-shape")
      :color transparent
@@ -727,14 +727,14 @@
                         o.gradient (or-else (get computed.palette o.gradient.from) o.gradient.from)
                         (= o.fill "none") ink
                         :else fill)}
-     ~(view o name)
-     ~(geo-view-a o name)
+     ~(shape-effect o name)
+     ~(shape-outline o name)
      ~(repeat [f (if (or g.light g.dark) [{:id "light" :faces (or-else g.light []) :color "#ffffff40"} {:id "dark" :faces (or-else g.dark []) :color "#00000033"}] []) :key f.id]
-       (geo-view-b o name f))))
+       (shape-feature o name f))))
 
 ;;; Views
 
-(defview view "#." [o name]
+(defview shape-effect "The shadow or the glow under shape `o`." [o name]
   `(path :id ~(str name "-effect")
      :when ~(or (= o.effect "shadow") (= o.effect "glow"))
      :x ~(+ (- e) (if (= o.effect "shadow") 4 0))
@@ -759,7 +759,7 @@
      :strokeWidth ~(if (= o.effect "glow") (+ lw 12) lw)
      :strokeJoin round))
 
-(defview geo-view-a "#." [o name]
+(defview shape-outline "Shape `o`'s path: its fill, its line, its dash." [o name]
   `(path :id ~(str name "-path")
      :x ~(- e)
      :y ~(- e)
@@ -796,7 +796,7 @@
                         (= o.dash "longDash") [(* 8 lw) (* 3 lw)]
                         :else [])))
 
-(defview geo-view-b "#." [o name f]
+(defview shape-feature "One of the extra paths a shape draws, `f`, such as an arrow's head." [o name f]
   `(path :id ~(str name "-" f.id)
      :x ~(- e)
      :y ~(- e)

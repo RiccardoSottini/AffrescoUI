@@ -4,7 +4,7 @@
 
 ;;; Definitions
 
-(defcomponent tabHome "The tabHome component."
+(defcomponent tabHome "The Home tab: the clipboard, the slides, the font, the paragraph, drawing, editing, voice."
   {}
   `(row#tab-home :fitContent width :height 92 :gap 4 :color transparent
      ~(g-clipboard)
@@ -37,7 +37,7 @@
          :with {:icon audio-lines :title "Speak" :menu true :width 50 :enabled false}
          :tooltip "Speak to type isn't available yet"))))
 
-(defview g-slides "#g-slides, in tabHome." []
+(defview g-slides "New Slide, Layout, Reset and Section." []
   `(node#g-slides :use rbGroup :with {:title "Slides"}
      (node#b-new-slide :use rbBig
        :with {:icon layout-panel-top :title "New\nSlide" :menu true :width 50 :drop b-new-slide}
@@ -54,7 +54,7 @@
          :tooltip "Section"
          :onClick ~(handler openDrop "b-section")))))
 
-(defview g-clipboard "#g-clipboard, in tabHome." []
+(defview g-clipboard "Paste, Cut, Copy and Copy Style." []
   `(node#g-clipboard :use rbGroup :with {:title "Clipboard"}
      (node#b-paste :use rbBig
        :with {:icon clipboard-paste :title "Paste" :menu true :width 46 :drop b-paste}
@@ -71,7 +71,7 @@
          :tooltip "Copy Style: select an object, click here, then select the objects to give its look"
          :onClick copyStyle))))
 
-(defcomponent tabInsert "The tabInsert component."
+(defcomponent tabInsert "The Insert tab: slides, tables, pictures, shapes and icons, links, comments, text, symbols."
   {}
   `(row#tab-insert :fitContent width :height 92 :gap 4 :color transparent
      (node#g-ins-slides :use rbGroup :with {:title "Slides"}
@@ -112,7 +112,7 @@
          :with {:icon music :title "Audio" :width 44 :enabled false}
          :tooltip "Inserting audio isn't available yet"))))
 
-(defview g-ins-links "#g-ins-links, in tabInsert." []
+(defview g-ins-links "Link the selected text to a slide." []
   `(node#g-ins-links :use rbGroup :with {:title "Links"}
      (node#b-ins-link :use rbBig
        :with {:icon link
@@ -123,7 +123,7 @@
        :tooltip "Link the selected text to a slide of this deck, which a click in the show goes to"
        :onClick ~(handler openDrop "b-ins-link"))))
 
-(defview g-ins-illustrations "#g-ins-illustrations, in tabInsert." []
+(defview g-ins-illustrations "Shapes, icons and charts." []
   `(node#g-ins-illustrations :use rbGroup :with {:title "Illustrations"}
      (node#b-ins-shapes :use rbBig
        :with {:icon shapes :title "Shapes" :menu true :width 48}
@@ -135,7 +135,7 @@
        :with {:icon chart-column-stacked :title "Chart" :width 44 :enabled false}
        :tooltip "Inserting a chart isn't available yet")))
 
-(defview g-ins-text "#g-ins-text, in tabInsert." []
+(defview g-ins-text "A text box, a header and footer, word art and a symbol." []
   `(node#g-ins-text :use rbGroup :with {:title "Text"}
      (node#b-ins-textbox :use rbBig
                          :with {:icon text-cursor-input :title "Text\nBox" :width 44}
@@ -147,17 +147,17 @@
        :with {:icon type :title "Art\nText" :menu true :width 44}
        :onClick ~(handler openDrop "b-ins-art-text"))))
 
-(defcomponent tabDesign "The tabDesign component."
+(defcomponent tabDesign "The Design tab: the themes, their variants, the colours and fonts, and the background."
   {}
   `(row#tab-design :fitContent width :height 92 :gap 4 :color transparent
      (node#g-themes :use rbGroup :with {:title "Themes"}
        (node#gal-themes :use rbGallery :with {:width 490 :more gal-themes}
          ~(repeat [t (slice computed.themes 0 6) :key t.id]
-           (view-19 t))))
+           (theme-choice t))))
      (node#g-variants :use rbGroup :with {:title "Variants"}
        (node#gal-variants :use rbGallery :with {:width 290}
          ~(repeat [v computed.theme.variants :index n]
-           (view-20 v n)))
+           (variant-choice v n)))
        (column#variants-col :width 76 :height 72 :gap 2 :alignItems stretch :color transparent
          (node#b-colors :use rbSmall
            :with {:icon palette :title "Colors" :menu true}
@@ -175,7 +175,7 @@
                          :with {:icon paint-bucket :title "Format\nBackground" :width 70}
                          :onClick formatBackground))))
 
-(defcomponent tabTransitions "The tabTransitions component."
+(defcomponent tabTransitions "The Transitions tab: the preview, the transition to this slide, and its timing."
   {}
   `(row#tab-transitions :fitContent width :height 92 :gap 4 :color transparent
      (node#g-preview :use rbGroup :with {:title "Preview"}
@@ -187,7 +187,7 @@
      (node#g-timing :use rbGroup :with {:title "Timing"}
        ~(timing-col))))
 
-(defcomponent tabView "The tabView component."
+(defcomponent tabView "The View tab: the views of the deck, what the canvas shows, and the panes."
   {}
   `(row#tab-view :fitContent width :height 92 :gap 4 :color transparent
      ~(g-views)
@@ -213,7 +213,7 @@
                 :width 48}
          :onClick toggleTheme))))
 
-(defcomponent tabFile "The tabFile component."
+(defcomponent tabFile "The File tab: open and save the deck, export it, and what the last of those did."
   {}
   `(row#tab-file :fitContent width :height 92 :gap 4 :color transparent
      (node#g-file :use rbGroup :with {:title "Deck"}
@@ -242,7 +242,7 @@
          :textColor @rbMuted
          :runs [{:text ~(if (= state.fileStatus "") "Nothing saved or exported yet." state.fileStatus) :size 12}]))))
 
-(defcomponent tabMotion "The tabMotion component."
+(defcomponent tabMotion "The Motion tab: the preview, the builds' effects, their timing, and the animation pane."
   {}
   `(row#tab-motion :fitContent width
      :height 92
@@ -276,9 +276,9 @@
        :cursor hand
        :textColor @rbInk
        :runs [{:text ~title :size 12}]
-       :onClick [{:toggle ~at}])))
+       :onClick ~(handler toggleAt at))))
 
-(defcomponent tabPresent "The tabPresent component."
+(defcomponent tabPresent "The Present tab: start the show, hide a slide, the presenter view, the reading view."
   {}
   `(row#tab-present :fitContent width :height 92 :gap 4 :color transparent
      (node#g-start :use rbGroup :with {:title "Start Slide Show"}
@@ -303,7 +303,7 @@
 
 ;;; Views
 
-(defview r-font-1 "#r-font-1." []
+(defview r-font-1 "The font, its size, larger, smaller, and clear the formatting." []
   `(node#r-font-1 :use rbRow
      (node#f-font :use rbField :with {:text ~computed.fontTitle :width 150 :drop f-font} :tooltip "Font")
      (node#f-size :use rbField :with {:text ~(text computed.textSize) :width 46 :drop f-size} :tooltip "Font Size")
@@ -320,7 +320,7 @@
                    :tooltip "Clear All Formatting"
                    :onClick clearFormatting)))
 
-(defview r-font-2 "#r-font-2." []
+(defview r-font-2 "Bold, italic, underline, shadow, strikethrough, spacing, case, highlight and colour." []
   `(node#r-font-2 :use rbRow
      (node#b-bold :use rbSmall
        :with {:icon bold :on ~(and (some? computed.first) computed.allOn.bold)}
@@ -358,7 +358,7 @@
        :tooltip "Font Color"
        :onClick ~(handler applyColor "b-color" (get state.lastColor "b-color")))))
 
-(defview r-para-1 "#r-para-1." []
+(defview r-para-1 "Bullets, numbering, list levels, line spacing and columns." []
   `(node#r-para-1 :use rbRow
      (node#b-bullets :use rbSmall
        :with {:icon list
@@ -370,8 +370,7 @@
      (node#b-numbering :use rbSmall
        :with {:icon list-ordered :menu true :drop b-numbering :on ~(some? computed.first.numbering)}
        :tooltip "Numbering"
-       :onClick {:run setObjects
-                 :with {:props ~(if (nil? computed.first.numbering) {:bullets true :numbering "1."} {:numbering nil})}})
+       :onClick toggleNumbering)
      (node#b-outdent :use rbSmall
        :with {:icon indent-decrease}
        :tooltip "Decrease List Level"
@@ -389,7 +388,7 @@
        :tooltip "Add or Remove Columns"
        :onClick ~(handler openDrop "b-columns"))))
 
-(defview r-para-2 "#r-para-2." []
+(defview r-para-2 "The text's alignment, its direction, its place in the box." []
   `(node#r-para-2 :use rbRow
      ~(repeat [a [["left" "align-left" "Align Left (Ctrl+L)"] ["center" "align-center" "Center (Ctrl+E)"] ["right" "align-right" "Align Right (Ctrl+R)"] ["justify" "align-justify" "Justify (Ctrl+J)"]]]
        `(node :id ~(str "b-align-" a.0)
@@ -398,7 +397,7 @@
                  :on ~(and (some? computed.first)
                            (= (or-else computed.first.align computed.firstPlaceholder.align "left") a.0))}
           :tooltip ~a.2
-          :onClick {:run setObjects :with {:props ~{:align a.0}}}))
+          :onClick ~(handler setAlign a.0)))
      (node#b-direction :use rbSmall
        :with {:icon arrow-down-up :menu true}
        :tooltip "Text Direction"
@@ -411,7 +410,7 @@
        :with {:icon network :menu true :enabled false}
        :tooltip "Convert to a Diagram isn't available yet")))
 
-(defview view-17 "#." [k]
+(defview gallery-shape-picture "Shape `k` drawn small, in the gallery." [k]
   `(node :id ~(str "gal-shape-" k "-box")
      :color transparent
      :when ~(not= k "textBox")
@@ -434,7 +433,7 @@
                    :effect nil}
               :name ~(str "gal-shape-" k)})))
 
-(defview view-18 "#." [k]
+(defview gallery-shape "Shape `k` of the gallery, or a text box: a click adds one to the slide." [k]
   `(panel :id ~(str "gal-shape-" k)
      :width 24
      :height 21
@@ -443,21 +442,21 @@
      :cursor hand
      :hover {:color @rbHover}
      :tooltip ~(if (= k "textBox") "Text Box" (or-else (get-in computed.shapes [k :name]) k))
-     :onClick [{:if ~(= k "textBox") :then [~(handler insertTextBox)] :else [~(handler insertShape k)]}]
+     :onClick ~(handler shapeChosen k)
      (label :id ~(str "gal-shape-" k "-tb")
        :when ~(= k "textBox")
        :fill 0
        :align center
        :textColor @rbInk
        :runs [{:icon text-cursor-input :size 14}])
-     ~(view-17 k)))
+     ~(gallery-shape-picture k)))
 
-(defview g-drawing "#g-drawing." []
+(defview g-drawing "The shape gallery, Arrange, Shape Styles, and the fill, outline and effects." []
   `(node#g-drawing :use rbGroup :with {:title "Drawing" :launcher true}
      (node#gal-shapes :use rbGallery :with {:width 168 :more gal-shapes}
        (grid#gal-shapes-grid :columns 6 :width 148 :height 66 :gap 1 :color transparent
          ~(repeat [k ["textBox" "rect" "ellipse" "triangle" "rtTriangle" "line" "lineArrow" "roundRect" "rightArrow" "downArrow" "star5" "curvedRightArrow" "leftBrace" "rightBrace" "smileyFace" "heart" "cloud" "wedgeRoundRectCallout"] :index n]
-           (view-18 k))))
+           (gallery-shape k))))
      (node#b-arrange :use rbBig
        :with {:icon layers-2 :title "Arrange" :menu true :width 52}
        :tooltip "Arrange"
@@ -480,7 +479,7 @@
          :tooltip "Shape Effects"
          :onClick ~(handler openDrop "b-effects")))))
 
-(defview view-19 "#." [t]
+(defview theme-choice "Theme `t` in the gallery: its background, Aa in its text colour, and its accents." [t]
   `(panel :id ~(str "theme-" t.id)
      :width 76
      :height 60
@@ -503,7 +502,7 @@
        ~(repeat [c ["accent1" "accent2" "accent3" "accent4"]]
          `{:id ~(str "theme-" t.id "-" c) :width 15 :height 8 :color ~(get t.colors c)}))))
 
-(defview view-20 "#." [v n]
+(defview variant-choice "Variant `v` of the theme, at `n`: its background, an accent band and two lines." [v n]
   `(panel :id ~(str "variant-" n)
      :width 62
      :height 60
@@ -528,7 +527,7 @@
       :height 3
       :color ~(:accent2 (merge computed.theme.colors v))}))
 
-(defview g-transition-to "#g-transition-to." []
+(defview g-transition-to "The transitions, and the side the transition comes from." []
   `(node#g-transition-to :use rbGroup :with {:title "Transition to This Slide"}
      (node#gal-transitions :use rbGallery :with {:width 520}
        ~(repeat [k [["none" "ban" "None"] ["glide" "blend" "Glide"] ["fade" "sun-dim" "Fade"] ["push" "arrow-left-to-line" "Push"] ["wipe" "chevrons-left" "Wipe"] ["split" "columns-2" "Split"] ["reveal" "arrow-left-from-line" "Reveal"] ["cover" "square-stack" "Cover"]]]
@@ -539,21 +538,16 @@
             :align {:horizontal center :vertical center}
             :style ~(if (= (or-else computed.slide.transition.kind "none") k.0) "rbButtonOn" "rbButton")
             :runs ~[{:icon k.1 :size 24} {:text (str "\n" k.2) :size 11}]
-            :onClick {:run setTransition :with {:props ~{:kind k.0}}})))
+            :onClick ~(handler setTransitionKind k.0))))
      (node#b-effect-options :use rbBig
        :with {:icon ~(get computed.directionIcons (or-else computed.slide.transition.direction "left"))
               :title ~(str "From\n" (or-else computed.slide.transition.direction "left"))
               :width 52
               :enabled ~(contains ["push" "wipe" "reveal" "cover"] (or-else computed.slide.transition.kind "none"))}
        :tooltip "The side the transition comes from"
-       :onClick {:run setTransition
-                 :with {:props ~{:direction (get computed.directions
-                                                 (mod (+ (indexOf computed.directions
-                                                                  (or-else computed.slide.transition.direction "left"))
-                                                         1)
-                                                      4))}}})))
+       :onClick nextDirection)))
 
-(defview timing-col "#timing-col." []
+(defview timing-col "The transition's duration, Apply To All, and On Mouse Click." []
   `(column#timing-col :width 200 :height 72 :gap 2 :alignItems stretch :color transparent
      (row#timing-row :height 22 :gap 2 :alignItems center :color transparent
        (label#timing-duration :width 120
@@ -577,7 +571,7 @@
        :textColor @rbInk
        :runs [{:icon check-square :size 14} {:text " On Mouse Click" :size 12}])))
 
-(defview g-views "#g-views." []
+(defview g-views "The views of the deck: Normal, Outline, Slide Sorter, and Notes Page." []
   `(node#g-views :use rbGroup :with {:title "Views"}
      (node#b-normal :use rbBig
        :with {:icon panel-left :title "Normal" :on ~(= state.view "normal") :width 46}
@@ -595,7 +589,7 @@
        :with {:icon book-open :title "Reading\nView" :width 50}
        :onClick ~(handler readingView state.current))))
 
-(defview g-effects "#g-effects." []
+(defview g-effects "The build effects for the selected objects, and As Exit." []
   `(node#g-effects :use rbGroup :with {:title ~(if (= a.kind "exit") "Exit" "Entrance")}
      (node#gal-effects :use rbGallery :with {:width 380}
        ~(repeat [e [["none" "ban" "None"] ["appear" "square" "Appear"] ["fade" "sun-dim" "Fade"] ["wipe" "chevrons-right" "Wipe"] ["fly" "move-up" "Fly"] ["zoom" "zoom-in" "Zoom"]]]
@@ -606,17 +600,13 @@
             :align {:horizontal center :vertical center}
             :style ~(cond (not on) "rbButtonOff" (= (or-else a.effect "none") e.0) "rbButtonOn" :else "rbButton")
             :runs ~[{:icon e.1 :size 24} {:text (str "\n" e.2) :size 11}]
-            :onClick {:run setAnimation
-                      :with {:effect ~e.0
-                             :kind ~(or-else a.kind "entrance")
-                             :start ~(or-else a.start "click")
-                             :ms ~(or-else a.ms 500)}})))
+            :onClick ~(handler setAnimation e.0 (or-else a.kind "entrance") (or-else a.start "click") (or-else a.ms 500)))))
      (node#b-exit :use rbBig
        :with {:icon log-out :title "As\nExit" :on ~(= a.kind "exit") :enabled ~(some? a) :width 46}
        :tooltip "Leave the slide instead of coming in"
-       :onClick {:run changeAnimation :with {:props ~{:kind (if (= a.kind "exit") "entrance" "exit")}}})))
+       :onClick toggleExit)))
 
-(defview motion-timing-col "#motion-timing-col." []
+(defview motion-timing-col "When the build starts, its duration, and how many builds the slide has." []
   `(column#motion-timing-col :width 200 :height 72 :gap 2 :alignItems stretch :color transparent
      (row#motion-start-row :height 22 :gap 2 :alignItems center :color transparent
        (label#motion-start-title :width 44 :height 22 :textColor @rbInk :runs [{:text "Start" :size 12}])
@@ -627,7 +617,7 @@
             :padding 4
             :style ~(cond (nil? a) "rbButtonOff" (= a.start w.0) "rbButtonOn" :else "rbButton")
             :runs [{:text ~w.1 :size 12}]
-            :onClick {:run changeAnimation :with {:props ~{:start w.0}}})))
+            :onClick ~(handler animationStart w.0))))
      (row#motion-duration-row :height 22 :gap 2 :alignItems center :color transparent
        (label#motion-duration :width 120
          :height 22
@@ -636,11 +626,11 @@
        (node#motion-shorter :use rbSmall
          :with {:icon minus :enabled ~(some? a)}
          :tooltip "Shorter"
-         :onClick {:run changeAnimation :with {:props ~{:ms (max (- (or-else a.ms 500) 250) 0)}}})
+         :onClick ~(handler animationDurationBy -250))
        (node#motion-longer :use rbSmall
          :with {:icon plus :enabled ~(some? a)}
          :tooltip "Longer"
-         :onClick {:run changeAnimation :with {:props ~{:ms (min (+ (or-else a.ms 500) 250) 59000)}}}))
+         :onClick ~(handler animationDurationBy 250)))
      (label#motion-count :height 22
        :textColor @rbMuted
        :runs [{:text ~(str (count (or-else computed.slide.animations []))
@@ -648,3 +638,33 @@
                            (count (filter (fn [it] (= it.start "click")) (or-else computed.slide.animations [])))
                            " on a click")
                :size 12}])))
+
+;;; What the ribbon does
+
+(defn toggleAt "Turns a setting of the state on or off, by its path." [at]
+  (toggle at))
+
+(defn setAlign "Aligns the selected text: left, center, right or justify." [align]
+  (setObjects {:align align}))
+
+(defn toggleNumbering "Numbers the selected text's lines, or stops numbering them." []
+  (setObjects (if (nil? computed.first.numbering) {:bullets true :numbering "1."} {:numbering nil})))
+
+(defn shapeChosen "Adds a shape of the gallery to the slide, or a text box." [k]
+  (if (= k "textBox") (insertTextBox) (insertShape k)))
+
+(defn setTransitionKind "Gives the slide a transition." [kind]
+  (setTransition {:kind kind}))
+
+(defn nextDirection "Turns the side the transition comes from to the next: left, up, right, down." []
+  (let [now (or-else computed.slide.transition.direction "left")]
+    (setTransition {:direction (get computed.directions (mod (inc (indexOf computed.directions now)) 4))})))
+
+(defn toggleExit "Makes the selected objects' build an exit, or an entrance again." []
+  (changeAnimation {:kind (if (= computed.animation.kind "exit") "entrance" "exit")}))
+
+(defn animationStart "Starts the selected objects' build on a click, with the one before, or after it." [start]
+  (changeAnimation {:start start}))
+
+(defn animationDurationBy "Makes the selected objects' build longer or shorter, by milliseconds." [by]
+  (changeAnimation {:ms (clamp (+ (or-else computed.animation.ms 500) by) 0 59000)}))

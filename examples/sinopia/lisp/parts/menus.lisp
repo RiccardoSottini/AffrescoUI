@@ -701,7 +701,7 @@
          :label ~slot
          :onClick ~(handler pickColor state.colors.id c)})))
 
-(defview find-buttons "#find-buttons." []
+(defview find-buttons "Find Next, Replace and Replace All, or OK for a name." []
   `(row#find-buttons :anchors {:left 10 :right 10} :height 26 :gap 4 :color transparent :justify end
      (label#find-rename :when ~(not= (or-else state.find.ask "") "")
        :style rbButtonOn
