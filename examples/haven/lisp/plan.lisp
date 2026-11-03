@@ -58,7 +58,7 @@
 (defcomponent planPage "The floor plan: the rooms on a canvas, and beside it the picked room and the speaker."
   {}
   `(node :color transparent
-     {:id planTitle :style pageTitle :icon map :text ~(str " " (t "page.plan"))}
+     {:id planTitle :style pageTitle :icon map :text ~(t "page.plan")}
      {:id planSummary :style caption :text ~(t "plan.summary") :anchors {:left 32 :top 66}}
      (node#planCard :style card :anchors {:left 32 :right 336 :top 104 :bottom 24}
        (canvas#plan :fill 8
@@ -99,7 +99,7 @@
 
 (defview light-switch-row "A light of the picked room, warm while it is on; a click switches it." [light i]
   `(label#planLight :icon ~(if light.on "lightbulb" "lightbulb-off")
-     :text ~(str "  " light.name)
+     :text ~light.name
      :anchors {:left 0 :right 0}
      :height 32
      :padding 10
@@ -120,7 +120,7 @@
 (defcomponent mediaCard "The speaker: the track, play and pause (a device call), previous and next, and the volume."
   {}
   `(node :style card :role group :label ~(t "media.title")
-     {:id mediaTitle :style cardTitle :icon speaker :text ~(str " " (t "media.title"))}
+     {:id mediaTitle :style cardTitle :icon speaker :text ~(t "media.title")}
      {:id mediaState
       :style caption
       :anchors {:right 24 :top 24}

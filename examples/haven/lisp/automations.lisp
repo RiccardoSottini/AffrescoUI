@@ -172,7 +172,7 @@
     :style ~(if (= state.autoTab tab) "choiceOn" "choice")
     :font small
     :icon ~icon
-    :text ~(str " " (t key))
+    :text ~(t key)
     :grow 1
     :basis 0
     :anchors {:top 0 :bottom 0}
@@ -200,7 +200,7 @@
     :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
     :style button
     :icon plus
-    :text ~(str " " (t "auto.new"))
+    :text ~(t "auto.new")
     :color @accent
     :hover {:color @accent}
     :textColor @onAccent
@@ -357,7 +357,7 @@
       :onClick ~(handler openAutomation -1)}
      (label#autoName :font heading
        :icon ~computed.openAuto.icon
-       :text ~(str "  " (rule-name computed.openAuto))
+       :text ~(rule-name computed.openAuto)
        :textColor @onHeader
        :anchors {:left 64 :right 72 :top 0}
        :height 56
@@ -407,7 +407,7 @@
      :color @warmSoft
      :role status
      (label :icon info
-       :text ~(str "  " (t "auto.offBanner"))
+       :text ~(t "auto.offBanner")
        :textColor @text
        :anchors {:left 16 :right 120 :top 0 :bottom 0}
        :align {:horizontal start :vertical center})
@@ -457,7 +457,7 @@
       :style button
       :font small
       :icon plus
-      :text ~(str " " addLabel)
+      :text ~addLabel
       :color transparent
       :textColor @accent
       :borderWidth 1
@@ -515,7 +515,7 @@
      :width 316
      :role group
      :label ~(t "auto.trace")
-     {:style cardTitle :icon history :text ~(str " " (t "auto.trace")) :anchors {:left 20 :top 16}}
+     {:style cardTitle :icon history :text ~(t "auto.trace") :anchors {:left 20 :top 16}}
      {:style caption
       :text ~(if (= computed.openAuto.ran "never") (t "auto.traceNever") (t (str "ran." computed.openAuto.ran)))
       :anchors {:left 20 :top 44}}
@@ -571,7 +571,7 @@
     :style button
     :font small
     :icon ~icon
-    :text ~(str " " (t key))
+    :text ~(t key)
     :grow 1
     :anchors {:top 0 :bottom 0}
     :onClick ~(handler addAutoNode node)})
@@ -603,7 +603,7 @@
      {:id scheduleTitle
       :style caption
       :icon calendar-clock
-      :text ~(str " " (t "schedule.title"))
+      :text ~(t "schedule.title")
       :anchors {:left 16 :top 12}}
      (timeline#schedule :anchors {:left 8 :right 8 :top 34 :bottom 8}
        :tracks ~computed.scheduleTracks

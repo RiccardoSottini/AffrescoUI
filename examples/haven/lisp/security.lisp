@@ -146,7 +146,7 @@
      :label ~(t "notify.title")
      (label#notificationsTitle :font heading
        :icon bell
-       :text ~(str " " (t "notify.title"))
+       :text ~(t "notify.title")
        :textColor @text
        :anchors {:left 16 :top 14}
        :fitText true)
@@ -171,7 +171,7 @@
      ~(repeat [note state.notifications :key note.id]
        `(label#notification :font small
           :icon ~note.icon
-          :text ~(str "  " note.message)
+          :text ~note.message
           :anchors {:left 0 :right 0}
           :height 34
           :padding 10

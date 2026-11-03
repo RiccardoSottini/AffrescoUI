@@ -126,7 +126,7 @@
     :when ~state.editing
     :style button
     :icon plus
-    :text ~(str " " (t "edit.addCard"))
+    :text ~(t "edit.addCard")
     :color transparent
     :hover {:color transparent}
     :textColor @onHeaderDim
@@ -386,7 +386,7 @@
      {:id label-climate
       :style cardTitle
       :icon thermometer
-      :text ~(str " " computed.cardTitle.climate)
+      :text ~computed.cardTitle.climate
       :cursor hand
       :focusable true
       :role button
