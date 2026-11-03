@@ -467,4 +467,5 @@
                 :setting.whilePlaying.about "Off, downloads wait while a game is running."
                 :setting.sortBy "Sort the library by"
                 :setting.sortBy.about "Name from A to Z, the most hours, or the most recently played."
-                :settings.limitValue "{n} MB/s"}}}
+                :settings.limitValue "{n} MB/s"
+                :profile.sinceStatus "{since} · {status}"}}}

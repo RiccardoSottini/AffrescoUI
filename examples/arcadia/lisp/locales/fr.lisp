@@ -467,4 +467,5 @@
                 :setting.whilePlaying.about "Désactivé, les téléchargements attendent pendant qu'un jeu tourne."
                 :setting.sortBy "Trier la bibliothèque par"
                 :setting.sortBy.about "Nom de A à Z, le plus d'heures ou le plus récemment joué."
-                :settings.limitValue "{n} Mo/s"}}}
+                :settings.limitValue "{n} Mo/s"
+                :profile.sinceStatus "{since} · {status}"}}}
