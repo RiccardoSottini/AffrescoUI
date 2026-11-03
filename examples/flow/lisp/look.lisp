@@ -168,7 +168,8 @@
 
 ;;; Components
 
-(defcomponent layoutChoice "One layout in the Display menu: its icon over its name, outlined while it is the one shown"
+(defcomponent layoutChoice
+  "One layout in the Display menu: its icon over its name, outlined while it is the one shown"
   {:icon kanban :text "" :on false}
   `(node#panel-text :width 58
      :height 52

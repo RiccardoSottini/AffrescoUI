@@ -1,5 +1,7 @@
-;;; issue.lisp --- Flow's issue page, included by index.screen.lisp: the selected card on a page of its own, its description and activity on the left, its properties on the right.
+;;; issue.lisp --- Flow's issue page, included by index.screen.lisp: the selected card on a page of its own, its
+;;; description and activity on the left, its properties on the right.
 
+;;; State
 
 (defstate issueOpen false)
 
@@ -21,8 +23,12 @@
 
 (defstate estimates [0 1 2 3 5 8])
 
+;;; What it works out
+
 (defcomputed issueEvents
   (if (nil? computed.card) [] (filter (fn [it] (= it.title computed.card.title)) state.activity)))
+
+;;; Styles
 
 (defstyle propName
   (label :font small :textColor @color.muted :width 84 :height 32 :align {:horizontal start :vertical center}))
@@ -62,13 +68,18 @@
     :shadow {:y 6 :blur 16 :color "#0000002e"}
     :color @color.menu))
 
-(defcomponent issuePage "The selected card as a page: a header with the way back, the title, description, sub-issues and activity, and a properties panel"
+;;; Components
+
+(defcomponent issuePage
+  "The chosen card as a page: the way back, its title, description, sub-issues and activity, and its properties."
   {}
   `(node#panel-issue-page :color @color.surface :role dialog :label ~(str computed.card.ref " " computed.card.title)
      ~(issue-header)
      ~(issue-main)
      {:id issueSideLine :anchors {:right 300 :top 48 :bottom 0} :width 1 :color @color.border}
      ~(issue-side)))
+
+;;; Views
 
 (defview issue-nav "The issue page's arrows to the previous and next issue, and the way back." []
   `(row#issueNav :gap 2 :alignItems center :justify end :anchors {:right 12 :top 10} :width 140 :height 28
@@ -85,7 +96,7 @@
       :fitText false
       :padding 0
       :align center
-      :tooltip ~(str (t "issue.previous") " (K)")
+      :tooltip ~(t "hint" {:label (t "issue.previous") :key (t "key.k")})
       :label ~(t "issue.previous")
       :disabled ~(nil? computed.prev)
       :onClick selectPrev}
@@ -97,7 +108,7 @@
       :fitText false
       :padding 0
       :align center
-      :tooltip ~(str (t "issue.next") " (J)")
+      :tooltip ~(t "hint" {:label (t "issue.next") :key (t "key.j")})
       :label ~(t "issue.next")
       :disabled ~(nil? computed.next)
       :onClick selectNext}))
@@ -212,7 +223,12 @@
        :label ~(t "detail.editNotes")
        :keys {"mod+enter" saveNotes :escape cancelNotes})
      (row#issueNotesButtons :when ~state.draft.editing :gap 8 :anchors {:left 40 :right 40} :height 30
-       {:id issueNotesSave :style detailButton :text ~(t "detail.save") :focusable true :role button :onClick saveNotes}
+       {:id issueNotesSave
+        :style detailButton
+        :text ~(t "detail.save")
+        :focusable true
+        :role button
+        :onClick saveNotes}
        {:id issueNotesCancel
         :style detailButton
         :text ~(t "detail.cancel")
@@ -286,7 +302,9 @@
       :label ~(t "issue.comment")
       :bind state.newComment
       :onSubmit [{:run addToCard
-                  :with {:field comments :input ~state.newComment :value {:who ~state.me :text ~(trim state.newComment)}}}
+                  :with {:field comments
+                         :input ~state.newComment
+                         :value {:who ~state.me :text ~(trim state.newComment)}}}
                  {:set state.newComment :to ""}]}))
 
 (defview status-picker "The issue page's status menu." []
@@ -501,7 +519,8 @@
         :icon circle-user
         :isOpen ~state.issueWhoOpen
         :text ~(str "  "
-                    (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members)) (t "issue.noAssignee")))
+                    (or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members))
+                             (t "issue.noAssignee")))
         :onClick {:toggle state.issueWhoOpen}}
        (node#whoPicker :style pickMenu
          :overlay {:placement below :open state.issueWhoOpen :dismiss outside :modal true}
@@ -514,11 +533,15 @@
         :style propValue
         :icon calendar
         :isOpen ~state.issueDueOpen
-        :textColor ~(if (and (some? computed.dueDays) (< computed.dueDays 0) (not= state.selected.c computed.lastColumn))
+        :textColor ~(if (and (some? computed.dueDays)
+                             (< computed.dueDays 0)
+                             (not= state.selected.c computed.lastColumn))
                         "@bug"
                         "@color.text")
         :text ~(str "  "
-                    (if (nil? computed.card.due) (t "drawer.noDue") (formatDate (dateMs computed.card.due) "MMM d" "utc")))
+                    (if (nil? computed.card.due)
+                        (t "drawer.noDue")
+                        (formatDate (dateMs computed.card.due) "MMM d" "utc")))
         :onClick {:toggle state.issueDueOpen}}
        ~(issue-due-picker))
      ~(prop-estimate)

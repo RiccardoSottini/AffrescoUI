@@ -78,7 +78,8 @@
             :accent @color.accent
             :highlight @color.accentSoft
             :field @color.field
-            :providers [{:items ~computed.propItems :placeholder ~(t (str "quick." (or-else state.propKind "status")))}]}))
+            :providers [{:items ~computed.propItems
+                         :placeholder ~(t (str "quick." (or-else state.propKind "status")))}]}))
 
 (defview toast "A notice in the corner, with Undo when what sent it can be taken back." []
   `(node#toast :use toast

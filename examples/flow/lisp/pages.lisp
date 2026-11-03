@@ -1,7 +1,9 @@
-;;; pages.lisp --- Flow's team pages, included by index.screen.lisp: the inbox of notifications, the cycles with their burn-up, and the projects
+;;; pages.lisp --- Flow's team pages, included by index.screen.lisp: the inbox of notifications, the cycles with their
+;;; burn-up, and the projects
 ;;;
 ;;; The sidebar and the G chords switch between them and the issues.
 
+;;; State
 
 (defstate page issues)
 
@@ -21,6 +23,8 @@
 
 (defstate healthColors {:onTrack "#16a34a" :atRisk "#d97706" :offTrack "#dc2626" :completed "#0d9488"})
 
+;;; What it works out
+
 (defcomputed inboxShown (filter (fn [it] (not it.snoozed)) data.inbox))
 
 (defcomputed unread (count (filter (fn [it] (and (not it.read) (not it.snoozed))) data.inbox)))
@@ -36,6 +40,8 @@
   (sum (filter (fn [it] (= it.c computed.lastColumn)) computed.allCards) (fn [it] (or-else it.points 0))))
 
 (defcomputed cycleTop (+ (max (concat state.cycle.scopeHistory [computed.cycleScope])) 4))
+
+;;; Components
 
 (defcomponent pageHeader "A page's top bar: an icon, a title and room for buttons on the end side"
   {:icon circle :text ""}
@@ -115,7 +121,8 @@
        ~(inbox-props)
        ~(inbox-actions))))
 
-(defcomponent cyclesPage "The current cycle with its burn-up (scope and completed points), then the upcoming and past cycles"
+(defcomponent cyclesPage
+  "The current cycle with its burn-up (scope and completed points), then the upcoming and past cycles"
   {}
   `(node#panel-cycles-page :color @color.surface :role region :label ~(t "nav.cycles")
      (node#cyclesHeader :use pageHeader :with {:icon timer :text ~(t "nav.cycles")})
@@ -128,7 +135,11 @@
         :align {:horizontal start :vertical center}}
        ~(repeat [card (sort-by (fn [it] (+ (* it.c 100) it.at)) computed.allCards)]
          (cycle-issue card))
-       {:id cyclesOthers :style caption :text ~(t "cycle.others") :height 44 :align {:horizontal start :vertical center}}
+       {:id cyclesOthers
+        :style caption
+        :text ~(t "cycle.others")
+        :height 44
+        :align {:horizontal start :vertical center}}
        ~(repeat [cycle state.cycles :key cycle.number]
          (cycle-row cycle)))))
 
@@ -156,8 +167,16 @@
       :onClick addProject}
      ~(projects-columns)
      (column#projectRows :anchors {:left 0 :right 0 :top 80 :bottom 0} :scroll vertical :role list
-       ~(repeat [project (filter (fn [it] (or (= state.projectScope "all") (= (= state.projectScope "completed") (= it.health "completed")))) data.projects) :key project.name]
+       ~(repeat [project
+                 (filter (fn [it]
+                           (or (= state.projectScope "all")
+                               (= (= state.projectScope "completed") (= it.health "completed"))))
+                         data.projects)
+                 :key
+                 project.name]
          (project-row project)))))
+
+;;; Keys
 
 (defkey "g i" {:when ~(not context.textInputFocus) :do goToInbox})
 
@@ -172,6 +191,8 @@
 (defkey "h" {:when ~(and (not context.textInputFocus) (= state.page "inbox")) :do snoozeNotification})
 
 (defkey "enter" {:when ~(and (not context.textInputFocus) (= state.page "inbox")) :do openNotification})
+
+;;; Views
 
 (defview inbox-item "A notification in the inbox's list." [n k]
   `(node#inboxItem :anchors {:left 0 :right 0}
@@ -190,7 +211,13 @@
                       :to (or-else n.to "")}))
      :onClick ~(handler pickNotification k)
      :onDoubleClick openNotification
-     {:id inboxUnread :when ~(not n.read) :width 6 :height 6 :radius 3 :color @color.accent :anchors {:left 8 :top 27}}
+     {:id inboxUnread
+      :when ~(not n.read)
+      :width 6
+      :height 6
+      :radius 3
+      :color @color.accent
+      :anchors {:left 8 :top 27}}
      {:id inboxWho
       :style badge
       :text ~n.who
@@ -292,19 +319,19 @@
       :icon maximize-2
       :text ~(str " " (t "inbox.open"))
       :onClick openNotification
-      :tooltip "Enter"}
+      :tooltip ~(t "key.enter")}
      {:id inboxSnooze
       :style propValue
       :icon alarm-clock
       :text ~(str " " (t "inbox.snooze"))
       :onClick snoozeNotification
-      :tooltip "H"}
+      :tooltip ~(t "key.h")}
      {:id inboxRead
       :style propValue
       :icon ~(if computed.notification.read "mail" "mail-check")
       :text ~(str " " (t (if computed.notification.read "inbox.markUnread" "inbox.markRead")))
       :onClick toggleRead
-      :tooltip "U"}))
+      :tooltip ~(t "key.u")}))
 
 (defview cycle-current "The current sprint: its dates, its figures and its burn-up." []
   `(node#cycleCurrent :anchors {:left 24 :right 24 :top 72}
@@ -341,12 +368,16 @@
        :anchors {:left 160 :top 70})
      (node#cycleCompleted :use cycleStat
        :with {:text ~(t "cycle.completed")
-              :value ~(str computed.cycleDone "  ·  " (formatPercent (/ computed.cycleDone (max computed.cycleScope 1))))
+              :value ~(str computed.cycleDone
+                           "  ·  "
+                           (formatPercent (/ computed.cycleDone (max computed.cycleScope 1))))
               :color @color.accent}
        :anchors {:left 300 :top 70})
      {:id cycleChartBase :anchors {:left 20 :right 20 :bottom 20} :height 1 :color @color.border}
      (node#cycleScopeArea :use areaChart
-       :with {:values ~(concat state.cycle.scopeHistory [computed.cycleScope]) :top ~computed.cycleTop :color "#0d94881f"}
+       :with {:values ~(concat state.cycle.scopeHistory [computed.cycleScope])
+              :top ~computed.cycleTop
+              :color "#0d94881f"}
        :anchors {:left 20 :right 20 :bottom 21}
        :height 90)
      (node#cycleScopeLine :use lineChart
@@ -433,7 +464,8 @@
      :role listitem
      :label ~(t "cycle.name" {:n cycle.number})
      {:id cycleRowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}
-     (label#cycleRowIcon :icon ~(cond (or (>= cycle.done cycle.scope) (< cycle.number state.cycle.number)) "check-circle-2"
+     (label#cycleRowIcon :icon ~(cond (or (>= cycle.done cycle.scope) (< cycle.number state.cycle.number))
+                                      "check-circle-2"
                                       (= cycle.done 0) "circle-dashed"
                                       :else "circle-dot")
        :text ""
@@ -453,7 +485,9 @@
       :fitText false
       :anchors {:left 160 :top 0 :bottom 0}
       :align {:horizontal start :vertical center}
-      :text ~(str (formatDate (dateMs cycle.start) "MMM d" "utc") " – " (formatDate (dateMs cycle.end) "MMM d" "utc"))}
+      :text ~(str (formatDate (dateMs cycle.start) "MMM d" "utc")
+                  " – "
+                  (formatDate (dateMs cycle.end) "MMM d" "utc"))}
      {:id cycleRowState
       :style caption
       :width 120
@@ -561,7 +595,9 @@
       :align {:horizontal start :vertical center}
       :icon calendar
       :text ~(str " " (formatDate (dateMs project.target) "MMM d" "utc"))
-      :textColor ~(if (and (< (daysBetween state.today project.target) 0) (< project.progress 1)) "@bug" "@color.muted")}
+      :textColor ~(if (and (< (daysBetween state.today project.target) 0) (< project.progress 1))
+                      "@bug"
+                      "@color.muted")}
      (node#projectBar :use progressBar
        :with {:ratio ~project.progress :color ~project.color :width 120}
        :anchors {:right 100 :top 20})

@@ -182,19 +182,19 @@
       :style propValue
       :icon circle-dashed
       :text ~(str " " (t "issue.status"))
-      :tooltip "S"
+      :tooltip ~(t "key.s")
       :onClick changeStatus}
      {:id bulkPriority
       :style propValue
       :icon chevrons-up
       :text ~(str " " (t "issue.priority"))
-      :tooltip "P"
+      :tooltip ~(t "key.p")
       :onClick changePriority}
      {:id bulkAssignee
       :style propValue
       :icon user
       :text ~(str " " (t "issue.assignee"))
-      :tooltip "A"
+      :tooltip ~(t "key.a")
       :onClick changeAssignee}
      {:id bulkDelete
       :style propValue

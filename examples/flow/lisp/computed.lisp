@@ -88,7 +88,12 @@
                           :color it.color
                           :on (= state.fStatus index)})
                        computed.columns)
-          (= state.filterProp "assignee") (map (fn [it] {:v it.who :title it.name :icon "circle-user" :color it.color :on (= state.owner it.who)})
+          (= state.filterProp "assignee") (map (fn [it]
+                                                 {:v it.who
+                                                  :title it.name
+                                                  :icon "circle-user"
+                                                  :color it.color
+                                                  :on (= state.owner it.who)})
                state.members)
           (= state.filterProp "priority") (map-indexed (fn [index it]
                          {:v index
@@ -97,7 +102,8 @@
                           :color "@color.muted"
                           :on (= state.fPrio index)})
                        state.priorities)
-          :else (map (fn [it] {:v it :title (t (str "tag." it)) :icon "circle" :color (str "@" it) :on (= state.filter it)})
+          :else (map (fn [it]
+                       {:v it :title (t (str "tag." it)) :icon "circle" :color (str "@" it) :on (= state.filter it)})
                (slice state.filters 1))))
 
 (defcomputed activeFilters

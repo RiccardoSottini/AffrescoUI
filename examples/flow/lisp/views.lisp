@@ -1,7 +1,10 @@
-;;; views.lisp --- Flow's other views, included by index.screen.lisp: the insights beside the board (burndown and activity), swimlanes by member, the timeline of due dates, and the settings.
+;;; views.lisp --- Flow's other views, included by index.screen.lisp: the insights beside the board (burndown and
+;;; activity), swimlanes by member, the timeline of due dates, and the settings.
 
+;;; Components
 
-(defcomponent insights "The sprint burndown and the activity feed, under the cards-per-column chart while no card is chosen"
+(defcomponent insights
+  "The sprint burndown and the activity feed, under the cards-per-column chart while no card is chosen"
   {}
   `(node#insights :color transparent
      {:id burndownTitle
@@ -21,13 +24,15 @@
        ~(repeat [entry state.activity]
          (activity-item entry)))))
 
-(defcomponent swimlanes "One lane a member, the board's columns across it; a card dropped in another lane changes its owner"
+(defcomponent swimlanes
+  "One lane a member, the board's columns across it; a card dropped in another lane changes its owner"
   {}
   `(column#lanes :gap 8 :scroll vertical :color transparent
      ~(repeat [member state.members]
        (lane member))))
 
-(defcomponent timelineView "The cards with dates, a track a member: dragging a clip changes its dates, or its owner when it changes track"
+(defcomponent timelineView
+  "The cards with dates, a track a member: dragging a clip changes its dates, or its owner when it changes track"
   {}
   `(node#timeline :radius @radius.card :color @color.surface
      {:id timelineTitle
@@ -37,7 +42,8 @@
       :text ~(t "timeline.title" {:from (formatDate (dateMs state.sprintStart) "medium" "utc")})}
      ~(card-timeline)))
 
-(defcomponent settingsSheet "The settings, in the middle of the window; Escape, a click outside or the close button closes them"
+(defcomponent settingsSheet
+  "The settings, in the middle of the window; Escape, a click outside or the close button closes them"
   {}
   `(node#settingsCard :dir auto
      :overlay {:placement center :open state.settingsOpen :dismiss outside :modal true}
@@ -71,7 +77,13 @@
        :onClick closeSettings)
      (node#settingsList :use settingsPage
        :anchors {:left 12 :right 12 :top 52 :bottom 12}
-       :with {:color @color.menu :textColor @color.text :dimColor @color.muted :accent @color.accent :field @color.field})))
+       :with {:color @color.menu
+              :textColor @color.text
+              :dimColor @color.muted
+              :accent @color.accent
+              :field @color.field})))
+
+;;; Views
 
 (defview activity-item "One entry of the activity feed: who did what to which card." [entry]
   `(node#activityItem :anchors {:left 0 :right 0} :height 34 :color transparent :role listitem
@@ -132,7 +144,16 @@
       :radius 999
       :color ~member.color
       :textColor "#ffffff"}
-     (label#laneName :font heading :textColor @color.text :fitText true :anchors {:left 44 :top 12} :text ~member.name)
+     (label#laneName :font
+                     heading
+                     :textColor
+                     @color.text
+                     :fitText
+                     true
+                     :anchors
+                     {:left 44 :top 12}
+                     :text
+                     ~member.name)
      {:id laneCount
       :style caption
       :anchors {:left "#laneName.right + 10" :top 15}
@@ -146,7 +167,14 @@
             :onDrop ~(handler moveToLane event.data.from event.data.at c member.who)
             {:id laneColumnName :style caption :text ~column.name :anchors {:left 8 :top 4}}
             (stack#laneCards :gap 4 :scroll vertical :anchors {:left 4 :right 4 :top 22 :bottom 4}
-              ~(repeat [row (sort-by (fn [it] (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority) (= state.order "due") (or-else it.due "9999-12-31") :else it.at)) (filter (fn [it] (= it.c c)) computed.allCards)) :index k]
+              ~(repeat [row
+                        (sort-by (fn [it]
+                                   (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
+                                         (= state.order "due") (or-else it.due "9999-12-31")
+                                         :else it.at))
+                                 (filter (fn [it] (= it.c c)) computed.allCards))
+                        :index
+                        k]
                 (lane-card member column c row))))))))
 
 (defview card-timeline "The timeline: a track a member, a clip a card with dates." []

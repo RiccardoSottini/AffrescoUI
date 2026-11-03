@@ -37,7 +37,9 @@
   [{:who "RS" :name "Remy Shaw" :color "#2563eb"}
    {:who "MK" :name "Maya Klein" :color "#9333ea"}
    {:who "AL" :name "Ada Lewis" :color "#0f766e"}
-   {:who "JD" :name "Jon Doe" :color "#d97706"}] :type (array :items (object :properties {:who (string) :name (string) :color (string)})))
+   {:who "JD" :name "Jon Doe" :color "#d97706"}] :type (array :items
+                                                              (object :properties
+                                                                      {:who (string) :name (string) :color (string)})))
 
 (defstate lanes
   {:launch [{:name "Backlog" :color "#94a3b8"}

@@ -17,7 +17,10 @@
 
 (defkey "f"
   {:when ~(and (not context.textInputFocus) (= state.page "issues"))
-   :do [{:set state.filterQuery :to ""} {:set state.filterProp :to ""} {:toggle state.filterOpen} {:focus "#filterField"}]})
+   :do [{:set state.filterQuery :to ""}
+        {:set state.filterProp :to ""}
+        {:toggle state.filterOpen}
+        {:focus "#filterField"}]})
 
 (defkey "j"
   [{:when ~(and (not context.textInputFocus) (= state.page "inbox")) :do nextNotification}

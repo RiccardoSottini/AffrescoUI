@@ -2,7 +2,9 @@
 
 ;;; The work area
 
-(defview work-area "The work area: the board, the swimlanes, the list, the table or the timeline, beside the side panel." []
+(defview work-area
+  "The work area: the board, the swimlanes, the list, the table or the timeline, beside the side panel."
+  []
   `(split#main :dir auto
      :anchors {:left 220 :right 0 :top "#toolbar.bottom" :bottom "#statusBar.top"}
      :color @color.surface
@@ -43,7 +45,11 @@
             :align {:horizontal center :vertical start}
             :textColor @color.muted
             :text ~(str column.name ": " (count column.cards)))))
-     {:id detailLine :when ~(nil? computed.card) :anchors {:left 20 :right 20 :top 186} :height 1 :color @color.border}
+     {:id detailLine
+      :when ~(nil? computed.card)
+      :anchors {:left 20 :right 20 :top 186}
+      :height 1
+      :color @color.border}
      (label#noCard :when ~(nil? computed.card)
        :anchors {:left 20 :right 20 :top 206}
        :height 60
@@ -52,14 +58,15 @@
        :runs [~(t "noCard.select")
               {:text ~(t "noCard.rightClick") :bold true}
               ~(t "noCard.menu")
-              {:text "Cmd+P" :bold true}
+              {:text ~(t "key.goTo") :bold true}
               ~(t "noCard.goTo")])
      (node#insightsPanel :use insights :when ~(nil? computed.card) :anchors {:left 20 :right 20 :top 276 :bottom 16})
      (node#drawer :use cardDrawer :when ~(some? computed.card) :anchors {:left 8 :right 8 :top 18 :bottom 16})))
 
 ;;; The board
 
-(defview column-view "A column of the board: its title, its cards, and a drop target for cards from another." [column c]
+(defview column-view "A column of the board: its title, its cards, and a drop target for cards from another."
+  [column c]
   `(node#column :anchors {:top 0 :bottom 0}
      :grow 1
      :color transparent
@@ -77,7 +84,14 @@
        ~(column-more column c)
        ~(column-add column c)
        (stack#cards :anchors {:left 6 :right 6 :top 40 :bottom 6} :gap 6 :scroll vertical
-         ~(repeat [row (sort-by (fn [it] (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority) (= state.order "due") (or-else it.due "9999-12-31") :else it.at)) (filter (fn [it] (= it.c c)) computed.allCards)) :index k]
+         ~(repeat [row
+                   (sort-by (fn [it]
+                              (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
+                                    (= state.order "due") (or-else it.due "9999-12-31")
+                                    :else it.at))
+                            (filter (fn [it] (= it.c c)) computed.allCards))
+                   :index
+                   k]
            (card-view column c row))))))
 
 (defview column-title "A column's title: its colour, name and count, red while it is over its limit." [column c]
@@ -141,7 +155,9 @@
      :label ~(t "composer.in" {:column column.name})
      :onClick ~(handler openComposer c)))
 
-(defview card-view "A card on the board: its id, title and chips; it is dragged to another column, and right-clicked for its menu." [column c row]
+(defview card-view
+  "A card on the board: its id, title and chips; it is dragged to another column, and right-clicked for its menu."
+  [column c row]
   `(node#card :let {:i ~row.at :card ~(get column.cards row.at)}
      :when ~(contains computed.visibleRefs card.ref)
      :anchors {:left 0 :right 0}
@@ -198,7 +214,8 @@
        :align {:horizontal start :vertical start})
      ~(card-chips c)))
 
-(defview card-chips "A card's chips: its priority, label, due date, points and owner, as the Display menu shows them." [c]
+(defview card-chips "A card's chips: its priority, label, due date, points and owner, as the Display menu shows them."
+  [c]
   `(row#cardChips :gap 4 :alignItems center :anchors {:left 10 :right 10 :bottom 9} :height 22
      {:id cardPriority
       :style cardChip
@@ -227,7 +244,9 @@
       :icon calendar
       :text ~(formatDate (dateMs card.due) "MMM d" "utc")
       :tooltip ~(formatDate (dateMs card.due) "medium" "utc")
-      :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn)) "@bug" "@color.muted")}
+      :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
+                      "@bug"
+                      "@color.muted")}
      {:id cardNotes
       :style cardChip
       :borderWidth 0

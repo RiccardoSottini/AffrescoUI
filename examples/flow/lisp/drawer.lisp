@@ -1,5 +1,7 @@
-;;; drawer.lisp --- Flow's card drawer, included by index.screen.lisp: the selected card's description (rich text, edited in place), due date with a date picker, labels, assignees, checklist, comments and attachments.
+;;; drawer.lisp --- Flow's card drawer, included by index.screen.lisp: the selected card's description (rich text,
+;;; edited in place), due date with a date picker, labels, assignees, checklist, comments and attachments.
 
+;;; Styles
 
 (defstyle section (label :font small :textColor @color.muted :height 18 :align {:horizontal start :vertical center}))
 
@@ -31,6 +33,8 @@
     :hover {:color @color.chipHover}
     :cursor hand))
 
+;;; Components
+
 (defcomponent cardDrawer "The selected card, in a scrolling column"
   {}
   `(column#cardDetail :gap 10 :scroll vertical :color transparent
@@ -46,7 +50,9 @@
          :textColor ~(str "@" computed.card.tag))
        {:id detailColumn
         :style caption
-        :text ~(str (get-in computed.columns [state.selected.c :name]) " · " (t "card.points" {:n computed.card.points}))
+        :text ~(str (get-in computed.columns [state.selected.c :name])
+                    " · "
+                    (t "card.points" {:n computed.card.points}))
         :anchors {:right 0 :top 2}})
      (label#detailTitle :font heading
        :text ~computed.card.title
@@ -85,7 +91,12 @@
        :keys {"mod+enter" saveNotes :escape cancelNotes})
      (row#notesButtons :when ~state.draft.editing :gap 8 :anchors {:left 12 :right 12} :height 30
        {:id notesSave :style detailButton :text ~(t "detail.save") :focusable true :role button :onClick saveNotes}
-       {:id notesCancel :style detailButton :text ~(t "detail.cancel") :focusable true :role button :onClick cancelNotes})
+       {:id notesCancel
+        :style detailButton
+        :text ~(t "detail.cancel")
+        :focusable true
+        :role button
+        :onClick cancelNotes})
      ~(detail-actions)
      {:id dueTitle :style section :text ~(t "drawer.due") :anchors {:left 12 :right 12}}
      ~(due-row)
@@ -177,6 +188,8 @@
       :bind state.newAttachment
       :onSubmit [~(handler addToCard "attachments" (trim state.newAttachment) state.newAttachment)
                  {:set state.newAttachment :to ""}]}))
+
+;;; Views
 
 (defview detail-actions "The drawer's buttons: open the card as a page, move it, and its menu." []
   `(row#detailActions :gap 8 :anchors {:left 12 :right 12} :height 30 :arrows horizontal :role toolbar
@@ -272,7 +285,9 @@
       :role button
       :isOpen ~state.dueOpen
       :text ~(str " "
-                  (if (nil? computed.card.due) (t "drawer.noDue") (formatDate (dateMs computed.card.due) "MMM d" "utc")))
+                  (if (nil? computed.card.due)
+                      (t "drawer.noDue")
+                      (formatDate (dateMs computed.card.due) "MMM d" "utc")))
       :onClick {:toggle state.dueOpen}}
      (label#dueState :font small
        :when ~(some? computed.dueDays)

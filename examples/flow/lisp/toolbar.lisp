@@ -24,7 +24,9 @@
            :onClick ~(handler chooseScope scope)}))
      ~(members-menu)))
 
-(defview members-menu "The avatars at the top bar's end, with a ring on whoever is here, and the menu that filters by one." []
+(defview members-menu
+  "The avatars at the top bar's end, with a ring on whoever is here, and the menu that filters by one."
+  []
   `(row#members :gap -5
      :anchors {:right 16 :top 14}
      :width 70
@@ -61,7 +63,8 @@
          :borderWidth 2
          :borderColor ~(if (contains computed.present member.who) "@color.accent" "@color.topBar")})))
 
-(defview member-row "A member in the members menu: their initials and name; choosing one shows only their cards." [member]
+(defview member-row "A member in the members menu: their initials and name; choosing one shows only their cards."
+  [member]
   `(node#panel-member :anchors {:left 0 :right 0}
      :height 40
      :radius @radius.chip
@@ -102,7 +105,7 @@
       :padding 0
       :align center
       :label ~(t "search.label")
-      :tooltip ~(str (t "search.label") " (Cmd+F)")
+      :tooltip ~(t "hint" {:label (t "search.label") :key (t "key.find")})
       :onClick focusSearch}
      ~(search-field)
      ~(repeat [f computed.activeFilters]
@@ -113,7 +116,7 @@
      :icon list-filter
      :text ~(if (> (count computed.activeFilters) 0) "" (str " " (t "filter.button")))
      :label ~(t "filter.button")
-     :tooltip ~(str (t "filter.button") " (F)")
+     :tooltip ~(t "hint" {:label (t "filter.button") :key (t "key.f")})
      :isOpen ~state.filterOpen
      :keys {:enter {:when ~(not context.textInputFocus) :do {:toggle state.filterOpen}}
             :space {:when ~(not context.textInputFocus) :do {:toggle state.filterOpen}}}
@@ -121,7 +124,9 @@
      (node#filterMenu :overlay {:placement below :open state.filterOpen :dismiss outside}
        :y 4
        :width 220
-       :height ~(+ (* (if (= state.filterProp "") (count computed.filterPropsShown) (count computed.filterOptionsShown))
+       :height ~(+ (* (if (= state.filterProp "")
+                          (count computed.filterPropsShown)
+                          (count computed.filterOptionsShown))
                       30)
                    48)
        :radius @radius.card

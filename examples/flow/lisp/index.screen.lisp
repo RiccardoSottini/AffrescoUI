@@ -34,7 +34,7 @@
 
 (defscreen main "Flow's one window: the bars, the work area, the sidebar and what opens over them."
   :window {:title "Flow: an AffrescoUI template" :width 1280 :height 800 :minWidth 1040 :minHeight 640}
-  :strings {:default en :locale ~settings.appearance.language}
+  :strings {:default en :locale ~settings.appearance.language :keep ["Flow" "Flow: an AffrescoUI template"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons symbols]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [iconsSmall]}
           :tiny {:file "../../shared/fonts/Roboto-Regular.ttf" :size 9}

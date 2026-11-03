@@ -1,9 +1,10 @@
 ;;; flow.lisp --- what Flow does: its functions and commands
 ;;;
-;;; The screen and its parts (index.screen.lisp, board.lisp, issue.lisp...) say what is shown; this file says what
-;;; happens. A function reads the running app through paths (`state.selected`, `computed.card`, `data.inbox`) and changes
-;;; it only through steps (`set`, `insert`, `update-record`...). A handler runs one by name, its parameters by name:
-;;; {:run moveCard :with {:from 0 :at 2 :to 1}}. The keys stay in the parts, as data.
+;;; The screen and its views (index.screen.lisp, toolbar.lisp, columns.lisp...) say what is shown; this file says
+;;; what happens. A function reads the running app through paths (`state.selected`, `computed.card`, `data.inbox`) and
+;;; changes it only through steps (`set`, `insert`, `update-record`...). A view runs one by name, its parameters taken by
+;;; name from the variables around it (`:onClick sortTable`), or with its arguments, (handler moveCard event.data.from
+;;; event.data.at c). The keys are in keys.lisp.
 
 ;;; The cards
 
@@ -35,7 +36,8 @@
 
 (defn hideToast "" [] (set "state.toast.open" false))
 
-(defn notify "A toast in the corner for a few seconds; it offers Undo when what sent it remembered the columns first." [message]
+(defn notify "A toast in the corner for a few seconds; it offers Undo when what sent it remembered the columns first."
+  [message]
   (set "state.toast" {:open true :message message :undo state.toastUndo})
   (set "state.toastUndo" false)
   (debounce 4000 hideToast))
@@ -158,11 +160,13 @@
   (set "state.fProject" -1)
   (set "state.scope" "all"))
 
-(defcommand clearFilters "Clears the filters, the search and the scope." :title "Clear the filters" :category "View" []
+(defcommand clearFilters "Clears the filters, the search and the scope."
+  :title ~(t "command.clearFilters") :description ~(t "command.clearFilters.about") :category ~(t "category.view") []
   (showEverything)
   (set "state.searchOpen" false))
 
-(defn goToCard "A quick pick row: from another page, back to the issues, in the board, list or table it showed." [item]
+(defn goToCard "A quick pick row: from another page, back to the issues, in the board, list or table it showed."
+  [item]
   (showPage "issues")
   (when (= state.view "timeline") (set "state.view" "board"))
   (showEverything)
@@ -347,7 +351,9 @@
   (set "state.filterQuery" "")
   (focus "#filterField"))
 
-(defn submitFilter "Enter in the Filter menu's field: the first property listed, or the first value of the one chosen." []
+(defn submitFilter
+  "Enter in the Filter menu's field: the first property listed, or the first value of the one chosen."
+  []
   (cond (and (= state.filterProp "") (> (count computed.filterPropsShown) 0))
         (pickFilterProp (first (first computed.filterPropsShown)))
         (and (not= state.filterProp "") (> (count computed.filterOptionsShown) 0))
@@ -399,55 +405,79 @@
 ;;; Commands: the palette (Cmd+Shift+P), the menus and the keys run these
 
 (defcommand columnNew "A new card in the column whose menu is open."
-  :title "New issue in this status" :icon "plus" :enablement ~state.columnMenu []
+  :title ~(t "command.columnNew")
+  :description ~(t "command.columnNew.about") :icon "plus" :enablement ~state.columnMenu []
   (set "state.columnMenu" false)
   (openComposer state.menuColumn))
 
 (defcommand columnSelect "Marks every card shown in the column whose menu is open."
-  :title "Select all in this status" :icon "list-checks" :enablement ~state.columnMenu []
+  :title ~(t "command.columnSelect")
+  :description ~(t "command.columnSelect.about") :icon "list-checks" :enablement ~state.columnMenu []
   (set "state.columnMenu" false)
   (set "state.marked" (map :ref (filter (fn [card] (= (:c card) state.menuColumn)) computed.visible))))
 
-(defcommand selectNext "" :title "Select the next issue" :category "Go" :icon "arrow-down"
+(defcommand selectNext "Chooses the next card shown."
+  :title ~(t "command.selectNext") :description ~(t "command.selectNext.about")
+  :category ~(t "category.go") :icon "arrow-down"
   :enablement ~(some? computed.next) []
   (selectCard computed.next.c computed.next.at))
 
-(defcommand selectPrev "" :title "Select the previous issue" :category "Go" :icon "arrow-up"
+(defcommand selectPrev "Chooses the card shown before."
+  :title ~(t "command.selectPrev") :description ~(t "command.selectPrev.about")
+  :category ~(t "category.go") :icon "arrow-up"
   :enablement ~(some? computed.prev) []
   (selectCard computed.prev.c computed.prev.at))
 
-(defcommand changeStatus "" :title "Change status…" :category "Issue" :icon "circle-dashed"
+(defcommand changeStatus "Opens the status picker for the chosen or marked cards."
+  :title ~(t "command.changeStatus") :description ~(t "command.changeStatus.about")
+  :category ~(t "category.issue") :icon "circle-dashed"
   :enablement ~(or (some? computed.card) (> (count state.marked) 0)) []
   (openPropPick "status"))
 
-(defcommand changePriority "" :title "Change priority…" :category "Issue" :icon "chevrons-up"
+(defcommand changePriority "Opens the priority picker for the chosen or marked cards."
+  :title ~(t "command.changePriority") :description ~(t "command.changePriority.about")
+  :category ~(t "category.issue") :icon "chevrons-up"
   :enablement ~(or (some? computed.card) (> (count state.marked) 0)) []
   (openPropPick "priority"))
 
-(defcommand changeAssignee "" :title "Assign to…" :category "Issue" :icon "user"
+(defcommand changeAssignee "Opens the assignee picker for the chosen or marked cards."
+  :title ~(t "command.changeAssignee") :description ~(t "command.changeAssignee.about")
+  :category ~(t "category.issue") :icon "user"
   :enablement ~(or (some? computed.card) (> (count state.marked) 0)) []
   (openPropPick "assignee"))
 
-(defcommand assignToMe "" :title "Assign to me" :category "Issue" :icon "user-check"
+(defcommand assignToMe "Gives the chosen or marked cards to me."
+  :title ~(t "command.assignToMe") :description ~(t "command.assignToMe.about")
+  :category ~(t "category.issue") :icon "user-check"
   :enablement ~(some? computed.card) []
   (setAssignee state.me))
 
-(defcommand newCardCommand "" :title "New issue" :category "Issue" :icon "plus" []
+(defcommand newCardCommand "Opens the composer on the first column."
+  :title ~(t "command.newCardCommand") :description ~(t "command.newCardCommand.about")
+  :category ~(t "category.issue") :icon "plus" []
   (openComposer 0))
 
-(defcommand goToCardCommand "" :title "Go to issue…" :category "Go" :icon "search" []
+(defcommand goToCardCommand "Opens the list of cards, to go to one."
+  :title ~(t "command.goToCardCommand") :description ~(t "command.goToCardCommand.about")
+  :category ~(t "category.go") :icon "search" []
   (set "state.issuePick.query" "")
   (set "state.issuePick.open" true))
 
-(defcommand commandPalette "" :title "Show all commands" :category "Go" :icon "command" []
+(defcommand commandPalette "Opens the palette of every command."
+  :title ~(t "command.commandPalette") :description ~(t "command.commandPalette.about")
+  :category ~(t "category.go") :icon "command" []
   (set "state.quickPick.query" "")
   (set "state.quickPick.open" true))
 
-(defcommand editCard "" :title "Edit issue…" :category "Issue" :icon "pencil"
+(defcommand editCard "Renames the chosen card."
+  :title ~(t "command.editCard") :description ~(t "command.editCard.about")
+  :category ~(t "category.issue") :icon "pencil"
   :enablement ~(some? computed.card) []
   (set "state.edit" {:open true :title computed.card.title}))
 
-(defcommand deleteCard "" :title "Delete issue" :category "Issue" :icon "trash-2"
+(defcommand deleteCard "Deletes the chosen card, which Undo brings back."
+  :title ~(t "command.deleteCard") :description ~(t "command.deleteCard.about")
+  :category ~(t "category.issue") :icon "trash-2"
   :enablement ~(some? computed.card) []
   (let [card computed.card]
     (remember)
@@ -456,24 +486,34 @@
     (delete "issues" :id (:id card))
     (set "state.selected" nil)))
 
-(defcommand moveRight "" :title "Move issue right" :category "Issue" :icon "arrow-right"
+(defcommand moveRight "Moves the chosen card to the next column."
+  :title ~(t "command.moveRight") :description ~(t "command.moveRight.about")
+  :category ~(t "category.issue") :icon "arrow-right"
   :enablement ~(and (some? computed.card) (< state.selected.c computed.lastColumn)) []
   (moveSelected 1))
 
-(defcommand moveLeft "" :title "Move issue left" :category "Issue" :icon "arrow-left"
+(defcommand moveLeft "Moves the chosen card to the column before."
+  :title ~(t "command.moveLeft") :description ~(t "command.moveLeft.about")
+  :category ~(t "category.issue") :icon "arrow-left"
   :enablement ~(and (some? computed.card) (> state.selected.c 0)) []
   (moveSelected -1))
 
-(defcommand moveUp "" :title "Move issue up" :category "Issue" :icon "arrow-up"
+(defcommand moveUp "Moves the chosen card up its column."
+  :title ~(t "command.moveUp") :description ~(t "command.moveUp.about")
+  :category ~(t "category.issue") :icon "arrow-up"
   :enablement ~(and (some? computed.card) (> state.selected.i 0)) []
   (reorderCard state.selected.c state.selected.i -1))
 
-(defcommand moveDown "" :title "Move issue down" :category "Issue" :icon "arrow-down"
+(defcommand moveDown "Moves the chosen card down its column."
+  :title ~(t "command.moveDown") :description ~(t "command.moveDown.about")
+  :category ~(t "category.issue") :icon "arrow-down"
   :enablement ~(and (some? computed.card)
                     (< state.selected.i (- (count (get-in computed.columns [state.selected.c :cards])) 1))) []
   (reorderCard state.selected.c state.selected.i 1))
 
-(defcommand undoChange "" :title "Undo" :category "Issue" :icon "undo-2" []
+(defcommand undoChange "Takes back the last change to the cards."
+  :title ~(t "command.undoChange") :description ~(t "command.undoChange.about")
+  :category ~(t "category.issue") :icon "undo-2" []
   (if (= (count state.undoStack) 0)
     (notify (t "toast.nothingToUndo"))
     (do (undoData true)
@@ -482,42 +522,58 @@
         (logActivity "undone" "" "")
         (notify (t "toast.undone")))))
 
-(defcommand openIssue "" :title "Open issue" :category "Issue" :icon "maximize-2"
+(defcommand openIssue "Opens the chosen card as a page."
+  :title ~(t "command.openIssue") :description ~(t "command.openIssue.about")
+  :category ~(t "category.issue") :icon "maximize-2"
   :enablement ~(some? computed.card) []
   (set "state.issueOpen" true))
 
-(defcommand closeIssue "" :title "Close issue" :category "Issue" :icon "arrow-left" :enablement ~state.issueOpen []
+(defcommand closeIssue "Closes the issue page."
+  :title ~(t "command.closeIssue") :description ~(t "command.closeIssue.about")
+  :category ~(t "category.issue") :icon "arrow-left" :enablement ~state.issueOpen []
   (set "state.issueOpen" false)
   (set "state.issueDueOpen" false)
   (set "state.subOpen" false))
 
-(defcommand toggleMark "" :title "Select or deselect the issue" :category "Issue" :icon "square-check"
+(defcommand toggleMark "Marks the chosen card, or unmarks it."
+  :title ~(t "command.toggleMark") :description ~(t "command.toggleMark.about")
+  :category ~(t "category.issue") :icon "square-check"
   :enablement ~(some? computed.card) []
   (let [ref computed.card.ref]
     (set "state.marked" (if (contains state.marked ref)
                           (filter (fn [marked] (not= marked ref)) state.marked)
                           (concat state.marked [ref])))))
 
-(defcommand markNext "" :title "Extend the selection down" :category "Issue" :icon "chevrons-down"
+(defcommand markNext "Marks the next card too."
+  :title ~(t "command.markNext") :description ~(t "command.markNext.about")
+  :category ~(t "category.issue") :icon "chevrons-down"
   :enablement ~(and (some? computed.card) (some? computed.next)) []
   (markSelected)
   (selectNext)
   (markSelected))
 
-(defcommand markPrevious "" :title "Extend the selection up" :category "Issue" :icon "chevrons-up"
+(defcommand markPrevious "Marks the card before too."
+  :title ~(t "command.markPrevious") :description ~(t "command.markPrevious.about")
+  :category ~(t "category.issue") :icon "chevrons-up"
   :enablement ~(and (some? computed.card) (some? computed.prev)) []
   (markSelected)
   (selectPrev)
   (markSelected))
 
-(defcommand clearMarks "" :title "Clear the selection" :category "Issue" :icon "x"
+(defcommand clearMarks "Unmarks every card."
+  :title ~(t "command.clearMarks") :description ~(t "command.clearMarks.about")
+  :category ~(t "category.issue") :icon "x"
   :enablement ~(> (count state.marked) 0) []
   (set "state.marked" []))
 
-(defcommand markAll "" :title "Select all issues" :category "Issue" :icon "list-checks" []
+(defcommand markAll "Marks every card shown."
+  :title ~(t "command.markAll") :description ~(t "command.markAll.about")
+  :category ~(t "category.issue") :icon "list-checks" []
   (set "state.marked" (map :ref computed.visible)))
 
-(defcommand bulkDelete "" :title "Delete the selected issues" :category "Issue" :icon "trash-2"
+(defcommand bulkDelete "Deletes every marked card."
+  :title ~(t "command.bulkDelete") :description ~(t "command.bulkDelete.about")
+  :category ~(t "category.issue") :icon "trash-2"
   :enablement ~(> (count state.marked) 0) []
   (remember)
   (notify (t "bulk.deleted" {:n (count state.marked)}))
@@ -525,73 +581,114 @@
   (set "state.marked" [])
   (set "state.selected" nil))
 
-(defcommand showBoard "" :title "Show the board" :category "View" :icon "kanban" [] (set "state.view" "board"))
+(defcommand showBoard "Shows the cards as a board."
+  :title ~(t "command.showBoard") :description ~(t "command.showBoard.about")
+  :category ~(t "category.view") :icon "kanban" [] (set "state.view" "board"))
 
-(defcommand showList "" :title "Show the list" :category "View" :icon "layout-list" [] (set "state.view" "list"))
+(defcommand showList "Shows the cards as a list."
+  :title ~(t "command.showList") :description ~(t "command.showList.about")
+  :category ~(t "category.view") :icon "layout-list" [] (set "state.view" "list"))
 
-(defcommand showTable "" :title "Show the table" :category "View" :icon "table" [] (set "state.view" "table"))
+(defcommand showTable "Shows the cards as a table."
+  :title ~(t "command.showTable") :description ~(t "command.showTable.about")
+  :category ~(t "category.view") :icon "table" [] (set "state.view" "table"))
 
-(defcommand showTimeline "" :title "Show the timeline" :category "View" :icon "chart-gantt" []
+(defcommand showTimeline "Shows the cards on a timeline."
+  :title ~(t "command.showTimeline") :description ~(t "command.showTimeline.about")
+  :category ~(t "category.view") :icon "chart-gantt" []
   (set "state.view" "timeline"))
 
-(defcommand toggleSwimlanes "" :title "Swimlanes by member" :category "View" :icon "rows-2" []
+(defcommand toggleSwimlanes "Groups the board's cards by member, or stops."
+  :title ~(t "command.toggleSwimlanes") :description ~(t "command.toggleSwimlanes.about")
+  :category ~(t "category.view") :icon "rows-2" []
   (set "state.view" "board")
   (toggle "state.swimlanes"))
 
-(defcommand toggleTheme "" :title "Switch light and dark" :category "View" :icon "moon" []
+(defcommand toggleTheme "Switches between the light and the dark look."
+  :title ~(t "command.toggleTheme") :description ~(t "command.toggleTheme.about")
+  :category ~(t "category.view") :icon "moon" []
   (set "state.theme" (if (= state.theme "light") "dark" "light")))
 
-(defcommand togglePeek "" :title "Show or hide the side panel" :category "View" :icon "panel-right" []
+(defcommand togglePeek "Shows the side panel, or hides it."
+  :title ~(t "command.togglePeek") :description ~(t "command.togglePeek.about")
+  :category ~(t "category.view") :icon "panel-right" []
   (toggle "state.peek"))
 
-(defcommand openSettings "" :title "Settings…" :category "View" :icon "settings" [] (set "state.settingsOpen" true))
+(defcommand openSettings "Opens the settings."
+  :title ~(t "command.openSettings") :description ~(t "command.openSettings.about")
+  :category ~(t "category.view") :icon "settings" [] (set "state.settingsOpen" true))
 
 (defn closeSettings "" [] (set "state.settingsOpen" false))
 
-(defcommand changeLanguage "" :title "Change the language" :category "View"
+(defcommand changeLanguage "Shows Flow in the next language."
+  :title ~(t "command.changeLanguage") :description ~(t "command.changeLanguage.about") :category ~(t "category.view")
   :icon "languages" []
   (set "settings.appearance.language"
        (cond (= settings.appearance.language "en") "es" (= settings.appearance.language "es") "fr" :else "en")))
 
-(defcommand focusSearch "" :title "Search issues" :category "Go" :icon "search" []
+(defcommand focusSearch "Opens the search, its field focused."
+  :title ~(t "command.focusSearch") :description ~(t "command.focusSearch.about")
+  :category ~(t "category.go") :icon "search" []
   (set "state.searchOpen" true)
   (focus "#search"))
 
-(defcommand addProject "" :title "New project" :category "Go" :icon "plus" []
+(defcommand addProject "Adds a project."
+  :title ~(t "command.addProject") :description ~(t "command.addProject.about")
+  :category ~(t "category.go") :icon "plus" []
   (insert "projects" :value {:name (t "projects.untitled" {:n (inc (count data.projects))}) :icon "box" :color "#0d9488"
                              :health "onTrack" :lead state.me :target state.cycle.end :progress 0 :issues 0})
   (set "state.projectScope" "all"))
 
-(defcommand goToInbox "" :title "Go to inbox" :category "Go" :icon "inbox" [] (showPage "inbox"))
+(defcommand goToInbox "Shows the inbox."
+  :title ~(t "command.goToInbox") :description ~(t "command.goToInbox.about")
+  :category ~(t "category.go") :icon "inbox" [] (showPage "inbox"))
 
-(defcommand goToIssues "" :title "Go to issues" :category "Go" :icon "copy" [] (showPage "issues"))
+(defcommand goToIssues "Shows the issues."
+  :title ~(t "command.goToIssues") :description ~(t "command.goToIssues.about")
+  :category ~(t "category.go") :icon "copy" [] (showPage "issues"))
 
-(defcommand goToCycles "" :title "Go to sprints" :category "Go" :icon "timer" [] (showPage "cycles"))
+(defcommand goToCycles "Shows the sprints."
+  :title ~(t "command.goToCycles") :description ~(t "command.goToCycles.about")
+  :category ~(t "category.go") :icon "timer" [] (showPage "cycles"))
 
-(defcommand goToProjects "" :title "Go to projects" :category "Go" :icon "box" [] (showPage "projects"))
+(defcommand goToProjects "Shows the projects."
+  :title ~(t "command.goToProjects") :description ~(t "command.goToProjects.about")
+  :category ~(t "category.go") :icon "box" [] (showPage "projects"))
 
-(defcommand nextNotification "" :title "Next notification" :category "Inbox" :icon "arrow-down"
+(defcommand nextNotification "Chooses the next notification."
+  :title ~(t "command.nextNotification") :description ~(t "command.nextNotification.about")
+  :category ~(t "category.inbox") :icon "arrow-down"
   :enablement ~(and (= state.page "inbox") (< (+ state.inboxAt 1) (count computed.inboxShown))) []
   (pickNotification (inc state.inboxAt)))
 
-(defcommand previousNotification "" :title "Previous notification" :category "Inbox" :icon "arrow-up"
+(defcommand previousNotification "Chooses the notification before."
+  :title ~(t "command.previousNotification") :description ~(t "command.previousNotification.about")
+  :category ~(t "category.inbox") :icon "arrow-up"
   :enablement ~(and (= state.page "inbox") (> state.inboxAt 0)) []
   (pickNotification (dec state.inboxAt)))
 
-(defcommand toggleRead "" :title "Mark read or unread" :category "Inbox" :icon "mail-check"
+(defcommand toggleRead "Marks the chosen notification read, or unread."
+  :title ~(t "command.toggleRead") :description ~(t "command.toggleRead.about")
+  :category ~(t "category.inbox") :icon "mail-check"
   :enablement ~(some? computed.notification) []
   (update-record "inbox" :id computed.notification.id :fields {:read (not computed.notification.read)}))
 
-(defcommand markAllRead "" :title "Mark all notifications read" :category "Inbox" :icon "check-check" []
+(defcommand markAllRead "Marks every notification read."
+  :title ~(t "command.markAllRead") :description ~(t "command.markAllRead.about")
+  :category ~(t "category.inbox") :icon "check-check" []
   (update-record "inbox" :where {:read false} :fields {:read true}))
 
-(defcommand snoozeNotification "" :title "Snooze notification" :category "Inbox" :icon "alarm-clock"
+(defcommand snoozeNotification "Hides the chosen notification for now."
+  :title ~(t "command.snoozeNotification") :description ~(t "command.snoozeNotification.about")
+  :category ~(t "category.inbox") :icon "alarm-clock"
   :enablement ~(some? computed.notification) []
   (update-record "inbox" :id computed.notification.id :fields {:snoozed true})
   (set "state.inboxAt" (max (min state.inboxAt (- (count computed.inboxShown) 2)) 0))
   (notify (t "inbox.snoozed")))
 
-(defcommand openNotification "" :title "Open the notification's issue" :category "Inbox" :icon "maximize-2"
+(defcommand openNotification "Opens the issue of the chosen notification."
+  :title ~(t "command.openNotification") :description ~(t "command.openNotification.about")
+  :category ~(t "category.inbox") :icon "maximize-2"
   :enablement ~(some? computed.notificationCard) []
   (selectCard computed.notificationCard.c computed.notificationCard.at)
   (set "state.page" "issues")

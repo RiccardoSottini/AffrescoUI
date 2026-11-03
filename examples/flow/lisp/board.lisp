@@ -1,7 +1,9 @@
-;;; board.lisp --- Flow's board, included by index.screen.lisp: its settings and state, the work-in-progress counts, the timeline's watch, presence from the host's channel, and the keys for undo and moves
+;;; board.lisp --- Flow's board, included by index.screen.lisp: its settings and state, the work-in-progress counts,
+;;; the timeline's watch, presence from the host's channel, and the keys for undo and moves
 ;;;
 ;;; What they run is in flow.lisp.
 
+;;; State
 
 (defstate query "")
 
@@ -40,6 +42,8 @@
 
 (defstate settings {})
 
+;;; What it works out
+
 (defcomputed remaining (sum (filter (fn [it] (not= it.c computed.lastColumn)) computed.allCards) (fn [it] it.points)))
 
 (defcomputed burndownValues (concat state.burndown [computed.remaining]))
@@ -51,6 +55,8 @@
   (if (or (nil? computed.card) (nil? computed.card.due)) nil (daysBetween state.today computed.card.due)))
 
 (defcomputed present (filter (fn [it] (some? (get state.presence it))) (keys state.presence)))
+
+;;; Keys
 
 (defkey "mod+z" undoChange)
 
@@ -68,15 +74,22 @@
 
 (defkey "alt+right" {:when ~(not context.textInputFocus) :do moveRight})
 
-(defcustom appearance.language "en" "English, Spanish or French." :type string :enum [en es fr] :title "Language")
+;;; Settings
+
+(defcustom appearance.language "en" "English, Spanish or French."
+  :type string
+  :enum [en es fr]
+  :title ~(t "settings.language") :description ~(t "settings.language.about"))
 
 (defcustom board.wipWarnings
   true "Show a notice when a move puts a column over its work-in-progress limit."
-  :type boolean :title "Warn over a column's limit")
+  :type boolean :title ~(t "settings.wipWarnings") :description ~(t "settings.wipWarnings.about"))
 
 (defcustom board.weekStart
   1 "0 for Sunday, 1 for Monday, up to 6 for Saturday, in the date picker."
-  :type number :minimum 0 :maximum 6 :title "First day of the week")
+  :type number :minimum 0 :maximum 6 :title ~(t "settings.weekStart") :description ~(t "settings.weekStart.about"))
+
+;;; What it adds to the screen
 
 (defpart board "What board adds."
   :watch {:computed.columns buildTimeline :state.members buildTimeline}

@@ -1,5 +1,7 @@
-;;; sidebar.lisp --- Flow's sidebar, included by index.screen.lisp: the workspace, the personal pages, the team's pages and its boards.
+;;; sidebar.lisp --- Flow's sidebar, included by index.screen.lisp: the workspace, the personal pages, the team's
+;;; pages and its boards.
 
+;;; Components
 
 (defcomponent navItem "One row of the sidebar: an icon, a name and a count; the use gives its onClick"
   {:icon circle :text "" :active false :count ""}
@@ -82,6 +84,8 @@
       :tooltip ~(t "nav.commands")
       :onClick commandPalette}))
 
+;;; Views
+
 (defview workspace-items "The workspace menu's items." []
   `(column#workspaceItems :anchors {:left 6 :right 6 :top 6 :bottom 6} :gap 2 :role menu :arrows vertical
      {:id settingsButton
@@ -90,7 +94,7 @@
       :text ~(str "  " (t "settings.title"))
       :role menuitem
       :label ~(t "settings.title")
-      :tooltip "Cmd+,"
+      :tooltip ~(t "key.settings")
       :onClick [{:set state.workspaceOpen :to false} ~(handler openSettings)]}
      {:id themeToggle
       :style menuRow
@@ -98,7 +102,7 @@
       :text ~(str "  " (t "theme.menu"))
       :role menuitem
       :label ~(t "theme.tooltip")
-      :tooltip "Cmd+J"
+      :tooltip ~(t "key.theme")
       :onClick [{:set state.workspaceOpen :to false} ~(handler toggleTheme)]}
      {:id languageButton
       :style menuRow
@@ -106,7 +110,7 @@
       :text ~(str "  " (t "locale.menu" {:code (upper-case settings.appearance.language)}))
       :role menuitem
       :label ~(t "locale.tooltip")
-      :tooltip "Cmd+L"
+      :tooltip ~(t "key.language")
       :onClick [{:set state.workspaceOpen :to false} ~(handler changeLanguage)]}))
 
 (defview workspace-switcher "The workspace's name at the top of the sidebar, which opens its menu." []
@@ -136,7 +140,7 @@
        :color @color.menu
        ~(workspace-items))
      (label#workspaceMark :font small
-       :text "L"
+       :text ~(t "key.l")
        :textColor "#ffffff"
        :color @color.accent
        :radius 4

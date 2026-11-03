@@ -1,5 +1,7 @@
-;;; list.lisp --- Flow's list view, included by index.screen.lisp: every card in one list, grouped by column, a row each.
+;;; list.lisp --- Flow's list view, included by index.screen.lisp: every card in one list, grouped by column, a row
+;;; each.
 
+;;; Components
 
 (defcomponent listView "The cards grouped by column: a header with the column's name and count, then a row a card"
   {}
@@ -15,9 +17,21 @@
           :label ~column.name
           :onDrop ~(handler moveCard event.data.from event.data.at c)
           ~(list-header column c)
-          (column#listRows :when ~(not (contains state.collapsedGroups c)) :anchors {:left 0 :right 0 :top 36 :bottom 0}
-            ~(repeat [row (sort-by (fn [it] (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority) (= state.order "due") (or-else it.due "9999-12-31") :else it.at)) (filter (fn [it] (= it.c c)) computed.allCards)) :index k]
+          (column#listRows :when ~(not (contains state.collapsedGroups c)) :anchors {:left 0
+                                                                                     :right 0
+                                                                                     :top 36
+                                                                                     :bottom 0}
+            ~(repeat [row
+                      (sort-by (fn [it]
+                                 (cond (= state.order "priority") (if (= (or-else it.priority 0) 0) 9 it.priority)
+                                       (= state.order "due") (or-else it.due "9999-12-31")
+                                       :else it.at))
+                               (filter (fn [it] (= it.c c)) computed.allCards))
+                      :index
+                      k]
               (list-row column c row)))))))
+
+;;; Views
 
 (defview list-collapse "A group's chevron in the list, which folds its rows." [column c]
   `(label#listCollapse :icon ~(if (contains state.collapsedGroups c) "chevron-right" "chevron-down")
@@ -148,7 +162,9 @@
       :style caption
       :when ~(and (not (contains state.hidden "due")) (some? card.due))
       :text ~(formatDate (dateMs card.due) "MMM d" "utc")
-      :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn)) "@bug" "@color.muted")
+      :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
+                      "@bug"
+                      "@color.muted")
       :width 48
       :anchors {:right 80 :top 0 :bottom 0}
       :align {:horizontal end :vertical center}}
