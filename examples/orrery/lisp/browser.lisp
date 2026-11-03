@@ -46,12 +46,9 @@
      :expanded ~state.expandedBodies
      :value ~state.selected
      :rowHeight 24
-     :onChange [{:set state.selected :to ~event.value}]
-     :onOpen [{:set state.selected :to ~event.value} ~(handler goTo)]
-     :onExpand [{:set state.expandedBodies
-                 :to ~(if event.expanded
-                        (concat (filter (fn [it] (not= it event.id)) state.expandedBodies) [event.id])
-                        (filter (fn [it] (not= it event.id)) state.expandedBodies))}]
+     :onChange ~(handler chooseBody event.value)
+     :onOpen ~(handler flyToBody event.value)
+     :onExpand ~(handler expandBody event.id event.expanded)
      :color @panel
      :textColor @text
      :selectedTextColor @text

@@ -327,9 +327,7 @@
      :background "#070b0c"
      :outlineColor @accent
      :controls {:orbit none :pan none :zoom false :select left :selects false}
-     :onSelect [{:if ~(and (= event.button "left")
-                           (>= (indexOf computed.ids (if (= event.id "halo") "sun" (or-else event.id ""))) 0))
-                 :then [{:set state.selected :to ~(if (= event.id "halo") "sun" event.id)}]}]))
+     :onSelect ~(handler pickInScene event.button event.id)))
 
 (defview view-info "#view-info, in view-pane." []
   `(panel#view-info :anchors {:left 12 :bottom 12}
@@ -377,19 +375,14 @@
      :radius 22
      :borderWidth 1
      :borderColor @hudBorder
-     :children [(label#time-date :height 20
-                  :width 300
-                  :align {:horizontal center :vertical center}
-                  :font small
-                  :textColor @onSky
-                  :text ~computed.clock)
-                (label#time-rate :height 18
-                  :width 300
-                  :align {:horizontal center :vertical center}
-                  :font small
-                  :textColor ~(if state.playing "@accent" "@onSkyMuted")
-                  :text ~computed.rate)]
-     :height 44))
+     :height 44
+     (label#time-date :height 20 :width 300 :align {:horizontal center :vertical center} :font small :textColor @onSky :text ~computed.clock)
+     (label#time-rate :height 18
+       :width 300
+       :align {:horizontal center :vertical center}
+       :font small
+       :textColor ~(if state.playing "@accent" "@onSkyMuted")
+       :text ~computed.rate)))
 
 (defview view-optics "#view-optics, in view-pane." []
   `(row#view-optics :anchors {:right 12 :bottom 12}
@@ -423,20 +416,18 @@
             :buttons [{:title ~(t "render.done")}]
             :width 340
             :height 330}
-     (column#render-options :gap 6
-       :children [~(repeat [o computed.renderOptions :key o.id]
-                     `(row :id ~(str "render-" o.id) :width "100%" :height 30
-                        (label :id ~(str "render-" o.id "-title")
-                          :text ~o.title
-                          :textColor @text
-                          :width 200
-                          :height 30)
-                        (toggle :id ~(str "render-" o.id "-toggle")
-                          :width 44
-                          :height 24
-                          :label ~o.title
-                          :checked ~o.on
-                          :activeColor @accent
-                          :trackColor @border
-                          :onChange {:run ~o.run})))]
-       :anchors {:left 20 :right 20 :top 76 :bottom 64})))
+     (column#render-options :gap 6 :anchors {:left 20 :right 20 :top 76 :bottom 64}
+       ~(repeat [o computed.renderOptions :key o.id]
+          (render-option o)))))
+
+(defview render-option "One thing the 3D view can draw, and the switch that turns it on or off." [o]
+  `(row :id ~(str "render-" o.id) :width "100%" :height 30
+     (label :id ~(str "render-" o.id "-title") :text ~o.title :textColor @text :width 200 :height 30)
+     (toggle :id ~(str "render-" o.id "-toggle")
+       :width 44
+       :height 24
+       :label ~o.title
+       :checked ~o.on
+       :activeColor @accent
+       :trackColor @border
+       :onChange ~(handler toggleRender o.id))))

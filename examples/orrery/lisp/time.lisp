@@ -158,20 +158,6 @@
      :accentColor @accent
      :color @background
      :label ~(t "events.label")
-     :onChange [{:if ~(= event.type "track")
-                 :then [{:set state.muted
-                         :to ~(if event.muted
-                                (concat (filter (fn [it] (not= it (slice event.id 0 (- (count event.id) 1))))
-                                                state.muted)
-                                        [(slice event.id 0 (- (count event.id) 1))])
-                                (filter (fn [it] (not= it (slice event.id 0 (- (count event.id) 1)))) state.muted))}
-                        {:set state.locked
-                         :to ~(if event.locked
-                                (concat (filter (fn [it] (not= it (slice event.id 0 (- (count event.id) 1))))
-                                                state.locked)
-                                        [(slice event.id 0 (- (count event.id) 1))])
-                                (filter (fn [it] (not= it (slice event.id 0 (- (count event.id) 1)))) state.locked))}]}]
-     :onScrub [{:set state.playing :to false} {:set state.time :to ~event.time}]
-     :onSelect [{:if ~(find (fn [it] (= it.id event.ids.0)) computed.events)
-                 :then [{:set state.playing :to false}
-                        {:set state.time :to ~(:time (find (fn [it] (= it.id event.ids.0)) computed.events))}]}]))
+     :onChange trackChanged
+     :onScrub ~(handler scrubTo event.time)
+     :onSelect ~(handler goToEvent event.ids.0)))

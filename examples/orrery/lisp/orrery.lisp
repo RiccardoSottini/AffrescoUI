@@ -13,7 +13,7 @@
 (defn at "Where a body is in the list, or -1." [id]
   (indexOf computed.ids id))
 
-(defn selectBody"Selects body args.id: what the bodies dock's select gives." [args]
+(defn selectBody "Selects body args.id: what the bodies dock's select gives." [args]
   (set "state.selected" (:id args)))
 
 (defn reorderBody "Moves body args.id to the place of body args.onto." [args]
@@ -439,3 +439,51 @@
 
 (defn skyScroll "Zooms the sky view as the wheel turns." [event]
   (set "state.sky.fov" (clamp (* state.sky.fov (+ 1 (* event.dy 0.06))) 0.09 1.75)))
+
+;;; What the views choose
+
+(defn chooseBody "Selects a body, by its id." [id] (set "state.selected" id))
+
+(defn flyToBody "Selects a body and flies to it." [id]
+  (chooseBody id)
+  (goTo))
+
+(defn expandBody "Unfolds a body's satellites in the browser's tree, or folds them." [id expanded]
+  (let [others (filter (fn [it] (not= it id)) state.expandedBodies)]
+    (set "state.expandedBodies" (if expanded (concat others [id]) others))))
+
+(defn pickInScene "Selects the body clicked in the 3D view; the Sun's halo is the Sun." [button id]
+  (let [body (if (= id "halo") "sun" (or id ""))]
+    (when (and (= button "left") (>= (indexOf computed.ids body) 0))
+      (chooseBody body))))
+
+(defn pickInGraph "Selects the first body chosen in the orbit graph." [ids]
+  (when (> (count ids) 0) (chooseBody (first ids))))
+
+(defn toggleRender "Turns one thing the 3D view draws on or off, by its id in the render options." [id]
+  (cond (= id "orbits") (toggleOrbits)
+        (= id "labels") (toggleLabels)
+        (= id "stars") (toggleStars)
+        (= id "shading") (toggleShading)
+        (= id "glow") (toggleGlow)))
+
+(defn kindOf "A track's kind of event: its id without the plural's s." [track]
+  (slice track 0 (dec (count track))))
+
+(defn trackChanged "Mutes or locks a kind of event, as its track on the timeline says." [event]
+  (when (= event.type "track")
+    (let [kind (kindOf event.id)
+          muted (filter (fn [it] (not= it kind)) state.muted)
+          locked (filter (fn [it] (not= it kind)) state.locked)]
+      (set "state.muted" (if event.muted (concat muted [kind]) muted))
+      (set "state.locked" (if event.locked (concat locked [kind]) locked)))))
+
+(defn scrubTo "Pauses at the day the timeline is scrubbed to." [time]
+  (set "state.playing" false)
+  (set "state.time" time))
+
+(defn goToEvent "Pauses at the day of the event chosen on the timeline." [id]
+  (let [event (find (fn [it] (= it.id id)) computed.events)]
+    (when event
+      (set "state.playing" false)
+      (set "state.time" (:time event)))))

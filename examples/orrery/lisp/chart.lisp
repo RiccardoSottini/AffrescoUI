@@ -168,4 +168,4 @@
      :onMove moveGraphNodes
      :onConnect reparent
      :onDisconnect orbitAround
-     :onSelect [{:if ~(> (count event.ids) 0) :then [{:set state.selected :to ~event.ids.0}]}]))
+     :onSelect ~(handler pickInGraph event.ids)))

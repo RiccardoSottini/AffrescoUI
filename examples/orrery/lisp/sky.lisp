@@ -1,10 +1,12 @@
-;;; sky.lisp --- The sky from the ground, as a planetarium shows it: the stars, the bodies and invented constellations seen from the Earth at a latitude, in a perspective (gnomonic) view, over the ground and under a sky that brightens by day
+;;; sky.lisp --- the sky from the ground, as a planetarium shows it
 ;;;
+;;; The stars, the bodies and invented constellations seen from the Earth at a latitude, in a perspective (gnomonic)
+;;; view, over the ground and under a sky that brightens by day.
 ;;; Every position is a computed value: a direction (east, north, up) from right ascension and declination and the
 ;;; sidereal time, then projected through the view's azimuth, altitude and field of view. Great circles are straight
 ;;; lines in this projection, so the horizon is a horizontal line and a constellation's lines are straight.
 
-;;; Definitions
+;;; What the sky keeps
 
 (defstate skyMode ground)
 
@@ -81,6 +83,8 @@
    [56 42]])
 
 (defstate skyTrack "")
+
+;;; Where everything is on the sky
 
 (defcomputed skyHeight "The sky view's height." (clamp (- window.height 524) 120 300))
 
@@ -410,95 +414,91 @@
          (+ computed.skyHeight 10)
          "Z")))
 
-(defcomponent skyFromGround "The skyFromGround component."
+;;; The sky view
+
+(defcomponent skyFromGround "The sky from where you stand on the Earth: the grid, the stars, the figures, the bodies, the ground."
   {}
-  `(panel :fill true
-     :color ~computed.skyColor
-     :label ~(t "sky.label")
-     :onPress skyPress
-     :onDrag skyDrag
-     :onScroll skyScroll
-     (path#sky-grid :fill true :d ~computed.skyGridPath :stroke "#5c5240" :strokeWidth 1)
-     ~(repeat [g
-               (filter (fn [it] (and (= it.kind "gridLabel") (< (indexOf ["0°" "90°" "180°" "270°"] it.text) 0)))
-                       computed.skyShown)
-               :key
-               g.id]
-        `(label :id ~(str "sky-grid-label-" g.id)
-           :x ~(+ g.x 3)
-           :y ~(- g.y 15)
-           :height 14
-           :fitText true
-           :font small
-           :text ~g.text
-           :textColor "#a8976e"))
+  `(panel :fill true :color ~computed.skyColor :label ~(t "sky.label") :onPress skyPress :onDrag skyDrag :onScroll skyScroll
+     ~@(sky-grid)
      (path#sky-figures :fill true :d ~computed.skyFigurePath :stroke ~computed.figureColor :strokeWidth 1)
-     (path#sky-stars-blue :fill true
-       :d ~(join "" (map (fn [it] it.d) (filter (fn [it] (= it.tint 0)) computed.skyStarShapes)))
-       :fillColor "#c9d8ff")
-     (path#sky-stars-white :fill true
-       :d ~(join "" (map (fn [it] it.d) (filter (fn [it] (= it.tint 1)) computed.skyStarShapes)))
-       :fillColor "#f4f4ff")
-     (path#sky-stars-gold :fill true
-       :d ~(join "" (map (fn [it] it.d) (filter (fn [it] (= it.tint 2)) computed.skyStarShapes)))
-       :fillColor "#ffe2b8")
-     ~(repeat [c (if state.skyLayers.names (filter (fn [it] (= it.kind "name")) computed.skyShown) []) :key c.id]
-        `(label :id ~(str "sky-name-" c.id)
-           :x ~(- c.x 60)
-           :y ~(- c.y 8)
-           :width 120
-           :height 16
-           :align center
-           :font small
-           :text ~c.name
-           :textColor "#b49fd8"))
-     ~(sky-ground)
-     ~(repeat [b
-               (filter (fn [it] (and (= it.kind "body") (or (> it.up (- 0.01)) (not state.skyLayers.ground))))
-                       computed.skyShown)
-               :key
-               b.id]
-        (view b))
-     ~(repeat [b
-               (if state.skyLayers.labels
-                 (filter (fn [it] (and (= it.kind "body") (or (> it.up (- 0.01)) (not state.skyLayers.ground))))
-                         computed.skyShown)
-                 [])
-               :key
-               b.id]
-        `(label :id ~(str "sky-label-" b.id)
-           :x ~(+ b.x 10)
-           :y ~(if (= b.parent "earth") (+ b.y 2) (- b.y 16))
-           :height 16
-           :fitText true
-           :font small
-           :text ~b.name
-           :textColor ~(if (= b.id state.selected) "@accent" "#e9d9b0")))
-     ~(repeat [p
-               (if state.skyLayers.cardinal (filter (fn [it] (= it.kind "cardinal")) computed.skyShown) [])
-               :key
-               p.id]
-        `(label :id ~(str "sky-cardinal-" p.id)
-           :x ~(- p.x 10)
-           :y ~(- p.y 24)
-           :width 20
-           :height 22
-           :align center
-           :font title
-           :text ~p.id
-           :textColor "#5eead4"))
+     ~(star-path "sky-stars-blue" 0 "#c9d8ff")
+     ~(star-path "sky-stars-white" 1 "#f4f4ff")
+     ~(star-path "sky-stars-gold" 2 "#ffe2b8")
+     ~(constellation-names)
+     (path#sky-ground :visible ~state.skyLayers.ground
+       :fill true
+       :d ~computed.skyLandPath
+       :fillColor ~computed.groundColor
+       :stroke "#6e6347"
+       :strokeWidth 1)
+     ~(repeat [b (bodies-up) :key b.id]
+        (sky-body b))
+     ~(repeat [b (if state.skyLayers.labels (bodies-up) []) :key b.id]
+        (sky-label b))
+     ~(cardinal-points)
      ~(sky-bar)
      ~(sky-place)))
 
-(defview sky-ground "#sky-ground, in skyFromGround." []
-  `(path#sky-ground :visible ~state.skyLayers.ground
-     :fill true
-     :d ~computed.skyLandPath
-     :fillColor ~computed.groundColor
-     :stroke "#6e6347"
-     :strokeWidth 1))
+(defmacro bodies-up
+  ;; A macro, not a function: the list it writes stays an expression, worked out at its speed.
+  "The bodies on the sky view: those above the horizon, or all of them while the ground isn't drawn."
+  []
+  `(filter (fn [it] (and (= it.kind "body") (or (> it.up (- 0.01)) (not state.skyLayers.ground)))) computed.skyShown))
 
-(defview sky-bar "#sky-bar, in skyFromGround." []
+(defview sky-grid "The azimuthal grid, and its labels but the four cardinal ones: two nodes, spliced in." []
+  `[(path#sky-grid :fill true :d ~computed.skyGridPath :stroke "#5c5240" :strokeWidth 1)
+    ~(repeat [g (filter (fn [it] (and (= it.kind "gridLabel") (< (indexOf ["0°" "90°" "180°" "270°"] it.text) 0))) computed.skyShown)
+              :key g.id]
+       `(label :id ~(str "sky-grid-label-" g.id)
+          :x ~(+ g.x 3)
+          :y ~(- g.y 15)
+          :height 14
+          :fitText true
+          :font small
+          :text ~g.text
+          :textColor "#a8976e"))])
+
+(defview star-path "The stars of one tint, as one path of their shapes." [id tint colour]
+  `(path :id ~id
+     :fill true
+     :d ~(join "" (map (fn [it] it.d) (filter (fn [it] (= it.tint tint)) computed.skyStarShapes)))
+     :fillColor ~colour))
+
+(defview constellation-names "The constellations' names, while they are shown." []
+  (repeat [c (if state.skyLayers.names (filter (fn [it] (= it.kind "name")) computed.skyShown) []) :key c.id]
+    `(label :id ~(str "sky-name-" c.id)
+       :x ~(- c.x 60)
+       :y ~(- c.y 8)
+       :width 120
+       :height 16
+       :align center
+       :font small
+       :text ~c.name
+       :textColor "#b49fd8")))
+
+(defview sky-label "A body's name, beside its disc on the sky." [b]
+  `(label :id ~(str "sky-label-" b.id)
+     :x ~(+ b.x 10)
+     :y ~(if (= b.parent "earth") (+ b.y 2) (- b.y 16))
+     :height 16
+     :fitText true
+     :font small
+     :text ~b.name
+     :textColor ~(if (= b.id state.selected) "@accent" "#e9d9b0")))
+
+(defview cardinal-points "The cardinal points on the horizon, while they are shown." []
+  (repeat [p (if state.skyLayers.cardinal (filter (fn [it] (= it.kind "cardinal")) computed.skyShown) []) :key p.id]
+    `(label :id ~(str "sky-cardinal-" p.id)
+       :x ~(- p.x 10)
+       :y ~(- p.y 24)
+       :width 20
+       :height 22
+       :align center
+       :font title
+       :text ~p.id
+       :textColor "#5eead4")))
+
+(defview sky-bar "The sky's toolbar: centre on the selected body, and the layers it draws." []
   `(node#sky-bar :use toolbar
      :anchors {:right 8 :bottom 6}
      :with {:items ~computed.skyBar
@@ -510,7 +510,7 @@
             :highlight "#1f3331"
             :checkedColor "#24514b"}))
 
-(defview sky-place "#sky-place, in skyFromGround." []
+(defview sky-place "Where you stand, the field of view and the day, over the sky's toolbar." []
   `(label#sky-place :anchors {:right 8 :bottom 40}
      :height 18
      :fitText true
@@ -522,9 +522,7 @@
                 :fov (fixed (degrees state.sky.fov) 1)
                 :clock computed.clock})))
 
-;;; Views
-
-(defview view "#." [b]
+(defview sky-body "A body on the sky: its disc (the Moon dark in a solar eclipse, red in a lunar one); a click selects it." [b]
   `(panel :id ~(str "sky-body-" b.id)
      :x ~(- b.x 12)
      :y ~(- b.y 12)
@@ -534,17 +532,17 @@
      :radius 12
      :role button
      :label ~b.name
-     :onClick {:set state.selected :to ~b.id}
-     :children [(panel :id ~(str "sky-disc-" b.id)
-                  :x ~(if (or (= b.id "sun") (= b.parent "earth")) 5 9.5)
-                  :y ~(if (or (= b.id "sun") (= b.parent "earth")) 5 9.5)
-                  :width ~(if (or (= b.id "sun") (= b.parent "earth")) 14 5)
-                  :height ~(if (or (= b.id "sun") (= b.parent "earth")) 14 5)
-                  :radius 7
-                  :color ~(cond (and (= b.parent "earth") (> computed.eclipseCover 0)) "#16181c"
-                                (and (= b.parent "earth") computed.eclipseNow (not computed.eclipseNow.solar)) "#9a4a2c"
-                                :else b.hex)
-                  :borderColor ~(if (= b.id state.selected) "@accent" "#00000000")
-                  :borderWidth 1)]
+     :onClick ~(handler chooseBody b.id)
      :borderWidth ~(if (= b.id state.selected) 1.5 0)
-     :borderColor "#2dd4bf"))
+     :borderColor "#2dd4bf"
+     (panel :id ~(str "sky-disc-" b.id)
+       :x ~(if (or (= b.id "sun") (= b.parent "earth")) 5 9.5)
+       :y ~(if (or (= b.id "sun") (= b.parent "earth")) 5 9.5)
+       :width ~(if (or (= b.id "sun") (= b.parent "earth")) 14 5)
+       :height ~(if (or (= b.id "sun") (= b.parent "earth")) 14 5)
+       :radius 7
+       :color ~(cond (and (= b.parent "earth") (> computed.eclipseCover 0)) "#16181c"
+                     (and (= b.parent "earth") computed.eclipseNow (not computed.eclipseNow.solar)) "#9a4a2c"
+                     :else b.hex)
+       :borderColor ~(if (= b.id state.selected) "@accent" "#00000000")
+       :borderWidth 1)))
