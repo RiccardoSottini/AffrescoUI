@@ -3,7 +3,7 @@
 ;;; The screen (index.screen.lisp) says what is shown and keeps the one-step actions (the toggles, the time controls);
 ;;; this file holds what has logic. A function reads the running app through paths (`state.bodies`, `computed.target`,
 ;;; `event.from`) and changes it only through steps (`set`, `push`, `animate`...). A handler runs one by name, as it
-;;; would an action: `:onConnect reparent`, `{:run goToEclipse}`.
+;;; would an action: `:onConnect reparent`, `~(handler goToEclipse)`.
 
 ;;; The bodies
 
