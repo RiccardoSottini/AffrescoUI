@@ -21,20 +21,24 @@
   (when (some? state.hoverSlot) (get state.areas state.hoverSlot)))
 
 (defcommand addMenu "Opens the Add menu: objects in the viewport, nodes in the Shader Editor."
-  :title ~(t "command.addMenu") :category ~(t "category.object") :icon "plus" []
+  :title ~(t "command.addMenu") :description ~(t "command.addMenu.about")
+  :category ~(t "category.object") :icon "plus" []
   (openPopup (if (= (hovered) "shader") "shaderAdd" "add") nil nil))
 
 (defcommand deleteMenu "Opens the Delete menu, when something is selected."
-  :title ~(t "command.deleteMenu") :category ~(t "category.object") []
+  :title ~(t "command.deleteMenu") :description ~(t "command.deleteMenu.about")
+  :category ~(t "category.object") []
   (when (not (empty? state.view.selection)) (openPopup "delete" nil nil)))
 
 (defcommand search "Opens the search for a command."
-  :title ~(t "command.search") :category ~(t "category.edit") :icon "search" []
+  :title ~(t "command.search") :description ~(t "command.search.about")
+  :category ~(t "category.edit") :icon "search" []
   (dismiss)
   (set "state.quickPick" {:open true :query ""}))
 
 (defcommand about "Shows what Modello is."
-  :title ~(t "command.about") :category ~(t "category.help") :icon "info" []
+  :title ~(t "command.about") :description ~(t "command.about.about")
+  :category ~(t "category.help") :icon "info" []
   (dismiss)
   (set "state.about" true))
 
@@ -46,14 +50,16 @@
   :title ~(t "settings.language") :description ~(t "settings.language.about"))
 
 (defcommand changeLanguage "Switches the language: English, Spanish, French."
-  :title ~(t "command.changeLanguage") :category ~(t "category.window") :icon "languages" []
+  :title ~(t "command.changeLanguage") :description ~(t "command.changeLanguage.about")
+  :category ~(t "category.window") :icon "languages" []
   (set "settings.appearance.language"
        (cond (= settings.appearance.language "en") "es" (= settings.appearance.language "es") "fr" :else "en")))
 
 ;;; The headers' options
 
-(defcommand setMode "Changes the mode: Object Mode is the one there is." :title ~(t "command.setMode") :category ~(t "category.object")
-  [mode]
+(defcommand setMode "Changes the mode: Object Mode is the one there is."
+  :title ~(t "command.setMode") :description ~(t "command.setMode.about")
+  :category ~(t "category.object") [mode]
   (dismiss)
   (set "state.mode" mode))
 
@@ -86,27 +92,33 @@
   (set "state.measure" {:points [] :screen [] :camera nil}))
 
 (defcommand toggleXray "Lets the objects behind be seen and picked."
-  :title ~(t "command.toggleXray") :category ~(t "category.view") :icon "square-dashed-bottom" []
+  :title ~(t "command.toggleXray") :description ~(t "command.toggleXray.about")
+  :category ~(t "category.view") :icon "square-dashed-bottom" []
   (toggle "state.xray"))
 
 (defcommand toggleSnap "Turns snapping on or off."
-  :title ~(t "command.toggleSnap") :category ~(t "category.object") :icon "magnet" []
+  :title ~(t "command.toggleSnap") :description ~(t "command.toggleSnap.about")
+  :category ~(t "category.object") :icon "magnet" []
   (toggle "state.snap"))
 
 (defcommand toggleOverlays "Shows or hides every overlay."
-  :title ~(t "command.toggleOverlays") :category ~(t "category.view") []
+  :title ~(t "command.toggleOverlays") :description ~(t "command.toggleOverlays.about")
+  :category ~(t "category.view") []
   (toggle "state.overlays"))
 
 (defcommand toggleSidebar "Shows or hides the viewport's sidebar."
-  :title ~(t "command.toggleSidebar") :category ~(t "category.view") []
+  :title ~(t "command.toggleSidebar") :description ~(t "command.toggleSidebar.about")
+  :category ~(t "category.view") []
   (toggle "state.sidebar"))
 
 (defcommand toggleToolbar "Shows or hides the viewport's toolbar."
-  :title ~(t "command.toggleToolbar") :category ~(t "category.view") []
+  :title ~(t "command.toggleToolbar") :description ~(t "command.toggleToolbar.about")
+  :category ~(t "category.view") []
   (set "state.toolbar" (= state.toolbar false)))
 
 (defcommand toggleTheme "Switches between the dark and the light theme."
-  :title ~(t "command.toggleTheme") :category ~(t "category.window") :icon "sun-moon" []
+  :title ~(t "command.toggleTheme") :description ~(t "command.toggleTheme.about")
+  :category ~(t "category.window") :icon "sun-moon" []
   (set "state.theme" (if (= state.theme "dark") "light" "dark")))
 
 ;;; Editors and workspaces
@@ -139,15 +151,18 @@
     (setWorkspace (:id next) (:name next))))
 
 (defcommand nextWorkspace "Shows the next workspace."
-  :title ~(t "command.nextWorkspace") :category ~(t "category.window") :icon "arrow-right" []
+  :title ~(t "command.nextWorkspace") :description ~(t "command.nextWorkspace.about")
+  :category ~(t "category.window") :icon "arrow-right" []
   (workspace-after 1))
 
 (defcommand previousWorkspace "Shows the workspace before."
-  :title ~(t "command.previousWorkspace") :category ~(t "category.window") :icon "arrow-left" []
+  :title ~(t "command.previousWorkspace") :description ~(t "command.previousWorkspace.about")
+  :category ~(t "category.window") :icon "arrow-left" []
   (workspace-after -1))
 
 (defcommand toggleMaximize "Fills the window with the area under the pointer, or puts the areas back."
-  :title ~(t "command.toggleMaximize") :category ~(t "category.view") []
+  :title ~(t "command.toggleMaximize") :description ~(t "command.toggleMaximize.about")
+  :category ~(t "category.view") []
   (dismiss)
   (set "state.maximized" (if (some? state.maximized) nil (or state.hoverSlot "a"))))
 
@@ -157,43 +172,58 @@
   (set "state.inCamera" false)
   (camera "#viewport" :view view))
 
-(defcommand viewFront "Looks at the scene from the front." :title ~(t "command.viewFront") :category ~(t "category.view") []
+(defcommand viewFront "Looks at the scene from the front."
+  :title ~(t "command.viewFront") :description ~(t "command.viewFront.about")
+  :category ~(t "category.view") []
   (viewAxis "front"))
 
-(defcommand viewBack "Looks at the scene from the back." :title ~(t "command.viewBack") :category ~(t "category.view") []
+(defcommand viewBack "Looks at the scene from the back."
+  :title ~(t "command.viewBack") :description ~(t "command.viewBack.about")
+  :category ~(t "category.view") []
   (viewAxis "back"))
 
-(defcommand viewRight "Looks at the scene from the right." :title ~(t "command.viewRight") :category ~(t "category.view") []
+(defcommand viewRight "Looks at the scene from the right."
+  :title ~(t "command.viewRight") :description ~(t "command.viewRight.about")
+  :category ~(t "category.view") []
   (viewAxis "right"))
 
-(defcommand viewLeft "Looks at the scene from the left." :title ~(t "command.viewLeft") :category ~(t "category.view") []
+(defcommand viewLeft "Looks at the scene from the left."
+  :title ~(t "command.viewLeft") :description ~(t "command.viewLeft.about")
+  :category ~(t "category.view") []
   (viewAxis "left"))
 
-(defcommand viewTop "Looks down at the scene." :title ~(t "command.viewTop") :category ~(t "category.view") []
+(defcommand viewTop "Looks down at the scene."
+  :title ~(t "command.viewTop") :description ~(t "command.viewTop.about")
+  :category ~(t "category.view") []
   (viewAxis "top"))
 
-(defcommand viewBottom "Looks up at the scene." :title ~(t "command.viewBottom") :category ~(t "category.view") []
+(defcommand viewBottom "Looks up at the scene."
+  :title ~(t "command.viewBottom") :description ~(t "command.viewBottom.about")
+  :category ~(t "category.view") []
   (viewAxis "bottom"))
 
 (defcommand viewCamera "Looks through the scene's camera, or back to the view before."
-  :title ~(t "command.viewCamera") :category ~(t "category.view") :icon "video" :enablement ~(some? computed.cameraNode)
-  []
+  :title ~(t "command.viewCamera") :description ~(t "command.viewCamera.about")
+  :category ~(t "category.view") :icon "video" :enablement ~(some? computed.cameraNode) []
   (if state.inCamera
     (set "state.inCamera" false)
     (do (set "state.view.camera" computed.cameraView)
         (set "state.inCamera" true))))
 
 (defcommand toggleProjection "Switches the view between perspective and orthographic."
-  :title ~(t "command.toggleProjection") :category ~(t "category.view") []
+  :title ~(t "command.toggleProjection") :description ~(t "command.toggleProjection.about")
+  :category ~(t "category.view") []
   (camera "#viewport" :projection "toggle"))
 
 (defcommand frameSelected "Fits the selected objects in the view."
-  :title ~(t "command.frameSelected") :category ~(t "category.view") []
+  :title ~(t "command.frameSelected") :description ~(t "command.frameSelected.about")
+  :category ~(t "category.view") []
   (set "state.inCamera" false)
   (camera "#viewport" :frame "selection"))
 
 (defcommand frameAll "Fits the whole scene in the view."
-  :title ~(t "command.frameAll") :category ~(t "category.view") []
+  :title ~(t "command.frameAll") :description ~(t "command.frameAll.about")
+  :category ~(t "category.view") []
   (set "state.inCamera" false)
   (camera "#viewport" :frame "all"))
 

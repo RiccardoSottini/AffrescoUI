@@ -44,15 +44,18 @@
     (transform "#viewport" :mode mode)))
 
 (defcommand grab "Moves the selection after the pointer."
-  :title ~(t "command.grab") :category ~(t "category.object") :icon "move" []
+  :title ~(t "command.grab") :description ~(t "command.grab.about")
+  :category ~(t "category.object") :icon "move" []
   (startTransform "translate"))
 
 (defcommand rotate "Turns the selection after the pointer."
-  :title ~(t "command.rotate") :category ~(t "category.object") :icon "rotate-cw" []
+  :title ~(t "command.rotate") :description ~(t "command.rotate.about")
+  :category ~(t "category.object") :icon "rotate-cw" []
   (startTransform "rotate"))
 
 (defcommand resize "Scales the selection after the pointer."
-  :title ~(t "command.resize") :category ~(t "category.object") :icon "scale-3-d" []
+  :title ~(t "command.resize") :description ~(t "command.resize.about")
+  :category ~(t "category.object") :icon "scale-3-d" []
   (startTransform "scale"))
 
 (defn lockAxis "X, Y or Z while transforming: moves along that axis only; the same key again frees it." [axis]
@@ -122,7 +125,8 @@
 ;;; Adjust Last Operation
 
 (defcommand adjustLastPanel "Opens the Adjust Last Operation panel."
-  :title ~(t "command.adjustLastPanel") :category ~(t "category.edit") []
+  :title ~(t "command.adjustLastPanel") :description ~(t "command.adjustLastPanel.about")
+  :category ~(t "category.edit") []
   (set "state.redoOpen" true))
 
 (defn adjusted "What an object of the last operation becomes with its amounts changed." [op centre b]
@@ -166,30 +170,30 @@
     (autoKey)))
 
 (defcommand clearLocation "Puts the selected objects back at the origin."
-  :title ~(t "command.clearLocation") :category ~(t "category.object") :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.clearLocation") :description ~(t "command.clearLocation.about")
+  :category ~(t "category.object") :enablement ~(> (count state.view.selection) 0) []
   (clearTransform "translation" 0 (t "command.clearLocation")))
 
 (defcommand clearRotation "Turns the selected objects back straight."
-  :title ~(t "command.clearRotation") :category ~(t "category.object") :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.clearRotation") :description ~(t "command.clearRotation.about")
+  :category ~(t "category.object") :enablement ~(> (count state.view.selection) 0) []
   (clearTransform "rotationDegrees" 0 (t "command.clearRotation")))
 
 (defcommand clearScale "Gives the selected objects their own size back."
-  :title ~(t "command.clearScale") :category ~(t "category.object") :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.clearScale") :description ~(t "command.clearScale.about")
+  :category ~(t "category.object") :enablement ~(> (count state.view.selection) 0) []
   (clearTransform "scale" 1 (t "command.clearScale")))
 
 ;;; Snapping and the 3D cursor
 
 (defcommand snapMenu "Opens the Snap menu."
-  :title ~(t "command.snapMenu") :category ~(t "category.object") []
+  :title ~(t "command.snapMenu") :description ~(t "command.snapMenu.about")
+  :category ~(t "category.object") []
   (when (nil? state.modal) (openPopup "snap" nil nil)))
 
 (defcommand selectionToCursor "Moves the selected objects to the 3D cursor, but the items they lock."
-  :title ~(t "command.selectionToCursor") :category ~(t "category.object")
-  :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.selectionToCursor") :description ~(t "command.selectionToCursor.about")
+  :category ~(t "category.object") :enablement ~(> (count state.view.selection) 0) []
   (dismiss)
   (when (not (empty? state.view.selection))
     (snapshot)
@@ -204,20 +208,20 @@
   (map (fn [i] (rounded (/ (reduce + 0 (map (fn [n] (get (:translation n) i)) nodes)) (count nodes)))) (range 3)))
 
 (defcommand cursorToSelected "Moves the 3D cursor to the middle of the selected objects."
-  :title ~(t "command.cursorToSelected") :category ~(t "category.object")
-  :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.cursorToSelected") :description ~(t "command.cursorToSelected.about")
+  :category ~(t "category.object") :enablement ~(> (count state.view.selection) 0) []
   (dismiss)
   (let [chosen (filter selected? state.scene.nodes)]
     (when (not (empty? chosen)) (set "state.cursor" (middle chosen)))))
 
 (defcommand cursorToActive "Moves the 3D cursor to the active object."
-  :title ~(t "command.cursorToActive") :category ~(t "category.object") :enablement ~(some? computed.activeNode)
-  []
+  :title ~(t "command.cursorToActive") :description ~(t "command.cursorToActive.about")
+  :category ~(t "category.object") :enablement ~(some? computed.activeNode) []
   (dismiss)
   (when (some? computed.activeNode) (set "state.cursor" computed.activeNode.translation)))
 
 (defcommand cursorToOrigin "Moves the 3D cursor back to the world's origin."
-  :title ~(t "command.cursorToOrigin") :category ~(t "category.object") []
+  :title ~(t "command.cursorToOrigin") :description ~(t "command.cursorToOrigin.about")
+  :category ~(t "category.object") []
   (dismiss)
   (set "state.cursor" [0 0 0]))

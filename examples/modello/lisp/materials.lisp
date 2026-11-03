@@ -16,9 +16,8 @@
   (str "state.scene.nodes[" computed.activeIndex "]." what))
 
 (defcommand newMaterial "Gives the active mesh a new material of its own."
-  :title ~(t "command.newMaterial") :category ~(t "category.material") :icon "plus"
-  :enablement ~(= computed.activeNode.kind "mesh")
-  []
+  :title ~(t "command.newMaterial") :description ~(t "command.newMaterial.about")
+  :category ~(t "category.material") :icon "plus" :enablement ~(= computed.activeNode.kind "mesh") []
   (dismiss)
   (when (= computed.activeNode.kind "mesh")
     (snapshot)
@@ -36,9 +35,8 @@
     (set "state.last" (t "op.assignMaterial"))))
 
 (defcommand unlinkMaterial "Takes the active object's material away from it."
-  :title ~(t "command.unlinkMaterial") :category ~(t "category.material") :icon "x"
-  :enablement ~(>= computed.activeMaterialIndex 0)
-  []
+  :title ~(t "command.unlinkMaterial") :description ~(t "command.unlinkMaterial.about")
+  :category ~(t "category.material") :icon "x" :enablement ~(>= computed.activeMaterialIndex 0) []
   (when (>= computed.activeMaterialIndex 0)
     (snapshot)
     (set (active-node-path "material") nil)
@@ -60,8 +58,8 @@
         :else {}))
 
 (defcommand addShaderNode "Adds a node of an operation to the graph, where it is dropped or beside the others."
-  :title ~(t "command.addShaderNode") :category ~(t "category.shader")
-  [op x y]
+  :title ~(t "command.addShaderNode") :description ~(t "command.addShaderNode.about")
+  :category ~(t "category.shader") [op x y]
   (dismiss)
   (when (and (>= computed.activeMaterialIndex 0) (some? (get computed.shaderOps op)) (not= op "output"))
     (snapshot)
@@ -98,9 +96,9 @@
             computed.shaderGraph.nodes)))
 
 (defcommand deleteShaderNodes "Deletes the selected nodes, and their links; the output stays."
-  :title ~(t "command.deleteShaderNodes") :category ~(t "category.shader")
-  :enablement ~(some (fn [id] (contains computed.shaderDeletable id)) state.shaderSelected)
-  []
+  :title ~(t "command.deleteShaderNodes") :description ~(t "command.deleteShaderNodes.about")
+  :category ~(t "category.shader")
+  :enablement ~(some (fn [id] (contains computed.shaderDeletable id)) state.shaderSelected) []
   (let [gone (filter (fn [id] (contains computed.shaderDeletable id)) state.shaderSelected)]
     (when (not (empty? gone))
       (snapshot)

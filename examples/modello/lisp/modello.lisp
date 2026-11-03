@@ -58,16 +58,16 @@
   (remove-state from :at (dec (count stack))))
 
 (defcommand undo "Puts the scene back as it was before the last change."
-  :title ~(t "command.undo") :category ~(t "category.edit") :icon "undo-2" :enablement ~(> (count state.undoStack) 0)
-  []
+  :title ~(t "command.undo") :description ~(t "command.undo.about")
+  :category ~(t "category.edit") :icon "undo-2" :enablement ~(> (count state.undoStack) 0) []
   (set "state.lastOp" nil)
   (swap-scene "state.undoStack" "state.redoStack" state.undoStack)
   (let [left (ids state.scene.nodes)]
     (set "state.view.selection" (filter (fn [id] (contains left id)) state.view.selection))))
 
 (defcommand redo "Makes the change Undo took back again."
-  :title ~(t "command.redo") :category ~(t "category.edit") :icon "redo-2" :enablement ~(> (count state.redoStack) 0)
-  []
+  :title ~(t "command.redo") :description ~(t "command.redo.about")
+  :category ~(t "category.edit") :icon "redo-2" :enablement ~(> (count state.redoStack) 0) []
   (swap-scene "state.redoStack" "state.undoStack" state.redoStack))
 
 ;;; Selecting
@@ -82,15 +82,18 @@
                   (set "state.active" id))))
 
 (defcommand selectAll "Selects every object that can be picked."
-  :title ~(t "command.selectAll") :category ~(t "category.select") []
+  :title ~(t "command.selectAll") :description ~(t "command.selectAll.about")
+  :category ~(t "category.select") []
   (set "state.view.selection" computed.pickable))
 
 (defcommand selectNone "Selects nothing."
-  :title ~(t "command.selectNone") :category ~(t "category.select") []
+  :title ~(t "command.selectNone") :description ~(t "command.selectNone.about")
+  :category ~(t "category.select") []
   (set "state.view.selection" []))
 
 (defcommand selectInvert "Selects what isn't selected, and only that."
-  :title ~(t "command.selectInvert") :category ~(t "category.select") []
+  :title ~(t "command.selectInvert") :description ~(t "command.selectInvert.about")
+  :category ~(t "category.select") []
   (set "state.view.selection" (remove (fn [id] (contains state.view.selection id)) computed.pickable)))
 
 ;;; Adding and copying
@@ -140,25 +143,22 @@
           (recur (rest left) (conj made id)))))))
 
 (defcommand duplicate "Copies the selected objects, then moves the copies after the pointer."
-  :title ~(t "command.duplicate") :category ~(t "category.object") :icon "copy"
-  :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.duplicate") :description ~(t "command.duplicate.about")
+  :category ~(t "category.object") :icon "copy" :enablement ~(> (count state.view.selection) 0) []
   (snapshot)
   (add-copies computed.selectedNodes)
   (after 0 startTransform "translate"))
 
 (defcommand copyObjects "Keeps the selected objects for Paste."
-  :title ~(t "command.copyObjects") :category ~(t "category.edit") :icon "copy"
-  :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.copyObjects") :description ~(t "command.copyObjects.about")
+  :category ~(t "category.edit") :icon "copy" :enablement ~(> (count state.view.selection) 0) []
   (when (not (empty? state.view.selection))
     (set "state.copied" computed.selectedNodes)
     (set "state.last" (t "op.copied" {:count (count state.copied)}))))
 
 (defcommand pasteObjects "Adds the copied objects to the scene again, selected."
-  :title ~(t "command.pasteObjects") :category ~(t "category.edit") :icon "clipboard-paste"
-  :enablement ~(> (count state.copied) 0)
-  []
+  :title ~(t "command.pasteObjects") :description ~(t "command.pasteObjects.about")
+  :category ~(t "category.edit") :icon "clipboard-paste" :enablement ~(> (count state.copied) 0) []
   (dismiss)
   (when (not (empty? state.copied))
     (snapshot)
@@ -168,9 +168,8 @@
 ;;; Deleting and hiding
 
 (defcommand deleteSelected "Deletes the selected objects."
-  :title ~(t "command.deleteSelected") :category ~(t "category.object") :icon "trash-2"
-  :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.deleteSelected") :description ~(t "command.deleteSelected.about")
+  :category ~(t "category.object") :icon "trash-2" :enablement ~(> (count state.view.selection) 0) []
   (dismiss)
   (snapshot)
   (set "state.scene.nodes" (remove selected? state.scene.nodes))
@@ -179,19 +178,19 @@
   (set "state.last" (t "command.deleteSelected")))
 
 (defcommand hideSelected "Hides the selected objects."
-  :title ~(t "command.hideSelected") :category ~(t "category.object") :icon "eye-off"
-  []
+  :title ~(t "command.hideSelected") :description ~(t "command.hideSelected.about")
+  :category ~(t "category.object") :icon "eye-off" []
   (change-nodes selected? (fn [n] (merge n {:visible false})))
   (set "state.view.selection" []))
 
 (defcommand hideUnselected "Hides every object but the selected ones."
-  :title ~(t "command.hideUnselected") :category ~(t "category.object")
-  []
+  :title ~(t "command.hideUnselected") :description ~(t "command.hideUnselected.about")
+  :category ~(t "category.object") []
   (change-nodes (fn [n] (not (selected? n))) (fn [n] (merge n {:visible false}))))
 
 (defcommand revealHidden "Shows the hidden objects again, and selects them."
-  :title ~(t "command.revealHidden") :category ~(t "category.object") :icon "eye"
-  []
+  :title ~(t "command.revealHidden") :description ~(t "command.revealHidden.about")
+  :category ~(t "category.object") :icon "eye" []
   (set "state.view.selection" (ids (filter (fn [n] (= (:visible n) false)) state.scene.nodes)))
   (change-nodes (fn [n] true) (fn [n] (merge n {:visible true}))))
 
@@ -215,8 +214,8 @@
   (focus "#outliner-rename"))
 
 (defcommand startRename "Names the active object in the outliner, which takes the properties' place if it isn't shown."
-  :title ~(t "command.startRename") :category ~(t "category.object") :icon "pencil"
-  []
+  :title ~(t "command.startRename") :description ~(t "command.startRename.about")
+  :category ~(t "category.object") :icon "pencil" []
   (dismiss)
   (when (and (some? state.active) (contains state.view.selection state.active))
     (when (not (contains (vals state.areas) "outliner")) (swapEditor "properties" "outliner"))

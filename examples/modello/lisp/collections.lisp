@@ -26,8 +26,8 @@
       (if (some (fn [c] (= (:name c) name)) state.scene.collections) (recur (inc n)) name))))
 
 (defcommand newCollection "Adds a collection, and moves the selected objects into it when move is true."
-  :title ~(t "command.newCollection") :category ~(t "category.collection") :icon "folder-plus"
-  [move]
+  :title ~(t "command.newCollection") :description ~(t "command.newCollection.about")
+  :category ~(t "category.collection") :icon "folder-plus" [move]
   (dismiss)
   (snapshot)
   (own-collections)
@@ -46,9 +46,8 @@
     (set (str "state.scene.collections[" (indexOf computed.collectionIds id) "].name") (slice (trim name) 0 63))))
 
 (defcommand startCollectionRename "Names the active collection in the outliner."
-  :title ~(t "command.startCollectionRename") :category ~(t "category.collection") :icon "pencil"
-  :enablement ~(contains (vals state.areas) "outliner")
-  []
+  :title ~(t "command.startCollectionRename") :description ~(t "command.startCollectionRename.about")
+  :category ~(t "category.collection") :icon "pencil" :enablement ~(contains (vals state.areas) "outliner") []
   (dismiss)
   (when (contains (vals state.areas) "outliner")
     (set "state.outlinerFilter" "")
@@ -57,9 +56,8 @@
     (after 50 focusRename)))
 
 (defcommand deleteCollection "Deletes the active collection; its objects go to the first other one."
-  :title ~(t "command.deleteCollection") :category ~(t "category.collection") :icon "trash-2"
-  :enablement ~(> (count computed.collections) 1)
-  []
+  :title ~(t "command.deleteCollection") :description ~(t "command.deleteCollection.about")
+  :category ~(t "category.collection") :icon "trash-2" :enablement ~(> (count computed.collections) 1) []
   (dismiss)
   (when (>= (count computed.collections) 2)
     (snapshot)
@@ -86,9 +84,8 @@
            {:title (t "command.newCollection") :icon "plus" :run "newCollection" :with {:move true}}]))
 
 (defcommand moveToCollectionMenu "Opens a menu of the collections to move the selected objects into."
-  :title ~(t "command.moveToCollectionMenu") :category ~(t "category.object") :icon "package"
-  :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.moveToCollectionMenu") :description ~(t "command.moveToCollectionMenu.about")
+  :category ~(t "category.object") :icon "package" :enablement ~(> (count state.view.selection) 0) []
   (when (and (not (empty? state.view.selection)) (nil? state.modal))
     (set "state.ctx" {:open true
                       :menu "moveTo"

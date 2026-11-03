@@ -23,13 +23,15 @@
 ;;; Scenes
 
 (defcommand newScene "Starts again from the scene Modello opens with."
-  :title ~(t "command.newScene") :category ~(t "category.file") :icon "file-plus" []
+  :title ~(t "command.newScene") :description ~(t "command.newScene.about")
+  :category ~(t "category.file") :icon "file-plus" []
   (dismiss)
   (snapshot)
   (set "state.scene.nodes" state.startScene.nodes))
 
 (defcommand saveScene "Saves the scene to a file."
-  :title ~(t "command.saveScene") :category ~(t "category.file") :icon "save" []
+  :title ~(t "command.saveScene") :description ~(t "command.saveScene.about")
+  :category ~(t "category.file") :icon "save" []
   (dismiss)
   (saveFile {:format "modello-scene" :version 1 :scene state.scene :added state.added}
             :name "scene.json" :title (t "file.saveTitle") :onDone saved :onError notSaved))
@@ -52,14 +54,14 @@
   (sceneOpened))
 
 (defcommand openScene "Opens a scene from a file."
-  :title ~(t "command.openScene") :category ~(t "category.file") :icon "folder-open" []
+  :title ~(t "command.openScene") :description ~(t "command.openScene.about")
+  :category ~(t "category.file") :icon "folder-open" []
   (dismiss)
   (openFile "state.opened" :extensions ["json"] :title (t "file.openTitle") :onDone opened :onError notOpened))
 
 (defcommand exportGltf "Exports the viewport's scene, with its animation, as glTF."
-  :title ~(t "command.exportGltf") :category ~(t "category.file") :icon "file-output"
-  :enablement ~(contains (vals state.areas) "viewport")
-  []
+  :title ~(t "command.exportGltf") :description ~(t "command.exportGltf.about")
+  :category ~(t "category.file") :icon "file-output" :enablement ~(contains (vals state.areas) "viewport") []
   (dismiss)
   (when (contains (vals state.areas) "viewport")
     (export "gltf" :pages ["viewport"] :animations computed.gltfClips :name "scene" :onDone exported :onError notExported)))
@@ -67,13 +69,12 @@
 ;;; Rendering
 
 (defcommand renderImage "Renders the scene through its camera, in a window of its own."
-  :title ~(t "command.renderImage") :category ~(t "category.render") :icon "image"
-  :enablement ~(some? computed.cameraNode)
-  []
+  :title ~(t "command.renderImage") :description ~(t "command.renderImage.about")
+  :category ~(t "category.render") :icon "image" :enablement ~(some? computed.cameraNode) []
   (dismiss)
   (when (and (some? computed.cameraNode) (nil? state.modal)) (set "state.rendering" true)))
 
 (defcommand saveRender "Saves the render as a PNG image."
-  :title ~(t "command.saveRender") :category ~(t "category.render") :icon "save" :enablement ~state.rendering
-  []
+  :title ~(t "command.saveRender") :description ~(t "command.saveRender.about")
+  :category ~(t "category.render") :icon "save" :enablement ~state.rendering []
   (export "png" :pages ["render-image"] :title (t "file.renderTitle") :name "render.png" :onDone saved :onError notSaved))

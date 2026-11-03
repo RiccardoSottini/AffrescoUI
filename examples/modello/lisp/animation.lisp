@@ -18,9 +18,8 @@
   (when (= state.autoKey true) (keySelected)))
 
 (defcommand insertKeyframe "Keys the selected objects at the current frame."
-  :title ~(t "command.insertKeyframe") :category ~(t "category.animation") :icon "diamond"
-  :enablement ~(> (count state.view.selection) 0)
-  []
+  :title ~(t "command.insertKeyframe") :description ~(t "command.insertKeyframe.about")
+  :category ~(t "category.animation") :icon "diamond" :enablement ~(> (count state.view.selection) 0) []
   (dismiss)
   (snapshot)
   (keySelected)
@@ -31,9 +30,8 @@
                 (fn [n] (merge n {:keyframes (change (:keyframes n))}))))
 
 (defcommand deleteKeyframe "Takes the selected objects' keyframes at the current frame away."
-  :title ~(t "command.deleteKeyframe") :category ~(t "category.animation") :icon "diamond-minus"
-  :enablement ~(contains computed.keyFrames state.frame)
-  []
+  :title ~(t "command.deleteKeyframe") :description ~(t "command.deleteKeyframe.about")
+  :category ~(t "category.animation") :icon "diamond-minus" :enablement ~(contains computed.keyFrames state.frame) []
   (dismiss)
   (when (contains computed.keyFrames state.frame)
     (snapshot)
@@ -41,9 +39,8 @@
     (set "state.last" (t "command.deleteKeyframe"))))
 
 (defcommand clearKeyframes "Takes every keyframe of the selected objects away."
-  :title ~(t "command.clearKeyframes") :category ~(t "category.animation")
-  :enablement ~(> (count computed.keyFrames) 0)
-  []
+  :title ~(t "command.clearKeyframes") :description ~(t "command.clearKeyframes.about")
+  :category ~(t "category.animation") :enablement ~(> (count computed.keyFrames) 0) []
   (dismiss)
   (when (not (empty? computed.keyFrames))
     (snapshot)
@@ -99,20 +96,22 @@
   (if (= key "frame") (setFrame value) (setRange key value)))
 
 (defcommand togglePreviewRange "Plays a range of its own, the whole range to start with, or the scene's again."
-  :title ~(t "command.togglePreviewRange") :category ~(t "category.playback") :icon "clock-3"
-  []
+  :title ~(t "command.togglePreviewRange") :description ~(t "command.togglePreviewRange.about")
+  :category ~(t "category.playback") :icon "clock-3" []
   (dismiss)
   (set "state.previewRange" (when (nil? state.previewRange) {:start state.start :end state.end})))
 
 ;;; Playing
 
 (defcommand play "Plays the animation, or stops it."
-  :title ~(t "command.play") :category ~(t "category.playback") :icon "play" []
+  :title ~(t "command.play") :description ~(t "command.play.about")
+  :category ~(t "category.playback") :icon "play" []
   (dismiss)
   (set "state.playing" (if (not= state.playing "forward") "forward" false)))
 
 (defcommand playReverse "Plays the animation backwards, or stops it."
-  :title ~(t "command.playReverse") :category ~(t "category.playback") []
+  :title ~(t "command.playReverse") :description ~(t "command.playReverse.about")
+  :category ~(t "category.playback") []
   (dismiss)
   (set "state.playing" (if (not= state.playing "reverse") "reverse" false)))
 
@@ -123,26 +122,33 @@
                              :else (inc state.frame))))
   (poseFrame))
 
-(defcommand jumpStart "Goes to the first frame." :title ~(t "command.jumpStart") :category ~(t "category.playback") []
+(defcommand jumpStart "Goes to the first frame."
+  :title ~(t "command.jumpStart") :description ~(t "command.jumpStart.about")
+  :category ~(t "category.playback") []
   (dismiss)
   (setFrame (first computed.range)))
 
-(defcommand jumpEnd "Goes to the last frame." :title ~(t "command.jumpEnd") :category ~(t "category.playback") []
+(defcommand jumpEnd "Goes to the last frame."
+  :title ~(t "command.jumpEnd") :description ~(t "command.jumpEnd.about")
+  :category ~(t "category.playback") []
   (dismiss)
   (setFrame (second computed.range)))
 
 (defcommand prevKey "Goes to the keyframe before, or to the start."
-  :title ~(t "command.prevKey") :category ~(t "category.playback") []
+  :title ~(t "command.prevKey") :description ~(t "command.prevKey.about")
+  :category ~(t "category.playback") []
   (dismiss)
   (setFrame (apply max (concat [(first computed.range)] (filter (fn [f] (< f state.frame)) computed.keyFrames)))))
 
 (defcommand nextKey "Goes to the next keyframe, or to the end."
-  :title ~(t "command.nextKey") :category ~(t "category.playback") []
+  :title ~(t "command.nextKey") :description ~(t "command.nextKey.about")
+  :category ~(t "category.playback") []
   (dismiss)
   (setFrame (apply min (concat [(second computed.range)] (filter (fn [f] (> f state.frame)) computed.keyFrames)))))
 
 (defcommand frameCurrent "Scrolls the timeline to the current frame."
-  :title ~(t "command.frameCurrent") :category ~(t "category.view") []
+  :title ~(t "command.frameCurrent") :description ~(t "command.frameCurrent.about")
+  :category ~(t "category.view") []
   (dismiss)
   (set "state.timelineOffset" (round-to (- (/ (dec state.frame) 24) 4) 1000)))
 
@@ -152,31 +158,29 @@
   (map :frame (filter (fn [m] (pick (:frame m))) state.markers)))
 
 (defcommand addMarker "Adds a marker at the current frame."
-  :title ~(t "command.addMarker") :category ~(t "category.marker") :icon "bookmark" []
+  :title ~(t "command.addMarker") :description ~(t "command.addMarker.about")
+  :category ~(t "category.marker") :icon "bookmark" []
   (dismiss)
   (when (empty? (markers-where (fn [f] (= f state.frame))))
     (set "state.markers"
          (sort-by :frame (concat state.markers [{:frame state.frame :label (str "F_" (pad state.frame 2 "0"))}])))))
 
 (defcommand deleteMarker "Takes the marker at the current frame away."
-  :title ~(t "command.deleteMarker") :category ~(t "category.marker")
-  :enablement ~(some (fn [m] (= m.frame state.frame)) state.markers)
-  []
+  :title ~(t "command.deleteMarker") :description ~(t "command.deleteMarker.about")
+  :category ~(t "category.marker") :enablement ~(some (fn [m] (= m.frame state.frame)) state.markers) []
   (dismiss)
   (set "state.markers" (remove (fn [m] (= (:frame m) state.frame)) state.markers)))
 
 (defcommand prevMarker "Goes to the marker before."
-  :title ~(t "command.prevMarker") :category ~(t "category.marker")
-  :enablement ~(some (fn [m] (< m.frame state.frame)) state.markers)
-  []
+  :title ~(t "command.prevMarker") :description ~(t "command.prevMarker.about")
+  :category ~(t "category.marker") :enablement ~(some (fn [m] (< m.frame state.frame)) state.markers) []
   (dismiss)
   (let [before (markers-where (fn [f] (< f state.frame)))]
     (when (not (empty? before)) (setFrame (apply max before)))))
 
 (defcommand nextMarker "Goes to the next marker."
-  :title ~(t "command.nextMarker") :category ~(t "category.marker")
-  :enablement ~(some (fn [m] (> m.frame state.frame)) state.markers)
-  []
+  :title ~(t "command.nextMarker") :description ~(t "command.nextMarker.about")
+  :category ~(t "category.marker") :enablement ~(some (fn [m] (> m.frame state.frame)) state.markers) []
   (dismiss)
   (let [later (markers-where (fn [f] (> f state.frame)))]
     (when (not (empty? later)) (setFrame (apply min later)))))

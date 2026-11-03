@@ -201,6 +201,10 @@
 
 (defstate markers [] "The timeline's markers.")
 
+(defstate timeSeconds false "Whether the timeline counts in seconds, not frames.")
+
+(defstate hideMarkers false "Whether the timeline hides its markers.")
+
 (defstate timelineOffset -0.4 "Where the timeline is scrolled to, in seconds.")
 
 ;;; The Shader Editor
