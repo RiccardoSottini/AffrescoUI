@@ -190,6 +190,13 @@ std::string Lexer::name(const Token& token) const {
 }
 
 std::string Lexer::unquote(std::string_view written, std::size_t offset) const {
+	// Plain ASCII without an escape, as most strings are: itself, without a JSON parser
+	if(written.size() >= 2 && written.front() == '"' && written.back() == '"' &&
+	   std::ranges::none_of(written.substr(1, written.size() - 2), [](char c) {
+		   const auto byte = static_cast<unsigned char>(c);
+		   return byte < 0x20 || byte >= 0x80 || c == '\\' || c == '"';
+	   }))
+		return std::string(written.substr(1, written.size() - 2));
 	try {
 		// A line break or a tab typed inside the quotes is that character, as in Lisp (a docstring of several lines);
 		// any other control character is still refused

@@ -548,11 +548,9 @@ void Program::addFile(std::string_view text, const std::string& file, const std:
 
 void Program::addEntry(Entry entry) {
 	Heap heap;
-	Reader reader(heap, entry.text, entry.file, entry.line, entry.column);
-	const auto read = reader.next();
-	if(!read || reader.next())
-		throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
-	auto [kind, address] = definitionAddress(read->form);
+	const std::optional<Value> read = readEntry(heap, entry.text, entry.file, entry.line, entry.column);
+	if(!read) throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
+	auto [kind, address] = definitionAddress(*read);
 	if(address != entry.name)
 		throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text defines its own name");
 	if(const auto [known, added] = names_.try_emplace(entry.name, entries_.size()); !added) {
@@ -589,14 +587,20 @@ void Program::load(Interpreter& interpreter, bool everything) const {
 		std::vector<std::pair<Value, const Entry*>> forms;
 		forms.reserve(entries_.size());
 		for(const Entry& entry : entries_) {
-			Reader reader(machine.heap, entry.text, entry.file, entry.line, entry.column);
-			const auto read = readUncharged(machine.heap, reader, machine.budget());
-			if(!read || readUncharged(machine.heap, reader, machine.budget()))
-				throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
-			if(definitionAddress(read->form).second != entry.name)
+			machine.heap.setBudget(nullptr); // reading is bounded by the text's size, so it spends nothing
+			std::optional<Value> read;
+			try {
+				read = readEntry(machine.heap, entry.text, entry.file, entry.line, entry.column);
+			} catch(...) {
+				machine.heap.setBudget(&machine.budget());
+				throw;
+			}
+			machine.heap.setBudget(&machine.budget());
+			if(!read) throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text is one form");
+			if(definitionAddress(*read).second != entry.name)
 				throw LispError(entry.file, entry.line, entry.column, entry.name,
 				                "an entry's text defines its own name");
-			forms.emplace_back(read->form, &entry);
+			forms.emplace_back(*read, &entry);
 		}
 		const auto authorsOf = [&machine](const Entry& entry) { return machine.authorSet(entry.author); };
 		for(const auto& [form, entry] : forms)
