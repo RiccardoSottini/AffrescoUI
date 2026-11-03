@@ -89,6 +89,7 @@ as the OpenGL driver's, aren't counted.
 | `lisp/event`, `lisp/event-as-steps` | One event that adds 1 to a number in the state, through a program's function and through a step, 1,000 times: what the language adds to a handler (`lisp.cpp`) |
 | `lisp/binding`, `lisp/binding-as-expression` | A frame after that event, with 100 labels bound to a program's function and to the same expression, per label: what the language adds to a binding |
 | `lisp/reload-200` | A change of one definition of a program of 200: the build, the review and the new interpreter |
+| `lisp/open-<app>`, `lisp/open-<app>-json` | Flow, Sinopia and the code editor opened from their `lisp/` folder (a program) and their `json/` folder, read, built, judged, their program loaded and their screen built into a window, as each scenario opens its app again: what an app written as a program costs beside its JSON version (`tools/notation/lisp_metrics.py` times the first frame, in a fresh process) |
 | `forge/open` | Forge (`examples/forge`), the demo IDE, parsed with its features, its folder (`tests/render/forge/folder`) granted as its workspace and indexed, and laid out (`forge.cpp`) |
 | `forge/type`, `forge/switch-tab` | In Forge with two files open, a character typed into the first one, or the other tab shown; the update and the layout |
 | `forge/search`, `forge/palette` | Forge's quick open filtered by a file name; its command palette opened, then filtered |
