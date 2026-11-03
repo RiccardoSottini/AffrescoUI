@@ -33,45 +33,45 @@
 
 (defcomputed shaderGraph "The active material's node graph; a material without one has its output node alone; nil without a material."
   (if (< computed.activeMaterialIndex 0)
-        nil
-        (or-else (get-in state.scene.materials [computed.activeMaterialIndex :graph])
-                 {:nodes [{:id "output" :op "output" :x 320 :y 40}] :links []})))
+      nil
+      (or-else (get-in state.scene.materials [computed.activeMaterialIndex :graph])
+               {:nodes [{:id "output" :op "output" :x 320 :y 40}] :links []})))
 
 (defcomputed shaderNodes "The graph's nodes as the graph widget draws them: titles, sockets and sizes from their operations."
   (if (nil? computed.shaderGraph)
-        []
-        (map (fn [it]
-               (merge {:id it.id
-                       :x it.x
-                       :y it.y
-                       :width (if (= it.op "output") 170 150)
-                       :title (or-else (get-in computed.shaderOps [it.op :title]) it.op)
-                       :inputs (or-else (get-in computed.shaderOps [it.op :inputs]) [])
-                       :outputs (if (= (or-else (get-in computed.shaderOps [it.op :out]) "") "")
-                                    []
-                                    [{:id "out"
-                                      :label (if (= (get-in computed.shaderOps [it.op :out]) "color") (t "shader.color") (t "shader.number"))
-                                      :kind (get-in computed.shaderOps [it.op :out])}])}
-                      {:bodyHeight (if (contains ["color" "number"] it.op) 26 0)}))
-             computed.shaderGraph.nodes)))
+      []
+      (map (fn [it]
+             (merge {:id it.id
+                     :x it.x
+                     :y it.y
+                     :width (if (= it.op "output") 170 150)
+                     :title (or-else (get-in computed.shaderOps [it.op :title]) it.op)
+                     :inputs (or-else (get-in computed.shaderOps [it.op :inputs]) [])
+                     :outputs (if (= (or-else (get-in computed.shaderOps [it.op :out]) "") "")
+                                  []
+                                  [{:id "out"
+                                    :label (if (= (get-in computed.shaderOps [it.op :out]) "color") (t "shader.color") (t "shader.number"))
+                                    :kind (get-in computed.shaderOps [it.op :out])}])}
+                    {:bodyHeight (if (contains ["color" "number"] it.op) 26 0)}))
+           computed.shaderGraph.nodes)))
 
 (defcomputed shaderDeletable "The nodes that can be deleted: all but the output."
   (if (nil? computed.shaderGraph)
-        []
-        (map (fn [it] it.id) (filter (fn [it] (not= it.op "output")) computed.shaderGraph.nodes))))
+      []
+      (map (fn [it] it.id) (filter (fn [it] (not= it.op "output")) computed.shaderGraph.nodes))))
 
 (defcomputed shaderNode "The first selected node, or nil."
   (if (or (nil? computed.shaderGraph) (= (count state.shaderSelected) 0))
-        nil
-        (find (fn [it] (= it.id state.shaderSelected.0)) computed.shaderGraph.nodes)))
+      nil
+      (find (fn [it] (= it.id state.shaderSelected.0)) computed.shaderGraph.nodes)))
 
 (defcomputed shaderOp "The first selected node's operation, or nothing."
   (if (nil? computed.shaderNode) "" computed.shaderNode.op))
 
 (defcomputed shaderNodeIndex "Where the first selected node is in the graph, or -1."
   (if (nil? computed.shaderNode)
-        -1
-        (indexOf (map (fn [it] it.id) computed.shaderGraph.nodes) computed.shaderNode.id)))
+      -1
+      (indexOf (map (fn [it] it.id) computed.shaderGraph.nodes) computed.shaderNode.id)))
 
 ;;; The area
 

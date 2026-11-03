@@ -1,4 +1,10 @@
-;;; index.screen.lisp --- Modello, a 3D modeller
+;;; index.screen.lisp --- Modello, a 3D modeller written as a program the stock host runs
+;;;
+;;; Four areas share the window: the 3D viewport, the timeline (or the Shader Editor), the outliner and the properties;
+;;; each can show any editor. G, R and S move, turn and scale the selection after the pointer (X, Y and Z lock an axis,
+;;; digits type the amount, Enter confirms, Escape cancels); Shift A adds, X deletes, Shift D duplicates, H hides, M
+;;; moves to a collection; the numpad turns the view, Z and the grave key open the pie menus; I keys, Space plays;
+;;; Ctrl Z undoes, F3 searches the commands. Every change of the scene keeps an undo snapshot first.
 
 (include "locales/en.lisp"
          "locales/es.lisp"
@@ -16,6 +22,7 @@
          "properties.lisp"
          "timeline.lisp"
          "shader.lisp"
+         "dialogs.lisp"
          "../../shared/addons/assistant/assistant.lisp"
          "modello.lisp"
          "transform.lisp"
@@ -25,9 +32,11 @@
          "materials.lisp"
          "files.lisp")
 
-(defscreen main
+;;; The window, and what is in it, in the order it is drawn
+
+(defscreen main "Modello's one window: the top bar, the four areas and the status bar, and what opens over them."
   :window {:title "Modello" :width 1440 :height 900 :minWidth 1000 :minHeight 640}
-  :strings {:default en :locale ~settings.appearance.language :keep ["Modello"]}
+  :strings {:default en :locale ~settings.appearance.language :keep ["Modello" "Modello 1.0"]}
   :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 12 :fallback [icons]}
           :small {:file "../../shared/fonts/Roboto-Regular.ttf" :size 11 :fallback [icons]}
           :icons {:file "../../shared/fonts/Lucide.ttf" :size 14}
@@ -36,36 +45,9 @@
   :theme ~state.theme
   (node#root :color @gap
     ~(workspace-column)
-    {:id playback :when ~(not= state.playing false) :width 0 :height 0 :every {:ms 42 :do tick}}
-    (node#popup :use contextMenu
-      :with {:open state.ctx.open
-             :x ~state.ctx.x
-             :y ~state.ctx.y
-             :items ~(or-else state.ctx.items (get menus state.ctx.menu) [])
-             :icons ~(some (fn [it] (some? it.icon)) (or-else state.ctx.items (get menus state.ctx.menu) []))})
-    (node#pie :use pieMenu
-      :with {:open state.pie.open
-             :x ~state.pie.x
-             :y ~state.pie.y
-             :items ~computed.pieItems
-             :title ~(if (= state.pie.menu "view") "View" "Shading")})
-    (node#about-dialog :use dialog
-      :with {:open state.about
-             :title "Modello 1.0"
-             :width 360
-             :height 170
-             :message "A 3D modeller written only as AffrescoUI screen documents: the stock host runs it."
-             :buttons [{:title "Close"}]})
-    (node#render-window :use dialog
-      :with {:open state.rendering
-             :title "Render"
-             :width 760
-             :height 518
-             :buttons [{:title "Close"} {:title "Save As Image…" :run saveRender :keepOpen true}]}
-      ~(render-image))
-    (node#search :when ~state.quickPick.open
-      :use quickPick
-      :with {:width 460
-             :rows 12
-             :rowHeight 22
-             :providers [{:items ~computed.searchItems :placeholder "Search for a command"}]})))
+    ~(playback-timer)
+    ~(popup-menu)
+    ~(pie)
+    ~(about-dialog)
+    ~(render-window)
+    ~(command-search)))

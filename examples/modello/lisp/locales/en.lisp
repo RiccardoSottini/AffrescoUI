@@ -473,4 +473,10 @@
                 :shader.deleteTip "Delete the selected nodes (Delete)"
                 :shader.material "Material: {name}"
                 :shader.nodes "Shader nodes"
-                :shader.nodeTitle "{title} ({id})"}}}
+                :shader.nodeTitle "{title} ({id})"
+                :status.stats "Objects {selected}/{objects} | "
+                :about.message "A 3D modeller written only as AffrescoUI screen documents: the stock host runs it."
+                :dialog.close "Close"
+                :dialog.render "Render"
+                :dialog.saveImage "Save As Image…"
+                :search.placeholder "Search for a command"}}}

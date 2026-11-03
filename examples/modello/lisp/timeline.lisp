@@ -5,41 +5,41 @@
 
 (defcomputed keyTracks "The animation as glTF tracks: each keyed object's translation, rotation (as quaternions) and scale over time."
   (flat (map (fn [it]
-                 [{:node it.id
-                   :path "translation"
-                   :times (map (fn [it] (/ (- it.frame 1) 24)) it.keyframes)
-                   :values (flat (map (fn [it] it.translation) it.keyframes))}
-                  {:node it.id
-                   :path "rotation"
-                   :times (map (fn [it] (/ (- it.frame 1) 24)) it.keyframes)
-                   ;; A rotation in degrees as a quaternion: (get (map f [x]) 0) gives f's value for x, as an expression has no let.
-                   :values (flat (map (fn [it]
-                                        (get (map (fn [it]
-                                                    [(- (* (sin it.0) (cos it.1) (cos it.2))
-                                                        (* (cos it.0) (sin it.1) (sin it.2)))
-                                                     (+ (* (cos it.0) (sin it.1) (cos it.2))
-                                                        (* (sin it.0) (cos it.1) (sin it.2)))
-                                                     (- (* (cos it.0) (cos it.1) (sin it.2))
-                                                        (* (sin it.0) (sin it.1) (cos it.2)))
-                                                     (+ (* (cos it.0) (cos it.1) (cos it.2))
-                                                        (* (sin it.0) (sin it.1) (sin it.2)))])
-                                                  [(map (fn [it] (/ (radians it) 2)) it.rotationDegrees)])
-                                             0))
-                                      it.keyframes))}
-                  {:node it.id
-                   :path "scale"
-                   :times (map (fn [it] (/ (- it.frame 1) 24)) it.keyframes)
-                   :values (flat (map (fn [it] it.scale) it.keyframes))}])
-               (filter (fn [it] (> (count (or-else it.keyframes [])) 0)) state.scene.nodes))))
+               [{:node it.id
+                 :path "translation"
+                 :times (map (fn [it] (/ (- it.frame 1) 24)) it.keyframes)
+                 :values (flat (map (fn [it] it.translation) it.keyframes))}
+                {:node it.id
+                 :path "rotation"
+                 :times (map (fn [it] (/ (- it.frame 1) 24)) it.keyframes)
+                 ;; A rotation in degrees as a quaternion: (get (map f [x]) 0) gives f's value for x, as an expression has no let.
+                 :values (flat (map (fn [it]
+                                      (get (map (fn [it]
+                                                  [(- (* (sin it.0) (cos it.1) (cos it.2))
+                                                      (* (cos it.0) (sin it.1) (sin it.2)))
+                                                   (+ (* (cos it.0) (sin it.1) (cos it.2))
+                                                      (* (sin it.0) (cos it.1) (sin it.2)))
+                                                   (- (* (cos it.0) (cos it.1) (sin it.2))
+                                                      (* (sin it.0) (sin it.1) (cos it.2)))
+                                                   (+ (* (cos it.0) (cos it.1) (cos it.2))
+                                                      (* (sin it.0) (sin it.1) (sin it.2)))])
+                                                [(map (fn [it] (/ (radians it) 2)) it.rotationDegrees)])
+                                           0))
+                                    it.keyframes))}
+                {:node it.id
+                 :path "scale"
+                 :times (map (fn [it] (/ (- it.frame 1) 24)) it.keyframes)
+                 :values (flat (map (fn [it] it.scale) it.keyframes))}])
+             (filter (fn [it] (> (count (or-else it.keyframes [])) 0)) state.scene.nodes))))
 
 (defcomputed gltfClips "The clips an export holds: one, Action, if anything is keyed."
   (if (= (count computed.keyTracks) 0) [] [{:name "Action" :tracks computed.keyTracks}]))
 
 (defcomputed keyFrames "The frames the selected objects have keys at, each once, in order."
   (reduce (fn [acc it] (if (contains acc it) acc (concat acc [it])))
-            []
-            (sort (flat (map (fn [it] (map (fn [it] it.frame) (or-else it.keyframes [])))
-                             (filter (fn [it] (contains state.view.selection it.id)) state.scene.nodes))))))
+          []
+          (sort (flat (map (fn [it] (map (fn [it] it.frame) (or-else it.keyframes [])))
+                           (filter (fn [it] (contains state.view.selection it.id)) state.scene.nodes))))))
 
 (defcomputed keyframes "Those frames as the timeline's keyframes, at their times."
   (map (fn [it] {:time (/ (- it 1) 24)}) computed.keyFrames))

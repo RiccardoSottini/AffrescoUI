@@ -1,6 +1,11 @@
-;;; look.lisp --- TODO
+;;; look.lisp --- Modello's colours, dark and light: the gaps, bars and headers, the regions and panels, the widgets, the
+;;; selection, the gizmo's axes, and the shared kit's and the assistant's colours
+;;;
+;;; A token with {:dark :light} follows the theme (state.theme); @name reads another.
 
-(deftokens tokens "Tokens."
+;;; Colours
+
+(deftokens tokens "Every colour of the app, by name: @name in a view."
   {:gap {:dark "#0e1116" :light "#9aa3ae"}
    :bar {:dark "#161a21" :light "#c9d0d8"}
    :header {:dark "#222833" :light "#d6dce3"}
