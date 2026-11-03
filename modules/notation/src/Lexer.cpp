@@ -191,7 +191,20 @@ std::string Lexer::name(const Token& token) const {
 
 std::string Lexer::unquote(std::string_view written, std::size_t offset) const {
 	try {
-		return json::parse(written).get<std::string>();
+		// A line break or a tab typed inside the quotes is that character, as in Lisp (a docstring of several lines);
+		// any other control character is still refused
+		if(written.find_first_of("\n\r\t") == std::string_view::npos) return json::parse(written).get<std::string>();
+		std::string escaped;
+		escaped.reserve(written.size() + 8);
+		bool escaping = false; // after a backslash: a line break there is no escape JSON knows, and stays refused
+		for(const char c : written) {
+			if(!escaping && c == '\n') escaped += "\\n";
+			else if(!escaping && c == '\r') escaped += "\\r";
+			else if(!escaping && c == '\t') escaped += "\\t";
+			else escaped += c;
+			escaping = !escaping && c == '\\';
+		}
+		return json::parse(escaped).get<std::string>();
 	} catch(const json::exception&) {
 		fail(offset, "a string in quotes that JSON can't read: an unknown escape, a control character or bytes "
 		             "that aren't UTF-8");

@@ -9,6 +9,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/lisp/Document.hpp>
 #include <affresco/lisp/Program.hpp>
+#include <affresco/notation/Notation.hpp>
 
 #include <doctest/doctest.h>
 
@@ -365,4 +366,13 @@ TEST_CASE("lisp views: truthy? is an expression's truth, and a function testing 
 	CHECK(program.truthTests().front().definition == "f");
 	CHECK(lisp::buildText("[~(truthy? \"\") ~(truthy? 0) ~(truthy? 0.0) ~(truthy? {}) ~(truthy? \"a\") ~(truthy? 2)]",
 	                      "t") == json::parse("[false, false, false, false, true, true]"));
+}
+
+TEST_CASE("lisp views: a string may span lines, as a docstring of several lines does; other control characters stay refused") {
+	const json tree = built("(defcommand c \"Line one.\n  Line two.\" :title \"T\" [] 1)\n(defscreen main (panel#root))");
+	CHECK(tree["actions"]["c"]["description"] == "Line one.\n  Line two.");
+	CHECK(lisp::buildText("{:a \"x\r\n\ty\"}", "t") == json{{"a", "x\r\n\ty"}});
+	CHECK(affresco::notation::read("{:a \"x\ny\"}", affresco::notation::Notation::Lisp) == json{{"a", "x\ny"}});
+	CHECK_THROWS(static_cast<void>(lisp::buildText("{:a \"x\\\ny\"}", "t"))); // a backslash before a line break is no escape
+	CHECK_THROWS(static_cast<void>(lisp::buildText("{:a \"x\x01y\"}", "t")));
 }
