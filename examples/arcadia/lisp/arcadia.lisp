@@ -531,3 +531,52 @@
         (= section "dlc") (openProperties id "dlc")
         (= section "support") (showInfo "support")
         :else (openHub id section)))
+
+;;; The store's choices
+
+(defn revealNode "Scrolls a node into view, by its selector." [selector] (scrollTo selector))
+
+(defn openStoreBar
+  "Follows a store bar link: Categories opens its menu, News goes to the library's news, the rest to the store."
+  [item]
+  (cond (= item "categories") (toggle "state.storeCatsOpen")
+        (= item "news") (do (libraryHome) (after 50 revealNode "#news-header"))
+        :else (do (storeHome)
+                  (when (= item "noteworthy")
+                    (set "state.storeList" "new")
+                    (after 50 revealNode "#store-tabs")))))
+
+(defn showFeature "Shows a game of the featured carousel, by its place." [n] (set "state.storeFeature" n))
+
+(defn previousFeature "Shows the featured game before the one shown, the last after the first." []
+  (set "state.storeFeature" (mod (+ state.storeFeature 4) 5)))
+
+(defn nextFeature "Shows the featured game after the one shown, the first after the last." []
+  (set "state.storeFeature" (mod (+ state.storeFeature 1) 5)))
+
+(defn showFeatureShot "Shows a screenshot in the carousel's big picture, while the pointer is over it." [n]
+  (set "state.storeShot" n))
+
+(defn showStoreList "Shows a tab of the store's lists (new, top or specials), its first game previewed." [tab]
+  (set "state.storeList" tab)
+  (set "state.storeHover" nil))
+
+(defn previewGame "Previews a game of the store's list beside it." [id] (set "state.storeHover" id))
+
+(defn showShot "Shows a picture of a game's gallery, by its place in the strip." [s] (set "state.shotIndex" s))
+
+(defn showRequirements "Shows the system requirements for a platform: windows, macos or linux." [platform]
+  (set "state.reqTab" platform))
+
+(defn voteReview "Votes a review yes, no or funny; the same vote again takes it back." [author choice]
+  (let [key (slug author)]
+    (set (str "state.votes." key) (if (= (get state.votes key) choice) nil choice))))
+
+(defn cartOrAdd "Opens the cart if the game is in it, else adds the game to it." [id]
+  (if (has state.cart id) (showCart) (addToCart id)))
+
+(defn wishUp "Moves the wishlist's game at rank i up one, unless it is first." [i]
+  (when (> i 0) (wishMove i (- i 1))))
+
+(defn wishDown "Moves the wishlist's game at rank i down one, unless it is last." [i]
+  (when (< i (- (count state.wishlist) 1)) (wishMove i (+ i 1))))

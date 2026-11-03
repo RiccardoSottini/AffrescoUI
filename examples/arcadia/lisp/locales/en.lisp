@@ -471,4 +471,6 @@
                 :profile.sinceStatus "{since} · {status}"
                 :dl.sizeOf "{done} GB / {size} GB"
                 :dl.rate "{n} MB/s"
-                :properties.folderPath "Arcadia/games/{game}"}}}
+                :properties.folderPath "Arcadia/games/{game}"
+                :store.offerDate "2 Nov"
+                :store.wishedDate "12 Aug"}}}

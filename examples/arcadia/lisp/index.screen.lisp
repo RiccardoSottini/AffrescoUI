@@ -15,6 +15,8 @@
          "parts/library.lisp"
          "parts/game.lisp"
          "parts/store.lisp"
+         "parts/store-game.lisp"
+         "parts/cart.lisp"
          "parts/downloads.lisp"
          "parts/friends.lisp"
          "parts/profile.lisp"
