@@ -70,10 +70,12 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	}
 
 	Schema schema(json::parse(embeddedSchema()));
+	// A program that includes its other files builds only with them, and they are included parts, which the schema
+	// doesn't check in JSON either: it is judged as loaded, by the format's rules and the checker
+	if(whole)
+		for(SchemaProblem& problem : schema.check(document))
+			problems.push_back({"schema", std::move(problem.place), std::move(problem.problem)});
 	const auto loaded = load(lisp::jsonText(text, path), path.parent_path(), problems);
-	if(!whole && !loaded) return problems;
-	for(SchemaProblem& problem : schema.check(whole ? document : loaded->first))
-		problems.push_back({"schema", std::move(problem.place), std::move(problem.problem)});
 
 	const format::Rules rules;
 	const json& checked = loaded ? loaded->first : document;
@@ -101,9 +103,10 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 	try {
 		Schema schema(json::parse(embeddedSchema()));
 		json screen = lisp::readDocument(readFile(entry), entry);
-		// A program that includes its other files builds only with them: its schema is checked on the app loaded
-		if(lisp::hasProgram(screen) && !screen.contains("include")) screen = lisp::buildDocument(screen);
-		if(!lisp::hasProgram(screen))
+		// A program that includes its other files builds only with them: it is judged as loaded, as an include is
+		const bool whole = !lisp::hasProgram(screen) || !screen.contains("include");
+		if(lisp::hasProgram(screen) && whole) screen = lisp::buildDocument(screen);
+		if(whole)
 			for(SchemaProblem& problem : schema.check(screen))
 				problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
 	} catch(const std::exception& error) {
@@ -115,9 +118,6 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 		const Screen screen = Screen::fromApp(manifest, {}, Screen::History::InMemory);
 		setLogSink({});
 		const json document = json::parse(screen.documentJson());
-		if(lisp::hasProgram(document))
-			for(SchemaProblem& problem : Schema(json::parse(embeddedSchema())).check(document))
-				problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
 		for(std::string& finding : format::Rules().findings(document, json::parse(screen.stateJson())))
 			problems.push_back({"checker", app.entry, std::move(finding)});
 		for(const std::string& key : format::undeclaredCapabilities(app, document))
