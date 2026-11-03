@@ -1772,89 +1772,13 @@
 						"author": "agent",
 						"message": "Add a Filters panel: one button per filter, above the Layers panel",
 						"add": {
-							"#panels/children/3": {
-								"type": "column",
-								"id": "filter-panel",
-								"role": "region",
-								"label": "Filters",
-								"width": "100%",
-								"height": 92,
-								"color": "@panel",
-								"gap": 6,
-								"children": [
-									{
-										"type": "label",
-										"id": "filter-panel-title",
-										"text": "Filters",
-										"textColor": "@muted",
-										"width": 120,
-										"height": 22,
-										"align": {
-											"horizontal": "start",
-											"vertical": "center"
-										},
-										"anchors": {
-											"left": 10
-										}
-									},
-									{
-										"type": "row",
-										"id": "filter-panel-buttons",
-										"width": "100%",
-										"height": 60,
-										"gap": 6,
-										"wrap": true,
-										"children": [
-											{
-												"id": "filter-panel-start",
-												"color": "transparent",
-												"width": 4,
-												"height": 26
-											},
-											{
-												"type": "label",
-												"id": "filter-panel-{{f.id}}",
-												"repeat": {
-													"for": "f",
-													"in": "state.filters",
-													"key": "{{f.id}}"
-												},
-												"role": "button",
-												"text": "{{f.title}}",
-												"textColor": "@text",
-												"padding": 6,
-												"height": 26,
-												"fitText": true,
-												"radius": 4,
-												"color": "@input",
-												"borderWidth": 1,
-												"borderColor": "@border",
-												"cursor": "hand",
-												"tooltip": "{{f.title}}...",
-												"hover": {
-													"color": "@hover"
-												},
-												"onClick": {
-													"run": "showFilter",
-													"with": {
-														"args": {
-															"kind": "{{f.id}}"
-														}
-													}
-												}
-											}
-										]
-									}
-								]
-							},
-							"#panels/children/4": {
-								"id": "filter-panel-split",
-								"width": "100%",
-								"height": 1,
-								"color": "@border"
-							}
+							"/program/panels.lisp/filter-panel": "(defview filter-panel \"A Filters panel: one button per filter, each opening its dialog.\" []\n  `(column#filter-panel :role region :label \"Filters\" :width \"100%\" :height 92 :color @panel :gap 6\n     (label#filter-panel-title :text \"Filters\"\n       :textColor @muted\n       :width 120\n       :height 22\n       :align {:horizontal start :vertical center}\n       :anchors {:left 10})\n     (row#filter-panel-buttons :width \"100%\" :height 60 :gap 6 :wrap true\n       (node#filter-panel-start :color transparent :width 4 :height 26)\n       ~(repeat [f state.filters :key f.id]\n         `(label :id ~(str \"filter-panel-\" f.id)\n            :role button\n            :text ~(t (str \"filter.\" f.id))\n            :textColor @text\n            :padding 6\n            :height 26\n            :fitText true\n            :radius 4\n            :color @input\n            :borderWidth 1\n            :borderColor @border\n            :cursor hand\n            :tooltip ~(str (t (str \"filter.\" f.id)) \"...\")\n            :hover {:color @hover}\n            :onClick ~(handler showFilter {:kind f.id}))))))"
+						},
+						"set": {
+							"/program/panels.lisp/dock": "(defview dock \"The dock, in the standard screen mode: the groups, and the strip of panels that pop out.\" []\n  `(row#dock :when ~(= state.screenMode \"standard\") :width 304 :height \"100%\" :gap 6\n     (column#panels :point panels.dock\n       :role complementary\n       :label ~(t \"panels.label\")\n       :width 262\n       :height \"100%\"\n       :color transparent\n       :gap 6\n       ~(colour-group)\n       ~(properties-group)\n       ~(layers-group)\n       ~(filter-panel)\n       (node#filter-panel-split :width \"100%\" :height 1 :color @border))\n     (column#panel-icons :role toolbar\n       :label ~(t \"panels.collapsed\")\n       :width 36\n       :height \"100%\"\n       :color @panel\n       :radius @kit.cardRadius\n       :alignItems center\n       :gap 2\n       (node :height 6 :width 1 :style clear)\n       (node :use tPopout :with {:name history :icon history :title ~(t \"panel.history\")}\n         ~(history-panel))\n       (node :use tPopout :with {:name navigator :icon compass :title ~(t \"panel.navigator\") :height 250}\n         ~(navigator-panel)))))"
 						}
-					}
+					},
+					"note": "the panels are built by the program: the agent adds a view and changes the dock's definition to show it"
 				},
 				{
 					"expect": {
