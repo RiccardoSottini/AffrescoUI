@@ -1,8 +1,29 @@
-;;; views.lisp --- what explorer.lisp shows
+;;; views.lisp --- the explorer: its title and buttons, the folder's tree, its menu and its dialogs
 
-;;; Views
+;;; The title
 
-(defcomponent forgeExplorerAction "The forgeExplorerAction component."
+(defcomponent forgeExplorerTitle "The explorer's title, and its buttons once a folder is open."
+  {}
+  `(row#side-bar-title :width "100%" :height 35 :alignItems center :gap 2
+     (label#side-bar-title-text :text ~(t "side-bar-title-text") :textColor @color.muted :grow 1 :height 35 :padding 12)
+     ~(explorer-action "explorer-new-file" "file-plus" "explorerNewFile")
+     ~(explorer-action "explorer-new-folder" "folder-plus" "explorerNewFolder")
+     ~(explorer-action "explorer-refresh" "refresh-cw" "explorerRefresh")
+     (node#explorer-collapse :when ~(not (empty? state.folder.root))
+       :use forgeExplorerAction
+       :with {:icon copy-minus
+              :tip ~(t "explorer-collapse.tip")
+              :run explorerCollapseAll
+              :enabled ~(not (empty? state.explorer.expanded))})
+     (node#side-bar-title-end :width 6)))
+
+(defview explorer-action "A button of the explorer's title, shown once a folder is open." [id icon run]
+  `(node :id ~id
+     :when ~(not (empty? state.folder.root))
+     :use forgeExplorerAction
+     :with {:icon ~icon :tip ~(t (str id ".tip")) :run ~run}))
+
+(defcomponent forgeExplorerAction "A button of an icon that runs a command, `run`; dimmed while it can't."
   {:icon "" :tip "" :run "" :enabled true}
   `(label :role button
      :label ~tip
@@ -19,53 +40,18 @@
      :hover {:textColor @color.text :color @color.hover}
      :onClick {:run ~run}))
 
-(defcomponent forgeExplorerTitle "The forgeExplorerTitle component."
-  {}
-  `(row#side-bar-title :width "100%" :height 35 :alignItems center :gap 2
-     (label#side-bar-title-text :text
-                                ~(t "side-bar-title-text")
-                                :textColor
-                                @color.muted
-                                :grow
-                                1
-                                :height
-                                35
-                                :padding
-                                12)
-     (node#explorer-new-file :when ~(not (empty? state.folder.root))
-       :use forgeExplorerAction
-       :with {:icon file-plus :tip ~(t "explorer-new-file.tip") :run explorerNewFile})
-     (node#explorer-new-folder :when ~(not (empty? state.folder.root))
-       :use forgeExplorerAction
-       :with {:icon folder-plus :tip ~(t "explorer-new-folder.tip") :run explorerNewFolder})
-     (node#explorer-refresh :when ~(not (empty? state.folder.root))
-       :use forgeExplorerAction
-       :with {:icon refresh-cw :tip ~(t "explorer-refresh.tip") :run explorerRefresh})
-     (node#explorer-collapse :when ~(not (empty? state.folder.root))
-       :use forgeExplorerAction
-       :with {:icon copy-minus
-              :tip ~(t "explorer-collapse.tip")
-              :run explorerCollapseAll
-              :enabled ~(not (empty? state.explorer.expanded))})
-     (node#side-bar-title-end :width 6)))
+;;; The tree
 
-(defcomponent forgeExplorer "The forgeExplorer component."
+(defcomponent forgeExplorer "The folder's tree, its right-click menu, and the name and delete dialogs."
   {}
   `(column#explorer-view :width "100%" :grow 1
-     ~(explorer-view)
+     ~(explorer-tree)
      (node#explorer-menu :use contextMenu
        :with {:open state.explorerEdit.menu :items ~menus.explorer :x ~state.explorerEdit.x :y ~state.explorerEdit.y})
-     ~(explorer-name-dialog-view)
-     (node#explorer-delete-dialog :use dialog
-       :with {:open state.explorerEdit.confirm
-              :title ~(str "Delete " state.explorerEdit.name "?")
-              :message ~(if (= state.explorerEdit.mode "folder")
-                            "The folder and everything in it will be deleted. This cannot be undone."
-                            "The file will be deleted. This cannot be undone.")
-              :buttons [{:title ~(t "explorer-delete-dialog.delete") :run explorerDeleteConfirmed}
-                        {:title ~(t "explorer-delete-dialog.cancel")}]})))
+     ~(name-dialog)
+     ~(delete-dialog)))
 
-(defview explorer-view "#explorer." []
+(defview explorer-tree "The folder's files and folders: a folder opens on a click, a file in a tab; entries drag." []
   `(tree#explorer :role tree
      :label ~(t "explorer.label")
      :width "100%"
@@ -83,17 +69,17 @@
      :onExpand explorerExpand
      :onOpen openExplorerItem
      :onDrop explorerDrop
-     :onContextMenu [{:set state.explorerEdit.x :to ~event.x}
-                     {:set state.explorerEdit.y :to ~event.y}
-                     {:set state.explorerEdit.menu :to true}]))
+     :onContextMenu explorerMenu))
 
-(defview explorer-name-dialog-view "#explorer-name-dialog." []
+;;; The dialogs
+
+(defview name-dialog "Asks for a name: a new file's, a new folder's, or an entry's new one." []
   `(node#explorer-name-dialog :use dialog
      :with {:open state.explorerEdit.naming
             :height 150
-            :title ~(cond (= state.explorerEdit.mode "rename") "Rename"
-                          (= state.explorerEdit.mode "newFolder") "New Folder"
-                          :else "New File")
+            :title ~(cond (= state.explorerEdit.mode "rename") (t "explorer-name-dialog.rename")
+                          (= state.explorerEdit.mode "newFolder") (t "explorer-name-dialog.newFolder")
+                          :else (t "explorer-name-dialog.newFile"))
             :message ""
             :buttons [{:title ~(t "explorer-name-dialog.ok") :run explorerSubmitName}
                       {:title ~(t "explorer-name-dialog.cancel")}]}
@@ -108,3 +94,13 @@
        :placeholderColor @color.muted
        :placeholder ~(t "explorer-name.placeholder")
        :onSubmit explorerSubmitName)))
+
+(defview delete-dialog "Asks before an entry is deleted, saying it can't be undone." []
+  `(node#explorer-delete-dialog :use dialog
+     :with {:open state.explorerEdit.confirm
+            :title ~(t "explorer-delete-dialog.title" {:name state.explorerEdit.name})
+            :message ~(if (= state.explorerEdit.mode "folder")
+                          (t "explorer-delete-dialog.folder")
+                          (t "explorer-delete-dialog.file"))
+            :buttons [{:title ~(t "explorer-delete-dialog.delete") :run explorerDeleteConfirmed}
+                      {:title ~(t "explorer-delete-dialog.cancel")}]}))
