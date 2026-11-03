@@ -268,6 +268,17 @@ TEST_CASE("lisp attack: a closure can't be a callback, and a person's timer has 
 	CHECK(app.hits == 1);
 }
 
+TEST_CASE("lisp runtime: a path's member that is a number is an index, as in a binding") {
+	const App app(R"lisp(
+(defn read-them "Reads items by their index." [] (set "state.out" [state.l.0 state.m.0.k state.l.9]))
+(defcommand a "" :title "A" [] (read-them))
+(defkey "ctrl+a" a)
+(defscreen main :state {:l [1 2] :m [{:k 3}] :out nil} (panel#root))
+)lisp");
+	app.press(Key::A);
+	CHECK(app.state("out") == json::array({1, 3, nullptr}));
+}
+
 TEST_CASE("lisp runtime: a callback given its first arguments takes the rest by name") {
 	const App app(R"lisp(
 (defn failed "Its first argument given, `error` by name." [label error] (set "state.out" [label error]))

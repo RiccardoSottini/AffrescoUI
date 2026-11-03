@@ -2337,7 +2337,8 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
   callback), `event` from the event, and nil if nothing has that name. The step `{"lisp": "move", "with": [1, 2]}` gives them in order, and those past it by name. A
   `defcommand`'s `do` is that step, so a command runs as its function does, and a document's action of the same name wins.
 - **Reading.** A dotted word that nothing defines is a path of the running app: `state.count`, `data.ordered`, `computed.h`,
-  `auth.server.account`, `event.x`; `item.name` of a local `item` is its member. A value read is a copy, and costs what its size
+  `auth.server.account`, `event.x`; `item.name` of a local `item` is its member, and a member that is a number an index
+  (`state.frames.0.id` is the binding's `state.frames[0].id`). A value read is a copy, and costs what its size
   costs. The expressions' functions that the language doesn't have under another name are there: `(t "key" {:n 1})`, `(today)`, `(trim s)`,
   `(daysBetween a b)`, `(indexOf list x)`.
 - **Changing.** Each step is a function of its name, except `remove-state` and `update-record` for `remove` and `update`, whose names the
