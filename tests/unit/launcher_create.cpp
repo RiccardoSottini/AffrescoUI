@@ -174,6 +174,8 @@ TEST_CASE("launcher: a name whose folder holds something else is refused, saying
 		CAPTURE(notation);
 		const LauncherFolders folders;
 		writeFile(folders.apps / "notes" / "keep.txt", "mine"); // a folder of the person's, not an app
+		// An apostrophe in the scenarios is written ', as JSON may: the quality gate's lizard would take a raw
+		// string's apostrophes for a character's quotes, and read this test and the ones after it as one
 		const json scenarios = json::parse(R"json([{ "name": "taken", "steps": [
 			{ "wait": 10 },
 			{ "key": "mod+n" },
@@ -183,7 +185,7 @@ TEST_CASE("launcher: a name whose folder holds something else is refused, saying
 			{ "wait": 10 },
 			{ "expect": { "state": "page", "is": "create" } },
 			{ "expect": { "state": "create.busy", "is": false } },
-			{ "expect": { "node": "#createProblem", "text": "The app couldn't be made: a folder named AffrescoUI/notes is there already: choose another name" } },
+			{ "expect": { "node": "#createProblem", "text": "The app couldn\u0027t be made: a folder named AffrescoUI/notes is there already: choose another name" } },
 			{ "expect": { "state": "mine.length", "is": 0 } }
 		] }])json");
 		const automation::Report report =
@@ -237,14 +239,14 @@ TEST_CASE("launcher: the setting chooses whether an example opens from its json 
 				{ "key": "mod+comma" },
 				{ "click": { "role": "radio", "name": "JSON" } },
 				{ "key": "mod+1" },
-				{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team's issues" } },
+				{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team\u0027s issues" } },
 				{ "wait": 10 },
-				{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher needs an app, ROOT:PATH, a folder with an app.json or app.lisp, either of those files, or a .screen.json inside a granted root" } }
+				{ "expect": { "state": "toasts[0].message", "is": "Flow couldn\u0027t be opened: affrescoui_launcher needs an app, ROOT:PATH, a folder with an app.json or app.lisp, either of those files, or a .screen.json inside a granted root" } }
 			] },
 			{ "name": "lisp", "steps": [
-				{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team's issues" } },
+				{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team\u0027s issues" } },
 				{ "wait": 10 },
-				{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher isn't there next to the host" } }
+				{ "expect": { "state": "toasts[0].message", "is": "Flow couldn\u0027t be opened: affrescoui_launcher isn\u0027t there next to the host" } }
 			] }
 		])json");
 		const automation::Report report =

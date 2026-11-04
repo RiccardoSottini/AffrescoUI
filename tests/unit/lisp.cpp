@@ -606,8 +606,10 @@ TEST_CASE("lisp: a program is split into entries, its text kept exactly") {
 	CHECK(lisp::needsRunning("(defn)") == "the form at line 1");
 }
 
-TEST_CASE("lisp: a program builds the format's sections, in the order of its definitions") {
-	const std::string text = R"lisp(
+namespace {
+
+/// A program with a definition of each kind, for the tests of what it builds.
+constexpr const char* roomsProgram = R"lisp(
 (defn card "One room." [room]
   `(panel :id ~(str "room-" (:id room))
      (label :text ~(:name room))))
@@ -630,10 +632,11 @@ TEST_CASE("lisp: a program builds the format's sections, in the order of its def
 (add-hook after-save "After saving." toggle)
 (advice toggle :around another)
 )lisp";
-	lisp::Program program;
-	program.addFile(text, "a.lisp", "me");
-	const json tree = program.build();
-	const json expected = json::parse(R"({
+
+/// @brief The tree roomsProgram builds.
+/// @return The tree.
+json roomsTree() {
+	return json::parse(R"({
 		"format": "affrescoui-screen",
 		"version": 2,
 		"window": {"title": "Rooms"},
@@ -648,6 +651,16 @@ TEST_CASE("lisp: a program builds the format's sections, in the order of its def
 		"keys": {"mod+b": "toggle", "mod+n": {"run": "another"}},
 		"settings": {"list-size": {"type": "integer", "default": 60, "minimum": 1, "description": "How many."}}
 	})");
+}
+
+} // namespace
+
+TEST_CASE("lisp: a program builds the format's sections, in the order of its definitions") {
+	const std::string text = roomsProgram;
+	const json expected = roomsTree();
+	lisp::Program program;
+	program.addFile(text, "a.lisp", "me");
+	const json tree = program.build();
 	CHECK(tree.dump() == expected.dump());
 	REQUIRE(program.extensions().size() == 2);
 	CHECK(program.extensions()[0].kind == "add-hook");
@@ -660,7 +673,11 @@ TEST_CASE("lisp: a program builds the format's sections, in the order of its def
 	REQUIRE(program.undefinedNames().size() == 1);
 	CHECK(program.undefinedNames()[0].name == "other");
 	CHECK(program.undefinedNames()[0].definition == "toggle");
+}
 
+TEST_CASE("lisp: the same source gives the same tree, and moving definitions moves only their members") {
+	const std::string text = roomsProgram;
+	const json expected = roomsTree();
 	// The same source gives the same tree. Moving definitions moves their members, as moving keys in a JSON file
 	// does, and nothing else: the same members, the same values
 	CHECK(lisp::buildText(text, "a.lisp").dump() == expected.dump());
@@ -682,7 +699,9 @@ TEST_CASE("lisp: a program builds the format's sections, in the order of its def
 	const json flipped = changed.build();
 	CHECK(flipped["actions"].begin().key() == "toggle");
 	CHECK(flipped["actions"]["toggle"]["title"] == "Flip");
+}
 
+TEST_CASE("lisp: a build expands macros first, and works out a value from later ones, never from itself") {
 	// Macros first, wherever they are, using functions below them
 	CHECK(lisp::buildText(
 	          "(defscreen main (rows ~(wrap 1)))\n(defn helper [x] [x])\n(defmacro wrap [x] `(helper ~x))")["root"]
