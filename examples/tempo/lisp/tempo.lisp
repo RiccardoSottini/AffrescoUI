@@ -1,9 +1,10 @@
 ;;; tempo.lisp --- what Tempo does: its functions and commands
 ;;;
-;;; The screen and its pages (index.screen.lisp, pages.lisp) say what is shown; this file says what happens. A function
-;;; reads the running app through paths (`state.queue`, `computed.playingKey`, `settings.playback.crossfade`) and changes
-;;; it only through steps (`set`, `audio`, `insert`...). A handler runs one by name, its parameters by name:
-;;; {:run play :with {:list -1 :track 0}}. The keys and what the state watches stay in the screen, as data.
+;;; The views (sidebar.lisp, library.lisp, player.lisp, pages.lisp...) say what is shown; this file says what happens. A
+;;; function reads the running app through paths (`state.queue`, `computed.playingKey`, `settings.playback.crossfade`)
+;;; and changes it only through steps (`set`, `audio`, `insert`...). A view runs one by name (`:onClick playPause`) or
+;;; with its arguments, ~(handler play index 0); keys.lisp binds the keys. At the end, the sound and what the app does by
+;;; itself: what the state watches, and what runs on load.
 
 ;;; Songs, as keys
 
@@ -104,7 +105,7 @@
 
 (defn quietly "What a step's error does when it is no error here: nothing." [] nil)
 
-(defn noSound "" [] (set "state.soundOn" ""))
+(defn noSound "No sound plays: what a sound that fails leaves." [] (set "state.soundOn" ""))
 
 (defn startSound "Plays the sound of the song playing (computed.sound: its own, else the beat), stopping the one before; state.soundOn names the one started, empty when none could." []
   (let [own computed.sound]
@@ -311,7 +312,7 @@
 (defn openListMenu "The menu of the playlist shown: rename, delete." []
   (set "state.listMenu" {:open true :x (min (or event.x 200) (- window.width 200)) :y (min (or event.y 240) (- window.height 80))}))
 
-(defn startRename "" []
+(defn startRename "The playlist's name, ready to type in its header." []
   (set "state.nameDraft" computed.list.name)
   (set "state.renaming" true))
 
@@ -320,7 +321,7 @@
     (update-record "playlists" :id computed.list.id :fields {:name (slice (trim state.nameDraft) 0 60)}))
   (set "state.renaming" false))
 
-(defn askDelete "" [] (set "state.deleting" true))
+(defn askDelete "Asks whether to delete the playlist shown." [] (set "state.deleting" true))
 
 ;;; The app
 
@@ -358,43 +359,79 @@
 
 ;; Tempo opens playing, silently: the first press starts the song's sound; without sound (a host that gives none) it
 ;; pauses
-(defcommand playPause "" :title "Play or pause" :category "Playback" :icon "play" []
+(defcommand playPause "Plays the song, or pauses it."
+  :title ~(t "command.playPause") :description ~(t "command.playPause.about")
+  :category ~(t "category.playback") :icon "play" []
   (if (and state.isPlaying (= state.soundOn ""))
     (do (startSound)
         (when (= state.soundOn "") (toggle "state.isPlaying")))
     (toggle "state.isPlaying")))
 
-(defcommand nextCommand "" :title "Next song" :category "Playback" :icon "skip-forward" [] (next))
-(defcommand previousCommand "" :title "Previous song" :category "Playback" :icon "skip-back" [] (previous))
+(defcommand nextCommand "Plays the next song."
+  :title ~(t "command.nextCommand") :description ~(t "command.nextCommand.about")
+  :category ~(t "category.playback") :icon "skip-forward" [] (next))
+(defcommand previousCommand "Plays the song before, or this one again from the start."
+  :title ~(t "command.previousCommand") :description ~(t "command.previousCommand.about")
+  :category ~(t "category.playback") :icon "skip-back" [] (previous))
 
-(defcommand volumeUp "" :title "Volume up" :category "Playback" :icon "volume-2" :enablement "{{state.volume < 100}}" []
+(defcommand volumeUp "Turns the volume up a tenth."
+  :title ~(t "command.volumeUp") :description ~(t "command.volumeUp.about")
+  :category ~(t "category.playback") :icon "volume-2" :enablement ~(< state.volume 100) []
   (set "state.volume" (min (+ state.volume 10) 100)))
 
-(defcommand volumeDown "" :title "Volume down" :category "Playback" :icon "volume-1" :enablement "{{state.volume > 0}}" []
+(defcommand volumeDown "Turns the volume down a tenth."
+  :title ~(t "command.volumeDown") :description ~(t "command.volumeDown.about")
+  :category ~(t "category.playback") :icon "volume-1" :enablement ~(> state.volume 0) []
   (set "state.volume" (max (- state.volume 10) 0)))
 
-(defcommand searchCommand "" :title "Find a song…" :category "Go" :icon "search" [] (openQuickPick ""))
-(defcommand commandPalette "" :title "Show all commands" :category "Go" :icon "command" [] (openQuickPick ">"))
-(defcommand showLibrary "" :title "Show the library" :category "View" :icon "music" [] (show "library"))
-(defcommand showAlbums "" :title "Show the albums" :category "View" :icon "disc-3" [] (show "albums"))
-(defcommand showArtists "" :title "Show the artists" :category "View" :icon "users" [] (show "artists"))
+(defcommand searchCommand "Finds a song by its title, artist or album."
+  :title ~(t "command.searchCommand") :description ~(t "command.searchCommand.about")
+  :category ~(t "category.go") :icon "search" [] (openQuickPick ""))
+(defcommand commandPalette "Lists every command to run."
+  :title ~(t "command.commandPalette") :description ~(t "command.commandPalette.about")
+  :category ~(t "category.go") :icon "command" [] (openQuickPick ">"))
+(defcommand showLibrary "Shows the library, every song in a table."
+  :title ~(t "command.showLibrary") :description ~(t "command.showLibrary.about")
+  :category ~(t "category.view") :icon "music" [] (show "library"))
+(defcommand showAlbums "Shows the albums as tiles."
+  :title ~(t "command.showAlbums") :description ~(t "command.showAlbums.about")
+  :category ~(t "category.view") :icon "disc-3" [] (show "albums"))
+(defcommand showArtists "Shows the artists as tiles."
+  :title ~(t "command.showArtists") :description ~(t "command.showArtists.about")
+  :category ~(t "category.view") :icon "users" [] (show "artists"))
 
-(defcommand showSearch "" :title "Search the library" :category "View" :icon "search" []
+(defcommand showSearch "Shows the search, its field ready to type."
+  :title ~(t "command.showSearch") :description ~(t "command.showSearch.about")
+  :category ~(t "category.view") :icon "search" []
   (show "search")
   (focus "#searchField"))
 
-(defcommand showLiked "" :title "Show the liked songs" :category "View" :icon "heart" [] (show "liked"))
-(defcommand likeSong "" :title "Like the song playing" :category "Playback" :icon "heart" [] (toggleLike computed.playingKey))
-(defcommand showNowPlaying "" :title "Show now playing" :category "View" :icon "radio" [] (show "nowPlaying"))
-(defcommand showSound "" :title "Show the equaliser and crossfade" :category "View" :icon "sliders-horizontal" [] (show "sound"))
+(defcommand showLiked "Shows the songs liked."
+  :title ~(t "command.showLiked") :description ~(t "command.showLiked.about")
+  :category ~(t "category.view") :icon "heart" [] (show "liked"))
+(defcommand likeSong "Likes the song playing, or no longer."
+  :title ~(t "command.likeSong") :description ~(t "command.likeSong.about")
+  :category ~(t "category.playback") :icon "heart" [] (toggleLike computed.playingKey))
+(defcommand showNowPlaying "Shows the song playing, its visualiser and its lyrics."
+  :title ~(t "command.showNowPlaying") :description ~(t "command.showNowPlaying.about")
+  :category ~(t "category.view") :icon "radio" [] (show "nowPlaying"))
+(defcommand showSound "Shows the equaliser and the crossfade."
+  :title ~(t "command.showSound") :description ~(t "command.showSound.about")
+  :category ~(t "category.view") :icon "sliders-horizontal" [] (show "sound"))
 
-(defcommand cancelRename "" :title "Leave the playlist's name" :category "View" :icon "x" :enablement "{{state.renaming}}" []
+(defcommand cancelRename "Leaves the playlist's name as it was."
+  :title ~(t "command.cancelRename") :description ~(t "command.cancelRename.about")
+  :category ~(t "category.view") :icon "x" :enablement ~state.renaming []
   (set "state.renaming" false))
 
-(defcommand toggleQueue "" :title "Show or hide the queue" :category "View" :icon "list-ordered" [] (toggle "state.queueOpen"))
+(defcommand toggleQueue "Shows or hides the queue beside the page."
+  :title ~(t "command.toggleQueue") :description ~(t "command.toggleQueue.about")
+  :category ~(t "category.view") :icon "list-ordered" [] (toggle "state.queueOpen"))
 
 ;; The songs up next, shuffled, or back in their order (the songs added to the queue after them)
-(defcommand toggleShuffle "" :title "Shuffle" :category "Playback" :icon "shuffle" []
+(defcommand toggleShuffle "Plays the queue in a shuffled order, or in its own."
+  :title ~(t "command.toggleShuffle") :description ~(t "command.toggleShuffle.about")
+  :category ~(t "category.playback") :icon "shuffle" []
   (toggle "state.shuffle")
   (set "state.shuffleSeed" (mod (now) 1009))
   (set "state.queue" (if state.shuffle
@@ -403,30 +440,83 @@
                                (remove (fn [k] (has state.order k)) state.queue))))
   (set "state.queuePick" nil))
 
-(defcommand cycleRepeat "" :title "Repeat: off, all, this song" :category "Playback" :icon "repeat" []
+(defcommand cycleRepeat "Repeats nothing, the whole list, or the song playing."
+  :title ~(t "command.cycleRepeat") :description ~(t "command.cycleRepeat.about")
+  :category ~(t "category.playback") :icon "repeat" []
   (set "state.repeat" (cond (= state.repeat "off") "all" (= state.repeat "all") "one" :else "off")))
 
-(defcommand toggleMute "" :title "Mute" :category "Playback" :icon "volume-x" [] (toggle "state.muted"))
+(defcommand toggleMute "Mutes the sound, or brings it back."
+  :title ~(t "command.toggleMute") :description ~(t "command.toggleMute.about")
+  :category ~(t "category.playback") :icon "volume-x" [] (toggle "state.muted"))
 
-(defcommand goBack "" :title "Go back" :category "View" :icon "chevron-left" :enablement "{{length(state.backStack) > 0}}" []
+(defcommand goBack "Goes back to the page before."
+  :title ~(t "command.goBack") :description ~(t "command.goBack.about")
+  :category ~(t "category.view") :icon "chevron-left" :enablement ~(> (count state.backStack) 0) []
   (when (not (empty? state.backStack))
     (set "state.forwardStack" (concat [state.where] (take 49 state.forwardStack)))
     (goTo (last state.backStack))
     (set "state.backStack" (take (dec (count state.backStack)) state.backStack))))
 
-(defcommand goForward "" :title "Go forward" :category "View" :icon "chevron-right" :enablement "{{length(state.forwardStack) > 0}}" []
+(defcommand goForward "Goes forward to the page after."
+  :title ~(t "command.goForward") :description ~(t "command.goForward.about")
+  :category ~(t "category.view") :icon "chevron-right" :enablement ~(> (count state.forwardStack) 0) []
   (when (not (empty? state.forwardStack))
     (set "state.backStack" (pushedBack state.backStack state.where))
     (goTo (first state.forwardStack))
     (set "state.forwardStack" (drop 1 state.forwardStack))))
 
-(defcommand toggleMini "" :title "Switch the mini player" :category "View" :icon "minimize-2" [] (toggle "state.mini"))
+(defcommand toggleMini "Switches between the whole window and the mini player."
+  :title ~(t "command.toggleMini") :description ~(t "command.toggleMini.about")
+  :category ~(t "category.view") :icon "minimize-2" [] (toggle "state.mini"))
 
-(defcommand toggleTheme "" :title "Switch light and dark" :category "View" :icon "moon" []
+(defcommand toggleTheme "Switches between the light and the dark theme."
+  :title ~(t "command.toggleTheme") :description ~(t "command.toggleTheme.about")
+  :category ~(t "category.view") :icon "moon" []
   (set "state.theme" (if (= state.theme "dark") "light" "dark")))
 
-(defcommand switchLanguage "" :title "Change the language" :category "View" :icon "languages" []
+(defcommand switchLanguage "Switches the language: English, Spanish, French."
+  :title ~(t "command.switchLanguage") :description ~(t "command.switchLanguage.about")
+  :category ~(t "category.view") :icon "languages" []
   (set "settings.ui.language" (cond (= settings.ui.language "en") "es" (= settings.ui.language "es") "fr" :else "en")))
 
-(defcommand flatEqualiser "" :title "Reset the equaliser" :category "Sound" :icon "sliders-horizontal" [] (setPreset "flat"))
-(defcommand playLibrary "" :title "Play the library" :category "Playback" :icon "disc-3" [] (play -1 0))
+(defcommand flatEqualiser "Puts every band of the equaliser back at zero."
+  :title ~(t "command.flatEqualiser") :description ~(t "command.flatEqualiser.about")
+  :category ~(t "category.sound") :icon "sliders-horizontal" [] (setPreset "flat"))
+(defcommand playLibrary "Plays the library from its first song."
+  :title ~(t "command.playLibrary") :description ~(t "command.playLibrary.about")
+  :category ~(t "category.playback") :icon "disc-3" [] (play -1 0))
+
+;;; What the app does by itself
+
+(defpart reactions "What the state watches (the sound follows the player, going back follows the page), and what runs on load."
+  :watch {:state.isPlaying [{:run followPlaying}]
+          :state.playingTrack [{:run songChanged}]
+          :state.playingList [{:run songChanged}]
+          :state.volume [{:run followVolume}]
+          :state.muted [{:run followVolume}]
+          :state.page [{:run placeChanged}]
+          :state.mini [{:run liftAssistant}]
+          :state.current [{:run placeChanged}]
+          :state.collection [{:run placeChanged}]}
+  :onLoad [{:run liftAssistant} {:run buildLibrary}])
+
+(defn sortLibrary "The library's table sorted by a column, its header clicked." []
+  (set "state.librarySort" {:column event.column :descending event.descending}))
+
+(defn showPlayingList "The player's cover clicked: the list playing, or the library." []
+  (if (>= state.playingList 0) (openList state.playingList) (show "library")))
+
+(defn browseBack "Back from an album or an artist to the tiles it was opened from." []
+  (show (if (= state.collection.kind "artist") "artists" "albums")))
+
+(defn likedMenu "A right click on a liked song: its menu." []
+  (when (some? state.likedPick) (openSongMenu (listOf state.likedPick) (trackOf state.likedPick))))
+
+(defn switchEqualiser "The equaliser's switch: on or off." []
+  (set "state.eqOn" event.value))
+
+(defn setTheme "A theme chosen: dark or light." [theme]
+  (set "state.theme" theme))
+
+(defn setLanguage "A language chosen: en, es or fr." [language]
+  (set "settings.ui.language" language))

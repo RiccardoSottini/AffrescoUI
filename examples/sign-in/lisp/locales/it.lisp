@@ -96,6 +96,8 @@
                 :slow "Rete lenta"
                 :slowTooltip "{on, select, true {Rete lenta (prova): attiva} other {Rete lenta (prova): disattivata}}"
                 :command "{name, select, toggleTheme {Passa tra chiaro e scuro} nextLanguage {Lingua successiva} togglePassword {Mostra o nascondi la password} openShortcuts {Scorciatoie da tastiera} toggleSlow {Rete lenta (prova)} signOut {Esci} other {}}"
+                :category "{name, select, account {Account} view {Vista} help {Aiuto} other {}}"
+                :commandAbout "{name, select, signOut {Chiude la sessione su questo dispositivo} toggleTheme {Passa dai colori chiari a quelli scuri, e viceversa} nextLanguage {Mostra la lingua successiva: inglese, italiano, arabo} togglePassword {Mostra le password in chiaro, o le nasconde di nuovo} openShortcuts {Elenca i comandi e i loro tasti} toggleSlow {Il server finto risponde dopo 800 ms, per vedere gli stati di attesa} other {}}"
                 :continue "Continua"
                 :notYou "Non sei tu?"
                 :capsLock "Il blocco maiuscole è attivo"

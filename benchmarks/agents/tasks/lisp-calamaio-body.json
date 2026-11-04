@@ -43,14 +43,14 @@
 	"unchanged": [
 		"/program/killring.lisp/kill-line",
 		"/program/loop.lisp/eval-defun",
-		"/actions/kill-buffer",
+		"/program/buffers.lisp/kill-buffer",
 		"/program/killring.lisp/yank-pop"
 	],
 	"reference": [
 		{
 			"message": "C-y says Nothing to paste",
 			"set": {
-				"/program/killring.lisp/yank": "(defcommand yank \"Inserts the last killed text at point, and sets the mark at its start.\"\n  :title \"Paste\" :category \"Killing\"\n  []\n  (when (editable?)\n    (if (= (count state.kills) 0)\n      (message \"Nothing to paste\")\n      (let [here (caret)]\n        (deactivate)\n        (set \"state.arg\" nil)\n        (yank-at 0 {:line (:line here) :column (:column here)})))))"
+				"/program/killring.lisp/yank": "(defcommand yank \"Inserts the last killed text at point, and sets the mark at its start.\"\n  :title ~(t \"command.yank\") :category ~(t \"category.killing\")\n  :description ~(t \"command.yank.about\")\n  []\n  (when (editable?)\n    (if (= (count state.kills) 0)\n      (message \"Nothing to paste\")\n      (let [here (caret)]\n        (deactivate-mark)\n        (set \"state.arg\" nil)\n        (yank-at 0 {:line (:line here) :column (:column here)})))))"
 			}
 		}
 	]

@@ -1,0 +1,68 @@
+{
+	"$schema": "../../../schema/affrescoui-scenarios.schema.json",
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"note": "An agent proposes a Filters panel to Tempera's program: it adds a view and changes the dock's definition. Apart from index.scenarios.json, since the composition proof of a feature installed into the dock plays those, and a definition that builds the tree a feature is installed in can't change then (the program builds what the document writes).",
+	"screen": "index.screen.lisp",
+	"scenarios": [
+		{
+			"name": "tempera-agent-adds-a-filter-panel",
+			"note": "An agent proposes a Filters panel; it waits for review, and once accepted its buttons open the filter dialog",
+			"steps": [
+				{
+					"note": "onLoad draws the sample at the first frame",
+					"wait": 0
+				},
+				{
+					"propose": {
+						"author": "agent",
+						"message": "Add a Filters panel: one button per filter, above the Layers panel",
+						"add": {
+							"/program/panels.lisp/filter-panel": "(defview filter-panel \"A Filters panel: one button per filter, each opening its dialog.\" []\n  `(column#filter-panel :role region :label \"Filters\" :width \"100%\" :height 92 :color @panel :gap 6\n     (label#filter-panel-title :text \"Filters\"\n       :textColor @muted\n       :width 120\n       :height 22\n       :align {:horizontal start :vertical center}\n       :anchors {:left 10})\n     (row#filter-panel-buttons :width \"100%\" :height 60 :gap 6 :wrap true\n       (node#filter-panel-start :color transparent :width 4 :height 26)\n       ~(repeat [f state.filters :key f.id]\n         `(label :id ~(str \"filter-panel-\" f.id)\n            :role button\n            :text ~(t (str \"filter.\" f.id))\n            :textColor @text\n            :padding 6\n            :height 26\n            :fitText true\n            :radius 4\n            :color @input\n            :borderWidth 1\n            :borderColor @border\n            :cursor hand\n            :tooltip ~(str (t (str \"filter.\" f.id)) \"...\")\n            :hover {:color @hover}\n            :onClick ~(handler showFilter {:kind f.id}))))))"
+						},
+						"set": {
+							"/program/panels.lisp/dock": "(defview dock \"The dock, in the standard screen mode: the groups, and the strip of panels that pop out.\" []\n  `(row#dock :when ~(= state.screenMode \"standard\") :width 304 :height \"100%\" :gap 6\n     (column#panels :point panels.dock\n       :role complementary\n       :label ~(t \"panels.label\")\n       :width 262\n       :height \"100%\"\n       :color transparent\n       :gap 6\n       ~(colour-group)\n       ~(properties-group)\n       ~(layers-group)\n       ~(filter-panel)\n       (node#filter-panel-split :width \"100%\" :height 1 :color @border))\n     (column#panel-icons :role toolbar\n       :label ~(t \"panels.collapsed\")\n       :width 36\n       :height \"100%\"\n       :color @panel\n       :radius @kit.cardRadius\n       :alignItems center\n       :gap 2\n       (node :height 6 :width 1 :style clear)\n       (node :use tPopout :with {:name history :icon history :title ~(t \"panel.history\")}\n         ~(history-panel))\n       (node :use tPopout :with {:name navigator :icon compass :title ~(t \"panel.navigator\") :height 250}\n         ~(navigator-panel)))))"
+						}
+					},
+					"note": "the panels are built by the program: the agent adds a view and changes the dock's definition to show it"
+				},
+				{
+					"expect": {
+						"node": "#filter-panel",
+						"exists": false
+					}
+				},
+				{
+					"action": "acceptAgentProposal"
+				},
+				{
+					"expect": {
+						"node": "#filter-panel",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#filter-panel-motion-blur",
+						"exists": true
+					}
+				},
+				{
+					"click": "#filter-panel-motion-blur"
+				},
+				{
+					"expect": {
+						"state": "filter.open",
+						"is": true
+					}
+				},
+				{
+					"expect": {
+						"state": "filter.kind",
+						"is": "motion-blur"
+					}
+				}
+			]
+		}
+	]
+}
