@@ -166,6 +166,8 @@ def program_revisions():
         {"author": "agent", "set": {at + "add-hook after-go call": "(add-hook after-go call)"}},
         {"author": "agent", "patch": [{"op": "remove", "path": at + "advice helper before go"}]},
         {"author": "agent", "set": {at + "remove-hook after-go helper": "(remove-hook after-go helper)"}},
+        {"author": "agent", "set": {at + "call": '(defn call "Takes save\'s step over." [x] nil)'}},
+        {"author": "agent", "set": {at + "accept": '(defn accept "Named like a review step." [] nil)'}},
     ]
 
 
