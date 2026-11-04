@@ -4,9 +4,11 @@
 #include "affresco/intelligence/ScreenQueries.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <fstream>
 #include <functional>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
@@ -241,6 +243,66 @@ std::string lower(std::string text) {
 	return text;
 }
 
+/// @brief Whether a node is of a type: its own (or its style's), or the component it uses.
+/// @param node The node.
+/// @param type The type, or "" for any.
+/// @param styles The document's styles.
+/// @return Whether it is.
+bool matchesType(const json& node, const std::string& type, const json& styles) {
+	return type.empty() || typeOf(node, styles) == type || (node.contains("use") && node["use"] == type);
+}
+
+/// @brief Whether a node shows a text, in its text, placeholder or tooltip, any case.
+/// @param node The node.
+/// @param needle The text in lower case, or "" for any.
+/// @return Whether it does.
+bool matchesText(const json& node, const std::string& needle) {
+	if(needle.empty()) return true;
+	return std::ranges::any_of(std::array<const char*, 3>{"text", "placeholder", "tooltip"}, [&](const char* key) {
+		return node.contains(key) && node[key].is_string() && lower(node[key].get<std::string>()).contains(needle);
+	});
+}
+
+/// @brief Whether a node has a property, with a value: equal, or written so when the value is a text.
+/// @param node The node.
+/// @param property The property, or "" for any.
+/// @param value Its value, or a null value for any.
+/// @return Whether it has.
+bool matchesProperty(const json& node, const std::string& property, const json& value) {
+	if(property.empty()) return true;
+	if(!node.contains(property)) return false;
+	if(value.is_null() || node[property] == value) return true;
+	return value.is_string() && compact(node[property]) == value.get<std::string>();
+}
+
+/// @brief A program's definitions of a form, holding a text, one line each as in the outline.
+/// @param document The document.
+/// @param form The form ("defn"), or "" for any.
+/// @param needle The text in lower case, or "" for any.
+/// @return The lines.
+std::vector<std::string> matchingDefinitions(const json& document, const std::string& form, const std::string& needle) {
+	std::vector<std::string> found;
+	for(const Definition& definition : definitions(document)) {
+		if(!form.empty() && definition.form != form) continue;
+		if(!needle.empty() && !lower(*definition.text).contains(needle)) continue;
+		found.push_back(definition.address + (definition.form.empty() ? "" : " " + definition.form));
+	}
+	return found;
+}
+
+/// @brief What a search found: "N found", then at most @p limit lines, then how many more there are.
+/// @param found The lines.
+/// @param limit The most shown (at least one).
+/// @return The text.
+std::string foundLines(const std::vector<std::string>& found, int limit) {
+	const std::size_t shown = std::min(found.size(), static_cast<std::size_t>(std::max(1, limit)));
+	std::string out = std::to_string(found.size()) + " found";
+	for(std::size_t i = 0; i < shown; ++i) out += "\n" + found[i];
+	if(found.size() > shown)
+		out += "\n... and " + std::to_string(found.size() - shown) + " more: narrow the search or raise limit";
+	return out;
+}
+
 /// @brief One heading of the guide.
 struct Heading {
 	std::size_t line;  ///< Where it is.
@@ -359,16 +421,8 @@ std::string findNodes(const json& document, const std::string& type, const std::
 	for(const auto& [pointer, start] : trees(document))
 		walk(*start, pointer, 0, "", [&](const Visit& visit) {
 			const json& node = *visit.node;
-			if(!type.empty() && typeOf(node, styles) != type && !(node.contains("use") && node["use"] == type)) return;
-			if(!needle.empty() &&
-			   std::ranges::none_of(std::array<const char*, 3>{"text", "placeholder", "tooltip"}, [&](const char* key) {
-				   return node.contains(key) && node[key].is_string() &&
-				          lower(node[key].get<std::string>()).find(needle) != std::string::npos;
-			   }))
-				return;
-			if(!property.empty() && (!node.contains(property) ||
-			                         (!value.is_null() && node[property] != value &&
-			                          !(value.is_string() && compact(node[property]) == value.get<std::string>()))))
+			if(!matchesType(node, type, styles) || !matchesText(node, needle) ||
+			   !matchesProperty(node, property, value))
 				return;
 			std::string line = visit.address;
 			const std::string said = summary(node, visit.address, styles);
@@ -377,16 +431,8 @@ std::string findNodes(const json& document, const std::string& type, const std::
 			found.push_back(line);
 		});
 	if(property.empty() && (!type.empty() || !text.empty())) // a program's definitions, by form and by text
-		for(const Definition& definition : definitions(document))
-			if((type.empty() || definition.form == type) &&
-			   (needle.empty() || lower(*definition.text).find(needle) != std::string::npos))
-				found.push_back(definition.address + (definition.form.empty() ? "" : " " + definition.form));
-	const std::size_t shown = std::min(found.size(), static_cast<std::size_t>(std::max(1, limit)));
-	std::string out = std::to_string(found.size()) + " found";
-	for(std::size_t i = 0; i < shown; ++i) out += "\n" + found[i];
-	if(found.size() > shown)
-		out += "\n... and " + std::to_string(found.size() - shown) + " more: narrow the search or raise limit";
-	return out;
+		std::ranges::move(matchingDefinitions(document, type, needle), std::back_inserter(found));
+	return foundLines(found, limit);
 }
 
 std::optional<std::string> formatGuide(const std::string& guide, const std::string& topic) {

@@ -266,6 +266,36 @@ std::string attachmentLines(const json& list) {
 	return out;
 }
 
+/// The most rounds of reading claude-code may ask for in one request.
+constexpr int maxReads = 3;
+
+/// The most times claude-code may fix a rejected revision in one request.
+constexpr int maxRetries = 2;
+
+/// @brief The rounds of one claude-code request so far.
+struct Rounds {
+	int reads = 0;   ///< Rounds of reading.
+	int retries = 0; ///< Rejected revisions it was asked to fix.
+};
+
+/// @brief Whether claude-code's answer asks to see more: nodes, a search or topics of the guide.
+/// @param said Its answer.
+/// @return Whether it does.
+bool asksToRead(const json& said) { return said.contains("read") || said.contains("find") || said.contains("guide"); }
+
+/// @brief The texts of a list in claude-code's answer; anything else in it is skipped.
+/// @param said Its answer.
+/// @param key The list's key.
+/// @return The texts, or none if it isn't a list.
+std::vector<std::string> textsOf(const json& said, const char* key) {
+	std::vector<std::string> texts;
+	const auto list = said.find(key);
+	if(list == said.end() || !list->is_array()) return texts;
+	for(const json& item : *list)
+		if(item.is_string()) texts.push_back(item.get<std::string>());
+	return texts;
+}
+
 } // namespace
 
 /// @brief One request's work, on the agent's thread.
@@ -519,12 +549,9 @@ private:
 	/// revision (a program's first one is often on a built node, and its fix needs the definition read first).
 	/// @return The reply, or the failure.
 	std::pair<std::string, bool> claudeCode() {
-		constexpr int maxReads = 3;
-		constexpr int maxRetries = 2;
 		const std::string system = systemPrompt(false);
 		std::string input = context();
-		int reads = 0;
-		int retries = 0;
+		Rounds rounds;
 		while(true) {
 			const auto left =
 			    std::chrono::duration_cast<std::chrono::milliseconds>(deadline_ - std::chrono::steady_clock::now());
@@ -534,31 +561,40 @@ private:
 			if(!answer.ok) return {answer.text, true};
 			const json said = firstObject(answer.text);
 			if(!said.is_object()) return {cut(answer.text, 4000), false}; // a plain answer, no change
-			const bool reading = said.contains("read") || said.contains("find") || said.contains("guide");
-			const bool revising = said.contains("revision") && said["revision"].is_object();
-			if(reading && !revising && !said.contains("reply")) {
-				if(reads >= maxReads)
-					return {"Claude Code kept reading and made no change: ask again, perhaps saying where." +
-					            proposalNote(),
-					        true};
-				++reads;
-				input += "\n\nWhat you asked to see:\n" + readParts(said);
-				continue;
-			}
-			const std::string reply = said.value("reply", std::string());
-			if(revising) {
-				bool rejected = false;
-				const std::string outcome = submit(said["revision"], rejected);
-				if(rejected && retries < maxRetries) {
-					++retries;
-					input += "\n\nYour answer was:\n" + compact(said) + "\n\nIts revision was " + outcome +
-					         "\nAnswer again with the revision fixed, or read what you need first.";
-					continue;
-				}
-				if(rejected) return {"The change couldn't be made: " + outcome + proposalNote(), true};
-			}
-			return reply.empty() ? nothingSaid() : std::pair{reply, false};
+			if(auto done = takeAnswer(said, input, rounds)) return *std::move(done);
 		}
+	}
+
+	/// @brief One of claude-code's answers: a read (what it asked for is added to the input), a revision (submitted;
+	/// a rejected one is told, to be fixed), or the reply.
+	/// @param said The answer.
+	/// @param input The input, which a read or a rejection adds to.
+	/// @param rounds The reads and retries so far.
+	/// @return The reply or the failure, or nullopt to ask again.
+	std::optional<std::pair<std::string, bool>> takeAnswer(const json& said, std::string& input, Rounds& rounds) {
+		const bool revising = said.contains("revision") && said["revision"].is_object();
+		if(!revising && !said.contains("reply") && asksToRead(said)) {
+			if(rounds.reads >= maxReads)
+				return std::pair{"Claude Code kept reading and made no change: ask again, perhaps saying where." +
+				                     proposalNote(),
+				                 true};
+			++rounds.reads;
+			input += "\n\nWhat you asked to see:\n" + readParts(said);
+			return std::nullopt;
+		}
+		if(revising) {
+			bool rejected = false;
+			const std::string outcome = submit(said["revision"], rejected);
+			if(rejected && rounds.retries < maxRetries) {
+				++rounds.retries;
+				input += "\n\nYour answer was:\n" + compact(said) + "\n\nIts revision was " + outcome +
+				         "\nAnswer again with the revision fixed, or read what you need first.";
+				return std::nullopt;
+			}
+			if(rejected) return std::pair{"The change couldn't be made: " + outcome + proposalNote(), true};
+		}
+		const std::string reply = said.value("reply", std::string());
+		return reply.empty() ? nothingSaid() : std::pair{reply, false};
 	}
 
 	/// @brief The reply when the model said nothing: "Done." only if a change reached the screen, else that none did.
@@ -569,36 +605,34 @@ private:
 		        true};
 	}
 
-	/// @brief What claude-code asked to read: nodes and definitions, searches, and topics of the guide.
+	/// @brief What claude-code asked to read: searches, nodes and definitions, and topics of the guide.
 	/// @param said Its answer.
 	/// @return Them, as text.
 	std::string readParts(const json& said) {
+		const std::vector<std::string> finds = textsOf(said, "find");
+		const std::vector<std::string> reads = textsOf(said, "read");
+		if((!finds.empty() || !reads.empty()) && !readScreen()) return "(the app didn't answer)";
 		std::string out;
-		const bool read =
-		    (said.contains("read") && said["read"].is_array()) || (said.contains("find") && said["find"].is_array());
-		if(read && !readScreen()) return "(the app didn't answer)";
-		if(said.contains("find") && said["find"].is_array())
-			for(const json& text : said["find"])
-				if(text.is_string() && !text.get_ref<const std::string&>().empty() &&
-				   out.size() <= options_.inlineDocument)
-					out += "find " + compact(text) + ": " +
-					       findNodes(document_, "", text.get<std::string>(), "", json(), 20) + "\n";
-		if(said.contains("read") && said["read"].is_array())
-			for(const json& at : said["read"]) {
-				if(!at.is_string() || out.size() > options_.inlineDocument) continue;
-				try {
-					out += at.get<std::string>() + ": " + cut(compact(nodeAt(document_, at.get<std::string>())), 8000) +
-					       "\n";
-				} catch(const std::exception& error) {
-					out += at.get<std::string>() + ": " + error.what() + "\n";
-				}
-			}
-		if(said.contains("guide") && said["guide"].is_array())
-			for(const json& topic : said["guide"])
-				if(topic.is_string() && out.size() < options_.inlineDocument * 2)
-					out +=
-					    "\n" + formatGuide(options_.guide, topic.get<std::string>()).value_or("(no such topic)") + "\n";
+		for(const std::string& text : finds)
+			if(!text.empty() && out.size() <= options_.inlineDocument)
+				out += "find " + compact(json(text)) + ": " + findNodes(document_, "", text, "", json(), 20) + "\n";
+		for(const std::string& at : reads)
+			if(out.size() <= options_.inlineDocument) out += readPart(at);
+		for(const std::string& topic : textsOf(said, "guide"))
+			if(out.size() < options_.inlineDocument * 2)
+				out += "\n" + formatGuide(options_.guide, topic).value_or("(no such topic)") + "\n";
 		return out.empty() ? "(nothing)" : out;
+	}
+
+	/// @brief One node, value or definition claude-code asked to read, or why there is none.
+	/// @param at Its address: "#id" or a JSON Pointer.
+	/// @return A line: the address, then it.
+	std::string readPart(const std::string& at) const {
+		try {
+			return at + ": " + cut(compact(nodeAt(document_, at)), 8000) + "\n";
+		} catch(const std::exception& error) {
+			return at + ": " + error.what() + "\n";
+		}
 	}
 
 	/// @brief A sentence about the proposal this request opened, if any.

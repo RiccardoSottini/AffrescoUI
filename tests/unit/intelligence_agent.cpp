@@ -428,10 +428,13 @@ TEST_CASE("intelligence agent: on a program, the assistant is told of it, finds 
 		 {{"app.lisp",
 		   {{"page", ";; The page.\n(defscreen page (column#page (label#title :text \"Tasks\")))"},
 		    {"defkey mod+/b", "(defkey \"mod+/b\" toggle-side)"}}}}}};
+	const json fixed = {
+	    {"reply", "Renamed it."},
+	    {"revision",
+		 {{"message", "m"},
+		  {"set", {{"/program/app.lisp/page", "(defscreen page (column#page (label#title :text \"Launch\")))"}}}}}};
 	harness.claudeAnswers = {R"({"revision": {"message": "m", "set": {"#title/text": "Launch"}}})",
-	                         R"({"find": ["#title"]})", R"({"read": ["/program/app.lisp/page"]})",
-	                         R"x({"reply": "Renamed it.", "revision": {"message": "m", "set": {"/program/app.lisp/page":
-	        "(defscreen page (column#page (label#title :text \"Launch\")))"}}})x"};
+	                         R"({"find": ["#title"]})", R"({"read": ["/program/app.lisp/page"]})", fixed.dump()};
 	harness.verdict = [](const json& revision) {
 		return revision["set"].contains("#title/text")
 		           ? json{{"type", "rejected"},
