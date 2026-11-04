@@ -4,9 +4,9 @@
 
 # AffrescoUI
 
-### Any application, defined in Lisp and rendered natively.<br/>Its users reshape it live, just by asking an AI.
+### Any application, defined in one format and rendered natively.<br/>Its users reshape it live, just by asking an AI.
 
-[![Defined in Lisp · JSON too](https://img.shields.io/badge/defined%20in-Lisp%20%C2%B7%20JSON%20too-D97706)](LISP.md)
+[![Defined in Lisp · JSON](https://img.shields.io/badge/defined%20in-Lisp%20%C2%B7%20JSON-D97706)](LISP.md)
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-00599C?logo=cplusplus&logoColor=white)](#use-it-in-your-app)
 [![OpenGL 4.1 · ES 3.0](https://img.shields.io/badge/OpenGL-4.1%20%C2%B7%20ES%203.0-5586A4?logo=opengl&logoColor=white)](#architecture)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20Web-475569)](#quick-start)
@@ -14,8 +14,8 @@
 [![Frame time](https://img.shields.io/badge/full%20frame-0.44%20ms-10B981)](BENCHMARKS.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-**[Vision](#the-vision)** · **[Applications](#applications)** · **[Lisp](#written-in-lisp-extended-from-inside)** ·
-**[Architecture](#architecture)** ·
+**[Vision](#the-vision)** · **[Applications](#applications)** · **[Architecture](#architecture)** ·
+**[Lisp](#written-in-lisp)** ·
 **[How it works](#how-it-works)** · **[Quick start](#quick-start)** · **[Documentation](#documentation)**
 
 <br/>
@@ -44,52 +44,6 @@ definitions, which the engine builds into one document, draws in C++ and OpenGL,
 too:** the same document can be written directly in JSON, and every example ships both. People and AI agents change an
 application while it runs: each change is checked against the app's permissions, previewed if it needs approval, and
 applied in place in milliseconds, with no rebuild, no restart and nothing lost.
-
-> [!TIP]
-> **Everything is defined in Lisp. JSON is supported too.** An application is a program in
-> [AffrescoUI Lisp](LISP.md), a Lisp with its own runtime: the app is extended from inside, while it runs.
->
-> | You define | In AffrescoUI Lisp |
-> |---|---|
-> | The window, as an outline of its parts | `defscreen main` |
-> | Its parts, small and named | `defview`, `defcomponent` |
-> | Its data | `defstate`, `defcomputed` |
-> | Its looks | `deftokens`, `defstyle`, `defmenu` |
-> | What it does | `defn`, `defcommand` |
-> | Shortcuts and settings | `defkey`, `defcustom` |
-> | Extension points | `defhook`, `add-hook`, `advice` |
-> | Its text, in every language | `(t "key")` and `locales/<language>.lisp` |
-> | Its files | `(include "toolbar.lisp" ...)` |
->
-> The program builds the document the engine draws. Prefer JSON? Write that document directly: the engine reads both,
-> every example has a `json/` folder beside its `lisp/` one, and the Launcher's Settings choose which opens. Both get
-> the same history, diffs and permissions, and code an agent writes is reviewed like any other change.
->
-> <table>
-> <tr><th>Lisp: the program you write</th><th>JSON: the document it builds</th></tr>
-> <tr><td>
->
-> ```lisp
-> (defview card-view "One card, in bold when it is a bug." [card]
->   `(label#card :text ~card.title :bold ~(= card.tag "bug")))
->
-> (defscreen main :window {:title "Board"}
->   (column#cards
->     ~(repeat [card state.cards] (card-view card))))
-> ```
->
-> </td><td>
->
-> ```json
-> { "type": "column", "id": "cards", "children": [
->   { "type": "label", "id": "card",
->     "repeat": { "for": "card", "in": "state.cards" },
->     "text": "{{card.title}}",
->     "bold": "{{(card.tag == 'bug')}}" } ] }
-> ```
->
-> </td></tr>
-> </table>
 
 ## The vision
 
@@ -188,39 +142,6 @@ made blank, from an example or from a description, and the AI provider every app
 Open them from the **Launcher** (`./build/affrescoui_launcher`), or run one with `./build/affrescoui_launcher <file>`.
 None has native code of its own: files, the terminal and pixels are the library's. In Lisp, every app speaks
 English, Spanish and French (Sign in: English, Italian and Arabic, right to left).
-
-## Written in Lisp, extended from inside
-
-AffrescoUI's format is **AffrescoUI Lisp** ([LISP.md](LISP.md): every definition and rule in tables), a programming
-language with its own runtime ([`modules/lisp`](modules/lisp/README.md), [RFC 0005](rfcs/0005-lisp-language.md)). An
-app is a folder of small, named definitions: `defscreen main` outlines the window, `defview`s draw its parts,
-`defstate` and `defcomputed` hold its data, `defn` and `defcommand` are what it does, and every text is in a locale.
-Building the program gives the document the engine draws, and its functions run when a button is pressed, a key is
-typed or a value is bound. Each example's first frame matches its JSON version's pixel for pixel, and both pass the same
-scenarios. In tests of the same
-changes made both ways, an AI agent edited Lisp as accurately as JSON, at about the same cost
-([BENCHMARKS.md](BENCHMARKS.md)).
-
-An app is changed from inside, while it runs. In **Calamaio**, the text editor among the examples,
-open the scratch buffer (`C-x b *scratch* RET`), type a command's new definition and evaluate it with `C-M-x`:
-
-```lisp
-(defcommand kill-line "Says so." :title "Kill Line" :category "Killing" [] (message "redefined"))
-```
-
-The next `C-k` runs the new definition, and `C-x C-z` takes it back. `describe-key`, `apropos` and the `describe-*`
-functions inspect the running program.
-
-That freedom stays inside version control:
-
-- **Each change is a revision.** Every evaluation is a revision of a definition, kept in history, shown in diffs and
-  undone like any other change.
-- **Agent code is reviewed.** An agent's code is a proposal, rebuilt from its source and judged by what it builds.
-  Once accepted, it still runs with the agent's authority, never the person's.
-- **Your authority covers only what you typed.** Text that was pasted or written by someone else runs with less,
-  unless you read it in a question the app itself draws (no document or agent can draw or answer it) and say yes.
-- **Hooks and advice can't take your commands down.** An agent's hooks and advice run sealed: they can't stop a
-  person's command from working.
 
 ## Architecture
 
@@ -321,6 +242,82 @@ web/                 the WebAssembly build
 ```
 
 The layers, the path of a revision and of an event, and the security boundary: [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Written in Lisp
+
+An AffrescoUI app is a program in **AffrescoUI Lisp**, a programming language with its own runtime, built into the
+library ([LISP.md](LISP.md) has every definition and rule in tables; [`modules/lisp`](modules/lisp/README.md),
+[RFC 0005](rfcs/0005-lisp-language.md)). The program is a folder of small, named definitions. Building it gives the
+document the engine draws, and its functions run whenever a button is pressed, a key is typed or a bound value changes.
+
+| You define | In AffrescoUI Lisp |
+|---|---|
+| The window, as an outline of its parts | `defscreen main` |
+| Its parts, small and named | `defview`, `defcomponent` |
+| Its data | `defstate`, `defcomputed` |
+| Its looks | `deftokens`, `defstyle`, `defmenu` |
+| What it does | `defn`, `defcommand` |
+| Shortcuts and settings | `defkey`, `defcustom` |
+| Extension points | `defhook`, `add-hook`, `advice` |
+| Its text, in every language | `(t "key")` and `locales/<language>.lisp` |
+| Its files | `(include "toolbar.lisp" ...)` |
+
+### Lisp or JSON: the same app
+
+The document a program builds can also be written directly in JSON. The engine reads both: every example ships a
+`lisp/` and a `json/` folder, and the Launcher's Settings choose which one opens. The two are the same app. Their first
+frames match pixel for pixel, they pass the same scenarios, and they share one history, the same diffs and the same
+permissions. In tests of the same changes made both ways, an AI agent edited Lisp as accurately as JSON, at about the
+same cost ([BENCHMARKS.md](BENCHMARKS.md)).
+
+<table>
+<tr><th>Lisp: the program you write</th><th>JSON: the document it builds</th></tr>
+<tr><td>
+
+```lisp
+(defview card-view "One card, in bold when it is a bug." [card]
+  `(label#card :text ~card.title :bold ~(= card.tag "bug")))
+
+(defscreen main :window {:title "Board"}
+  (column#cards
+    ~(repeat [card state.cards] (card-view card))))
+```
+
+</td><td>
+
+```json
+{ "type": "column", "id": "cards", "children": [
+  { "type": "label", "id": "card",
+    "repeat": { "for": "card", "in": "state.cards" },
+    "text": "{{card.title}}",
+    "bold": "{{(card.tag == 'bug')}}" } ] }
+```
+
+</td></tr>
+</table>
+
+### Changed from inside, while it runs
+
+A running app can be reprogrammed from inside. In **Calamaio**, the text editor among the examples, open the scratch
+buffer (`C-x b *scratch* RET`), type a new definition of a command and evaluate it with `C-M-x`:
+
+```lisp
+(defcommand kill-line "Says so." :title "Kill Line" :category "Killing" [] (message "redefined"))
+```
+
+The next `C-k` runs the new definition, and `C-x C-z` takes it back. `describe-key`, `apropos` and the `describe-*`
+functions inspect the running program.
+
+### Free, and still under version control
+
+- **Every change is a revision.** Each evaluation revises one definition: it is kept in history, shown in diffs and
+  undone like any other change.
+- **An agent's code is reviewed.** It arrives as a proposal, rebuilt from its source and judged by what it builds.
+  Once accepted, it still runs with the agent's authority, never the person's.
+- **Your authority covers only what you typed.** Text pasted in or written by someone else runs with less, unless you
+  read it in a question the app itself draws (no document or agent can draw or answer it) and say yes.
+- **Hooks and advice can't take your commands down.** An agent's hooks and advice run sealed: they can't stop a
+  person's command from working.
 
 ## Why it's different
 
