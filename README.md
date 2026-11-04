@@ -4,8 +4,9 @@
 
 # AffrescoUI
 
-### Any application, written in one format and rendered natively.<br/>Its users reshape it live, just by asking an AI.
+### Any application, defined in Lisp and rendered natively.<br/>Its users reshape it live, just by asking an AI.
 
+[![Defined in Lisp · JSON too](https://img.shields.io/badge/defined%20in-Lisp%20%C2%B7%20JSON%20too-D97706)](LISP.md)
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-00599C?logo=cplusplus&logoColor=white)](#use-it-in-your-app)
 [![OpenGL 4.1 · ES 3.0](https://img.shields.io/badge/OpenGL-4.1%20%C2%B7%20ES%203.0-5586A4?logo=opengl&logoColor=white)](#architecture)
 [![Platforms](https://img.shields.io/badge/platforms-macOS%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20Web-475569)](#quick-start)
@@ -37,17 +38,33 @@ and a new app made from a name and a description.</sub>
 > cmake -S . -B build && cmake --build build && ./build/affrescoui_launcher
 > ```
 
-AffrescoUI is a native UI engine that renders every application from one document format. An application's layout,
-state and behaviour live in a single readable document, which the engine draws in C++ and OpenGL and keeps running.
-People and AI agents change that document while the app runs: each change is checked against the app's permissions,
-previewed if it needs approval, and applied in place in milliseconds, with no rebuild, no restart and nothing lost.
+AffrescoUI is a native UI engine whose applications are **defined in Lisp**. [AffrescoUI Lisp](LISP.md) is the
+standard: an application's window, views, state, behaviour, commands, keys, settings and text are all named Lisp
+definitions, which the engine builds into one document, draws in C++ and OpenGL, and keeps running. **JSON is supported
+too:** the same document can be written directly in JSON, and every example ships both. People and AI agents change an
+application while it runs: each change is checked against the app's permissions, previewed if it needs approval, and
+applied in place in milliseconds, with no rebuild, no restart and nothing lost.
 
 > [!TIP]
-> **Written in Lisp.** An application is a program in [AffrescoUI Lisp](LISP.md), a Lisp with its own runtime
-> (Clojure's syntax, Emacs's vocabulary). It builds the document the engine draws, and its functions run when a button
-> is pressed or a key typed, in the spirit of Emacs: the app is extended from inside, while it runs. JSON is the same
-> document written out directly, for data and tools. Both get the same history, diffs and permissions, and code an
-> agent writes is reviewed like any other change.
+> **Everything is defined in Lisp. JSON is supported too.** An application is a program in
+> [AffrescoUI Lisp](LISP.md), a Lisp with its own runtime (Clojure's syntax, Emacs's vocabulary), in the spirit of
+> Emacs: the app is extended from inside, while it runs.
+>
+> | You define | In AffrescoUI Lisp |
+> |---|---|
+> | The window, as an outline of its parts | `defscreen main` |
+> | Its parts, small and named | `defview`, `defcomponent` |
+> | Its data | `defstate`, `defcomputed` |
+> | Its looks | `deftokens`, `defstyle`, `defmenu` |
+> | What it does | `defn`, `defcommand` |
+> | Shortcuts and settings | `defkey`, `defcustom` |
+> | Extension points | `defhook`, `add-hook`, `advice` |
+> | Its text, in every language | `(t "key")` and `locales/<language>.lisp` |
+> | Its files | `(include "toolbar.lisp" ...)` |
+>
+> The program builds the document the engine draws. Prefer JSON? Write that document directly: the engine reads both,
+> every example has a `json/` folder beside its `lisp/` one, and the Launcher's Settings choose which opens. Both get
+> the same history, diffs and permissions, and code an agent writes is reviewed like any other change.
 >
 > <table>
 > <tr><th>Lisp: the program you write</th><th>JSON: the document it builds</th></tr>
