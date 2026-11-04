@@ -4,7 +4,7 @@
 ;;; Over the window
 
 (defview playback-timer "A timer, while the animation plays: a frame on every 42 ms, 24 a second." []
-  `{:id playback :when ~(not= state.playing false) :width 0 :height 0 :every {:ms 42 :do tick}})
+  `(node#playback :when ~(not= state.playing false) :width 0 :height 0 :every {:ms 42 :do tick}))
 
 (defview popup-menu "The menu that popped up: its own items, or a menu of menus.lisp by name." []
   `(node#popup :use contextMenu

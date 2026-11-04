@@ -47,11 +47,11 @@
 ;;; Tables of songs
 
 (defview song-table-columns "The columns of a table of songs: number, title, artist, album and time." []
-  [`{:id number :title ~(t "column.number") :width 60}
-   `{:id title :title ~(t "column.title") :width 230}
-   `{:id artist :title ~(t "column.artist") :width 150}
-   `{:id album :title ~(t "column.album") :width 170}
-   `{:id time :title ~(t "column.time") :width 64}])
+  [`(node#number :title ~(t "column.number") :width 60)
+   `(node#title :title ~(t "column.title") :width 230)
+   `(node#artist :title ~(t "column.artist") :width 150)
+   `(node#album :title ~(t "column.album") :width 170)
+   `(node#time :title ~(t "column.time") :width 64)])
 
 ;;; Albums and artists
 

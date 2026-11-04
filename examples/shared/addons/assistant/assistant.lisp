@@ -667,10 +667,9 @@ run) and overlays: its launcher and its panel."
               :color transparent
               :dotColor @assistant.dot
               :activeColor @assistant.dim})
-     {:id assistantEnd
-      :height 1
-      :color transparent
-      :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) 2)}}))
+     (node#assistantEnd :height 1
+       :color transparent
+       :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) 2)})))
 
 (defview assistant-attach "The button that attaches files to the next message." []
   `(node#assistantAttach :width 32

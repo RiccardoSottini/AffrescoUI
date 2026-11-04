@@ -27,14 +27,13 @@
   :permissions {:allow [studio] :ask [agent] :reviewers [studio]}
   (node :color "#ffffff"
     (label#pageTitle :text "Tasks" :textColor "#1f2328" :anchors {:left 24 :top 24} :fitText true)
-    {:id person
-     :anchors {:left 0 :top 0}
-     :width 1
-     :height 1
-     :every {:ms 100
-             :do [{:if ~(and (= state.step "waiting") (> (count peers) 0))
-                   :then [{:set state.step :to rename} {:run assistant.ask :with {:text "Rename the page to Board"}}]}
-                  {:forEach ~(filter (fn [it] (= it.kind "card")) state.assistant.messages)
-                   :as card
-                   :do [{:if ~(some? (find (fn [it] (= it.id card.id)) proposals))
-                         :then [{:run person.decide :with {:card ~card}}]}]}]}}))
+    (node#person :anchors {:left 0 :top 0}
+      :width 1
+      :height 1
+      :every {:ms 100
+              :do [{:if ~(and (= state.step "waiting") (> (count peers) 0))
+                    :then [{:set state.step :to rename} {:run assistant.ask :with {:text "Rename the page to Board"}}]}
+                   {:forEach ~(filter (fn [it] (= it.kind "card")) state.assistant.messages)
+                    :as card
+                    :do [{:if ~(some? (find (fn [it] (= it.id card.id)) proposals))
+                          :then [{:run person.decide :with {:card ~card}}]}]}]})))

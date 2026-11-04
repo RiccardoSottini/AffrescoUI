@@ -759,20 +759,20 @@
      :height ~(- (* (ceil (/ (count sec.cells) sec.columns)) 22) 4)
      :color transparent
      ~(repeat [c sec.cells :index k]
-       `{:id ~(str "colors-s" s "-" k)
-         :width ~(if (> sec.columns 6) 18 32)
-         :height 18
-         :radius 3
-         :cursor hand
-         :role menuitem
-         :let {:line ~(= (slice c 0 5) "line:") :slot ~(if (= (slice c 0 5) "line:") (slice c 5) c)}
-         :color ~(if line "@card" (or-else (get computed.palette slot) slot))
-         :borderWidth ~(if line 2 1)
-         :borderColor ~(if line (get computed.palette slot) "@rbFieldLine")
-         :hover {:borderColor @brand}
-         :tooltip ~(or-else (get computed.slotTitles (get (split slot ".") 0)) slot)
-         :label ~slot
-         :onClick ~(handler pickColor state.colors.id c)})))
+       `(node :id ~(str "colors-s" s "-" k)
+          :width ~(if (> sec.columns 6) 18 32)
+          :height 18
+          :radius 3
+          :cursor hand
+          :role menuitem
+          :let {:line ~(= (slice c 0 5) "line:") :slot ~(if (= (slice c 0 5) "line:") (slice c 5) c)}
+          :color ~(if line "@card" (or-else (get computed.palette slot) slot))
+          :borderWidth ~(if line 2 1)
+          :borderColor ~(if line (get computed.palette slot) "@rbFieldLine")
+          :hover {:borderColor @brand}
+          :tooltip ~(or-else (get computed.slotTitles (get (split slot ".") 0)) slot)
+          :label ~slot
+          :onClick ~(handler pickColor state.colors.id c)))))
 
 (defview find-buttons "Find Next, Replace and Replace All, or OK for a name." []
   `(row#find-buttons :anchors {:left 10 :right 10} :height 26 :gap 4 :color transparent :justify end

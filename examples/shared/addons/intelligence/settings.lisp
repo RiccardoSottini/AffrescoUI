@@ -309,13 +309,12 @@ first provider: then its own first is chosen, as the form shows it."
        :textColor @intelligence.dim
        :text ~(if (= provider.kind "claude-code") "claude" provider.baseUrl))
      (row#row-intelligence-provider-p :anchors {:right 16 :top 17} :height 22 :fitContent width :gap 6 :alignItems center
-       {:id panel-intelligence-provider
-        :width 8
-        :height 8
-        :radius 4
-        :color ~(cond (or (= iStatus "inUse") (= iStatus "keySaved") (= iStatus "ready")) "@intelligence.success"
-                      (= iStatus "needsKey") "@intelligence.warning"
-                      :else "@intelligence.dim")}
+       (node#panel-intelligence-provider :width 8
+         :height 8
+         :radius 4
+         :color ~(cond (or (= iStatus "inUse") (= iStatus "keySaved") (= iStatus "ready")) "@intelligence.success"
+                       (= iStatus "needsKey") "@intelligence.warning"
+                       :else "@intelligence.dim"))
        (label#label-t-intelligence-status :fitText true
          :textColor @intelligence.dim
          :text ~(t (str "intelligence.status." iStatus))))))
@@ -574,4 +573,4 @@ first provider: then its own first is chosen, as the form shows it."
        ~(repeat [provider iData.providers :index p]
          (intelligence-provider provider p)))
      ~(intelligence-form)
-     {:id panel-intelligence-column :height 24 :color transparent}))
+     (node#panel-intelligence-column :height 24 :color transparent)))

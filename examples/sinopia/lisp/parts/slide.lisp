@@ -279,7 +279,7 @@
                                                                    (range n))))
                                               1)
                                            (+ n 1))))}
-     {:id ~(str prefix o.id "-p" n "-in") :color transparent :width ~lead :height 1 :when ~(> lead 0)}
+     (node :id ~(str prefix o.id "-p" n "-in") :color transparent :width ~lead :height 1 :when ~(> lead 0))
      ~(paragraph-mark o prefix n)
      ~(paragraph-text o prefix n)))
 

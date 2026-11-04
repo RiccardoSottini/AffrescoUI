@@ -504,7 +504,7 @@
        :runs [{:text "Aa" :size 18}])
      (row :id ~(str "theme-" theme.id "-bar") :x 8 :y 42 :width 60 :height 8 :color transparent
        ~(repeat [c ["accent1" "accent2" "accent3" "accent4"]]
-         `{:id ~(str "theme-" theme.id "-" c) :width 15 :height 8 :color ~(get theme.colors c)}))))
+         `(node :id ~(str "theme-" theme.id "-" c) :width 15 :height 8 :color ~(get theme.colors c))))))
 
 (defview variant-choice "Variant `v` of the theme, at `n`: its background, an accent band and two lines." [v n]
   `(panel :id ~(str "variant-" n)
