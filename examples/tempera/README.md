@@ -4,16 +4,18 @@ An image editor over `modules/imaging`: layers and groups, masks and selections,
 adjustment layers and colour management, on sparse copy-on-write tiles. It is a folder of Lisp that the stock
 `affrescoui_launcher` runs, with nothing compiled for it.
 
-**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language"), because it has behaviour beyond one
-operation at a time: the dialogs' numbers, grouping and ungrouping, cropping to a ratio, adjustments and the panels' lists
-are functions in `lisp/tempera.lisp`. Each operation of the image step stays an action in `parts/commands.lisp`, which the
-functions run, so an agent's revision may wire a button to an operation exactly as before, and the slide sorter an agent
-installs runs the same actions. Not to the functions that run an operation by a name they are given (`op`): the revision
-rules count a `run` of a computed name as reaching anything, where one written out reaches what it names. `json/` beside it is the same app written in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and `tools/notation/lisp_examples.py` leaves both alone.
+**Its `lisp/` is a real Lisp program** (RFC 0005; SCREEN_FORMAT.md, "The Lisp language" and "Writing an app as a
+program"): its files by area, views that read as an outline, and what happens in functions and commands. Each operation
+on the image is a function of `lisp/tempera.lisp` that runs the image step, its name written out
+(`(image "moveLayer" :with args)`), so the revision rules judge exactly what it reaches; buttons, keys, menus, scenarios
+and the slide sorter an agent installs run those functions by name, their arguments in `args`, as they ran the actions.
+Its text is in `lisp/locales/` (English, Spanish and French; Settings choose). `json/` beside it is the same app written
+in JSON, also by hand: the Launcher's Settings choose which one opens, the same scenarios check both, and
+`tools/notation/lisp_examples.py` leaves both alone.
 
 ```sh
 ./build/affrescoui_launcher examples/tempera/lisp/index.screen.lisp --socket out/s   # opens the sample
-./build/affrescoui test examples/tempera/lisp/index.scenarios.json                   # the 62 scenarios (ctest: scenarios)
+./build/affrescoui test examples/tempera/lisp/*.scenarios.json                       # the 62 scenarios (ctest: scenarios)
 ```
 
 It opens a generated sample (1200 × 800: Sky, Sun and Hills), drawn by `onLoad`.
@@ -26,13 +28,16 @@ can't work yet is shown disabled, its tooltip saying "not available yet".
 
 | File | What it holds |
 | --- | --- |
-| `lisp/index.screen.lisp` | The window, fonts, colours, permissions, the `images` section (the document `doc`) and the initial state |
-| `lisp/tempera.lisp` | The program: the dialogs, groups, crops, adjustments and the panels' lists, as functions and commands |
-| `lisp/parts/commands.lisp` | The actions that are one operation of the image step, the sample, the menu commands, the tool keys and the filter watches |
-| `lisp/parts/workspace.lisp` | The menu bar, the options bar, the tool bar, the canvas (a `raster` node) with rulers and guides, and the status bar |
-| `lisp/parts/panels.lisp` | Navigator, Layers, History, Properties/Adjust, Colour/Palette, and the New dialog |
-| `lisp/parts/dialogs.lisp` | The dialogs that take numbers (Free Transform, Image Size, Canvas Size, Rename Layer, Fill) and Close's question |
-| `lisp/index.scenarios.json` | 62 scenarios, run headless (they stay JSON) |
+| `lisp/index.screen.lisp` | The files it includes, and `main`: the window, fonts, strings, permissions, and the window's parts in drawing order |
+| `lisp/state.lisp`, `computed.lisp` | The initial state (the snapshot `doc`, the tools, the dialogs) and what is worked out from it |
+| `lisp/image.lisp`, `offers.lisp` | The `images` section (the document `doc` and its tools' gestures); the exports and the point a feature binds to |
+| `lisp/tempera.lisp` | What happens: the image's operations, the sample, the dialogs, groups, adjustments, filters' preview, the controls' handlers |
+| `lisp/commands.lisp`, `keys.lisp`, `menus.lisp` | The commands with their localized titles, the shortcuts, and the menus |
+| `lisp/controls.lisp`, `menu.lisp` | The components: icon buttons, sliders, fields, checks, pickers, and the pop-up menu |
+| `lisp/menubar.lisp`, `options.lisp`, `tools.lisp`, `canvas.lisp` | The menu bar, the options bar, the tools bar, the canvas with rulers, guides and status bar |
+| `lisp/panels.lisp`, `properties.lisp`, `layers.lisp`, `dialogs.lisp` | The dock and its panels, and the dialogs |
+| `lisp/look.lisp`, `locales/` | The palette and styles; the text in English, Spanish and French |
+| `lisp/index.scenarios.json`, `agent.scenarios.json` | 61 scenarios, and an agent's proposal of a Filters panel to the program, run headless (they stay JSON) |
 | `PARITY.md` | What a daily user of a professional editor finds, row by row, and how far Tempera has come, round by round |
 | `lisp/sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent |
 

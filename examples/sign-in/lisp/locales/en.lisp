@@ -96,6 +96,8 @@
                 :slow "Slow network"
                 :slowTooltip "{on, select, true {Slow network (demo): on} other {Slow network (demo): off}}"
                 :command "{name, select, toggleTheme {Switch light and dark} nextLanguage {Next language} togglePassword {Show or hide the password} openShortcuts {Keyboard shortcuts} toggleSlow {Slow network (demo)} signOut {Sign out} other {}}"
+                :category "{name, select, account {Account} view {View} help {Help} other {}}"
+                :commandAbout "{name, select, signOut {Ends the session on this device} toggleTheme {Switches between the light and the dark colours} nextLanguage {Shows the next language: English, Italian, Arabic} togglePassword {Shows the passwords as text, or hides them again} openShortcuts {Lists the commands and their keys} toggleSlow {The fake server answers after 800 ms, to see the busy states} other {}}"
                 :continue "Continue"
                 :notYou "Not you?"
                 :capsLock "Caps Lock is on"

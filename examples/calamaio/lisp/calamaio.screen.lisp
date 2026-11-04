@@ -1,100 +1,71 @@
-{:$schema "../../../schema/affrescoui-screen.schema.json"
- :format affrescoui-screen
- :version 2
- :note "Calamaio: a keyboard-first text editor made of one document. Its keys are in keys, its menus in menus, its looks in colors and tokens, so changing how it works is a revision of this file. The parts: look (themes), state (buffers, windows, minibuffer), files (the sample home folder), frame (windows, mode lines, start screen, tool bar, echo area), commands, the kill ring, editing, listings (folders, buffers), guides (tutorial, tour), keys and menus."
- :window {:title "Calamaio" :width 960 :height 720 :minWidth 640 :minHeight 420 :keyLabels letters :focusRing false}
- :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons code]}
-         :code {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 14 :fallback [icons]}
-         :icons {:file "../../shared/fonts/Lucide.ttf" :size 20}
-         :logo {:file "../../shared/fonts/Lucide.ttf" :size 64}}
- :theme "{{settings['custom-enabled-themes']}}"
- :persist [state.settings]
- :onLoad [{:set state.assistant.lift :to 44} {:if "{{settings['inhibit-startup-screen']}}" :then [{:run splash-close}]}]
- :permissions {:allow [studio]
-               :ask ["agent(/actions)" "agent(/keys)" "agent(/menus)" "agent(/program)"]
-               :deny ["*(#echoArea)"]
-               :reviewers [studio]
-               :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
- :include ["parts/look.lisp"
-           "parts/state.lisp"
-           "parts/settings.lisp"
-           "parts/languages.lisp"
-           "parts/files.lisp"
-           "parts/frame.lisp"
-           "parts/commands.lisp"
-           killring.lisp
-           loop.lisp
-           "parts/editing.lisp"
-           "parts/listings.lisp"
-           "parts/guides.lisp"
-           "parts/keys.lisp"
-           "parts/menus.lisp"
-           "../../shared/addons/assistant/assistant.lisp"]
- :computed {:splashLinks [{:title "Tutorial"
-                           :run help-with-tutorial
-                           :key "ctrl+h t"
-                           :about "Learn the basic keys, one at a time"}
-                          {:title "Guided Tour" :run show-tour :about "See what Calamaio can do"}
-                          {:title "All the Commands"
-                           :run execute-extended-command
-                           :key "alt+x"
-                           :about "Run any command by its name"}
-                          {:title "Messages"
-                           :run show-messages
-                           :key "ctrl+h e"
-                           :about "What Calamaio has told you so far"}]
-            :splashActions [{:title "Open a File" :icon folder-open :run find-file}
-                            {:title "Home Folder" :icon folder :run dired-home}
-                            {:title "Startup Options" :icon settings :run customize-startup}]
-            :toolItems [{:icon folder-open :tip "Open a file (C-x C-f)" :run find-file}
-                        {:icon folder :tip "List the home folder (C-x d)" :run dired-home}
-                        {:icon x :tip "Close a buffer (C-x k)" :run kill-buffer}
-                        {:icon save :tip "Save this buffer (C-x C-s)" :run save-buffer}
-                        {:tip ""}
-                        {:icon undo-2 :tip "Undo the last change (C-/)" :run undo}
-                        {:tip ""}
-                        {:icon scissors :tip "Cut the region (C-w)" :run kill-region}
-                        {:icon copy :tip "Copy the region (M-w)" :run kill-ring-save}
-                        {:icon clipboard-paste :tip "Paste the last cut (C-y)" :run yank}
-                        {:tip ""}
-                        {:icon search :tip "Search as you type (C-s)" :run isearch-forward}]
-            :modeMenu "{{state.modes[computed.buf.mode].menu}}"
-            :modeTitle "{{ {lisp: 'Lisp-Interaction', text: 'Text', python: 'Python', c: 'C', outline: 'Outline'}[computed.modeMenu] ?? state.modes[computed.buf.mode].title }}"
-            :buffersMenu "{{map(state.order, {title: state.bufs[it].name, run: 'show', with: {b: it} })}}"
-            :menuList "{{concat([{name: 'file', title: 'File', items: menus.file}, {name: 'edit', title: 'Edit', items: menus.edit}, {name: 'options', title: 'Options', items: menus.options}, {name: 'buffers', title: 'Buffers', items: computed.buffersMenu}, {name: 'tools', title: 'Tools', items: menus.tools}], computed.modeMenu != null && menus[computed.modeMenu] != null ? [{name: 'mode', title: computed.modeTitle, items: menus[computed.modeMenu]}] : [], [{name: 'help', title: 'Help', items: menus.help}])}}"
-            :menuBar "{{map(computed.menuList, merge(it, {width: round(length(it.title) * 7.2) + 14}))}}"}
- :actions {:show-messages {:title "Messages"
-                           :category "Help"
-                           :description "Shows the messages buffer: everything the echo area said."
-                           :do {:run show :with {:b b2}}}
-           :show-splash {:title "Start Screen"
-                         :category "Help"
-                         :description "Shows the start screen again."
-                         :do [{:if "{{state.bufs.b0 == null}}"
-                               :then [{:set state.bufs.b0
-                                       :to {:name "*Calamaio*" :mode fundamental :kind splash :text "" :readOnly true}}]}
-                              {:run show :with {:b b0}}]}}
- :root (node#root :color @bar
-         (column#column-root :dir "{{state.dir}}" :anchors {:left 6 :right 6 :top 0 :bottom 0}
-           (row#topBar :height 40 :alignSelf stretch :alignItems center :color @bar
-             (node#menuBar :when "{{settings['menu-bar-mode'] || some(values(state.menuBar ?? {}), it == true)}}"
-               :use frameMenuBar)
-             (node#topBarGap :grow 1 :height 1 :color transparent)
-             (node#tool-bar-root :when "{{settings['tool-bar-mode']}}" :use toolBar)
-             (node#topBarEnd :width 6 :height 1 :color transparent))
-           (column#column-root-2 :when "{{state.layout.dir == 'column'}}" :grow 1 :gap 6 :alignSelf stretch
-             (row#row-g :repeat {:for g :in "{{state.layout.groups}}" :key "{{join(g, ',')}}"}
-               :grow 1
-               :basis 0
-               :gap 6
-               :alignSelf stretch
-               (node#window-w :repeat {:for w :in "{{g}}" :key "{{w}}"} :use window :with {:w "{{w}}"})))
-           (row#row-root :when "{{state.layout.dir == 'row'}}" :grow 1 :gap 6 :alignSelf stretch
-             (column#column-g :repeat {:for g :in "{{state.layout.groups}}" :key "{{join(g, ',')}}"}
-               :grow 1
-               :basis 0
-               :gap 6
-               :alignSelf stretch
-               (node#window-w-2 :repeat {:for w :in "{{g}}" :key "{{w}}"} :use window :with {:w "{{w}}"})))
-           (node#completions-root :when "{{state.mb.open && state.mb.comp != null}}" :use completions :alignSelf stretch)
-           (node#echoArea :use echoArea :alignSelf stretch)))}
+;;; calamaio.screen.lisp --- Calamaio: a keyboard-first text editor, written as a program
+;;;
+;;; A frame with a menu bar and a tool bar, windows that split (C-x 2, C-x 3), each with its mode line, and an echo
+;;; area with a minibuffer (M-x, C-x b, C-x C-f). Its keys are in keys.lisp, its menus in menus.lisp, its looks in
+;;; look.lisp, its variables in settings.lisp: changing how it works is a revision of its program, as an init file
+;;; is. Lisp typed in a buffer runs in it (loop.lisp).
+
+(include "locales/en.lisp"
+         "locales/es.lisp"
+         "locales/fr.lisp"
+         "look.lisp"
+         "settings.lisp"
+         "state.lisp"
+         "home.lisp"
+         "languages.lisp"
+         "window.lisp"
+         "layout.lisp"
+         "bars.lisp"
+         "splash.lisp"
+         "echo.lisp"
+         "minibuffer.lisp"
+         "motion.lisp"
+         "editing.lisp"
+         "killring.lisp"
+         "search.lisp"
+         "buffers.lisp"
+         "files.lisp"
+         "listings.lisp"
+         "help.lisp"
+         "options.lisp"
+         "guides.lisp"
+         "loop.lisp"
+         "keys.lisp"
+         "menus.lisp"
+         "../../shared/addons/assistant/assistant.lisp")
+
+;;; Starting
+
+(defn start-up
+  "At start: the assistant above the echo area, the welcome texts, and the start screen unless a variable says not." []
+  (set "state.assistant.lift" 44)
+  (set "state.echo" (t "echo.welcome"))
+  (set "state.bufs.b1.text" (t "scratch.text"))
+  (set "state.bufs.b2.text" (str (t "echo.welcome") "\n"))
+  (when settings.inhibit-startup-screen (splash-close)))
+
+(defpart start "What runs as Calamaio starts." :onLoad start-up)
+
+;;; The frame, and what is in it, in the order it is drawn
+
+(defscreen main "Calamaio's frame: the top bar, the windows in their groups, the completions and the echo area."
+  :window {:title "Calamaio" :width 960 :height 720 :minWidth 640 :minHeight 420 :keyLabels letters :focusRing false}
+  :strings {:default en :locale ~settings.appearance.language :keep ["Calamaio" "*Completions*"]}
+  :fonts {:default {:file "../../shared/fonts/Roboto-Regular.ttf" :size 14 :fallback [icons code]}
+          :code {:file "../../shared/fonts/JetBrainsMono-Regular.ttf" :size 14 :fallback [icons]}
+          :icons {:file "../../shared/fonts/Lucide.ttf" :size 20}
+          :logo {:file "../../shared/fonts/Lucide.ttf" :size 64}}
+  :theme ~(get settings "custom-enabled-themes")
+  :persist [state.settings]
+  :permissions {:allow [studio]
+                :ask ["agent(/actions)" "agent(/keys)" "agent(/menus)" "agent(/program)"]
+                :deny ["*(#echoArea)"]
+                :reviewers [studio]
+                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
+  (node#root :color @bar
+    (column#column-root :dir ~state.dir :anchors {:left 6 :right 6 :top 0 :bottom 0}
+      ~(top-bar)
+      ~(windows-in-rows)
+      ~(windows-in-columns)
+      ~(completions-window)
+      ~(echo-area))))
