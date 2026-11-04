@@ -71,10 +71,14 @@ void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
 			Workload open{.name = std::string("lisp/open-") + app + (std::string(notation) == "json" ? "-json" : ""),
 			              .unit = "ms",
 			              .runs = 5};
+			// NOLINTNEXTLINE(bugprone-exception-escape): may throw, and the bench's runner reports what it throws
+			// (bench.cpp)
 			open.prepare = [&context, folder, window] {
 				*window = &context.openWindow(
 				    json::parse(Screen::fromApp(folder, {}, Screen::History::InMemory).documentJson()));
 			};
+			// NOLINTNEXTLINE(bugprone-exception-escape): may throw, and the bench's runner reports what it throws
+			// (bench.cpp)
 			open.step = [folder, window] {
 				Screen screen = Screen::fromApp(folder, {}, Screen::History::InMemory);
 				screen.build(**window);
