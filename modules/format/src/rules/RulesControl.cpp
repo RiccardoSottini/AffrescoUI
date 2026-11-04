@@ -386,18 +386,36 @@ std::set<std::string> controlActions(const json& doc, const std::set<std::string
 	return control;
 }
 
+/// @brief The head word of a definition's text, past the comments and spaces before it: "defn" for `(defn f ...)`.
+/// @param text The text.
+/// @return The word, or "".
+std::string_view definitionHead(std::string_view text) {
+	std::size_t at = 0;
+	while(at < text.size()) {
+		if(text[at] == ';') {
+			at = text.find('\n', at);
+			if(at == std::string_view::npos) return {};
+		} else if(text[at] == ' ' || text[at] == '\t' || text[at] == '\n' || text[at] == '\r' || text[at] == ',') {
+			++at;
+		} else {
+			break;
+		}
+	}
+	if(at >= text.size() || text[at] != '(') return {};
+	const std::size_t start = at + 1;
+	const std::size_t end = text.find_first_of(" \t\n\r()", start);
+	return text.substr(start, end == std::string_view::npos ? text.size() - start : end - start);
+}
+
 /// The most rounds controlsIn() takes to settle what reaches a control step back and forth between the program and the
 /// actions; past them, every action a function runs by name counts as reaching one.
 constexpr int maxReachRounds = 16;
 
-} // namespace
-
-std::vector<std::string> controlsIn(const json& doc, const std::set<std::string, std::less<>>& granted) {
-	std::vector<std::string> found;
-	if(!doc.is_object()) return found;
-	static const json none; // both branches are references: the scan keeps one
-	// A function that runs an action by name reaches what the action does, and an action that runs a function what the
-	// function does: from nothing known, each round adds what the last found, until neither grows. Both only grow
+/// @brief What a document's program can do, settled back and forth with its actions (controlsIn()).
+/// @param doc The document.
+/// @param granted The host's actions its points pass on.
+/// @return It.
+ProgramReach settledReach(const json& doc, const std::set<std::string, std::less<>>& granted) {
 	const std::set<std::string> nothing;
 	ProgramReach program = programReach(doc, &nothing);
 	std::set<std::string> control = controlActions(doc, granted, program);
@@ -408,6 +426,70 @@ std::vector<std::string> controlsIn(const json& doc, const std::set<std::string,
 		control = controlActions(doc, granted, program);
 		if(round >= maxReachRounds) break; // every action counted: nothing can grow after it
 	}
+	return program;
+}
+
+/// @brief The definitions of a document's program that run code (no view, screen or section's definition, which build a
+/// tree the scan judges) and reach a control or a review step, with their texts.
+/// @param doc The document.
+/// @param granted The host's actions its points pass on.
+/// @return Each one's text, by its file and name, joined by a zero byte (a file's name has slashes).
+std::map<std::string, std::string> controlDefinitions(const json& doc,
+                                                      const std::set<std::string, std::less<>>& granted) {
+	std::map<std::string, std::string> found;
+	if(!doc.is_object() || !doc.contains("program") || !doc["program"].is_object()) return found;
+	const ProgramReach program = settledReach(doc, granted);
+	static constexpr std::array<std::string_view, 11> builds = {
+	    "defview", "defscreen", "defcomponent", "defstate",    "defcomputed", "defstyle",
+	    "defmenu", "deftokens", "defpart",      "defdefaults", "defkey"};
+	for(const auto& [file, entries] : doc["program"].items()) {
+		if(!entries.is_object()) continue;
+		for(const auto& [name, text] : entries.items())
+			if(program.control.contains(name) && text.is_string() &&
+			   std::ranges::find(builds, definitionHead(text.get_ref<const std::string&>())) == builds.end())
+				found.emplace(file + '\0' + name, text.get<std::string>());
+	}
+	return found;
+}
+
+} // namespace
+
+std::optional<std::string> alteredControlDefinition(const json& before, const json& after,
+                                                    const std::set<std::string, std::less<>>& granted) {
+	const std::map<std::string, std::string> was = controlDefinitions(before, granted);
+	const std::map<std::string, std::string> is = controlDefinitions(after, granted);
+	const auto textOf = [](const json& doc, const std::string& address) -> const json* {
+		const std::size_t slash = address.find('\0');
+		const auto program = doc.find("program");
+		if(program == doc.end() || !program->is_object()) return nullptr;
+		const auto file = program->find(address.substr(0, slash));
+		if(file == program->end() || !file->is_object()) return nullptr;
+		const auto text = file->find(address.substr(slash + 1));
+		return text == file->end() ? nullptr : &*text;
+	};
+	const auto shown = [](std::string address) { // file/name
+		address[address.find('\0')] = '/';
+		return address;
+	};
+	for(const auto& [address, text] : was) { // changed or taken away
+		const json* now = textOf(after, address);
+		if(!now || *now != text) return shown(address);
+	}
+	for(const auto& [address, text] : is) { // changed into one that reaches a control step
+		const json* then = textOf(before, address);
+		if(then && *then != text) return shown(address);
+	}
+	return std::nullopt;
+}
+
+std::vector<std::string> controlsIn(const json& doc, const std::set<std::string, std::less<>>& granted) {
+	std::vector<std::string> found;
+	if(!doc.is_object()) return found;
+	static const json none; // both branches are references: the scan keeps one
+	// A function that runs an action by name reaches what the action does, and an action that runs a function what the
+	// function does: from nothing known, each round adds what the last found, until neither grows. Both only grow
+	const ProgramReach program = settledReach(doc, granted);
+	const std::set<std::string> control = controlActions(doc, granted, program);
 	const std::set<std::string> runners = runningComponents(doc, control, program);
 	const ControlScan scan(doc.contains("actions") ? doc["actions"] : none, control, runners,
 	                       doc.contains("components") ? doc["components"] : none, program);

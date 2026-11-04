@@ -518,7 +518,10 @@ worked out back and forth with the actions until neither grows, with any advice 
 own action, which may do anything. A `run` of a computed name reaches anything, and so does a definition that uses `run` any other way (as a
 value, through `apply`). A step's handler in a function (`:onDone`, `:do`...) takes a function of the program only, never a name or steps
 as a value, so `run` is the only way code names what it runs. So a handler, a key, a timer or `onLoad` a revision adds can't name one, as
-with an action that holds such a step.
+with an action that holds such a step. **Nor may a revision change a definition that runs code and reaches a control or a review step**, or
+take one away, as no revision may alter a JSON action holding one: its arguments included, so `(signIn "exampleId")` can't become
+`(signIn "other")`, nor a function that gives one its argument what it gives. A view, a screen and a section's definition build a tree,
+judged as any (`format::alteredControlDefinition`).
 
 **Uses of services in functions are judged as JSON's.** `invoke`, `request` and `subscribe` naming their method or operation written out
 (`(invoke "files.read" :with {...})`), and `image` short of a file dialog, are judged by what they use, as in a document: a revision that

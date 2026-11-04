@@ -491,7 +491,8 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
   scheduled it. It is a definition's name and JSON arguments, never a closure, so it holds nothing of the event.
 - **A state change is no authority.** A `watch` or a binding that a function's `set` sets off runs as what its own author wrote: the steps of a
   file's `watch` are the file's, whoever changed the state, as any revision on `/state` may set one off. A function it runs is that function's author's.
-- **Two lines.** A revision can't add a way to a control step, and a function counts as what it reaches (VERSION_CONTROL.md): a `run` of a
+- **Two lines.** A revision can't add a way to a control step, nor change a definition that runs code and reaches one (its
+  arguments included, as a JSON action holding a control step can't be altered), and a function counts as what it reaches (VERSION_CONTROL.md): a `run` of a
   name written out reaches what that name runs, worked out at the build, and a computed one anything. The check at run time holds by itself:
   the attack tests in `tests/unit/lisp_runtime.cpp` and `lisp_reach.cpp` run with that scan turned off.
 - **Uses of services, as JSON judges them** (`tests/unit/lisp_reach.cpp`). A step a capability gates is judged by what it uses when the code
