@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -153,6 +154,22 @@ private:
 	/// @param depth How deep it is.
 	/// @return true if it does.
 	bool isLiveCall(const Value& form, int depth);
+	/// @brief Tells whether a call needs the running app by its head alone, a word that is no local's.
+	/// @param head The head.
+	/// @return true or false if the head decides, else nothing: what the call is given decides.
+	std::optional<bool> isLiveHead(std::string_view head);
+	/// @brief Tells whether `(fn [params] body...)` needs the running app: what its body reads, its parameters being
+	/// its own.
+	/// @param form The form.
+	/// @param depth How deep it is.
+	/// @return true if it does.
+	bool isLiveFunction(const Value& form, int depth);
+	/// @brief Tells whether what a call is given needs the running app.
+	/// @param form The call.
+	/// @param depth How deep it is.
+	/// @param takesFunctions The call's function takes functions: a word it is given that names one is that function.
+	/// @return true if one of its arguments does.
+	bool areArgumentsLive(const Value& form, int depth, bool takesFunctions);
 	/// @brief Tells whether a form needs the running app: it names something that nothing defines, or a path.
 	/// @param form The form.
 	/// @param depth How deep it is.
@@ -218,6 +235,12 @@ private:
 	/// @param parts Gets the text.
 	/// @return Whether it did.
 	bool lowerLibrary(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes a read of a member, `(get x k)`, `(first x)` or `(get-in x [k...])`, as `x[k]` or `x.k`.
+	/// @param form The call.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it is one.
+	bool lowerMember(const Value& form, int depth, std::vector<BindingPart>& parts);
 	/// @brief Writes a call of a function on each item: `(filter (fn [x] ...) list)` as `filter(list, ...)`.
 	/// @param form The call.
 	/// @param depth How deep it is.
@@ -265,6 +288,32 @@ private:
 	/// @param parts Gets the text.
 	/// @return Whether it is.
 	bool lowerOperator(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes `(if test then else?)` or `(when test then)` as `(test ? then : else)`, if it is one.
+	/// @param form The list.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it is.
+	bool lowerIf(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes `(cond a x b y :else z)` as `(a ? x : (b ? y : z))`, if it is one.
+	/// @param form The list.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it is.
+	bool lowerCond(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes a call of a special form or of one of the language's own functions as the expression's operator
+	/// or function, if the expression has it.
+	/// @param form The list.
+	/// @param global Its head's global, or null.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it did.
+	bool lowerBuiltIn(const Value& form, const Global* global, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes a call of an expression's own function: one on each item takes a function whose parameters are
+	/// named as it names them, `it`, `index` or `acc`.
+	/// @param form The list.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	void lowerOwnFunction(const Value& form, int depth, std::vector<BindingPart>& parts);
 	/// @brief Writes a list as an expression: an operator, a function of the program, or an expression's own function.
 	/// @param form The list.
 	/// @param depth How deep it is.
@@ -290,6 +339,20 @@ private:
 	void formMisplaced(const Value& form, Position position);
 	void formRepeat(const Value& form, Position position);
 	void formView(const Value& form, Position position);
+	/// @brief Reads `repeat`'s options after its item's name and its list, `:index name :key form`, and checks the
+	/// names are plain.
+	/// @param spec The `[name list ...]` vector.
+	/// @param index Gets the index's name, if given.
+	/// @param key Gets the key's form, if given.
+	void repeatOptions(const Value& spec, Value& index, Value& key);
+	/// @brief Writes what `repeat` runs for each item: `(let [card 'card i 'i] [(do body...) (%view key)])`, the item
+	/// and the index being names of the running app.
+	/// @param form The `repeat` form.
+	/// @param name The item's name.
+	/// @param index The index's name, or nil.
+	/// @param key The key's form, or nil.
+	/// @return The form.
+	Value repeatBody(const Value& form, const Value& name, const Value& index, const Value& key);
 
 	/// @brief Compiles a template: words stay data, `~` runs.
 	/// @param form The form.

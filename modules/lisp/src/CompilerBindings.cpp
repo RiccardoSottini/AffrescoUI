@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -58,10 +59,16 @@ bool isWholePlaceholder(std::string_view text) noexcept {
 	return false;
 }
 
+/// @brief Whether a character is a space, as the C library counts one.
+/// @param c The character.
+/// @return true if it is.
+constexpr bool space(char c) noexcept {
+	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f';
+}
+
 } // namespace
 
 std::string keptSpaces(std::string text) {
-	const auto space = [](char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f'; };
 	std::size_t start = 0;
 	while(start < text.size() && space(text[start])) ++start;
 	std::size_t end = text.size();
@@ -88,38 +95,47 @@ constexpr std::array<std::string_view, 14> functionTakers = {"apply",   "map",  
                                                              "remove",  "find",   "some",        "every?",   "reduce",
                                                              "sort-by", "update", "update-in",   "run-hooks"};
 
+/// The special forms that choose among what they are given: what those read is what they need.
+constexpr std::array<std::string_view, 5> choosingForms = {"if", "and", "or", "cond", "when"};
+
+/// @brief Looks at a global a function reaches by name: whether it needs the running app itself, and the code it runs,
+/// which is looked at next.
+/// @param global The global.
+/// @param waiting Gets the code it runs.
+/// @return true if it reads a path, is a host's primitive that isn't pure, or is what nothing defines.
+bool needsRunningApp(Global& global, std::vector<const Code*>& waiting) {
+	if(global.name == "%read") return true;
+	if(global.library || global.view) return false; // a view's call is worked out at the build
+	if(global.state == Global::State::Deferred && global.pending) Machine::ensureCompiled(global);
+	switch(global.state) {
+	case Global::State::Undefined:
+		return true;
+	case Global::State::Lazy:
+		waiting.push_back(global.thunk);
+		return false;
+	case Global::State::Ready:
+		if(global.value.kind() == Kind::Function)
+			waiting.push_back(static_cast<const ClosureObject*>(global.value.pointer())->code);
+		return global.value.kind() == Kind::Native &&
+		       !static_cast<const NativeObject*>(global.value.pointer())->host.pure;
+	default:
+		return false;
+	}
+}
+
 } // namespace
 
 bool Compiler::reachesRunningApp(Global& function) {
 	std::vector<const Code*> waiting;
 	std::unordered_set<const Global*> seen = {&function};
-	const auto look = [&](Global& global) {
-		if(global.name == "%read") return true;
-		if(global.library || global.view) return false; // a view's call is worked out at the build
-		if(global.state == Global::State::Deferred && global.pending) Machine::ensureCompiled(global);
-		switch(global.state) {
-		case Global::State::Undefined:
-			return true;
-		case Global::State::Lazy:
-			waiting.push_back(global.thunk);
-			return false;
-		case Global::State::Ready:
-			if(global.value.kind() == Kind::Function)
-				waiting.push_back(static_cast<const ClosureObject*>(global.value.pointer())->code);
-			return global.value.kind() == Kind::Native &&
-			       !static_cast<const NativeObject*>(global.value.pointer())->host.pure;
-		default:
-			return false;
-		}
-	};
-	if(look(function)) return true;
+	if(needsRunningApp(function, waiting)) return true;
 	while(!waiting.empty()) {
 		const Code* code = waiting.back();
 		waiting.pop_back();
 		machine_.spend(1);
 		waiting.insert(waiting.end(), code->functions.begin(), code->functions.end());
 		for(Global* global : code->globals)
-			if(seen.insert(global).second && look(*global)) return true;
+			if(seen.insert(global).second && needsRunningApp(*global, waiting)) return true;
 	}
 	return false;
 }
@@ -149,27 +165,36 @@ bool Compiler::isLiveCall(const Value& form, int depth) {
 		return form.count() > 0 && form.at(0).kind() == Kind::Keyword && form.count() == 2 &&
 		       isLive(form.at(1), depth + 1);
 	const bool local = std::ranges::find(renames_, head, &Rename::name) == renames_.end() && isLocalWord(head);
-	if(!local && head == "fn" && form.count() >= 3 && form.at(1).kind() == Kind::Vector) {
-		// What a function's body reads: its parameters are its own, not the app's
-		const std::size_t before = itemNames_.size();
-		for(std::size_t at = 0; at < form.at(1).count(); ++at)
-			if(form.at(1).at(at).kind() == Kind::Symbol) itemNames_.push_back(form.at(1).at(at).text());
-		const bool live = std::ranges::any_of(std::views::iota(std::size_t{2}, form.count()),
-		                                      [&](std::size_t at) { return isLive(form.at(at), depth + 1); });
-		itemNames_.resize(before);
-		return live;
-	}
-	if(!local && isSpecial(head)) {
-		if(head != "if" && head != "and" && head != "or" && head != "cond" && head != "when")
-			return false; // what binds names is compiled as it is
-	} else if(!local) {
-		const Global* global = machine_.findGlobal(head);
-		if(global && (global->macro || global->view)) return false;
-		if(!global || global->state == Global::State::Undefined || reachesRunningApp(machine_.global(head)))
-			return true;
-	}
+	if(local) return areArgumentsLive(form, depth, false);
+	if(head == "fn" && form.count() >= 3 && form.at(1).kind() == Kind::Vector) return isLiveFunction(form, depth);
+	if(const std::optional<bool> live = isLiveHead(head)) return *live;
 	// (sort-by count xs): the language's function a function of the language is given stays that function
-	const bool takesFunctions = !local && std::ranges::find(functionTakers, head) != functionTakers.end();
+	return areArgumentsLive(form, depth, std::ranges::find(functionTakers, head) != functionTakers.end());
+}
+
+std::optional<bool> Compiler::isLiveHead(std::string_view head) {
+	if(isSpecial(head)) {
+		if(std::ranges::find(choosingForms, head) != choosingForms.end()) return std::nullopt;
+		return false; // what binds names is compiled as it is
+	}
+	const Global* global = machine_.findGlobal(head);
+	if(global && (global->macro || global->view)) return false;
+	if(!global || global->state == Global::State::Undefined || reachesRunningApp(machine_.global(head))) return true;
+	return std::nullopt;
+}
+
+bool Compiler::isLiveFunction(const Value& form, int depth) {
+	// What a function's body reads: its parameters are its own, not the app's
+	const std::size_t before = itemNames_.size();
+	for(std::size_t at = 0; at < form.at(1).count(); ++at)
+		if(form.at(1).at(at).kind() == Kind::Symbol) itemNames_.push_back(form.at(1).at(at).text());
+	const bool live = std::ranges::any_of(std::views::iota(std::size_t{2}, form.count()),
+	                                      [&](std::size_t at) { return isLive(form.at(at), depth + 1); });
+	itemNames_.resize(before);
+	return live;
+}
+
+bool Compiler::areArgumentsLive(const Value& form, int depth, bool takesFunctions) {
 	return std::ranges::any_of(std::views::iota(std::size_t{1}, form.count()), [&](std::size_t at) {
 		const bool argument = std::exchange(functionArgument_, takesFunctions && form.at(at).kind() == Kind::Symbol);
 		const bool live = isLive(form.at(at), depth + 1);

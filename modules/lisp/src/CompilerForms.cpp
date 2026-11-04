@@ -93,7 +93,8 @@ void Compiler::noteTruthTest(const Value& test) {
 	const std::size_t dot = name.find('.');
 	if(dot == std::string_view::npos || resolve(*current_, name.substr(0, dot)).kind != Variable::Kind::None) return;
 	if(const Global* global = machine_.findGlobal(name); global && global->state != Global::State::Undefined) return;
-	machine_.noteTruthTest(std::string(name), word.place().line != 0 ? word.place() : test.place(), context_.definition);
+	machine_.noteTruthTest(std::string(name), word.place().line != 0 ? word.place() : test.place(),
+	                       context_.definition);
 }
 
 void Compiler::compileTest(const Value& test) {
@@ -385,15 +386,30 @@ void Compiler::formRepeat(const Value& form, Position /*position*/) {
 	const Value name = spec.at(0);
 	Value index;
 	Value key;
+	repeatOptions(spec, index, key);
+	const Value body = repeatBody(form, name, index, key);
+	emitConstant(machine_.global("%repeat").value);
+	compileViewValue(spec.at(1), 0);
+	emitConstant(machine_.heap.string(name.text()));
+	emitConstant(index.isNil() ? Value() : machine_.heap.string(index.text()));
+	compile(body, {});
+	place_ = form.place();
+	emit(Op::Call, 4);
+}
+
+void Compiler::repeatOptions(const Value& spec, Value& index, Value& key) {
 	for(std::size_t at = 2; at < spec.count(); at += 2) {
 		const std::string_view option = spec.at(at).kind() == Kind::Keyword ? spec.at(at).text() : "";
 		if(option == "index" && spec.at(at + 1).kind() == Kind::Symbol) index = spec.at(at + 1);
 		else if(option == "key") key = spec.at(at + 1);
 		else fail(spec, "repeat's options are :index name and :key form");
 	}
-	for(const Value& word : {name, index})
+	for(const Value& word : {spec.at(0), index})
 		if(!word.isNil() && (word.text().contains('.') || isSpecial(word.text())))
 			fail(spec, "repeat names its item and its index with plain names");
+}
+
+Value Compiler::repeatBody(const Value& form, const Value& name, const Value& index, const Value& key) {
 	const Place place = form.place();
 	const auto quoted = [&](const Value& word) {
 		const std::vector<Value> items = {machine_.heap.symbol("quote", place), word};
@@ -413,13 +429,7 @@ void Compiler::formRepeat(const Value& form, Position /*position*/) {
 	const std::vector<Value> let = {machine_.heap.symbol("let", place),
 	                                machine_.heap.sequence(Kind::Vector, std::move(bindings), place),
 	                                machine_.heap.sequence(Kind::Vector, std::span<const Value>(made), place)};
-	emitConstant(machine_.global("%repeat").value);
-	compileViewValue(spec.at(1), 0);
-	emitConstant(machine_.heap.string(name.text()));
-	emitConstant(index.isNil() ? Value() : machine_.heap.string(index.text()));
-	compile(machine_.heap.sequence(Kind::List, std::span<const Value>(let), place), {});
-	place_ = place;
-	emit(Op::Call, 4);
+	return machine_.heap.sequence(Kind::List, std::span<const Value>(let), place);
 }
 
 } // namespace affresco::lisp

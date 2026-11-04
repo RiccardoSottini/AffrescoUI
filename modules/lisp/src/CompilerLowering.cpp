@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <ranges>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -43,6 +44,48 @@ constexpr std::array<InfixOperator, 14> infixOperators{{{"=", "==", 2, 2},
                                                         {"and", "&&", 1, 16},
                                                         {"or", "||", 1, 16},
                                                         {"or-else", "??", 2, 16}}};
+
+/// @brief An operator of the language that takes one operand, written around it: `(not x)` is `!(x)`.
+struct AroundOperator {
+	std::string_view word;  ///< The language's word.
+	std::string_view open;  ///< What an expression writes before the operand.
+	std::string_view close; ///< What it writes after.
+};
+
+/// Those operators.
+constexpr std::array<AroundOperator, 3> aroundOperators{{{"not", "!(", ")"},
+                                                         {"truthy?", "!(!(", "))"}, // an expression's own truth
+                                                         {"-", "-(", ")"}}};
+
+/// The language's functions of one argument that an expression writes as an operator around it: `(inc x)` is `(x + 1)`.
+constexpr std::array<AroundOperator, 4> aroundFunctions{
+    {{"inc", "(", " + 1)"}, {"dec", "(", " - 1)"}, {"nil?", "(", " == null)"}, {"some?", "(", " != null)"}}};
+
+/// @brief The operator a list of one operand is, from a table.
+/// @param table The table.
+/// @param form The list.
+/// @return Its entry, or null.
+const AroundOperator* aroundOf(std::span<const AroundOperator> table, const Value& form) {
+	if(form.count() != 2) return nullptr;
+	const std::string_view head = headWord(form);
+	const auto found = std::ranges::find(table, head, &AroundOperator::word);
+	return found == table.end() ? nullptr : &*found;
+}
+
+/// @brief Tells whether a form is a function a binding can write: `(fn [params] ...)`.
+/// @param item The form.
+/// @return true if it is.
+bool isItemFunction(const Value& item) {
+	return headWord(item) == "fn" && item.count() >= 2 && item.at(1).kind() == Kind::Vector;
+}
+
+/// @brief Tells whether a call is `(sort-by f > list)`, which sorts from the greatest.
+/// @param form The call.
+/// @return true if it is.
+bool isDescendingSort(const Value& form) {
+	return headWord(form) == "sort-by" && form.count() == 4 && form.at(2).kind() == Kind::Symbol &&
+	       form.at(2).text() == ">";
+}
 
 /// @brief One of the language's functions that an expression has under its own name, with the same arguments.
 struct SameFunction {
@@ -183,52 +226,53 @@ void Compiler::lowerList(const Value& form, int depth, std::vector<BindingPart>&
 	parts.push_back({")", {}, false, {}, {}});
 }
 
-bool Compiler::lowerOperator(const Value& form, int depth, std::vector<BindingPart>& parts) {
+bool Compiler::lowerIf(const Value& form, int depth, std::vector<BindingPart>& parts) {
 	const std::string_view head = headWord(form);
 	const std::size_t operands = form.count() - 1;
-	if((head == "if" && (operands == 2 || operands == 3)) || (head == "when" && operands == 2)) {
-		parts.push_back({"(", {}, false, {}, {}});
-		lowerForm(form.at(1), depth + 1, parts);
-		parts.push_back({" ? ", {}, false, {}, {}});
-		lowerForm(form.at(2), depth + 1, parts);
-		parts.push_back({" : ", {}, false, {}, {}});
-		if(operands == 3) lowerForm(form.at(3), depth + 1, parts);
-		else parts.push_back({"null", {}, false, {}, {}});
-		parts.push_back({")", {}, false, {}, {}});
-		return true;
-	}
-	if(head == "cond" && operands >= 2 && operands % 2 == 0) { // (cond a x b y :else z): a ? x : (b ? y : z)
-		std::size_t closing = 0;
-		for(std::size_t at = 1; at < form.count(); at += 2) {
-			const bool last = at + 2 >= form.count();
-			if(last && form.at(at).kind() == Kind::Keyword) {
-				lowerForm(form.at(at + 1), depth + 1, parts);
-				break;
-			}
-			parts.push_back({"(", {}, false, {}, {}});
-			lowerForm(form.at(at), depth + 1, parts);
-			parts.push_back({" ? ", {}, false, {}, {}});
+	if((head != "if" || (operands != 2 && operands != 3)) && (head != "when" || operands != 2)) return false;
+	parts.push_back({"(", {}, false, {}, {}});
+	lowerForm(form.at(1), depth + 1, parts);
+	parts.push_back({" ? ", {}, false, {}, {}});
+	lowerForm(form.at(2), depth + 1, parts);
+	parts.push_back({" : ", {}, false, {}, {}});
+	if(operands == 3) lowerForm(form.at(3), depth + 1, parts);
+	else parts.push_back({"null", {}, false, {}, {}});
+	parts.push_back({")", {}, false, {}, {}});
+	return true;
+}
+
+bool Compiler::lowerCond(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	const std::size_t operands = form.count() - 1;
+	if(headWord(form) != "cond" || operands < 2 || operands % 2 != 0) return false;
+	// (cond a x b y :else z): a ? x : (b ? y : z)
+	std::size_t closing = 0;
+	for(std::size_t at = 1; at < form.count(); at += 2) {
+		const bool last = at + 2 >= form.count();
+		if(last && form.at(at).kind() == Kind::Keyword) {
 			lowerForm(form.at(at + 1), depth + 1, parts);
-			parts.push_back({" : ", {}, false, {}, {}});
-			++closing;
-			if(last) parts.push_back({"null", {}, false, {}, {}});
+			break;
 		}
-		parts.push_back({std::string(closing, ')'), {}, false, {}, {}});
+		parts.push_back({"(", {}, false, {}, {}});
+		lowerForm(form.at(at), depth + 1, parts);
+		parts.push_back({" ? ", {}, false, {}, {}});
+		lowerForm(form.at(at + 1), depth + 1, parts);
+		parts.push_back({" : ", {}, false, {}, {}});
+		++closing;
+		if(last) parts.push_back({"null", {}, false, {}, {}});
+	}
+	parts.push_back({std::string(closing, ')'), {}, false, {}, {}});
+	return true;
+}
+
+bool Compiler::lowerOperator(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	if(lowerIf(form, depth, parts) || lowerCond(form, depth, parts)) return true;
+	if(const AroundOperator* around = aroundOf(aroundOperators, form)) {
+		lowerList(form, depth, parts, std::string(around->open), "");
+		parts.back().text = around->close;
 		return true;
 	}
-	if(head == "not" && operands == 1) {
-		lowerList(form, depth, parts, "!(", "");
-		return true;
-	}
-	if(head == "truthy?" && operands == 1) { // an expression's own truth
-		lowerList(form, depth, parts, "!(!(", "");
-		parts.back().text = "))";
-		return true;
-	}
-	if(head == "-" && operands == 1) {
-		lowerList(form, depth, parts, "-(", "");
-		return true;
-	}
+	const std::string_view head = headWord(form);
+	const std::size_t operands = form.count() - 1;
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto infix = std::ranges::find(infixOperators, head, &InfixOperator::word);
 	if(infix == infixOperators.end() || operands < infix->fewest || operands > infix->most) return false;
@@ -283,10 +327,7 @@ void Compiler::lowerFunctionBody(const Value& function, std::span<const std::str
 
 bool Compiler::lowerItemFunction(const Value& form, int depth, std::vector<BindingPart>& parts) {
 	const std::string_view head = headWord(form);
-	const auto isFunction = [](const Value& item) {
-		return headWord(item) == "fn" && item.count() >= 2 && item.at(1).kind() == Kind::Vector;
-	};
-	if(head == "reduce" && form.count() == 4 && isFunction(form.at(1))) { // (reduce (fn [acc x] ...) init list)
+	if(head == "reduce" && form.count() == 4 && isItemFunction(form.at(1))) { // (reduce (fn [acc x] ...) init list)
 		parts.push_back({"reduce(", {}, false, {}, {}});
 		lowerForm(form.at(3), depth + 1, parts);
 		parts.push_back({", ", {}, false, {}, {}});
@@ -299,11 +340,10 @@ bool Compiler::lowerItemFunction(const Value& form, int depth, std::vector<Bindi
 	}
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	const auto found = std::ranges::find(itemFunctions, head, &ItemFunction::word);
-	const bool descending = head == "sort-by" && form.count() == 4 && headWord(form) == "sort-by" &&
-	                        form.at(2).kind() == Kind::Symbol && form.at(2).text() == ">";
+	const bool descending = isDescendingSort(form);
 	// A keyword is the function that looks it up, as in Clojure: (sort-by :d xs) is sort(xs, it.d)
 	const bool keyword = form.at(1).kind() == Kind::Keyword && head != "map-indexed";
-	if(found == itemFunctions.end() || (form.count() != 3 && !descending) || !(keyword || isFunction(form.at(1))))
+	if(found == itemFunctions.end() || (form.count() != 3 && !descending) || !(keyword || isItemFunction(form.at(1))))
 		return false;
 	parts.push_back({std::string(found->expression) + "(", {}, false, {}, {}});
 	lowerForm(form.at(form.count() - 1), depth + 1, parts);
@@ -318,16 +358,9 @@ bool Compiler::lowerItemFunction(const Value& form, int depth, std::vector<Bindi
 	return true;
 }
 
-bool Compiler::lowerLibrary(const Value& form, int depth, std::vector<BindingPart>& parts) {
+bool Compiler::lowerMember(const Value& form, int depth, std::vector<BindingPart>& parts) {
 	const std::string_view head = headWord(form);
 	const std::size_t arguments = form.count() - 1;
-	if(lowerItemFunction(form, depth, parts)) return true;
-	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
-	if(const auto same = std::ranges::find(sameFunctions, head, &SameFunction::word);
-	   same != sameFunctions.end() && arguments >= same->fewest && arguments <= same->most) {
-		lowerList(form, depth, parts, std::string(same->expression) + "(", ", ");
-		return true;
-	}
 	if((head == "get" && arguments == 2) || (head == "first" && arguments == 1)) { // x[k], x.k
 		lowerForm(form.at(1), depth + 1, parts);
 		if(head == "first") parts.push_back({"[0]", {}, false, {}, {}});
@@ -339,14 +372,23 @@ bool Compiler::lowerLibrary(const Value& form, int depth, std::vector<BindingPar
 		for(std::size_t at = 0; at < form.at(2).count(); ++at) lowerKey(form.at(2).at(at), depth, parts);
 		return true;
 	}
-	if((head == "inc" || head == "dec") && arguments == 1) {
-		lowerList(form, depth, parts, "(", "");
-		parts.back().text = head == "inc" ? " + 1)" : " - 1)";
+	return false;
+}
+
+bool Compiler::lowerLibrary(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	const std::string_view head = headWord(form);
+	const std::size_t arguments = form.count() - 1;
+	if(lowerItemFunction(form, depth, parts)) return true;
+	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
+	if(const auto same = std::ranges::find(sameFunctions, head, &SameFunction::word);
+	   same != sameFunctions.end() && arguments >= same->fewest && arguments <= same->most) {
+		lowerList(form, depth, parts, std::string(same->expression) + "(", ", ");
 		return true;
 	}
-	if((head == "nil?" || head == "some?") && arguments == 1) {
-		lowerList(form, depth, parts, "(", "");
-		parts.back().text = head == "nil?" ? " == null)" : " != null)";
+	if(lowerMember(form, depth, parts)) return true;
+	if(const AroundOperator* around = aroundOf(aroundFunctions, form)) {
+		lowerList(form, depth, parts, std::string(around->open), "");
+		parts.back().text = around->close;
 		return true;
 	}
 	if(head == "join" && arguments == 2) { // (join sep list) is join(list, sep)
@@ -371,22 +413,29 @@ void Compiler::lowerCall(const Value& form, int depth, std::vector<BindingPart>&
 		return;
 	}
 	const std::string_view head = headWord(form);
-	const bool renamed = std::ranges::find(renames_, head, &Rename::name) != renames_.end();
-	const bool local = !renamed && isLocalWord(head);
-	const Global* global = local || renamed ? nullptr : machine_.findGlobal(head);
-	const bool defined = global && global->state != Global::State::Undefined;
-	// A program's own function of that name isn't the expression's operator
-	if(!local && !renamed && (isSpecial(head) || (defined && global->library))) {
-		if(lowerOperator(form, depth, parts)) return;
-		if(defined && lowerLibrary(form, depth, parts)) return;
-	}
-	if(isSpecial(head) || local || renamed)
+	// An item's name the binding writes, or a local's
+	const bool bound = std::ranges::find(renames_, head, &Rename::name) != renames_.end() || isLocalWord(head);
+	const Global* global = bound ? nullptr : machine_.findGlobal(head);
+	if(!bound && lowerBuiltIn(form, global, depth, parts)) return;
+	if(isSpecial(head) || bound)
 		fail(form,
 		     "a value read while the app runs is an expression or a call of a function: define a function for this");
-	if(defined) {
+	if(global && global->state != Global::State::Undefined) {
 		lowerList(form, depth, parts, "lisp(" + expressionText(head) + (form.count() > 1 ? ", " : ""), ", ");
 		return;
 	}
+	lowerOwnFunction(form, depth, parts);
+}
+
+bool Compiler::lowerBuiltIn(const Value& form, const Global* global, int depth, std::vector<BindingPart>& parts) {
+	const bool defined = global && global->state != Global::State::Undefined;
+	// A program's own function of that name isn't the expression's operator
+	if(!isSpecial(headWord(form)) && !(defined && global->library)) return false;
+	return lowerOperator(form, depth, parts) || (defined && lowerLibrary(form, depth, parts));
+}
+
+void Compiler::lowerOwnFunction(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	const std::string_view head = headWord(form);
 	if(!isPlainName(head))
 		fail(form, "nothing defines \"" + notation::Lexer::excerpt(head) + "\", and no expression can call it");
 	// An expression's own function: one on each item takes a function whose parameters are named as it names them
@@ -394,7 +443,7 @@ void Compiler::lowerCall(const Value& form, int depth, std::vector<BindingPart>&
 	for(std::size_t at = 1; at < form.count(); ++at) {
 		if(at != 1) parts.push_back({", ", {}, false, {}, {}});
 		const Value item = form.at(at);
-		if(headWord(item) != "fn" || item.count() < 2 || item.at(1).kind() != Kind::Vector) {
+		if(!isItemFunction(item)) {
 			lowerForm(item, depth + 1, parts);
 			continue;
 		}
