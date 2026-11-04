@@ -149,10 +149,10 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	std::string text = screenTemplate("kanban").dump();
 	const std::vector<std::pair<std::string, std::string>> typos = {
 	    {"{{state.toast.message}}", "{{state.toats.message}}"}, // the program writes state.toast: inside, anything
-	    {R"("@color.accentSoft")", R"("@color.accentSofty")"},
+	    {R"("hover":{"color":"@color.chipHover"})", R"("hover":{"color":"@color.chipHovery"})"},
 	    {R"("onSubmit":"addCard")", R"("onSubmit":"addCrad")"},
 	    {R"("with":{"icon":"inbox")", R"("with":{"icno":"inbox")"},
-	    {"computed.lastColumn}}", "computed.lastColum}}"},
+	    {"(state.selected.c < computed.lastColumn)", "(state.selected.c < computed.lastColum)"},
 	    {"{{member.name}}", "{{member.nmae}}"},
 	    {R"("style":"caption")", R"("style":"captoin")"}};
 	for(const auto& [from, to] : typos) {
@@ -160,20 +160,22 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 		REQUIRE(at != std::string::npos);
 		text.replace(at, from.size(), to);
 	}
-	// The first place of each is where the app's built document has it: the program's commands come first
-	CHECK(
-	    lines(json::parse(text)) ==
-	    std::vector<std::string>{
-	        "actions.moveRight.enablement: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
-	        "components.cycleStat.node.children[0].style: unknown style 'captoin' (did you mean 'caption'?)",
-	        std::string("components.inboxPage.node.children[0].with.icno: unknown parameter 'icno' of component ") +
-	            "'pageHeader' (did you mean 'icon'?)",
-	        std::string("components.issuePage.node.children[3].children[4].children[1].children[0].text: ") +
-	            "'member.nmae' doesn't exist (did you mean 'member.name'?)",
-	        std::string("components.swimlanes.node.children[0].children[3].children[0].children[1].children[0].") +
-	            "dragging.color: unknown color '@color.accentSofty' (did you mean '@color.accentSoft'?)",
-	        "root.children[10].with.message: 'state.toats' doesn't exist (did you mean 'state.toast'?)",
-	        "root.children[9].children[0].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)"});
+	// The first place of each is where the app's built document has it: the program's commands, then its views
+	CHECK(lines(json::parse(text)) ==
+	      std::vector<std::string>{
+	          "actions.moveRight.enablement: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
+	          std::string("components.inboxPage.node.children[0].with.icno: unknown parameter 'icno' of component ") +
+	              "'pageHeader' (did you mean 'icon'?)",
+	          std::string("root.children[0].children[3].children[0].children[0].style: unknown style 'captoin' (did ") +
+	              "you mean 'caption'?)",
+	          std::string(
+	              "root.children[0].children[3].children[0].children[1].children[0].hover.color: unknown color ") +
+	              "'@color.chipHovery' (did you mean '@color.chipHover'?)",
+	          std::string(
+	              "root.children[0].children[3].children[0].children[1].children[0].label: 'member.nmae' doesn't ") +
+	              "exist (did you mean 'member.name'?)",
+	          "root.children[10].with.message: 'state.toats' doesn't exist (did you mean 'state.toast'?)",
+	          "root.children[9].children[0].children[2].onSubmit: unknown action 'addCrad' (did you mean 'addCard'?)"});
 }
 
 TEST_CASE("checker: what a program writes may hold anything, at a place it names or one it computes") {
@@ -238,25 +240,26 @@ TEST_CASE("checker: the images a screen edits, the image step and the raster nod
 	        "banner": {"width": 600, "height": 200}}, )";
 	checkAll({
 	    {"an image's snapshot may be read at its into path",
-	     R"("images": {"avatar": {"width": 256, "height": 256, "into": "state.avatar"}},
+		 R"("images": {"avatar": {"width": 256, "height": 256, "into": "state.avatar"}},
 	        "root": {"text": "{{state.avatar.width}} {{state.avatr}}"})",
-	     {"root.text: 'state.avatr' doesn't exist (did you mean 'state.avatar'?)"}},
+		 {"root.text: 'state.avatr' doesn't exist (did you mean 'state.avatar'?)"}},
 	    {"a step's operation, the keys of its with, and the image it names",
-	     (images + R"("actions": {"crop": [{"image": "crop", "of": "avatar", "with": {"x": 0, "y": 0, "widht": 9}},
+		 (images + R"("actions": {"crop": [{"image": "crop", "of": "avatar", "with": {"x": 0, "y": 0, "widht": 9}},
 	        {"image": "zom", "of": "avatar"}, {"image": "fit", "of": "avtar"}, {"image": "fit"},
 	        {"image": "{{state.operation}}", "of": "banner"}]}, "state": {"operation": "fit"}, "root": {})")
-	         .c_str(),
-	     {"actions.crop[0].with.widht: 'crop' doesn't read 'widht' (did you mean 'width'?)",
-	      "actions.crop[1].image: unknown image operation 'zom' (did you mean 'zoom'?)",
-	      "actions.crop[2].of: unknown image 'avtar' (did you mean 'avatar'?)",
-	      "actions.crop[3]: \"of\" names the image when a screen declares more than one"}},
+		     .c_str(),
+		 {"actions.crop[0].with.widht: 'crop' doesn't read 'widht' (did you mean 'width'?)",
+		  "actions.crop[1].image: unknown image operation 'zom' (did you mean 'zoom'?)",
+		  "actions.crop[2].of: unknown image 'avtar' (did you mean 'avatar'?)",
+		  "actions.crop[3]: \"of\" names the image when a screen declares more than one"}},
 	    {"a step needs an images section; with one image, of is optional",
-	     R"("actions": {"fit": [{"image": "fit"}]}, "root": {})",
-	     {"actions.fit[0]: an \"image\" step needs an \"images\" section"}},
+		 R"("actions": {"fit": [{"image": "fit"}]}, "root": {})",
+		 {R"(actions.fit[0]: an "image" step needs an "images" section)"}},
 	    {"a raster node names a declared image",
-	     (images + R"("root": {"children": [{"type": "raster", "image": "avatar"}, {"type": "raster", "image": "baner"}]})")
-	         .c_str(),
-	     {"root.children[1].image: unknown image 'baner' (did you mean 'banner'?)"}},
+		 (images +
+		  R"("root": {"children": [{"type": "raster", "image": "avatar"}, {"type": "raster", "image": "baner"}]})")
+		     .c_str(),
+		 {"root.children[1].image: unknown image 'baner' (did you mean 'banner'?)"}},
 	});
 }
 
@@ -265,19 +268,19 @@ TEST_CASE("checker: the sounds a screen plays and the audio step") {
 	        "beep": {"tone": {"frequency": 880, "seconds": 0.2}}}, )";
 	checkAll({
 	    {"a sound's state may be read at its into path",
-	     R"("audio": {"song": {"file": "song.mp3", "into": "state.song"}},
+		 R"("audio": {"song": {"file": "song.mp3", "into": "state.song"}},
 	        "root": {"text": "{{state.song.position}} {{state.sng}}"})",
-	     {"root.text: 'state.sng' doesn't exist (did you mean 'state.song'?)"}},
+		 {"root.text: 'state.sng' doesn't exist (did you mean 'state.song'?)"}},
 	    {"a step's operation and the sound it names",
-	     (sounds + R"("actions": {"go": [{"audio": "play", "of": "song"}, {"audio": "paly", "of": "song"},
+		 (sounds + R"("actions": {"go": [{"audio": "play", "of": "song"}, {"audio": "paly", "of": "song"},
 	        {"audio": "stop", "of": "sng"}, {"audio": "pause"}, {"audio": "master", "to": 0.5}]}, "root": {})")
-	         .c_str(),
-	     {"actions.go[1].audio: unknown audio operation 'paly' (did you mean 'play'?)",
-	      "actions.go[2].of: unknown sound 'sng' (did you mean 'song'?)",
-	      "actions.go[3]: \"of\" names the sound when a screen declares more than one"}},
+		     .c_str(),
+		 {"actions.go[1].audio: unknown audio operation 'paly' (did you mean 'play'?)",
+		  "actions.go[2].of: unknown sound 'sng' (did you mean 'song'?)",
+		  "actions.go[3]: \"of\" names the sound when a screen declares more than one"}},
 	    {"a step needs an audio section",
-	     R"("actions": {"go": [{"audio": "play"}]}, "root": {})",
-	     {"actions.go[0]: an \"audio\" step needs an \"audio\" section"}},
+		 R"("actions": {"go": [{"audio": "play"}]}, "root": {})",
+		 {R"(actions.go[0]: an "audio" step needs an "audio" section)"}},
 	});
 }
 
@@ -457,9 +460,8 @@ TEST_CASE("checker: limits keep a hostile document cheap") {
 
 	// A long name with a typo: hints compare names of a sensible length only, not a square of a hundred thousand
 	const std::string longName(100000, 'a');
-	const json longTypo = {{"version", 2},
-	                       {"state", {{longName, 1}}},
-	                       {"root", {{"text", "{{state." + longName + "b}}"}}}};
+	const json longTypo = {
+	    {"version", 2}, {"state", {{longName, 1}}}, {"root", {{"text", "{{state." + longName + "b}}"}}}};
 	const auto found = affresco::format::check(longTypo, longTypo["state"]);
 	REQUIRE(found);
 	CHECK((found && found->size() == 1));
@@ -563,8 +565,7 @@ TEST_CASE("checker: the shapes of wide values are built at the cost of their siz
 
 // A path deeper than the runtime writes overflowed the stack (the checker followed it a level at a time), and so did a
 // step that puts what a place holds inside itself, once for each such step
-TEST_CASE("checker: a place too deep for the state is not followed" *
-          doctest::timeout(affresco::test::timeLimit(5))) {
+TEST_CASE("checker: a place too deep for the state is not followed" * doctest::timeout(affresco::test::timeLimit(5))) {
 	const auto writing = [](int levels) {
 		std::string path = "state";
 		for(int i = 0; i < levels; ++i) path += ".a";

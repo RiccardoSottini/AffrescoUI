@@ -10,7 +10,9 @@ Every document becomes a .lisp file: an app's manifest, its entry and every othe
 models and seed data, its policies, adapters and features' manifests. Two kinds stay JSON and are copied: scenarios, and
 a signed catalogue (its index pins each package's bytes, so spelling one differently needs the publisher's key). Assets
 are never copied: both folders read examples/<app>/assets/. What
-the apps share in examples/shared/ gets a .lisp file beside its JSON, as the fonts there serve both.
+the apps share in examples/shared/ gets a .lisp file beside its JSON, as the fonts there serve both, unless that file is
+written by hand as a program (a shared add-on, with its locales beside it): then it is a source of its own, never
+overwritten.
 
     python3 tools/notation/lisp_examples.py [--check] [--cli build/affrescoui]
 """
@@ -66,11 +68,25 @@ def of_program(path, folder):
     return place >= 0 and is_program(path[:place])
 
 
+def is_program_file(path):
+    """Whether a .lisp file of examples/ is code written by hand: it starts with a comment or a form, where a document
+    starts with a map."""
+    with open(os.path.join(EXAMPLES, path), encoding="utf-8") as file:
+        return file.read().lstrip()[:1] in (";", "(")
+
+
+def is_written_by_hand(path):
+    """Whether a shared .lisp file is a source of its own: a program, or a file with no JSON twin (a program's locales)."""
+    twin = os.path.join(EXAMPLES, path[:-len(".lisp")] + ".json")
+    return not os.path.exists(twin) or (os.path.exists(os.path.join(EXAMPLES, path)) and is_program_file(path))
+
+
 def is_generated(path):
     """Whether a file of examples/ is one the generator writes: in the lisp/ folder of an app with a json/ folder, but
-    not one written as a program, whose two folders are both sources."""
+    not one written as a program, whose two folders are both sources; in shared/, a .lisp file beside its JSON, but
+    one written by hand as a program, with its locales."""
     if path.startswith(SHARED):
-        return path.endswith(".lisp")
+        return path.endswith(".lisp") and not is_written_by_hand(path)
     place = (os.sep + path).find(LISP_FOLDER)
     return (place >= 0 and os.path.isdir(os.path.join(EXAMPLES, path[:place], "json"))
             and not of_program(path, LISP_FOLDER))
@@ -213,6 +229,8 @@ def write_tree(out, cli):
     files = source_files()
     loaded = documents(files) | named_by_programs(files) | {path for path in files if is_named_document(path)}
     for path in files:
+        if path in loaded and path.startswith(SHARED) and is_written_by_hand(as_lisp(path)):
+            continue  # a shared add-on written as a program: its Lisp is a source of its own
         if path in loaded:
             write_lisp(path, out, cli, loaded)
         elif is_copied(path):

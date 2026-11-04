@@ -20,7 +20,28 @@ find_package(Python3 COMPONENTS Interpreter)
 if(Python3_FOUND)
 	add_test(NAME rendering COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/check.py --build ${PROJECT_BINARY_DIR}
 	         WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+	# Each example's Lisp version draws its first frame exactly as its JSON version (parity.py): a few seconds
+	if(AFFRESCOUI_BUILD_EXAMPLES)
+		add_test(NAME lisp_parity COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/parity.py --build
+		         ${PROJECT_BINARY_DIR} WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+	endif()
 endif()
+
+# The host's own windows in Lisp (lisp/*.json) draw as their JSON versions, pixel for pixel: each scenario has the name
+# of its JSON version's in scenarios/, which records its pictures in the build folder first (the golden images are
+# git-ignored, and the rendering check records them only later), and the Lisp one is compared with them
+file(GLOB affrescoui_lisp_twins CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/lisp/*.json)
+foreach(file IN LISTS affrescoui_lisp_twins)
+	cmake_path(GET file STEM name)
+	set(pictures ${PROJECT_BINARY_DIR}/render-check-lisp/${name})
+	file(MAKE_DIRECTORY ${pictures}/json ${pictures}/lisp ${pictures}/out)
+	add_test(NAME scenarios/host/json/${name} COMMAND affrescoui_render_runner --goldens ${pictures}/json --update --out
+	         ${pictures}/out ${CMAKE_CURRENT_SOURCE_DIR}/scenarios/${name}.json)
+	set_tests_properties(scenarios/host/json/${name} PROPERTIES FIXTURES_SETUP host-${name})
+	add_test(NAME scenarios/host/lisp/${name} COMMAND affrescoui_render_runner --goldens ${pictures}/json --out
+	         ${pictures}/lisp ${file})
+	set_tests_properties(scenarios/host/lisp/${name} PROPERTIES FIXTURES_REQUIRED host-${name})
+endforeach()
 
 # The templates' own scenarios (in their folders, examples/templates.json), Forge's, Modello's, Sinopia's and Tempera's: what each one
 # does, checked headless, without a window or golden images; and the rendering check's screens'

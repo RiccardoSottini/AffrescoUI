@@ -1,121 +1,121 @@
-{:$schema "../../../../../schema/affrescoui-screen.schema.json"
- :format affrescoui-screen
- :version 2
- :note "Forge's panels: Problems (TODO and FIXME lines of the open files, a click goes to the line), Output (a log every feature writes to with the notify action), the notification centre over the status bar's bell (the toast's history) and progress (a toast with a bar while a long task runs). The panel's tabs and the status bar counts come from this state."
- :state {:problems [] :output [] :notifications [] :toast {:open false :message "" :progress nil} :panelTab problems}
- :computed {:errors "{{count(state.problems, it.severity == 'error')}}"
-            :warnings "{{count(state.problems, it.severity == 'warning')}}"
-            :problemRows "{{map(state.problems, {id: index, icon: it.severity == 'error' ? 'circle-x' : it.severity == 'warning' ? 'alert-triangle' : 'info', iconColor: it.severity == 'error' ? '#f85149' : it.severity == 'warning' ? '#cca700' : '#3794ff', cells: [it.message, it.label, it.line]})}}"
-            :outputRows "{{map(state.output, {id: index, label: time(it.time, 'HH:mm:ss') + '  ' + it.text})}}"
-            :notificationRows "{{map(reverse(state.notifications), {id: index, label: it.message, icon: it.severity == 'error' ? 'circle-x' : 'bell'})}}"}
- :actions {:notify [{:push state.output :value "{{ {time: now(), text: '[' + severity + '] ' + message} }}"}
-                    {:push state.notifications :value "{{ {time: now(), severity: severity, message: message} }}"}
-                    {:set state.toast :to "{{ {open: true, message: message, progress: null} }}"}
-                    {:debounce 4000 :do [{:set state.toast.open :to false}]}]
-           :log [{:push state.output :value "{{ {time: now(), text: text} }}"}]
-           :goToProblem [{:forEach "{{[state.problems[number(event.id)]]}}"
-                          :as p
-                          :do [{:run showTab :with {:id "{{p.file}}" :label "{{p.label}}"}}
-                               {:run goToLine :with {:line "{{p.line}}"}}]}]
-           :showProblems {:title "Focus Problems"
-                          :category "View"
-                          :icon alert-triangle
-                          :do [{:set state.layout.panel :to true} {:set state.panelTab :to problems}]}
-           :showOutput {:title "Focus Output"
-                        :category "View"
-                        :icon terminal
-                        :do [{:set state.layout.panel :to true} {:set state.panelTab :to output}]}
-           :showNotifications {:title "Show Notifications"
-                               :category "View"
-                               :icon bell
-                               :do [{:toggle state.notificationCentre}]}
-           :clearOutput {:title "Clear Output" :category "Output" :do [{:set state.output :to []}]}
-           :clearNotifications {:title "Clear All Notifications"
-                                :category "Notifications"
-                                :do [{:set state.notifications :to []}
-                                     {:set state.toast.open :to false}
-                                     {:set state.notificationCentre :to false}]}
-           :reindex {:title "Reindex Folder"
-                     :category "Files"
-                     :icon folder
-                     :description "Read the folder again, showing the progress."
-                     :do [{:set state.toast :to {:open true :message "Indexing the folder" :progress 0.2}}
-                          {:run explorerRefresh}
-                          {:invoke search.files
-                           :with {:exclude "{{state.folder.skip}}"}
-                           :onError [{:run notify
-                                      :with {:severity error :message "{{'Indexing failed: ' + error.message}}"}}]
-                           :onDone [{:run indexed :with {:files "{{result.files}}"}}
-                                    {:set state.toast.progress :to 1}
-                                    {:run log
-                                     :with {:text "{{'Indexed ' + plural(length(result.files), 'file') + (result.truncated ? ' (truncated)' : '')}}"}}
-                                    {:debounce 1500 :do [{:set state.toast.open :to false}]}]}]}}
- :menus {:view {:problems {:run showProblems :group "3_panels" :order 1}
-                :output {:run showOutput :group "3_panels" :order 2}
-                :notifications {:run showNotifications :group "3_panels" :order 3}
-                :maximizePanel {:run toggleMaximizedPanel :group "3_panels" :order 4}}}
- :watch {:state.panelTab [{:if "{{state.panelTab == 'terminal' && length(state.terminals.list) == 0 && state.layout.panel}}"
-                           :then [{:run terminalNew}]}]}
- :keys {"mod+shift+m" showProblems "mod+shift+u" showOutput}
- :components {:forgePanel {:node (column#panel :role region :label "Panel" :color @color.panel
-                                   (row#panel-head :width "100%" :height 32 :alignItems center
-                                     (tabs#panel-tabs :role tablist
-                                       :label "Panel Views"
-                                       :width 420
-                                       :height 32
-                                       :bind state.panelTab
-                                       :color @color.panel
-                                       :textColor @color.muted
-                                       :activeTextColor @color.text
-                                       :activeBackground @color.panel
-                                       :accentColor @color.accent
-                                       :tabs "{{[{id: 'problems', label: 'Problems' + (length(state.problems) > 0 ? ' ' + length(state.problems) : ''), closable: false}, {id: 'output', label: 'Output', closable: false}, {id: 'debugConsole', label: 'Debug Console', closable: false}, {id: 'terminal', label: 'Terminal', closable: false}]}}")
-                                     (node#panel-gap :grow 1)
-                                     (node#panel-new-terminal :use forgeTitleButton
-                                       :when "{{state.panelTab == 'terminal'}}"
-                                       :with {:icon plus :tip "New Terminal"}
-                                       :onClick {:run terminalNew})
-                                     (node#panel-clear-output :use forgeTitleButton
-                                       :when "{{state.panelTab == 'output'}}"
-                                       :with {:icon list-x :tip "Clear Output"}
-                                       :onClick {:run clearOutput})
-                                     (node#panel-maximize :use forgeTitleButton
-                                       :with {:icon "{{state.layout.panelMax ? 'chevron-down' : 'chevron-up'}}"
-                                              :tip "{{state.layout.panelMax ? 'Restore Panel Size' : 'Maximize Panel Size'}}"}
-                                       :onClick {:run toggleMaximizedPanel})
-                                     (node#panel-close :use forgeTitleButton
-                                       :with {:icon x :tip "Hide Panel (Cmd+J)"}
-                                       :onClick {:run togglePanel})
-                                     (node#panel-end :width 8))
-                                   (label#problems-empty :when "{{state.panelTab == 'problems' && empty(state.problems)}}"
-                                     :width "100%"
-                                     :padding 12
-                                     :text "No problems found in the open files so far."
-                                     :textColor @color.text)
-                                   (table#problems :when "{{state.panelTab == 'problems' && !empty(state.problems)}}"
-                                     :label "Problems"
-                                     :width "100%"
-                                     :grow 1
-                                     :items "{{computed.problemRows}}"
-                                     :rowHeight 22
-                                     :color @color.panel
-                                     :textColor @color.text
-                                     :selectedBackground @color.selection
-                                     :accentColor @color.accent
-                                     :columns [{:id message :title "Message" :width 420}
-                                               {:id file :title "File" :width 160}
-                                               {:id line :title "Line" :width 60}]
-                                     :onOpen {:run goToProblem})
-                                   (list#output :when "{{state.panelTab == 'output'}}"
-                                     :role log
-                                     :label "Output"
-                                     :width "100%"
-                                     :grow 1
-                                     :items "{{computed.outputRows}}"
-                                     :rowHeight 20
-                                     :font code
-                                     :color @color.panel
-                                     :textColor @color.text
-                                     :selectedBackground @color.selection)
-                                   (node :when "{{state.panelTab == 'terminal'}}" :use forgeTerminal)
-                                   (node :when "{{state.panelTab == 'debugConsole'}}" :use forgeDebugConsole))}}}
+;;; panels.lisp --- Forge's panel: Problems, Output, the notification centre and progress
+;;;
+;;; Problems lists the TODO and FIXME lines of the open files and the language server's diagnostics, and a click goes
+;;; to the line; Output is a log every feature writes to with notify and log-line; the notification centre over the
+;;; status bar's bell keeps the toasts' history; a long task shows a toast with a bar. The panel's tabs and the
+;;; status bar's counts come from this state.
+
+;;; Problems
+
+(defstate problems [])
+
+(defcomputed errors (count (filter (fn [it] (= it.severity "error")) state.problems)))
+
+(defcomputed warnings (count (filter (fn [it] (= it.severity "warning")) state.problems)))
+
+(defcomputed problemRows
+  (map-indexed (fn [index it]
+                   {:id index
+                    :icon (cond (= it.severity "error") "circle-x"
+                                (= it.severity "warning") "alert-triangle"
+                                :else "info")
+                    :iconColor (cond (= it.severity "error") "#f85149"
+                                     (= it.severity "warning") "#cca700"
+                                     :else "#3794ff")
+                    :cells [it.message it.label it.line]})
+                 state.problems))
+
+(defn goToProblem "A row of Problems, opened: its file shown at its line." []
+  (let [p (get state.problems (number event.id))]
+    (showTab p.file p.label)
+    (goToLine p.line)))
+
+(defcommand showProblems "Focus Problems"
+  :title ~(t "command.showProblems")
+  :description ~(t "command.showProblems") :category ~(t "category.view") :icon "alert-triangle" []
+  (set "state.layout.panel" true)
+  (set "state.panelTab" "problems"))
+
+(defkey "mod+shift+m" showProblems)
+
+;;; Output and notices
+
+(defstate output [])
+
+(defcomputed outputRows
+  (map-indexed (fn [index it] {:id index :label (str (time it.time "HH:mm:ss") "  " it.text)}) state.output))
+
+(defn log-line "A line in Output." [text]
+  (push "state.output" {:time (now) :text text}))
+
+(defn notify "A notice: in Output with its severity, in the notification centre, and as a toast for a few seconds."
+  [severity message]
+  (push "state.output" {:time (now) :text (str "[" severity "] " message)})
+  (push "state.notifications" {:time (now) :severity severity :message message})
+  (set "state.toast" {:open true :message message :progress nil})
+  (debounce 4000 hideToast))
+
+(defstate toast {:open false :message "" :progress nil})
+
+(defn hideToast "Hides the toast in the corner." []
+  (set "state.toast.open" false))
+
+(defcommand showOutput "Focus Output"
+  :title ~(t "command.showOutput")
+  :description ~(t "command.showOutput") :category ~(t "category.view") :icon "terminal" []
+  (set "state.layout.panel" true)
+  (set "state.panelTab" "output"))
+
+(defcommand clearOutput "Clear Output"
+  :title ~(t "command.clearOutput") :description ~(t "command.clearOutput") :category ~(t "category.output") []
+  (set "state.output" []))
+
+(defkey "mod+shift+u" showOutput)
+
+;;; The notification centre
+
+(defstate notifications [])
+
+(defcomputed notificationRows
+  (map-indexed (fn [index it] {:id index :label it.message :icon (if (= it.severity "error") "circle-x" "bell")})
+                 (reverse state.notifications)))
+
+(defcommand showNotifications "Show Notifications"
+  :title ~(t "command.showNotifications")
+  :description ~(t "command.showNotifications") :category ~(t "category.view") :icon "bell" []
+  (toggle "state.notificationCentre"))
+
+(defcommand clearNotifications "Clear All Notifications"
+  :title ~(t "command.clearNotifications")
+  :description ~(t "command.clearNotifications") :category ~(t "category.notifications") []
+  (set "state.notifications" [])
+  (set "state.toast.open" false)
+  (set "state.notificationCentre" false))
+
+;;; The panel's tabs
+
+(defstate panelTab problems)
+
+(defn openTerminalWithPanel "Opens a terminal when the Terminal tab is shown with none." []
+  (when (and (= state.panelTab "terminal") (= (count state.terminals.list) 0) state.layout.panel) (terminalNew)))
+
+(defpart terminal-on-show "The Terminal tab, shown with none open, opens one."
+  :watch {:state.panelTab openTerminalWithPanel})
+
+;;; Indexing the folder again
+
+(defcommand reindex "Read the folder again, showing the progress."
+  :title ~(t "command.reindex") :category ~(t "category.files") :icon "folder"
+  :description ~(t "command.reindex.about") []
+  (set "state.toast" {:open true :message (t "toast.indexing") :progress 0.2})
+  (explorerRefresh)
+  (invoke "search.files" :with {:exclude state.folder.skip} :onError reindexFailed :onDone reindexDone))
+
+(defn reindexDone "The folder's files indexed for Go to File; Output says how many." [result]
+  (indexed result.files)
+  (set "state.toast.progress" 1)
+  (log-line (t (if result.truncated "log.indexedTruncated" "log.indexed") {:n (count result.files)}))
+  (debounce 1500 hideToast))
+
+(defn reindexFailed "Says why the folder couldn't be indexed." [error]
+  (notify "error" (t "notify.indexingFailed" {:error error.message})))

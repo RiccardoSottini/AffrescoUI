@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <array>
+#include <format>
 #include <iostream>
 
 namespace affresco::cli {
@@ -59,19 +60,24 @@ std::vector<Problem> problemsOf(const std::filesystem::path& path) {
 	const notation::Notation spelling = notation::notationOf(path);
 	std::vector<Problem> problems;
 	json document;
+	bool whole = true; // a program that includes its other files builds only with them: it is judged as loaded
 	try {
 		document = lisp::readDocument(text, path);
-		if(lisp::hasProgram(document)) document = lisp::buildDocument(document); // what is judged is what it builds
+		whole = !lisp::hasProgram(document) || !document.contains("include");
+		if(lisp::hasProgram(document) && whole) document = lisp::buildDocument(document); // what it builds is judged
 	} catch(const std::exception& error) {
 		problems.push_back({std::string(notation::nameOf(spelling)), "", error.what()});
 		return problems;
 	}
 
 	Schema schema(json::parse(embeddedSchema()));
-	for(SchemaProblem& problem : schema.check(document))
-		problems.push_back({"schema", std::move(problem.place), std::move(problem.problem)});
-
+	// A program that includes its other files builds only with them, and they are included parts, which the schema
+	// doesn't check in JSON either: it is judged as loaded, by the format's rules and the checker
+	if(whole)
+		for(SchemaProblem& problem : schema.check(document))
+			problems.push_back({"schema", std::move(problem.place), std::move(problem.problem)});
 	const auto loaded = load(lisp::jsonText(text, path), path.parent_path(), problems);
+
 	const format::Rules rules;
 	const json& checked = loaded ? loaded->first : document;
 	for(std::string& finding :
@@ -98,9 +104,12 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 	try {
 		Schema schema(json::parse(embeddedSchema()));
 		json screen = lisp::readDocument(readFile(entry), entry);
-		if(lisp::hasProgram(screen)) screen = lisp::buildDocument(screen);
-		for(SchemaProblem& problem : schema.check(screen))
-			problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
+		// A program that includes its other files builds only with them: it is judged as loaded, as an include is
+		const bool whole = !lisp::hasProgram(screen) || !screen.contains("include");
+		if(lisp::hasProgram(screen) && whole) screen = lisp::buildDocument(screen);
+		if(whole)
+			for(SchemaProblem& problem : schema.check(screen))
+				problems.push_back({"schema", app.entry + ": " + problem.place, std::move(problem.problem)});
 	} catch(const std::exception& error) {
 		problems.push_back({"json", app.entry, error.what()});
 		return problems;
@@ -122,6 +131,37 @@ std::vector<Problem> appProblems(const std::filesystem::path& manifest) {
 	return problems;
 }
 
+/// @brief Where a program's functions test a path of the running app with the language's truth, where "", 0 and []
+/// are true (lisp::Program::truthTests()): notes for a person to look at, not problems.
+/// @param file The screen, or an app's folder or manifest.
+/// @param manifest The app's manifest, or "".
+/// @return One line each: the place, the definition and the path.
+std::vector<std::string> truthNotes(const std::filesystem::path& file, const std::filesystem::path& manifest) {
+	setLogSink([](LogLevel, std::string_view) {});
+	std::vector<std::string> notes;
+	try {
+		const Screen screen = manifest.empty()
+		                          ? Screen::fromString(lisp::jsonText(readFile(file), file), file.parent_path())
+		                          : Screen::fromApp(manifest, {}, Screen::History::InMemory);
+		const json document = json::parse(screen.documentJson());
+		if(lisp::hasProgram(document))
+			for(const lisp::UndefinedName& test : lisp::builtProgram(document["program"])->truth)
+				notes.push_back(
+				    test.name == "+"
+				        ? std::format("{}: in {}, line {}: + is given a text: an expression joins texts with it, a "
+				                      "function can't: write (str ...)",
+				                      test.file, test.definition, test.line)
+				        : std::format("{}: in {}, line {}: {} is tested with Lisp's truth (\"\", 0 and [] are "
+				                            "true): if it can be one, write (truthy? {}), (some? ...) or "
+				                            "(not (empty? ...))",
+				                            test.file, test.definition, test.line, test.name, test.name));
+	} catch(const std::exception& error) {
+		notes.push_back(std::string("can't load it: ") + error.what());
+	}
+	setLogSink({});
+	return notes;
+}
+
 /// @brief Whether a file is an app's manifest, a folder an app's, or an app's entry screen (checked as the app, as
 /// the host opens it).
 /// @param path The file or folder.
@@ -141,10 +181,16 @@ std::filesystem::path manifestOf(const std::filesystem::path& path) {
 Exit checkScreen(std::span<const std::string_view> args) {
 	if(std::ranges::contains(args, std::string_view("--compose")))
 		return checkComposition(args, registerApplicationTypes);
-	static constexpr std::array<std::string_view, 1> flags = {"--json"};
+	static constexpr std::array<std::string_view, 2> flags = {"--json", "--truth"};
 	const Arguments arguments(args, {}, flags);
 	const std::filesystem::path file = arguments.file();
 	const std::filesystem::path manifest = manifestOf(file);
+	if(arguments.flag("--truth")) { // notes, not problems: what a person decides
+		const std::vector<std::string> notes = truthNotes(file, manifest);
+		for(const std::string& note : notes) std::cout << note << '\n';
+		if(notes.empty()) std::cout << file.string() << ": no function tests a path with Lisp's truth\n";
+		return Exit::Success;
+	}
 	std::vector<Problem> problems = manifest.empty() ? problemsOf(file) : appProblems(manifest);
 	if(problems.empty() && !std::filesystem::is_directory(file) && !notation::isNamedDocument(file, "app"))
 		for(std::string& problem : requiredStringsProblems(file))

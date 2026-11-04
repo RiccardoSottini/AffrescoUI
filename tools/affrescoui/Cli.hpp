@@ -161,8 +161,8 @@ Exit formatScreen(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit convertFile(std::span<const std::string_view> args);
 
-/// @brief What `affrescoui run` does for a Lisp file it doesn't show: prints the tree it builds, for a program (which has
-/// no window before the language is connected to apps) or with `--print`.
+/// @brief What `affrescoui run` does for a Lisp file it doesn't show: prints the tree it builds, for a program (which
+/// has no window before the language is connected to apps) or with `--print`.
 /// @param file The file.
 /// @param print `--print` was given.
 /// @return How it ended, or std::nullopt if the file is to be shown as any screen is.
@@ -173,6 +173,12 @@ std::optional<Exit> runLisp(const std::filesystem::path& file, bool print);
 /// @param args Nothing.
 /// @return Success.
 Exit lispRepl(std::span<const std::string_view> args);
+
+/// @brief `affrescoui lisp-binding`: writes an expression's text as the Lisp form a program writes for it; with
+/// `--prove`, translates every such text in some JSON files, builds each back and compares the parsed trees.
+/// @param args The texts, or `--prove` (and `--verbose`) and files or folders.
+/// @return Success, or Problems if one can't be translated or proven.
+Exit lispBinding(std::span<const std::string_view> args);
 
 /// @brief `ids`: gives readable ids to the nodes of a file that have none.
 /// @param args The arguments.

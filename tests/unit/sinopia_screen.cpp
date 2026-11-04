@@ -2,30 +2,26 @@
 /// @brief Sinopia's screen (examples/sinopia): it listens for an agent, so its permissions send an agent's changes to
 /// review and let only the Studio review them.
 
+#include <affresco/affresco.hpp>
 #include <affresco/format/Rules.hpp>
-#include <affresco/notation/Notation.hpp>
 #include <affresco/vcs/Repository.hpp>
 
 #include <doctest/doctest.h>
 
-#include <fstream>
-#include <iterator>
+#include <filesystem>
 #include <string>
 
 using affresco::json;
 
 namespace {
 
-/// @brief Sinopia's screen as a repository holds it.
+/// @brief Sinopia's screen as a repository holds it: its Lisp program, every file the entry includes.
 /// @return It.
 json sinopiaScreen() {
-	const std::string path = std::string(AFFRESCOUI_EXAMPLES_DIRECTORY) + "/sinopia/lisp/index.screen.lisp";
-	std::ifstream file(path);
-	REQUIRE(file);
-	const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	json screen = affresco::notation::readDocument(text, path);
-	screen.erase("include"); // a Repository does not merge included files; the permissions are in this one
-	return screen;
+	affresco::Screen screen =
+	    affresco::Screen::fromApp(std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "sinopia" / "lisp", {},
+	                              affresco::Screen::History::InMemory);
+	return screen.versions().sourceDocument();
 }
 
 /// @brief A revision that switches the theme.

@@ -200,6 +200,16 @@ Learning assign(Shape& at, const std::vector<PathKey>& keys, std::size_t i, cons
 	return Learning::more;
 }
 
+/// @brief Checks a translation's key and parameters against the document's "strings" (Strings.hpp).
+/// @param document The document.
+/// @param raw The `$t` operator's argument.
+/// @return The problem, or empty text.
+std::string translationProblem(const json& document, const json& raw) {
+	static const json none;
+	const auto strings = document.is_object() ? document.find("strings") : document.end();
+	return checkTranslation(strings != document.end() ? *strings : none, raw);
+}
+
 } // namespace
 
 /* Values */
@@ -276,9 +286,8 @@ Shape Checker::shapeOfOperator(const std::string& name, const json& raw, const S
 	if(name == "$value") return shapeOfData(raw);
 	if(name == "$equals" || name == "$notEquals") checkComparison(raw, place);
 	if(name == "$get") return shapeOfGet(raw, scope, place);
-	if(name == "$t") // a translation: its key and parameters against "strings" (Strings.hpp)
-		if(const std::string problem = checkTranslation(document_.value("strings", json()), raw); !problem.empty())
-			report(place, problem);
+	if(name == "$t") // a translation, read in place
+		if(const std::string problem = translationProblem(document_, raw); !problem.empty()) report(place, problem);
 	if(name == "$path") return raw.is_string() ? shapeOfPath(raw.get<std::string>(), scope, place) : anything; // copied
 	if(name == "$object") {
 		if(!raw.is_object() || raw.empty()) return anything;

@@ -1,0 +1,47 @@
+{
+	"id": "json-streak-body",
+	"level": "feature",
+	"screen": "examples/streak/json/index.screen.json",
+	"request": "In Streak, Cmd+J (the command toggleTheme, a JSON action in actions) should also show the toast \"Theme changed\", pushed onto state.toasts as the other actions' toasts are. Change the steps of toggleTheme.",
+	"scenarios": [
+		{
+			"name": "toast",
+			"steps": [
+				{
+					"expect": {
+						"state": "toasts.length",
+						"is": 0
+					}
+				},
+				{
+					"key": "mod+j"
+				},
+				{
+					"expect": {
+						"state": "toasts[0].message",
+						"is": "Theme changed"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane",
+		"/actions/toggleHideCompleted"
+	],
+	"reference": [
+		{
+			"message": "Cmd+J says Theme changed",
+			"add": {
+				"/actions/toggleTheme/do/-": {
+					"push": "state.toasts",
+					"value": {
+						"message": "Theme changed"
+					}
+				}
+			}
+		}
+	]
+}

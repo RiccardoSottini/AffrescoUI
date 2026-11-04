@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <map>
+#include <set>
 #include <memory>
 #include <optional>
 #include <span>
@@ -30,10 +31,12 @@ inline constexpr std::size_t maxBuildBytes = std::size_t{16} << 20U; ///< What b
 struct BuiltProgram {
 	json tree;                            ///< The tree: `format` and `version`, `root`, and the sections it defines.
 	std::vector<UndefinedName> undefined; ///< What its definitions use that nothing defines.
+	std::vector<UndefinedName> truth;     ///< Where its functions test a path with the language's truth (truthTests()).
 	std::vector<Extension> extensions;    ///< Its hooks and advice.
 	std::map<std::string, std::vector<std::string>>
 	    namesUsed;         ///< What each definition's code uses (Program::namesUsed()).
 	NamedCalls namedCalls; ///< What each calls with a text written out first (Program::namedCalls()).
+	std::set<std::pair<std::string, std::string>> defaulted; ///< Members a `defdefaults` gave (Program::defaulted()).
 };
 
 /// @brief Tells whether a document holds a program.

@@ -179,7 +179,10 @@ TEST_CASE("file changes: an example's changes are in the files that hold them, i
 		const json patch = {{{"op", "replace"}, {"path", "/strings/en/" + key}, {"value", "Changed"}}};
 		const affresco::RevisionResult result = screen.versions().submit({{"author", "studio"}, {"patch", patch}});
 		CAPTURE(result.error);
-		const json changes = screen.fileChanges({{"to", "HEAD"}});
+		json changes = screen.fileChanges({{"to", "HEAD"}});
+		// A shared add-on written as a program adds the row of what the program builds, the same as before
+		std::erase_if(changes["files"].get_ref<json::array_t&>(),
+		              [](const json& row) { return row.value("built", false); });
 		REQUIRE(fileCount(changes) == 1);
 		CHECK(changes["files"][0]["file"] == std::string("locales/en.") + notation);
 	}

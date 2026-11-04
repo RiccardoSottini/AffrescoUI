@@ -48,7 +48,7 @@ void saveDecisions(const std::filesystem::path& file, const Decisions& decisions
 /// Runs its own affresco::Application, so none may exist during the call.
 /// @param app The app.
 /// @param asked The capabilities to ask about: those not decided yet.
-/// @param prompt The prompt screen (examples/shared/host/permissions.screen.json).
+/// @param prompt The prompt screen (examples/shared/host/permissions.screen.json, or .lisp: hostScreenFile()).
 /// @return A decision for each one asked; none if the person closed the window without answering.
 [[nodiscard]] Decisions askPerson(const affresco::format::AppManifest& app,
                                   const std::vector<affresco::format::AppCapability>& asked,

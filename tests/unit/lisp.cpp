@@ -606,8 +606,10 @@ TEST_CASE("lisp: a program is split into entries, its text kept exactly") {
 	CHECK(lisp::needsRunning("(defn)") == "the form at line 1");
 }
 
-TEST_CASE("lisp: a program builds the format's sections, whatever the order of its definitions") {
-	const std::string text = R"lisp(
+namespace {
+
+/// A program with a definition of each kind, for the tests of what it builds.
+constexpr const char* roomsProgram = R"lisp(
 (defn card "One room." [room]
   `(panel :id ~(str "room-" (:id room))
      (label :text ~(:name room))))
@@ -630,10 +632,11 @@ TEST_CASE("lisp: a program builds the format's sections, whatever the order of i
 (add-hook after-save "After saving." toggle)
 (advice toggle :around another)
 )lisp";
-	lisp::Program program;
-	program.addFile(text, "a.lisp", "me");
-	const json tree = program.build();
-	const json expected = json::parse(R"({
+
+/// @brief The tree roomsProgram builds.
+/// @return The tree.
+json roomsTree() {
+	return json::parse(R"({
 		"format": "affrescoui-screen",
 		"version": 2,
 		"window": {"title": "Rooms"},
@@ -643,11 +646,21 @@ TEST_CASE("lisp: a program builds the format's sections, whatever the order of i
 			{"type": "panel", "id": "room-b", "children": [{"type": "label", "text": "Hall"}]}]},
 		"screens": {"extra": {"type": "panel", "id": "extra"}},
 		"actions": {
-			"another": {"title": "Another", "do": [{"lisp": "another"}]},
-			"toggle": {"title": "Toggle", "category": "View", "description": "Toggles it.", "do": [{"lisp": "toggle"}], "arguments": ["times"]}},
+			"toggle": {"title": "Toggle", "category": "View", "description": "Toggles it.", "do": [{"lisp": "toggle"}], "arguments": ["times"]},
+			"another": {"title": "Another", "do": [{"lisp": "another"}]}},
 		"keys": {"mod+b": "toggle", "mod+n": {"run": "another"}},
 		"settings": {"list-size": {"type": "integer", "default": 60, "minimum": 1, "description": "How many."}}
 	})");
+}
+
+} // namespace
+
+TEST_CASE("lisp: a program builds the format's sections, in the order of its definitions") {
+	const std::string text = roomsProgram;
+	const json expected = roomsTree();
+	lisp::Program program;
+	program.addFile(text, "a.lisp", "me");
+	const json tree = program.build();
 	CHECK(tree.dump() == expected.dump());
 	REQUIRE(program.extensions().size() == 2);
 	CHECK(program.extensions()[0].kind == "add-hook");
@@ -660,15 +673,35 @@ TEST_CASE("lisp: a program builds the format's sections, whatever the order of i
 	REQUIRE(program.undefinedNames().size() == 1);
 	CHECK(program.undefinedNames()[0].name == "other");
 	CHECK(program.undefinedNames()[0].definition == "toggle");
+}
 
-	// The same source gives the same tree, and moving definitions changes nothing
+TEST_CASE("lisp: the same source gives the same tree, and moving definitions moves only their members") {
+	const std::string text = roomsProgram;
+	const json expected = roomsTree();
+	// The same source gives the same tree. Moving definitions moves their members, as moving keys in a JSON file
+	// does, and nothing else: the same members, the same values
+	CHECK(lisp::buildText(text, "a.lisp").dump() == expected.dump());
 	lisp::Program moved;
 	std::vector<lisp::Entry> entries = lisp::splitEntries(text, "a.lisp", "me");
 	std::ranges::reverse(entries);
 	for(lisp::Entry& entry : entries) moved.addEntry(std::move(entry));
-	CHECK(moved.build().dump() == expected.dump());
-	CHECK(lisp::buildText(text, "a.lisp").dump() == expected.dump());
+	const json reversed = moved.build();
+	CHECK(nlohmann::json::parse(reversed.dump()) == nlohmann::json::parse(expected.dump())); // sorted by key
+	CHECK(reversed["keys"].begin().key() == "mod+n");
+	CHECK(reversed["actions"].begin().key() == "another");
+	// A definition changed where it is keeps its place, and every other's
+	lisp::Program changed;
+	for(lisp::Entry entry : lisp::splitEntries(text, "a.lisp", "me")) {
+		if(entry.name == "toggle")
+			entry.text = R"((defcommand toggle "Toggles it." :title "Flip" :category "View" [times] (other times)))";
+		changed.addEntry(std::move(entry));
+	}
+	const json flipped = changed.build();
+	CHECK(flipped["actions"].begin().key() == "toggle");
+	CHECK(flipped["actions"]["toggle"]["title"] == "Flip");
+}
 
+TEST_CASE("lisp: a build expands macros first, and works out a value from later ones, never from itself") {
 	// Macros first, wherever they are, using functions below them
 	CHECK(lisp::buildText(
 	          "(defscreen main (rows ~(wrap 1)))\n(defn helper [x] [x])\n(defmacro wrap [x] `(helper ~x))")["root"]
@@ -817,24 +850,31 @@ TEST_CASE("lisp: every example's Lisp file builds to the tree the notation's rea
 		const std::string text = textOf(entry.path());
 		CAPTURE(entry.path().string());
 		if(lisp::isProgram(text)) continue; // an app written as a program: the tests of lisp_runtime.cpp
+		if(lisp::needsRunning(text)) {      // a template of a program's app (models.lisp, ~state.boardId): it builds
+			CHECK_NOTHROW(static_cast<void>(lisp::buildText(text, entry.path().string())));
+			continue;
+		}
 		const json read = affresco::notation::read(text, affresco::notation::Notation::Lisp);
 		CHECK(lisp::buildText(text, entry.path().string()).dump() == read.dump());
 		CHECK(lisp::needsRunning(text) == std::nullopt);
 		++files;
 	}
-	CHECK(files > 150);
+	CHECK(files > 100); // the data files: an app written as a program has fewer
 }
 
 TEST_CASE("lisp: the notation's list of the language's words is the language's") {
 	lisp::Interpreter interpreter;
 	// Every plain word the language gives a meaning to is on the list, but list, which is a node type
-	const std::vector<std::string> forms = {"quote",     "backquote",  "unquote", "unquote-splicing",
-	                                        "if",        "do",         "when",    "cond",
-	                                        "and",       "or",         "let",     "loop",
-	                                        "recur",     "fn",         "try",     "catch",
-	                                        "throw",     "def",        "defn",    "defmacro",
-	                                        "defscreen", "defcommand", "defkey",  "defcustom",
-	                                        "add-hook",  "advice",     "defhook", "remove-hook"};
+	const std::vector<std::string> forms = {"quote",     "backquote",    "unquote",  "unquote-splicing",
+	                                        "if",        "do",           "when",     "cond",
+	                                        "and",       "or",           "let",      "loop",
+	                                        "recur",     "fn",           "try",      "catch",
+	                                        "throw",     "def",          "defn",     "defmacro",
+	                                        "defscreen", "defcommand",   "defkey",   "defcustom",
+	                                        "add-hook",  "advice",       "defhook",  "remove-hook",
+	                                        "defview",   "defcomponent", "defstate", "defcomputed",
+	                                        "defstyle",  "defmenu",      "defpart",  "defdefaults",
+	                                        "deftokens", "repeat",       "include"};
 	for(const std::string& form : forms) {
 		CAPTURE(form);
 		CHECK(affresco::notation::isLanguageWord(form));

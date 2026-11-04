@@ -61,6 +61,28 @@ bool isFunction(const lisp::Value& value) {
 	return value.kind() == lisp::Kind::Function || value.kind() == lisp::Kind::Native;
 }
 
+/// @brief A dotted word's path as an expression's: a member that is a number is an index, as in a binding
+/// (`state.frames.0.id` reads `state.frames[0].id`).
+/// @param word The word.
+/// @return The path.
+std::string indexedPath(std::string_view word) {
+	std::string path;
+	path.reserve(word.size() + 8);
+	std::size_t at = 0;
+	while(at < word.size()) {
+		const std::size_t dot = word.find('.', at);
+		const std::string_view member =
+		    word.substr(at, dot == std::string_view::npos ? std::string_view::npos : dot - at);
+		const bool index =
+		    at > 0 && !member.empty() && std::ranges::all_of(member, [](char c) { return c >= '0' && c <= '9'; });
+		if(index) path.append("[").append(member).append("]");
+		else path.append(at > 0 ? "." : "").append(member);
+		if(dot == std::string_view::npos) break;
+		at = dot + 1;
+	}
+	return path;
+}
+
 /// @brief Runs a "lisp" step.
 /// @param s The step.
 /// @return std::nullopt if it isn't one, else true.
@@ -95,6 +117,11 @@ void Programs::definePrimitives(lisp::Interpreter& interpreter) {
 	                             .call = [this](lisp::Interpreter& in, std::span<const lisp::Value> arguments) {
 		                             return readPath(in, arguments);
 	                             }});
+	// The expressions' bare variables, which a step's name (`preview`) would otherwise hide from code
+	for(const char* name : {"window",       "revision", "proposals",   "history",  "preview",     "mode",  "theme",
+	                        "locale",       "screen",   "context",     "commands", "keybindings", "menus", "settings",
+	                        "settingsList", "services", "connections", "auth",     "requests",    "peers", "windows"})
+		interpreter.addAppVariable(name);
 	defineSteps(interpreter);
 	defineFunctions(interpreter);
 	defineLoopPrimitives(interpreter);
@@ -122,6 +149,7 @@ void Programs::defineFunctions(lisp::Interpreter& interpreter) {
 		interpreter.definePrimitive(
 		    name, {.capability = "read",
 			       .pure = false,
+			       .reserved = true,
 			       .call = [this, word = name](lisp::Interpreter& in, std::span<const lisp::Value> arguments) {
 			           return callFunction(word, in, arguments);
 		           }});
@@ -145,9 +173,9 @@ lisp::Value Programs::viewOf(lisp::Interpreter& interpreter, json value) {
 lisp::Value Programs::readPath(lisp::Interpreter& interpreter, std::span<const lisp::Value> arguments) {
 	if(arguments.size() != 1 || arguments[0].kind() != lisp::Kind::String) throw lisp::Refusal("a path is a string");
 	const auto [place, definition] = interpreter.place();
+	const std::string path = indexedPath(arguments[0].text());
 	json value = outside(interpreter, [&] {
-		return format::lookup(arguments[0].text(), engine_.document.context(*frame_->locals, *frame_->event),
-		                      "lisp " + definition);
+		return format::lookup(path, engine_.document.context(*frame_->locals, *frame_->event), "lisp " + definition);
 	});
 	return viewOf(interpreter, std::move(value));
 }
@@ -202,18 +230,28 @@ json Programs::callbackSteps(lisp::Interpreter& interpreter, const lisp::Value& 
 	return json::array({std::move(step)});
 }
 
+std::optional<json> Programs::stepValue(const StepType& type, const std::string& key, const lisp::Value& value,
+                                        lisp::Interpreter& interpreter, Scope& scope) {
+	// A name or steps given as a value would run what no name in the code says, past what reaches it (Rules)
+	if(holdsSteps(key) && key != "loading" && !isFunction(value)) {
+		if(value.isNil()) return std::nullopt;
+		if(value.kind() == lisp::Kind::Vector && value.count() > 0 && isFunction(value.at(0))) { // [opened path]
+			std::vector<lisp::Value> given;
+			for(std::size_t item = 1; item < value.count(); ++item) given.push_back(value.at(item));
+			return callbackSteps(interpreter, value.at(0), given, scope);
+		}
+		throw lisp::Refusal("\"" + key + "\" of \"" + type.name +
+		                    "\" takes a function of the program, by its name: never a name or steps as a value");
+	}
+	return holdsSteps(key) && isFunction(value) ? callbackSteps(interpreter, value, {}, scope)
+	                                            : inertValue(interpreter, value, scope);
+}
+
 json Programs::stepFrom(const StepType& type, lisp::Interpreter& interpreter, std::span<const lisp::Value> arguments,
                         Scope& scope) {
 	json step = json::object();
 	const auto put = [&](const std::string& key, const lisp::Value& value) {
-		// A name or steps given as a value would run what no name in the code says, past what reaches it (Rules)
-		if(holdsSteps(key) && key != "loading" && !isFunction(value)) {
-			if(value.isNil()) return;
-			throw lisp::Refusal("\"" + key + "\" of \"" + type.name +
-			                    "\" takes a function of the program, by its name: never a name or steps as a value");
-		}
-		step[key] = holdsSteps(key) && isFunction(value) ? callbackSteps(interpreter, value, {}, scope)
-		                                                 : inertValue(interpreter, value, scope);
+		if(std::optional<json> given = stepValue(type, key, value, interpreter, scope)) step[key] = std::move(*given);
 	};
 	std::size_t at = 0;
 	if(arguments.empty() || arguments[0].kind() == lisp::Kind::Keyword) step[type.name] = true; // (undo), (endPreview)

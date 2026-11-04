@@ -95,7 +95,7 @@
 			"settings.folderText": "Tus apps están en la carpeta {folder}, en tu carpeta personal: una carpeta por app, junto a las fuentes y partes que comparten.",
 			"settings.notation": "Apps de ejemplo",
 			"settings.notationLabel": "Escritas en",
-			"settings.notationText": "Cada app de ejemplo está dos veces, escrita en JSON y en Lisp. Se ven y funcionan igual, y cada una guarda sus propios datos.",
+			"settings.notationText": "Cada app de ejemplo está escrita en Lisp, el estándar, y en JSON, salvo Calamaio, solo en Lisp. Ambas se ven y funcionan igual, y cada una guarda sus propios datos.",
 			"settings.keys": "Teclado",
 			"settings.keyPages": "Apps, Mis apps, Ajustes",
 			"settings.keyNew": "Crear una app",

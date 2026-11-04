@@ -18,6 +18,8 @@
 #include <string_view>
 #include <unordered_map>
 #include <utility>
+#include <set>
+#include <tuple>
 #include <vector>
 
 namespace affresco::lisp {
@@ -48,6 +50,8 @@ struct CompileContext {
 	const AuthorSet* authors = nullptr; ///< Its author and those of the macros it came through.
 	bool library = false; ///< The language's own: a global already defined is taken as a constant, so that
 	                      ///< a program redefining `count` doesn't change what `reduce` does.
+	bool view = false;    ///< Code that builds a view: each backquote in it is a template whose `~form` that needs
+	                      ///< the running app becomes a binding (`defview`, `defcomponent`).
 };
 
 /// @brief A use of a global a definition's code makes.
@@ -90,6 +94,11 @@ public:
 	/// @param name Its name.
 	/// @param primitive It.
 	void definePrimitive(const std::string& name, Primitive primitive);
+	/// @brief See Interpreter::addAppVariable(). @param name The word.
+	void addAppVariable(const std::string& name) { appVariables_.insert(name); }
+	/// @brief Whether a word names a variable of the running app (Interpreter::addAppVariable()). @param name The word.
+	/// @return true if it does.
+	[[nodiscard]] bool isAppVariable(std::string_view name) const { return appVariables_.contains(name); }
 	/// @brief Runs a top-level form that is a definition.
 	/// @param form The form.
 	/// @param author Its author.
@@ -103,7 +112,9 @@ public:
 	/// @return true if it is.
 	[[nodiscard]] static bool isDefinitionForm(const Value& form);
 	/// @brief Compiles every definition not compiled yet.
-	void compilePending();
+	/// @param functionsOnly Only functions and macros that run: views (`defview`) and what definitions build wait
+	/// until called, or for compilePending(false).
+	void compilePending(bool functionsOnly = false);
 	/// @brief Compiles a global, if it is waiting to be.
 	/// @param cell The global.
 	static void ensureCompiled(Global& cell);
@@ -116,6 +127,17 @@ public:
 	/// @brief Notes a use of a global, for undefined names.
 	/// @param use The use.
 	void noteUse(GlobalUse use) { uses_.push_back(std::move(use)); }
+	/// @brief Notes a test of a path of the running app with the language's truth (Program::truthTests()).
+	/// @param path The path.
+	/// @param place Where.
+	/// @param definition The definition it is in.
+	void noteTruthTest(std::string path, Place place, std::string definition) {
+		truthTests_.emplace_back(std::move(path), place, std::move(definition));
+	}
+	/// @brief Every test noted. @return Them: the path, its place and its definition.
+	[[nodiscard]] const std::vector<std::tuple<std::string, Place, std::string>>& truthTests() const noexcept {
+		return truthTests_;
+	}
 	/// @brief Every use of a global noted. @return Them.
 	[[nodiscard]] const std::vector<GlobalUse>& uses() const noexcept { return uses_; }
 	/// @brief Expands a macro call.
@@ -262,6 +284,14 @@ private:
 	/// @brief What `defscreen` builds. @param definition It. @param form Its form. @return A vector of its options and
 	/// its node, as a template.
 	Value screenData(const Definition& definition, const Value& form);
+	/// @brief What a form that defines a member of a section builds (`defstate`, `defcomputed`, `defstyle`, `defmenu`,
+	/// `deftokens`): its value as a template; `defstate`'s with its options, a vector; `defcomputed`'s as a `~form`.
+	/// @param definition It. @param form Its form. @return What it builds.
+	Value sectionData(Definition& definition, const Value& form);
+	/// @brief What `defcomponent` builds: code that binds each parameter to its own name, as a symbol, and gives
+	/// `(%component doc params node)`.
+	/// @param definition It. @param form Its form. @return The code.
+	Value componentData(Definition& definition, const Value& form);
 	/// @brief What the forms that build a tree mean: `defcommand`, `defcustom`, `defscreen`, `defkey`, and the recorded
 	/// `add-hook` and `advice`.
 	/// @param definition The definition.
@@ -377,16 +407,18 @@ private:
 	std::size_t regions_ = 0;         ///< Regions inside each other.
 	bool pure_ = false;               ///< See setPure().
 	std::deque<Global> globalCells_;  ///< The cells: their addresses stay.
-	std::map<std::string_view, Global*, std::less<>> globals_;           ///< The cells by name.
-	std::vector<std::unique_ptr<Definition>> definitions_;               ///< See definitions().
-	std::map<std::string, std::size_t, std::less<>> definitionNames_;    ///< definitions_'s indexes by name.
-	std::size_t compiled_ = 0;                                           ///< How many of definitions_ are compiled.
-	std::vector<GlobalUse> uses_;                                        ///< See uses().
-	int compileDepth_ = 0;                                               ///< See compileDepth().
-	std::uint64_t gensym_ = 0;                                           ///< See gensymCounter().
-	std::vector<std::string> authorNames_;                               ///< Authors by number.
-	std::deque<AuthorSet> authorSets_;                                   ///< The interned sets.
-	std::map<std::vector<std::uint32_t>, const AuthorSet*> authorIndex_; ///< The sets by content.
+	std::map<std::string_view, Global*, std::less<>> globals_;            ///< The cells by name.
+	std::vector<std::unique_ptr<Definition>> definitions_;                ///< See definitions().
+	std::map<std::string, std::size_t, std::less<>> definitionNames_;     ///< definitions_'s indexes by name.
+	std::size_t compiled_ = 0;                                            ///< How many of definitions_ are compiled.
+	std::vector<GlobalUse> uses_;                                         ///< See uses().
+	std::set<std::string, std::less<>> appVariables_;                     ///< See addAppVariable().
+	std::vector<std::tuple<std::string, Place, std::string>> truthTests_; ///< See truthTests().
+	int compileDepth_ = 0;                                                ///< See compileDepth().
+	std::uint64_t gensym_ = 0;                                            ///< See gensymCounter().
+	std::vector<std::string> authorNames_;                                ///< Authors by number.
+	std::deque<AuthorSet> authorSets_;                                    ///< The interned sets.
+	std::map<std::vector<std::uint32_t>, const AuthorSet*> authorIndex_;  ///< The sets by content.
 	std::map<std::pair<const AuthorSet*, const AuthorSet*>, const AuthorSet*> authorUnions_; ///< unite()'s answers.
 	const AuthorSet* noAuthors_ = nullptr;                                                   ///< See noAuthors().
 };
@@ -398,6 +430,8 @@ void defineNumbers(Machine& machine);
 void defineCollections(Machine& machine);
 /// @copydoc defineNumbers
 void defineText(Machine& machine);
+/// @copydoc defineNumbers
+void defineViews(Machine& machine);
 /// @brief Loads the functions the language writes in itself (Prelude.cpp).
 /// @param machine The machine.
 void definePrelude(Machine& machine);
@@ -406,6 +440,32 @@ void definePrelude(Machine& machine);
 /// @param text The text.
 /// @return `'it\'s'`, with its escapes.
 [[nodiscard]] std::string expressionText(std::string_view text);
+
+/// @brief A binding's text that would lose its spaces: one placeholder with spaces around it is read as that
+/// placeholder's value alone (SCREEN_FORMAT.md, a whole placeholder), so the spaces are written as placeholders of
+/// their own, `"  {{x}}"` as `"{{'  '}}{{x}}"`, which shows the same text (CompilerBindings.cpp).
+/// @param text The text.
+/// @return It, or the same text with its spaces kept.
+[[nodiscard]] std::string keptSpaces(std::string text);
+
+/// @brief The text of a `str` a binding joins: keptSpaces(), and one placeholder alone, as when the texts around it are
+/// empty, written `"{{''}}{{x}}"`, so it shows x's text rather than giving its value (CompilerBindings.cpp).
+/// @param text The text.
+/// @return It, as text.
+[[nodiscard]] std::string joinedText(std::string text);
+
+/// @brief Writes a dotted word as an expression's path: `state.my-key.0` is `state['my-key'][0]`
+/// (CompilerLowering.cpp).
+/// @param word The word.
+/// @return The path.
+[[nodiscard]] std::string pathExpression(std::string_view word);
+
+/// @brief A value the build worked out as an expression writes it: a symbol is a name of the running app, its path;
+/// anything else its JSON, as a literal (CoreText.cpp).
+/// @param machine The machine, whose budget it spends.
+/// @param value The value.
+/// @return The text.
+[[nodiscard]] std::string expressionOfValue(Machine& machine, const Value& value);
 
 /// @brief Writes a value as Lisp text (Tree.cpp).
 /// @param machine The machine, whose budget it spends.

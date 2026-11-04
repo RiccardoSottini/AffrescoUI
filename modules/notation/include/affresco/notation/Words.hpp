@@ -52,14 +52,15 @@ inline constexpr std::string_view untypedHead = "node";
 /// language.
 // clang-format off
 inline constexpr auto languageWords = std::to_array<std::string_view>({
-    "abs", "add-hook", "advice", "and", "apply", "assoc", "assoc-in", "backquote", "catch", "concat", "cond",
-    "conj", "cons", "count", "dec", "def", "defcommand", "defcustom", "defkey", "defmacro", "defn",
-    "defhook", "defscreen", "dissoc", "do", "drop", "filter", "find", "first", "fn", "gensym", "get", "get-in",
-    "identity", "if", "inc", "join", "keys", "keyword", "last", "let", "loop", "lower-case", "map",
-    "map-indexed", "mapcat", "max", "merge", "min", "mod", "name", "not", "nth", "or", "pr-str", "quote", "range",
-    "recur", "reduce", "rem", "remove", "remove-hook", "rest", "reverse", "second", "some", "sort", "sort-by", "str", "subs",
-    "symbol", "take", "throw", "try", "unquote", "unquote-splicing", "update", "update-in", "upper-case",
-    "vals", "vec", "when", "zipmap"});
+    "abs", "add-hook", "advice", "and", "apply", "assoc", "assoc-in", "backquote", "catch", "concat", "cond", "conj",
+    "cons", "count", "dec", "def", "defcommand", "defcomponent", "defcomputed", "defcustom", "defdefaults",
+    "defhook", "defkey", "defmacro", "defmenu", "defn", "defpart", "defscreen", "defstate", "defstyle", "deftokens",
+    "defview", "dissoc", "do", "drop", "filter", "find", "first", "fn", "gensym", "get", "get-in", "handler",
+    "identity", "if", "inc", "include", "join", "keys", "keyword", "last", "let", "loop", "lower-case", "map",
+    "map-indexed", "mapcat", "max", "merge", "min", "mod", "name", "not", "nth", "or", "or-else", "pr-str", "quote",
+    "range", "recur", "reduce", "rem", "remove", "remove-hook", "repeat", "rest", "reverse", "second", "some",
+    "sort", "sort-by", "str", "subs", "symbol", "take", "throw", "try", "unquote", "unquote-splicing", "update",
+    "update-in", "upper-case", "vals", "vec", "when", "zipmap"});
 // clang-format on
 
 /// @brief Tells whether a plain word is one the language runs (languageWords): in a data position of a language file

@@ -58,7 +58,7 @@
 	"unchanged": [
 		"/program/killring.lisp/kill-line",
 		"/program/loop.lisp/eval-defun",
-		"/actions/kill-buffer"
+		"/program/buffers.lisp/kill-buffer"
 	],
 	"present": [
 		"/program/killring.lisp/count-kills"

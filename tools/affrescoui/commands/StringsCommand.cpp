@@ -49,6 +49,7 @@ struct App {
 	fs::path entry;             ///< Its screen file.
 	std::vector<OwnFile> files; ///< That file and what it includes from its own folder, not what it shares with others.
 	json merged;                ///< The document, its includes merged.
+	OwnFile program;            ///< What its program builds, if it has one: its text is the program's, in no one file.
 	format::TextVocabulary vocabulary; ///< What says which values a person reads.
 };
 
@@ -124,6 +125,10 @@ App readApp(const fs::path& given) {
 		registerApplicationTypes(screen);
 		setLogSink({});
 		app.merged = json::parse(screen.documentJson());
+		if(app.merged.contains("program")) {
+			app.program.path = app.entry.parent_path().lexically_normal() / "(program)";
+			app.program.document = lisp::builtProgram(app.merged["program"])->tree;
+		}
 		app.vocabulary = format::textVocabulary(json::parse(screen.catalogJson()), app.merged);
 	} catch(const DocumentError& error) {
 		setLogSink({});
@@ -352,7 +357,11 @@ void refuseLisp(const fs::path& path) {
 /// @param check Exit with Problems if there is anything to fix.
 /// @return How it ended.
 Exit report(const App& app, bool asJson, bool check) {
-	const auto literals = literalsOf(app);
+	auto literals = literalsOf(app);
+	const json keep = stringsOf(app).value("keep", json::array());
+	if(!app.program.document.is_null()) // what the program builds is read too, though no file holds it
+		for(format::LiteralText& literal : format::literalTexts(app.program.document, app.vocabulary, keep))
+			literals.emplace_back(&app.program, std::move(literal));
 	const Coverage coverage = coverageOf(app);
 	const bool clean = literals.empty() && coverage.missing.empty() && (coverage.computed || coverage.unused.empty());
 	if(asJson) {

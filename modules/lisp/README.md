@@ -22,6 +22,11 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 
 (defscreen main :window {:title "Rooms"}
   (column#rooms ~@(map card [{:id "a" :name "Kitchen"} {:id "b" :name "Hall"}])))
+
+(defstate current "a" "The room shown." :type (string))
+(defview room-row "A room of the running app's list: `room` is the repeat's." [room]
+  `(label :text ~room.name :bold ~(= room.id state.current)))   ; bindings: "{{room.name}}", "{{(room.id == state.current)}}"
+(defscreen rooms (column ~(repeat [room state.rooms] (room-row room))))
 ```
 
 ## Public headers (`include/affresco/lisp/`)
@@ -29,8 +34,8 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 | Header | Offers |
 |---|---|
 | `Value.hpp` | `Value`, `Kind`, `Place`: JSON's values plus symbols, keywords, lists and functions |
-| `Interpreter.hpp` | `Interpreter` (`eval`, `evaluate`, `expandsToDefinition`, `extensions`, `definitionNames`, `wrapGlobal`, `makeFunction`, `Sealed`, `addAuthorsThatRan`, `authorsOf`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `authorsThatRan`, `leastAuthority`, `authorOf`, `definitionNameOf`, `parametersOf`, `isProgramFunction`, `workOutDefinitions`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`, `Transient`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
-| `Program.hpp` | `Program` (`addFile`, `addEntry`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `namesUsed`, `namedCalls`), `NamedCalls`, `CallsByName`, `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
+| `Interpreter.hpp` | `Interpreter` (`addAppVariable`, `eval`, `evaluate`, `expandsToDefinition`, `extensions`, `definitionNames`, `wrapGlobal`, `makeFunction`, `Sealed`, `addAuthorsThatRan`, `authorsOf`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `authorsThatRan`, `leastAuthority`, `authorOf`, `definitionNameOf`, `parametersOf`, `isProgramFunction`, `workOutDefinitions`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`, `Transient`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
+| `Program.hpp` | `Program` (`addFile`, `addEntry`, `addEntryUnread`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `truthTests`, `namesUsed`, `namedCalls`), `NamedCalls`, `CallsByName`, `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
 | `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits; `findKeyword` and `withKeyword`, a keyword's value in any text of Lisp, read and replaced by tokens |
 
 ## Values
@@ -57,17 +62,25 @@ function has one list of parameters: there are no arities (`& rest` gives the re
 is the member of a local `room`, and with no such local and no definition of that name (`state.count`) it calls `%read`, which the language refuses
 while building and a host gives while running.
 
-Functions: `+ - * / mod rem inc dec min max abs < > <= >= = not= not`, `nil? some? boolean? number? string? symbol? keyword?
+Functions: `+ - * / mod rem inc dec min max abs < > <= >= = not= not truthy?`, `nil? some? boolean? number? string? symbol? keyword?
 list? vector? map? fn? empty? contains?`, `first second last rest nth cons conj list vec concat reverse range sort sort-by
 take drop count get get-in assoc assoc-in dissoc update update-in merge keys vals zipmap`, `map map-indexed mapcat filter
 remove find some every? reduce apply identity`, `str pr-str join subs upper-case lower-case name keyword symbol gensym`. `map` and
 the others give vectors, not lazy sequences. `map` takes one collection. `(:a m)` and `(m :a)` look a key up. Integers stay
 integers until they overflow, then go on as doubles; dividing by zero is an error.
 
+`truthy?` is an expression's truth (nil, false, 0, `""`, `[]` and `{}` false), for code that tests a value of the running app as a
+binding would; everywhere else only nil and false are false. Strings may span lines: a line break or a tab typed inside the quotes is
+that character (any other control character is refused, as is a backslash before a line break).
+
 Macros are unhygienic, as in Emacs Lisp and without Clojure's namespaced symbols: use `gensym` for a macro's own variables.
+In a template, `~~form` writes `~` and what the form gives (`~~@form`, `~@`): a macro's template writes a binding of the template it
+gives, `` `(defcommand ~name "" :title ~~(list 't key) [] nil) ``.
 A `gensym` is numbered per definition, so the same source gives the same names.
 
-Definitions, top-level only, each with a docstring after the name (after the value in `defcustom`):
+Definitions, top-level only, each with a docstring after the name (after the value in `defcustom` and `defstate`). A section's
+member is addressed as `state.view`, `computed.card`, `styles.chip`, `components.chip`, `menus.card`, `tokens.colours`, and a
+`defpart` or `defdefaults` as `part.name`, `defaults.name`, so they never meet a function's name:
 
 | Form | Defines | Builds (`Program::build`) |
 |---|---|---|
@@ -79,6 +92,13 @@ Definitions, top-level only, each with a docstring after the name (after the val
 | `(defkey "chord" "doc"? what)` | Nothing callable | `keys.chord`: a template, a word being an action's name |
 | `(defcustom name value "doc"? :key value ...)` | A global: the value | `settings.name`: `type`, `default`, the other keys, `description` |
 | `(defhook name "doc"?)` | A global: its own name, as text | Nothing: a hook point, for `run-hooks` and `describe-*` |
+| `(defview name "doc"? [params] body...)` | A function the build calls: its templates hold bindings (below), and a template's call of it is never a binding | nothing |
+| `(defcomponent name "doc"? {:param default ...} :runsActions items? body...)` | Nothing callable | `components.name`: `note`, `params`, `runsActions` (a parameter's name, or `true`), and the node the body gives, each parameter bound to its own name as a symbol |
+| `(defstate name value "doc"? :type schema)` | Nothing callable | `state.name` (a template), `stateTypes.name`; a document's own value of the key wins, as with `defvar` |
+| `(defcomputed name "doc"? form)` | Nothing callable | `computed.name`: the form as a `~form` in a template, a binding when it needs the app |
+| `(defstyle name "doc"? value)`, `(defmenu ...)`, `(deftokens ...)` | Nothing callable | `styles.name`, `menus.name` (templates); `deftokens` its map's members, in `tokens` |
+| `(defpart name "doc"? :section value ...)` | Nothing callable | Each section's members; a list joins, a value is given once |
+| `(defdefaults name "doc"? :section {...} ...)` | Nothing callable | Members no other definition gives, which a document's own value replaces |
 | `(add-hook hook "doc"? function)`, `(remove-hook hook "doc"? function)`, `(advice target "doc"? :before/:after/:around function)` | Nothing the language runs: a host does | Nothing: recorded in `Program::extensions()`. The build refuses one whose function the program doesn't define |
 
 ## Programs
@@ -89,9 +109,13 @@ one data value, a **template**.
 - **Definitions, not statements.** Every top-level form is a definition with a stable address (`Entry::name`): its name, or
   `defkey ctrl+k` and `add-hook after-save f` for those with none. A top-level call of a macro counts, named by its second
   item, and may expand to a definition or a `do` of them. Two definitions of one name are an error naming both places.
-- **Order doesn't matter.** Macros are defined first, then the rest; a `def` is worked out when first read, then all that are left
-  (a build reads them all, so a value that can't be worked out refuses the build), wherever it is, so
-  a definition can use one below it; the sections built are sorted by name. Moving a definition changes nothing in the tree.
+- **Where a definition is doesn't change what it means.** Macros are defined first, then the rest; a `def` is worked out when first
+  read, then all that are left (a build reads them all, so a value that can't be worked out refuses the build), wherever it is, so
+  a definition can use one below it. **A section's members come in the order of their definitions**, files in the order the document
+  lists them (an app's includes, as a JSON file's merge), as a JSON file's members come in the order written: an overlay's place
+  among the overlays, the order of watches, the screen's keys as `keybindings` lists them. A `defdefaults` member takes its place where
+  its definition is, and a definition that gives it later replaces its value there, as a JSON include's member and the including
+  file's. Changing a definition never moves another; moving one moves its member, as moving a key in a JSON file does.
 - **The split keeps the text.** `splitEntries` gives each form's exact text, from the first character after the previous
   form's line, comments above it included, to the end of its own line; comments after the last form are the last entry's. So
   every word and comment of a file is in exactly one entry. Stage 2 versions these. `Program::addEntry` takes one back, and
@@ -112,6 +136,35 @@ one data value, a **template**.
   the expression machine has (`not = not= < > <= >= + - * / mod if and or`) become its text, an undefined head becomes an expression's function, and a
   function of the program or the language becomes `lisp('name', ...)`. What it holds that needs no app is worked out at the build. The rest of
   a template, and a backquote in a function's body, run at once, as ever.
+- **Views.** A `defview`'s body, a `defcomponent`'s, and a top-level template's code build a view: each backquote in them is a template
+  whose `~form` may become a binding (`CompilerBindings.cpp`, `CompilerLowering.cpp`). A local holding a **symbol** is a name of the
+  running app (`repeat` binds its item and index so, a `defcomponent` its parameters, and `'menus.card` is one): a `~form` that uses
+  locals is compiled twice, as the binding that writes each local (a symbol as its path, a value as a literal) and as code, and
+  `%symbolic?` chooses when it runs. `(repeat [x list :index i :key form] body)` adds `repeat` to the node its body gives, after its
+  type and id (`%repeat`); `(handler f args...)` gives the step `{"lisp": "f", "with": [...]}`, an argument that reads the app its
+  binding. A word that names a function (of the program, the language or a host), uncalled, is a name of the running app in a binding,
+  unless a local has it, or a function of the language that takes functions is given it (`apply`, `map`, `filter`, `sort-by`...).
+  A view's call in a template gives the view an argument that needs the running app as a name of it, the symbol `(expression)`
+  (`%as-name`, refused but while building), so `~(caption (t "key"))` works out its binding in the view.
+  `(str ...)` joined as a text writes what the build knows as text (`%text`; a text with a brace as a quoted literal), and keeps
+  the spaces around a lone value as placeholders of their own (`keptSpaces`): `"  {{x}}"` would be x's value alone.
+- **Lowering.** A binding's form is written as the expression machine's text when it can be: the operators, `if`, `when`, `cond`,
+  `not`, unary `-`, `or-else` (`??`), the language's functions the expressions have (`count` as `length`, `vals` as `values`, `join`
+  with its arguments swapped, `get`, `get-in`, a keyword's call, `first`, `inc`, `nil?`, `str` as `+` or, whole, as the text
+  `a{{x}}`), and the functions on each item given `(fn [x i] body)` (`filter`, `remove`, `map`, `map-indexed`, `find`, `some`,
+  `every?`, `sort-by` with `>` for descending, `reduce` with `[acc x]`), their parameters written `it`, `index` and `acc`, or
+  given a keyword, which looks it up (`(sort-by :d xs)` is `sort(xs, it.d)`); an inner
+  function's item hides an outer one's, an error if it is used. An expression's own function may take `(fn [it] ...)` too. A macro's
+  call is expanded first, once a call (`Compiler::expanded`), for the liveness check, the binding and the code alike.
+- **What is noted.** `Program::truthTests()` lists where a function tests a path of the running app with the language's truth
+  (`(if state.query ...)`), and gives `+` a text written out: `affrescoui check --truth` prints them.
+- **Read once.** Reading is pure, so the process keeps each Lisp file's document by its text, file and name (`readDocument`, 64 MiB
+  at most) and each entry's form by its text, file and place (`FormCache.cpp`, 32 MiB at most; a form is copied into the heap that
+  asks, never shared); `isProgram` decides by tokens, so a data file is read once, by the notation's reader. `Program::load(interpreter,
+  false)` compiles functions and macros only, the rest when called: what a host that runs a program, and never builds it, needs.
+- **`include`.** `readDocument` takes a program file's top-level `(include "a.lisp" ...)` forms out of its text (each character a
+  space but line ends, so places stay) into the document's `include`: the loader reads them as a data file's, with its checks. They
+  are never entries, so a revision can't add one: `definitionAddress` refuses the form.
 - **In a document.** `sourceDocument` makes a file's `{file: {name: text}}`, `programOf` takes it back. `buildDocument` gives what the
   rest of the library reads: what it builds, its other sections merged in member by member (a member both give must be the same, so
   building a built document gives itself), and `program` kept. `builtProgram` keeps a thread's last four builds per section, since a
@@ -176,6 +229,9 @@ interpreter.setGate([&](const lisp::CallContext& call) {
 });
 ```
 
+- **`Primitive::reserved`**: no definition of a program may take its name (the expressions' functions, `now`): every file's code,
+  a shared add-on's, means the host's by it. **`addAppVariable(name)`**: a bare word that names a variable of the running app
+  (`preview`, which a step's name would hide) reads it through `%read`, where no local or definition has it and it isn't called.
 - **The one choke point** is `Machine::callHost`: every call of a primitive passes through it, however it got there: a direct
   call, `apply`, a value in a variable, a hook. It refuses what isn't `pure` while `setPure(true)`, then calls the gate, then the
   primitive. A primitive or the gate throws `Refusal`, a condition the program may catch; any other exception leaves as it is.
@@ -219,16 +275,19 @@ src/
   Reader.hpp, .cpp      text into forms, on notation's Lexer
   Compiler.hpp, .cpp    forms into instructions: calls, variables, paths, functions, destructuring
   CompilerForms.cpp     the special forms and templates
-  CompilerBindings.cpp  a template's ~form that needs the running app, written as a binding
+  CompilerBindings.cpp  a template's ~form that needs the running app, written as a binding; views and symbols
+  CompilerLowering.cpp  a binding's form as the expression machine's text
   Definitions.hpp, .cpp globals, the definition forms, authors
   Machine.hpp, .cpp     the stack, the instructions, the choke point
   CoreNumbers.cpp       the language's own functions on numbers and truth
   CoreCollections.cpp   on lists, vectors and maps
   CoreText.cpp          on text
+  CoreViews.cpp         for views: handler, or-else, and repeat's, defcomponent's and a binding's own
   Prelude.cpp           those written in Lisp, which call a function back
   Tree.cpp              the walks: a value as a tree, as text, `=`
   TopLevel.hpp          what the interpreter and programs share
   Interpreter.cpp       the machine, seen from outside
+  FormCache.cpp         an entry's form, read once for the process and copied
   Program.cpp           the split, loading, the build
   Forms.cpp             forms in a text being edited: before a position, around it, all of them
   Document.cpp          documents holding programs: reading them, what they build, the keyword edit

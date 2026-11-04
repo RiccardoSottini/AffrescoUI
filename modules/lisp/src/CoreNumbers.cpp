@@ -269,6 +269,18 @@ Value negation(Machine& /*machine*/, Arguments arguments) {
 	return Value::boolean(!arguments[0].truthy());
 }
 
+/// @brief `truthy?`: an expression's truth, where nil, false, 0, "", [] and {} are false, for a function that tests a
+/// value of the running app as a binding would. @param arguments A value. @return Whether it is true so.
+Value expressionTruth(Machine& /*machine*/, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("\"truthy?\" takes one value");
+	const Value& value = arguments[0];
+	if(value.isNumber()) return Value::boolean(value.asDouble() != 0.0);
+	if(value.kind() == Kind::String) return Value::boolean(!value.text().empty());
+	if(value.kind() == Kind::Vector || value.kind() == Kind::List || value.kind() == Kind::Map)
+		return Value::boolean(value.count() > 0);
+	return Value::boolean(value.truthy());
+}
+
 /// @brief A test on one value's kind.
 /// @tparam kinds What it passes for.
 /// @param arguments The value.
@@ -305,6 +317,7 @@ void defineNumbers(Machine& machine) {
 	machine.defineNative("=", equal);
 	machine.defineNative("not=", notEqual);
 	machine.defineNative("not", negation);
+	machine.defineNative("truthy?", expressionTruth);
 	machine.defineNative("some?", isSome);
 	machine.defineNative("nil?", isKind<Kind::Nil>);
 	machine.defineNative("boolean?", isKind<Kind::Boolean>);

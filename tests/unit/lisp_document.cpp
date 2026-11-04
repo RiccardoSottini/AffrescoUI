@@ -124,6 +124,19 @@ TEST_CASE("lisp document: a document can be read again as itself") {
 	CHECK(lisp::buildDocument(built) == built);
 }
 
+TEST_CASE("lisp document, attack: a definition of many small forms is read again the same, each time it is read") {
+	// The process keeps what a text reads to by what its forms cost, not by its length: a text of nested brackets makes
+	// many objects per byte, so a peer's definitions can't fill the memory past the cap (FormCache.cpp). One that costs
+	// too much is read each time, and reads the same
+	std::string many = "(def many \"Brackets.\" [";
+	for(int at = 0; at < 45000; ++at) many += "[[]]";
+	many += "])\n(defscreen main (panel#root))";
+	const json first = lisp::buildDocument(lisp::sourceDocument(many, "app.lisp"));
+	const json again = lisp::buildDocument(lisp::sourceDocument(many, "app.lisp"));
+	CHECK(first == again);
+	CHECK(first["root"]["id"] == "root");
+}
+
 TEST_CASE("lisp document: a data file reads as before, and a bare word the language runs is an error with the hint") {
 	CHECK(notation::read("(column :gap 2 (label :text x))", notation::Notation::Lisp)["type"] == "column");
 	CHECK(notation::read("(list :gap 2)", notation::Notation::Lisp)["type"] == "list"); // a node type
@@ -146,7 +159,7 @@ TEST_CASE("lisp document: no generated example has a word the language runs in a
 		std::ifstream stream(entry.path(), std::ios::binary);
 		const std::string text{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
 		INFO(entry.path().string());
-		if(lisp::isProgram(text)) continue; // written by hand: an app that is a program
+		if(lisp::isProgram(text) || lisp::needsRunning(text)) continue; // written by hand: an app that is a program
 		CHECK_NOTHROW(static_cast<void>(notation::read(text, notation::Notation::Lisp)));
 		++files;
 	}

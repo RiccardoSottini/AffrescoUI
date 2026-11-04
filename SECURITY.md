@@ -454,6 +454,19 @@ What a revision on a program does, and how each rule judges it, is in VERSION_CO
   `/actions` or a path inside it now covers a change of any definition but a screen's that nothing else uses; an `allow` rule doesn't
   widen. VERSION_CONTROL.md, "Programs".
 
+- **A program names its files only as it is read from disk.** The file an app loads may begin with `(include "a.lisp" ...)`
+  (SCREEN_FORMAT.md, "Writing an app as a program"): `lisp::readDocument` takes the form out of the text into the document's
+  `include`, which the loader reads as a data file's, inside the app's folder and the shared folder beside it, links resolved, at
+  most 8 deep, 16 MiB a file. The form is never an entry of the program, and a revision's text holding one is refused
+  (`definitionAddress`), so no revision gains a way to read a file (`tests/unit/lisp_views.cpp`, "attack").
+- **What a definition that only builds does is in what it builds.** `defstate`, `defcomputed`, `defstyle`, `defcomponent`,
+  `defmenu`, `deftokens`, `defpart` and `defdefaults` have no function a handler can call, so a change to one is judged by the tree it
+  builds, as a `defscreen`'s is; a `defview` is a function, so the rule on `/actions` covers it as it covers a `defn`. A `defdefaults`
+  member yields to the document's own: a revision's value of it wins, judged as that section's change.
+- **A shared add-on written as a program puts a `program` section in the apps that include it**, the generated Lisp versions
+  (sign-in, the Launcher, Forge's catalogue apps) too. An agent's new function there is code, reviewed by those apps' `ask` rules on
+  `/actions` as in a program app; their JSON versions include the add-on's JSON, and gain no code.
+
 **Who may do what when a function runs: the authority model.** A definition carries its author, from the commit that wrote it
 (`"file"` for what the file on disk holds). Whatever a function does, it does through a step, and each step is checked when it runs,
 however it got there: directly, through `apply`, a value in a variable, a macro's output, a `(run name)`, a JSON action it runs, a timer.
@@ -478,8 +491,9 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
   scheduled it. It is a definition's name and JSON arguments, never a closure, so it holds nothing of the event.
 - **A state change is no authority.** A `watch` or a binding that a function's `set` sets off runs as what its own author wrote: the steps of a
   file's `watch` are the file's, whoever changed the state, as any revision on `/state` may set one off. A function it runs is that function's author's.
-- **Two lines.** A revision can't add a way to a control step, and a function counts as what it reaches (VERSION_CONTROL.md): a `run` of a
-  name written out reaches what that name runs, worked out at the build, and a computed one anything. The check at run time holds by itself:
+- **Two lines.** A revision can't add a way to a control step, nor change a definition that runs code and reaches one (its
+  arguments included, as a JSON action holding a control step can't be altered), and a function counts as what it reaches (VERSION_CONTROL.md): a `run` of a
+  name written out reaches what that name runs, worked out at the build, and a computed one anything. Nor can it add, change or take away a definition named like a control or a review step (`(defn accept ...)`), which the code calling that name would run instead of the step, nor change what a function that reaches one calls without changing its text (an action named like the application's own one it runs): its text reaching no control step any more is refused. The check at run time holds by itself:
   the attack tests in `tests/unit/lisp_runtime.cpp` and `lisp_reach.cpp` run with that scan turned off.
 - **Uses of services, as JSON judges them** (`tests/unit/lisp_reach.cpp`). A step a capability gates is judged by what it uses when the code
   that calls it names it written out: the language records each call of a primitive whose first argument is a text in the code

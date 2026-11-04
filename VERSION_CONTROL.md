@@ -404,8 +404,8 @@ listed without its text.
 request names a `proposal`, or a `to` and optionally a `from` (default: the commit's parent), with `notation` and the `file`
 to give the text of. An author whose reads are limited is refused, so a list is never silently shorter than the change.
 
-**The window.** `affrescoui_launcher` shows it in a window of its own (`examples/shared/host/changes.screen.json`,
-`apps/host/ChangesWindow.cpp`), opened by a screen's `{"call": "changes.open", "with": {"proposal": id}}`, as the assistant's
+**The window.** `affrescoui_launcher` shows it in a window of its own (`examples/shared/host/changes.screen.json`, or its Lisp program
+`changes.screen.lisp` for an app opened from its Lisp version, both read from the host's assets; `apps/host/ChangesWindow.cpp`), opened by a screen's `{"call": "changes.open", "with": {"proposal": id}}`, as the assistant's
 cards do, or by Ctrl+Shift+D (Cmd+Shift+D on macOS). It lists the proposals waiting and the changes applied, shows each
 file's diff, and offers preview, accept and reject, or undo for an applied change.
 
@@ -446,7 +446,10 @@ names the definition. So does:
 - taking away a definition that another's body still uses, which the build alone wouldn't notice;
 - an edit of what is built (`#title/text`, `/actions/kill-line`): it says to change its definition;
 - a `def` or a `defcustom` whose value can't be worked out, used or not: it is worked out at the build, purely;
-- a section both written and built with different contents, or a program building `include`, `assets`, `features` or `program`.
+- a section both written and built with different contents (but a `defdefaults` member or a `defstate`'s key, which the written
+  one replaces, as a revision on `/state/lanes` does; and a list
+  such as `persist`, which joins), or a program building `include`, `assets`, `features` or `program`;
+- an `(include ...)` form: the file an app loads names its others with one, read with the file, and it is never an entry.
 
 A document can hold other sections beside `program` (a JSON screen that includes a program, an asset a revision brought): they
 are merged member by member with what it builds. **A definition's `state` is what a key starts from, and a person's data is never
@@ -468,7 +471,9 @@ Each definition is one area, so "Always allow" remembers that one definition.
 an `ask` or a `deny` rule on `/actions`, or on a path inside it (`/actions/save`, `/*/save`), and an owner of one in `review`, also cover a
 change of any definition that can run when an action would: a function, a command, a key, a `def` or a `defcustom`, a macro, a hook or
 advice, added, changed or taken away. Only a screen's definition (`defscreen`) that no other definition uses by name is left to what it
-builds: a function can't be in a tree, so all a screen does is there, judged as a JSON node is. A program that can't be built counts
+builds: a function can't be in a tree, so all a screen does is there, judged as a JSON node is. So is a definition that only builds
+a section (`defstate`, `defcomputed`, `defstyle`, `defcomponent`, `defmenu`, `deftokens`, `defpart`, `defdefaults`); a `defview` is a
+function, and counts as code. A program that can't be built counts
 every change. The code isn't told apart by action, so a rule on `/actions/save` covers all of it: that is the simple sound side, where
 following what one action reaches through names, keys and hooks would be more to get wrong. So a JSON app's `"ask": ["agent(/actions)"]`
 goes on asking for an agent's new function after the app becomes a program, in every mode; the person's own evaluation, never
@@ -513,7 +518,10 @@ worked out back and forth with the actions until neither grows, with any advice 
 own action, which may do anything. A `run` of a computed name reaches anything, and so does a definition that uses `run` any other way (as a
 value, through `apply`). A step's handler in a function (`:onDone`, `:do`...) takes a function of the program only, never a name or steps
 as a value, so `run` is the only way code names what it runs. So a handler, a key, a timer or `onLoad` a revision adds can't name one, as
-with an action that holds such a step.
+with an action that holds such a step. **Nor may a revision change a definition that runs code and reaches a control or a review step**, or
+take one away, as no revision may alter a JSON action holding one: its arguments included, so `(signIn "exampleId")` can't become
+`(signIn "other")`, nor a function that gives one its argument what it gives. A view, a screen and a section's definition build a tree,
+judged as any (`format::alteredControlDefinition`).
 
 **Uses of services in functions are judged as JSON's.** `invoke`, `request` and `subscribe` naming their method or operation written out
 (`(invoke "files.read" :with {...})`), and `image` short of a file dialog, are judged by what they use, as in a document: a revision that

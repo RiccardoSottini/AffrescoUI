@@ -119,3 +119,8 @@ Every task passed, both ways. Tokens and calls are within what one run per task 
 command, where the JSON task took 12 calls to the Lisp task's 7: one run, so not yet a difference. This says agents
 write Lisp as accurately as JSON on these changes; it doesn't say they do better, so Lisp isn't recommended to agents
 over JSON on these numbers. More runs per task, and other models, would.
+
+Since then Calamaio is a program only, so its JSON tasks are gone. The JSON side of each pair is now on an app written
+both ways, not measured with a model yet: `json-streak-body`, `json-streak-command-key` and `json-streak-hook` (paired
+with `lisp-streak-body`, `lisp-streak-command-key` and `lisp-streak-hook`, an `advice`), and `json-flow-title` with
+`lisp-flow-title`, as Flow's palette shows a command's title and Streak's doesn't.

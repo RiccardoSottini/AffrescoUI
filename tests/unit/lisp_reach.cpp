@@ -109,6 +109,54 @@ TEST_CASE("lisp reach attack: a target built at run time, passed in, or taken as
 	}
 }
 
+TEST_CASE("lisp reach attack: a function holding a control step can't be altered, its arguments included") {
+	// As a JSON action holding a control step: a revision may not point the step elsewhere, nor change what a
+	// function that runs one gives it
+	App app(program(R"lisp(
+(defn reaches "Calls the native with what it is given." [what] (call what))
+(defn persons-caller "The person's: gives reaches its argument." [] (reaches "hit"))
+)lisp"),
+	        true);
+	for(const auto& [name, text] : std::vector<std::pair<std::string, std::string>>{
+	        {"persons", R"((defn persons "The persons own: reaches outside." [] (call "other")))"},
+	        {"persons", R"((defn persons "Reworded." [] (call "hit")))"},
+	        {"persons-caller",
+			 R"((defn persons-caller "The person's: gives reaches its argument." [] (reaches "other")))"}}) {
+		CAPTURE(text);
+		const auto result = agentSets(app, name, text);
+		CHECK(result.status == RevisionStatus::Rejected);
+		CHECK(result.error.contains("permission denied"));
+	}
+	// A function that reaches none stays the agent's to change
+	CHECK(agentSets(app, "quiet", R"((defn quiet "Only sets." [] (set "state.n" 3)))").status ==
+	      RevisionStatus::Applied);
+}
+
+TEST_CASE("lisp reach attack: a definition named like a control or a review step can't take the step over") {
+	// The code calling `call` or `accept` would call the agent's definition instead: the person's command would then
+	// quietly do nothing, or what the agent wrote, with no word changed in it
+	App app(program(R"lisp(
+(defn approves "The person's: accepts what is shown." [] (accept))
+(defn saveFile "The app's own, named like the step on purpose." [] (set "state.n" 5))
+)lisp"),
+	        true);
+	for(const auto& [name, text] : std::vector<std::pair<std::string, std::string>>{
+	        {"call", R"((defn call "Takes persons's call over." [what] (set "state.n" 9)))"},
+	        {"accept", R"((defn accept "Takes approves's accept over." [] (set "state.n" 9)))"},
+	        {"reject", R"((defn reject "Nothing calls it yet." [] nil))"},
+	        {"saveFile", R"((defn saveFile "The app's own, changed." [] (set "state.n" 6)))"}}) {
+		CAPTURE(name);
+		const auto result = agentSets(app, name, text);
+		CHECK(result.status == RevisionStatus::Rejected);
+		CHECK(result.error.contains("permission denied"));
+	}
+	// Nor taken away, which would give its callers the step itself
+	const auto removed = app.repository.submit(
+	    {{"author", "agent/x"}, {"message", "m"}, {"remove", json::array({"/program/app.lisp/saveFile"})}});
+	CHECK(removed.status == RevisionStatus::Rejected);
+	CHECK(removed.error.contains("permission denied"));
+}
+
 TEST_CASE("lisp reach attack: a target redefined by a later revision takes what reaches it with it") {
 	App app(program(R"lisp(
 (defn target "Only sets, for now." [] (set "state.n" 3))
@@ -135,28 +183,40 @@ TEST_CASE("lisp reach attack: a target redefined by a later revision takes what 
 }
 
 TEST_CASE("lisp reach attack: a cycle reaches what any of it reaches, and ends") {
-	App app(program(R"lisp(
+	// Through a JSON action and back: `there` runs `back`, which runs `there`
+	std::string text = program(R"lisp(
 (defn ping "" [] (run "pong"))
 (defn pong "" [] (run "ping"))
 (defn there "" [] (run "back"))
 (defn left "" [] (run "right"))
 (defn right "" [] (run "left") (call "hit"))
+)lisp");
+	const std::string actions = ":approving [{:call \"hit\"}]";
+	text.insert(text.find(actions) + actions.size(), " :back [{:run \"there\"}]");
+	App app(text, true);
+	CHECK(agentBinds(app, "ping").status == RevisionStatus::Applied);
+	CHECK(agentBinds(app, "there").status == RevisionStatus::Applied);
+	const auto result = agentBinds(app, "left");
+	CHECK(result.status == RevisionStatus::Rejected);
+	CHECK(result.error.contains("permission denied"));
+}
+
+TEST_CASE("lisp reach attack: a name the person's code runs, given to an agent's action, takes its reach away") {
+	// `there` runs `back`, which nothing defines: the application's own action, which may be anything. An agent's JSON
+	// action named so would take the person's code over, as a definition named like a step would
+	App app(program(R"lisp(
+(defn there "" [] (run "back"))
 )lisp"),
 	        true);
-	CHECK(agentBinds(app, "ping").status == RevisionStatus::Applied);
-	// Through a JSON action and back
-	const auto loop = app.repository.submit(
+	const auto taken = app.repository.submit(
 	    {{"author", "agent/x"},
 		 {"message", "m"},
 		 {"set",
 		  {{"/program/app.lisp/main", std::string("(defscreen main ") + kPermissions +
 		                                  R"( :state {:n 0} :actions {:tidy [{:set "state.n" :to 2}]
-	                                         :approving [{:call "hit"}] :back [{:run "there"}]} (panel#root)))"}}}});
-	REQUIRE(loop.status == RevisionStatus::Applied);
-	CHECK(agentBinds(app, "there").status == RevisionStatus::Applied);
-	const auto result = agentBinds(app, "left");
-	CHECK(result.status == RevisionStatus::Rejected);
-	CHECK(result.error.contains("permission denied"));
+	                                         :approving [{:call "hit"}] :back [{:set "state.n" :to 3}]} (panel#root)))"}}}});
+	CHECK(taken.status == RevisionStatus::Rejected);
+	CHECK(taken.error.contains("permission denied"));
 }
 
 TEST_CASE("lisp reach attack: a target that is an agent's function is what that function reaches") {

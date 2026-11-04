@@ -1,311 +1,309 @@
-{:$schema "../../../../../schema/affrescoui-screen.schema.json"
- :format affrescoui-screen
- :version 2
- :note "Forge's Search view: an editor page (Find in Files, mod+shift+f) that searches the open folder with the search service (search.find, cancellable, one event per file, built into state.search.result), shows the matches as a tree by file, opens a match at its line, and replaces every match after a confirm, one file at a time (search.replace, then files.write). Build output and dependencies (state.search.skip) are never searched; files with unsaved edits are skipped, and the open ones that changed are read again."
- :state {:search {:query ""
-                  :replace ""
-                  :regex false
-                  :wholeWord false
-                  :caseSensitive false
-                  :include ""
-                  :exclude ""
-                  :result nil
-                  :ran nil
-                  :collapsed []
-                  :selected nil
-                  :menu false
-                  :x 0
-                  :y 0
-                  :reload []
-                  :replacing nil
-                  :skip "build, node_modules, out, target, dist, __pycache__"
-                  :busy false
-                  :confirm false
-                  :error ""}
-         :searchEditor {:caret {:line 1 :column 1 :selected 0}}}
- :computed {:searchEditorRows "{{concat([{text: (empty(computed.searchSummary) ? 'No search yet' : computed.searchSummary) + (empty(state.search.query) ? '' : ' for ' + state.search.query), id: ''}, {text: '', id: ''}], reduce(state.search.result ? state.search.result.tree : [], concat(acc, [{text: slice(it.id, 5), id: it.id}], map(it.children ?? [], {text: '  ' + it.label, id: it.id}), [{text: '', id: ''}]), []))}}"
-            :searchEditorText "{{join(map(computed.searchEditorRows, it.text), '\n')}}"
-            :searchExpanded "{{state.search.result ? filter(map(state.search.result.tree, it.id), !contains(state.search.collapsed, it)) : []}}"
-            :searchSummary "{{!empty(state.search.error) ? state.search.error : state.search.result ? (state.search.result.matches == 0 ? 'No results' : plural(state.search.result.matches, 'result') + ' in ' + plural(state.search.result.files, 'file')) + (state.search.result.truncated ? ', capped' : '') + (state.search.result.done ? '' : '...') : ''}}"}
- :actions {:findInFiles {:title "Find in Files"
-                         :category "Search"
-                         :icon search
-                         :do [{:set state.sideView :to search}
-                              {:set state.layout.sidebar :to true}
-                              {:after 0 :do [{:focus "#search-query"}]}]}
-           :runSearch [{:cancel forge-search}
-                       {:set state.search.error :to ""}
-                       {:set state.search.collapsed :to []}
-                       {:if "{{empty(trim(state.search.query))}}"
-                        :then [{:set state.search.result :to nil} {:set state.search.ran :to nil}]
-                        :else [{:if "{{empty(state.folder.root)}}"
-                                :then [{:set state.search.result :to nil}
-                                       {:set state.search.error :to "Open a folder to search it."}]
-                                :else [{:run startSearch}]}]}]
-           :startSearch [{:set state.search.ran
-                          :to "{{ {pattern: state.search.query, regex: state.search.regex, wholeWord: state.search.wholeWord, caseSensitive: state.search.caseSensitive, include: state.search.include, exclude: state.search.skip + (empty(trim(state.search.exclude)) ? '' : ', ' + state.search.exclude)} }}"}
-                         {:set state.search.result
-                          :to {:tree [] :hits [] :files 0 :matches 0 :skipped 0 :truncated false :done false}}
-                         {:invoke search.find
-                          :with "{{state.search.ran}}"
-                          :id forge-search
-                          :timeout 600000
-                          :loading state.search.busy
-                          :onEvent [{:run searchFound :with {:found "{{event}}"}}]
-                          :onError [{:if "{{error.code != 'cancelled'}}"
-                                     :then [{:set state.search.result :to nil}
-                                            {:set state.search.error :to "{{error.message}}"}]}]
-                          :onDone [{:set state.search.result
-                                    :to "{{merge(state.search.result, {tree: sort(state.search.result.tree, it.id), skipped: result.skipped, truncated: result.truncated, done: true})}}"}
-                                   {:run log
-                                    :with {:text "{{'Search: ' + plural(state.search.result.matches, 'result') + ' in ' + plural(state.search.result.files, 'file')}}"}}]}]
-           :searchFound [{:note "found: { file, matches: [{ line (from 1), column, length, text, at }] }, one file's matches: a tree item with a child per match, each naming its place in hits"}
-                         {:set state.search.result
-                          :to "{{merge(state.search.result, {tree: concat(state.search.result.tree, [{id: 'file:' + found.file, label: reverse(split(found.file, '/'))[0] + (contains(found.file, '/') ? '  ' + slice(found.file, 0, length(found.file) - length(reverse(split(found.file, '/'))[0]) - 1) : '') + '  (' + length(found.matches) + ')', icon: 'file', children: map(found.matches, {id: 'hit:' + (length(state.search.result.hits) + index), label: it.line + ': ' + trim(it.text)})}]), hits: concat(state.search.result.hits, map(found.matches, {file: found.file, label: reverse(split(found.file, '/'))[0], line: it.line, column: it.column})), files: state.search.result.files + 1, matches: state.search.result.matches + length(found.matches)})}}"}]
-           :cancelSearch {:title "Cancel Search"
-                          :category "Search"
-                          :icon close
-                          :enablement "{{state.search.busy}}"
-                          :do [{:cancel forge-search}]}
-           :openSearchHit [{:if "{{slice(event.id ?? '', 0, 4) == 'hit:'}}"
-                            :then [{:run openSearchMatch
-                                    :with {:hit "{{state.search.result.hits[number(slice(event.id, 4))]}}"}}]
-                            :else [{:if "{{slice(event.id ?? '', 0, 5) == 'file:'}}"
-                                    :then [{:run openPath
-                                            :with {:path "{{slice(event.id, 5)}}"
-                                                   :label "{{reverse(split(event.id, '/'))[0]}}"}}]}]}]
-           :openSearchEditor {:title "Open Results in Editor"
-                              :category "Search"
-                              :icon file-text
-                              :description "Show the search's results as text in an editor tab; Enter or a double click on a line opens it."
-                              :enablement "{{state.search.result != null}}"
-                              :do [{:run openPage
-                                    :with {:id "forge:search-results" :label "Search Results" :kind searchResults}}]}
-           :openSearchEditorLine [{:run openSearchRow
-                                   :with {:row "{{computed.searchEditorRows[(state.searchEditor.caret.line ?? 1) - 1] ?? {id: ''} }}"}}]
-           :openSearchRow [{:if "{{slice(row.id, 0, 4) == 'hit:'}}"
-                            :then [{:run openSearchMatch
-                                    :with {:hit "{{state.search.result.hits[number(slice(row.id, 4))]}}"}}]
-                            :else [{:if "{{slice(row.id, 0, 5) == 'file:'}}"
-                                    :then [{:run openPath
-                                            :with {:path "{{slice(row.id, 5)}}"
-                                                   :label "{{reverse(split(row.id, '/'))[0]}}"}}]}]}]
-           :searchDismiss {:title "Dismiss"
-                           :category "Search"
-                           :icon close
-                           :description "Take the selected file or match out of the results; the files stay as they are."
-                           :enablement "{{state.search.result != null && state.search.result.done && !empty(state.search.selected ?? '')}}"
-                           :do [{:if "{{slice(state.search.selected, 0, 5) == 'file:'}}"
-                                 :then [{:run searchDismissFile
-                                         :with {:file "{{find(state.search.result.tree, it.id == state.search.selected)}}"}}]
-                                 :else [{:run searchDismissHit
-                                         :with {:hit "{{state.search.selected}}"
-                                                :file "{{find(state.search.result.tree, some(it.children, it.id == state.search.selected))}}"}}]}
-                                {:set state.search.selected :to nil}]}
-           :searchDismissFile [{:if "{{file != null}}"
-                                :then [{:set state.search.result
-                                        :to "{{merge(state.search.result, {tree: filter(state.search.result.tree, it.id != file.id), files: state.search.result.files - 1, matches: state.search.result.matches - length(file.children)})}}"}]}]
-           :searchDismissHit [{:if "{{file != null && length(file.children) <= 1}}"
-                               :then [{:run searchDismissFile :with {:file "{{file}}"}}]
-                               :else [{:if "{{file != null}}"
-                                       :then [{:set state.search.result
-                                               :to "{{merge(state.search.result, {tree: map(state.search.result.tree, it.id != file.id ? it : merge(it, {children: filter(it.children, it.id != hit), label: slice(it.label, 0, length(it.label) - length('(' + length(it.children) + ')')) + '(' + (length(it.children) - 1) + ')'})), matches: state.search.result.matches - 1})}}"}]}]}]
-           :openSearchMatch [{:if "{{hit != null}}"
-                              :then [{:run openPath :with {:path "{{hit.file}}" :label "{{hit.label}}"}}
-                                     {:run goToLine :with {:line "{{hit.line}}"}}]}]
-           :askReplace [{:if "{{state.search.result && state.search.result.done && state.search.result.files > 0}}"
-                         :then [{:set state.search.confirm :to true}]}]
-           :replaceAll [{:note "One file at a time (the search service runs 4 calls at once): its text replaced by search.replace, written by files.write; open files with unsaved edits are skipped"}
-                        {:set state.search.replacing
-                         :to "{{ {queue: filter(map(state.search.result.tree, slice(it.id, 5)), !contains(computed.dirtyIds, it)), skipped: filter(map(state.search.result.tree, slice(it.id, 5)), contains(computed.dirtyIds, it)), replaced: 0, changed: [], failed: []} }}"}
-                        {:run replaceNext}]
-           :replaceNext [{:if "{{empty(state.search.replacing.queue)}}"
-                          :then [{:run replaceFinished :with {:done "{{state.search.replacing}}"}}]
-                          :else [{:run replaceFile :with {:file "{{state.search.replacing.queue[0]}}"}}]}]
-           :replaceFile [{:set state.search.replacing.queue :to "{{slice(state.search.replacing.queue, 1)}}"}
-                         {:invoke search.replace
-                          :with "{{ {path: file, pattern: state.search.ran.pattern, regex: state.search.ran.regex, wholeWord: state.search.ran.wholeWord, caseSensitive: state.search.ran.caseSensitive, replacement: state.search.replace} }}"
-                          :onError [{:run replaceFailed :with {:file "{{file}}" :message "{{error.message}}"}}]
-                          :onDone [{:if "{{result.replacements == 0}}"
-                                    :then [{:run replaceNext}]
-                                    :else [{:run replaceWrite
-                                            :with {:file "{{file}}"
-                                                   :text "{{result.text}}"
-                                                   :count "{{result.replacements}}"}}]}]}]
-           :replaceWrite [{:invoke files.write
-                           :with {:path "{{file}}" :text "{{text}}"}
-                           :onError [{:run replaceFailed :with {:file "{{file}}" :message "{{error.message}}"}}]
-                           :onDone [{:set state.search.replacing.replaced
-                                     :to "{{state.search.replacing.replaced + count}}"}
-                                    {:set state.search.replacing.changed
-                                     :to "{{concat(state.search.replacing.changed, [file])}}"}
-                                    {:run replaceNext}]}]
-           :replaceFailed [{:set state.search.replacing.failed
-                            :to "{{concat(state.search.replacing.failed, [{file: file, error: message}])}}"}
-                           {:run replaceNext}]
-           :replaceFinished [{:set state.search.replacing :to nil}
-                             {:set state.search.reload :to "{{filter(done.changed, contains(computed.docIds, it))}}"}
-                             {:forEach state.search.reload
-                              :as file
-                              :do [{:invoke files.read
-                                    :with {:path "{{file}}"}
-                                    :onDone [{:run reloaded :with {:id "{{file}}" :text "{{result.text}}"}}]}]}
-                             {:run notify
-                              :with {:severity "{{length(done.failed) > 0 || length(done.skipped) > 0 ? 'warning' : 'info'}}"
-                                     :message "{{'Replaced ' + plural(done.replaced, 'match', 'matches') + ' in ' + plural(length(done.changed), 'file') + (length(done.skipped) > 0 ? ', skipped ' + plural(length(done.skipped), 'unsaved file') : '') + (length(done.failed) > 0 ? ', ' + plural(length(done.failed), 'file') + ' failed' : '')}}"}}
-                             {:run runSearch}]}
- :keys {"mod+shift+f" findInFiles}
- :menus {:go {:findInFiles {:run findInFiles :group "2_search" :order 1}}
-         :searchResult {:dismiss {:run searchDismiss :group "1_dismiss" :order 1}}}
- :components {:forgeSearchEditor {:node (editor#search-editor :label "Search Results"
-                                          :font code
-                                          :width "100%"
-                                          :grow 1
-                                          :text "{{computed.searchEditorText}}"
-                                          :readOnly true
-                                          :lineNumbers false
-                                          :caret state.searchEditor.caret
-                                          :color @color.editor
-                                          :textColor @color.editorText
-                                          :selectionColor @color.selection
-                                          :lineColor @color.hover
-                                          :caretColor @color.text
-                                          :scrollMarks true
-                                          :find "{{empty(state.search.query) || state.search.result == null ? null : {text: state.search.query, regex: state.search.regex, wholeWord: state.search.wholeWord, caseSensitive: state.search.caseSensitive} }}"
-                                          :keys {:enter openSearchEditorLine}
-                                          :onDoubleClick {:run openSearchEditorLine})}
-              :forgeSearchPage {:node (column#search-page :width "100%" :grow 1 :gap 4
-                                        (node :use forgeViewTitle :with {:text "Search"})
-                                        (node#search-query-row :use forgeInset :height 26
-                                          (row#search-query-box :grow 1
-                                            :height 26
-                                            :color @color.input
-                                            :alignItems center
-                                            (node :use forgeSearchField
-                                              :with {:field query :hint "Search"}
-                                              :onSubmit {:run runSearch})
-                                            (node :use forgeSearchOption
-                                              :with {:option case
-                                                     :bind caseSensitive
-                                                     :icon case-sensitive
-                                                     :tip "Match Case"})
-                                            (node :use forgeSearchOption
-                                              :with {:option word
-                                                     :bind wholeWord
-                                                     :icon whole-word
-                                                     :tip "Match Whole Word"})
-                                            (node :use forgeSearchOption
-                                              :with {:option regex
-                                                     :bind regex
-                                                     :icon regex
-                                                     :tip "Use Regular Expression"})))
-                                        (node#search-replace-row :use forgeInset :height 26 :alignItems center
-                                          (node :use forgeSearchField :with {:field replace :hint "Replace"})
-                                          (label#search-replace-all :role button
-                                            :label "Replace All"
-                                            :icon replace-all
-                                            :font icons
-                                            :width 26
-                                            :height 26
-                                            :align center
-                                            :cursor hand
-                                            :tooltip "Replace All"
-                                            :textColor @color.text
-                                            :hover {:color @color.hover}
-                                            :onClick {:run askReplace}))
-                                        (node :use forgeSearchFilter
-                                          :with {:title "files to include"
-                                                 :filter include
-                                                 :example "e.g. src/**, *.cpp"})
-                                        (node :use forgeSearchFilter
-                                          :with {:title "files to exclude" :filter exclude :example "e.g. build, *.md"})
-                                        (node :use forgeInset :height 22
-                                          (label#search-summary :text "{{state.search.busy ? 'Searching... ' + computed.searchSummary : computed.searchSummary}}"
-                                            :textColor @color.muted
-                                            :grow 1
-                                            :height 22)
-                                          (label#search-open-editor :when "{{state.search.result != null}}"
-                                            :role button
-                                            :label "Open Results in Editor"
-                                            :icon file-text
-                                            :font icons
-                                            :width 22
-                                            :height 22
-                                            :align center
-                                            :cursor hand
-                                            :radius 3
-                                            :tooltip "Open Results in Editor"
-                                            :textColor @color.text
-                                            :hover {:color @color.hover}
-                                            :onClick {:run openSearchEditor}))
-                                        (tree#search-results :when "{{state.search.result != null}}"
-                                          :width "100%"
-                                          :grow 1
-                                          :items "{{state.search.result.tree}}"
-                                          :expanded "{{computed.searchExpanded}}"
-                                          :bind state.search.selected
-                                          :rowHeight 22
-                                          :color @color.sideBar
-                                          :textColor @color.text
-                                          :selectedTextColor @color.text
-                                          :selectedBackground @color.selection
-                                          :accentColor @color.accent
-                                          :onExpand [{:set state.search.collapsed
-                                                      :to "{{event.expanded ? filter(state.search.collapsed, it != event.id) : concat(state.search.collapsed, [event.id])}}"}]
-                                          :onOpen {:run openSearchHit}
-                                          :keys {:delete searchDismiss :backspace searchDismiss}
-                                          :onContextMenu [{:set state.search.x :to "{{event.x}}"}
-                                                          {:set state.search.y :to "{{event.y}}"}
-                                                          {:set state.search.menu :to true}])
-                                        (node#search-menu :use contextMenu
-                                          :with {:open state.search.menu
-                                                 :items "{{menus.searchResult}}"
-                                                 :x "{{state.search.x}}"
-                                                 :y "{{state.search.y}}"})
-                                        (node :use dialog
-                                          :with {:open state.search.confirm
-                                                 :title "Replace All"
-                                                 :message "{{state.search.result ? 'Replace ' + plural(state.search.result.matches, 'match', 'matches') + ' in ' + plural(state.search.result.files, 'file') + ' with \"' + state.search.replace + '\"? Files with unsaved edits are skipped.' : ''}}"
-                                                 :buttons [{:title "Replace" :run replaceAll} {:title "Cancel"}]}))}
-              :forgeInset {:node (row :width "100%"
-                                   (node :width 12)
-                                   (node :slot true)
-                                   (node :width 12))}
-              :forgeSearchFilter {:params {:title "" :filter "" :example ""}
-                                  :node (node :use forgeInset :height 44
-                                          (column :grow 1 :height 44
-                                            (label :text "{{title}}" :textColor @color.muted :width "100%" :height 18)
-                                            (node :use forgeSearchField
-                                              :with {:field "{{filter}}" :hint "{{example}}"}
-                                              :width "100%"
-                                              :grow 0
-                                              :onSubmit {:run runSearch})))}
-              :forgeSearchField {:params {:field "" :hint ""}
-                                 :node (textarea :id "search-{{field}}"
-                                         :bind "state.search.{{field}}"
-                                         :grow 1
-                                         :height 26
-                                         :padding 5
-                                         :color @color.input
-                                         :textColor @color.text
-                                         :placeholderColor @color.muted
-                                         :placeholder "{{hint}}")}
-              :forgeSearchOption {:params {:option "" :bind "" :icon "" :tip ""}
-                                  :node (label :id "search-{{option}}"
-                                          :role checkbox
-                                          :label "{{tip}}"
-                                          :checked "{{state.search[bind]}}"
-                                          :icon "{{icon}}"
-                                          :font icons
-                                          :width 22
-                                          :height 22
-                                          :align center
-                                          :cursor hand
-                                          :tooltip "{{tip}}"
-                                          :radius 3
-                                          :textColor @color.text
-                                          :borderWidth 1
-                                          :borderColor "{{state.search[bind] ? '@color.accent' : '@color.input'}}"
-                                          :color "{{state.search[bind] ? '@color.selection' : '@color.input'}}"
-                                          :hover {:color @color.hover}
-                                          :onClick {:toggle "state.search.{{bind}}"})}}}
+;;; search.lisp --- Forge's search: Find in Files over the open folder, its results, and Replace All
+;;;
+;;; The search service searches the folder (search.find, cancellable, one event per file, gathered in
+;;; state.search.result); the side bar shows the matches as a tree by file, and Open Results in Editor shows them as
+;;; text in a tab. A match opens at its line. Replace All asks first, then replaces one file at a time
+;;; (search.replace, then files.write): files with unsaved edits are skipped, and the open ones that changed are read
+;;; again. Build output and dependencies (state.search.skip) are never searched.
+
+;;; Searching
+
+(defstate search
+  {:query ""
+   :replace ""
+   :regex false
+   :wholeWord false
+   :caseSensitive false
+   :include ""
+   :exclude ""
+   :result nil
+   :ran nil
+   :collapsed []
+   :selected nil
+   :menu false
+   :x 0
+   :y 0
+   :reload []
+   :replacing nil
+   :skip "build, node_modules, out, target, dist, __pycache__"
+   :busy false
+   :confirm false
+   :error ""})
+
+(defcommand findInFiles "Shows the Search view, its query field focused."
+  :title ~(t "command.findInFiles")
+  :description ~(t "command.findInFiles") :category ~(t "category.search") :icon "search" []
+  (set "state.sideView" "search")
+  (set "state.layout.sidebar" true)
+  (after 0 findInFilesLater))
+
+(defn findInFilesLater "Focuses the query field once the view is shown." []
+  (focus "#search-query"))
+
+(defn runSearch
+  "Searches again for the query, after cancelling the search running; nothing without a query or a folder."
+  []
+  (cancel "forge-search")
+  (set "state.search.error" "")
+  (set "state.search.collapsed" [])
+  (cond
+    (empty? (trim state.search.query)) (do (set "state.search.result" nil) (set "state.search.ran" nil))
+    (empty? state.folder.root)
+      (do (set "state.search.result" nil) (set "state.search.error" (t "search.noFolder")))
+    :else (startSearch)))
+
+(defn startSearch "Starts a search with the view's options; build output and dependencies are left out." []
+  (set "state.search.ran"
+       {:pattern state.search.query
+        :regex state.search.regex
+        :wholeWord state.search.wholeWord
+        :caseSensitive state.search.caseSensitive
+        :include state.search.include
+        :exclude (str state.search.skip (if (empty? (trim state.search.exclude)) "" (str ", " state.search.exclude)))})
+  (set "state.search.result" {:tree [] :hits [] :files 0 :matches 0 :skipped 0 :truncated false :done false})
+  (invoke "search.find"
+          :with state.search.ran
+          :id "forge-search"
+          :timeout 600000
+          :loading "state.search.busy"
+          :onEvent startSearchEvent
+          :onError startSearchFailed
+          :onDone startSearchDone))
+
+(defn startSearchEvent "A file's matches, as they come." [event]
+  (searchFound event))
+
+(defn startSearchDone "The search is over: the files in order, and Output says how many matches." [result]
+  (set "state.search.result"
+       (merge state.search.result
+              {:tree (sort-by (fn [it] it.id) state.search.result.tree)
+               :skipped result.skipped
+               :truncated result.truncated
+               :done true}))
+  (log-line (t "log.search" {:matches state.search.result.matches :files state.search.result.files})))
+
+(defn startSearchFailed "Says why the search failed, unless it was cancelled." [error]
+  (when (not= error.code "cancelled") (set "state.search.result" nil) (set "state.search.error" error.message)))
+
+(defn searchFound
+  "One file's matches (`found`: file, matches): a tree item with a child per match, each naming its place in hits."
+  [found]
+  (set "state.search.result"
+       (merge state.search.result
+              {:tree (concat state.search.result.tree
+                             [{:id (str "file:" found.file)
+                               :label (str (baseName found.file)
+                                           (if (contains found.file "/")
+                                             (str "  "
+                                                  (slice found.file
+                                                         0
+                                                         (- (- (count found.file) (count (baseName found.file))) 1)))
+                                             "")
+                                           "  ("
+                                           (count found.matches)
+                                           ")")
+                               :icon "file"
+                               :children (map-indexed (fn [index it]
+                                                        {:id (str "hit:" (+ (count state.search.result.hits) index))
+                                                         :label (str it.line ": " (trim it.text))})
+                                                      found.matches)}])
+               :hits (concat state.search.result.hits
+                             (map (fn [it]
+                                    {:file found.file :label (baseName found.file) :line it.line :column it.column})
+                                  found.matches))
+               :files (+ state.search.result.files 1)
+               :matches (+ state.search.result.matches (count found.matches))})))
+
+(defcommand cancelSearch "Cancel Search"
+  :title ~(t "command.cancelSearch") :description ~(t "command.cancelSearch") :category ~(t "category.search")
+  :icon "close" :enablement ~state.search.busy []
+  (cancel "forge-search"))
+
+(defkey "mod+shift+f" findInFiles)
+
+;;; The results
+
+(defcomputed searchSummary
+  (cond (not (empty? state.search.error)) state.search.error
+          state.search.result (str (if (= state.search.result.matches 0)
+                                     (t "search.none")
+                                     (t "search.found" {:matches state.search.result.matches
+                                                        :files state.search.result.files}))
+                                   (if state.search.result.truncated (t "search.capped") "")
+             (if state.search.result.done "" "..."))
+          :else ""))
+
+(defcomputed searchExpanded
+  (if state.search.result
+        (filter (fn [it] (not (contains state.search.collapsed it))) (map (fn [it] it.id) state.search.result.tree))
+        []))
+
+(defn openSearchHit "A row of the results tree, opened: a match at its line, or a file." []
+  (cond
+    (= (slice (or-else event.id "") 0 4) "hit:")
+      (openSearchMatch (get state.search.result.hits (number (slice event.id 4))))
+    (= (slice (or-else event.id "") 0 5) "file:") (openPath (slice event.id 5) (baseName event.id))))
+
+(defn openSearchMatch "Opens a match's file at its line." [hit]
+  (when (some? hit) (openPath hit.file hit.label) (goToLine hit.line)))
+
+(defcommand searchDismiss "Take the selected file or match out of the results; the files stay as they are."
+  :title ~(t "command.searchDismiss") :category ~(t "category.search") :icon "close"
+  :description ~(t "command.searchDismiss.about")
+  :enablement ~(and (some? state.search.result) state.search.result.done (not (empty? (or-else state.search.selected "")))) []
+  (if (= (slice state.search.selected 0 5) "file:")
+    (searchDismissFile (find (fn [it] (= it.id state.search.selected)) state.search.result.tree))
+    (searchDismissHit
+      state.search.selected
+      (find (fn [it] (some (fn [it] (= it.id state.search.selected)) it.children)) state.search.result.tree)))
+  (set "state.search.selected" nil))
+
+(defn searchDismissFile "Takes a file and its matches out of the results." [file]
+  (when (some? file)
+    (set "state.search.result"
+         (merge state.search.result
+                {:tree (filter (fn [it] (not= it.id file.id)) state.search.result.tree)
+                 :files (- state.search.result.files 1)
+                 :matches (- state.search.result.matches (count file.children))}))))
+
+(defn searchDismissHit "Takes a match out of the results, and its file when it was the last." [hit file]
+  (cond
+    (and (some? file) (<= (count file.children) 1)) (searchDismissFile file)
+    (some? file)
+      (set "state.search.result"
+           (merge state.search.result
+                  {:tree (map (fn [it]
+                                (if (not= it.id file.id)
+                                  it
+                                  (merge it
+                                         {:children (filter (fn [it] (not= it.id hit)) it.children)
+                                          :label (str (slice it.label
+                                                             0
+                                                             (- (count it.label)
+                                                                (count (str "(" (count it.children) ")"))))
+                                                      "("
+                                                      (- (count it.children) 1)
+                                                      ")")})))
+                              state.search.result.tree)
+                   :matches (- state.search.result.matches 1)}))))
+
+(defn searchExpand "A file of the results opened or closed (`event.expanded`): it is remembered." []
+  (set "state.search.collapsed"
+       (if event.expanded
+         (filter (fn [it] (not= it event.id)) state.search.collapsed)
+         (concat state.search.collapsed [event.id]))))
+
+(defn searchMenu "The results' menu, opened where the right-click was." []
+  (set "state.search.x" event.x)
+  (set "state.search.y" event.y)
+  (set "state.search.menu" true))
+
+(defn toggleSearchOption "Turns an option of the query on or off: caseSensitive, wholeWord or regex." [option]
+  (toggle (str "state.search." option)))
+
+;;; The results in an editor
+
+(defstate searchEditor {:caret {:line 1 :column 1 :selected 0}})
+
+(defcomputed searchEditorRows
+  (concat [{:text (str (if (empty? computed.searchSummary) (t "search.notYet") computed.searchSummary)
+                         (if (empty? state.search.query) "" (t "search.for" {:query state.search.query})))
+              :id ""}
+             {:text "" :id ""}]
+            (reduce (fn [acc it]
+                      (concat acc
+                              [{:text (slice it.id 5) :id it.id}]
+                              (map (fn [it] {:text (str "  " it.label) :id it.id}) (or-else it.children []))
+                              [{:text "" :id ""}]))
+                    []
+                    (if state.search.result state.search.result.tree []))))
+
+(defcomputed searchEditorText (join "\n" (map (fn [it] it.text) computed.searchEditorRows)))
+
+(defcommand openSearchEditor
+  "Show the search's results as text in an editor tab; Enter or a double click on a line opens it."
+  :title ~(t "command.openSearchEditor") :category ~(t "category.search") :icon "file-text"
+  :description ~(t "command.openSearchEditor.about") :enablement ~(some? state.search.result) []
+  (openPage "forge:search-results" (t "page.searchResults") "searchResults"))
+
+(defn openSearchEditorLine "The results editor's line at the caret, opened." []
+  (openSearchRow (or-else (get computed.searchEditorRows (- (or-else state.searchEditor.caret.line 1) 1)) {:id ""})))
+
+(defn openSearchRow "A row of the results, opened: a match at its line, or a file." [row]
+  (cond
+    (= (slice row.id 0 4) "hit:") (openSearchMatch (get state.search.result.hits (number (slice row.id 4))))
+    (= (slice row.id 0 5) "file:") (openPath (slice row.id 5) (baseName row.id))))
+
+;;; Replace All
+
+(defn askReplace "Asks before replacing, when the search found something." []
+  (when (and state.search.result state.search.result.done (> state.search.result.files 0))
+    (set "state.search.confirm" true)))
+
+(defn replaceAll "Replaces every match, one file at a time; open files with unsaved edits are skipped."
+  []
+  (set "state.search.replacing"
+       {:queue (filter (fn [it] (not (contains computed.dirtyIds it)))
+                       (map (fn [it] (slice it.id 5)) state.search.result.tree))
+        :skipped (filter (fn [it] (contains computed.dirtyIds it))
+                         (map (fn [it] (slice it.id 5)) state.search.result.tree))
+        :replaced 0
+        :changed []
+        :failed []})
+  (replaceNext))
+
+(defn replaceNext "Replaces in the next file, or ends." []
+  (if (empty? state.search.replacing.queue)
+    (replaceFinished state.search.replacing)
+    (replaceFile state.search.replacing.queue.0)))
+
+(defn replaceFile "Replaces a file's matches, then writes it." [file]
+  (set "state.search.replacing.queue" (slice state.search.replacing.queue 1))
+  (invoke "search.replace"
+          :with {:path file
+                 :pattern state.search.ran.pattern
+                 :regex state.search.ran.regex
+                 :wholeWord state.search.ran.wholeWord
+                 :caseSensitive state.search.ran.caseSensitive
+                 :replacement state.search.replace}
+          :onError [replaceFileFailed file]
+          :onDone [replaceFileDone file]))
+
+(defn replaceFileDone "A file's text with its matches replaced: written, unless none was." [file result]
+  (if (= result.replacements 0) (replaceNext) (replaceWrite file result.text result.replacements)))
+
+(defn replaceFileFailed "Notes a file whose matches couldn't be replaced." [file error]
+  (replaceFailed file error.message))
+
+(defn replaceWrite "Writes a file whose matches were replaced." [file text replacements]
+  (invoke "files.write"
+          :with {:path file :text text}
+          :onError [replaceWriteFailed file]
+          :onDone [replaceWriteDone replacements file]))
+
+(defn replaceWriteDone "Counts a file written, then goes on." [replacements file]
+  (set "state.search.replacing.replaced" (+ state.search.replacing.replaced replacements))
+  (set "state.search.replacing.changed" (concat state.search.replacing.changed [file]))
+  (replaceNext))
+
+(defn replaceWriteFailed "Notes a file that couldn't be written." [file error]
+  (replaceFailed file error.message))
+
+(defn replaceFailed "Notes a file that failed, then goes on." [file message]
+  (set "state.search.replacing.failed" (concat state.search.replacing.failed [{:file file :error message}]))
+  (replaceNext))
+
+(defn replaceFinished
+  "Replacing is over: the open files that changed read again, a notice of what was done, the search run again."
+  [done]
+  (set "state.search.replacing" nil)
+  (set "state.search.reload" (filter (fn [it] (contains computed.docIds it)) done.changed))
+  (doseq [file state.search.reload] (invoke "files.read" :with {:path file} :onDone [replaceFinishedDone file]))
+  (notify (if (or (> (count done.failed) 0) (> (count done.skipped) 0)) "warning" "info")
+          (str (t "notify.replaced" {:matches done.replaced :files (count done.changed)})
+               (if (> (count done.skipped) 0) (t "notify.replacedSkipped" {:n (count done.skipped)}) "")
+               (if (> (count done.failed) 0) (t "notify.replacedFailed" {:n (count done.failed)}) "")))
+  (runSearch))
+
+(defn replaceFinishedDone "An open file read again after a replace." [file result]
+  (reloaded file result.text))

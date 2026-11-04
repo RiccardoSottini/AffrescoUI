@@ -41,6 +41,18 @@ const std::unordered_map<std::string_view, Compiler::SpecialForm>& Compiler::spe
 	    {"add-hook", &Compiler::formMisplaced},
 	    {"remove-hook", &Compiler::formMisplaced},
 	    {"advice", &Compiler::formMisplaced},
+	    {"defview", &Compiler::formMisplaced},
+	    {"defcomponent", &Compiler::formMisplaced},
+	    {"defstate", &Compiler::formMisplaced},
+	    {"defcomputed", &Compiler::formMisplaced},
+	    {"defstyle", &Compiler::formMisplaced},
+	    {"defmenu", &Compiler::formMisplaced},
+	    {"deftokens", &Compiler::formMisplaced},
+	    {"defpart", &Compiler::formMisplaced},
+	    {"defdefaults", &Compiler::formMisplaced},
+	    {"include", &Compiler::formMisplaced},
+	    {"repeat", &Compiler::formRepeat},
+	    {"%view", &Compiler::formView},
 	};
 	return forms;
 }
@@ -51,6 +63,9 @@ void Compiler::formMisplaced(const Value& form, Position /*position*/) {
 	const std::string_view head = headWord(form);
 	if(head == "catch") fail(form, "catch goes at the end of a try");
 	if(head.starts_with("unquote")) fail(form, "~ goes inside a template: a backquoted form, or a data file");
+	if(head == "include")
+		fail(form, "include names a program's other files: it goes at the top level of the file an app loads, and is "
+		           "read with it, never by a revision");
 	fail(form, "\"" + notation::Lexer::excerpt(head) + "\" goes at the top level of a program");
 }
 
@@ -61,14 +76,35 @@ void Compiler::formQuote(const Value& form, Position /*position*/) {
 
 void Compiler::formBackquote(const Value& form, Position /*position*/) {
 	if(form.count() != 2) fail(form, "a backquote takes one form");
-	const bool live = std::exchange(liveBindings_, false); // a function's template gives values, whenever it runs
+	// A function's template gives values, whenever it runs; a view's builds the tree, with bindings in it
+	const bool live = std::exchange(liveBindings_, inView_);
 	quasi(form.at(1), 1, 0);
 	liveBindings_ = live;
 }
 
+void Compiler::noteTruthTest(const Value& test) {
+	const Value word = headWord(test) == "not" && test.count() == 2 ? test.at(1) : test;
+	if(headWord(test) == "and" || headWord(test) == "or") {
+		for(std::size_t at = 1; at < test.count(); ++at) noteTruthTest(test.at(at));
+		return;
+	}
+	if(word.kind() != Kind::Symbol || context_.library) return;
+	const std::string_view name = word.text();
+	const std::size_t dot = name.find('.');
+	if(dot == std::string_view::npos || resolve(*current_, name.substr(0, dot)).kind != Variable::Kind::None) return;
+	if(const Global* global = machine_.findGlobal(name); global && global->state != Global::State::Undefined) return;
+	machine_.noteTruthTest(std::string(name), word.place().line != 0 ? word.place() : test.place(),
+	                       context_.definition);
+}
+
+void Compiler::compileTest(const Value& test) {
+	noteTruthTest(test);
+	compile(test, {});
+}
+
 void Compiler::formIf(const Value& form, Position position) {
 	if(form.count() < 3 || form.count() > 4) fail(form, "if takes a test, a form and maybe another form");
-	compile(form.at(1), {});
+	compileTest(form.at(1));
 	const std::uint32_t otherwise = emit(Op::JumpIfFalse);
 	compile(form.at(2), position);
 	const std::uint32_t end = emit(Op::Jump);
@@ -82,7 +118,7 @@ void Compiler::formDo(const Value& form, Position position) { compileBody(form, 
 
 void Compiler::formWhen(const Value& form, Position position) {
 	if(form.count() < 2) fail(form, "when takes a test");
-	compile(form.at(1), {});
+	compileTest(form.at(1));
 	const std::uint32_t otherwise = emit(Op::JumpIfFalse);
 	compileBody(form, 2, position);
 	const std::uint32_t end = emit(Op::Jump);
@@ -102,7 +138,7 @@ void Compiler::formCond(const Value& form, Position position) {
 			ends.push_back(emit(Op::Jump));
 			continue;
 		}
-		compile(test, {});
+		compileTest(test);
 		const std::uint32_t next = emit(Op::JumpIfFalse);
 		compile(form.at(at + 1), position);
 		ends.push_back(emit(Op::Jump));
@@ -270,10 +306,22 @@ bool Compiler::quasiRuns(const Value& form, int level, int depth) {
 
 void Compiler::quasiUnquote(const Value& form, int level, int depth) {
 	if(headWord(form) == "unquote-splicing" && level == 1) fail(form, "~@ goes inside a list or a vector");
+	const Value inner = form.count() == 2 ? form.at(1) : Value();
+	const std::string_view innerHead = headWord(inner);
 	if(level != 1) {
 		quasiSequence(form, 0, Kind::List, level - 1, depth + 1);
-	} else if(liveBindings_ && isLive(form.at(1), depth)) {
-		compileBinding(form.at(1));
+	} else if(headWord(form) == "unquote" && inner.count() == 2 &&
+	          (innerHead == "unquote" || innerHead == "unquote-splicing")) {
+		// ~~form writes ~ and what form gives (~~@form, ~@): a macro writing a template's binding,
+		// `(defcommand ~name :title ~~title [] ...)`, without (list 'unquote title)
+		emitConstant(inner.at(0));
+		compile(inner.at(1), {});
+		place_ = inner.place();
+		Code& code = *current_->code;
+		code.constants.push_back(inner);
+		emit(Op::BuildList, 2, static_cast<std::uint32_t>(code.constants.size() - 1));
+	} else if(liveBindings_) {
+		compileViewValue(form.at(1), depth);
 	} else {
 		compile(form.at(1), {});
 	}
@@ -321,6 +369,67 @@ void Compiler::quasiSequence(const Value& form, std::size_t from, Kind kind, int
 	code.constants.push_back(form); // a list keeps the place of the form it comes from
 	emit(kind == Kind::List ? Op::BuildList : Op::BuildVector, static_cast<std::uint32_t>(form.count() - from),
 	     static_cast<std::uint32_t>(code.constants.size() - 1));
+}
+
+void Compiler::formView(const Value& form, Position /*position*/) {
+	if(form.count() != 2) fail(form, "%view takes one form");
+	compileViewValue(form.at(1), 0);
+}
+
+void Compiler::formRepeat(const Value& form, Position /*position*/) {
+	if(!inView_)
+		fail(form, "repeat builds a view's nodes: it goes in a template, a defview, a defcomponent or a defscreen");
+	if(form.count() < 3 || form.at(1).kind() != Kind::Vector || form.at(1).count() < 2 || form.at(1).count() % 2 != 0 ||
+	   form.at(1).at(0).kind() != Kind::Symbol)
+		fail(form, "repeat takes [name list :index name :key form], then the body that gives the node");
+	const Value spec = form.at(1);
+	const Value name = spec.at(0);
+	Value index;
+	Value key;
+	repeatOptions(spec, index, key);
+	const Value body = repeatBody(form, name, index, key);
+	emitConstant(machine_.global("%repeat").value);
+	compileViewValue(spec.at(1), 0);
+	emitConstant(machine_.heap.string(name.text()));
+	emitConstant(index.isNil() ? Value() : machine_.heap.string(index.text()));
+	compile(body, {});
+	place_ = form.place();
+	emit(Op::Call, 4);
+}
+
+void Compiler::repeatOptions(const Value& spec, Value& index, Value& key) {
+	for(std::size_t at = 2; at < spec.count(); at += 2) {
+		const std::string_view option = spec.at(at).kind() == Kind::Keyword ? spec.at(at).text() : "";
+		if(option == "index" && spec.at(at + 1).kind() == Kind::Symbol) index = spec.at(at + 1);
+		else if(option == "key") key = spec.at(at + 1);
+		else fail(spec, "repeat's options are :index name and :key form");
+	}
+	for(const Value& word : {spec.at(0), index})
+		if(!word.isNil() && (word.text().contains('.') || isSpecial(word.text())))
+			fail(spec, "repeat names its item and its index with plain names");
+}
+
+Value Compiler::repeatBody(const Value& form, const Value& name, const Value& index, const Value& key) {
+	const Place place = form.place();
+	const auto quoted = [&](const Value& word) {
+		const std::vector<Value> items = {machine_.heap.symbol("quote", place), word};
+		return machine_.heap.sequence(Kind::List, std::span<const Value>(items), place);
+	};
+	// (let [card 'card i 'i] [(do body...) (%view key)]): the item and the index are names of the running app
+	std::vector<Value> bindings = {name, quoted(name)};
+	if(!index.isNil()) {
+		bindings.push_back(index);
+		bindings.push_back(quoted(index));
+	}
+	std::vector<Value> body = {machine_.heap.symbol("do", place)};
+	for(std::size_t at = 2; at < form.count(); ++at) body.push_back(form.at(at));
+	std::vector<Value> keyForm = {machine_.heap.symbol("%view", place), key};
+	const std::vector<Value> made = {machine_.heap.sequence(Kind::List, std::move(body), place),
+	                                 key.isNil() ? key : machine_.heap.sequence(Kind::List, std::move(keyForm), place)};
+	const std::vector<Value> let = {machine_.heap.symbol("let", place),
+	                                machine_.heap.sequence(Kind::Vector, std::move(bindings), place),
+	                                machine_.heap.sequence(Kind::Vector, std::span<const Value>(made), place)};
+	return machine_.heap.sequence(Kind::List, std::span<const Value>(let), place);
 }
 
 } // namespace affresco::lisp

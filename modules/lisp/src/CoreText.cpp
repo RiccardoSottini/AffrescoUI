@@ -5,7 +5,9 @@
 
 #include <affresco/notation/Lexer.hpp>
 
+#include <array>
 #include <cctype>
+#include <charconv>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -148,6 +150,13 @@ Value readWithoutApp(Machine& /*machine*/, Arguments arguments) {
 /// @return The text.
 std::string expressionOf(const json& value) {
 	if(value.is_string()) return expressionText(value.get_ref<const std::string&>());
+	if(value.is_number_float()) { // an expression reads no exponent: 0.000001, not 1e-06
+		std::array<char, 400> digits{};
+		const auto end =
+		    std::to_chars(digits.data(), digits.data() + digits.size(), value.get<double>(), std::chars_format::fixed);
+		const std::string text(digits.data(), end.ptr);
+		return text.contains('.') ? text : text + ".0";
+	}
 	if(value.is_array()) {
 		std::string text = "[";
 		for(const json& item : value) text.append(text.size() > 1 ? ", " : "").append(expressionOf(item));
@@ -171,7 +180,24 @@ std::string expressionOf(const json& value) {
 /// @return The text.
 Value expressionPart(Machine& machine, Arguments arguments) {
 	if(arguments.size() != 1) throw Problem("\"%expression\" takes one value");
-	return machine.heap.string(expressionOf(valueToTree(machine, arguments[0], "")));
+	return machine.heap.string(expressionOfValue(machine, arguments[0]));
+}
+
+/// @brief `%text`: what the build worked out, as a part of a binding's text that `str` joins: a text or a number as
+/// itself (`(str prefix x)` with `prefix` "Hello" is `"Hello{{x}}"`), anything else as a placeholder. A text holding a
+/// brace is a placeholder too, so no value becomes an expression.
+/// @param machine The machine.
+/// @param arguments The value.
+/// @return The text.
+Value textPart(Machine& machine, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("\"%text\" takes one value");
+	const Value& value = arguments[0];
+	const bool plain = value.isNil() || value.kind() == Kind::Boolean || value.isNumber() ||
+	                   (value.kind() == Kind::String && !value.text().contains('{') && !value.text().contains('}'));
+	if(!plain) return machine.heap.string("{{" + expressionOfValue(machine, value) + "}}");
+	std::string text;
+	printValue(machine, value, text, false);
+	return machine.heap.string(text);
 }
 
 /// @brief `%binding`: a binding's text, from its parts.
@@ -185,15 +211,34 @@ Value bindingText(Machine& machine, Arguments arguments) {
 		text += part.text();
 	}
 	machine.spend(text.size());
-	return machine.heap.string(text);
+	return machine.heap.string(keptSpaces(std::move(text)));
+}
+
+/// @brief `%joined`: the text of a `str` a binding joins, from its parts (joinedText()).
+/// @param machine The machine.
+/// @param arguments The parts, strings.
+/// @return The text.
+Value joinedBinding(Machine& machine, Arguments arguments) {
+	const Value text = bindingText(machine, arguments);
+	return machine.heap.string(joinedText(std::string(text.text())));
 }
 
 } // namespace
+
+std::string expressionOfValue(Machine& machine, const Value& value) {
+	if(value.kind() == Kind::Symbol) return pathExpression(value.text());
+	if(value.kind() == Kind::Function || value.kind() == Kind::Native)
+		throw Problem("a binding was given a function: a name it reads from the running app is also a definition's, "
+		              "or a parameter's; rename one");
+	return expressionOf(valueToTree(machine, value, ""));
+}
 
 void defineText(Machine& machine) {
 	machine.defineNative("%read", readWithoutApp);
 	machine.defineNative("%expression", expressionPart);
 	machine.defineNative("%binding", bindingText);
+	machine.defineNative("%text", textPart);
+	machine.defineNative("%joined", joinedBinding);
 	machine.defineNative("str", str);
 	machine.defineNative("join", join);
 	machine.defineNative("pr-str", printed);

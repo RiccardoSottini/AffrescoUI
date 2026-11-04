@@ -268,6 +268,35 @@ TEST_CASE("lisp attack: a closure can't be a callback, and a person's timer has 
 	CHECK(app.hits == 1);
 }
 
+TEST_CASE("lisp runtime: a path's member that is a number is an index, as in a binding") {
+	const App app(R"lisp(
+(defn read-them "Reads items by their index." [] (set "state.out" [state.l.0 state.m.0.k state.l.9]))
+(defcommand a "" :title "A" [] (read-them))
+(defkey "ctrl+a" a)
+(defscreen main :state {:l [1 2] :m [{:k 3}] :out nil} (panel#root))
+)lisp");
+	app.press(Key::A);
+	CHECK(app.state("out") == json::array({1, 3, nullptr}));
+}
+
+TEST_CASE("lisp runtime: a callback given its first arguments takes the rest by name") {
+	const App app(R"lisp(
+(defn failed "Its first argument given, `error` by name." [label error] (set "state.out" [label error]))
+(defn begin "Calls what the host doesn't answer, then failed with the label." [label]
+  (call "nothing" :onError [failed label]))
+(defcommand a "" :title "A" [] (begin "file"))
+(defcommand b "A vector that doesn't start with a function is refused." :title "B" [] (call "hit" :then ["failed"]))
+(defkey "ctrl+a" a)
+(defkey "ctrl+b" b)
+(defscreen main :state {:out nil} (panel#root))
+)lisp");
+	app.press(Key::A);
+	CHECK(app.state("out") == json::array({"file", "no native action 'nothing' registered"}));
+	app.press(Key::B);
+	CHECK(app.hits == 0);
+	CHECK(app.reported("takes a function of the program"));
+}
+
 TEST_CASE("lisp attack: a timer or a watch that runs an agent's function") {
 	App app(R"lisp(
 (defn on-change "" [] nil)
@@ -796,4 +825,60 @@ TEST_CASE("lisp runtime: an error's text carries no value, and describes nothing
 	app.press(Key::B);
 	CHECK_FALSE(app.reported("12345"));
 	CHECK(app.errors.size() == 2);
+}
+
+TEST_CASE("lisp runtime: a path's numbered segment is a position in a list, in a function as in an expression") {
+	const App app(R"lisp(
+(defcomputed pair "Two numbers." (vec [10 20]))
+(defcommand a "" :title "A" []
+  (set "state.first" state.list.0)
+  (set "state.second" computed.pair.1)
+  (set "state.name" state.rows.1.name)
+  (set "state.none" state.list.5))
+(defkey "ctrl+a" a)
+(defscreen main :state {:list ["x" "y"] :rows [{:name "a"} {:name "b"}]} (panel#root))
+)lisp");
+	app.press(Key::A);
+	CHECK(app.errors.empty());
+	CHECK(app.state("first") == "x");
+	CHECK(app.state("second") == 20);
+	CHECK(app.state("name") == "b");
+	CHECK(app.state("none").is_null());
+}
+
+TEST_CASE("lisp runtime: a joined text shows its spaces, and a :let named like the language's function reads the app") {
+	const App app(R"lisp(
+(defscreen main :state {:n 7 :who "Ann"}
+  (column#root :let {:name ~state.who}
+    (label#lead :text ~(str "  " state.n))
+    (label#trail :text ~(str state.n " "))
+    (label#empty :text ~(str "" state.n))
+    (label#named :text ~name)))
+)lisp");
+	const auto text = [&](const char* id) {
+		const auto* label = dynamic_cast<affresco::Label*>(app.window->root().findById(id));
+		REQUIRE(label);
+		return label->text();
+	};
+	CHECK(text("lead") == "  7");
+	CHECK(text("trail") == "7 ");
+	CHECK(text("empty") == "7");
+	CHECK(text("named") == "Ann");
+}
+
+TEST_CASE("lisp runtime: a bare word naming a variable of the running app reads it, though a step has that name") {
+	const App app(R"lisp(
+(defcommand a "" :title "A" [] (set "state.p" preview) (set "state.l" locale) (set "state.f" (fn? preview)))
+(defn mine "A local of that name wins." [preview] (set "state.own" preview))
+(defcommand b "" :title "B" [] (mine 3))
+(defkey "ctrl+a" a)
+(defkey "ctrl+b" b)
+(defscreen main (panel#root))
+)lisp");
+	app.press(Key::A);
+	CHECK(app.errors.empty());
+	CHECK(app.state("f") == false); // the variable, not the step
+	CHECK(app.state("p").is_null());  // nothing previewed
+	app.press(Key::B);
+	CHECK(app.state("own") == 3);
 }

@@ -20,7 +20,7 @@ public:
 	/// @param app The application.
 	/// @param screen The app's screen; must outlive this.
 	/// @param window The app's window; must outlive this.
-	/// @param file The window's screen file (examples/shared/host/changes.screen.json).
+	/// @param file The window's screen file (examples/shared/host/changes.screen.json, or .lisp: hostScreenFile()).
 	ChangesWindow(affresco::Application& app, affresco::Screen& screen, affresco::Window& window,
 	              std::filesystem::path file);
 	~ChangesWindow();

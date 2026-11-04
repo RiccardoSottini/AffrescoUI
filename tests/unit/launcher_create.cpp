@@ -17,6 +17,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -51,12 +52,18 @@ bool showsLabelStarting(const affresco::Panel& panel, const std::string& start) 
 	return std::ranges::any_of(panel.children(), [&](const auto& child) { return showsLabelStarting(*child, start); });
 }
 
+/// The Launcher's two versions: its JSON, and its program.
+constexpr std::array<const char*, 2> notations = {"json", "lisp"};
+
 /// @brief Plays scenarios on the Launcher, headless, with a host's grants.
 /// @param scenarios The scenarios (a JSON list).
 /// @param grant Grants what the screen uses, before it is built.
+/// @param notation Which version: "json" or "lisp".
 /// @return The report.
-automation::Report playLauncher(const json& scenarios, const std::function<void(affresco::Screen&)>& grant) {
-	const fs::path screen = fs::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "launcher" / "json" / "index.screen.json";
+automation::Report playLauncher(const json& scenarios, const std::function<void(affresco::Screen&)>& grant,
+                                const std::string& notation) {
+	const fs::path screen =
+	    fs::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "launcher" / notation / ("index.screen." + notation);
 	const json file = {{"version", 2}, {"screen", screen.filename().string()}, {"scenarios", scenarios}};
 	automation::Options options;
 	options.pictures = false;
@@ -107,129 +114,146 @@ struct LauncherFolders {
 } // namespace
 
 TEST_CASE("launcher: the apps are listed last changed first, once each, and an app made goes to the top") {
-	const LauncherFolders folders;
-	folders.app("apple-list", "Apple list", 2);
-	folders.app("zebra-notes", "Zebra notes", 1); // after the other by name, changed later
-	const json scenarios = json::parse(R"json([{ "name": "listed", "steps": [
-		{ "wait": 10 },
-		{ "expect": { "state": "mine.length", "is": 2 } },
-		{ "expect": { "state": "mine[0].name", "is": "Zebra notes" } },
-		{ "expect": { "state": "mine[1].name", "is": "Apple list" } },
-		{ "action": "launcher.refresh" },
-		{ "action": "launcher.refresh" },
-		{ "key": "mod+r" },
-		{ "wait": 10 },
-		{ "expect": { "state": "mine.length", "is": 2 } },
-		{ "key": "mod+n" },
-		{ "click": "#createName" },
-		{ "type": "Mango" },
-		{ "key": "enter" },
-		{ "wait": 10 },
-		{ "expect": { "state": "page", "is": "mine" } },
-		{ "expect": { "state": "mine.length", "is": 3 } },
-		{ "expect": { "state": "mine[0].id", "is": "mango" } },
-		{ "expect": { "node": "#mineName", "text": "Mango" } },
-		{ "key": "mod+1" },
-		{ "expect": { "node": "#cardName", "text": "Mango" } },
-		{ "expect": { "node": "#cardKind", "text": "Yours" } }
-	] }])json");
-	const automation::Report report = playLauncher(scenarios, [&](affresco::Screen& screen) { folders.grant(screen); });
-	INFO(report.text());
-	CHECK(report.failed() == 0);
+	for(const std::string notation : notations) {
+		CAPTURE(notation);
+		const LauncherFolders folders;
+		folders.app("apple-list", "Apple list", 2);
+		folders.app("zebra-notes", "Zebra notes", 1); // after the other by name, changed later
+		const json scenarios = json::parse(R"json([{ "name": "listed", "steps": [
+			{ "wait": 10 },
+			{ "expect": { "state": "mine.length", "is": 2 } },
+			{ "expect": { "state": "mine[0].name", "is": "Zebra notes" } },
+			{ "expect": { "state": "mine[1].name", "is": "Apple list" } },
+			{ "action": "launcher.refresh" },
+			{ "action": "launcher.refresh" },
+			{ "key": "mod+r" },
+			{ "wait": 10 },
+			{ "expect": { "state": "mine.length", "is": 2 } },
+			{ "key": "mod+n" },
+			{ "click": "#createName" },
+			{ "type": "Mango" },
+			{ "key": "enter" },
+			{ "wait": 10 },
+			{ "expect": { "state": "page", "is": "mine" } },
+			{ "expect": { "state": "mine.length", "is": 3 } },
+			{ "expect": { "state": "mine[0].id", "is": "mango" } },
+			{ "expect": { "node": "#mineName", "text": "Mango" } },
+			{ "key": "mod+1" },
+			{ "expect": { "node": "#cardName", "text": "Mango" } },
+			{ "expect": { "node": "#cardKind", "text": "Yours" } }
+		] }])json");
+		const automation::Report report =
+		    playLauncher(scenarios, [&](affresco::Screen& screen) { folders.grant(screen); }, notation);
+		INFO(report.text());
+		CHECK(report.failed() == 0);
 
-	// The new app's assistant proposes: its change waits for the person's review, as a card to accept
-	const fs::path made = folders.apps / "mango" / "index.screen.json";
-	const json reviewed = {{"version", 2},
-	                       {"screen", made.filename().string()},
-	                       {"scenarios", json::parse(R"json([{ "name": "review", "steps": [
-		{ "propose": { "author": "agent", "message": "A subtitle", "set": { "#welcomeTitle/text": "Mango, with a subtitle" } } },
-		{ "wait": 0 },
-		{ "expect": { "node": "#welcomeTitle", "text": "Mango" } },
-		{ "expect": { "node": "#assistantWaiting1", "exists": true } },
-		{ "click": { "role": "button", "name": "Accept" } },
-		{ "wait": 0 },
-		{ "expect": { "node": "#welcomeTitle", "text": "Mango, with a subtitle" } }
-	] }])json")}};
-	automation::Options options;
-	options.pictures = false;
-	const automation::Report review = automation::run(
-	    automation::ScenarioFile::parse(reviewed.dump(), made.parent_path() / "test.scenarios.json"), options);
-	INFO(review.text());
-	CHECK(review.failed() == 0);
+		// The new app's assistant proposes: its change waits for the person's review, as a card to accept
+		const fs::path made = folders.apps / "mango" / "index.screen.json";
+		const json reviewed = {{"version", 2},
+		                       {"screen", made.filename().string()},
+		                       {"scenarios", json::parse(R"json([{ "name": "review", "steps": [
+			{ "propose": { "author": "agent", "message": "A subtitle", "set": { "#welcomeTitle/text": "Mango, with a subtitle" } } },
+			{ "wait": 0 },
+			{ "expect": { "node": "#welcomeTitle", "text": "Mango" } },
+			{ "expect": { "node": "#assistantWaiting1", "exists": true } },
+			{ "click": { "role": "button", "name": "Accept" } },
+			{ "wait": 0 },
+			{ "expect": { "node": "#welcomeTitle", "text": "Mango, with a subtitle" } }
+		] }])json")}};
+		automation::Options options;
+		options.pictures = false;
+		const automation::Report review = automation::run(
+		    automation::ScenarioFile::parse(reviewed.dump(), made.parent_path() / "test.scenarios.json"), options);
+		INFO(review.text());
+		CHECK(review.failed() == 0);
+	}
 }
 
 TEST_CASE("launcher: a name whose folder holds something else is refused, saying so, and the folder is kept") {
-	const LauncherFolders folders;
-	writeFile(folders.apps / "notes" / "keep.txt", "mine"); // a folder of the person's, not an app
-	const json scenarios = json::parse(R"json([{ "name": "taken", "steps": [
-		{ "wait": 10 },
-		{ "key": "mod+n" },
-		{ "click": "#createName" },
-		{ "type": "Notes" },
-		{ "key": "enter" },
-		{ "wait": 10 },
-		{ "expect": { "state": "page", "is": "create" } },
-		{ "expect": { "state": "create.busy", "is": false } },
-		{ "expect": { "node": "#createProblem", "text": "The app couldn't be made: a folder named AffrescoUI/notes is there already: choose another name" } },
-		{ "expect": { "state": "mine.length", "is": 0 } }
-	] }])json");
-	const automation::Report report = playLauncher(scenarios, [&](affresco::Screen& screen) { folders.grant(screen); });
-	INFO(report.text());
-	CHECK(report.failed() == 0);
-	CHECK(fs::exists(folders.apps / "notes" / "keep.txt"));
-	CHECK_FALSE(fs::exists(folders.apps / "notes" / "index.screen.json"));
+	for(const std::string notation : notations) {
+		CAPTURE(notation);
+		const LauncherFolders folders;
+		writeFile(folders.apps / "notes" / "keep.txt", "mine"); // a folder of the person's, not an app
+		// An apostrophe in the scenarios is written ', as JSON may: the quality gate's lizard would take a raw
+		// string's apostrophes for a character's quotes, and read this test and the ones after it as one
+		const json scenarios = json::parse(R"json([{ "name": "taken", "steps": [
+			{ "wait": 10 },
+			{ "key": "mod+n" },
+			{ "click": "#createName" },
+			{ "type": "Notes" },
+			{ "key": "enter" },
+			{ "wait": 10 },
+			{ "expect": { "state": "page", "is": "create" } },
+			{ "expect": { "state": "create.busy", "is": false } },
+			{ "expect": { "node": "#createProblem", "text": "The app couldn\u0027t be made: a folder named AffrescoUI/notes is there already: choose another name" } },
+			{ "expect": { "state": "mine.length", "is": 0 } }
+		] }])json");
+		const automation::Report report =
+		    playLauncher(scenarios, [&](affresco::Screen& screen) { folders.grant(screen); }, notation);
+		INFO(report.text());
+		CHECK(report.failed() == 0);
+		CHECK(fs::exists(folders.apps / "notes" / "keep.txt"));
+		CHECK_FALSE(fs::exists(folders.apps / "notes" / "index.screen.json"));
+	}
 }
 
 TEST_CASE("launcher: Settings save the provider the form shows first, with no pick before") {
-	const LauncherFolders folders;
-	const fs::path data = folders.folder.path() / "data";
-	const auto grant = [&](affresco::Screen& screen) {
-		folders.grant(screen);
-		affresco::intelligence::CallsOptions options;
-		options.keys = std::make_shared<affresco::MemorySecretStore>();
-		options.claudeInstalled = [] { return true; };
-		affresco::intelligence::registerCalls(screen, data, std::move(options)); // the shipped providers only
-	};
-	const json scenarios = json::parse(R"json([{ "name": "first-save", "steps": [
-		{ "key": "mod+comma" },
-		{ "wait": 10 },
-		{ "expect": { "state": "intelligence.native", "is": true } },
-		{ "expect": { "state": "intelligence.selected", "is": "claude-code" } },
-		{ "action": "intelligence.apply" },
-		{ "wait": 10 },
-		{ "expect": { "state": "intelligence.error", "is": "" } },
-		{ "expect": { "state": "intelligence.data.current.provider", "is": "claude-code" } }
-	] }])json");
-	const automation::Report report = playLauncher(scenarios, grant);
-	INFO(report.text());
-	CHECK(report.failed() == 0);
-	CHECK(fs::exists(affresco::intelligence::Settings::file(data)));
+	for(const std::string notation : notations) {
+		CAPTURE(notation);
+		const LauncherFolders folders;
+		const fs::path data = folders.folder.path() / "data";
+		const auto grant = [&](affresco::Screen& screen) {
+			folders.grant(screen);
+			affresco::intelligence::CallsOptions options;
+			options.keys = std::make_shared<affresco::MemorySecretStore>();
+			options.claudeInstalled = [] { return true; };
+			affresco::intelligence::registerCalls(screen, data, std::move(options)); // the shipped providers only
+		};
+		const json scenarios = json::parse(R"json([{ "name": "first-save", "steps": [
+			{ "key": "mod+comma" },
+			{ "wait": 10 },
+			{ "expect": { "state": "intelligence.native", "is": true } },
+			{ "expect": { "state": "intelligence.selected", "is": "claude-code" } },
+			{ "action": "intelligence.apply" },
+			{ "wait": 10 },
+			{ "expect": { "state": "intelligence.error", "is": "" } },
+			{ "expect": { "state": "intelligence.data.current.provider", "is": "claude-code" } }
+		] }])json");
+		const automation::Report report = playLauncher(scenarios, grant, notation);
+		INFO(report.text());
+		CHECK(report.failed() == 0);
+		CHECK(fs::exists(affresco::intelligence::Settings::file(data)));
+	}
 }
 
-TEST_CASE("launcher: the setting chooses whether an example opens from its json or its lisp folder") {
-	LauncherFolders folders;
-	// Only the lisp folder is there, so the grant takes that reference and refuses the JSON one; then, with the
-	// programs missing, opening what it took fails further on
-	folders.examples = folders.folder.path() / "examples";
-	writeFile(folders.examples / "flow" / "lisp" / "app.json", "{}");
-	const json scenarios = json::parse(R"json([
-		{ "name": "json", "steps": [
-			{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team's issues" } },
-			{ "wait": 10 },
-			{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher needs an app, ROOT:PATH, a folder with an app.json or app.lisp, either of those files, or a .screen.json inside a granted root" } }
-		] },
-		{ "name": "lisp", "steps": [
-			{ "key": "mod+comma" },
-			{ "click": { "role": "radio", "name": "Lisp" } },
-			{ "key": "mod+1" },
-			{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team's issues" } },
-			{ "wait": 10 },
-			{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher isn't there next to the host" } }
-		] }
-	])json");
-	const automation::Report report = playLauncher(scenarios, [&](affresco::Screen& screen) { folders.grant(screen); });
-	INFO(report.text());
-	CHECK(report.failed() == 0);
+TEST_CASE("launcher: the setting chooses whether an example opens from its json or its lisp folder, lisp by default") {
+	for(const std::string notation : notations) {
+		CAPTURE(notation);
+		LauncherFolders folders;
+		// Only the lisp folder is there, so the grant takes that reference and refuses the JSON one; then, with the
+		// programs missing, opening what it took fails further on
+		folders.examples = folders.folder.path() / "examples";
+		writeFile(folders.examples / "flow" / "lisp" / "app.json", "{}");
+		const json scenarios = json::parse(R"json([
+			{ "name": "json", "steps": [
+				{ "key": "mod+comma" },
+				{ "click": { "role": "radio", "name": "JSON" } },
+				{ "key": "mod+1" },
+				{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team\u0027s issues" } },
+				{ "wait": 10 },
+				{ "expect": { "state": "toasts[0].message", "is": "Flow couldn\u0027t be opened: affrescoui_launcher needs an app, ROOT:PATH, a folder with an app.json or app.lisp, either of those files, or a .screen.json inside a granted root" } }
+			] },
+			{ "name": "lisp", "steps": [
+				{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team\u0027s issues" } },
+				{ "wait": 10 },
+				{ "expect": { "state": "toasts[0].message", "is": "Flow couldn\u0027t be opened: affrescoui_launcher isn\u0027t there next to the host" } }
+			] }
+		])json");
+		const automation::Report report =
+		    playLauncher(scenarios, [&](affresco::Screen& screen) { folders.grant(screen); }, notation);
+		INFO(report.text());
+		CHECK(report.failed() == 0);
+	}
 }
 
 TEST_CASE("launcher: a new blank app's permissions show what it asks for, with no empty reason") {

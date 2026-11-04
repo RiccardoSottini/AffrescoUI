@@ -11,6 +11,7 @@ cmake --build build                          # also builds affrescoui_render_run
 python3 tests/render/check.py                # or: ctest --test-dir build
 python3 tests/render/check.py --only kanban  # one scenario
 python3 tests/render/check.py --update       # rewrite the golden images (only for an intended change)
+python3 tests/render/parity.py               # each example's lisp/ folder draws its first frame as its json/ folder does
 ```
 
 A frame that differs is saved to `build/render-check/` next to a `.diff.png`, with the changed pixels in red.
@@ -62,3 +63,14 @@ says where each comes from).
 **Where a new scenario goes:** in the file of the area it shows (a template's file for a template, `shapes.json` for
 shapes), or in a new `<area>.json` for a new area. Open the pictures its first run records and check that they show
 what you expect. A `wait` moves the clock, so what it animates is at its end when the picture is drawn.
+
+## Lisp parity
+
+`parity.py` (`ctest -R lisp_parity`) draws the entry screen of each example's `json/` and `lisp/` folders offscreen with
+`affrescoui render`, at the same size and with the same default settings, and compares the two pictures byte for byte: an app
+written as a program (SCREEN_FORMAT.md, "Writing an app as a program") must look exactly as its JSON version does. An example in one
+notation only (Calamaio) is skipped. `--only NAME` checks one; `--report` lists them all and fails only on one that can't be drawn.
+
+The host's own windows (`examples/shared/host`) are programs too: `lisp/<name>.json` plays the scenario of
+`scenarios/<name>.json` on the window's `.screen.lisp`, under the same scenario name, so its pictures are compared with the
+same golden images (`ctest -R scenarios/host/lisp`).

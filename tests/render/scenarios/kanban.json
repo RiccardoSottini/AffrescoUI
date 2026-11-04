@@ -26,7 +26,7 @@
 				{ "expect": { "image": "typing" } },
 				{ "key": "enter" },
 				{ "expect": { "image": "card-added" } },
-				{ "revision": { "message": "Warm top bar", "set": { "#topBar/color": "#7c2d12" } } },
+				{ "revision": { "message": "Warm top bar", "set": { "/program/toolbar.lisp/top-bar": "(defview top-bar \"The top bar: the logo and the board's name, the scope tabs and who is on the board.\" []\n  `(node#topBar :dir auto :anchors {:left 220 :right 0 :top 0} :height 48 :color \"#7c2d12\"\n     (label#logo :runs [{:icon box}\n                        \"  Flow  \"\n                        {:text ~(str \"›  \" (:label (find (fn [it] (= it.id state.boardId)) state.boards)))\n                         :color @color.topMuted}]\n       :textColor @color.topText\n       :anchors {:left 16 :top 0 :bottom 0}\n       :width 196\n       :align {:horizontal start :vertical center})\n     {:id panel-top-bar :anchors {:left 216 :top 16 :bottom 16} :width 1 :color @color.topLine}\n     (row#scopeTabs :gap 2 :anchors {:left 228 :top 10} :width 360 :height 28 :role tablist :arrows horizontal\n       ~(repeat [scope state.scopes]\n         `{:id scopeTab\n           :style ~(if (= state.scope scope) \"toolButtonOn\" \"toolButton\")\n           :borderWidth ~(if (= state.scope scope) 1 0)\n           :text ~(t (str \"scope.\" scope))\n           :role tab\n           :selected ~(= state.scope scope)\n           :onClick ~(handler chooseScope scope)}))\n     ~(members-menu)))" } }, "note": "the top bar is a view of the program: its definition changes" },
 				{ "expect": { "image": "revision" } },
 				{ "click": "#member" },
 				{ "expect": { "image": "member-menu" } },

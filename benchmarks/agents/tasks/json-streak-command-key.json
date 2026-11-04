@@ -1,0 +1,61 @@
+{
+	"id": "json-streak-command-key",
+	"level": "feature",
+	"screen": "examples/streak/json/index.screen.json",
+	"request": "Add to Streak a command sortByName, titled \"Sort by name\", that sorts the habit list by name (state.sort to \"name\"), on the shortcut Cmd+Shift+O (mod+shift+o). Write it in JSON, as an action in actions and a key in keys.",
+	"scenarios": [
+		{
+			"name": "key",
+			"steps": [
+				{
+					"expect": {
+						"state": "sort",
+						"is": "manual"
+					}
+				},
+				{
+					"key": "mod+shift+o"
+				},
+				{
+					"expect": {
+						"state": "sort",
+						"is": "name"
+					}
+				},
+				{
+					"expect": {
+						"node": "#label-hb-name",
+						"text": "Call the family",
+						"nth": 0
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane"
+	],
+	"present": [
+		"/actions/sortByName"
+	],
+	"reference": [
+		{
+			"message": "Sort by name",
+			"set": {
+				"/actions/sortByName": {
+					"title": "Sort by name",
+					"category": "View",
+					"do": [
+						{
+							"set": "state.sort",
+							"to": "name"
+						}
+					]
+				},
+				"/keys/mod+shift+o": "sortByName"
+			}
+		}
+	]
+}

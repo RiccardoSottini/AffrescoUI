@@ -42,6 +42,7 @@
 
 #include "Assets.hpp"
 #include "ChangesWindow.hpp"
+#include "HostScreens.hpp"
 #include "Permissions.hpp"
 #include "SocketDir.hpp"
 
@@ -109,7 +110,7 @@ void checkScenariosForEvidence(affresco::Screen& screen, const std::filesystem::
 			options.pictures = false;
 			for(const automation::Scenario& scenario : loaded.scenarios)
 				if(!scenario.needsPictures) options.only.push_back(scenario.name);
-			if(options.only.empty()) return results.dump(); // all of them draw
+			if(options.only.empty()) return results.dump();                     // all of them draw
 			const automation::Report report = automation::run(loaded, options); // named: the loop outlives a temporary
 			for(const automation::ScenarioResult& result : report.scenarios) {
 				std::string message;
@@ -447,8 +448,8 @@ host::Allowed decide(const Opened& opened, const Options& options, bool ask) {
 		   std::ranges::find(options.grants, capability.key()) == options.grants.end())
 			asked.push_back(capability);
 	if(ask && !asked.empty()) {
-		host::Decisions answered =
-		    host::askPerson(app, asked, assetsDirectory() / "shared" / "host" / "permissions.screen.json");
+		host::Decisions answered = host::askPerson(
+		    app, asked, host::hostScreenFile(assetsDirectory() / "shared" / "host", "permissions", opened.entry));
 		if(!answered.empty()) {
 			decisions.merge(answered);
 			host::saveDecisions(file, decisions);
@@ -520,8 +521,8 @@ int run(const Options& options) {
 #ifndef __EMSCRIPTEN__ // a browser tab has one window
 	std::unique_ptr<host::ChangesWindow> changes;
 	if(!screenshotOnly)
-		changes = std::make_unique<host::ChangesWindow>(app, screen, window,
-		                                                assetsDirectory() / "shared" / "host" / "changes.screen.json");
+		changes = std::make_unique<host::ChangesWindow>(
+		    app, screen, window, host::hostScreenFile(assetsDirectory() / "shared" / "host", "changes", opened.entry));
 #endif
 	applyPlugins(screen, options.plugins);
 	checkScenariosForEvidence(screen, opened.entry);

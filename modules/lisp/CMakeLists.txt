@@ -5,15 +5,18 @@ affrescoui_module(lisp
 	src/Compiler.cpp
 	src/CompilerForms.cpp
 	src/CompilerBindings.cpp
+	src/CompilerLowering.cpp
 	src/Definitions.cpp
 	src/Machine.cpp
 	src/CoreNumbers.cpp
 	src/CoreCollections.cpp
 	src/CoreText.cpp
+	src/CoreViews.cpp
 	src/Prelude.cpp
 	src/Tree.cpp
 	src/Interpreter.cpp
 	src/Forms.cpp
+	src/FormCache.cpp
 	src/Program.cpp
 	src/Document.cpp)
 target_link_libraries(affrescoui_lisp PUBLIC affrescoui::core affrescoui::notation nlohmann_json::nlohmann_json)
