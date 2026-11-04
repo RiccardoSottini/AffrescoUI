@@ -2345,7 +2345,7 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
   too, unless a local or a definition has that name; called, `(preview ...)`, it is the step. The expressions' functions that the
   language doesn't have under another name are there: `(t "key" {:n 1})`, `(today)`, `(trim s)`, `(daysBetween a b)`,
   `(indexOf list x)`. **They are reserved:** no definition of a program takes one's name (`(defn now ...)` is refused), since
-  every file's code means the expression's function by it, a shared add-on's too; a command may share a step's name (`undo`).
+  every file's code means the expression's function by it, a shared add-on's too. **A step's name isn't reserved:** a definition of that name (`(defn saveFile ...)`, `(defcommand undo ...)`) is what the program's code calls by it, in every file, the step hidden from that code, as a JSON action named like a step is what a `run` of it runs. Name a function after the step only when it replaces it (Quaderno's and Forge's `saveFile` saves their editor's buffer); a function that uses the step needs another name.
 - **Truth.** In a function only `nil` and `false` are false, as in Lisp: `""`, `0` and `[]` are true, where an expression, and so a
   binding, counts them false. A handler that was a step map tested `state.query` with an expression's truth; as a function,
   `(if state.query ...)` is true for `""`. Say which you mean: `(truthy? x)` is an expression's truth (and is one in a binding),

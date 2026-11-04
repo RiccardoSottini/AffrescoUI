@@ -187,6 +187,8 @@ TEST_CASE("lisp examples attack: an agent's change to an app's program is review
 		Screen screen = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
 		const affresco::json source = screen.versions().sourceDocument();
 		if(!source.contains("program")) continue;
+		// An app with no permissions (Sign in) lets every change apply, its JSON version's too
+		if(!affresco::json::parse(screen.documentJson()).contains("permissions")) continue;
 		// A function of the app's own program: what builds a part of the tree is judged by what it builds
 		auto file = source["program"].end();
 		affresco::json::const_iterator definition;
