@@ -13,7 +13,7 @@
 [![Frame time](https://img.shields.io/badge/full%20frame-0.44%20ms-10B981)](BENCHMARKS.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-**[Vision](#the-vision)** · **[Applications](#applications)** · **[Lisp](#programs-in-lisp-extended-from-inside)** ·
+**[Vision](#the-vision)** · **[Applications](#applications)** · **[Lisp](#written-in-lisp-extended-from-inside)** ·
 **[Architecture](#architecture)** ·
 **[How it works](#how-it-works)** · **[Quick start](#quick-start)** · **[Documentation](#documentation)**
 
@@ -43,30 +43,33 @@ People and AI agents change that document while the app runs: each change is che
 previewed if it needs approval, and applied in place in milliseconds, with no rebuild, no restart and nothing lost.
 
 > [!TIP]
-> **JSON for applications that are shown, Lisp for applications that run.** A JSON document is parsed and drawn as
-> it is. A Lisp file is a program in a real language with its own runtime (functions, closures, macros), in the spirit
-> of Emacs: the app is extended from inside, while it runs. Both get the same history, diffs and permissions, and
-> code an agent writes is reviewed like any other change.
+> **Written in Lisp.** An application is a program in [AffrescoUI Lisp](LISP.md), a Lisp with its own runtime
+> (Clojure's syntax, Emacs's vocabulary). It builds the document the engine draws, and its functions run when a button
+> is pressed or a key typed, in the spirit of Emacs: the app is extended from inside, while it runs. JSON is the same
+> document written out directly, for data and tools. Both get the same history, diffs and permissions, and code an
+> agent writes is reviewed like any other change.
 >
 > <table>
-> <tr><th>JSON: a static document</th><th>Lisp: a program that builds it</th></tr>
+> <tr><th>Lisp: the program you write</th><th>JSON: the document it builds</th></tr>
 > <tr><td>
 >
-> ```json
-> { "type": "column", "id": "cards", "children": [
->   { "type": "label", "id": "card-1", "text": "Ship it" },
->   { "type": "label", "id": "card-2", "text": "Review" } ] }
+> ```lisp
+> (defview card-view "One card, in bold when it is a bug." [card]
+>   `(label#card :text ~card.title :bold ~(= card.tag "bug")))
+>
+> (defscreen main :window {:title "Board"}
+>   (column#cards
+>     ~(repeat [card state.cards] (card-view card))))
 > ```
 >
 > </td><td>
 >
-> ```lisp
-> (defn card "One card as a node." [c]
->   `(label :id ~(str "card-" (:id c)) :text ~(:title c)))
->
-> (defscreen main :window {:title "Board"}
->   (column#cards ~@(map card [{:id 1 :title "Ship it"}
->                              {:id 2 :title "Review"}])))
+> ```json
+> { "type": "column", "id": "cards", "children": [
+>   { "type": "label", "id": "card",
+>     "repeat": { "for": "card", "in": "state.cards" },
+>     "text": "{{card.title}}",
+>     "bold": "{{(card.tag == 'bug')}}" } ] }
 > ```
 >
 > </td></tr>
@@ -118,9 +121,10 @@ natively, and shaped by the people who use them while they run.
 
 Twelve applications, from everyday apps to professional tools, all in the same format. They are examples
 ([`examples/`](examples/README.md)), not part of the library, and each carries the AI **assistant** in its bottom right
-corner: ask for a change in plain words, then review the proposal it becomes. Most are Lisp programs
-(`examples/<app>/lisp/` only). Forge, Sign in and the Launcher are JSON documents (`examples/<app>/json/`), each with a
-Lisp spelling of the same document next to it (`lisp/`): choose which opens in the Launcher's Settings.
+corner: ask for a change in plain words, then review the proposal it becomes. Each is a Lisp program
+(`examples/<app>/lisp/`), small named views and functions with their text in English, Spanish and French, and keeps
+the same app as a JSON document beside it (`examples/<app>/json/`): choose which opens in the Launcher's Settings.
+Calamaio is Lisp only.
 
 <div align="center">
 
@@ -135,7 +139,7 @@ made blank, from an example or from a description, and the AI provider every app
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src=".github/media/forge.png" alt="Forge, an IDE with an explorer, editor tabs, source control and a terminal"><br/><b>Forge</b> · an IDE<br/><sub>Explorer, editor tabs and split editors, find and replace, quick open and a command palette, problems, output and a terminal, source control, a debugger and language servers, in dark, light and high-contrast themes. <code>examples/forge/json/index.screen.json</code>, with <code>--folder DIR</code> to open a folder</sub></td>
+<td width="50%" valign="top"><img src=".github/media/forge.png" alt="Forge, an IDE with an explorer, editor tabs, source control and a terminal"><br/><b>Forge</b> · an IDE<br/><sub>Explorer, editor tabs and split editors, find and replace, quick open and a command palette, problems, output and a terminal, source control, a debugger and language servers, in dark, light and high-contrast themes. <code>examples/forge/lisp/index.screen.lisp</code>, with <code>--folder DIR</code> to open a folder</sub></td>
 <td width="50%" valign="top"><img src=".github/media/tempera.png" alt="Tempera, an image editor with tools, a canvas, colour, properties and layers panels"><br/><b>Tempera</b> · an image editor<br/><sub>Tools with flyouts and a context options bar, layers with masks, groups and adjustment layers, brushes, selections, history and a navigator, on a tiled image engine. Agents may only propose: every change is reviewed. <code>examples/tempera/lisp/index.screen.lisp</code></sub></td>
 </tr>
 <tr>
@@ -161,22 +165,25 @@ made blank, from an example or from a description, and the AI provider every app
 </tr>
 <tr>
 <td valign="top"><img src=".github/media/kanban.png" alt="Flow, a Kanban board with a sidebar and four columns of issues"><br/><b>Flow</b> · a Kanban board<br/><sub>Boards with swimlanes, a table and a timeline of every card, a card drawer, a burndown, drag and drop with a keyboard alternative, undo and a command palette. The host's default. <code>examples/flow/lisp/index.screen.lisp</code></sub></td>
-<td valign="top"><img src=".github/media/sign-in.png" alt="Sign in, a form with validated fields and a password strength meter"><br/><b>Sign in</b> · accounts<br/><sub>Sign in and sign up, two-step codes, a password reset, a sample external provider, an account page and session expiry, all validated in the document. <code>examples/sign-in/json/index.screen.json</code></sub></td>
+<td valign="top"><img src=".github/media/sign-in.png" alt="Sign in, a form with validated fields and a password strength meter"><br/><b>Sign in</b> · accounts<br/><sub>Sign in and sign up, two-step codes, a password reset, a sample external provider, an account page and session expiry, all validated in the document. <code>examples/sign-in/lisp/index.screen.lisp</code></sub></td>
 </tr>
 </table>
 
 Open them from the **Launcher** (`./build/affrescoui_launcher`), or run one with `./build/affrescoui_launcher <file>`.
-None has native code of its own: files, the terminal and pixels are the library's. Flow, Haven, Tempo, Streak, Arcadia
-and Sign in speak English, Spanish and French.
+None has native code of its own: files, the terminal and pixels are the library's. In Lisp, every app speaks
+English, Spanish and French (Sign in: English, Italian and Arabic, right to left).
 
-## Programs in Lisp, extended from inside
+## Written in Lisp, extended from inside
 
-JSON stays the format for applications that are only shown: the engine parses the document and draws it as it is.
-Lisp is now a programming language with its own runtime ([`modules/lisp`](modules/lisp/README.md),
-[RFC 0005](rfcs/0005-lisp-language.md)). An app written in it is a program. The program builds the document the
-engine draws, and its functions run when a button is pressed, a key is typed or a value is bound. Most of the example
-applications are programs now. In tests of the same changes made both ways, an AI agent edited Lisp as accurately as
-JSON, at about the same cost ([BENCHMARKS.md](BENCHMARKS.md)).
+AffrescoUI's format is **AffrescoUI Lisp** ([LISP.md](LISP.md): every definition and rule in tables), a programming
+language with its own runtime ([`modules/lisp`](modules/lisp/README.md), [RFC 0005](rfcs/0005-lisp-language.md)). An
+app is a folder of small, named definitions: `defscreen main` outlines the window, `defview`s draw its parts,
+`defstate` and `defcomputed` hold its data, `defn` and `defcommand` are what it does, and every text is in a locale.
+Building the program gives the document the engine draws, and its functions run when a button is pressed, a key is
+typed or a value is bound. Each example's first frame matches its JSON version's pixel for pixel, and both pass the same
+scenarios. In tests of the same
+changes made both ways, an AI agent edited Lisp as accurately as JSON, at about the same cost
+([BENCHMARKS.md](BENCHMARKS.md)).
 
 The model is Emacs: an app you change from inside while it runs. In **Calamaio**, the text editor among the examples,
 open the scratch buffer (`C-x b *scratch* RET`), type a command's new definition and evaluate it with `C-M-x`:
@@ -252,18 +259,17 @@ flowchart TB
     class render c_render
 ```
 
-- **One format, shown as JSON.** A screen document ([SCREEN_FORMAT.md](SCREEN_FORMAT.md), with a
-  [JSON Schema](schema/affrescoui-screen.schema.json), written in JSON or in the
-  [Lisp notation](SCREEN_FORMAT.md#the-lisp-notation)) holds layout, components, themes, state, JS-style
-  `{{expressions}}`, events, timers, services and permissions. Behaviour that usually needs code (wiring a button to a
-  list, validating a form, filtering, drag and drop, shortcuts, navigation, calls to services) is data, so an agent
-  changes it as safely as a colour.
-- **Programs, run in Lisp.** When data isn't enough, an app is a program
-  ([The Lisp language](SCREEN_FORMAT.md#the-lisp-language), [`modules/lisp`](modules/lisp/README.md)): Clojure's
-  syntax and Emacs's vocabulary (`defn`, `defcommand`, `defkey`, `defcustom`, `add-hook`, `advice`), run by the
-  library's own interpreter. Each definition is versioned on its own, so a diff names the function that changed, and
-  a proposal is rebuilt and judged by the tree it builds. The language can't reach files, processes or the network.
-  Its only ways out are the steps a host grants, each checked against who wrote the code that is running.
+- **Written in Lisp.** An app is a program in AffrescoUI Lisp ([LISP.md](LISP.md),
+  [`modules/lisp`](modules/lisp/README.md)): Clojure's syntax and Emacs's vocabulary (`defscreen`, `defview`,
+  `defstate`, `defn`, `defcommand`, `defkey`, `defcustom`, `add-hook`, `advice`), run by the library's own interpreter.
+  Each definition is versioned on its own, so a diff names the view or function that changed, and a proposal is rebuilt
+  and judged by the tree it builds. The language can't reach files, processes or the network. Its only ways out are
+  the steps a host grants, each checked against who wrote the code that is running.
+- **One document, drawn natively.** What a program builds is a screen document ([SCREEN_FORMAT.md](SCREEN_FORMAT.md),
+  with a [JSON Schema](schema/affrescoui-screen.schema.json)): layout, components, themes, state, bindings, events,
+  timers, services and permissions. It can also be written directly in JSON, for data and tools. Behaviour that usually
+  needs code (wiring a button to a list, validating a form, filtering, drag and drop, shortcuts, navigation, calls to
+  services) is declared, so an agent changes it as safely as a colour.
 - **Compact for agents.** Edits address nodes by id (`{"set": {"#title/text": "Q4"}}`, stored as JSON Patch) and
   re-reads return only what changed: a typical edit is 24 tokens, a re-read after one commit 29
   ([BENCHMARKS.md](BENCHMARKS.md)).
@@ -294,7 +300,7 @@ modules/capi/        the C API, affresco/affresco.h
 mcp/                 the MCP server for AI agents
 apps/server/         the document server: shared, persistent documents over WebSocket
 apps/host/           the stock host, affrescoui_launcher: it opens an app's folder and asks for what the app uses
-examples/            the apps (each a folder with an app.json), the Launcher among them, the assistant add-on
+examples/            the apps (each with a lisp/ and a json/ folder), the Launcher among them, the assistant add-on
 web/                 the WebAssembly build
 ```
 
@@ -513,6 +519,7 @@ wraps it.
 
 | Document | What it covers |
 |---|---|
+| [LISP.md](LISP.md) | AffrescoUI Lisp in tables: every definition, views and bindings, running, layout of an app, limits, tools |
 | [SCREEN_FORMAT.md](SCREEN_FORMAT.md) | The screen format, node by node |
 | [VERSION_CONTROL.md](VERSION_CONTROL.md) | Commits, proposals, permissions and review |
 | [modules/lisp/README.md](modules/lisp/README.md) | The Lisp language: its values, special forms, functions and limits |
