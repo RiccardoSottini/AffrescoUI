@@ -224,7 +224,7 @@ TEST_CASE("launcher: Settings save the provider the form shows first, with no pi
 	}
 }
 
-TEST_CASE("launcher: the setting chooses whether an example opens from its json or its lisp folder") {
+TEST_CASE("launcher: the setting chooses whether an example opens from its json or its lisp folder, lisp by default") {
 	for(const std::string notation : notations) {
 		CAPTURE(notation);
 		LauncherFolders folders;
@@ -234,14 +234,14 @@ TEST_CASE("launcher: the setting chooses whether an example opens from its json 
 		writeFile(folders.examples / "flow" / "lisp" / "app.json", "{}");
 		const json scenarios = json::parse(R"json([
 			{ "name": "json", "steps": [
+				{ "key": "mod+comma" },
+				{ "click": { "role": "radio", "name": "JSON" } },
+				{ "key": "mod+1" },
 				{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team's issues" } },
 				{ "wait": 10 },
 				{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher needs an app, ROOT:PATH, a folder with an app.json or app.lisp, either of those files, or a .screen.json inside a granted root" } }
 			] },
 			{ "name": "lisp", "steps": [
-				{ "key": "mod+comma" },
-				{ "click": { "role": "radio", "name": "Lisp" } },
-				{ "key": "mod+1" },
 				{ "click": { "role": "button", "name": "Open Flow: A Kanban board for a team's issues" } },
 				{ "wait": 10 },
 				{ "expect": { "state": "toasts[0].message", "is": "Flow couldn't be opened: affrescoui_launcher isn't there next to the host" } }
