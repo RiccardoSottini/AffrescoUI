@@ -48,13 +48,6 @@
           :arabicHeading {:file "../../shared/fonts/NotoSansArabic-Subset.ttf" :size 19}}
   :persist [state.theme state.remember state.locale]
   :theme ~state.theme
-  ;; the screens the outlet shows, one at a time (navigate): the first is shown first, so they are an option of main,
-  ;; in their order, not definitions of their own, whose names would sort them
-  :screens {:signInForm ~(sign-in-card)
-            :createAccount ~(create-card)
-            :twoStep ~(two-step-card)
-            :reset ~(reset-card)
-            :signedIn ~(account-screen)}
   (node#panel-root :color @color.background
     ~@(glows)
     (outlet#screens :dir auto :anchors {:left 0 :right 0 :top 56 :bottom 44})
@@ -69,3 +62,15 @@
     ~(reauth-dialog)
     ~(shortcuts-dialog)
     ~(toast)))
+
+;;; The screens the outlet shows, one at a time (navigate), in this order: the first is shown first
+
+(defscreen signInForm "Signing in: the email, then the password, or a provider or a passkey." ~(sign-in-card))
+
+(defscreen createAccount "Creating an account." ~(create-card))
+
+(defscreen twoStep "The code a second step asks for." ~(two-step-card))
+
+(defscreen reset "A new password, after a reset code." ~(reset-card))
+
+(defscreen signedIn "The account page, once signed in." ~(account-screen))
