@@ -317,13 +317,15 @@
      :width ~(if turned frame.h frame.w)
      :height ~(if turned frame.w frame.h)
      :rotate ~(or-else o.textRotate 0)
-     ~(repeat [k (range cols)]
-       `(column :id ~(str prefix o.id "-text-c" k)
-          :overflow visible
-          :width ~colWidth
-          :height ~(if turned frame.w frame.h)
-          :justify ~(cond (= anchor "bottom") "end" (= anchor "middle") "center" :else "start")
-          :alignItems ~(cond (= align "center") "center" (= align "right") "end" :else "start")
-          :gap ~(+ (if bullets (* size 0.35) 0) (* size (- (if prompt 1 (or-else o.spacing 1)) 1)))
-          ~(repeat [n (filter (fn [it] (= (get column it) k)) (range (count lines)))]
-            (paragraph o prefix n))))))
+     ~(repeat [k (range cols)] (text-column o prefix k))))
+
+(defview text-column "Column `k` of object `o`'s text: the paragraphs that fall in it, by its anchor." [o prefix k]
+  `(column :id ~(str prefix o.id "-text-c" k)
+     :overflow visible
+     :width ~colWidth
+     :height ~(if turned frame.w frame.h)
+     :justify ~(cond (= anchor "bottom") "end" (= anchor "middle") "center" :else "start")
+     :alignItems ~(cond (= align "center") "center" (= align "right") "end" :else "start")
+     :gap ~(+ (if bullets (* size 0.35) 0) (* size (- (if prompt 1 (or-else o.spacing 1)) 1)))
+     ~(repeat [n (filter (fn [it] (= (get column it) k)) (range (count lines)))]
+       (paragraph o prefix n))))
