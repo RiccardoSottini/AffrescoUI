@@ -36,6 +36,34 @@ std::size_t pastPart(std::string_view text, std::size_t at, std::string_view mar
 	return end == at ? std::string_view::npos : end;
 }
 
+/// @brief Tells whether a string in quotes is plain ASCII without an escape, as most strings are.
+/// @param written The string, with its quotes.
+/// @return true if what is between its quotes is itself.
+bool isPlainQuoted(std::string_view written) {
+	return written.size() >= 2 && written.front() == '"' && written.back() == '"' &&
+	       std::ranges::none_of(written.substr(1, written.size() - 2), [](char c) {
+		       const auto byte = static_cast<unsigned char>(c);
+		       return byte < 0x20 || byte >= 0x80 || c == '\\' || c == '"';
+	       });
+}
+
+/// @brief Escapes the line breaks and tabs typed inside a string's quotes, for JSON to read them.
+/// @param written The string, with its quotes.
+/// @return It, with each typed as its escape; one after a backslash is no escape JSON knows, and stays as it is.
+std::string escapedBreaks(std::string_view written) {
+	std::string escaped;
+	escaped.reserve(written.size() + 8);
+	bool escaping = false; // after a backslash
+	for(const char c : written) {
+		if(!escaping && c == '\n') escaped += "\\n";
+		else if(!escaping && c == '\r') escaped += "\\r";
+		else if(!escaping && c == '\t') escaped += "\\t";
+		else escaped += c;
+		escaping = !escaping && c == '\\';
+	}
+	return escaped;
+}
+
 } // namespace
 
 bool isJsonNumber(std::string_view text) noexcept {
@@ -190,28 +218,13 @@ std::string Lexer::name(const Token& token) const {
 }
 
 std::string Lexer::unquote(std::string_view written, std::size_t offset) const {
-	// Plain ASCII without an escape, as most strings are: itself, without a JSON parser
-	if(written.size() >= 2 && written.front() == '"' && written.back() == '"' &&
-	   std::ranges::none_of(written.substr(1, written.size() - 2), [](char c) {
-		   const auto byte = static_cast<unsigned char>(c);
-		   return byte < 0x20 || byte >= 0x80 || c == '\\' || c == '"';
-	   }))
-		return std::string(written.substr(1, written.size() - 2));
+	// Plain ASCII without an escape: itself, without a JSON parser
+	if(isPlainQuoted(written)) return std::string(written.substr(1, written.size() - 2));
 	try {
 		// A line break or a tab typed inside the quotes is that character, as in Lisp (a docstring of several lines);
-		// any other control character is still refused
+		// any other control character is still refused, as is a line break after a backslash
 		if(written.find_first_of("\n\r\t") == std::string_view::npos) return json::parse(written).get<std::string>();
-		std::string escaped;
-		escaped.reserve(written.size() + 8);
-		bool escaping = false; // after a backslash: a line break there is no escape JSON knows, and stays refused
-		for(const char c : written) {
-			if(!escaping && c == '\n') escaped += "\\n";
-			else if(!escaping && c == '\r') escaped += "\\r";
-			else if(!escaping && c == '\t') escaped += "\\t";
-			else escaped += c;
-			escaping = !escaping && c == '\\';
-		}
-		return json::parse(escaped).get<std::string>();
+		return json::parse(escapedBreaks(written)).get<std::string>();
 	} catch(const json::exception&) {
 		fail(offset, "a string in quotes that JSON can't read: an unknown escape, a control character or bytes "
 		             "that aren't UTF-8");

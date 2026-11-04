@@ -310,6 +310,27 @@ void addValues(json& tree, std::map<std::string, json>& values) {
 	}
 }
 
+/// @brief Puts the gathered parts together into the document's tree: the format's own sections first.
+/// @param machine The machine, for the `defstate` definitions.
+/// @param parts The parts; their members are taken.
+/// @param defaulted Gets each section's member that is a default (Program::defaulted()).
+/// @return The tree.
+json treeOf(const Machine& machine, BuiltParts& parts, std::set<std::pair<std::string, std::string>>& defaulted) {
+	json tree = {{"format", "affrescoui-screen"}, {"version", 2}};
+	for(auto& [key, member] : parts.main.items()) tree[key] = std::move(member);
+	defaulted.clear();
+	for(const char* key : {"screens", "actions", "keys", "settings"}) // the format's own first
+		if(const auto found = parts.sections.find(key); found != parts.sections.end()) {
+			addSection(tree, key, found->second, defaulted);
+			parts.sections.erase(found);
+		}
+	for(auto& [key, section] : parts.sections) addSection(tree, key, section, defaulted);
+	addValues(tree, parts.values);
+	for(const auto& definition : machine.definitions()) // a key's starting value, as defvar's: a document's wins
+		if(definition->kind == "defstate") defaulted.emplace("state", definition->name.substr(6));
+	return tree;
+}
+
 /// @brief Builds the part of a form that defines a member of a section (sectionOfForm()).
 /// @param machine The machine.
 /// @param definition The definition.
@@ -508,42 +529,84 @@ std::optional<std::string> firstUnquote(std::string_view text) {
 	return std::nullopt;
 }
 
+namespace {
+
+/// The forms at the top level of a text, counted from its tokens as they come, up to two.
+class TopForms {
+public:
+	/// @brief Takes the next token.
+	/// @param token The token.
+	/// @return true once a second form starts; std::nullopt for a bracket that closes nothing (the reader says so);
+	/// else false.
+	std::optional<bool> take(const notation::Token& token) {
+		using notation::TokenKind;
+		if(std::exchange(wantHead_, false) && token.kind == TokenKind::Word) head_ = token.text;
+		if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) return prefix();
+		if(token.kind == TokenKind::OpenNode || token.kind == TokenKind::OpenList || token.kind == TokenKind::OpenMap)
+			return open(token.kind);
+		if(token.kind == TokenKind::CloseNode || token.kind == TokenKind::CloseList ||
+		   token.kind == TokenKind::CloseMap) {
+			if(depth_ == 0) return std::nullopt;
+			--depth_;
+			return false;
+		}
+		return startsForm();
+	}
+
+	/// @brief Whether the text, all its tokens taken, is one definition form.
+	/// @return std::nullopt if a bracket is left open (the reader says so), else whether it is.
+	[[nodiscard]] std::optional<bool> oneDefinition() const {
+		if(depth_ != 0) return std::nullopt;
+		return forms_ == 1 && isDefinitionWord(head_);
+	}
+
+private:
+	/// @brief Takes a 'x, `x or ~x: at the top, the form it prefixes is the same form.
+	/// @return true once a second form starts.
+	bool prefix() {
+		if(depth_ == 0 && !prefixed_ && ++forms_ == 2) return true;
+		if(depth_ == 0) prefixed_ = true;
+		return false;
+	}
+
+	/// @brief Takes an opening bracket.
+	/// @param kind Which.
+	/// @return true once a second form starts.
+	bool open(notation::TokenKind kind) {
+		const bool first = depth_ == 0 && !prefixed_ && forms_ == 0;
+		if(startsForm()) return true;
+		wantHead_ = first && kind == notation::TokenKind::OpenNode;
+		++depth_;
+		return false;
+	}
+
+	/// @brief Counts a form starting at the top level.
+	/// @return true once there are two.
+	bool startsForm() {
+		if(depth_ != 0) return false;
+		const bool second = !prefixed_ && ++forms_ == 2;
+		prefixed_ = false;
+		return second;
+	}
+
+	std::size_t depth_ = 0; ///< How deep in brackets the tokens are.
+	std::size_t forms_ = 0; ///< The forms started at the top level.
+	bool prefixed_ = false; ///< After 'x, `x or ~x at the top: the form it prefixes is the same form.
+	bool wantHead_ = false; ///< The token after the first form's own "(".
+	std::string_view head_; ///< The first form's head.
+};
+
+} // namespace
+
 std::optional<bool> isProgramByTokens(std::string_view text) {
-	using notation::TokenKind;
 	try {
 		notation::Lexer lexer(text, true);
-		std::size_t depth = 0;
-		std::size_t forms = 0;
-		bool prefixed = false; // after 'x, `x or ~x at the top: the form it prefixes is the same form
-		bool wantHead = false; // the token after the first form's own "("
-		std::string_view head;
-		const auto startsForm = [&] { // a form starting at the top level: true once there are two
-			if(depth != 0) return false;
-			const bool second = !prefixed && ++forms == 2;
-			prefixed = false;
-			return second;
-		};
-		for(notation::Token token = lexer.next(); token.kind != TokenKind::End; token = lexer.next()) {
-			if(std::exchange(wantHead, false) && token.kind == TokenKind::Word) head = token.text;
-			if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) {
-				if(depth == 0 && !prefixed && ++forms == 2) return true;
-				if(depth == 0) prefixed = true;
-			} else if(token.kind == TokenKind::OpenNode || token.kind == TokenKind::OpenList ||
-			          token.kind == TokenKind::OpenMap) {
-				const bool first = depth == 0 && !prefixed && forms == 0;
-				if(startsForm()) return true;
-				wantHead = first && token.kind == TokenKind::OpenNode;
-				++depth;
-			} else if(token.kind == TokenKind::CloseNode || token.kind == TokenKind::CloseList ||
-			          token.kind == TokenKind::CloseMap) {
-				if(depth == 0) return std::nullopt; // a bracket that closes nothing: the reader says so
-				--depth;
-			} else if(startsForm()) {
-				return true;
-			}
+		TopForms top;
+		for(notation::Token token = lexer.next(); token.kind != notation::TokenKind::End; token = lexer.next()) {
+			const std::optional<bool> second = top.take(token);
+			if(!second || *second) return second;
 		}
-		if(depth != 0) return std::nullopt;
-		return forms == 1 && isDefinitionWord(head);
+		return top.oneDefinition();
 	} catch(const DocumentError&) {
 		return std::nullopt;
 	}
@@ -708,19 +771,7 @@ json Program::build(const Limits& limits) {
 			if(use.global->state == Global::State::Undefined)
 				undefined_.push_back({use.global->name, use.place.file ? *use.place.file : "", use.place.line,
 				                      use.place.column, use.definition});
-		json tree = {{"format", "affrescoui-screen"}, {"version", 2}};
-		for(auto& [key, member] : parts.main.items()) tree[key] = std::move(member);
-		defaulted_.clear();
-		for(const char* key : {"screens", "actions", "keys", "settings"}) // the format's own first
-			if(const auto found = parts.sections.find(key); found != parts.sections.end()) {
-				addSection(tree, key, found->second, defaulted_);
-				parts.sections.erase(found);
-			}
-		for(auto& [key, section] : parts.sections) addSection(tree, key, section, defaulted_);
-		addValues(tree, parts.values);
-		for(const auto& definition : machine.definitions()) // a key's starting value, as defvar's: a document's wins
-			if(definition->kind == "defstate") defaulted_.emplace("state", definition->name.substr(6));
-		return tree;
+		return treeOf(machine, parts, defaulted_);
 	});
 }
 

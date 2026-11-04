@@ -35,16 +35,30 @@ std::string_view sectionOfForm(std::string_view head) noexcept {
 
 namespace {
 
+/// @brief The definition forms, besides the sections' (sectionForms), and how many items they need at least.
+constexpr std::array<std::pair<std::string_view, std::size_t>, 14> definitionForms{{{"def", 3},
+                                                                                    {"defscreen", 3},
+                                                                                    {"defkey", 3},
+                                                                                    {"defcustom", 3},
+                                                                                    {"defn", 3},
+                                                                                    {"defmacro", 3},
+                                                                                    {"defcommand", 3},
+                                                                                    {"defview", 3},
+                                                                                    {"defpart", 3},
+                                                                                    {"defdefaults", 3},
+                                                                                    {"add-hook", 3},
+                                                                                    {"remove-hook", 3},
+                                                                                    {"advice", 3},
+                                                                                    {"defhook", 2}}};
+
 /// @brief The definition forms that hold code or data of their own, and how many items they need at least.
 /// @param head A form's head.
 /// @return The least items, or 0 if it is no such form.
 std::size_t leastItems(std::string_view head) noexcept {
-	if(head == "def" || head == "defscreen" || head == "defkey" || head == "defcustom") return 3;
-	if(head == "defn" || head == "defmacro" || head == "defcommand" || head == "defview") return 3;
-	if(!sectionOfForm(head).empty() || head == "defpart" || head == "defdefaults") return 3;
-	if(head == "add-hook" || head == "remove-hook" || head == "advice") return 3;
-	if(head == "defhook") return 2;
-	return 0;
+	if(!sectionOfForm(head).empty()) return 3;
+	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
+	const auto found = std::ranges::find(definitionForms, head, &std::pair<std::string_view, std::size_t>::first);
+	return found == definitionForms.end() ? 0 : found->second;
 }
 
 /// @brief Reports a problem with a definition form.
@@ -191,6 +205,38 @@ void checkExtension(const Value& form, const Definition& definition) {
 		failDefinition(form, definition.name, "advice takes a target, :before, :after or :around, and a function");
 }
 
+/// @brief The name of an extension: its head and the words it joins, past any docstring.
+/// @param form The form: `(add-hook hook function)`, `(advice target :how function)`.
+/// @param head Its head.
+/// @return The name: "add-hook after-save save-all".
+std::string extensionName(const Value& form, const std::string& head) {
+	std::string name = head;
+	for(std::size_t at = 1; at < form.count(); ++at) {
+		if(at >= 2 && !docAt(form, at).empty()) continue;
+		if(form.at(at).text().empty()) failDefinition(form, "", head + " names what it joins, with words");
+		name.append(" ").append(form.at(at).text());
+	}
+	return name;
+}
+
+/// @brief Refuses a definition form that misses items, or whose name no definition may have.
+/// @param machine The machine.
+/// @param form The form.
+/// @param head Its head.
+/// @param name What it defines.
+void checkDefinable(const Machine& machine, const Value& form, const std::string& head, const std::string& name) {
+	if(form.count() < leastItems(head)) failDefinition(form, name, head + " is missing what it defines");
+	if(head == "defkey" || isExtensionWord(head)) return;
+	checkName(form, name);
+	// A host's function (an expression's `now`, a step's `set`) means the same in every file, a shared add-on's too
+	if(const Global* existing = machine.findGlobal(name); existing && existing->host)
+		failDefinition(
+		    form, name,
+		    "\"" + notation::Lexer::excerpt(name) +
+		        "\" is the host's function, as the expressions have it: a definition of that name would change "
+		        "it for every file, a shared add-on's too; name yours otherwise");
+}
+
 } // namespace
 
 bool isDefinitionWord(std::string_view word) noexcept { return leastItems(word) != 0; }
@@ -211,15 +257,7 @@ std::pair<std::string, std::string> definitionAddress(const Value& form) {
 		if(form.at(1).text().empty()) failDefinition(form, "", "defkey takes a key first");
 		return {head, head + " " + std::string(form.at(1).text())};
 	}
-	if(isExtensionWord(head)) {
-		std::string name = head;
-		for(std::size_t at = 1; at < form.count(); ++at) {
-			if(at >= 2 && !docAt(form, at).empty()) continue;
-			if(form.at(at).text().empty()) failDefinition(form, "", head + " names what it joins, with words");
-			name.append(" ").append(form.at(at).text());
-		}
-		return {head, name};
-	}
+	if(isExtensionWord(head)) return {head, extensionName(form, head)};
 	if(form.at(1).kind() != Kind::Symbol) failDefinition(form, "", head + " takes a name first");
 	if(head == "defpart" || head == "defdefaults")
 		return {head, (head == "defpart" ? "part." : "defaults.") + std::string(form.at(1).text())};
@@ -271,16 +309,7 @@ bool Machine::isDefinitionForm(const Value& form) { return isDefinitionWord(head
 Definition& Machine::define(const Value& form, const std::string& author, const AuthorSet* authors, bool strict) {
 	const std::string head(headWord(form));
 	const auto [kind, name] = definitionAddress(form);
-	if(form.count() < leastItems(head)) failDefinition(form, name, head + " is missing what it defines");
-	if(head != "defkey" && !isExtensionWord(head)) checkName(form, name);
-	// A host's function (an expression's `now`, a step's `set`) means the same in every file, a shared add-on's too
-	if(const Global* existing = findGlobal(name);
-	   existing && existing->host && head != "defkey" && !isExtensionWord(head))
-		failDefinition(
-		    form, name,
-		    "\"" + notation::Lexer::excerpt(name) +
-		        "\" is the host's function, as the expressions have it: a definition of that name would change "
-		        "it for every file, a shared add-on's too; name yours otherwise");
+	checkDefinable(*this, form, head, name);
 	Definition& made = addDefinition(form, kind, name, author, strict);
 	made.authors = authors ? authors : authorSet(author);
 	const CompileContext context{name, author, made.authors, false};
