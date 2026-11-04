@@ -47,8 +47,7 @@ applied in place in milliseconds, with no rebuild, no restart and nothing lost.
 
 > [!TIP]
 > **Everything is defined in Lisp. JSON is supported too.** An application is a program in
-> [AffrescoUI Lisp](LISP.md), a Lisp with its own runtime (Clojure's syntax, Emacs's vocabulary), in the spirit of
-> Emacs: the app is extended from inside, while it runs.
+> [AffrescoUI Lisp](LISP.md), a Lisp with its own runtime: the app is extended from inside, while it runs.
 >
 > | You define | In AffrescoUI Lisp |
 > |---|---|
@@ -202,7 +201,7 @@ scenarios. In tests of the same
 changes made both ways, an AI agent edited Lisp as accurately as JSON, at about the same cost
 ([BENCHMARKS.md](BENCHMARKS.md)).
 
-The model is Emacs: an app you change from inside while it runs. In **Calamaio**, the text editor among the examples,
+An app is changed from inside, while it runs. In **Calamaio**, the text editor among the examples,
 open the scratch buffer (`C-x b *scratch* RET`), type a command's new definition and evaluate it with `C-M-x`:
 
 ```lisp
@@ -277,7 +276,7 @@ flowchart TB
 ```
 
 - **Written in Lisp.** An app is a program in AffrescoUI Lisp ([LISP.md](LISP.md),
-  [`modules/lisp`](modules/lisp/README.md)): Clojure's syntax and Emacs's vocabulary (`defscreen`, `defview`,
+  [`modules/lisp`](modules/lisp/README.md)): named definitions (`defscreen`, `defview`,
   `defstate`, `defn`, `defcommand`, `defkey`, `defcustom`, `add-hook`, `advice`), run by the library's own interpreter.
   Each definition is versioned on its own, so a diff names the view or function that changed, and a proposal is rebuilt
   and judged by the tree it builds. The language can't reach files, processes or the network. Its only ways out are

@@ -1,6 +1,6 @@
 # AffrescoUI Lisp
 
-AffrescoUI apps are written in **AffrescoUI Lisp**, a Lisp with its own runtime: Clojure's syntax and Emacs's vocabulary.
+AffrescoUI apps are written in **AffrescoUI Lisp**, a Lisp with its own runtime.
 A program **builds** the screen document the engine draws ([SCREEN_FORMAT.md](SCREEN_FORMAT.md)), and its functions **run**
 when a button is pressed, a key typed or a value bound. JSON is the same document written out directly, for data and for
 tools. This page is the standard in one place; the full reference is
@@ -55,7 +55,7 @@ an error. Each definition is versioned on its own.
 | `(defscreen main "doc"? :key value ... node)` | The window | `root`, and its options at the top: `:window`, `:fonts`, `:strings`, `:theme`, `:permissions`, `:persist`. Another name builds `screens.name` |
 | `(defview name "doc" [params] body)` | A function the build calls | Nothing of its own: the nodes it returns, wherever it is called |
 | `(defcomponent name "doc" {:param default} node)` | A component | `components.name`, used with `:use name :with {...}` |
-| `(defstate name value "doc" :type schema?)` | A state key | `state.name` (and `stateTypes.name`). A value already in the document wins, as with Emacs's `defvar` |
+| `(defstate name value "doc" :type schema?)` | A state key | `state.name` (and `stateTypes.name`). A value already in the document wins |
 | `(defcomputed name "doc" form)` | A derived value | `computed.name`, as a binding |
 | `(defn name "doc" [params] body)` | A function | Nothing: handlers, bindings and other functions call it |
 | `(defcommand name "doc" :title ~(t "k") ... [params] body)` | A command: a function plus its palette entry | `actions.name`, whose `do` runs the function |
@@ -68,7 +68,7 @@ an error. Each definition is versioned on its own.
 | `(defdefaults name "doc" :section {...})` | Defaults an app may replace (shared add-ons) | members that yield to any other definition |
 | `(def name "doc" value)` | A constant, worked out at the build | Nothing |
 | `(defmacro name "doc" [params] body)` | A macro, expanded at load | Nothing |
-| `(defhook name "doc")`, `(add-hook h f)`, `(remove-hook h f)`, `(advice f :before/:after/:around g)` | Extension points, as in Emacs | Nothing: they run in the app |
+| `(defhook name "doc")`, `(add-hook h f)`, `(remove-hook h f)`, `(advice f :before/:after/:around g)` | Extension points | Nothing: they run in the app |
 | `(include "file.lisp" ...)` | The app's other files, in the entry file | `include`. Read from disk with the entry, never by a revision |
 
 ## Views and bindings
@@ -125,7 +125,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | Special forms | `quote`, backquote with `~` and `~@`, `if`, `do`, `when`, `cond`, `and`, `or`, `let`, `fn`, `loop`/`recur`, `try`/`catch`/`throw` |
 | Functions | Lexical closures, proper tail calls, destructuring `[a b & more :as all]` and `{:keys [a b] :or {a 1}}`, one parameter list each |
 | Built-ins | Clojure's names: `map filter reduce find first rest cons conj assoc get get-in merge keys vals count str range apply sort-by`... ([modules/lisp](modules/lisp/README.md#the-language)) |
-| Macros | `defmacro`, unhygienic as in Emacs; `gensym` for a macro's own names |
+| Macros | `defmacro`, unhygienic; `gensym` for a macro's own names |
 | Outside world | None of its own: no files, network, clock or randomness. A host grants steps, each judged by who wrote the code that runs |
 | The build | Pure: the same source always builds the same tree |
 
