@@ -376,6 +376,18 @@ private:
 	/// @throws lisp::Refusal If they aren't what the step takes.
 	[[nodiscard]] static json stepFrom(const StepType& type, lisp::Interpreter& interpreter,
 	                                   std::span<const lisp::Value> arguments, Scope& scope);
+	/// @brief One of a step's values from a primitive's argument: a callback's steps where the key holds steps, else
+	/// the value as it is.
+	/// @param type The step.
+	/// @param key The key.
+	/// @param value The argument.
+	/// @param interpreter The interpreter.
+	/// @param scope Holds the values that could be taken for an expression.
+	/// @return The step's value, or std::nullopt for nil where the key holds steps (the key is left out).
+	/// @throws lisp::Refusal If the key holds steps and the value is a name or steps, not a function.
+	[[nodiscard]] static std::optional<json> stepValue(const StepType& type, const std::string& key,
+	                                                   const lisp::Value& value, lisp::Interpreter& interpreter,
+	                                                   Scope& scope);
 	/// @brief What a primitive of a step does: makes the step from its arguments, and runs it.
 	/// @param type The step.
 	/// @param interpreter The interpreter.

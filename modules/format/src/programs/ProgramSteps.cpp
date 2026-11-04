@@ -230,24 +230,28 @@ json Programs::callbackSteps(lisp::Interpreter& interpreter, const lisp::Value& 
 	return json::array({std::move(step)});
 }
 
+std::optional<json> Programs::stepValue(const StepType& type, const std::string& key, const lisp::Value& value,
+                                        lisp::Interpreter& interpreter, Scope& scope) {
+	// A name or steps given as a value would run what no name in the code says, past what reaches it (Rules)
+	if(holdsSteps(key) && key != "loading" && !isFunction(value)) {
+		if(value.isNil()) return std::nullopt;
+		if(value.kind() == lisp::Kind::Vector && value.count() > 0 && isFunction(value.at(0))) { // [opened path]
+			std::vector<lisp::Value> given;
+			for(std::size_t item = 1; item < value.count(); ++item) given.push_back(value.at(item));
+			return callbackSteps(interpreter, value.at(0), given, scope);
+		}
+		throw lisp::Refusal("\"" + key + "\" of \"" + type.name +
+		                    "\" takes a function of the program, by its name: never a name or steps as a value");
+	}
+	return holdsSteps(key) && isFunction(value) ? callbackSteps(interpreter, value, {}, scope)
+	                                            : inertValue(interpreter, value, scope);
+}
+
 json Programs::stepFrom(const StepType& type, lisp::Interpreter& interpreter, std::span<const lisp::Value> arguments,
                         Scope& scope) {
 	json step = json::object();
 	const auto put = [&](const std::string& key, const lisp::Value& value) {
-		// A name or steps given as a value would run what no name in the code says, past what reaches it (Rules)
-		if(holdsSteps(key) && key != "loading" && !isFunction(value)) {
-			if(value.isNil()) return;
-			if(value.kind() == lisp::Kind::Vector && value.count() > 0 && isFunction(value.at(0))) { // [opened path]
-				std::vector<lisp::Value> given;
-				for(std::size_t item = 1; item < value.count(); ++item) given.push_back(value.at(item));
-				step[key] = callbackSteps(interpreter, value.at(0), given, scope);
-				return;
-			}
-			throw lisp::Refusal("\"" + key + "\" of \"" + type.name +
-			                    "\" takes a function of the program, by its name: never a name or steps as a value");
-		}
-		step[key] = holdsSteps(key) && isFunction(value) ? callbackSteps(interpreter, value, {}, scope)
-		                                                 : inertValue(interpreter, value, scope);
+		if(std::optional<json> given = stepValue(type, key, value, interpreter, scope)) step[key] = std::move(*given);
 	};
 	std::size_t at = 0;
 	if(arguments.empty() || arguments[0].kind() == lisp::Kind::Keyword) step[type.name] = true; // (undo), (endPreview)
