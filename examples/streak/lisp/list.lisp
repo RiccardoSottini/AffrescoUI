@@ -232,40 +232,52 @@
                    :else (t "cell.no" {:date date}))
      :onClick ~(handler cellClick h d event.x event.y)
      :onContextMenu ~(handler openPopup h d event.x event.y)
-     (label#label-cell :when ~(not= hb.kind "measurable")
-       :font icons
-       :align center
-       :icon ~(cond (or (nil? v) (and (= v 0) (< r 1))) "" (= v (- 1)) "chevrons-right" :else "check")
-       :textColor ~(if (= v 1) computed.onColor col)
-       :anchors {:left 8 :top 14}
-       :width 28
-       :height 28
-       :radius 8
-       :color ~(cond (= v 1) col (or (= v (- 1)) (>= r 1)) (str col "2e") :else "transparent")
-       :borderWidth ~(if (and (= v 0) (< r 1)) 1.5 0)
-       :borderColor @c.faint)
-     (label#label-format-number-v :when ~(and (= hb.kind "measurable") (some? v))
-       :anchors {:left 0 :right 0 :top 9}
-       :height 18
-       :align center
-       :text ~(formatNumber v 0 1)
-       :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col
-                     :else "@c.faint"))
-     (label#label-hb-unit :when ~(and (= hb.kind "measurable") (some? v))
-       :anchors {:left 0 :right 0 :top 27}
-       :height 14
-       :align center
-       :font tiny
-       :text ~hb.unit
-       :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col
-                     :else "@c.faint"))
-     (node#panel-cell
-       :when ~(not= (trim (or-else (get hb.notes d) "")) "")
-       :anchors {:top 8 :right 8}
-       :width 5
-       :height 5
-       :radius 3
-       :color ~col)))
+     ~(cell-tick)
+     ~(cell-number)
+     ~(cell-unit)
+     ~(cell-note-dot d)))
+
+(defview cell-tick "A yes-or-no day's box: empty, ticked, or skipped; tinted when the target is met anyway." []
+  `(label#label-cell :when ~(not= hb.kind "measurable")
+     :font icons
+     :align center
+     :icon ~(cond (or (nil? v) (and (= v 0) (< r 1))) "" (= v (- 1)) "chevrons-right" :else "check")
+     :textColor ~(if (= v 1) computed.onColor col)
+     :anchors {:left 8 :top 14}
+     :width 28
+     :height 28
+     :radius 8
+     :color ~(cond (= v 1) col (or (= v (- 1)) (>= r 1)) (str col "2e") :else "transparent")
+     :borderWidth ~(if (and (= v 0) (< r 1)) 1.5 0)
+     :borderColor @c.faint))
+
+(defview cell-number "A measurable day's number, in the habit's colour once it counts." []
+  `(label#label-format-number-v :when ~(and (= hb.kind "measurable") (some? v))
+     :anchors {:left 0 :right 0 :top 9}
+     :height 18
+     :align center
+     :text ~(formatNumber v 0 1)
+     :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col
+                   :else "@c.faint")))
+
+(defview cell-unit "A measurable day's unit, under its number, coloured as the number is." []
+  `(label#label-hb-unit :when ~(and (= hb.kind "measurable") (some? v))
+     :anchors {:left 0 :right 0 :top 27}
+     :height 14
+     :align center
+     :font tiny
+     :text ~hb.unit
+     :textColor ~(cond (= hb.frequency.days 1) (if (and (>= r 1) (> v 0)) col "@c.faint") (> v 0) col
+                   :else "@c.faint")))
+
+(defview cell-note-dot "A dot in the corner of day `d` when it has a note." [d]
+  `(node#panel-cell
+     :when ~(not= (trim (or-else (get hb.notes d) "")) "")
+     :anchors {:top 8 :right 8}
+     :width 5
+     :height 5
+     :radius 3
+     :color ~col))
 
 (defview empty-list "What the list says while it has no habit." []
   `(node#emptyList

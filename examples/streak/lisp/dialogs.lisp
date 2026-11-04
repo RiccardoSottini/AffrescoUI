@@ -93,25 +93,8 @@
 
 (defview edit-fields "The dialog's fields: name, colour, question, unit, target, frequency and reminder." []
   `(column#editFields :anchors {:left 20 :right 20 :top 48 :bottom 56} :gap 6
-     (node#editName :anchors {:left 0 :right 0} :height 58 :color transparent
-       (node#label-t-edit-name :style caption :text ~(t "edit.name") :anchors {:left 2 :top 0})
-       (node#nameField
-         :style field
-         :bind state.edit.name
-         :autofocus true
-         :label ~(t "edit.name")
-         :placeholder ~(t "edit.namePh")
-         :anchors {:left 0 :right 52 :top 18}
-         :borderColor ~(if (not= state.edit.error "") "@c.danger" "@c.divider"))
-       ~(color-button))
-     (node#editQuestion :anchors {:left 0 :right 0} :height 58 :color transparent
-       (node#label-t-edit-question :style caption :text ~(t "edit.question") :anchors {:left 2 :top 0})
-       (node#questionField
-         :style field
-         :bind state.edit.question
-         :label ~(t "edit.question")
-         :placeholder ~(t "edit.questionPh")
-         :anchors {:left 0 :right 0 :top 18}))
+     ~(edit-name)
+     ~(edit-question)
      (node#editTarget :anchors {:left 0 :right 0}
        :height 58
        :color transparent
@@ -124,14 +107,7 @@
      (node#editReminder :anchors {:left 0 :right 0} :height 58 :color transparent
        (node#label-t-edit-reminder :style caption :text ~(t "edit.reminder") :anchors {:left 2 :top 0})
        ~(row-edit-reminder))
-     (node#editNotes :anchors {:left 0 :right 0} :height 58 :color transparent
-       (node#label-t-edit-notes :style caption :text ~(t "edit.notes") :anchors {:left 2 :top 0})
-       (node#notesField
-         :style field
-         :bind state.edit.description
-         :label ~(t "edit.notes")
-         :placeholder ~(t "edit.notesPh")
-         :anchors {:left 0 :right 0 :top 18}))
+     ~(edit-notes)
      (label#label-edit-error :text ~state.edit.error
        :when ~(not= state.edit.error "")
        :font small
@@ -139,6 +115,39 @@
        :height 16
        :width 400
        :live assertive)))
+
+(defview edit-name "The habit's name, and the button choosing its colour." []
+  `(node#editName :anchors {:left 0 :right 0} :height 58 :color transparent
+     (node#label-t-edit-name :style caption :text ~(t "edit.name") :anchors {:left 2 :top 0})
+     (node#nameField
+       :style field
+       :bind state.edit.name
+       :autofocus true
+       :label ~(t "edit.name")
+       :placeholder ~(t "edit.namePh")
+       :anchors {:left 0 :right 52 :top 18}
+       :borderColor ~(if (not= state.edit.error "") "@c.danger" "@c.divider"))
+     ~(color-button)))
+
+(defview edit-question "The question asked each day." []
+  `(node#editQuestion :anchors {:left 0 :right 0} :height 58 :color transparent
+     (node#label-t-edit-question :style caption :text ~(t "edit.question") :anchors {:left 2 :top 0})
+     (node#questionField
+       :style field
+       :bind state.edit.question
+       :label ~(t "edit.question")
+       :placeholder ~(t "edit.questionPh")
+       :anchors {:left 0 :right 0 :top 18})))
+
+(defview edit-notes "The habit's notes." []
+  `(node#editNotes :anchors {:left 0 :right 0} :height 58 :color transparent
+     (node#label-t-edit-notes :style caption :text ~(t "edit.notes") :anchors {:left 2 :top 0})
+     (node#notesField
+       :style field
+       :bind state.edit.description
+       :label ~(t "edit.notes")
+       :placeholder ~(t "edit.notesPh")
+       :anchors {:left 0 :right 0 :top 18})))
 
 (defview swatch "A colour of the palette." [sw]
   `(node#swatch :width 32
@@ -214,49 +223,30 @@
      :arrows horizontal
      :role radiogroup
      :label ~(t "edit.frequency")
-     (node#freq_daily
-       :style ~(if (= state.edit.freqMode "daily") "chipOn" "chip")
-       :text ~(t "chip.daily")
-       :selected ~(= state.edit.freqMode "daily")
-       :onClick {:set state.edit.freqMode :to daily}
-       :when ~(not= state.edit.kind "measurable"))
-     (node#freq_everyN
-       :style ~(if (= state.edit.freqMode "everyN") "chipOn" "chip")
-       :text ~(t "chip.everyN")
-       :selected ~(= state.edit.freqMode "everyN")
-       :onClick {:set state.edit.freqMode :to everyN}
-       :when ~(not= state.edit.kind "measurable"))
-     (node#freq_week
-       :style ~(if (= state.edit.freqMode "week") "chipOn" "chip")
-       :text ~(t "chip.week")
-       :selected ~(= state.edit.freqMode "week")
-       :onClick {:set state.edit.freqMode :to week}
-       :when ~(not= state.edit.kind "measurable"))
-     (node#freq_month
-       :style ~(if (= state.edit.freqMode "month") "chipOn" "chip")
-       :text ~(t "chip.month")
-       :selected ~(= state.edit.freqMode "month")
-       :onClick {:set state.edit.freqMode :to month}
-       :when ~(not= state.edit.kind "measurable"))
-     (node#per_daily
-       :style ~(if (= state.edit.freqMode "daily") "chipOn" "chip")
-       :text ~(t "chip.perDay")
-       :selected ~(= state.edit.freqMode "daily")
-       :onClick {:set state.edit.freqMode :to daily}
-       :when ~(= state.edit.kind "measurable"))
-     (node#per_week
-       :style ~(if (= state.edit.freqMode "week") "chipOn" "chip")
-       :text ~(t "chip.week")
-       :selected ~(= state.edit.freqMode "week")
-       :onClick {:set state.edit.freqMode :to week}
-       :when ~(= state.edit.kind "measurable"))
-     (node#per_month
-       :style ~(if (= state.edit.freqMode "month") "chipOn" "chip")
-       :text ~(t "chip.month")
-       :selected ~(= state.edit.freqMode "month")
-       :onClick {:set state.edit.freqMode :to month}
-       :when ~(= state.edit.kind "measurable"))
+     ~(freq-chip "daily" "chip.daily")
+     ~(freq-chip "everyN" "chip.everyN")
+     ~(freq-chip "week" "chip.week")
+     ~(freq-chip "month" "chip.month")
+     ~(per-chip "daily" "chip.perDay")
+     ~(per-chip "week" "chip.week")
+     ~(per-chip "month" "chip.month")
      ~(freq-stepper)))
+
+(defview freq-chip "A yes-or-no habit's frequency `mode` to choose, its text `key`." [mode key]
+  `(node :id ~(str "freq_" mode)
+     :style ~(if (= state.edit.freqMode mode) "chipOn" "chip")
+     :text ~(t key)
+     :selected ~(= state.edit.freqMode mode)
+     :onClick {:set state.edit.freqMode :to ~mode}
+     :when ~(not= state.edit.kind "measurable")))
+
+(defview per-chip "A measurable habit's period `mode` to choose (a target per day, week or month), its text `key`." [mode key]
+  `(node :id ~(str "per_" mode)
+     :style ~(if (= state.edit.freqMode mode) "chipOn" "chip")
+     :text ~(t key)
+     :selected ~(= state.edit.freqMode mode)
+     :onClick {:set state.edit.freqMode :to ~mode}
+     :when ~(= state.edit.kind "measurable")))
 
 (defview freq-stepper "The frequency's times, with minus and plus." []
   `(row#freqStepper :when ~(and (not= state.edit.kind "measurable") (not= state.edit.freqMode "daily"))

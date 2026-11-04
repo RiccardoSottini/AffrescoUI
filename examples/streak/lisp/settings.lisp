@@ -49,52 +49,61 @@
 (defview settings-interface "The interface: theme, pure black, first weekday, the days' order, skips, reminders and the language." []
   `(column#settingsInterface :style card :anchors {:left 0 :right 0} :fitContent height
      (label#label-t-set-interface :text ~(t "set.interface") :style sectionTitle :anchors {:left 0 :right 0})
-     (node#themeRow :use prefRow
-       :with {:title ~(t "set.theme") :summary ~(t (str "theme." state.theme))}
-       :isOpen ~state.menus.theme
-       :onClick {:set state.menus.theme :to true}
-       (node#menu-theme-row :use menu
-         :with {:open state.menus.theme
-                :width 220
-                :placement below-end
-                :items ~(map (fn [it]
-                               {:title (t (str "theme." it)) :checked (= state.theme it) :run "setTheme" :with {:value it}})
-                             ["light" "dark" "system"])}))
+     ~(theme-row)
      (node#pureBlackRow :use toggleRow
        :with {:title ~(t "set.pureBlack") :summary ~(t "set.pureBlackHint") :bind state.pureBlack :on ~state.pureBlack})
      (node#reverseRow :use toggleRow
        :with {:title ~(t "set.reverse") :summary ~(t "set.reverseHint") :bind state.reverseDays :on ~state.reverseDays})
      (node#skipRow :use toggleRow
        :with {:title ~(t "set.skip") :summary ~(t "set.skipHint") :bind state.skipDays :on ~state.skipDays})
-     (node#firstDayRow :use prefRow
-       :with {:title ~(t "set.firstDay")
-              :summary ~(formatDate (dateMs (addDays "2000-01-02" state.firstWeekday)) "EEEE" "utc")}
-       :isOpen ~state.menus.firstDay
-       :onClick {:set state.menus.firstDay :to true}
-       (node#menu-first-day-row :use menu
-         :with {:open state.menus.firstDay
-                :width 220
-                :placement below-end
-                :items ~(map (fn [it]
-                               {:title (formatDate (dateMs (addDays "2000-01-02" it)) "EEEE" "utc")
-                                :checked (= state.firstWeekday it)
-                                :run "setFirstDay"
-                                :with {:value it}})
-                             [6 0 1])}))
-     (node#languageRow :use prefRow
-       :with {:title ~(t "set.language") :summary ~(t (str "lang." state.locale))}
-       :isOpen ~state.menus.language
-       :onClick {:set state.menus.language :to true}
-       (node#menu-language-row :use menu
-         :with {:open state.menus.language
-                :width 220
-                :placement below-end
-                :items ~(map (fn [it]
-                               {:title (t (str "lang." it))
-                                :checked (= state.locale it)
-                                :run "setLocale"
-                                :with {:value it}})
-                             ["en" "es" "fr"])}))))
+     ~(first-day-row)
+     ~(language-row)))
+
+(defview theme-row "The theme: light, dark or the system's, in a menu." []
+  `(node#themeRow :use prefRow
+     :with {:title ~(t "set.theme") :summary ~(t (str "theme." state.theme))}
+     :isOpen ~state.menus.theme
+     :onClick {:set state.menus.theme :to true}
+     (node#menu-theme-row :use menu
+       :with {:open state.menus.theme
+              :width 220
+              :placement below-end
+              :items ~(map (fn [it]
+                             {:title (t (str "theme." it)) :checked (= state.theme it) :run "setTheme" :with {:value it}})
+                           ["light" "dark" "system"])})))
+
+(defview first-day-row "The week's first day, in a menu: Saturday, Sunday or Monday." []
+  `(node#firstDayRow :use prefRow
+     :with {:title ~(t "set.firstDay")
+            :summary ~(formatDate (dateMs (addDays "2000-01-02" state.firstWeekday)) "EEEE" "utc")}
+     :isOpen ~state.menus.firstDay
+     :onClick {:set state.menus.firstDay :to true}
+     (node#menu-first-day-row :use menu
+       :with {:open state.menus.firstDay
+              :width 220
+              :placement below-end
+              :items ~(map (fn [it]
+                             {:title (formatDate (dateMs (addDays "2000-01-02" it)) "EEEE" "utc")
+                              :checked (= state.firstWeekday it)
+                              :run "setFirstDay"
+                              :with {:value it}})
+                           [6 0 1])})))
+
+(defview language-row "The language, in a menu: English, Spanish or French." []
+  `(node#languageRow :use prefRow
+     :with {:title ~(t "set.language") :summary ~(t (str "lang." state.locale))}
+     :isOpen ~state.menus.language
+     :onClick {:set state.menus.language :to true}
+     (node#menu-language-row :use menu
+       :with {:open state.menus.language
+              :width 220
+              :placement below-end
+              :items ~(map (fn [it]
+                             {:title (t (str "lang." it))
+                              :checked (= state.locale it)
+                              :run "setLocale"
+                              :with {:value it}})
+                           ["en" "es" "fr"])})))
 
 (defview settings-data "The data: export, back up and restore." []
   `(column#settingsData :style card :anchors {:left 0 :right 0} :fitContent height
