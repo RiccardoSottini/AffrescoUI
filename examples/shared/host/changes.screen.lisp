@@ -352,20 +352,7 @@
       :textColor @c.text
       :height 26
       :role heading)
-    (label#changesSummary :when ~(some? state.view)
-      :text ~(str (t "changes.by" {:author state.view.author})
-                  "   "
-                  (t "changes.filesSummary"
-                     {:n (count state.view.files) :added computed.added :removed computed.removed})
-                  (if (nil? state.view.impact)
-                    ""
-                    (str "   "
-                         (t "changes.layers"
-                            {:view state.view.impact.view
-                             :logic state.view.impact.logic
-                             :data state.view.impact.data}))))
-      :textColor @c.muted
-      :height 20)
+    ~(change-summary)
     (label#changesStale :when ~(and state.stale (not state.closed))
       :wrap true :text ~(t "changes.stale") :textColor @c.warning :anchors {:left 0 :right 0} :height 36)
     (label#changesClosed :when ~state.closed
@@ -386,6 +373,22 @@
       :textColor @c.warning
       :anchors {:left 0 :right 0}
       :height 36)))
+
+(defview change-summary "Who the change is by, how many files and lines it changes, and in which layers." []
+  `(label#changesSummary :when ~(some? state.view)
+     :text ~(str (t "changes.by" {:author state.view.author})
+                 "   "
+                 (t "changes.filesSummary"
+                    {:n (count state.view.files) :added computed.added :removed computed.removed})
+                 (if (nil? state.view.impact)
+                   ""
+                   (str "   "
+                        (t "changes.layers"
+                           {:view state.view.impact.view
+                            :logic state.view.impact.logic
+                            :data state.view.impact.data}))))
+     :textColor @c.muted
+     :height 20))
 
 ;;; Deciding
 
