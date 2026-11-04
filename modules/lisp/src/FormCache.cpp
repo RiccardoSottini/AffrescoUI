@@ -7,6 +7,7 @@
 #include "Reader.hpp"
 #include "TopLevel.hpp"
 
+#include <limits>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -19,16 +20,16 @@ namespace affresco::lisp {
 
 namespace {
 
-/// The texts kept, at most, in bytes: the largest apps' programs are well under it.
+/// What the kept texts and their forms cost, at most, in bytes: the largest apps' programs are well under it.
 constexpr std::size_t keptBytes = 32U << 20U;
 /// A text longer than this is read each time: one definition that large is rare, and would crowd out the others.
 constexpr std::size_t largestKept = 1U << 20U;
 
 /// @brief A form read once, in a heap of its own that nothing changes afterwards.
 struct Kept {
-	Heap heap;          ///< Owns the form; nothing is made in it once it is kept.
-	Value form;         ///< The form.
-	std::size_t bytes;  ///< What its key costs, counted against keptBytes.
+	Heap heap;         ///< Owns the form; nothing is made in it once it is kept.
+	Value form;        ///< The form.
+	std::size_t bytes; ///< What its key and its form cost, counted against keptBytes.
 };
 
 /// @brief The forms kept, by their text and its place, least recently used first to go.
@@ -63,11 +64,11 @@ public:
 	}
 
 private:
-	std::mutex mutex_;              ///< Programs load on any thread.
-	std::list<std::string> order_;  ///< Keys, least recently used first.
+	std::mutex mutex_;             ///< Programs load on any thread.
+	std::list<std::string> order_; ///< Keys, least recently used first.
 	std::unordered_map<std::string, std::pair<std::shared_ptr<const Kept>, std::list<std::string>::iterator>>
-	    forms_;                     ///< By key.
-	std::size_t bytes_ = 0;         ///< What the keys cost.
+	    forms_;             ///< By key.
+	std::size_t bytes_ = 0; ///< What they cost.
 };
 
 /// @brief The process's forms. @return Them.
@@ -85,8 +86,8 @@ Place placeIn(Heap& to, Place place) {
 	return place;
 }
 
-/// @brief Copies a form read by the reader into a heap: a symbol, a keyword or a string with its place, a list, a vector
-/// or a map of copies, and anything else as it is.
+/// @brief Copies a form read by the reader into a heap: a symbol, a keyword or a string with its place, a list, a
+/// vector or a map of copies, and anything else as it is.
 /// @param to The heap.
 /// @param form The form.
 /// @return The copy.
@@ -146,10 +147,15 @@ std::optional<Value> readEntry(Heap& heap, std::string_view text, const std::str
 	std::shared_ptr<const Kept> kept = keptForms().find(key);
 	if(!kept) {
 		auto made = std::make_shared<Kept>();
+		// What the form costs is measured as it is made: a text of nested brackets makes many objects per byte
+		Budget measured{.operations = 0, .bytes = std::numeric_limits<std::size_t>::max()};
+		made->heap.setBudget(&measured);
 		const auto [form, one] = readOne(made->heap, text, file, line, column); // reads, or throws as reading does
+		made->heap.setBudget(nullptr);
 		if(!one) return std::nullopt;
 		made->form = form;
-		made->bytes = key.size() * 4; // the forms cost a few times their text
+		made->bytes = key.size() + (std::numeric_limits<std::size_t>::max() - measured.bytes);
+		if(made->bytes > largestKept * 8) return copied(heap, form); // would crowd out the others: read each time
 		kept = made;
 		keptForms().keep(key, kept);
 	}
