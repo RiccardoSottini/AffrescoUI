@@ -70,7 +70,7 @@
 (defcomponent assistantFile
   ;; A file as a card, as chat apps show attachments: an icon of its kind (a picture, a sound, any other file), its
   ;; name, and its length (a sound) or size; removable from the files of the next message
-  "A file as a card, as chat apps show attachments: an icon of its kind (a picture, a sound."
+  "A file as a card, as chat apps show attachments: an icon of its kind (a picture, a sound, any other file), its name, and its length (a sound) or size; removable from the files of the next message"
   {:file {} :removable false}
   `(row :fitContent width
      :height 44
@@ -121,7 +121,7 @@
 (defcomponent assistantExtras
   ;; What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is
   ;; previewed) and its run-once steps, a line each
-  "What a proposal adds beside its edits: its assets (a file card each."
+  "What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is previewed) and its run-once steps, a line each"
   {:id 0 :assets [] :run []}
   `(column :fitContent height :width 340 :gap 6 :color transparent :role list
      ~(repeat [asset assets :index a]
