@@ -13,7 +13,7 @@
 
 (defstate locale system "The language: English, Spanish, French, or the system's." :type {:enum [system en es fr]})
 
-(defstate notation json "The notation each example opens in: JSON or Lisp." :type {:enum [json lisp]})
+(defstate notation lisp "The notation each example opens in: Lisp, the standard, or JSON." :type {:enum [json lisp]})
 
 (defstate toasts [] "The notes at the bottom, the newest last.")
 

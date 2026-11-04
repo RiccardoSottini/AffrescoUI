@@ -132,9 +132,9 @@
 				{ "expect": { "node": "#settingsIntelligence", "exists": true } },
 				{ "click": { "role": "radio", "name": "Dark" } },
 				{ "expect": { "state": "theme", "is": "dark" } },
-				{ "expect": { "state": "notation", "is": "json" } },
-				{ "click": { "role": "radio", "name": "Lisp" } },
 				{ "expect": { "state": "notation", "is": "lisp" } },
+				{ "click": { "role": "radio", "name": "JSON" } },
+				{ "expect": { "state": "notation", "is": "json" } },
 				{ "click": { "role": "radio", "name": "Español" } },
 				{ "expect": { "state": "locale", "is": "es" } },
 				{ "expect": { "node": "#settingsTitle", "text": "Ajustes" } }

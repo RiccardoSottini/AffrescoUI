@@ -86,7 +86,7 @@
 		"query": "",
 		"theme": "system",
 		"locale": "system",
-		"notation": "json",
+		"notation": "lisp",
 		"mine": [],
 		"mineScan": [],
 		"mineNext": [],
