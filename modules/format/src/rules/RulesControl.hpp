@@ -23,8 +23,10 @@ namespace affresco::format {
 
 /// @brief Finds a definition of a program that a change alters while it reaches a control or a review step, before or
 /// after: as a JSON action holding one, its text may not change, arguments included (`(signIn "other")`), nor may it
-/// go. Only a definition that runs code counts: a view, a screen or a section's definition builds a tree, judged as
-/// any.
+/// go, nor may what it calls come to mean something else (its text then reaching none). Only a definition that runs
+/// code counts: a view, a screen or a section's definition builds a tree, judged as any. Nor may a change add, alter or
+/// take away a definition named like a control or a review step, which the code calling that name runs instead of the
+/// step.
 /// @param before The document before.
 /// @param after The document after.
 /// @param granted The host's actions its points pass on.

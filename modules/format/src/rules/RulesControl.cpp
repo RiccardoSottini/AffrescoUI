@@ -452,6 +452,34 @@ std::map<std::string, std::string> controlDefinitions(const json& doc,
 	return found;
 }
 
+/// @brief Finds a definition named like a control or a review step that a change adds, alters or takes away. The
+/// program's code calling that name calls the definition, not the step, so a new one would quietly take a person's
+/// `(accept)` or `(signIn ...)` over, and taking one away would give its callers the step: the file may define one (an
+/// app's own `saveFile`), and only the file.
+/// @param before The document before.
+/// @param after The document after.
+/// @return Its address, `file/name`, or nothing.
+std::optional<std::string> stepNamedDefinition(const json& before, const json& after) {
+	const auto entriesOf = [](const json& doc) {
+		std::map<std::string, const json*> found; // by file/name
+		const auto program = doc.find("program");
+		if(program == doc.end() || !program->is_object()) return found;
+		for(const auto& [file, entries] : program->items())
+			if(entries.is_object())
+				for(const auto& [name, text] : entries.items())
+					if(std::ranges::find(controlSteps, name) != controlSteps.end())
+						found.emplace(file + "/" + name, &text);
+		return found;
+	};
+	const std::map<std::string, const json*> was = entriesOf(before);
+	const std::map<std::string, const json*> is = entriesOf(after);
+	for(const auto& [address, text] : was)
+		if(const auto now = is.find(address); now == is.end() || *now->second != *text) return address;
+	for(const auto& [address, text] : is)
+		if(!was.contains(address)) return address;
+	return std::nullopt;
+}
+
 } // namespace
 
 std::optional<std::string> alteredControlDefinition(const json& before, const json& after,
@@ -473,13 +501,14 @@ std::optional<std::string> alteredControlDefinition(const json& before, const js
 	};
 	for(const auto& [address, text] : was) { // changed or taken away
 		const json* now = textOf(after, address);
-		if(!now || *now != text) return shown(address);
+		// The same text that no longer reaches one means another: a name it calls was given to a new definition
+		if(!now || *now != text || !is.contains(address)) return shown(address);
 	}
 	for(const auto& [address, text] : is) { // changed into one that reaches a control step
 		const json* then = textOf(before, address);
 		if(then && *then != text) return shown(address);
 	}
-	return std::nullopt;
+	return stepNamedDefinition(before, after);
 }
 
 std::vector<std::string> controlsIn(const json& doc, const std::set<std::string, std::less<>>& granted) {
