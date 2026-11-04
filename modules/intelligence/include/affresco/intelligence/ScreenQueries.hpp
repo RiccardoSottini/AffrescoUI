@@ -11,7 +11,9 @@
 
 namespace affresco::intelligence {
 
-/// @brief The node tree, one line per node: its address ("#id"), type, text, bind, onClick, repeat and when.
+/// @brief The node tree, one line per node: its address ("#id"), type, text, bind, onClick, repeat and when. The whole
+/// outline of a program's document starts with its definitions, one line each ("/program/<file>/<name> <form>"):
+/// what a revision changes, since what they build can't be edited.
 /// @param document The screen document.
 /// @param at A node's address ("#id") or a JSON Pointer to start at, or "" for every tree.
 /// @param depth How many levels below to show (-1: all); a cut node says how many it hides ("+12").
@@ -28,7 +30,8 @@ namespace affresco::intelligence {
 /// @throws std::runtime_error If it names nothing.
 [[nodiscard]] affresco::json nodeAt(const affresco::json& document, const std::string& at, int depth = -1);
 
-/// @brief The nodes matching every criterion given, one line each as in the outline, with the parent's address.
+/// @brief The nodes matching every criterion given, one line each as in the outline, with the parent's address. A
+/// program's definitions match too, by form (@p type "defn") and by anything in their text, when no property is asked.
 /// @param document The screen document.
 /// @param type A node type or component name, or "".
 /// @param text Text the node shows (any case), or "".

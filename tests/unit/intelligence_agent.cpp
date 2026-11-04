@@ -6,6 +6,7 @@
 
 #include <affresco/intelligence/Agent.hpp>
 #include <affresco/intelligence/Intelligence.hpp>
+#include <affresco/intelligence/ScreenQueries.hpp>
 
 #include <affresco/affresco.hpp>
 
@@ -168,6 +169,9 @@ struct Harness {
 	std::vector<json> sent;                   ///< What the agent sent the screen.
 	std::vector<json> revisions;              ///< The revisions among them.
 	std::function<json(const json&)> verdict; ///< The screen's answer to a revision.
+	/// The screen's document.
+	json document = {
+	    {"root", {{"id", "page"}, {"children", {{{"id", "title"}, {"type", "label"}, {"text", "Tasks"}}}}}}};
 	int claudeRuns = 0;                       ///< Times claude-code ran.
 	std::vector<std::string> claudeModels;    ///< The model of each run.
 	std::vector<std::string> claudeAnswers;   ///< What it answers, in turn.
@@ -216,12 +220,7 @@ struct Harness {
 		const std::string type = message.value("type", "");
 		json reply;
 		if(type == "getDocument") {
-			reply = {
-			    {"type", "document"},
-			    {"revision", 3},
-			    {"document",
-				 {{"root", {{"id", "page"}, {"children", {{{"id", "title"}, {"type", "label"}, {"text", "Tasks"}}}}}}}},
-			    {"state", {{"board", "Q3"}}}};
+			reply = {{"type", "document"}, {"revision", 3}, {"document", document}, {"state", {{"board", "Q3"}}}};
 		} else if(type == "revision") {
 			revisions.push_back(message);
 			reply = verdict(message);
@@ -405,6 +404,55 @@ TEST_CASE("intelligence agent: no key, a refused key, a rejected revision and a 
 		CHECK(harness.sent.empty());
 		CHECK(harness.claudeRuns == 0);
 	}
+	SUBCASE("an answer that changes nothing and says nothing isn't \"Done.\"") {
+		Harness harness("claude-code", "haiku");
+		harness.claudeAnswers = {R"({"revision": {"message": "m", "set": {"#gone/text": "A"}}})",
+		                         R"({"read": ["#gone"]})", R"({"read": ["#gone"]})", R"({"read": ["#gone"]})",
+		                         R"({"read": ["#gone"]})"};
+		harness.verdict = [](const json&) { return json{{"type", "rejected"}, {"error", "no node with id 'gone'"}}; };
+		const json reply = harness.ask("Change it");
+		CHECK(harness.claudeRuns == 5); // the revision, then three reads, and the fourth read is one too many
+		CHECK(reply["error"].get<std::string>().find("made no change") != std::string::npos);
+
+		Harness quiet("claude-code", "haiku");
+		quiet.claudeAnswers = {"{}"};
+		CHECK(quiet.ask("Change it")["error"].get<std::string>().find("No change was made") != std::string::npos);
+	}
+}
+
+TEST_CASE("intelligence agent: on a program, the assistant is told of it, finds the definition and changes it") {
+	Harness harness("claude-code", "opus");
+	harness.document = {
+	    {"root", {{"id", "page"}, {"children", {{{"id", "title"}, {"type", "label"}, {"text", "Tasks"}}}}}},
+	    {"program",
+		 {{"app.lisp",
+		   {{"page", ";; The page.\n(defscreen page (column#page (label#title :text \"Tasks\")))"},
+		    {"defkey mod+/b", "(defkey \"mod+/b\" toggle-side)"}}}}}};
+	harness.claudeAnswers = {R"({"revision": {"message": "m", "set": {"#title/text": "Launch"}}})",
+	                         R"({"find": ["#title"]})", R"({"read": ["/program/app.lisp/page"]})",
+	                         R"x({"reply": "Renamed it.", "revision": {"message": "m", "set": {"/program/app.lisp/page":
+	        "(defscreen page (column#page (label#title :text \"Launch\")))"}}})x"};
+	harness.verdict = [](const json& revision) {
+		return revision["set"].contains("#title/text")
+		           ? json{{"type", "rejected"},
+				          {"error", "no node with id 'title' (a program builds what isn't written here: change its "
+				                    "definition, under /program)"}}
+				   : json{{"type", "proposed"}, {"proposal", 4}};
+	};
+	const json reply = harness.ask("Rename the page to Launch");
+	CHECK(reply["text"] == "Renamed it.");
+	REQUIRE(harness.claudeRuns == 4);
+	CHECK(harness.claudeInputs[0].find("This app is a program in AffrescoUI Lisp") != std::string::npos);
+	CHECK(harness.claudeInputs[0].find(";; The page.") != std::string::npos); // a small screen is sent whole
+	CHECK(harness.claudeInputs[2].find("find \"#title\": 1 found\n/program/app.lisp/page defscreen") !=
+	      std::string::npos);
+	const std::string outline = intelligence::outline(harness.document); // a large one as its outline
+	CHECK(outline.starts_with("/program/app.lisp/page defscreen\n/program/app.lisp/defkey mod+~1b defkey\n#page"));
+	CHECK(intelligence::findNodes(harness.document, "defkey", "", "", json()) ==
+	      "1 found\n/program/app.lisp/defkey mod+~1b defkey");
+	CHECK(harness.claudeInputs[3].find(";; The page.") != std::string::npos);
+	REQUIRE(harness.revisions.size() == 2);
+	CHECK(harness.revisions[1]["set"].contains("/program/app.lisp/page"));
 }
 
 TEST_CASE("intelligence agent: at most six requests a minute are taken, the rest answered \"too many requests\"") {
