@@ -106,22 +106,7 @@
 (defview general-page "The general page: the launch options, and the overlay and cloud saves." []
   `(node :when ~(= state.properties.tab "general") :fill true :color transparent
      ~(caps-title "properties.launch" 0)
-     (textarea#properties-launch :anchors {:left 0 :right 0 :top 24}
-       :height 32
-       :padding 8
-       :radius 3
-       :borderWidth 1
-       :borderColor @color.border
-       :focused {:borderColor @color.accent}
-       :color @color.field
-       :textColor @color.text
-       :placeholderColor @color.dim
-       :font small
-       :maxLength 200
-       :placeholder ~(t "properties.launchHint")
-       :label ~(t "properties.launch")
-       :text ~(or-else computed.manageGame.launchOptions "")
-       :onChange ~(handler setLaunchOptions event.value))
+     ~(launch-options)
      (label :font small
        :text ~(t "properties.launchNote")
        :textColor @color.dim
@@ -144,6 +129,24 @@
          :checked ~(not= computed.manageGame.cloud false)
          :activeColor @color.accent
          :onChange ~(handler setCloud event.value)))))
+
+(defview launch-options "The game's launch options, a field that keeps what is typed." []
+  `(textarea#properties-launch :anchors {:left 0 :right 0 :top 24}
+     :height 32
+     :padding 8
+     :radius 3
+     :borderWidth 1
+     :borderColor @color.border
+     :focused {:borderColor @color.accent}
+     :color @color.field
+     :textColor @color.text
+     :placeholderColor @color.dim
+     :font small
+     :maxLength 200
+     :placeholder ~(t "properties.launchHint")
+     :label ~(t "properties.launch")
+     :text ~(or-else computed.manageGame.launchOptions "")
+     :onChange ~(handler setLaunchOptions event.value)))
 
 (defview updates-page "The updates page: when the game updates, one of three." []
   `(node :when ~(= state.properties.tab "updates") :fill true :color transparent

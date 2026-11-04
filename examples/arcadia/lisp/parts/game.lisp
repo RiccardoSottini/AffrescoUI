@@ -258,16 +258,7 @@
      :anchors {:left 0 :right 0}
      :style card
      :gap 12
-     (image :file ~(str "../assets/art/avatars/" f.avatar ".svg")
-       :width 36
-       :height 36
-       :anchors {:top 14}
-       :fit cover
-       :radius 2
-       :borderWidth 1
-       :borderColor ~(cond (= f.presence "ingame") "@color.ingame"
-                           (= f.presence "offline") "@color.offline"
-                           :else "@color.online"))
+     ~(friend-avatar)
      (column :grow 1 :gap 4 :anchors {:top 14 :bottom 10}
        (label :anchors {:left 0 :right 0}
          :height 18
@@ -291,6 +282,18 @@
          :textColor @color.dim
          :anchors {:left 0 :right 0}
          :height 16))))
+
+(defview friend-avatar "The friend's avatar, its border showing whether they are in a game, online or offline." []
+  `(image :file ~(str "../assets/art/avatars/" f.avatar ".svg")
+     :width 36
+     :height 36
+     :anchors {:top 14}
+     :fit cover
+     :radius 2
+     :borderWidth 1
+     :borderColor ~(cond (= f.presence "ingame") "@color.ingame"
+                         (= f.presence "offline") "@color.offline"
+                         :else "@color.online")))
 
 ;;; The side panels
 
