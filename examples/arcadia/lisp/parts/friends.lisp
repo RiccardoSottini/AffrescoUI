@@ -156,9 +156,8 @@
 
 (defview my-status "Your status under your name, and the menu that changes it." []
   `(label#my-status :font small :fitText true :padding 2 :height 18 :cursor hand :focusable true :role button
-     ;; (+ ...), not (str ...): text ending in a space, written around an expression, loses the space
      :runs
-     [{:text ~(+ (t (str "presence." state.user.status)) " ")} {:icon chevron-down}]
+     [{:text ~(str (t (str "presence." state.user.status)) " ")} {:icon chevron-down}]
      :textColor
      @color.muted
      :label

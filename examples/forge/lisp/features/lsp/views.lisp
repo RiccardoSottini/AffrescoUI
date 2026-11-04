@@ -122,7 +122,7 @@
        :items ~(map-indexed (fn [index it]
                               {:id index
                                :cells [it.path
-                                       (+ it.line 1 ":" (+ it.column 1))
+                                       (str (+ it.line 1) ":" (+ it.column 1))
                                        (slice (join "⏎" (split it.text "\n")) 0 80)]})
                             state.lsp.review.edits)
        :rowHeight 20

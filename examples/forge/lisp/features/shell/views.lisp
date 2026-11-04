@@ -335,9 +335,9 @@
      :label ~(t "status-problems.label" {:errors computed.errors :warnings computed.warnings})
      :runs [~" "
             {:icon circle-x}
-            ~(+ " " (text computed.errors) "  ")
+            ~(str " " computed.errors "  ")
             {:icon alert-triangle}
-            ~(+ " " (text computed.warnings))]
+            ~(str " " computed.warnings)]
      :padding 7
      :height 20
      :fitText true
