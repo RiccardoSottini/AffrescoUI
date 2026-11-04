@@ -349,7 +349,9 @@ void Compiler::compileLiveName(const Value& form) {
 
 void Compiler::addWorkedPart(const Value& form, int depth, std::vector<BindingPart>& parts) {
 	BindingPart part{"", form, true, {}, {}};
-	if(form.kind() != Kind::Symbol || form.text().contains('.')) localsIn(form, depth, part.locals);
+	// Already written for names of the running app: a form still worked out uses them where no binding can (inside a
+	// quote or a template of its own), so it has no text of its own to fall back on, and writing it again would loop
+	if((form.kind() != Kind::Symbol || form.text().contains('.')) && !symbolic_) localsIn(form, depth, part.locals);
 	if(!part.locals.empty()) { // its text, should one of them be a name of the running app
 		const bool symbolic = std::exchange(symbolic_, true);
 		lowerForm(form, depth, part.inner);

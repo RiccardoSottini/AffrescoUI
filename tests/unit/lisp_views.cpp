@@ -183,6 +183,18 @@ TEST_CASE("lisp views: a view is given what needs the running app as a name of i
 	CHECK(children[4]["onClick"] == json{{"lisp", "pick"}, {"with", json::array()}}); // a function is given as itself
 }
 
+TEST_CASE("lisp views: a template inside a component's binding is written once, never again and again") {
+	// Found by fuzzing: a form holding a parameter where no binding can read it (a template of its own) looped
+	const std::string text =
+	    "(defcomponent k \"d\" {:on false :t \"\"} `(label :text ~t :style ~(if on le ~(if on \"a\" "
+	    "\"b\"))))\n(defscreen main (column))";
+	try {
+		static_cast<void>(built(text));
+	} catch(const lisp::LispError& error) {
+		CHECK_FALSE(error.exhausted());
+	}
+}
+
 TEST_CASE("lisp views: a defcomponent says which parameter's items it runs") {
 	const json tree = built(R"lisp(
 (defcomponent pie "A pie menu: each item runs its action." {:items [] :open false} :runsActions items
