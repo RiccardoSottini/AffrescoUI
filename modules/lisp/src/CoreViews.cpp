@@ -129,6 +129,17 @@ Value repeatNode(Machine& machine, Arguments arguments) {
 	return withProperty(machine, node, "repeat", machine.heap.map(std::move(repeat)));
 }
 
+/// @brief Whether a component's `:runsActions` names one of its parameters, as a word, a keyword or a text.
+/// @param runs The `:runsActions`.
+/// @param params The parameters with their defaults.
+/// @return true if it does.
+bool namesParameter(const Value& runs, const Value& params) {
+	if(runs.kind() != Kind::Symbol && runs.kind() != Kind::String && runs.kind() != Kind::Keyword) return false;
+	bool named = false;
+	for(std::size_t key = 0; key < params.count(); ++key) named = named || params.keyAt(key) == runs.text();
+	return named;
+}
+
 /// @brief `%component`: what `defcomponent` builds.
 /// @param machine The machine.
 /// @param arguments Its docstring, its parameters with their defaults, its `:runsActions` (nil, a parameter's name or
@@ -140,10 +151,7 @@ Value component(Machine& machine, Arguments arguments) {
 	if(arguments[3].kind() != Kind::Map && arguments[3].kind() != Kind::List)
 		throw Problem("a component's body gives one node, and gave " + std::string(describeKind(arguments[3])));
 	const Value& runs = arguments[2];
-	bool named = false; // a parameter's name, as a word, a keyword or a text
-	if(runs.kind() == Kind::Symbol || runs.kind() == Kind::String || runs.kind() == Kind::Keyword)
-		for(std::size_t key = 0; key < arguments[1].count(); ++key)
-			named = named || arguments[1].keyAt(key) == runs.text();
+	const bool named = namesParameter(runs, arguments[1]);
 	if(!runs.isNil() && !named && (runs.kind() != Kind::Boolean || !runs.truthy()))
 		throw Problem(":runsActions names one of the component's parameters, or is true");
 	std::vector<MapEntry> members;
