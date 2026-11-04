@@ -46,24 +46,9 @@
      :height 264
      :color @surface
      :gradient {:kind linear :angle 90 :stops [@accentSoft @surface]}
-     (image#cover
-       :file ~computed.list.cover
-       :fit cover
-       :radius 24
-       :anchors {:right 40 :top 48}
-       :width 168
-       :height 168
-       :role img
-       :label ~computed.list.name)
+     ~(playlist-cover)
      (node#label-playlist :style caption :text ~(t "playlist.caption") :anchors {:left 40 :top 62})
-     (label#listName :when ~(not state.renaming)
-       :text ~computed.list.name
-       :font title
-       :textColor @text
-       :anchors {:left 36 :top 80}
-       :fitText true
-       :tooltip ~(t "playlist.rename")
-       :onDoubleClick startRename)
+     ~(playlist-name)
      ~(name-field)
      (label#listDescription
        :text ~computed.list.description
@@ -80,16 +65,40 @@
        :anchors {:left 40 :top 196}
        :disabled ~(= (count computed.list.tracks) 0)
        :onClick ~(handler play state.current 0))
-     (node#listMore :style control
-       :icon ellipsis
-       :width 36
-       :height 36
-       :radius 18
-       :color @button
-       :anchors {:left 164 :top 196}
-       :label ~(t "playlist.more" {:name computed.list.name})
-       :tooltip ~(t "playlist.more" {:name computed.list.name})
-       :onClick openListMenu)))
+     ~(list-more-button)))
+
+(defview playlist-cover "The playlist's cover, on the right of the header." []
+  `(image#cover
+     :file ~computed.list.cover
+     :fit cover
+     :radius 24
+     :anchors {:right 40 :top 48}
+     :width 168
+     :height 168
+     :role img
+     :label ~computed.list.name))
+
+(defview playlist-name "The playlist's name; a double-click renames it." []
+  `(label#listName :when ~(not state.renaming)
+     :text ~computed.list.name
+     :font title
+     :textColor @text
+     :anchors {:left 36 :top 80}
+     :fitText true
+     :tooltip ~(t "playlist.rename")
+     :onDoubleClick startRename))
+
+(defview list-more-button "The playlist's menu: more that can be done with it." []
+  `(node#listMore :style control
+     :icon ellipsis
+     :width 36
+     :height 36
+     :radius 18
+     :color @button
+     :anchors {:left 164 :top 196}
+     :label ~(t "playlist.more" {:name computed.list.name})
+     :tooltip ~(t "playlist.more" {:name computed.list.name})
+     :onClick openListMenu))
 
 (defview name-field "The field that renames the playlist, while it is being renamed: Enter keeps the name, Escape leaves it." []
   `(textarea#nameField :when ~state.renaming

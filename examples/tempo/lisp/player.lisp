@@ -19,15 +19,7 @@
      ~@(player-tools)))
 
 (defview transport "Shuffle, the song before, play or pause, the next song, and repeat: five buttons." []
-  [`(node#shuffleButton :style control
-      :icon shuffle
-      :anchors {:left 12 :top 16}
-      :width 32
-      :textColor ~(if state.shuffle "@accent" "@muted")
-      :checked ~state.shuffle
-      :label ~(t "player.shuffle")
-      :tooltip ~(t "player.shuffle")
-      :onClick toggleShuffle)
+  [(shuffle-button)
    `(node#label-previous :style control
       :icon skip-back
       :anchors {:left 48 :top 16}
@@ -35,19 +27,7 @@
       :label ~(t "player.previous")
       :tooltip ~(t "player.previous")
       :onClick previous)
-   `(node#playPause :style control
-      :icon ~(if state.isPlaying "pause" "play")
-      :anchors {:left 86 :top 12}
-      :width 40
-      :height 40
-      :radius 12
-      :color @accent
-      :hover {:color @accentHover}
-      :focused {:color @accentHover}
-      :textColor @onAccent
-      :label ~(t "player.playPause")
-      :tooltip ~(t "player.playPause")
-      :onClick playPause)
+   (play-pause-button)
    `(node#label-next :style control
       :icon skip-forward
       :anchors {:left 132 :top 16}
@@ -55,15 +35,44 @@
       :label ~(t "player.next")
       :tooltip ~(t "player.next")
       :onClick next)
-   `(node#repeatButton :style control
-      :icon ~(if (= state.repeat "one") "repeat-1" "repeat")
-      :anchors {:left 168 :top 16}
-      :width 32
-      :textColor ~(if (= state.repeat "off") "@muted" "@accent")
-      :checked ~(not= state.repeat "off")
-      :label ~(t (str "player.repeat." state.repeat))
-      :tooltip ~(t (str "player.repeat." state.repeat))
-      :onClick cycleRepeat)])
+   (repeat-button)])
+
+(defview shuffle-button "Shuffle, accented while it is on." []
+  `(node#shuffleButton :style control
+     :icon shuffle
+     :anchors {:left 12 :top 16}
+     :width 32
+     :textColor ~(if state.shuffle "@accent" "@muted")
+     :checked ~state.shuffle
+     :label ~(t "player.shuffle")
+     :tooltip ~(t "player.shuffle")
+     :onClick toggleShuffle))
+
+(defview play-pause-button "Play or pause, the accented button in the middle." []
+  `(node#playPause :style control
+     :icon ~(if state.isPlaying "pause" "play")
+     :anchors {:left 86 :top 12}
+     :width 40
+     :height 40
+     :radius 12
+     :color @accent
+     :hover {:color @accentHover}
+     :focused {:color @accentHover}
+     :textColor @onAccent
+     :label ~(t "player.playPause")
+     :tooltip ~(t "player.playPause")
+     :onClick playPause))
+
+(defview repeat-button "Repeat: off, the whole list, or one song." []
+  `(node#repeatButton :style control
+     :icon ~(if (= state.repeat "one") "repeat-1" "repeat")
+     :anchors {:left 168 :top 16}
+     :width 32
+     :textColor ~(if (= state.repeat "off") "@muted" "@accent")
+     :checked ~(not= state.repeat "off")
+     :label ~(t (str "player.repeat." state.repeat))
+     :tooltip ~(t (str "player.repeat." state.repeat))
+     :onClick cycleRepeat))
 
 (defview now-card "The song playing: its cover (a click shows its list), title and artist, like, and the seek bar." []
   `(node#nowCard :dir auto :anchors {:left 224 :right 268 :top 0 :bottom 0} :color transparent
@@ -107,17 +116,7 @@
      (node#label-track-time-2 :style caption :text ~computed.track.time :anchors {:right 4 :top 37})))
 
 (defview player-tools "The level meter, the mini player, the queue, muting and the volume: five nodes." []
-  [`(path#levelMeter :d ~computed.meter
-      :viewBox "0 0 32 20"
-      :fit fill
-      :anchors {:right 228 :top 22}
-      :width 32
-      :height 20
-      :stroke @accent
-      :strokeWidth 2
-      :role img
-      :label ~(t "player.level")
-      :tooltip ~(t "player.level"))
+  [(level-meter)
    `(node#miniButton :style control
       :icon minimize-2
       :anchors {:right 188 :top 16}
@@ -127,38 +126,60 @@
       :label ~(t "player.mini")
       :tooltip ~(t "player.mini")
       :onClick toggleMini)
-   `(node#queueButton :style control
-      :icon list-ordered
-      :anchors {:right 152 :top 16}
-      :width 32
-      :radius 10
-      :color ~(if state.queueOpen "@accentSoft" "@bar")
-      :textColor ~(if state.queueOpen "@accent" "@muted")
-      :checked ~state.queueOpen
-      :label ~(t "player.queue")
-      :tooltip ~(t "player.queue")
-      :onClick toggleQueue)
-   `(node#muteButton :style control
-      :icon ~(if state.muted "volume-x" "volume-2")
-      :anchors {:right 120 :top 16}
-      :width 28
-      :radius 10
-      :textColor ~(if state.muted "@accent" "@muted")
-      :checked ~state.muted
-      :label ~(t "player.mute")
-      :tooltip ~(t "player.mute")
-      :onClick toggleMute)
-   `(slider#volume :anchors {:right 16 :top 24}
-      :width 100
-      :height 16
-      :step 5
-      :focusable true
-      :label ~(t "player.volume")
-      :bind state.volume
-      :trackColor @faint
-      :activeColor @muted
-      :knobColor @text
-      :tooltip ~(t "player.volume"))])
+   (queue-button)
+   (mute-button)
+   (volume-slider)])
+
+(defview level-meter "The level meter: the sound's level as a line, while it plays." []
+  `(path#levelMeter :d ~computed.meter
+     :viewBox "0 0 32 20"
+     :fit fill
+     :anchors {:right 228 :top 22}
+     :width 32
+     :height 20
+     :stroke @accent
+     :strokeWidth 2
+     :role img
+     :label ~(t "player.level")
+     :tooltip ~(t "player.level")))
+
+(defview queue-button "The queue's button, accented while the queue is open." []
+  `(node#queueButton :style control
+     :icon list-ordered
+     :anchors {:right 152 :top 16}
+     :width 32
+     :radius 10
+     :color ~(if state.queueOpen "@accentSoft" "@bar")
+     :textColor ~(if state.queueOpen "@accent" "@muted")
+     :checked ~state.queueOpen
+     :label ~(t "player.queue")
+     :tooltip ~(t "player.queue")
+     :onClick toggleQueue))
+
+(defview mute-button "Mute, its icon crossed out while muted." []
+  `(node#muteButton :style control
+     :icon ~(if state.muted "volume-x" "volume-2")
+     :anchors {:right 120 :top 16}
+     :width 28
+     :radius 10
+     :textColor ~(if state.muted "@accent" "@muted")
+     :checked ~state.muted
+     :label ~(t "player.mute")
+     :tooltip ~(t "player.mute")
+     :onClick toggleMute))
+
+(defview volume-slider "The volume." []
+  `(slider#volume :anchors {:right 16 :top 24}
+     :width 100
+     :height 16
+     :step 5
+     :focusable true
+     :label ~(t "player.volume")
+     :bind state.volume
+     :trackColor @faint
+     :activeColor @muted
+     :knobColor @text
+     :tooltip ~(t "player.volume")))
 
 ;;; The mini player
 
@@ -186,29 +207,35 @@
        :anchors {:left 148 :right 52 :top 24}
        :height 24)
      (node#miniArtist :style caption :text ~computed.track.artist :anchors {:left 148 :top 50})
-     (node#miniExpand :style control
-       :icon maximize-2
-       :anchors {:right 12 :top 12}
-       :width 32
-       :color @surface
-       :focusable true
-       :role button
-       :label ~(t "player.full")
-       :tooltip ~(t "player.full")
-       :onClick toggleMini)
+     ~(mini-expand-button)
      ~@(mini-transport)
      (node#miniElapsed :style caption :text ~computed.elapsedText :anchors {:left 20 :top 152})
-     (slider#miniSeek :anchors {:left 64 :right 64 :top 152}
-       :height 16
-       :max ~computed.duration
-       :step 1
-       :focusable true
-       :label ~(t "player.seek")
-       :bind state.elapsed
-       :trackColor @faint
-       :activeColor @accent
-       :knobColor @text)
+     ~(mini-seek)
      (node#miniTime :style caption :text ~computed.track.time :anchors {:right 20 :top 152})))
+
+(defview mini-expand-button "Back to the whole window." []
+  `(node#miniExpand :style control
+     :icon maximize-2
+     :anchors {:right 12 :top 12}
+     :width 32
+     :color @surface
+     :focusable true
+     :role button
+     :label ~(t "player.full")
+     :tooltip ~(t "player.full")
+     :onClick toggleMini))
+
+(defview mini-seek "The mini player's seek bar." []
+  `(slider#miniSeek :anchors {:left 64 :right 64 :top 152}
+     :height 16
+     :max ~computed.duration
+     :step 1
+     :focusable true
+     :label ~(t "player.seek")
+     :bind state.elapsed
+     :trackColor @faint
+     :activeColor @accent
+     :knobColor @text))
 
 (defview mini-transport "The mini player's song before, play or pause, and next song: three buttons." []
   [`(node#miniPrevious :style control
