@@ -7,17 +7,16 @@
 
 (defview mine-page "My apps: its title, its buttons, a note if the folder can't be read, and the rows." []
   `(node#minePage :when ~(= state.page "mine") :fill true :color transparent :role tabpanel :label ~(t "nav.mine")
-     {:id mineTitle :style pageTitle :text ~(t "mine.title") :role heading}
-     {:id mineSub :style pageSub :text ~(t "mine.sub") :anchors {:left 36 :right 360 :top 72}}
+     (node#mineTitle :style pageTitle :text ~(t "mine.title") :role heading)
+     (node#mineSub :style pageSub :text ~(t "mine.sub") :anchors {:left 36 :right 360 :top 72})
      (row#mineButtons :gap 8 :anchors {:right 36 :top 38} :height 38 :width 330 :justify end
-       {:id mineFolder
-        :style secondary
-        :icon folder-open
-        :text ~(t "mine.showFolder")
-        :width 150
-        :height 38
-        :onClick ~(handler revealMine "")}
-       {:id mineNew :style primary :icon plus :text ~(t "nav.newApp") :width 130 :height 38 :onClick showCreate})
+       (node#mineFolder :style secondary
+         :icon folder-open
+         :text ~(t "mine.showFolder")
+         :width 150
+         :height 38
+         :onClick ~(handler revealMine ""))
+       (node#mineNew :style primary :icon plus :text ~(t "nav.newApp") :width 130 :height 38 :onClick showCreate))
      (label#mineUnavailable :when ~(not= state.mineError "")
        :font small
        :wrap true
@@ -38,7 +37,7 @@
        :arrows vertical
        ~(repeat [app state.mine :index i :key app.id]
          `(node#mineRow :use mineRow :with {:app ~app :index ~i}))
-       {:id mineListEnd :height 12 :color transparent :anchors {:left 0 :right 0}})
+       (node#mineListEnd :height 12 :color transparent :anchors {:left 0 :right 0}))
      ~(mine-empty)))
 
 (defview mine-empty "With no app yet: a picture, what the page is for, and a button that makes one." []
@@ -62,15 +61,14 @@
        :anchors {:left 0 :right 0 :top 120} :height 26)
      (label#mineEmptyText :text ~(t "mine.emptyText") :textColor @c.muted :align center :wrap true
        :anchors {:left 0 :right 0 :top 152} :height 44)
-     {:id mineEmptyCreate
-      :style primary
-      :icon plus
-      :text ~(t "mine.emptyButton")
-      :anchors {:top 212}
-      :x 120
-      :width 220
-      :height 42
-      :onClick showCreate}))
+     (node#mineEmptyCreate :style primary
+       :icon plus
+       :text ~(t "mine.emptyButton")
+       :anchors {:top 212}
+       :x 120
+       :width 220
+       :height 42
+       :onClick showCreate)))
 
 ;;; A row
 
@@ -106,27 +104,24 @@
 
 (defview mine-actions "A row's buttons: open, duplicate, show in the folder, delete." [app]
   `(row#mineActions :gap 4 :anchors {:right 14 :top 21} :height 34 :width 210 :justify end
-     {:id mineOpen :style primary :text ~(t "mine.open") :width 74 :height 34 :onClick ~(handler openApp app)}
-     {:id mineDuplicate
-      :style iconButton
-      :icon copy
-      :tooltip ~(t "mine.duplicate")
-      :label ~(t "mine.duplicateLabel" {:name app.name})
-      :onClick ~(handler duplicateMine app.id app.name)}
-     {:id mineReveal
-      :style iconButton
-      :icon folder-open
-      :tooltip ~(t "mine.reveal")
-      :label ~(t "mine.revealLabel" {:name app.name})
-      :onClick ~(handler revealMine app.id)}
-     {:id mineDelete
-      :style iconButton
-      :icon trash-2
-      :tooltip ~(t "mine.delete")
-      :label ~(t "mine.deleteLabel" {:name app.name})
-      :hover {:color @c.dangerSoft :textColor @c.danger}
-      :focused {:color @c.dangerSoft :textColor @c.danger}
-      :onClick ~(handler askDelete app.id app.name)}))
+     (node#mineOpen :style primary :text ~(t "mine.open") :width 74 :height 34 :onClick ~(handler openApp app))
+     (node#mineDuplicate :style iconButton
+       :icon copy
+       :tooltip ~(t "mine.duplicate")
+       :label ~(t "mine.duplicateLabel" {:name app.name})
+       :onClick ~(handler duplicateMine app.id app.name))
+     (node#mineReveal :style iconButton
+       :icon folder-open
+       :tooltip ~(t "mine.reveal")
+       :label ~(t "mine.revealLabel" {:name app.name})
+       :onClick ~(handler revealMine app.id))
+     (node#mineDelete :style iconButton
+       :icon trash-2
+       :tooltip ~(t "mine.delete")
+       :label ~(t "mine.deleteLabel" {:name app.name})
+       :hover {:color @c.dangerSoft :textColor @c.danger}
+       :focused {:color @c.dangerSoft :textColor @c.danger}
+       :onClick ~(handler askDelete app.id app.name))))
 
 ;;; The question before a delete
 

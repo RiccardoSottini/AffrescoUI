@@ -23,14 +23,14 @@
        :fitText true
        :role heading)
      (label#createSub :text ~(t "create.sub") :textColor @c.muted :anchors {:left 0 :right 0 :top 72} :height 20)
-     {:id createNameLabel :style sectionTitle :text ~(t "create.name") :anchors {:left 0 :right 0 :top 118}}
+     (node#createNameLabel :style sectionTitle :text ~(t "create.name") :anchors {:left 0 :right 0 :top 118})
      ~(name-field)
      ~(name-hint)
-     {:id createFromLabel :style sectionTitle :text ~(t "create.from") :anchors {:left 0 :right 0 :top 236}}
-     {:id createFromHint :style hint :text ~(t "create.fromHint") :anchors {:left 0 :right 0 :top 262}}
+     (node#createFromLabel :style sectionTitle :text ~(t "create.from") :anchors {:left 0 :right 0 :top 236})
+     (node#createFromHint :style hint :text ~(t "create.fromHint") :anchors {:left 0 :right 0 :top 262})
      ~(start-tiles)
-     {:id createDescribeLabel :style sectionTitle :text ~(t "create.describe") :anchors {:left 0 :right 0 :top 566}}
-     {:id createDescribeHint :style hint :text ~(t "create.describeHint") :anchors {:left 0 :right 0 :top 592}}
+     (node#createDescribeLabel :style sectionTitle :text ~(t "create.describe") :anchors {:left 0 :right 0 :top 566})
+     (node#createDescribeHint :style hint :text ~(t "create.describeHint") :anchors {:left 0 :right 0 :top 592})
      ~(description-field)
      (label#createDescribePlaceholder :when ~(= state.create.describe "")
        :text ~(t "create.describePlaceholder")
@@ -38,8 +38,8 @@
        :anchors {:left 12 :right 12 :top 626}
        :height 20
        :disabled true)
-     {:id createFeaturesLabel :style sectionTitle :text ~(t "create.features") :anchors {:left 0 :right 0 :top 738}}
-     {:id createFeaturesHint :style hint :text ~(t "create.featuresHint") :anchors {:left 0 :right 0 :top 764}}
+     (node#createFeaturesLabel :style sectionTitle :text ~(t "create.features") :anchors {:left 0 :right 0 :top 738})
+     (node#createFeaturesHint :style hint :text ~(t "create.featuresHint") :anchors {:left 0 :right 0 :top 764})
      ~(feature-chips)
      ~(create-summary)
      ~(create-button)
@@ -48,17 +48,16 @@
 ;;; The name
 
 (defview name-field "The new app's name." []
-  `{:id createName
-    :style field
-    :bind state.create.name
-    :maxLength 80
-    :placeholder ~(t "create.namePlaceholder")
-    :label ~(t "create.name")
-    :description ~(if (and state.create.tried (not= computed.createError "")) (t computed.createError) "")
-    :borderColor ~(if (and state.create.tried (not= computed.createError "")) "@c.danger" "@c.border")
-    :anchors {:left 0 :right 0 :top 148}
-    :height 42
-    :onSubmit createApp})
+  `(node#createName :style field
+     :bind state.create.name
+     :maxLength 80
+     :placeholder ~(t "create.namePlaceholder")
+     :label ~(t "create.name")
+     :description ~(if (and state.create.tried (not= computed.createError "")) (t computed.createError) "")
+     :borderColor ~(if (and state.create.tried (not= computed.createError "")) "@c.danger" "@c.border")
+     :anchors {:left 0 :right 0 :top 148}
+     :height 42
+     :onSubmit createApp))
 
 (defview name-hint "Under the name: what is wrong with it once Create was pressed, else the folder it makes." []
   `(label#createNameHint :font small
@@ -170,15 +169,14 @@
      :height 36))
 
 (defview create-button "Create, which says so while the app is being made." []
-  `{:id createSubmit
-    :style primary
-    :icon ~(if state.create.busy "refresh-cw" "rocket")
-    :text ~(if state.create.busy (t "create.busy") (t "create.submit"))
-    :disabled ~state.create.busy
-    :anchors {:right 0 :top 894}
-    :width 200
-    :height 44
-    :onClick createApp})
+  `(node#createSubmit :style primary
+     :icon ~(if state.create.busy "refresh-cw" "rocket")
+     :text ~(if state.create.busy (t "create.busy") (t "create.submit"))
+     :disabled ~state.create.busy
+     :anchors {:right 0 :top 894}
+     :width 200
+     :height 44
+     :onClick createApp))
 
 (defview create-problem "Why the app couldn't be made, if it couldn't." []
   `(label#createProblem :when ~(not= state.create.error "")

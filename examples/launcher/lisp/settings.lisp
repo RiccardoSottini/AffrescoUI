@@ -11,8 +11,8 @@
      :color transparent
      :role tabpanel
      :label ~(t "nav.settings")
-     {:id settingsTitle :style pageTitle :text ~(t "settings.title") :role heading}
-     {:id settingsSub :style pageSub :text ~(t "settings.sub")}
+     (node#settingsTitle :style pageTitle :text ~(t "settings.title") :role heading)
+     (node#settingsSub :style pageSub :text ~(t "settings.sub"))
      ~(settings-cards)))
 
 (defview settings-cards "The settings' cards, one under the other." []
@@ -28,14 +28,13 @@
          :text ~(t "settings.folderText" {:folder (or-else services.apps.folder "AffrescoUI")})
          :anchors {:left 54 :right 200 :top 56}
          :height 52)
-       {:id folderReveal
-        :style secondary
-        :icon folder-open
-        :text ~(t "mine.showFolder")
-        :anchors {:right 20 :top 62}
-        :width 160
-        :height 38
-        :onClick ~(handler revealMine "")})
+       (node#folderReveal :style secondary
+         :icon folder-open
+         :text ~(t "mine.showFolder")
+         :anchors {:right 20 :top 62}
+         :width 160
+         :height 38
+         :onClick ~(handler revealMine "")))
      (node#settingsIntelligence :anchors {:left 0 :right 0} :height 960 :color transparent
        (node#intelligenceSettingsPage :use intelligenceSettings))
      ~(keys-card)
@@ -45,7 +44,7 @@
          :text ~(t "settings.aboutText")
          :anchors {:left 54 :right 20 :top 54}
          :height 44))
-     {:id settingsEnd :height 12 :color transparent :anchors {:left 0 :right 0}}))
+     (node#settingsEnd :height 12 :color transparent :anchors {:left 0 :right 0})))
 
 (defcomponent settingsCard "A card of the settings: its icon and title, then what it holds."
   {:title "" :icon "" :height 120}
@@ -56,7 +55,7 @@
        :anchors {:left 20 :top 18}
        :width 24
        :height 24)
-     {:id settingsCardTitle :style sectionTitle :text ~title :anchors {:left 54 :right 20 :top 18}}
+     (node#settingsCardTitle :style sectionTitle :text ~title :anchors {:left 54 :right 20 :top 18})
      {:slot true}))
 
 ;;; The cards

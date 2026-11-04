@@ -11,7 +11,7 @@
      :dir auto
      :role navigation
      :label ~(t "nav.label")
-     {:id sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @c.border}
+     (node#sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @c.border)
      (image#brandMark :file "../assets/affrescoui-mark.svg"
        :fit contain
        :anchors {:left ~(if computed.wide 20 16) :top 22}
@@ -89,13 +89,12 @@
        :anchors {:right 12 :top 0 :bottom 0} :width 40 :align "end center")))
 
 (defview new-app-button "New app: a button with its name, or only its icon while the sidebar is narrow." []
-  `{:id sideNew
-    :style primary
-    :icon plus
-    :text ~(if computed.wide (t "nav.newApp") "")
-    :font ~(if computed.wide "strong" "bigIcons")
-    :label ~(t "nav.newApp")
-    :tooltip ~(if computed.wide "" (t "nav.newApp"))
-    :anchors {:left 12 :right 12 :bottom 20}
-    :height 42
-    :onClick showCreate})
+  `(node#sideNew :style primary
+     :icon plus
+     :text ~(if computed.wide (t "nav.newApp") "")
+     :font ~(if computed.wide "strong" "bigIcons")
+     :label ~(t "nav.newApp")
+     :tooltip ~(if computed.wide "" (t "nav.newApp"))
+     :anchors {:left 12 :right 12 :bottom 20}
+     :height 42
+     :onClick showCreate))

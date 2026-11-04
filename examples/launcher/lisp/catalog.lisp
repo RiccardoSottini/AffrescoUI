@@ -7,8 +7,8 @@
 
 (defview apps-page "The Apps page: its title, the search, the count, and the cards." []
   `(node#appsPage :when ~(= state.page "apps") :fill true :color transparent :role tabpanel :label ~(t "nav.apps")
-     {:id appsTitle :style pageTitle :text ~(t "apps.title") :role heading}
-     {:id appsSub :style pageSub :text ~(t "apps.sub") :anchors {:left 36 :right 320 :top 72}}
+     (node#appsTitle :style pageTitle :text ~(t "apps.title") :role heading)
+     (node#appsSub :style pageSub :text ~(t "apps.sub") :anchors {:left 36 :right 320 :top 72})
      (node#appSearch :use searchField
        :with {:name query
               :placeholder ~(t "apps.search")
@@ -70,14 +70,13 @@
        :anchors {:left 18 :top 18}
        :fitText true
        :height 22)
-     {:id cardStart
-      :when ~(and (not app.mine) (= app.program "host") (not= app.starter false))
-      :style iconButton
-      :icon copy-plus
-      :anchors {:right 10 :top 172}
-      :tooltip ~(t "apps.startFrom" {:name app.name})
-      :label ~(t "apps.startFrom" {:name app.name})
-      :onClick ~(handler startFrom app.id)}))
+     (node#cardStart :when ~(and (not app.mine) (= app.program "host") (not= app.starter false))
+       :style iconButton
+       :icon copy-plus
+       :anchors {:right 10 :top 172}
+       :tooltip ~(t "apps.startFrom" {:name app.name})
+       :label ~(t "apps.startFrom" {:name app.name})
+       :onClick ~(handler startFrom app.id))))
 
 (defview card-cover "The card's picture: an example's cover, or the initial of the person's app." [app]
   `(node#cardCoverFrame :anchors {:left 10 :right 10 :top 10} :height 156 :radius 10 :color @c.raised
