@@ -236,7 +236,9 @@ std::vector<std::string> sharedMembers(const affresco::json& document, const aff
 /// @return Each action's.
 std::map<std::string, std::string> firstKeys(const affresco::json& document) {
 	std::map<std::string, std::string> keys;
-	for(const auto& [key, binding] : document.value("keys", affresco::json::object()).items())
+	// Held here: C++23 keeps a loop's temporaries alive, but GCC does so only from version 15
+	const affresco::json bindings = document.value("keys", affresco::json::object());
+	for(const auto& [key, binding] : bindings.items())
 		if(binding.is_string()) keys.try_emplace(binding.get<std::string>(), key);
 	return keys;
 }

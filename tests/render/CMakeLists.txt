@@ -27,19 +27,20 @@ if(Python3_FOUND)
 	endif()
 endif()
 
-# The host's own windows in Lisp (lisp/*.json): each scenario has the name of its JSON version's in scenarios/, so its
-# pictures are compared with the same golden images, pixel for pixel
-if(AFFRESCOUI_GL_BACKEND STREQUAL "gles3")
-	set(affrescoui_goldens ${CMAKE_CURRENT_SOURCE_DIR}/golden-gles3)
-else()
-	set(affrescoui_goldens ${CMAKE_CURRENT_SOURCE_DIR}/golden)
-endif()
+# The host's own windows in Lisp (lisp/*.json) draw as their JSON versions, pixel for pixel: each scenario has the name
+# of its JSON version's in scenarios/, which records its pictures in the build folder first (the golden images are
+# git-ignored, and the rendering check records them only later), and the Lisp one is compared with them
 file(GLOB affrescoui_lisp_twins CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/lisp/*.json)
 foreach(file IN LISTS affrescoui_lisp_twins)
 	cmake_path(GET file STEM name)
-	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/render-check-lisp)
-	add_test(NAME scenarios/host/lisp/${name} COMMAND affrescoui_render_runner --goldens ${affrescoui_goldens} --out
-	         ${PROJECT_BINARY_DIR}/render-check-lisp ${file})
+	set(pictures ${PROJECT_BINARY_DIR}/render-check-lisp/${name})
+	file(MAKE_DIRECTORY ${pictures}/json ${pictures}/lisp ${pictures}/out)
+	add_test(NAME scenarios/host/json/${name} COMMAND affrescoui_render_runner --goldens ${pictures}/json --update --out
+	         ${pictures}/out ${CMAKE_CURRENT_SOURCE_DIR}/scenarios/${name}.json)
+	set_tests_properties(scenarios/host/json/${name} PROPERTIES FIXTURES_SETUP host-${name})
+	add_test(NAME scenarios/host/lisp/${name} COMMAND affrescoui_render_runner --goldens ${pictures}/json --out
+	         ${pictures}/lisp ${file})
+	set_tests_properties(scenarios/host/lisp/${name} PROPERTIES FIXTURES_REQUIRED host-${name})
 endforeach()
 
 # The templates' own scenarios (in their folders, examples/templates.json), Forge's, Modello's, Sinopia's and Tempera's: what each one
