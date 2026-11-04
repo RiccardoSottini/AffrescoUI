@@ -232,6 +232,8 @@ std::string withoutIncludes(std::string_view text, const std::string& file, json
 	Reader reader(heap, text, file);
 	while(const auto read = reader.next()) {
 		const Value& form = read->form;
+		const std::size_t start = read->start; // the form's text, blanked below
+		const std::size_t end = read->end;
 		if(form.kind() != Kind::List || form.count() == 0 || form.at(0).kind() != Kind::Symbol ||
 		   form.at(0).text() != "include")
 			continue;
@@ -243,7 +245,7 @@ std::string withoutIncludes(std::string_view text, const std::string& file, json
 			}
 			includes.push_back(std::string(form.at(at).text()));
 		}
-		for(std::size_t at = read->start; at < read->end; ++at)
+		for(std::size_t at = start; at < end; ++at)
 			if(kept[at] != '\n' && kept[at] != '\r') kept[at] = ' ';
 	}
 	return kept;
@@ -297,7 +299,8 @@ public:
 		std::rotate(kept_.begin(), found, found + 1); // the most recent first
 		return kept_.front().value;
 	}
-	/// @brief Keeps one, letting the least recent go past keptDocumentBytes. @param key Its key. @param value Its value.
+	/// @brief Keeps one, letting the least recent go past keptDocumentBytes. @param key Its key. @param value Its
+	/// value.
 	void keep(std::string key, const json& value) {
 		const std::scoped_lock lock(mutex_);
 		const std::size_t bytes = key.size() * 4; // its value costs a few times its text
@@ -356,8 +359,8 @@ json readLispDocument(std::string_view text, const std::filesystem::path& file, 
 	if(program) {
 		const std::string named = name.empty() ? file.filename().generic_string() : name;
 		json includes = json::array();
-		json document =
-		    sourceDocument(text.contains("include") ? withoutIncludes(text, named, includes) : std::string(text), named);
+		json document = sourceDocument(
+		    text.contains("include") ? withoutIncludes(text, named, includes) : std::string(text), named);
 		if(!includes.empty()) document["include"] = std::move(includes);
 		return document;
 	}

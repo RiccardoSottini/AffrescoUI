@@ -28,7 +28,8 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 6> sectionFo
 } // namespace
 
 std::string_view sectionOfForm(std::string_view head) noexcept {
-	const auto* found = std::ranges::find(sectionForms, head, &std::pair<std::string_view, std::string_view>::first);
+	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
+	const auto found = std::ranges::find(sectionForms, head, &std::pair<std::string_view, std::string_view>::first);
 	return found == sectionForms.end() ? std::string_view() : found->second;
 }
 

@@ -247,10 +247,10 @@ private:
 	/// @param parts Gets the text.
 	void lowerWord(const Value& word, int depth, std::vector<BindingPart>& parts);
 	/// @brief Writes a form as an expression, into parts of a binding's text.
-	/// @param form The form.
+	/// @param written The form.
 	/// @param depth How deep it is.
 	/// @param parts Gets the text, and the forms the build works out.
-	void lowerForm(const Value& form, int depth, std::vector<BindingPart>& parts);
+	void lowerForm(const Value& written, int depth, std::vector<BindingPart>& parts);
 	/// @brief Writes a list's items as an expression's, between an opening and a ')'.
 	/// @param form The list.
 	/// @param depth How deep it is.

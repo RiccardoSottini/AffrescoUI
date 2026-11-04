@@ -229,7 +229,8 @@ bool Compiler::lowerOperator(const Value& form, int depth, std::vector<BindingPa
 		lowerList(form, depth, parts, "-(", "");
 		return true;
 	}
-	const auto* infix = std::ranges::find(infixOperators, head, &InfixOperator::word);
+	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
+	const auto infix = std::ranges::find(infixOperators, head, &InfixOperator::word);
 	if(infix == infixOperators.end() || operands < infix->fewest || operands > infix->most) return false;
 	lowerList(form, depth, parts, "(", " " + std::string(infix->expression) + " ");
 	return true;
@@ -296,7 +297,8 @@ bool Compiler::lowerItemFunction(const Value& form, int depth, std::vector<Bindi
 		parts.push_back({")", {}, false, {}, {}});
 		return true;
 	}
-	const auto* found = std::ranges::find(itemFunctions, head, &ItemFunction::word);
+	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
+	const auto found = std::ranges::find(itemFunctions, head, &ItemFunction::word);
 	const bool descending = head == "sort-by" && form.count() == 4 && headWord(form) == "sort-by" &&
 	                        form.at(2).kind() == Kind::Symbol && form.at(2).text() == ">";
 	// A keyword is the function that looks it up, as in Clojure: (sort-by :d xs) is sort(xs, it.d)
@@ -320,7 +322,8 @@ bool Compiler::lowerLibrary(const Value& form, int depth, std::vector<BindingPar
 	const std::string_view head = headWord(form);
 	const std::size_t arguments = form.count() - 1;
 	if(lowerItemFunction(form, depth, parts)) return true;
-	if(const auto* same = std::ranges::find(sameFunctions, head, &SameFunction::word);
+	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
+	if(const auto same = std::ranges::find(sameFunctions, head, &SameFunction::word);
 	   same != sameFunctions.end() && arguments >= same->fewest && arguments <= same->most) {
 		lowerList(form, depth, parts, std::string(same->expression) + "(", ", ");
 		return true;

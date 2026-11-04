@@ -87,8 +87,9 @@ public:
 	std::string form(const json& tree) {
 		if(!tree.is_object()) return literal(tree);
 		if(tree.size() != 1 || !tree.begin().key().starts_with('$')) throw Untranslatable("not an operator tree");
-		const std::string& name = tree.begin().key();
-		const json& arguments = tree.begin().value();
+		const auto only = tree.begin(); // held: a reference into a temporary iterator would dangle
+		const std::string& name = only.key();
+		const json& arguments = only.value();
 		if(name == "$value") return literal(arguments);
 		if(name == "$get") return path(arguments);
 		if(name == "$object") return object(arguments);
@@ -99,7 +100,9 @@ public:
 		if(name == "$lisp") return programCall(arguments);
 		if((name == "$equals" || name == "$notEquals") && arguments.size() == 2 && arguments[1].is_null())
 			return std::string(name == "$equals" ? "(nil? " : "(some? ") + form(arguments[0]) + ")";
-		if(const auto* found = std::ranges::find(operators, name, &Operator::name); found != operators.end())
+		// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard
+		// libraries
+		if(const auto found = std::ranges::find(operators, name, &Operator::name); found != operators.end())
 			return call(found->word, name == "$not" ? json::array({arguments}) : arguments);
 		return function(name.substr(1), arguments);
 	}
@@ -373,7 +376,9 @@ private:
 		const json list = row->takes == format::detail::Takes::One ? json::array({arguments}) : arguments;
 		if(name == "join" && list.size() == 2) return "(join " + form(list[1]) + " " + form(list[0]) + ")";
 		if(name == "count" && list.size() == 1) return "(count " + form(list[0]) + ")";
-		if(const auto* found = std::ranges::find(renamed, name, &std::pair<std::string_view, std::string_view>::first);
+		// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard
+		// libraries
+		if(const auto found = std::ranges::find(renamed, name, &std::pair<std::string_view, std::string_view>::first);
 		   found != renamed.end())
 			return call(found->second, list);
 		if(isLanguageName(name) && name != "concat" && name != "merge" && name != "keys" && name != "reverse" &&
@@ -450,14 +455,16 @@ std::string translate(std::string_view text, Translator& translator) {
 /// @return true if it does.
 bool readsNothing(const json& tree) {
 	if(tree.is_object() && tree.size() == 1 && tree.begin().key() == "$get") {
-		const json& keys = tree.begin().value();
+		const auto only = tree.begin();
+		const json& keys = only.value();
 		if(keys.empty() || !keys[0].is_string()) return false;
 		const std::string& root = keys[0].get_ref<const std::string&>();
 		return (root == "it" || root == "index" || root == "acc") &&
 		       std::all_of(keys.begin() + 1, keys.end(), [](const json& key) { return readsNothing(key); });
 	}
 	if(tree.is_object() && tree.size() == 1) {
-		const std::string& key = tree.begin().key();
+		const auto only = tree.begin();
+		const std::string& key = only.key();
 		if(key == "$lisp" || key == "$now" || key == "$today" || key == "$t") return false;
 	}
 	if(tree.is_structured()) return std::ranges::all_of(tree, [](const json& item) { return readsNothing(item); });
@@ -504,7 +511,8 @@ json normal(const json& tree) {
 		}
 	}
 	const std::string key = result.begin().key();
-	json& value = result.begin().value();
+	const auto only = result.begin();
+	json& value = only.value();
 	if(key == "$count" && value.is_array() && value.size() == 1) return {{"$length", value[0]}};
 	if(key == "$range" && value.is_number_unsigned() && value.get<std::size_t>() <= 10000) { // worked out at the build
 		json items = json::array();

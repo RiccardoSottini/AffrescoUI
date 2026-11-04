@@ -1,7 +1,7 @@
 /// @file
-/// @brief The window that asks for an app's capabilities (examples/shared/host/permissions.screen.json, or .lisp): a shell or an
-/// interpreter is named for what it gives (AppCapability::runsAnyCommand()), the app's reason is quoted as the app's,
-/// a card grows with its text, and a click anywhere on it flips its box once.
+/// @brief The window that asks for an app's capabilities (examples/shared/host/permissions.screen.json, or .lisp): a
+/// shell or an interpreter is named for what it gives (AppCapability::runsAnyCommand()), the app's reason is quoted as
+/// the app's, a card grows with its text, and a click anywhere on it flips its box once.
 
 #include "../../apps/host/HostScreens.hpp"
 #include "Headless.hpp"
@@ -99,7 +99,7 @@ TEST_CASE("permissions: the window names a shell for what it gives, and quotes t
 		CAPTURE(notation);
 		const std::filesystem::path file = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "shared" / "host" /
 		                                   ("permissions.screen." + notation);
-		ManualClock clock;
+		const ManualClock clock;
 		const auto window = createHeadlessWindow(640, 480, clock);
 		affresco::Screen screen = host::readHostScreen(file);
 		screen.setLocale("en");
