@@ -46,6 +46,54 @@ std::vector<std::pair<std::string, const json*>> trees(const json& document) {
 	return found;
 }
 
+/// @brief One definition of a document's program.
+struct Definition {
+	std::string address;     ///< "/program/<file>/<name>", escaped as a JSON Pointer.
+	std::string form;        ///< Its head after its comments ("defcommand"), or "".
+	const std::string* text; ///< Its exact text.
+};
+
+/// @brief A name as one token of a JSON Pointer: "~" is "~0", "/" is "~1".
+/// @param name The name.
+/// @return It.
+std::string escaped(const std::string& name) {
+	std::string out;
+	for(const char c : name) out += c == '~' ? "~0" : c == '/' ? "~1" : std::string(1, c);
+	return out;
+}
+
+/// @brief A definition's form, from its text: the head after its comments ("defcommand"), or "" if none shows.
+/// @param text The text.
+/// @return It.
+std::string formOf(const std::string& text) {
+	std::istringstream lines(text);
+	for(std::string line; std::getline(lines, line);) {
+		const std::size_t start = line.find_first_not_of(" \t");
+		if(start == std::string::npos || line[start] == ';') continue;
+		const std::size_t head = line.find_first_not_of("( \t", start);
+		if(head == std::string::npos) return "";
+		return line.substr(head, line.find_first_of(" \t)", head) - head);
+	}
+	return "";
+}
+
+/// @brief A document's program, one entry per definition, as the MCP server lists it (document.py, definitions).
+/// @param document The document.
+/// @return The definitions, file by file.
+std::vector<Definition> definitions(const json& document) {
+	std::vector<Definition> found;
+	const auto program = document.find("program");
+	if(program == document.end() || !program->is_object()) return found;
+	for(const auto& [file, entries] : program->items()) {
+		if(!entries.is_object()) continue;
+		for(const auto& [name, text] : entries.items())
+			if(text.is_string())
+				found.push_back({"/program/" + escaped(file) + "/" + escaped(name),
+				                 formOf(text.get_ref<const std::string&>()), &text.get_ref<const std::string&>()});
+	}
+	return found;
+}
+
 /// @brief Every node of a tree, parents first.
 /// @param node The tree.
 /// @param address Its address.
@@ -275,6 +323,9 @@ std::string outline(const json& document, const std::string& at, int depth) {
 		starts = trees(document);
 	}
 	std::vector<std::pair<std::string, int>> lines; // text, nodes not shown
+	if(at.empty()) // a program's definitions first: what a revision changes, since what they build isn't edited
+		for(const Definition& definition : definitions(document))
+			lines.emplace_back(definition.address + (definition.form.empty() ? "" : " " + definition.form), 0);
 	for(const auto& [start, node] : starts) {
 		std::size_t cut = std::string::npos;
 		walk(*node, start, 0, "", [&](const Visit& visit) {
@@ -325,6 +376,11 @@ std::string findNodes(const json& document, const std::string& type, const std::
 			if(!visit.parent.empty()) line += " in " + visit.parent;
 			found.push_back(line);
 		});
+	if(property.empty() && (!type.empty() || !text.empty())) // a program's definitions, by form and by text
+		for(const Definition& definition : definitions(document))
+			if((type.empty() || definition.form == type) &&
+			   (needle.empty() || lower(*definition.text).find(needle) != std::string::npos))
+				found.push_back(definition.address + (definition.form.empty() ? "" : " " + definition.form));
 	const std::size_t shown = std::min(found.size(), static_cast<std::size_t>(std::max(1, limit)));
 	std::string out = std::to_string(found.size()) + " found";
 	for(std::size_t i = 0; i < shown; ++i) out += "\n" + found[i];

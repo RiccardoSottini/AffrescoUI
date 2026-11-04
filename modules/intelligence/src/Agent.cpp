@@ -76,9 +76,24 @@ constexpr const char* jsonRules =
     "You have no tools. Answer with exactly one JSON object and nothing else (no code fence, no text around it): "
     "{\"reply\": \"what you did, for the person\", \"revision\": {\"message\": \"one line\", \"set\": {...}, \"add\": "
     "{...}, \"remove\": [...], \"move\": {...}, \"assets\": [...], \"run\": [...]}}, the revision being optional (and "
-    "each of its parts). To see more of the screen or of the "
-    "format first, answer {\"read\": [\"#id\", ...], \"guide\": [\"topic\", ...]} instead: you get them and are asked "
-    "again (at most twice).";
+    "each of its parts). To see more of the screen or of the format first, answer {\"read\": [\"#id\" or a JSON "
+    "Pointer, ...], \"find\": [\"text to search for\", ...], \"guide\": [\"topic\", ...]} instead (each part "
+    "optional): you get them and are asked again (at most three times). find searches the nodes' texts and, in a "
+    "program, the definitions' texts.";
+
+/// What a program is, for a model, when the screen is one (SCREEN_FORMAT.md, "A program in the document").
+constexpr const char* programRules =
+    "This app is a program in AffrescoUI Lisp. The document's \"program\" section holds its definitions, each the "
+    "exact text of one form with its comments, at /program/<file>/<name> (in a JSON Pointer \"/\" is \"~1\" and "
+    "\"~\" is \"~0\"); the outline lists every definition's address first. The nodes the screen shows are what the "
+    "definitions build: read them by \"#id\" to understand the screen, but never edit them, as a revision on a "
+    "built node or on a built section (\"#title/text\", \"/actions/save\") is refused. To change something, find "
+    "the definition that builds it (search for the node's id, written like (label#title ...) in a definition, or "
+    "for its text), read that definition, then set its whole new text at its address, or only one keyword's value "
+    "inside it, which is far cheaper: {\"set\": {\"/program/app.lisp/save/:title\": \"Save all\"}} (a string stays "
+    "a string; {\"$form\": \"(str 1)\"} is written as one form). A new definition is an add at its address in the "
+    "file it belongs in. Write idiomatic Lisp in the program's own style (its named definitions, views and "
+    "helpers), never JSON nodes. The live data stays at \"/state/...\".";
 
 /// @brief A text cut to a size, on a character boundary, saying it was cut.
 /// @param text The text.
@@ -312,9 +327,20 @@ private:
 	/// @return It.
 	[[nodiscard]] std::string systemPrompt(bool tools) const {
 		std::string prompt = std::string(rules) + "\n\n" + assetRules + "\n\n" + (tools ? toolRules : jsonRules);
+		if(isProgram()) prompt += std::string("\n\n") + programRules;
 		if(const auto intro = formatGuide(options_.guide)) prompt += "\n\n# The format\n\n" + cut(*intro, 8000);
 		if(const auto revisions = formatGuide(options_.guide, "Revisions")) prompt += "\n\n" + *revisions;
+		if(isProgram())
+			if(const auto program = formatGuide(options_.guide, "A program in the document"))
+				prompt += "\n\n" + *program;
 		return prompt;
+	}
+
+	/// @brief Whether the screen, as last read, is a program: its document has definitions in a "program" section.
+	/// @return Whether it is.
+	[[nodiscard]] bool isProgram() const {
+		const auto program = document_.find("program");
+		return program != document_.end() && program->is_object() && !program->empty();
 	}
 
 	/// @brief The first message: the request and the screen (whole when small, else its outline).
@@ -428,11 +454,15 @@ private:
 		}
 		const std::string type = answer->value("type", "");
 		if(type == "proposed") {
+			changed_ = true;
 			if(answer->contains("proposal") && (*answer)["proposal"].is_number_integer())
 				proposal_ = (*answer)["proposal"].get<int>();
 			return std::format("proposed: proposal {} waits for the person's review", proposal_.value_or(0));
 		}
-		if(type == "applied") return "applied (revision " + std::to_string(answer->value("revision", 0)) + ")";
+		if(type == "applied") {
+			changed_ = true;
+			return "applied (revision " + std::to_string(answer->value("revision", 0)) + ")";
+		}
 		error = true;
 		return "rejected: " + answer->value("error", std::string("the app refused it"));
 	}
@@ -470,12 +500,12 @@ private:
 			if(turn.stop == "refusal") return {endpoint_.provider->name + " declined this request.", true};
 			written += turn.outputTokens;
 			if(!turn.text.empty()) lastText = turn.text;
-			if(turn.calls.empty()) return {lastText.empty() ? "Done." + proposalNote() : lastText, false};
+			if(turn.calls.empty()) return lastText.empty() ? nothingSaid() : std::pair{lastText, false};
 			addAssistant(conversation, turn);
 			std::optional<std::string> replied;
 			std::vector<ToolResult> results;
 			for(const ToolCall& call : turn.calls) results.push_back(runTool(call, replied));
-			if(replied) return {replied->empty() ? "Done." + proposalNote() : *replied, false};
+			if(replied) return replied->empty() ? nothingSaid() : std::pair{*replied, false};
 			if(written > options_.maxOutputTokens)
 				return {"The request used its whole budget of tokens, so it stopped." + proposalNote(), true};
 			addResults(kind, conversation, results);
@@ -485,47 +515,75 @@ private:
 		        lastText.empty()};
 	}
 
-	/// @brief claude-code: one JSON answer, after at most two rounds of reading, and one retry of a rejected revision.
+	/// @brief claude-code: one JSON answer, after at most three rounds of reading, and two retries of a rejected
+	/// revision (a program's first one is often on a built node, and its fix needs the definition read first).
 	/// @return The reply, or the failure.
 	std::pair<std::string, bool> claudeCode() {
+		constexpr int maxReads = 3;
+		constexpr int maxRetries = 2;
 		const std::string system = systemPrompt(false);
 		std::string input = context();
-		bool retried = false;
-		for(int round = 0; round < 4; ++round) {
+		int reads = 0;
+		int retries = 0;
+		while(true) {
 			const auto left =
 			    std::chrono::duration_cast<std::chrono::milliseconds>(deadline_ - std::chrono::steady_clock::now());
-			if(left.count() <= 0 || overTime()) return {"The request took too long, so it stopped.", true};
+			if(left.count() <= 0 || overTime())
+				return {"The request took too long, so it stopped." + proposalNote(), true};
 			const ClaudeAnswer answer = options_.claude(endpoint_.model, system, input, [this] { return overTime(); });
 			if(!answer.ok) return {answer.text, true};
 			const json said = firstObject(answer.text);
 			if(!said.is_object()) return {cut(answer.text, 4000), false}; // a plain answer, no change
-			if((said.contains("read") || said.contains("guide")) && !said.contains("reply") && round < 2) {
+			const bool reading = said.contains("read") || said.contains("find") || said.contains("guide");
+			const bool revising = said.contains("revision") && said["revision"].is_object();
+			if(reading && !revising && !said.contains("reply")) {
+				if(reads >= maxReads)
+					return {"Claude Code kept reading and made no change: ask again, perhaps saying where." +
+					            proposalNote(),
+					        true};
+				++reads;
 				input += "\n\nWhat you asked to see:\n" + readParts(said);
 				continue;
 			}
 			const std::string reply = said.value("reply", std::string());
-			if(said.contains("revision") && said["revision"].is_object()) {
+			if(revising) {
 				bool rejected = false;
 				const std::string outcome = submit(said["revision"], rejected);
-				if(rejected && !retried) {
-					retried = true;
+				if(rejected && retries < maxRetries) {
+					++retries;
 					input += "\n\nYour answer was:\n" + compact(said) + "\n\nIts revision was " + outcome +
-					         "\nAnswer again with the revision fixed.";
+					         "\nAnswer again with the revision fixed, or read what you need first.";
 					continue;
 				}
-				if(rejected) return {"The change couldn't be made: " + outcome, true};
+				if(rejected) return {"The change couldn't be made: " + outcome + proposalNote(), true};
 			}
-			return {reply.empty() ? "Done." + proposalNote() : reply, false};
+			return reply.empty() ? nothingSaid() : std::pair{reply, false};
 		}
-		return {"Claude Code didn't give an answer that could be used.", true};
 	}
 
-	/// @brief What claude-code asked to read: nodes and topics of the guide.
+	/// @brief The reply when the model said nothing: "Done." only if a change reached the screen, else that none did.
+	/// @return It.
+	[[nodiscard]] std::pair<std::string, bool> nothingSaid() const {
+		if(changed_) return {"Done." + proposalNote(), false};
+		return {"No change was made: the assistant gave no change and no answer. Ask again, perhaps saying where.",
+		        true};
+	}
+
+	/// @brief What claude-code asked to read: nodes and definitions, searches, and topics of the guide.
 	/// @param said Its answer.
 	/// @return Them, as text.
 	std::string readParts(const json& said) {
 		std::string out;
-		if(said.contains("read") && said["read"].is_array() && readScreen())
+		const bool read =
+		    (said.contains("read") && said["read"].is_array()) || (said.contains("find") && said["find"].is_array());
+		if(read && !readScreen()) return "(the app didn't answer)";
+		if(said.contains("find") && said["find"].is_array())
+			for(const json& text : said["find"])
+				if(text.is_string() && !text.get_ref<const std::string&>().empty() &&
+				   out.size() <= options_.inlineDocument)
+					out += "find " + compact(text) + ": " +
+					       findNodes(document_, "", text.get<std::string>(), "", json(), 20) + "\n";
+		if(said.contains("read") && said["read"].is_array())
 			for(const json& at : said["read"]) {
 				if(!at.is_string() || out.size() > options_.inlineDocument) continue;
 				try {
@@ -560,6 +618,7 @@ private:
 	json document_;                                  ///< The screen, as last read.
 	int revision_ = 0;                               ///< Its revision.
 	std::optional<int> proposal_;                    ///< The proposal this request opened.
+	bool changed_ = false;                           ///< Whether a revision was proposed or applied.
 	int revisions_ = 0;                              ///< Revisions submitted.
 };
 
