@@ -1,0 +1,55 @@
+{
+	"id": "json-flow-title",
+	"level": "edit",
+	"screen": "examples/flow/json/index.screen.json",
+	"request": "In Flow's command palette (Cmd+Shift+P), the command toggleSwimlanes (a JSON action in actions) should read \"Group cards by member\". Change only its title.",
+	"scenarios": [
+		{
+			"name": "palette",
+			"steps": [
+				{
+					"expect": {
+						"state": "swimlanes",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+shift+p"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "Group cards by member"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "swimlanes",
+						"is": true
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#main",
+		"#statusBar",
+		"/actions/toggleTheme"
+	],
+	"reference": [
+		{
+			"message": "Swimlanes by member is Group cards by member",
+			"set": {
+				"/actions/toggleSwimlanes/title": "Group cards by member"
+			}
+		}
+	]
+}

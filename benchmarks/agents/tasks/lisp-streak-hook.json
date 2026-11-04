@@ -1,0 +1,44 @@
+{
+	"id": "lisp-streak-hook",
+	"level": "feature",
+	"screen": "examples/streak/lisp/index.screen.lisp",
+	"request": "In Streak, count the days checked with Cmd+Enter in state.checks (a number, from 0), with advice after the command checkToday: a function and an advice, written in Lisp in the program's habits.lisp.",
+	"scenarios": [
+		{
+			"name": "checks",
+			"steps": [
+				{
+					"key": "mod+enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "checks",
+						"is": 1
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane",
+		"/program/habits.lisp/checkToday",
+		"/program/habits.lisp/cellClick"
+	],
+	"present": [
+		"/program/habits.lisp/advice checkToday after count-check"
+	],
+	"reference": [
+		{
+			"message": "Checks are counted",
+			"add": {
+				"/program/habits.lisp/count-check": "(defn count-check \"Counts a check.\" [& given] (set \"state.checks\" (inc (or state.checks 0))))",
+				"/program/habits.lisp/advice checkToday after count-check": "(advice checkToday :after count-check)"
+			}
+		}
+	]
+}

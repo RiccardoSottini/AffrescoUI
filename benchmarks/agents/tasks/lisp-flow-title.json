@@ -1,0 +1,55 @@
+{
+	"id": "lisp-flow-title",
+	"level": "edit",
+	"screen": "examples/flow/lisp/index.screen.lisp",
+	"request": "In Flow's command palette (Cmd+Shift+P), the command toggleSwimlanes (defined in the program's flow.lisp) should read \"Group cards by member\". Change only its title.",
+	"scenarios": [
+		{
+			"name": "palette",
+			"steps": [
+				{
+					"expect": {
+						"state": "swimlanes",
+						"is": false
+					}
+				},
+				{
+					"key": "mod+shift+p"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "Group cards by member"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "swimlanes",
+						"is": true
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#main",
+		"#statusBar",
+		"/program/flow.lisp/toggleTheme"
+	],
+	"reference": [
+		{
+			"message": "Swimlanes by member is Group cards by member",
+			"set": {
+				"/program/flow.lisp/toggleSwimlanes/:title": "Group cards by member"
+			}
+		}
+	]
+}

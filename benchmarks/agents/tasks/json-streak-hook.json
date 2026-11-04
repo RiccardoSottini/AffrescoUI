@@ -1,0 +1,42 @@
+{
+	"id": "json-streak-hook",
+	"level": "feature",
+	"screen": "examples/streak/json/index.screen.json",
+	"request": "In Streak, count the days checked with Cmd+Enter in state.checks (a number, from 0), with a step added at the end of the command checkToday, a JSON action in actions.",
+	"scenarios": [
+		{
+			"name": "checks",
+			"steps": [
+				{
+					"key": "mod+enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "checks",
+						"is": 1
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane",
+		"/actions/cellClick"
+	],
+	"reference": [
+		{
+			"message": "Checks are counted",
+			"add": {
+				"/actions/checkToday/do/-": {
+					"set": "state.checks",
+					"to": "{{(state.checks ?? 0) + 1}}"
+				}
+			}
+		}
+	]
+}
