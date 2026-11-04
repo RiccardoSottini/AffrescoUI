@@ -48,7 +48,7 @@
 (defview status-bar "The status bar: the problems, the caret, the file's size, its syntax and the theme." []
   `(node#statusBar :dir ~state.dir :when ~(not state.zen) :anchors {:left 0 :right 0 :bottom 0} :height 24
      :color @sidebar
-     {:id statusEdge :anchors {:left 0 :right 0 :top 0} :height 1 :color @border}
+     (node#statusEdge :anchors {:left 0 :right 0 :top 0} :height 1 :color @border)
      (label#panelSwitcher :text ""
        :icon square-terminal
        :font small
@@ -63,61 +63,56 @@
        :cursor hand
        :tooltip ~(t "bar.showOrHideThePanel")
        :onClick togglePanel)
-     {:id statusText
-      :style statusItem
-      :text main
-      :icon git-branch
-      :textColor @faint
-      :anchors {:left 36}
-      :tooltip ~(t "bar.branchSwitchingBranchesIsnT")}
+     (node#statusText :style statusItem
+       :text main
+       :icon git-branch
+       :textColor @faint
+       :anchors {:left 36}
+       :tooltip ~(t "bar.branchSwitchingBranchesIsnT"))
      ~(status-problems)
      ~(status-size)
-     {:id statusIndent
-      :style statusItem
-      :text ~(if computed.file (t "bar.spaces4") "")
-      :textColor @faint
-      :anchors {:right 140}
-      :tooltip ~(t "bar.indentation4SpacesChangingIt")}
-     {:id statusSyntax
-      :style statusItem
-      :text ~(if computed.file (or computed.file.language "Plain Text") "")
-      :hover {:textColor @text}
-      :anchors {:right 16}
-      :cursor hand
-      :tooltip ~(t "bar.selectTheSyntax")
-      :onClick selectSyntax}))
+     (node#statusIndent :style statusItem
+       :text ~(if computed.file (t "bar.spaces4") "")
+       :textColor @faint
+       :anchors {:right 140}
+       :tooltip ~(t "bar.indentation4SpacesChangingIt"))
+     (node#statusSyntax :style statusItem
+       :text ~(if computed.file (or computed.file.language "Plain Text") "")
+       :hover {:textColor @text}
+       :anchors {:right 16}
+       :cursor hand
+       :tooltip ~(t "bar.selectTheSyntax")
+       :onClick selectSyntax)))
 
 (defview status-size "Where the caret is, and how much is selected." []
-  `{:id statusSize
-    :style statusItem
-    :text ~(if computed.file
-               (if state.caret.selected
-                 (t "status.caretSelected" {:line (text state.caret.line) :column (text state.caret.column)
-                                            :n state.caret.selected})
-                 (t "status.caret" {:line (text state.caret.line) :column (text state.caret.column)}))
-               "")
-    :hover {:textColor @text}
-    :anchors {:right 236}
-    :cursor hand
-    :tooltip ~(t "bar.goToLineCtrlG")
-    :onClick goToLine})
+  `(node#statusSize :style statusItem
+     :text ~(if computed.file
+                (if state.caret.selected
+                  (t "status.caretSelected" {:line (text state.caret.line) :column (text state.caret.column)
+                                             :n state.caret.selected})
+                  (t "status.caret" {:line (text state.caret.line) :column (text state.caret.column)}))
+                "")
+     :hover {:textColor @text}
+     :anchors {:right 236}
+     :cursor hand
+     :tooltip ~(t "bar.goToLineCtrlG")
+     :onClick goToLine))
 
 (defview status-problems "How many errors and warnings: a click shows them." []
-  `{:id statusProblems
-    :style statusItem
-    :text ~(str computed.errors
-                " "
-                (if (= computed.errors 1) "error" "errors")
-                ", "
-                computed.warnings
-                " "
-                (if (= computed.warnings 1) "warning" "warnings"))
-    :textColor ~(if (> computed.errors 0) "@error" "@muted")
-    :hover {:textColor @text}
-    :anchors {:left 104}
-    :cursor hand
-    :tooltip ~(t "bar.showTheProblemsCmdShift")
-    :onClick showProblems})
+  `(node#statusProblems :style statusItem
+     :text ~(str computed.errors
+                 " "
+                 (if (= computed.errors 1) "error" "errors")
+                 ", "
+                 computed.warnings
+                 " "
+                 (if (= computed.warnings 1) "warning" "warnings"))
+     :textColor ~(if (> computed.errors 0) "@error" "@muted")
+     :hover {:textColor @text}
+     :anchors {:left 104}
+     :cursor hand
+     :tooltip ~(t "bar.showTheProblemsCmdShift")
+     :onClick showProblems))
 
 (defview quick-pick "The Quick Switcher: files, file@symbol and file:line, as you type." []
   `(node#quickPick :when ~state.quickPick.open

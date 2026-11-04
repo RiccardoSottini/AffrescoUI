@@ -4,7 +4,7 @@
 
 (defview bottom-panel "The bottom panel: its tabs, then the problems or the console." []
   `(node#bottomPanel :when ~(and state.panelOpen (not state.zen)) :color @panel :keys {:escape togglePanel}
-     {:id panelEdge :anchors {:left 0 :right 0 :top 0} :height 1 :color @border}
+     (node#panelEdge :anchors {:left 0 :right 0 :top 0} :height 1 :color @border)
      ~(panel-problems)
      (label#panelConsole :text ~(t "panel.console")
        :font small
@@ -31,11 +31,10 @@
        :tooltip ~(t "panel.hideThePanelEscape")
        :onClick togglePanel)
      ~(problems-table)
-     {:id noProblems
-      :when ~(and (= state.panelTab "problems") (= (count state.problems) 0))
-      :style caption
-      :text ~(t "panel.noProblemsNoTodoOr")
-      :anchors {:left 20 :top 70}}
+     (node#noProblems :when ~(and (= state.panelTab "problems") (= (count state.problems) 0))
+       :style caption
+       :text ~(t "panel.noProblemsNoTodoOr")
+       :anchors {:left 20 :top 70})
      ~(terminal-view)))
 
 (defview panel-problems "The problems tab: the table, or a line saying there are none." []
@@ -74,8 +73,8 @@
   `(node#terminal :when ~(= state.panelTab "terminal") :anchors {:left 0 :right 0 :top 30 :bottom 0} :color transparent
      (stack#terminalOutput :anchors {:left 14 :right 14 :top 4 :bottom 30} :gap 0 :justify end :scroll vertical
        ~(repeat [out state.terminal]
-         `{:id label-out-t :style terminalLine :text ~out.t :textColor ~(str "@" out.c) :anchors {:left 0 :right 0}
-           :height 20}))
+         `(node#label-out-t :style terminalLine :text ~out.t :textColor ~(str "@" out.c) :anchors {:left 0 :right 0}
+            :height 20)))
      (textarea#command :font code
        :anchors {:left 0 :right 0 :bottom 0}
        :height 26

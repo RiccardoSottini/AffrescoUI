@@ -73,7 +73,7 @@
 
 (defn saveAndClose "Saves the file being closed, then closes it." []
   (saveFile state.closing.file)
-  (run "findProblems")
+  (findProblems)
   (closeNow state.closing.file))
 
 (defn discardAndClose "Throws away the changes to the file being closed, then closes it." []
@@ -185,8 +185,8 @@
           :else (str "    raw += " (rem (* i 37) 1000) " / 1000.0;"))))
 
 (defn indexAll "Finds the symbols of every file, then the problems." []
-  (map (fn [f] (run "indexFile" :with {:file f})) (range (count state.files)))
-  (run "findProblems"))
+  (map indexFile (range (count state.files)))
+  (findProblems))
 
 (defn prepare
   "Generates the large file once (5,000 lines), saves every file as it is, then finds the symbols and the problems."
@@ -204,12 +204,12 @@
   :description ~(t "command.save.about") :title ~(t "command.save") :category ~(t "category.file") :icon save
   :enablement ~(file-open) []
   (saveFile state.active)
-  (run "findProblems"))
+  (findProblems))
 
 (defcommand saveAll "Saves every file."
   :description ~(t "command.saveAll.about") :title ~(t "command.saveAll") :category ~(t "category.file") :icon save []
   (map saveFile (range (count state.files)))
-  (run "findProblems"))
+  (findProblems))
 
 (defcommand closeTab "Closes this file."
   :description ~(t "command.closeTab.about") :title ~(t "command.closeTab") :category ~(t "category.file") :icon x

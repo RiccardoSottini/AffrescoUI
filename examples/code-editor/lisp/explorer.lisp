@@ -4,7 +4,7 @@
 
 (defview explorer "The side bar: the open files, then the project's folders and files." []
   `(node#explorer :when ~(and state.sidebarOpen (not state.zen)) :color @sidebar
-     {:id label-openFiles :style caption :text ~(t "side.openFiles") :anchors {:left 14 :top 10}}
+     (node#label-openFiles :style caption :text ~(t "side.openFiles") :anchors {:left 14 :top 10})
      (column#openFiles :anchors {:left 0 :right 0 :top 30} :height ~(* 24 (count state.tabs))
        ~(repeat [tab state.tabs :key tab]
          `(label#openFile
@@ -20,8 +20,8 @@
             :textColor ~(if (= tab state.active) "@text" "@muted")
             :cursor hand
             :onClick ~(handler showFile tab))))
-     {:id label-folders :style caption :text ~(t "bar.project")
-      :anchors {:left 14 :top ~(+ 44 (* 24 (count state.tabs)))}}
+     (node#label-folders :style caption :text ~(t "bar.project")
+       :anchors {:left 14 :top ~(+ 44 (* 24 (count state.tabs)))})
      ~(file-tree)))
 
 (defview file-tree "The project's folders and files as a tree: a click opens a file." []

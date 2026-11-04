@@ -106,22 +106,20 @@
      ~(find-word)
      ~(find-selection)
      ~(find-text)
-     {:id findCount
-      :when ~(not state.findBar.inFiles)
-      :style caption
-      :text ~computed.findSummary
-      :anchors {:right 220 :top 10}}
+     (node#findCount :when ~(not state.findBar.inFiles)
+       :style caption
+       :text ~computed.findSummary
+       :anchors {:right 220 :top 10})
      ~(find-next-button)
      ~(find-previous-button)
-     {:id findFilesButton
-      :when ~state.findBar.inFiles
-      :style findButton
-      :text ~(t "bar.find")
-      :anchors {:right 12 :top 5}
-      :onClick searchFiles}
-     {:id label-find :when ~(> computed.findLeft 128) :style findLabel :text ~(t "ui.find2")
-      :anchors {:left 128 :top 9}}
-     {:id label-where :when ~state.findBar.inFiles :style findLabel :text ~(t "ui.where") :anchors {:left 128 :top 39}}
+     (node#findFilesButton :when ~state.findBar.inFiles
+       :style findButton
+       :text ~(t "bar.find")
+       :anchors {:right 12 :top 5}
+       :onClick searchFiles)
+     (node#label-find :when ~(> computed.findLeft 128) :style findLabel :text ~(t "ui.find2")
+       :anchors {:left 128 :top 9})
+     (node#label-where :when ~state.findBar.inFiles :style findLabel :text ~(t "ui.where") :anchors {:left 128 :top 39})
      ~(label-replace)
      ~(where-text)
      ~(replace-text)
@@ -130,115 +128,102 @@
      ~(replace-files-button)))
 
 (defview find-text "The text to find: typing finds it in the file; Enter finds the next, or searches the files." []
-  `{:id findText
-    :style findField
-    :anchors {:left ~computed.findLeft :right ~(if state.findBar.inFiles 112 300) :top 5}
-    :placeholder ~(if (> computed.findLeft 128) "" (t "bar.find"))
-    :bind state.findBar.text
-    :autofocus true
-    :onChange findAsTyped
-    :onSubmit submitFind})
+  `(node#findText :style findField
+     :anchors {:left ~computed.findLeft :right ~(if state.findBar.inFiles 112 300) :top 5}
+     :placeholder ~(if (> computed.findLeft 128) "" (t "bar.find"))
+     :bind state.findBar.text
+     :autofocus true
+     :onChange findAsTyped
+     :onSubmit submitFind))
 
 (defview replace-text "The replacement: Enter replaces one, or in the files." []
-  `{:id replaceText
-    :style findField
-    :when ~state.findBar.replacing
-    :anchors {:left ~computed.findLeft :right ~(if state.findBar.inFiles 112 300) :top ~computed.replaceTop}
-    :bind state.findBar.replace
-    :onSubmit submitReplace})
+  `(node#replaceText :style findField
+     :when ~state.findBar.replacing
+     :anchors {:left ~computed.findLeft :right ~(if state.findBar.inFiles 112 300) :top ~computed.replaceTop}
+     :bind state.findBar.replace
+     :onSubmit submitReplace))
 
 (defview find-selection "In selection: find only in the selected text." []
-  `{:id findSelection
-    :style findToggle
-    :text "[ ]"
-    :anchors {:left 92 :top 6}
-    :color ~(if state.findBar.inSelection "@rowSelected" "transparent")
-    :textColor ~(if state.findBar.inSelection "@accent" "@muted")
-    :tooltip ~(t "ui.inSelection")
-    :onClick toggleFindInSelection})
+  `(node#findSelection :style findToggle
+     :text "[ ]"
+     :anchors {:left 92 :top 6}
+     :color ~(if state.findBar.inSelection "@rowSelected" "transparent")
+     :textColor ~(if state.findBar.inSelection "@accent" "@muted")
+     :tooltip ~(t "ui.inSelection")
+     :onClick toggleFindInSelection))
 
 (defview find-case "Case sensitive." []
-  `{:id findCase
-    :style findToggle
-    :text "Aa"
-    :anchors {:left 36 :top 6}
-    :color ~(if state.findBar.caseSensitive "@rowSelected" "transparent")
-    :textColor ~(if state.findBar.caseSensitive "@accent" "@muted")
-    :tooltip ~(t "ui.caseSensitive")
-    :onClick toggleFindCase})
+  `(node#findCase :style findToggle
+     :text "Aa"
+     :anchors {:left 36 :top 6}
+     :color ~(if state.findBar.caseSensitive "@rowSelected" "transparent")
+     :textColor ~(if state.findBar.caseSensitive "@accent" "@muted")
+     :tooltip ~(t "ui.caseSensitive")
+     :onClick toggleFindCase))
 
 (defview where-text "Where Find in Files looks: open folders, open files, or parts of paths." []
-  `{:id whereText
-    :style findField
-    :when ~state.findBar.inFiles
-    :anchors {:left ~computed.findLeft :right 112 :top 35}
-    :placeholder ~(t "ui.whereOpenFoldersOpenFiles")
-    :bind state.findBar.where
-    :onSubmit searchFiles})
+  `(node#whereText :style findField
+     :when ~state.findBar.inFiles
+     :anchors {:left ~computed.findLeft :right 112 :top 35}
+     :placeholder ~(t "ui.whereOpenFoldersOpenFiles")
+     :bind state.findBar.where
+     :onSubmit searchFiles))
 
 (defview find-word "Whole word." []
-  `{:id findWord
-    :style findToggle
-    :text "\"\""
-    :anchors {:left 64 :top 6}
-    :color ~(if state.findBar.wholeWord "@rowSelected" "transparent")
-    :textColor ~(if state.findBar.wholeWord "@accent" "@muted")
-    :tooltip ~(t "ui.wholeWord")
-    :onClick toggleFindWord})
+  `(node#findWord :style findToggle
+     :text "\"\""
+     :anchors {:left 64 :top 6}
+     :color ~(if state.findBar.wholeWord "@rowSelected" "transparent")
+     :textColor ~(if state.findBar.wholeWord "@accent" "@muted")
+     :tooltip ~(t "ui.wholeWord")
+     :onClick toggleFindWord))
 
 (defview find-regex "Regular expression." []
-  `{:id findRegex
-    :style findToggle
-    :text ".*"
-    :anchors {:left 8 :top 6}
-    :color ~(if state.findBar.regex "@rowSelected" "transparent")
-    :textColor ~(if state.findBar.regex "@accent" "@muted")
-    :tooltip ~(t "ui.regularExpression")
-    :onClick toggleFindRegex})
+  `(node#findRegex :style findToggle
+     :text ".*"
+     :anchors {:left 8 :top 6}
+     :color ~(if state.findBar.regex "@rowSelected" "transparent")
+     :textColor ~(if state.findBar.regex "@accent" "@muted")
+     :tooltip ~(t "ui.regularExpression")
+     :onClick toggleFindRegex))
 
 (defview replace-all-button "Replace All, in the file." []
-  `{:id replaceAllButton
-    :style findButton
-    :text ~(t "ui.replaceAll")
-    :when ~(and state.findBar.replacing (not state.findBar.inFiles))
-    :anchors {:right 12 :top 35}
-    :onClick replaceAllInFile})
+  `(node#replaceAllButton :style findButton
+     :text ~(t "ui.replaceAll")
+     :when ~(and state.findBar.replacing (not state.findBar.inFiles))
+     :anchors {:right 12 :top 35}
+     :onClick replaceAllInFile))
 
 (defview replace-files-button "Replace in the files Find in Files searched." []
-  `{:id replaceFilesButton
-    :style findButton
-    :text ~(t "ui.replace")
-    :when ~(and state.findBar.replacing state.findBar.inFiles)
-    :anchors {:right 12 :top 65}
-    :onClick replaceInFiles})
+  `(node#replaceFilesButton :style findButton
+     :text ~(t "ui.replace")
+     :when ~(and state.findBar.replacing state.findBar.inFiles)
+     :anchors {:right 12 :top 65}
+     :onClick replaceInFiles))
 
 (defview replace-button "Replace, once." []
-  `{:id replaceButton
-    :style findButton
-    :text ~(t "ui.replace")
-    :when ~(and state.findBar.replacing (not state.findBar.inFiles))
-    :anchors {:right 112 :top 35}
-    :onClick replaceOne})
+  `(node#replaceButton :style findButton
+     :text ~(t "ui.replace")
+     :when ~(and state.findBar.replacing (not state.findBar.inFiles))
+     :anchors {:right 112 :top 35}
+     :onClick replaceOne))
 
 (defview find-previous-button "Find Prev." []
-  `{:id findPreviousButton
-    :when ~(not state.findBar.inFiles)
-    :style findButton
-    :text ~(t "ui.findPrev")
-    :anchors {:right 12 :top 5}
-    :onClick findPrevious})
+  `(node#findPreviousButton :when ~(not state.findBar.inFiles)
+     :style findButton
+     :text ~(t "ui.findPrev")
+     :anchors {:right 12 :top 5}
+     :onClick findPrevious))
 
 (defview find-next-button "Find, the next match." []
-  `{:id findNextButton
-    :when ~(not state.findBar.inFiles)
-    :style findButton
-    :text ~(t "bar.find")
-    :anchors {:right 112 :top 5}
-    :onClick findNext})
+  `(node#findNextButton :when ~(not state.findBar.inFiles)
+     :style findButton
+     :text ~(t "bar.find")
+     :anchors {:right 112 :top 5}
+     :onClick findNext))
 
 (defview label-replace "Replace's caption." []
-  `{:id label-replace
-    :when ~state.findBar.replacing
-    :style findLabel
-    :text ~(t "ui.replace2")
-    :anchors {:left 128 :top ~(+ computed.replaceTop 4)}})
+  `(node#label-replace :when ~state.findBar.replacing
+     :style findLabel
+     :text ~(t "ui.replace2")
+     :anchors {:left 128 :top ~(+ computed.replaceTop 4)}))
