@@ -443,12 +443,7 @@ first provider: then its own first is chosen, as the form shows it."
        :align "start center"
        :textColor @intelligence.text
        :runs [{:text ~iProvider.name :bold true :size 16}])
-     (label#intelligenceClaudeNote :when ~(not iProvider.takesKey)
-       :wrap true
-       :height 40
-       :anchors {:left 14 :right 14}
-       :textColor @intelligence.dim
-       :text ~(t "intelligence.claudeCode"))
+     ~(intelligence-no-key-note)
      (node#intelligenceInstall :when ~(not iProvider.available)
        :use intelligenceButton
        :anchors {:left 14}
@@ -458,88 +453,117 @@ first provider: then its own first is chosen, as the form shows it."
        :anchors {:left 14 :right 14}
        :textColor @intelligence.text
        :text ~(t (if iProvider.needsKey "intelligence.key" "intelligence.keyOptional")))
-     (row#intelligenceKeyRow :when ~iProvider.takesKey :height 32 :gap 8 :anchors {:left 14 :right 14}
-       ~(intelligence-key)
-       (node#intelligenceGetKey :when ~(= (indexOf iProvider.keyHelp "https://") 0)
-         :use intelligenceButton
-         :with {:text ~(t "intelligence.getKey") :run intelligence.getKey :width 130}))
-     (row#intelligenceKeySaved :when ~(and iProvider.takesKey iProvider.hasKey)
-       :height 32
-       :gap 8
-       :anchors {:left 14 :right 14}
-       :alignItems center
-       (label#label-t-intelligence-key :grow 1
-         :height 32
-         :align "start center"
-         :textColor @intelligence.success
-         :text ~(t "intelligence.keySaved" {:store iData.keyStore}))
-       (node#intelligenceRemoveKey :use intelligenceButton
-         :with {:text ~(t "intelligence.removeKey") :run intelligence.removeKey :width 140}))
-     (label#intelligenceNotKept :when ~(and iProvider.takesKey (not iData.persistent))
-       :height 32
-       :anchors {:left 14 :right 14}
-       :align "start center"
-       :wrap true
-       :textColor @intelligence.danger
-       :text ~(t "intelligence.notKept"))
+     ~(intelligence-key-row)
+     ~(intelligence-key-saved)
+     ~(intelligence-not-kept)
      (label#intelligenceBaseUrlLabel :when ~iProvider.editableUrl
        :height 18
        :anchors {:left 14 :right 14}
        :textColor @intelligence.text
        :text ~(t "intelligence.baseUrl"))
-     (textarea#intelligenceBaseUrl :when ~iProvider.editableUrl
-       :height 32
-       :padding 8
-       :radius 6
-       :anchors {:left 14 :right 14}
-       :borderWidth 1
-       :color @intelligence.raised
-       :borderColor @intelligence.border
-       :focused {:borderColor @intelligence.accent}
-       :textColor @intelligence.text
-       :bind state.intelligence.baseUrl
-       :maxLength 512
-       :label ~(t "intelligence.baseUrl")
-       :placeholder ~(t "intelligence.baseUrlHelp")
-       :placeholderColor @intelligence.dim)
-     (label#intelligenceModelLabel :height 18
-       :anchors {:left 14 :right 14}
-       :textColor @intelligence.text
-       :text ~(if (not= state.intelligence.model "")
-                  (t "intelligence.modelChosen"
-                     {:model (or-else (:name (find (fn [it] (= it.id state.intelligence.model))
-                                                   (or-else iProvider.models [])))
-                                      state.intelligence.model)})
-                  (t "intelligence.model")))
+     ~(intelligence-base-url)
+     ~(intelligence-model-label)
      ~(intelligence-model-search)
      ~(intelligence-models)
-     (row#intelligenceActions :height 32 :gap 8 :anchors {:left 14 :right 14}
-       (node#intelligenceSave :use intelligenceButton
-         :with {:text ~(t "intelligence.save")
-                :run intelligence.apply
-                :primary true
-                :enabled ~(and (not= state.intelligence.model "") iProvider.available)
-                :width 170})
-       (node#intelligenceTest :use intelligenceButton
-         :with {:text ~(t (if state.intelligence.testing "intelligence.testing" "intelligence.test"))
-                :run intelligence.check
-                :enabled ~(and (not= iData.current.provider "") (not state.intelligence.testing))
-                :width 170})
-       (node#intelligenceRefresh :when ~(not= iProvider.kind "claude-code")
-         :use intelligenceButton
-         :with {:text ~(t "intelligence.refresh") :run intelligence.refresh :width 170}))
-     (label#intelligenceFeedback :role status
-       :live polite
-       :wrap true
-       :height 40
-       :anchors {:left 14 :right 14}
-       :textColor ~(if (or (not= state.intelligence.error "")
-                           (and (some? state.intelligence.test) (not state.intelligence.test.ok)))
-                       "@intelligence.danger"
-                       "@intelligence.success")
-       :text ~(cond (not= state.intelligence.error "") state.intelligence.error
-                    (some? state.intelligence.test) state.intelligence.test.message
-                    :else state.intelligence.notice))))
+     ~(intelligence-actions)
+     ~(intelligence-feedback)))
+
+(defview intelligence-no-key-note "For the provider that takes no key, Claude Code: it uses its own sign-in, with no tools." []
+  `(label#intelligenceClaudeNote :when ~(not iProvider.takesKey)
+     :wrap true
+     :height 40
+     :anchors {:left 14 :right 14}
+     :textColor @intelligence.dim
+     :text ~(t "intelligence.claudeCode")))
+
+(defview intelligence-key-row "The key's field, and a link to get a key where the provider gives one." []
+  `(row#intelligenceKeyRow :when ~iProvider.takesKey :height 32 :gap 8 :anchors {:left 14 :right 14}
+     ~(intelligence-key)
+     (node#intelligenceGetKey :when ~(= (indexOf iProvider.keyHelp "https://") 0)
+       :use intelligenceButton
+       :with {:text ~(t "intelligence.getKey") :run intelligence.getKey :width 130})))
+
+(defview intelligence-key-saved "That a key is kept, where, and a button that removes it." []
+  `(row#intelligenceKeySaved :when ~(and iProvider.takesKey iProvider.hasKey)
+     :height 32
+     :gap 8
+     :anchors {:left 14 :right 14}
+     :alignItems center
+     (label#label-t-intelligence-key :grow 1
+       :height 32
+       :align "start center"
+       :textColor @intelligence.success
+       :text ~(t "intelligence.keySaved" {:store iData.keyStore}))
+     (node#intelligenceRemoveKey :use intelligenceButton
+       :with {:text ~(t "intelligence.removeKey") :run intelligence.removeKey :width 140})))
+
+(defview intelligence-not-kept "A warning that the key can't be kept on this computer." []
+  `(label#intelligenceNotKept :when ~(and iProvider.takesKey (not iData.persistent))
+     :height 32
+     :anchors {:left 14 :right 14}
+     :align "start center"
+     :wrap true
+     :textColor @intelligence.danger
+     :text ~(t "intelligence.notKept")))
+
+(defview intelligence-base-url "The provider's address, for one whose address can be changed." []
+  `(textarea#intelligenceBaseUrl :when ~iProvider.editableUrl
+     :height 32
+     :padding 8
+     :radius 6
+     :anchors {:left 14 :right 14}
+     :borderWidth 1
+     :color @intelligence.raised
+     :borderColor @intelligence.border
+     :focused {:borderColor @intelligence.accent}
+     :textColor @intelligence.text
+     :bind state.intelligence.baseUrl
+     :maxLength 512
+     :label ~(t "intelligence.baseUrl")
+     :placeholder ~(t "intelligence.baseUrlHelp")
+     :placeholderColor @intelligence.dim))
+
+(defview intelligence-model-label "The model's heading: the model chosen, by its name." []
+  `(label#intelligenceModelLabel :height 18
+     :anchors {:left 14 :right 14}
+     :textColor @intelligence.text
+     :text ~(if (not= state.intelligence.model "")
+                (t "intelligence.modelChosen"
+                   {:model (or-else (:name (find (fn [it] (= it.id state.intelligence.model))
+                                                 (or-else iProvider.models [])))
+                                    state.intelligence.model)})
+                (t "intelligence.model"))))
+
+(defview intelligence-actions "Save, Test and Refresh the models." []
+  `(row#intelligenceActions :height 32 :gap 8 :anchors {:left 14 :right 14}
+     (node#intelligenceSave :use intelligenceButton
+       :with {:text ~(t "intelligence.save")
+              :run intelligence.apply
+              :primary true
+              :enabled ~(and (not= state.intelligence.model "") iProvider.available)
+              :width 170})
+     (node#intelligenceTest :use intelligenceButton
+       :with {:text ~(t (if state.intelligence.testing "intelligence.testing" "intelligence.test"))
+              :run intelligence.check
+              :enabled ~(and (not= iData.current.provider "") (not state.intelligence.testing))
+              :width 170})
+     (node#intelligenceRefresh :when ~(not= iProvider.kind "claude-code")
+       :use intelligenceButton
+       :with {:text ~(t "intelligence.refresh") :run intelligence.refresh :width 170})))
+
+(defview intelligence-feedback "What the last action said: an error, the test's result or a notice." []
+  `(label#intelligenceFeedback :role status
+     :live polite
+     :wrap true
+     :height 40
+     :anchors {:left 14 :right 14}
+     :textColor ~(if (or (not= state.intelligence.error "")
+                         (and (some? state.intelligence.test) (not state.intelligence.test.ok)))
+                     "@intelligence.danger"
+                     "@intelligence.success")
+     :text ~(cond (not= state.intelligence.error "") state.intelligence.error
+                  (some? state.intelligence.test) state.intelligence.test.message
+                  :else state.intelligence.notice)))
 
 (defview intelligence-column "The settings' column: the providers, then the form." []
   `(column#intelligenceColumn :gap 14

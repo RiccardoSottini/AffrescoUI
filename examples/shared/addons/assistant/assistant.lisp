@@ -83,34 +83,40 @@
      :role listitem
      :label ~file.name
      :let {:assistantKind ~(slice (or-else file.type "") 0 6)}
-     (node :width 38 :height 44 :color transparent
-       (node :anchors {:left 6 :top 6} :width 32 :height 32 :radius 8 :color @assistant.raised
-         (path :anchors {:left 8 :top 8}
-           :width 16
-           :height 16
-           :viewBox "0 0 24 24"
-           :d ~(cond (= assistantKind "image/") "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM11 9a2 2 0 1 1-4 0a2 2 0 1 1 4 0M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"
-                     (= assistantKind "audio/") "M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0M21 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0"
-                     :else "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4")
-           :stroke @assistant.dim
-           :strokeWidth 2
-           :strokeCap round
-           :strokeJoin round)))
-     (column :fitContent true :gap 1
-       (label :text ~file.name :textColor @assistant.text :fitText {:maxWidth 180})
-       (label :runs [{:text ~(cond (some? file.duration) (str (floor (/ file.duration 60))
-                                                              ":"
-                                                              (pad (floor (mod file.duration 60)) 2))
-                                   (>= (or-else file.size 0) 1048576) (str (formatNumber (/ file.size 1048576) 0 1)
-                                                                           " MB")
-                                   (>= (or-else file.size 0) 1024) (str (formatNumber (floor (/ file.size 1024)))
-                                                                        " KB")
-                                   :else (str (or-else file.size 0) " B"))
-                      :size 12}]
-         :textColor @assistant.dim
-         :fitText {:maxWidth 180}))
+     ~(assistant-file-icon)
+     ~(assistant-file-caption file)
      ~(assistant-file-node file removable)
      {:width 2 :height 1 :color transparent}))
+
+(defview assistant-file-icon "A file's icon, by its kind: a picture, a sound, or any other file." []
+  `(node :width 38 :height 44 :color transparent
+     (node :anchors {:left 6 :top 6} :width 32 :height 32 :radius 8 :color @assistant.raised
+       (path :anchors {:left 8 :top 8}
+         :width 16
+         :height 16
+         :viewBox "0 0 24 24"
+         :d ~(cond (= assistantKind "image/") "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM11 9a2 2 0 1 1-4 0a2 2 0 1 1 4 0M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"
+                   (= assistantKind "audio/") "M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0M21 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0"
+                   :else "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4")
+         :stroke @assistant.dim
+         :strokeWidth 2
+         :strokeCap round
+         :strokeJoin round))))
+
+(defview assistant-file-caption "A file's name, and its length (a sound) or size." [file]
+  `(column :fitContent true :gap 1
+     (label :text ~file.name :textColor @assistant.text :fitText {:maxWidth 180})
+     (label :runs [{:text ~(cond (some? file.duration) (str (floor (/ file.duration 60))
+                                                            ":"
+                                                            (pad (floor (mod file.duration 60)) 2))
+                                 (>= (or-else file.size 0) 1048576) (str (formatNumber (/ file.size 1048576) 0 1)
+                                                                         " MB")
+                                 (>= (or-else file.size 0) 1024) (str (formatNumber (floor (/ file.size 1024)))
+                                                                      " KB")
+                                 :else (str (or-else file.size 0) " B"))
+                    :size 12}]
+       :textColor @assistant.dim
+       :fitText {:maxWidth 180})))
 
 (defcomponent assistantExtras
   ;; What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is
@@ -621,55 +627,63 @@ run) and overlays: its launcher and its panel."
        :textColor @assistant.dim
        :wrap true
        :height 44)
-     (node#assistantChip1 :when ~(= assistantCount 0)
-       :use assistantChip
-       :cell {:column 1 :row 2}
-       :with {:text ~(t "assistant.chip1")})
-     (node#assistantChip2 :when ~(= assistantCount 0)
-       :use assistantChip
-       :cell {:column 1 :row 3}
-       :with {:text ~(t "assistant.chip2")})
-     (node#assistantChip3 :when ~(= assistantCount 0)
-       :use assistantChip
-       :cell {:column 1 :row 4}
-       :with {:text ~(t "assistant.chip3")})
+     ~(assistant-suggestion 1)
+     ~(assistant-suggestion 2)
+     ~(assistant-suggestion 3)
      ~(repeat [message state.assistant.messages :index m]
        (assistant-message message m))
      ~(repeat [message state.assistant.messages :index m]
-       `(row :id ~(str "assistantFiles" m)
-          :when ~(= message.kind "files")
-          :wrap true
-          :fitContent height
-          :gap 6
-          :justify end
-          :cell {:column 1 :row ~(+ m 1)}
-          :role list
-          :label ~(t "assistant.attached")
-          ~(repeat [file message.files :index f]
-            `(node :id ~(str "assistantSent" m "-" f) :use assistantFile :with {:file ~file}))))
+       (assistant-sent-files message m))
      ~(repeat [message state.assistant.messages :index m]
-       `(node :id ~(str "assistantAdds" message.id)
-          :when ~(= message.kind "extras")
-          :use assistantExtras
-          :cell {:column 1 :row ~(+ m 1)}
-          :justifySelf start
-          :with {:id ~message.id :assets ~(or-else message.assets []) :run ~(or-else message.run [])}))
+       (assistant-additions message m))
      ~(repeat [message state.assistant.messages :index m]
        (assistant-card message m))
      ~(repeat [proposal assistantLoose :index l]
        (assistant-waiting proposal l))
-     (node#assistantTyping :when ~assistantWorking
-       :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) 1)}
-       :use typingIndicator
-       :every {:ms 400 :do [{:increment state.assistant.phase}]}
-       :with {:label ~(t "assistant.typing")
-              :phase ~state.assistant.phase
-              :color transparent
-              :dotColor @assistant.dot
-              :activeColor @assistant.dim})
+     ~(assistant-typing)
      (node#assistantEnd :height 1
        :color transparent
        :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) 2)})))
+
+(defview assistant-suggestion "Suggestion `n` of three, a chip to ask with, while the conversation is empty." [n]
+  `(node :id ~(str "assistantChip" n)
+     :when ~(= assistantCount 0)
+     :use assistantChip
+     :cell {:column 1 :row ~(+ n 1)}
+     :with {:text ~(t (str "assistant.chip" n))}))
+
+(defview assistant-sent-files "The files message `m` attached, as cards, where it is a message of files." [message m]
+  `(row :id ~(str "assistantFiles" m)
+     :when ~(= message.kind "files")
+     :wrap true
+     :fitContent height
+     :gap 6
+     :justify end
+     :cell {:column 1 :row ~(+ m 1)}
+     :role list
+     :label ~(t "assistant.attached")
+     ~(repeat [file message.files :index f]
+       `(node :id ~(str "assistantSent" m "-" f) :use assistantFile :with {:file ~file}))))
+
+(defview assistant-additions "What a proposal adds beside its edits, where message `m` holds it: assets and run-once steps."
+  [message m]
+  `(node :id ~(str "assistantAdds" message.id)
+     :when ~(= message.kind "extras")
+     :use assistantExtras
+     :cell {:column 1 :row ~(+ m 1)}
+     :justifySelf start
+     :with {:id ~message.id :assets ~(or-else message.assets []) :run ~(or-else message.run [])}))
+
+(defview assistant-typing "Three dots that blink while the agent works, under the conversation." []
+  `(node#assistantTyping :when ~assistantWorking
+     :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) 1)}
+     :use typingIndicator
+     :every {:ms 400 :do [{:increment state.assistant.phase}]}
+     :with {:label ~(t "assistant.typing")
+            :phase ~state.assistant.phase
+            :color transparent
+            :dotColor @assistant.dot
+            :activeColor @assistant.dim}))
 
 (defview assistant-attach "The button that attaches files to the next message." []
   `(node#assistantAttach :width 32
@@ -714,30 +728,36 @@ run) and overlays: its launcher and its panel."
      (label#assistantModelName :fitText {:maxWidth 150}
        :textColor @assistant.dim
        :text ~(or-else (:name (find (fn [it] (= it.id assistantModel)) assistantModels.models)) assistantModel))
-     (path#assistantModelChevron :width 14
-       :height 14
-       :viewBox "0 0 24 24"
-       :d "m6 9 6 6 6-6"
-       :stroke @assistant.dim
-       :strokeWidth 2.25
-       :strokeCap round
-       :strokeJoin round)
+     ~(assistant-model-chevron)
      {:width 4 :height 1 :color transparent}
-     (node#assistantModelMenu :use menu
-       :with {:open state.assistant.modelMenu
-              :placement above
-              :width 260
-              :items ~(map (fn [it]
-                             {:title it.name
-                              :checked (= it.id assistantModel)
-                              :keyLabel (if (= it.id assistantModels.default) (t "assistant.defaultModel") "")
-                              :run "assistant.pickModel"
-                              :with {:id it.id}})
-                           assistantModels.models)
-              :color @assistant.raised
-              :textColor @assistant.text
-              :dimColor @assistant.dim
-              :highlight @assistant.border})))
+     ~(assistant-model-menu)))
+
+(defview assistant-model-chevron "The chevron that says the model's name opens a menu." []
+  `(path#assistantModelChevron :width 14
+     :height 14
+     :viewBox "0 0 24 24"
+     :d "m6 9 6 6 6-6"
+     :stroke @assistant.dim
+     :strokeWidth 2.25
+     :strokeCap round
+     :strokeJoin round))
+
+(defview assistant-model-menu "The models to choose from, the one in use ticked and the default named." []
+  `(node#assistantModelMenu :use menu
+     :with {:open state.assistant.modelMenu
+            :placement above
+            :width 260
+            :items ~(map (fn [it]
+                           {:title it.name
+                            :checked (= it.id assistantModel)
+                            :keyLabel (if (= it.id assistantModels.default) (t "assistant.defaultModel") "")
+                            :run "assistant.pickModel"
+                            :with {:id it.id}})
+                         assistantModels.models)
+            :color @assistant.raised
+            :textColor @assistant.text
+            :dimColor @assistant.dim
+            :highlight @assistant.border}))
 
 (defview assistant-composer "The field the person writes in: Enter sends." []
   `(node#assistantComposer :use chatComposer
@@ -814,18 +834,21 @@ run) and overlays: its launcher and its panel."
                                 state.assistant.model
                                 (or-else assistantModels.default ""))}
      ~(assistant-header)
-     (node#assistantOffline :when ~(not assistantOnline)
-       :alignSelf stretch
-       :height 52
-       :color @assistant.warningBackground
-       :role alert
-       (label :text ~(t "assistant.offlineNote")
-         :textColor @assistant.text
-         :wrap true
-         :anchors {:left 16 :right 16 :top 8 :bottom 8}))
+     ~(assistant-offline-note)
      (node :grow 1 :alignSelf stretch :color transparent
        ~(assistant-messages))
      (node#assistantInput :alignSelf stretch
        :color transparent
        :height ~(if (> (count state.assistant.attachments) 0) 166 112)
        ~(assistant-input-card))))
+
+(defview assistant-offline-note "A note while no agent is connected: choose a provider in Settings, or connect one." []
+  `(node#assistantOffline :when ~(not assistantOnline)
+     :alignSelf stretch
+     :height 52
+     :color @assistant.warningBackground
+     :role alert
+     (label :text ~(t "assistant.offlineNote")
+       :textColor @assistant.text
+       :wrap true
+       :anchors {:left 16 :right 16 :top 8 :bottom 8})))
