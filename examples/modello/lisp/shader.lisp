@@ -109,16 +109,7 @@
               :open state.open.editorShader
               :items ~(editor-choices "shader")})
      (node :use gap :with {:width 6})
-     (node#shader-add :use hButton
-       :with {:text ~(t "header.add")
-              :width 50
-              :chevron true
-              :back transparent
-              :open state.open.shaderAdd
-              :items ~computed.shaderAddItems
-              :menuWidth 200
-              :disabled ~(< computed.activeMaterialIndex 0)
-              :tooltip ~(if (< computed.activeMaterialIndex 0) (t "shader.addNeeds") (t "shader.addTip"))})
+     ~(shader-add-button)
      (node#shader-delete :use hButton
        :with {:icon trash-2
               :width 24
@@ -134,6 +125,18 @@
                 (t "properties.noMaterial")
                 (t "shader.material" {:name (get-in state.scene.materials [computed.activeMaterialIndex :name])})))
      (node :use gap)))
+
+(defview shader-add-button "Add: a menu of the nodes a material can have, while one is chosen." []
+  `(node#shader-add :use hButton
+     :with {:text ~(t "header.add")
+            :width 50
+            :chevron true
+            :back transparent
+            :open state.open.shaderAdd
+            :items ~computed.shaderAddItems
+            :menuWidth 200
+            :disabled ~(< computed.activeMaterialIndex 0)
+            :tooltip ~(if (< computed.activeMaterialIndex 0) (t "shader.addNeeds") (t "shader.addTip"))}))
 
 (defview shader-graph "The graph: nodes dragged, linked and unlinked, selected; a colour or a value node shows it in its body." []
   `(graph#shader-graph :when ~(some? computed.shaderGraph)

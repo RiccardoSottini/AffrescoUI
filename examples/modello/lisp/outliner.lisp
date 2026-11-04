@@ -157,15 +157,7 @@
      :onDoubleClick ~(handler startRowRename node.id coll.id data)
      :onContextMenu ~(handler rowMenu node.id coll.id)
      ~(outliner-chevron depth name node key expand)
-     (label
-       :font icons
-       :icon ~icon
-       :text ""
-       :textColor ~iconColor
-       :x ~(+ (* depth 18) 18)
-       :width 18
-       :anchors {:top 0 :bottom 0}
-       :align center)
+     ~(row-icon depth icon iconColor)
      (label :when ~(not editing)
        :text ~name
        :textColor ~(if (and node (= node.visible false)) "@dim" "@text")
@@ -173,23 +165,40 @@
        :anchors {:top 0 :bottom 0}
        :fitText true)
      ~(rename-field depth name node coll)
-     (label :when ~(and (not= data "") (not editing))
-       :font iconsSmall
-       :icon ~data
-       :text ""
-       :textColor @data
-       :x ~(+ (* depth 18) 46 (* (count name) 7))
-       :width 16
-       :anchors {:top 0 :bottom 0}
-       :align center)
-     (row
-       :when ~(or (not= data "") (some? coll))
-       :anchors {:right 4 :top 0 :bottom 0}
-       :width 66
-       :gap 4
-       :alignItems center
-       :color transparent
-       ~(repeat [flag computed.outlinerFlags] (row-flag node coll flag)))))
+     ~(row-data-icon depth name data)
+     ~(row-flags node coll data)))
+
+(defview row-icon "A row's icon, in its colour, indented by its depth." [depth icon iconColor]
+  `(label
+     :font icons
+     :icon ~icon
+     :text ""
+     :textColor ~iconColor
+     :x ~(+ (* depth 18) 18)
+     :width 18
+     :anchors {:top 0 :bottom 0}
+     :align center))
+
+(defview row-data-icon "The icon of what an object holds (a mesh, a light...), after its name." [depth name data]
+  `(label :when ~(and (not= data "") (not editing))
+     :font iconsSmall
+     :icon ~data
+     :text ""
+     :textColor @data
+     :x ~(+ (* depth 18) 46 (* (count name) 7))
+     :width 16
+     :anchors {:top 0 :bottom 0}
+     :align center))
+
+(defview row-flags "An object's or a collection's switches, on the right of its row." [node coll data]
+  `(row
+     :when ~(or (not= data "") (some? coll))
+     :anchors {:right 4 :top 0 :bottom 0}
+     :width 66
+     :gap 4
+     :alignItems center
+     :color transparent
+     ~(repeat [flag computed.outlinerFlags] (row-flag node coll flag))))
 
 (defview outliner-chevron "A row's chevron: it opens or closes what is under the row." [depth name node key expand]
   `(node :id ~(str "outliner-" (if node node.id key) "-chevron")

@@ -8,22 +8,8 @@
 
 (defcomponent hButton
   "A header's button: an icon, a text or both; it opens a dropdown (open names its state) or runs a function (run, with)."
-  {:icon ""
-   :text ""
-   :width 24
-   :on false
-   :chevron false
-   :tooltip ""
-   :run nil
-   :with nil
-   :open ""
-   :items []
-   :menuWidth 200
-   :placement below
-   :back @menuWidget
-   :radius 4
-   :textColor @text
-   :disabled false}
+  {:icon "" :text "" :width 24 :on false :chevron false :tooltip "" :run nil :with nil
+   :open "" :items [] :menuWidth 200 :placement below :back @menuWidget :radius 4 :textColor @text :disabled false}
   `(node :width ~width
      :height 20
      :radius ~radius
@@ -49,17 +35,20 @@
        :textColor ~(if disabled "@faint" textColor)
        :align {:horizontal start :vertical center}
        :anchors {:left ~(if (not= icon "") 23 7) :right ~(if chevron 14 4) :top 0 :bottom 0})
-     (label :when ~chevron
-       :font iconsSmall
-       :icon chevron-down
-       :text ""
-       :textColor @dim
-       :align center
-       :anchors {:right 2 :top 0 :bottom 0}
-       :width 12)
+     ~(button-chevron chevron)
      (node :when ~(not= open "")
        :use menu
        :with {:open ~open :items ~items :width ~menuWidth :placement ~placement :icons ~(some (fn [it] (some? it.icon)) items)})))
+
+(defview button-chevron "A header button's chevron, when it opens a dropdown." [chevron]
+  `(label :when ~chevron
+     :font iconsSmall
+     :icon chevron-down
+     :text ""
+     :textColor @dim
+     :align center
+     :anchors {:right 2 :top 0 :bottom 0}
+     :width 12))
 
 (defcomponent gap "Room between a header's buttons." {:width 4}
   `{:width ~width :height 1 :color transparent})
