@@ -343,7 +343,9 @@
        :fitText true
        :textColor ~(if (= item.enabled false) "@faint" "@text"))))
 
-(defview pie-menu "The pie menu: its items round a ring in the middle, its title under the ring." []
+(defcomponent pieMenu "The pie menu: its items round a ring in the middle, its title under the ring."
+  {:items [] :open state.pie.open :x 0 :y 0 :title ""}
+  :runsActions items
   `(node :width 360
      :height 240
      :color transparent
@@ -363,10 +365,6 @@
        :borderColor @faint)
      (label :text ~title :textColor @dim :anchors {:left 0 :right 0 :top 138} :height 16 :align center)
      ~(repeat [item items :index i] (pie-item item i))))
-
-;; A part, not a defcomponent: its items run actions (runsActions), which a component's definition says.
-(defpart pieMenu "The pie menu, as a component: items, open, and where its middle is."
-  :components {:pieMenu {:runsActions items :params {:items [] :open state.pie.open :x 0 :y 0 :title ""} :node ~(pie-menu)}})
 
 ;;; Editor types
 
