@@ -59,14 +59,10 @@
                 "mod+]" indentLines
                 "mod+c" copyLine
                 "mod+x" cutLine}
-     :minimap ~state.minimap
-     :minimapStyle bars
-     :minimapWidth 44
-     :minimapViewport always
+     :minimap ~state.minimap :minimapStyle bars :minimapWidth 44 :minimapViewport always
      :matchStyle outline
      :indentGuides ~(not (get-in state.files [open :scratch]))
-     :brackets true
-     :bracketStyle underline
+     :brackets true :bracketStyle underline
      :rulers ~(if state.ruler [80] [])
      :wrap ~state.wrap
      :find ~computed.findQuery
@@ -74,16 +70,9 @@
      :caret state.caret
      :autofocus true
      :anchors {:left ~(if state.zen 160 0) :right ~(if state.zen 160 0) :top ~(if state.zen 24 32) :bottom 0}
-     :color @background
-     :textColor @plain
-     :lineNumberColor @faint
-     :activeLineNumberColor @text
-     :lineColor @line
-     :selectionColor @selection
-     :caretColor @accent
-     :guideColor @guide
-     :matchColor @selection
-     :bracketColor @accent
+     :color @background :textColor @plain :lineNumberColor @faint :activeLineNumberColor @text
+     :lineColor @line :selectionColor @selection :caretColor @accent :guideColor @guide
+     :matchColor @selection :bracketColor @accent
      :onShow editorShown
      :onChange ~(handler markDirty open)
      :onContextMenu ~(handler openEditorMenu event.x event.y event.left event.top event.width event.height)
