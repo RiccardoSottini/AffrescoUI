@@ -132,7 +132,7 @@ public:
 	/// @param place Where.
 	/// @param definition The definition it is in.
 	void noteTruthTest(std::string path, Place place, std::string definition) {
-		truthTests_.push_back({std::move(path), place, std::move(definition)});
+		truthTests_.emplace_back(std::move(path), place, std::move(definition));
 	}
 	/// @brief Every test noted. @return Them: the path, its place and its definition.
 	[[nodiscard]] const std::vector<std::tuple<std::string, Place, std::string>>& truthTests() const noexcept {
@@ -407,18 +407,18 @@ private:
 	std::size_t regions_ = 0;         ///< Regions inside each other.
 	bool pure_ = false;               ///< See setPure().
 	std::deque<Global> globalCells_;  ///< The cells: their addresses stay.
-	std::map<std::string_view, Global*, std::less<>> globals_;           ///< The cells by name.
-	std::vector<std::unique_ptr<Definition>> definitions_;               ///< See definitions().
-	std::map<std::string, std::size_t, std::less<>> definitionNames_;    ///< definitions_'s indexes by name.
-	std::size_t compiled_ = 0;                                           ///< How many of definitions_ are compiled.
-	std::vector<GlobalUse> uses_;                                        ///< See uses().
-	std::set<std::string, std::less<>> appVariables_;                    ///< See addAppVariable().
+	std::map<std::string_view, Global*, std::less<>> globals_;            ///< The cells by name.
+	std::vector<std::unique_ptr<Definition>> definitions_;                ///< See definitions().
+	std::map<std::string, std::size_t, std::less<>> definitionNames_;     ///< definitions_'s indexes by name.
+	std::size_t compiled_ = 0;                                            ///< How many of definitions_ are compiled.
+	std::vector<GlobalUse> uses_;                                         ///< See uses().
+	std::set<std::string, std::less<>> appVariables_;                     ///< See addAppVariable().
 	std::vector<std::tuple<std::string, Place, std::string>> truthTests_; ///< See truthTests().
-	int compileDepth_ = 0;                                               ///< See compileDepth().
-	std::uint64_t gensym_ = 0;                                           ///< See gensymCounter().
-	std::vector<std::string> authorNames_;                               ///< Authors by number.
-	std::deque<AuthorSet> authorSets_;                                   ///< The interned sets.
-	std::map<std::vector<std::uint32_t>, const AuthorSet*> authorIndex_; ///< The sets by content.
+	int compileDepth_ = 0;                                                ///< See compileDepth().
+	std::uint64_t gensym_ = 0;                                            ///< See gensymCounter().
+	std::vector<std::string> authorNames_;                                ///< Authors by number.
+	std::deque<AuthorSet> authorSets_;                                    ///< The interned sets.
+	std::map<std::vector<std::uint32_t>, const AuthorSet*> authorIndex_;  ///< The sets by content.
 	std::map<std::pair<const AuthorSet*, const AuthorSet*>, const AuthorSet*> authorUnions_; ///< unite()'s answers.
 	const AuthorSet* noAuthors_ = nullptr;                                                   ///< See noAuthors().
 };

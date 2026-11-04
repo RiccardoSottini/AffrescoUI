@@ -58,8 +58,6 @@ std::string programOfMany() {
 	return text + "(defscreen main (panel#root))\n";
 }
 
-} // namespace
-
 /// @brief "lisp/open-<app>" and "lisp/open-<app>-json": opening each example written as a program and as JSON, as a
 /// scenario does each time (read, built, judged, its program loaded, the screen built into a window): what an app
 /// written as a program costs beside its JSON version, once the process has opened it before.
@@ -84,6 +82,8 @@ void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
 			workloads.push_back(std::move(open));
 		}
 }
+
+} // namespace
 
 std::vector<Workload> lispWorkloads(Context& context) {
 	std::vector<Workload> workloads;

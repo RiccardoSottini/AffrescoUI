@@ -447,7 +447,7 @@ std::map<std::string, std::string> controlDefinitions(const json& doc,
 		for(const auto& [name, text] : entries.items())
 			if(program.control.contains(name) && text.is_string() &&
 			   std::ranges::find(builds, definitionHead(text.get_ref<const std::string&>())) == builds.end())
-				found.emplace(file + '\0' + name, text.get<std::string>());
+				found.emplace(std::string(file).append(1, '\0').append(name), text.get<std::string>());
 	}
 	return found;
 }
@@ -468,7 +468,7 @@ std::optional<std::string> stepNamedDefinition(const json& before, const json& a
 			if(entries.is_object())
 				for(const auto& [name, text] : entries.items())
 					if(std::ranges::find(controlSteps, name) != controlSteps.end())
-						found.emplace(file + "/" + name, &text);
+						found.emplace(std::string(file).append("/").append(name), &text);
 		return found;
 	};
 	const std::map<std::string, const json*> was = entriesOf(before);

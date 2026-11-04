@@ -71,7 +71,8 @@ std::string indexedPath(std::string_view word) {
 	std::size_t at = 0;
 	while(at < word.size()) {
 		const std::size_t dot = word.find('.', at);
-		const std::string_view member = word.substr(at, dot == std::string_view::npos ? word.npos : dot - at);
+		const std::string_view member =
+		    word.substr(at, dot == std::string_view::npos ? std::string_view::npos : dot - at);
 		const bool index =
 		    at > 0 && !member.empty() && std::ranges::all_of(member, [](char c) { return c >= '0' && c <= '9'; });
 		if(index) path.append("[").append(member).append("]");
@@ -117,9 +118,9 @@ void Programs::definePrimitives(lisp::Interpreter& interpreter) {
 		                             return readPath(in, arguments);
 	                             }});
 	// The expressions' bare variables, which a step's name (`preview`) would otherwise hide from code
-	for(const char* name : {"window", "revision", "proposals", "history", "preview", "mode", "theme", "locale", "screen",
-	                        "context", "commands", "keybindings", "menus", "settings", "settingsList", "services",
-	                        "connections", "auth", "requests", "peers", "windows"})
+	for(const char* name : {"window",       "revision", "proposals",   "history",  "preview",     "mode",  "theme",
+	                        "locale",       "screen",   "context",     "commands", "keybindings", "menus", "settings",
+	                        "settingsList", "services", "connections", "auth",     "requests",    "peers", "windows"})
 		interpreter.addAppVariable(name);
 	defineSteps(interpreter);
 	defineFunctions(interpreter);

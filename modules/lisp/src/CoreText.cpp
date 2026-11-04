@@ -154,7 +154,7 @@ std::string expressionOf(const json& value) {
 		std::array<char, 400> digits{};
 		const auto end =
 		    std::to_chars(digits.data(), digits.data() + digits.size(), value.get<double>(), std::chars_format::fixed);
-		std::string text(digits.data(), end.ptr);
+		const std::string text(digits.data(), end.ptr);
 		return text.contains('.') ? text : text + ".0";
 	}
 	if(value.is_array()) {

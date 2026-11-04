@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -60,8 +61,8 @@ constexpr std::array<Operator, 13> operators{{{"$equals", "="},
                                               {"$not", "not"}}};
 
 /// The expression's functions the language has under another name, with the same arguments.
-const std::map<std::string, std::string, std::less<>> renamed = {
-    {"length", "count"}, {"values", "vals"}, {"upper", "upper-case"}, {"lower", "lower-case"}, {"empty", "empty?"}};
+constexpr std::array<std::pair<std::string_view, std::string_view>, 5> renamed{
+    {{"length", "count"}, {"values", "vals"}, {"upper", "upper-case"}, {"lower", "lower-case"}, {"empty", "empty?"}}};
 
 /// @brief Tells whether a name is a plain word an expression and the language both read the same way.
 /// @param name The name.
@@ -342,8 +343,8 @@ private:
 			if(order != json{{"$value", "asc"}} && order != json{{"$value", "desc"}})
 				throw Untranslatable("sort with an order that isn't written 'asc' or 'desc'");
 			const bool descending = order == json{{"$value", "desc"}};
-			return "(sort-by " + (params == "it" ? keyOrLambda(body) : lambda(params, body)) + (descending ? " > " : " ") +
-			       form(list) + ")";
+			return "(sort-by " + (params == "it" ? keyOrLambda(body) : lambda(params, body)) +
+			       (descending ? " > " : " ") + form(list) + ")";
 		}
 		if(name == "reduce" && (arguments.size() == 2 || arguments.size() == 3))
 			return "(reduce " + lambda("acc it", body) + " " + (arguments.size() == 3 ? form(arguments[2]) : "nil") +
@@ -372,7 +373,9 @@ private:
 		const json list = row->takes == format::detail::Takes::One ? json::array({arguments}) : arguments;
 		if(name == "join" && list.size() == 2) return "(join " + form(list[1]) + " " + form(list[0]) + ")";
 		if(name == "count" && list.size() == 1) return "(count " + form(list[0]) + ")";
-		if(const auto found = renamed.find(name); found != renamed.end()) return call(found->second, list);
+		if(const auto* found = std::ranges::find(renamed, name, &std::pair<std::string_view, std::string_view>::first);
+		   found != renamed.end())
+			return call(found->second, list);
 		if(isLanguageName(name) && name != "concat" && name != "merge" && name != "keys" && name != "reverse" &&
 		   name != "min" && name != "max" && name != "abs" && name != "range")
 			throw Untranslatable("the function " + name +
@@ -533,8 +536,9 @@ json buildBack(const std::string& form, const std::set<std::string>& calls, cons
 	for(const std::string& name : calls) text += "(defn " + name + " \"\" [& a] state.x)\n";
 	// A name the language has is a repeat's item there, as in a program
 	std::string node = "`(node :x ~" + form + ")";
-	for(const std::string& name : locals) node = "`(node :child ~(repeat [" + name + " state.list] " + node + "))";
-	text += "(defscreen main (node :child ~" + node + "))\n";
+	for(const std::string& name : locals)
+		node = std::string("`(node :child ~(repeat [").append(name).append(" state.list] ").append(node).append("))");
+	text.append("(defscreen main (node :child ~").append(node).append("))\n");
 	lisp::Program program;
 	program.addFile(text, "proof.lisp");
 	json built = program.build()["root"];
@@ -628,13 +632,14 @@ Exit prove(const std::vector<std::string>& paths, bool verbose) {
 				++proven;
 				continue;
 			}
-			std::string reason = problem.substr(0, problem.find(':'));
+			const std::string reason = problem.substr(0, problem.find(':'));
 			++reasons[reason.size() > 80 ? reason.substr(0, 80) : reason];
 			if(verbose) std::cout << file.generic_string() << ": " << text << "\n    " << problem << '\n';
 		}
 	}
 	std::cout << proven << " of " << total << " texts proven ("
-	          << (total ? static_cast<double>(proven * 1000 / total) / 10.0 : 100.0) << "%)\n";
+	          << (total ? std::floor(static_cast<double>(proven) * 1000.0 / static_cast<double>(total)) / 10.0 : 100.0)
+	          << "%)\n";
 	for(const auto& [reason, count] : reasons) std::cout << "  " << count << "  " << reason << '\n';
 	return proven == total ? Exit::Success : Exit::Problems;
 }
@@ -647,7 +652,7 @@ Exit lispBinding(std::span<const std::string_view> args) {
 	const Arguments arguments(args, valued, flags);
 	lisp::Interpreter language;
 	if(arguments.flag("--batch")) { // a JSON list of texts in, a list of {form} or {error} out, for a tool
-		std::string input((std::istreambuf_iterator<char>(std::cin)), std::istreambuf_iterator<char>());
+		const std::string input((std::istreambuf_iterator<char>(std::cin)), std::istreambuf_iterator<char>());
 		json answers = json::array();
 		for(const json& text : json::parse(input)) {
 			try {

@@ -178,9 +178,9 @@ private:
 	/// @brief Compiles a `~form` of a template that builds a view: a binding if it needs the running app, or if a local
 	/// it uses holds a name of the running app (a symbol, as `repeat` and a component's parameters give), decided when
 	/// it runs; else its value.
-	/// @param form The form.
+	/// @param written The form.
 	/// @param depth How deep it is.
-	void compileViewValue(const Value& form, int depth);
+	void compileViewValue(const Value& written, int depth);
 	/// @brief A form with the macro its head names expanded, again until its head is no macro: in a binding a macro
 	/// writes the form that is then written as an expression.
 	/// @param form The form.

@@ -273,11 +273,13 @@ Definition& Machine::define(const Value& form, const std::string& author, const 
 	if(form.count() < leastItems(head)) failDefinition(form, name, head + " is missing what it defines");
 	if(head != "defkey" && !isExtensionWord(head)) checkName(form, name);
 	// A host's function (an expression's `now`, a step's `set`) means the same in every file, a shared add-on's too
-	if(const Global* existing = findGlobal(name); existing && existing->host && head != "defkey" && !isExtensionWord(head))
-		failDefinition(form, name,
-		               "\"" + notation::Lexer::excerpt(name) +
-		                   "\" is the host's function, as the expressions have it: a definition of that name would change "
-		                   "it for every file, a shared add-on's too; name yours otherwise");
+	if(const Global* existing = findGlobal(name);
+	   existing && existing->host && head != "defkey" && !isExtensionWord(head))
+		failDefinition(
+		    form, name,
+		    "\"" + notation::Lexer::excerpt(name) +
+		        "\" is the host's function, as the expressions have it: a definition of that name would change "
+		        "it for every file, a shared add-on's too; name yours otherwise");
 	Definition& made = addDefinition(form, kind, name, author, strict);
 	made.authors = authors ? authors : authorSet(author);
 	const CompileContext context{name, author, made.authors, false};
@@ -456,7 +458,7 @@ void Machine::defineVocabulary(Definition& definition, const Value& form, const 
 void Machine::compilePending(bool functionsOnly) {
 	if(functionsOnly) { // compiled_ stays: a full compilePending() later still compiles the rest
 		for(std::size_t at = compiled_; at < definitions_.size(); ++at)
-			if(Definition& definition = *definitions_[at]; definition.global && !definition.global->view)
+			if(const Definition& definition = *definitions_[at]; definition.global && !definition.global->view)
 				ensureCompiled(*definition.global);
 		return;
 	}

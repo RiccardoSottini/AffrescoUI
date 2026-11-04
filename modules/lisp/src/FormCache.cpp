@@ -27,9 +27,9 @@ constexpr std::size_t largestKept = 1U << 20U;
 
 /// @brief A form read once, in a heap of its own that nothing changes afterwards.
 struct Kept {
-	Heap heap;         ///< Owns the form; nothing is made in it once it is kept.
-	Value form;        ///< The form.
-	std::size_t bytes; ///< What its key and its form cost, counted against keptBytes.
+	Heap heap;             ///< Owns the form; nothing is made in it once it is kept.
+	Value form;            ///< The form.
+	std::size_t bytes = 0; ///< What its key and its form cost, counted against keptBytes.
 };
 
 /// @brief The forms kept, by their text and its place, least recently used first to go.
@@ -146,7 +146,7 @@ std::optional<Value> readEntry(Heap& heap, std::string_view text, const std::str
 	key.append(text);
 	std::shared_ptr<const Kept> kept = keptForms().find(key);
 	if(!kept) {
-		auto made = std::make_shared<Kept>();
+		const auto made = std::make_shared<Kept>();
 		// What the form costs is measured as it is made: a text of nested brackets makes many objects per byte
 		Budget measured{.operations = 0, .bytes = std::numeric_limits<std::size_t>::max()};
 		made->heap.setBudget(&measured);

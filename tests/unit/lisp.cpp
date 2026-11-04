@@ -676,7 +676,7 @@ TEST_CASE("lisp: a program builds the format's sections, in the order of its def
 	lisp::Program changed;
 	for(lisp::Entry entry : lisp::splitEntries(text, "a.lisp", "me")) {
 		if(entry.name == "toggle")
-			entry.text = "(defcommand toggle \"Toggles it.\" :title \"Flip\" :category \"View\" [times] (other times))";
+			entry.text = R"((defcommand toggle "Toggles it." :title "Flip" :category "View" [times] (other times)))";
 		changed.addEntry(std::move(entry));
 	}
 	const json flipped = changed.build();

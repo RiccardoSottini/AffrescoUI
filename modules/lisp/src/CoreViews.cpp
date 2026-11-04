@@ -144,7 +144,7 @@ Value component(Machine& machine, Arguments arguments) {
 	if(runs.kind() == Kind::Symbol || runs.kind() == Kind::String || runs.kind() == Kind::Keyword)
 		for(std::size_t key = 0; key < arguments[1].count(); ++key)
 			named = named || arguments[1].keyAt(key) == runs.text();
-	if(!runs.isNil() && !named && !(runs.kind() == Kind::Boolean && runs.truthy()))
+	if(!runs.isNil() && !named && (runs.kind() != Kind::Boolean || !runs.truthy()))
 		throw Problem(":runsActions names one of the component's parameters, or is true");
 	std::vector<MapEntry> members;
 	if(!arguments[0].text().empty()) members.push_back({"note", arguments[0]});

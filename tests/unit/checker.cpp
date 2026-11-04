@@ -166,8 +166,8 @@ TEST_CASE("checker: typos planted in the Kanban template are each found, with th
 	          "actions.moveRight.enablement: 'computed.lastColum' doesn't exist (did you mean 'computed.lastColumn'?)",
 	          std::string("components.inboxPage.node.children[0].with.icno: unknown parameter 'icno' of component ") +
 	              "'pageHeader' (did you mean 'icon'?)",
-	          "root.children[0].children[3].children[0].children[0].style: unknown style 'captoin' (did you mean "
-	          "'caption'?)",
+	          std::string("root.children[0].children[3].children[0].children[0].style: unknown style 'captoin' (did ") +
+	              "you mean 'caption'?)",
 	          std::string(
 	              "root.children[0].children[3].children[0].children[1].children[0].hover.color: unknown color ") +
 	              "'@color.chipHovery' (did you mean '@color.chipHover'?)",
@@ -254,7 +254,7 @@ TEST_CASE("checker: the images a screen edits, the image step and the raster nod
 		  "actions.crop[3]: \"of\" names the image when a screen declares more than one"}},
 	    {"a step needs an images section; with one image, of is optional",
 		 R"("actions": {"fit": [{"image": "fit"}]}, "root": {})",
-		 {"actions.fit[0]: an \"image\" step needs an \"images\" section"}},
+		 {R"(actions.fit[0]: an "image" step needs an "images" section)"}},
 	    {"a raster node names a declared image",
 		 (images +
 		  R"("root": {"children": [{"type": "raster", "image": "avatar"}, {"type": "raster", "image": "baner"}]})")
@@ -280,7 +280,7 @@ TEST_CASE("checker: the sounds a screen plays and the audio step") {
 		  "actions.go[3]: \"of\" names the sound when a screen declares more than one"}},
 	    {"a step needs an audio section",
 		 R"("actions": {"go": [{"audio": "play"}]}, "root": {})",
-		 {"actions.go[0]: an \"audio\" step needs an \"audio\" section"}},
+		 {R"(actions.go[0]: an "audio" step needs an "audio" section)"}},
 	});
 }
 
