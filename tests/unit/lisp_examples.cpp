@@ -12,7 +12,9 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <string>
+#include <vector>
 
 using affresco::Screen;
 
@@ -82,8 +84,10 @@ TEST_CASE("lisp examples: every example is there in both notations, and loads as
 			++apps;
 		}
 	}
-	CHECK(apps >= 2);      // the generated ones: Sign in and the Launcher
-	CHECK(programs >= 11); // the programs, all but Calamaio with their JSON beside them
+	// The generated ones (Sign in, until it is written as a program) and the programs, all but Calamaio with their
+	// JSON beside them
+	CHECK(apps + programs >= 13);
+	CHECK(programs >= 12);
 }
 
 TEST_CASE("lisp examples: a lisp folder holds Lisp, but for scenarios and a signed catalogue") {
@@ -183,6 +187,8 @@ TEST_CASE("lisp examples attack: an agent's change to an app's program is review
 		Screen screen = Screen::fromApp(entry.path() / "lisp", {}, Screen::History::InMemory);
 		const affresco::json source = screen.versions().sourceDocument();
 		if(!source.contains("program")) continue;
+		// An app with no permissions (Sign in) lets every change apply, its JSON version's too
+		if(!affresco::json::parse(screen.documentJson()).contains("permissions")) continue;
 		// A function of the app's own program: what builds a part of the tree is judged by what it builds
 		auto file = source["program"].end();
 		affresco::json::const_iterator definition;
@@ -207,4 +213,56 @@ TEST_CASE("lisp examples attack: an agent's change to an app's program is review
 		++programs;
 	}
 	CHECK(programs >= 11);
+}
+
+namespace {
+
+/// @brief A section's members that another document's section has too, in its order.
+/// @param document The document.
+/// @param other The other.
+/// @param section The section.
+/// @return Their names.
+std::vector<std::string> sharedMembers(const affresco::json& document, const affresco::json& other,
+                                       const char* section) {
+	std::vector<std::string> names;
+	if(!document.contains(section) || !other.contains(section)) return names;
+	for(const auto& [name, unused] : document[section].items())
+		if(other[section].contains(name)) names.push_back(name);
+	return names;
+}
+
+/// @brief The first key the screen binds each action to, as the `commands` variable shows it.
+/// @param document The document.
+/// @return Each action's.
+std::map<std::string, std::string> firstKeys(const affresco::json& document) {
+	std::map<std::string, std::string> keys;
+	for(const auto& [key, binding] : document.value("keys", affresco::json::object()).items())
+		if(binding.is_string()) keys.try_emplace(binding.get<std::string>(), key);
+	return keys;
+}
+
+} // namespace
+
+TEST_CASE("lisp examples: a program lists what it orders as its JSON version does") {
+	// A section's members come in the order of their definitions: the settings, the overlays (drawn in that order),
+	// the watches, and the first key a palette shows for a command
+	const std::filesystem::path examples = AFFRESCOUI_EXAMPLES_DIRECTORY;
+	for(const char* app : {"flow", "haven", "arcadia", "orrery", "forge", "sinopia", "code-editor", "launcher"}) {
+		const std::string name = app;
+		CAPTURE(name);
+		const affresco::json json = affresco::json::parse(
+		    Screen::fromApp(examples / app / "json", {}, Screen::History::InMemory).documentJson());
+		const affresco::json program = affresco::json::parse(
+		    Screen::fromApp(examples / app / "lisp", {}, Screen::History::InMemory).documentJson());
+		for(const char* section : {"settings", "overlays", "watch"}) {
+			const std::string sectionName = section;
+			CAPTURE(sectionName);
+			CHECK(sharedMembers(program, json, section) == sharedMembers(json, program, section));
+		}
+		const std::map<std::string, std::string> written = firstKeys(json);
+		for(const auto& [action, key] : firstKeys(program)) {
+			CAPTURE(action);
+			if(written.contains(action)) CHECK(written.at(action) == key);
+		}
+	}
 }

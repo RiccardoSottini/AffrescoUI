@@ -12,7 +12,6 @@
          "locales/es.lisp"
          "locales/fr.lisp"
          "../../shared/components/charts.lisp"
-         "../../shared/addons/assistant/assistant.lisp"
          "state.lisp"
          "computed.lisp"
          "look.lisp"
@@ -23,13 +22,14 @@
          "edit.lisp"
          "moreinfo.lisp"
          "plan.lisp"
-         "security.lisp"
          "automations.lisp"
          "energy.lisp"
          "areas.lisp"
          "history.lisp"
          "settings.lisp"
-         "haven.lisp")
+         "security.lisp"
+         "haven.lisp"
+         "../../shared/addons/assistant/assistant.lisp")
 
 ;;; The window, and what is in it, in the order it is drawn
 

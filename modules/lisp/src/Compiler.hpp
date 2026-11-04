@@ -166,6 +166,15 @@ private:
 	/// @brief Compiles a form that needs the running app to the text of a binding: `"{{!state.open}}"`.
 	/// @param form The form.
 	void compileBinding(const Value& form);
+	/// @brief Compiles a form that needs the running app to a name of the running app: a symbol whose text is its
+	/// expression in parentheses, as `(t('key'))`, which a view's templates then write as they write a repeat's item.
+	/// @param form The form.
+	void compileLiveName(const Value& form);
+	/// @brief Compiles a view's call in a template: an argument that needs the running app is given as a name of it
+	/// (compileLiveName()), so `(caption (t "key"))` works out its binding in the view.
+	/// @param form The call.
+	/// @param depth How deep it is.
+	void compileViewCall(const Value& form, int depth);
 	/// @brief Compiles a `~form` of a template that builds a view: a binding if it needs the running app, or if a local
 	/// it uses holds a name of the running app (a symbol, as `repeat` and a component's parameters give), decided when
 	/// it runs; else its value.
@@ -393,10 +402,10 @@ private:
 	Place place_;                 ///< The place of what is being compiled.
 	bool liveBindings_ = false;   ///< In a top-level template: a `~form` that needs the running app becomes a binding.
 	bool inView_ = false;         ///< Building a view: a backquote is a template whose `~form` may become a binding.
-	bool compilingHead_ = false; ///< Compiling a call's head: a word there is the function, never a variable.
+	bool compilingHead_ = false;  ///< Compiling a call's head: a word there is the function, never a variable.
 	bool functionArgument_ = false; ///< Checking an argument of a function that takes functions (CompilerBindings.cpp).
-	bool symbolic_ = false;       ///< Writing a binding where the locals hold names of the running app.
-	std::vector<Rename> renames_; ///< The parameters of the functions a binding is writing, innermost last.
+	bool symbolic_ = false;         ///< Writing a binding where the locals hold names of the running app.
+	std::vector<Rename> renames_;   ///< The parameters of the functions a binding is writing, innermost last.
 	std::vector<std::string_view> itemNames_;           ///< The parameters of functions a liveness check is inside.
 	std::unordered_map<const void*, Value> expansions_; ///< Each macro call's expansion, made once (expanded()).
 };

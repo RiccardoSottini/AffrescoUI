@@ -70,3 +70,7 @@ what you expect. A `wait` moves the clock, so what it animates is at its end whe
 `affrescoui render`, at the same size and with the same default settings, and compares the two pictures byte for byte: an app
 written as a program (SCREEN_FORMAT.md, "Writing an app as a program") must look exactly as its JSON version does. An example in one
 notation only (Calamaio) is skipped. `--only NAME` checks one; `--report` lists them all and fails only on one that can't be drawn.
+
+The host's own windows (`examples/shared/host`) are programs too: `lisp/<name>.json` plays the scenario of
+`scenarios/<name>.json` on the window's `.screen.lisp`, under the same scenario name, so its pictures are compared with the
+same golden images (`ctest -R scenarios/host/lisp`).

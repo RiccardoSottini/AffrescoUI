@@ -54,93 +54,103 @@ void pressShortcut(affresco::Window& window) {
 json stateOf(const Screen& screen) { return json::parse(screen.stateJson()); }
 
 /// @brief The host's screen file.
+/// @param notation "json" or "lisp".
 /// @return Its path.
-std::filesystem::path changesScreen() {
-	return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "shared" / "host" / "changes.screen.json";
+std::filesystem::path changesScreen(const std::string& notation) {
+	return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "shared" / "host" / ("changes.screen." + notation);
 }
 
 } // namespace
 
 TEST_CASE("changes window: it opens on the proposal, and tells the truth while that proposal is previewed") {
-	affresco::Application app({nullptr, true});
-	Screen screen = Screen::fromString(appScreen, {});
-	affresco::Window& window = screen.createWindow(app);
-	const host::ChangesWindow changes(app, screen, window, changesScreen());
-	CHECK(changes.opened() == nullptr);
-	const int id = proposeTitle(screen, "Nothing to see here");
-	REQUIRE(screen.previewProposal(id)); // the running app is now the proposal
-	pressShortcut(window);
-	REQUIRE(changes.opened() != nullptr);
-	changes.opened()->runAction("changes.refresh", window.root());
-	const json state = stateOf(*changes.opened());
-	REQUIRE(state["view"].is_object());
-	CHECK(state["view"]["proposal"] == id);
-	CHECK(state["list"]["previewing"] == id);
-	REQUIRE(state["text"].is_object());
-	CHECK(state["text"]["before"].get<std::string>().contains("\"One\""));
-	CHECK(state["text"]["after"].get<std::string>().contains("Nothing to see here"));
-	screen.endPreview();
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(appScreen, {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		CHECK(changes.opened() == nullptr);
+		const int id = proposeTitle(screen, "Nothing to see here");
+		REQUIRE(screen.previewProposal(id)); // the running app is now the proposal
+		pressShortcut(window);
+		REQUIRE(changes.opened() != nullptr);
+		changes.opened()->runAction("changes.refresh", window.root());
+		const json state = stateOf(*changes.opened());
+		REQUIRE(state["view"].is_object());
+		CHECK(state["view"]["proposal"] == id);
+		CHECK(state["list"]["previewing"] == id);
+		REQUIRE(state["text"].is_object());
+		CHECK(state["text"]["before"].get<std::string>().contains("\"One\""));
+		CHECK(state["text"]["after"].get<std::string>().contains("Nothing to see here"));
+		screen.endPreview();
+	}
 }
 
 TEST_CASE("changes window: only the change the person saw can be accepted, and then it can be undone") {
-	affresco::Application app({nullptr, true});
-	Screen screen = Screen::fromString(appScreen, {});
-	affresco::Window& window = screen.createWindow(app);
-	const host::ChangesWindow changes(app, screen, window, changesScreen());
-	const int id = proposeTitle(screen, "Two");
-	pressShortcut(window);
-	Screen* own = changes.opened();
-	REQUIRE(own != nullptr);
-	affresco::Panel& sender = window.root();
-	own->runAction("changes.refresh", sender);
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(appScreen, {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		const int id = proposeTitle(screen, "Two");
+		pressShortcut(window);
+		Screen* own = changes.opened();
+		REQUIRE(own != nullptr);
+		affresco::Panel& sender = window.root();
+		own->runAction("changes.refresh", sender);
 
-	// The author pushes more after the person read it: the window says so, and shows what is there now
-	const std::string seen = stateOf(*own)["view"]["head"].get<std::string>();
-	const json more = {{{"op", "replace"}, {"path", "/root/children/0/text"}, {"value", "Three"}}};
-	REQUIRE(screen.versions().submit({{"author", "agent"}, {"proposal", id}, {"patch", more}}).proposal == id);
-	own->runAction("changes.refresh", sender);
-	json state = stateOf(*own);
-	CHECK(state["stale"] == true);
-	CHECK(state["view"]["head"] != seen);
-	CHECK(state["text"]["after"].get<std::string>().contains("Three"));
+		// The author pushes more after the person read it: the window says so, and shows what is there now
+		const std::string seen = stateOf(*own)["view"]["head"].get<std::string>();
+		const json more = {{{"op", "replace"}, {"path", "/root/children/0/text"}, {"value", "Three"}}};
+		REQUIRE(screen.versions().submit({{"author", "agent"}, {"proposal", id}, {"patch", more}}).proposal == id);
+		own->runAction("changes.refresh", sender);
+		json state = stateOf(*own);
+		CHECK(state["stale"] == true);
+		CHECK(state["view"]["head"] != seen);
+		CHECK(state["text"]["after"].get<std::string>().contains("Three"));
 
-	// What was reviewed is what is accepted: an older head is refused
-	std::string refused;
-	CHECK_FALSE(screen.acceptProposal(id, seen, &refused));
-	CHECK_FALSE(refused.empty());
-	CHECK(screen.proposals().size() == 1);
+		// What was reviewed is what is accepted: an older head is refused
+		std::string refused;
+		CHECK_FALSE(screen.acceptProposal(id, seen, &refused));
+		CHECK_FALSE(refused.empty());
+		CHECK(screen.proposals().size() == 1);
 
-	own->runAction("changes.accept", sender);
-	state = stateOf(*own);
-	CHECK(state["message"] == "");
-	CHECK(screen.proposals().empty());
-	CHECK(state["closed"] == true);
-	CHECK(json::parse(screen.documentJson())["root"]["children"][0]["text"] == "Three");
+		own->runAction("changes.accept", sender);
+		state = stateOf(*own);
+		CHECK(state["message"] == "");
+		CHECK(screen.proposals().empty());
+		CHECK(state["closed"] == true);
+		CHECK(json::parse(screen.documentJson())["root"]["children"][0]["text"] == "Three");
 
-	pressShortcut(window); // nothing is waiting: the newest applied change
-	own->runAction("changes.refresh", sender);
-	state = stateOf(*own);
-	REQUIRE(state["view"]["kind"] == "commit");
-	own->runAction("changes.undo", sender);
-	CHECK(stateOf(*own)["message"] == "");
-	CHECK(json::parse(screen.documentJson())["root"]["children"][0]["text"] == "One");
+		pressShortcut(window); // nothing is waiting: the newest applied change
+		own->runAction("changes.refresh", sender);
+		state = stateOf(*own);
+		REQUIRE(state["view"]["kind"] == "commit");
+		own->runAction("changes.undo", sender);
+		CHECK(stateOf(*own)["message"] == "");
+		CHECK(json::parse(screen.documentJson())["root"]["children"][0]["text"] == "One");
+	}
 }
 
 TEST_CASE("changes window: a person's rejection reaches the author, with the reason") {
-	affresco::Application app({nullptr, true});
-	Screen screen = Screen::fromString(appScreen, {});
-	affresco::Window& window = screen.createWindow(app);
-	const host::ChangesWindow changes(app, screen, window, changesScreen());
-	proposeTitle(screen, "Two");
-	pressShortcut(window);
-	REQUIRE(changes.opened() != nullptr);
-	std::string told;
-	screen.versions().onDecision.connect([&](const affresco::Decision& decision) {
-		if(decision.error) told = *decision.error;
-	});
-	changes.opened()->runAction("changes.refresh", window.root());
-	changes.opened()->runAction("changes.reject", window.root());
-	CHECK(screen.proposals().empty());
-	CHECK(json::parse(screen.documentJson())["root"]["children"][0]["text"] == "One");
-	CHECK_FALSE(told.empty());
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		affresco::Application app({nullptr, true});
+		Screen screen = Screen::fromString(appScreen, {});
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		proposeTitle(screen, "Two");
+		pressShortcut(window);
+		REQUIRE(changes.opened() != nullptr);
+		std::string told;
+		screen.versions().onDecision.connect([&](const affresco::Decision& decision) {
+			if(decision.error) told = *decision.error;
+		});
+		changes.opened()->runAction("changes.refresh", window.root());
+		changes.opened()->runAction("changes.reject", window.root());
+		CHECK(screen.proposals().empty());
+		CHECK(json::parse(screen.documentJson())["root"]["children"][0]["text"] == "One");
+		CHECK_FALSE(told.empty());
+	}
 }

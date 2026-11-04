@@ -40,6 +40,11 @@
                      :set {"/program/sign-in.lisp/closeShortcuts" "(defn closeShortcuts \"Closes the shortcuts' list.\" [] (signIn \"exampleId\"))"}}
           :expect deny
           :reason "can't add, change or move"}
+         {:name "nor points the sign-in step at another provider"
+          :revision {:author "agent/claude-code"
+                     :set {"/program/sign-in.lisp/providerSignIn" "(defn providerSignIn \"Example ID's button: its sign-in page, through the connection; scenarios play its answers.\" []\n  (when (= state.busy \"\")\n    (set \"state.formError\" \"\")\n    (set \"state.providerName\" \"exampleId\")\n    (set \"state.busy\" \"provider\")\n    (signIn \"other\" :onDone providerAnswered :onError providerRefused)))"}}
+          :expect deny
+          :reason "a definition that runs a control step"}
          {:name "nor adds a sign-out to a button"
           :revision {:author "agent/claude-code"
                      :set {"/program/chrome.lisp/top-bar" "(defview top-bar \"The top bar, top right: the languages, Slow network, the shortcuts and the theme.\" []\n  `(row#topBar :dir auto :gap 6 :width 226 :height 32 :alignItems center :anchors {:right 16 :top 14}\n     (row#languages :role radiogroup :label ~(t \"language\") :arrows horizontal :gap 2 :height 32 :width 112\n       ~(repeat [language [\"en\" \"it\" \"ar\"]]\n          (language-chip language)))\n     ~(slow-toggle)\n     (node#shortcutsButton :style iconButton\n       :font iconsSmall\n       :icon keyboard\n       :label ~(t \"shortcuts\")\n       :tooltip ~(t \"shortcutsTooltip\" {:key computed.shortcutsKey})\n       :isOpen ~state.shortcutsOpen\n       :onClick openShortcuts)\n     (node#themeToggle :style iconButton\n       :icon ~(if (= state.theme \"light\") \"moon\" \"sun\")\n       :label ~(t \"themeTooltip\" {:dark (= state.theme \"dark\") :key computed.themeKey})\n       :tooltip ~(t \"themeTooltip\" {:dark (= state.theme \"dark\") :key computed.themeKey})\n       :onClick {:signOut exampleId})))"}}

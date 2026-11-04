@@ -2,13 +2,12 @@
 /// @brief host::ChangesWindow: the host's window on a change.
 
 #include "ChangesWindow.hpp"
+#include "HostScreens.hpp"
 
 #include <affresco/core/Log.hpp>
 #include <affresco/format/Locale.hpp>
 
 #include <algorithm>
-#include <fstream>
-#include <iterator>
 #include <optional>
 #include <string>
 #include <utility>
@@ -65,10 +64,7 @@ struct ChangesWindow::Impl {
 			window->setVisible(true);
 			return;
 		}
-		std::ifstream in(file, std::ios::binary);
-		const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-		if(!in) throw std::runtime_error("could not open " + file.string());
-		own.emplace(affresco::Screen::fromString(text, file.parent_path()));
+		own.emplace(readHostScreen(file));
 		own->setLocale(affresco::format::systemLocale());
 		registerCalls();
 		window = &own->createWindow(app, mainWindow);

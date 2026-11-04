@@ -141,7 +141,7 @@ TEST_CASE("lisp views: defcomponent, handler, and the sections as definitions") 
 	      json{{"note", "A chip."},
 	           {"params", {{"label", ""}, {"on", false}}},
 	           {"node", {{"type", "label"}, {"text", "{{label}}"}, {"style", "{{(on ? 'chipOn' : 'chip')}}"}}}});
-	CHECK(tree["state"] == json{{"cards", json::array()}, {"view", "board"}});
+	CHECK(tree["state"].dump() == R"({"view":"board","cards":[]})"); // in the order of the definitions
 	CHECK(tree["stateTypes"] == json{{"view", {{"enum", {"board", "list"}}}}});
 	CHECK(tree["computed"]["open"] == "{{filter(state.cards, (it.id != state.sel))}}");
 	CHECK(tree["styles"]["caption"] == json{{"type", "label"}, {"font", "small"}});
@@ -164,6 +164,53 @@ TEST_CASE("lisp views: defcomponent, handler, and the sections as definitions") 
 	CHECK(buildError("(defstate x 1 \"Doc.\" :default 2)\n(defscreen main (column))").contains("only option is :type"));
 }
 
+TEST_CASE("lisp views: a view is given what needs the running app as a name of it, as a repeat's item") {
+	const json tree = built(R"lisp(
+(defview caption "A caption." [text n]
+  `(label :text ~text :tip ~(str text "!") :id ~(str "cap" n)))
+(defview card "A card." [p] `(row ~(caption (t "card" {:n p.n}) 3)))
+(defn pick "Picks." [] nil)
+(defview button "A button." [f] `(node :onClick ~(handler f)))
+(defscreen main (column ~(caption (t "title") 2) ~(caption "plain" 5) ~(repeat [p state.ps] (card p))
+                        ~(caption state.name 6) ~(button pick)))
+)lisp");
+	const json& children = tree["root"]["children"];
+	CHECK(children[0] ==
+	      json{{"type", "label"}, {"text", "{{(t('title'))}}"}, {"tip", "{{(t('title'))}}!"}, {"id", "cap2"}});
+	CHECK(children[1]["text"] == "plain");
+	CHECK(children[2]["children"][0]["text"] == "{{(t('card', {'n': p.n}))}}");
+	CHECK(children[3]["text"] == "{{state.name}}");
+	CHECK(children[4]["onClick"] == json{{"lisp", "pick"}, {"with", json::array()}}); // a function is given as itself
+}
+
+TEST_CASE("lisp views: a template inside a component's binding is written once, never again and again") {
+	// Found by fuzzing: a form holding a parameter where no binding can read it (a template of its own) looped
+	const std::string text =
+	    "(defcomponent k \"d\" {:on false :t \"\"} `(label :text ~t :style ~(if on le ~(if on \"a\" "
+	    "\"b\"))))\n(defscreen main (column))";
+	try {
+		static_cast<void>(built(text));
+	} catch(const lisp::LispError& error) {
+		CHECK_FALSE(error.exhausted());
+	}
+}
+
+TEST_CASE("lisp views: a defcomponent says which parameter's items it runs") {
+	const json tree = built(R"lisp(
+(defcomponent pie "A pie menu: each item runs its action." {:items [] :open false} :runsActions items
+  `(column :visible ~open))
+(defcomponent keeper "Runs actions it keeps in the state." {} :runsActions true `(column))
+(defscreen main (column))
+)lisp");
+	CHECK(tree["components"]["pie"]["runsActions"] == "items");
+	CHECK(tree["components"]["pie"]["node"]["visible"] == "{{open}}");
+	CHECK(tree["components"]["keeper"]["runsActions"] == true);
+	CHECK(buildError("(defcomponent a \"\" {:x 1} :runsActions y `(column))\n(defscreen main (column))")
+	          .contains("names one of the component's parameters"));
+	CHECK(buildError("(defcomponent a \"\" {:x 1} :look x `(column))\n(defscreen main (column))")
+	          .contains("only option is :runsActions"));
+}
+
 TEST_CASE("lisp views: defdefaults yields to any other definition, and to the document's own value") {
 	const std::string program = R"lisp(
 (defdefaults addon "An add-on's colours and key." :tokens {:addon.accent "#00f" :addon.text "#000"} :keys {"mod+a" open})
@@ -173,6 +220,17 @@ TEST_CASE("lisp views: defdefaults yields to any other definition, and to the do
 	const json tree = built(program);
 	CHECK(tree["tokens"] == json{{"addon.accent", "#f00"}, {"addon.text", "#000"}});
 	CHECK(tree["keys"]["mod+a"] == "open");
+	// In the order of the definitions: a default where its definition is, its value replaced there, as a JSON include's
+	const json ordered = built(R"lisp(
+(defkey "mod+z" undo)
+(defdefaults addon "An add-on's keys." :keys {"mod+a" open "mod+b" close} :overlays {:panel (node#addonPanel)})
+(defkey "mod+b" shut)
+(defkey "mod+c" copy)
+(defpart mine "The app's overlay, over the add-on's." :overlays {:mine (node#mine)})
+(defscreen main (column))
+)lisp");
+	CHECK(ordered["keys"].dump() == R"({"mod+z":"undo","mod+a":"open","mod+b":"shut","mod+c":"copy"})");
+	CHECK(ordered["overlays"].begin().key() == "panel");
 	// A document's own value replaces a default; one a definition gives must still be the same
 	json source = lisp::sourceDocument(program, "app.lisp");
 	source["tokens"] = {{"addon.text", "#111"}};
@@ -199,6 +257,12 @@ TEST_CASE("lisp views: a binding's form is the expression machine's, at its spee
 	CHECK(binding("(map-indexed (fn [i x] (+ i x.n)) state.xs)") == "{{map(state.xs, (index + it.n))}}");
 	CHECK(binding("(remove (fn [x] x.done) state.xs)") == "{{filter(state.xs, !(it.done))}}");
 	CHECK(binding("(sort-by (fn [x] x.n) > state.xs)") == "{{sort(state.xs, it.n, 'desc')}}");
+	// A keyword is the function that looks it up, as in Clojure
+	CHECK(binding("(sort-by :n state.xs)") == "{{sort(state.xs, it.n)}}");
+	CHECK(binding("(sort-by :n > state.xs)") == "{{sort(state.xs, it.n, 'desc')}}");
+	CHECK(binding("(map :title state.xs)") == "{{map(state.xs, it.title)}}");
+	CHECK(binding("(remove :done state.xs)") == "{{filter(state.xs, !(it.done))}}");
+	CHECK(binding("(filter :my-key state.xs)") == "{{filter(state.xs, it['my-key'])}}");
 	CHECK(binding("(reduce (fn [total x] (+ total x.n)) 0 state.xs)") == "{{reduce(state.xs, (acc + it.n), 0)}}");
 	CHECK(binding("(sum state.xs (fn [it] it.n))") == "{{sum(state.xs, it.n)}}");
 	CHECK(binding("(join \", \" state.names)") == "{{join(state.names, ', ')}}");
@@ -290,7 +354,8 @@ TEST_CASE("lisp views: what only builds is judged by what it builds, and a view 
 	CHECK(screen.submitRevision(view.dump()).status != RevisionStatus::Applied);
 }
 
-TEST_CASE("lisp views: a macro writing a map, a vector or a word inside a binding's vector or map builds, not crashes") {
+TEST_CASE(
+    "lisp views: a macro writing a map, a vector or a word inside a binding's vector or map builds, not crashes") {
 	const json tree = built(R"lisp(
 (defmacro tr "An item." [id k] `{:id ~id :label (t ~k)})
 (defmacro w "A path." [] 'state.x)
@@ -332,8 +397,10 @@ TEST_CASE("lisp views: a word that names the language's function, uncalled in a 
   ~(v "Fixed") ~(repeat [name state.names] (v name))))
 )lisp");
 	const json& children = tree["root"]["children"];
-	CHECK(children[0] == json{{"type", "label"}, {"a", "{{name}}"}, {"b", "x{{name}}"}, {"c", "{{(max > state.y)}}"},
-	                          {"d", "{{drop}}"}});
+	CHECK(
+	    children[0] ==
+	    json{
+	        {"type", "label"}, {"a", "{{name}}"}, {"b", "x{{name}}"}, {"c", "{{(max > state.y)}}"}, {"d", "{{drop}}"}});
 	CHECK(children[1]["e"] == json::parse("[[3], [1, 2]]")); // a function a function of the language is given
 	CHECK(children[1]["f"] == 5);
 	CHECK(children[2]["text"] == "Fixed"); // a local of that name still wins
@@ -371,25 +438,28 @@ TEST_CASE("lisp views: truthy? is an expression's truth, and a function testing 
 	                      "t") == json::parse("[false, false, false, false, true, true]"));
 }
 
-TEST_CASE("lisp views: a string may span lines, as a docstring of several lines does; other control characters stay refused") {
-	const json tree = built("(defcommand c \"Line one.\n  Line two.\" :title \"T\" [] 1)\n(defscreen main (panel#root))");
+TEST_CASE("lisp views: a string may span lines, as a docstring of several lines does; other control characters stay "
+          "refused") {
+	const json tree =
+	    built("(defcommand c \"Line one.\n  Line two.\" :title \"T\" [] 1)\n(defscreen main (panel#root))");
 	CHECK(tree["actions"]["c"]["description"] == "Line one.\n  Line two.");
 	CHECK(lisp::buildText("{:a \"x\r\n\ty\"}", "t") == json{{"a", "x\r\n\ty"}});
 	CHECK(affresco::notation::read("{:a \"x\ny\"}", affresco::notation::Notation::Lisp) == json{{"a", "x\ny"}});
-	CHECK_THROWS(static_cast<void>(lisp::buildText("{:a \"x\\\ny\"}", "t"))); // a backslash before a line break is no escape
+	CHECK_THROWS(
+	    static_cast<void>(lisp::buildText("{:a \"x\\\ny\"}", "t"))); // a backslash before a line break is no escape
 	CHECK_THROWS(static_cast<void>(lisp::buildText("{:a \"x\x01y\"}", "t")));
 }
 
 TEST_CASE("lisp views: no definition takes a reserved host function's name, which every file's code means") {
 	const auto loads = [](const std::string& text) {
 		lisp::Interpreter interpreter;
-		interpreter.definePrimitive("now", {.capability = "read", .reserved = true,
-		                                    .call = [](lisp::Interpreter&, std::span<const lisp::Value>) {
-			                                    return lisp::Value::integer(1);
-		                                    }});
-		interpreter.definePrimitive("undo", {.capability = "history", .call = [](lisp::Interpreter&, std::span<const lisp::Value>) {
-			                                     return lisp::Value();
-		                                     }});
+		interpreter.definePrimitive(
+		    "now", {.capability = "read",
+			        .reserved = true,
+			        .call = [](lisp::Interpreter&, std::span<const lisp::Value>) { return lisp::Value::integer(1); }});
+		interpreter.definePrimitive(
+		    "undo", {.capability = "history",
+			         .call = [](lisp::Interpreter&, std::span<const lisp::Value>) { return lisp::Value(); }});
 		lisp::Program program;
 		program.addFile(text, "app.lisp");
 		try {

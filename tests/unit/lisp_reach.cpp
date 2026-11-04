@@ -109,6 +109,29 @@ TEST_CASE("lisp reach attack: a target built at run time, passed in, or taken as
 	}
 }
 
+TEST_CASE("lisp reach attack: a function holding a control step can't be altered, its arguments included") {
+	// As a JSON action holding a control step: a revision may not point the step elsewhere, nor change what a
+	// function that runs one gives it
+	App app(program(R"lisp(
+(defn reaches "Calls the native with what it is given." [what] (call what))
+(defn persons-caller "The person's: gives reaches its argument." [] (reaches "hit"))
+)lisp"),
+	        true);
+	for(const auto& [name, text] : std::vector<std::pair<std::string, std::string>>{
+	        {"persons", R"((defn persons "The persons own: reaches outside." [] (call "other")))"},
+	        {"persons", R"((defn persons "Reworded." [] (call "hit")))"},
+	        {"persons-caller",
+			 R"((defn persons-caller "The person's: gives reaches its argument." [] (reaches "other")))"}}) {
+		CAPTURE(text);
+		const auto result = agentSets(app, name, text);
+		CHECK(result.status == RevisionStatus::Rejected);
+		CHECK(result.error.contains("permission denied"));
+	}
+	// A function that reaches none stays the agent's to change
+	CHECK(agentSets(app, "quiet", R"((defn quiet "Only sets." [] (set "state.n" 3)))").status ==
+	      RevisionStatus::Applied);
+}
+
 TEST_CASE("lisp reach attack: a target redefined by a later revision takes what reaches it with it") {
 	App app(program(R"lisp(
 (defn target "Only sets, for now." [] (set "state.n" 3))

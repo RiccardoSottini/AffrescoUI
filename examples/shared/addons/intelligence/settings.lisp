@@ -151,90 +151,131 @@
      :color transparent
      :scroll vertical
      :dir auto
-     :onShow [{:run intelligence.load}]
+     :onShow intelligence-load
      :let {:iData ~state.intelligence.data
            :iProvider ~(or-else (find (fn [it] (= it.id state.intelligence.selected))
                                       state.intelligence.data.providers)
                                 state.intelligence.data.providers.0)}
      ~(intelligence-column)))
 
-(defpart settings "The settings' state, and the actions that load, choose, check and keep a provider."
-  :actions {:intelligence.load [{:note "The first provider until the host says which is in use; without the natives (the rendering check) the call fails and the stand-in data stays. The host's list may leave out the stand-in's first provider: then its own first is chosen, as the form shows it"}
-                                {:if ~(= state.intelligence.selected "")
-                                 :then [{:run intelligence.choose
-                                         :with {:id ~state.intelligence.data.providers.0.id}}]}
-                                {:call intelligence.providers
-                                 :into state.intelligence.data
-                                 :onError []
-                                 :then [{:set state.intelligence.native :to true}
-                                        {:if ~(not state.intelligence.loaded)
-                                         :then [{:set state.intelligence.loaded :to true}
-                                                {:run intelligence.choose
-                                                 :with {:id ~(cond (not= state.intelligence.data.current.provider "") state.intelligence.data.current.provider
-                                                                   (some (fn [it]
-                                                                           (= it.id state.intelligence.selected))
-                                                                         state.intelligence.data.providers) state.intelligence.selected
-                                                                   :else (or-else state.intelligence.data.providers.0.id
-                                                                                  ""))}}]}]}]
-            :intelligence.pick [{:run intelligence.choose :with {:id ~id}} {:run intelligence.resetKey}]
-            :intelligence.choose [{:set state.intelligence.selected :to ~id}
-                                  {:set state.intelligence.baseUrl
-                                   :to ~(or-else (:baseUrl (find (fn [it] (= it.id id))
-                                                                 state.intelligence.data.providers))
-                                                 "")}
-                                  {:set state.intelligence.model
-                                   :to ~(or-else (:model (find (fn [it] (= it.id id))
-                                                               state.intelligence.data.providers))
-                                                 "")}
-                                  {:set state.intelligence.query :to ""}
-                                  {:set state.intelligence.models :to []}
-                                  {:set state.intelligence.test :to nil}
-                                  {:set state.intelligence.error :to ""}
-                                  {:set state.intelligence.notice :to ""}
-                                  {:run intelligence.refresh}]
-            :intelligence.refresh [{:if ~(not state.intelligence.native) :then [{:stop true}]}
-                                   {:call intelligence.models
-                                    :with {:provider ~state.intelligence.selected}
-                                    :into state.intelligence.models
-                                    :loading state.intelligence.loadingModels
-                                    :timeout 20000
-                                    :onError [{:set state.intelligence.models :to []}]}]
-            :intelligence.pickModel [{:set state.intelligence.model :to ~id} {:set state.intelligence.query :to ""}]
-            :intelligence.apply [{:set state.intelligence.error :to ""}
-                                 {:set state.intelligence.test :to nil}
-                                 {:if ~(not state.intelligence.native)
-                                  :then [{:set state.intelligence.error :to ~(t "intelligence.launcherOnly")}
-                                         {:stop true}]}
-                                 {:call intelligence.save
-                                  :into state.intelligence.data
-                                  :with {:provider ~state.intelligence.selected
-                                         :model ~state.intelligence.model
-                                         :baseUrl ~state.intelligence.baseUrl}
-                                  :then [{:set state.intelligence.notice :to ~(t "intelligence.saved")}
-                                         {:run intelligence.resetKey}
-                                         {:run intelligence.refresh}]
-                                  :onError [{:set state.intelligence.error :to ~error}]}]
-            :intelligence.check [{:set state.intelligence.error :to ""}
-                                 {:call intelligence.test
-                                  :into state.intelligence.test
-                                  :loading state.intelligence.testing
-                                  :timeout 100000
-                                  :onError [{:set state.intelligence.test
-                                             :to ~{:ok false
-                                                   :message (if state.intelligence.native
-                                                                error
-                                                                (t "intelligence.launcherOnly"))}}]}]
-            :intelligence.removeKey [{:call intelligence.forget
-                                      :with {:provider ~state.intelligence.selected}
-                                      :into state.intelligence.data
-                                      :onError [{:set state.intelligence.error :to ~error}]}
-                                     {:run intelligence.resetKey}]
-            :intelligence.getKey [{:call intelligence.openKeyHelp
-                                   :with {:provider ~state.intelligence.selected}
-                                   :onError []}]
-            :intelligence.resetKey [{:note "The key field isn't bound to the state: building it again empties it"}
-                                    {:set state.intelligence.keyShown :to false}
-                                    {:after 0 :do [{:set state.intelligence.keyShown :to true}]}]})
+;;; What it does: each a function, run by its action's name where a button or an app names one
+
+(defn intelligence-provider-of "The provider of that id, of the host's list." [id]
+  (find (fn [provider] (= (:id provider) id)) state.intelligence.data.providers))
+
+(defn intelligence-refresh "Asks the host for the chosen provider's models (only the host has them)." []
+  (when state.intelligence.native
+    (call "intelligence.models"
+          :with {:provider state.intelligence.selected}
+          :into "state.intelligence.models"
+          :loading "state.intelligence.loadingModels"
+          :timeout 20000
+          :onError intelligence-no-models)))
+
+(defn intelligence-no-models "No models to choose from." [] (set "state.intelligence.models" []))
+
+(defn intelligence-choose "Shows a provider's form: its address and model, its models asked for." [id]
+  (set "state.intelligence.selected" id)
+  (set "state.intelligence.baseUrl" (or (:baseUrl (intelligence-provider-of id)) ""))
+  (set "state.intelligence.model" (or (:model (intelligence-provider-of id)) ""))
+  (set "state.intelligence.query" "")
+  (set "state.intelligence.models" [])
+  (set "state.intelligence.test" nil)
+  (set "state.intelligence.error" "")
+  (set "state.intelligence.notice" "")
+  (intelligence-refresh))
+
+(defn intelligence-key-shown "The key field again, empty." [] (set "state.intelligence.keyShown" true))
+
+(defn intelligence-reset-key "Empties the key field: it isn't bound to the state, so building it again empties it." []
+  (set "state.intelligence.keyShown" false)
+  (after 0 intelligence-key-shown))
+
+(defn intelligence-loaded
+  "The host's providers came: the one in use is chosen the first time, or else the one chosen, or else the first."
+  []
+  (set "state.intelligence.native" true)
+  (when (not state.intelligence.loaded)
+    (set "state.intelligence.loaded" true)
+    (intelligence-choose
+     (cond (not= state.intelligence.data.current.provider "") state.intelligence.data.current.provider
+           (some? (intelligence-provider-of state.intelligence.selected)) state.intelligence.selected
+           :else (or (:id (first state.intelligence.data.providers)) "")))))
+
+(defn intelligence-ignored "Nothing: without the host's natives (the rendering check), the stand-in data stays." [])
+
+(defn intelligence-load
+  "The first provider until the host says which is in use; then the host's list, which may leave out the stand-in's
+first provider: then its own first is chosen, as the form shows it."
+  []
+  (when (= state.intelligence.selected "")
+    (intelligence-choose (:id (first state.intelligence.data.providers))))
+  (call "intelligence.providers"
+        :into "state.intelligence.data"
+        :then intelligence-loaded
+        :onError intelligence-ignored))
+
+(defn intelligence-pick "Chooses a provider, its key field emptied." [id]
+  (intelligence-choose id)
+  (intelligence-reset-key))
+
+(defn intelligence-pick-model "Chooses a model." [id]
+  (set "state.intelligence.model" id)
+  (set "state.intelligence.query" ""))
+
+(defn intelligence-failed "Says what the host said went wrong." [error] (set "state.intelligence.error" error))
+
+(defn intelligence-saved "Says the provider is kept, and asks for its models again." []
+  (set "state.intelligence.notice" (t "intelligence.saved"))
+  (intelligence-reset-key)
+  (intelligence-refresh))
+
+(defn intelligence-apply "Keeps the provider, its model and its address, as every app's assistant uses them." []
+  (set "state.intelligence.error" "")
+  (set "state.intelligence.test" nil)
+  (if (not state.intelligence.native)
+    (set "state.intelligence.error" (t "intelligence.launcherOnly"))
+    (call "intelligence.save"
+          :into "state.intelligence.data"
+          :with {:provider state.intelligence.selected
+                 :model state.intelligence.model
+                 :baseUrl state.intelligence.baseUrl}
+          :then intelligence-saved
+          :onError intelligence-failed)))
+
+(defn intelligence-not-checked "The check couldn't run: why, or that only the Launcher can check." [error]
+  (set "state.intelligence.test"
+       {:ok false :message (if state.intelligence.native error (t "intelligence.launcherOnly"))}))
+
+(defn intelligence-check "Asks the provider something small, to see that it answers." []
+  (set "state.intelligence.error" "")
+  (call "intelligence.test"
+        :into "state.intelligence.test"
+        :loading "state.intelligence.testing"
+        :timeout 100000
+        :onError intelligence-not-checked))
+
+(defn intelligence-remove-key "Forgets the provider's key, in the system's keychain." []
+  (call "intelligence.forget"
+        :with {:provider state.intelligence.selected}
+        :into "state.intelligence.data"
+        :onError intelligence-failed)
+  (intelligence-reset-key))
+
+(defn intelligence-get-key "Opens the provider's page for a key, or how to install it." []
+  (call "intelligence.openKeyHelp" :with {:provider state.intelligence.selected} :onError intelligence-ignored))
+
+(defpart settings "The settings' actions, each a function, by the names buttons and apps run."
+  :actions {:intelligence.load [{:lisp intelligence-load}]
+            :intelligence.pick [{:lisp intelligence-pick}]
+            :intelligence.choose [{:lisp intelligence-choose}]
+            :intelligence.refresh [{:lisp intelligence-refresh}]
+            :intelligence.pickModel [{:lisp intelligence-pick-model}]
+            :intelligence.apply [{:lisp intelligence-apply}]
+            :intelligence.check [{:lisp intelligence-check}]
+            :intelligence.removeKey [{:lisp intelligence-remove-key}]
+            :intelligence.getKey [{:lisp intelligence-get-key}]
+            :intelligence.resetKey [{:lisp intelligence-reset-key}]})
 
 ;;; Views
 
@@ -257,8 +298,8 @@
                            (and provider.needsKey (not provider.hasKey)) "needsKey"
                            provider.hasKey "keySaved"
                            :else "ready")}
-     :onClick [{:run intelligence.pick :with {:id ~provider.id}}]
-     :keys {:space [{:run intelligence.pick :with {:id ~provider.id}}]}
+     :onClick ~(handler intelligence-pick provider.id)
+     :keys {:space ~(handler intelligence-pick provider.id)}
      (label#label-intelligence-provider-p :anchors {:left 16 :top 9}
        :fitText true
        :textColor @intelligence.text
@@ -296,7 +337,7 @@
      :label ~(t (if iProvider.needsKey "intelligence.key" "intelligence.keyOptional"))
      :maxLength 4096
      :onChange [{:call intelligence.stageKey :with {:provider ~iProvider.id :key ~event.value} :onError []}]
-     :onSubmit [{:run intelligence.apply}]))
+     :onSubmit intelligence-apply))
 
 (defview intelligence-model-search "The field that searches the provider's models." []
   `(textarea#intelligenceModelSearch :height 32
@@ -329,8 +370,8 @@
      :focusable true
      :cursor hand
      :label ~model.name
-     :onClick [{:run intelligence.pickModel :with {:id ~model.id}}]
-     :keys {:space [{:run intelligence.pickModel :with {:id ~model.id}}]}
+     :onClick ~(handler intelligence-pick-model model.id)
+     :keys {:space ~(handler intelligence-pick-model model.id)}
      (label#label-model-name :anchors {:left 8 :top 7} :fitText true :textColor @intelligence.text :text ~model.name)
      (label#label-model-id :when ~(or (not= model.name model.id) (= model.id iProvider.defaultModel))
        :anchors {:right 8 :top 7}
@@ -355,7 +396,7 @@
      :focusable true
      :cursor hand
      :label ~(t "intelligence.useModel" {:model (trim state.intelligence.query)})
-     :onClick [{:run intelligence.pickModel :with {:id ~(trim state.intelligence.query)}}]
+     :onClick ~(handler intelligence-pick-model (trim state.intelligence.query))
      (label#label-t-intelligence-use :anchors {:left 8 :top 7}
        :fitText true
        :textColor @intelligence.accent

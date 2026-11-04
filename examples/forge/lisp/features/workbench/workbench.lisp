@@ -128,8 +128,6 @@
 (defpart outline-follows "The outline follows the caret, once it rests."
   :watch {:state.caret outlineFollowsCaret})
 
-(defkey "mod+alt+b" toggleSecondarySidebar)
-
 ;;; Breadcrumbs, the minimap and the diff's layout
 
 (defcomputed symbolTrail
@@ -138,6 +136,17 @@
                       (concat (slice (concat acc [nil nil nil nil nil nil nil nil]) 0 (min it.depth 7)) [it]))
                     []
                     (filter (fn [it] (<= it.line state.caret.line)) state.outline))))
+
+(defcustom editor.minimap.enabled false
+  "Show a narrow overview of the file at the editor's right edge; press or drag it to scroll."
+  :description ~(t "settings.editor.minimap.enabled.about")
+  :type boolean
+  :title ~(t "settings.editor.minimap.enabled"))
+
+(defcommand toggleMinimap "Toggle Minimap"
+  :title ~(t "command.toggleMinimap")
+  :description ~(t "command.toggleMinimap") :category ~(t "category.view") :icon "map" []
+  (set "settings.editor.minimap.enabled" (not settings.editor.minimap.enabled)))
 
 (defcustom breadcrumbs.enabled true
   "Show the file's folders and the symbol at the caret above the editor."
@@ -164,17 +173,6 @@
     (explorerList path))
   (set "state.sideView" "explorer")
   (set "state.layout.sidebar" true))
-
-(defcustom editor.minimap.enabled false
-  "Show a narrow overview of the file at the editor's right edge; press or drag it to scroll."
-  :description ~(t "settings.editor.minimap.enabled.about")
-  :type boolean
-  :title ~(t "settings.editor.minimap.enabled"))
-
-(defcommand toggleMinimap "Toggle Minimap"
-  :title ~(t "command.toggleMinimap")
-  :description ~(t "command.toggleMinimap") :category ~(t "category.view") :icon "map" []
-  (set "settings.editor.minimap.enabled" (not settings.editor.minimap.enabled)))
 
 (defcustom diffEditor.renderSideBySide true
   "Compare a changed file side by side; off, inline (the deleted lines above the inserted ones)."
@@ -207,8 +205,6 @@
   :title ~(t "command.clearRecent") :description ~(t "command.clearRecent") :category ~(t "category.file") :icon "trash"
   :enablement ~(> (count (or-else state.quickPick.recent [])) 0) []
   (set "state.quickPick.recent" []))
-
-(defkey "ctrl+r" openRecent)
 
 ;;; Editor groups and tabs
 
@@ -297,20 +293,6 @@
   (doseq [tab (filter (fn [it] (and (not= it.id (activeTabId)) (not it.sticky))) (activeTabs))]
     (closeTab state.activeGroup tab.id)))
 
-(defkey "mod+ctrl+right" moveEditorToNextGroup)
-
-(defkey "mod+ctrl+left" moveEditorToPreviousGroup)
-
-(defkey "mod+1" focusFirstGroup)
-
-(defkey "mod+2" focusSecondGroup)
-
-(defkey "mod+k shift+enter" pinEditor)
-
-(defkey "mod+k mod+shift+enter" unpinEditor)
-
-(defkey "mod+k u" closeOtherEditors)
-
 ;;; settings.json and keybindings.json
 
 (defstate settingsJson "")
@@ -339,3 +321,15 @@
   :title ~(t "command.openKeybindingsJson") :category ~(t "category.preferences") :icon "braces"
   :description ~(t "command.openKeybindingsJson.about") []
   (openPage "forge:keybindings.json" "keybindings.json" "keybindingsJson"))
+
+;;; Keys, in the order the keyboard shortcuts page lists them
+
+(defkey "mod+alt+b" toggleSecondarySidebar)
+(defkey "mod+ctrl+right" moveEditorToNextGroup)
+(defkey "mod+ctrl+left" moveEditorToPreviousGroup)
+(defkey "ctrl+r" openRecent)
+(defkey "mod+1" focusFirstGroup)
+(defkey "mod+2" focusSecondGroup)
+(defkey "mod+k shift+enter" pinEditor)
+(defkey "mod+k mod+shift+enter" unpinEditor)
+(defkey "mod+k u" closeOtherEditors)

@@ -243,6 +243,16 @@ class Checker:
         self.expect(built["root"]["children"] == [{"type": "label", "id": "a"}] and built["keys"] == {"mod+k": "nothing"},
                     f"run: a program's tree: {built}")
         self.expect(json.loads(self.run("run", "--print", program)) == built, "run --print: a program's tree")
+        # An app written as a program opens as the app: its entry, its manifest or its folder, the same document
+        app = json.loads(self.run("run", "--print", KANBAN))
+        self.expect(app["window"]["title"].startswith("Flow") and "program" in app, "run --print: an app's document")
+        for given in (os.path.join(KANBAN, "app.lisp"), os.path.join(KANBAN, "index.screen.lisp")):
+            self.expect(json.loads(self.run("run", "--print", given)) == app, f"run --print: {given} as its app")
+        # lisp-binding writes an item's member as the keyword that looks it up, and a constant key as it is
+        written = self.run("lisp-binding", "{{sort(state.xs, it.d, 'desc')}}", "{{map(state.xs, it.name)}}",
+                           "{{sort(state.xs, 'd')}}").splitlines()
+        self.expect(written == ["~(sort-by :d > state.xs)", "~(map :name state.xs)", '~(sort-by (fn [it] "d") state.xs)'],
+                    f"lisp-binding: {written}")
         template = write("template.lisp", '(label :text ~(str "a" 1))\n')
         self.expect(json.loads(self.run("run", "--print", template)) == {"type": "label", "text": "a1"},
                     "run --print: a template's tree")
@@ -341,7 +351,7 @@ class Checker:
         self.run("strings", "extract", path, "--write")
         with open(os.path.join(folder, "locales", "en.json"), encoding="utf-8") as file:
             messages = json.load(file)["strings"]["en"]
-        self.expect(messages == {"action.go.title": "Don''t '{'go'}'", "hello.text": "Hello", "hello.hover.text": "Hi",
+        self.expect(messages == {"action.go.title": "Don't '{'go'}'", "hello.text": "Hello", "hello.hover.text": "Hi",
                                  "use.words": "Note"}, f"strings extract: wrote {messages}")
         with open(path, encoding="utf-8") as file:
             written = file.read()

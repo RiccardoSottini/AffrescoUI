@@ -398,9 +398,20 @@ Value Machine::componentData(Definition& definition, const Value& form) {
 		bindings.push_back(name);
 		bindings.push_back(listOf(*this, "quote", {name}, form.place()));
 	}
-	std::vector<Value> body = {heap.string(definition.doc), listOf(*this, "quote", {params}, form.place())};
+	// :runsActions, the parameter whose items' `run` it runs (or true), before the body
+	Value runsActions;
+	std::size_t first = at + 1;
+	while(first + 1 < form.count() && form.at(first).kind() == Kind::Keyword) {
+		if(form.at(first).text() != "runsActions")
+			failDefinition(form, definition.name, "defcomponent's only option is :runsActions");
+		runsActions = form.at(first + 1);
+		first += 2;
+	}
+	if(first >= form.count()) failDefinition(form, definition.name, "defcomponent needs a body that gives its node");
+	std::vector<Value> body = {heap.string(definition.doc), listOf(*this, "quote", {params}, form.place()),
+	                           listOf(*this, "quote", {runsActions}, form.place())};
 	std::vector<Value> forms;
-	for(std::size_t item = at + 1; item < form.count(); ++item) forms.push_back(form.at(item));
+	for(std::size_t item = first; item < form.count(); ++item) forms.push_back(form.at(item));
 	body.push_back(listOf(*this, "do", std::move(forms), form.place()));
 	const Value made = listOf(*this, "%component", std::move(body), form.place());
 	return listOf(*this, "let", {heap.sequence(Kind::Vector, std::move(bindings), form.place()), made}, form.place());

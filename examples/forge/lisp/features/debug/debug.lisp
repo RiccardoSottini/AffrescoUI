@@ -176,8 +176,6 @@
 (defn debugApplyLaunchFile "Plays a launch.json given in the event, as the scenarios do." [event]
   (debugReadLaunchFile event))
 
-(defkey "mod+shift+d" showDebug)
-
 ;;; A session
 
 (defcommand debugContinueOrStart "Start Debugging or Continue"
@@ -289,8 +287,6 @@
       (do (debugPrint message "error") (notify "error" message))
       (debugPrint (t "debug.ended") "console"))
     (when state.debug.restartAfter (set "state.debug.restartAfter" false) (debugStart))))
-
-(defkey "f5" debugContinueOrStart)
 
 ;;; Requests and their answers
 
@@ -494,18 +490,6 @@
       (debugPrint "Restarting" "console")
       (debugRequest "restart" "" {} "" {:arguments computed.debugConfiguration.arguments}))
     (do (set "state.debug.restartAfter" true) (debugStop))))
-
-(defkey "shift+f5" debugStop)
-
-(defkey "mod+shift+f5" debugRestart)
-
-(defkey "f6" debugPause)
-
-(defkey "f10" debugStepOver)
-
-(defkey "f11" debugStepInto)
-
-(defkey "shift+f11" debugStepOut)
 
 ;;; The call stack
 
@@ -1117,8 +1101,6 @@
               (:enabled (find (fn [it] (= it.filter filter)) state.debug.exceptionFilters))))
   (debugSendFilters))
 
-(defkey "f9" debugToggleBreakpointAtCaret)
-
 ;;; Sources outside the folder
 
 (defn debugOpenOutside "Asks the adapter for the text of the frame outside the folder." []
@@ -1202,3 +1184,15 @@
 (defpart debug-events "What the adapters' requests run: each a function."
   :actions {"debugLldb:runInTerminal" ~(handler debugLldbRunInTerminal)
             "debugPython:runInTerminal" ~(handler debugPythonRunInTerminal)})
+
+;;; Keys, in the order the keyboard shortcuts page lists them
+
+(defkey "f5" debugContinueOrStart)
+(defkey "shift+f5" debugStop)
+(defkey "mod+shift+f5" debugRestart)
+(defkey "f6" debugPause)
+(defkey "f9" debugToggleBreakpointAtCaret)
+(defkey "f10" debugStepOver)
+(defkey "f11" debugStepInto)
+(defkey "shift+f11" debugStepOut)
+(defkey "mod+shift+d" showDebug)

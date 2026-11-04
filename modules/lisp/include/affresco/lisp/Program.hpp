@@ -119,8 +119,9 @@ struct UndefinedName {
 	std::string definition; ///< The definition it is in.
 };
 
-/// @brief A program: its entries, in the order given. Order doesn't matter to what it means: macros are expanded first,
-/// and the sections it builds are sorted by name, so moving a definition changes nothing.
+/// @brief A program: its entries, in the order given. What a definition means doesn't depend on where it is (macros are
+/// expanded first, and a definition may use one below it), but the members of a section it builds come in the order of
+/// their definitions, as a JSON file's come in the order written: changing a definition never moves another.
 class Program {
 public:
 	/// @brief Adds a file's entries (splitEntries()).
@@ -160,7 +161,9 @@ public:
 	/// @brief Builds the tree, in a fresh interpreter with no way out but the pure primitives (definePure()): the same
 	/// source always gives the same tree. Every `def` and `defcustom` is worked out here, used or not. `format` and
 	/// `version` come first, then `defscreen main`'s properties and `root`, then `screens`, `actions`, `keys` and
-	/// `settings`, each sorted by name. Records what extensions() and undefinedNames() say.
+	/// `settings`, then the others, each section's members in the order of their definitions (a `defdefaults` member
+	/// where its definition is, its value replaced there by a definition that gives it). Records what extensions() and
+	/// undefinedNames() say.
 	/// @param limits The limits.
 	/// @return The tree.
 	/// @throws LispError If building fails or a limit runs out, naming the place.

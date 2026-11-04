@@ -2272,7 +2272,7 @@ builds
 | `(defkey "chord" "doc"? what)` | `keys.chord` |
 | `(defcustom name value "doc"? :key value ...)` | `settings.name`, and the global `name` |
 | `(defview name "doc"? [params] body...)` | Nothing callable later: a function the build calls, whose templates hold bindings ("Views", below) |
-| `(defcomponent name "doc"? {:param default ...} body...)` | `components.name`: `note` from the docstring, `params`, and the node its body gives, each parameter a name of the running app |
+| `(defcomponent name "doc"? {:param default ...} :runsActions items? body...)` | `components.name`: `note` from the docstring, `params`, `runsActions` (a parameter's name, or `true`: "Components"), and the node its body gives, each parameter a name of the running app |
 | `(defstate name value "doc"? :type schema)` | `state.name`, and `stateTypes.name` with `:type`; as Emacs's `defvar`, a value the document gives the key (a revision on `/state/name`) wins |
 | `(defcomputed name "doc"? form)` | `computed.name`: the form as a binding, as `~form` is |
 | `(defstyle name "doc"? node)`, `(defmenu name "doc"? items)` | `styles.name`, `menus.name`: templates |
@@ -2283,8 +2283,10 @@ builds
 | `(def name "doc"? value)`, `(defn ...)`, `(defmacro ...)` | Nothing: what the others use |
 | `(defhook name "doc"?)`, `(add-hook hook "doc"? f)`, `(remove-hook hook "doc"? f)`, `(advice target "doc"? :before/:after/:around f)` | Nothing it builds: they run in the app ("Hooks and advice", below) |
 
-- **A program** is a file with several top-level forms, or one that is a definition. Each form is a definition with a name, the
-  order doesn't matter, a name twice is an error naming both places, and the sections are sorted by name.
+- **A program** is a file with several top-level forms, or one that is a definition. Each form is a definition with a name, a name
+  twice is an error naming both places, and a definition may use one below it. A section's members come in the order of their
+  definitions, as a JSON file's in the order written (overlays are drawn in that order, the `keybindings` variable lists the
+  screen's keys so, and a command shows its first key): files in the order an app's includes merge, then each file's.
 - **A data file is a template**, read as if backquoted, and builds to exactly the tree the notation gives, whether an app loads it
   or `affrescoui run` does. Words stay data, and
   `~` drops into code: `(label :text ~(str "a" 1))`. A word the language runs isn't a node type here: `(not x)` gives
@@ -2343,7 +2345,7 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
   too, unless a local or a definition has that name; called, `(preview ...)`, it is the step. The expressions' functions that the
   language doesn't have under another name are there: `(t "key" {:n 1})`, `(today)`, `(trim s)`, `(daysBetween a b)`,
   `(indexOf list x)`. **They are reserved:** no definition of a program takes one's name (`(defn now ...)` is refused), since
-  every file's code means the expression's function by it, a shared add-on's too; a command may share a step's name (`undo`).
+  every file's code means the expression's function by it, a shared add-on's too. **A step's name isn't reserved:** a definition of that name (`(defn saveFile ...)`, `(defcommand undo ...)`) is what the program's code calls by it, in every file, the step hidden from that code, as a JSON action named like a step is what a `run` of it runs. Name a function after the step only when it replaces it (Quaderno's and Forge's `saveFile` saves their editor's buffer); a function that uses the step needs another name.
 - **Truth.** In a function only `nil` and `false` are false, as in Lisp: `""`, `0` and `[]` are true, where an expression, and so a
   binding, counts them false. A handler that was a step map tested `state.query` with an expression's truth; as a function,
   `(if state.query ...)` is true for `""`. Say which you mean: `(truthy? x)` is an expression's truth (and is one in a binding),
@@ -2380,7 +2382,10 @@ every handler has, so one rule set governs both. Its checks are SECURITY.md's, "
   `a ?? b`, `(nil? x)` is `x == null`, `cond` and `when` are `?:`, and `filter`, `remove`, `map`, `map-indexed`, `find`, `some`,
   `every?`, `sort-by` and `reduce` given `(fn [x] body)` are the expressions' own, the item `it`, the index `index` and the value so
   far `acc` (only `map-indexed` gives the index in a function too: `affrescoui lisp-binding` refuses the others reading it), `(truthy? x)`
-  is `!(!(x))`: `(filter (fn [card] (not= card.id state.sel)) state.cards)` is `filter(state.cards, it.id != state.sel)`. An
+  is `!(!(x))`: `(filter (fn [card] (not= card.id state.sel)) state.cards)` is `filter(state.cards, it.id != state.sel)`. A
+  keyword given to them is the function that looks it up, as in Clojure: `(sort-by :due > state.cards)` is
+  `sort(state.cards, it.due, 'desc')`, and `affrescoui lisp-binding` writes an item's member so. (`sort(list, 'due')` sorts by
+  the text `'due'`, the same for every item, so not at all: the binding for a member is `it.due`.) An
   expression's own function given a function names its parameters as the expression does: `(sum state.items (fn [it] it.price))`. A
   binding has no `let`: define a function. **A value read for the screen only reads:** any step it reaches is refused, whoever wrote it. A template inside a
   function (`` `(a ~x) ``) gives values, whenever it runs.
@@ -2421,7 +2426,9 @@ builds `{"id": "layout-board", "icon": "kanban", "selected": "{{(state.view == '
   a symbol is a binding that reads that name (`~card.title` is `{{card.title}}`); one that uses a local holding a value is worked
   out at the build. So a view takes either: `(card-view card i)` in a repeat, or `(card-view {:title "Draft"} 0)`. A quoted
   symbol is a name of the running app too: `(context-menu "cardMenu" "state.cardMenu" 'menus.card)` gives `{{menus.card}}`.
-- **A call of a view** in a template is always worked out at the build, never a binding. **A macro's call** is expanded first,
+- **A call of a view** in a template is always worked out at the build, never a binding. An argument it is given that needs the
+  running app is given as a name of it, as a repeat's item is: `~(caption (t "title"))` gives the view `caption` the name
+  `(t('title'))`, so its `:text ~text` is `"{{(t('title'))}}"`, and its `~(str text "!")` `"{{(t('title'))}}!"`. **A macro's call** is expanded first,
   once, and what it writes is then a binding or a value as any form: a macro shares a binding's form between views and keeps it an
   expression (Flow's `cards-in-order`), where a function would be `lisp('name', ...)`. A macro that writes a template's binding
   writes `~~form`: `` `(defcommand ~name "" :title ~~(list 't key) [] ...) `` gives the command `:title ~(t "...")`, as

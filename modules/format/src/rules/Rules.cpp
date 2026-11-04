@@ -277,6 +277,11 @@ void Rules::judgeChange(const json& rawBefore, const json& rawAfter, bool scanCo
 		     "restore, revert, undo, patch, call, send, connect or respond steps, nor run an action that has them, "
 		     "a "
 		     "native action or a computed one");
+	if(scanControls)
+		if(const auto altered = alteredControlDefinition(before, after, granted))
+			fail("revision",
+			     "permission denied: revisions can't change \"" + *altered +
+			         "\", a definition that runs a control step (accept, call, signIn...) or one that does");
 
 	checkServiceUses(before, after, services_);
 	checkModelChange(before, after, data_); // a migration where the records must change, and records that fit

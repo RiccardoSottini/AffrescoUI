@@ -1,8 +1,9 @@
 /// @file
-/// @brief The window that asks for an app's capabilities (examples/shared/host/permissions.screen.json): a shell or an
+/// @brief The window that asks for an app's capabilities (examples/shared/host/permissions.screen.json, or .lisp): a shell or an
 /// interpreter is named for what it gives (AppCapability::runsAnyCommand()), the app's reason is quoted as the app's,
 /// a card grows with its text, and a click anywhere on it flips its box once.
 
+#include "../../apps/host/HostScreens.hpp"
 #include "Headless.hpp"
 
 #include <affresco/affresco.hpp>
@@ -11,15 +12,13 @@
 #include <doctest/doctest.h>
 
 #include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <string>
 #include <vector>
 
 using affresco::json;
-using affresco::format::AppCapability;
 using affresco::detail::createHeadlessWindow;
 using affresco::detail::ManualClock;
+using affresco::format::AppCapability;
 
 namespace {
 
@@ -82,9 +81,9 @@ void clickMiddle(affresco::Window& window, const affresco::Panel& panel) {
 
 TEST_CASE("permissions: a shell or an interpreter runs any command, whatever its path, case, version or .exe") {
 	using Kind = AppCapability::Kind;
-	for(const char* name : {"shell", "sh", "bash", "zsh", "fish", "cmd", "CMD.EXE", "pwsh", "powershell.exe",
-	                        "python3", "python3.12", "/usr/bin/python3", "C:\\Python\\python.exe", "node", "ruby",
-	                        "perl", "osascript", "env"}) {
+	for(const char* name :
+	    {"shell", "sh", "bash", "zsh", "fish", "cmd", "CMD.EXE", "pwsh", "powershell.exe", "python3", "python3.12",
+	     "/usr/bin/python3", "C:\\Python\\python.exe", "node", "ruby", "perl", "osascript", "env"}) {
 		CAPTURE(name);
 		CHECK(capability(Kind::Program, name).runsAnyCommand());
 	}
@@ -96,69 +95,86 @@ TEST_CASE("permissions: a shell or an interpreter runs any command, whatever its
 }
 
 TEST_CASE("permissions: the window names a shell for what it gives, and quotes the app's reason as the app's") {
-	const std::filesystem::path file =
-	    std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "shared" / "host" / "permissions.screen.json";
-	ManualClock clock;
-	const auto window = createHeadlessWindow(640, 480, clock);
-	std::ifstream in(file, std::ios::binary);
-	const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-	affresco::Screen screen = affresco::Screen::fromString(text, file.parent_path());
-	screen.setLocale("en");
-	const json app = {{"name", "Notes"},
-	                  {"capabilities",
-	                   {{{"key", "program:sh"}, {"kind", "programAny"}, {"name", "sh"}, {"why", "Runs your build."},
-	                     {"allowed", false}},
-	                    {{"key", "program:git"}, {"kind", "program"}, {"name", "git"}, {"why", "Shows changes."},
-	                     {"allowed", false}}}}};
-	screen.onCall("permissions.app", [&](const std::string&) { return app.dump(); });
-	screen.build(*window);
-	window->render();
-	CHECK(showsLabel(window->root(), "Run any command as you, through sh"));
-	CHECK(showsLabel(window->root(), "Run the program git"));
-	CHECK(showsLabel(window->root(), "Notes says: “Runs your build.”"));
-	CHECK_FALSE(showsLabel(window->root(), "Runs your build."));
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		const std::filesystem::path file = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "shared" / "host" /
+		                                   ("permissions.screen." + notation);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(640, 480, clock);
+		affresco::Screen screen = host::readHostScreen(file);
+		screen.setLocale("en");
+		const json app = {{"name", "Notes"},
+		                  {"capabilities",
+		                   {{{"key", "program:sh"},
+		                     {"kind", "programAny"},
+		                     {"name", "sh"},
+		                     {"why", "Runs your build."},
+		                     {"allowed", false}},
+		                    {{"key", "program:git"},
+		                     {"kind", "program"},
+		                     {"name", "git"},
+		                     {"why", "Shows changes."},
+		                     {"allowed", false}}}}};
+		screen.onCall("permissions.app", [&](const std::string&) { return app.dump(); });
+		screen.build(*window);
+		window->render();
+		CHECK(showsLabel(window->root(), "Run any command as you, through sh"));
+		CHECK(showsLabel(window->root(), "Run the program git"));
+		CHECK(showsLabel(window->root(), "Notes says: “Runs your build.”"));
+		CHECK_FALSE(showsLabel(window->root(), "Runs your build."));
+	}
 }
 
 TEST_CASE("permissions: a card grows with its text, and a click on it or on its box flips the box once") {
-	const std::filesystem::path file =
-	    std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "shared" / "host" / "permissions.screen.json";
-	ManualClock clock;
-	const auto window = createHeadlessWindow(420, 320, clock);
-	std::ifstream in(file, std::ios::binary);
-	const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-	affresco::Screen screen = affresco::Screen::fromString(text, file.parent_path());
-	screen.setLocale("en");
-	const std::string why = "Answers your questions about your habits, with the assistant you set up in Settings.";
-	const json app = {{"name", "Streak"},
-	                  {"capabilities",
-	                   {{{"key", "assistant"}, {"kind", "assistant"}, {"name", ""}, {"why", why}, {"allowed", true}},
-	                    {{"key", "files"}, {"kind", "files"}, {"name", ""}, {"why", "Backs up."}, {"allowed", true}}}}};
-	screen.onCall("permissions.app", [&](const std::string&) { return app.dump(); });
-	screen.build(*window);
-	const auto settle = [&] {
-		for(int frame = 0; frame < 4; ++frame) {
-			clock.advance(250.0);
-			window->render();
-		}
-	};
-	settle();
+	for(const std::string notation : {"json", "lisp"}) { // the window in either notation
+		CAPTURE(notation);
+		const std::filesystem::path file = std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY) / "shared" / "host" /
+		                                   ("permissions.screen." + notation);
+		ManualClock clock;
+		const auto window = createHeadlessWindow(420, 320, clock);
+		affresco::Screen screen = host::readHostScreen(file);
+		screen.setLocale("en");
+		const std::string why = "Answers your questions about your habits, with the assistant you set up in Settings.";
+		const json app = {
+		    {"name", "Streak"},
+		    {"capabilities",
+			 {{{"key", "assistant"}, {"kind", "assistant"}, {"name", ""}, {"why", why}, {"allowed", true}},
+			  {{"key", "files"}, {"kind", "files"}, {"name", ""}, {"why", "Backs up."}, {"allowed", true}}}}};
+		screen.onCall("permissions.app", [&](const std::string&) { return app.dump(); });
+		screen.build(*window);
+		const auto settle = [&] {
+			for(int frame = 0; frame < 4; ++frame) {
+				clock.advance(250.0);
+				window->render();
+			}
+		};
+		settle();
 
-	affresco::Label* reason = labelWith(window->root(), "Streak says: “" + why + "”");
-	REQUIRE(reason != nullptr);
-	const affresco::Panel* card = reason->parent()->parent();
-	REQUIRE(card != nullptr);
-	CHECK(reason->bounds().bottom <= card->bounds().bottom);
+		affresco::Label* reason = labelWith(window->root(), "Streak says: “" + why + "”");
+		REQUIRE(reason != nullptr);
+		const affresco::Panel* card = reason->parent()->parent();
+		REQUIRE(card != nullptr);
+		CHECK(reason->bounds().bottom <= card->bounds().bottom);
 
-	std::vector<affresco::Toggle*> boxes;
-	collect(window->root(), boxes);
-	REQUIRE(boxes.size() == 2);
-	CHECK(boxes[0]->isChecked());
-	clickMiddle(*window, *reason);
-	settle();
-	CHECK_FALSE(boxes[0]->isChecked());
-	CHECK(screen.stateJson().find(R"("allowed":false)") != std::string::npos);
-	clickMiddle(*window, *boxes[0]);
-	settle();
-	CHECK(boxes[0]->isChecked());
-	CHECK(screen.stateJson().find(R"("allowed":false)") == std::string::npos);
+		std::vector<affresco::Toggle*> boxes;
+		collect(window->root(), boxes);
+		REQUIRE(boxes.size() == 2);
+		CHECK(boxes[0]->isChecked());
+		clickMiddle(*window, *reason);
+		settle();
+		CHECK_FALSE(boxes[0]->isChecked());
+		CHECK(screen.stateJson().find(R"("allowed":false)") != std::string::npos);
+		clickMiddle(*window, *boxes[0]);
+		settle();
+		CHECK(boxes[0]->isChecked());
+		CHECK(screen.stateJson().find(R"("allowed":false)") == std::string::npos);
+	}
+}
+
+TEST_CASE("permissions: the host asks in the notation the app was opened in") {
+	const std::filesystem::path folder = "host";
+	CHECK(host::hostScreenFile(folder, "permissions", "flow/lisp/index.screen.lisp") ==
+	      folder / "permissions.screen.lisp");
+	CHECK(host::hostScreenFile(folder, "changes", "flow/json/index.screen.json") == folder / "changes.screen.json");
+	CHECK(host::hostScreenFile(folder, "changes", "notes.screen.json") == folder / "changes.screen.json");
 }

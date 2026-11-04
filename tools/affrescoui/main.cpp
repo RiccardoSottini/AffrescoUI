@@ -24,8 +24,8 @@ std::span<const Command> commands() {
 	static constexpr std::array<Command, 17> list = {{
 	    {"run",
 		 "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
-		 "Show a screen and let peers change it, like affrescoui_launcher; a Lisp program, or --print, prints the tree "
-		 "it builds",
+		 "Show a screen or an app (its folder, its manifest or its entry) and let peers change it, like "
+		 "affrescoui_launcher; a Lisp program of its own, or --print, prints the tree it builds",
 		 runScreen},
 	    {"repl", "", "Read Lisp forms and print their values", lispRepl},
 	    {"lisp-binding", "<text>... | --prove <file or folder>... [--verbose] | --batch",

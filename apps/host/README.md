@@ -18,7 +18,8 @@ change, file by file, with preview, accept, reject and undo
 
 The app may use nothing its `app.json` declares (origins, folders, programs, sound, the assistant) until the person
 allows it. The host asks in a window of its own
-([`../../examples/shared/host`](../../examples/shared/host/permissions.screen.json)) the first time, for this app only,
+([`../../examples/shared/host`](../../examples/shared/host/permissions.screen.json), the `.screen.lisp` program for an app opened
+from its Lisp version: `HostScreens.hpp`) the first time, for this app only,
 and remembers the answer in `<data folder>/apps/<id>/grants.json`. `--grant KEY` (`network:https://api.example.com`,
 `folder:workspace:write`, `program:git`, `audio`, `assistant`) allows one for a single run; a screenshot asks nothing
 and allows only those.

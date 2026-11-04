@@ -93,7 +93,7 @@ member is addressed as `state.view`, `computed.card`, `styles.chip`, `components
 | `(defcustom name value "doc"? :key value ...)` | A global: the value | `settings.name`: `type`, `default`, the other keys, `description` |
 | `(defhook name "doc"?)` | A global: its own name, as text | Nothing: a hook point, for `run-hooks` and `describe-*` |
 | `(defview name "doc"? [params] body...)` | A function the build calls: its templates hold bindings (below), and a template's call of it is never a binding | nothing |
-| `(defcomponent name "doc"? {:param default ...} body...)` | Nothing callable | `components.name`: `note`, `params`, and the node the body gives, each parameter bound to its own name as a symbol |
+| `(defcomponent name "doc"? {:param default ...} :runsActions items? body...)` | Nothing callable | `components.name`: `note`, `params`, `runsActions` (a parameter's name, or `true`), and the node the body gives, each parameter bound to its own name as a symbol |
 | `(defstate name value "doc"? :type schema)` | Nothing callable | `state.name` (a template), `stateTypes.name`; a document's own value of the key wins, as with `defvar` |
 | `(defcomputed name "doc"? form)` | Nothing callable | `computed.name`: the form as a `~form` in a template, a binding when it needs the app |
 | `(defstyle name "doc"? value)`, `(defmenu ...)`, `(deftokens ...)` | Nothing callable | `styles.name`, `menus.name` (templates); `deftokens` its map's members, in `tokens` |
@@ -109,9 +109,13 @@ one data value, a **template**.
 - **Definitions, not statements.** Every top-level form is a definition with a stable address (`Entry::name`): its name, or
   `defkey ctrl+k` and `add-hook after-save f` for those with none. A top-level call of a macro counts, named by its second
   item, and may expand to a definition or a `do` of them. Two definitions of one name are an error naming both places.
-- **Order doesn't matter.** Macros are defined first, then the rest; a `def` is worked out when first read, then all that are left
-  (a build reads them all, so a value that can't be worked out refuses the build), wherever it is, so
-  a definition can use one below it; the sections built are sorted by name. Moving a definition changes nothing in the tree.
+- **Where a definition is doesn't change what it means.** Macros are defined first, then the rest; a `def` is worked out when first
+  read, then all that are left (a build reads them all, so a value that can't be worked out refuses the build), wherever it is, so
+  a definition can use one below it. **A section's members come in the order of their definitions**, files in the order the document
+  lists them (an app's includes, as a JSON file's merge), as a JSON file's members come in the order written: an overlay's place
+  among the overlays, the order of watches, the screen's keys as `keybindings` lists them. A `defdefaults` member takes its place where
+  its definition is, and a definition that gives it later replaces its value there, as a JSON include's member and the including
+  file's. Changing a definition never moves another; moving one moves its member, as moving a key in a JSON file does.
 - **The split keeps the text.** `splitEntries` gives each form's exact text, from the first character after the previous
   form's line, comments above it included, to the end of its own line; comments after the last form are the last entry's. So
   every word and comment of a file is in exactly one entry. Stage 2 versions these. `Program::addEntry` takes one back, and
@@ -140,13 +144,16 @@ one data value, a **template**.
   type and id (`%repeat`); `(handler f args...)` gives the step `{"lisp": "f", "with": [...]}`, an argument that reads the app its
   binding. A word that names a function (of the program, the language or a host), uncalled, is a name of the running app in a binding,
   unless a local has it, or a function of the language that takes functions is given it (`apply`, `map`, `filter`, `sort-by`...).
+  A view's call in a template gives the view an argument that needs the running app as a name of it, the symbol `(expression)`
+  (`%as-name`, refused but while building), so `~(caption (t "key"))` works out its binding in the view.
   `(str ...)` joined as a text writes what the build knows as text (`%text`; a text with a brace as a quoted literal), and keeps
   the spaces around a lone value as placeholders of their own (`keptSpaces`): `"  {{x}}"` would be x's value alone.
 - **Lowering.** A binding's form is written as the expression machine's text when it can be: the operators, `if`, `when`, `cond`,
   `not`, unary `-`, `or-else` (`??`), the language's functions the expressions have (`count` as `length`, `vals` as `values`, `join`
   with its arguments swapped, `get`, `get-in`, a keyword's call, `first`, `inc`, `nil?`, `str` as `+` or, whole, as the text
   `a{{x}}`), and the functions on each item given `(fn [x i] body)` (`filter`, `remove`, `map`, `map-indexed`, `find`, `some`,
-  `every?`, `sort-by` with `>` for descending, `reduce` with `[acc x]`), their parameters written `it`, `index` and `acc`; an inner
+  `every?`, `sort-by` with `>` for descending, `reduce` with `[acc x]`), their parameters written `it`, `index` and `acc`, or
+  given a keyword, which looks it up (`(sort-by :d xs)` is `sort(xs, it.d)`); an inner
   function's item hides an outer one's, an error if it is used. An expression's own function may take `(fn [it] ...)` too. A macro's
   call is expanded first, once a call (`Compiler::expanded`), for the liveness check, the binding and the code alike.
 - **What is noted.** `Program::truthTests()` lists where a function tests a path of the running app with the language's truth

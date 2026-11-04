@@ -60,13 +60,13 @@ std::string programOfMany() {
 
 } // namespace
 
-/// @brief "lisp/open-<app>" and "lisp/open-<app>-json": opening an example written as a program and as JSON, as a
+/// @brief "lisp/open-<app>" and "lisp/open-<app>-json": opening each example written as a program and as JSON, as a
 /// scenario does each time (read, built, judged, its program loaded, the screen built into a window): what an app
 /// written as a program costs beside its JSON version, once the process has opened it before.
 /// @param context The context.
 /// @param workloads Gets them.
 void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
-	for(const char* app : {"flow", "sinopia", "code-editor"})
+	for(const char* app : {"flow", "haven", "arcadia", "orrery", "forge", "sinopia", "code-editor", "launcher"})
 		for(const char* notation : {"lisp", "json"}) {
 			const std::filesystem::path folder = context.examples() / app / notation;
 			const auto window = std::make_shared<Window*>(nullptr);
@@ -74,8 +74,8 @@ void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
 			              .unit = "ms",
 			              .runs = 5};
 			open.prepare = [&context, folder, window] {
-				*window = &context.openWindow(json::parse(
-				    Screen::fromApp(folder, {}, Screen::History::InMemory).documentJson()));
+				*window = &context.openWindow(
+				    json::parse(Screen::fromApp(folder, {}, Screen::History::InMemory).documentJson()));
 			};
 			open.step = [folder, window] {
 				Screen screen = Screen::fromApp(folder, {}, Screen::History::InMemory);

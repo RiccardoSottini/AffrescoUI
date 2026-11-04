@@ -84,9 +84,9 @@ std::string joinedText(std::string text) {
 namespace {
 
 /// The language's functions that take a function: a word they are given that names one is that function.
-constexpr std::array<std::string_view, 14> functionTakers = {
-    "apply", "map", "map-indexed", "mapcat", "filter", "remove", "find", "some", "every?", "reduce", "sort-by",
-    "update", "update-in", "run-hooks"};
+constexpr std::array<std::string_view, 14> functionTakers = {"apply",   "map",    "map-indexed", "mapcat",   "filter",
+                                                             "remove",  "find",   "some",        "every?",   "reduce",
+                                                             "sort-by", "update", "update-in",   "run-hooks"};
 
 } // namespace
 
@@ -278,6 +278,11 @@ void Compiler::compileViewValue(const Value& written, int depth) {
 		return;
 	}
 	if(buildsAtOnce(form)) {
+		if(const std::string_view head = headWord(form); !isLocalWord(head) && !isSpecial(head))
+			if(const Global* view = machine_.findGlobal(head); view && view->view) {
+				compileViewCall(form, depth);
+				return;
+			}
 		compile(form, {});
 		return;
 	}
@@ -303,9 +308,50 @@ void Compiler::compileViewValue(const Value& written, int depth) {
 	patch(end);
 }
 
+void Compiler::compileViewCall(const Value& form, int depth) {
+	compile(form.at(0), {});
+	for(std::size_t at = 1; at < form.count(); ++at) {
+		const Value& argument = form.at(at);
+		// A function, named, is given as itself: a view may make a handler of it
+		const Definition* named = argument.kind() == Kind::Symbol ? machine_.definition(argument.text()) : nullptr;
+		const bool function =
+		    argument.kind() == Kind::Symbol && !isLocalWord(argument.text()) &&
+		    ((named && (named->kind == "defn" || named->kind == "defcommand" || named->kind == "defview")) ||
+			 namesFunction(machine_.findGlobal(argument.text())));
+		if(!function && isLive(argument, depth + 1)) compileLiveName(argument);
+		else compile(argument, {});
+	}
+	place_ = form.place();
+	emit(Op::Call, static_cast<std::uint32_t>(form.count() - 1));
+}
+
+void Compiler::compileLiveName(const Value& form) {
+	if(form.kind() == Kind::Symbol && !isLocalWord(form.text())) { // a path: the name itself, as 'state.x' gives
+		emitConstant(machine_.heap.symbol(form.text(), form.place()));
+		return;
+	}
+	emitConstant(machine_.global("%as-name").value);
+	std::vector<BindingPart> parts = {{"{{", {}, false, {}, {}}};
+	lowerForm(form, 0, parts);
+	parts.push_back({"}}", {}, false, {}, {}});
+	if(std::ranges::none_of(parts, &BindingPart::worked)) {
+		std::string text;
+		for(const BindingPart& part : parts) text += part.text;
+		emitConstant(machine_.heap.string(std::move(text)));
+	} else {
+		const bool live = std::exchange(liveBindings_, false);
+		emitParts(parts, false);
+		liveBindings_ = live;
+	}
+	place_ = form.place();
+	emit(Op::Call, 1);
+}
+
 void Compiler::addWorkedPart(const Value& form, int depth, std::vector<BindingPart>& parts) {
 	BindingPart part{"", form, true, {}, {}};
-	if(form.kind() != Kind::Symbol || form.text().contains('.')) localsIn(form, depth, part.locals);
+	// Already written for names of the running app: a form still worked out uses them where no binding can (inside a
+	// quote or a template of its own), so it has no text of its own to fall back on, and writing it again would loop
+	if((form.kind() != Kind::Symbol || form.text().contains('.')) && !symbolic_) localsIn(form, depth, part.locals);
 	if(!part.locals.empty()) { // its text, should one of them be a name of the running app
 		const bool symbolic = std::exchange(symbolic_, true);
 		lowerForm(form, depth, part.inner);

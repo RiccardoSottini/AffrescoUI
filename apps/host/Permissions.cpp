@@ -2,6 +2,7 @@
 /// @brief What the person lets an app use: the decisions kept per app, the window that asks, and the grants applied.
 
 #include "Permissions.hpp"
+#include "HostScreens.hpp"
 
 #include <affresco/format/Locale.hpp>
 #include <affresco/services/Grants.hpp>
@@ -103,10 +104,7 @@ void saveDecisions(const std::filesystem::path& file, const Decisions& decisions
 Decisions askPerson(const affresco::format::AppManifest& app, const std::vector<AppCapability>& asked,
                     const std::filesystem::path& prompt) {
 	affresco::Application application;
-	std::ifstream in(prompt, std::ios::binary);
-	const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-	if(!in) throw std::runtime_error("could not open the permissions' screen " + prompt.string());
-	affresco::Screen screen = affresco::Screen::fromString(text, prompt.parent_path());
+	affresco::Screen screen = readHostScreen(prompt);
 	screen.setLocale(affresco::format::systemLocale());
 	Decisions decided;
 	screen.onCall("permissions.app",
