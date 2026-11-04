@@ -26,7 +26,7 @@
          :anchors {:left 64 :top 0 :bottom 0}
          :fitText true
          :align {:horizontal start :vertical center}))
-     {:id sidebarRule :anchors {:left 0 :right 0 :top 56} :height 1 :color @divider}
+     (node#sidebarRule :anchors {:left 0 :right 0 :top 56} :height 1 :color @divider)
      (stack#nav :anchors {:left 8 :right 8 :top 64} :height 344 :gap 4 :role tablist :arrows vertical
        ~(repeat [p computed.navPages]
          `(node#navItem :use sideItem
@@ -34,7 +34,7 @@
             :role tab
             :onClick ~(handler goPage p.id))))
      ~(sidebar-foot)
-     {:id sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @divider}))
+     (node#sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @divider)))
 
 (defview fold-button "The button that folds the sidebar to its icons, or opens it." []
   `(label#menuButton :font iconsMedium
@@ -69,7 +69,7 @@
        :with {:icon bell :title ~(t "notify.title") :badge ~(count state.notifications)}
        :label ~(t "notify.count" {:n (count state.notifications)})
        :onClick toggleNotifications)
-     {:id footRule :anchors {:left -8 :right -8} :height 1 :color @divider}
+     (node#footRule :anchors {:left -8 :right -8} :height 1 :color @divider)
      ~(user-item)))
 
 (defview user-item "The person signed in: their initial and name; it opens their profile." []
@@ -147,7 +147,7 @@
 
 (defview status-bar "The status bar: the revision shown and who made it, and the window's size." []
   `(node#statusBar :dir auto :anchors {:left ~computed.sideWidth :right 0 :bottom 0} :height 32 :color @sidebar
-     {:id panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border}
+     (node#panel-status-bar :anchors {:left 0 :right 0 :top 0} :height 1 :color @border)
      (label#statusText :text ~(t "status.revision" {:number revision.number :author revision.author
                                                     :message revision.message})
        :font small

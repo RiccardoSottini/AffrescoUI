@@ -80,20 +80,19 @@
               (room-card r)))))))
 
 (defview add-room-button "The floating button that adds a room, not there yet." []
-  `{:id areasAdd
-    :style button
-    :icon plus
-    :text ~(t "areas.add")
-    :color @raised
-    :hover {:color @raised}
-    :textColor @muted
-    :anchors {:right 32 :bottom 32}
-    :width 180
-    :height 52
-    :radius 16
-    :shadow {:y 4 :blur 12 :color "#00000040"}
-    :role button
-    :label ~(t "areas.add")
-    :tooltip ~(t "areas.addSoon")
-    :cursor arrow
-    :disabled true})
+  `(node#areasAdd :style button
+     :icon plus
+     :text ~(t "areas.add")
+     :color @raised
+     :hover {:color @raised}
+     :textColor @muted
+     :anchors {:right 32 :bottom 32}
+     :width 180
+     :height 52
+     :radius 16
+     :shadow {:y 4 :blur 12 :color "#00000040"}
+     :role button
+     :label ~(t "areas.add")
+     :tooltip ~(t "areas.addSoon")
+     :cursor arrow
+     :disabled true))

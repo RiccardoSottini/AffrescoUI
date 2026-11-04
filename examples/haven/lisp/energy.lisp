@@ -68,12 +68,12 @@
      (row#energyTop :anchors {:left 24 :right 24 :top 72} :height ~(if computed.compact 236 300) :gap 16
        ~(usage-card)
        (node#flowCard :style card :anchors {:top 0 :bottom 0} :grow 2 :basis 0
-         {:id label-flow :style cardTitle :text ~(t "flow.title")}
+         (node#label-flow :style cardTitle :text ~(t "flow.title"))
          (row#flowCentre :anchors {:left 0 :right 0 :top 52 :bottom 8} :justify center :alignItems center
            ~(energy-flow))))
      (row#energyBottom :anchors {:left 24 :right 24 :top "#energyTop.bottom + 16" :bottom 16} :gap 16
        (node#sourcesCard :style card :anchors {:top 0 :bottom 0} :grow 1 :basis 0
-         {:id label-sources :style cardTitle :text ~(t "sources.title")}
+         (node#label-sources :style cardTitle :text ~(t "sources.title"))
          ~(sources-table))
        ~(balance-card)
        ~(week-card))))
@@ -127,15 +127,15 @@
 
 (defview usage-card "Today's use hour by hour: the grid's bars over the sun's, the peak hour, and the scale." []
   `(node#usageCard :style card :anchors {:top 0 :bottom 0} :grow 3 :basis 0
-     {:id label-usage :style cardTitle :text ~(t "usage.title")}
+     (node#label-usage :style cardTitle :text ~(t "usage.title"))
      (row#usageLegend :anchors {:right 24 :top 24} :width 220 :height 18 :gap 6 :justify end :alignItems center
-       {:id legendGridSwatch :width 10 :height 10 :radius 2 :color @grid}
-       {:id legendGrid :style caption :text ~(t "flow.grid")}
-       {:id legendGap :width 6 :height 1 :color transparent}
-       {:id legendSolarSwatch :width 10 :height 10 :radius 2 :color @solar}
-       {:id legendSolar :style caption :text ~(t "flow.solar")})
+       (node#legendGridSwatch :width 10 :height 10 :radius 2 :color @grid)
+       (node#legendGrid :style caption :text ~(t "flow.grid"))
+       (node#legendGap :width 6 :height 1 :color transparent)
+       (node#legendSolarSwatch :width 10 :height 10 :radius 2 :color @solar)
+       (node#legendSolar :style caption :text ~(t "flow.solar")))
      (row#usagePeak :anchors {:left 24 :top 52} :width 220 :height 18 :gap 6 :alignItems center
-       {:id label-peak-hour :style caption :text ~(t "stat.peak")}
+       (node#label-peak-hour :style caption :text ~(t "stat.peak"))
        (label#peakFigure :font small :textColor @text :fitText true :text ~(str (pad computed.peakHour 2) ":00")))
      ~(usage-scale)
      (node#usageAll :use barChart
@@ -160,7 +160,7 @@
      ~(repeat [v [1 2]]
        `(node#usageTick :anchors {:left 0 :right 0 :bottom 0} :height ~(str (* (/ v 2.6) 100) "%") :color transparent
           {:anchors {:left 40 :right 0 :top 0} :height 1 :color @divider}
-          {:id usageTickLabel :style caption :text ~(t "kwh" {:n v}) :anchors {:left 0 :top 2}}))
+          (node#usageTickLabel :style caption :text ~(t "kwh" {:n v}) :anchors {:left 0 :top 2})))
      {:anchors {:left 40 :right 0 :bottom 0} :height 1 :color @divider}))
 
 ;;; Where it went
@@ -239,13 +239,13 @@
          :align end))
      ~(repeat [s computed.sources]
        `(column#source :height 41 :alignItems stretch
-          {:id sourceLine :height 1 :color @divider}
+          (node#sourceLine :height 1 :color @divider)
           (row#sourceRow :height 40 :gap 8 :alignItems center
-            {:id sourceSwatch :width 12 :height 12 :radius 3 :color ~s.color}
+            (node#sourceSwatch :width 12 :height 12 :radius 3 :color ~s.color)
             (label#sourceName :textColor @text :text ~(t (str "sources." s.id)) :height 20 :grow 1 :align start)
             (label#sourceKwh :textColor @text :text ~s.kwh :width 72 :height 20 :align end)
             (label#sourceCost :textColor @text :text ~s.cost :width 60 :height 20 :align end))))
-     {:id sourcesLine :height 1 :color @divider}
+     (node#sourcesLine :height 1 :color @divider)
      (row#sourcesTotal :height 40 :gap 8 :alignItems center
        (label#label-total-cost :font heading :textColor @text :text ~(t "sources.total") :height 22 :grow 1
          :align start)
@@ -255,7 +255,7 @@
 
 (defview balance-card "How much of the home the sun ran, and today's use against the daily budget." []
   `(node#gaugesCard :style card :anchors {:top 0 :bottom 0} :grow 1 :basis 0
-     {:id label-balance :style cardTitle :text ~(t "gauge.title")}
+     (node#label-balance :style cardTitle :text ~(t "gauge.title"))
      (row#gauges :anchors {:left 8 :right 8 :top 64} :height 150 :justify space-evenly
        (node#selfUseGauge :use energyGauge
          :with {:share ~computed.selfUse :color @solar :caption ~(t "gauge.selfUse")}
@@ -270,14 +270,13 @@
        :height 18
        :align start)
      (row#budgetTrack :anchors {:left 24 :right 24 :bottom 76} :height 8 :radius 4 :color @raised
-       {:id budgetFill
-        :radius 4
-        :height 8
-        :basis 0
-        :grow ~(clamp (/ (number computed.today) settings.energy.dailyBudget) 0.001 1)
-        :color ~(if (> (number computed.today) settings.energy.dailyBudget) "@warm" "@accent")}
-       {:id budgetRest :basis 0 :grow ~(- 1.001 (clamp (/ (number computed.today) settings.energy.dailyBudget) 0 1))})
-     {:id budgetLine :anchors {:left 24 :right 24 :bottom 56} :height 1 :color @divider}
+       (node#budgetFill :radius 4
+         :height 8
+         :basis 0
+         :grow ~(clamp (/ (number computed.today) settings.energy.dailyBudget) 0.001 1)
+         :color ~(if (> (number computed.today) settings.energy.dailyBudget) "@warm" "@accent"))
+       (node#budgetRest :basis 0 :grow ~(- 1.001 (clamp (/ (number computed.today) settings.energy.dailyBudget) 0 1))))
+     (node#budgetLine :anchors {:left 24 :right 24 :bottom 56} :height 1 :color @divider)
      (row#budget :anchors {:left 24 :right 24 :bottom 16} :height 40 :gap 8 :alignItems center
        (label#label-budget :textColor @muted :text ~(t "stat.budget") :height 20 :grow 1 :align start)
        (label#budgetFigure :font heading
@@ -322,11 +321,10 @@
 
 (defview week-card "The week by day or by device as bars, or by room as a table." []
   `(node#weekCard :style card :anchors {:top 0 :bottom 0} :grow 1 :basis 0
-     {:id label-week-caption
-      :style cardTitle
-      :text ~(cond (= state.energyView "day") (t "week.byDay")
-                   (= state.energyView "device") (t "week.byDevice")
-                   :else (t "byRoom.title"))}
+     (node#label-week-caption :style cardTitle
+       :text ~(cond (= state.energyView "day") (t "week.byDay")
+                    (= state.energyView "device") (t "week.byDevice")
+                    :else (t "byRoom.title")))
      (label#label-this-week :font heading
        :textColor @text
        :text ~(t "kwh" {:n computed.energyTotal})
@@ -366,15 +364,15 @@
      ~(week-choice "energyByRoom" "room" "week.roomButton")))
 
 (defview week-choice "A choice of what the week is by, filled while it is the one shown." [id view key]
-  `{:id ~id
-    :style ~(if (= state.energyView view) "choiceOn" "choice")
-    :font small
-    :text ~(t key)
-    :grow 1
-    :basis 0
-    :anchors {:top 0 :bottom 0}
-    :selected ~(= state.energyView view)
-    :onClick ~(handler showEnergyView view)})
+  `(node :id ~id
+     :style ~(if (= state.energyView view) "choiceOn" "choice")
+     :font small
+     :text ~(t key)
+     :grow 1
+     :basis 0
+     :anchors {:top 0 :bottom 0}
+     :selected ~(= state.energyView view)
+     :onClick ~(handler showEnergyView view)))
 
 (defview week-labels "The bars' labels: the days, the peak in its colour, or the devices." []
   `(row#weekDays :when ~(not= state.energyView "room") :anchors {:left 24 :right 24 :bottom 10} :height 18

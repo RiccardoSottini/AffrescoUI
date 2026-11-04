@@ -251,30 +251,28 @@
       :color ~(if computed.devInBar "@onHeader" "@accent")}))
 
 (defview device-tabs-rule "The rule under the devices' tabs, while they are under the bar." []
-  `{:id devTabsRule
-    :when ~(and (= state.settingsView "devices") (not computed.devInBar))
-    :anchors {:left 0 :right 0 :top 104}
-    :height 1
-    :color @divider})
+  `(node#devTabsRule :when ~(and (= state.settingsView "devices") (not computed.devInBar))
+     :anchors {:left 0 :right 0 :top 104}
+     :height 1
+     :color @divider))
 
 (defview device-filters "The filters button, not there yet." []
-  `{:id devFilters
-    :when ~(= state.settingsView "devices")
-    :style button
-    :icon filter
-    :text ~(t "dev.filters")
-    :color transparent
-    :hover {:color transparent}
-    :textColor @muted
-    :borderWidth 1
-    :borderColor @border
-    :anchors {:left 24 :top ~(+ computed.devTop 16)}
-    :width 112
-    :height 40
-    :radius 8
-    :tooltip ~(t "dev.filtersSoon")
-    :cursor arrow
-    :disabled true})
+  `(node#devFilters :when ~(= state.settingsView "devices")
+     :style button
+     :icon filter
+     :text ~(t "dev.filters")
+     :color transparent
+     :hover {:color transparent}
+     :textColor @muted
+     :borderWidth 1
+     :borderColor @border
+     :anchors {:left 24 :top ~(+ computed.devTop 16)}
+     :width 112
+     :height 40
+     :radius 8
+     :tooltip ~(t "dev.filtersSoon")
+     :cursor arrow
+     :disabled true))
 
 (defview device-search "The search over the devices or the rooms." []
   `(node#devSearchBox :when ~(= state.settingsView "devices")
@@ -314,24 +312,23 @@
        :align center)))
 
 (defview device-add "The floating button that adds to the tab shown (not there yet)." []
-  `{:id devAdd
-    :when ~(= state.settingsView "devices")
-    :style button
-    :icon plus
-    :text ~(t (str "dev.add." state.devTab))
-    :color @raised
-    :hover {:color @raised}
-    :textColor @muted
-    :anchors {:right 32 :bottom 32}
-    :width 200
-    :height 52
-    :radius 16
-    :shadow {:y 4 :blur 12 :color "#00000040"}
-    :role button
-    :label ~(t (str "dev.add." state.devTab))
-    :tooltip ~(t "dev.addSoon")
-    :cursor arrow
-    :disabled true})
+  `(node#devAdd :when ~(= state.settingsView "devices")
+     :style button
+     :icon plus
+     :text ~(t (str "dev.add." state.devTab))
+     :color @raised
+     :hover {:color @raised}
+     :textColor @muted
+     :anchors {:right 32 :bottom 32}
+     :width 200
+     :height 52
+     :radius 16
+     :shadow {:y 4 :blur 12 :color "#00000040"}
+     :role button
+     :label ~(t (str "dev.add." state.devTab))
+     :tooltip ~(t "dev.addSoon")
+     :cursor arrow
+     :disabled true))
 
 (defview device-tables "The devices tab's table, or the controls tab's table of rooms." []
   `(column#settingsDevices :when ~(and (= state.settingsView "devices")
@@ -359,7 +356,7 @@
        :accentColor @border)
      {:anchors {:left 0 :right 0 :top 28} :height 1 :color @divider}
      ~(repeat [row computed.deviceRows]
-       `{:id deviceTableLine :anchors {:left 0 :right 0 :top ~(+ 80 (* index 52))} :height 1 :color @divider})))
+       `(node#deviceTableLine :anchors {:left 0 :right 0 :top ~(+ 80 (* index 52))} :height 1 :color @divider))))
 
 (defview room-table "The rooms: their lights and climate; opening one shows it on the home page." []
   `(node#roomTableCard :when ~(= state.devTab "entities")
@@ -379,7 +376,7 @@
        :onOpen ~(handler openRoom event.value))
      {:anchors {:left 0 :right 0 :top 28} :height 1 :color @divider}
      ~(repeat [row computed.roomEntityRows]
-       `{:id roomEntityTableLine :anchors {:left 0 :right 0 :top ~(+ 80 (* index 52))} :height 1 :color @divider})))
+       `(node#roomEntityTableLine :anchors {:left 0 :right 0 :top ~(+ 80 (* index 52))} :height 1 :color @divider))))
 
 ;;; The profile
 
@@ -395,19 +392,18 @@
      (label :font heading :text "Alex" :textColor @text :anchors {:left 84 :top 22} :height 24 :fitText true)
      (label :font small :text ~(t "profile.owner") :textColor @muted :anchors {:left 84 :top 48} :height 18
        :fitText true)
-     {:id profileLogout
-      :style button
-      :color transparent
-      :hover {:color transparent}
-      :textColor @muted
-      :text ~(t "profile.logout")
-      :anchors {:right 16 :top 26}
-      :width 104
-      :height 36
-      :radius 18
-      :tooltip ~(t "profile.logoutSoon")
-      :cursor arrow
-      :disabled true}))
+     (node#profileLogout :style button
+       :color transparent
+       :hover {:color transparent}
+       :textColor @muted
+       :text ~(t "profile.logout")
+       :anchors {:right 16 :top 26}
+       :width 104
+       :height 36
+       :radius 18
+       :tooltip ~(t "profile.logoutSoon")
+       :cursor arrow
+       :disabled true)))
 
 (defview profile-choices "The language and the theme." []
   `(node#settingsProfile :when ~(= state.settingsView "profile")

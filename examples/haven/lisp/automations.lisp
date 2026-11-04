@@ -132,7 +132,7 @@
 (defcomponent automationsPage "The automations: the list and its editor, or the flow and the schedules."
   {}
   `(node :color transparent
-     {:id automationsBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @header :role banner}
+     (node#automationsBar :anchors {:left 0 :right 0 :top 0} :height 56 :color @header :role banner)
      (label#automationsTitle :when ~(or (< state.autoOpen 0) (= state.autoTab "flow"))
        :font heading
        :text ~(t "page.automations")
@@ -147,8 +147,8 @@
      ~(delete-question)
      ~(rule-list)
      ~(rule-editor)
-     {:id automationsSummary :when ~(= state.autoTab "flow") :style caption :text ~(t "auto.summary")
-      :anchors {:left 308 :top 73}}
+     (node#automationsSummary :when ~(= state.autoTab "flow") :style caption :text ~(t "auto.summary")
+       :anchors {:left 308 :top 73})
      ~(add-node-buttons)
      (node#autoCard :when ~(= state.autoTab "flow")
        :style card
@@ -168,16 +168,16 @@
      ~(page-tab "autoTabFlow" "flow" "git-fork" "auto.tabFlow")))
 
 (defview page-tab "A tab of the page, filled while it is the one shown." [id tab icon key]
-  `{:id ~id
-    :style ~(if (= state.autoTab tab) "choiceOn" "choice")
-    :font small
-    :icon ~icon
-    :text ~(t key)
-    :grow 1
-    :basis 0
-    :anchors {:top 0 :bottom 0}
-    :selected ~(= state.autoTab tab)
-    :onClick ~(handler showAutomationTab tab)})
+  `(node :id ~id
+     :style ~(if (= state.autoTab tab) "choiceOn" "choice")
+     :font small
+     :icon ~icon
+     :text ~(t key)
+     :grow 1
+     :basis 0
+     :anchors {:top 0 :bottom 0}
+     :selected ~(= state.autoTab tab)
+     :onClick ~(handler showAutomationTab tab)))
 
 (defview list-search "The search over the list's names." []
   `(node#autoSearchBox :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
@@ -196,20 +196,19 @@
        :label ~(t "auto.search"))))
 
 (defview new-button "The floating button that makes a new automation." []
-  `{:id autoNew
-    :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
-    :style button
-    :icon plus
-    :text ~(t "auto.new")
-    :color @accent
-    :hover {:color @accent}
-    :textColor @onAccent
-    :anchors {:right 32 :bottom 32}
-    :width 208
-    :height 52
-    :radius 16
-    :shadow {:y 4 :blur 12 :color "#00000040"}
-    :onClick newAutomation})
+  `(node#autoNew :when ~(and (= state.autoTab "list") (< state.autoOpen 0))
+     :style button
+     :icon plus
+     :text ~(t "auto.new")
+     :color @accent
+     :hover {:color @accent}
+     :textColor @onAccent
+     :anchors {:right 32 :bottom 32}
+     :width 208
+     :height 52
+     :radius 16
+     :shadow {:y 4 :blur 12 :color "#00000040"}
+     :onClick newAutomation))
 
 (defview delete-question "The question before an automation is deleted." []
   `(node#autoConfirm :dir auto
@@ -340,21 +339,20 @@
   `(node#autoEditor :when ~(and (= state.autoTab "list") (>= state.autoOpen 0))
      :anchors {:left 0 :right 0 :top 0 :bottom 0}
      :color transparent
-     {:id autoBack
-      :style button
-      :icon arrow-left
-      :mirror true
-      :text ""
-      :color transparent
-      :hover {:color @headerHover}
-      :textColor @onHeader
-      :anchors {:left 12 :top 8}
-      :width 40
-      :height 40
-      :radius 20
-      :label ~(t "auto.back")
-      :tooltip ~(t "auto.back")
-      :onClick ~(handler openAutomation -1)}
+     (node#autoBack :style button
+       :icon arrow-left
+       :mirror true
+       :text ""
+       :color transparent
+       :hover {:color @headerHover}
+       :textColor @onHeader
+       :anchors {:left 12 :top 8}
+       :width 40
+       :height 40
+       :radius 20
+       :label ~(t "auto.back")
+       :tooltip ~(t "auto.back")
+       :onClick ~(handler openAutomation -1))
      (label#autoName :font heading
        :icon ~computed.openAuto.icon
        :text ~(rule-name computed.openAuto)
@@ -369,21 +367,20 @@
      ~(rule-trace)))
 
 (defview editor-menu-button "The button of the editor's menu." []
-  `{:id autoMore
-    :style button
-    :icon ellipsis-vertical
-    :text ""
-    :color transparent
-    :hover {:color @headerHover}
-    :textColor @onHeader
-    :anchors {:right 16 :top 8}
-    :width 40
-    :height 40
-    :radius 20
-    :label ~(t "auto.more")
-    :tooltip ~(t "auto.more")
-    :isOpen ~state.autoMenu
-    :onClick {:toggle state.autoMenu}})
+  `(node#autoMore :style button
+     :icon ellipsis-vertical
+     :text ""
+     :color transparent
+     :hover {:color @headerHover}
+     :textColor @onHeader
+     :anchors {:right 16 :top 8}
+     :width 40
+     :height 40
+     :radius 20
+     :label ~(t "auto.more")
+     :tooltip ~(t "auto.more")
+     :isOpen ~state.autoMenu
+     :onClick {:toggle state.autoMenu}))
 
 (defview editor-menu "The editor's menu: run now, enable or disable, duplicate, delete." []
   `(node#autoMoreAnchor :anchors {:right 16 :top 8} :width 40 :height 40 :color transparent
@@ -411,18 +408,17 @@
        :textColor @text
        :anchors {:left 16 :right 120 :top 0 :bottom 0}
        :align {:horizontal start :vertical center})
-     {:id autoOffEnable
-      :style button
-      :text ~(t "auto.enable")
-      :color transparent
-      :hover {:color @accentSoft}
-      :textColor @accent
-      :anchors {:right 8 :top 6}
-      :padding 12
-      :fitText true
-      :height 36
-      :radius 18
-      :onClick ~(handler rowAction state.autoOpen "enable")}))
+     (node#autoOffEnable :style button
+       :text ~(t "auto.enable")
+       :color transparent
+       :hover {:color @accentSoft}
+       :textColor @accent
+       :anchors {:right 8 :top 6}
+       :padding 12
+       :fitText true
+       :height 36
+       :radius 18
+       :onClick ~(handler rowAction state.autoOpen "enable"))))
 
 (defview rule-parts "The automation's three parts, a card each: when, and if, then do." []
   `(column#autoParts :anchors {:left 32 :right ~(if computed.compact 32 364) :top ~(if computed.openAuto.on 88 144)
@@ -453,20 +449,20 @@
        :label ~title
        ~(repeat [step computed.openAuto.steps :index s]
          (part-step part step s)))
-     {:id ~(str "autoAdd-" part)
-      :style button
-      :font small
-      :icon plus
-      :text ~addLabel
-      :color transparent
-      :textColor @accent
-      :borderWidth 1
-      :borderColor @border
-      :anchors {:left 20 :bottom 10}
-      :width 196
-      :height 36
-      :radius 18
-      :onClick ~(handler addStep part)}))
+     (node :id ~(str "autoAdd-" part)
+       :style button
+       :font small
+       :icon plus
+       :text ~addLabel
+       :color transparent
+       :textColor @accent
+       :borderWidth 1
+       :borderColor @border
+       :anchors {:left 20 :bottom 10}
+       :width 196
+       :height 36
+       :radius 18
+       :onClick ~(handler addStep part))))
 
 (defview part-step "A step of a part: its icon and words, and its menu." [part step s]
   `(node#autoStep :when ~(= step.part part)
@@ -560,21 +556,21 @@
      :gap 6
      :role toolbar
      :arrows horizontal
-     {:id autoAddLabel :style caption :text ~(t "auto.add") :anchors {:top 8}}
+     (node#autoAddLabel :style caption :text ~(t "auto.add") :anchors {:top 8})
      ~(add-node-button "autoAddTime" "clock-3" "auto.addTime" {:kind "time" :outputs [{:id "when" :kind "event"}]})
      ~(add-node-button "autoAddDark" "moon" "auto.addDark"
                        {:kind "dark" :inputs [{:id "if" :kind "event"}] :outputs [{:id "then" :kind "event"}]})
      ~(add-node-button "autoAddScene" "sparkles" "auto.addScene" {:kind "scene" :inputs [{:id "do" :kind "event"}]})))
 
 (defview add-node-button "A button that adds a node to the flow." [id icon key node]
-  `{:id ~id
-    :style button
-    :font small
-    :icon ~icon
-    :text ~(t key)
-    :grow 1
-    :anchors {:top 0 :bottom 0}
-    :onClick ~(handler addAutoNode node)})
+  `(node :id ~id
+     :style button
+     :font small
+     :icon ~icon
+     :text ~(t key)
+     :grow 1
+     :anchors {:top 0 :bottom 0}
+     :onClick ~(handler addAutoNode node)))
 
 (defview rule-graph "The rules as a node graph: links drawn between ports, nodes moved and deleted." []
   `(graph#autoGraph :fill 8
@@ -600,11 +596,10 @@
      :style card
      :anchors {:left 32 :right 32 :bottom 24}
      :height ~(if computed.compact 156 196)
-     {:id scheduleTitle
-      :style caption
-      :icon calendar-clock
-      :text ~(t "schedule.title")
-      :anchors {:left 16 :top 12}}
+     (node#scheduleTitle :style caption
+       :icon calendar-clock
+       :text ~(t "schedule.title")
+       :anchors {:left 16 :top 12})
      (timeline#schedule :anchors {:left 8 :right 8 :top 34 :bottom 8}
        :tracks ~computed.scheduleTracks
        :duration 24

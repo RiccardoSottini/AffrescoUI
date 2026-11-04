@@ -56,25 +56,24 @@
        :radius 18
        :align center)
      (label#alarmName :text ~(t "alarm.title") :textColor @text :anchors {:left 60 :top 17} :height 18 :fitText true)
-     {:id alarmState :style caption :text ~(t (str "alarm." state.security)) :anchors {:left 60 :top 38} :live polite}
+     (node#alarmState :style caption :text ~(t (str "alarm." state.security)) :anchors {:left 60 :top 38} :live polite)
      ~(alarm-modes)))
 
 (defview alarm-modes "The tile's modes, the one on in its colour; Off opens the keypad, as it takes the code." []
   `(row#alarmModes :anchors {:right 12 :top 18} :width 280 :height 36 :gap 6 :justify end :role toolbar
      :arrows horizontal
      ~(repeat [mode state.securityModes]
-       `{:id alarmMode
-         :style ~(if (= mode state.security) "choiceOn" "choice")
-         :font small
-         :text ~(t (str "alarm.do." mode))
-         :padding 12
-         :fitText true
-         :anchors {:top 0 :bottom 0}
-         :radius 18
-         :selected ~(= mode state.security)
-         :color ~(if (= mode state.security) (if (= mode "off") "@okSoft" "@alertSoft") "@raised")
-         :textColor ~(if (= mode state.security) (if (= mode "off") "@ok" "@alert") "@text")
-         :onClick ~(handler pressAlarmMode mode)})))
+       `(node#alarmMode :style ~(if (= mode state.security) "choiceOn" "choice")
+          :font small
+          :text ~(t (str "alarm.do." mode))
+          :padding 12
+          :fitText true
+          :anchors {:top 0 :bottom 0}
+          :radius 18
+          :selected ~(= mode state.security)
+          :color ~(if (= mode state.security) (if (= mode "off") "@okSoft" "@alertSoft") "@raised")
+          :textColor ~(if (= mode state.security) (if (= mode "off") "@ok" "@alert") "@text")
+          :onClick ~(handler pressAlarmMode mode)))))
 
 (defcomponent alarmKeypad "The keypad of the alarm's details: the code typed, as dots, the keys, and the modes."
   {}
@@ -100,15 +99,14 @@
      :role group
      :label ~(t "alarm.keypad")
      ~(repeat [key ["1" "2" "3" "4" "5" "6" "7" "8" "9" "clear" "0" "back"]]
-       `{:id alarmKey
-         :style button
-         :height 50
-         :radius 25
-         :font ~(if (= (count key) 1) "heading" "icons")
-         :icon ~(cond (= key "clear") "x" (= key "back") "delete" :else "")
-         :text ~(if (= (count key) 1) key "")
-         :label ~(if (= (count key) 1) key (t (str "alarm." key)))
-         :onClick ~(handler pressAlarmKey key)})))
+       `(node#alarmKey :style button
+          :height 50
+          :radius 25
+          :font ~(if (= (count key) 1) "heading" "icons")
+          :icon ~(cond (= key "clear") "x" (= key "back") "delete" :else "")
+          :text ~(if (= (count key) 1) key "")
+          :label ~(if (= (count key) 1) key (t (str "alarm." key)))
+          :onClick ~(handler pressAlarmKey key)))))
 
 (defview alarm-actions "The keypad's modes, which take the code typed." []
   `(row#alarmActions :anchors {:left 24 :right 24 :top 300}
@@ -118,16 +116,15 @@
      :role toolbar
      :arrows horizontal
      ~(repeat [mode state.securityModes]
-       `{:id alarmAction
-         :style ~(if (= mode state.security) "choiceOn" "choice")
-         :text ~(t (str "alarm.do." mode))
-         :width 108
-         :height 40
-         :radius 20
-         :color ~(if (= mode state.security) (if (= mode "off") "@okSoft" "@alertSoft") "@raised")
-         :textColor ~(if (= mode state.security) (if (= mode "off") "@ok" "@alert") "@text")
-         :selected ~(= mode state.security)
-         :onClick ~(handler armAlarm mode)})))
+       `(node#alarmAction :style ~(if (= mode state.security) "choiceOn" "choice")
+          :text ~(t (str "alarm.do." mode))
+          :width 108
+          :height 40
+          :radius 20
+          :color ~(if (= mode state.security) (if (= mode "off") "@okSoft" "@alertSoft") "@raised")
+          :textColor ~(if (= mode state.security) (if (= mode "off") "@ok" "@alert") "@text")
+          :selected ~(= mode state.security)
+          :onClick ~(handler armAlarm mode)))))
 
 ;;; The notifications
 
@@ -150,19 +147,17 @@
        :textColor @text
        :anchors {:left 16 :top 14}
        :fitText true)
-     {:id notificationsClear
-      :style button
-      :font small
-      :text ~(t "notify.clear")
-      :anchors {:right 12 :top 12}
-      :width 96
-      :height 26
-      :onClick clearNotifications}
-     {:id notificationsEmpty
-      :when ~(= (count state.notifications) 0)
-      :style caption
-      :text ~(t "notify.empty")
-      :anchors {:left 16 :top 60}}
+     (node#notificationsClear :style button
+       :font small
+       :text ~(t "notify.clear")
+       :anchors {:right 12 :top 12}
+       :width 96
+       :height 26
+       :onClick clearNotifications)
+     (node#notificationsEmpty :when ~(= (count state.notifications) 0)
+       :style caption
+       :text ~(t "notify.empty")
+       :anchors {:left 16 :top 60})
      ~(notification-list)))
 
 (defview notification-list "The notifications, a row each." []

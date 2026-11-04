@@ -116,39 +116,36 @@
      ~@(editor-buttons)))
 
 (defview editor-buttons "The editor's buttons: form or code at the start; Cancel and Save at the end." []
-  [`{:id cardCodeSwitch
-     :style button
-     :color transparent
-     :hover {:color transparent}
-     :textColor @accent
-     :padding 12
-     :fitText true
-     :text ~(t (if state.cardEdit.code "edit.showForm" "edit.showCode"))
-     :anchors {:left 16 :bottom 14}
-     :height 36
-     :onClick switchCardView}
-   `{:id cardSave
-     :style button
-     :color @accent
-     :hover {:color @accent}
-     :textColor @onAccent
-     :text ~(t "edit.save")
-     :anchors {:right 16 :bottom 14}
-     :width 88
-     :height 36
-     :radius 18
-     :onClick saveCard}
-   `{:id cardCancel
-     :style button
-     :color transparent
-     :hover {:color @accentSoft}
-     :textColor @accent
-     :text ~(t "edit.cancel")
-     :anchors {:right 112 :bottom 14}
-     :width 88
-     :height 36
-     :radius 18
-     :onClick {:set state.cardEdit.open :to false}}])
+  [`(node#cardCodeSwitch :style button
+      :color transparent
+      :hover {:color transparent}
+      :textColor @accent
+      :padding 12
+      :fitText true
+      :text ~(t (if state.cardEdit.code "edit.showForm" "edit.showCode"))
+      :anchors {:left 16 :bottom 14}
+      :height 36
+      :onClick switchCardView)
+   `(node#cardSave :style button
+      :color @accent
+      :hover {:color @accent}
+      :textColor @onAccent
+      :text ~(t "edit.save")
+      :anchors {:right 16 :bottom 14}
+      :width 88
+      :height 36
+      :radius 18
+      :onClick saveCard)
+   `(node#cardCancel :style button
+      :color transparent
+      :hover {:color @accentSoft}
+      :textColor @accent
+      :text ~(t "edit.cancel")
+      :anchors {:right 112 :bottom 14}
+      :width 88
+      :height 36
+      :radius 18
+      :onClick {:set state.cardEdit.open :to false})])
 
 (defview card-form "The configuration as a form: its title, and a switch for each option." []
   `(node#cardForm :when ~(not state.cardEdit.code) :anchors {:left 24 :right 360 :top 64 :bottom 72} :color transparent

@@ -87,10 +87,9 @@
       :color transparent
       :anchors {:left 10 :top 10}
       :onClick {:set state.info.open :to false})
-   `{:id infoRoom
-     :style caption
-     :text ~(if (or (= state.info.kind "device") (= state.info.kind "alarm")) (t "info.home") computed.room.name)
-     :anchors {:left 64 :top 12}}
+   `(node#infoRoom :style caption
+      :text ~(if (or (= state.info.kind "device") (= state.info.kind "alarm")) (t "info.home") computed.room.name)
+      :anchors {:left 64 :top 12})
    `(label#infoName :font heading
       :textColor @text
       :text ~computed.infoName
@@ -130,13 +129,12 @@
        (node#infoWarm :use iconBtn
          :with {:icon thermometer-sun :tip colour.warm}
          :onClick ~(handler warmLight state.info.index)))
-     {:id infoLightHint
-      :style caption
-      :text ~(t "info.lightHint")
-      :anchors {:left 0 :right 0 :top 460}
-      :height 16
-      :align center
-      :fitText false}))
+     (node#infoLightHint :style caption
+       :text ~(t "info.lightHint")
+       :anchors {:left 0 :right 0 :top 460}
+       :height 16
+       :align center
+       :fitText false)))
 
 (defview mode-field "The climate's mode, a field that opens the menu of modes." []
   `(node#infoModeRow :anchors {:left 24 :right 24 :top 276}
@@ -201,10 +199,10 @@
        (node :use lineChart
          :with {:values ~(map (fn [it] (- it 19)) state.tempHistory) :top 4 :color ~computed.modeColor :lineWidth 2}
          :anchors {:left 48 :right 12 :top 16 :bottom 28})
-       {:id infoHistoryHigh :style caption :text "23°" :anchors {:left 12 :top 12}}
-       {:id infoHistoryLow :style caption :text "19°" :anchors {:left 12 :bottom 28}}
-       {:id infoHistoryStart :style caption :text "00:00" :anchors {:left 48 :bottom 8}}
-       {:id infoHistoryEnd :style caption :text ~(t "info.now") :anchors {:right 12 :bottom 8}})))
+       (node#infoHistoryHigh :style caption :text "23°" :anchors {:left 12 :top 12})
+       (node#infoHistoryLow :style caption :text "19°" :anchors {:left 12 :bottom 28})
+       (node#infoHistoryStart :style caption :text "00:00" :anchors {:left 48 :bottom 8})
+       (node#infoHistoryEnd :style caption :text ~(t "info.now") :anchors {:right 12 :bottom 8}))))
 
 (defview blinds-details "The blinds: how open they are and their tilt in tall bars, and open, stop and close." []
   `(node#infoCoverBody :use infoBody :with {:kind cover}
@@ -235,13 +233,12 @@
        (node#infoShut :use iconBtn
          :with {:icon chevron-down :tip blinds.close}
          :onClick ~(handler moveBlinds 0)))
-     {:id infoCoverHint
-      :style caption
-      :text ~(t "info.coverHint")
-      :anchors {:left 0 :right 0 :top 460}
-      :height 16
-      :align center
-      :fitText false}))
+     (node#infoCoverHint :style caption
+       :text ~(t "info.coverHint")
+       :anchors {:left 0 :right 0 :top 460}
+       :height 16
+       :align center
+       :fitText false)))
 
 (defview speaker-transport "The speaker's previous (no queue here), play or pause, and next." []
   `(row#infoTransport :when ~(= computed.infoDevice.id "speaker")
@@ -342,15 +339,14 @@
        :color ~(if computed.infoDevice.on "@accentSoft" "@raised"))
      ~(speaker-transport)
      ~(speaker-volume)
-     {:id infoDeviceAction
-      :when ~(not= computed.infoDevice.id "speaker")
-      :style choiceOn
-      :anchors {:left 120 :top 216}
-      :width 160
-      :height 36
-      :radius 18
-      :text ~(t (str "device." computed.infoDevice.id (if computed.infoDevice.on ".doOff" ".doOn")))
-      :onClick ~(handler deviceCall state.info.index)}
+     (node#infoDeviceAction :when ~(not= computed.infoDevice.id "speaker")
+       :style choiceOn
+       :anchors {:left 120 :top 216}
+       :width 160
+       :height 36
+       :radius 18
+       :text ~(t (str "device." computed.infoDevice.id (if computed.infoDevice.on ".doOff" ".doOn")))
+       :onClick ~(handler deviceCall state.info.index))
      ~(device-facts)
      (label#infoLogTitle :textColor @text
        :icon activity
@@ -366,7 +362,7 @@
 
 (defview device-change "A change of the device: when, and what it became." [time n]
   `(node#infoLogRow :anchors {:left 0 :right 0} :height 40 :radius 8 :color @field :role listitem :label ~time
-     {:id infoLogTime :style caption :text ~time :anchors {:left 12 :top 12}}
+     (node#infoLogTime :style caption :text ~time :anchors {:left 12 :top 12})
      (label#infoLogText :textColor @text
        :anchors {:left 64 :right 12 :top 10}
        :height 20
@@ -420,25 +416,22 @@
      :role slider
      :label ~label
      :keys {:up ~(handler runNamed up) :down ~(handler runNamed down)}
-     {:id barFill
-      :anchors {:left 0 :right 0 :bottom 0}
-      :height ~(* 240 share)
-      :color ~fill
-      :radius ~{:topLeft (if (> share 0.88) 28 0) :topRight (if (> share 0.88) 28 0) :bottomLeft 28 :bottomRight 28}}
-     {:id barHandle
-      :when ~(> share 0.06)
-      :anchors {:left ~(/ (- width 40) 2) :bottom ~(- (* 240 share) (if (> share 0.92) 22 12))}
-      :width 40
-      :height 4
-      :radius 2
-      :color "#ffffffcc"}
+     (node#barFill :anchors {:left 0 :right 0 :bottom 0}
+       :height ~(* 240 share)
+       :color ~fill
+       :radius ~{:topLeft (if (> share 0.88) 28 0) :topRight (if (> share 0.88) 28 0) :bottomLeft 28 :bottomRight 28})
+     (node#barHandle :when ~(> share 0.06)
+       :anchors {:left ~(/ (- width 40) 2) :bottom ~(- (* 240 share) (if (> share 0.92) 22 12))}
+       :width 40
+       :height 4
+       :radius 2
+       :color "#ffffffcc")
      ~(repeat [k (range 10)]
-       `{:id barBand
-         :anchors {:left 0 :right 0 :top ~(* k 24)}
-         :height 24
-         :color transparent
-         :cursor hand
-         :onClick ~(handler pickBand pick (* (- 10 k) 10))})))
+       `(node#barBand :anchors {:left 0 :right 0 :top ~(* k 24)}
+          :height 24
+          :color transparent
+          :cursor hand
+          :onClick ~(handler pickBand pick (* (- 10 k) 10))))))
 
 (defcomponent thermoDial "The target temperature on a dial coloured by the mode; p prefixes the inner ids."
   {:p "" :small false}
@@ -460,14 +453,14 @@
        :align center
        :label ~(t "climate.targetIs" {:target computed.room.target})
        :live polite)
-     {:id ~(str p "label-target")
-      :when ~(not small)
-      :style caption
-      :icon thermometer
-      :text ~(str " " computed.room.temp "°")
-      :anchors {:left 0 :right 0 :top 128}
-      :height 16
-      :align center}))
+     (node :id ~(str p "label-target")
+       :when ~(not small)
+       :style caption
+       :icon thermometer
+       :text ~(str " " computed.room.temp "°")
+       :anchors {:left 0 :right 0 :top 128}
+       :height 16
+       :align center)))
 
 (defview dial-arcs "The dial's track, its arc up to the target in the mode's colour, and its knob." [p]
   [`(path :id ~(str p "dialTrack")

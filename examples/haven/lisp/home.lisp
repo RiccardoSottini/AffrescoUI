@@ -37,18 +37,17 @@
      ~(assistant-button)
      ~(search-button)
      ~(add-card-button)
-     {:id editDone
-      :when ~state.editing
-      :style button
-      :text ~(t "edit.done")
-      :color transparent
-      :hover {:color @headerHover}
-      :textColor @onHeader
-      :anchors {:right 16 :top 10}
-      :width 88
-      :height 36
-      :radius 18
-      :onClick doneEditing}
+     (node#editDone :when ~state.editing
+       :style button
+       :text ~(t "edit.done")
+       :color transparent
+       :hover {:color @headerHover}
+       :textColor @onHeader
+       :anchors {:right 16 :top 10}
+       :width 88
+       :height 36
+       :radius 18
+       :onClick doneEditing)
      ~(page-menu)
      ~(page-menu-button)))
 
@@ -122,23 +121,22 @@
      :onClick searchEntities))
 
 (defview add-card-button "While editing, Add card: not there yet." []
-  `{:id editAddCard
-    :when ~state.editing
-    :style button
-    :icon plus
-    :text ~(t "edit.addCard")
-    :color transparent
-    :hover {:color transparent}
-    :textColor @onHeaderDim
-    :anchors {:right 112 :top 10}
-    :padding 14
-    :fitText true
-    :height 36
-    :radius 18
-    :label ~(t "edit.addCard")
-    :tooltip ~(t "edit.addCardSoon")
-    :cursor arrow
-    :disabled true})
+  `(node#editAddCard :when ~state.editing
+     :style button
+     :icon plus
+     :text ~(t "edit.addCard")
+     :color transparent
+     :hover {:color transparent}
+     :textColor @onHeaderDim
+     :anchors {:right 112 :top 10}
+     :padding 14
+     :fitText true
+     :height 36
+     :radius 18
+     :label ~(t "edit.addCard")
+     :tooltip ~(t "edit.addCardSoon")
+     :cursor arrow
+     :disabled true))
 
 (defview page-menu-button "The button of the page's menu." []
   `(label#dashMore :when ~(not state.editing)
@@ -173,22 +171,19 @@
 
 (defview summary-chips "The room in three chips: its lights and scene, the weather outside, its climate." []
   `(row#chips :anchors {:left 24 :right 24 :top 68} :height 36 :gap 8 :role group :label ~(t "chips.label")
-     {:id summary
-      :style chip
-      :icon lightbulb
-      :text ~(str "  "
-                (t "summary.lights" {:on computed.lightsOn :total (count computed.room.lights)})
-                (if state.scene (t "summary.scene" {:scene (t (str "scene." computed.sceneKey))}) ""))}
-     {:id weather
-      :style chip
-      :icon cloud-sun
-      :text ~(str "  14°  ·  " (t "weather.sky"))
-      :label ~(str (t "weather.outside") ": 14°, " (t "weather.sky"))}
-     {:id climateChip
-      :style chip
-      :icon thermometer
-      :text ~(str "  " computed.room.temp "°  ·  " computed.room.humidity "%")
-      :label ~(t "climate.now" {:temp computed.room.temp :humidity computed.room.humidity})}))
+     (node#summary :style chip
+       :icon lightbulb
+       :text ~(str "  "
+                 (t "summary.lights" {:on computed.lightsOn :total (count computed.room.lights)})
+                 (if state.scene (t "summary.scene" {:scene (t (str "scene." computed.sceneKey))}) "")))
+     (node#weather :style chip
+       :icon cloud-sun
+       :text ~(str "  14°  ·  " (t "weather.sky"))
+       :label ~(str (t "weather.outside") ": 14°, " (t "weather.sky")))
+     (node#climateChip :style chip
+       :icon thermometer
+       :text ~(str "  " computed.room.temp "°  ·  " computed.room.humidity "%")
+       :label ~(t "climate.now" {:temp computed.room.temp :humidity computed.room.humidity}))))
 
 ;;; The start side: the room, its lights, the scenes and the alarm
 
@@ -204,11 +199,10 @@
        :text ~computed.cardTitle.lights
        :anchors {:left ~(if state.editing 14 4) :top ~(if computed.compact 0 136)}
        :fitText true)
-     {:id label-click-a-light
-      :when ~(not state.editing)
-      :style caption
-      :text ~(t "lights.hint")
-      :anchors {:right 4 :top ~(if computed.compact 4 140)}}
+     (node#label-click-a-light :when ~(not state.editing)
+       :style caption
+       :text ~(t "lights.hint")
+       :anchors {:right 4 :top ~(if computed.compact 4 140)})
      ~(lights-grid)
      ~(card-heading "label-scenes" 'computed.cardTitle.scenes "#lights.bottom + 16")
      ~(scene-row)
@@ -247,7 +241,7 @@
        :radius 18
        :anchors {:left 0 :right 0 :top 0 :bottom 0}
        :label ~computed.room.name)
-     {:id areaShade :anchors {:left 0 :right 0 :bottom 0} :height 44 :color "#00000088" :radius 18}
+     (node#areaShade :anchors {:left 0 :right 0 :bottom 0} :height 44 :color "#00000088" :radius 18)
      (label#areaName :text ~computed.room.name :font heading :textColor "#ffffff" :anchors {:left 16 :bottom 10}
        :fitText true)
      (label#areaStats :font small
@@ -292,10 +286,9 @@
        :radius 18
        :align center)
      (label#label-light-name :text ~light.name :textColor @text :anchors {:left 56 :right 12 :top 12} :height 18)
-     {:id label-light-on-on
-      :style caption
-      :text ~(if light.on (t "light.on" {:level light.level}) (t "light.off"))
-      :anchors {:left 56 :top 32}}
+     (node#label-light-on-on :style caption
+       :text ~(if light.on (t "light.on" {:level light.level}) (t "light.off"))
+       :anchors {:left 56 :top 32})
      ~(light-switch light)
      (node#level-bar-light :use levelBar
        :with {:level ~(if light.on (/ (- light.level 10) 90) 0)
@@ -383,20 +376,18 @@
      :style card
      :role group
      :label ~(t "climate.label")
-     {:id label-climate
-      :style cardTitle
-      :icon thermometer
-      :text ~computed.cardTitle.climate
-      :cursor hand
-      :focusable true
-      :role button
-      :tooltip ~(t "info.open")
-      :onClick ~(handler openInfo "climate" 0)}
-     {:id label-now-room-temp
-      :when ~(not state.editing)
-      :style caption
-      :text ~(t "climate.now" {:temp computed.room.temp :humidity computed.room.humidity})
-      :anchors {:right 24 :top 24}}
+     (node#label-climate :style cardTitle
+       :icon thermometer
+       :text ~computed.cardTitle.climate
+       :cursor hand
+       :focusable true
+       :role button
+       :tooltip ~(t "info.open")
+       :onClick ~(handler openInfo "climate" 0))
+     (node#label-now-room-temp :when ~(not state.editing)
+       :style caption
+       :text ~(t "climate.now" {:temp computed.room.temp :humidity computed.room.humidity})
+       :anchors {:right 24 :top 24})
      (node#dial :use thermoDial :with {:p "" :small ~computed.compact} :anchors {:left 0 :right 0 :top 44})
      ~(target-steps)
      (row#modes :when ~state.cards.climate.modes
@@ -464,10 +455,9 @@
        :fitText true
        :cursor hand
        :onClick ~(handler openInfo "cover" 0))
-     {:id label-round-room-blinds
-      :style caption
-      :text ~(t "blinds.open" {:n (round computed.room.blinds)})
-      :anchors {:left 60 :top 32}}
+     (node#label-round-room-blinds :style caption
+       :text ~(t "blinds.open" {:n (round computed.room.blinds)})
+       :anchors {:left 60 :top 32})
      ~(blinds-button "label-open" "chevron-up" "blinds.openButton" 100 52 12)
      ~(blinds-button "label-close" "chevron-down" "blinds.close" 0 96 56)
      (node#level-bar-blinds-card :use levelBar
@@ -567,22 +557,20 @@
        :radius 16
        :align center)
      (label#deviceName :text ~d.name :textColor @text :anchors {:left 50 :right 4 :top 12} :height 18)
-     {:id deviceState
-      :style caption
-      :text ~(if d.busy (t "device.waiting") (t (str "device." d.id (if d.on ".on" ".off"))))
-      :anchors {:left 50 :top 32}
-      :live polite}
+     (node#deviceState :style caption
+       :text ~(if d.busy (t "device.waiting") (t (str "device." d.id (if d.on ".on" ".off"))))
+       :anchors {:left 50 :top 32}
+       :live polite)
      ~(device-action d i)
-     {:id deviceProgress :when ~d.busy :anchors {:left 0 :bottom 0} :width ~(str (* d.progress 100) "%") :height 3
-      :color @accent}))
+     (node#deviceProgress :when ~d.busy :anchors {:left 0 :bottom 0} :width ~(str (* d.progress 100) "%") :height 3
+       :color @accent)))
 
 (defview device-action "The device's button: what a press does, or an ellipsis while a call runs." [d i]
-  `{:id deviceAction
-    :when ~state.cards.devices.actions
-    :style button
-    :text ~(if d.busy "…" (t (str "device." d.id (if d.on ".doOff" ".doOn"))))
-    :font small
-    :anchors {:left 12 :right 12 :bottom 12}
-    :height 28
-    :label ~(str d.name ": " (if d.busy (t "device.waiting") (t (str "device." d.id (if d.on ".doOff" ".doOn")))))
-    :onClick ~(handler deviceCall i)})
+  `(node#deviceAction :when ~state.cards.devices.actions
+     :style button
+     :text ~(if d.busy "…" (t (str "device." d.id (if d.on ".doOff" ".doOn"))))
+     :font small
+     :anchors {:left 12 :right 12 :bottom 12}
+     :height 28
+     :label ~(str d.name ": " (if d.busy (t "device.waiting") (t (str "device." d.id (if d.on ".doOff" ".doOn")))))
+     :onClick ~(handler deviceCall i)))

@@ -58,8 +58,8 @@
 (defcomponent planPage "The floor plan: the rooms on a canvas, and beside it the picked room and the speaker."
   {}
   `(node :color transparent
-     {:id planTitle :style pageTitle :icon map :text ~(t "page.plan")}
-     {:id planSummary :style caption :text ~(t "plan.summary") :anchors {:left 32 :top 66}}
+     (node#planTitle :style pageTitle :icon map :text ~(t "page.plan"))
+     (node#planSummary :style caption :text ~(t "plan.summary") :anchors {:left 32 :top 66})
      (node#planCard :style card :anchors {:left 32 :right 336 :top 104 :bottom 24}
        (canvas#plan :fill 8
          :bind state.planView
@@ -82,20 +82,18 @@
      :width 288
      :role group
      :label ~computed.room.name
-     {:id planRoomName :style cardTitle :text ~computed.room.name}
-     {:id planRoomSummary
-      :style caption
-      :anchors {:left 24 :top 46}
-      :text ~(t "plan.room" {:temp computed.room.temp :lights computed.lightsOn})}
+     (node#planRoomName :style cardTitle :text ~computed.room.name)
+     (node#planRoomSummary :style caption
+       :anchors {:left 24 :top 46}
+       :text ~(t "plan.room" {:temp computed.room.temp :lights computed.lightsOn}))
      (stack#planLights :anchors {:left 16 :right 16 :top 76 :bottom 60} :gap 4 :scroll vertical :role list
        ~(repeat [light computed.room.lights :index i]
          (light-switch-row light i)))
-     {:id planShow
-      :style button
-      :text ~(t "plan.show")
-      :anchors {:left 16 :right 16 :bottom 16}
-      :height 32
-      :onClick goHome}))
+     (node#planShow :style button
+       :text ~(t "plan.show")
+       :anchors {:left 16 :right 16 :bottom 16}
+       :height 32
+       :onClick goHome)))
 
 (defview light-switch-row "A light of the picked room, warm while it is on; a click switches it." [light i]
   `(label#planLight :icon ~(if light.on "lightbulb" "lightbulb-off")
@@ -120,21 +118,20 @@
 (defcomponent mediaCard "The speaker: the track, play and pause (a device call), previous and next, and the volume."
   {}
   `(node :style card :role group :label ~(t "media.title")
-     {:id mediaTitle :style cardTitle :icon speaker :text ~(t "media.title")}
-     {:id mediaState
-      :style caption
-      :anchors {:right 24 :top 24}
-      :text ~(if computed.speaker.busy
-                 (t "device.waiting")
-                 (t (str "device.speaker." (if computed.speaker.on "on" "off"))))
-      :textColor ~(if computed.speaker.on "@accent" "@muted")}
+     (node#mediaTitle :style cardTitle :icon speaker :text ~(t "media.title"))
+     (node#mediaState :style caption
+       :anchors {:right 24 :top 24}
+       :text ~(if computed.speaker.busy
+                  (t "device.waiting")
+                  (t (str "device.speaker." (if computed.speaker.on "on" "off"))))
+       :textColor ~(if computed.speaker.on "@accent" "@muted"))
      (label#mediaTrack :text ~computed.track.title
        :textColor @text
        :anchors {:left 24 :right 24 :top 54}
        :height 20
        :align {:horizontal start :vertical center}
        :live polite)
-     {:id mediaArtist :style caption :text ~computed.track.artist :anchors {:left 24 :top 76}}
+     (node#mediaArtist :style caption :text ~computed.track.artist :anchors {:left 24 :top 76})
      ~(media-buttons)
      (label#mediaVolumeIcon :icon volume-2 :text "" :textColor @muted :anchors {:left 24 :top 152} :width 20 :height 20)
      (slider#mediaVolume :anchors {:left 56 :right 24 :top 152}
@@ -149,33 +146,30 @@
 
 (defview media-buttons "Previous, play or pause, and next." []
   `(row#mediaButtons :anchors {:left 24 :right 24 :top 100} :height 36 :gap 8 :role toolbar :arrows horizontal
-     {:id mediaPrevious
-      :style button
-      :icon skip-back
-      :text ""
-      :grow 1
-      :anchors {:top 0 :bottom 0}
-      :label ~(t "media.previous")
-      :tooltip ~(t "media.previous")
-      :onClick previousTrack}
-     {:id mediaPlay
-      :style choiceOn
-      :icon ~(if computed.speaker.on "pause" "play")
-      :text ""
-      :grow 1
-      :anchors {:top 0 :bottom 0}
-      :label ~(if computed.speaker.on (t "media.pause") (t "media.play"))
-      :tooltip ~(if computed.speaker.on (t "media.pause") (t "media.play"))
-      :onClick playPause}
-     {:id mediaNext
-      :style button
-      :icon skip-forward
-      :text ""
-      :grow 1
-      :anchors {:top 0 :bottom 0}
-      :label ~(t "media.next")
-      :tooltip ~(t "media.next")
-      :onClick nextTrack}))
+     (node#mediaPrevious :style button
+       :icon skip-back
+       :text ""
+       :grow 1
+       :anchors {:top 0 :bottom 0}
+       :label ~(t "media.previous")
+       :tooltip ~(t "media.previous")
+       :onClick previousTrack)
+     (node#mediaPlay :style choiceOn
+       :icon ~(if computed.speaker.on "pause" "play")
+       :text ""
+       :grow 1
+       :anchors {:top 0 :bottom 0}
+       :label ~(if computed.speaker.on (t "media.pause") (t "media.play"))
+       :tooltip ~(if computed.speaker.on (t "media.pause") (t "media.play"))
+       :onClick playPause)
+     (node#mediaNext :style button
+       :icon skip-forward
+       :text ""
+       :grow 1
+       :anchors {:top 0 :bottom 0}
+       :label ~(t "media.next")
+       :tooltip ~(t "media.next")
+       :onClick nextTrack)))
 
 ;;; The colour of a light
 
@@ -203,17 +197,15 @@
        :textColor @text
        :accentColor @accent
        :swatches ["#ffd58aff" "#fff4e0ff" "#ffc078ff" "#8ab4ffff" "#ff9ad5ff" "#9af5c0ff"])
-     {:id colourWarm
-      :style button
-      :text ~(t "colour.warm")
-      :anchors {:left 20 :bottom 20}
-      :width 116
-      :height 32
-      :onClick ~(handler warmLight state.light)}
-     {:id colourDone
-      :style choiceOn
-      :text ~(t "colour.done")
-      :anchors {:right 20 :bottom 20}
-      :width 100
-      :height 32
-      :onClick {:set state.colourOpen :to false}}))
+     (node#colourWarm :style button
+       :text ~(t "colour.warm")
+       :anchors {:left 20 :bottom 20}
+       :width 116
+       :height 32
+       :onClick ~(handler warmLight state.light))
+     (node#colourDone :style choiceOn
+       :text ~(t "colour.done")
+       :anchors {:right 20 :bottom 20}
+       :width 100
+       :height 32
+       :onClick {:set state.colourOpen :to false})))
