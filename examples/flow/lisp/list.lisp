@@ -61,13 +61,12 @@
          :fitText true
          :height 36
          :align {:horizontal start :vertical center})
-       {:id listCount
-        :style caption
-        :text ~(count column.cards)
-        :textColor ~(if (get computed.over c) "@bug" "@color.muted")
-        :fitText true
-        :height 36
-        :align {:horizontal start :vertical center}})
+       (node#listCount :style caption
+         :text ~(count column.cards)
+         :textColor ~(if (get computed.over c) "@bug" "@color.muted")
+         :fitText true
+         :height 36
+         :align {:horizontal start :vertical center}))
      (label#listAdd :icon plus
        :text ""
        :textColor @color.muted
@@ -111,7 +110,7 @@
      :onClick ~(handler selectCard c i)
      :onDoubleClick [~(handler selectCard c i) ~(handler openIssue)]
      :onContextMenu ~(handler openCardMenu c i)
-     {:id rowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border}
+     (node#rowLine :anchors {:left 0 :right 0 :bottom 0} :height 1 :color @color.border)
      ~(row-priority)
      ~(row-ref)
      ~(row-status column c)
@@ -143,14 +142,13 @@
      :align {:horizontal end :vertical center}))
 
 (defview row-points "A list row's points." []
-  `{:id rowPoints
-    :when ~(not (contains state.hidden "estimate"))
-    :style caption
-    :text ~card.points
-    :width 20
-    :anchors {:right 52 :top 0 :bottom 0}
-    :align {:horizontal end :vertical center}
-    :tooltip ~(t "card.points" {:n card.points})})
+  `(node#rowPoints :when ~(not (contains state.hidden "estimate"))
+     :style caption
+     :text ~card.points
+     :width 20
+     :anchors {:right 52 :top 0 :bottom 0}
+     :align {:horizontal end :vertical center}
+     :tooltip ~(t "card.points" {:n card.points})))
 
 (defview row-priority "A list row's priority icon." []
   `(label#rowPriority :when ~(not (contains state.hidden "priority"))
@@ -164,17 +162,16 @@
      :tooltip ~(t (str "priority." (or-else card.priority 0)))))
 
 (defview row-who "A list row's owner." []
-  `{:id rowWho
-    :when ~(not (contains state.hidden "assignee"))
-    :style badge
-    :text ~card.who
-    :width 22
-    :height 22
-    :radius 999
-    :anchors {:right 20 :top 7}
-    :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
-    :textColor "#ffffff"
-    :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)})
+  `(node#rowWho :when ~(not (contains state.hidden "assignee"))
+     :style badge
+     :text ~card.who
+     :width 22
+     :height 22
+     :radius 999
+     :anchors {:right 20 :top 7}
+     :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
+     :textColor "#ffffff"
+     :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)))
 
 (defview row-tag "A list row's label." []
   `(label#rowTag :when ~(not (contains state.hidden "label"))
@@ -191,13 +188,12 @@
      :anchors {:right 166 :top 7}))
 
 (defview row-due "A list row's due date." [c]
-  `{:id rowDue
-    :style caption
-    :when ~(and (not (contains state.hidden "due")) (some? card.due))
-    :text ~(formatDate (dateMs card.due) "MMM d" "utc")
-    :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
-                    "@bug"
-                    "@color.muted")
-    :width 48
-    :anchors {:right 80 :top 0 :bottom 0}
-    :align {:horizontal end :vertical center}})
+  `(node#rowDue :style caption
+     :when ~(and (not (contains state.hidden "due")) (some? card.due))
+     :text ~(formatDate (dateMs card.due) "MMM d" "utc")
+     :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
+                     "@bug"
+                     "@color.muted")
+     :width 48
+     :anchors {:right 80 :top 0 :bottom 0}
+     :align {:horizontal end :vertical center}))

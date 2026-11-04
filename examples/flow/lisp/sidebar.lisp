@@ -41,80 +41,74 @@
 (defcomponent sidebar "The left column of the window"
   {}
   `(node#sidebarPanel :dir auto :anchors {:left 0 :top 0 :bottom 0} :width 220 :color @color.sidebar
-     {:id sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @color.border}
+     (node#sidebarEdge :anchors {:right 0 :top 0 :bottom 0} :width 1 :color @color.border)
      ~(workspace-switcher)
-     {:id sidebarSearch
-      :style topButton
-      :text ""
-      :icon search
-      :anchors {:right 44 :top 10}
-      :height 28
-      :width 28
-      :padding 0
-      :align center
-      :hover {:color @color.sidebarHover}
-      :tooltip ~(t "goTo.tooltip")
-      :onClick goToCardCommand}
+     (node#sidebarSearch :style topButton
+       :text ""
+       :icon search
+       :anchors {:right 44 :top 10}
+       :height 28
+       :width 28
+       :padding 0
+       :align center
+       :hover {:color @color.sidebarHover}
+       :tooltip ~(t "goTo.tooltip")
+       :onClick goToCardCommand)
      ~(sidebar-new)
      ~(sidebar-nav)
-     {:id navHelp
-      :style topButton
-      :text ""
-      :icon circle-help
-      :anchors {:left 12 :bottom 12}
-      :height 28
-      :width 28
-      :padding 0
-      :align center
-      :hover {:color @color.sidebarHover}
-      :tooltip ~(t "nav.commands")
-      :onClick commandPalette}))
+     (node#navHelp :style topButton
+       :text ""
+       :icon circle-help
+       :anchors {:left 12 :bottom 12}
+       :height 28
+       :width 28
+       :padding 0
+       :align center
+       :hover {:color @color.sidebarHover}
+       :tooltip ~(t "nav.commands")
+       :onClick commandPalette)))
 
 (defview sidebar-new "The sidebar's button that opens the composer." []
-  `{:id sidebarNew
-    :style topButton
-    :text ""
-    :icon edit
-    :anchors {:right 12 :top 10}
-    :height 28
-    :width 28
-    :padding 0
-    :align center
-    :color @color.card
-    :borderWidth 1
-    :borderColor @color.border
-    :hover {:color @color.sidebarHover}
-    :tooltip ~(t "nav.newTooltip")
-    :onClick newCardCommand})
+  `(node#sidebarNew :style topButton
+     :text ""
+     :icon edit
+     :anchors {:right 12 :top 10}
+     :height 28
+     :width 28
+     :padding 0
+     :align center
+     :color @color.card
+     :borderWidth 1
+     :borderColor @color.border
+     :hover {:color @color.sidebarHover}
+     :tooltip ~(t "nav.newTooltip")
+     :onClick newCardCommand))
 
 ;;; Views
 
 (defview workspace-items "The workspace menu's items." []
   `(column#workspaceItems :anchors {:left 6 :right 6 :top 6 :bottom 6} :gap 2 :role menu :arrows vertical
-     {:id settingsButton
-      :style menuRow
-      :icon settings
-      :text ~(t "settings.title")
-      :role menuitem
-      :label ~(t "settings.title")
-      :tooltip ~(t "key.settings")
-      :onClick [{:set state.workspaceOpen :to false} ~(handler openSettings)]}
-     {:id themeToggle
-      :style menuRow
-      :icon ~(if (= state.theme "light") "moon" "sun")
-      :text ~(t "theme.menu")
-      :role menuitem
-      :label ~(t "theme.tooltip")
-      :tooltip ~(t "key.theme")
-      :onClick [{:set state.workspaceOpen :to false} ~(handler toggleTheme)]}
-     {:id languageButton
-      :style menuRow
-      :icon languages
-      :text ~(t "locale.menu" {:code (upper-case settings.appearance.language)})
-      :role menuitem
-      :label ~(t "locale.tooltip")
-      :tooltip ~(t "key.language")
-      :onClick [{:set state.workspaceOpen :to false} ~(handler changeLanguage)]}))
+     (node#settingsButton :style menuRow
+       :icon settings
+       :text ~(t "settings.title")
+       :role menuitem
+       :label ~(t "settings.title")
+       :tooltip ~(t "key.settings")
+       :onClick [{:set state.workspaceOpen :to false} ~(handler openSettings)])
+     (node#themeToggle :style menuRow
+       :icon ~(if (= state.theme "light") "moon" "sun")
+       :text ~(t "theme.menu")
+       :role menuitem
+       :label ~(t "theme.tooltip")
+       :tooltip ~(t "key.theme")
+       :onClick [{:set state.workspaceOpen :to false} ~(handler toggleTheme)])
+     (node#languageButton :style menuRow
+       :icon languages
+       :text ~(t "locale.menu" {:code (upper-case settings.appearance.language)})
+       :role menuitem
+       :label ~(t "locale.tooltip")
+       :tooltip ~(t "key.language")
+       :onClick [{:set state.workspaceOpen :to false} ~(handler changeLanguage)])))
 
 (defview workspace-switcher "The workspace's name at the top of the sidebar, which opens its menu." []
   `(row#workspace :anchors {:left 12 :top 10}

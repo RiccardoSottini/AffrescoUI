@@ -7,19 +7,18 @@
   "The sprint burndown and the activity feed, under the cards-per-column chart while no card is chosen"
   {}
   `(node#insights :color transparent
-     {:id burndownTitle
-      :style caption
-      :icon trending-down
-      :anchors {:left 0 :top 0}
-      :text ~(t "burndown.title" {:n computed.remaining})}
-     {:id burndownBase :anchors {:left 0 :right 0 :top 104} :height 1 :color @color.border}
+     (node#burndownTitle :style caption
+       :icon trending-down
+       :anchors {:left 0 :top 0}
+       :text ~(t "burndown.title" {:n computed.remaining}))
+     (node#burndownBase :anchors {:left 0 :right 0 :top 104} :height 1 :color @color.border)
      (node#burndown :use lineChart
        :with {:values ~computed.burndownValues :top ~state.burndown.0 :color @color.accent :lineWidth 2}
        :anchors {:left 0 :right 0 :top 26}
        :height 78
        :role img
        :label ~(t "burndown.title" {:n computed.remaining}))
-     {:id activityTitle :style caption :icon activity :text ~(t "activity.title") :anchors {:left 0 :top 124}}
+     (node#activityTitle :style caption :icon activity :text ~(t "activity.title") :anchors {:left 0 :top 124})
      (column#activity :anchors {:left 0 :right 0 :top 148 :bottom 0} :gap 4 :scroll vertical :role list :live polite
        ~(repeat [entry state.activity]
          (activity-item entry)))))
@@ -35,11 +34,10 @@
   "The cards with dates, a track a member: dragging a clip changes its dates, or its owner when it changes track"
   {}
   `(node#timeline :radius @radius.card :color @color.surface
-     {:id timelineTitle
-      :style caption
-      :icon calendar-range
-      :anchors {:left 16 :top 12}
-      :text ~(t "timeline.title" {:from (formatDate (dateMs state.sprintStart) "medium" "utc")})}
+     (node#timelineTitle :style caption
+       :icon calendar-range
+       :anchors {:left 16 :top 12}
+       :text ~(t "timeline.title" {:from (formatDate (dateMs state.sprintStart) "medium" "utc")}))
      ~(card-timeline)))
 
 (defcomponent settingsSheet
@@ -87,15 +85,14 @@
 
 (defview activity-item "One entry of the activity feed: who did what to which card." [entry]
   `(node#activityItem :anchors {:left 0 :right 0} :height 34 :color transparent :role listitem
-     {:id activityWho
-      :style badge
-      :text ~entry.who
-      :anchors {:left 0 :top 5}
-      :width 24
-      :height 24
-      :radius 999
-      :color ~(or-else (:color (find (fn [it] (= it.who entry.who)) state.members)) "@color.muted")
-      :textColor "#ffffff"}
+     (node#activityWho :style badge
+       :text ~entry.who
+       :anchors {:left 0 :top 5}
+       :width 24
+       :height 24
+       :radius 999
+       :color ~(or-else (:color (find (fn [it] (= it.who entry.who)) state.members)) "@color.muted")
+       :textColor "#ffffff")
      (label#activityText :font small
        :textColor @color.text
        :wrap true
@@ -135,15 +132,14 @@
      :color @color.column
      :role group
      :label ~member.name
-     {:id laneWho
-      :style badge
-      :text ~member.who
-      :anchors {:left 12 :top 10}
-      :width 24
-      :height 24
-      :radius 999
-      :color ~member.color
-      :textColor "#ffffff"}
+     (node#laneWho :style badge
+       :text ~member.who
+       :anchors {:left 12 :top 10}
+       :width 24
+       :height 24
+       :radius 999
+       :color ~member.color
+       :textColor "#ffffff")
      (label#laneName :font
                      heading
                      :textColor
@@ -154,10 +150,9 @@
                      {:left 44 :top 12}
                      :text
                      ~member.name)
-     {:id laneCount
-      :style caption
-      :anchors {:left "#laneName.right + 10" :top 15}
-      :text ~(t "lane.cards" {:n (count (filter (fn [it] (= it.who member.who)) computed.allCards))})}
+     (node#laneCount :style caption
+       :anchors {:left "#laneName.right + 10" :top 15}
+       :text ~(t "lane.cards" {:n (count (filter (fn [it] (= it.who member.who)) computed.allCards))}))
      ~(lane-columns member)))
 
 (defview lane-columns "A swimlane's columns, side by side." [member]
@@ -168,7 +163,7 @@
           :radius @radius.chip
           :color @color.field
           :onDrop ~(handler moveToLane event.data.from event.data.at c member.who)
-          {:id laneColumnName :style caption :text ~column.name :anchors {:left 8 :top 4}}
+          (node#laneColumnName :style caption :text ~column.name :anchors {:left 8 :top 4})
           (stack#laneCards :gap 4 :scroll vertical :anchors {:left 4 :right 4 :top 22 :bottom 4}
             ~(repeat [row (cards-in-order c) :index k]
               (lane-card member column c row)))))))

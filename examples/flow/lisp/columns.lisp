@@ -26,12 +26,11 @@
 
 (defview detail-body "The side panel: the chosen card's drawer, or the cards-per-column chart and the insights." []
   `(node#detailBody :fill 6 :radius @radius.card :color @color.surface
-     {:id chartTitle
-      :when ~(nil? computed.card)
-      :style caption
-      :text ~(t "chart.title")
-      :icon bar-chart-3
-      :anchors {:left 20 :top 18}}
+     (node#chartTitle :when ~(nil? computed.card)
+       :style caption
+       :text ~(t "chart.title")
+       :icon bar-chart-3
+       :anchors {:left 20 :top 18})
      (node#chart :when ~(nil? computed.card)
        :use barChart
        :with {:values ~computed.counts :color @color.accent :gap 0.4}
@@ -45,11 +44,10 @@
             :align {:horizontal center :vertical start}
             :textColor @color.muted
             :text ~(str column.name ": " (count column.cards)))))
-     {:id detailLine
-      :when ~(nil? computed.card)
-      :anchors {:left 20 :right 20 :top 186}
-      :height 1
-      :color @color.border}
+     (node#detailLine :when ~(nil? computed.card)
+       :anchors {:left 20 :right 20 :top 186}
+       :height 1
+       :color @color.border)
      (label#noCard :when ~(nil? computed.card)
        :anchors {:left 20 :right 20 :top 206}
        :height 60
@@ -114,13 +112,12 @@
        :label ~(if (get computed.over c)
                    (t "column.over" {:name column.name :count (count column.cards) :limit column.limit})
                    (count column.cards)))
-     {:id columnLimit
-      :style caption
-      :when ~(and (some? column.limit) (get computed.over c))
-      :text ~(t "column.limit" {:limit column.limit})
-      :height 40
-      :align {:horizontal start :vertical center}
-      :textColor ~(if (get computed.over c) "@bug" "@color.muted")}))
+     (node#columnLimit :style caption
+       :when ~(and (some? column.limit) (get computed.over c))
+       :text ~(t "column.limit" {:limit column.limit})
+       :height 40
+       :align {:horizontal start :vertical center}
+       :textColor ~(if (get computed.over c) "@bug" "@color.muted"))))
 
 (defview column-more "A column's menu button, which opens its menu below it." [column c]
   `(label#columnMore :icon ellipsis
@@ -213,69 +210,62 @@
      :align {:horizontal start :vertical start}))
 
 (defview card-owner "A card's owner, as their initials in a circle." []
-  `{:id cardOwner
-    :when ~(not (contains state.hidden "assignee"))
-    :style badge
-    :font tiny
-    :text ~card.who
-    :width 18
-    :height 18
-    :radius 999
-    :anchors {:right 10 :top 8}
-    :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
-    :textColor "#ffffff"
-    :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)})
+  `(node#cardOwner :when ~(not (contains state.hidden "assignee"))
+     :style badge
+     :font tiny
+     :text ~card.who
+     :width 18
+     :height 18
+     :radius 999
+     :anchors {:right 10 :top 8}
+     :color ~(or-else (:color (find (fn [it] (= it.who card.who)) state.members)) "@color.muted")
+     :textColor "#ffffff"
+     :tooltip ~(or-else (:name (find (fn [it] (= it.who card.who)) state.members)) card.who)))
 
 (defview card-chips "A card's chips: its priority, label, due date, points and owner, as the Display menu shows them."
   [c]
   `(row#cardChips :gap 4 :alignItems center :anchors {:left 10 :right 10 :bottom 9} :height 22
-     {:id cardPriority
-      :style cardChip
-      :borderWidth 0
-      :when ~(not (contains state.hidden "priority"))
-      :icon ~(get state.priorities (or-else card.priority 0))
-      :text ""
-      :width 22
-      :fitText false
-      :align center
-      :textColor ~(if (= card.priority 1) "@bug" "@color.muted")
-      :tooltip ~(t (str "priority." (or-else card.priority 0)))}
-     {:id cardTag
-      :when ~(not (contains state.hidden "label"))
-      :style cardChip
-      :runs [{:text "●" :font symbols :size 10 :color ~(str "@" card.tag)} ~(str " " (t (str "tag." card.tag)))]
-      :tooltip ~(t (str "tag." card.tag))}
-     {:id cardLabels
-      :when ~(and (not (contains state.hidden "label")) (> (count (or-else card.labels [])) 0))
-      :style cardChip
-      :text ~(str "+" (count (or-else card.labels [])))
-      :tooltip ~(join ", " (map (fn [it] (t (str "label." it))) (or-else card.labels [])))}
+     (node#cardPriority :style cardChip
+       :borderWidth 0
+       :when ~(not (contains state.hidden "priority"))
+       :icon ~(get state.priorities (or-else card.priority 0))
+       :text ""
+       :width 22
+       :fitText false
+       :align center
+       :textColor ~(if (= card.priority 1) "@bug" "@color.muted")
+       :tooltip ~(t (str "priority." (or-else card.priority 0))))
+     (node#cardTag :when ~(not (contains state.hidden "label"))
+       :style cardChip
+       :runs [{:text "●" :font symbols :size 10 :color ~(str "@" card.tag)} ~(str " " (t (str "tag." card.tag)))]
+       :tooltip ~(t (str "tag." card.tag)))
+     (node#cardLabels :when ~(and (not (contains state.hidden "label")) (> (count (or-else card.labels [])) 0))
+       :style cardChip
+       :text ~(str "+" (count (or-else card.labels [])))
+       :tooltip ~(join ", " (map (fn [it] (t (str "label." it))) (or-else card.labels []))))
      ~(card-due c)
-     {:id cardNotes
-      :style cardChip
-      :borderWidth 0
-      :when ~(> (count (or-else card.comments [])) 0)
-      :icon message-square
-      :text ~(str " " (count (or-else card.comments [])))
-      :tooltip ~(t "drawer.comments" {:n (count (or-else card.comments []))})}
-     {:id cardPoints
-      :when ~(not (contains state.hidden "estimate"))
-      :style cardChip
-      :borderWidth 0
-      :icon triangle
-      :text ~card.points
-      :tooltip ~(t "card.points" {:n card.points})}))
+     (node#cardNotes :style cardChip
+       :borderWidth 0
+       :when ~(> (count (or-else card.comments [])) 0)
+       :icon message-square
+       :text ~(str " " (count (or-else card.comments [])))
+       :tooltip ~(t "drawer.comments" {:n (count (or-else card.comments []))}))
+     (node#cardPoints :when ~(not (contains state.hidden "estimate"))
+       :style cardChip
+       :borderWidth 0
+       :icon triangle
+       :text ~card.points
+       :tooltip ~(t "card.points" {:n card.points}))))
 
 (defview card-due "A card's due date, red once it is past." [c]
-  `{:id cardDue
-    :style cardChip
-    :when ~(and (not (contains state.hidden "due")) (some? card.due))
-    :icon calendar
-    :text ~(formatDate (dateMs card.due) "MMM d" "utc")
-    :tooltip ~(formatDate (dateMs card.due) "medium" "utc")
-    :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
-                    "@bug"
-                    "@color.muted")})
+  `(node#cardDue :style cardChip
+     :when ~(and (not (contains state.hidden "due")) (some? card.due))
+     :icon calendar
+     :text ~(formatDate (dateMs card.due) "MMM d" "utc")
+     :tooltip ~(formatDate (dateMs card.due) "medium" "utc")
+     :textColor ~(if (and (< (daysBetween state.today card.due) 0) (not= c computed.lastColumn))
+                     "@bug"
+                     "@color.muted")))
 
 ;;; The table
 

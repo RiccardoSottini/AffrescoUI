@@ -15,16 +15,15 @@
      :borderWidth 1
      :borderColor @color.border
      :shadow {:y 12 :blur 32 :color "#00000040"}
-     {:id composerTeam :style cardChip :icon box :text " Flow" :anchors {:left 16 :top 14}}
-     {:id composerTitle
-      :style cardChip
-      :borderWidth 0
-      :text ~(str "›  " (t "composer.title"))
-      :anchors {:left "#composerTeam.right" :top 14}}
+     (node#composerTeam :style cardChip :icon box :text " Flow" :anchors {:left 16 :top 14})
+     (node#composerTitle :style cardChip
+       :borderWidth 0
+       :text ~(str "›  " (t "composer.title"))
+       :anchors {:left "#composerTeam.right" :top 14})
      ~(new-card)
      ~(composer-notes)
      ~(composer-chips)
-     {:id composerLine :anchors {:left 0 :right 0 :bottom 48} :height 1 :color @color.border}
+     (node#composerLine :anchors {:left 0 :right 0 :bottom 48} :height 1 :color @color.border)
      ~(composer-more)
      (label#composerCreate :font small
        :text ~(t "composer.create")
@@ -89,52 +88,48 @@
 
 (defview composer-chips "The composer's chips: the new card's status, priority, owner and label." []
   `(row#composerChips :gap 6 :anchors {:left 16 :right 16 :bottom 60} :height 26
-     {:id composerStatus
-      :style cardChip
-      :runs [{:icon ~(or-else (get state.statusIcons state.composer.c) "circle")
-              :color ~(get-in computed.columns [state.composer.c :color])}
-             ~(str " " (get-in computed.columns [state.composer.c :name]))]
-      :cursor hand
-      :focusable true
-      :role button
-      :label ~(t "composer.in" {:column (get-in computed.columns [state.composer.c :name])})
-      :onClick nextComposerColumn}
-     {:id composerPriority
-      :style cardChip
-      :icon ~(get state.priorities state.composer.p)
-      :text ~(str " " (t (str "priority." state.composer.p)))
-      :cursor hand
-      :focusable true
-      :role button
-      :label ~(t "quick.priority")
-      :onClick nextComposerPriority}
+     (node#composerStatus :style cardChip
+       :runs [{:icon ~(or-else (get state.statusIcons state.composer.c) "circle")
+               :color ~(get-in computed.columns [state.composer.c :color])}
+              ~(str " " (get-in computed.columns [state.composer.c :name]))]
+       :cursor hand
+       :focusable true
+       :role button
+       :label ~(t "composer.in" {:column (get-in computed.columns [state.composer.c :name])})
+       :onClick nextComposerColumn)
+     (node#composerPriority :style cardChip
+       :icon ~(get state.priorities state.composer.p)
+       :text ~(str " " (t (str "priority." state.composer.p)))
+       :cursor hand
+       :focusable true
+       :role button
+       :label ~(t "quick.priority")
+       :onClick nextComposerPriority)
      ~(composer-who)
-     {:id composerTag
-      :style cardChip
-      :runs [{:text "●" :font symbols :size 10 :color ~(str "@" state.composer.tag)}
-             ~(str " " (t (str "tag." state.composer.tag)))]
-      :cursor hand
-      :focusable true
-      :role button
-      :label ~(t "issue.labels")
-      :onClick {:set state.composer.tag
-                :to ~(get state.filters
-                          (+ (mod (indexOf state.filters state.composer.tag) (- (count state.filters) 1)) 1))}}))
+     (node#composerTag :style cardChip
+       :runs [{:text "●" :font symbols :size 10 :color ~(str "@" state.composer.tag)}
+              ~(str " " (t (str "tag." state.composer.tag)))]
+       :cursor hand
+       :focusable true
+       :role button
+       :label ~(t "issue.labels")
+       :onClick {:set state.composer.tag
+                 :to ~(get state.filters
+                           (+ (mod (indexOf state.filters state.composer.tag) (- (count state.filters) 1)) 1))})))
 
 (defview composer-who "The composer's owner chip, which goes round the members." []
-  `{:id composerWho
-    :style cardChip
-    :icon circle-user
-    :text ~(str " " (:name (find (fn [it] (= it.who state.composer.who)) state.members)))
-    :cursor hand
-    :focusable true
-    :role button
-    :label ~(t "quick.assignee")
-    :onClick {:set state.composer.who
-              :to ~(get-in state.members
-                           [(mod (+ (indexOf (map (fn [it] it.who) state.members) state.composer.who) 1)
-                                 (count state.members))
-                            :who])}})
+  `(node#composerWho :style cardChip
+     :icon circle-user
+     :text ~(str " " (:name (find (fn [it] (= it.who state.composer.who)) state.members)))
+     :cursor hand
+     :focusable true
+     :role button
+     :label ~(t "quick.assignee")
+     :onClick {:set state.composer.who
+               :to ~(get-in state.members
+                            [(mod (+ (indexOf (map (fn [it] it.who) state.members) state.composer.who) 1)
+                                  (count state.members))
+                             :who])}))
 
 ;;; The edit dialog
 
@@ -170,50 +165,45 @@
 (defview bulk-actions "The selection bar's buttons: the count, then what to do with every marked card." []
   `(row#row-bulk-bar :gap 4 :alignItems center :color transparent :anchors {:left 6 :right 6 :top 6 :bottom 6}
      ~(bulk-count)
-     {:id bulkClear
-      :style propValue
-      :icon x
-      :text ""
-      :width 28
-      :fitText false
-      :padding 0
-      :align center
-      :tooltip ~(t "bulk.clear")
-      :label ~(t "bulk.clear")
-      :onClick clearMarks}
-     {:id bulkStatus
-      :style propValue
-      :icon circle-dashed
-      :text ~(t "issue.status")
-      :tooltip ~(t "key.s")
-      :onClick changeStatus}
-     {:id bulkPriority
-      :style propValue
-      :icon chevrons-up
-      :text ~(t "issue.priority")
-      :tooltip ~(t "key.p")
-      :onClick changePriority}
-     {:id bulkAssignee
-      :style propValue
-      :icon user
-      :text ~(t "issue.assignee")
-      :tooltip ~(t "key.a")
-      :onClick changeAssignee}
+     (node#bulkClear :style propValue
+       :icon x
+       :text ""
+       :width 28
+       :fitText false
+       :padding 0
+       :align center
+       :tooltip ~(t "bulk.clear")
+       :label ~(t "bulk.clear")
+       :onClick clearMarks)
+     (node#bulkStatus :style propValue
+       :icon circle-dashed
+       :text ~(t "issue.status")
+       :tooltip ~(t "key.s")
+       :onClick changeStatus)
+     (node#bulkPriority :style propValue
+       :icon chevrons-up
+       :text ~(t "issue.priority")
+       :tooltip ~(t "key.p")
+       :onClick changePriority)
+     (node#bulkAssignee :style propValue
+       :icon user
+       :text ~(t "issue.assignee")
+       :tooltip ~(t "key.a")
+       :onClick changeAssignee)
      ~(bulk-delete)))
 
 (defview bulk-delete "The selection bar's Delete button." []
-  `{:id bulkDelete
-    :style propValue
-    :icon trash-2
-    :text ""
-    :width 28
-    :fitText false
-    :padding 0
-    :align center
-    :textColor @bug
-    :tooltip ~(t "bulk.delete")
-    :label ~(t "bulk.delete")
-    :onClick bulkDelete})
+  `(node#bulkDelete :style propValue
+     :icon trash-2
+     :text ""
+     :width 28
+     :fitText false
+     :padding 0
+     :align center
+     :textColor @bug
+     :tooltip ~(t "bulk.delete")
+     :label ~(t "bulk.delete")
+     :onClick bulkDelete))
 
 (defview bulk-count "How many cards the selection bar acts on." []
   `(label#bulkCount :font small
