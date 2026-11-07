@@ -245,6 +245,8 @@ float Font::rasterScaleFor(float pixelScale) noexcept {
 	return std::min(std::round(pixelScale * 4.0f) / 4.0f, largestRasterScale);
 }
 
+bool Font::fitsPixels(float rasterScale) noexcept { return rasterScale < 2.0f; }
+
 float Font::rasterScale() const noexcept { return data_->rasterScale; }
 
 // A raster draws only: no Latin-1 at load (its glyphs are rasterised as text draws them), and no rasters of its own

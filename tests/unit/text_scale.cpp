@@ -15,8 +15,10 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <limits>
 #include <memory>
@@ -94,6 +96,35 @@ const Font* drawnFrom(const PaintRecord& record) {
 affresco::Vec2 texels(const Font& font, const Font::Glyph& glyph) {
 	const auto size = static_cast<float>(font.atlasSize(glyph.page));
 	return {std::round(glyph.uv.width() * size), std::round(glyph.uv.height() * size)};
+}
+
+/// @brief Where a record's glyphs are drawn: each glyph quad's left and top edges, in window units.
+/// @param record The record.
+/// @return One corner per glyph quad, in the order they were recorded.
+std::vector<affresco::Vec2> glyphCorners(const PaintRecord& record) {
+	std::vector<affresco::Vec2> corners;
+	for(const affresco::detail::PaintOp& op : record.ops) {
+		if(op.step != PaintStep::glyphs) continue;
+		for(std::uint32_t quad = op.firstQuad; quad < op.firstQuad + op.quads; ++quad) {
+			affresco::Vec2 corner{std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
+			for(std::size_t index = 0; index < affresco::detail::verticesPerQuad; ++index) {
+				const affresco::detail::Vertex& vertex =
+				    record.vertices[quad * affresco::detail::verticesPerQuad + index];
+				corner = {std::min(corner.x, vertex.x), std::min(corner.y, vertex.y)};
+			}
+			corners.push_back(corner);
+		}
+	}
+	return corners;
+}
+
+/// @brief How far a length in window units is from a whole number of a frame's pixels.
+/// @param units The length.
+/// @param scale The frame's pixels per unit.
+/// @return The distance, in pixels.
+float offPixels(float units, float scale) {
+	const float pixels = units * scale;
+	return std::abs(pixels - std::round(pixels));
 }
 
 } // namespace
@@ -222,4 +253,46 @@ TEST_CASE("text scale: a frame at another scale records its text again, from tha
 	CHECK(cache.refresh(affresco::detail::takeFrame(*window), 2.0f).damage);
 	CHECK(raster.atlasVersion(0) == rasterised); // nothing rasterised twice
 	CHECK(&font->rasterAt(2.0f) == &raster);
+}
+
+TEST_CASE("text scale: below 2, glyphs are fitted to pixels, and at 2 and above they keep their exact places") {
+	CHECK(Font::fitsPixels(1.0f));
+	CHECK(Font::fitsPixels(1.25f));
+	CHECK(Font::fitsPixels(1.75f));
+	CHECK_FALSE(Font::fitsPixels(2.0f));
+	CHECK_FALSE(Font::fitsPixels(4.0f));
+
+	const auto font = roboto(15.0f);
+	constexpr std::u32string_view text = U"Fitted to pixels: Wave, Ω, é";
+	const Layout laidOut = layOut(*font, text);
+	const Font::ShapedText& shaped = font->shape(text);
+	REQUIRE(shaped.glyphs.size() > 10);
+	for(const float scale : {1.0f, 1.25f, 1.5f}) {
+		CAPTURE(scale);
+		const Font& raster = font->rasterAt(scale);
+		const std::vector<affresco::Vec2> corners = glyphCorners(record(*font, text, scale));
+		REQUIRE(corners.size() == shaped.glyphs.size());
+		for(std::size_t index = 0; index < corners.size(); ++index) {
+			CAPTURE(index);
+			// On a pixel column and row, at most half a pixel from where the glyph is laid out
+			CHECK(offPixels(corners[index].x, scale) < 0.01f);
+			CHECK(offPixels(corners[index].y, scale) < 0.01f);
+			const Font::Glyph& glyph = raster.rasterGlyph(*shaped.glyphs[index].glyph);
+			const float laid = 10.0f + shaped.glyphs[index].x + glyph.quad.left;
+			CHECK(std::abs(corners[index].x - laid) * scale <= 0.5f + 0.01f);
+		}
+	}
+	CHECK(layOut(*font, text) == laidOut); // measuring, carets and wrapping don't move
+
+	// At 2, the glyphs go where they are laid out: some of them between two pixel columns
+	const Font& dense = font->rasterAt(2.0f);
+	const std::vector<affresco::Vec2> corners = glyphCorners(record(*font, text, 2.0f));
+	REQUIRE(corners.size() == shaped.glyphs.size());
+	std::size_t between = 0;
+	for(std::size_t index = 0; index < corners.size(); ++index) {
+		const Font::Glyph& glyph = dense.rasterGlyph(*shaped.glyphs[index].glyph);
+		CHECK(corners[index].x == doctest::Approx(10.0f + shaped.glyphs[index].x + glyph.quad.left));
+		if(offPixels(corners[index].x, 2.0f) > 0.01f) ++between;
+	}
+	CHECK(between > 0);
 }

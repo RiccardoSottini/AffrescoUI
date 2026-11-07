@@ -189,6 +189,11 @@ public:
 	/// @param pixelScale Framebuffer pixels per window unit.
 	/// @return 1 for 1.125 or less (and for anything not a number): the font's own glyphs.
 	[[nodiscard]] static float rasterScaleFor(float pixelScale) noexcept;
+	/// @brief Whether glyphs rasterised this dense are fitted to pixels: hinted lightly (vertically only, so widths and
+	/// advances don't change) and drawn from whole pixel columns, as a screen with few pixels needs to keep them sharp.
+	/// @param rasterScale Texels per pixel (rasterScale()).
+	/// @return True below 2: denser rasters keep their outlines' exact shapes and places.
+	[[nodiscard]] static bool fitsPixels(float rasterScale) noexcept;
 	/// @brief The font as drawn into a framebuffer with more pixels per unit: its glyphs rasterised that much denser,
 	/// into atlas pages of its own, made on first use and kept as long as the font.
 	///

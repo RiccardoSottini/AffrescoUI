@@ -115,8 +115,10 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   test harness sets it by default (`CONTRIBUTING.md`).
 - **Text is shaped, then drawn.** `Font::shape` splits text into runs of one face and one script, each character
   from the first file of the font and its fallbacks that has it (fallbacks at the font's em size), and shapes each run
-  with HarfBuzz; FreeType rasterises the glyphs, unhinted. A right-to-left run is laid out right to left, and a line's
-  runs are put in visual order by their bidirectional levels (UAX #9, simplified: the paragraph's direction is its
+  with HarfBuzz; FreeType rasterises the glyphs. Below a scale of 2 they are fitted to pixels (`Font::fitsPixels`):
+  hinted lightly, vertically only, and each drawn from a whole pixel row and column, at most half a pixel from where
+  it is laid out, so a screen with few pixels shows them sharp while widths and carets stay HarfBuzz's; at 2 and above
+  they are unhinted, their outlines' exact shapes. A right-to-left run is laid out right to left, and a line's runs are put in visual order by their bidirectional levels (UAX #9, simplified: the paragraph's direction is its
   first strong character's, and numbers stay left to right). Shaped text is cached per font by line and by word, so a
   frame that draws what the last one drew shapes nothing, and measuring a new line of known words allocates nothing.
 - **Plain words skip shaping, with HarfBuzz's results.** A word of the first face's plain Latin-1 characters
