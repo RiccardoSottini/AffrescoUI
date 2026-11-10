@@ -20,10 +20,10 @@
 
 <br/>
 
-https://github.com/user-attachments/assets/7b2f3403-74e1-4894-b534-b967e9530474
+https://github.com/user-attachments/assets/ab2d21d1-4790-41f0-a185-c75bf2cda476
 
 <sub>The demo: a running app changed by asking its assistant, a new app made from a name and a description, and a 3D
-modeller building a fighter jet inside the running app.</sub>
+modeller building a working V8 engine inside the running app.</sub>
 
 </div>
 
