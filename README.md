@@ -20,7 +20,7 @@
 
 <br/>
 
-<a href=".github/media/affrescoui-demo.mp4"><img src=".github/media/affrescoui-demo-poster.png" width="860" alt="The AffrescoUI demo video: the logo, the name and the motto, with a play button. Click to watch"></a>
+https://github.com/user-attachments/assets/7b2f3403-74e1-4894-b534-b967e9530474
 
 <sub>The demo: a running app changed by asking its assistant, a new app made from a name and a description, and a 3D
 modeller building a fighter jet inside the running app.</sub>
