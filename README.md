@@ -20,10 +20,10 @@
 
 <br/>
 
-https://github.com/user-attachments/assets/ab2d21d1-4790-41f0-a185-c75bf2cda476
+https://github.com/user-attachments/assets/ff84f66a-d3ab-415b-90e0-0575c4a5ac45
 
-<sub>The demo: a running app changed by asking its assistant, a new app made from a name and a description, and a 3D
-modeller building a working V8 engine inside the running app.</sub>
+<sub>The demo: an image editor given a 3D modeller's and a presentation app's features by asking its assistant, a new
+app made from a name and a description, a small change to a home app, and the Launcher with its apps.</sub>
 
 </div>
 
