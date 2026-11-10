@@ -20,7 +20,7 @@
 
 <br/>
 
-https://github.com/user-attachments/assets/ff84f66a-d3ab-415b-90e0-0575c4a5ac45
+https://github.com/user-attachments/assets/6fa000e1-b364-4c9d-b3a6-a0d22d408525
 
 <sub>The demo: an image editor given a 3D modeller's and a presentation app's features by asking its assistant, a new
 app made from a name and a description, a small change to a home app, and the Launcher with its apps.</sub>
