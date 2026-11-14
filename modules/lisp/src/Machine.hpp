@@ -281,6 +281,7 @@ private:
 		std::size_t frames = 0;   ///< How many frames it leaves.
 		std::size_t height = 0;   ///< How high the stack stands.
 		std::uint32_t target = 0; ///< Where its `catch` is.
+		bool whole = false;       ///< A `finally`'s: the condition is kept whole, for Throw to raise it again.
 	};
 	using Handle = void (Machine::*)(const Instruction&); ///< An instruction's function.
 	/// @brief The instructions' functions, by Op. @return The table.

@@ -116,7 +116,8 @@ public:
 		try {
 			for(Token token = lexer_.next(); token.kind != TokenKind::End && token.offset < until;
 			    token = lexer_.next()) {
-				const std::size_t start = prefix != std::string_view::npos ? prefix : token.offset;
+				// lexer_.formStart() takes in a ^meta before the token
+				const std::size_t start = prefix != std::string_view::npos ? prefix : lexer_.formStart();
 				if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) {
 					prefix = start;
 					continue;
