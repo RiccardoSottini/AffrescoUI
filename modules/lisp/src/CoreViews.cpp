@@ -13,6 +13,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace affresco::lisp {
@@ -197,23 +198,19 @@ Value arity(Machine& /*machine*/, Arguments arguments) {
 	const auto given = static_cast<std::int64_t>(arguments[0].count());
 	const Value counts = arguments[1];
 	std::vector<std::int64_t> fixed;
-	std::optional<std::int64_t> least;
-	std::optional<std::size_t> rest;
+	std::optional<std::pair<std::size_t, std::int64_t>> rest; // the '&' clause, and how many it takes at least
 	for(std::size_t at = 0; at < counts.count(); ++at) {
 		const std::int64_t count = wholeNumber(counts.at(at)).value_or(0);
 		if(count == given) return Value::integer(static_cast<std::int64_t>(at));
-		if(count >= 0) {
-			fixed.push_back(count);
-		} else {
-			rest = at;
-			least = -count - 1;
-		}
+		if(count >= 0) fixed.push_back(count);
+		else rest = {at, -count - 1};
 	}
-	if(rest && given >= *least) return Value::integer(static_cast<std::int64_t>(*rest));
+	if(rest && given >= rest->second) return Value::integer(static_cast<std::int64_t>(rest->first));
 	std::ranges::sort(fixed);
 	std::vector<std::string> ways;
+	ways.reserve(fixed.size() + 1);
 	for(const std::int64_t count : fixed) ways.push_back(std::to_string(count));
-	if(least) ways.push_back("at least " + std::to_string(*least));
+	if(rest) ways.push_back("at least " + std::to_string(rest->second));
 	std::string taken;
 	for(std::size_t at = 0; at < ways.size(); ++at)
 		taken += (at == 0 ? "" : at + 1 == ways.size() ? " or " : ", ") + ways[at];

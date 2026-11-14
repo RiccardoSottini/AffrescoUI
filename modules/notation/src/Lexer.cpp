@@ -113,19 +113,11 @@ Token Lexer::raw(Skip& skip) {
 	} else if(c == '"') {
 		kind = TokenKind::String;
 		quoted(start);
-	} else if(const std::optional<TokenKind> form = c == '#' && language_ ? hashFormAt() : std::nullopt) {
-		kind = *form;
+	} else if(const std::optional<TokenKind> language = language_ ? languageTokenAt(start, skip) : std::nullopt) {
+		kind = *language;
 	} else if(c == ':' || c == '#') {
 		kind = c == ':' ? TokenKind::Key : TokenKind::Id;
 		if(nameOrDiscard()) skip = Skip::Discard;
-	} else if(language_ && c == '^') { // no word starts with '^', so in language text it is free for metadata
-		++at_;
-		skip = Skip::Metadata;
-	} else if(language_ && c == '\\') { // nor with a backslash
-		kind = TokenKind::Character;
-		characterAt(start);
-	} else if(const std::optional<TokenKind> prefix = language_ ? prefixAt() : std::nullopt) {
-		kind = *prefix;
 	} else {
 		wordAt(start);
 	}
@@ -153,6 +145,22 @@ std::optional<TokenKind> Lexer::hashFormAt() {
 			return kind;
 		}
 	return std::nullopt;
+}
+
+std::optional<TokenKind> Lexer::languageTokenAt(std::size_t start, Skip& skip) {
+	switch(text_[at_]) {
+	case '#':
+		return hashFormAt();
+	case '^': // no word starts with '^', so in language text it is free for metadata
+		++at_;
+		skip = Skip::Metadata;
+		return TokenKind::Word;
+	case '\\': // nor with a backslash
+		characterAt(start);
+		return TokenKind::Character;
+	default:
+		return prefixAt();
+	}
 }
 
 std::optional<TokenKind> Lexer::prefixAt() noexcept {
@@ -205,7 +213,7 @@ void Lexer::characterAt(std::size_t start) {
 	if(at_ >= text_.size()) fail(start, "expected a character after the backslash");
 	++at_; // the character after it, whatever it is, a bracket or a space too: \( is '('
 	while(at_ < text_.size() && (static_cast<unsigned char>(text_[at_]) & 0xC0U) == 0x80U) ++at_; // its UTF-8 bytes
-	while(at_ < text_.size() && !isDelimiter(text_[at_])) ++at_;                              // \newline
+	while(at_ < text_.size() && !isDelimiter(text_[at_])) ++at_;                                  // \newline
 }
 
 void Lexer::wordAt(std::size_t start) noexcept {

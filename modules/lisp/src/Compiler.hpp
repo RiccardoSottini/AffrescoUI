@@ -14,6 +14,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace affresco::lisp {
@@ -446,6 +447,13 @@ private:
 	/// @return `(fn name [& %args] ...)`.
 	/// @throws LispError If two clauses take as many arguments, or the one with '&' takes fewer than another.
 	Value arities(const Value& form, std::size_t at, std::string_view name);
+	/// @brief One clause of a function of many arities as a loop that binds its parameters to the arguments.
+	/// @param clause The clause, `([a b & more] body...)`.
+	/// @param args The name the arguments are in.
+	/// @return `(loop [a (%nth args 0) b (%nth args 1) more (%drop args 2)] body...)`, and how many arguments the
+	/// clause takes: n, or -(n + 1) for n then '&'.
+	/// @throws LispError If '&' isn't before the last parameter.
+	std::pair<Value, std::int64_t> arityClause(const Value& clause, const Value& args);
 	/// @brief Compiles a function's parameters.
 	/// @param params The parameter vector.
 	void parameters(const Value& params);

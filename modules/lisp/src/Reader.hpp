@@ -113,8 +113,8 @@ private:
 	/// @return The form.
 	/// @throws LispError Always: a set is a vector in the language.
 	Value setOf(const Token& token, int depth);
-	/// @brief Reads a reader conditional, `#?(...)` or `#?@(...)` (ReaderForms.cpp): pairs of a platform's keyword and a
-	/// form, every form read and the first after `:affresco` or `:default` chosen.
+	/// @brief Reads a reader conditional, `#?(...)` or `#?@(...)` (ReaderForms.cpp): pairs of a platform's keyword and
+	/// a form, every form read and the first after `:affresco` or `:default` chosen.
 	/// @param token The `#?` or `#?@` token, its bracket still to read.
 	/// @param depth How many forms hold it.
 	/// @return The form chosen, or std::nullopt if none is.
@@ -137,6 +137,23 @@ private:
 	/// @return The number, or std::nullopt if the word isn't written so.
 	/// @throws LispError If it doesn't fit 64 bits, or divides by zero.
 	std::optional<json> clojureNumber(const Token& token) const;
+	/// @brief Reads digits of a number's token as a whole number (ReaderForms.cpp).
+	/// @param token The number's token, which an error names.
+	/// @param digits Its digits, maybe after a '-'.
+	/// @param base 10 or 16.
+	/// @return The number.
+	/// @throws LispError If it doesn't fit 64 bits.
+	std::int64_t wholeIn(const Token& token, std::string_view digits, int base) const;
+	/// @brief Reads a big integer, `12N`, as a whole number of up to 64 bits, signed or not (ReaderForms.cpp).
+	/// @param token The word, digits then 'N'.
+	/// @return The number.
+	/// @throws LispError If it doesn't fit 64 bits.
+	json bigInteger(const Token& token) const;
+	/// @brief Reads a ratio, `1/2`, as the number it is (ReaderForms.cpp).
+	/// @param token The word, digits, '/' and digits.
+	/// @return The number: whole if the division is exact.
+	/// @throws LispError If a side doesn't fit 64 bits, or it divides by zero.
+	json ratio(const Token& token) const;
 	/// @brief Reads a keyword, refusing one with a namespace (`::name`, `:a/b`).
 	/// @param token The keyword's token.
 	/// @return The keyword.
@@ -162,14 +179,14 @@ private:
 	/// @return The place.
 	Place placeAt(std::size_t offset);
 
-	Heap& heap_;              ///< See the constructor.
-	notation::Lexer lexer_;   ///< The tokens.
-	const std::string* file_; ///< See the constructor.
-	std::size_t firstLine_;   ///< See the constructor.
-	std::size_t firstColumn_; ///< See the constructor.
-	std::size_t scanned_ = 0; ///< How far placeAt() has looked.
-	std::size_t line_ = 0;    ///< Line breaks before scanned_.
-	std::size_t column_ = 1;  ///< The column of scanned_, in characters.
+	Heap& heap_;                         ///< See the constructor.
+	notation::Lexer lexer_;              ///< The tokens.
+	const std::string* file_;            ///< See the constructor.
+	std::size_t firstLine_;              ///< See the constructor.
+	std::size_t firstColumn_;            ///< See the constructor.
+	std::size_t scanned_ = 0;            ///< How far placeAt() has looked.
+	std::size_t line_ = 0;               ///< Line breaks before scanned_.
+	std::size_t column_ = 1;             ///< The column of scanned_, in characters.
 	LambdaParameters* lambda_ = nullptr; ///< The function literal being read, if any; it lives on lambda()'s stack.
 };
 

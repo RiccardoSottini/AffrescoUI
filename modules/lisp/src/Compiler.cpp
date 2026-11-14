@@ -353,21 +353,9 @@ Value Compiler::arities(const Value& form, std::size_t at, std::string_view name
 		const Value clause = form.at(index);
 		if(!hasClauses(form, index))
 			fail(clause, "a function of many arities is clauses of parameters and a body: (fn ([a] a) ([a b] b))");
-		const Value params = clause.at(0);
-		std::vector<Value> pairs;
-		std::int64_t fixed = 0;
-		bool rest = false;
-		for(std::size_t p = 0; p < params.count(); ++p) {
-			if(params.at(p).kind() == Kind::Symbol && params.at(p).text() == "&") {
-				if(p + 2 != params.count()) fail(params, "'&' comes before the last parameter");
-				pairs.push_back(params.at(++p));
-				pairs.push_back(list({machine_.global("%drop").value, args, Value::integer(fixed)}));
-				rest = true;
-				break;
-			}
-			pairs.push_back(params.at(p));
-			pairs.push_back(list({machine_.global("%nth").value, args, Value::integer(fixed++)}));
-		}
+		const auto [loop, taken] = arityClause(clause, args);
+		const bool rest = taken < 0;
+		const std::int64_t fixed = rest ? -taken - 1 : taken;
 		if(rest) {
 			if(least) fail(clause, "only one clause of a function takes '&'");
 			least = fixed;
@@ -379,10 +367,8 @@ Value Compiler::arities(const Value& form, std::size_t at, std::string_view name
 		}
 		if(least && most > *least)
 			fail(clause, "the clause with '&' takes at least as many arguments as every other one");
-		counts.push_back(Value::integer(rest ? -(fixed + 1) : fixed));
-		std::vector<Value> loop = {symbol("loop"), heap.sequence(Kind::Vector, std::move(pairs), place)};
-		for(std::size_t b = 1; b < clause.count(); ++b) loop.push_back(clause.at(b));
-		loops.push_back(list(std::move(loop)));
+		counts.push_back(Value::integer(taken));
+		loops.push_back(loop);
 	}
 	// (let [%clause (%arity %args [counts] name)] (if (= %clause 0) loop0 (if (= %clause 1) loop1 ... loopN)))
 	const Value chosen = symbol("%clause");
@@ -391,14 +377,39 @@ Value Compiler::arities(const Value& form, std::size_t at, std::string_view name
 		dispatch = list({symbol("if"),
 		                 list({machine_.global("=").value, chosen, Value::integer(static_cast<std::int64_t>(index))}),
 		                 loops[index], dispatch});
-	const Value arity = list({machine_.global("%arity").value, args, heap.sequence(Kind::Vector, std::move(counts), place),
-	                          name.empty() ? Value() : heap.string(name)});
-	const Value let = list({symbol("let"), heap.sequence(Kind::Vector, std::vector<Value>{chosen, arity}, place), dispatch});
+	const Value arity =
+	    list({machine_.global("%arity").value, args, heap.sequence(Kind::Vector, std::move(counts), place),
+		      name.empty() ? Value() : heap.string(name)});
+	const Value let =
+	    list({symbol("let"), heap.sequence(Kind::Vector, std::vector<Value>{chosen, arity}, place), dispatch});
 	std::vector<Value> function = {symbol("fn")};
 	if(!name.empty()) function.push_back(symbol(name));
 	function.push_back(heap.sequence(Kind::Vector, std::vector<Value>{symbol("&"), args}, place));
 	function.push_back(let);
 	return list(std::move(function));
+}
+
+std::pair<Value, std::int64_t> Compiler::arityClause(const Value& clause, const Value& args) {
+	Heap& heap = machine_.heap;
+	const Place place = clause.place();
+	const auto list = [&](std::vector<Value> items) { return heap.sequence(Kind::List, std::move(items), place); };
+	const Value params = clause.at(0);
+	std::vector<Value> pairs;
+	std::int64_t count = 0;
+	for(std::size_t p = 0; p < params.count(); ++p) {
+		if(params.at(p).kind() == Kind::Symbol && params.at(p).text() == "&") {
+			if(p + 2 != params.count()) fail(params, "'&' comes before the last parameter");
+			pairs.push_back(params.at(p + 1));
+			pairs.push_back(list({machine_.global("%drop").value, args, Value::integer(count)}));
+			count = -(count + 1);
+			break;
+		}
+		pairs.push_back(params.at(p));
+		pairs.push_back(list({machine_.global("%nth").value, args, Value::integer(count++)}));
+	}
+	std::vector<Value> loop = {heap.symbol("loop", place), heap.sequence(Kind::Vector, std::move(pairs), place)};
+	for(std::size_t b = 1; b < clause.count(); ++b) loop.push_back(clause.at(b));
+	return {list(std::move(loop)), count};
 }
 
 void Compiler::parameters(const Value& params) {

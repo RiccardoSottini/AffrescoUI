@@ -168,6 +168,12 @@ private:
 	/// @brief Moves past a reader form's '#' (`#(`, `#{`, `#?(`, `#?@(`), up to its bracket, if the text has one here.
 	/// @return Its kind, or std::nullopt.
 	std::optional<TokenKind> hashFormAt();
+	/// @brief Moves past a token only language text has, if the next character starts one: a reader form after a '#',
+	/// a '^' before metadata, a character, or a prefix.
+	/// @param start Where it would start.
+	/// @param[out] skip Set to Skip::Metadata after a '^'.
+	/// @return Its kind (a '^' is a Word to skip), or std::nullopt.
+	std::optional<TokenKind> languageTokenAt(std::size_t start, Skip& skip);
 	/// @brief Moves past a language's prefix, if the next character starts one.
 	/// @return The prefix, or std::nullopt.
 	std::optional<TokenKind> prefixAt() noexcept;

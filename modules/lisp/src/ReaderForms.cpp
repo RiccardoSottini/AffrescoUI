@@ -63,7 +63,8 @@ Value Reader::hashForm(const Token& token, int depth) {
 	case TokenKind::SetOf:
 		return setOf(token, depth);
 	case TokenKind::ConditionalSplice:
-		lexer_.fail(token.offset, "#?@ splices its items into the list or the vector around it, and here there is none");
+		lexer_.fail(token.offset,
+		            "#?@ splices its items into the list or the vector around it, and here there is none");
 	default:
 		return chosenOrNext(token, depth);
 	}
@@ -71,8 +72,7 @@ Value Reader::hashForm(const Token& token, int depth) {
 
 Value Reader::lambda(const Token& token, int depth) {
 	if(lambda_)
-		lexer_.fail(token.offset,
-		            "a #(...) inside another: name the inner function's parameter with (fn [x] ...)");
+		lexer_.fail(token.offset, "a #(...) inside another: name the inner function's parameter with (fn [x] ...)");
 	shallowEnough(token, depth + 2); // the fn form and its body
 	const Place place = placeAt(token.offset);
 	const Token open = lexer_.next(); // the '(' the lexer saw after the '#'
@@ -109,11 +109,11 @@ std::optional<std::string> Reader::lambdaParameter(const Token& token) {
 	}
 	if(!number.empty() && !std::ranges::all_of(number, [](char c) { return c >= '0' && c <= '9'; }))
 		return std::nullopt; // a word of its own, such as %map
-	const std::optional<std::int64_t> whole = number.empty() ? 1 : number.size() > 3 ? 1000 : wholeOf(number, 10);
+	const std::int64_t whole = number.empty() ? 1 : number.size() > 3 ? 1000 : wholeOf(number, 10).value_or(1000);
 	if(whole == 0) lexer_.fail(token.offset, "a #(...) names its parameters %, %1 to %20, and %&");
 	if(whole > mostLambdaParameters)
 		lexer_.fail(token.offset, "a #(...) takes at most " + std::to_string(mostLambdaParameters) + " parameters");
-	const int index = static_cast<int>(*whole);
+	const int index = static_cast<int>(whole);
 	lambda_->most = std::max(lambda_->most, index);
 	return (index == 1 ? std::string("%") : "%" + std::to_string(index)) + std::string(path);
 }
@@ -141,8 +141,8 @@ std::optional<Value> Reader::conditional(const Token& token, int depth) {
 		const std::optional<LambdaParameters> before = lambda_ ? std::optional(*lambda_) : std::nullopt;
 		const std::string_view feature = item.text.substr(1);
 		const bool chooses = !chosen && (feature == "affresco" || feature == "default"); // the first, as Clojure
-		Value branch = form(next, depth + 1);
-		if(chooses) chosen = std::move(branch);
+		const Value branch = form(next, depth + 1);
+		if(chooses) chosen = branch;
 		else if(before) *lambda_ = *before;
 	}
 	return chosen;
@@ -152,18 +152,14 @@ Value Reader::chosenOrNext(Token token, int depth) {
 	// Iterative, so that a long run of conditionals that choose nothing takes no stack
 	for(;;) {
 		if(token.kind != TokenKind::Conditional) return form(token, depth);
-		if(std::optional<Value> chosen = conditional(token, depth)) return std::move(*chosen);
+		if(const std::optional<Value> chosen = conditional(token, depth)) return *chosen;
 		token = lexer_.next();
 	}
 }
 
 Value Reader::character(const Token& token) {
-	static constexpr std::array<std::pair<std::string_view, std::string_view>, 6> names = {{{"newline", "\n"},
-	                                                                                        {"space", " "},
-	                                                                                        {"tab", "\t"},
-	                                                                                        {"return", "\r"},
-	                                                                                        {"formfeed", "\f"},
-	                                                                                        {"backspace", "\b"}}};
+	static constexpr std::array<std::pair<std::string_view, std::string_view>, 6> names = {
+	    {{"newline", "\n"}, {"space", " "}, {"tab", "\t"}, {"return", "\r"}, {"formfeed", "\f"}, {"backspace", "\b"}}};
 	const std::string_view name = token.text.substr(1);
 	const Place place = placeAt(token.offset);
 	if(name.size() == 1) return heap_.string(name, place);
@@ -184,38 +180,45 @@ Value Reader::character(const Token& token) {
 
 std::optional<json> Reader::clojureNumber(const Token& token) const {
 	const std::string_view text = token.text;
-	const auto whole = [&](std::string_view digits, int base) {
-		const std::optional<std::int64_t> number = wholeOf(digits, base);
-		if(!number) lexer_.fail(token.offset, "the number " + notation::Lexer::shown(token) + " doesn't fit 64 bits");
-		return *number;
-	};
-	if(text.ends_with('N') && isDigits(text.substr(0, text.size() - 1), false)) { // 12N, a big integer
-		const std::string_view digits = text.substr(0, text.size() - 1);
-		std::uint64_t large = 0; // past the int64's, as JSON reads 18446744073709551615
-		const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), large);
-		if(!digits.starts_with('-') && error == std::errc() && end == digits.data() + digits.size())
-			return json(large);
-		return json(whole(digits, 10));
-	}
+	if(text.ends_with('N') && isDigits(text.substr(0, text.size() - 1), false)) return bigInteger(token); // 12N
 	if(text.ends_with('M') && notation::isJsonNumber(text.substr(0, text.size() - 1))) { // 1.5M, a big decimal
 		Token number = token;
 		number.text = text.substr(0, text.size() - 1);
 		return lexer_.constant(number);
 	}
-	if(const std::size_t slash = text.find('/'); slash != std::string_view::npos && isDigits(text.substr(0, slash), false) &&
-	                                              isDigits(text.substr(slash + 1), false) && text[slash + 1] != '-') {
-		const std::int64_t numerator = whole(text.substr(0, slash), 10); // 1/2, a ratio
-		const std::int64_t denominator = whole(text.substr(slash + 1), 10);
-		if(denominator == 0) lexer_.fail(token.offset, "the ratio " + notation::Lexer::shown(token) + " divides by zero");
-		if(numerator % denominator == 0) return json(numerator / denominator);
-		return json(static_cast<double>(numerator) / static_cast<double>(denominator));
-	}
+	if(const std::size_t slash = text.find('/'); slash != std::string_view::npos &&
+	                                             isDigits(text.substr(0, slash), false) &&
+	                                             isDigits(text.substr(slash + 1), false) && text[slash + 1] != '-')
+		return ratio(token); // 1/2
 	const bool negative = text.starts_with('-');
 	const std::string_view unsigned_ = text.substr(negative ? 1 : 0);
 	if((unsigned_.starts_with("0x") || unsigned_.starts_with("0X")) && isDigits(unsigned_.substr(2), true) &&
 	   !unsigned_.substr(2).starts_with('-')) // 0x1F, hexadecimal
-		return json(whole((negative ? "-" : "") + std::string(unsigned_.substr(2)), 16));
+		return json(wholeIn(token, (negative ? "-" : "") + std::string(unsigned_.substr(2)), 16));
 	return std::nullopt;
+}
+
+std::int64_t Reader::wholeIn(const Token& token, std::string_view digits, int base) const {
+	const std::optional<std::int64_t> number = wholeOf(digits, base);
+	if(!number) lexer_.fail(token.offset, "the number " + notation::Lexer::shown(token) + " doesn't fit 64 bits");
+	return *number;
+}
+
+json Reader::bigInteger(const Token& token) const {
+	const std::string_view digits = token.text.substr(0, token.text.size() - 1);
+	std::uint64_t large = 0; // past the int64's, as JSON reads 18446744073709551615
+	const auto [end, error] = std::from_chars(digits.data(), digits.data() + digits.size(), large);
+	if(!digits.starts_with('-') && error == std::errc() && end == digits.data() + digits.size()) return json(large);
+	return json(wholeIn(token, digits, 10));
+}
+
+json Reader::ratio(const Token& token) const {
+	const std::size_t slash = token.text.find('/');
+	const std::int64_t numerator = wholeIn(token, token.text.substr(0, slash), 10);
+	const std::int64_t denominator = wholeIn(token, token.text.substr(slash + 1), 10);
+	if(denominator == 0) lexer_.fail(token.offset, "the ratio " + notation::Lexer::shown(token) + " divides by zero");
+	if(numerator % denominator == 0) return json(numerator / denominator);
+	return json(static_cast<double>(numerator) / static_cast<double>(denominator));
 }
 
 } // namespace affresco::lisp

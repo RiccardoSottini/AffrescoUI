@@ -153,8 +153,8 @@ TEST_CASE("lisp clojure: what has no JSON or AffrescoUI meaning is refused with 
 TEST_CASE("lisp clojure attack: deep or long runs of the new forms end with an error at a place") {
 	std::string nested;
 	for(int i = 0; i < 300; ++i) nested += "#(";
-	nested += "%";
-	for(int i = 0; i < 300; ++i) nested += ")";
+	nested += '%';
+	for(int i = 0; i < 300; ++i) nested += ')';
 	const lisp::LispError lambda = errorOf(nested);
 	CHECK(lambda.line() == 1);
 	CHECK(lambda.column() == 3);

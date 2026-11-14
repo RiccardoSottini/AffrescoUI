@@ -61,9 +61,9 @@ std::optional<ReadForm> Reader::next() {
 			ReadForm read;
 			read.start = lexer_.formStart(); // a ^meta before the form is part of its text
 			if(token.kind == TokenKind::Conditional) {
-				std::optional<Value> chosen = conditional(token, 0);
+				const std::optional<Value> chosen = conditional(token, 0);
 				if(!chosen) continue; // it chooses none: the text goes on, as after a #_
-				read.form = std::move(*chosen);
+				read.form = *chosen;
 			} else {
 				read.form = form(token, 0);
 			}
@@ -216,7 +216,8 @@ Value Reader::list(const Token& open, int depth) {
 	if(item.kind == TokenKind::CloseNode) return heap_.sequence(Kind::List, std::move(items), place);
 	if(item.kind == TokenKind::End)
 		lexer_.fail(item.offset, "expected ')' to close the node opened at " + lexer_.placeOf(open.offset));
-	if(item.kind == TokenKind::Conditional || item.kind == TokenKind::ConditionalSplice) elements(item, depth + 1, items);
+	if(item.kind == TokenKind::Conditional || item.kind == TokenKind::ConditionalSplice)
+		elements(item, depth + 1, items);
 	else head(item, items, depth + 1);
 	for(item = lexer_.next(); item.kind != TokenKind::CloseNode; item = lexer_.next()) {
 		if(item.kind == TokenKind::End)

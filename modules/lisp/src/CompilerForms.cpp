@@ -253,7 +253,8 @@ void Compiler::formTry(const Value& form, Position position) {
 	std::size_t end = form.count();
 	const Value cleanup = end > 1 && headWord(form.at(end - 1)) == "finally" ? form.at(--end) : Value();
 	const Value handler = end > 1 && headWord(form.at(end - 1)) == "catch" ? form.at(--end) : Value();
-	if(handler.isNil() && cleanup.isNil()) fail(form, "try ends with (catch name form ...), (finally form ...), or both");
+	if(handler.isNil() && cleanup.isNil())
+		fail(form, "try ends with (catch name form ...), (finally form ...), or both");
 	if(cleanup.isNil()) {
 		tryCatch(form, end, handler, position);
 		return;
@@ -291,8 +292,8 @@ void Compiler::tryCatch(const Value& form, std::size_t end, const Value& handler
 	if(handler.count() > 2 && handler.at(2).kind() == Kind::Symbol) {
 		const Value written = handler.at(1);
 		const std::string_view text = written.kind() == Kind::Symbol ? written.text() : "";
-		const bool type = !text.empty() && ((text.front() >= 'A' && text.front() <= 'Z') || text.contains('/') ||
-		                                    text.contains('.'));
+		const bool type =
+		    !text.empty() && ((text.front() >= 'A' && text.front() <= 'Z') || text.contains('/') || text.contains('.'));
 		if(written.kind() == Kind::Keyword || type) name = 2;
 	}
 	if(handler.count() <= name || handler.at(name).kind() != Kind::Symbol) fail(handler, "catch takes a name to bind");
