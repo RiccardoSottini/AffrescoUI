@@ -123,8 +123,8 @@ each register their own entries with `defineLibrary`; a package adding to the la
   `map`, `filter`, `reduce`... and `apply` and `run-hooks`, which a host writes.
 - **Macros.** A library macro is unhygienic, as a program's: its expansion calls the words its entry lists (`uses`) by name. Where a
   local hides one of them, or the program defines one, the call is an error that names both: `"m" uses the language's "not", which
-  a local hides here: rename the local`. The words it may call are those a binding lowers: `not`, `=`, `nil?`, `some?`, `map`,
-  `filter`, `mapcat`.
+  a local hides here: rename the local`. The words it may call are those a binding lowers: `not`, `=`, `nil?`, `some?`,
+  `empty?`, `first`, `map`, `filter`, `mapcat`.
 
 ### Qualified names
 

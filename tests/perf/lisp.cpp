@@ -48,6 +48,23 @@ json documentWithExpressions() {
 	        {"root", {{"type", "column"}, {"id", "list"}, {"children", std::move(children)}}}};
 }
 
+/// @brief A screen of labels bound to an `if-let`, which a binding writes as an expression, or to the same as a call
+/// of the program's function.
+/// @param function Whether the labels call the function.
+/// @return Its text.
+std::string programWithLet(bool function) {
+	std::string text = R"lisp(
+(defn mode-text "What a label shows." [mode] (if-let [m mode] (str/upper-case m) "none"))
+(defscreen main :window {:width 400 :height 300} :state {:mode nil}
+  :actions {:flip [{:set "state.mode" :to "{{state.mode ? null : 'edit'}}"}]}
+  (column#list
+)lisp";
+	const std::string bound =
+	    function ? "~(mode-text state.mode)" : "~(if-let [m state.mode] (str/upper-case m) \"none\")";
+	for(int at = 0; at < labels; ++at) text += "    (label :id \"l" + std::to_string(at) + "\" :text " + bound + ")\n";
+	return text + "))\n";
+}
+
 /// @brief A program of many definitions, for a reload.
 /// @return Its text.
 std::string programOfMany() {
@@ -134,6 +151,16 @@ std::vector<Workload> lispWorkloads(Context& context) {
 		detail::renderWithoutPresenting(plain.window);
 	};
 	workloads.push_back(std::move(expression));
+	for(const bool function : {false, true}) {
+		const LoadedScreen let = context.load(lisp::sourceDocument(programWithLet(function), "bench.lisp"), {});
+		Workload workload{
+		    .name = function ? "lisp/binding-let-as-function" : "lisp/binding-let", .runs = 15, .operations = labels};
+		workload.step = [let] {
+			let.screen.runAction("flip", let.window.root());
+			detail::renderWithoutPresenting(let.window);
+		};
+		workloads.push_back(std::move(workload));
+	}
 	const json many = lisp::sourceDocument(programOfMany(), "bench.lisp");
 	const LoadedScreen reloading = context.load(many, {});
 	const auto turn = std::make_shared<int>(0);

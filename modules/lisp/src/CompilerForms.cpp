@@ -5,6 +5,8 @@
 
 #include <affresco/notation/Lexer.hpp>
 
+#include <algorithm>
+#include <ranges>
 #include <string>
 #include <utility>
 
@@ -89,6 +91,11 @@ void Compiler::noteTruthTest(const Value& test) {
 		return;
 	}
 	if(word.kind() != Kind::Symbol || context_.library) return;
+	if(const auto local = std::ranges::find(current_->locals | std::views::reverse, word.text(), &Local::name);
+	   local != (current_->locals | std::views::reverse).end()) {
+		if(local->path.kind() == Kind::Symbol) noteTruthTest(local->path);
+		return;
+	}
 	const std::string_view name = word.text();
 	const std::size_t dot = name.find('.');
 	if(dot == std::string_view::npos || resolve(*current_, name.substr(0, dot)).kind != Variable::Kind::None) return;
@@ -184,6 +191,10 @@ void Compiler::bindings(const Value& bindings) {
 		const std::uint32_t slot = newSlot();
 		emit(Op::SetLocal, slot);
 		destructure(bindings.at(at), slot);
+		// (if-let [m state.mode] ...) tests its own name: the path it holds is what is tested (noteTruthTest())
+		if(const Value& value = bindings.at(at + 1);
+		   bindings.at(at).kind() == Kind::Symbol && value.kind() == Kind::Symbol && value.text().contains('.'))
+			current_->locals.back().path = value;
 	}
 }
 
