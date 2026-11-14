@@ -1,0 +1,107 @@
+{
+	"id": "clj-calamaio-shout",
+	"level": "feature",
+	"screen": "examples/calamaio/lisp/calamaio.screen.lisp",
+	"request": "In Calamaio, C-c u (ctrl+c u) should show in the echo area the selected buffer's text, trimmed and in capitals, with \"Task: \" before it when it then starts with \"TODO\". Write it as a command shout-buffer and its key, in Lisp, in the program's editing.lisp.",
+	"scenarios": [
+		{
+			"name": "task",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "~/notes.txt"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "  todo buy milk  "
+				},
+				{
+					"key": "ctrl+c"
+				},
+				{
+					"key": "u"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Task: TODO BUY MILK"
+					}
+				}
+			]
+		},
+		{
+			"name": "plain",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "~/notes.txt"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": " call home "
+				},
+				{
+					"key": "ctrl+c"
+				},
+				{
+					"key": "u"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "CALL HOME"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"/program/killring.lisp/kill-line",
+		"/program/loop.lisp/eval-defun",
+		"/program/files.lisp/save-buffer"
+	],
+	"present": [
+		"/program/editing.lisp/shout-buffer"
+	],
+	"reference": [
+		{
+			"message": "C-c u shouts the buffer",
+			"add": {
+				"/program/editing.lisp/shout-buffer": "(defcommand shout-buffer \"Shows the buffer's text in capitals in the echo area.\" :title \"Shout Buffer\" :category \"Editing\"\n  []\n  (let [text (upper-case (trim (:text computed.buf)))]\n    (message (if (= (indexOf text \"TODO\") 0) (str \"Task: \" text) text))))",
+				"/program/editing.lisp/defkey ctrl+c u": "(defkey \"ctrl+c u\" shout-buffer)"
+			}
+		}
+	]
+}
