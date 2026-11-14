@@ -285,7 +285,7 @@ TEST_CASE("lisp: functions that take functions") {
 	CHECK(run("(remove (fn [x] (> x 1)) [1 2 3])") == "[1]");
 	CHECK(run("(reduce + [1 2 3])") == "6");
 	CHECK(run("(reduce + 10 [1 2 3])") == "16");
-	CHECK(run("(reduce + [])") == "nil");
+	CHECK(run("(reduce + [])") == "0"); // an empty collection with no start calls (f), as Clojure does
 	CHECK(run("(find (fn [x] (> x 1)) [1 2 3])") == "2");
 	CHECK(run("(find (fn [x] (> x 9)) [1])") == "nil");
 	CHECK(run("(some (fn [x] (and (> x 1) :yes)) [1 2])") == ":yes");
@@ -351,7 +351,7 @@ TEST_CASE("lisp: conditions") {
 	CHECK(run("(let [a 1] (try (let [a 2] (throw a)) (catch e [a e])))") == "[1 2]");
 	CHECK(errorOf("(throw \"said here\")").message() == "said here");
 	CHECK(errorOf("(throw (str \"secret\"))").message() == "a condition was thrown and nothing caught it");
-	CHECK(errorOf("(try 1)").message() == "try ends with (catch name form ...)");
+	CHECK(errorOf("(try 1)").message() == "try ends with (catch name form ...), (finally form ...), or both");
 	CHECK(errorOf("(catch e 1)").message() == "catch goes at the end of a try");
 	CHECK(errorOf("(loop [] (try (recur) (catch e 1)))").message().starts_with("recur goes in tail position"));
 	CHECK(errorOf("(+ (recur) 1)").message().starts_with("recur goes in tail position"));

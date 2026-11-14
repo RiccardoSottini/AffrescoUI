@@ -209,15 +209,14 @@ TEST_CASE("lisp library: a name another dialect has says what to write instead")
 }
 
 TEST_CASE("lisp library: the forms after '#' are read, and say what the language has instead") {
-	CHECK(errorOf("#(+ % 1)") == "a function literal #(...) isn't read yet");
+	CHECK(run("(#(+ % 1) 1)") == "2"); // more in lisp_clojure_reader.cpp
 	CHECK(errorOf("#{1 2}") == "a set literal #{...} isn't in the language: write a vector");
-	CHECK(errorOf("#?(:clj 1)") == "reader conditionals #?(...) aren't read yet");
-	CHECK(errorOf("#?@(:clj [1])") == "reader conditionals #?(...) aren't read yet");
+	CHECK(run("[#?(:clj 1) #?@(:default [2])]") == "[2]");
 	// Discarded whole, as the form they start
 	CHECK(run("[#_ #(a b) 3]") == "[3]");
 	CHECK(run("[#_ #{a b} 3 #_ #?(:clj 1) 4]") == "[3 4]");
 	CHECK(lisp::formsOf("#_ #(a b) c").size() == 1);
-	CHECK_THROWS(static_cast<void>(lisp::formsOf("#(a b) c")));
+	CHECK(lisp::formsOf("#(a b) c").size() == 2);
 }
 
 TEST_CASE("lisp library: no name of the language is a step's word or an expression function, but today's") {

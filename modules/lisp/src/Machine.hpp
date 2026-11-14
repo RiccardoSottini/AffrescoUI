@@ -124,6 +124,11 @@ public:
 	/// @param name Its name.
 	/// @return The cell, or nullptr.
 	[[nodiscard]] Global* findLanguageGlobal(std::string_view name);
+	/// @brief The language's own cell of a name, if it has one, a lazy native only once something has looked it up:
+	/// for what compares a value with one of the language's functions (one never made can't be the value).
+	/// @param name Its name.
+	/// @return The cell, or nullptr.
+	[[nodiscard]] Global* findLanguageGlobal(std::string_view name) const;
 	/// @brief Registers a host's primitive.
 	/// @param name Its name.
 	/// @param primitive It.
@@ -304,6 +309,7 @@ private:
 		std::size_t frames = 0;   ///< How many frames it leaves.
 		std::size_t height = 0;   ///< How high the stack stands.
 		std::uint32_t target = 0; ///< Where its `catch` is.
+		bool whole = false;       ///< A `finally`'s: the condition is kept whole, for Throw to raise it again.
 	};
 	using Handle = void (Machine::*)(const Instruction&); ///< An instruction's function.
 	/// @brief The instructions' functions, by Op. @return The table.

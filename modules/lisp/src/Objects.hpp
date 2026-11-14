@@ -126,8 +126,11 @@ enum class Op : std::uint8_t {
 	BuildMap,         ///< Replaces the top 2a values, key then value, by a map.
 	Splice,           ///< Marks the top to be spread by the Build that takes it.
 	Recur,            ///< Pops a values into the locals from b.
-	Throw,            ///< Raises the top; constant a is its message, if it was written in the form.
-	TryBegin,         ///< On a condition in what follows, goes to a with it on the stack.
+	Throw,            ///< Raises the top; constant a is its message, if it was written in the form. With b 1, raises
+	                  ///< again the condition a TryBegin with b 1 kept whole: pops whether it was thrown, then its
+	                  ///< message, then its value.
+	TryBegin,         ///< On a condition in what follows, goes to a with it on the stack. With b 1 (a `finally`'s),
+	                  ///< it is kept whole: its value, then its message, then whether it was thrown.
 	TryEnd,           ///< Ends the last TryBegin.
 	Count             ///< How many there are.
 };

@@ -27,6 +27,7 @@ enum class TokenKind {
 	Key,       ///< `:name` or `:"name"`
 	Id,        ///< `#name` or `#"name"`
 	Word,      ///< anything else between delimiters: a bare word, a number, true, false or nil
+	Character, ///< `\a`, `\newline`: a character, in language text only
 	Quote,     ///< `'`, in language text only
 	Backquote, ///< a backquote, in language text only
 	Unquote,   ///< `~`, in language text only
@@ -66,7 +67,9 @@ struct SourceComment {
 /// @brief Reads Lisp text a token at a time, and says where a problem is.
 ///
 /// Spaces, commas and comments are skipped. `#_` discards the next form, without recursion, and isn't a token. Only a
-/// `#_` followed by a word character is an id, as it always was: `#_x` is the id `_x` and `#_ x` discards x.
+/// `#_` followed by a word character is an id, as it always was: `#_x` is the id `_x` and `#_ x` discards x. In
+/// language text, `^` before a form is metadata, which isn't kept: `^:private x` is x, the metadata form discarded as
+/// `#_` discards one, and formStart() tells where the metadata started.
 class Lexer {
 public:
 	/// @brief Reads a text.
@@ -86,6 +89,11 @@ public:
 	/// @return It.
 	/// @throws NotationError If a string or a quoted name never ends, or a discarded form is unfinished.
 	Token next();
+
+	/// @brief Where the form of the last token read starts: before the metadata written before it (`^:private x`), if
+	/// any, else where the token starts.
+	/// @return The place, in bytes.
+	[[nodiscard]] std::size_t formStart() const noexcept { return formStart_; }
 
 	/// @brief Where the last token read ends.
 	/// @return The place, in bytes.
@@ -143,16 +151,29 @@ public:
 	[[noreturn]] void fail(std::size_t offset, const std::string& message) const;
 
 private:
-	/// @brief Reads the next token, past spaces and comments: a `#_` is a token here.
-	/// @param discard Set if the token is a `#_`.
+	/// @brief What a token that isn't returned does to the form after it.
+	enum class Skip {
+		None,     ///< Nothing: the token is returned.
+		Discard,  ///< `#_`: the next form is discarded.
+		Metadata, ///< `^`, in language text: the next form is metadata, discarded, and the one after it is read.
+	};
+
+	/// @brief Reads the next token, past spaces and comments: a `#_` and a `^` are tokens here.
+	/// @param skip Set if the token is a `#_` or a `^`.
 	/// @return It.
-	Token raw(bool& discard);
+	Token raw(Skip& skip);
 	/// @brief Moves past a key or an id, or a `#_`, at the next character.
 	/// @return Whether it is a `#_`.
 	bool nameOrDiscard();
 	/// @brief Moves past a reader form's '#' (`#(`, `#{`, `#?(`, `#?@(`), up to its bracket, if the text has one here.
 	/// @return Its kind, or std::nullopt.
 	std::optional<TokenKind> hashFormAt();
+	/// @brief Moves past a token only language text has, if the next character starts one: a reader form after a '#',
+	/// a '^' before metadata, a character, or a prefix.
+	/// @param start Where it would start.
+	/// @param[out] skip Set to Skip::Metadata after a '^'.
+	/// @return Its kind (a '^' is a Word to skip), or std::nullopt.
+	std::optional<TokenKind> languageTokenAt(std::size_t start, Skip& skip);
 	/// @brief Moves past a language's prefix, if the next character starts one.
 	/// @return The prefix, or std::nullopt.
 	std::optional<TokenKind> prefixAt() noexcept;
@@ -164,6 +185,10 @@ private:
 	/// @brief Moves past a string in quotes, its escapes included.
 	/// @param start Where its opening quote is.
 	void quoted(std::size_t start);
+	/// @brief Moves past a character, `\a` or `\newline`: its backslash, the character after it whatever it is, and
+	/// what follows up to a delimiter.
+	/// @param start Where its backslash is.
+	void characterAt(std::size_t start);
 	/// @brief Moves past a bare word: everything up to a delimiter.
 	/// @param start Where it starts.
 	void wordAt(std::size_t start) noexcept;
@@ -172,13 +197,15 @@ private:
 	/// @param closers The brackets still to close.
 	/// @param owed How many forms are still to discard.
 	void discardBrackets(const Token& token, std::vector<TokenKind>& closers, std::size_t& owed) const;
-	/// @brief Moves past one discarded form, after its `#_`, one token at a time.
-	/// @param start Where the `#_` is.
-	void discardForm(std::size_t start);
+	/// @brief Moves past one discarded form, after its `#_` or its `^`, one token at a time.
+	/// @param start Where the `#_` or the `^` is.
+	/// @param skip Which it is, for the error.
+	void discardForm(std::size_t start, Skip skip);
 
 	std::string_view text_;               ///< See the constructor.
 	std::size_t at_ = 0;                  ///< Where the next token is looked for.
 	std::size_t lastEnd_ = 0;             ///< See lastEnd().
+	std::size_t formStart_ = 0;           ///< See formStart().
 	bool language_ = false;               ///< See the constructor.
 	bool keepComments_ = false;           ///< See keepComments().
 	std::vector<SourceComment> comments_; ///< See takeComments().

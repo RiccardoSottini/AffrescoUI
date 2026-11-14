@@ -10,7 +10,7 @@ that area.
 | `forms.md` | The everyday forms: macros such as `when-let`, `if-let`, `->`, `->>`, `cond->` | `src/PreludeForms.cpp`, `words/Forms.hpp` |
 | `functions.md` | The further functions on numbers, collections and maps | `src/PreludeFunctions.cpp`, `words/Functions.hpp` |
 | `strings.md` | `clojure.string`, written `str/` | `src/CoreStrings.cpp`, `words/Text.hpp` |
-| `reader.md` | The reader's forms: `#(...)`, `#?(...)`, and the `#_` it already reads | `src/ReaderForms.cpp`, `words/Reader.hpp` |
+| `reader.md` | The reader's forms: `#(...)`, `#?(...)`, `#_`, `^metadata`, characters, and Clojure's ways to write numbers | `src/ReaderForms.cpp`, `words/Reader.hpp` |
 | `sets.md` | `clojure.set`, written `set/`, on vectors of distinct items | `src/CoreSets.cpp`, `words/Sets.hpp` |
 | `namespaces.md` | Qualified names, aliases, `ns` | `src/Namespaces.cpp`, `words/Namespaces.hpp` |
 | `bindings.md` | Which forms a template's `~form` lowers to a binding the expression machine runs | `src/CompilerLowering.cpp` |

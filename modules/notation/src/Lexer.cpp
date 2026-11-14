@@ -82,16 +82,25 @@ Lexer::Lexer(std::string_view text, bool language) : text_(text), language_(lang
 }
 
 Token Lexer::next() {
+	std::size_t metadata = std::string_view::npos; // where the metadata before the token starts
 	for(;;) {
-		bool discard = false;
-		const Token token = raw(discard);
-		if(!discard) return token;
-		discardForm(token.offset);
+		Skip skip = Skip::None;
+		const Token token = raw(skip);
+		if(skip == Skip::None) {
+			const bool closes = token.kind == TokenKind::CloseNode || token.kind == TokenKind::CloseList ||
+			                    token.kind == TokenKind::CloseMap || token.kind == TokenKind::End;
+			if(metadata != std::string_view::npos && closes)
+				fail(token.offset, "metadata (^) stands before a form, and found " + shown(token));
+			formStart_ = metadata != std::string_view::npos ? metadata : token.offset;
+			return token;
+		}
+		if(skip == Skip::Metadata && metadata == std::string_view::npos) metadata = token.offset;
+		discardForm(token.offset, skip);
 		if(keepComments_) comments_.push_back({text_.substr(token.offset, lastEnd_ - token.offset), false});
 	}
 }
 
-Token Lexer::raw(bool& discard) {
+Token Lexer::raw(Skip& skip) {
 	skipSpace();
 	if(at_ >= text_.size()) return {TokenKind::End, {}, at_};
 	const std::size_t start = at_;
@@ -104,13 +113,11 @@ Token Lexer::raw(bool& discard) {
 	} else if(c == '"') {
 		kind = TokenKind::String;
 		quoted(start);
-	} else if(const std::optional<TokenKind> form = c == '#' && language_ ? hashFormAt() : std::nullopt) {
-		kind = *form;
+	} else if(const std::optional<TokenKind> language = language_ ? languageTokenAt(start, skip) : std::nullopt) {
+		kind = *language;
 	} else if(c == ':' || c == '#') {
 		kind = c == ':' ? TokenKind::Key : TokenKind::Id;
-		discard = nameOrDiscard();
-	} else if(const std::optional<TokenKind> prefix = language_ ? prefixAt() : std::nullopt) {
-		kind = *prefix;
+		if(nameOrDiscard()) skip = Skip::Discard;
 	} else {
 		wordAt(start);
 	}
@@ -138,6 +145,22 @@ std::optional<TokenKind> Lexer::hashFormAt() {
 			return kind;
 		}
 	return std::nullopt;
+}
+
+std::optional<TokenKind> Lexer::languageTokenAt(std::size_t start, Skip& skip) {
+	switch(text_[at_]) {
+	case '#':
+		return hashFormAt();
+	case '^': // no word starts with '^', so in language text it is free for metadata
+		++at_;
+		skip = Skip::Metadata;
+		return TokenKind::Word;
+	case '\\': // nor with a backslash
+		characterAt(start);
+		return TokenKind::Character;
+	default:
+		return prefixAt();
+	}
 }
 
 std::optional<TokenKind> Lexer::prefixAt() noexcept {
@@ -185,6 +208,14 @@ void Lexer::quoted(std::size_t start) {
 		fail(at_, "expected a space or a bracket after the string's closing quote");
 }
 
+void Lexer::characterAt(std::size_t start) {
+	at_ = start + 1;
+	if(at_ >= text_.size()) fail(start, "expected a character after the backslash");
+	++at_; // the character after it, whatever it is, a bracket or a space too: \( is '('
+	while(at_ < text_.size() && (static_cast<unsigned char>(text_[at_]) & 0xC0U) == 0x80U) ++at_; // its UTF-8 bytes
+	while(at_ < text_.size() && !isDelimiter(text_[at_])) ++at_;                                  // \newline
+}
+
 void Lexer::wordAt(std::size_t start) noexcept {
 	at_ = start;
 	while(at_ < text_.size() && !isDelimiter(text_[at_])) ++at_;
@@ -205,18 +236,23 @@ void Lexer::discardBrackets(const Token& token, std::vector<TokenKind>& closers,
 	closers.pop_back();
 }
 
-void Lexer::discardForm(std::size_t start) {
+void Lexer::discardForm(std::size_t start, Skip skip) {
 	const bool keep = std::exchange(keepComments_, false); // what is inside goes with the form
 	std::size_t owed = 1;
 	std::vector<TokenKind> closers;
 	while(owed > 0 || !closers.empty()) {
-		bool discard = false;
-		const Token token = raw(discard);
-		if(discard) {
-			if(closers.empty()) ++owed; // inside a form it goes with that form; here it takes the next one too
+		Skip inner = Skip::None;
+		const Token token = raw(inner);
+		if(inner != Skip::None) {
+			// Inside a form it goes with that form; here it takes the next one too: `#_ #_ a b`, and `#_ ^:m a`, whose
+			// metadata and form are one
+			if(closers.empty()) ++owed;
 		} else if(token.kind == TokenKind::End) {
-			fail(token.offset, "expected a form to discard after the #_ at " + placeOf(start));
+			fail(token.offset, skip == Skip::Metadata ? "expected a form after the ^ at " + placeOf(start)
+			                                          : "expected a form to discard after the #_ at " + placeOf(start));
 		} else if(token.kind <= TokenKind::CloseMap) { // the brackets come first in TokenKind
+			if(skip == Skip::Metadata && closers.empty() && static_cast<int>(token.kind) % 2 == 1) // a closer
+				fail(token.offset, "metadata (^) stands before a form, and found " + shown(token));
 			discardBrackets(token, closers, owed);
 		} else if(closers.empty() && (token.kind < TokenKind::Quote || token.kind > TokenKind::Splice)) {
 			--owed; // a prefix applies to the form still owed
