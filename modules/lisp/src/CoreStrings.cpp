@@ -177,8 +177,8 @@ Value indexOf(Machine& machine, Arguments arguments) {
 	checkTexts(arguments, 2, 3, usage);
 	const std::string_view text = arguments[0].text();
 	const std::string_view part = arguments[1].text();
-	const auto from = static_cast<std::size_t>(std::max<std::int64_t>(
-	    0, arguments.size() == 3 ? wholeArgument(arguments[2], usage) : std::int64_t{0}));
+	const auto from = static_cast<std::size_t>(
+	    std::max<std::int64_t>(0, arguments.size() == 3 ? wholeArgument(arguments[2], usage) : std::int64_t{0}));
 	machine.spendText(text.size());
 	const std::size_t start = offsetOf(text, from);
 	if(start == std::string_view::npos) return {};
@@ -187,7 +187,8 @@ Value indexOf(Machine& machine, Arguments arguments) {
 	search.restartAt(start);
 	const std::size_t found = search.next();
 	if(found == std::string_view::npos) return {};
-	return Value::integer(static_cast<std::int64_t>(from + charactersIn(text.substr(start, found - start))));
+	return Value::integer(static_cast<std::int64_t>(from) +
+	                      static_cast<std::int64_t>(charactersIn(text.substr(start, found - start))));
 }
 
 /// @brief `last-index-of`.
@@ -245,7 +246,8 @@ Value replaced(Machine& machine, Arguments arguments, bool every, std::string_vi
 		if(every || text.empty()) replaceAt(text.size(), 0);
 	} else {
 		Search search(machine, text, match);
-		for(std::size_t at = search.next(); at != std::string_view::npos; at = every ? search.next() : std::string_view::npos) {
+		for(std::size_t at = search.next(); at != std::string_view::npos;
+		    at = every ? search.next() : std::string_view::npos) {
 			replaceAt(at, match.size());
 			search.restartAt(copied);
 		}
@@ -382,32 +384,33 @@ Value reversed(Machine& machine, Arguments arguments) {
 	return machine.heap.string(out);
 }
 
-/// The namespace's own functions, by their names in it.
-constexpr std::array<std::pair<std::string_view, NativeFunction>, 16> natives = {{
-    {"blank?", blank},
-    {"capitalize", capitalize},
-    {"ends-with?", endsWith},
-    {"includes?", includes},
-    {"index-of", indexOf},
-    {"last-index-of", lastIndexOf},
-    {"replace", replace},
-    {"replace-first", replaceFirst},
-    {"reverse", reversed},
-    {"split", split},
-    {"split-lines", splitLines},
-    {"starts-with?", startsWith},
-    {"trim", trim},
-    {"trim-newline", trimNewline},
-    {"triml", trimLeft},
-    {"trimr", trimRight},
-}};
+/// The namespace's own functions, by their globals' names, sorted: made on first use (Machine::defineLazyNatives()).
+constexpr auto natives = std::to_array<LazyNative>({
+    {"clojure.string/blank?", blank},
+    {"clojure.string/capitalize", capitalize},
+    {"clojure.string/ends-with?", endsWith},
+    {"clojure.string/includes?", includes},
+    {"clojure.string/index-of", indexOf},
+    {"clojure.string/last-index-of", lastIndexOf},
+    {"clojure.string/replace", replace},
+    {"clojure.string/replace-first", replaceFirst},
+    {"clojure.string/reverse", reversed},
+    {"clojure.string/split", split},
+    {"clojure.string/split-lines", splitLines},
+    {"clojure.string/starts-with?", startsWith},
+    {"clojure.string/trim", trim},
+    {"clojure.string/trim-newline", trimNewline},
+    {"clojure.string/triml", trimLeft},
+    {"clojure.string/trimr", trimRight},
+});
+static_assert(std::ranges::is_sorted(natives, {}, &LazyNative::name), "Machine::defineLazyNatives() takes them sorted");
 
 } // namespace
 
 void defineStrings(Machine& machine) {
 	for(const std::string_view name : sameAsBare)
 		machine.defineLanguageValue("clojure.string/" + std::string(name), machine.languageGlobal(name).value);
-	for(const auto& [name, function] : natives) machine.defineNative("clojure.string/" + std::string(name), function);
+	machine.defineLazyNatives(natives);
 }
 
 } // namespace affresco::lisp

@@ -257,8 +257,9 @@ Directive readDirective(std::string_view pattern, std::size_t& at) {
 		(pattern[at] == '-' ? directive.left : directive.zeros) = true;
 	directive.width = directiveNumber(pattern, at);
 	if(at < pattern.size() && pattern[at] == '.') directive.precision = directiveNumber(pattern, ++at);
-	if(at >= pattern.size()) throw Problem("format's pattern ends inside the directive \"" +
-	                                       notation::Lexer::excerpt(pattern.substr(start)) + "\"");
+	if(at >= pattern.size())
+		throw Problem("format's pattern ends inside the directive \"" +
+		              notation::Lexer::excerpt(pattern.substr(start)) + "\"");
 	const std::size_t end = nextCharacter(pattern, at);
 	directive.conversion = pattern.substr(at, end - at);
 	directive.written = pattern.substr(start, end - start);
@@ -423,9 +424,9 @@ Value parseLong(Machine& /*machine*/, Arguments arguments) {
 /// somewhere or none, and maybe an exponent.
 /// @param text The text, without its sign.
 /// @return true if it does.
-bool decimalNumber(std::string_view text) noexcept {
+bool decimalNumber(std::string_view text) {
 	const std::size_t exponent = std::min(text.find_first_of("eE"), text.size());
-	std::string_view mantissa = text.substr(0, exponent);
+	const std::string_view mantissa = text.substr(0, exponent);
 	if(exponent < text.size()) {
 		std::string_view power = text.substr(exponent + 1);
 		if(power.starts_with('-') || power.starts_with('+')) power.remove_prefix(1);
@@ -438,6 +439,16 @@ bool decimalNumber(std::string_view text) noexcept {
 	return (before.empty() || allDigits(before)) && (after.empty() || allDigits(after)) && mantissa.size() > 1;
 }
 
+/// @brief A text without the spaces and control characters around it, as Java's `trim()` reads it for `parse-double`.
+/// @param text The text.
+/// @return What is left.
+std::string_view withoutControls(std::string_view text) noexcept {
+	const auto control = [](char c) { return static_cast<unsigned char>(c) <= 0x20U; };
+	while(!text.empty() && control(text.front())) text.remove_prefix(1);
+	while(!text.empty() && control(text.back())) text.remove_suffix(1);
+	return text;
+}
+
 /// @brief `parse-double`: Clojure's forms (`1.5`, `-2e3`, `.5`, `5.`, a suffix `d` or `f`, spaces around), but nil for
 /// `NaN` and `Infinity`, and for a number too large for a double, as JSON has neither.
 /// @param arguments A string.
@@ -445,9 +456,7 @@ bool decimalNumber(std::string_view text) noexcept {
 Value parseDouble(Machine& /*machine*/, Arguments arguments) {
 	std::string_view text = parsedText(arguments, "parse-double");
 	if(text.size() > longestNumber) return {};
-	const auto control = [](char c) { return static_cast<unsigned char>(c) <= 0x20U; };
-	while(!text.empty() && control(text.front())) text.remove_prefix(1);
-	while(!text.empty() && control(text.back())) text.remove_suffix(1);
+	text = withoutControls(text);
 	const bool negative = text.starts_with('-');
 	if(negative || text.starts_with('+')) text.remove_prefix(1);
 	if(!text.empty() && std::string_view("dDfF").contains(text.back())) text.remove_suffix(1);
@@ -470,6 +479,20 @@ Value parseBoolean(Machine& /*machine*/, Arguments arguments) {
 	if(text == "true" || text == "false") return Value::boolean(text == "true");
 	return {};
 }
+
+/// Functions made on first use (Machine::defineLazyNatives()), sorted by name: a program that never calls them doesn't
+/// pay for them when the machine starts.
+constexpr auto lazyNatives = std::to_array<LazyNative>({
+    {"ex-data", errorData},
+    {"ex-info", errorInfo},
+    {"ex-message", errorMessage},
+    {"format", format},
+    {"parse-boolean", parseBoolean},
+    {"parse-double", parseDouble},
+    {"parse-long", parseLong},
+});
+static_assert(std::ranges::is_sorted(lazyNatives, {}, &LazyNative::name),
+              "Machine::defineLazyNatives() takes them sorted");
 
 } // namespace
 
@@ -497,13 +520,7 @@ void defineText(Machine& machine) {
 	machine.defineNative("keyword", makeKeyword);
 	machine.defineNative("symbol", makeSymbol);
 	machine.defineNative("gensym", gensym);
-	machine.defineNative("format", format);
-	machine.defineNative("ex-info", errorInfo);
-	machine.defineNative("ex-message", errorMessage);
-	machine.defineNative("ex-data", errorData);
-	machine.defineNative("parse-long", parseLong);
-	machine.defineNative("parse-double", parseDouble);
-	machine.defineNative("parse-boolean", parseBoolean);
+	machine.defineLazyNatives(lazyNatives);
 }
 
 } // namespace affresco::lisp

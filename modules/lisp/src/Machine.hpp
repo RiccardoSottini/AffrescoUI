@@ -64,6 +64,13 @@ struct GlobalUse {
 	std::string definition;         ///< The definition it is in.
 };
 
+/// @brief A function of the language's own that is made the first time its name is looked up
+/// (Machine::defineLazyNatives()).
+struct LazyNative {
+	std::string_view name;             ///< Its name, its global's.
+	NativeFunction function = nullptr; ///< It.
+};
+
 /// @brief The machine behind an Interpreter.
 class Machine {
 public:
@@ -84,7 +91,12 @@ public:
 	/// @param name Its name.
 	/// @return The cell.
 	Global& global(std::string_view name);
-	/// @brief A global's cell, if it exists.
+	/// @brief A global's cell, if it exists: a lazy native (defineLazyNatives()) of that name is made now.
+	/// @param name Its name.
+	/// @return The cell, or nullptr.
+	[[nodiscard]] Global* findGlobal(std::string_view name);
+	/// @brief A global's cell, if it exists, a lazy native only once something has looked it up: for what looks for a
+	/// program's definitions or macros, which a lazy native never is.
 	/// @param name Its name.
 	/// @return The cell, or nullptr.
 	[[nodiscard]] Global* findGlobal(std::string_view name) const;
@@ -98,15 +110,19 @@ public:
 	/// @param name Its name.
 	/// @param value The value.
 	void defineLanguageValue(std::string_view name, const Value& value);
+	/// @brief Registers functions of the language's own that are made the first time something looks their names up,
+	/// as defineNative() would make them: a program can't tell, and starting a machine doesn't pay for them.
+	/// @param natives Sorted by name; a constant, which outlives the machine.
+	void defineLazyNatives(std::span<const LazyNative> natives) { lazyNatives_.push_back(natives); }
 	/// @brief The language's own cell of a name, made if it is new: what its library code sees, whatever a program or
 	/// a host defines with that name (Library.hpp).
 	/// @param name Its name.
 	/// @return The cell.
 	Global& languageGlobal(std::string_view name);
-	/// @brief The language's own cell of a name, if it has one.
+	/// @brief The language's own cell of a name, if it has one: a lazy native of that name is made now.
 	/// @param name Its name.
 	/// @return The cell, or nullptr.
-	[[nodiscard]] Global* findLanguageGlobal(std::string_view name) const;
+	[[nodiscard]] Global* findLanguageGlobal(std::string_view name);
 	/// @brief Registers a host's primitive.
 	/// @param name Its name.
 	/// @param primitive It.
@@ -265,6 +281,12 @@ public:
 	[[nodiscard]] std::pair<Place, std::string> currentPlace() const;
 
 private:
+	/// @brief Makes the cells of a lazy native (defineLazyNatives()), if one has that name: what loading it costs is
+	/// the language's, not the program's that looks it up.
+	/// @param name The name.
+	/// @return true if it made them.
+	bool makeLazyNative(std::string_view name);
+
 	/// @brief One function being run.
 	struct Frame {
 		const Code* code = nullptr;             ///< What it runs.
@@ -436,6 +458,7 @@ private:
 	std::map<std::string_view, Global*, std::less<>> globals_;            ///< The cells by name.
 	std::deque<Global> languageCells_;                                    ///< See languageGlobal().
 	std::map<std::string_view, Global*, std::less<>> language_;           ///< languageCells_ by name.
+	std::vector<std::span<const LazyNative>> lazyNatives_;                ///< See defineLazyNatives().
 	Namespaces namespaces_;                                               ///< See namespaces().
 	std::vector<std::unique_ptr<Definition>> definitions_;                ///< See definitions().
 	std::map<std::string, std::size_t, std::less<>> definitionNames_;     ///< definitions_'s indexes by name.

@@ -61,7 +61,7 @@ double secondsFor(lisp::Interpreter& interpreter, std::string_view name, const s
 	for(const std::string& text : texts) arguments.push_back(interpreter.makeString(text));
 	const auto started = std::chrono::steady_clock::now();
 	try {
-		static_cast<void>(interpreter.call(*interpreter.global(name), arguments));
+		static_cast<void>(interpreter.call(interpreter.global(name).value_or(lisp::Value()), arguments));
 	} catch(const lisp::LispError& error) {
 		CHECK(error.message().contains("budget"));
 		return -std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
@@ -72,20 +72,34 @@ double secondsFor(lisp::Interpreter& interpreter, std::string_view name, const s
 } // namespace
 
 TEST_CASE("lisp clojure.string: every name answers to str/, string/ and clojure.string/") {
-	constexpr auto names =
-	    std::to_array<std::string_view>({"blank?", "capitalize", "ends-with?", "includes?", "index-of", "join",
-	                                     "last-index-of", "lower-case", "replace", "replace-first", "reverse", "split",
-	                                     "split-lines", "starts-with?", "trim", "trim-newline", "triml", "trimr",
-	                                     "upper-case"});
+	constexpr auto names = std::to_array<std::string_view>(
+	    {"blank?", "capitalize", "ends-with?", "includes?", "index-of", "join", "last-index-of", "lower-case",
+		 "replace", "replace-first", "reverse", "split", "split-lines", "starts-with?", "trim", "trim-newline", "triml",
+		 "trimr", "upper-case"});
 	for(const std::string_view name : names) {
 		CAPTURE(name);
-		const std::string bare(name);
-		CHECK(run("(= str/" + bare + " string/" + bare + " clojure.string/" + bare + ")") == "true");
+		std::string same = "(= str/";
+		same.append(name).append(" string/").append(name).append(" clojure.string/").append(name).append(")");
+		CHECK(run(same) == "true");
 	}
 	CHECK(run("(str/trim \"  a \")") == "\"a\"");
 	CHECK(run("(string/trim \"  a \")") == "\"a\"");
 	CHECK(run("(clojure.string/trim \"  a \")") == "\"a\"");
 	CHECK(run("(= str/join join)") == "true"); // the same function as the bare one
+}
+
+TEST_CASE("lisp clojure.string: the functions made on first use are the same as those made at the start") {
+	lisp::Interpreter interpreter;
+	REQUIRE(interpreter.global("clojure.string/trim")); // a host looking one up before any program uses it
+	REQUIRE(interpreter.global("parse-long"));
+	for(int run = 0; run < 3; ++run) { // a run made each first, and the next ones use what it made
+		CHECK(interpreter.print(interpreter.eval("(str/split \"a,b\" \",\")", "test", "tester")) == "[\"a\" \"b\"]");
+		CHECK(interpreter.print(interpreter.eval("(format \"%d\" 7)", "test", "tester")) == "\"7\"");
+		CHECK(interpreter.print(interpreter.eval("(str/index-of \"abc\" \"c\")", "test", "tester")) == "2");
+	}
+	CHECK(run("(defn format [x] (str \"mine \" x)) (format 1)") == "\"mine 1\""); // a program's, as before
+	CHECK(run("(= parse-long parse-long)") == "true");
+	CHECK(run("(fn? str/blank?)") == "true");
 }
 
 TEST_CASE("lisp clojure.string: blank? and capitalize") {
@@ -140,7 +154,7 @@ TEST_CASE("lisp clojure.string: index-of and last-index-of count characters") {
 TEST_CASE("lisp clojure.string: join, with a separator and without") {
 	CHECK(run("(str/join \", \" [1 2])") == "\"1, 2\"");
 	CHECK(run("(str/join [1 \"a\" nil :k])") == "\"1a:k\""); // as str shows each
-	CHECK(run("(join [\"a\" \"b\"])") == "\"ab\""); // the bare one takes one argument too
+	CHECK(run("(join [\"a\" \"b\"])") == "\"ab\"");          // the bare one takes one argument too
 	CHECK(run("(join \"-\" [\"a\" \"b\"])") == "\"a-b\"");
 	CHECK(run("(str/join \", \" nil)") == "\"\"");
 	CHECK(run("(str/join [])") == "\"\"");
@@ -331,11 +345,12 @@ TEST_CASE("lisp clojure.string: a 1 MiB text goes through split, replace and joi
 	std::string items;
 	for(int at = 0; at < 65536; ++at) items += "ab,";
 	const std::array<lisp::Value, 2> toSplit = {joining.makeString(items), joining.makeString(",")};
-	const lisp::Value pieces = joining.call(*joining.global("clojure.string/split"), toSplit);
+	const lisp::Value join = joining.global("clojure.string/join").value_or(lisp::Value());
+	const lisp::Value pieces = joining.call(joining.global("clojure.string/split").value_or(lisp::Value()), toSplit);
 	const std::array<lisp::Value, 2> arguments = {joining.makeString(std::string(1024, '-')), pieces};
 	const auto started = std::chrono::steady_clock::now();
 	try {
-		static_cast<void>(joining.call(*joining.global("clojure.string/join"), arguments));
+		static_cast<void>(joining.call(join, arguments));
 	} catch(const lisp::LispError& error) {
 		CHECK(error.message().contains("budget"));
 	}

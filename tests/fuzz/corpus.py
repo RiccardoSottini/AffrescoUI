@@ -907,7 +907,13 @@ def lisp_seeds():
               '(defmacro tr [id k] `{:id ~id :label (t ~k)})\n(defcomputed a "x" [(tr "e" "k")])\n'
               '(defmacro w [] (quote state.x))\n(defmacro v [] [state.y])\n'
               '(defscreen main (n :x ~[(tr 1 2) [(w)]] :y ~{:z (v)} :s ~(str "  " state.n " ")))',
-              "`~" * (MAX_NESTING // 2) + "x", "'" * MAX_NESTING + "x"]
+              "`~" * (MAX_NESTING // 2) + "x", "'" * MAX_NESTING + "x",
+              # Text under Clojure's names (modules/lisp/reference/strings.md)
+              '(str/join "," (str/split (str/replace "a-b--c" "-" "+") "+" -1))\n'
+              '(format "%-5s|%05d|%.2f|%x|%%|%.1s" "ab" -4 1.5 255 "\u00e9t\u00e9")\n'
+              '(try (throw (ex-info "m" {:a 1})) (catch e [(ex-message e) (ex-data e)]))\n'
+              '[(parse-long "-12") (parse-double " .5e2d ") (parse-boolean "true") (str/index-of "abab" "b" 2)\n'
+              ' (str/trim-newline "a\\r\\n") (str/capitalize "aBC") (str/blank? nil) (str/split-lines "a\\nb")]']
     return seeds
 
 
@@ -1050,7 +1056,9 @@ def main():
     write(out, "lisp", lisp_seeds(), ["(", ")", "[", "]", "{", "}", "#_", ":", '"', ";", "'", "`", "~", "~@", "nil", "true",
                                       "def ", "defn ", "defmacro ", "defscreen ", "defcommand ", "defkey ", "defcustom ",
                                       "fn ", "let ", "loop ", "recur ", "try ", "catch ", "throw ", "if ", "do ", "map ",
-                                      "reduce ", "apply ", "gensym", "& "])
+                                      "reduce ", "apply ", "gensym", "& ", "str/", "string/", "clojure.string/",
+                                      "split ", "replace ", "index-of ", "format ", "%d", "%s", "%.2f", "%05x", "ex-info ",
+                                      "ex-data ", "parse-long ", "parse-double ", "#\""])
     write(out, "notation", notation_seeds(), ["(", ")", "[", "]", "{", "}", "#", ":", '"', ";", "\n", "nil", "true",
                                               "false", "node", "\\u", "\\n", "-", "1e", "#\"", ':"', "\xEF\xBB\xBF"])
     write(out, "expression", expression_seeds() + ["hexColor('#AbC')", "hexColor(state.colors['editor.background'])",
