@@ -16,6 +16,7 @@
 #include <iterator>
 #include <map>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -331,7 +332,17 @@ Global* Machine::findLanguageGlobal(std::string_view name) {
 	return language_.find(name)->second;
 }
 
+void Machine::defineLazyNatives(std::span<const LazyNative> natives) {
+	for(std::span<const LazyNative>& table : lazyNatives_)
+		if(table.empty()) {
+			table = natives;
+			return;
+		}
+	throw std::logic_error("Machine::lazyNatives_ has room for no more tables");
+}
+
 bool Machine::makeLazyNative(std::string_view name) {
+	if(!started_) return false; // the language's own definitions, many: none looks for a lazy native
 	for(const std::span<const LazyNative> natives : lazyNatives_) {
 		const auto entry = std::ranges::lower_bound(natives, name, {}, &LazyNative::name);
 		if(entry == natives.end() || entry->name != name) continue;

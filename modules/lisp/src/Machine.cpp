@@ -66,6 +66,8 @@ Machine::Machine(Interpreter& owner, const Limits& limits)
 	budget_ = start;
 	heap.setBudget(&budget_);
 	stack_.reserve(1024);
+	// NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer): last, once the language's own definitions have run
+	started_ = true;
 }
 
 const std::array<Machine::Handle, static_cast<std::size_t>(Op::Count)>& Machine::handles() noexcept {

@@ -113,7 +113,8 @@ public:
 	/// @brief Registers functions of the language's own that are made the first time something looks their names up,
 	/// as defineNative() would make them: a program can't tell, and starting a machine doesn't pay for them.
 	/// @param natives Sorted by name; a constant, which outlives the machine.
-	void defineLazyNatives(std::span<const LazyNative> natives) { lazyNatives_.push_back(natives); }
+	/// @throws std::logic_error If the language has more tables than the machine has room for.
+	void defineLazyNatives(std::span<const LazyNative> natives);
 	/// @brief The language's own cell of a name, made if it is new: what its library code sees, whatever a program or
 	/// a host defines with that name (Library.hpp).
 	/// @param name Its name.
@@ -455,10 +456,11 @@ private:
 	std::size_t regions_ = 0;         ///< Regions inside each other.
 	bool pure_ = false;               ///< See setPure().
 	std::deque<Global> globalCells_;  ///< The cells: their addresses stay.
-	std::map<std::string_view, Global*, std::less<>> globals_;            ///< The cells by name.
-	std::deque<Global> languageCells_;                                    ///< See languageGlobal().
-	std::map<std::string_view, Global*, std::less<>> language_;           ///< languageCells_ by name.
-	std::vector<std::span<const LazyNative>> lazyNatives_;                ///< See defineLazyNatives().
+	std::map<std::string_view, Global*, std::less<>> globals_;  ///< The cells by name.
+	std::deque<Global> languageCells_;                          ///< See languageGlobal().
+	std::map<std::string_view, Global*, std::less<>> language_; ///< languageCells_ by name.
+	std::array<std::span<const LazyNative>, 2> lazyNatives_{};  ///< See defineLazyNatives(): an empty span is no table.
+	bool started_ = false; ///< The constructor has finished: until then, the names it defines are none a lazy native's.
 	Namespaces namespaces_;                                               ///< See namespaces().
 	std::vector<std::unique_ptr<Definition>> definitions_;                ///< See definitions().
 	std::map<std::string, std::size_t, std::less<>> definitionNames_;     ///< definitions_'s indexes by name.
