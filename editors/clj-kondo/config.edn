@@ -1,0 +1,88 @@
+;;; config.edn --- clj-kondo's configuration for AffrescoUI Lisp (LISP.md), the files of an app
+;;;
+;;; Use: clj-kondo --lang clj --config-dir editors/clj-kondo --lint app/lisp/*.lisp, or copy this folder to
+;;; .clj-kondo/ in the app. README.md says what it knows and what a linter can't know here.
+
+{;; The definition forms are no library's: clj-kondo resolves them in the namespace of the file that calls them,
+ ;; `user` in a file with no ns. A group matching every namespace lets the hooks below hold in both.
+ :ns-groups [{:pattern ".*" :name affrescoui.app}]
+
+ ;; Each definition form read as the plain Clojure it stands for (affrescoui/hooks.clj): a view and a command as a
+ ;; defn whose body is the code their templates hold; a definition of data or of a template for the host as a def
+ ;; of its name, its body not linted as code. Written for the group and again for `user`, the same hook.
+ :hooks
+ {:macroexpand
+  {affrescoui.app/defview affrescoui.hooks/defview
+   affrescoui.app/defcommand affrescoui.hooks/defcommand
+   affrescoui.app/defkey affrescoui.hooks/defkey
+   affrescoui.app/defscreen affrescoui.hooks/definition
+   affrescoui.app/defstate affrescoui.hooks/definition
+   affrescoui.app/defcomputed affrescoui.hooks/definition
+   affrescoui.app/defcustom affrescoui.hooks/definition
+   affrescoui.app/defstyle affrescoui.hooks/definition
+   affrescoui.app/defmenu affrescoui.hooks/definition
+   affrescoui.app/deftokens affrescoui.hooks/definition
+   affrescoui.app/defpart affrescoui.hooks/definition
+   affrescoui.app/defdefaults affrescoui.hooks/definition
+   affrescoui.app/defcomponent affrescoui.hooks/definition
+   affrescoui.app/defhook affrescoui.hooks/definition
+   user/defview affrescoui.hooks/defview
+   user/defcommand affrescoui.hooks/defcommand
+   user/defkey affrescoui.hooks/defkey
+   user/defscreen affrescoui.hooks/definition
+   user/defstate affrescoui.hooks/definition
+   user/defcomputed affrescoui.hooks/definition
+   user/defcustom affrescoui.hooks/definition
+   user/defstyle affrescoui.hooks/definition
+   user/defmenu affrescoui.hooks/definition
+   user/deftokens affrescoui.hooks/definition
+   user/defpart affrescoui.hooks/definition
+   user/defdefaults affrescoui.hooks/definition
+   user/defcomponent affrescoui.hooks/definition
+   user/defhook affrescoui.hooks/definition}}
+
+ ;; The host's words keep their meaning (LISP.md, "Running"): `set`, `find`, `repeat`, `empty`, `time` and `type` are
+ ;; steps or expression functions here, not Clojure's, so their arguments aren't Clojure's. Inside a call of one,
+ ;; arity and types aren't checked, nor the names a view's repeat binds; everywhere else they are.
+ :config-in-call
+ {clojure.core/set {:linters {:invalid-arity {:level :off} :type-mismatch {:level :off}}}
+  clojure.core/find {:linters {:invalid-arity {:level :off} :type-mismatch {:level :off}}}
+  clojure.core/empty {:linters {:invalid-arity {:level :off} :type-mismatch {:level :off}}}
+  clojure.core/time {:linters {:invalid-arity {:level :off} :type-mismatch {:level :off}}}
+  clojure.core/type {:linters {:invalid-arity {:level :off} :type-mismatch {:level :off}}}
+  clojure.core/repeat {:linters {:invalid-arity {:level :off}
+                                 :type-mismatch {:level :off}
+                                 :unresolved-symbol {:level :off}}}}
+
+ :linters
+ {:unresolved-symbol
+  {:exclude
+   [;; The definition forms and the top-level calls (LISP.md, "Definitions")
+    defscreen defview defcomponent defstate defcomputed defcommand defkey defcustom defstyle defmenu deftokens defpart
+    defdefaults defhook add-hook remove-hook advice include run-hooks
+    ;; The language's own words that Clojure lacks (modules/lisp/README.md, "The language")
+    truthy? or-else join upper-case lower-case handler
+    ;; The app's variables, read on their own (modules/format/src/programs/ProgramSteps.cpp)
+    state computed data event settings window revision proposals history preview mode theme locale screen context
+    commands keybindings menus settingsList services connections auth requests peers windows
+    ;; The steps, each a function (SCREEN_FORMAT.md, "Steps"); `remove` is remove-state, `update` update-record
+    push remove-state toggle increment run call cancel emit send connect patch invoke request subscribe respond signIn
+    signOut ask cancelAsk attach chooseFolder saveFile openFile export focus scrollTo navigate dismiss edit press after
+    debounce animate copy log camera transform image audio runInTerminal clearTerminal closeTerminal insert
+    update-record delete undoData redoData importCsv openWindow closeWindow fullscreen evaluate propose exportChanges
+    accept reject endPreview restore revert undo
+    ;; The expression functions a program calls (SCREEN_FORMAT.md, "Functions"), where Clojure has no such name
+    coalesce equals notEquals greater less greaterOrEqual lessOrEqual add subtract multiply divide round floor ceil
+    clamp sin cos tan asin acos atan atan2 radians degrees pi sqrt pow exp hypot sign upper lower trim split number
+    text slug fixed pad plural parseJson parseJsonc shellLine json applyEdits length flat slice contains indexOf
+    values entries fromEntries sum every scan now fuzzy fuzzySort curve gradientColor hexColor colorList
+    keyframeValue t formatNumber formatPercent formatCurrency formatDate formatTime formatRelative formatList
+    compareText sortText today addDays addMonths daysBetween weekday daysInMonth dateOf dateMs isDate
+    passwordStrength isEmail pathTree keyLabel qrCode diffLines atPointer applyPatch formatJson gitStatus gitBranches
+    formBefore formAround printForm formKeyword setFormKeyword]
+   ;; A dotted word nothing defines is a path of the app (state.count, card.title, %.title): whether it exists is
+   ;; affrescoui check's to say. The describe-* functions a host gives with its hooks.
+   :exclude-patterns ["^[A-Za-z_%][^/]*\\.[^/]" "^describe-"]}
+
+  ;; The language's fixed aliases: (str/join ...), (set/union ...), with no require.
+  :unresolved-namespace {:exclude [str set]}}}

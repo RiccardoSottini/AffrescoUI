@@ -309,14 +309,15 @@ Value negation(Machine& /*machine*/, Arguments arguments) {
 	return Value::boolean(!arguments[0].truthy());
 }
 
-/// @brief `truthy?`: an expression's truth, where nil, false, 0, "", [] and {} are false, for a function that tests a
-/// value of the running app as a binding would. @param arguments A value. @return Whether it is true so.
+/// @brief `truthy?`: an expression's truth, where nil, false, 0, "", [], {} and #{} are false, for a function that
+/// tests a value of the running app as a binding would. @param arguments A value. @return Whether it is true so.
 Value expressionTruth(Machine& /*machine*/, Arguments arguments) {
 	if(arguments.size() != 1) throw Problem("\"truthy?\" takes one value");
 	const Value& value = arguments[0];
 	if(value.isNumber()) return Value::boolean(value.asDouble() != 0.0);
 	if(value.kind() == Kind::String) return Value::boolean(!value.text().empty());
-	if(value.kind() == Kind::Vector || value.kind() == Kind::List || value.kind() == Kind::Map)
+	if(value.kind() == Kind::Vector || value.kind() == Kind::List || value.kind() == Kind::Map ||
+	   value.kind() == Kind::Set)
 		return Value::boolean(value.count() > 0);
 	return Value::boolean(value.truthy());
 }
@@ -533,12 +534,13 @@ void defineTests(Machine& machine) {
 	machine.defineNative("nat-int?", isSignedInteger<0, 1>);
 	machine.defineNative("pos-int?", isSignedInteger<1, 1>);
 	machine.defineNative("neg-int?", isSignedInteger<-1, -1>);
-	machine.defineNative("coll?", isKind<Kind::List, Kind::Vector, Kind::Map>);
+	machine.defineNative("coll?", isKind<Kind::List, Kind::Vector, Kind::Map, Kind::Set>);
 	machine.defineNative("seq?", isKind<Kind::List>);
 	machine.defineNative("sequential?", isKind<Kind::List, Kind::Vector>);
 	machine.defineNative("associative?", isKind<Kind::Map, Kind::Vector>);
 	machine.defineNative("ident?", isKind<Kind::Keyword, Kind::Symbol>);
-	machine.defineNative("ifn?", isKind<Kind::Function, Kind::Native, Kind::Keyword, Kind::Map>);
+	machine.defineNative("ifn?",
+	                     isKind<Kind::Function, Kind::Native, Kind::Keyword, Kind::Map, Kind::Set, Kind::Vector>);
 }
 
 } // namespace

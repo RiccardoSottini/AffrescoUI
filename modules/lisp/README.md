@@ -45,7 +45,8 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 number read keeps the exact kind `parseUntrusted` gives. A map's keys are strings, and a keyword or a string name the same
 key (`(get m :a)` is `(get m "a")`). JSON read through `Interpreter::viewJson` is viewed, not converted: a vector or a map
 from it wraps its items as they are read. Besides those: **symbols** (a word in code; in data the string of the same text),
-**keywords** (as a value in data, their text), **lists** (code; in data a node), **functions**. `nil` and `false` are false,
+**keywords** (as a value in data, their text), **lists** (code; in data a node), **sets** (`#{1 2}`, distinct items in the order added;
+in data a list, `reference/sets.md`), **functions**. `nil` and `false` are false,
 everything else is true. **A whole number that is a double** (`13.0`, from `(* 26 0.5)` or a JSON file that writes it so) keeps
 its kind, as JSON's model says, and is printed `13.0` to be read back (`pr-str`, `printForm`); but it counts as the integer wherever an
 index, a count or a position is taken (`get`, `nth`, `contains?`, `assoc`, `subs`, `range`, a vector pattern; up to 2^53), as
@@ -137,8 +138,8 @@ each register their own entries with `defineLibrary`; a package adding to the la
   `map`, `filter`, `reduce`... and `apply` and `run-hooks`, which a host writes.
 - **Macros.** A library macro is unhygienic, as a program's: its expansion calls the words its entry lists (`uses`) by name. Where a
   local hides one of them, or the program defines one, the call is an error that names both: `"m" uses the language's "not", which
-  a local hides here: rename the local`. The words it may call are those a binding lowers: `not`, `=`, `nil?`, `some?`, `map`,
-  `filter`, `mapcat`.
+  a local hides here: rename the local`. The words it may call are those a binding lowers: `not`, `=`, `nil?`, `some?`,
+  `empty?`, `first`, `map`, `filter`, `mapcat`.
 
 ### Qualified names
 
@@ -146,8 +147,8 @@ A word with a `/` inside it names a namespace's function (`src/Namespaces.hpp`):
 `clojure.string/join`, written `str/join` or `string/join` with an alias, is the global of that name, as are `clojure.set`'s,
 written `set/` (none yet). A qualified word is never a local, so `(let [inc dec] (clojure.core/inc 1))` is 2, and a qualified form
 (`clojure.core/when`) is the form. An unknown prefix is an error that lists the namespaces. `/` alone is division, and a word
-starting or ending with `/` is a word of its own. A host adds its own with `Interpreter::addNamespace` and `addAlias`; there is no `ns` yet, and no
-`require`.
+starting or ending with `/` is a word of its own. A host adds its own with `Interpreter::addNamespace` and `addAlias`. A program file's first form
+may be `(ns name (:require ...))`, which gives it aliases of its own and names the files it needs (`reference/namespaces.md`).
 
 ### Names the language doesn't have
 

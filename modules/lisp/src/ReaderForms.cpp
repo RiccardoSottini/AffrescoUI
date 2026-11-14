@@ -4,6 +4,7 @@
 /// Clojure's ways to write a character or a number, read as the nearest JSON value.
 
 #include "Reader.hpp"
+#include "Sets.hpp"
 
 #include <algorithm>
 #include <array>
@@ -52,6 +53,29 @@ bool isDigits(std::string_view text, bool hex) {
 	return !text.empty() && std::ranges::all_of(text, [&](char c) {
 		return (c >= '0' && c <= '9') || (hex && ((c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')));
 	});
+}
+
+/// @brief Tells whether a form is its own value, so that a set of such forms is made as the reader reads it: neither a
+/// word nor a list, nor a vector or a map holding one. The reader's nesting limit bounds the depth.
+/// @param form The form.
+/// @param depth How many forms hold it.
+/// @return true if so.
+bool isConstantForm(const Value& form, int depth) {
+	switch(form.kind()) {
+	case Kind::Symbol:
+	case Kind::List:
+		return false;
+	case Kind::Vector:
+		for(std::size_t at = 0; at < form.count(); ++at)
+			if(!isConstantForm(form.at(at), depth + 1)) return false;
+		return true;
+	case Kind::Map: // its keys are text, or it would be a (%map ...) list
+		for(std::size_t at = 0; at < form.count(); ++at)
+			if(!isConstantForm(form.valueAt(at), depth + 1)) return false;
+		return true;
+	default: // a set the reader made is one of constants
+		return true;
+	}
 }
 
 } // namespace
@@ -118,8 +142,32 @@ std::optional<std::string> Reader::lambdaParameter(const Token& token) {
 	return (index == 1 ? std::string("%") : "%" + std::to_string(index)) + std::string(path);
 }
 
-Value Reader::setOf(const Token& token, int /*depth*/) {
-	lexer_.fail(token.offset, "a set literal #{...} isn't in the language: write a vector");
+Value Reader::setOf(const Token& token, int depth) {
+	shallowEnough(token, depth + 1);
+	const Place place = placeAt(token.offset);
+	lexer_.next(); // the '{' the lexer saw after the '#'
+	std::vector<Value> items;
+	std::vector<std::size_t> offsets; // where each item starts, for the error of one twice
+	for(Token item = lexer_.next(); item.kind != TokenKind::CloseMap; item = lexer_.next()) {
+		if(item.kind == TokenKind::End)
+			lexer_.fail(item.offset, "expected '}' to close the set opened at " + lexer_.placeOf(token.offset));
+		elements(item, depth + 1, items);
+		offsets.resize(items.size(), item.offset);
+	}
+	// The same form twice is refused as a map's key twice is, constant or not (`#{x x}`), as Clojure's reader does
+	std::optional<std::size_t> repeat;
+	const Value set = setOfItems(heap_, nullptr, items, place, &repeat);
+	if(repeat) {
+		const Value& item = items[*repeat];
+		const bool text = item.kind() == Kind::String || item.kind() == Kind::Keyword || item.kind() == Kind::Symbol;
+		lexer_.fail(offsets[*repeat],
+		            (text ? "the item \"" + notation::Lexer::excerpt(item.text()) + "\" twice"
+		                  : "the same " + std::string(item.isNil() ? "nil" : describeKind(item).substr(2)) + " twice") +
+		                " in a set: a set holds each item once");
+	}
+	if(std::ranges::all_of(items, [](const Value& item) { return isConstantForm(item, 0); })) return set;
+	items.insert(items.begin(), heap_.symbol("%set", place)); // worked out when it runs
+	return heap_.sequence(Kind::List, std::move(items), place);
 }
 
 std::optional<Value> Reader::conditional(const Token& token, int depth) {

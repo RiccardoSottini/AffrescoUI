@@ -5,7 +5,9 @@
 #include "Cli.hpp"
 #include "JsonText.hpp"
 
+#include <affresco/affresco.hpp>
 #include <affresco/format/Rules.hpp>
+#include <affresco/lisp/Document.hpp>
 #include <affresco/lisp/Interpreter.hpp>
 #include <affresco/lisp/Program.hpp>
 
@@ -14,6 +16,28 @@
 #include <string>
 
 namespace affresco::cli {
+
+namespace {
+
+/// @brief A program file's program, with the files it includes or requires (reference/namespaces.md) loaded as the
+/// library loads them: from its folder, each read once.
+/// @param text The file's text.
+/// @param file The file.
+/// @return The program.
+/// @throws DocumentError If a file can't be read or a definition is refused.
+lisp::Program programOfFile(const std::string& text, const std::filesystem::path& file) {
+	lisp::Program program;
+	if(!text.contains("include") && !text.contains("(ns")) { // most files: the file alone
+		program.addFile(text, file.string());
+		return program;
+	}
+	if(const json document = lisp::readDocument(text, file); !document.contains("include"))
+		return lisp::programOf(document.at("program"));
+	Screen screen = Screen::fromString(lisp::jsonText(text, file), file.parent_path());
+	return lisp::programOf(screen.versions().sourceDocument().value("program", json::object()));
+}
+
+} // namespace
 
 std::optional<Exit> runLisp(const std::filesystem::path& file, bool print) {
 	if(file.extension() != ".lisp") {
@@ -24,8 +48,7 @@ std::optional<Exit> runLisp(const std::filesystem::path& file, bool print) {
 	try {
 		const bool isProgram = lisp::isProgram(text);
 		if(!print && !isProgram) return std::nullopt; // a data file opens in a window, as any screen
-		lisp::Program program;
-		if(isProgram) program.addFile(text, file.string());
+		lisp::Program program = isProgram ? programOfFile(text, file) : lisp::Program();
 		const json tree = isProgram ? program.build() : lisp::buildText(text, file.string());
 		std::cout << printText(parseText(tree.dump())) << std::flush;
 		for(const lisp::UndefinedName& name : program.undefinedNames())

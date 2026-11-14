@@ -73,11 +73,18 @@ or a big decimal is only as wide as JSON's.
 | `1/2`, `4/2` | `0.5`, `2`: a ratio is divided as it is read; `1/0` is an error |
 | `0x1F`, `-0xff` | `31`, `-255` |
 
+## Set literals: `#{...}`
+
+`#{1 2 3}` reads as a set (`sets.md`), its items in the order written. A set of constants is made as it is read; one
+with a form in it, `#{x 2}`, reads as `(%set x 2)`, which makes the set when it runs. The same item twice is an error at
+the second, constant or not, as a map's key twice is: `#{1 2 1}` says `the same number twice in a set: a set holds each
+item once`, and `#{:a "a"}` says `the item "a" twice` (a keyword is the string of its text). In a data file, which the
+notation's reader reads, `#{` stays an error.
+
 ## Refused, with what to write instead
 
 | Written | Error says |
 |---|---|
-| `#{1 2}` | a set literal isn't in the language: write a vector (`set/` works on vectors of distinct items) |
 | `#'f` | there are no vars: name the function itself |
 | `##Inf`, `##NaN` | JSON has no infinity or not-a-number |
 | `::name`, `:a/b` | a keyword has no namespace here: write `:name`, or `:"a/b"` |

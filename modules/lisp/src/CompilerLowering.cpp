@@ -58,16 +58,26 @@ constexpr std::array<AroundOperator, 3> aroundOperators{{{"not", "!(", ")"},
                                                          {"-", "-(", ")"}}};
 
 /// The language's functions of one argument that an expression writes as an operator around it: `(inc x)` is `(x + 1)`.
-constexpr std::array<AroundOperator, 4> aroundFunctions{
-    {{"inc", "(", " + 1)"}, {"dec", "(", " - 1)"}, {"nil?", "(", " == null)"}, {"some?", "(", " != null)"}}};
+constexpr std::array<AroundOperator, 11> aroundFunctions{{{"inc", "(", " + 1)"},
+                                                          {"dec", "(", " - 1)"},
+                                                          {"nil?", "(", " == null)"},
+                                                          {"some?", "(", " != null)"},
+                                                          {"zero?", "(", " == 0)"},
+                                                          {"pos?", "(", " > 0)"},
+                                                          {"neg?", "(", " < 0)"},
+                                                          {"even?", "((", " % 2) == 0)"},
+                                                          {"odd?", "((", " % 2) != 0)"},
+                                                          {"true?", "(", " == true)"},
+                                                          {"false?", "(", " == false)"}}};
 
 /// @brief The operator a list of one operand is, from a table.
 /// @param table The table.
 /// @param form The list.
+/// @param head The function it calls (Compiler::calledName()), or "" for its first word.
 /// @return Its entry, or null.
-const AroundOperator* aroundOf(std::span<const AroundOperator> table, const Value& form) {
+const AroundOperator* aroundOf(std::span<const AroundOperator> table, const Value& form, std::string_view head = "") {
 	if(form.count() != 2) return nullptr;
-	const std::string_view head = headWord(form);
+	if(head.empty()) head = headWord(form);
 	const auto found = std::ranges::find(table, head, &AroundOperator::word);
 	return found == table.end() ? nullptr : &*found;
 }
@@ -96,7 +106,7 @@ struct SameFunction {
 };
 
 /// Those functions.
-constexpr std::array<SameFunction, 14> sameFunctions{{{"count", "length", 1, 1},
+constexpr std::array<SameFunction, 17> sameFunctions{{{"count", "length", 1, 1},
                                                       {"range", "range", 1, 1},
                                                       {"sort", "sort", 1, 1},
                                                       {"concat", "concat", 1, 16},
@@ -109,7 +119,25 @@ constexpr std::array<SameFunction, 14> sameFunctions{{{"count", "length", 1, 1},
                                                       {"abs", "abs", 1, 1},
                                                       {"upper-case", "upper", 1, 1},
                                                       {"lower-case", "lower", 1, 1},
-                                                      {"empty?", "empty", 1, 1}}};
+                                                      {"empty?", "empty", 1, 1},
+                                                      {"clojure.string/trim", "trim", 1, 1},
+                                                      {"clojure.string/split", "split", 2, 2},
+                                                      {"clojure.string/includes?", "contains", 2, 2}}};
+
+/// The functions of `clojure.string` the language also has bare, lowered as those. Not `join`: on nil the function
+/// gives "", the expression an error (reference/bindings.md).
+constexpr std::array<std::string_view, 2> sameAsBare = {"lower-case", "upper-case"};
+
+/// @brief The function a binding's call names, for the tables here: its first word, with a `clojure.string` function
+/// the language also has bare written bare.
+/// @param called The function it calls (Compiler::calledName()).
+/// @return Its word.
+std::string_view tableWord(std::string_view called) {
+	constexpr std::string_view strings = "clojure.string/";
+	if(called.starts_with(strings) && std::ranges::contains(sameAsBare, called.substr(strings.size())))
+		return called.substr(strings.size());
+	return called;
+}
 
 /// @brief A function on each item, and what its function is given, in order: `(reduce (fn [acc x] ...) init list)`.
 struct ItemFunction {
@@ -156,6 +184,62 @@ std::string membersText(std::string_view members) {
 	return text;
 }
 
+/// The longest a binding's text may be once its `let`s' names are written in. Each use of a name writes its value
+/// again, and nested `let`s multiply that, so counting the text made bounds the compiler's work whatever the input.
+constexpr std::size_t maxBindingText = 4000;
+
+/// What a value the build works out counts for in that text: its own text is known only at the build.
+constexpr std::size_t workedPartSize = 16;
+
+/// What a binding says of a form it can't write, which is a choice or a function's work.
+constexpr std::string_view notAnExpression =
+    "a value read while the app runs is an expression or a call of a function: define a function for this";
+
+/// @brief Tells whether a character may stand outside brackets and quotes in one term.
+/// @param c The character.
+/// @return true for a letter, a digit, `_` or `.`.
+bool isTermCharacter(char c) { return isPlainName(std::string_view(&c, 1)) || (c >= '0' && c <= '9') || c == '.'; }
+
+/// @brief How a character changes the depth of brackets.
+/// @param c The character.
+/// @return 1 for an opening bracket, -1 for a closing one, else 0.
+constexpr int bracketStep(char c) noexcept {
+	if(c == '(' || c == '[' || c == '{') return 1;
+	return c == ')' || c == ']' || c == '}' ? -1 : 0;
+}
+
+/// @brief Tells whether an expression's text is one term, which nothing around it can split: a path
+/// (`state.user.name`, `it.cards[0]`), a call (`length(xs)`), a group (`(a + b)`), a text, a list or an object.
+/// @param text The text.
+/// @return true if it is: nothing outside brackets and quotes but letters, digits, `_` and `.`.
+bool isOneTerm(std::string_view text) {
+	int depth = 0;
+	char quote = 0;
+	for(std::size_t at = 0; at < text.size(); ++at) {
+		const char c = text[at];
+		if(quote) {
+			if(c == '\\') ++at;
+			else if(c == quote) quote = 0;
+		} else if(c == '\'' || c == '"') {
+			quote = c;
+		} else if(const int step = bracketStep(c); step != 0) {
+			depth += step;
+		} else if(depth == 0 && !isTermCharacter(c)) {
+			return false;
+		}
+	}
+	return !text.empty() && depth == 0 && quote == 0;
+}
+
+/// @brief The bit of what an expression calls a function's parameter (Compiler::Rename::uses).
+/// @param name `it`, `index` or `acc`.
+/// @return Its bit, or 0.
+constexpr unsigned itemBit(std::string_view name) noexcept {
+	if(name == "it") return 1U;
+	if(name == "index") return 2U;
+	return name == "acc" ? 4U : 0U;
+}
+
 } // namespace
 
 std::string pathExpression(std::string_view word) {
@@ -170,6 +254,8 @@ void Compiler::lowerForm(const Value& written, int depth, std::vector<BindingPar
 	const Value form = written.kind() == Kind::List ? expanded(written) : written;
 	if(depth > maxCompileDepth)
 		fail(form, "nested too deeply to compile, more than " + std::to_string(maxCompileDepth) + " levels");
+	if(headWord(form) == "throw") // as a case or a condp with no default has, when nothing matches
+		fail(form, "a binding can't throw: give a value for when nothing matches, or define a function for this");
 	if(!isLive(form, depth)) {
 		addWorkedPart(form, depth, parts);
 		return;
@@ -202,10 +288,22 @@ void Compiler::lowerWord(const Value& word, int depth, std::vector<BindingPart>&
 	const std::string members = dot == std::string_view::npos ? "" : membersText(text.substr(dot + 1));
 	if(const auto renamed = std::ranges::find(renames_ | std::views::reverse, head, &Rename::name);
 	   renamed != (renames_ | std::views::reverse).end()) {
-		if(renamed->hidden)
+		if(renamed->hidden && !renamed->as.empty())
 			fail(word, "a function inside another, in a binding, can't use the outer one's \"" +
 			               notation::Lexer::excerpt(head) + "\": define a function for this");
-		parts.push_back({renamed->as + members, {}, false, {}, {}});
+		if(renamed->hidden)
+			fail(word, "a function in a binding can't use \"" + notation::Lexer::excerpt(head) +
+			               "\", whose value reads the item of a function around it: define a function for this");
+		if(!renamed->as.empty()) {
+			itemsRead_ |= itemBit(renamed->as);
+			parts.push_back({renamed->as + members, {}, false, {}, {}});
+			return;
+		}
+		substituted_ += renamed->size; // a let's name: its value, written again
+		if(substituted_ > maxBindingText) failTooLarge(word);
+		itemsRead_ |= renamed->uses;
+		parts.insert(parts.end(), renamed->parts.begin(), renamed->parts.end());
+		if(!members.empty()) parts.push_back({members, {}, false, {}, {}});
 		return;
 	}
 	if(isLocalWord(head)) { // its value, or the name of the running app it holds
@@ -264,8 +362,59 @@ bool Compiler::lowerCond(const Value& form, int depth, std::vector<BindingPart>&
 	return true;
 }
 
+bool Compiler::standsAlone(const std::vector<BindingPart>& parts) {
+	std::string text;
+	for(const BindingPart& part : parts) {
+		if(!part.worked) text += part.text;
+		else if(part.locals.empty() || standsAlone(part.inner)) text += "(0)"; // a value of the build: one term
+		else return false; // or, holding a name of the running app, its text
+	}
+	return isOneTerm(text);
+}
+
+std::size_t Compiler::textSize(const std::vector<BindingPart>& parts) {
+	std::size_t size = 0;
+	for(const BindingPart& part : parts) size += part.worked ? workedPartSize + textSize(part.inner) : part.text.size();
+	return size;
+}
+
+bool Compiler::lowerLet(const Value& form, int depth, std::vector<BindingPart>& parts) {
+	if(headWord(form) != "let") return false;
+	if(form.count() != 3) fail(form, std::string(notAnExpression)); // a binding is one value
+	const Value pairs = form.at(1);
+	if(pairs.kind() != Kind::Vector || pairs.count() % 2 != 0)
+		fail(pairs, "expected a vector of names and values, in pairs");
+	const std::size_t before = renames_.size();
+	for(std::size_t at = 0; at < pairs.count(); at += 2) { // each value sees the names before it
+		if(pairs.at(at).kind() != Kind::Symbol || pairs.at(at).text() == "&")
+			fail(pairs.at(at), "a let in a binding names plain values: define a function for a pattern");
+		Rename name{pairs.at(at).text(), ""};
+		// What the value reads counts only where the name is written (lowerWord())
+		const unsigned read = std::exchange(itemsRead_, 0U);
+		lowerForm(pairs.at(at + 1), depth + 1, name.parts);
+		name.uses = std::exchange(itemsRead_, read);
+		if(!standsAlone(name.parts)) {
+			name.parts.insert(name.parts.begin(), {"(", {}, false, {}, {}});
+			name.parts.push_back({")", {}, false, {}, {}});
+		}
+		name.size = textSize(name.parts);
+		renames_.push_back(std::move(name));
+	}
+	lowerForm(form.at(2), depth + 1, parts);
+	renames_.resize(before);
+	return true;
+}
+
+void Compiler::checkLetText(const Value& form, const std::vector<BindingPart>& parts) const {
+	if(substituted_ > 0 && textSize(parts) > maxBindingText) failTooLarge(form);
+}
+
+void Compiler::failTooLarge(const Value& form) const {
+	fail(form, "this binding is too large as an expression: define a function for it");
+}
+
 bool Compiler::lowerOperator(const Value& form, int depth, std::vector<BindingPart>& parts) {
-	if(lowerIf(form, depth, parts) || lowerCond(form, depth, parts)) return true;
+	if(lowerLet(form, depth, parts) || lowerIf(form, depth, parts) || lowerCond(form, depth, parts)) return true;
 	if(const AroundOperator* around = aroundOf(aroundOperators, form)) {
 		lowerList(form, depth, parts, std::string(around->open), "");
 		parts.back().text = around->close;
@@ -314,9 +463,12 @@ void Compiler::lowerFunctionBody(const Value& function, std::span<const std::str
 		                   " plain parameters and has one form: define a function for more");
 	const std::size_t before = renames_.size();
 	std::vector<bool> hidden; // an outer item named as one of this function's is out of reach inside it
+	unsigned bits = 0;
+	for(const std::string_view name : names) bits |= itemBit(name); // all an expression's function gives, named or not
 	for(Rename& outer : renames_) {
 		hidden.push_back(outer.hidden);
-		if(std::ranges::find(names, std::string_view(outer.as)) != names.end()) outer.hidden = true;
+		// A let's name too, when its value reads an item this function names again
+		if((outer.as.empty() ? outer.uses : itemBit(outer.as)) & bits) outer.hidden = true;
 	}
 	for(std::size_t at = 0; at < params.count(); ++at)
 		renames_.push_back({params.at(at).text(), std::string(names[at])});
@@ -326,7 +478,7 @@ void Compiler::lowerFunctionBody(const Value& function, std::span<const std::str
 }
 
 bool Compiler::lowerItemFunction(const Value& form, int depth, std::vector<BindingPart>& parts) {
-	const std::string_view head = headWord(form);
+	const std::string_view head = tableWord(calledName(form));
 	if(head == "reduce" && form.count() == 4 && isItemFunction(form.at(1))) { // (reduce (fn [acc x] ...) init list)
 		parts.push_back({"reduce(", {}, false, {}, {}});
 		lowerForm(form.at(3), depth + 1, parts);
@@ -376,7 +528,7 @@ bool Compiler::lowerMember(const Value& form, int depth, std::vector<BindingPart
 }
 
 bool Compiler::lowerLibrary(const Value& form, int depth, std::vector<BindingPart>& parts) {
-	const std::string_view head = headWord(form);
+	const std::string_view head = tableWord(calledName(form));
 	const std::size_t arguments = form.count() - 1;
 	if(lowerItemFunction(form, depth, parts)) return true;
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
@@ -386,9 +538,19 @@ bool Compiler::lowerLibrary(const Value& form, int depth, std::vector<BindingPar
 		return true;
 	}
 	if(lowerMember(form, depth, parts)) return true;
-	if(const AroundOperator* around = aroundOf(aroundFunctions, form)) {
+	if(const AroundOperator* around = aroundOf(aroundFunctions, form, head)) {
 		lowerList(form, depth, parts, std::string(around->open), "");
 		parts.back().text = around->close;
+		return true;
+	}
+	if(head == "not-empty" && arguments == 1) { // (not-empty x) is (empty(x) ? null : x)
+		std::vector<BindingPart> value;
+		lowerForm(form.at(1), depth + 1, value);
+		parts.push_back({"(empty(", {}, false, {}, {}});
+		parts.insert(parts.end(), value.begin(), value.end());
+		parts.push_back({") ? null : ", {}, false, {}, {}});
+		parts.insert(parts.end(), value.begin(), value.end());
+		parts.push_back({")", {}, false, {}, {}});
 		return true;
 	}
 	if(head == "join" && arguments == 2) { // (join sep list) is join(list, sep)
@@ -413,15 +575,18 @@ void Compiler::lowerCall(const Value& form, int depth, std::vector<BindingPart>&
 		return;
 	}
 	const std::string_view written = headWord(form);
+	if(written.empty()) fail(form, std::string(notAnExpression)); // ((fn ...) x)
 	// An item's name the binding writes, or a local's
 	const bool bound = isItemOrLocal(written);
 	const std::string_view head = calledName(form);
 	const Global* global = bound ? nullptr : machine_.findGlobal(head);
 	if(!bound && lowerBuiltIn(form, global, depth, parts)) return;
-	if(isSpecial(head) || bound)
-		fail(form,
-		     "a value read while the app runs is an expression or a call of a function: define a function for this");
+	if(isSpecial(head) || bound) fail(form, std::string(notAnExpression));
 	if(global && global->state != Global::State::Undefined) {
+		for(std::size_t at = 1; at < form.count(); ++at) // no expression holds a function to give it
+			if(headWord(expanded(form.at(at))) == "fn")
+				fail(form.at(at), "a binding can't give a function to \"" + notation::Lexer::excerpt(head) +
+				                      "\": define a function for this");
 		lowerList(form, depth, parts, "lisp(" + expressionText(head) + (form.count() > 1 ? ", " : ""), ", ");
 		return;
 	}
