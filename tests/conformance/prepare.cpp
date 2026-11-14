@@ -77,7 +77,7 @@ private:
 				while(at_ < text_.size() && text_[at_] != '\n') ++at_;
 				continue;
 			}
-			if(!(c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == ',')) return true;
+			if(c != ' ' && c != '\t' && c != '\n' && c != '\r' && c != '\f' && c != ',') return true;
 			++at_;
 		}
 		return false;
@@ -94,12 +94,12 @@ private:
 	/// @brief Reads one token, moving past it. @return What it is.
 	TokenKind scan() {
 		const char c = text_[at_];
-		if(c == '(' || c == '[' || c == '{') return ++at_, TokenKind::Open;
-		if(c == ')' || c == ']' || c == '}') return ++at_, TokenKind::Close;
+		if(std::string_view("([{").contains(c)) return ++at_, TokenKind::Open;
+		if(std::string_view(")]}").contains(c)) return ++at_, TokenKind::Close;
 		if(c == '"') return quoted(), TokenKind::String;
 		if(c == '\\') return character(), TokenKind::Character;
 		if(c == '#') return dispatch();
-		if(c == '\'' || c == '`' || c == '@' || c == '^') return ++at_, TokenKind::Prefix;
+		if(std::string_view("'`@^").contains(c)) return ++at_, TokenKind::Prefix;
 		if(c == '~') {
 			at_ += at_ + 1 < text_.size() && text_[at_ + 1] == '@' ? 2 : 1;
 			return TokenKind::Prefix;
@@ -298,6 +298,27 @@ bool fitsInteger(std::string_view text, bool negative) {
 	return value <= limit + (negative ? 1U : 0U);
 }
 
+/// @brief Whether a ratio `top/bottom`, read as JSON's, has another value than Clojure gives it: it isn't whole, or
+/// a part isn't a 64-bit integer.
+/// @param top The numerator's digits.
+/// @param bottom The denominator's digits.
+/// @return true if so.
+bool ratioChangesValue(std::string_view top, std::string_view bottom) {
+	if(!digits(top) || !digits(bottom) || !fitsInteger(top, false) || !fitsInteger(bottom, false)) return true;
+	std::uint64_t numerator = 0;
+	std::uint64_t denominator = 0;
+	std::from_chars(top.data(), top.data() + top.size(), numerator);
+	std::from_chars(bottom.data(), bottom.data() + bottom.size(), denominator);
+	return denominator != 0 && numerator % denominator != 0;
+}
+
+/// @brief Whether a big decimal, its `M` dropped, has more significant digits than a double keeps.
+/// @param word The number.
+/// @return true if so.
+bool decimalChangesValue(std::string_view word) {
+	return std::ranges::count_if(word, [](char c) { return c >= '0' && c <= '9'; }) > 15;
+}
+
 /// @brief Whether a number, read as JSON's, has another value than Clojure gives it: a ratio that isn't whole, an
 /// integer past 64 bits, a big decimal with more digits than a double keeps, a leading 0 (octal in Clojure).
 /// @param word The word.
@@ -306,25 +327,23 @@ bool numberChangesValue(std::string_view word) {
 	const bool negative = word.starts_with('-');
 	if(word.starts_with('-') || word.starts_with('+')) word.remove_prefix(1);
 	if(word.empty() || word[0] < '0' || word[0] > '9') return false;
-	if(const auto slash = word.find('/'); slash != std::string_view::npos) {
-		const std::string_view top = word.substr(0, slash);
-		const std::string_view bottom = word.substr(slash + 1);
-		if(!digits(top) || !digits(bottom) || !fitsInteger(top, false) || !fitsInteger(bottom, false)) return true;
-		std::uint64_t numerator = 0;
-		std::uint64_t denominator = 0;
-		std::from_chars(top.data(), top.data() + top.size(), numerator);
-		std::from_chars(bottom.data(), bottom.data() + bottom.size(), denominator);
-		return denominator != 0 && numerator % denominator != 0;
-	}
+	if(const auto slash = word.find('/'); slash != std::string_view::npos)
+		return ratioChangesValue(word.substr(0, slash), word.substr(slash + 1));
+	if(word.ends_with('M')) return decimalChangesValue(word.substr(0, word.size() - 1));
 	if(word.ends_with('N')) word.remove_suffix(1);
-	else if(word.ends_with('M')) {
-		word.remove_suffix(1);
-		const auto significant = std::ranges::count_if(word, [](char c) { return c >= '0' && c <= '9'; });
-		return significant > 15;
-	}
 	if(!digits(word)) return false; // a double, hexadecimal, a radix: read as the reader reads it
 	if(word.size() > 1 && word[0] == '0') return true;
 	return !fitsInteger(word, negative);
+}
+
+/// @brief Whether a word names something in a host's space: `js/Number`, `cpp/jank`, `Long/MAX_VALUE`.
+/// @param word The word.
+/// @return true if so.
+bool hostSpace(std::string_view word) {
+	const auto slash = word.find('/');
+	if(slash == std::string_view::npos || slash == 0) return false;
+	const std::string_view space = word.substr(0, slash);
+	return space == "js" || space == "cpp" || (space[0] >= 'A' && space[0] <= 'Z');
 }
 
 /// @brief Whether a word is a host's name: `Long/MAX_VALUE`, `js/Number`, `cpp/jank`, a method `.toString`, a
@@ -334,10 +353,7 @@ bool numberChangesValue(std::string_view word) {
 /// @return true if so.
 bool hostName(std::string_view word, bool head) {
 	if(word.empty() || word[0] == ':' || word[0] == '\\') return false;
-	if(const auto slash = word.find('/'); slash != std::string_view::npos && slash > 0) {
-		const std::string_view space = word.substr(0, slash);
-		if(space == "js" || space == "cpp" || (space[0] >= 'A' && space[0] <= 'Z')) return true;
-	}
+	if(hostSpace(word)) return true;
 	if(!head || word.size() < 2) return false;
 	const bool number = word[1] >= '0' && word[1] <= '9';
 	return (word[0] == '.' && !number) || (word.back() == '.' && word[0] >= 'A' && word[0] <= 'Z');
@@ -349,8 +365,8 @@ bool hostName(std::string_view word, bool head) {
 std::string_view wordReason(std::string_view word) {
 	if(word.starts_with("##")) return "numbers"; // ##Inf, ##-Inf, ##NaN
 	if(numberChangesValue(word)) return "numbers";
-	if(word.starts_with("::")) return "namespaces";                                                        // ::k
-	if(word.size() > 2 && word[0] == ':' && word.find('/') != std::string_view::npos) return "namespaces"; // :a/b
+	if(word.starts_with("::")) return "namespaces";                                  // ::k
+	if(word.size() > 2 && word[0] == ':' && word.contains('/')) return "namespaces"; // :a/b
 	if(word == "*ns*") return "namespaces";
 	if(hostName(word, false)) return "host";
 	return {};
@@ -381,8 +397,6 @@ public:
 			result.forms.push_back(std::move(top));
 		}
 		for(const TopForm& top : result.forms) collect(top, result);
-		result.unreadLine = unreadLine_;
-		if(unreadLine_ != 0) result.unread = setLiteral;
 		return result;
 	}
 
@@ -400,7 +414,7 @@ private:
 	/// @return The word, or "" for anything else.
 	std::string_view headOf(const Node& node) const {
 		if(!isList(node) || node.children.empty() || kindOf(node.children[0]) != TokenKind::Atom) return {};
-		std::string_view word = textOf(node.children[0]);
+		const std::string_view word = textOf(node.children[0]);
 		const auto slash = word.find('/');
 		if(slash == std::string_view::npos || slash == 0 || slash + 1 == word.size()) return word;
 		const std::string_view space = word.substr(0, slash);
@@ -487,7 +501,8 @@ private:
 		return digitsPart.empty() || digitsPart[0] < '0' || digitsPart[0] > '9';
 	}
 
-	/// @brief The reason a collection written out is out of scope: a map or a set with a key that isn't text.
+	/// @brief The reason a collection written out is out of scope: a map or a set with a key that isn't text, or a set
+	/// holding anything out of scope, as two items marked alike would be one item twice, which a set refuses.
 	/// @param node The collection.
 	/// @return The reason, or "".
 	std::string_view collectionReason(const Node& node) const {
@@ -500,6 +515,20 @@ private:
 			if(index % step == 0 && !textKey(child)) return "keys";
 			++index;
 		}
+		if(text == "#{")
+			for(const Node& child : node.children)
+				if(const std::string_view reason = innerReason(child); !reason.empty()) return reason;
+		return {};
+	}
+
+	/// @brief The reason of the first form out of scope in a form, itself or one inside it.
+	/// @param node The form.
+	/// @return The reason, or "".
+	std::string_view innerReason(const Node& node) const {
+		if(kindOf(node) == TokenKind::Prefix && textOf(node) == "#_") return {};
+		if(const std::string_view reason = reasonOf(node); !reason.empty()) return reason;
+		for(const Node& child : node.children)
+			if(const std::string_view reason = innerReason(child); !reason.empty()) return reason;
 		return {};
 	}
 
@@ -550,11 +579,6 @@ private:
 		if(kindOf(node) == TokenKind::Prefix && textOf(node) == "#_") return;
 		if(const std::string_view reason = options_.markOut ? reasonOf(node) : ""; !reason.empty()) {
 			replace(node, "(%out \"" + std::string(reason) + "\")");
-			return;
-		}
-		if(!options_.readsSets && options_.markOut && kindOf(node) == TokenKind::Open && textOf(node) == "#{") {
-			replace(node, "(%out \"" + std::string(setsReason) + "\")");
-			if(unreadLine_ == 0) unreadLine_ = tokens_[node.token].line;
 			return;
 		}
 		const std::string_view head = headOf(node);
@@ -654,16 +678,10 @@ private:
 		std::string text;  ///< What goes there.
 	};
 
-	/// @brief What a set the reader doesn't take is called.
-	static constexpr std::string_view setLiteral = "a set literal #{...}";
-	/// @brief The reason a set is out of scope while the reader doesn't take it: not a difference, a step not merged.
-	static constexpr std::string_view setsReason = "sets (not merged yet)";
-
 	std::string_view text_;            ///< The text.
 	const std::vector<Token>& tokens_; ///< Its tokens.
 	Options options_;                  ///< What the language reads.
 	std::vector<Edit> edits_;          ///< The edits, in the order of the text: mark() walks it in order.
-	std::size_t unreadLine_ = 0;       ///< The first line of a set put as `(%out "sets (not merged yet)")`, or 0.
 	std::string testAlias_ = "t";      ///< clojure.test's alias in this file.
 	std::string portableAlias_ = "p";  ///< The portability namespace's alias in this file.
 };
@@ -671,9 +689,8 @@ private:
 } // namespace
 
 const std::vector<std::string_view>& outReasons() {
-	static const std::vector<std::string_view> reasons = {
-	    "numbers",    "characters",           "regex", "vars", "mutation", "laziness", "host", "metadata", "keys",
-	    "namespaces", "sets (not merged yet)"};
+	static const std::vector<std::string_view> reasons = {"numbers",  "characters", "regex",    "vars", "mutation",
+	                                                      "laziness", "host",       "metadata", "keys", "namespaces"};
 	return reasons;
 }
 

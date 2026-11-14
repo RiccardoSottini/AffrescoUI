@@ -6,10 +6,9 @@ option(AFFRESCOUI_CONFORMANCE "Fetch the Clojure test suite and test the languag
 add_executable(affrescoui_conformance runner.cpp prepare.cpp)
 target_link_libraries(affrescoui_conformance PRIVATE affrescoui::lisp)
 target_compile_options(affrescoui_conformance PRIVATE ${AFFRESCOUI_WARNINGS})
-# --min: the probes that give Clojure's value today, a ratchet; the three gaps left are two sets, which the reader doesn't
-# take yet, and a vector called as a function
+# --min: the probes that give Clojure's value today, a ratchet: every probe but those absent or different by design
 add_test(NAME cli_lisp_everyday COMMAND affrescoui_conformance --everyday ${CMAKE_CURRENT_SOURCE_DIR}/everyday.lisp
-	--min 160)
+	--min 163)
 
 if(AFFRESCOUI_CONFORMANCE)
 	# github.com/jank-lang/clojure-test-suite (MPL-2.0), its main branch at a9f32fd7, 2026-11-14. To bump it: README.md.

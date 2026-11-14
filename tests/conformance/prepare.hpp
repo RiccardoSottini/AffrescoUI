@@ -15,8 +15,6 @@ namespace affresco::conformance {
 /// @brief What the pass needs to know of the language it prepares for.
 struct Options {
 	bool markOut = true; ///< Whether forms out of scope are marked: the everyday probes are run as written.
-	bool readsSets =
-	    true; ///< Whether the reader takes a set `#{...}`; if not, each is out of scope, "sets (not merged yet)".
 };
 
 /// @brief A top-level form of a prepared file.
@@ -43,9 +41,6 @@ struct PreparedFile {
 	std::vector<std::string> tests;        ///< The names of its `deftest`s, in order.
 	std::string tested;                    ///< The function it tests (its first `when-var-exists`), or "".
 	std::size_t assertions = 0;            ///< The assertions written in it.
-	std::size_t unreadLine = 0;            ///< The first line of a form the reader doesn't take, or 0: the form was
-	                                       ///< put as `(%out "sets (not merged yet)")`, so the rest runs.
-	std::string unread;                    ///< That form's kind (`a set literal #{...}`), or "".
 	std::string error;                     ///< Why its text couldn't be split into forms, or "".
 };
 

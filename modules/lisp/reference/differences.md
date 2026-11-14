@@ -9,9 +9,9 @@ the language means to have and doesn't yet, are in `../CONFORMANCE.md`, "Failing
 | Difference | Out of scope in the suite |
 |---|---|
 | [Nothing changes a value](#nothing-changes-a-value) | 294 (`mutation`) |
-| [Nothing is lazy](#nothing-is-lazy) | 104 (`laziness`) |
-| [No host interop, output, clock or randomness](#no-host-interop-output-clock-or-randomness) | 76 (`host`) |
-| [A map's keys are text](#a-maps-keys-are-text) | 104 (`keys`) |
+| [Nothing is lazy](#nothing-is-lazy) | 105 (`laziness`) |
+| [No host interop, output, clock or randomness](#no-host-interop-output-clock-or-randomness) | 77 (`host`) |
+| [A map's keys are text](#a-maps-keys-are-text) | 117 (`keys`) |
 | [Numbers are JSON's](#numbers-are-jsons) | 494 (`numbers`) |
 | [No characters](#no-characters) | 0 (`characters`) |
 | [No regular expressions](#no-regular-expressions) | 51 (`regex`) |

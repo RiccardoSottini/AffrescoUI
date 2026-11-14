@@ -59,15 +59,14 @@ Each `is`, and each row of an `are`, is one assertion, and reports once:
   its message. An expected error (`thrown?`) that is "not defined" is an error too, never a pass;
 - **out of scope**: it holds something the language leaves out on purpose, so it is counted without being run. The
   reasons are a fixed list, each a row of `differences.md`: `numbers`, `characters`, `regex`, `vars`, `mutation`,
-  `laziness`, `host`, `metadata`, `keys`, `namespaces`; and one that is no difference, `sets (not merged yet)`, for
-  a set literal `#{...}` while the reader doesn't take it, to go once it does. Their patterns are one table in `prepare.cpp` (`calls()`,
+  `laziness`, `host`, `metadata`, `keys`, `namespaces`. Their patterns are one table in `prepare.cpp` (`calls()`,
   `wordReason`, `collectionReason`, `callReason`), a comment per row. When unsure, a form is not marked: an assertion
   that runs and fails is honest, one marked out of scope wrongly is not;
 - **not run**: its function isn't defined (`when-var-exists` skips the body), or the form around it stopped first.
 
 A file **reads** when the language's reader takes every one of its forms. A form it doesn't take is one error, and
-the rest of the file still runs; a file with a set literal `#{...}` doesn't read while the reader doesn't take sets,
-and only the assertions holding one are out of scope. Each file has a budget of 5,000,000 operations, 64 MiB and a call
+the rest of the file still runs. A set holding something out of scope is out of scope whole, as its marked items
+would otherwise be one item twice. Each file has a budget of 5,000,000 operations, 64 MiB and a call
 depth of 2,000; one that runs past it is `{"exhausted": true}`, and a crash or a hang makes the test fail.
 
 ## How to read a failure

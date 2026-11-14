@@ -48,7 +48,6 @@ REASONS = {
     "metadata": "no-metadata-vars-protocols-records-or-multimethods",
     "keys": "a-maps-keys-are-text",
     "namespaces": "one-flat-space-of-names-per-program",
-    "sets (not merged yet)": "",
 }
 
 
@@ -149,9 +148,7 @@ def check(results):
 
 
 def link(reason):
-    """A reason, linked to its row of differences.md; one that is no difference says what it is."""
-    if not REASONS.get(reason):
-        return f"{reason}: not a difference, the reader doesn't take `#{{...}}` yet; counted again once it does"
+    """A reason, linked to its row of differences.md."""
     return f"[{reason}](reference/differences.md#{REASONS[reason]})"
 
 

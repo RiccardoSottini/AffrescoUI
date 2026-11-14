@@ -617,7 +617,24 @@ void Machine::ensureCompiled(Global& cell) {
 	if(cell.state != Global::State::Deferred) return;
 	if(!cell.pending)
 		throw Problem("\"" + notation::Lexer::excerpt(cell.name) + "\" is used while it is being compiled");
-	std::exchange(cell.pending, nullptr)();
+	const std::function<void()> pending = std::exchange(cell.pending, nullptr);
+	/// A use after the compile failed says so, not that it is still being compiled.
+	const auto failed = [&cell](const std::string& message, bool exhausted) {
+		if(cell.state != Global::State::Deferred || cell.pending) return; // something else defined it meanwhile
+		const std::string said =
+		    "\"" + notation::Lexer::excerpt(cell.name) + "\" isn't defined: its definition failed: ";
+		std::string why = message.starts_with(said) ? message : said + message; // said once, however often it is used
+		cell.pending = [why = std::move(why), exhausted] { throw Problem(why, exhausted); };
+	};
+	try {
+		pending();
+	} catch(const LispError& error) {
+		failed(error.message(), error.exhausted());
+		throw;
+	} catch(const Problem& problem) {
+		failed(problem.message, problem.exhausted);
+		throw;
+	}
 }
 
 const Definition* Machine::definition(std::string_view name) const {

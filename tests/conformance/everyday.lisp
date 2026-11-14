@@ -6,8 +6,7 @@
 ;   (differs '<form> <ours> "<reason>")   the language gives another value on purpose, which is checked
 ; A value written :a-function is any function, :an-error an error raised, :an-ex-info an ex-info whose message is
 ; "a"; a definition's probe holds when it defines its name. The reasons are those of modules/lisp/reference/
-; differences.md. A form the reader doesn't take yet is written as text, so the file still reads:
-;   (probe-text "<form>" "<Clojure's value>")   both read and run on their own, and compared with =
+; differences.md.
 
 (defn cf--same? "Whether a value is the one expected, or of the kind a marker names." [value expected]
   (cond
@@ -34,18 +33,13 @@
       `(%everyday "differs" '~form (cf--raises? (fn [] ~form)) "" ~reason)
       `(let [value ~form] (%everyday "differs" '~form (cf--same? value ~ours) (pr-str value) ~reason)))))
 
-(defmacro probe-text "A form and the value Clojure gives, written as text, for forms the reader doesn't take yet." [text
-                                                                                                           expected]
-  `(let [outcome (%run-text ~text ~expected)]
-     (%everyday "probe" ~text (first outcome) (second outcome))))
-
 (defmacro absent "A form out by design, and why: not run." [quoted reason]
   `(%everyday "absent" '~(second quoted) true "" ~reason))
 
 ; Threading, functions, conditionals, loops
 (probe '(-> 1 inc inc) 3)
 (probe '(map #(+ % 1) [1 2]) [2 3])
-(probe-text "#{1 2 3}" "#{1 2 3}")
+(probe '#{1 2 3} #{1 2 3})
 (probe '(fn ([a] a) ([a b] b)) :a-function)
 (probe '(case 1 1 "a") "a")
 (probe '(if-let [a 1] a) 1)
@@ -212,7 +206,7 @@
 (probe '(:a {:a 1} 5) 1)
 (probe '({:a 1} :a) 1)
 (probe '([1 2] 0) 1)
-(probe-text "(some #{1} [1])" "1")
+(probe '(some #{1} [1]) 1)
 (probe '(bit-and 1 3) 1)
 (probe '(mapcat identity [[1] [2]]) [1 2])
 (probe '(remove nil? [1 nil]) [1])

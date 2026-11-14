@@ -79,7 +79,7 @@ std::string cut(std::string_view text) {
 std::string outReasonOf(std::string_view message) {
 	const auto at = message.find(outPrefix);
 	if(at == std::string_view::npos) return {};
-	std::string reason(message.substr(at + outPrefix.size()));
+	const std::string reason(message.substr(at + outPrefix.size()));
 	for(const std::string_view known : affresco::conformance::outReasons())
 		if(reason.starts_with(known)) return std::string(known);
 	return {};
@@ -139,10 +139,6 @@ public:
 				return result_;
 			}
 			result_.read = std::ranges::all_of(file.forms, [this](const TopForm& form) { return readable(form); });
-			if(file.unreadLine != 0 && result_.read) {
-				result_.read = false;
-				result_.error = "line " + std::to_string(file.unreadLine) + ": the reader doesn't take " + file.unread;
-			}
 			setUp(file);
 			for(const TopForm& form : file.forms) runTopForm(form);
 			for(const std::string& test : file.tests) runTest(test, file);
@@ -156,7 +152,7 @@ public:
 
 private:
 	/// @brief Thrown when the file ran past its budget: the run of the file ends.
-	struct Exhausted {};
+	struct Exhausted : std::exception {};
 
 	/// @brief Whether the language's reader reads a top-level form, as prepared; the first that doesn't is recorded.
 	/// @param form The form.
@@ -199,7 +195,7 @@ private:
 	void loadSupport(const std::string& library) {
 		const bool plain = std::ranges::all_of(
 		    library, [](char c) { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '-'; });
-		if(suite_.empty() || !plain || library.find("..") != std::string::npos) return;
+		if(suite_.empty() || !plain || library.contains("..")) return;
 		std::string path = library;
 		std::ranges::replace(path, '.', '/');
 		std::ranges::replace(path, '-', '_');
@@ -253,7 +249,7 @@ private:
 			(void)probe_->evaluate(name, "probe", "");
 			return true;
 		} catch(const lisp::LispError& error) {
-			return error.message().find("is not defined") == std::string::npos;
+			return !error.message().contains("is not defined");
 		} catch(const std::exception&) {
 			return false;
 		}
@@ -373,16 +369,6 @@ private:
 	std::vector<std::string> contexts_;        ///< The `testing` texts around the assertion running.
 };
 
-/// @brief Whether the language's reader takes a set `#{...}`. @return true if it does.
-bool readsSets() {
-	try {
-		(void)lisp::formsOf("#{1}", "probe");
-		return true;
-	} catch(const lisp::LispError&) {
-		return false;
-	}
-}
-
 /// @brief Prints how to call the program. @return The exit status for a wrong call.
 int usage() {
 	std::cerr << "usage: affrescoui_conformance --shim shim.lisp [--suite TESTDIR] FILE...\n"
@@ -401,7 +387,7 @@ int runFiles(const std::string& shimPath, const std::string& suite, const std::v
 		std::cerr << "affrescoui_conformance: can't read " << shimPath << "\n";
 		return 1;
 	}
-	const affresco::conformance::Options options{.readsSets = readsSets()};
+	const affresco::conformance::Options options;
 	for(const std::string& path : files) {
 		std::string name = path;
 		if(!suite.empty() && name.starts_with(suite + "/")) name = name.substr(suite.size() + 1);
@@ -424,22 +410,12 @@ struct Probe {
 	std::string reason; ///< Why it is absent or differs.
 };
 
-/// @brief Runs the everyday probes (everyday.lisp), one top-level form at a time, and prints what each gave.
-/// @param path The file.
-/// @param minimum How many probes must give Clojure's value.
-/// @return 0 when at least that many do and every difference gives our value, else 1.
-int runEveryday(const std::string& path, std::size_t minimum) {
-	const auto text = readFile(path);
-	if(!text) {
-		std::cerr << "affrescoui_conformance: can't read " << path << "\n";
-		return 1;
-	}
-	const PreparedFile file = affresco::conformance::prepare(*text, {.markOut = false});
-	if(!file.error.empty()) {
-		std::cerr << "affrescoui_conformance: " << path << ": " << file.error << "\n";
-		return 1;
-	}
-	std::vector<Probe> probes;
+/// @brief Runs the everyday probes, one top-level form at a time.
+/// @param path The file, for errors.
+/// @param file The file, prepared.
+/// @param probes Receives what each probe gave.
+/// @return Whether every form was a probe or ran: a form that is neither and fails is a broken file.
+bool runProbes(const std::string& path, const PreparedFile& file, std::vector<Probe>& probes) {
 	std::size_t line = 0;
 	lisp::Interpreter interpreter(fileLimits());
 	interpreter.definePrimitive(
@@ -451,26 +427,6 @@ int runEveryday(const std::string& path, std::size_t minimum) {
 		    probes.push_back({textAt(0), line, textAt(1), a.size() > 2 && a[2].truthy(), textAt(3), textAt(4)});
 		    return lisp::Value();
 	    }});
-	interpreter.definePrimitive(
-	    "%run-text", {.call = [](lisp::Interpreter& in, std::span<const lisp::Value> a) {
-		    // A form and its expected value written as text, read and run in an
-		    // interpreter of their own: [equal printed], or [false message]
-		    const std::string form(a.empty() ? "" : a[0].text());
-		    const std::string expected(a.size() < 2 ? "" : a[1].text());
-		    try {
-			    lisp::Interpreter alone(fileLimits());
-			    const lisp::Value outcome = alone.evaluate("(let [cf--value " + form + "\n] [(= cf--value " + expected +
-				                                               "\n) (pr-str cf--value)])",
-				                                           "probe", "");
-			    const std::array<lisp::Value, 2> items{lisp::Value::boolean(outcome.at(0).truthy()),
-				                                       in.makeString(outcome.at(1).text())};
-			    return in.makeVector(items);
-		    } catch(const lisp::LispError& error) {
-			    const std::array<lisp::Value, 2> items{lisp::Value::boolean(false),
-				                                       in.makeString(cut(error.message()))};
-			    return in.makeVector(items);
-		    }
-	    }});
 	for(const TopForm& form : file.forms) {
 		line = form.line;
 		const std::size_t before = probes.size();
@@ -478,17 +434,25 @@ int runEveryday(const std::string& path, std::size_t minimum) {
 			interpreter.setBudget(fileLimits().budget);
 			(void)interpreter.eval(std::string(form.line - 1, '\n') + form.text, path);
 		} catch(const lisp::LispError& error) {
-			const bool probe =
-			    form.head == "probe" || form.head == "probe-text" || form.head == "differs" || form.head == "absent";
+			const bool probe = form.head == "probe" || form.head == "differs" || form.head == "absent";
 			if(!probe) {
 				std::cerr << "affrescoui_conformance: " << error.what() << "\n";
-				return 1;
+				return false;
 			}
 			if(probes.size() == before)
 				probes.push_back(
 				    {form.head, form.line, cut(form.text), form.head == "absent", cut(error.message()), ""});
 		}
 	}
+	return true;
+}
+
+/// @brief Prints each probe that doesn't hold, and the counts.
+/// @param path The file, for the lines printed.
+/// @param probes What each probe gave.
+/// @param minimum How many probes must give Clojure's value.
+/// @return 0 when at least that many do and every difference gives our value, else 1.
+int reportProbes(const std::string& path, const std::vector<Probe>& probes, std::size_t minimum) {
 	std::size_t clojure = 0;
 	std::size_t absent = 0;
 	std::size_t differs = 0;
@@ -513,6 +477,26 @@ int runEveryday(const std::string& path, std::size_t minimum) {
 	return ok && clojure >= minimum ? 0 : 1;
 }
 
+/// @brief Runs the everyday probes (everyday.lisp), one top-level form at a time, and prints what each gave.
+/// @param path The file.
+/// @param minimum How many probes must give Clojure's value.
+/// @return 0 when at least that many do and every difference gives our value, else 1.
+int runEveryday(const std::string& path, std::size_t minimum) {
+	const auto text = readFile(path);
+	if(!text) {
+		std::cerr << "affrescoui_conformance: can't read " << path << "\n";
+		return 1;
+	}
+	const PreparedFile file = affresco::conformance::prepare(*text, {.markOut = false});
+	if(!file.error.empty()) {
+		std::cerr << "affrescoui_conformance: " << path << ": " << file.error << "\n";
+		return 1;
+	}
+	std::vector<Probe> probes;
+	if(!runProbes(path, file, probes)) return 1;
+	return reportProbes(path, probes, minimum);
+}
+
 } // namespace
 
 /// @brief The program: see usage().
@@ -526,7 +510,7 @@ int main(int count, char** arguments) {
 		std::string suite;
 		std::vector<std::string> files;
 		std::string everyday;
-		std::size_t minimum = 170; // of everyday.lisp's 186 probes
+		std::size_t minimum = 163; // of everyday.lisp's 186 probes, as CMakeLists.txt says
 		for(std::size_t at = 0; at < args.size(); ++at) {
 			if(args[at] == "--everyday" && at + 1 < args.size()) everyday = args[++at];
 			else if(args[at] == "--min" && at + 1 < args.size()) minimum = std::stoul(args[++at]);
