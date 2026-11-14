@@ -13,6 +13,7 @@
 #include <iterator>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace affresco::lisp {
 
@@ -25,6 +26,35 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 6> sectionFo
                                                                                      {"defcomponent", "components"},
                                                                                      {"defmenu", "menus"},
                                                                                      {"deftokens", "tokens"}}};
+
+/// @brief Tells whether a form was written where a program can see it: read from a program's text, not made by code
+/// or read from the language's own (Library.cpp reads an entry as "<library>").
+/// @param form The form.
+/// @return true if so.
+bool isWrittenByProgram(const Value& form) noexcept {
+	const Place place = form.place();
+	return place.line != 0 && place.file && *place.file != "<library>";
+}
+
+/// @brief A library macro's expansion, each list and vector the macro made given the call's place, so that an error in
+/// the code it gives names where the call is written, never a line of the library. The forms the call was given keep
+/// their own places and aren't walked.
+/// @param machine The machine, whose budget each list or vector walked spends from.
+/// @param form The expansion, or a part of it.
+/// @param place The call's place.
+/// @param depth How deep the part is: past the compiler's depth it is left as it is, for the compiler to refuse.
+/// @return The expansion with those places.
+Value placedAtCall(Machine& machine, const Value& form, Place place, int depth) {
+	if((form.kind() != Kind::List && form.kind() != Kind::Vector) || isWrittenByProgram(form) ||
+	   depth > maxCompileDepth)
+		return form;
+	machine.spend(1 + form.count() / 8);
+	std::vector<Value> items;
+	items.reserve(form.count());
+	for(std::size_t at = 0; at < form.count(); ++at)
+		items.push_back(placedAtCall(machine, form.at(at), place, depth + 1));
+	return machine.heap.sequence(form.kind(), std::move(items), place);
+}
 
 } // namespace
 
@@ -565,7 +595,18 @@ Value Machine::expand(Global& macro, std::span<const Value> arguments, Place pla
 		throw LispError(place.file ? *place.file : "", place.line, place.column, "", problem.message,
 		                problem.exhausted);
 	}
-	return call(macro.value, arguments);
+	try {
+		const Value expansion = call(macro.value, arguments);
+		return macro.library ? placedAtCall(*this, expansion, place, 0) : expansion;
+	} catch(const LispError& error) {
+		// A library macro's code has no place of its own to name: its error is the call's
+		if(error.line() != 0) throw;
+		throw LispError(place.file ? *place.file : "", place.line, place.column, error.definition(), error.message(),
+		                error.exhausted());
+	} catch(const Problem& problem) { // placing the expansion ran out of budget
+		throw LispError(place.file ? *place.file : "", place.line, place.column, "", problem.message,
+		                problem.exhausted);
+	}
 }
 
 const AuthorSet* Machine::authorSet(const std::string& author) {
