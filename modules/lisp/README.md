@@ -111,6 +111,11 @@ each register their own entries with `defineLibrary`; a package adding to the la
 - **Compiled on first use.** Making an interpreter registers each entry as a global and reads nothing: the first code that names
   it, when that code is compiled, reads and compiles it (or the first call, when nothing compiled names it). An entry that uses
   another compiles that one first.
+- **Natives made on first use too.** A function of the language written in C++ can be a row of a sorted `LazyNative` table
+  (`Machine::defineLazyNatives`): its cells are made the first time something looks its name up (a program, a binding, a host's
+  `Interpreter::global`), the same as `defineNative` makes them at the start, so an interpreter that never calls it doesn't pay
+  for it. The `clojure.string/` functions are (`CoreStrings.cpp`; not `join`, `upper-case` and `lower-case`, the bare ones), and
+  `format`, `ex-info`, `ex-message`, `ex-data` and the `parse-` functions (`CoreText.cpp`).
 - **Blind to a program.** An entry's code sees the language's own functions (`Machine::languageGlobal`), never a program's of the
   same name, however late it is compiled: a program defining `count`, `filter` or `not` doesn't change `last` or `remove`. A
   program that defines a name of the library (`mapcat`) has its own where it calls it.

@@ -9,9 +9,16 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <deque>
+#include <functional>
 #include <initializer_list>
 #include <iterator>
+#include <map>
+#include <span>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -26,6 +33,19 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 6> sectionFo
                                                                                      {"defcomponent", "components"},
                                                                                      {"defmenu", "menus"},
                                                                                      {"deftokens", "tokens"}}};
+
+/// @brief Adds a cell.
+/// @param cells Where cells live.
+/// @param names The cells by name.
+/// @param name Its name, new.
+/// @return The cell.
+Global& addCell(std::deque<Global>& cells, std::map<std::string_view, Global*, std::less<>>& names,
+                std::string_view name) {
+	Global& made = cells.emplace_back();
+	made.name = std::string(name);
+	names.emplace(made.name, &made);
+	return made;
+}
 
 /// @brief Tells whether a form was written where a program can see it: read from a program's text, not made by code
 /// or read from the language's own (Library.cpp reads an entry as "<library>").
@@ -302,10 +322,12 @@ std::pair<std::string, std::string> definitionAddress(const Value& form) {
 
 Global& Machine::global(std::string_view name) {
 	if(Global* found = findGlobal(name)) return *found;
-	Global& made = globalCells_.emplace_back();
-	made.name = std::string(name);
-	globals_.emplace(made.name, &made);
-	return made;
+	return addCell(globalCells_, globals_, name);
+}
+
+Global* Machine::findGlobal(std::string_view name) {
+	if(Global* found = std::as_const(*this).findGlobal(name)) return found;
+	return makeLazyNative(name) ? std::as_const(*this).findGlobal(name) : nullptr;
 }
 
 Global* Machine::findGlobal(std::string_view name) const {
@@ -331,15 +353,49 @@ void Machine::defineLanguageValue(std::string_view name, const Value& value) {
 
 Global& Machine::languageGlobal(std::string_view name) {
 	if(Global* found = findLanguageGlobal(name)) return *found;
-	Global& made = languageCells_.emplace_back();
-	made.name = std::string(name);
-	language_.emplace(made.name, &made);
-	return made;
+	return addCell(languageCells_, language_, name);
+}
+
+Global* Machine::findLanguageGlobal(std::string_view name) {
+	if(Global* found = std::as_const(*this).findLanguageGlobal(name)) return found;
+	return makeLazyNative(name) ? std::as_const(*this).findLanguageGlobal(name) : nullptr;
 }
 
 Global* Machine::findLanguageGlobal(std::string_view name) const {
 	const auto found = language_.find(name);
 	return found == language_.end() ? nullptr : found->second;
+}
+
+void Machine::defineLazyNatives(std::span<const LazyNative> natives) {
+	for(std::span<const LazyNative>& table : lazyNatives_)
+		if(table.empty()) {
+			table = natives;
+			return;
+		}
+	throw std::logic_error("Machine::lazyNatives_ has room for no more tables");
+}
+
+bool Machine::makeLazyNative(std::string_view name) {
+	if(!started_) return false; // the language's own definitions, many: none looks for a lazy native
+	for(const std::span<const LazyNative> natives : lazyNatives_) {
+		const auto entry = std::ranges::lower_bound(natives, name, {}, &LazyNative::name);
+		if(entry == natives.end() || entry->name != name) continue;
+		const Budget budget = std::exchange(budget_, {static_cast<std::size_t>(-1), static_cast<std::size_t>(-1)});
+		auto* native = heap.make<NativeObject>();
+		budget_ = budget;
+		heap.pin(); // a global lasts, wherever its first use falls
+		native->name = std::string(name);
+		native->function = entry->function;
+		const auto ready = [native](Global& cell) {
+			cell.value = Value::object(Kind::Native, native);
+			cell.state = Global::State::Ready;
+			cell.library = true;
+		};
+		if(!globals_.contains(name)) ready(addCell(globalCells_, globals_, name));
+		if(!language_.contains(name)) ready(addCell(languageCells_, language_, name));
+		return true;
+	}
+	return false;
 }
 
 void Machine::definePrimitive(const std::string& name, Primitive primitive) {
