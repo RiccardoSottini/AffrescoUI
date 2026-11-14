@@ -44,7 +44,8 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 number read keeps the exact kind `parseUntrusted` gives. A map's keys are strings, and a keyword or a string name the same
 key (`(get m :a)` is `(get m "a")`). JSON read through `Interpreter::viewJson` is viewed, not converted: a vector or a map
 from it wraps its items as they are read. Besides those: **symbols** (a word in code; in data the string of the same text),
-**keywords** (as a value in data, their text), **lists** (code; in data a node), **functions**. `nil` and `false` are false,
+**keywords** (as a value in data, their text), **lists** (code; in data a node), **sets** (`#{1 2}`, distinct items in the order added;
+in data a list, `reference/sets.md`), **functions**. `nil` and `false` are false,
 everything else is true. **A whole number that is a double** (`13.0`, from `(* 26 0.5)` or a JSON file that writes it so) keeps
 its kind, as JSON's model says, and is printed `13.0` to be read back (`pr-str`, `printForm`); but it counts as the integer wherever an
 index, a count or a position is taken (`get`, `nth`, `contains?`, `assoc`, `subs`, `range`, a vector pattern; up to 2^53), as

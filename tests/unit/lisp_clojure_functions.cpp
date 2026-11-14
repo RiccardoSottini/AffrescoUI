@@ -174,7 +174,7 @@ TEST_CASE("lisp functions: into, vector, list*, not-empty, rseq, key, val, doall
 	CHECK(run("[(into [1] '(2 3)) (into '(1) [2 3]) (into nil [1]) (into {} [[:a 1] {:b 2} nil])]") ==
 	      "[[1 2 3] (3 2 1) [1] {:a 1 :b 2}]");
 	CHECK(run("(into {:a 1} {:a 2})") == "{:a 2}");
-	CHECK(errorOf("(into 1 [])").find("\"into\" takes a vector, a list, a map or nil") != std::string::npos);
+	CHECK(errorOf("(into 1 [])").find("\"into\" takes a vector, a list, a map, a set or nil") != std::string::npos);
 	CHECK(errorOf("(into [] inc [1])").find("not a transducer") != std::string::npos);
 	CHECK(errorOf("(into {} [[1 2]])").find("(conj m [(str key) value])") != std::string::npos);
 	CHECK(run("[(vector 1 2) (vector) (list* 1 2 [3]) (list* []) (list* nil)]") == "[[1 2] [] (1 2 3) nil nil]");

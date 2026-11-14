@@ -105,8 +105,9 @@ The core functions are wider too:
   and its message names the fix: `(frequencies [1 1 2])` says `a map's key is a keyword or a string, not a number:
   give the key as text, (frequencies (map str xs))`. `(group-by even? xs)` is refused the same way; write
   `(group-by (comp str even?) xs)`.
-- **No sets.** `(set xs)` gives a hint: a vector of distinct items stands for a set, as in JSON. `set`, `empty`,
-  `time`, `type`, `find` and `repeat` keep the meanings they already had in the language (decision D5).
+- **`set` is the host's word.** Make a set with `(into #{} xs)` or `(hash-set x y)` (`sets.md`); `(set xs)` gives a
+  hint saying so. `set`, `empty`, `time`, `type`, `find` and `repeat` keep the meanings they already had in the
+  language (decision D5).
 - **`compare` and `sort`** order numbers with numbers and text with text, with nil first; booleans and mixed kinds
   are an error, not an order. `<` and `>` used as comparators take numbers only.
 - **`int`** is an error beyond an integer's range, instead of wrapping around.

@@ -46,7 +46,7 @@ constexpr auto hints = std::to_array<std::pair<std::string_view, std::string_vie
     {"repeatedly", lazyHint},
     {"require", loadHint},
     {"reset!", stateHint},
-    {"set", "the language has no sets: a vector of distinct items stands for one, as in JSON"},
+    {"set", "\"set\" is the host's word for a state's value: make a set with (into #{} xs) or (hash-set x y)"},
     {"shuffle", randomHint},
     {"swap!", stateHint},
     {"use", loadHint},

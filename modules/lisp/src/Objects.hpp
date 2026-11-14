@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -97,6 +98,26 @@ private:
 	static constexpr std::size_t searched = 16;
 	mutable std::unique_ptr<std::map<std::string_view, std::uint32_t, std::less<>>> index_; ///< See find().
 };
+
+/// @brief The storage of sets. Like Items it only grows: a set sees its first members, so that `conj` onto the set that
+/// ends it needn't copy, and a set's items are a vector over the same Items, without a copy.
+struct SetStorage final : Object {
+	Items* items = nullptr;          ///< The members, in the order they were added. Owned by the heap.
+	std::vector<std::size_t> hashes; ///< Each member's hash (valueHash()), by its position.
+	/// Each member's hash (valueHash()) and its position in items: membership costs a hash and the members whose
+	/// hashes meet, never a walk of the set. Positions past a set's size aren't that set's.
+	std::unordered_multimap<std::size_t, std::uint32_t> index;
+};
+
+/// @brief A set: the first members of some SetStorage.
+struct SetObject final : Object {
+	const SetStorage* storage = nullptr; ///< The storage.
+	std::uint32_t size = 0;              ///< How many members it has.
+	Place place;                         ///< Where it was read, if it was.
+};
+
+/// @brief What adding to a set's index costs, beyond the member's Value: a node of the unordered_multimap.
+inline constexpr std::size_t setIndexCost = 5 * sizeof(std::size_t); // and its hash
 
 /// @brief A set of authors, by their number in the machine's table. Sets are interned: one pointer per set.
 struct AuthorSet {
@@ -309,6 +330,22 @@ public:
 	Value appended(const Value& from, const Value& item);
 	/// @brief A map. @param entries Its members. @param place Where it was read. @return The value.
 	Value map(std::vector<MapEntry>&& entries, Place place = {});
+	/// @brief A set of distinct members.
+	/// @param members The members, in order, no two equal.
+	/// @param hashes Each one's hash (valueHash()).
+	/// @param place Where it was read.
+	/// @return The value.
+	Value set(std::vector<Value>&& members, std::span<const std::size_t> hashes, Place place = {});
+	/// @brief A set with one more member: no copy when @p from ends its storage.
+	/// @param from The set.
+	/// @param item The item, which isn't a member of it.
+	/// @param hash Its hash.
+	/// @return The value.
+	Value setAppended(const Value& from, const Value& item, std::size_t hash);
+	/// @brief A set's members as a vector, sharing its storage.
+	/// @param from The set.
+	/// @return The vector.
+	Value setItems(const Value& from);
 	/// @brief Copies a text into the heap, for a map's key. @param written The text. @return The copy.
 	std::string_view keep(std::string_view written);
 	/// @brief Keeps a file's name for the places that name it. @param name The name. @return The kept name.
@@ -331,6 +368,11 @@ private:
 	std::deque<std::string> files_;                    ///< See file().
 	std::vector<std::shared_ptr<const json>> adopted_; ///< See adopt().
 };
+
+/// @brief A set's object. @param value The set. @return It.
+[[nodiscard]] inline const SetObject& setObjectOf(const Value& value) noexcept {
+	return *static_cast<const SetObject*>(value.pointer());
+}
 
 /// @brief A map's key from a value: a string's or a keyword's text.
 /// @param key The value.

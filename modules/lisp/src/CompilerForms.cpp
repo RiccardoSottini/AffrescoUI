@@ -329,12 +329,22 @@ void Compiler::formMap(const Value& form, Position /*position*/) {
 	emit(Op::BuildMap, static_cast<std::uint32_t>((form.count() - 1) / 2));
 }
 
+namespace {
+
+/// @brief Tells whether a list's head is that of a literal the reader leaves to be made when it runs: a map with a key
+/// that isn't text, `(%map ...)`, or a set with a form in it, `(%set ...)`.
+/// @param head The head.
+/// @return true if so.
+bool isComputedLiteral(std::string_view head) { return head == "%map" || head == "%set"; }
+
+} // namespace
+
 bool Compiler::quasiRuns(const Value& form, int level, int depth) {
 	if(depth > maxCompileDepth)
 		fail(form, "a template nested more than " + std::to_string(maxCompileDepth) + " levels");
 	machine_.spend(1);
 	const std::string_view head = headWord(form);
-	if(head == "%map") return true; // its keys are worked out, or refused, when it runs
+	if(isComputedLiteral(head)) return true; // its keys or items are worked out when it runs
 	if(head == "unquote" || head == "unquote-splicing") {
 		if(level == 1) return true;
 		return form.count() == 2 && quasiRuns(form.at(1), level - 1, depth + 1);
@@ -389,6 +399,11 @@ void Compiler::quasi(const Value& form, int level, int depth) {
 		for(std::size_t at = 1; at < form.count(); ++at) quasi(form.at(at), level, depth + 1);
 		place_ = form.place();
 		emit(Op::BuildMap, static_cast<std::uint32_t>((form.count() - 1) / 2));
+	} else if(head == "%set") { // `#{~x ~@xs}`: the set of what its items give, as the literal's call makes it
+		emitConstant(machine_.global("%set-of").value);
+		quasiSequence(form, 1, Kind::Vector, level, depth + 1);
+		place_ = form.place();
+		emit(Op::Call, 1);
 	} else if(form.kind() == Kind::Map) {
 		for(std::size_t at = 0; at < form.count(); ++at) {
 			emitConstant(machine_.heap.keyword(form.keyAt(at)));

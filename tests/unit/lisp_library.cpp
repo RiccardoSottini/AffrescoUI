@@ -210,7 +210,7 @@ TEST_CASE("lisp library: a name another dialect has says what to write instead")
 
 TEST_CASE("lisp library: the forms after '#' are read, and say what the language has instead") {
 	CHECK(run("(#(+ % 1) 1)") == "2"); // more in lisp_clojure_reader.cpp
-	CHECK(errorOf("#{1 2}") == "a set literal #{...} isn't in the language: write a vector");
+	CHECK(run("#{1 2}") == "#{1 2}");  // more in lisp_clojure_sets.cpp
 	CHECK(run("[#?(:clj 1) #?@(:default [2])]") == "[2]");
 	// Discarded whole, as the form they start
 	CHECK(run("[#_ #(a b) 3]") == "[3]");

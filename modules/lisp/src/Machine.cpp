@@ -2,6 +2,7 @@
 /// @brief The machine (Machine.hpp): one function per instruction, and calls on its own stack.
 
 #include "Machine.hpp"
+#include "Sets.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 
@@ -251,6 +252,32 @@ void Machine::unwind(std::size_t count) noexcept {
 	}
 }
 
+namespace {
+
+/// @brief A set or a vector called as a function: `(#{1 2} 1)` is the member or nil, `([10 20] 1)` the item at an
+/// index, which must be inside it, as Clojure's.
+/// @param machine The machine.
+/// @param callee The set or the vector.
+/// @param arguments Its arguments.
+/// @return The member or the item.
+/// @throws Problem If there isn't one argument, or a vector's isn't an index inside it.
+Value calledCollection(Machine& machine, const Value& callee, std::span<const Value> arguments) {
+	if(arguments.size() != 1)
+		throw Problem("a " + std::string(callee.kind() == Kind::Set ? "set" : "vector") +
+		              " as a function takes one argument, and was given " + std::to_string(arguments.size()));
+	const Value& argument = arguments.front();
+	if(callee.kind() == Kind::Set) return setMember(machine, callee, argument).value_or(Value());
+	const std::optional<std::int64_t> index = wholeNumber(argument);
+	if(!index)
+		throw Problem("a vector as a function takes an index, and was given " + std::string(describeKind(argument)));
+	if(*index < 0 || static_cast<std::size_t>(*index) >= callee.count())
+		throw Problem("a vector as a function: the index " + std::to_string(*index) + " is outside it, of " +
+		              std::to_string(callee.count()) + (callee.count() == 1 ? " item" : " items"));
+	return callee.at(static_cast<std::size_t>(*index));
+}
+
+} // namespace
+
 void Machine::invoke(std::uint32_t count, bool tail) {
 	const Value callee = stack_[stack_.size() - count - 1];
 	switch(callee.kind()) {
@@ -274,6 +301,12 @@ void Machine::invoke(std::uint32_t count, bool tail) {
 		finishCall(found || count == 1 ? member : arguments[1], count);
 		return;
 	}
+	case Kind::Set:
+	case Kind::Vector:
+		finishCall(
+		    calledCollection(*this, callee, std::span<const Value>(stack_.data() + stack_.size() - count, count)),
+		    count);
+		return;
 	default:
 		throw Problem("this isn't a function: it is " + std::string(describeKind(callee)));
 	}
