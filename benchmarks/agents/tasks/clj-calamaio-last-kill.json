@@ -1,0 +1,91 @@
+{
+	"id": "clj-calamaio-last-kill",
+	"level": "feature",
+	"screen": "examples/calamaio/lisp/calamaio.screen.lisp",
+	"request": "In Calamaio, C-c k (ctrl+c k) should show in the echo area \"Last kill: \" and the newest text of the kill ring, or \"Kill ring is empty\" when nothing was killed yet. Write it as a command show-last-kill and its key, in Lisp, in the program's killring.lisp.",
+	"scenarios": [
+		{
+			"name": "last-kill",
+			"steps": [
+				{
+					"key": "ctrl+x"
+				},
+				{
+					"key": "ctrl+f"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "~/notes.txt"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+c"
+				},
+				{
+					"key": "k"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Kill ring is empty"
+					}
+				},
+				{
+					"type": "words"
+				},
+				{
+					"key": "ctrl+a"
+				},
+				{
+					"key": "ctrl+k"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "ctrl+c"
+				},
+				{
+					"key": "k"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "echo",
+						"is": "Last kill: words"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"/program/killring.lisp/kill-line",
+		"/program/killring.lisp/yank",
+		"/program/loop.lisp/eval-defun",
+		"/program/files.lisp/save-buffer"
+	],
+	"present": [
+		"/program/killring.lisp/show-last-kill"
+	],
+	"reference": [
+		{
+			"message": "C-c k shows the last kill",
+			"add": {
+				"/program/killring.lisp/show-last-kill": "(defcommand show-last-kill \"Shows the newest kill in the echo area.\" :title \"Show Last Kill\" :category \"Killing\"\n  []\n  (if (empty? state.kills)\n    (message \"Kill ring is empty\")\n    (message (str \"Last kill: \" (first state.kills)))))",
+				"/program/killring.lisp/defkey ctrl+c k": "(defkey \"ctrl+c k\" show-last-kill)"
+			}
+		}
+	]
+}

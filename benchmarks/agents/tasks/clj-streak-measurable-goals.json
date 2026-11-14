@@ -1,0 +1,62 @@
+{
+	"id": "clj-streak-measurable-goals",
+	"level": "feature",
+	"screen": "examples/streak/lisp/index.screen.lisp",
+	"request": "Add to Streak a command listGoals, titled \"List goals\", on Cmd+Shift+G (mod+shift+g), that puts in state.goals one text per measurable habit, in list order, as \"Run: 15 km\" (its name, target and unit). Write it in Lisp, with its key, in the program's habits.lisp.",
+	"scenarios": [
+		{
+			"name": "goals",
+			"steps": [
+				{
+					"key": "mod+shift+g"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "goals.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"state": "goals[0]",
+						"is": "Run: 15 km"
+					}
+				},
+				{
+					"expect": {
+						"state": "goals[1]",
+						"is": "Read: 20 pages"
+					}
+				},
+				{
+					"expect": {
+						"state": "goals[2]",
+						"is": "Coffee: 2 cups"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane",
+		"/program/habits.lisp/toggleTheme",
+		"/program/habits.lisp/measurable?"
+	],
+	"present": [
+		"/program/habits.lisp/listGoals"
+	],
+	"reference": [
+		{
+			"message": "List goals",
+			"add": {
+				"/program/habits.lisp/listGoals": "(defcommand listGoals \"Keeps each measurable habit's goal in state.goals.\" :title \"List goals\" :category \"View\"\n  []\n  (set \"state.goals\"\n       (map (fn [habit] (str (:name habit) \": \" (:target habit) \" \" (:unit habit)))\n            (filter (fn [habit] (= (:kind habit) \"measurable\")) data.ordered))))",
+				"/program/habits.lisp/defkey mod+shift+g": "(defkey \"mod+shift+g\" listGoals)"
+			}
+		}
+	]
+}
