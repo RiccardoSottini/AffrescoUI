@@ -285,7 +285,7 @@ TEST_CASE("lisp: functions that take functions") {
 	CHECK(run("(remove (fn [x] (> x 1)) [1 2 3])") == "[1]");
 	CHECK(run("(reduce + [1 2 3])") == "6");
 	CHECK(run("(reduce + 10 [1 2 3])") == "16");
-	CHECK(run("(reduce + [])") == "nil");
+	CHECK(run("(reduce + [])") == "0"); // an empty collection with no start calls (f), as Clojure does
 	CHECK(run("(find (fn [x] (> x 1)) [1 2 3])") == "2");
 	CHECK(run("(find (fn [x] (> x 9)) [1])") == "nil");
 	CHECK(run("(some (fn [x] (and (> x 1) :yes)) [1 2])") == ":yes");
