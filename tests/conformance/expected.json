@@ -1,0 +1,1081 @@
+{
+ "files": {
+  "clojure/core_test/abs.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/aclone.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/add_watch.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/ancestors.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/and.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/core_test/any_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/apply.cljc": {
+   "passed": 19,
+   "read": true
+  },
+  "clojure/core_test/assoc.cljc": {
+   "passed": 34,
+   "read": true
+  },
+  "clojure/core_test/assoc_bang.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/associative_qmark.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/core_test/atom.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/bigdec.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/bigint.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/binding.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/bit_and.cljc": {
+   "passed": 11,
+   "read": true
+  },
+  "clojure/core_test/bit_and_not.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/bit_clear.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/bit_flip.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/bit_not.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/bit_or.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/bit_set.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/bit_shift_left.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/bit_shift_right.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/bit_test.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/bit_xor.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/boolean.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/boolean_qmark.cljc": {
+   "passed": 18,
+   "read": true
+  },
+  "clojure/core_test/bound_fn.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/bound_fn_star.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/butlast.cljc": {
+   "passed": 15,
+   "read": true
+  },
+  "clojure/core_test/byte.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/case.cljc": {
+   "passed": 34,
+   "read": true
+  },
+  "clojure/core_test/char.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/char_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/coll_qmark.cljc": {
+   "passed": 20,
+   "read": true
+  },
+  "clojure/core_test/comment.cljc": {
+   "passed": 4,
+   "read": true
+  },
+  "clojure/core_test/compare.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/concat.cljc": {
+   "passed": 3,
+   "read": true
+  },
+  "clojure/core_test/cond.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/cond_minus_gt.cljc": {
+   "passed": 30,
+   "read": true
+  },
+  "clojure/core_test/conj.cljc": {
+   "passed": 20,
+   "read": true
+  },
+  "clojure/core_test/conj_bang.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/cons.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/constantly.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/contains_qmark.cljc": {
+   "passed": 32,
+   "read": true
+  },
+  "clojure/core_test/count.cljc": {
+   "passed": 19,
+   "read": true
+  },
+  "clojure/core_test/counted_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/cycle.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/dec.cljc": {
+   "passed": 8,
+   "read": true
+  },
+  "clojure/core_test/decimal_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/defmethod.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/defn.cljc": {
+   "passed": 10,
+   "read": true
+  },
+  "clojure/core_test/denominator.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/derive.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/descendants.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/destructure.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/disj.cljc": {
+   "passed": 9,
+   "read": true
+  },
+  "clojure/core_test/disj_bang.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/dissoc.cljc": {
+   "passed": 12,
+   "read": true
+  },
+  "clojure/core_test/dissoc_bang.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/distinct.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/doseq.cljc": {
+   "passed": 1,
+   "read": true
+  },
+  "clojure/core_test/double.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/double_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/drop.cljc": {
+   "passed": 12,
+   "read": true
+  },
+  "clojure/core_test/drop_last.cljc": {
+   "passed": 55,
+   "read": true
+  },
+  "clojure/core_test/drop_while.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/empty.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/empty_qmark.cljc": {
+   "passed": 11,
+   "read": true
+  },
+  "clojure/core_test/eq.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/eval.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/even_qmark.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/core_test/every_qmark.cljc": {
+   "passed": 24,
+   "read": true
+  },
+  "clojure/core_test/ex_info.cljc": {
+   "passed": 7,
+   "read": true
+  },
+  "clojure/core_test/false_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/ffirst.cljc": {
+   "passed": 14,
+   "read": true
+  },
+  "clojure/core_test/filter.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/find.cljc": {
+   "passed": 3,
+   "read": true
+  },
+  "clojure/core_test/first.cljc": {
+   "passed": 12,
+   "read": true
+  },
+  "clojure/core_test/float.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/float_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/fn.cljc": {
+   "passed": 16,
+   "read": true
+  },
+  "clojure/core_test/fn_qmark.cljc": {
+   "passed": 14,
+   "read": true
+  },
+  "clojure/core_test/fnext.cljc": {
+   "passed": 17,
+   "read": true
+  },
+  "clojure/core_test/fnil.cljc": {
+   "passed": 18,
+   "read": true
+  },
+  "clojure/core_test/format.cljc": {
+   "passed": 1,
+   "read": true
+  },
+  "clojure/core_test/get.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/get_in.cljc": {
+   "passed": 14,
+   "read": true
+  },
+  "clojure/core_test/group_by.cljc": {
+   "passed": 2,
+   "read": true
+  },
+  "clojure/core_test/gt.cljc": {
+   "passed": 40,
+   "read": true
+  },
+  "clojure/core_test/gt_eq.cljc": {
+   "passed": 46,
+   "read": true
+  },
+  "clojure/core_test/hash_map.cljc": {
+   "passed": 7,
+   "read": true
+  },
+  "clojure/core_test/hash_set.cljc": {
+   "passed": 6,
+   "read": true
+  },
+  "clojure/core_test/ident_qmark.cljc": {
+   "passed": 11,
+   "read": true
+  },
+  "clojure/core_test/identical_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/identity.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/if_let.cljc": {
+   "passed": 10,
+   "read": true
+  },
+  "clojure/core_test/ifn_qmark.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/core_test/inc.cljc": {
+   "passed": 9,
+   "read": true
+  },
+  "clojure/core_test/int.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/int_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/integer_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/interleave.cljc": {
+   "passed": 10,
+   "read": true
+  },
+  "clojure/core_test/intern.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/interpose.cljc": {
+   "passed": 6,
+   "read": true
+  },
+  "clojure/core_test/into.cljc": {
+   "passed": 14,
+   "read": true
+  },
+  "clojure/core_test/juxt.cljc": {
+   "passed": 10,
+   "read": true
+  },
+  "clojure/core_test/key.cljc": {
+   "passed": 9,
+   "read": true
+  },
+  "clojure/core_test/keys.cljc": {
+   "passed": 3,
+   "read": true
+  },
+  "clojure/core_test/keyword.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/keyword_qmark.cljc": {
+   "passed": 11,
+   "read": true
+  },
+  "clojure/core_test/last.cljc": {
+   "passed": 10,
+   "read": true
+  },
+  "clojure/core_test/lazy_seq.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/let.cljc": {
+   "passed": 7,
+   "read": true
+  },
+  "clojure/core_test/list.cljc": {
+   "passed": 31,
+   "read": true
+  },
+  "clojure/core_test/list_qmark.cljc": {
+   "passed": 15,
+   "read": true
+  },
+  "clojure/core_test/long.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/lt.cljc": {
+   "passed": 40,
+   "read": true
+  },
+  "clojure/core_test/lt_eq.cljc": {
+   "passed": 45,
+   "read": true
+  },
+  "clojure/core_test/make_hierarchy.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/map.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/map_qmark.cljc": {
+   "passed": 15,
+   "read": true
+  },
+  "clojure/core_test/mapcat.cljc": {
+   "passed": 20,
+   "read": true
+  },
+  "clojure/core_test/mapv.cljc": {
+   "passed": 5,
+   "read": true
+  },
+  "clojure/core_test/max.cljc": {
+   "passed": 14,
+   "read": true
+  },
+  "clojure/core_test/merge.cljc": {
+   "passed": 21,
+   "read": true
+  },
+  "clojure/core_test/min.cljc": {
+   "passed": 14,
+   "read": true
+  },
+  "clojure/core_test/min_key.cljc": {
+   "passed": 30,
+   "read": true
+  },
+  "clojure/core_test/minus.cljc": {
+   "passed": 64,
+   "read": true
+  },
+  "clojure/core_test/minus_gt.cljc": {
+   "passed": 18,
+   "read": true
+  },
+  "clojure/core_test/minus_gt_gt.cljc": {
+   "passed": 30,
+   "read": true
+  },
+  "clojure/core_test/mod.cljc": {
+   "passed": 49,
+   "read": true
+  },
+  "clojure/core_test/name.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/namespace.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/nan_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/neg_int_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/neg_qmark.cljc": {
+   "passed": 20,
+   "read": true
+  },
+  "clojure/core_test/next.cljc": {
+   "passed": 18,
+   "read": true
+  },
+  "clojure/core_test/nfirst.cljc": {
+   "passed": 15,
+   "read": true
+  },
+  "clojure/core_test/nil_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/nnext.cljc": {
+   "passed": 7,
+   "read": true
+  },
+  "clojure/core_test/not.cljc": {
+   "passed": 4,
+   "read": true
+  },
+  "clojure/core_test/not_empty.cljc": {
+   "passed": 11,
+   "read": true
+  },
+  "clojure/core_test/not_eq.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/not_every_qmark.cljc": {
+   "passed": 24,
+   "read": true
+  },
+  "clojure/core_test/nth.cljc": {
+   "passed": 11,
+   "read": true
+  },
+  "clojure/core_test/nthnext.cljc": {
+   "passed": 12,
+   "read": true
+  },
+  "clojure/core_test/nthrest.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/core_test/num.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/number_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/number_range.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/numerator.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/odd_qmark.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/core_test/or.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/core_test/parents.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/parse_boolean.cljc": {
+   "passed": 25,
+   "read": true
+  },
+  "clojure/core_test/parse_double.cljc": {
+   "passed": 33,
+   "read": true
+  },
+  "clojure/core_test/parse_long.cljc": {
+   "passed": 30,
+   "read": true
+  },
+  "clojure/core_test/parse_uuid.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/partial.cljc": {
+   "passed": 4,
+   "read": true
+  },
+  "clojure/core_test/partition.cljc": {
+   "passed": 16,
+   "read": true
+  },
+  "clojure/core_test/peek.cljc": {
+   "passed": 8,
+   "read": true
+  },
+  "clojure/core_test/persistent_bang.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/plus.cljc": {
+   "passed": 68,
+   "read": true
+  },
+  "clojure/core_test/plus_squote.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/pop.cljc": {
+   "passed": 10,
+   "read": true
+  },
+  "clojure/core_test/pop_bang.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/portability.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/pos_int_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/pos_qmark.cljc": {
+   "passed": 20,
+   "read": true
+  },
+  "clojure/core_test/pr_str.cljc": {
+   "passed": 1,
+   "read": true
+  },
+  "clojure/core_test/print_str.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/println.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/println_str.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/prn_str.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/qualified_ident_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/qualified_keyword_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/qualified_symbol_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/quot.cljc": {
+   "passed": 37,
+   "read": true
+  },
+  "clojure/core_test/rand.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/rand_int.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/rand_nth.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/random_sample.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/random_uuid.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/ratio_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/rational_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/rationalize.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/realized_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/reduce.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/reduce_kv.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/rem.cljc": {
+   "passed": 37,
+   "read": true
+  },
+  "clojure/core_test/remove.cljc": {
+   "passed": 3,
+   "read": true
+  },
+  "clojure/core_test/remove_watch.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/repeat.cljc": {
+   "passed": 8,
+   "read": true
+  },
+  "clojure/core_test/repeatedly.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/reset_bang.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/rest.cljc": {
+   "passed": 17,
+   "read": true
+  },
+  "clojure/core_test/reverse.cljc": {
+   "passed": 10,
+   "read": true
+  },
+  "clojure/core_test/reversible_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/rseq.cljc": {
+   "passed": 12,
+   "read": true
+  },
+  "clojure/core_test/run_bang.cljc": {
+   "passed": 4,
+   "read": true
+  },
+  "clojure/core_test/second.cljc": {
+   "passed": 6,
+   "read": true
+  },
+  "clojure/core_test/select_keys.cljc": {
+   "passed": 6,
+   "read": true
+  },
+  "clojure/core_test/seq.cljc": {
+   "passed": 6,
+   "read": true
+  },
+  "clojure/core_test/seq_qmark.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/core_test/seqable_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/sequential_qmark.cljc": {
+   "passed": 14,
+   "read": true
+  },
+  "clojure/core_test/set.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/set_qmark.cljc": {
+   "passed": 16,
+   "read": true
+  },
+  "clojure/core_test/short.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/shuffle.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/simple_ident_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/simple_keyword_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/simple_symbol_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/slash.cljc": {
+   "passed": 96,
+   "read": true
+  },
+  "clojure/core_test/some.cljc": {
+   "passed": 22,
+   "read": true
+  },
+  "clojure/core_test/some_fn.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/core_test/some_qmark.cljc": {
+   "passed": 4,
+   "read": true
+  },
+  "clojure/core_test/sort.cljc": {
+   "passed": 14,
+   "read": true
+  },
+  "clojure/core_test/sort_by.cljc": {
+   "passed": 22,
+   "read": true
+  },
+  "clojure/core_test/sorted_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/special_symbol_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/star.cljc": {
+   "passed": 64,
+   "read": true
+  },
+  "clojure/core_test/star_squote.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/str.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/string_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/subs.cljc": {
+   "passed": 23,
+   "read": true
+  },
+  "clojure/core_test/subvec.cljc": {
+   "passed": 24,
+   "read": true
+  },
+  "clojure/core_test/swap_bang.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/symbol.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/symbol_qmark.cljc": {
+   "passed": 11,
+   "read": true
+  },
+  "clojure/core_test/take.cljc": {
+   "passed": 11,
+   "read": true
+  },
+  "clojure/core_test/take_last.cljc": {
+   "passed": 9,
+   "read": true
+  },
+  "clojure/core_test/take_nth.cljc": {
+   "passed": 6,
+   "read": true
+  },
+  "clojure/core_test/take_while.cljc": {
+   "passed": 5,
+   "read": true
+  },
+  "clojure/core_test/taps.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/transient.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/true_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/underive.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/unsigned_bit_shift_right.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/update.cljc": {
+   "passed": 52,
+   "read": true
+  },
+  "clojure/core_test/uuid_qmark.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/val.cljc": {
+   "passed": 9,
+   "read": true
+  },
+  "clojure/core_test/vals.cljc": {
+   "passed": 6,
+   "read": true
+  },
+  "clojure/core_test/var_qmark.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/core_test/vec.cljc": {
+   "passed": 11,
+   "read": true
+  },
+  "clojure/core_test/vector.cljc": {
+   "passed": 26,
+   "read": true
+  },
+  "clojure/core_test/vector_qmark.cljc": {
+   "passed": 14,
+   "read": true
+  },
+  "clojure/core_test/when.cljc": {
+   "passed": 18,
+   "read": true
+  },
+  "clojure/core_test/when_first.cljc": {
+   "passed": 5,
+   "read": true
+  },
+  "clojure/core_test/when_let.cljc": {
+   "passed": 5,
+   "read": true
+  },
+  "clojure/core_test/when_not.cljc": {
+   "passed": 17,
+   "read": true
+  },
+  "clojure/core_test/with_meta.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/with_out_str.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/with_precision.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/core_test/zero_qmark.cljc": {
+   "passed": 21,
+   "read": true
+  },
+  "clojure/core_test/zipmap.cljc": {
+   "passed": 4,
+   "read": true
+  },
+  "clojure/edn_test/read_string.cljc": {
+   "passed": 0,
+   "read": false
+  },
+  "clojure/string_test/blank_qmark.cljc": {
+   "passed": 12,
+   "read": true
+  },
+  "clojure/string_test/capitalize.cljc": {
+   "passed": 7,
+   "read": true
+  },
+  "clojure/string_test/ends_with_qmark.cljc": {
+   "passed": 12,
+   "read": true
+  },
+  "clojure/string_test/escape.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/string_test/lower_case.cljc": {
+   "passed": 7,
+   "read": true
+  },
+  "clojure/string_test/replace.cljc": {
+   "passed": 21,
+   "read": true
+  },
+  "clojure/string_test/reverse.cljc": {
+   "passed": 13,
+   "read": true
+  },
+  "clojure/string_test/split.cljc": {
+   "passed": 0,
+   "read": true
+  },
+  "clojure/string_test/split_lines.cljc": {
+   "passed": 18,
+   "read": true
+  },
+  "clojure/string_test/starts_with_qmark.cljc": {
+   "passed": 12,
+   "read": true
+  },
+  "clojure/string_test/upper_case.cljc": {
+   "passed": 7,
+   "read": true
+  }
+ },
+ "suite": "a9f32fd7bf0cf3ef04eb62db31a731bc7dcb6dc6"
+}

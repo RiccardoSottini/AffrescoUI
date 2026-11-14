@@ -304,3 +304,29 @@ TEST_CASE("lisp forms: a program's own definition of a form's name is the progra
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
+
+TEST_CASE("lisp forms: a use of a definition that failed to compile says it failed") {
+	lisp::Interpreter interpreter;
+	std::string first;
+	try {
+		static_cast<void>(interpreter.eval("(def a (case))", "test", "tester"));
+	} catch(const lisp::LispError& error) {
+		first = error.message();
+	}
+	CHECK(first == "\"case\" takes at least 1 arguments, and was given 0");
+	std::string later = "it ran";
+	try {
+		static_cast<void>(interpreter.eval("a", "test", "tester"));
+	} catch(const lisp::LispError& error) {
+		later = error.message();
+	}
+	CHECK(later == "\"a\" isn't defined: its definition failed: " + first);
+	std::string again;
+	try {
+		static_cast<void>(interpreter.eval("a", "test", "tester"));
+	} catch(const lisp::LispError& error) {
+		again = error.message();
+	}
+	CHECK(again == later);                                     // the same words, however often it is used
+	CHECK(errorOf("(def b (case)) (def c (inc b))") == first); // in one program, the first failure is the one named
+}
