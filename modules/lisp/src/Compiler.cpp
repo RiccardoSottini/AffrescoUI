@@ -9,9 +9,11 @@
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace affresco::lisp {
 
@@ -75,6 +77,8 @@ const Code* Compiler::templateThunk(const Value& form) {
 }
 
 const Code* Compiler::function(const Value& form) {
+	if(context_.view && hasClauses(form, parametersAt(form, 1)))
+		fail(form, "a view takes one vector of parameters, not clauses of many arities");
 	return compiling([&] { return compileFunction(form, 1); });
 }
 
@@ -307,18 +311,94 @@ void Compiler::compileBody(const Value& form, std::size_t from, Position positio
 	compile(form.at(form.count() - 1), position);
 }
 
-const Code* Compiler::compileFunction(const Value& form, std::size_t from) {
+std::size_t Compiler::parametersAt(const Value& form, std::size_t from) {
 	std::size_t at = from;
-	std::string_view name;
-	if(at < form.count() && form.at(at).kind() == Kind::Symbol) name = form.at(at++).text();
+	if(at < form.count() && form.at(at).kind() == Kind::Symbol) ++at;                          // its name
 	if(at < form.count() && form.at(at).kind() == Kind::String && at + 1 < form.count()) ++at; // its docstring
-	if(at >= form.count() || form.at(at).kind() != Kind::Vector)
+	return at;
+}
+
+bool Compiler::hasClauses(const Value& form, std::size_t at) {
+	return at < form.count() && form.at(at).kind() == Kind::List && form.at(at).count() > 0 &&
+	       form.at(at).at(0).kind() == Kind::Vector;
+}
+
+const Code* Compiler::compileFunction(const Value& form, std::size_t from) {
+	const std::size_t at = parametersAt(form, from);
+	const std::string_view name = at > from && form.at(from).kind() == Kind::Symbol ? form.at(from).text() : "";
+	const bool clauses = hasClauses(form, at);
+	if(clauses && at + 1 < form.count()) return compileFunction(arities(form, at, name), 1);
+	const Value holder = clauses ? form.at(at) : form; // one clause: the function it holds
+	const std::size_t params = clauses ? 0 : at;
+	if(params >= holder.count() || holder.at(params).kind() != Kind::Vector)
 		fail(form, "expected the function's parameters, a vector");
 	Function state;
 	begin(state, name);
-	parameters(form.at(at));
-	compileBody(form, at + 1, {.tail = true, .recur = true});
+	parameters(holder.at(params));
+	compileBody(holder, params + 1, {.tail = true, .recur = true});
 	return finish(state);
+}
+
+Value Compiler::arities(const Value& form, std::size_t at, std::string_view name) {
+	Heap& heap = machine_.heap;
+	const Place place = form.place();
+	const auto symbol = [&](std::string_view text) { return heap.symbol(text, place); };
+	const auto list = [&](std::vector<Value> items) { return heap.sequence(Kind::List, std::move(items), place); };
+	const Value args = symbol("%args");
+	std::vector<Value> counts; // each clause's: n, or -(n + 1) for one that takes n then '&'
+	std::vector<Value> loops;
+	std::optional<std::int64_t> least; // the '&' clause's fixed parameters
+	std::int64_t most = -1;            // the most any other takes
+	for(std::size_t index = at; index < form.count(); ++index) {
+		const Value clause = form.at(index);
+		if(!hasClauses(form, index))
+			fail(clause, "a function of many arities is clauses of parameters and a body: (fn ([a] a) ([a b] b))");
+		const Value params = clause.at(0);
+		std::vector<Value> pairs;
+		std::int64_t fixed = 0;
+		bool rest = false;
+		for(std::size_t p = 0; p < params.count(); ++p) {
+			if(params.at(p).kind() == Kind::Symbol && params.at(p).text() == "&") {
+				if(p + 2 != params.count()) fail(params, "'&' comes before the last parameter");
+				pairs.push_back(params.at(++p));
+				pairs.push_back(list({machine_.global("%drop").value, args, Value::integer(fixed)}));
+				rest = true;
+				break;
+			}
+			pairs.push_back(params.at(p));
+			pairs.push_back(list({machine_.global("%nth").value, args, Value::integer(fixed++)}));
+		}
+		if(rest) {
+			if(least) fail(clause, "only one clause of a function takes '&'");
+			least = fixed;
+		} else {
+			for(const Value& count : counts)
+				if(count.isNumber() && wholeNumber(count) == fixed)
+					fail(clause, "two clauses take " + std::to_string(fixed) + " arguments");
+			most = std::max(most, fixed);
+		}
+		if(least && most > *least)
+			fail(clause, "the clause with '&' takes at least as many arguments as every other one");
+		counts.push_back(Value::integer(rest ? -(fixed + 1) : fixed));
+		std::vector<Value> loop = {symbol("loop"), heap.sequence(Kind::Vector, std::move(pairs), place)};
+		for(std::size_t b = 1; b < clause.count(); ++b) loop.push_back(clause.at(b));
+		loops.push_back(list(std::move(loop)));
+	}
+	// (let [%clause (%arity %args [counts] name)] (if (= %clause 0) loop0 (if (= %clause 1) loop1 ... loopN)))
+	const Value chosen = symbol("%clause");
+	Value dispatch = loops.back();
+	for(std::size_t index = loops.size() - 1; index-- > 0;)
+		dispatch = list({symbol("if"),
+		                 list({machine_.global("=").value, chosen, Value::integer(static_cast<std::int64_t>(index))}),
+		                 loops[index], dispatch});
+	const Value arity = list({machine_.global("%arity").value, args, heap.sequence(Kind::Vector, std::move(counts), place),
+	                          name.empty() ? Value() : heap.string(name)});
+	const Value let = list({symbol("let"), heap.sequence(Kind::Vector, std::vector<Value>{chosen, arity}, place), dispatch});
+	std::vector<Value> function = {symbol("fn")};
+	if(!name.empty()) function.push_back(symbol(name));
+	function.push_back(heap.sequence(Kind::Vector, std::vector<Value>{symbol("&"), args}, place));
+	function.push_back(let);
+	return list(std::move(function));
 }
 
 void Compiler::parameters(const Value& params) {
@@ -412,10 +492,10 @@ void Compiler::destructureOption(const Value& pattern, std::string_view word, co
 		destructure(value, slot);
 		return;
 	}
-	if(word != "keys" || value.kind() != Kind::Vector)
-		fail(pattern, "a map pattern takes :keys, :or, :as, or a name then a key: {x :x}");
+	if((word != "keys" && word != "strs") || value.kind() != Kind::Vector)
+		fail(pattern, "a map pattern takes :keys, :strs, :or, :as, or a name then a key: {x :x}");
 	for(std::size_t at = 0; at < value.count(); ++at) {
-		if(value.at(at).kind() != Kind::Symbol) fail(pattern, ":keys takes a vector of names");
+		if(value.at(at).kind() != Kind::Symbol) fail(pattern, ":" + std::string(word) + " takes a vector of names");
 		destructureMember(value.at(at), value.at(at).text(), defaults, slot);
 	}
 }

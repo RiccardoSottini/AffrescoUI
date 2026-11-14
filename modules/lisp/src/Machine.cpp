@@ -237,6 +237,10 @@ void Machine::raise(const Problem& problem, std::size_t floor) {
 		entries.push_back({"message", heap.string(problem.message)});
 		stack_.push_back(heap.map(std::move(entries)));
 	}
+	if(handler.whole) { // a finally runs, then raises it again as it was
+		stack_.push_back(heap.string(problem.message));
+		stack_.push_back(Value::boolean(problem.hasValue));
+	}
 	frames_.back().ip = handler.target;
 }
 
@@ -538,6 +542,13 @@ void Machine::opRecur(const Instruction& instruction) {
 }
 
 void Machine::opThrow(const Instruction& instruction) {
+	if(instruction.b != 0) { // again, after a finally
+		const bool thrown = pop().truthy();
+		const std::string message(pop().text());
+		const Value value = pop();
+		if(thrown) throw Problem(message, value);
+		throw Problem(message);
+	}
 	const Value value = pop();
 	const Value written = frames_.back().code->constants[instruction.a];
 	// A message from the form itself is shown; one computed from values never is
@@ -547,7 +558,7 @@ void Machine::opThrow(const Instruction& instruction) {
 }
 
 void Machine::opTryBegin(const Instruction& instruction) {
-	handlers_.push_back({frames_.size(), stack_.size(), instruction.a});
+	handlers_.push_back({frames_.size(), stack_.size(), instruction.a, instruction.b != 0});
 }
 
 void Machine::opTryEnd(const Instruction& /*instruction*/) { handlers_.pop_back(); }

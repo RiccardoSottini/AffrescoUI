@@ -39,9 +39,10 @@ public:
 	/// @param form The form.
 	/// @return The code.
 	const Code* templateThunk(const Value& form);
-	/// @brief Compiles `(fn name? "doc"? [params] body...)`.
+	/// @brief Compiles `(fn name? "doc"? [params] body...)`, or `(fn name? "doc"? ([params] body...) ...)`.
 	/// @param form The form.
 	/// @return The code of its function, which captures nothing here.
+	/// @throws LispError For a view's function of many arities: a view takes one list of parameters.
 	const Code* function(const Value& form);
 
 private:
@@ -358,6 +359,18 @@ private:
 	void formRecur(const Value& form, Position position);
 	void formFn(const Value& form, Position position);
 	void formTry(const Value& form, Position position);
+	/// @brief Compiles a try's body and its catch, `(catch name form ...)` or `(catch Class name form ...)`.
+	/// @param form The try.
+	/// @param end Where its body ends.
+	/// @param handler The catch.
+	/// @param position Where the try is.
+	void tryCatch(const Value& form, std::size_t end, const Value& handler, Position position);
+	/// @brief Compiles some of a form's items, the value of the last; nil if there are none.
+	/// @param form The form.
+	/// @param from The first.
+	/// @param end Past the last.
+	/// @param position Where the last is.
+	void compileForms(const Value& form, std::size_t from, std::size_t end, Position position);
 	void formThrow(const Value& form, Position position);
 	void formMap(const Value& form, Position position);
 	void formMisplaced(const Value& form, Position position);
@@ -415,6 +428,24 @@ private:
 	/// @param from The index of its name, doc or parameters.
 	/// @return The code.
 	const Code* compileFunction(const Value& form, std::size_t from);
+	/// @brief Where a function form's parameters are, or its first clause: past its name and its docstring.
+	/// @param form The form.
+	/// @param from The index of its name, doc or parameters.
+	/// @return The index.
+	static std::size_t parametersAt(const Value& form, std::size_t from);
+	/// @brief Tells whether a function form has clauses, `([a] ...)`, where its parameters would be.
+	/// @param form The form.
+	/// @param at Where its parameters would be.
+	/// @return true if it has.
+	static bool hasClauses(const Value& form, std::size_t at);
+	/// @brief Writes a function of many arities, `(fn name ([a] ...) ([a b] ...))`, as one function of any number of
+	/// arguments that picks its clause by their count and runs it as a loop, so that recur stays in the clause.
+	/// @param form The whole form.
+	/// @param at Where its first clause is.
+	/// @param name Its name, or empty.
+	/// @return `(fn name [& %args] ...)`.
+	/// @throws LispError If two clauses take as many arguments, or the one with '&' takes fewer than another.
+	Value arities(const Value& form, std::size_t at, std::string_view name);
 	/// @brief Compiles a function's parameters.
 	/// @param params The parameter vector.
 	void parameters(const Value& params);
@@ -431,7 +462,8 @@ private:
 	/// @param pattern The pattern.
 	/// @param slot The slot.
 	void destructureMap(const Value& pattern, std::uint32_t slot);
-	/// @brief Binds one of a map pattern's options: `:keys`, `:as`, or `:or`, read already.
+	/// @brief Binds one of a map pattern's options: `:keys` (or `:strs`, the same keys in JSON), `:as`, or `:or`, read
+	/// already.
 	/// @param pattern The pattern.
 	/// @param word The option.
 	/// @param value Its value.

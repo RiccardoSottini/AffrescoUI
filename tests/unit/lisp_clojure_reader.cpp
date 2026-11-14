@@ -45,6 +45,18 @@ json binding(const std::string& form) {
 	return lisp::buildText("(defscreen main (node :x ~" + form + "))", "test.lisp")["root"]["x"];
 }
 
+/// @brief The message of the error a program's build gives.
+/// @param text The program.
+/// @return The message, or "" if it builds.
+std::string buildError(const std::string& text) {
+	try {
+		static_cast<void>(lisp::buildText(text, "test.lisp"));
+	} catch(const lisp::LispError& error) {
+		return error.message();
+	}
+	return "";
+}
+
 /// @brief The forms of a text, as text.
 /// @param text The text.
 /// @return Each form's text.
@@ -157,4 +169,52 @@ TEST_CASE("lisp clojure: the notation's reader reads none of the language's form
 	CHECK_THROWS(static_cast<void>(affresco::notation::read("(node :x #(1))", affresco::notation::Notation::Lisp)));
 	CHECK_THROWS(static_cast<void>(affresco::notation::read("(node :x ^:a 1)", affresco::notation::Notation::Lisp)));
 	CHECK_THROWS(static_cast<void>(affresco::notation::read("(node :x \\a)", affresco::notation::Notation::Lisp)));
+}
+
+TEST_CASE("lisp clojure: a function of many arities runs the clause its arguments' count picks") {
+	CHECK(run("((fn ([a] a) ([a b] (+ a b))) 1 2)") == "3");
+	CHECK(run("((fn ([a] a) ([a b] (+ a b))) 1)") == "1");
+	CHECK(run("((fn f ([a] (f a 10)) ([a b] (+ a b))) 1)") == "11");
+	CHECK(run("((fn ([a] a) ([a b & more] (count more))) 1 2 3 4)") == "2");
+	CHECK(run("((fn ([a] 1)) 5)") == "1"); // one clause is a plain function
+	CHECK(run("(defn g \"Doc.\" ([] 0) ([x] x)) [(g) (g 5)]") == "[0 5]");
+	CHECK(run("((fn ([n] (if (> n 0) (recur (- n 1)) :done)) ([a b] a)) 100000)") == ":done"); // recur stays in it
+	CHECK(run("((fn ([[a b]] (+ a b)) ([x {:keys [y]}] (+ x y))) [1 2])") == "3");
+	CHECK(errorOf("((fn f ([a] a) ([a b] a)) 1 2 3)").message() == "\"f\" takes 1 or 2 arguments, and was given 3");
+	CHECK(errorOf("((fn ([a] a) ([a b & m] a)))").message() ==
+	      "this function takes 1 or at least 2 arguments, and was given 0");
+	CHECK(errorOf("(fn ([a] 1) ([b] 2))").message() == "two clauses take 1 arguments");
+	CHECK(errorOf("(fn ([a & r] 1) ([a b c] 2))").message() ==
+	      "the clause with '&' takes at least as many arguments as every other one");
+	CHECK(errorOf("(fn ([& a] 1) ([& b] 2))").message() == "only one clause of a function takes '&'");
+	CHECK(errorOf("(fn ([a] 1) 2)").message() ==
+	      "a function of many arities is clauses of parameters and a body: (fn ([a] a) ([a b] b))");
+	CHECK(buildError("(defview v ([a] a) ([a b] b))") ==
+	      "a view takes one vector of parameters, not clauses of many arities");
+}
+
+TEST_CASE("lisp clojure: catch takes Clojure's class, and finally runs on every way out but a limit") {
+	CHECK(run("(try (throw \"x\") (catch Exception e e) (finally 1))") == "\"x\"");
+	CHECK(run("(try (throw \"x\") (catch :default e e))") == "\"x\"");
+	CHECK(run("(try (throw \"x\") (catch js/Error e (str e \"!\")))") == "\"x!\"");
+	CHECK(run("(try (throw \"x\") (catch e e))") == "\"x\"");
+	CHECK(run("(try 1 (finally 2))") == "1");
+	CHECK(run("(try (try (throw \"in\") (finally 5)) (catch e (str \"caught \" e)))") == "\"caught in\"");
+	CHECK(run("(try (try (/ 1 0) (finally 5)) (catch e e))") == "{:message \"dividing by zero\"}");
+	CHECK(run("(loop [i 0] (if (< i 3) (recur (try (+ i 1) (finally 0))) i))") == "3");
+	CHECK(errorOf("(try (/ 1 0) (finally 1))").message() == "dividing by zero"); // raised again as it was
+	CHECK(errorOf("(try (throw \"x\") (finally 1))").message() == "x");
+	CHECK(errorOf("(try 1 (finally (/ 1 0)))").message() == "dividing by zero");
+	CHECK(errorOf("(try 1)").message() == "try ends with (catch name form ...), (finally form ...), or both");
+	CHECK(errorOf("(try 1 (catch 2))").message() == "catch takes a name to bind");
+}
+
+TEST_CASE("lisp clojure: :strs reads keys as :keys does, and (repeat n x) is a vector") {
+	CHECK(run("(let [{:strs [a]} {\"a\" 1}] a)") == "1");
+	CHECK(run("(let [{:strs [a b] :or {b 2}} {\"a\" 1}] [a b])") == "[1 2]");
+	CHECK(run("(repeat 3 \"x\")") == "[\"x\" \"x\" \"x\"]");
+	CHECK(run("(repeat 0 1)") == "[]");
+	CHECK(errorOf("(repeat -1 1)").message() == "\"repeat\" takes a count, a whole number 0 or more, then a value");
+	CHECK(errorOf("(repeat \"x\")").message() == "repeat without a count would never end: give a count, (repeat 3 x)");
+	CHECK(errorOf("(repeat 100000000000 1)").exhausted());
 }
