@@ -94,6 +94,10 @@ namespace {
 /// The special forms that choose among what they are given: what those read is what they need.
 constexpr std::array<std::string_view, 5> choosingForms = {"if", "and", "or", "cond", "when"};
 
+/// The special forms a binding compiles as they are written, since what they are given may read the app: the choosing
+/// forms, `fn` and `let`.
+constexpr std::array<std::string_view, 7> formsCompiledAsWritten = {"if", "and", "or", "cond", "when", "fn", "let"};
+
 /// @brief Looks at a global a function reaches by name: whether it needs the running app itself, and the code it runs,
 /// which is looked at next.
 /// @param global The global.
@@ -140,6 +144,11 @@ bool Compiler::isLocalWord(std::string_view name) {
 	return resolve(*current_, name.substr(0, name.find('.'))).kind != Variable::Kind::None;
 }
 
+bool Compiler::isBindingName(std::string_view name) {
+	return std::ranges::find(renames_, name, &Rename::name) != renames_.end() ||
+	       std::ranges::find(itemNames_, name) != itemNames_.end() || isLocalWord(name);
+}
+
 bool Compiler::isItemOrLocal(std::string_view written) {
 	return !isQualified(written) &&
 	       (std::ranges::find(renames_, written, &Rename::name) != renames_.end() || isLocalWord(written));
@@ -162,17 +171,27 @@ bool Compiler::isLiveWord(std::string_view name) {
 
 bool Compiler::isLiveCall(const Value& form, int depth) {
 	const std::string_view written = headWord(form);
-	if(written.empty()) // (:title card): a keyword reads a member
-		return form.count() > 0 && form.at(0).kind() == Kind::Keyword && form.count() == 2 &&
-		       isLive(form.at(1), depth + 1);
+	if(written.empty()) return isLiveHeadlessCall(form, depth);
 	const bool local = isItemOrLocal(written) && std::ranges::find(renames_, written, &Rename::name) == renames_.end();
 	if(local) return areArgumentsLive(form, depth, false);
 	const std::string_view head = calledName(form);
 	if(head == "fn" && form.count() >= 3 && form.at(1).kind() == Kind::Vector) return isLiveFunction(form, depth);
+	// A loop's names are its own, as a let's; a do and a throw read what their forms read: lowerCall() refuses a loop
+	// and a do, which doseq and dotimes are made of, and lowerForm() a throw
+	if(head == "let" || head == "loop") return isLiveLet(form, depth);
+	if(head == "do" || head == "throw") return areArgumentsLive(form, depth, false);
 	if(const std::optional<bool> live = isLiveHead(head)) return *live;
 	// (sort-by count xs): the language's function a function of the language is given stays that function
 	const Global* global = machine_.findGlobal(head);
 	return areArgumentsLive(form, depth, global && global->takesFunctions);
+}
+
+bool Compiler::isLiveHeadlessCall(const Value& form, int depth) {
+	if(form.count() == 0) return false;
+	if(form.at(0).kind() == Kind::Keyword) // (:title card): a keyword reads a member
+		return form.count() == 2 && isLive(form.at(1), depth + 1);
+	// ((fn ...) x): a call of a value, which reads the app when any part does, and which lowerCall() refuses
+	return isLive(form.at(0), depth + 1) || areArgumentsLive(form, depth, false);
 }
 
 std::optional<bool> Compiler::isLiveHead(std::string_view head) {
@@ -193,6 +212,43 @@ bool Compiler::isLiveFunction(const Value& form, int depth) {
 		if(form.at(1).at(at).kind() == Kind::Symbol) itemNames_.push_back(form.at(1).at(at).text());
 	const bool live = std::ranges::any_of(std::views::iota(std::size_t{2}, form.count()),
 	                                      [&](std::size_t at) { return isLive(form.at(at), depth + 1); });
+	itemNames_.resize(before);
+	return live;
+}
+
+namespace {
+
+/// @brief Gathers the names a pattern binds: `x`, `[a [b c] & more]`, `{:keys [a] :as m}`, `{a :a}`.
+/// @param pattern The pattern.
+/// @param depth How deep it is.
+/// @param names Gets them.
+void patternNames(const Value& pattern, int depth, std::vector<std::string_view>& names) {
+	if(depth > maxCompileDepth) return; // the pattern's own compiling names the place
+	if(pattern.kind() == Kind::Symbol) {
+		if(pattern.text() != "&") names.push_back(pattern.text());
+	} else if(pattern.kind() == Kind::Vector) {
+		for(std::size_t at = 0; at < pattern.count(); ++at) patternNames(pattern.at(at), depth + 1, names);
+	} else if(pattern.kind() == Kind::Map) {
+		for(std::size_t at = 0; at < pattern.count(); ++at) { // {a :a} binds its key; {:keys [a]} its value's names
+			names.push_back(pattern.keyAt(at));
+			patternNames(pattern.valueAt(at), depth + 1, names);
+		}
+	}
+}
+
+} // namespace
+
+bool Compiler::isLiveLet(const Value& form, int depth) {
+	if(form.count() < 2 || form.at(1).kind() != Kind::Vector)
+		return false; // compiled as it is, which says what's wrong
+	const Value pairs = form.at(1);
+	const std::size_t before = itemNames_.size();
+	bool live = false;
+	for(std::size_t at = 0; at + 1 < pairs.count() && !live; at += 2) { // a later value sees the earlier names
+		live = isLive(pairs.at(at + 1), depth + 1);
+		patternNames(pairs.at(at), depth + 1, itemNames_);
+	}
+	for(std::size_t at = 2; at < form.count() && !live; ++at) live = isLive(form.at(at), depth + 1);
 	itemNames_.resize(before);
 	return live;
 }
@@ -238,7 +294,7 @@ bool Compiler::isLive(const Value& form, int depth) {
 
 void Compiler::checkUses(const Global& macro, Place place) {
 	forEachUse(macro.uses, [&](std::string_view word) {
-		if(isLocalWord(word))
+		if(isBindingName(word))
 			failAt(place, "\"" + macro.name + "\" uses the language's \"" + std::string(word) +
 			                  "\", which a local hides here: rename the local");
 	});
@@ -250,13 +306,14 @@ Value Compiler::expanded(const Value& form) {
 	Value at = form;
 	for(int times = 0; times <= maxCompileDepth; ++times) {
 		const std::string_view written = headWord(at);
-		if(written.empty() || (!isQualified(written) && isLocalWord(written))) return at;
+		if(written.empty() || (!isQualified(written) && isBindingName(written))) return at;
 		const std::string_view head = calledName(at);
 		if(isSpecial(head)) return at;
 		Global* global = lookUp(head);
 		if(!global || !global->macro) return at;
 		// Once a call: the liveness check, the binding and the code all read the same expansion, its gensyms too
 		if(const auto known = expansions_.find(at.pointer()); known != expansions_.end()) {
+			if(global->library && !renames_.empty()) checkUses(*global, at.place()); // a let's names, now named
 			at = known->second;
 			continue;
 		}
@@ -277,8 +334,9 @@ Value Compiler::expanded(const Value& form) {
 bool Compiler::buildsAtOnce(const Value& form) {
 	const std::string_view head = headWord(form);
 	if(head.empty() || isLocalWord(head)) return false;
-	if(isSpecial(head))
-		return head != "if" && head != "and" && head != "or" && head != "cond" && head != "when" && head != "fn";
+	if(head == "do" || head == "loop" || head == "throw") // reading the app, it is refused as a binding
+		return !isLiveCall(form, 0);
+	if(isSpecial(head)) return std::ranges::find(formsCompiledAsWritten, head) == formsCompiledAsWritten.end();
 	const Global* global = machine_.findGlobal(head);
 	return global && (global->view || (global->library && head == "handler"));
 }
@@ -375,8 +433,11 @@ void Compiler::compileLiveName(const Value& form) {
 	}
 	emitConstant(machine_.global("%as-name").value);
 	std::vector<BindingPart> parts = {{"{{", {}, false, {}, {}}};
+	const std::size_t substituted = std::exchange(substituted_, 0);
 	lowerForm(form, 0, parts);
 	parts.push_back({"}}", {}, false, {}, {}});
+	checkLetText(form, parts);
+	substituted_ = substituted;
 	if(std::ranges::none_of(parts, &BindingPart::worked)) {
 		std::string text;
 		for(const BindingPart& part : parts) text += part.text;
@@ -428,6 +489,7 @@ void Compiler::emitParts(const std::vector<BindingPart>& parts, bool joined) {
 
 void Compiler::compileBinding(const Value& form) {
 	std::vector<BindingPart> parts;
+	const std::size_t substituted = std::exchange(substituted_, 0);
 	const std::string_view head = headWord(form);
 	const Global* str = head == "str" && !isLocalWord(head) ? machine_.findGlobal(head) : nullptr;
 	const bool joined = str && str->library && form.count() > 2 &&
@@ -459,6 +521,8 @@ void Compiler::compileBinding(const Value& form) {
 		lowerForm(form, 0, parts);
 		parts.push_back({"}}", {}, false, {}, {}});
 	}
+	checkLetText(form, parts);
+	substituted_ = substituted;
 	if(std::ranges::none_of(parts, &BindingPart::worked)) {
 		std::string text;
 		for(const BindingPart& part : parts) text += part.text;

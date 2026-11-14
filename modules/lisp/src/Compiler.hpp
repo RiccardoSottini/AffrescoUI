@@ -56,6 +56,7 @@ private:
 	struct Local {
 		std::string_view name;  ///< Its name.
 		std::uint32_t slot = 0; ///< Its slot.
+		Value path{};           ///< The dotted word a `let` gave it, for its truth tests (noteTruthTest()), or nil.
 	};
 	/// @brief Where a `recur` goes.
 	struct RecurTarget {
@@ -92,10 +93,15 @@ private:
 	};
 	/// @brief A name a function in a binding gives its item, its index or the value so far: `(fn [card] ...)` in
 	/// `(filter (fn [card] ...) list)` writes `card` as `it`.
+	/// A `let`'s name in a binding holds its value's text instead (`parts`): the expression machine has no local names,
+	/// so `(let [x e] body)` is `body` with `e` written wherever `x` stands.
 	struct Rename {
-		std::string_view name; ///< The parameter.
-		std::string as;        ///< What the expression calls it: `it`, `index` or `acc`.
+		std::string_view name; ///< The parameter, or the `let`'s name.
+		std::string as;        ///< What the expression calls it: `it`, `index` or `acc`; "" for a `let`'s name.
 		bool hidden = false;   ///< A function inside gives the same name another meaning: it can't be written.
+		std::vector<BindingPart> parts{}; ///< A `let`'s name: its value's text, in parentheses where it needs them.
+		unsigned uses = 0;                ///< A `let`'s name: the items its value's text reads (itemBit()).
+		std::size_t size = 0;             ///< A `let`'s name: how long its value's text is (textSize()).
 	};
 
 	/// @brief The special forms by name. @return The table.
@@ -150,8 +156,8 @@ private:
 	/// @param name The name.
 	/// @return The cell, or nullptr.
 	[[nodiscard]] Global* lookUp(std::string_view name) const;
-	/// @brief Refuses a macro of the language's expansion where a word it calls means something else: a local, or a
-	/// definition of the program (LibraryEntry::uses).
+	/// @brief Refuses a macro of the language's expansion where a word it calls means something else: a local (a
+	/// binding's name too), or a definition of the program (LibraryEntry::uses).
 	/// @param macro The macro.
 	/// @param place The call.
 	void checkUses(const Global& macro, Place place);
@@ -175,6 +181,12 @@ private:
 	/// @param depth How deep it is.
 	/// @return true if it does.
 	bool isLiveCall(const Value& form, int depth);
+	/// @brief Tells whether a list whose head is no word needs the running app: `(:title card)` when the map does,
+	/// `((fn ...) x)` when any part does.
+	/// @param form The list.
+	/// @param depth How deep it is.
+	/// @return true if it does.
+	bool isLiveHeadlessCall(const Value& form, int depth);
 	/// @brief Tells whether a call needs the running app by its head alone, a word that is no local's.
 	/// @param head The head.
 	/// @return true or false if the head decides, else nothing: what the call is given decides.
@@ -185,6 +197,12 @@ private:
 	/// @param depth How deep it is.
 	/// @return true if it does.
 	bool isLiveFunction(const Value& form, int depth);
+	/// @brief Tells whether a `let` needs the running app: one of its values does, or its body, its names being its
+	/// own, as a function's parameters are.
+	/// @param form The `let`.
+	/// @param depth How deep it is.
+	/// @return true if it does.
+	bool isLiveLet(const Value& form, int depth);
 	/// @brief Tells whether what a call is given needs the running app.
 	/// @param form The call.
 	/// @param depth How deep it is.
@@ -233,6 +251,11 @@ private:
 	/// @param name The word.
 	/// @return true if it is.
 	bool isLocalWord(std::string_view name);
+	/// @brief Tells whether a word is a local's, or a name a binding being checked or written gives (a function's
+	/// parameter, a `let`'s name): a macro of that name is hidden there.
+	/// @param name The word.
+	/// @return true if it is.
+	bool isBindingName(std::string_view name);
 	/// @brief Tells whether a call's head, as written, names an item the binding writes or a local: never when it is
 	/// qualified (`str/join`), which names the language's or a host's function.
 	/// @param written The head.
@@ -314,6 +337,31 @@ private:
 	/// @param parts Gets the text.
 	/// @return Whether it is.
 	bool lowerOperator(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Writes a `let` as its body, each name's value written where the name stands (Rename::parts).
+	/// @param form The list.
+	/// @param depth How deep it is.
+	/// @param parts Gets the text.
+	/// @return Whether it is a `let`.
+	/// @throws LispError For a pattern, a body of several forms, or a text past maxBindingText.
+	bool lowerLet(const Value& form, int depth, std::vector<BindingPart>& parts);
+	/// @brief Tells whether a value's text is one word, a path or a value the build works out, which needs no
+	/// parentheses where a `let`'s name stands: `state.user`, `it.cards[0]`.
+	/// @param parts The text.
+	/// @return true if it is.
+	[[nodiscard]] static bool standsAlone(const std::vector<BindingPart>& parts);
+	/// @brief How long a binding's text is, a value the build works out counting workedPartSize.
+	/// @param parts The text.
+	/// @return Its length.
+	[[nodiscard]] static std::size_t textSize(const std::vector<BindingPart>& parts);
+	/// @brief Refuses a binding whose `let`s' names, written in, make its text longer than maxBindingText.
+	/// @param form The binding's form.
+	/// @param parts Its text.
+	/// @throws LispError If it is.
+	void checkLetText(const Value& form, const std::vector<BindingPart>& parts) const;
+	/// @brief Refuses a binding too large as an expression.
+	/// @param form Where.
+	/// @throws LispError Always.
+	[[noreturn]] void failTooLarge(const Value& form) const;
 	/// @brief Writes `(if test then else?)` or `(when test then)` as `(test ? then : else)`, if it is one.
 	/// @param form The list.
 	/// @param depth How deep it is.
@@ -533,6 +581,8 @@ private:
 	bool functionArgument_ = false; ///< Checking an argument of a function that takes functions (CompilerBindings.cpp).
 	bool symbolic_ = false;         ///< Writing a binding where the locals hold names of the running app.
 	std::vector<Rename> renames_;   ///< The parameters of the functions a binding is writing, innermost last.
+	unsigned itemsRead_ = 0;        ///< The items the text being written reads (itemBit()), for Rename::uses.
+	std::size_t substituted_ = 0;   ///< How much text the binding being written has from its `let`s' names.
 	std::vector<std::string_view> itemNames_;           ///< The parameters of functions a liveness check is inside.
 	std::unordered_map<const void*, Value> expansions_; ///< Each macro call's expansion, made once (expanded()).
 };

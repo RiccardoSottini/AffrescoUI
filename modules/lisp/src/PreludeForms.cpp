@@ -243,9 +243,9 @@ constexpr auto forms = std::to_array<LibraryEntry>({
 	 .source = R"lisp((defmacro when-first [bindings & body]
   (let [[pattern value name] (or (%conditional-binding bindings false)
                                       (throw "when-first takes a vector of one name and one value"))]
-    `(let [~name ~value] (when (not (~empty? ~name)) (let [~pattern (~first ~name)] ~@body))))))lisp",
+    `(let [~name ~value] (when (not (empty? ~name)) (let [~pattern (first ~name)] ~@body))))))lisp",
 	 .macro = true,
-	 .uses = "not"},
+	 .uses = "not empty? first"},
     {.name = "case",
 	 .source = R"lisp((defmacro case [value & clauses]
   (%clauses value clauses %case-test '(throw "no clause of case matches"))))lisp",
