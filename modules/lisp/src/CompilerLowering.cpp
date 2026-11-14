@@ -412,9 +412,10 @@ void Compiler::lowerCall(const Value& form, int depth, std::vector<BindingPart>&
 		lowerKey(form.at(0), depth, parts);
 		return;
 	}
-	const std::string_view head = headWord(form);
+	const std::string_view written = headWord(form);
 	// An item's name the binding writes, or a local's
-	const bool bound = std::ranges::find(renames_, head, &Rename::name) != renames_.end() || isLocalWord(head);
+	const bool bound = isItemOrLocal(written);
+	const std::string_view head = calledName(form);
 	const Global* global = bound ? nullptr : machine_.findGlobal(head);
 	if(!bound && lowerBuiltIn(form, global, depth, parts)) return;
 	if(isSpecial(head) || bound)
@@ -430,7 +431,7 @@ void Compiler::lowerCall(const Value& form, int depth, std::vector<BindingPart>&
 bool Compiler::lowerBuiltIn(const Value& form, const Global* global, int depth, std::vector<BindingPart>& parts) {
 	const bool defined = global && global->state != Global::State::Undefined;
 	// A program's own function of that name isn't the expression's operator
-	if(!isSpecial(headWord(form)) && !(defined && global->library)) return false;
+	if(!isSpecial(calledName(form)) && !(defined && global->library)) return false;
 	return lowerOperator(form, depth, parts) || (defined && lowerLibrary(form, depth, parts));
 }
 

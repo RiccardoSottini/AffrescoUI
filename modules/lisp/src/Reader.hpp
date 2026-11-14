@@ -63,12 +63,42 @@ private:
 	/// @param depth How many forms hold it.
 	/// @return The map, or a list `(%map k v ...)` if a key isn't a keyword or a string.
 	Value map(const Token& open, int depth);
+	/// @brief Reads the form a prefix stands before: a quote's, or a reader form's after a '#'.
+	/// @param token The prefix.
+	/// @param depth How many forms hold it.
+	/// @return The form.
+	/// @throws LispError Where the language doesn't read it.
+	Value prefix(const Token& token, int depth);
 	/// @brief Reads a prefix's form: `'x` is `(quote x)`.
 	/// @param prefix The prefix.
 	/// @param name The form it stands for.
 	/// @param depth How many forms hold it.
 	/// @return The list.
 	Value prefixed(const Token& prefix, std::string_view name, int depth);
+	/// @brief Reads a form after a '#' (ReaderForms.cpp): one of the four, by its token's kind.
+	/// @param token The token, its bracket still to read.
+	/// @param depth How many forms hold it.
+	/// @return The form.
+	/// @throws LispError Where the language doesn't read it.
+	Value hashForm(const Token& token, int depth);
+	/// @brief Reads a function literal, `#(...)` (ReaderForms.cpp).
+	/// @param token The `#(` token, its bracket still to read.
+	/// @param depth How many forms hold it.
+	/// @return The form.
+	/// @throws LispError Until the language reads it.
+	Value lambda(const Token& token, int depth);
+	/// @brief Reads a set literal, `#{...}` (ReaderForms.cpp).
+	/// @param token The `#{` token, its bracket still to read.
+	/// @param depth How many forms hold it.
+	/// @return The form.
+	/// @throws LispError Always: a set is a vector in the language.
+	Value setOf(const Token& token, int depth);
+	/// @brief Reads a reader conditional, `#?(...)` or `#?@(...)` (ReaderForms.cpp).
+	/// @param token The `#?` or `#?@` token, its bracket still to read.
+	/// @param depth How many forms hold it.
+	/// @return The form.
+	/// @throws LispError Until the language reads it.
+	Value conditional(const Token& token, int depth);
 	/// @brief Reads a bare word: a constant or a symbol.
 	/// @param token The word.
 	/// @return The value.
@@ -87,14 +117,14 @@ private:
 	/// @return The place.
 	Place placeAt(std::size_t offset);
 
-	Heap& heap_;                ///< See the constructor.
-	notation::Lexer lexer_;     ///< The tokens.
-	const std::string* file_;   ///< See the constructor.
-	std::size_t firstLine_;     ///< See the constructor.
-	std::size_t firstColumn_;   ///< See the constructor.
-	std::size_t scanned_ = 0;   ///< How far placeAt() has looked.
-	std::size_t line_ = 0;      ///< Line breaks before scanned_.
-	std::size_t column_ = 1;    ///< The column of scanned_, in characters.
+	Heap& heap_;              ///< See the constructor.
+	notation::Lexer lexer_;   ///< The tokens.
+	const std::string* file_; ///< See the constructor.
+	std::size_t firstLine_;   ///< See the constructor.
+	std::size_t firstColumn_; ///< See the constructor.
+	std::size_t scanned_ = 0; ///< How far placeAt() has looked.
+	std::size_t line_ = 0;    ///< Line breaks before scanned_.
+	std::size_t column_ = 1;  ///< The column of scanned_, in characters.
 };
 
 /// @brief Tells whether a word can be a symbol: ASCII letters, digits and `_ . @ $ - + * / < > = ! ? & %`, not starting

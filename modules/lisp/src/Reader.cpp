@@ -101,6 +101,18 @@ Value Reader::form(const Token& token, int depth) {
 		return word(token);
 	case TokenKind::Key:
 		return heap_.keyword(lexer_.name(token), placeAt(token.offset));
+	case TokenKind::Id:
+		lexer_.fail(token.offset, "an id (" + notation::Lexer::shown(token) + ") outside a node");
+	case TokenKind::End:
+		lexer_.fail(token.offset, "expected a value, found the end of the text");
+	default:
+		if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) return prefix(token, depth);
+		lexer_.fail(token.offset, "expected a value, found " + notation::Lexer::shown(token));
+	}
+}
+
+Value Reader::prefix(const Token& token, int depth) {
+	switch(token.kind) {
 	case TokenKind::Quote:
 		return prefixed(token, "quote", depth);
 	case TokenKind::Backquote:
@@ -109,12 +121,8 @@ Value Reader::form(const Token& token, int depth) {
 		return prefixed(token, "unquote", depth);
 	case TokenKind::Splice:
 		return prefixed(token, "unquote-splicing", depth);
-	case TokenKind::Id:
-		lexer_.fail(token.offset, "an id (" + notation::Lexer::shown(token) + ") outside a node");
-	case TokenKind::End:
-		lexer_.fail(token.offset, "expected a value, found the end of the text");
 	default:
-		lexer_.fail(token.offset, "expected a value, found " + notation::Lexer::shown(token));
+		return hashForm(token, depth);
 	}
 }
 

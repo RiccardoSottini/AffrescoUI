@@ -132,8 +132,27 @@ private:
 	/// @param from The first one's index.
 	/// @param position What can follow them.
 	void compileBody(const Value& form, std::size_t from, Position position);
-	/// @brief Emits a push of a global. @param name Its name. @param place Where it is used.
+	/// @brief Emits a push of a global: in the library's code, the language's own (Machine::languageGlobal()).
+	/// @param name Its name.
+	/// @param place Where it is used.
 	void compileGlobal(std::string_view name, Place place);
+	/// @brief Compiles a qualified word (Namespaces.hpp): the global it names, whatever the locals are.
+	/// @param form The symbol.
+	/// @return false if it isn't one.
+	bool compileQualified(const Value& form);
+	/// @brief The name a call calls: its head word, qualified words resolved (`str/join` is `clojure.string/join`).
+	/// @param form The form.
+	/// @return The name, or "" if its head is no word.
+	std::string_view calledName(const Value& form);
+	/// @brief The global a name is, if it exists: in the library's code, the language's own.
+	/// @param name The name.
+	/// @return The cell, or nullptr.
+	[[nodiscard]] Global* lookUp(std::string_view name) const;
+	/// @brief Refuses a macro of the language's expansion where a word it calls means something else: a local, or a
+	/// definition of the program (LibraryEntry::uses).
+	/// @param macro The macro.
+	/// @param place The call.
+	void checkUses(const Global& macro, Place place);
 	/// @brief Compiles a dotted word that is a path: a local's member (`room.name`), or what the running app reads
 	/// (`state.count`), when no definition has that name.
 	/// @param form The symbol.
@@ -212,6 +231,11 @@ private:
 	/// @param name The word.
 	/// @return true if it is.
 	bool isLocalWord(std::string_view name);
+	/// @brief Tells whether a call's head, as written, names an item the binding writes or a local: never when it is
+	/// qualified (`str/join`), which names the language's or a host's function.
+	/// @param written The head.
+	/// @return true if it does.
+	bool isItemOrLocal(std::string_view written);
 	/// @brief Adds the locals a form uses, each once.
 	/// @param form The form.
 	/// @param depth How deep it is.

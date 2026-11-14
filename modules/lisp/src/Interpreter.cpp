@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -47,6 +48,13 @@ void Interpreter::addAppVariable(const std::string& name) { machine_->addAppVari
 
 void Interpreter::definePrimitive(const std::string& name, Primitive primitive) {
 	machine_->definePrimitive(name, std::move(primitive));
+}
+
+void Interpreter::addNamespace(std::string name, bool bare) { machine_->namespaces().add(std::move(name), bare); }
+
+void Interpreter::addAlias(std::string alias, const std::string& name) {
+	if(!machine_->namespaces().alias(std::move(alias), name))
+		throw std::invalid_argument("no namespace \"" + name + "\" to alias");
 }
 
 void Interpreter::setGate(Gate gate) { machine_->setGate(std::move(gate)); }

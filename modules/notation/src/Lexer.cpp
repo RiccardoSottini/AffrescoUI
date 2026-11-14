@@ -7,7 +7,9 @@
 #include "affresco/notation/Words.hpp"
 
 #include <algorithm>
+#include <initializer_list>
 #include <string>
+#include <utility>
 
 namespace affresco::notation {
 
@@ -102,6 +104,8 @@ Token Lexer::raw(bool& discard) {
 	} else if(c == '"') {
 		kind = TokenKind::String;
 		quoted(start);
+	} else if(const std::optional<TokenKind> form = c == '#' && language_ ? hashFormAt() : std::nullopt) {
+		kind = *form;
 	} else if(c == ':' || c == '#') {
 		kind = c == ':' ? TokenKind::Key : TokenKind::Id;
 		discard = nameOrDiscard();
@@ -121,6 +125,19 @@ bool Lexer::nameOrDiscard() {
 	else if(at_ < text_.size() && text_[at_] == '"') quoted(at_);
 	else wordAt(at_);
 	return discard;
+}
+
+std::optional<TokenKind> Lexer::hashFormAt() {
+	const std::string_view rest = text_.substr(at_);
+	for(const auto& [written, kind] :
+	    {std::pair{std::string_view("#("), TokenKind::Lambda}, std::pair{std::string_view("#{"), TokenKind::SetOf},
+	     std::pair{std::string_view("#?("), TokenKind::Conditional},
+	     std::pair{std::string_view("#?@("), TokenKind::ConditionalSplice}})
+		if(rest.starts_with(written)) {
+			at_ += written.size() - 1; // the bracket is the next token
+			return kind;
+		}
+	return std::nullopt;
 }
 
 std::optional<TokenKind> Lexer::prefixAt() noexcept {

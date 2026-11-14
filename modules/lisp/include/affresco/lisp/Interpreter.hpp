@@ -146,6 +146,18 @@ public:
 	/// @param name Its name.
 	/// @param primitive What it is.
 	void definePrimitive(const std::string& name, Primitive primitive);
+	/// @brief Adds a namespace a qualified word may name (`app.text/shout`), or changes whether one is bare. A bare
+	/// namespace's functions are the globals of their own names, as `clojure.core`'s are; another's are the globals
+	/// named with it, which a host defines with definePrimitive() (`app.text/shout`).
+	/// @param name Its name.
+	/// @param bare Whether its functions are the globals of their own names.
+	void addNamespace(std::string name, bool bare);
+	/// @brief Adds an alias for a namespace, or points one elsewhere: `t/shout` is then `app.text/shout`. A file's own
+	/// aliases come first.
+	/// @param alias The alias.
+	/// @param name The namespace.
+	/// @throws std::invalid_argument If no namespace has that name.
+	void addAlias(std::string alias, const std::string& name);
 	/// @brief Names a variable of the running app that code reads by its bare word, through `%read` as a path's
 	/// (`preview`, `locale`), where no local or definition of the program has that name, and where the word isn't
 	/// called: `(preview ...)` is still the function of that name. Code compiled from then on reads it so.

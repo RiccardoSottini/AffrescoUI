@@ -2,17 +2,26 @@
 affrescoui_module(lisp
 	src/Value.cpp
 	src/Reader.cpp
+	src/ReaderForms.cpp
 	src/Compiler.cpp
 	src/CompilerForms.cpp
 	src/CompilerBindings.cpp
 	src/CompilerLowering.cpp
 	src/Definitions.cpp
+	src/Namespaces.cpp
+	src/Hints.cpp
 	src/Machine.cpp
 	src/CoreNumbers.cpp
 	src/CoreCollections.cpp
 	src/CoreText.cpp
 	src/CoreViews.cpp
+	src/Library.cpp
 	src/Prelude.cpp
+	src/PreludeForms.cpp
+	src/PreludeFunctions.cpp
+	src/CoreSequences.cpp
+	src/CoreStrings.cpp
+	src/CoreSets.cpp
 	src/Tree.cpp
 	src/Interpreter.cpp
 	src/Forms.cpp

@@ -159,6 +159,9 @@ struct Global {
 	bool library = false;           ///< One of the language's own.
 	bool host = false;              ///< A host's primitive no definition may replace (Primitive::reserved).
 	bool view = false;              ///< A `defview`: what calls it in a template runs at the build, never later.
+	bool takesFunctions = false;    ///< Takes functions: in a binding, a word it is given that names one is that
+	                                ///< function. Its name's, whatever defines it.
+	std::string_view uses;          ///< A macro of the language's: the words its expansion calls (LibraryEntry::uses).
 	std::function<void()> pending;  ///< What compiles it.
 };
 

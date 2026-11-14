@@ -1,11 +1,13 @@
 /// @file
 /// @brief The "lisp" workloads (RFC 0005, "Performance"): what a program's function costs in an event and in a binding,
-/// each beside the same thing written as steps or as an expression, and a reload when a definition changes.
+/// each beside the same thing written as steps or as an expression, a reload when a definition changes, and making an
+/// interpreter.
 
 #include "Bench.hpp"
 #include "Headless.hpp"
 
 #include <affresco/lisp/Document.hpp>
+#include <affresco/lisp/Interpreter.hpp>
 
 #include <filesystem>
 #include <memory>
@@ -58,6 +60,23 @@ std::string programOfMany() {
 	return text + "(defscreen main (panel#root))\n";
 }
 
+/// How many interpreters "lisp/start" makes in a step.
+constexpr int starts = 1000;
+
+/// @brief "lisp/start": making an interpreter, the language's own functions with it, as every build and every host
+/// that runs a program does first.
+/// @param workloads Gets it.
+void addStartWorkload(std::vector<Workload>& workloads) {
+	Workload start{.name = "lisp/start", .runs = 15, .operations = starts};
+	start.step = [] {
+		for(int at = 0; at < starts; ++at) {
+			const lisp::Interpreter interpreter;
+			static_cast<void>(interpreter);
+		}
+	};
+	workloads.push_back(std::move(start));
+}
+
 /// @brief "lisp/open-<app>" and "lisp/open-<app>-json": opening each example written as a program and as JSON, as a
 /// scenario does each time (read, built, judged, its program loaded, the screen built into a window): what an app
 /// written as a program costs beside its JSON version, once the process has opened it before.
@@ -88,6 +107,7 @@ void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
 
 std::vector<Workload> lispWorkloads(Context& context) {
 	std::vector<Workload> workloads;
+	addStartWorkload(workloads);
 	addOpenWorkloads(context, workloads);
 	const json bound = lisp::sourceDocument(programWithBindings(), "bench.lisp");
 	const LoadedScreen lisp = context.load(bound, {});

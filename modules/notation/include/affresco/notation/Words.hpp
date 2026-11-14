@@ -4,9 +4,18 @@
 /// @brief What the Lisp reader, its writer and the language (modules/lisp) agree on: which strings are written as bare
 /// words, the words reserved for other values, and the words the language gives a meaning to.
 
+#include "affresco/notation/words/Core.hpp"
+#include "affresco/notation/words/Forms.hpp"
+#include "affresco/notation/words/Functions.hpp"
+#include "affresco/notation/words/Namespaces.hpp"
+#include "affresco/notation/words/Reader.hpp"
+#include "affresco/notation/words/Sets.hpp"
+#include "affresco/notation/words/Text.hpp"
+
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <span>
 #include <string_view>
 
 namespace affresco::notation {
@@ -47,28 +56,23 @@ inline constexpr std::string_view untypedHead = "node";
 	       std::all_of(std::next(text.begin()), text.end(), isWordCharacter);
 }
 
-/// The plain words the language (modules/lisp) runs. `list` is also a node type and isn't here: in a data position it
-/// stays a node, and running `list` there takes `~`. A test in tests/unit/lisp.cpp checks this list against the
-/// language.
-// clang-format off
-inline constexpr auto languageWords = std::to_array<std::string_view>({
-    "abs", "add-hook", "advice", "and", "apply", "assoc", "assoc-in", "backquote", "catch", "concat", "cond", "conj",
-    "cons", "count", "dec", "def", "defcommand", "defcomponent", "defcomputed", "defcustom", "defdefaults",
-    "defhook", "defkey", "defmacro", "defmenu", "defn", "defpart", "defscreen", "defstate", "defstyle", "deftokens",
-    "defview", "dissoc", "do", "drop", "filter", "find", "first", "fn", "gensym", "get", "get-in", "handler",
-    "identity", "if", "inc", "include", "join", "keys", "keyword", "last", "let", "loop", "lower-case", "map",
-    "map-indexed", "mapcat", "max", "merge", "min", "mod", "name", "not", "nth", "or", "or-else", "pr-str", "quote",
-    "range", "recur", "reduce", "rem", "remove", "remove-hook", "repeat", "rest", "reverse", "second", "some",
-    "sort", "sort-by", "str", "subs", "symbol", "take", "throw", "try", "unquote", "unquote-splicing", "update",
-    "update-in", "upper-case", "vals", "vec", "when", "zipmap"});
-// clang-format on
+/// The lists of the plain words the language (modules/lisp) runs, one per area of it (words/), which the packages that
+/// add to the language fill each its own. `list` is also a node type and is on none: in a data position it stays a
+/// node, and running `list` there takes `~`. Nor are `boolean` and `vector`, the node types of the same names.
+inline constexpr auto languageWordLists = std::to_array<std::span<const std::string_view>>(
+    {coreWords, formsWords, functionsWords, textWords, readerWords, setsWords, namespacesWords});
 
-/// @brief Tells whether a plain word is one the language runs (languageWords): in a data position of a language file
-/// it isn't a node type, and the writer writes a node of that type as `(node :type word ...)`.
+/// The language's core words (words/Core.hpp), by the name a reader of this list had before it was split.
+inline constexpr const auto& languageWords = coreWords;
+
+/// @brief Tells whether a plain word is one the language runs (languageWordLists): in a data position of a language
+/// file it isn't a node type, and the writer writes a node of that type as `(node :type word ...)`.
 /// @param word The word.
 /// @return true if it is.
 [[nodiscard]] constexpr bool isLanguageWord(std::string_view word) noexcept {
-	return std::ranges::find(languageWords, word) != languageWords.end();
+	return std::ranges::any_of(languageWordLists, [&](std::span<const std::string_view> list) {
+		return std::ranges::find(list, word) != list.end();
+	});
 }
 
 } // namespace affresco::notation

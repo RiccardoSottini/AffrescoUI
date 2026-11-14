@@ -101,6 +101,43 @@ member is addressed as `state.view`, `computed.card`, `styles.chip`, `components
 | `(defdefaults name "doc"? :section {...} ...)` | Nothing callable | Members no other definition gives, which a document's own value replaces |
 | `(add-hook hook "doc"? function)`, `(remove-hook hook "doc"? function)`, `(advice target "doc"? :before/:after/:around function)` | Nothing the language runs: a host does | Nothing: recorded in `Program::extensions()`. The build refuses one whose function the program doesn't define |
 
+### The library
+
+The language's functions and macros written in itself are a table (`src/Library.hpp`, `LibraryEntry`): a name, one `defn` or
+`defmacro` form, whether it is a macro, whether it takes functions, and, for a macro, the words its expansion calls. `definePrelude`
+and the five files after it (`PreludeForms.cpp`, `PreludeFunctions.cpp`, `CoreSequences.cpp`, `CoreStrings.cpp`, `CoreSets.cpp`)
+each register their own entries with `defineLibrary`; a package adding to the language adds rows to its file.
+
+- **Compiled on first use.** Making an interpreter registers each entry as a global and reads nothing: the first code that names
+  it, when that code is compiled, reads and compiles it (or the first call, when nothing compiled names it). An entry that uses
+  another compiles that one first.
+- **Blind to a program.** An entry's code sees the language's own functions (`Machine::languageGlobal`), never a program's of the
+  same name, however late it is compiled: a program defining `count`, `filter` or `not` doesn't change `last` or `remove`. A
+  program that defines a name of the library (`mapcat`) has its own where it calls it.
+- **Takes functions.** `takesFunctions` marks a function a word given to it in a binding names a function by (`(sort-by count xs)`):
+  `map`, `filter`, `reduce`... and `apply` and `run-hooks`, which a host writes.
+- **Macros.** A library macro is unhygienic, as a program's: its expansion calls the words its entry lists (`uses`) by name. Where a
+  local hides one of them, or the program defines one, the call is an error that names both: `"m" uses the language's "not", which
+  a local hides here: rename the local`. The words it may call are those a binding lowers: `not`, `=`, `nil?`, `some?`, `map`,
+  `filter`, `mapcat`.
+
+### Qualified names
+
+A word with a `/` inside it names a namespace's function (`src/Namespaces.hpp`): `clojure.core/inc` is `inc`, and
+`clojure.string/join`, written `str/join` or `string/join` with an alias, is the global of that name, as are `clojure.set`'s,
+written `set/` (none yet). A qualified word is never a local, so `(let [inc dec] (clojure.core/inc 1))` is 2, and a qualified form
+(`clojure.core/when`) is the form. An unknown prefix is an error that lists the namespaces. `/` alone is division, and a word
+starting or ending with `/` is a word of its own. A host adds its own with `Interpreter::addNamespace` and `addAlias`; there is no `ns` yet, and no
+`require`.
+
+### Names the language doesn't have
+
+An undefined name that another dialect has says what to write here (`src/Hints.cpp`): `atom`, `swap!` and `reset!` (a program
+keeps state in the app's, `defstate`, and a step changes it), `println` (the host's `log` step), `rand` (no randomness),
+`require` (`include`), `iterate` and `lazy-seq` (no laziness: `range`, `loop`), `re-find` (no regular expressions), `declare` (a
+definition can use one written after it). The reader says the same of `#(...)` and `#?(...)`, not read yet, and of `#{...}`: a set
+is a vector of distinct items, as JSON has none.
+
 ## Programs
 
 A file is a **program** when it has several top-level forms, or one that is a definition (`isProgram`); otherwise it holds
@@ -126,7 +163,7 @@ one data value, a **template**.
   A name they use that nothing defines isn't an error until they run: `Program::undefinedNames()` lists them.
 - **Templates.** `buildText` reads a data file as if backquoted: words stay data, `~` drops into code. Every existing `.lisp`
   file builds to the tree the notation's reader gives, key for key (`tests/unit/lisp.cpp`, and fuzzed).
-  A word the language runs (`notation::languageWords`) isn't a node type in a data position: `(not x)` is the error
+  A word the language runs (`notation::languageWordLists`, one list per area in `words/`) isn't a node type in a data position: `(not x)` is the error
   `"not" is not a node type; to run it, write ~(not ...); for a node of that type, write (node :type not ...)`. So that no file
   breaks, the notation's writer never writes such a type as a head (`(node :type range ...)`), and that list leaves out `list`,
   which is a node type: `(list ...)` in data stays a node. The notation's own reader applies this rule too. A data file an app loads
@@ -180,8 +217,9 @@ one data value, a **template**.
 The compiler turns forms into a small instruction set (`src/Objects.hpp`, `Op`), and the machine runs it (`src/Machine.cpp`, one
 function per instruction). Calls and returns use the machine's own stack, so no recursion of the program touches the native one:
 
-- Functions that call a function back (`map`, `reduce`...) are written in Lisp (`src/Prelude.cpp`). They see the language's own
-  functions as constants, so a program redefining `count` doesn't change `reduce`. An error inside one names its caller's place.
+- Functions that call a function back (`map`, `reduce`...) are written in Lisp (`src/Prelude.cpp`, entries of the library above).
+  They see the language's own functions as constants, so a program redefining `count` doesn't change `reduce`. An error inside one
+  names its caller's place.
 - All objects live in one `Heap`, freed in one flat loop: a long list or a chain of closures takes no recursion to free. A
   `Value` is a plain 16-byte copy.
 - **A region gives back what an event made** (`Interpreter::Transient`, `Heap::mark`, `release`): objects are freed down to where it
@@ -273,17 +311,26 @@ src/
   Objects.hpp           what values point at, the heap, the instructions, compiled code
   Value.cpp             values and the heap
   Reader.hpp, .cpp      text into forms, on notation's Lexer
+  ReaderForms.cpp       the forms after '#': #(...), #{...}, #?(...)
   Compiler.hpp, .cpp    forms into instructions: calls, variables, paths, functions, destructuring
   CompilerForms.cpp     the special forms and templates
   CompilerBindings.cpp  a template's ~form that needs the running app, written as a binding; views and symbols
   CompilerLowering.cpp  a binding's form as the expression machine's text
   Definitions.hpp, .cpp globals, the definition forms, authors
+  Namespaces.hpp, .cpp  qualified words: the namespaces and their aliases
+  Hints.cpp             what an undefined name another dialect has means here
   Machine.hpp, .cpp     the stack, the instructions, the choke point
   CoreNumbers.cpp       the language's own functions on numbers and truth
   CoreCollections.cpp   on lists, vectors and maps
   CoreText.cpp          on text
   CoreViews.cpp         for views: handler, or-else, and repeat's, defcomponent's and a binding's own
+  Library.hpp, .cpp     the language's functions and macros written in itself: the table, compiled on first use
   Prelude.cpp           those written in Lisp, which call a function back
+  PreludeForms.cpp      the library's forms (macros): when-let, ->...
+  PreludeFunctions.cpp  its further functions
+  CoreSequences.cpp     its functions on sequences
+  CoreStrings.cpp       clojure.string's (str/)
+  CoreSets.cpp          clojure.set's (set/)
   Tree.cpp              the walks: a value as a tree, as text, `=`
   TopLevel.hpp          what the interpreter and programs share
   Interpreter.cpp       the machine, seen from outside
