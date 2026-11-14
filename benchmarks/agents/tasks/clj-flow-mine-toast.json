@@ -1,0 +1,72 @@
+{
+	"id": "clj-flow-mine-toast",
+	"level": "feature",
+	"screen": "examples/flow/lisp/index.screen.lisp",
+	"request": "Add to Flow a command listMine, titled \"List my cards\", on Cmd+Shift+M (mod+shift+m), whose toast reads \"Mine: \" and then the refs of the board's cards owned by me (state.me), in board order, separated by \", \". Write it in Lisp, with its key, in the program's flow.lisp.",
+	"scenarios": [
+		{
+			"name": "mine",
+			"steps": [
+				{
+					"key": "mod+shift+m"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Mine: FLO-3, FLO-5, FLO-10"
+					}
+				},
+				{
+					"key": "mod+n"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"type": "One more"
+				},
+				{
+					"key": "enter"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"key": "mod+shift+m"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "toast.message",
+						"is": "Mine: FLO-3, FLO-21, FLO-5, FLO-10"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#main",
+		"#statusBar",
+		"/program/flow.lisp/notify",
+		"/program/flow.lisp/toggleTheme"
+	],
+	"present": [
+		"/program/flow.lisp/listMine"
+	],
+	"reference": [
+		{
+			"message": "List my cards",
+			"add": {
+				"/program/flow.lisp/listMine": "(defcommand listMine \"Says which of the board's cards are mine.\" :title \"List my cards\" :category \"Issue\"\n  []\n  (notify (str \"Mine: \" (join \", \" (map (fn [card] (:ref card)) (filter (fn [card] (= (:who card) state.me)) computed.allCards))))))",
+				"/program/flow.lisp/defkey mod+shift+m": "(defkey \"mod+shift+m\" listMine)"
+			}
+		}
+	]
+}
