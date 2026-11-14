@@ -5,6 +5,7 @@
 #include "Definitions.hpp"
 #include "Machine.hpp"
 
+#include <affresco/lisp/Program.hpp>
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
@@ -283,6 +284,10 @@ std::pair<std::string, std::string> definitionAddress(const Value& form) {
 		failDefinition(form, "",
 		               "include is read with the file an app loads from its folder: no entry of a program, so a "
 		               "revision can't add one");
+	if(head == "ns")
+		failDefinition(form, "",
+		               "ns is read with the file an app loads from its folder: no entry of a program, so a revision "
+		               "can't add one");
 	if(head.empty() || form.count() < 2)
 		failDefinition(form, "", "a program's top level holds definitions, each with a name");
 	if(head == "defkey") {
@@ -297,6 +302,8 @@ std::pair<std::string, std::string> definitionAddress(const Value& form) {
 		if(form.at(1).text().contains('.')) failDefinition(form, "", head + " takes a name without a dot");
 		return {head, std::string(section) + "." + std::string(form.at(1).text())};
 	}
+	if(form.at(1).text() == namespaceEntry) // where a file's ns form is kept
+		failDefinition(form, "", "\"ns\" is a file's namespace form, and can't be defined");
 	return {head, std::string(form.at(1).text())};
 }
 
@@ -363,7 +370,7 @@ Definition& Machine::define(const Value& form, const std::string& author, const 
 	checkDefinable(*this, form, head, name);
 	Definition& made = addDefinition(form, kind, name, author, strict);
 	made.authors = authors ? authors : authorSet(author);
-	const CompileContext context{name, author, made.authors, false};
+	const CompileContext context{name, author, made.authors, false, false, namespaces_.fileAliases(form.place().file)};
 	made.doc = docAt(form, 2);
 	if(head == "defn" || head == "defmacro" || head == "defview") {
 		made.global = &global(name);

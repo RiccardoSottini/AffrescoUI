@@ -119,6 +119,10 @@ struct UndefinedName {
 	std::string definition; ///< The definition it is in.
 };
 
+/// The address under which a file's `(ns ...)` form is kept with its entries (reference/namespaces.md): no definition
+/// has that name, and no revision may add, change or remove it (checkNamespacesKept()).
+inline constexpr std::string_view namespaceEntry = "ns";
+
 /// @brief A program: its entries, in the order given. What a definition means doesn't depend on where it is (macros are
 /// expanded first, and a definition may use one below it), but the members of a section it builds come in the order of
 /// their definitions, as a JSON file's come in the order written: changing a definition never moves another.
@@ -141,6 +145,16 @@ public:
 	void addEntryUnread(Entry entry);
 	/// @brief The entries, in the order added. @return Them.
 	[[nodiscard]] const std::vector<Entry>& entries() const noexcept { return entries_; }
+	/// @brief Gives a file its `(ns ...)` form, as the loader read it with the file (readDocument()): its namespace,
+	/// and the aliases its definitions are compiled with. load() and build() read it.
+	/// @param file The file, as the program calls it.
+	/// @param text The form's text, which reads from line 1, column 1.
+	/// @throws LispError If the file has one already.
+	void declareNamespace(const std::string& file, std::string text);
+	/// @brief The files' `(ns ...)` forms, as file and text, in the order given. @return Them.
+	[[nodiscard]] const std::vector<std::pair<std::string, std::string>>& namespaceForms() const noexcept {
+		return namespaces_;
+	}
 
 	/// @brief Gives build code a host's pure primitive.
 	/// @param name Its name.
@@ -194,15 +208,16 @@ public:
 	[[nodiscard]] const std::set<std::pair<std::string, std::string>>& defaulted() const noexcept { return defaulted_; }
 
 private:
-	std::vector<Entry> entries_;                                ///< See entries().
-	std::map<std::string, std::size_t> names_;                  ///< Where each entry is in entries_, by its name.
-	std::vector<std::pair<std::string, Primitive>> primitives_; ///< See definePure().
-	std::vector<Extension> extensions_;                         ///< See extensions().
-	std::vector<UndefinedName> undefined_;                      ///< See undefinedNames().
-	std::vector<UndefinedName> truth_;                          ///< See truthTests().
-	std::map<std::string, std::vector<std::string>> used_;      ///< See namesUsed().
-	NamedCalls named_;                                          ///< See namedCalls().
-	std::set<std::pair<std::string, std::string>> defaulted_;   ///< See defaulted().
+	std::vector<Entry> entries_;                                  ///< See entries().
+	std::map<std::string, std::size_t> names_;                    ///< Where each entry is in entries_, by its name.
+	std::vector<std::pair<std::string, std::string>> namespaces_; ///< See namespaceForms().
+	std::vector<std::pair<std::string, Primitive>> primitives_;   ///< See definePure().
+	std::vector<Extension> extensions_;                           ///< See extensions().
+	std::vector<UndefinedName> undefined_;                        ///< See undefinedNames().
+	std::vector<UndefinedName> truth_;                            ///< See truthTests().
+	std::map<std::string, std::vector<std::string>> used_;        ///< See namesUsed().
+	NamedCalls named_;                                            ///< See namedCalls().
+	std::set<std::pair<std::string, std::string>> defaulted_;     ///< See defaulted().
 };
 
 } // namespace affresco::lisp

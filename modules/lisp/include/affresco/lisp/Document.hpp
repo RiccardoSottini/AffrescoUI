@@ -52,9 +52,10 @@ void checkProgramShape(const json& section);
 /// @brief A program's file as a document that holds it: `{"format", "version", "program": {file: {name: text}}}`.
 /// @param text The file's text.
 /// @param file What the program calls it.
+/// @param declaration Its `(ns ...)` form's text, kept first under namespaceEntry, or "" (reference/namespaces.md).
 /// @return The document.
 /// @throws LispError If it can't be read, a form names no definition, or a name is taken.
-[[nodiscard]] json sourceDocument(std::string_view text, const std::string& file);
+[[nodiscard]] json sourceDocument(std::string_view text, const std::string& file, std::string_view declaration = "");
 
 /// @brief Reads a document's file in whatever it is written in: a JSON file as parseUntrusted() reads it; a program
 /// (isProgram()) as sourceDocument() gives it; a data file with `~` as buildText() builds it; any other data file as
