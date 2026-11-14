@@ -1,7 +1,7 @@
 # AffrescoUI for VS Code
 
-Editor support for AffrescoUI screen documents: schemas, problems from the `affrescoui` tool, a live preview,
-navigation, hovers and snippets. The extension is not on any marketplace: download `affrescoui-vscode-<version>.vsix` from the
+Editor support for AffrescoUI screen documents, JSON and Lisp: schemas, problems from the `affrescoui` tool, a live
+preview, navigation, hovers and snippets. The extension is not on any marketplace: download `affrescoui-vscode-<version>.vsix` from the
 GitHub Release (or build the `.vsix` below) and install it with **Extensions: Install from VSIX...**.
 
 ## What it does
@@ -10,10 +10,16 @@ GitHub Release (or build the `.vsix` below) and install it with **Extensions: In
   [`schema/`](../../schema), and feature manifests (`features/<name>/feature.json`) against the one in
   [`schemas/`](schemas), written from the rules the format module checks. Completion and validation come from VS
   Code's JSON support.
-- **Problems.** When a screen is opened or saved, the extension runs `affrescoui check --json <file>` and shows what
-  it reports in the Problems view, each at the property it is about. The tool checks the file on disk, so problems
+- **Lisp files.** AffrescoUI Lisp files ([LISP.md](../../LISP.md)) open as Clojure, so VS Code's Clojure colouring
+  and any Clojure plugin reach them: `*.screen.lisp`, `*.policy.lisp`, `*.adapter.lisp`, `app.lisp`, `feature.lisp`
+  and the `.lisp` files in a folder named `lisp`. Other `.lisp` files keep whatever language they had. The extension
+  gives their brackets, `;` comments and words (`state.count`, `empty?`, `str/join` are one word each). A Clojure
+  plugin that runs clj-kondo lints them with the configuration in [editors/clj-kondo](../clj-kondo/README.md).
+- **Problems.** When a screen (`*.screen.json` or `*.screen.lisp`) is opened or saved, the extension runs `affrescoui check --json <file>` and shows what
+  it reports in the Problems view, each at the property it is about; in a Lisp screen, at the line and column the
+problem gives, else at the keyword it names (a problem in a file the screen includes is shown at the top). The tool checks the file on disk, so problems
   follow saves, not typing. A run is debounced and stopped after `affrescoui.check.timeoutMs`.
-- **Preview.** **AffrescoUI: Open Preview** (also in the editor title bar of a screen) runs `affrescoui render` and shows
+- **Preview.** **AffrescoUI: Open Preview** (also in the editor title bar of a screen, JSON or Lisp) runs `affrescoui render` and shows
   the PNG of the first frame beside the editor, drawn again on every save. The webview runs no script and loads
   nothing: its content security policy allows only the image, inlined as a `data:` URI. Renders larger than
   `affrescoui.preview.maxPixels` on a side, or slower than `affrescoui.preview.timeoutMs`, are refused.
@@ -24,7 +30,8 @@ GitHub Release (or build the `.vsix` below) and install it with **Extensions: In
 - **Hovers.** A screen section, a node property or a step shows its description from the catalog (the screen
   schema); a name shows its definition.
 - **Snippets.** Type `affrescoui-` in a JSON file: a screen, a label, a button, a row, a column, a text area, a
-  repeated list, an action, a component, a scenarios file and a feature manifest.
+  repeated list, an action, a component, a scenarios file and a feature manifest. In a Lisp file: `defscreen`,
+  `defview`, `defcommand` (with a `defkey`), `defstate`, `repeat` and `handler`.
 
 The extension runs the `affrescoui` tool for `check --json` and `render` only, never through a shell, and nothing
 else.
@@ -53,7 +60,7 @@ Node.js 22 or newer (what `@vscode/vsce` 4 needs). The devDependencies are pinne
 ```sh
 cd editors/vscode
 npm ci
-npm test            # compiles, then runs the unit tests of the resolver, the problem placement and the catalog
+npm test            # compiles, then runs the unit tests of the resolver, the problem placement, the catalog and Lisp files
 npm run package     # writes affrescoui.vsix
 ```
 

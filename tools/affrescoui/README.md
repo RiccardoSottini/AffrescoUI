@@ -46,6 +46,16 @@ else `$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui` (`%APPDATA%\affrescoui` on Win
 When the tool is built with the examples (the default), it knows their application types, as `affrescoui_launcher` does
 (the Forge template's `code`); other unknown types show as plain panels.
 
+## Linters and editors
+
+`check --json` is what editors read: every problem with its `source`, its `place` in the document and its message;
+a problem in a Lisp file's text says its line and column in the message. The VS Code extension
+([editors/vscode](../../editors/vscode/README.md)) shows them on save, for `*.screen.json` and `*.screen.lisp`, and
+opens an app's Lisp files as Clojure. A Clojure linter reads those files with the clj-kondo configuration in
+[editors/clj-kondo](../../editors/clj-kondo/README.md): it finds mistakes in a function's body that `check` doesn't
+(a wrong number of arguments, an unused binding), and `check` what a linter can't (a path that doesn't exist, the
+app's other files).
+
 ## Exit codes
 
 | Code | Meaning |
