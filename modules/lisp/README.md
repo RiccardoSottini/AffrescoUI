@@ -1,10 +1,11 @@
 # lisp: the Lisp language
 
-`lisp` is a programming language in Lisp syntax with its own runtime (RFC 0005, `rfcs/0005-lisp-language.md`): Clojure's
-syntax, Emacs's vocabulary. It has functions, closures, macros and conditions, and builds the JSON tree the renderer
-already understands. It has no way to the outside world but the primitives a host registers. It is neither Clojure nor
-Emacs Lisp, and the library stays agnostic: the language holds no app feature. Target: `affrescoui::lisp` (uses `core` and
-`notation`).
+`lisp` is a sandboxed subset of Clojure with its own definition vocabulary (RFC 0005, `rfcs/0005-lisp-language.md`, and RFC
+0006, `rfcs/0006-clojure-dialect.md`): what it has means what it means in Clojure, what differs does so on purpose
+(`reference/differences.md`), and how close it is is measured against Clojure's own test suite (`CONFORMANCE.md`). Its
+definitions (`defscreen`, `defcommand`, `defview`, `defstate`...) build the JSON tree the renderer already understands. It has
+functions, closures, macros and conditions, and no way to the outside world but the primitives a host registers. The library stays
+agnostic: the language holds no app feature. Target: `affrescoui::lisp` (uses `core` and `notation`).
 
 **What runs it:** a document holding a program: loading and every revision on it build it, purely (`Document.hpp`, and
 VERSION_CONTROL.md, "Programs"), and `format::Programs` runs its functions in the app, from handlers and bindings, with every way out
@@ -55,28 +56,41 @@ storage, so a loop of `conj` is linear).
 
 ## The language
 
-Special forms: `quote`, backquote with `~` and `~@`, `if`, `do`, `when`, `cond` (`:else`), `and` and `or` (giving an operand),
-`let`, `fn` (lexical closures; flat, as values never change), `loop` and `recur`, `try` and `catch` and `throw`. A call in tail
-position replaces the function being run. Destructuring: `[a b & more :as all]`, `{:keys [a b] :or {a 1} :as m x :x}`. A
-function has one list of parameters: there are no arities (`& rest` gives the rest as a vector). A dotted word reads a path: `room.name`
-is the member of a local `room`, and with no such local and no definition of that name (`state.count`) it calls `%read`, which the language refuses
-while building and a host gives while running.
+Clojure's special forms, macros and functions, under Clojure's names: `fn` and `defn` with several parameter lists, `let`,
+`loop`/`recur`, `try`/`catch`/`finally`, destructuring, `case`, `for`, `letfn`, the threading macros, the sequence and map
+functions, `clojure.string` and `format`, and the reader's `#(...)`, `#?(...)`, `#_`, metadata and Clojure's ways to write
+characters and numbers. Every value is JSON's, or a symbol, a keyword, a list or a function; nothing changes a value and nothing
+is lazy. A call in tail position replaces the function being run. A dotted word reads a path: `room.name` is the member of a
+local `room`, and with no such local and no definition of that name (`state.count`) it calls `%read`, which the language refuses
+while building and a host gives while running. `truthy?` is an expression's truth (nil, false, 0, `""`, `[]` and `{}` false),
+for code that tests a value of the running app as a binding would; everywhere else only nil and false are false.
 
-Functions: `+ - * / mod rem inc dec min max abs < > <= >= = not= not truthy?`, `nil? some? boolean? number? string? symbol? keyword?
-list? vector? map? fn? empty? contains?`, `first second last rest nth cons conj list vec concat reverse range sort sort-by
-take drop count get get-in assoc assoc-in dissoc update update-in merge keys vals zipmap`, `map map-indexed mapcat filter
-remove find some every? reduce apply identity`, `str pr-str join subs upper-case lower-case name keyword symbol gensym`. `map` and
-the others give vectors, not lazy sequences. `map` takes one collection. `(:a m)` and `(m :a)` look a key up. Integers stay
-integers until they overflow, then go on as doubles; dividing by zero is an error.
+The language is described area by area, each page written by the package that added that area (the index:
+`reference/README.md`):
 
-`truthy?` is an expression's truth (nil, false, 0, `""`, `[]` and `{}` false), for code that tests a value of the running app as a
-binding would; everywhere else only nil and false are false. Strings may span lines: a line break or a tab typed inside the quotes is
-that character (any other control character is refused, as is a backslash before a line break).
+| Page | What it covers |
+|---|---|
+| `reference/forms.md` | The everyday forms: `when-let`, `if-let`, `->`, `->>`, `cond->`, `case`, `for`, `doseq`, `letfn`... |
+| `reference/functions.md` | The functions on numbers, collections and maps, beyond the core this page lists below |
+| `reference/strings.md` | `clojure.string` (written `str/`), `format`, errors as values (`ex-info`), the `parse-` functions |
+| `reference/reader.md` | The reader's forms: `#(...)`, `#?(...)`, `#_`, `^metadata`, characters, and Clojure's ways to write numbers |
+| `reference/differences.md` | What differs from Clojure on purpose, why, and what to write instead |
+| `CONFORMANCE.md` | The score against Clojure's test suite, file by file, and what fails today (generated: `tests/conformance/`) |
+
+The core, written in C++: `+ - * / mod rem inc dec min max abs < > <= >= = not= not truthy?`, `nil? some? boolean? number?
+string? symbol? keyword? list? vector? map? fn? empty? contains?`, `first second last rest nth cons conj list vec concat reverse
+range sort sort-by take drop count get get-in assoc assoc-in dissoc update update-in merge keys vals zipmap`, `map map-indexed
+mapcat filter remove find some every? reduce apply identity`, `str pr-str join subs upper-case lower-case name keyword symbol
+gensym`. `(:a m)` and `(m :a)` look a key up. Integers stay integers until they overflow, then go on as doubles; dividing by zero
+is an error. Strings may span lines: a line break or a tab typed inside the quotes is that character (any other control character
+is refused, as is a backslash before a line break).
 
 Macros are unhygienic, as in Emacs Lisp and without Clojure's namespaced symbols: use `gensym` for a macro's own variables.
 In a template, `~~form` writes `~` and what the form gives (`~~@form`, `~@`): a macro's template writes a binding of the template it
 gives, `` `(defcommand ~name "" :title ~~(list 't key) [] nil) ``.
 A `gensym` is numbered per definition, so the same source gives the same names.
+
+### Definitions
 
 Definitions, top-level only, each with a docstring after the name (after the value in `defcustom` and `defstate`). A section's
 member is addressed as `state.view`, `computed.card`, `styles.chip`, `components.chip`, `menus.card`, `tokens.colours`, and a
@@ -140,8 +154,7 @@ starting or ending with `/` is a word of its own. A host adds its own with `Inte
 An undefined name that another dialect has says what to write here (`src/Hints.cpp`): `atom`, `swap!` and `reset!` (a program
 keeps state in the app's, `defstate`, and a step changes it), `println` (the host's `log` step), `rand` (no randomness),
 `require` (`include`), `iterate` and `lazy-seq` (no laziness: `range`, `loop`), `re-find` (no regular expressions), `declare` (a
-definition can use one written after it). The reader says the same of `#(...)` and `#?(...)`, not read yet, and of `#{...}`: a set
-is a vector of distinct items, as JSON has none.
+definition can use one written after it). The reader says the same of `#{...}`: a set is a vector of distinct items, as JSON has none.
 
 ## Programs
 

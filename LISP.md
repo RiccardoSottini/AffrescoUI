@@ -102,6 +102,8 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | `(nil? x)` `(some? x)` | `x == null` `x != null` | `(first x)` `(inc x)` `(dec x)` | `x[0]` `x + 1` `x - 1` |
 | `(filter (fn [c] ...) xs)` | `filter(xs, ...it...)` | `(remove ...)` `(map ...)` `(find ...)` `(some ...)` `(every? ...)` `(sort-by ...)` `(reduce ...)` | their expression forms, with `it`, `index`, `acc` |
 | `(truthy? x)` | `!(!(x))` | `(join ...)` `(vals ...)` `(upper-case ...)` `(range ...)` `(sort ...)` | their expression forms |
+| `(-> x f)` `(->> x f)` | the steps nested | `(if-not c a b)` `(when-not c a)` | `!c ? a : b` |
+| `(case x 1 a 2 b c)` `(condp = x ...)` | `x == 1 ? a : ...` | `(for [x xs :when p] body)` | `filter`, then `map`, with `it` |
 
 ## Running
 
@@ -121,12 +123,17 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 
 | Part | What it has |
 |---|---|
-| Values | JSON's (`nil`, booleans, numbers, strings, vectors `[...]`, maps `{...}`), plus symbols, keywords, lists, functions. Nothing changes a value: `assoc`, `conj` give new ones |
-| Special forms | `quote`, backquote with `~` and `~@`, `if`, `do`, `when`, `cond`, `and`, `or`, `let`, `fn`, `loop`/`recur`, `try`/`catch`/`throw` |
-| Functions | Lexical closures, proper tail calls, destructuring `[a b & more :as all]` and `{:keys [a b] :or {a 1}}`, one parameter list each |
-| Built-ins | Clojure's names: `map filter reduce find first rest cons conj assoc get get-in merge keys vals count str range apply sort-by`... ([modules/lisp](modules/lisp/README.md#the-language)) |
+| Values | JSON's (`nil`, booleans, numbers, strings, vectors `[...]`, maps `{...}`), plus symbols, keywords, lists, functions. Nothing changes a value: `assoc`, `conj` give new ones. Nothing is lazy: a sequence function gives a whole vector |
+| Special forms | `quote`, backquote with `~` and `~@`, `if`, `do`, `when`, `cond`, `and`, `or`, `let`, `fn`, `loop`/`recur`, `try`/`catch`/`finally`/`throw` |
+| Functions | Lexical closures, proper tail calls, destructuring `[a b & more :as all]` and `{:keys [a b] :or {a 1}}`, several parameter lists, `(defn f ([a] ...) ([a b] ...))` |
+| Everyday forms | `->` `->>` `as->` `some->` `cond->` `if-let` `when-let` `if-some` `when-some` `if-not` `when-not` `case` `condp` `for` `doseq` `dotimes` `letfn` `doto` `comment` ([reference/forms.md](modules/lisp/reference/forms.md)) |
+| Built-ins | Clojure's names: `map filter reduce find first rest cons conj assoc get get-in merge keys vals count str range apply sort-by partition group-by frequencies update-vals`... ([modules/lisp](modules/lisp/README.md#the-language), [reference/functions.md](modules/lisp/reference/functions.md)) |
+| Text | `str/` (or `string/`, `clojure.string/`): `str/join str/split str/trim str/includes? str/starts-with? str/index-of str/replace str/upper-case str/blank?`..., and `format`, `ex-info`, `ex-message`, `ex-data`, `parse-long`, `parse-double` ([reference/strings.md](modules/lisp/reference/strings.md)) |
+| Reader forms | `#(+ % 1)`, `#?(:affresco a :default b)`, `#_` to drop a form, `^metadata` read and dropped, `\a` as `"a"`, `12N` `1.5M` `1/2` `0x1F` as the nearest JSON number ([reference/reader.md](modules/lisp/reference/reader.md)) |
 | Macros | `defmacro`, unhygienic; `gensym` for a macro's own names |
 | Outside world | None of its own: no files, network, clock or randomness. A host grants steps, each judged by who wrote the code that runs |
+| Differences from Clojure | On purpose, each with what to write instead: nothing changes a value, nothing is lazy, no host interop, a map's keys are text (`(= :a "a")`), numbers are JSON's, no characters, regular expressions, metadata or vars ([reference/differences.md](modules/lisp/reference/differences.md)) |
+| Conformance | Measured against Clojure's cross-dialect test suite: at commit `a9f32fd7`, 2,219 assertions pass, 116 fail, 389 raise an error and 1,220 are out of scope (74 of them only until sets are read); 135 of its 269 files read whole, and 174 of the 267 functions it tests are defined ([CONFORMANCE.md](modules/lisp/CONFORMANCE.md)) |
 | The build | Pure: the same source always builds the same tree |
 
 ## Text and languages

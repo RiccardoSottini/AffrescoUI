@@ -2235,7 +2235,7 @@ converted to JSON before it is submitted:
 ## The Lisp language
 
 Besides the notation, `.lisp` text can be a **program**, in a language with a runtime (RFC 0005, `modules/lisp/README.md`):
-Clojure's syntax, Emacs's vocabulary. A screen, an include or an app's entry that is a program loads, builds and shows what it
+a sandboxed subset of Clojure, with its own definitions for what an app holds. A screen, an include or an app's entry that is a program loads, builds and shows what it
 builds; its definitions are versioned (below), and handlers and bindings call its functions ("Running", below).
 `affrescoui run` prints what a program builds, and `affrescoui repl` tries the language.
 
@@ -2292,10 +2292,16 @@ builds
   `~` drops into code: `(label :text ~(str "a" 1))`. A word the language runs isn't a node type here: `(not x)` gives
   `"not" is not a node type; to run it, write ~(not ...); for a node of that type, write (node :type not ...)`, and the printer
   writes such a type that way. `list` is a node type, and stays one.
-- **The language:** `def defn defmacro fn let if do when cond and or quote loop recur try catch throw`, backquote with `~` and
-  `~@`, lexical closures, proper tail calls, destructuring of vectors and maps, docstrings on every definition, and Clojure's names
-  for functions (`map filter reduce find first rest cons conj assoc dissoc get get-in merge keys vals count str range apply not
-  not= = < > <= >= + - * / mod` and similar: `modules/lisp/README.md`). `nil`, booleans, numbers, strings, vectors and maps are JSON's.
+- **The language:** Clojure's forms and names, meaning what they mean there: `def defn defmacro fn let if do when cond and or
+  quote loop recur try catch finally throw`, functions of several parameter lists, the everyday macros (`-> ->> if-let when-let
+  case condp for doseq letfn`...), backquote with `~` and `~@`, lexical closures, proper tail calls, destructuring of vectors and
+  maps, docstrings on every definition, Clojure's functions (`map filter reduce find first rest cons conj assoc dissoc get get-in
+  merge keys vals count str range apply partition group-by`...), `str/` for `clojure.string`, `format`, and the reader's `#(...)`,
+  `#?(...)`, `#_` and `^metadata`. What differs does so on purpose, each with what to write instead
+  (`modules/lisp/reference/differences.md`): nothing changes a value, nothing is lazy, a map's keys are text (a keyword and a
+  string of the same text are one value), there are no characters (`\a` reads as `"a"`), no regular expressions and no
+  metadata. How much of Clojure's own test suite it passes is measured in `modules/lisp/CONFORMANCE.md`.
+  `nil`, booleans, numbers, strings, vectors and maps are JSON's (`1/2` reads as `0.5`, `12N` as `12`).
   A whole number that is a double (`13.0`) stays one, and is an index or a count wherever an integer is (`(get v 1.0)`), and `str`
   shows it `13`, as an expression's text does.
   It has no file, process, network, clock or randomness of its own, and building is pure: the same source gives the same tree. A
