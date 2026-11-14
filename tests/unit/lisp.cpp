@@ -874,7 +874,7 @@ TEST_CASE("lisp: the notation's list of the language's words is the language's")
 	                                        "add-hook",  "advice",       "defhook",  "remove-hook",
 	                                        "defview",   "defcomponent", "defstate", "defcomputed",
 	                                        "defstyle",  "defmenu",      "defpart",  "defdefaults",
-	                                        "deftokens", "repeat",       "include"};
+	                                        "deftokens", "repeat",       "include",  "ns"};
 	for(const std::string& form : forms) {
 		CAPTURE(form);
 		CHECK(affresco::notation::isLanguageWord(form));

@@ -133,8 +133,8 @@ A word with a `/` inside it names a namespace's function (`src/Namespaces.hpp`):
 `clojure.string/join`, written `str/join` or `string/join` with an alias, is the global of that name, as are `clojure.set`'s,
 written `set/` (none yet). A qualified word is never a local, so `(let [inc dec] (clojure.core/inc 1))` is 2, and a qualified form
 (`clojure.core/when`) is the form. An unknown prefix is an error that lists the namespaces. `/` alone is division, and a word
-starting or ending with `/` is a word of its own. A host adds its own with `Interpreter::addNamespace` and `addAlias`; there is no `ns` yet, and no
-`require`.
+starting or ending with `/` is a word of its own. A host adds its own with `Interpreter::addNamespace` and `addAlias`. A program file's first form
+may be `(ns name (:require ...))`, which gives it aliases of its own and names the files it needs (`reference/namespaces.md`).
 
 ### Names the language doesn't have
 

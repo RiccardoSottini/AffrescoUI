@@ -7,6 +7,7 @@
 #include "Compiler.hpp"
 #include "Definitions.hpp"
 #include "Machine.hpp"
+#include "Namespaces.hpp"
 #include "Reader.hpp"
 #include "TopLevel.hpp"
 
@@ -66,6 +67,11 @@ Value Interpreter::eval(std::string_view text, const std::string& file, const st
 		Reader reader(machine_->heap, text, file);
 		Value result;
 		while(const auto read = readUncharged(machine_->heap, reader, machine_->budget())) {
+			if(headWord(read->form) == "ns") { // the aliases of the forms that follow; it loads no file
+				declareNamespace(*machine_, read->form, file);
+				result = Value();
+				continue;
+			}
 			result = evalTopLevel(*machine_, read->form, author, read->form.place());
 		}
 		return result;
@@ -116,9 +122,11 @@ Value Interpreter::evaluate(std::string_view text, const std::string& file, cons
 	return leavingAsLispError(*machine_, [&] {
 		Reader reader(machine_->heap, text, file);
 		const Value form = oneForm(*machine_, reader);
+		if(headWord(form) == "ns") static_cast<void>(definitionAddress(form)); // which refuses it, saying why
 		CompileContext context;
 		context.author = author;
 		context.authors = machine_->authorSet(author);
+		context.aliases = machine_->namespaces().fileAliases(&file);
 		const Code* code = nullptr;
 		{
 			const PureWhile pure(*machine_); // a macro runs now, and reaches nothing
