@@ -4,12 +4,14 @@
 /// stack.
 
 #include "Machine.hpp"
+#include "Sequences.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 #include <affresco/notation/Words.hpp>
 
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <set>
 #include <string>
@@ -288,6 +290,23 @@ bool numbersEqual(const Value& first, const Value& second) noexcept {
 
 bool equalAt(Machine& machine, const Value& first, const Value& second, int depth);
 
+/// @brief Tells whether a value is text as `=` sees it: a keyword is the string of its text (decision D2), since a
+/// binding writes `(= state.mode :edit)` as `state.mode == 'edit'`, and data never holds a keyword once it is in an
+/// app's state. A symbol stays apart.
+/// @param value The value.
+/// @return true for a string or a keyword.
+bool isText(const Value& value) noexcept { return value.kind() == Kind::String || value.kind() == Kind::Keyword; }
+
+/// @brief Compares the texts of two values.
+/// @param machine The machine, whose budget it spends.
+/// @param first One.
+/// @param second The other.
+/// @return true if they are the same text.
+bool textsEqual(Machine& machine, const Value& first, const Value& second) {
+	if(first.text().size() == second.text().size()) machine.spendText(first.text().size());
+	return first.text() == second.text();
+}
+
 /// @brief Compares two lists or vectors.
 /// @param machine The machine, whose budget it spends.
 /// @param first One.
@@ -329,13 +348,56 @@ bool equalAt(Machine& machine, const Value& first, const Value& second, int dept
 	machine.spend(1);
 	if(first.isNumber() && second.isNumber()) return numbersEqual(first, second);
 	if(first.isSequence() && second.isSequence()) return sequencesEqual(machine, first, second, depth);
+	if(isText(first) && isText(second)) return textsEqual(machine, first, second);
 	if(first.kind() != second.kind()) return false;
 	if(first.kind() == Kind::Map) return mapsEqual(machine, first, second, depth);
 	if(first.kind() == Kind::Nil) return true;
 	if(first.kind() == Kind::Boolean) return first.asBoolean() == second.asBoolean();
 	if(first.kind() == Kind::Function || first.kind() == Kind::Native) return first.pointer() == second.pointer();
-	if(first.text().size() == second.text().size()) machine.spendText(first.text().size());
-	return first.text() == second.text(); // a string, a symbol, a keyword
+	return textsEqual(machine, first, second); // two symbols
+}
+
+/// @brief Hashes a value as `=` compares it (valueHash()).
+/// @param machine The machine, whose budget it spends.
+/// @param value The value.
+/// @param depth How deep it has gone.
+/// @return The hash.
+std::size_t hashAt(Machine& machine, const Value& value, int depth) {
+	if(depth > maxValueDepth) Machine::exhausted("values nested too deeply to compare");
+	machine.spend(1);
+	const auto mixed = [](std::size_t seed, std::size_t hash) {
+		return seed ^ (hash + 0x9e3779b9U + (seed << 6U) + (seed >> 2U));
+	};
+	if(value.isNumber()) {
+		const double number = value.asDouble(); // `=` compares an integer with a double by value
+		return number == 0 ? 0 : std::hash<double>{}(number);
+	}
+	if(value.isSequence()) { // a list is the vector of its items
+		std::size_t hash = 0x51ed27U;
+		for(std::size_t at = 0; at < value.count(); ++at) hash = mixed(hash, hashAt(machine, value.at(at), depth + 1));
+		return hash;
+	}
+	switch(value.kind()) {
+	case Kind::Map: { // whatever its order: a sum of its members'
+		std::size_t hash = 0x7a3b9cU;
+		for(std::size_t at = 0; at < value.count(); ++at) {
+			machine.spendText(value.keyAt(at).size());
+			hash +=
+			    mixed(std::hash<std::string_view>{}(value.keyAt(at)), hashAt(machine, value.valueAt(at), depth + 1));
+		}
+		return hash;
+	}
+	case Kind::Nil:
+		return 0x2545fU;
+	case Kind::Boolean:
+		return value.asBoolean() ? 0x3c6ef3U : 0x1b873U;
+	case Kind::Function:
+	case Kind::Native:
+		return std::hash<const void*>{}(value.pointer());
+	default: // a keyword as the string of its text (decision D2); a symbol so too, as `=` keeps them apart anyway
+		machine.spendText(value.text().size());
+		return std::hash<std::string_view>{}(value.text());
+	}
 }
 
 } // namespace
@@ -351,5 +413,7 @@ void printValue(Machine& machine, const Value& value, std::string& out, bool rea
 bool valuesEqual(Machine& machine, const Value& first, const Value& second) {
 	return equalAt(machine, first, second, 0);
 }
+
+std::size_t valueHash(Machine& machine, const Value& value) { return hashAt(machine, value, 0); }
 
 } // namespace affresco::lisp
