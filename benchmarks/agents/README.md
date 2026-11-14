@@ -18,6 +18,28 @@ request, on the same app, made of a program's definitions (a keyword edit, a fun
 `defkey`, an `add-hook`) or of JSON (an action's title or steps, an action and a key). `--only lisp-,json-` runs them;
 `BENCHMARKS.md`, "Lisp against JSON", has what a model did with them.
 
+### The `clj-` tasks
+
+The six tasks whose ids start with `clj-` measure the Lisp language itself: whether everyday forms that someone who
+knows Clojure reaches for first make an agent's attempts fail less. Each is a small feature on a Lisp app (Flow, Streak,
+Calamaio) whose most direct answer uses a form or a function the language may lack: a count per group, a text joined
+from a filtered and mapped list, a choice among several values of one state key, a value used only when present, a
+list made from another with a condition, and a text trimmed, put in capitals and tested for a prefix. The request
+names the ids the scenarios look for and where the code goes, and never names a form or a function: the model chooses.
+Each `reference` is written with the forms the language has always had (`fn`, `cond`, `let`, `filter`, `map`), so the
+tasks are solvable before the language changes, only less directly.
+
+To compare, run them five times each with the same model, once on the commit before the language change and once
+after (`after` in the file names), and compare: how many passed, and the medians of tokens out, tool calls and
+revisions refused. A refused revision is the clearest sign of a wasted attempt, and `run.py` does not record it yet:
+its `revisions` counts the revisions that landed only.
+
+```sh
+for run in 1 2 3 4 5; do
+  python3 benchmarks/agents/run.py --client claude-code --model <model> --only clj- --out benchmarks/agents/results/clj-before-$run.json
+done
+```
+
 Each task has:
 
 | Field | What it is |
