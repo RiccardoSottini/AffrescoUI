@@ -10,8 +10,8 @@ The language measured against the [cross-dialect Clojure test suite](https://git
 |---|---|
 | Files read | 135 of 269 |
 | Functions defined | 174 of the 267 the suite tests |
-| Assertions passed | 2219 |
-| Assertions failed | 116 |
+| Assertions passed | 2273 |
+| Assertions failed | 62 |
 | Assertions that raised an error | 389 |
 | Assertions out of scope | 1220 |
 | Assertions not run | 3685 |
@@ -41,16 +41,14 @@ The files with assertions that failed or raised an error, most first: the gaps, 
 | File | Function | Failed | Errors | Passed |
 |---|---|---|---|---|
 | `clojure/core_test/case.cljc` | `case` | 0 | 38 | 34 |
-| `clojure/core_test/mod.cljc` | `mod` | 12 | 12 | 37 |
-| `clojure/core_test/quot.cljc` | `quot` | 12 | 12 | 25 |
-| `clojure/core_test/rem.cljc` | `rem` | 12 | 12 | 25 |
 | `clojure/core_test/identity.cljc` | `identity` | 0 | 21 | 0 |
 | `clojure/core_test/drop_while.cljc` | `drop-while` | 0 | 20 | 0 |
 | `clojure/core_test/defn.cljc` | `clojure.core/defn` | 4 | 15 | 10 |
 | `clojure/core_test/into.cljc` | `clojure.core/into` | 2 | 14 | 14 |
-| `clojure/core_test/star.cljc` | `*` | 11 | 2 | 55 |
 | `clojure/core_test/contains_qmark.cljc` | `contains?` | 3 | 9 | 27 |
-| `clojure/core_test/plus.cljc` | `+` | 11 | 0 | 59 |
+| `clojure/core_test/mod.cljc` | `mod` | 0 | 12 | 49 |
+| `clojure/core_test/quot.cljc` | `quot` | 0 | 12 | 37 |
+| `clojure/core_test/rem.cljc` | `rem` | 0 | 12 | 37 |
 | `clojure/core_test/drop.cljc` | `drop` | 0 | 9 | 11 |
 | `clojure/core_test/seq_qmark.cljc` | `seq?` | 3 | 6 | 12 |
 | `clojure/core_test/take_nth.cljc` | `take-nth` | 0 | 9 | 6 |
@@ -73,6 +71,7 @@ The files with assertions that failed or raised an error, most first: the gaps, 
 | `clojure/core_test/ex_info.cljc` | `clojure.core/ex-info` | 0 | 4 | 7 |
 | `clojure/core_test/get_in.cljc` | `get-in` | 2 | 2 | 14 |
 | `clojure/core_test/nth.cljc` | `nth` | 0 | 4 | 11 |
+| `clojure/core_test/star.cljc` | `*` | 2 | 2 | 64 |
 | `clojure/core_test/vals.cljc` | `vals` | 2 | 2 | 5 |
 | `clojure/string_test/ends_with_qmark.cljc` | `str/ends-with?` | 0 | 4 | 12 |
 | `clojure/core_test/dissoc.cljc` | `defrecord` | 0 | 3 | 11 |
@@ -99,6 +98,7 @@ The files with assertions that failed or raised an error, most first: the gaps, 
 | `clojure/core_test/minus.cljc` | `-` | 2 | 0 | 64 |
 | `clojure/core_test/next.cljc` | `next` | 0 | 2 | 16 |
 | `clojure/core_test/peek.cljc` | `peek` | 2 | 0 | 8 |
+| `clojure/core_test/plus.cljc` | `+` | 2 | 0 | 68 |
 | `clojure/core_test/portability.cljc` | — | 0 | 2 | 0 |
 | `clojure/core_test/rest.cljc` | `rest` | 0 | 2 | 15 |
 | `clojure/core_test/second.cljc` | `second` | 0 | 2 | 6 |
@@ -302,7 +302,7 @@ The files with assertions that failed or raised an error, most first: the gaps, 
 | `clojure/core_test/minus.cljc` | `-` | yes | 64 | 2 | 0 | 73 |
 | `clojure/core_test/minus_gt.cljc` | `clojure.core/->` | yes | 17 | 0 | 1 | 16 |
 | `clojure/core_test/minus_gt_gt.cljc` | `clojure.core/->>` | yes | 29 | 0 | 1 | 25 |
-| `clojure/core_test/mod.cljc` | `mod` | yes | 37 | 12 | 12 | 23 |
+| `clojure/core_test/mod.cljc` | `mod` | yes | 49 | 0 | 12 | 23 |
 | `clojure/core_test/name.cljc` | `name` | doesn't read | 0 | 0 | 1 | 0 |
 | `clojure/core_test/namespace.cljc` | `namespace` | no | 0 | 0 | 0 | 0 |
 | `clojure/core_test/nan_qmark.cljc` | `NaN?` | no | 0 | 0 | 0 | 0 |
@@ -334,7 +334,7 @@ The files with assertions that failed or raised an error, most first: the gaps, 
 | `clojure/core_test/partition.cljc` | `partition` | yes | 16 | 0 | 0 | 4 |
 | `clojure/core_test/peek.cljc` | `peek` | yes | 8 | 2 | 0 | 1 |
 | `clojure/core_test/persistent_bang.cljc` | `persistent!` | doesn't read | 0 | 0 | 0 | 0 |
-| `clojure/core_test/plus.cljc` | `+` | yes | 59 | 11 | 0 | 59 |
+| `clojure/core_test/plus.cljc` | `+` | yes | 68 | 2 | 0 | 59 |
 | `clojure/core_test/plus_squote.cljc` | `+'` | doesn't read | 0 | 0 | 0 | 0 |
 | `clojure/core_test/pop.cljc` | `pop` | yes | 10 | 0 | 0 | 2 |
 | `clojure/core_test/pop_bang.cljc` | `pop!` | no | 0 | 0 | 0 | 0 |
@@ -349,7 +349,7 @@ The files with assertions that failed or raised an error, most first: the gaps, 
 | `clojure/core_test/qualified_ident_qmark.cljc` | `qualified-ident?` | no | 0 | 0 | 0 | 0 |
 | `clojure/core_test/qualified_keyword_qmark.cljc` | `qualified-keyword?` | no | 0 | 0 | 0 | 0 |
 | `clojure/core_test/qualified_symbol_qmark.cljc` | `qualified-symbol?` | no | 0 | 0 | 0 | 0 |
-| `clojure/core_test/quot.cljc` | `quot` | yes | 25 | 12 | 12 | 20 |
+| `clojure/core_test/quot.cljc` | `quot` | yes | 37 | 0 | 12 | 20 |
 | `clojure/core_test/rand.cljc` | `rand` | no | 0 | 0 | 0 | 0 |
 | `clojure/core_test/rand_int.cljc` | `rand-int` | no | 0 | 0 | 0 | 0 |
 | `clojure/core_test/rand_nth.cljc` | `rand-nth` | no | 0 | 0 | 0 | 0 |
@@ -361,7 +361,7 @@ The files with assertions that failed or raised an error, most first: the gaps, 
 | `clojure/core_test/realized_qmark.cljc` | `realized?` | no | 0 | 0 | 0 | 0 |
 | `clojure/core_test/reduce.cljc` | `reduce` | doesn't read | 0 | 0 | 1 | 0 |
 | `clojure/core_test/reduce_kv.cljc` | `reduce-kv` | doesn't read | 0 | 0 | 1 | 0 |
-| `clojure/core_test/rem.cljc` | `rem` | yes | 25 | 12 | 12 | 19 |
+| `clojure/core_test/rem.cljc` | `rem` | yes | 37 | 0 | 12 | 19 |
 | `clojure/core_test/remove.cljc` | `remove` | doesn't read | 3 | 0 | 1 | 14 |
 | `clojure/core_test/remove_watch.cljc` | `remove-watch` | no | 0 | 0 | 0 | 0 |
 | `clojure/core_test/repeat.cljc` | `repeat` | yes | 8 | 0 | 5 | 4 |
@@ -393,7 +393,7 @@ The files with assertions that failed or raised an error, most first: the gaps, 
 | `clojure/core_test/sort_by.cljc` | `sort-by` | yes | 22 | 1 | 4 | 1 |
 | `clojure/core_test/sorted_qmark.cljc` | `sorted?` | no | 0 | 0 | 0 | 0 |
 | `clojure/core_test/special_symbol_qmark.cljc` | `special-symbol?` | no | 0 | 0 | 0 | 0 |
-| `clojure/core_test/star.cljc` | `*` | yes | 55 | 11 | 2 | 57 |
+| `clojure/core_test/star.cljc` | `*` | yes | 64 | 2 | 2 | 57 |
 | `clojure/core_test/star_squote.cljc` | `*'` | doesn't read | 0 | 0 | 0 | 0 |
 | `clojure/core_test/str.cljc` | `str` | doesn't read | 0 | 0 | 1 | 0 |
 | `clojure/core_test/string_qmark.cljc` | `string?` | doesn't read | 0 | 0 | 1 | 0 |

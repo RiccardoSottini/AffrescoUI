@@ -133,7 +133,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | Macros | `defmacro`, unhygienic; `gensym` for a macro's own names |
 | Outside world | None of its own: no files, network, clock or randomness. A host grants steps, each judged by who wrote the code that runs |
 | Differences from Clojure | On purpose, each with what to write instead: nothing changes a value, nothing is lazy, no host interop, a map's keys are text (`(= :a "a")`), numbers are JSON's, no characters, regular expressions, metadata or vars ([reference/differences.md](modules/lisp/reference/differences.md)) |
-| Conformance | Measured against Clojure's cross-dialect test suite: at commit `a9f32fd7`, 2,219 assertions pass, 116 fail, 389 raise an error and 1,220 are out of scope (74 of them only until sets are read); 135 of its 269 files read whole, and 174 of the 267 functions it tests are defined ([CONFORMANCE.md](modules/lisp/CONFORMANCE.md)) |
+| Conformance | Measured against Clojure's cross-dialect test suite: at commit `a9f32fd7`, 2,273 assertions pass, 62 fail, 389 raise an error and 1,220 are out of scope (74 of them only until sets are read); 135 of its 269 files read whole, and 174 of the 267 functions it tests are defined ([CONFORMANCE.md](modules/lisp/CONFORMANCE.md)) |
 | The build | Pure: the same source always builds the same tree |
 
 ## Text and languages

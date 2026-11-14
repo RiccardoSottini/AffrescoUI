@@ -124,7 +124,9 @@
                                                                                                              & body]
   (if (%defined? name) `(do ~@body) `(%absent '~name)))
 
-(defn big-int? "Whether a number is a big integer: the language's numbers are JSON's, so none is." [n] false)
+(defn big-int? "Whether a number is the dialect's integer of any size: as for the suite's dialects with one kind of
+  integer (cljs, lpy, phel), any whole number." [n]
+  (integer? n))
 
 (defn sleep "Waits: the language has no clock, so it doesn't." [ms] nil)
 

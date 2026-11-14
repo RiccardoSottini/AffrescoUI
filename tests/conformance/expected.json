@@ -525,7 +525,7 @@
    "read": true
   },
   "clojure/core_test/mod.cljc": {
-   "passed": 37,
+   "passed": 49,
    "read": true
   },
   "clojure/core_test/name.cljc": {
@@ -653,7 +653,7 @@
    "read": false
   },
   "clojure/core_test/plus.cljc": {
-   "passed": 59,
+   "passed": 68,
    "read": true
   },
   "clojure/core_test/plus_squote.cljc": {
@@ -713,7 +713,7 @@
    "read": true
   },
   "clojure/core_test/quot.cljc": {
-   "passed": 25,
+   "passed": 37,
    "read": true
   },
   "clojure/core_test/rand.cljc": {
@@ -761,7 +761,7 @@
    "read": false
   },
   "clojure/core_test/rem.cljc": {
-   "passed": 25,
+   "passed": 37,
    "read": true
   },
   "clojure/core_test/remove.cljc": {
@@ -889,7 +889,7 @@
    "read": true
   },
   "clojure/core_test/star.cljc": {
-   "passed": 55,
+   "passed": 64,
    "read": true
   },
   "clojure/core_test/star_squote.cljc": {
