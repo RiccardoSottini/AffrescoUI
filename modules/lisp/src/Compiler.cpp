@@ -4,6 +4,8 @@
 
 #include "Compiler.hpp"
 
+#include "Library.hpp"
+
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
@@ -125,14 +127,15 @@ void Compiler::compileList(const Value& form, Position position) {
 		emitConstant(form);
 		return;
 	}
-	const std::string_view head = headWord(form);
-	if(!head.empty() && resolve(*current_, head).kind == Variable::Kind::None) {
+	const std::string_view written = headWord(form);
+	if(!written.empty() && (isQualified(written) || resolve(*current_, written).kind == Variable::Kind::None)) {
+		const std::string_view head = calledName(form);
 		const auto& specials = specialForms();
 		if(const auto special = specials.find(head); special != specials.end()) {
 			(this->*special->second)(form, position);
 			return;
 		}
-		if(Global* global = machine_.findGlobal(head); global && global->macro) {
+		if(const Global* global = lookUp(head); global && global->macro) {
 			compile(expanded(form), position); // once a call, as a binding reads it too
 			return;
 		}
@@ -146,7 +149,7 @@ void Compiler::compileCall(const Value& form, Position position) {
 	   std::ranges::any_of(std::views::iota(std::size_t{1}, form.count()),
 	                       [&](std::size_t at) { return form.at(at).kind() == Kind::String; }))
 		machine_.noteTruthTest("+", form.place(), context_.definition); // an expression's way to join texts
-	compilingHead_ = form.at(0).kind() == Kind::Symbol; // read by compileSymbol(), first thing
+	compilingHead_ = form.at(0).kind() == Kind::Symbol;                 // read by compileSymbol(), first thing
 	compile(form.at(0), {});
 	compilingHead_ = false;
 	// (run "save"): the head is one global, the first argument a text written out, which a host's scan can follow
@@ -162,6 +165,7 @@ void Compiler::compileCall(const Value& form, Position position) {
 
 void Compiler::compileSymbol(const Value& form) {
 	const bool called = std::exchange(compilingHead_, false);
+	if(compileQualified(form)) return;
 	const std::string_view name = form.text();
 	const Variable variable = resolve(*current_, name);
 	if(form.place().line != 0) place_ = form.place();
@@ -188,6 +192,27 @@ void Compiler::compileSymbol(const Value& form) {
 		return;
 	}
 	compileGlobal(name, form.place());
+}
+
+bool Compiler::compileQualified(const Value& form) {
+	if(form.place().line != 0) place_ = form.place();
+	const std::optional<std::string_view> name = machine_.resolveQualified(form.text(), context_.aliases);
+	if(!name) return false;
+	if(isSpecial(*name))
+		fail(form, "\"" + notation::Lexer::excerpt(form.text()) + "\" is a form of the language, not a value");
+	compileGlobal(*name, form.place());
+	return true;
+}
+
+std::string_view Compiler::calledName(const Value& form) {
+	const std::string_view head = headWord(form);
+	const std::optional<std::string_view> qualified = machine_.resolveQualified(head, context_.aliases);
+	return qualified ? *qualified : head;
+}
+
+Global* Compiler::lookUp(std::string_view name) const {
+	Global* own = context_.library ? machine_.findLanguageGlobal(name) : nullptr;
+	return own ? own : machine_.findGlobal(name);
 }
 
 bool Compiler::compilePath(const Value& form) {
@@ -222,8 +247,12 @@ bool Compiler::compilePath(const Value& form) {
 }
 
 void Compiler::compileGlobal(std::string_view name, Place place) {
-	Global& global = machine_.global(name);
+	Global* own = context_.library ? machine_.findLanguageGlobal(name) : nullptr; // what a program defines, never
+	Global& global = own ? *own : machine_.global(name);
 	if(global.macro) failAt(place, "\"" + notation::Lexer::excerpt(global.name) + "\" is a macro, not a value");
+	// An entry of the library this code uses, compiled now: when code is compiled, not in the event that first runs it,
+	// whose objects would then last with the entry's
+	if(global.library && global.state == Global::State::Deferred && global.pending) Machine::ensureCompiled(global);
 	if(context_.library && global.state == Global::State::Ready) {
 		emitConstant(global.value);
 		return;

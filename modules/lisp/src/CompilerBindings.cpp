@@ -6,6 +6,7 @@
 /// `repeat`'s item, a component's parameter): a form using one is a binding too, which the build decides as it runs.
 
 #include "Compiler.hpp"
+#include "Library.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 
@@ -90,11 +91,6 @@ std::string joinedText(std::string text) {
 
 namespace {
 
-/// The language's functions that take a function: a word they are given that names one is that function.
-constexpr std::array<std::string_view, 14> functionTakers = {"apply",   "map",    "map-indexed", "mapcat",   "filter",
-                                                             "remove",  "find",   "some",        "every?",   "reduce",
-                                                             "sort-by", "update", "update-in",   "run-hooks"};
-
 /// The special forms that choose among what they are given: what those read is what they need.
 constexpr std::array<std::string_view, 5> choosingForms = {"if", "and", "or", "cond", "when"};
 
@@ -144,6 +140,11 @@ bool Compiler::isLocalWord(std::string_view name) {
 	return resolve(*current_, name.substr(0, name.find('.'))).kind != Variable::Kind::None;
 }
 
+bool Compiler::isItemOrLocal(std::string_view written) {
+	return !isQualified(written) &&
+	       (std::ranges::find(renames_, written, &Rename::name) != renames_.end() || isLocalWord(written));
+}
+
 bool Compiler::isLiveWord(std::string_view name) {
 	const std::string_view head = name.substr(0, name.find('.'));
 	if(std::ranges::find(renames_, head, &Rename::name) != renames_.end()) return true; // an item being written
@@ -160,16 +161,18 @@ bool Compiler::isLiveWord(std::string_view name) {
 }
 
 bool Compiler::isLiveCall(const Value& form, int depth) {
-	const std::string_view head = headWord(form);
-	if(head.empty()) // (:title card): a keyword reads a member
+	const std::string_view written = headWord(form);
+	if(written.empty()) // (:title card): a keyword reads a member
 		return form.count() > 0 && form.at(0).kind() == Kind::Keyword && form.count() == 2 &&
 		       isLive(form.at(1), depth + 1);
-	const bool local = std::ranges::find(renames_, head, &Rename::name) == renames_.end() && isLocalWord(head);
+	const bool local = isItemOrLocal(written) && std::ranges::find(renames_, written, &Rename::name) == renames_.end();
 	if(local) return areArgumentsLive(form, depth, false);
+	const std::string_view head = calledName(form);
 	if(head == "fn" && form.count() >= 3 && form.at(1).kind() == Kind::Vector) return isLiveFunction(form, depth);
 	if(const std::optional<bool> live = isLiveHead(head)) return *live;
 	// (sort-by count xs): the language's function a function of the language is given stays that function
-	return areArgumentsLive(form, depth, std::ranges::find(functionTakers, head) != functionTakers.end());
+	const Global* global = machine_.findGlobal(head);
+	return areArgumentsLive(form, depth, global && global->takesFunctions);
 }
 
 std::optional<bool> Compiler::isLiveHead(std::string_view head) {
@@ -204,6 +207,8 @@ bool Compiler::areArgumentsLive(const Value& form, int depth, bool takesFunction
 }
 
 bool Compiler::namesFunction(const Global* global) {
+	if(global && global->state == Global::State::Deferred && global->library)
+		return true; // an entry of the library, not compiled yet (Library.hpp)
 	if(!global || global->state != Global::State::Ready) return false;
 	return global->value.kind() == Kind::Function || global->value.kind() == Kind::Native;
 }
@@ -231,12 +236,24 @@ bool Compiler::isLive(const Value& form, int depth) {
 	}
 }
 
+void Compiler::checkUses(const Global& macro, Place place) {
+	forEachUse(macro.uses, [&](std::string_view word) {
+		if(isLocalWord(word))
+			failAt(place, "\"" + macro.name + "\" uses the language's \"" + std::string(word) +
+			                  "\", which a local hides here: rename the local");
+	});
+	if(context_.library) return;
+	if(const std::string problem = definedUse(machine_, macro); !problem.empty()) failAt(place, problem);
+}
+
 Value Compiler::expanded(const Value& form) {
 	Value at = form;
 	for(int times = 0; times <= maxCompileDepth; ++times) {
-		const std::string_view head = headWord(at);
-		if(head.empty() || isLocalWord(head) || isSpecial(head)) return at;
-		Global* global = machine_.findGlobal(head);
+		const std::string_view written = headWord(at);
+		if(written.empty() || (!isQualified(written) && isLocalWord(written))) return at;
+		const std::string_view head = calledName(at);
+		if(isSpecial(head)) return at;
+		Global* global = lookUp(head);
 		if(!global || !global->macro) return at;
 		// Once a call: the liveness check, the binding and the code all read the same expansion, its gensyms too
 		if(const auto known = expansions_.find(at.pointer()); known != expansions_.end()) {
@@ -247,6 +264,7 @@ Value Compiler::expanded(const Value& form) {
 		arguments.reserve(at.count() - 1);
 		for(std::size_t item = 1; item < at.count(); ++item) arguments.push_back(at.at(item));
 		const Value result = machine_.expand(*global, arguments, at.place());
+		if(global->library) checkUses(*global, at.place());
 		if(const Value macro = global->value; macro.kind() == Kind::Function) // its author wrote this code
 			current_->authors =
 			    machine_.unite(current_->authors, static_cast<const ClosureObject*>(macro.pointer())->code->authors);

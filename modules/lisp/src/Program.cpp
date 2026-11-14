@@ -5,6 +5,7 @@
 
 #include "Compiler.hpp"
 #include "Definitions.hpp"
+#include "Library.hpp"
 #include "Machine.hpp"
 #include "Reader.hpp"
 #include "TopLevel.hpp"
@@ -443,6 +444,22 @@ Global* macroOf(const Machine& machine, const Value& form) {
 	return global && global->macro ? global : nullptr;
 }
 
+/// @brief Expands a macro's call at the top level, where no compiler sees it: a library macro is refused where the
+/// program defines a word it calls (Compiler::checkUses() does the rest inside code).
+/// @param machine The machine.
+/// @param macro The macro.
+/// @param form The call.
+/// @param place Where it is.
+/// @return The expansion.
+/// @throws LispError If the program defines a word the macro calls.
+Value expandAtTop(Machine& machine, Global& macro, const Value& form, Place place) {
+	Value expanded = machine.expand(macro, argumentsOf(form), place);
+	if(macro.library)
+		if(const std::string problem = definedUse(machine, macro); !problem.empty())
+			throw LispError(place.file ? *place.file : "", place.line, place.column, "", problem);
+	return expanded;
+}
+
 } // namespace
 
 Value evalTopLevel(Machine& machine, const Value& form, const std::string& author, Place where) {
@@ -459,7 +476,7 @@ Value evalTopLevel(Machine& machine, const Value& form, const std::string& autho
 		return result;
 	}
 	if(Global* macro = macroOf(machine, form))
-		return evalTopLevel(machine, machine.expand(*macro, argumentsOf(form), place), author, place);
+		return evalTopLevel(machine, expandAtTop(machine, *macro, form, place), author, place);
 	CompileContext context;
 	context.author = author;
 	return machine.runThunk(Compiler(machine, std::move(context)).thunk(form));
@@ -474,7 +491,7 @@ void defineTopLevel(Machine& machine, const Value& form, const std::string& auth
 	} else if(headWord(form) == "do") {
 		for(std::size_t at = 1; at < form.count(); ++at) defineTopLevel(machine, form.at(at), author, authors, place);
 	} else if(Global* macro = macroOf(machine, form)) {
-		const Value expanded = machine.expand(*macro, argumentsOf(form), place);
+		const Value expanded = expandAtTop(machine, *macro, form, place);
 		const auto* closure = static_cast<const ClosureObject*>(macro->value.pointer());
 		defineTopLevel(machine, expanded, author, machine.unite(authors, closure->code->authors), place);
 	} else {

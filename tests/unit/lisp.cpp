@@ -879,8 +879,10 @@ TEST_CASE("lisp: the notation's list of the language's words is the language's")
 		CAPTURE(form);
 		CHECK(affresco::notation::isLanguageWord(form));
 	}
-	std::vector<std::string> functions(affresco::notation::languageWords.begin(),
-	                                   affresco::notation::languageWords.end());
+	std::vector<std::string> functions; // every list's (Words.hpp, languageWordLists), the empty ones' too
+	for(const std::span<const std::string_view> list : affresco::notation::languageWordLists)
+		functions.insert(functions.end(), list.begin(), list.end());
+	CHECK(affresco::notation::languageWordLists.size() == 7);
 	std::erase_if(functions, [&](const std::string& word) { return std::ranges::find(forms, word) != forms.end(); });
 	for(const std::string& word : functions) {
 		CAPTURE(word);

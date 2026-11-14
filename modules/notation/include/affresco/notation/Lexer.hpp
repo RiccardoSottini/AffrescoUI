@@ -30,8 +30,14 @@ enum class TokenKind {
 	Quote,     ///< `'`, in language text only
 	Backquote, ///< a backquote, in language text only
 	Unquote,   ///< `~`, in language text only
-	Splice,    ///< `~@`, in language text only
-	End        ///< the end of the text
+	// The reader's forms after '#', in language text only: the '#' and what follows it up to the bracket, which is a
+	// token of its own. Like the prefixes around them, each stands before the form it makes.
+	Lambda,            ///< `#` before `(`: a function literal, `#(...)`
+	SetOf,             ///< `#` before `{`: a set literal, `#{...}`
+	Conditional,       ///< `#?` before `(`: a reader conditional, `#?(...)`
+	ConditionalSplice, ///< `#?@` before `(`: a splicing reader conditional, `#?@(...)`
+	Splice,            ///< `~@`, in language text only
+	End                ///< the end of the text
 };
 
 /// @brief A token: what it is, its text, and where it starts.
@@ -144,6 +150,9 @@ private:
 	/// @brief Moves past a key or an id, or a `#_`, at the next character.
 	/// @return Whether it is a `#_`.
 	bool nameOrDiscard();
+	/// @brief Moves past a reader form's '#' (`#(`, `#{`, `#?(`, `#?@(`), up to its bracket, if the text has one here.
+	/// @return Its kind, or std::nullopt.
+	std::optional<TokenKind> hashFormAt();
 	/// @brief Moves past a language's prefix, if the next character starts one.
 	/// @return The prefix, or std::nullopt.
 	std::optional<TokenKind> prefixAt() noexcept;

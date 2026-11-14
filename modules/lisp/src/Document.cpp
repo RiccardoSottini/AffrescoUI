@@ -46,6 +46,7 @@ LispError problemIn(const std::string& name, const std::string& message) { retur
 std::size_t formEnd(Lexer& lexer, Token first, const std::string& where) {
 	std::size_t depth = 0;
 	for(Token token = first;; token = lexer.next()) {
+		if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) continue; // the form it stands before
 		switch(token.kind) {
 		case TokenKind::OpenNode:
 		case TokenKind::OpenList:
@@ -60,11 +61,6 @@ std::size_t formEnd(Lexer& lexer, Token first, const std::string& where) {
 			break;
 		case TokenKind::End:
 			throw problemIn(where, "the text ends inside a form");
-		case TokenKind::Quote:
-		case TokenKind::Backquote:
-		case TokenKind::Unquote:
-		case TokenKind::Splice:
-			continue; // the form it stands before
 		default:
 			break;
 		}

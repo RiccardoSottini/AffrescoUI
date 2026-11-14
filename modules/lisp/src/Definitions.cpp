@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <array>
+#include <initializer_list>
 #include <iterator>
 #include <string>
 #include <utility>
@@ -179,6 +180,7 @@ void setPending(Global& global, std::function<void()> pending, bool macro) {
 	global.state = Global::State::Deferred;
 	global.macro = macro;
 	global.library = false;
+	global.uses = {};
 }
 
 /// @brief Refuses a name no definition may have.
@@ -286,10 +288,28 @@ void Machine::defineNative(std::string_view name, NativeFunction function, bool 
 	native->name = std::string(name);
 	native->function = function;
 	native->spread = spread;
-	Global& cell = global(name);
-	cell.value = Value::object(Kind::Native, native);
-	cell.state = Global::State::Ready;
-	cell.library = true;
+	defineLanguageValue(name, Value::object(Kind::Native, native));
+}
+
+void Machine::defineLanguageValue(std::string_view name, const Value& value) {
+	for(Global* cell : {&global(name), &languageGlobal(name)}) {
+		cell->value = value;
+		cell->state = Global::State::Ready;
+		cell->library = true;
+	}
+}
+
+Global& Machine::languageGlobal(std::string_view name) {
+	if(Global* found = findLanguageGlobal(name)) return *found;
+	Global& made = languageCells_.emplace_back();
+	made.name = std::string(name);
+	language_.emplace(made.name, &made);
+	return made;
+}
+
+Global* Machine::findLanguageGlobal(std::string_view name) const {
+	const auto found = language_.find(name);
+	return found == language_.end() ? nullptr : found->second;
 }
 
 void Machine::definePrimitive(const std::string& name, Primitive primitive) {
@@ -302,6 +322,7 @@ void Machine::definePrimitive(const std::string& name, Primitive primitive) {
 	cell.macro = false;
 	cell.library = false;
 	cell.host = native->host.reserved;
+	cell.pending = nullptr; // a library entry's, which this replaces
 }
 
 bool Machine::isDefinitionForm(const Value& form) { return isDefinitionWord(headWord(form)); }

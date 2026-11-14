@@ -58,6 +58,11 @@ Machine::Machine(Interpreter& owner, const Limits& limits)
 	defineText(*this);
 	defineViews(*this);
 	definePrelude(*this);
+	defineForms(*this);
+	defineFunctions(*this);
+	defineSequences(*this);
+	defineStrings(*this);
+	defineSets(*this);
 	budget_ = start;
 	heap.setBudget(&budget_);
 	stack_.reserve(1024);
@@ -159,8 +164,7 @@ Value Machine::force(Global& global) {
 			throw;
 		}
 	}
-	if(global.state != Global::State::Ready)
-		throw LispError("", 0, 0, "", "\"" + notation::Lexer::excerpt(global.name) + "\" is not defined");
+	if(global.state != Global::State::Ready) throw LispError("", 0, 0, "", notDefinedMessage(global.name));
 	return global.value;
 }
 
@@ -433,7 +437,7 @@ void Machine::opGlobal(const Instruction& instruction) {
 	case Global::State::Running:
 		throw Problem("the value of \"" + notation::Lexer::excerpt(global.name) + "\" depends on itself");
 	default:
-		throw Problem("\"" + notation::Lexer::excerpt(global.name) + "\" is not defined");
+		throw Problem(notDefinedMessage(global.name));
 	}
 }
 
