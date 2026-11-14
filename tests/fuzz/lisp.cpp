@@ -4,9 +4,10 @@
 ///
 /// Any text builds, or gives a LispError naming a place, whose message stays short, within the budget. What the
 /// notation's reader reads, a template either builds to the same tree, key order included, or refuses for a word the
-/// language runs. The same text builds to the same tree twice. A program's entries hold the whole of its text. Written
-/// by an agent and run live, under a gate that holds the agent to what it may do, its functions never reach a control
-/// primitive, however they try, and what an event makes goes when it ends.
+/// language runs. The same text builds to the same tree twice. A program's entries hold the whole of its text, and each
+/// form's text, its metadata and reader forms with it, reads as one form. Written by an agent and run live, under a
+/// gate that holds the agent to what it may do, its functions never reach a control primitive, however they try, and
+/// what an event makes goes when it ends.
 
 #include "Fuzz.hpp"
 
@@ -203,7 +204,11 @@ void formsHold(std::string_view text) {
 		}
 	std::size_t count = 0;
 	try {
-		count = affresco::lisp::formsOf(text, "fuzz").size();
+		const std::vector<affresco::lisp::FormAt> forms = affresco::lisp::formsOf(text, "fuzz");
+		count = forms.size();
+		for(const affresco::lisp::FormAt& form : forms)
+			if(affresco::lisp::formsOf(form.text, "fuzz").size() != 1)
+				affresco::fuzz::broken("a form's text is one form");
 		// NOLINTNEXTLINE(bugprone-empty-catch): refusing it is the rule
 	} catch(const affresco::DocumentError&) {
 		return;

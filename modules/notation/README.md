@@ -56,6 +56,11 @@ The spelling rules are in SCREEN_FORMAT.md, "The Lisp notation".
   nlohmann::json's own string reader: JSON's escapes, no control characters, valid UTF-8. Any other text is a
   `NotationError`; nothing crashes (fuzzed: `tests/fuzz/notation.cpp`).
 
+- **The language's forms stay the language's.** The lexer gives `#(`, `#?(`, `#?@(`, `^` metadata, characters
+  (`\a`) and Clojure's numbers (`12N`, `1/2`, `0x1F`) tokens of their own, for the language
+  (`modules/lisp/reference/reader.md`). The notation reads data: it refuses each with an error naming its place, and
+  every text it read before reads the same.
+
 ## Errors
 
 `NotationError` names the place: `AffrescoUI screen: parts/board.lisp: line 3, column 8: expected ')' to close the
