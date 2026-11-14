@@ -27,19 +27,27 @@ constexpr auto prelude = std::to_array<LibraryEntry>({
   (let [seeded (not (empty? more))
         items (%seq (if seeded (first more) start))
         size (count items)]
-    (loop [result (if seeded start (nth items 0 nil))
-           at (if seeded 0 1)]
-      (if (< at size)
-        (recur (f result (nth items at)) (inc at))
-        result)))))lisp",
+    (if (and (not seeded) (= size 0))
+      (f)
+      (loop [result (if seeded start (nth items 0))
+             at (if seeded 0 1)]
+        (if (< at size)
+          (recur (f result (nth items at)) (inc at))
+          result))))))lisp",
 	 .takesFunctions = true},
     {.name = "map",
-	 .source = R"lisp((defn map [f coll]
-  (let [items (%seq coll) size (count items)]
-    (loop [result [] at 0]
-      (if (< at size)
-        (recur (conj result (f (nth items at))) (inc at))
-        result)))))lisp",
+	 .source = R"lisp((defn map [f coll & colls]
+  (if (empty? colls)
+    (let [items (%seq coll) size (count items)]
+      (loop [result [] at 0]
+        (if (< at size)
+          (recur (conj result (f (nth items at))) (inc at))
+          result)))
+    (let [columns (%columns (cons coll colls)) size (count columns)]
+      (loop [result [] at 0]
+        (if (< at size)
+          (recur (conj result (apply f (nth columns at))) (inc at))
+          result))))))lisp",
 	 .takesFunctions = true},
     {.name = "map-indexed",
 	 .source = R"lisp((defn map-indexed [f coll]
@@ -85,7 +93,7 @@ constexpr auto prelude = std::to_array<LibraryEntry>({
         true)))))lisp",
 	 .takesFunctions = true},
     {.name = "mapcat",
-	 .source = R"lisp((defn mapcat [f coll] (apply concat (map f coll))))lisp",
+	 .source = R"lisp((defn mapcat [f coll & colls] (apply concat (apply map f coll colls))))lisp",
 	 .takesFunctions = true},
     {.name = "take", .source = R"lisp((defn take [size coll]
   (let [items (%seq coll) most (min size (count items))]
@@ -99,16 +107,42 @@ constexpr auto prelude = std::to_array<LibraryEntry>({
       (if (< at end)
         (recur (conj result (nth items at)) (inc at))
         result)))))lisp"},
-    {.name = "zipmap", .source = R"lisp((defn zipmap [keys values]
-  (let [names (%seq keys) items (%seq values) most (min (count names) (count items))]
-    (loop [result {} at 0]
-      (if (< at most)
-        (recur (assoc result (nth names at) (nth items at)) (inc at))
-        result)))))lisp"},
+    {.name = "sort",
+	 .source = R"lisp((defn sort [a & more]
+  (cond
+    (empty? more) (%sort a)
+    (or (%sorts-natively? a) (> (count more) 1)) (apply %sort a more)
+    :else
+    (let [comparator a items (vec (first more)) size (count items)]
+      (loop [width 1 run items]
+        (if (>= width size)
+          run
+          (recur (* width 2)
+            (loop [start 0 merged []]
+              (if (>= start size)
+                merged
+                (let [middle (min (+ start width) size) end (min (+ middle width) size)]
+                  (recur end
+                    (loop [left start right middle result merged]
+                      (cond
+                        (and (< left middle) (< right end))
+                        (let [l (nth run left) r (nth run right)]
+                          (if (%before? (comparator r l))
+                            (recur left (inc right) (conj result r))
+                            (recur (inc left) right (conj result l))))
+                        (< left middle) (recur (inc left) right (conj result (nth run left)))
+                        (< right end) (recur left (inc right) (conj result (nth run right)))
+                        :else result)))))))))))))lisp",
+	 .takesFunctions = true},
     {.name = "sort-by",
-	 .source = R"lisp((defn sort-by [key coll]
-  (let [items (vec coll)]
-    (%sort-by-keys (map key items) items))))lisp",
+	 .source = R"lisp((defn sort-by [key a & more]
+  (let [comparator (if (empty? more) nil a)
+        items (vec (if (empty? more) a (first more)))
+        keys (map key items)]
+    (cond
+      (nil? comparator) (%sort-by-keys keys items)
+      (%sorts-natively? comparator) (%sort-by-keys comparator keys items)
+      :else (map second (sort (fn [x y] (comparator (first x) (first y))) (map vector keys items)))))))lisp",
 	 .takesFunctions = true},
     {.name = "update",
 	 .source = R"lisp((defn update [target key f & more]

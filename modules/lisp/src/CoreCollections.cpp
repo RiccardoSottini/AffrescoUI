@@ -3,6 +3,7 @@
 /// written in Lisp (Prelude.cpp), so that it runs on the machine's stack and not the native one.
 
 #include "Machine.hpp"
+#include "Sequences.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,27 +17,14 @@
 
 namespace affresco::lisp {
 
-namespace {
-
-using Arguments = std::span<const Value>; ///< A function's arguments.
-
-/// @brief Checks how many arguments a function has.
-/// @param arguments Its arguments.
-/// @param least The least.
-/// @param most The most.
-/// @param function The function, for the error.
-void needCount(Arguments arguments, std::size_t least, std::size_t most, std::string_view function) {
+void needCount(std::span<const Value> arguments, std::size_t least, std::size_t most, std::string_view function) {
 	if(arguments.size() < least || arguments.size() > most)
 		throw Problem("\"" + std::string(function) + "\" was given " + std::to_string(arguments.size()) + " arguments");
 }
 
-/// @brief Anything with items as a list or a vector: nil is empty, a map is its [key value] pairs, a string its
-/// characters.
-/// @param machine The machine.
-/// @param value The value.
-/// @param function The function, for an error.
-/// @return The list or the vector.
-Value sequenceOf(Machine& machine, const Value& value, std::string_view function);
+namespace {
+
+using Arguments = std::span<const Value>; ///< A function's arguments.
 
 /// @brief A map's [key value] pairs.
 /// @param machine The machine.
@@ -70,6 +58,8 @@ Value charactersOf(Machine& machine, std::string_view text) {
 	return machine.heap.sequence(Kind::Vector, std::move(characters));
 }
 
+} // namespace
+
 Value sequenceOf(Machine& machine, const Value& value, std::string_view function) {
 	switch(value.kind()) {
 	case Kind::Nil:
@@ -86,6 +76,15 @@ Value sequenceOf(Machine& machine, const Value& value, std::string_view function
 		              std::string(describeKind(value)));
 	}
 }
+
+std::string_view textKey(const Value& key, std::string_view fix) {
+	if(key.kind() != Kind::String && key.kind() != Kind::Keyword)
+		throw Problem("a map's key is a keyword or a string, not " + std::string(describeKind(key)) +
+		              ": give the key as text, " + std::string(fix));
+	return key.text();
+}
+
+namespace {
 
 /// @brief `%seq`. @param machine The machine. @param arguments A value. @return It as a list or a vector.
 Value toSequence(Machine& machine, Arguments arguments) {
@@ -119,26 +118,6 @@ Value cons(Machine& machine, Arguments arguments) {
 	return machine.heap.sequence(Kind::List, std::move(made));
 }
 
-/// @brief `conj`: on a vector or nil adds at the end, without copying when it can; on a list at the front.
-/// @param machine The machine.
-/// @param arguments A collection and the items.
-/// @return The collection with them.
-Value conj(Machine& machine, Arguments arguments) {
-	needCount(arguments, 1, static_cast<std::size_t>(-1), "conj");
-	Value result = arguments[0].isNil() ? machine.heap.sequence(Kind::Vector, std::vector<Value>()) : arguments[0];
-	if(!result.isSequence())
-		throw Problem("\"conj\" takes a list or a vector, and was given " + std::string(describeKind(result)));
-	for(const Value& item : arguments.subspan(1)) {
-		if(result.kind() == Kind::Vector) {
-			result = machine.heap.appended(result, item);
-			continue;
-		}
-		const std::vector<Value> both = {item, result};
-		result = cons(machine, std::span<const Value>(both));
-	}
-	return result;
-}
-
 /// @brief A copy of a map's members.
 /// @param machine The machine.
 /// @param map The map, or nil.
@@ -161,6 +140,55 @@ void setMember(std::vector<MapEntry>& members, std::string_view key, const Value
 	const auto found = std::ranges::find(members, key, &MapEntry::key);
 	if(found != members.end()) found->value = value;
 	else members.push_back({key, value});
+}
+
+} // namespace
+
+/// @brief `conj` onto a map, `into` a map too: each item a `[key value]` pair or a map, whose members it sets.
+/// @param machine The machine.
+/// @param arguments The map and the items.
+/// @return The map with them.
+Value conjMap(Machine& machine, Arguments arguments) {
+	std::vector<MapEntry> members = membersOf(machine, arguments[0], arguments.size() - 1);
+	const auto set = [&](const Value& key, const Value& value) {
+		machine.spend(members.size());
+		setMember(members, machine.heap.keep(textKey(key, "(conj m [(str key) value])")), value);
+	};
+	for(const Value& item : arguments.subspan(1)) {
+		if(item.kind() == Kind::Map) {
+			for(std::size_t at = 0; at < item.count(); ++at) set(machine.heap.string(item.keyAt(at)), item.valueAt(at));
+		} else if(item.kind() == Kind::Vector && item.count() == 2) {
+			set(item.at(0), item.at(1));
+		} else if(!item.isNil()) {
+			throw Problem("\"conj\" onto a map takes [key value] pairs or maps, and was given " +
+			              std::string(describeKind(item)));
+		}
+	}
+	return machine.heap.map(std::move(members));
+}
+
+namespace {
+
+/// @brief `conj`: on a vector or nil adds at the end, without copying when it can; on a list at the front; on a map
+/// sets members (conjMap()).
+/// @param machine The machine.
+/// @param arguments A collection and the items.
+/// @return The collection with them.
+Value conj(Machine& machine, Arguments arguments) {
+	needCount(arguments, 1, static_cast<std::size_t>(-1), "conj");
+	if(arguments[0].kind() == Kind::Map) return conjMap(machine, arguments);
+	Value result = arguments[0].isNil() ? machine.heap.sequence(Kind::Vector, std::vector<Value>()) : arguments[0];
+	if(!result.isSequence())
+		throw Problem("\"conj\" takes a list, a vector or a map, and was given " + std::string(describeKind(result)));
+	for(const Value& item : arguments.subspan(1)) {
+		if(result.kind() == Kind::Vector) {
+			result = machine.heap.appended(result, item);
+			continue;
+		}
+		const std::vector<Value> both = {item, result};
+		result = cons(machine, std::span<const Value>(both));
+	}
+	return result;
 }
 
 /// @brief `assoc` on a vector: the same vector with an item replaced, or one added past the end.
@@ -429,8 +457,9 @@ Value range(Machine& machine, Arguments arguments) {
 	return machine.heap.sequence(Kind::Vector, std::move(made));
 }
 
-/// @brief The natural order of two numbers or two strings: what isn't a number comes after all that are, so that it is
-/// an order, as sorting needs. Comparing costs what the texts' sizes cost.
+/// @brief The natural order of two numbers or two texts: what isn't a number comes after all that are, so that it is
+/// an order, as sorting needs. A keyword is the string of its text (decision D2). Comparing costs what the texts' sizes
+/// cost.
 /// @param machine The machine.
 /// @param first One.
 /// @param second The other.
@@ -441,44 +470,120 @@ bool comesFirst(Machine& machine, const Value& first, const Value& second) {
 		const double b = second.asDouble();
 		return std::isnan(a) || std::isnan(b) ? !std::isnan(a) && std::isnan(b) : a < b;
 	}
-	if(first.kind() == Kind::String && second.kind() == Kind::String) {
+	const auto text = [](const Value& value) { return value.kind() == Kind::String || value.kind() == Kind::Keyword; };
+	if(text(first) && text(second)) {
 		machine.spendText(std::min(first.text().size(), second.text().size()));
 		return first.text() < second.text();
 	}
 	throw Problem("\"sort\" compares numbers with numbers and strings with strings");
 }
 
-/// @brief `sort`. @param machine The machine. @param arguments A collection. @return A vector of its items, in order.
+/// @brief The orders the language sorts in natively: its own `<`, `>` and `compare` as a comparator, or none.
+enum class Order : std::uint8_t { Natural, Rising, Falling, Compared };
+
+/// @brief The order a comparator stands for, if the language sorts in it natively.
+/// @param machine The machine.
+/// @param comparator The comparator.
+/// @return The order, or nothing for any other function, which a sort written in Lisp calls.
+std::optional<Order> nativeOrder(const Machine& machine, const Value& comparator) {
+	constexpr std::array<std::pair<std::string_view, Order>, 3> orders{
+	    {{"<", Order::Rising}, {">", Order::Falling}, {"compare", Order::Compared}}};
+	if(comparator.kind() != Kind::Native) return std::nullopt;
+	for(const auto& [name, order] : orders)
+		if(const Global* own = machine.findLanguageGlobal(name); own && own->value.pointer() == comparator.pointer())
+			return order;
+	return std::nullopt;
+}
+
+/// @brief Whether one value comes before another in an order.
+/// @param machine The machine.
+/// @param order The order.
+/// @param first One.
+/// @param second The other.
+/// @return true if it does.
+bool inOrder(Machine& machine, Order order, const Value& first, const Value& second) {
+	if(order == Order::Natural) return comesFirst(machine, first, second);
+	if(order == Order::Compared) return compareValues(machine, first, second, "compare") < 0;
+	const std::string_view name = order == Order::Rising ? "<" : ">";
+	for(const Value* value : {&first, &second})
+		if(!value->isNumber())
+			throw Problem("\"" + std::string(name) + "\" takes numbers, and was given " +
+			              std::string(describeKind(*value)));
+	const Value& earlier = order == Order::Rising ? first : second; // `>` puts the larger first
+	const Value& later = order == Order::Rising ? second : first;
+	return compareValues(machine, earlier, later, name) < 0;
+}
+
+/// @brief The order of a native sort's arguments: a comparator before the rest, or none.
+/// @param machine The machine.
+/// @param arguments The arguments.
+/// @param plain How many there are without a comparator.
+/// @param function The function, for an error.
+/// @return The order.
+Order orderOf(const Machine& machine, Arguments arguments, std::size_t plain, std::string_view function) {
+	needCount(arguments, plain, plain + 1, function);
+	if(arguments.size() == plain) return Order::Natural;
+	const std::optional<Order> order = nativeOrder(machine, arguments[0]);
+	if(!order)
+		throw Problem("\"" + std::string(function) + "\" takes the language's <, > or compare as its comparator");
+	return *order;
+}
+
+/// @brief `%sort`: what `sort` does with no comparator, or with one the language sorts in natively.
+/// @param machine The machine.
+/// @param arguments Maybe `<`, `>` or `compare`, then a collection.
+/// @return A vector of its items, in order: a stable sort.
 Value sorted(Machine& machine, Arguments arguments) {
-	needCount(arguments, 1, 1, "sort");
-	const Value items = sequenceOf(machine, arguments[0], "sort");
+	const Order order = orderOf(machine, arguments, 1, "sort");
+	const Value items = sequenceOf(machine, arguments.back(), "sort");
 	std::vector<Value> made;
 	machine.spend(items.count() * 16);
 	made.reserve(items.count());
 	for(std::size_t at = 0; at < items.count(); ++at) made.push_back(items.at(at));
-	std::ranges::stable_sort(made, [&](const Value& a, const Value& b) { return comesFirst(machine, a, b); });
+	std::ranges::stable_sort(made, [&](const Value& a, const Value& b) { return inOrder(machine, order, a, b); });
 	return machine.heap.sequence(Kind::Vector, std::move(made));
 }
 
 /// @brief `%sort-by-keys`: what `sort-by` ends with.
 /// @param machine The machine.
-/// @param arguments A vector of keys and a vector of items as long.
+/// @param arguments Maybe `<`, `>` or `compare`, then a vector of keys and a vector of items as long.
 /// @return The items, in the order of their keys.
 Value sortedByKeys(Machine& machine, Arguments arguments) {
-	needCount(arguments, 2, 2, "%sort-by-keys");
-	if(!arguments[0].isSequence() || !arguments[1].isSequence() || arguments[0].count() != arguments[1].count())
+	const Order order = orderOf(machine, arguments, 2, "%sort-by-keys");
+	const Value& keys = arguments[arguments.size() - 2];
+	const Value& items = arguments.back();
+	if(!keys.isSequence() || !items.isSequence() || keys.count() != items.count())
 		throw Problem("\"%sort-by-keys\" takes two lists as long as each other");
 	std::vector<std::pair<Value, Value>> pairs;
-	machine.spend(arguments[0].count() * 16);
-	pairs.reserve(arguments[0].count());
-	for(std::size_t at = 0; at < arguments[0].count(); ++at)
-		pairs.emplace_back(arguments[0].at(at), arguments[1].at(at));
+	machine.spend(keys.count() * 16);
+	pairs.reserve(keys.count());
+	for(std::size_t at = 0; at < keys.count(); ++at) pairs.emplace_back(keys.at(at), items.at(at));
 	std::ranges::stable_sort(pairs,
-	                         [&](const auto& a, const auto& b) { return comesFirst(machine, a.first, b.first); });
+	                         [&](const auto& a, const auto& b) { return inOrder(machine, order, a.first, b.first); });
 	std::vector<Value> made;
 	made.reserve(pairs.size());
 	for(const auto& [key, item] : pairs) made.push_back(item);
 	return machine.heap.sequence(Kind::Vector, std::move(made));
+}
+
+/// @brief `%sorts-natively?`. @param machine The machine. @param arguments A function. @return Whether it is the
+/// language's `<`, `>` or `compare`, which `%sort` takes.
+// NOLINTNEXTLINE(misc-const-correctness): a native function's signature takes the machine to change
+Value sortsNatively(Machine& machine, Arguments arguments) {
+	needCount(arguments, 1, 1, "%sorts-natively?");
+	return Value::boolean(nativeOrder(machine, arguments[0]).has_value());
+}
+
+/// @brief `%before?`: what a comparator's result says, for the sort written in Lisp.
+/// @param arguments What `(comparator b a)` gave.
+/// @return true for true (as `<` gives) or a negative number (as `compare` gives): b comes before a.
+Value comesBefore(Machine& /*machine*/, Arguments arguments) {
+	needCount(arguments, 1, 1, "%before?");
+	const Value& result = arguments[0];
+	if(result.kind() == Kind::Boolean) return result;
+	if(result.isNumber()) return Value::boolean(result.asDouble() < 0);
+	if(result.isNil()) return Value::boolean(false);
+	throw Problem("a comparator gives a boolean or a number, and gave " + std::string(describeKind(result)));
 }
 
 } // namespace
@@ -489,6 +594,9 @@ void defineCollections(Machine& machine) {
 	machine.defineNative("%drop", patternRest);
 	machine.defineNative("%get", getMember);
 	machine.defineNative("%sort-by-keys", sortedByKeys);
+	machine.defineNative("%sort", sorted);
+	machine.defineNative("%sorts-natively?", sortsNatively);
+	machine.defineNative("%before?", comesBefore);
 	machine.defineNative("first", firstItem);
 	machine.defineNative("rest", restOf);
 	machine.defineNative("cons", cons);
@@ -508,7 +616,6 @@ void defineCollections(Machine& machine) {
 	machine.defineNative("concat", concat);
 	machine.defineNative("reverse", reversed);
 	machine.defineNative("range", range);
-	machine.defineNative("sort", sorted);
 	machine.defineNative("apply", nullptr, true);
 }
 
