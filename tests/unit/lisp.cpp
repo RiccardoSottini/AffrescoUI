@@ -271,7 +271,7 @@ TEST_CASE("lisp: collections") {
 	CHECK(run("(zipmap [:a :b] [1 2])") == "{:a 1 :b 2}");
 	CHECK(run("(list 1 2)") == "(1 2)");
 	CHECK(errorOf("(nth [1] 5)").message() == "\"nth\": an index outside the collection");
-	CHECK(errorOf("(get 5 :a)").message() == "\"get\" takes a map or a vector, and was given a number");
+	CHECK(errorOf("(get 5 :a)").message() == "\"get\" takes a map, a vector or a set, and was given a number");
 	CHECK(errorOf("(:a 5)").message() == "a keyword as a function takes a map, and was given a number");
 	CHECK(errorOf("(sort [1 \"a\"])").message().starts_with("\"sort\" compares"));
 	CHECK(errorOf("(range 1 2 0)").message().contains("never ends"));

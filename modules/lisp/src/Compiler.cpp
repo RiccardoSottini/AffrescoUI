@@ -121,6 +121,20 @@ void Compiler::compile(const Value& form, Position position) {
 	case Kind::Map:
 		compileMap(form);
 		return;
+	case Kind::Set: // a macro's, with code in it, is made when it runs, as a literal's (%set ...) is
+		if(std::ranges::any_of(std::views::iota(std::size_t{0}, form.count()), [&](std::size_t at) {
+			   const Kind kind = form.at(at).kind();
+			   return kind == Kind::Symbol || kind == Kind::List || kind == Kind::Vector || kind == Kind::Map ||
+			          kind == Kind::Set;
+		   })) {
+			emitConstant(machine_.global("%set").value);
+			for(std::size_t at = 0; at < form.count(); ++at) compile(form.at(at), {});
+			place_ = form.place();
+			emit(Op::Call, static_cast<std::uint32_t>(form.count()));
+			return;
+		}
+		emitConstant(form);
+		return;
 	default:
 		emitConstant(form);
 	}
@@ -270,7 +284,8 @@ void Compiler::compileVector(const Value& form) {
 	bool constant = true;
 	for(std::size_t at = 0; at < form.count() && constant; ++at) {
 		const Kind kind = form.at(at).kind();
-		constant = kind != Kind::Symbol && kind != Kind::List && kind != Kind::Vector && kind != Kind::Map;
+		constant = kind != Kind::Symbol && kind != Kind::List && kind != Kind::Vector && kind != Kind::Map &&
+		           kind != Kind::Set;
 	}
 	if(constant) {
 		emitConstant(form);
@@ -285,7 +300,8 @@ void Compiler::compileMap(const Value& form) {
 	bool constant = true;
 	for(std::size_t at = 0; at < form.count() && constant; ++at) {
 		const Kind kind = form.valueAt(at).kind();
-		constant = kind != Kind::Symbol && kind != Kind::List && kind != Kind::Vector && kind != Kind::Map;
+		constant = kind != Kind::Symbol && kind != Kind::List && kind != Kind::Vector && kind != Kind::Map &&
+		           kind != Kind::Set;
 	}
 	if(constant) {
 		emitConstant(form);

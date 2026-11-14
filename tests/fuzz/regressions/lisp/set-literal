@@ -1,0 +1,1 @@
+(defscreen main (column :items ~(vec (into #{"b" :a} (set/union #{1 2} (disj #{3 4} 4) ["a" :b])))))

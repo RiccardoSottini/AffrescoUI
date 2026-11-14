@@ -7,6 +7,7 @@
 
 #include "Machine.hpp"
 #include "Sequences.hpp"
+#include "Sets.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -404,18 +405,24 @@ Value intoSequence(Machine& machine, const Value& target, const Value& items) {
 	return vectorOf(machine, std::move(made));
 }
 
-/// @brief `into`. A map takes [key value] pairs or maps, as `conj` onto it does (conjMap()).
+/// @brief `into`. A map takes [key value] pairs or maps, as `conj` onto it does (conjMap()); a set the items that
+/// aren't members yet, at its end.
 /// @param machine The machine.
-/// @param arguments A vector, a list, a map or nil, and a collection.
+/// @param arguments A vector, a list, a map, a set or nil, and a collection.
 /// @return The first with the second's items.
 Value into(Machine& machine, Arguments arguments) {
 	if(arguments.size() == 3) throw Problem("\"into\" takes a collection and what to put in it, not a transducer");
 	needCount(arguments, 2, 2, "into");
 	const Value& target = arguments[0];
-	if(!target.isSequence() && !target.isNil() && target.kind() != Kind::Map)
-		throw Problem("\"into\" takes a vector, a list, a map or nil, and was given " +
+	if(!target.isSequence() && !target.isNil() && target.kind() != Kind::Map && target.kind() != Kind::Set)
+		throw Problem("\"into\" takes a vector, a list, a map, a set or nil, and was given " +
 		              std::string(describeKind(target)));
 	const Value items = sequenceOf(machine, arguments[1], "into");
+	if(target.kind() == Kind::Set) {
+		Value set = target;
+		for(std::size_t at = 0; at < items.count(); ++at) set = setWith(machine, set, items.at(at));
+		return set;
+	}
 	if(target.kind() != Kind::Map) return intoSequence(machine, target, items);
 	std::vector<Value> both = {target};
 	machine.spend(items.count());
@@ -445,7 +452,7 @@ Value notEmpty(Machine& /*machine*/, Arguments arguments) {
 	needCount(arguments, 1, 1, "not-empty");
 	const Value& value = arguments[0];
 	if(value.kind() == Kind::String) return value.text().empty() ? Value() : value;
-	if(!value.isNil() && !value.isSequence() && value.kind() != Kind::Map)
+	if(!value.isNil() && !value.isSequence() && value.kind() != Kind::Map && value.kind() != Kind::Set)
 		throw Problem("\"not-empty\" takes a collection or a string, and was given " +
 		              std::string(describeKind(value)));
 	return value.count() == 0 ? Value() : value;

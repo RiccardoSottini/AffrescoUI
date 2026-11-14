@@ -4,6 +4,7 @@
 
 #include "Machine.hpp"
 #include "Sequences.hpp"
+#include "Sets.hpp"
 
 #include <algorithm>
 #include <array>
@@ -69,6 +70,8 @@ Value sequenceOf(Machine& machine, const Value& value, std::string_view function
 		return value;
 	case Kind::Map:
 		return pairsOf(machine, value);
+	case Kind::Set: // its members in the order they were added, without a copy
+		return machine.heap.setItems(value);
 	case Kind::String:
 		return charactersOf(machine, value.text());
 	default:
@@ -170,16 +173,22 @@ Value conjMap(Machine& machine, Arguments arguments) {
 namespace {
 
 /// @brief `conj`: on a vector or nil adds at the end, without copying when it can; on a list at the front; on a map
-/// sets members (conjMap()).
+/// sets members (conjMap()); on a set adds those that aren't members, at the end.
 /// @param machine The machine.
 /// @param arguments A collection and the items.
 /// @return The collection with them.
 Value conj(Machine& machine, Arguments arguments) {
 	needCount(arguments, 1, static_cast<std::size_t>(-1), "conj");
 	if(arguments[0].kind() == Kind::Map) return conjMap(machine, arguments);
+	if(arguments[0].kind() == Kind::Set) {
+		Value set = arguments[0];
+		for(const Value& item : arguments.subspan(1)) set = setWith(machine, set, item);
+		return set;
+	}
 	Value result = arguments[0].isNil() ? machine.heap.sequence(Kind::Vector, std::vector<Value>()) : arguments[0];
 	if(!result.isSequence())
-		throw Problem("\"conj\" takes a list, a vector or a map, and was given " + std::string(describeKind(result)));
+		throw Problem("\"conj\" takes a list, a vector, a set or a map, and was given " +
+		              std::string(describeKind(result)));
 	for(const Value& item : arguments.subspan(1)) {
 		if(result.kind() == Kind::Vector) {
 			result = machine.heap.appended(result, item);
@@ -243,7 +252,8 @@ Value dissoc(Machine& machine, Arguments arguments) {
 
 /// @brief `get` (also `%get`, which a program can't redefine).
 /// @param machine The machine.
-/// @param arguments A map, a vector or nil, a key or an index, and maybe what to give if it isn't there.
+/// @param arguments A map, a vector, a set or nil, a key, an index or an item, and maybe what to give if it isn't
+/// there.
 /// @return The member, or what was given, or nil.
 Value getMember(Machine& machine, Arguments arguments) {
 	needCount(arguments, 2, 3, "get");
@@ -257,12 +267,13 @@ Value getMember(Machine& machine, Arguments arguments) {
 		const Value member = from.lookup(key, &found);
 		return found ? member : fallback;
 	}
+	if(from.kind() == Kind::Set) return setMember(machine, from, arguments[1]).value_or(fallback);
 	if(from.isSequence()) {
 		const std::int64_t index = wholeNumber(arguments[1]).value_or(-1);
 		return index >= 0 && static_cast<std::size_t>(index) < from.count() ? from.at(static_cast<std::size_t>(index))
 		                                                                    : fallback;
 	}
-	throw Problem("\"get\" takes a map or a vector, and was given " + std::string(describeKind(from)));
+	throw Problem("\"get\" takes a map, a vector or a set, and was given " + std::string(describeKind(from)));
 }
 
 /// @brief `nth`: an index outside it is an error, unless a default is given.
@@ -361,7 +372,7 @@ Value countOf(Machine& machine, Arguments arguments) {
 		    std::ranges::count_if(text, [](char c) { return (static_cast<unsigned char>(c) & 0xC0U) != 0x80U; });
 		return Value::integer(characters);
 	}
-	if(value.isNil() || value.isSequence() || value.kind() == Kind::Map)
+	if(value.isNil() || value.isSequence() || value.kind() == Kind::Map || value.kind() == Kind::Set)
 		return Value::integer(static_cast<std::int64_t>(value.count()));
 	throw Problem("\"count\" takes a collection or a string, and was given " + std::string(describeKind(value)));
 }
@@ -374,7 +385,7 @@ Value isEmpty(Machine& machine, Arguments arguments) {
 
 /// @brief `contains?`.
 /// @param machine The machine.
-/// @param arguments A map (with a key) or a vector (with an index), or nil.
+/// @param arguments A map (with a key), a vector (with an index), a set (with an item), or nil.
 /// @return Whether it has it.
 Value containsMember(Machine& machine, Arguments arguments) {
 	needCount(arguments, 2, 2, "contains?");
@@ -385,6 +396,8 @@ Value containsMember(Machine& machine, Arguments arguments) {
 		static_cast<void>(arguments[0].lookup(key, &found));
 		return Value::boolean(found);
 	}
+	if(arguments[0].kind() == Kind::Set)
+		return Value::boolean(setMember(machine, arguments[0], arguments[1]).has_value());
 	if(const std::optional<std::int64_t> index = wholeNumber(arguments[1]); arguments[0].isSequence() && index)
 		return Value::boolean(*index >= 0 && static_cast<std::size_t>(*index) < arguments[0].count());
 	return Value::boolean(false);

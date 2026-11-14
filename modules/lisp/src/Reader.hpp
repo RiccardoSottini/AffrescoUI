@@ -110,8 +110,9 @@ private:
 	/// @brief Reads a set literal, `#{...}` (ReaderForms.cpp).
 	/// @param token The `#{` token, its bracket still to read.
 	/// @param depth How many forms hold it.
-	/// @return The form.
-	/// @throws LispError Always: a set is a vector in the language.
+	/// @return The set, made as it is read when its items are constants (isConstantForm()), else a list `(%set ...)`
+	/// that makes it when it runs.
+	/// @throws LispError If it isn't closed, or holds the same item twice.
 	Value setOf(const Token& token, int depth);
 	/// @brief Reads a reader conditional, `#?(...)` or `#?@(...)` (ReaderForms.cpp): pairs of a platform's keyword and
 	/// a form, every form read and the first after `:affresco` or `:default` chosen.

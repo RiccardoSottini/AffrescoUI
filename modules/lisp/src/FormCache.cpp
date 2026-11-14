@@ -87,7 +87,7 @@ Place placeIn(Heap& to, Place place) {
 }
 
 /// @brief Copies a form read by the reader into a heap: a symbol, a keyword or a string with its place, a list, a
-/// vector or a map of copies, and anything else as it is.
+/// vector, a set or a map of copies, and anything else as it is.
 /// @param to The heap.
 /// @param form The form.
 /// @return The copy.
@@ -112,6 +112,12 @@ Value copied(Heap& to, const Value& form) {
 		for(std::size_t at = 0; at < form.count(); ++at)
 			entries.push_back({to.keep(form.keyAt(at)), copied(to, form.valueAt(at))});
 		return to.map(std::move(entries), placeIn(to, form.place()));
+	}
+	case Kind::Set: { // a copy's hash is its original's
+		std::vector<Value> items;
+		items.reserve(form.count());
+		for(std::size_t at = 0; at < form.count(); ++at) items.push_back(copied(to, form.at(at)));
+		return to.set(std::move(items), setObjectOf(form).storage->hashes, placeIn(to, form.place()));
 	}
 	default:
 		return form;

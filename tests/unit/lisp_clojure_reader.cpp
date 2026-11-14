@@ -147,7 +147,7 @@ TEST_CASE("lisp clojure: what has no JSON or AffrescoUI meaning is refused with 
 	CHECK(errorOf("::foo").message() == "a keyword has no namespace here: write :name, or :\"a/b\"");
 	CHECK(errorOf(":a/b").message() == "a keyword has no namespace here: write :name, or :\"a/b\"");
 	CHECK(run(":\"a/b\"") == ":a/b");
-	CHECK(errorOf("#{1 2}").message() == "a set literal #{...} isn't in the language: write a vector");
+	CHECK(errorOf("#{1 1}").message() == "the same number twice in a set: a set holds each item once");
 }
 
 TEST_CASE("lisp clojure attack: deep or long runs of the new forms end with an error at a place") {
