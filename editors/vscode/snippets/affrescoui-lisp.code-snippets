@@ -1,0 +1,49 @@
+{
+	"AffrescoUI Lisp screen": {
+		"prefix": "defscreen",
+		"description": "A screen: its window and a column with one label",
+		"body": [
+			"(defscreen ${1:main} \"${2:What the window holds.}\"",
+			"  :window {:title \"${3:App}\" :width ${4:640} :height ${5:400}}",
+			"  (column#${6:page} :gap 8 :padding 12",
+			"    (label#${7:hello} :text \"${8:Hello}\")$0))"
+		]
+	},
+	"AffrescoUI Lisp view": {
+		"prefix": "defview",
+		"description": "A view: a function that returns a template",
+		"body": [
+			"(defview ${1:name} \"${2:What it shows.}\" [${3:item}]",
+			"  `(${4:row}#${5:id} :gap 6",
+			"     (label#${6:text} :text ~${3:item}.${7:title})$0))"
+		]
+	},
+	"AffrescoUI Lisp command": {
+		"prefix": "defcommand",
+		"description": "A command for the palette, with its title, and a shortcut that runs it",
+		"body": [
+			"(defcommand ${1:name} \"${2:What it does.}\" :title \"${3:Title}\" []",
+			"  $0)",
+			"",
+			"(defkey \"${4:mod+k}\" ${1:name})"
+		]
+	},
+	"AffrescoUI Lisp state": {
+		"prefix": "defstate",
+		"description": "A value of the screen's state",
+		"body": ["(defstate ${1:name} ${2:0} \"${3:What it holds.}\")"]
+	},
+	"AffrescoUI Lisp repeat": {
+		"prefix": "repeat",
+		"description": "One template for each item of a list, inside a template",
+		"body": [
+			"~(repeat [${1:item} ${2:state.items} :index ${3:i}]",
+			"   `(${4:label}#${5:row} :text ~${1:item}.${6:name}))$0"
+		]
+	},
+	"AffrescoUI Lisp handler": {
+		"prefix": "handler",
+		"description": "Runs a function with arguments when an event happens",
+		"body": [":${1:onClick} ~(handler ${2:function} ${3:i})$0"]
+	}
+}

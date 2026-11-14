@@ -1,16 +1,16 @@
 {
 	"name": "affrescoui",
 	"displayName": "AffrescoUI",
-	"description": "Edit AffrescoUI screens: schemas, diagnostics from affrescoui check, a live preview, navigation, hovers and snippets.",
+	"description": "Edit AffrescoUI screens, JSON and Lisp: schemas, diagnostics from affrescoui check, a live preview, navigation, hovers and snippets.",
 	"version": "1.0.0",
 	"license": "Apache-2.0",
 	"private": true,
 	"repository": { "type": "git", "url": "https://github.com/RiccardoSottini/AffrescoUI.git", "directory": "editors/vscode" },
 	"engines": { "vscode": "^1.100.0", "node": ">=22" },
 	"categories": ["Programming Languages", "Linters", "Snippets"],
-	"keywords": ["affrescoui", "json", "ui"],
+	"keywords": ["affrescoui", "json", "lisp", "clojure", "ui"],
 	"main": "./out/extension.js",
-	"activationEvents": ["onLanguage:json", "onLanguage:jsonc"],
+	"activationEvents": ["onLanguage:json", "onLanguage:jsonc", "onLanguage:clojure"],
 	"capabilities": {
 		"untrustedWorkspaces": {
 			"supported": "limited",
@@ -20,6 +20,14 @@
 		"virtualWorkspaces": { "supported": "limited", "description": "Diagnostics and the preview need files on disk." }
 	},
 	"contributes": {
+		"languages": [
+			{
+				"id": "clojure",
+				"filenames": ["app.lisp", "feature.lisp"],
+				"filenamePatterns": ["*.screen.lisp", "*.policy.lisp", "*.adapter.lisp", "**/lisp/**/*.lisp"],
+				"configuration": "./language-configuration.json"
+			}
+		],
 		"jsonValidation": [
 			{ "fileMatch": "*.screen.json", "url": "./out/schemas/affrescoui-screen.schema.json" },
 			{ "fileMatch": "*.scenarios.json", "url": "./out/schemas/affrescoui-scenarios.schema.json" },
@@ -27,7 +35,8 @@
 		],
 		"snippets": [
 			{ "language": "json", "path": "./snippets/affrescoui.code-snippets" },
-			{ "language": "jsonc", "path": "./snippets/affrescoui.code-snippets" }
+			{ "language": "jsonc", "path": "./snippets/affrescoui.code-snippets" },
+			{ "language": "clojure", "path": "./snippets/affrescoui-lisp.code-snippets" }
 		],
 		"commands": [
 			{ "command": "affrescoui.preview", "title": "Open Preview", "category": "AffrescoUI", "icon": "$(open-preview)" },
@@ -35,11 +44,11 @@
 		],
 		"menus": {
 			"editor/title": [
-				{ "command": "affrescoui.preview", "when": "resourceFilename =~ /\\.screen\\.json$/", "group": "navigation" }
+				{ "command": "affrescoui.preview", "when": "resourceFilename =~ /\\.screen\\.(json|lisp)$/", "group": "navigation" }
 			],
 			"commandPalette": [
-				{ "command": "affrescoui.preview", "when": "resourceFilename =~ /\\.screen\\.json$/" },
-				{ "command": "affrescoui.check", "when": "resourceFilename =~ /\\.screen\\.json$/" }
+				{ "command": "affrescoui.preview", "when": "resourceFilename =~ /\\.screen\\.(json|lisp)$/" },
+				{ "command": "affrescoui.check", "when": "resourceFilename =~ /\\.screen\\.(json|lisp)$/" }
 			]
 		},
 		"configuration": {
@@ -54,7 +63,7 @@
 				"affrescoui.check.enabled": {
 					"type": "boolean",
 					"default": true,
-					"markdownDescription": "Report the problems `affrescoui check --json` finds when a screen is opened or saved."
+					"markdownDescription": "Report the problems `affrescoui check --json` finds when a screen (`*.screen.json` or `*.screen.lisp`) is opened or saved."
 				},
 				"affrescoui.check.timeoutMs": {
 					"type": "integer",
@@ -94,7 +103,7 @@
 	},
 	"scripts": {
 		"compile": "node scripts/copy-schemas.mjs && tsc -p .",
-		"test": "npm run compile && node --test out/test/resolver.test.js out/test/check.test.js out/test/tool.test.js",
+		"test": "npm run compile && node --test out/test/resolver.test.js out/test/check.test.js out/test/tool.test.js out/test/lisp.test.js",
 		"vscode:prepublish": "npm run compile",
 		"package": "vsce package --no-dependencies --out affrescoui.vsix"
 	},
