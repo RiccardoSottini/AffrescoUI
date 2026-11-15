@@ -208,7 +208,7 @@ TEST_CASE("lisp namespaces: a dotted name is a path from the app's folder") {
 	CHECK(lisp::namespacePath("flow.side-bar", "flow") == "side-bar.lisp");
 }
 
-TEST_CASE("lisp namespaces: a file two files require is read once; two that require each other, both once") {
+TEST_CASE("lisp namespaces: a file two files require comes once; two that require each other are read once") {
 	Files files = board;
 	files["index.screen.lisp"] =
 	    screenShowing("(ns tally.index (:require [tally.parts.board :as board] [tally.parts.cell :as cell]))",
@@ -222,6 +222,17 @@ TEST_CASE("lisp namespaces: a file two files require is read once; two that requ
 	CHECK(program.contains("parts/board.lisp"));
 	CHECK(program.contains("parts/cell.lisp"));
 	CHECK(program.size() == 3);
+}
+
+TEST_CASE("lisp namespaces: files that require each other many times stop at the reads a screen may make") {
+	// Eight files that each require all eight: every path through them is read, thousands of reads within the depth
+	std::string required;
+	for(int file = 1; file <= 8; ++file) required += " app.parts.f" + std::to_string(file);
+	Files files = {{"index.screen.lisp", screenShowing("(ns app.index (:require app.parts.f1))", "1")}};
+	for(int file = 1; file <= 8; ++file)
+		files["parts/f" + std::to_string(file) + ".lisp"] = "(ns app.parts.f" + std::to_string(file) + " (:require" +
+		                                                    required + "))\n(def v" + std::to_string(file) + " 1)";
+	CHECK(refusal("many", files).contains("over 1024 files read"));
 }
 
 TEST_CASE("lisp namespaces: a required file is read from the app's folder only, by the loader's own check") {

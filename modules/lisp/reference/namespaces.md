@@ -53,8 +53,9 @@ The requiring file's own name says how deep it is: from `flow.parts.card`, `flow
 required by a dotted name must start with `(ns <that name>)`, else: `flow.parts.board is required, and
 parts/board.lisp doesn't declare it`.
 
-A file is read once however many files require it, and two files that require each other are both read once. The files
-read are the loader's, with its checks: in an app, a path that leaves the app's folder and the shared folder beside it
+Two files that require each other are both read once. A file that several files require is read for each of them, as
+an include is, and its definitions come once; at most 1,024 files are read for one screen. The files read are the
+loader's, with its checks: in an app, a path that leaves the app's folder and the shared folder beside it
 (`["../../x.lisp"]`, or a dotted name in a file that says it is deeper than it is) is refused.
 
 ## One flat space of names

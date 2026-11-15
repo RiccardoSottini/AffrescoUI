@@ -64,6 +64,9 @@ std::filesystem::path platformDataDirectory() {
 }
 
 constexpr std::uintmax_t maxIncludeBytes = 16U << 20; ///< An included file, at most 16 MiB.
+/// Files read for one screen's includes, at most: a file two files include is read for each, so files that include
+/// many files including many more would read without end within the depth.
+constexpr std::size_t maxIncludeReads = 1024;
 
 /// @brief Reads an included file.
 /// @param path The file.
@@ -172,6 +175,7 @@ void checkInside(const std::filesystem::path& path, std::span<const std::filesys
 struct IncludeChain {
 	std::filesystem::path folder;                  ///< The including file's folder, from the entry's.
 	std::vector<std::filesystem::path> containing; ///< The files that include it, to the entry: each read once.
+	std::size_t* reads = nullptr; ///< The files read for the screen so far; owned by resolveIncludes(), for the call.
 };
 
 /// @brief resolveIncludes(), with where the document is in the chain of includes.
@@ -202,10 +206,13 @@ void resolveIncludesIn(json& document, const std::filesystem::path& baseDirector
 		const std::filesystem::path normal = path.lexically_normal();
 		if(std::ranges::find(chain.containing, normal) != chain.containing.end()) continue; // a cycle: read already
 		const std::filesystem::path named = (chain.folder / name.get<std::string>()).lexically_normal();
+		if(++*chain.reads > maxIncludeReads)
+			throw ScreenError("AffrescoUI screen: include: over " + std::to_string(maxIncludeReads) +
+			                  " files read (files that include each other many times?)");
 		json part = readInclude(path, named.generic_string());
 		if(!format::migrate(part).empty()) migrated = true;
 		detail::SourceMap partSources;
-		IncludeChain inner{named.parent_path(), chain.containing};
+		IncludeChain inner{named.parent_path(), chain.containing, chain.reads};
 		inner.containing.push_back(normal);
 		resolveIncludesIn(part, path.parent_path(), migrated, roots, depth + 1,
 		                  sources != nullptr ? &partSources : nullptr, normal.generic_string(), inner);
@@ -220,7 +227,7 @@ namespace detail {
 
 /// @brief Merges a screen's "include" files into it (recursively, at most 8 deep): each section of an included file
 /// comes first and the including file's entries win; root and window come from the including file. A file that
-/// includes a file including it back gets that file's entries once.
+/// includes a file including it back gets that file's entries once. At most 1,024 files are read in all.
 /// @param document The screen.
 /// @param baseDirectory Where its include paths are resolved from.
 /// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
@@ -229,7 +236,8 @@ namespace detail {
 void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated,
                      std::span<const std::filesystem::path> roots, int depth, SourceMap* sources,
                      const std::string& file) {
-	IncludeChain chain;
+	std::size_t reads = 0;
+	IncludeChain chain{{}, {}, &reads};
 	if(!file.empty()) chain.containing.push_back(std::filesystem::path(file).lexically_normal());
 	resolveIncludesIn(document, baseDirectory, migrated, roots, depth, sources, file, chain);
 }

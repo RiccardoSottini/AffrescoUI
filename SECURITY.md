@@ -773,7 +773,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A step writing to a list position past the list's end (the positions between become `null`) | 10,000 positions past it |
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
-| Files including files (`include`, at load time) | 9 levels below the screen file |
+| Files including files (`include`, at load time) | 9 levels below the screen file, and 1,024 files read in all (a file two files include is read for each) |
 | An included file (`include`; plain files only: no devices or pipes) | 16 MiB; an app's are in its folder or the `shared` folder beside it, once links are resolved |
 | Open proposals per channel | 16 |
 | Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |
