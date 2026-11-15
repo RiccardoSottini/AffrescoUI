@@ -170,8 +170,8 @@ TEST_CASE("format: a run step decides through the run control, as the person") {
 	CHECK(app.control.denied[0] == std::pair<int, std::string>{3, "not now"});
 	CHECK(app.errors.empty());
 
-	app.run("undo"); // undoing a run isn't built yet
-	CHECK(app.reported("not built yet"));
+	app.run("undo"); // no run 4 ran on this screen
+	CHECK(app.reported("there is no run 4"));
 }
 
 TEST_CASE("format: a run step without a run control, or with a value of the wrong type, fails") {

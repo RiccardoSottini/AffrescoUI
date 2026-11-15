@@ -7,6 +7,7 @@
 #include "StepRegistry.hpp"
 
 #include <functional>
+#include <optional>
 #include <string>
 
 namespace affresco::format {
@@ -35,24 +36,35 @@ public:
 	/// @param locals The sender's variables.
 	/// @param where Its place, for errors.
 	void handle(const json& handler, Panel& sender, const json& event, const Scope& locals, const std::string& where);
+	/// @brief Runs a handler as handle() does, and gives the error that ended it instead of reporting it: a peer's run
+	/// tells its runner what went wrong (CommandRuns).
+	/// @param handler The handler.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The sender's variables.
+	/// @param where Its place, for errors.
+	/// @return The error that ended it, or std::nullopt.
+	[[nodiscard]] std::optional<std::string> attempt(const json& handler, Panel& sender, const json& event,
+	                                                 const Scope& locals, const std::string& where);
 	/// @brief Runs an action from "actions", else a function of the document's program, else a native one, else the
-	/// unhandled fallback.
+	/// unhandled fallback, after the advice on it.
 	/// @param name The action.
 	/// @param sender The panel it comes from.
 	/// @param event The event.
 	/// @param locals The caller's variables.
 	/// @param where Its place, for errors.
 	/// @throws DocumentError If a step fails, or nobody handles the action.
+	void runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
+	              const std::string& where);
 	/// @brief What runNamed() runs, once its advice has had its turn.
 	/// @param name The action.
 	/// @param sender The panel it comes from.
 	/// @param event The event.
 	/// @param locals The variables.
 	/// @param where Its place, for errors.
+	/// @throws DocumentError If a step fails, or nobody handles the action.
 	void runNamedAction(const std::string& name, Panel& sender, const json& event, const Scope& locals,
 	                    const std::string& where);
-	void runNamed(const std::string& name, Panel& sender, const json& event, const Scope& locals,
-	              const std::string& where);
 	/// @brief Runs steps in order.
 	/// @param steps A step or an array of steps.
 	/// @param sender The panel it comes from.
@@ -77,6 +89,10 @@ public:
 	/// @param where The step's place, for the error.
 	/// @throws DocumentError If it may not run now.
 	void checkControl(const std::string& where) const;
+	/// @brief Watches the steps that run from now on for one whose effect lies outside the state and the records (a
+	/// sound, the clipboard, an event, a window, a service, a timer), until called again with nullptr (CommandRuns).
+	/// @param seen Set to true when such a step runs; outlives the watch; nullptr: no watch.
+	void watchOutside(bool* seen) noexcept { outsideSeen_ = seen; }
 	/// @brief The runtime, for the step groups.
 	[[nodiscard]] Engine& engine() const noexcept { return engine_; }
 
@@ -91,8 +107,9 @@ private:
 	/// @throws DocumentError If it fails, or no group knows it.
 	bool runStep(const json& step, Panel& sender, const json& event, const Scope& locals, const std::string& where);
 
-	Engine& engine_;      ///< The runtime.
-	int actionDepth_ = 0; ///< Nested action calls in progress.
+	Engine& engine_;              ///< The runtime.
+	int actionDepth_ = 0;         ///< Nested action calls in progress.
+	bool* outsideSeen_ = nullptr; ///< See watchOutside().
 };
 
 } // namespace affresco::format

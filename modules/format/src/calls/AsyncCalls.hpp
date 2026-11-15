@@ -8,6 +8,7 @@
 #include "affresco/format/Runtime.hpp"
 
 #include "Expression.hpp"
+#include "StepAuthority.hpp"
 #include "StepRegistry.hpp"
 
 #include <condition_variable>
@@ -116,6 +117,7 @@ private:
 		SharedScope locals;                         ///< Variables.
 		std::string where;                          ///< The step's place.
 		std::uint64_t timeout = 0;                  ///< Its "timeout" timer (Scheduler::once()), or 0 for none.
+		KeptAuthority authority;                    ///< Who the step that started it came from: its handlers run so.
 	};
 
 	/// @brief Applies what a job reported since the last time (main thread, through the Executor).

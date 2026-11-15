@@ -76,12 +76,14 @@ public:
 	/// @return `{"collections": {...}, "queries": [...]}`.
 	[[nodiscard]] json outline() const;
 
-	/// @brief Who the write steps write as: "app" (the person using the app) unless the host says otherwise.
-	/// @return The author.
-	[[nodiscard]] const std::string& author() const noexcept { return author_; }
+	/// @brief Who the write steps write as: while code by an author who isn't the person leads to them (a program's
+	/// function, a peer's run, or what either scheduled), the first such author of the step authority; else what
+	/// setAuthor() set, "app" (the person using the app) unless the host says otherwise.
+	/// @return The author; valid while the steps that asked run.
+	[[nodiscard]] const std::string& author() const noexcept;
 
-	/// @brief Sets who the write steps write as, e.g. an agent's name while the host runs its reviewed steps; the
-	/// screen's data rules then apply to its writes.
+	/// @brief Sets who the write steps write as when no other author's code leads to them (author()), e.g. an agent's
+	/// name while the host runs its reviewed steps or a peer's run; the screen's data rules then apply to its writes.
 	/// @param author The author ("" for "app").
 	void setAuthor(std::string author) { author_ = author.empty() ? "app" : std::move(author); }
 

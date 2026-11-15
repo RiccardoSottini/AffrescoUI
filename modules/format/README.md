@@ -320,12 +320,14 @@ src/
                            the panels and the document as written, never from a value
     NodeSource.cpp         where a node is written: sourceOf() (Runtime::source()), a record's `source`
     PickSteps.cpp          the pick and unpick steps
-  commands/                main's commands as tools for peers (core/Commands.hpp); not built yet, the seams f4c and
-                           f4d fill in
+  commands/                main's commands as tools for peers (core/Commands.hpp)
     CommandCatalog.*       the actions that describe themselves: list, find, reach, checkArguments
     CommandArguments.*     a run's typed arguments, checked, defaults filled in
     CommandReach.*         what a command can reach: control steps, service uses, record writes
-    CommandRuns.*          running a command as its runner, and undoing a run (RunUndo.*, what the newest runs changed)
+    CommandRuns.*          running a command as its runner (programs/StepAuthority.hpp), rolling a refused run back,
+                           and undoing a run (RunUndo.*, what the newest runs changed). What a run changed is the
+                           state before and after it returns, so what it schedules for later isn't in it; the copy
+                           of the state it diffs costs time in proportion to the state
     RuntimeCommands.cpp    Runtime's commands: setRunControl, commandList, runCommandAs, undoCommandRun...
   calls/                   calls outside the document
     AsyncCalls.*           slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel

@@ -6,6 +6,7 @@
 /// there (SECURITY.md, "The Lisp language").
 
 #include "Expression.hpp"
+#include "StepAuthority.hpp"
 #include "TypedText.hpp"
 
 #include "affresco/core/Json.hpp"
@@ -75,11 +76,6 @@ inline constexpr std::string_view unknownAuthor = "unknown";
 /// @param text The text, UTF-8.
 /// @return Why; std::nullopt if every character of it shows.
 [[nodiscard]] std::optional<std::string> hiddenCharacter(std::string_view text);
-
-/// @brief Who the steps now running come from, while code of a program runs them, and later for what it scheduled.
-struct StepAuthority {
-	std::vector<std::string> authors; ///< Every author whose code led here.
-};
 
 /// @brief The live program of a document: one interpreter per version of its `program` section, replaced whole when the
 /// section changes, so that a removed definition goes, an undo is exact, and what a run allocates goes when it ends.
@@ -625,6 +621,12 @@ private:
 	Linked linked_;                                  ///< What it spends.
 };
 
+/// @brief Who the steps now running come from, for a piece of work that runs after them to keep (a timer, a call's
+/// callbacks, a sound's actions): restored around it with an AuthorityScope, running later lends it nothing.
+/// @param engine The runtime.
+/// @return A copy of the authority now, or std::nullopt for the screen's own steps.
+[[nodiscard]] KeptAuthority keptAuthority(const Engine& engine);
+
 /// @brief Sets who the steps now running come from, as long as it lives.
 class AuthorityScope {
 public:
@@ -632,6 +634,11 @@ public:
 	/// @param engine The runtime.
 	/// @param authority Who, or nullptr for none: the screen's own steps.
 	AuthorityScope(Engine& engine, const StepAuthority* authority) noexcept;
+	/// @brief Sets what a piece of later work kept (keptAuthority()).
+	/// @param engine The runtime.
+	/// @param kept What it kept; outlives the scope.
+	AuthorityScope(Engine& engine, const KeptAuthority& kept) noexcept
+	    : AuthorityScope(engine, kept ? &*kept : nullptr) {}
 	/// @brief Puts back what it was.
 	~AuthorityScope();
 	AuthorityScope(const AuthorityScope&) = delete;

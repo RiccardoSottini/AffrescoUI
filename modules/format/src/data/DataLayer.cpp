@@ -222,19 +222,29 @@ std::filesystem::path DataLayer::allowedFile(const std::string& file, const std:
 	fail(where, "'" + file + "' isn't a file in the screen's folder or one the host allows");
 }
 
+const std::string& DataLayer::author() const noexcept {
+	// Who the step authority names first, of those who aren't the person: a record a timer of a peer's run writes
+	// later is still the runner's, whatever the host set
+	if(engine_.authority)
+		for(const std::string& author : engine_.authority->authors)
+			if(!isPersonsAuthor(author)) return author;
+	return author_;
+}
+
 void DataLayer::checkWrite(const std::string& collection, const std::string& where) const {
-	if(author_ == "app") return; // the person using the app
+	const std::string& writer = author();
+	if(writer == "app") return; // the person using the app
 	const json& permissions = sectionOf(engine_.versions.document(), "permissions");
 	const json& rules = permissions.is_object() ? sectionOf(permissions, "data") : permissions;
 	if(!rules.is_array()) return;
 	for(const json& rule : rules) {
-		if(!rule.is_object() || !covers(rule.value("author", std::string("*")), author_)) continue;
+		if(!rule.is_object() || !covers(rule.value("author", std::string("*")), writer)) continue;
 		if(anyCovers(rule.value("never", json()), collection))
 			throw data::DataError(
-			    "denied", std::format("{}: data rule: '{}' may never touch /data/{}", where, author_, collection));
+			    "denied", std::format("{}: data rule: '{}' may never touch /data/{}", where, writer, collection));
 		if(rule.contains("write") && !anyCovers(rule["write"], collection))
-			throw data::DataError(
-			    "denied", std::format("{}: data rule: '{}' may not write /data/{}", where, author_, collection));
+			throw data::DataError("denied",
+			                      std::format("{}: data rule: '{}' may not write /data/{}", where, writer, collection));
 	}
 }
 
