@@ -280,5 +280,7 @@ TEST_CASE("lisp_console: names and what is known of one") {
 	const std::string longest(std::size_t{4} << 20U, 'a');
 	CHECK_FALSE(app.runtime->console().unshowable(longest).has_value());
 	CHECK(app.runtime->console().unshowable(longest + "a").has_value());
-	CHECK(app.runtime->console().evaluate({.text = longest + "a"}).error.has_value());
+	ConsoleRequest tooLong;
+	tooLong.text = longest + "a";
+	CHECK(app.runtime->console().evaluate(tooLong).error.has_value());
 }
