@@ -52,7 +52,17 @@
    :justPointed nil
    :pointing false
    :wasOpen false
-   :copied nil})
+   :copied nil
+   :codeFont "default"})
+
+(def assistant-new-file
+  "The file of the program a definition evaluated from the field lands in, when the program has none of that name."
+  "evaluated.lisp")
+
+(defcomputed assistantForm
+  "What the draft would do if it were evaluated, when it reads as forms of Lisp the program knows: what it defines,
+how many other forms it runs, and whether the person typed it all (describe-form). Nil for a request."
+  (assistant-form-of state.assistant.draft))
 
 (defcomponent assistantChip "A small chip in the assistant: an icon and a text."
   {:text ""}
@@ -244,9 +254,63 @@ the request (whose picks are spent once sent)."
   (assistant-open)
   (assistant-ask (trim (or event.text ""))))
 
-(defn assistant-send "Asks what the person wrote, and empties the field." []
+(defn assistant-form-of "What a text would do evaluated (describe-form): the engine decides what is Lisp." [text]
+  (describe-form text))
+
+(defn assistant-send "Evaluates what the person wrote if it reads as Lisp, or else asks it and empties the field." []
+  (if (some? computed.assistantForm) (assistant-evaluate) (assistant-ask-draft)))
+
+(defn assistant-ask-draft "Asks what the person wrote, whatever it reads as, and empties the field." []
   (assistant-ask (trim state.assistant.draft))
   (set "state.assistant.draft" ""))
+
+(defn assistant-evaluate
+  "Evaluates the draft as the person's: shown in the conversation as code, then run. A draft they typed runs at once,
+and one they didn't (pasted, or set by code) runs only once they say yes to the window's own question. The field keeps
+the draft until it has run, as the engine reads the field to tell whether the person typed it: it is never copied."
+  []
+  (assistant-said {:kind "code" :mine true :from (t "assistant.you") :text (trim state.assistant.draft) :time (now)})
+  (evaluate state.assistant.draft :file assistant-new-file :confirm true :then assistant-evaluated))
+
+(defn assistant-evaluated
+  "When an evaluation ends: its value, and the field emptied; or its error (a no to the question is one), the draft
+kept so the person can fix it. A proposal it opened needs nothing here: every proposal that waits has a card."
+  [result error proposal]
+  (if error
+    (assistant-said {:kind "result" :text (str error) :time (now) :error true})
+    (do (assistant-said {:kind "result" :text (str "=> " result) :time (now) :error false})
+        (set "state.assistant.draft" ""))))
+
+(defn assistant-preview-height
+  "The height of the preview of an evaluation: none for a request, one line, or room for the note that the person will
+be asked."
+  [form]
+  (cond (nil? form) 0
+        (:typed form) 30
+        :else 64))
+
+(defn assistant-code-run "A part of the preview in the code font: a name or a file." [text]
+  {:text text :font state.assistant.codeFont :size 12 :color "@assistant.text"})
+
+(defn assistant-form-summary "What the draft defines or runs, as parts of the preview." [form]
+  (let [definitions (:definitions form)
+        one (first definitions)]
+    (cond (= (count definitions) 1)
+          [{:text (str (t (if (:replaces one) "assistant.lisp.replaces" "assistant.lisp.defines")) " ") :size 12}
+           (assistant-code-run (:name one))
+           {:text (str " " (t "assistant.lisp.in") " ") :size 12}
+           (assistant-code-run (if (= (:file one) "") assistant-new-file (:file one)))]
+          (> (count definitions) 1) [{:text (t "assistant.lisp.definitions" {:n (count definitions)}) :size 12}]
+          :else [{:text (t "assistant.lisp.runs" {:n (:expressions form)}) :size 12}])))
+
+(defn assistant-form-runs
+  "The preview of an evaluation: what it defines or runs, that the person will be asked if they didn't type it, and
+the link that asks instead."
+  [form]
+  (concat (assistant-form-summary form)
+          (if (:typed form) [] [{:text (str ". " (t "assistant.lisp.untyped")) :size 12}])
+          [{:text "  " :size 12}
+           {:text (t "assistant.lisp.askInstead") :link "ask" :size 12 :color "@assistant.accent"}]))
 
 (defn assistant-attach-failed
   "Says why a file couldn't be attached (its type, its size), in the conversation: the attach step's error, or a
@@ -450,6 +514,7 @@ run) and overlays: its launcher and its panel."
             :assistant.close [{:lisp assistant-close}]
             :assistant.start [{:lisp assistant-start}]
             :assistant.send [{:lisp assistant-send}]
+            :assistant.askDraft [{:lisp assistant-ask-draft}]
             :assistant.ask [{:lisp assistant-ask}]
             :assistant.attach [{:lisp assistant-pick-files}]
             :assistant.drop [{:lisp assistant-drop}]
@@ -619,8 +684,8 @@ run) and overlays: its launcher and its panel."
        {:anchors {:left 7 :top 15} :width 18 :height 2 :radius 1 :rotate -45 :color @assistant.dim})
      {:anchors {:left 0 :right 0 :bottom 0} :height 1 :color @assistant.border}))
 
-(defview assistant-copy "A message's Copy button." [message m]
-  `(node :id ~(str "assistantCopy" m)
+(defview assistant-copy "A message's Copy button, its id `prefix` and the message's place." [message m prefix]
+  `(node :id ~(str prefix m)
      :when ~(not= message.note true)
      :width 26
      :height 26
@@ -702,8 +767,42 @@ run) and overlays: its launcher and its panel."
        :alignSelf start
        :color transparent
        :role toolbar
-       ~(assistant-copy message m)
+       ~(assistant-copy message m "assistantCopy")
        ~(assistant-retry message m))))
+
+(defview assistant-code
+  "A form the person evaluated, or what it gave (its value, or its error in the danger colour): whole, wrapped, in the
+code font, with Copy and never Retry."
+  [message m]
+  `(column :id ~(str "assistantCode" m)
+     :when ~(or (= message.kind "code") (= message.kind "result"))
+     :fitContent height
+     :gap 2
+     :justifySelf stretch
+     :color transparent
+     :cell {:column 1 :row ~(+ m 1)}
+     (label :id ~(str "assistantCodeText" m)
+       :text ~message.text
+       :font ~state.assistant.codeFont
+       :wrap true
+       :fitText {:maxWidth ~(if message.mine 280 340)}
+       :padding ~(if (or message.mine message.error) 10 2)
+       :radius 14
+       :alignSelf ~(if message.mine "end" "start")
+       :justifySelf ~(if message.mine "end" "start")
+       :role listitem
+       :tooltip ~(formatTime message.time "short")
+       :color ~(if message.mine "@assistant.raised" "transparent")
+       :textColor ~(if message.error "@assistant.danger" "@assistant.text")
+       :borderWidth ~(if message.error 1 0)
+       :borderColor @assistant.danger)
+     (row :id ~(str "assistantCodeActions" m)
+       :fitContent width
+       :height 26
+       :alignSelf ~(if message.mine "end" "start")
+       :color transparent
+       :role toolbar
+       ~(assistant-copy message m "assistantCodeCopy"))))
 
 (defview assistant-card "A proposal as a card: its title, its changes, and Preview, Review, Accept and Reject."
   [message m]
@@ -792,6 +891,8 @@ run) and overlays: its launcher and its panel."
      ~(assistant-suggestion 3)
      ~(repeat [message state.assistant.messages :index m]
        (assistant-message message m))
+     ~(repeat [message state.assistant.messages :index m]
+       (assistant-code message m))
      ~(repeat [message state.assistant.messages :index m]
        (assistant-sent-files message m))
      ~(repeat [message state.assistant.messages :index m]
@@ -969,7 +1070,7 @@ run) and overlays: its launcher and its panel."
             :close assistant.close
             :label ~(t "assistant.message")
             :placeholder ~(t "assistant.placeholder")
-            :sendLabel ~(t "assistant.send")
+            :sendLabel ~(t (if (some? computed.assistantForm) "assistant.lisp.evaluate" "assistant.send"))
             :working ~assistantWorking
             :stop assistant.stop
             :stopLabel ~(t "assistant.stop")
@@ -1008,6 +1109,21 @@ run) and overlays: its launcher and its panel."
        :anchors {:left 14 :top 44}
        :fitText true)))
 
+(defview assistant-form-preview
+  "What the draft would do evaluated, over the field while it reads as Lisp: what it defines or runs, that the person
+will be asked if they didn't type it here, and a link that asks it as a request instead."
+  []
+  `(node#assistantFormPreview :when ~(some? computed.assistantForm)
+     :alignSelf stretch
+     :height ~(assistant-preview-height computed.assistantForm)
+     :color transparent
+     :role status
+     (label#assistantFormText :runs ~(assistant-form-runs computed.assistantForm)
+       :wrap true
+       :textColor @assistant.dim
+       :anchors {:left 14 :right 14 :top 10 :bottom 0}
+       :onLink [{:run assistant.askDraft}])))
+
 (defview assistant-input-card
   "The bottom of the panel: the elements pointed at and the files to send, the field and its buttons."
   []
@@ -1030,6 +1146,7 @@ run) and overlays: its launcher and its panel."
          :label ~(t "assistant.attached")
          ~(repeat [file state.assistant.attachments :index f]
            `(node :id ~(str "assistantAttached" f) :use assistantFile :with {:file ~file :removable true}))))
+     ~(assistant-form-preview)
      (node :alignSelf stretch :height 100 :color transparent
        ~(assistant-composer))))
 
@@ -1049,7 +1166,8 @@ run) and overlays: its launcher and its panel."
      :transformOrigin bottomRight
      :role dialog
      :label ~(t "assistant.title")
-     :keys {:escape assistant.close}
+     :keys {:escape assistant.close
+            "mod+enter" assistant.askDraft}
      :onDrop ~(handler assistant-drop (or-else event.files []))
      :let {:assistantOnline ~(or-else state.assistant.simulate.online (> (count peers) 0))
            :assistantPending ~(or-else state.assistant.simulate.pending (map (fn [it] it.id) proposals))
@@ -1068,7 +1186,8 @@ run) and overlays: its launcher and its panel."
        :color transparent
        :height ~(+ 112
                    (if (> (count state.assistant.attachments) 0) 54 0)
-                   (if (> (count state.assistant.pointed) 0) 62 0))
+                   (if (> (count state.assistant.pointed) 0) 62 0)
+                   (assistant-preview-height computed.assistantForm))
        ~(assistant-input-card))))
 
 (defview assistant-offline-note "A note while no agent is connected: choose a provider in Settings, or connect one." []

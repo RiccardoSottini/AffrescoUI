@@ -53,11 +53,38 @@ screen without meeting the app's own names.
 - **The composer**, a card with the text above and a bar below: *Attach* (`+`, or drop files on the panel), *Point at
   something* and the model picker at its start, a round send button at its end. While an agent works on a request, the send button is a
   *Stop* button: it cancels the requests in progress (`cancelAsk`), the agents are told, and what they send after is
-  dropped. Enter sends, Shift+Enter starts a new line, Escape closes the panel and gives the focus back to the
-  launcher. The panel is modal: Tab cycles inside it.
+  dropped. Enter sends, Shift+Enter starts a new line, Cmd+Enter (Ctrl+Enter) sends the draft as a request even when
+  it reads as Lisp, Escape closes the panel and gives the focus back to the launcher. The panel is modal: Tab cycles
+  inside it.
 
 A chat request is a request, never an approval. The agent's change waits as a proposal, and only the person's
 *Accept* on the card (or another reviewing client's) merges it; the reviewer is the person, not the agent.
+
+## The input takes Lisp
+
+In the Lisp version (`assistant.lisp`), the field also evaluates Lisp. A draft counts as Lisp when `describe-form`
+says so: it starts with `(`, reads, and every form is a definition or a call of something the program can run, so
+`(+ 1 2)` and `(defn greet [] "hi")` are Lisp, `(please make it blue)` and `make the title blue` are requests.
+`computed.assistantForm` holds what `describe-form` answered, `nil` for a request.
+
+- **The preview.** While the draft is Lisp, a line over the field says what Enter would do: *Lisp: defines `greet` in
+  `evaluated.lisp`* (or *replaces*, for a name the program has), *Lisp: defines 3 definitions*, or *Lisp: runs 1
+  form*, with the names and files in the code font. A draft the person didn't type in the field (pasted, or set by a
+  step) adds *You will be asked to confirm: this text was not typed here.* An *Ask instead* link sends it as a request.
+  The send button says *Evaluate*. With no Lisp there is no line and the panel is as before.
+- **Enter** evaluates it (`evaluate`, with `:confirm true`): the draft joins the conversation as a `code` message,
+  then its value as a `result` (`=> 3`) and the field empties. An error shows as a `result` in the danger colour and
+  keeps the draft, to fix it; a *no* to the window's question is such an error (nothing ran). Definitions land in
+  `evaluated.lisp`, or replace the one of the same name where it is.
+- **Who the change is by.** The person: a revision by `user`, as a change made in the editor would be. Only what the
+  person typed in the field counts without a question; anything else waits for their yes in the window's own
+  question, which no peer can answer. An agent's message can never be evaluated from here, and `describe-form` tells
+  only the person's code what a text is.
+- **The JSON version** (`assistant.json`) is unchanged: its screens have no program, so the input stays requests only.
+
+`state.assistant.codeFont` names the font of `code` and `result` messages and the preview's names: `"default"` until
+the app sets it to a monospace font of its own (`:onLoad [{:set state.assistant.codeFont :to mono}]`), since fonts are
+the screen's. The strings are the `assistant.lisp.*` keys.
 
 ## State and actions
 
@@ -69,7 +96,8 @@ All in `state.assistant`:
 | `lift` | Pixels to raise the launcher and the panel by, over a panel of the app's own at the bottom right (`0` by default), e.g. `{ "watch": { "state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }] } }` |
 | `show` | Whether the launcher shows when no agent is connected and no conversation is kept (`true` by default) |
 | `draft` | The composer's text |
-| `messages` | The conversation: `{ mine, from, text, time, error }` (a reply also has `asked`, the request it answers, for *Retry*; *Stop* adds one with `note: true`), `{ kind: "files", files }` for files sent, `{ kind: "pointed", items }` for the elements pointed at, and `{ kind: "card", id, title, summary, lines, time }` for a proposal, `lines` being its first three `changes` (at most 200, the oldest dropped) |
+| `codeFont` | The font of evaluated code and its results (`"default"` until the app names a monospace one) |
+| `messages` | The conversation: `{ mine, from, text, time, error }` (a reply also has `asked`, the request it answers, for *Retry*; *Stop* adds one with `note: true`), `{ kind: "files", files }` for files sent, `{ kind: "pointed", items }` for the elements pointed at, and `{ kind: "card", id, title, summary, lines, time }` for a proposal, `lines` being its first three `changes`, and, in the Lisp version, `{ kind: "code", mine, text }` for a draft evaluated and `{ kind: "result", text, error }` for its value or error (at most 200, the oldest dropped) |
 | `decided` | `proposal id → "accepted" or "rejected"`, as the person decided on the card |
 | `unread` | The replies since the panel was last open |
 | `pending` | The id of the last request sent |
@@ -90,7 +118,8 @@ All in `state.assistant`:
 | `assistant.toggle`, `assistant.open`, `assistant.close` | Open and close the panel |
 | `assistant.ask` | Sends `text` (with `{ "text": … }`) as a request, as the suggestions do |
 | `assistant.start` | Opens the panel and sends `event.text` as a request: what the host's `--ask TEXT` runs once the window is up |
-| `assistant.send` | Sends the draft and empties it |
+| `assistant.send` | Sends the draft and empties it; in the Lisp version a draft that is Lisp is evaluated instead |
+| `assistant.askDraft` | Sends the draft as a request, Lisp or not (*Ask instead*, Cmd+Enter) |
 | `assistant.preview`, `assistant.accept`, `assistant.reject` | Review the proposal `id` |
 | `assistant.loadModels` | Asks the host for the models (run when the panel shows) |
 | `assistant.pickModel` | Uses the model `id` for the next requests (the default is kept as `""`) |
@@ -131,3 +160,8 @@ and *Show source*). `e2e_test.py` runs the whole loop with the stock host and th
 `e2e.screen.json`, where a timer stands in for the person: the offline answer, then a request taken with
 `wait_for_request` (`origin: "app"`), the agent's proposal and reply, the card accepted (the change is on main), and a
 second card rejected. ctest runs it as `assistant_e2e`.
+
+The Lisp input is drawn through `tests/render/screens/assistant-lisp.screen.lisp` (the preview over a typed
+definition, and the conversation after an evaluation), and `tests/unit/assistant_lisp_input.cpp` drives it with real
+keys: a typed definition (one revision by `user`), an expression (no revision), words that stay requests, a pasted
+and a step-set form (the window's question, *no* then *yes*), Cmd+Enter and *Ask instead*, an error, an empty draft.
