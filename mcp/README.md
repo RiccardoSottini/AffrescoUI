@@ -15,8 +15,9 @@ changes    AI agent ──tools──▶ affrescoui_mcp.py ──agent.sock─�
   server, which pushes it into the agent's session as a Claude Code **channel event**, and also keeps it for the
   `wait_for_request` tool (for any MCP client). A request may carry `picks`, what the person pointed at with the
   Point button of the app's assistant (at most 4, cleaned to the keys of a pick record: node, type, pointer, bounds,
-  bindings as written, source; never a value from the app's data); the channel event lists them after the text,
-  one `Pointed at: ...` line each, and holds them in its `picks` meta. A request from inside the app gets a "working" note right away, and a request is never an approval:
+  bindings as written, source; never a value from the app's data; only on a request from inside the app); the channel
+  event lists them after the text, one `Pointed at: ...` line each (without line breaks or control characters), and
+  holds them in its `picks` meta. A request from inside the app gets a "working" note right away, and a request is never an approval:
   the person still reviews the agent's proposals.
 - **Out of the agent:** the agent reads the screen and sends revisions (JSON Patch) with the tools. They go through
   the host's permission rules: for the templates they become proposals the person accepts or rejects on their card in

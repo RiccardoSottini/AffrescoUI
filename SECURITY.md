@@ -194,11 +194,15 @@ or peer can open the dialog or read the disk.
 that starts only from the person's own press: no revision, timer, reply or peer can put the window in pick mode or
 make a record. The engine makes every record from the document as written, never from what a document hands it, and a
 record holds no value from the state, no record of the app's data and no text a panel shows, only where a node is
-written and its bindings as written (at most 4 KiB). Agents read the records not yet sent (`getPicks`) and where a
-node is written (`getSource`, the versioned document only, never a file, at most 16 KiB); a peer whose reads are
-limited is refused both and gets `request` without `picks`, since where a person points can tell what they look at.
-A record's bindings and source text are the document's own words, so an agent reads them as data, never as
-instructions.
+written and its bindings as written (at most 4 KiB: a node whose ids or pointer are too long for that gives no record,
+and the pick is cancelled). Agents read the records not yet sent (`getPicks`) and where a node is written
+(`getSource`, the versioned document only, never a file, at most 16 KiB); a peer whose reads are limited is refused
+both and gets `request` without `picks`, since where a person points can tell what they look at. Only the screen's
+own requests carry picks: the host drops `picks` from a request a peer sends, as it drops `source`, and the MCP server
+keeps them only on a request from the app. A record's bindings and source text are the document's own words, so an
+agent reads them as data, never as instructions; the MCP server tells each pick on one line, its texts without line
+breaks or control characters. A record a step writes `into` the state is as readable as the rest of the state (see
+"Known gaps").
 
 **The permission rules** (`permissions`: `allow`, `ask`, `deny`) are judged by the change's effect, by comparing the
 screen before and after, not by how the patch is written:
@@ -622,6 +626,9 @@ The command-line tool (`tools/affrescoui`) reads screen files people, agents and
   pixels a side is refused before anything is drawn.
 - `test` plays a scenarios file the same way: every channel the screen declares, by an absolute path or from an
   `include` too, is pointed at a folder that is never created, so a played screen never reaches a running host.
+- `source` loads a screen as `check` does, and to give a program's line in its file reads only a regular file of at
+  most 16 MiB inside the screen's folder once its links are resolved, whatever a `/program` key names (an absolute
+  name, `..`, a device): otherwise it gives the line within the definition.
 - `run`, `import` and `export` treat the file as a host does: the screen file is trusted, and a change set given to
   `import` or `run --plugin` is trusted like one given to `affrescoui_launcher --plugin`. `import` refuses a history
   another program is writing.
@@ -1071,3 +1078,7 @@ removes the gap from this list.
   SHA-256 and listed in the SBOM each release carries (`cmake/dependencies.json`), and Dependabot proposes updates to
   the workflows' actions; but no job matches the pinned versions against vulnerability databases, so a known flaw is
   found only when someone looks. Tracking: G-25.
+- **A pick kept in the state is as readable as the state.** A `pick` step's `into` writes the record into the state,
+  and a peer whose data rules leave that path readable reads it, though `getPicks` refuses that peer and its `request`
+  comes without `picks`. Where the person points can tell what they look at: keep such a path out of what a limited
+  peer may read. Tracking: G-28.
