@@ -70,6 +70,10 @@ bool isPersonsAuthor(std::string_view author) noexcept {
 	return author == "file" || author == "user" || author.starts_with("user/");
 }
 
+KeptAuthority keptAuthority(const Engine& engine) {
+	return engine.authority ? KeptAuthority(*engine.authority) : std::nullopt;
+}
+
 AuthorityScope::AuthorityScope(Engine& engine, const StepAuthority* authority) noexcept
     : engine_(engine), outer_(std::exchange(engine.authority, authority)) {}
 
@@ -102,7 +106,7 @@ void Programs::load() {
 	limits.budget = {lisp::maxBuildOperations, lisp::maxBuildBytes};
 	auto next = std::make_shared<lisp::Interpreter>(limits);
 	definePrimitives(*next);
-	next->setPure(true); // macros run now, and values are worked out: neither reaches anything
+	next->setPure(true);        // macros run now, and values are worked out: neither reaches anything
 	program.load(*next, false); // what runs: the build compiled everything, views too, and refused what didn't compile
 	next->workOutDefinitions();
 	next->setPure(false);

@@ -586,6 +586,31 @@ What holds for whatever text it is given:
   interpreter with lower limits (5,000,000 operations, 64 MiB, a depth of 2,000), the runner reads no file but those it is given
   and the suite's own support files under the suite's folder, and nothing reaches the network while it runs.
 
+### Commands run by peers
+
+A peer may run one of the app's commands (`Runtime::runCommandAs()`, `format/src/commands/CommandRuns.*`;
+`tests/unit/command_authority.cpp`, `tests/unit/command_runs.cpp`). The check before a run (what a command can reach) is a
+convenience; what holds is how the run executes:
+
+- **A run executes under its runner's name, never the person's.** It is refused at once when the runner is the person
+  (`user`, `user/...`), the app's file or nobody. Every step it reaches is judged with the runner among the authors that
+  led there, so each control and review step (`call`, `invoke`, `saveFile`, `accept`, `allowRun`, `undoRun`, `evaluate`...)
+  and each native action is refused, wherever it is: in the command, in an action or command it runs, in a function,
+  advice or hook of the program, written by the person or anyone else, or in a record write's `then`.
+- **What a run schedules keeps the runner's authority.** An `after` or `debounce`, a Lisp timer, a service call's or
+  an asynchronous call's `onDone` and `onError`, and a sound's actions run later with the authority of the step that
+  started them, so a run can't reach the person's authority by waiting.
+- **Its records are written under the runner's name**, and `permissions.data` judges them as that author's.
+- **A run refused while it ran leaves nothing.** One that ends with an error, or whose effect the run control refuses
+  (`RunControl::stateDenial()`), has its state put back as it was and its record writes undone. A run's own record
+  writes are groups of their own, apart from the person's.
+- **One run at a time**, and none while a proposal is previewed.
+- **Undo puts back only what still holds.** A run is undone only while each place it changed still holds what the run
+  left there and no later record write came after its own; otherwise nothing is changed. What reaches outside the state
+  and the records (the clipboard, a channel, a file) isn't undone, and the run says it is partly undoable.
+- **What a run reports is bounded**: its errors and what it changed (below, "Limits"); a value past those limits is never
+  reported, only its path.
+
 ### Editors (nREPL)
 
 `--nrepl` (on `affrescoui_launcher <app>` and `affrescoui run <app>`) lets an nREPL client (CIDER, Calva, Conjure)
@@ -812,6 +837,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Lines a channel read and the main thread hasn't handled yet (`Delivery::maxWaitingBytes`) | 96 MiB; the channel isn't read meanwhile |
 | One message from a peer (`PeerLimits::maxMessageBytes`) | 88 MiB (a revision of 64 MiB of assets, in base64); a larger one gets an error, unread. A remote peer (`net::PeerServerOptions::maxMessageBytes`) stays at 8 MiB unless its host raises it |
 | One asset (`maxAssetBytes`, `core/Assets.hpp`) | 32 MiB |
+| A command run's errors (`CommandRuns::maxErrors`, `maxErrorBytes`) | 8, each at most 512 bytes |
+| What a command run reports it changed (`CommandRuns::maxChangedOperations`, `maxChangedBytes`) | 64 operations and 16 KiB; past either, only the paths, within 16 KiB |
+| Command runs kept for undo (`maxUndoableRuns`, `core/Commands.hpp`; `RunUndo::maxBytes`) | the newest 32, and at most 1 MiB of what they changed; a run past 1 MiB can't be undone |
 | New assets one revision brings (`maxRevisionAssetBytes`) | 64 MiB |
 | Assets of one screen (`maxAssets`) | 1,000 |
 | Attachments waiting (`maxAttachments`, `maxAttachmentBytes`) | 32 and 128 MiB, the oldest dropped first; kept for the run only |
