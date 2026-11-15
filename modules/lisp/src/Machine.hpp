@@ -126,6 +126,9 @@ public:
 	/// @param natives Sorted by name; a constant, which outlives the machine.
 	/// @throws std::logic_error If the language has more tables than the machine has room for.
 	void defineLazyNatives(std::span<const LazyNative> natives);
+	/// @brief The names of every global code can read now, a lazy native's whether or not it was made yet: the
+	/// language's own, the host's primitives and the program's. @return Them, unsorted, possibly repeated.
+	[[nodiscard]] std::vector<std::string> globalNames() const;
 	/// @brief The language's own cell of a name, made if it is new: what its library code sees, whatever a program or
 	/// a host defines with that name (Library.hpp).
 	/// @param name Its name.

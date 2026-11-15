@@ -382,6 +382,16 @@ void Machine::defineLazyNatives(std::span<const LazyNative> natives) {
 	throw std::logic_error("Machine::lazyNatives_ has room for no more tables");
 }
 
+std::vector<std::string> Machine::globalNames() const {
+	std::vector<std::string> names;
+	names.reserve(globals_.size());
+	for(const auto& [name, cell] : globals_) // a cell is made for a name only used, too: those name nothing yet
+		if(cell->state != Global::State::Undefined) names.emplace_back(name);
+	for(const std::span<const LazyNative> natives : lazyNatives_)
+		for(const LazyNative& native : natives) names.emplace_back(native.name);
+	return names;
+}
+
 bool Machine::makeLazyNative(std::string_view name) {
 	if(!started_) return false; // the language's own definitions, many: none looks for a lazy native
 	for(const std::span<const LazyNative> natives : lazyNatives_) {
