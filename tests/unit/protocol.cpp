@@ -154,6 +154,8 @@ std::vector<Row> protocolTable() {
 	    {"diff", false, plain({{"type", "diff"}, {"from", 0}, {"to", "HEAD"}}), "diff", ""},
 	    {"diff", false, plain({{"type", "diff"}, {"proposal", 9}}), "rejected", "no proposal 9"},
 	    {"fileChanges", false, plain({{"type", "fileChanges"}}), "rejected", "can't tell a change's files"},
+	    {"getPicks", false, plain({{"type", "getPicks"}}), "rejected", "this host keeps no picks"},
+	    {"getSource", false, plain({{"type", "getSource"}, {"at", "#title"}}), "rejected", "can't tell a node's source"},
 	    {"blame", false, plain({{"type", "blame"}, {"target", "#title"}}), "blame", ""},
 	    {"blame", false, plain({{"type", "blame"}}), "rejected", "blame.target"},
 	    {"exportChanges", false, plain({{"type", "exportChanges"}, {"from", 0}, {"name", "mine"}}), "changes", ""},
