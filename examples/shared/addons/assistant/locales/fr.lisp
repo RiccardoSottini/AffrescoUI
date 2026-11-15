@@ -35,4 +35,14 @@
                 :assistant.stopped "Arrêté."
                 :assistant.copy "Copier"
                 :assistant.copied "Copié"
-                :assistant.retry "Réessayer"}}}
+                :assistant.retry "Réessayer"
+                :assistant.point "Désigner un élément"
+                :assistant.pointHint "Cliquez sur ce que vous voulez modifier. Échap annule."
+                :assistant.pointShortcut "Désigner un élément (Ctrl+Alt+A)"
+                :assistant.pointed "Désigné"
+                :assistant.pointedNote "Partagé avec l'assistant à l'envoi"
+                :assistant.removePointed "Retirer {name}"
+                :assistant.showSource "Voir la source"
+                :assistant.pointedNearest "L'élément le plus proche qui a une adresse"
+                :assistant.pointedRepeat "Un élément d'une liste : une modification s'applique à tous"
+                :assistant.pointedShared "Partagé : écrit une fois, utilisé à plusieurs endroits"}}}

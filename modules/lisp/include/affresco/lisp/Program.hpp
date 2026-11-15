@@ -8,6 +8,7 @@
 #include <affresco/lisp/Interpreter.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <set>
@@ -119,6 +120,21 @@ struct UndefinedName {
 	std::string definition; ///< The definition it is in.
 };
 
+struct NodeNote; // what a recording build notes as it makes a node (Machine.hpp)
+
+/// @brief Where a recording build (Program::recordOrigins()) made a node with an id, from a form of the source: the
+/// places of the node's form and of its id's text, as the program's entries were read. They differ when a call hands
+/// the id to the view that makes the node (`(tool-button "save")`); a computed id has no place of its own.
+struct NodePlace {
+	std::string id;             ///< The node's id.
+	std::string file;           ///< The file its form is in, as the program calls it.
+	std::uint32_t line = 0;     ///< The line its form starts on, from 1, as the entries' start lines count it.
+	std::uint32_t column = 0;   ///< The column of its '(', from 1, in characters.
+	std::string idFile;         ///< The file its id's text is in.
+	std::uint32_t idLine = 0;   ///< The line its id's text is on.
+	std::uint32_t idColumn = 0; ///< The column its id's text starts at.
+};
+
 /// The address under which a file's `(ns ...)` form is kept with its entries (reference/namespaces.md): no definition
 /// has that name, and no revision may add, change or remove it (checkNamespacesKept()).
 inline constexpr std::string_view namespaceEntry = "ns";
@@ -183,6 +199,15 @@ public:
 	/// @throws LispError If building fails or a limit runs out, naming the place.
 	[[nodiscard]] json build(const Limits& limits = {});
 
+	/// @brief Makes the next builds note where they make each node with an id (nodePlaces()), or stop.
+	/// Off by default: a build that records nothing costs one test per node more than before.
+	/// @param on Whether to record.
+	void recordOrigins(bool on) noexcept { recording_ = on; }
+	/// @brief Where the last build made each node with an id, if it recorded (recordOrigins()): the first place of each
+	/// id, in the order made. A node with no id, or built from a map or by a function rather than a form, has none.
+	/// @return Them; empty if it didn't record.
+	[[nodiscard]] const std::vector<NodePlace>& nodePlaces() const noexcept { return places_; }
+
 	/// @brief The `add-hook`, `remove-hook` and `advice` definitions of the last build. @return Them, in order of the
 	/// entries.
 	[[nodiscard]] const std::vector<Extension>& extensions() const noexcept { return extensions_; }
@@ -208,6 +233,11 @@ public:
 	[[nodiscard]] const std::set<std::pair<std::string, std::string>>& defaulted() const noexcept { return defaulted_; }
 
 private:
+	/// @brief Keeps the first note of each id a recording build made, as nodePlaces() gives them, while the build's
+	/// interpreter still owns the files' names.
+	/// @param notes The notes.
+	void keepNodePlaces(const std::vector<NodeNote>& notes);
+
 	std::vector<Entry> entries_;                                  ///< See entries().
 	std::map<std::string, std::size_t> names_;                    ///< Where each entry is in entries_, by its name.
 	std::vector<std::pair<std::string, std::string>> namespaces_; ///< See namespaceForms().
@@ -218,6 +248,8 @@ private:
 	std::map<std::string, std::vector<std::string>> used_;        ///< See namesUsed().
 	NamedCalls named_;                                            ///< See namedCalls().
 	std::set<std::pair<std::string, std::string>> defaulted_;     ///< See defaulted().
+	std::vector<NodePlace> places_;                               ///< See nodePlaces().
+	bool recording_ = false;                                      ///< See recordOrigins().
 };
 
 } // namespace affresco::lisp

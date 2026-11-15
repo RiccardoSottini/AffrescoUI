@@ -26,7 +26,8 @@
            :assistant.success {:light "#1f883d" :dark "#3fb950"}
            :assistant.danger {:light "#cf222e" :dark "#f85149"}
            :assistant.warningBackground {:light "#fff8c5" :dark "#3b2e0a"}}
-  :keys {"mod+shift+a" assistant.toggle}
+  :keys {"mod+shift+a" assistant.toggle
+         "mod+alt+a" assistant.point}
   :strings {:default en})
 
 (defstate assistant
@@ -47,6 +48,10 @@
    :canReview false
    :attachments []
    :picked nil
+   :pointed []
+   :justPointed nil
+   :pointing false
+   :wasOpen false
    :copied nil})
 
 (defcomponent assistantChip "A small chip in the assistant: an icon and a text."
@@ -118,6 +123,44 @@
        :textColor @assistant.dim
        :fitText {:maxWidth 180})))
 
+(defcomponent assistantPointedChip
+  ;; An element the person pointed at, as a chip: its type and where it is written (a program's definition, or a
+  ;; document's node), never what it shows; the tooltip says when it stands for more than itself. Removable from the
+  ;; next message's, and with a button that shows its source where the host has the window for it
+  "An element the person pointed at, as a chip: its type and where it is written (a program's definition, or a document's node), never what it shows; the tooltip says when it stands for more than itself. Removable from the next message's, and with a button that shows its source where the host has the window for it"
+  {:item {} :removable false :showSource false}
+  `(row :fitContent width
+     :height 30
+     :alignItems center
+     :gap 4
+     :radius 15
+     :color @assistant.raised
+     :borderWidth 1
+     :borderColor @assistant.border
+     :role listitem
+     :let {:assistantName ~(str item.type
+                                " · "
+                                (get (reverse (split (get (reverse (split (or-else item.source.address item.node "") "/")) 0)
+                                                     "components."))
+                                     0))}
+     :label ~assistantName
+     :tooltip ~(str assistantName
+                    (if (= item.exact false) (str "\n" (t "assistant.pointedNearest")) "")
+                    (if (> (count (or-else item.repeat [])) 0) (str "\n" (t "assistant.pointedRepeat")) "")
+                    (if (= item.source.shared true) (str "\n" (t "assistant.pointedShared")) ""))
+     {:width 6 :height 1 :color transparent}
+     (path :width 14
+       :height 14
+       :viewBox "0 0 24 24"
+       :d "M4 4l7 17 2.5-7.5L21 11Z"
+       :stroke @assistant.dim
+       :strokeWidth 2
+       :strokeJoin round)
+     (label :text ~assistantName :textColor @assistant.text :fitText {:maxWidth 200})
+     ~(assistant-source-button item showSource)
+     ~(assistant-unpoint-button item removable)
+     {:width 4 :height 1 :color transparent}))
+
 (defcomponent assistantExtras
   ;; What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is
   ;; previewed) and its run-once steps, a line each
@@ -142,6 +185,7 @@
 ;;; What it does: each a function, run by its action's name where a key, a component or the app names one
 
 (defn assistant-open "Opens the panel, the field focused, the conversation at its end." []
+  (assistant-keep-current-points)
   (set "state.assistant.open" true)
   (set "state.assistant.unread" 0)
   (set "state.assistant.anim" 0)
@@ -173,18 +217,27 @@
               state.assistant.models.default)}
     {}))
 
-(defn assistant-ask "Asks the agents, with the files attached: the person's message, then the request." [text]
+(defn assistant-ask
+  "Asks the agents, with the files attached and the elements pointed at: what goes with it, the person's message, then
+the request (whose picks are spent once sent)."
+  [text]
   (when (> (count (or text "")) 0)
+    (assistant-keep-current-points)
     (when (> (count state.assistant.attachments) 0)
       (push "state.assistant.messages"
             :value {:kind "files" :mine true :files state.assistant.attachments :time (now)}))
+    (when (> (count state.assistant.pointed) 0)
+      (push "state.assistant.messages"
+            :value {:kind "pointed" :mine true :items state.assistant.pointed :time (now)}))
     (push "state.assistant.messages" :value {:mine true :from (t "assistant.you") :text text :time (now) :error false})
     (assistant-trim)
     (ask text
          :attachments (map (fn [file] (:id file)) state.assistant.attachments)
+         :picks (map (fn [record] (:id record)) state.assistant.pointed)
          :into "state.assistant.pending"
          :options (assistant-model-options))
     (set "state.assistant.attachments" [])
+    (set "state.assistant.pointed" [])
     (scrollTo "#assistantEnd")))
 
 (defn assistant-start "Opens the panel and asks what the app was given (event.text): the host's own way in." []
@@ -230,6 +283,63 @@ message an app gives."
 (defn assistant-unattach "Takes a file from the next message's." [id]
   (set "state.assistant.attachments" (remove (fn [file] (= (:id file) id)) state.assistant.attachments))
   (focus "#assistantComposer"))
+
+(defn assistant-point
+  "Lets the person point at an element of the app for the next message, four at most: the panel steps aside (it is
+modal), the focus staying where it was, and comes back when they pick or cancel."
+  []
+  (when (< (count state.assistant.pointed) 4)
+    (set "state.assistant.wasOpen" state.assistant.open)
+    (set "state.assistant.pointing" true)
+    (set "state.assistant.open" false)
+    (pick "node"
+          :hint (t "assistant.pointHint")
+          :into "state.assistant.justPointed"
+          :onDone assistant-pointed
+          :onCancel assistant-point-cancelled)))
+
+(defn assistant-pointed
+  "When the person picked: the element joins the next message's (once: one already there, or the assistant's own, is
+forgotten again), and the panel opens on the field."
+  []
+  (let [record state.assistant.justPointed]
+    (when (some? record)
+      (if (or (some (fn [it] (= (:node it) (:node record))) state.assistant.pointed)
+              (clojure.string/starts-with? (or-else (:node record) "") "#assistant")
+              (>= (count state.assistant.pointed) 4))
+        (unpick (:id record))
+        (push "state.assistant.pointed" :value record))))
+  (set "state.assistant.justPointed" nil)
+  (set "state.assistant.pointing" false)
+  (assistant-open))
+
+(defn assistant-point-cancelled "When the person cancels pointing: the panel as it was." []
+  (set "state.assistant.pointing" false)
+  (when state.assistant.wasOpen (assistant-open)))
+
+(defn assistant-unpoint "Takes an element from the next message's: the engine forgets its record." [id]
+  (unpick id)
+  (set "state.assistant.pointed" (remove (fn [it] (= (:id it) id)) state.assistant.pointed))
+  (focus "#assistantComposer"))
+
+(defn assistant-stale "Whether an element was pointed at before the latest commit." [record]
+  (< (or-else (:revision record) 0) revision.number))
+
+(defn assistant-keep-current-points
+  "Drops the elements pointed at before the latest commit, quietly: where they were may have moved."
+  []
+  (let [stale (filter assistant-stale state.assistant.pointed)]
+    (when (> (count stale) 0)
+      (unpick (map (fn [it] (:id it)) stale))
+      (set "state.assistant.pointed" (remove assistant-stale state.assistant.pointed)))))
+
+(defn assistant-show-source
+  "Asks the host to show where an element is written (its changes window's Source page); a host without it does
+nothing."
+  [record]
+  (call "changes.open"
+        :with {:source (:address (:source record)) :line (:line (:source record))}
+        :onError assistant-ignored))
 
 (defn assistant-asked "What the request a reply answers asked, or nothing." [id]
   (or (:text (find (fn [request] (= (:id request) id)) requests)) ""))
@@ -346,6 +456,9 @@ run) and overlays: its launcher and its panel."
             :assistant.attachFailed [{:lisp assistant-attach-failed}]
             :assistant.attachPicked [{:lisp assistant-attach-picked}]
             :assistant.unattach [{:lisp assistant-unattach}]
+            :assistant.point [{:lisp assistant-point}]
+            :assistant.unpoint [{:lisp assistant-unpoint}]
+            :assistant.showSource [{:lisp assistant-show-source}]
             "ask:reply" [{:lisp assistant-reply}]
             :assistant.stop [{:lisp assistant-stop}]
             :assistant.retry [{:lisp assistant-ask-again}]
@@ -400,6 +513,53 @@ run) and overlays: its launcher and its panel."
        :stroke @assistant.dim
        :strokeWidth 2.5
        :strokeCap round)))
+
+(defview assistant-unpoint-button "An element's remove button, on the next message's chips." [item removable]
+  `(node :when ~removable
+     :width 22
+     :height 22
+     :radius 11
+     :color transparent
+     :role button
+     :focusable true
+     :cursor hand
+     :label ~(t "assistant.removePointed" {:name assistantName})
+     :tooltip ~(t "assistant.removePointed" {:name assistantName})
+     :hover {:color @assistant.border}
+     :focused {:borderWidth 1 :borderColor @assistant.accent}
+     :onClick ~(handler assistant-unpoint item.id)
+     (path :anchors {:left 4 :top 4}
+       :width 14
+       :height 14
+       :viewBox "0 0 24 24"
+       :d "M18 6 6 18M6 6l12 12"
+       :stroke @assistant.dim
+       :strokeWidth 2.5
+       :strokeCap round)))
+
+(defview assistant-source-button "An element's Show source button, where the host can show it." [item showSource]
+  `(node :when ~showSource
+     :width 22
+     :height 22
+     :radius 11
+     :color transparent
+     :role button
+     :focusable true
+     :cursor hand
+     :label ~(t "assistant.showSource")
+     :tooltip ~(t "assistant.showSource")
+     :hover {:color @assistant.border}
+     :focused {:borderWidth 1 :borderColor @assistant.accent}
+     :onClick ~(handler assistant-show-source item)
+     (path :anchors {:left 4 :top 4}
+       :width 14
+       :height 14
+       :viewBox "0 0 24 24"
+       :d "m16 18 6-6-6-6M8 6l-6 6 6 6"
+       :stroke @assistant.dim
+       :strokeWidth 2.5
+       :strokeCap round
+       :strokeJoin round)))
 
 (defview assistant-run "A run-once step a proposal holds, as a line." [id step r]
   `(label :id ~(str "assistantRun" r)
@@ -635,6 +795,8 @@ run) and overlays: its launcher and its panel."
      ~(repeat [message state.assistant.messages :index m]
        (assistant-sent-files message m))
      ~(repeat [message state.assistant.messages :index m]
+       (assistant-sent-pointed message m))
+     ~(repeat [message state.assistant.messages :index m]
        (assistant-additions message m))
      ~(repeat [message state.assistant.messages :index m]
        (assistant-card message m))
@@ -664,6 +826,19 @@ run) and overlays: its launcher and its panel."
      :label ~(t "assistant.attached")
      ~(repeat [file message.files :index f]
        `(node :id ~(str "assistantSent" m "-" f) :use assistantFile :with {:file ~file}))))
+
+(defview assistant-sent-pointed "The elements message `m` pointed at, as chips, where it is a message of them." [message m]
+  `(row :id ~(str "assistantPointedSent" m)
+     :when ~(= message.kind "pointed")
+     :wrap true
+     :fitContent height
+     :gap 6
+     :justify end
+     :cell {:column 1 :row ~(+ m 1)}
+     :role list
+     :label ~(t "assistant.pointed")
+     ~(repeat [item message.items :index p]
+       `(node :id ~(str "assistantPointedSent" m "-" p) :use assistantPointedChip :with {:item ~item}))))
 
 (defview assistant-additions "What a proposal adds beside its edits, where message `m` holds it: assets and run-once steps."
   [message m]
@@ -706,6 +881,31 @@ run) and overlays: its launcher and its panel."
        :stroke @assistant.dim
        :strokeWidth 2
        :strokeCap round)))
+
+(defview assistant-point-button
+  "The button that points at an element of the app for the next message: dimmed, and doing nothing, at four."
+  []
+  `(node#assistantPoint :width 32
+     :height 32
+     :radius 8
+     :color transparent
+     :role button
+     :focusable true
+     :cursor hand
+     :disabled ~(>= (count state.assistant.pointed) 4)
+     :label ~(t "assistant.point")
+     :tooltip ~(t "assistant.pointShortcut")
+     :hover {:color @assistant.raised}
+     :focused {:borderWidth 1 :borderColor @assistant.accent}
+     :onClick assistant-point
+     (path :anchors {:left 7 :top 7}
+       :width 18
+       :height 18
+       :viewBox "0 0 24 24"
+       :d "M4 4l7 17 2.5-7.5L21 11Z"
+       :stroke ~(if (>= (count state.assistant.pointed) 4) "@assistant.border" "@assistant.dim")
+       :strokeWidth 2
+       :strokeJoin round)))
 
 (defview assistant-model-picker "The menu of the models the host's agent can use." []
   `(row#assistantModelPicker :when ~(> (count (or-else assistantModels.models [])) 0)
@@ -782,15 +982,42 @@ run) and overlays: its launcher and its panel."
             :accent @assistant.accent
             :accentTextColor @assistant.onAccent}
      ~(assistant-attach)
+     ~(assistant-point-button)
      ~(assistant-model-picker)))
 
-(defview assistant-input-card "The bottom of the panel: the files to send, the field and its buttons." []
+(defview assistant-pointed-row
+  "The elements pointed at for the next message, as chips, and a line that says they go with it."
+  []
+  `(node#assistantPointedRow :when ~(> (count state.assistant.pointed) 0)
+     :alignSelf stretch
+     :height 62
+     :color transparent
+     (row#assistantPointedList :scroll horizontal
+       :gap 6
+       :alignItems center
+       :anchors {:left 10 :right 10 :top 10}
+       :height 30
+       :role list
+       :label ~(t "assistant.pointed")
+       ~(repeat [item state.assistant.pointed :index p]
+         `(node :id ~(str "assistantPointed" p)
+            :use assistantPointedChip
+            :with {:item ~item :removable true :showSource ~(= state.assistant.canReview true)})))
+     (label#assistantPointedNote :runs [{:text ~(t "assistant.pointedNote") :size 12}]
+       :textColor @assistant.dim
+       :anchors {:left 14 :top 44}
+       :fitText true)))
+
+(defview assistant-input-card
+  "The bottom of the panel: the elements pointed at and the files to send, the field and its buttons."
+  []
   `(column#assistantInputCard :anchors {:left 12 :right 12 :top 0 :bottom 12}
      :color @assistant.surface
      :radius 16
      :borderWidth 1
      :borderColor @assistant.border
      :shadow {:x 0 :y 2 :blur 8 :color "#0000001a"}
+     ~(assistant-pointed-row)
      (node#assistantAttachments :when ~(> (count state.assistant.attachments) 0)
        :alignSelf stretch
        :height 54
@@ -839,7 +1066,9 @@ run) and overlays: its launcher and its panel."
        ~(assistant-messages))
      (node#assistantInput :alignSelf stretch
        :color transparent
-       :height ~(if (> (count state.assistant.attachments) 0) 166 112)
+       :height ~(+ 112
+                   (if (> (count state.assistant.attachments) 0) 54 0)
+                   (if (> (count state.assistant.pointed) 0) 62 0))
        ~(assistant-input-card))))
 
 (defview assistant-offline-note "A note while no agent is connected: choose a provider in Settings, or connect one." []

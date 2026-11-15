@@ -26,4 +26,11 @@
                 :changes.pick "Choose a change on the left."
                 :changes.revision "Revision {n}"
                 :changes.layers "View {view} · Logic {logic} · Data: {data}"
-                :changes.original "The file as loaded"}}}
+                :changes.original "The file as loaded"
+                :changes.source "Source"
+                :changes.sourceShared "From a shared add-on: a change applies to this app only."
+                :changes.sourceCut "Only the first 16 KiB of the text are shown."
+                :changes.sourcePreviewed "As proposal #{n} shows it, while it is previewed."
+                :changes.lastChanged "Last changed in #{number} by {author}"
+                :changes.showChange "Show that change"
+                :changes.line "line {line}"}}}

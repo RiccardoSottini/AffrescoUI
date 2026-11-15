@@ -71,6 +71,14 @@ struct LazyNative {
 	NativeFunction function = nullptr; ///< It.
 };
 
+/// @brief A node a recording build made with an id written out (Machine::nodeNotes): its id, the place of its form and
+/// the place of its id's text, which a call may have handed in from elsewhere.
+struct NodeNote {
+	std::string id; ///< The id.
+	Place form;     ///< Where the node's form starts.
+	Place written;  ///< Where the id's text is written; line 0 if it was computed.
+};
+
 /// @brief The machine behind an Interpreter.
 class Machine {
 public:
@@ -80,6 +88,9 @@ public:
 	Machine(Interpreter& owner, const Limits& limits);
 
 	Heap heap; ///< What values point at.
+	/// Gets, as a tree is made, each node with an id written out (Program::recordOrigins()): nullptr, as in every
+	/// ordinary build, records nothing. It points at the recording build's own list, which outlives the build.
+	std::vector<NodeNote>* nodeNotes = nullptr;
 
 	/// @brief The interpreter it serves. @return It.
 	[[nodiscard]] Interpreter& owner() noexcept { return owner_; }

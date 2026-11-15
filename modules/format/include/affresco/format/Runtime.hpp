@@ -41,6 +41,12 @@ class Store;
 
 namespace affresco::format {
 
+/// @brief Which file holds an entry of a JSON document, as a reviewer knows it (Runtime::setFileOf()).
+struct FileOf {
+	std::string name{};  ///< The file's name, e.g. "board.json"; empty when the host can't tell.
+	bool shared = false; ///< The file lies outside the application's folder.
+};
+
 /// @brief What the last update of the panels cost: read with Runtime::lastUpdate(), for an inspector.
 struct UpdateStatistics {
 	std::uint64_t updates = 0;     ///< Updates since the runtime started.
@@ -286,6 +292,21 @@ public:
 	/// @return `{"node": "#id" or the node's place, "type", "path", "bind"?, "bindings": {key: written}, "handlers":
 	/// [key]}`, or null if no node built it.
 	[[nodiscard]] json inspect(const Panel& panel);
+
+	/// @brief Where a node is written (SCREEN_FORMAT.md, "Pointing at a node"): its definition's exact text for a
+	/// program, the node printed as JSON for a JSON document. It reads the versioned document only, never a file.
+	/// @param at "#id", a JSON Pointer to a node, or a definition's address (`/program/<file>/<name>`).
+	/// @return `{"node"?, "pointer"?, "notation": "lisp" or "json", "address", "kind"?, "file"?, "line"?, "column"?,
+	/// "shared"?, "text", "cut"?}`; `text` is at most 16 KiB, and `cut` is true when it was cut.
+	/// @throws DocumentError Naming @p at, if nothing is there or it is longer than 512 bytes.
+	[[nodiscard]] json source(std::string_view at) const;
+	/// @brief The pick records the person made (the "pick" step) and neither removed nor sent, oldest first.
+	/// @return `[record]` (SCREEN_FORMAT.md, "Pointing at a node").
+	[[nodiscard]] json picks() const;
+	/// @brief Says which file holds an entry of a JSON document, for the `file` of a pick's and a source's `source`;
+	/// without it, `file` is left out.
+	/// @param fileOf Gives the file holding a JSON Pointer of the document; must not outlive what it reads.
+	void setFileOf(std::function<FileOf(std::string_view pointer)> fileOf);
 
 	/* Lookup */
 

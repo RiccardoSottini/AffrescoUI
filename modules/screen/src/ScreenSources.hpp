@@ -6,6 +6,7 @@
 
 #include "affresco/core/Json.hpp"
 
+#include <filesystem>
 #include <map>
 #include <string>
 #include <string_view>
@@ -52,5 +53,19 @@ public:
 private:
 	std::map<std::string, std::string, std::less<>> entries_; ///< The file of each entry, by pointer.
 };
+
+/// @brief The name a reviewer knows a file by: its path from the screen's folder, without the climb to a shared folder.
+/// @param file The file's absolute path, or empty for the screen itself.
+/// @param entry The screen's own name.
+/// @param base The screen's folder.
+/// @return The name.
+[[nodiscard]] std::string shownName(const std::string& file, const std::string& entry,
+                                    const std::filesystem::path& base);
+
+/// @brief Whether a file lies outside the screen's folder: a shared one, which other screens include too.
+/// @param file The file's absolute path, or empty for the screen itself.
+/// @param base The screen's folder.
+/// @return Whether its path from @p base climbs out of it.
+[[nodiscard]] bool sharedFile(const std::string& file, const std::filesystem::path& base);
 
 } // namespace affresco::detail

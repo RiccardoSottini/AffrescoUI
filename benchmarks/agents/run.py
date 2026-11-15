@@ -5,6 +5,7 @@ screen through the MCP server, then the task's scenarios played on the result an
     python3 benchmarks/agents/run.py --client oracle                    # the reference revisions: all must pass
     python3 benchmarks/agents/run.py --client claude-code --model M     # Claude Code, headless, with an MCP config
     python3 benchmarks/agents/run.py --only kanban-                     # the tasks whose ids start so
+    python3 benchmarks/agents/run.py --only point- --point              # the tasks with a `point`, asked by pointing
     python3 benchmarks/agents/run.py --markdown results/*.json          # the "Agents" table of BENCHMARKS.md
 
 Per task: a host (`affrescoui run`, mode acceptEdits) on a socket folder of its own, a reviewer on its studio.sock that
@@ -12,7 +13,9 @@ accepts every proposal (the changes rules send to review, e.g. to actions), the 
 mcp/affrescoui_mcp.py, then `affrescoui test --document` on the screen as the host has it. A task passes when its
 scenarios pass, every node it lists as unchanged is unchanged and, for the oracle, its scenarios failed before (so they
 test the request); a task that says how the change is written (`present`: a program's definition, or a JSON action)
-needs it there. Recorded: success, tokens in and out, tool calls, revisions and time, into one JSON per run. API
+needs it there. With --point, a task that has a `point` is asked by pointing: its `pointRequest`, then the line the
+MCP server gives a channel event for that pick. Recorded: success, tokens in and out, tool calls, revisions, time and
+whether the task was asked by pointing, into one JSON per run. API
 keys are the client's business, from the environment: nothing of the environment is written, and the client's output
 is read for its counts only.
 """
@@ -187,8 +190,41 @@ def run_oracle(task, host, timeout):
     return {"toolCalls": len(task["reference"]), "tokensIn": None, "tokensOut": None, "model": None}
 
 
+def repeats_along(document, pointer):
+    """The repeats a node is in (its own included), outermost first, along its JSON pointer in the document: what a
+    pick's `repeat` holds, which getSource doesn't give."""
+    found, node = [], document
+    for part in (pointer or "").split("/")[1:]:
+        part = part.replace("~1", "/").replace("~0", "~")
+        try:
+            node = node[int(part)] if isinstance(node, list) else node[part]
+        except (KeyError, IndexError, ValueError, TypeError):
+            break
+        if isinstance(node, dict) and isinstance(node.get("repeat"), dict):
+            found.append({"for": node["repeat"].get("for"), "in": node["repeat"].get("in")})
+    return found
+
+
+def pointed_request(task, host, mcp):
+    """What a client is asked when the person points: the task's pointRequest, then the pick's line as a channel event
+    gives it (the MCP server's pick_lines: the node, its type in the document, the repeats it is in, where it is
+    written, from getSource)."""
+    reply = host.reviewer.request({"type": "getSource", "at": task["point"]})
+    if reply.get("type") != "source" or not isinstance(reply.get("source"), dict):
+        raise RuntimeError(f"no source for {task['point']}: {str(reply)[:200]}")
+    source, document = reply["source"], host.document()["document"]
+    found = mcp.find_node(document, task["point"][1:]) if task["point"].startswith("#") else None
+    pick = {"node": source.get("node") or task["point"],
+            "type": mcp.node_type(found[1], document.get("styles")) if found else "element",
+            "source": {key: source[key] for key in ("address", "kind", "file", "line", "column", "shared")
+                       if key in source}}
+    if repeats_along(document, source.get("pointer")):
+        pick["repeat"] = repeats_along(document, source.get("pointer"))
+    return task["pointRequest"] + "\n\n" + "\n".join(mcp.pick_lines([pick]))
+
+
 def claude_prompt(task):
-    """What Claude Code is asked: the request, and where to make it."""
+    """What Claude Code is asked: the request (described, or pointed with its pick's line), and where to make it."""
     return ("A person asks for a change to the AffrescoUI screen that is running now. Make it with the affrescoui "
             "MCP tools (read the screen, then submit revisions), and stop when it is done.\n\nThe request: "
             + task["request"])
@@ -282,11 +318,14 @@ def run_task(task, args, mcp):
     result = {"id": task["id"], "level": task["level"], "success": False}
     try:
         host = Host(affrescoui, os.path.join(ROOT, task["screen"]), folder)
+        pointed = bool(args.point and task.get("point"))
+        result["pointed"] = pointed
+        asked = {**task, "request": pointed_request(task, host, mcp)} if pointed else task
         start = host.document()
         failed_before = not play(affrescoui, task, as_played(start), folder, "before")[0]
         began = time.monotonic()
         run = run_oracle if args.client == "oracle" else run_claude
-        counts = run(task, host, args.timeout, *([args.model] if args.client == "claude-code" else []))
+        counts = run(asked, host, args.timeout, *([args.model] if args.client == "claude-code" else []))
         seconds = time.monotonic() - began
         end = host.settled()
         passed, failures = play(affrescoui, task, as_played(end), folder, "after")
@@ -354,12 +393,54 @@ def markdown(paths):
         totals = run["summary"]
         tokens = " / ".join("n/a" if totals[key] is None else f"{totals[key]:,.0f}"
                             for key in ("medianTokensIn", "medianTokensOut"))
-        rows.append(f"| {run['date']} | {run['client']} | {run['model'] or 'none'} | {run['clientVersion']}, "
+        client = run["client"] + (" (pointed)" if run.get("pointed") else "")
+        rows.append(f"| {run['date']} | {client} | {run['model'] or 'none'} | {run['clientVersion']}, "
                     f"AffrescoUI {run['commit']} | {run['machine']} | {totals['passed']}/{totals['tasks']} "
                     f"({', '.join(f'{k} {v}' for k, v in totals['byLevel'].items())}) | {tokens} | "
                     f"{totals['medianToolCalls']} |")
     if len(rows) == 2:
         rows.append("| not run yet | | | | | | | |")
+    return "\n".join(rows) + "\n" + pairs(paths)
+
+
+def pairs(paths):
+    """The "Pointing against describing" table: one row per task these results ran both ways, described → pointed
+    in each cell (successes over runs; tokens in and out, tool calls and seconds as medians over runs), then
+    the medians over those tasks. Empty without such a task."""
+    ways = {}
+    for path in sorted(paths):
+        with open(path, encoding="utf-8") as file:
+            for result in json.load(file)["tasks"]:
+                if "pointed" in result:
+                    ways.setdefault(result["id"], {False: [], True: []})[result["pointed"]].append(result)
+    both = [task for task, runs in ways.items() if runs[False] and runs[True]]
+    if not both:
+        return ""
+    keys = ("tokensIn", "tokensOut", "toolCalls", "seconds")
+
+    def median(values):
+        values = [value for value in values if value is not None]
+        return statistics.median(values) if values else None
+
+    def shown(value):
+        return "n/a" if value is None else f"{value:,.0f}" if value >= 100 else f"{value:g}"
+
+    rows = ["", "| Task | Success | Tokens in | Tokens out | Tool calls | Seconds |",
+            "|---|---:|---:|---:|---:|---:|"]
+    medians = {key: {False: [], True: []} for key in keys}
+    for task in both:
+        cells = [" → ".join(f"{sum(r['success'] for r in ways[task][way])}/{len(ways[task][way])}"
+                            for way in (False, True))]
+        for key in keys:
+            values = {way: median(r.get(key) for r in ways[task][way]) for way in (False, True)}
+            for way in (False, True):
+                medians[key][way].append(values[way])
+            cells.append(f"{shown(values[False])} → {shown(values[True])}")
+        rows.append(f"| {task} | " + " | ".join(cells) + " |")
+    successes = [" → ".join(f"{sum(r['success'] for t in both for r in ways[t][way])}/"
+                            f"{sum(len(ways[t][way]) for t in both)}" for way in (False, True))]
+    rows.append("| Median | " + " | ".join(successes + [
+        f"{shown(median(medians[key][False]))} → {shown(median(medians[key][True]))}" for key in keys]) + " |")
     return "\n".join(rows) + "\n"
 
 
@@ -371,10 +452,12 @@ def main():
     parser.add_argument("--build", default=os.path.join(ROOT, "build"), help="the build with affrescoui")
     parser.add_argument("--timeout", type=int, default=900, help="seconds a client has for one task")
     parser.add_argument("--out", help="the results file (default: results/<client>-<date>.json here)")
+    parser.add_argument("--point", action="store_true", help="ask the tasks that have a `point` by pointing")
     parser.add_argument("--markdown", nargs="*", metavar="RESULTS", help="print the Agents table of these results")
     args = parser.parse_args()
     if args.markdown is not None:
-        return sys.stdout.write(markdown(args.markdown))
+        sys.stdout.write(markdown(args.markdown))
+        return 0
 
     mcp, results = load_mcp(), []
     for task in load_tasks(args.only):
@@ -385,8 +468,8 @@ def main():
     run = {"format": "affrescoui-agent-benchmark", "version": 1, "client": args.client,
            "model": next((r["model"] for r in results if r.get("model")), args.model),
            "clientVersion": client_version(args.client), "commit": commit(), "machine": machine(), "date": today,
-           "summary": summary(results), "tasks": results}
-    out = args.out or os.path.join(HERE, "results", f"{args.client}-{today}.json")
+           "pointed": args.point, "summary": summary(results), "tasks": results}
+    out = args.out or os.path.join(HERE, "results", f"{args.client}-{today}{'-pointed' if args.point else ''}.json")
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w", encoding="utf-8") as file:
         file.write(json.dumps(run, indent=2) + "\n")

@@ -13,7 +13,11 @@ changes    AI agent ──tools──▶ affrescoui_mcp.py ──agent.sock─�
 - **Into the agent:** a person types a request in the app itself ("add a dark theme"; a screen's `ask` step, e.g. the
   assistant add-on's chat), or in any client connected on the host's `studio.sock`. The host passes it on to this
   server, which pushes it into the agent's session as a Claude Code **channel event**, and also keeps it for the
-  `wait_for_request` tool (for any MCP client). A request from inside the app gets a "working" note right away, and a request is never an approval:
+  `wait_for_request` tool (for any MCP client). A request may carry `picks`, what the person pointed at with the
+  Point button of the app's assistant (at most 4, cleaned to the keys of a pick record: node, type, pointer, bounds,
+  bindings as written, source; never a value from the app's data; only on a request from inside the app); the channel
+  event lists them after the text, one `Pointed at: ...` line each (without line breaks or control characters), and
+  holds them in its `picks` meta. A request from inside the app gets a "working" note right away, and a request is never an approval:
   the person still reviews the agent's proposals.
 - **Out of the agent:** the agent reads the screen and sends revisions (JSON Patch) with the tools. They go through
   the host's permission rules: for the templates they become proposals the person accepts or rejects on their card in
@@ -105,6 +109,8 @@ The setup, once the host builds on Windows (work in progress) and Python can con
 | `get_history` | main's commits, like `git log`: number, short id, author, committer (who approved it), message, parents |
 | `get_diff` | A JSON Patch between two revisions (`HEAD~1`, ids, numbers), or what an open proposal would change; with `files`, the change file by file (`file` for a file's text, `notation` for JSON or Lisp) |
 | `get_blame` | Who last changed a node (`"#board"`, `"#board/text"`) or a path (`"/colors/accent"`), and when, like `git blame`: the commit's revision, id, author, committer, message and time |
+| `get_pick` | What the person pointed at and has not sent yet: each element's node, type, and the definition or file that builds it (the host's `getPicks`). Refused to a connection whose reads are limited. Read-only |
+| `get_source` | Where a node is written (`at`: `"#id"`, a JSON Pointer or a definition's address): one line of JSON (address, file, line, notation, ...), then the definition's text in a program, or the node as JSON in a JSON document (the host's `getSource`). Refused to a connection whose reads are limited. Read-only |
 | `revert_revision` | Undo one revision and keep the later ones, like `git revert` (follows the permissions) |
 | `restore_revision` | Bring the whole screen back to an earlier revision, like `git restore` (follows the permissions) |
 | `get_events` | What happened since the last call: decisions on proposals, commits by anyone, mode and grant changes, emitted events, errors |
@@ -114,7 +120,8 @@ Prompt: `serve_studio` (work through the people's requests one after another; th
 
 **Reading little.** Every node has an id (SCREEN_FORMAT.md, "Every type"), so an agent addresses nodes by name. The
 cheap way through a request: `get_screen` with `outline=true` (and `depth`), or `find_nodes`; then `at="#id"` for the
-nodes to change; `get_format_guide` with the `topic` it needs. Measured with `tests/perf/tokens.py` (o200k_base), an
+nodes to change; `get_format_guide` with the `topic` it needs. A request that points (`picks`) starts from each
+pick's `source.address` with `get_source`, and reads the outline only if the change needs more. Measured with `tests/perf/tokens.py` (o200k_base), an
 outline is 316 to 584 tokens for the templates (a full read 1,548 to 4,197), an outline to depth 2 is 87 to 305, a
 re-read after a commit about 20, and the guide's contents 583 (the whole guide 9,221).
 
@@ -130,6 +137,7 @@ re-read after a commit about 20, and the guide's contents 583 (the whole guide 9
 | `tools.py` | The tools, prompt and instructions the server offers, as clients and the website's reference read them |
 | `document.py` | A screen document read the way an agent needs it: compact JSON, changes since a read, outline, one node, search, JSON Patch |
 | `guide.py` | `SCREEN_FORMAT.md` one topic at a time |
+| `picks.py` | What the person pointed at (pick records), cleaned to a record's keys and told in plain lines |
 | `replies.py` | What the agent is told of the host's replies and of messages the server can't use |
 | `repository.py` | Where the guide and the `affrescoui` tool are found |
 

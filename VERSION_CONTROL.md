@@ -383,7 +383,8 @@ time and draw calls, the last update's time and panels rebuilt and created, and 
 by node, keys such as Enter or Escape (never a typed character), sends by channel (never the message), commits and
 decisions. It is off by default, a peer that may not review can't turn it on, and the overlay is never in a picture
 drawn for a peer. The host answers `done`, or `rejected` with no window or no inspector. In C++:
-`Screen::setInspector()` and `Screen::inspectorTrace()`.
+`Screen::setInspector()` and `Screen::inspectorTrace()`. It is the reviewer's tool. A person points at an element of
+their own app and reads its source on the changes window's Source page (below, and SCREEN_FORMAT.md, "Pointing at a node").
 
 ## The changes, file by file
 
@@ -418,6 +419,15 @@ file's diff, and offers preview, accept and reject, or undo for an applied chang
   by choosing the change again.
 - **It adds no way to approve.** Its buttons are the person's, through the same `acceptProposal`, `rejectProposal` and
   revert the rest of the library uses, and the deny rules and review policies apply to them as ever.
+
+**The Source page.** `{"call": "changes.open", "with": {"source": at, "line": n}}` opens the window on where an element is
+written instead of on a change. `at` is a pick record's `source.address` or a node (`"#id"`, at most 512 bytes), and the
+optional `line` (from 1, within that text) is the line to mark. For a program, the page shows the definition that built
+the element. For a JSON document, it shows the node, from the file that holds it. The page also says when the text comes
+from a shared add-on, was cut at 16 KiB, or is a proposal being previewed, and it names the commit that last changed it
+(`blame`, from main) with a button that shows that change. The text comes from `Screen::source()`, the versioned document
+and never a file on disk, and the page only reads it: a read-only editor, scrolled to the marked line. A `source` that is
+not a text of at most 512 bytes is ignored, and the window opens as before. Choosing a change in the list goes back to it.
 
 ## Programs
 

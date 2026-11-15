@@ -21,6 +21,11 @@ takes `assets` and `run`. When a commit with `run` lands on main (a proposal mer
 after the update, as an action of the root panel. `asset:<name>` reads an asset wherever a screen reads a file: an
 `image` node's `file`, a sound's `file`, an `image` step's `open` with `{"asset": name}`.
 
+**Pointing at a node** (SCREEN_FORMAT.md): `picks()` (the records the person made with a `pick` step and has neither
+sent nor removed) and `source(at)` (where a node is written), as a peer gets them with `getPicks` and `getSource`.
+The screen tells the runtime which file holds each JSON entry, so a record's `source` names it; a peer whose reads are
+limited gets requests without `picks`.
+
 `Screen`'s callbacks take JSON as text (`Call`, `ApplyProperties`, `onEvent`), so an application can use the library
 without including nlohmann/json; `versions()` gives the `VersionControl` to code that needs more.
 

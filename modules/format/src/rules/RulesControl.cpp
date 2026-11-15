@@ -21,12 +21,14 @@ namespace {
 
 /// Steps that control changes: a revision may never add or alter them (it could otherwise approve itself).
 /// "ask" and "cancelAsk" reach the agents: the person's request, which an agent may act on, is never a revision's.
+/// "pick" and "unpick" are the person pointing at what an agent then reads: never a revision's to start or drop.
 /// "fullscreen", a step's or an openWindow's, fills the display, where a screen could look like the system.
-constexpr std::array<std::string_view, 28> controlSteps{
-    "accept",        "reject",        "preview",       "endPreview", "restore",  "revert",   "undo",
-    "patch",         "call",          "send",          "connect",    "respond",  "signIn",   "signOut",
-    "ask",           "cancelAsk",     "chooseFolder",  "attach",     "saveFile", "openFile", "export",
-    "runInTerminal", "clearTerminal", "closeTerminal", "fullscreen", "evaluate", "propose",  "exportChanges"};
+constexpr std::array<std::string_view, 30> controlSteps{
+    "accept",     "reject",   "preview", "endPreview",    "restore",       "revert",
+    "undo",       "patch",    "call",    "send",          "connect",       "respond",
+    "signIn",     "signOut",  "ask",     "cancelAsk",     "chooseFolder",  "attach",
+    "saveFile",   "openFile", "export",  "runInTerminal", "clearTerminal", "closeTerminal",
+    "fullscreen", "evaluate", "propose", "exportChanges", "pick",          "unpick"};
 
 /// @brief Whether an object is an "image" step that shows a file dialog: "open" (unless from an asset) or "save", or an
 /// operation computed at run time, which may be either.

@@ -6,8 +6,9 @@ missed is written as missed: the targets don't move, the code does.
 ## Method
 
 - **Where.** Every number below was measured on an Apple M4 Pro, macOS 27.0.1, on 2026-10-22: the budgets at commit
-  `1d60d3f`, the agent benchmark at commit `8b367ca` (the same code; that commit adds only the recorded budgets). Other
-  machines give other numbers.
+  `1d60d3f`, the agent benchmark at commit `8b367ca` (the same code; that commit adds only the recorded budgets). The
+  picks ("What a pick saves") and the latest oracle runs were measured on the same machine on 2026-11-15, at commit
+  `6f3b7584`. Other machines give other numbers.
 - **Build.** Release (`-O3`), the benchmark alone:
   `cmake -S . -B build-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DAFFRESCOUI_BUILD_BENCHMARKS=ON -DAFFRESCOUI_BUILD_TESTS=OFF -DAFFRESCOUI_BUILD_EXAMPLES=OFF`.
 - **Workloads.** `affrescoui_bench` (`tests/perf`, described in `tests/perf/README.md`): each workload runs once to
@@ -20,7 +21,8 @@ missed is written as missed: the targets don't move, the code does.
   the slowest of them, named in the table.
 - **Tokens.** Counted with tiktoken's `o200k_base` on what the MCP server sends or receives (`tests/perf/tokens.py`):
   outlines, re-reads after one commit, the format guide's topics, the canonical edits of `tests/perf/edits`, the
-  reference revisions of the agent benchmark's feature tasks, and each desktop kit component's use (`tests/perf/kit.json`).
+  reference revisions of the agent benchmark's feature tasks, each desktop kit component's use (`tests/perf/kit.json`),
+  and what an agent reads first when a person points at a node (`tests/perf/picks.json`, read with `affrescoui source`).
 - **Measuring and recording.**
 
   ```sh
@@ -66,6 +68,7 @@ missed is written as missed: the targets don't move, the code does.
 | A re-read after one commit: 150 tokens at most | 150 | 29 | met | forge | 150 tokens |
 | The format guide: 1,500 tokens at most per topic | 1,500 | 1,669 | **missed** | Top level | 1,669 tokens |
 | A whole feature request: 2,000 output tokens at most (the oracle's feature tasks) | 2,000 | 174 | met | forge-focus | 2,000 tokens |
+| What an agent reads first for a request that points: 1,500 tokens at most | 1,500 | 2,603 | **missed** | sinopia-json thumbnails | not enforced |
 | A desktop kit component's use: 120 output tokens at most (tests/perf/kit.json) | 120 | 75 | met | toolbar | 120 tokens |
 
 
@@ -82,11 +85,81 @@ missed is written as missed: the targets don't move, the code does.
 - **Forge with 10 tabs and a terminal** holds 188.8 MB, against 150 MB.
 - **A template's outline** is 1,272 tokens at its largest (the Studio), against 600.
 - **The format guide's** largest topic ("Top level") is 1,669 tokens, against 1,500.
+- **What an agent reads first for a request that points** is 2,603 tokens at its largest (`#thumbnails` in Sinopia's
+  JSON notation), against 1,500. A JSON pick holds the node's whole subtree, and `#thumbnails` is a container of 346
+  lines; the same node in the Lisp notation is a definition that calls named views, 383 tokens. The other 51 picks are
+  within the budget, the next largest 858 tokens.
+
+### What a pick saves
+
+When a person points at a node and asks, the agent reads the pick first: the pick's line (the node, its type, the
+repeats it is in) and where the node is written (`getSource`). Without a pick it reads what it would to find the node:
+the outline and the format guide's top level. Two nodes per example, in its Lisp and its JSON notation (Calamaio has
+only Lisp, so it is left out), counted with `o200k_base` by `python3 tests/perf/tokens.py --table`. The first read
+without a pick is the JSON notation's for both rows, as an outline is the same either way.
+
+Over the 52 picks the ratio (with a pick over without) has a median of 0.054, at the smallest 0.015 (`#chat-input` in
+Arcadia's JSON) and at the largest 0.312 (`#thumbnails` in Sinopia's JSON). It is a measure, not a target.
+
+| Example | Pointed at | With a pick | First read without | Ratio |
+|---|---|---:|---:|---:|
+| arcadia-lisp | #app-body | 858 | 14,727 | 0.058 |
+| arcadia-lisp | #chat-input | 446 | 14,727 | 0.030 |
+| arcadia-json | #app-body | 462 | 14,727 | 0.031 |
+| arcadia-json | #chat-input | 226 | 14,727 | 0.015 |
+| code-editor-lisp | #openFile | 420 | 1,858 | 0.226 |
+| code-editor-lisp | #command | 309 | 1,858 | 0.166 |
+| code-editor-json | #openFile | 300 | 1,858 | 0.162 |
+| code-editor-json | #command | 175 | 1,858 | 0.094 |
+| flow-lisp | #cardTitle | 216 | 6,054 | 0.036 |
+| flow-lisp | #checkText | 330 | 6,054 | 0.054 |
+| flow-json | #cardTitle | 211 | 6,054 | 0.035 |
+| flow-json | #checkText | 168 | 6,054 | 0.028 |
+| forge-lisp | #editor-split | 316 | 6,096 | 0.052 |
+| forge-lisp | #explorer | 271 | 6,096 | 0.044 |
+| forge-json | #editor-split | 209 | 6,096 | 0.034 |
+| forge-json | #explorer | 340 | 6,096 | 0.056 |
+| haven-lisp | #label-light-name | 531 | 9,146 | 0.058 |
+| haven-lisp | #alarmCode | 272 | 9,146 | 0.030 |
+| haven-json | #label-light-name | 147 | 9,146 | 0.016 |
+| haven-json | #alarmCode | 193 | 9,146 | 0.021 |
+| launcher-lisp | #keyCombo | 398 | 1,893 | 0.210 |
+| launcher-lisp | #cardName | 491 | 1,893 | 0.259 |
+| launcher-json | #keyCombo | 177 | 1,893 | 0.093 |
+| launcher-json | #cardName | 129 | 1,893 | 0.068 |
+| modello-lisp | #right-areas | 299 | 5,540 | 0.054 |
+| modello-lisp | #material-name | 525 | 5,540 | 0.095 |
+| modello-json | #right-areas | 196 | 5,540 | 0.035 |
+| modello-json | #material-name | 197 | 5,540 | 0.036 |
+| orrery-lisp | #info-name | 392 | 2,076 | 0.189 |
+| orrery-lisp | #sky-place | 220 | 2,076 | 0.106 |
+| orrery-json | #info-name | 123 | 2,076 | 0.059 |
+| orrery-json | #sky-place | 183 | 2,076 | 0.088 |
+| sign-in-lisp | #shortcut-title | 325 | 4,572 | 0.071 |
+| sign-in-lisp | #rule-length | 242 | 4,572 | 0.053 |
+| sign-in-json | #shortcut-title | 194 | 4,572 | 0.042 |
+| sign-in-json | #rule-length | 168 | 4,572 | 0.037 |
+| sinopia-lisp | #thumbnails | 383 | 8,353 | 0.046 |
+| sinopia-lisp | #outline | 243 | 8,353 | 0.029 |
+| sinopia-json | #thumbnails | 2,603 | 8,353 | 0.312 |
+| sinopia-json | #outline | 768 | 8,353 | 0.092 |
+| streak-lisp | #label-cell | 327 | 3,725 | 0.088 |
+| streak-lisp | #label-summary | 300 | 3,725 | 0.081 |
+| streak-json | #label-cell | 288 | 3,725 | 0.077 |
+| streak-json | #label-summary | 132 | 3,725 | 0.035 |
+| tempera-lisp | #main | 695 | 6,217 | 0.112 |
+| tempera-lisp | #adjustments | 306 | 6,217 | 0.049 |
+| tempera-json | #main | 170 | 6,217 | 0.027 |
+| tempera-json | #adjustments | 336 | 6,217 | 0.054 |
+| tempo-lisp | #label-track-title | 514 | 3,385 | 0.152 |
+| tempo-lisp | #collectionName | 505 | 3,385 | 0.149 |
+| tempo-json | #label-track-title | 147 | 3,385 | 0.043 |
+| tempo-json | #collectionName | 124 | 3,385 | 0.037 |
 
 ## Agents
 
-The agent benchmark (`benchmarks/agents/README.md`): 34 tasks a person might ask of a running screen, at three levels
-(12 edits, 17 features in a template, 5 features in Forge across its files), each given to a client that changes the
+The agent benchmark (`benchmarks/agents/README.md`): 50 tasks a person might ask of a running screen, at three levels
+(19 edits, 26 features in a template, 5 features in Forge across its files), each given to a client that changes the
 screen through the MCP server, then checked by the task's scenarios, its unchanged nodes and, where the request says how
 it is written, the definitions or actions it must leave. The oracle submits each task's reference revisions: it checks
 the tasks themselves, and CI runs it on every change. A model has been run once, on the tasks that compare Lisp with
@@ -96,7 +169,21 @@ JSON (below), not on the others.
 |---|---|---|---|---|---:|---:|---:|
 | 2026-10-22 | oracle | none | oracle 1, AffrescoUI 8b367ca | Apple M4 Pro, macOS 27.0.1 | 24/24 (edit 11/11, feature 8/8, forge 5/5) | n/a / n/a | 1.0 |
 | 2026-11-02 | oracle | none | oracle 1, AffrescoUI 064a5355 (with changes) | Apple M4 Pro, macOS 27.0.1 | 34/34 (edit 12/12, feature 17/17, forge 5/5) | n/a / n/a | 1.0 |
+| 2026-11-15 | oracle | none | oracle 1, AffrescoUI 6f3b7584 (with changes) | Apple M4 Pro, macOS 27.0.1 | 50/50 (edit 19/19, feature 26/26, forge 5/5) | n/a / n/a | 1.0 |
+| 2026-11-15 | oracle (pointed) | none | oracle 1, AffrescoUI 6f3b7584 (with changes) | Apple M4 Pro, macOS 27.0.1 | 8/8 (edit 6/6, feature 2/2), the point- tasks only | n/a / n/a | 1.0 |
 | 2026-11-02 | claude-code | claude-sonnet-5-5 | 2.1.312 (Claude Code), AffrescoUI 064a5355 (with changes) | Apple M4 Pro, macOS 27.0.1 | 11/11 (edit 2/2, feature 9/9), the 11 tasks below only | 179,548 / 1,022 | 7 |
+
+### Pointing against describing
+
+The eight `point-` tasks ask for one change to the Kanban template, in its Lisp and its JSON notation, two ways: by
+describing where it goes ("Show the titles of the cards on the board in the theme's accent colour.") and by pointing at
+it ("Show card titles like this one in the theme's accent colour.", with the pick of `#cardTitle`). The changes are a
+card's title colour, a column's name in capitals, the Filter button's tooltip (three edits) and a click on the owner in
+a card's side panel that filters the board (a feature). `run.py --point` asks them by pointing; `--markdown` on runs of
+both ways gives one row per task, described → pointed.
+
+The oracle passes all eight both ways (2026-11-15, above): the tasks, their scenarios and the pointed requests agree.
+No model has been run on them yet.
 
 ### Lisp against JSON (RFC 0005, stage 6)
 

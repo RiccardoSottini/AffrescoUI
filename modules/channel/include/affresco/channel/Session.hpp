@@ -57,6 +57,14 @@ public:
 	/// @brief Answers "fileChanges": a change file by file, which only the host can tell (by default it is off).
 	/// @param changes Gives the change the message asks for; may throw DocumentError; must not outlive what it reads.
 	void setFileChanges(std::function<json(const json& request)> changes) { fileChanges_ = std::move(changes); }
+	/// @brief Answers "getPicks": the elements the person pointed at and has not sent or removed, oldest first (by
+	/// default it is off).
+	/// @param picks Gives the list of pick records; must not outlive what it reads.
+	void setPicks(std::function<json()> picks) { picks_ = std::move(picks); }
+	/// @brief Answers "getSource": where a node is written (by default it is off).
+	/// @param source Gives the source of the node at `at` ("#id", a JSON Pointer or a definition's address); throws
+	/// DocumentError if nothing is there; must not outlive what it reads.
+	void setSource(std::function<json(const std::string& at)> source) { source_ = std::move(source); }
 
 	Signal<const json&> onRelay; ///< A "request" or "reply" for other peers, with "from" set.
 
@@ -136,6 +144,11 @@ private:
 	/// @return false if it isn't one.
 	/// @throws DocumentError If it is malformed, or the target isn't there.
 	bool handleBlame(const Incoming& in);
+	/// @brief Handles getPicks and getSource (Picks.cpp), reads the host answers through setPicks() and setSource().
+	/// @param in The message.
+	/// @return false if it is neither.
+	/// @throws DocumentError If it is malformed, the host keeps no answer, or the node isn't there.
+	bool handlePickRead(const Incoming& in);
 	/// @brief Handles convert (Convert.cpp): `{"type": "convert", "notation": "lisp", "text": "..."}` answers
 	/// `{"type": "converted", "value": ...}`, and with `value` instead of `text`, the value's `text` in the notation.
 	/// @param in The message.
@@ -163,8 +176,10 @@ private:
 	TokenBucket pictureRate_;        ///< Pictures ("render"), at the rate of changes: each draws the whole screen.
 	bool limited_ = false;           ///< Over a limit now (see overLimit()).
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
-	UsageSummary usage_;                           ///< For "getUsage" and "clearUsage" (empty: off).
-	std::function<json(const json&)> fileChanges_; ///< Answers "fileChanges".
+	UsageSummary usage_;                             ///< For "getUsage" and "clearUsage" (empty: off).
+	std::function<json(const json&)> fileChanges_;   ///< Answers "fileChanges".
+	std::function<json()> picks_;                    ///< Answers "getPicks".
+	std::function<json(const std::string&)> source_; ///< Answers "getSource".
 };
 
 } // namespace affresco::channel

@@ -43,6 +43,7 @@ Runtime::~Runtime() {
 	impl_->composed.setObserver(nullptr);
 	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
 	impl_->programs.dismissQuestion(); // and so would the answer to a question it asked
+	impl_->picks.cancelRunning(impl_->window); // and so would the end of a pick it started
 	impl_->scheduler.cancelAll();      // and its timers and deferred tasks would run on freed memory
 	impl_->calls.cancelAll();          // and what slow calls return would reach it
 	impl_->serviceCalls.cancelAll();   // and so would what services return
@@ -279,6 +280,12 @@ json Runtime::inspect(const Panel& panel) {
 	answer["handlers"] = std::move(handlers);
 	return answer;
 }
+
+json Runtime::source(std::string_view at) const { return sourceOf(*impl_, at); }
+
+json Runtime::picks() const { return impl_->picks.current(); }
+
+void Runtime::setFileOf(std::function<FileOf(std::string_view pointer)> fileOf) { impl_->fileOf = std::move(fileOf); }
 
 json Runtime::catalog() const { return format::catalog(*impl_); }
 

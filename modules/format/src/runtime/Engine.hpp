@@ -30,6 +30,7 @@
 #include "DocumentContext.hpp"
 #include "Events.hpp"
 #include "Models.hpp"
+#include "Picks.hpp"
 #include "Programs.hpp"
 #include "Properties.hpp"
 #include "Reconciler.hpp"
@@ -113,6 +114,9 @@ struct Engine : VersionObserver {
 	/// the engine (its destructor stops their programs and their calls).
 	std::shared_ptr<TerminalSessions> terminals = std::make_shared<TerminalSessions>(serviceCalls);
 	Asks asks;                 ///< The person's requests to the agents ("ask") and their replies.
+	Picks picks;               ///< What the person pointed at ("pick") and has neither removed nor sent.
+	/// Which file holds an entry of a JSON document (Runtime::setFileOf()); empty: the files aren't known.
+	std::function<FileOf(std::string_view pointer)> fileOf;
 	AsyncCalls calls;          ///< Slow native calls (last: destroyed first, joining their workers).
 	Connection peersChanged = 0; ///< On versions.onReviewChanged: who is connected (the "peers" variable).
 	AudioPlayers audio{*this}; ///< The declared sounds, played by "audio" steps.

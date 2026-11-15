@@ -1,0 +1,57 @@
+{
+	"id": "point-json-drawer-owner",
+	"level": "feature",
+	"screen": "examples/flow/json/index.screen.json",
+	"request": "In the side panel that shows the selected card, clicking the owner's name should show only that person's cards on the board.",
+	"point": "#detailOwner",
+	"pointRequest": "Clicking this name should show only this person's cards on the board.",
+	"scenarios": [
+		{
+			"name": "owner",
+			"steps": [
+				{
+					"click": "#cardTitle"
+				},
+				{
+					"key": "space"
+				},
+				{
+					"expect": {
+						"node": "#detailOwner",
+						"text": "Ada Lewis"
+					}
+				},
+				{
+					"expect": {
+						"state": "owner",
+						"is": ""
+					}
+				},
+				{
+					"click": "#detailOwner"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "owner",
+						"is": "AL"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": ["#topBar", "#statusBar", "#toolbar", "#detailTitle"],
+	"reference": [
+		{
+			"message": "Clicking the owner shows their cards",
+			"set": {
+				"#detailOwner/onClick": {
+					"set": "state.owner",
+					"to": "{{computed.card.who}}"
+				}
+			}
+		}
+	]
+}
