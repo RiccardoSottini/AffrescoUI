@@ -40,7 +40,7 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 | `TableView.hpp` | `TableView`: a `ListView` of rows of cells under a header; a header click sorts (numbers before text, stable, again to reverse: `onSortChanged`), a header edge drag resizes a column (`onColumnResized`); the order and widths given replace the user's only when they change |
 | `GraphView.hpp` | `GraphView`: a node editor over a `GraphModel` (nodes with typed ports, links); the link rules (`checkLink`: kinds, `links` per port, duplicates, cycles), a small camera (`GraphCamera`, zoom and pan, to move onto Camera2D), Bézier links coloured by kind, a minimap, off-screen nodes culled; drags, a marquee and the keyboard emit `GraphEvent`s (`onEdit`) and change nothing themselves |
 | `TimelineView.hpp` | `TimelineView`: tracks of keyframes and clips under a time ruler over a `TimelineModel` (nested groups, mute and lock, markers, a play range); ticks that follow the zoom in frames, seconds or timecode (`rulerTicks`, `formatTime`), snapping (`snapTime`), step, linear and Bézier easing (`keyframeValueAt`); only the rows in view laid out and drawn; scrubbing, keyframe drags, clip moves and trims, a marquee and the keyboard emit `TimelineEvent`s (`onEdit`) |
-| `Font.hpp` | `Font`: a font and its fallbacks at one size, in a style (`FontStyle`: bold, italic, synthesised from the outlines); `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages; `rasterAt` (its glyphs rasterised for a HiDPI framebuffer, laid out the same) |
+| `Font.hpp` | `Font`: a font and its fallbacks at one size, in a style (`FontStyle`: bold, italic, synthesised from the outlines); `shape` (glyphs, advances, carets), `measure`, `wrap`; glyphs rasterised on demand into coverage and colour atlas pages; `rasterAt` (its glyphs rasterised for a HiDPI framebuffer, laid out the same); `fitGlyph` (below a scale of 2, a glyph's bitmap moved by a quarter of a pixel and its pen on a whole column) |
 | `FontCache.hpp` | `FontCache`: fonts by file, size and fallbacks, within a bound (32 fonts, 128 MiB), the least recently used that nothing holds dropped first; the system's fallback fonts when the host asks |
 | `Painter.hpp` | `Painter`: what `paint` draws with (rectangles, rounded rectangles, borders, shadows, text, images, meshes of anti-aliased quads with `fillMesh`, gradients with `fillGradient`); `CornerRadii`, `Shadow`, `MeshVertex` |
 | `Bitmap.hpp` | `Bitmap`: an image's premultiplied RGBA pixels, immutable and shared; `load` and `decode` (PNG and JPEG with stb_image, SVG icons rasterised at twice their size) and `fromPixels`, within `Bitmap::Limits` |
@@ -123,9 +123,16 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
 - **Text is shaped, then drawn.** `Font::shape` splits text into runs of one face and one script, each character
   from the first file of the font and its fallbacks that has it (fallbacks at the font's em size), and shapes each run
   with HarfBuzz; FreeType rasterises the glyphs. Below a scale of 2 they are fitted to pixels (`Font::fitsPixels`):
-  hinted lightly, vertically only, and each drawn from a whole pixel row and column, at most half a pixel from where
-  it is laid out, so a screen with few pixels shows them sharp while widths and carets stay HarfBuzz's; at 2 and above
-  they are unhinted, their outlines' exact shapes. A right-to-left run is laid out right to left, and a line's runs are put in visual order by their bidirectional levels (UAX #9, simplified: the paragraph's direction is its
+  hinted lightly, vertically only, and each drawn from a whole pixel row and column, so a screen with few pixels shows
+  them sharp while widths and carets stay HarfBuzz's. A glyph has up to four bitmaps there, its outline moved right
+  by 0, ¼, ½ and ¾ of a pixel, rasterised the first time a pen needs them (`Font::fitGlyph`): the pen goes on a whole
+  column and the bitmap moved by the rest, rounded to a quarter, so each glyph is within an eighth of a pixel of where
+  it is laid out and the spaces between letters stay even. A font drawing itself (a scale of 1) keeps what it draws in
+  the pages after its Latin-1 page, so a line never changes page and makes no draw call more than at 2; the places of
+  Latin-1's four bitmaps there are kept the first time it draws, so they don't follow what it drew before. Colour glyphs,
+  and glyphs past the atlas's limit, are drawn plain from the nearest column. At 2 and above glyphs are unhinted, their
+  outlines' exact shapes, drawn where they are laid out. A right-to-left run is laid out right to left, and a line's
+  runs are put in visual order by their bidirectional levels (UAX #9, simplified: the paragraph's direction is its
   first strong character's, and numbers stay left to right). Shaped text is cached per font by line and by word, so a
   frame that draws what the last one drew shapes nothing, and measuring a new line of known words allocates nothing.
 - **Plain words skip shaping, with HarfBuzz's results.** A word of the first face's plain Latin-1 characters
@@ -169,7 +176,12 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   selects with the mouse and Cmd/Ctrl+A and copies with Cmd/Ctrl+C.
 - **Limits:** a glyph atlas page is at most 4,096 × 4,096, and a font's pages (and each of its rasters') hold at most
   64 MiB in all (colour pages count four bytes a texel), so text naming many characters can't exhaust memory; past
-  that, characters draw as `?`.
+  that, characters draw as `?`. Below a scale of 2 the bitmaps of glyphs moved by quarters of a pixel count in those
+  64 MiB; past it, a glyph is drawn plain from the nearest column. Glyphs fit the pixels of a frame drawn at a quarter
+  (1, 1.25, 1.5, 1.75); between quarters they are rasterised at the nearest and resampled, as before. A text that
+  starts with a colour glyph, at a scale of 1, makes one draw call more than at 2 (its first letter is on a page after
+  the Latin-1 one). Other glyphs, and a raster's (1.25 and up), take atlas places as text draws them, as before, so a
+  turned or scaled text, sampled between texels, can differ by a level or two with what its font drew before.
   A font file is a regular file of at most 256 MiB, and a font's size at most 4,096 pixels. `FontCache` keeps at most
   32 fonts and 128 MiB that nothing uses. A `TextModel` (a `TextEditor`'s text) keeps 500 undo steps, and at most
   256 MiB of removed text in them; invalid UTF-8 becomes U+FFFD as it comes in.

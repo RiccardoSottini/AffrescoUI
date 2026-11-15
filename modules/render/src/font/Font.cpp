@@ -17,6 +17,8 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace affresco {
 
@@ -112,25 +114,92 @@ std::optional<std::size_t> Font::Data::colorFaceFor(char32_t codepoint) const no
 }
 
 const Font::Glyph& Font::Data::glyph(std::size_t face, unsigned index) {
-	const std::uint64_t key = (static_cast<std::uint64_t>(face) << 32) | index;
+	const std::uint64_t key = glyphKey(face, index);
 	if(const auto found = glyphs.find(key); found != glyphs.end()) return found->second;
 	const std::optional<Glyph> added = rasterise(face, index, true);
 	return glyphs.emplace(key, added ? *added : *question).first->second;
 }
 
-std::optional<Font::Glyph> Font::Data::rasterise(std::size_t face, unsigned index, bool mayAddPage) {
+// What can't be moved (a colour glyph) or placed is remembered as the plain glyph, so it isn't tried each frame
+const Font::Glyph& Font::Data::fitted(const Glyph& unmoved, unsigned shift) noexcept {
+	const bool apart = rasterScale == 1.0f; // a font drawing itself leaves its Latin-1 page for measuring
+	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass glyphs the font holds
+	if((shift == 0 && !apart) || unmoved.face >= faces.size()) return unmoved;
+	std::unordered_map<std::uint64_t, Glyph>& store = apart ? drawn : glyphs;
+	const std::uint64_t key = glyphKey(unmoved.face, unmoved.index, shift);
+	try {
+		if(const auto found = store.find(key); found != store.end()) return found->second;
+		if(apart && drawnPage == 0) reserveDrawn();
+		const std::optional<Glyph> added = rasterise(unmoved.face, unmoved.index, true, shift, apart ? drawnPage : 0);
+		return store.emplace(key, added ? *added : unmoved).first->second;
+	} catch(...) {
+		// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass glyphs the font holds
+		return unmoved; // out of memory
+	}
+}
+
+void Font::Data::reserveDrawn() {
+	drawnPage = static_cast<std::uint32_t>(atlas.pages(AtlasKind::coverage).size()); // set first: tried only once
+	constexpr int padding = detail::GlyphAtlas::padding;
+	std::vector<ReservedSpot> spots;
+	spots.reserve(4 * latin1Count);
+	for(char32_t codepoint = firstCodepoint; codepoint < firstCodepoint + latin1Count; ++codepoint) {
+		// The glyphs bakeLatin1() made, in its order: what the first page holds, whatever was measured since
+		const auto face = faceFor(codepoint);
+		if(!face && codepoint != U'?') continue;
+		const std::uint64_t key = glyphKey(face.value_or(0), faces[face.value_or(0)].glyphIndex(codepoint));
+		const auto found = glyphs.find(key);
+		if(found == glyphs.end() || found->second.color || found->second.page != 0 ||
+		   std::ranges::any_of(spots, [key](const ReservedSpot& spot) { return spot.key == key; }))
+			continue;
+		const Rect& uv = found->second.uv;
+		const auto texels = static_cast<float>(atlas.pages(AtlasKind::coverage).front().size);
+		const auto width = static_cast<int>(std::lround((uv.right - uv.left) * texels));
+		const auto height = static_cast<int>(std::lround((uv.bottom - uv.top) * texels));
+		if(width == 0 || height == 0) continue; // a space: no texels
+		for(unsigned shift = 0; shift < 4; ++shift) {
+			// A move right by a fraction of a pixel takes one column more at most; the rows don't move
+			const int across = width + (shift == 0 ? 0 : 1) + padding, down = height + padding;
+			const auto spot = atlas.place(AtlasKind::coverage, across, down, spots.empty(), drawnPage);
+			if(!spot && spots.empty()) return; // no room for the page: drawn glyphs go where they fit
+			if(spot)
+				spots.push_back({key | (std::uint64_t{shift} << 62), static_cast<std::uint16_t>(spot->x),
+				                 static_cast<std::uint16_t>(spot->y), static_cast<std::uint16_t>(across),
+				                 static_cast<std::uint16_t>(down)});
+		}
+	}
+	std::ranges::sort(spots, {}, &ReservedSpot::key);
+	reserved = std::move(spots);
+}
+
+std::optional<detail::GlyphAtlas::Spot> Font::Data::spotFor(AtlasKind kind, std::uint64_t key, int width, int height,
+                                                            bool mayAddPage, std::uint32_t firstPage) {
+	if(kind == AtlasKind::coverage && firstPage != 0 && firstPage == drawnPage) {
+		const auto kept = std::ranges::lower_bound(reserved, key, {}, &ReservedSpot::key);
+		if(kept != reserved.end() && kept->key == key && std::cmp_less_equal(width, kept->width) &&
+		   std::cmp_less_equal(height, kept->height))
+			return detail::GlyphAtlas::Spot{drawnPage, kept->x, kept->y};
+	}
+	return atlas.place(kind, width, height, mayAddPage, firstPage);
+}
+
+std::optional<Font::Glyph> Font::Data::rasterise(std::size_t face, unsigned index, bool mayAddPage, unsigned shift,
+                                                 std::uint32_t firstPage) {
 	const detail::FontFace& from = faces[face];
-	Glyph glyph{Rect{}, Rect{}, from.advance(index), 0, false, static_cast<std::uint32_t>(face), index};
+	Glyph glyph{Rect{}, Rect{}, from.advance(index), firstPage, false, 0, static_cast<std::uint32_t>(face), index};
 
 	// A glyph that can't be rendered (a broken outline) draws nothing, and still moves the pen
-	const auto bitmap = from.render(index);
+	const auto bitmap = from.render(index, shift);
+	if(bitmap && bitmap->shift != shift) return std::nullopt; // a colour glyph, or one that isn't an outline
+	glyph.shift = static_cast<std::uint8_t>(shift);
 	if(!bitmap || bitmap->pixels->width == 0 || bitmap->pixels->rows == 0 || bitmap->pixels->pitch < 0)
 		return glyph; // spaces have no texels
 	const auto width = static_cast<int>(bitmap->pixels->width), height = static_cast<int>(bitmap->pixels->rows);
 
 	const AtlasKind kind = bitmap->color ? AtlasKind::color : AtlasKind::coverage;
 	constexpr int padding = detail::GlyphAtlas::padding;
-	const auto spot = atlas.place(kind, width + padding, height + padding, mayAddPage);
+	const auto spot =
+	    spotFor(kind, glyphKey(face, index, shift), width + padding, height + padding, mayAddPage, firstPage);
 	if(!spot) return std::nullopt;
 
 	detail::GlyphAtlas::Page& page = atlas.pages(kind)[spot->page];
@@ -166,6 +235,8 @@ std::shared_ptr<const Font> Font::load(const std::filesystem::path& path, float 
                                        std::span<const std::filesystem::path> fallbacks,
                                        std::span<const std::filesystem::path> optional, detail::FontFiles& files,
                                        FontStyle style) {
+	if(fallbacks.size() + optional.size() >= Data::largestFaceCount)
+		throw std::runtime_error("AffrescoUI: too many fallback fonts for " + path.string());
 	std::shared_ptr<Font> font(new Font());
 	Data& data = *font->data_;
 	data.library = detail::startFreeType();
@@ -219,7 +290,7 @@ bool Font::bakeLatin1(int size) {
 		if(!face && i != question) continue;
 		const std::size_t from = face.value_or(0);
 		const unsigned index = data.faces[from].glyphIndex(codepoint);
-		const std::uint64_t key = (static_cast<std::uint64_t>(from) << 32) | index;
+		const std::uint64_t key = Data::glyphKey(from, index);
 		if(const auto same = data.glyphs.find(key); same != data.glyphs.end()) {
 			latin1_[i] = same->second;
 		} else {
@@ -278,8 +349,7 @@ std::shared_ptr<const Font> Font::makeRaster(float scale) const {
 	const Glyph& question = *data_->question;
 	const std::optional<Glyph> glyph = data.rasterise(question.face, question.index, false);
 	if(!glyph) throw std::runtime_error("AffrescoUI: font too large to rasterise at its display's scale");
-	const std::uint64_t key = (static_cast<std::uint64_t>(question.face) << 32) | question.index;
-	data.question = &data.glyphs.emplace(key, *glyph).first->second;
+	data.question = &data.glyphs.emplace(Data::glyphKey(question.face, question.index), *glyph).first->second;
 	return raster;
 }
 
@@ -317,6 +387,26 @@ const Font::Glyph& Font::rasterGlyph(const Glyph& glyph) const noexcept {
 	} catch(...) {
 		return *data.question; // out of memory
 	}
+}
+
+Font::FittedGlyph Font::fitGlyph(const Glyph& glyph, float pen) const noexcept {
+	const Glyph& plain = rasterGlyph(glyph);
+	const float scale = data_->rasterScale;
+	const float pixels = pen * scale;
+	if(!fitsPixels(scale)) return {&plain, pen};
+	const float nearest = std::round(pixels) / scale;
+	if(plain.color || !std::isfinite(pixels)) return {&plain, nearest};
+
+	// The fraction to the nearest quarter: a whole one is the next column, unmoved
+	float whole = std::floor(pixels);
+	auto quarter = static_cast<unsigned>(std::lround((pixels - whole) * 4.0f));
+	if(quarter == 4) {
+		whole += 1.0f;
+		quarter = 0;
+	}
+	const Glyph& fitted = data_->fitted(plain, quarter);
+	if(fitted.shift != quarter) return {&fitted, nearest}; // its plain bitmap: the nearest column
+	return {&fitted, whole / scale};
 }
 
 /* Glyphs */
@@ -410,9 +500,10 @@ std::size_t Font::memoryBytes() const noexcept {
 	std::size_t rasters = data.rasters.capacity() * sizeof(decltype(data.rasters)::value_type);
 	for(const auto& [scale, raster] : data.rasters)
 		if(raster) rasters += raster->memoryBytes();
-	return sizeof(Font) + data.atlas.bytes() + data.glyphs.size() * (sizeof(Glyph) + node) +
-	       data.nominal.size() * (sizeof(const Glyph*) + node) + data.words.bytes() + data.lines.bytes() +
-	       data.uncached.glyphs.capacity() * sizeof(ShapedGlyph) + (data.plain ? data.plain->bytes() : 0) + rasters;
+	return sizeof(Font) + data.atlas.bytes() + (data.glyphs.size() + data.drawn.size()) * (sizeof(Glyph) + node) +
+	       data.reserved.capacity() * sizeof(Data::ReservedSpot) + data.nominal.size() * (sizeof(const Glyph*) + node) +
+	       data.words.bytes() + data.lines.bytes() + data.uncached.glyphs.capacity() * sizeof(ShapedGlyph) +
+	       (data.plain ? data.plain->bytes() : 0) + rasters;
 }
 
 /* What tests see */

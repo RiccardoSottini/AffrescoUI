@@ -802,7 +802,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | An approval's head commit | at least 7 characters |
 | Undo steps kept by an `editor` (each copies the whole text) | 500, and 256 MiB in all: the oldest go first |
 | A font's size (a document can ask for any: a larger one is refused) | 4,096 pixels |
-| A font's glyph atlas (a larger font size is refused) | Pages of 4,096 × 4,096 pixels at most, 64 MiB in all (colour pages count four bytes a pixel) |
+| A font's glyph atlas (a larger font size is refused) | Pages of 4,096 × 4,096 pixels at most, 64 MiB in all (colour pages count four bytes a pixel; below a display scale of 2, the up to four bitmaps of a glyph moved by quarters of a pixel count in it, and past it a glyph is drawn plain) |
 | A font file (regular files only: no devices or pipes) | 256 MiB |
 | An image file (`image` nodes; regular files only, inside the screen's folder or one the host allows) | 64 MiB |
 | A decoded image (from its header, before any pixel is decoded) | 8,192 pixels a side, 4,096 × 4,096 pixels in all |

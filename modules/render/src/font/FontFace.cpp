@@ -29,6 +29,7 @@ struct HarfBuzzDeleter {
 constexpr float boldShare = 1.0f / 24.0f;
 /// How far italic slants outlines: horizontal shift per unit of height (the tangent of about 11 degrees).
 constexpr float italicSlant = 0.2f;
+
 /// @brief The error for a file that isn't a usable font.
 /// @param path The file.
 /// @param why What is wrong, e.g. "not a font".
@@ -160,7 +161,7 @@ float FontFace::advance(unsigned glyph) const noexcept {
 	return static_cast<float>(hb_font_get_glyph_h_advance(shaper_.get(), glyph)) * scale_;
 }
 
-std::optional<FontFace::Bitmap> FontFace::render(unsigned glyph) const noexcept {
+std::optional<FontFace::Bitmap> FontFace::render(unsigned glyph, unsigned shift) const noexcept {
 	// Light hinting moves outlines only vertically, so widths and advances (HarfBuzz's) stay as they are; a dense
 	// raster, or a colour glyph, is unhinted, its exact shape; embedded bitmaps would be another size
 	const bool hinted = !color_ && Font::fitsPixels(rasterScale_);
@@ -168,14 +169,18 @@ std::optional<FontFace::Bitmap> FontFace::render(unsigned glyph) const noexcept 
 	    (hinted ? FT_LOAD_TARGET_LIGHT : FT_LOAD_NO_HINTING) | (color_ ? FT_LOAD_COLOR : FT_LOAD_NO_BITMAP);
 	FT_Face face = face_.get();
 	if(FT_Load_Glyph(face, glyph, flags) != 0) return std::nullopt;
-	if(face->glyph->format == FT_GLYPH_FORMAT_OUTLINE) synthesize(face->glyph->outline);
+	const bool outline = face->glyph->format == FT_GLYPH_FORMAT_OUTLINE;
+	if(outline) synthesize(face->glyph->outline);
+	// Moved after hinting, which is vertical only: the rows stay on pixel rows, the columns take the fraction
+	const unsigned moved = outline && hinted ? shift : 0;
+	if(moved != 0) FT_Outline_Translate(&face->glyph->outline, static_cast<FT_Pos>(moved) * 16, 0); // 26.6 quarters
 	if(face->glyph->format != FT_GLYPH_FORMAT_BITMAP && FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0)
 		return std::nullopt;
 
 	const FT_Bitmap& bitmap = face->glyph->bitmap;
 	const bool isColor = bitmap.pixel_mode == FT_PIXEL_MODE_BGRA;
 	if(!isColor && bitmap.pixel_mode != FT_PIXEL_MODE_GRAY) return std::nullopt; // e.g. a one-bit bitmap
-	return Bitmap{&bitmap, face->glyph->bitmap_left, face->glyph->bitmap_top, isColor};
+	return Bitmap{&bitmap, face->glyph->bitmap_left, face->glyph->bitmap_top, isColor, moved};
 }
 
 void FontFace::synthesize(FT_Outline& outline) const noexcept {
