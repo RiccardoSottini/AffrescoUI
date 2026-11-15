@@ -16,6 +16,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `policy` | A JSON object: the JSON template's `permissions` with budgets and data rules (VERSION_CONTROL.md, "Budgets" and "Data rules"), and a `revision` judged as an agent's | Judging changes nothing and gives the same decision twice; what an agent reads never holds a path a data rule says it may never touch |
 | `delta` | A JSON object `{"from", "to", "delta"}`, to the history's deltas (`vcs/src/Deltas.hpp`), which a history on disk keeps for each commit and its id doesn't cover | Applying a delta gives a document or throws `json::exception` or `DocumentError`; the delta from `from` to `to` rebuilds `to` exactly |
 | `session` | Lines from two peers, through in-memory channels to `channel::Session`: the agent, or the reviewer (`studio`) when a line starts with `>`. The agent's limits are low (4 KiB a message, 24 messages, 6 changes, none refilled), so inputs reach them | Every answer is one JSON object with a `"type"` |
+| `commands` | Lines from three peers to `channel::Session`'s command messages, over a service that keeps every run waiting: the agent, the reviewer (`studio`) after `>`, a reader whose reads are limited (`guest`) after `?`; `!` answers the runs that wait, `~` takes the service away or gives it back | Every answer is one JSON object with a `"type"`; the service hears decisions only from a reviewer (or a session withdrawing its own runs) and arguments only within the limit; the limited reader is never sent what a run changed, a picture, or a command its reads don't show |
 | `scenarios` | A scenarios file (`modules/automation`), read and played headless on the JSON template, pictures off | Reading gives scenarios or a `DocumentError`; every scenario is reported, every failure says what went wrong, and the report can be written |
 | `png` | A file's bytes, to the PNG reader golden images go through (`automation/src/PngReader.hpp`) | Refused with a reason, or a picture of width × height × 3 bytes within the pixel limit |
 | `text` | UTF-8 text, shaped, measured and wrapped by a `Font` with fallbacks for Arabic, Devanagari, Chinese and colour emoji (HarfBuzz and FreeType); the first byte picks the width | One advance per code point and one caret more, all finite; the advances sum to the width `measure` gives; wrapped lines are the text in order, cut only at a space or a line break |
@@ -78,7 +79,7 @@ of these and what limits them.
 
 | Where bytes come in | Who controls them | Target, or why none |
 |---|---|---|
-| A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, a person's client, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout`, `policy`; `notation` for the Lisp text a `convert` message carries |
+| A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, a person's client, a remote peer | `session`, `commands`, `json`, `revision`, `expression`, `actions`, `delta`, `layout`, `policy`; `notation` for the Lisp text a `convert` message carries |
 | Documents in the Lisp notation (`.lisp` screens, includes, an app's parts) | Whoever made the files, an agent through `convert` | `notation` |
 | A peer's replies to the screen's own requests (`ask`) | Any peer | `ask_reply` |
 | What the person pointed at (a chat request's `picks`), before it reaches a model prompt | The person's client, any peer that sends a chat request | `picks` |
@@ -132,7 +133,7 @@ build-fuzz/tests/fuzz/affrescoui_fuzz_session -max_total_time=60 -dict=build-fuz
   build-fuzz/corpus/session build-fuzz/fuzz-corpus/session
 ```
 
-Use `json`, `notation`, `expression`, `diff_functions`, `revision`, `delta`, `session`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `data_uri`, `path`, `text_model`, `terminal`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `app_manifest`, `catalog_index`, `signature`, `composition`, `qr_code`, `url`, `oauth`, `history`, `token_file`, `git_output`, `key_press`, `git_policy`, `path_tree`, `gltf`, `scene` or `images` in place of
+Use `json`, `notation`, `expression`, `diff_functions`, `revision`, `delta`, `session`, `commands`, `text`, `richtext`, `cli`, `actions`, `layout`, `lookups`, `image`, `data_uri`, `path`, `text_model`, `terminal`, `find_pattern`, `search_glob`, `scenarios`, `png`, `http_response`, `sse`, `websocket`, `peer_handshake`, `frames`, `feature_manifest`, `app_manifest`, `catalog_index`, `signature`, `composition`, `qr_code`, `url`, `oauth`, `history`, `token_file`, `git_output`, `key_press`, `git_policy`, `path_tree`, `gltf`, `scene` or `images` in place of
 `session`. `-fork=4 -ignore_crashes=1`
 keeps going after a crash, on 4 cores. A Debug build keeps nlohmann::json's assertions on; whatever the build type,
 the code is compiled `-O1 -g`, as libFuzzer recommends.
@@ -187,7 +188,7 @@ artifact, in a folder named after its target.
 
 | File | What it is |
 |---|---|
-| `json.cpp`, `expression.cpp`, `diff_functions.cpp`, `data_uri.cpp`, `revision.cpp`, `session.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `terminal.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `path_tree.cpp`, `git_policy.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `gltf.cpp`, `scene.cpp` and the others named above | The targets |
+| `json.cpp`, `expression.cpp`, `diff_functions.cpp`, `data_uri.cpp`, `revision.cpp`, `session.cpp`, `commands.cpp`, `delta.cpp`, `text.cpp`, `richtext.cpp`, `actions.cpp`, `path.cpp`, `text_model.cpp`, `terminal.cpp`, `find_pattern.cpp`, `search_glob.cpp`, `path_tree.cpp`, `git_policy.cpp`, `scenarios.cpp`, `png.cpp`, `http_response.cpp`, `sse.cpp`, `websocket.cpp`, `peer_handshake.cpp`, `frames.cpp`, `url.cpp`, `oauth.cpp`, `history.cpp`, `token_file.cpp`, `git_output.cpp`, `gltf.cpp`, `scene.cpp` and the others named above | The targets |
 | `Fuzz.hpp` | What they share: the input as text, the JSON template, `broken()` |
 | `corpus.py` | Writes the seeds and dictionaries: from the templates (`examples/templates.json`), the examples and the protocol table in `SCREEN_FORMAT.md` and `VERSION_CONTROL.md`, and the operators in `Expression.cpp`. Generated rather than checked in, so they follow the docs |
 | `CMakeLists.txt` | The targets, added when `AFFRESCOUI_BUILD_FUZZERS` is on |
