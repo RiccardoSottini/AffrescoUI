@@ -341,6 +341,22 @@
       }
     },
     {
+      "id": "pick-read",
+      "budget": "What an agent reads first for a request that points: 1,500 tokens at most",
+      "source": "tokens",
+      "limit": 1500,
+      "unit": "tokens",
+      "ciThreshold": null,
+      "ciReason": "A pick is read with the affrescoui tool (affrescoui source), and CI's benchmark job builds only affrescoui_bench: tokens.py counts no pick there.",
+      "measured": {
+        "value": 2603,
+        "from": "sinopia-json thumbnails",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "6f3b7584",
+        "date": "2026-11-15"
+      }
+    },
+    {
       "id": "kit-use",
       "budget": "A desktop kit component's use: 120 output tokens at most (tests/perf/kit.json)",
       "source": "tokens",
