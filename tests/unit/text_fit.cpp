@@ -265,3 +265,28 @@ TEST_CASE("text fit: a glyph is drawn the same whatever was drawn before it, pas
 		CHECK(fits(*font, later, scale) == laterAlone);
 	}
 }
+
+// A font drawing itself makes its drawn page the first time it draws. If its atlas is already at its limit then (it
+// measured enough large glyphs first), that page is never made, and a glyph with no texels must not name it
+TEST_CASE("text fit: with the atlas full before a font first draws, every glyph it draws names a page it has") {
+	const auto font = roboto(300.0f);
+	const Font::Glyph& question = font->glyph(U'?');
+	bool full = false;
+	for(char32_t c = 0x100; c <= 0x2FFF && !full; ++c)
+		if(font->hasGlyph(c) && font->glyph(c).uv.left == question.uv.left && font->glyph(c).uv.top == question.uv.top)
+			full = true; // measured as '?': no room left
+	REQUIRE(full);
+
+	const std::size_t pages = font->atlasPages();
+	for(const char32_t letter : std::u32string_view(U" A")) {
+		CAPTURE(static_cast<unsigned>(letter));
+		for(unsigned shift = 0; shift < 4; ++shift) {
+			CAPTURE(shift);
+			const Font::FittedGlyph fitted =
+			    font->fitGlyph(font->glyph(letter), 20.0f + static_cast<float>(shift) / 4.0f);
+			CHECK(fitted.glyph->page < font->atlasPages());
+		}
+	}
+	CHECK(font->atlasPages() == pages);
+	record(*font, U"A B", 1.0f); // drawn: its steps name pages a window can upload
+}

@@ -186,7 +186,10 @@ std::optional<detail::GlyphAtlas::Spot> Font::Data::spotFor(AtlasKind kind, std:
 std::optional<Font::Glyph> Font::Data::rasterise(std::size_t face, unsigned index, bool mayAddPage, unsigned shift,
                                                  std::uint32_t firstPage) {
 	const detail::FontFace& from = faces[face];
-	Glyph glyph{Rect{}, Rect{}, from.advance(index), firstPage, false, 0, static_cast<std::uint32_t>(face), index};
+	// A glyph with no texels names the page asked for, so a line stays one batch; but that page may never have been
+	// made (the atlas was full when a font first drew), and a window uploads every page a glyph names
+	const std::uint32_t namedPage = firstPage < atlas.pages(AtlasKind::coverage).size() ? firstPage : 0;
+	Glyph glyph{Rect{}, Rect{}, from.advance(index), namedPage, false, 0, static_cast<std::uint32_t>(face), index};
 
 	// A glyph that can't be rendered (a broken outline) draws nothing, and still moves the pen
 	const auto bitmap = from.render(index, shift);
