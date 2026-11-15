@@ -150,7 +150,7 @@ TEST_CASE("nrepl_protocol: eval gives each value with ns, then done; an error gi
 	const std::vector<Value> failed = paired.connection.send(evalRequest("x", "(frob)", paired.session));
 	checkEnds(failed);
 	REQUIRE(failed.size() == 3U);
-	CHECK(textOf(failed[0], "err") == "no such name: frob\n");
+	CHECK(textOf(failed[0], "err") == "no such name: frob (REPL:1:2)\n"); // its place in the buffer
 	CHECK(textOf(failed[1], "ex") == "LispError");
 	CHECK(textOf(failed[1], "root-ex") == "LispError");
 	CHECK(hasStatus(failed[1], "eval-error"));
