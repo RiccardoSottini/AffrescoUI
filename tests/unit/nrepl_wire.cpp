@@ -12,9 +12,12 @@
 
 #include <chrono>
 #include <deque>
+#include <memory>
 #include <optional>
 #include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 
 using namespace affresco;
 using namespace affresco::net;
@@ -46,8 +49,8 @@ private:
 /// @brief A listener on 127.0.0.1 whose connections record what they receive, and the main thread that runs them.
 struct Wire {
 	/// @brief Listens. @param options The limits.
-	explicit Wire(const EditorServerOptions& options = {}) : options(options) {
-		listener.emplace(executor, this->options, [this](EditorLink& link) {
+	explicit Wire(EditorServerOptions options = {}) : options(std::move(options)) {
+		listener = std::make_unique<EditorListener>(executor, this->options, [this](EditorLink& link) {
 			Record& record = records.emplace_back();
 			record.link = &link;
 			return std::make_unique<RecordingPeer>(record);
@@ -61,10 +64,10 @@ struct Wire {
 		return client;
 	}
 
-	test::ThreadExecutor executor;          ///< The main thread's tasks.
-	EditorServerOptions options;            ///< The limits.
-	std::deque<Record> records;             ///< One per connection, in the order they began.
-	std::optional<EditorListener> listener; ///< The wire under test (destroyed before the records).
+	test::ThreadExecutor executor;            ///< The main thread's tasks.
+	EditorServerOptions options;              ///< The limits.
+	std::deque<Record> records;               ///< One per connection, in the order they began.
+	std::unique_ptr<EditorListener> listener; ///< The wire under test (destroyed before the records).
 };
 
 /// @brief Sends bytes from a client. @param client It. @param bytes They.
@@ -167,6 +170,7 @@ TEST_CASE("nrepl_wire: a flood over the rate closes the connection") {
 TEST_CASE("nrepl_wire: a connection over maxConnections is refused") {
 	Wire wire;
 	std::vector<std::unique_ptr<tcp::Connection>> clients;
+	clients.reserve(4);
 	for(int index = 0; index < 4; ++index) clients.push_back(wire.connect());
 	REQUIRE(wire.executor.runUntil([&] { return wire.records.size() == 4; }));
 	auto fifth = wire.connect();
@@ -176,7 +180,7 @@ TEST_CASE("nrepl_wire: a connection over maxConnections is refused") {
 	CHECK(wire.listener->connections() == 4);
 	clients.front().reset(); // one goes, and its place is free again
 	REQUIRE(wire.executor.runUntil([&] { return wire.listener->connections() == 3; }));
-	auto another = wire.connect();
+	const auto another = wire.connect();
 	REQUIRE(wire.executor.runUntil([&] { return wire.records.size() == 5; }));
 }
 
@@ -212,6 +216,7 @@ TEST_CASE("nrepl_wire: close() sends what was queued, then ends the connection")
 TEST_CASE("nrepl_wire: destroying the listener with connections open returns promptly, and tells each peer") {
 	Wire wire;
 	std::vector<std::unique_ptr<tcp::Connection>> clients;
+	clients.reserve(3);
 	for(int index = 0; index < 3; ++index) clients.push_back(wire.connect());
 	send(*clients[0], "d2:op4:eval"); // a message cut in the middle
 	REQUIRE(wire.executor.runUntil([&] { return wire.records.size() == 3; }));
@@ -227,6 +232,7 @@ TEST_CASE("nrepl_wire: an EditorServer listens on a port the system picked, and 
 	std::vector<std::unique_ptr<tcp::Connection>> clients;
 	std::optional<EditorServer> server(std::in_place, executor, EditorHost{});
 	CHECK(server->port() != 0);
+	clients.reserve(2);
 	for(int index = 0; index < 2; ++index) clients.push_back(tcp::Connection::open("127.0.0.1", server->port()));
 	executor.runFor(100ms);
 	const auto started = std::chrono::steady_clock::now();

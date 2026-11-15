@@ -6,6 +6,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <random>
@@ -46,9 +47,9 @@ Value generate(std::mt19937& random, int depth) {
 	const auto kind = std::uniform_int_distribution<int>(0, depth > 0 ? 3 : 1)(random);
 	const auto size = std::uniform_int_distribution<int>(0, 5)(random);
 	if(kind == 0) {
-		const std::int64_t extremes[] = {0, -1, std::numeric_limits<std::int64_t>::min(),
-		                                 std::numeric_limits<std::int64_t>::max()};
-		if(size == 0) return Value(extremes[std::uniform_int_distribution<int>(0, 3)(random)]);
+		const std::array<std::int64_t, 4> extremes{0, -1, std::numeric_limits<std::int64_t>::min(),
+		                                           std::numeric_limits<std::int64_t>::max()};
+		if(size == 0) return Value(extremes.at(std::uniform_int_distribution<std::size_t>(0, 3)(random)));
 		return Value(std::uniform_int_distribution<std::int64_t>(-1000000, 1000000)(random));
 	}
 	if(kind == 1) {
@@ -111,7 +112,7 @@ TEST_CASE("nrepl_bencode: a value is followed by what comes next, left for the n
 }
 
 TEST_CASE("nrepl_bencode: 1,000 generated values round-trip") {
-	std::mt19937 random(20261115u);
+	std::mt19937 random(20261115u); // NOLINT(bugprone-random-generator-seed): fixed, so a failure reproduces
 	for(int index = 0; index < 1000; ++index) {
 		const Value value = generate(random, 4);
 		const std::string bytes = encode(value);
