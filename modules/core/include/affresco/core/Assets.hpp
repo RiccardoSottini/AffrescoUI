@@ -177,6 +177,26 @@ struct AssetType {
 	return text.substr(assetScheme.size());
 }
 
+/// @brief Encodes bytes in base64 (RFC 4648, with padding), so binary data fits in a JSON string.
+/// @param bytes The bytes.
+/// @return The text.
+[[nodiscard]] inline std::string encodeBase64(std::string_view bytes) {
+	static constexpr std::string_view alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	std::string text;
+	text.reserve((bytes.size() + 2U) / 3U * 4U);
+	for(std::size_t i = 0; i < bytes.size(); i += 3U) {
+		const std::size_t left = bytes.size() - i;
+		std::uint32_t group = std::uint32_t{static_cast<std::uint8_t>(bytes[i])} << 16U;
+		if(left > 1U) group |= std::uint32_t{static_cast<std::uint8_t>(bytes[i + 1U])} << 8U;
+		if(left > 2U) group |= static_cast<std::uint8_t>(bytes[i + 2U]);
+		text += alphabet[(group >> 18U) & 63U];
+		text += alphabet[(group >> 12U) & 63U];
+		text += left > 1U ? alphabet[(group >> 6U) & 63U] : '=';
+		text += left > 2U ? alphabet[group & 63U] : '=';
+	}
+	return text;
+}
+
 /// @brief Decodes base64 (RFC 4648, with or without padding; no line breaks).
 /// @param text The text.
 /// @param limit The most bytes it may give: longer text is refused before it is decoded.

@@ -39,6 +39,17 @@ nlohmann/json; Winsock on Windows).
 - **A peer whose reads are limited is refused the reads that show the document whole** (`showsWhole`: `diff`,
   `fileChanges`, `exportChanges`, `render`, `getEvidence`, `blame`, `getPicks`, `getSource`), never given a shorter
   answer: a node's definition and its bindings tell what the paths hidden from it hold.
+- **Commands are run through the host's `CommandService`, never decided here** (`SessionCommands.cpp`): without one
+  (`setCommands(nullptr)`) every command message is refused with "this host runs no commands". The session checks
+  each field and passes on only those the service knows; holds `runCommand` and `undoRun` to `runsPerMinute` (120)
+  and `arguments` to `maxArgumentBytes` (64 KiB as JSON), and a `runCommand` with `"evidence": "picture"` to the
+  rate of pictures too; and refuses `allowRun`, `denyRun` and `revokeRun` from a peer that may not review. A run that
+  waits is answered again, with the `id` of the `runCommand` that asked, through a token the session drops when it
+  leaves the service; leaving first denies its runs that wait ("the peer went away"), so a yes given later never runs
+  a command for a peer that can't hear it. There is no message that runs as the person.
+- **A peer whose reads are limited is told less of commands:** `getCommands` lists only those whose
+  `/actions/<name>` it may read; a run's `evidence` is always `none` for it, and `ran` and `undone` carry the count of
+  `changes`, never what changed or a picture.
 - **The inspector is a reviewer's:** `inspect` turns on `ScreenImages::inspect` only for a peer that may review; it is
   off by default.
 - **Rates (`PeerLimits`):** messages of any kind, changes (they rebuild the screen) and pictures (`render` draws it, and
@@ -90,7 +101,8 @@ owner (`affresco::Screen`) destroys the session before any of them.
 - **A new protocol message:** see the recipe below. `Session::handle` passes each message to its group:
   `handleChange` (revisions, restore, revert, undo), `handleReview` (accept, reject, preview, mode, revoke: it checks
   that the peer may review, then `decide` carries the decision out) or `handleQuery` (document, catalog, history,
-  diff, change sets, render), then `handleBlame`, `handlePickRead` (getPicks, getSource) and `handleConvert`.
+  diff, change sets, render), then `handleBlame`, `handlePickRead` (getPicks, getSource), `handleConvert` and
+  `handleCommands` (the command messages).
 
 ## Files
 
