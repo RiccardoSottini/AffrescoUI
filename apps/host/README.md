@@ -15,6 +15,8 @@ AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_launcher examples/flow/lisp # t
 Ctrl+Shift+D (Cmd+Shift+D on macOS), or *Review changes* on a card in the app's assistant, opens the host's window on a
 change, file by file, with preview, accept, reject and undo
 ([`ChangesWindow.cpp`](ChangesWindow.cpp), [VERSION_CONTROL.md](../../VERSION_CONTROL.md), "The changes, file by file").
+An app's `{"call": "changes.open", "with": {"source": address, "line": n}}` opens it on its Source page instead: the
+text that drew an element, read-only, its line marked, and the commit that last changed it.
 
 The app may use nothing its `app.json` declares (origins, folders, programs, sound, the assistant) until the person
 allows it. The host asks in a window of its own

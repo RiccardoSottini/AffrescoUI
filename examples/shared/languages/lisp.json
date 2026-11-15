@@ -1,0 +1,28 @@
+{
+	"$schema": "../../../schema/affrescoui-screen.schema.json",
+	"format": "affrescoui-screen",
+	"version": 2,
+	"note": "Lisp: include it to colour and edit a screen's Lisp program in an editor ({ \"language\": \"lisp\" }); keywords are coloured as types, the forms that define and decide as keywords.",
+	"languages": {
+		"lisp": {
+			"title": "Lisp",
+			"aliases": ["clojure", "clj"],
+			"files": ["*.lisp", "*.clj", "*.cljs", "*.edn"],
+			"comments": { "line": ";" },
+			"brackets": [["(", ")"], ["[", "]"], ["{", "}"]],
+			"pairs": [["(", ")"], ["[", "]"], ["{", "}"], ["\"", "\""]],
+			"wordPattern": "[\\w.?!*+<>=/#-]+",
+			"patterns": [
+				{ "match": ";.*", "scope": "comment.line" },
+				{ "match": "\"(?:[^\"\\\\]|\\\\.)*\"?", "scope": "string.quoted.double" },
+				{ "match": "(?<![\\w.?!*+<>=/#-]):[\\w.?!*+<>=/-]+", "scope": "type.property" },
+				{
+					"match": "(?<=\\()(?:def\\w*|fn|let|if|when|cond|case|do|loop|recur|and|or|not)(?![\\w.?!*+<>=/#-])",
+					"scope": "keyword.control"
+				},
+				{ "match": "(?<![\\w.?!*+<>=/#-])(?:true|false|nil)(?![\\w.?!*+<>=/#-])", "scope": "keyword.constant" },
+				{ "match": "(?<![\\w.?!*+<>=/#-])-?\\d[\\w.]*", "scope": "number" }
+			]
+		}
+	}
+}

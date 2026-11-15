@@ -1,13 +1,16 @@
 ;;; changes.screen.lisp --- the host's own view of a change, in a window of its own
 ;;;
-;;; What a proposal or a commit changes, file by file (apps/host/ChangesWindow.cpp). It is read from the host's assets
-;;; and fed only by the host, from the version control, through its native calls changes.list, changes.load,
-;;; changes.preview, changes.accept, changes.reject and changes.undo: nothing in the change it shows can alter it. The
-;;; host runs its actions by name (changes.refresh...), and scenarios play the host's part with changes.show.
+;;; What a proposal or a commit changes, file by file (apps/host/ChangesWindow.cpp), and where an element of the app is
+;;; written (its Source page). It is read from the host's assets and fed only by the host, from the version control,
+;;; through its native calls changes.list, changes.load, changes.source, changes.preview, changes.accept, changes.reject
+;;; and changes.undo: nothing in the change or the source it shows can alter it. The host runs its actions by name
+;;; (changes.refresh...), and scenarios play the host's part with changes.show.
 
 (include "locales/changes.en.lisp"
          "locales/changes.es.lisp"
-         "locales/changes.fr.lisp")
+         "locales/changes.fr.lisp"
+         "../languages/json.lisp"
+         "../languages/lisp.lisp")
 
 ;;; What it shows
 
@@ -35,6 +38,12 @@
 (defstate stale false "Whether the proposal shown was updated since it was loaded.")
 
 (defstate closed false "Whether the proposal shown has been decided.")
+
+(defstate source nil
+  "The Source page, shown in the place of the change while it is not nil: where an element is written, as the host
+  answered (Screen::source with blame and marked), or {:error ...}.")
+
+(defstate sourceCount 0 "How many times the host has been asked for a source: a new count shows the Source page.")
 
 (defcomputed added "The lines the change adds." (sum (map (fn [f] (or-else f.added 0)) (or-else state.view.files []))))
 
@@ -68,7 +77,10 @@
   (call "changes.list" :into "state.list" :then listed :onError ignored))
 
 (defn listed "Shows what the host asks for; or notes that the proposal shown was decided or updated." []
-  (cond (not= state.list.selectionCount state.selectionCount)
+  (cond (not= (or-else state.list.sourceCount 0) state.sourceCount)
+        (do (set "state.sourceCount" state.list.sourceCount)
+            (showSource state.list.source))
+        (not= state.list.selectionCount state.selectionCount)
         (do (set "state.selectionCount" state.list.selectionCount)
             (selectChange state.list.selection))
         computed.open
@@ -85,6 +97,7 @@
   (set "state.message" "")
   (set "state.file" "")
   (set "state.text" nil)
+  (set "state.source" nil)
   (loadChange))
 
 (defn selectProposal "Shows a proposal." [id] (selectChange {:proposal id}))
@@ -123,13 +136,30 @@
 
 (defn setMode "Lays the diff out split or inline." [mode] (set "state.mode" mode))
 
-(defn showForScenario "For scenarios, in the host's place: event.list, event.selected, event.view, event.text." []
+(defn showSource "Shows the Source page for what the app asked: {:source at :line n}, the line optional." [asked]
+  (set "state.message" "")
+  (set "state.source" {:at asked.source})
+  (call "changes.source"
+        :with {:at asked.source :line asked.line}
+        :into "state.source"
+        :then sourceLoaded
+        :onError failed))
+
+(defn sourceLoaded "Says what the host answered went wrong, if anything: the page stays, with the error." []
+  (set "state.message" (or (:error state.source) "")))
+
+(defn showForScenario
+  "For scenarios, in the host's place: event.list, event.selected, event.view, event.text, and event.source, what
+  changes.source answers, for the Source page."
+  []
   (set "state.selectionCount" (or event.list.selectionCount 0))
+  (set "state.sourceCount" (or event.list.sourceCount 0))
   (set "state.list" event.list)
   (set "state.selected" event.selected)
   (set "state.view" event.view)
   (set "state.text" event.text)
-  (set "state.file" event.text.file))
+  (set "state.file" event.text.file)
+  (set "state.source" event.source))
 
 (defn answered "Says what the host answered went wrong, if anything; then looks again." [result]
   (set "state.message" (or (:error result) ""))
@@ -184,7 +214,13 @@
    :c.onAccent {:light "#ffffff" :dark "#111118"}
    :c.warning {:light "#9a5b00" :dark "#f1b65a"}
    :c.deleted {:light "#fbd9d9" :dark "#4a2428"}
-   :c.inserted {:light "#d5f2dc" :dark "#1f3f2a"}})
+   :c.inserted {:light "#d5f2dc" :dark "#1f3f2a"}
+   :c.marked {:light "#fbefc4" :dark "#3d3519"}
+   :syntax.keyword {:light "#6a3fc8" :dark "#b39cf0"}
+   :syntax.type {:light "#1f6f9a" :dark "#7cc4ea"}
+   :syntax.string {:light "#2f7a3e" :dark "#8fd19e"}
+   :syntax.number {:light "#a2541c" :dark "#f0a46a"}
+   :syntax.comment {:light "#7a788c" :dark "#7f7d94"}})
 
 ;;; The list on the left: the proposals waiting, then the commits applied
 
@@ -390,6 +426,101 @@
      :textColor @c.muted
      :height 20))
 
+;;; The Source page: where an element is written, shown in the place of the change
+
+(defcomputed sourceShown "Whether the host answered with a source to show, not an error."
+  (and (some? state.source) (some? state.source.text)))
+
+(defcomputed sourceName
+  "The source's place: its file, the definition's kind and name for a program or the node for a JSON document, and
+  the line marked."
+  (join " · "
+        (filter (fn [part] (some? part))
+                [state.source.file
+                 (if (some? state.source.kind)
+                   (str state.source.kind " " (first (reverse (split state.source.address "/"))))
+                   state.source.node)
+                 (if (some? state.source.marked) (t "changes.line" {:line state.source.marked}) nil)])))
+
+
+(defview source-blame "Who last changed the source, and a button that shows that change." []
+  `(row#changesSourceBlame :when ~(some? state.source.blame) :gap 8 :height 32
+     (label#changesSourceLastChanged
+       :text ~(str (t "changes.lastChanged" {:number state.source.blame.number :author state.source.blame.author})
+                   ": "
+                   state.source.blame.message)
+       :textColor @c.muted
+       :grow 1
+       :height 32
+       :align "start center")
+     (node#changesSourceShowChange
+       :role button
+       :focusable true
+       :cursor hand
+       :height 32
+       :radius 8
+       :color @c.raised
+       :borderWidth 1
+       :borderColor @c.border
+       :label ~(t "changes.showChange")
+       :focused {:borderColor @c.accent :borderWidth 1}
+       :onClick ~(handler selectCommit state.source.blame.id)
+       :width 170
+       (label :text ~(t "changes.showChange")
+         :textColor @c.text
+         :anchors {:left 10 :right 10 :top 7}
+         :height 18
+         :align center))))
+
+(defview source-page "Where an element is written: its place, who last changed it, and its text, the line marked." []
+  `(column#changesSource :when ~(some? state.source) :grow 1 :gap 8 :alignItems stretch :anchors {:top 0 :bottom 0}
+     (label#changesSourceTitle :font heading :text ~(t "changes.source") :textColor @c.text :height 26 :role heading)
+     (label#changesSourceName :when ~computed.sourceShown
+       :text ~computed.sourceName
+       :font code
+       :textColor @c.text
+       :anchors {:left 0 :right 0}
+       :height 20)
+     (label#changesSourcePreviewed :when ~(and computed.sourceShown (some? state.list.previewing))
+       :wrap true
+       :text ~(t "changes.sourcePreviewed" {:n state.list.previewing})
+       :textColor @c.warning
+       :anchors {:left 0 :right 0}
+       :height 20)
+     (label#changesSourceShared :when ~(= state.source.shared true)
+       :wrap true
+       :text ~(t "changes.sourceShared")
+       :textColor @c.warning
+       :anchors {:left 0 :right 0}
+       :height 20)
+     (label#changesSourceCut :when ~(= state.source.cut true)
+       :wrap true
+       :text ~(t "changes.sourceCut")
+       :textColor @c.muted
+       :anchors {:left 0 :right 0}
+       :height 20)
+     ~(source-blame)
+     (editor#changesSourceText :when ~computed.sourceShown ; the marked line is the caret's, moved there by goTo
+       :grow 1
+       :font code
+       :textColor @c.text
+       :color @c.surface
+       :text ~state.source.text
+       :readOnly true
+       :lineNumbers true
+       :lineNumberColor @c.muted
+       :activeLineNumberColor @c.text
+       :lineColor ~(if (some? state.source.marked) "@c.marked" "transparent")
+       :language ~state.source.notation
+       :goTo ~(if (some? state.source.marked)
+                {:line (- state.source.marked 1) :column 0 :request state.sourceCount}
+                nil))
+     (label#changesSourceMessage :when ~(not= state.message "")
+       :wrap true
+       :text ~state.message
+       :textColor @c.warning
+       :height 36)))
+
 ;;; Deciding
 
 (defview action-button "A button that decides: its text from a key, shown while `shown`."
@@ -455,7 +586,8 @@
 
 ;;; The window
 
-(defscreen main "The list on the left; the change shown, its files and their diff, and the decision on the right."
+(defscreen main
+  "The list on the left; on the right the change shown, its files and their diff, and the decision, or the Source page."
   :window {:title "Changes" :width 1120 :height 740 :minWidth 760 :minHeight 480}
   :theme ~window.colorScheme
   :onLoad refreshChanges
@@ -468,7 +600,8 @@
   (node#changesRoot :color @c.background :every {:ms 500 :do refreshChanges}
     (row#changesLayout :fill 16 :gap 16
       ~(side)
-      (column#changesMain :grow 1 :gap 10 :alignItems stretch :anchors {:top 0 :bottom 0}
+      ~(source-page)
+      (column#changesMain :when ~(nil? state.source) :grow 1 :gap 10 :alignItems stretch :anchors {:top 0 :bottom 0}
         ~@(heading)
         (row#changesBody :when ~(some? state.view) :grow 1 :gap 12
           ~(files)

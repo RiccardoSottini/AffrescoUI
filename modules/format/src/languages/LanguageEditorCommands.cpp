@@ -144,8 +144,18 @@ void LanguageEditor::openLine(bool below) {
 void LanguageEditor::goTo(std::size_t line, std::size_t column, double request) {
 	if(goToRequest_ == request) return;
 	goToRequest_ = request;
+	goToPending_ = Position{line, column};
 	const std::size_t at = std::min(line, lines().size() - 1);
 	moveCaret({at, std::min(column, lines()[at].size())}, false);
+}
+
+void LanguageEditor::settleGoTo() {
+	if(!goToPending_) return;
+	const Position asked = *goToPending_;
+	goToPending_.reset();
+	const std::size_t at = std::min(asked.line, lines().size() - 1);
+	const Position place{at, std::min(asked.column, lines()[at].size())};
+	if(place != caret()) moveCaret(place, false);
 }
 
 void LanguageEditor::insertText(std::string_view text, std::size_t before, double request) {
