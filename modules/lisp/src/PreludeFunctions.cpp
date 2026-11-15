@@ -44,6 +44,7 @@ public:
 	Value& at(const Value& key, const Value& fallback, std::string_view fix) {
 		machine_.spend(1);
 		const std::string_view text = textKey(key, fix);
+		machine_.spendText(text.size()); // hashing and comparing it: a key can be long, and come many times
 		if(const auto found = index_.find(text); found != index_.end()) return members_[found->second].value;
 		const std::string_view kept = machine_.heap.keep(text);
 		index_.emplace(kept, members_.size());
@@ -153,7 +154,9 @@ Value selectKeys(Machine& machine, Arguments arguments) {
 	MapBuilder map(machine, names.count());
 	for(std::size_t at = 0; at < names.count(); ++at) {
 		bool found = false;
-		const Value value = source.isNil() ? Value() : source.lookup(textKey(names.at(at), "(str key)"), &found);
+		const std::string_view key = textKey(names.at(at), "(str key)");
+		machine.spendLookup(source, key);
+		const Value value = source.isNil() ? Value() : source.lookup(key, &found);
 		if(found) map.at(names.at(at), {}, "(str key)") = value;
 	}
 	return map.made();
