@@ -1,0 +1,70 @@
+[
+  {
+    "note": "Calva 2.0.599. Connect, its own text, an eval and load-file follow the requests recorded in nrepl/proof internal/checks/clients/calva.toml at commit e9e325a756df344563891aac19dc829f710d3024 (Calva at ad00dd7e518e0d08262810673111eaeddc5c2fdd); completions, lookup and interrupt follow Calva's sources at that commit. Reply shapes checked against babashka/babashka.nrepl src/babashka/nrepl/impl/server.clj at fb44874128d8cc2622f164e6a499ed4f00e5aae9. Written for AffrescoUI: the forms and files are its own.",
+    "send": {"op": "eval", "id": "1", "code": "*ns*"},
+    "expect": [{"keys": ["value", "ns"], "absent": ["session"], "value": "user"}, {"status": ["done"]}],
+    "questions": 0
+  },
+  {
+    "send": {"op": "clone", "id": "2", "client-name": "Calva", "client-version": "2.0.599"},
+    "expect": [{"keys": ["new-session"], "status": ["done"], "capture": "calva"}]
+  },
+  {
+    "send": {"op": "describe", "id": "3", "session": "$calva", "verbose": 1},
+    "expect": [{"keys": ["ops", "versions"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "eval", "id": "4", "session": "$calva", "ns": "user", "file": "/home/user/project/.calva/repl.calva-repl",
+             "line": 17, "column": 1, "pprint": 1,
+             "code": "(when-let [requires (resolve 'clojure.main/repl-requires)] (clojure.core/apply clojure.core/require @requires))",
+             "nrepl.middleware.print/print": "cider.nrepl.pprint/pprint",
+             "nrepl.middleware.print/options": {"right-margin": 120, "length": 50}},
+    "expect": [{"keys": ["value", "ns"], "value": "nil"}, {"status": ["done"]}],
+    "questions": 0
+  },
+  {
+    "send": {"op": "eval", "id": "5", "session": "$calva", "ns": "user", "code": "(ns proof.calva)", "pprint": 0},
+    "expect": [{"keys": ["value", "ns"], "value": "nil", "ns": "proof.calva"}, {"status": ["done"]}],
+    "questions": 0
+  },
+  {
+    "note": "Asked before it runs; held, then interrupted: the question is taken away and nothing runs.",
+    "send": {"op": "eval", "id": "6", "session": "$calva", "ns": "proof.calva", "code": "(launch-rockets)"},
+    "expect": [],
+    "hold": true,
+    "questions": 1
+  },
+  {
+    "send": {"op": "interrupt", "id": "7", "session": "$calva", "interrupt-id": "6"},
+    "expect": [{"id": "6", "status": ["interrupted", "done"]}, {"status": ["done"]}],
+    "evaluations": 0
+  },
+  {
+    "send": {"op": "eval", "id": "8", "session": "$calva", "ns": "proof.calva",
+             "file": "/home/user/project/src/proof/calva.lisp", "line": 3, "column": 1, "pprint": 1, "code": "(+ 1 2)",
+             "nrepl.middleware.print/print": "cider.nrepl.pprint/pprint",
+             "nrepl.middleware.print/options": {"right-margin": 120, "length": 50}},
+    "expect": [{"keys": ["value", "ns"], "ns": "proof.calva"}, {"status": ["done"]}],
+    "questions": 2
+  },
+  {
+    "send": {"op": "load-file", "id": "9", "session": "$calva", "file": "(defn add-item [item] item)\n",
+             "file-name": "calva.lisp", "file-path": "/home/user/project/src/proof/calva.lisp",
+             "fileName": "calva.lisp", "filePath": "/home/user/project/src/proof/calva.lisp", "pprint": 1,
+             "nrepl.middleware.print/print": "cider.nrepl.pprint/pprint",
+             "nrepl.middleware.print/options": {"right-margin": 120, "length": 50}},
+    "expect": [{"keys": ["value", "ns"]}, {"status": ["done"]}]
+  },
+  {
+    "send": {"op": "completions", "id": "10", "session": "$calva", "prefix": "add", "ns": "proof.calva"},
+    "expect": [{"keys": ["completions"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "lookup", "id": "11", "session": "$calva", "sym": "add-item", "ns": "proof.calva"},
+    "expect": [{"keys": ["info"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "lookup", "id": "12", "session": "$calva", "sym": "no-such-name", "ns": "proof.calva"},
+    "expect": [{"keys": ["info"], "status": ["done", "no-info"]}]
+  }
+]
