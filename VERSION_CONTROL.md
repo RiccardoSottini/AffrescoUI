@@ -348,6 +348,12 @@ conflict.
   can't be accepted until its author pushes again (which rebuilds the branch on the current `main`); it can be
   rejected.
 
+An object's keys keep `main`'s order, and a key only one side added lands after the key it followed on that side, so
+a definition added in the middle of a program file stays in the middle; a definition's text is never merged inside,
+it conflicts whole. A host can also open a merge of another version of the document as a proposal (`proposeMerge`):
+what merges cleanly is its change, and each conflict is listed in its `leftOut` (in the shape of `conflicts`, `main`'s
+value kept there), which, unlike `conflicts`, never blocks accepting it and stays as recorded when it rebases.
+
 ### Evidence
 A reviewer can ask the host for a proposal's **evidence** (`{"type": "getEvidence", "proposal": 3, "scale": 1}`), and
 gets it back as `evidence`:

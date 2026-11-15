@@ -88,9 +88,9 @@ json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 	proposal.behaviour = rules_.behaviourLines(before, after);
 	proposal.impact = rules_.impact(before, after);
 	proposal.policy = reviewNeeds(before, after, {}).first;
-	proposal.person = personNeeds(before, after, run);
-	proposal.assets = assetChanges(before, after);
 	proposal.run = std::move(run);
+	proposal.person = personNeeds(proposal, before, after);
+	proposal.assets = assetChanges(before, after);
 	return document;
 }
 
@@ -156,6 +156,7 @@ std::vector<ProposalInfo> Repository::proposals() const {
 		info.run = p.run;
 		info.person = p.person;
 		info.impact = p.impact;
+		info.leftOut = p.leftOut;
 	}
 	return result;
 }
