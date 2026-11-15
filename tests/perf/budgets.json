@@ -370,6 +370,66 @@
         "commit": "683b332",
         "date": "2026-10-23"
       }
+    },
+    {
+      "id": "command-list",
+      "budget": "An app's command list: 3,000 tokens at most (list_commands)",
+      "source": "tokens",
+      "limit": 3000,
+      "unit": "tokens",
+      "ciThreshold": 3000,
+      "measured": {
+        "value": 2156,
+        "from": "forge",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "a9bcb9d",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "id": "command-line",
+      "budget": "A command's line: 20 tokens at most (the median, list_commands)",
+      "source": "tokens",
+      "limit": 20,
+      "unit": "tokens",
+      "ciThreshold": 20,
+      "measured": {
+        "value": 12,
+        "from": "median of 187 commands",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "a9bcb9d",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "id": "run-command",
+      "budget": "A run's answer of three changes: 120 tokens at most (run_command)",
+      "source": "tokens",
+      "limit": 120,
+      "unit": "tokens",
+      "ciThreshold": 120,
+      "measured": {
+        "value": 61,
+        "from": "three changes",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "a9bcb9d",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "id": "command-tools",
+      "budget": "The tools to use an app: 1,000 tokens at most (list_commands, run_command, undo_run)",
+      "source": "tokens",
+      "limit": 1000,
+      "unit": "tokens",
+      "ciThreshold": 1000,
+      "measured": {
+        "value": 653,
+        "from": "list_commands, run_command, undo_run",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "a9bcb9d",
+        "date": "2026-11-15"
+      }
     }
   ]
 }

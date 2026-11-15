@@ -120,6 +120,10 @@ def token_values(encoding):
                    if name.endswith(suffix) and name.split("/")[1] not in exclude)
 
     edits = [value for name, value in found.items() if "/edit/" in name]
+    # Every command line of the apps tokens.py lists the commands of, for their median
+    documents = dict(tokens.screens(ROOT))
+    lines = [count(mcp.command_line(command)) for app in tokens.COMMAND_APPS if app in documents
+             for command in tokens.commands_answer(documents[app])["commands"]]
     picks = [(value, f"{name.split('/')[1]} {name.split('/')[3]}") for name, value in found.items()
              if "/pick/" in name and not name.endswith(("/first-read", "/ratio"))]
     return {"template-outline": largest("/outline", ("forge",)),
@@ -130,7 +134,11 @@ def token_values(encoding):
             "feature-request": feature_requests(mcp, count),
             "pick-read": max(picks) if picks else (None, None),
             "kit-use": max((value, name.split("/")[2]) for name, value in found.items()
-                           if name.startswith("tokens/kit/"))}
+                           if name.startswith("tokens/kit/")),
+            "command-list": largest("/commands"),
+            "command-line": (statistics.median_low(lines), f"median of {len(lines)} commands"),
+            "run-command": (found["tokens/run-command"], "three changes"),
+            "command-tools": (found["tokens/command-tools"], "list_commands, run_command, undo_run")}
 
 
 def machine():

@@ -2,7 +2,8 @@
 """Counts the tokens of what agents read and write: per template and for Forge (its features merged in), the minified
 document (the first get_screen read), its outline (get_screen with outline=true) and the canonical edits in
 tests/perf/edits (submit_revision's arguments); each desktop kit component's general use in tests/perf/kit.json, as an
-agent writes it; SCREEN_FORMAT.md (get_format_guide); and, with the affrescoui tool built, each pick in picks.json:
+agent writes it; SCREEN_FORMAT.md (get_format_guide); using the app: list_commands for Flow and Forge (the whole list
+and its median line), a run_command answer of three changes and the three tools' definitions; and, with the affrescoui tool built, each pick in picks.json:
 what an agent reads first with it (the pick's line and get_source's reply, from `affrescoui source`) against what it
 reads first without one, and their ratio. One JSON object per line, like affrescoui_bench.
 
@@ -32,6 +33,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SUFFIX = ".screen.json"
 OUTLINED = 32 * 1024  # bytes of minified document above which an agent reads the outline first, not the document
+COMMAND_KEYS = {"title", "category", "icon", "enablement", "description", "do", "arguments"}  # a command's own keys
+COMMAND_APPS = ("kanban", "forge")  # whose list_commands is counted: Flow (the kanban template) and Forge
+COMMAND_TOOLS = ("list_commands", "run_command", "undo_run")
+# A run_command answer of three changes, as the host sends one: what an agent reads after using the app once
+THREE_CHANGES = {"type": "ran", "run": 3, "command": "move-card", "errors": [], "failed": False, "undoable": "state",
+                 "changed": [{"op": "replace", "path": "/state/cards/0/column", "value": "doing"},
+                             {"op": "replace", "path": "/state/cards/0/updated", "value": "2026-11-15"},
+                             {"op": "add", "path": "/state/activity/-", "value": {"card": "c1", "to": "doing"}}]}
 
 
 def load_mcp(root):
@@ -200,12 +209,55 @@ def counts(root, edits, encoding, cli=None):
                     continue
                 yield f"tokens/{name}/reread", tokens(mcp.compact({"changes": changes}))
                 break
+    yield from command_counts(mcp, tokens, root)
     # The kit's uses are this checkout's, like the edits
     with open(os.path.join(HERE, "kit.json"), encoding="utf-8") as file:
         for component, use in json.load(file).items():
             yield f"tokens/kit/{component}", tokens(mcp.compact(use))
     if cli:
         yield from pick_counts(root, mcp, tokens, cli)
+
+
+def commands_answer(document):
+    """The host's `commands` answer for a document: every command of its `actions` (an object of command keys alone),
+    its arguments as declared, each run "ask", as an agent with no run rule of its own would see them."""
+    commands = []
+    for name, action in (document.get("actions") or {}).items():
+        if isinstance(action, dict) and action and set(action) <= COMMAND_KEYS:
+            commands.append({"name": name, **{key: action[key] for key in ("title", "category", "description")
+                                              if key in action},
+                             "arguments": action.get("arguments", {}), "enabled": True, "run": "ask"})
+    return {"type": "commands", "commands": commands}
+
+
+class CannedHost:
+    """A host that answers every message with one answer, for the tools' own functions."""
+
+    def __init__(self, answer):
+        """A host answering `answer`."""
+        self.answer = answer
+
+    def request(self, message):
+        """The canned answer, whatever was asked."""
+        return self.answer
+
+
+def command_counts(mcp, tokens, root):
+    """Using the app, as (name, tokens): per app of COMMAND_APPS, list_commands' whole answer and its median command
+    line; one run_command answer of three changes; and the three tools' definitions together. Nothing for a root from
+    before commands."""
+    if not hasattr(mcp, "command_list"):
+        return
+    documents = dict(screens(root))
+    for name in COMMAND_APPS:
+        if name in documents:
+            answer = commands_answer(documents[name])
+            yield f"tokens/{name}/commands", tokens(mcp.command_list(answer))
+            lines = [tokens(mcp.command_line(command)) for command in answer["commands"]]
+            if lines:
+                yield f"tokens/{name}/command-line", statistics.median_low(lines)
+    yield "tokens/run-command", tokens(mcp.run_command(CannedHost(THREE_CHANGES), {"name": "move-card"})[0])
+    yield "tokens/command-tools", tokens(json.dumps([tool for tool in mcp.TOOLS if tool["name"] in COMMAND_TOOLS]))
 
 
 def default_cli():
