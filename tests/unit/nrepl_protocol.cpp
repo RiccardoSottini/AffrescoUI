@@ -489,6 +489,39 @@ TEST_CASE("nrepl_protocol: an interrupt cancels a queued evaluation and the ques
 	CHECK(statusOf(idle[0]) == std::vector<std::string>{"session-idle", "done"});
 }
 
+TEST_CASE("nrepl_protocol: interrupting the request the question shows asks again, with the next one's text") {
+	FakeHost fake;
+	Connection connection(fake);
+	connection.send(evalRequest("shown", "(shown)"));
+	connection.send(evalRequest("next", "(unseen)"));
+	REQUIRE(fake.questions == std::vector<std::string>{"(shown)"});
+	Value::Dictionary interrupt = request("interrupt", "i");
+	interrupt.emplace("interrupt-id", text("shown"));
+	connection.send(Value(std::move(interrupt)));
+	CHECK(fake.cancels == 1U);
+	REQUIRE(fake.questions.size() == 2U);
+	CHECK(fake.questions.back() == "(unseen)"); // a yes runs only what the person saw
+	fake.answer(true);
+	REQUIRE(fake.console.requests.size() == 1U);
+	CHECK(fake.console.requests[0].text == "(unseen)");
+	checkEnds(connection.repliesTo("next"));
+}
+
+TEST_CASE("nrepl_protocol: interrupting a request the question doesn't show leaves the question as it is") {
+	FakeHost fake;
+	Connection connection(fake);
+	connection.send(evalRequest("shown", "(shown)"));
+	connection.send(evalRequest("later", "(later)"));
+	Value::Dictionary interrupt = request("interrupt", "i");
+	interrupt.emplace("interrupt-id", text("later"));
+	connection.send(Value(std::move(interrupt)));
+	CHECK(fake.cancels == 0U);
+	CHECK(fake.questions == std::vector<std::string>{"(shown)"});
+	fake.answer(true);
+	REQUIRE(fake.console.requests.size() == 1U);
+	CHECK(fake.console.requests[0].text == "(shown)");
+}
+
 TEST_CASE("nrepl_protocol: an interrupt with an interrupt-id takes only that request") {
 	FakeHost fake;
 	Connection connection(fake);
