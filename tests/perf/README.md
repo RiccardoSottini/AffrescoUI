@@ -126,6 +126,19 @@ CI compares base and head the same way, so the gate isn't affected.
 It also counts `SCREEN_FORMAT.md` (`format-guide`), the guide that agents load. And `kit/<component>`: each desktop kit
 component's general use in `kit.json`, as an agent writes it.
 
+And with the `affrescoui` tool built (`build/affrescoui`, or `--cli`), each pick in `picks.json`: a node in each
+example with a screen and a JSON document beside it, in both notations, one deep in the main view and one in a
+component or an overlay. Each is counted three ways, under `<folder>-<notation>/pick/<id>`:
+
+- the row itself: what an agent reads first for a request that points, the pick's line (the MCP server's `pick_lines`)
+  and `get_source`'s reply, the source coming from `affrescoui source --json`;
+- `/first-read`: what it reads first without one, the outline for a document over 32 KiB minified, else the document
+  (for a Lisp program, the JSON document beside it, the same tree);
+- `/ratio`: the first over the second.
+
+`--table` prints them as a second table, with the median, smallest and largest ratio. Without the tool there are no
+pick rows, and the error output says so.
+
 The document and the outline come from the MCP server's own functions (`compact`, `outline`), so a change to what the
 server sends shows up here. The counter is tiktoken's `o200k_base`. It stands in for Claude's tokenizer, which isn't
 public, so compare ratios, not totals.

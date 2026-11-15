@@ -1,0 +1,43 @@
+{
+	"id": "point-lisp-column-name",
+	"level": "edit",
+	"screen": "examples/flow/lisp/index.screen.lisp",
+	"request": "Write the names of the board's columns in capital letters where they are shown; the names stay as they are in the data.",
+	"point": "#columnName",
+	"pointRequest": "Write column names like this one in capital letters where they are shown; the names stay as they are in the data.",
+	"scenarios": [
+		{
+			"name": "capitals",
+			"steps": [
+				{
+					"expect": {
+						"node": "#columnName",
+						"text": "BACKLOG"
+					}
+				},
+				{
+					"expect": {
+						"state": "lanes.launch[0].name",
+						"is": "Backlog"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#statusBar",
+		"#toolbar",
+		"#cardTitle",
+		"#columnCount",
+		"/program/columns.lisp/card-title"
+	],
+	"reference": [
+		{
+			"message": "Column names in capitals",
+			"set": {
+				"/program/columns.lisp/column-title": "(defview column-title \"A column's title: its colour, name and count, red while it is over its limit.\" [column c]\n  `(row#columnTitle :gap 8 :alignItems center :anchors {:left 36 :right 72 :top 0} :height 40\n     (label#columnName :font small\n       :text ~(upper-case column.name)\n       :textColor @color.text\n       :fitText true\n       :height 40\n       :align {:horizontal start :vertical center})\n     (label#columnCount :font small\n       :text ~(count (filter (fn [it] (= it.c c)) computed.visible))\n       :fitText true\n       :height 40\n       :align {:horizontal start :vertical center}\n       :textColor ~(if (get computed.over c) \"@bug\" \"@color.muted\")\n       :label ~(if (get computed.over c)\n                   (t \"column.over\" {:name column.name :count (count column.cards) :limit column.limit})\n                   (count column.cards)))\n     (node#columnLimit :style caption\n       :when ~(and (some? column.limit) (get computed.over c))\n       :text ~(t \"column.limit\" {:limit column.limit})\n       :height 40\n       :align {:horizontal start :vertical center}\n       :textColor ~(if (get computed.over c) \"@bug\" \"@color.muted\"))))"
+			}
+		}
+	]
+}

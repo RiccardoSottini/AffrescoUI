@@ -1,0 +1,54 @@
+{
+	"id": "point-lisp-drawer-owner",
+	"level": "feature",
+	"screen": "examples/flow/lisp/index.screen.lisp",
+	"request": "In the side panel that shows the selected card, clicking the owner's name should show only that person's cards on the board.",
+	"point": "#detailOwner",
+	"pointRequest": "Clicking this name should show only this person's cards on the board.",
+	"scenarios": [
+		{
+			"name": "owner",
+			"steps": [
+				{
+					"click": "#cardTitle"
+				},
+				{
+					"key": "space"
+				},
+				{
+					"expect": {
+						"node": "#detailOwner",
+						"text": "Ada Lewis"
+					}
+				},
+				{
+					"expect": {
+						"state": "owner",
+						"is": ""
+					}
+				},
+				{
+					"click": "#detailOwner"
+				},
+				{
+					"wait": 50
+				},
+				{
+					"expect": {
+						"state": "owner",
+						"is": "AL"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": ["#topBar", "#statusBar", "#toolbar", "#detailTitle", "/program/flow.lisp/toggleOwner"],
+	"reference": [
+		{
+			"message": "Clicking the owner shows their cards",
+			"set": {
+				"/program/drawer.lisp/detail-owner": "(defview detail-owner \"The card's owner, in the drawer.\" []\n  `(node#detailOwner :style caption\n     :icon user\n     :text ~(or-else (:name (find (fn [it] (= it.who computed.card.who)) state.members)) computed.card.who)\n     :anchors {:left 12}\n     :onClick {:set state.owner :to ~computed.card.who}\n     :height 18))"
+			}
+		}
+	]
+}

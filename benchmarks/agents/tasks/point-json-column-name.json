@@ -1,0 +1,42 @@
+{
+	"id": "point-json-column-name",
+	"level": "edit",
+	"screen": "examples/flow/json/index.screen.json",
+	"request": "Write the names of the board's columns in capital letters where they are shown; the names stay as they are in the data.",
+	"point": "#columnName",
+	"pointRequest": "Write column names like this one in capital letters where they are shown; the names stay as they are in the data.",
+	"scenarios": [
+		{
+			"name": "capitals",
+			"steps": [
+				{
+					"expect": {
+						"node": "#columnName",
+						"text": "BACKLOG"
+					}
+				},
+				{
+					"expect": {
+						"state": "lanes.launch[0].name",
+						"is": "Backlog"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#statusBar",
+		"#toolbar",
+		"#cardTitle",
+		"#columnCount"
+	],
+	"reference": [
+		{
+			"message": "Column names in capitals",
+			"set": {
+				"#columnName/text": "{{upper(column.name)}}"
+			}
+		}
+	]
+}

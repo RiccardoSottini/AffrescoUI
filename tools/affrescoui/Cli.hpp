@@ -216,4 +216,9 @@ Exit generateSchema(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit signFile(std::span<const std::string_view> args);
 
+/// @brief `source`: where a node is written, as an agent reads it with getSource (commands/SourceCommand.cpp).
+/// @param args The arguments.
+/// @return How it ended: Problems when nothing is at the place asked.
+Exit printNodeSource(std::span<const std::string_view> args);
+
 } // namespace affresco::cli
