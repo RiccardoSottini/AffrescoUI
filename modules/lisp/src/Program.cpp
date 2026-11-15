@@ -778,6 +778,9 @@ json Program::build(const Limits& limits) {
 	undefined_.clear();
 	used_.clear();
 	named_.clear();
+	places_.clear();
+	std::vector<NodeNote> notes; // what the tree builder notes, if this build records
+	if(recording_) machine.nodeNotes = &notes;
 	return leavingAsLispError(machine, [&] {
 		machine.workOutDefinitions(); // a value is worked out here, purely: nothing later can change one
 		BuiltParts parts;
@@ -800,8 +803,19 @@ json Program::build(const Limits& limits) {
 			if(use.global->state == Global::State::Undefined)
 				undefined_.push_back({use.global->name, use.place.file ? *use.place.file : "", use.place.line,
 				                      use.place.column, use.definition});
-		return treeOf(machine, parts, defaulted_);
+		json tree = treeOf(machine, parts, defaulted_);
+		keepNodePlaces(notes);
+		return tree;
 	});
+}
+
+void Program::keepNodePlaces(const std::vector<NodeNote>& notes) {
+	std::set<std::string_view> seen; // views into notes, which outlive it
+	for(const NodeNote& note : notes)
+		if(seen.insert(note.id).second)
+			places_.push_back({note.id, note.form.file != nullptr ? *note.form.file : "", note.form.line,
+			                   note.form.column, note.written.file != nullptr ? *note.written.file : "",
+			                   note.written.line, note.written.column});
 }
 
 } // namespace affresco::lisp

@@ -1,7 +1,7 @@
 /// @file
 /// @brief The "lisp" workloads (RFC 0005, "Performance"): what a program's function costs in an event and in a binding,
-/// each beside the same thing written as steps or as an expression, a reload when a definition changes, and making an
-/// interpreter.
+/// each beside the same thing written as steps or as an expression, a reload when a definition changes, making an
+/// interpreter, and building the largest example's program, with and without recording where its nodes come from.
 
 #include "Bench.hpp"
 #include "Headless.hpp"
@@ -11,6 +11,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 namespace affresco::bench {
@@ -120,12 +121,57 @@ void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
 		}
 }
 
+/// @brief The `program` section of the largest example written as a program, as the host loads it: its entry screen,
+/// with the program files it includes.
+/// @param context The context.
+/// @return The section.
+json largestProgram(const Context& context) {
+	json largest = json::object();
+	std::size_t size = 0;
+	for(const auto& folder : std::filesystem::directory_iterator(context.examples())) {
+		if(!std::filesystem::is_regular_file(folder.path() / "lisp" / "app.lisp")) continue;
+		Screen screen = Screen::fromApp(folder.path() / "lisp", {}, Screen::History::InMemory);
+		const json& document = screen.versions().sourceDocument();
+		if(!document.contains("program") || document["program"].dump().size() <= size) continue;
+		size = document["program"].dump().size();
+		largest = document["program"];
+	}
+	return largest;
+}
+
+/// @brief "lisp/build-largest" and "lisp/origins-largest": building the largest example's program (builtProgram()),
+/// and finding where its nodes come from (nodeOrigins()), its second, recording build, which should cost about one
+/// build. Each step changes a comment in one definition, so that neither finds the result it kept.
+/// @param context The context.
+/// @param workloads Gets them.
+void addOriginWorkloads(const Context& context, std::vector<Workload>& workloads) {
+	const auto section = std::make_shared<json>(largestProgram(context));
+	if(section->empty()) throw std::runtime_error("lisp: no example is written as a program");
+	const auto turn = std::make_shared<int>(0);
+	const auto changed = [section, turn] {
+		json copy = *section;
+		json& entries = copy.begin().value();
+		json& text = entries.back();
+		text = text.get<std::string>() + "\n; " + std::to_string(++*turn);
+		return copy;
+	};
+	Workload build{.name = "lisp/build-largest", .unit = "ms", .runs = 15};
+	build.step = [changed] { static_cast<void>(lisp::builtProgram(changed())); };
+	workloads.push_back(std::move(build));
+	Workload origins{.name = "lisp/origins-largest", .unit = "ms", .runs = 15};
+	origins.step = [changed] {
+		if(lisp::nodeOrigins(changed())->empty()) throw std::runtime_error("lisp: the largest example has no origins");
+	};
+	workloads.push_back(std::move(origins));
+}
+
 } // namespace
 
 std::vector<Workload> lispWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	addStartWorkload(workloads);
 	addOpenWorkloads(context, workloads);
+	addOriginWorkloads(context, workloads);
 	const json bound = lisp::sourceDocument(programWithBindings(), "bench.lisp");
 	const LoadedScreen lisp = context.load(bound, {});
 	const LoadedScreen plain = context.load(documentWithExpressions(), {});

@@ -8,6 +8,7 @@
 #include <affresco/lisp/Program.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <map>
 #include <set>
@@ -90,6 +91,37 @@ void checkProgramShape(const json& section);
 /// @return What it built.
 /// @throws LispError If it can't be built or a limit runs out, naming the definition.
 [[nodiscard]] std::shared_ptr<const BuiltProgram> builtProgram(const json& section);
+
+/// @brief Where the form that built a node is written, or, when a call handed the node's id to the view that built it,
+/// where that call writes the id: in which definition, and where inside the definition's own text (the history keeps
+/// definitions, and a file on disk may be laid out differently).
+struct NodeOrigin {
+	/// @brief Where the node's id is.
+	enum class Id : std::uint8_t {
+		Form,      ///< Written out in the node's form: `(button#save` or `:id "save"`.
+		Call,      ///< Written out in a call that handed it to the view that built the node (`(tool-button "save")`):
+		           ///< line and column are those of its text.
+		Expression ///< Worked out by the form (`:id ~(str "row" i)`).
+	};
+
+	std::string file;         ///< The file, as the program calls it: the key under `/program`.
+	std::string definition;   ///< The entry's name: the address is `/program/<file>/<definition>`.
+	std::string kind;         ///< The definition's head: `defview`, `defcomponent`, `defscreen`, `defmacro`...
+	std::uint32_t line = 1;   ///< The line the node's form starts on, from 1 at the definition's first line.
+	std::uint32_t column = 1; ///< Its column on that line, in characters, from 1.
+	Id id = Id::Form;         ///< Where the node's id is.
+};
+
+/// @brief Node origins by node id.
+using NodeOrigins = std::map<std::string, NodeOrigin, std::less<>>;
+
+/// @brief Where each node with an id that a `program` section builds from a form of its source comes from: a second
+/// build of the section that records (Program::recordOrigins()), under builtProgram()'s limits, run only when asked. A
+/// node with no id, or built from a map or by a function, has none; a node built in several places has its first. The
+/// same section gives the same result, kept for a few sections on this thread.
+/// @param section The section.
+/// @return The origins; empty if the section can't be built (builtProgram() says why).
+[[nodiscard]] std::shared_ptr<const NodeOrigins> nodeOrigins(const json& section);
 
 /// @brief A document as everything but version control reads it: what its program builds and its other sections
 /// together, with its `program` section kept. A member both give must be the same; so the result, read as a document
