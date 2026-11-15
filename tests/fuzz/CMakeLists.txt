@@ -84,6 +84,10 @@ affrescoui_fuzzer(websocket affrescoui::net nlohmann_json::nlohmann_json) # Fuzz
 target_include_directories(affrescoui_fuzz_websocket PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # WebSocketFrames.hpp
 affrescoui_fuzzer(peer_handshake affrescoui::net nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_peer_handshake PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # PeerHandshake.hpp
+affrescoui_fuzzer(bencode affrescoui::net) # an editor's bytes, to the editor server's bencode reader
+target_include_directories(affrescoui_fuzz_bencode PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # nrepl/Bencode.hpp
+affrescoui_fuzzer(nrepl affrescoui::net) # an editor's messages, to a connection's nREPL protocol
+target_include_directories(affrescoui_fuzz_nrepl PRIVATE ${PROJECT_SOURCE_DIR}/modules/net/src) # nrepl/EditorLink.hpp
 affrescoui_fuzzer(frames affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_frames PRIVATE ${PROJECT_SOURCE_DIR}/modules/services/src) # Framing.hpp
 affrescoui_fuzzer(dap affrescoui::services nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON

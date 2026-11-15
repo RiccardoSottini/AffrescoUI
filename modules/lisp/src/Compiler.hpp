@@ -31,6 +31,8 @@ public:
 	/// @param name The name.
 	/// @return true if it is.
 	[[nodiscard]] static bool isSpecial(std::string_view name);
+	/// @brief The special forms' names, for Interpreter::callableNames(). @return Them, in no order.
+	[[nodiscard]] static std::vector<std::string_view> specialNames();
 
 	/// @brief Compiles a form as code that takes nothing.
 	/// @param form The form.

@@ -27,6 +27,19 @@ affrescoui_module(net
 	src/websocket/WebSocketFrames.cpp)
 if(EMSCRIPTEN) # the browser's fetch and WebSocket in place of libcurl (cmake/AffrescoUIWeb.cmake)
 	affrescoui_web_net(affrescoui_net)
+	target_sources(affrescoui_net PRIVATE src/nrepl/EditorServerWeb.cpp) # a page can't listen for an editor
+else()
+	# nrepl/: the editor server, so that an nREPL client evaluates into the running app: bencode and the wire, then
+	# the protocol (the operations, sessions, the clients' own forms and the person's pairing)
+	target_sources(affrescoui_net PRIVATE
+		src/nrepl/Bencode.cpp
+		src/nrepl/EditorConnection.cpp
+		src/nrepl/EditorServer.cpp
+		src/nrepl/ClientForms.cpp
+		src/nrepl/EditorOps.cpp
+		src/nrepl/EditorPeer.cpp
+		src/nrepl/EditorSessions.cpp
+		src/nrepl/Pairing.cpp)
 endif()
 # nlohmann_json is public: SignIn.hpp includes core's Identity.hpp, whose json is nlohmann's
 target_link_libraries(affrescoui_net PUBLIC affrescoui::core nlohmann_json::nlohmann_json PRIVATE CURL::libcurl)

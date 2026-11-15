@@ -181,6 +181,16 @@ std::vector<std::string> Interpreter::definitionNames() const {
 	return names;
 }
 
+std::vector<std::string> Interpreter::callableNames() const {
+	std::vector<std::string> names = machine_->globalNames();
+	for(const auto& definition : machine_->definitions()) names.push_back(definition->name);
+	for(const std::string_view form : Compiler::specialNames()) names.emplace_back(form);
+	std::ranges::sort(names);
+	const auto repeated = std::ranges::unique(names);
+	names.erase(repeated.begin(), repeated.end());
+	return names;
+}
+
 std::vector<Extension> Interpreter::extensions() const {
 	std::vector<Extension> found;
 	for(const auto& definition : machine_->definitions()) {

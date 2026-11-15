@@ -8,6 +8,7 @@
 #include "affresco/core/Executor.hpp"
 #include "affresco/core/Identity.hpp"
 #include "affresco/core/Network.hpp"
+#include "affresco/core/ProgramConsole.hpp"
 #include "affresco/core/Services.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
@@ -303,6 +304,10 @@ public:
 	/// @brief The pick records the person made (the "pick" step) and neither removed nor sent, oldest first.
 	/// @return `[record]` (SCREEN_FORMAT.md, "Pointing at a node").
 	[[nodiscard]] json picks() const;
+	/// @brief The screen's program, for an editor connected to the app (net::EditorServer): evaluating as the person
+	/// and looking names up. Only the host's own code evaluates through it, after the person paired the editor.
+	/// @return It, owned by the runtime and valid for its life.
+	[[nodiscard]] ProgramConsole& console() noexcept;
 	/// @brief Says which file holds an entry of a JSON document, for the `file` of a pick's and a source's `source`;
 	/// without it, `file` is left out.
 	/// @param fileOf Gives the file holding a JSON Pointer of the document; must not outlive what it reads.
