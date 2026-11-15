@@ -868,6 +868,22 @@
 									"type": "string"
 								}
 							},
+							"run": {
+								"type": "object",
+								"additionalProperties": false,
+								"description": "Who may run which of the commands as a peer (rules of their own: no change rule covers a run).",
+								"properties": {
+									"allow": {
+										"$ref": "#/$defs/v2/runRules"
+									},
+									"ask": {
+										"$ref": "#/$defs/v2/runRules"
+									},
+									"deny": {
+										"$ref": "#/$defs/v2/runRules"
+									}
+								}
+							},
 							"review": {
 								"type": "object",
 								"additionalProperties": false,
@@ -4905,6 +4921,16 @@
 				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
 				"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""
 			},
+			"runRules": {
+				"type": "array",
+				"maxItems": 64,
+				"items": {
+					"type": "string",
+					"maxLength": 256,
+					"pattern": "^[^() ]+(\\([^()/# ][^() ]*\\))?$",
+					"description": "\"author\" or \"author(command)\": a name, or a prefix ending in *: \"agent(moveCard)\""
+				}
+			},
 			"characterPairs": {
 				"type": "array",
 				"maxItems": 32,
@@ -5195,10 +5221,25 @@
 						"$ref": "#/$defs/v2/handler"
 					},
 					"arguments": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
+						"description": "Its arguments: names, or a type for each (the state's types)",
+						"anyOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							{
+								"type": "object",
+								"maxProperties": 32,
+								"propertyNames": {
+									"pattern": "^[A-Za-z0-9_-]{1,64}$"
+								},
+								"additionalProperties": {
+									"$ref": "#/$defs/v2/stateType"
+								}
+							}
+						]
 					}
 				}
 			},

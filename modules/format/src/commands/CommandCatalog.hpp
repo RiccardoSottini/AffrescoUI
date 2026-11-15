@@ -6,6 +6,9 @@
 #include "affresco/core/Commands.hpp"
 #include "affresco/core/Json.hpp"
 
+#include <cstddef>
+#include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -17,8 +20,8 @@ struct Engine;
 /// @brief The commands of the document a runtime shows: an action with a title, arguments and a category (a Lisp
 /// `defcommand`, or a JSON action written so); plain actions are never listed.
 ///
-/// Not built yet (f4c fills it in): it lists no command. Callers: Runtime::commandList(), command(), commandReach(),
-/// checkCommandArguments(), and CommandRuns. Main thread only.
+/// Callers: Runtime::commandList(), command(), commandReach(), checkCommandArguments(), and CommandRuns. Main thread
+/// only.
 class CommandCatalog {
 public:
 	/// @brief A catalog for an engine.
@@ -31,14 +34,23 @@ public:
 	CommandCatalog& operator=(CommandCatalog&&) = delete;
 	~CommandCatalog() = default;
 
-	/// @brief The commands, in the order the document writes them.
-	/// @return `[{name, title, category, description, arguments, enabled, key?}]`; not built yet: empty.
+	/// How many commands the catalog lists.
+	static constexpr std::size_t maxCommands = 1024;
+	/// How long a title may be, in bytes; a longer one is cut at a character.
+	static constexpr std::size_t maxTitleBytes = 128;
+	/// How long a description may be, in bytes; a longer one is cut at a character.
+	static constexpr std::size_t maxDescriptionBytes = 512;
+
+	/// @brief The commands, in the order of the `commands` variable (by category, then title), at most maxCommands.
+	/// @return `[{name, title, category, description, arguments, enabled, key?}]`: titles and descriptions translated
+	/// and cut, `arguments` always an object of types (a name the command doesn't type takes `{}`).
 	[[nodiscard]] json list() const;
 	/// @brief One command.
 	/// @param name Its name.
-	/// @return It, as in list(), or std::nullopt; not built yet: std::nullopt.
+	/// @return It, as in list(), or std::nullopt.
 	[[nodiscard]] std::optional<json> find(std::string_view name) const;
-	/// @brief What a command can reach, from its steps and the actions they run (CommandReach.hpp).
+	/// @brief What a command can reach, from its steps and the actions they run (CommandReach.hpp), kept until main's
+	/// head, the proposal previewed or the services change.
 	/// @param name Its name.
 	/// @return What it reaches; for no such command, a control reach.
 	[[nodiscard]] CommandReach reach(std::string_view name) const;
@@ -50,7 +62,10 @@ public:
 	std::optional<std::string> checkArguments(std::string_view name, json& arguments) const;
 
 private:
-	[[maybe_unused]] Engine& engine_; ///< The runtime (f4c reads its document and program).
+	Engine& engine_; ///< The runtime.
+	/// What reach() found, by command, for the head, preview and services in reachKey_.
+	mutable std::map<std::string, CommandReach, std::less<>> reaches_;
+	mutable std::string reachKey_; ///< What reaches_ was found for.
 };
 
 } // namespace affresco::format

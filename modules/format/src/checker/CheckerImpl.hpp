@@ -106,6 +106,9 @@ private:
 	/// menu items' and the settings'.
 	/// @param scope The variables they see.
 	void walkDeclaredTexts(const Scope& scope);
+	/// @brief Warns of a rule of `permissions.run` that names a command the document doesn't have (a prefix ending in
+	/// `*` may name commands still to come, and isn't warned of).
+	void walkRunRules();
 	/// @brief Checks a node once its component, if any, is in: styles, repeat, variables, properties, children.
 	/// @param node The node.
 	/// @param scope Its parent's variables.
