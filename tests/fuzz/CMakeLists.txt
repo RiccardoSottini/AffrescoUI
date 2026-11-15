@@ -152,3 +152,5 @@ endif()
 affrescoui_fuzzer(data_models affrescoui::data)
 affrescoui_fuzzer(key_press affrescoui::format)
 target_include_directories(affrescoui_fuzz_key_press PRIVATE ${PROJECT_SOURCE_DIR}/modules/format/src/events) # Shortcuts.hpp
+affrescoui_fuzzer(picks affrescoui::intelligence) # what the person pointed at, as the in-process agent reads it
+target_include_directories(affrescoui_fuzz_picks PRIVATE ${PROJECT_SOURCE_DIR}/modules/intelligence/src) # Picks.hpp
