@@ -5,9 +5,13 @@
 #include "JsonText.hpp"
 
 #include "SocketDir.hpp" // from apps/shared: the socket folder's checks, shared with affrescoui_launcher
+#ifndef __EMSCRIPTEN__
+#include "EditorPort.hpp" // from apps/shared: the .nrepl-port file, shared with affrescoui_launcher
+#endif
 
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp> // unconnectedScreen()
+#include <affresco/core/Portable.hpp>        // environmentVariable()
 #include <affresco/notation/Notation.hpp>
 
 #include "Png.hpp" // the library's PNG encoder (modules/screen/src)
@@ -15,8 +19,10 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <cstdint>
 #include <format>
 #include <iostream>
+#include <memory>
 #include <optional>
 
 namespace affresco::cli {
@@ -71,8 +77,20 @@ struct RunOptions {
 	std::filesystem::path data = Screen::defaultDataDirectory();              ///< The history and "persist" state.
 	std::optional<Mode> mode;                                                 ///< For this run only, if given.
 	std::vector<std::string> plugins;                                         ///< Change sets to apply once.
-	bool print = false; ///< Print a Lisp file's built tree instead of showing it.
+	bool print = false;           ///< Print a Lisp file's built tree instead of showing it.
+	bool editor = false;          ///< Let nREPL clients connect (--nrepl), each once the person says yes.
+	std::uint16_t editorPort = 0; ///< Their port on 127.0.0.1 (--nrepl PORT); 0 for any free one.
 };
+
+/// @brief Reads the port that may follow --nrepl.
+/// @param text The argument after it.
+/// @return The port, or nothing if the argument isn't one (then it is read as itself).
+std::optional<std::uint16_t> portOf(std::string_view text) {
+	unsigned port = 0;
+	const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), port);
+	if(text.empty() || error != std::errc() || end != text.data() + text.size() || port > 65535U) return std::nullopt;
+	return static_cast<std::uint16_t>(port);
+}
 
 /// @brief Reads `run`'s command line. Options repeat (--plugin), so Arguments doesn't read it.
 /// @param args The arguments.
@@ -89,6 +107,14 @@ RunOptions runOptions(std::span<const std::string_view> args) {
 		}
 		if(arg == "--print") {
 			options.print = true;
+			continue;
+		}
+		if(arg == "--nrepl") {
+			options.editor = true;
+			if(const std::optional<std::uint16_t> port = i + 1 < args.size() ? portOf(args[i + 1]) : std::nullopt) {
+				options.editorPort = *port;
+				++i;
+			}
 			continue;
 		}
 		if(i + 1 >= args.size()) throw UsageError(std::string(arg) + " needs a value, or isn't an option of run");
@@ -116,6 +142,27 @@ std::optional<std::filesystem::path> appLocation(const std::filesystem::path& fi
 	return std::nullopt;
 }
 
+#ifndef __EMSCRIPTEN__
+/// @brief With --nrepl, lets nREPL clients connect to the app's program (Screen::listenEditor()), and keeps the port
+/// in .nrepl-port in the app's folder while it runs; a plain screenshot (AFFRESCOUI_SCREENSHOT alone) takes none.
+/// @param screen The screen, with its window.
+/// @param app The application, which delivers the server's messages.
+/// @param options The command line.
+/// @param folder The app's folder, or the screen file's.
+/// @return The port file, or nullptr when there is no server.
+/// @throws std::runtime_error If the screen isn't a program, or the port is taken.
+std::unique_ptr<EditorPort> listenForEditors(Screen& screen, Application& app, const RunOptions& options,
+                                             const std::filesystem::path& folder) {
+	if(!options.editor ||
+	   (environmentVariable("AFFRESCOUI_SCREENSHOT") && !environmentVariable("AFFRESCOUI_SCREENSHOT_AFTER")))
+		return nullptr;
+	net::EditorServerOptions server;
+	server.port = options.editorPort;
+	const std::uint16_t port = screen.listenEditor(app, std::move(server));
+	return std::make_unique<EditorPort>(std::filesystem::absolute(folder), port);
+}
+#endif
+
 } // namespace
 
 Exit runScreen(std::span<const std::string_view> args) {
@@ -141,6 +188,11 @@ Exit runScreen(std::span<const std::string_view> args) {
 	screen.listen(app, options.socketDirectory / "agent.sock", "agent");
 	std::cerr << "affrescoui run: listening in " << options.socketDirectory.string()
 	          << " (studio.sock, agent.sock), mode " << toString(screen.versions().mode()) << '\n';
+#ifndef __EMSCRIPTEN__
+	// Goes before the screen: the file first, then the server with it
+	const std::unique_ptr<EditorPort> editorPort =
+	    listenForEditors(screen, app, options, location ? *location : options.file.parent_path());
+#endif
 	return app.run() == 0 ? Exit::Success : Exit::Failure;
 }
 
