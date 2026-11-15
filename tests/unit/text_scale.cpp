@@ -264,6 +264,7 @@ namespace {
 /// @return Per glyph, its bitmap and its pen.
 std::vector<Font::FittedGlyph> fittedGlyphs(const Font& raster, const Font::ShapedText& shaped, float origin) {
 	std::vector<Font::FittedGlyph> fitted;
+	fitted.reserve(shaped.glyphs.size());
 	for(const Font::ShapedGlyph& glyph : shaped.glyphs) fitted.push_back(raster.fitGlyph(*glyph.glyph, origin + glyph.x));
 	return fitted;
 }

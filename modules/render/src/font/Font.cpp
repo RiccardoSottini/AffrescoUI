@@ -121,6 +121,7 @@ const Font::Glyph& Font::Data::glyph(std::size_t face, unsigned index) {
 // What can't be moved (a colour glyph) or placed is remembered as the plain glyph, so it isn't tried each frame
 const Font::Glyph& Font::Data::fitted(const Glyph& unmoved, unsigned shift) noexcept {
 	const bool apart = rasterScale == 1.0f; // a font drawing itself leaves its Latin-1 page for measuring
+	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass glyphs the font holds
 	if((shift == 0 && !apart) || unmoved.face >= faces.size()) return unmoved;
 	std::unordered_map<std::uint64_t, Glyph>& store = apart ? drawn : glyphs;
 	const std::uint64_t key = glyphKey(unmoved.face, unmoved.index, shift);
@@ -129,6 +130,7 @@ const Font::Glyph& Font::Data::fitted(const Glyph& unmoved, unsigned shift) noex
 		const std::optional<Glyph> added = rasterise(unmoved.face, unmoved.index, true, shift, apart ? drawnPage : 0);
 		return store.emplace(key, added ? *added : unmoved).first->second;
 	} catch(...) {
+		// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass glyphs the font holds
 		return unmoved; // out of memory
 	}
 }
@@ -348,12 +350,12 @@ Font::FittedGlyph Font::fitGlyph(const Glyph& glyph, float pen) const noexcept {
 
 	// The fraction to the nearest quarter: a whole one is the next column, unmoved
 	float whole = std::floor(pixels);
-	long quarter = std::lround((pixels - whole) * 4.0f);
+	auto quarter = static_cast<unsigned>(std::lround((pixels - whole) * 4.0f));
 	if(quarter == 4) {
 		whole += 1.0f;
 		quarter = 0;
 	}
-	const Glyph& fitted = data_->fitted(plain, static_cast<unsigned>(quarter));
+	const Glyph& fitted = data_->fitted(plain, quarter);
 	if(fitted.shift != quarter) return {&fitted, nearest}; // its plain bitmap: the nearest column
 	return {&fitted, whole / scale};
 }
