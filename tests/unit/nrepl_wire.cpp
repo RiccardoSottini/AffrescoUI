@@ -48,9 +48,9 @@ private:
 
 /// @brief A listener on 127.0.0.1 whose connections record what they receive, and the main thread that runs them.
 struct Wire {
-	/// @brief Listens. @param options The limits.
-	explicit Wire(EditorServerOptions options = {}) : options(std::move(options)) {
-		listener = std::make_unique<EditorListener>(executor, this->options, [this](EditorLink& link) {
+	/// @brief Listens. @param givenOptions The limits.
+	explicit Wire(EditorServerOptions givenOptions = {}) : options(std::move(givenOptions)) {
+		listener = std::make_unique<EditorListener>(executor, options, [this](EditorLink& link) {
 			Record& record = records.emplace_back();
 			record.link = &link;
 			return std::make_unique<RecordingPeer>(record);
