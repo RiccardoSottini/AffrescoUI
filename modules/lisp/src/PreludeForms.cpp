@@ -4,10 +4,10 @@
 /// that expands to the special forms and functions the language already has. The helpers whose names start with `%`
 /// do a macro's work at expansion, so each macro is a line or two.
 ///
-/// An expansion writes a function by word only when a binding can lower it (`not`, `=`, `nil?`, `some?`, `map`,
-/// `filter`, `mapcat`), and lists it in the entry's `uses`, so a local hiding it where the macro is called is refused.
-/// Any other function it writes as a value (`(list reduce ...)`, `` `(~first ...) ``): the language's own, which no
-/// program can change.
+/// An expansion writes a function by word only when a binding can lower it (`not`, `=`, `nil?`, `some?`, `empty?`,
+/// `first`, `map`, `filter`, `mapcat`), and lists it in the entry's `uses`, so a local hiding it where the macro is
+/// called is refused. Any other function it writes as a value (`(list reduce ...)`, `` `(~inc ...) ``): the
+/// language's own, which no program can change.
 
 #include "Library.hpp"
 #include "Machine.hpp"

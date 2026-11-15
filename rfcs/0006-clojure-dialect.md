@@ -63,8 +63,8 @@ names (`uses`), and a call where a local hides one of them, or where the program
 A word with a `/` inside it names a namespace's function. The language has three namespaces: `clojure.core`, whose
 functions are the bare names (`clojure.core/inc` is `inc`), `clojure.string` (alias `str/`, also `string/`) and
 `clojure.set` (alias `set/`). A qualified word is never a local. An unknown prefix is an error that lists the namespaces.
-A host adds its own namespaces and aliases (`Interpreter::addNamespace`, `addAlias`). `ns` and `require` come with the
-package that adds them; until then the aliases are fixed.
+A host adds its own namespaces and aliases (`Interpreter::addNamespace`, `addAlias`). A file's `ns` form gives it aliases
+of its own (`modules/lisp/reference/namespaces.md`).
 
 ### Hints
 
@@ -85,11 +85,13 @@ These stay, on purpose, and the reference's `differences.md` lists them for writ
   and a key that isn't text is refused.
 - **JSON's numbers.** Integers and doubles, as JSON has; an integer that overflows goes on as a double. No ratios, no big
   numbers.
-- **Flat names.** Namespaces name functions; they are not files, and a program is one namespace.
-- **Sets are vectors.** JSON has no sets, so a set is a vector of distinct items, and `#{...}` is refused with that
-  advice.
-- **The host's words.** `set`, `empty`, `time` and `type` are the host's (a step, an expression's function) and the
-  language never defines them.
+- **Flat names.** Namespaces name functions, and a program is one flat space of names. As built, a file's `ns` form
+  labels the file, gives it aliases and names the files it needs, which the loader reads as `include`
+  (`modules/lisp/reference/namespaces.md`).
+- **Sets.** As built, a set is a value of the language (`#{...}`, `hash-set`, `set/`): it leaves as a JSON list, its
+  items in the order added, and comes back as a vector (`modules/lisp/reference/sets.md`).
+- **The host's words.** `set`, `empty`, `time`, `type`, `find` and `repeat` keep the host's meaning (a step, an
+  expression's function, a view's repeat) and are listed in `modules/lisp/reference/differences.md`.
 
 ## The alternatives
 
