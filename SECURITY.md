@@ -606,18 +606,24 @@ it:
 - **Only the person's own press pairs a connection.** The question is the one `evaluate`'s `confirm` draws ("The
   loop" above): the window's own, above the screen, out of any document's reach, answered only by a press begun on a
   button once it has been shown half a second. It shows the first text the connection wants to run, whole; a text
-  holding a character that doesn't show as itself is refused without asking, and the connection stays open. No flag,
-  variable, peer or test hook answers it. One question at a time: the other connections wait their turn.
+  holding a character that doesn't show as itself, or longer than a program's file may be (4 MiB), is refused without
+  asking, and the connection stays open. A yes runs only the text it showed: interrupting that request takes the
+  question away and asks again with the next one's text. No flag, variable, peer or test hook answers it. One
+  question at a time: the other connections wait their turn.
 - **A no closes the connection,** its waiting requests ended with `not-paired`. After three refusals the server asks
   no more until the host restarts, and refuses every new request that needs the app.
 - **A yes pairs that connection until it closes,** and nothing else: another connection is asked again. What it
   evaluates is the person's own input (VERSION_CONTROL.md, "The person's own input"): a revision by `user`, marked
   `ownInput`, its message ending `(editor)`, judged by the same rules, refused while a proposal is previewed, and
-  bounded by the program's budget like any evaluation. `load-file` lands only the definitions that changed.
+  bounded by the program's budget like any evaluation. Like the person's own typed `evaluate`, that includes the
+  review steps: a paired editor can `accept`, `reject`, `preview` or `revert`, as the person could at the console.
+  `load-file` lands only the definitions that changed.
 - **Bounded on the wire.** Four connections at once, sixteen sessions each, messages and their nesting limited, a rate
-  per connection and a queue per connection (Limits below); a first byte that isn't bencode's `d` (an HTTP request
-  from a web page) closes the connection. Read on a thread of its own per connection; the program runs only on the
-  main thread. Fuzzed: `tests/fuzz/bencode.cpp` and `tests/fuzz/nrepl.cpp`.
+  per connection and a queue per connection (Limits below), every waiting request counted whole; a connection's
+  reading pauses while the main thread hasn't taken what it read, and sending never waits on a client that doesn't
+  read. A first byte that isn't bencode's `d` (an HTTP request from a web page) closes the connection. Read on a
+  thread of its own per connection; the program runs only on the main thread. Fuzzed: `tests/fuzz/bencode.cpp` and
+  `tests/fuzz/nrepl.cpp`.
 - **What it doesn't tell:** who connected. Any program of any user on the computer can connect to 127.0.0.1 and ask;
   the question is the only check (Known gaps).
 
@@ -943,6 +949,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | One message from an editor (`maxMessageBytes`, `maxDepth`, `maxKeys`) | 8 MiB, 16 levels, 64 keys in a dictionary; more closes the connection |
 | Messages a second from one editor connection (`messagesPerSecond`) | 100; more closes it |
 | Bytes waiting to go to one editor connection (`maxQueuedBytes`) | 16 MiB; more closes it, the main thread never waits |
+| Requests of one editor connection waiting to run (`maxQueuedBytes`) | 64, and 16 MiB encoded, keys nothing reads included; more are refused (`too many requests wait`) |
+| Bytes read from one editor connection the main thread hasn't taken (`maxQueuedBytes`) | 16 MiB; reading pauses until it takes them |
 | Pairing questions refused before an editor server asks no more (`maxRefusals`) | 3, until the host restarts |
 | A screen's models (`data::Limits`, `tests/fuzz/data_models.cpp`) | 256 collections, 256 fields a model (nested ones included), 8 levels, 1,024 enum values, names of 64 bytes, 256 migrations of 64 steps, 10,000 seed or imported records |
 | A screen's records (`data::Limits`) | A record of 1 MiB, 1,000,000 a collection, a database of 1 GiB; a query gives at most 10,000 records, with 64 conditions, 4 levels of `any`, 1,000 values `in`, 8 sort keys; 100,000 journal entries (the oldest go); a write step at most 10,000 records |
