@@ -28,7 +28,8 @@ struct EditorServerOptions {
 	/// Bytes waiting to be sent to a connection, more close it; bytes of its requests waiting to run, encoded, more
 	/// are refused; and bytes read from it the main thread hasn't taken yet, more pause reading.
 	std::size_t maxQueuedBytes = std::size_t{16} << 20;
-	/// Connections the person refused (or left unanswered) before the server pairs no more until the host restarts.
+	/// Connections the person refused (No, or Escape) before the server pairs no more until the host restarts; a
+	/// question taken away unanswered, because its editor left or its request went, counts none.
 	std::size_t maxRefusals = 3;
 	std::string version; ///< The host's version, which `describe` reports; "" for none.
 };
