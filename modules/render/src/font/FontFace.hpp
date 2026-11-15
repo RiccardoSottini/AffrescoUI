@@ -170,6 +170,9 @@ private:
 	/// @param path The file's path, for errors.
 	/// @throws std::runtime_error If HarfBuzz finds no glyphs in it.
 	void openShaper(const std::filesystem::path& path);
+	/// @brief Whether its glyphs are hinted (lightly, vertically only): below a raster scale of 2 (Font::fitsPixels),
+	/// and never in a face with colour glyphs.
+	[[nodiscard]] bool hinted() const noexcept;
 	/// @brief Thickens or slants a glyph's outline in place, as its style asks.
 	/// @param outline The outline, in 26.6 pixels.
 	void synthesize(FT_Outline& outline) const noexcept;

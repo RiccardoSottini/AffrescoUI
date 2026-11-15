@@ -134,6 +134,21 @@ struct Font::Data {
 	/// into those places: so where a glyph lies in the atlas, which decides how a turned or scaled text's texels are
 	/// filtered to the last bit, never depends on what the font drew before.
 	void reserveDrawn();
+	/// @brief A font drawing itself: its copy of a glyph's plain bitmap in the drawn pages, its texels copied from
+	/// where the glyph was rasterised.
+	/// @param unmoved The glyph, rasterised by glyph().
+	/// @return The copy; nothing if it doesn't fit.
+	[[nodiscard]] std::optional<Glyph> copyDrawn(const Glyph& unmoved);
+	/// @brief A glyph made at load whose bitmaps get places kept in the first drawn page (reserveDrawn()).
+	struct LoadedBitmap {
+		std::uint64_t key = 0; ///< Its glyphKey(), shift 0.
+		int width = 0;         ///< Its texels across, padding not included.
+		int height = 0;        ///< Its texels down, padding not included.
+	};
+	/// @brief The glyph bakeLatin1() made for a character, if its bitmap gets kept places.
+	/// @param codepoint A Latin-1 character.
+	/// @return Its key and texels; nothing if it has none (a space), is a colour glyph or isn't on the first page.
+	[[nodiscard]] std::optional<LoadedBitmap> loadedBitmap(char32_t codepoint) const noexcept;
 	/// @brief Where a bitmap goes: its kept place (reserved), or the first that fits from @p firstPage on.
 	/// @param kind Coverage or colour.
 	/// @param key Its glyphKey(), shift included.

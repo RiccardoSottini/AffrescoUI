@@ -38,6 +38,16 @@ std::runtime_error unusable(const std::filesystem::path& path, const std::string
 	return std::runtime_error("AffrescoUI: not a usable font (" + why + "): " + path.string());
 }
 
+/// @brief How FreeType loads a glyph: light hinting moves outlines only vertically, so widths and advances
+/// (HarfBuzz's) stay as they are; unhinted, a glyph keeps its exact shape. Embedded bitmaps would be another size, so
+/// only a face with colour glyphs loads them.
+/// @param hinted Whether it is hinted (FontFace::hinted()).
+/// @param color Whether the face has colour glyphs.
+/// @return FT_Load_Glyph's flags.
+FT_Int32 loadFlags(bool hinted, bool color) noexcept {
+	return (hinted ? FT_LOAD_TARGET_LIGHT : FT_LOAD_NO_HINTING) | (color ? FT_LOAD_COLOR : FT_LOAD_NO_BITMAP);
+}
+
 } // namespace
 
 FreeTypeLibrary startFreeType() {
@@ -161,18 +171,17 @@ float FontFace::advance(unsigned glyph) const noexcept {
 	return static_cast<float>(hb_font_get_glyph_h_advance(shaper_.get(), glyph)) * scale_;
 }
 
+// A dense raster, or a colour glyph, is unhinted: its exact shape
+bool FontFace::hinted() const noexcept { return !color_ && Font::fitsPixels(rasterScale_); }
+
 std::optional<FontFace::Bitmap> FontFace::render(unsigned glyph, unsigned shift) const noexcept {
-	// Light hinting moves outlines only vertically, so widths and advances (HarfBuzz's) stay as they are; a dense
-	// raster, or a colour glyph, is unhinted, its exact shape; embedded bitmaps would be another size
-	const bool hinted = !color_ && Font::fitsPixels(rasterScale_);
-	const FT_Int32 flags =
-	    (hinted ? FT_LOAD_TARGET_LIGHT : FT_LOAD_NO_HINTING) | (color_ ? FT_LOAD_COLOR : FT_LOAD_NO_BITMAP);
+	const bool hints = hinted();
 	FT_Face face = face_.get();
-	if(FT_Load_Glyph(face, glyph, flags) != 0) return std::nullopt;
+	if(FT_Load_Glyph(face, glyph, loadFlags(hints, color_)) != 0) return std::nullopt;
 	const bool outline = face->glyph->format == FT_GLYPH_FORMAT_OUTLINE;
 	if(outline) synthesize(face->glyph->outline);
 	// Moved after hinting, which is vertical only: the rows stay on pixel rows, the columns take the fraction
-	const unsigned moved = outline && hinted ? shift : 0;
+	const unsigned moved = outline && hints ? shift : 0;
 	if(moved != 0) FT_Outline_Translate(&face->glyph->outline, static_cast<FT_Pos>(moved) * 16, 0); // 26.6 quarters
 	if(face->glyph->format != FT_GLYPH_FORMAT_BITMAP && FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0)
 		return std::nullopt;

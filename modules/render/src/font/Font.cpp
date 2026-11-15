@@ -12,6 +12,7 @@
 #include <atomic>
 #include <bit>
 #include <cmath>
+#include <cstddef>
 #include <cstring>
 #include <optional>
 #include <span>
@@ -130,12 +131,48 @@ const Font::Glyph& Font::Data::fitted(const Glyph& unmoved, unsigned shift) noex
 	try {
 		if(const auto found = store.find(key); found != store.end()) return found->second;
 		if(apart && drawnPage == 0) reserveDrawn();
-		const std::optional<Glyph> added = rasterise(unmoved.face, unmoved.index, true, shift, apart ? drawnPage : 0);
+		const std::optional<Glyph> added =
+		    apart && shift == 0 ? copyDrawn(unmoved)
+			                    : rasterise(unmoved.face, unmoved.index, true, shift, apart ? drawnPage : 0);
 		return store.emplace(key, added ? *added : unmoved).first->second;
 	} catch(...) {
 		// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass glyphs the font holds
 		return unmoved; // out of memory
 	}
+}
+
+// Rendering it again would give the same texels: they are copied, which costs a few rows of bytes, not FreeType's work
+std::optional<Font::Glyph> Font::Data::copyDrawn(const Glyph& unmoved) {
+	const Rect& uv = unmoved.uv;
+	if(unmoved.color || uv.right <= uv.left || uv.bottom <= uv.top)
+		return rasterise(unmoved.face, unmoved.index, true, 0, drawnPage); // no texels to copy
+	const auto texels = static_cast<float>(atlas.pages(AtlasKind::coverage)[unmoved.page].size);
+	const auto left = static_cast<int>(std::lround(uv.left * texels)),
+	           top = static_cast<int>(std::lround(uv.top * texels));
+	const auto width = static_cast<int>(std::lround(uv.right * texels)) - left;
+	const auto height = static_cast<int>(std::lround(uv.bottom * texels)) - top;
+	constexpr int padding = detail::GlyphAtlas::padding;
+	const auto spot = spotFor(AtlasKind::coverage, glyphKey(unmoved.face, unmoved.index), width + padding,
+	                          height + padding, true, drawnPage);
+	if(!spot) return std::nullopt;
+
+	// Taken after spotFor(), which may add a page and so move them
+	std::vector<detail::GlyphAtlas::Page>& pages = atlas.pages(AtlasKind::coverage);
+	const detail::GlyphAtlas::Page& from = pages[unmoved.page];
+	detail::GlyphAtlas::Page& to = pages[spot->page];
+	const int toLeft = spot->x + padding, toTop = spot->y + padding;
+	for(int row = 0; row < height; ++row) {
+		const auto source = from.pixels.begin() + (static_cast<std::ptrdiff_t>(top + row) * from.size + left);
+		std::copy_n(source, width, to.pixels.begin() + (static_cast<std::ptrdiff_t>(toTop + row) * to.size + toLeft));
+	}
+	to.changes.push_back({toLeft, toTop, toLeft + width, toTop + height});
+
+	Glyph glyph = unmoved;
+	const auto texel = 1.0f / static_cast<float>(to.size);
+	glyph.uv = Rect{static_cast<float>(toLeft) * texel, static_cast<float>(toTop) * texel,
+	                static_cast<float>(toLeft + width) * texel, static_cast<float>(toTop + height) * texel};
+	glyph.page = spot->page;
+	return glyph;
 }
 
 void Font::Data::reserveDrawn() {
@@ -144,32 +181,38 @@ void Font::Data::reserveDrawn() {
 	std::vector<ReservedSpot> spots;
 	spots.reserve(4 * latin1Count);
 	for(char32_t codepoint = firstCodepoint; codepoint < firstCodepoint + latin1Count; ++codepoint) {
-		// The glyphs bakeLatin1() made, in its order: what the first page holds, whatever was measured since
-		const auto face = faceFor(codepoint);
-		if(!face && codepoint != U'?') continue;
-		const std::uint64_t key = glyphKey(face.value_or(0), faces[face.value_or(0)].glyphIndex(codepoint));
-		const auto found = glyphs.find(key);
-		if(found == glyphs.end() || found->second.color || found->second.page != 0 ||
-		   std::ranges::any_of(spots, [key](const ReservedSpot& spot) { return spot.key == key; }))
+		const std::optional<LoadedBitmap> bitmap = loadedBitmap(codepoint);
+		if(!bitmap ||
+		   std::ranges::any_of(spots, [key = bitmap->key](const ReservedSpot& spot) { return spot.key == key; }))
 			continue;
-		const Rect& uv = found->second.uv;
-		const auto texels = static_cast<float>(atlas.pages(AtlasKind::coverage).front().size);
-		const auto width = static_cast<int>(std::lround((uv.right - uv.left) * texels));
-		const auto height = static_cast<int>(std::lround((uv.bottom - uv.top) * texels));
-		if(width == 0 || height == 0) continue; // a space: no texels
 		for(unsigned shift = 0; shift < 4; ++shift) {
 			// A move right by a fraction of a pixel takes one column more at most; the rows don't move
-			const int across = width + (shift == 0 ? 0 : 1) + padding, down = height + padding;
+			const int across = bitmap->width + (shift == 0 ? 0 : 1) + padding, down = bitmap->height + padding;
 			const auto spot = atlas.place(AtlasKind::coverage, across, down, spots.empty(), drawnPage);
 			if(!spot && spots.empty()) return; // no room for the page: drawn glyphs go where they fit
 			if(spot)
-				spots.push_back({key | (std::uint64_t{shift} << 62), static_cast<std::uint16_t>(spot->x),
+				spots.push_back({bitmap->key | (std::uint64_t{shift} << 62), static_cast<std::uint16_t>(spot->x),
 				                 static_cast<std::uint16_t>(spot->y), static_cast<std::uint16_t>(across),
 				                 static_cast<std::uint16_t>(down)});
 		}
 	}
 	std::ranges::sort(spots, {}, &ReservedSpot::key);
 	reserved = std::move(spots);
+}
+
+// The glyphs bakeLatin1() made, in its order: what the first page holds, whatever was measured since
+std::optional<Font::Data::LoadedBitmap> Font::Data::loadedBitmap(char32_t codepoint) const noexcept {
+	const auto face = faceFor(codepoint);
+	if(!face && codepoint != U'?') return std::nullopt;
+	const std::uint64_t key = glyphKey(face.value_or(0), faces[face.value_or(0)].glyphIndex(codepoint));
+	const auto found = glyphs.find(key);
+	if(found == glyphs.end() || found->second.color || found->second.page != 0) return std::nullopt;
+	const Rect& uv = found->second.uv;
+	const auto texels = static_cast<float>(atlas.pages(AtlasKind::coverage).front().size);
+	const auto width = static_cast<int>(std::lround((uv.right - uv.left) * texels));
+	const auto height = static_cast<int>(std::lround((uv.bottom - uv.top) * texels));
+	if(width == 0 || height == 0) return std::nullopt; // a space: no texels
+	return LoadedBitmap{key, width, height};
 }
 
 std::optional<detail::GlyphAtlas::Spot> Font::Data::spotFor(AtlasKind kind, std::uint64_t key, int width, int height,
@@ -186,7 +229,10 @@ std::optional<detail::GlyphAtlas::Spot> Font::Data::spotFor(AtlasKind kind, std:
 std::optional<Font::Glyph> Font::Data::rasterise(std::size_t face, unsigned index, bool mayAddPage, unsigned shift,
                                                  std::uint32_t firstPage) {
 	const detail::FontFace& from = faces[face];
-	Glyph glyph{Rect{}, Rect{}, from.advance(index), firstPage, false, 0, static_cast<std::uint32_t>(face), index};
+	// A glyph with no texels names the page asked for, so a line stays one batch; but that page may never have been
+	// made (the atlas was full when a font first drew), and a window uploads every page a glyph names
+	const std::uint32_t namedPage = firstPage < atlas.pages(AtlasKind::coverage).size() ? firstPage : 0;
+	Glyph glyph{Rect{}, Rect{}, from.advance(index), namedPage, false, 0, static_cast<std::uint32_t>(face), index};
 
 	// A glyph that can't be rendered (a broken outline) draws nothing, and still moves the pen
 	const auto bitmap = from.render(index, shift);
