@@ -123,6 +123,19 @@
 			]
 		},
 		{
+			"name": "point-at-card-title",
+			"note": "Cmd+Alt+A points at an element for the assistant: a click on a card's title picks it (and doesn't select the card), and the assistant opens with where it is written",
+			"steps": [
+				{ "key": "mod+alt+a" },
+				{ "wait": 50 },
+				{ "click": "#cardTitle", "nth": 0 },
+				{ "wait": 50 },
+				{ "expect": { "state": "assistant.open", "is": true } },
+				{ "expect": { "state": "assistant.pointed.length", "is": 1 } },
+				{ "expect": { "state": "assistant.pointed[0].source.address", "is": "/program/columns.lisp/card-title" } }
+			]
+		},
+		{
 			"name": "display-ordering-and-properties",
 			"note": "Ordering by priority puts the urgent issue first in its column; turning a display property off hides it on every card",
 			"steps": [

@@ -35,4 +35,14 @@
                 :assistant.stopped "Detenido."
                 :assistant.copy "Copiar"
                 :assistant.copied "Copiado"
-                :assistant.retry "Reintentar"}}}
+                :assistant.retry "Reintentar"
+                :assistant.point "Señalar algo"
+                :assistant.pointHint "Haz clic en lo que quieres cambiar. Esc cancela."
+                :assistant.pointShortcut "Señalar algo (Ctrl+Alt+A)"
+                :assistant.pointed "Señalado"
+                :assistant.pointedNote "Se comparte con el asistente al enviar"
+                :assistant.removePointed "Quitar {name}"
+                :assistant.showSource "Ver el código"
+                :assistant.pointedNearest "El elemento más cercano con una dirección"
+                :assistant.pointedRepeat "Uno de una lista: un cambio se aplica a todos"
+                :assistant.pointedShared "Compartido: escrito una vez, usado en más de un sitio"}}}

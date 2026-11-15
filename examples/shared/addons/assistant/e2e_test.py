@@ -90,6 +90,7 @@ def request_and_propose(mcp, text, change, message):
     request = json.loads(mcp.tool("wait_for_request", {"timeout_seconds": 30}))
     assert request.get("text") == text, request
     assert request.get("origin") == "app", request
+    assert "picks" not in request, request  # nothing pointed at: the request is as it was
     proposed = mcp.tool("submit_revision", {"message": message, "set": change})
     assert proposed.startswith("proposed as proposal "), proposed
     proposal = int(proposed.split()[3])

@@ -57,7 +57,17 @@
 			"assistant.stopped": "Stopped.",
 			"assistant.copy": "Copy",
 			"assistant.copied": "Copied",
-			"assistant.retry": "Retry"
+			"assistant.retry": "Retry",
+			"assistant.point": "Point at something",
+			"assistant.pointHint": "Click what you want to change. Esc cancels.",
+			"assistant.pointShortcut": "Point at something (Ctrl+Alt+A)",
+			"assistant.pointed": "Pointed at",
+			"assistant.pointedNote": "Shared with the assistant when you send",
+			"assistant.removePointed": "Remove {name}",
+			"assistant.showSource": "Show source",
+			"assistant.pointedNearest": "The nearest element with an address",
+			"assistant.pointedRepeat": "One of a list: a change applies to every item",
+			"assistant.pointedShared": "Shared: written once, used in more than one place"
 		},
 		"es": {
 			"assistant.title": "Asistente",
@@ -97,7 +107,17 @@
 			"assistant.stopped": "Detenido.",
 			"assistant.copy": "Copiar",
 			"assistant.copied": "Copiado",
-			"assistant.retry": "Reintentar"
+			"assistant.retry": "Reintentar",
+			"assistant.point": "Señalar algo",
+			"assistant.pointHint": "Haz clic en lo que quieres cambiar. Esc cancela.",
+			"assistant.pointShortcut": "Señalar algo (Ctrl+Alt+A)",
+			"assistant.pointed": "Señalado",
+			"assistant.pointedNote": "Se comparte con el asistente al enviar",
+			"assistant.removePointed": "Quitar {name}",
+			"assistant.showSource": "Ver el código",
+			"assistant.pointedNearest": "El elemento más cercano con una dirección",
+			"assistant.pointedRepeat": "Uno de una lista: un cambio se aplica a todos",
+			"assistant.pointedShared": "Compartido: escrito una vez, usado en más de un sitio"
 		},
 		"fr": {
 			"assistant.title": "Assistant",
@@ -137,20 +157,30 @@
 			"assistant.stopped": "Arrêté.",
 			"assistant.copy": "Copier",
 			"assistant.copied": "Copié",
-			"assistant.retry": "Réessayer"
+			"assistant.retry": "Réessayer",
+			"assistant.point": "Désigner un élément",
+			"assistant.pointHint": "Cliquez sur ce que vous voulez modifier. Échap annule.",
+			"assistant.pointShortcut": "Désigner un élément (Ctrl+Alt+A)",
+			"assistant.pointed": "Désigné",
+			"assistant.pointedNote": "Partagé avec l'assistant à l'envoi",
+			"assistant.removePointed": "Retirer {name}",
+			"assistant.showSource": "Voir la source",
+			"assistant.pointedNearest": "L'élément le plus proche qui a une adresse",
+			"assistant.pointedRepeat": "Un élément d'une liste : une modification s'applique à tous",
+			"assistant.pointedShared": "Partagé : écrit une fois, utilisé à plusieurs endroits"
 		}
 	},
 	"state": {
 		"assistant": { "show": true, "lift": 0, "open": false, "anim": 1, "draft": "", "messages": [], "unread": 0, "pending": "",
 		               "decided": {}, "phase": 0, "simulate": null,
 		               "model": "", "models": null, "modelMenu": false, "canReview": false, "attachments": [], "picked": null,
-		               "copied": null }
+		               "pointed": [], "justPointed": null, "pointing": false, "wasOpen": false, "copied": null }
 	},
 	"watch": {
 		"state.assistant.picked": [{ "if": "{{state.assistant.picked != null}}", "then": [{ "run": "assistant.attachPicked" }] }]
 	},
 	"persist": ["state.assistant.messages", "state.assistant.decided", "state.assistant.model"],
-	"keys": { "mod+shift+a": "assistant.toggle" },
+	"keys": { "mod+shift+a": "assistant.toggle", "mod+alt+a": "assistant.point" },
 	"components": {
 		"assistantChip": {
 			"params": { "text": "" },
@@ -198,6 +228,43 @@
 				]
 			}
 		},
+		"assistantPointedChip": {
+			"note": "An element the person pointed at, as a chip: its type and where it is written (a program's definition, or a document's node), never what it shows; the tooltip says when it stands for more than itself. Removable from the next message's, and with a button that shows its source where the host has the window for it",
+			"params": { "item": {}, "removable": false, "showSource": false },
+			"node": {
+				"type": "row", "fitContent": "width", "height": 30, "alignItems": "center", "gap": 4, "radius": 15,
+				"color": "@assistant.raised", "borderWidth": 1, "borderColor": "@assistant.border", "role": "listitem",
+				"let": { "assistantName": "{{item.type + ' · ' + reverse(split(reverse(split(item.source.address ?? item.node ?? '', '/'))[0], 'components.'))[0]}}" },
+				"label": "{{assistantName}}",
+				"tooltip": "{{assistantName + (item.exact == false ? '\n' + t('assistant.pointedNearest') : '') + (length(item.repeat ?? []) > 0 ? '\n' + t('assistant.pointedRepeat') : '') + (item.source.shared == true ? '\n' + t('assistant.pointedShared') : '')}}",
+				"children": [
+					{ "width": 6, "height": 1, "color": "transparent" },
+					{ "type": "path", "width": 14, "height": 14, "viewBox": "0 0 24 24", "d": "M4 4l7 17 2.5-7.5L21 11Z",
+					  "stroke": "@assistant.dim", "strokeWidth": 2, "strokeJoin": "round" },
+					{ "type": "label", "text": "{{assistantName}}", "textColor": "@assistant.text", "fitText": { "maxWidth": 200 } },
+					{ "when": "{{showSource}}", "width": 22, "height": 22, "radius": 11, "color": "transparent",
+					  "role": "button", "focusable": true, "cursor": "hand",
+					  "label": "{{t('assistant.showSource')}}", "tooltip": "{{t('assistant.showSource')}}",
+					  "hover": { "color": "@assistant.border" }, "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "onClick": [{ "run": "assistant.showSource", "with": { "record": "{{item}}" } }],
+					  "children": [
+						{ "type": "path", "anchors": { "left": 4, "top": 4 }, "width": 14, "height": 14, "viewBox": "0 0 24 24",
+						  "d": "m16 18 6-6-6-6M8 6l-6 6 6 6", "stroke": "@assistant.dim", "strokeWidth": 2.5, "strokeCap": "round",
+						  "strokeJoin": "round" }
+					  ] },
+					{ "when": "{{removable}}", "width": 22, "height": 22, "radius": 11, "color": "transparent",
+					  "role": "button", "focusable": true, "cursor": "hand",
+					  "label": "{{t('assistant.removePointed', {name: assistantName})}}", "tooltip": "{{t('assistant.removePointed', {name: assistantName})}}",
+					  "hover": { "color": "@assistant.border" }, "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+					  "onClick": [{ "run": "assistant.unpoint", "with": { "id": "{{item.id}}" } }],
+					  "children": [
+						{ "type": "path", "anchors": { "left": 4, "top": 4 }, "width": 14, "height": 14, "viewBox": "0 0 24 24",
+						  "d": "M18 6 6 18M6 6l12 12", "stroke": "@assistant.dim", "strokeWidth": 2.5, "strokeCap": "round" }
+					  ] },
+					{ "width": 4, "height": 1, "color": "transparent" }
+				]
+			}
+		},
 		"assistantExtras": {
 			"note": "What a proposal adds beside its edits: its assets (a file card each, with a picture's thumbnail while it is previewed) and its run-once steps, a line each",
 			"params": { "id": 0, "assets": [], "run": [] },
@@ -224,6 +291,7 @@
 		"assistant.toggle": [{ "if": "{{state.assistant.open}}", "then": [{ "run": "assistant.close" }],
 		                       "else": [{ "run": "assistant.open" }] }],
 		"assistant.open": [
+			{ "run": "assistant.keepCurrentPoints" },
 			{ "set": "state.assistant.open", "to": true },
 			{ "set": "state.assistant.unread", "to": 0 },
 			{ "set": "state.assistant.anim", "to": 0 },
@@ -242,16 +310,23 @@
 		],
 		"assistant.ask": [
 			{ "if": "{{length(text) == 0}}", "then": [{ "stop": true }] },
+			{ "run": "assistant.keepCurrentPoints" },
 			{ "if": "{{length(state.assistant.attachments) > 0}}", "then": [
 				{ "push": "state.assistant.messages",
 				  "value": "{{ {kind: 'files', mine: true, files: state.assistant.attachments, time: now()} }}" }
 			] },
+			{ "if": "{{length(state.assistant.pointed) > 0}}", "then": [
+				{ "push": "state.assistant.messages",
+				  "value": "{{ {kind: 'pointed', mine: true, items: state.assistant.pointed, time: now()} }}" }
+			] },
 			{ "push": "state.assistant.messages",
 			  "value": "{{ {mine: true, from: t('assistant.you'), text: text, time: now(), error: false} }}" },
 			{ "run": "assistant.trim" },
-			{ "ask": "{{text}}", "attachments": "{{map(state.assistant.attachments, it.id)}}", "into": "state.assistant.pending",
+			{ "ask": "{{text}}", "attachments": "{{map(state.assistant.attachments, it.id)}}",
+			  "picks": "{{map(state.assistant.pointed, it.id)}}", "into": "state.assistant.pending",
 			  "options": "{{state.assistant.models != null && state.assistant.models.default != '' ? {model: some(state.assistant.models.models, it.id == state.assistant.model) ? state.assistant.model : state.assistant.models.default} : {}}}" },
 			{ "set": "state.assistant.attachments", "to": [] },
+			{ "set": "state.assistant.pointed", "to": [] },
 			{ "scrollTo": "#assistantEnd" }
 		],
 		"assistant.attach": [
@@ -279,6 +354,48 @@
 		"assistant.unattach": [
 			{ "set": "state.assistant.attachments", "to": "{{filter(state.assistant.attachments, it.id != id)}}" },
 			{ "focus": "#assistantComposer" }
+		],
+		"assistant.point": [
+			{ "note": "Lets the person point at an element of the app for the next message, four at most: the panel steps aside (it is modal), the focus staying where it was, and comes back when they pick or cancel" },
+			{ "if": "{{length(state.assistant.pointed) >= 4}}", "then": [{ "stop": true }] },
+			{ "set": "state.assistant.wasOpen", "to": "{{state.assistant.open}}" },
+			{ "set": "state.assistant.pointing", "to": true },
+			{ "set": "state.assistant.open", "to": false },
+			{ "pick": "node", "hint": "{{t('assistant.pointHint')}}", "into": "state.assistant.justPointed",
+			  "onDone": [{ "run": "assistant.pointed" }], "onCancel": [{ "run": "assistant.pointCancelled" }] }
+		],
+		"assistant.pointed": [
+			{ "note": "When the person picked: the element joins the next message's (once: one already there, or the assistant's own, is forgotten again), and the panel opens on the field" },
+			{ "if": "{{state.assistant.justPointed != null}}", "then": [
+				{ "if": "{{some(state.assistant.pointed, it.node == state.assistant.justPointed.node) || slice(state.assistant.justPointed.node ?? '', 0, 10) == '#assistant' || length(state.assistant.pointed) >= 4}}",
+				  "then": [{ "unpick": "{{state.assistant.justPointed.id}}" }],
+				  "else": [{ "push": "state.assistant.pointed", "value": "{{state.assistant.justPointed}}" }] }
+			] },
+			{ "set": "state.assistant.justPointed", "to": null },
+			{ "set": "state.assistant.pointing", "to": false },
+			{ "run": "assistant.open" }
+		],
+		"assistant.pointCancelled": [
+			{ "note": "When the person cancels pointing: the panel as it was" },
+			{ "set": "state.assistant.pointing", "to": false },
+			{ "if": "{{state.assistant.wasOpen}}", "then": [{ "run": "assistant.open" }] }
+		],
+		"assistant.unpoint": [
+			{ "note": "with: id. Takes an element from the next message's: the engine forgets its record" },
+			{ "unpick": "{{id}}" },
+			{ "set": "state.assistant.pointed", "to": "{{filter(state.assistant.pointed, it.id != id)}}" },
+			{ "focus": "#assistantComposer" }
+		],
+		"assistant.keepCurrentPoints": [
+			{ "note": "Drops the elements pointed at before the latest commit, quietly: where they were may have moved" },
+			{ "if": "{{some(state.assistant.pointed, (it.revision ?? 0) < revision.number)}}", "then": [
+				{ "unpick": "{{map(filter(state.assistant.pointed, (it.revision ?? 0) < revision.number), it.id)}}" },
+				{ "set": "state.assistant.pointed", "to": "{{filter(state.assistant.pointed, (it.revision ?? 0) >= revision.number)}}" }
+			] }
+		],
+		"assistant.showSource": [
+			{ "note": "with: record, an element pointed at. Asks the host to show where it is written (its changes window's Source page); a host without it does nothing" },
+			{ "call": "changes.open", "with": { "source": "{{record.source.address}}", "line": "{{record.source.line}}" }, "onError": [] }
 		],
 		"ask:reply": [
 			{ "if": "{{length(event.text ?? '') == 0 && length(event.error ?? '') == 0 && length(event.proposals ?? []) == 0}}",
@@ -473,6 +590,13 @@
 							{ "id": "assistantSent{{m}}-{{f}}", "repeat": { "for": "file", "in": "{{message.files}}", "index": "f" },
 							  "use": "assistantFile", "with": { "file": "{{file}}" } }
 						  ] },
+						{ "type": "row",
+						  "id": "assistantPointedSent{{m}}", "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" }, "when": "{{message.kind == 'pointed'}}", "wrap": true,
+						  "fitContent": "height", "gap": 6, "justify": "end", "cell": { "column": 1, "row": "{{m + 1}}" },
+						  "role": "list", "label": "{{t('assistant.pointed')}}", "children": [
+							{ "id": "assistantPointedSent{{m}}-{{p}}", "repeat": { "for": "item", "in": "{{message.items}}", "index": "p" },
+							  "use": "assistantPointedChip", "with": { "item": "{{item}}" } }
+						  ] },
 						{ "id": "assistantAdds{{message.id}}",
 						  "repeat": { "for": "message", "in": "state.assistant.messages", "index": "m" }, "when": "{{message.kind == 'extras'}}", "use": "assistantExtras",
 						  "cell": { "column": 1, "row": "{{m + 1}}" }, "justifySelf": "start",
@@ -523,10 +647,22 @@
 					  ] }
 				] },
 				{ "id": "assistantInput", "alignSelf": "stretch", "color": "transparent",
-				  "height": "{{length(state.assistant.attachments) > 0 ? 166 : 112}}", "children": [
+				  "height": "{{112 + (length(state.assistant.attachments) > 0 ? 54 : 0) + (length(state.assistant.pointed) > 0 ? 62 : 0)}}", "children": [
 					{ "type": "column", "id": "assistantInputCard", "anchors": { "left": 12, "right": 12, "top": 0, "bottom": 12 },
 					  "color": "@assistant.surface", "radius": 16, "borderWidth": 1, "borderColor": "@assistant.border",
 					  "shadow": { "x": 0, "y": 2, "blur": 8, "color": "#0000001a" }, "children": [
+						{ "id": "assistantPointedRow", "when": "{{length(state.assistant.pointed) > 0}}", "alignSelf": "stretch",
+						  "height": 62, "color": "transparent", "children": [
+							{ "type": "row", "id": "assistantPointedList", "scroll": "horizontal", "gap": 6, "alignItems": "center",
+							  "anchors": { "left": 10, "right": 10, "top": 10 }, "height": 30,
+							  "role": "list", "label": "{{t('assistant.pointed')}}", "children": [
+								{ "id": "assistantPointed{{p}}",
+								  "repeat": { "for": "item", "in": "state.assistant.pointed", "index": "p" }, "use": "assistantPointedChip",
+								  "with": { "item": "{{item}}", "removable": true, "showSource": "{{state.assistant.canReview == true}}" } }
+							] },
+							{ "type": "label", "id": "assistantPointedNote", "runs": [{ "text": "{{t('assistant.pointedNote')}}", "size": 12 }],
+							  "textColor": "@assistant.dim", "anchors": { "left": 14, "top": 44 }, "fitText": true }
+						] },
 						{ "id": "assistantAttachments", "when": "{{length(state.assistant.attachments) > 0}}", "alignSelf": "stretch",
 						  "height": 54, "color": "transparent", "children": [
 							{ "type": "row", "id": "assistantAttachedList", "scroll": "horizontal", "gap": 6, "alignItems": "center",
@@ -555,6 +691,17 @@
 							  "children": [
 								{ "type": "path", "anchors": { "left": 7, "top": 7 }, "width": 18, "height": 18, "viewBox": "0 0 24 24",
 								  "d": "M12 5v14M5 12h14", "stroke": "@assistant.dim", "strokeWidth": 2, "strokeCap": "round" }
+							  ] },
+							{ "id": "assistantPoint", "width": 32, "height": 32, "radius": 8, "color": "transparent", "role": "button",
+							  "focusable": true, "cursor": "hand", "disabled": "{{length(state.assistant.pointed) >= 4}}",
+							  "label": "{{t('assistant.point')}}", "tooltip": "{{t('assistant.pointShortcut')}}",
+							  "hover": { "color": "@assistant.raised" },
+							  "focused": { "borderWidth": 1, "borderColor": "@assistant.accent" },
+							  "onClick": [{ "run": "assistant.point" }],
+							  "children": [
+								{ "type": "path", "anchors": { "left": 7, "top": 7 }, "width": 18, "height": 18, "viewBox": "0 0 24 24",
+								  "d": "M4 4l7 17 2.5-7.5L21 11Z", "stroke": "{{length(state.assistant.pointed) >= 4 ? '@assistant.border' : '@assistant.dim'}}",
+								  "strokeWidth": 2, "strokeJoin": "round" }
 							  ] },
 							{ "type": "row", "id": "assistantModelPicker", "when": "{{length(assistantModels.models ?? []) > 0}}",
 							  "fitContent": "width", "height": 32, "gap": 4, "alignItems": "center", "radius": 8,
