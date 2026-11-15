@@ -476,11 +476,11 @@ void Repository::judgeChange(const json& before, const json& after) const {
 	else rules_.checkChange(before, after);
 }
 
-RevisionResult Repository::submit(const json& revision) { return submitRevision(revision, false); }
+RevisionResult Repository::submit(const json& revision) { return submitRevision(revision, false, {}); }
 
-RevisionResult Repository::propose(const json& revision) { return submitRevision(revision, true); }
+RevisionResult Repository::propose(const json& revision) { return submitRevision(revision, true, {}); }
 
-RevisionResult Repository::submitRevision(const json& revision, bool alwaysReview) {
+RevisionResult Repository::submitRevision(const json& revision, bool alwaysReview, const Opening& opening) {
 	const int number = mainHead().number;
 	try {
 		expect::object(revision, "revision");
@@ -524,6 +524,8 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 			proposal.message = detail::messageOf(revision);
 			proposal.time = detail::utcNow();
 			proposal.base = proposal.head = main_.back();
+			proposal.leftOut = opening.leftOut;
+			proposal.personOnly = opening.personOnly;
 			extend(proposal, revision, changes);
 			++nextProposal_;
 			proposals_.push_back(std::move(proposal));

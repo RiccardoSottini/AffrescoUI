@@ -84,6 +84,10 @@ struct ProposalInfo {
 	/// if any reviewer may (VERSION_CONTROL.md, "Assets").
 	std::vector<std::string> person = {};
 	json impact = nullptr; ///< The layers it touches (DocumentRules::impact()): view, logic, model, data; or null.
+	/// What a merge left out where it conflicted (`[{"path", "reason", "base", "main", "proposal"}]`, "proposal" being
+	/// the version merged in; VERSION_CONTROL.md, "Rebasing"): main's value stays there. Unlike conflicts, it doesn't
+	/// block the proposal. Empty for a proposal that isn't a merge.
+	json leftOut = json::array();
 };
 
 /// @brief What VersionControl::attach did: the attachment, or why it was refused.
@@ -453,7 +457,7 @@ inline json toJson(const CommitInfo& c) {
 /// @param p The proposal.
 /// @return `{"id", "branch", "author", "message", "base", "head", "short", "commits", "operations", "touches",
 /// "remember", "changes", "reason", "time", "conflicts", "approvals", "policy", "behaviour", "assets", "run",
-/// "person", "impact"}`.
+/// "person", "impact", "leftOut"}`.
 inline json toJson(const ProposalInfo& p) {
 	return {{"id", p.id},
 	        {"branch", p.branch},
@@ -476,7 +480,8 @@ inline json toJson(const ProposalInfo& p) {
 	        {"assets", p.assets},
 	        {"run", p.run},
 	        {"person", p.person},
-	        {"impact", p.impact}};
+	        {"impact", p.impact},
+	        {"leftOut", p.leftOut}};
 }
 
 /// @brief Converts a grant to its live-protocol JSON.

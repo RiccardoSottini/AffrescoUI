@@ -6,6 +6,8 @@
 - expression: every {{...}} and every "$" operator in the templates and in SCREEN_FORMAT.md;
 - revision:   the revisions in the docs, and edits of every kind to the JSON template's nodes and state;
 - delta:      the JSON template and changed copies of it (keys reordered, a node added), with deltas to apply;
+- merge:      the JSON template as base, and two changed copies of it (a node added, a key added in the middle, a
+              definition changed on both sides);
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
               and in short conversations between the agent and the reviewer (lines starting with '>');
 - text:       every text of the templates and of the rendering check's screens;
@@ -257,6 +259,27 @@ def delta_seeds():
     seeds += [compact({"from": [1, 2, 3], "to": [3, 1.0, -0.0], "delta": [{"op": "add", "path": "/0/x", "value": 1}]}),
               compact({"from": {"a/b": {"~": 1}, "c": [1]}, "to": {"c": [], "a/b": None}, "delta": []})]
     return seeds
+
+
+def merge_seeds():
+    """The merge target's seeds: the JSON template as base, and two changed copies of it that merge or conflict."""
+    template = json.loads(TEMPLATE.read_text(encoding="utf-8"))
+
+    def copy():
+        return json.loads(json.dumps(template))
+
+    renamed, added, reordered = copy(), copy(), dict(reversed(list(template.items())))
+    renamed["state"]["board"] = "Renamed"
+    added["root"]["children"].insert(0, {"type": "label", "id": "first", "text": "First"})
+    program = {"program": {"main.lisp": {"first": "(defn first [] 1)", "last": "(defn last [] 3)"}}}
+    middle = {"program": {"main.lisp": {"first": "(defn first [] 1)", "middle": "(defn middle [] 2)",
+                                        "last": "(defn last [] 3)"}}}
+    changed = {"program": {"main.lisp": {"first": "(defn first [] 10)", "last": "(defn last [] 3)"}}}
+    other = {"program": {"main.lisp": {"first": "(defn first []\n  1)", "last": "(defn last [] 3)"}}}
+    sides = [(template, renamed, added), (template, added, renamed), (template, reordered, renamed),
+             (template, renamed, {}), (program, changed, middle), (program, changed, other), (program, {}, middle),
+             ([1, 2], [1, 2, 3], [0, 1, 2]), ({"a": 1}, [1], "x")]
+    return [compact({"base": base, "main": main, "proposal": proposal}) for base, main, proposal in sides]
 
 
 def policy_seeds():
@@ -1000,7 +1023,8 @@ def dictionaries():
     scenarios += [f"#{node}" for node in template_ids()]
     pngs = ["PNG", "IHDR", "IDAT", "IEND", "x\x01", "x^", "\x00\x00\x00\x0d"]  # ASCII: the dictionary is written UTF-8
     return {"json": tokens, "expression": expression, "revision": tokens + edits, "session": tokens + edits + session,
-            "delta": delta, "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words(),
+            "delta": delta, "merge": delta + ["base", "main", "proposal", "id", "children", "program"],
+            "text": text, "cli": tokens + ["\n\t", "\n\n", "{{", "}}", "#", "@"] + schema_words(),
             "actions": tokens + expression + steps,
             "layout": tokens + schema_words() + ["\"1fr\"", "\"auto\"", "\"minmax(", "\"25%\"", "\"space-between\"",
                                                  "\"stretch\"", "\"16/9\"", "\"none\"", "\"row\"", "\"grid\"",
@@ -1107,6 +1131,7 @@ def main():
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])
+    write(out, "merge", merge_seeds(), words["merge"])
     write(out, "policy", policy_seeds(),
           words["revision"] + ["budgets", "data", "read", "write", "never", "over", "role:"])
     write(out, "text", text_seeds(), words["text"])
