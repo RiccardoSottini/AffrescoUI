@@ -53,7 +53,7 @@ Each subsystem's header says its role, its invariants and its callers:
 |---|---|---|
 | `TypeRegistry` | a node type: its factory; its properties (name, kind of value, whether states and `transition` may set them); its apply function; a widget's value hooks, its own events (`WidgetEvents`: signals run as handlers, such as `onClose`) and its part in drag and drop (`DragHooks`) | `Types.cpp` (the core types), `LayoutProperties.cpp` (the sets of rows, columns, stacks and grids), `EditorType.cpp`, `ToggleType.cpp`, `SliderType.cpp`, `ImageType.cpp`, `SplitType.cpp`, `TabsType.cpp`, `ListType.cpp`, `PathType.cpp`, `ColorPickerType.cpp`, `GradientType.cpp`, `CurvesType.cpp`; properties other types take (`addProperties`): `IconProperty.cpp`, `RunsProperty.cpp`; the application's `registerType` |
 | `Programs` | a document's live Lisp program (`programs/`; the loop in `ProgramEvaluate.cpp`, hooks and advice in `ProgramExtensions.cpp`): one interpreter per version of its `program` section; its primitives, each a step or a read; the checks by author. An app with no program has only an empty pointer of it, a check on each step run and each timer | `programs/Programs.cpp`, `programs/ProgramSteps.cpp`, RFC 0005 |
-| `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `steps/`: `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ServiceSteps.cpp`, `ReviewSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp`; `AuthSteps.cpp` |
+| `StepRegistry` | a group of steps: each step's name, keys, and whether it is a control step; the group's runner | `steps/`: `StateSteps.cpp`, `FlowSteps.cpp`, `OutsideSteps.cpp`, `ServiceSteps.cpp`, `ReviewSteps.cpp`, `RunSteps.cpp`, `NavigationSteps.cpp`, `TimeSteps.cpp`, `OtherSteps.cpp`; `AuthSteps.cpp` |
 | `SectionRegistry` | a top-level section: its validation, whether it is required, and whether it is a capability | `Sections.cpp`, `CapabilitySections.cpp` |
 
 The type registry belongs to each runtime, since applications add to it; the built-in steps and sections never
@@ -320,6 +320,13 @@ src/
                            the panels and the document as written, never from a value
     NodeSource.cpp         where a node is written: sourceOf() (Runtime::source()), a record's `source`
     PickSteps.cpp          the pick and unpick steps
+  commands/                main's commands as tools for peers (core/Commands.hpp); not built yet, the seams f4c and
+                           f4d fill in
+    CommandCatalog.*       the actions that describe themselves: list, find, reach, checkArguments
+    CommandArguments.*     a run's typed arguments, checked, defaults filled in
+    CommandReach.*         what a command can reach: control steps, service uses, record writes
+    CommandRuns.*          running a command as its runner, and undoing a run (RunUndo.*, what the newest runs changed)
+    RuntimeCommands.cpp    Runtime's commands: setRunControl, commandList, runCommandAs, undoCommandRun...
   calls/                   calls outside the document
     AsyncCalls.*           slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel
     ServiceCalls.*         invoke, subscribe and respond: calls to the services, their results and events in the state

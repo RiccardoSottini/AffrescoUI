@@ -27,8 +27,9 @@ constexpr auto freeSteps = std::to_array<std::string_view>(
 	 "audio",    "dismiss", "transform", "insert", "update",    "delete",   "undoData",   "redoData",    "runHooks"});
 
 /// The steps that decide on changes: only ever from the person's own input.
-constexpr auto reviewSteps = std::to_array<std::string_view>(
-    {"accept", "reject", "preview", "endPreview", "restore", "revert", "undo", "evaluate"});
+constexpr auto reviewSteps =
+    std::to_array<std::string_view>({"accept", "reject", "preview", "endPreview", "restore", "revert", "undo",
+	                                 "evaluate", "allowRun", "denyRun", "undoRun"});
 
 /// @brief Credits the entries of a program no author is known for, so that none runs as if nobody wrote it.
 /// @param section The section.

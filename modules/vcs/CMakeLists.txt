@@ -25,6 +25,8 @@ affrescoui_module(vcs
 	src/peers/Leases.cpp
 	src/peers/LeasesRepository.cpp
 	src/peers/Presence.cpp
+	# runs: who may run a command, and the runs that wait
+	src/runs/Runs.cpp
 	# The revision a composition proof installs, shared with the features service and the command line
 	src/CompositionProofRevision.cpp)
 target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)

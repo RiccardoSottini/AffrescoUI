@@ -5,6 +5,7 @@
 
 #include "affresco/channel/Limits.hpp"
 #include "affresco/core/Channel.hpp"
+#include "affresco/core/Commands.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/ScreenImages.hpp"
 #include "affresco/core/Signal.hpp"
@@ -65,6 +66,11 @@ public:
 	/// @param source Gives the source of the node at `at` ("#id", a JSON Pointer or a definition's address); throws
 	/// DocumentError if nothing is there; must not outlive what it reads.
 	void setSource(std::function<json(const std::string& at)> source) { source_ = std::move(source); }
+
+	/// @brief Answers the command messages (getCommands, runCommand, undoRun, allowRun, denyRun, revokeRun) and adds
+	/// the runs to "review" and "getDocument" (by default they are off: "this host runs no commands").
+	/// @param commands The screen's commands (outlive the session, or are replaced first), or nullptr.
+	void setCommands(CommandService* commands);
 
 	Signal<const json&> onRelay; ///< A "request" or "reply" for other peers, with "from" set.
 
@@ -130,6 +136,9 @@ private:
 	/// @return false if it is none of these.
 	/// @throws DocumentError If it is malformed.
 	bool handleQuery(const Incoming& in);
+	/// @brief Answers getDocument: the document as this author may read it, the review state, and the runs.
+	/// @param in The message.
+	void sendDocument(const Incoming& in);
 	/// @brief Answers "render" with a picture of the screen: `{"type": "image", "format": "png", "data": base64, ...}`.
 	/// @param in The message: `proposal` (optional) and `scale` (1 by default, at most ScreenImages::maxScale).
 	/// @throws DocumentError If it is malformed, over the rate of pictures, or the picture can't be drawn.
@@ -156,7 +165,12 @@ private:
 	/// @throws DocumentError If it is malformed, or the text isn't a value in the notation (a NotationError, with the
 	/// line and column).
 	bool handleConvert(const Incoming& in);
-	/// @brief The "review" message: proposals, preview, mode and grants.
+	/// @brief Handles getCommands, runCommand, undoRun, allowRun, denyRun and revokeRun (SessionCommands.cpp).
+	/// @param in The message.
+	/// @return false if it is none of these.
+	/// @throws DocumentError If it is refused.
+	bool handleCommands(const Incoming& in);
+	/// @brief The "review" message: proposals, preview, mode and grants; and the runs, with commands (setCommands()).
 	[[nodiscard]] json reviewState() const;
 	/// @brief Adds what a program's document is written as to a message that carries the document, as `source`: its
 	/// `document` is what it builds, with its definitions. A reader whose reads are limited gets only the masked
@@ -174,6 +188,9 @@ private:
 	TokenBucket messageRate_;        ///< Messages of any kind.
 	TokenBucket revisionRate_;       ///< Changes.
 	TokenBucket pictureRate_;        ///< Pictures ("render"), at the rate of changes: each draws the whole screen.
+	TokenBucket runRate_;            ///< Command runs (runCommand, undoRun).
+	CommandService* commands_ = nullptr; ///< The screen's commands (setCommands()), or none.
+	Connection commandsChanged_ = 0;     ///< On commands_->onChanged: the runs in "review".
 	bool limited_ = false;           ///< Over a limit now (see overLimit()).
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
 	UsageSummary usage_;                             ///< For "getUsage" and "clearUsage" (empty: off).

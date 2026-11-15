@@ -1255,6 +1255,9 @@ variables), or a list of bindings, where the first that applies runs.
   open), `chord` (the presses so far, or null), `platform` (`"mac"`, `"windows"` or `"linux"`), and the keys of the
   node `context` of the focused node and its ancestors (an inner node wins).
 - `commands`: `{ name, title, category, icon, description, enabled, key, keyLabel }`, sorted by category, then title.
+- `runs` and `runGrants`: the runs of commands peers asked for, waiting or done, oldest first (`{ id, author,
+  command, title, arguments, state, reason, time, changes, errors, undoable, personOnly }`), and the grants an
+  `allowRun` with `always` added; a screen's person decides with the `allowRun`, `denyRun` and `undoRun` steps.
 - `keybindings`: `{ key, keyLabel, command, title, when, scope }`, the document's first (`"screen"`), then by node
   (`"#id"`) and key.
 
@@ -1329,6 +1332,9 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `runHooks` | `{ "runHooks": "after-save", "with": ["{{item.name}}"] }`: runs a program's functions added to that hook point (`defhook`, `add-hook`), each under its own author's authority |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
+| `allowRun` | `{ "allowRun": "{{item.id}}", "always": true, "for": "8h" }`: the person allows a command run a peer asked for that waits (`runs`); `always` also lets that channel run that command without asking, for `for` or as long as the review policy says |
+| `denyRun` | `{ "denyRun": "{{item.id}}", "reason": "not now" }`: the person refuses a run that waits |
+| `undoRun` | `{ "undoRun": "{{item.id}}" }`: puts back what a run changed, refused when that was changed since |
 | `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images) |
 | `audio` | `{ "audio": "play", "of": "song" }`: see Audio |
 | `insert` | `{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see Data: models and records) |

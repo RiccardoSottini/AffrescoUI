@@ -107,6 +107,7 @@ src/
     Session.cpp             the live protocol: reading, answering, base64 pictures, relaying
     Convert.cpp             the convert message: text in a notation into its value, and back
     Picks.cpp               getPicks and getSource: what the person pointed at, and where a node is written
+    SessionCommands.cpp     the command messages (getCommands, runCommand, undoRun, allowRun, denyRun, revokeRun)
 CMakeLists.txt              the affrescoui_channel target and its sources
 ```
 

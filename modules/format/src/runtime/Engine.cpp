@@ -43,6 +43,18 @@ Engine::Engine(Runtime& runtime, VersionControl& vcs, std::filesystem::path base
 		return coordination.contains("peers") ? coordination["peers"] : json::array();
 	});
 	document.addVariable("windows", [this] { return otherWindows.status(); }); // {main: {fullscreen}, name: {open, ..}}
+	document.addVariable("runs", [this] { // [run]: the runs peers asked for, waiting or done, oldest first
+		json runs = json::array();
+		for(const RunRecord& run : runControl ? runControl->runs() : std::vector<RunRecord>())
+			runs.push_back(toJson(run));
+		return runs;
+	});
+	document.addVariable("runGrants", [this] { // [grant]: what "always" allowed, oldest first
+		json grants = json::array();
+		for(const Grant& grant : runControl ? runControl->grants() : std::vector<Grant>())
+			grants.push_back(toJson(grant));
+		return grants;
+	});
 	peersChanged = versions.onReviewChanged.connect([this] { proposalsChanged(); });
 }
 

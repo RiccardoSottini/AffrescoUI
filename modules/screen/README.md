@@ -116,6 +116,9 @@ src/
     OffscreenImages.hpp / .cpp   pictures of the screen or of a proposal, for "render" and "getEvidence"
     ProposalEvidence.hpp / .cpp  a proposal's evidence: the changed region of two pictures, its changed texts
     Inspector.hpp / .cpp   the inspector: the overlay on the panel under the pointer, its statistics and event trace
+  commands/
+    ScreenCommands.hpp / .cpp    the commands as tools for peers (CommandService); Screen's allowCommandRuns, allowRun,
+                                 denyRun and commandsJson; not built yet (f4e)
   features/
     FeaturesService.hpp / .cpp   the `features` provider: the catalogues, installing a feature by revision
   windows/

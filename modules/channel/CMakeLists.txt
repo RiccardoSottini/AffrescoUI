@@ -7,7 +7,8 @@ affrescoui_module(channel
 	# session: the live protocol a peer speaks over a channel
 	src/session/Session.cpp
 	src/session/Convert.cpp # the convert message: text in a notation and back
-	src/session/Picks.cpp) # getPicks and getSource: what the person pointed at, and where a node is written
+	src/session/Picks.cpp # getPicks and getSource: what the person pointed at, and where a node is written
+	src/session/SessionCommands.cpp) # the app's commands as tools: list, run, undo, and decisions on runs
 target_link_libraries(affrescoui_channel PUBLIC affrescoui::core nlohmann_json::nlohmann_json)
 target_link_libraries(affrescoui_channel PRIVATE affrescoui::notation) # convert: a leaf, text into JSON and back
 if(WIN32)
