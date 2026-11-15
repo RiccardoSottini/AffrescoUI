@@ -67,6 +67,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `icc` | An ICC profile's bytes (`affresco/imaging/Color.hpp`), as any PNG, JPEG or project opened may embed | A usable profile that converts a few pixels and a table to sRGB (proofed when CMYK), or a `DocumentError`; never a read past its bytes |
 | `tempera_project` | An image editor project file's bytes (`affresco/imaging/Project.hpp`) | A `DocumentError`, or a document whose every tile reads and which saves and loads again within the limits |
 | `image_file` | A PNG or JPEG file's bytes, as the image editor and the `image` step open them (`affresco/imaging/Codec.hpp`), within small limits (512 KiB, 512 on a side, 65,536 pixels): a revision can bring any file as an asset | A decoded image within the limits, or a `DocumentError` |
+| `picks` | A chat request's `"picks"` (any JSON), as the in-process agent reads them (`modules/intelligence/src/Picks.hpp`), against a small program and a small JSON screen: the records end in a model prompt | At most 4 records, each with a node text; the first message's block within 4 picks of 12 KiB; never anything from the document's state |
 
 ## Inventory of untrusted inputs
 
@@ -79,6 +80,7 @@ of these and what limits them.
 | A peer's lines on a channel (revisions, requests, reviews, queries) | Any peer: an agent, a person's client, a remote peer | `session`, `json`, `revision`, `expression`, `actions`, `delta`, `layout`, `policy`; `notation` for the Lisp text a `convert` message carries |
 | Documents in the Lisp notation (`.lisp` screens, includes, an app's parts) | Whoever made the files, an agent through `convert` | `notation` |
 | A peer's replies to the screen's own requests (`ask`) | Any peer | `ask_reply` |
+| What the person pointed at (a chat request's `picks`), before it reaches a model prompt | The person's client, any peer that sends a chat request | `picks` |
 | A remote peer's opening (upgrade request, first message) | Anyone who reaches the document server | `peer_handshake`, `http_response` |
 | WebSocket frames, server-sent events, HTTP response heads | The server a connection opens, or a peer | `websocket`, `sse`, `http_response` |
 | URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |
