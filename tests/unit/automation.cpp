@@ -13,11 +13,13 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 using affresco::DocumentError;
@@ -102,6 +104,14 @@ public:
 	void post(std::function<void()> task) override { static_cast<void>(task); }
 };
 
+/// @brief A scenarios file with one scenario at a scale.
+/// @param scale The scale, as JSON text.
+/// @return The file.
+std::string atScale(std::string_view scale) {
+	return R"({"version": 2, "screen": "a.json", "scenarios": [{"name": "a", "scale": )" + std::string(scale) +
+	       R"(, "steps": []}]})";
+}
+
 } // namespace
 
 TEST_CASE("automation: a scenarios file that is wrong says where") {
@@ -136,6 +146,22 @@ TEST_CASE("automation: a scenarios file that is wrong says where") {
 	CHECK(errorOf(oneStep(R"({"expect": {"state": "a", "is": 1}, "error": "x"})")).contains("not 'expect'"));
 	CHECK(errorOf(oneStep(R"({"note": "a comment", "error": "x"})")).contains("a comment raises no error"));
 	CHECK(errorOf(oneStep(R"({"action": "go", "error": "no sign-in"})")).empty());
+}
+
+TEST_CASE("automation: a scenario's scale is 1 to 4 in quarters, as displays at 125% and 150% are") {
+	const std::array<std::pair<std::string_view, float>, 5> read = {
+	    {{"1", 1.0f}, {"1.25", 1.25f}, {"1.5", 1.5f}, {"2", 2.0f}, {"4", 4.0f}}};
+	for(const auto& [text, scale] : read) {
+		CAPTURE(text);
+		CHECK(automation::ScenarioFile::parse(atScale(text), "place.scenarios.json").scenarios.at(0).scale == scale);
+	}
+	CHECK(automation::ScenarioFile::parse(oneStep(R"({"wait": 0})"), "place.scenarios.json").scenarios.at(0).scale ==
+	      1.0f);
+	const std::array<std::string_view, 6> refused = {"0.75", "1.1", "4.25", "\"2\"", "null", "true"};
+	for(const std::string_view text : refused) {
+		CAPTURE(text);
+		CHECK(errorOf(atScale(text)).ends_with("scenarios[0].scale: expected 1 to 4, in quarters (1, 1.25, 1.5, ...)"));
+	}
 }
 
 TEST_CASE("automation: an error in a handler fails its step, unless the step names it or the handler handles it") {
