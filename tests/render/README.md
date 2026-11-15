@@ -27,7 +27,10 @@ The scenarios are the format's own (SCREEN_FORMAT.md, "Scenarios"), played by th
 it recorded one, `FAILED`), then `N frames, M failed`; `check.py` gives it the files, the golden images and the output
 folder. Frames don't depend on the machine or on what ran before. The window is hidden and only gets the events the
 steps send, and its clock moves only when a step waits. Pictures are drawn offscreen at the scenario's `scale` (1 by
-default; `kanban-retina` uses 2, the Retina path). Screens load without a state file, and channels find no host.
+default; `kanban-retina` uses 2, the Retina path): 1 to 4 in quarters, so 1.25, 1.5 and 1.75 are displays set to 125%,
+150% and 175%, as most Windows, Linux and web users have. A picture is the window's size times the scale, rounded
+(a 640 by 400 window is 800 by 500 at 1.25), and text is rasterised at the same scale. Screens load without a state
+file, and channels find no host.
 
 The templates' own scenarios (`examples/<folder>/*.scenarios.json`, the folders of `examples/templates.json`) check
 behaviour, not pictures: ctest `scenarios` plays them headless with the same runner.
@@ -59,6 +62,22 @@ scripts, fallback fonts, editing by code point; `scripts`: shaping, with Arabic,
 Korean, colour emoji, ligatures and a caret inside a code ligature); their scenarios are in a file whose `screens`
 is `"../screens"`. The fonts only these screens use are small subsets of open fonts, in `fonts/` (its README
 says where each comes from).
+
+**Text at display scales:** `text-scales.json` draws one text screen (`screens/text-scales.screen.json`: body text
+and small sizes, bold and italic, code, icons, Arabic, Devanagari and accented Latin, light on dark and dark on light,
+a turned and a scaled label, an input) at 1, 1.25, 1.5, 1.75 and 2 (`text-scale-100` to `text-scale-200`), and with a
+caret and a selection at 1.25 (`text-scale-125-selected`). Text below a scale of 2 is where blur shows first, so these
+frames are the before and after of any change to how glyphs are drawn. `tools/media/sharpness.py` measures them:
+the mean of the strongest steps of luminance between neighbouring pixels across columns (stems) and across rows
+(horizontals), higher being sharper; `--crop` picks a rectangle, and `--enlarge 8 --out out/crops.png` writes the
+crops enlarged side by side, with no smoothing, to look at:
+
+```sh
+python3 tools/media/sharpness.py tests/render/golden/text-scale-100-first-frame.png \
+    tests/render/golden/text-scale-125-first-frame.png tests/render/golden/text-scale-150-first-frame.png
+python3 tools/media/sharpness.py tests/render/golden/text-scale-125-first-frame.png --crop 20,12,385,30 \
+    --enlarge 8 --out out/body-125.png
+```
 
 **Where a new scenario goes:** in the file of the area it shows (a template's file for a template, `shapes.json` for
 shapes), or in a new `<area>.json` for a new area. Open the pictures its first run records and check that they show

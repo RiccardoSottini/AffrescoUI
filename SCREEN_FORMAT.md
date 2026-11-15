@@ -2089,7 +2089,8 @@ own scenarios. Schema: [`schema/affrescoui-scenarios.schema.json`](schema/affres
 Each scenario starts from the screen as loaded (no saved history or state) and plays alone: its channels find no host,
 and the clock moves only when a step waits, so it plays the same way on any machine. It runs headless; only a picture
 needs OpenGL. A scenario may name its own `screen`, and `screens` gives the folder they are in (default: the file's).
-`scale` (1 to 4) sets the pixels per window unit of its pictures. `note` is allowed on the file, a scenario and a step.
+`scale` (1 to 4, in quarters: 1.25 is a display set to 125%) sets the pixels per window unit of its pictures. `note` is
+allowed on the file, a scenario and a step.
 
 | Step | Does |
 |---|---|
