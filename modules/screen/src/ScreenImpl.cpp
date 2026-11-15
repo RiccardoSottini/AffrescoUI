@@ -38,6 +38,10 @@ Screen::Impl::Impl(json document, std::filesystem::path baseDirectory)
 	});
 	runtime.onUpdated.connect([this] { save(); });
 	runtime.onAsk.connect([this](const json& request) { askAgents(request); });
+	runtime.setFileOf([this](std::string_view pointer) {
+		const std::string owner = sources.ownerOf(pointer);
+		return format::FileOf{detail::shownName(owner, entryFile, screenFolder), detail::sharedFile(owner, screenFolder)};
+	});
 	repairs.onMessage.connect([this](const json& message) {
 		for(const auto& peer : peers) sendRepairs(*peer, message);
 	});
@@ -63,8 +67,11 @@ void Screen::Impl::askAgents(const json& request) {
 	// peer, a client, still sees it
 	const auto agent = std::ranges::find_if(peers.rbegin(), peers.rend(),
 	                                        [](const auto& peer) { return peer->session->author() == "agent"; });
+	json withoutPicks = request; // a peer limited to parts of the document doesn't learn where the person pointed
+	withoutPicks.erase("picks");
 	for(const auto& peer : peers)
-		if(agent == peers.rend() || peer->session->author() != "agent" || peer == *agent) peer->session->send(request);
+		if(agent == peers.rend() || peer->session->author() != "agent" || peer == *agent)
+			peer->session->send(repository.readable(peer->session->author()) ? withoutPicks : request);
 }
 
 Screen::Impl::~Impl() {
@@ -175,6 +182,8 @@ Screen::Impl::Peer& Screen::Impl::add(Channel& channel, std::unique_ptr<Channel>
 	peer->session = std::make_unique<channel::Session>(
 	    channel, repository, std::move(author), [this] { return runtime.catalog(); }, &images);
 	peer->session->setFileChanges([this](const json& request) { return fileChanges(request); });
+	peer->session->setPicks([this] { return runtime.picks(); });
+	peer->session->setSource([this](const std::string& at) { return runtime.source(at); });
 	peer->session->setUsage([this](bool clear) -> std::optional<json> {
 		if(!runtime.usage.enabled()) return std::nullopt;
 		if(clear) runtime.usage.clear();
