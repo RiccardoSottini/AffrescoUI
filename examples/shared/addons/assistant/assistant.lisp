@@ -1111,9 +1111,10 @@ code font, with Copy and never Retry."
 
 (defview assistant-form-preview
   "What the draft would do evaluated, over the field while it reads as Lisp: what it defines or runs, that the person
-will be asked if they didn't type it here, and a link that asks it as a request instead."
+will be asked if they didn't type it here, and a link that asks it as a request instead. Always built, and hidden
+while the draft is a request: building it would build the field again, and the caret would go back to the start."
   []
-  `(node#assistantFormPreview :when ~(some? computed.assistantForm)
+  `(node#assistantFormPreview :visible ~(some? computed.assistantForm)
      :alignSelf stretch
      :height ~(assistant-preview-height computed.assistantForm)
      :color transparent

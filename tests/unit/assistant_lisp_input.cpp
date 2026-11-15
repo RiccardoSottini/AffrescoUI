@@ -10,6 +10,7 @@
 
 #include <affresco/affresco.hpp>
 #include <affresco/render/Label.hpp>
+#include <affresco/render/TextEditor.hpp>
 
 #include <doctest/doctest.h>
 
@@ -172,6 +173,17 @@ struct Built {
 	/// @param in Where to look (it and its descendants), or nullptr.
 	/// @param label The label.
 	/// @return The first found, depth first, or nullptr.
+	/// @brief Finds the first text editor in a panel and its descendants.
+	/// @param in Where to look, or nullptr.
+	/// @return The editor, depth first, or nullptr.
+	[[nodiscard]] static const affresco::TextEditor* editorIn(const Panel* in) {
+		if(in == nullptr) return nullptr;
+		if(const auto* editor = dynamic_cast<const affresco::TextEditor*>(in)) return editor;
+		for(const std::unique_ptr<Panel>& child : in->children())
+			if(const affresco::TextEditor* found = editorIn(child.get())) return found;
+		return nullptr;
+	}
+
 	[[nodiscard]] static const Panel* labelled(const Panel* in, const std::string& label) {
 		if(in == nullptr || in->accessibleLabel() == label) return in;
 		for(const std::unique_ptr<Panel>& child : in->children())
@@ -194,6 +206,10 @@ TEST_CASE("assistant_lisp_input: a typed definition is previewed, and Enter land
 	CHECK(preview.contains("evaluated.lisp"));
 	CHECK(preview.contains("Ask instead"));
 	CHECK_FALSE(preview.contains("asked to confirm"));
+	const affresco::TextEditor* field = Built::editorIn(built.screen->find("assistantComposer"));
+	REQUIRE(field != nullptr);
+	CHECK(field->caret().line == 0); // the preview appearing leaves the caret after what was typed
+	CHECK(field->caret().column == std::string(R"((defn greet [] "hi"))").size());
 	CHECK(Built::labelled(built.screen->find("assistantComposer"), "Evaluate") != nullptr);
 
 	built.press(Key::Enter);
