@@ -258,21 +258,26 @@ void Window::pickAt(Vec2 position) {
 // A key that picks or cancels acts when it is let go, if it was pressed while picking: so the key that started the
 // mode can't end it, and nothing of the key reaches the screen
 void Window::pickKey(const KeyEvent& event) {
-	Picking& picking = *picking_;
 	const Mods mods = event.mods;
 	const bool plain = !mods.shift() && !mods.control() && !mods.alt() && !mods.super();
 	const bool picks = plain && (event.key == Key::Enter || event.key == Key::KeypadEnter || event.key == Key::Space);
 	if(picks || event.key == Key::Escape) {
-		if(event.action == Action::Press) picking.pressedKey = event.key;
-		if(event.action != Action::Release || std::exchange(picking.pressedKey, std::nullopt) != event.key) return;
-		if(!routingOwnPress()) return;
-		if(event.key == Key::Escape) finishPick(nullptr);
-		else if(picking.candidate) finishPick(picking.candidate);
+		pickAnswerKey(event);
 		return;
 	}
 	if(event.action == Action::Release) return;
+	Picking& picking = *picking_;
 	if(const std::optional<Panel*> next = movedTo(picking.options, root_, picking.candidate, event))
 		if(picking.offer(*next)) requestLayout();
+}
+
+void Window::pickAnswerKey(const KeyEvent& event) {
+	Picking& picking = *picking_;
+	if(event.action == Action::Press) picking.pressedKey = event.key;
+	if(event.action != Action::Release || std::exchange(picking.pressedKey, std::nullopt) != event.key) return;
+	if(!routingOwnPress()) return;
+	if(event.key == Key::Escape) finishPick(nullptr);
+	else if(picking.candidate) finishPick(picking.candidate);
 }
 
 // A left click picks when it ends on the panel offered where it began, and a right click cancels when it ends: so the

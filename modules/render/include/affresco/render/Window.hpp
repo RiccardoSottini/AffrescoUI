@@ -566,6 +566,10 @@ private:
 	/// @brief Takes a key while picking: it moves between the panels offered, picks or cancels; nothing else hears it.
 	/// @param event The key.
 	void pickKey(const KeyEvent& event);
+	/// @brief Takes a key that picks (Enter or Space, without modifiers) or cancels (Escape) while picking: it acts
+	/// when let go, if it was pressed while picking.
+	/// @param event The key.
+	void pickAnswerKey(const KeyEvent& event);
 	/// @brief Takes a mouse button while picking: a left click begun and ended on one panel picks it, a right click
 	/// cancels; nothing else hears it.
 	/// @param event The button.
