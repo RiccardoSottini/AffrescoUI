@@ -16,6 +16,7 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 | `Roles.hpp` | `Roles`: the role each author plays for this run (`design`, `data`, `builder`), set by the host or a reviewer, never by a revision; `ruleCovers`: whether a rule's author (`role:<name>` too) covers an author |
 | `ChangeSetRepair.hpp` | `ChangeSetRepairs`: change sets installed with their request, base and proof, checked on install, and repaired by an agent through review; `RepairStatus`, `InstalledChangeSet` |
 | `Presence.hpp` | `Presence`: who is on a document, where and doing what, bounded; shown, never trusted |
+| `Runs.hpp` | `Runs`: the `RunControl` of a screen (core/Commands.hpp): who may run which command as a peer, the runs that wait and the run grants; not built yet, every run is denied (f4b) |
 
 Everything else a user needs is in `core/VersionControl.hpp` (the interface and its value types) and
 `core/DocumentRules.hpp`.
@@ -153,6 +154,7 @@ borrowed too; `setObserver(nullptr)` before the observer goes.
 include/affresco/vcs/
   Repository.hpp            the Repository class
   Leases.hpp, Roles.hpp, Presence.hpp, ChangeSetRepair.hpp   what several agents at once add
+  Runs.hpp                  who may run a command as a peer, and the runs
 src/
   revisions/                a revision, from what it says to a commit on main
     Revisions.hpp / .cpp    what a revision says: author, message, patch; the commit time
@@ -174,6 +176,8 @@ src/
     Leases.cpp              parts of a document one person holds for a while
     LeasesRepository.cpp    who is connected, the parts they lease, and refusing changes to another holder's part
     Presence.cpp            who has the document open, and where
+  runs/                     who may run a command, and the runs that wait
+    Runs.cpp                not built yet: the seams f4b fills in
   history/                  the history on disk
     HistoryStore.hpp / .cpp the history folder: the lock, atomic writes, bounded reads, packs
     RepositoryHistory.cpp   writing and loading objects and refs, every hash checked
