@@ -44,9 +44,9 @@ constexpr std::chrono::milliseconds pollSlice{100};
 
 #ifdef _WIN32
 
-using Native = SOCKET;                            ///< A socket as the system has it.
-constexpr Native noSocket = INVALID_SOCKET;       ///< What socket() and accept() return on failure.
-using AddressLength = int;                        ///< The type of an address's length.
+using Native = SOCKET;                      ///< A socket as the system has it.
+constexpr Native noSocket = INVALID_SOCKET; ///< What socket() and accept() return on failure.
+using AddressLength = int;                  ///< The type of an address's length.
 
 /// @brief Starts Winsock once for the process (never cleaned up: sockets may live until it exits).
 /// @return Whether it started.
@@ -112,9 +112,9 @@ void ignoreBrokenPipes(Native) noexcept {}
 
 #else
 
-using Native = int;                  ///< A socket as the system has it.
-constexpr Native noSocket = -1;      ///< What socket() and accept() return on failure.
-using AddressLength = socklen_t;     ///< The type of an address's length.
+using Native = int;              ///< A socket as the system has it.
+constexpr Native noSocket = -1;  ///< What socket() and accept() return on failure.
+using AddressLength = socklen_t; ///< The type of an address's length.
 
 /// @brief Nothing to start on POSIX.
 bool startSockets() { return true; }
@@ -268,9 +268,11 @@ std::unique_ptr<Connection> Connection::open(const std::string& host, std::uint1
 int Connection::wait(bool write, std::chrono::milliseconds timeout) {
 	const auto deadline = std::chrono::steady_clock::now() + timeout;
 	while(!closed_) {
-		const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
+		const auto left =
+		    std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
 		if(left.count() < 0) return 0;
-		const int result = pollNative(nativeOf(handle_), write ? POLLOUT : POLLIN, static_cast<int>(std::min(left, pollSlice).count()));
+		const int result = pollNative(nativeOf(handle_), write ? POLLOUT : POLLIN,
+		                              static_cast<int>(std::min(left, pollSlice).count()));
 		if(result != 0) return result > 0 ? 1 : -1;
 	}
 	return -1;
@@ -291,7 +293,8 @@ Received Connection::receive(std::string& into, std::chrono::milliseconds timeou
 bool Connection::send(std::string_view bytes, std::chrono::milliseconds timeout) {
 	const auto deadline = std::chrono::steady_clock::now() + timeout;
 	while(!bytes.empty()) {
-		const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
+		const auto left =
+		    std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
 		if(wait(true, std::max(left, std::chrono::milliseconds{0})) != 1) return false;
 		const auto count = sendNative(nativeOf(handle_), bytes.data(), bytes.size());
 		if(count < 0) return false; // 0: no room after all, so wait again
@@ -318,7 +321,8 @@ std::unique_ptr<Listener> Listener::open(const std::string& host, std::uint16_t 
 #ifndef _WIN32
 	if(socket != noSocket) setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)); // restart while TIME_WAIT
 #else
-	if(socket != noSocket) setsockopt(socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, reinterpret_cast<const char*>(&on), sizeof(on));
+	if(socket != noSocket)
+		setsockopt(socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, reinterpret_cast<const char*>(&on), sizeof(on));
 #endif
 	if(socket == noSocket || bind(socket, reinterpret_cast<const sockaddr*>(&address), length) != 0 ||
 	   listen(socket, 64) != 0) {
