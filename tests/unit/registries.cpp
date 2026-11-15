@@ -121,11 +121,11 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 	registerBuiltInSteps(registry);
 	std::vector<std::string> groups;
 	for(const StepGroup& group : registry.groups()) groups.push_back(group.name);
-	CHECK(groups == std::vector<std::string>{"state",     "flow",   "outside",    "services", "auth",
-	                                         "assistant", "attach", "pick",       "folder",   "file",
-	                                         "export",    "review", "navigation", "editor",   "keys",
-	                                         "time",      "other",  "scene",      "image",    "audio",
-	                                         "terminal",  "data",   "windows",    "program",  "loop"});
+	CHECK(groups == std::vector<std::string>{"state",   "flow",       "outside", "services", "auth",   "assistant",
+	                                         "attach",  "pick",       "folder",  "file",     "export", "review",
+	                                         "runs",    "navigation", "editor",  "keys",     "time",   "other",
+	                                         "scene",   "image",      "audio",   "terminal", "data",   "windows",
+	                                         "program", "loop"});
 
 	std::vector<std::string> control;
 	for(const StepGroup& group : registry.groups())
@@ -133,11 +133,12 @@ TEST_CASE("format: the built-in steps register by group, in the order they are t
 			if(step.control) control.push_back(step.name);
 	std::ranges::sort(control);
 	CHECK(control == std::vector<std::string>{
-	                     "accept",        "ask",           "attach",   "call",       "cancelAsk", "chooseFolder",
-	                     "clearTerminal", "closeTerminal", "connect",  "endPreview", "evaluate",  "export",
-	                     "exportChanges", "fullscreen",    "openFile", "patch",      "pick",      "preview",
-	                     "propose",       "reject",        "respond",  "restore",    "revert",    "runInTerminal",
-	                     "saveFile",      "send",          "signIn",   "signOut",    "undo",      "unpick"});
+	                     "accept",       "allowRun",      "ask",           "attach",     "call",     "cancelAsk",
+	                     "chooseFolder", "clearTerminal", "closeTerminal", "connect",    "denyRun",  "endPreview",
+	                     "evaluate",     "export",        "exportChanges", "fullscreen", "openFile", "patch",
+	                     "pick",         "preview",       "propose",       "reject",     "respond",  "restore",
+	                     "revert",       "runInTerminal", "saveFile",      "send",       "signIn",   "signOut",
+	                     "undo",         "undoRun",       "unpick"});
 
 	REQUIRE(registry.find("set"));
 	CHECK(registry.find("set")->keys == std::vector<std::string>{"to"});
@@ -218,7 +219,7 @@ TEST_CASE("format: the catalog is built from the registries, and lists an applic
 	CHECK(catalog["common"] == catalog["types"]["panel"]["properties"]);
 	CHECK(std::ranges::find(catalog["steps"], json("set")) != catalog["steps"].end());
 	CHECK(std::ranges::find(catalog["steps"], json("accept")) == catalog["steps"].end());
-	CHECK(catalog["controlSteps"].size() == 30);
+	CHECK(catalog["controlSteps"].size() == 33);
 	for(const json& step : catalog["controlSteps"]) { // a feature installed by revision can't contain any of them
 		INFO("a control step features may contain: ", step);
 		CHECK(std::ranges::find(affresco::format::controlSteps, step.get<std::string>()) !=

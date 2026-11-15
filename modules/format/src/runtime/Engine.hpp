@@ -25,6 +25,8 @@
 #include "AudioPlayers.hpp"
 #include "AsyncCalls.hpp"
 #include "Builder.hpp"
+#include "CommandCatalog.hpp"
+#include "CommandRuns.hpp"
 #include "Connections.hpp"
 #include "DataLayer.hpp"
 #include "DocumentContext.hpp"
@@ -122,6 +124,11 @@ struct Engine : VersionObserver {
 	AudioPlayers audio{*this}; ///< The declared sounds, played by "audio" steps.
 	DataLayer data{*this};     ///< The records: the store following the "models", the `data` variable.
 	SecondWindows otherWindows{*this}; ///< The "windows" section's windows, and the `windows` variable.
+	/// Who may run the commands as peers, and the runs (Runtime::setRunControl()); nullptr: none.
+	RunControl* runControl = nullptr;
+	Connection runsChanged = 0;           ///< On runControl->onChanged: the `runs` and `runGrants` variables.
+	CommandCatalog commandCatalog{*this}; ///< Main's commands, as tools for peers.
+	CommandRuns commandRuns{*this};       ///< Runs them as their runners, and undoes runs.
 
 	/* VersionObserver */
 	/// @brief Re-reads colours and fonts, then reconciles.
