@@ -108,7 +108,8 @@ class Server:
         attachments = attachments_of(message.get("attachments"))
         if attachments:  # files the person attached: metadata only; name one in submit_revision's assets
             request["attachments"] = attachments
-        picks = picks_of(message.get("picks"))
+        # What the person pointed at comes only with a request the screen sent: a peer's relayed request has none
+        picks = picks_of(message.get("picks")) if request["origin"] == "app" else []
         if picks:  # what the person pointed at: start from each one's source.address
             request["picks"] = picks
         if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
