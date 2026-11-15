@@ -124,7 +124,7 @@ TEST_CASE("lisp_console: a definition lands as the person's own input, and runs 
 }
 
 TEST_CASE("lisp_console: an expression gives its value and leaves the history where it is") {
-	Console app;
+	const Console app;
 	const int head = app.repository.head().number;
 	const ConsoleResult result = app.evaluate("(tool 1 2)");
 	CHECK(result.values == std::vector<std::string>{"3"});
@@ -137,7 +137,7 @@ TEST_CASE("lisp_console: an expression gives its value and leaves the history wh
 }
 
 TEST_CASE("lisp_console: a definition goes in the file that has it, else the editor's, else its namespace's") {
-	Console app;
+	const Console app;
 	REQUIRE_FALSE(app.evaluate(R"lisp((defn other "Changed." [] 3))lisp", "app.lisp").error.has_value());
 	CHECK(app.fileOf("other") == "tools.lisp");
 	REQUIRE_FALSE(app.evaluate(R"lisp((defn by-file "" [] 1))lisp", "tools.lisp").error.has_value());
@@ -229,7 +229,8 @@ TEST_CASE("lisp_console attack: what the step evaluate refuses, the console refu
 }
 
 TEST_CASE("lisp_console attack: a deny rule on the person holds for the editor") {
-	Console app(R"lisp((defscreen main :permissions {:allow ["agent"] :deny ["user(/program)"] :reviewers ["studio"]}
+	const Console app(
+	    R"lisp((defscreen main :permissions {:allow ["agent"] :deny ["user(/program)"] :reviewers ["studio"]}
   :state {:out nil} (panel#root)))lisp");
 	const int head = app.repository.head().number;
 	const ConsoleResult result = app.evaluate(R"lisp((defn fresh "" [] 1))lisp");
@@ -261,17 +262,20 @@ TEST_CASE("lisp_console: names and what is known of one") {
 	CHECK(app.runtime->console().names("", 3).size() == 3);
 	const std::optional<affresco::ConsoleName> found = app.runtime->console().describe("tool");
 	REQUIRE(found.has_value());
-	const affresco::ConsoleName tool = found.value();
+	if(!found) return;
+	const affresco::ConsoleName& tool = *found;
 	CHECK(tool.kind == "defn");
 	CHECK(tool.doc == "A tool.");
 	CHECK(tool.file == "tools.lisp");
 	CHECK(tool.line >= 1);
 	CHECK(tool.arguments == std::vector<std::string>{"[a b]"});
-	CHECK(app.runtime->console().describe("run-fresh").value().kind == "defcommand");
+	const std::optional<affresco::ConsoleName> command = app.runtime->console().describe("run-fresh");
+	CHECK((command && command->kind == "defcommand"));
 	CHECK_FALSE(app.runtime->console().describe("no-such-name").has_value());
 	// A revision's text is in no file: no line
 	REQUIRE_FALSE(app.evaluate(R"lisp((defn tool "Changed." [a b] (- a b)))lisp").error.has_value());
-	CHECK(app.runtime->console().describe("tool").value().line == 0);
+	const std::optional<affresco::ConsoleName> changed = app.runtime->console().describe("tool");
+	CHECK((changed && changed->line == 0));
 	const std::vector<std::string> files = app.runtime->console().files();
 	CHECK(std::ranges::find(files, "tools.lisp") != files.end());
 	CHECK(app.runtime->console().unshowable("a​b").has_value());
