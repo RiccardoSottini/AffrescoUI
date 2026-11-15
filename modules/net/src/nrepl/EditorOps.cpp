@@ -101,6 +101,7 @@ void sendEldoc(EditorLink& link, const Value& request, const ConsoleName& name, 
 
 std::span<const std::string_view> operationNames() noexcept { return operations; }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): string() is read only once isString() said it is one
 std::string_view textOf(const Value& request, std::string_view key) noexcept {
 	const Value* found = request.find(key);
 	return found != nullptr && found->isString() ? std::string_view(found->string()) : std::string_view();

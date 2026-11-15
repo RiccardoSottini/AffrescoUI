@@ -288,13 +288,13 @@ void ProtocolPeer::evaluate(const Value& request, nrepl::EditorSession& session)
 		return;
 	}
 	const std::string_view editorPath = wholeFile ? textOf(request, "file-path") : textOf(request, "file");
-	ConsoleRequest console{.text = std::string(code),
-	                       .file = host_.programFile ? host_.programFile(std::string(editorPath)) : std::string(),
-	                       .space = session.space,
-	                       .origin = "editor",
-	                       .line = positionOf(request, "line"),
-	                       .column = positionOf(request, "column"),
-	                       .wholeFile = wholeFile};
+	const ConsoleRequest console{.text = std::string(code),
+	                             .file = host_.programFile ? host_.programFile(std::string(editorPath)) : std::string(),
+	                             .space = session.space,
+	                             .origin = "editor",
+	                             .line = positionOf(request, "line"),
+	                             .column = positionOf(request, "column"),
+	                             .wholeFile = wholeFile};
 	const ConsoleResult result = host_.console->evaluate(console);
 	nrepl::answerEvaluation(link_, request, result, session);
 }
@@ -361,7 +361,7 @@ void ProtocolPeer::decided(const nrepl::PairingOutcome& outcome) {
 }
 
 void ProtocolPeer::failWaiting(std::string_view why, std::string_view more) {
-	std::deque<Waiting> waiting = std::exchange(queue_, {});
+	const std::deque<Waiting> waiting = std::exchange(queue_, {});
 	queuedBytes_ = 0;
 	for(const Waiting& request : waiting) nrepl::sendFailure(link_, request.request, why, more);
 }

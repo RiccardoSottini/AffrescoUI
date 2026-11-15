@@ -80,12 +80,12 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	const unsigned answers = data[0];
 	unsigned question = 0;
 	QuietConsole console;
-	affresco::net::EditorServerOptions options;
+	const affresco::net::EditorServerOptions options;
 	affresco::net::EditorShared shared;
 	affresco::net::EditorHost host;
 	std::vector<std::function<void(bool)>> pending;
 	host.console = &console;
-	host.pair = [&pending](std::string, std::function<void(bool)> answered) -> std::optional<std::string> {
+	host.pair = [&pending](const std::string&, std::function<void(bool)> answered) -> std::optional<std::string> {
 		pending.push_back(std::move(answered));
 		return std::nullopt;
 	};

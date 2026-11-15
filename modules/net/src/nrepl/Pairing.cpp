@@ -13,6 +13,7 @@ namespace affresco::net::nrepl {
 Pairing::Pairing(EditorHost& host, const EditorServerOptions& options, EditorShared& shared, Decided decided)
     : host_(host), options_(options), shared_(shared), decided_(std::move(decided)), turn_(shared.waitingTurns.end()) {}
 
+// NOLINTNEXTLINE(bugprone-exception-escape): only running out of memory throws (the next question): it ends the program
 Pairing::~Pairing() { cancel(); }
 
 void Pairing::ask(std::string text) {
@@ -66,7 +67,7 @@ void Pairing::answer(std::uint64_t question, bool accepted) {
 	finish({.kind = PairingOutcome::Kind::Refused, .reason = {}});
 }
 
-void Pairing::finish(PairingOutcome outcome) {
+void Pairing::finish(const PairingOutcome& outcome) {
 	const bool asked = state_ == State::Asking;
 	state_ = outcome.kind == PairingOutcome::Kind::Accepted ? State::Paired : State::Unpaired;
 	const Decided decided = decided_; // a copy: calling it may destroy this

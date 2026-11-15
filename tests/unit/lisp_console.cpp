@@ -77,7 +77,7 @@ struct Console {
 	/// @param file The editor's file.
 	/// @param space The editor's namespace.
 	/// @return What it gave.
-	ConsoleResult evaluate(const std::string& text, const std::string& file = "", const std::string& space = "") {
+	ConsoleResult evaluate(const std::string& text, const std::string& file = "", const std::string& space = "") const {
 		ConsoleRequest request;
 		request.text = text;
 		request.file = file;
@@ -259,18 +259,19 @@ TEST_CASE("lisp_console: names and what is known of one") {
 	CHECK(std::ranges::any_of(names, [](const affresco::ConsoleName& name) { return name.name == "map"; }));
 	CHECK(std::ranges::all_of(names, [](const affresco::ConsoleName& name) { return name.name.starts_with("ma"); }));
 	CHECK(app.runtime->console().names("", 3).size() == 3);
-	const std::optional<affresco::ConsoleName> tool = app.runtime->console().describe("tool");
-	REQUIRE(tool.has_value());
-	CHECK(tool->kind == "defn");
-	CHECK(tool->doc == "A tool.");
-	CHECK(tool->file == "tools.lisp");
-	CHECK(tool->line >= 1);
-	CHECK(tool->arguments == std::vector<std::string>{"[a b]"});
-	CHECK(app.runtime->console().describe("run-fresh")->kind == "defcommand");
+	const std::optional<affresco::ConsoleName> found = app.runtime->console().describe("tool");
+	REQUIRE(found.has_value());
+	const affresco::ConsoleName tool = found.value();
+	CHECK(tool.kind == "defn");
+	CHECK(tool.doc == "A tool.");
+	CHECK(tool.file == "tools.lisp");
+	CHECK(tool.line >= 1);
+	CHECK(tool.arguments == std::vector<std::string>{"[a b]"});
+	CHECK(app.runtime->console().describe("run-fresh").value().kind == "defcommand");
 	CHECK_FALSE(app.runtime->console().describe("no-such-name").has_value());
 	// A revision's text is in no file: no line
 	REQUIRE_FALSE(app.evaluate(R"lisp((defn tool "Changed." [a b] (- a b)))lisp").error.has_value());
-	CHECK(app.runtime->console().describe("tool")->line == 0);
+	CHECK(app.runtime->console().describe("tool").value().line == 0);
 	const std::vector<std::string> files = app.runtime->console().files();
 	CHECK(std::ranges::find(files, "tools.lisp") != files.end());
 	CHECK(app.runtime->console().unshowable("a​b").has_value());

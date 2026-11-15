@@ -5,6 +5,7 @@
 
 #include "ClientForms.hpp"
 
+#include <algorithm>
 #include <array>
 
 namespace affresco::net::nrepl {
@@ -44,9 +45,31 @@ std::size_t skipBlank(std::string_view text, std::size_t from) noexcept {
 /// @param from Where it starts.
 /// @return It; empty if a separator is at @p from.
 std::string_view readSymbol(std::string_view text, std::size_t from) noexcept {
-	std::size_t end = from;
+	const std::size_t start = std::min(from, text.size());
+	std::size_t end = start;
 	while(end < text.size() && !separates(text[end])) ++end;
-	return text.substr(from, end - from);
+	return {text.data() + start, end - start}; // not substr(), which may throw
+}
+
+/// @brief Tells how a character changes the depth of brackets.
+/// @param character It.
+/// @return 1 for an opening bracket, -1 for a closing one, 0 for anything else.
+constexpr int bracketStep(char character) noexcept {
+	if(std::string_view("([{").find(character) != none) return 1;
+	if(std::string_view(")]}").find(character) != none) return -1;
+	return 0;
+}
+
+/// @brief Finds the closing quote of a string, past its escapes.
+/// @param text The text.
+/// @param open Where its opening quote is.
+/// @return The closing quote's position, or npos if it never closes.
+std::size_t stringEnd(std::string_view text, std::size_t open) noexcept {
+	for(std::size_t at = open + 1U; at < text.size(); ++at) {
+		if(text[at] == '\\') ++at; // an escaped character, a quote among them
+		else if(text[at] == '"') return at;
+	}
+	return none;
 }
 
 /// @brief Finds the end of a bracketed form, past strings, character literals and comments.
@@ -58,18 +81,13 @@ std::size_t formEnd(std::string_view text, std::size_t open) noexcept {
 	for(std::size_t at = open; at < text.size(); ++at) {
 		const char character = text[at];
 		if(character == '\\') {
-			++at; // a character literal: `\(` opens nothing
-		} else if(character == ';') {
-			const std::size_t lineEnd = text.find('\n', at);
-			if(lineEnd == none) return none;
-			at = lineEnd;
-		} else if(character == '"') {
-			for(++at; at < text.size() && text[at] != '"'; ++at)
-				if(text[at] == '\\') ++at;
-			if(at >= text.size()) return none;
-		} else if(character == '(' || character == '[' || character == '{') {
+			++at;                                         // a character literal: `\(` opens nothing
+		} else if(character == ';' || character == '"') { // a comment to its line's end, or a string
+			at = character == ';' ? text.find('\n', at) : stringEnd(text, at);
+			if(at == none) return none;
+		} else if(const int step = bracketStep(character); step > 0) {
 			++depth;
-		} else if(character == ')' || character == ']' || character == '}') {
+		} else if(step < 0) {
 			if(depth == 0) return none;
 			if(--depth == 0) return at + 1U;
 		}
@@ -84,9 +102,7 @@ std::size_t formEnd(std::string_view text, std::size_t open) noexcept {
 /// @return true if it does.
 bool namesClientSetup(std::string_view text) noexcept {
 	constexpr std::array<std::string_view, 3> names{"clojure.main/repl-requires", "conjure.internal", "cider.nrepl"};
-	for(const std::string_view name : names)
-		if(text.find(name) != none) return true;
-	return false;
+	return std::ranges::any_of(names, [text](std::string_view name) { return text.find(name) != none; });
 }
 
 /// @brief Recognises a text that is one symbol: `*ns*`, `*1`, `*2`, `*3`, `*e`.
