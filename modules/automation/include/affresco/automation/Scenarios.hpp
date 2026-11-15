@@ -24,7 +24,8 @@ namespace affresco::automation {
 struct Scenario {
 	std::string name;              ///< Unique in its file; the prefix of its pictures' names.
 	std::filesystem::path screen;  ///< The screen file it plays on.
-	int scale = 1;                 ///< Pixels per window unit in its pictures (1, or 2 like a Retina display).
+	float scale = 1.0f;            ///< Pixels per window unit in its pictures: 1 to 4 in quarters (1.25 looks like a
+	                               ///< display at 125%, 2 like a Retina display).
 	std::vector<json> steps;       ///< The steps, each checked when the file was read (SCREEN_FORMAT.md, "Scenarios").
 	bool needsPictures = false;    ///< Whether a step draws (capture, expect image): it then plays on a hidden
 	                               ///< window with OpenGL, else headless.

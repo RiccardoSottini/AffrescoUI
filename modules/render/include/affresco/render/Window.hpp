@@ -447,11 +447,13 @@ public:
 	/// @param path Binary PPM file to write, at framebuffer resolution.
 	/// @return false if it couldn't be written, or the window is headless.
 	bool saveScreenshot(const std::filesystem::path& path);
-	/// @brief Draws the current frame offscreen, at a fixed scale whatever the display, and saves it (for tests).
+	/// @brief Draws the current frame offscreen, at a fixed scale whatever the display, and saves it (for tests). The
+	/// picture is lround(width * scale) by lround(height * scale) pixels.
 	/// @param path Binary PPM file to write.
-	/// @param scale Pixels per window unit (2 looks like a Retina display).
-	/// @return false if it couldn't be written, or the window is headless.
-	bool saveScreenshot(const std::filesystem::path& path, int scale);
+	/// @param scale Pixels per window unit: 2 looks like a Retina display, 1.25 like a display set to 125% (text is
+	/// rasterised at the scale rounded to a quarter, so quarters match it exactly).
+	/// @return false if it couldn't be written, the window is headless, or the scale isn't finite and above 0.
+	bool saveScreenshot(const std::filesystem::path& path, float scale);
 
 	/// @brief Draws one panel and its subtree into an image of its own, as a frame from scratch would (nothing retained
 	/// is used or changed): for thumbnails, previews and exports. Laid out first, like a screenshot.

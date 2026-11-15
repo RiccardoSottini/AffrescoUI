@@ -4,6 +4,7 @@
 /// drawing a detail::Renderer, and a headless window has neither.
 
 #include "Confirmation.hpp"
+#include "Headless.hpp"
 #include "Picking.hpp"
 
 #include "paint/GeometryCache.hpp"
@@ -595,17 +596,17 @@ bool Window::saveScreenshot(const std::filesystem::path& path) {
 	return detail::writePpm(path, size.width, size.height, renderer_->readBack(size));
 }
 
-bool Window::saveScreenshot(const std::filesystem::path& path, int scale) {
-	if(!renderer_) return false;
+bool Window::saveScreenshot(const std::filesystem::path& path, float scale) {
+	const std::optional<platform::PixelSize> size = detail::scaledSize(width_, height_, scale);
+	if(!renderer_ || !size) return false;
 	runDeferred();
 	native_->makeCurrent(); // the image is created in it
 	updateLayout();
 	refreshSnapshots();
 
-	const platform::PixelSize size{width_ * scale, height_ * scale};
-	const std::vector<std::uint8_t> pixels = renderer_->drawOffscreen(frame(), size);
+	const std::vector<std::uint8_t> pixels = renderer_->drawOffscreen(frame(), *size);
 	clearDamage();
-	return detail::writePpm(path, size.width, size.height, pixels);
+	return detail::writePpm(path, size->width, size->height, pixels);
 }
 
 } // namespace affresco
