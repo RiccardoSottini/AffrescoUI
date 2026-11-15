@@ -686,6 +686,17 @@ def split_long(path, most):
     return made
 
 
+def language_words():
+    """The plain words the language runs: every list of words/ (Words.hpp, languageWordLists)."""
+    folder = os.path.join(ROOT, "modules", "notation", "include", "affresco", "notation", "words")
+    found = set()
+    for name in sorted(os.listdir(folder)):
+        with open(os.path.join(folder, name), encoding="utf-8") as words:
+            for block in re.findall(r"std::to_array<std::string_view>\(\{(.*?)\}\);", words.read(), re.S):
+                found.update(re.findall(r'"([^"]+)"', block))
+    return found
+
+
 def main():
     """Writes the draft; returns the exit code."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -715,10 +726,7 @@ def main():
         for value in bindings_in_place(arguments.file, arguments.cli):
             print(f"left as written: {value}", file=sys.stderr)
         return 0
-    with open(os.path.join(ROOT, "modules", "notation", "include", "affresco", "notation", "Words.hpp"),
-              encoding="utf-8") as words:
-        block = words.read().split("languageWords")[1].split("});")[0]
-    TAKEN.update(re.findall(r'"([^"]+)"', block))
+    TAKEN.update(language_words())
     TAKEN.update(("main", "list", "nil?", "some?", "empty?", "every?", "str", "t", "state", "computed", "event", "it", "index"))
     text, untranslated = draft_program(arguments.file, arguments.entry, arguments.cli, arguments.lines,
                                        arguments.locales, arguments.defaults)

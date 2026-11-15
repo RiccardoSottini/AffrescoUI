@@ -1,15 +1,19 @@
 /// @file
 /// @brief The language's own functions for building views: `handler` and `or-else`, and those its forms use (`%repeat`
 /// for `repeat`, `%component` for `defcomponent`, `%symbolic?` for a binding that depends on a local). A name of the
-/// running app, as a view's code holds it, is a symbol: `repeat`'s item, a component's parameter.
+/// running app, as a view's code holds it, is a symbol: `repeat`'s item, a component's parameter. And two that forms
+/// from Clojure use: `%arity` for a function of many arities, `%repeat-times` for `(repeat n x)`.
 
 #include "Machine.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
+#include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace affresco::lisp {
@@ -183,6 +187,51 @@ Value callStep(Machine& machine, Arguments arguments) {
 	return machine.heap.map(std::move(step));
 }
 
+/// @brief `%arity`: which clause of a function of many arities takes its arguments (Compiler::arities()).
+/// @param machine The machine.
+/// @param arguments The arguments, a vector; each clause's count, a vector of n, or -(n + 1) for n then '&'; the
+/// function's name, or nil.
+/// @return The clause's index.
+Value arity(Machine& /*machine*/, Arguments arguments) {
+	if(arguments.size() != 3 || arguments[0].kind() != Kind::Vector || arguments[1].kind() != Kind::Vector)
+		throw Problem("\"%arity\" is a function's own");
+	const auto given = static_cast<std::int64_t>(arguments[0].count());
+	const Value counts = arguments[1];
+	std::vector<std::int64_t> fixed;
+	std::optional<std::pair<std::size_t, std::int64_t>> rest; // the '&' clause, and how many it takes at least
+	for(std::size_t at = 0; at < counts.count(); ++at) {
+		const std::int64_t count = wholeNumber(counts.at(at)).value_or(0);
+		if(count == given) return Value::integer(static_cast<std::int64_t>(at));
+		if(count >= 0) fixed.push_back(count);
+		else rest = {at, -count - 1};
+	}
+	if(rest && given >= rest->second) return Value::integer(static_cast<std::int64_t>(rest->first));
+	std::ranges::sort(fixed);
+	std::vector<std::string> ways;
+	ways.reserve(fixed.size() + 1);
+	for(const std::int64_t count : fixed) ways.push_back(std::to_string(count));
+	if(rest) ways.push_back("at least " + std::to_string(rest->second));
+	std::string taken;
+	for(std::size_t at = 0; at < ways.size(); ++at)
+		taken += (at == 0 ? "" : at + 1 == ways.size() ? " or " : ", ") + ways[at];
+	const std::string who =
+	    arguments[2].kind() == Kind::String ? "\"" + std::string(arguments[2].text()) + "\"" : "this function";
+	throw Problem(who + " takes " + taken + " arguments, and was given " + std::to_string(given));
+}
+
+/// @brief `%repeat-times`: Clojure's `(repeat n x)`, a vector of n x.
+/// @param machine The machine.
+/// @param arguments The count, a whole number, 0 or more; the value.
+/// @return The vector.
+Value repeatTimes(Machine& machine, Arguments arguments) {
+	const std::optional<std::int64_t> times = arguments.size() == 2 ? wholeNumber(arguments[0]) : std::nullopt;
+	if(!times || *times < 0) throw Problem("\"repeat\" takes a count, a whole number 0 or more, then a value");
+	const auto size = static_cast<std::size_t>(*times);
+	machine.spend(size);
+	machine.heap.charge(size * sizeof(Value));
+	return machine.heap.sequence(Kind::Vector, std::vector<Value>(size, arguments[1]));
+}
+
 } // namespace
 
 void defineViews(Machine& machine) {
@@ -192,6 +241,8 @@ void defineViews(Machine& machine) {
 	machine.defineNative("%component", component);
 	machine.defineNative("handler", callStep);
 	machine.defineNative("or-else", orElse);
+	machine.defineNative("%arity", arity);
+	machine.defineNative("%repeat-times", repeatTimes);
 }
 
 } // namespace affresco::lisp

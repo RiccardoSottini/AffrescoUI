@@ -4,6 +4,7 @@
 /// @brief The machine: globals, definitions, the stack and the instructions (README.md, "How it runs"). Calls and
 /// returns use its own stack, never the native one, so recursion ends at a limit with an error, however deep.
 
+#include "Namespaces.hpp"
 #include "Objects.hpp"
 
 #include <array>
@@ -13,6 +14,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -52,6 +54,7 @@ struct CompileContext {
 	                      ///< a program redefining `count` doesn't change what `reduce` does.
 	bool view = false;    ///< Code that builds a view: each backquote in it is a template whose `~form` that needs
 	                      ///< the running app becomes a binding (`defview`, `defcomponent`).
+	const AliasMap* aliases = nullptr; ///< The file's own aliases for namespaces, or nullptr (Namespaces.hpp).
 };
 
 /// @brief A use of a global a definition's code makes.
@@ -59,6 +62,13 @@ struct GlobalUse {
 	const Global* global = nullptr; ///< The global.
 	Place place;                    ///< Where it is used.
 	std::string definition;         ///< The definition it is in.
+};
+
+/// @brief A function of the language's own that is made the first time its name is looked up
+/// (Machine::defineLazyNatives()).
+struct LazyNative {
+	std::string_view name;             ///< Its name, its global's.
+	NativeFunction function = nullptr; ///< It.
 };
 
 /// @brief The machine behind an Interpreter.
@@ -81,7 +91,12 @@ public:
 	/// @param name Its name.
 	/// @return The cell.
 	Global& global(std::string_view name);
-	/// @brief A global's cell, if it exists.
+	/// @brief A global's cell, if it exists: a lazy native (defineLazyNatives()) of that name is made now.
+	/// @param name Its name.
+	/// @return The cell, or nullptr.
+	[[nodiscard]] Global* findGlobal(std::string_view name);
+	/// @brief A global's cell, if it exists, a lazy native only once something has looked it up: for what looks for a
+	/// program's definitions or macros, which a lazy native never is.
 	/// @param name Its name.
 	/// @return The cell, or nullptr.
 	[[nodiscard]] Global* findGlobal(std::string_view name) const;
@@ -90,10 +105,43 @@ public:
 	/// @param function It.
 	/// @param spread `apply`: see NativeObject::spread.
 	void defineNative(std::string_view name, NativeFunction function, bool spread = false);
+	/// @brief Registers a value of the language's own under a name, as defineNative() does: a function another name
+	/// has too (`clojure.string/join` is `join`).
+	/// @param name Its name.
+	/// @param value The value.
+	void defineLanguageValue(std::string_view name, const Value& value);
+	/// @brief Registers functions of the language's own that are made the first time something looks their names up,
+	/// as defineNative() would make them: a program can't tell, and starting a machine doesn't pay for them.
+	/// @param natives Sorted by name; a constant, which outlives the machine.
+	/// @throws std::logic_error If the language has more tables than the machine has room for.
+	void defineLazyNatives(std::span<const LazyNative> natives);
+	/// @brief The language's own cell of a name, made if it is new: what its library code sees, whatever a program or
+	/// a host defines with that name (Library.hpp).
+	/// @param name Its name.
+	/// @return The cell.
+	Global& languageGlobal(std::string_view name);
+	/// @brief The language's own cell of a name, if it has one: a lazy native of that name is made now.
+	/// @param name Its name.
+	/// @return The cell, or nullptr.
+	[[nodiscard]] Global* findLanguageGlobal(std::string_view name);
+	/// @brief The language's own cell of a name, if it has one, a lazy native only once something has looked it up:
+	/// for what compares a value with one of the language's functions (one never made can't be the value).
+	/// @param name Its name.
+	/// @return The cell, or nullptr.
+	[[nodiscard]] Global* findLanguageGlobal(std::string_view name) const;
 	/// @brief Registers a host's primitive.
 	/// @param name Its name.
 	/// @param primitive It.
 	void definePrimitive(const std::string& name, Primitive primitive);
+	/// @brief The global a qualified word names (Namespaces.cpp): `str/join` is `clojure.string/join`, and
+	/// `clojure.core/inc` is `inc`.
+	/// @param word The word.
+	/// @param aliases The file's own aliases, or nullptr.
+	/// @return The global's name, or nothing if the word isn't qualified (isQualified()).
+	/// @throws Problem If no namespace has its prefix.
+	std::optional<std::string_view> resolveQualified(std::string_view word, const AliasMap* aliases = nullptr);
+	/// @brief The namespaces, for a host to add to (Interpreter::addNamespace()). @return Them.
+	[[nodiscard]] Namespaces& namespaces() noexcept { return namespaces_; }
 	/// @brief See Interpreter::addAppVariable(). @param name The word.
 	void addAppVariable(const std::string& name) { appVariables_.insert(name); }
 	/// @brief Whether a word names a variable of the running app (Interpreter::addAppVariable()). @param name The word.
@@ -239,6 +287,12 @@ public:
 	[[nodiscard]] std::pair<Place, std::string> currentPlace() const;
 
 private:
+	/// @brief Makes the cells of a lazy native (defineLazyNatives()), if one has that name: what loading it costs is
+	/// the language's, not the program's that looks it up.
+	/// @param name The name.
+	/// @return true if it made them.
+	bool makeLazyNative(std::string_view name);
+
 	/// @brief One function being run.
 	struct Frame {
 		const Code* code = nullptr;             ///< What it runs.
@@ -255,6 +309,7 @@ private:
 		std::size_t frames = 0;   ///< How many frames it leaves.
 		std::size_t height = 0;   ///< How high the stack stands.
 		std::uint32_t target = 0; ///< Where its `catch` is.
+		bool whole = false;       ///< A `finally`'s: the condition is kept whole, for Throw to raise it again.
 	};
 	using Handle = void (Machine::*)(const Instruction&); ///< An instruction's function.
 	/// @brief The instructions' functions, by Op. @return The table.
@@ -407,7 +462,12 @@ private:
 	std::size_t regions_ = 0;         ///< Regions inside each other.
 	bool pure_ = false;               ///< See setPure().
 	std::deque<Global> globalCells_;  ///< The cells: their addresses stay.
-	std::map<std::string_view, Global*, std::less<>> globals_;            ///< The cells by name.
+	std::map<std::string_view, Global*, std::less<>> globals_;  ///< The cells by name.
+	std::deque<Global> languageCells_;                          ///< See languageGlobal().
+	std::map<std::string_view, Global*, std::less<>> language_; ///< languageCells_ by name.
+	std::array<std::span<const LazyNative>, 2> lazyNatives_{};  ///< See defineLazyNatives(): an empty span is no table.
+	bool started_ = false; ///< The constructor has finished: until then, the names it defines are none a lazy native's.
+	Namespaces namespaces_;                                               ///< See namespaces().
 	std::vector<std::unique_ptr<Definition>> definitions_;                ///< See definitions().
 	std::map<std::string, std::size_t, std::less<>> definitionNames_;     ///< definitions_'s indexes by name.
 	std::size_t compiled_ = 0;                                            ///< How many of definitions_ are compiled.
@@ -432,9 +492,34 @@ void defineCollections(Machine& machine);
 void defineText(Machine& machine);
 /// @copydoc defineNumbers
 void defineViews(Machine& machine);
-/// @brief Loads the functions the language writes in itself (Prelude.cpp).
+/// @brief Registers the functions the language writes in itself (Prelude.cpp), as entries of the library
+/// (Library.hpp).
 /// @param machine The machine.
 void definePrelude(Machine& machine);
+/// @brief Registers the language's everyday forms (PreludeForms.cpp), after definePrelude().
+/// @param machine The machine.
+void defineForms(Machine& machine);
+/// @brief Registers the language's further functions (PreludeFunctions.cpp), after definePrelude().
+/// @param machine The machine.
+void defineFunctions(Machine& machine);
+/// @brief Registers the language's sequence functions (CoreSequences.cpp), after definePrelude().
+/// @param machine The machine.
+void defineSequences(Machine& machine);
+/// @brief Registers the functions of `clojure.string` (CoreStrings.cpp), after definePrelude().
+/// @param machine The machine.
+void defineStrings(Machine& machine);
+/// @brief Registers the functions of `clojure.set` (CoreSets.cpp), after definePrelude().
+/// @param machine The machine.
+void defineSets(Machine& machine);
+
+/// @brief What to write instead of a name the language doesn't have, that another dialect knows (Hints.cpp).
+/// @param name The name.
+/// @return The hint, or "".
+[[nodiscard]] std::string_view hintFor(std::string_view name);
+/// @brief The error for an undefined name: `"atom" is not defined`, and its hint (hintFor()) after a colon.
+/// @param name The name.
+/// @return The message.
+[[nodiscard]] std::string notDefinedMessage(std::string_view name);
 
 /// @brief A text as an expression writes it, quoted (CompilerBindings.cpp).
 /// @param text The text.

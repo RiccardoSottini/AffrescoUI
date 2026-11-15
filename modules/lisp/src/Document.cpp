@@ -4,6 +4,7 @@
 
 #include <affresco/lisp/Document.hpp>
 
+#include "Namespaces.hpp"
 #include "Reader.hpp"
 #include "TopLevel.hpp"
 
@@ -46,6 +47,7 @@ LispError problemIn(const std::string& name, const std::string& message) { retur
 std::size_t formEnd(Lexer& lexer, Token first, const std::string& where) {
 	std::size_t depth = 0;
 	for(Token token = first;; token = lexer.next()) {
+		if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) continue; // the form it stands before
 		switch(token.kind) {
 		case TokenKind::OpenNode:
 		case TokenKind::OpenList:
@@ -60,11 +62,6 @@ std::size_t formEnd(Lexer& lexer, Token first, const std::string& where) {
 			break;
 		case TokenKind::End:
 			throw problemIn(where, "the text ends inside a form");
-		case TokenKind::Quote:
-		case TokenKind::Backquote:
-		case TokenKind::Unquote:
-		case TokenKind::Splice:
-			continue; // the form it stands before
 		default:
 			break;
 		}
@@ -218,36 +215,89 @@ void mergeWritten(json& tree, const std::string& key, const json& written,
 	}
 }
 
-/// @brief Takes a program file's `(include "a.lisp" ...)` forms out of its text, each character but a line's end made a
-/// space, so every other form keeps its line and column. They are read with the file, and are no entry of the program:
-/// a revision has no way to add one.
+/// @brief Blanks a span of a text: each character but a line's end made a space, so every other form keeps its line and
+/// column.
+/// @param text The text.
+/// @param start Where the span starts.
+/// @param end Where it ends.
+void blank(std::string& text, std::size_t start, std::size_t end) {
+	for(std::size_t at = start; at < end; ++at)
+		if(text[at] != '\n' && text[at] != '\r') text[at] = ' ';
+}
+
+/// @brief Tells whether a program file's first form is an `ns` form, by its first two tokens.
+/// @param text The file's text.
+/// @return Whether it is.
+bool startsWithNamespace(std::string_view text) {
+	try {
+		notation::Lexer lexer(text, true);
+		const notation::Token first = lexer.next();
+		if(first.kind != notation::TokenKind::OpenNode) return false;
+		const notation::Token second = lexer.next();
+		return second.kind == notation::TokenKind::Word && second.text == "ns";
+	} catch(const DocumentError&) {
+		return false; // the reader says what is wrong
+	}
+}
+
+/// @brief What a program file's text says beside its definitions: its include forms and its ns form.
+struct FileForms {
+	json includes = json::array(); ///< The files it names, in order: its include forms', then its ns form's.
+	std::string declaration;       ///< Its ns form's text, with the comments above it; "" if it has none.
+};
+
+/// @brief Adds the files an ns form requires to a file's includes, after its own include forms', each once.
+/// @param declaration What the form says.
+/// @param includes The file's includes.
+void addRequired(const NamespaceDeclaration& declaration, json& includes) {
+	const auto named = [&includes](const std::string& path) {
+		const std::string normal = std::filesystem::path(path).lexically_normal().generic_string();
+		return std::ranges::any_of(includes, [&](const json& include) {
+			return std::filesystem::path(include.get<std::string>()).lexically_normal().generic_string() == normal;
+		});
+	};
+	for(const Required& required : declaration.required)
+		if(!required.path.empty() && !named(required.path)) includes.push_back(required.path);
+}
+
+/// @brief Takes a program file's `(include "a.lisp" ...)` forms and its first form `(ns ...)` out of its text, each
+/// character but a line's end made a space, so every other form keeps its line and column. They are read with the
+/// file, and are no entry of the program: a revision has no way to add one, so none changes which files the loader
+/// reads. An ns form takes the comments above it along, so that its text reads from the file's first line.
 /// @param text The file's text.
 /// @param file Its name, for errors.
-/// @param includes Gets the files they name, in order.
+/// @param forms Gets what they say.
 /// @return The text without them.
-/// @throws LispError If one names something other than a file.
-std::string withoutIncludes(std::string_view text, const std::string& file, json& includes) {
+/// @throws LispError If an include names something other than a file, or the ns form doesn't read.
+std::string withoutFileForms(std::string_view text, const std::string& file, FileForms& forms) {
 	std::string kept(text);
 	Heap heap;
 	Reader reader(heap, text, file);
-	while(const auto read = reader.next()) {
+	std::optional<NamespaceDeclaration> declared;
+	for(bool first = true; const auto read = reader.next(); first = false) {
 		const Value& form = read->form;
-		const std::size_t start = read->start; // the form's text, blanked below
-		const std::size_t end = read->end;
-		if(form.kind() != Kind::List || form.count() == 0 || form.at(0).kind() != Kind::Symbol ||
-		   form.at(0).text() != "include")
+		const std::string_view head =
+		    form.kind() == Kind::List && form.count() > 0 && form.at(0).kind() == Kind::Symbol ? form.at(0).text() : "";
+		if(head == "ns" && first) { // elsewhere, the split into entries refuses it
+			declared = readNamespaceForm(form, file);
+			const std::size_t start = text.starts_with("\xEF\xBB\xBF") ? 3 : 0;
+			const std::size_t end = pastSameLineComment(text, read->end);
+			forms.declaration = std::string(text.substr(start, end - start));
+			blank(kept, start, end);
 			continue;
+		}
+		if(head != "include") continue;
 		for(std::size_t at = 1; at < form.count(); ++at) {
 			const Kind kind = form.at(at).kind();
 			if((kind != Kind::String && kind != Kind::Symbol) || form.at(at).text().empty()) {
 				const Place place = form.at(at).place().line != 0 ? form.at(at).place() : form.place();
 				throw LispError(file, place.line, place.column, "", "include names files, each a string");
 			}
-			includes.push_back(std::string(form.at(at).text()));
+			forms.includes.push_back(std::string(form.at(at).text()));
 		}
-		for(std::size_t at = start; at < end; ++at)
-			if(kept[at] != '\n' && kept[at] != '\r') kept[at] = ' ';
+		blank(kept, read->start, read->end);
 	}
+	if(declared) addRequired(*declared, forms.includes);
 	return kept;
 }
 
@@ -275,10 +325,11 @@ void checkProgramShape(const json& section) {
 	}
 }
 
-json sourceDocument(std::string_view text, const std::string& file) {
+json sourceDocument(std::string_view text, const std::string& file, std::string_view declaration) {
 	Program program; // two definitions of one name are an error, which an object's keys wouldn't say
 	for(Entry& entry : splitEntries(text, file)) program.addEntryUnread(std::move(entry)); // the split read each
 	json entries = json::object();
+	if(!declaration.empty()) entries[std::string(namespaceEntry)] = declaration; // first, as in the file
 	for(const Entry& entry : program.entries()) entries[entry.name] = entry.text;
 	return {{"format", "affrescoui-screen"}, {"version", 2}, {"program", {{file, std::move(entries)}}}};
 }
@@ -358,10 +409,12 @@ json readLispDocument(std::string_view text, const std::filesystem::path& file, 
 		}
 	if(program) {
 		const std::string named = name.empty() ? file.filename().generic_string() : name;
-		json includes = json::array();
-		json document = sourceDocument(
-		    text.contains("include") ? withoutIncludes(text, named, includes) : std::string(text), named);
-		if(!includes.empty()) document["include"] = std::move(includes);
+		FileForms forms;
+		const bool taken = text.contains("include") || startsWithNamespace(text);
+		// The forms are taken out first: an argument beside the call that fills forms.declaration may be read before it
+		const std::string kept = taken ? withoutFileForms(text, named, forms) : std::string(text);
+		json document = sourceDocument(kept, named, forms.declaration);
+		if(!forms.includes.empty()) document["include"] = std::move(forms.includes);
 		return document;
 	}
 	bool runs = false;
@@ -385,6 +438,10 @@ Program programOf(const json& section, const json& authors) {
 	Program program;
 	for(const auto& [file, entries] : section.items())
 		for(const auto& [name, text] : entries.items()) {
+			if(name == namespaceEntry) { // the file's ns form, which the loader read with it
+				program.declareNamespace(file, text.get<std::string>());
+				continue;
+			}
 			Entry entry;
 			entry.file = file;
 			entry.name = name;

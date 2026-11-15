@@ -4,13 +4,18 @@
 /// stack.
 
 #include "Machine.hpp"
+#include "Sequences.hpp"
+#include "Sets.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 #include <affresco/notation/Words.hpp>
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <optional>
+#include <random>
 #include <set>
 #include <string>
 #include <utility>
@@ -54,6 +59,7 @@ public:
 			machine_.heap.charge(value.text().size());
 			return std::string(value.text());
 		case Kind::Vector:
+		case Kind::Set: // as its items, in the order they were added
 			return vector(value, depth, place);
 		case Kind::Map:
 			return map(value, depth, place);
@@ -80,8 +86,8 @@ private:
 		if(levels > maxNesting) fail(place, "nested more than " + std::to_string(maxNesting) + " levels deep");
 	}
 
-	/// @brief A vector as an array.
-	/// @param from The vector.
+	/// @brief A vector or a set as an array.
+	/// @param from The vector or the set.
 	/// @param depth How many objects and lists hold it.
 	/// @param place Where it is.
 	/// @return The array.
@@ -190,6 +196,7 @@ public:
 		machine_.spend(1);
 		if(value.isSequence()) sequence(value, depth);
 		else if(value.kind() == Kind::Map) map(value, depth);
+		else if(value.kind() == Kind::Set) set(value, depth);
 		else if(value.isNumber()) number(value, depth);
 		else if(value.kind() == Kind::String) string(value, depth);
 		else if(value.kind() == Kind::Nil) add(readable_ || depth > 0 ? "nil" : "");
@@ -242,6 +249,18 @@ private:
 		add(value.kind() == Kind::List ? ")" : "]");
 	}
 
+	/// @brief Writes a set, `#{1 2}`, its items in the order they were added.
+	/// @param value It.
+	/// @param depth How many values hold it.
+	void set(const Value& value, int depth) {
+		add("#{");
+		for(std::size_t at = 0; at < value.count(); ++at) {
+			if(at > 0) add(" ");
+			write(value.at(at), depth + 1);
+		}
+		add("}");
+	}
+
 	/// @brief Writes a map.
 	/// @param value It.
 	/// @param depth How many values hold it.
@@ -274,6 +293,24 @@ private:
 	bool readable_;    ///< See the constructor.
 };
 
+/// @brief Spends operations, if there is a machine. @param machine It, or nullptr. @param count How many.
+void spend(Machine* machine, std::size_t count) {
+	if(machine) machine->spend(count);
+}
+
+/// @brief Spends going through a text, if there is a machine. @param machine It, or nullptr. @param bytes Its size.
+void spendText(Machine* machine, std::size_t bytes) {
+	if(machine) machine->spendText(bytes);
+}
+
+/// @brief Spends finding a key in a map, if there is a machine.
+/// @param machine It, or nullptr.
+/// @param map The map.
+/// @param key The key.
+void spendLookup(Machine* machine, const Value& map, std::string_view key) {
+	if(machine) machine->spendLookup(map, key);
+}
+
 /// @brief Compares two numbers by value.
 /// @param first One.
 /// @param second The other.
@@ -286,15 +323,32 @@ bool numbersEqual(const Value& first, const Value& second) noexcept {
 	return first.asDouble() == second.asDouble();
 }
 
-bool equalAt(Machine& machine, const Value& first, const Value& second, int depth);
+bool equalAt(Machine* machine, const Value& first, const Value& second, int depth);
+
+/// @brief Tells whether a value is text as `=` sees it: a keyword is the string of its text (decision D2), since a
+/// binding writes `(= state.mode :edit)` as `state.mode == 'edit'`, and data never holds a keyword once it is in an
+/// app's state. A symbol stays apart.
+/// @param value The value.
+/// @return true for a string or a keyword.
+bool isText(const Value& value) noexcept { return value.kind() == Kind::String || value.kind() == Kind::Keyword; }
+
+/// @brief Compares the texts of two values.
+/// @param machine The machine, whose budget it spends, or nullptr to spend nothing (the reader).
+/// @param first One.
+/// @param second The other.
+/// @return true if they are the same text.
+bool textsEqual(Machine* machine, const Value& first, const Value& second) {
+	if(first.text().size() == second.text().size()) spendText(machine, first.text().size());
+	return first.text() == second.text();
+}
 
 /// @brief Compares two lists or vectors.
-/// @param machine The machine, whose budget it spends.
+/// @param machine The machine, whose budget it spends, or nullptr to spend nothing (the reader).
 /// @param first One.
 /// @param second The other.
 /// @param depth How deep it has gone.
 /// @return true if they are equal.
-bool sequencesEqual(Machine& machine, const Value& first, const Value& second, int depth) {
+bool sequencesEqual(Machine* machine, const Value& first, const Value& second, int depth) {
 	if(first.count() != second.count()) return false;
 	for(std::size_t at = 0; at < first.count(); ++at)
 		if(!equalAt(machine, first.at(at), second.at(at), depth + 1)) return false;
@@ -302,40 +356,139 @@ bool sequencesEqual(Machine& machine, const Value& first, const Value& second, i
 }
 
 /// @brief Compares two maps, whatever the order of their keys.
-/// @param machine The machine, whose budget it spends.
+/// @param machine The machine, whose budget it spends, or nullptr to spend nothing (the reader).
 /// @param first One.
 /// @param second The other.
 /// @param depth How deep it has gone.
 /// @return true if they are equal.
-bool mapsEqual(Machine& machine, const Value& first, const Value& second, int depth) {
+bool mapsEqual(Machine* machine, const Value& first, const Value& second, int depth) {
 	if(first.count() != second.count()) return false;
 	for(std::size_t at = 0; at < first.count(); ++at) {
 		bool found = false;
-		machine.spendLookup(second, first.keyAt(at));
+		spendLookup(machine, second, first.keyAt(at));
 		const Value other = second.lookup(first.keyAt(at), &found);
 		if(!found || !equalAt(machine, first.valueAt(at), other, depth + 1)) return false;
 	}
 	return true;
 }
 
-/// @brief Compares two values.
-/// @param machine The machine, whose budget it spends.
+/// @brief The position of a set's member equal to an item: only the members whose hashes meet the item's are compared.
+/// @param machine The machine, whose budget it spends, or nullptr to spend nothing (the reader).
+/// @param set The set.
+/// @param item The item.
+/// @param hash The item's hash (hashAt()).
+/// @param depth How deep it has gone.
+/// @return The position, or std::nullopt if it isn't a member.
+std::optional<std::uint32_t> positionAt(Machine* machine, const Value& set, const Value& item, std::size_t hash,
+                                        int depth) {
+	const SetObject& object = setObjectOf(set);
+	const auto [first, last] = object.storage->index.equal_range(hash);
+	for(auto entry = first; entry != last; ++entry) {
+		spend(machine, 1);
+		if(entry->second < object.size && equalAt(machine, object.storage->items->values[entry->second], item, depth))
+			return entry->second;
+	}
+	return std::nullopt;
+}
+
+/// @brief Compares two sets, whatever the order of their members: each member of one is looked up in the other by the
+/// hash it was added with, so that comparing is linear and not quadratic.
+/// @param machine The machine, whose budget it spends, or nullptr to spend nothing (the reader).
 /// @param first One.
 /// @param second The other.
 /// @param depth How deep it has gone.
 /// @return true if they are equal.
-bool equalAt(Machine& machine, const Value& first, const Value& second, int depth) {
+bool setsEqual(Machine* machine, const Value& first, const Value& second, int depth) {
+	if(first.count() != second.count()) return false;
+	const SetObject& members = setObjectOf(first);
+	for(std::size_t at = 0; at < first.count(); ++at)
+		if(!positionAt(machine, second, first.at(at), members.storage->hashes[at], depth + 1)) return false;
+	return true;
+}
+
+/// @brief Compares two values.
+/// @param machine The machine, whose budget it spends, or nullptr to spend nothing (the reader).
+/// @param first One.
+/// @param second The other.
+/// @param depth How deep it has gone.
+/// @return true if they are equal.
+bool equalAt(Machine* machine, const Value& first, const Value& second, int depth) {
 	if(depth > maxValueDepth) Machine::exhausted("values nested too deeply to compare");
-	machine.spend(1);
+	spend(machine, 1);
 	if(first.isNumber() && second.isNumber()) return numbersEqual(first, second);
 	if(first.isSequence() && second.isSequence()) return sequencesEqual(machine, first, second, depth);
+	if(isText(first) && isText(second)) return textsEqual(machine, first, second);
 	if(first.kind() != second.kind()) return false;
 	if(first.kind() == Kind::Map) return mapsEqual(machine, first, second, depth);
+	if(first.kind() == Kind::Set) return setsEqual(machine, first, second, depth);
 	if(first.kind() == Kind::Nil) return true;
 	if(first.kind() == Kind::Boolean) return first.asBoolean() == second.asBoolean();
 	if(first.kind() == Kind::Function || first.kind() == Kind::Native) return first.pointer() == second.pointer();
-	if(first.text().size() == second.text().size()) machine.spendText(first.text().size());
-	return first.text() == second.text(); // a string, a symbol, a keyword
+	return textsEqual(machine, first, second); // two symbols
+}
+
+/// @brief Spreads a hash over all its bits, from a seed the process draws once (splitmix64's finalizer): numbers in a
+/// range have bits in a line, and a sum of hashes is the same for many sets, so that without it a document could fill
+/// the buckets of a set or of `distinct` with items that meet, and make reading or building it quadratic. Results
+/// don't depend on the seed: a hash only finds the members to compare, and a set keeps the order they came in.
+/// @param hash The hash.
+/// @return It, spread.
+std::size_t spread(std::uint64_t hash) {
+	static const std::uint64_t seed = (std::uint64_t{std::random_device{}()} << 32U) ^ std::random_device{}();
+	std::uint64_t bits = hash + seed + 0x9e3779b97f4a7c15U;
+	bits = (bits ^ (bits >> 30U)) * 0xbf58476d1ce4e5b9U;
+	bits = (bits ^ (bits >> 27U)) * 0x94d049bb133111ebU;
+	return static_cast<std::size_t>(bits ^ (bits >> 31U));
+}
+
+/// @brief Hashes a value as `=` compares it (valueHash()).
+/// @param machine The machine, whose budget it spends, or nullptr to spend nothing (the reader).
+/// @param value The value.
+/// @param depth How deep it has gone.
+/// @return The hash.
+std::size_t hashAt(Machine* machine, const Value& value, int depth) {
+	if(depth > maxValueDepth) Machine::exhausted("values nested too deeply to compare");
+	spend(machine, 1);
+	const auto mixed = [](std::size_t seed, std::size_t hash) {
+		return seed ^ (hash + 0x9e3779b9U + (seed << 6U) + (seed >> 2U));
+	};
+	if(value.isNumber()) {
+		const double number = value.asDouble(); // `=` compares an integer with a double by value
+		return spread(number == 0 ? 0 : std::bit_cast<std::uint64_t>(number)); // 0 and -0 as one
+	}
+	if(value.isSequence()) { // a list is the vector of its items
+		std::size_t hash = 0x51ed27U;
+		for(std::size_t at = 0; at < value.count(); ++at) hash = mixed(hash, hashAt(machine, value.at(at), depth + 1));
+		return hash;
+	}
+	switch(value.kind()) {
+	case Kind::Map: { // whatever its order: a sum of its members'
+		std::size_t hash = 0x7a3b9cU;
+		for(std::size_t at = 0; at < value.count(); ++at) {
+			spendText(machine, value.keyAt(at).size());
+			hash += spread(
+			    mixed(std::hash<std::string_view>{}(value.keyAt(at)), hashAt(machine, value.valueAt(at), depth + 1)));
+		}
+		return hash;
+	}
+	case Kind::Set: { // whatever its order: a sum of the hashes its members were added with
+		const SetObject& object = setObjectOf(value);
+		spend(machine, object.size);
+		std::size_t hash = 0x6b43a9U;
+		for(std::size_t at = 0; at < object.size; ++at) hash += spread(object.storage->hashes[at]);
+		return hash;
+	}
+	case Kind::Nil:
+		return 0x2545fU;
+	case Kind::Boolean:
+		return value.asBoolean() ? 0x3c6ef3U : 0x1b873U;
+	case Kind::Function:
+	case Kind::Native:
+		return std::hash<const void*>{}(value.pointer());
+	default: // a keyword as the string of its text (decision D2); a symbol so too, as `=` keeps them apart anyway
+		spendText(machine, value.text().size());
+		return std::hash<std::string_view>{}(value.text());
+	}
 }
 
 } // namespace
@@ -349,7 +502,15 @@ void printValue(Machine& machine, const Value& value, std::string& out, bool rea
 }
 
 bool valuesEqual(Machine& machine, const Value& first, const Value& second) {
-	return equalAt(machine, first, second, 0);
+	return equalAt(&machine, first, second, 0);
+}
+
+std::size_t valueHash(Machine& machine, const Value& value) { return hashAt(&machine, value, 0); }
+
+std::size_t valueHash(Machine* machine, const Value& value) { return hashAt(machine, value, 0); }
+
+std::optional<std::uint32_t> setPosition(Machine* machine, const Value& set, const Value& item, std::size_t hash) {
+	return positionAt(machine, set, item, hash, 0);
 }
 
 } // namespace affresco::lisp

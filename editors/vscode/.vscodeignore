@@ -1,4 +1,4 @@
-# Only out/ (without the tests), schemas/, snippets/ and the documents go in the package.
+# Only out/ (without the tests), schemas/, snippets/, language-configuration.json and the documents go in the package.
 src/**
 scripts/**
 out/test/**

@@ -1,10 +1,11 @@
 # lisp: the Lisp language
 
-`lisp` is a programming language in Lisp syntax with its own runtime (RFC 0005, `rfcs/0005-lisp-language.md`): Clojure's
-syntax, Emacs's vocabulary. It has functions, closures, macros and conditions, and builds the JSON tree the renderer
-already understands. It has no way to the outside world but the primitives a host registers. It is neither Clojure nor
-Emacs Lisp, and the library stays agnostic: the language holds no app feature. Target: `affrescoui::lisp` (uses `core` and
-`notation`).
+`lisp` is a sandboxed subset of Clojure with its own definition vocabulary (RFC 0005, `rfcs/0005-lisp-language.md`, and RFC
+0006, `rfcs/0006-clojure-dialect.md`): what it has means what it means in Clojure, what differs does so on purpose
+(`reference/differences.md`), and how close it is is measured against Clojure's own test suite (`CONFORMANCE.md`). Its
+definitions (`defscreen`, `defcommand`, `defview`, `defstate`...) build the JSON tree the renderer already understands. It has
+functions, closures, macros and conditions, and no way to the outside world but the primitives a host registers. The library stays
+agnostic: the language holds no app feature. Target: `affrescoui::lisp` (uses `core` and `notation`).
 
 **What runs it:** a document holding a program: loading and every revision on it build it, purely (`Document.hpp`, and
 VERSION_CONTROL.md, "Programs"), and `format::Programs` runs its functions in the app, from handlers and bindings, with every way out
@@ -44,7 +45,8 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 number read keeps the exact kind `parseUntrusted` gives. A map's keys are strings, and a keyword or a string name the same
 key (`(get m :a)` is `(get m "a")`). JSON read through `Interpreter::viewJson` is viewed, not converted: a vector or a map
 from it wraps its items as they are read. Besides those: **symbols** (a word in code; in data the string of the same text),
-**keywords** (as a value in data, their text), **lists** (code; in data a node), **functions**. `nil` and `false` are false,
+**keywords** (as a value in data, their text), **lists** (code; in data a node), **sets** (`#{1 2}`, distinct items in the order added;
+in data a list, `reference/sets.md`), **functions**. `nil` and `false` are false,
 everything else is true. **A whole number that is a double** (`13.0`, from `(* 26 0.5)` or a JSON file that writes it so) keeps
 its kind, as JSON's model says, and is printed `13.0` to be read back (`pr-str`, `printForm`); but it counts as the integer wherever an
 index, a count or a position is taken (`get`, `nth`, `contains?`, `assoc`, `subs`, `range`, a vector pattern; up to 2^53), as
@@ -55,28 +57,41 @@ storage, so a loop of `conj` is linear).
 
 ## The language
 
-Special forms: `quote`, backquote with `~` and `~@`, `if`, `do`, `when`, `cond` (`:else`), `and` and `or` (giving an operand),
-`let`, `fn` (lexical closures; flat, as values never change), `loop` and `recur`, `try` and `catch` and `throw`. A call in tail
-position replaces the function being run. Destructuring: `[a b & more :as all]`, `{:keys [a b] :or {a 1} :as m x :x}`. A
-function has one list of parameters: there are no arities (`& rest` gives the rest as a vector). A dotted word reads a path: `room.name`
-is the member of a local `room`, and with no such local and no definition of that name (`state.count`) it calls `%read`, which the language refuses
-while building and a host gives while running.
+Clojure's special forms, macros and functions, under Clojure's names: `fn` and `defn` with several parameter lists, `let`,
+`loop`/`recur`, `try`/`catch`/`finally`, destructuring, `case`, `for`, `letfn`, the threading macros, the sequence and map
+functions, `clojure.string` and `format`, and the reader's `#(...)`, `#?(...)`, `#_`, metadata and Clojure's ways to write
+characters and numbers. Every value is JSON's, or a symbol, a keyword, a list or a function; nothing changes a value and nothing
+is lazy. A call in tail position replaces the function being run. A dotted word reads a path: `room.name` is the member of a
+local `room`, and with no such local and no definition of that name (`state.count`) it calls `%read`, which the language refuses
+while building and a host gives while running. `truthy?` is an expression's truth (nil, false, 0, `""`, `[]` and `{}` false),
+for code that tests a value of the running app as a binding would; everywhere else only nil and false are false.
 
-Functions: `+ - * / mod rem inc dec min max abs < > <= >= = not= not truthy?`, `nil? some? boolean? number? string? symbol? keyword?
-list? vector? map? fn? empty? contains?`, `first second last rest nth cons conj list vec concat reverse range sort sort-by
-take drop count get get-in assoc assoc-in dissoc update update-in merge keys vals zipmap`, `map map-indexed mapcat filter
-remove find some every? reduce apply identity`, `str pr-str join subs upper-case lower-case name keyword symbol gensym`. `map` and
-the others give vectors, not lazy sequences. `map` takes one collection. `(:a m)` and `(m :a)` look a key up. Integers stay
-integers until they overflow, then go on as doubles; dividing by zero is an error.
+The language is described area by area, each page written by the package that added that area (the index:
+`reference/README.md`):
 
-`truthy?` is an expression's truth (nil, false, 0, `""`, `[]` and `{}` false), for code that tests a value of the running app as a
-binding would; everywhere else only nil and false are false. Strings may span lines: a line break or a tab typed inside the quotes is
-that character (any other control character is refused, as is a backslash before a line break).
+| Page | What it covers |
+|---|---|
+| `reference/forms.md` | The everyday forms: `when-let`, `if-let`, `->`, `->>`, `cond->`, `case`, `for`, `doseq`, `letfn`... |
+| `reference/functions.md` | The functions on numbers, collections and maps, beyond the core this page lists below |
+| `reference/strings.md` | `clojure.string` (written `str/`), `format`, errors as values (`ex-info`), the `parse-` functions |
+| `reference/reader.md` | The reader's forms: `#(...)`, `#?(...)`, `#_`, `^metadata`, characters, and Clojure's ways to write numbers |
+| `reference/differences.md` | What differs from Clojure on purpose, why, and what to write instead |
+| `CONFORMANCE.md` | The score against Clojure's test suite, file by file, and what fails today (generated: `tests/conformance/`) |
+
+The core, written in C++: `+ - * / mod rem inc dec min max abs < > <= >= = not= not truthy?`, `nil? some? boolean? number?
+string? symbol? keyword? list? vector? map? fn? empty? contains?`, `first second last rest nth cons conj list vec concat reverse
+range sort sort-by take drop count get get-in assoc assoc-in dissoc update update-in merge keys vals zipmap`, `map map-indexed
+mapcat filter remove find some every? reduce apply identity`, `str pr-str join subs upper-case lower-case name keyword symbol
+gensym`. `(:a m)` and `(m :a)` look a key up. Integers stay integers until they overflow, then go on as doubles; dividing by zero
+is an error. Strings may span lines: a line break or a tab typed inside the quotes is that character (any other control character
+is refused, as is a backslash before a line break).
 
 Macros are unhygienic, as in Emacs Lisp and without Clojure's namespaced symbols: use `gensym` for a macro's own variables.
 In a template, `~~form` writes `~` and what the form gives (`~~@form`, `~@`): a macro's template writes a binding of the template it
 gives, `` `(defcommand ~name "" :title ~~(list 't key) [] nil) ``.
 A `gensym` is numbered per definition, so the same source gives the same names.
+
+### Definitions
 
 Definitions, top-level only, each with a docstring after the name (after the value in `defcustom` and `defstate`). A section's
 member is addressed as `state.view`, `computed.card`, `styles.chip`, `components.chip`, `menus.card`, `tokens.colours`, and a
@@ -100,6 +115,47 @@ member is addressed as `state.view`, `computed.card`, `styles.chip`, `components
 | `(defpart name "doc"? :section value ...)` | Nothing callable | Each section's members; a list joins, a value is given once |
 | `(defdefaults name "doc"? :section {...} ...)` | Nothing callable | Members no other definition gives, which a document's own value replaces |
 | `(add-hook hook "doc"? function)`, `(remove-hook hook "doc"? function)`, `(advice target "doc"? :before/:after/:around function)` | Nothing the language runs: a host does | Nothing: recorded in `Program::extensions()`. The build refuses one whose function the program doesn't define |
+
+### The library
+
+The language's functions and macros written in itself are a table (`src/Library.hpp`, `LibraryEntry`): a name, one `defn` or
+`defmacro` form, whether it is a macro, whether it takes functions, and, for a macro, the words its expansion calls. `definePrelude`
+and the five files after it (`PreludeForms.cpp`, `PreludeFunctions.cpp`, `CoreSequences.cpp`, `CoreStrings.cpp`, `CoreSets.cpp`)
+each register their own entries with `defineLibrary`; a package adding to the language adds rows to its file.
+
+- **Compiled on first use.** Making an interpreter registers each entry as a global and reads nothing: the first code that names
+  it, when that code is compiled, reads and compiles it (or the first call, when nothing compiled names it). An entry that uses
+  another compiles that one first.
+- **Natives made on first use too.** A function of the language written in C++ can be a row of a sorted `LazyNative` table
+  (`Machine::defineLazyNatives`): its cells are made the first time something looks its name up (a program, a binding, a host's
+  `Interpreter::global`), the same as `defineNative` makes them at the start, so an interpreter that never calls it doesn't pay
+  for it. The `clojure.string/` functions are (`CoreStrings.cpp`; not `join`, `upper-case` and `lower-case`, the bare ones), and
+  `format`, `ex-info`, `ex-message`, `ex-data` and the `parse-` functions (`CoreText.cpp`).
+- **Blind to a program.** An entry's code sees the language's own functions (`Machine::languageGlobal`), never a program's of the
+  same name, however late it is compiled: a program defining `count`, `filter` or `not` doesn't change `last` or `remove`. A
+  program that defines a name of the library (`mapcat`) has its own where it calls it.
+- **Takes functions.** `takesFunctions` marks a function a word given to it in a binding names a function by (`(sort-by count xs)`):
+  `map`, `filter`, `reduce`... and `apply` and `run-hooks`, which a host writes.
+- **Macros.** A library macro is unhygienic, as a program's: its expansion calls the words its entry lists (`uses`) by name. Where a
+  local hides one of them, or the program defines one, the call is an error that names both: `"m" uses the language's "not", which
+  a local hides here: rename the local`. The words it may call are those a binding lowers: `not`, `=`, `nil?`, `some?`,
+  `empty?`, `first`, `map`, `filter`, `mapcat`.
+
+### Qualified names
+
+A word with a `/` inside it names a namespace's function (`src/Namespaces.hpp`): `clojure.core/inc` is `inc`, and
+`clojure.string/join`, written `str/join` or `string/join` with an alias, is the global of that name, as are `clojure.set`'s,
+written `set/` (none yet). A qualified word is never a local, so `(let [inc dec] (clojure.core/inc 1))` is 2, and a qualified form
+(`clojure.core/when`) is the form. An unknown prefix is an error that lists the namespaces. `/` alone is division, and a word
+starting or ending with `/` is a word of its own. A host adds its own with `Interpreter::addNamespace` and `addAlias`. A program file's first form
+may be `(ns name (:require ...))`, which gives it aliases of its own and names the files it needs (`reference/namespaces.md`).
+
+### Names the language doesn't have
+
+An undefined name that another dialect has says what to write here (`src/Hints.cpp`): `atom`, `swap!` and `reset!` (a program
+keeps state in the app's, `defstate`, and a step changes it), `println` (the host's `log` step), `rand` (no randomness),
+`require` (`include`), `iterate` and `lazy-seq` (no laziness: `range`, `loop`), `re-find` (no regular expressions), `declare` (a
+definition can use one written after it), `set` (the host's step: `(into #{} xs)` or `hash-set` for a set).
 
 ## Programs
 
@@ -126,7 +182,7 @@ one data value, a **template**.
   A name they use that nothing defines isn't an error until they run: `Program::undefinedNames()` lists them.
 - **Templates.** `buildText` reads a data file as if backquoted: words stay data, `~` drops into code. Every existing `.lisp`
   file builds to the tree the notation's reader gives, key for key (`tests/unit/lisp.cpp`, and fuzzed).
-  A word the language runs (`notation::languageWords`) isn't a node type in a data position: `(not x)` is the error
+  A word the language runs (`notation::languageWordLists`, one list per area in `words/`) isn't a node type in a data position: `(not x)` is the error
   `"not" is not a node type; to run it, write ~(not ...); for a node of that type, write (node :type not ...)`. So that no file
   breaks, the notation's writer never writes such a type as a head (`(node :type range ...)`), and that list leaves out `list`,
   which is a node type: `(list ...)` in data stays a node. The notation's own reader applies this rule too. A data file an app loads
@@ -180,8 +236,9 @@ one data value, a **template**.
 The compiler turns forms into a small instruction set (`src/Objects.hpp`, `Op`), and the machine runs it (`src/Machine.cpp`, one
 function per instruction). Calls and returns use the machine's own stack, so no recursion of the program touches the native one:
 
-- Functions that call a function back (`map`, `reduce`...) are written in Lisp (`src/Prelude.cpp`). They see the language's own
-  functions as constants, so a program redefining `count` doesn't change `reduce`. An error inside one names its caller's place.
+- Functions that call a function back (`map`, `reduce`...) are written in Lisp (`src/Prelude.cpp`, entries of the library above).
+  They see the language's own functions as constants, so a program redefining `count` doesn't change `reduce`. An error inside one
+  names its caller's place.
 - All objects live in one `Heap`, freed in one flat loop: a long list or a chain of closures takes no recursion to free. A
   `Value` is a plain 16-byte copy.
 - **A region gives back what an event made** (`Interpreter::Transient`, `Heap::mark`, `release`): objects are freed down to where it
@@ -273,17 +330,26 @@ src/
   Objects.hpp           what values point at, the heap, the instructions, compiled code
   Value.cpp             values and the heap
   Reader.hpp, .cpp      text into forms, on notation's Lexer
+  ReaderForms.cpp       the forms after '#': #(...), #{...}, #?(...)
   Compiler.hpp, .cpp    forms into instructions: calls, variables, paths, functions, destructuring
   CompilerForms.cpp     the special forms and templates
   CompilerBindings.cpp  a template's ~form that needs the running app, written as a binding; views and symbols
   CompilerLowering.cpp  a binding's form as the expression machine's text
   Definitions.hpp, .cpp globals, the definition forms, authors
+  Namespaces.hpp, .cpp  qualified words: the namespaces and their aliases
+  Hints.cpp             what an undefined name another dialect has means here
   Machine.hpp, .cpp     the stack, the instructions, the choke point
   CoreNumbers.cpp       the language's own functions on numbers and truth
   CoreCollections.cpp   on lists, vectors and maps
   CoreText.cpp          on text
   CoreViews.cpp         for views: handler, or-else, and repeat's, defcomponent's and a binding's own
+  Library.hpp, .cpp     the language's functions and macros written in itself: the table, compiled on first use
   Prelude.cpp           those written in Lisp, which call a function back
+  PreludeForms.cpp      the library's forms (macros): when-let, ->...
+  PreludeFunctions.cpp  its further functions
+  CoreSequences.cpp     its functions on sequences
+  CoreStrings.cpp       clojure.string's (str/)
+  CoreSets.cpp          clojure.set's (set/)
   Tree.cpp              the walks: a value as a tree, as text, `=`
   TopLevel.hpp          what the interpreter and programs share
   Interpreter.cpp       the machine, seen from outside

@@ -552,6 +552,22 @@ What holds for whatever text it is given:
   recursion (reader, compiler, walks over values, calls through a step or a value, at most 64 deep) stops at a depth. The reader's limits are
   the notation's. Fuzzed: `tests/fuzz/lisp.cpp`, with a gate, and `tests/fuzz/revision.cpp` on a program.
 - **Errors** say names and kinds, never a value; a `throw` nothing catches shows its message only if the form wrote it.
+- **Clojure's reader forms turn into the language's own as they are read** (`modules/lisp/reference/reader.md`), so the compiler,
+  the macros and the rules see only ordinary forms. `#(...)` is an `fn` of at most 20 parameters, never nested; `#?(...)` reads
+  every branch and keeps the `:affresco` or `:default` one; `^metadata` is read and dropped, so nothing rides on a value out of
+  sight; a character is a one-character string; `12N`, `1.5M`, `1/2` and `0x1F` are JSON numbers, and one wider than 64 bits, or
+  `1/0`, is an error. They are the language's only: the notation's reader, which reads documents as data, refuses each, naming
+  its place. Their depth and sizes are the reader's limits above.
+- **A library macro has no author.** The macros and functions the language writes in itself (`when-let`, `->`, `case`, `for`...)
+  are compiled with no author of their own, so the code a library macro writes has the authors of the code that called it, and
+  nothing more. Its expansion names `not`, `=`, `nil?`, `some?`, `empty?`, `first`, `map`, `filter` and `mapcat` by word;
+  where a local or the program has its own of one of them, the call is an error naming both, never a quiet call of someone
+  else's function.
+- **The conformance program is a test, never shipped.** `affrescoui_conformance` (`tests/conformance/`) runs Clojure's test suite
+  against the language. The suite is fetched only when a build asks for it (`-DAFFRESCOUI_CONFORMANCE=ON`), at one commit and
+  checked against its SHA-256, and no file of it enters the repository. Its text is untrusted input: each file runs in a fresh
+  interpreter with lower limits (5,000,000 operations, 64 MiB, a depth of 2,000), the runner reads no file but those it is given
+  and the suite's own support files under the suite's folder, and nothing reaches the network while it runs.
 
 ### What documents can't do
 A JSON document has no scripts, and a program's only way out is the steps (above). Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
@@ -757,7 +773,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A step writing to a list position past the list's end (the positions between become `null`) | 10,000 positions past it |
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
-| Files including files (`include`, at load time) | 9 levels below the screen file |
+| Files including files (`include`, at load time) | 9 levels below the screen file, and 1,024 files read in all (a file two files include is read for each) |
 | An included file (`include`; plain files only: no devices or pipes) | 16 MiB; an app's are in its folder or the `shared` folder beside it, once links are resolved |
 | Open proposals per channel | 16 |
 | Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |

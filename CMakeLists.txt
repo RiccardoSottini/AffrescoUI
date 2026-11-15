@@ -228,6 +228,7 @@ endif()
 if(AFFRESCOUI_BUILD_TESTS)
 	add_subdirectory(tests/render) # the rendering check
 	add_subdirectory(tests/unit)   # the unit tests and the window tests
+	add_subdirectory(tests/conformance) # the language against the Clojure test suite, and the everyday probes
 	target_link_libraries(affrescoui_unit_tests PRIVATE affrescoui::imaging) # tests/unit/imaging_*.cpp
 	if(AFFRESCOUI_BUILD_CAPI)
 		add_subdirectory(tests/capi) # the C API's test, compiled as C

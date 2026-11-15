@@ -2,7 +2,7 @@
 
 /// @file
 /// @brief The language's values: JSON's (nil, booleans, numbers, strings, vectors, maps), and what a language needs
-/// besides (symbols, keywords, lists, functions). Values are immutable from the language's view.
+/// besides (symbols, keywords, lists, sets, functions). Values are immutable from the language's view.
 
 #include <affresco/core/Json.hpp>
 
@@ -35,7 +35,9 @@ enum class Kind : std::uint8_t {
 	Map,      ///< `{:a 1}`: JSON's object, its keys strings, in the order written.
 	Function, ///< A closure.
 	Native,   ///< A function of the language's own or the host's (Interpreter::definePrimitive()).
-	Splice    ///< Internal: a value `~@` spreads into the list being built. Never seen by a program.
+	Splice,   ///< Internal: a value `~@` spreads into the list being built. Never seen by a program.
+	Set       ///< `#{1 2}`: distinct items in the order added. Leaves the language as JSON's array. Last, so that no
+	          ///< number of the kinds before it changes.
 };
 
 /// @brief A value: small, and cheap to copy.
@@ -95,10 +97,10 @@ public:
 	/// @return It; empty for any other value.
 	[[nodiscard]] std::string_view text() const;
 
-	/// @brief How many items a list, a vector or a map has.
+	/// @brief How many items a list, a vector, a set or a map has.
 	/// @return The count; 0 for any other value.
 	[[nodiscard]] std::size_t count() const noexcept;
-	/// @brief An item of a list or a vector.
+	/// @brief An item of a list, a vector or a set (in the order its items were added).
 	/// @param index Its index, below count().
 	/// @return It.
 	[[nodiscard]] Value at(std::size_t index) const;
@@ -115,7 +117,7 @@ public:
 	/// @param found Set to whether the map has it, if given.
 	/// @return The value, or nil.
 	[[nodiscard]] Value lookup(std::string_view key, bool* found = nullptr) const;
-	/// @brief Where a list, a vector, a map, a symbol or a keyword read from source text is.
+	/// @brief Where a list, a vector, a set, a map, a symbol or a keyword read from source text is.
 	/// @return The place; an empty one for any other value.
 	[[nodiscard]] Place place() const noexcept;
 

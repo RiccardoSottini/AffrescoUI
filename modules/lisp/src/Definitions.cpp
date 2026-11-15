@@ -5,13 +5,23 @@
 #include "Definitions.hpp"
 #include "Machine.hpp"
 
+#include <affresco/lisp/Program.hpp>
 #include <affresco/notation/Lexer.hpp>
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <deque>
+#include <functional>
+#include <initializer_list>
 #include <iterator>
+#include <map>
+#include <span>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace affresco::lisp {
 
@@ -24,6 +34,48 @@ constexpr std::array<std::pair<std::string_view, std::string_view>, 6> sectionFo
                                                                                      {"defcomponent", "components"},
                                                                                      {"defmenu", "menus"},
                                                                                      {"deftokens", "tokens"}}};
+
+/// @brief Adds a cell.
+/// @param cells Where cells live.
+/// @param names The cells by name.
+/// @param name Its name, new.
+/// @return The cell.
+Global& addCell(std::deque<Global>& cells, std::map<std::string_view, Global*, std::less<>>& names,
+                std::string_view name) {
+	Global& made = cells.emplace_back();
+	made.name = std::string(name);
+	names.emplace(made.name, &made);
+	return made;
+}
+
+/// @brief Tells whether a form was written where a program can see it: read from a program's text, not made by code
+/// or read from the language's own (Library.cpp reads an entry as "<library>").
+/// @param form The form.
+/// @return true if so.
+bool isWrittenByProgram(const Value& form) noexcept {
+	const Place place = form.place();
+	return place.line != 0 && place.file && *place.file != "<library>";
+}
+
+/// @brief A library macro's expansion, each list and vector the macro made given the call's place, so that an error in
+/// the code it gives names where the call is written, never a line of the library. The forms the call was given keep
+/// their own places and aren't walked.
+/// @param machine The machine, whose budget each list or vector walked spends from.
+/// @param form The expansion, or a part of it.
+/// @param place The call's place.
+/// @param depth How deep the part is: past the compiler's depth it is left as it is, for the compiler to refuse.
+/// @return The expansion with those places.
+Value placedAtCall(Machine& machine, const Value& form, Place place, int depth) {
+	if((form.kind() != Kind::List && form.kind() != Kind::Vector) || isWrittenByProgram(form) ||
+	   depth > maxCompileDepth)
+		return form;
+	machine.spend(1 + form.count() / 8);
+	std::vector<Value> items;
+	items.reserve(form.count());
+	for(std::size_t at = 0; at < form.count(); ++at)
+		items.push_back(placedAtCall(machine, form.at(at), place, depth + 1));
+	return machine.heap.sequence(form.kind(), std::move(items), place);
+}
 
 } // namespace
 
@@ -179,6 +231,7 @@ void setPending(Global& global, std::function<void()> pending, bool macro) {
 	global.state = Global::State::Deferred;
 	global.macro = macro;
 	global.library = false;
+	global.uses = {};
 }
 
 /// @brief Refuses a name no definition may have.
@@ -251,6 +304,10 @@ std::pair<std::string, std::string> definitionAddress(const Value& form) {
 		failDefinition(form, "",
 		               "include is read with the file an app loads from its folder: no entry of a program, so a "
 		               "revision can't add one");
+	if(head == "ns")
+		failDefinition(form, "",
+		               "ns is read with the file an app loads from its folder: no entry of a program, so a revision "
+		               "can't add one");
 	if(head.empty() || form.count() < 2)
 		failDefinition(form, "", "a program's top level holds definitions, each with a name");
 	if(head == "defkey") {
@@ -265,15 +322,19 @@ std::pair<std::string, std::string> definitionAddress(const Value& form) {
 		if(form.at(1).text().contains('.')) failDefinition(form, "", head + " takes a name without a dot");
 		return {head, std::string(section) + "." + std::string(form.at(1).text())};
 	}
+	if(form.at(1).text() == namespaceEntry) // where a file's ns form is kept
+		failDefinition(form, "", "\"ns\" is a file's namespace form, and can't be defined");
 	return {head, std::string(form.at(1).text())};
 }
 
 Global& Machine::global(std::string_view name) {
 	if(Global* found = findGlobal(name)) return *found;
-	Global& made = globalCells_.emplace_back();
-	made.name = std::string(name);
-	globals_.emplace(made.name, &made);
-	return made;
+	return addCell(globalCells_, globals_, name);
+}
+
+Global* Machine::findGlobal(std::string_view name) {
+	if(Global* found = std::as_const(*this).findGlobal(name)) return found;
+	return makeLazyNative(name) ? std::as_const(*this).findGlobal(name) : nullptr;
 }
 
 Global* Machine::findGlobal(std::string_view name) const {
@@ -286,10 +347,62 @@ void Machine::defineNative(std::string_view name, NativeFunction function, bool 
 	native->name = std::string(name);
 	native->function = function;
 	native->spread = spread;
-	Global& cell = global(name);
-	cell.value = Value::object(Kind::Native, native);
-	cell.state = Global::State::Ready;
-	cell.library = true;
+	defineLanguageValue(name, Value::object(Kind::Native, native));
+}
+
+void Machine::defineLanguageValue(std::string_view name, const Value& value) {
+	for(Global* cell : {&global(name), &languageGlobal(name)}) {
+		cell->value = value;
+		cell->state = Global::State::Ready;
+		cell->library = true;
+	}
+}
+
+Global& Machine::languageGlobal(std::string_view name) {
+	if(Global* found = findLanguageGlobal(name)) return *found;
+	return addCell(languageCells_, language_, name);
+}
+
+Global* Machine::findLanguageGlobal(std::string_view name) {
+	if(Global* found = std::as_const(*this).findLanguageGlobal(name)) return found;
+	return makeLazyNative(name) ? std::as_const(*this).findLanguageGlobal(name) : nullptr;
+}
+
+Global* Machine::findLanguageGlobal(std::string_view name) const {
+	const auto found = language_.find(name);
+	return found == language_.end() ? nullptr : found->second;
+}
+
+void Machine::defineLazyNatives(std::span<const LazyNative> natives) {
+	for(std::span<const LazyNative>& table : lazyNatives_)
+		if(table.empty()) {
+			table = natives;
+			return;
+		}
+	throw std::logic_error("Machine::lazyNatives_ has room for no more tables");
+}
+
+bool Machine::makeLazyNative(std::string_view name) {
+	if(!started_) return false; // the language's own definitions, many: none looks for a lazy native
+	for(const std::span<const LazyNative> natives : lazyNatives_) {
+		const auto entry = std::ranges::lower_bound(natives, name, {}, &LazyNative::name);
+		if(entry == natives.end() || entry->name != name) continue;
+		const Budget budget = std::exchange(budget_, {static_cast<std::size_t>(-1), static_cast<std::size_t>(-1)});
+		auto* native = heap.make<NativeObject>();
+		budget_ = budget;
+		heap.pin(); // a global lasts, wherever its first use falls
+		native->name = std::string(name);
+		native->function = entry->function;
+		const auto ready = [native](Global& cell) {
+			cell.value = Value::object(Kind::Native, native);
+			cell.state = Global::State::Ready;
+			cell.library = true;
+		};
+		if(!globals_.contains(name)) ready(addCell(globalCells_, globals_, name));
+		if(!language_.contains(name)) ready(addCell(languageCells_, language_, name));
+		return true;
+	}
+	return false;
 }
 
 void Machine::definePrimitive(const std::string& name, Primitive primitive) {
@@ -302,6 +415,7 @@ void Machine::definePrimitive(const std::string& name, Primitive primitive) {
 	cell.macro = false;
 	cell.library = false;
 	cell.host = native->host.reserved;
+	cell.pending = nullptr; // a library entry's, which this replaces
 }
 
 bool Machine::isDefinitionForm(const Value& form) { return isDefinitionWord(headWord(form)); }
@@ -312,7 +426,7 @@ Definition& Machine::define(const Value& form, const std::string& author, const 
 	checkDefinable(*this, form, head, name);
 	Definition& made = addDefinition(form, kind, name, author, strict);
 	made.authors = authors ? authors : authorSet(author);
-	const CompileContext context{name, author, made.authors, false};
+	const CompileContext context{name, author, made.authors, false, false, namespaces_.fileAliases(form.place().file)};
 	made.doc = docAt(form, 2);
 	if(head == "defn" || head == "defmacro" || head == "defview") {
 		made.global = &global(name);
@@ -503,7 +617,24 @@ void Machine::ensureCompiled(Global& cell) {
 	if(cell.state != Global::State::Deferred) return;
 	if(!cell.pending)
 		throw Problem("\"" + notation::Lexer::excerpt(cell.name) + "\" is used while it is being compiled");
-	std::exchange(cell.pending, nullptr)();
+	const std::function<void()> pending = std::exchange(cell.pending, nullptr);
+	/// A use after the compile failed says so, not that it is still being compiled.
+	const auto failed = [&cell](const std::string& message, bool exhausted) {
+		if(cell.state != Global::State::Deferred || cell.pending) return; // something else defined it meanwhile
+		const std::string said =
+		    "\"" + notation::Lexer::excerpt(cell.name) + "\" isn't defined: its definition failed: ";
+		std::string why = message.starts_with(said) ? message : said + message; // said once, however often it is used
+		cell.pending = [why = std::move(why), exhausted] { throw Problem(why, exhausted); };
+	};
+	try {
+		pending();
+	} catch(const LispError& error) {
+		failed(error.message(), error.exhausted());
+		throw;
+	} catch(const Problem& problem) {
+		failed(problem.message, problem.exhausted);
+		throw;
+	}
 }
 
 const Definition* Machine::definition(std::string_view name) const {
@@ -544,7 +675,18 @@ Value Machine::expand(Global& macro, std::span<const Value> arguments, Place pla
 		throw LispError(place.file ? *place.file : "", place.line, place.column, "", problem.message,
 		                problem.exhausted);
 	}
-	return call(macro.value, arguments);
+	try {
+		const Value expansion = call(macro.value, arguments);
+		return macro.library ? placedAtCall(*this, expansion, place, 0) : expansion;
+	} catch(const LispError& error) {
+		// A library macro's code has no place of its own to name: its error is the call's
+		if(error.line() != 0) throw;
+		throw LispError(place.file ? *place.file : "", place.line, place.column, error.definition(), error.message(),
+		                error.exhausted());
+	} catch(const Problem& problem) { // placing the expansion ran out of budget
+		throw LispError(place.file ? *place.file : "", place.line, place.column, "", problem.message,
+		                problem.exhausted);
+	}
 }
 
 const AuthorSet* Machine::authorSet(const std::string& author) {

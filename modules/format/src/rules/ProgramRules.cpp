@@ -401,12 +401,34 @@ void checkProgramSection(const json& value, const std::string& name) {
 	lisp::checkProgramShape(value);
 }
 
+namespace {
+
+/// @brief Refuses a revision that adds, changes or removes a file's `ns` form: it names files the loader reads, so it
+/// comes with the file, never with a revision.
+/// @param before The program before.
+/// @param after The program after.
+void checkNamespacesKept(const json& before, const json& after) {
+	const auto namespaceOf = [](const json& program, const std::string& file) {
+		const json* entries = program.contains(file) ? &program[file] : nullptr;
+		return entries && entries->is_object() ? entries->value(std::string(lisp::namespaceEntry), json()) : json();
+	};
+	for(const json* program : {&before, &after})
+		for(const auto& [file, entries] : program->items())
+			if(namespaceOf(before, file) != namespaceOf(after, file))
+				fail("revision", "permission denied: a file's ns form is read with the file an app loads from its "
+				                 "folder, so a revision can't add, change or remove one (" +
+				                     file + ")");
+}
+
+} // namespace
+
 void checkProgramChange(const json& before, const json& after) {
 	if(lisp::hasProgram(before) != lisp::hasProgram(after))
 		fail("revision", lisp::hasProgram(after)
 		                     ? "permission denied: this app is static, and a revision can't give it a program"
 							 : "permission denied: a revision can't take the whole program from an app");
 	if(!lisp::hasProgram(after) || before["program"] == after["program"]) return;
+	checkNamespacesKept(before["program"], after["program"]);
 	std::set<std::string> defined;
 	for(const auto& [file, entries] : before["program"].items())
 		for(const auto& [name, text] : entries.items()) defined.insert(name);
