@@ -177,6 +177,29 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | Judging | The new source is built, and the rules judge what it builds, as for JSON. A build that fails is refused |
 | Authority | Code runs with the least authority of the authors that led to it; an agent's code stays the agent's |
 
+## Connecting an editor
+
+An nREPL client (CIDER, Calva, Conjure) can evaluate in a running app, as you:
+
+```sh
+affrescoui run examples/flow/lisp --nrepl        # or: affrescoui_launcher examples/flow/lisp/index.screen.lisp --nrepl 7888
+```
+
+The host prints `nREPL server started on port N on host 127.0.0.1` and writes `.nrepl-port` in the app's folder, where
+the clients look; connect as to any nREPL server. Your client's first request that touches the app makes the window ask
+**Let this editor evaluate as you?**, showing the text it wants to run: only your own press of Let It Evaluate pairs
+that connection, until it disconnects. Refuse a question you didn't expect.
+
+| Topic | The rule |
+|---|---|
+| Evaluating | A definition lands as your change: a revision by `user`, `Evaluate <name> (editor)`, in the file your buffer is (VERSION_CONTROL.md, "The person's own input") |
+| A whole file | `load-file` lands the definitions that changed, in one revision |
+| Names | Completion, lookup and argument hints come from the running program; lookup jumps to the definition's file and line |
+| Errors | Name the line and column in your buffer |
+| Before it runs | `(describe-form text)` tells what evaluating a text would do, without running it (SCREEN_FORMAT.md) |
+| Not Clojure | `describe` reports `affrescoui`, not `clojure`; namespaces are file names, and features of a JVM aren't there |
+| Safety | 127.0.0.1 only, never the Launcher, three refusals end the asking: SECURITY.md, "Editors (nREPL)" |
+
 ## Limits
 
 | Limit | Value |
@@ -194,6 +217,7 @@ A limit ends the run with an error naming the file, line, column and definition,
 |---|---|
 | `affrescoui run <file.lisp>` | Prints what a program builds |
 | `affrescoui repl` | Tries the language |
+| `affrescoui run <app> --nrepl [PORT]` | Runs an app an nREPL client evaluates in, once you pair it |
 | `affrescoui check <entry>` | Checks an app; `--truth` lists conditions to look at |
 | `affrescoui lisp-binding '{{a && !b}}'` | Writes an expression as its Lisp form: `~(and a (not b))`; `--prove` checks the meaning |
 | `affrescoui strings report <entry>` | Text outside the locales |
