@@ -345,12 +345,13 @@ void showText(Panel& panel, const json* bound, const json& properties, std::opti
 	if(!editor) return;
 	if(bound) {
 		editor->setText(text(*bound));
-		return;
+	} else {
+		const std::optional<std::string> newText =
+		    properties.contains("text") ? std::optional<std::string>(text(properties["text"])) : std::nullopt;
+		if(newText != lastText) editor->setText(newText.value_or(""));
+		lastText = newText;
 	}
-	const std::optional<std::string> newText =
-	    properties.contains("text") ? std::optional<std::string>(text(properties["text"])) : std::nullopt;
-	if(newText != lastText) editor->setText(newText.value_or(""));
-	lastText = newText;
+	settleCodeKeys(*editor);
 }
 
 /// @brief Reports text the user changed.

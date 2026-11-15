@@ -204,6 +204,74 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "changes-source",
+			"screen": "changes.screen.json",
+			"note": "The Source page: the definition that drew a card, its line marked, and the change that last touched it.",
+			"steps": [
+				{
+					"action": "changes.show",
+					"event": {
+						"list": {
+							"selectionCount": 0,
+							"sourceCount": 1,
+							"proposals": [],
+							"history": [
+								{
+									"number": 4,
+									"id": "c4",
+									"author": "studio",
+									"message": "Show how late a card is"
+								},
+								{
+									"number": 0,
+									"id": "c0",
+									"author": "file",
+									"message": "original"
+								}
+							]
+						},
+						"source": {
+							"at": "#card-title-7",
+							"notation": "lisp",
+							"address": "/program/index.screen.lisp/card",
+							"kind": "defview",
+							"file": "index.screen.lisp",
+							"line": 1,
+							"column": 1,
+							"shared": false,
+							"node": "#card-title-7",
+							"pointer": "/root/children/0/children/2",
+							"text": "(defview card \"A card on the board: its title, who owns it, and how late it is.\" [card]\n  `(column :id ~(str \"card-\" card.id)\n     :width 240\n     :padding 8\n     :spacing 4\n     :color @c.card\n     :radius 6\n     (label :id ~(str \"card-title-\" card.id)\n       :text ~card.title\n       :font heading\n       :wrap true)\n     (row :spacing 6\n       (label :text ~card.owner :textColor @c.muted)\n       (label :when ~(> card.late 0)\n         :text ~(t \"board.late\" {:days card.late})\n         :textColor @c.warning))\n     (button :id ~(str \"card-open-\" card.id)\n       :text ~(t \"board.open\")\n       :onClick ~(handler openCard card.id))))",
+							"marked": 9,
+							"blame": {
+								"number": 4,
+								"id": "c4",
+								"author": "studio",
+								"message": "Show how late a card is"
+							}
+						}
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesSourceText",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesSourceLastChanged",
+						"text": "Last changed in #4 by studio: Show how late a card is"
+					}
+				},
+				{
+					"expect": {
+						"image": "source"
+					}
+				}
+			]
 		}
 	]
 }

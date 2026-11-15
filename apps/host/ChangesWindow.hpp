@@ -13,7 +13,10 @@
 namespace host {
 
 /// @brief Opens the window when the app asks (`{"call": "changes.open"}`) or the person presses Ctrl+Shift+D
-/// (Cmd+Shift+D on macOS), which works whatever a previewed proposal has done to the app's own buttons.
+/// (Cmd+Shift+D on macOS), which works whatever a previewed proposal has done to the app's own buttons. With
+/// `{"source": at, "line": n}` the app asks for its Source page instead: where a node is written (Screen::source()),
+/// read from the versioned document, with the line marked and the commit that last changed it. The page reads; it
+/// never edits, runs or evaluates the text.
 class ChangesWindow {
 public:
 	/// @brief Makes the calls and the shortcut available to an app.
