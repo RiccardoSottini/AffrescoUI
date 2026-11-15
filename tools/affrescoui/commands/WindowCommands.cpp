@@ -15,6 +15,8 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <cmath>
+#include <cstdlib>
 #include <format>
 #include <iostream>
 #include <optional>
@@ -38,6 +40,26 @@ int wholeNumber(std::string_view text, std::string_view option) {
 	if(error != std::errc() || end != text.data() + text.size() || value < 1 || value > 100000)
 		throw UsageError(std::string(option) + ": expected a whole number, got '" + std::string(text) + "'");
 	return value;
+}
+
+/// @brief Reads a display scale from the command line: a whole number of quarters from 1 to ScreenImages::maxScale
+/// (1, 1.25, 1.5, 1.75, 2), the scales displays are set to; text is rasterised at a quarter, so it matches exactly.
+/// @param text The number, e.g. "1.25".
+/// @return The scale.
+/// @throws UsageError If it isn't one of them; the message lists them.
+float quarterScale(std::string_view text) {
+	constexpr int mostQuarters = ScreenImages::maxScale * 4;
+	std::string accepted = "1";
+	for(int quarters = 5; quarters <= mostQuarters; ++quarters)
+		accepted += std::format("{}{}", quarters == mostQuarters ? " or " : ", ", quarters / 4.0);
+	const std::string digits(text);
+	char* end = nullptr;
+	const double scale = digits.empty() ? 0.0 : std::strtod(digits.c_str(), &end); // the "C" locale: a dot
+	const double quarters = scale * 4.0;
+	if(end != digits.c_str() + digits.size() || !std::isfinite(scale) || scale < 1.0 ||
+	   scale > ScreenImages::maxScale || quarters != std::floor(quarters))
+		throw UsageError("--scale: expected " + accepted + ", got '" + digits + "'");
+	return static_cast<float>(scale);
 }
 
 /// @brief Reads a mode.
@@ -152,8 +174,7 @@ Exit renderScreen(std::span<const std::string_view> args) {
 	const std::filesystem::path file = arguments.file();
 	const std::optional<std::string> out = arguments.value("-o");
 	if(!out) throw UsageError("expected -o out.png");
-	const int scale = wholeNumber(arguments.value("--scale").value_or("1"), "--scale");
-	if(scale > ScreenImages::maxScale) throw UsageError("--scale: at most " + std::to_string(ScreenImages::maxScale));
+	const float scale = quarterScale(arguments.value("--scale").value_or("1"));
 
 	Application app(ApplicationOptions{nullptr, true}); // never on screen
 	const std::filesystem::path frame = std::filesystem::path(*out).concat(".ppm");
@@ -167,8 +188,9 @@ Exit renderScreen(std::span<const std::string_view> args) {
 		window.setSize(wholeNumber(std::string_view(*size).substr(0, x), "--size"),
 		               wholeNumber(std::string_view(*size).substr(x + 1), "--size"));
 	}
-	// The window's size comes from --size or the file. Divided, not multiplied, so a huge one can't overflow
-	if(std::max(window.width(), window.height()) > maxFrameSide / scale)
+	// The window's size comes from --size or the file. In double, so a huge one can't overflow, rounded as the
+	// picture's sides are
+	if(std::round(std::max(window.width(), window.height()) * static_cast<double>(scale)) > maxFrameSide)
 		throw std::runtime_error(std::format("a frame of {}x{} at scale {} is larger than {} pixels a side",
 		                                     window.width(), window.height(), scale, maxFrameSide));
 
