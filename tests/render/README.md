@@ -75,7 +75,7 @@ crops enlarged side by side, with no smoothing, to look at:
 ```sh
 python3 tools/media/sharpness.py tests/render/golden/text-scale-100-first-frame.png \
     tests/render/golden/text-scale-125-first-frame.png tests/render/golden/text-scale-150-first-frame.png
-python3 tools/media/sharpness.py tests/render/golden/text-scale-125-first-frame.png --crop 20,12,380,30 \
+python3 tools/media/sharpness.py tests/render/golden/text-scale-125-first-frame.png --crop 20,12,385,30 \
     --enlarge 8 --out out/body-125.png
 ```
 
