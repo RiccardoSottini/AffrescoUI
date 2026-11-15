@@ -709,7 +709,7 @@ private:
 		std::uint64_t id = 0;   ///< The pick's id.
 		Panel* panel = nullptr; ///< What was picked; nullptr once destroyed (forget()), or for a cancel.
 	};
-	std::vector<PickResult> pickResults_; ///< Picks that ended, whose callbacks haven't run yet.
+	std::vector<PickResult> pickResults_; ///< Picks that ended, whose callbacks are still to run.
 
 	Cursor currentCursor_ = Cursor::Arrow; ///< Shape shown now.
 	Panel root_;                           ///< Fills the window.
