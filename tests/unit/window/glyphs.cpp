@@ -1,7 +1,7 @@
 /// @file
 /// @brief Tests that need a window: how text reaches the GPU (render's gl::QuadRenderer). Colour emoji share the text's
-/// batch, the atlas textures of a font that is gone are freed, and a picture at a scale of 2 draws glyphs rasterised
-/// at 2.
+/// batch, the atlas textures of a font that is gone are freed, a picture at a scale of 2 draws glyphs rasterised at 2,
+/// and glyphs fitted to pixels at 1 make no draw call more than at 2.
 ///
 /// Built into affrescoui_window_tests: it draws with its own renderer in a hidden window's context.
 
@@ -134,4 +134,38 @@ TEST_CASE("render: a picture at a scale of 2 draws its text from glyphs rasteris
 	CHECK(std::abs(b.top / 2.0f - a.top) <= 1.0f);
 	CHECK(std::abs(b.right / 2.0f - a.right) <= 1.0f);
 	CHECK(std::abs(b.bottom / 2.0f - a.bottom) <= 1.0f);
+}
+
+TEST_CASE("render: glyphs fitted to quarters of a pixel at 1 make no draw call more than at 2") {
+	affresco::Application app;
+	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+	affresco::Window& window = app.createWindow("glyphs", 600, 400);
+	glfwMakeContextCurrent(window.nativeHandle());
+	affresco::gl::QuadRenderer renderer;
+
+	// Three fonts, every letter, each label starting a fraction of a pixel further right
+	const std::filesystem::path fonts = AFFRESCOUI_FONTS_DIR;
+	const std::array names{"Roboto-Regular.ttf", "JetBrainsMono-Regular.ttf", "NotoSansArabic-Subset.ttf"};
+	const std::array texts{"The quick brown fox jumps over the lazy dog: 0123456789",
+	                       "PACK MY BOX WITH FIVE DOZEN LIQUOR JUGS, then {[(fit)]}",
+	                       "\u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645 abc xyz"};
+	for(std::size_t row = 0; row < 18; ++row) {
+		affresco::Label& label = window.root().add<affresco::Label>(texts[row % texts.size()]);
+		label.setFont(affresco::Font::load(fonts / names[row % names.size()], 13.0f + static_cast<float>(row % 3)));
+		label.setPosition(affresco::px(3.0f + 0.37f * static_cast<float>(row)),
+		                  affresco::px(2.0f + 21.3f * static_cast<float>(row)));
+		label.setSize(affresco::px(590), affresco::px(20));
+	}
+	window.render();
+
+	std::array<std::size_t, 2> calls{};
+	for(const int scale : {1, 2}) {
+		glfwMakeContextCurrent(window.nativeHandle());
+		glViewport(0, 0, window.width() * scale, window.height() * scale);
+		for(int frame = 0; frame < 2; ++frame) // the second frame draws what the first has rasterised
+			renderer.draw(window.root(), {}, nullptr, window.width(), window.height());
+		calls[static_cast<std::size_t>(scale - 1)] = renderer.drawCalls();
+	}
+	CHECK(calls[0] >= 1);
+	CHECK(calls[0] == calls[1]);
 }
