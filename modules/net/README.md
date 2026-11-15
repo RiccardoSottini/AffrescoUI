@@ -14,6 +14,7 @@ Winsock on Windows).
 
 | Header | Offers |
 |---|---|
+| `EditorServer.hpp` | `EditorServer`, `EditorServerOptions` and `EditorHost`: an nREPL server on 127.0.0.1 for a screen's program, each connection paired by the person (below) |
 | `Client.hpp` | `Client` (the `Network`: `allow`, `check`, `start`, `connect`), `ClientOptions` (proxy, extra certificate authorities, the concurrency limits) and `checkHeaders` |
 | `RemotePeers.hpp` | `TokenVerifier` (checks a token, names the author), `PeerServer` and `PeerServerOptions` (origins, caps, timeouts), `connectPeer` (a `Channel` to a server, with a token) |
 | `SignIn.hpp` | `SignIn`, the `identity::Identity` of a host: OAuth 2 / OpenID Connect for public clients (authorization code with PKCE and a loopback redirect, device flow, refresh); `SignInOptions` (the `SecretStore`, how the browser opens), `systemSecretStore` (Keychain, Credential Manager, Secret Service), `openInBrowser` |
@@ -93,6 +94,84 @@ that waits for one connection. `signIn`'s `done` and `onStatus` run on the main 
   interface: `format::Runtime::setNetwork` takes any, and `Screen::network()` gives a screen's `connections` a
   `Client`.
 
+## The editor server (nREPL)
+
+`EditorServer` (`EditorServer.hpp`) lets an nREPL client (CIDER, Calva, Conjure) evaluate Lisp into a screen's
+running program, through `core`'s `ProgramConsole`. It is off unless the host starts it (`Screen::listenEditor()`).
+
+**The wire.** TCP on 127.0.0.1 only (port 0 by default: the system picks), never another address. Each connection's
+bytes are bencode (`nrepl/Bencode.hpp`), decoded within `EditorServerOptions`: `maxMessageBytes`, `maxDepth`,
+`maxKeys`; a malformed or larger message closes the connection, and so do more than `messagesPerSecond` messages or
+more than `maxQueuedBytes` waiting to be sent. At most `maxConnections` connections are open at once. The wire hands
+each decoded message to the connection's `EditorPeer` (`nrepl/EditorLink.hpp`), which answers through its
+`EditorLink`.
+
+**Replies.** Every reply is a dictionary that echoes the request's `id` and `session` when it had them; `status` is
+always a list, and each request ends with exactly one message whose `status` holds `done`.
+
+**Sessions.** `clone` makes a session with a random id of 32 hex characters, at most `maxSessions` per connection. A
+session holds its namespace name (`user` at first, then what `ns`, `in-ns` or a request's `ns` names), its last three
+values (`*1`, `*2`, `*3`) and its last error (`*e`). Sessions belong to their connection: another connection's id is
+`unknown-session`. A request without a session is served on a nameless one, kept for the connection.
+
+| Operation | Request keys used | Reply |
+|---|---|---|
+| `clone` | `session` (copies its namespace) | `new-session`, `done`; past `maxSessions`: `error`, `done` |
+| `close` | `session` | `done`, `session-closed` |
+| `describe` | | `ops` (a dictionary of the twelve names), `versions` (`affrescoui`, `version-string`), `aux`; `done`. No `clojure` key |
+| `ls-sessions` | | `sessions`: this connection's ids; `done` |
+| `eval` | `code`; `file`, `line`, `column`, `ns` if given | For each value: `value` and `ns`; then `done`. An error: `err`, then `ex` and `root-ex` (`LispError`) with `eval-error`, then `done`. Without `code`: `error`, `no-code`, `done` |
+| `load-file` | `file` (the contents), `file-path`, `file-name` | As `eval`, the text being the whole file |
+| `interrupt` | `session`, `interrupt-id` if given | Takes the session's requests that have not started out of the queue (each ends `interrupted`, `done`) and a pairing question that waits for them; then `done`, or `session-idle`, `done` when nothing waited |
+| `completions`, `complete` | `prefix` (or `symbol`) | `completions`: a list of `{candidate, type}` (`macro`, `function`, `var`), at most 200; `done` |
+| `lookup` | `sym` | `info`: `{name, ns, doc, arglists-str, file, line}` (no `file` or `line` when the host gives no path); `done`. Nothing found: `info` `{}`, `done`, `no-info` |
+| `info` | `sym` or `symbol` | The same keys at the top; `done`. Nothing found: `done`, `no-info` |
+| `eldoc` | `sym` or `symbol` | `name`, `ns`, `type` (`function` or `variable`), `eldoc` (a list of argument-name lists), `docstring`; `done`. Nothing found: `done`, `no-eldoc` |
+
+Any other operation is `error`, `unknown-op`, `done`, with `op` echoed. Other keys (print options, middleware names)
+are ignored. A run that has started is never stopped: each is bounded by the engine's budget and ends by itself.
+
+**The clients' own text** (`nrepl/ClientForms.hpp`). The clients evaluate Clojure of their own when they connect or
+switch files. A small scanner (white space, comments, strings, brackets, a head symbol: `net` doesn't link the Lisp
+reader) recognises it in an `eval`, and the protocol answers it without the program, and without pairing:
+
+| Recognised when | Answer |
+|---|---|
+| The whole text, trimmed, is `*ns*` | The session's namespace name |
+| `*1`, `*2`, `*3` | The session's last values; `nil` if none |
+| `*e` | The session's last error as a string; `nil` if none |
+| It starts with `#?(` | `unknown` |
+| One form with head `ns` or `in-ns` | The session's namespace becomes the name that follows; `nil` |
+| One form with head `require`, `use` or `clojure.core/require` | `nil` |
+| One form with head `clojure.repl/doc` or `doc` | The name's documentation as `out`, then `nil`. It reads the program, so it waits for pairing |
+| It names `clojure.main/repl-requires`, `conjure.internal` or `cider.nrepl` anywhere | `nil` |
+
+Nothing else is recognised: `(clojure.string/upper-case "a")` goes to the program and fails there with its own
+error. A loaded file is always the program's. One accepted limit: a text that only quotes one of the client names
+above in a string is answered `nil` too (nothing runs).
+
+**Pairing** (`nrepl/Pairing.hpp`). A connection starts unpaired, and reaches nothing of the app: unpaired, it is
+answered `clone`, `close`, `describe`, `ls-sessions`, `interrupt` and the clients' own text that needs no program.
+The first other request, and every one after it, waits, and the host asks the person (`EditorHost::pair`), showing
+the request's code, the file's contents, or for a completion or lookup a sentence saying nothing runs yet. One
+question is open at a time: another connection waits its turn. If the host can't ask now, the waiting requests end
+with its reason (`err`, `error`, `done`) and the connection stays open and unpaired. On yes, the connection is paired
+until it closes, and what waited runs in order. On no, what waited ends with `not-paired`, the connection closes,
+and the refusal is counted; after `maxRefusals` refusals the server asks no more until the host restarts (one line
+is logged), and every unpaired connection's requests are refused the same way. A connection that closes, or whose
+waiting requests are interrupted, takes its question away (`EditorHost::cancelPairing`); nothing is counted. The
+host's `answered` may lead straight to the next connection's `pair`, so the host clears its own question before it
+calls `answered`. An evaluation from a paired connection applies as the person's change, under every rule that holds
+for them (the console does that).
+
+**Limits.** Besides the wire's: `maxSessions` per connection, 64 requests waiting per connection (and no more than
+`maxQueuedBytes` of their code), 200 completions a reply, `maxRefusals`. Code, file contents and values are the
+person's: they are never logged.
+
+**Threads.** The listener and the connections' reading run off the main thread; every message reaches its peer on
+the main thread, through the executor, and each connection's requests run there one at a time, in the order they
+came.
+
 ## Files
 
 ```
@@ -126,5 +205,14 @@ src/
     OAuthBrowser.cpp, OAuthBrowserWeb.cpp  opening the browser, without a shell
   secrets/             systemSecretStore: SecretStoreApple.cpp (Keychain), SecretStoreLinux.cpp (Secret Service,
                        loaded at run time), SecretStoreWindows.cpp (Credential Manager)
+  nrepl/               the editor server (above)
+    Bencode.hpp, .cpp    bencode, decoded within limits
+    EditorLink.hpp       the seam between the wire and the protocol: EditorLink, EditorPeer, EditorShared
+    EditorServer.cpp, EditorConnection.cpp  the listener and the connections; EditorServerWeb.cpp: none in a page
+    EditorPeer.cpp       a connection's protocol: dispatch, the queue, pairing's outcome
+    EditorOps.hpp, .cpp  the operations' replies
+    EditorSessions.hpp, .cpp   a connection's sessions
+    ClientForms.hpp, .cpp      the clients' own text, recognised by a small scanner
+    Pairing.hpp, .cpp    the person's question, one connection at a time, and the refusals
   Web/curl/curl.h      the browser build's stand-in for libcurl's header: types only, nothing transfers
 ```

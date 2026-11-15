@@ -1,0 +1,70 @@
+[
+  {
+    "note": "Conjure (sends no version; its source at 9842bf38464df071f72546f65fa6ec44942ca7b2). Connect, its own text, an eval and load-file follow the requests recorded in nrepl/proof internal/checks/clients/conjure.toml at commit e9e325a756df344563891aac19dc829f710d3024; completions, info and interrupt follow Conjure's sources at that commit. Reply shapes checked against babashka/babashka.nrepl src/babashka/nrepl/impl/server.clj at fb44874128d8cc2622f164e6a499ed4f00e5aae9. Written for AffrescoUI: the forms and files are its own, and its setup text is shortened to its first forms.",
+    "send": {"op": "describe", "id": "1"},
+    "expect": [{"keys": ["ops", "versions"], "absent": ["session"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "ls-sessions", "id": "2"},
+    "expect": [{"keys": ["sessions"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "clone", "id": "3", "client-name": "Conjure"},
+    "expect": [{"keys": ["new-session"], "status": ["done"], "capture": "conjure"}]
+  },
+  {
+    "send": {"op": "eval", "id": "4", "session": "$conjure", "code": "#?(:clj 'clj :cljs 'cljs :cljr 'cljr :default 'unknown)"},
+    "expect": [{"keys": ["value", "ns"], "value": "unknown"}, {"status": ["done"]}],
+    "questions": 0
+  },
+  {
+    "send": {"op": "eval", "id": "5", "session": "$conjure",
+             "code": "(create-ns 'conjure.internal)\n(intern 'conjure.internal 'initial-ns (symbol (str *ns*)))\n(ns conjure.internal\n  (:require [clojure.string :as str]))\n(in-ns initial-ns)\n"},
+    "expect": [{"keys": ["value", "ns"], "value": "nil", "ns": "user"}, {"status": ["done"]}],
+    "questions": 0
+  },
+  {
+    "send": {"op": "eval", "id": "6", "session": "$conjure", "code": "(ns proof.conjure)",
+             "nrepl.middleware.print/print": "cider.nrepl.pprint/pprint",
+             "nrepl.middleware.print/options": {"associative": 1, "length": 500, "level": 50, "right-margin": 72}},
+    "expect": [{"keys": ["value", "ns"], "value": "nil", "ns": "proof.conjure"}, {"status": ["done"]}],
+    "questions": 0
+  },
+  {
+    "send": {"op": "eval", "id": "7", "session": "$conjure", "ns": "proof.conjure",
+             "file": "/home/user/project/src/proof/conjure.lisp", "line": 3, "column": 1, "code": "(+ 1 2)",
+             "nrepl.middleware.print/print": "cider.nrepl.pprint/pprint",
+             "nrepl.middleware.print/options": {"associative": 1, "length": 500, "level": 50, "right-margin": 72}},
+    "expect": [{"keys": ["value", "ns"], "ns": "proof.conjure"}, {"status": ["done"]}],
+    "questions": 1
+  },
+  {
+    "send": {"op": "eval", "id": "8", "session": "$conjure", "code": "*1"},
+    "expect": [{"keys": ["value", "ns"], "value": "(+ 1 2)"}, {"status": ["done"]}]
+  },
+  {
+    "send": {"op": "load-file", "id": "9", "session": "$conjure", "file": "(defn add-item [item] item)\n",
+             "file-name": "conjure.lisp", "file-path": "/home/user/project/src/proof/conjure.lisp",
+             "nrepl.middleware.print/print": "cider.nrepl.pprint/pprint",
+             "nrepl.middleware.print/options": {"associative": 1, "length": 500, "level": 50, "right-margin": 72}},
+    "expect": [{"keys": ["value", "ns"]}, {"status": ["done"]}],
+    "questions": 1
+  },
+  {
+    "send": {"op": "completions", "id": "10", "session": "$conjure", "prefix": "add", "ns": "proof.conjure",
+             "enhanced-cljs-completion?": "t"},
+    "expect": [{"keys": ["completions"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "info", "id": "11", "session": "$conjure", "ns": "proof.conjure", "symbol": "add-item"},
+    "expect": [{"keys": ["name", "ns", "doc", "arglists-str"], "status": ["done"]}]
+  },
+  {
+    "send": {"op": "interrupt", "id": "12", "session": "$conjure"},
+    "expect": [{"status": ["session-idle", "done"]}]
+  },
+  {
+    "send": {"op": "unknown-thing", "id": "13", "session": "$conjure"},
+    "expect": [{"keys": ["op"], "status": ["error", "unknown-op", "done"]}]
+  }
+]
