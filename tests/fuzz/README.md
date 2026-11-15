@@ -82,6 +82,8 @@ of these and what limits them.
 | A peer's replies to the screen's own requests (`ask`) | Any peer | `ask_reply` |
 | What the person pointed at (a chat request's `picks`), before it reaches a model prompt | The person's client, any peer that sends a chat request | `picks` |
 | A remote peer's opening (upgrade request, first message) | Anyone who reaches the document server | `peer_handshake`, `http_response` |
+| An editor's bytes, read as bencode by the editor server (`--nrepl`) | Any program on the machine that reaches its port on 127.0.0.1, before the person pairs it | `bencode` |
+| An editor's messages, the nREPL operations a connection asks for | Any program that reaches the port; once paired, the person's editor | `nrepl` |
 | WebSocket frames, server-sent events, HTTP response heads | The server a connection opens, or a peer | `websocket`, `sse`, `http_response` |
 | URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |
 | Sign-in answers (token, device code, error, redirect, id token) | The provider, or whoever answers in its place | `oauth` |

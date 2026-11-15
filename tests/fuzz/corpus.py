@@ -19,6 +19,7 @@
 - png:        small PNG files of every kind the golden-image reader takes (RGB, RGBA, each row filter, stored data);
 - frames:     Content-Length frames and lines, as a service process writes them;
 - peer_handshake: a remote peer's upgrade requests, well formed and not, and first "auth" messages.
+- bencode, nrepl: an editor's first nREPL messages, then the files kept in seeds/<target>/.
 - feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
 - app_manifest: every app's app.json, and the templates as screens whose capabilities are read.
 - composition: Sinopia's slide sorter with Tempera's adapters, good and broken, and Tempera's points and exports.
@@ -523,6 +524,26 @@ def peer_handshake_seeds():
             "\x01" + head + "Origin: https://studio.example.com\r\nOrigin: https://other.example.com\r\n\r\n",
             "\x01GET / HTTP/1.0\r\nUpgrade: h2c\r\n\r\n", '\x00{"type": "auth", "token": "good"}',
             '\x00{"type": "auth", "token": ""}', '\x00{"type": "hello"}']
+
+
+EDITOR_MESSAGES = [b"d2:op5:clonee", b"d2:op8:describee", b"d4:code7:(+ 1 2)2:id1:12:op4:eval7:session3:abce"]
+
+
+def checked_in_seeds(target):
+    """The seeds kept in tests/fuzz/seeds/<target>/, as bytes, by name; none while the folder isn't there."""
+    folder = ROOT / "tests" / "fuzz" / "seeds" / target
+    return [path.read_bytes() for path in sorted(folder.glob("*")) if path.is_file()]
+
+
+def bencode_seeds():
+    """An editor's bytes: nREPL's first messages (clone, describe, eval), then the bencode kept in seeds/bencode/."""
+    return EDITOR_MESSAGES + checked_in_seeds("bencode")
+
+
+def nrepl_seeds():
+    """An editor's messages: nREPL's first messages (clone, describe, eval), then the conversations kept in
+    seeds/nrepl/."""
+    return EDITOR_MESSAGES + checked_in_seeds("nrepl")
 
 
 def frames_seeds():
@@ -1109,6 +1130,9 @@ def main():
     write(out, "websocket", websocket_seeds(), words["websocket"])
     write(out, "frames", frames_seeds(), words["frames"])
     write(out, "peer_handshake", peer_handshake_seeds(), words["peer_handshake"])
+    editor = ["d", "e", "l", "i", "0:", "2:op", "4:code", "7:session", "2:id", "5:clone", "8:describe", "4:eval"]
+    write(out, "bencode", bencode_seeds(), editor)
+    write(out, "nrepl", nrepl_seeds(), editor + ["9:load-file", "11:completions", "4:info", "5:close", "9:interrupt"])
     features = ["affrescoui-feature", "affrescoui-catalog", "requires", "provides", "points", "exports", "signature",
                 "publisher", "releases", "release", "digest", "url", "size", "ed25519:", "sha512:", "1.0.0", "^1.0.0"]
     write(out, "feature_manifest", feature_seeds(), words["json"] + features)
