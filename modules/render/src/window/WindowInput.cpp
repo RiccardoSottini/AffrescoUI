@@ -95,6 +95,7 @@ void Window::routeChar(const CharEvent& event) {
 void Window::takeKey() noexcept { keyTaken_ = true; }
 
 void Window::pressKey(Panel& target, const KeyEvent& press, char32_t typed) {
+	if(picking_) return; // while the person points, no panel gets a key (pick())
 	if((typed >= 0xD800U && typed <= 0xDFFFU) || typed > 0x10FFFFU) typed = 0;
 	++routing_;
 	++pressedForScreen_;

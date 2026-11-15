@@ -264,9 +264,11 @@ TEST_CASE("pick: a key pressKey() presses for a screen can't pick") {
 	PickOptions options;
 	options.start = f.a1;
 	f.start(std::move(options));
-	f.window->pressKey(*f.a1, KeyEvent{Key::Enter, 0, Action::Press, Mods{}}, 0);
+	f.window->pressKey(*f.a1, KeyEvent{Key::Enter, 0, Action::Press, Mods{}}, 'a');
 	CHECK(f.window->picking());
 	CHECK(f.results.empty());
+	// Regression: the key reached the panel, though no panel gets a key while the person points
+	CHECK(f.keys == 0);
 }
 
 TEST_CASE("pick: a candidate destroyed mid-pick is dropped, and the next move finds one") {
