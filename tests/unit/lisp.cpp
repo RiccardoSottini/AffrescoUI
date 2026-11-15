@@ -437,6 +437,14 @@ TEST_CASE("lisp: limits end what would never end, naming the place") {
 	CHECK(errorOf("(defmacro m [] (loop [a 1 n 2000] (if (= n 0) a (recur (list 'inc a) (- n 1))))) (+ (m))")
 	          .message()
 	          .starts_with("nested too deeply to compile"));
+	// A test's and and or, noted before the test is compiled, stop at the same depth and not on the native stack
+	for(const std::string_view word : {"and", "or"}) {
+		CAPTURE(word);
+		CHECK(errorOf("(defmacro m [] (list 'if (loop [i 0 f true] (if (< i 70000) (recur (inc i) (list '" +
+		              std::string(word) + " f)) f)) 1 2)) (defn g [] (m))")
+		          .message()
+		          .starts_with("nested too deeply to compile"));
+	}
 }
 
 TEST_CASE("lisp: errors name the place, and only the error's own form") {
