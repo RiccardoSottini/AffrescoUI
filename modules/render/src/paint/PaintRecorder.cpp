@@ -255,24 +255,25 @@ void PaintRecorder::fillRect(const Rect& rect, Color color) {
 
 // Laid out by the font, drawn from its raster: the same places at any scale, denser glyphs. A raster's baseline is
 // put on a pixel row, so its glyphs' rows are the framebuffer's (a scale of 1.5 would otherwise blur them). Below 2x
-// (Font::fitsPixels) every glyph, hinted to those rows, also starts on a pixel column: drawn as rasterised, not
-// resampled between columns, at most half a pixel from where it is laid out (widths and carets don't move)
+// (Font::fitsPixels) every glyph, hinted to those rows, is also drawn from a pixel column, from its bitmap moved by
+// the quarter of a pixel that puts it within an eighth of a pixel of its place (Font::fitGlyph): drawn as rasterised,
+// not resampled between columns, and still evenly spaced (widths and carets don't move)
 void PaintRecorder::drawText(const Font& font, std::u32string_view text, Vec2 origin, Color color) {
 	const Font& raster = font.rasterAt(scale_);
 	const float scale = raster.rasterScale();
-	const bool fits = Font::fitsPixels(scale);
+	const bool rowsSnap = Font::fitsPixels(scale) || &raster != &font;
 	beginStep(PaintStep::text, &raster);
 
 	// Shaped glyphs come left to right, and spaces aren't among them
 	for(const Font::ShapedGlyph& placed : font.shape(text).glyphs) {
-		float penX = origin.x + placed.x;
+		const float laidOut = origin.x + placed.x;
 		float baseline = origin.y + placed.y;
-		if(penX > clip_.right) break; // the rest of the line is clipped anyway
-		if(fits) penX = std::round(penX * scale) / scale;
-		if(fits || &raster != &font) baseline = std::round(baseline * scale) / scale;
+		if(laidOut > clip_.right) break; // the rest of the line is clipped anyway
+		if(rowsSnap) baseline = std::round(baseline * scale) / scale;
 
-		const Font::Glyph& glyph = raster.rasterGlyph(*placed.glyph);
-		const Rect quad{penX + glyph.quad.left, baseline + glyph.quad.top, penX + glyph.quad.right,
+		const auto [fitted, pen] = raster.fitGlyph(*placed.glyph, laidOut);
+		const Font::Glyph& glyph = *fitted;
+		const Rect quad{pen + glyph.quad.left, baseline + glyph.quad.top, pen + glyph.quad.right,
 		                baseline + glyph.quad.bottom};
 		if(glyph.color) {
 			beginStep(PaintStep::colorGlyph, &raster, glyph.page);

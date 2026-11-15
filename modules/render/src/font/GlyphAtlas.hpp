@@ -61,8 +61,12 @@ public:
 	/// @param width Its width, padding included.
 	/// @param height Its height, padding included.
 	/// @param mayAddPage Whether a page may be added for it.
+	/// @param firstPage The first page it may go to: the pages before are left alone (a font at a scale of 1 draws
+	/// from the pages after its Latin-1 page, so a line of text doesn't switch between them). The first coverage page
+	/// added after them is twice the first page's side (at most largestPage): it holds four bitmaps per glyph.
 	/// @return Where it goes, or nothing if the atlas is full.
-	[[nodiscard]] std::optional<Spot> place(AtlasKind kind, int width, int height, bool mayAddPage = true);
+	[[nodiscard]] std::optional<Spot> place(AtlasKind kind, int width, int height, bool mayAddPage = true,
+	                                        std::uint32_t firstPage = 0);
 	/// @brief The pages of a kind.
 	/// @param kind Coverage or colour.
 	[[nodiscard]] std::vector<Page>& pages(AtlasKind kind) noexcept {
@@ -79,6 +83,14 @@ public:
 	[[nodiscard]] std::size_t bytes() const noexcept { return bytes_; }
 
 private:
+	/// @brief Adds an empty page of a kind for a glyph, if the byte limit allows it.
+	/// @param kind Its kind.
+	/// @param width The glyph's width, padding included.
+	/// @param height Its height, padding included.
+	/// @param firstPage As place().
+	/// @return The page, or nullptr if it would be past limitBytes or the glyph is larger than it.
+	[[nodiscard]] Page* addPage(AtlasKind kind, int width, int height, std::uint32_t firstPage);
+
 	std::vector<Page> coveragePages_; ///< The first holds Latin-1.
 	std::vector<Page> colorPages_;    ///< Made when the first colour glyph is.
 	std::size_t bytes_ = 0;           ///< See bytes().

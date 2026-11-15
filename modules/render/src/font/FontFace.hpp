@@ -69,9 +69,12 @@ private:
 
 /// @brief One font file opened at one pixel height: what a Font asks for its glyphs and shapes runs of text with.
 ///
-/// Glyphs are rasterised unhinted, so their shapes and advances follow the outlines exactly (as HarfBuzz positions
-/// them) at any size. A face can rasterise denser than its size (its raster scale, for a HiDPI framebuffer): its
-/// bitmaps then have that many texels per pixel, while its metrics and advances stay those of its size.
+/// Advances are HarfBuzz's, so they follow the outlines exactly at any size. Below a raster scale of 2
+/// (Font::fitsPixels) outlines are hinted lightly, vertically only, so their rows land on pixel rows, and a glyph can
+/// be rendered moved right by quarters of a pixel, so text drawn from whole pixel columns still lands within an eighth
+/// of a pixel of its place; at 2 and above, and for colour glyphs, they are rendered unhinted, their exact shapes. A
+/// face can rasterise denser than its size (its raster scale, for a HiDPI framebuffer): its bitmaps then have that
+/// many texels per pixel, while its metrics and advances stay those of its size.
 class FontFace {
 public:
 	/// @brief A rendered glyph: FreeType's bitmap, valid until the face renders another one.
@@ -80,6 +83,7 @@ public:
 		int left;                ///< Its first column, from the pen position.
 		int top;                 ///< Its first row, upwards from the baseline.
 		bool color;              ///< Whether it is BGRA.
+		unsigned shift = 0;      ///< Quarters of a pixel its outline was moved right before it was rendered.
 	};
 
 	/// @brief What a face's size measures.
@@ -145,9 +149,12 @@ public:
 	[[nodiscard]] float rasterScale() const noexcept { return rasterScale_; }
 	/// @brief Renders a glyph.
 	/// @param glyph The glyph's index.
+	/// @param shift Quarters of a pixel (0 to 3) to move its outline right first. Only an outline of a face that fits
+	/// pixels (Font::fitsPixels) and has no colour glyphs is moved: the bitmap's shift says whether it was. Its left
+	/// then holds the whole pixels, its coverage the fraction.
 	/// @return Its bitmap, in texels (rasterScale() per pixel), or nothing if it can't be rendered (a broken outline,
 	/// out of memory).
-	[[nodiscard]] std::optional<Bitmap> render(unsigned glyph) const noexcept;
+	[[nodiscard]] std::optional<Bitmap> render(unsigned glyph, unsigned shift = 0) const noexcept;
 
 private:
 	/// @brief Opens the file's outlines with FreeType, into face_.

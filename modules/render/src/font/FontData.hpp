@@ -50,7 +50,14 @@ struct Font::Data {
 	detail::FreeTypeLibrary library;                 ///< Declared first: the faces are freed before it.
 	std::vector<detail::FontFace> faces;             ///< The font first, then its fallbacks.
 	detail::GlyphAtlas atlas;                        ///< Made by bakeLatin1(), at the size Latin-1 fits.
-	std::unordered_map<std::uint64_t, Glyph> glyphs; ///< By face and glyph index: rasterised so far. Nodes never move.
+	/// @brief Rasterised so far, by glyphKey(): face, glyph index and, for a raster's moved bitmaps (fitGlyph()), shift.
+	/// Nodes never move.
+	std::unordered_map<std::uint64_t, Glyph> glyphs;
+	/// @brief What a font drawing itself (a scale of 1) draws, by glyphKey(): every shift's bitmap, shift 0 included,
+	/// in the pages after the Latin-1 page (drawnPage), so a line of text never switches page. Empty for a raster,
+	/// whose glyphs hold its moved bitmaps. Nodes never move.
+	std::unordered_map<std::uint64_t, Glyph> drawn;
+	static constexpr std::uint32_t drawnPage = 1; ///< The first page drawn glyphs go to.
 	std::unordered_map<char32_t, const Glyph*> nominal;    ///< Unshaped glyphs beyond Latin-1, by code point.
 	std::unordered_map<std::string, char32_t> namedGlyphs; ///< codepointNamed(), by name: at most namedGlyphsKept.
 	static constexpr std::size_t namedGlyphsKept = 1024;   ///< Names of glyphs remembered; more empties the map.
@@ -88,17 +95,37 @@ struct Font::Data {
 	/// @param codepoint The character.
 	/// @return The face, or nothing.
 	[[nodiscard]] std::optional<std::size_t> colorFaceFor(char32_t codepoint) const noexcept;
+	/// @brief The key of a glyph in glyphs and drawn: its shift in the top two bits, then its face, then its index.
+	/// Shift 0 gives face << 32 | index.
+	/// @param face The face, below largestFaceCount.
+	/// @param index Its glyph index.
+	/// @param shift Quarters of a pixel its bitmap is moved right, 0 to 3.
+	/// @return The key.
+	[[nodiscard]] static std::uint64_t glyphKey(std::size_t face, unsigned index, unsigned shift = 0) noexcept {
+		return (std::uint64_t{shift} << 62) | (static_cast<std::uint64_t>(face) << 32) | index;
+	}
+	static constexpr std::size_t largestFaceCount = std::size_t{1} << 30; ///< Faces whose index fits glyphKey().
+
 	/// @brief A face's glyph, rasterised into the atlas the first time.
 	/// @param face The face.
 	/// @param index Its glyph index.
 	/// @return The glyph; '?' if it can't be rasterised or the atlas is full (remembered, so it isn't tried again).
 	const Glyph& glyph(std::size_t face, unsigned index);
+	/// @brief A glyph's bitmap moved right by quarters of a pixel, fitGlyph()'s: rasterised the first time.
+	/// @param unmoved The glyph, this font's (rasterGlyph()).
+	/// @param shift Quarters of a pixel, 0 to 3.
+	/// @return The moved bitmap; for a raster and shift 0, @p unmoved. If it can't be rasterised or placed: @p unmoved,
+	/// remembered so it isn't tried again (its shift then isn't @p shift).
+	[[nodiscard]] const Glyph& fitted(const Glyph& unmoved, unsigned shift) noexcept;
 	/// @brief Rasterises a glyph into the atlas.
 	/// @param face The face.
 	/// @param index Its glyph index.
 	/// @param mayAddPage Whether a page may be added for it.
-	/// @return The glyph, or nothing if it can't be rendered or doesn't fit.
-	[[nodiscard]] std::optional<Glyph> rasterise(std::size_t face, unsigned index, bool mayAddPage);
+	/// @param shift Quarters of a pixel to move its outline right (0 to 3).
+	/// @param firstPage The first page it may go to (GlyphAtlas::place()).
+	/// @return The glyph, or nothing if it can't be rendered, can't be moved by @p shift, or doesn't fit.
+	[[nodiscard]] std::optional<Glyph> rasterise(std::size_t face, unsigned index, bool mayAddPage, unsigned shift = 0,
+	                                             std::uint32_t firstPage = 0);
 
 	/* Shaping (Shaping.cpp) */
 
