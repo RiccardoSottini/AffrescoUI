@@ -101,7 +101,7 @@ private:
 		if(c == '#') return dispatch();
 		if(std::string_view("'`@^").contains(c)) return ++at_, TokenKind::Prefix;
 		if(c == '~') {
-			at_ += at_ + 1 < text_.size() && text_[at_ + 1] == '@' ? 2 : 1;
+			at_ += at_ + 1 < text_.size() && text_[at_ + 1] == '@' ? 2U : 1U;
 			return TokenKind::Prefix;
 		}
 		word();

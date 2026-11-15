@@ -44,7 +44,7 @@ namespace affresco::lisp {
 /// @return The count.
 [[nodiscard]] constexpr std::size_t charactersIn(std::string_view text) noexcept {
 	std::size_t count = 0;
-	for(const char byte : text) count += continuesCharacter(byte) ? 0 : 1;
+	for(const char byte : text) count += continuesCharacter(byte) ? 0U : 1U;
 	return count;
 }
 
