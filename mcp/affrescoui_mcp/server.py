@@ -11,6 +11,7 @@ import tempfile
 import threading
 import time
 
+from . import commands
 from .document import apply_patch, changes_since, compact, find_nodes, locate, outline, pruned
 from .guide import format_guide
 from .host import NO_UNIX_SOCKETS, Host, default_socket_dir, log
@@ -509,6 +510,10 @@ class Server:
         "export_changes": export_changes,
         "get_pick": get_pick,
         "get_source": get_source,
+        # Using the app (commands.py): its commands, run under its rules
+        "list_commands": lambda self, args: commands.list_commands(self.host, args),
+        "run_command": lambda self, args: commands.run_command(self.host, args),
+        "undo_run": lambda self, args: commands.undo_run(self.host, args),
     }
 
     def call_tool(self, name, args):
