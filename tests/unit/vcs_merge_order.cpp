@@ -31,7 +31,7 @@ json abcd() { return {{"a", "a"}, {"b", "b"}, {"c", "c"}, {"d", "d"}}; }
 } // namespace
 
 TEST_CASE("merge order: a key the proposal added in the middle stays in the middle") {
-	json proposal = {{"a", "a"}, {"b", "b"}, {"x", "x"}, {"c", "c"}, {"d", "d"}};
+	const json proposal = {{"a", "a"}, {"b", "b"}, {"x", "x"}, {"c", "c"}, {"d", "d"}};
 	json main = abcd();
 	main["d"] = "changed"; // main moved on elsewhere
 	const auto result = mergeDocuments(abcd(), main, proposal);
@@ -95,7 +95,7 @@ TEST_CASE("merge order: a definition added between two others in a program file 
 		   {{"first", "(defn first [] 1)"}, {"last", "(defn last [] 3)"}, {"view", "(defn view [] 4)"}}}}}};
 	json main = base;
 	main["program"]["main.lisp"]["view"] = "(defn view [] 40)"; // main changes another definition of the file
-	json proposal = json::parse(R"json({"program": {"main.lisp": {
+	const json proposal = json::parse(R"json({"program": {"main.lisp": {
 		"first": "(defn first [] 1)", "middle": "(defn middle [] 2)", "last": "(defn last [] 3)",
 		"view": "(defn view [] 4)"}}})json");
 	const auto result = mergeDocuments(base, main, proposal);

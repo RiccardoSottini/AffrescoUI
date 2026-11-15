@@ -186,7 +186,8 @@ TEST_CASE("propose merge: one opened for the person is refused to any other revi
 
 	const auto refused = repository.accept(proposal.id, {"studio", proposal.head, false});
 	REQUIRE(refused);
-	CHECK_MESSAGE(refused->contains("only the person may accept"), *refused);
+	const std::string reason = refused.value_or(std::string());
+	CHECK_MESSAGE(reason.contains("only the person may accept"), reason);
 	CHECK_FALSE(repository.accept(proposal.id, {"user", proposal.head, false}));
 	json document = repository.document();
 	CHECK(nodeOf(document, "board")["color"] == "#ffcc00");

@@ -11,6 +11,7 @@
 
 #include "Fuzz.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -26,9 +27,8 @@ namespace {
 /// @param key The key.
 /// @return true if one of them is an object with that key.
 bool onSomeSide(const std::array<const json*, 3>& sides, const std::string& key) {
-	for(const json* side : sides)
-		if(side && side->is_object() && side->contains(key)) return true;
-	return false;
+	return std::ranges::any_of(sides,
+	                           [&key](const json* side) { return side && side->is_object() && side->contains(key); });
 }
 
 /// @brief The member of a value, if it is an object that has it.
