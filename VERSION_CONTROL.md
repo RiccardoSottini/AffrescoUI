@@ -546,6 +546,9 @@ do what a revision may add to a handler, and no more, as a proposal can't add a 
 but for one rule: **what reaches a control step may change**, as that is what only the person may do. Everything else holds: what no revision may change (`permissions`, `channels`,
 `persist`, `services`...), deny rules, what it builds, and the limits. No peer has a way to it: a revision that says `"author": "user"` is scanned as any other, and a channel can't name its author so. Text that a commit on `main` first
 wrote stays that author's even if the person evaluates exactly it. An agent's revert of the person's change stays refused when it would change what reaches a control step.
+An **editor the person paired** (`--nrepl`: an nREPL client such as CIDER, Calva or Conjure, after the person's yes in the
+window's question; SECURITY.md, "Editors (nREPL)") evaluates the same way: its definitions land as one revision by `user`, marked `ownInput`,
+with the message `Evaluate <name> (editor)`, and `load-file` lands only the definitions of the file that changed, in that file.
 
 **What arrives from elsewhere** is a proposal. The step `propose` takes definitions as text (an `init.lisp`) or a change set, and proposes them in the name `plugin:<name>`, whatever the rules would let it do; the step `evaluate` does that with what the person didn't type, in the name `plugin:evaluated`. Accepting
 doesn't move them to anyone with more authority, as with any proposal: its code has what a revision has, so a control step in it is refused when it runs, and one a key or a handler reaches is refused when it arrives. A form that isn't a definition can't be in it. So

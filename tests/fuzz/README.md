@@ -68,6 +68,7 @@ the cases someone thought of; these keep looking for the ones nobody did.
 | `tempera_project` | An image editor project file's bytes (`affresco/imaging/Project.hpp`) | A `DocumentError`, or a document whose every tile reads and which saves and loads again within the limits |
 | `image_file` | A PNG or JPEG file's bytes, as the image editor and the `image` step open them (`affresco/imaging/Codec.hpp`), within small limits (512 KiB, 512 on a side, 65,536 pixels): a revision can bring any file as an asset | A decoded image within the limits, or a `DocumentError` |
 | `picks` | A chat request's `"picks"` (any JSON), as the in-process agent reads them (`modules/intelligence/src/Picks.hpp`), against a small program and a small JSON screen: the records end in a model prompt | At most 4 records, each with a node text; the first message's block within 4 picks of 12 KiB; never anything from the document's state |
+| `bencode` | Any bytes, as an editor sends them to the editor server (`modules/net/src/nrepl/Bencode.hpp`), decoded under the server's default limits, and again by a reader given them in two pieces | Refused only as malformed, with a reason; the reader in pieces reads what `decode` reads whole, to the same byte; what decodes encodes to bytes that decode and encode to the same bytes. Nesting never reaches the native stack, and no string is allocated before all its bytes are there |
 
 ## Inventory of untrusted inputs
 
@@ -82,6 +83,8 @@ of these and what limits them.
 | A peer's replies to the screen's own requests (`ask`) | Any peer | `ask_reply` |
 | What the person pointed at (a chat request's `picks`), before it reaches a model prompt | The person's client, any peer that sends a chat request | `picks` |
 | A remote peer's opening (upgrade request, first message) | Anyone who reaches the document server | `peer_handshake`, `http_response` |
+| An editor's bytes, read as bencode by the editor server (`--nrepl`) | Any program on the machine that reaches its port on 127.0.0.1, before the person pairs it | `bencode` |
+| An editor's messages, the nREPL operations a connection asks for | Any program that reaches the port; once paired, the person's editor | `nrepl` |
 | WebSocket frames, server-sent events, HTTP response heads | The server a connection opens, or a peer | `websocket`, `sse`, `http_response` |
 | URLs a connection, a sign-in provider or a peer names | Screens, peers, providers | `url` |
 | Sign-in answers (token, device code, error, redirect, id token) | The provider, or whoever answers in its place | `oauth` |

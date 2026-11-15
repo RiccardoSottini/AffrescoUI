@@ -139,6 +139,7 @@ target_sources(affrescoui_format PRIVATE
 	src/programs/ProgramSteps.cpp
 	src/programs/ProgramEvaluate.cpp
 	src/programs/ProgramExtensions.cpp
+	src/programs/ProgramConsole.cpp
 	src/programs/TypedText.cpp)
 target_include_directories(affrescoui_format PRIVATE src/programs)
 # src/calls/: asynchronous and service calls

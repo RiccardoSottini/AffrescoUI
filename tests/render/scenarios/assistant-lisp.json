@@ -1,0 +1,35 @@
+{
+	"format": "affrescoui-scenarios",
+	"version": 2,
+	"screens": "../screens",
+	"scenarios": [
+		{
+			"name": "assistant-lisp-preview",
+			"screen": "assistant-lisp.screen.lisp",
+			"note": "The add-on's Lisp version: a definition typed in the field is shown as an evaluation before it runs, and the send button says Evaluate",
+			"steps": [
+				{ "action": "test.online" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "type": "(defn greet [] \"hi\")" },
+				{ "wait": 50 },
+				{ "expect": { "image": "preview" } }
+			]
+		},
+		{
+			"name": "assistant-lisp-evaluated",
+			"screen": "assistant-lisp.screen.lisp",
+			"note": "Enter evaluates the typed form as the person's: the conversation shows it as code, then its value; the field is empty again",
+			"steps": [
+				{ "action": "test.online" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "type": "(+ 1 2)" },
+				{ "key": "enter" },
+				{ "wait": 100 },
+				{ "expect": { "state": "assistant.draft", "is": "" } },
+				{ "expect": { "image": "conversation" } }
+			]
+		}
+	]
+}

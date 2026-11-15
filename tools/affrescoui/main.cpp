@@ -23,9 +23,11 @@ namespace affresco::cli {
 std::span<const Command> commands() {
 	static constexpr std::array<Command, 18> list = {{
 	    {"run",
-		 "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
+		 "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]... "
+		 "[--nrepl [PORT]]",
 		 "Show a screen or an app (its folder, its manifest or its entry) and let peers change it, like "
-		 "affrescoui_launcher; a Lisp program of its own, or --print, prints the tree it builds",
+		 "affrescoui_launcher; a Lisp program of its own, or --print, prints the tree it builds; --nrepl lets an "
+		 "nREPL client evaluate into an app written as a program, on 127.0.0.1, once the person says yes in the app",
 		 runScreen},
 	    {"repl", "", "Read Lisp forms and print their values", lispRepl},
 	    {"lisp-binding", "<text>... | --prove <file or folder>... [--verbose] | --batch",

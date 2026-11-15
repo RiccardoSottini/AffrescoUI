@@ -11,7 +11,7 @@ modules directly. `affresco/affresco.hpp` is the umbrella header. Target: `affre
 
 | Header | Offers |
 |---|---|
-| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), records (`setDataFile`, `data`, `dataJson`, `allowDataDirectory`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); audio (`audio`, `setAudio`, `setAudioSource`, `allowAudioDirectory`); `defaultDataDirectory`, `defaultSocketDirectory` |
+| `Screen.hpp` | `Screen`: load (`fromFile`, `fromString`), build (`createWindow`, also as a second window sharing another's context, `build`, `instantiate`), extend (`registerType`, `onAction`, `onCall`, `setModel`, `services`, `network`, `setSignInOptions`), records (`setDataFile`, `data`, `dataJson`, `allowDataDirectory`), change (`submit`, `commit`, proposals, history, change sets, `installChanges` and `repairs` for self-repairing ones), peers (`connect`, `listen`, `listenWebSocket`, `startChannels`, `listenEditor`), lookup (`find`, `get<T>`, colours, fonts); images (`setImage`, `allowImageDirectory`, `waitForImages`); audio (`audio`, `setAudio`, `setAudioSource`, `allowAudioDirectory`); `defaultDataDirectory`, `defaultSocketDirectory` |
 | `affresco.hpp` | Every public header of every module |
 
 **Assets** (VERSION_CONTROL.md, "Assets"): `assets()` (the version shown, `{name, type, size, sha256}`),
@@ -92,7 +92,9 @@ calls it at start. Everything `format::Runtime` offers, as text-based callbacks:
 destroying the Screen waits for the functions running). Plus the peers: `connect(channel, author)` for a channel you made, and
 `listen(executor, path, author)` for a socket that accepts any number of them, and
 `listenWebSocket(executor, "127.0.0.1:7420", verifier)` for remote peers, each authored as its token's verifier says
-(`modules/net/README.md`). `registerType` goes through the
+(`modules/net/README.md`), and `listenEditor(executor)` for an nREPL client on 127.0.0.1, each connection paired by the
+person's yes in the window's question and evaluating as the person (`src/ScreenEditor.cpp`; SECURITY.md, "Editors
+(nREPL)"). `registerType` goes through the
 runtime's type registry (`modules/format/README.md`).
 
 ## Files

@@ -7,7 +7,7 @@ person's client and agents on local sockets. It also opens a bare screen file. W
 Launcher ([`../../examples/launcher`](../../examples/launcher/README.md)), which lists the apps and opens them.
 
 ```sh
-./build/affrescoui_launcher [app folder | app.json | screen.json] [--socket DIR] [--data DIR] [--grant KEY ...]
+./build/affrescoui_launcher [app folder | app.json | screen.json] [--socket DIR] [--data DIR] [--grant KEY ...] [--nrepl [PORT]]
 ./build/affrescoui_launcher --permissions examples/tempo/lisp                # forget what the person allowed Tempo
 AFFRESCOUI_SCREENSHOT=out.ppm ./build/affrescoui_launcher examples/flow/lisp # the first frame, then exit
 ```
@@ -25,6 +25,12 @@ from its Lisp version: `HostScreens.hpp`) the first time, for this app only,
 and remembers the answer in `<data folder>/apps/<id>/grants.json`. `--grant KEY` (`network:https://api.example.com`,
 `folder:workspace:write`, `program:git`, `audio`, `assistant`) allows one for a single run; a screenshot asks nothing
 and allows only those.
+
+`--nrepl [PORT]` lets an nREPL client (CIDER, Calva, Conjure) evaluate in an app written as a program, as the person:
+the host listens on 127.0.0.1 (the port given, or one the system picks), prints the port, and writes it to `.nrepl-port`
+in the app's folder, removed when the host ends. Each connection waits until the person says yes in the window's
+question ([LISP.md](../../LISP.md), "Connecting an editor"; [SECURITY.md](../../SECURITY.md), "Editors (nREPL)"). The
+Launcher takes no editor: `--nrepl` without an app exits with 2.
 
 `host.cpp` is the program, and `Permissions.cpp` what the person allows. The helpers it shares with the other
 programs are in [`../shared`](../shared/README.md).

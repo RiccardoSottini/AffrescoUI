@@ -2559,6 +2559,7 @@ them as Calamaio does (`examples/calamaio/lisp/loop.lisp`).
 | `formAround(text, line, column)` | The top-level form around a position, or else the last before it, or else the next; null if the one around it isn't finished |
 | `printForm(value)`, `(pr-str value)` | A value as Lisp text |
 | `(describe-function name)`, `(describe-variable name)` | What is known of a definition or a command: `{name, kind, doc, author, file, line, arguments}`, with `title` and `category` for a command; never a value; nil if it isn't there |
+| `(describe-form text)` | What evaluating a text would do, without running it: `{definitions: [{name, kind, file, replaces}], expressions, typed}`: each definition's address, its kind, the file that holds that name now (`""` for a new one) and whether it replaces one; how many other forms; whether the person's keystrokes typed it all. Nil for anything but forms of Lisp up to 4 MiB, each a definition or a call of a name code can call; nil too when any author whose code led to it isn't the person (`file`, `user`, `user/...`). Changes nothing |
 | `(describe-key "ctrl+k")` | `{key, runs, command}`: what a key runs, and that described |
 | `(apropos "text")` | Everything defined whose name holds the text, each described |
 | `(program-file "init.lisp")` | A file of the program, its entries one after another |

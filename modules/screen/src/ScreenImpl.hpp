@@ -13,6 +13,7 @@
 #include "affresco/data/Store.hpp"
 #include "affresco/format/Rules.hpp"
 #include "affresco/format/Runtime.hpp"
+#include "affresco/net/EditorServer.hpp"
 #include "affresco/net/RemotePeers.hpp"
 #include "affresco/vcs/ChangeSetRepair.hpp"
 #include "affresco/vcs/Repository.hpp"
@@ -98,6 +99,7 @@ struct Screen::Impl {
 	std::vector<std::unique_ptr<Peer>> peers;            ///< Connected programs.
 	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
 	std::vector<std::unique_ptr<net::PeerServer>> peerServers;   ///< From listenWebSocket().
+	std::unique_ptr<net::EditorServer> editor; ///< From listenEditor(); after the runtime, so it stops first.
 	Signal<const std::string&> events;                           ///< "emit" events, as JSON text.
 	std::shared_ptr<bool> alive = std::make_shared<bool>(true);  ///< Guards removals still queued after destruction.
 

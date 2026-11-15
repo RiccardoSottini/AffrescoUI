@@ -32,6 +32,7 @@ namespace affresco::format {
 
 struct Engine;
 struct StepType;
+class RuntimeConsole;
 
 /// @brief What a step may need of whoever reaches it from a program.
 enum class StepKind : std::uint8_t {
@@ -69,6 +70,12 @@ enum class StepKind : std::uint8_t {
 /// @brief Who a program's entry that nobody is credited with counts as: no one, with the least authority.
 inline constexpr std::string_view unknownAuthor = "unknown";
 
+/// @brief Tells why a text can't be shown to the person as it is, if it can't: a character that draws nothing, or moves
+/// what is drawn around it, would let a question show other than what runs (ProgramEvaluate.cpp).
+/// @param text The text, UTF-8.
+/// @return Why; std::nullopt if every character of it shows.
+[[nodiscard]] std::optional<std::string> hiddenCharacter(std::string_view text);
+
 /// @brief Who the steps now running come from, while code of a program runs them, and later for what it scheduled.
 struct StepAuthority {
 	std::vector<std::string> authors; ///< Every author whose code led here.
@@ -94,12 +101,26 @@ public:
 	/// values worked out, purely.
 	/// @throws DocumentError If it can't be loaded: the version is refused.
 	void load();
+	/// The most text one evaluation takes: what a file of a person's definitions takes (four of lisp::maxEntryBytes).
+	static constexpr std::size_t maxEvaluatedBytes = std::size_t{4} << 20U;
+	/// The file a new definition goes in when nothing names one.
+	static constexpr std::string_view defaultFile = "evaluated.lisp";
+	/// What an evaluated text is called in its errors: a place in such an error is one in the text.
+	static constexpr std::string_view evaluatedName = "evaluated";
 	/// @brief What evaluating a text gave.
 	struct Evaluated {
 		std::string printed;              ///< The last form's value, as Lisp; a definition's address.
 		std::optional<std::string> error; ///< What went wrong: names and kinds, no value.
 		std::optional<int> proposal;      ///< The proposal it became, when the person didn't type it.
+		std::vector<std::string> values;  ///< One per form, in the text's order: a definition's address, any other
+		                                  ///< form's value as Lisp; none when it went wrong or became a proposal.
+		std::size_t line = 0;             ///< Where the error is in the text, from 1; 0 when it has no place there.
+		std::size_t column = 0;           ///< Its column, in characters, from 1; 0 when it has no place there.
 	};
+	/// @brief Tells why nothing can be evaluated in the program now, if nothing can: an agent's reply is being decided,
+	/// a proposal is being previewed, or there is no program. What the step `evaluate` and the console both say.
+	/// @return Why; std::nullopt if a text can be evaluated.
+	[[nodiscard]] std::optional<std::string> refusalToEvaluate() const;
 	/// @brief Tells whether the document has a program. @return true if it has.
 	[[nodiscard]] bool hasProgram() const noexcept;
 	/// @brief Notes what the person's own keystroke did to a bound value (TypedText).
@@ -124,16 +145,23 @@ public:
 	/// @return true if it has forms and one isn't, whole, what they typed; false for a text that can't be read, which
 	/// evaluate() reports.
 	[[nodiscard]] bool untyped(const std::string& text);
-	/// @brief Evaluates a text the person said yes to, in the question the window drew (Window::confirm()): as if they
-	/// had typed it, this once. Only the step `evaluate` calls it, from their answer.
+	/// @brief Evaluates a text the person said yes to: as if they had typed it, this once. Two callers only, each
+	/// holding the person's yes: the step `evaluate`, from their answer to the question the window drew
+	/// (Window::confirm()), and the console (RuntimeConsole::evaluate()), which the host calls for an editor
+	/// connection the person paired with their own press. Nothing a document, a step, a peer or a primitive runs
+	/// reaches it otherwise.
 	/// @param text The text, exactly as the question showed it.
 	/// @param file The file for a definition no file has.
 	/// @param sender The panel it comes from.
 	/// @param event The event.
 	/// @param locals The variables.
+	/// @param origin A word added to the commit's message in brackets (e.g. "editor"); "" for none.
+	/// @param fromEditor The console's: a definition named like a control or a review step is refused, as an agent's
+	/// is (only the app's file defines one), since an editor's text may hold what someone else wrote.
 	/// @return What it gave.
 	[[nodiscard]] Evaluated evaluateConfirmed(const std::string& text, const std::string& file, Panel& sender,
-	                                          const json& event, const Scope& locals);
+	                                          const json& event, const Scope& locals, std::string_view origin = {},
+	                                          bool fromEditor = false);
 	/// @brief Remembers the question the window asks for an evaluation, so that it goes with the runtime.
 	/// @param id Window::confirm()'s id; 0 for none.
 	void setQuestion(std::uint64_t id) noexcept { question_ = id; }
@@ -206,6 +234,9 @@ public:
 	void checkNative(const std::string& name, const std::string& where) const;
 
 private:
+	/// The console evaluates as the person through runTyped() (as evaluateConfirmed() does), and looks names up in the
+	/// live program: no other class gets either way in.
+	friend class RuntimeConsole;
 	/// @brief Where a function is called from: what its steps and reads see.
 	struct Frame {
 		Panel* sender = nullptr;       ///< The panel; nullptr for a value read, which runs no step.
@@ -219,7 +250,8 @@ private:
 	/// @brief The forms of a text, as `evaluate` takes them.
 	struct FormsRead {
 		std::vector<std::pair<std::string, std::string>> definitions; ///< Each definition's address and text.
-		std::vector<std::string> expressions;                         ///< The rest, in order.
+		std::vector<lisp::FormAt> expressions;                        ///< The rest, in order, with their places.
+		std::vector<bool> defining;                                   ///< For each form in order, whether it defines.
 		std::string lastName;                                         ///< The last form's address, if it defines.
 	};
 	/// @brief Sorts a text's forms into definitions and the rest: a call of a macro that defines counts as defining.
@@ -241,9 +273,40 @@ private:
 	/// @param sender The panel it comes from.
 	/// @param event The event.
 	/// @param locals The variables.
+	/// @param origin A word added to the commit's message in brackets; "" for none.
+	/// @param fromEditor Whether a definition named like a control or a review step is refused (evaluateConfirmed()).
 	/// @return What it gave.
 	[[nodiscard]] Evaluated runTyped(const FormsRead& read, const std::string& file, Panel& sender, const json& event,
-	                                 const Scope& locals);
+	                                 const Scope& locals, std::string_view origin = {}, bool fromEditor = false);
+	/// @brief Evaluates a whole file of the person's definitions, as the console's "load file" (RuntimeConsole):
+	/// those whose text differs from the program's land in one revision of theirs through runTyped(). Only the console
+	/// calls it.
+	/// @param text The file's text.
+	/// @param file The file for a definition no file has.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @param origin A word added to the commit's message in brackets; "" for none.
+	/// @return What it gave: the definitions' addresses as its values.
+	[[nodiscard]] Evaluated evaluateFile(const std::string& text, const std::string& file, Panel& sender,
+	                                     const json& event, const Scope& locals, std::string_view origin);
+	/// @brief evaluateFile(), throwing what goes wrong.
+	/// @param text The file's text.
+	/// @param file The file for a definition no file has.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @param origin A word added to the commit's message in brackets; "" for none.
+	/// @return What it gave.
+	/// @throws DocumentError If the text isn't a file of definitions (a LispError naming the place).
+	[[nodiscard]] Evaluated evaluateFileForms(const std::string& text, const std::string& file, Panel& sender,
+	                                          const json& event, const Scope& locals, std::string_view origin);
+	/// @brief What `describe-form` gives of a text: whether it reads as forms of Lisp, and what
+	/// they would define. Runs nothing of it but a macro's expansion, and changes nothing.
+	/// @param interpreter The interpreter running the call.
+	/// @param text The text.
+	/// @return `{definitions, expressions, typed}`, or null for a text that isn't one.
+	[[nodiscard]] json describeForm(lisp::Interpreter& interpreter, std::string_view text);
 
 	/// @brief A hook's or an advice's function.
 	struct ExtensionEntry {
@@ -323,7 +386,8 @@ private:
 	/// @return It, or null.
 	[[nodiscard]] json describeName(lisp::Interpreter& interpreter, const std::string& name,
 	                                const std::vector<json>& views) const;
-	/// @brief What `describe-function`, `describe-variable`, `describe-key`, `apropos` and `program-file` do.
+	/// @brief What `describe-function`, `describe-variable`, `describe-key`, `apropos`, `program-file` and
+	/// `describe-form` do.
 	/// @param what Which.
 	/// @param interpreter The interpreter.
 	/// @param arguments Its one argument.
