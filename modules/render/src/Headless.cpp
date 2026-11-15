@@ -5,6 +5,9 @@
 #include "paint/Renderer.hpp"
 #include "platform/Platform.hpp"
 
+#include <cmath>
+#include <limits>
+#include <optional>
 #include <utility>
 
 namespace affresco::detail {
@@ -46,13 +49,14 @@ struct WindowFactory {
 	/// @param window The window.
 	/// @param scale Pixels per window unit.
 	/// @return The pixels; empty for a headless window.
-	static std::vector<std::uint8_t> fromScratch(Window& window, int scale) {
-		if(!window.renderer_) return {};
+	static std::vector<std::uint8_t> fromScratch(Window& window, float scale) {
+		const std::optional<platform::PixelSize> size = scaledSize(window.width_, window.height_, scale);
+		if(!window.renderer_ || !size) return {};
 		window.runDeferred();
 		window.native_->makeCurrent();
 		window.updateLayout();
 		window.refreshSnapshots();
-		return window.renderer_->drawFromScratch(window.frame(), {window.width_ * scale, window.height_ * scale});
+		return window.renderer_->drawFromScratch(window.frame(), *size);
 	}
 };
 
@@ -60,7 +64,17 @@ std::unique_ptr<Window> createHeadlessWindow(int width, int height, const Clock&
 	return WindowFactory::headless(width, height, clock, std::move(title));
 }
 
-std::vector<std::uint8_t> drawFromScratch(Window& window, int scale) {
+std::optional<platform::PixelSize> scaledSize(int width, int height, float scale) noexcept {
+	if(!std::isfinite(scale) || scale <= 0.0f) return std::nullopt;
+	// In double, so a whole-number scale gives exactly width * scale, as it did when the scale was an int
+	const double pixelsWide = std::round(static_cast<double>(width) * static_cast<double>(scale));
+	const double pixelsHigh = std::round(static_cast<double>(height) * static_cast<double>(scale));
+	constexpr double largest = static_cast<double>(std::numeric_limits<int>::max());
+	if(pixelsWide > largest || pixelsHigh > largest) return std::nullopt;
+	return platform::PixelSize{static_cast<int>(pixelsWide), static_cast<int>(pixelsHigh)};
+}
+
+std::vector<std::uint8_t> drawFromScratch(Window& window, float scale) {
 	return WindowFactory::fromScratch(window, scale);
 }
 

@@ -46,7 +46,7 @@ std::span<const Command> commands() {
 		 "Play a screen's scenarios and report what failed", testScreen},
 	    {"policy", "test <policy-file>... [--json]",
 		 "Play policy files' example revisions and report the decisions that aren't the expected ones", policyCommand},
-	    {"render", "<file> -o out.png [--scale 1|2] [--size WIDTHxHEIGHT]",
+	    {"render", "<file> -o out.png [--scale 1|1.25|1.5|1.75|2] [--size WIDTHxHEIGHT]",
 		 "Draw a screen's first frame offscreen, to a PNG", renderScreen},
 	    {"fmt", "<file> [--check]", "Write a file the way AffrescoUI files are written; --check only says if it is",
 		 formatScreen},
