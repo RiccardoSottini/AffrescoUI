@@ -260,7 +260,7 @@ json Session::reviewState() const {
 	// What a proposal changes can show values a peer's data rules hide from it
 	if(versions_.readable(author_))
 		for(json& p : proposals)
-			for(const char* key : {"changes", "touches", "conflicts", "behaviour", "impact"}) p.erase(key);
+			for(const char* key : {"changes", "touches", "conflicts", "leftOut", "behaviour", "impact"}) p.erase(key);
 	for(const Grant& g : versions_.grants()) grants.push_back(toJson(g));
 	const auto previewing = versions_.previewing();
 	return {{"type", "review"},

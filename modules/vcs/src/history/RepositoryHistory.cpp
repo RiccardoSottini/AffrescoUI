@@ -361,6 +361,12 @@ Repository::Proposal Repository::readProposal(const json& entry, const std::stri
 		if(!entry["conflicts"].is_array()) expect::fail(where + ".conflicts", "expected a list");
 		proposal.conflicts = entry["conflicts"];
 	}
+	// A merge's parts left out, and who may accept it: optional, so histories written before them still load
+	if(entry.contains("leftOut")) {
+		if(!entry["leftOut"].is_array()) expect::fail(where + ".leftOut", "expected a list");
+		proposal.leftOut = entry["leftOut"];
+	}
+	if(entry.contains("personOnly")) proposal.personOnly = expect::boolean(entry["personOnly"], where + ".personOnly");
 	return proposal;
 }
 
@@ -512,7 +518,7 @@ void Repository::recheckProposal(Proposal& proposal, const json& base) const {
 		proposal.behaviour = rules_.behaviourLines(next.before, next.after);
 		proposal.impact = rules_.impact(next.before, next.after);
 		proposal.policy = reviewNeeds(next.before, next.after, {}).first;
-		proposal.person = personNeeds(next.before, next.after, proposal.run);
+		proposal.person = personNeeds(proposal, next.before, next.after);
 		proposal.assets = assetChanges(next.before, next.after);
 	} catch(const DocumentError&) {
 		proposal.remember.clear(); // accept() replays it on main's head, and says if it no longer applies
@@ -560,7 +566,9 @@ json Repository::refsJson() const {
 		                     {"reason", p.reason},
 		                     {"approvals", p.approvals},
 		                     {"reviewedHeads", p.reviewedHeads},
-		                     {"conflicts", p.conflicts}});
+		                     {"conflicts", p.conflicts},
+		                     {"leftOut", p.leftOut},
+		                     {"personOnly", p.personOnly}});
 	json grants = json::array();
 	for(const Grant& grant : grants_) grants.push_back(toJson(grant));
 	return {{"format", historyFormat},
