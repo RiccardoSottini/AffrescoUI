@@ -103,24 +103,27 @@ std::string atCommandLine(std::string_view text) {
 	}
 }
 
-/// The fixture app's three files (tests/unit/fixtures/namespaces), as a test writes them.
-const Files board = {
-    {"index.screen.lisp",
-	 screenShowing("(ns tally.index (:require [clojure.string :as s] [tally.parts.board :as board]))",
-	               "(s/upper-case (board/title))")},
-    {"parts/board.lisp", "(ns tally.parts.board (:require [tally.parts.cell :as cell]))\n"
-	                     "(defn title [] (cell/named \"board\"))"},
-    {"parts/cell.lisp", "(ns tally.parts.cell)\n(defn named [n] (str \"the \" n))"},
-};
+/// @brief The fixture app's three files (tests/unit/fixtures/namespaces), as a test writes them.
+/// @return The files.
+Files board() {
+	return {
+	    {"index.screen.lisp",
+		 screenShowing("(ns tally.index (:require [clojure.string :as s] [tally.parts.board :as board]))",
+		               "(s/upper-case (board/title))")},
+	    {"parts/board.lisp", "(ns tally.parts.board (:require [tally.parts.cell :as cell]))\n"
+		                     "(defn title [] (cell/named \"board\"))"},
+	    {"parts/cell.lisp", "(ns tally.parts.cell)\n(defn named [n] (str \"the \" n))"},
+	};
+}
 
 } // namespace
 
 TEST_CASE("lisp namespaces: a file's ns form names it, and its aliases reach the files it requires") {
-	CHECK(built("board", board)["root"]["text"] == "THE BOARD");
+	CHECK(built("board", board())["root"]["text"] == "THE BOARD");
 	// A docstring, a plain name, a string path and :refer of a program's file
-	Files files = board;
+	Files files = board();
 	files["index.screen.lisp"] = screenShowing(
-	    "(ns tally.index \"The window.\" (:require clojure.string [\"parts/board.lisp\" :as b :refer [title]]))",
+	    R"((ns tally.index "The window." (:require clojure.string ["parts/board.lisp" :as b :refer [title]])))",
 	    "(clojure.string/upper-case (str (title) (b/title)))");
 	CHECK(built("forms", files)["root"]["text"] == "THE BOARDTHE BOARD");
 	// The language's namespaces need no file, and :refer takes a word that is the same function plain
@@ -180,11 +183,11 @@ TEST_CASE("lisp namespaces: taking the form out of the text keeps every other fo
 }
 
 TEST_CASE("lisp namespaces: an alias is its file's; a qualified name is checked against the file it names") {
-	Files files = board;
+	Files files = board();
 	files["parts/board.lisp"] = "(ns tally.parts.board (:require [tally.parts.cell :as cell]))\n"
 	                            "(defn title [] (s/upper-case \"x\"))"; // s is index.screen.lisp's
 	CHECK(refusal("alias", files).contains("no namespace \"s\" here"));
-	files = board;
+	files = board();
 	files["index.screen.lisp"] =
 	    screenShowing("(ns tally.index (:require [tally.parts.board :as board]))", "(board/named \"x\")");
 	CHECK(refusal("qualified", files).contains("board/named: \"named\" isn't defined in parts/board.lisp"));
@@ -195,7 +198,7 @@ TEST_CASE("lisp namespaces: an alias is its file's; a qualified name is checked 
 	files["index.screen.lisp"] = screenShowing("(ns tally.index (:require tally.parts.board))", "(named \"x\")");
 	CHECK(built("flat", files)["root"]["text"] == "the x");
 	// A file required by a dotted name declares that name
-	files = board;
+	files = board();
 	files["parts/cell.lisp"] = "(ns tally.parts.other)\n(defn named [n] n)";
 	CHECK(refusal("declares", files).contains("tally.parts.cell is required, and parts/cell.lisp doesn't declare it"));
 }
@@ -208,8 +211,8 @@ TEST_CASE("lisp namespaces: a dotted name is a path from the app's folder") {
 	CHECK(lisp::namespacePath("flow.side-bar", "flow") == "side-bar.lisp");
 }
 
-TEST_CASE("lisp namespaces: a file two files require is read once; two that require each other, both once") {
-	Files files = board;
+TEST_CASE("lisp namespaces: a file two files require comes once; two that require each other are read once") {
+	Files files = board();
 	files["index.screen.lisp"] =
 	    screenShowing("(ns tally.index (:require [tally.parts.board :as board] [tally.parts.cell :as cell]))",
 		              "(cell/named (board/title))");
@@ -222,6 +225,17 @@ TEST_CASE("lisp namespaces: a file two files require is read once; two that requ
 	CHECK(program.contains("parts/board.lisp"));
 	CHECK(program.contains("parts/cell.lisp"));
 	CHECK(program.size() == 3);
+}
+
+TEST_CASE("lisp namespaces: files that require each other many times stop at the reads a screen may make") {
+	// Eight files that each require all eight: every path through them is read, thousands of reads within the depth
+	std::string required;
+	for(int file = 1; file <= 8; ++file) required += " app.parts.f" + std::to_string(file);
+	Files files = {{"index.screen.lisp", screenShowing("(ns app.index (:require app.parts.f1))", "1")}};
+	for(int file = 1; file <= 8; ++file)
+		files["parts/f" + std::to_string(file) + ".lisp"] = "(ns app.parts.f" + std::to_string(file) + " (:require" +
+		                                                    required + "))\n(def v" + std::to_string(file) + " 1)";
+	CHECK(refusal("many", files).contains("over 1024 files read"));
 }
 
 TEST_CASE("lisp namespaces: a required file is read from the app's folder only, by the loader's own check") {

@@ -10,8 +10,10 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstddef>
 #include <string>
+#include <string_view>
 #include <vector>
 
 using affresco::json;
@@ -49,8 +51,8 @@ std::string bindingError(const std::string& form) {
 }
 
 /// The values each row runs on, as the language writes them: one of each kind, and the edges of truth.
-const std::vector<std::string> values = {"nil", "true", "false", "0",       "1",  "-1",    "2.0",
-                                         "1.5", "\"\"", "\"a\"", "\" a \"", "[]", "[1 2]", "{}"};
+constexpr std::array<std::string_view, 14> values = {"nil", "true", "false", "0",       "1",  "-1",    "2.0",
+                                                     "1.5", "\"\"", "\"a\"", "\" a \"", "[]", "[1 2]", "{}"};
 
 /// @brief Writes each `x` in a row's form as another word.
 /// @param form The form, its value `x` written alone.
@@ -104,7 +106,9 @@ std::vector<std::pair<Outcome, Outcome>> runBothWays(const std::vector<std::stri
 		const std::string number = std::to_string(at);
 		program += "(defn row" + number + " \"A row.\" [x] " + rows[at] + ")\n";
 		actions += " :e" + number + " [{:set \"state.out\" :to " + lispString(texts[at]) + "}]";
-		actions += " :f" + number + " [{:set \"state.out\" :to \"{{lisp('row" + number + "', state.v)}}\"}]";
+		actions += " :f" + number;
+		actions += R"( [{:set "state.out" :to "{{lisp('row)" + number;
+		actions += R"(', state.v)}}"}])";
 	}
 	program += "(defscreen main :state {:v " + value +
 	           " :out 0}\n  :actions {:clear [{:set \"state.out\" :to \"unset\"}]" + actions + "}\n  (column#root))\n";
@@ -119,6 +123,7 @@ std::vector<std::pair<Outcome, Outcome>> runBothWays(const std::vector<std::stri
 		return Outcome{failed, failed ? json() : app.state("out")};
 	};
 	std::vector<std::pair<Outcome, Outcome>> outcomes;
+	outcomes.reserve(rows.size());
 	for(std::size_t at = 0; at < rows.size(); ++at)
 		outcomes.emplace_back(run("f" + std::to_string(at)), run("e" + std::to_string(at)));
 	return outcomes;
@@ -131,7 +136,8 @@ std::vector<std::pair<Outcome, Outcome>> runBothWays(const std::vector<std::stri
 /// @return For each row, the values it disagrees on, each after a space, "" if none.
 std::vector<std::string> disagreements(const std::vector<std::string>& rows) {
 	std::vector<std::string> found(rows.size());
-	for(const std::string& value : values) {
+	for(const std::string_view view : values) {
+		const std::string value(view);
 		const std::vector<std::pair<Outcome, Outcome>> outcomes = runBothWays(rows, value);
 		for(std::size_t at = 0; at < rows.size(); ++at) {
 			const auto& [function, expression] = outcomes[at];
@@ -147,88 +153,99 @@ struct Row {
 	std::string differs; ///< The values, each after a space, as disagreements() gives them.
 };
 
+/// @brief The rows of this package, and two whose truth is an expression's.
+/// @return The rows.
+std::vector<Row> packageRows() {
+	return {{"(zero? x)", ""},
+	        {"(pos? x)", ""},
+	        {"(neg? x)", ""},
+	        {"(even? x)", ""},
+	        {"(odd? x)", ""},
+	        {"(true? x)", ""},
+	        {"(false? x)", ""},
+	        {"(not-empty x)", ""},
+	        {"(clojure.string/upper-case x)", ""},
+	        {"(clojure.string/lower-case x)", ""},
+	        {"(clojure.string/trim x)", ""},
+	        {R"((clojure.string/split x ","))", ""},
+	        {R"((clojure.string/includes? x "a"))", ""},
+	        {"(let [n x] (some? n))", ""},
+	        {"(let [a x b (nil? a)] (not b))", ""},
+	        {"(if-some [m x] m 2)", ""},
+	        {"(when-some [m x] m)", ""},
+	        {"(some-> x count)", ""},
+	        {"(some->> x count)", ""},
+	        {"(as-> x n (count n) (inc n))", ""},
+	        {"(cond-> x (number? x) inc)", ""},
+	        {R"((case x 1 "one" "a" "letter" "other"))", ""},
+	        {R"((condp = x 1 "one" "other"))", ""},
+	        // An expression's truth (bindings.md): 0, "", [] and {} are false
+	        {"(if-let [m x] m 2)", R"( 0 "" [] {})"},
+	        {"(when-let [m x] m)", R"( 0 "" [] {})"}};
+}
+
+/// @brief The rows before this package. What they disagree on is a finding, kept here so a change is seen.
+/// @return The rows.
+std::vector<Row> olderRows() {
+	return {{"(count x)", ""},
+	        {"(range x)", ""},
+	        {"(sort x)", R"( "" "a" " a " {})"},
+	        {"(concat x [3])", R"( nil "" "a" " a " {})"},
+	        {"(merge x {:a 1})", ""},
+	        {"(keys x)", ""},
+	        {"(vals x)", ""},
+	        {"(reverse x)", R"( nil "" "a" " a " {})"},
+	        {"(min x 1)", ""},
+	        {"(max x 1)", ""},
+	        {"(abs x)", ""},
+	        {"(upper-case x)", ""},
+	        {"(lower-case x)", ""},
+	        {"(empty? x)", ""},
+	        {"(inc x)", ""},
+	        {"(dec x)", ""},
+	        {"(nil? x)", ""},
+	        {"(some? x)", ""},
+	        {"(not x)", R"( 0 "" [] {})"},
+	        {"(truthy? x)", ""},
+	        {"(- x)", ""},
+	        {"(= x 1)", ""},
+	        {"(not= x 1)", ""},
+	        {"(< x 1)", ""},
+	        {"(> x 1)", ""},
+	        {"(<= x 1)", ""},
+	        {"(>= x 1)", ""},
+	        {"(+ x 1)", ""},
+	        {"(- x 1)", ""},
+	        {"(* x 2)", ""},
+	        {"(/ x 2)", ""},
+	        {"(mod x 2)", " -1"},
+	        {"(and x 1)", R"( 0 "" [] {})"},
+	        {"(or x 1)", R"( 0 "" [] {})"},
+	        {"(or-else x 1)", ""},
+	        {"(get x 0)", ""},
+	        {"(first x)", R"( "a" " a ")"},
+	        {R"((join "," x))", " nil"},
+	        {"(str x)", " [1 2]"},
+	        {R"((str "n=" x))", " [1 2]"},
+	        {"(filter (fn [i] i) x)", R"( "" "a" " a " {})"},
+	        {"(remove (fn [i] i) x)", R"( "" "a" " a " {})"},
+	        {"(map (fn [i] i) x)", R"( "" "a" " a " {})"},
+	        {"(some (fn [i] i) x)", R"( nil "" "a" " a " [] [1 2] {})"},
+	        {"(every? (fn [i] i) x)", R"( nil "" "a" " a " {})"},
+	        {"(if x 1 2)", R"( 0 "" [] {})"},
+	        {"(when x 1)", R"( 0 "" [] {})"},
+	        {"(:a x)", ""}};
+}
+
 } // namespace
 
 TEST_CASE(
     "lisp bindings: each row, run as the function and as the expression, agrees where the function gives a value") {
-	const std::vector<Row> rows = {
-	    // This package's
-	    {"(zero? x)", ""},
-	    {"(pos? x)", ""},
-	    {"(neg? x)", ""},
-	    {"(even? x)", ""},
-	    {"(odd? x)", ""},
-	    {"(true? x)", ""},
-	    {"(false? x)", ""},
-	    {"(not-empty x)", ""},
-	    {"(clojure.string/upper-case x)", ""},
-	    {"(clojure.string/lower-case x)", ""},
-	    {"(clojure.string/trim x)", ""},
-	    {"(clojure.string/split x \",\")", ""},
-	    {"(clojure.string/includes? x \"a\")", ""},
-	    {"(let [n x] (some? n))", ""},
-	    {"(let [a x b (nil? a)] (not b))", ""},
-	    {"(if-some [m x] m 2)", ""},
-	    {"(when-some [m x] m)", ""},
-	    {"(some-> x count)", ""},
-	    {"(some->> x count)", ""},
-	    {"(as-> x n (count n) (inc n))", ""},
-	    {"(cond-> x (number? x) inc)", ""},
-	    {"(case x 1 \"one\" \"a\" \"letter\" \"other\")", ""},
-	    {"(condp = x 1 \"one\" \"other\")", ""},
-	    // An expression's truth (bindings.md): 0, "", [] and {} are false
-	    {"(if-let [m x] m 2)", " 0 \"\" [] {}"},
-	    {"(when-let [m x] m)", " 0 \"\" [] {}"},
-	    // The rows before this package. What they disagree on is a finding, kept here so a change is seen
-	    {"(count x)", ""},
-	    {"(range x)", ""},
-	    {"(sort x)", " \"\" \"a\" \" a \" {}"},
-	    {"(concat x [3])", " nil \"\" \"a\" \" a \" {}"},
-	    {"(merge x {:a 1})", ""},
-	    {"(keys x)", ""},
-	    {"(vals x)", ""},
-	    {"(reverse x)", " nil \"\" \"a\" \" a \" {}"},
-	    {"(min x 1)", ""},
-	    {"(max x 1)", ""},
-	    {"(abs x)", ""},
-	    {"(upper-case x)", ""},
-	    {"(lower-case x)", ""},
-	    {"(empty? x)", ""},
-	    {"(inc x)", ""},
-	    {"(dec x)", ""},
-	    {"(nil? x)", ""},
-	    {"(some? x)", ""},
-	    {"(not x)", " 0 \"\" [] {}"},
-	    {"(truthy? x)", ""},
-	    {"(- x)", ""},
-	    {"(= x 1)", ""},
-	    {"(not= x 1)", ""},
-	    {"(< x 1)", ""},
-	    {"(> x 1)", ""},
-	    {"(<= x 1)", ""},
-	    {"(>= x 1)", ""},
-	    {"(+ x 1)", ""},
-	    {"(- x 1)", ""},
-	    {"(* x 2)", ""},
-	    {"(/ x 2)", ""},
-	    {"(mod x 2)", " -1"},
-	    {"(and x 1)", " 0 \"\" [] {}"},
-	    {"(or x 1)", " 0 \"\" [] {}"},
-	    {"(or-else x 1)", ""},
-	    {"(get x 0)", ""},
-	    {"(first x)", " \"a\" \" a \""},
-	    {"(join \",\" x)", " nil"},
-	    {"(str x)", " [1 2]"},
-	    {"(str \"n=\" x)", " [1 2]"},
-	    {"(filter (fn [i] i) x)", " \"\" \"a\" \" a \" {}"},
-	    {"(remove (fn [i] i) x)", " \"\" \"a\" \" a \" {}"},
-	    {"(map (fn [i] i) x)", " \"\" \"a\" \" a \" {}"},
-	    {"(some (fn [i] i) x)", " nil \"\" \"a\" \" a \" [] [1 2] {}"},
-	    {"(every? (fn [i] i) x)", " nil \"\" \"a\" \" a \" {}"},
-	    {"(if x 1 2)", " 0 \"\" [] {}"},
-	    {"(when x 1)", " 0 \"\" [] {}"},
-	    {"(:a x)", ""}};
+	std::vector<Row> rows = packageRows();
+	const std::vector<Row> older = olderRows();
+	rows.insert(rows.end(), older.begin(), older.end());
 	std::vector<std::string> forms;
+	forms.reserve(rows.size());
 	for(const Row& row : rows) forms.push_back(row.form);
 	const std::vector<std::string> found = disagreements(forms);
 	for(std::size_t at = 0; at < rows.size(); ++at) {

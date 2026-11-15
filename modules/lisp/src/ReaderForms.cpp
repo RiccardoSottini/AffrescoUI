@@ -210,7 +210,7 @@ Value Reader::character(const Token& token) {
 	    {{"newline", "\n"}, {"space", " "}, {"tab", "\t"}, {"return", "\r"}, {"formfeed", "\f"}, {"backspace", "\b"}}};
 	const std::string_view name = token.text.substr(1);
 	const Place place = placeAt(token.offset);
-	if(name.size() == 1) return heap_.string(name, place);
+	if(name.size() == 1 && static_cast<unsigned char>(name[0]) < 0x80) return heap_.string(name, place); // ASCII
 	// NOLINTNEXTLINE(readability-qualified-auto): std::array's iterator is a pointer only in some standard libraries
 	if(const auto named = std::ranges::find(names, name, &std::pair<std::string_view, std::string_view>::first);
 	   named != names.end())

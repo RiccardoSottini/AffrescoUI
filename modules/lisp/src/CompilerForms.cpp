@@ -84,18 +84,24 @@ void Compiler::formBackquote(const Value& form, Position /*position*/) {
 	liveBindings_ = live;
 }
 
-void Compiler::noteTruthTest(const Value& test) {
+void Compiler::noteTruthTest(const Value& test, int depth) {
+	if(depth > maxCompileDepth)
+		fail(test, "nested too deeply to compile, more than " + std::to_string(maxCompileDepth) + " levels");
 	const Value word = headWord(test) == "not" && test.count() == 2 ? test.at(1) : test;
 	if(headWord(test) == "and" || headWord(test) == "or") {
-		for(std::size_t at = 1; at < test.count(); ++at) noteTruthTest(test.at(at));
+		for(std::size_t at = 1; at < test.count(); ++at) noteTruthTest(test.at(at), depth + 1);
 		return;
 	}
 	if(word.kind() != Kind::Symbol || context_.library) return;
 	if(const auto local = std::ranges::find(current_->locals | std::views::reverse, word.text(), &Local::name);
 	   local != (current_->locals | std::views::reverse).end()) {
-		if(local->path.kind() == Kind::Symbol) noteTruthTest(local->path);
+		if(local->path.kind() == Kind::Symbol) noteTruthTest(local->path, depth + 1);
 		return;
 	}
+	noteTruthPath(word, test);
+}
+
+void Compiler::noteTruthPath(const Value& word, const Value& test) {
 	const std::string_view name = word.text();
 	const std::size_t dot = name.find('.');
 	if(dot == std::string_view::npos || resolve(*current_, name.substr(0, dot)).kind != Variable::Kind::None) return;

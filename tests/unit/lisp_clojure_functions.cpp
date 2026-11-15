@@ -332,3 +332,17 @@ TEST_CASE("lisp functions: the work a function does is charged against the budge
 	CHECK_THROWS_AS(static_cast<void>(interpreter.eval("(frequencies (map str (range 100000)))", "a.lisp", "person")),
 	                lisp::LispError);
 }
+
+TEST_CASE("lisp functions: a long key is charged for each time a map is built with it") {
+	// 2,000 times a 64 kB key, made in 16 steps: a few thousand operations, but 128 MB to hash and compare
+	const std::string key = "(let [k (loop [k \"k\" n 16] (if (zero? n) k (recur (str k k) (dec n))))] ";
+	lisp::Limits limits;
+	limits.budget.operations = 100000;
+	for(const std::string_view uses : {"(frequencies (repeat 2000 k)))", "(zipmap (repeat 2000 k) (range 2000)))",
+	                                   "(group-by (fn [_] k) (range 2000)))", "(select-keys {k 1} (repeat 2000 k)))"}) {
+		CAPTURE(uses);
+		lisp::Interpreter interpreter(limits);
+		CHECK_THROWS_WITH_AS(static_cast<void>(interpreter.eval(key + std::string(uses), "a.lisp", "person")),
+		                     doctest::Contains("the budget for work ran out"), lisp::LispError);
+	}
+}

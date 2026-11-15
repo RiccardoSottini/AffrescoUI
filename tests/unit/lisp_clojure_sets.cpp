@@ -282,6 +282,22 @@ TEST_CASE("lisp sets: each item costs, adding is linear, and the walks stop at t
 	CHECK(errorOf("(count (reduce (fn [s _] (hash-set s)) 1 (range 2000)))") == "it ran"); // making one isn't a walk
 }
 
+TEST_CASE("lisp sets: items chosen so their hashes meet take no longer than others") {
+	// Sets of two numbers whose sum is the same, and numbers a step apart that would share buckets: each was quadratic
+	std::string sets = "#{";
+	for(int at = 0; at < 16384; ++at)
+		sets += "#{" + std::to_string(1048576 + at) + " " + std::to_string(2097151 - at) + "} ";
+	sets += '}';
+	lisp::Interpreter interpreter;
+	interpreter.setBudget({.operations = 100'000'000, .bytes = 1U << 30U});
+	const auto start = std::chrono::steady_clock::now();
+	CHECK(interpreter.print(interpreter.eval("(count " + sets + ")", "test", "tester")) == "16384");
+	CHECK(interpreter.print(interpreter.eval(
+	          "(count (distinct (range 4503599627370496 (+ 4503599627370496 (* 100003 100000)) 100003)))", "test",
+	          "tester")) == "100000");
+	CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(2));
+}
+
 TEST_CASE("lisp sets: a set in a backquote, and a macro's set with code in it, are made when they run") {
 	CHECK(run("(let [x 1] `#{~x 2})") == "#{1 2}");
 	CHECK(run("(let [xs [1 2]] `#{~@xs 3 1})") == "#{1 2 3}");

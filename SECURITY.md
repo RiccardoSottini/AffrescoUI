@@ -560,8 +560,9 @@ What holds for whatever text it is given:
   its place. Their depth and sizes are the reader's limits above.
 - **A library macro has no author.** The macros and functions the language writes in itself (`when-let`, `->`, `case`, `for`...)
   are compiled with no author of their own, so the code a library macro writes has the authors of the code that called it, and
-  nothing more. Its expansion names `not`, `=`, `nil?`, `some?`, `map`, `filter` and `mapcat` by word; where a local or the
-  program has its own of one of them, the call is an error naming both, never a quiet call of someone else's function.
+  nothing more. Its expansion names `not`, `=`, `nil?`, `some?`, `empty?`, `first`, `map`, `filter` and `mapcat` by word;
+  where a local or the program has its own of one of them, the call is an error naming both, never a quiet call of someone
+  else's function.
 - **The conformance program is a test, never shipped.** `affrescoui_conformance` (`tests/conformance/`) runs Clojure's test suite
   against the language. The suite is fetched only when a build asks for it (`-DAFFRESCOUI_CONFORMANCE=ON`), at one commit and
   checked against its SHA-256, and no file of it enters the repository. Its text is untrusted input: each file runs in a fresh
@@ -772,7 +773,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A step writing to a list position past the list's end (the positions between become `null`) | 10,000 positions past it |
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
-| Files including files (`include`, at load time) | 9 levels below the screen file |
+| Files including files (`include`, at load time) | 9 levels below the screen file, and 1,024 files read in all (a file two files include is read for each) |
 | An included file (`include`; plain files only: no devices or pipes) | 16 MiB; an app's are in its folder or the `shared` folder beside it, once links are resolved |
 | Open proposals per channel | 16 |
 | Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |

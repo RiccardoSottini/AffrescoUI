@@ -346,6 +346,7 @@ Value format(Machine& machine, Arguments arguments) {
 	std::size_t next = 1; // the next value to show
 	for(std::size_t at = 0; at < pattern.size();) {
 		const std::size_t percent = std::min(pattern.find('%', at), pattern.size());
+		machine.heap.charge(percent - at); // the text grows as it is written: a short %.1000f shows 1,300 bytes
 		text.append(pattern.substr(at, percent - at));
 		if(percent == pattern.size()) break;
 		at = percent;
@@ -357,6 +358,7 @@ Value format(Machine& machine, Arguments arguments) {
 			shown = directiveText(machine, directive, arguments[next++]);
 		}
 		pad(machine, directive, shown);
+		machine.heap.charge(shown.size());
 		text += shown;
 	}
 	return machine.heap.string(text);

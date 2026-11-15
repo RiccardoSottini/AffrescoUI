@@ -10,10 +10,12 @@
 #include <affresco/notation/Lexer.hpp>
 #include <affresco/notation/Words.hpp>
 
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <random>
 #include <set>
 #include <string>
 #include <utility>
@@ -425,6 +427,20 @@ bool equalAt(Machine* machine, const Value& first, const Value& second, int dept
 	return textsEqual(machine, first, second); // two symbols
 }
 
+/// @brief Spreads a hash over all its bits, from a seed the process draws once (splitmix64's finalizer): numbers in a
+/// range have bits in a line, and a sum of hashes is the same for many sets, so that without it a document could fill
+/// the buckets of a set or of `distinct` with items that meet, and make reading or building it quadratic. Results
+/// don't depend on the seed: a hash only finds the members to compare, and a set keeps the order they came in.
+/// @param hash The hash.
+/// @return It, spread.
+std::size_t spread(std::uint64_t hash) {
+	static const std::uint64_t seed = (std::uint64_t{std::random_device{}()} << 32U) ^ std::random_device{}();
+	std::uint64_t bits = hash + seed + 0x9e3779b97f4a7c15U;
+	bits = (bits ^ (bits >> 30U)) * 0xbf58476d1ce4e5b9U;
+	bits = (bits ^ (bits >> 27U)) * 0x94d049bb133111ebU;
+	return static_cast<std::size_t>(bits ^ (bits >> 31U));
+}
+
 /// @brief Hashes a value as `=` compares it (valueHash()).
 /// @param machine The machine, whose budget it spends, or nullptr to spend nothing (the reader).
 /// @param value The value.
@@ -438,7 +454,7 @@ std::size_t hashAt(Machine* machine, const Value& value, int depth) {
 	};
 	if(value.isNumber()) {
 		const double number = value.asDouble(); // `=` compares an integer with a double by value
-		return number == 0 ? 0 : std::hash<double>{}(number);
+		return spread(number == 0 ? 0 : std::bit_cast<std::uint64_t>(number)); // 0 and -0 as one
 	}
 	if(value.isSequence()) { // a list is the vector of its items
 		std::size_t hash = 0x51ed27U;
@@ -450,8 +466,8 @@ std::size_t hashAt(Machine* machine, const Value& value, int depth) {
 		std::size_t hash = 0x7a3b9cU;
 		for(std::size_t at = 0; at < value.count(); ++at) {
 			spendText(machine, value.keyAt(at).size());
-			hash +=
-			    mixed(std::hash<std::string_view>{}(value.keyAt(at)), hashAt(machine, value.valueAt(at), depth + 1));
+			hash += spread(
+			    mixed(std::hash<std::string_view>{}(value.keyAt(at)), hashAt(machine, value.valueAt(at), depth + 1)));
 		}
 		return hash;
 	}
@@ -459,7 +475,7 @@ std::size_t hashAt(Machine* machine, const Value& value, int depth) {
 		const SetObject& object = setObjectOf(value);
 		spend(machine, object.size);
 		std::size_t hash = 0x6b43a9U;
-		for(std::size_t at = 0; at < object.size; ++at) hash += object.storage->hashes[at];
+		for(std::size_t at = 0; at < object.size; ++at) hash += spread(object.storage->hashes[at]);
 		return hash;
 	}
 	case Kind::Nil:

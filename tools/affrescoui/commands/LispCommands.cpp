@@ -20,7 +20,7 @@ namespace affresco::cli {
 namespace {
 
 /// @brief A program file's program, with the files it includes or requires (reference/namespaces.md) loaded as the
-/// library loads them: from its folder, each read once.
+/// library loads them: from its folder, two that require each other each read once.
 /// @param text The file's text.
 /// @param file The file.
 /// @return The program.

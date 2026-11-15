@@ -117,7 +117,14 @@ private:
 	void compileTest(const Value& test);
 	/// @brief Notes a test of compileTest(), and the operands of an `and` or an `or` in it.
 	/// @param test The test.
-	void noteTruthTest(const Value& test);
+	/// @param depth How deep in `and` and `or` it is: as deep as compile() goes, and no deeper, since compile() checks
+	/// the test only after it is noted.
+	void noteTruthTest(const Value& test, int depth = 0);
+	/// @brief Notes a word of noteTruthTest() that reads a path of the running app: dotted, its head no local and the
+	/// whole no defined global.
+	/// @param word The word.
+	/// @param test The test it is in, whose place is noted when the word has none.
+	void noteTruthPath(const Value& word, const Value& test);
 	/// @brief Compiles a list: a special form, a macro call or a call.
 	/// @param form The list.
 	/// @param position What can follow it.

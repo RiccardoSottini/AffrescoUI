@@ -155,7 +155,7 @@ may be `(ns name (:require ...))`, which gives it aliases of its own and names t
 An undefined name that another dialect has says what to write here (`src/Hints.cpp`): `atom`, `swap!` and `reset!` (a program
 keeps state in the app's, `defstate`, and a step changes it), `println` (the host's `log` step), `rand` (no randomness),
 `require` (`include`), `iterate` and `lazy-seq` (no laziness: `range`, `loop`), `re-find` (no regular expressions), `declare` (a
-definition can use one written after it). The reader says the same of `#{...}`: a set is a vector of distinct items, as JSON has none.
+definition can use one written after it), `set` (the host's step: `(into #{} xs)` or `hash-set` for a set).
 
 ## Programs
 

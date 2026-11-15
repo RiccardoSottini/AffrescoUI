@@ -16,6 +16,10 @@
 #include <string_view>
 #include <vector>
 
+#if defined(__unix__) || defined(__APPLE__)
+#include <sys/resource.h>
+#endif
+
 namespace lisp = affresco::lisp;
 
 namespace {
@@ -67,6 +71,22 @@ double secondsFor(lisp::Interpreter& interpreter, std::string_view name, const s
 		return -std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
 	}
 	return std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+}
+
+/// @brief The most memory the process has held so far, where the system says (0 where it doesn't).
+/// @return It, in bytes.
+std::size_t peakMemory() {
+#if defined(__unix__) || defined(__APPLE__)
+	rusage usage{};
+	getrusage(RUSAGE_SELF, &usage);
+#ifdef __APPLE__
+	return static_cast<std::size_t>(usage.ru_maxrss); // bytes
+#else
+	return static_cast<std::size_t>(usage.ru_maxrss) * 1024; // kilobytes
+#endif
+#else
+	return 0;
+#endif
 }
 
 } // namespace
@@ -269,6 +289,22 @@ TEST_CASE("lisp format: a long result is charged to the budget") {
 		arguments.emplace_back("a");
 	}
 	CHECK(secondsFor(interpreter, "format", arguments) < 0.0); // 2 MB of padding: the budget's error
+}
+
+TEST_CASE("lisp format: what its directives show is charged as it grows, not only when it is done") {
+	// 400,000 directives of 1,300 bytes each grew 520 MB, and twice that in RSS, before a charge at the end stopped
+	// them
+	lisp::Interpreter interpreter(lisp::Limits{.budget = {.operations = 100000000, .bytes = 32U << 20U}});
+	const std::size_t before = peakMemory();
+	std::string error = "it ran";
+	try {
+		static_cast<void>(interpreter.eval(
+		    "(apply format (apply str (repeat 400000 \"%.1000f\")) (repeat 400000 1e300))", "test", "tester"));
+	} catch(const lisp::LispError& caught) {
+		error = caught.message();
+	}
+	CHECK(error.contains("the budget for allocation ran out"));
+	CHECK(peakMemory() - before < std::size_t{256} << 20U);
 }
 
 TEST_CASE("lisp errors as values: ex-info, ex-message and ex-data") {

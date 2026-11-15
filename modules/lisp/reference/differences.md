@@ -19,7 +19,7 @@ the language means to have and doesn't yet, are in `../CONFORMANCE.md`, "Failing
 | [One flat space of names per program](#one-flat-space-of-names-per-program) | 12 (`namespaces`) |
 | [The host's words](#the-hosts-words) | not marked |
 | [A dotted word is a path](#a-dotted-word-is-a-path) | not marked |
-| [Library macros name seven functions by word](#library-macros-name-seven-functions-by-word) | not marked |
+| [Library macros name nine functions by word](#library-macros-name-nine-functions-by-word) | not marked |
 
 ## Nothing changes a value
 
@@ -108,7 +108,7 @@ and two of one name are an error naming both places.
 is the step that changes the state, `(set "state.x" 1)`. `find` takes a predicate first, `(find pred xs)`, as the
 language's own did, and `repeat` with a vector first, `(repeat [room state.rooms] node)`, is a view's repeat.
 
-**Instead.** A vector of distinct items for a set; `[]` or `{}` for `empty`; `(get m k)` and
+**Instead.** `(into #{} xs)` or `(hash-set x y)` for Clojure's `set`; `[]` or `{}` for `empty`; `(get m k)` and
 `(contains? m k)` for Clojure's `find` on a map. `(repeat 2 x)` is Clojure's.
 
 ## A dotted word is a path
@@ -119,12 +119,12 @@ reads the running app.
 **Instead.** A name of Clojure's with a dot in it (`clojure.string`) is written qualified, `str/join`. A local's member
 is read as `room.name` or `(:name room)`, the same value.
 
-## Library macros name seven functions by word
+## Library macros name nine functions by word
 
 **Why.** A macro of the language's library is unhygienic, as a program's is: its expansion calls `not`, `=`, `nil?`,
-`some?`, `map`, `filter` and `mapcat` by those words, so that a template's form can become a binding the app's
-expressions run.
+`some?`, `empty?`, `first`, `map`, `filter` and `mapcat` by those words, so that a template's form can become a binding
+the app's expressions run.
 
-**Instead.** Don't name a local one of those seven where such a macro is used, and don't define one in a program that
+**Instead.** Don't name a local one of those nine where such a macro is used, and don't define one in a program that
 uses such a macro: the error names the macro and the word, `"when-not" uses the language's "not", which this program
 defines: name yours otherwise`.
