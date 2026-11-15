@@ -5,6 +5,7 @@ add_library(affrescoui
 	src/Screen.cpp
 	src/ScreenImpl.cpp
 	src/ScreenChannels.cpp
+	src/ScreenEditor.cpp
 	src/ScreenVersions.cpp
 	src/ScreenData.cpp
 	src/ScreenApp.cpp

@@ -11,6 +11,7 @@
 #include "affresco/core/Signal.hpp"
 #include "affresco/core/VersionControl.hpp"
 #include "affresco/net/Client.hpp"
+#include "affresco/net/EditorServer.hpp"
 #include "affresco/net/RemotePeers.hpp"
 #include "affresco/net/SignIn.hpp"
 #include "affresco/render/Application.hpp"
@@ -618,6 +619,15 @@ public:
 	                              net::PeerServerOptions options = {}) {
 		return listenWebSocket(executor, address, std::make_shared<Verifier>(std::move(verifier)), std::move(options));
 	}
+
+	/// @brief Accepts nREPL clients (CIDER, Calva, Conjure) on 127.0.0.1, which evaluate Lisp into the screen's
+	/// program. Every connection is paired by the person, in a question the window draws, before it reaches anything;
+	/// then each evaluation is the person's change, under every rule that holds for them (see net::EditorServer).
+	/// @param executor Delivers messages on the main thread (the Application).
+	/// @param options The port (0 picks a free one) and the limits.
+	/// @return The port listened on.
+	/// @throws std::runtime_error If the screen has no program, has no window yet, or the port is taken.
+	std::uint16_t listenEditor(Executor& executor, net::EditorServerOptions options = {});
 
 	/// @brief Sets how much reviewers are asked (see VersionControl::setMode).
 	/// @param mode Default, AcceptEdits (apply what no rule allows, like auto-accept) or Plan (peers only propose).
