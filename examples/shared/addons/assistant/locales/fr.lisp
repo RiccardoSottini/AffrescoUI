@@ -45,4 +45,12 @@
                 :assistant.showSource "Voir la source"
                 :assistant.pointedNearest "L'élément le plus proche qui a une adresse"
                 :assistant.pointedRepeat "Un élément d'une liste : une modification s'applique à tous"
-                :assistant.pointedShared "Partagé : écrit une fois, utilisé à plusieurs endroits"}}}
+                :assistant.pointedShared "Partagé : écrit une fois, utilisé à plusieurs endroits"
+                :assistant.lisp.defines "Lisp : définit"
+                :assistant.lisp.replaces "Lisp : remplace"
+                :assistant.lisp.in "dans"
+                :assistant.lisp.definitions "Lisp : définit {n, plural, one {# définition} other {# définitions}}"
+                :assistant.lisp.runs "Lisp : exécute {n, plural, one {# forme} other {# formes}}"
+                :assistant.lisp.untyped "Une confirmation vous sera demandée : ce texte n'a pas été saisi ici."
+                :assistant.lisp.askInstead "Demander plutôt"
+                :assistant.lisp.evaluate "Évaluer"}}}
