@@ -101,7 +101,7 @@ struct Fixture {
 	/// @brief Presses and lets go of a button at a point.
 	/// @param at The point.
 	/// @param button The button.
-	void click(Vec2 at, MouseButton button = MouseButton::Left) {
+	void click(Vec2 at, MouseButton button = MouseButton::Left) const {
 		window->routeMouseButton({button, Action::Press, Mods{}, at});
 		window->routeMouseButton({button, Action::Release, Mods{}, at});
 	}
@@ -109,7 +109,7 @@ struct Fixture {
 	/// @brief Presses and lets go of a key.
 	/// @param key The key.
 	/// @param mods The modifiers.
-	void type(Key key, int mods = 0) {
+	void type(Key key, int mods = 0) const {
 		window->routeKey({key, 0, Action::Press, Mods{mods}});
 		window->routeKey({key, 0, Action::Release, Mods{mods}});
 	}
@@ -264,9 +264,11 @@ TEST_CASE("pick: a key pressKey() presses for a screen can't pick") {
 	PickOptions options;
 	options.start = f.a1;
 	f.start(std::move(options));
-	f.window->pressKey(*f.a1, KeyEvent{Key::Enter, 0, Action::Press, Mods{}}, 0);
+	f.window->pressKey(*f.a1, KeyEvent{Key::Enter, 0, Action::Press, Mods{}}, 'a');
 	CHECK(f.window->picking());
 	CHECK(f.results.empty());
+	// Regression: the key reached the panel, though no panel gets a key while the person points
+	CHECK(f.keys == 0);
 }
 
 TEST_CASE("pick: a candidate destroyed mid-pick is dropped, and the next move finds one") {
@@ -323,6 +325,17 @@ TEST_CASE("pick: cancelPick() and closing the window end it without the callback
 	f.start();
 	f.window->setShouldClose(true);
 	CHECK_FALSE(f.window->picking());
+	f.window->runDeferredTasks();
+	CHECK(f.results.empty());
+}
+
+TEST_CASE("pick: cancelPick() after the pick ended, before its callback ran, stops the callback") {
+	// Regression: once the pick ended, cancelPick() found nothing to cancel, and the callback still ran
+	Fixture f;
+	const std::uint64_t id = f.start();
+	f.window->confirm(Confirmation{"Sure?", "", "", "OK", "Cancel"}, [](bool) {}); // ends the pick, outside an event
+	CHECK_FALSE(f.window->picking());
+	f.window->cancelPick(id);
 	f.window->runDeferredTasks();
 	CHECK(f.results.empty());
 }

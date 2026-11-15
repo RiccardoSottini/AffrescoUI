@@ -244,7 +244,10 @@ def node_source(cli, screen, at):
         return None
     if process.returncode != 0:
         return None
-    return json.loads(process.stdout)
+    try:
+        return json.loads(process.stdout)
+    except ValueError:  # not JSON: the tool can't give it either
+        return None
 
 
 def repeats_along(document, pointer):

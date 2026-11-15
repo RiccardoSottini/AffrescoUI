@@ -449,6 +449,22 @@ TEST_CASE("intelligence picks: a pick whose address isn't in the document says s
 	CHECK(intelligence::pickBlock(json::array(), document).empty());
 }
 
+TEST_CASE("intelligence picks: a record's line too long to keep whole still names its node and source") {
+	// Regression: the line was cut in its keys' order, so bindings and handlers kept it and node and source were lost
+	json pick = cardPick();
+	for(int i = 0; i < 16; ++i) {
+		pick["bindings"]["p" + std::to_string(i)] = std::string(190, 'b');
+		pick["handlers"].push_back(std::string(190, 'h'));
+	}
+	const std::string block = intelligence::pickBlock(intelligence::picksOf(json::array({pick})), boardProgram(0));
+	const std::size_t start = block.find("\n- ") + 1; // the record's line
+	const std::string line = block.substr(start, block.find('\n', start) - start);
+	CHECK(line.size() <= 3002);
+	CHECK(has(line, R"("node":"#cardTitle")"));
+	CHECK(has(line, R"("address":"/program/columns.lisp/card-title")"));
+	CHECK_FALSE(has(line, "(cut short)"));
+}
+
 TEST_CASE("intelligence picks: with a pick, the agent revises the picked definition and the proposal is made") {
 	Bench bench(boardProgram(400));
 	bench.inlineDocument = std::size_t{16} * 1024;

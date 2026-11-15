@@ -279,13 +279,14 @@ std::string withoutFileForms(std::string_view text, const std::string& file, Fil
 	Reader reader(heap, text, file);
 	std::optional<NamespaceDeclaration> declared;
 	for(bool first = true; const auto read = reader.next(); first = false) {
-		const Value& form = read->form;
+		const ReadForm& item = *read;
+		const Value& form = item.form;
 		const std::string_view head =
 		    form.kind() == Kind::List && form.count() > 0 && form.at(0).kind() == Kind::Symbol ? form.at(0).text() : "";
 		if(head == "ns" && first) { // elsewhere, the split into entries refuses it
 			declared = readNamespaceForm(form, file);
 			const std::size_t start = text.starts_with("\xEF\xBB\xBF") ? 3 : 0;
-			const std::size_t end = pastSameLineComment(text, read->end);
+			const std::size_t end = pastSameLineComment(text, item.end);
 			forms.declaration = std::string(text.substr(start, end - start));
 			blank(kept, start, end);
 			continue;
@@ -299,7 +300,7 @@ std::string withoutFileForms(std::string_view text, const std::string& file, Fil
 			}
 			forms.includes.push_back(std::string(form.at(at).text()));
 		}
-		blank(kept, read->start, read->end);
+		blank(kept, item.start, item.end);
 	}
 	if(declared) addRequired(*declared, forms.includes);
 	return kept;
@@ -625,9 +626,7 @@ std::shared_ptr<const NodeOrigins> recordOrigins(const json& section) {
 			origins->emplace(noted.id, NodeOrigin{form->file, form->name, form->kind, static_cast<std::uint32_t>(line),
 			                                      noted.column, *id});
 		}
-	} catch(const LispError&) { // builtProgram() reports it, with the lines as the history has them
-		origins->clear();
-	} catch(const DocumentError&) {
+	} catch(const DocumentError&) { // a LispError too: builtProgram() reports it, with the lines the history has
 		origins->clear();
 	}
 	return origins;

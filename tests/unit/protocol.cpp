@@ -250,3 +250,15 @@ TEST_CASE("channel: a message of a type the protocol doesn't have gets an error 
 	const json answer = answerTo(peers, {"launch", false, plain({{"type", "launch"}}), "error", ""});
 	CHECK(answer == json{{"type", "error"}, {"message", "unknown message type 'launch'"}, {"id", 42}});
 }
+
+TEST_CASE("channel: a peer's request is relayed without a source or picks") {
+	// Regression: picks came through, so a peer could say what the person pointed at in the app
+	Peers peers;
+	const json picks = json::array({{{"node", "#title"}}});
+	peers.studioChannel.receive(
+	    json{{"type", "request"}, {"text", "Make it bold"}, {"source", "screen"}, {"picks", picks}}.dump());
+	REQUIRE(peers.relayed.size() == 1);
+	CHECK(peers.relayed[0]["text"] == "Make it bold");
+	CHECK_FALSE(peers.relayed[0].contains("source"));
+	CHECK_FALSE(peers.relayed[0].contains("picks"));
+}

@@ -115,7 +115,7 @@ std::optional<Panel*> movedTo(const PickOptions& options, Panel& root, Panel* fr
 		collectBelow(options, *from, list);
 		return list.empty() ? from : list.front();
 	}
-	if(Panel* above = acceptedAncestor(options, *from)) collectBelow(options, *above, list);
+	if(const Panel* above = acceptedAncestor(options, *from)) collectBelow(options, *above, list);
 	else if(accepted(options, root)) list.push_back(&root);
 	else collectBelow(options, root, list);
 	return neighbour(list, from, key == Key::Right, false);
@@ -156,17 +156,16 @@ Label& note(Panel& layer, Color background, float maxWidth) {
 
 /* What it draws */
 
-detail::PickLayer::PickLayer(Color color) {
+detail::PickLayer::PickLayer(Color color)
+	: highlight_(&add<Panel>()), caption_(&note(*this, color, captionWidth)),
+	  hint_(&note(*this, Color::hex(0x111827), hintWidth)) { // the hint's colour as the full-screen hint's
 	setColor(colors::transparent);
-	highlight_ = &add<Panel>();
 	highlight_->setColor(color.withAlpha(tintAlpha));
 	highlight_->setBorder(outlineWidth, color);
 	highlight_->setVisible(false);
-	caption_ = &note(*this, color, captionWidth);
 	AccessibleState live;
 	live.live = LiveRegion::Polite; // each new panel offered is read, the focus staying where it is
 	caption_->setAccessibleState(live);
-	hint_ = &note(*this, Color::hex(0x111827), hintWidth); // as the full-screen hint
 	hint_->setPadding(10.0f);
 }
 
@@ -232,6 +231,7 @@ std::uint64_t Window::pick(PickOptions options, std::function<void(Panel* picked
 
 void Window::cancelPick(std::uint64_t id) {
 	if(picking_ && picking_->id == id) endPick();
+	std::erase_if(pickResults_, [id](const PickResult& result) { return result.id == id; }); // ended, not yet told
 }
 
 void Window::setPickLayerVisible(bool visible) {
@@ -257,21 +257,26 @@ void Window::pickAt(Vec2 position) {
 // A key that picks or cancels acts when it is let go, if it was pressed while picking: so the key that started the
 // mode can't end it, and nothing of the key reaches the screen
 void Window::pickKey(const KeyEvent& event) {
-	Picking& picking = *picking_;
 	const Mods mods = event.mods;
 	const bool plain = !mods.shift() && !mods.control() && !mods.alt() && !mods.super();
 	const bool picks = plain && (event.key == Key::Enter || event.key == Key::KeypadEnter || event.key == Key::Space);
 	if(picks || event.key == Key::Escape) {
-		if(event.action == Action::Press) picking.pressedKey = event.key;
-		if(event.action != Action::Release || std::exchange(picking.pressedKey, std::nullopt) != event.key) return;
-		if(!routingOwnPress()) return;
-		if(event.key == Key::Escape) finishPick(nullptr);
-		else if(picking.candidate) finishPick(picking.candidate);
+		pickAnswerKey(event);
 		return;
 	}
 	if(event.action == Action::Release) return;
+	Picking& picking = *picking_;
 	if(const std::optional<Panel*> next = movedTo(picking.options, root_, picking.candidate, event))
 		if(picking.offer(*next)) requestLayout();
+}
+
+void Window::pickAnswerKey(const KeyEvent& event) {
+	Picking& picking = *picking_;
+	if(event.action == Action::Press) picking.pressedKey = event.key;
+	if(event.action != Action::Release || std::exchange(picking.pressedKey, std::nullopt) != event.key) return;
+	if(!routingOwnPress()) return;
+	if(event.key == Key::Escape) finishPick(nullptr);
+	else if(picking.candidate) finishPick(picking.candidate);
 }
 
 // A left click picks when it ends on the panel offered where it began, and a right click cancels when it ends: so the
@@ -288,7 +293,7 @@ void Window::pickButton(const MouseButtonEvent& event, Panel* hit) {
 	if(picking.offer(offered(picking.options, hit))) requestLayout();
 	if(event.action == Action::Press) picking.pressedOn = picking.candidate;
 	if(event.action != Action::Release) return;
-	Panel* const pressedOn = std::exchange(picking.pressedOn, nullptr);
+	const Panel* const pressedOn = std::exchange(picking.pressedOn, nullptr);
 	if(picking.candidate && picking.candidate == pressedOn && routingOwnPress()) finishPick(picking.candidate);
 }
 
@@ -300,11 +305,10 @@ void Window::finishPick(Panel* picked) {
 	// The callback runs once the event is delivered; what was picked may go before (forget())
 	pickResults_.push_back({ended->id, picked});
 	defer([this, id = ended->id, done = std::move(ended->done)] {
-		Panel* panel = nullptr;
-		if(const auto found = std::ranges::find(pickResults_, id, &PickResult::id); found != pickResults_.end()) {
-			panel = found->panel;
-			pickResults_.erase(found);
-		}
+		const auto found = std::ranges::find(pickResults_, id, &PickResult::id);
+		if(found == pickResults_.end()) return; // cancelled since (cancelPick())
+		Panel* const panel = found->panel;
+		pickResults_.erase(found);
 		done(panel);
 	});
 }

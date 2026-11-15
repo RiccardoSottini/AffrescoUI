@@ -242,14 +242,17 @@ void addSource(const Engine& engine, const Addressed& addressed, json& record) {
 	}
 }
 
-/// @brief Keeps a record within maxRecord bytes: drops bindings, then handlers, from the last. Everything else is
-/// short already: ids, types and names are a document's, and a pointer is as deep as the document's nesting.
+/// @brief Keeps a record within maxRecord bytes: drops bindings, then handlers, from the last. What else it holds is
+/// the document's (its ids, types and names, and a pointer as deep as its nesting), which the format doesn't bound, so
+/// a record can still be too large.
 /// @param record The record.
-void fit(json& record) {
+/// @return Whether it is within maxRecord bytes.
+bool fit(json& record) {
 	json& bindings = record["bindings"];
 	while(record.dump().size() > maxRecord && !bindings.empty()) bindings.erase(std::prev(bindings.end()));
 	json& handlers = record["handlers"];
 	while(record.dump().size() > maxRecord && !handlers.empty()) handlers.erase(handlers.size() - 1);
+	return record.dump().size() <= maxRecord;
 }
 
 } // namespace
@@ -284,7 +287,7 @@ json describePick(Engine& engine, const Panel& panel) {
 	described["exact"] = addressed->built.panel == hit.panel;
 	if(addressed->built.panel != hit.panel) described["hitType"] = hit.record->type;
 	addSource(engine, *addressed, described);
-	fit(described);
+	if(!fit(described)) return nullptr; // an id or a pointer too long to tell: no record
 	return described;
 }
 

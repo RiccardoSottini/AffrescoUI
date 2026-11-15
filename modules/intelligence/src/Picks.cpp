@@ -7,6 +7,7 @@
 
 #include "affresco/intelligence/ScreenQueries.hpp"
 
+#include <algorithm>
 #include <exception>
 #include <initializer_list>
 #include <optional>
@@ -40,6 +41,9 @@ constexpr std::size_t maxDefinition = 8000;
 
 /// The most bytes of a JSON document's node in the block.
 constexpr std::size_t maxNode = 4000;
+
+// A pick's part is its line and its definition or node, each with a few words around it: within maxPickBlock
+static_assert(maxRecordLine + std::max(maxDefinition, maxNode) + 256 <= maxPickBlock);
 
 /// @brief A text cut to a size on a character boundary.
 /// @param text The text.
@@ -230,13 +234,28 @@ std::string nodePart(const std::string& node, const json& document, std::vector<
 	return "The node:\n" + shortened(compact(*found), maxNode);
 }
 
+/// @brief A record on one line of at most maxRecordLine bytes. A record is written in its keys' order, so cutting it
+/// would lose its node and source first: the members that matter least are left out, one at a time, until it fits,
+/// and only then is it cut.
+/// @param pick The record.
+/// @return The line's text.
+std::string recordLine(const json& pick) {
+	json kept = pick;
+	std::string line = compact(kept);
+	for(const char* key : {"bindings", "handlers", "repeat", "component", "bounds", "pointer", "hitType", "id"}) {
+		if(line.size() <= maxRecordLine) break;
+		if(kept.erase(key) > 0) line = compact(kept);
+	}
+	return shortened(line, maxRecordLine);
+}
+
 /// @brief One pick's part of the block: its record on one line, then its definition or node.
 /// @param pick The record.
 /// @param document The document the agent read.
 /// @param shown The addresses already shown.
 /// @return It.
 std::string pickPart(const json& pick, const json& document, std::vector<std::string>& shown) {
-	const std::string line = "- " + shortened(compact(pick), maxRecordLine) + "\n";
+	const std::string line = "- " + recordLine(pick) + "\n";
 	const auto source = pick.find("source");
 	const std::optional<std::string> address =
 	    source != pick.end() && source->is_object() ? textOf(*source, "address", maxAddress) : std::nullopt;

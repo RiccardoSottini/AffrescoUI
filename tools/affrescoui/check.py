@@ -390,6 +390,29 @@ class Checker:
                     f"source: the heading of a Lisp node: {heading}")
         self.run("source", program, "#nothingHere", expect=1)
         self.run("source", program, expect=2)
+        self.source_reads_only_its_folder()
+
+    def source_reads_only_its_folder(self):
+        """Regression: `source` read the file a /program key names to find a definition's line, so a screen could make
+        it read any file (`../outside.lisp`, with its line found) or never finish (`/dev/zero`). It reads only a
+        regular file inside the screen's folder, and otherwise gives the line within the definition."""
+        folder = os.path.join(self.scratch, "source")
+        os.makedirs(folder, exist_ok=True)
+        view = '(defscreen main (panel#root (label#x :text "a")))'
+        with open(os.path.join(self.scratch, "outside.lisp"), "w", encoding="utf-8") as file:
+            file.write(view + "\n")
+        for name, key in (("up", "../outside.lisp"), ("zero", "/dev/zero")):
+            path = os.path.join(folder, name + ".screen.json")
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump({"format": "affrescoui-screen", "version": 2, "program": {key: {"main": view}}}, file)
+            try:
+                result = subprocess.run([self.tool, "source", path, "#x"], capture_output=True, text=True,
+                                        encoding="utf-8", timeout=60)
+                heading = result.stdout.split("\n", 1)[0]
+                self.expect(result.returncode == 0 and heading.endswith("(line 1 of the definition)  (defscreen)"),
+                            f"source: a program file named {key}: exit {result.returncode}, {heading}")
+            except subprocess.TimeoutExpired:
+                self.expect(False, f"source: a program file named {key}: didn't finish")
 
     def long_pattern_input(self):
         """A colour expression of 30,000 characters: the schema's patterns aren't run on it (libstdc++'s std::regex

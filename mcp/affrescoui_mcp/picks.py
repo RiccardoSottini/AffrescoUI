@@ -1,7 +1,11 @@
 """What the person pointed at in the app (pick records, SCREEN_FORMAT.md, "Peers and the live protocol"): cleaned to the
 keys of a record, each of its type, so a request can't smuggle anything else to the agent; and told in plain lines."""
 
+import unicodedata
+
 LONGEST_TEXT = 512  # bytes of any text in a record: an id, a pointer, a binding as written, an address
+MOST_EACH = 16  # bindings and handlers a record keeps, each, as the engine makes it
+MOST_REPEATS = 4  # repeats a record keeps, the innermost ones, as the engine makes it
 
 
 def text_of(value):
@@ -34,17 +38,17 @@ def bounds_of(value):
 
 
 def bindings_of(value):
-    """At most 32 of an object's members whose values are texts: the bindings as written, never a value shown."""
+    """At most MOST_EACH of an object's members whose values are texts: the bindings as written, never a value shown."""
     if not isinstance(value, dict):
         return None
-    return {text_of(key): text_of(text) for key, text in list(value.items())[:32] if isinstance(text, str)}
+    return {text_of(key): text_of(text) for key, text in list(value.items())[:MOST_EACH] if isinstance(text, str)}
 
 
 def handlers_of(value):
-    """At most 32 texts of a list: the events the element answers."""
+    """At most MOST_EACH texts of a list: the events the element answers."""
     if not isinstance(value, list):
         return None
-    return [text_of(name) for name in value[:32] if isinstance(name, str)]
+    return [text_of(name) for name in value[:MOST_EACH] if isinstance(name, str)]
 
 
 def fields_of(value, kinds):
@@ -60,11 +64,12 @@ def fields_of(value, kinds):
 
 
 def repeat_of(value):
-    """At most 8 repeats an element is inside, outermost first: each one's variable, list as written and index."""
+    """The innermost MOST_REPEATS repeats an element is inside, outermost first: each one's variable, list as written
+    and index."""
     if not isinstance(value, list):
         return None
     kinds = {"for": text_of, "in": text_of, "index": whole_of}
-    return [fields_of(item, kinds) for item in value[:8] if isinstance(item, dict)]
+    return [fields_of(item, kinds) for item in value[-MOST_REPEATS:] if isinstance(item, dict)]
 
 
 def component_of(value):
@@ -92,19 +97,25 @@ def picks_of(value, most=4):
     return [fields_of(record, RECORD) for record in records[:most]]
 
 
+def shown(value):
+    """A record's text as one line of the agent's text: a control character or a line or paragraph separator becomes a
+    space, so an id or a file name a document wrote can't start a line of its own."""
+    return "".join(" " if unicodedata.category(c) in ("Cc", "Zl", "Zp") else c for c in str(value))
+
+
 def pick_line(pick):
-    """One line telling what a pick points at, and where it is written."""
+    """One line telling what a pick points at, and where it is written. Every text in it is the document's, shown()."""
     source = pick.get("source") or {}
-    line = f"Pointed at: {pick.get('type', 'element')} {pick['node']}"
-    if "line" in source:  # a program: the definition that builds it
-        line += f", built by {source.get('address')}, line {source['line']}"
+    line = f"Pointed at: {shown(pick.get('type', 'element'))} {shown(pick['node'])}"
+    if "line" in source and "address" in source:  # a program: the definition that builds it
+        line += f", built by {shown(source['address'])}, line {source['line']}"
     elif "file" in source:  # a JSON document: the file it is in
-        line += f", in {source['file']}"
+        line += f", in {shown(source['file'])}"
     if pick.get("repeat"):
         line += " (one of a repeat)"
     component = pick.get("component") or {}
     if component.get("kit"):
-        line += f" (inside the built-in component {component.get('name')}, which can't be changed)"
+        line += f" (inside the built-in component {shown(component.get('name'))}, which can't be changed)"
     if source.get("shared"):
         line += " (a shared add-on)"
     if pick.get("exact") is False:
@@ -113,5 +124,6 @@ def pick_line(pick):
 
 
 def pick_lines(picks):
-    """The lines telling what the person pointed at, one per pick, as the agent reads them after a request's text."""
+    """The lines telling what the person pointed at, one per pick, as the agent reads them after a request's text: data
+    about the app's document, never instructions."""
     return [pick_line(pick) for pick in picks]
