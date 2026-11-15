@@ -144,32 +144,38 @@ void Font::Data::reserveDrawn() {
 	std::vector<ReservedSpot> spots;
 	spots.reserve(4 * latin1Count);
 	for(char32_t codepoint = firstCodepoint; codepoint < firstCodepoint + latin1Count; ++codepoint) {
-		// The glyphs bakeLatin1() made, in its order: what the first page holds, whatever was measured since
-		const auto face = faceFor(codepoint);
-		if(!face && codepoint != U'?') continue;
-		const std::uint64_t key = glyphKey(face.value_or(0), faces[face.value_or(0)].glyphIndex(codepoint));
-		const auto found = glyphs.find(key);
-		if(found == glyphs.end() || found->second.color || found->second.page != 0 ||
-		   std::ranges::any_of(spots, [key](const ReservedSpot& spot) { return spot.key == key; }))
+		const std::optional<LoadedBitmap> bitmap = loadedBitmap(codepoint);
+		if(!bitmap ||
+		   std::ranges::any_of(spots, [key = bitmap->key](const ReservedSpot& spot) { return spot.key == key; }))
 			continue;
-		const Rect& uv = found->second.uv;
-		const auto texels = static_cast<float>(atlas.pages(AtlasKind::coverage).front().size);
-		const auto width = static_cast<int>(std::lround((uv.right - uv.left) * texels));
-		const auto height = static_cast<int>(std::lround((uv.bottom - uv.top) * texels));
-		if(width == 0 || height == 0) continue; // a space: no texels
 		for(unsigned shift = 0; shift < 4; ++shift) {
 			// A move right by a fraction of a pixel takes one column more at most; the rows don't move
-			const int across = width + (shift == 0 ? 0 : 1) + padding, down = height + padding;
+			const int across = bitmap->width + (shift == 0 ? 0 : 1) + padding, down = bitmap->height + padding;
 			const auto spot = atlas.place(AtlasKind::coverage, across, down, spots.empty(), drawnPage);
 			if(!spot && spots.empty()) return; // no room for the page: drawn glyphs go where they fit
 			if(spot)
-				spots.push_back({key | (std::uint64_t{shift} << 62), static_cast<std::uint16_t>(spot->x),
+				spots.push_back({bitmap->key | (std::uint64_t{shift} << 62), static_cast<std::uint16_t>(spot->x),
 				                 static_cast<std::uint16_t>(spot->y), static_cast<std::uint16_t>(across),
 				                 static_cast<std::uint16_t>(down)});
 		}
 	}
 	std::ranges::sort(spots, {}, &ReservedSpot::key);
 	reserved = std::move(spots);
+}
+
+// The glyphs bakeLatin1() made, in its order: what the first page holds, whatever was measured since
+std::optional<Font::Data::LoadedBitmap> Font::Data::loadedBitmap(char32_t codepoint) const noexcept {
+	const auto face = faceFor(codepoint);
+	if(!face && codepoint != U'?') return std::nullopt;
+	const std::uint64_t key = glyphKey(face.value_or(0), faces[face.value_or(0)].glyphIndex(codepoint));
+	const auto found = glyphs.find(key);
+	if(found == glyphs.end() || found->second.color || found->second.page != 0) return std::nullopt;
+	const Rect& uv = found->second.uv;
+	const auto texels = static_cast<float>(atlas.pages(AtlasKind::coverage).front().size);
+	const auto width = static_cast<int>(std::lround((uv.right - uv.left) * texels));
+	const auto height = static_cast<int>(std::lround((uv.bottom - uv.top) * texels));
+	if(width == 0 || height == 0) return std::nullopt; // a space: no texels
+	return LoadedBitmap{key, width, height};
 }
 
 std::optional<detail::GlyphAtlas::Spot> Font::Data::spotFor(AtlasKind kind, std::uint64_t key, int width, int height,
