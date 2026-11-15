@@ -35,4 +35,14 @@
                 :assistant.stopped "Stopped."
                 :assistant.copy "Copy"
                 :assistant.copied "Copied"
-                :assistant.retry "Retry"}}}
+                :assistant.retry "Retry"
+                :assistant.point "Point at something"
+                :assistant.pointHint "Click what you want to change. Esc cancels."
+                :assistant.pointShortcut "Point at something (Ctrl+Alt+A)"
+                :assistant.pointed "Pointed at"
+                :assistant.pointedNote "Shared with the assistant when you send"
+                :assistant.removePointed "Remove {name}"
+                :assistant.showSource "Show source"
+                :assistant.pointedNearest "The nearest element with an address"
+                :assistant.pointedRepeat "One of a list: a change applies to every item"
+                :assistant.pointedShared "Shared: written once, used in more than one place"}}}

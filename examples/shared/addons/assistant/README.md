@@ -42,8 +42,16 @@ screen without meeting the app's own names.
   when the host's own agent is connected (the peer `agent`) and answers the read-only native `assistant.models`
   (`{ provider, default, models: [{ id, name }] }`, `Intelligence.hpp` in `modules/intelligence`), which reveals nothing
   secret and changes nothing; elsewhere (MCP-only setups, other hosts) it hides.
-- **The composer**, a card with the text above and a bar below: *Attach* (`+`, or drop files on the panel) and the
-  model picker at its start, a round send button at its end. While an agent works on a request, the send button is a
+- **Pointing**: *Point at something* (the arrow after *Attach*, or `Ctrl+Alt+A`, `Cmd+Alt+A` on macOS, from anywhere)
+  lets the person show the agent what they mean. The panel steps aside, a hint says to click what they want to change
+  (Escape cancels), and the element under the pointer is outlined; the keyboard walks the elements too (Tab, the
+  arrows, Enter). The click picks, and doesn't reach the app. The panel comes back with the element as a chip above
+  the field (its type and where it is written: a program's definition, or a document's node), up to four, each with a
+  remove button and, on a host with a changes window, *Show source*. The chips go with the next message, which shows
+  them in the conversation. The record says where the element is written, never what it shows (the `pick` step,
+  [SCREEN_FORMAT.md](../../../../SCREEN_FORMAT.md)); a commit since drops it quietly, as where it was may have moved.
+- **The composer**, a card with the text above and a bar below: *Attach* (`+`, or drop files on the panel), *Point at
+  something* and the model picker at its start, a round send button at its end. While an agent works on a request, the send button is a
   *Stop* button: it cancels the requests in progress (`cancelAsk`), the agents are told, and what they send after is
   dropped. Enter sends, Shift+Enter starts a new line, Escape closes the panel and gives the focus back to the
   launcher. The panel is modal: Tab cycles inside it.
@@ -61,7 +69,7 @@ All in `state.assistant`:
 | `lift` | Pixels to raise the launcher and the panel by, over a panel of the app's own at the bottom right (`0` by default), e.g. `{ "watch": { "state.findBar": [{ "set": "state.assistant.lift", "to": "{{computed.findHeight}}" }] } }` |
 | `show` | Whether the launcher shows when no agent is connected and no conversation is kept (`true` by default) |
 | `draft` | The composer's text |
-| `messages` | The conversation: `{ mine, from, text, time, error }` (a reply also has `asked`, the request it answers, for *Retry*; *Stop* adds one with `note: true`), `{ kind: "files", files }` for files sent, and `{ kind: "card", id, title, summary, lines, time }` for a proposal, `lines` being its first three `changes` (at most 200, the oldest dropped) |
+| `messages` | The conversation: `{ mine, from, text, time, error }` (a reply also has `asked`, the request it answers, for *Retry*; *Stop* adds one with `note: true`), `{ kind: "files", files }` for files sent, `{ kind: "pointed", items }` for the elements pointed at, and `{ kind: "card", id, title, summary, lines, time }` for a proposal, `lines` being its first three `changes` (at most 200, the oldest dropped) |
 | `decided` | `proposal id → "accepted" or "rejected"`, as the person decided on the card |
 | `unread` | The replies since the panel was last open |
 | `pending` | The id of the last request sent |
@@ -69,6 +77,9 @@ All in `state.assistant`:
 | `models` | What `assistant.models` answered, or `null` (the picker hides) |
 | `modelMenu` | Whether the picker's menu is open |
 | `attachments` | The files attached to the next message |
+| `pointed` | The elements pointed at for the next message: the `pick` step's records (`id`, `node`, `type`, `source`, `revision`, ...) |
+| `pointing` | Whether the person is pointing now |
+| `justPointed`, `wasOpen` | The record just picked, and whether the panel was open, while pointing |
 | `copied` | The place of the message just copied, for a moment, or `null` |
 | `simulate` | For tests only: see below |
 
@@ -87,9 +98,13 @@ All in `state.assistant`:
 | `assistant.retry` | Asks `text` again (a reply's `asked`) |
 | `assistant.copy` | Copies `text` to the clipboard; `at`, its place, shows *Copied* for a moment |
 | `assistant.attach`, `assistant.drop`, `assistant.unattach` | Attach files from the OS dialog or a drop, or remove the file `id` |
+| `assistant.point` | Lets the person point at an element for the next message (from a click or a key of theirs: a pick starts only from the person's own input) |
+| `assistant.unpoint` | Takes the element `id` (a record's) from the next message |
+| `assistant.showSource` | Asks the host to show where the element `record` is written (`changes.open`); a host without it does nothing |
 | `assistant.clear` | Forgets the conversation |
 
-An app can run them from its own menus or buttons, e.g. `{ "run": "assistant.open" }`.
+An app can run them from its own menus or buttons, e.g. `{ "run": "assistant.open" }`, or a menu item that points:
+`{ "label": "Point at something", "onClick": [{ "run": "assistant.point" }] }`.
 
 ## Restyling and strings
 
@@ -110,8 +125,9 @@ The rendering check draws the add-on through `tests/render/screens/assistant.scr
 `requests` and `proposals`.
 
 `tests/unit/assistant_addon.cpp` drives the same screen in a headless window: the keys, the focus, the persisted
-conversation, and a request to an agent connected in the process, whose proposal the person accepts or rejects with
-the card's buttons. `e2e_test.py` runs the whole loop with the stock host and the MCP server as the agent, on
+conversation, a request to an agent connected in the process, whose proposal the person accepts or rejects with
+the card's buttons, and pointing (by mouse and by keyboard alone, the chips, the request's `picks`, the limit of four
+and *Show source*). `e2e_test.py` runs the whole loop with the stock host and the MCP server as the agent, on
 `e2e.screen.json`, where a timer stands in for the person: the offline answer, then a request taken with
 `wait_for_request` (`origin: "app"`), the agent's proposal and reply, the card accepted (the change is on main), and a
 second card rejected. ctest runs it as `assistant_e2e`.

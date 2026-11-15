@@ -114,6 +114,19 @@
 				  "run": [{ "update": "playlists", "id": "p1" }] }
 			] }
 		],
+		"test.pointed": [
+			{ "set": "state.assistant.simulate", "to": { "online": true, "pending": [] } },
+			{ "set": "state.assistant.pointed", "to": [
+				{ "id": "pick-a", "revision": 0, "node": "#pageTitle", "type": "label", "exact": true,
+				  "source": { "address": "#pageTitle" } },
+				{ "id": "pick-b", "revision": 0, "node": "/program/board.lisp/card-title", "type": "label", "exact": true,
+				  "repeat": [{ "in": "state.cards", "index": 2 }],
+				  "source": { "address": "/program/board.lisp/card-title", "file": "board.lisp", "line": 12 } },
+				{ "id": "pick-c", "revision": 0, "node": "#statusBar", "type": "row", "exact": false,
+				  "source": { "address": "/program/shell.lisp/components.statusBar", "file": "shell.lisp", "shared": true } },
+				{ "id": "pick-d", "revision": 0, "node": "#addCard", "type": "node", "exact": true,
+				  "source": { "address": "#addCard" } } ] }
+		],
 		"test.dark": [{ "set": "state.theme", "to": "dark" }],
 		"test.arabic": [{ "set": "state.locale", "to": "ar" }]
 	},
@@ -122,7 +135,8 @@
 		"color": "@page",
 		"children": [
 			{ "type": "label", "id": "pageTitle", "anchors": { "left": 24, "top": 20 }, "fitText": true,
-			  "textColor": "@pageText", "text": "{{t('assistant.title')}}" }
+			  "textColor": "@pageText", "text": "{{t('assistant.title')}}",
+			  "onClick": [{ "set": "state.titleClicks", "to": "{{(state.titleClicks ?? 0) + 1}}" }] }
 		]
 	}
 }
