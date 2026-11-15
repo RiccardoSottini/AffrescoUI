@@ -5,6 +5,7 @@
 #include "ComposedVersions.hpp"
 #include "Engine.hpp"
 #include "KeyNotation.hpp"
+#include "ProgramConsole.hpp"
 #include "Reference.hpp"
 
 namespace affresco::format {
@@ -30,6 +31,7 @@ struct Runtime::Impl final : ComposedHolder, Engine {
 	/// @param baseDirectory Where relative paths start.
 	Impl(Runtime& runtime, VersionControl& control, std::filesystem::path baseDirectory)
 	    : ComposedHolder(control), Engine(runtime, composed, std::move(baseDirectory)) {}
+	RuntimeConsole console{*this}; ///< See Runtime::console(); after the engine, so it goes first.
 };
 
 Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
@@ -284,6 +286,8 @@ json Runtime::inspect(const Panel& panel) {
 json Runtime::source(std::string_view at) const { return sourceOf(*impl_, at); }
 
 json Runtime::picks() const { return impl_->picks.current(); }
+
+ProgramConsole& Runtime::console() noexcept { return impl_->console; }
 
 void Runtime::setFileOf(std::function<FileOf(std::string_view pointer)> fileOf) { impl_->fileOf = std::move(fileOf); }
 
