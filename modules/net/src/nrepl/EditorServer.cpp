@@ -19,12 +19,12 @@ namespace affresco::net {
 struct EditorServer::Impl {
 	/// @brief Listens.
 	/// @param executor Runs deliveries on the main thread.
-	/// @param host The program and the pairing question.
-	/// @param options The port and the limits.
-	Impl(Executor& executor, EditorHost host, EditorServerOptions options)
-	    : host(std::move(host)), options(std::move(options)),
-	      listener(executor, this->options,
-		           [this](EditorLink& link) { return makeEditorPeer(link, this->host, this->options, shared); }) {}
+	/// @param givenHost The program and the pairing question.
+	/// @param givenOptions The port and the limits.
+	Impl(Executor& executor, EditorHost givenHost, EditorServerOptions givenOptions)
+	    : host(std::move(givenHost)), options(std::move(givenOptions)),
+	      listener(executor, options,
+		           [this](EditorLink& link) { return makeEditorPeer(link, host, options, shared); }) {}
 
 	EditorHost host;             ///< The program and the pairing question.
 	EditorServerOptions options; ///< The port and the limits.
