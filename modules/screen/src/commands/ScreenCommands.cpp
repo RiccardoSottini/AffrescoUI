@@ -326,7 +326,10 @@ json ScreenCommands::undo(std::string_view author, const json& message) {
 		return rejected("run " + std::to_string(run) + " can't be undone: it is " + toString(record->state));
 	CommandOutcome outcome = runtime_.undoCommandRun(run);
 	if(outcome.refusal) return rejected(*outcome.refusal, run);
-	control_.finish(run, RunState::Undone, "", outcome.changes, outcome.errors, outcome.undoable);
+	const std::vector<RunRecord> after = control_.runs(); // the runtime may have finished it already
+	const auto still = std::ranges::find(after, run, &RunRecord::id);
+	if(still != after.end() && still->state == RunState::Ran)
+		control_.finish(run, RunState::Undone, "", outcome.changes, outcome.errors, outcome.undoable);
 	return {{"type", "undone"}, {"run", run}, {"changed", std::move(outcome.changed)}, {"changes", outcome.changes}};
 }
 
