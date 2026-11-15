@@ -411,8 +411,9 @@ json readLispDocument(std::string_view text, const std::filesystem::path& file, 
 		const std::string named = name.empty() ? file.filename().generic_string() : name;
 		FileForms forms;
 		const bool taken = text.contains("include") || startsWithNamespace(text);
-		json document =
-		    sourceDocument(taken ? withoutFileForms(text, named, forms) : std::string(text), named, forms.declaration);
+		// The forms are taken out first: an argument beside the call that fills forms.declaration may be read before it
+		const std::string kept = taken ? withoutFileForms(text, named, forms) : std::string(text);
+		json document = sourceDocument(kept, named, forms.declaration);
 		if(!forms.includes.empty()) document["include"] = std::move(forms.includes);
 		return document;
 	}
