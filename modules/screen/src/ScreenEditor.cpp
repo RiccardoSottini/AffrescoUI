@@ -82,7 +82,7 @@ std::uint16_t Screen::listenEditor(Executor& executor, net::EditorServerOptions 
 	                                         ? std::filesystem::path()
 	                                         : std::filesystem::absolute(impl->screenFolder).lexically_normal();
 	// The question shown now, if any: the server asks one at a time, and takes it away when its connection goes
-	auto question = std::make_shared<std::uint64_t>(0);
+	const auto question = std::make_shared<std::uint64_t>(0);
 	net::EditorHost host;
 	host.console = &console;
 	host.pair = [&console, window, question](std::string text,
@@ -98,10 +98,11 @@ std::uint16_t Screen::listenEditor(Executor& executor, net::EditorServerOptions 
 		return std::nullopt;
 	};
 	host.cancelPairing = [window, question] { window->dismissConfirmation(std::exchange(*question, 0)); };
-	host.programFile = [&console, folder](const std::string& editorPath) {
+	// The closures keep their own copy of the folder (not const), so moving them never copies a path
+	host.programFile = [&console, folder = folder](const std::string& editorPath) {
 		return programFileOf(console, folder, editorPath);
 	};
-	host.pathOf = [folder](const std::string& file) {
+	host.pathOf = [folder = folder](const std::string& file) {
 		if(folder.empty() || file.empty()) return std::string();
 		return (folder / file).lexically_normal().string();
 	};

@@ -24,6 +24,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -110,16 +111,23 @@ struct Loop {
 
 	/// @brief Opens the app, builds it and listens.
 	Loop() : window(createHeadlessWindow(500, 400, clock)) {
-		screen.emplace(
+		affresco::Screen& opened = screen.emplace(
 		    affresco::Screen::fromApp(folder.path / "app", folder.path / "data", affresco::Screen::History::InMemory));
-		screen->setHistoryDirectory(folder.path / "history");
-		screen->build(*window);
+		opened.setHistoryDirectory(folder.path / "history");
+		opened.build(*window);
 		window->render();
-		port = screen->listenEditor(executor);
+		port = opened.listenEditor(executor);
 	}
 	~Loop() { screen.reset(); } // before the window
 	Loop(const Loop&) = delete;
 	Loop& operator=(const Loop&) = delete;
+
+	/// @brief The screen, while it lives.
+	/// @return It.
+	[[nodiscard]] affresco::Screen& shown() {
+		if(!screen.has_value()) throw std::logic_error("the screen is gone");
+		return *screen;
+	}
 
 	/// @brief Runs the main thread a little: the server's tasks, and a frame.
 	void step() {
@@ -301,9 +309,9 @@ std::string commitObject(const Loop& loop, const std::string& id) {
 
 TEST_CASE("nrepl_loop: before the person's yes, nothing of the app is read or changed") {
 	Loop loop;
-	const std::string document = loop.screen->documentJson();
-	const std::string state = loop.screen->stateJson();
-	const std::size_t commits = loop.screen->log().size();
+	const std::string document = loop.shown().documentJson();
+	const std::string state = loop.shown().stateJson();
+	const std::size_t commits = loop.shown().log().size();
 	Client client(loop);
 	const std::vector<Value> described = client.answer(client.send({{"op", text("describe")}}));
 	CHECK(described.front().find("ops") != nullptr);
@@ -315,9 +323,9 @@ TEST_CASE("nrepl_loop: before the person's yes, nothing of the app is read or ch
 	CHECK(client.messagesOf(id).empty()); // no value: it waits for the person
 	CHECK(showsLabel(loop.window->confirmation(), kTitle));
 	CHECK(shownText(loop.window->confirmation()) == "state.title");
-	CHECK(loop.screen->documentJson() == document);
-	CHECK(loop.screen->stateJson() == state);
-	CHECK(loop.screen->log().size() == commits);
+	CHECK(loop.shown().documentJson() == document);
+	CHECK(loop.shown().stateJson() == state);
+	CHECK(loop.shown().log().size() == commits);
 }
 
 TEST_CASE("nrepl_loop: a yes answers what waited, and an evaluation is the person's change") {
@@ -329,14 +337,14 @@ TEST_CASE("nrepl_loop: a yes answers what waited, and an evaluation is the perso
 	CHECK(Client::first(client.answer(waiting), "value") == "\"Loop\"");
 	CHECK(loop.window->confirmation() == nullptr);
 	CHECK(loop.hello() == "Hello");
-	const std::size_t commits = loop.screen->log().size();
+	const std::size_t commits = loop.shown().log().size();
 	const std::vector<Value> changed = client.answer(client.send(evalOf(
 	    "(defview greeting \"Says hello.\" []\n  `(label#hello :text \"Changed\"))", loop.pathOf("views.lisp"))));
 	CHECK(Client::first(changed, "err").empty());
 	CHECK(Client::first(changed, "value") == "greeting");
 	loop.window->render();
 	CHECK(loop.hello() == "Changed");
-	const std::vector<affresco::CommitInfo> log = loop.screen->log();
+	const std::vector<affresco::CommitInfo> log = loop.shown().log();
 	REQUIRE(log.size() == commits + 1U);
 	CHECK(log.back().author == "user");
 	CHECK(log.back().message.ends_with("(editor)"));
@@ -346,16 +354,16 @@ TEST_CASE("nrepl_loop: a yes answers what waited, and an evaluation is the perso
 
 TEST_CASE("nrepl_loop: a no ends the request with not-paired, closes the connection, and lands nothing") {
 	Loop loop;
-	const std::size_t commits = loop.screen->log().size();
+	const std::size_t commits = loop.shown().log().size();
 	Client client(loop);
-	const std::string id = client.send(evalOf("(set \"state.title\" \"Mine\")"));
+	const std::string id = client.send(evalOf(R"((set "state.title" "Mine"))"));
 	REQUIRE(client.until([&] { return loop.window->confirmation() != nullptr; }));
 	press(loop, "Refuse");
 	const std::vector<Value> answer = client.answer(id);
 	CHECK(Client::hasStatus(answer, "not-paired"));
 	CHECK(client.until([&] { return client.closed(); }));
-	CHECK(loop.screen->log().size() == commits);
-	CHECK(loop.screen->stateJson().find("Mine") == std::string::npos);
+	CHECK(loop.shown().log().size() == commits);
+	CHECK(loop.shown().stateJson().find("Mine") == std::string::npos);
 }
 
 TEST_CASE("nrepl_loop: every connection is asked with its own text, and three refusals end the asking") {
@@ -392,15 +400,15 @@ TEST_CASE("nrepl_loop: while a proposal is previewed, an evaluation lands nothin
 	Loop loop;
 	Client client(loop);
 	pair(loop, client);
-	const affresco::RevisionResult proposed = loop.screen->versions().propose(
+	const affresco::RevisionResult proposed = loop.shown().versions().propose(
 	    {{"author", "agent/x"}, {"message", "a title"}, {"set", {{"/state/title", "Proposed"}}}});
 	REQUIRE(proposed.proposal != 0);
-	REQUIRE_FALSE(loop.screen->versions().preview(proposed.proposal).has_value());
-	const std::size_t commits = loop.screen->log().size();
-	const std::vector<Value> answer = client.answer(client.send(evalOf("(set \"state.title\" \"Mine\")")));
+	REQUIRE_FALSE(loop.shown().versions().preview(proposed.proposal).has_value());
+	const std::size_t commits = loop.shown().log().size();
+	const std::vector<Value> answer = client.answer(client.send(evalOf(R"((set "state.title" "Mine"))")));
 	CHECK_FALSE(Client::first(answer, "err").empty());
-	CHECK(loop.screen->log().size() == commits);
-	CHECK(loop.screen->stateJson().find("Mine") == std::string::npos);
+	CHECK(loop.shown().log().size() == commits);
+	CHECK(loop.shown().stateJson().find("Mine") == std::string::npos);
 }
 
 TEST_CASE("nrepl_loop: an error names its line in the editor's buffer") {
@@ -420,7 +428,7 @@ TEST_CASE("nrepl_loop: load-file lands what changed, in the file the editor name
 	Loop loop;
 	Client client(loop);
 	pair(loop, client);
-	const std::size_t commits = loop.screen->log().size();
+	const std::size_t commits = loop.shown().log().size();
 	std::string changed = kViews;
 	changed.replace(changed.find("[] 1)"), 5, "[] 2)");
 	const std::vector<Value> answer = client.answer(client.send({{"op", text("load-file")},
@@ -428,10 +436,10 @@ TEST_CASE("nrepl_loop: load-file lands what changed, in the file the editor name
 	                                                             {"file-path", text(loop.pathOf("views.lisp"))},
 	                                                             {"file-name", text("views.lisp")}}));
 	CHECK(Client::first(answer, "err").empty());
-	REQUIRE(loop.screen->log().size() == commits + 1U);
-	const affresco::json document = affresco::json::parse(loop.screen->documentJson());
-	CHECK(loop.screen->versions().programAuthors()["views.lisp"]["helper"] == "user");
-	CHECK(loop.screen->versions().programAuthors()["views.lisp"]["greeting"] == "file");
+	REQUIRE(loop.shown().log().size() == commits + 1U);
+	const affresco::json document = affresco::json::parse(loop.shown().documentJson());
+	CHECK(loop.shown().versions().programAuthors()["views.lisp"]["helper"] == "user");
+	CHECK(loop.shown().versions().programAuthors()["views.lisp"]["greeting"] == "file");
 	static_cast<void>(document);
 }
 
@@ -472,7 +480,7 @@ TEST_CASE("nrepl_loop: the screen destroyed with a connection open and a questio
 }
 
 TEST_CASE("nrepl_loop: a screen written as JSON takes no editor") {
-	Folder folder;
+	const Folder folder;
 	folder.write("plain.screen.json",
 	             R"({"format": "affrescoui-screen", "version": 2, "root": {"type": "label", "id": "x", "text": "x"}})");
 	ManualClock clock;
