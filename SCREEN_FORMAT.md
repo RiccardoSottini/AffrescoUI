@@ -1237,6 +1237,21 @@ a keymap that owns the keyboard while its node has the focus.
 object with both step keys and command keys is an error. `enablement` is checked only when a key, a menu or a palette
 runs the command; a `run` step and the application's code ignore it.
 
+**Arguments:** `arguments` is a list of names, or an object from a name to its type, which a peer reads and its runs
+are checked against (Commands as tools):
+
+```json
+"moveCard": { "title": "Move card", "description": "Moves a card to another column.",
+	"arguments": { "card": { "type": "string", "description": "The card's id" },
+	               "to": { "enum": ["todo", "doing", "done"] } },
+	"do": [{ "run": "move", "with": { "id": "{{card}}", "status": "{{to}}" } }] }
+```
+
+A type is one of Typed state's, with `description` and `default` (which must match it). At most 32 arguments, each
+named with 1 to 64 letters, digits, `-` and `_`. For a command whose `do` runs a function of the program, each typed
+argument must be one of the function's parameters. Each is checked when the document is read and on every revision,
+and the error names `actions.<name>.arguments.<argument>`.
+
 **Chords and bindings:** a key may be a chord of up to 4 presses separated by spaces: `"mod+k mod+s"`. A key's value
 is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 } }` (`with` gives the steps local
 variables), or a list of bindings, where the first that applies runs.
@@ -1912,6 +1927,10 @@ line:
 | peer → | `getPicks` (no fields; answers the elements the person pointed at and has not sent or removed, oldest first, 16 at most: pick records of each one's node, type, JSON Pointer, bounds, bindings as written and source, never a value from the state), `getSource` (`at`: a node's id, a JSON Pointer to a node, or a definition's address; answers the definition or file that writes it, with its notation and its text of 16 KiB at most). A peer whose reads are limited is refused both, and a host that keeps no picks or sources rejects them |
 | peer → | `convert` (`notation`: `"lisp"` or `"json"`, and `text` to read or `value` to write; a mistake is rejected with its line and column): how a peer reads and writes the Lisp notation, while revisions and the history stay JSON |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
+| peer → | `getCommands` (`filter`?, `all`?), `runCommand` (`command`, `arguments`?, `evidence`?: "state", "picture" or "none", `scale`?), `undoRun` (`run`): the app's commands as tools (Commands as tools) |
+| → peer | answers to them: `commands` (a list of `{name, title, category, description, arguments, enabled, run, reason?, key?}`, `run` being "allow", "ask", "person" or "deny" for this peer now), `ran` (`run`, `command`, `changed`, `records`, `errors`, `failed`, `undoable`, and with a picture `region`, `picture`, `scale`), `waiting` (`run`, `reason`, `expires`), `undone` or `rejected`; after a wait, `ran` or `rejected` with `run` and the `id` of its `runCommand` |
+| reviewer → | `allowRun` (`run`, `always`?, `for`?), `denyRun` (`run`, `reason`?), `revokeRun` (`rule`) |
+| → all peers | `review` also carries `runs` and `runGrants` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
 | → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?, `picks`?: at most 4 pick records) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
@@ -1926,6 +1945,9 @@ refusal in a row is logged:
 | Messages of any kind | 100 a second, 200 at once | `error` "too many messages", without `id` |
 | Changes (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once | `rejected` "too many changes", with `id` |
 | Pictures (`render`), apart from the changes | 120 a minute, 30 at once | `rejected` "too many pictures", with `id` |
+| Runs (`runCommand`) | 120 a minute, 30 at once | `rejected` "too many runs", with `id` |
+| A run's `arguments` | 64 KiB | `rejected`, naming the size |
+| Runs that wait | 16 a screen, 4 a channel, 120 seconds each | `rejected` "too many runs are waiting" |
 | Sent to the peer and not yet read by it (a socket peer) | 64 MiB | the peer is disconnected |
 
 On a socket, the host also asks the operating system which user the program on the other end runs as, and refuses a
@@ -1970,6 +1992,67 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
   waits for review as any other.
 - Limits: a request is at most 16 KiB; a reply's `text` and `error` are cut to 64 KiB, `from` to 256 bytes; a reply
   to an id the screen didn't send is for the other peers, and fields of the wrong type are ignored.
+
+### Commands as tools
+A peer can use an app as well as change it: it lists the app's commands and runs one, with arguments. Only commands
+are tools (actions with a `title` and a `do`: Commands and keybindings), never plain actions or functions.
+
+**The list:** `getCommands` answers each command, in the order of the `commands` variable, at most 1,024:
+`{name, title, category, description, arguments, enabled, run, reason?, key?}`. The title and description are the
+translated ones, cut at 128 and 512 bytes. `arguments` is always an object of types there; a name without a type
+maps to `{}`. `run` says what a run by this peer would meet now (`allow`, `ask`, `person` or `deny`), and `reason`
+why, e.g. a command that reaches a control step.
+
+**What a command reaches** is worked out from the document, never from what a peer sends: its steps, each `run` of a
+name written out (the document's action, else the program's function, else the application's own action), each
+`lisp` step's function and the definitions it uses, advice on them, and the hooks of the hook points they run. It
+reaches control when any of these holds a control or a review step, a `run` of a computed name, an action the
+document doesn't define, or a component that runs computed actions; and when the program doesn't build. It lists
+each `invoke`, `request` or `subscribe` of a method that writes or runs, as a reviewer reads it (`uses files.write
+(...)`), and whether a step writes records (`insert`, `update`, `delete`, `undoData`, `redoData`, `importCsv`).
+
+**The arguments a peer sends** are checked against the command's, in this order: an object
+(`move-card: arguments must be an object, like {"card": "…"}`); only declared names (`move-card: no argument 'colum'
+(it takes card, to)`); each value of its type, without quoting it (`move-card: to: expected one of todo, doing,
+done`); a missing one takes its `default`, else null, unless its type doesn't allow null (`move-card: card is
+missing`). A command that declares no arguments takes only `{}`.
+
+**How a run is judged:** it is refused when the screen has no window, draws a picture or previews a proposal; when
+the name is no command; when the arguments are wrong; when `enablement` is false. Then, the first that applies:
+
+| | The run |
+|---|---|
+| A `deny` rule names it | is denied |
+| It reaches a control or a review step | is denied: a peer never runs one |
+| The mode is `plan` | is denied (`acceptEdits` changes nothing for runs) |
+| It writes or runs through a service | waits for the person, each time, in the window's own question |
+| The runner is a reviewer | is allowed |
+| An `ask` rule names it | waits for a yes (the `runs` variable, `allowRun` and `denyRun`) |
+| An `allow` rule or a grant names it | is allowed |
+| The screen has no `permissions` section | is allowed |
+| Anything else | waits for a yes |
+
+A run always executes as its runner, never as the person, even after a yes: it can't approve, and reaches only what
+its runner may. Its changes and records go into the history as the runner's; `undoRun` takes them back, refused if
+something changed them since. The command function's return value isn't sent back. A host can switch runs off.
+
+**What comes back:** `ran` with what changed (`changed`, `records`), the errors, whether it failed and can be undone,
+and with `evidence: "picture"` a picture of the region it changed; `waiting` with why and when the question expires
+(a run that waits is answered later with `ran` or `rejected`); or `rejected` with why. The limits are in the table
+above.
+
+**Run rules** live in `permissions.run`, in lists of their own that no change rule reads:
+
+```json
+"permissions": { "allow": ["studio"], "ask": ["agent(/actions)"], "reviewers": ["studio"],
+	"run": { "allow": ["agent(moveCard)", "agent(card.*)"], "ask": ["agent"], "deny": ["*(clearBoard)"] } }
+```
+
+A rule is `author` or `author(command)`: the author is `*`, a channel or a full name, and the command a name or a
+prefix ending in `*`. Only `allow`, `ask` and `deny`, at most 64 rules a list and 256 bytes a rule. A `role:` author
+isn't supported yet, and a pattern starting with `/` or `#` is refused (`run rules name commands, like
+agent(moveCard)`). An `allowRun` with `always` adds a grant, shown as `agent(run:moveCard)`. `affrescoui check` warns
+about a rule naming a command the document doesn't have.
 
 ### Pointing at a node
 A person can point at an element and ask for a change to it: a `pick` step lets them pick one, and `ask` sends what

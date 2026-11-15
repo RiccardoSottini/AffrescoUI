@@ -4,6 +4,7 @@
 #include "RulesControl.hpp"
 
 #include "CheckerShapes.hpp"
+#include "ContributionPoints.hpp"
 #include "Library.hpp"
 #include "Limits.hpp"
 #include "ProgramRules.hpp"
@@ -534,6 +535,24 @@ std::vector<std::string> controlsIn(const json& doc, const std::set<std::string,
 	}
 	std::ranges::sort(found);
 	return found;
+}
+
+ControlFindings controlFindings(const json& doc, const std::vector<std::string>& names) {
+	ControlFindings result;
+	if(!doc.is_object() || !doc.contains("actions") || !doc["actions"].is_object()) return result;
+	static const json none;
+	const std::set<std::string, std::less<>> granted = grantedActions(doc);
+	result.program = settledReach(doc, granted);
+	result.control = controlActions(doc, granted, result.program);
+	const std::set<std::string> runners = runningComponents(doc, result.control, result.program);
+	const ControlScan scan(doc["actions"], result.control, runners,
+	                       doc.contains("components") ? doc["components"] : none, result.program);
+	for(const std::string& name : names)
+		if(const json* steps = scan.action(name)) {
+			std::vector<std::string>& found = result.findings[name];
+			scan.walk(*steps, "actions." + name, Part::Steps, found);
+		}
+	return result;
 }
 
 } // namespace affresco::format

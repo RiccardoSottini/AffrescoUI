@@ -58,7 +58,7 @@ an error. Each definition is versioned on its own.
 | `(defstate name value "doc" :type schema?)` | A state key | `state.name` (and `stateTypes.name`). A value already in the document wins |
 | `(defcomputed name "doc" form)` | A derived value | `computed.name`, as a binding |
 | `(defn name "doc" [params] body)` | A function | Nothing: handlers, bindings and other functions call it |
-| `(defcommand name "doc" :title ~(t "k") ... [params] body)` | A command: a function plus its palette entry | `actions.name`, whose `do` runs the function |
+| `(defcommand name "doc" :title ~(t "k") ... [params] body)` | A command: a function plus its palette entry. `:arguments {:card {:type string :description "..."} :to {:enum [todo doing done]}}` types its parameters for the agents that run it, each key one of them | `actions.name`, whose `do` runs the function; `arguments` is the map, else the parameters' names |
 | `(defkey "chord" "doc"? what)` | A shortcut | `keys.chord` |
 | `(defcustom name value "doc" :type t :title ~(t "k"))` | A setting, also a global | `settings.name` |
 | `(defstyle name "doc" node)` | A style | `styles.name` |
@@ -176,6 +176,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | A new definition | `{"add": {"/program/board.lisp/new-view": "(defview new-view ...)"}}` |
 | Judging | The new source is built, and the rules judge what it builds, as for JSON. A build that fails is refused |
 | Authority | Code runs with the least authority of the authors that led to it; an agent's code stays the agent's |
+| Running commands | Which commands an agent may run: `:run {:allow ["agent(move-card)"] :deny ["*(clear-done)"]}` in `:permissions` |
 
 ## Connecting an editor
 
