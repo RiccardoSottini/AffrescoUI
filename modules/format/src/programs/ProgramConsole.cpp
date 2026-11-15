@@ -169,6 +169,10 @@ std::vector<std::string> RuntimeConsole::files() const {
 	return out;
 }
 
-std::optional<std::string> RuntimeConsole::unshowable(std::string_view text) const { return hiddenCharacter(text); }
+std::optional<std::string> RuntimeConsole::unshowable(std::string_view text) const {
+	// Too long to evaluate is too long to show: the person isn't asked to read a text that would be refused anyway
+	if(text.size() > Programs::maxEvaluatedBytes) return "the text is longer than a program's file may be";
+	return hiddenCharacter(text);
+}
 
 } // namespace affresco::format

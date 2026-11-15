@@ -276,4 +276,9 @@ TEST_CASE("lisp_console: names and what is known of one") {
 	CHECK(std::ranges::find(files, "tools.lisp") != files.end());
 	CHECK(app.runtime->console().unshowable("a​b").has_value());
 	CHECK_FALSE(app.runtime->console().unshowable("plain").has_value());
+	// Too long to evaluate is too long to ask about: the question never opens on it
+	const std::string longest(std::size_t{4} << 20U, 'a');
+	CHECK_FALSE(app.runtime->console().unshowable(longest).has_value());
+	CHECK(app.runtime->console().unshowable(longest + "a").has_value());
+	CHECK(app.runtime->console().evaluate({.text = longest + "a"}).error.has_value());
 }
