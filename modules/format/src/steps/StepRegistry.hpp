@@ -157,6 +157,9 @@ void registerAssistantSteps(StepRegistry& registry);
 /// @brief Registers the attach step: attach, the person's files as attachments (AttachSteps.cpp, in assistant/).
 /// @param registry The registry.
 void registerAttachSteps(StepRegistry& registry);
+/// @brief Registers the pick steps: pick, the person pointing at an element, and unpick (PickSteps.cpp, in pick/).
+/// @param registry The registry.
+void registerPickSteps(StepRegistry& registry);
 /// @brief Registers the folder step: chooseFolder (FolderSteps.cpp).
 /// @param registry The registry.
 void registerFolderSteps(StepRegistry& registry);

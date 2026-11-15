@@ -105,6 +105,10 @@ void applyTokens(TextEditor& editor, const json& values, const std::string& path
 
 } // namespace
 
+void settleCodeKeys(TextEditor& editor) {
+	if(auto* code = dynamic_cast<LanguageEditor*>(&editor)) code->settleGoTo();
+}
+
 void applyCodeKeys(TextEditor& editor, const json& values, const std::string& path) {
 	applyTokens(editor, values, path);
 	auto* code = dynamic_cast<LanguageEditor*>(&editor);

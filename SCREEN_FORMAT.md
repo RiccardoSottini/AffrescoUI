@@ -1370,6 +1370,8 @@ Native functions, services and servers, sign-in, files, terminals, peers, the ag
 | `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words, with `options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
 | `cancelAsk` | `{ "cancelAsk": "{{state.asked}}" }`: stops requests of `ask` still in progress (an id or a list): they become `cancelled`, the agents are told, and their later replies are dropped. A control step |
 | `attach` | `{ "attach": { "accept": ["audio/*"] }, "into": "state.files" }`: the person's files as attachments (Assets). A control step |
+| `pick` | `{ "pick": "node", "hint": "Point at what to change", "into": "state.pointed" }`: after the person's own press, they point at an element; the engine keeps its record (where it is written, never its data) and runs `onDone` with `result`, or `onCancel` (Pointing at a node). A control step |
+| `unpick` | `{ "unpick": "{{state.pointed.id}}" }`: forgets pick records (an id or a list); an unknown id is ignored. A control step |
 <!-- end generated -->
 
 ### Control steps and paths
@@ -1898,13 +1900,14 @@ line:
 | → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect. For a program, `document` is what it builds with `program` in it, and `source` the document as written (not to a reader whose reads are limited: "Data rules") |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
-| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `done` |
+| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `picks` (`picks`), `source` (`source`), `done` |
 | peer → | `revision` (compact edits or `patch`, `proposal`?, `assets`?, `run`?), `revert` / `restore` (`revision`), `undo` |
 | peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `fileChanges` (the same, plus `notation` and `file`: VERSION_CONTROL.md, "The changes, file by file"), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
+| peer → | `getPicks` (no fields; answers the elements the person pointed at and has not sent or removed, oldest first, 16 at most: pick records of each one's node, type, JSON Pointer, bounds, bindings as written and source, never a value from the state), `getSource` (`at`: a node's id, a JSON Pointer to a node, or a definition's address; answers the definition or file that writes it, with its notation and its text of 16 KiB at most). A peer whose reads are limited is refused both, and a host that keeps no picks or sources rejects them |
 | peer → | `convert` (`notation`: `"lisp"` or `"json"`, and `text` to read or `value` to write; a mistake is rejected with its line and column): how a peer reads and writes the Lisp notation, while revisions and the history stay JSON |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
-| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
+| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?, `picks`?: at most 4 pick records) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
 Requests may carry an `"id"`; answers repeat it.
 
@@ -1939,7 +1942,9 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
   does. It is a control step. With no peer connected it fails at once: `ask:reply` runs with the error
   `no agent is connected`. `"attachments": "{{state.attached}}"` sends
   what the person attached (an `attach` step's list, or ids) as `[{id, name, type, size, duration?, width?,
-  height?}]`, never the bytes.
+  height?}]`, never the bytes. `"picks": ["{{state.pointed.id}}"]` sends what the person pointed at (a `pick` step's
+  record, or ids; at most 4) as the engine's records, then forgets them (Pointing at a node). A peer whose reads are
+  limited gets the request without `picks`.
 - `options` (an object, at most 4 KiB as JSON) goes with the request as it is, for the agents to read, e.g.
   `{ "ask": "{{text}}", "options": { "model": "{{state.model}}" } }`: the model the person chose. The screen gives it
   no meaning; an agent ignores what it doesn't know (the examples' agent uses `model` if its provider lists it).
@@ -1959,6 +1964,47 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
   waits for review as any other.
 - Limits: a request is at most 16 KiB; a reply's `text` and `error` are cut to 64 KiB, `from` to 256 bytes; a reply
   to an id the screen didn't send is for the other peers, and fields of the wrong type are ignored.
+
+### Pointing at a node
+A person can point at an element and ask for a change to it: a `pick` step lets them pick one, and `ask` sends what
+they picked with their words.
+
+```json
+"keys": { "f9": [{ "pick": "node", "hint": "Point at what to change", "into": "state.pointed" }] },
+"actions": {
+	"send": [{ "ask": "{{state.draft}}", "picks": ["{{state.pointed.id}}"] }, { "set": "state.pointed", "to": null }]
+}
+```
+
+- `pick` starts only from the person's own press (a click, a key); a timer, a reply or a peer's message can't start
+  one, and neither can a revision: it is a control step. Without a window (a check, a preview) nothing happens.
+- While it runs, the panel under the pointer is outlined with a caption, its type, its id and, for a program, the
+  definition that wrote it (`label #cardTitle · card-title`); `hint` (at most 200 bytes) is shown at the top. A click
+  picks, Escape or a right click cancels, and the keyboard does all the mouse does (ACCESSIBILITY.md, "Pointing with
+  the keyboard"). One pick at a time.
+- A pick offers the nearest panel a node built, and describes the nearest node a revision can address: one with an
+  id, or the root. Its record goes `into` a state path and `onDone` runs with `result`; a cancel runs `onCancel`.
+- The engine keeps the records (at most 16, the oldest going first) until `unpick` forgets them or `ask` sends them.
+  A document names one by its `id` only: what agents get is the engine's record, never what a document wrote.
+- **A record says where something is written, never what the app's data is.** It holds no value from the state, no
+  record and no text a panel shows: bindings as written, not as evaluated. At most 4 KiB as JSON.
+
+| Field | What it holds |
+|---|---|
+| `id` | `pick-<n>`, counted from 1 in each run |
+| `revision`, `proposal`? | The revision shown, and the proposal previewed if one is |
+| `node`, `type`, `pointer` | The node as a revision addresses it (`#id`), its type, and the JSON Pointer where it is written |
+| `bounds` | `[x, y, width, height]` of its panel, in the window's pixels |
+| `bindings`, `handlers` | Its properties written with `{{...}}`, as written (each cut to 200 bytes), and its event names; 16 each |
+| `repeat`? | The repeats it is an item of, outermost first, the innermost 4: `{for, in, index}`; never the item itself |
+| `component`? | `{name, kit, usedAt}`: the component it lies in and the node that uses it; `kit` true for the library's |
+| `exact`, `hitType`? | Whether the panel clicked is the node's own; if not, the type of the one clicked |
+| `source` | Where it is written: for a program, the definition that built it `{address, kind, file, line, column, shared}`, the address `/program/<file>/<name>`; for a JSON document `{address, file?, shared?}` |
+
+An agent reads the records not yet sent with `getPicks`, and where a node is written with `getSource` (a node's id,
+a JSON Pointer, or a definition's address): the definition's exact text for a program, the node printed as JSON for a
+JSON document, at most 16 KiB (`cut` true when cut). A peer whose reads are limited is refused both
+(`Screen::picks()` and `Screen::source()` give the same to the host).
 
 ### Assets
 A revision can bring files: a picture an agent drew (an SVG it writes), a sound it described (a `.sound.json`), or a
@@ -2043,7 +2089,8 @@ own scenarios. Schema: [`schema/affrescoui-scenarios.schema.json`](schema/affres
 Each scenario starts from the screen as loaded (no saved history or state) and plays alone: its channels find no host,
 and the clock moves only when a step waits, so it plays the same way on any machine. It runs headless; only a picture
 needs OpenGL. A scenario may name its own `screen`, and `screens` gives the folder they are in (default: the file's).
-`scale` (1 to 4) sets the pixels per window unit of its pictures. `note` is allowed on the file, a scenario and a step.
+`scale` (1 to 4, in quarters: 1.25 is a display set to 125%) sets the pixels per window unit of its pictures. `note` is
+allowed on the file, a scenario and a step.
 
 | Step | Does |
 |---|---|
@@ -2235,7 +2282,7 @@ converted to JSON before it is submitted:
 ## The Lisp language
 
 Besides the notation, `.lisp` text can be a **program**, in a language with a runtime (RFC 0005, `modules/lisp/README.md`):
-Clojure's syntax, Emacs's vocabulary. A screen, an include or an app's entry that is a program loads, builds and shows what it
+a sandboxed subset of Clojure, with its own definitions for what an app holds. A screen, an include or an app's entry that is a program loads, builds and shows what it
 builds; its definitions are versioned (below), and handlers and bindings call its functions ("Running", below).
 `affrescoui run` prints what a program builds, and `affrescoui repl` tries the language.
 
@@ -2292,10 +2339,16 @@ builds
   `~` drops into code: `(label :text ~(str "a" 1))`. A word the language runs isn't a node type here: `(not x)` gives
   `"not" is not a node type; to run it, write ~(not ...); for a node of that type, write (node :type not ...)`, and the printer
   writes such a type that way. `list` is a node type, and stays one.
-- **The language:** `def defn defmacro fn let if do when cond and or quote loop recur try catch throw`, backquote with `~` and
-  `~@`, lexical closures, proper tail calls, destructuring of vectors and maps, docstrings on every definition, and Clojure's names
-  for functions (`map filter reduce find first rest cons conj assoc dissoc get get-in merge keys vals count str range apply not
-  not= = < > <= >= + - * / mod` and similar: `modules/lisp/README.md`). `nil`, booleans, numbers, strings, vectors and maps are JSON's.
+- **The language:** Clojure's forms and names, meaning what they mean there: `def defn defmacro fn let if do when cond and or
+  quote loop recur try catch finally throw`, functions of several parameter lists, the everyday macros (`-> ->> if-let when-let
+  case condp for doseq letfn`...), backquote with `~` and `~@`, lexical closures, proper tail calls, destructuring of vectors and
+  maps, docstrings on every definition, Clojure's functions (`map filter reduce find first rest cons conj assoc dissoc get get-in
+  merge keys vals count str range apply partition group-by`...), `str/` for `clojure.string`, `format`, and the reader's `#(...)`,
+  `#?(...)`, `#_` and `^metadata`. What differs does so on purpose, each with what to write instead
+  (`modules/lisp/reference/differences.md`): nothing changes a value, nothing is lazy, a map's keys are text (a keyword and a
+  string of the same text are one value), there are no characters (`\a` reads as `"a"`), no regular expressions and no
+  metadata. How much of Clojure's own test suite it passes is measured in `modules/lisp/CONFORMANCE.md`.
+  `nil`, booleans, numbers, strings, vectors and maps are JSON's (`1/2` reads as `0.5`, `12N` as `12`).
   A whole number that is a double (`13.0`) stays one, and is an index or a count wherever an integer is (`(get v 1.0)`), and `str`
   shows it `13`, as an expression's text does.
   It has no file, process, network, clock or randomness of its own, and building is pure: the same source gives the same tree. A

@@ -5,6 +5,8 @@
 
 #include <affresco/notation/Lexer.hpp>
 
+#include <algorithm>
+#include <ranges>
 #include <string>
 #include <utility>
 
@@ -82,13 +84,24 @@ void Compiler::formBackquote(const Value& form, Position /*position*/) {
 	liveBindings_ = live;
 }
 
-void Compiler::noteTruthTest(const Value& test) {
+void Compiler::noteTruthTest(const Value& test, int depth) {
+	if(depth > maxCompileDepth)
+		fail(test, "nested too deeply to compile, more than " + std::to_string(maxCompileDepth) + " levels");
 	const Value word = headWord(test) == "not" && test.count() == 2 ? test.at(1) : test;
 	if(headWord(test) == "and" || headWord(test) == "or") {
-		for(std::size_t at = 1; at < test.count(); ++at) noteTruthTest(test.at(at));
+		for(std::size_t at = 1; at < test.count(); ++at) noteTruthTest(test.at(at), depth + 1);
 		return;
 	}
 	if(word.kind() != Kind::Symbol || context_.library) return;
+	if(const auto local = std::ranges::find(current_->locals | std::views::reverse, word.text(), &Local::name);
+	   local != (current_->locals | std::views::reverse).end()) {
+		if(local->path.kind() == Kind::Symbol) noteTruthTest(local->path, depth + 1);
+		return;
+	}
+	noteTruthPath(word, test);
+}
+
+void Compiler::noteTruthPath(const Value& word, const Value& test) {
 	const std::string_view name = word.text();
 	const std::size_t dot = name.find('.');
 	if(dot == std::string_view::npos || resolve(*current_, name.substr(0, dot)).kind != Variable::Kind::None) return;
@@ -184,6 +197,10 @@ void Compiler::bindings(const Value& bindings) {
 		const std::uint32_t slot = newSlot();
 		emit(Op::SetLocal, slot);
 		destructure(bindings.at(at), slot);
+		// (if-let [m state.mode] ...) tests its own name: the path it holds is what is tested (noteTruthTest())
+		if(const Value& value = bindings.at(at + 1);
+		   bindings.at(at).kind() == Kind::Symbol && value.kind() == Kind::Symbol && value.text().contains('.'))
+			current_->locals.back().path = value;
 	}
 }
 
@@ -241,29 +258,76 @@ void Compiler::formFn(const Value& form, Position /*position*/) {
 	emit(Op::Closure, static_cast<std::uint32_t>(current_->code->functions.size() - 1));
 }
 
-void Compiler::formTry(const Value& form, Position position) {
-	if(form.count() < 2 || headWord(form.at(form.count() - 1)) != "catch")
-		fail(form, "try ends with (catch name form ...)");
-	const Value handler = form.at(form.count() - 1);
-	if(handler.count() < 2 || handler.at(1).kind() != Kind::Symbol) fail(handler, "catch takes a name to bind");
-	const std::uint32_t begin = emit(Op::TryBegin);
-	if(form.count() == 2) emitConstant({});
-	for(std::size_t at = 1; at + 1 < form.count(); ++at) {
-		compile(form.at(at), {});
-		if(at + 2 < form.count()) emit(Op::Pop);
+void Compiler::compileForms(const Value& form, std::size_t from, std::size_t end, Position position) {
+	if(from >= end) emitConstant({});
+	for(std::size_t at = from; at < end; ++at) {
+		compile(form.at(at), at + 1 < end ? Position{} : position);
+		if(at + 1 < end) emit(Op::Pop);
 	}
+}
+
+void Compiler::formTry(const Value& form, Position position) {
+	std::size_t end = form.count();
+	const Value cleanup = end > 1 && headWord(form.at(end - 1)) == "finally" ? form.at(--end) : Value();
+	const Value handler = end > 1 && headWord(form.at(end - 1)) == "catch" ? form.at(--end) : Value();
+	if(handler.isNil() && cleanup.isNil())
+		fail(form, "try ends with (catch name form ...), (finally form ...), or both");
+	if(cleanup.isNil()) {
+		tryCatch(form, end, handler, position);
+		return;
+	}
+	// The body, and its catch, in a try of their own whose handler runs the finally and raises the condition again
+	const std::uint32_t begin = emit(Op::TryBegin, 0, 1);
+	if(handler.isNil()) compileForms(form, 1, end, {});
+	else tryCatch(form, end, handler, {});
 	emit(Op::TryEnd);
-	const std::uint32_t end = emit(Op::Jump);
+	compileBody(cleanup, 1, {});
+	emit(Op::Pop); // what finally gives isn't the try's value
+	const std::uint32_t done = emit(Op::Jump);
+	patch(begin);
+	const std::uint32_t slots = current_->nextSlot;
+	const std::uint32_t value = newSlot();
+	const std::uint32_t message = newSlot();
+	const std::uint32_t thrown = newSlot();
+	emit(Op::SetLocal, thrown);
+	emit(Op::SetLocal, message);
+	emit(Op::SetLocal, value);
+	compileBody(cleanup, 1, {});
+	emit(Op::Pop);
+	emit(Op::Local, value);
+	emit(Op::Local, message);
+	emit(Op::Local, thrown);
+	place_ = form.place();
+	emit(Op::Throw, 0, 1);
+	current_->nextSlot = slots;
+	patch(done);
+}
+
+void Compiler::tryCatch(const Value& form, std::size_t end, const Value& handler, Position position) {
+	// (catch Exception e ...), (catch js/Error e ...), (catch :default e ...): Clojure's class, and every one matches
+	std::size_t name = 1;
+	if(handler.count() > 2 && handler.at(2).kind() == Kind::Symbol) {
+		const Value written = handler.at(1);
+		const std::string_view text = written.kind() == Kind::Symbol ? written.text() : "";
+		const bool type =
+		    !text.empty() && ((text.front() >= 'A' && text.front() <= 'Z') || text.contains('/') || text.contains('.'));
+		if(written.kind() == Kind::Keyword || type) name = 2;
+	}
+	if(handler.count() <= name || handler.at(name).kind() != Kind::Symbol) fail(handler, "catch takes a name to bind");
+	const std::uint32_t begin = emit(Op::TryBegin);
+	compileForms(form, 1, end, {});
+	emit(Op::TryEnd);
+	const std::uint32_t done = emit(Op::Jump);
 	patch(begin);
 	const std::size_t locals = current_->locals.size();
 	const std::uint32_t slots = current_->nextSlot;
 	const std::uint32_t slot = newSlot();
 	emit(Op::SetLocal, slot);
-	current_->locals.push_back({handler.at(1).text(), slot});
-	compileBody(handler, 2, position);
+	current_->locals.push_back({handler.at(name).text(), slot});
+	compileBody(handler, name + 1, position);
 	current_->locals.resize(locals);
 	current_->nextSlot = slots;
-	patch(end);
+	patch(done);
 }
 
 void Compiler::formThrow(const Value& form, Position /*position*/) {
@@ -282,12 +346,22 @@ void Compiler::formMap(const Value& form, Position /*position*/) {
 	emit(Op::BuildMap, static_cast<std::uint32_t>((form.count() - 1) / 2));
 }
 
+namespace {
+
+/// @brief Tells whether a list's head is that of a literal the reader leaves to be made when it runs: a map with a key
+/// that isn't text, `(%map ...)`, or a set with a form in it, `(%set ...)`.
+/// @param head The head.
+/// @return true if so.
+bool isComputedLiteral(std::string_view head) { return head == "%map" || head == "%set"; }
+
+} // namespace
+
 bool Compiler::quasiRuns(const Value& form, int level, int depth) {
 	if(depth > maxCompileDepth)
 		fail(form, "a template nested more than " + std::to_string(maxCompileDepth) + " levels");
 	machine_.spend(1);
 	const std::string_view head = headWord(form);
-	if(head == "%map") return true; // its keys are worked out, or refused, when it runs
+	if(isComputedLiteral(head)) return true; // its keys or items are worked out when it runs
 	if(head == "unquote" || head == "unquote-splicing") {
 		if(level == 1) return true;
 		return form.count() == 2 && quasiRuns(form.at(1), level - 1, depth + 1);
@@ -342,6 +416,11 @@ void Compiler::quasi(const Value& form, int level, int depth) {
 		for(std::size_t at = 1; at < form.count(); ++at) quasi(form.at(at), level, depth + 1);
 		place_ = form.place();
 		emit(Op::BuildMap, static_cast<std::uint32_t>((form.count() - 1) / 2));
+	} else if(head == "%set") { // `#{~x ~@xs}`: the set of what its items give, as the literal's call makes it
+		emitConstant(machine_.global("%set-of").value);
+		quasiSequence(form, 1, Kind::Vector, level, depth + 1);
+		place_ = form.place();
+		emit(Op::Call, 1);
 	} else if(form.kind() == Kind::Map) {
 		for(std::size_t at = 0; at < form.count(); ++at) {
 			emitConstant(machine_.heap.keyword(form.keyAt(at)));
@@ -376,7 +455,17 @@ void Compiler::formView(const Value& form, Position /*position*/) {
 	compileViewValue(form.at(1), 0);
 }
 
-void Compiler::formRepeat(const Value& form, Position /*position*/) {
+void Compiler::formRepeat(const Value& form, Position position) {
+	if(form.count() == 2 && form.at(1).kind() != Kind::Vector)
+		fail(form, "repeat without a count would never end: give a count, (repeat 3 x)");
+	if(form.count() == 3 && form.at(1).kind() != Kind::Vector) { // Clojure's (repeat n x): a vector of n x
+		emitConstant(machine_.global("%repeat-times").value);
+		compile(form.at(1), {});
+		compile(form.at(2), {});
+		place_ = form.place();
+		emit(position.tail ? Op::TailCall : Op::Call, 2);
+		return;
+	}
 	if(!inView_)
 		fail(form, "repeat builds a view's nodes: it goes in a template, a defview, a defcomponent or a defscreen");
 	if(form.count() < 3 || form.at(1).kind() != Kind::Vector || form.at(1).count() < 2 || form.at(1).count() % 2 != 0 ||

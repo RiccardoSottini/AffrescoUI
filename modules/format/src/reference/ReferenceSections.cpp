@@ -461,6 +461,15 @@ constexpr auto stepTable = std::to_array<KeyReference>({
 	 "`{ \"attach\": { \"accept\": [\"audio/*\"] }, \"into\": \"state.files\" }`: the person's files as "
 	 "attachments (Assets). A control step",
 	 "outsideSteps"},
+    {"pick", R"json({"const": "node"})json",
+	 "`{ \"pick\": \"node\", \"hint\": \"Point at what to change\", \"into\": \"state.pointed\" }`: after the "
+	 "person's own press, they point at an element; the engine keeps its record (where it is written, never its data) "
+	 "and runs `onDone` with `result`, or `onCancel` (Pointing at a node). A control step",
+	 "outsideSteps"},
+    {"unpick", "",
+	 "`{ \"unpick\": \"{{state.pointed.id}}\" }`: forgets pick records (an id or a list); an unknown id is "
+	 "ignored. A control step",
+	 "outsideSteps"},
     {"patch", "", R"(`{ "patch": [JSON Patch ops], "message": "..." }`: the app revises its own document)", "steps"},
     {"navigate", "", R"(`{ "navigate": "settings" }` or `"back"`)", "steps"},
     {"focus", "",
@@ -529,6 +538,8 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"with", "", "", ""},
     {"into", "", "", ""},
     {"attachments", "", "", ""},
+    {"picks", "", "", ""},
+    {"hint", "", "", ""},
     {"loading", "", "", ""},
     {"progress", "", "", ""},
     {"timeout", "", "", ""},
@@ -627,6 +638,7 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"onError", "steps", "", ""},
     {"onEvent", "steps", "", ""},
     {"onDone", "steps", "", ""},
+    {"onCancel", "steps", "", ""},
 });
 
 /// The shared values: "$defs/v2" entries the other schemas refer to.

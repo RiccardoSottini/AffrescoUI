@@ -4,6 +4,8 @@
 /// drawing a detail::Renderer, and a headless window has neither.
 
 #include "Confirmation.hpp"
+#include "Headless.hpp"
+#include "Picking.hpp"
 
 #include "paint/GeometryCache.hpp"
 #include "paint/Renderer.hpp"
@@ -169,6 +171,7 @@ Window::Window(std::unique_ptr<platform::NativeWindow> native, std::unique_ptr<d
 }
 
 Window::~Window() {
+	picking_.reset();       // ends without its callback; its layer forgets itself while the window is whole
 	accessibility_.reset(); // before the panels it reads go
 	// GL objects owned by the renderer are deleted in this window's context
 	if(native_) native_->makeCurrent();
@@ -215,6 +218,7 @@ void Window::setMinSize(int minWidth, int minHeight) {
 bool Window::isVisible() const { return native_ ? native_->isVisible() : visible_; }
 
 void Window::setVisible(bool visible) {
+	if(!visible) endPick(); // a pick ends with its window, without its callback
 	if(native_) native_->setVisible(visible);
 	else visible_ = visible;
 }
@@ -222,6 +226,7 @@ void Window::setVisible(bool visible) {
 bool Window::shouldClose() const { return native_ ? native_->shouldClose() : closing_; }
 
 void Window::setShouldClose(bool close) {
+	if(close) endPick();
 	if(native_) native_->setShouldClose(close);
 	else closing_ = close;
 }
@@ -369,6 +374,7 @@ void Window::updateLayout() {
 		drawn_.push_back(fullscreenHint_.get());
 	}
 	layoutInspection();
+	layoutPick(); // above every overlay and the inspection layer, below the question
 	layoutConfirmation();
 	layingOut_ = false;
 
@@ -590,17 +596,17 @@ bool Window::saveScreenshot(const std::filesystem::path& path) {
 	return detail::writePpm(path, size.width, size.height, renderer_->readBack(size));
 }
 
-bool Window::saveScreenshot(const std::filesystem::path& path, int scale) {
-	if(!renderer_) return false;
+bool Window::saveScreenshot(const std::filesystem::path& path, float scale) {
+	const std::optional<platform::PixelSize> size = detail::scaledSize(width_, height_, scale);
+	if(!renderer_ || !size) return false;
 	runDeferred();
 	native_->makeCurrent(); // the image is created in it
 	updateLayout();
 	refreshSnapshots();
 
-	const platform::PixelSize size{width_ * scale, height_ * scale};
-	const std::vector<std::uint8_t> pixels = renderer_->drawOffscreen(frame(), size);
+	const std::vector<std::uint8_t> pixels = renderer_->drawOffscreen(frame(), *size);
 	clearDamage();
-	return detail::writePpm(path, size.width, size.height, pixels);
+	return detail::writePpm(path, size->width, size->height, pixels);
 }
 
 } // namespace affresco

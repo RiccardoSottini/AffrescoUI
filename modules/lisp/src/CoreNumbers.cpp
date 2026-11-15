@@ -1,12 +1,16 @@
 /// @file
 /// @brief The language's own functions on numbers and truth: `+ - * / mod rem inc dec min max abs < > <= >= = not=
-/// not`, and the type tests.
+/// not`, `compare`, `==`, `quot`, `int`, `double`, the bit operations, and the tests (`even?`, `pos?`, `integer?`...).
 
 #include "Machine.hpp"
+#include "Sequences.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <limits>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -193,6 +197,42 @@ bool below(const Value& first, const Value& second) noexcept {
 	return first.asDouble() < second.asDouble();
 }
 
+/// @brief The order of two numbers for `compare`: by value, NaN after every other number, as sorting needs.
+/// @param left One.
+/// @param right The other.
+/// @return -1, 0 or 1.
+int compareNumbers(const Value& left, const Value& right) {
+	const bool leftNaN = left.kind() == Kind::Float && std::isnan(left.asDouble());
+	const bool rightNaN = right.kind() == Kind::Float && std::isnan(right.asDouble());
+	if(leftNaN || rightNaN) return leftNaN == rightNaN ? 0 : leftNaN ? 1 : -1;
+	if(below(left, right)) return -1;
+	return below(right, left) ? 1 : 0;
+}
+
+} // namespace
+
+int compareValues(Machine& machine, const Value& first, const Value& second, std::string_view function) {
+	if(first.isNil() || second.isNil()) return first.isNil() == second.isNil() ? 0 : first.isNil() ? -1 : 1;
+	if(first.isNumber() && second.isNumber()) return compareNumbers(first, second);
+	const auto text = [](const Value& value) { return value.kind() == Kind::String || value.kind() == Kind::Keyword; };
+	if(text(first) && text(second)) { // a keyword is the string of its text (decision D2)
+		machine.spendText(std::min(first.text().size(), second.text().size()));
+		const int order = first.text().compare(second.text());
+		return (order > 0) - (order < 0);
+	}
+	throw Problem("\"" + std::string(function) + "\" compares numbers with numbers and text with text, and was given " +
+	              std::string(describeKind(first)) + " and " + std::string(describeKind(second)));
+}
+
+namespace {
+
+/// @brief `compare`. @param machine The machine. @param arguments Two values. @return -1, 0 or 1: whether the first
+/// comes before the second, with it, or after it (compareValues()).
+Value compared(Machine& machine, Arguments arguments) {
+	if(arguments.size() != 2) throw Problem("\"compare\" takes two values");
+	return Value::integer(compareValues(machine, arguments[0], arguments[1], "compare"));
+}
+
 /// @brief What `<`, `>`, `<=` and `>=` share: holds for each pair side by side.
 /// @param arguments The numbers.
 /// @param swap Compare the other way round.
@@ -269,14 +309,15 @@ Value negation(Machine& /*machine*/, Arguments arguments) {
 	return Value::boolean(!arguments[0].truthy());
 }
 
-/// @brief `truthy?`: an expression's truth, where nil, false, 0, "", [] and {} are false, for a function that tests a
-/// value of the running app as a binding would. @param arguments A value. @return Whether it is true so.
+/// @brief `truthy?`: an expression's truth, where nil, false, 0, "", [], {} and #{} are false, for a function that
+/// tests a value of the running app as a binding would. @param arguments A value. @return Whether it is true so.
 Value expressionTruth(Machine& /*machine*/, Arguments arguments) {
 	if(arguments.size() != 1) throw Problem("\"truthy?\" takes one value");
 	const Value& value = arguments[0];
 	if(value.isNumber()) return Value::boolean(value.asDouble() != 0.0);
 	if(value.kind() == Kind::String) return Value::boolean(!value.text().empty());
-	if(value.kind() == Kind::Vector || value.kind() == Kind::List || value.kind() == Kind::Map)
+	if(value.kind() == Kind::Vector || value.kind() == Kind::List || value.kind() == Kind::Map ||
+	   value.kind() == Kind::Set)
 		return Value::boolean(value.count() > 0);
 	return Value::boolean(value.truthy());
 }
@@ -296,9 +337,227 @@ Value isSome(Machine& /*machine*/, Arguments arguments) {
 	return Value::boolean(!arguments[0].isNil());
 }
 
+/// @brief `even?` and `odd?`.
+/// @param arguments An integer, or a double whose value is whole.
+/// @param odd Whether it tests for odd.
+/// @param name The function, for an error.
+/// @return Whether the number is so.
+Value parity(Arguments arguments, bool odd, std::string_view name) {
+	if(arguments.size() != 1) throw Problem("\"" + std::string(name) + "\" takes one number");
+	const Value& number = arguments[0];
+	bool isOdd = false;
+	if(number.kind() == Kind::Integer) isOdd = number.asInteger() % 2 != 0;
+	else if(number.kind() == Kind::Unsigned) isOdd = (number.asUnsigned() & 1U) != 0;
+	else if(const double value = number.asDouble();
+	        number.kind() == Kind::Float && std::isfinite(value) && std::trunc(value) == value)
+		isOdd = std::fmod(value, 2.0) != 0;
+	else throw Problem("\"" + std::string(name) + "\" takes a whole number");
+	return Value::boolean(isOdd == odd);
+}
+
+/// @brief `even?`. @param arguments A whole number. @return Whether it is even.
+Value isEven(Machine& /*machine*/, Arguments arguments) { return parity(arguments, false, "even?"); }
+
+/// @brief `odd?`. @param arguments A whole number. @return Whether it is odd.
+Value isOdd(Machine& /*machine*/, Arguments arguments) { return parity(arguments, true, "odd?"); }
+
+/// @brief The sign of a number, for the tests on it.
+/// @param arguments One number.
+/// @param name The function, for an error.
+/// @return -1, 0 or 1; 2 for NaN, which has none.
+int signOf(Arguments arguments, std::string_view name) {
+	if(arguments.size() != 1) throw Problem("\"" + std::string(name) + "\" takes one number");
+	needNumber(arguments[0], name);
+	if(arguments[0].kind() == Kind::Float && std::isnan(arguments[0].asDouble())) return 2;
+	return below(arguments[0], Value::integer(0)) ? -1 : below(Value::integer(0), arguments[0]) ? 1 : 0;
+}
+
+/// @brief `zero?`. @param arguments A number. @return Whether it is zero.
+Value isZero(Machine& /*machine*/, Arguments arguments) { return Value::boolean(signOf(arguments, "zero?") == 0); }
+
+/// @brief `pos?`. @param arguments A number. @return Whether it is above zero.
+Value isPositive(Machine& /*machine*/, Arguments arguments) { return Value::boolean(signOf(arguments, "pos?") == 1); }
+
+/// @brief `neg?`. @param arguments A number. @return Whether it is below zero.
+Value isNegative(Machine& /*machine*/, Arguments arguments) { return Value::boolean(signOf(arguments, "neg?") == -1); }
+
+/// @brief `nat-int?`, `pos-int?` and `neg-int?`: an integer of some signs.
+/// @tparam lowest The lowest sign it passes for.
+/// @tparam highest The highest.
+/// @param arguments A value.
+/// @return Whether it is an integer of those signs.
+template <int lowest, int highest> Value isSignedInteger(Machine& /*machine*/, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("a test takes one value");
+	if(arguments[0].kind() != Kind::Integer && arguments[0].kind() != Kind::Unsigned) return Value::boolean(false);
+	const int sign = signOf(arguments, "an integer's test");
+	return Value::boolean(sign >= lowest && sign <= highest);
+}
+
+/// @brief `true?` and `false?`.
+/// @tparam truth Which.
+/// @param arguments A value.
+/// @return Whether it is that boolean, and not merely true or false as a test takes it.
+template <bool truth> Value isBoolean(Machine& /*machine*/, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("a test takes one value");
+	return Value::boolean(arguments[0].kind() == Kind::Boolean && arguments[0].asBoolean() == truth);
+}
+
+/// @brief `boolean`. @param arguments A value. @return Whether it is true as a test takes it: not nil or false.
+Value toBoolean(Machine& /*machine*/, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("\"boolean\" takes one value");
+	return Value::boolean(arguments[0].truthy());
+}
+
+/// @brief `quot`. @param arguments Two numbers. @return The quotient, toward zero: an integer for integers.
+Value quotient(Machine& /*machine*/, Arguments arguments) {
+	if(arguments.size() != 2) throw Problem("\"quot\" takes two numbers");
+	needNumber(arguments[0], "quot");
+	needNumber(arguments[1], "quot");
+	if(arguments[1].asDouble() == 0) throw Problem("dividing by zero");
+	if(arguments[0].kind() == Kind::Integer && arguments[1].kind() == Kind::Integer) {
+		const std::int64_t a = arguments[0].asInteger();
+		const std::int64_t b = arguments[1].asInteger();
+		return a == lowestInteger && b == -1 ? Value::real(-static_cast<double>(a)) : Value::integer(a / b);
+	}
+	return Value::real(std::trunc(arguments[0].asDouble() / arguments[1].asDouble()));
+}
+
+/// @brief `int`. @param arguments A number. @return It as an integer, toward zero.
+Value toInteger(Machine& /*machine*/, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("\"int\" takes one number");
+	needNumber(arguments[0], "int");
+	const Value& number = arguments[0];
+	if(number.kind() == Kind::Integer) return number;
+	constexpr double limit = 9223372036854775808.0; // 2^63
+	const double value = number.kind() == Kind::Unsigned ? limit : std::trunc(number.asDouble());
+	if(std::isnan(value) || value >= limit || value < -limit)
+		throw Problem("\"int\" takes a number within an integer's range");
+	return Value::integer(static_cast<std::int64_t>(value));
+}
+
+/// @brief `double`. @param arguments A number. @return It as a double.
+Value toDouble(Machine& /*machine*/, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("\"double\" takes one number");
+	needNumber(arguments[0], "double");
+	return Value::real(arguments[0].asDouble());
+}
+
+/// @brief `==`. @param arguments Numbers. @return Whether they are all the same number: exactly for integers.
+Value numbersEqual(Machine& /*machine*/, Arguments arguments) {
+	needAtLeast(arguments, 1, "==");
+	needNumber(arguments[0], "==");
+	bool equal = true;
+	for(std::size_t at = 1; at < arguments.size(); ++at) {
+		const Value& a = arguments[at - 1];
+		const Value& b = arguments[at];
+		needNumber(b, "==");
+		if(a.kind() == Kind::Float || b.kind() == Kind::Float) equal = equal && a.asDouble() == b.asDouble();
+		else if(a.kind() != b.kind()) equal = false; // an Unsigned is above every Integer
+		else
+			equal = equal &&
+			        (a.kind() == Kind::Integer ? a.asInteger() == b.asInteger() : a.asUnsigned() == b.asUnsigned());
+	}
+	return Value::boolean(equal);
+}
+
+/// @brief A bit operation's argument.
+/// @param value The argument.
+/// @param name The function, for an error.
+/// @return It as an integer.
+std::int64_t bitsOf(const Value& value, std::string_view name) {
+	const std::optional<std::int64_t> whole = wholeNumber(value);
+	if(!whole) throw Problem("\"" + std::string(name) + "\" takes whole numbers");
+	return *whole;
+}
+
+/// @brief `bit-and`, `bit-or`, `bit-xor`: folds the integers' bits.
+/// @tparam Operation The operation on two integers.
+/// @param arguments Two integers or more.
+/// @param name The function, for an error.
+/// @return The result.
+template <class Operation> Value foldBits(Arguments arguments, std::string_view name) {
+	needAtLeast(arguments, 2, name);
+	std::int64_t result = bitsOf(arguments[0], name);
+	for(const Value& argument : arguments.subspan(1)) result = Operation{}(result, bitsOf(argument, name));
+	return Value::integer(result);
+}
+
+/// @brief `bit-and`. @param arguments Integers. @return Their bits that are set in all.
+Value bitAnd(Machine& /*machine*/, Arguments arguments) { return foldBits<std::bit_and<>>(arguments, "bit-and"); }
+
+/// @brief `bit-or`. @param arguments Integers. @return Their bits that are set in any.
+Value bitOr(Machine& /*machine*/, Arguments arguments) { return foldBits<std::bit_or<>>(arguments, "bit-or"); }
+
+/// @brief `bit-xor`. @param arguments Integers. @return Their bits set in an odd number of them.
+Value bitXor(Machine& /*machine*/, Arguments arguments) { return foldBits<std::bit_xor<>>(arguments, "bit-xor"); }
+
+/// @brief `bit-not`. @param arguments An integer. @return Its bits flipped.
+Value bitNot(Machine& /*machine*/, Arguments arguments) {
+	if(arguments.size() != 1) throw Problem("\"bit-not\" takes one number");
+	return Value::integer(~bitsOf(arguments[0], "bit-not"));
+}
+
+/// @brief `bit-shift-left` and `bit-shift-right`.
+/// @param arguments An integer, and how many places: 0 to 63.
+/// @param left Which way.
+/// @return The integer shifted: to the left in two's complement, to the right keeping its sign.
+Value shifted(Arguments arguments, bool left) {
+	const std::string_view name = left ? "bit-shift-left" : "bit-shift-right";
+	if(arguments.size() != 2) throw Problem("\"" + std::string(name) + "\" takes a number and how many places");
+	const std::int64_t bits = bitsOf(arguments[0], name);
+	const std::int64_t places = bitsOf(arguments[1], name);
+	if(places < 0 || places > 63) throw Problem("\"" + std::string(name) + "\" shifts by 0 to 63 places");
+	if(left) return Value::integer(static_cast<std::int64_t>(static_cast<std::uint64_t>(bits) << places));
+	return Value::integer(bits >> places);
+}
+
+/// @brief `bit-shift-left`. @param arguments An integer and how many places. @return It shifted left.
+Value shiftLeft(Machine& /*machine*/, Arguments arguments) { return shifted(arguments, true); }
+
+/// @brief `bit-shift-right`. @param arguments An integer and how many places. @return It shifted right.
+Value shiftRight(Machine& /*machine*/, Arguments arguments) { return shifted(arguments, false); }
+
+/// @brief Registers the tests on numbers and on what a value is (`even?`, `coll?`...).
+/// @param machine The machine.
+void defineTests(Machine& machine) {
+	machine.defineNative("even?", isEven);
+	machine.defineNative("odd?", isOdd);
+	machine.defineNative("zero?", isZero);
+	machine.defineNative("pos?", isPositive);
+	machine.defineNative("neg?", isNegative);
+	machine.defineNative("true?", isBoolean<true>);
+	machine.defineNative("false?", isBoolean<false>);
+	machine.defineNative("integer?", isKind<Kind::Integer, Kind::Unsigned>);
+	machine.defineNative("int?", isKind<Kind::Integer, Kind::Unsigned>);
+	machine.defineNative("float?", isKind<Kind::Float>);
+	machine.defineNative("double?", isKind<Kind::Float>);
+	machine.defineNative("nat-int?", isSignedInteger<0, 1>);
+	machine.defineNative("pos-int?", isSignedInteger<1, 1>);
+	machine.defineNative("neg-int?", isSignedInteger<-1, -1>);
+	machine.defineNative("coll?", isKind<Kind::List, Kind::Vector, Kind::Map, Kind::Set>);
+	machine.defineNative("seq?", isKind<Kind::List>);
+	machine.defineNative("sequential?", isKind<Kind::List, Kind::Vector>);
+	machine.defineNative("associative?", isKind<Kind::Map, Kind::Vector>);
+	machine.defineNative("ident?", isKind<Kind::Keyword, Kind::Symbol>);
+	machine.defineNative("ifn?",
+	                     isKind<Kind::Function, Kind::Native, Kind::Keyword, Kind::Map, Kind::Set, Kind::Vector>);
+}
+
 } // namespace
 
 void defineNumbers(Machine& machine) {
+	defineTests(machine);
+	machine.defineNative("quot", quotient);
+	machine.defineNative("int", toInteger);
+	machine.defineNative("double", toDouble);
+	machine.defineNative("==", numbersEqual);
+	machine.defineNative("boolean", toBoolean);
+	machine.defineNative("bit-and", bitAnd);
+	machine.defineNative("bit-or", bitOr);
+	machine.defineNative("bit-xor", bitXor);
+	machine.defineNative("bit-not", bitNot);
+	machine.defineNative("bit-shift-left", shiftLeft);
+	machine.defineNative("bit-shift-right", shiftRight);
 	machine.defineNative("+", add);
 	machine.defineNative("-", subtract);
 	machine.defineNative("*", multiply);
@@ -315,6 +574,7 @@ void defineNumbers(Machine& machine) {
 	machine.defineNative("<=", lessOrEqual);
 	machine.defineNative(">=", greaterOrEqual);
 	machine.defineNative("=", equal);
+	machine.defineNative("compare", compared);
 	machine.defineNative("not=", notEqual);
 	machine.defineNative("not", negation);
 	machine.defineNative("truthy?", expressionTruth);

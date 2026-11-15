@@ -26,4 +26,11 @@
                 :changes.pick "Choisissez une modification à gauche."
                 :changes.revision "Révision {n}"
                 :changes.layers "Vue {view} · Logique {logic} · Données : {data}"
-                :changes.original "Le fichier tel que chargé"}}}
+                :changes.original "Le fichier tel que chargé"
+                :changes.source "Source"
+                :changes.sourceShared "D’un module partagé : une modification ne s’applique qu’à cette application."
+                :changes.sourceCut "Seuls les 16 premiers Kio du texte sont affichés."
+                :changes.sourcePreviewed "Tel que la proposition #{n} le montre, pendant son aperçu."
+                :changes.lastChanged "Modifié pour la dernière fois dans #{number} par {author}"
+                :changes.showChange "Voir cette modification"
+                :changes.line "ligne {line}"}}}

@@ -1,14 +1,19 @@
 /// @file
 /// @brief The "lisp" workloads (RFC 0005, "Performance"): what a program's function costs in an event and in a binding,
-/// each beside the same thing written as steps or as an expression, and a reload when a definition changes.
+/// each beside the same thing written as steps or as an expression, a reload when a definition changes, making an
+/// interpreter, building the largest example's program, with and without recording where its nodes come from, and
+/// finding where each of its nodes is written.
 
 #include "Bench.hpp"
 #include "Headless.hpp"
 
 #include <affresco/lisp/Document.hpp>
+#include <affresco/lisp/Interpreter.hpp>
 
+#include <algorithm>
 #include <filesystem>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 namespace affresco::bench {
@@ -46,6 +51,23 @@ json documentWithExpressions() {
 	        {"root", {{"type", "column"}, {"id", "list"}, {"children", std::move(children)}}}};
 }
 
+/// @brief A screen of labels bound to an `if-let`, which a binding writes as an expression, or to the same as a call
+/// of the program's function.
+/// @param function Whether the labels call the function.
+/// @return Its text.
+std::string programWithLet(bool function) {
+	std::string text = R"lisp(
+(defn mode-text "What a label shows." [mode] (if-let [m mode] (str/upper-case m) "none"))
+(defscreen main :window {:width 400 :height 300} :state {:mode nil}
+  :actions {:flip [{:set "state.mode" :to "{{state.mode ? null : 'edit'}}"}]}
+  (column#list
+)lisp";
+	const std::string bound =
+	    function ? "~(mode-text state.mode)" : "~(if-let [m state.mode] (str/upper-case m) \"none\")";
+	for(int at = 0; at < labels; ++at) text += "    (label :id \"l" + std::to_string(at) + "\" :text " + bound + ")\n";
+	return text + "))\n";
+}
+
 /// @brief A program of many definitions, for a reload.
 /// @return Its text.
 std::string programOfMany() {
@@ -56,6 +78,23 @@ std::string programOfMany() {
 		text.append(") (str y) nil)))\n");
 	}
 	return text + "(defscreen main (panel#root))\n";
+}
+
+/// How many interpreters "lisp/start" makes in a step.
+constexpr int starts = 1000;
+
+/// @brief "lisp/start": making an interpreter, the language's own functions with it, as every build and every host
+/// that runs a program does first.
+/// @param workloads Gets it.
+void addStartWorkload(std::vector<Workload>& workloads) {
+	Workload start{.name = "lisp/start", .runs = 15, .operations = starts};
+	start.step = [] {
+		for(int at = 0; at < starts; ++at) {
+			const lisp::Interpreter interpreter;
+			static_cast<void>(interpreter);
+		}
+	};
+	workloads.push_back(std::move(start));
 }
 
 /// @brief "lisp/open-<app>" and "lisp/open-<app>-json": opening each example written as a program and as JSON, as a
@@ -84,11 +123,110 @@ void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
 		}
 }
 
+/// @brief The example whose program is the largest, as the host loads it: its entry screen, with the program files it
+/// includes.
+/// @param context The context.
+/// @return Its folder (with "lisp" and "json" inside), or an empty path if no example is written as a program.
+std::filesystem::path largestApp(const Context& context) {
+	std::filesystem::path largest;
+	std::size_t size = 0;
+	for(const auto& folder : std::filesystem::directory_iterator(context.examples())) {
+		if(!std::filesystem::is_regular_file(folder.path() / "lisp" / "app.lisp")) continue;
+		Screen screen = Screen::fromApp(folder.path() / "lisp", {}, Screen::History::InMemory);
+		const json& document = screen.versions().sourceDocument();
+		if(!document.contains("program") || document["program"].dump().size() <= size) continue;
+		size = document["program"].dump().size();
+		largest = folder.path();
+	}
+	return largest;
+}
+
+/// @brief The `program` section of the largest example written as a program (largestApp()).
+/// @param context The context.
+/// @return The section, or an empty object.
+json largestProgram(const Context& context) {
+	const std::filesystem::path app = largestApp(context);
+	if(app.empty()) return json::object();
+	Screen screen = Screen::fromApp(app / "lisp", {}, Screen::History::InMemory);
+	return screen.versions().sourceDocument()["program"];
+}
+
+/// @brief The ids of the panels in a window whose node is written in the document (Screen::source() finds it).
+/// @param loaded The screen.
+/// @param panel Where to look.
+/// @param ids Gets them, each once.
+void writtenIds(const LoadedScreen& loaded, const Panel& panel, std::vector<std::string>& ids) {
+	const std::string& id = panel.id();
+	if(!id.empty() && std::ranges::find(ids, id) == ids.end()) {
+		bool written = true;
+		try {
+			static_cast<void>(loaded.screen.source("#" + id));
+		} catch(const DocumentError&) {
+			written = false; // made by a binding, not written
+		}
+		if(written) ids.push_back(id);
+	}
+	for(const auto& child : panel.children()) writtenIds(loaded, *child, ids);
+}
+
+/// @brief "lisp/source-largest" and "lisp/source-largest-json": where each node of the largest example the window
+/// shows is written (Screen::source()), what a pick reads to describe it, once the program's origins are kept (the
+/// first pick after a change builds them: "lisp/origins-largest"). One operation is one node.
+/// @param context The context.
+/// @param workloads Gets them.
+void addSourceWorkloads(Context& context, std::vector<Workload>& workloads) {
+	const std::filesystem::path app = largestApp(context);
+	if(app.empty()) throw std::runtime_error("lisp: no example is written as a program");
+	for(const char* notation : {"lisp", "json"}) {
+		Screen opened = Screen::fromApp(app / notation, {}, Screen::History::InMemory);
+		const LoadedScreen loaded = context.load(opened.versions().sourceDocument(), app / notation);
+		const auto ids = std::make_shared<std::vector<std::string>>();
+		writtenIds(loaded, loaded.window.root(), *ids);
+		if(ids->empty()) throw std::runtime_error("lisp: the largest example shows no written node");
+		Workload source{.name = std::string("lisp/source-largest") + (std::string(notation) == "json" ? "-json" : ""),
+		                .runs = 15,
+		                .operations = static_cast<int>(ids->size())};
+		source.step = [loaded, ids] {
+			for(const std::string& id : *ids) static_cast<void>(loaded.screen.source("#" + id));
+		};
+		workloads.push_back(std::move(source));
+	}
+}
+
+/// @brief "lisp/build-largest" and "lisp/origins-largest": building the largest example's program (builtProgram()),
+/// and finding where its nodes come from (nodeOrigins()), its second, recording build, which should cost about one
+/// build. Each step changes a comment in one definition, so that neither finds the result it kept.
+/// @param context The context.
+/// @param workloads Gets them.
+void addOriginWorkloads(const Context& context, std::vector<Workload>& workloads) {
+	const auto section = std::make_shared<json>(largestProgram(context));
+	if(section->empty()) throw std::runtime_error("lisp: no example is written as a program");
+	const auto turn = std::make_shared<int>(0);
+	const auto changed = [section, turn] {
+		json copy = *section;
+		json& entries = copy.begin().value();
+		json& text = entries.back();
+		text = text.get<std::string>() + "\n; " + std::to_string(++*turn);
+		return copy;
+	};
+	Workload build{.name = "lisp/build-largest", .unit = "ms", .runs = 15};
+	build.step = [changed] { static_cast<void>(lisp::builtProgram(changed())); };
+	workloads.push_back(std::move(build));
+	Workload origins{.name = "lisp/origins-largest", .unit = "ms", .runs = 15};
+	origins.step = [changed] {
+		if(lisp::nodeOrigins(changed())->empty()) throw std::runtime_error("lisp: the largest example has no origins");
+	};
+	workloads.push_back(std::move(origins));
+}
+
 } // namespace
 
 std::vector<Workload> lispWorkloads(Context& context) {
 	std::vector<Workload> workloads;
+	addStartWorkload(workloads);
 	addOpenWorkloads(context, workloads);
+	addOriginWorkloads(context, workloads);
+	addSourceWorkloads(context, workloads);
 	const json bound = lisp::sourceDocument(programWithBindings(), "bench.lisp");
 	const LoadedScreen lisp = context.load(bound, {});
 	const LoadedScreen plain = context.load(documentWithExpressions(), {});
@@ -114,6 +252,16 @@ std::vector<Workload> lispWorkloads(Context& context) {
 		detail::renderWithoutPresenting(plain.window);
 	};
 	workloads.push_back(std::move(expression));
+	for(const bool function : {false, true}) {
+		const LoadedScreen let = context.load(lisp::sourceDocument(programWithLet(function), "bench.lisp"), {});
+		Workload workload{
+		    .name = function ? "lisp/binding-let-as-function" : "lisp/binding-let", .runs = 15, .operations = labels};
+		workload.step = [let] {
+			let.screen.runAction("flip", let.window.root());
+			detail::renderWithoutPresenting(let.window);
+		};
+		workloads.push_back(std::move(workload));
+	}
 	const json many = lisp::sourceDocument(programOfMany(), "bench.lisp");
 	const LoadedScreen reloading = context.load(many, {});
 	const auto turn = std::make_shared<int>(0);

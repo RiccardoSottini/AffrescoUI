@@ -23,6 +23,7 @@
 #include <span>
 #include <sstream>
 #include <string_view>
+#include <vector>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -63,6 +64,9 @@ std::filesystem::path platformDataDirectory() {
 }
 
 constexpr std::uintmax_t maxIncludeBytes = 16U << 20; ///< An included file, at most 16 MiB.
+/// Files read for one screen's includes, at most: a file two files include is read for each, so files that include
+/// many files including many more would read without end within the depth.
+constexpr std::size_t maxIncludeReads = 1024;
 
 /// @brief Reads an included file.
 /// @param path The file.
@@ -165,20 +169,29 @@ void checkInside(const std::filesystem::path& path, std::span<const std::filesys
 		                  " is outside the app's folder and the shared folder beside it");
 }
 
-} // namespace
+/// @brief Where an include is, and what a program calls the file: its path from the entry's folder, so that two files
+/// of one name in two folders are two files of the program, and a required file (reference/namespaces.md) has one name
+/// whichever file requires it.
+struct IncludeChain {
+	std::filesystem::path folder;                  ///< The including file's folder, from the entry's.
+	std::vector<std::filesystem::path> containing; ///< The files that include it, to the entry: each read once.
+	std::size_t* reads = nullptr; ///< The files read for the screen so far; owned by resolveIncludes(), for the call.
+};
 
-namespace detail {
-
-/// @brief Merges a screen's "include" files into it (recursively, at most 8 deep): each section of an included file
-/// comes first and the including file's entries win; root and window come from the including file.
-/// @param document The screen.
+/// @brief resolveIncludes(), with where the document is in the chain of includes.
+/// @param document The screen, or an included file.
 /// @param baseDirectory Where its include paths are resolved from.
-/// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
+/// @param migrated Set if one of them was written for version 1.
+/// @param roots The folders every include must be in, or none for anywhere.
 /// @param depth Includes inside includes so far.
+/// @param sources Receives which file each entry came from (may be nullptr).
+/// @param file The file this document is, for @p sources.
+/// @param chain Where it is: an include of a file that includes it (two files that require each other) is skipped, as
+/// its entries are there already.
 /// @throws ScreenError If an include can't be read.
-void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated,
-                     std::span<const std::filesystem::path> roots, int depth, SourceMap* sources,
-                     const std::string& file) {
+void resolveIncludesIn(json& document, const std::filesystem::path& baseDirectory, bool& migrated,
+                       std::span<const std::filesystem::path> roots, int depth, detail::SourceMap* sources,
+                       const std::string& file, IncludeChain& chain) {
 	if(sources != nullptr) sources->claimDocument(document, file);
 	if(!document.is_object() || !document.contains("include")) return;
 	if(depth > 8) throw ScreenError("AffrescoUI screen: include: nested too deeply (a file includes itself?)");
@@ -190,15 +203,43 @@ void resolveIncludes(json& document, const std::filesystem::path& baseDirectory,
 		if(!name.is_string()) throw ScreenError("AffrescoUI screen: include: expected file names");
 		const std::filesystem::path path = baseDirectory / name.get<std::string>();
 		checkInside(path, roots);
-		json part =
-		    readInclude(path, std::filesystem::path(name.get<std::string>()).lexically_normal().generic_string());
+		const std::filesystem::path normal = path.lexically_normal();
+		if(std::ranges::find(chain.containing, normal) != chain.containing.end()) continue; // a cycle: read already
+		const std::filesystem::path named = (chain.folder / name.get<std::string>()).lexically_normal();
+		if(++*chain.reads > maxIncludeReads)
+			throw ScreenError("AffrescoUI screen: include: over " + std::to_string(maxIncludeReads) +
+			                  " files read (files that include each other many times?)");
+		json part = readInclude(path, named.generic_string());
 		if(!format::migrate(part).empty()) migrated = true;
-		SourceMap partSources;
-		resolveIncludes(part, path.parent_path(), migrated, roots, depth + 1,
-		                sources != nullptr ? &partSources : nullptr, path.lexically_normal().generic_string());
+		detail::SourceMap partSources;
+		IncludeChain inner{named.parent_path(), chain.containing, chain.reads};
+		inner.containing.push_back(normal);
+		resolveIncludesIn(part, path.parent_path(), migrated, roots, depth + 1,
+		                  sources != nullptr ? &partSources : nullptr, normal.generic_string(), inner);
 		mergeInclude(document, part);
 		if(sources != nullptr) sources->absorb(partSources);
 	}
+}
+
+} // namespace
+
+namespace detail {
+
+/// @brief Merges a screen's "include" files into it (recursively, at most 8 deep): each section of an included file
+/// comes first and the including file's entries win; root and window come from the including file. A file that
+/// includes a file including it back gets that file's entries once. At most 1,024 files are read in all.
+/// @param document The screen.
+/// @param baseDirectory Where its include paths are resolved from.
+/// @param migrated Set if one of them was written for version 1, and migrated (Migrate.hpp).
+/// @param depth Includes inside includes so far.
+/// @throws ScreenError If an include can't be read.
+void resolveIncludes(json& document, const std::filesystem::path& baseDirectory, bool& migrated,
+                     std::span<const std::filesystem::path> roots, int depth, SourceMap* sources,
+                     const std::string& file) {
+	std::size_t reads = 0;
+	IncludeChain chain{{}, {}, &reads};
+	if(!file.empty()) chain.containing.push_back(std::filesystem::path(file).lexically_normal());
+	resolveIncludesIn(document, baseDirectory, migrated, roots, depth, sources, file, chain);
 }
 
 } // namespace detail

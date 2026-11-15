@@ -449,6 +449,15 @@ public:
 	/// "after"?}]`, or `"tooLarge": true`), `assets`, `run`, `impact`, `behaviour` and `person`.
 	/// @throws DocumentError If there is no such proposal or commit, or a proposal no longer applies.
 	[[nodiscard]] json fileChanges(const json& request) const;
+	/// @brief Where a node is written, as an agent asks for it with "getSource" (SCREEN_FORMAT.md, "Pointing at a node").
+	/// @param at "#id", a JSON Pointer to a node, or a definition's address (`/program/<file>/<name>`).
+	/// @return `{"address", "node"?, "pointer"?, "notation", "text", "cut"?, ...}`: for a program the definition that
+	/// built the node, for a JSON document the node itself; the text at most 16 KiB.
+	/// @throws DocumentError Naming @p at, if nothing is there.
+	[[nodiscard]] json source(const std::string& at) const;
+	/// @brief The elements the person pointed at ("pick") and has neither sent nor removed, oldest first.
+	/// @return `[record]`; a record says where something is written, never what the app's data is.
+	[[nodiscard]] json picks() const;
 
 	/// @brief Merges a proposal, approved by "user" (VersionControl::accept takes more).
 	/// @param id The proposal.

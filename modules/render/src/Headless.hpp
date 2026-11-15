@@ -12,8 +12,9 @@
 #include "affresco/render/Clock.hpp"
 #include "affresco/render/Window.hpp"
 
-#include <memory>
 #include <cstdint>
+#include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -46,13 +47,22 @@ private:
 [[nodiscard]] std::unique_ptr<Window> createHeadlessWindow(int width, int height, const Clock& clock,
                                                            std::string title = "AffrescoUI");
 
+/// @brief The size in pixels of a picture of a window at a scale, as Window::saveScreenshot(path, scale) and
+/// drawFromScratch draw it: lround(width * scale) by lround(height * scale).
+/// @param width Width in window units.
+/// @param height Height in window units.
+/// @param scale Pixels per window unit.
+/// @return The size, or std::nullopt if the scale isn't finite and above 0 or a side doesn't fit an int.
+[[nodiscard]] std::optional<platform::PixelSize> scaledSize(int width, int height, float scale) noexcept;
+
 /// @brief Draws a window's current frame offscreen from nothing, at a fixed scale: every panel recorded afresh, no
 /// retained geometry or damage used, nothing kept. What Window::saveScreenshot(path, scale) must give: the rendering
 /// check compares the two, so a pixel a frame failed to redraw shows.
 /// @param window A window with a renderer; its deferred tasks run and it is laid out first.
-/// @param scale Pixels per window unit.
-/// @return Tightly packed 8-bit RGB, top row first; empty for a headless window.
-[[nodiscard]] std::vector<std::uint8_t> drawFromScratch(Window& window, int scale);
+/// @param scale Pixels per window unit (1 to 4 in quarters for the rendering check; see scaledSize for the size).
+/// @return Tightly packed 8-bit RGB, top row first; empty for a headless window or a scale that isn't finite and
+/// above 0.
+[[nodiscard]] std::vector<std::uint8_t> drawFromScratch(Window& window, float scale);
 
 /// @brief Does what Window::render() does, but doesn't present the frame: timers, deferred tasks, layout, and drawing
 /// into the window's canvas (copied to its back buffer). What a frame costs the library, without the windowing

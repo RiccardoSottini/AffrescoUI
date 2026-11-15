@@ -4,6 +4,7 @@
 
 #include <affresco/lisp/Document.hpp>
 
+#include "Namespaces.hpp"
 #include "Reader.hpp"
 #include "TopLevel.hpp"
 
@@ -13,9 +14,13 @@
 #include <algorithm>
 #include <array>
 #include <format>
+#include <iterator>
+#include <map>
 #include <mutex>
 #include <optional>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace affresco::lisp {
 
@@ -46,6 +51,7 @@ LispError problemIn(const std::string& name, const std::string& message) { retur
 std::size_t formEnd(Lexer& lexer, Token first, const std::string& where) {
 	std::size_t depth = 0;
 	for(Token token = first;; token = lexer.next()) {
+		if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) continue; // the form it stands before
 		switch(token.kind) {
 		case TokenKind::OpenNode:
 		case TokenKind::OpenList:
@@ -60,11 +66,6 @@ std::size_t formEnd(Lexer& lexer, Token first, const std::string& where) {
 			break;
 		case TokenKind::End:
 			throw problemIn(where, "the text ends inside a form");
-		case TokenKind::Quote:
-		case TokenKind::Backquote:
-		case TokenKind::Unquote:
-		case TokenKind::Splice:
-			continue; // the form it stands before
 		default:
 			break;
 		}
@@ -218,36 +219,90 @@ void mergeWritten(json& tree, const std::string& key, const json& written,
 	}
 }
 
-/// @brief Takes a program file's `(include "a.lisp" ...)` forms out of its text, each character but a line's end made a
-/// space, so every other form keeps its line and column. They are read with the file, and are no entry of the program:
-/// a revision has no way to add one.
+/// @brief Blanks a span of a text: each character but a line's end made a space, so every other form keeps its line and
+/// column.
+/// @param text The text.
+/// @param start Where the span starts.
+/// @param end Where it ends.
+void blank(std::string& text, std::size_t start, std::size_t end) {
+	for(std::size_t at = start; at < end; ++at)
+		if(text[at] != '\n' && text[at] != '\r') text[at] = ' ';
+}
+
+/// @brief Tells whether a program file's first form is an `ns` form, by its first two tokens.
+/// @param text The file's text.
+/// @return Whether it is.
+bool startsWithNamespace(std::string_view text) {
+	try {
+		notation::Lexer lexer(text, true);
+		const notation::Token first = lexer.next();
+		if(first.kind != notation::TokenKind::OpenNode) return false;
+		const notation::Token second = lexer.next();
+		return second.kind == notation::TokenKind::Word && second.text == "ns";
+	} catch(const DocumentError&) {
+		return false; // the reader says what is wrong
+	}
+}
+
+/// @brief What a program file's text says beside its definitions: its include forms and its ns form.
+struct FileForms {
+	json includes = json::array(); ///< The files it names, in order: its include forms', then its ns form's.
+	std::string declaration;       ///< Its ns form's text, with the comments above it; "" if it has none.
+};
+
+/// @brief Adds the files an ns form requires to a file's includes, after its own include forms', each once.
+/// @param declaration What the form says.
+/// @param includes The file's includes.
+void addRequired(const NamespaceDeclaration& declaration, json& includes) {
+	const auto named = [&includes](const std::string& path) {
+		const std::string normal = std::filesystem::path(path).lexically_normal().generic_string();
+		return std::ranges::any_of(includes, [&](const json& include) {
+			return std::filesystem::path(include.get<std::string>()).lexically_normal().generic_string() == normal;
+		});
+	};
+	for(const Required& required : declaration.required)
+		if(!required.path.empty() && !named(required.path)) includes.push_back(required.path);
+}
+
+/// @brief Takes a program file's `(include "a.lisp" ...)` forms and its first form `(ns ...)` out of its text, each
+/// character but a line's end made a space, so every other form keeps its line and column. They are read with the
+/// file, and are no entry of the program: a revision has no way to add one, so none changes which files the loader
+/// reads. An ns form takes the comments above it along, so that its text reads from the file's first line.
 /// @param text The file's text.
 /// @param file Its name, for errors.
-/// @param includes Gets the files they name, in order.
+/// @param forms Gets what they say.
 /// @return The text without them.
-/// @throws LispError If one names something other than a file.
-std::string withoutIncludes(std::string_view text, const std::string& file, json& includes) {
+/// @throws LispError If an include names something other than a file, or the ns form doesn't read.
+std::string withoutFileForms(std::string_view text, const std::string& file, FileForms& forms) {
 	std::string kept(text);
 	Heap heap;
 	Reader reader(heap, text, file);
-	while(const auto read = reader.next()) {
-		const Value& form = read->form;
-		const std::size_t start = read->start; // the form's text, blanked below
-		const std::size_t end = read->end;
-		if(form.kind() != Kind::List || form.count() == 0 || form.at(0).kind() != Kind::Symbol ||
-		   form.at(0).text() != "include")
+	std::optional<NamespaceDeclaration> declared;
+	for(bool first = true; const auto read = reader.next(); first = false) {
+		const ReadForm& item = *read;
+		const Value& form = item.form;
+		const std::string_view head =
+		    form.kind() == Kind::List && form.count() > 0 && form.at(0).kind() == Kind::Symbol ? form.at(0).text() : "";
+		if(head == "ns" && first) { // elsewhere, the split into entries refuses it
+			declared = readNamespaceForm(form, file);
+			const std::size_t start = text.starts_with("\xEF\xBB\xBF") ? 3 : 0;
+			const std::size_t end = pastSameLineComment(text, item.end);
+			forms.declaration = std::string(text.substr(start, end - start));
+			blank(kept, start, end);
 			continue;
+		}
+		if(head != "include") continue;
 		for(std::size_t at = 1; at < form.count(); ++at) {
 			const Kind kind = form.at(at).kind();
 			if((kind != Kind::String && kind != Kind::Symbol) || form.at(at).text().empty()) {
 				const Place place = form.at(at).place().line != 0 ? form.at(at).place() : form.place();
 				throw LispError(file, place.line, place.column, "", "include names files, each a string");
 			}
-			includes.push_back(std::string(form.at(at).text()));
+			forms.includes.push_back(std::string(form.at(at).text()));
 		}
-		for(std::size_t at = start; at < end; ++at)
-			if(kept[at] != '\n' && kept[at] != '\r') kept[at] = ' ';
+		blank(kept, item.start, item.end);
 	}
+	if(declared) addRequired(*declared, forms.includes);
 	return kept;
 }
 
@@ -275,10 +330,11 @@ void checkProgramShape(const json& section) {
 	}
 }
 
-json sourceDocument(std::string_view text, const std::string& file) {
+json sourceDocument(std::string_view text, const std::string& file, std::string_view declaration) {
 	Program program; // two definitions of one name are an error, which an object's keys wouldn't say
 	for(Entry& entry : splitEntries(text, file)) program.addEntryUnread(std::move(entry)); // the split read each
 	json entries = json::object();
+	if(!declaration.empty()) entries[std::string(namespaceEntry)] = declaration; // first, as in the file
 	for(const Entry& entry : program.entries()) entries[entry.name] = entry.text;
 	return {{"format", "affrescoui-screen"}, {"version", 2}, {"program", {{file, std::move(entries)}}}};
 }
@@ -358,10 +414,12 @@ json readLispDocument(std::string_view text, const std::filesystem::path& file, 
 		}
 	if(program) {
 		const std::string named = name.empty() ? file.filename().generic_string() : name;
-		json includes = json::array();
-		json document = sourceDocument(
-		    text.contains("include") ? withoutIncludes(text, named, includes) : std::string(text), named);
-		if(!includes.empty()) document["include"] = std::move(includes);
+		FileForms forms;
+		const bool taken = text.contains("include") || startsWithNamespace(text);
+		// The forms are taken out first: an argument beside the call that fills forms.declaration may be read before it
+		const std::string kept = taken ? withoutFileForms(text, named, forms) : std::string(text);
+		json document = sourceDocument(kept, named, forms.declaration);
+		if(!forms.includes.empty()) document["include"] = std::move(forms.includes);
 		return document;
 	}
 	bool runs = false;
@@ -385,6 +443,10 @@ Program programOf(const json& section, const json& authors) {
 	Program program;
 	for(const auto& [file, entries] : section.items())
 		for(const auto& [name, text] : entries.items()) {
+			if(name == namespaceEntry) { // the file's ns form, which the loader read with it
+				program.declareNamespace(file, text.get<std::string>());
+				continue;
+			}
 			Entry entry;
 			entry.file = file;
 			entry.name = name;
@@ -408,6 +470,181 @@ std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 	if(kept.size() >= keptBuilds) kept.pop_back();
 	kept.emplace(kept.begin(), section, built);
 	return built;
+}
+
+namespace {
+
+/// @brief A `program` section as a Program whose entries each start on lines of their own: in each file, an entry
+/// starts on the line after the previous one's last, so that a place names one entry (programOf() reads every entry
+/// from line 1).
+/// @param section The section, its shape checked.
+/// @return The program, each entry read (Program::addEntry()), so that its kind is known.
+/// @throws LispError If an entry isn't one form with its address, or a name is taken.
+Program programWithOwnLines(const json& section) {
+	Program program;
+	for(const auto& [file, entries] : section.items()) {
+		std::size_t line = 1;
+		for(const auto& [name, text] : entries.items()) {
+			if(name == namespaceEntry) {
+				program.declareNamespace(file, text.get<std::string>());
+				continue;
+			}
+			Entry entry;
+			entry.file = file;
+			entry.name = name;
+			entry.text = text.get<std::string>();
+			entry.line = line;
+			line += static_cast<std::size_t>(std::ranges::count(entry.text, '\n')) + 1U;
+			program.addEntry(std::move(entry));
+		}
+	}
+	return program;
+}
+
+/// @brief A program's entries by file, each file's in the order of their start lines (programWithOwnLines()).
+using EntriesByFile = std::map<std::string_view, std::vector<const Entry*>, std::less<>>;
+
+/// @brief The entry whose lines hold a place a recording build noted.
+/// @param files The program's entries by file; they start on lines of their own.
+/// @param name The place's file.
+/// @param line The place's line, as the entries' start lines count it.
+/// @return The entry, or nullptr if none holds it.
+const Entry* holderOf(const EntriesByFile& files, std::string_view name, std::size_t line) {
+	const auto file = files.find(name);
+	if(file == files.end()) return nullptr;
+	const auto after =
+	    std::ranges::upper_bound(file->second, line, std::less<>(), [](const Entry* entry) { return entry->line; });
+	if(after == file->second.begin()) return nullptr;
+	const Entry* holder = *std::prev(after);
+	const auto lines = static_cast<std::size_t>(std::ranges::count(holder->text, '\n')) + 1U;
+	return line < holder->line + lines ? holder : nullptr;
+}
+
+/// @brief Where each line of the entries' texts starts, worked out once per entry that holds a noted place, so that
+/// finding many places in one large definition costs its text once.
+class LineStarts {
+public:
+	/// @brief The byte where a line and a column of an entry's text are.
+	/// @param entry The entry.
+	/// @param line The line, from 1 at its text's first.
+	/// @param column The column, from 1, in characters.
+	/// @return The byte; the text's size if it is shorter.
+	std::size_t offset(const Entry& entry, std::size_t line, std::size_t column) {
+		auto [found, added] = starts_.try_emplace(&entry);
+		std::vector<std::size_t>& starts = found->second;
+		if(added) {
+			starts.push_back(0);
+			for(std::size_t at = 0; at < entry.text.size(); ++at)
+				if(entry.text[at] == '\n') starts.push_back(at + 1U);
+		}
+		if(line == 0 || line > starts.size()) return entry.text.size();
+		std::size_t at = starts[line - 1U];
+		for(std::size_t columns = 1; columns < column && at < entry.text.size(); ++columns) {
+			++at; // past a character: its first byte and those that continue it
+			while(at < entry.text.size() && (static_cast<unsigned char>(entry.text[at]) & 0xC0U) == 0x80U) ++at;
+		}
+		return at;
+	}
+
+private:
+	std::map<const Entry*, std::vector<std::size_t>> starts_; ///< By entry, where each line starts.
+};
+
+/// @brief How the node form at a byte of a text gives a node its id: written out, `(type#id` or `:id "id"` among its
+/// properties, which come before its children; or as an expression, `:id ~name` or `:id ~(str "row" i)`.
+/// @param text The text.
+/// @param at Where the form starts.
+/// @param id The id.
+/// @return NodeOrigin::Id::Form if it writes that id, NodeOrigin::Id::Expression if an expression gives it, or
+/// std::nullopt if no node form there has an id.
+/// @throws DocumentError If the form doesn't read as tokens; it read in the build, so it does.
+std::optional<NodeOrigin::Id> idOfForm(std::string_view text, std::size_t at, std::string_view id) {
+	Lexer lexer(text.substr(at), true);
+	if(lexer.next().kind != TokenKind::OpenNode) return std::nullopt;
+	const Token head = lexer.next();
+	if(head.kind != TokenKind::Word) return std::nullopt;
+	if(const std::size_t hash = head.text.find('#'); hash != std::string_view::npos)
+		return head.text.substr(hash + 1U) == id ? std::optional(NodeOrigin::Id::Form) : std::nullopt;
+	for(Token key = lexer.next(); key.kind == TokenKind::Key; key = lexer.next()) {
+		const Token value = lexer.next();
+		if(lexer.name(key) != "id") {
+			static_cast<void>(formEnd(lexer, value, ""));
+			continue;
+		}
+		if(value.kind != TokenKind::String) return NodeOrigin::Id::Expression;
+		return lexer.unquote(value.text, value.offset) == id ? std::optional(NodeOrigin::Id::Form) : std::nullopt;
+	}
+	return std::nullopt;
+}
+
+/// @brief Whether an id's text, in quotes, is written at a byte of a text: where a call hands it in.
+/// @param text The text.
+/// @param at Where it would start.
+/// @param id The id.
+/// @return true if it is.
+/// @throws DocumentError If the text there doesn't read as a token; it read in the build, so it does.
+bool writesText(std::string_view text, std::size_t at, std::string_view id) {
+	Lexer lexer(text.substr(at), true);
+	const Token token = lexer.next();
+	return token.kind == TokenKind::String && lexer.unquote(token.text, token.offset) == id;
+}
+
+/// @brief What nodeOrigins() gives, built anew.
+/// @param section The section.
+/// @return The origins; empty if the section can't be built.
+std::shared_ptr<const NodeOrigins> recordOrigins(const json& section) {
+	auto origins = std::make_shared<NodeOrigins>();
+	try {
+		checkProgramShape(section);
+		Program program = programWithOwnLines(section);
+		Limits limits;
+		limits.budget.operations = maxBuildOperations;
+		limits.budget.bytes = maxBuildBytes;
+		program.recordOrigins(true);
+		static_cast<void>(program.build(limits));
+		EntriesByFile files;
+		for(const Entry& entry : program.entries()) files[entry.file].push_back(&entry);
+		LineStarts lines;
+		for(const NodePlace& noted : program.nodePlaces()) {
+			const Entry* form = holderOf(files, noted.file, noted.line);
+			if(form == nullptr) continue;
+			const std::size_t line = noted.line - form->line + 1U;
+			const std::optional<NodeOrigin::Id> id =
+			    idOfForm(form->text, lines.offset(*form, line, noted.column), noted.id);
+			if(!id) continue;
+			// An expression that hands in an id's text a call wrote: the origin is that call's
+			if(const Entry* call =
+			       *id == NodeOrigin::Id::Expression ? holderOf(files, noted.idFile, noted.idLine) : nullptr) {
+				const std::size_t callLine = noted.idLine - call->line + 1U;
+				if(writesText(call->text, lines.offset(*call, callLine, noted.idColumn), noted.id)) {
+					origins->emplace(noted.id, NodeOrigin{call->file, call->name, call->kind,
+					                                      static_cast<std::uint32_t>(callLine), noted.idColumn,
+					                                      NodeOrigin::Id::Call});
+					continue;
+				}
+			}
+			origins->emplace(noted.id, NodeOrigin{form->file, form->name, form->kind, static_cast<std::uint32_t>(line),
+			                                      noted.column, *id});
+		}
+	} catch(const DocumentError&) { // a LispError too: builtProgram() reports it, with the lines the history has
+		origins->clear();
+	}
+	return origins;
+}
+
+} // namespace
+
+std::shared_ptr<const NodeOrigins> nodeOrigins(const json& section) {
+	thread_local std::vector<std::pair<json, std::shared_ptr<const NodeOrigins>>> kept;
+	const auto found = std::ranges::find_if(kept, [&](const auto& origins) { return origins.first == section; });
+	if(found != kept.end()) {
+		std::rotate(kept.begin(), found, found + 1);
+		return kept.front().second;
+	}
+	std::shared_ptr<const NodeOrigins> origins = recordOrigins(section);
+	if(kept.size() >= keptBuilds) kept.pop_back();
+	kept.emplace(kept.begin(), section, origins);
+	return origins;
 }
 
 json buildDocument(const json& source) {

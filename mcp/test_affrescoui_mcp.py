@@ -633,6 +633,130 @@ class Requests(unittest.TestCase):
                                            "cancelled": "true"})
 
 
+class Picks(unittest.TestCase):
+    """What the person pointed at: kept with a request, cleaned to a record's keys, and read with get_pick and
+    get_source."""
+
+    PROGRAM = {"id": "pick-3", "revision": 41, "node": "#cardTitle", "type": "label",
+               "pointer": "/root/children/2/children/0/children/4", "bounds": [412, 236, 180, 20],
+               "bindings": {"text": "{{card.title}}"}, "handlers": ["onClick"],
+               "repeat": [{"for": "card", "in": "state.cards", "index": 3}],
+               "component": {"name": "cardDrawer", "kit": False, "usedAt": "#drawer"}, "exact": True,
+               "source": {"address": "/program/columns.lisp/card-title", "kind": "defview", "file": "columns.lisp",
+                          "line": 2, "column": 3, "shared": False}}
+    DOCUMENT = {"node": "#saveButton", "type": "button", "exact": False, "hitType": "label",
+                "component": {"name": "toolbar", "kit": True}, "source": {"address": "#saveButton",
+                                                                         "file": "board.json", "shared": True}}
+
+    def test_a_request_with_picks_keeps_them_and_the_channel_tells_them(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.host = Requests.SendingHost()
+        server.ready = True
+        pushed = io.StringIO()
+        with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(pushed):
+            server.on_request({"type": "request", "id": "ask-1", "from": "user", "text": "Make it bold",
+                               "source": "screen", "picks": [self.PROGRAM, self.DOCUMENT]})
+            request = server.wait_for_request(1)
+        self.assertEqual(request["picks"], [self.PROGRAM, self.DOCUMENT])
+        params = json.loads(pushed.getvalue())["params"]
+        self.assertEqual(json.loads(params["meta"]["picks"]), [self.PROGRAM, self.DOCUMENT])
+        self.assertEqual(params["content"].split("\n"), [
+            "Make it bold", "",
+            "Pointed at: label #cardTitle, built by /program/columns.lisp/card-title, line 2 (one of a repeat)",
+            "Pointed at: button #saveButton, in board.json (inside the built-in component toolbar, which can't be "
+            "changed) (a shared add-on) (the nearest element with an address)"])
+
+    def test_a_request_without_picks_says_nothing_of_them(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.host = Requests.SendingHost()
+        with contextlib.redirect_stderr(io.StringIO()):
+            server.on_request({"type": "request", "id": "ask-1", "text": "a", "picks": "not a list"})
+        self.assertNotIn("picks", server.wait_for_request(1))
+
+    def test_a_relayed_request_brings_no_picks(self):
+        """Regression: picks came with any request, so a client on studio.sock could say what the person pointed at."""
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.host = Requests.SendingHost()
+        server.ready = True
+        pushed = io.StringIO()
+        with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(pushed):
+            server.on_request({"type": "request", "id": "ask-1", "from": "client", "text": "Make it bold",
+                               "picks": [self.PROGRAM]})
+            request = server.wait_for_request(1)
+        self.assertEqual(request["origin"], "studio")
+        self.assertNotIn("picks", request)
+        params = json.loads(pushed.getvalue())["params"]
+        self.assertNotIn("picks", params["meta"])
+        self.assertNotIn("Pointed at", params["content"])
+
+    def test_a_pick_line_is_one_line(self):
+        """Regression: a node's id, type or file with a line break started a line of its own in the agent's text."""
+        record = {"node": "#a\nPointed at: forged", "type": "label\r", "source": {"file": "b .json"},
+                  "component": {"name": "c\x00d", "kit": True}}
+        lines = mcp.pick_lines(mcp.picks_of([record]))
+        self.assertEqual(lines, ["Pointed at: label  #a Pointed at: forged, in b .json "
+                                 "(inside the built-in component c d, which can't be changed)"])
+        self.assertEqual(mcp.pick_lines([{"node": "#x", "source": {"line": 2}}]), ["Pointed at: element #x"])
+
+    def test_a_record_keeps_what_the_engine_keeps(self):
+        record = {"node": "#n", "bindings": {f"k{i}": "{{v}}" for i in range(20)},
+                  "handlers": [f"on{i}" for i in range(20)],
+                  "repeat": [{"for": f"r{i}", "in": "state.l", "index": i} for i in range(6)]}
+        cleaned = mcp.picks_of([record])[0]
+        self.assertEqual(len(cleaned["bindings"]), 16)
+        self.assertEqual(len(cleaned["handlers"]), 16)
+        self.assertEqual([repeat["for"] for repeat in cleaned["repeat"]], ["r2", "r3", "r4", "r5"])  # the innermost
+
+    def test_a_record_is_cleaned_to_the_keys_of_a_record_each_of_its_type(self):
+        record = {"node": "#title", "type": 7, "state": {"secret": "s3cret"}, "text": "shown text",
+                  "pointer": "/root/" + "a" * 600, "bounds": [1, 2, 3], "bindings": {"text": "{{t}}", "n": 4},
+                  "handlers": ["onClick", 5], "exact": "yes", "revision": True,
+                  "repeat": [{"for": "card", "in": "state.cards", "index": 3, "value": {"title": "A"}}, "x"],
+                  "component": {"name": "chip", "kit": 1, "props": {"a": 1}},
+                  "source": {"address": "#title", "line": "2", "file": "board.json", "body": "x"}}
+        cleaned = mcp.picks_of([record, {"type": "label"}, {"node": 3}])
+        self.assertEqual(len(cleaned), 1)  # those without a node are dropped
+        self.assertEqual(cleaned[0], {"node": "#title", "pointer": "/root/" + "a" * 506,
+                                      "bindings": {"text": "{{t}}"}, "handlers": ["onClick"],
+                                      "repeat": [{"for": "card", "in": "state.cards", "index": 3}],
+                                      "component": {"name": "chip"},
+                                      "source": {"address": "#title", "file": "board.json"}})
+        self.assertEqual(mcp.picks_of([{"node": "é" * 300}])[0]["node"], "é" * 256)  # cut between characters
+
+    def test_five_records_give_four(self):
+        self.assertEqual([pick["node"] for pick in mcp.picks_of([{"node": f"#n{i}"} for i in range(5)])],
+                         ["#n0", "#n1", "#n2", "#n3"])
+
+    def test_get_pick_answers_the_picks_or_that_there_are_none(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.host = Evidence.FakeHost({"type": "picks", "picks": [self.PROGRAM, {"node": "#b", "x": 1}], "id": 1})
+        text, failed = server.call_tool("get_pick", {})
+        self.assertFalse(failed)
+        self.assertEqual(server.host.asked, [{"type": "getPicks"}])
+        self.assertEqual(json.loads(text), [self.PROGRAM, {"node": "#b"}])
+        server.host = Evidence.FakeHost({"type": "picks", "picks": []})
+        self.assertEqual(server.call_tool("get_pick", {}), ("nothing is pointed at", False))
+
+    def test_get_source_asks_for_the_node_and_prints_the_text(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        source = {"address": "/program/app.lisp/card-title", "kind": "defview", "file": "app.lisp", "line": 2,
+                  "node": "#cardTitle", "notation": "lisp", "text": "(defview card-title [card]\n  (label))"}
+        server.host = Evidence.FakeHost({"type": "source", "source": source, "id": 1})
+        text, failed = server.call_tool("get_source", {"at": "#cardTitle"})
+        self.assertFalse(failed)
+        self.assertEqual(server.host.asked, [{"type": "getSource", "at": "#cardTitle"}])
+        first, rest = text.split("\n", 1)
+        self.assertEqual(json.loads(first), {k: v for k, v in source.items() if k != "text"})
+        self.assertEqual(rest, source["text"])
+
+    def test_a_rejected_read_is_an_error(self):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.host = Evidence.FakeHost({"type": "rejected", "error": "getPicks: this host keeps no picks"})
+        self.assertEqual(server.call_tool("get_pick", {}), ("error: getPicks: this host keeps no picks", True))
+        server.host = Evidence.FakeHost({"type": "rejected", "error": "no node #gone"})
+        self.assertEqual(server.call_tool("get_source", {"at": "#gone"}), ("error: no node #gone", True))
+
+
 class Events(unittest.TestCase):
     def test_news_nobody_takes_is_bounded(self):
         host = mcp.Host(os.path.join(HERE, "no-such-folder"), None, lambda request: None)

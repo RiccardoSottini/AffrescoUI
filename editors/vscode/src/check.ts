@@ -1,6 +1,6 @@
 /**
- * Reads what `affrescoui check --json` prints and finds where each problem is in the screen's text. Pure, so the tests
- * run without VS Code.
+ * Reads what `affrescoui check --json` prints and finds where each problem is in the screen's text, a JSON screen's or
+ * a Lisp one's, and decides when a check may run. Pure, so the tests run without VS Code.
  */
 
 import { JsonMember, JsonNode, member } from './json';
@@ -144,6 +144,82 @@ function rangeOfPlace(found: FoundPlace): { start: number; end: number } {
 		return { start: found.node.start, end: scalar ? found.node.end : found.node.start + 1 };
 	}
 	return found.key;
+}
+
+/** The notations of the screens `affrescoui check` and `affrescoui render` take. */
+export type ScreenNotation = 'json' | 'lisp';
+
+/**
+ * Tells which notation a screen file is written in, from its name.
+ * @param file the file's path
+ * @return "json" for *.screen.json, "lisp" for *.screen.lisp, undefined for any other file
+ */
+export function screenNotation(file: string): ScreenNotation | undefined {
+	if (file.endsWith('.screen.json')) return 'json';
+	if (file.endsWith('.screen.lisp')) return 'lisp';
+	return undefined;
+}
+
+/**
+ * Returns the arguments of the check to run on a file, or none: a workspace that isn't trusted runs no command.
+ * @param file    the file's path
+ * @param trusted whether the workspace is trusted
+ * @param enabled the setting affrescoui.check.enabled
+ * @return `check --json <file>` for a screen when checks may run, else undefined
+ */
+export function checkArguments(file: string, trusted: boolean, enabled: boolean): string[] | undefined {
+	if (!trusted || !enabled || screenNotation(file) === undefined) return undefined;
+	return ['check', '--json', file];
+}
+
+/**
+ * Finds where a problem is in a Lisp screen: the "line L, column C" its message gives (the reader's and the
+ * language's errors carry both), unless the message names another file; else the keyword its place ends with
+ * (`radiuss` in "root.children[0].radiuss" is `:radiuss`) when the text has it once; else the start of the file. A
+ * schema or checker place names the document the program builds, which has no text of its own to point into.
+ * @param text    the screen's text
+ * @param file    the screen's path, to tell its own line numbers from an included file's
+ * @param problem the problem
+ * @return the problem with its range
+ */
+export function placeLispProblem(text: string, file: string, problem: Problem): PlacedProblem {
+	const at = /(?:([^\s:]+\.lisp): )?line (\d+), column (\d+)/.exec(problem.message);
+	if (at && (at[1] === undefined || sameFile(at[1], file))) {
+		const start = offsetOfLine(text, Number(at[2]), Number(at[3]));
+		return { ...problem, start, end: endOfWord(text, start) };
+	}
+	const name = /([A-Za-z_$][\w$-]*)$/.exec(problem.place)?.[1];
+	if (name) {
+		// Every character a pattern gives a meaning to is escaped, backslash included
+		const literal = name.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+		const keyword = new RegExp(`:${literal}(?![\\w$?!*.-])`, 'g');
+		const found = [...text.matchAll(keyword)];
+		if (found.length === 1) return { ...problem, start: found[0].index, end: found[0].index + found[0][0].length };
+	}
+	return { ...problem, start: 0, end: Math.min(1, text.length) };
+}
+
+/**
+ * Tells whether a path a message names is the screen's own: the same path, or the same file name at its end.
+ * @param named the path in the message
+ * @param file  the screen's path
+ * @return true if it is
+ */
+function sameFile(named: string, file: string): boolean {
+	const normal = (path: string) => path.replace(/\\/g, '/');
+	return normal(file) === normal(named) || normal(file).endsWith('/' + normal(named).split('/').pop());
+}
+
+/**
+ * Returns where the word or the bracket at an offset ends, so a problem underlines what it points at.
+ * @param text  the text
+ * @param start the offset
+ * @return the end, at least one character on unless the text ends
+ */
+function endOfWord(text: string, start: number): number {
+	let end = start;
+	while (end < text.length && /[^\s()[\]{}"]/.test(text[end])) end++;
+	return Math.min(Math.max(end, start + 1), text.length);
 }
 
 /**

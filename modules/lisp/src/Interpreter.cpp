@@ -7,11 +7,13 @@
 #include "Compiler.hpp"
 #include "Definitions.hpp"
 #include "Machine.hpp"
+#include "Namespaces.hpp"
 #include "Reader.hpp"
 #include "TopLevel.hpp"
 
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -49,6 +51,13 @@ void Interpreter::definePrimitive(const std::string& name, Primitive primitive) 
 	machine_->definePrimitive(name, std::move(primitive));
 }
 
+void Interpreter::addNamespace(std::string name, bool bare) { machine_->namespaces().add(std::move(name), bare); }
+
+void Interpreter::addAlias(std::string alias, const std::string& name) {
+	if(!machine_->namespaces().alias(std::move(alias), name))
+		throw std::invalid_argument("no namespace \"" + name + "\" to alias");
+}
+
 void Interpreter::setGate(Gate gate) { machine_->setGate(std::move(gate)); }
 
 void Interpreter::setPure(bool pure) noexcept { machine_->setPure(pure); }
@@ -58,6 +67,11 @@ Value Interpreter::eval(std::string_view text, const std::string& file, const st
 		Reader reader(machine_->heap, text, file);
 		Value result;
 		while(const auto read = readUncharged(machine_->heap, reader, machine_->budget())) {
+			if(headWord(read->form) == "ns") { // the aliases of the forms that follow; it loads no file
+				declareNamespace(*machine_, read->form, file);
+				result = Value();
+				continue;
+			}
 			result = evalTopLevel(*machine_, read->form, author, read->form.place());
 		}
 		return result;
@@ -108,9 +122,11 @@ Value Interpreter::evaluate(std::string_view text, const std::string& file, cons
 	return leavingAsLispError(*machine_, [&] {
 		Reader reader(machine_->heap, text, file);
 		const Value form = oneForm(*machine_, reader);
+		if(headWord(form) == "ns") static_cast<void>(definitionAddress(form)); // which refuses it, saying why
 		CompileContext context;
 		context.author = author;
 		context.authors = machine_->authorSet(author);
+		context.aliases = machine_->namespaces().fileAliases(&file);
 		const Code* code = nullptr;
 		{
 			const PureWhile pure(*machine_); // a macro runs now, and reaches nothing

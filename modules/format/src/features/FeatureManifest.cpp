@@ -400,9 +400,15 @@ bool validFeatureName(std::string_view name) {
 std::vector<std::string> controlStepsIn(const json& provides, const std::string& place) {
 	std::vector<std::string> found;
 	if(!provides.is_object()) return found;
-	for(const auto& [key, part] : provides.items())
-		if(!among(dataParts, key) && part.is_structured())
+	for(const auto& [key, part] : provides.items()) {
+		if(among(dataParts, key) || !part.is_structured()) continue;
+		if(key == "actions" && part.is_object()) { // an action's name ("pick") is no step: only what it does is read
+			for(const auto& [name, action] : part.items())
+				if(action.is_structured()) collectControlSteps(action, concatenate(place, ".actions.", name), found, 2);
+		} else {
 			collectControlSteps(part, concatenate(place, ".", key), found, 1);
+		}
+	}
 	return found;
 }
 

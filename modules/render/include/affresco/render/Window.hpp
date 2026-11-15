@@ -31,7 +31,7 @@ class Label;
 namespace platform {
 class NativeWindow;
 class AccessibilityAdapter;
-}
+} // namespace platform
 namespace detail {
 class Renderer;
 struct Frame;
@@ -50,7 +50,8 @@ struct MenuItem {
 	std::function<void()> run;     ///< What choosing it does, for a command.
 };
 
-/// @brief The ring a window draws around the focused panel when the keyboard moved the focus there (Window::setFocusRing()).
+/// @brief The ring a window draws around the focused panel when the keyboard moved the focus there
+/// (Window::setFocusRing()).
 struct FocusRing {
 	Color color = Color::hex(0x2563EB); ///< Its colour.
 	float width = 2.0f;                 ///< How thick it is, in pixels.
@@ -94,6 +95,18 @@ struct Confirmation {
 	std::string text;               ///< What it is about, shown whole and as it is, in a box that scrolls and wraps.
 	std::string accept = "OK";      ///< The button that says yes.
 	std::string decline = "Cancel"; ///< The button that says no.
+};
+
+/// @brief What Window::pick() needs from its caller: which panels it offers, and the words shown with them. It knows
+/// panels, not what built them.
+struct PickOptions {
+	std::string hint{};                        ///< Shown at the top centre while it lasts; empty for none.
+	std::function<Panel*(Panel*)> candidate{}; ///< The panel offered for a hit panel (it, an ancestor, ...), or
+	                                           ///< nullptr to offer nothing there; empty offers the hit panel.
+	std::function<std::string(const Panel&)> caption{}; ///< The text beside the panel offered; empty shows none.
+	Panel* start = nullptr;                             ///< Where the keyboard starts; nullptr: the focused panel, else
+	                                                    ///< the hovered one, else the first offered in tree order.
+	Color color = Color::hex(0x3b82f6);                 ///< The outline; the tint over the panel is it at 15%.
 };
 
 /// @brief A root Panel filling a window: routes input to its panels, keeps the focus, hover and mouse capture, runs
@@ -227,6 +240,32 @@ public:
 	/// their name), or nullptr: what automation finds and clicks, as a person does.
 	[[nodiscard]] Panel* confirmation() const noexcept;
 
+	/// @brief Asks the person to point at one of the window's panels, in a mode the window owns: the panel offered
+	/// under the pointer is outlined, with its caption beside it and the hint at the top.
+	///
+	/// Meanwhile the screen hears no input: no panel gets a move, a button, a key, a character or a drop, the focus,
+	/// hover and capture stay as they were (so what shows only on hover can't be pointed at), and none of the window's
+	/// signals fire but onResize and onDisplay. A wheel still scrolls the nearest scrollable panel under the pointer,
+	/// without its scroll handlers, so what is off screen can be reached. Only the person's own press ends it
+	/// (routingOwnPress()): a click begun and ended on the same panel, or Enter or Space, picks; Escape or a right
+	/// click cancels. A key or a button ends it only when let go, if it was pressed while picking. The arrow keys and
+	/// Tab move between the panels offered (ACCESSIBILITY.md, "Pointing with the keyboard"). A question confirm() asks
+	/// cancels it. Closing or destroying the window ends it without calling @p done.
+	/// @param options What it offers and shows.
+	/// @param done Gets the panel picked, or nullptr if the person cancelled; once, after the event that ended it is
+	/// delivered (defer()), and never after cancelPick(). A panel picked but destroyed before then comes as nullptr.
+	/// @return An id for cancelPick(), or 0 if one is running or a question is shown (this one doesn't start).
+	std::uint64_t pick(PickOptions options, std::function<void(Panel* picked)> done);
+	/// @brief Ends a pick without calling its callback: its caller cancelled it.
+	/// @param id From pick(); an unknown or ended one is ignored.
+	void cancelPick(std::uint64_t id);
+	/// @brief Whether a pick is running (pick()).
+	[[nodiscard]] bool picking() const noexcept { return picking_ != nullptr; }
+	/// @brief Shows or hides what a pick draws (the outline, the caption and the hint), for every pick from now on;
+	/// it is hidden while a picture of the window is drawn for someone else, say. The pick goes on either way.
+	/// @param visible true (the default) to draw it.
+	void setPickLayerVisible(bool visible);
+
 	/* Content */
 
 	/// @brief The root panel, which always fills the window.
@@ -290,7 +329,8 @@ public:
 	Signal<const CursorEnterEvent&> onCursorEnter; ///< The pointer entered or left.
 	Signal<const ResizeEvent&> onResize;           ///< The window was resized.
 	Signal<const DropEvent&> onDrop;               ///< Files were dropped from the OS.
-	Signal<const DisplayEvent&> onDisplay;         ///< The display's scale, the system's colour scheme or its motion setting changed.
+	Signal<const DisplayEvent&>
+	    onDisplay; ///< The display's scale, the system's colour scheme or its motion setting changed.
 
 	/* Input routing: keyboard to the focused panel; mouse to the panel under the pointer, or to the panel that
 	   received the button press until it is released (mouse capture, so drags work outside the panel). Deferred
@@ -333,8 +373,8 @@ public:
 	/// @return true while one of them runs.
 	[[nodiscard]] bool routingPress() const noexcept { return pressing_ > 0; }
 	/// @brief Whether the user's press is being delivered and nothing presses for the screen meanwhile: the press came
-	/// from outside the window, and no binding of it is pressing another (pressKey()). What only the person may start or
-	/// make, whichever handler a key has, asks this.
+	/// from outside the window, and no binding of it is pressing another (pressKey()). What only the person may start
+	/// or make, whichever handler a key has, asks this.
 	/// @return true while routingPress() is, outside pressKey().
 	[[nodiscard]] bool routingOwnPress() const noexcept { return pressing_ > 0 && pressedForScreen_ == 0; }
 	/// @brief Whether the hint that Esc leaves full screen is shown (setFullscreen()), drawn above everything.
@@ -407,11 +447,13 @@ public:
 	/// @param path Binary PPM file to write, at framebuffer resolution.
 	/// @return false if it couldn't be written, or the window is headless.
 	bool saveScreenshot(const std::filesystem::path& path);
-	/// @brief Draws the current frame offscreen, at a fixed scale whatever the display, and saves it (for tests).
+	/// @brief Draws the current frame offscreen, at a fixed scale whatever the display, and saves it (for tests). The
+	/// picture is lround(width * scale) by lround(height * scale) pixels.
 	/// @param path Binary PPM file to write.
-	/// @param scale Pixels per window unit (2 looks like a Retina display).
-	/// @return false if it couldn't be written, or the window is headless.
-	bool saveScreenshot(const std::filesystem::path& path, int scale);
+	/// @param scale Pixels per window unit: 2 looks like a Retina display, 1.25 like a display set to 125% (text is
+	/// rasterised at the scale rounded to a quarter, so quarters match it exactly).
+	/// @return false if it couldn't be written, the window is headless, or the scale isn't finite and above 0.
+	bool saveScreenshot(const std::filesystem::path& path, float scale);
 
 	/// @brief Draws one panel and its subtree into an image of its own, as a frame from scratch would (nothing retained
 	/// is used or changed): for thumbnails, previews and exports. Laid out first, like a screenshot.
@@ -498,6 +540,8 @@ private:
 	void layoutFocusRing();
 	/// @brief Lays out the inspection layer over the window, if it is visible, and adds it to what is drawn (drawn_).
 	void layoutInspection();
+	/// @brief Lays out what a pick draws, if one is running and its layer is visible, and adds it to what is drawn.
+	void layoutPick();
 	/// @brief Lays out the question confirm() asks over the window, if one is shown, and adds it last to what is drawn.
 	void layoutConfirmation();
 	/// @brief Takes a key while a question is shown: Enter and Escape answer it, other keys reach its text.
@@ -514,6 +558,30 @@ private:
 	/// @brief Answers the question shown, if the person's own press is being delivered, and takes it away.
 	/// @param accepted The answer.
 	void answerConfirmation(bool accepted);
+	/// @brief Delivers a button to the screen, the window asking nothing: a press focuses (left button) and captures.
+	/// @param event The button.
+	/// @param hit The panel under the pointer.
+	void deliverButton(const MouseButtonEvent& event, Panel* hit);
+	/// @brief Offers the panel under a point, while picking (a move, a scroll).
+	/// @param position In window units.
+	void pickAt(Vec2 position);
+	/// @brief Takes a key while picking: it moves between the panels offered, picks or cancels; nothing else hears it.
+	/// @param event The key.
+	void pickKey(const KeyEvent& event);
+	/// @brief Takes a key that picks (Enter or Space, without modifiers) or cancels (Escape) while picking: it acts
+	/// when let go, if it was pressed while picking.
+	/// @param event The key.
+	void pickAnswerKey(const KeyEvent& event);
+	/// @brief Takes a mouse button while picking: a left click begun and ended on one panel picks it, a right click
+	/// cancels; nothing else hears it.
+	/// @param event The button.
+	/// @param hit The panel under the pointer.
+	void pickButton(const MouseButtonEvent& event, Panel* hit);
+	/// @brief Ends the pick running, and gives its callback what was picked once the event is delivered.
+	/// @param picked The panel, or nullptr for a cancel.
+	void finishPick(Panel* picked);
+	/// @brief Ends the pick running without calling its callback (cancelPick(), the window closing).
+	void endPick();
 	/// @brief Lays out, draws and presents a frame, and records what it cost (frameStatistics()).
 	void drawAndPresent();
 	/// @brief Lays out a snapshot's source (Panel::setSnapshot()) from the window's top left, unclipped.
@@ -552,7 +620,7 @@ private:
 	/// @brief Runs a menu item the user chose in the native menu bar, as input.
 	/// @param run What it does (a copy is run: it may replace the menu bar).
 	void runChosen(std::function<void()> run);
-	/// @brief Drops the focus, hover and capture pointers to a panel being destroyed.
+	/// @brief Drops the focus, hover, capture and pick pointers to a panel being destroyed.
 	/// @param panel The panel.
 	void forget(const Panel& panel) noexcept;
 	/// @brief Runs deferred tasks until none are left.
@@ -564,18 +632,18 @@ private:
 	std::unique_ptr<platform::NativeWindow> native_; ///< OS window and OpenGL context; nullptr when headless.
 	std::unique_ptr<detail::Renderer> renderer_;     ///< Draws the tree; nullptr when headless.
 	std::unique_ptr<platform::AccessibilityAdapter> accessibility_; ///< Shows the tree to screen readers, or nullptr.
-	const Clock* clock_;                             ///< See clock(); never null.
-	std::string clipboard_;                          ///< A headless window's clipboard.
-	bool visible_ = true;                            ///< Whether a headless window counts as shown.
-	bool closing_ = false;                           ///< Whether a headless window was asked to close.
-	bool fullscreen_ = false;                        ///< Whether a headless window counts as filling a display.
-	float scale_ = 1.0f;                             ///< See contentScale().
-	ColorScheme colorScheme_ = ColorScheme::Light;   ///< See colorScheme().
-	bool reducedMotion_ = false;                     ///< See reducedMotion().
-	bool capsLock_ = false;                          ///< See capsLock().
-	std::vector<MenuItem> menus_;                    ///< See menuBar().
-	bool nativeMenuBar_ = false;                     ///< See nativeMenuBar().
-	FileDialogHandler fileDialogHandler_;            ///< See setFileDialogHandler().
+	const Clock* clock_;                                            ///< See clock(); never null.
+	std::string clipboard_;                                         ///< A headless window's clipboard.
+	bool visible_ = true;                                           ///< Whether a headless window counts as shown.
+	bool closing_ = false;                                          ///< Whether a headless window was asked to close.
+	bool fullscreen_ = false;                      ///< Whether a headless window counts as filling a display.
+	float scale_ = 1.0f;                           ///< See contentScale().
+	ColorScheme colorScheme_ = ColorScheme::Light; ///< See colorScheme().
+	bool reducedMotion_ = false;                   ///< See reducedMotion().
+	bool capsLock_ = false;                        ///< See capsLock().
+	std::vector<MenuItem> menus_;                  ///< See menuBar().
+	bool nativeMenuBar_ = false;                   ///< See nativeMenuBar().
+	FileDialogHandler fileDialogHandler_;          ///< See setFileDialogHandler().
 
 	std::string title_;                ///< See title().
 	int width_ = 0, height_ = 0;       ///< Size, in window units.
@@ -615,9 +683,9 @@ private:
 	std::vector<Timer>* dueTimers_ = nullptr; ///< The due timers runTimers() is running, for cancelTimer().
 	std::uint64_t nextTimerId_ = 1;           ///< The next timer's id.
 
-	std::vector<Panel*> overlays_;   ///< Overlays shown in the last layout, in drawing order.
-	std::vector<Panel*> drawn_;      ///< What is drawn above the tree: the overlays, then the focus ring if shown.
-	std::vector<Panel*> snapshots_;  ///< Snapshot sources found in the last layout (Panel::setSnapshot()).
+	std::vector<Panel*> overlays_;       ///< Overlays shown in the last layout, in drawing order.
+	std::vector<Panel*> drawn_;          ///< What is drawn above the tree: the overlays, then the focus ring if shown.
+	std::vector<Panel*> snapshots_;      ///< Snapshot sources found in the last layout (Panel::setSnapshot()).
 	std::optional<FocusRing> focusRing_; ///< See focusRing().
 	std::unique_ptr<Panel> ring_;        ///< The focus ring's panel, created on first use.
 	std::unique_ptr<Panel> inspection_;  ///< See inspection().
@@ -625,15 +693,25 @@ private:
 	bool keyInput_ = false;              ///< The latest input was a key, not a mouse press.
 	bool keyTaken_ = false;              ///< See keyTaken().
 	bool focusVisible_ = false;          ///< See focusVisible().
-	std::unique_ptr<Label> tooltip_; ///< The tooltip, created on first use.
-	bool tooltipShown_ = false;      ///< The tooltip is on screen.
-	std::uint64_t tooltipTimer_ = 0; ///< The delay before showing it, if running.
+	std::unique_ptr<Label> tooltip_;     ///< The tooltip, created on first use.
+	bool tooltipShown_ = false;          ///< The tooltip is on screen.
+	std::uint64_t tooltipTimer_ = 0;     ///< The delay before showing it, if running.
 	std::unique_ptr<Label> fullscreenHint_; ///< "Press Esc to leave full screen", created on first use.
 	bool fullscreenHintShown_ = false;      ///< The hint is on screen.
 	std::uint64_t fullscreenHintTimer_ = 0; ///< Hides it, if running.
 	struct Asking;                          ///< The question confirm() asks (WindowConfirm.cpp).
 	std::unique_ptr<Asking> asking_;        ///< It, while it is shown.
 	std::uint64_t nextConfirmation_ = 1;    ///< The next question's id.
+	struct Picking;                         ///< The pick running (Picking.hpp).
+	std::unique_ptr<Picking> picking_;      ///< It, while it runs.
+	std::uint64_t nextPick_ = 1;            ///< The next pick's id.
+	bool pickLayerVisible_ = true;          ///< See setPickLayerVisible().
+	/// @brief A pick that ended, until its callback runs.
+	struct PickResult {
+		std::uint64_t id = 0;   ///< The pick's id.
+		Panel* panel = nullptr; ///< What was picked; nullptr once destroyed (forget()), or for a cancel.
+	};
+	std::vector<PickResult> pickResults_; ///< Picks that ended, whose callbacks are still to run.
 
 	Cursor currentCursor_ = Cursor::Arrow; ///< Shape shown now.
 	Panel root_;                           ///< Fills the window.

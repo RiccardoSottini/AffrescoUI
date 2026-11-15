@@ -26,4 +26,11 @@
                 :changes.pick "Elige un cambio a la izquierda."
                 :changes.revision "Revisión {n}"
                 :changes.layers "Vista {view} · Lógica {logic} · Datos: {data}"
-                :changes.original "El archivo tal como se cargó"}}}
+                :changes.original "El archivo tal como se cargó"
+                :changes.source "Código"
+                :changes.sourceShared "De un complemento compartido: un cambio se aplica solo a esta aplicación."
+                :changes.sourceCut "Solo se muestran los primeros 16 KiB del texto."
+                :changes.sourcePreviewed "Tal como lo muestra la propuesta #{n}, mientras se previsualiza."
+                :changes.lastChanged "Cambiado por última vez en #{number} por {author}"
+                :changes.showChange "Ver ese cambio"
+                :changes.line "línea {line}"}}}

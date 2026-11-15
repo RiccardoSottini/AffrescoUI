@@ -190,6 +190,20 @@ files the person just dropped on the window: a `from` naming any other path is r
 their bytes or where they were, and may name one in a revision's assets, which the person then reviews. No revision
 or peer can open the dialog or read the disk.
 
+**Picks** are what the person points at (SCREEN_FORMAT.md, "Pointing at a node"). A `pick` step is a control step
+that starts only from the person's own press: no revision, timer, reply or peer can put the window in pick mode or
+make a record. The engine makes every record from the document as written, never from what a document hands it, and a
+record holds no value from the state, no record of the app's data and no text a panel shows, only where a node is
+written and its bindings as written (at most 4 KiB: a node whose ids or pointer are too long for that gives no record,
+and the pick is cancelled). Agents read the records not yet sent (`getPicks`) and where a node is written
+(`getSource`, the versioned document only, never a file, at most 16 KiB); a peer whose reads are limited is refused
+both and gets `request` without `picks`, since where a person points can tell what they look at. Only the screen's
+own requests carry picks: the host drops `picks` from a request a peer sends, as it drops `source`, and the MCP server
+keeps them only on a request from the app. A record's bindings and source text are the document's own words, so an
+agent reads them as data, never as instructions; the MCP server tells each pick on one line, its texts without line
+breaks or control characters. A record a step writes `into` the state is as readable as the rest of the state (see
+"Known gaps").
+
 **The permission rules** (`permissions`: `allow`, `ask`, `deny`) are judged by the change's effect, by comparing the
 screen before and after, not by how the patch is written:
 - a matching `deny` refuses it, for everyone, including reviewers and the app itself; deny rules are checked again
@@ -552,6 +566,22 @@ What holds for whatever text it is given:
   recursion (reader, compiler, walks over values, calls through a step or a value, at most 64 deep) stops at a depth. The reader's limits are
   the notation's. Fuzzed: `tests/fuzz/lisp.cpp`, with a gate, and `tests/fuzz/revision.cpp` on a program.
 - **Errors** say names and kinds, never a value; a `throw` nothing catches shows its message only if the form wrote it.
+- **Clojure's reader forms turn into the language's own as they are read** (`modules/lisp/reference/reader.md`), so the compiler,
+  the macros and the rules see only ordinary forms. `#(...)` is an `fn` of at most 20 parameters, never nested; `#?(...)` reads
+  every branch and keeps the `:affresco` or `:default` one; `^metadata` is read and dropped, so nothing rides on a value out of
+  sight; a character is a one-character string; `12N`, `1.5M`, `1/2` and `0x1F` are JSON numbers, and one wider than 64 bits, or
+  `1/0`, is an error. They are the language's only: the notation's reader, which reads documents as data, refuses each, naming
+  its place. Their depth and sizes are the reader's limits above.
+- **A library macro has no author.** The macros and functions the language writes in itself (`when-let`, `->`, `case`, `for`...)
+  are compiled with no author of their own, so the code a library macro writes has the authors of the code that called it, and
+  nothing more. Its expansion names `not`, `=`, `nil?`, `some?`, `empty?`, `first`, `map`, `filter` and `mapcat` by word;
+  where a local or the program has its own of one of them, the call is an error naming both, never a quiet call of someone
+  else's function.
+- **The conformance program is a test, never shipped.** `affrescoui_conformance` (`tests/conformance/`) runs Clojure's test suite
+  against the language. The suite is fetched only when a build asks for it (`-DAFFRESCOUI_CONFORMANCE=ON`), at one commit and
+  checked against its SHA-256, and no file of it enters the repository. Its text is untrusted input: each file runs in a fresh
+  interpreter with lower limits (5,000,000 operations, 64 MiB, a depth of 2,000), the runner reads no file but those it is given
+  and the suite's own support files under the suite's folder, and nothing reaches the network while it runs.
 
 ### What documents can't do
 A JSON document has no scripts, and a program's only way out is the steps (above). Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
@@ -596,6 +626,9 @@ The command-line tool (`tools/affrescoui`) reads screen files people, agents and
   pixels a side is refused before anything is drawn.
 - `test` plays a scenarios file the same way: every channel the screen declares, by an absolute path or from an
   `include` too, is pointed at a folder that is never created, so a played screen never reaches a running host.
+- `source` loads a screen as `check` does, and to give a program's line in its file reads only a regular file of at
+  most 16 MiB inside the screen's folder once its links are resolved, whatever a `/program` key names (an absolute
+  name, `..`, a device): otherwise it gives the line within the definition.
 - `run`, `import` and `export` treat the file as a host does: the screen file is trusted, and a change set given to
   `import` or `run --plugin` is trusted like one given to `affrescoui_launcher --plugin`. `import` refuses a history
   another program is writing.
@@ -757,7 +790,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A step writing to a list position past the list's end (the positions between become `null`) | 10,000 positions past it |
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
-| Files including files (`include`, at load time) | 9 levels below the screen file |
+| Files including files (`include`, at load time) | 9 levels below the screen file, and 1,024 files read in all (a file two files include is read for each) |
 | An included file (`include`; plain files only: no devices or pipes) | 16 MiB; an app's are in its folder or the `shared` folder beside it, once links are resolved |
 | Open proposals per channel | 16 |
 | Operations in one revision (its compact edits and its JSON Patch), or in one proposal with all its commits; counted before any is applied | 10,000 |
@@ -1045,3 +1078,7 @@ removes the gap from this list.
   SHA-256 and listed in the SBOM each release carries (`cmake/dependencies.json`), and Dependabot proposes updates to
   the workflows' actions; but no job matches the pinned versions against vulnerability databases, so a known flaw is
   found only when someone looks. Tracking: G-25.
+- **A pick kept in the state is as readable as the state.** A `pick` step's `into` writes the record into the state,
+  and a peer whose data rules leave that path readable reads it, though `getPicks` refuses that peer and its `request`
+  comes without `picks`. Where the person points can tell what they look at: keep such a path out of what a limited
+  peer may read. Tracking: G-28.

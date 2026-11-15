@@ -55,13 +55,21 @@ Reader::Reader(Heap& heap, std::string_view text, const std::string& file, std::
 
 std::optional<ReadForm> Reader::next() {
 	try {
-		const Token token = lexer_.next();
-		if(token.kind == TokenKind::End) return std::nullopt;
-		ReadForm read;
-		read.start = token.offset;
-		read.form = form(token, 0);
-		read.end = lexer_.lastEnd();
-		return read;
+		for(;;) {
+			const Token token = lexer_.next();
+			if(token.kind == TokenKind::End) return std::nullopt;
+			ReadForm read;
+			read.start = lexer_.formStart(); // a ^meta before the form is part of its text
+			if(token.kind == TokenKind::Conditional) {
+				const std::optional<Value> chosen = conditional(token, 0);
+				if(!chosen) continue; // it chooses none: the text goes on, as after a #_
+				read.form = *chosen;
+			} else {
+				read.form = form(token, 0);
+			}
+			read.end = lexer_.lastEnd();
+			return read;
+		}
 	} catch(const notation::NotationError& error) {
 		throw placed(error, *file_, firstLine_, firstColumn_);
 	}
@@ -99,8 +107,23 @@ Value Reader::form(const Token& token, int depth) {
 		return heap_.string(lexer_.unquote(token.text, token.offset), placeAt(token.offset));
 	case TokenKind::Word:
 		return word(token);
+	case TokenKind::Character:
+		return character(token);
 	case TokenKind::Key:
-		return heap_.keyword(lexer_.name(token), placeAt(token.offset));
+		return keyword(token);
+	case TokenKind::Id:
+		refuseHashWord(token);
+		lexer_.fail(token.offset, "an id (" + notation::Lexer::shown(token) + ") outside a node");
+	case TokenKind::End:
+		lexer_.fail(token.offset, "expected a value, found the end of the text");
+	default:
+		if(token.kind >= TokenKind::Quote && token.kind <= TokenKind::Splice) return prefix(token, depth);
+		lexer_.fail(token.offset, "expected a value, found " + notation::Lexer::shown(token));
+	}
+}
+
+Value Reader::prefix(const Token& token, int depth) {
+	switch(token.kind) {
 	case TokenKind::Quote:
 		return prefixed(token, "quote", depth);
 	case TokenKind::Backquote:
@@ -109,12 +132,8 @@ Value Reader::form(const Token& token, int depth) {
 		return prefixed(token, "unquote", depth);
 	case TokenKind::Splice:
 		return prefixed(token, "unquote-splicing", depth);
-	case TokenKind::Id:
-		lexer_.fail(token.offset, "an id (" + notation::Lexer::shown(token) + ") outside a node");
-	case TokenKind::End:
-		lexer_.fail(token.offset, "expected a value, found the end of the text");
 	default:
-		lexer_.fail(token.offset, "expected a value, found " + notation::Lexer::shown(token));
+		return hashForm(token, depth);
 	}
 }
 
@@ -126,8 +145,40 @@ Value Reader::prefixed(const Token& prefix, std::string_view name, int depth) {
 	return heap_.sequence(Kind::List, std::span<const Value>(items), place);
 }
 
+void Reader::elements(const Token& token, int depth, std::vector<Value>& into) {
+	if(token.kind != TokenKind::Conditional && token.kind != TokenKind::ConditionalSplice) {
+		into.push_back(form(token, depth));
+		return;
+	}
+	const std::optional<Value> chosen = conditional(token, depth);
+	if(!chosen) return;
+	if(token.kind == TokenKind::Conditional) {
+		into.push_back(*chosen);
+		return;
+	}
+	if(chosen->kind() != Kind::Vector && chosen->kind() != Kind::List)
+		lexer_.fail(token.offset, "#?@ splices the items of a vector, and chose " + std::string(describeKind(*chosen)));
+	for(std::size_t at = 0; at < chosen->count(); ++at) into.push_back(chosen->at(at));
+}
+
+Value Reader::keyword(const Token& token) {
+	const std::string_view written = token.text.substr(1);
+	if(written.starts_with(':') || (!written.starts_with('"') && written.contains('/')))
+		lexer_.fail(token.offset, "a keyword has no namespace here: write :name, or :\"a/b\"");
+	return heap_.keyword(lexer_.name(token), placeAt(token.offset));
+}
+
+void Reader::refuseHashWord(const Token& token) const {
+	if(token.text.starts_with("##")) lexer_.fail(token.offset, "JSON has no infinity or not-a-number");
+	if(token.text.starts_with("#'")) lexer_.fail(token.offset, "there are no vars: name the function itself");
+}
+
 Value Reader::word(const Token& token) {
 	if(std::optional<json> constant = lexer_.constant(token)) return Value::view(*constant); // a scalar: copied
+	if(std::optional<json> number = clojureNumber(token)) return Value::view(*number);
+	if(lambda_ && token.text.starts_with('%'))
+		if(const std::optional<std::string> parameter = lambdaParameter(token))
+			return heap_.symbol(*parameter, placeAt(token.offset));
 	if(!isSymbolWord(token.text))
 		lexer_.fail(token.offset, "unexpected " + notation::Lexer::shown(token) +
 		                              ": not a word, a number, true, false or nil (a string "
@@ -138,9 +189,11 @@ Value Reader::word(const Token& token) {
 void Reader::head(const Token& token, std::vector<Value>& items, int depth) {
 	const std::size_t hash = token.kind == TokenKind::Word ? token.text.find('#') : std::string_view::npos;
 	if(hash == std::string_view::npos) {
-		if(token.kind == TokenKind::Id)
+		if(token.kind == TokenKind::Id) {
+			refuseHashWord(token);
 			lexer_.fail(token.offset,
 			            "expected the node's type, or node, after '(', found " + notation::Lexer::shown(token));
+		}
 		items.push_back(form(token, depth));
 		return;
 	}
@@ -163,16 +216,19 @@ Value Reader::list(const Token& open, int depth) {
 	if(item.kind == TokenKind::CloseNode) return heap_.sequence(Kind::List, std::move(items), place);
 	if(item.kind == TokenKind::End)
 		lexer_.fail(item.offset, "expected ')' to close the node opened at " + lexer_.placeOf(open.offset));
-	head(item, items, depth + 1);
+	if(item.kind == TokenKind::Conditional || item.kind == TokenKind::ConditionalSplice)
+		elements(item, depth + 1, items);
+	else head(item, items, depth + 1);
 	for(item = lexer_.next(); item.kind != TokenKind::CloseNode; item = lexer_.next()) {
 		if(item.kind == TokenKind::End)
 			lexer_.fail(item.offset, "expected ')' to close the node opened at " + lexer_.placeOf(open.offset));
 		if(item.kind == TokenKind::Id) { // `#x` is `:id "x"`
+			refuseHashWord(item);
 			const Place at = placeAt(item.offset);
 			items.push_back(heap_.keyword("id", at));
 			items.push_back(heap_.string(lexer_.name(item), at));
 		} else {
-			items.push_back(form(item, depth + 1));
+			elements(item, depth + 1, items);
 		}
 	}
 	return heap_.sequence(Kind::List, std::move(items), place);
@@ -185,7 +241,7 @@ Value Reader::vector(const Token& open, int depth) {
 	for(Token item = lexer_.next(); item.kind != TokenKind::CloseList; item = lexer_.next()) {
 		if(item.kind == TokenKind::End)
 			lexer_.fail(item.offset, "expected ']' to close the list opened at " + lexer_.placeOf(open.offset));
-		items.push_back(form(item, depth + 1));
+		elements(item, depth + 1, items);
 	}
 	return heap_.sequence(Kind::Vector, std::move(items), place);
 }
@@ -199,7 +255,11 @@ Value Reader::map(const Token& open, int depth) {
 	for(Token item = lexer_.next(); item.kind != TokenKind::CloseMap; item = lexer_.next()) {
 		if(item.kind == TokenKind::End)
 			lexer_.fail(item.offset, "expected '}' to close the object opened at " + lexer_.placeOf(open.offset));
-		const Value key = form(item, depth + 1);
+		std::vector<Value> chosen; // a key a reader conditional chooses, or none
+		if(item.kind == TokenKind::Conditional) elements(item, depth + 1, chosen);
+		else chosen.push_back(form(item, depth + 1));
+		if(chosen.empty()) continue;
+		const Value key = chosen.front();
 		literal = literal && (key.kind() == Kind::Keyword || key.kind() == Kind::String);
 		if((key.kind() == Kind::Keyword || key.kind() == Kind::String) && !seen.insert(key.text()).second)
 			lexer_.fail(item.offset,

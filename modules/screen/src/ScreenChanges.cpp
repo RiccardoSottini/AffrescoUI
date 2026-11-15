@@ -238,22 +238,13 @@ void addProgramRows(const Sides& sides, const std::string& wanted, json& files) 
 	return printed(*tree, lisp);
 }
 
-/// @brief The name a reviewer knows a file by: its path from the screen's folder, without the climb to a shared folder.
-/// @param file The file's absolute path, or empty for the screen itself.
-/// @param entry The screen's own name.
-/// @param base The screen's folder.
-/// @return The name.
-[[nodiscard]] std::string shownName(const std::string& file, const std::string& entry,
-                                    const std::filesystem::path& base) {
-	if(file.empty()) return entry;
-	std::string name = std::filesystem::path(file).lexically_relative(base).generic_string();
-	while(name.starts_with("../")) name.erase(0, 3);
-	return name.empty() ? file : name;
-}
-
 } // namespace
 
 json Screen::fileChanges(const json& request) const { return impl_->fileChanges(request); }
+
+json Screen::source(const std::string& at) const { return impl_->runtime.source(at); }
+
+json Screen::picks() const { return impl_->runtime.picks(); }
 
 json Screen::Impl::fileChanges(const json& request) const {
 	const VersionControl& versions = repository;
@@ -268,7 +259,7 @@ json Screen::Impl::fileChanges(const json& request) const {
 	const std::string wanted = request.value("file", std::string());
 	json files = json::array();
 	for(const std::string& owner : owners) {
-		const std::string shown = shownName(owner, entry, screenFolder);
+		const std::string shown = detail::shownName(owner, entry, screenFolder);
 		json before = json::object();
 		json after = json::object();
 		project(sides.before, "", owner, sources, touched, before);

@@ -5,7 +5,9 @@
 
 #include "Compiler.hpp"
 #include "Definitions.hpp"
+#include "Library.hpp"
 #include "Machine.hpp"
+#include "Namespaces.hpp"
 #include "Reader.hpp"
 #include "TopLevel.hpp"
 
@@ -21,12 +23,6 @@
 
 namespace affresco::lisp {
 
-namespace {
-
-/// @brief Where a form's text ends: past the comment that ends its line.
-/// @param text The text.
-/// @param end Where the form ends.
-/// @return The end.
 std::size_t pastSameLineComment(std::string_view text, std::size_t end) {
 	std::size_t at = end;
 	while(at < text.size() && (text[at] == ' ' || text[at] == '\t' || text[at] == ',')) ++at;
@@ -36,6 +32,8 @@ std::size_t pastSameLineComment(std::string_view text, std::size_t end) {
 	while(at > end && (text[at - 1] == '\r' || text[at - 1] == ' ' || text[at - 1] == '\t')) --at;
 	return at;
 }
+
+namespace {
 
 /// @brief Where the next entry's text starts: the first character that isn't a space.
 /// @param text The text.
@@ -72,8 +70,9 @@ void advance(std::string_view text, std::size_t& line, std::size_t& column) {
 
 /// @brief A section of the tree: its members in the order their definitions come in the program, as a JSON file's are
 /// in the order written (an overlay's place, the first key of a command, the order of watches), so a change to one
-/// definition never moves another. A `defdefaults` member takes its place where its definition is, and a definition that
-/// gives it later replaces its value there, as a JSON file's include gives a member its place and the file its value.
+/// definition never moves another. A `defdefaults` member takes its place where its definition is, and a definition
+/// that gives it later replaces its value there, as a JSON file's include gives a member its place and the file its
+/// value.
 class Section {
 public:
 	using Member = std::pair<std::string, json>; ///< A member: its name and value.
@@ -118,9 +117,9 @@ public:
 	[[nodiscard]] std::vector<Member>::iterator end() noexcept { return members_.end(); }
 
 private:
-	std::vector<Member> members_;                ///< In order.
+	std::vector<Member> members_;              ///< In order.
 	std::map<std::string, std::size_t> index_; ///< Each member's place.
-	std::set<std::string> defaulted_;           ///< The members a default gave, that nothing has replaced.
+	std::set<std::string> defaulted_;          ///< The members a default gave, that nothing has replaced.
 };
 
 /// @brief Adds a section to the tree, if it has anything; `defscreen main` may have given some of it.
@@ -281,7 +280,8 @@ void buildPart(Machine& machine, const Definition& definition, const Value& data
 			if(!value.is_object()) throw Problem("defdefaults gives members of sections: \"" + key + "\" isn't a map");
 			for(auto& [member, given] : value.items())
 				if(!parts.sections[key].giveDefault(member, given))
-					throw Problem("\"" + notation::Lexer::excerpt(member) + "\" is given twice, the second time by defdefaults");
+					throw Problem("\"" + notation::Lexer::excerpt(member) +
+					              "\" is given twice, the second time by defdefaults");
 			continue;
 		}
 		if(value.is_object()) {
@@ -443,6 +443,22 @@ Global* macroOf(const Machine& machine, const Value& form) {
 	return global && global->macro ? global : nullptr;
 }
 
+/// @brief Expands a macro's call at the top level, where no compiler sees it: a library macro is refused where the
+/// program defines a word it calls (Compiler::checkUses() does the rest inside code).
+/// @param machine The machine.
+/// @param macro The macro.
+/// @param form The call.
+/// @param place Where it is.
+/// @return The expansion.
+/// @throws LispError If the program defines a word the macro calls.
+Value expandAtTop(Machine& machine, Global& macro, const Value& form, Place place) {
+	Value expanded = machine.expand(macro, argumentsOf(form), place);
+	if(macro.library)
+		if(const std::string problem = definedUse(machine, macro); !problem.empty())
+			throw LispError(place.file ? *place.file : "", place.line, place.column, "", problem);
+	return expanded;
+}
+
 } // namespace
 
 Value evalTopLevel(Machine& machine, const Value& form, const std::string& author, Place where) {
@@ -459,9 +475,10 @@ Value evalTopLevel(Machine& machine, const Value& form, const std::string& autho
 		return result;
 	}
 	if(Global* macro = macroOf(machine, form))
-		return evalTopLevel(machine, machine.expand(*macro, argumentsOf(form), place), author, place);
+		return evalTopLevel(machine, expandAtTop(machine, *macro, form, place), author, place);
 	CompileContext context;
 	context.author = author;
+	context.aliases = machine.namespaces().fileAliases(place.file);
 	return machine.runThunk(Compiler(machine, std::move(context)).thunk(form));
 }
 
@@ -474,7 +491,7 @@ void defineTopLevel(Machine& machine, const Value& form, const std::string& auth
 	} else if(headWord(form) == "do") {
 		for(std::size_t at = 1; at < form.count(); ++at) defineTopLevel(machine, form.at(at), author, authors, place);
 	} else if(Global* macro = macroOf(machine, form)) {
-		const Value expanded = machine.expand(*macro, argumentsOf(form), place);
+		const Value expanded = expandAtTop(machine, *macro, form, place);
 		const auto* closure = static_cast<const ClosureObject*>(macro->value.pointer());
 		defineTopLevel(machine, expanded, author, machine.unite(authors, closure->code->authors), place);
 	} else {
@@ -518,7 +535,8 @@ bool isProgram(std::string_view text) {
 	Reader reader(heap, text, "");
 	const auto first = reader.next();
 	if(!first) return false;
-	return reader.next().has_value() || isDefinitionWord(headWord(first->form));
+	const std::string_view head = headWord(first->form);
+	return reader.next().has_value() || isDefinitionWord(head) || head == "ns";
 }
 
 std::optional<std::string> firstUnquote(std::string_view text) {
@@ -557,7 +575,7 @@ public:
 	/// @return std::nullopt if a bracket is left open (the reader says so), else whether it is.
 	[[nodiscard]] std::optional<bool> oneDefinition() const {
 		if(depth_ != 0) return std::nullopt;
-		return forms_ == 1 && isDefinitionWord(head_);
+		return forms_ == 1 && (isDefinitionWord(head_) || head_ == "ns"); // a file with only its ns form
 	}
 
 private:
@@ -700,6 +718,12 @@ void Program::addEntryUnread(Entry entry) {
 	entries_.push_back(std::move(entry));
 }
 
+void Program::declareNamespace(const std::string& file, std::string text) {
+	if(std::ranges::any_of(namespaces_, [&file](const auto& known) { return known.first == file; }))
+		throw LispError(file, 1, 1, std::string(namespaceEntry), "a file has one ns form");
+	namespaces_.emplace_back(file, std::move(text));
+}
+
 void Program::definePure(const std::string& name, Primitive primitive) {
 	if(!primitive.pure || !primitive.capability.empty())
 		throw std::invalid_argument("a primitive build code may call is pure and needs no capability");
@@ -727,6 +751,11 @@ void Program::load(Interpreter& interpreter, bool everything) const {
 				                "an entry's text defines its own name");
 			forms.emplace_back(*read, &entry);
 		}
+		if(!namespaces_.empty() || !machine.namespaces().programless()) {
+			std::map<std::string, std::set<std::string, std::less<>>, std::less<>> definedIn;
+			for(const Entry& entry : entries_) definedIn[entry.file].insert(entry.name);
+			applyNamespaces(machine, namespaces_, definedIn);
+		}
 		const auto authorsOf = [&machine](const Entry& entry) { return machine.authorSet(entry.author); };
 		for(const auto& [form, entry] : forms)
 			if(headWord(form) == "defmacro")
@@ -749,6 +778,9 @@ json Program::build(const Limits& limits) {
 	undefined_.clear();
 	used_.clear();
 	named_.clear();
+	places_.clear();
+	std::vector<NodeNote> notes; // what the tree builder notes, if this build records
+	if(recording_) machine.nodeNotes = &notes;
 	return leavingAsLispError(machine, [&] {
 		machine.workOutDefinitions(); // a value is worked out here, purely: nothing later can change one
 		BuiltParts parts;
@@ -771,8 +803,19 @@ json Program::build(const Limits& limits) {
 			if(use.global->state == Global::State::Undefined)
 				undefined_.push_back({use.global->name, use.place.file ? *use.place.file : "", use.place.line,
 				                      use.place.column, use.definition});
-		return treeOf(machine, parts, defaulted_);
+		json tree = treeOf(machine, parts, defaulted_);
+		keepNodePlaces(notes);
+		return tree;
 	});
+}
+
+void Program::keepNodePlaces(const std::vector<NodeNote>& notes) {
+	std::set<std::string_view> seen; // views into notes, which outlive it
+	for(const NodeNote& note : notes)
+		if(seen.insert(note.id).second)
+			places_.push_back({note.id, note.form.file != nullptr ? *note.form.file : "", note.form.line,
+			                   note.form.column, note.written.file != nullptr ? *note.written.file : "",
+			                   note.written.line, note.written.column});
 }
 
 } // namespace affresco::lisp

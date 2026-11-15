@@ -2,12 +2,15 @@
 """Counts the tokens of what agents read and write: per template and for Forge (its features merged in), the minified
 document (the first get_screen read), its outline (get_screen with outline=true) and the canonical edits in
 tests/perf/edits (submit_revision's arguments); each desktop kit component's general use in tests/perf/kit.json, as an
-agent writes it; and SCREEN_FORMAT.md (get_format_guide). One JSON object per line, like affrescoui_bench.
+agent writes it; SCREEN_FORMAT.md (get_format_guide); and, with the affrescoui tool built, each pick in picks.json:
+what an agent reads first with it (the pick's line and get_source's reply, from `affrescoui source`) against what it
+reads first without one, and their ratio. One JSON object per line, like affrescoui_bench.
 
     pip install --require-hashes -r tests/perf/requirements.txt
     python3 tests/perf/tokens.py              # JSON lines
     python3 tests/perf/tokens.py --table      # a table to read
     python3 tests/perf/tokens.py --root ../base --out base-tokens.jsonl
+    python3 tests/perf/tokens.py --table --cli build/affrescoui   # the picks from this tool (default: build's)
 
 The counter is tiktoken's o200k_base, a stand-in: Claude's tokenizer isn't public, so compare ratios, not totals. The
 document and outline come from the MCP server's own functions (mcp/affrescoui_mcp.py under --root), so a change to
@@ -21,11 +24,14 @@ import importlib.util
 import inspect
 import json
 import os
+import statistics
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SUFFIX = ".screen.json"
+OUTLINED = 32 * 1024  # bytes of minified document above which an agent reads the outline first, not the document
 
 
 def load_mcp(root):
@@ -160,8 +166,9 @@ def screens(root):
             yield "forge", with_includes(json.load(screen), os.path.dirname(forge))
 
 
-def counts(root, edits, encoding):
-    """Every count, as (name, tokens), in a fixed order."""
+def counts(root, edits, encoding, cli=None):
+    """Every count, as (name, tokens), in a fixed order; with the affrescoui tool `cli`, the picks' too (ratios last
+    in each pick's rows)."""
     mcp = load_mcp(root)
 
     def tokens(text):
@@ -197,6 +204,104 @@ def counts(root, edits, encoding):
     with open(os.path.join(HERE, "kit.json"), encoding="utf-8") as file:
         for component, use in json.load(file).items():
             yield f"tokens/kit/{component}", tokens(mcp.compact(use))
+    if cli:
+        yield from pick_counts(root, mcp, tokens, cli)
+
+
+def default_cli():
+    """This checkout's affrescoui tool (build/affrescoui), whose `source` gives the picks' sources; None if not
+    built."""
+    path = os.path.join(ROOT, "build", "affrescoui")
+    return path if os.path.exists(path) else None
+
+
+def json_version(root, screen):
+    """The JSON document beside a screen, the one tokens are counted on: the screen itself if it is JSON, else the
+    index.screen.json of the json folder beside a program's lisp folder; None if there is none."""
+    path = os.path.join(root, screen)
+    if path.endswith(SUFFIX):
+        return path
+    folder = os.path.dirname(path)
+    if os.path.basename(folder) != "lisp":
+        return None
+    beside = os.path.join(os.path.dirname(folder), "json", "index" + SUFFIX)
+    return beside if os.path.exists(beside) else None
+
+
+def pick_name(screen):
+    """A pick entry's name in its rows: its example folder and notation ("flow-lisp")."""
+    parts = screen.replace("\\", "/").split("/")
+    return f"{parts[-3]}-{parts[-2]}" if len(parts) >= 3 else parts[-1]
+
+
+def node_source(cli, screen, at):
+    """What `affrescoui source --json` gives for a node, or None if the tool can't give it (none built, a root from
+    before the command, nothing at `at`)."""
+    try:
+        process = subprocess.run([cli, "source", screen, at, "--json"], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, text=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if process.returncode != 0:
+        return None
+    try:
+        return json.loads(process.stdout)
+    except ValueError:  # not JSON: the tool can't give it either
+        return None
+
+
+def repeats_along(document, pointer):
+    """The repeats a node is in (its own included), outermost first, along its JSON pointer in the document: what a
+    pick's `repeat` holds, which getSource doesn't give."""
+    found, node = [], document
+    for part in (pointer or "").split("/")[1:]:
+        part = part.replace("~1", "/").replace("~0", "~")
+        try:
+            node = node[int(part)] if isinstance(node, list) else node[part]
+        except (KeyError, IndexError, ValueError, TypeError):
+            break
+        if isinstance(node, dict) and isinstance(node.get("repeat"), dict):
+            found.append({"for": node["repeat"].get("for"), "in": node["repeat"].get("in")})
+    return found
+
+
+def pick_read(mcp, document, at, source):
+    """What an agent reads first for a request that points: the line pick_lines gives for the pick (its type from the
+    document, where it is written from the source), then get_source's reply (the source's fields as compact JSON,
+    then its text, as the MCP server gives them)."""
+    found = mcp.find_node(document, at[1:]) if at.startswith("#") else None
+    record = {"node": at, "type": mcp.node_type(found[1], document.get("styles")) if found else "element",
+              "source": {key: source[key] for key in ("address", "kind", "file", "line", "column", "shared")
+                         if key in source}}
+    if repeats_along(document, source.get("pointer")):
+        record["repeat"] = repeats_along(document, source.get("pointer"))
+    fields = {key: value for key, value in source.items() if key != "text"}
+    return "\n".join(mcp.pick_lines([record])) + "\n" + mcp.compact(fields) + "\n" + source.get("text", "")
+
+
+def pick_counts(root, mcp, tokens, cli):
+    """Per entry of picks.json: the tokens of what an agent reads first with a pick (`pick`), without one
+    (`first-read`: the outline for a document over OUTLINED bytes minified, else the document), and their ratio, as
+    (name, value). An entry the tool can't answer is said on the error output and skipped."""
+    if not hasattr(mcp, "pick_lines"):  # a root from before picks
+        return
+    with open(os.path.join(HERE, "picks.json"), encoding="utf-8") as file:
+        entries = json.load(file)["picks"]
+    for entry in entries:
+        path = json_version(root, entry["screen"])
+        source = node_source(cli, os.path.join(root, entry["screen"]), entry["at"]) if path else None
+        if source is None:
+            print(f"tokens.py: no pick counted for {entry['screen']} {entry['at']}", file=sys.stderr)
+            continue
+        with open(path, encoding="utf-8") as screen:
+            document = with_includes(json.load(screen), os.path.dirname(path))
+        minified = mcp.compact(document)
+        first = mcp.outline(document) if len(minified.encode("utf-8")) > OUTLINED else minified
+        name = f"tokens/{pick_name(entry['screen'])}/pick/{entry['at'].lstrip('#')}"
+        pick, first_read = tokens(pick_read(mcp, document, entry["at"], source)), tokens(first)
+        yield name, pick
+        yield name + "/first-read", first_read
+        yield name + "/ratio", round(pick / first_read, 4)
 
 
 def table(results):
@@ -204,7 +309,7 @@ def table(results):
     templates = {}
     for name, value in results:
         parts = name.split("/")
-        if len(parts) >= 3 and parts[0] == "tokens" and parts[1] not in ("format-guide", "kit"):
+        if len(parts) >= 3 and parts[0] == "tokens" and parts[1] not in ("format-guide", "kit") and parts[2] != "pick":
             templates.setdefault(parts[1], {"edits": []})
             if parts[2] == "edit":
                 templates[parts[1]]["edits"].append(value)
@@ -221,7 +326,26 @@ def table(results):
     guide = f"\n\nSCREEN_FORMAT.md: {found['tokens/format-guide']:,} tokens (o200k_base)"
     if "tokens/format-guide/contents" in found:
         guide += f"; get_format_guide without a topic: {found['tokens/format-guide/contents']:,}"
-    return "\n".join(rows) + guide + "\n"
+    return "\n".join(rows) + guide + "\n" + pick_table(results)
+
+
+def pick_table(results):
+    """The picks' table: per entry of picks.json, what an agent reads first with the pick and without it, and the
+    ratio; then the ratio's median, smallest and largest. Empty without picks."""
+    found = dict(results)
+    names = [name for name in found if "/pick/" in name and not name.endswith(("/first-read", "/ratio"))]
+    if not names:
+        return ""
+    rows = ["\n| Example | Pointed at | With a pick | First read without | Ratio |", "|---|---|---:|---:|---:|"]
+    for name in names:
+        parts = name.split("/")
+        rows.append(f"| {parts[1]} | #{parts[3]} | {found[name]:,} | {found[name + '/first-read']:,} | "
+                    f"{found[name + '/ratio']:.3f} |")
+    ratios = sorted(found[name + "/ratio"] for name in names)
+    largest = max(names, key=lambda name: found[name])
+    return ("\n".join(rows) + f"\n\nRatio over {len(names)} picks: median {statistics.median(ratios):.3f}, smallest "
+            f"{ratios[0]:.3f}, largest {ratios[-1]:.3f}; the largest pick: {found[largest]:,} tokens "
+            f"({largest.split('/')[1]} {largest.split('/')[3]})\n")
 
 
 def main():
@@ -230,18 +354,24 @@ def main():
     parser.add_argument("--edits", default=os.path.join(HERE, "edits"), help="the canonical edits")
     parser.add_argument("--table", action="store_true", help="print a table instead of JSON lines")
     parser.add_argument("--out", help="write the results here instead of to stdout")
+    parser.add_argument("--cli", default=default_cli(),
+                        help="the affrescoui tool whose `source` gives the picks' sources (none: no pick rows)")
     args = parser.parse_args()
 
     try:
         import tiktoken
     except ImportError:
         sys.exit("tokens.py: needs tiktoken: pip install -r tests/perf/requirements.txt")
-    results = list(counts(os.path.abspath(args.root), args.edits, tiktoken.get_encoding("o200k_base")))
+    cli = args.cli if args.cli and os.path.exists(args.cli) else None
+    if not cli:
+        print("tokens.py: no affrescoui tool built (--cli): no pick rows", file=sys.stderr)
+    results = list(counts(os.path.abspath(args.root), args.edits, tiktoken.get_encoding("o200k_base"), cli))
 
     if args.table:
         text = table(results)
     else:
-        text = "".join(json.dumps({"name": name, "value": value, "unit": "tokens", "runs": 1}) + "\n"
+        text = "".join(json.dumps({"name": name, "value": value,
+                                   "unit": "ratio" if name.endswith("/ratio") else "tokens", "runs": 1}) + "\n"
                        for name, value in results)
     if args.out:
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)

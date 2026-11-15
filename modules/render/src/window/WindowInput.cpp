@@ -3,6 +3,7 @@
 /// its tooltip, and the cursor. Tests and automation call the same functions.
 
 #include "Confirmation.hpp"
+#include "Picking.hpp"
 
 #include "paint/GeometryCache.hpp"
 #include "paint/RetainedGeometry.hpp"
@@ -65,6 +66,8 @@ void Window::routeKey(const KeyEvent& event) {
 	capsLock_ = event.mods.capsLock();
 	if(asking_) { // the question the window asks has every key; the screen hears none
 		confirmationKey(event);
+	} else if(picking_) { // and while picking, the pick
+		pickKey(event);
 	} else {
 		if(focused_ && focused_->isShown()) focused_->keyEvent(event);
 		onKey(event);
@@ -79,7 +82,7 @@ void Window::routeChar(const CharEvent& event) {
 	const char32_t codepoint = event.codepoint;
 	if((codepoint >= 0xD800U && codepoint <= 0xDFFFU) || codepoint > 0x10FFFFU) return;
 	if(std::exchange(keyTaken_, false)) return; // the character of a key a binding took
-	if(asking_) return;                         // the question's text is read only, and the screen hears nothing
+	if(asking_ || picking_) return;             // the question's text is read only, and the screen hears nothing
 	++routing_;
 	++pressing_;
 	if(focused_ && focused_->isShown()) focused_->charEvent(event);
@@ -92,6 +95,7 @@ void Window::routeChar(const CharEvent& event) {
 void Window::takeKey() noexcept { keyTaken_ = true; }
 
 void Window::pressKey(Panel& target, const KeyEvent& press, char32_t typed) {
+	if(picking_) return; // while the person points, no panel gets a key (pick())
 	if((typed >= 0xD800U && typed <= 0xDFFFU) || typed > 0x10FFFFU) typed = 0;
 	++routing_;
 	++pressedForScreen_;
@@ -111,11 +115,14 @@ void Window::pressKey(Panel& target, const KeyEvent& press, char32_t typed) {
 void Window::routeMouseMove(Vec2 position) {
 	++routing_;
 	cursor_ = position;
-	setHovered(panelAt(position));
-
-	const MouseMoveEvent event{position};
-	if(Panel* target = grabbed_ ? grabbed_ : hovered_) target->mouseMoveEvent(inSpaceOf(*target, event));
-	if(!asking_) onMouseMove(event);
+	if(picking_) { // the hover stays as it was, and no panel hears the move
+		pickAt(position);
+	} else {
+		setHovered(panelAt(position));
+		const MouseMoveEvent event{position};
+		if(Panel* target = grabbed_ ? grabbed_ : hovered_) target->mouseMoveEvent(inSpaceOf(*target, event));
+		if(!asking_) onMouseMove(event);
+	}
 
 	if(--routing_ == 0) runDeferred();
 }
@@ -125,14 +132,19 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 	++pressing_;
 	cursor_ = event.position;
 	Panel* hit = panelAt(event.position);
-	setHovered(hit);
-	if(asking_) { // only the question hears it: the screen under it doesn't
-		confirmationButton(event, hit);
-		--pressing_;
-		if(--routing_ == 0) runDeferred();
-		return;
+	if(picking_) { // only the pick hears it: no focus, no capture, no hover
+		pickButton(event, hit);
+	} else {
+		setHovered(hit);
+		if(asking_) confirmationButton(event, hit); // only the question hears it: the screen under it doesn't
+		else deliverButton(event, hit);
 	}
 
+	--pressing_;
+	if(--routing_ == 0) runDeferred();
+}
+
+void Window::deliverButton(const MouseButtonEvent& event, Panel* hit) {
 	if(event.action == Action::Press) {
 		if(tooltipShown_ || tooltipTimer_) { // a press dismisses the tooltip until the pointer moves to another panel
 			cancelTimer(std::exchange(tooltipTimer_, 0));
@@ -152,9 +164,6 @@ void Window::routeMouseButton(const MouseButtonEvent& event) {
 	}
 
 	onMouseButton(event);
-
-	--pressing_;
-	if(--routing_ == 0) runDeferred();
 }
 
 void Window::routeScroll(const ScrollEvent& event) {
@@ -164,22 +173,29 @@ void Window::routeScroll(const ScrollEvent& event) {
 		return;
 	++routing_;
 	// The panel under the pointer hears it; the nearest scrollable one (it or an ancestor) scrolls
+	// While picking, it scrolls, so what is off screen can be reached, but no handler of the screen hears it
 	if(Panel* target = panelAt(event.position)) {
-		target->scrollEvent(inSpaceOf(*target, event));
+		if(!picking_) target->scrollEvent(inSpaceOf(*target, event));
 		for(Panel* panel = target; panel; panel = panel->parent_)
 			if(panel->scrollContent({-event.offset.x * scrollSpeed, -event.offset.y * scrollSpeed})) break;
 	}
-	if(!asking_) onScroll(event);
+	if(picking_) pickAt(event.position); // what is under the pointer now
+	else if(!asking_) onScroll(event);
 
 	if(--routing_ == 0) runDeferred();
 }
 
 void Window::routeCursorEnter(bool entered) {
+	if(picking_) { // the hover stays; nothing is offered where the pointer isn't
+		if(!entered && picking_->offer(nullptr)) requestLayout();
+		return;
+	}
 	if(!entered) setHovered(nullptr);
 	onCursorEnter(CursorEnterEvent{entered});
 }
 
 void Window::routeDrop(const DropEvent& event) {
+	if(picking_) return; // files dropped while picking go nowhere
 	if(event.paths.size() > maxDropPaths || !std::ranges::all_of(event.paths, deliverable)) {
 		DropEvent kept{{}, event.position};
 		for(const std::string& path : event.paths)
@@ -210,7 +226,7 @@ void Window::routeDisplay(const DisplayEvent& event) {
 
 // NOLINTNEXTLINE(performance-unnecessary-value-param): the header's signature, kept as it is
 void Window::runChosen(std::function<void()> run) {
-	if(!run || asking_) return; // the question is answered first
+	if(!run || asking_ || picking_) return; // the question is answered first, and the pick ended
 	++routing_;
 	++pressing_;
 	run();
@@ -231,6 +247,13 @@ void Window::forget(const Panel& panel) noexcept {
 	}
 	if(hovered_ == &panel) hovered_ = nullptr;
 	if(grabbed_ == &panel) grabbed_ = nullptr;
+	if(picking_) {
+		if(picking_->candidate == &panel && picking_->offer(nullptr)) requestLayout(); // the next move finds one
+		if(picking_->pressedOn == &panel) picking_->pressedOn = nullptr;
+		if(picking_->options.start == &panel) picking_->options.start = nullptr;
+	}
+	for(PickResult& result : pickResults_)
+		if(result.panel == &panel) result.panel = nullptr;
 	std::erase(overlays_, &panel);
 	std::erase(drawn_, &panel);
 	std::erase(snapshots_, &panel);
@@ -284,7 +307,7 @@ void Window::restartTooltip() {
 
 void Window::updateCursor() {
 	const Panel* owner = grabbed_ ? grabbed_ : hovered_;
-	const Cursor shape = owner ? owner->cursor() : Cursor::Arrow;
+	const Cursor shape = picking_ ? Cursor::Crosshair : owner ? owner->cursor() : Cursor::Arrow;
 	if(shape == currentCursor_) return;
 	currentCursor_ = shape;
 	if(native_) native_->setCursor(shape);

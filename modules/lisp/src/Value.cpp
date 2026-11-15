@@ -116,6 +116,7 @@ std::string_view Value::text() const {
 }
 
 std::size_t Value::count() const noexcept {
+	if(kind_ == Kind::Set) return setObjectOf(*this).size;
 	if(kind_ != Kind::List && kind_ != Kind::Vector && kind_ != Kind::Map) return 0;
 	if(view_) return bits_.viewed->size();
 	return kind_ == Kind::Map ? mapOf(*this).entries.size() : sequenceOf(*this).size;
@@ -123,6 +124,7 @@ std::size_t Value::count() const noexcept {
 
 Value Value::at(std::size_t index) const {
 	if(view_) return view((*bits_.viewed)[index]);
+	if(kind_ == Kind::Set) return setObjectOf(*this).storage->items->values[index];
 	const SequenceObject& sequence = sequenceOf(*this);
 	return sequence.items->values[sequence.offset + index];
 }
@@ -163,6 +165,8 @@ Place Value::place() const noexcept {
 		return sequenceOf(*this).place;
 	case Kind::Map:
 		return mapOf(*this).place;
+	case Kind::Set:
+		return setObjectOf(*this).place;
 	default:
 		return {};
 	}
@@ -190,6 +194,8 @@ std::string_view describeKind(const Value& value) noexcept {
 		return "a vector";
 	case Kind::Map:
 		return "a map";
+	case Kind::Set:
+		return "a set";
 	default:
 		return "a function";
 	}
@@ -284,6 +290,55 @@ Value Heap::map(std::vector<MapEntry>&& entries, Place place) {
 	object->entries = std::move(entries);
 	object->place = place;
 	return Value::object(Kind::Map, object);
+}
+
+Value Heap::set(std::vector<Value>&& members, std::span<const std::size_t> hashes, Place place) {
+	charge(members.size() * setIndexCost);
+	auto* storage = make<SetStorage>();
+	storage->hashes.assign(hashes.begin(), hashes.end());
+	storage->index.reserve(members.size());
+	for(std::size_t position = 0; position < hashes.size(); ++position)
+		storage->index.emplace(hashes[position], static_cast<std::uint32_t>(position));
+	const Value items = sequence(Kind::Vector, std::move(members));
+	storage->items = const_cast<Items*>(sequenceOf(items).items); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+	auto* object = make<SetObject>();
+	object->storage = storage;
+	object->size = static_cast<std::uint32_t>(hashes.size());
+	object->place = place;
+	return Value::object(Kind::Set, object);
+}
+
+Value Heap::setAppended(const Value& from, const Value& item, std::size_t hash) {
+	const SetObject& whole = setObjectOf(from);
+	// As appended(): only a set that ends its storage, made in this region, adds to it; a vector over the same Items
+	// (setItems()) that grew it leaves it longer than any set, so that no set takes that item for a member
+	if(whole.size == whole.storage->items->values.size() && whole.storage->items->epoch == epoch_) {
+		charge(sizeof(Value) + setIndexCost);
+		auto* storage = const_cast<SetStorage*>(whole.storage); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+		storage->items->values.push_back(item);
+		storage->hashes.push_back(hash);
+		storage->index.emplace(hash, whole.size);
+		auto* object = make<SetObject>();
+		object->storage = storage;
+		object->size = whole.size + 1;
+		object->place = whole.place;
+		return Value::object(Kind::Set, object);
+	}
+	const auto end = static_cast<std::ptrdiff_t>(whole.size);
+	charge((whole.size + 1) * (sizeof(Value) + sizeof(std::size_t)));
+	std::vector<Value> members(whole.storage->items->values.begin(), whole.storage->items->values.begin() + end);
+	std::vector<std::size_t> hashes(whole.storage->hashes.begin(), whole.storage->hashes.begin() + end);
+	members.push_back(item);
+	hashes.push_back(hash);
+	return set(std::move(members), hashes, whole.place);
+}
+
+Value Heap::setItems(const Value& from) {
+	const SetObject& whole = setObjectOf(from);
+	auto* object = make<SequenceObject>();
+	object->items = whole.storage->items;
+	object->size = whole.size;
+	return Value::object(Kind::Vector, object);
 }
 
 std::string_view Heap::keep(std::string_view written) {

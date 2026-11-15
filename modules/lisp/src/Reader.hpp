@@ -12,6 +12,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace affresco::lisp {
 
@@ -43,11 +44,24 @@ private:
 	using Token = notation::Token;
 	using TokenKind = notation::TokenKind;
 
-	/// @brief Reads a form that starts with a token.
+	/// @brief The parameters a function literal's body has used so far, `%` to `%20` and `%&`.
+	struct LambdaParameters {
+		int most = 0;      ///< The highest number used, `%` being 1.
+		bool rest = false; ///< `%&` is used.
+	};
+
+	/// @brief Reads a form that starts with a token. A reader conditional that chooses nothing is skipped, as `#_`
+	/// skips a form, and the form is the next one.
 	/// @param token The token.
 	/// @param depth How many forms hold it.
 	/// @return The form.
 	Value form(const Token& token, int depth);
+	/// @brief Reads a form that starts with a token into the items of the list or the vector it is in: one item; none
+	/// for a reader conditional that chooses nothing; a splicing one's items.
+	/// @param token The token.
+	/// @param depth How many forms hold it.
+	/// @param into Gets the items.
+	void elements(const Token& token, int depth, std::vector<Value>& into);
 	/// @brief Reads a list, after its '('.
 	/// @param open The '('.
 	/// @param depth How many forms hold it.
@@ -63,12 +77,91 @@ private:
 	/// @param depth How many forms hold it.
 	/// @return The map, or a list `(%map k v ...)` if a key isn't a keyword or a string.
 	Value map(const Token& open, int depth);
+	/// @brief Reads the form a prefix stands before: a quote's, or a reader form's after a '#'.
+	/// @param token The prefix.
+	/// @param depth How many forms hold it.
+	/// @return The form.
+	/// @throws LispError Where the language doesn't read it.
+	Value prefix(const Token& token, int depth);
 	/// @brief Reads a prefix's form: `'x` is `(quote x)`.
 	/// @param prefix The prefix.
 	/// @param name The form it stands for.
 	/// @param depth How many forms hold it.
 	/// @return The list.
 	Value prefixed(const Token& prefix, std::string_view name, int depth);
+	/// @brief Reads a form after a '#' (ReaderForms.cpp): one of the four, by its token's kind.
+	/// @param token The token, its bracket still to read.
+	/// @param depth How many forms hold it.
+	/// @return The form.
+	/// @throws LispError Where the language doesn't read it.
+	Value hashForm(const Token& token, int depth);
+	/// @brief Reads a function literal, `#(...)` (ReaderForms.cpp): `(fn [% %2 ... & %&] (...))`, as many parameters
+	/// as the highest one its body uses.
+	/// @param token The `#(` token, its bracket still to read.
+	/// @param depth How many forms hold it.
+	/// @return The `fn` form, at the place of its '#'.
+	/// @throws LispError Inside another, or with a parameter past %20.
+	Value lambda(const Token& token, int depth);
+	/// @brief The name a function literal's parameter is read as: `%1.price` is `%.price`.
+	/// @param token A word that starts with '%', inside a function literal.
+	/// @return The name, or std::nullopt if the word is no parameter (`%map`).
+	/// @throws LispError For `%0`, or a number past 20.
+	std::optional<std::string> lambdaParameter(const Token& token);
+	/// @brief Reads a set literal, `#{...}` (ReaderForms.cpp).
+	/// @param token The `#{` token, its bracket still to read.
+	/// @param depth How many forms hold it.
+	/// @return The set, made as it is read when its items are constants (isConstantForm()), else a list `(%set ...)`
+	/// that makes it when it runs.
+	/// @throws LispError If it isn't closed, or holds the same item twice.
+	Value setOf(const Token& token, int depth);
+	/// @brief Reads a reader conditional, `#?(...)` or `#?@(...)` (ReaderForms.cpp): pairs of a platform's keyword and
+	/// a form, every form read and the first after `:affresco` or `:default` chosen.
+	/// @param token The `#?` or `#?@` token, its bracket still to read.
+	/// @param depth How many forms hold it.
+	/// @return The form chosen, or std::nullopt if none is.
+	/// @throws LispError If it isn't pairs of a keyword and a form.
+	std::optional<Value> conditional(const Token& token, int depth);
+	/// @brief Reads the form a reader conditional chooses, or the next form if it chooses none, past as many as choose
+	/// none (ReaderForms.cpp).
+	/// @param token The first token: a `#?`, or the token of a form.
+	/// @param depth How many forms hold it.
+	/// @return The form.
+	Value chosenOrNext(Token token, int depth);
+	/// @brief Reads a character, `\a` or `\newline`, as a string of it (ReaderForms.cpp).
+	/// @param token The character's token.
+	/// @return The string.
+	/// @throws LispError For a name it doesn't know.
+	Value character(const Token& token);
+	/// @brief Reads Clojure's ways to write a number as the nearest JSON number (ReaderForms.cpp): `12N` is 12, `1.5M`
+	/// 1.5, `1/2` 0.5, `0x1F` 31.
+	/// @param token The word.
+	/// @return The number, or std::nullopt if the word isn't written so.
+	/// @throws LispError If it doesn't fit 64 bits, or divides by zero.
+	std::optional<json> clojureNumber(const Token& token) const;
+	/// @brief Reads digits of a number's token as a whole number (ReaderForms.cpp).
+	/// @param token The number's token, which an error names.
+	/// @param digits Its digits, maybe after a '-'.
+	/// @param base 10 or 16.
+	/// @return The number.
+	/// @throws LispError If it doesn't fit 64 bits.
+	std::int64_t wholeIn(const Token& token, std::string_view digits, int base) const;
+	/// @brief Reads a big integer, `12N`, as a whole number of up to 64 bits, signed or not (ReaderForms.cpp).
+	/// @param token The word, digits then 'N'.
+	/// @return The number.
+	/// @throws LispError If it doesn't fit 64 bits.
+	json bigInteger(const Token& token) const;
+	/// @brief Reads a ratio, `1/2`, as the number it is (ReaderForms.cpp).
+	/// @param token The word, digits, '/' and digits.
+	/// @return The number: whole if the division is exact.
+	/// @throws LispError If a side doesn't fit 64 bits, or it divides by zero.
+	json ratio(const Token& token) const;
+	/// @brief Reads a keyword, refusing one with a namespace (`::name`, `:a/b`).
+	/// @param token The keyword's token.
+	/// @return The keyword.
+	Value keyword(const Token& token);
+	/// @brief Refuses the forms after '#' a Clojure writer may type that read as an id: `##Inf`, `#'name`.
+	/// @param token An id's token.
+	void refuseHashWord(const Token& token) const;
 	/// @brief Reads a bare word: a constant or a symbol.
 	/// @param token The word.
 	/// @return The value.
@@ -87,14 +180,15 @@ private:
 	/// @return The place.
 	Place placeAt(std::size_t offset);
 
-	Heap& heap_;                ///< See the constructor.
-	notation::Lexer lexer_;     ///< The tokens.
-	const std::string* file_;   ///< See the constructor.
-	std::size_t firstLine_;     ///< See the constructor.
-	std::size_t firstColumn_;   ///< See the constructor.
-	std::size_t scanned_ = 0;   ///< How far placeAt() has looked.
-	std::size_t line_ = 0;      ///< Line breaks before scanned_.
-	std::size_t column_ = 1;    ///< The column of scanned_, in characters.
+	Heap& heap_;                         ///< See the constructor.
+	notation::Lexer lexer_;              ///< The tokens.
+	const std::string* file_;            ///< See the constructor.
+	std::size_t firstLine_;              ///< See the constructor.
+	std::size_t firstColumn_;            ///< See the constructor.
+	std::size_t scanned_ = 0;            ///< How far placeAt() has looked.
+	std::size_t line_ = 0;               ///< Line breaks before scanned_.
+	std::size_t column_ = 1;             ///< The column of scanned_, in characters.
+	LambdaParameters* lambda_ = nullptr; ///< The function literal being read, if any; it lives on lambda()'s stack.
 };
 
 /// @brief Tells whether a word can be a symbol: ASCII letters, digits and `_ . @ $ - + * / < > = ! ? & %`, not starting

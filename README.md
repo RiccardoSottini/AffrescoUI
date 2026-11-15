@@ -20,10 +20,10 @@
 
 <br/>
 
-https://github.com/user-attachments/assets/657c5090-8a35-4a19-9d97-ad8aecf60498
+https://github.com/user-attachments/assets/6fa000e1-b364-4c9d-b3a6-a0d22d408525
 
-<sub>The demo: a running app changed by asking its assistant, a 3D modeller building a model inside the running app,
-and a new app made from a name and a description.</sub>
+<sub>The demo: an image editor given a 3D modeller's and a presentation app's features by asking its assistant, a new
+app made from a name and a description, a small change to a home app, and the Launcher with its apps.</sub>
 
 </div>
 

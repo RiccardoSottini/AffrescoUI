@@ -39,8 +39,29 @@ When the host's agent and an MCP agent are both connected, a request goes to the
 person started most recently) and to every client, never to two agents; a cancel goes to all of them
 (`modules/screen`, SCREEN_FORMAT.md "Asking the agents").
 
+## What the person pointed at
+
+A request from the app's chat may carry `picks`: the records the engine made when the person clicked an element
+(SCREEN_FORMAT.md, the `pick` step). The agent keeps each record to the contract's keys and types (`src/Picks.hpp`,
+`picksOf`): at most 4 records, texts cut to 200 bytes (an address or a pointer to 512), at most 16 bindings, 16
+handlers and 4 repeats, and a record without a `node` text is left out. A record says nothing of the app's data
+(bindings as written, a repeat's index), and it reaches the model as the app's content, never as instructions.
+
+With picks, the first message no longer holds the screen or its outline. It holds the request, the attachments' lines,
+then for each pick its record on one line and what makes it: in a program, the text of the definition at
+`source.address` (cut to 8,000 bytes); in a JSON document, the node at `node` to depth 2 (cut to 4,000 bytes); then one
+line with the revision, how many nodes and definitions there are, and how to read the rest. Each pick's part is at most
+12 KiB, and a definition two picks share is shown once. The system prompt gains a short rule about picks (start from
+the element; a repeat's definition builds every item; an element with no address of its own; a built-in kit's
+component; a shared add-on), only for a request that has them.
+
+Nothing new is asked of the screen: the definition or node comes from the document the agent's own `getDocument`
+returned, so what a limited reader may not read isn't there, and the block says it could not be read. Without picks,
+the first message is exactly as before.
+
 ## Tests
 
-`tests/unit/intelligence.cpp` and `tests/unit/intelligence_agent.cpp` (a fake network, no real API), and
+`tests/unit/intelligence.cpp`, `tests/unit/intelligence_agent.cpp` (a fake network, no real API) and
+`tests/unit/intelligence_picks.cpp` (picks, the first message's sizes on the examples), the `picks` fuzz target, and
 `tests/intelligence/e2e_test.py`: the stock host with an `openai-compatible` provider pointed at a fake server on the
 loopback.

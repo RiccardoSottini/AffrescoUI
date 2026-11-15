@@ -18,7 +18,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 |---|---|
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing), `reviewLines` (the service steps a change adds, which always need a reviewer) and `behaviourLines` (what a change does to behaviour, for review policies and evidence); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; audio: `setAudio`, `audio`, `setAudioSource`, `allowAudioDirectory`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`) |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; audio: `setAudio`, `audio`, `setAudioSource`, `allowAudioDirectory`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`); for pointing at a node, `picks` (the records the person made with `pick` and hasn't sent), `source` (where a node is written: a program's definition, or a JSON node) and `setFileOf` (the file holding a JSON entry, a `FileOf`) |
 | `Usage.hpp` | `Usage` (`Runtime::usage`): usage summaries, off by default: `setEnabled` with the person's `giveConsent`, `ran`, `visited`, `summary`, `clear`; only ids, counts and times, bounded |
 | `Locale.hpp` | `systemLocale()`: the locale the computer's user chose, for `Runtime::setLocale` |
 | `Features.hpp` | `Features` (RFC 0004): the publishers the host trusts (`trustPublisher`), its signed catalogues (`addCatalog`), what they offer (`catalog`), and the revisions that install and upgrade a feature (`installRevision`, `upgradeRevision`) |
@@ -303,6 +303,11 @@ src/
                            keys, chords and shortcuts
   steps/                   Steps.*: handlers and actions; StepRegistry.* and the *Steps.cpp groups (AuthSteps.cpp,
                            the signIn and signOut steps, is in connections/)
+  pick/                    pointing at a node (SCREEN_FORMAT.md, "Pointing at a node")
+    Picks.*                the records the person made, kept until removed or sent; describePick() makes one from
+                           the panels and the document as written, never from a value
+    NodeSource.cpp         where a node is written: sourceOf() (Runtime::source()), a record's `source`
+    PickSteps.cpp          the pick and unpick steps
   calls/                   calls outside the document
     AsyncCalls.*           slow native calls on a worker pool: loading, progress, partial results, timeouts, cancel
     ServiceCalls.*         invoke, subscribe and respond: calls to the services, their results and events in the state

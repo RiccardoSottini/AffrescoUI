@@ -372,6 +372,48 @@ class Checker:
         self.run("convert", path, "-o", lisp)
         self.run("strings", "extract", lisp, expect=1)  # Lisp files are generated
 
+    def sources(self):
+        """`source`: where a node is written, in either notation (a JSON node's own text, a Lisp node's definition
+        and the line of its file), as getSource gives it with --json; a node that isn't there, and no node."""
+        written = os.path.join(EXAMPLES, "flow", "json", "index.screen.json")
+        program = os.path.join(EXAMPLES, "flow", "lisp", "index.screen.lisp")
+        as_json = json.loads(self.run("source", written, "#cardTitle", "--json"))
+        self.expect(as_json["node"] == "#cardTitle" and as_json["notation"] == "json"
+                    and '"id": "cardTitle"' in as_json["text"], f"source: a JSON node: {as_json}")
+        as_lisp = json.loads(self.run("source", program, "#cardTitle", "--json"))
+        self.expect(as_lisp["address"] == "/program/columns.lisp/card-title" and as_lisp["kind"] == "defview"
+                    and "label#cardTitle" in as_lisp["text"], f"source: a Lisp node: {as_lisp}")
+        with open(os.path.join(EXAMPLES, "flow", "lisp", "columns.lisp"), encoding="utf-8") as file:
+            line = next(n for n, text in enumerate(file, 1) if "(label#cardTitle" in text)
+        heading = self.run("source", program, "#cardTitle").split("\n", 1)[0]
+        self.expect(heading == f"/program/columns.lisp/card-title  columns.lisp:{line}  (defview)",
+                    f"source: the heading of a Lisp node: {heading}")
+        self.run("source", program, "#nothingHere", expect=1)
+        self.run("source", program, expect=2)
+        self.source_reads_only_its_folder()
+
+    def source_reads_only_its_folder(self):
+        """Regression: `source` read the file a /program key names to find a definition's line, so a screen could make
+        it read any file (`../outside.lisp`, with its line found) or never finish (`/dev/zero`). It reads only a
+        regular file inside the screen's folder, and otherwise gives the line within the definition."""
+        folder = os.path.join(self.scratch, "source")
+        os.makedirs(folder, exist_ok=True)
+        view = '(defscreen main (panel#root (label#x :text "a")))'
+        with open(os.path.join(self.scratch, "outside.lisp"), "w", encoding="utf-8") as file:
+            file.write(view + "\n")
+        for name, key in (("up", "../outside.lisp"), ("zero", "/dev/zero")):
+            path = os.path.join(folder, name + ".screen.json")
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump({"format": "affrescoui-screen", "version": 2, "program": {key: {"main": view}}}, file)
+            try:
+                result = subprocess.run([self.tool, "source", path, "#x"], capture_output=True, text=True,
+                                        encoding="utf-8", timeout=60)
+                heading = result.stdout.split("\n", 1)[0]
+                self.expect(result.returncode == 0 and heading.endswith("(line 1 of the definition)  (defscreen)"),
+                            f"source: a program file named {key}: exit {result.returncode}, {heading}")
+            except subprocess.TimeoutExpired:
+                self.expect(False, f"source: a program file named {key}: didn't finish")
+
     def long_pattern_input(self):
         """A colour expression of 30,000 characters: the schema's patterns aren't run on it (libstdc++'s std::regex
         overflowed the stack on it), so check reports it as too long to check instead of crashing."""
@@ -448,6 +490,7 @@ def main():
         checker.policy_roles()
         checker.lisp_documents()
         checker.lisp_language()
+        checker.sources()
         if not headless:
             checker.render_reaches_nobody()
             checker.insert_without_text()

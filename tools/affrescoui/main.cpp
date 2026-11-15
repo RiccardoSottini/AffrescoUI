@@ -21,7 +21,7 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 17> list = {{
+	static constexpr std::array<Command, 18> list = {{
 	    {"run",
 		 "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]...",
 		 "Show a screen or an app (its folder, its manifest or its entry) and let peers change it, like "
@@ -44,7 +44,7 @@ std::span<const Command> commands() {
 		 "Play a screen's scenarios and report what failed", testScreen},
 	    {"policy", "test <policy-file>... [--json]",
 		 "Play policy files' example revisions and report the decisions that aren't the expected ones", policyCommand},
-	    {"render", "<file> -o out.png [--scale 1|2] [--size WIDTHxHEIGHT]",
+	    {"render", "<file> -o out.png [--scale 1|1.25|1.5|1.75|2] [--size WIDTHxHEIGHT]",
 		 "Draw a screen's first frame offscreen, to a PNG", renderScreen},
 	    {"fmt", "<file> [--check]", "Write a file the way AffrescoUI files are written; --check only says if it is",
 		 formatScreen},
@@ -72,6 +72,10 @@ std::span<const Command> commands() {
 		 "Sign a feature's manifest or a catalogue's index (its digests first); --new-key makes a key", signFile},
 	    {"migrate", "<file>... [--check] [--write]",
 		 "Rewrite version 1 files as version 2, listing each rewrite; --check only says which need it", migrateFiles},
+	    {"source", "<file> <#id | pointer | address> [--json]",
+		 "Print where a node is written: for a program the definition that built it, for a JSON document the node; "
+		 "what an agent reads with getSource",
+		 printNodeSource},
 	}};
 	return list;
 }

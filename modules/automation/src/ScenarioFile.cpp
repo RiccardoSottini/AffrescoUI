@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <format>
 #include <fstream>
 #include <initializer_list>
@@ -333,15 +334,21 @@ bool checkStep(const json& written, const std::string& place) {
 	return kind == "capture" || (kind == "expect" && step["expect"].contains("image"));
 }
 
-/// @brief Reads a scenario's scale.
+/// @brief Reads a scenario's scale: a whole number of quarters, so a display set to 125% or 150% has its pictures and
+/// the text raster (rounded to a quarter) matches them exactly.
 /// @param value The scale.
 /// @param place Its place.
 /// @return The scale, from 1 to the limit.
-/// @throws DocumentError If it isn't such a whole number.
-int readScale(const json& value, const std::string& place) {
-	const int scale = expect::integer(value, place);
-	if(scale < 1 || scale > detail::maxScale) fail(place, "expected 1 to " + std::to_string(detail::maxScale));
-	return scale;
+/// @throws DocumentError If it isn't a number of quarters in that range.
+float readScale(const json& value, const std::string& place) {
+	const std::string expected =
+	    "expected 1 to " + std::to_string(detail::maxScale) + ", in quarters (1, 1.25, 1.5, ...)";
+	if(!value.is_number()) fail(place, expected);
+	const double scale = value.get<double>();
+	const double quarters = scale * 4.0;
+	if(!std::isfinite(scale) || scale < 1.0 || scale > detail::maxScale || quarters != std::floor(quarters))
+		fail(place, expected);
+	return static_cast<float>(scale);
 }
 
 /// @brief Checks a scenario's steps and adds them to it.

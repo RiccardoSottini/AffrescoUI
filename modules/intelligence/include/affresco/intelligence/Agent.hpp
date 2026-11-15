@@ -96,6 +96,7 @@ private:
 		std::string model;       ///< The model it asks for (`options.model`), or "" for the person's default.
 		affresco::json attached; ///< What the person attached to it: [{ id, name, type, size, ... }].
 		affresco::json earlier;  ///< What was attached to the conversation's earlier requests, the same way.
+		affresco::json picks;    ///< What the person pointed at on the screen (its "picks", kept to their sizes).
 	};
 
 	/// @brief The thread: works on the jobs, one at a time.

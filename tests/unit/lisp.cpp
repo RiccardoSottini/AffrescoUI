@@ -271,7 +271,7 @@ TEST_CASE("lisp: collections") {
 	CHECK(run("(zipmap [:a :b] [1 2])") == "{:a 1 :b 2}");
 	CHECK(run("(list 1 2)") == "(1 2)");
 	CHECK(errorOf("(nth [1] 5)").message() == "\"nth\": an index outside the collection");
-	CHECK(errorOf("(get 5 :a)").message() == "\"get\" takes a map or a vector, and was given a number");
+	CHECK(errorOf("(get 5 :a)").message() == "\"get\" takes a map, a vector or a set, and was given a number");
 	CHECK(errorOf("(:a 5)").message() == "a keyword as a function takes a map, and was given a number");
 	CHECK(errorOf("(sort [1 \"a\"])").message().starts_with("\"sort\" compares"));
 	CHECK(errorOf("(range 1 2 0)").message().contains("never ends"));
@@ -285,7 +285,7 @@ TEST_CASE("lisp: functions that take functions") {
 	CHECK(run("(remove (fn [x] (> x 1)) [1 2 3])") == "[1]");
 	CHECK(run("(reduce + [1 2 3])") == "6");
 	CHECK(run("(reduce + 10 [1 2 3])") == "16");
-	CHECK(run("(reduce + [])") == "nil");
+	CHECK(run("(reduce + [])") == "0"); // an empty collection with no start calls (f), as Clojure does
 	CHECK(run("(find (fn [x] (> x 1)) [1 2 3])") == "2");
 	CHECK(run("(find (fn [x] (> x 9)) [1])") == "nil");
 	CHECK(run("(some (fn [x] (and (> x 1) :yes)) [1 2])") == ":yes");
@@ -351,7 +351,7 @@ TEST_CASE("lisp: conditions") {
 	CHECK(run("(let [a 1] (try (let [a 2] (throw a)) (catch e [a e])))") == "[1 2]");
 	CHECK(errorOf("(throw \"said here\")").message() == "said here");
 	CHECK(errorOf("(throw (str \"secret\"))").message() == "a condition was thrown and nothing caught it");
-	CHECK(errorOf("(try 1)").message() == "try ends with (catch name form ...)");
+	CHECK(errorOf("(try 1)").message() == "try ends with (catch name form ...), (finally form ...), or both");
 	CHECK(errorOf("(catch e 1)").message() == "catch goes at the end of a try");
 	CHECK(errorOf("(loop [] (try (recur) (catch e 1)))").message().starts_with("recur goes in tail position"));
 	CHECK(errorOf("(+ (recur) 1)").message().starts_with("recur goes in tail position"));
@@ -437,6 +437,14 @@ TEST_CASE("lisp: limits end what would never end, naming the place") {
 	CHECK(errorOf("(defmacro m [] (loop [a 1 n 2000] (if (= n 0) a (recur (list 'inc a) (- n 1))))) (+ (m))")
 	          .message()
 	          .starts_with("nested too deeply to compile"));
+	// A test's and and or, noted before the test is compiled, stop at the same depth and not on the native stack
+	for(const std::string_view word : {"and", "or"}) {
+		CAPTURE(word);
+		CHECK(errorOf("(defmacro m [] (list 'if (loop [i 0 f true] (if (< i 70000) (recur (inc i) (list '" +
+		              std::string(word) + " f)) f)) 1 2)) (defn g [] (m))")
+		          .message()
+		          .starts_with("nested too deeply to compile"));
+	}
 }
 
 TEST_CASE("lisp: errors name the place, and only the error's own form") {
@@ -874,13 +882,15 @@ TEST_CASE("lisp: the notation's list of the language's words is the language's")
 	                                        "add-hook",  "advice",       "defhook",  "remove-hook",
 	                                        "defview",   "defcomponent", "defstate", "defcomputed",
 	                                        "defstyle",  "defmenu",      "defpart",  "defdefaults",
-	                                        "deftokens", "repeat",       "include"};
+	                                        "deftokens", "repeat",       "include",  "ns"};
 	for(const std::string& form : forms) {
 		CAPTURE(form);
 		CHECK(affresco::notation::isLanguageWord(form));
 	}
-	std::vector<std::string> functions(affresco::notation::languageWords.begin(),
-	                                   affresco::notation::languageWords.end());
+	std::vector<std::string> functions; // every list's (Words.hpp, languageWordLists), the empty ones' too
+	for(const std::span<const std::string_view> list : affresco::notation::languageWordLists)
+		functions.insert(functions.end(), list.begin(), list.end());
+	CHECK(affresco::notation::languageWordLists.size() == 7);
 	std::erase_if(functions, [&](const std::string& word) { return std::ranges::find(forms, word) != forms.end(); });
 	for(const std::string& word : functions) {
 		CAPTURE(word);

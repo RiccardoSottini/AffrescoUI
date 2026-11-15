@@ -3,6 +3,7 @@
 /// answered only by the person's own press.
 
 #include "Confirmation.hpp"
+#include "Picking.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -77,6 +78,7 @@ bool within(const Panel* panel, const Panel* other) noexcept {
 
 std::uint64_t Window::confirm(const Confirmation& question, std::function<void(bool accepted)> answered) {
 	if(asking_) return 0;
+	if(picking_) finishPick(nullptr); // the question wins: the pick is cancelled
 	auto asking = std::make_unique<Asking>();
 	asking->id = nextConfirmation_++;
 	asking->shownAt = clock().seconds();

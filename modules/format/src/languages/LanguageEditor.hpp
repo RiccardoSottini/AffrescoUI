@@ -60,6 +60,10 @@ public:
 	/// @param request The request's number.
 	void goTo(std::size_t line, std::size_t column, double request);
 
+	/// @brief Moves the caret again to where the goTo() of this update asked, once the update has shown the text: a
+	/// text that comes with its goTo in one update is set after it. Does nothing if no goTo() came since the last call.
+	void settleGoTo();
+
 	/// @brief Replaces the selection and the code points just before it with a text, once per request (a completion).
 	/// @param text The text (UTF-8).
 	/// @param before How many code points before the selection go too.
@@ -156,6 +160,7 @@ private:
 	std::map<std::string, std::string, std::less<>> commands_; ///< See setCommands().
 	bool popup_ = false;                                       ///< See setPopup().
 	std::optional<double> goToRequest_;                        ///< The last goTo() request applied.
+	std::optional<Position> goToPending_;                      ///< Where it asked, until settleGoTo().
 	std::optional<double> insertRequest_;                      ///< The last insertText() request applied.
 	json tokens_ = json::array();                              ///< See tokensChanged().
 	PatternGroups groups_;                                     ///< For the language's expressions, step-limited.

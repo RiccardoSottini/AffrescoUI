@@ -360,6 +360,22 @@
       "scope": "test"
     },
     {
+      "name": "clojure-test-suite",
+      "version": "a9f32fd7bf0cf3ef04eb62db31a731bc7dcb6dc6",
+      "purpose": "the Lisp conformance test, off by default (-DAFFRESCOUI_CONFORMANCE=ON); its test files are only read",
+      "kind": "downloaded",
+      "url": "https://github.com/jank-lang/clojure-test-suite/archive/a9f32fd7bf0cf3ef04eb62db31a731bc7dcb6dc6.tar.gz",
+      "sha256": "ba2ff3c8ca6d2a1eb3fce134a0ea716d502b85866eece01c3fb1d7e18b93b807",
+      "pinnedIn": "tests/conformance/CMakeLists.txt",
+      "license": "MPL-2.0",
+      "licenseNote": "Mozilla Public License 2.0",
+      "licenseReview": "Weak copyleft on its own files only; its test files are read by a test and are neither changed, built nor shipped",
+      "usedBy": [
+        "tests/conformance"
+      ],
+      "scope": "test"
+    },
+    {
       "name": "Noto Sans Arabic, Devanagari, SC, JP and KR",
       "version": "subsets",
       "purpose": "rendering check only",

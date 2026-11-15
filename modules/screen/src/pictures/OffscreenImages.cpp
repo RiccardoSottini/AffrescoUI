@@ -102,7 +102,9 @@ std::optional<std::string> OffscreenImages::drawPixels(int scale, RgbImage& pixe
 	const std::filesystem::path file = folder.path() / "screen.ppm";
 	runtime_.waitForImages(); // a picture shows every image, not those decoded so far
 	inspector_.setVisible(false); // a picture shows the screen, not the overlay
-	const bool drawn = runtime_.window()->saveScreenshot(file, scale);
+	runtime_.window()->setPickLayerVisible(false); // nor a pick in progress
+	const bool drawn = runtime_.window()->saveScreenshot(file, static_cast<float>(scale));
+	runtime_.window()->setPickLayerVisible(true);
 	inspector_.setVisible(true);
 	if(!drawn) return "AffrescoUI screen: render: could not draw the screen";
 

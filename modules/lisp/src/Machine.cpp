@@ -2,6 +2,7 @@
 /// @brief The machine (Machine.hpp): one function per instruction, and calls on its own stack.
 
 #include "Machine.hpp"
+#include "Sets.hpp"
 
 #include <affresco/notation/Lexer.hpp>
 
@@ -58,9 +59,16 @@ Machine::Machine(Interpreter& owner, const Limits& limits)
 	defineText(*this);
 	defineViews(*this);
 	definePrelude(*this);
+	defineForms(*this);
+	defineFunctions(*this);
+	defineSequences(*this);
+	defineStrings(*this);
+	defineSets(*this);
 	budget_ = start;
 	heap.setBudget(&budget_);
 	stack_.reserve(1024);
+	// NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer): last, once the language's own definitions have run
+	started_ = true;
 }
 
 const std::array<Machine::Handle, static_cast<std::size_t>(Op::Count)>& Machine::handles() noexcept {
@@ -159,8 +167,7 @@ Value Machine::force(Global& global) {
 			throw;
 		}
 	}
-	if(global.state != Global::State::Ready)
-		throw LispError("", 0, 0, "", "\"" + notation::Lexer::excerpt(global.name) + "\" is not defined");
+	if(global.state != Global::State::Ready) throw LispError("", 0, 0, "", notDefinedMessage(global.name));
 	return global.value;
 }
 
@@ -233,6 +240,10 @@ void Machine::raise(const Problem& problem, std::size_t floor) {
 		entries.push_back({"message", heap.string(problem.message)});
 		stack_.push_back(heap.map(std::move(entries)));
 	}
+	if(handler.whole) { // a finally runs, then raises it again as it was
+		stack_.push_back(heap.string(problem.message));
+		stack_.push_back(Value::boolean(problem.hasValue));
+	}
 	frames_.back().ip = handler.target;
 }
 
@@ -242,6 +253,32 @@ void Machine::unwind(std::size_t count) noexcept {
 		frames_.pop_back();
 	}
 }
+
+namespace {
+
+/// @brief A set or a vector called as a function: `(#{1 2} 1)` is the member or nil, `([10 20] 1)` the item at an
+/// index, which must be inside it, as Clojure's.
+/// @param machine The machine.
+/// @param callee The set or the vector.
+/// @param arguments Its arguments.
+/// @return The member or the item.
+/// @throws Problem If there isn't one argument, or a vector's isn't an index inside it.
+Value calledCollection(Machine& machine, const Value& callee, std::span<const Value> arguments) {
+	if(arguments.size() != 1)
+		throw Problem("a " + std::string(callee.kind() == Kind::Set ? "set" : "vector") +
+		              " as a function takes one argument, and was given " + std::to_string(arguments.size()));
+	const Value& argument = arguments.front();
+	if(callee.kind() == Kind::Set) return setMember(machine, callee, argument).value_or(Value());
+	const std::optional<std::int64_t> index = wholeNumber(argument);
+	if(!index)
+		throw Problem("a vector as a function takes an index, and was given " + std::string(describeKind(argument)));
+	if(*index < 0 || static_cast<std::size_t>(*index) >= callee.count())
+		throw Problem("a vector as a function: the index " + std::to_string(*index) + " is outside it, of " +
+		              std::to_string(callee.count()) + (callee.count() == 1 ? " item" : " items"));
+	return callee.at(static_cast<std::size_t>(*index));
+}
+
+} // namespace
 
 void Machine::invoke(std::uint32_t count, bool tail) {
 	const Value callee = stack_[stack_.size() - count - 1];
@@ -266,6 +303,12 @@ void Machine::invoke(std::uint32_t count, bool tail) {
 		finishCall(found || count == 1 ? member : arguments[1], count);
 		return;
 	}
+	case Kind::Set:
+	case Kind::Vector:
+		finishCall(
+		    calledCollection(*this, callee, std::span<const Value>(stack_.data() + stack_.size() - count, count)),
+		    count);
+		return;
 	default:
 		throw Problem("this isn't a function: it is " + std::string(describeKind(callee)));
 	}
@@ -433,7 +476,7 @@ void Machine::opGlobal(const Instruction& instruction) {
 	case Global::State::Running:
 		throw Problem("the value of \"" + notation::Lexer::excerpt(global.name) + "\" depends on itself");
 	default:
-		throw Problem("\"" + notation::Lexer::excerpt(global.name) + "\" is not defined");
+		throw Problem(notDefinedMessage(global.name));
 	}
 }
 
@@ -534,6 +577,13 @@ void Machine::opRecur(const Instruction& instruction) {
 }
 
 void Machine::opThrow(const Instruction& instruction) {
+	if(instruction.b != 0) { // again, after a finally
+		const bool thrown = pop().truthy();
+		const std::string message(pop().text());
+		const Value value = pop();
+		if(thrown) throw Problem(message, value);
+		throw Problem(message);
+	}
 	const Value value = pop();
 	const Value written = frames_.back().code->constants[instruction.a];
 	// A message from the form itself is shown; one computed from values never is
@@ -543,7 +593,7 @@ void Machine::opThrow(const Instruction& instruction) {
 }
 
 void Machine::opTryBegin(const Instruction& instruction) {
-	handlers_.push_back({frames_.size(), stack_.size(), instruction.a});
+	handlers_.push_back({frames_.size(), stack_.size(), instruction.a, instruction.b != 0});
 }
 
 void Machine::opTryEnd(const Instruction& /*instruction*/) { handlers_.pop_back(); }

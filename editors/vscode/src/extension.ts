@@ -1,13 +1,13 @@
 /**
  * The AffrescoUI extension: diagnostics from `affrescoui check --json`, the live preview, navigation and hovers. The
- * schemas and snippets are contributed by package.json alone.
+ * schemas, the snippets and the Lisp files opened as Clojure are contributed by package.json alone.
  */
 
 import { promises as fs, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import * as vscode from 'vscode';
 import { Definitions, definitionsOf, describeKey } from './catalog';
-import { parseReport, placeProblem } from './check';
+import { checkArguments, parseReport, placeLispProblem, placeProblem, screenNotation } from './check';
 import { member, nodeAt } from './json';
 import { Doc, Place, Sym, definitions, includesOf, makeDoc, positionAt, references, symbolAt } from './resolver';
 import { Preview } from './preview';
@@ -140,7 +140,7 @@ function locationOf(docs: Doc[], place: Place): vscode.Location {
 	return new vscode.Location(vscode.Uri.parse(place.uri), new vscode.Range(start.line, start.character, end.line, end.character));
 }
 
-/** Runs `affrescoui check --json` on screens and shows what it finds. */
+/** Runs `affrescoui check --json` on screens, JSON and Lisp, and shows what it finds. */
 class Checker {
 	private readonly timers = new Map<string, NodeJS.Timeout>();
 	private readonly running = new Set<string>();
@@ -152,10 +152,10 @@ class Checker {
 
 	/**
 	 * Checks a screen shortly, once, however often it is asked.
-	 * @param document the screen
+	 * @param document the screen, a *.screen.json or *.screen.lisp file
 	 */
 	schedule(document: vscode.TextDocument): void {
-		if (!isScreen(document) || document.uri.scheme !== 'file') return;
+		if (screenNotation(document.uri.fsPath) === undefined || document.uri.scheme !== 'file') return;
 		const key = document.uri.toString();
 		clearTimeout(this.timers.get(key));
 		this.timers.set(key, setTimeout(() => void this.check(document), 400));
@@ -177,7 +177,8 @@ class Checker {
 	private async check(document: vscode.TextDocument): Promise<void> {
 		const key = document.uri.toString();
 		const config = vscode.workspace.getConfiguration('affrescoui');
-		if (!vscode.workspace.isTrusted || !config.get<boolean>('check.enabled', true) || document.isClosed) {
+		const args = checkArguments(document.uri.fsPath, vscode.workspace.isTrusted, config.get<boolean>('check.enabled', true));
+		if (!args || document.isClosed) {
 			this.collection.delete(document.uri);
 			return;
 		}
@@ -189,7 +190,7 @@ class Checker {
 		try {
 			const timeout = config.get<number>('check.timeoutMs', 15000);
 			const file = document.uri.fsPath;
-			const result = await runTool(config.get<string>('cliPath', 'affrescoui'), ['check', '--json', file], dirname(file), timeout);
+			const result = await runTool(config.get<string>('cliPath', 'affrescoui'), args, dirname(file), timeout);
 			if (!document.isClosed) this.show(document, result, timeout);
 		} finally {
 			this.running.delete(key);
@@ -220,11 +221,12 @@ class Checker {
 			this.collection.set(document.uri, [new vscode.Diagnostic(top, `affrescoui check couldn't check this file: ${why}`, vscode.DiagnosticSeverity.Warning)]);
 			return;
 		}
-		const doc = makeDoc(document.uri.toString(), document.getText());
+		const lisp = screenNotation(document.uri.fsPath) === 'lisp';
+		const doc = makeDoc(document.uri.toString(), lisp ? '' : document.getText());
 		this.collection.set(
 			document.uri,
 			problems.map((problem) => {
-				const placed = placeProblem(doc, problem);
+				const placed = lisp ? placeLispProblem(document.getText(), document.uri.fsPath, problem) : placeProblem(doc, problem);
 				const range = new vscode.Range(document.positionAt(placed.start), document.positionAt(placed.end));
 				const diagnostic = new vscode.Diagnostic(range, placed.message, vscode.DiagnosticSeverity.Error);
 				diagnostic.source = `affrescoui ${placed.source}`.trim();
@@ -257,14 +259,14 @@ function loadCatalog(context: vscode.ExtensionContext): Definitions {
 }
 
 /**
- * Opens the preview of a screen, or shows the one already open.
+ * Opens the preview of a screen, JSON or Lisp, or shows the one already open.
  * @param previews the open previews, by file
  * @param uri      the screen, else the active editor's
  */
 function openPreview(previews: Map<string, Preview>, uri?: vscode.Uri): void {
 	const target = uri instanceof vscode.Uri ? uri : vscode.window.activeTextEditor?.document.uri;
-	if (!target || target.scheme !== 'file' || !target.fsPath.endsWith('.screen.json')) {
-		return void vscode.window.showInformationMessage('AffrescoUI: open a .screen.json file to preview it.');
+	if (!target || target.scheme !== 'file' || screenNotation(target.fsPath) === undefined) {
+		return void vscode.window.showInformationMessage('AffrescoUI: open a .screen.json or .screen.lisp file to preview it.');
 	}
 	if (!vscode.workspace.isTrusted) {
 		return void vscode.window.showInformationMessage('AffrescoUI: the preview runs affrescoui render, so it needs a trusted workspace.');
