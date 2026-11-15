@@ -15,8 +15,10 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <limits>
 #include <memory>
@@ -94,6 +96,35 @@ const Font* drawnFrom(const PaintRecord& record) {
 affresco::Vec2 texels(const Font& font, const Font::Glyph& glyph) {
 	const auto size = static_cast<float>(font.atlasSize(glyph.page));
 	return {std::round(glyph.uv.width() * size), std::round(glyph.uv.height() * size)};
+}
+
+/// @brief Where a record's glyphs are drawn: each glyph quad's left and top edges, in window units.
+/// @param record The record.
+/// @return One corner per glyph quad, in the order they were recorded.
+std::vector<affresco::Vec2> glyphCorners(const PaintRecord& record) {
+	std::vector<affresco::Vec2> corners;
+	for(const affresco::detail::PaintOp& op : record.ops) {
+		if(op.step != PaintStep::glyphs) continue;
+		for(std::uint32_t quad = op.firstQuad; quad < op.firstQuad + op.quads; ++quad) {
+			affresco::Vec2 corner{std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
+			for(std::size_t index = 0; index < affresco::detail::verticesPerQuad; ++index) {
+				const affresco::detail::Vertex& vertex =
+				    record.vertices[quad * affresco::detail::verticesPerQuad + index];
+				corner = {std::min(corner.x, vertex.x), std::min(corner.y, vertex.y)};
+			}
+			corners.push_back(corner);
+		}
+	}
+	return corners;
+}
+
+/// @brief How far a length in window units is from a whole number of a frame's pixels.
+/// @param units The length.
+/// @param scale The frame's pixels per unit.
+/// @return The distance, in pixels.
+float offPixels(float units, float scale) {
+	const float pixels = units * scale;
+	return std::abs(pixels - std::round(pixels));
 }
 
 } // namespace
@@ -222,4 +253,70 @@ TEST_CASE("text scale: a frame at another scale records its text again, from tha
 	CHECK(cache.refresh(affresco::detail::takeFrame(*window), 2.0f).damage);
 	CHECK(raster.atlasVersion(0) == rasterised); // nothing rasterised twice
 	CHECK(&font->rasterAt(2.0f) == &raster);
+}
+
+namespace {
+
+/// @brief Where a record draws each glyph of a shaped text, as fitGlyph() fits it.
+/// @param raster The font or raster the text is drawn from.
+/// @param shaped The text, shaped by its font.
+/// @param origin The text's pen, in window units.
+/// @return Per glyph, its bitmap and its pen.
+std::vector<Font::FittedGlyph> fittedGlyphs(const Font& raster, const Font::ShapedText& shaped, float origin) {
+	std::vector<Font::FittedGlyph> fitted;
+	fitted.reserve(shaped.glyphs.size());
+	for(const Font::ShapedGlyph& glyph : shaped.glyphs) fitted.push_back(raster.fitGlyph(*glyph.glyph, origin + glyph.x));
+	return fitted;
+}
+
+} // namespace
+
+TEST_CASE("text scale: below 2, glyphs are fitted to pixels, and at 2 and above they keep their exact places") {
+	CHECK(Font::fitsPixels(1.0f));
+	CHECK(Font::fitsPixels(1.25f));
+	CHECK(Font::fitsPixels(1.75f));
+	CHECK_FALSE(Font::fitsPixels(2.0f));
+	CHECK_FALSE(Font::fitsPixels(4.0f));
+
+	const auto font = roboto(15.0f);
+	constexpr std::u32string_view text = U"Fitted to pixels: Wave, Ω, é, Pinned";
+	const Layout laidOut = layOut(*font, text);
+	const Font::ShapedText& shaped = font->shape(text);
+	REQUIRE(shaped.glyphs.size() > 10);
+	for(const float scale : {1.0f, 1.25f, 1.5f, 1.75f}) {
+		CAPTURE(scale);
+		const std::vector<affresco::Vec2> corners = glyphCorners(record(*font, text, scale));
+		CHECK(layOut(*font, text) == laidOut); // drawing moves nothing that is laid out
+		const std::vector<Font::FittedGlyph> fitted = fittedGlyphs(font->rasterAt(scale), font->shape(text), 10.0f);
+		REQUIRE(corners.size() == fitted.size());
+		for(std::size_t index = 0; index < corners.size(); ++index) {
+			CAPTURE(index);
+			// From a pixel column and row, its drawn pen within an eighth of a pixel of where the glyph is laid out
+			CHECK(offPixels(corners[index].x, scale) < 0.01f);
+			CHECK(offPixels(corners[index].y, scale) < 0.01f);
+			const Font::Glyph& glyph = *fitted[index].glyph;
+			const float drawn = (corners[index].x - glyph.quad.left) * scale + static_cast<float>(glyph.shift) / 4.0f;
+			CHECK(std::abs(drawn - (10.0f + laidOut.pens[index]) * scale) <= 0.125f + 0.01f);
+		}
+	}
+	CHECK(layOut(*font, text) == laidOut); // measuring, carets and wrapping don't move
+
+	// At 2 and 3, the glyphs go where they are laid out, from their plain bitmaps: some between two pixel columns
+	for(const float scale : {2.0f, 3.0f}) {
+		CAPTURE(scale);
+		const Font& dense = font->rasterAt(scale);
+		const std::vector<affresco::Vec2> corners = glyphCorners(record(*font, text, scale));
+		CHECK(layOut(*font, text) == laidOut);
+		REQUIRE(corners.size() == laidOut.pens.size());
+		std::size_t between = 0;
+		for(std::size_t index = 0; index < corners.size(); ++index) {
+			const Font::FittedGlyph fitted = dense.fitGlyph(*font->shape(text).glyphs[index].glyph, 10.0f);
+			CHECK(fitted.glyph == &dense.rasterGlyph(*font->shape(text).glyphs[index].glyph));
+			CHECK(fitted.glyph->shift == 0);
+			CHECK(fitted.pen == 10.0f);
+			CHECK(corners[index].x == 10.0f + laidOut.pens[index] + fitted.glyph->quad.left);
+			if(offPixels(corners[index].x, scale) > 0.01f) ++between;
+		}
+		CHECK(between > 0);
+	}
 }

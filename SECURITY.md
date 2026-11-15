@@ -802,7 +802,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | An approval's head commit | at least 7 characters |
 | Undo steps kept by an `editor` (each copies the whole text) | 500, and 256 MiB in all: the oldest go first |
 | A font's size (a document can ask for any: a larger one is refused) | 4,096 pixels |
-| A font's glyph atlas (a larger font size is refused) | Pages of 4,096 × 4,096 pixels at most, 64 MiB in all (colour pages count four bytes a pixel) |
+| A font's glyph atlas (a larger font size is refused) | Pages of 4,096 × 4,096 pixels at most, 64 MiB in all (colour pages count four bytes a pixel; below a display scale of 2, the up to four bitmaps of a glyph moved by quarters of a pixel count in it, and past it a glyph is drawn plain) |
 | A font file (regular files only: no devices or pipes) | 256 MiB |
 | An image file (`image` nodes; regular files only, inside the screen's folder or one the host allows) | 64 MiB |
 | A decoded image (from its header, before any pixel is decoded) | 8,192 pixels a side, 4,096 × 4,096 pixels in all |
@@ -1022,9 +1022,10 @@ removes the gap from this list.
   says whether it could be read. The parsers are FreeType and HarfBuzz, which OSS-Fuzz fuzzes all the time, and far
   more hardened than stb_truetype was; still, a malformed font is untrusted input to C and C++ libraries, and the
   `text` fuzz target here fuzzes the text, not the font files (`lookups` fuzzes the GSUB and GPOS tables the fast
-  path for plain text reads itself). A picture of a proposal (`render`) loads the proposal's fonts, and any peer may
-  ask for one, so the font a proposal names is read and parsed before a reviewer looks at it. Fonts no screen uses
-  are bounded (the limits above),
+  path for plain text reads itself). Below a display scale of 2 glyphs are hinted lightly, so FreeType's hinting code
+  (its auto-hinter, or the font's own hinting) also runs on the font's outlines there. A picture of a proposal
+  (`render`) loads the proposal's fonts, and any peer may ask for one, so the font a proposal names is read and
+  parsed before a reviewer looks at it. Fonts no screen uses are bounded (the limits above),
   but the fonts the current document declares are all kept, however many it declares: only the document's size
   bounds them, and each costs at least its first atlas page (up to 16 MiB for very large sizes). Tracking: G-13.
 - **Image files are decoded by stb_image.** A revision can point an `image` node at any file inside the screen's
