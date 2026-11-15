@@ -6,13 +6,26 @@
 
 #include "affresco/core/ProgramConsole.hpp"
 
+#include <optional>
+#include <string>
+
 namespace affresco::format {
 
 struct Engine;
 
 /// @brief The screen's program, for the editor server: evaluating as the person, and looking names up.
 ///
-/// A stub until the console's package (f2d) fills it: it tells whether there is a program, and does nothing else.
+/// Invariants:
+/// - evaluate() is the one way an editor changes the program: as the person, through Programs::evaluateConfirmed()
+///   or Programs::evaluateFile(), so every rule that holds for the person's own input holds (deny rules, protected
+///   sections, a text keeps its first author). Only the host calls it, for a connection the person paired; nothing a
+///   document, a step, a peer or a primitive runs reaches it.
+/// - It refuses what the step `evaluate` refuses: no program, a proposal previewed, an agent's reply being decided.
+/// - It refuses a definition named like a control or a review step (`accept`, `call`...), as an agent's revision is
+///   refused one: its text comes from an editor's buffer, which someone else may have written, not from keystrokes
+///   the app saw.
+/// - names() and describe() read: they run nothing and change nothing.
+///
 /// Owned by the runtime, after its engine (destroyed before it). Main thread only.
 class RuntimeConsole final : public ProgramConsole {
 public:
@@ -34,6 +47,17 @@ public:
 	[[nodiscard]] std::optional<std::string> unshowable(std::string_view text) const override;
 
 private:
+	/// @brief The file a new definition goes in: the request's, if the program has it; else the namespace's, if the
+	/// program has it; else Programs::defaultFile. A definition some file holds stays in it whatever this says.
+	/// @param request The request.
+	/// @return The file.
+	[[nodiscard]] std::string fileFor(const ConsoleRequest& request) const;
+	/// @brief What is known of a name, as the console gives it.
+	/// @param name The name.
+	/// @param callable Whether code can call or read it (Interpreter::callableNames()).
+	/// @return It; std::nullopt if it is neither a definition, an action nor callable.
+	[[nodiscard]] std::optional<ConsoleName> nameOf(const std::string& name, bool callable) const;
+
 	Engine& engine_; ///< The runtime.
 };
 

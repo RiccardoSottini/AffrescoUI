@@ -18,7 +18,7 @@ Target: `affrescoui::format` (uses `core`, `render` and nlohmann/json).
 |---|---|
 | `Rules.hpp` | `Rules`, the format's `DocumentRules`: `validate`, `findNode` (`#id`), `permissions`, `checkChange`, `nameNodes` (ids for the nodes a revision adds), `pathHint` (hints for paths that find nothing), `reviewLines` (the service steps a change adds, which always need a reviewer) and `behaviourLines` (what a change does to behaviour, for review policies and evidence); `findings` (the checker's findings as text); `addNativeAction` |
 | `NodeIds.hpp` | Node ids (D15): `nodeTrees`, `forEachNode`, `findNodeWithId`, `nodeIds`, `duplicateIds`, `isNodePlace`, `placeOf`, and `NodeNamer`, which gives readable ids (`label-blocked`) to nodes that have none |
-| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; audio: `setAudio`, `audio`, `setAudioSource`, `allowAudioDirectory`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`); for pointing at a node, `picks` (the records the person made with `pick` and hasn't sent), `source` (where a node is written: a program's definition, or a JSON node) and `setFileOf` (the file holding a JSON entry, a `FileOf`) |
+| `Runtime.hpp` | `Runtime`: `registerType`, `createWindow` and `build`, `instantiate`, `onAction`, `onCall`, `onAsyncCall`, `setExecutor`, `setServices`, `setNetwork`, `setIdentity`, `setModel`, `runAction`, `setHandlersSuspended`, `catalog`, `find`, `color`, `resolveColor`, `font`; images: `setImage`, `allowImageDirectory`, `waitForImages`; audio: `setAudio`, `audio`, `setAudioSource`, `allowAudioDirectory`; the signals `onEvent`, `onError`, `onSend`, `onConnect`, `onUpdated`; for the inspector, `inspect` (a panel's node, bindings as written and handlers, never a value) and `lastUpdate` (`UpdateStatistics`); for pointing at a node, `picks` (the records the person made with `pick` and hasn't sent), `source` (where a node is written: a program's definition, or a JSON node) and `setFileOf` (the file holding a JSON entry, a `FileOf`); for an editor connected to the app, `console` (a `ProgramConsole`, below) |
 | `Usage.hpp` | `Usage` (`Runtime::usage`): usage summaries, off by default: `setEnabled` with the person's `giveConsent`, `ran`, `visited`, `summary`, `clear`; only ids, counts and times, bounded |
 | `Locale.hpp` | `systemLocale()`: the locale the computer's user chose, for `Runtime::setLocale` |
 | `Features.hpp` | `Features` (RFC 0004): the publishers the host trusts (`trustPublisher`), its signed catalogues (`addCatalog`), what they offer (`catalog`), and the revisions that install and upgrade a feature (`installRevision`, `upgradeRevision`) |
@@ -108,6 +108,18 @@ theme, and a name can't be both a colour and a token.
 - **A revision can't widen a capability.** `checkChange` refuses a revision that changes `permissions`, `channels` or
   `persist`, or adds, changes or moves a control step (`call`, `send`, `connect`, `patch`, `accept`, `reject`,
   `preview`, `endPreview`, `restore`, `revert`, `undo`), or a way to run one.
+- **An editor evaluates as the person, never more** (`Runtime::console()`, `src/programs/ProgramConsole.*`). The
+  console is the host's: the editor server calls it for a connection the person paired, and nothing a document, a
+  step, a peer or a primitive runs reaches it. `evaluate` lands definitions through `Programs::evaluateConfirmed()`
+  (or `evaluateFile()` for a whole file), as the person's own input in one revision ("Evaluate name (origin)"), so
+  deny rules, protected sections and "a text keeps its first author" hold as for anything they type. It refuses
+  what the step `evaluate` refuses (no program, a proposal previewed, an agent's reply being decided), a text over
+  4 MiB, and a definition named like a control or a review step (only the app's file defines one). A new definition
+  goes in the file that holds its name, else the editor's file, else its namespace's (`<ns>.lisp`), each if the
+  program has it, else `evaluated.lisp`. A whole file lands only the definitions whose text changed; one the file no
+  longer has stays in the program (removing is a revision of its own). Other forms run for their value, with no
+  revision. An error's place is given in the editor's buffer. `names`, `describe` and `files` read and change
+  nothing; a definition's `line` is given only while the file on disk still holds its text.
 - **A revision can't bring new findings.** What it refers to must exist (`introduced(before, after)` is empty);
   findings that were there before don't block it.
 - **Documents stay declarative:** no scripts. Expressions are pure: they read the state and never change it. Native
