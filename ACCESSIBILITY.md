@@ -25,6 +25,23 @@ value, state or bounds changed (`modules/render/src/platform/AccessKitTree.cpp`)
 elements and 16 KiB of text per element) and never wait for the assistive technology: AccessKit answers it from the
 last tree it was given. Actions it asks for are queued and run on the UI thread in the next frame, as a click would.
 
+## Pointing with the keyboard
+
+When an app asks the person to point at part of the screen (`Window::pick()`), the keyboard does all the mouse does.
+It starts on the focused panel (else the first one offered), outlined with its name in a caption beside it:
+
+| Key | Does |
+|---|---|
+| Up | the panel holding it |
+| Down | its first panel inside |
+| Left, Right | the panel before or after it, at the same level (it stops at the ends) |
+| Tab, Shift+Tab | the next or previous panel in the screen's order (it wraps) |
+| Enter, Space | picks it (when let go) |
+| Escape, right click | cancels (when let go) |
+
+The caption is a polite live region, read as it changes; for now only the window's own layer carries it, so a screen
+reader doesn't read it yet, as for a `confirm` question.
+
 ## The backend (decision D8)
 
 | OS | API | How | Why |
