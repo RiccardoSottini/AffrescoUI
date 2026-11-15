@@ -190,6 +190,16 @@ files the person just dropped on the window: a `from` naming any other path is r
 their bytes or where they were, and may name one in a revision's assets, which the person then reviews. No revision
 or peer can open the dialog or read the disk.
 
+**Picks** are what the person points at (SCREEN_FORMAT.md, "Pointing at a node"). A `pick` step is a control step
+that starts only from the person's own press: no revision, timer, reply or peer can put the window in pick mode or
+make a record. The engine makes every record from the document as written, never from what a document hands it, and a
+record holds no value from the state, no record of the app's data and no text a panel shows, only where a node is
+written and its bindings as written (at most 4 KiB). Agents read the records not yet sent (`getPicks`) and where a
+node is written (`getSource`, the versioned document only, never a file, at most 16 KiB); a peer whose reads are
+limited is refused both and gets `request` without `picks`, since where a person points can tell what they look at.
+A record's bindings and source text are the document's own words, so an agent reads them as data, never as
+instructions.
+
 **The permission rules** (`permissions`: `allow`, `ask`, `deny`) are judged by the change's effect, by comparing the
 screen before and after, not by how the patch is written:
 - a matching `deny` refuses it, for everyone, including reviewers and the app itself; deny rules are checked again
