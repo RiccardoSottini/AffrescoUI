@@ -111,7 +111,7 @@ public:
 		if(!handle_)
 			throw std::runtime_error(std::string("AffrescoUI: could not create a window with an ") + contextName);
 		glfwMakeContextCurrent(handle_);
-		glfwSwapInterval(1); // vsync: never render faster than the display
+		glfwSwapInterval(1);                                      // vsync: never render faster than the display
 		glfwSetInputMode(handle_, GLFW_LOCK_KEY_MODS, GLFW_TRUE); // key events tell whether caps lock is on
 #ifdef __EMSCRIPTEN__
 		// The canvas follows its container on the page (web/), at the page's devicePixelRatio (GLFW's port scales the
@@ -195,7 +195,7 @@ private:
 	Window* window_ = nullptr;                  ///< The Window it was connected to.
 	std::unique_ptr<desktop::MenuBar> menuBar_; ///< Its native menu bar, created on first use.
 	bool noMenuBar_ = false;                    ///< Native menus aren't supported here.
-	std::array<GLFWcursor*, 5> cursors_{};      ///< Standard cursors, created on first use (indexed by Cursor).
+	std::array<GLFWcursor*, 6> cursors_{};      ///< Standard cursors, created on first use (indexed by Cursor).
 	std::array<int, 4> windowed_{};             ///< Where it was before it filled a display: x, y, width, height.
 };
 
@@ -329,8 +329,9 @@ void GlfwWindow::setCursor(Cursor cursor) {
 		return;
 	}
 
-	static constexpr std::array<int, 5> standardShapes = {
-	    GLFW_ARROW_CURSOR, GLFW_IBEAM_CURSOR, GLFW_POINTING_HAND_CURSOR, GLFW_RESIZE_EW_CURSOR, GLFW_RESIZE_NS_CURSOR};
+	static constexpr std::array<int, 6> standardShapes = {GLFW_ARROW_CURSOR,         GLFW_IBEAM_CURSOR,
+	                                                      GLFW_POINTING_HAND_CURSOR, GLFW_RESIZE_EW_CURSOR,
+	                                                      GLFW_RESIZE_NS_CURSOR,     GLFW_CROSSHAIR_CURSOR};
 	const auto index = static_cast<std::size_t>(cursor);
 	if(!cursors_[index]) cursors_[index] = glfwCreateStandardCursor(standardShapes[index]);
 	glfwSetCursor(handle_, cursors_[index]);
