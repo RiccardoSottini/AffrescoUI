@@ -147,6 +147,12 @@ private:
 
 /// @brief A folder of files for a screen that includes others, removed when it goes.
 struct Folder {
+	Folder() = default;                        ///< A folder named after this object, made by the first write.
+	Folder(const Folder&) = delete;            ///< One folder, removed once.
+	Folder& operator=(const Folder&) = delete; ///< One folder, removed once.
+	Folder(Folder&&) = delete;                 ///< It stays where its path names it.
+	Folder& operator=(Folder&&) = delete;      ///< It stays where its path names it.
+
 	std::filesystem::path path = std::filesystem::temp_directory_path() /
 	                             ("affrescoui-pick-" + std::to_string(reinterpret_cast<std::uintptr_t>(this))); ///< It.
 
@@ -458,7 +464,7 @@ TEST_CASE("pick step: code a revision wrote can't start a pick") {
 	const json revision = {
 	    {"author", "agent"},
 	    {"message", "Point from the other button"},
-	    {"set", {{"/program/index.screen.lisp/other", "(defn other \"Points.\" [] (pick \"node\"))"}}}};
+	    {"set", {{"/program/index.screen.lisp/other", R"((defn other "Points." [] (pick "node")))"}}}};
 	const affresco::RevisionResult result = p.screen.submitRevision(revision.dump());
 	p.settle();
 	p.click(p.panel("otherButton"));

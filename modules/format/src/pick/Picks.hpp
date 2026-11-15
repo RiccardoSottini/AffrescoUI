@@ -92,7 +92,7 @@ private:
 /// @param at "#id", a JSON Pointer to a node, or a definition's address (`/program/<file>/<name>`).
 /// @return The source.
 /// @throws DocumentError Naming @p at, if nothing is there or it is longer than 512 bytes.
-[[nodiscard]] json sourceOf(Engine& engine, std::string_view at);
+[[nodiscard]] json sourceOf(const Engine& engine, std::string_view at);
 
 /// @brief A text cut to a size, at a character boundary (UTF-8).
 /// @param text The text.

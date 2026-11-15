@@ -158,11 +158,13 @@ json largestProgram(const Context& context) {
 void writtenIds(const LoadedScreen& loaded, const Panel& panel, std::vector<std::string>& ids) {
 	const std::string& id = panel.id();
 	if(!id.empty() && std::ranges::find(ids, id) == ids.end()) {
+		bool written = true;
 		try {
 			static_cast<void>(loaded.screen.source("#" + id));
-			ids.push_back(id);
-		} catch(const DocumentError&) { // made by a binding, not written
+		} catch(const DocumentError&) {
+			written = false; // made by a binding, not written
 		}
+		if(written) ids.push_back(id);
 	}
 	for(const auto& child : panel.children()) writtenIds(loaded, *child, ids);
 }

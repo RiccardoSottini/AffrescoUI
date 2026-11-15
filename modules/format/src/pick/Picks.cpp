@@ -151,12 +151,12 @@ json repeatsOf(Engine& engine, const Panel* panel) {
 	std::vector<json> found; // innermost first
 	for(; panel && found.size() < maxRepeats; panel = panel->parent()) {
 		const Record* record = engine.reconciler.recordOf(panel);
-		if(!record || !record->node || !record->node->repeat) continue;
+		if(!record || !record->node) continue;
+		const auto& repeat = record->node->repeat;
+		if(!repeat) continue;
 		const json& written = record->node->own["repeat"];
 		const json in = written.is_object() ? written.value("in", json()) : json();
-		found.push_back({{"for", record->node->repeat->item},
-		                 {"in", writtenText(in)},
-		                 {"index", indexOf(*record, *record->node->repeat)}});
+		found.push_back({{"for", repeat->item}, {"in", writtenText(in)}, {"index", indexOf(*record, *repeat)}});
 	}
 	std::ranges::reverse(found);
 	return json(found);
@@ -227,7 +227,7 @@ void addComponent(Engine& engine, const json& document, const Addressed& address
 /// @param engine The runtime.
 /// @param addressed The node described.
 /// @param record The record being made.
-void addSource(Engine& engine, const Addressed& addressed, json& record) {
+void addSource(const Engine& engine, const Addressed& addressed, json& record) {
 	if(!engine.versions.sourceDocument().contains("program")) {
 		record["source"] = documentSource(engine, addressed.node, addressed.pointer);
 		return;

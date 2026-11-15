@@ -178,6 +178,38 @@ const json* nodeAt(const json& document, const std::string& at) {
 	}
 }
 
+/// @brief Where an `at` that isn't a definition's address is written, and the node a revision names there.
+struct Located {
+	std::string node{};    ///< "#id" if the node has one, else @p at as given.
+	std::string pointer{}; ///< Its JSON Pointer.
+	const json* written{}; ///< The node in the document.
+	std::string id{};      ///< Its id, or empty.
+};
+
+/// @brief Finds the node an `at` names: "#id" or a JSON Pointer.
+/// @param document The document as built.
+/// @param at The `at`, at most maxAt bytes.
+/// @return Where it is.
+/// @throws DocumentError Naming @p at, if nothing is there.
+Located locate(const json& document, const std::string& at) {
+	Located located{at, {}, nullptr};
+	if(at.starts_with('#')) {
+		std::optional<std::string> found = nodePointer(document, std::string_view(at).substr(1));
+		if(!found) fail(at, "no node with this id");
+		located.pointer = std::move(*found);
+	} else if(at.starts_with('/')) {
+		located.pointer = at;
+	} else {
+		fail(at, R"(expected a node ("#id"), a JSON Pointer or a definition's address ("/program/<file>/<name>"))");
+	}
+	located.written = nodeAt(document, located.pointer);
+	if(!located.written) fail(at, "no node here");
+	const auto id = located.written->find("id");
+	if(id != located.written->end() && id->is_string()) located.id = id->get<std::string>();
+	if(!located.id.empty() && !at.starts_with('#')) located.node = "#" + located.id;
+	return located;
+}
+
 } // namespace
 
 std::optional<std::string> nodePointer(const json& document, std::string_view id) {
@@ -206,37 +238,19 @@ json documentSource(const Engine& engine, std::string_view node, std::string_vie
 	return source;
 }
 
-json sourceOf(Engine& engine, std::string_view at) {
+json sourceOf(const Engine& engine, std::string_view at) {
 	const std::string where(at.substr(0, maxAt));
 	if(at.size() > maxAt) fail(where, "is longer than " + std::to_string(maxAt) + " bytes");
 	if(at.starts_with(programPrefix)) return definitionSource(engine, at);
 
-	const json& document = engine.versions.document();
-	std::string pointer;
-	std::string node = where;
-	if(at.starts_with('#')) {
-		std::optional<std::string> found = nodePointer(document, at.substr(1));
-		if(!found) fail(where, "no node with this id");
-		pointer = std::move(*found);
-	} else if(at.starts_with('/')) {
-		pointer = where;
-	} else {
-		fail(where, R"(expected a node ("#id"), a JSON Pointer or a definition's address ("/program/<file>/<name>"))");
-	}
-	const json* written = nodeAt(document, pointer);
-	if(!written) fail(where, "no node here");
-	const auto id = written->find("id");
-	const bool hasId = id != written->end() && id->is_string() && !id->get_ref<const std::string&>().empty();
-	if(hasId && !at.starts_with('#')) node = "#" + id->get<std::string>();
-
-	const std::optional<lisp::NodeOrigin> origin =
-	    hasId ? originOf(engine, id->get_ref<const std::string&>()) : std::nullopt;
-	json source = origin ? sourceOfOrigin(*origin) : documentSource(engine, node, pointer);
+	const Located located = locate(engine.versions.document(), where);
+	const std::optional<lisp::NodeOrigin> origin = originOf(engine, located.id);
+	json source = origin ? sourceOfOrigin(*origin) : documentSource(engine, located.node, located.pointer);
 	const std::string* definition = origin ? definitionText(engine, origin->file, origin->definition) : nullptr;
-	std::string text = origin ? (definition ? *definition : std::string()) : written->dump(1, '\t');
+	std::string text = origin ? (definition ? *definition : std::string()) : located.written->dump(1, '\t');
 	bool cut = false;
-	source["node"] = node;
-	source["pointer"] = pointer;
+	source["node"] = located.node;
+	source["pointer"] = located.pointer;
 	source["notation"] = origin ? "lisp" : "json";
 	source["text"] = cutText(std::move(text), maxSourceText, cut);
 	if(cut) source["cut"] = true;

@@ -69,20 +69,24 @@ bool pick(const Running& s) {
 	auto picked = s.steps.later(s.step.value("onDone", json::array()), s.sender, s.event, outcome, s.where + ".onDone");
 	auto cancelled =
 	    s.steps.later(s.step.value("onCancel", json::array()), s.sender, s.event, outcome, s.where + ".onCancel");
-	const std::uint64_t id =
-	    engine.window->pick(pickOptions(engine, std::move(hint)),
-		                    [&engine, alive = std::weak_ptr<bool>(engine.alive), into, where = s.where,
-		                     picked = std::move(picked), cancelled = std::move(cancelled), outcome](Panel* panel) {
-		                        if(!alive.lock()) return;
-		                        engine.picks.ended();
-		                        json kept = panel ? keepPick(engine, *panel, into, where) : json();
-		                        if(kept.is_null()) {
-			                        cancelled();
-			                        return;
-		                        }
-		                        outcome->vars = json{{"result", std::move(kept)}};
-		                        picked();
-	                        });
+	// NOLINTNEXTLINE(bugprone-exception-escape): past its catch, only a report's text throws, if memory runs out
+	auto done = [&engine, alive = std::weak_ptr<bool>(engine.alive), into, where = s.where, picked = std::move(picked),
+	             cancelled = std::move(cancelled), outcome](Panel* panel) {
+		if(!alive.lock()) return;
+		engine.picks.ended();
+		try {
+			json kept = panel ? keepPick(engine, *panel, into, where) : json();
+			if(kept.is_null()) {
+				cancelled();
+				return;
+			}
+			outcome->vars = json{{"result", std::move(kept)}};
+			picked();
+		} catch(const std::exception& error) { // the window's callback must not throw
+			engine.report(std::string("AffrescoUI screen: ") + where + ": " + error.what());
+		}
+	};
+	const std::uint64_t id = engine.window->pick(pickOptions(engine, std::move(hint)), std::move(done));
 	if(id == 0) fail(s.where + ".pick", "a pick is already in progress");
 	engine.picks.started(id);
 	return true;
