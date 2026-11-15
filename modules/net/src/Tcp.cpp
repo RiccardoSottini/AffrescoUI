@@ -44,9 +44,9 @@ constexpr std::chrono::milliseconds pollSlice{100};
 
 #ifdef _WIN32
 
-using Native = SOCKET;                            ///< A socket as the system has it.
-constexpr Native noSocket = INVALID_SOCKET;       ///< What socket() and accept() return on failure.
-using AddressLength = int;                        ///< The type of an address's length.
+using Native = SOCKET;                      ///< A socket as the system has it.
+constexpr Native noSocket = INVALID_SOCKET; ///< What socket() and accept() return on failure.
+using AddressLength = int;                  ///< The type of an address's length.
 
 /// @brief Starts Winsock once for the process (never cleaned up: sockets may live until it exits).
 /// @return Whether it started.
@@ -93,23 +93,32 @@ std::ptrdiff_t receiveNative(Native socket, char* data, std::size_t size) {
 	return recv(socket, data, static_cast<int>(size), 0);
 }
 
-/// @brief Sends what fits.
+/// @brief Sends what fits now, never waiting for room (a peer that stops reading would hold it forever). Winsock has
+/// no MSG_DONTWAIT, so the socket is made non-blocking; only sends see it, as receives wait for data in poll first.
 /// @param socket The socket.
 /// @param data The bytes.
 /// @param size How many (at most INT_MAX are sent by one call).
-/// @return How many were sent, below 0 on an error.
+/// @return How many were sent, 0 if none fit now, below 0 on an error.
 std::ptrdiff_t sendNative(Native socket, const char* data, std::size_t size) {
-	return send(socket, data, static_cast<int>(std::min<std::size_t>(size, INT_MAX)), 0);
+	u_long nonBlocking = 1;
+	if(ioctlsocket(socket, FIONBIO, &nonBlocking) != 0) return -1;
+	const int sent = send(socket, data, static_cast<int>(std::min<std::size_t>(size, INT_MAX)), 0);
+	if(sent == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK) return 0;
+	return sent;
 }
 
 /// @brief Nothing to do: Winsock reports a peer that went away as an error from send(), with no signal.
 void ignoreBrokenPipes(Native) noexcept {}
 
+/// @brief Ends both directions of a socket without closing it, so a call blocked on it returns.
+/// @param socket The socket.
+void shutDownNative(Native socket) noexcept { shutdown(socket, SD_BOTH); }
+
 #else
 
-using Native = int;                  ///< A socket as the system has it.
-constexpr Native noSocket = -1;      ///< What socket() and accept() return on failure.
-using AddressLength = socklen_t;     ///< The type of an address's length.
+using Native = int;              ///< A socket as the system has it.
+constexpr Native noSocket = -1;  ///< What socket() and accept() return on failure.
+using AddressLength = socklen_t; ///< The type of an address's length.
 
 /// @brief Nothing to start on POSIX.
 bool startSockets() { return true; }
@@ -162,6 +171,10 @@ std::ptrdiff_t sendNative(Native socket, const char* data, std::size_t size) {
 	if(sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return 0;
 	return sent;
 }
+
+/// @brief Ends both directions of a socket without closing it, so a call blocked on it returns.
+/// @param socket The socket.
+void shutDownNative(Native socket) noexcept { ::shutdown(socket, SHUT_RDWR); }
 
 /// @brief Keeps writes to a peer that went away from killing the app (SIGPIPE).
 /// @param socket The socket.
@@ -263,9 +276,11 @@ std::unique_ptr<Connection> Connection::open(const std::string& host, std::uint1
 int Connection::wait(bool write, std::chrono::milliseconds timeout) {
 	const auto deadline = std::chrono::steady_clock::now() + timeout;
 	while(!closed_) {
-		const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
+		const auto left =
+		    std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
 		if(left.count() < 0) return 0;
-		const int result = pollNative(nativeOf(handle_), write ? POLLOUT : POLLIN, static_cast<int>(std::min(left, pollSlice).count()));
+		const int result = pollNative(nativeOf(handle_), write ? POLLOUT : POLLIN,
+		                              static_cast<int>(std::min(left, pollSlice).count()));
 		if(result != 0) return result > 0 ? 1 : -1;
 	}
 	return -1;
@@ -286,7 +301,8 @@ Received Connection::receive(std::string& into, std::chrono::milliseconds timeou
 bool Connection::send(std::string_view bytes, std::chrono::milliseconds timeout) {
 	const auto deadline = std::chrono::steady_clock::now() + timeout;
 	while(!bytes.empty()) {
-		const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
+		const auto left =
+		    std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
 		if(wait(true, std::max(left, std::chrono::milliseconds{0})) != 1) return false;
 		const auto count = sendNative(nativeOf(handle_), bytes.data(), bytes.size());
 		if(count < 0) return false; // 0: no room after all, so wait again
@@ -295,7 +311,12 @@ bool Connection::send(std::string_view bytes, std::chrono::milliseconds timeout)
 	return true;
 }
 
-void Connection::close() noexcept { closed_ = true; }
+void Connection::close() noexcept {
+	closed_ = true;
+	// The socket stays open until the destructor, but a send the system blocks in anyway (MSG_DONTWAIT isn't always
+	// honoured) returns now: the thread that destroys this joins the writer, and would wait for it forever
+	shutDownNative(nativeOf(handle_));
+}
 
 std::unique_ptr<Listener> Listener::open(const std::string& host, std::uint16_t port, std::string& error) {
 	sockaddr_storage address{};
@@ -313,7 +334,8 @@ std::unique_ptr<Listener> Listener::open(const std::string& host, std::uint16_t 
 #ifndef _WIN32
 	if(socket != noSocket) setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)); // restart while TIME_WAIT
 #else
-	if(socket != noSocket) setsockopt(socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, reinterpret_cast<const char*>(&on), sizeof(on));
+	if(socket != noSocket)
+		setsockopt(socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, reinterpret_cast<const char*>(&on), sizeof(on));
 #endif
 	if(socket == noSocket || bind(socket, reinterpret_cast<const sockaddr*>(&address), length) != 0 ||
 	   listen(socket, 64) != 0) {

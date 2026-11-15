@@ -57,7 +57,8 @@ public:
 	/// @param timeout The longest the whole send may take.
 	/// @return false on an error, a timeout or after close().
 	[[nodiscard]] bool send(std::string_view bytes, std::chrono::milliseconds timeout);
-	/// @brief Ends the connection: waits in receive() and send() return at once (within their poll slice).
+	/// @brief Ends the connection: waits in receive() and send() return at once (within their poll slice), and so does
+	/// a send the system blocks in. What was sent before still reaches the peer; the socket closes in the destructor.
 	void close() noexcept;
 	/// @brief The peer's address, without its port.
 	[[nodiscard]] const std::string& peer() const noexcept { return peer_; }

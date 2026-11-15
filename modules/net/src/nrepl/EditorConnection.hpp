@@ -69,7 +69,8 @@ public:
 private:
 	using Clock = std::chrono::steady_clock; ///< For the rate.
 
-	/// @brief The reader thread: reads, decodes and posts each message, then posts the end.
+	/// @brief The reader thread: reads, decodes and posts each message, then posts the end. It stops reading while
+	/// the main thread holds maxQueuedBytes of messages, so a main thread that is busy doesn't pile them up.
 	void readLoop();
 	/// @brief Takes every whole message out of the bytes received (reader thread).
 	/// @return Why the connection must close, or "" to read on.
@@ -108,6 +109,8 @@ private:
 
 	std::mutex mutex_;               ///< Guards the queue and the flags below.
 	std::condition_variable wake_;   ///< Wakes the writer.
+	std::condition_variable room_;   ///< Wakes the reader: the main thread took messages it held.
+	std::size_t heldBytes_ = 0;      ///< Bytes of messages posted to the main thread, not yet delivered.
 	std::deque<std::string> output_; ///< Bytes to send, in order.
 	std::size_t queuedBytes_ = 0;    ///< Their size.
 	bool finishing_ = false;         ///< Close the socket once the queue is sent.

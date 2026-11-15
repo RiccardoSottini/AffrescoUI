@@ -78,7 +78,7 @@ private:
 	void answer(std::uint64_t question, bool accepted);
 	/// @brief Ends the open question: frees it for the next connection that waits, then calls `decided`.
 	/// @param outcome How it ended.
-	void finish(PairingOutcome outcome);
+	void finish(const PairingOutcome& outcome);
 	/// @brief Frees the question and gives it to the first connection waiting its turn.
 	void freeTurn();
 

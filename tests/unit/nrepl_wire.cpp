@@ -198,6 +198,29 @@ TEST_CASE("nrepl_wire: a client that never reads is dropped once the queue is fu
 	CHECK(wire.executor.runUntil([&] { return wire.records[0].closed == 1; }));
 }
 
+TEST_CASE("nrepl_wire: the reader stops reading while the main thread holds too much of what it read, then goes on") {
+	EditorServerOptions options;
+	options.maxQueuedBytes = std::size_t{1} << 20;
+	options.messagesPerSecond = 1e6; // only the bytes hold it back here
+	Wire wire(options);
+	auto client = wire.connect();
+	REQUIRE(wire.executor.runUntil([&] { return wire.records.size() == 1; }));
+	constexpr std::size_t count = 64;
+	const std::string message = bencode::encode(
+	    bencode::Value(bencode::Value::Dictionary{{"op", bencode::Value(std::string("eval"))},
+		                                          {"code", bencode::Value(std::string(std::size_t{256} << 10, 'x'))}}));
+	std::thread sender([&] { // 16 MiB: it waits for room while the server holds back
+		for(std::size_t index = 0; index < count; ++index)
+			if(!client->send(message, 20s)) return;
+	});
+	std::this_thread::sleep_for(1s); // the main thread is busy: nothing it was posted runs
+	REQUIRE(wire.executor.runUntil([&] { return !wire.records[0].messages.empty(); }));
+	CHECK(wire.records[0].messages.size() <= 8U); // about 1 MiB of them waited, not all 16
+	CHECK(wire.executor.runUntil([&] { return wire.records[0].messages.size() == count; }, 20s));
+	sender.join();
+	CHECK(wire.records[0].closed == 0);
+}
+
 TEST_CASE("nrepl_wire: close() sends what was queued, then ends the connection") {
 	Wire wire;
 	auto client = wire.connect();

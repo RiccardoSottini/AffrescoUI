@@ -76,7 +76,8 @@ public:
 	[[nodiscard]] virtual std::vector<std::string> files() const = 0;
 
 	/// @brief Tells why a text can't be shown to the person as it is, before they are asked about it: a character
-	/// that draws nothing, for instance, would let a question show less than what runs.
+	/// that draws nothing, for instance, would let a question show less than what runs; and a text longer than any
+	/// evaluation may be is never shown.
 	/// @param text The text.
 	/// @return Why, or std::nullopt if it can be shown as it is.
 	[[nodiscard]] virtual std::optional<std::string> unshowable(std::string_view text) const = 0;

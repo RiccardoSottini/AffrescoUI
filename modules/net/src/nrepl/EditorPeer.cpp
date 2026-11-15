@@ -36,7 +36,7 @@ constexpr std::size_t maxWaiting = 64;
 struct Waiting {
 	Value request;         ///< The request.
 	std::string session;   ///< Its session's id, or "".
-	std::size_t bytes = 0; ///< The size of its text, for the queue's limit.
+	std::size_t bytes = 0; ///< Its size, encoded, for the queue's limit.
 };
 
 /// @brief One connection's protocol: its sessions, its queue and its pairing.
@@ -92,8 +92,9 @@ private:
 	const EditorServerOptions& options_; ///< The limits.
 	nrepl::EditorSessions sessions_;     ///< The connection's sessions.
 	std::deque<Waiting> queue_;          ///< The requests waiting to run, in order.
-	std::size_t queuedBytes_ = 0;        ///< The size of their texts.
+	std::size_t queuedBytes_ = 0;        ///< Their size, encoded.
 	nrepl::Pairing pairing_;             ///< The person's question.
+	std::string asked_;                  ///< The text it shows, or last showed.
 	bool closed_ = false;                ///< The connection went, or is closing.
 	bool running_ = false;               ///< drain() is running: a nested call leaves the work to it.
 	/// Alive while the peer is: an outcome may close the connection, and the wire may destroy the peer inside that
@@ -205,17 +206,21 @@ void ProtocolPeer::interrupt(const Value& request, const std::string& session) {
 		waiting = queue_.erase(waiting);
 		++interrupted;
 	}
-	// The question was for what waited: once nothing waiting needs the app, it is taken away unanswered
-	if(interrupted > 0 && pairing_.pending() &&
-	   std::ranges::none_of(queue_, [](const Waiting& waiting) { return needsApp(waiting.request); }))
-		pairing_.cancel();
+	// The question shows the first request that needs the app: once that one went, the question is taken away
+	// unanswered, and drain() asks again with the next one's text, if one waits, so a yes runs only what was shown
+	if(interrupted > 0 && pairing_.pending()) {
+		const auto next =
+		    std::ranges::find_if(queue_, [](const Waiting& waiting) { return needsApp(waiting.request); });
+		if(next == queue_.end() || questionFor(next->request) != asked_) pairing_.cancel();
+	}
 	if(interrupted > 0) nrepl::sendStatus(link_, request, {"done"});
 	else nrepl::sendStatus(link_, request, {"session-idle", "done"});
 	drain(); // what waited behind a cancelled question may need no app
 }
 
 void ProtocolPeer::enqueue(const Value& request, std::string session) {
-	const std::size_t bytes = textOf(request, "code").size() + textOf(request, "file").size();
+	// The whole request waits, so all of it counts: keys nothing reads take room too
+	const std::size_t bytes = bencode::encode(request).size();
 	if(queue_.size() >= maxWaiting || queuedBytes_ + bytes > options_.maxQueuedBytes) {
 		nrepl::sendFailure(link_, request, "too many requests wait on this connection", "");
 		return;
@@ -232,7 +237,8 @@ void ProtocolPeer::drain() {
 		if(needsApp(queue_.front().request) && !pairing_.paired()) {
 			if(pairing_.pending()) break;
 			running_ = false; // the outcome may run the queue itself, or close the connection
-			pairing_.ask(questionFor(queue_.front().request));
+			asked_ = questionFor(queue_.front().request);
+			pairing_.ask(asked_);
 			if(alive.expired() || !pairing_.paired()) return;
 			running_ = true;
 			continue;
@@ -288,13 +294,13 @@ void ProtocolPeer::evaluate(const Value& request, nrepl::EditorSession& session)
 		return;
 	}
 	const std::string_view editorPath = wholeFile ? textOf(request, "file-path") : textOf(request, "file");
-	ConsoleRequest console{.text = std::string(code),
-	                       .file = host_.programFile ? host_.programFile(std::string(editorPath)) : std::string(),
-	                       .space = session.space,
-	                       .origin = "editor",
-	                       .line = positionOf(request, "line"),
-	                       .column = positionOf(request, "column"),
-	                       .wholeFile = wholeFile};
+	const ConsoleRequest console{.text = std::string(code),
+	                             .file = host_.programFile ? host_.programFile(std::string(editorPath)) : std::string(),
+	                             .space = session.space,
+	                             .origin = "editor",
+	                             .line = positionOf(request, "line"),
+	                             .column = positionOf(request, "column"),
+	                             .wholeFile = wholeFile};
 	const ConsoleResult result = host_.console->evaluate(console);
 	nrepl::answerEvaluation(link_, request, result, session);
 }
@@ -361,7 +367,7 @@ void ProtocolPeer::decided(const nrepl::PairingOutcome& outcome) {
 }
 
 void ProtocolPeer::failWaiting(std::string_view why, std::string_view more) {
-	std::deque<Waiting> waiting = std::exchange(queue_, {});
+	const std::deque<Waiting> waiting = std::exchange(queue_, {});
 	queuedBytes_ = 0;
 	for(const Waiting& request : waiting) nrepl::sendFailure(link_, request.request, why, more);
 }

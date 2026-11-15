@@ -44,6 +44,7 @@ EditorConnection::~EditorConnection() {
 		stopping_ = true;
 	}
 	wake_.notify_all();
+	room_.notify_all();
 	connection_->close();
 	if(writer_.joinable()) writer_.join();
 	if(reader_.joinable()) reader_.join();
@@ -74,6 +75,11 @@ void EditorConnection::close(std::string_view why) {
 void EditorConnection::readLoop() {
 	std::string why;
 	while(why.empty()) {
+		{
+			std::unique_lock lock(mutex_);
+			room_.wait(lock, [this] { return stopping_ || heldBytes_ < options_.maxQueuedBytes; });
+			if(stopping_) break;
+		}
 		const tcp::Received got = connection_->receive(input_, idleSlice);
 		if(got == tcp::Received::TimedOut) continue;
 		if(got != tcp::Received::Data) break;
@@ -105,7 +111,18 @@ std::string EditorConnection::takeMessages() {
 			break;
 		}
 		start += decoded.used;
-		post([message = std::move(decoded.value)](EditorConnection& connection) { connection.deliver(message); });
+		{
+			const std::scoped_lock lock(mutex_);
+			heldBytes_ += decoded.used;
+		}
+		post([message = std::move(decoded.value), bytes = decoded.used](EditorConnection& connection) {
+			{
+				const std::scoped_lock lock(connection.mutex_);
+				connection.heldBytes_ -= bytes;
+			}
+			connection.room_.notify_one();
+			connection.deliver(message);
+		});
 	}
 	input_.erase(0, start);
 	return why;

@@ -22,8 +22,10 @@ using namespace nrepl_test;
 namespace {
 
 /// @brief The client files' folder, by an absolute path (the examples' folder is beside tests/).
-const std::filesystem::path clientsFolder =
-    std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY).parent_path() / "tests" / "nrepl" / "clients";
+/// @return It.
+std::filesystem::path clientsFolder() {
+	return std::filesystem::path(AFFRESCOUI_EXAMPLES_DIRECTORY).parent_path() / "tests" / "nrepl" / "clients";
+}
 
 /// @brief Converts a step's JSON to a message. @param json It. @param captured The session ids kept, by name.
 /// @return The message.
@@ -31,7 +33,7 @@ Value toValue(const nlohmann::json& json, const std::map<std::string, std::strin
 	if(json.is_number_integer()) return Value(json.get<std::int64_t>());
 	if(json.is_string()) {
 		const auto text = json.get<std::string>();
-		if(text.starts_with("$")) {
+		if(text.starts_with('$')) {
 			const auto found = captured.find(text.substr(1));
 			REQUIRE_MESSAGE(found != captured.end(), "no session captured as " << text);
 			return Value(found->second);
@@ -68,8 +70,9 @@ void checkReply(const Value& reply, const nlohmann::json& expect, std::map<std::
 
 /// @brief Plays one client's file. @param file Its name in tests/nrepl/clients.
 void play(const std::string& file) {
-	std::ifstream input(clientsFolder / file);
-	REQUIRE_MESSAGE(input.good(), "can't read " << (clientsFolder / file).string());
+	const std::filesystem::path path = clientsFolder() / file;
+	std::ifstream input(path);
+	REQUIRE_MESSAGE(input.good(), "can't read " << path.string());
 	const nlohmann::json steps = nlohmann::json::parse(input);
 	REQUIRE(steps.is_array());
 	FakeHost fake;

@@ -46,9 +46,9 @@ namespace affresco::net::nrepl {
 void sendStatus(EditorLink& link, const bencode::Value& request, std::initializer_list<std::string_view> words);
 
 /// @brief Ends a request in error: its text as `err` (with a line break), then `error` and @p more, then `done`.
-/// @param link Where it goes. @param request The request. @param text What went wrong.
+/// @param link Where it goes. @param request The request. @param why What went wrong.
 /// @param more A status word after `error` (e.g. `not-paired`), or "" for none.
-void sendFailure(EditorLink& link, const bencode::Value& request, std::string_view text, std::string_view more);
+void sendFailure(EditorLink& link, const bencode::Value& request, std::string_view why, std::string_view more);
 
 /// @brief Answers `describe`: the operations, the version, no `clojure` key.
 /// @param link Where it goes. @param request The request. @param version The host's version, or "".
@@ -71,8 +71,8 @@ void answerEvaluation(EditorLink& link, const bencode::Value& request, const Con
                       EditorSession& session);
 
 /// @brief Prints a text as a Lisp string literal (quoted, `"` and `\` escaped, control characters as escapes).
-/// @param text The text. @return It, quoted.
-[[nodiscard]] std::string lispString(std::string_view text);
+/// @param raw The text. @return It, quoted.
+[[nodiscard]] std::string lispString(std::string_view raw);
 
 /// @brief The most completions one reply carries.
 inline constexpr std::size_t maxCompletions = 200;

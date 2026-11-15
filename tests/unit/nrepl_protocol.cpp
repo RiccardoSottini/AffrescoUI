@@ -443,6 +443,29 @@ TEST_CASE("nrepl_protocol: a connection that goes takes its question away, or gi
 	CHECK(fake.console.requests.empty());
 }
 
+TEST_CASE("nrepl_protocol: a waiting request counts whole against the queue's limit, keys nothing reads too") {
+	FakeHost fake;
+	fake.options.maxQueuedBytes = std::size_t{1} << 20;
+	Connection connection(fake);
+	connection.send(evalRequest("first", "(f)")); // waits for the person, who doesn't answer
+	REQUIRE(fake.questions.size() == 1U);
+	const std::string padding(std::size_t{400} << 10, 'x');
+	for(const std::string_view id : {"2", "3", "4"}) {
+		Value::Dictionary padded = request("eval", id);
+		padded.emplace("code", text("(g)"));
+		padded.emplace("padding", text(padding));
+		connection.send(Value(std::move(padded)));
+	}
+	CHECK(connection.repliesTo("2").empty());
+	CHECK(connection.repliesTo("3").empty());
+	const std::vector<Value> refused = connection.repliesTo("4");
+	REQUIRE_FALSE(refused.empty());
+	CHECK(textOf(refused.front(), "err").starts_with("too many requests wait"));
+	checkEnds(refused);
+	fake.answer(true);
+	CHECK(fake.console.requests.size() == 3U);
+}
+
 TEST_CASE("nrepl_protocol: an interrupt cancels a queued evaluation and the question that waits") {
 	FakeHost fake;
 	Connection connection(fake);
@@ -464,6 +487,39 @@ TEST_CASE("nrepl_protocol: an interrupt cancels a queued evaluation and the ques
 	const std::vector<Value> idle = connection.send(Value(interrupt));
 	REQUIRE(idle.size() == 1U);
 	CHECK(statusOf(idle[0]) == std::vector<std::string>{"session-idle", "done"});
+}
+
+TEST_CASE("nrepl_protocol: interrupting the request the question shows asks again, with the next one's text") {
+	FakeHost fake;
+	Connection connection(fake);
+	connection.send(evalRequest("shown", "(shown)"));
+	connection.send(evalRequest("next", "(unseen)"));
+	REQUIRE(fake.questions == std::vector<std::string>{"(shown)"});
+	Value::Dictionary interrupt = request("interrupt", "i");
+	interrupt.emplace("interrupt-id", text("shown"));
+	connection.send(Value(std::move(interrupt)));
+	CHECK(fake.cancels == 1U);
+	REQUIRE(fake.questions.size() == 2U);
+	CHECK(fake.questions.back() == "(unseen)"); // a yes runs only what the person saw
+	fake.answer(true);
+	REQUIRE(fake.console.requests.size() == 1U);
+	CHECK(fake.console.requests[0].text == "(unseen)");
+	checkEnds(connection.repliesTo("next"));
+}
+
+TEST_CASE("nrepl_protocol: interrupting a request the question doesn't show leaves the question as it is") {
+	FakeHost fake;
+	Connection connection(fake);
+	connection.send(evalRequest("shown", "(shown)"));
+	connection.send(evalRequest("later", "(later)"));
+	Value::Dictionary interrupt = request("interrupt", "i");
+	interrupt.emplace("interrupt-id", text("later"));
+	connection.send(Value(std::move(interrupt)));
+	CHECK(fake.cancels == 0U);
+	CHECK(fake.questions == std::vector<std::string>{"(shown)"});
+	fake.answer(true);
+	REQUIRE(fake.console.requests.size() == 1U);
+	CHECK(fake.console.requests[0].text == "(shown)");
 }
 
 TEST_CASE("nrepl_protocol: an interrupt with an interrupt-id takes only that request") {
