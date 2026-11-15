@@ -43,44 +43,85 @@ std::size_t offsetOf(std::string_view text, std::uint32_t line, std::uint32_t co
 	return at;
 }
 
+/// @brief Reads the items directly inside a list, one byte at a time (itemsOfList()).
+struct ListScan {
+	std::string_view text{};                    ///< The text.
+	std::vector<std::string> items{};           ///< The items read so far.
+	int depth = 0;                              ///< How many brackets the byte read is inside.
+	std::size_t start = std::string_view::npos; ///< Where the item being read started, or npos for none.
+
+	/// @brief Starts an item at a byte, unless one is being read; only at the list's own depth.
+	/// @param at The byte.
+	void open(std::size_t at) {
+		if(depth == 1 && start == std::string_view::npos) start = at;
+	}
+
+	/// @brief Ends the item being read, if it is at the list's own depth.
+	/// @param end Where it ends.
+	void close(std::size_t end) {
+		if(depth != 1) return;
+		if(start != std::string_view::npos) items.emplace_back(text.substr(start, end - start));
+		start = std::string_view::npos;
+	}
+
+	/// @brief Reads a string, an item of its own at the list's depth.
+	/// @param at Where its '"' is.
+	/// @return Where its closing '"' is, or the text's size.
+	std::size_t string(std::size_t at) {
+		open(at);
+		for(++at; at < text.size() && text[at] != '"'; ++at)
+			if(text[at] == '\\') ++at;
+		if(depth == 1) close(at + 1);
+		return at;
+	}
+
+	/// @brief Reads a comment, which ends the item before it.
+	/// @param at Where its ';' is.
+	/// @return Where the line ends, or the text's size.
+	std::size_t comment(std::size_t at) {
+		close(at);
+		while(at < text.size() && text[at] != '\n') ++at;
+		return at;
+	}
+
+	/// @brief Reads a closing bracket.
+	/// @param at Where it is.
+	/// @return true if it closes the list.
+	bool shut(std::size_t at) {
+		if(depth == 1) close(at);
+		if(--depth == 1) close(at + 1);
+		return depth == 0;
+	}
+};
+
 /// @brief The words, strings and bracketed forms directly inside the list that starts at a byte, each as its text.
 /// @param text The text.
 /// @param at Where the list's '(' is.
 /// @return Them; empty if no list starts there.
 std::vector<std::string> itemsOfList(std::string_view text, std::size_t at) {
-	std::vector<std::string> items;
-	if(at >= text.size() || text[at] != '(') return items;
-	int depth = 0;
-	std::size_t start = std::string_view::npos;
-	const auto close = [&](std::size_t end) { // an item ends, if it was at the list's own depth
-		if(depth != 1) return;
-		if(start != std::string_view::npos) items.emplace_back(text.substr(start, end - start));
-		start = std::string_view::npos;
-	};
+	constexpr std::string_view opening = "([{";
+	constexpr std::string_view closing = ")]}";
+	constexpr std::string_view spaces = " \n\t,";
+	ListScan scan{.text = text};
+	if(at >= text.size() || text[at] != '(') return scan.items;
 	for(std::size_t i = at; i < text.size(); ++i) {
 		const char c = text[i];
 		if(c == '"') {
-			if(depth == 1 && start == std::string_view::npos) start = i;
-			for(++i; i < text.size() && text[i] != '"'; ++i)
-				if(text[i] == '\\') ++i;
-			if(depth == 1) close(i + 1);
+			i = scan.string(i);
 		} else if(c == ';') {
-			close(i);
-			while(i < text.size() && text[i] != '\n') ++i;
-		} else if(c == '(' || c == '[' || c == '{') {
-			if(depth == 1 && start == std::string_view::npos) start = i;
-			++depth;
-		} else if(c == ')' || c == ']' || c == '}') {
-			if(depth == 1) close(i);
-			if(--depth == 1) close(i + 1);
-			if(depth == 0) return items;
-		} else if(c == ' ' || c == '\n' || c == '\t' || c == ',') {
-			close(i);
-		} else if(depth == 1 && start == std::string_view::npos) {
-			start = i;
+			i = scan.comment(i);
+		} else if(opening.contains(c)) {
+			scan.open(i);
+			++scan.depth;
+		} else if(closing.contains(c)) {
+			if(scan.shut(i)) return scan.items;
+		} else if(spaces.contains(c)) {
+			scan.close(i);
+		} else {
+			scan.open(i);
 		}
 	}
-	return items;
+	return scan.items;
 }
 
 /// @brief Whether a list's items give a node that id, written out: `type#id`, or `:id "id"`.

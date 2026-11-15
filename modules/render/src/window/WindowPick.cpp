@@ -115,7 +115,7 @@ std::optional<Panel*> movedTo(const PickOptions& options, Panel& root, Panel* fr
 		collectBelow(options, *from, list);
 		return list.empty() ? from : list.front();
 	}
-	if(Panel* above = acceptedAncestor(options, *from)) collectBelow(options, *above, list);
+	if(const Panel* above = acceptedAncestor(options, *from)) collectBelow(options, *above, list);
 	else if(accepted(options, root)) list.push_back(&root);
 	else collectBelow(options, root, list);
 	return neighbour(list, from, key == Key::Right, false);
@@ -156,17 +156,16 @@ Label& note(Panel& layer, Color background, float maxWidth) {
 
 /* What it draws */
 
-detail::PickLayer::PickLayer(Color color) {
+detail::PickLayer::PickLayer(Color color)
+	: highlight_(&add<Panel>()), caption_(&note(*this, color, captionWidth)),
+	  hint_(&note(*this, Color::hex(0x111827), hintWidth)) { // the hint's colour as the full-screen hint's
 	setColor(colors::transparent);
-	highlight_ = &add<Panel>();
 	highlight_->setColor(color.withAlpha(tintAlpha));
 	highlight_->setBorder(outlineWidth, color);
 	highlight_->setVisible(false);
-	caption_ = &note(*this, color, captionWidth);
 	AccessibleState live;
 	live.live = LiveRegion::Polite; // each new panel offered is read, the focus staying where it is
 	caption_->setAccessibleState(live);
-	hint_ = &note(*this, Color::hex(0x111827), hintWidth); // as the full-screen hint
 	hint_->setPadding(10.0f);
 }
 
@@ -294,7 +293,7 @@ void Window::pickButton(const MouseButtonEvent& event, Panel* hit) {
 	if(picking.offer(offered(picking.options, hit))) requestLayout();
 	if(event.action == Action::Press) picking.pressedOn = picking.candidate;
 	if(event.action != Action::Release) return;
-	Panel* const pressedOn = std::exchange(picking.pressedOn, nullptr);
+	const Panel* const pressedOn = std::exchange(picking.pressedOn, nullptr);
 	if(picking.candidate && picking.candidate == pressedOn && routingOwnPress()) finishPick(picking.candidate);
 }
 

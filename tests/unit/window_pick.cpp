@@ -101,7 +101,7 @@ struct Fixture {
 	/// @brief Presses and lets go of a button at a point.
 	/// @param at The point.
 	/// @param button The button.
-	void click(Vec2 at, MouseButton button = MouseButton::Left) {
+	void click(Vec2 at, MouseButton button = MouseButton::Left) const {
 		window->routeMouseButton({button, Action::Press, Mods{}, at});
 		window->routeMouseButton({button, Action::Release, Mods{}, at});
 	}
@@ -109,7 +109,7 @@ struct Fixture {
 	/// @brief Presses and lets go of a key.
 	/// @param key The key.
 	/// @param mods The modifiers.
-	void type(Key key, int mods = 0) {
+	void type(Key key, int mods = 0) const {
 		window->routeKey({key, 0, Action::Press, Mods{mods}});
 		window->routeKey({key, 0, Action::Release, Mods{mods}});
 	}
