@@ -8,6 +8,7 @@
 - delta:      the JSON template and changed copies of it (keys reordered, a node added), with deltas to apply;
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
               and in short conversations between the agent and the reviewer (lines starting with '>');
+- commands:   each command message from each peer, and short conversations with runs that wait;
 - text:       every text of the templates and of the rendering check's screens;
 - cli:        the templates and the rendering check's screens as written, and nodes without ids;
 - actions:    every action and handler of the templates, and steps that spend a whole work budget.
@@ -238,6 +239,24 @@ def session_seeds():
     # Over the agent's limits (session.cpp): more changes than its burst, then a message larger than 4 KiB
     renames = [compact({"type": "revision", "id": i, "set": {"#boardName/text": f"B{i}"}}) for i in range(8)]
     seeds.append("\n".join(renames + [compact({"type": "getHistory", "id": 9, "padding": "x" * 5000})]))
+    return seeds
+
+
+def commands_seeds():
+    """The commands target's seeds: each command message alone, from each peer, then short conversations."""
+    messages = [{"type": "getCommands", "id": 1, "filter": "sh", "all": True},
+                {"type": "runCommand", "id": 2, "command": "shown", "arguments": {"text": "a"}, "evidence": "picture",
+                 "scale": 2},
+                {"type": "undoRun", "id": 3, "run": 1}, {"type": "allowRun", "id": 4, "run": 1, "always": True, "for": "8h"},
+                {"type": "denyRun", "id": 5, "run": 1, "reason": "not now"},
+                {"type": "revokeRun", "id": 6, "rule": "agent:shown"}]
+    seeds = [prefix + compact(message) for message in messages for prefix in ("", ">", "?")]
+    run = compact(messages[1])
+    seeds.append("\n".join([run, ">" + compact(messages[3]), "!", compact(messages[2]), "?" + run, "!"]))
+    seeds.append("\n".join([run, "~", "!", run, "~", run, "!", "?" + compact(messages[0])]))
+    # Over the limits (commands.cpp): arguments past 512 bytes, then more runs than the burst
+    seeds.append("\n".join([compact({"type": "runCommand", "command": "shown", "arguments": {"t": "x" * 600}})] +
+                           [run] * 10))
     return seeds
 
 
@@ -1106,6 +1125,9 @@ def main():
                                                 "remove", "replace", "move", "copy", "test", "/", "~0", "~1", "\n"])
     write(out, "revision", revisions(), words["revision"])
     write(out, "session", session_seeds(), words["session"])
+    write(out, "commands", commands_seeds(), words["session"] + ["getCommands", "runCommand", "undoRun", "allowRun",
+                                                                  "denyRun", "revokeRun", "evidence", "picture", "none",
+                                                                  "always", "for", "rule", "filter", "!", "~", "?", ">"])
     write(out, "delta", delta_seeds(), words["delta"])
     write(out, "policy", policy_seeds(),
           words["revision"] + ["budgets", "data", "read", "write", "never", "over", "role:"])

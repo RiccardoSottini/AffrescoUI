@@ -12,8 +12,10 @@
 #include "affresco/core/VersionControl.hpp"
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace affresco::channel {
 
@@ -191,6 +193,10 @@ private:
 	TokenBucket runRate_;            ///< Command runs (runCommand, undoRun).
 	CommandService* commands_ = nullptr; ///< The screen's commands (setCommands()), or none.
 	Connection commandsChanged_ = 0;     ///< On commands_->onChanged: the runs in "review".
+	/// Held while commands_ is set: an answer the service gives after a wait holds it weakly and is dropped once the
+	/// session leaves the service (setCommands()), so it never reaches a session that is gone.
+	std::shared_ptr<bool> commandsAlive_;
+	std::vector<int> waitingRuns_;       ///< This peer's runs that wait for a decision: denied when it leaves.
 	bool limited_ = false;           ///< Over a limit now (see overLimit()).
 	Connection messages_ = 0, decisions_ = 0, commits_ = 0, reviews_ = 0; ///< Disconnected on destruction.
 	UsageSummary usage_;                             ///< For "getUsage" and "clearUsage" (empty: off).

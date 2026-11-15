@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <memory>
 #include <utility>
 
 namespace affresco::detail {
@@ -78,6 +79,14 @@ std::optional<std::string> OffscreenImages::render(const ImageRequest& request, 
 		if(const std::optional<std::string> error = show(request.proposal)) return error;
 	}
 	return draw(request.scale, image);
+}
+
+std::optional<std::string> OffscreenImages::drawShown(int scale, RgbImage& pixels) {
+	if(!runtime_.window()) return "AffrescoUI screen: render: the screen has no window yet";
+	if(rendering_) return "AffrescoUI screen: render: already drawing a picture";
+	rendering_ = true; // the picture changes nothing a peer hears of
+	const std::unique_ptr<bool, void (*)(bool*)> reset{&rendering_, [](bool* flag) { *flag = false; }}; // throws too
+	return drawPixels(scale, pixels);
 }
 
 std::optional<std::string> OffscreenImages::show(std::optional<int> proposal) {

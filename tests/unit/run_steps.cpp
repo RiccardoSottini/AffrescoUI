@@ -1,7 +1,7 @@
 /// @file
 /// @brief The seams of commands as tools: the run steps (allowRun, denyRun, undoRun) decide through the run control
 /// as the person and only from the person's own code, the `runs` and `runGrants` variables list it, and a peer's
-/// command messages are refused while running commands isn't built yet.
+/// command messages reach the screen's commands.
 
 #include "Headless.hpp"
 #include "Helpers.hpp"
@@ -261,7 +261,7 @@ TEST_CASE("format: a run step attack: an agent's code may not run allowRun") {
 	app.runtime->setRunControl(nullptr);
 }
 
-TEST_CASE("format: a run step's peer: the command messages are refused, and review carries the runs") {
+TEST_CASE("format: a run step's peer: the command messages reach the screen's commands, and review carries the runs") {
 	affresco::test::MemoryChannel agent;
 	ManualClock clock;
 	const std::unique_ptr<affresco::Window> window = createHeadlessWindow(400, 300, clock);
@@ -273,13 +273,13 @@ TEST_CASE("format: a run step's peer: the command messages are refused, and revi
 		agent.receive(message.dump());
 		return agent.sent.back();
 	};
-	for(const char* type : {"getCommands", "runCommand", "undoRun", "allowRun", "denyRun", "revokeRun"}) {
-		CAPTURE(type);
-		const json reply = answer({{"type", type}, {"id", 1}});
-		CHECK(reply["type"] == "rejected");
-		CHECK(reply["id"] == 1);
-		CHECK(reply["error"].get<std::string>().contains("commands can't be run yet"));
-	}
+	const json listed = answer({{"type", "getCommands"}, {"id", 1}});
+	CHECK(listed["type"] == "commands");
+	CHECK(listed["commands"] == json::array()); // the catalog lists none yet (f4c)
+	const json ran = answer({{"type", "runCommand"}, {"id", 1}, {"command", "look"}});
+	CHECK(ran["type"] == "rejected");
+	CHECK(ran["id"] == 1);
+	CHECK(ran["error"] == "no command 'look'");
 	const json document = answer({{"type", "getDocument"}, {"id", 2}});
 	CHECK(document["runs"] == json::array());
 	CHECK(document["runGrants"] == json::array());

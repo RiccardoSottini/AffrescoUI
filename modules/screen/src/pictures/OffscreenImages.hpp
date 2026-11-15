@@ -38,6 +38,12 @@ public:
 	/// @param on true to show it.
 	/// @return An error (no window yet), or std::nullopt.
 	[[nodiscard]] std::optional<std::string> inspect(bool on) override { return inspector_.setOn(on); }
+	/// @brief Draws what the window shows now, offscreen, as pixels: nothing is presented, so the person sees no
+	/// flicker (a run's evidence, before and after it).
+	/// @param scale Pixels per window unit, 1 to ScreenImages::maxScale.
+	/// @param pixels Receives the picture.
+	/// @return An error (no window yet, a picture being drawn, drawing failed), or std::nullopt.
+	[[nodiscard]] std::optional<std::string> drawShown(int scale, RgbImage& pixels);
 	/// @brief The inspector, for the host's own controls and tests.
 	[[nodiscard]] Inspector& inspector() noexcept { return inspector_; }
 
