@@ -433,7 +433,7 @@ bool equalAt(Machine* machine, const Value& first, const Value& second, int dept
 /// don't depend on the seed: a hash only finds the members to compare, and a set keeps the order they came in.
 /// @param hash The hash.
 /// @return It, spread.
-std::size_t spread(std::uint64_t hash) noexcept {
+std::size_t spread(std::uint64_t hash) {
 	static const std::uint64_t seed = (std::uint64_t{std::random_device{}()} << 32U) ^ std::random_device{}();
 	std::uint64_t bits = hash + seed + 0x9e3779b97f4a7c15U;
 	bits = (bits ^ (bits >> 30U)) * 0xbf58476d1ce4e5b9U;

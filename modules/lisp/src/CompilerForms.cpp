@@ -98,6 +98,10 @@ void Compiler::noteTruthTest(const Value& test, int depth) {
 		if(local->path.kind() == Kind::Symbol) noteTruthTest(local->path, depth + 1);
 		return;
 	}
+	noteTruthPath(word, test);
+}
+
+void Compiler::noteTruthPath(const Value& word, const Value& test) {
 	const std::string_view name = word.text();
 	const std::size_t dot = name.find('.');
 	if(dot == std::string_view::npos || resolve(*current_, name.substr(0, dot)).kind != Variable::Kind::None) return;

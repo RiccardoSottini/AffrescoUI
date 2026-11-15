@@ -79,7 +79,7 @@ std::size_t peakMemory() {
 #if defined(__unix__) || defined(__APPLE__)
 	rusage usage{};
 	getrusage(RUSAGE_SELF, &usage);
-#if defined(__APPLE__)
+#ifdef __APPLE__
 	return static_cast<std::size_t>(usage.ru_maxrss); // bytes
 #else
 	return static_cast<std::size_t>(usage.ru_maxrss) * 1024; // kilobytes

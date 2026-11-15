@@ -287,7 +287,7 @@ TEST_CASE("lisp sets: items chosen so their hashes meet take no longer than othe
 	std::string sets = "#{";
 	for(int at = 0; at < 16384; ++at)
 		sets += "#{" + std::to_string(1048576 + at) + " " + std::to_string(2097151 - at) + "} ";
-	sets += "}";
+	sets += '}';
 	lisp::Interpreter interpreter;
 	interpreter.setBudget({.operations = 100'000'000, .bytes = 1U << 30U});
 	const auto start = std::chrono::steady_clock::now();
