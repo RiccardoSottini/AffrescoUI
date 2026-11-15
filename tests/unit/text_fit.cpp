@@ -66,7 +66,8 @@ double inkCentre(const Font& raster, const Font::Glyph& glyph) {
 std::vector<std::uint64_t> atlasVersions(const Font& font) {
 	std::vector<std::uint64_t> versions;
 	for(const AtlasKind kind : {AtlasKind::coverage, AtlasKind::color}) {
-		for(std::size_t page = 0; page < font.atlasPages(kind); ++page) versions.push_back(font.atlasVersion(page, kind));
+		for(std::size_t page = 0; page < font.atlasPages(kind); ++page)
+			versions.push_back(font.atlasVersion(page, kind));
 		versions.push_back(0); // a separator, so a page moving from one kind to the other shows
 	}
 	return versions;
@@ -86,8 +87,8 @@ void record(const Font& font, std::u32string_view text, float scale) {
 } // namespace
 
 // A centre taken at pixel centres is off by up to about a tenth of a pixel for one narrow stem (the ink inside a column
-// is not centred in it), and that error changes sign from glyph to glyph: so each glyph is held to an eighth of a pixel,
-// and the 20 together, on average, to 0.03.
+// is not centred in it), and that error changes sign from glyph to glyph: so each glyph is held to an eighth of a
+// pixel, and the 20 together, on average, to 0.03.
 TEST_CASE("text fit: a glyph's bitmap at shift k has its ink k quarters of a pixel right of shift 0") {
 	const auto font = roboto(15.0f);
 	constexpr std::u32string_view letters = U"PinedWavgylmoxAHQRéΩ"; // 20 glyphs, stems and bowls
@@ -177,13 +178,18 @@ TEST_CASE("text fit: with the atlas full, a glyph draws its plain bitmap on the 
 
 	// Every glyph from U+0100 on, at every quarter, until the pages are at their limit
 	std::size_t refused = 0;
+	const Font::Glyph* plain = nullptr; // one refused: drawn from its plain bitmap
 	for(char32_t c = 0x100; c <= 0x2FFF; ++c) {
 		if(!font->hasGlyph(c)) continue;
 		const Font::Glyph& glyph = font->glyph(c);
-		for(unsigned shift = 0; shift < 4; ++shift)
-			if(font->fitGlyph(glyph, static_cast<float>(shift) / 4.0f).glyph->shift != shift) ++refused;
+		for(unsigned shift = 0; shift < 4; ++shift) {
+			if(font->fitGlyph(glyph, static_cast<float>(shift) / 4.0f).glyph->shift == shift) continue;
+			++refused;
+			if(shift == 2) plain = &glyph;
+		}
 	}
 	REQUIRE(refused > 0);
+	REQUIRE(plain != nullptr);
 
 	std::size_t bytes = 0;
 	for(std::size_t page = 0; page < font->atlasPages(); ++page)
@@ -193,17 +199,69 @@ TEST_CASE("text fit: with the atlas full, a glyph draws its plain bitmap on the 
 		         static_cast<std::size_t>(font->atlasSize(page, AtlasKind::color));
 	CHECK(bytes <= std::size_t{64} << 20);
 
-	// Latin-1 letters never drawn: their plain bitmaps, from the first page, on the nearest column
+	// A glyph refused: its plain bitmap on the nearest column, not '?'
+	const Font::FittedGlyph fitted = font->fitGlyph(*plain, 20.4f);
+	CHECK(fitted.glyph->page == plain->page); // the plain bitmap (at 1, a copy of it kept with the drawn ones)
+	CHECK(fitted.glyph->uv.left == plain->uv.left);
+	CHECK(fitted.glyph->uv.top == plain->uv.top);
+	CHECK(fitted.glyph->shift == 0);
+	CHECK(fitted.glyph->uv.left != question.uv.left);
+	CHECK(fitted.pen == 20.0f);
+	CHECK(font->fitGlyph(*plain, 20.6f).pen == 21.0f);
+
+	// Latin-1 letters never drawn still have their places: every quarter, in the first drawn page
 	for(const char32_t letter : std::u32string_view(U"AKMwz")) {
 		CAPTURE(static_cast<unsigned>(letter));
 		const Font::Glyph& glyph = font->glyph(letter);
-		const Font::FittedGlyph fitted = font->fitGlyph(glyph, 20.4f);
-		CHECK(fitted.glyph->page == glyph.page); // the plain bitmap (at 1, a copy of it kept with the drawn ones)
-		CHECK(fitted.glyph->uv.left == glyph.uv.left);
-		CHECK(fitted.glyph->uv.top == glyph.uv.top);
-		CHECK(fitted.glyph->shift == 0);
-		CHECK(fitted.glyph->uv.left != question.uv.left);
-		CHECK(fitted.pen == 20.0f);
-		CHECK(font->fitGlyph(glyph, 20.6f).pen == 21.0f);
+		const Font::FittedGlyph moved = font->fitGlyph(glyph, 20.5f);
+		CHECK(moved.glyph->shift == 2);
+		CHECK(moved.glyph->page != glyph.page);
+		CHECK(moved.pen == 20.0f);
+	}
+}
+
+namespace {
+
+/// @brief How a font's raster fits each glyph of a text: its bitmap's place around the pen, its shift and its pen.
+/// @param font The font.
+/// @param text The text.
+/// @param scale The frame's pixels per unit.
+/// @return Per glyph: the quad's left, top, right and bottom, the shift, then the pen.
+std::vector<float> fits(const Font& font, std::u32string_view text, float scale) {
+	const Font& raster = font.rasterAt(scale);
+	std::vector<float> values;
+	for(const Font::ShapedGlyph& shaped : font.shape(text).glyphs) {
+		const Font::FittedGlyph fitted = raster.fitGlyph(*shaped.glyph, 10.3f + shaped.x);
+		const affresco::Rect& quad = fitted.glyph->quad;
+		values.insert(values.end(), {quad.left, quad.top, quad.right, quad.bottom,
+		                             static_cast<float>(fitted.glyph->shift), fitted.pen});
+	}
+	return values;
+}
+
+} // namespace
+
+TEST_CASE("text fit: a glyph is drawn the same whatever was drawn before it, past a full page") {
+	constexpr std::u32string_view first = U"Pinned to the sidebar";
+	constexpr std::u32string_view later = U"Évenly spaced, quick brown ×";
+	for(const float scale : {1.0f, 1.25f}) {
+		CAPTURE(scale);
+		const auto alone = roboto(15.0f);
+		const std::vector<float> laterAlone = fits(*alone, later, scale);
+
+		const auto font = roboto(15.0f);
+		const Font& raster = font->rasterAt(scale);
+		const std::vector<float> firstTime = fits(*font, first, scale);
+		const std::size_t pages = raster.atlasPages();
+		// Enough other glyphs, at every quarter, to fill the page they went to and more
+		for(char32_t c = 0x100; c <= 0x2FFF && raster.atlasPages() == pages; ++c) {
+			if(!font->hasGlyph(c)) continue;
+			const Font::Glyph& glyph = font->glyph(c);
+			for(unsigned shift = 0; shift < 4; ++shift)
+				static_cast<void>(raster.fitGlyph(glyph, static_cast<float>(shift) / (4.0f * scale)));
+		}
+		REQUIRE(raster.atlasPages() > pages); // the page drawn glyphs went to is full
+		CHECK(fits(*font, first, scale) == firstTime);
+		CHECK(fits(*font, later, scale) == laterAlone);
 	}
 }

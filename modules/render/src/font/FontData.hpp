@@ -47,17 +47,29 @@ struct Font::Data {
 		float width;         ///< Its glyphs' advances.
 	};
 
-	detail::FreeTypeLibrary library;                 ///< Declared first: the faces are freed before it.
-	std::vector<detail::FontFace> faces;             ///< The font first, then its fallbacks.
-	detail::GlyphAtlas atlas;                        ///< Made by bakeLatin1(), at the size Latin-1 fits.
-	/// @brief Rasterised so far, by glyphKey(): face, glyph index and, for a raster's moved bitmaps (fitGlyph()), shift.
-	/// Nodes never move.
+	detail::FreeTypeLibrary library;     ///< Declared first: the faces are freed before it.
+	std::vector<detail::FontFace> faces; ///< The font first, then its fallbacks.
+	detail::GlyphAtlas atlas;            ///< Made by bakeLatin1(), at the size Latin-1 fits.
+	/// @brief Rasterised so far, by glyphKey(): face, glyph index and, for a raster's moved bitmaps (fitGlyph()),
+	/// shift. Nodes never move.
 	std::unordered_map<std::uint64_t, Glyph> glyphs;
 	/// @brief What a font drawing itself (a scale of 1) draws, by glyphKey(): every shift's bitmap, shift 0 included,
-	/// in the pages after the Latin-1 page (drawnPage), so a line of text never switches page. Empty for a raster,
-	/// whose glyphs hold its moved bitmaps. Nodes never move.
+	/// in the pages from drawnPage on, so a line of text never switches page. Empty for a raster, whose glyphs hold its
+	/// moved bitmaps. Nodes never move.
 	std::unordered_map<std::uint64_t, Glyph> drawn;
-	static constexpr std::uint32_t drawnPage = 1; ///< The first page drawn glyphs go to.
+	/// @brief The first page drawn glyphs go to: a page of its own, made when the font first draws (reserveDrawn()).
+	/// 0 until then, and for a raster.
+	std::uint32_t drawnPage = 0;
+	/// @brief A place kept in the first drawn page for one bitmap of a glyph made at load.
+	struct ReservedSpot {
+		std::uint64_t key = 0;    ///< The bitmap's glyphKey(), shift included.
+		std::uint16_t x = 0;      ///< Its top-left texel, padding included.
+		std::uint16_t y = 0;      ///< Likewise.
+		std::uint16_t width = 0;  ///< Its texels across, padding included: the most its bitmap may take.
+		std::uint16_t height = 0; ///< Its texels down, padding included.
+	};
+	/// @brief The places kept for Latin-1's four bitmaps per glyph, sorted by key (reserveDrawn()).
+	std::vector<ReservedSpot> reserved;
 	std::unordered_map<char32_t, const Glyph*> nominal;    ///< Unshaped glyphs beyond Latin-1, by code point.
 	std::unordered_map<std::string, char32_t> namedGlyphs; ///< codepointNamed(), by name: at most namedGlyphsKept.
 	static constexpr std::size_t namedGlyphsKept = 1024;   ///< Names of glyphs remembered; more empties the map.
@@ -117,6 +129,21 @@ struct Font::Data {
 	/// @return The moved bitmap; for a raster and shift 0, @p unmoved. If it can't be rasterised or placed: @p unmoved,
 	/// remembered so it isn't tried again (its shift then isn't @p shift).
 	[[nodiscard]] const Glyph& fitted(const Glyph& unmoved, unsigned shift) noexcept;
+	/// @brief Starts the drawn pages of a font drawing itself: a fresh page, in which every glyph made at load
+	/// (Latin-1) has a place kept for each of its four bitmaps, in a fixed order. They are rasterised when first drawn,
+	/// into those places: so where a glyph lies in the atlas, which decides how a turned or scaled text's texels are
+	/// filtered to the last bit, never depends on what the font drew before.
+	void reserveDrawn();
+	/// @brief Where a bitmap goes: its kept place (reserved), or the first that fits from @p firstPage on.
+	/// @param kind Coverage or colour.
+	/// @param key Its glyphKey(), shift included.
+	/// @param width Its width, padding included.
+	/// @param height Its height, padding included.
+	/// @param mayAddPage Whether a page may be added for it.
+	/// @param firstPage The first page it may go to (GlyphAtlas::place()).
+	/// @return The place, or nothing if it doesn't fit.
+	[[nodiscard]] std::optional<detail::GlyphAtlas::Spot> spotFor(AtlasKind kind, std::uint64_t key, int width,
+	                                                              int height, bool mayAddPage, std::uint32_t firstPage);
 	/// @brief Rasterises a glyph into the atlas.
 	/// @param face The face.
 	/// @param index Its glyph index.

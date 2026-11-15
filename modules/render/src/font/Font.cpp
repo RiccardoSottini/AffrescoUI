@@ -17,6 +17,8 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace affresco {
 
@@ -127,12 +129,58 @@ const Font::Glyph& Font::Data::fitted(const Glyph& unmoved, unsigned shift) noex
 	const std::uint64_t key = glyphKey(unmoved.face, unmoved.index, shift);
 	try {
 		if(const auto found = store.find(key); found != store.end()) return found->second;
+		if(apart && drawnPage == 0) reserveDrawn();
 		const std::optional<Glyph> added = rasterise(unmoved.face, unmoved.index, true, shift, apart ? drawnPage : 0);
 		return store.emplace(key, added ? *added : unmoved).first->second;
 	} catch(...) {
 		// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass glyphs the font holds
 		return unmoved; // out of memory
 	}
+}
+
+void Font::Data::reserveDrawn() {
+	drawnPage = static_cast<std::uint32_t>(atlas.pages(AtlasKind::coverage).size()); // set first: tried only once
+	constexpr int padding = detail::GlyphAtlas::padding;
+	std::vector<ReservedSpot> spots;
+	spots.reserve(4 * latin1Count);
+	for(char32_t codepoint = firstCodepoint; codepoint < firstCodepoint + latin1Count; ++codepoint) {
+		// The glyphs bakeLatin1() made, in its order: what the first page holds, whatever was measured since
+		const auto face = faceFor(codepoint);
+		if(!face && codepoint != U'?') continue;
+		const std::uint64_t key = glyphKey(face.value_or(0), faces[face.value_or(0)].glyphIndex(codepoint));
+		const auto found = glyphs.find(key);
+		if(found == glyphs.end() || found->second.color || found->second.page != 0 ||
+		   std::ranges::any_of(spots, [key](const ReservedSpot& spot) { return spot.key == key; }))
+			continue;
+		const Rect& uv = found->second.uv;
+		const auto texels = static_cast<float>(atlas.pages(AtlasKind::coverage).front().size);
+		const auto width = static_cast<int>(std::lround((uv.right - uv.left) * texels));
+		const auto height = static_cast<int>(std::lround((uv.bottom - uv.top) * texels));
+		if(width == 0 || height == 0) continue; // a space: no texels
+		for(unsigned shift = 0; shift < 4; ++shift) {
+			// A move right by a fraction of a pixel takes one column more at most; the rows don't move
+			const int across = width + (shift == 0 ? 0 : 1) + padding, down = height + padding;
+			const auto spot = atlas.place(AtlasKind::coverage, across, down, spots.empty(), drawnPage);
+			if(!spot && spots.empty()) return; // no room for the page: drawn glyphs go where they fit
+			if(spot)
+				spots.push_back({key | (std::uint64_t{shift} << 62), static_cast<std::uint16_t>(spot->x),
+				                 static_cast<std::uint16_t>(spot->y), static_cast<std::uint16_t>(across),
+				                 static_cast<std::uint16_t>(down)});
+		}
+	}
+	std::ranges::sort(spots, {}, &ReservedSpot::key);
+	reserved = std::move(spots);
+}
+
+std::optional<detail::GlyphAtlas::Spot> Font::Data::spotFor(AtlasKind kind, std::uint64_t key, int width, int height,
+                                                            bool mayAddPage, std::uint32_t firstPage) {
+	if(kind == AtlasKind::coverage && firstPage != 0 && firstPage == drawnPage) {
+		const auto kept = std::ranges::lower_bound(reserved, key, {}, &ReservedSpot::key);
+		if(kept != reserved.end() && kept->key == key && std::cmp_less_equal(width, kept->width) &&
+		   std::cmp_less_equal(height, kept->height))
+			return detail::GlyphAtlas::Spot{drawnPage, kept->x, kept->y};
+	}
+	return atlas.place(kind, width, height, mayAddPage, firstPage);
 }
 
 std::optional<Font::Glyph> Font::Data::rasterise(std::size_t face, unsigned index, bool mayAddPage, unsigned shift,
@@ -150,7 +198,8 @@ std::optional<Font::Glyph> Font::Data::rasterise(std::size_t face, unsigned inde
 
 	const AtlasKind kind = bitmap->color ? AtlasKind::color : AtlasKind::coverage;
 	constexpr int padding = detail::GlyphAtlas::padding;
-	const auto spot = atlas.place(kind, width + padding, height + padding, mayAddPage, firstPage);
+	const auto spot =
+	    spotFor(kind, glyphKey(face, index, shift), width + padding, height + padding, mayAddPage, firstPage);
 	if(!spot) return std::nullopt;
 
 	detail::GlyphAtlas::Page& page = atlas.pages(kind)[spot->page];
@@ -452,8 +501,9 @@ std::size_t Font::memoryBytes() const noexcept {
 	for(const auto& [scale, raster] : data.rasters)
 		if(raster) rasters += raster->memoryBytes();
 	return sizeof(Font) + data.atlas.bytes() + (data.glyphs.size() + data.drawn.size()) * (sizeof(Glyph) + node) +
-	       data.nominal.size() * (sizeof(const Glyph*) + node) + data.words.bytes() + data.lines.bytes() +
-	       data.uncached.glyphs.capacity() * sizeof(ShapedGlyph) + (data.plain ? data.plain->bytes() : 0) + rasters;
+	       data.reserved.capacity() * sizeof(Data::ReservedSpot) + data.nominal.size() * (sizeof(const Glyph*) + node) +
+	       data.words.bytes() + data.lines.bytes() + data.uncached.glyphs.capacity() * sizeof(ShapedGlyph) +
+	       (data.plain ? data.plain->bytes() : 0) + rasters;
 }
 
 /* What tests see */

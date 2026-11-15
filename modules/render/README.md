@@ -128,7 +128,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   by 0, ¼, ½ and ¾ of a pixel, rasterised the first time a pen needs them (`Font::fitGlyph`): the pen goes on a whole
   column and the bitmap moved by the rest, rounded to a quarter, so each glyph is within an eighth of a pixel of where
   it is laid out and the spaces between letters stay even. A font drawing itself (a scale of 1) keeps what it draws in
-  the pages after its Latin-1 page, so a line never changes page and makes no draw call more than at 2. Colour glyphs,
+  the pages after its Latin-1 page, so a line never changes page and makes no draw call more than at 2; the places of
+  Latin-1's four bitmaps there are kept the first time it draws, so they don't follow what it drew before. Colour glyphs,
   and glyphs past the atlas's limit, are drawn plain from the nearest column. At 2 and above glyphs are unhinted, their
   outlines' exact shapes, drawn where they are laid out. A right-to-left run is laid out right to left, and a line's
   runs are put in visual order by their bidirectional levels (UAX #9, simplified: the paragraph's direction is its
@@ -179,7 +180,8 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   64 MiB; past it, a glyph is drawn plain from the nearest column. Glyphs fit the pixels of a frame drawn at a quarter
   (1, 1.25, 1.5, 1.75); between quarters they are rasterised at the nearest and resampled, as before. A text that
   starts with a colour glyph, at a scale of 1, makes one draw call more than at 2 (its first letter is on a page after
-  the Latin-1 one).
+  the Latin-1 one). Other glyphs, and a raster's (1.25 and up), take atlas places as text draws them, as before, so a
+  turned or scaled text, sampled between texels, can differ by a level or two with what its font drew before.
   A font file is a regular file of at most 256 MiB, and a font's size at most 4,096 pixels. `FontCache` keeps at most
   32 fonts and 128 MiB that nothing uses. A `TextModel` (a `TextEditor`'s text) keeps 500 undo steps, and at most
   256 MiB of removed text in them; invalid UTF-8 becomes U+FFFD as it comes in.
