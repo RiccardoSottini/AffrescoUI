@@ -239,7 +239,7 @@ json documentSource(const Engine& engine, std::string_view node, std::string_vie
 }
 
 json sourceOf(const Engine& engine, std::string_view at) {
-	const std::string where(at.substr(0, maxAt));
+	const std::string where = cutToCharacter(std::string(at.substr(0, maxAt + 1)), maxAt); // an error's text stays UTF-8
 	if(at.size() > maxAt) fail(where, "is longer than " + std::to_string(maxAt) + " bytes");
 	if(at.starts_with(programPrefix)) return definitionSource(engine, at);
 

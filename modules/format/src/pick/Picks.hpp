@@ -71,7 +71,8 @@ private:
 /// It never evaluates a binding, reads the state or a record, or copies what a panel shows.
 /// @param engine The runtime.
 /// @param panel The panel the person picked.
-/// @return The record (at most 4 KiB as JSON), or null if no node built the panel or one of its ancestors.
+/// @return The record (at most 4 KiB as JSON), or null if no node built the panel or one of its ancestors, or if its
+/// ids or pointer are too long to fit.
 [[nodiscard]] json describePick(Engine& engine, const Panel& panel);
 
 /// @brief The panel a pick offers for a panel under the pointer: the nearest one a node built.

@@ -425,6 +425,26 @@ TEST_CASE("pick step: Runtime::source in JSON: a node by id or pointer, cut at 1
 	CHECK_THROWS_AS(static_cast<void>(loaded.source("/root/children/0/children/99")), affresco::DocumentError);
 	CHECK_THROWS_AS(static_cast<void>(loaded.source("nothing")), affresco::DocumentError);
 	CHECK_THROWS_AS(static_cast<void>(loaded.source("#" + std::string(600, 'x'))), affresco::DocumentError);
+	// Regression: a long `at` was cut inside a character, so the error's text wasn't UTF-8 and couldn't be sent
+	try {
+		static_cast<void>(loaded.source("#" + std::string(510, 'a') + "\xC3\xA9\xC3\xA9"));
+		FAIL("no error");
+	} catch(const affresco::DocumentError& error) {
+		CHECK_NOTHROW(static_cast<void>(json(std::string(error.what())).dump()));
+	}
+}
+
+TEST_CASE("pick step: a node whose record would be over 4 KiB gives none, and the pick is cancelled") {
+	// Regression: only bindings and handlers were dropped to fit, so a long id made a record far over its 4 KiB
+	json screen = json::parse(pointingScreen);
+	const std::string id(3000, 't');
+	screen["root"]["children"][0]["children"][1]["id"] = id;
+	Pointing p(affresco::Screen::fromString(screen.dump()));
+	p.point(p.panel(id));
+	CHECK_FALSE(p.window->picking());
+	CHECK(p.state()["pointed"].is_null());
+	CHECK(p.state()["cancelled"] == 1);
+	CHECK(p.screen.picks().empty());
 }
 
 TEST_CASE("pick step: a program's node: its definition, an included file and a shared one, and its source") {
