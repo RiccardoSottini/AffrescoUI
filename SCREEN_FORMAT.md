@@ -1370,6 +1370,8 @@ Native functions, services and servers, sign-in, files, terminals, peers, the ag
 | `ask` | `{ "ask": "{{state.draft}}", "into": "state.asked" }`: asks the agents in plain words, with `options` (an object) passed on to them; replies run `ask:reply`, never as the person's decision (Asking the agents). A control step |
 | `cancelAsk` | `{ "cancelAsk": "{{state.asked}}" }`: stops requests of `ask` still in progress (an id or a list): they become `cancelled`, the agents are told, and their later replies are dropped. A control step |
 | `attach` | `{ "attach": { "accept": ["audio/*"] }, "into": "state.files" }`: the person's files as attachments (Assets). A control step |
+| `pick` | `{ "pick": "node", "hint": "Point at what to change", "into": "state.pointed" }`: after the person's own press, they point at an element; the engine keeps its record (where it is written, never its data) and runs `onDone` with `result`, or `onCancel` (Pointing at a node). A control step |
+| `unpick` | `{ "unpick": "{{state.pointed.id}}" }`: forgets pick records (an id or a list); an unknown id is ignored. A control step |
 <!-- end generated -->
 
 ### Control steps and paths

@@ -63,4 +63,15 @@ bool SourceMap::hasEntriesBelow(std::string_view pointer) const {
 	return found != entries_.end() && found->first.starts_with(prefix);
 }
 
+std::string shownName(const std::string& file, const std::string& entry, const std::filesystem::path& base) {
+	if(file.empty()) return entry;
+	std::string name = std::filesystem::path(file).lexically_relative(base).generic_string();
+	while(name.starts_with("../")) name.erase(0, 3);
+	return name.empty() ? file : name;
+}
+
+bool sharedFile(const std::string& file, const std::filesystem::path& base) {
+	return !file.empty() && std::filesystem::path(file).lexically_relative(base).generic_string().starts_with("../");
+}
+
 } // namespace affresco::detail

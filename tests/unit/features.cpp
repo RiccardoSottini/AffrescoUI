@@ -142,6 +142,14 @@ TEST_CASE("features: a manifest can never widen a capability") {
 		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"signOut": "api"}])");
 		CHECK(refused(manifest, "'signOut'"));
 	}
+	SUBCASE("a pick step, though an action may be named pick") { // pointing is the person's, never a feature's
+		manifest["provides"]["actions"]["pick"] = manifest["provides"]["actions"]["toggle"];
+		CHECK_NOTHROW(affresco::format::checkManifest(manifest, "wordCount"));
+		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"pick": "node"}])");
+		CHECK(refused(manifest, "'pick'"));
+		manifest["provides"]["actions"]["toggle"]["do"] = json::parse(R"([{"unpick": "pick-1"}])");
+		CHECK(refused(manifest, "'unpick'"));
+	}
 	SUBCASE("a node id outside the namespace") {
 		manifest["provides"]["views"]["statusBar.right"]["label"] = manifest["provides"]["views"]["statusBar.right"]
 		                                                                    ["wordCount-label"];

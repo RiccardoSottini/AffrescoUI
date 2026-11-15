@@ -149,6 +149,9 @@ target_include_directories(affrescoui_format PRIVATE src/calls)
 # src/assistant/: the requests the screen's own person sends its agents ("ask"), and their replies
 target_sources(affrescoui_format PRIVATE src/assistant/Asks.cpp src/assistant/AskSteps.cpp src/assistant/AttachSteps.cpp)
 target_include_directories(affrescoui_format PRIVATE src/assistant)
+# src/pick/: the person pointing at an element ("pick"), the engine's records of it, and where a node is written
+target_sources(affrescoui_format PRIVATE src/pick/Picks.cpp src/pick/PickSteps.cpp src/pick/NodeSource.cpp)
+target_include_directories(affrescoui_format PRIVATE src/pick)
 # widgets: the node types and their properties, the reference, sections, connections, features, composition
 # and adapters, a folder each (src/<folder>/README.md)
 # types: the type registry and the node types: panels, surfaces, split, tabs, lists, diff, editor, image
