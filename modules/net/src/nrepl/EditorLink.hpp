@@ -10,6 +10,8 @@
 #include "affresco/net/EditorServer.hpp"
 
 #include <cstddef>
+#include <functional>
+#include <list>
 #include <memory>
 #include <string_view>
 
@@ -49,6 +51,9 @@ public:
 struct EditorShared {
 	std::size_t refusals = 0; ///< Pairings the person refused or left unanswered (EditorServerOptions::maxRefusals).
 	bool asking = false;      ///< A pairing question is open: one at a time.
+	/// The connections waiting for the question to be free, in the order they came: each one's call to ask. A
+	/// connection's entry goes when its question is asked or it closes (Pairing.cpp), so no call outlives its peer.
+	std::list<std::function<void()>> waitingTurns;
 };
 
 /// @brief Makes the protocol's side of a new connection.
