@@ -24,13 +24,16 @@ namespace platform {
 
 using ProcAddressLoader = void* (*)(const char* name); ///< Looks an OpenGL function up by name.
 
-/// @brief A size in pixels of the framebuffer (on HiDPI screens, more than the window has units).
+/// @brief A size in pixels of the framebuffer (on a display scaled above 100%, more than the window has units).
 struct PixelSize {
 	int width = 0;  ///< In pixels.
 	int height = 0; ///< In pixels.
 };
 
 /// @brief An OS window with an OpenGL 4.1 core context, as one Window sees it.
+///
+/// It speaks in window units (sizes, positions) everywhere but framebufferSize(): converting from the windowing
+/// system's own coordinates, where they are pixels, is its job, not the Window's.
 ///
 /// It delivers the OS's input and size changes to the Window it was connected to, converted to the typed events of
 /// affresco/render/Events.hpp, through the protected functions below (the Window's routing methods). Main thread only.
@@ -100,7 +103,8 @@ public:
 	virtual void wake() = 0;
 	/// @brief The windowing system's own handle (a GLFWwindow*), for Window::nativeHandle().
 	[[nodiscard]] virtual void* handle() const noexcept = 0;
-	/// @brief Pixels per window unit on the window's display now.
+	/// @brief Pixels per window unit on the window's display now: the display's scale, which on windowing systems whose
+	/// coordinates are pixels (Win32, X11) is rounded to a quarter from 1 to 4 (platform/UnitScale.hpp).
 	[[nodiscard]] virtual float contentScale() const = 0;
 	/// @brief Shows a native menu bar for this window, replacing the one shown; choosing an item calls chosen().
 	/// @param menus The menus; empty removes the bar.
