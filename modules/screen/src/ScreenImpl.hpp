@@ -6,6 +6,7 @@
 /// @brief affresco::Screen::Impl, the screen's modules and peers, shared by the files that make up affresco::Screen.
 
 #include "affresco/Screen.hpp"
+#include "commands/ScreenCommands.hpp"
 #include "pictures/OffscreenImages.hpp"
 
 #include "affresco/channel/Session.hpp"
@@ -17,6 +18,7 @@
 #include "affresco/net/RemotePeers.hpp"
 #include "affresco/vcs/ChangeSetRepair.hpp"
 #include "affresco/vcs/Repository.hpp"
+#include "affresco/vcs/Runs.hpp"
 
 #include <filesystem>
 #include <map>
@@ -94,8 +96,10 @@ struct Screen::Impl {
 	format::Rules rules;                                 ///< The format's rules.
 	vcs::Repository repository;                          ///< Document, state, history, review.
 	vcs::ChangeSetRepairs repairs{repository, "screen"}; ///< Installed change sets and their repairs.
+	vcs::Runs runs{repository, rules};                   ///< Who may run the commands as peers; outlives the runtime.
 	format::Runtime runtime;                             ///< Panels and actions.
 	detail::OffscreenImages images{repository, runtime}; ///< Pictures for peers ("render").
+	detail::ScreenCommands commands{runtime, runs, repository, images}; ///< The commands as tools for peers.
 	std::vector<std::unique_ptr<Peer>> peers;            ///< Connected programs.
 	std::vector<std::unique_ptr<channel::SocketServer>> servers; ///< From listen().
 	std::vector<std::unique_ptr<net::PeerServer>> peerServers;   ///< From listenWebSocket().
@@ -106,6 +110,7 @@ struct Screen::Impl {
 	Executor* executor = nullptr;                    ///< For channels (set by startChannels()).
 	std::filesystem::path socketDirectory;           ///< Where relative channel sockets are.
 	bool channelsAllowed = true;                     ///< Screen::allowChannels().
+	bool commandsAllowed = true;                     ///< Screen::allowCommandRuns().
 	bool channelsConfined = false;                   ///< Screen::confineChannels().
 	std::map<std::string, DeclaredChannel> channels; ///< From "channels".
 	std::filesystem::path stateFile;                 ///< Where "persist" paths are kept.
