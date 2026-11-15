@@ -1898,13 +1898,14 @@ line:
 | → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect. For a program, `document` is what it builds with `program` in it, and `source` the document as written (not to a reader whose reads are limited: "Data rules") |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
-| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `done` |
+| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `picks` (`picks`), `source` (`source`), `done` |
 | peer → | `revision` (compact edits or `patch`, `proposal`?, `assets`?, `run`?), `revert` / `restore` (`revision`), `undo` |
 | peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `fileChanges` (the same, plus `notation` and `file`: VERSION_CONTROL.md, "The changes, file by file"), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
+| peer → | `getPicks` (no fields; answers the elements the person pointed at and has not sent or removed, oldest first, 16 at most: pick records of each one's node, type, JSON Pointer, bounds, bindings as written and source, never a value from the state), `getSource` (`at`: a node's id, a JSON Pointer to a node, or a definition's address; answers the definition or file that writes it, with its notation and its text of 16 KiB at most). A peer whose reads are limited is refused both, and a host that keeps no picks or sources rejects them |
 | peer → | `convert` (`notation`: `"lisp"` or `"json"`, and `text` to read or `value` to write; a mistake is rejected with its line and column): how a peer reads and writes the Lisp notation, while revisions and the history stay JSON |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
-| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
+| → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?, `picks`?: at most 4 pick records) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
 Requests may carry an `"id"`; answers repeat it.
 

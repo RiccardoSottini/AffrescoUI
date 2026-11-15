@@ -36,11 +36,12 @@ std::string toBase64(std::string_view bytes) {
 }
 
 /// @brief Tells whether a read shows the document whole, which a peer whose data rules limit its reads may not make.
+/// Picks and sources are among them: a node's definition and its bindings tell what the masked paths hold.
 /// @param type The message's type.
-/// @return true for diff, exportChanges, render, getEvidence and blame.
+/// @return true for diff, fileChanges, exportChanges, render, getEvidence, blame, getPicks and getSource.
 bool showsWhole(std::string_view type) noexcept {
-	static constexpr std::array<std::string_view, 6> reads = {"diff",   "fileChanges", "exportChanges",
-	                                                          "render", "getEvidence", "blame"};
+	static constexpr std::array<std::string_view, 8> reads = {
+	    "diff", "fileChanges", "exportChanges", "render", "getEvidence", "blame", "getPicks", "getSource"};
 	return std::ranges::find(reads, type) != reads.end();
 }
 
@@ -295,7 +296,7 @@ void Session::handle(const std::string& line) {
 			reply["id"] = in.id;
 			send(reply);
 		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in) && !handleBlame(in) &&
-		          !handleConvert(in)) {
+		          !handlePickRead(in) && !handleConvert(in)) {
 			send({{"type", "error"}, {"message", "unknown message type '" + in.type + "'"}, {"id", in.id}});
 		}
 	} catch(const DocumentError& error) {

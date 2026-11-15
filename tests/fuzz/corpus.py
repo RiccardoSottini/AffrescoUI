@@ -63,7 +63,7 @@ MAX_NESTING = 256  # maxNesting in modules/core/include/affresco/core/Json.hpp
 # Values for the fields the protocol table names, and the fields of the messages it lists without them
 FIELD_VALUES = {"revision": "HEAD~1", "proposal": 1, "head": "", "dontAskAgain": True, "from": 0, "to": "HEAD",
                 "name": "plugin", "limit": 5, "text": "Make the status bar dark", "request": "r1", "mode": "plan",
-                "rule": "agent(/actions)", "reason": "Not now",
+                "rule": "agent(/actions)", "reason": "Not now", "at": "#title",
                 "patch": [{"op": "replace", "path": "#statusText/text", "value": "Saved"}]}
 MORE_FIELDS = {"revert": ["revision"], "reject": ["proposal", "reason"], "preview": ["proposal"], "setMode": ["mode"],
                "revoke": ["rule"]}
@@ -231,6 +231,9 @@ def session_seeds():
                             ">" + compact({"type": "setMode", "mode": "acceptEdits"}), compact(asks),
                             ">" + compact({"type": "reject", "proposal": 1, "reason": "No"}), compact({"type": "undo"}),
                             compact({"type": "request", "id": "r1", "text": "hi"}), ">{\"type\":\"reply\",\"request\":\"r1\"}"]))
+    # getSource's other kinds of node: a JSON Pointer and a definition's address
+    seeds.append("\n".join(compact({"type": "getSource", "id": i, "at": at})
+                           for i, at in enumerate(["/root", "/program/app.lisp/main"], start=1)))
     # Over the agent's limits (session.cpp): more changes than its burst, then a message larger than 4 KiB
     renames = [compact({"type": "revision", "id": i, "set": {"#boardName/text": f"B{i}"}}) for i in range(8)]
     seeds.append("\n".join(renames + [compact({"type": "getHistory", "id": 9, "padding": "x" * 5000})]))
