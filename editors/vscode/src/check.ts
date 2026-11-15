@@ -190,7 +190,9 @@ export function placeLispProblem(text: string, file: string, problem: Problem): 
 	}
 	const name = /([A-Za-z_$][\w$-]*)$/.exec(problem.place)?.[1];
 	if (name) {
-		const keyword = new RegExp(`:${name.replace(/\$/g, '\\$')}(?![\\w$?!*.-])`, 'g');
+		// Every character a pattern gives a meaning to is escaped, backslash included
+		const literal = name.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+		const keyword = new RegExp(`:${literal}(?![\\w$?!*.-])`, 'g');
 		const found = [...text.matchAll(keyword)];
 		if (found.length === 1) return { ...problem, start: found[0].index, end: found[0].index + found[0][0].length };
 	}

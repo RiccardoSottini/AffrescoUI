@@ -25,7 +25,7 @@ struct LibraryEntry {
 	/// of one of them where the macro is called is an error, since the expansion would call that instead. Allowed:
 	/// `not`, `=`, `nil?`, `some?`, `map`, `filter`, `mapcat`, written by word so that the expansion lowers to a
 	/// binding the expression machine runs.
-	std::string_view uses;
+	std::string_view uses = {};
 };
 
 /// @brief Registers entries: each a global of the language from now on, compiled on first use.
