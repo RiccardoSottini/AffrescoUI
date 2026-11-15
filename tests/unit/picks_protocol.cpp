@@ -54,7 +54,7 @@ json answerTo(MemoryChannel& channel, const std::string& message) {
 /// @param text Part of the error.
 /// @return true if it is.
 bool rejectedWith(const json& answer, const std::string& text) {
-	return answer.value("type", "") == "rejected" && answer.value("error", "").find(text) != std::string::npos;
+	return answer.value("type", "") == "rejected" && answer.value("error", "").contains(text);
 }
 
 } // namespace
@@ -63,7 +63,7 @@ TEST_CASE("picks protocol: getPicks answers the host's picks, with the message's
 	Peer peer;
 	affresco::channel::Session session(peer.channel, peer.versions, "agent");
 	const json picks = json::array({pickRecord()});
-	session.setPicks([&picks] { return picks; });
+	session.setPicks([&picks] { return json(picks); }); // a copy: the host keeps its own
 	const json answer = answerTo(peer.channel, R"({"type": "getPicks", "id": 7})");
 	CHECK(answer == json{{"type", "picks"}, {"picks", picks}, {"id", 7}});
 }
