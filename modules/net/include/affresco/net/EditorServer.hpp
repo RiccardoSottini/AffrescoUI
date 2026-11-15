@@ -25,7 +25,9 @@ struct EditorServerOptions {
 	std::size_t maxDepth = 16;        ///< Lists and dictionaries inside each other in a message, at most.
 	std::size_t maxKeys = 64;         ///< Keys in one dictionary of a message, at most.
 	double messagesPerSecond = 100.0; ///< Messages a second from one connection; more close it.
-	std::size_t maxQueuedBytes = std::size_t{16} << 20; ///< Bytes waiting to be sent to a connection; more close it.
+	/// Bytes waiting to be sent to a connection, more close it; and bytes of its requests waiting to run, encoded,
+	/// more are refused.
+	std::size_t maxQueuedBytes = std::size_t{16} << 20;
 	/// Connections the person refused (or left unanswered) before the server pairs no more until the host restarts.
 	std::size_t maxRefusals = 3;
 	std::string version; ///< The host's version, which `describe` reports; "" for none.

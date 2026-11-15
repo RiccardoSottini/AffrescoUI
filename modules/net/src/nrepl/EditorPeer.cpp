@@ -36,7 +36,7 @@ constexpr std::size_t maxWaiting = 64;
 struct Waiting {
 	Value request;         ///< The request.
 	std::string session;   ///< Its session's id, or "".
-	std::size_t bytes = 0; ///< The size of its text, for the queue's limit.
+	std::size_t bytes = 0; ///< Its size, encoded, for the queue's limit.
 };
 
 /// @brief One connection's protocol: its sessions, its queue and its pairing.
@@ -92,7 +92,7 @@ private:
 	const EditorServerOptions& options_; ///< The limits.
 	nrepl::EditorSessions sessions_;     ///< The connection's sessions.
 	std::deque<Waiting> queue_;          ///< The requests waiting to run, in order.
-	std::size_t queuedBytes_ = 0;        ///< The size of their texts.
+	std::size_t queuedBytes_ = 0;        ///< Their size, encoded.
 	nrepl::Pairing pairing_;             ///< The person's question.
 	bool closed_ = false;                ///< The connection went, or is closing.
 	bool running_ = false;               ///< drain() is running: a nested call leaves the work to it.
@@ -215,7 +215,8 @@ void ProtocolPeer::interrupt(const Value& request, const std::string& session) {
 }
 
 void ProtocolPeer::enqueue(const Value& request, std::string session) {
-	const std::size_t bytes = textOf(request, "code").size() + textOf(request, "file").size();
+	// The whole request waits, so all of it counts: keys nothing reads take room too
+	const std::size_t bytes = bencode::encode(request).size();
 	if(queue_.size() >= maxWaiting || queuedBytes_ + bytes > options_.maxQueuedBytes) {
 		nrepl::sendFailure(link_, request, "too many requests wait on this connection", "");
 		return;
