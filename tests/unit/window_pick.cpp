@@ -327,6 +327,17 @@ TEST_CASE("pick: cancelPick() and closing the window end it without the callback
 	CHECK(f.results.empty());
 }
 
+TEST_CASE("pick: cancelPick() after the pick ended, before its callback ran, stops the callback") {
+	// Regression: once the pick ended, cancelPick() found nothing to cancel, and the callback still ran
+	Fixture f;
+	const std::uint64_t id = f.start();
+	f.window->confirm(Confirmation{"Sure?", "", "", "OK", "Cancel"}, [](bool) {}); // ends the pick, outside an event
+	CHECK_FALSE(f.window->picking());
+	f.window->cancelPick(id);
+	f.window->runDeferredTasks();
+	CHECK(f.results.empty());
+}
+
 TEST_CASE("pick: its layer is drawn above the overlays and the inspection layer, and can be hidden") {
 	Fixture f;
 	auto& menu = f.b1->add<Panel>();

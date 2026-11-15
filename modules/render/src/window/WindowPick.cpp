@@ -232,6 +232,7 @@ std::uint64_t Window::pick(PickOptions options, std::function<void(Panel* picked
 
 void Window::cancelPick(std::uint64_t id) {
 	if(picking_ && picking_->id == id) endPick();
+	std::erase_if(pickResults_, [id](const PickResult& result) { return result.id == id; }); // ended, not yet told
 }
 
 void Window::setPickLayerVisible(bool visible) {
@@ -300,11 +301,10 @@ void Window::finishPick(Panel* picked) {
 	// The callback runs once the event is delivered; what was picked may go before (forget())
 	pickResults_.push_back({ended->id, picked});
 	defer([this, id = ended->id, done = std::move(ended->done)] {
-		Panel* panel = nullptr;
-		if(const auto found = std::ranges::find(pickResults_, id, &PickResult::id); found != pickResults_.end()) {
-			panel = found->panel;
-			pickResults_.erase(found);
-		}
+		const auto found = std::ranges::find(pickResults_, id, &PickResult::id);
+		if(found == pickResults_.end()) return; // cancelled since (cancelPick())
+		Panel* const panel = found->panel;
+		pickResults_.erase(found);
 		done(panel);
 	});
 }
