@@ -125,6 +125,11 @@ TEST_CASE("lisp clojure: a character is a string of it") {
 	CHECK(errorOf("\\foo").message() ==
 	      "unknown character '\\foo': write one character after the backslash, \\newline, \\space, \\tab, \\return, "
 	      "\\formfeed, \\backspace or \\u and four hexadecimal digits");
+	// A byte that isn't a character on its own is refused, and so never reaches a document as text JSON can't write
+	for(const std::string_view lone : {"\\\xFF", "\\\x80", "(str \"a\" \\\xC3 \"b\")"}) {
+		CAPTURE(lone);
+		CHECK(errorOf(lone).message().starts_with("unknown character"));
+	}
 }
 
 TEST_CASE("lisp clojure: Clojure's numbers read as the nearest JSON number") {
