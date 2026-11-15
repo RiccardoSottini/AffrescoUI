@@ -161,6 +161,7 @@ enum class Cursor {
 	Hand,             ///< Clickable.
 	ResizeHorizontal, ///< Horizontal drag handle.
 	ResizeVertical,   ///< Vertical drag handle.
+	Crosshair,        ///< Pointing at something (Window::pick()).
 };
 
 /// @brief Modifier keys held during a key or mouse button event.
