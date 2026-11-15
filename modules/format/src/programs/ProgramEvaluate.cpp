@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <functional>
 #include <memory>
@@ -27,11 +28,11 @@ namespace affresco::format {
 
 namespace {
 
-/// The most text one evaluation takes: what a file of a person's definitions takes.
-constexpr std::size_t maxEvaluatedBytes = std::size_t{4} * lisp::maxEntryBytes;
+static_assert(Programs::maxEvaluatedBytes == std::size_t{4} * lisp::maxEntryBytes,
+              "one evaluation takes what a file of a person's definitions takes");
 
-/// The file a definition with no file yet goes in, unless the step says.
-constexpr std::string_view defaultFile = "evaluated.lisp";
+/// What a text too long to evaluate is told.
+constexpr std::string_view textTooLong = "the text is longer than a program's file may be";
 
 /// @brief A JSON Pointer's segment.
 /// @param name The name.
@@ -82,6 +83,49 @@ json definitionPatch(const json& section, const std::vector<std::pair<std::strin
 	return patch;
 }
 
+/// @brief Rethrows an error in one form's own text as one at its place in the whole text it came from; any other error
+/// (one in a program's file, or with no place) as it is. Only called from a catch block.
+/// @param error The error.
+/// @param form The form, with its place in the text.
+[[noreturn]] void rethrowAtForm(const lisp::LispError& error, const lisp::FormAt& form) {
+	if(error.file() != Programs::evaluatedName || error.line() == 0) throw;
+	throw lisp::LispError(error.file(), form.line - 1 + error.line(),
+	                      error.line() == 1 ? form.column - 1 + error.column() : error.column(), error.definition(),
+	                      error.message(), error.exhausted());
+}
+
+/// @brief The symbol a list form starts with.
+/// @param text The form's text.
+/// @return It; "" if it isn't a list or starts with no symbol.
+std::string headOf(std::string_view text) {
+	constexpr std::string_view space = " \t\r\n,";
+	if(!text.starts_with('(')) return "";
+	const std::size_t start = text.find_first_not_of(space, 1);
+	if(start == std::string_view::npos) return "";
+	const std::size_t end = text.find_first_of(" \t\r\n,()[]{}\"", start);
+	return std::string(text.substr(start, end == std::string_view::npos ? std::string_view::npos : end - start));
+}
+
+/// @brief An evaluation that went wrong, and where, if the place is in the text.
+/// @param error The error.
+/// @return It.
+Programs::Evaluated failedAt(const lisp::LispError& error) {
+	const bool inText = error.file() == Programs::evaluatedName;
+	return {.printed = {},
+	        .error = error.message(),
+	        .proposal = std::nullopt,
+	        .values = {},
+	        .line = inText ? error.line() : 0,
+	        .column = inText ? error.column() : 0};
+}
+
+/// @brief An evaluation that went wrong with no place in the text.
+/// @param why Why.
+/// @return It.
+Programs::Evaluated failedWith(std::string why) {
+	return {.printed = {}, .error = std::move(why), .proposal = std::nullopt, .values = {}, .line = 0, .column = 0};
+}
+
 /// @brief The address of a form that defines something.
 /// @param form The form's text.
 /// @return The address.
@@ -128,9 +172,7 @@ void checkEvaluateStep(const Running& s) {
 	if(!engine.window || !engine.window->routingOwnPress())
 		fail(where, "\"evaluate\" runs only from the person's own input: a key or a click, never a timer, a watch, a "
 		            "key pressed for the screen or a handler that fires by itself");
-	if(engine.asks.deciding()) fail(where, "an agent's reply runs this action: a reply is never the person's input");
-	if(engine.versions.previewing()) fail(where, "a proposal is being previewed: end that first");
-	if(!engine.programs.hasProgram()) fail(where, "this screen has no program, so there is nothing to evaluate in");
+	if(const std::optional<std::string> why = engine.programs.refusalToEvaluate()) fail(where, *why);
 }
 
 /// @brief An evaluation waiting for its end: what it runs, and what `then` gets.
@@ -160,9 +202,7 @@ void finish(Engine& engine, const Programs::Evaluated& evaluated, const Pending&
 /// @brief An evaluation that runs nothing, and why.
 /// @param why Why.
 /// @return It.
-Programs::Evaluated nothingRan(std::string why) {
-	return {.printed = {}, .error = std::move(why), .proposal = std::nullopt};
-}
+Programs::Evaluated nothingRan(std::string why) { return failedWith(std::move(why)); }
 
 /// @brief Tells whether a character shows as itself: not a control character but a tab or a line break, and not one
 /// that draws nothing or moves what is drawn around it (a format character: bidirectional controls, zero widths, line
@@ -211,10 +251,8 @@ std::optional<std::pair<char32_t, std::size_t>> characterAt(std::string_view tex
 	return std::pair(c, length);
 }
 
-/// @brief Tells why a text can't be shown as it is, if it can't: a character that draws nothing, or moves what is
-/// drawn around it, would let a question show other than what runs.
-/// @param text The text, UTF-8.
-/// @return Why; std::nullopt if every character of it shows.
+} // namespace
+
 std::optional<std::string> hiddenCharacter(std::string_view text) {
 	for(std::size_t i = 0; i < text.size();) {
 		const std::optional<std::pair<char32_t, std::size_t>> read = characterAt(text, i);
@@ -229,6 +267,8 @@ std::optional<std::string> hiddenCharacter(std::string_view text) {
 	}
 	return std::nullopt;
 }
+
+namespace {
 
 /// @brief What the person is asked about a text they didn't type.
 /// @param text The text.
@@ -290,9 +330,9 @@ void evaluateStep(const Running& s) {
 	Engine& engine = s.steps.engine();
 	const std::string& where = s.where;
 	const std::string text = string(s.value("evaluate"), where + ".evaluate");
-	if(text.size() > maxEvaluatedBytes) fail(where, "the text is longer than a program's file may be");
+	if(text.size() > Programs::maxEvaluatedBytes) fail(where, std::string(textTooLong));
 	const std::string file =
-	    s.step.contains("file") ? string(s.value("file"), where + ".file") : std::string(defaultFile);
+	    s.step.contains("file") ? string(s.value("file"), where + ".file") : std::string(Programs::defaultFile);
 	const bool confirm = s.step.contains("confirm") && boolean(s.value("confirm"), where + ".confirm");
 	const SharedScope kept = snapshot(s.locals);
 	const auto pending = std::make_shared<Pending>(
@@ -327,7 +367,7 @@ void proposeStep(const Running& s) {
 	const json value = s.value("propose");
 	const std::string name = s.step.contains("as") ? string(s.value("as"), s.where + ".as") : "file";
 	const std::string file =
-	    s.step.contains("file") ? string(s.value("file"), s.where + ".file") : std::string(defaultFile);
+	    s.step.contains("file") ? string(s.value("file"), s.where + ".file") : std::string(Programs::defaultFile);
 	const json& source = engine.versions.sourceDocument();
 	RevisionResult result;
 	try {
@@ -425,8 +465,15 @@ Programs::FormsRead Programs::readForms(const std::vector<lisp::FormAt>& forms, 
 	const Entered entered(*this, {&sender, &event, &locals});
 	lisp::Interpreter& interpreter = entered.interpreter();
 	for(const lisp::FormAt& form : forms) {
-		if(form.kind.empty() && !interpreter.expandsToDefinition(form.text)) {
-			read.expressions.push_back(form.text);
+		bool defines = !form.kind.empty();
+		try {
+			defines = defines || interpreter.expandsToDefinition(form.text);
+		} catch(const lisp::LispError& error) {
+			rethrowAtForm(error, form);
+		}
+		read.defining.push_back(defines);
+		if(!defines) {
+			read.expressions.push_back(form);
 			read.lastName.clear();
 			continue;
 		}
@@ -459,12 +506,23 @@ Programs::Evaluated Programs::proposeUntyped(const FormsRead& read, const std::s
 }
 
 Programs::Evaluated Programs::runTyped(const FormsRead& read, const std::string& file, Panel& sender, const json& event,
-                                       const Scope& locals) {
+                                       const Scope& locals, std::string_view origin, bool fromEditor) {
 	Evaluated out;
+	for(const auto& [name, text] : read.definitions) {
+		const StepKind kind = fromEditor ? stepKind(stepOfWord(name)) : StepKind::None;
+		if(kind == StepKind::Control || kind == StepKind::Review) {
+			out.error = "\"" + name +
+			            "\" is named like a step: only the app's own file may define one, since the "
+			            "program's code calling it would call the definition instead";
+			return out;
+		}
+	}
 	if(!read.definitions.empty()) {
+		std::string message = "Evaluate " + read.definitions.back().first;
+		if(!origin.empty()) message.append(" (").append(origin).append(")");
 		const json revision = {
 		    {"author", "user"},
-		    {"message", "Evaluate " + read.definitions.back().first},
+		    {"message", std::move(message)},
 		    {"patch", definitionPatch(engine_.versions.sourceDocument().value("program", json::object()),
 			                          read.definitions, file)}};
 		if(const std::optional<std::string> refused = engine_.versions.commitOwnInput(revision)) {
@@ -492,15 +550,27 @@ Programs::Evaluated Programs::runTyped(const FormsRead& read, const std::string&
 		bool& flag_; ///< The flag.
 	};
 	const Own own(ownInput_);
-	for(const std::string& expression : read.expressions)
-		out.printed = interpreter.print(interpreter.evaluate(expression, "evaluated", "user"));
+	std::vector<std::string> printed;
+	printed.reserve(read.expressions.size());
+	for(const lisp::FormAt& expression : read.expressions) {
+		try {
+			out.printed = interpreter.print(interpreter.evaluate(expression.text, std::string(evaluatedName), "user"));
+		} catch(const lisp::LispError& error) {
+			rethrowAtForm(error, expression);
+		}
+		printed.push_back(out.printed);
+	}
+	auto definition = read.definitions.begin();
+	auto value = printed.begin();
+	out.values.reserve(read.defining.size());
+	for(const bool defines : read.defining) out.values.push_back(defines ? (definition++)->first : *value++);
 	return out;
 }
 
 Programs::Evaluated Programs::evaluate(const std::string& text, const std::string& file, Panel& sender,
                                        const json& event, const Scope& locals) {
 	try {
-		const std::vector<lisp::FormAt> forms = lisp::formsOf(text, "evaluated");
+		const std::vector<lisp::FormAt> forms = lisp::formsOf(text, std::string(evaluatedName));
 		const json& state = engine_.versions.state();
 		// Only what the person's own keystrokes made is theirs: anything else can have been written by anyone
 		const bool typed =
@@ -508,15 +578,15 @@ Programs::Evaluated Programs::evaluate(const std::string& text, const std::strin
 		const FormsRead read = readForms(forms, sender, event, locals);
 		return typed ? runTyped(read, file, sender, event, locals) : proposeUntyped(read, file);
 	} catch(const lisp::LispError& error) {
-		return {.printed = {}, .error = error.message(), .proposal = std::nullopt};
+		return failedAt(error);
 	} catch(const DocumentError& error) {
-		return {.printed = {}, .error = error.what(), .proposal = std::nullopt};
+		return failedWith(error.what());
 	}
 }
 
 bool Programs::untyped(const std::string& text) {
 	try {
-		const std::vector<lisp::FormAt> forms = lisp::formsOf(text, "evaluated");
+		const std::vector<lisp::FormAt> forms = lisp::formsOf(text, std::string(evaluatedName));
 		const json& state = engine_.versions.state();
 		return !forms.empty() &&
 		       !std::ranges::all_of(forms, [&](const lisp::FormAt& form) { return typed_.holds(form.text, state); });
@@ -526,15 +596,105 @@ bool Programs::untyped(const std::string& text) {
 }
 
 Programs::Evaluated Programs::evaluateConfirmed(const std::string& text, const std::string& file, Panel& sender,
-                                                const json& event, const Scope& locals) {
+                                                const json& event, const Scope& locals, std::string_view origin,
+                                                bool fromEditor) {
 	try {
-		const FormsRead read = readForms(lisp::formsOf(text, "evaluated"), sender, event, locals);
-		return runTyped(read, file, sender, event, locals);
+		const FormsRead read = readForms(lisp::formsOf(text, std::string(evaluatedName)), sender, event, locals);
+		return runTyped(read, file, sender, event, locals, origin, fromEditor);
 	} catch(const lisp::LispError& error) {
-		return {.printed = {}, .error = error.message(), .proposal = std::nullopt};
+		return failedAt(error);
 	} catch(const DocumentError& error) {
-		return {.printed = {}, .error = error.what(), .proposal = std::nullopt};
+		return failedWith(error.what());
 	}
+}
+
+Programs::Evaluated Programs::evaluateFile(const std::string& text, const std::string& file, Panel& sender,
+                                           const json& event, const Scope& locals, std::string_view origin) {
+	try {
+		return evaluateFileForms(text, file, sender, event, locals, origin);
+	} catch(const lisp::LispError& error) {
+		return failedAt(error);
+	} catch(const DocumentError& error) {
+		return failedWith(error.what());
+	}
+}
+
+Programs::Evaluated Programs::evaluateFileForms(const std::string& text, const std::string& file, Panel& sender,
+                                                const json& event, const Scope& locals, std::string_view origin) {
+	const std::string name(evaluatedName);
+	FormsRead read;
+	{
+		const Entered entered(*this, {&sender, &event, &locals});
+		lisp::Interpreter& interpreter = entered.interpreter();
+		for(const lisp::FormAt& form : lisp::formsOf(text, name)) {
+			if(!form.kind.empty() || interpreter.expandsToDefinition(form.text)) continue;
+			// What the loader takes out of a file before reading its definitions (lisp::readDocument())
+			if(const std::string head = headOf(form.text); head == "include" || head == "ns") continue;
+			throw lisp::LispError(name, form.line, form.column, "",
+			                      "this form isn't a definition, and a program's file holds definitions only", false);
+		}
+	}
+	const json document = lisp::readDocument(text, std::filesystem::path(defaultFile), name);
+	const json entries = document.value("program", json::object()).value(name, json::object());
+	const json section = engine_.versions.sourceDocument().value("program", json::object());
+	Evaluated out;
+	for(const auto& [address, entry] : entries.items()) {
+		if(address == lisp::namespaceEntry || !entry.is_string()) continue;
+		out.values.push_back(address);
+		const std::string holder = fileHolding(section, address);
+		// One the program has as it is stays as it is: the revision holds only what changed
+		if(!holder.empty() && section[holder].value(address, json()) == entry) continue;
+		read.definitions.emplace_back(address, entry.get<std::string>());
+	}
+	if(read.definitions.empty()) return out;
+	read.defining.assign(read.definitions.size(), true);
+	read.lastName = read.definitions.back().first;
+	Evaluated ran = runTyped(read, file, sender, event, locals, origin, true);
+	if(!ran.error) ran.values = std::move(out.values);
+	return ran;
+}
+
+json Programs::describeForm(lisp::Interpreter& interpreter, std::string_view text) {
+	// Whoever's code asks, if it isn't the person's, learns nothing of what a text would do as theirs
+	std::vector<std::string> authors = interpreter.authorsThatRan();
+	if(engine_.authority)
+		authors.insert(authors.end(), engine_.authority->authors.begin(), engine_.authority->authors.end());
+	if(!std::ranges::all_of(authors, [](const std::string& author) { return isPersonsAuthor(author); })) return nullptr;
+	if(text.size() > maxEvaluatedBytes) return nullptr;
+	const std::size_t start = text.find_first_not_of(" \t\r\n,");
+	if(start == std::string_view::npos || text[start] != '(') return nullptr;
+	const std::vector<std::string> callable = interpreter.callableNames();
+	const json section = engine_.versions.sourceDocument().value("program", json::object());
+	json definitions = json::array();
+	std::size_t expressions = 0;
+	try {
+		for(const lisp::FormAt& form : lisp::formsOf(text, std::string(evaluatedName))) {
+			const std::string head = headOf(form.text);
+			if(form.kind.empty() && !interpreter.expandsToDefinition(form.text)) {
+				if(std::ranges::find(callable, head) == callable.end()) return nullptr;
+				++expressions;
+				continue;
+			}
+			const std::string address = form.kind.empty() ? addressOf(form.text) : form.name;
+			std::string holder = fileHolding(section, address);
+			const bool replaces = !holder.empty();
+			definitions.push_back({{"name", address},
+			                       {"kind", form.kind.empty() ? head : form.kind},
+			                       {"file", std::move(holder)},
+			                       {"replaces", replaces}});
+		}
+	} catch(const DocumentError&) { // LispError too: a text that doesn't read whole isn't forms
+		return nullptr;
+	}
+	return {
+	    {"definitions", std::move(definitions)}, {"expressions", expressions}, {"typed", !untyped(std::string(text))}};
+}
+
+std::optional<std::string> Programs::refusalToEvaluate() const {
+	if(engine_.asks.deciding()) return "an agent's reply runs this action: a reply is never the person's input";
+	if(engine_.versions.previewing()) return "a proposal is being previewed: end that first";
+	if(!hasProgram()) return "this screen has no program, so there is nothing to evaluate in";
+	return std::nullopt;
 }
 
 void Programs::dismissQuestion() {
@@ -606,6 +766,8 @@ lisp::Value Programs::describePrimitive(std::string_view what, lisp::Interpreter
                                         std::span<const lisp::Value> arguments) {
 	if(arguments.size() != 1) throw lisp::Refusal("\"" + std::string(what) + "\" takes one name");
 	const json named = interpreter.toTree(arguments[0]);
+	if(what == "describe-form") // anything but a text is no form, not a mistake to stop on
+		return viewOf(interpreter, named.is_string() ? describeForm(interpreter, named.get<std::string>()) : json());
 	if(!named.is_string()) throw lisp::Refusal("\"" + std::string(what) + "\" takes a name");
 	const std::string word = named.get<std::string>();
 	const std::vector<json> views = limitedViews(interpreter);
@@ -655,7 +817,8 @@ json Programs::programFileOf(const std::string& file, const std::vector<json>& v
 }
 
 void Programs::defineLoopPrimitives(lisp::Interpreter& interpreter) {
-	for(const char* word : {"describe-function", "describe-variable", "describe-key", "apropos", "program-file"})
+	for(const char* word :
+	    {"describe-function", "describe-variable", "describe-key", "apropos", "program-file", "describe-form"})
 		interpreter.definePrimitive(word, {.capability = "read",
 		                                   .pure = false,
 		                                   .call = [this, what = std::string(word)](
