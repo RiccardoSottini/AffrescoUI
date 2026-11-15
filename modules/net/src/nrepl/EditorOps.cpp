@@ -205,7 +205,13 @@ void answerEvaluation(EditorLink& link, const Value& request, const ConsoleResul
 	if(result.error) {
 		session.lastError = *result.error;
 		Value::Dictionary message = replyTo(request);
-		message.emplace("err", Value(*result.error + "\n"));
+		std::string error = *result.error;
+		if(result.line > 0) { // where, in the editor's buffer, as a Clojure error says it (CIDER jumps to it)
+			const std::string_view file = textOf(request, "file");
+			error += " (" + std::string(file.empty() ? "REPL" : file) + ":" + std::to_string(result.line) + ":" +
+			         std::to_string(result.column) + ")";
+		}
+		message.emplace("err", Value(error + "\n"));
 		link.send(Value(std::move(message)));
 		Value::Dictionary exception = replyTo(request);
 		exception.emplace("ex", text(errorClass));

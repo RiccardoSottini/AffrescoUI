@@ -532,6 +532,9 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
   no revision may add it. While a proposal is previewed it is refused.
 - **Only what they typed has their authority** (RFC 0005, decision 5). Text in a buffer can be anyone's, and can hide past the visible screen: a revision on `/state` writes it, a key's `edit` or `press` step types it, a paste brings what any code's `copy` put on the clipboard, undo brings it back, and a person's own command copies it on. So nothing marks what a stranger writes, as a mark can be lost: `format::TypedText` records what is known, the bytes of a bound value that came from the person's own keystrokes, delivered to the widget itself (`Panel::takeTyped()`, `Window::routingOwnPress()`). Any other change is seen as a difference when the value is next looked at, what it changed stops being theirs, and the two sides stay separate runs, so an agent can't make a form by taking characters out. A form that isn't, whole, one run has **none** of their authority: its definitions go through `propose` in the name `plugin:evaluated`, and text holding anything else doesn't run. The record isn't kept across runs of the app, and a secret field is never recorded. Input from the desktop itself (an accessibility tool, another program sending keystrokes, the C API) counts as the person's, as it does for every other step.
 - **Unless the person says yes, in a question the host draws** (`"confirm": true`; `tests/unit/lisp_confirm.cpp`). For a text they didn't type, `Window::confirm()` asks them: a question the window draws itself, last, above everything a screen draws (overlays, the inspection layer and the full-screen hint included), with the whole text, its lines numbered and wrapped so nothing is past an edge or out of reach, and two buttons. No document has a way to it: it isn't in the screen's tree, so no id, `press` step, revision or overlay reaches it; while it is shown every key, click, wheel turn and drop goes to it and none to the screen. Only the person's own press answers it (`routingOwnPress()`): a click begun and ended on a button, or Enter or Escape pressed and let go while it is shown, so the key that brought it up can't answer it; and a yes only from a press begun once it has been shown half a second, so a press already on its way when it comes up (a double click's second click on where Run as Me then is, Enter typed on after the evaluating key) can't say yes to a text not read. A yes runs **exactly the text it showed**, as if they had typed it, **once**: a buffer changed meanwhile changes nothing, and nothing runs if the program changed while it was shown (what the text calls could mean something else), if a proposal is being previewed, or if a question is shown already. A text holding a character that doesn't show as itself (a control character, a bidirectional or zero-width format character, a line separator, a variation selector, a letter that draws as a space, invalid UTF-8) isn't asked about: nothing runs. Text a commit on `main` first wrote stays its author's, confirmed or not (VERSION_CONTROL.md, "Programs"). **What it doesn't tell:** the person reads what runs, but not what a name in it means beyond what they see (a function the text calls is the program's, under the authority rules above); names that look alike, in different scripts, look alike there too; and screen readers don't see the question yet (the window's accessibility tree is the screen's).
+- **Or from an editor the person paired** (`--nrepl`; "Editors (nREPL)" below). The same question pairs one connection
+  of an nREPL client, showing the first text it wants to run; what that connection evaluates afterwards lands as if the
+  person had typed it, until it disconnects.
 - **It may change what reaches a control step,** and no more (VERSION_CONTROL.md, "Programs"): what no revision may change, it can't either. No peer has a way to that: it is a call in the host's code, not a message or a name an author can claim. An evaluated form is the
   person's decision about text they have in front of them, as a line typed in a terminal is.
 - **An agent's macro in it stays the agent's:** the person's function or expression holding what it wrote has its authority. A macro runs while the form is read, reaching nothing.
@@ -582,6 +585,41 @@ What holds for whatever text it is given:
   checked against its SHA-256, and no file of it enters the repository. Its text is untrusted input: each file runs in a fresh
   interpreter with lower limits (5,000,000 operations, 64 MiB, a depth of 2,000), the runner reads no file but those it is given
   and the suite's own support files under the suite's folder, and nothing reaches the network while it runs.
+
+### Editors (nREPL)
+
+`--nrepl` (on `affrescoui_launcher <app>` and `affrescoui run <app>`) lets an nREPL client (CIDER, Calva, Conjure)
+evaluate Lisp in a running app as the person (`Screen::listenEditor()`, `modules/net`; LISP.md, "Connecting an
+editor"). That is the authority of the step `evaluate` on text the person typed, so the server is built as the door to
+it:
+
+- **Off unless asked, and never for the Launcher.** Nothing listens without `--nrepl`, which needs an app: the Launcher
+  refuses it, a JSON app throws, and a plain screenshot run doesn't listen. No environment variable turns it on.
+- **The loopback only.** It binds 127.0.0.1, on the port given or one the system picks; there is no option for another
+  address. The port goes to the terminal and to `.nrepl-port` in the app's folder, written beside the name and renamed
+  over it (never through a link), and removed when the host ends if it still holds that port.
+- **Nothing of the app before the person's yes.** An unpaired connection gets `describe`, `clone`, `close`,
+  `ls-sessions`, `interrupt`, and the clients' own forms that need no program (`*ns*`, `(in-ns ...)`, the setup forms
+  CIDER, Calva and Conjure send first), answered from the connection's own sessions. Any request that reads or runs
+  the program (`eval` of anything else, `load-file`, `completions`, `lookup`, `info`, `eldoc` of a name) waits, with
+  every request after it, while the window asks the person (`tests/unit/nrepl_loop.cpp`).
+- **Only the person's own press pairs a connection.** The question is the one `evaluate`'s `confirm` draws ("The
+  loop" above): the window's own, above the screen, out of any document's reach, answered only by a press begun on a
+  button once it has been shown half a second. It shows the first text the connection wants to run, whole; a text
+  holding a character that doesn't show as itself is refused without asking, and the connection stays open. No flag,
+  variable, peer or test hook answers it. One question at a time: the other connections wait their turn.
+- **A no closes the connection,** its waiting requests ended with `not-paired`. After three refusals the server asks
+  no more until the host restarts, and refuses every new request that needs the app.
+- **A yes pairs that connection until it closes,** and nothing else: another connection is asked again. What it
+  evaluates is the person's own input (VERSION_CONTROL.md, "The person's own input"): a revision by `user`, marked
+  `ownInput`, its message ending `(editor)`, judged by the same rules, refused while a proposal is previewed, and
+  bounded by the program's budget like any evaluation. `load-file` lands only the definitions that changed.
+- **Bounded on the wire.** Four connections at once, sixteen sessions each, messages and their nesting limited, a rate
+  per connection and a queue per connection (Limits below); a first byte that isn't bencode's `d` (an HTTP request
+  from a web page) closes the connection. Read on a thread of its own per connection; the program runs only on the
+  main thread. Fuzzed: `tests/fuzz/bencode.cpp` and `tests/fuzz/nrepl.cpp`.
+- **What it doesn't tell:** who connected. Any program of any user on the computer can connect to 127.0.0.1 and ask;
+  the question is the only check (Known gaps).
 
 ### What documents can't do
 A JSON document has no scripts, and a program's only way out is the steps (above). Expressions are evaluated by the engine, and steps are a fixed set. A document can't start
@@ -900,6 +938,12 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Tempera's filters, feathers, brushes, fills and lassos (`imaging::Limits`) | A radius of 250 pixels, a brush of 5,000, 64 Mi pixels visited by a fill or magic wand, 100,000 points in a lasso |
 | A PNG or JPEG `modules/imaging` reads | 256 MiB, 30,000 pixels across and down and 256 megapixels in all (`imageFilePixels`: a file of half a megabyte can hold a gigapixel of one colour, so only a host raises it), checked from the header before decoding; the pixels are tiled from the decoder's own buffer, never copied |
 | A Tempera project file (`tests/fuzz/tempera_project.cpp`) | 4 GiB, a manifest of 16 MiB under the JSON nesting limit; each tile inflated only to its exact size when first used, a damaged one read as transparent |
+| Editor connections at once (`net::EditorServerOptions::maxConnections`) | 4, paired or not; another is closed at once |
+| nREPL sessions of one editor connection (`maxSessions`) | 16 |
+| One message from an editor (`maxMessageBytes`, `maxDepth`, `maxKeys`) | 8 MiB, 16 levels, 64 keys in a dictionary; more closes the connection |
+| Messages a second from one editor connection (`messagesPerSecond`) | 100; more closes it |
+| Bytes waiting to go to one editor connection (`maxQueuedBytes`) | 16 MiB; more closes it, the main thread never waits |
+| Pairing questions refused before an editor server asks no more (`maxRefusals`) | 3, until the host restarts |
 | A screen's models (`data::Limits`, `tests/fuzz/data_models.cpp`) | 256 collections, 256 fields a model (nested ones included), 8 levels, 1,024 enum values, names of 64 bytes, 256 migrations of 64 steps, 10,000 seed or imported records |
 | A screen's records (`data::Limits`) | A record of 1 MiB, 1,000,000 a collection, a database of 1 GiB; a query gives at most 10,000 records, with 64 conditions, 4 levels of `any`, 1,000 values `in`, 8 sort keys; 100,000 journal entries (the oldest go); a write step at most 10,000 records |
 | A CSV import (`data::Limits`) | 16 MiB, 100,000 rows, 256 columns |
@@ -1078,6 +1122,13 @@ removes the gap from this list.
   SHA-256 and listed in the SBOM each release carries (`cmake/dependencies.json`), and Dependabot proposes updates to
   the workflows' actions; but no job matches the pinned versions against vulnerability databases, so a known flaw is
   found only when someone looks. Tracking: G-25.
+- **An editor's pairing question shows only the first text.** The person reads what the connection first asks to
+  run; what it sends after a yes runs without being shown, until it disconnects, as a terminal runs what is typed into
+  it. The question says so. Tracking: G-29.
+- **Who connects to an editor server isn't checked.** The server listens on 127.0.0.1, which any program of any user
+  on the computer can reach, unlike the host's sockets, whose peer's user is checked. Only the person's yes pairs a
+  connection, and three refusals end the asking; on a shared computer, a question you didn't expect is a reason to
+  say no. A host ended by a signal leaves `.nrepl-port` behind; the next start replaces it. Tracking: G-30.
 - **A pick kept in the state is as readable as the state.** A `pick` step's `into` writes the record into the state,
   and a peer whose data rules leave that path readable reads it, though `getPicks` refuses that peer and its `request`
   comes without `picks`. Where the person points can tell what they look at: keep such a path out of what a limited

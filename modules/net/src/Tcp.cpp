@@ -97,7 +97,7 @@ std::ptrdiff_t receiveNative(Native socket, char* data, std::size_t size) {
 /// @param socket The socket.
 /// @param data The bytes.
 /// @param size How many (at most INT_MAX are sent by one call).
-/// @return How many were sent, below 1 on an error.
+/// @return How many were sent, below 0 on an error.
 std::ptrdiff_t sendNative(Native socket, const char* data, std::size_t size) {
 	return send(socket, data, static_cast<int>(std::min<std::size_t>(size, INT_MAX)), 0);
 }
@@ -148,17 +148,19 @@ int pollNative(Native socket, short events, int milliseconds) {
 /// @return How many bytes, 0 when the peer closed, below 0 on an error.
 std::ptrdiff_t receiveNative(Native socket, char* data, std::size_t size) { return recv(socket, data, size, 0); }
 
-/// @brief Sends what fits.
+/// @brief Sends what fits now, never waiting for room (a peer that stops reading would hold it forever).
 /// @param socket The socket.
 /// @param data The bytes.
 /// @param size How many.
-/// @return How many were sent, below 1 on an error.
+/// @return How many were sent, 0 if none fit now, below 0 on an error.
 std::ptrdiff_t sendNative(Native socket, const char* data, std::size_t size) {
 #ifdef MSG_NOSIGNAL
-	return ::send(socket, data, size, MSG_NOSIGNAL);
+	const ssize_t sent = ::send(socket, data, size, MSG_NOSIGNAL | MSG_DONTWAIT);
 #else
-	return ::send(socket, data, size, 0);
+	const ssize_t sent = ::send(socket, data, size, MSG_DONTWAIT);
 #endif
+	if(sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return 0;
+	return sent;
 }
 
 /// @brief Keeps writes to a peer that went away from killing the app (SIGPIPE).
@@ -287,7 +289,7 @@ bool Connection::send(std::string_view bytes, std::chrono::milliseconds timeout)
 		const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
 		if(wait(true, std::max(left, std::chrono::milliseconds{0})) != 1) return false;
 		const auto count = sendNative(nativeOf(handle_), bytes.data(), bytes.size());
-		if(count < 1) return false;
+		if(count < 0) return false; // 0: no room after all, so wait again
 		bytes.remove_prefix(static_cast<std::size_t>(count));
 	}
 	return true;

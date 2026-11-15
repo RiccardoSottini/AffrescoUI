@@ -622,11 +622,14 @@ public:
 
 	/// @brief Accepts nREPL clients (CIDER, Calva, Conjure) on 127.0.0.1, which evaluate Lisp into the screen's
 	/// program. Every connection is paired by the person, in a question the window draws, before it reaches anything;
-	/// then each evaluation is the person's change, under every rule that holds for them (see net::EditorServer).
+	/// then each evaluation is the person's change, under every rule that holds for them (see net::EditorServer). The
+	/// question shows the first text the connection wants to run; an editor's file paths are matched to the program's
+	/// files from the entry file's folder. The server goes with the screen, taking its question away. Main thread.
 	/// @param executor Delivers messages on the main thread (the Application).
-	/// @param options The port (0 picks a free one) and the limits.
+	/// @param options The port (0 picks a free one) and the limits; the version `describe` reports is the library's.
 	/// @return The port listened on.
-	/// @throws std::runtime_error If the screen has no program, has no window yet, or the port is taken.
+	/// @throws std::runtime_error If the screen has no program (a JSON screen), has no window yet, listens for an
+	/// editor already, or the port is taken.
 	std::uint16_t listenEditor(Executor& executor, net::EditorServerOptions options = {});
 
 	/// @brief Sets how much reviewers are asked (see VersionControl::setMode).

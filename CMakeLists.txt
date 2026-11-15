@@ -263,6 +263,9 @@ if(AFFRESCOUI_BUILD_TESTS)
 		# The assistant add-on end to end: a request from inside the app, the agent's proposal, accepted and rejected
 		add_test(NAME assistant_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/examples/shared/addons/assistant/e2e_test.py ${CMAKE_BINARY_DIR})
+		# The editor server end to end: run --nrepl, the port file, describe, clone and a client's own form
+		add_test(NAME nrepl_smoke COMMAND Python3::Interpreter
+			${CMAKE_CURRENT_SOURCE_DIR}/tests/nrepl/smoke_test.py ${CMAKE_BINARY_DIR})
 		# The host's own agent end to end, no MCP: an openai-compatible fake server on the loopback, --ask, a proposal
 		add_test(NAME intelligence_e2e COMMAND Python3::Interpreter
 			${CMAKE_CURRENT_SOURCE_DIR}/tests/intelligence/e2e_test.py ${CMAKE_BINARY_DIR})
