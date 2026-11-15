@@ -626,9 +626,7 @@ std::shared_ptr<const NodeOrigins> recordOrigins(const json& section) {
 			origins->emplace(noted.id, NodeOrigin{form->file, form->name, form->kind, static_cast<std::uint32_t>(line),
 			                                      noted.column, *id});
 		}
-	} catch(const LispError&) { // builtProgram() reports it, with the lines as the history has them
-		origins->clear();
-	} catch(const DocumentError&) {
+	} catch(const DocumentError&) { // a LispError too: builtProgram() reports it, with the lines the history has
 		origins->clear();
 	}
 	return origins;

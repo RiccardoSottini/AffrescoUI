@@ -7,6 +7,7 @@
 
 #include "affresco/intelligence/ScreenQueries.hpp"
 
+#include <algorithm>
 #include <exception>
 #include <initializer_list>
 #include <optional>
@@ -40,6 +41,9 @@ constexpr std::size_t maxDefinition = 8000;
 
 /// The most bytes of a JSON document's node in the block.
 constexpr std::size_t maxNode = 4000;
+
+// A pick's part is its line and its definition or node, each with a few words around it: within maxPickBlock
+static_assert(maxRecordLine + std::max(maxDefinition, maxNode) + 256 <= maxPickBlock);
 
 /// @brief A text cut to a size on a character boundary.
 /// @param text The text.
