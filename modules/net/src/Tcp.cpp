@@ -93,13 +93,18 @@ std::ptrdiff_t receiveNative(Native socket, char* data, std::size_t size) {
 	return recv(socket, data, static_cast<int>(size), 0);
 }
 
-/// @brief Sends what fits.
+/// @brief Sends what fits now, never waiting for room (a peer that stops reading would hold it forever). Winsock has
+/// no MSG_DONTWAIT, so the socket is made non-blocking; only sends see it, as receives wait for data in poll first.
 /// @param socket The socket.
 /// @param data The bytes.
 /// @param size How many (at most INT_MAX are sent by one call).
-/// @return How many were sent, below 0 on an error.
+/// @return How many were sent, 0 if none fit now, below 0 on an error.
 std::ptrdiff_t sendNative(Native socket, const char* data, std::size_t size) {
-	return send(socket, data, static_cast<int>(std::min<std::size_t>(size, INT_MAX)), 0);
+	u_long nonBlocking = 1;
+	if(ioctlsocket(socket, FIONBIO, &nonBlocking) != 0) return -1;
+	const int sent = send(socket, data, static_cast<int>(std::min<std::size_t>(size, INT_MAX)), 0);
+	if(sent == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK) return 0;
+	return sent;
 }
 
 /// @brief Nothing to do: Winsock reports a peer that went away as an error from send(), with no signal.
