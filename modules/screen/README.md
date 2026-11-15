@@ -45,6 +45,13 @@ without including nlohmann/json; `versions()` gives the `VersionControl` to code
   had deferred, then previews the proposal with the runtime's handlers suspended, draws offscreen and puts the old
   preview back, within one call and without presenting a frame. Events the runtime emits meanwhile aren't sent, and
   no onShow, onHide or watch step runs.
+- **A peer's command runs as the peer, and only after the checks** (`commands/ScreenCommands`): runs switched off
+  (`allowCommandRuns(false)`); no window, a picture being drawn or a proposal previewed; no such command (with a "did
+  you mean"); its arguments; disabled; then the run control's verdict. `allow` runs at once; `ask` waits (120 s) for
+  a reviewer or the person; `person` waits for the window's own question (Run, Don't run), answered only by the
+  person's click or key, never remembered. A run allowed later is checked again from the window on. A run is never
+  allowed from its own channel, and a `personOnly` run only by the person. Undo is for the run's own channel or a
+  reviewer. Only the command's name and the verdict are logged, never its arguments or the state.
 - **Services are the host's grants:** `services()` is the screen's `services::ServiceRegistry`. The host grants
   folders (`addRoot`) and programs (`allowProcess`) and may add providers before building; the file's `services`
   section can only name them, and its services start at their first use. They stop when the screen is destroyed.
@@ -117,8 +124,9 @@ src/
     ProposalEvidence.hpp / .cpp  a proposal's evidence: the changed region of two pictures, its changed texts
     Inspector.hpp / .cpp   the inspector: the overlay on the panel under the pointer, its statistics and event trace
   commands/
-    ScreenCommands.hpp / .cpp    the commands as tools for peers (CommandService); Screen's allowCommandRuns, allowRun,
-                                 denyRun and commandsJson; not built yet (f4e)
+    ScreenCommands.hpp / .cpp    the commands as tools for peers (CommandService): a run's checks in order, the run
+                                 control's verdict, the window's question for the person, the run as its runner, its
+                                 evidence; Screen's allowCommandRuns, allowRun, denyRun and commandsJson
   features/
     FeaturesService.hpp / .cpp   the `features` provider: the catalogues, installing a feature by revision
   windows/
