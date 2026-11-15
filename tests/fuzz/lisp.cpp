@@ -4,10 +4,10 @@
 ///
 /// Any text builds, or gives a LispError naming a place, whose message stays short, within the budget. What the
 /// notation's reader reads, a template either builds to the same tree, key order included, or refuses for a word the
-/// language runs. The same text builds to the same tree twice. A program's entries hold the whole of its text, and each
-/// form's text, its metadata and reader forms with it, reads as one form. Written by an agent and run live, under a
-/// gate that holds the agent to what it may do, its functions never reach a control primitive, however they try, and
-/// what an event makes goes when it ends.
+/// language runs. The same text builds to the same tree twice, and again when it records where its nodes are made. A
+/// program's entries hold the whole of its text, and each form's text, its metadata and reader forms with it, reads as
+/// one form. Written by an agent and run live, under a gate that holds the agent to what it may do, its functions never
+/// reach a control primitive, however they try, and what an event makes goes when it ends.
 
 #include "Fuzz.hpp"
 
@@ -106,12 +106,33 @@ void keywordEditKeepsTheRest(std::string_view text) {
 	}
 }
 
+/// @brief A program built again with its nodes' places recorded (Program::recordOrigins()) builds the same tree, or
+/// fails as the build that recorded nothing did.
+/// @param text The text.
+/// @param tree What it built, if it did.
+void recordingBuildsAlike(std::string_view text, const std::optional<json>& tree) {
+	std::optional<json> recorded;
+	try {
+		if(!affresco::lisp::isProgram(text)) return;
+		affresco::lisp::Program program;
+		program.addFile(text, "fuzz");
+		program.recordOrigins(true);
+		recorded = program.build(lowLimits());
+		// NOLINTNEXTLINE(bugprone-empty-catch): refusing it is the rule, as the unrecorded build did
+	} catch(const affresco::DocumentError&) {
+	}
+	if(recorded != tree) affresco::fuzz::broken("a build that records its nodes' places builds the same tree");
+}
+
 /// @brief A document holding the text as its entry: its build gives the same tree twice, or refuses, and read as a
-/// document again it gives itself.
+/// document again it gives itself. Each of its nodes' origins names one of its definitions.
 /// @param text The text.
 void documentsBuildAlike(std::string_view text) {
 	try {
 		const json source = affresco::lisp::sourceDocument(text, "fuzz.lisp");
+		for(const auto& [id, origin] : *affresco::lisp::nodeOrigins(source["program"]))
+			if(!source["program"].contains(origin.file) || !source["program"][origin.file].contains(origin.definition))
+				affresco::fuzz::broken("a node's origin names one of the program's definitions");
 		const json built = affresco::lisp::buildDocument(source);
 		if(built != affresco::lisp::buildDocument(built)) affresco::fuzz::broken("a built document gives itself");
 		// NOLINTNEXTLINE(bugprone-empty-catch): refusing it is the rule
@@ -241,6 +262,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	const std::optional<json> tree = built(text);
 	if(tree != built(text)) affresco::fuzz::broken("the same text builds to the same tree");
 	agreesWithTheNotation(text, tree);
+	recordingBuildsAlike(text, tree);
 	entriesKeepTheText(text);
 	keywordEditKeepsTheRest(text);
 	documentsBuildAlike(text);
