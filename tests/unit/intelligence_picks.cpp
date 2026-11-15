@@ -442,7 +442,7 @@ TEST_CASE("intelligence picks: a pick whose address isn't in the document says s
 	elsewhere["node"] = "/state/secret"; // never a value of the state: only a node, by its id
 	CHECK(has(intelligence::pickBlock(json::array({elsewhere}), {{"state", {{"secret", "s"}}}}), "could not be read"));
 
-	json twice = intelligence::picksOf(json::array({cardPick(), cardPick()})); // one definition, shown once
+	const json twice = intelligence::picksOf(json::array({cardPick(), cardPick()})); // one definition, shown once
 	const std::string both = intelligence::pickBlock(twice, document);
 	CHECK(has(both, "It is built by the same definition as above."));
 	CHECK(both.find("(defview card-title") == both.rfind("(defview card-title"));
