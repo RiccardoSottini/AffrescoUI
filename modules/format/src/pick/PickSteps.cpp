@@ -66,8 +66,9 @@ bool pick(const Running& s) {
 
 	const SharedScope locals = snapshot(s.locals);
 	const auto outcome = std::make_shared<const Scope>(Scope{locals.get(), locals, json::object(), {}, {}});
-	auto picked = s.steps.later(s.step.value("onDone", json()), s.sender, s.event, outcome, s.where + ".onDone");
-	auto cancelled = s.steps.later(s.step.value("onCancel", json()), s.sender, s.event, outcome, s.where + ".onCancel");
+	auto picked = s.steps.later(s.step.value("onDone", json::array()), s.sender, s.event, outcome, s.where + ".onDone");
+	auto cancelled =
+	    s.steps.later(s.step.value("onCancel", json::array()), s.sender, s.event, outcome, s.where + ".onCancel");
 	const std::uint64_t id =
 	    engine.window->pick(pickOptions(engine, std::move(hint)),
 		                    [&engine, alive = std::weak_ptr<bool>(engine.alive), into, where = s.where,

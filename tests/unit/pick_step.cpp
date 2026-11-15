@@ -283,6 +283,20 @@ TEST_CASE("pick step: Escape runs onCancel; a second pick, a timer and a missing
 	CHECK(headless.picks().empty());
 }
 
+TEST_CASE("pick step: a pick without onDone or onCancel keeps its record, and a cancel says nothing") {
+	json screen = json::parse(pointingScreen);
+	screen["actions"]["point"] = json::array({{{"pick", "node"}, {"into", "state.pointed"}}});
+	Pointing p(affresco::Screen::fromString(screen.dump()));
+	std::string errors;
+	(void)p.screen.onError([&errors](const std::string& message) { errors += message + "\n"; });
+	p.point(p.panel("title"));
+	CHECK(p.state()["pointed"]["node"] == "#title");
+	p.click(p.panel("pointButton"));
+	p.type(Key::Escape);
+	CHECK_FALSE(p.window->picking());
+	CHECK(errors.empty());
+}
+
 TEST_CASE("pick step: the step's shape is checked") {
 	const auto refused = [](const char* step) {
 		json screen = json::parse(pointingScreen);
