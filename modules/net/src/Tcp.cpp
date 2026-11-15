@@ -110,6 +110,10 @@ std::ptrdiff_t sendNative(Native socket, const char* data, std::size_t size) {
 /// @brief Nothing to do: Winsock reports a peer that went away as an error from send(), with no signal.
 void ignoreBrokenPipes(Native) noexcept {}
 
+/// @brief Ends both directions of a socket without closing it, so a call blocked on it returns.
+/// @param socket The socket.
+void shutDownNative(Native socket) noexcept { shutdown(socket, SD_BOTH); }
+
 #else
 
 using Native = int;              ///< A socket as the system has it.
@@ -167,6 +171,10 @@ std::ptrdiff_t sendNative(Native socket, const char* data, std::size_t size) {
 	if(sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return 0;
 	return sent;
 }
+
+/// @brief Ends both directions of a socket without closing it, so a call blocked on it returns.
+/// @param socket The socket.
+void shutDownNative(Native socket) noexcept { ::shutdown(socket, SHUT_RDWR); }
 
 /// @brief Keeps writes to a peer that went away from killing the app (SIGPIPE).
 /// @param socket The socket.
@@ -303,7 +311,12 @@ bool Connection::send(std::string_view bytes, std::chrono::milliseconds timeout)
 	return true;
 }
 
-void Connection::close() noexcept { closed_ = true; }
+void Connection::close() noexcept {
+	closed_ = true;
+	// The socket stays open until the destructor, but a send the system blocks in anyway (MSG_DONTWAIT isn't always
+	// honoured) returns now: the thread that destroys this joins the writer, and would wait for it forever
+	shutDownNative(nativeOf(handle_));
+}
 
 std::unique_ptr<Listener> Listener::open(const std::string& host, std::uint16_t port, std::string& error) {
 	sockaddr_storage address{};
