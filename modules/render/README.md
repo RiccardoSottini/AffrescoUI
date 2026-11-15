@@ -143,6 +143,15 @@ header exposes OpenGL, GLFW, FreeType, HarfBuzz or stb_image. Target: `affrescou
   moving a window back and forth rasterises nothing twice. A frame at another scale than the last records every panel
   again (`PaintKey::scale`). A raster's pages have a font's 64 MiB bound and count in its `memoryBytes()`; a font too
   large to rasterise at the scale (past 4,096 pixels) draws unscaled.
+- **A window unit is the display's scale in pixels, on every platform.** On macOS, Wayland and the web the windowing
+  system speaks in units and gives the framebuffer at the display's scale. On Windows and X11 its coordinates are
+  pixels, so the window converts at the edge (`src/platform/GlfwPlatform.cpp`, its arithmetic in
+  `src/platform/UnitScale.hpp`): the display's scale rounded to a quarter, from 1 to 4 (125% to 400%), is the unit
+  scale; the window opens that many times larger in pixels, its sizes, size limits and pointer positions are converted
+  both ways, and `contentScale()` is that scale, so a frame is drawn for the real pixels. When
+  the scale changes (the window moves to another display, or the setting changes), the window keeps its size in units
+  and is resized to it at the new scale. Headless windows, and every platform but those two, have a unit scale of
+  exactly 1, which converts nothing.
 - **Colour glyphs share the text's batch.** Colour emoji (COLR fonts) go to RGBA atlas pages, which the renderer binds
   on a second texture unit next to the coverage page. A frame without colour glyphs (or without shapes) uses a shader
   without that code, so its pixels don't depend on it. A font's GPU pages are freed the first frame after it is gone.
