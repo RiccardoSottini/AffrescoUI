@@ -38,6 +38,7 @@ affrescoui help                         # every command; affrescoui <command> --
 | `sign <file> --key KEYFILE [-o out.json] \| --new-key KEYFILE` | Signs a feature's manifest or a catalogue's index (RFC 0004) with an Ed25519 key, in place or to `-o`; an index first gets each release's `digest` and `size` from its file, so sign the manifests first. `--new-key` makes a key file only its owner can read (never over an existing file) and prints its public key, `ed25519:...`, which a host trusts with `Features::trustPublisher`. |
 | `import <file> <changes.json> [--data DIR]` | Applies a change set to the screen's history on disk, all or nothing, once: a change set the history already has is skipped. Refused while another program (a running host) writes that history. |
 | `migrate <file>... [--check] [--write]` | Rewrites version 1 files (screens, scenarios, change sets, feature packages, catalogue indexes) as version 2, changing only the keys and values that changed, and lists each rewrite; without `--write` nothing is written. `--check` only names the files that need it. Signed files are left as they are (SCREEN_FORMAT.md, "Migrating from version 1"). |
+| `source <file> <#id \| pointer \| address> [--json]` | Prints where a node is written (SCREEN_FORMAT.md, "Pointing at a node"), as an agent reads it with `getSource`: a heading, `<address>  <file>  (<kind>)`, then the text. For a JSON screen that is the node itself, in its file; for a Lisp program, the definition that writes it, at the line of its file where the node's form starts (`/program/columns.lisp/card-title  columns.lisp:205  (defview)`). With `--json`, `getSource`'s reply. The file loads as `check` loads it, an app whole, nothing written; text over 16 KiB is cut and said so. Exits with 1 if nothing is at that place. |
 
 The history on disk is the one the host keeps: `<data folder>/<file name>.history`, the data folder being `--data`,
 else `$AFFRESCOUI_DATA_DIR`, else `~/.affrescoui` (`%APPDATA%\affrescoui` on Windows). See
@@ -71,7 +72,7 @@ app's other files).
 |---|---|
 | `main.cpp` | The command line: picks the command and prints `help` |
 | `Cli.*` | What the commands share: exit codes, arguments, reading and writing files |
-| `commands/` | One file per command, or per pair of commands that share their work: `check`, `fmt` and `ids`, `convert`, `export` and `import`, `import --from`, `migrate`, `policy test`, `schema`, `sign`, `test`, `run` and `render` |
+| `commands/` | One file per command, or per pair of commands that share their work: `check`, `fmt` and `ids`, `convert`, `export` and `import`, `import --from`, `migrate`, `policy test`, `schema`, `sign`, `source`, `test`, `run` and `render` |
 | `ComposeCommand.cpp` | `contributions` and `check --compose` |
 | `JsonText.*` | JSON as AffrescoUI files are written (`fmt`) |
 | `Schema.*` | The JSON Schema check (`check`, `schema`) |
@@ -82,8 +83,8 @@ app's other files).
 `check.py` here (ctest `cli`) runs every command on every template: `check` passes, `fmt --check` passes after
 `fmt` and the JSON reads the same, every node has an id, `render` draws the same pixels as the rendering check's
 runner for each template's first frame, every template's scenarios pass with `test` (and a failing expectation or a
-malformed scenarios file exits with 1), a change set goes into a history on disk once and comes back out, and a wrong
-command line exits with 2 and a missing file with 3. It needs a window, like the rendering check:
+malformed scenarios file exits with 1), a change set goes into a history on disk once and comes back out, `source`
+finds a node in either notation, and a wrong command line exits with 2 and a missing file with 3. It needs a window, like the rendering check:
 
 ```sh
 python3 tools/affrescoui/check.py     # or: ctest --test-dir build -R cli

@@ -18,6 +18,15 @@ request, on the same app, made of a program's definitions (a keyword edit, a fun
 `defkey`, an `add-hook`) or of JSON (an action's title or steps, an action and a key). `--only lisp-,json-` runs them;
 `BENCHMARKS.md`, "Lisp against JSON", has what a model did with them.
 
+### The `point-` tasks
+
+The tasks whose ids start with `point-` compare two ways of asking for the same change: describing where it goes, and
+pointing at it (SCREEN_FORMAT.md, "Pointing at a node"). Each is a change to one element of the Kanban template that a
+person would point at: a card's title, a column's name, the toolbar's Filter button and the owner in a card's side
+panel (three edits and a feature), in its Lisp and in its JSON notation. Its `request` says where in plain words, as
+someone who can't see ids writes it; its `pointRequest` asks the same with "this", and `point` is what is pointed at.
+One `reference` does it both ways, so the oracle passes them either way.
+
 ### The `clj-` tasks
 
 The six tasks whose ids start with `clj-` measure the Lisp language itself: whether everyday forms that someone who
@@ -47,7 +56,9 @@ Each task has:
 | `id` | its name, which is also its file's |
 | `level` | `edit`, `feature` or `forge` |
 | `screen` | the starting screen, from the repository root |
-| `request` | what the client is asked, in plain words; it names the ids the scenarios look for |
+| `request` | what the client is asked, in plain words; it names the ids the scenarios look for (but in a `point-` task, which says where in plain words) |
+| `point` | optional: the element a person points at instead (`"#cardTitle"`), for `--point` |
+| `pointRequest` | with `point`: the same change asked by pointing ("Show card titles like this one in the theme's accent colour.") |
 | `scenarios` | the scenarios (`SCREEN_FORMAT.md`, "Scenarios") that pass once the request is done |
 | `unchanged` | the nodes that the change must leave exactly as they were |
 | `present` | optional: the addresses the change must make (a program's definition, `/program/<file>/<name>`, or a JSON action), when the request says which way it is written |
@@ -64,15 +75,19 @@ For each task, `run.py`:
    temporary folder, readable by this user only, with a reviewer connected to its `studio.sock` that accepts each
    proposal (the screens send changes to actions to review);
 2. plays the scenarios on the starting screen: for the oracle they must fail, so that they test the request;
-3. gives the request to the client, connected through `mcp/affrescoui_mcp.py --socket <that folder>`;
+3. gives the request to the client, connected through `mcp/affrescoui_mcp.py --socket <that folder>`; with `--point`, a
+   task that has a `point` gets its `pointRequest` instead, then the pick's line as a channel event gives it (the MCP
+   server's `pick_lines`: the node, its type, the repeats it is in and where it is written, from the host's
+   `getSource`), as when the person points and asks;
 4. reads the screen back from the host and plays the scenarios on it (`affrescoui test --document`), with the live
    state;
 5. compares each `unchanged` node with the starting screen's.
 
 A task succeeds when its scenarios pass, every `unchanged` node is unchanged and every `present` address is there.
 Recorded per task: success, the
-failures, tokens in (input, cached included) and out, tool calls, revisions and seconds; per run: the client, its
-version, the model, the commit, the machine (processor and system), the date and the medians.
+failures, tokens in (input, cached included) and out, tool calls, revisions, seconds and `pointed` (whether it was
+asked by pointing); per run: the client, its version, the model, the commit, the machine (processor and system), the
+date, `pointed` and the medians.
 
 ## Clients
 
@@ -95,8 +110,25 @@ Build first (`cmake -S . -B build -G Ninja && cmake --build build`), then, under
 python3 benchmarks/agents/run.py --client oracle                          # every task; exits 1 unless all pass
 python3 benchmarks/agents/run.py --client claude-code --model <model>     # a model, through Claude Code
 python3 benchmarks/agents/run.py --only forge-                            # the tasks whose ids start so
+python3 benchmarks/agents/run.py --only point- --point                    # the point- tasks, asked by pointing
 python3 benchmarks/agents/run.py --markdown benchmarks/agents/results/*.json   # the Agents table of BENCHMARKS.md
 ```
 
-Results go to `results/<client>-<date>.json` unless `--out` says otherwise. `--timeout` bounds a client's seconds per
+Results go to `results/<client>-<date>.json` (`<client>-<date>-pointed.json` with `--point`) unless `--out` says
+otherwise. `--timeout` bounds a client's seconds per
 task (900 by default).
+
+### Reading the pair
+
+Run the `point-` tasks both ways, three times each, with the same model:
+
+```sh
+python3 benchmarks/agents/run.py --client claude-code --model <model> --only point- --out results/<model>-described-1.json
+python3 benchmarks/agents/run.py --client claude-code --model <model> --only point- --point --out results/<model>-pointed-1.json
+```
+
+`--markdown` on those files adds a table with one row per task run both ways, each cell described → pointed: the
+successes over the runs, then the medians of tokens in, tokens out, tool calls and seconds, and a last row of medians
+over the tasks. Claude Code's tokens in include its own system prompt and tools, the same both ways, so the
+difference shows more in tool calls, tokens out and seconds than in the total; `tests/perf/tokens.py` measures what
+the reads themselves cost (its pick rows).

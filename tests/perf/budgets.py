@@ -83,7 +83,7 @@ def token_counts(encoding):
     """Every token count tokens.py makes, by name, with this checkout's edits."""
     sys.path.insert(0, HERE)
     import tokens  # tests/perf/tokens.py
-    return dict(tokens.counts(ROOT, os.path.join(HERE, "edits"), encoding))
+    return dict(tokens.counts(ROOT, os.path.join(HERE, "edits"), encoding, tokens.default_cli()))
 
 
 def guide_topics(mcp, count):
@@ -120,12 +120,15 @@ def token_values(encoding):
                    if name.endswith(suffix) and name.split("/")[1] not in exclude)
 
     edits = [value for name, value in found.items() if "/edit/" in name]
+    picks = [(value, f"{name.split('/')[1]} {name.split('/')[3]}") for name, value in found.items()
+             if "/pick/" in name and not name.endswith(("/first-read", "/ratio"))]
     return {"template-outline": largest("/outline", ("forge",)),
             "forge-outline": (found["tokens/forge/outline"], "forge"),
             "typical-edit": (statistics.median(edits), f"median of {len(edits)} canonical edits"),
             "reread": largest("/reread"),
             "guide-topic": guide_topics(mcp, count),
             "feature-request": feature_requests(mcp, count),
+            "pick-read": max(picks) if picks else (None, None),
             "kit-use": max((value, name.split("/")[2]) for name, value in found.items()
                            if name.startswith("tokens/kit/"))}
 
