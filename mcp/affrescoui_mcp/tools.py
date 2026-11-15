@@ -241,6 +241,16 @@ TOOLS = [
                     "(\"/colors/accent\", \"/state/cards\"). Gives its revision, id, author, committer (who applied "
                     "or approved it), message and time; revision 0 if it is as the screen file has it.",
      "inputSchema": object_schema({"target": {"type": "string"}}, ["target"])},
+    {"name": "get_pick",
+     "description": "What the person pointed at in the app and has not sent yet (the Point button of the app's "
+                    "assistant): each element's node, type, and the definition or file that builds it. Read-only.",
+     "inputSchema": object_schema(),
+     "annotations": {"readOnlyHint": True}},
+    {"name": "get_source",
+     "description": "Where a node is written: for `at` \"#id\" (or a JSON Pointer, or a definition's address) the "
+                    "definition that builds it in a program, or its file in a JSON document, with the text. Read-only.",
+     "inputSchema": object_schema({"at": {"type": "string"}}, ["at"]),
+     "annotations": {"readOnlyHint": True}},
     {"name": "restore_revision",
      "description": "Bring the whole screen back to how it was at an earlier revision. This "
                     "creates a new revision (the history only grows) and follows the same permissions as any change.",
@@ -301,7 +311,8 @@ SERVE_PROMPT = (
     "the change with submit_revision (fix and retry if it is rejected), then tell the person what you did with "
     "reply. Keep changes focused on what was asked, and keep the existing style (colors, fonts, spacing). If a "
     "follow-up request refines a change that is still waiting for review, push to that proposal instead of opening "
-    "a new one.")
+    "a new one. When a request has picks (what the person pointed at), start from each pick's source.address with "
+    "get_source (or get_screen with at), and read the outline only if the change needs more.")
 
 INSTRUCTIONS = (
     "This server connects you to a running AffrescoUI app (a native C++/OpenGL UI described by a JSON screen document). "
@@ -311,4 +322,6 @@ INSTRUCTIONS = (
     "channel), or from the wait_for_request tool. For each request: find what to change with get_screen (outline=true, then "
     "at=\"#id\": every node has an id) or find_nodes (get_format_guide explains the format, one topic at a time), "
     "change it with submit_revision, then answer with reply, passing the request_id. Your changes may "
-    "wait for a reviewer's approval (the person accepts or rejects them on their cards in the app's chat); get_events tells you the decision.")
+    "wait for a reviewer's approval (the person accepts or rejects them on their cards in the app's chat); get_events tells you the decision. A "
+    "request with picks names what the person pointed at: start from each pick's source.address with get_source "
+    "(or get_screen with at), and read the outline only if the change needs more.")

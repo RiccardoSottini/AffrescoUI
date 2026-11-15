@@ -14,6 +14,7 @@ import time
 from .document import apply_patch, changes_since, compact, find_nodes, locate, outline, pruned
 from .guide import format_guide
 from .host import NO_UNIX_SOCKETS, Host, default_socket_dir, log
+from .picks import pick_lines, picks_of
 from .replies import client_name, describe, host_failure, malformed, scenarios_report, screen_info
 from .repository import ROOT, confined_path, find_cli, guide_path
 from .tools import INSTRUCTIONS, PROMPTS, SERVE_PROMPT, TOOLS
@@ -107,6 +108,9 @@ class Server:
         attachments = attachments_of(message.get("attachments"))
         if attachments:  # files the person attached: metadata only; name one in submit_revision's assets
             request["attachments"] = attachments
+        picks = picks_of(message.get("picks"))
+        if picks:  # what the person pointed at: start from each one's source.address
+            request["picks"] = picks
         if message.get("kind") == "repair":  # a change set whose template changed: answer with answer_repair
             request["kind"], request["repair"] = "repair", message.get("repair")
         with self.arrived:
@@ -118,6 +122,9 @@ class Server:
             if isinstance(request.get("options", {}).get("model"), str):  # the model the chat chose
                 meta["model"] = request["options"]["model"]
             content = request["text"]
+            if picks:
+                meta["picks"] = json.dumps(picks, separators=(",", ":"))
+                content += "\n\n" + "\n".join(pick_lines(picks))
             if attachments:
                 meta["attachments"] = json.dumps(attachments, separators=(",", ":"))
                 content += "\n\nAttached: " + "; ".join(
@@ -439,6 +446,23 @@ class Server:
         impact = reply.get("impact")  # the layers it touches: view, logic, model, data
         return compact(reply.get("patch")) + (f"\nimpact: {compact(impact)}" if impact else ""), False
 
+    def get_pick(self, args):
+        """The get_pick tool: what the person pointed at and has not sent yet, or that nothing is."""
+        reply = self.host.request({"type": "getPicks"})
+        if reply.get("type") != "picks":
+            return host_failure(reply)
+        picks = picks_of(reply.get("picks"), most=16)
+        return (compact(picks) if picks else "nothing is pointed at"), False
+
+    def get_source(self, args):
+        """The get_source tool: where a node is written, as one line of JSON, then the definition's text."""
+        reply = self.host.request({"type": "getSource", "at": args.get("at", "")})
+        if reply.get("type") != "source" or not isinstance(reply.get("source"), dict):
+            return host_failure(reply)
+        source = dict(reply["source"])
+        text = source.pop("text", "")
+        return compact(source) + (f"\n{text}" if isinstance(text, str) and text else ""), False
+
     def get_models(self, args):
         """The get_models tool: the data layer's models and how many records each collection holds, never a record."""
         catalog = self.host.request({"type": "getCatalog"}).get("catalog") or {}
@@ -482,6 +506,8 @@ class Server:
         "revert_revision": lambda self, args: self.change_main("revert", args),
         "get_events": get_events,
         "export_changes": export_changes,
+        "get_pick": get_pick,
+        "get_source": get_source,
     }
 
     def call_tool(self, name, args):
