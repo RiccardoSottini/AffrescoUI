@@ -115,7 +115,7 @@ void CommandRuns::describe(const json& patch, CommandOutcome& outcome) {
 		operation["path"] = "/state" + operation["path"].get<std::string>();
 		changed.push_back(std::move(operation));
 	}
-	if(changed.size() <= maxChangedOperations && changed.dump().size() <= maxChangedBytes) {
+	if(changed.size() <= maxChangedOperations && changed.dump(-1, ' ', false, json::error_handler_t::replace).size() <= maxChangedBytes) {
 		outcome.changed = std::move(changed);
 		return;
 	}
@@ -124,7 +124,7 @@ void CommandRuns::describe(const json& patch, CommandOutcome& outcome) {
 	std::size_t bytes = 2;
 	for(const json& operation : changed) {
 		json path = {{"op", operation["op"]}, {"path", operation["path"]}};
-		bytes += path.dump().size() + 1U;
+		bytes += path.dump(-1, ' ', false, json::error_handler_t::replace).size() + 1U;
 		if(bytes > maxChangedBytes) break;
 		outcome.changed.push_back(std::move(path));
 	}

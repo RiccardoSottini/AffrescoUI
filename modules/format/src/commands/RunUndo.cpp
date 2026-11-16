@@ -27,8 +27,8 @@ std::optional<json> valueAt(const json& value, const json::json_pointer& path) {
 /// @return They.
 std::size_t bytesOf(const RunUndo::Place& place) {
 	std::size_t bytes = place.path.to_string().size();
-	if(place.before) bytes += place.before->dump().size();
-	if(place.after) bytes += place.after->dump().size();
+	if(place.before) bytes += place.before->dump(-1, ' ', false, json::error_handler_t::replace).size();
+	if(place.after) bytes += place.after->dump(-1, ' ', false, json::error_handler_t::replace).size();
 	return bytes;
 }
 

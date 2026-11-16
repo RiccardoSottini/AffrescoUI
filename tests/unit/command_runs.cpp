@@ -419,3 +419,14 @@ TEST_CASE("format: an attack: a command run's undo is refused while a proposal i
 	CHECK(app.state("n") == 1);
 	CHECK(app.records("notes") == 0);
 }
+
+TEST_CASE("format: a command run that leaves bytes that aren't UTF-8 in the state still reports and keeps its undo") {
+	App app(notesScreen({{"go", command(json::array({{{"set", "state.n"}, {"to", "{{state.other}}"}}}))}}));
+	app.repository.state()["other"] = std::string("\xff\xfe");
+	const affresco::CommandOutcome outcome = app.run("go");
+	INFO(outcome.refusal.value_or(""));
+	CHECK_FALSE(outcome.failed);
+	CHECK(outcome.changes == 1);
+	CHECK_FALSE(app.undo(1).refusal);
+	CHECK(app.state("n") == 1);
+}
