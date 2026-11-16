@@ -51,6 +51,7 @@
 #include "Tracker.hpp"
 #include "TypeRegistry.hpp"
 #include "UpdateFrame.hpp"
+#include "Verify.hpp"
 #include "Watches.hpp"
 
 #include <filesystem>
@@ -115,6 +116,7 @@ struct Engine : VersionObserver {
 	Reconciler reconciler;          ///< Records; updates.
 	UpdateFrame frame{*this};       ///< What every update does around the walk over the panels.
 	Watches watches{*this};         ///< The "watch" handlers.
+	Verify verify{*this};           ///< Verify mode: each partial update checked against a full pass.
 	Events events;                  ///< Input.
 	Steps runner;                   ///< Actions.
 	Programs programs;              ///< The document's live program, if it has one.

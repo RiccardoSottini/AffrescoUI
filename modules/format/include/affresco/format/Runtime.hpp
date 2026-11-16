@@ -261,6 +261,13 @@ public:
 	/// for a picture, which must change nothing the person sees or what runs next.
 	/// @param suspended true to suspend them, false to go back to normal.
 	void setHandlersSuspended(bool suspended) noexcept;
+	/// @brief Turns verify mode on or off: after every partial update, a full pass over the same panels (with
+	/// handlers suspended, leaving no trace) must give the same panels, or onError gets "update check: <place>.
+	/// <property>: a partial update and a full update differ" (the two values go only to the log). For tests and
+	/// fuzzing: it makes every update cost a full one. AFFRESCOUI_VERIFY_UPDATES=1 turns it on when the runtime is
+	/// made. Nothing in a document, a revision, a channel or MCP reaches it.
+	/// @param on true to check every partial update.
+	void setVerifyUpdates(bool on) noexcept;
 
 	/// @brief Tells whether the document has an action of that name.
 	/// @param name The action.
