@@ -6,6 +6,7 @@
 
 #include "NodeKeys.hpp"
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 
@@ -80,5 +81,16 @@ void showMenuBar(Engine& engine);
 /// @brief Removes the window's native menu bar, whose items call into the runtime.
 /// @param engine The runtime.
 void hideMenuBar(Engine& engine);
+
+/// @brief What the `keybindings` variable reads of the panels: which ones have an id and "keys". The same panels
+/// give the same number, whatever order the records are in.
+/// @param engine The runtime.
+/// @return The number.
+[[nodiscard]] std::size_t keysFingerprint(Engine& engine);
+
+/// @brief Whether an overlay is shown, as the `context` variable says ("overlay").
+/// @param engine The runtime.
+/// @return true if one is.
+[[nodiscard]] bool overlayShown(Engine& engine);
 
 } // namespace affresco::format

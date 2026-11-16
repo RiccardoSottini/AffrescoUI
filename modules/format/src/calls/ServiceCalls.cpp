@@ -181,8 +181,8 @@ void ServiceCalls::setServices(services::Services* services) {
 	if(!services_) return;
 	services_->onStatus([this, alive = std::weak_ptr<bool>(alive_)] {
 		if(!alive.lock()) return;
-		engine_.document.globalsChanged(); // the "services" variable
-		engine_.reconciler.requestReconcile();
+		engine_.document.markVariableChanged("services");
+		engine_.reconciler.requestStateUpdate();
 	});
 	services_->onRequest([this, alive = std::weak_ptr<bool>(alive_)](const std::string& service,
 	                                                                 const std::string& method, const json& params,
@@ -204,7 +204,7 @@ void ServiceCalls::load() {
 	loaded_ = section;
 	for(const std::string& refused : services_->load(section))
 		engine_.reportRefused("AffrescoUI screen: services: " + refused);
-	engine_.document.globalsChanged(); // the "services" variable
+	engine_.document.markVariableChanged("services");
 }
 
 ServiceCalls::Pending ServiceCalls::read(const Running& s, bool stream) const {
