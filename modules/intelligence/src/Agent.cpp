@@ -5,6 +5,7 @@
 #include "affresco/intelligence/Agent.hpp"
 
 #include "Picks.hpp"
+#include "Undo.hpp"
 #include "affresco/intelligence/Providers.hpp"
 #include "affresco/intelligence/ScreenQueries.hpp"
 
@@ -177,6 +178,7 @@ std::vector<ToolSpec> agentTools() {
 		                                        json::array({"name"}))}}},
 		               {"run", {{"type", "array"}, {"items", {{"type", "object"}}}}}},
 		              json::array({"message"}))},
+	    undoTool(),
 	    {"reply",
 		 "Answer the person in the chat and finish: what you changed (it waits for their review), or your answer.",
 		 objectSchema({{"text", text}}, json::array({"text"}))},
@@ -292,10 +294,12 @@ struct Rounds {
 	int retries = 0; ///< Rejected revisions it was asked to fix.
 };
 
-/// @brief Whether claude-code's answer asks to see more: nodes, a search or topics of the guide.
+/// @brief Whether claude-code's answer asks to see more: nodes, a search, topics of the guide or an undo's plan.
 /// @param said Its answer.
 /// @return Whether it does.
-bool asksToRead(const json& said) { return said.contains("read") || said.contains("find") || said.contains("guide"); }
+bool asksToRead(const json& said) {
+	return said.contains("read") || said.contains("find") || said.contains("guide") || said.contains("plan");
+}
 
 /// @brief The texts of a list in claude-code's answer; anything else in it is skipped.
 /// @param said Its answer.
@@ -371,6 +375,7 @@ private:
 	/// @return It.
 	[[nodiscard]] std::string systemPrompt(bool tools) const {
 		std::string prompt = std::string(rules) + "\n\n" + assetRules + "\n\n" + (tools ? toolRules : jsonRules);
+		prompt += std::string("\n\n") + undoRules + (tools ? "" : std::string(" ") + undoAnswerRules);
 		if(isProgram()) prompt += std::string("\n\n") + programRules;
 		if(!picks_.empty()) prompt += std::string("\n\n") + pickRules;
 		if(const auto intro = formatGuide(options_.guide)) prompt += "\n\n# The format\n\n" + cut(*intro, 8000);
@@ -444,6 +449,8 @@ private:
 				result.content = compact(answer->value("catalog", json::object()).value("data", json::object()));
 			} else if(call.name == "submit_revision") {
 				result.content = submit(call.input, result.error);
+			} else if(call.name == "revert_revision") {
+				result.content = undo(call.input, result.error);
 			} else {
 				result = {call.id, "no tool named '" + call.name + "'", true};
 			}
@@ -473,15 +480,10 @@ private:
 	/// @param error Set if it was rejected.
 	/// @return What happened, for the model.
 	std::string submit(const json& input, bool& error) {
-		if(agent_.cancelled()) { // the person stopped the request: nothing more reaches the screen
+		if(const std::optional<std::string> refused = takeChange()) {
 			error = true;
-			return "the person cancelled this request: stop";
+			return *refused;
 		}
-		if(revisions_ >= options_.maxRevisions) {
-			error = true;
-			return "too many revisions for one request: reply now";
-		}
-		++revisions_;
 		json attached = attached_;
 		for(const json& item : earlier_) attached.push_back(item);
 		if(const std::optional<std::string> problem = assetProblem(input, attached)) {
@@ -513,6 +515,66 @@ private:
 		}
 		error = true;
 		return "rejected: " + answer->value("error", std::string("the app refused it"));
+	}
+
+	/// @brief Counts a change the model sends (a revision or an undo), unless the request can make no more: the person
+	/// cancelled it, or it made options_.maxRevisions already.
+	/// @return Why it can't, for the model, or nullopt (and it is counted).
+	std::optional<std::string> takeChange() {
+		if(agent_.cancelled()) return "the person cancelled this request: stop"; // nothing more reaches the screen
+		if(revisions_ >= options_.maxRevisions) return "too many revisions for one request: reply now";
+		++revisions_;
+		return std::nullopt;
+	}
+
+	/// @brief revert_revision, or claude-code's "undo": with dry_run, the plan (nothing changes); else the undo of
+	/// one earlier revision, sent as the agent like a revision (submit()): only the revision and the choices are
+	/// taken from the model. The host decides whether it applies or waits for review (with drop or then it always
+	/// waits).
+	/// @param input The model's arguments.
+	/// @param error Set if it was refused.
+	/// @return The plan, or what happened, for the model.
+	std::string undo(const json& input, bool& error) {
+		if(const std::optional<std::string> problem = undoProblem(input)) {
+			error = true;
+			return "rejected: " + *problem;
+		}
+		if(input.value("dry_run", false)) return plan(input, error);
+		if(const std::optional<std::string> refused = takeChange()) {
+			error = true;
+			return *refused;
+		}
+		const std::optional<json> answer = agent_.ask(undoMessage("revert", input, endpoint_.provider->id));
+		if(!answer) {
+			error = true;
+			return "the app didn't answer";
+		}
+		const std::string type = answer->value("type", "");
+		if(type == "proposed" || type == "applied") changed_ = true;
+		if(type == "proposed")
+			return std::format("proposed: proposal {} waits for the person's review", answer->value("proposal", 0));
+		if(type == "applied") return std::format("applied: revision {}", answer->value("revision", 0));
+		error = true;
+		const std::string why = answer->value("error", std::string("the app refused it"));
+		return "rejected: " + why +
+		       (undoConflict(why) ? ". Read the undo's plan to see what was built on it (dry_run=true, or \"plan\" in "
+		                            "a reading round), then choose."
+		                          : "");
+	}
+
+	/// @brief The plan of an undo (the host's undoPlan), cut to what the model needs (planSummary()).
+	/// @param input The model's arguments, checked.
+	/// @param error Set if the host refused it.
+	/// @return The plan in one line of JSON, or why there is none.
+	std::string plan(const json& input, bool& error) {
+		const std::optional<json> answer = agent_.ask(undoMessage("undoPlan", input, endpoint_.provider->id));
+		if(!answer) {
+			error = true;
+			return "the app didn't answer";
+		}
+		if(answer->value("type", "") == "undoPlan") return compact(planSummary(answer->value("plan", json())));
+		error = true;
+		return "error: " + answer->value("error", answer->value("message", std::string("the app refused it")));
 	}
 
 	/// @brief The API providers: answers of the model and the tools it calls, within the bounds.
@@ -591,7 +653,8 @@ private:
 	/// @return The reply or the failure, or nullopt to ask again.
 	std::optional<std::pair<std::string, bool>> takeAnswer(const json& said, std::string& input, Rounds& rounds) {
 		const bool revising = said.contains("revision") && said["revision"].is_object();
-		if(!revising && !said.contains("reply") && asksToRead(said)) {
+		const bool undoing = said.contains("undo");
+		if(!revising && !undoing && !said.contains("reply") && asksToRead(said)) {
 			if(rounds.reads >= maxReads)
 				return std::pair{"Claude Code kept reading and made no change: ask again, perhaps saying where." +
 				                     proposalNote(),
@@ -600,19 +663,37 @@ private:
 			input += "\n\nWhat you asked to see:\n" + readParts(said);
 			return std::nullopt;
 		}
-		if(revising) {
+		if(revising || undoing) {
 			bool rejected = false;
-			const std::string outcome = submit(said["revision"], rejected);
+			const std::string outcome = sendChange(said, revising, undoing, rejected);
 			if(rejected && rounds.retries < maxRetries) {
 				++rounds.retries;
-				input += "\n\nYour answer was:\n" + compact(said) + "\n\nIts revision was " + outcome +
-				         "\nAnswer again with the revision fixed, or read what you need first.";
+				input += "\n\nYour answer was:\n" + compact(said) + "\n\nIts " + (undoing ? "undo" : "revision") +
+				         " was " + outcome + "\nAnswer again with it fixed, or read what you need first.";
 				return std::nullopt;
 			}
 			if(rejected) return std::pair{"The change couldn't be made: " + outcome + proposalNote(), true};
 		}
 		const std::string reply = said.value("reply", std::string());
 		return reply.empty() ? nothingSaid() : std::pair{reply, false};
+	}
+
+	/// @brief The change in one of claude-code's answers: its revision, or its undo (sent as a revert, never a dry
+	/// run: a plan is read in a reading round). An answer may hold one of them, not both.
+	/// @param said The answer.
+	/// @param revising Whether it holds a revision.
+	/// @param undoing Whether it holds an undo.
+	/// @param rejected Set if it was refused.
+	/// @return What happened, for the model.
+	std::string sendChange(const json& said, bool revising, bool undoing, bool& rejected) {
+		if(revising && undoing) {
+			rejected = true;
+			return "rejected: give either a revision or an undo, not both";
+		}
+		if(revising) return submit(said["revision"], rejected);
+		json undone = said["undo"];
+		if(undone.is_object()) undone.erase("dry_run");
+		return undo(undone, rejected);
 	}
 
 	/// @brief The reply when the model said nothing: "Done." only if a change reached the screen, else that none did.
@@ -639,7 +720,18 @@ private:
 		for(const std::string& topic : textsOf(said, "guide"))
 			if(out.size() < options_.inlineDocument * 2)
 				out += "\n" + formatGuide(options_.guide, topic).value_or("(no such topic)") + "\n";
+		if(said.contains("plan")) out += planPart(said["plan"]);
 		return out.empty() ? "(nothing)" : out;
+	}
+
+	/// @brief The plan claude-code asked to read: of a revision, or of an undo with its choices.
+	/// @param asked A revision number or commit id, or {"revision", "drop"?, "keep"?, "then"?, "head"?}.
+	/// @return A line: the plan, or why there is none.
+	std::string planPart(const json& asked) {
+		const json input = asked.is_object() ? asked : json{{"revision", asked}};
+		if(const std::optional<std::string> problem = undoProblem(input)) return "plan: " + *problem + "\n";
+		bool error = false;
+		return "plan of revision " + compact(input["revision"]) + ": " + plan(input, error) + "\n";
 	}
 
 	/// @brief One node, value or definition claude-code asked to read, or why there is none.

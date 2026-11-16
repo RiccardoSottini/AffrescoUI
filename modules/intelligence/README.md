@@ -65,3 +65,23 @@ the first message is exactly as before.
 `tests/unit/intelligence_picks.cpp` (picks, the first message's sizes on the examples), the `picks` fuzz target, and
 `tests/intelligence/e2e_test.py`: the stock host with an `openai-compatible` provider pointed at a fake server on the
 loopback.
+
+## Undoing an earlier change
+
+The agent undoes an earlier revision the way an MCP agent does (`src/Undo.hpp`; SCREEN_FORMAT.md, "Undoing an earlier
+commit"), keeping the later changes that don't depend on it. With tools, `revert_revision` takes `revision`,
+`dry_run`, `drop` and `keep` (conflict paths, or `"all"`), `then` (a JSON Patch), `head` and `message`, like the MCP
+server's. `dry_run` sends `undoPlan` and returns the plan, cut to what the model needs (the commit's number, short id
+and message, `outcome`, `blocked`, `head`, `later`, `conflicts`, `state`, `warnings`, and how many more there are when
+there are more): nothing changes. Otherwise it sends `revert`, as the agent's provider, with only the revision and the
+choices taken from the model, and returns "applied: revision 12", "proposed: proposal 4 waits for the person's review"
+or "rejected: ..."; a rejection on a conflict says to read the plan. Arguments that break the tool's schema are
+refused before the screen is asked. An undo counts as a revision against `maxRevisions`.
+
+Without tools (claude-code), the answer holds `"undo": {"revision", "drop"?, "keep"?, "then"?, "head"?,
+"message"?}` in place of `"revision"` (never both), sent as a `revert` (never a dry run), and a reading round may ask
+`"plan": 12` (or the same object as `undo`) beside `read`, `find` and `guide`. A refused undo is given back to fix,
+within the same two retries as a revision. Both kinds of model are told to undo with the undo, never with an inverse
+revision of their own; to read the plan first; and never to drop a later change the person didn't ask to lose, but to
+keep it, rebuild it with `then`, or ask. The screen decides the rest: an agent's undo that drops or rebuilds later
+changes always waits for the person's review.

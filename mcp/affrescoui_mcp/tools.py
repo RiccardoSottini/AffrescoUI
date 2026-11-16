@@ -15,6 +15,11 @@ NOTATION = {"type": "string", "enum": ["json", "lisp"],
             "description": "json (the default) or lisp: the same document, written as S-expressions"}
 
 
+# A choice of revert_revision: the conflicts' paths it applies to, or all of them
+UNDO_CHOICE = {"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "string", "enum": ["all"]}],
+               "description": "Conflict paths from the plan, or \"all\""}
+
+
 TOOLS = [
     {"name": "wait_for_request",
      "description": "Wait for the next change request a person sends from inside the app (its chat) or from "
@@ -256,10 +261,22 @@ TOOLS = [
                     "creates a new revision (the history only grows) and follows the same permissions as any change.",
      "inputSchema": object_schema({"revision": {"type": ["integer", "string"]}}, ["revision"])},
     {"name": "revert_revision",
-     "description": "Undo one earlier revision and keep everything after it: a new revision with "
-                    "the inverse change. Refused as a conflict if later revisions changed the same parts. Follows "
-                    "the same permissions as any change.",
-     "inputSchema": object_schema({"revision": {"type": ["integer", "string"]}}, ["revision"])},
+     "description": "Undo one earlier revision and keep everything after it that does not depend on it, in one new "
+                    "revision. Call it with dry_run=true first: it changes nothing and returns the plan. Its outcome "
+                    "\"clean\" means: call it again as it is. \"choose\" lists conflicts, later changes built on "
+                    "it: name each conflict's path in drop (the later change is lost there) or keep (it stays, and "
+                    "that part is not undone), or \"all\", and pass head from the plan. then adds JSON Patch "
+                    "operations after the undo, to keep what a later change built in another place. With drop or "
+                    "then it is always a proposal the person reviews. \"blocked\" says why it can't be done. "
+                    "Follows the same permissions as any change.",
+     "inputSchema": object_schema({
+         "revision": {"type": ["integer", "string"], "description": "The revision to undo (its number or commit)"},
+         "dry_run": {"type": "boolean", "description": "Return the plan and change nothing"},
+         "drop": UNDO_CHOICE, "keep": UNDO_CHOICE,
+         "then": {"type": "array", "items": {"type": "object"},
+                  "description": "JSON Patch operations applied after the undo, in the same revision"},
+         "head": {"type": "string", "description": "The plan's head: the choices were made on it"},
+         "message": {"type": "string", "description": "The new revision's message"}}, ["revision"])},
     {"name": "get_events",
      "description": "What happened since the last call: reviewers' decisions on your proposals (merged or rejected, "
                     "with their reason), commits by anyone, mode and grant changes, events the screen emitted, "
