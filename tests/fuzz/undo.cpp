@@ -74,7 +74,7 @@ bool commit(Repository& repository, json revision) {
 	}
 }
 
-/// @brief Submits an undo's revision as the studio.
+/// @brief Submits an undo's revision, as its author.
 /// @param repository The repository.
 /// @param revision The undo's revision.
 /// @return What happened.
@@ -86,6 +86,12 @@ affresco::RevisionResult submit(Repository& repository, const json& revision) {
 	}
 }
 
+/// @brief Who undoes: the studio, a reviewer where the screen declares permissions; else the person, whose undo that
+/// takes out later changes lands where the studio's would wait for review.
+/// @param repository The repository.
+/// @return The author.
+std::string_view undoerOf(const Repository& repository) { return repository.mayTakeOut("studio") ? "studio" : "user"; }
+
 /// @brief The plan of an undo, or nothing when the call itself refuses it (an unknown commit).
 /// @param repository The repository.
 /// @param target The commit.
@@ -93,7 +99,7 @@ affresco::RevisionResult submit(Repository& repository, const json& revision) {
 /// @return The plan as the live protocol sends it, or null.
 json planOf(const Repository& repository, const json& target, const affresco::UndoOptions& options) {
 	try {
-		return affresco::toJson(repository.undoPlan(target, "studio", options));
+		return affresco::toJson(repository.undoPlan(target, undoerOf(repository), options));
 	} catch(const affresco::DocumentError&) {
 		return nullptr;
 	} catch(const json::exception&) {
@@ -108,7 +114,7 @@ json planOf(const Repository& repository, const json& target, const affresco::Un
 /// @return The revision, or null.
 json undoOf(const Repository& repository, const json& target, const affresco::UndoOptions& options) {
 	try {
-		return repository.undoRevision(target, "studio", options);
+		return repository.undoRevision(target, undoerOf(repository), options);
 	} catch(const affresco::DocumentError&) {
 		return nullptr;
 	} catch(const json::exception&) {

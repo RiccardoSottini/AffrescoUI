@@ -513,7 +513,7 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 		if(verdict.kind == Verdict::Kind::Deny) fail("revision", verdict.reason);
 
 		// An undo that takes out what later changes built, or rebuilds one, is the person's choice: always proposed
-		const bool undoReviewed = undoNeedsReview(revision.value("undo", json())) && !mayReview(author);
+		const bool undoReviewed = undoNeedsReview(revision.value("undo", json())) && !mayTakeOut(author);
 		if(verdict.kind == Verdict::Kind::Ask || alwaysReview || undoReviewed) {
 			const std::string channel = detail::channelOf(author);
 			if(std::ranges::count_if(proposals_, [&](const Proposal& p) {

@@ -37,7 +37,8 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
   (`MergeOptions::takeProposal` takes the parent's value for a dropped one); `detail::Trail` names the later commits
   that changed it. `undoPlan` judges the result as a change; `undoRevision` writes it, marked `undo` (`of`, `drop`,
   `then`), and `commit()` and `submitRevision` work it out again before it lands. A drop or a rebuild by an author
-  who may not review is always a proposal. The live state is undone only while every part is as the commit left it.
+  who may not review is always a proposal, and where the screen declares no permissions, by anyone but the person.
+  The live state is undone only while every part is as the commit left it.
 - **Every change is atomic:** a revision applies whole, or nothing changes (`RevisionStatus::Rejected` says why).
 - **A revision is bounded before it is applied** (`detail::RevisionBudget`, `Budget.hpp`): 10,000 operations (a
   proposal with all its commits too), 100,000 values copied by `copy` operations, and objects of at most 10,000
