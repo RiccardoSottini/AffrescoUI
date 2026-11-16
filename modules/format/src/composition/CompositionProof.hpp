@@ -31,12 +31,15 @@ struct ScenarioOutcome {
 	std::string problem; ///< Why it failed, or empty.
 };
 
-/// @brief Runs the feature's and the host's scenarios on a composed document (the caller has the runtime).
+/// @brief Runs the feature's and the host's scenarios on a composed document, a program's as its source (the caller
+/// has the runtime).
 using ScenarioRunner = std::function<std::vector<ScenarioOutcome>(const json& document, const json& manifest)>;
 
 /// @brief What a proof is made from.
 struct ProofInputs {
-	json host;             ///< The host document, as stored (raw).
+	/// The host document as version control keeps it (VersionControl::sourceDocument()): for a program, its `program`
+	/// section without what it builds, which the checks build for themselves; a built tree is refused.
+	json host;
 	json manifest;         ///< The feature's manifest, unchecked.
 	json adapter;          ///< The adapter, unchecked, or null.
 	std::string source;    ///< Where the feature came from: "app:notes".
@@ -50,11 +53,22 @@ struct ProofInputs {
 struct ProvenComposition {
 	json proof;    ///< The proof record.
 	json record;   ///< The feature's record, bindings and proof included, or null if the manifest is malformed.
-	json document; ///< The host document with the record installed, or null.
+	json document; ///< The host's source with the record installed, or null.
 };
 
+/// The refusal of a program's built tree where its source belongs (isBuiltTree()).
+inline constexpr std::string_view builtTreeProblem = "pass the source document: this one holds what its program built";
+
+/// @brief Tells whether a document is what a program built rather than its source: it has a `program` that builds
+/// the `root` it also writes. A document says a thing once, so such a tree can't be changed as a document.
+/// @param document The document.
+/// @return true if it is a built tree; false for a source, a JSON document, or a program that can't be built.
+[[nodiscard]] bool isBuiltTree(const json& document);
+
 /// @brief Proves a composition: checks the manifest and the adapter, binds every need, composes, checks isolation,
-/// the composed document and the permissions, then runs the scenarios (only if all else passed).
+/// the composed document and the permissions, then runs the scenarios (only if all else passed). The record goes into
+/// the host's source, and every check that needs the screen builds it from there, as Rules::validate() does; the
+/// scenarios play on the source with the record.
 /// @param inputs What to prove.
 /// @param runner Runs the scenarios.
 /// @return The proof (passed or not), the record and the document.

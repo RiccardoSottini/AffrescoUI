@@ -62,7 +62,8 @@ public:
 /// so they show their "disconnected" state every time; a step sends what a channel would with an action named
 /// `<channel>:<type>`.
 /// @param scenario The scenario.
-/// @param document The screen's document, as JSON text.
+/// @param document The screen's document, as JSON text: a program's as its source, from its file (screenDocument()) or
+/// passed in (Options::document) alike, so that its steps can change its definitions.
 /// @param options How to play it.
 /// @param scratch A folder of the run's own.
 /// @param result Receives its failures and pictures.
