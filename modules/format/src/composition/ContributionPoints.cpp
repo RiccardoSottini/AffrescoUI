@@ -16,7 +16,7 @@ namespace {
 using expect::fail;
 
 /// The keys of a point.
-constexpr auto pointKeys = std::to_array<std::string_view>({"slot", "receives", "description", "note"});
+constexpr auto pointKeys = std::to_array<std::string_view>({"slot", "receives", "hooks", "description", "note"});
 
 /// The keys of a need.
 constexpr auto needKeys = std::to_array<std::string_view>(
@@ -173,6 +173,16 @@ std::string contractText(const json& contract) {
 	return text;
 }
 
+/// @brief Tells whether a text can name a hook point: letters, digits, '_', '-' and '.', at most maxName long.
+/// @param name The text.
+/// @return true if it can.
+bool hookName(std::string_view name) {
+	return !name.empty() && name.size() <= maxName && std::ranges::all_of(name, [](char c) {
+		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' ||
+		       c == '.';
+	});
+}
+
 } // namespace
 
 void checkPointsSection(const json& section, const std::string& name) {
@@ -191,6 +201,12 @@ void checkPointsSection(const json& section, const std::string& name) {
 			for(const json& exported : *receives)
 				if(!exported.is_string() || !dottedName(exported.get_ref<const std::string&>()))
 					fail(at + ".receives", "expected the names of exports");
+		}
+		if(const auto hooks = entry.find("hooks"); hooks != entry.end()) {
+			if(!hooks->is_array() || hooks->size() > maxFields) fail(at + ".hooks", "expected a list of hook points");
+			for(const json& hook : *hooks)
+				if(!hook.is_string() || !hookName(hook.get_ref<const std::string&>()))
+					fail(at + ".hooks", "expected the names of hook points the app declares with defhook");
 		}
 		optionalText(entry, "description", at);
 		optionalText(entry, "note", at);
