@@ -185,6 +185,14 @@ public:
 	/// @return The impact.
 	[[nodiscard]] json impact(const json& before, const json& after) const override;
 
+	/// @brief The features a change would leave out: the composition problems the document after it has and the
+	/// document before it has not, as lines for the person, at most 16 (BrokenLines.cpp). Two compositions; nothing
+	/// for a document without features or imports. Never throws: a document that can't be composed gives one line.
+	/// @param before The document now.
+	/// @param after The document after the change.
+	/// @return The lines, e.g. "the feature 'wordCount' would be left out: features.wordCount.requires.points: ...".
+	[[nodiscard]] std::vector<std::string> brokenLines(const json& before, const json& after) const override;
+
 private:
 	/// @brief What checkChange() and checkOwnChange() share.
 	/// @param before The document before.

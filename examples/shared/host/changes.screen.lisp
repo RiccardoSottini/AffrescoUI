@@ -2,9 +2,10 @@
 ;;;
 ;;; What a proposal or a commit changes, file by file (apps/host/ChangesWindow.cpp), and where an element of the app is
 ;;; written (its Source page). It is read from the host's assets and fed only by the host, from the version control,
-;;; through its native calls changes.list, changes.load, changes.source, changes.preview, changes.accept, changes.reject
-;;; and changes.undo: nothing in the change or the source it shows can alter it. The host runs its actions by name
-;;; (changes.refresh...), and scenarios play the host's part with changes.show.
+;;; through its native calls changes.list, changes.load, changes.source, changes.preview, changes.accept,
+;;; changes.reject, changes.undoPlan, changes.undo and changes.askUndo: nothing in the change or the source it shows can
+;;; alter it. The host runs its actions by name (changes.refresh...), and scenarios play the host's part with
+;;; changes.show.
 
 (include "locales/changes.en.lisp"
          "locales/changes.es.lisp"
@@ -45,6 +46,15 @@
 
 (defstate sourceCount 0 "How many times the host has been asked for a source: a new count shows the Source page.")
 
+(defstate plan nil
+  "What undoing the applied change shown would do, as the host worked it out (changes.undoPlan): the later changes
+  built on it and what stays. Nil until it answers: the Undo button as it always was.")
+
+(defstate keepPlan nil
+  "The same plan if the later changes built on it stay as they are: whether \"leave these\" can be done.")
+
+(defstate asked false "Whether the app's assistant was asked to undo the change shown another way.")
+
 (defcomputed added "The lines the change adds." (sum (map (fn [f] (or-else f.added 0)) (or-else state.view.files []))))
 
 (defcomputed removed "The lines it removes."
@@ -61,6 +71,38 @@
   (and computed.open (not state.stale) (= (count (or-else state.view.conflicts [])) 0)))
 
 (defcomputed decided "Whether nothing waits: a commit, or a proposal decided." (not computed.open))
+
+(defcomputed planShown "Whether the host answered a plan for the applied change shown."
+  (and (some? state.plan) (some? state.view) (= state.view.kind "commit")))
+
+(defcomputed planOutcome "What undoing it takes: clean or ready (it can be done), choose or blocked; clean before."
+  (if computed.planShown (or-else state.plan.outcome "clean") "clean"))
+
+(defcomputed canUndo "Whether the plain Undo button is offered."
+  (and computed.decided (or (= computed.planOutcome "clean") (= computed.planOutcome "ready"))))
+
+(defcomputed choosing "Whether later changes were built on it: the person chooses what becomes of them."
+  (and computed.decided (= computed.planOutcome "choose")))
+
+(defcomputed undoBlocked "Whether it can't be undone, and why is shown."
+  (and computed.decided (= computed.planOutcome "blocked")))
+
+(defcomputed undoDoable "Whether it can be undone in some way: the plan's quiet lines are shown."
+  (and computed.decided computed.planShown (not computed.undoBlocked)))
+
+(defcomputed leaveBlocked "Whether leaving the later changes as they are can't be done."
+  (and (some? state.keepPlan) (= state.keepPlan.outcome "blocked")))
+
+(defcomputed canAsk "Whether the app's assistant can be asked to undo it and keep what was built on it."
+  (and (= state.list.canAsk true) (or computed.choosing computed.undoBlocked)))
+
+(defcomputed askText "The request to the assistant, in the person's language, built from the plan."
+  (if (> (count (or-else state.plan.later [])) 0)
+    (t "changes.askKeep"
+       {:message state.plan.of.message
+        :n state.plan.of.number
+        :later (join "; " (map (fn [c] (t "changes.askLater" {:n c.number :message c.message})) state.plan.later))})
+    (t "changes.askUndo" {:message state.plan.of.message :n state.plan.of.number})))
 
 (defcomputed extras "What the change adds beside its files: its assets, then its steps that run once."
   (concat (map (fn [a] (if (= a.removed true) (t "changes.removed" {:name a.name}) a.name))
@@ -98,6 +140,9 @@
   (set "state.file" "")
   (set "state.text" nil)
   (set "state.source" nil)
+  (set "state.plan" nil)
+  (set "state.keepPlan" nil)
+  (set "state.asked" false)
   (loadChange))
 
 (defn selectProposal "Shows a proposal." [id] (selectChange {:proposal id}))
@@ -112,10 +157,23 @@
           :then loaded
           :onError failed)))
 
-(defn loaded "Shows the file shown before, if the change has it, or its first." []
+(defn loaded "Shows the file shown before, if the change has it, or its first; for a commit, what undoing it takes." []
   (openFile (if (some (fn [f] (= (:file f) state.file)) state.view.files)
               state.file
-              (or (:file (first state.view.files)) ""))))
+              (or (:file (first state.view.files)) "")))
+  (planUndo))
+
+(defn planUndo "Asks the host what undoing the commit shown would do: nothing changes until the person chooses." []
+  (when (and (some? state.view) (= state.view.kind "commit") (> state.view.revision 0))
+    (call "changes.undoPlan" :with {:commit state.view.commit} :into "state.plan" :then planned :onError ignored)))
+
+(defn planned "When later changes were built on it, asks too whether they can stay as they are." []
+  (if (= state.plan.outcome "choose")
+    (call "changes.undoPlan"
+          :with {:commit state.view.commit :keep "all"}
+          :into "state.keepPlan"
+          :onError ignored)
+    (set "state.keepPlan" nil)))
 
 (defn openFile "Asks the host for one file's texts, before and after." [file]
   (set "state.file" file)
@@ -149,8 +207,8 @@
   (set "state.message" (or (:error state.source) "")))
 
 (defn showForScenario
-  "For scenarios, in the host's place: event.list, event.selected, event.view, event.text, and event.source, what
-  changes.source answers, for the Source page."
+  "For scenarios, in the host's place: event.list (with canAsk), event.selected, event.view, event.text, event.source,
+  what changes.source answers, for the Source page, and event.plan and event.keepPlan, what changes.undoPlan answers."
   []
   (set "state.selectionCount" (or event.list.selectionCount 0))
   (set "state.sourceCount" (or event.list.sourceCount 0))
@@ -159,7 +217,10 @@
   (set "state.view" event.view)
   (set "state.text" event.text)
   (set "state.file" event.text.file)
-  (set "state.source" event.source))
+  (set "state.source" event.source)
+  (set "state.plan" event.plan)
+  (set "state.keepPlan" event.keepPlan)
+  (set "state.asked" false))
 
 (defn answered "Says what the host answered went wrong, if anything; then looks again." [result]
   (set "state.message" (or (:error result) ""))
@@ -185,8 +246,34 @@
   (set "state.closed" true)
   (refreshChanges))
 
+(defn undone "Says what the host answered went wrong, if anything; then looks again, and plans the undo again." [result]
+  (set "state.plan" nil)
+  (set "state.keepPlan" nil)
+  (answered result)
+  (planUndo))
+
 (defn undoChange "Undoes the commit shown, keeping everything after it, as a new commit by the person." []
-  (call "changes.undo" :with {:commit state.view.commit} :then answered :onError ignored))
+  (call "changes.undo" :with {:commit state.view.commit} :then undone :onError ignored))
+
+(defn undoDropping "Undoes the commit shown and takes out the later changes built on it, as the plan showed them." []
+  (call "changes.undo"
+        :with {:commit state.view.commit :drop "all" :head state.plan.head}
+        :then undone
+        :onError ignored))
+
+(defn undoLeaving "Undoes the rest of the commit shown, and leaves the later changes built on it as the plan showed." []
+  (call "changes.undo"
+        :with {:commit state.view.commit :keep "all" :head state.plan.head}
+        :then undone
+        :onError ignored))
+
+(defn askAssistant "Asks the app's assistant to undo the commit shown and keep what was built on it: it proposes." []
+  (call "changes.askUndo" :with {:commit state.view.commit :text computed.askText}
+    :then assistantAsked :onError ignored))
+
+(defn assistantAsked "Says the assistant was asked, or what the host answered went wrong." [result]
+  (set "state.message" (or (:error result) ""))
+  (set "state.asked" (nil? (:error result))))
 
 (defpart host "The actions the host and scenarios run by name."
   :actions {:changes.refresh [{:lisp refreshChanges}]
@@ -198,7 +285,11 @@
             :changes.preview [{:lisp previewChange}]
             :changes.accept [{:lisp acceptChange}]
             :changes.reject [{:lisp rejectChange}]
-            :changes.undo [{:lisp undoChange}]})
+            :changes.undo [{:lisp undoChange}]
+            :changes.planUndo [{:lisp planUndo}]
+            :changes.undoDropping [{:lisp undoDropping}]
+            :changes.undoLeaving [{:lisp undoLeaving}]
+            :changes.askUndo [{:lisp askAssistant}]})
 
 ;;; The look
 
@@ -521,6 +612,83 @@
        :textColor @c.warning
        :height 36)))
 
+;;; Undoing an applied change: what it takes, before it happens
+
+(defview later-row "A later change built on the one to undo: its message, number, author and the parts it changed." [c]
+  `(node :id ~(str "changesUndoLater" c.number)
+     :height 40
+     :radius 8
+     :color @c.raised
+     :anchors {:left 0 :right 0}
+     (label :text ~c.message :textColor @c.text :anchors {:left 10 :right 10 :top 3} :height 18)
+     (label :text ~(str (t "changes.revision" {:n c.number}) " · " c.author " · " (join ", " (or-else c.parts [])))
+       :textColor @c.muted
+       :font small
+       :anchors {:left 10 :right 10 :top 21}
+       :height 16)))
+
+(defview undo-plan
+  "What undoing the applied change shown takes: why it can't be, or the later changes built on it; what stays as it is,
+  and what to look out for. Nothing while there is no plan."
+  []
+  `((label#changesUndoBlocked :when ~computed.undoBlocked
+      :wrap true
+      :text ~(t "changes.undoBlocked" {:reason state.plan.blocked})
+      :textColor @c.warning
+      :anchors {:left 0 :right 0}
+      :height 36)
+    (label#changesUndoLaterTitle :when ~computed.choosing
+      :text ~(t "changes.builtOn")
+      :font small
+      :textColor @c.muted
+      :height 20)
+    ~(repeat [c (if computed.choosing state.plan.later [])] (later-row c))
+    (label#changesUndoLaterMore :when ~(and computed.choosing (> (or-else state.plan.laterMore 0) 0))
+      :text ~(t "changes.laterMore" {:n state.plan.laterMore})
+      :font small
+      :textColor @c.muted
+      :height 18)
+    (label#changesUndoUntouched :when ~(and computed.undoDoable (> (or-else state.plan.untouched 0) 0))
+      :text ~(t "changes.untouched" {:n state.plan.untouched})
+      :font small
+      :textColor @c.muted
+      :height 18)
+    (label#changesUndoStateKept :when ~(and computed.undoDoable (> (count (or-else state.plan.state.kept [])) 0))
+      :text ~(t "changes.stateKept")
+      :font small
+      :textColor @c.muted
+      :height 18)
+    ~(repeat [w (if computed.undoDoable (or-else state.plan.warnings []) []) :index index]
+      `(label :id ~(str "changesUndoWarning" index) :text ~w :textColor @c.warning :font small :height 18))
+    (label#changesUndoAsked :when ~state.asked
+      :wrap true
+      :text ~(t "changes.asked")
+      :font small
+      :textColor @c.muted
+      :anchors {:left 0 :right 0}
+      :height 18)))
+
+(defview leave-button "Undo the rest and leave the later changes: offered while choosing, shown off if it can't be." []
+  `(node#changesUndoLeaving :when ~computed.choosing
+     :role button
+     :focusable true
+     :cursor hand
+     :height 32
+     :radius 8
+     :color @c.raised
+     :borderWidth 1
+     :borderColor @c.border
+     :label ~(t "changes.undoLeaving")
+     :disabled ~computed.leaveBlocked
+     :focused {:borderColor @c.accent :borderWidth 1}
+     :onClick undoLeaving
+     :width 230
+     (label :text ~(t "changes.undoLeaving")
+       :textColor ~(if computed.leaveBlocked "@c.muted" "@c.text")
+       :anchors {:left 10 :right 10 :top 7}
+       :height 18
+       :align center)))
+
 ;;; Deciding
 
 (defview action-button "A button that decides: its text from a key, shown while `shown`."
@@ -545,7 +713,10 @@
        :height 18
        :align center)))
 
-(defview actions "Why, Preview, Reject and Accept for a proposal; Undo for a commit after the first." []
+(defview actions
+  "Why, Preview, Reject and Accept for a proposal; Undo for a commit after the first, or, when later changes were built
+  on it, the choices of what becomes of them."
+  []
   `(row#changesActions
      :when ~(or computed.open (and (some? state.view) (= state.view.kind "commit") (> state.view.revision 0)))
      :gap 8
@@ -582,7 +753,10 @@
          :align center))
      ~(action-button "changesReject" 96 'computed.open false "changes.reject" "rejectChange")
      ~(action-button "changesAccept" 96 'computed.canAccept true "changes.accept" "acceptChange")
-     ~(action-button "changesUndo" 170 'computed.decided false "changes.undo" "undoChange")))
+     ~(action-button "changesUndo" 170 'computed.canUndo false "changes.undo" "undoChange")
+     ~(action-button "changesUndoDropping" 240 'computed.choosing false "changes.undoDropping" "undoDropping")
+     ~(leave-button)
+     ~(action-button "changesAskUndo" 260 'computed.canAsk false "changes.askAssistant" "askAssistant")))
 
 ;;; The window
 
@@ -606,6 +780,7 @@
         (row#changesBody :when ~(some? state.view) :grow 1 :gap 12
           ~(files)
           ~(pane))
+        ~@(undo-plan)
         (label#changesMessage :when ~(not= state.message "")
           :wrap true
           :text ~state.message

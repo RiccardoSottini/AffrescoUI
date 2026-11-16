@@ -33,4 +33,16 @@
                 :changes.sourcePreviewed "As proposal #{n} shows it, while it is previewed."
                 :changes.lastChanged "Last changed in #{number} by {author}"
                 :changes.showChange "Show that change"
-                :changes.line "line {line}"}}}
+                :changes.line "line {line}"
+                :changes.builtOn "Built on this change"
+                :changes.laterMore "and {n} more"
+                :changes.untouched "{n, plural, one {# later change stays as it is} other {# later changes stay as they are}}"
+                :changes.stateKept "Data changed since stays as it is"
+                :changes.undoBlocked "This change cannot be undone: {reason}"
+                :changes.undoDropping "Undo, and take these out too"
+                :changes.undoLeaving "Undo the rest, leave these"
+                :changes.askAssistant "Ask the assistant to keep them"
+                :changes.asked "The assistant was asked. What it proposes will wait for your review on the left."
+                :changes.askLater "revision {n}, \"{message}\""
+                :changes.askKeep "Undo \"{message}\" (revision {n}) and keep what later changes built on it: {later}. Look at the plan first, then propose one change."
+                :changes.askUndo "Undo \"{message}\" (revision {n}) and keep what later changes built on it. Look at the plan first, then propose one change."}}}

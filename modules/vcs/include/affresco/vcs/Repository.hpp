@@ -151,6 +151,19 @@ public:
 	[[nodiscard]] CommitInfo resolve(const json& revision) const override { return info(find(revision)); }
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
 	[[nodiscard]] json revertRevision(const json& revision, std::string_view author) const override;
+	/// @copydoc VersionControl::undoPlan
+	/// A three-way merge by node id (detail::merge()) of the commit's document, main's head and the commit's first
+	/// parent's: what no later commit changed is undone, the rest is a conflict to choose for (VERSION_CONTROL.md,
+	/// "Undo that keeps what came later"). Only a change to a model is never undone this way.
+	[[nodiscard]] UndoPlan undoPlan(const json& revision, std::string_view author,
+	                                const UndoOptions& options = {}) const override;
+	/// @copydoc VersionControl::undoRevision
+	/// The revision has a "parent" (main's head) and an "undo" mark, `{"of", "drop", "then"}`, which commit() and
+	/// submit() check against the undo worked out again (checkUndo()). It isn't judged by the rules here: the call
+	/// that lands it is. Errors start with "revert:": the plan's blocked text, the conflicts left to choose, or "main
+	/// moved since you looked" when the choices were made on another head.
+	[[nodiscard]] json undoRevision(const json& revision, std::string_view author,
+	                                const UndoOptions& options = {}) const override;
 	[[nodiscard]] json diff(const json& from, const json& to) const override;
 	[[nodiscard]] json impact(const json& from, const json& to) const override;
 	[[nodiscard]] CommitInfo blame(std::string_view target) const override;
@@ -164,6 +177,12 @@ public:
 	void endPreview() override;
 	[[nodiscard]] std::optional<int> previewing() const override { return previewing_; }
 	[[nodiscard]] bool mayReview(std::string_view author) const override;
+	/// @brief Tells whether an author's undo that takes out or rebuilds later changes lands without a proposal: a
+	/// declared reviewer's, or the person's where the screen declares no permissions (there everyone may review,
+	/// but an agent's such undo is still the person's choice).
+	/// @param author The undo's author.
+	/// @return true if it lands as its rules allow.
+	[[nodiscard]] bool mayTakeOut(std::string_view author) const;
 	void setMode(Mode mode) override;
 	/// @brief Sets the mode until the program quits, without keeping it in the history: what a host's command line
 	/// asks for. The history keeps the mode a reviewer last chose (setMode()), which the next start uses.
@@ -263,6 +282,9 @@ private:
 		json stateAfter;
 		json run; ///< The steps it runs once when it lands on main (the revision's "run"), or null; the id covers it.
 		bool ownInput = false; ///< The person's own input made it (commitOwnInput()); the id covers it.
+		/// What it undid, when it is an undo (undoRevision()): `{"of", "drop", "then"}`, or null. The id covers it
+		/// when present. It describes, it never authorises: no rule reads it.
+		json undo;
 	};
 
 	/// @brief An open proposal: a branch from `base` to `head`.
@@ -288,6 +310,7 @@ private:
 		/// recorded when the proposal rebases: unlike conflicts, they never block it.
 		json leftOut = json::array();
 		bool personOnly = false; ///< Opened for only the person to accept (MergeRequest::personOnly).
+		json undo; ///< Its commit's undo mark (Commit::undo), when it is an undo waiting for review; else null.
 	};
 
 	/// @brief Asset bytes a revision brings, kept in blobs_ only while it is checked: unless keep() is called, they
@@ -402,17 +425,94 @@ private:
 	/// @param before The live state before it.
 	/// @param after The live state after it.
 	static void recordStateChange(Commit& commit, const json& before, const json& after);
-	/// @brief What undoes a commit's change to the live state, if the parts it changed are still as it left them.
-	/// @param target The commit.
-	/// @return JSON Patch on "/state" (empty if it changed none, or none this run).
-	/// @throws DocumentError If a part changed since (a conflict).
-	[[nodiscard]] json stateRevert(const Commit& target) const;
-	/// @brief Checks that what a revert undoes in the document is still as the commit left it.
-	/// @param target The commit.
-	/// @param then Its document.
-	/// @param patch The revert's document operations.
-	/// @throws DocumentError If a part changed since (a conflict).
-	void checkDocumentRevert(const Commit& target, const json& then, const json& patch) const;
+	/* Undo that keeps what came later (RepositoryUndo.cpp) */
+
+	/// @brief What working out an undo gives: the plan, and what the revision needs.
+	struct UndoWork;
+	/// @brief Works out an undo: the plan, and the patch when it can be done (VERSION_CONTROL.md, "Undo that keeps
+	/// what came later"). Changes nothing.
+	/// @param revision The commit to undo.
+	/// @param author Who would undo it.
+	/// @param options The choices.
+	/// @param judged true to judge it as undoPlan() does (the format's rules, the deny rules, the open proposals);
+	/// false for undoRevision() and checkUndo(), whose revision the call that lands it judges.
+	/// @return The work.
+	/// @throws DocumentError If there is no such commit.
+	[[nodiscard]] UndoWork workOutUndo(const json& revision, std::string_view author, const UndoOptions& options,
+	                                   bool judged) const;
+	/// @brief The newest commit after one on main that changed a path, or what holds it, or something inside it.
+	/// @param pointer The path (a JSON Pointer).
+	/// @param target The commit on main to stop at.
+	/// @return Its number, or 0 if none did.
+	[[nodiscard]] int newestChange(const std::string& pointer, const Commit& target) const;
+	/// @brief Sorts the merge's conflicts into the plan's: gone, or one to choose for.
+	/// @param work The work so far.
+	/// @param conflicts The merge's conflicts.
+	static void sortConflicts(UndoWork& work, const json& conflicts);
+	/// @brief Finds the later commits that changed each conflict, walking main back from its head to the commit
+	/// undone once (at most maxUndoWalk commits, at most maxUndoListed conflicts), and fills the plan's "later",
+	/// "untouched" and each conflict's "commits".
+	/// @param work The work so far.
+	void traceLater(UndoWork& work) const;
+	/// @brief Fills the plan's "later" from the later commits traceLater() found (at most maxUndoListed).
+	/// @param work The work so far.
+	void listLater(UndoWork& work) const;
+	/// @brief Sets each conflict's choice from the options, and the plan's outcome.
+	/// @param work The work so far.
+	/// @param options The choices.
+	static void chooseConflicts(UndoWork& work, const UndoOptions& options);
+	/// @brief Adds the undo of the commit's change to the live state, when every part it changed is as it left them
+	/// (else they are all kept), to the patch, and lists them in the plan.
+	/// @param work The work so far.
+	void undoState(UndoWork& work) const;
+	/// @brief Judges the undo as undoPlan() does: the format's rules and the deny rules for the author; fills the
+	/// plan's changes, impact, warnings and open proposals it would make conflict.
+	/// @param work The work, its outcome "clean" or "ready".
+	/// @param author Who would undo it.
+	void judgeUndo(UndoWork& work, std::string_view author) const;
+	/// @brief The commit numbers later commits changed a conflict in, for messages.
+	/// @param work The work.
+	/// @param path The conflict's path.
+	/// @return Its numbers, oldest first (empty if it wasn't traced).
+	[[nodiscard]] static std::vector<int> laterNumbers(const UndoWork& work, const std::string& path);
+	/// @brief The error of an undo with conflicts nobody chose for: up to 4 of them, with the later revisions.
+	/// @param work The work, its outcome "choose".
+	/// @param undone The commit undone, described.
+	/// @return The error's text.
+	[[nodiscard]] static std::string openConflicts(const UndoWork& work, const std::string& undone);
+	/// @brief The undo's message: the person's, or `Revert "<message>"` and the later revisions it drops.
+	/// @param work The work.
+	/// @param options The choices.
+	/// @return The message.
+	[[nodiscard]] static std::string undoMessage(const UndoWork& work, const UndoOptions& options);
+	/// @brief Checks a revision that carries an undo mark: only the keys undoRevision() writes, and a patch that is the
+	/// undo of the commit it names as main is now, with the dropped paths it names, then its "then" operations.
+	/// @param revision The revision, an object with "undo".
+	/// @param author Its author.
+	/// @throws DocumentError `revision.undo: ...` if not.
+	void checkUndo(const json& revision, const std::string& author) const;
+	/// @brief Checks the shape of an undo mark: `{"of": <64 hex digits>, "drop": [paths], "then": <whole number>}`.
+	/// @param mark The mark.
+	/// @param where Where it is, for the error.
+	/// @throws DocumentError If it isn't one.
+	static void checkUndoMark(const json& mark, const std::string& where);
+	/// @brief Tells whether an undo mark takes out what later changes built, or rebuilds one: then an author who may
+	/// not take it out (mayTakeOut()) only proposes it, and it is never remembered.
+	/// @param mark The mark, or null.
+	/// @return true if so.
+	[[nodiscard]] static bool undoNeedsReview(const json& mark);
+	/// @brief Describes an undo waiting for review: never remembered, and its reason says what it takes out
+	/// (undoNeedsReview()). Changes nothing for any other proposal.
+	/// @param proposal The proposal, its undo mark set.
+	static void describeUndoProposal(Proposal& proposal);
+	/// @brief Operations as lines for a reviewer, as proposals show them.
+	/// @param patch The operations.
+	/// @return One line each.
+	[[nodiscard]] static std::vector<std::string> changeLines(const json& patch);
+	/// Most conflicts and later commits an undo's plan lists; the rest are counted.
+	static constexpr std::size_t maxUndoListed = 64;
+	/// Most commits an undo's plan walks back through to find who built on what it undoes.
+	static constexpr std::size_t maxUndoWalk = 65536;
 	/// @brief Describes a commit.
 	/// @param commit The commit.
 	/// @return Its public description.
@@ -837,7 +937,7 @@ private:
 	Mode keptMode_ = Mode::Default;     ///< The mode the history keeps: the one a reviewer last chose (setMode()).
 	std::vector<Grant> grants_;         ///< "Don't ask again" rules.
 	bool importing_ = false;            ///< Commits are announced once the whole change set is in.
-	bool ownInput_ = false;             ///< The revision being prepared is the person's own (commitOwnInput()).
+	mutable bool ownInput_ = false;     ///< The revision being prepared is the person's own (commitOwnInput()).
 	std::vector<std::string> imported_; ///< The change sets applied, by id (hasImported()), oldest first.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
 	Roles roles_;                                   ///< Who plays which role, for this run (never kept in the history).

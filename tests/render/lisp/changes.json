@@ -204,6 +204,328 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "changes-undo-choose",
+			"screen": "changes.screen.lisp",
+			"note": "Undoing an applied change that two later changes were built on: the host's plan lists them, and the three choices replace the Undo button. The same pictures as scenarios/changes.json, on the window's Lisp version.",
+			"steps": [
+				{
+					"action": "changes.show",
+					"event": {
+						"list": {
+							"selectionCount": 0,
+							"canAsk": true,
+							"proposals": [],
+							"history": [
+								{
+									"number": 5,
+									"id": "c5",
+									"author": "agent/assistant",
+									"message": "Colour the cards that are late"
+								},
+								{
+									"number": 4,
+									"id": "c4",
+									"author": "studio",
+									"message": "Show who owns a card"
+								},
+								{
+									"number": 3,
+									"id": "c3",
+									"author": "studio",
+									"message": "Make the cards larger"
+								},
+								{
+									"number": 0,
+									"id": "c0",
+									"author": "file",
+									"message": "original"
+								}
+							]
+						},
+						"selected": {
+							"to": "c3"
+						},
+						"view": {
+							"kind": "commit",
+							"commit": "c3",
+							"revision": 3,
+							"author": "studio",
+							"message": "Make the cards larger",
+							"head": "c3",
+							"notation": "json",
+							"files": [
+								{
+									"file": "board.json",
+									"added": 1,
+									"removed": 1
+								}
+							],
+							"assets": []
+						},
+						"text": {
+							"file": "board.json",
+							"added": 1,
+							"removed": 1,
+							"before": "{\n\t\"width\": 200\n}\n",
+							"after": "{\n\t\"width\": 240\n}\n"
+						},
+						"plan": {
+							"of": {
+								"number": 3,
+								"id": "c3",
+								"short": "c3",
+								"author": "studio",
+								"message": "Make the cards larger"
+							},
+							"head": "c5",
+							"outcome": "choose",
+							"blocked": "",
+							"untouched": 1,
+							"later": [
+								{
+									"number": 4,
+									"id": "c4",
+									"short": "c4",
+									"author": "studio",
+									"message": "Show who owns a card",
+									"parts": [
+										"/components/card/node/children"
+									]
+								},
+								{
+									"number": 5,
+									"id": "c5",
+									"short": "c5",
+									"author": "agent/assistant",
+									"message": "Colour the cards that are late",
+									"parts": [
+										"/components/card/node/width",
+										"/styles/late"
+									]
+								}
+							],
+							"laterMore": 0,
+							"conflicts": [
+								{
+									"path": "/components/card/node/children",
+									"reason": "changed again since",
+									"then": null,
+									"now": null,
+									"before": null,
+									"commits": [
+										4
+									],
+									"choice": null
+								},
+								{
+									"path": "/components/card/node/width",
+									"reason": "changed again since",
+									"then": 240,
+									"now": 260,
+									"before": 200,
+									"commits": [
+										5
+									],
+									"choice": null
+								}
+							],
+							"conflictsMore": 0,
+							"gone": [],
+							"state": {
+								"undone": [],
+								"kept": []
+							},
+							"changes": [],
+							"impact": null,
+							"proposals": [],
+							"warnings": []
+						},
+						"keepPlan": {
+							"outcome": "ready"
+						}
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndoLaterTitle",
+						"text": "Built on this change"
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndoLater4",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndoLater5",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndoUntouched",
+						"text": "1 later change stays as it is"
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndo",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndoDropping",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndoLeaving",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesAskUndo",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"image": "choose"
+					}
+				}
+			]
+		},
+		{
+			"name": "changes-undo-blocked",
+			"screen": "changes.screen.lisp",
+			"note": "An applied change that can't be undone: the reason in place of the Undo button, and the request to the assistant. The same pictures as scenarios/changes.json, on the window's Lisp version.",
+			"steps": [
+				{
+					"action": "changes.show",
+					"event": {
+						"list": {
+							"selectionCount": 0,
+							"canAsk": true,
+							"proposals": [],
+							"history": [
+								{
+									"number": 5,
+									"id": "c5",
+									"author": "agent/assistant",
+									"message": "Colour the cards that are late"
+								},
+								{
+									"number": 4,
+									"id": "c4",
+									"author": "studio",
+									"message": "Show who owns a card"
+								},
+								{
+									"number": 3,
+									"id": "c3",
+									"author": "studio",
+									"message": "Make the cards larger"
+								},
+								{
+									"number": 0,
+									"id": "c0",
+									"author": "file",
+									"message": "original"
+								}
+							]
+						},
+						"selected": {
+							"to": "c3"
+						},
+						"view": {
+							"kind": "commit",
+							"commit": "c3",
+							"revision": 3,
+							"author": "studio",
+							"message": "Make the cards larger",
+							"head": "c3",
+							"notation": "json",
+							"files": [
+								{
+									"file": "board.json",
+									"added": 1,
+									"removed": 1
+								}
+							],
+							"assets": []
+						},
+						"text": {
+							"file": "board.json",
+							"added": 1,
+							"removed": 1,
+							"before": "{\n\t\"width\": 200\n}\n",
+							"after": "{\n\t\"width\": 240\n}\n"
+						},
+						"plan": {
+							"of": {
+								"number": 3,
+								"id": "c3",
+								"short": "c3",
+								"author": "studio",
+								"message": "Make the cards larger"
+							},
+							"head": "c5",
+							"outcome": "blocked",
+							"blocked": "a later change removed what it changed",
+							"untouched": 0,
+							"later": [],
+							"laterMore": 0,
+							"conflicts": [],
+							"conflictsMore": 0,
+							"gone": [],
+							"state": {
+								"undone": [],
+								"kept": []
+							},
+							"changes": [],
+							"impact": null,
+							"proposals": [],
+							"warnings": []
+						}
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndoBlocked",
+						"text": "This change cannot be undone: a later change removed what it changed"
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndo",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesUndoDropping",
+						"exists": false
+					}
+				},
+				{
+					"expect": {
+						"node": "#changesAskUndo",
+						"exists": true
+					}
+				},
+				{
+					"expect": {
+						"image": "blocked"
+					}
+				}
+			]
 		}
 	]
 }

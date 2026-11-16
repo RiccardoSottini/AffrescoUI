@@ -521,7 +521,11 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"stop", "", "", "steps"},
     {"preview", "",
 	 "Review and history, e.g. `{ \"accept\": \"{{proposals[0].id}}\", \"head\": \"{{proposals[0].head}}\" }` "
-	 "(`accept` names the head the user reviewed; refused if the proposal moved since)",
+	 "(`accept` names the head the user reviewed; refused if the proposal moved since). `revert` undoes an earlier "
+	 "commit and keeps the later ones; where a later change conflicts, it carries the person's choice: "
+	 "`{ \"revert\": \"{{c.id}}\", \"drop\": \"all\", \"head\": \"{{state.plan.head}}\" }`, `drop` (those later "
+	 "changes are taken out too) and `keep` (they stay, and that part is not undone) each a list of conflict paths or "
+	 "`\"all\"`, `head` the head of main the plan was worked out on (refused if main moved since)",
 	 "steps"},
     {"endPreview", R"json({"const": true})json", "", "steps"},
     {"accept", "", "", "steps"},
@@ -529,6 +533,11 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"restore", "", "", "steps"},
     {"revert", "", "", "steps"},
     {"undo", R"json({"const": true})json", "", "steps"},
+    {"undoPlan", "",
+	 R"(`{ "undoPlan": "{{c.id}}", "into": "state.plan" }`: what undoing that commit would do, without doing it )"
+	 R"((`of`, `head`, `outcome`, `conflicts`, `later`, `state`, ...: see "Live protocol"), from any handler; `drop` )"
+	 R"(and `keep` ask what that choice would do; `then` gets `result`, the plan, `onError` gets `error`)",
+	 "steps"},
     {"to", "", "", ""},
     {"value", "", "", ""},
     {"at", "", "", ""},
@@ -614,7 +623,11 @@ constexpr auto stepTable = std::to_array<KeyReference>({
     {"append", "", "", ""},
     {"confirm", R"json({"anyOf": [{"type": "boolean"}, {"type": "string"}]})json", "", ""},
     {"keep",
-	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "boolean"}, {"type": "string"}]})json",
+	 R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 10000}, {"type": "boolean"}, {"type": "string"},
+		{"type": "array", "maxItems": 256, "items": {"type": "string", "maxLength": 1024}}]})json",
+	 "", ""},
+    {"drop", R"json({"anyOf": [{"type": "string"}, {"type": "array", "maxItems": 256,
+		"items": {"type": "string", "maxLength": 1024}}]})json",
 	 "", ""},
     {"times", R"json({"anyOf": [{"type": "integer", "minimum": 1, "maximum": 1000}, {"type": "string"}]})json", "", ""},
     {"id", "", "", ""},

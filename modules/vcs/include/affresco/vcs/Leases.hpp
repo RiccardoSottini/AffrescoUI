@@ -121,6 +121,10 @@ public:
 		return base_.reviewLines(before, after);
 	}
 	/// @brief As the base rules.
+	[[nodiscard]] std::vector<std::string> brokenLines(const json& before, const json& after) const override {
+		return base_.brokenLines(before, after);
+	}
+	/// @brief As the base rules.
 	void nameNodes(const json& document, std::string_view pointer, bool replaces, json& value) const override {
 		base_.nameNodes(document, pointer, replaces, value);
 	}

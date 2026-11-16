@@ -6,6 +6,8 @@
 - expression: every {{...}} and every "$" operator in the templates and in SCREEN_FORMAT.md;
 - revision:   the revisions in the docs, and edits of every kind to the JSON template's nodes and state;
 - delta:      the JSON template and changed copies of it (keys reordered, a node added), with deltas to apply;
+- undo:       a few revisions on the JSON template and on a program, later ones changing again what earlier ones did,
+              and the undo of one of them with each kind of choice (drop, keep, then);
 - merge:      the JSON template as base, and two changed copies of it (a node added, a key added in the middle, a
               definition changed on both sides);
 - session:    every message a peer may send (the table in SCREEN_FORMAT.md, "Peers and the live protocol"), alone
@@ -258,6 +260,40 @@ def delta_seeds():
              for to, delta in zip([renamed, reordered, added, {}, [template], 1, template], deltas)]
     seeds += [compact({"from": [1, 2, 3], "to": [3, 1.0, -0.0], "delta": [{"op": "add", "path": "/0/x", "value": 1}]}),
               compact({"from": {"a/b": {"~": 1}, "c": [1]}, "to": {"c": [], "a/b": None}, "delta": []})]
+    return seeds
+
+
+def undo_seeds():
+    """The undo target's seeds (tests/fuzz/undo.cpp): revisions where later ones build on an earlier one, then the
+    undo of that one with no choice, with drop and keep (all, or the conflict's path) and with a node rebuilt."""
+    ids = template_ids()[:6]
+    first, second = ids[0], ids[1 % len(ids)]
+    added = {"type": "label", "id": "fuzzAdded", "text": "Added"}
+    template = [
+        [{"set": {f"#{first}/text": "One"}}, {"set": {f"#{second}/text": "Two"}}],
+        [{"set": {f"#{first}/text": "One"}}, {"set": {f"#{first}/text": "Again"}}],
+        [{"add": {f"#{first}/children/-": added}}, {"set": {"#fuzzAdded/text": "Renamed"}}],
+        [{"add": {f"#{first}/children/-": added}}, {"remove": ["#fuzzAdded"]}],
+        [{"set": {"/state/notice": "Hi"}}, {"set": {"/state/notice": "Bye"}}, {"set": {f"#{second}/text": "T"}}],
+        [{"set": {"/actions/fuzz": [{"log": "one"}]}}, {"set": {"/actions/fuzz": [{"log": "two"}]}}],
+    ]
+    at = "/program/app.lisp/"
+    program = [
+        [{"set": {at + "greeting": '(def greeting "A value." "Hi")'}},
+         {"set": {at + "greeting": '(def greeting "A value." "Hey")'}}],
+        [{"set": {at + "go/:title": "Run"}}, {"set": {at + "helper": '(defn helper "New." [n] (+ n 2))'}}],
+        [{"set": {at + "shout": '(defn shout "Loud." [s] (str s "!"))'}},
+         {"set": {at + "welcome": '(defn welcome "Uses it." [] (shout "Hi"))'}}],
+        [{"patch": [{"op": "remove", "path": at + "uses"}]}, {"set": {at + "greeting": '(def greeting "V." "X")'}}],
+    ]
+    rebuild = [{"op": "add", "path": f"#{first}/children/-", "value": {"type": "label", "id": "rebuilt"}}]
+    choices = [{}, {"drop": "all"}, {"keep": "all"}, {"drop": "all", "then": rebuild}, {"target": 2},
+               {"target": "HEAD"}, {"target": 0}, {"drop": ["#fuzzAdded"]}, {"keep": [f"#{first}"]},
+               {"drop": [at + "greeting"]}, {"then": [{"op": "remove", "path": "/nothing"}]}]
+    seeds = []
+    for revisions in template + program:
+        for choice in choices:
+            seeds.append(compact({"revisions": revisions, "target": 1, **choice}))
     return seeds
 
 
@@ -1132,6 +1168,7 @@ def main():
     write(out, "session", session_seeds(), words["session"])
     write(out, "delta", delta_seeds(), words["delta"])
     write(out, "merge", merge_seeds(), words["merge"])
+    write(out, "undo", undo_seeds(), words["revision"] + ["revisions", "target", "drop", "keep", "then", "all", "HEAD"])
     write(out, "policy", policy_seeds(),
           words["revision"] + ["budgets", "data", "read", "write", "never", "over", "role:"])
     write(out, "text", text_seeds(), words["text"])

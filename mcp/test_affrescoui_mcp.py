@@ -770,6 +770,98 @@ class Events(unittest.TestCase):
         self.assertEqual(host.take_events(), [])
 
 
+class Undo(unittest.TestCase):
+    """revert_revision: a dry run asks for the plan and changes nothing; the undo sends only the choices given."""
+
+    # A plan written by hand, in the shape of SCREEN_FORMAT.md's undoPlan
+    PLAN = {"of": {"number": 3, "id": "c0ffee00", "short": "c0ffee0", "author": "agent/a", "message": "Red title",
+                   "time": "2026-11-16T10:00:00Z"},
+            "head": "abc1234", "outcome": "choose", "blocked": "", "untouched": 2,
+            "later": [{"number": 5, "id": "d00d", "short": "d00d", "author": "user", "message": "Bigger title",
+                       "parts": ["#title/size"]}], "laterMore": 0,
+            "conflicts": [{"path": "#title/size", "reason": "changed after", "then": 20, "now": 28, "before": 16,
+                           "commits": [5], "choice": None}], "conflictsMore": 0,
+            "gone": [], "state": {"undone": [], "kept": ["/state/count"]}, "changes": [], "impact": None,
+            "proposals": [], "warnings": []}
+
+    class TableHost:
+        """Answers each message from a table by its type, and records what it was sent."""
+
+        def __init__(self, replies):
+            self.replies, self.asked = replies, []
+
+        def request(self, message):
+            self.asked.append(message)
+            return self.replies[message["type"]]
+
+    def server_with(self, replies):
+        server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
+        server.client = "agent/test"
+        server.host = self.TableHost(replies)
+        return server
+
+    def test_a_dry_run_sends_the_plan_request_with_the_choices_and_returns_the_plan(self):
+        server = self.server_with({"undoPlan": {"type": "undoPlan", "revision": 3, "plan": self.PLAN}})
+        text, failed = server.call_tool("revert_revision", {"revision": 3, "dry_run": True, "keep": ["#title/size"],
+                                                            "then": [{"op": "add", "path": "/state/x", "value": 1}]})
+        self.assertFalse(failed)
+        self.assertEqual(server.host.asked, [{"type": "undoPlan", "revision": 3, "keep": ["#title/size"],
+                                              "then": [{"op": "add", "path": "/state/x", "value": 1}]}])
+        plan = json.loads(text)
+        self.assertEqual(plan["outcome"], "choose")
+        self.assertEqual(plan["head"], "abc1234")
+        self.assertEqual([conflict["path"] for conflict in plan["conflicts"]], ["#title/size"])
+        self.assertEqual(plan["conflicts"][0]["now"], 28)
+        self.assertEqual(plan["of"], {"number": 3, "short": "c0ffee0", "message": "Red title"})
+        for left in ("changes", "impact", "proposals", "untouched", "gone", "laterMore", "conflictsMore"):
+            self.assertNotIn(left, plan)  # what the agent doesn't need, and counts of none more
+        self.assertNotIn("\n", text)  # compact
+
+    def test_a_dry_run_answered_otherwise_is_an_error(self):
+        server = self.server_with({"undoPlan": {"type": "rejected", "error": "no revision 99"}})
+        self.assertEqual(server.call_tool("revert_revision", {"revision": 99, "dry_run": True}),
+                         ("error: no revision 99", True))
+
+    def test_the_undo_sends_the_choices_given_and_no_other(self):
+        server = self.server_with({"revert": {"type": "applied", "revision": 7, "commit": "1234567890"}})
+        text, failed = server.call_tool("revert_revision", {"revision": 3, "drop": "all", "head": "abc1234"})
+        self.assertFalse(failed)
+        self.assertEqual(server.host.asked, [{"type": "revert", "revision": 3, "author": "agent/test", "drop": "all",
+                                              "head": "abc1234"}])
+        self.assertIn("revision 7", text)
+        server.call_tool("revert_revision", {"revision": 3, "dry_run": False})
+        self.assertEqual(server.host.asked[-1], {"type": "revert", "revision": 3, "author": "agent/test"})
+        server.call_tool("revert_revision", {"revision": 3, "keep": ["/a"], "then": [], "message": "Undo red"})
+        self.assertEqual(server.host.asked[-1], {"type": "revert", "revision": 3, "author": "agent/test",
+                                                 "keep": ["/a"], "then": [], "message": "Undo red"})
+
+    def test_a_proposed_undo_is_a_proposal_and_a_conflict_says_how_to_see_the_plan(self):
+        server = self.server_with({"revert": {"type": "proposed", "proposal": 4, "commit": "abcdef0123"}})
+        text, failed = server.call_tool("revert_revision", {"revision": 3, "drop": ["#title/size"]})
+        self.assertFalse(failed)
+        self.assertTrue(text.startswith("proposed as proposal 4"), text)
+        server = self.server_with({"revert": {"type": "rejected", "error": "AffrescoUI screen: revert: conflict: "
+                                                                          "#title/size changed after revision 3"}})
+        text, failed = server.call_tool("revert_revision", {"revision": 3})
+        self.assertTrue(failed)
+        self.assertIn("revert: conflict: #title/size", text)
+        self.assertIn("call revert_revision with dry_run=true to see what was built on it", text.lower())
+
+    def test_arguments_the_schema_refuses_never_reach_the_host(self):
+        server = self.server_with({})
+        for args, key in (({"revision": 3, "drop": "some"}, "drop"), ({"revision": 3, "drop": {"a": 1}}, "drop"),
+                          ({"revision": 3, "keep": ["/a", 2]}, "keep"), ({"revision": 3, "then": {"op": "add"}}, "then"),
+                          ({"revision": 3, "head": 5}, "head"), ({"revision": 3, "dry_run": "yes"}, "dry_run"),
+                          ({"revision": True}, "revision"), ({}, "revision")):
+            text, failed = server.call_tool("revert_revision", args)
+            self.assertTrue(failed, args)
+            self.assertTrue(text.startswith(f"error: {key}:"), text)
+        self.assertEqual(server.host.asked, [])
+        schema = next(tool for tool in mcp.TOOLS if tool["name"] == "revert_revision")["inputSchema"]
+        self.assertEqual(set(schema["properties"]), {"revision", "dry_run", "drop", "keep", "then", "head", "message"})
+        self.assertEqual(schema["required"], ["revision"])
+
+
 class Connecting(unittest.TestCase):
     """Calls on several threads at once share one connection to the host."""
 

@@ -96,6 +96,8 @@ json Repository::replay(Proposal& proposal, std::vector<Commit> commits) {
 
 // Rebased on main's head, with the new commit last; what was approved before no longer is
 void Repository::extend(Proposal& proposal, const json& revision, json changes) {
+	if(!proposal.undo.is_null())
+		fail("revision.proposal", "proposal #" + std::to_string(proposal.id) + " is an undo: it takes no more commits");
 	std::vector<Commit> commits = branchOf(proposal);
 	Commit added;
 	added.author = added.committer = proposal.author;
@@ -103,6 +105,8 @@ void Repository::extend(Proposal& proposal, const json& revision, json changes) 
 	added.time = detail::utcNow();
 	added.patch = std::move(changes);
 	added.run = runOf(revision);
+	added.undo = revision.value("undo", json());
+	const json undo = added.undo;
 	commits.push_back(std::move(added));
 	// accept() replays them all as one patch: refused now, not once a reviewer has looked at it
 	std::size_t operations = 0;
@@ -110,6 +114,8 @@ void Repository::extend(Proposal& proposal, const json& revision, json changes) 
 	detail::expectFewEnoughOperations(operations);
 
 	replay(proposal, std::move(commits));
+	proposal.undo = undo;
+	describeUndoProposal(proposal);
 	proposal.approvals.clear();
 	proposal.reviewedHeads.clear();
 }
@@ -157,6 +163,7 @@ std::vector<ProposalInfo> Repository::proposals() const {
 		info.person = p.person;
 		info.impact = p.impact;
 		info.leftOut = p.leftOut;
+		info.undo = p.undo;
 	}
 	return result;
 }
@@ -215,6 +222,7 @@ std::optional<std::string> Repository::accept(int proposal, const Approval& appr
 		merge.proposal = proposal;
 		merge.patch = taken.patch;
 		if(!taken.run.empty()) merge.run = taken.run; // run once, now, by the host (onCommit)
+		merge.undo = taken.undo;                      // what it undid, as its branch's commit says
 		merged = land(std::move(merge), std::move(next.document), std::move(next.state)).id;
 
 		if(approval.dontAskAgain) {
@@ -273,6 +281,12 @@ void Repository::endPreview() {
 	state_ = std::move(committedState_);
 	documentChanged();
 	onReviewChanged();
+}
+
+std::vector<std::string> Repository::changeLines(const json& patch) {
+	std::vector<std::string> lines;
+	for(const json& op : patch) lines.push_back(summary(op));
+	return lines;
 }
 
 } // namespace affresco::vcs

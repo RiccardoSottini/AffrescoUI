@@ -1,6 +1,7 @@
 /// @file
 /// @brief The "history" workloads: the Kanban template's version control after 10,000 small commits, in memory and
-/// read back from disk (VERSION_CONTROL.md, "History in proportion to the changes").
+/// read back from disk (VERSION_CONTROL.md, "History in proportion to the changes"), and undoing an early commit on
+/// it ("Undo that keeps what came later").
 
 #include "Bench.hpp"
 
@@ -8,7 +9,9 @@
 #include <affresco/vcs/Repository.hpp>
 
 #include <chrono>
+#include <cstddef>
 #include <cstdio>
+#include <filesystem>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -112,6 +115,78 @@ void readWorkloads(const std::shared_ptr<History>& history, std::vector<Workload
 	workloads.push_back(std::move(diff));
 }
 
+/// @brief An action of the bench's own: a top-level entry of the document, which the undo's merge takes as one part.
+/// @param name Its name.
+/// @param text What it logs.
+/// @return The revision that sets it.
+json setAction(const std::string& name, const std::string& text) {
+	return {{"author", "bench"}, {"message", "Set an action"}, {"set", {{"/actions/" + name, {{{"log", text}}}}}}};
+}
+
+/// @brief Commits a revision, or throws.
+/// @param history The history.
+/// @param revision The revision.
+/// @param what The workload, for the error.
+void commitOrThrow(vcs::Repository& history, const json& revision, const std::string& what) {
+	if(const auto error = history.commit(revision)) throw std::runtime_error(what + ": " + *error);
+}
+
+/// @brief "history/undo/independent/<n>": undoing revision 1, which set an action no later commit touched, on a
+/// history of n commits: worked out and committed. Between runs the undo is undone again, unmeasured, so each run
+/// undoes the same change; the history grows by two commits a run.
+/// @param document The Kanban template.
+/// @param commits n.
+/// @return The workload.
+Workload undoIndependentWorkload(const json& document, int commits) {
+	const std::string name = "history/undo/independent/" + std::to_string(commits);
+	const auto history = std::make_shared<History>(document, 0);
+	commitOrThrow(*history->history, setAction("benchUndo", "independent"), name);
+	history->commitRenames(commits - 1);
+	const auto undone = std::make_shared<bool>(false);
+	Workload workload{.name = name, .runs = 9};
+	workload.prepare = [history, undone] {
+		if(!*undone) return;
+		commitOrThrow(*history->history, history->history->revertRevision("HEAD", "bench"), "history/undo: redo");
+		*undone = false;
+	};
+	workload.step = [history, undone] {
+		commitOrThrow(*history->history, history->history->undoRevision(1, "bench", {}), "history/undo/independent");
+		*undone = true;
+	};
+	return workload;
+}
+
+/// How many parts the conflicting undo's commit changed that later commits changed again.
+constexpr int conflictingParts = 8;
+
+/// @brief "history/undoPlan/conflicts/10000": the plan of an undo of revision 1, 9,999 commits back, which set 8
+/// actions that later commits, spread over the history, set again: 8 conflicts, each traced to the commit that built
+/// on it.
+/// @param document The Kanban template.
+/// @return The workload.
+Workload undoPlanWorkload(const json& document) {
+	const std::string name = "history/undoPlan/conflicts/10000";
+	const auto history = std::make_shared<History>(document, 0);
+	vcs::Repository& repository = *history->history;
+	json first = {{"author", "bench"}, {"message", "Set the actions"}, {"set", json::object()}};
+	for(int part = 0; part < conflictingParts; ++part)
+		first["set"]["/actions/bench" + std::to_string(part)] = json::array({{{"log", "first"}}});
+	commitOrThrow(repository, first, name);
+	constexpr int spacing = largeHistory / (conflictingParts + 1);
+	for(int part = 0; part < conflictingParts; ++part) {
+		history->commitRenames(spacing - 1);
+		commitOrThrow(repository, setAction("bench" + std::to_string(part), "again"), name);
+	}
+	history->commitRenames(largeHistory - repository.head().number);
+	Workload workload{.name = name, .unit = "ms", .runs = 9};
+	workload.step = [history] {
+		const UndoPlan plan = history->history->undoPlan(1, "bench", {});
+		if(plan.outcome != "choose" || plan.conflicts.size() != static_cast<std::size_t>(conflictingParts))
+			throw std::logic_error("history/undoPlan: not 8 conflicts to choose for");
+	};
+	return workload;
+}
+
 /// @brief "history/load/10000": opening a folder that holds a history of 10,000 commits (written once, unmeasured,
 /// as one change set: one save instead of 10,000).
 /// @param document The Kanban template.
@@ -139,15 +214,26 @@ Workload loadWorkload(const json& document) {
 	return workload;
 }
 
+/// @brief The Kanban template's JSON document (the template the Launcher shows is its program, whose nodes the
+/// program builds, so a revision can't set them).
+/// @param context The context.
+/// @return The document.
+json kanbanDocument(const Context& context) {
+	return screenDocument(context.examples() / "flow/json/index.screen.json");
+}
+
 } // namespace
 
 std::vector<Workload> historyWorkloads(const Context& context) {
-	const json document = screenDocument(context.templateFolder("kanban") / "index.screen.json");
+	const json document = kanbanDocument(context);
 	const auto large = std::make_shared<History>(document, largeHistory); // the commit runs add to it: blame reads all
 	std::vector<Workload> workloads;
 	workloads.push_back(commitWorkload(std::make_shared<History>(document, 100), 100));
 	workloads.push_back(commitWorkload(large, largeHistory));
 	readWorkloads(large, workloads);
+	workloads.push_back(undoIndependentWorkload(document, 100));
+	workloads.push_back(undoIndependentWorkload(document, largeHistory));
+	workloads.push_back(undoPlanWorkload(document));
 	workloads.push_back(loadWorkload(document));
 	return workloads;
 }

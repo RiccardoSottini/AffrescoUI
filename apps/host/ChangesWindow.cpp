@@ -6,6 +6,7 @@
 
 #include <affresco/core/Log.hpp>
 #include <affresco/format/Locale.hpp>
+#include <affresco/vcs/Repository.hpp>
 
 #include <algorithm>
 #include <cstdint>
@@ -28,6 +29,17 @@ constexpr std::size_t mostSourceBytes = 512;
 
 /// The highest line an app may ask the Source page to mark (a definition's text is at most 16 KiB).
 constexpr std::int64_t mostSourceLine = 1'000'000;
+
+/// The longest request the window may send an app's assistant: a plan names at most 64 later changes, each with its
+/// message, far below this.
+constexpr std::size_t mostAskBytes = 32 * 1024;
+
+/// The action an app's assistant starts a request with (examples/shared/addons/assistant): what the host's `--ask`
+/// runs too.
+constexpr const char* assistantAction = "assistant.start";
+
+/// Who the window undoes as: the person's own channel, whose changes to a program's definitions are the person's.
+constexpr std::string_view undoAuthor = affresco::vcs::Repository::personChannel;
 
 /// @brief An error for the window to show.
 /// @param message What went wrong.
@@ -75,6 +87,30 @@ constexpr std::int64_t mostSourceLine = 1'000'000;
 	} catch(const affresco::DocumentError&) {
 		return nullptr; // the page shows the source without it
 	}
+}
+
+/// @brief The choices the window sends with an undo or its plan: only "drop", "keep" and "head" (a JSON Patch to
+/// apply after it, "then", is an agent's rebuild, never the window's).
+/// @param arguments The call's arguments.
+/// @param where Where they are, for errors ("changes.undo").
+/// @return The options; empty if it names none.
+/// @throws DocumentError If one is malformed, naming it.
+[[nodiscard]] affresco::UndoOptions choicesOf(const json& arguments, std::string_view where) {
+	json choices = json::object();
+	for(const char* key : {"drop", "keep", "head"})
+		if(const auto value = arguments.find(key); value != arguments.end()) choices[key] = *value;
+	return affresco::undoOptionsFrom(choices, where);
+}
+
+/// @brief The request an app's assistant is asked, if it is a text of 1 to mostAskBytes.
+/// @param arguments The call's arguments.
+/// @return `text`, or std::nullopt.
+[[nodiscard]] std::optional<std::string> askedTextOf(const json& arguments) {
+	const auto text = arguments.find("text");
+	if(text == arguments.end() || !text->is_string()) return std::nullopt;
+	const std::string& value = text->get_ref<const std::string&>();
+	if(value.empty() || value.size() > mostAskBytes) return std::nullopt;
+	return value;
 }
 
 } // namespace
@@ -128,7 +164,8 @@ struct ChangesWindow::Impl {
 	}
 
 	/// @brief What the window lists, and what it should show.
-	/// @return `{"selection", "selectionCount", "source", "sourceCount", "previewing", "proposals", "history"}`.
+	/// @return `{"selection", "selectionCount", "source", "sourceCount", "previewing", "proposals", "history",
+	/// "canAsk"}`.
 	[[nodiscard]] json list() const {
 		if(mainWindow.shouldClose() && window != nullptr) window->setShouldClose(true); // it goes with its app
 		json proposals = json::array();
@@ -148,7 +185,17 @@ struct ChangesWindow::Impl {
 		        {"sourceCount", sourceCount},
 		        {"previewing", previewed ? json(*previewed) : json()},
 		        {"proposals", std::move(proposals)},
-		        {"history", std::move(history)}};
+		        {"history", std::move(history)},
+		        {"canAsk", canAsk()}};
+	}
+
+	/// @brief Tells whether the app has an assistant to ask: an action assistantAction in its document, where the
+	/// app's own runAction finds it.
+	/// @return true if so.
+	[[nodiscard]] bool canAsk() const {
+		const json& document = screen.versions().document();
+		const auto actions = document.find("actions");
+		return actions != document.end() && actions->is_object() && actions->contains(assistantAction);
 	}
 
 	/// @brief Where a node is written, for the Source page: the app's document as it runs (a previewed proposal's,
@@ -172,14 +219,46 @@ struct ChangesWindow::Impl {
 		}
 	}
 
-	/// @brief Undoes an applied change, keeping everything after it, as a new commit by the person.
-	/// @param arguments `commit`.
+	/// @brief What undoing an applied change would do, as the person, worked out without changing anything.
+	/// @param arguments `commit`, and the choices made so far: `drop` and `keep` (choicesOf()).
+	/// @return The plan (toJson(UndoPlan)), or `{"error"}` for an unknown commit or a malformed choice.
+	[[nodiscard]] std::string planUndo(const json& arguments) const {
+		try {
+			const affresco::UndoOptions options = choicesOf(arguments, "changes.undoPlan");
+			const affresco::UndoPlan plan =
+			    screen.versions().undoPlan(arguments.value("commit", json()), undoAuthor, options);
+			return affresco::toJson(plan).dump(-1, ' ', false, json::error_handler_t::replace);
+		} catch(const affresco::DocumentError& error) {
+			return errorAnswer(error.what());
+		}
+	}
+
+	/// @brief Undoes an applied change, as a new commit by the person, keeping every later change but those the
+	/// choices take out.
+	/// @param arguments `commit`, and the choices made on its plan: `drop`, `keep` and `head` (choicesOf()). Without
+	/// them, a plain undo that keeps everything after it.
 	/// @return Why not, or nothing.
+	/// @throws DocumentError If it can't be undone as asked, or a choice is malformed.
 	[[nodiscard]] std::string undo(const json& arguments) const {
 		affresco::VersionControl& versions = screen.versions();
-		const json revision = versions.revertRevision(arguments.value("commit", json()), "person");
+		const affresco::UndoOptions options = choicesOf(arguments, "changes.undo");
+		const json revision = versions.undoRevision(arguments.value("commit", json()), undoAuthor, options);
 		const std::optional<std::string> refused = versions.commit(revision);
 		return refused.value_or("");
+	}
+
+	/// @brief Asks the app's own assistant to undo a change another way, in the person's name: the agents answer
+	/// with a proposal, which the person reviews like any other. Nothing is decided here.
+	/// @param arguments `text`, the request (askedTextOf()).
+	/// @return `{}`, or `{"error"}` without a text or without an assistant.
+	[[nodiscard]] std::string askAssistant(const json& arguments) const {
+		const std::optional<std::string> text = askedTextOf(arguments);
+		if(!text)
+			return errorAnswer("expected a request of 1 to " + std::to_string(mostAskBytes) +
+			                   " bytes for the assistant");
+		if(!canAsk()) return errorAnswer("this app has no assistant");
+		screen.runAction(assistantAction, mainWindow.root(), json{{"text", *text}}.dump());
+		return json::object().dump();
 	}
 
 	/// @brief Gives the window's screen what it calls. Each runs on the main thread, so it may use the app's screen;
@@ -214,6 +293,13 @@ struct ChangesWindow::Impl {
 			screen.rejectProposal(arguments.value("proposal", 0), arguments.value("reason", std::string()));
 			return json::object().dump();
 		});
+		registerUndoCalls();
+	}
+
+	/// @brief Gives the window's screen its undo calls: the plan, the undo as the person chose it, and the request to
+	/// the app's assistant. Errors are answers the window shows, never exceptions.
+	void registerUndoCalls() {
+		own->onCall("changes.undoPlan", [this](const std::string& text) { return planUndo(argumentsOf(text)); });
 		own->onCall("changes.undo", [this](const std::string& text) {
 			try {
 				const std::string refused = undo(argumentsOf(text));
@@ -222,6 +308,7 @@ struct ChangesWindow::Impl {
 				return errorAnswer(error.what());
 			}
 		});
+		own->onCall("changes.askUndo", [this](const std::string& text) { return askAssistant(argumentsOf(text)); });
 	}
 };
 

@@ -33,4 +33,16 @@
                 :changes.sourcePreviewed "Tel que la proposition #{n} le montre, pendant son aperçu."
                 :changes.lastChanged "Modifié pour la dernière fois dans #{number} par {author}"
                 :changes.showChange "Voir cette modification"
-                :changes.line "ligne {line}"}}}
+                :changes.line "ligne {line}"
+                :changes.builtOn "Fait à partir de cette modification"
+                :changes.laterMore "et {n} de plus"
+                :changes.untouched "{n, plural, one {# modification ultérieure reste telle quelle} other {# modifications ultérieures restent telles quelles}}"
+                :changes.stateKept "Les données modifiées depuis restent telles quelles"
+                :changes.undoBlocked "Cette modification ne peut pas être annulée : {reason}"
+                :changes.undoDropping "Annuler, et retirer celles-ci aussi"
+                :changes.undoLeaving "Annuler le reste, garder celles-ci"
+                :changes.askAssistant "Demander à l''assistant de les garder"
+                :changes.asked "L''assistant a été sollicité. Ce qu''il propose attendra votre revue à gauche."
+                :changes.askLater "révision {n}, « {message} »"
+                :changes.askKeep "Annulez « {message} » (révision {n}) et gardez ce que les modifications ultérieures ont fait à partir d''elle : {later}. Regardez d''abord le plan, puis proposez une seule modification."
+                :changes.askUndo "Annulez « {message} » (révision {n}) et gardez ce que les modifications ultérieures ont fait à partir d''elle. Regardez d''abord le plan, puis proposez une seule modification."}}}
