@@ -15,7 +15,7 @@ namespace affresco::vcs {
 
 /// @brief The install revision of a proven composition.
 /// @param name The feature.
-/// @param record Its record, with "bindings" and a passed "proof".
+/// @param record Its record, with "bindings" and a passed "proof"; the revision's record adds its "installed" digest.
 /// @param author Who submits it: "features".
 /// @param host The host document: a host with no "features" section gets one with the record.
 /// @return `{ "author", "message", "set": { "/features/<name>": record } }`, or `"/features": { name: record }`.
