@@ -33,4 +33,16 @@
                 :changes.sourcePreviewed "Tal como lo muestra la propuesta #{n}, mientras se previsualiza."
                 :changes.lastChanged "Cambiado por última vez en #{number} por {author}"
                 :changes.showChange "Ver ese cambio"
-                :changes.line "línea {line}"}}}
+                :changes.line "línea {line}"
+                :changes.builtOn "Hecho a partir de este cambio"
+                :changes.laterMore "y {n} más"
+                :changes.untouched "{n, plural, one {# cambio posterior queda como está} other {# cambios posteriores quedan como están}}"
+                :changes.stateKept "Los datos cambiados desde entonces quedan como están"
+                :changes.undoBlocked "Este cambio no se puede deshacer: {reason}"
+                :changes.undoDropping "Deshacer y quitar también estos"
+                :changes.undoLeaving "Deshacer el resto, dejar estos"
+                :changes.askAssistant "Pedir al asistente que los conserve"
+                :changes.asked "Se lo has pedido al asistente. Lo que proponga esperará tu revisión a la izquierda."
+                :changes.askLater "revisión {n}, «{message}»"
+                :changes.askKeep "Deshaz «{message}» (revisión {n}) y conserva lo que los cambios posteriores hicieron a partir de él: {later}. Mira primero el plan y luego propón un solo cambio."
+                :changes.askUndo "Deshaz «{message}» (revisión {n}) y conserva lo que los cambios posteriores hicieron a partir de él. Mira primero el plan y luego propón un solo cambio."}}}
