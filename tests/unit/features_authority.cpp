@@ -1,0 +1,273 @@
+/// @file
+/// @brief The authority of a feature's code: it writes only its own state and runs its own commands and what the app
+/// hands it, at run time too (Programs::checkStep()); what reaches a step from it is refused, naming the feature; and
+/// its entries' authors.
+
+#include "FeatureApp.hpp"
+
+#include <affresco/format/Rules.hpp>
+#include <affresco/lisp/Document.hpp>
+#include "Composition.hpp"
+
+#include <doctest/doctest.h>
+
+using affresco::RevisionStatus;
+using featureapp::App;
+using featureapp::app;
+using featureapp::json;
+using featureapp::record;
+using featureapp::wordCount;
+
+namespace {
+
+/// The feature's file, as the program that runs names it (lisp::effectiveProgram()).
+constexpr const char* featureFile = "features/wordCount/feature.lisp";
+
+/// What the run-time check says, the start of it.
+constexpr const char* ledHere = R"(the feature "wordCount" led here)";
+
+/// @brief An app whose own program holds the feature's file, as the program that runs names it: no composition
+/// judges it, so only the run-time check stands between its code and a step.
+/// @param flip The body of the feature's function.
+/// @return The document.
+json shipping(const std::string& flip) {
+	json document = app();
+	json definitions = wordCount(flip);
+	definitions.erase("wordCount-label");
+	definitions.erase("part.wordCount-views");
+	document["program"][featureFile] = definitions;
+	return document;
+}
+
+/// @brief Installs a feature whose function does something, by an agent, scanned or not.
+/// @param flip The function's body.
+/// @param scan Whether revisions are scanned.
+/// @return Whether the install was refused.
+bool installRefused(const std::string& flip, bool scan) {
+	App host(app(), scan);
+	const json revision = {
+	    {"author", "agent/x"}, {"message", "m"}, {"set", {{"/features/wordCount", record(wordCount(flip))}}}};
+	return host.repository.commit(revision).has_value();
+}
+
+/// @brief Runs a feature's function that does something, its file in the app's own program, and tells what was
+/// reported.
+/// @param flip The function's body.
+/// @param scan Whether revisions are scanned (nothing is revised: the same either way).
+/// @return The errors.
+std::vector<std::string> runShipped(const std::string& flip, bool scan) {
+	App host(shipping(flip), scan);
+	host.run("wordCount.toggle");
+	CHECK(host.state("secret") == "kept");
+	CHECK(host.state("text") == "one two three");
+	CHECK(host.hits == 0);
+	return host.errors;
+}
+
+/// @brief Tells whether one of some errors holds a text, and none a value.
+/// @param errors The errors.
+/// @param step The step named.
+/// @return true if the run-time check refused the step, naming the feature, its definition and the step.
+bool refusedAtRunTime(const std::vector<std::string>& errors, const std::string& step) {
+	return std::ranges::any_of(errors, [&](const std::string& error) {
+		return error.contains(ledHere) && error.contains("wordCount-flip") && error.contains("\"" + step + "\"") &&
+		       !error.contains("gone");
+	});
+}
+
+} // namespace
+
+TEST_CASE("features authority attack: a feature's code reaches only its own state, its commands and what it's handed") {
+	const std::vector<std::pair<std::string, std::string>> attacks = {
+	    {R"((set "state.secret" "gone"))", "set"}, // the host's state
+	    {R"((run "save"))", "run"},                // the host's action by name
+	    {R"((invoke "files.read"))", "invoke"},    // a service
+	    {R"((call "hit"))", "call"}};              // a control step
+	for(const bool scan : {true, false})           // "false": the static checks off
+		for(const auto& [flip, step] : attacks) {
+			CAPTURE(scan);
+			CAPTURE(flip);
+			CHECK(installRefused(flip, scan)); // the first line: composition leaves it out, the revision is refused
+			CHECK(refusedAtRunTime(runShipped(flip, scan), step)); // the second
+		}
+}
+
+TEST_CASE("features authority: the feature's own state and commands, and what the app hands it, run") {
+	for(const bool scan : {true, false}) {
+		CAPTURE(scan);
+		App host(shipping(R"((set "state.wordCount.characters" true) (run "app.save"))"), scan);
+		host.run("wordCount.toggle");
+		INFO(host.errors);
+		CHECK(host.state("wordCount")["characters"] == true);
+		CHECK(host.state("text") == "one two three"); // no wordCount.adapted.save: not composed, nothing handed
+		CHECK(std::ranges::any_of(host.errors, [](const std::string& error) {
+			return error.contains(R"(the app hands the feature "wordCount" no action "save")");
+		}));
+	}
+}
+
+TEST_CASE("features authority attack: advice on the person's command doesn't lend it the person's control step") {
+	for(const bool scan : {true, false}) {
+		CAPTURE(scan);
+		json document = app();
+		document["actions"]["save"] = json::parse(R"([{"call": "hit"}])");
+		App host(document, scan);
+		json definitions = wordCount();
+		definitions["wordCount-wrap"] = R"((defn wordCount-wrap "Wraps it." [proceed] (proceed)))";
+		definitions["advice save around wordCount-wrap"] = "(advice save :around wordCount-wrap)";
+		const json revision = {
+		    {"author", "agent/x"}, {"message", "m"}, {"set", {{"/features/wordCount", record(definitions)}}}};
+		// Advice on the person's action is the feature's offer to make: the second line holds whatever the first let in
+		if(host.repository.commit(revision)) continue;
+		host.run("save");
+		CHECK(host.hits == 0);
+		CHECK(host.reported(R"(the feature "wordCount" led here)"));
+		CHECK(host.reported("\"call\""));
+	}
+}
+
+TEST_CASE("features authority attack: the person's command calling a feature's function loses its control step") {
+	for(const bool scan : {true, false}) {
+		CAPTURE(scan);
+		App host(
+		    app({{"host.go", R"((defcommand host.go "The person's." :title "Go" [] (wordCount-flip) (call "hit")))"}}),
+		    scan);
+		host.set("/features/wordCount", record());
+		host.run("host.go");
+		INFO(host.errors);
+		CHECK(host.state("wordCount")["characters"] == true);
+		CHECK(host.hits == 0);
+		CHECK(host.reported(R"(the feature "wordCount" led here)"));
+		// Without the feature's function, the person's command runs its step
+		host.errors.clear();
+		App plain(app({{"host.go", R"((defcommand host.go "The person's." :title "Go" [] (call "hit")))"}}), scan);
+		plain.run("host.go");
+		CHECK(plain.hits == 1);
+	}
+}
+
+TEST_CASE("features authority attack: a feature shipped in the app's own file has a revision's authority") {
+	for(const bool scan : {true, false}) {
+		CAPTURE(scan);
+		json document = app();
+		document["actions"]["save"] = json::parse(R"([{"call": "hit"}])");
+		json definitions = wordCount();
+		definitions["wordCount-wrap"] = R"((defn wordCount-wrap "Wraps it." [proceed] (proceed)))";
+		definitions["advice save around wordCount-wrap"] = "(advice save :around wordCount-wrap)";
+		document["features"]["wordCount"] = record(definitions);
+		App host(document, scan);
+		REQUIRE(host.runtime->find("wordCount-label") != nullptr);
+		CHECK(host.repository.programAuthors()[featureFile]["wordCount-flip"] == "feature:wordCount");
+		host.run("save");
+		CHECK(host.hits == 0);
+		CHECK(host.reported(R"(the feature "wordCount" led here)"));
+	}
+}
+
+TEST_CASE("features authority: a feature's entries' authors, after an accepted install, a restore and in a preview") {
+	json document = app();
+	document["permissions"] = json::parse(R"({"allow": ["studio"], "reviewers": ["studio"]})");
+	App host(document);
+	// An agent's install, the person accepts it: the author is the agent, never the person
+	const json install = {{"author", "agent/x"}, {"message", "m"}, {"set", {{"/features/wordCount", record()}}}};
+	const auto proposed = host.repository.submit(install);
+	REQUIRE(proposed.status == RevisionStatus::Proposed);
+	REQUIRE_FALSE(
+	    host.repository.accept(proposed.proposal, {"user", host.repository.proposals()[0].head, false}).has_value());
+	json authors = host.repository.programAuthors();
+	CHECK(authors[featureFile]["wordCount-flip"] == "agent/x");
+	CHECK(authors["app.lisp"]["after-save"] == "file");
+	// An agent changes one definition; another's author stays
+	const json edit = {{"author", "agent/y"},
+	                   {"message", "m"},
+	                   {"set",
+	                    {{"/features/wordCount/provides/program/feature.lisp/wordCount-flip",
+	                      R"((defn wordCount-flip "Flips it twice." [] (toggle "state.wordCount.characters")))"}}}};
+	const auto edited = host.repository.submit(edit);
+	REQUIRE(edited.status == RevisionStatus::Proposed);
+	// In a preview, the proposal's entry is its author's
+	REQUIRE_FALSE(host.repository.preview(edited.proposal).has_value());
+	authors = host.repository.programAuthors();
+	CHECK(authors[featureFile]["wordCount-flip"] == "agent/y");
+	CHECK(authors[featureFile]["wordCount.toggle"] == "agent/x");
+	host.repository.endPreview();
+	// The person's restore of the app before the install, then of the install: never the person's
+	const auto installed = host.repository.head().number;
+	host.commit(host.repository.restoreRevision(installed - 1, "user"));
+	CHECK_FALSE(host.repository.programAuthors().contains(featureFile));
+	host.commit(host.repository.restoreRevision(installed, "user"));
+	authors = host.repository.programAuthors();
+	CHECK(authors[featureFile]["wordCount-flip"] != "user");
+	const std::string restored = authors[featureFile]["wordCount-flip"].get<std::string>();
+	CHECK((restored.starts_with("agent/") || restored == "feature:wordCount"));
+	for(const auto& [file, entries] : authors.items())
+		if(file.starts_with("features/"))
+			for(const auto& [name, author] : entries.items()) {
+				CAPTURE(name);
+				CHECK(author != "file");
+				CHECK(author != "user");
+			}
+}
+
+TEST_CASE("features authority: judging a revision on an app with eight features builds no section twice") {
+	json document = app();
+	for(int i = 0; i < 8; ++i) {
+		const std::string name = "count" + std::to_string(i);
+		json definitions = {
+		    {"state." + name, "(defstate " + name + R"( {:on false} "Its state."))"},
+		    {name + "-flip", "(defn " + name + R"(-flip "Flips it." [] (toggle "state.)" + name + R"(.on")))"}};
+		json feature = record(definitions);
+		feature["order"] = i;
+		feature.erase("needs");
+		feature.erase("bindings");
+		document["features"][name] = feature;
+	}
+	const std::size_t start = affresco::lisp::programBuilds();
+	REQUIRE(affresco::format::compose(document).problems.empty()); // builds each feature's program alone
+	App host(document);
+	const std::size_t opened = affresco::lisp::programBuilds() - start;
+	host.set("/program/app.lisp/after-save", R"((defhook after-save "Runs after a save, changed."))");
+	const std::size_t judged = affresco::lisp::programBuilds() - start - opened;
+	MESSAGE("builds to open the app: " << opened << "; to judge, commit and load one revision: " << judged);
+	// Opening builds the app's own section and each feature's alone, at most once each (an earlier test may have)
+	CHECK(opened <= 9);
+	// The revision: its own section after (the document's build), and the effective program before and after; each
+	// feature's alone and the section before stay kept
+	CHECK(judged <= 3);
+}
+
+TEST_CASE("features authority: an install, or switching it off, is judged as a change of the definitions") {
+	const affresco::format::Rules rules;
+	json hooked = wordCount();
+	hooked["add-hook after-save wordCount-flip"] = "(add-hook after-save wordCount-flip)";
+	const json before = app();
+	json after = before;
+	after["features"]["wordCount"] = record(hooked);
+	const auto holds = [](const std::vector<std::string>& lines, const std::string& text) {
+		return std::ranges::any_of(lines, [&](const std::string& line) { return line.contains(text); });
+	};
+	// A hook through a feature is always reviewed, whatever it meets
+	CHECK(holds(rules.reviewLines(before, after), "adds 'add-hook after-save wordCount-flip'"));
+	CHECK(holds(rules.behaviourLines(before, after),
+	            "adds the definition 'wordCount-flip' of " + std::string(featureFile)));
+	CHECK(rules.impact(before, after)["logic"] == 5);
+	json off = after;
+	off["features"]["wordCount"]["enabled"] = false;
+	CHECK(holds(rules.reviewLines(after, off), "removes 'add-hook after-save wordCount-flip'"));
+	CHECK(rules.impact(after, off)["logic"] == 5);
+	// Taking away what the app's own code calls is refused, as taking away a definition of its own
+	json calls = app({{"host.go", R"((defcommand host.go "The person's." :title "Go" [] (wordCount-flip)))"}});
+	calls["features"]["wordCount"] = record();
+	App host(calls);
+	const std::optional<std::string> removed =
+	    host.repository.commit({{"author", "agent/x"}, {"message", "m"}, {"remove", {"/features/wordCount"}}});
+	REQUIRE(removed.has_value());
+	CHECK(removed->contains(R"(the program no longer defines "wordCount-flip", which "host.go" uses)"));
+	// A definition named like a control step: a feature's names start with its own, so composition refuses it first
+	json named = wordCount();
+	named["accept"] = R"((defn accept "Named like a review step." [] 1))";
+	App plain(app());
+	CHECK(plain.repository
+	          .commit({{"author", "agent/x"}, {"message", "m"}, {"set", {{"/features/wordCount", record(named)}}}})
+	          .has_value());
+}

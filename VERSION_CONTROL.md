@@ -597,6 +597,11 @@ it, and `"file"` for what the file on disk had. Three things can't move a text t
   changed, the author is the first writer of that exact text on `main`.
 - **A preview**: what the proposal shown changes is its author's, for as long as it is shown.
 
+A feature's definitions are named as they run, `features/<name>/<file>` (`lisp::effectiveProgram`), and their author is whoever made
+the commit on `main` that last changed `/features/<name>/provides/program/<file>/<definition>`, or that installed the record, by the
+same three rules. A feature's entry is never `"file"` nor the person's: what the app's own file shipped, and what the person installed,
+restored or accepted, counts as `feature:<name>`.
+
 **Control steps in functions.** A revision can't add a way to run a control step, and a function counts as what it reaches: nothing runs
 but what a name reaches, and the language has no way to find a global from a value, so the build can say exactly which definitions reach a
 control or a review step. A `run` of a name written out (`(run "save")`) reaches what the run step finds by that name: the document's action,
@@ -644,6 +649,15 @@ live in its record, at `/features/<name>/provides/program/<file>/<definition>`, 
 edit to one is a revision of that path, blame says who wrote it, and undo takes it back, as for the record's other
 parts. Each composition builds the program again and checks it, so an edit that steps outside the feature's namespace
 or reaches past what it is given is refused like a new install.
+The program that runs is the screen's own, then the merged features' files (`lisp::effectiveProgram`): a feature switched off
+or removed is gone at the next version, with its callbacks. Installing, changing, switching on or off, or removing a feature
+is judged as a change of those definitions: review lines, behaviour, impact, the `/actions` rule and "no longer defines"
+read the effective program before and after; a hook or advice a feature adds or takes away is always reviewed; and a
+definition named like a control or a review step is refused. At run time, what a feature's definition leads to may write
+only `state.<name>`, run only `<name>.<command>` or `app.<need>` (which runs the action the app adapted for it,
+`<name>.adapted.<need>`, with neither the feature's reach nor the person's authority), and no record step, `invoke`,
+`request`, `subscribe`, `image`, control or review step: the error names the feature, the definition and the step
+([SECURITY.md](SECURITY.md), "Features that hold programs"). Anywhere else, `app.<...>` names nothing.
 
 ## Impact per layer
 

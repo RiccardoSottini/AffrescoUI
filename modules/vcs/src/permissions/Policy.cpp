@@ -396,6 +396,31 @@ json readableView(const Policy& policy, const json& view, std::string_view autho
 	return result;
 }
 
+namespace {
+
+/// @brief Tells whether a path may change a program: the app's own, `/program...`, or a feature's,
+/// `/features/<name>/provides/program...` or anything above it, which takes or gives the record its program.
+/// @param path The path.
+/// @return true if it may.
+bool changesProgram(std::string_view path) {
+	if(path == "/program" || path.starts_with("/program/")) return true;
+	constexpr std::string_view features = "/features";
+	if(path != features && !path.starts_with("/features/")) return false;
+	std::string_view rest = path.substr(features.size()); // "", "/<name>", "/<name>/provides/program/..."
+	if(rest.empty()) return true;
+	const std::size_t slash = rest.find('/', 1);
+	if(slash == std::string_view::npos) return true; // a whole record
+	rest.remove_prefix(slash);
+	for(const std::string_view segment : {std::string_view("/provides"), std::string_view("/program")}) {
+		if(rest.empty()) return true;
+		if(!rest.starts_with(segment) || (rest.size() > segment.size() && rest[segment.size()] != '/')) return false;
+		rest.remove_prefix(segment.size());
+	}
+	return true;
+}
+
+} // namespace
+
 std::optional<std::string> unreadablePath(const DocumentRules& rules, const Policy& policy, const json& view,
                                           const json& patch, const Actor& actor) {
 	if(!patch.is_array() || !readLimited(policy, actor.author, actor.roles)) return std::nullopt;
@@ -407,8 +432,8 @@ std::optional<std::string> unreadablePath(const DocumentRules& rules, const Poli
 			if(!path) continue;
 			// What a program builds runs at build time on any definition's value, the masked ones' too, and lands in
 			// what its author reads
-			if(key == std::string_view("path") && (*path == "/program" || path->starts_with("/program/")) &&
-			   operation.contains("op") && operation["op"] != "test")
+			if(key == std::string_view("path") && changesProgram(*path) && operation.contains("op") &&
+			   operation["op"] != "test")
 				return "data rule: '" + std::string(actor.author) +
 				       "' may not change a program while its reads are limited: what it writes could build what it may "
 				       "not read";

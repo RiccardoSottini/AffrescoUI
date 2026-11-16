@@ -608,6 +608,7 @@ BuiltFeature builtFeature(const std::string& feature, const json& provides) {
 	built.entries = entriesOf(feature, section, built.problems);
 	addNameProblems(feature, built.entries, built.problems);
 	if(!built.problems.empty()) return built;
+	lisp::keepFeatureBuilds(); // the app's own section stays kept beside each feature's
 	try {
 		built.program = lisp::builtProgram(section);
 	} catch(const lisp::LispError& error) {

@@ -127,7 +127,7 @@ App readApp(const fs::path& given) {
 		app.merged = json::parse(screen.documentJson());
 		if(app.merged.contains("program")) {
 			app.program.path = app.entry.parent_path().lexically_normal() / "(program)";
-			app.program.document = lisp::builtProgram(app.merged["program"])->tree;
+			app.program.document = lisp::builtProgram(lisp::effectiveProgram(app.merged))->tree; // with its features'
 		}
 		app.vocabulary = format::textVocabulary(json::parse(screen.catalogJson()), app.merged);
 	} catch(const DocumentError& error) {

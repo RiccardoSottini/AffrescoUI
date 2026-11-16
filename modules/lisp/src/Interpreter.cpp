@@ -230,6 +230,12 @@ Interpreter::Sealed::Sealed(Interpreter& interpreter) : machine_(interpreter.mac
 
 Interpreter::Sealed::~Sealed() { machine_.setRanSet(static_cast<const AuthorSet*>(ran_)); }
 
+Interpreter::Apart::Apart(Interpreter& interpreter) : machine_(interpreter.machine()), ran_(machine_.ranSet()) {
+	machine_.setRanSet(machine_.noAuthors());
+}
+
+Interpreter::Apart::~Apart() { machine_.setRanSet(static_cast<const AuthorSet*>(ran_)); }
+
 void Interpreter::addAuthorsThatRan(std::span<const std::string> authors) {
 	for(const std::string& author : authors)
 		machine_->setRanSet(machine_->unite(machine_->ranSet(), machine_->authorSet(author)));

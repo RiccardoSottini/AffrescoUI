@@ -178,6 +178,28 @@ def program_revisions():
     ]
 
 
+def feature_revisions():
+    """Revisions on the fixture's feature that holds a program (tests/fuzz/revision.cpp): one installed, its definition
+    changed and added to, switched off and on, and removed; and what must be refused."""
+    at = "/features/tally/provides/program/feature.lisp/"
+    program = {"feature.lisp": {"state.mark": '(defstate mark {:on false} "Its state.")',
+                                "mark-flip": '(defn mark-flip "Flips." [] (toggle "state.mark.on"))'}}
+    record = {"release": "1.0.0", "source": "revision", "enabled": True, "order": 1, "provides": {"program": program}}
+    return [
+        {"author": "agent", "set": {"/features/mark": record}},
+        {"author": "agent", "set": {at + "tally-bump": '(defn tally-bump "Counts twice." [] (set "state.tally.n" 2))'}},
+        {"author": "agent", "set": {at + "tally-reach": '(defn tally-reach "Reaches." [] (set "state.n" 0) (call "x"))'}},
+        {"author": "agent", "set": {at + "advice go around tally-bump": "(advice go :around tally-bump)"}},
+        {"author": "agent", "set": {at + "accept": '(defn accept "Named like a review step." [] nil)'}},
+        {"author": "agent", "set": {"/features/tally/enabled": False}},
+        {"author": "studio", "set": {"/features/tally/order": 3}},
+        {"author": "agent", "set": {at + "add-hook after-go tally-bump": "(add-hook after-go tally-bump)"}},
+        {"author": "agent", "patch": [{"op": "remove", "path": at + "tally.go"}]},
+        {"author": "agent", "patch": [{"op": "remove", "path": "/features/tally"}]},
+        {"author": "agent", "remove": ["/features/tally/provides/program"]},
+    ]
+
+
 def revisions():
     """Revisions for the JSON template: from the docs, and edits of every kind to its nodes and state."""
     found = [block for block in doc_blocks() if isinstance(block, dict) and
@@ -201,7 +223,7 @@ def revisions():
         {"op": "move", "from": "/state/copy", "path": "/state/moved"}, {"op": "test", "path": "/state/moved/0", "value": 1},
         {"op": "replace", "path": "#statusText/text", "value": "Saved"}, {"op": "remove", "path": "/state/extra"}]})
     found.append({"author": "agent", "proposal": 1, "set": {"#boardName/text": "Again"}})
-    found += program_revisions()
+    found += program_revisions() + feature_revisions()
     return [compact(revision) for revision in found]
 
 
