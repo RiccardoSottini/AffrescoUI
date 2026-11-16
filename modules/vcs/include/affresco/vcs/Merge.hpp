@@ -6,6 +6,9 @@
 
 #include "affresco/core/Json.hpp"
 
+#include <functional>
+#include <string>
+
 namespace affresco::vcs {
 
 /// @brief What a three-way merge gives.
@@ -18,6 +21,13 @@ struct MergeResult {
 	/// @brief Tells whether nothing conflicted.
 	/// @return true if so.
 	[[nodiscard]] bool clean() const { return conflicts.empty(); }
+};
+
+/// @brief How a three-way merge settles its conflicts.
+struct MergeOptions {
+	/// Asked at each conflict, with its path: true takes the proposal's value there (its order, for a reorder) in
+	/// place of main's. The conflict is listed all the same. Empty: main's value stays everywhere, as for a rebase.
+	std::function<bool(const std::string& path)> takeProposal = {};
 };
 
 /// @brief Merges the changes two sides made to a common base, like `git merge-file` for JSON.
@@ -35,8 +45,10 @@ struct MergeResult {
 /// @param base The common ancestor of both sides.
 /// @param main One side, whose value a conflict keeps: main's document, or mine.
 /// @param proposal The other side: the proposal's document, or theirs.
+/// @param options How conflicts are settled: by default, main's value stays.
 /// @return The merged document and the conflicts. Paths are JSON Pointers, from the nearest node with an id
 /// ("#title/text") when the value is inside one, "/" for the whole document.
-[[nodiscard]] MergeResult mergeDocuments(const json& base, const json& main, const json& proposal);
+[[nodiscard]] MergeResult mergeDocuments(const json& base, const json& main, const json& proposal,
+                                         const MergeOptions& options = {});
 
 } // namespace affresco::vcs

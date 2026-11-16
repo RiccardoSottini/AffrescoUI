@@ -92,7 +92,10 @@ bool Repository::rebase(Proposal& proposal) {
 			exact = false; // its operations no longer apply as written: the merge does
 		}
 		try {
-			if(exact) rebased.reviewedHeads.push_back(proposal.head);
+			if(exact) {
+				rebased.reviewedHeads.push_back(proposal.head);
+				describeUndoProposal(rebased);
+			}
 			else squash(rebased = proposal, merged.merged);
 		} catch(const DocumentError& failure) {
 			merged.conflicts.push_back({{"path", "/"},
@@ -134,7 +137,9 @@ void Repository::squash(Proposal& proposal, const json& merged) {
 	commit.time = detail::utcNow();
 	commit.patch = std::move(patch);
 	if(!proposal.run.empty()) commit.run = proposal.run; // the merge replaces the commits, not what they run
+	commit.undo = proposal.undo;                         // nor what they undo
 	replay(proposal, {std::move(commit)});
+	describeUndoProposal(proposal);
 	proposal.approvals.clear(); // what it does now is the merge, which nobody reviewed
 	proposal.reviewedHeads.clear();
 }

@@ -419,6 +419,10 @@ Repository::Commit Repository::readObject(detail::HistoryStore& store, const std
 			if(!own->is_boolean() || !own->get<bool>()) expect::fail("ownInput", "expected true");
 			commit.ownInput = true;
 		}
+		if(const auto undo = object.find("undo"); undo != object.end()) { // only an undo has it
+			checkUndoMark(*undo, "undo");
+			commit.undo = std::move(*undo);
+		}
 		// Version 2: a delta, and the document only for a snapshot. Version 1: always the document
 		if(const auto delta = object.find("delta"); delta != object.end() && !commit.parents.empty()) {
 			if(!delta->is_array()) expect::fail("delta", "expected a list of operations");
@@ -501,6 +505,7 @@ void Repository::completeProposal(Proposal& proposal, const std::unordered_map<s
 	for(const Commit* commit : branch | std::views::reverse) {
 		proposal.patch.insert(proposal.patch.end(), commit->patch.begin(), commit->patch.end());
 		if(commit->run.is_array()) proposal.run.insert(proposal.run.end(), commit->run.begin(), commit->run.end());
+		if(!commit->undo.is_null()) proposal.undo = commit->undo;
 	}
 }
 
@@ -524,6 +529,7 @@ void Repository::recheckProposal(Proposal& proposal, const json& base) const {
 		proposal.remember.clear(); // accept() replays it on main's head, and says if it no longer applies
 		proposal.person = {"can't be checked again (it doesn't apply as it was written)"}; // nobody else accepts it
 	}
+	if(undoNeedsReview(proposal.undo)) proposal.remember.clear(); // what an undo takes out is never remembered
 }
 
 /* Writing */
@@ -534,6 +540,7 @@ json Repository::objectOf(const Commit& commit) {
 	               {"patch", commit.patch},     {"tree", commit.tree}};
 	if(!commit.run.is_null()) object["run"] = commit.run;
 	if(commit.ownInput) object["ownInput"] = true;
+	if(!commit.undo.is_null()) object["undo"] = commit.undo;
 	if(!commit.delta.is_null()) { // a commit loaded from version 1 has none, and its document is written
 		object["delta"] = commit.delta;
 		object["snapshot"] = commit.snapshot != nullptr;
