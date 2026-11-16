@@ -231,7 +231,7 @@ TEST_CASE("commands: an agent can't flood: runs past the burst, waiting runs pas
 	CHECK(std::ranges::count(answers, "waiting") == 16);
 	CHECK(std::ranges::count(answers, "rejected") == 4);
 	CHECK(waits.run("addCard", {{"title", "t"}})["type"] == "rejected"); // agent has no waiting run, the screen 16
-	CHECK(waits.run("addCard", {{"title", std::string(65 * 1024, 'x')}})["error"].get<std::string>().contains(
+	CHECK(waits.run("addCard", {{"title", std::string(std::size_t{65} * 1024U, 'x')}})["error"].get<std::string>().contains(
 	    "at most 65,536"));
 	json deep = "x";
 	for(int depth = 0; depth < 200; ++depth) deep = json::array({deep});

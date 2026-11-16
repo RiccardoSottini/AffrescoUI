@@ -67,6 +67,26 @@
       }
     },
     {
+      "id": "command-run",
+      "budget": "A peer's command run: 1 ms at most on a board of 400 cards, its update and layout included",
+      "source": "bench",
+      "workloads": [
+        "command/400"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 1.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": {
+        "value": 0.999,
+        "from": "command/400",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "af4597f",
+        "date": "2026-11-16"
+      }
+    },
+    {
       "id": "revision",
       "budget": "A revision applied and reconciled: 2 ms at most",
       "source": "bench",

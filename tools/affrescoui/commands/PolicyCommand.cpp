@@ -33,6 +33,14 @@ struct CaseResult {
 	bool passed = false;  ///< The decision is the one expected, and the reason holds the expected text.
 };
 
+/// @brief Where a policy file's screen is.
+/// @param policyFile The policy file.
+/// @param policy Its content.
+/// @return The screen's file, from the policy file's folder.
+std::filesystem::path screenFile(const std::filesystem::path& policyFile, const json& policy) {
+	return policyFile.parent_path() / expect::string(policy.value("screen", json()), "screen");
+}
+
 /// @brief Loads a policy file's screen as the library does ("include"s in place), with its log quiet.
 /// @param policyFile The policy file.
 /// @param policy Its content.
@@ -40,8 +48,7 @@ struct CaseResult {
 /// repository builds again and would find written twice), its live state in "state".
 /// @throws FileProblem If the screen can't be read or loaded.
 json screenOf(const std::filesystem::path& policyFile, const json& policy) {
-	const std::filesystem::path file =
-	    policyFile.parent_path() / expect::string(policy.value("screen", json()), "screen");
+	const std::filesystem::path file = screenFile(policyFile, policy);
 	setLogSink([](LogLevel, std::string_view) {});
 	try {
 		Screen screen = Screen::fromString(lisp::jsonText(readFile(file), file), file.parent_path());
@@ -131,7 +138,7 @@ std::vector<CaseResult> playFile(const std::filesystem::path& file) {
 			if(const auto refused = repository.roles().set(author, expect::string(role, "roles." + author)))
 				expect::fail("roles." + author, *refused);
 		setLogSink([](LogLevel, std::string_view) {});
-		const format::Runtime runtime(repository, file.parent_path());
+		const format::Runtime runtime(repository, screenFile(file, policy).parent_path()); // its assets are there
 		const vcs::Runs runs(repository, rules);
 		setLogSink({});
 		const Judges judges{repository, runtime, runs};

@@ -67,7 +67,7 @@ TEST_CASE("commands: an allowed run runs as the agent, answers what changed, and
 		CHECK(ran["changed"] == json::parse(R"([{"op": "replace", "path": "/state/cards/0/column", "value": "done"}])"));
 		CHECK(ran["errors"] == json::array());
 		CHECK(board.column("c1") == "done");
-		const json runs = board.runs(board.studio);
+		const json runs = Board::runs(board.studio);
 		REQUIRE(runs.size() == 1);
 		CHECK(runs[0]["id"] == ran["run"]);
 		CHECK(runs[0]["author"] == "agent/claude");

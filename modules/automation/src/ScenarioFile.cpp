@@ -225,7 +225,7 @@ void checkCommand(const json& step, const std::string& place) {
 		     "expected the name of a command, at most " + std::to_string(detail::maxCommandNameBytes) + " bytes");
 	if(step.contains("with") && !step["with"].is_object()) fail(place + ".with", "expected an object of arguments");
 	if(step.contains("as") && !detail::isAuthorName(step["as"]))
-		fail(place + ".as", "expected an author, like \"agent\" or \"agent/helper\": 1 to " +
+		fail(place + ".as", R"(expected an author, like "agent" or "agent/helper": 1 to )" +
 		                        std::to_string(detail::maxAuthorBytes) + " printable bytes");
 	if(step.contains("verdict")) {
 		const json& verdict = step["verdict"];
@@ -326,6 +326,21 @@ std::optional<std::string_view> kindOf(const json& step, const std::string& plac
 	return kinds[0];
 }
 
+/// @brief Checks what a step of a kind gives, by its kind.
+/// @param step The step, without its "error".
+/// @param kind Its kind.
+/// @param place Its place.
+/// @throws DocumentError If it is malformed.
+void checkKind(const json& step, std::string_view kind, const std::string& place) {
+	if(kind == "move" || kind == "click" || kind == "rightClick" || kind == "press" || kind == "release")
+		checkPointer(step, kind, place);
+	else if(kind == "drag") checkDrag(step, place);
+	else if(kind == "scroll") checkScroll(step, place);
+	else if(kind == "action") checkAction(step, place);
+	else if(kind == "command") checkCommand(step, place);
+	else checkValueStep(step, kind, place);
+}
+
 /// @brief Checks one step, and tells whether it draws.
 /// @param step The step.
 /// @param place Its place.
@@ -348,13 +363,7 @@ bool checkStep(const json& written, const std::string& place) {
 	if(step.size() != written.size() && (kind == "expect" || kind == "capture"))
 		fail(place + ".error", "only a step that runs handlers raises an error, not '" + std::string(kind) + "'");
 	checkNth(step, place);
-	if(kind == "move" || kind == "click" || kind == "rightClick" || kind == "press" || kind == "release")
-		checkPointer(step, kind, place);
-	else if(kind == "drag") checkDrag(step, place);
-	else if(kind == "scroll") checkScroll(step, place);
-	else if(kind == "action") checkAction(step, place);
-	else if(kind == "command") checkCommand(step, place);
-	else checkValueStep(step, kind, place);
+	checkKind(step, kind, place);
 	return kind == "capture" || (kind == "expect" && step["expect"].contains("image"));
 }
 

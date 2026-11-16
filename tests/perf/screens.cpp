@@ -450,7 +450,7 @@ std::vector<Group> screenGroups() {
 	return {{"load", loadWorkloads},         {"build", buildWorkloads},   {"update", updateWorkloads},
 	        {"revision", revisionWorkloads}, {"layout", layoutWorkloads}, {"frame", frameWorkloads},
 	        {"editor", editorWorkloads},     {"forge", forgeWorkloads},   {"lisp", lispWorkloads},
-	        {"budgets", budgetWorkloads}};
+	        {"budgets", budgetWorkloads},   {"command", commandWorkloads}};
 }
 
 } // namespace affresco::bench
