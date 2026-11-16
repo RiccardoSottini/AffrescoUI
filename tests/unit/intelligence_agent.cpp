@@ -169,6 +169,12 @@ struct Harness {
 	std::vector<json> sent;                   ///< What the agent sent the screen.
 	std::vector<json> revisions;              ///< The revisions among them.
 	std::function<json(const json&)> verdict; ///< The screen's answer to a revision.
+	int head = 3;                             ///< main's head revision, one further for each undo applied.
+	std::vector<json> undos;                  ///< The undoPlan and revert messages among what was sent.
+	std::vector<int> headsSeen;               ///< main's head when each of them arrived.
+	json plan = json::object();               ///< The screen's answer to undoPlan, as its plan.
+	/// The screen's answer to a revert: applied by default (main moves one revision further).
+	std::function<json(const json&)> undoVerdict = [](const json&) { return json{{"type", "applied"}}; };
 	/// The screen's document.
 	json document = {
 	    {"root", {{"id", "page"}, {"children", {{{"id", "title"}, {"type", "label"}, {"text", "Tasks"}}}}}}};
@@ -220,10 +226,16 @@ struct Harness {
 		const std::string type = message.value("type", "");
 		json reply;
 		if(type == "getDocument") {
-			reply = {{"type", "document"}, {"revision", 3}, {"document", document}, {"state", {{"board", "Q3"}}}};
+			reply = {{"type", "document"}, {"revision", head}, {"document", document}, {"state", {{"board", "Q3"}}}};
 		} else if(type == "revision") {
 			revisions.push_back(message);
 			reply = verdict(message);
+		} else if(type == "undoPlan" || type == "revert") {
+			undos.push_back(message);
+			headsSeen.push_back(head);
+			reply = type == "undoPlan" ? json{{"type", "undoPlan"}, {"revision", head}, {"plan", plan}}
+			                           : undoVerdict(message);
+			if(reply.value("type", "") == "applied") reply["revision"] = ++head;
 		} else {
 			return;
 		}
@@ -677,5 +689,154 @@ TEST_CASE("intelligence agent: assets and run-once steps reach the screen, attac
 		for(const json& tool : second["tools"])
 			if(tool["name"] == "submit_revision") described = tool["input_schema"]["properties"].contains("assets");
 		CHECK(described);
+	}
+}
+
+namespace {
+
+/// @brief A plan written by hand, in the shape of SCREEN_FORMAT.md's undoPlan: undoing revision 2 meets a later
+/// change of the title's text.
+/// @return It.
+json titlePlan() {
+	return {{"of", {{"number", 2}, {"id", "c0ffee00"}, {"short", "c0ffee0"}, {"author", "user"}, {"message", "Red"}}},
+	        {"head", "abc1234"},
+	        {"outcome", "choose"},
+	        {"blocked", ""},
+	        {"untouched", 0},
+	        {"later", {{{"number", 3}, {"short", "d00d"}, {"message", "Rename"}, {"parts", {"#title/text"}}}}},
+	        {"laterMore", 0},
+	        {"conflicts",
+	         {{{"path", "#title/text"},
+	           {"reason", "changed after"},
+	           {"then", "Tasks"},
+	           {"now", "Launch"},
+	           {"before", "Todo"},
+	           {"commits", {3}},
+	           {"choice", nullptr}}}},
+	        {"conflictsMore", 0},
+	        {"gone", json::array()},
+	        {"state", {{"undone", json::array()}, {"kept", json::array()}}},
+	        {"changes", {"a line the model doesn't need"}},
+	        {"impact", nullptr},
+	        {"proposals", json::array()},
+	        {"warnings", json::array()}};
+}
+
+} // namespace
+
+TEST_CASE("intelligence agent: the tool loop looks at an undo's plan, then undoes and replies") {
+	Harness harness("anthropic", "claude-haiku-5-5");
+	harness.keys->write("intelligence/anthropic", "sk-ant-test-key");
+	harness.plan = titlePlan();
+	int turn = 0;
+	harness.server->answer = [&turn](const network::Request&) -> std::variant<std::string, network::Failure> {
+		switch(turn++) {
+		case 0:
+			return toolUse("t1", "revert_revision", {{"revision", 2}, {"dry_run", true}});
+		case 1:
+			return toolUse("t2", "revert_revision",
+			               {{"revision", 2}, {"keep", {"#title/text"}}, {"head", "abc1234"}, {"type", "accept"}});
+		default:
+			return toolUse("t3", "reply", {{"text", "Undid the red, kept the new name."}});
+		}
+	};
+	const json reply = harness.ask("Undo the red but keep the name");
+	CHECK(reply["text"] == "Undid the red, kept the new name.");
+	REQUIRE(harness.undos.size() == 2);
+	CHECK(harness.undos[0] == json{{"type", "undoPlan"}, {"revision", 2}, {"id", harness.undos[0]["id"]}});
+	const json& undo = harness.undos[1];
+	CHECK(undo["type"] == "revert"); // the model's "type" is ignored: only the revision and the choices are taken
+	CHECK(undo["author"] == "anthropic");
+	CHECK(undo["keep"] == json{"#title/text"});
+	CHECK(undo["head"] == "abc1234");
+	CHECK_FALSE(undo.contains("drop"));
+	CHECK_FALSE(undo.contains("dry_run"));
+	CHECK(harness.headsSeen == std::vector<int>{3, 3}); // the dry run changed nothing
+	CHECK(harness.head == 4);                            // the undo: one revision further
+	CHECK(harness.revisions.empty());
+
+	const std::vector<network::Request> requests = harness.requests();
+	REQUIRE(requests.size() == 3);
+	CHECK(json::parse(requests[0].body)["system"].dump().find("never a revision you write as its inverse") !=
+	      std::string::npos);
+	const std::string planned = json::parse(requests[1].body)["messages"][2]["content"][0]["content"];
+	const json summary = json::parse(planned);
+	CHECK(summary["outcome"] == "choose");
+	CHECK(summary["conflicts"][0]["path"] == "#title/text");
+	CHECK(summary["of"] == json{{"number", 2}, {"short", "c0ffee0"}, {"message", "Red"}});
+	CHECK_FALSE(summary.contains("changes")); // what the model doesn't need stays out
+	CHECK_FALSE(summary.contains("conflictsMore"));
+	const std::string done = json::parse(requests[2].body)["messages"][4]["content"][0]["content"];
+	CHECK(done == "applied: revision 4");
+}
+
+TEST_CASE("intelligence agent: claude-code reads an undo's plan in a reading round, then answers with the undo") {
+	Harness harness("claude-code", "haiku");
+	harness.plan = titlePlan();
+	harness.undoVerdict = [](const json&) { return json{{"type", "proposed"}, {"proposal", 4}}; };
+	harness.claudeAnswers = {R"({"plan": 2})",
+	                         R"({"reply": "Undone, it waits for you.", "undo": {"revision": 2, "drop": "all",
+	                             "then": [{"op": "replace", "path": "/state/board", "value": "Q4"}],
+	                             "message": "Undo the red", "dry_run": true}})"};
+	const json reply = harness.ask("Undo the red");
+	CHECK(harness.claudeRuns == 2);
+	CHECK(reply["text"] == "Undone, it waits for you.");
+	CHECK(harness.claudeInputs[0].find("\"undo\": {\"revision\"") != std::string::npos); // the rules say how
+	CHECK(harness.claudeInputs[1].find("plan of revision 2: {\"of\":") != std::string::npos);
+	CHECK(harness.claudeInputs[1].find(R"("outcome":"choose")") != std::string::npos);
+	REQUIRE(harness.undos.size() == 2);
+	CHECK(harness.undos[0]["type"] == "undoPlan");
+	const json& undo = harness.undos[1];
+	CHECK(undo["type"] == "revert"); // an answer's undo is never a dry run: a plan is read in a reading round
+	CHECK(undo["author"] == "claude-code");
+	CHECK(undo["drop"] == "all");
+	CHECK(undo["then"][0]["value"] == "Q4");
+	CHECK(undo["message"] == "Undo the red");
+	CHECK(harness.headsSeen == std::vector<int>{3, 3});
+	CHECK(harness.head == 3); // proposed: main waits for the person's review
+}
+
+TEST_CASE("intelligence agent: an undo the host or the tool's schema refuses comes back to the model with why") {
+	SUBCASE("claude-code: a conflict is given back to fix, with how to see the plan") {
+		Harness harness("claude-code", "haiku");
+		harness.undoVerdict = [](const json& undo) {
+			return undo.contains("keep") ? json{{"type", "applied"}}
+			                             : json{{"type", "rejected"},
+			                                    {"error", "AffrescoUI screen: revert: conflict: #title/text changed "
+			                                              "after revision 2"}};
+		};
+		harness.claudeAnswers = {R"({"reply": "Undone", "undo": {"revision": 2}})",
+		                         R"({"reply": "Undone, kept the name", "undo": {"revision": 2, "keep": "all"}})"};
+		const json reply = harness.ask("Undo revision 2");
+		CHECK(harness.claudeRuns == 2);
+		CHECK(reply["text"] == "Undone, kept the name");
+		const std::string& again = harness.claudeInputs[1];
+		CHECK(again.find("Its undo was rejected: AffrescoUI screen: revert: conflict: #title/text") !=
+		      std::string::npos);
+		CHECK(again.find("Read the undo's plan") != std::string::npos);
+		CHECK(harness.head == 4);
+	}
+	SUBCASE("claude-code: a revision and an undo in one answer are refused, and nothing is sent") {
+		Harness harness("claude-code", "haiku");
+		harness.claudeAnswers = {R"({"reply": "x", "undo": {"revision": 2}, "revision": {"set": {"/a": 1}}})",
+		                         R"({"reply": "Nothing changed."})"};
+		CHECK(harness.ask("Undo it")["text"] == "Nothing changed.");
+		CHECK(harness.claudeInputs[1].find("either a revision or an undo, not both") != std::string::npos);
+		CHECK(harness.undos.empty());
+		CHECK(harness.revisions.empty());
+	}
+	SUBCASE("the tool loop: a choice that isn't a list of paths or \"all\" never reaches the host") {
+		Harness harness("anthropic", "claude-haiku-5-5");
+		harness.keys->write("intelligence/anthropic", "sk-ant-test-key");
+		int turn = 0;
+		harness.server->answer = [&turn](const network::Request&) -> std::variant<std::string, network::Failure> {
+			if(turn++ == 0) return toolUse("t1", "revert_revision", {{"revision", 2}, {"drop", "some"}});
+			return toolUse("t2", "reply", {{"text", "I couldn't."}});
+		};
+		CHECK(harness.ask("Undo it")["text"] == "I couldn't.");
+		CHECK(harness.undos.empty());
+		const json result = json::parse(harness.requests()[1].body)["messages"][2]["content"][0];
+		CHECK(result["content"] == "rejected: drop: a list of conflict paths or \"all\"");
+		CHECK(result["is_error"] == true);
 	}
 }
