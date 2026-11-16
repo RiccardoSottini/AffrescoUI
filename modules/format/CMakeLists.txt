@@ -79,7 +79,8 @@ target_sources(affrescoui_format PRIVATE
 	src/rules/Migrate.cpp
 	src/rules/ServiceRules.cpp
 	src/rules/AssetRules.cpp
-	src/rules/ProgramRules.cpp)
+	src/rules/ProgramRules.cpp
+	src/rules/BrokenLines.cpp)
 target_include_directories(affrescoui_format PRIVATE src/rules)
 # src/runtime/: the engine, its document context, settings, scheduler and usage
 target_sources(affrescoui_format PRIVATE

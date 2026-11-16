@@ -1,5 +1,6 @@
 /// @file
-/// @brief The review and history steps: accept, reject, preview, endPreview, restore, revert, undo.
+/// @brief The review and history steps: accept, reject, preview, endPreview, restore, revert, undo; and undoPlan,
+/// which reads what undoing a commit would do and changes nothing.
 
 #include "Engine.hpp"
 
@@ -10,6 +11,22 @@ namespace affresco::format {
 
 namespace {
 
+/// The keys of an undo's choice that a step carries: what "revert" and "undoPlan" read with undoOptionsFrom(). A
+/// step's "then" is a list of steps, never the protocol's patch, and a step has no "message".
+constexpr std::array undoChoiceKeys = {"drop", "keep", "head"};
+
+/// @brief Reads the undo's choice a step carries, its values evaluated: only its "drop", "keep" and "head".
+/// @param control The step, its values evaluated.
+/// @param where Where it is, for errors ("actions.undo.steps[0]").
+/// @return The options; empty without those keys.
+/// @throws DocumentError Naming the key, if one is malformed.
+UndoOptions undoChoice(const json& control, const std::string& where) {
+	json choice = json::object();
+	for(const char* key : undoChoiceKeys)
+		if(control.contains(key)) choice[key] = control[key];
+	return undoOptionsFrom(choice, where);
+}
+
 /// @brief Evaluates a review or history step's values, and checks their types.
 /// @param s The step.
 /// @return The step with its values evaluated.
@@ -17,7 +34,7 @@ namespace {
 json evaluateControl(const Running& s) {
 	const std::string& where = s.where;
 	json control = s.step;
-	for(const char* key : {"accept", "head", "reject", "preview", "restore", "revert", "reason"})
+	for(const char* key : {"accept", "head", "reject", "preview", "restore", "revert", "reason", "drop", "keep"})
 		if(control.contains(key)) control[key] = s.value(control[key], where + "." + key);
 	for(const char* key : {"accept", "reject", "preview"})
 		if(control.contains(key) && !control[key].is_number_integer()) fail(where + "." + key, "expected a number");
@@ -27,6 +44,7 @@ json evaluateControl(const Running& s) {
 	if(control.contains("accept") && !control.value("head", json()).is_string())
 		fail(where + ".head", "\"accept\" needs the proposal's head commit, the version the user reviewed, e.g. "
 		                      "\"{{proposals[0].head}}\"");
+	if(control.contains("revert")) static_cast<void>(undoChoice(control, where)); // a malformed choice is the step's
 	return control;
 }
 
@@ -65,18 +83,60 @@ std::optional<std::string> carryOut(VersionControl& versions, const json& contro
 		}
 		if(control.contains("restore"))
 			return commitOwn(versions, versions.restoreRevision(control["restore"], "user"), ownInput);
-		if(control.contains("revert"))
-			return commitOwn(versions, versions.revertRevision(control["revert"], "user"), ownInput);
+		if(control.contains("revert")) {
+			// Without a choice, exactly the plain undo it always was; with one, the undo that keeps later changes
+			const UndoOptions options = undoChoice(control, "revert");
+			return commitOwn(versions,
+			                 options.empty() ? versions.revertRevision(control["revert"], "user")
+			                                 : versions.undoRevision(control["revert"], "user", options),
+			                 ownInput);
+		}
 		return commitOwn(versions, versions.revertRevision("HEAD", "user"), ownInput); // undo
 	} catch(const DocumentError& failure) {
 		return failure.what();
 	}
 }
 
+/// @brief "undoPlan": what undoing a commit would do, worked out without changing anything, "into" a state path and
+/// as "then"'s result; "onError" if the commit or the choice is wrong. Not a control step: it only reads.
+/// @param s The step.
+/// @return Whether to keep going.
+bool undoPlanStep(const Running& s) {
+	const json& step = s.step;
+	const std::string& where = s.where;
+	Engine& engine = s.steps.engine();
+	json control = json::object();
+	for(const char* key : undoChoiceKeys)
+		if(step.contains(key)) control[key] = s.value(step[key], where + "." + key);
+	const json revision = s.value(step["undoPlan"], where + ".undoPlan");
+	json plan;
+	try {
+		if(!revision.is_number_integer() && !revision.is_string())
+			fail(where + ".undoPlan", "expected a revision number or a commit");
+		plan = toJson(engine.versions.undoPlan(revision, "user", undoChoice(control, where)));
+	} catch(const DocumentError& error) {
+		if(!step.contains("onError")) throw;
+		const Scope scope{&s.locals, nullptr, {{"error", error.what()}}, {}, {}};
+		return s.run(step["onError"], scope, where + ".onError");
+	}
+	if(step.contains("into")) {
+		const json::json_pointer pointer = s.target("into");
+		expect::shallowEnough(plan, pointerDepth(pointer), where + ".into");
+		statePlace(engine.versions.state(), pointer, where + ".into") = plan;
+		engine.document.markStateChanged(pointer);
+	}
+	if(step.contains("then")) {
+		const Scope scope{&s.locals, nullptr, {{"result", std::move(plan)}}, {}, {}};
+		return s.run(step["then"], scope, where + ".then");
+	}
+	return true;
+}
+
 /// @brief Runs a review or history step: they change the document, so they are done after the event, like revisions.
 /// @param s The step.
 /// @return std::nullopt if it isn't one, else true.
 std::optional<bool> runReviewStep(const Running& s) {
+	if(s.step.contains("undoPlan")) return undoPlanStep(s); // it only reads: from any handler, before checkControl
 	if(std::ranges::none_of(std::array{"accept", "reject", "preview", "restore", "revert", "undo", "endPreview"},
 	                        [&s](const char* key) { return s.step.contains(key); }))
 		return std::nullopt;
@@ -98,15 +158,16 @@ std::optional<bool> runReviewStep(const Running& s) {
 } // namespace
 
 void registerReviewSteps(StepRegistry& registry) {
-	// Listed under "controlSteps" only, as the catalog always has
+	// Listed under "controlSteps" only, as the catalog always has; undoPlan, which only reads, under "steps"
 	registry.add({"review",
 	              {{"accept", {"head"}, true, false},
 	               {"reject", {"reason"}, true, false},
 	               {"preview", {}, true, false},
 	               {"endPreview", {}, true, false},
 	               {"restore", {}, true, false},
-	               {"revert", {}, true, false},
-	               {"undo", {}, true, false}},
+	               {"revert", {"drop", "keep", "head"}, true, false},
+	               {"undo", {}, true, false},
+	               {"undoPlan", {"into", "drop", "keep", "head", "then", "onError"}, false, true}},
 	              runReviewStep});
 }
 
