@@ -639,7 +639,11 @@ named.
 **Records.** A new or changed definition that uses a step that writes records (`insert`, `update-record`, `delete`, `undoData`, `redoData`,
 `importCsv`) is always reviewed, as a new write step in a handler is.
 
-**Features.** A feature's manifest can't hold a program's definitions yet: it is refused, saying so.
+**Features.** A feature may hold a program's definitions (SCREEN_FORMAT.md, "A feature written as a program"). They
+live in its record, at `/features/<name>/provides/program/<file>/<definition>`, never in the screen's `/program`: an
+edit to one is a revision of that path, blame says who wrote it, and undo takes it back, as for the record's other
+parts. Each composition builds the program again and checks it, so an edit that steps outside the feature's namespace
+or reaches past what it is given is refused like a new install.
 
 ## Impact per layer
 

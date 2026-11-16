@@ -9,6 +9,8 @@
 #include "affresco/format/Migrate.hpp"
 #include "NodeKeys.hpp"
 
+#include <affresco/lisp/Document.hpp>
+
 #include <algorithm>
 #include <charconv>
 #include <format>
@@ -34,12 +36,14 @@ constexpr auto recordKeys = std::to_array<std::string_view>(
 constexpr auto requiresKeys =
     std::to_array<std::string_view>({"format", "points", "exports", "models", "services", "connections", "features"});
 
-/// The keys of "provides".
-constexpr auto providesKeys = std::to_array<std::string_view>(
-    {"state", "computed", "actions", "components", "styles", "keys", "menus", "settings", "views", "exports"});
+/// The keys of "provides": the parts, and a program that builds more of them (FeaturePrograms.hpp).
+constexpr auto providesKeys =
+    std::to_array<std::string_view>({"state", "computed", "actions", "components", "styles", "keys", "menus",
+	                                 "settings", "views", "exports", "program"});
 
-/// The parts of "provides" that hold data, never steps: a key there named like a control step is a name.
-constexpr auto dataParts = std::to_array<std::string_view>({"state", "settings", "styles", "exports"});
+/// The parts of "provides" that hold data, never steps: a key there named like a control step is a name. A program's
+/// files and addresses are names too: what its code runs is FeaturePrograms' to check.
+constexpr auto dataParts = std::to_array<std::string_view>({"state", "settings", "styles", "exports", "program"});
 
 /// The keys of an export.
 constexpr auto exportKeys =
@@ -103,10 +107,10 @@ bool localName(std::string_view text) {
 /// @throws DocumentError On an unknown key.
 template<std::size_t N>
 void knownKeys(const json& value, const std::array<std::string_view, N>& keys, const std::string& place) {
-	for(const auto& [key, item] : value.items()) {
-		if(key == "program") fail(concatenate(place, ".", key), "a feature can't hold a program's definitions yet");
-		if(!among(keys, key)) fail(concatenate(place, ".", key), "unknown key");
-	}
+	for(const auto& [key, item] : value.items())
+		if(!among(keys, key))
+			fail(concatenate(place, ".", key),
+			     key == "program" ? "a feature's program goes in its \"provides\"" : "unknown key");
 }
 
 /// @brief Reads an object of names, each checked.
@@ -198,29 +202,6 @@ void checkViewIds(const json& node, const std::string& prefix, const std::string
 			checkViewIds((*children)[index], prefix, std::format("{}.children[{}]", place, index));
 }
 
-/// @brief Checks "provides.views": `"<point>": { "<id>": <node> }`, every id in the feature's namespace.
-/// @param views The part.
-/// @param feature The feature's name.
-/// @param place Its place.
-/// @throws DocumentError If it is malformed.
-void checkViews(const json& views, const std::string& feature, const std::string& place) {
-	expect::object(views, place);
-	const std::string prefix = feature + "-";
-	for(const auto& [point, nodes] : views.items()) {
-		const std::string at = concatenate(place, ".", point);
-		if(point.empty()) fail(at, "expected a contribution point's name");
-		expect::object(nodes, at);
-		for(const auto& [id, node] : nodes.items()) {
-			if(!id.starts_with(prefix) || id.size() == prefix.size())
-				fail(concatenate(at, ".", id), std::format("id '{}' must start with '{}'", id, prefix));
-			checkViewIds(node, prefix, concatenate(at, ".", id));
-			if(node.contains("id")) fail(std::format("{}.{}.id", at, id), "the view's key is its id");
-			if(node.contains("point"))
-				fail(std::format("{}.{}.point", at, id), "a feature's view can't be a contribution point");
-		}
-	}
-}
-
 /// @brief Checks "provides.menus": `"<menu>": { "items": { "<item>": {...} } }`, or the items directly.
 /// @param menus The part.
 /// @param place Its place.
@@ -237,6 +218,37 @@ void checkProvidedMenus(const json& menus, const std::string& place) {
 	}
 }
 
+/// @brief Checks "provides.program": `{ "<file>": { "<definition's address>": "<its text>" } }`, its shape and limits
+/// only (lisp::checkProgramShape()); what it builds is composition's to check (FeaturePrograms.hpp).
+/// @param program The part.
+/// @param place The place of "provides".
+/// @throws DocumentError If it isn't a program's shape, naming the place.
+void checkFeatureProgram(const json& program, const std::string& place) {
+	try {
+		lisp::checkProgramShape(program);
+	} catch(const DocumentError& error) {
+		fail(place + ".program", plainMessage(error));
+	}
+}
+
+/// @brief Checks the names of "provides"' named parts: its state and computed values identifiers, its actions,
+/// components and styles local names, and each computed value a text.
+/// @param provides The part.
+/// @param place Its place.
+/// @throws DocumentError If a name is malformed.
+void checkProvidedNames(const json& provides, const std::string& place) {
+	if(const auto state = provides.find("state"); state != provides.end())
+		checkNames(*state, place + ".state", identifier, "an identifier");
+	if(const auto computed = provides.find("computed"); computed != provides.end()) {
+		checkNames(*computed, place + ".computed", identifier, "an identifier");
+		for(const auto& [name, value] : computed->items())
+			expect::string(value, concatenate(place, ".computed.", name));
+	}
+	for(const char* part : {"actions", "components", "styles"})
+		if(const auto declared = provides.find(part); declared != provides.end())
+			checkNames(*declared, place + "." + part, localName, "a local name");
+}
+
 /// @brief Checks "provides".
 /// @param provides The part.
 /// @param feature The feature's name.
@@ -248,25 +260,18 @@ void checkProvides(const json& provides, const std::string& feature, const std::
 		if(among(capabilitySections, key))
 			fail(concatenate(place, ".", key), "a capability: only the host can grant it, never a revision");
 	knownKeys(provides, providesKeys, place);
-	if(const auto state = provides.find("state"); state != provides.end())
-		checkNames(*state, place + ".state", identifier, "an identifier");
-	if(const auto computed = provides.find("computed"); computed != provides.end()) {
-		checkNames(*computed, place + ".computed", identifier, "an identifier");
-		for(const auto& [name, value] : computed->items())
-			expect::string(value, concatenate(place, ".computed.", name));
-	}
-	for(const char* part : {"actions", "components", "styles"})
-		if(const auto declared = provides.find(part); declared != provides.end())
-			checkNames(*declared, place + "." + part, localName, "a local name");
+	checkProvidedNames(provides, place);
 	if(const auto keys = provides.find("keys"); keys != provides.end()) expect::object(*keys, place + ".keys");
 	if(const auto menus = provides.find("menus"); menus != provides.end()) checkProvidedMenus(*menus, place + ".menus");
 	if(const auto settings = provides.find("settings"); settings != provides.end()) {
 		checkNames(*settings, place + ".settings", dottedName, "a name like showCharacters");
 		for(const auto& [name, type] : settings->items()) expect::object(type, concatenate(place, ".settings.", name));
 	}
-	if(const auto views = provides.find("views"); views != provides.end()) checkViews(*views, feature, place + ".views");
+	if(const auto views = provides.find("views"); views != provides.end())
+		checkProvidedViews(*views, feature, place + ".views");
 	if(const auto exports = provides.find("exports"); exports != provides.end())
 		checkExportsSection(*exports, place + ".exports");
+	if(const auto program = provides.find("program"); program != provides.end()) checkFeatureProgram(*program, place);
 	if(const auto steps = controlStepsIn(provides, place); !steps.empty())
 		fail(steps.front().substr(0, steps.front().find(": ")),
 		     steps.front().substr(steps.front().find(": ") + 2) +
@@ -358,6 +363,31 @@ void checkManifestIdentity(const json& manifest, const std::string& place) {
 }
 
 } // namespace
+
+void checkProvidedViews(const json& views, const std::string& feature, const std::string& place) {
+	expect::object(views, place);
+	const std::string prefix = feature + "-";
+	for(const auto& [point, nodes] : views.items()) {
+		const std::string at = concatenate(place, ".", point);
+		if(point.empty()) fail(at, "expected a contribution point's name");
+		expect::object(nodes, at);
+		for(const auto& [id, node] : nodes.items()) {
+			if(!id.starts_with(prefix) || id.size() == prefix.size())
+				fail(concatenate(at, ".", id), std::format("id '{}' must start with '{}'", id, prefix));
+			checkViewIds(node, prefix, concatenate(at, ".", id));
+			if(node.contains("id")) fail(std::format("{}.{}.id", at, id), "the view's key is its id");
+			if(node.contains("point"))
+				fail(std::format("{}.{}.point", at, id), "a feature's view can't be a contribution point");
+		}
+	}
+}
+
+std::string plainMessage(const DocumentError& error) {
+	constexpr std::string_view prefix = "AffrescoUI screen: ";
+	std::string_view text = error.what();
+	if(text.starts_with(prefix)) text.remove_prefix(prefix.size());
+	return std::string(text);
+}
 
 std::optional<Release> parseRelease(std::string_view text) {
 	Release release;

@@ -736,7 +736,7 @@ TEST_CASE("lisp document: the file view shows definitions under their file, with
 	CHECK(changes["impact"]["view"].get<int>() > 0);
 }
 
-TEST_CASE("lisp document: a feature's manifest can't hold a program yet") {
+TEST_CASE("lisp document: a feature's manifest holds a program in its provides") {
 	json manifest = {{"format", "affrescoui-feature"},
 	                 {"version", 2},
 	                 {"name", "f"},
@@ -747,11 +747,10 @@ TEST_CASE("lisp document: a feature's manifest can't hold a program yet") {
 	CHECK_NOTHROW(affresco::format::checkManifest(manifest, "f"));
 	json top = manifest;
 	top["program"] = {{"x.lisp", json::object()}};
-	CHECK_THROWS_WITH_AS(affresco::format::checkManifest(top, "f"), doctest::Contains("can't hold a program"),
+	CHECK_THROWS_WITH_AS(affresco::format::checkManifest(top, "f"), doctest::Contains("goes in its \"provides\""),
 	                     affresco::DocumentError);
 	manifest["provides"]["program"] = {{"x.lisp", json::object()}};
-	CHECK_THROWS_WITH_AS(affresco::format::checkManifest(manifest, "f"), doctest::Contains("can't hold a program"),
-	                     affresco::DocumentError);
+	CHECK_NOTHROW(affresco::format::checkManifest(manifest, "f"));
 }
 
 TEST_CASE("lisp document: who wrote a program's entries, asked of a document with no program, is nobody") {
