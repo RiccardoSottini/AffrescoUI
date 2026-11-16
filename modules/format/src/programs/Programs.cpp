@@ -189,18 +189,23 @@ json Programs::read(const std::string& name, std::vector<json> arguments, const 
 	if(!live_) fail(where, "this screen has no program, so lisp() has nothing to call");
 	const Entered entered(*this, {nullptr, &event, &locals});
 	lisp::Interpreter& interpreter = entered.interpreter();
-	++reading_;
-	try {
-		std::vector<lisp::Value> values;
-		values.reserve(arguments.size());
-		for(json& argument : arguments) values.push_back(viewOf(interpreter, std::move(argument)));
-		json result = interpreter.toTree(interpreter.call(functionOf(interpreter, name, where), values));
-		--reading_;
-		return result;
-	} catch(...) {
-		--reading_;
-		throw;
-	}
+	const Reading reading(*this);
+	std::vector<lisp::Value> values;
+	values.reserve(arguments.size());
+	for(json& argument : arguments) values.push_back(viewOf(interpreter, std::move(argument)));
+	// Its own tree before the read ends: nothing of the state it viewed in place escapes it
+	return interpreter.toTree(interpreter.call(functionOf(interpreter, name, where), values));
+}
+
+// A read inside a read (an expression's function calling lisp()) starts its own: the variables it views go with it
+Programs::Reading::Reading(Programs& programs) noexcept
+    : programs_(programs), outer_(std::exchange(programs.chargedInRead_, {})) {
+	++programs_.reading_;
+}
+
+Programs::Reading::~Reading() {
+	--programs_.reading_;
+	programs_.chargedInRead_ = std::move(outer_); // the places it charged go with it
 }
 
 bool Programs::hasProgram() const noexcept { return live_ != nullptr; }
