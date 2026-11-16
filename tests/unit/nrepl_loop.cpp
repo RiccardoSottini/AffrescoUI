@@ -483,7 +483,7 @@ TEST_CASE("nrepl_loop: a screen written as JSON takes no editor") {
 	const Folder folder;
 	folder.write("plain.screen.json",
 	             R"({"format": "affrescoui-screen", "version": 2, "root": {"type": "label", "id": "x", "text": "x"}})");
-	ManualClock clock;
+	const ManualClock clock;
 	const std::unique_ptr<affresco::Window> window = createHeadlessWindow(200, 100, clock);
 	affresco::test::ThreadExecutor executor;
 	{
