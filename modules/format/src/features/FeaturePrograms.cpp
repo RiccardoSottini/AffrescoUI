@@ -111,8 +111,42 @@ std::string_view sectionOfKind(std::string_view kind) {
 		                                                              {"defcustom", "settings"},
 		                                                              {"defstyle", "styles"},
 		                                                              {"defcomponent", "components"}});
-	const auto found = std::ranges::find(sections, kind, &std::pair<std::string_view, std::string_view>::first);
-	return found == sections.end() ? std::string_view() : found->second;
+	for(const auto& [form, section] : sections)
+		if(form == kind) return section;
+	return {};
+}
+
+/// @brief Why a feature can't hold a form, if it can't.
+/// @param kind The form.
+/// @return The reason, or "" if it may.
+std::string_view refusalOf(std::string_view kind) {
+	for(const auto& [form, why] : refusedForms)
+		if(form == kind) return why;
+	return {};
+}
+
+/// @brief A definition's name, from its address: a section's definitions are kept under "<section>.<name>", a
+/// defpart's under "part.<name>" (lisp's addresses), the others under their names.
+/// @param kind The definition's form.
+/// @param address Its address.
+/// @return The name.
+std::string_view nameAt(std::string_view kind, std::string_view address) {
+	std::size_t prefix = 0;
+	if(const std::string_view section = sectionOfKind(kind);
+	   !section.empty() && kind != "defcommand" && kind != "defkey" && kind != "defcustom")
+		prefix = section.size() + 1;
+	else if(kind == "defpart") prefix = std::string_view("part.").size();
+	address.remove_prefix(std::min(address.size(), prefix));
+	return address;
+}
+
+/// @brief The problem with a command's name, if any.
+/// @param feature The feature.
+/// @param name The name.
+/// @return What is wrong, or "".
+std::string commandNameProblem(const std::string& feature, std::string_view name) {
+	if(!namespaced(name, feature, '.')) return std::format("a command's name must start with '{}.'", feature);
+	return name.substr(feature.size() + 1).starts_with("adapted.") ? "\"adapted.\" names are the adapter's" : "";
 }
 
 /// @brief The problem with one definition's address, if any.
@@ -121,24 +155,14 @@ std::string_view sectionOfKind(std::string_view kind) {
 /// @param address Its address.
 /// @return What is wrong, or "".
 std::string addressProblem(const std::string& feature, std::string_view kind, std::string_view address) {
-	// A section's definitions are kept under "<section>.<name>", a defpart's under "part.<name>" (lisp's addresses)
-	if(const std::string_view section = sectionOfKind(kind);
-	   !section.empty() && kind != "defcommand" && kind != "defkey" && kind != "defcustom")
-		address.remove_prefix(std::min(address.size(), section.size() + 1));
-	else if(kind == "defpart") address.remove_prefix(std::min(address.size(), std::string_view("part.").size()));
-	if(const auto refused =
-	       std::ranges::find(refusedForms, kind, &std::pair<std::string_view, std::string_view>::first);
-	   refused != refusedForms.end())
-		return std::format("a feature can't hold a {}: {}", kind, refused->second);
+	const std::string_view name = nameAt(kind, address);
+	if(const std::string_view refused = refusalOf(kind); !refused.empty())
+		return std::format("a feature can't hold a {}: {}", kind, refused);
 	if(kind == "defstate" || kind == "defcomputed")
-		return address == feature ? "" : std::format("a {} of a feature is named '{}'", kind, feature);
-	if(kind == "defcommand") {
-		if(namespaced(address, feature, '.') && address.substr(feature.size() + 1).starts_with("adapted."))
-			return "\"adapted.\" names are the adapter's";
-		return namespaced(address, feature, '.') ? "" : std::format("a command's name must start with '{}.'", feature);
-	}
+		return name == feature ? "" : std::format("a {} of a feature is named '{}'", kind, feature);
+	if(kind == "defcommand") return commandNameProblem(feature, name);
 	if(among(dashedForms, kind))
-		return namespaced(address, feature, '-') ? "" : std::format("a {}'s name must start with '{}-'", kind, feature);
+		return namespaced(name, feature, '-') ? "" : std::format("a {}'s name must start with '{}-'", kind, feature);
 	if(among(writtenForms, kind)) return "";
 	return std::format("a feature can't hold a {}", kind);
 }
@@ -288,6 +312,22 @@ json flatMenus(const json& menus) {
 	return result;
 }
 
+/// @brief Checks a built menu's items: each an object named in the feature's namespace.
+/// @param feature The feature.
+/// @param items The menu's items.
+/// @param at The menu's place.
+/// @param problems Receives each item outside.
+void checkMenuItems(const std::string& feature, const json& items, const std::string& at,
+                    std::vector<std::string>& problems) {
+	if(!items.is_object()) {
+		problems.push_back(at + ": expected an object of items");
+		return;
+	}
+	for(const auto& [item, entry] : items.items())
+		if(!ownName(item, feature) || !entry.is_object())
+			problems.push_back(std::format("{}.{}: an item must be an object named '{}.<word>'", at, item, feature));
+}
+
 /// @brief Checks one built section's members: each inside the feature's namespace, in the shape a feature gives.
 /// @param feature The feature.
 /// @param section The section's name.
@@ -304,12 +344,7 @@ void checkMembers(const std::string& feature, const std::string& section, const 
 			if(!namespaced(member, feature, '.'))
 				problems.push_back(std::format("{}: the name must start with '{}.'", at, feature));
 		} else if(section == "menus") {
-			if(!value.is_object()) problems.push_back(at + ": expected an object of items");
-			else
-				for(const auto& [item, entry] : value.items())
-					if(!ownName(item, feature) || !entry.is_object())
-						problems.push_back(
-						    std::format("{}.{}: an item must be an object named '{}.<word>'", at, item, feature));
+			checkMenuItems(feature, value, at, problems);
 		} else if(section != "keys" && section != "views" && !ownName(member, feature)) {
 			problems.push_back(std::format("{}: the name must start with '{}-' or '{}.'", at, feature, feature));
 		}
@@ -423,12 +458,13 @@ struct Reach {
 		}
 		for(const std::string& text : *texts)
 			if(writes && !(text.starts_with("state.") && ownPath(text, feature)))
-				problem(entry, std::format("'{}' writes \"{}\": a feature writes only under \"state.{}\"", word, text,
+				problem(entry, std::format(R"('{}' writes "{}": a feature writes only under "state.{}")", word, text,
 				                           feature));
 			else if(!writes && !runnable(text))
-				problem(entry, std::format("runs \"{}\": a feature runs only its own commands and the actions it needs "
-				                           "(\"app.<need>\" of kind action)",
-				                           text));
+				problem(entry,
+				        std::format(R"(runs "{}": a feature runs only its own commands and the actions it needs )"
+				                    R"(("app.<need>" of kind action))",
+				                    text));
 	}
 
 	/// @brief Tells whether a feature may run something by name.
@@ -439,6 +475,21 @@ struct Reach {
 		if(!text.starts_with("app.")) return false;
 		const auto need = needs.find(std::string(text.substr(4)));
 		return need != needs.end() && need->is_object() && need->value("kind", "") == "action";
+	}
+
+	/// @brief Checks one name a definition uses, not a path: a step, an app variable, or something undefined.
+	/// @param entry The definition.
+	/// @param word The name.
+	/// @param function Whether the definition is a function.
+	/// @param undefined What it uses that nothing defines.
+	void checkName(const lisp::Entry& entry, const std::string& word, bool function,
+	               const std::set<std::string, std::less<>>& undefined) const {
+		if(stepWord(word)) checkStep(entry, word);
+		else if(function && among(appVariables, word))
+			problem(entry, std::format("reads '{}': pass it to the function as an argument from the view", word));
+		else if(undefined.contains(word) && !detail::findFunction(word) && !among(appVariables, word))
+			problem(entry,
+			        std::format("uses '{}', which the feature doesn't define and the language doesn't have", word));
 	}
 
 	/// @brief Checks what one definition uses.
@@ -457,12 +508,7 @@ struct Reach {
 				if(function && std::ranges::find(paths, word) == paths.end()) paths.push_back(word);
 				continue;
 			}
-			if(stepWord(word)) checkStep(entry, word);
-			else if(function && among(appVariables, word))
-				problem(entry, std::format("reads '{}': pass it to the function as an argument from the view", word));
-			else if(undefined.contains(word) && !detail::findFunction(word) && !among(appVariables, word))
-				problem(entry,
-				        std::format("uses '{}', which the feature doesn't define and the language doesn't have", word));
+			checkName(entry, word, function, undefined);
 		}
 		for(const std::string& path : paths)
 			if(!ownPath(path, feature))
@@ -477,6 +523,37 @@ struct Offered {
 	std::set<std::string, std::less<>> actions; ///< The actions of the action exports they receive.
 };
 
+/// @brief Adds what one point offers: the hook points it lists, and the actions of the action exports it receives.
+/// @param point The point.
+/// @param exports The app's exports.
+/// @param offered Receives them.
+void addOffers(const json& point, const json& exports, Offered& offered) {
+	for(const json& hook : point.value("hooks", json::array()))
+		if(hook.is_string()) offered.listed.insert(hook.get<std::string>());
+	for(const json& exported : point.value("receives", json::array())) {
+		if(!exported.is_string() || !exports.contains(exported.get<std::string>())) continue;
+		if(const json& entry = exports[exported.get<std::string>()]; exportKind(entry) == "action")
+			if(std::string action = actionTarget(entry); !action.empty()) offered.actions.insert(std::move(action));
+	}
+}
+
+/// @brief The hook points of a list that the app's program declares with `defhook`.
+/// @param document The app's document.
+/// @param listed The hook points.
+/// @return Those it declares.
+std::set<std::string, std::less<>> declaredHooks(const json& document,
+                                                 const std::set<std::string, std::less<>>& listed) {
+	std::set<std::string, std::less<>> declared;
+	if(!lisp::hasProgram(document)) return declared;
+	try {
+		for(const lisp::Entry& entry : lisp::programOf(document["program"]).entries())
+			if(headWord(entry.text) == "defhook" && listed.contains(entry.name)) declared.insert(entry.name);
+		// NOLINTNEXTLINE(bugprone-empty-catch): the app's own check reports it; meanwhile it declares no hook
+	} catch(const DocumentError&) {
+	}
+	return declared;
+}
+
 /// @brief What the points a feature is placed in offer its hooks and advice.
 /// @param document The app's document.
 /// @param placed The points.
@@ -486,25 +563,10 @@ Offered offeredBy(const json& document, const std::vector<std::string>& placed) 
 	const json points = document.value("points", json::object());
 	const json exports = document.value("exports", json::object());
 	if(!points.is_object() || !exports.is_object()) return offered;
-	for(const std::string& name : placed) {
-		const auto point = points.find(name);
-		if(point == points.end() || !point->is_object()) continue;
-		for(const json& hook : point->value("hooks", json::array()))
-			if(hook.is_string()) offered.listed.insert(hook.get<std::string>());
-		for(const json& exported : point->value("receives", json::array()))
-			if(exported.is_string() && exports.contains(exported.get<std::string>()))
-				if(const json& entry = exports[exported.get<std::string>()]; exportKind(entry) == "action")
-					if(std::string action = actionTarget(entry); !action.empty())
-						offered.actions.insert(std::move(action));
-	}
-	if(offered.listed.empty() || !lisp::hasProgram(document)) return offered;
-	try {
-		for(const lisp::Entry& entry : lisp::programOf(document["program"]).entries())
-			if(headWord(entry.text) == "defhook" && offered.listed.contains(entry.name))
-				offered.hooks.insert(entry.name);
-		// NOLINTNEXTLINE(bugprone-empty-catch): the app's own check reports it; meanwhile it declares no hook
-	} catch(const DocumentError&) {
-	}
+	for(const std::string& name : placed)
+		if(const auto point = points.find(name); point != points.end() && point->is_object())
+			addOffers(*point, exports, offered);
+	if(!offered.listed.empty()) offered.hooks = declaredHooks(document, offered.listed);
 	return offered;
 }
 

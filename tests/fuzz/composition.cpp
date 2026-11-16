@@ -65,6 +65,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 		const format::Composition composed = format::compose(document);
 		for(const format::FeatureExtension& extension : composed.extensions)
 			if(extension.target.empty()) affresco::fuzz::broken("an accepted extension names what it joins");
+		// NOLINTNEXTLINE(bugprone-empty-catch): a manifest the format refuses is an answer, not a finding
 	} catch(const affresco::DocumentError&) {
 		// A manifest the format refuses
 	}

@@ -40,6 +40,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 			document["program"] = {{"app.lisp", {{"after-save", "(defhook after-save \"After a save.\")"}}}};
 		try {
 			static_cast<void>(affresco::format::compose(document));
+			// NOLINTNEXTLINE(bugprone-empty-catch): a document the format refuses is an answer, not a finding
 		} catch(const affresco::DocumentError&) {
 		}
 	}

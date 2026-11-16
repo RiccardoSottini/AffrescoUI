@@ -307,31 +307,33 @@ private:
 	/// @param place The parts' place.
 	void joinBuilt(const std::string& name, const json& parts, json& provides, json& full, const std::string& place) {
 		const std::string dotted = name + ".";
-		const auto join = [&](json& into, const std::string& key, const json& value, const std::string& at) {
-			if(!into.is_object()) into = json::object();
-			if(!into.contains(key)) into[key] = value;
-			else if(!sameValue(into[key], value))
-				problem(at, "both the JSON parts and the program give it, differently");
-		};
-		for(const auto& [section, members] : parts.items()) {
+		for(const auto& [section, members] : parts.items())
 			for(const auto& [key, value] : members.items()) {
 				const std::string at = std::format("{}.{}.{}", place, section, key);
-				if(section == "state") join(provides, "state", value, at);
-				else if(section == "computed") {
-					if(provides.contains("computed") && !provides["computed"].empty())
-						problem(at, "both the JSON parts and the program give it, differently");
-					else full["computed"][key] = value;
-				} else if(section == "keys") join(provides["keys"], key, value, at);
+				if(section == "state") joinMember(provides, "state", value, at);
+				else if(section == "keys") joinMember(provides["keys"], key, value, at);
 				else if(section == "views" || section == "menus")
 					for(const auto& [item, node] : value.items())
-						join(provides[section][key], section == "menus" ? item.substr(dotted.size()) : item, node,
-						     std::format("{}.{}", at, item));
-				else if(key.starts_with(dotted)) join(provides[section], key.substr(dotted.size()), value, at);
-				else if(provides.contains(section) && provides[section].contains(key))
+						joinMember(provides[section][key], section == "menus" ? item.substr(dotted.size()) : item, node,
+						           std::format("{}.{}", at, item));
+				else if(section != "computed" && key.starts_with(dotted))
+					joinMember(provides[section], key.substr(dotted.size()), value, at);
+				else if(provides.contains(section) && !provides[section].empty() &&
+				        (section == "computed" || provides[section].contains(key)))
 					problem(at, "both the JSON parts and the program give it, differently");
 				else full[section][key] = value;
 			}
-		}
+	}
+
+	/// @brief Joins one built member to the JSON parts: added if they don't have it, else it must be the same.
+	/// @param into The JSON parts' section.
+	/// @param key The member's key there.
+	/// @param value The built member.
+	/// @param at Its place.
+	void joinMember(json& into, const std::string& key, const json& value, const std::string& at) {
+		if(!into.is_object()) into = json::object();
+		if(!into.contains(key)) into[key] = value;
+		else if(!sameValue(into[key], value)) problem(at, "both the JSON parts and the program give it, differently");
 	}
 
 	/// @brief Checks the members a feature's program gives under their full names: the app has none of them.

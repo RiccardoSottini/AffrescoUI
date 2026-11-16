@@ -183,6 +183,20 @@ bool hookName(std::string_view name) {
 	});
 }
 
+/// @brief Checks a point's list of names: an array of at most maxFields names of a kind.
+/// @param list The list.
+/// @param valid Tells whether a name is one.
+/// @param place Its place.
+/// @param what What the names are of, for errors.
+/// @throws DocumentError If it isn't.
+void checkNameList(const json& list, bool (*valid)(std::string_view), const std::string& place,
+                   const std::string& what) {
+	if(!list.is_array() || list.size() > maxFields) fail(place, "expected a list of " + what);
+	for(const json& item : list)
+		if(!item.is_string() || !valid(item.get_ref<const std::string&>()))
+			fail(place, "expected the names of " + what);
+}
+
 } // namespace
 
 void checkPointsSection(const json& section, const std::string& name) {
@@ -195,19 +209,10 @@ void checkPointsSection(const json& section, const std::string& name) {
 		if(!entry.contains("slot") || !entry["slot"].is_string() ||
 		   !among(pointSlots, entry["slot"].get<std::string>()))
 			fail(at + ".slot", "expected a slot: dock, panel, menu or toolbar");
-		if(const auto receives = entry.find("receives"); receives != entry.end()) {
-			if(!receives->is_array() || receives->size() > maxFields)
-				fail(at + ".receives", "expected a list of exports");
-			for(const json& exported : *receives)
-				if(!exported.is_string() || !dottedName(exported.get_ref<const std::string&>()))
-					fail(at + ".receives", "expected the names of exports");
-		}
-		if(const auto hooks = entry.find("hooks"); hooks != entry.end()) {
-			if(!hooks->is_array() || hooks->size() > maxFields) fail(at + ".hooks", "expected a list of hook points");
-			for(const json& hook : *hooks)
-				if(!hook.is_string() || !hookName(hook.get_ref<const std::string&>()))
-					fail(at + ".hooks", "expected the names of hook points the app declares with defhook");
-		}
+		if(const auto receives = entry.find("receives"); receives != entry.end())
+			checkNameList(*receives, dottedName, at + ".receives", "exports");
+		if(const auto hooks = entry.find("hooks"); hooks != entry.end())
+			checkNameList(*hooks, hookName, at + ".hooks", "hook points the app declares with defhook");
 		optionalText(entry, "description", at);
 		optionalText(entry, "note", at);
 	}

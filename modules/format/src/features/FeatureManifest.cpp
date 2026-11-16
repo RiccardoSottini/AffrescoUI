@@ -231,6 +231,24 @@ void checkFeatureProgram(const json& program, const std::string& place) {
 	}
 }
 
+/// @brief Checks the names of "provides"' named parts: its state and computed values identifiers, its actions,
+/// components and styles local names, and each computed value a text.
+/// @param provides The part.
+/// @param place Its place.
+/// @throws DocumentError If a name is malformed.
+void checkProvidedNames(const json& provides, const std::string& place) {
+	if(const auto state = provides.find("state"); state != provides.end())
+		checkNames(*state, place + ".state", identifier, "an identifier");
+	if(const auto computed = provides.find("computed"); computed != provides.end()) {
+		checkNames(*computed, place + ".computed", identifier, "an identifier");
+		for(const auto& [name, value] : computed->items())
+			expect::string(value, concatenate(place, ".computed.", name));
+	}
+	for(const char* part : {"actions", "components", "styles"})
+		if(const auto declared = provides.find(part); declared != provides.end())
+			checkNames(*declared, place + "." + part, localName, "a local name");
+}
+
 /// @brief Checks "provides".
 /// @param provides The part.
 /// @param feature The feature's name.
@@ -242,16 +260,7 @@ void checkProvides(const json& provides, const std::string& feature, const std::
 		if(among(capabilitySections, key))
 			fail(concatenate(place, ".", key), "a capability: only the host can grant it, never a revision");
 	knownKeys(provides, providesKeys, place);
-	if(const auto state = provides.find("state"); state != provides.end())
-		checkNames(*state, place + ".state", identifier, "an identifier");
-	if(const auto computed = provides.find("computed"); computed != provides.end()) {
-		checkNames(*computed, place + ".computed", identifier, "an identifier");
-		for(const auto& [name, value] : computed->items())
-			expect::string(value, concatenate(place, ".computed.", name));
-	}
-	for(const char* part : {"actions", "components", "styles"})
-		if(const auto declared = provides.find(part); declared != provides.end())
-			checkNames(*declared, place + "." + part, localName, "a local name");
+	checkProvidedNames(provides, place);
 	if(const auto keys = provides.find("keys"); keys != provides.end()) expect::object(*keys, place + ".keys");
 	if(const auto menus = provides.find("menus"); menus != provides.end()) checkProvidedMenus(*menus, place + ".menus");
 	if(const auto settings = provides.find("settings"); settings != provides.end()) {

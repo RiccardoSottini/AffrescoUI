@@ -15,17 +15,20 @@ namespace format = affresco::format;
 
 namespace {
 
-/// The word count's program: its state, a computed value, a function, a view, a command, a part and a key.
-const json wordCount = {
-    {"state.wordCount", R"((defstate wordCount {:characters false} "The word count's state."))"},
-    {"computed.wordCount", R"((defcomputed wordCount "Its derived values." {:words (count app.editor.text)}))"},
-    {"wordCount-flip", R"((defn wordCount-flip "Flips it." [] (toggle "state.wordCount.characters")))"},
-    {"wordCount-label",
-	 R"((defview wordCount-label "The label." [] `(label#wordCount-label :text ~(str computed.wordCount.words) :onClick wordCount.toggle)))"},
-    {"wordCount.toggle", R"((defcommand wordCount.toggle "Toggles." :title "Toggle" [] (wordCount-flip)))"},
-    {"part.wordCount-views",
-	 R"((defpart wordCount-views "Where its views go." :views {:statusBar.right {:wordCount-label ~(wordCount-label)}}))"},
-    {"defkey mod+k", R"((defkey "mod+k" "Toggles the count." wordCount.toggle))"}};
+/// @brief The word count's program: its state, a computed value, a function, a view, a command, a part and a key.
+/// @return Its definitions, by address.
+json wordCount() {
+	return {
+	    {"state.wordCount", R"((defstate wordCount {:characters false} "The word count's state."))"},
+	    {"computed.wordCount", R"((defcomputed wordCount "Its derived values." {:words (count app.editor.text)}))"},
+	    {"wordCount-flip", R"((defn wordCount-flip "Flips it." [] (toggle "state.wordCount.characters")))"},
+	    {"wordCount-label",
+		 R"((defview wordCount-label "The label." [] `(label#wordCount-label :text ~(str computed.wordCount.words) :onClick wordCount.toggle)))"},
+	    {"wordCount.toggle", R"((defcommand wordCount.toggle "Toggles." :title "Toggle" [] (wordCount-flip)))"},
+	    {"part.wordCount-views",
+		 R"((defpart wordCount-views "Where its views go." :views {:statusBar.right {:wordCount-label ~(wordCount-label)}}))"},
+	    {"defkey mod+k", R"((defkey "mod+k" "Toggles the count." wordCount.toggle))"}};
+}
 
 /// @brief A program of one file, `feature.lisp`.
 /// @param definitions Its definitions, by address.
@@ -37,7 +40,7 @@ json programOf(const json& definitions) { return {{"feature.lisp", definitions}}
 /// @param text Its text.
 /// @return The program.
 json withDefinition(const std::string& address, const std::string& text) {
-	json definitions = wordCount;
+	json definitions = wordCount();
 	definitions[address] = text;
 	return programOf(definitions);
 }
@@ -127,10 +130,10 @@ json manifest(const json& program) {
 } // namespace
 
 TEST_CASE("feature programs: a manifest may hold a program, and its record keeps it whole") {
-	const json written = manifest(programOf(wordCount));
+	const json written = manifest(programOf(wordCount()));
 	CHECK_NOTHROW(format::checkManifest(written, "wordCount"));
 	const json installed = format::recordFor(written, "revision", "", "", 0);
-	CHECK(installed["provides"]["program"] == programOf(wordCount));
+	CHECK(installed["provides"]["program"] == programOf(wordCount()));
 	CHECK_NOTHROW(format::checkFeatureRecord("wordCount", installed, "features.wordCount"));
 	// Its shape is a program's: files of definitions as text
 	CHECK_THROWS_WITH(format::checkManifest(manifest({{"feature.lisp", 42}}), "wordCount"),
@@ -139,7 +142,7 @@ TEST_CASE("feature programs: a manifest may hold a program, and its record keeps
 }
 
 TEST_CASE("feature programs: the names") {
-	CHECK(format::programNameProblems("wordCount", programOf(wordCount)).empty());
+	CHECK(format::programNameProblems("wordCount", programOf(wordCount())).empty());
 	const auto named = [](const std::string& address, const std::string& text, const std::string& why) {
 		const std::vector<std::string> found = format::programNameProblems("wordCount", withDefinition(address, text));
 		REQUIRE(found.size() == 1);
@@ -165,7 +168,7 @@ TEST_CASE("feature programs: the names") {
 }
 
 TEST_CASE("feature programs: the composed screen holds its members under their full names, after the app's") {
-	const format::Composition composed = format::compose(appWith(record(programOf(wordCount))));
+	const format::Composition composed = format::compose(appWith(record(programOf(wordCount()))));
 	REQUIRE(composed.problems.empty());
 	const json& screen = composed.screen;
 	CHECK(screen["state"]["wordCount"] == json{{"characters", false}});
@@ -185,7 +188,7 @@ TEST_CASE("feature programs: the composed screen holds its members under their f
 }
 
 TEST_CASE("feature programs: a static app installs a feature's JSON version") {
-	json document = appWith(record(programOf(wordCount)));
+	json document = appWith(record(programOf(wordCount())));
 	document.erase("program");
 	CHECK(problems(document).contains("features.wordCount.provides.program: this feature holds code, and this app is "
 	                                  "static: install its JSON version"));
@@ -206,7 +209,7 @@ TEST_CASE("feature programs: what the build gives stays in the feature's namespa
 }
 
 TEST_CASE("feature programs: a member both the JSON parts and the program give must be the same") {
-	json featureRecord = record(programOf(wordCount));
+	json featureRecord = record(programOf(wordCount()));
 	featureRecord["provides"]["actions"] = {{"toggle", {{"title", "Another"}}}};
 	CHECK(
 	    problems(appWith(featureRecord))
@@ -285,7 +288,7 @@ TEST_CASE("feature programs: hooks and advice join only what the app offers the 
 }
 
 TEST_CASE("feature programs: two program features, one requiring the other, and a disabled one") {
-	json document = appWith(record(programOf(wordCount), 1));
+	json document = appWith(record(programOf(wordCount()), 1));
 	json other = record(programOf({{"state.lineCount", "(defstate lineCount {:on true})"},
 	                               {"lineCount.show", R"((defcommand lineCount.show "S." [] (log "shown")))"}}),
 	                    0);
