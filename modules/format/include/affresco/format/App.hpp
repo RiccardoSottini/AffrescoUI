@@ -55,6 +55,7 @@ struct AppManifest {
 	std::string name;                                      ///< Its name, shown by the host.
 	std::string description;                               ///< One line about it, or "".
 	std::string icon;                                      ///< Its icon, a file in its folder, or "".
+	std::string release;                                   ///< Its release, three numbers ("1.2.0"), or "".
 	std::string entry = "index.screen.json";               ///< The screen it opens, a file in its folder.
 	std::vector<std::string> themes;                       ///< Its own kits and themes: files merged into the screen.
 	std::vector<AppCapability> capabilities;               ///< What it asks the person for.
@@ -64,8 +65,8 @@ struct AppManifest {
 };
 
 /// @brief Reads and checks an app's manifest: `{"format": "affrescoui-app", "version": 1, "id", "name",
-/// "description", "icon", "entry", "themes", "capabilities", "data": {"models", "seed"}, "assets"}`, every path
-/// relative and inside the app's folder, every capability with a reason.
+/// "description", "icon", "release", "entry", "themes", "capabilities", "data": {"models", "seed"}, "assets"}`,
+/// every path relative and inside the app's folder, every capability with a reason, the release three numbers.
 /// @param manifest The manifest.
 /// @return What it says.
 /// @throws DocumentError "AffrescoUI app: <place>: <problem>" if it isn't one.

@@ -1821,7 +1821,7 @@ without `app.json` reads `app.lisp`. A generated example:
   "$schema": "../../schema/affrescoui-app.schema.json",
   "format": "affrescoui-app", "version": 1,
   "id": "reading-list", "name": "Reading list", "description": "Books to read, and notes on the ones read.",
-  "icon": "assets/icon.png",
+  "icon": "assets/icon.png", "release": "1.2.0",
   "entry": "index.screen.json",
   "themes": ["themes/paper.json"],
   "capabilities": {
@@ -1841,6 +1841,9 @@ without `app.json` reads `app.lisp`. A generated example:
   the app's own choice, so it is bound to the folder that first opens it (recorded in the folder's `location`): an
   app elsewhere with the same id keeps its data, and the host the person's permissions, in `apps/<id>~<hash>/`, its
   own. A screen opened on its own is bound to its file the same way (`<data folder>/<screen name>.location`).
+- **`release`** (optional): the app's release, three numbers as a feature's (`"1.2.0"`, compared as semver's). A
+  shared version of the app names the release it was made from; an app without one is known by its files alone. A
+  malformed one refuses the app (`AffrescoUI app: release: expected three numbers such as 1.0.0`).
 - **`entry`** (default `index.screen.json`): the screen it opens, a `.json` file or a `.lisp` one (its includes, themes,
   models and seed data may be written in the Lisp notation too: "The Lisp notation"). Every path in the manifest is relative, inside the
   folder (no `..`, no link leading out), and is refused otherwise. The entry screen's `include`s, and theirs, are
