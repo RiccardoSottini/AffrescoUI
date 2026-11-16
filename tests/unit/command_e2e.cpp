@@ -281,7 +281,10 @@ TEST_CASE("commands: undoRun puts back what a run changed, and is refused once t
 		CAPTURE(lisp);
 		Board board(lisp);
 		const json ran = board.run("moveCard", {{"card", "c1"}, {"to", "done"}});
-		CHECK(board.ask(board.agent, {{"type", "undoRun"}, {"run", ran["run"]}})["type"] == "undone");
+		const json undone = board.ask(board.agent, {{"type", "undoRun"}, {"run", ran["run"]}});
+		CHECK(undone["type"] == "undone");
+		CHECK(undone["changes"].get<int>() > 0); // the places it put back, with no empty patch saying none
+		CHECK_FALSE(undone.contains("changed"));
 		CHECK(board.column("c1") == "todo");
 		const json again = board.run("moveCard", {{"card", "c2"}, {"to", "done"}});
 		board.act("touch");

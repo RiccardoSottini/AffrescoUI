@@ -378,7 +378,8 @@ json ScreenCommands::undo(std::string_view author, const json& message) {
 	const auto still = std::ranges::find(after, run, &RunRecord::id);
 	if(still != after.end() && still->state == RunState::Ran)
 		control_.finish(run, RunState::Undone, "", outcome.changes, outcome.errors, outcome.undoable);
-	return {{"type", "undone"}, {"run", run}, {"changed", std::move(outcome.changed)}, {"changes", outcome.changes}};
+	// No patch: undo puts back what it kept, so it says how many places, not an empty `changed` that would read as none
+	return {{"type", "undone"}, {"run", run}, {"changes", outcome.changes}};
 }
 
 json ScreenCommands::decide(std::string_view reviewer, const json& message) {
