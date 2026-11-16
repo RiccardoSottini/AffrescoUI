@@ -223,8 +223,9 @@ std::filesystem::path DataLayer::allowedFile(const std::string& file, const std:
 }
 
 const std::string& DataLayer::author() const noexcept {
-	// Who the step authority names first, of those who aren't the person: a record a timer of a peer's run writes
-	// later is still the runner's, whatever the host set
+	// A peer's run's runner, whatever function led here; else who the step authority names first, of those who aren't
+	// the person: a record a timer of a peer's run writes later is still the runner's, whatever the host set
+	if(engine_.authority && engine_.authority->run) return engine_.authority->run->runner;
 	if(engine_.authority)
 		for(const std::string& author : engine_.authority->authors)
 			if(!isPersonsAuthor(author)) return author;
@@ -232,7 +233,16 @@ const std::string& DataLayer::author() const noexcept {
 }
 
 void DataLayer::checkWrite(const std::string& collection, const std::string& where) const {
-	const std::string& writer = author();
+	if(engine_.authority && engine_.authority->run && engine_.authority->run->refused)
+		throw data::DataError("denied", where + ": the run that scheduled this was refused, so it writes no record");
+	// The writer, and every other author whose code led here: a function by one may not write for another
+	checkWriteAs(author(), collection, where);
+	if(engine_.authority)
+		for(const std::string& other : engine_.authority->authors)
+			if(!isPersonsAuthor(other) && other != author()) checkWriteAs(other, collection, where);
+}
+
+void DataLayer::checkWriteAs(const std::string& writer, const std::string& collection, const std::string& where) const {
 	if(writer == "app") return; // the person using the app
 	const json& permissions = sectionOf(engine_.versions.document(), "permissions");
 	const json& rules = permissions.is_object() ? sectionOf(permissions, "data") : permissions;

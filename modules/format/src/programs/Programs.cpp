@@ -74,10 +74,32 @@ KeptAuthority keptAuthority(const Engine& engine) {
 	return engine.authority ? KeptAuthority(*engine.authority) : std::nullopt;
 }
 
-AuthorityScope::AuthorityScope(Engine& engine, const StepAuthority* authority) noexcept
-    : engine_(engine), outer_(std::exchange(engine.authority, authority)) {}
+AuthorityScope::AuthorityScope(Engine& engine, const StepAuthority* authority, bool judged)
+    : engine_(engine), outer_(std::exchange(engine.authority, authority)) {
+	// Only the outermost scope of a run's work judges it: one inside it (a Lisp step) is part of the same work
+	if(judged && authority && authority->run && !(outer_ && outer_->run) && engine.runControl) {
+		run_ = authority->run;
+		before_ = engine.versions.state();
+	}
+}
 
-AuthorityScope::~AuthorityScope() { engine_.authority = outer_; }
+// NOLINTNEXTLINE(bugprone-exception-escape): only building the report in its catch can throw, if memory runs out
+AuthorityScope::~AuthorityScope() {
+	engine_.authority = outer_;
+	if(!run_) return;
+	try {
+		const json& state = engine_.versions.state();
+		if(state == before_) return;
+		const std::optional<std::string> refusal = engine_.runControl->stateDenial(run_->runner, before_, state);
+		if(!refusal) return;
+		engine_.versions.state() = std::move(before_);
+		engine_.document.markStateChanged();
+		engine_.reconciler.requestStateUpdate();
+		engine_.report("what a run by '" + run_->runner + "' scheduled was put back: " + *refusal);
+	} catch(const std::exception& error) { // never out of a destructor: the change stays, and is told
+		engine_.report(std::string("what a run scheduled couldn't be judged: ") + error.what());
+	}
+}
 
 WorkBudget& Programs::work() const {
 	WorkBudget* running = engine_.document.budget();
@@ -185,6 +207,8 @@ bool Programs::hasProgram() const noexcept { return live_ != nullptr; }
 
 std::optional<std::string> Programs::refusal(std::string_view what, StepKind kind,
                                              std::span<const std::string> ran) const {
+	if(engine_.authority && engine_.authority->run && engine_.authority->run->refused)
+		return "the run that scheduled this was refused, so what it scheduled runs no step";
 	if(kind == StepKind::None || kind == StepKind::Free) return std::nullopt;
 	const std::string step =
 	    "the " + std::string(kind == StepKind::Review ? "review" : "control") + " step \"" + std::string(what) + "\"";

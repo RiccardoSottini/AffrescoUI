@@ -45,9 +45,12 @@ std::string sent(const json& declared, json& arguments) {
 /// @return The refusal, or "".
 std::string sentCopy(const json& declared, json arguments) { return sent(declared, arguments); }
 
-/// The board's command's arguments.
-const json board = json::parse(R"json({ "card": { "type": "string", "description": "The card's id" },
-                                        "to": { "enum": ["todo", "doing", "done"] } })json");
+/// @brief The board's command's arguments.
+/// @return Them.
+json board() {
+	return {{"card", {{"type", "string"}, {"description", "The card's id"}}},
+	        {"to", {{"enum", {"todo", "doing", "done"}}}}};
+}
 
 /// @brief A screen with one command.
 /// @param command The command.
@@ -109,7 +112,7 @@ TEST_CASE("format: a command's argument declarations that are wrong name their p
 }
 
 TEST_CASE("format: a command's arguments are checked when the document is read") {
-	const json good = {{"title", "Move"}, {"arguments", board}, {"do", json::array()}};
+	const json good = {{"title", "Move"}, {"arguments", board()}, {"do", json::array()}};
 	CHECK(readError(screenWith(good)).empty());
 	json bad = good;
 	bad["arguments"]["to"] = {{"enums", {"todo"}}};
@@ -140,27 +143,29 @@ TEST_CASE("format: a command's typed arguments that are no parameter of its func
 }
 
 TEST_CASE("format: a command's arguments a peer sends must be an object of the names it declares") {
-	CHECK(sentCopy(board, json::array()) == R"(move-card: arguments must be an object, like {"card": "…"})");
-	CHECK(sentCopy(board, "card") == R"(move-card: arguments must be an object, like {"card": "…"})");
-	CHECK(sentCopy(board, {{"card", "a"}, {"colum", "done"}}) == "move-card: no argument 'colum' (it takes card, to)");
-	CHECK(sentCopy(board, {{"card", "a"}, {"a b", 1}}) == "move-card: no argument by that name (it takes card, to)");
-	CHECK(sentCopy(board, {{"card", std::string(70 * 1024, 'x')}}).contains("larger than 64 KiB"));
+	CHECK(sentCopy(board(), json::array()) == R"(move-card: arguments must be an object, like {"card": "…"})");
+	CHECK(sentCopy(board(), "card") == R"(move-card: arguments must be an object, like {"card": "…"})");
+	CHECK(sentCopy(board(), {{"card", "a"}, {"colum", "done"}}) ==
+	      "move-card: no argument 'colum' (it takes card, to)");
+	CHECK(sentCopy(board(), {{"card", "a"}, {"a b", 1}}) == "move-card: no argument by that name (it takes card, to)");
+	CHECK(sentCopy(board(), {{"card", std::string(70UL * 1024, 'x')}}).contains("larger than 64 KiB"));
 }
 
 TEST_CASE("format: a command's argument that doesn't match its type is refused without its value") {
-	CHECK(sentCopy(board, {{"card", "a"}, {"to", "elsewhere"}}) == "move-card: to: expected one of todo, doing, done");
-	CHECK(sentCopy(board, {{"card", 42}, {"to", "done"}}) == "move-card: card: expected text");
+	CHECK(sentCopy(board(), {{"card", "a"}, {"to", "elsewhere"}}) ==
+	      "move-card: to: expected one of todo, doing, done");
+	CHECK(sentCopy(board(), {{"card", 42}, {"to", "done"}}) == "move-card: card: expected text");
 	const json limits = json::parse(R"({"n": {"type": "integer", "maximum": 3}, "tags": {"type": "array",
 		"items": {"type": "string"}}})");
 	CHECK(sentCopy(limits, {{"n", 9}, {"tags", json::array()}}) == "move-card: n: expected at most 3");
 	CHECK(sentCopy(limits, {{"n", 1}, {"tags", {"a", 2}}}) == "move-card: tags[1]: expected text");
 	const std::string secret = "do-not-echo";
-	CHECK_FALSE(sentCopy(board, {{"card", "a"}, {"to", secret}}).contains(secret));
+	CHECK_FALSE(sentCopy(board(), {{"card", "a"}, {"to", secret}}).contains(secret));
 }
 
 TEST_CASE("format: a command's missing arguments take their defaults, else null, else are refused") {
 	json arguments = {{"card", "a"}};
-	CHECK(sent(board, arguments) == "move-card: to is missing"); // an enum of texts allows no null
+	CHECK(sent(board(), arguments) == "move-card: to is missing"); // an enum of texts allows no null
 	const json typed = json::parse(R"({"card": {"type": "string"}, "to": {"enum": ["todo", "done"], "default": "todo"},
 		"note": {"type": ["string", "null"]}, "any": {}})");
 	arguments = {{"card", "a"}};

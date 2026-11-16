@@ -911,6 +911,12 @@ class Commands(unittest.TestCase):
         at_once = self.server(waiting, later=({**self.RAN, "run": 4}, 0))  # before the first waiter is let go
         self.assertTrue(at_once.call_tool("run_command", {"name": "move-card", "wait": 1})[0].startswith("ran "))
 
+    def test_a_wait_that_is_not_a_number_waits_the_default(self):
+        self.assertEqual(mcp.commands.wait_seconds({"wait": float("nan")}), mcp.commands.DEFAULT_WAIT)
+        self.assertEqual(mcp.commands.wait_seconds({"wait": float("inf")}), mcp.commands.MAX_WAIT)
+        self.assertEqual(mcp.commands.wait_seconds({"wait": -1}), 0)
+        self.assertEqual(mcp.commands.wait_seconds({"wait": True}), mcp.commands.DEFAULT_WAIT)
+
     def test_a_run_that_waits_too_long_is_news_later(self):
         waiting = {"type": "waiting", "run": 5, "reason": "the run rule asks", "expires": 120}
         server = self.server(waiting, later=({**self.RAN, "run": 5}, 0.3))

@@ -26,6 +26,10 @@ namespace {
 
 /// How often the expiry timer looks for runs that waited too long, in milliseconds, while one waits.
 constexpr double expiryCheckMilliseconds = 1000.0;
+/// After this many "Don't run" in the window, a channel's runs that need the person aren't asked again.
+constexpr int maxPersonNos = 3;
+/// The most bytes of a runner's name the window's question shows.
+constexpr std::size_t maxShownAuthorBytes = 64;
 
 /// @brief A "rejected" answer.
 /// @param error Why.
@@ -42,6 +46,16 @@ json rejected(const std::string& error, int run = 0) {
 /// @return E.g. "agent".
 std::string_view channelOf(std::string_view author) { return author.substr(0, author.find('/')); }
 
+/// @brief A runner's name as the window's question shows it: at most maxShownAuthorBytes, whole characters.
+/// @param author The runner.
+/// @return It, cut with "…" if longer.
+std::string shownAuthor(std::string_view author) {
+	if(author.size() <= maxShownAuthorBytes) return std::string(author);
+	std::size_t end = maxShownAuthorBytes;
+	while(end > 0 && (static_cast<unsigned char>(author[end]) & 0xC0U) == 0x80U) --end;
+	return std::string(author.substr(0, end)) + "…";
+}
+
 /// @brief Milliseconds since 1970 (UTC), as the run control counts them.
 /// @return Now.
 std::int64_t systemNow() {
@@ -57,7 +71,7 @@ bool holds(const json& text, std::string_view part) {
 	if(!text.is_string()) return false;
 	std::string lower = text.get<std::string>();
 	std::ranges::transform(lower, lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-	return lower.find(part) != std::string::npos;
+	return lower.contains(part);
 }
 
 /// @brief Tells whether a command matches a getCommands filter.
@@ -164,7 +178,8 @@ std::optional<std::string> ScreenCommands::busy() const {
 
 ScreenCommands::Checked ScreenCommands::check(std::string_view author, const std::string& name, json& arguments) const {
 	Checked checked;
-	if((checked.refusal = busy())) return checked;
+	checked.refusal = busy();
+	if(checked.refusal) return checked;
 	const std::optional<json> entry = runtime_.command(name);
 	if(!entry) {
 		std::vector<std::string> names;
@@ -175,7 +190,8 @@ ScreenCommands::Checked ScreenCommands::check(std::string_view author, const std
 		return checked;
 	}
 	checked.entry = *entry;
-	if((checked.refusal = runtime_.checkCommandArguments(name, arguments))) return checked;
+	checked.refusal = runtime_.checkCommandArguments(name, arguments);
+	if(checked.refusal) return checked;
 	if(!checked.entry.value("enabled", true)) {
 		checked.refusal = "'" + name + "' is disabled now";
 		return checked;
@@ -217,7 +233,16 @@ void ScreenCommands::wait(Waiting waiting, const Checked& checked) {
 		               checked.judgement.verdict, checked.judgement.reason);
 	if(begun.run == 0) return waiting.answer(rejected(begun.error));
 	waiting.run = begun.run;
-	if(checked.judgement.verdict == RunVerdict::Person) {
+	waiting.personOnly = checked.judgement.verdict == RunVerdict::Person;
+	waiting.uses = joined(checked.reach.personUses);
+	if(waiting.personOnly) {
+		const auto nos = personNos_.find(channelOf(waiting.author));
+		if(nos != personNos_.end() && nos->second >= maxPersonNos) { // a question asked again and again wears out a no
+			const std::string why = "the person said no three times: runs of this channel that need them aren't asked "
+			                        "again until the app restarts";
+			(void)control_.deny(waiting.run, why);
+			return waiting.answer(rejected(why, waiting.run));
+		}
 		waiting.question = askPerson(waiting, checked);
 		if(waiting.question == 0) {
 			// Not kept in waiting_ yet: the denial below answers nobody, and the runner hears why here
@@ -239,17 +264,22 @@ std::uint64_t ScreenCommands::askPerson(const Waiting& waiting, const Checked& c
 	Window* window = runtime_.window();
 	if(!window) return 0;
 	const std::string uses = joined(checked.reach.personUses);
-	const Confirmation question{"Run “" + titleOf(checked.entry, waiting.command) + "”?",
-	                            waiting.author + " asks to run it." + (uses.empty() ? "" : " It " + uses + "."),
-	                            waiting.arguments.dump(2, ' ', false, json::error_handler_t::replace), "Run",
-	                            "Don't run"};
-	return window->confirm(question, [this, alive = std::weak_ptr<bool>(alive_), run = waiting.run](bool accepted) {
+	const Confirmation question{
+	    "Run “" + titleOf(checked.entry, waiting.command) + "”?",
+	    shownAuthor(waiting.author) + " asks to run it." + (uses.empty() ? "" : " It " + uses + "."),
+	    waiting.arguments.dump(2, ' ', false, json::error_handler_t::replace), "Run", "Don't run"};
+	return window->confirm(question, [this, alive = std::weak_ptr<bool>(alive_), run = waiting.run,
+	                                  channel = std::string(channelOf(waiting.author))](bool accepted) {
 		if(alive.expired()) return;
 		const auto it = std::ranges::find(waiting_, run, &Waiting::run);
 		if(it != waiting_.end()) it->question = 0; // answered: nothing to dismiss
 		// Only the person's own click or key answers the window's question: their yes, never remembered
-		if(accepted) (void)control_.allow(run, "user", false, "");
-		else (void)control_.deny(run, "the person said no");
+		if(accepted) {
+			(void)control_.allow(run, "user", false, "");
+		} else {
+			++personNos_[channel];
+			(void)control_.deny(run, "the person said no");
+		}
 	});
 }
 
@@ -266,13 +296,23 @@ void ScreenCommands::decided(const RunDecision& decision) {
 		return waiting.answer(rejected(decision.reason.empty() ? "denied" : decision.reason, waiting.run));
 	}
 	// The document, the mode or the rules may have changed while it waited
-	std::optional<std::string> refusal =
-	    allowed_ ? check(waiting.author, waiting.command, waiting.arguments).refusal : "this host runs no commands";
+	std::optional<std::string> refusal = allowed_ ? recheck(waiting) : "this host runs no commands";
 	if(refusal) {
 		control_.finish(waiting.run, RunState::Failed, *refusal, 0, {}, Undoable::None);
 		return waiting.answer(rejected(*refusal, waiting.run));
 	}
 	execute(waiting);
+}
+
+std::optional<std::string> ScreenCommands::recheck(Waiting& waiting) const {
+	const Checked checked = check(waiting.author, waiting.command, waiting.arguments);
+	if(checked.refusal) return checked.refusal;
+	// A yes was given to what was asked: a run that now needs the person's own question, or uses more than it said,
+	// was allowed by someone who never saw that
+	if(checked.judgement.verdict == RunVerdict::Person &&
+	   (!waiting.personOnly || joined(checked.reach.personUses) != waiting.uses))
+		return "'" + waiting.command + "' changed while it waited: ask again";
+	return std::nullopt;
 }
 
 void ScreenCommands::execute(const Waiting& run) {
@@ -285,7 +325,10 @@ void ScreenCommands::execute(const Waiting& run) {
 	CommandOutcome outcome = runtime_.runCommandAs({run.run, run.author, run.command, run.arguments});
 	if(outcome.refusal) {
 		control_.finish(run.run, RunState::Failed, *outcome.refusal, 0, outcome.errors, Undoable::None);
-		return run.answer(rejected(*outcome.refusal, run.run));
+		json answer = rejected(*outcome.refusal, run.run);
+		// Ended by what a step said, which can quote what it read (a refusal by the rules names their paths alone)
+		if(std::ranges::contains(outcome.errors, *outcome.refusal)) answer["failed"] = true;
+		return run.answer(answer);
 	}
 	control_.finish(run.run, RunState::Ran, "", outcome.changes, outcome.errors, outcome.undoable);
 	json answer = {{"type", "ran"},
@@ -337,7 +380,8 @@ json ScreenCommands::undo(std::string_view author, const json& message) {
 	const auto still = std::ranges::find(after, run, &RunRecord::id);
 	if(still != after.end() && still->state == RunState::Ran)
 		control_.finish(run, RunState::Undone, "", outcome.changes, outcome.errors, outcome.undoable);
-	return {{"type", "undone"}, {"run", run}, {"changed", std::move(outcome.changed)}, {"changes", outcome.changes}};
+	// No patch: undo puts back what it kept, so it says how many places, not an empty `changed` that would read as none
+	return {{"type", "undone"}, {"run", run}, {"changes", outcome.changes}};
 }
 
 json ScreenCommands::decide(std::string_view reviewer, const json& message) {
@@ -374,6 +418,8 @@ json ScreenCommands::pending(std::string_view reader) const {
 		if(limited) { // what a run was asked with, and what its steps said, can quote values the reader may not read
 			entry.erase("arguments");
 			entry.erase("errors");
+			if(run.state == RunState::Failed && std::ranges::contains(run.errors, run.reason))
+				entry["reason"] = "the run failed"; // what a step said, as execute() tells it
 		}
 		runs.push_back(std::move(entry));
 	}
@@ -385,6 +431,7 @@ void ScreenCommands::setAllowed(bool allowed) {
 	allowed_ = allowed;
 	if(allowed) return;
 	std::vector<int> runs;
+	runs.reserve(waiting_.size());
 	for(const Waiting& waiting : waiting_) runs.push_back(waiting.run);
 	for(const int run : runs) (void)control_.deny(run, "this host runs no commands");
 }

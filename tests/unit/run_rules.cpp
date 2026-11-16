@@ -549,6 +549,12 @@ TEST_CASE("vcs: a run grant is capped by grantsLast") {
 	CHECK(f.runs.grants().at(0).expires == "2027-01-15T10:00:00Z");
 }
 
+TEST_CASE("vcs: an attack: a grantsLast past a year caps a grant at a year, never leaves it unlimited") {
+	Fixture f(screen({{"review", {{"grantsLast", "400d"}}}}));
+	CHECK_FALSE(f.runs.allow(f.wait(), "user", true, ""));
+	CHECK(f.runs.grants().at(0).expires == "2028-01-16T08:00:00Z");
+}
+
 TEST_CASE("vcs: a run grant can be revoked") {
 	Fixture f;
 	CHECK_FALSE(f.runs.allow(f.wait(), "user", true, ""));

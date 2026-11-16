@@ -29,8 +29,10 @@ constexpr std::size_t maxFilterBytes = 256;
 /// The longest text of a `reason`, a `rule` or a `for`, in bytes.
 constexpr std::size_t maxTextBytes = 1024;
 
-/// The fields of a "ran" answer that show what a run did to the state or the screen: never for a limited reader.
-constexpr std::array<std::string_view, 6> shownFields{"changed", "region", "picture", "width", "height", "scale"};
+/// The fields of a "ran" answer that show what a run did to the state or the screen, or its errors (which can quote
+/// values): never for a limited reader.
+constexpr std::array<std::string_view, 7> shownFields{"changed", "region", "picture", "width",
+                                                      "height",  "scale",  "errors"};
 
 /// @brief Writes a count with a comma between thousands, as people read it.
 /// @param count The count.
@@ -128,7 +130,7 @@ json checkedRun(const json& message, const PeerLimits& limits, bool limited) {
 	std::string evidence = optionalText(message, "evidence", "runCommand.evidence", maxTextBytes);
 	if(evidence.empty()) evidence = "state";
 	if(evidence != "state" && evidence != "picture" && evidence != "none")
-		expect::fail("runCommand.evidence", "expected \"state\", \"picture\" or \"none\"");
+		expect::fail("runCommand.evidence", R"(expected "state", "picture" or "none")");
 	const int scale = checkedScale(message);
 	if(limited) evidence = "none";
 	return {{"command", command}, {"arguments", std::move(arguments)}, {"evidence", evidence}, {"scale", scale}};
@@ -188,6 +190,7 @@ void limitCommands(json& answer, const json& view) {
 void limitFor(json& answer, const std::optional<json>& view) {
 	const std::string type = answer.value("type", "");
 	if(type == "commands" && view) return limitCommands(answer, *view);
+	if(type == "rejected" && view && answer.value("failed", false)) answer["error"] = "the run failed while it ran";
 	if(type != "ran" && type != "undone") return;
 	if(view)
 		for(const std::string_view field : shownFields) answer.erase(std::string(field));
@@ -261,6 +264,7 @@ bool Session::handleCommands(const Incoming& in) {
 		overLimit(what);
 		throw DocumentError(what);
 	}
+	// NOLINTNEXTLINE(bugprone-exception-escape): only copying a message can throw, if memory runs out
 	commands_->run(in.author, run, [answer, this, alive = std::weak_ptr<bool>(commandsAlive_)](const json& message) {
 		if(alive.expired()) return; // the session left the service, or is gone
 		if(message.value("type", "") == "waiting") waitingRuns_.push_back(runIn(message));

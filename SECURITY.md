@@ -599,17 +599,31 @@ convenience; what holds is how the run executes:
   advice or hook of the program, written by the person or anyone else, or in a record write's `then`.
 - **What a run schedules keeps the runner's authority.** An `after` or `debounce`, a Lisp timer, a service call's or
   an asynchronous call's `onDone` and `onError`, and a sound's actions run later with the authority of the step that
-  started them, so a run can't reach the person's authority by waiting.
-- **Its records are written under the runner's name**, and `permissions.data` judges them as that author's.
+  started them, so a run can't reach the person's authority by waiting. What that later work changes in the state is
+  judged by effect with the runner's data rules, as the run was, and put back when they refuse it; once a run is
+  refused, what it scheduled runs no step.
+- **What the check before a run follows**: actions named in text under `run`, `do`, `then`, `else`, `onDone`,
+  `onError` and `onEvent`, so a service that writes or runs, reached through any of them, still needs the person.
+- **Its records are written under the runner's name**, and `permissions.data` judges them as that author's, and as
+  every other author whose code led there: a function of another peer's that a run calls writes nothing that peer
+  may not.
 - **A run refused while it ran leaves nothing.** One that ends with an error, or whose effect the run control refuses
   (`RunControl::stateDenial()`), has its state put back as it was and its record writes undone. A run's own record
   writes are groups of their own, apart from the person's.
-- **One run at a time**, and none while a proposal is previewed.
+- **One run at a time**, and none while a proposal is previewed; no undo while a run runs or a proposal is previewed.
 - **Undo puts back only what still holds.** A run is undone only while each place it changed still holds what the run
-  left there and no later record write came after its own; otherwise nothing is changed. What reaches outside the state
+  left there, what holds that place is still there and still an object or array, and no later record write came after
+  its own; otherwise nothing is changed. What reaches outside the state
   and the records (the clipboard, a channel, a file) isn't undone, and the run says it is partly undoable.
 - **What a run reports is bounded**: its errors and what it changed (below, "Limits"); a value past those limits is never
-  reported, only its path.
+  reported, only its path. A peer whose reads are limited gets neither what it changed nor what its steps said (an
+  error can quote a value it read): a run a step ended is told only as failed.
+- **The person's question can't be worn out.** A run only the person may allow asks in the window's own question,
+  which shows at most 64 bytes of the runner's name. After three "Don't run" to one channel, that channel's runs that
+  need the person are refused without asking until the host restarts. A waiting run whose command now needs the person
+  is refused when a reviewer allows it.
+- **A reply to the app's own agent comes from the screen.** A peer's message relayed to it, which always carries
+  `from`, is never taken for the answer it waits on, whatever its `id`.
 
 ### Editors (nREPL)
 
@@ -840,6 +854,9 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A command run's errors (`CommandRuns::maxErrors`, `maxErrorBytes`) | 8, each at most 512 bytes |
 | What a command run reports it changed (`CommandRuns::maxChangedOperations`, `maxChangedBytes`) | 64 operations and 16 KiB; past either, only the paths, within 16 KiB |
 | Command runs kept for undo (`maxUndoableRuns`, `core/Commands.hpp`; `RunUndo::maxBytes`) | the newest 32, and at most 1 MiB of what they changed; a run past 1 MiB can't be undone |
+| The person's "Don't run" to one channel before its runs aren't asked (`maxPersonNos`, `screen/src/commands/ScreenCommands.cpp`) | 3, until the host restarts |
+| A runner's name in the person's question (`maxShownAuthorBytes`) | 64 bytes, then "…" |
+| A run grant (`maxGrantSeconds`, `vcs/src/runs/RunGrants.cpp`) | a year, also when `review.grantsLast` can't be read |
 | New assets one revision brings (`maxRevisionAssetBytes`) | 64 MiB |
 | Assets of one screen (`maxAssets`) | 1,000 |
 | Attachments waiting (`maxAttachments`, `maxAttachmentBytes`) | 32 and 128 MiB, the oldest dropped first; kept for the run only |
@@ -1088,8 +1105,9 @@ removes the gap from this list.
   nodes, components and templates, and in `onLoad`, `watch` and `keys`. An `ask` rule on `/actions` alone doesn't
   cover them; only allow agents the parts of a screen that hold no steps (the templates allow agents nothing, so
   every change of theirs is reviewed). Tracking: G-10.
-- **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
-  it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
+- **A revision or a command run can change the state control steps read.** Neither can add, move or newly trigger a
+  control step, but each can change the state their expressions read. Data rules judge a run's changes by effect, so
+  the same `never` paths keep runs out. A screen with its own `accept`, `restore`, `call` or `send` steps
   should deny agents the `/state` paths those steps read. The same holds for a menu, dialog, toast or quick pick the
   screen already feeds from the state: a revision can change the items it runs (a quick pick keeps its recent items
   in `/state/<name>/recent`), so deny agents those paths when the screen has actions that control changes. Tracking: G-11.
@@ -1166,6 +1184,11 @@ removes the gap from this list.
   on the computer can reach, unlike the host's sockets, whose peer's user is checked. Only the person's yes pairs a
   connection, and three refusals end the asking; on a shared computer, a question you didn't expect is a reason to
   say no. A host ended by a signal leaves `.nrepl-port` behind; the next start replaces it. Tracking: G-30.
+- **A command run can set off the file's own handlers.** A `watch` of the screen's file, or a node's `onShow`, that
+  the state a run changed sets off runs as its own author's, not as the runner's (above, "A state change is no
+  authority"), as when a revision on `/state` sets it off. A control step there still needs the person's own press,
+  but a service write the handler makes isn't the person's to approve; keep such handlers off state a run may change.
+  Tracking: G-31.
 - **A pick kept in the state is as readable as the state.** A `pick` step's `into` writes the record into the state,
   and a peer whose data rules leave that path readable reads it, though `getPicks` refuses that peer and its `request`
   comes without `picks`. Where the person points can tell what they look at: keep such a path out of what a limited

@@ -8,6 +8,7 @@
 
 #include <affresco/data/Store.hpp>
 
+#include <memory>
 #include <utility>
 
 namespace affresco::format {
@@ -82,7 +83,7 @@ private:
 } // namespace
 
 std::optional<std::string> CommandRuns::startRefusal(const CommandRun& run) const {
-	if(run.author.empty() || isPersonsAuthor(run.author))
+	if(run.author.empty() || isPersonsAuthor(run.author) || run.author == "app") // "app": the person, for records
 		return "a run executes under its runner's name, never the person's: \"" + run.author + "\" can't run commands";
 	if(!engine_.window) return std::string("this screen has no window");
 	if(running_) return std::string("a command is running already: runs run one at a time");
@@ -114,7 +115,7 @@ void CommandRuns::describe(const json& patch, CommandOutcome& outcome) {
 		operation["path"] = "/state" + operation["path"].get<std::string>();
 		changed.push_back(std::move(operation));
 	}
-	if(changed.size() <= maxChangedOperations && changed.dump().size() <= maxChangedBytes) {
+	if(changed.size() <= maxChangedOperations && changed.dump(-1, ' ', false, json::error_handler_t::replace).size() <= maxChangedBytes) {
 		outcome.changed = std::move(changed);
 		return;
 	}
@@ -123,7 +124,7 @@ void CommandRuns::describe(const json& patch, CommandOutcome& outcome) {
 	std::size_t bytes = 2;
 	for(const json& operation : changed) {
 		json path = {{"op", operation["op"]}, {"path", operation["path"]}};
-		bytes += path.dump().size() + 1U;
+		bytes += path.dump(-1, ' ', false, json::error_handler_t::replace).size() + 1U;
 		if(bytes > maxChangedBytes) break;
 		outcome.changed.push_back(std::move(path));
 	}
@@ -145,11 +146,12 @@ CommandOutcome CommandRuns::run(const CommandRun& run) {
 	const json event = {{"type", "command"}, {"run", run.run}, {"author", run.author}};
 	std::optional<std::string> ended;
 	bool outside = false;
+	const auto mark = std::make_shared<StepAuthority::Run>(StepAuthority::Run{run.author});
 	{
 		// Every step it reaches, and what those schedule, is judged as the runner's; its record writes are under the
 		// runner's name (DataLayer::author())
-		const StepAuthority runner{{run.author}};
-		const AuthorityScope authority(engine_, &runner);
+		const StepAuthority runner{{run.author}, mark};
+		const AuthorityScope authority(engine_, &runner, false); // judged below, and rolled back whole
 		const ErrorCollector collector(engine_, outcome.errors);
 		const OutsideWatch watch(engine_.runner, outside);
 		ended = engine_.runner.attempt(json(run.command), engine_.window->root(), event,
@@ -161,7 +163,8 @@ CommandOutcome CommandRuns::run(const CommandRun& run) {
 	const json& state = engine_.versions.state();
 	std::optional<std::string> refusal = std::move(ended);
 	if(!refusal && engine_.runControl) refusal = engine_.runControl->stateDenial(run.author, before, state);
-	if(refusal) { // refused while it ran: nothing of it stays
+	if(refusal) { // refused while it ran: nothing of it stays, and what it scheduled runs no step
+		mark->refused = true;
 		if(std::optional<std::string> partly = rollBack(before, writes.groups)) outcome.errors.push_back(*partly);
 		outcome.failed = true;
 		outcome.refusal = std::move(refusal);
@@ -180,6 +183,15 @@ CommandOutcome CommandRuns::run(const CommandRun& run) {
 
 CommandOutcome CommandRuns::undo(int run) {
 	CommandOutcome outcome;
+	// A previewed state is thrown away when the preview ends: an undo there would undo the records alone
+	if(engine_.versions.previewing()) {
+		outcome.refusal = "a proposal is previewed: runs are undone when it ends";
+		return outcome;
+	}
+	if(running_) {
+		outcome.refusal = "a command is running: runs are undone when it ends";
+		return outcome;
+	}
 	const RunUndo::Kept* kept = undo_.find(run);
 	const std::size_t changes = kept ? kept->changes : 0;
 	if(std::optional<std::string> why = undo_.undo(run, engine_.versions.state(), engine_.data.store())) {

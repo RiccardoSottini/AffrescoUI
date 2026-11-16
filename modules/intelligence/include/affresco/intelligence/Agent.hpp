@@ -37,18 +37,18 @@ using ClaudeRunner = std::function<ClaudeAnswer(const std::string& model, const 
 
 /// @brief The bounds and the parts an agent works with.
 struct AgentOptions {
-	std::filesystem::path dataDir;                  ///< Where intelligence.json is (read at each request).
-	Catalog catalog;                                ///< The providers.
-	std::string guide;                              ///< SCREEN_FORMAT.md's text (readFormatGuide()).
-	std::shared_ptr<affresco::SecretStore> keys;    ///< The keys (systemKeys()).
-	NetworkFactory network = systemNetwork();       ///< Makes the HTTP client of a request.
-	ClaudeRunner claude;                            ///< Runs claude-code; empty: the installed command line.
-	bool hiddenProviders = true;                    ///< Uses a provider the settings don't offer (hiddenProvidersAllowed()).
-	int maxSteps = 12;                              ///< The most answers of the model per request.
-	int maxRevisions = 6;                           ///< The most revisions per request.
-	int maxRuns = 12;                               ///< The most of the app's commands run per request.
-	long long maxOutputTokens = 60000;              ///< The most tokens the model writes per request.
-	std::chrono::milliseconds budget{240000};       ///< The longest a request may take.
+	std::filesystem::path dataDir;               ///< Where intelligence.json is (read at each request).
+	Catalog catalog;                             ///< The providers.
+	std::string guide;                           ///< SCREEN_FORMAT.md's text (readFormatGuide()).
+	std::shared_ptr<affresco::SecretStore> keys; ///< The keys (systemKeys()).
+	NetworkFactory network = systemNetwork();    ///< Makes the HTTP client of a request.
+	ClaudeRunner claude;                         ///< Runs claude-code; empty: the installed command line.
+	bool hiddenProviders = true;              ///< Uses a provider the settings don't offer (hiddenProvidersAllowed()).
+	int maxSteps = 12;                        ///< The most answers of the model per request.
+	int maxRevisions = 6;                     ///< The most revisions per request.
+	int maxRuns = 12;                         ///< The most of the app's commands run per request.
+	long long maxOutputTokens = 60000;        ///< The most tokens the model writes per request.
+	std::chrono::milliseconds budget{240000}; ///< The longest a request may take.
 	std::chrono::milliseconds screenTimeout{30000}; ///< The longest the screen may take to answer the agent.
 	std::size_t inlineDocument = 32 * 1024;         ///< A screen this large or smaller is sent whole, else its outline.
 	/// The most requests taken in any minute; the rest are answered "too many requests", so a step the screen runs
@@ -100,6 +100,15 @@ private:
 		affresco::json picks;    ///< What the person pointed at on the screen (its "picks", kept to their sizes).
 	};
 
+	/// @brief Queues a request from the app's own chat, or answers it "busy" or "too many requests". Main thread.
+	/// @param in The request.
+	void queue(const affresco::json& in);
+	/// @brief Keeps a request's attachments for the later requests, the newest maxAttachments. Main thread.
+	/// @param attached The attachments.
+	void remember(const affresco::json& attached);
+	/// @brief Hands the screen's answer to the agent's own question to the question waiting for it. Main thread.
+	/// @param in The answer.
+	void receive(const affresco::json& in);
 	/// @brief The thread: works on the jobs, one at a time.
 	void work();
 	/// @brief Works on one request and replies to it.

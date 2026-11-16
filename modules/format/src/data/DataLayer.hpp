@@ -118,6 +118,12 @@ public:
 	[[nodiscard]] static json evaluate(const std::string& expression, const json& variables);
 
 private:
+	/// @brief Refuses a write the screen's data rules don't let one author make (checkWrite()).
+	/// @param writer The author.
+	/// @param collection The collection written.
+	/// @param where Its place, for errors.
+	/// @throws data::DataError "denied", with the rule.
+	void checkWriteAs(const std::string& writer, const std::string& collection, const std::string& where) const;
 	/// @brief Connects to a store's changes, which ask for an update.
 	/// @param store The store.
 	void watch(data::Store& store);

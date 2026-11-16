@@ -627,18 +627,19 @@ private:
 /// @return A copy of the authority now, or std::nullopt for the screen's own steps.
 [[nodiscard]] KeptAuthority keptAuthority(const Engine& engine);
 
-/// @brief Sets who the steps now running come from, as long as it lives.
+/// @brief Sets who the steps now running come from, as long as it lives. Work a peer's run scheduled is judged by
+/// its effect when it ends, as the run was (RunControl::stateDenial()): a change of the state refused so is put back.
 class AuthorityScope {
 public:
 	/// @brief Sets it.
 	/// @param engine The runtime.
 	/// @param authority Who, or nullptr for none: the screen's own steps.
-	AuthorityScope(Engine& engine, const StepAuthority* authority) noexcept;
+	/// @param judged Whether the work of a run is judged by its effect here; false for the run itself, which judges it.
+	AuthorityScope(Engine& engine, const StepAuthority* authority, bool judged = true);
 	/// @brief Sets what a piece of later work kept (keptAuthority()).
 	/// @param engine The runtime.
 	/// @param kept What it kept; outlives the scope.
-	AuthorityScope(Engine& engine, const KeptAuthority& kept) noexcept
-	    : AuthorityScope(engine, kept ? &*kept : nullptr) {}
+	AuthorityScope(Engine& engine, const KeptAuthority& kept) : AuthorityScope(engine, kept ? &*kept : nullptr) {}
 	/// @brief Puts back what it was.
 	~AuthorityScope();
 	AuthorityScope(const AuthorityScope&) = delete;
@@ -647,8 +648,10 @@ public:
 	AuthorityScope& operator=(AuthorityScope&&) = delete;
 
 private:
-	Engine& engine_;             ///< The runtime.
-	const StepAuthority* outer_; ///< What it was.
+	Engine& engine_;                                ///< The runtime.
+	const StepAuthority* outer_;                    ///< What it was.
+	std::shared_ptr<const StepAuthority::Run> run_; ///< The run whose scheduled work is judged here, or null.
+	json before_;                                   ///< The state when that work began.
 };
 
 } // namespace affresco::format

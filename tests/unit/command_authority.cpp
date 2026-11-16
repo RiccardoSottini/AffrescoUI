@@ -20,6 +20,9 @@ using commandrun::command;
 using commandrun::json;
 using commandrun::screen;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// The words a refusal of the runner's code holds.
@@ -241,7 +244,7 @@ TEST_CASE("format: a command run by a peer runs a command another agent wrote, i
 	const std::optional<std::string> refused = app.repository.commit(
 	    {{"author", "agent/y"},
 		 {"message", "m"},
-		 {"set", {{"/program/app.lisp/by-y", "(defcommand by-y \"\" :title \"Y\" [] (set \"state.noted\" true))"}}}});
+		 {"set", {{"/program/app.lisp/by-y", R"((defcommand by-y "" :title "Y" [] (set "state.noted" true)))"}}}});
 	INFO(refused.value_or(""));
 	REQUIRE_FALSE(refused.has_value());
 	const affresco::CommandOutcome outcome = app.run("by-y");
@@ -306,3 +309,5 @@ TEST_CASE("format: a command run by a peer needs a window") {
 	CHECK(outcome.refusal == "this screen has no window");
 	CHECK(app.state("n") == 0);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

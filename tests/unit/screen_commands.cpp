@@ -3,6 +3,7 @@
 /// a run's checks, the reviewers' decisions, the person's question, undo, and what a limited reader is shown. The run
 /// control's own rules are tested through the real stack in command_e2e.cpp.
 
+#include "CommandBoard.hpp"
 #include "Headless.hpp"
 #include "Helpers.hpp"
 #include "commands/ScreenCommands.hpp"  // modules/screen/src
@@ -256,9 +257,12 @@ TEST_CASE("screen: undoRun: only a run that ran, of the peer's own channel or fo
 
 TEST_CASE("screen: a reader whose reads are limited gets the runs without their arguments and errors") {
 	Fixture f;
-	f.control.kept = {record(1, "agent", RunState::Ran)};
+	f.control.kept = {record(1, "agent", RunState::Ran), record(2, "agent", RunState::Failed)};
+	f.control.kept[1].reason = "expected a list, got \"s3cret\"";
+	f.control.kept[1].errors = {f.control.kept[1].reason};
 	const json limited = f.commands.pending("agent");
-	REQUIRE(limited["runs"].size() == 1);
+	REQUIRE(limited["runs"].size() == 2);
+	CHECK(limited["runs"][1]["reason"] == "the run failed"); // an attack: why it failed can quote what it read
 	CHECK_FALSE(limited["runs"][0].contains("arguments"));
 	CHECK_FALSE(limited["runs"][0].contains("errors"));
 	CHECK(limited["runs"][0]["command"] == "open");
@@ -305,6 +309,37 @@ TEST_CASE("screen: a run that waits for a reviewer runs once allowed, checked ag
 	CHECK(f.count() == 1);
 }
 
+TEST_CASE("screen: an attack: a run that now needs the person's yes is refused when a reviewer allows it") {
+	// It waited as Ask; a commit made the command reach a service write, so only the person's own question may let it
+	Fixture f(true, bumpScreen());
+	f.control.judgement = {affresco::RunVerdict::Ask, "no rule allows it"};
+	REQUIRE(f.run("agent", {{"command", "bump"}})["type"] == "waiting");
+	f.control.judgement = {affresco::RunVerdict::Person, "it uses files.write"};
+	(void)f.control.allow(1, "studio", false, "");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1]["type"] == "rejected");
+	CHECK(f.answers[1]["error"].get<std::string>().find("changed while it waited") != std::string::npos);
+	CHECK(f.control.finished.back() == std::pair<int, RunState>{1, RunState::Failed});
+	CHECK(f.count() == 0);
+	CHECK(f.window->confirmation() == nullptr);
+
+	// The person's own yes in the chat, for a run that now uses more than when it was asked, is refused too
+	f.control.judgement = {affresco::RunVerdict::Ask, "no rule allows it"};
+	REQUIRE(f.run("agent", {{"command", "bump"}})["type"] == "waiting");
+	f.control.judgement = {affresco::RunVerdict::Person, "it uses files.write"};
+	(void)f.control.allow(2, "user", false, "");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1]["type"] == "rejected");
+	CHECK(f.count() == 0);
+
+	// A Person run the person allowed stays a Person run: it runs
+	REQUIRE(f.run("agent", {{"command", "bump"}})["type"] == "waiting");
+	f.press("Run");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1]["type"] == "ran");
+	CHECK(f.count() == 1);
+}
+
 TEST_CASE("screen: a run for the person asks in the window's own question, Run or Don't run, each time") {
 	Fixture f(true, bumpScreen());
 	f.control.judgement = {affresco::RunVerdict::Person, "it uses files.write"};
@@ -323,4 +358,45 @@ TEST_CASE("screen: a run for the person asks in the window's own question, Run o
 	REQUIRE(f.answers.size() == 2);
 	CHECK(f.answers[1] == json{{"type", "rejected"}, {"error", "the person said no"}, {"run", 3}});
 	CHECK(f.count() == 2);
+}
+
+TEST_CASE("screen: an attack: after three \"Don't run\" a channel's runs aren't asked of the person again") {
+	Fixture f(true, bumpScreen());
+	f.control.judgement = {affresco::RunVerdict::Person, "it uses files.write"};
+	for(int time = 1; time <= 3; ++time) {
+		CAPTURE(time);
+		f.answers.clear();
+		CHECK(f.run("agent/claude", {{"command", "bump"}})["type"] == "waiting");
+		REQUIRE(f.window->confirmation() != nullptr);
+		f.press("Don't run");
+	}
+	f.answers.clear();
+	const json fourth = f.run("agent/other", {{"command", "bump"}});
+	CHECK(fourth["type"] == "rejected");
+	CHECK(fourth["error"].get<std::string>().contains("the person said no three times"));
+	CHECK(f.window->confirmation() == nullptr);
+	f.answers.clear();
+	CHECK(f.run("bot", {{"command", "bump"}})["type"] == "waiting"); // another channel is still asked
+	CHECK(f.window->confirmation() != nullptr);
+}
+
+TEST_CASE("screen: an attack: the window's question shows at most 64 bytes of the runner's name") {
+	Fixture f(true, bumpScreen());
+	f.control.judgement = {affresco::RunVerdict::Person, "it uses files.write"};
+	const std::string author = "agent/" + std::string(200, 'x');
+	CHECK(f.run(author, {{"command", "bump"}})["type"] == "waiting");
+	REQUIRE(f.window->confirmation() != nullptr);
+	const std::string shown = commandboard::shownTexts(f.window->confirmation());
+	CHECK(shown.contains("agent/" + std::string(58, 'x') + "… asks to run it."));
+	CHECK_FALSE(shown.contains(std::string(59, 'x')));
+}
+
+TEST_CASE("screen: a run a step ends is marked failed, so a limited reader isn't told what the step said") {
+	json document = bumpScreen();
+	document["actions"]["broken"] = {{"title", "Broken"}, {"do", json::array({{{"run", "nothing-of-that-name"}}})}};
+	Fixture f(true, document);
+	const json ended = f.run("agent/claude", {{"command", "broken"}});
+	CHECK(ended["type"] == "rejected");
+	CHECK(ended["failed"] == true);
+	CHECK(f.control.finished == std::vector<std::pair<int, RunState>>{{1, RunState::Failed}});
 }

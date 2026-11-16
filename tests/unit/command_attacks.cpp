@@ -127,13 +127,14 @@ TEST_CASE("commands: an agent can't approve its own proposal through a Lisp func
 	CHECK(board.screen.proposals().size() == 1);
 }
 
-TEST_CASE("commands: an agent can't approve its own proposal by setting the state a timer of the person's acts on" *
-          doctest::skip(true)) {
-	// Gets through: the screen's own `every` timer runs `accept` on state the agent's run set
-	Board board(false, attackBoard());
+TEST_CASE("commands: a screen whose own timer accepts on its state keeps agents' runs off that state with never") {
+	// SECURITY.md, G-11: a run, like a revision, can change the state a screen's own control steps read
+	json document = json::parse(attackBoard());
+	document["permissions"]["data"] = json::array({{{"author", "agent"}, {"never", {"/state/armed"}}}});
+	Board board(false, document.dump());
 	propose(board);
 	const std::string before = guarded(board);
-	CHECK(board.run("arm")["type"] == "ran");
+	CHECK(heldOff(board, before, board.run("arm")));
 	board.wait(1);
 	CHECK(guarded(board) == before);
 	CHECK(board.screen.proposals().size() == 1);

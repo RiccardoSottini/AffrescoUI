@@ -134,7 +134,7 @@ TEST_CASE("format: a command that reaches a control step through a Lisp function
 )lisp";
 	const CommandReach function = lispReach(helpers + R"lisp((defcommand go "Goes." :title "Go" [] (asks)))lisp", "go");
 	CHECK(function.control);
-	CHECK(function.controlStep.contains("reaches a control or a review step"));
+	CHECK(function.controlStep.contains("a control or a review step in the function"));
 	const CommandReach advised =
 	    lispReach(helpers + R"lisp((defcommand go "Goes." :title "Go" [] (quiet)) (advice go :before asks))lisp", "go");
 	CHECK(advised.control);
@@ -162,6 +162,18 @@ TEST_CASE("format: a command that uses a service lists the uses that write, not 
 	CHECK(lisp.personUses == writes.personUses);
 }
 
+TEST_CASE("format: an attack: a command reaches the action a step names in onDone, onError, then, else or onEvent") {
+	// A handler given as text runs the action of that name: what it uses is the command's to show, as `run` is
+	const json save = json::parse(R"([{"invoke": "files.write", "with": {"path": "a"}}])");
+	for(const char* key : {"onDone", "onError", "then", "else", "onEvent"}) {
+		CAPTURE(key);
+		json read = json::parse(R"({"invoke": "files.read", "with": {"path": "a"}})");
+		read[key] = "save";
+		const CommandReach reach = jsonReach({{"save", save}, {"go", command(json::array({read}))}}, "go");
+		CHECK(reach.personUses == std::vector<std::string>{"uses files.write (write: writes a file)"});
+	}
+}
+
 TEST_CASE("format: a command that writes records") {
 	const CommandReach reach =
 	    jsonReach({{"go", command(json::parse(R"([{"insert": "cards", "value": {"title": "x"}}])"))}}, "go");
@@ -175,7 +187,7 @@ TEST_CASE("format: a command of a program that doesn't build reaches control") {
 (defscreen main (column#root))
 )lisp",
 	    "app.lisp");
-	document["program"]["app.lisp"]["go"] = "(defcommand go \"Goes.\" :title \"Go\" [] (";
+	document["program"]["app.lisp"]["go"] = R"((defcommand go "Goes." :title "Go" [] ()";
 	const CommandReach reach = affresco::format::reachOf(document, "go", nullptr);
 	CHECK(reach.control);
 	CHECK(reach.controlStep.starts_with("the program can't be built"));

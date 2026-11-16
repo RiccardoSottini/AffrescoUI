@@ -40,9 +40,9 @@ TEST_CASE("commands: an agent lists the board's commands, each with the verdict 
 		const std::string accepted = listed.at("acceptAll")["reason"].get<std::string>();
 		CHECK(listed.at("acceptAll")["run"] == "deny");
 		if(lisp) { // the program's function is what reaches it
-			CHECK(exported == "'exportBoard' reaches the function 'exportBoard' reaches a control or a review step, "
+			CHECK(exported == "'exportBoard' reaches a control or a review step in the function 'exportBoard', "
 			                  "which only the person may run");
-			CHECK(accepted.starts_with("'acceptAll' reaches the function 'acceptAll'"));
+			CHECK(accepted.starts_with("'acceptAll' reaches a control or a review step in the function 'acceptAll'"));
 		} else {
 			CHECK(exported == "'exportBoard' reaches the control step \"call\", which only the person may run");
 			CHECK(accepted == "'acceptAll' reaches the control step \"accept\", which only the person may run");
@@ -64,7 +64,8 @@ TEST_CASE("commands: an allowed run runs as the agent, answers what changed, and
 		CHECK(ran["type"] == "ran");
 		CHECK(ran["failed"] == false);
 		CHECK(ran["undoable"] == "state");
-		CHECK(ran["changed"] == json::parse(R"([{"op": "replace", "path": "/state/cards/0/column", "value": "done"}])"));
+		CHECK(ran["changed"] ==
+		      json::parse(R"([{"op": "replace", "path": "/state/cards/0/column", "value": "done"}])"));
 		CHECK(ran["errors"] == json::array());
 		CHECK(board.column("c1") == "done");
 		const json runs = Board::runs(board.studio);
@@ -200,16 +201,17 @@ TEST_CASE("commands: a deny rule refuses a run for everyone, and a control step'
 		CAPTURE(lisp);
 		Board board(lisp);
 		CHECK(board.run("clearBoard")["error"] == "denied by the run rule '*(clearBoard)'");
-		CHECK(board.ask(board.studio, {{"type", "runCommand"}, {"command", "clearBoard"}, {"arguments", json::object()}})
-		          ["error"] == "denied by the run rule '*(clearBoard)'");
+		CHECK(board.ask(board.studio,
+		                {{"type", "runCommand"}, {"command", "clearBoard"}, {"arguments", json::object()}})["error"] ==
+		      "denied by the run rule '*(clearBoard)'");
 		CHECK(board.state("cards").size() == 2);
 		const json exported = board.run("exportBoard");
 		CHECK(exported["type"] == "rejected");
 		CHECK(exported["error"].get<std::string>().ends_with("which only the person may run"));
 		CHECK(board.exports == 0);
 		// Even with a proposal waiting, accept is refused: the agent's own proposal stays open
-		const json proposed = board.ask(board.agent, {{"type", "revision"}, {"message", "retitle"},
-		                                              {"set", {{"/state/note", "mine"}}}});
+		const json proposed =
+		    board.ask(board.agent, {{"type", "revision"}, {"message", "retitle"}, {"set", {{"/state/note", "mine"}}}});
 		CAPTURE(proposed);
 		const json accepted = board.run("acceptAll");
 		CHECK(accepted["error"].get<std::string>().ends_with("which only the person may run"));
@@ -258,7 +260,8 @@ TEST_CASE("commands: in plan mode an agent's run is denied, saying to describe i
 	CHECK(board.run("moveCard", {{"card", "c1"}, {"to", "done"}})["error"] ==
 	      "plan mode: commands don't run; say what you would run");
 	CHECK(board.column("c1") == "todo");
-	CHECK(board.ask(board.studio, {{"type", "runCommand"}, {"command", "moveCard"},
+	CHECK(board.ask(board.studio, {{"type", "runCommand"},
+	                               {"command", "moveCard"},
 	                               {"arguments", {{"card", "c1"}, {"to", "done"}}}})["type"] == "ran");
 }
 
@@ -278,7 +281,10 @@ TEST_CASE("commands: undoRun puts back what a run changed, and is refused once t
 		CAPTURE(lisp);
 		Board board(lisp);
 		const json ran = board.run("moveCard", {{"card", "c1"}, {"to", "done"}});
-		CHECK(board.ask(board.agent, {{"type", "undoRun"}, {"run", ran["run"]}})["type"] == "undone");
+		const json undone = board.ask(board.agent, {{"type", "undoRun"}, {"run", ran["run"]}});
+		CHECK(undone["type"] == "undone");
+		CHECK(undone["changes"].get<int>() > 0); // the places it put back, with no empty patch saying none
+		CHECK_FALSE(undone.contains("changed"));
 		CHECK(board.column("c1") == "todo");
 		const json again = board.run("moveCard", {{"card", "c2"}, {"to", "done"}});
 		board.act("touch");
@@ -318,7 +324,8 @@ TEST_CASE("commands: a host that switches runs off lists nothing to run and refu
 	board.screen.allowCommandRuns(false);
 	const std::string off = "AffrescoUI screen: runCommand: this host runs no commands";
 	CHECK(board.run("moveCard", {{"card", "c1"}, {"to", "done"}})["error"] == off);
-	CHECK(board.ask(board.studio, {{"type", "runCommand"}, {"command", "moveCard"},
+	CHECK(board.ask(board.studio, {{"type", "runCommand"},
+	                               {"command", "moveCard"},
 	                               {"arguments", {{"card", "c1"}, {"to", "done"}}}})["error"] == off);
 	CHECK(board.ask(board.agent, {{"type", "getCommands"}})["type"] == "rejected");
 	CHECK(board.column("c1") == "todo");
@@ -346,8 +353,8 @@ TEST_CASE("commands: a scenario's command step runs a command as its author's pe
 		{ "command": "addCard", "verdict": "ask" },
 		{ "command": "addCard", "as": "studio", "with": { "title": "New" } },
 		{ "expect": { "state": "cards[2].title", "is": "New" } }])") == "");
-	CHECK(play(R"([{ "command": "addCard", "verdict": "allow" }])").contains(
-	    "1: 'addCard' would ask (no run rule allows 'addCard'"));
+	CHECK(play(R"([{ "command": "addCard", "verdict": "allow" }])")
+	          .contains("1: 'addCard' would ask (no run rule allows 'addCard'"));
 	CHECK(play(R"([{ "command": "addCard", "with": { "title": "x" } }])").starts_with("1: 'addCard' would ask"));
 	CHECK(play(R"([{ "command": "moveCard", "with": { "card": "c1" } }])").contains("'moveCard' was refused: "));
 	CHECK(play(R"([{ "command": "moveCrad" }])").contains("no command 'moveCrad' that 'agent' sees"));

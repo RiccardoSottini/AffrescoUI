@@ -62,7 +62,10 @@ std::optional<std::string> Runs::grantSeconds(std::string_view duration, std::op
 		return "'" + std::string(duration.substr(0, 40)) +
 		       "' is not a duration for grants: expected minutes, hours or days, e.g. \"30m\", \"8h\", \"7d\" (at "
 		       "most a year)";
-	const std::optional<long long> longest = secondsOf(permissions().review.grantsLast);
+	// A grantsLast past a year (the schema takes up to 999999d) caps grants at a year, never leaves them unlimited
+	const std::string& last = permissions().review.grantsLast;
+	const std::optional<long long> longest =
+	    last.empty() ? std::nullopt : std::optional<long long>(secondsOf(last).value_or(maxGrantSeconds));
 	seconds = std::nullopt;
 	if(asked || longest)
 		seconds = std::min(asked.value_or(std::numeric_limits<long long>::max()),
