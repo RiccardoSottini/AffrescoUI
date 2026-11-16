@@ -7,6 +7,7 @@ the people and peers who wrote the app: every piece of it is printable() on its 
 start a line of its own or read as an instruction of this server's."""
 
 import json
+import math
 
 from .host import printable
 
@@ -222,9 +223,10 @@ def list_commands(host, args):
 
 
 def wait_seconds(args):
-    """How long run_command waits for a run that waits for a yes: `wait`, 0 to MAX_WAIT, DEFAULT_WAIT if not given."""
+    """How long run_command waits for a run that waits for a yes: `wait`, 0 to MAX_WAIT, DEFAULT_WAIT if not given or
+    not a number (NaN too: Python's JSON reads it, and a wait of NaN seconds raises)."""
     wait = args.get("wait", DEFAULT_WAIT)
-    if not isinstance(wait, (int, float)) or isinstance(wait, bool):
+    if not isinstance(wait, (int, float)) or isinstance(wait, bool) or math.isnan(wait):
         return DEFAULT_WAIT
     return min(max(wait, 0), MAX_WAIT)
 
