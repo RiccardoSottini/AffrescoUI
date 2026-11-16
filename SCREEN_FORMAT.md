@@ -1877,6 +1877,14 @@ without `app.json` reads `app.lisp`. A generated example:
 Limits: the manifest at most 256 KiB, a name 100 characters, a reason 300, 64 entries of each kind, 256 assets, a
 theme, models or seed file 16 MiB.
 
+## Packages
+A version of an app travels as one file, a package (`*.affresco.json`, `"format": "affrescoui-package"`,
+[schema](schema/affrescoui-package.schema.json)): its source document, the release it was made from (`base`: the app's
+id, name and release, the notation, the tree, and the JSON Patch that turns the document back into it), the state keys
+and assets it adds, and, for `"kind": "app"`, the app's files. It holds no records, state, history or paths. `affrescoui
+pack` writes one, `affrescoui inspect` reads one; see [Version control](VERSION_CONTROL.md), "Sharing a version:
+packages".
+
 ## Live screens: revisions and the channel
 
 ### Revisions

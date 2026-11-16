@@ -24,6 +24,7 @@
 #include "affresco/render/Window.hpp"
 #include "affresco/format/App.hpp"
 #include "affresco/format/Features.hpp"
+#include "affresco/format/PackageFiles.hpp"
 #include "affresco/services/ServiceRegistry.hpp"
 
 #include <concepts>
@@ -575,6 +576,15 @@ public:
 	/// @param name The change set's name.
 	/// @return The change set, as JSON text.
 	[[nodiscard]] std::string exportChanges(int fromRevision = 0, std::string_view name = {}) const;
+	/// @brief A version of the app as one package (VERSION_CONTROL.md, "Sharing a version: packages"): main's
+	/// document and the base its first commit holds, the state keys and assets the commits added, and for kind App the
+	/// app's files its manifest reaches. Nothing about the person goes in it: not the records, the saved or live state,
+	/// the history's commits, settings or paths. Check it with format::scrubProblems() before it is written.
+	/// @param options What the person says of it; `engine` is the AffrescoUI release writing it.
+	/// @return The package, as format::parsePackage() reads it.
+	/// @throws DocumentError If the screen wasn't loaded from an app (fromApp()), a file of the app is outside its
+	/// folder, or the package isn't valid.
+	[[nodiscard]] format::Package exportPackage(const format::PackageOptions& options) const;
 
 	/// @brief Applies a change set, all or nothing.
 	/// @param changesJson A change set from exportChanges().

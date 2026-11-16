@@ -21,7 +21,7 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 18> list = {{
+	static constexpr std::array<Command, 20> list = {{
 	    {"run",
 		 "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]... "
 		 "[--nrepl [PORT]]",
@@ -70,8 +70,18 @@ std::span<const Command> commands() {
 	    {"schema", "[-o schema.json] [--doc SCREEN_FORMAT.md] [--types builtin|examples] [--check]",
 		 "Generate the format's JSON Schema and SCREEN_FORMAT.md's tables; --check only says if they are out of date",
 		 generateSchema},
+	    {"pack",
+		 "<app> [-o FILE] [--name NAME] [--release X.Y.Z] [--description TEXT] [--author NAME] [--license NAME] "
+		 "[--whole] [--data DIR]",
+		 "Write your version of an app as one package: its changes and the release they grew from, nothing of yours; "
+		 "--whole puts the app's files in too",
+		 packVersion},
+	    {"inspect", "<file> [--json] [--app APP]",
+		 "Check a package and say what it holds; --app says whether it was made from that app exactly",
+		 inspectPackage},
 	    {"sign", "<file> --key KEYFILE [-o out.json] | --new-key KEYFILE",
-		 "Sign a feature's manifest or a catalogue's index (its digests first); --new-key makes a key", signFile},
+		 "Sign a feature's manifest, a catalogue's index (its digests first) or a package; --new-key makes a key",
+		 signFile},
 	    {"migrate", "<file>... [--check] [--write]",
 		 "Rewrite version 1 files as version 2, listing each rewrite; --check only says which need it", migrateFiles},
 	    {"source", "<file> <#id | pointer | address> [--json]",

@@ -27,6 +27,7 @@
 - bencode, nrepl: an editor's first nREPL messages, then the files kept in seeds/<target>/.
 - feature_manifest, catalog_index, signature: Forge's feature manifests and its catalogue (examples/forge).
 - app_manifest: every app's app.json, and the templates as screens whose capabilities are read.
+- package:    packages made here, of each kind (a version's changes, a whole app), with state and an asset.
 - composition: Sinopia's slide sorter with Tempera's adapters, good and broken, and Tempera's points and exports.
 - url:        an allowlist entry, a line feed, then a URL: remote peers', sign-in's and a document server's;
 - oauth:      token and device-code responses, an ID token, base64url (the first byte picks which);
@@ -649,6 +650,40 @@ def app_seeds():
             + [path.read_text(encoding="utf-8") for path in templates("*.screen.json")])
 
 
+def package_seeds():
+    """Packages of each kind, made here: a version's document, the delta back to its base and that base's tree."""
+    def tree(document):
+        canonical = json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    dot = '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>'
+    document = {"format": "affrescoui-screen", "version": 2,
+                "state": {"title": "Notes", "columns": ["To do", "Blocked", "Done"]},
+                "program": {"app.lisp": {"count": "(defn count [] 2)"}},
+                "assets": {"dot.svg": {"type": "image/svg+xml", "size": len(dot),
+                                       "sha256": hashlib.sha256(dot.encode()).hexdigest()}},
+                "root": {"type": "label", "id": "title", "text": "{{state.title}}"}}
+    delta = [{"op": "remove", "path": "/state/columns/1"},
+             {"op": "replace", "path": "/program/app.lisp/count", "value": "(defn count [] 1)"},
+             {"op": "remove", "path": "/assets"}]
+    base = json.loads(json.dumps(document))
+    del base["state"]["columns"][1]
+    base["program"]["app.lisp"]["count"] = "(defn count [] 1)"
+    del base["assets"]
+    changes = {"format": "affrescoui-package", "version": 1, "kind": "changes", "name": "Notes with Blocked",
+               "release": "1.1.0", "engine": "1.0.0", "author": "Ada",
+               "base": {"app": "notes", "name": "Notes", "release": "1.0.0", "notation": "lisp", "tree": tree(base),
+                        "delta": delta},
+               "document": document, "state": {"blockedReason": ""},
+               "assets": {"dot.svg": {"type": "image/svg+xml", "text": dot}}}
+    app = json.loads(json.dumps(changes))
+    app["kind"] = "app"
+    app["base"]["files"] = {
+        "app.json": {"text": json.dumps({"format": "affrescoui-app", "version": 1, "id": "notes", "name": "Notes",
+                                         "entry": "index.screen.lisp"})},
+        "index.screen.lisp": {"text": "(screen)"}, "seed/notes.csv": {"data": "aWQsVGl0bGUK"}}
+    return [json.dumps(changes, indent=1), json.dumps(app, indent=1)]
+
+
 CLI = None  # the affrescoui command, in the build the corpus is written for (main()), to read Lisp files
 
 
@@ -1222,6 +1257,9 @@ def main():
     write(out, "feature_manifest", feature_seeds(), words["json"] + features)
     write(out, "app_manifest", app_seeds(), words["json"] + ["affrescoui-app", "capabilities", "network", "folders",
           "programs", "audio", "access", "write", "why", "seed", "models", "https://*.", "ws://127.0.0.1:", "../"])
+    write(out, "package", package_seeds(), words["json"] + ["affrescoui-package", "changes", "app", "base", "delta",
+          "tree", "sha256:", "notation", "files", "text", "data", "document", "state", "assets", "add", "remove",
+          "replace", "signature", "proof"])
     migrations = [path.read_text(encoding="utf-8") for path in sorted((ROOT / "tests" / "migrate").glob("*/*.json"))]
     write(out, "migrate", migrations, words["json"] + ["from", "justify", "align", "len(", "length(", "requires"])
     write(out, "catalog_index", feature_seeds(), words["json"] + features)

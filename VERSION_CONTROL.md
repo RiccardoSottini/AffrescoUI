@@ -895,6 +895,41 @@ rejected or fails is asked for again, at most three times, and then gives up unt
 every installed change set's status (`{"type": "repairs", "changeSets": [...]}`), which is also sent to every peer
 when it changes.
 
+## Sharing a version: packages
+A person's version of an app (the Kanban board with their Blocked column, a program with a definition they wrote) is
+written to one file, a **package** (`.affresco.json`, `"format": "affrescoui-package"`,
+[schema](schema/affrescoui-package.schema.json)). It holds the version and the release it grew from, and nothing about
+the person:
+
+```json
+{ "format": "affrescoui-package", "version": 1, "kind": "changes", "name": "Flow with a Blocked column",
+  "release": "1.1.0", "engine": "1.0.0",
+  "base": { "app": "flow", "name": "Flow", "release": "1.0.0", "notation": "lisp", "tree": "sha256:9f1c…",
+            "delta": [ { "op": "remove", "path": "/state/columns/1" } ] },
+  "document": { "format": "affrescoui-screen", "version": 2, ... },
+  "state": { "blockedReason": "" } }
+```
+
+- **`document`** is the version's source document as main has it now (`Repository::versionParts()`); **`base`** names
+  the release the history began with, and **`delta`** is the JSON Patch (add, remove and replace only) that turns the
+  document back into it. **`tree`** is `sha256:` and the SHA-256 of that base's canonical JSON, so a reader checks the
+  file holds the base it names, and a person who has the app learns whether theirs is exactly that release.
+- **`state`** has the keys the commits added to the state that the base doesn't have, as the last commit left each (a
+  key added then removed isn't there); **`assets`** the assets the version added, with their bytes.
+- **`kind`** is `changes`, for a person who has the app, or `app`, which also holds the app's files (`base.files`):
+  the ones its manifest reaches (the manifest, its icon, the entry and the parts it includes, themes, models, seeds and
+  asset folders) and no other file of its folder. Files the app takes from the shared folder beside it stay behind; a
+  file or a link that leads out of the folder refuses the export.
+- **Never in a package:** the records, the saved and the live state, the history (commit ids, authors, messages,
+  times), the person's paths, keys and tokens. `affrescoui pack` also scans what it would write for the person's
+  paths (home, data and app folders) and for what looks like a private key, an API key, a code host's or a chat
+  service's token, a cloud access key or a bearer token, and writes nothing if it finds one, naming only the place.
+  `author` is what the person typed, if anything, and not a proof; a signature (`affrescoui sign`) is.
+
+`affrescoui pack <app> [--whole] [-o file]` writes one (`Screen::exportPackage`); `affrescoui inspect <file> [--app
+<app>]` reads one as untrusted input and says what it holds, and whether its base is the app you have
+(`packageSummary`). Installing one is a later item: it will be a proposal, reviewed under the app's permissions.
+
 ## Features: signed packages
 A feature (RFC 0004) is a signed manifest that a catalogue lists. Its whole lifecycle is revisions on
 `/features/<name>`, so the history, blame, undo and the permission rules cover it like any other change:
