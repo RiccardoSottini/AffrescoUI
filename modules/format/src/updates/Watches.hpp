@@ -22,7 +22,7 @@ class Watches {
 public:
 	/// @brief The watches of an engine's document.
 	/// @param engine The runtime; outlives this object.
-	explicit Watches(Engine& engine) noexcept : engine_(engine) {}
+	explicit Watches(Engine& engine) : engine_(engine) {}
 
 	/// @brief Runs the "watch" handlers whose values changed since the last update, and remembers the values.
 	/// @param root The window's root, which sends them.

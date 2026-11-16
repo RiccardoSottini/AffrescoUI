@@ -25,6 +25,26 @@ extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/) {
 	return 0;
 }
 
+namespace {
+
+/// @brief Runs one step, [name, event, joins?]: the action, with its event (a refusal is a document's answer).
+/// @param screen The screen.
+/// @param window Its window.
+/// @param step The step.
+/// @return Whether the window updates after it (no if it joins the next step's update).
+bool runStep(affresco::Screen& screen, affresco::Window& window, const affresco::json& step) {
+	if(!step.is_array() || step.empty() || !step[0].is_string()) return true;
+	const std::string event = step.size() > 1 ? step[1].dump() : std::string("{}");
+	try {
+		screen.runAction(step[0].get<std::string>(), window.root(), event);
+	} catch(const affresco::DocumentError&) {
+		return true; // refused, with a message that names the place: the update still runs
+	}
+	return step.size() <= 2 || step[2] != true;
+}
+
+} // namespace
+
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
 	const affresco::json input = affresco::fuzz::untrusted(affresco::fuzz::text(data, size));
 	if(!input.is_object() || !input.contains("screen") || !input["screen"].is_object()) return 0;
@@ -48,13 +68,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	std::size_t ran = 0;
 	for(const affresco::json& step : steps) {
 		if(++ran > 64) break;
-		if(!step.is_array() || step.empty() || !step[0].is_string()) continue;
-		const std::string event = step.size() > 1 ? step[1].dump() : std::string("{}");
-		try {
-			screen->runAction(step[0].get<std::string>(), window->root(), event);
-		} catch(const affresco::DocumentError&) {
-		}
-		if(step.size() > 2 && step[2] == true) continue; // joins the next step's update
+		if(!runStep(*screen, *window, step)) continue; // joins the next step's update
 		window->render();
 	}
 	window->render();

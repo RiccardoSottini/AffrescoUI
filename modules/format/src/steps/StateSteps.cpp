@@ -111,64 +111,98 @@ void checkSettingsWritten(Engine& engine, const json& before, const std::string&
 	}
 }
 
+/// @brief What a state step wrote.
+struct Written {
+	json::json_pointer pointer{};         ///< The place written.
+	json::json_pointer changed{};         ///< What readers see changed: it, or what a write past it created.
+	std::optional<ListChange::Kind> list; ///< How, if it is a list that changed shape.
+	std::size_t index = 0;                ///< Where in the list.
+};
+
+/// @brief "set": writes "to" at a state path.
+/// @param s The step.
+/// @param state The state.
+/// @return What it wrote.
+Written setStep(const Running& s, json& state) {
+	if(!s.step.contains("to")) fail(s.where, R"("set" needs "to")");
+	Written written;
+	written.pointer = s.target("set");
+	written.changed = createdPlace(state, written.pointer);
+	json value = s.value("to");
+	expect::shallowEnough(value, pointerDepth(written.pointer), s.where + ".to");
+	s.steps.engine().document.spendBytes(value, s.where + ".to");
+	statePlace(state, written.pointer, s.where) = std::move(value);
+	return written;
+}
+
+/// @brief "push": adds "value" at the end of a list in the state, made if there is none.
+/// @param s The step.
+/// @param state The state.
+/// @return What it wrote.
+Written pushStep(const Running& s, json& state) {
+	Written written;
+	written.pointer = s.target("push");
+	written.changed = createdPlace(state, written.pointer);
+	json& array = statePlace(state, written.pointer, s.where);
+	if(array.is_null()) array = json::array();
+	if(!array.is_array()) fail(s.where + ".push", "is not a list");
+	json value = s.value(s.step.value("value", json()), s.where + ".value");
+	expect::shallowEnough(value, pointerDepth(written.pointer) + 1, s.where + ".value");
+	s.steps.engine().document.spendBytes(value, s.where + ".value");
+	array.push_back(std::move(value));
+	if(written.changed == written.pointer) written.list = ListChange::Kind::Inserted; // else a list made: changed whole
+	written.index = array.size() - 1;
+	return written;
+}
+
+/// @brief "toggle": flips a truth value in the state (a setting still at its default flips that).
+/// @param s The step.
+/// @param state The state.
+/// @return What it wrote.
+Written toggleStep(const Running& s, json& state) {
+	Written written;
+	written.pointer = s.target("toggle");
+	written.changed = createdPlace(state, written.pointer);
+	const json* found = findInState(state, written.pointer);
+	if(!found) found = settingDefault(s.steps.engine().versions.document(), written.pointer);
+	const bool on = found && format::truthy(*found);
+	statePlace(state, written.pointer, s.where) = !on;
+	return written;
+}
+
 /// @brief Runs a state step.
 /// @param s The step.
 /// @return std::nullopt if it isn't one, else true.
 std::optional<bool> runStateStep(const Running& s) {
 	const json& step = s.step;
-	const std::string& where = s.where;
 	Engine& engine = s.steps.engine();
 	json& state = engine.versions.state();
 	const bool settings = engine.versions.document().contains("settings");
 	const json before = settings && state.contains("settings") ? state["settings"] : json::object();
 
-	json::json_pointer pointer;               // the place changed
-	json::json_pointer changed;               // what readers see changed: it, or what a write past it created
-	std::optional<ListChange::Kind> listKind; // and how, if it is a list that changed shape
-	std::size_t listIndex = 0;
+	Written written;
 	if(step.contains("set")) {
-		if(!step.contains("to")) fail(where, R"("set" needs "to")");
-		pointer = s.target("set");
-		changed = createdPlace(state, pointer);
-		json value = s.value("to");
-		expect::shallowEnough(value, pointerDepth(pointer), where + ".to");
-		engine.document.spendBytes(value, where + ".to");
-		statePlace(state, pointer, where) = std::move(value);
+		written = setStep(s, state);
 	} else if(step.contains("push")) {
-		pointer = s.target("push");
-		changed = createdPlace(state, pointer);
-		if(changed == pointer) listKind = ListChange::Kind::Inserted; // a list made by the push changed whole
-		json& array = statePlace(state, pointer, where);
-		if(array.is_null()) array = json::array();
-		if(!array.is_array()) fail(where + ".push", "is not a list");
-		json value = s.value(step.value("value", json()), where + ".value");
-		expect::shallowEnough(value, pointerDepth(pointer) + 1, where + ".value");
-		engine.document.spendBytes(value, where + ".value");
-		array.push_back(std::move(value));
-		listIndex = array.size() - 1;
+		written = pushStep(s, state);
 	} else if(step.contains("remove")) {
 		std::optional<std::size_t> removedAt;
-		pointer = removeFrom(s, state, removedAt);
+		written.pointer = removeFrom(s, state, removedAt);
 		if(removedAt) {
-			listKind = ListChange::Kind::Removed;
-			listIndex = *removedAt;
+			written.list = ListChange::Kind::Removed;
+			written.index = *removedAt;
 		}
 	} else if(step.contains("toggle")) {
-		pointer = s.target("toggle");
-		changed = createdPlace(state, pointer);
-		const json* found = findInState(state, pointer);
-		if(!found) found = settingDefault(engine.versions.document(), pointer);
-		const bool on = found && format::truthy(*found);
-		statePlace(state, pointer, where) = !on;
+		written = toggleStep(s, state);
 	} else if(step.contains("increment")) {
-		changed = createdPlace(state, s.target("increment"));
-		pointer = increment(s, state);
+		written.changed = createdPlace(state, s.target("increment"));
+		written.pointer = increment(s, state);
 	} else {
 		return std::nullopt;
 	}
-	if(settings) checkSettingsWritten(engine, before, where);
-	if(listKind) engine.document.markListChanged(pointer, *listKind, listIndex);
-	else engine.document.markStateChanged(changed.empty() ? pointer : changed);
+	if(settings) checkSettingsWritten(engine, before, s.where);
+	if(written.list) engine.document.markListChanged(written.pointer, *written.list, written.index);
+	else engine.document.markStateChanged(written.changed.empty() ? written.pointer : written.changed);
 	return true;
 }
 

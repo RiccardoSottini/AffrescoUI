@@ -9,6 +9,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdlib>
 #include <random>
@@ -34,7 +35,7 @@ void describe(const affresco::Panel& panel, std::string& out) {
 		out += " '" + label->text() + "' " + std::to_string(label->textColor().r);
 	out += " [";
 	for(const auto& child : panel.children()) describe(*child, out);
-	out += "]";
+	out += ']';
 }
 
 /// @brief The state every generated document starts with: scalars, an object, and lists of objects and of text.
@@ -95,7 +96,7 @@ json generate(std::mt19937& random, bool lisp) {
 	                  { "type": "label", "text": "{{label}}" }, { "slot": true } ] })")}}}};
 	if(lisp)
 		document["program"] = {
-		    {"app.lisp", {{"title-of", "(defn title-of [x] (str \"#\" (:title x) (if (:done x) \"!\" \"\")))"}}}};
+		    {"app.lisp", {{"title-of", R"((defn title-of [x] (str "#" (:title x) (if (:done x) "!" ""))))"}}}};
 	if(chance())
 		document["watch"] = {{"state.n", json::array({{{"set", "state.watched"}, {"to", "{{event.value}}"}}})}};
 
@@ -155,17 +156,17 @@ json generate(std::mt19937& random, bool lisp) {
 /// @param nextId The next item id.
 /// @param ran Gets the step, for a failure's message.
 void step(affresco::Screen& screen, affresco::Panel& sender, std::mt19937& random, int& nextId, std::string& ran) {
-	static const char* const names[] = {"setN",   "incN",  "flag",  "name",  "objX",    "obj",     "push",
-	                                    "remove", "done",  "title", "child", "childT",  "replace", "reverse",
-	                                    "tag",    "untag", "size",  "ghost", "nowhere", "incGhost"};
-	static const char* const words[] = {"", "a", "b", "c"};
+	static constexpr std::array<const char*, 20> names = {
+	    "setN",  "incN",   "flag",    "name",    "objX", "obj",   "push", "remove", "done",    "title",
+	    "child", "childT", "replace", "reverse", "tag",  "untag", "size", "ghost",  "nowhere", "incGhost"};
+	static constexpr std::array<const char*, 4> words = {"", "a", "b", "c"};
 	const json state = json::parse(screen.stateJson());
 	const auto items = static_cast<int>(state["items"].size());
 	const json event = {{"v", static_cast<int>(random() % 5)},
 	                    {"s", words[random() % 4]},
 	                    {"i", static_cast<int>(random() % static_cast<unsigned>(items + 2))}, // sometimes past the end
 	                    {"id", nextId++}};
-	const char* const name = names[random() % std::size(names)];
+	const char* const name = names[random() % names.size()];
 	ran += std::string(name) + event.dump() + " ";
 	screen.runAction(name, sender, event.dump());
 }

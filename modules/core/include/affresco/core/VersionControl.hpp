@@ -203,10 +203,11 @@ public:
 	/// @throws DocumentError To refuse the new version: it is rolled back, and this is called again for the old one.
 	virtual void documentChanged() = 0;
 	/// @brief The document or the state was replaced, with what the new version changed. By default the same as
-	/// documentChanged(), which observers that can't use the detail keep.
+	/// documentChanged(), which observers that can't use the detail keep. (A name of its own: an overload would be
+	/// hidden in every observer that overrides only documentChanged().)
 	/// @param change What changed.
 	/// @throws DocumentError To refuse the new version, as documentChanged().
-	virtual void documentChanged(const DocumentChange& change) {
+	virtual void documentChangedWith(const DocumentChange& change) {
 		static_cast<void>(change);
 		documentChanged();
 	}

@@ -146,7 +146,6 @@ struct Engine : VersionObserver {
 
 	/* VersionObserver (EngineVersions.cpp) */
 	/// @brief Re-reads colours and fonts, then reconciles.
-	using VersionObserver::documentChanged;
 	void documentChanged() override;
 	/// @brief Refreshes the globals and schedules a reconcile (a review UI may list the proposals).
 	void proposalsChanged() override;
