@@ -423,7 +423,8 @@ decided:
 3. The mode is `plan` and the runner may not review: **denied** (`plan mode: commands don't run; say what you would
    run`).
 4. The command uses a service that writes or runs (files, terminals, requests that write): **the person decides**,
-   in the window's own question, each time; no reviewer's yes counts, and it is never remembered.
+   in the window's own question, each time; no reviewer's yes counts, and it is never remembered. After the person
+   says "Don't run" three times to one channel, its runs here are refused without asking until the host restarts.
 5. The runner may review: **allowed**.
 6. A `run.ask` rule matches: **asked**.
 7. A `run.allow` rule matches, or a run grant that hasn't expired: **allowed**.
@@ -443,7 +444,7 @@ start of the host.
 
 **Grants.** "Always allow" on a waiting run adds a grant for the runner's channel and that one command, shown as
 `agent(run:move-card)`. Its duration is read as an accept's `"for"` (`"30m"`, `"8h"`, `"7d"`) and capped by
-`review.grantsLast`. A grant can be revoked, and lives in memory: it ends when the host quits. It never beats a
+`review.grantsLast`, and by a year when that can't be read. A grant can be revoked, and lives in memory: it ends when the host quits. It never beats a
 `deny` rule, an `ask` rule, `plan` mode, a control step or a service use only the person allows (rows 1 to 4 and 6),
 and a run the person alone may allow can't be allowed "always".
 
