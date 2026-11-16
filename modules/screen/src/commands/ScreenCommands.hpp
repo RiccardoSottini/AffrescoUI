@@ -14,6 +14,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco::detail {
@@ -125,6 +126,11 @@ private:
 	void decided(const RunDecision& decision);
 	/// @brief Starts the timer that expires runs that waited too long, if one waits and it isn't running.
 	void armExpiry();
+	/// @brief Now, for the run control: the system's time, moved on by however much further the window's clock has
+	/// gone since the first call, so a run waits as long on a test's clock as on the wall's.
+	/// @param window The window, whose clock() is read.
+	/// @return Milliseconds since 1970 (UTC).
+	std::int64_t now(const Window& window);
 
 	format::Runtime& runtime_;     ///< The commands and their runs, and the window.
 	RunControl& control_;          ///< Who may run them, and the runs.
@@ -133,6 +139,7 @@ private:
 	bool allowed_ = true;          ///< See setAllowed().
 	std::vector<Waiting> waiting_; ///< The runs that wait for a decision, oldest first.
 	std::uint64_t expiry_ = 0;     ///< The window's timer for control_.expire(), while a run waits.
+	std::optional<std::pair<std::int64_t, double>> epoch_; ///< At now()'s first call: the system's and the window's time.
 	Connection changed_ = 0;       ///< On control_.onChanged: forwarded as onChanged.
 	Connection decisions_ = 0;     ///< On control_.onDecision: decided().
 	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< false once destroyed: guards the callbacks.

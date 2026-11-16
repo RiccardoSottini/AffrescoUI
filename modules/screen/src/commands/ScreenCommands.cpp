@@ -44,7 +44,7 @@ std::string_view channelOf(std::string_view author) { return author.substr(0, au
 
 /// @brief Milliseconds since 1970 (UTC), as the run control counts them.
 /// @return Now.
-std::int64_t now() {
+std::int64_t systemNow() {
 	using namespace std::chrono;
 	return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
@@ -308,9 +308,16 @@ void ScreenCommands::armExpiry() {
 	expiry_ = window->setTimer(expiryCheckMilliseconds, [this, alive = std::weak_ptr<bool>(alive_)] {
 		if(alive.expired()) return;
 		expiry_ = 0;
-		control_.expire(now()); // each run it refuses comes back through decided()
+		if(const Window* shown = runtime_.window()) control_.expire(now(*shown)); // refusals come back to decided()
 		armExpiry();
 	});
+}
+
+std::int64_t ScreenCommands::now(const Window& window) {
+	const std::int64_t system = systemNow();
+	if(!epoch_) epoch_.emplace(system, window.clock().seconds());
+	const double moved = (window.clock().seconds() - epoch_->second) * 1000.0;
+	return std::max(system, epoch_->first + static_cast<std::int64_t>(moved));
 }
 
 json ScreenCommands::undo(std::string_view author, const json& message) {

@@ -99,6 +99,9 @@ as the OpenGL driver's, aren't counted.
 | `canvas/pan-1k` | The same with 1,000 items: a lock keeps the 100,000-item pan within 3 times it |
 | `graph/1000` | A 1,000-node graph (a grid, each node linked to the next) set, laid out and painted into a record |
 | `graph/1000/drag` | One of its nodes dragged by its header: a frame (laid out and painted) per pointer move |
+| `command/100`, `command/400`, `command/1600` | A board of that many cards in its state, shown as a keyed list: one card moved by an agent's `runCommand` (read, its arguments checked, judged by the run rules, run under the agent's name, logged, answered with what changed), its update and layout (`commands.cpp`). The run copies and compares the whole state, so it grows with the state |
+| `command/<n>/action` | The same move as the app's own action, with its update and layout: what a run adds |
+| `commands/list` | An agent's `getCommands` with `all` on Forge: every command, its arguments and whether the agent may run it. `bytes` is the answer's size |
 
 Every workload is deterministic. The inputs are fixed, and screens load without a state file. Channels find no host.
 
@@ -112,6 +115,9 @@ for each run yet. Until then:
 - the callgrind count (one run after the warm-up) and the wall-clock median (15 runs) are taken at different history
   lengths, so don't compare them with each other;
 - `--runs` changes these workloads' values. Compare runs made with the same options.
+
+The `command` runs come from one peer, which may have 30 at once, so its runs are kept to 25. Each one is added to
+the screen's runs log, which every run's review message lists: a later run costs a little more than an earlier one.
 
 CI compares base and head the same way, so the gate isn't affected.
 

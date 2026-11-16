@@ -211,6 +211,30 @@ void checkAction(const json& step, const std::string& place) {
 	if(step.contains("event") && !step["event"].is_object()) fail(place + ".event", "expected an object");
 }
 
+/// @brief Checks a command step: the command, the arguments it runs with, the author it runs as, and the verdict it
+/// expects instead of running.
+/// @param step The step.
+/// @param place Its place.
+/// @throws DocumentError If it is malformed.
+void checkCommand(const json& step, const std::string& place) {
+	onlyKeys(step, {"command", "with", "as", "verdict", "note"}, place);
+	const json& name = step["command"];
+	if(!name.is_string() || name.get_ref<const std::string&>().empty() ||
+	   name.get_ref<const std::string&>().size() > detail::maxCommandNameBytes)
+		fail(place + ".command",
+		     "expected the name of a command, at most " + std::to_string(detail::maxCommandNameBytes) + " bytes");
+	if(step.contains("with") && !step["with"].is_object()) fail(place + ".with", "expected an object of arguments");
+	if(step.contains("as") && !detail::isAuthorName(step["as"]))
+		fail(place + ".as", R"(expected an author, like "agent" or "agent/helper": 1 to )" +
+		                        std::to_string(detail::maxAuthorBytes) + " printable bytes");
+	if(step.contains("verdict")) {
+		const json& verdict = step["verdict"];
+		if(!verdict.is_string() || !std::ranges::contains(std::array<std::string_view, 4>{"allow", "ask", "person", "deny"},
+		                                                     verdict.get_ref<const std::string&>()))
+			fail(place + ".verdict", R"(expected "allow", "ask", "person" or "deny")");
+	}
+}
+
 /// @brief Checks the text a `type` step types.
 /// @param value The text.
 /// @param at Its place.
@@ -277,9 +301,9 @@ void checkValueStep(const json& step, std::string_view kind, const std::string& 
 }
 
 /// @brief The step kinds: the key that says what a step does. Every step has exactly one, or is only a "note".
-constexpr std::array<std::string_view, 17> stepKinds = {
-    "capture", "move",     "click",   "rightClick", "press",  "release", "drag",   "scroll", "type",
-    "key",     "revision", "propose", "action",     "resize", "wait",    "choose", "expect"};
+constexpr std::array<std::string_view, 18> stepKinds = {
+    "capture", "move",   "click",  "rightClick", "press",  "release", "drag",   "scroll",  "type",
+    "key",     "revision", "propose", "action", "command", "resize", "wait", "choose", "expect"};
 
 /// @brief Finds what a step does: the one key of stepKinds it has.
 /// @param step The step.
@@ -295,12 +319,26 @@ std::optional<std::string_view> kindOf(const json& step, const std::string& plac
 		if(step.size() == 1 && step.contains("note")) return std::nullopt;
 		fail(place, "unknown step " + toText(step).substr(0, 80) +
 		                ": expected one of capture, move, click, rightClick, press, release, drag, scroll, type, key, "
-		                "revision, "
-		                "propose, action, resize, wait, choose, expect");
+		                "revision, propose, action, command, resize, wait, choose, expect");
 	}
 	if(kinds.size() > 1)
 		fail(place, "one step does one thing: '" + std::string(kinds[0]) + "' and '" + std::string(kinds[1]) + "'");
 	return kinds[0];
+}
+
+/// @brief Checks what a step of a kind gives, by its kind.
+/// @param step The step, without its "error".
+/// @param kind Its kind.
+/// @param place Its place.
+/// @throws DocumentError If it is malformed.
+void checkKind(const json& step, std::string_view kind, const std::string& place) {
+	if(kind == "move" || kind == "click" || kind == "rightClick" || kind == "press" || kind == "release")
+		checkPointer(step, kind, place);
+	else if(kind == "drag") checkDrag(step, place);
+	else if(kind == "scroll") checkScroll(step, place);
+	else if(kind == "action") checkAction(step, place);
+	else if(kind == "command") checkCommand(step, place);
+	else checkValueStep(step, kind, place);
 }
 
 /// @brief Checks one step, and tells whether it draws.
@@ -325,12 +363,7 @@ bool checkStep(const json& written, const std::string& place) {
 	if(step.size() != written.size() && (kind == "expect" || kind == "capture"))
 		fail(place + ".error", "only a step that runs handlers raises an error, not '" + std::string(kind) + "'");
 	checkNth(step, place);
-	if(kind == "move" || kind == "click" || kind == "rightClick" || kind == "press" || kind == "release")
-		checkPointer(step, kind, place);
-	else if(kind == "drag") checkDrag(step, place);
-	else if(kind == "scroll") checkScroll(step, place);
-	else if(kind == "action") checkAction(step, place);
-	else checkValueStep(step, kind, place);
+	checkKind(step, kind, place);
 	return kind == "capture" || (kind == "expect" && step["expect"].contains("image"));
 }
 

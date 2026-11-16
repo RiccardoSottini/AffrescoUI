@@ -176,6 +176,11 @@ struct Group {
 /// @param context The context.
 /// @return The workloads.
 [[nodiscard]] std::vector<Workload> forgeWorkloads(Context& context);
+/// @brief "command/<cards>": an agent's command run beside the same steps as an action, on boards of 100, 400 and
+/// 1,600 cards, and "commands/list": an agent's getCommands on Forge (commands.cpp).
+/// @param context The context.
+/// @return The workloads.
+[[nodiscard]] std::vector<Workload> commandWorkloads(Context& context);
 /// @brief "lisp/...": a program's function in an event and in a binding, beside the same as steps and as an expression,
 /// and a reload when a definition changes (lisp.cpp).
 /// @param context The context.

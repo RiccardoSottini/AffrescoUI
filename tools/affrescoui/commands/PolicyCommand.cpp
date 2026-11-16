@@ -1,16 +1,18 @@
 /// @file
-/// @brief `affrescoui policy test`: plays the example revisions of `*.policy.json` files against their screens'
-/// permissions and reports the ones whose decision (allow, ask or deny) isn't the one expected (VERSION_CONTROL.md,
-/// "Policy tests").
+/// @brief `affrescoui policy test`: plays the example revisions and command runs of `*.policy.json` files against their
+/// screens' permissions and reports the ones whose decision (allow, ask, person or deny) isn't the one expected
+/// (VERSION_CONTROL.md, "Policy tests"). Nothing is applied and nothing runs.
 
 #include "Cli.hpp"
 
 #include <affresco/affresco.hpp>
 #include <affresco/core/Log.hpp>
 #include <affresco/format/Rules.hpp>
+#include <affresco/format/Runtime.hpp>
 #include <affresco/lisp/Document.hpp>
 #include <affresco/notation/Notation.hpp>
 #include <affresco/vcs/Repository.hpp>
+#include <affresco/vcs/Runs.hpp>
 
 #include <array>
 #include <iostream>
@@ -25,11 +27,19 @@ constexpr std::size_t maxCases = 1000;
 /// @brief What one case gave.
 struct CaseResult {
 	std::string name;     ///< As written.
-	std::string expected; ///< "allow", "ask" or "deny".
+	std::string expected; ///< "allow", "ask", "deny" or, for a run, "person".
 	std::string decision; ///< What the screen's permissions decided.
 	std::string reason;   ///< Why, for ask and deny.
 	bool passed = false;  ///< The decision is the one expected, and the reason holds the expected text.
 };
+
+/// @brief Where a policy file's screen is.
+/// @param policyFile The policy file.
+/// @param policy Its content.
+/// @return The screen's file, from the policy file's folder.
+std::filesystem::path screenFile(const std::filesystem::path& policyFile, const json& policy) {
+	return policyFile.parent_path() / expect::string(policy.value("screen", json()), "screen");
+}
 
 /// @brief Loads a policy file's screen as the library does ("include"s in place), with its log quiet.
 /// @param policyFile The policy file.
@@ -38,8 +48,7 @@ struct CaseResult {
 /// repository builds again and would find written twice), its live state in "state".
 /// @throws FileProblem If the screen can't be read or loaded.
 json screenOf(const std::filesystem::path& policyFile, const json& policy) {
-	const std::filesystem::path file =
-	    policyFile.parent_path() / expect::string(policy.value("screen", json()), "screen");
+	const std::filesystem::path file = screenFile(policyFile, policy);
 	setLogSink([](LogLevel, std::string_view) {});
 	try {
 		Screen screen = Screen::fromString(lisp::jsonText(readFile(file), file), file.parent_path());
@@ -53,21 +62,60 @@ json screenOf(const std::filesystem::path& policyFile, const json& policy) {
 	}
 }
 
+/// @brief What judges a policy file's cases: its screen's permissions, and its commands' run rules.
+struct Judges {
+	const vcs::Repository& repository; ///< Judges revisions.
+	const format::Runtime& runtime;    ///< Knows the commands: their arguments and what they reach.
+	const vcs::Runs& runs;             ///< Judges runs.
+};
+
+/// @brief Judges a run without running it: its arguments checked as a peer's would be, then the run rules.
+/// @param judges The screen's.
+/// @param run The case's "run": "author", "command" and, if any, "arguments".
+/// @param at Where it is, for errors.
+/// @param result Gets the decision and the reason; an unknown command or wrong arguments are a "deny".
+void judgeRun(const Judges& judges, const json& run, const std::string& at, CaseResult& result) {
+	expect::object(run, at);
+	const std::string author = expect::string(run.value("author", json()), at + ".author");
+	const std::string command = expect::string(run.value("command", json()), at + ".command");
+	json arguments = run.value("arguments", json::object());
+	if(!arguments.is_object()) expect::fail(at + ".arguments", "expected an object");
+	result.decision = "deny";
+	if(!judges.runtime.command(command)) {
+		result.reason = "no command '" + command + "'";
+		return;
+	}
+	if(const std::optional<std::string> wrong = judges.runtime.checkCommandArguments(command, arguments)) {
+		result.reason = *wrong;
+		return;
+	}
+	const RunJudgement judgement = judges.runs.judge(author, command, judges.runtime.commandReach(command));
+	result.decision = toString(judgement.verdict);
+	result.reason = judgement.reason;
+}
+
 /// @brief Plays one case.
-/// @param repository The screen's repository.
-/// @param item The case: "name", "revision", "expect" and, if any, "reason".
+/// @param judges The screen's.
+/// @param item The case: "name", "revision" or "run", "expect" and, if any, "reason".
 /// @param at Where it is, for errors.
 /// @return What it gave.
-CaseResult play(const vcs::Repository& repository, const json& item, const std::string& at) {
+CaseResult play(const Judges& judges, const json& item, const std::string& at) {
 	CaseResult result;
 	result.name = expect::string(item.value("name", json()), at + ".name");
 	result.expected = expect::string(item.value("expect", json()), at + ".expect");
-	if(result.expected != "allow" && result.expected != "ask" && result.expected != "deny")
-		expect::fail(at + ".expect", R"(expected "allow", "ask" or "deny")");
+	const bool isRun = item.contains("run");
+	if(isRun == item.contains("revision")) expect::fail(at, R"(expected "revision" or "run", not both)");
+	if(result.expected != "allow" && result.expected != "ask" && result.expected != "deny" &&
+	   (!isRun || result.expected != "person"))
+		expect::fail(at + ".expect",
+		             isRun ? R"(expected "allow", "ask", "person" or "deny")" : R"(expected "allow", "ask" or "deny")");
 	const std::string reason = item.contains("reason") ? expect::string(item["reason"], at + ".reason") : "";
-	const vcs::Repository::Judgement judgement = repository.judge(item.value("revision", json()));
-	result.decision = judgement.decision;
-	result.reason = judgement.reason;
+	if(isRun) judgeRun(judges, item["run"], at + ".run", result);
+	else {
+		const vcs::Repository::Judgement judgement = judges.repository.judge(item["revision"]);
+		result.decision = judgement.decision;
+		result.reason = judgement.reason;
+	}
 	result.passed = result.decision == result.expected && result.reason.contains(reason);
 	return result;
 }
@@ -89,10 +137,15 @@ std::vector<CaseResult> playFile(const std::filesystem::path& file) {
 		for(const auto& [author, role] : expect::object(roles, "roles").items())
 			if(const auto refused = repository.roles().set(author, expect::string(role, "roles." + author)))
 				expect::fail("roles." + author, *refused);
+		setLogSink([](LogLevel, std::string_view) {});
+		const format::Runtime runtime(repository, screenFile(file, policy).parent_path()); // its assets are there
+		const vcs::Runs runs(repository, rules);
+		setLogSink({});
+		const Judges judges{repository, runtime, runs};
 		std::vector<CaseResult> results;
 		results.reserve(cases.size());
 		for(std::size_t i = 0; i < cases.size(); ++i)
-			results.push_back(play(repository, expect::object(cases[i], "cases"), "cases[" + std::to_string(i) + "]"));
+			results.push_back(play(judges, expect::object(cases[i], "cases"), "cases[" + std::to_string(i) + "]"));
 		return results;
 	} catch(const DocumentError& error) {
 		throw FileProblem(file.string() + ": " + error.what());

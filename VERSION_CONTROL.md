@@ -190,13 +190,18 @@ A `*.policy.json` file beside a screen holds example revisions, their authors an
     { "name": "the agent recolours a card", "revision": { "author": "agent", "set": { "#card1/color": "#1e293b" } },
       "expect": "allow" },
     { "name": "21 new panels", "revision": { "author": "agent", "add": { "...": {} } }, "expect": "deny",
-      "reason": "over the budget" }
+      "reason": "over the budget" },
+    { "name": "the agent moves a card", "run": { "author": "agent/claude-code", "command": "moveCard",
+      "arguments": { "card": "c1", "to": "done" } }, "expect": "allow" }
   ]
 }
 ```
 
 `affrescoui policy test <files> [--json]` judges each revision against the screen as it is (nothing is applied) and
-compares `allow`, `ask` or `deny`, and a part of the reason if given. Exit codes are those of `affrescoui test`: 0 all
+compares `allow`, `ask` or `deny`, and a part of the reason if given. A case has a `revision` or a `run`, never both: a
+run names its `author`, a `command` and its `arguments`, which are checked as a peer's would be, and is judged by the
+screen's `permissions.run` (Running commands) without running; it expects `allow`, `ask`, `person` or `deny`, and an
+unknown command or wrong arguments are a `deny` that says why. Exit codes are those of `affrescoui test`: 0 all
 passed, 1 a case failed or a file is malformed. CI runs every `*.policy.json` in the repository, and each template has
 one. The MCP server explains a denial with the rule that matched.
 

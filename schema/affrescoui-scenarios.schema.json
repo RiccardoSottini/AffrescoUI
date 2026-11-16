@@ -72,6 +72,12 @@
 					"note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
 				{ "type": "object", "required": ["action"], "additionalProperties": false, "properties": {
 					"action": { "type": "string", "minLength": 1 }, "event": { "type": "object" }, "note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
+				{ "type": "object", "required": ["command"], "additionalProperties": false, "properties": {
+					"command": { "type": "string", "minLength": 1, "maxLength": 1024, "description": "One of the app's commands, run as its author's peer would: the arguments are checked and the run rules judge." },
+					"with": { "type": "object", "description": "Its arguments." },
+					"as": { "type": "string", "pattern": "^[\\x20-\\x7e]{1,64}$", "description": "The author it runs as (default \"agent\"), e.g. \"agent/helper\"." },
+					"verdict": { "enum": ["allow", "ask", "person", "deny"], "description": "Runs nothing: checks the verdict a run would meet." },
+					"note": { "type": "string" } } },
 				{ "type": "object", "required": ["resize"], "additionalProperties": false, "properties": {
 					"resize": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 16384 }, "minItems": 2, "maxItems": 2 },
 					"note": { "type": "string" }, "error": { "$ref": "#/$defs/stepError" } } },
