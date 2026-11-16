@@ -241,6 +241,11 @@ target_sources(affrescoui_format PRIVATE src/app/App.cpp)
 # features: features (RFC 0004): manifests, catalogues, signatures, trusted publishers
 target_sources(affrescoui_format PRIVATE src/features/FeatureManifest.cpp src/features/FeatureCatalog.cpp
 	src/features/FeatureSignatures.cpp src/features/Features.cpp)
+# features that hold Lisp, and upgrading an installed version to a later release
+target_sources(affrescoui_format PRIVATE src/features/FeaturePrograms.cpp src/features/FeatureUpgrade.cpp)
+# packages: a shared version of an app in one file (Package.hpp): its format, writing one, and installing one
+target_sources(affrescoui_format PRIVATE src/packages/Package.cpp src/packages/PackageExport.cpp
+	src/packages/PackageInstall.cpp)
 # composition: features merged into a screen and proven, contribution points, contributions (RFC 0001), versions
 target_sources(affrescoui_format PRIVATE src/composition/Composition.cpp src/composition/ComposedVersions.cpp
 	src/composition/CompositionProof.cpp src/composition/ContributionPoints.cpp src/composition/Contributions.cpp)
