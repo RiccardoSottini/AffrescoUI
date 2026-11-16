@@ -1105,8 +1105,9 @@ removes the gap from this list.
   nodes, components and templates, and in `onLoad`, `watch` and `keys`. An `ask` rule on `/actions` alone doesn't
   cover them; only allow agents the parts of a screen that hold no steps (the templates allow agents nothing, so
   every change of theirs is reviewed). Tracking: G-10.
-- **A revision can change the state control steps read.** It can't add, move or newly trigger a control step, but
-  it can change the state their expressions read. A screen with its own `accept`, `restore`, `call` or `send` steps
+- **A revision or a command run can change the state control steps read.** Neither can add, move or newly trigger a
+  control step, but each can change the state their expressions read. Data rules judge a run's changes by effect, so
+  the same `never` paths keep runs out. A screen with its own `accept`, `restore`, `call` or `send` steps
   should deny agents the `/state` paths those steps read. The same holds for a menu, dialog, toast or quick pick the
   screen already feeds from the state: a revision can change the items it runs (a quick pick keeps its recent items
   in `/state/<name>/recent`), so deny agents those paths when the screen has actions that control changes. Tracking: G-11.

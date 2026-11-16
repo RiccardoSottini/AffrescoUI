@@ -2033,8 +2033,8 @@ the name is no command; when the arguments are wrong; when `enablement` is false
 | Anything else | waits for a yes |
 
 A run always executes as its runner, never as the person, even after a yes: it can't approve, and reaches only what
-its runner may. Its changes and records go into the history as the runner's; `undoRun` takes them back, refused if
-something changed them since. The command function's return value isn't sent back. A host can switch runs off.
+its runner may. It changes the live state and records, its records under the runner's name, and is kept in the
+`runs` log, not in the history; `undoRun` takes its changes back, refused if something changed them since. The command function's return value isn't sent back. A host can switch runs off.
 
 **What comes back:** `ran` with what changed (`changed`, `records`), the errors, whether it failed and can be undone,
 and with `evidence: "picture"` a picture of the region it changed; `waiting` with why and when the question expires
