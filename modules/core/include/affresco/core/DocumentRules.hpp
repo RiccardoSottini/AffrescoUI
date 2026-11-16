@@ -205,6 +205,16 @@ public:
 		return nullptr;
 	}
 
+	/// @brief What a change leaves out without being refused, as lines for the person: e.g. a feature that no longer
+	/// fits once an earlier change is undone. An undo's plan shows them as warnings. The default has none.
+	/// @param before The document now, with the live state as its "state".
+	/// @param after The document after the change, with the live state after it.
+	/// @return One line for each, e.g. "the command 'export' no longer has a menu item".
+	[[nodiscard]] virtual std::vector<std::string> brokenLines([[maybe_unused]] const json& before,
+	                                                           [[maybe_unused]] const json& after) const {
+		return {};
+	}
+
 	/// @brief Gives ids to the nodes a revision puts somewhere without one, before the change is applied, so that the
 	/// commit, the history and every diff show them. The default gives none (a format without nodes).
 	/// @param document The document as it is before the operation, with the live state as its "state".

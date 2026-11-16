@@ -115,9 +115,9 @@ app's time or memory from the others:
 - a message larger than its limit is refused before it is parsed;
 - `convert` (text in the Lisp notation into JSON, and back) reads nothing of the document and changes nothing: it
   holds to the JSON limits (256 levels, 64 MiB of text) and is fuzzed (`tests/fuzz/notation.cpp`);
-- messages of any kind, and changes (`revision`, `restore`, `revert`, `undo`, which rebuild the screen), each have a
-  rate, kept by a token bucket: a burst after a quiet time, then a steady rate. A message over the rate gets an error
-  and costs no more than that; the first refusal in a row is logged;
+- messages of any kind, and changes (`revision`, `restore`, `revert`, `undo`, which rebuild the screen, and
+  `undoPlan`, which costs a merge), each have a rate, kept by a token bucket: a burst after a quiet time, then a
+  steady rate. A message over the rate gets an error and costs no more than that; the first refusal in a row is logged;
 - what the host sends a socket peer is written by a thread of its own, never on the main thread. A peer that falls
   further behind in reading than the send queue's limit is disconnected, not buffered without end, and can't block
   the app.
@@ -818,7 +818,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A revision's `run` steps | 1,000 steps, 1 MiB as JSON |
 | A sound description (`audio::SoundLimits`) | 1 MiB of text, 16 tracks, 4,096 notes and hits, 32 sounding at once, 10 minutes |
 | Messages from one peer, of any kind | 100 a second, 200 at once |
-| Changes from one peer (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once |
+| Changes from one peer (`revision`, `restore`, `revert`, `undo`, `undoPlan`) | 120 a minute, 30 at once |
 | Pictures for one peer (`render`): each draws the whole screen, and builds a proposal's and then main's again | 120 a minute, 30 at once, apart from the changes |
 | Sent to one socket peer and not yet read by it | 64 MiB; then the peer is disconnected |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |

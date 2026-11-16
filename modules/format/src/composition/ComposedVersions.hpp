@@ -80,6 +80,16 @@ public:
 	[[nodiscard]] json revertRevision(const json& revision, std::string_view author) const override {
 		return inner_.revertRevision(revision, author);
 	}
+	/// @copydoc VersionControl::undoPlan
+	[[nodiscard]] UndoPlan undoPlan(const json& revision, std::string_view author,
+	                                const UndoOptions& options = {}) const override {
+		return inner_.undoPlan(revision, author, options);
+	}
+	/// @copydoc VersionControl::undoRevision
+	[[nodiscard]] json undoRevision(const json& revision, std::string_view author,
+	                                const UndoOptions& options = {}) const override {
+		return inner_.undoRevision(revision, author, options);
+	}
 	/// @copydoc VersionControl::diff
 	[[nodiscard]] json diff(const json& from, const json& to) const override { return inner_.diff(from, to); }
 	/// @copydoc VersionControl::blame

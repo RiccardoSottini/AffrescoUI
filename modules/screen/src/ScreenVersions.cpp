@@ -111,6 +111,36 @@ bool Screen::revert(int revision, std::string* error) {
 	}
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): only running out of memory escapes, which ends the program anyway
+std::string Screen::undoPlan(int revision, std::string_view optionsJson) const {
+	UndoPlan plan;
+	std::string error;
+	const std::optional<json> options =
+	    optionsJson.empty() ? std::optional<json>(json::object()) : parseJson(optionsJson, "undo", &error);
+	try {
+		if(options && options->is_object())
+			plan = impl_->repository.undoPlan(revision, "user", undoOptionsFrom(*options, "undo"));
+		else if(options) plan.blocked = "undo: expected an object of choices";
+		else plan.blocked = error;
+	} catch(const DocumentError& failure) {
+		plan.blocked = failure.what();
+	}
+	return toJson(plan).dump();
+}
+
+bool Screen::revert(int revision, std::string_view optionsJson, std::string* error) {
+	const std::optional<json> options =
+	    optionsJson.empty() ? std::optional<json>(json::object()) : parseJson(optionsJson, "undo", error);
+	if(!options) return false;
+	if(!options->is_object()) return succeeded("undo: expected an object of choices", error);
+	try {
+		const UndoOptions choices = undoOptionsFrom(*options, "undo");
+		return succeeded(impl_->repository.commit(impl_->repository.undoRevision(revision, "user", choices)), error);
+	} catch(const DocumentError& failure) {
+		return succeeded(failure.what(), error);
+	}
+}
+
 bool Screen::undo(std::string* error) {
 	if(revision() == 0) return succeeded("AffrescoUI screen: nothing to undo", error);
 	return revert(revision(), error);
@@ -176,8 +206,10 @@ std::shared_ptr<const std::string> Screen::assetBytes(std::string_view name) con
 Attached Screen::attach(std::string_view name, std::string bytes) {
 	const std::string_view type = assetTypeOf(name);
 	if(type.empty())
-		return {{}, "'" + std::string(name.substr(0, 100)) + "' isn't a kind of file an asset may be (PNG, JPEG, SVG, "
-		                                                      "WAV, MP3, FLAC, JSON or text)"};
+		return {{},
+		        "'" + std::string(name.substr(0, 100)) +
+		            "' isn't a kind of file an asset may be (PNG, JPEG, SVG, "
+		            "WAV, MP3, FLAC, JSON or text)"};
 	return impl_->repository.attach(name, type, std::move(bytes), json::object());
 }
 
