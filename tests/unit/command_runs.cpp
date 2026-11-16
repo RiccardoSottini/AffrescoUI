@@ -345,3 +345,50 @@ TEST_CASE("format: a command run is undone by the person's undoRun step") {
 	CHECK(app.errors.empty());
 	CHECK(app.state("n") == 1);
 }
+
+TEST_CASE("format: an attack: what a command run schedules is judged by effect when it runs, and put back if refused") {
+	App app(notesScreen({{"go", command(json::array({{{"after", 50}, {"do", {{{"set", "state.n"}, {"to", 5}}}}}}))}}));
+	app.control.denial = [](std::string_view, const json&, const json& after) -> std::optional<std::string> {
+		if(after["n"] == 5) return "data rule: 'agent/x' may not write /state/n";
+		return std::nullopt;
+	};
+	CHECK_FALSE(app.run("go").failed);
+	app.wait(100);
+	CHECK(app.state("n") == 1);
+}
+
+TEST_CASE("format: an attack: what a command run refused while it ran had scheduled runs no step") {
+	App app(notesScreen({{"go", command(json::array({{{"after", 50}, {"do", insertNote}},
+	                                                 {{"after", 50}, {"do", {{{"set", "state.other"}, {"to", 9}}}}},
+	                                                 {{"set", "state.n"}, {"to", 5}}}))}}));
+	app.control.denial = [](std::string_view, const json&, const json& after) -> std::optional<std::string> {
+		if(after["n"] == 5) return "data rule: 'agent/x' may not write /state/n";
+		return std::nullopt;
+	};
+	CHECK(app.run("go").failed);
+	app.wait(100);
+	CHECK(app.records("notes") == 0);
+	CHECK(app.state("other") == 0);
+}
+
+TEST_CASE("format: an attack: a command run's record write through another agent's function is judged as both") {
+	json document = App::lisp(R"lisp((defn add-note "" [] nil)
+(defscreen main (panel#root)))lisp");
+	document["models"] = commandrun::notesModel();
+	document["permissions"] = {{"data", json::array({{{"author", "agent/x"}, {"never", {"/data/notes"}}}})}};
+	document["actions"]["go"] = command(json::array({{{"lisp", "add-note"}}}));
+	App app(document);
+	const std::optional<std::string> refused = app.repository.commit(
+	    {{"author", "agent/y"},
+	     {"message", "m"},
+	     {"set", {{"/program/app.lisp/add-note", R"lisp((defn add-note "" [] (insert "notes" :value {:title "a"})))lisp"}}}});
+	INFO(refused.value_or(""));
+	REQUIRE_FALSE(refused.has_value());
+	const affresco::CommandOutcome kept = app.run("go");
+	CHECK(app.records("notes") == 0);
+	REQUIRE_FALSE(kept.errors.empty());
+	CHECK(kept.errors.front().contains("'agent/x' may never touch /data/notes"));
+	CHECK_FALSE(app.run("go", json::object(), "agent/z").failed); // another runner may: its record is its own
+	CHECK(app.records("notes") == 1);
+	CHECK(newestAuthor(app) == "agent/z");
+}

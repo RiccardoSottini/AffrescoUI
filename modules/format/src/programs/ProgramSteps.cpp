@@ -283,7 +283,7 @@ lisp::Value Programs::runStepPrimitive(const StepType& type, lisp::Interpreter& 
 
 	std::vector<std::string> ran = interpreter.authorsThatRan();
 	if(engine_.authority) ran.insert(ran.end(), engine_.authority->authors.begin(), engine_.authority->authors.end());
-	const StepAuthority authority{std::move(ran)};
+	const StepAuthority authority{std::move(ran), engine_.authority ? engine_.authority->run : nullptr};
 	const AuthorityScope holder(engine_, &authority);
 	const auto [place, definition] = interpreter.place();
 	try {
