@@ -1052,7 +1052,9 @@ display's pixels per unit, `colorScheme`: the system's `"light"` or `"dark"`, `m
 latest key); `theme`; `screen` (the screen an outlet shows); `nodes` (`nodes.sidebar.width`: a built node's `x`, `y`, `width`, `height`,
 `visible`, from the last layout); `revision` (the current commit: `number`, `id`, `short`, `author`, `committer`,
 `message`, `time`); `history`; `proposals` (`id`, `author`, `message`, `head`, `short`, `commits`, `operations`,
-`touches`, `changes`, `remember`, `reason`, `time`); `preview`; `mode`; `peers` (`author`, `role`); `windows` (see Windows);
+`touches`, `changes`, `remember`, `reason`, `time`) (an entry of `history` or `proposals` made by an undo that keeps
+later changes has `undo`: `{"of", "drop", "then"}`, what it undid and the later changes it took out or rebuilt);
+`preview`; `mode`; `peers` (`author`, `role`); `windows` (see Windows);
 `requests` (the `ask` requests, see "Asking the agents"); and the names given by `repeat`, `let`,
 `with`, `forEach`, a component's params, `it`/`index` inside list functions.
 
@@ -1328,7 +1330,8 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `exportChanges` | `{ "exportChanges": "my init", "only": "/program/init.lisp", "from": 0, "into": "state.changes" }`: the commits on main after `from`, those that only touch what starts with `only`, as a change set |
 | `runHooks` | `{ "runHooks": "after-save", "with": ["{{item.name}}"] }`: runs a program's functions added to that hook point (`defhook`, `add-hook`), each under its own author's authority |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
-| `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since) |
+| `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since). `revert` undoes an earlier commit and keeps the later ones; where a later change conflicts, it carries the person's choice: `{ "revert": "{{c.id}}", "drop": "all", "head": "{{state.plan.head}}" }`, `drop` (those later changes are taken out too) and `keep` (they stay, and that part is not undone) each a list of conflict paths or `"all"`, `head` the head of main the plan was worked out on (refused if main moved since) |
+| `undoPlan` | `{ "undoPlan": "{{c.id}}", "into": "state.plan" }`: what undoing that commit would do, without doing it (`of`, `head`, `outcome`, `conflicts`, `later`, `state`, ...: see "Live protocol"), from any handler; `drop` and `keep` ask what that choice would do; `then` gets `result`, the plan, `onError` gets `error` |
 | `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images) |
 | `audio` | `{ "audio": "play", "of": "song" }`: see Audio |
 | `insert` | `{ "insert": "songs", "value": { "title": "{{state.draft}}" }, "into": "state.added" }`: stores a record, checked against its model; `result` in `then` is the record, `error` in `onError` is `{code, message}` (see Data: models and records) |
