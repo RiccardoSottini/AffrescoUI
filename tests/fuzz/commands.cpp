@@ -7,7 +7,8 @@
 /// reads are limited ("guest") when it starts with '?'. A line "!" answers every run that waits, "~" takes the
 /// service away from the sessions or gives it back. Every message a session sends must be one JSON object with a
 /// "type"; the service must never hear a decision from a peer that may not review, nor a run over the argument limit;
-/// and the limited reader must never be sent what a run changed, a picture, or a command its reads don't show. An
+/// and the limited reader must never be sent what a run changed, a picture, what its steps said, or a command its
+/// reads don't show. An
 /// input's first maxLines lines are delivered.
 
 #include "Fuzz.hpp"
@@ -34,6 +35,8 @@ namespace {
 constexpr std::size_t maxArgumentBytes = 512;
 /// How many lines of an input are delivered.
 constexpr int maxLines = 32;
+/// What a run's steps read and said, which a limited reader must never be sent.
+constexpr const char* secret = "s3cret-value";
 
 /// @brief A Channel kept in memory that checks every message a session sends, and drops it.
 class CheckedChannel final : public affresco::Channel {
@@ -67,6 +70,8 @@ private:
 		for(const char* field : {"changed", "picture", "region"})
 			if(message.contains(field) && message["type"] != "review" && message["type"] != "document")
 				affresco::fuzz::broken("a limited reader is never sent what a run changed, nor a picture");
+		if(message.contains("errors") || message.dump().contains(secret))
+			affresco::fuzz::broken("a limited reader is never sent what a run's steps said");
 		if(message["type"] == "commands")
 			for(const json& command : message.value("commands", json::array()))
 				if(command.value("name", "") != "shown")
@@ -99,15 +104,22 @@ public:
 		answer({{"type", "waiting"}, {"run", run}, {"reason", "fuzz"}, {"expires", 120}});
 		waiting_.emplace_back(run, std::move(answer));
 	}
-	/// @brief Answers every run that waits: "ran", with what changed and a picture.
+	/// @brief Answers every run that waits: "ran", with what changed, a picture and what its steps said; every other
+	/// one fails while it runs, with a step's error.
 	void answer() {
-		for(auto& [run, give] : std::exchange(waiting_, {}))
+		for(auto& [run, give] : std::exchange(waiting_, {})) {
+			if(run % 2 == 0) {
+				give({{"type", "rejected"}, {"run", run}, {"failed", true}, {"error", std::string("read ") + secret}});
+				continue;
+			}
 			give({{"type", "ran"},
 			      {"run", run},
 			      {"changed", json::array({{{"op", "replace"}, {"path", "/state/x"}}})},
 			      {"changes", 1},
 			      {"picture", "AA=="},
-			      {"region", {{"x", 0}}}});
+			      {"region", {{"x", 0}}},
+			      {"errors", json::array({std::string("read ") + secret})}});
+		}
 	}
 	/// @brief Undoes nothing.
 	/// @return "undone".
