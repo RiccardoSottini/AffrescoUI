@@ -2,14 +2,17 @@
 /// @brief Fuzzes composition across apps (CompositionProof.hpp): a feature's manifest, its adapter and the host's
 /// contribution points are untrusted input (SECURITY.md, "Installing across apps").
 ///
-/// The input is `{ manifest, adapter, points, exports }`; the host is the JSON template with those points and exports.
+/// The input is `{ manifest, adapter, points, exports, program }`; the host is the JSON template with those points,
+/// exports and program, and the feature's manifest may hold a program of its own (FeaturePrograms.hpp).
 /// Besides not crashing, every proof must check as a proof record within its size, give at least one reason, and a
 /// passed one must come with the composed document; the host's contributions must list and print.
 
 #include "Fuzz.hpp"
 
+#include "Composition.hpp"
 #include "CompositionProof.hpp"
 #include "ContributionPoints.hpp"
+#include "FeatureManifest.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -36,7 +39,7 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	format::ProofInputs inputs;
 	inputs.host = affresco::fuzz::jsonTemplate();
 	inputs.host.erase("fonts");
-	for(const char* part : {"points", "exports"})
+	for(const char* part : {"points", "exports", "program"})
 		if(input.contains(part)) inputs.host[part] = input[part];
 	inputs.manifest = input.value("manifest", json());
 	inputs.adapter = input.value("adapter", json());
@@ -53,6 +56,17 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 			affresco::fuzz::broken("a passed proof comes with the composed document");
 	} catch(const affresco::DocumentError&) {
 		// A manifest too big to prove, refused before any check
+	}
+	try { // the record composed on its own, its program built
+		format::checkManifest(inputs.manifest, "manifest");
+		json document = inputs.host;
+		document["features"][inputs.manifest["name"].get<std::string>()] =
+		    format::recordFor(inputs.manifest, "fuzz", "", "", 0);
+		const format::Composition composed = format::compose(document);
+		for(const format::FeatureExtension& extension : composed.extensions)
+			if(extension.target.empty()) affresco::fuzz::broken("an accepted extension names what it joins");
+	} catch(const affresco::DocumentError&) {
+		// A manifest the format refuses
 	}
 	try {
 		const json contributions = format::contributionsOf(inputs.host, json::array({format::partOf(inputs.manifest)}));

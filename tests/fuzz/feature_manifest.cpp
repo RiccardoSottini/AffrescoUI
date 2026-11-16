@@ -1,8 +1,10 @@
 /// @file
-/// @brief Fuzzes checkManifest (format/src/features/FeatureManifest.hpp): a feature's manifest is untrusted input (RFC 0004).
+/// @brief Fuzzes checkManifest (format/src/features/FeatureManifest.hpp): a feature's manifest is untrusted input (RFC
+/// 0004).
 ///
 /// Any text is refused with json::parse_error or DocumentError, or is a manifest whose record composes into the JSON
-/// template, giving a screen or problems, never another error.
+/// template, and into the template holding a program (where a feature's own program builds), giving a screen or
+/// problems, never another error.
 
 #include "Fuzz.hpp"
 
@@ -32,9 +34,14 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 	json document = affresco::fuzz::jsonTemplate();
 	document["features"][manifest["name"].get<std::string>()] =
 	    affresco::format::recordFor(manifest, "fuzz", "", "", 10);
-	try {
-		static_cast<void>(affresco::format::compose(document));
-	} catch(const affresco::DocumentError&) {
+	for(const bool withProgram : {false, true}) {
+		// A static app refuses a feature's program; an app with one builds it
+		if(withProgram)
+			document["program"] = {{"app.lisp", {{"after-save", "(defhook after-save \"After a save.\")"}}}};
+		try {
+			static_cast<void>(affresco::format::compose(document));
+		} catch(const affresco::DocumentError&) {
+		}
 	}
 	return 0;
 }
