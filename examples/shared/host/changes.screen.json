@@ -2,7 +2,7 @@
 	"$schema": "../../../schema/affrescoui-screen.schema.json",
 	"format": "affrescoui-screen",
 	"version": 2,
-	"note": "The host's own view of a change, in a window of its own (apps/host/ChangesWindow.cpp): what a proposal or a commit changes, file by file, and where an element of the app is written (its Source page). It is read from the host's assets and fed only by the host from the version control, so nothing in the change or the source it shows can alter it. The action changes.show stands in for the host in scenarios.",
+	"note": "The host's own view of a change, in a window of its own (apps/host/ChangesWindow.cpp): what a proposal or a commit changes, file by file, and where an element of the app is written (its Source page). It is read from the host's assets and fed only by the host from the version control, so nothing in the change or the source it shows can alter it. Before an applied change is undone, the host's plan (changes.undoPlan) says which later changes were built on it, and the person chooses: take them out too, leave them, or ask the app's assistant to keep them another way. The action changes.show stands in for the host in scenarios.",
 	"include": [
 		"../languages/json.json",
 		"../languages/lisp.json"
@@ -158,7 +158,19 @@
 			"changes.sourcePreviewed": "As proposal #{n} shows it, while it is previewed.",
 			"changes.lastChanged": "Last changed in #{number} by {author}",
 			"changes.showChange": "Show that change",
-			"changes.line": "line {line}"
+			"changes.line": "line {line}",
+			"changes.builtOn": "Built on this change",
+			"changes.laterMore": "and {n} more",
+			"changes.untouched": "{n, plural, one {# later change stays as it is} other {# later changes stay as they are}}",
+			"changes.stateKept": "Data changed since stays as it is",
+			"changes.undoBlocked": "This change cannot be undone: {reason}",
+			"changes.undoDropping": "Undo, and take these out too",
+			"changes.undoLeaving": "Undo the rest, leave these",
+			"changes.askAssistant": "Ask the assistant to keep them",
+			"changes.asked": "The assistant was asked. What it proposes will wait for your review on the left.",
+			"changes.askLater": "revision {n}, \"{message}\"",
+			"changes.askKeep": "Undo \"{message}\" (revision {n}) and keep what later changes built on it: {later}. Look at the plan first, then propose one change.",
+			"changes.askUndo": "Undo \"{message}\" (revision {n}) and keep what later changes built on it. Look at the plan first, then propose one change."
 		},
 		"es": {
 			"changes.title": "Cambios",
@@ -196,7 +208,19 @@
 			"changes.sourcePreviewed": "Tal como lo muestra la propuesta #{n}, mientras se previsualiza.",
 			"changes.lastChanged": "Cambiado por última vez en #{number} por {author}",
 			"changes.showChange": "Ver ese cambio",
-			"changes.line": "línea {line}"
+			"changes.line": "línea {line}",
+			"changes.builtOn": "Hecho a partir de este cambio",
+			"changes.laterMore": "y {n} más",
+			"changes.untouched": "{n, plural, one {# cambio posterior queda como está} other {# cambios posteriores quedan como están}}",
+			"changes.stateKept": "Los datos cambiados desde entonces quedan como están",
+			"changes.undoBlocked": "Este cambio no se puede deshacer: {reason}",
+			"changes.undoDropping": "Deshacer y quitar también estos",
+			"changes.undoLeaving": "Deshacer el resto, dejar estos",
+			"changes.askAssistant": "Pedir al asistente que los conserve",
+			"changes.asked": "Se lo has pedido al asistente. Lo que proponga esperará tu revisión a la izquierda.",
+			"changes.askLater": "revisión {n}, «{message}»",
+			"changes.askKeep": "Deshaz «{message}» (revisión {n}) y conserva lo que los cambios posteriores hicieron a partir de él: {later}. Mira primero el plan y luego propón un solo cambio.",
+			"changes.askUndo": "Deshaz «{message}» (revisión {n}) y conserva lo que los cambios posteriores hicieron a partir de él. Mira primero el plan y luego propón un solo cambio."
 		},
 		"fr": {
 			"changes.title": "Modifications",
@@ -234,7 +258,19 @@
 			"changes.sourcePreviewed": "Tel que la proposition #{n} le montre, pendant son aperçu.",
 			"changes.lastChanged": "Modifié pour la dernière fois dans #{number} par {author}",
 			"changes.showChange": "Voir cette modification",
-			"changes.line": "ligne {line}"
+			"changes.line": "ligne {line}",
+			"changes.builtOn": "Fait à partir de cette modification",
+			"changes.laterMore": "et {n} de plus",
+			"changes.untouched": "{n, plural, one {# modification ultérieure reste telle quelle} other {# modifications ultérieures restent telles quelles}}",
+			"changes.stateKept": "Les données modifiées depuis restent telles quelles",
+			"changes.undoBlocked": "Cette modification ne peut pas être annulée : {reason}",
+			"changes.undoDropping": "Annuler, et retirer celles-ci aussi",
+			"changes.undoLeaving": "Annuler le reste, garder celles-ci",
+			"changes.askAssistant": "Demander à l''assistant de les garder",
+			"changes.asked": "L''assistant a été sollicité. Ce qu''il propose attendra votre revue à gauche.",
+			"changes.askLater": "révision {n}, « {message} »",
+			"changes.askKeep": "Annulez « {message} » (révision {n}) et gardez ce que les modifications ultérieures ont fait à partir d''elle : {later}. Regardez d''abord le plan, puis proposez une seule modification.",
+			"changes.askUndo": "Annulez « {message} » (révision {n}) et gardez ce que les modifications ultérieures ont fait à partir d''elle. Regardez d''abord le plan, puis proposez une seule modification."
 		}
 	},
 	"state": {
@@ -255,7 +291,10 @@
 		"stale": false,
 		"closed": false,
 		"source": null,
-		"sourceCount": 0
+		"sourceCount": 0,
+		"plan": null,
+		"keepPlan": null,
+		"asked": false
 	},
 	"computed": {
 		"added": "{{sum(map(state.view.files ?? [], it.added ?? 0))}}",
@@ -265,7 +304,17 @@
 		"open": "{{computed.isProposal && !state.closed}}",
 		"extras": "{{concat(map(state.view.assets ?? [], it.removed == true ? t('changes.removed', {name: it.name}) : it.name), map(state.view.run ?? [], json(it)))}}",
 		"sourceShown": "{{state.source != null && state.source.text != null}}",
-		"sourceName": "{{join(filter([state.source.file, state.source.kind != null ? state.source.kind + ' ' + reverse(split(state.source.address, '/'))[0] : state.source.node, state.source.marked != null ? t('changes.line', {line: state.source.marked}) : null], it != null), ' · ')}}"
+		"sourceName": "{{join(filter([state.source.file, state.source.kind != null ? state.source.kind + ' ' + reverse(split(state.source.address, '/'))[0] : state.source.node, state.source.marked != null ? t('changes.line', {line: state.source.marked}) : null], it != null), ' · ')}}",
+		"decided": "{{!computed.open}}",
+		"planShown": "{{state.plan != null && state.view != null && state.view.kind == 'commit'}}",
+		"planOutcome": "{{computed.planShown ? (state.plan.outcome ?? 'clean') : 'clean'}}",
+		"canUndo": "{{computed.decided && (computed.planOutcome == 'clean' || computed.planOutcome == 'ready')}}",
+		"choosing": "{{computed.decided && computed.planOutcome == 'choose'}}",
+		"undoBlocked": "{{computed.decided && computed.planOutcome == 'blocked'}}",
+		"undoDoable": "{{computed.decided && computed.planShown && !computed.undoBlocked}}",
+		"leaveBlocked": "{{state.keepPlan != null && state.keepPlan.outcome == 'blocked'}}",
+		"canAsk": "{{state.list.canAsk == true && (computed.choosing || computed.undoBlocked)}}",
+		"askText": "{{length(state.plan.later ?? []) > 0 ? t('changes.askKeep', {message: state.plan.of.message, n: state.plan.of.number, later: join(map(state.plan.later, t('changes.askLater', {n: it.number, message: it.message})), '; ')}) : t('changes.askUndo', {message: state.plan.of.message, n: state.plan.of.number})}}"
 	},
 	"actions": {
 		"changes.refresh": [
@@ -380,6 +429,18 @@
 				"to": null
 			},
 			{
+				"set": "state.plan",
+				"to": null
+			},
+			{
+				"set": "state.keepPlan",
+				"to": null
+			},
+			{
+				"set": "state.asked",
+				"to": false
+			},
+			{
 				"run": "changes.load"
 			}
 		],
@@ -405,6 +466,9 @@
 						"stop": true
 					}
 				]
+			},
+			{
+				"run": "changes.planUndo"
 			},
 			{
 				"run": "changes.open",
@@ -502,7 +566,7 @@
 		],
 		"changes.show": [
 			{
-				"note": "For scenarios, in the host's place: event.list, event.view, event.text, and event.source, what changes.source answers, for the Source page"
+				"note": "For scenarios, in the host's place: event.list (with canAsk), event.view, event.text, event.source, what changes.source answers, for the Source page, and event.plan and event.keepPlan, what changes.undoPlan answers"
 			},
 			{
 				"set": "state.selectionCount",
@@ -535,6 +599,18 @@
 			{
 				"set": "state.source",
 				"to": "{{event.source}}"
+			},
+			{
+				"set": "state.plan",
+				"to": "{{event.plan}}"
+			},
+			{
+				"set": "state.keepPlan",
+				"to": "{{event.keepPlan}}"
+			},
+			{
+				"set": "state.asked",
+				"to": false
 			}
 		],
 		"changes.preview": [
@@ -613,7 +689,152 @@
 				"to": "{{state.answer.error ?? ''}}"
 			},
 			{
+				"set": "state.plan",
+				"to": null
+			},
+			{
+				"set": "state.keepPlan",
+				"to": null
+			},
+			{
 				"run": "changes.refresh"
+			},
+			{
+				"run": "changes.planUndo"
+			}
+		],
+		"changes.planUndo": [
+			{
+				"note": "What undoing the applied change shown would do, as the host works it out: nothing changes until the person chooses. When later changes were built on it, whether they can stay as they are too"
+			},
+			{
+				"if": "{{state.view == null || state.view.kind != 'commit' || state.view.revision <= 0}}",
+				"then": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"call": "changes.undoPlan",
+				"with": {
+					"commit": "{{state.view.commit}}"
+				},
+				"into": "state.plan",
+				"onError": [
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"if": "{{state.plan.outcome != 'choose'}}",
+				"then": [
+					{
+						"set": "state.keepPlan",
+						"to": null
+					},
+					{
+						"stop": true
+					}
+				]
+			},
+			{
+				"call": "changes.undoPlan",
+				"with": {
+					"commit": "{{state.view.commit}}",
+					"keep": "all"
+				},
+				"into": "state.keepPlan",
+				"onError": []
+			}
+		],
+		"changes.undoDropping": [
+			{
+				"note": "Undoes the commit shown and takes out the later changes built on it, as the plan showed them"
+			},
+			{
+				"call": "changes.undo",
+				"with": {
+					"commit": "{{state.view.commit}}",
+					"drop": "all",
+					"head": "{{state.plan.head}}"
+				},
+				"into": "state.answer",
+				"onError": []
+			},
+			{
+				"set": "state.message",
+				"to": "{{state.answer.error ?? ''}}"
+			},
+			{
+				"set": "state.plan",
+				"to": null
+			},
+			{
+				"set": "state.keepPlan",
+				"to": null
+			},
+			{
+				"run": "changes.refresh"
+			},
+			{
+				"run": "changes.planUndo"
+			}
+		],
+		"changes.undoLeaving": [
+			{
+				"note": "Undoes the rest of the commit shown and leaves the later changes built on it, as the plan showed them"
+			},
+			{
+				"call": "changes.undo",
+				"with": {
+					"commit": "{{state.view.commit}}",
+					"keep": "all",
+					"head": "{{state.plan.head}}"
+				},
+				"into": "state.answer",
+				"onError": []
+			},
+			{
+				"set": "state.message",
+				"to": "{{state.answer.error ?? ''}}"
+			},
+			{
+				"set": "state.plan",
+				"to": null
+			},
+			{
+				"set": "state.keepPlan",
+				"to": null
+			},
+			{
+				"run": "changes.refresh"
+			},
+			{
+				"run": "changes.planUndo"
+			}
+		],
+		"changes.askUndo": [
+			{
+				"note": "Asks the app's assistant to undo the commit shown and keep what was built on it: it answers with a proposal, reviewed like any other"
+			},
+			{
+				"call": "changes.askUndo",
+				"with": {
+					"commit": "{{state.view.commit}}",
+					"text": "{{computed.askText}}"
+				},
+				"into": "state.answer",
+				"onError": []
+			},
+			{
+				"set": "state.message",
+				"to": "{{state.answer.error ?? ''}}"
+			},
+			{
+				"set": "state.asked",
+				"to": "{{state.answer.error == null}}"
 			}
 		]
 	},
@@ -1372,6 +1593,120 @@
 							},
 							{
 								"type": "label",
+								"id": "changesUndoBlocked",
+								"when": "{{computed.undoBlocked}}",
+								"wrap": true,
+								"text": "{{t('changes.undoBlocked', {reason: state.plan.blocked})}}",
+								"textColor": "@c.warning",
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"height": 36
+							},
+							{
+								"type": "label",
+								"id": "changesUndoLaterTitle",
+								"when": "{{computed.choosing}}",
+								"text": "{{t('changes.builtOn')}}",
+								"font": "small",
+								"textColor": "@c.muted",
+								"height": 20
+							},
+							{
+								"id": "changesUndoLater{{c.number}}",
+								"repeat": {
+									"for": "c",
+									"in": "{{computed.choosing ? state.plan.later : []}}"
+								},
+								"height": 40,
+								"radius": 8,
+								"color": "@c.raised",
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"children": [
+									{
+										"type": "label",
+										"text": "{{c.message}}",
+										"textColor": "@c.text",
+										"anchors": {
+											"left": 10,
+											"right": 10,
+											"top": 3
+										},
+										"height": 18
+									},
+									{
+										"type": "label",
+										"text": "{{t('changes.revision', {n: c.number}) + ' · ' + c.author + ' · ' + join(c.parts ?? [], ', ')}}",
+										"textColor": "@c.muted",
+										"font": "small",
+										"anchors": {
+											"left": 10,
+											"right": 10,
+											"top": 21
+										},
+										"height": 16
+									}
+								]
+							},
+							{
+								"type": "label",
+								"id": "changesUndoLaterMore",
+								"when": "{{computed.choosing && (state.plan.laterMore ?? 0) > 0}}",
+								"text": "{{t('changes.laterMore', {n: state.plan.laterMore})}}",
+								"font": "small",
+								"textColor": "@c.muted",
+								"height": 18
+							},
+							{
+								"type": "label",
+								"id": "changesUndoUntouched",
+								"when": "{{computed.undoDoable && (state.plan.untouched ?? 0) > 0}}",
+								"text": "{{t('changes.untouched', {n: state.plan.untouched})}}",
+								"font": "small",
+								"textColor": "@c.muted",
+								"height": 18
+							},
+							{
+								"type": "label",
+								"id": "changesUndoStateKept",
+								"when": "{{computed.undoDoable && length(state.plan.state.kept ?? []) > 0}}",
+								"text": "{{t('changes.stateKept')}}",
+								"font": "small",
+								"textColor": "@c.muted",
+								"height": 18
+							},
+							{
+								"type": "label",
+								"id": "changesUndoWarning{{index}}",
+								"repeat": {
+									"for": "w",
+									"in": "{{computed.undoDoable ? (state.plan.warnings ?? []) : []}}"
+								},
+								"text": "{{w}}",
+								"textColor": "@c.warning",
+								"font": "small",
+								"height": 18
+							},
+							{
+								"type": "label",
+								"id": "changesUndoAsked",
+								"when": "{{state.asked}}",
+								"wrap": true,
+								"text": "{{t('changes.asked')}}",
+								"font": "small",
+								"textColor": "@c.muted",
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"height": 18
+							},
+							{
+								"type": "label",
 								"id": "changesMessage",
 								"when": "{{state.message != ''}}",
 								"wrap": true,
@@ -1521,7 +1856,7 @@
 									},
 									{
 										"id": "changesUndo",
-										"when": "{{!computed.open}}",
+										"when": "{{computed.canUndo}}",
 										"role": "button",
 										"focusable": true,
 										"cursor": "hand",
@@ -1555,6 +1890,118 @@
 											}
 										],
 										"width": 170
+									},
+									{
+										"id": "changesUndoDropping",
+										"when": "{{computed.choosing}}",
+										"role": "button",
+										"focusable": true,
+										"cursor": "hand",
+										"height": 32,
+										"radius": 8,
+										"color": "@c.raised",
+										"borderWidth": 1,
+										"borderColor": "@c.border",
+										"label": "{{t('changes.undoDropping')}}",
+										"focused": {
+											"borderColor": "@c.accent",
+											"borderWidth": 1
+										},
+										"onClick": [
+											{
+												"run": "changes.undoDropping"
+											}
+										],
+										"children": [
+											{
+												"type": "label",
+												"text": "{{t('changes.undoDropping')}}",
+												"textColor": "@c.text",
+												"anchors": {
+													"left": 10,
+													"right": 10,
+													"top": 7
+												},
+												"height": 18,
+												"align": "center"
+											}
+										],
+										"width": 240
+									},
+									{
+										"id": "changesUndoLeaving",
+										"when": "{{computed.choosing}}",
+										"role": "button",
+										"focusable": true,
+										"cursor": "hand",
+										"height": 32,
+										"radius": 8,
+										"color": "@c.raised",
+										"borderWidth": 1,
+										"borderColor": "@c.border",
+										"label": "{{t('changes.undoLeaving')}}",
+										"disabled": "{{computed.leaveBlocked}}",
+										"focused": {
+											"borderColor": "@c.accent",
+											"borderWidth": 1
+										},
+										"onClick": [
+											{
+												"run": "changes.undoLeaving"
+											}
+										],
+										"children": [
+											{
+												"type": "label",
+												"text": "{{t('changes.undoLeaving')}}",
+												"textColor": "{{computed.leaveBlocked ? '@c.muted' : '@c.text'}}",
+												"anchors": {
+													"left": 10,
+													"right": 10,
+													"top": 7
+												},
+												"height": 18,
+												"align": "center"
+											}
+										],
+										"width": 230
+									},
+									{
+										"id": "changesAskUndo",
+										"when": "{{computed.canAsk}}",
+										"role": "button",
+										"focusable": true,
+										"cursor": "hand",
+										"height": 32,
+										"radius": 8,
+										"color": "@c.raised",
+										"borderWidth": 1,
+										"borderColor": "@c.border",
+										"label": "{{t('changes.askAssistant')}}",
+										"focused": {
+											"borderColor": "@c.accent",
+											"borderWidth": 1
+										},
+										"onClick": [
+											{
+												"run": "changes.askUndo"
+											}
+										],
+										"children": [
+											{
+												"type": "label",
+												"text": "{{t('changes.askAssistant')}}",
+												"textColor": "@c.text",
+												"anchors": {
+													"left": 10,
+													"right": 10,
+													"top": 7
+												},
+												"height": 18,
+												"align": "center"
+											}
+										],
+										"width": 260
 									}
 								]
 							}
