@@ -386,6 +386,65 @@ drawn for a peer. The host answers `done`, or `rejected` with no window or no in
 `Screen::setInspector()` and `Screen::inspectorTrace()`. It is the reviewer's tool. A person points at an element of
 their own app and reads its source on the changes window's Source page (below, and SCREEN_FORMAT.md, "Pointing at a node").
 
+## Running commands
+An agent can do more than change an app: it can use it, by asking the running app to run one of its commands (an
+entry of `actions` that describes itself; in Lisp, a `defcommand`). That is a **run**. A run executes under the
+runner's name (`agent/claude-code`), never the person's, even after the person said yes: it can't approve, widen a
+permission, or reach what its runner may not. A run is never a revision: it changes the live state and records, so
+it is in the `runs` log and not in the history.
+
+Who may run what is said in `permissions.run`, with lists of its own that no change rule ever sees. A rule is
+`author` or `author(command)`: the author is `*`, a channel or a full name, as in change rules (a `role:` author
+covers nobody here); the command is a name, a prefix ending in `*` (`card-*`), or left out for every command.
+
+```json
+"permissions": {
+  "allow": ["studio"], "reviewers": ["studio"],
+  "run": { "allow": ["agent(move-card)", "agent(card-*)"], "ask": ["agent(archive-*)"], "deny": ["*(clear-board)"] }
+}
+```
+
+```clojure
+:permissions {:allow [studio] :reviewers [studio]
+              :run {:allow ["agent(move-card)" "agent(card-*)"] :ask ["agent(archive-*)"] :deny ["*(clear-board)"]}}
+```
+
+A run is judged in this order; the first that applies decides, and every refusal or question says which rule or step
+decided:
+
+1. A `run.deny` rule matches: **denied** (`denied by the run rule '*(clear-board)'`).
+2. The command reaches a control or review step, a native action or a computed `run`: **denied**, for every peer
+   (`'export' reaches the control step "call", which only the person may run`).
+3. The mode is `plan` and the runner may not review: **denied** (`plan mode: commands don't run; say what you would
+   run`).
+4. The command uses a service that writes or runs (files, terminals, requests that write): **the person decides**,
+   in the window's own question, each time; no reviewer's yes counts, and it is never remembered.
+5. The runner may review: **allowed**.
+6. A `run.ask` rule matches: **asked**.
+7. A `run.allow` rule matches, or a run grant that hasn't expired: **allowed**.
+8. The document has no `permissions` section at all: **allowed**, as changes are.
+9. Anything else: **asked**, saying the rule that would allow it (`no run rule allows 'move-card' for 'agent'; a rule
+   "agent(move-card)" in permissions.run.allow would`).
+
+**Modes.** `plan` refuses runs by authors who aren't reviewers (row 3). `acceptEdits` has no effect on runs.
+
+**Waiting runs.** An asked run waits for a reviewer or the person (the `runs` variable, the steps `allowRun` and
+`denyRun`, a reviewer's `allowRun` over the live protocol). A reviewer never allows a run from its own channel; the
+person (`user`) always may. At most 16 runs wait at once, and 4 of one channel: past that a run is refused (`too many
+runs are waiting`). A run nobody answers in 120 seconds expires, refused. The `runs` log keeps the newest 64 runs,
+waiting or done, dropping the oldest finished one first and never one that waits; each keeps its arguments cut to
+4 KiB of JSON text, a larger value shown as `"(too large to show)"`. Runs are numbered from 1, per screen and per
+start of the host.
+
+**Grants.** "Always allow" on a waiting run adds a grant for the runner's channel and that one command, shown as
+`agent(run:move-card)`. Its duration is read as an accept's `"for"` (`"30m"`, `"8h"`, `"7d"`) and capped by
+`review.grantsLast`. A grant can be revoked, and lives in memory: it ends when the host quits. It never beats a
+`deny` rule, an `ask` rule, `plan` mode, a control step or a service use only the person allows (rows 1 to 4 and 6),
+and a run the person alone may allow can't be allowed "always".
+
+**State changes.** What a run changes in the state is judged by effect with the runner's data rules
+([Data rules](#data-rules)): a path outside its `write` paths, or a `never` path, rolls the whole run back.
+
 ## The changes, file by file
 
 Preview shows what a change looks like, and not what it does: a changed handler can look the same on screen. So a reviewer
@@ -820,6 +879,7 @@ agent's, an in-screen `features.compose` is `features`'. A person can ask an age
 | Submit a change | `submitRevision` (permission-checked), `applyRevision` (the app's own) | `revision` | `submit_revision` |
 | Proposals | `proposals`, `previewProposal`, `acceptProposal`, `rejectProposal`; `proposalDiff`, `accept(id, Approval)` | `proposed`, `review`; reviewers: `preview`, `endPreview`, `accept` (`head`, `dontAskAgain`), `reject` | push with `proposal` (no accept tool) |
 | Modes and grants | `setMode`, `setModeForThisRun`; `grants`, `revokeGrant` | reviewers: `setMode`, `revoke` | (none) |
+| Runs | `vcs::Runs` (`RunControl`): `judge`, `begin`, `allow`, `deny`, `finish`, `runs`, `grants`, `revoke`, `expire`, `stateDenial` | `getCommands`, `runCommand`, `undoRun`; reviewers: `allowRun`, `denyRun`, `revokeRun`; `review` carries `runs` and `runGrants` | `list_commands`, `run_command`, `undo_run` |
 | History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff`, `blame` | `getHistory` (`limit`), `diff`, `blame` (`target`), `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `get_blame`, `revert_revision`, `restore_revision` |
 | Change sets | `exportChanges`, `importChanges`, `hasImported` | `exportChanges` | `export_changes` |
 | History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |
