@@ -267,9 +267,8 @@ TEST_CASE("undo steps: both steps are functions in Lisp, through the step regist
 	history.run("plan");
 	REQUIRE(history.state()["plan"].is_object());
 	CHECK(history.state()["plan"]["of"]["number"] == 1);
-	history.click(10.0f, 10.0f); // a review step in Lisp runs only from the person's own press
-	// The choice reached the undo: it lands with the undo engine (f6b), and is refused, as such, before it
-	CHECK((history.screen.revision() == 3 || history.reported("can't keep later changes")));
+	history.click(10.0f, 10.0f);           // a review step in Lisp runs only from the person's own press
+	CHECK(history.screen.revision() == 3); // the choice reached the undo, and it landed
 }
 
 TEST_CASE("undo steps: no revision from an agent adds or alters a revert with drop") {
