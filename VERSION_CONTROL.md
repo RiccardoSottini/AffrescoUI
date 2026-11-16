@@ -530,7 +530,11 @@ names the definition. So does:
 - a `def` or a `defcustom` whose value can't be worked out, used or not: it is worked out at the build, purely;
 - a section both written and built with different contents (but a `defdefaults` member or a `defstate`'s key, which the written
   one replaces, as a revision on `/state/lanes` does; and a list
-  such as `persist`, which joins), or a program building `include`, `assets`, `features` or `program`;
+  such as `persist`, which joins), or a program building `include`, `assets`, `features` or `program`. So what a program
+  builds is never read back as a document: a composition proof, a scenario played on a document passed in, and every
+  tool (`affrescoui check --compose`, `affrescoui contributions`, the MCP tools) take a program's source, as
+  `sourceDocument()` and the `source` of `hello` and `document` give it, and build from it what they check; a built tree
+  passed in its place is refused ("pass the source document: this one holds what its program built");
 - an `(include ...)` form: the file an app loads names its others with one, read with the file, and it is never an entry.
 
 A document can hold other sections beside `program` (a JSON screen that includes a program, an asset a revision brought): they
@@ -903,7 +907,9 @@ A feature from another app (a part another app ships, such as Sinopia's slide so
 needs bound to what the host offers ([Screen format](SCREEN_FORMAT.md), "Features from another app"):
 - **prove**: `affrescoui check --compose <screen> <feature> [--adapter <file>]`, the MCP tool `check_composition`, or
   `features.compose {manifest, adapter, source}` binds the needs, checks the composed document and plays the
-  scenarios. A failed proof installs nothing and names each unmet need;
+  scenarios. A failed proof installs nothing and names each unmet need. For a program, the proof works on its source:
+  the record goes in beside the `program`, and the scenarios it plays may change the definitions that build the tree
+  the feature sits in;
 - **install**: a proven composition is one revision on `/features/<name>` (or `/features`, when the section is
   missing), its message naming the proof (`Install slideSorter from app:sinopia (proof: slideSorter 1.0.0 from
   app:sinopia, passed, ...)`) and its record carrying the bindings and the proof with the base commit. It is reviewed

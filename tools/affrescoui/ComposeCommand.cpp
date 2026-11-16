@@ -13,6 +13,7 @@
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/core/Log.hpp>
+#include <affresco/format/Rules.hpp>
 #include <affresco/lisp/Document.hpp>
 #include <affresco/notation/Notation.hpp>
 
@@ -41,15 +42,33 @@ public:
 	QuietLog& operator=(QuietLog&&) = delete;
 };
 
-/// @brief Loads a screen as the library does: its document with the "include"s in place.
+/// @brief Loads a screen as the library does, and gives its document as version control keeps it: the "include"s in
+/// place and, for a program, its source (VersionControl::sourceDocument()), which a proof and its scenarios play on.
 /// @param path The screen file: its folder holds what it includes.
 /// @param text Its text, or another document to load in its place (the live one, with --document).
 /// @return The document.
 /// @throws FileProblem If it doesn't load.
+/// @throws UsageError If it is what a program built, read back as a document: an older client's --document.
 json loadDocument(const std::filesystem::path& path, const std::string& text) {
 	const QuietLog quiet;
+	json source;
 	try {
-		return json::parse(Screen::fromString(text, path.parent_path()).documentJson());
+		source = Screen::fromString(text, path.parent_path()).versions().sourceDocument();
+	} catch(const DocumentError& error) {
+		throw FileProblem(path.string() + ": " + error.what());
+	}
+	if(format::isBuiltTree(source)) throw UsageError(std::string(format::builtTreeProblem));
+	return source;
+}
+
+/// @brief A document as a screen: what a program's source builds, any other document as it is.
+/// @param source The document as version control keeps it.
+/// @param path Where it came from, for the message.
+/// @return The screen.
+/// @throws FileProblem If its program can't be built.
+json screenOf(const json& source, const std::filesystem::path& path) {
+	try {
+		return format::Rules().built(source).value_or(source);
 	} catch(const DocumentError& error) {
 		throw FileProblem(path.string() + ": " + error.what());
 	}
@@ -110,7 +129,7 @@ json partsOf(const std::filesystem::path& screen) {
 /// @brief Plays a scenarios file on a composed document, headless, and reports each scenario.
 /// @param file The scenarios.
 /// @param label Where they came from, for the proof.
-/// @param document The composed document.
+/// @param document The composed document, a program's as its source.
 /// @param prepare Registers the host's natives on each screen.
 /// @param outcomes Receives one outcome per scenario.
 void play(const automation::ScenarioFile& file, const std::string& label, const json& document,
@@ -209,7 +228,7 @@ Exit listContributions(std::span<const std::string_view> args) {
 	const Arguments arguments(args, valued, flags);
 	const std::filesystem::path file = arguments.file();
 	const json contributions =
-	    format::contributionsOf(loadDocument(file, documentText(arguments, file)), partsOf(file));
+	    format::contributionsOf(screenOf(loadDocument(file, documentText(arguments, file)), file), partsOf(file));
 	if(arguments.flag("--json")) std::cout << contributions.dump() << '\n';
 	else std::cout << format::contributionsText(contributions);
 	return Exit::Success;
