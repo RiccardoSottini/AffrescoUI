@@ -113,7 +113,9 @@ private:
 
 		const int shaders = (refreshed.shapes ? 1 : 0) + (refreshed.color ? 2 : 0);
 		const bool created = target.canvas.resize(size.width, size.height);
-		if(refreshed.transformed) target.canvas.addStencil();
+		// The screenshots' canvas always has one, as the frame drawn from scratch it is compared with does: a driver
+		// may round the same quads otherwise (Mesa's llvmpipe on x86 takes its linear path only without one)
+		if(refreshed.transformed || &target == &offscreen_) target.canvas.addStencil();
 		bool full = target.full || created || shaders != target.shaders;
 		std::optional<PixelRect> pixels;
 		if(!full && target.damage) {
