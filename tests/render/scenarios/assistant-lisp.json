@@ -30,6 +30,17 @@
 				{ "expect": { "state": "assistant.draft", "is": "" } },
 				{ "expect": { "image": "conversation" } }
 			]
+		},
+		{
+			"name": "assistant-lisp-runs",
+			"screen": "assistant-lisp.screen.lisp",
+			"note": "The Lisp add-on's run cards: ran, denied, waiting for the person's yes, and one only the window may allow",
+			"steps": [
+				{ "action": "test.runs" },
+				{ "action": "assistant.open" },
+				{ "wait": 250 },
+				{ "expect": { "image": "cards" } }
+			]
 		}
 	]
 }

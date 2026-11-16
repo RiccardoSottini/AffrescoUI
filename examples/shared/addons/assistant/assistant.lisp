@@ -505,6 +505,48 @@ rendering check) models stays nil and the picker hides."
   (set "state.assistant.messages" [])
   (set "state.assistant.decided" {}))
 
+(defn assistant-allow-run "Runs a command a peer asked for that waits for a yes (the runs variable), under its name."
+  [id]
+  (allowRun id))
+
+(defn assistant-always-allow-run "Runs a waiting command, and lets that peer run that command again without asking."
+  [id]
+  (allowRun id :always true))
+
+(defn assistant-deny-run "Doesn't run a waiting command." [id]
+  (denyRun id))
+
+(defn assistant-undo-run "Puts back what a command that ran changed in the state." [id]
+  (undoRun id))
+
+(defn assistant-run-text "Text people or peers wrote, on one line: its line breaks as spaces." [text]
+  (join " " (split (str text) "\n")))
+
+(defn assistant-run-line "An argument of a run as a line of its card: `name: value`, the value cut at 60 characters."
+  [arguments k]
+  (let [value (get arguments k)
+        letters (split (assistant-run-text (if (string? value) value (pr-str value))) "")]
+    (str (assistant-run-text (if (keyword? k) (name k) k))
+         ": "
+         (join "" (take 60 letters))
+         (if (> (count letters) 60) "…" ""))))
+
+(defn assistant-run-lines "A run's arguments as its card's lines: the first three." [arguments]
+  (map (fn [k] (assistant-run-line arguments k)) (take 3 (keys (or-else arguments {})))))
+
+(defn assistant-run-status "A run's card's status: its buttons while it waits, else what became of it." [run]
+  (cond (= (:state run) "waiting") (if (:personOnly run) "asking" "pending")
+        (= (:state run) "ran") (if (> (count (or-else (:errors run) [])) 0) "ranErrors" "accepted")
+        :else (:state run)))
+
+(defn assistant-run-summary "Who and what: who wants to run it, that the window asks, who it ran for, or why not." [run]
+  (cond (= (:state run) "waiting") (if (:personOnly run)
+                                     (t "assistant.run.windowAsks")
+                                     (t "assistant.run.wants" {:author (:author run)}))
+        (or (= (:state run) "ran") (= (:state run) "undone")) (t "assistant.run.ranFor" {:author (:author run)})
+        (empty? (:reason run)) (t "assistant.run.notRunBare")
+        :else (t "assistant.run.notRun" {:reason (assistant-run-text (:reason run))})))
+
 (defpart assistant "The assistant's watch, persist, actions (each a function, by the name keys, components and apps
 run) and overlays: its launcher and its panel."
   :watch {:state.assistant.picked assistant-picked}
@@ -535,7 +577,11 @@ run) and overlays: its launcher and its panel."
             :assistant.reject [{:lisp assistant-reject}]
             :assistant.loadModels [{:lisp assistant-load-models}]
             :assistant.pickModel [{:lisp assistant-pick-model}]
-            :assistant.clear [{:lisp assistant-clear}]}
+            :assistant.clear [{:lisp assistant-clear}]
+            :assistant.allowRun [{:lisp assistant-allow-run}]
+            :assistant.alwaysAllowRun [{:lisp assistant-always-allow-run}]
+            :assistant.denyRun [{:lisp assistant-deny-run}]
+            :assistant.undoRun [{:lisp assistant-undo-run}]}
   :overlays {:assistantLauncher (node#assistantLauncher :when ~(or (or-else state.assistant.simulate.online
                                                                             (> (count peers) 0))
                                                                    (> (count state.assistant.messages) 0)
@@ -544,7 +590,9 @@ run) and overlays: its launcher and its panel."
                                   :anchors {:right 24 :bottom ~(+ 24 state.assistant.lift)}
                                   :with {:isOpen ~state.assistant.open
                                          :run assistant.toggle
-                                         :unread ~state.assistant.unread
+                                         :unread ~(+ state.assistant.unread
+                                                     (count (filter (fn [it] (= it.state "waiting"))
+                                                                    (or-else state.assistant.simulate.runs runs))))
                                          :label ~(t (if state.assistant.open "assistant.close" "assistant.open"))
                                          :tooltip ~(t "assistant.shortcut")
                                          :color @assistant.accent
@@ -869,6 +917,42 @@ code font, with Copy and never Retry."
             :accentTextColor @assistant.onAccent
             :buttonColor @assistant.raised}))
 
+(defview assistant-run-card
+  "A command run a peer asked for, as a card: what ran and with which arguments, Run, Always allow and Don't run while
+it waits for a yes, and Undo once it ran."
+  [run r]
+  `(node :id ~(str "assistantRun" run.id)
+     :use proposalCard
+     :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) r 1)}
+     :with {:title ~(assistant-run-text (if (empty? run.title) run.command run.title))
+            :summary ~(assistant-run-summary run)
+            :lines ~(assistant-run-lines run.arguments)
+            :status ~(assistant-run-status run)
+            :preview ~(if run.personOnly nil "assistant.alwaysAllowRun")
+            :accept ~(if run.personOnly nil "assistant.allowRun")
+            :reject ~(if run.personOnly nil "assistant.denyRun")
+            :review ~(if (and (= run.state "ran") (not= run.undoable "none")) "assistant.undoRun" nil)
+            :with {:id ~run.id}
+            :width 340
+            :labels {:preview ~(t "assistant.run.always")
+                     :accept ~(t "assistant.run.run")
+                     :reject ~(t "assistant.run.dont")
+                     :review ~(t "assistant.run.undo")
+                     :accepted ~(t "assistant.run.ran")
+                     :ranErrors ~(t "assistant.run.ranErrors")
+                     :failed ~(t "assistant.run.failed")
+                     :denied ~(t "assistant.run.denied")
+                     :expired ~(t "assistant.run.expired")
+                     :undone ~(t "assistant.run.undone")
+                     :asking ~(t "assistant.run.asking")}
+            :color @assistant.surface
+            :textColor @assistant.text
+            :dimColor @assistant.dim
+            :borderColor @assistant.border
+            :accent @assistant.success
+            :accentTextColor @assistant.onAccent
+            :buttonColor @assistant.raised}))
+
 (defview assistant-messages "The conversation, newest last, scrolled to the end." []
   `(grid#assistantMessages :columns ["1fr" 8]
      :columnGap 0
@@ -879,7 +963,8 @@ code font, with Copy and never Retry."
      :label ~(t "assistant.messages")
      :let {:assistantCount ~(count state.assistant.messages)
            :assistantLoose ~(filter (fn [it] (not (contains assistantCarded it.id)))
-                                    (or-else state.assistant.simulate.proposals proposals))}
+                                    (or-else state.assistant.simulate.proposals proposals))
+           :assistantRuns ~(slice (or-else state.assistant.simulate.runs runs) -20)}
      (label#assistantEmpty :when ~(= assistantCount 0)
        :cell {:column 1 :row 1}
        :text ~(t "assistant.empty")
@@ -903,10 +988,13 @@ code font, with Copy and never Retry."
        (assistant-card message m))
      ~(repeat [proposal assistantLoose :index l]
        (assistant-waiting proposal l))
+     ~(repeat [run assistantRuns :index r]
+       (assistant-run-card run r))
      ~(assistant-typing)
      (node#assistantEnd :height 1
        :color transparent
-       :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) 2)})))
+       :cell {:column 1
+              :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) (count assistantRuns) 2)})))
 
 (defview assistant-suggestion "Suggestion `n` of three, a chip to ask with, while the conversation is empty." [n]
   `(node :id ~(str "assistantChip" n)
@@ -952,7 +1040,8 @@ code font, with Copy and never Retry."
 
 (defview assistant-typing "Three dots that blink while the agent works, under the conversation." []
   `(node#assistantTyping :when ~assistantWorking
-     :cell {:column 1 :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) 1)}
+     :cell {:column 1
+            :row ~(+ assistantCount (if (= assistantCount 0) 4 0) (count assistantLoose) (count assistantRuns) 1)}
      :use typingIndicator
      :every {:ms 400 :do [{:increment state.assistant.phase}]}
      :with {:label ~(t "assistant.typing")

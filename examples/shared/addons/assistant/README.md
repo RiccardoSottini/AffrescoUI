@@ -33,6 +33,14 @@ screen without meeting the app's own names.
   proposal waits for review; after, it says *Accepted*, *Rejected*, or *Closed* (the proposal went another way, e.g.
   reviewed by another client). On a host that has it, *Review changes* opens the host's own window on the change, file by
   file ([VERSION_CONTROL.md](../../../../VERSION_CONTROL.md), "The changes, file by file").
+- **Runs**, as cards: every run of one of the app's commands an agent asked for (the `runs` variable), after the
+  conversation, the last 20. A card says what ran (the command's title), for which agent, its first three arguments
+  as the agent wrote them (on one line, cut at 60 characters, never evaluated) and how it ended: *Ran* (with *Undo*
+  while what it changed can be put back), *Denied* with the reason, or, while it waits, *Run*, *Always allow* (a run
+  grant: the agent runs it again without asking) and *Don't run*. A run only the window may allow (a command that
+  asks the person each time, or one that reaches a service that writes) has no buttons: the window asks. The
+  launcher's badge counts the runs that wait too. The buttons are the person's own steps (`allowRun`, `denyRun`,
+  `undoRun`), refused while an agent's reply runs an action, so a reply never decides a run.
 - **Files**, as cards with an icon of their kind (a picture, a sound, any other file), their name and their size or
   length: the files attached to the next message inside the composer (each removable), the files sent with a message,
   and a proposal's assets with its run-once steps.
@@ -131,6 +139,8 @@ All in `state.assistant`:
 | `assistant.unpoint` | Takes the element `id` (a record's) from the next message |
 | `assistant.showSource` | Asks the host to show where the element `record` is written (`changes.open`); a host without it does nothing |
 | `assistant.clear` | Forgets the conversation |
+| `assistant.allowRun`, `assistant.alwaysAllowRun`, `assistant.denyRun` | Run the waiting run `run`, run it and grant its agent that command, or refuse it, from its card |
+| `assistant.undoRun` | Puts back what the run `run` changed |
 
 An app can run them from its own menus or buttons, e.g. `{ "run": "assistant.open" }`, or a menu item that points:
 `{ "label": "Point at something", "onClick": [{ "run": "assistant.point" }] }`.
@@ -150,7 +160,8 @@ The strings are the `assistant.*` keys in English, Spanish and French; the panel
 
 The rendering check draws the add-on through `tests/render/screens/assistant.screen.json`, whose runner has no agents:
 `state.assistant.simulate` stands in for them, with `online`, `pending` (the ids waiting for review), `working`,
-`proposals` (as the `proposals` variable lists them) and `models` (as `assistant.models` answers). An app leaves it `null`, and the add-on reads `peers`,
+`proposals` (as the `proposals` variable lists them) and `models` (as `assistant.models` answers). `runs` stands in for the
+`runs` variable (`test.runs` sets four: one ran, one denied, one waiting and one only the window may allow). An app leaves it `null`, and the add-on reads `peers`,
 `requests` and `proposals`.
 
 `tests/unit/assistant_addon.cpp` drives the same screen in a headless window: the keys, the focus, the persisted
@@ -160,6 +171,11 @@ and *Show source*). `e2e_test.py` runs the whole loop with the stock host and th
 `e2e.screen.json`, where a timer stands in for the person: the offline answer, then a request taken with
 `wait_for_request` (`origin: "app"`), the agent's proposal and reply, the card accepted (the change is on main), and a
 second card rejected. ctest runs it as `assistant_e2e`.
+
+`tests/unit/assistant_runs.cpp` drives the run cards on both test screens, whose command `test.note` an agent
+connected in the process asks to run: it waits on its card under the agent's name, *Run* runs it and *Undo* puts it
+back, *Always allow* adds a grant, *Don't run* refuses it, the arguments show as written, and a run only the window
+may allow has no buttons.
 
 The Lisp input is drawn through `tests/render/screens/assistant-lisp.screen.lisp` (the preview over a typed
 definition, and the conversation after an evaluation), and `tests/unit/assistant_lisp_input.cpp` drives it with real

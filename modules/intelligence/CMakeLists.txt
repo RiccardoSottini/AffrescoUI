@@ -14,6 +14,7 @@ affrescoui_module(intelligence
 	src/ScreenQueries.cpp # the screen as an agent reads it, and the format guide by topic
 	src/ClaudeCode.cpp    # the claude-code provider: the person's command line, with no tools
 	src/Picks.cpp         # what the person pointed at, as the agent tells a model of it
+	src/Commands.cpp      # the app's commands, as the agent tells a model of them
 	src/Agent.cpp         # the agent inside the host
 	src/Intelligence.cpp) # the settings' natives, assistant.models and HostAssistant
 target_include_directories(affrescoui_intelligence PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)

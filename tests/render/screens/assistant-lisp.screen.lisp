@@ -11,11 +11,38 @@
 (defn page-title "The page's title." [] "Notes")
 
 (defpart test
-  "The code font, what stands in for what the check's runner has none of (a connected agent), and a draft set by a
-step, not typed."
+  "The code font, what stands in for what the check's runner has none of (a connected agent, the runs it asked for),
+a draft set by a step, not typed, and a command an agent may ask to run."
   :onLoad [{:set state.assistant.codeFont :to mono}]
-  :actions {:test.online [{:set state.assistant.simulate :to {:online true}}]
-            :test.draft [{:set state.assistant.draft :to "(+ 2 2)"}]})
+  :actions {:test.note {:title "Add a note"
+                        :description "Writes the page's note."
+                        :arguments {:text {:type "string"}}
+                        :do [{:set state.note :to "{{text}}"}]}
+            :test.online [{:set state.assistant.simulate :to {:online true}}]
+            :test.draft [{:set state.assistant.draft :to "(+ 2 2)"}]
+            :test.runs [{:set state.assistant.simulate
+                         :to {:online true
+                              :pending []
+                              :runs [{:id 1 :author "agent/claude" :command "addTask"
+                                      :title "Add a task"
+                                      :arguments {:title "Call the printer people" :due "2026-11-20"}
+                                      :state "ran" :reason "" :time 1773501000000
+                                      :changes 2 :errors [] :undoable "state" :personOnly false}
+                                     {:id 2 :author "agent/claude" :command "archiveDone"
+                                      :title "Archive the done tasks"
+                                      :arguments {:olderThan 7}
+                                      :state "denied" :reason "the person said no" :time 1773501005000
+                                      :changes 0 :errors [] :undoable "none" :personOnly false}
+                                     {:id 3 :author "agent/claude" :command "sendDigest"
+                                      :title "Send the weekly\ndigest"
+                                      :arguments {:to "team" :note "Line one\nline two"}
+                                      :state "waiting" :reason "it writes to a service" :time 1773501010000
+                                      :changes 0 :errors [] :undoable "none" :personOnly false}
+                                     {:id 4 :author "agent/claude" :command "deleteAll"
+                                      :title "Delete every task"
+                                      :arguments {}
+                                      :state "waiting" :reason "only the person may allow it" :time 1773501015000
+                                      :changes 0 :errors [] :undoable "none" :personOnly true}]}}]})
 
 ;;; The screen
 

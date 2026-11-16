@@ -67,7 +67,23 @@
 			"assistant.showSource": "Show source",
 			"assistant.pointedNearest": "The nearest element with an address",
 			"assistant.pointedRepeat": "One of a list: a change applies to every item",
-			"assistant.pointedShared": "Shared: written once, used in more than one place"
+			"assistant.pointedShared": "Shared: written once, used in more than one place",
+			"assistant.run.wants": "{author} wants to run this",
+			"assistant.run.windowAsks": "The window asks you whether to run this",
+			"assistant.run.ranFor": "Ran for {author}",
+			"assistant.run.notRun": "Not run: {reason}",
+			"assistant.run.notRunBare": "Not run",
+			"assistant.run.run": "Run",
+			"assistant.run.always": "Always allow",
+			"assistant.run.dont": "Don't run",
+			"assistant.run.undo": "Undo",
+			"assistant.run.ran": "Ran",
+			"assistant.run.ranErrors": "Ran, with errors",
+			"assistant.run.failed": "Failed",
+			"assistant.run.denied": "Denied",
+			"assistant.run.expired": "Expired",
+			"assistant.run.undone": "Undone",
+			"assistant.run.asking": "Waiting for your answer"
 		},
 		"es": {
 			"assistant.title": "Asistente",
@@ -117,7 +133,23 @@
 			"assistant.showSource": "Ver el código",
 			"assistant.pointedNearest": "El elemento más cercano con una dirección",
 			"assistant.pointedRepeat": "Uno de una lista: un cambio se aplica a todos",
-			"assistant.pointedShared": "Compartido: escrito una vez, usado en más de un sitio"
+			"assistant.pointedShared": "Compartido: escrito una vez, usado en más de un sitio",
+			"assistant.run.wants": "{author} quiere ejecutar esto",
+			"assistant.run.windowAsks": "La ventana te pregunta si ejecutarlo",
+			"assistant.run.ranFor": "Ejecutado para {author}",
+			"assistant.run.notRun": "No ejecutado: {reason}",
+			"assistant.run.notRunBare": "No ejecutado",
+			"assistant.run.run": "Ejecutar",
+			"assistant.run.always": "Permitir siempre",
+			"assistant.run.dont": "No ejecutar",
+			"assistant.run.undo": "Deshacer",
+			"assistant.run.ran": "Ejecutado",
+			"assistant.run.ranErrors": "Ejecutado, con errores",
+			"assistant.run.failed": "Falló",
+			"assistant.run.denied": "Denegado",
+			"assistant.run.expired": "Caducado",
+			"assistant.run.undone": "Deshecho",
+			"assistant.run.asking": "Esperando tu respuesta"
 		},
 		"fr": {
 			"assistant.title": "Assistant",
@@ -167,7 +199,23 @@
 			"assistant.showSource": "Voir la source",
 			"assistant.pointedNearest": "L'élément le plus proche qui a une adresse",
 			"assistant.pointedRepeat": "Un élément d'une liste : une modification s'applique à tous",
-			"assistant.pointedShared": "Partagé : écrit une fois, utilisé à plusieurs endroits"
+			"assistant.pointedShared": "Partagé : écrit une fois, utilisé à plusieurs endroits",
+			"assistant.run.wants": "{author} veut exécuter ceci",
+			"assistant.run.windowAsks": "La fenêtre vous demande s'il faut l'exécuter",
+			"assistant.run.ranFor": "Exécuté pour {author}",
+			"assistant.run.notRun": "Non exécuté : {reason}",
+			"assistant.run.notRunBare": "Non exécuté",
+			"assistant.run.run": "Exécuter",
+			"assistant.run.always": "Toujours autoriser",
+			"assistant.run.dont": "Ne pas exécuter",
+			"assistant.run.undo": "Annuler",
+			"assistant.run.ran": "Exécuté",
+			"assistant.run.ranErrors": "Exécuté, avec des erreurs",
+			"assistant.run.failed": "Échec",
+			"assistant.run.denied": "Refusé",
+			"assistant.run.expired": "Expiré",
+			"assistant.run.undone": "Annulé",
+			"assistant.run.asking": "En attente de votre réponse"
 		}
 	},
 	"state": {
@@ -463,14 +511,24 @@
 		"assistant.clear": [
 			{ "set": "state.assistant.messages", "to": [] },
 			{ "set": "state.assistant.decided", "to": {} }
-		]
+		],
+		"assistant.allowRun": [
+			{ "note": "with: id, a run of a command that waits for a yes (the runs variable): it runs now, under its runner's name" },
+			{ "allowRun": "{{id}}" }
+		],
+		"assistant.alwaysAllowRun": [
+			{ "note": "with: id: it runs now, and that peer may run that command again without asking (runGrants)" },
+			{ "allowRun": "{{id}}", "always": true }
+		],
+		"assistant.denyRun": [{ "note": "with: id: it doesn't run" }, { "denyRun": "{{id}}" }],
+		"assistant.undoRun": [{ "note": "with: id, a run that ran: what it changed in the state is put back" }, { "undoRun": "{{id}}" }]
 	},
 	"overlays": {
 		"assistantLauncher": {
 			"id": "assistantLauncher",
 			"when": "{{(state.assistant.simulate.online ?? (length(peers) > 0)) || length(state.assistant.messages) > 0 || state.assistant.show}}", "use": "chatLauncher", "anchors": { "right": 24, "bottom": "{{24 + state.assistant.lift}}" },
 			"with": {
-				"isOpen": "{{state.assistant.open}}", "run": "assistant.toggle", "unread": "{{state.assistant.unread}}",
+				"isOpen": "{{state.assistant.open}}", "run": "assistant.toggle", "unread": "{{state.assistant.unread + count(state.assistant.simulate.runs ?? runs, it.state == 'waiting')}}",
 				"label": "{{t(state.assistant.open ? 'assistant.close' : 'assistant.open')}}",
 				"tooltip": "{{t('assistant.shortcut')}}",
 				"color": "@assistant.accent", "hoverColor": "@assistant.accentHover",
@@ -531,7 +589,8 @@
 					  "scroll": "vertical", "anchors": { "left": 12, "right": 12, "top": 12, "bottom": 0 },
 					  "role": "list", "label": "{{t('assistant.messages')}}",
 					  "let": { "assistantCount": "{{length(state.assistant.messages)}}",
-					           "assistantLoose": "{{filter(state.assistant.simulate.proposals ?? proposals, !contains(assistantCarded, it.id))}}" },
+					           "assistantLoose": "{{filter(state.assistant.simulate.proposals ?? proposals, !contains(assistantCarded, it.id))}}",
+					           "assistantRuns": "{{slice(state.assistant.simulate.runs ?? runs, -20)}}" },
 					  "children": [
 						{ "type": "label", "id": "assistantEmpty", "when": "{{assistantCount == 0}}",
 						  "cell": { "column": 1, "row": 1 }, "text": "{{t('assistant.empty')}}",
@@ -635,15 +694,38 @@
 							"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
 							"borderColor": "@assistant.border", "accent": "@assistant.success",
 							"accentTextColor": "@assistant.onAccent", "buttonColor": "@assistant.raised" } },
+						{ "id": "assistantRun{{run.id}}",
+						  "repeat": { "for": "run", "in": "{{assistantRuns}}", "index": "r" }, "use": "proposalCard",
+						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + r + 1}}" }, "with": {
+							"title": "{{join(split(run.title || run.command, '\\n'), ' ')}}",
+							"summary": "{{run.state == 'waiting' ? (run.personOnly ? t('assistant.run.windowAsks') : t('assistant.run.wants', {author: run.author})) : run.state == 'ran' || run.state == 'undone' ? t('assistant.run.ranFor', {author: run.author}) : run.reason != '' ? t('assistant.run.notRun', {reason: join(split(run.reason, '\\n'), ' ')}) : t('assistant.run.notRunBare')}}",
+							"lines": "{{map(map(slice(entries(run.arguments ?? {}), 0, 3), {key: join(split(it.key, '\\n'), ' '), letters: split(join(split(type(it.value) == 'string' ? it.value : json(it.value), '\\n'), ' '), '')}), it.key + ': ' + join(slice(it.letters, 0, 60), '') + (length(it.letters) > 60 ? '…' : ''))}}",
+							"status": "{{run.state == 'waiting' ? (run.personOnly ? 'asking' : 'pending') : run.state == 'ran' ? (length(run.errors ?? []) > 0 ? 'ranErrors' : 'accepted') : run.state}}",
+							"preview": "{{run.personOnly ? null : 'assistant.alwaysAllowRun'}}",
+							"accept": "{{run.personOnly ? null : 'assistant.allowRun'}}",
+							"reject": "{{run.personOnly ? null : 'assistant.denyRun'}}",
+							"review": "{{run.state == 'ran' && run.undoable != 'none' ? 'assistant.undoRun' : null}}",
+							"with": { "id": "{{run.id}}" }, "width": 340,
+							"labels": {
+								"preview": "{{t('assistant.run.always')}}", "accept": "{{t('assistant.run.run')}}",
+								"reject": "{{t('assistant.run.dont')}}", "review": "{{t('assistant.run.undo')}}",
+								"accepted": "{{t('assistant.run.ran')}}", "ranErrors": "{{t('assistant.run.ranErrors')}}",
+								"failed": "{{t('assistant.run.failed')}}", "denied": "{{t('assistant.run.denied')}}",
+								"expired": "{{t('assistant.run.expired')}}", "undone": "{{t('assistant.run.undone')}}",
+								"asking": "{{t('assistant.run.asking')}}"
+							},
+							"color": "@assistant.surface", "textColor": "@assistant.text", "dimColor": "@assistant.dim",
+							"borderColor": "@assistant.border", "accent": "@assistant.success",
+							"accentTextColor": "@assistant.onAccent", "buttonColor": "@assistant.raised" } },
 						{ "id": "assistantTyping", "when": "{{assistantWorking}}",
-						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + 1}}" },
+						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + length(assistantRuns) + 1}}" },
 						  "use": "typingIndicator",
 						  "every": { "ms": 400, "do": [{ "increment": "state.assistant.phase" }] }, "with": {
 							"label": "{{t('assistant.typing')}}", "phase": "{{state.assistant.phase}}",
 							"color": "transparent", "dotColor": "@assistant.dot",
 							"activeColor": "@assistant.dim" } },
 						{ "id": "assistantEnd", "height": 1, "color": "transparent",
-						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + 2}}" } }
+						  "cell": { "column": 1, "row": "{{assistantCount + (assistantCount == 0 ? 4 : 0) + length(assistantLoose) + length(assistantRuns) + 2}}" } }
 					  ] }
 				] },
 				{ "id": "assistantInput", "alignSelf": "stretch", "color": "transparent",
