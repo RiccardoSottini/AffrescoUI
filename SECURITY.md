@@ -818,7 +818,7 @@ catalogues" above).
 | Who attacks | A catalogue's server or whoever answers in its place; a publisher whose key was stolen; a publisher that turns hostile in an upgrade |
 | Entry points | A catalogue's index, a manifest, a release's archive, public keys and signatures |
 | Limits | Index and manifest sizes, checked before parsing; the JSON nesting limit; fixed-length keys and digests |
-| Mitigations | No publisher is trusted until host code calls `Features::trustPublisher`; index and manifest signed over canonical JSON, the manifest by the publisher the index names, and an upgrade can't change it; releases pinned by SHA-512 and size; URLs inside the catalogue's folder; what installs is a revision under the document's permissions, with no capability and no control step. Fuzzed: `feature_manifest`, `catalog_index`, `signature` |
+| Mitigations | No publisher is trusted until host code calls `Features::trustPublisher`; index and manifest signed over canonical JSON, the manifest by the publisher the index names, and an upgrade can't change it; releases pinned by SHA-512 and size; URLs inside the catalogue's folder; what installs is a revision under the document's permissions, with no capability and no control step. A hostile upgrade meets the merge: it is still one revision, reviewed like any other, merged with what was edited locally (conflicts kept local and listed), or a proposal naming the edits it would drop, so local edits are never dropped silently. Fuzzed: `feature_manifest`, `catalog_index`, `signature` |
 | Known gaps | None of its own: a feature is a revision, so the revision gaps apply (G-06 to G-12) |
 
 ### Installing across apps

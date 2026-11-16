@@ -936,10 +936,34 @@ A feature (RFC 0004) is a signed manifest that a catalogue lists. Its whole life
 - **install** and **upgrade** go through the `features` service (`features.install {name, version}`,
   `features.upgrade {name}`): it fetches the manifest, checks its digest and signature against a publisher the host
   trusts, and submits the record as a revision by `features`, which the permissions review like any author's;
-- **enable**, **disable** and **remove** are plain revisions: `replace /features/<name>/enabled`, `remove
-  /features/<name>`.
+- **enable**, **disable** and **remove** are revisions too, through the service (`features.enable {name}`,
+  `features.disable {name}`, `features.remove {name}`: `replace /features/<name>/enabled`, `remove /features/<name>`)
+  or submitted directly. A removal the document's rules refuse is refused with their message;
+- **status**: `features.status {name}` reads `{installed, release, newest, edited, enabled}`.
 
-An upgrade never changes the publisher, and a feature can never widen a capability or bring a control step.
+**Editing in place.** An installed record is part of the document: a colour, a title or one of a program's
+definitions can be edited like anything else. The record keeps `installed`, the canonical SHA-256 of its `requires`,
+`provides` and `needs` as they were installed, so `edited` is a comparison, with no catalogue needed. A record from
+before `installed` counts as edited when it differs from its release's manifest, or when that release is gone.
+
+**How an upgrade merges.** A record that wasn't edited becomes exactly the new release's. An edited one is merged three
+ways, like a proposal: the installed release's record is the base, the record now is main, and the new release's is
+the proposal. A program merges one definition at a time, and the text of a definition is never merged. Where the record
+says where it came from (`release`, `source`, `digest`, `publisher`, `installed`) always comes from the new release.
+
+**A conflict.** Where both sides changed the same part, or the new release removed a part edited locally, the upgrade
+still applies and keeps the local version there. The commit's message lists each conflict (`Upgrade wordCount to 1.1.0,
+keeping local edits; 1 conflict, the local version kept:` then `- /features/wordCount/...: changed locally and in
+1.1.0`), and the result's `leftOut` has its path, reason and three values (`base`, `main` for the local one,
+`proposal` for the new release's).
+
+**When the base is gone.** If no catalogue lists the installed release with the record's digest any more, there is
+nothing to merge against: the upgrade is a proposal, `Upgrade <name> to <release>, dropping local edits:`, naming the
+places it changes (twenty at most, then how many more), and the result's `dropped` lists them all. Nothing lands until
+someone accepts it, so a local edit is never dropped silently.
+
+An upgrade never changes the publisher (that takes a removal and a new install), and a feature can never widen a
+capability or bring a control step: a merged record goes through the same checks as any record.
 
 ## Installing across apps
 A feature from another app (a part another app ships, such as Sinopia's slide sorter) installs the same way, with its

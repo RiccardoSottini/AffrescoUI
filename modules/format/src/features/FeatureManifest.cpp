@@ -30,7 +30,7 @@ constexpr auto manifestKeys =
 /// The keys a record of the "features" section may have: the manifest's parts the runtime merges, and its origin.
 constexpr auto recordKeys = std::to_array<std::string_view>(
     {"release", "title", "source", "digest", "publisher", "enabled", "order", "requires", "provides", "needs", "bindings",
-     "proof"});
+     "proof", "installed"});
 
 /// The keys of "requires".
 constexpr auto requiresKeys =
@@ -362,6 +362,19 @@ void checkManifestIdentity(const json& manifest, const std::string& place) {
 	return range;
 }
 
+/// @brief Checks a record's "installed" digest (FeatureUpgrade.hpp): "sha256:" and 64 lower-case hex digits.
+/// @param installed The value.
+/// @param place The record's place.
+/// @throws DocumentError If it has another shape.
+void checkInstalled(const json& installed, const std::string& place) {
+	constexpr std::string_view prefix = "sha256:";
+	const std::string& text = expect::string(installed, place + ".installed");
+	const std::string_view hex = std::string_view(text).substr(std::min(text.size(), prefix.size()));
+	if(!text.starts_with(prefix) || hex.size() != 64 ||
+	   !std::ranges::all_of(hex, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); }))
+		fail(place + ".installed", "expected \"sha256:<64 hex digits>\"");
+}
+
 } // namespace
 
 void checkProvidedViews(const json& views, const std::string& feature, const std::string& place) {
@@ -470,6 +483,7 @@ void checkFeatureRecord(const std::string& name, const json& record, const std::
 	for(const char* key : {"digest", "publisher"})
 		if(const auto value = record.find(key); value != record.end() && !value->is_null())
 			expect::string(*value, place + "." + key);
+	if(const auto installed = record.find("installed"); installed != record.end()) checkInstalled(*installed, place);
 	if(!record.contains("enabled")) fail(place, "missing \"enabled\"");
 	expect::boolean(record["enabled"], place + ".enabled");
 	if(const auto order = record.find("order"); order != record.end()) expect::integer(*order, place + ".order");
