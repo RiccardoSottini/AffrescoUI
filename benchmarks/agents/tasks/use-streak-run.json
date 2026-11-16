@@ -1,0 +1,40 @@
+{
+	"id": "use-streak-run",
+	"level": "use",
+	"screen": "examples/streak/lisp/index.screen.lisp",
+	"request": "I ran 5 km on 15 October 2026: put it in my Run habit.",
+	"scenarios": [
+		{
+			"name": "ran",
+			"steps": [
+				{
+					"expect": {
+						"node": "#cell",
+						"nth": 8,
+						"property": "name",
+						"is": "Thu 15 Oct: 5 km"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane"
+	],
+	"commits": 0,
+	"runs": 1,
+	"reference": {
+		"run": [
+			{
+				"name": "habitDone",
+				"arguments": {
+					"habit": "Run",
+					"date": "2026-10-15",
+					"amount": 5
+				}
+			}
+		]
+	}
+}

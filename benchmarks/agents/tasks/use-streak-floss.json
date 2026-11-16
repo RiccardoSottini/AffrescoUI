@@ -1,0 +1,43 @@
+{
+	"id": "use-streak-floss",
+	"level": "use",
+	"screen": "examples/streak/lisp/index.screen.lisp",
+	"request": "I flossed on 28 February 2026 and forgot to tick it: mark Floss done that day.",
+	"scenarios": [
+		{
+			"name": "marked",
+			"steps": [
+				{
+					"expect": {
+						"data": "ordered[4].from",
+						"is": "2026-02-28"
+					}
+				},
+				{
+					"expect": {
+						"data": "ordered[4].entries.length",
+						"is": 230
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#appBar",
+		"#habitList",
+		"#detailPane"
+	],
+	"commits": 0,
+	"runs": 1,
+	"reference": {
+		"run": [
+			{
+				"name": "habitDone",
+				"arguments": {
+					"habit": "Floss",
+					"date": "2026-02-28"
+				}
+			}
+		]
+	}
+}

@@ -51,6 +51,7 @@ difference the note says. `missing`: not yet.
 | Keyboard access and accessibility names | done | Roles, names and live regions; the menu is a tab list |
 | Settings that persist | done | Language, crossfade, theme, equaliser, volume |
 | Agents propose; the person reviews | done | A change to the audio section always waits for the person |
+| An agent can use it | done | `songPlay`, `songPause`, `songQueue` and `songLike` run at once (`permissions.run`): a song by its title, and its artist when two share it |
 
 | Round | Done | Partial | Missing |
 |---|---|---|---|
