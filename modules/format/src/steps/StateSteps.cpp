@@ -37,6 +37,18 @@ json::json_pointer removeFrom(const Running& s, json& state, std::optional<std::
 	return pointer; // the items after it move: the whole list changed
 }
 
+/// @brief The place a step that writes a place changes: the place, or, if it doesn't exist yet, the deepest place
+/// above it that does (a write past a list's end grows the list, filling it with nulls; a write under a missing
+/// member adds the member), but never the whole state.
+/// @param state The state, before the write.
+/// @param pointer The place written.
+/// @return The place to mark changed.
+json::json_pointer createdPlace(const json& state, json::json_pointer pointer) {
+	while(pointer.parent_pointer() != json::json_pointer() && !findInState(state, pointer))
+		pointer = pointer.parent_pointer();
+	return pointer;
+}
+
 /// @brief Tells whether two integers add up to one: integers stay integers, unless their sum doesn't fit (an
 /// overflow would be undefined behaviour), when it is a double.
 /// @param a An integer.
@@ -111,17 +123,21 @@ std::optional<bool> runStateStep(const Running& s) {
 	const json before = settings && state.contains("settings") ? state["settings"] : json::object();
 
 	json::json_pointer pointer;               // the place changed
+	json::json_pointer changed;               // what readers see changed: it, or what a write past it created
 	std::optional<ListChange::Kind> listKind; // and how, if it is a list that changed shape
 	std::size_t listIndex = 0;
 	if(step.contains("set")) {
 		if(!step.contains("to")) fail(where, R"("set" needs "to")");
 		pointer = s.target("set");
+		changed = createdPlace(state, pointer);
 		json value = s.value("to");
 		expect::shallowEnough(value, pointerDepth(pointer), where + ".to");
 		engine.document.spendBytes(value, where + ".to");
 		statePlace(state, pointer, where) = std::move(value);
 	} else if(step.contains("push")) {
 		pointer = s.target("push");
+		changed = createdPlace(state, pointer);
+		if(changed == pointer) listKind = ListChange::Kind::Inserted; // a list made by the push changed whole
 		json& array = statePlace(state, pointer, where);
 		if(array.is_null()) array = json::array();
 		if(!array.is_array()) fail(where + ".push", "is not a list");
@@ -129,7 +145,6 @@ std::optional<bool> runStateStep(const Running& s) {
 		expect::shallowEnough(value, pointerDepth(pointer) + 1, where + ".value");
 		engine.document.spendBytes(value, where + ".value");
 		array.push_back(std::move(value));
-		listKind = ListChange::Kind::Inserted;
 		listIndex = array.size() - 1;
 	} else if(step.contains("remove")) {
 		std::optional<std::size_t> removedAt;
@@ -140,18 +155,20 @@ std::optional<bool> runStateStep(const Running& s) {
 		}
 	} else if(step.contains("toggle")) {
 		pointer = s.target("toggle");
+		changed = createdPlace(state, pointer);
 		const json* found = findInState(state, pointer);
 		if(!found) found = settingDefault(engine.versions.document(), pointer);
 		const bool on = found && format::truthy(*found);
 		statePlace(state, pointer, where) = !on;
 	} else if(step.contains("increment")) {
+		changed = createdPlace(state, s.target("increment"));
 		pointer = increment(s, state);
 	} else {
 		return std::nullopt;
 	}
 	if(settings) checkSettingsWritten(engine, before, where);
 	if(listKind) engine.document.markListChanged(pointer, *listKind, listIndex);
-	else engine.document.markStateChanged(pointer);
+	else engine.document.markStateChanged(changed.empty() ? pointer : changed);
 	return true;
 }
 
