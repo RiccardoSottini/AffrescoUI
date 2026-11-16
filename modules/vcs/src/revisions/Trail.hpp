@@ -39,7 +39,8 @@ inline long long positionOf(const std::string& segment) {
 enum class TrailStep {
 	Untouched, ///< Nothing (an item added or removed before it in a list only moved it).
 	Inside,    ///< It changed the part's value or something inside it: the part was there before, so the trail goes on.
-	Replaced,  ///< It added the part, or added or replaced what holds it: before it, the part wasn't there; the trail ends.
+	Replaced,  ///< It added the part, or added or replaced what holds it: before it, the part wasn't there; the trail
+	           ///< ends.
 };
 
 /// @brief Where a node or a value is, followed back through the commits on main.

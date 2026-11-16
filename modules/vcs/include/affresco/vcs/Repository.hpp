@@ -931,9 +931,7 @@ private:
 	Mode keptMode_ = Mode::Default;     ///< The mode the history keeps: the one a reviewer last chose (setMode()).
 	std::vector<Grant> grants_;         ///< "Don't ask again" rules.
 	bool importing_ = false;            ///< Commits are announced once the whole change set is in.
-	/// The revision being prepared is the person's own (commitOwnInput()). Mutable so that an undo's plan may judge
-	/// the undo of the person's own change as that change was judged (judgeUndo()), and set it back.
-	mutable bool ownInput_ = false;
+	mutable bool ownInput_ = false;     ///< The revision being prepared is the person's own (commitOwnInput()).
 	std::vector<std::string> imported_; ///< The change sets applied, by id (hasImported()), oldest first.
 	std::unique_ptr<detail::HistoryStore> history_; ///< The folder the history is kept in, if any (openHistory()).
 	Roles roles_;                                   ///< Who plays which role, for this run (never kept in the history).

@@ -95,8 +95,7 @@ bool Repository::rebase(Proposal& proposal) {
 			if(exact) {
 				rebased.reviewedHeads.push_back(proposal.head);
 				describeUndoProposal(rebased);
-			}
-			else squash(rebased = proposal, merged.merged);
+			} else squash(rebased = proposal, merged.merged);
 		} catch(const DocumentError& failure) {
 			merged.conflicts.push_back({{"path", "/"},
 			                            {"reason", detail::reasonOf(failure)},

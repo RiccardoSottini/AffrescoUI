@@ -100,7 +100,8 @@ std::string choiceProblem(const UndoOptions& options) {
 	if(options.drop == "all" && options.keep == "all") return R"("drop" and "keep" can't both be "all")";
 	if(options.drop.is_array())
 		for(const json& path : options.drop)
-			if(names(options.keep, path.get<std::string>())) return "'" + path.get<std::string>() + "' is both dropped and kept";
+			if(names(options.keep, path.get<std::string>()))
+				return "'" + path.get<std::string>() + "' is both dropped and kept";
 	return {};
 }
 
@@ -134,14 +135,14 @@ void checkUndoShape(const json& revision) {
 
 /// What working out an undo gives: the plan, and what the revision needs.
 struct Repository::UndoWork {
-	const Commit* target = nullptr;  ///< The commit to undo.
-	UndoPlan plan;                   ///< The plan, as the person sees it.
-	json conflicts = json::array();  ///< Every conflict: `{"path", "reason", "then", "now", "before", "commits", "choice"}`
-	json dropped = json::array();    ///< Paths of the conflicts dropped.
-	json document;                   ///< The document after the undo, before "then".
-	json patch = json::array();      ///< The undo's operations: the document's, the live state's, then "then".
-	std::size_t then = 0;            ///< How many operations of the patch are "then".
-	std::map<int, json> later;       ///< The later commits that built on a conflict, by number, and the paths.
+	const Commit* target = nullptr; ///< The commit to undo.
+	UndoPlan plan;                  ///< The plan, as the person sees it.
+	json conflicts = json::array(); ///< Every conflict: path, reason, then, now, before, commits and choice.
+	json dropped = json::array();   ///< Paths of the conflicts dropped.
+	json document;                  ///< The document after the undo, before "then".
+	json patch = json::array();     ///< The undo's operations: the document's, the live state's, then "then".
+	std::size_t then = 0;           ///< How many operations of the patch are "then".
+	std::map<int, json> later;      ///< The later commits that built on a conflict, by number, and the paths.
 };
 
 UndoPlan Repository::undoPlan(const json& revision, std::string_view author, const UndoOptions& options) const {
@@ -245,8 +246,8 @@ Repository::UndoWork Repository::workOutUndo(const json& revision, std::string_v
 		return blocked(target.id == main_.back()
 		                   ? "nothing to revert: " + describe(target) +
 		                         " changed neither the document nor, in this run, the live state"
-		                   : "nothing to undo: later changes already replaced or removed everything revision " +
-		                         std::to_string(target.number) + " did");
+						   : "nothing to undo: later changes already replaced or removed everything revision " +
+						         std::to_string(target.number) + " did");
 	if(judged) judgeUndo(work, author);
 	return work;
 }
@@ -273,9 +274,10 @@ void Repository::sortConflicts(UndoWork& work, const json& conflicts) {
 			work.plan.gone.push_back(path);
 			continue;
 		}
-		const char* why = reason.starts_with("reordered")              ? "reordered since"
-		                  : reason == "changed on main, removed in the proposal" ? "changed since, and the undo takes it away"
-		                                                                          : "changed since";
+		const char* why = reason.starts_with("reordered") ? "reordered since"
+		                  : reason == "changed on main, removed in the proposal"
+		                      ? "changed since, and the undo takes it away"
+		                      : "changed since";
 		work.conflicts.push_back({{"path", path},
 		                          {"reason", why},
 		                          {"then", conflict["base"]},
@@ -345,7 +347,8 @@ void Repository::chooseConflicts(UndoWork& work, const UndoOptions& options) {
 	bool open = false;
 	for(json& conflict : work.conflicts) {
 		const std::string path = conflict["path"].get<std::string>();
-		if(names(options.drop, path) || (options.drop == "all" && !names(options.keep, path))) conflict["choice"] = "drop";
+		if(names(options.drop, path) || (options.drop == "all" && !names(options.keep, path)))
+			conflict["choice"] = "drop";
 		else if(names(options.keep, path) || options.keep == "all") conflict["choice"] = "keep";
 		if(conflict["choice"] == "drop") work.dropped.push_back(path);
 		open = open || conflict["choice"].is_null();
@@ -377,11 +380,11 @@ void Repository::judgeUndo(UndoWork& work, std::string_view author) const {
 	UndoPlan& plan = work.plan;
 	const Commit& target = *work.target;
 	// The undo of the person's own change to a program is judged as that change was
-	const bool own = target.ownInput && detail::channelOf(author) == personChannel &&
-	                 std::ranges::all_of(work.patch, [](const json& op) {
-		                 return op.is_object() && !op.contains("from") &&
-		                        op.value("path", std::string()).starts_with("/program/");
-	                 });
+	const bool own =
+	    target.ownInput && detail::channelOf(author) == personChannel &&
+	    std::ranges::all_of(work.patch, [](const json& op) {
+		    return op.is_object() && !op.contains("from") && op.value("path", std::string()).starts_with("/program/");
+	    });
 	const bool wasOwn = std::exchange(ownInput_, own);
 	try {
 		const Prepared next = prepare(work.patch, mainDocument(), committedState());

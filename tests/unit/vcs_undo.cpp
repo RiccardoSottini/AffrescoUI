@@ -185,7 +185,8 @@ TEST_CASE("vcs undo: the repository plans and does a plain undo as revert does")
 	keep.keep = "all";
 	const UndoPlan kept = repository.undoPlan("HEAD", "studio", keep);
 	CHECK(kept.outcome == "clean");
-	CHECK(repository.undoRevision("HEAD", "studio", keep)["patch"] == repository.revertRevision("HEAD", "studio")["patch"]);
+	CHECK(repository.undoRevision("HEAD", "studio", keep)["patch"] ==
+	      repository.revertRevision("HEAD", "studio")["patch"]);
 	CHECK_THROWS_AS(static_cast<void>(repository.undoPlan(9, "studio")), DocumentError);
 
 	land(repository, repository.undoRevision("HEAD", "studio"));
@@ -303,7 +304,7 @@ json textOf(const Repository& repository, const std::string& id) {
 
 /// @brief A repository on threeChildren(), and rules to judge it.
 struct Children {
-	affresco::format::Rules rules;        ///< The format's rules.
+	affresco::format::Rules rules;                 ///< The format's rules.
 	Repository repository{rules, threeChildren()}; ///< At revision 0.
 };
 
@@ -351,8 +352,8 @@ TEST_CASE("vcs undo: what a later commit didn't change is undone, the rest kept"
 		CHECK(undoError(repository, 1) == plan.blocked);
 	}
 	SUBCASE("a merge commit: the whole proposal is undone") {
-		const affresco::RevisionResult proposed = repository.submit(
-		    {{"author", "agent"}, {"message", "Agent's"}, {"set", {{"#second/text", "Deux"}}}});
+		const affresco::RevisionResult proposed =
+		    repository.submit({{"author", "agent"}, {"message", "Agent's"}, {"set", {{"#second/text", "Deux"}}}});
 		REQUIRE(proposed.status == RevisionStatus::Proposed);
 		REQUIRE_FALSE(repository.accept(proposed.proposal, {"studio", proposed.commit, false}));
 		land(repository, setting({{"#third/text", "Trois"}}));
@@ -443,8 +444,9 @@ TEST_CASE("vcs undo: a part a later commit built on is a conflict, which the per
 		land(repository, appending("fourth", "Four"));
 		land(repository, setting({{"#fourth/text", "Vier"}}));
 		UndoOptions options = every(true);
-		options.then = json::array(
-		    {{{"op", "add"}, {"path", "/root/children/-"}, {"value", {{"type", "label"}, {"id", "vier"}, {"text", "Vier"}}}}});
+		options.then = json::array({{{"op", "add"},
+		                             {"path", "/root/children/-"},
+		                             {"value", {{"type", "label"}, {"id", "vier"}, {"text", "Vier"}}}}});
 		const json revision = repository.undoRevision(1, "studio", options);
 		CHECK(revision["undo"]["then"] == 1);
 		land(repository, revision);
@@ -632,7 +634,8 @@ TEST_CASE("vcs undo: an agent's undo that takes out a later change, or rebuilds 
 		REQUIRE(open.size() == 1);
 		CHECK(open[0].undo["drop"] == json::array({"#fourth"}));
 		CHECK(open[0].remember.empty());
-		const std::optional<std::string> refused = repository.accept(proposed.proposal, {"studio", open[0].head, false});
+		const std::optional<std::string> refused =
+		    repository.accept(proposed.proposal, {"studio", open[0].head, false});
 		INFO(refused.value_or(""));
 		REQUIRE_FALSE(refused);
 		CHECK(repository.head().undo["drop"] == json::array({"#fourth"}));

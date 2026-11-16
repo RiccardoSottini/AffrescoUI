@@ -28,9 +28,9 @@ using affresco::vcs::Repository;
 
 namespace {
 
-constexpr std::uint32_t seeds = 20;   ///< Seeds each property is tried with.
-constexpr std::uint32_t labels = 6;   ///< Labels on the screen.
-constexpr std::uint32_t commits = 8;  ///< Commits in each history.
+constexpr std::uint32_t seeds = 20;  ///< Seeds each property is tried with.
+constexpr std::uint32_t labels = 6;  ///< Labels on the screen.
+constexpr std::uint32_t commits = 8; ///< Commits in each history.
 
 /// @brief The texts of the labels, by label number.
 using Texts = std::map<std::uint32_t, std::string>;
@@ -54,11 +54,11 @@ std::string textPath(std::uint32_t label) { return "#l" + std::to_string(label) 
 
 /// @brief A random history on labelScreen(), and the texts after each commit.
 struct History {
-	affresco::format::Rules rules;                     ///< The format's rules.
-	Repository repository{rules, labelScreen()};       ///< At its last commit.
-	std::vector<Texts> texts;                          ///< texts[n]: the texts after commit n (0: as loaded).
-	std::vector<std::set<std::uint32_t>> changed;      ///< changed[n]: the labels commit n set (0: none).
-	std::uint32_t undone = 0;                          ///< The commit picked to undo (1 to commits).
+	affresco::format::Rules rules;                ///< The format's rules.
+	Repository repository{rules, labelScreen()};  ///< At its last commit.
+	std::vector<Texts> texts;                     ///< texts[n]: the texts after commit n (0: as loaded).
+	std::vector<std::set<std::uint32_t>> changed; ///< changed[n]: the labels commit n set (0: none).
+	std::uint32_t undone = 0;                     ///< The commit picked to undo (1 to commits).
 
 	/// @brief Makes the history.
 	/// @param seed The seed: the same one gives the same history.
@@ -77,8 +77,8 @@ struct History {
 				now[label] = "v" + std::to_string(number) + "." + std::to_string(label);
 				edits[textPath(label)] = now[label];
 			}
-			const affresco::RevisionResult result =
-			    repository.submit({{"author", "studio"}, {"message", "Commit " + std::to_string(number)}, {"set", edits}});
+			const affresco::RevisionResult result = repository.submit(
+			    {{"author", "studio"}, {"message", "Commit " + std::to_string(number)}, {"set", edits}});
 			REQUIRE(result.status == RevisionStatus::Applied);
 			texts.push_back(now);
 			changed.push_back(set);
