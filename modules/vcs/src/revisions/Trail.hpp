@@ -35,6 +35,22 @@ inline long long positionOf(const std::string& segment) {
 	return std::stoll(segment);
 }
 
+/// @brief One operation of a delta, its path split into segments: split once for all the trails that read it.
+struct TrailOp {
+	std::string kind;            ///< "add", "remove" or "replace".
+	std::vector<std::string> at; ///< Its path's segments.
+};
+
+/// @brief Splits a delta's operations for trails.
+/// @param delta A commit's delta.
+/// @return Its operations, in order.
+inline std::vector<TrailOp> trailOps(const json& delta) {
+	std::vector<TrailOp> ops;
+	ops.reserve(delta.size());
+	for(const json& op : delta) ops.push_back({op.value("op", ""), segmentsOf(op.value("path", ""))});
+	return ops;
+}
+
 /// @brief What one commit did to the part a trail follows.
 enum class TrailStep {
 	Untouched, ///< Nothing (an item added or removed before it in a list only moved it).
@@ -69,6 +85,18 @@ public:
 		TrailStep step = TrailStep::Untouched;
 		for(auto op = delta.rbegin(); op != delta.rend() && step != TrailStep::Replaced; ++op) {
 			const TrailStep met = stepBack(op->value("op", ""), segmentsOf(op->value("path", "")));
+			if(met != TrailStep::Untouched) step = met;
+		}
+		return step;
+	}
+
+	/// @brief Moves back through one commit whose delta is already split (several trails reading the same commits).
+	/// @param ops The commit's delta, split by trailOps().
+	/// @return What the commit did to the part, as stepBack(const json&) tells it.
+	TrailStep stepBack(const std::vector<TrailOp>& ops) {
+		TrailStep step = TrailStep::Untouched;
+		for(auto op = ops.rbegin(); op != ops.rend() && step != TrailStep::Replaced; ++op) {
+			const TrailStep met = stepBack(op->kind, op->at);
 			if(met != TrailStep::Untouched) step = met;
 		}
 		return step;

@@ -146,9 +146,7 @@ json clockFeature(const std::string& name = "clock", int order = 10) {
 
 } // namespace
 
-// Needs the undo engine (roadmap item f6b): until it lands, undoRevision() refuses any choice
-TEST_CASE("undo steps: a revert with a choice undoes an earlier revision and keeps a later change" *
-          doctest::skip(true)) {
+TEST_CASE("undo steps: a revert with a choice undoes an earlier revision and keeps a later change") {
 	History history;
 	history.run("plan");
 	REQUIRE(history.state()["plan"]["outcome"] == "clean");

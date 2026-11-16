@@ -265,6 +265,28 @@ three ways to accept: an `accept` message from a reviewer's peer (on `studio.soc
 `Screen::acceptProposal(id, head, error)`, and an `accept` step in the screen, which names it with `"head"` (for
 example `"{{proposals[0].head}}"`).
 
+### Undo that keeps what came later
+An undo of an earlier commit (VERSION_CONTROL.md, "Undo that keeps what came later") is a change like any other, and
+never authority:
+- **The plan costs a merge.** `undoPlan` changes nothing, but it merges the commit's undo with every later commit, so
+  it counts against the same rate as the changes. A peer whose reads are limited (`permissions.data`) is refused it:
+  the plan shows the commit's parts and the later changes, which can be data that peer may not read.
+- **The choices are bounded.** `drop` and `keep` together name at most 256 paths of 1,024 bytes each. A plan lists at
+  most 64 later commits and 64 conflicts (the rest are counted), cuts every value it shows at 16 KiB, and walks back
+  through at most 65,536 commits to find who built on what it undoes.
+- **The undo mark is checked when the commit lands.** Its patch must be exactly that undo of that commit on main as it
+  is then, worked out again by the host, with the paths it drops and the operations it rebuilds. A mark that names
+  another commit or an unknown one, or a patch that does more, is refused. The mark only records what happened: it
+  allows nothing, and the permission rules judge the change as they would any other.
+- **Taking out what others built is reviewed.** An undo that drops a later change or rebuilds one (`drop`, `then`)
+  becomes a proposal whenever its author may not review, whatever the mode and the grants. "Always allow" never
+  remembers it, so each one is the person's choice. A screen without `permissions` lets anyone change it, undos
+  included.
+- **You accept what you saw.** The choices name the head they were made on; if main moved since, the undo is refused
+  and the peer asks for the plan again. A short or wrong head is refused too.
+- **Models and records.** An undo never undoes part of a model that a later commit changed, and the records follow the
+  rules of revert and restore: only a migration's undo touches them, and it is reviewed like the migration.
+
 ### Previews
 Previewing a proposal makes its document live before anyone approves it, timers and all. While a proposal is shown,
 control steps run only from the user's own input (a click, a key), never from timers or from handlers that fire by
@@ -819,6 +841,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | A sound description (`audio::SoundLimits`) | 1 MiB of text, 16 tracks, 4,096 notes and hits, 32 sounding at once, 10 minutes |
 | Messages from one peer, of any kind | 100 a second, 200 at once |
 | Changes from one peer (`revision`, `restore`, `revert`, `undo`, `undoPlan`) | 120 a minute, 30 at once |
+| Choices of one undo (`drop` and `keep`) | 256 paths together, 1,024 bytes each |
+| What an undo's plan lists and walks | 64 later commits and 64 conflicts (the rest counted), values cut at 16 KiB, 65,536 commits walked back |
 | Pictures for one peer (`render`): each draws the whole screen, and builds a proposal's and then main's again | 120 a minute, 30 at once, apart from the changes |
 | Sent to one socket peer and not yet read by it | 64 MiB; then the peer is disconnected |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
