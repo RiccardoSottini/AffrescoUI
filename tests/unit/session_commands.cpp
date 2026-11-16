@@ -248,7 +248,8 @@ TEST_CASE("channel: a reader whose reads are limited sees only the commands it m
 	service.listed = json::array({{{"name", "open"}}, {{"name", "secret"}}});
 	service.ranAnswer = {{"type", "ran"}, {"run", 1},     {"changed", json::array({1})},
 	                     {"changes", 1},  {"region", {}}, {"picture", "x"},
-	                     {"width", 1},    {"height", 1},  {"scale", 1}};
+	                     {"width", 1},    {"height", 1},  {"scale", 1},
+	                     {"errors", json::array({"expected a list, got \"s3cret\""})}};
 
 	channel.receive(json{{"type", "getCommands"}}.dump());
 	CHECK(channel.sent.back()["commands"] == json::array({{{"name", "open"}}}));
@@ -257,11 +258,19 @@ TEST_CASE("channel: a reader whose reads are limited sees only the commands it m
 	const json ran = channel.sent.back();
 	CHECK(service.calls.back().message["evidence"] == "none");
 	CHECK(ran["changes"] == 1);
-	for(const char* field : {"changed", "region", "picture", "width", "height", "scale"}) {
+	for(const char* field : {"changed", "region", "picture", "width", "height", "scale", "errors"}) {
 		CAPTURE(field);
 		CHECK_FALSE(ran.contains(field));
 	}
 	channel.receive(json{{"type", "undoRun"}, {"run", 1}}.dump());
 	CHECK_FALSE(channel.sent.back().contains("changed"));
 	CHECK(channel.sent.back()["changes"] == 1);
+
+	// An attack: a run that failed while it ran says why in words that can quote what it read
+	service.ranAnswer = {{"type", "rejected"}, {"run", 2}, {"failed", true}, {"error", "expected a list, got \"s3cret\""}};
+	channel.receive(json{{"type", "runCommand"}, {"command", "open"}}.dump());
+	CHECK(channel.sent.back()["error"] == "the run failed while it ran");
+	service.ranAnswer = {{"type", "rejected"}, {"error", "runCommand.arguments: expected an object"}};
+	channel.receive(json{{"type", "runCommand"}, {"command", "open"}}.dump());
+	CHECK(channel.sent.back()["error"] == "runCommand.arguments: expected an object"); // a refusal before it ran
 }

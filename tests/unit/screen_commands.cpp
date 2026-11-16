@@ -256,9 +256,11 @@ TEST_CASE("screen: undoRun: only a run that ran, of the peer's own channel or fo
 
 TEST_CASE("screen: a reader whose reads are limited gets the runs without their arguments and errors") {
 	Fixture f;
-	f.control.kept = {record(1, "agent", RunState::Ran)};
+	f.control.kept = {record(1, "agent", RunState::Ran), record(2, "agent", RunState::Failed)};
+	f.control.kept[1].reason = "expected a list, got \"s3cret\"";
 	const json limited = f.commands.pending("agent");
-	REQUIRE(limited["runs"].size() == 1);
+	REQUIRE(limited["runs"].size() == 2);
+	CHECK(limited["runs"][1]["reason"] == "the run failed"); // an attack: why it failed can quote what it read
 	CHECK_FALSE(limited["runs"][0].contains("arguments"));
 	CHECK_FALSE(limited["runs"][0].contains("errors"));
 	CHECK(limited["runs"][0]["command"] == "open");

@@ -297,7 +297,9 @@ void ScreenCommands::execute(const Waiting& run) {
 	CommandOutcome outcome = runtime_.runCommandAs({run.run, run.author, run.command, run.arguments});
 	if(outcome.refusal) {
 		control_.finish(run.run, RunState::Failed, *outcome.refusal, 0, outcome.errors, Undoable::None);
-		return run.answer(rejected(*outcome.refusal, run.run));
+		json answer = rejected(*outcome.refusal, run.run);
+		if(outcome.started) answer["failed"] = true; // ended while it ran: its error may quote what it read
+		return run.answer(std::move(answer));
 	}
 	control_.finish(run.run, RunState::Ran, "", outcome.changes, outcome.errors, outcome.undoable);
 	json answer = {{"type", "ran"},
@@ -386,6 +388,7 @@ json ScreenCommands::pending(std::string_view reader) const {
 		if(limited) { // what a run was asked with, and what its steps said, can quote values the reader may not read
 			entry.erase("arguments");
 			entry.erase("errors");
+			if(run.state == RunState::Failed) entry["reason"] = "the run failed";
 		}
 		runs.push_back(std::move(entry));
 	}
