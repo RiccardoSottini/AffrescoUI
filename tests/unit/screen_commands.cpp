@@ -305,6 +305,37 @@ TEST_CASE("screen: a run that waits for a reviewer runs once allowed, checked ag
 	CHECK(f.count() == 1);
 }
 
+TEST_CASE("screen: an attack: a run that now needs the person's yes is refused when a reviewer allows it") {
+	// It waited as Ask; a commit made the command reach a service write, so only the person's own question may let it
+	Fixture f(true, bumpScreen());
+	f.control.judgement = {affresco::RunVerdict::Ask, "no rule allows it"};
+	REQUIRE(f.run("agent", {{"command", "bump"}})["type"] == "waiting");
+	f.control.judgement = {affresco::RunVerdict::Person, "it uses files.write"};
+	(void)f.control.allow(1, "studio", false, "");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1]["type"] == "rejected");
+	CHECK(f.answers[1]["error"].get<std::string>().find("changed while it waited") != std::string::npos);
+	CHECK(f.control.finished.back() == std::pair<int, RunState>{1, RunState::Failed});
+	CHECK(f.count() == 0);
+	CHECK(f.window->confirmation() == nullptr);
+
+	// The person's own yes in the chat, for a run that now uses more than when it was asked, is refused too
+	f.control.judgement = {affresco::RunVerdict::Ask, "no rule allows it"};
+	REQUIRE(f.run("agent", {{"command", "bump"}})["type"] == "waiting");
+	f.control.judgement = {affresco::RunVerdict::Person, "it uses files.write"};
+	(void)f.control.allow(2, "user", false, "");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1]["type"] == "rejected");
+	CHECK(f.count() == 0);
+
+	// A Person run the person allowed stays a Person run: it runs
+	REQUIRE(f.run("agent", {{"command", "bump"}})["type"] == "waiting");
+	f.press("Run");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1]["type"] == "ran");
+	CHECK(f.count() == 1);
+}
+
 TEST_CASE("screen: a run for the person asks in the window's own question, Run or Don't run, each time") {
 	Fixture f(true, bumpScreen());
 	f.control.judgement = {affresco::RunVerdict::Person, "it uses files.write"};

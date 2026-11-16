@@ -91,6 +91,8 @@ private:
 		int scale = 1;                   ///< A picture's scale.
 		Answer answer = {};              ///< Gives its last answer.
 		std::uint64_t question = 0;      ///< The window's question, for a Person run while it is shown.
+		bool personOnly = false;         ///< Judged Person when it began: only the person's own question allows it.
+		std::string uses = {};           ///< The person's uses it reached then (what their question said), joined.
 	};
 	/// @brief What the checks of a run found.
 	struct Checked {
@@ -106,6 +108,11 @@ private:
 	/// @param arguments Its arguments, checked and filled in place.
 	/// @return What they found.
 	[[nodiscard]] Checked check(std::string_view author, const std::string& name, json& arguments) const;
+	/// @brief The checks again, once a waiting run is allowed: check(), and a refusal if it now needs the person's own
+	/// question and didn't when it was asked, or reaches other uses of the person's than their question said.
+	/// @param waiting The run allowed; its arguments are filled in place.
+	/// @return Why it may not run now, or std::nullopt.
+	[[nodiscard]] std::optional<std::string> recheck(Waiting& waiting) const;
 	/// @brief Why the screen can't run anything now: no window, a picture being drawn, a proposal previewed.
 	/// @return The reason, or std::nullopt.
 	[[nodiscard]] std::optional<std::string> busy() const;

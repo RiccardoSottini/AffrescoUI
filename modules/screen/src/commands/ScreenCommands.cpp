@@ -217,7 +217,9 @@ void ScreenCommands::wait(Waiting waiting, const Checked& checked) {
 		               checked.judgement.verdict, checked.judgement.reason);
 	if(begun.run == 0) return waiting.answer(rejected(begun.error));
 	waiting.run = begun.run;
-	if(checked.judgement.verdict == RunVerdict::Person) {
+	waiting.personOnly = checked.judgement.verdict == RunVerdict::Person;
+	waiting.uses = joined(checked.reach.personUses);
+	if(waiting.personOnly) {
 		waiting.question = askPerson(waiting, checked);
 		if(waiting.question == 0) {
 			// Not kept in waiting_ yet: the denial below answers nobody, and the runner hears why here
@@ -266,13 +268,23 @@ void ScreenCommands::decided(const RunDecision& decision) {
 		return waiting.answer(rejected(decision.reason.empty() ? "denied" : decision.reason, waiting.run));
 	}
 	// The document, the mode or the rules may have changed while it waited
-	std::optional<std::string> refusal =
-	    allowed_ ? check(waiting.author, waiting.command, waiting.arguments).refusal : "this host runs no commands";
+	std::optional<std::string> refusal = allowed_ ? recheck(waiting) : "this host runs no commands";
 	if(refusal) {
 		control_.finish(waiting.run, RunState::Failed, *refusal, 0, {}, Undoable::None);
 		return waiting.answer(rejected(*refusal, waiting.run));
 	}
 	execute(waiting);
+}
+
+std::optional<std::string> ScreenCommands::recheck(Waiting& waiting) const {
+	const Checked checked = check(waiting.author, waiting.command, waiting.arguments);
+	if(checked.refusal) return checked.refusal;
+	// A yes was given to what was asked: a run that now needs the person's own question, or uses more than it said,
+	// was allowed by someone who never saw that
+	if(checked.judgement.verdict == RunVerdict::Person &&
+	   (!waiting.personOnly || joined(checked.reach.personUses) != waiting.uses))
+		return "'" + waiting.command + "' changed while it waited: ask again";
+	return std::nullopt;
 }
 
 void ScreenCommands::execute(const Waiting& run) {
