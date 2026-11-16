@@ -21,6 +21,9 @@ using affresco::detail::ManualClock;
 using affresco::format::Runtime;
 using affresco::vcs::Repository;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 /// @brief A JSON screen on a headless window.
 struct JsonApp {
 	ManualClock clock;                        ///< The window's clock.
@@ -218,3 +221,5 @@ TEST_CASE("format: a command the run rules name must be the document's") {
 	CHECK_FALSE(all.contains("no command 'move-card'"));
 	CHECK_FALSE(all.contains("card.*"));
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

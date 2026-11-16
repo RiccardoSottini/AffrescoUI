@@ -239,7 +239,7 @@ TEST_CASE("channel: a run that waits is answered again with the id that asked, a
 }
 
 TEST_CASE("channel: a reader whose reads are limited sees only the commands it may read, and no evidence") {
-	affresco::format::Rules rules;
+	const affresco::format::Rules rules;
 	affresco::vcs::Repository versions{rules, limitedScreen()};
 	MemoryChannel channel;
 	FakeService service;

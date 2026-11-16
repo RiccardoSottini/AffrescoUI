@@ -14,6 +14,9 @@ using commandrun::command;
 using commandrun::json;
 using commandrun::screen;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access): REQUIRE checks each optional first, and a missed one
+// throws, failing the test
+
 namespace {
 
 /// @brief A screen of notes whose commands a test gives, with the state {n: 1, list: [1]}.
@@ -25,8 +28,9 @@ json notesScreen(const json& actions, json extra = json::object()) {
 	return screen({{"n", 1}, {"list", json::array({1})}, {"other", 0}}, actions, extra);
 }
 
-/// The steps of a command that writes one note.
-const json insertNote = json::array({{{"insert", "notes"}, {"value", {{"title", "a"}}}}});
+/// @brief The steps of a command that writes one note.
+/// @return Them.
+json insertNote() { return json::array({{{"insert", "notes"}, {"value", {{"title", "a"}}}}}); }
 
 /// @brief The journal's newest entry's author.
 /// @param app The app.
@@ -179,13 +183,13 @@ TEST_CASE("format: a command run counts the records it wrote per collection, nev
 }
 
 TEST_CASE("format: a command run writes its records under the runner's name") {
-	App app(notesScreen({{"go", command(insertNote)}}));
+	App app(notesScreen({{"go", command(insertNote())}}));
 	CHECK_FALSE(app.run("go", json::object(), "agent/y").failed);
 	CHECK(newestAuthor(app) == "agent/y");
 }
 
 TEST_CASE("format: a command run's timer writes its records later under the runner's name too") {
-	App app(notesScreen({{"go", command(json::array({{{"after", 50}, {"do", insertNote}}}))}}));
+	App app(notesScreen({{"go", command(json::array({{{"after", 50}, {"do", insertNote()}}}))}}));
 	CHECK_FALSE(app.run("go").failed);
 	app.wait(100);
 	CHECK(app.records("notes") == 1);
@@ -194,7 +198,7 @@ TEST_CASE("format: a command run's timer writes its records later under the runn
 
 TEST_CASE("format: a command run is refused a record write the data rules keep from its runner") {
 	App app(
-	    notesScreen({{"go", command(insertNote)}},
+	    notesScreen({{"go", command(insertNote())}},
 		            {{"permissions", {{"data", json::array({{{"author", "agent"}, {"never", {"/data/notes"}}}})}}}}));
 	const affresco::CommandOutcome outcome = app.run("go");
 	CHECK(app.records("notes") == 0);
@@ -287,7 +291,7 @@ TEST_CASE("format: a command run's undo is refused once what it changed changed 
 }
 
 TEST_CASE("format: a command run's undo takes its records away") {
-	App app(notesScreen({{"go", command(insertNote)}}));
+	App app(notesScreen({{"go", command(insertNote())}}));
 	CHECK_FALSE(app.run("go").failed);
 	CHECK(app.records("notes") == 1);
 	CHECK_FALSE(app.undo(1).refusal);
@@ -295,7 +299,7 @@ TEST_CASE("format: a command run's undo takes its records away") {
 }
 
 TEST_CASE("format: a command run's undo is refused once later writes came after its records") {
-	App app(notesScreen({{"go", command(insertNote)}, {"mine", insertNote}}));
+	App app(notesScreen({{"go", command(insertNote())}, {"mine", insertNote()}}));
 	CHECK_FALSE(app.run("go").failed);
 	app.act("mine");
 	CHECK(app.undo(1).refusal == "run 1's records can't be undone: later writes came after");
@@ -303,7 +307,7 @@ TEST_CASE("format: a command run's undo is refused once later writes came after 
 }
 
 TEST_CASE("format: a command run's records are a group of their own, apart from the person's event before it") {
-	App app(notesScreen({{"go", command(insertNote)}, {"mine", insertNote}}));
+	App app(notesScreen({{"go", command(insertNote())}, {"mine", insertNote()}}));
 	app.runtime->runAction("mine", app.window->root(), json::object()); // its group still open
 	CHECK_FALSE(app.run("go").failed);
 	CHECK_FALSE(app.undo(1).refusal);
@@ -358,7 +362,7 @@ TEST_CASE("format: an attack: what a command run schedules is judged by effect w
 }
 
 TEST_CASE("format: an attack: what a command run refused while it ran had scheduled runs no step") {
-	App app(notesScreen({{"go", command(json::array({{{"after", 50}, {"do", insertNote}},
+	App app(notesScreen({{"go", command(json::array({{{"after", 50}, {"do", insertNote()}},
 	                                                 {{"after", 50}, {"do", {{{"set", "state.other"}, {"to", 9}}}}},
 	                                                 {{"set", "state.n"}, {"to", 5}}}))}}));
 	app.control.denial = [](std::string_view, const json&, const json& after) -> std::optional<std::string> {
@@ -380,8 +384,9 @@ TEST_CASE("format: an attack: a command run's record write through another agent
 	App app(document);
 	const std::optional<std::string> refused = app.repository.commit(
 	    {{"author", "agent/y"},
-	     {"message", "m"},
-	     {"set", {{"/program/app.lisp/add-note", R"lisp((defn add-note "" [] (insert "notes" :value {:title "a"})))lisp"}}}});
+		 {"message", "m"},
+		 {"set",
+		  {{"/program/app.lisp/add-note", R"lisp((defn add-note "" [] (insert "notes" :value {:title "a"})))lisp"}}}});
 	INFO(refused.value_or(""));
 	REQUIRE_FALSE(refused.has_value());
 	const affresco::CommandOutcome kept = app.run("go");
@@ -394,7 +399,7 @@ TEST_CASE("format: an attack: a command run's record write through another agent
 }
 
 TEST_CASE("format: an attack: a command run's undo is refused once what held a key it removed is no longer an object") {
-	json document = notesScreen({{"go", command(json::array({{{"remove", "state.a.b"}}, insertNote[0]}))},
+	json document = notesScreen({{"go", command(json::array({{{"remove", "state.a.b"}}, insertNote()[0]}))},
 	                             {"mine", json::array({{{"set", "state.a"}, {"to", 5}}})}});
 	document["state"]["a"] = {{"b", 1}};
 	App app(document);
@@ -406,10 +411,10 @@ TEST_CASE("format: an attack: a command run's undo is refused once what held a k
 }
 
 TEST_CASE("format: an attack: a command run's undo is refused while a proposal is previewed") {
-	App app(notesScreen({{"go", command(json::array({{{"set", "state.n"}, {"to", 2}}, insertNote[0]}))}}));
+	App app(notesScreen({{"go", command(json::array({{{"set", "state.n"}, {"to", 2}}, insertNote()[0]}))}}));
 	CHECK_FALSE(app.run("go").failed);
-	const auto proposed = app.repository.propose(
-	    {{"author", "agent/y"}, {"message", "m"}, {"set", {{"/state/other", 3}}}});
+	const auto proposed =
+	    app.repository.propose({{"author", "agent/y"}, {"message", "m"}, {"set", {{"/state/other", 3}}}});
 	REQUIRE(proposed.status == affresco::RevisionStatus::Proposed);
 	REQUIRE_FALSE(app.repository.preview(proposed.proposal).has_value());
 	CHECK(app.undo(1).refusal == "a proposal is previewed: runs are undone when it ends");
@@ -430,3 +435,5 @@ TEST_CASE("format: a command run that leaves bytes that aren't UTF-8 in the stat
 	CHECK_FALSE(app.undo(1).refusal);
 	CHECK(app.state("n") == 1);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

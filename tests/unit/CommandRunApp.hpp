@@ -259,7 +259,7 @@ struct App {
 	/// @brief Undoes a run, then lets a frame pass.
 	/// @param run The run.
 	/// @return What happened.
-	affresco::CommandOutcome undo(int run) {
+	affresco::CommandOutcome undo(int run) const {
 		affresco::CommandOutcome outcome = runtime->undoCommandRun(run);
 		window->render();
 		return outcome;
@@ -267,7 +267,7 @@ struct App {
 
 	/// @brief Runs an action as the screen does for the person, then what it deferred.
 	/// @param name The action.
-	void act(const char* name) {
+	void act(const char* name) const {
 		runtime->runAction(name, window->root(), json::object());
 		window->runDeferredTasks();
 		window->render();

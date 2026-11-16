@@ -195,7 +195,7 @@ struct Peers {
 
 /// @brief Silences the log before the first input.
 /// @return 0.
-extern "C" int LLVMFuzzerInitialize(int*, char***) {
+extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/) {
 	affresco::fuzz::silenceLog();
 	return 0;
 }

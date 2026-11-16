@@ -187,7 +187,7 @@ TEST_CASE("format: a command of a program that doesn't build reaches control") {
 (defscreen main (column#root))
 )lisp",
 	    "app.lisp");
-	document["program"]["app.lisp"]["go"] = "(defcommand go \"Goes.\" :title \"Go\" [] (";
+	document["program"]["app.lisp"]["go"] = R"((defcommand go "Goes." :title "Go" [] ()";
 	const CommandReach reach = affresco::format::reachOf(document, "go", nullptr);
 	CHECK(reach.control);
 	CHECK(reach.controlStep.starts_with("the program can't be built"));
