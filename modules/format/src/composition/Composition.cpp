@@ -253,7 +253,10 @@ public:
 		}
 		resolve();
 		for(const auto& [point, pointer] : points_) dropPoints(screen_[json::json_pointer(pointer)]);
-		return {std::move(screen_), std::move(problems_), std::move(extensions_)};
+		std::vector<std::string> merged;
+		merged.reserve(merged_.size());
+		for(const auto& [name, release] : merged_) merged.push_back(name);
+		return {std::move(screen_), std::move(problems_), std::move(extensions_), std::move(merged)};
 	}
 
 private:
@@ -285,8 +288,9 @@ private:
 		checkFullNames(full, place + ".provides.program");
 		checkConflicts(name, adapted.provides, place + ".provides");
 		std::vector<std::string> placed;
-		for(const json& point : joined["requires"].value("points", json::array()))
-			placed.push_back(point.get<std::string>());
+		const auto required = joined.find("requires"); // a record may have none
+		if(required != joined.end() && required->is_object())
+			for(const json& point : required->value("points", json::array())) placed.push_back(point.get<std::string>());
 		for(const auto& [point, nodes] : adapted.provides.value("views", json::object()).items())
 			placed.push_back(point);
 		std::vector<FeatureExtension> accepted;

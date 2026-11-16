@@ -31,6 +31,7 @@ struct Composition {
 	json screen;                              ///< The screen: the document with its enabled features merged in.
 	std::vector<std::string> problems;        ///< Each with its place, "features.wordCount.requires.points: ...".
 	std::vector<FeatureExtension> extensions; ///< The hooks and advice the merged features' programs add.
+	std::vector<std::string> merged;          ///< The features merged, by name: those whose program runs.
 };
 
 /// @brief Tells whether a document has anything to compose: features or imports. Without them, the document is the

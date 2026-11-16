@@ -549,6 +549,21 @@ however it got there: directly, through `apply`, a value in a variable, a macro'
 - **A change of the program** replaces the interpreter whole, so a definition taken away or undone is gone, with the callbacks of its name. A
   function running at that moment ends on its own version, with its authors.
 
+**Features that hold programs** (`tests/unit/features_authority.cpp`, each case with the static checks on and off). A feature's
+definitions run as `features/<name>/<file>`, by the author `feature:<name>`, never the person's nor the file's:
+
+- **Two lines.** Composition refuses a feature whose code steps outside its own names or reaches past what it is handed; at run
+  time, `Programs::checkStep` holds whatever got past it, a feature shipped in the app's own file included: what a
+  `features/<name>/` definition led to writes only `state.<name>`, runs only `<name>.<command>` or `app.<need>`, and never a
+  record step, `invoke`, `request`, `subscribe`, `image`, a control or a review step.
+- **Reached from is who wrote it.** "A feature's code led here" follows the same authors as authority: the person's command
+  that calls a feature's function loses its control steps for the rest of that run, and advice a feature puts on the person's
+  command lends it none.
+- **What the app hands it runs apart.** `app.<need>` runs the app's `<name>.adapted.<need>` under `feature:<name>/app`: not the
+  feature's reach, and no control step.
+- **The error names the feature, the definition and the step**, never a value.
+- **Off is gone.** A feature switched off or removed is gone at the next version, with its callbacks.
+
 **The loop: evaluating from inside the app** (`tests/unit/lisp_loop.cpp`). The step `evaluate` is what makes an app extensible from inside, and it is what the person may do and nobody else:
 
 - **Only on the person's own press,** checked at the step, whoever's code or JSON holds it: never a timer, a `watch`, a handler that fires by itself, a key pressed for the screen, even from a binding of their own key, or an agent's reply. An author who isn't the person or the file can't reach it at all, and
