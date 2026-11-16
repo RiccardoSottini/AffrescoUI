@@ -288,7 +288,7 @@ void Repository::sortConflicts(UndoWork& work, const json& conflicts) {
 	}
 }
 
-// Back from main's head to the commit, one delta at a time, a trail for each conflict
+// Back from main's head to the commit, one delta at a time (split once, for every trail), a trail for each conflict
 void Repository::traceLater(UndoWork& work) const {
 	const Commit& target = *work.target;
 	const std::size_t later = main_.size() - 1U - static_cast<std::size_t>(target.number);
@@ -310,9 +310,9 @@ void Repository::traceLater(UndoWork& work) const {
 	    --n, ++walked) {
 		const Commit& commit = objects_.at(main_[n]);
 		const json worked = commit.delta.is_null() ? deltaOf(commit) : json(); // only for a history without deltas
-		const json& delta = commit.delta.is_null() ? worked : commit.delta;
+		const std::vector<detail::TrailOp> ops = detail::trailOps(commit.delta.is_null() ? worked : commit.delta);
 		std::erase_if(trails, [&](std::pair<std::size_t, detail::Trail>& traced) {
-			const detail::TrailStep step = traced.second.stepBack(delta);
+			const detail::TrailStep step = traced.second.stepBack(ops);
 			if(step == detail::TrailStep::Untouched) return false;
 			json& conflict = work.conflicts[traced.first];
 			conflict["commits"].insert(conflict["commits"].begin(), commit.number);
