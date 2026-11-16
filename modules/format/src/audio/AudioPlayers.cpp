@@ -87,6 +87,7 @@ struct AudioPlayers::Impl {
 		std::vector<float> spectrum;                  ///< Its "bands", if it has them (see audio::spectrum).
 		std::size_t underruns = 0;                    ///< How often its stream ran dry.
 		std::uint64_t generation = 0;                 ///< Its voice's: events of an older one are ignored.
+		KeptAuthority authority; ///< Who the step that last played it came from: its actions run so.
 	};
 
 	/// @brief The players of an engine.
@@ -203,6 +204,11 @@ struct AudioPlayers::Impl {
 	void runAction(const std::string& name, const std::string& what, const json& event) {
 		const std::string action = name + ":" + what;
 		if(!runtime.window || !runtime.owner.hasAction(action)) return;
+		// As the step that played the sound did: what it sets off later lends it nothing. A copy, as the action may
+		// change the sounds.
+		const auto found = players.find(name);
+		const KeptAuthority authority = found != players.end() ? found->second.authority : std::nullopt;
+		const AuthorityScope holder(runtime, authority);
 		runtime.runner.handle(json(action), runtime.window->root(), event, Scope{}, "audio." + name);
 		if(runtime.document.stateChanged()) runtime.reconciler.requestStateUpdate();
 	}
@@ -430,6 +436,7 @@ struct AudioPlayers::Impl {
 		const double ms = step.contains("ms") ? numberIn(step["ms"], where + ".ms", 0, 3600000) : 0;
 		std::optional<std::string> problem;
 		if(operation == "play" || (operation == "toggle" && player.status != "playing")) {
+			player.authority = keptAuthority(runtime);
 			problem = play(name, player,
 			               step.contains("from") ? json(numberIn(step["from"], where + ".from", 0, 1e9)) : json());
 		} else if(operation == "pause" || operation == "toggle") {

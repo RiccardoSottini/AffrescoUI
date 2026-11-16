@@ -15,6 +15,7 @@
 - the exit codes of a file that isn't JSON (1), a wrong command line (2) and a file that can't be read (3);
 - a text too long for the schema's patterns is reported, not matched (std::regex could overflow the stack);
 - policy test sets a file's roles, and refuses one that isn't text;
+- policy test judges command runs without running them: allow, ask, person or deny, and why;
 - render connects to no channel the screen declares, even by an absolute path;
 - render draws a code editor whose "insert" has no "text".
 
@@ -213,6 +214,36 @@ class Checker:
                 json.dump({"screen": os.path.join(KANBAN, KANBAN_SCREEN),
                            "roles": {"agent/claude-code": role}, "cases": [case]}, file)
             self.run("policy", "test", path, expect=expect)
+
+    def policy_runs(self):
+        """A policy test file's run cases: each is judged by the screen's run rules, nothing runs, and a case has a
+        revision or a run, never both."""
+        screen = {"format": "affrescoui-screen", "version": 2, "state": {"count": 0},
+                  "permissions": {"allow": ["studio"], "reviewers": ["studio"],
+                                  "run": {"allow": ["agent(bump)"], "deny": ["*(reset)"]}},
+                  "actions": {"bump": {"title": "Bump", "arguments": {"by": {"type": "number"}},
+                                       "do": [{"set": "state.count", "to": "{{state.count + by}}"}]},
+                              "reset": {"title": "Reset", "do": [{"set": "state.count", "to": 0}]},
+                              "note": {"title": "Note", "do": [{"set": "state.count", "to": 1}]},
+                              "save": {"title": "Save", "do": [{"saveFile": "{{state}}", "name": "a.json"}]}},
+                  "root": {"type": "label", "text": "{{state.count}}"}}
+        with open(os.path.join(self.scratch, "runs.screen.json"), "w", encoding="utf-8") as file:
+            json.dump(screen, file)
+        run = lambda command, **arguments: {"author": "agent/claude", "command": command, "arguments": arguments}
+        cases = [{"name": "bump", "run": run("bump", by=2), "expect": "allow"},
+                 {"name": "reset", "run": run("reset"), "expect": "deny", "reason": "*(reset)"},
+                 {"name": "note", "run": run("note"), "expect": "ask"},
+                 {"name": "save", "run": run("save"), "expect": "deny", "reason": "only the person may run"},
+                 {"name": "wrong", "run": run("bump", by="x"), "expect": "deny", "reason": "by"},
+                 {"name": "none", "run": run("bmup"), "expect": "deny", "reason": "no command 'bmup'"}]
+        path = os.path.join(self.scratch, "runs.policy.json")
+        for extra, expect in [({}, 0), ({"name": "fails", "run": run("note"), "expect": "allow"}, 1),
+                              ({"name": "both", "run": run("note"), "revision": {}, "expect": "ask"}, 1)]:
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump({"screen": "runs.screen.json", "cases": cases + ([extra] if extra else [])}, file)
+            out = self.run("policy", "test", path, "--json", expect=expect)
+            if expect == 0:
+                self.expect(all(c["passed"] for c in json.loads(out)["cases"]), f"policy runs: {out}")
 
     def lisp_documents(self):
         """A lisp/ folder's own files work as its JSON ones do: its app.lisp, a policy, and a feature's manifest,
@@ -488,6 +519,7 @@ def main():
         checker.strings()
         checker.strings_split()
         checker.policy_roles()
+        checker.policy_runs()
         checker.lisp_documents()
         checker.lisp_language()
         checker.sources()

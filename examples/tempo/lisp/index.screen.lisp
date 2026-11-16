@@ -47,7 +47,8 @@
                 :ask ["agent(/actions)" "agent(/program)"]
                 :deny ["*(#statusBar)"]
                 :reviewers [studio]
-                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
+                :budgets [{:author agent :added 20 :removed 5 :changed 50}]
+                :run {:allow ["agent(songPlay)" "agent(songPause)" "agent(songQueue)" "agent(songLike)"]}}
   :theme ~state.theme
   (node#panel-root :color @background :every {:ms 1000 :do tick}
     ~(sidebar)

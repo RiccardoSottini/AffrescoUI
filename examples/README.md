@@ -42,6 +42,13 @@ of the assets, in `<app>/assets/`, named `../assets/...` in both notations. `sha
 the same document (`tests/unit/lisp_examples.cpp`), and each keeps its own data, permissions and history. The Launcher's
 **Settings → Example apps** chooses which one opens; `./build/affrescoui_launcher examples/flow/lisp` opens one directly.
 
+**Commands as tools.** Flow, Streak and Tempo give an agent typed commands, so it can use the app as well as change
+it: move a card, assign it or set its priority; mark a habit done on a day; play, queue, like or pause a song. The MCP
+server lists them (`list_commands`) and runs them (`run_command`, `undo_run`) under each app's `permissions.run`: what
+only reads or changes the app's own data runs at once, adding or renaming asks, and a run never changes the screen
+document. Each app's scenarios and policy cases check them, in both notations, and the `use-` tasks of the agent
+benchmark (`benchmarks/agents/`) measure how well an agent uses them.
+
 A template is a screen document with no C++ of its own: any of them runs in the host.
 
 ```sh

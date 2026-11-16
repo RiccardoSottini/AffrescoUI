@@ -460,6 +460,27 @@ public:
 	/// @return `[record]`; a record says where something is written, never what the app's data is.
 	[[nodiscard]] json picks() const;
 
+	/* Commands as tools: peers list and run main's commands, under their own names and the rules of
+	   `permissions.run` (SCREEN_FORMAT.md, "Commands and keybindings") */
+
+	/// @brief Lets the peers list and run the commands, or not (by default they may, as the rules say): while not,
+	/// every command message is answered "this host runs no commands" and `review` carries no runs.
+	/// @param allow true to let them.
+	void allowCommandRuns(bool allow);
+	/// @brief The person allows a run that waits, as the allowRun step does.
+	/// @param run The run's number.
+	/// @param always Also let that channel run that command without asking.
+	/// @param error Set to why it was refused.
+	/// @return false if it was refused.
+	bool allowRun(int run, bool always, std::string& error);
+	/// @brief The person refuses a run that waits, as the denyRun step does.
+	/// @param run The run's number.
+	/// @return false if no such run waits.
+	bool denyRun(int run);
+	/// @brief Main's commands, the runs and the run grants, as the person sees them.
+	/// @return `{"commands", "runs", "runGrants"}`.
+	[[nodiscard]] json commandsJson() const;
+
 	/// @brief Merges a proposal, approved by "user" (VersionControl::accept takes more).
 	/// @param id The proposal.
 	/// @param head Its head commit as the user reviewed it (ProposalInfo::head, or 7+ characters of it); refused if

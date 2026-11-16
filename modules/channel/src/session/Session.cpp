@@ -213,7 +213,8 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author,
     : channel_(channel), versions_(versions), author_(std::move(author)), catalog_(std::move(catalog)), images_(images),
       limits_(limits), messageRate_(limits.messagesPerSecond, limits.messageBurst, TokenBucket::Clock::now()),
       revisionRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()),
-      pictureRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()) {
+      pictureRate_(limits.revisionsPerMinute / 60.0, limits.revisionBurst, TokenBucket::Clock::now()),
+      runRate_(limits.runsPerMinute / 60.0, limits.runBurst, TokenBucket::Clock::now()) {
 	messages_ = channel_.onMessage.connect([this](const std::string& line) { handle(line); });
 
 	decisions_ = versions_.onDecision.connect([this](const Decision& decision) {
@@ -257,6 +258,7 @@ Session::Session(Channel& channel, VersionControl& versions, std::string author,
 }
 
 Session::~Session() {
+	setCommands(nullptr);
 	channel_.onMessage.disconnect(messages_);
 	versions_.onDecision.disconnect(decisions_);
 	versions_.onCommit.disconnect(commits_);
@@ -278,13 +280,15 @@ json Session::reviewState() const {
 			for(const char* key : {"changes", "touches", "conflicts", "leftOut", "behaviour", "impact"}) p.erase(key);
 	for(const Grant& g : versions_.grants()) grants.push_back(toJson(g));
 	const auto previewing = versions_.previewing();
-	return {{"type", "review"},
-	        {"proposals", proposals},
-	        {"previewing", previewing ? json(*previewing) : json()},
-	        {"mode", toString(versions_.mode())},
-	        {"grants", grants},
-	        {"coordination", versions_.coordination()},
-	        {"revision", versions_.head().number}};
+	json review = {{"type", "review"},
+	               {"proposals", proposals},
+	               {"previewing", previewing ? json(*previewing) : json()},
+	               {"mode", toString(versions_.mode())},
+	               {"grants", grants},
+	               {"coordination", versions_.coordination()},
+	               {"revision", versions_.head().number}};
+	if(commands_) review.update(commands_->pending(author_)); // the runs and the run grants
+	return review;
 }
 
 // One JSON object per line
@@ -312,7 +316,7 @@ void Session::handle(const std::string& line) {
 			reply["id"] = in.id;
 			send(reply);
 		} else if(!handleChange(in) && !handleReview(in) && !handleQuery(in) && !handleBlame(in) &&
-		          !handlePickRead(in) && !handleConvert(in)) {
+		          !handlePickRead(in) && !handleConvert(in) && !handleCommands(in)) {
 			send({{"type", "error"}, {"message", "unknown message type '" + in.type + "'"}, {"id", in.id}});
 		}
 	} catch(const DocumentError& error) {
@@ -495,22 +499,7 @@ bool Session::handleQuery(const Incoming& in) {
 	const json& m = in.message;
 
 	if(in.type == "getDocument") {
-		const json state = reviewState();
-		const std::optional<json> readable = versions_.readable(author_);
-		json reply = {{"type", "document"},
-		              {"revision", versions_.head().number},
-		              {"head", toJson(versions_.head())},
-		              {"document", readable ? *readable : versions_.document()},
-		              {"state", readable ? readable->value("state", json::object()) : versions_.state()},
-		              {"proposals", state["proposals"]},
-		              {"previewing", state["previewing"]},
-		              {"mode", state["mode"]},
-		              {"grants", state["grants"]},
-		              {"you", author_},
-		              {"canReview", versions_.mayReview(author_)},
-		              {"id", in.id}};
-		addSource(reply, readable.has_value());
-		send(reply);
+		sendDocument(in);
 	} else if(in.type == "getCatalog") {
 		send({{"type", "catalog"}, {"catalog", catalog_ ? catalog_() : json::object()}, {"id", in.id}});
 	} else if(in.type == "getHistory") {
@@ -548,6 +537,27 @@ bool Session::handleBlame(const Incoming& in) {
 	      {"revision", versions_.head().number},
 	      {"id", in.id}});
 	return true;
+}
+
+void Session::sendDocument(const Incoming& in) {
+	const json state = reviewState();
+	const std::optional<json> readable = versions_.readable(author_);
+	json reply = {{"type", "document"},
+	              {"revision", versions_.head().number},
+	              {"head", toJson(versions_.head())},
+	              {"document", readable ? *readable : versions_.document()},
+	              {"state", readable ? readable->value("state", json::object()) : versions_.state()},
+	              {"proposals", state["proposals"]},
+	              {"previewing", state["previewing"]},
+	              {"mode", state["mode"]},
+	              {"grants", state["grants"]},
+	              {"you", author_},
+	              {"canReview", versions_.mayReview(author_)},
+	              {"id", in.id}};
+	for(const char* key : {"runs", "runGrants"})
+		if(state.contains(key)) reply[key] = state[key];
+	addSource(reply, readable.has_value());
+	send(reply);
 }
 
 void Session::sendImage(const Incoming& in) {

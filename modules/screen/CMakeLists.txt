@@ -17,6 +17,8 @@ add_library(affrescoui
 	src/pictures/OffscreenImages.cpp
 	src/pictures/ProposalEvidence.cpp
 	src/pictures/Inspector.cpp
+	# commands: the app's commands as tools for peers
+	src/commands/ScreenCommands.cpp
 	# windows: a screen inside another, and a screen's second window
 	src/windows/EmbeddedScreen.cpp
 	src/windows/SecondWindow.cpp

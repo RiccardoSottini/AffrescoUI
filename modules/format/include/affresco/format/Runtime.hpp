@@ -4,6 +4,7 @@
 /// @brief format::Runtime: brings a screen document to life with the rendering engine.
 
 #include "affresco/core/CallProgress.hpp"
+#include "affresco/core/Commands.hpp"
 #include "affresco/core/DataModel.hpp"
 #include "affresco/core/Executor.hpp"
 #include "affresco/core/Identity.hpp"
@@ -27,6 +28,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -41,6 +43,8 @@ class Store;
 } // namespace affresco::data
 
 namespace affresco::format {
+
+struct Engine;
 
 /// @brief Which file holds an entry of a JSON document, as a reviewer knows it (Runtime::setFileOf()).
 struct FileOf {
@@ -313,6 +317,39 @@ public:
 	/// @param fileOf Gives the file holding a JSON Pointer of the document; must not outlive what it reads.
 	void setFileOf(std::function<FileOf(std::string_view pointer)> fileOf);
 
+	/* Commands as tools */
+
+	/// @brief Sets who may run the commands as peers, and the runs that wait (vcs::Runs): the `runs` and `runGrants`
+	/// variables read it, and the allowRun and denyRun steps decide through it. Without one, those variables are empty
+	/// and those steps fail with "this screen runs no commands for peers".
+	/// @param control The run control (outlives the runtime, or is replaced first), or nullptr.
+	void setRunControl(RunControl* control);
+	/// @brief Main's commands: the actions that describe themselves; plain actions are never listed.
+	/// @return `[{name, title, category, description, arguments, enabled, key?}]`.
+	[[nodiscard]] json commandList() const;
+	/// @brief One of main's commands.
+	/// @param name Its name.
+	/// @return It, as in commandList(), or std::nullopt.
+	[[nodiscard]] std::optional<json> command(std::string_view name) const;
+	/// @brief What a command can reach, from its steps: what decides whether a peer may run it.
+	/// @param name Its name.
+	/// @return What it reaches; for no such command, a control reach.
+	[[nodiscard]] CommandReach commandReach(std::string_view name) const;
+	/// @brief Checks a run's arguments against what the command declares, and fills in their defaults.
+	/// @param name The command's name.
+	/// @param arguments An object, changed in place.
+	/// @return Why they are refused, or std::nullopt.
+	std::optional<std::string> checkCommandArguments(std::string_view name, json& arguments) const;
+	/// @brief Runs a command as its runner, whose authority every step and write is judged by; the person's yes, if
+	/// one was needed, adds none. A refusal rolls it back whole.
+	/// @param run What to run, its arguments checked (checkCommandArguments()).
+	/// @return What happened.
+	CommandOutcome runCommandAs(const CommandRun& run);
+	/// @brief Undoes a run: puts back what it changed, refused when that was changed since.
+	/// @param run The run's number.
+	/// @return What happened; `refusal` says why it was refused.
+	CommandOutcome undoCommandRun(int run);
+
 	/* Lookup */
 
 	/// @brief Finds a built panel by id.
@@ -383,6 +420,9 @@ public:
 
 private:
 	struct Impl;
+	/// @brief The engine, for the parts of the runtime defined in other files (RuntimeCommands.cpp).
+	/// @return It.
+	[[nodiscard]] Engine& engine() const noexcept;
 	std::unique_ptr<Impl> impl_; ///< Everything else, out of the header.
 };
 

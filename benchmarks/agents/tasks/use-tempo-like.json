@@ -1,0 +1,38 @@
+{
+	"id": "use-tempo-like",
+	"level": "use",
+	"screen": "examples/tempo/lisp/index.screen.lisp",
+	"request": "Like Golden Rivers by Halfway.",
+	"scenarios": [
+		{
+			"name": "liked",
+			"steps": [
+				{
+					"expect": {
+						"state": "liked",
+						"is": [
+							"-1:4"
+						]
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#sidebar",
+		"#nowPlaying"
+	],
+	"commits": 0,
+	"runs": 1,
+	"reference": {
+		"run": [
+			{
+				"name": "songLike",
+				"arguments": {
+					"title": "Golden Rivers",
+					"artist": "Halfway"
+				}
+			}
+		]
+	}
+}

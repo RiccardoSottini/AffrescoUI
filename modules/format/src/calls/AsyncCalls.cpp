@@ -124,7 +124,8 @@ bool AsyncCalls::start(const Running& s, const std::string& name, const Runtime:
 	             s.event,
 	             snapshot(s.locals),
 	             s.where,
-	             0};
+	             0,
+	             keptAuthority(engine_)};
 	if(step.contains("into")) call.into = s.target("into");
 	if(step.contains("loading")) call.loading = s.target("loading");
 	if(step.contains("progress")) call.progress = s.target("progress");
@@ -243,6 +244,8 @@ void AsyncCalls::runSteps(const Pending& call, const json& steps, const char* va
 	if(!sender) return; // nothing built: no panel to run them from
 	const auto scope = std::make_shared<const Scope>(
 	    Scope{call.locals.get(), call.locals, json{{variable, std::move(value)}}, {}, {}});
+	// The handlers run as the step that started the call did: an answer coming later lends them nothing
+	const AuthorityScope holder(engine_, call.authority);
 	engine_.runner.handle(steps, *sender, call.event, *scope, where);
 }
 

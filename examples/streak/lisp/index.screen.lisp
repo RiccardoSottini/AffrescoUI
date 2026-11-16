@@ -103,6 +103,7 @@
             state.scorePeriod
             state.historyPeriod]
   :permissions {:allow [studio]
+                :run {:allow ["agent(habitDone)"]}
                 :ask ["agent(/actions)" "agent(/program)"]
                 :deny ["*(#appBar)"]
                 :reviewers [studio]

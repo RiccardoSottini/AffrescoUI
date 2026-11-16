@@ -736,7 +736,8 @@
 								"pending": [],
 								"working": false,
 								"proposals": [],
-								"models": null
+								"models": null,
+								"runs": null
 							}
 						}
 					}
@@ -777,7 +778,8 @@
 								],
 								"working": false,
 								"proposals": [],
-								"models": null
+								"models": null,
+								"runs": null
 							},
 							"/state/assistant/messages": [
 								{

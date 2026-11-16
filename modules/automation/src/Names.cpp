@@ -1,5 +1,5 @@
 /// @file
-/// @brief The names scenarios use: keys, state paths, node properties and file-safe names.
+/// @brief The names scenarios use: keys, state paths, node properties, file-safe names and authors.
 
 #include "Internal.hpp"
 
@@ -169,6 +169,13 @@ bool isSafeFileName(std::string_view name) {
 		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_' ||
 		       c == '.';
 	});
+}
+
+bool isAuthorName(const json& value) {
+	if(!value.is_string()) return false;
+	const std::string& name = value.get_ref<const std::string&>();
+	return !name.empty() && name.size() <= maxAuthorBytes &&
+	       std::ranges::all_of(name, [](char c) { return c >= ' ' && c <= '~'; });
 }
 
 } // namespace affresco::automation::detail

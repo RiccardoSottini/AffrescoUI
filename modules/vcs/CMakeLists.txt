@@ -26,6 +26,10 @@ affrescoui_module(vcs
 	src/peers/Leases.cpp
 	src/peers/LeasesRepository.cpp
 	src/peers/Presence.cpp
+	# runs: who may run a command (the rules), the runs that wait and the log, the run grants
+	src/runs/RunRules.cpp
+	src/runs/RunLog.cpp
+	src/runs/RunGrants.cpp
 	# The revision a composition proof installs, shared with the features service and the command line
 	src/CompositionProofRevision.cpp)
 target_link_libraries(affrescoui_vcs PUBLIC affrescoui::core nlohmann_json::nlohmann_json)

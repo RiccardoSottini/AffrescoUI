@@ -7,6 +7,7 @@
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Services.hpp"
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -33,5 +34,15 @@ void checkServiceUses(const json& before, const json& after, const services::Ser
 /// @return The lines, sorted.
 [[nodiscard]] std::vector<std::string> serviceReviewLines(const json& before, const json& after,
                                                           const services::Services* services);
+
+/// @brief The reviewer's line for one use of a method or operation, as serviceReviewLines() words it: "uses files.write
+/// (writes: ...)"; for one the screen can't describe, "uses x.y (a method the screen can't describe yet)".
+/// @param document The document: its connections.
+/// @param step "invoke", "request" or "subscribe".
+/// @param name What it uses, written out: "service.method".
+/// @param services The screen's services, or nullptr if none are set.
+/// @return The line, or std::nullopt for a use that only reads.
+[[nodiscard]] std::optional<std::string> serviceUseLine(const json& document, const std::string& step,
+                                                        const std::string& name, const services::Services* services);
 
 } // namespace affresco::format

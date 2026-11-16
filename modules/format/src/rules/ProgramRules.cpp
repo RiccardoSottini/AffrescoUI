@@ -305,6 +305,41 @@ std::map<std::string, lisp::Extension> extensionsOf(const json& document) {
 	return found;
 }
 
+/// @brief Where following a program starts: its roots, the functions added to every hook point when hooks run, and
+/// the advice on a root.
+/// @param built The built program.
+/// @param roots The roots.
+/// @param hooks Whether every hook runs.
+/// @return The functions to follow.
+std::vector<std::string> followRoots(const lisp::BuiltProgram& built, const std::vector<std::string>& roots,
+                                     bool hooks) {
+	std::vector<std::string> waiting = roots;
+	for(const lisp::Extension& extension : built.extensions) {
+		const bool advised =
+		    extension.kind == "advice" && std::ranges::find(roots, extension.targets.front()) != roots.end();
+		if((hooks && extension.kind == "add-hook") || advised) waiting.push_back(extension.targets.back());
+	}
+	return waiting;
+}
+
+/// @brief Adds what a definition calls with a text written out: the names it runs that the program doesn't define,
+/// and its uses of services.
+/// @param built The built program.
+/// @param name The definition.
+/// @param used What each definition uses by name.
+/// @param follow What is found.
+void followCalls(const lisp::BuiltProgram& built, const std::string& name,
+                 const std::map<std::string, std::vector<std::string>>& used, ProgramFollow& follow) {
+	const auto calls = built.namedCalls.find(name);
+	if(calls == built.namedCalls.end()) return;
+	for(const auto& [word, texts] : calls->second.texts)
+		for(const std::string& text : texts) {
+			if(word == "run" && !used.contains(text)) follow.runs.insert(text);
+			if((word == "invoke" || word == "request" || word == "subscribe") && judgedByUse(word, text))
+				follow.uses.emplace_back(word, text);
+		}
+}
+
 } // namespace
 
 void addExtensionReviewLines(const json& before, const json& after, std::vector<std::string>& lines) {
@@ -344,6 +379,27 @@ ProgramReach programReach(const json& document, const std::set<std::string>* con
 	} catch(const DocumentError&) {
 	}
 	return reach;
+}
+
+ProgramFollow followProgram(const json& document, const std::vector<std::string>& roots, bool hooks) {
+	static constexpr std::array writes = {"insert", "update-record", "delete", "undoData", "redoData", "importCsv"};
+	ProgramFollow follow;
+	if(!lisp::hasProgram(document)) return follow;
+	const auto built = lisp::builtProgram(document["program"]);
+	const std::map<std::string, std::vector<std::string>> used = usedWithExtensions(*built);
+	std::vector<std::string> waiting = followRoots(*built, roots, hooks);
+	while(!waiting.empty()) {
+		const std::string name = std::move(waiting.back());
+		waiting.pop_back();
+		const auto words = used.find(name);
+		if(words == used.end() || !follow.definitions.insert(name).second) continue;
+		for(const std::string& word : words->second) {
+			if(used.contains(word)) waiting.push_back(word);
+			follow.writesRecords = follow.writesRecords || std::ranges::find(writes, word) != writes.end();
+		}
+		followCalls(*built, name, used, follow);
+	}
+	return follow;
 }
 
 void collectProgramWrites(const json& document, std::span<const std::string_view> writes,

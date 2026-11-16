@@ -213,6 +213,11 @@
 		"allow": [
 			"studio"
 		],
+		"run": {
+			"allow": [
+				"agent(habitDone)"
+			]
+		},
 		"ask": [
 			"agent(/actions)"
 		],
@@ -505,7 +510,7 @@
 		"notes": "{{computed.sel >= 0 ? sort(filter(entries(computed.h.notes ?? {}), trim(it.value) != ''), it.key, 'desc') : []}}",
 		"goals": "{{computed.sel < 0 || computed.h.kind != 'measurable' ? [] : map(['day', 'week', 'month', 'quarter', 'year'], {period: it, start: it == 'day' ? state.today : it == 'week' ? computed.weekStart : it == 'month' ? slice(state.today, 0, 8) + '01' : it == 'quarter' ? slice(state.today, 0, 5) + pad(floor((number(slice(state.today, 5, 7)) - 1) / 3) * 3 + 1, 2, '0') + '-01' : slice(state.today, 0, 5) + '01-01'})}}",
 		"goalRows": "{{map(computed.goals, {period: it.period, value: computed.p[computed.n - 1] - (computed.n - 1 - daysBetween(it.start, state.today) > 0 ? computed.p[computed.n - 2 - daysBetween(it.start, state.today)] : 0), goal: number(computed.h.target) / max(1, computed.h.frequency.days) * (it.period == 'day' ? 1 : it.period == 'week' ? 7 : it.period == 'year' ? daysBetween(it.start, addMonths(it.start, 12)) : daysBetween(it.start, addMonths(it.start, it.period == 'month' ? 1 : 3)))})}}",
-		"palette": "{{map(filter(commands, it.enabled && it.name != 'commandPalette'), {title: t('cmd.' + it.name), detail: it.keyLabel ?? '', run: it.name})}}",
+		"palette": "{{map(filter(commands, it.enabled && it.name != 'commandPalette' && slice(it.name, 0, 5) != 'habit'), {title: t('cmd.' + it.name), detail: it.keyLabel ?? '', run: it.name})}}",
 		"signedIn": "{{(auth.streakServer.state ?? 'signedOut') == 'signedIn'}}",
 		"online": "{{connections.streakServer.online ?? false}}",
 		"syncData": "{{{habits: data.ordered}}}",
@@ -1199,20 +1204,32 @@
 				}
 			}
 		],
+		"insertHabit": [
+			{
+				"note": "with: kind, fields: a new habit of a kind, at the end of the list, from today, and selected"
+			},
+			{
+				"insert": "habits",
+				"value": "{{merge({id: 'habit' + state.nextId, kind: kind, archived: false, from: state.today, entries: '', notes: {}, position: max(concat([-1], map(data.ordered, it.position))) + 1}, fields)}}"
+			},
+			{
+				"set": "state.selected",
+				"to": "{{'habit' + state.nextId}}"
+			},
+			{
+				"increment": "state.nextId"
+			}
+		],
 		"storeHabit": [
 			{
 				"if": "{{state.edit.id == ''}}",
 				"then": [
 					{
-						"insert": "habits",
-						"value": "{{merge({id: 'habit' + state.nextId, kind: state.edit.kind, archived: false, from: state.today, entries: '', notes: {}, position: max(concat([-1], map(data.ordered, it.position))) + 1}, fields)}}"
-					},
-					{
-						"set": "state.selected",
-						"to": "{{'habit' + state.nextId}}"
-					},
-					{
-						"increment": "state.nextId"
+						"run": "insertHabit",
+						"with": {
+							"kind": "{{state.edit.kind}}",
+							"fields": "{{fields}}"
+						}
 					}
 				],
 				"else": [
@@ -1572,6 +1589,166 @@
 				{
 					"set": "state.selected",
 					"to": "{{data.ordered[computed.order[max(0, indexOf(computed.order, computed.sel) - 1)]].id ?? state.selected}}"
+				}
+			]
+		},
+		"habitAdd": {
+			"title": "{{t('action.habitAdd.title')}}",
+			"description": "{{t('action.habitAdd.about')}}",
+			"category": "{{t('action.habitAdd.category')}}",
+			"icon": "plus",
+			"arguments": {
+				"name": {
+					"type": "string",
+					"description": "The habit's name, like Stretch"
+				},
+				"kind": {
+					"enum": [
+						"yesNo",
+						"measurable"
+					],
+					"default": "yesNo",
+					"description": "yesNo: done or not each day; measurable: an amount each day"
+				}
+			},
+			"do": [
+				{
+					"note": "a new habit with that name, every day: yes or no, or measurable with a target of 10"
+				},
+				{
+					"if": "{{trim(name) == ''}}",
+					"then": [
+						{
+							"push": "state.toasts",
+							"value": "{{{message: t('edit.nameNeeded')}}}"
+						},
+						{
+							"stop": true
+						}
+					]
+				},
+				{
+					"run": "insertHabit",
+					"with": {
+						"kind": "{{kind}}",
+						"fields": "{{{name: trim(name), question: '', color: (length(data.ordered) * 3 + 11) % 20, description: '', unit: '', target: kind == 'measurable' ? 10 : 0, targetType: 'atLeast', reminder: null, frequency: {times: 1, days: 1}}}}"
+					}
+				}
+			]
+		},
+		"habitDone": {
+			"title": "{{t('action.habitDone.title')}}",
+			"description": "{{t('action.habitDone.about')}}",
+			"category": "{{t('action.habitDone.category')}}",
+			"icon": "check",
+			"arguments": {
+				"habit": {
+					"type": "string",
+					"description": "The habit's name, like Meditate"
+				},
+				"date": {
+					"type": [
+						"string",
+						"null"
+					],
+					"description": "The day, like 2026-10-14; today when left out"
+				},
+				"amount": {
+					"type": [
+						"number",
+						"null"
+					],
+					"minimum": 0,
+					"description": "For a measurable habit, the amount; its target when left out"
+				}
+			},
+			"do": [
+				{
+					"note": "a habit, by its name, done on a day up to today (today when left out): yes, or for a measurable one an amount (its target when left out); a habit that isn't there, or a day that can't be marked, changes nothing, and a toast says so"
+				},
+				{
+					"if": "{{indexOf(map(data.ordered, lower(it.name)), lower(trim(habit))) < 0}}",
+					"then": [
+						{
+							"push": "state.toasts",
+							"value": "{{{message: t('toast.noHabit', {name: habit})}}}"
+						},
+						{
+							"stop": true
+						}
+					]
+				},
+				{
+					"if": "{{!isDate((date ?? state.today)) || daysBetween((date ?? state.today), state.today) < 0}}",
+					"then": [
+						{
+							"push": "state.toasts",
+							"value": "{{{message: t('toast.badDay', {date: (date ?? state.today), today: state.today})}}}"
+						},
+						{
+							"stop": true
+						}
+					]
+				},
+				{
+					"run": "putEntry",
+					"with": {
+						"h": "{{indexOf(map(data.ordered, lower(it.name)), lower(trim(habit)))}}",
+						"date": "{{(date ?? state.today)}}",
+						"value": "{{data.ordered[indexOf(map(data.ordered, lower(it.name)), lower(trim(habit)))].kind == 'measurable' ? text(amount ?? data.ordered[indexOf(map(data.ordered, lower(it.name)), lower(trim(habit)))].target) : 'y'}}"
+					}
+				}
+			]
+		},
+		"habitRename": {
+			"title": "{{t('action.habitRename.title')}}",
+			"description": "{{t('action.habitRename.about')}}",
+			"category": "{{t('action.habitRename.category')}}",
+			"icon": "edit",
+			"arguments": {
+				"habit": {
+					"type": "string",
+					"description": "The habit's name now"
+				},
+				"name": {
+					"type": "string",
+					"description": "Its new name"
+				}
+			},
+			"do": [
+				{
+					"note": "a habit, by its name, gets a new name"
+				},
+				{
+					"if": "{{indexOf(map(data.ordered, lower(it.name)), lower(trim(habit))) < 0}}",
+					"then": [
+						{
+							"push": "state.toasts",
+							"value": "{{{message: t('toast.noHabit', {name: habit})}}}"
+						},
+						{
+							"stop": true
+						}
+					]
+				},
+				{
+					"if": "{{trim(name) == ''}}",
+					"then": [
+						{
+							"push": "state.toasts",
+							"value": "{{{message: t('edit.nameNeeded')}}}"
+						},
+						{
+							"stop": true
+						}
+					]
+				},
+				{
+					"update": "habits",
+					"id": "{{data.ordered[indexOf(map(data.ordered, lower(it.name)), lower(trim(habit)))].id}}",
+					"fields": {
+						"name": "{{trim(name)}}"
+					}
 				}
 			]
 		},

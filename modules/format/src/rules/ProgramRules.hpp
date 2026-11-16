@@ -11,6 +11,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace affresco::format {
@@ -39,6 +40,23 @@ void addExtensionReviewLines(const json& before, const json& after, std::vector<
 /// then every one may.
 /// @return It; nothing for a document without a program, or one that can't be built, which the build reports.
 [[nodiscard]] ProgramReach programReach(const json& document, const std::set<std::string>* controlActions = nullptr);
+
+/// @brief What some of a program's definitions reach beyond the program, following what they use by name, their advice,
+/// and hooks where they run them.
+struct ProgramFollow {
+	std::set<std::string> definitions;                     ///< The definitions reached, those asked about among them.
+	std::vector<std::pair<std::string, std::string>> uses; ///< The uses written out: step and "service.method".
+	std::set<std::string> runs;                            ///< The names they `run`, written out, not the program's.
+	bool writesRecords = false;                            ///< One uses a step that writes records.
+};
+
+/// @brief What some of a program's definitions, and the advice on some actions, reach.
+/// @param document The document (built: with its program).
+/// @param roots The functions to start from, and the actions whose advice runs too.
+/// @param hooks Whether every hook runs too (a `runHooks` step).
+/// @return It; nothing for a document without a program.
+/// @throws DocumentError If the program can't be built.
+[[nodiscard]] ProgramFollow followProgram(const json& document, const std::vector<std::string>& roots, bool hooks);
 
 /// @brief Adds the uses of services and connections a document's program writes out (`(invoke "files.read")`) to the
 /// uses ServiceRules.cpp collects, as `<step> <name>` and a line with the definition's text, and every macro's, as

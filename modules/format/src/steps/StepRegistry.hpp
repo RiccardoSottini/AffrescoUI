@@ -125,6 +125,9 @@ void registerOutsideSteps(StepRegistry& registry);
 /// @brief accept, reject, preview, endPreview, restore, revert, undo (ReviewSteps.cpp).
 /// @param registry The registry.
 void registerReviewSteps(StepRegistry& registry);
+/// @brief allowRun, denyRun, undoRun: the person's decisions on the commands peers run (RunSteps.cpp).
+/// @param registry The registry.
+void registerRunSteps(StepRegistry& registry);
 /// @brief focus, scrollTo, navigate (NavigationSteps.cpp).
 /// @param registry The registry.
 void registerNavigationSteps(StepRegistry& registry);

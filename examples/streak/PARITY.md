@@ -81,9 +81,10 @@ Each area is `done`, `partial` or `missing`, with the gap in one line. Counts at
 | Accessible names on every box and control | done | |
 | A narrow window shows one pane | done | |
 | The assistant chat add-on (Cmd+Shift+A), in the app's colours | done | |
+| An agent can use it: `habitDone` (a habit by name, a day, an amount) runs at once; `habitAdd` and `habitRename` ask | done | |
 
 ## Counts
 
-- done: 43
+- done: 44
 - partial: 1
 - missing: 1

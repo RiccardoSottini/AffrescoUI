@@ -122,6 +122,7 @@ target_sources(affrescoui_format PRIVATE
 	src/steps/FlowSteps.cpp
 	src/steps/OutsideSteps.cpp
 	src/steps/ReviewSteps.cpp
+	src/steps/RunSteps.cpp
 	src/steps/EditorSteps.cpp
 	src/steps/NavigationSteps.cpp
 	src/steps/KeySteps.cpp
@@ -154,6 +155,15 @@ target_include_directories(affrescoui_format PRIVATE src/assistant)
 # src/pick/: the person pointing at an element ("pick"), the engine's records of it, and where a node is written
 target_sources(affrescoui_format PRIVATE src/pick/Picks.cpp src/pick/PickSteps.cpp src/pick/NodeSource.cpp)
 target_include_directories(affrescoui_format PRIVATE src/pick)
+# src/commands/: the app's commands as tools for peers
+target_sources(affrescoui_format PRIVATE
+	src/commands/CommandCatalog.cpp
+	src/commands/CommandArguments.cpp
+	src/commands/CommandReach.cpp
+	src/commands/CommandRuns.cpp
+	src/commands/RunUndo.cpp
+	src/commands/RuntimeCommands.cpp)
+target_include_directories(affrescoui_format PRIVATE src/commands)
 # widgets: the node types and their properties, the reference, sections, connections, features, composition
 # and adapters, a folder each (src/<folder>/README.md)
 # types: the type registry and the node types: panels, surfaces, split, tabs, lists, diff, editor, image

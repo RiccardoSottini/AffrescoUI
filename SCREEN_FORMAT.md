@@ -1239,6 +1239,21 @@ a keymap that owns the keyboard while its node has the focus.
 object with both step keys and command keys is an error. `enablement` is checked only when a key, a menu or a palette
 runs the command; a `run` step and the application's code ignore it.
 
+**Arguments:** `arguments` is a list of names, or an object from a name to its type, which a peer reads and its runs
+are checked against (Commands as tools):
+
+```json
+"moveCard": { "title": "Move card", "description": "Moves a card to another column.",
+	"arguments": { "card": { "type": "string", "description": "The card's id" },
+	               "to": { "enum": ["todo", "doing", "done"] } },
+	"do": [{ "run": "move", "with": { "id": "{{card}}", "status": "{{to}}" } }] }
+```
+
+A type is one of Typed state's, with `description` and `default` (which must match it). At most 32 arguments, each
+named with 1 to 64 letters, digits, `-` and `_`. For a command whose `do` runs a function of the program, each typed
+argument must be one of the function's parameters. Each is checked when the document is read and on every revision,
+and the error names `actions.<name>.arguments.<argument>`.
+
 **Chords and bindings:** a key may be a chord of up to 4 presses separated by spaces: `"mod+k mod+s"`. A key's value
 is a handler, a binding `{ "when": "{{...}}", "do": "save", "with": { "tab": 2 } }` (`with` gives the steps local
 variables), or a list of bindings, where the first that applies runs.
@@ -1257,6 +1272,9 @@ variables), or a list of bindings, where the first that applies runs.
   open), `chord` (the presses so far, or null), `platform` (`"mac"`, `"windows"` or `"linux"`), and the keys of the
   node `context` of the focused node and its ancestors (an inner node wins).
 - `commands`: `{ name, title, category, icon, description, enabled, key, keyLabel }`, sorted by category, then title.
+- `runs` and `runGrants`: the runs of commands peers asked for, waiting or done, oldest first (`{ id, author,
+  command, title, arguments, state, reason, time, changes, errors, undoable, personOnly }`), and the grants an
+  `allowRun` with `always` added; a screen's person decides with the `allowRun`, `denyRun` and `undoRun` steps.
 - `keybindings`: `{ key, keyLabel, command, title, when, scope }`, the document's first (`"screen"`), then by node
   (`"#id"`) and key.
 
@@ -1331,6 +1349,9 @@ An action is a list of steps. Each step is an object whose first key says what i
 | `runHooks` | `{ "runHooks": "after-save", "with": ["{{item.name}}"] }`: runs a program's functions added to that hook point (`defhook`, `add-hook`), each under its own author's authority |
 | `log`, `note`, `stop` | `{ "log": "n is {{state.n}}" }`, a comment, `{ "stop": true }` (end the action) |
 | `preview`, `endPreview`, `accept`, `reject`, `restore`, `revert`, `undo` | Review and history, e.g. `{ "accept": "{{proposals[0].id}}", "head": "{{proposals[0].head}}" }` (`accept` names the head the user reviewed; refused if the proposal moved since). `revert` undoes an earlier commit and keeps the later ones; where a later change conflicts, it carries the person's choice: `{ "revert": "{{c.id}}", "drop": "all", "head": "{{state.plan.head}}" }`, `drop` (those later changes are taken out too) and `keep` (they stay, and that part is not undone) each a list of conflict paths or `"all"`, `head` the head of main the plan was worked out on (refused if main moved since) |
+| `allowRun` | `{ "allowRun": "{{item.id}}", "always": true, "for": "8h" }`: the person allows a command run a peer asked for that waits (`runs`); `always` also lets that channel run that command without asking, for `for` or as long as the review policy says |
+| `denyRun` | `{ "denyRun": "{{item.id}}", "reason": "not now" }`: the person refuses a run that waits |
+| `undoRun` | `{ "undoRun": "{{item.id}}" }`: puts back what a run changed, refused when that was changed since |
 | `undoPlan` | `{ "undoPlan": "{{c.id}}", "into": "state.plan" }`: what undoing that commit would do, without doing it (`of`, `head`, `outcome`, `conflicts`, `later`, `state`, ...: see "Live protocol"), from any handler; `drop` and `keep` ask what that choice would do; `then` gets `result`, the plan, `onError` gets `error` |
 | `image` | `{ "image": "undo", "of": "canvas" }`: runs an image operation (see Images) |
 | `audio` | `{ "audio": "play", "of": "song" }`: see Audio |
@@ -1909,6 +1930,10 @@ line:
 | peer → | `getPicks` (no fields; answers the elements the person pointed at and has not sent or removed, oldest first, 16 at most: pick records of each one's node, type, JSON Pointer, bounds, bindings as written and source, never a value from the state), `getSource` (`at`: a node's id, a JSON Pointer to a node, or a definition's address; answers the definition or file that writes it, with its notation and its text of 16 KiB at most). A peer whose reads are limited is refused both, and a host that keeps no picks or sources rejects them |
 | peer → | `convert` (`notation`: `"lisp"` or `"json"`, and `text` to read or `value` to write; a mistake is rejected with its line and column): how a peer reads and writes the Lisp notation, while revisions and the history stay JSON |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
+| peer → | `getCommands` (`filter`?, `all`?), `runCommand` (`command`, `arguments`?, `evidence`?: "state", "picture" or "none", `scale`?), `undoRun` (`run`): the app's commands as tools (Commands as tools) |
+| → peer | answers to them: `commands` (a list of `{name, title, category, description, arguments, enabled, run, reason?, key?}`, `run` being "allow", "ask", "person" or "deny" for this peer now), `ran` (`run`, `command`, `changed`, `records`, `errors`, `failed`, `undoable`, and with a picture `region`, `picture`, `scale`), `waiting` (`run`, `reason`, `expires`), `undone` or `rejected`; after a wait, `ran` or `rejected` with `run` and the `id` of its `runCommand` |
+| reviewer → | `allowRun` (`run`, `always`?, `for`?), `denyRun` (`run`, `reason`?), `revokeRun` (`rule`) |
+| → all peers | `review` also carries `runs` and `runGrants` |
 | peer → other peers | `request` (`id`, `text`) and `reply` (`request`, `text`, `done`?, `error`?), relayed with `from` |
 | → all peers | `request` (`id`, `text`, `from`: `"user"`, `source`: `"screen"`, `options`?, `attachments`?, `picks`?: at most 4 pick records) from the screen's own `ask` step, and `cancel` (`request`, `from`, `source`) from its `cancelAsk`; a `reply` to its `id` goes to the screen (`ask:reply`), not to the other peers |
 
@@ -1946,6 +1971,9 @@ refusal in a row is logged:
 | Messages of any kind | 100 a second, 200 at once | `error` "too many messages", without `id` |
 | Changes (`revision`, `restore`, `revert`, `undo`, and `undoPlan`, which costs a merge) | 120 a minute, 30 at once | `rejected` "too many changes", with `id` |
 | Pictures (`render`), apart from the changes | 120 a minute, 30 at once | `rejected` "too many pictures", with `id` |
+| Runs (`runCommand`) | 120 a minute, 30 at once | `rejected` "too many runs", with `id` |
+| A run's `arguments` | 64 KiB | `rejected`, naming the size |
+| Runs that wait | 16 a screen, 4 a channel, 120 seconds each | `rejected` "too many runs are waiting" |
 | Sent to the peer and not yet read by it (a socket peer) | 64 MiB | the peer is disconnected |
 
 On a socket, the host also asks the operating system which user the program on the other end runs as, and refuses a
@@ -1990,6 +2018,67 @@ A screen can ask the agents connected to it in plain words, e.g. from a chat (th
   waits for review as any other.
 - Limits: a request is at most 16 KiB; a reply's `text` and `error` are cut to 64 KiB, `from` to 256 bytes; a reply
   to an id the screen didn't send is for the other peers, and fields of the wrong type are ignored.
+
+### Commands as tools
+A peer can use an app as well as change it: it lists the app's commands and runs one, with arguments. Only commands
+are tools (actions with a `title` and a `do`: Commands and keybindings), never plain actions or functions.
+
+**The list:** `getCommands` answers each command, in the order of the `commands` variable, at most 1,024:
+`{name, title, category, description, arguments, enabled, run, reason?, key?}`. The title and description are the
+translated ones, cut at 128 and 512 bytes. `arguments` is always an object of types there; a name without a type
+maps to `{}`. `run` says what a run by this peer would meet now (`allow`, `ask`, `person` or `deny`), and `reason`
+why, e.g. a command that reaches a control step.
+
+**What a command reaches** is worked out from the document, never from what a peer sends: its steps, each `run` of a
+name written out (the document's action, else the program's function, else the application's own action), each
+`lisp` step's function and the definitions it uses, advice on them, and the hooks of the hook points they run. It
+reaches control when any of these holds a control or a review step, a `run` of a computed name, an action the
+document doesn't define, or a component that runs computed actions; and when the program doesn't build. It lists
+each `invoke`, `request` or `subscribe` of a method that writes or runs, as a reviewer reads it (`uses files.write
+(...)`), and whether a step writes records (`insert`, `update`, `delete`, `undoData`, `redoData`, `importCsv`).
+
+**The arguments a peer sends** are checked against the command's, in this order: an object
+(`move-card: arguments must be an object, like {"card": "…"}`); only declared names (`move-card: no argument 'colum'
+(it takes card, to)`); each value of its type, without quoting it (`move-card: to: expected one of todo, doing,
+done`); a missing one takes its `default`, else null, unless its type doesn't allow null (`move-card: card is
+missing`). A command that declares no arguments takes only `{}`.
+
+**How a run is judged:** it is refused when the screen has no window, draws a picture or previews a proposal; when
+the name is no command; when the arguments are wrong; when `enablement` is false. Then, the first that applies:
+
+| | The run |
+|---|---|
+| A `deny` rule names it | is denied |
+| It reaches a control or a review step | is denied: a peer never runs one |
+| The mode is `plan` | is denied (`acceptEdits` changes nothing for runs) |
+| It writes or runs through a service | waits for the person, each time, in the window's own question |
+| The runner is a reviewer | is allowed |
+| An `ask` rule names it | waits for a yes (the `runs` variable, `allowRun` and `denyRun`) |
+| An `allow` rule or a grant names it | is allowed |
+| The screen has no `permissions` section | is allowed |
+| Anything else | waits for a yes |
+
+A run always executes as its runner, never as the person, even after a yes: it can't approve, and reaches only what
+its runner may. It changes the live state and records, its records under the runner's name, and is kept in the
+`runs` log, not in the history; `undoRun` takes its changes back, refused if something changed them since. The command function's return value isn't sent back. A host can switch runs off.
+
+**What comes back:** `ran` with what changed (`changed`, `records`), the errors, whether it failed and can be undone,
+and with `evidence: "picture"` a picture of the region it changed; `waiting` with why and when the question expires
+(a run that waits is answered later with `ran` or `rejected`); or `rejected` with why. The limits are in the table
+above.
+
+**Run rules** live in `permissions.run`, in lists of their own that no change rule reads:
+
+```json
+"permissions": { "allow": ["studio"], "ask": ["agent(/actions)"], "reviewers": ["studio"],
+	"run": { "allow": ["agent(moveCard)", "agent(card.*)"], "ask": ["agent"], "deny": ["*(clearBoard)"] } }
+```
+
+A rule is `author` or `author(command)`: the author is `*`, a channel or a full name, and the command a name or a
+prefix ending in `*`. Only `allow`, `ask` and `deny`, at most 64 rules a list and 256 bytes a rule. A `role:` author
+isn't supported yet, and a pattern starting with `/` or `#` is refused (`run rules name commands, like
+agent(moveCard)`). An `allowRun` with `always` adds a grant, shown as `agent(run:moveCard)`. `affrescoui check` warns
+about a rule naming a command the document doesn't have.
 
 ### Pointing at a node
 A person can point at an element and ask for a change to it: a `pick` step lets them pick one, and `ask` sends what
@@ -2129,6 +2218,7 @@ allowed on the file, a scenario and a step.
 | `{ "revision": { ... } }` | Applies a revision as the application would |
 | `{ "propose": { "author": "agent", ... } }` | Submits a revision as its author's peer would: the screen's `permissions` apply it, send it to review (`proposals`) or refuse it |
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
+| `{ "command": "moveCard", "with": { ... }, "as": "agent" }` | Runs one of the app's commands as its author's peer would (`as`, default `agent`): the arguments are checked, the run rules judge, and it runs under that name. A run that would wait for a reviewer or the person, or is denied, ends the scenario. `"verdict": "ask"` (`allow`, `ask`, `person` or `deny`) runs nothing and checks the verdict a run would meet instead |
 | `{ "resize": [960, 720] }` | Resizes the window |
 | `{ "choose": "deck.json" }` | Answers the file dialogs that follow (`saveFile`, `openFile`, `export`, `attach`) with that file in the run's own folder, as the person would choose it; `null` cancels them. The dialog shows after the event: `{ "wait": 0 }` |
 | `{ "expect": ... }` | Checks something (below) |
@@ -2148,6 +2238,10 @@ question of its own (`evaluate`'s `confirm`), a role target is looked for in it 
 | `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has) |
 | `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
+
+`action` and `command` differ in whose authority runs: an action runs as the app's own code, with the person's, while
+a command runs as its author, under the screen's `permissions.run` and that peer's limits (its run rate, the size of its
+arguments), as an agent's run would; a `verdict` that differs is reported as a failed expectation.
 
 A failed expectation is reported and the scenario goes on; a step that can't be played (no such node, a refused
 revision) ends it, and so does one whose handlers raise an error (an unknown variable stops an action), unless the step

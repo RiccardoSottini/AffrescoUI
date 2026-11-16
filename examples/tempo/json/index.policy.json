@@ -521,6 +521,26 @@
 			},
 			"expect": "deny",
 			"reason": "can't change \"permissions\""
+		},
+		{
+			"name": "an agent plays a song by its title: allowed by its run rule",
+			"run": {
+				"author": "agent/claude-code",
+				"command": "songPlay",
+				"arguments": {
+					"title": "Golden Rivers"
+				}
+			},
+			"expect": "allow"
+		},
+		{
+			"name": "an agent turning the volume up is asked: no run rule allows it",
+			"run": {
+				"author": "agent/claude-code",
+				"command": "volumeUp",
+				"arguments": {}
+			},
+			"expect": "ask"
 		}
 	]
 }

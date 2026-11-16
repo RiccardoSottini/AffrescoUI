@@ -79,6 +79,7 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 	// Declared before the screen, so they outlive it: a screen disconnects from its window when it goes
 	affresco::detail::ManualClock clock;
 	NoPeers noPeers;
+	detail::Peers peers; // the channels `command` steps speak on: the screen keeps references to them
 	std::optional<Application> application;
 	std::unique_ptr<Window> headless;
 	Window* window = nullptr;
@@ -97,7 +98,7 @@ void play(const Scenario& scenario, const std::string& document, const Options& 
 	if(options.prepare) options.prepare(screen);
 	screen.build(*window);
 	screen.startChannels(noPeers);
-	detail::Player({screen, *window, clock, scenario, options, scratch}, result).play();
+	detail::Player({screen, *window, clock, scenario, options, scratch, peers}, result).play();
 }
 
 /// @brief Plays one scenario, catching what keeps it from starting.

@@ -59,9 +59,28 @@ Nothing new is asked of the screen: the definition or node comes from the docume
 returned, so what a limited reader may not read isn't there, and the block says it could not be read. Without picks,
 the first message is exactly as before.
 
+## Using the app's commands
+
+When the person asks for something the app can already do (add an entry, send a message), the agent runs one of the
+app's commands rather than changing the app (`src/Commands.hpp`). It has two tools: `list_commands` (the screen's
+`getCommands`, one line a command: `name(argument: type, ...)`, what it does, and `[ask]`, `[person]` or `[deny]`;
+`filter` narrows it) and `run_command` (a `runCommand` with the name and the arguments, the state as its evidence).
+claude-code, which has no tools, asks for the list with `{"commands": true}` and runs what its answer's `run` names
+(`[{ "command", "arguments" }]`), beside its reply; a refused run stops the rest, and the reply says it wasn't run.
+
+A run is the agent's own, under its channel, never the person's, and the screen's run rules decide it
+(VERSION_CONTROL.md, "Running commands"). A run that waits for the person's yes shows on its card in the app's chat; the
+agent waits for the outcome while a quarter of the request's time is left, then says in its reply that the run still
+waits. A refusal comes back to the model as a tool error, and the loop goes on. Each run counts as a step, and a
+request runs at most `AgentOptions::maxRuns` commands (12). The agent has no tool to allow, deny or undo a run: those
+are the person's, on the card. The commands' names, titles, descriptions and the reasons a run gives are the app's
+content: they reach the model in tool results only, on one line each and cut to 200 characters, never in the system
+prompt, which only says when to run a command and that running one never approves a change.
+
 ## Tests
 
-`tests/unit/intelligence.cpp`, `tests/unit/intelligence_agent.cpp` (a fake network, no real API) and
+`tests/unit/intelligence.cpp`, `tests/unit/intelligence_agent.cpp` (a fake network, no real API), `tests/unit/intelligence_commands.cpp` (the
+commands, on the same harness, `tests/unit/AgentHarness.hpp`) and
 `tests/unit/intelligence_picks.cpp` (picks, the first message's sizes on the examples), the `picks` fuzz target, and
 `tests/intelligence/e2e_test.py`: the stock host with an `openai-compatible` provider pointed at a fake server on the
 loopback.

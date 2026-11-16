@@ -9,15 +9,17 @@ screen through the MCP server, then the task's scenarios played on the result an
     python3 benchmarks/agents/run.py --markdown results/*.json          # the "Agents" table of BENCHMARKS.md
 
 Per task: a host (`affrescoui run`, mode acceptEdits) on a socket folder of its own, a reviewer on its studio.sock that
-accepts every proposal (the changes rules send to review, e.g. to actions), the client connected through
-mcp/affrescoui_mcp.py, then `affrescoui test --document` on the screen as the host has it. A task passes when its
-scenarios pass, every node it lists as unchanged is unchanged and, for the oracle, its scenarios failed before (so they
-test the request); a task that says how the change is written (`present`: a program's definition, or a JSON action)
-needs it there. With --point, a task that has a `point` is asked by pointing: its `pointRequest`, then the line the
-MCP server gives a channel event for that pick. Recorded: success, tokens in and out, tool calls, revisions, time and
-whether the task was asked by pointing, into one JSON per run. API
-keys are the client's business, from the environment: nothing of the environment is written, and the client's output
-is read for its counts only.
+accepts every proposal (the changes rules send to review, e.g. to actions) and allows every run that waits for a
+reviewer's yes, the client connected through mcp/affrescoui_mcp.py, then `affrescoui test --document` on the screen as
+the host has it; for a `use` task (something to do in the app, with its commands), on the starting screen with the runs
+the host logged as ran replayed first, so that their records count too. A task passes when its scenarios pass, every
+node it lists as unchanged is unchanged and, for the oracle, its scenarios failed before (so they test the request); a
+task that says how the change is written (`present`: a program's definition, or a JSON action) needs it there, and one
+that says how many revisions (`commits`) or runs (`runs`) it takes needs that many. With --point, a task that has a
+`point` is asked by pointing: its `pointRequest`, then the line the MCP server gives a channel event for that pick.
+Recorded: success, tokens in and out, tool calls, revisions, runs, time and whether the task was asked by pointing, into
+one JSON per run. API keys are the client's business, from the environment: nothing of the environment is written, and
+the client's output is read for its counts only.
 """
 
 import argparse
@@ -39,7 +41,7 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 MCP = os.path.join(ROOT, "mcp", "affrescoui_mcp.py")
-LEVELS = ("edit", "feature", "forge")
+LEVELS = ("edit", "feature", "forge", "use")
 DENIED = "Bash,Edit,Write,NotebookEdit,Read,Glob,Grep,WebFetch,WebSearch,Task"  # the screen is changed through MCP
 
 
@@ -109,6 +111,7 @@ class Host:
         stream = self.studio.makefile("rwb")
         self.reviewer = Lines(stream, stream)
         self.accepted = 0
+        self.allowed = 0
         self.stopping = threading.Event()
         self.thread = threading.Thread(target=self.review, daemon=True)
         self.thread.start()
@@ -118,22 +121,30 @@ class Host:
         return self.reviewer.request({"type": "getDocument"})
 
     def review(self):
-        """The reviewer: accepts each open proposal, as it is, until the host stops."""
+        """The reviewer: accepts each open proposal, as it is, and allows each run that waits for a yes a reviewer
+        may give (not one only the person may allow), until the host stops."""
         while not self.stopping.wait(0.1):
             try:
-                for proposal in self.document().get("proposals") or []:
+                reply = self.document()
+                for proposal in reply.get("proposals") or []:
                     self.reviewer.request({"type": "accept", "proposal": proposal["id"],
                                            "head": proposal.get("head")})
                     self.accepted += 1
+                for run in reply.get("runs") or []:
+                    if run.get("state") == "waiting" and not run.get("personOnly"):
+                        self.reviewer.request({"type": "allowRun", "run": run["id"]})
+                        self.allowed += 1
             except (OSError, RuntimeError, ValueError):
                 return
 
     def settled(self, deadline=10):
-        """The host's document once no proposal is open (the reviewer accepted them all), or as it is at the deadline."""
+        """The host's document once no proposal is open and no run waits (the reviewer decided them all), or as it is
+        at the deadline."""
         end = time.monotonic() + deadline
         while True:
             reply = self.document()
-            if not reply.get("proposals") or time.monotonic() > end:
+            waiting = [run for run in reply.get("runs") or [] if run.get("state") == "waiting"]
+            if (not reply.get("proposals") and not waiting) or time.monotonic() > end:
                 return reply
             time.sleep(0.1)
 
@@ -177,17 +188,24 @@ class McpClient:
 
 
 def run_oracle(task, host, timeout):
-    """The oracle: submits the task's reference revisions, as an agent would, and nothing else."""
+    """The oracle: submits the task's reference revisions, or runs its reference commands (a `use` task's
+    `{"run": [...]}`), as an agent would, and nothing else."""
     client = McpClient(host.sockets)
+    calls = task["reference"]["run"] if isinstance(task["reference"], dict) else task["reference"]
     try:
-        for arguments in task["reference"]:
-            text, failed = client.call("submit_revision", arguments)
-            if failed or text.startswith(("rejected", "error")):
-                raise RuntimeError(f"its reference revision was refused: {text[:300]}")
+        for arguments in calls:
+            if isinstance(task["reference"], dict):
+                text, failed = client.call("run_command", {**arguments, "wait": 30})
+                if failed or not text.startswith("ran"):
+                    raise RuntimeError(f"its reference run didn't run: {text[:300]}")
+            else:
+                text, failed = client.call("submit_revision", arguments)
+                if failed or text.startswith(("rejected", "error")):
+                    raise RuntimeError(f"its reference revision was refused: {text[:300]}")
             host.settled()
     finally:
         client.close()
-    return {"toolCalls": len(task["reference"]), "tokensIn": None, "tokensOut": None, "model": None}
+    return {"toolCalls": len(calls), "tokensIn": None, "tokensOut": None, "model": None}
 
 
 def repeats_along(document, pointer):
@@ -224,7 +242,12 @@ def pointed_request(task, host, mcp):
 
 
 def claude_prompt(task):
-    """What Claude Code is asked: the request (described, or pointed with its pick's line), and where to make it."""
+    """What Claude Code is asked: the request (described, or pointed with its pick's line), and where to make it. A
+    `use` task's request is something to do in the app, and says nothing of how: the client chooses whether to run
+    the app's commands or change the screen."""
+    if task["level"] == "use":
+        return ("A person asks for something in the AffrescoUI app that is running now. Do it with the affrescoui MCP "
+                "tools, and stop when it is done.\n\nThe request: " + task["request"])
     return ("A person asks for a change to the AffrescoUI screen that is running now. Make it with the affrescoui "
             "MCP tools (read the screen, then submit revisions), and stop when it is done.\n\nThe request: "
             + task["request"])
@@ -266,14 +289,29 @@ def as_played(reply):
     return document
 
 
-def play(affrescoui, task, document, folder, name):
-    """Plays the task's scenarios on a document with `affrescoui test --document`: (passed, failures)."""
+def ran(reply):
+    """The runs a host's answer to getDocument logs as ran (not undone), oldest first."""
+    return sorted((run for run in reply.get("runs") or [] if run.get("state") == "ran"), key=lambda run: run["id"])
+
+
+def replayed(task, runs):
+    """A `use` task's scenarios with the runs before each one's steps, in order, as the reviewer (who may run what
+    the client was allowed to): its records, which the played document doesn't hold, are then the runs' too. A
+    wait first, for what the app makes once it has started (as the host had, long before the client)."""
+    steps = [{"wait": 50}] + [{"command": run["command"], "with": run.get("arguments") or {}, "as": "studio"}
+                              for run in runs]
+    return [{**scenario, "steps": steps + scenario["steps"]} for scenario in task["scenarios"]]
+
+
+def play(affrescoui, task, document, folder, name, scenarios=None):
+    """Plays the task's scenarios (or these) on a document with `affrescoui test --document`: (passed, failures)."""
     screen = os.path.join(ROOT, task["screen"])
+    played_scenarios = scenarios if scenarios is not None else task["scenarios"]
     scenarios = os.path.join(folder, name + ".scenarios.json")
     played = os.path.join(folder, name + ".screen.json")
     with open(scenarios, "w", encoding="utf-8") as file:
         json.dump({"format": "affrescoui-scenarios", "version": 2, "screens": os.path.dirname(screen),
-                   "screen": os.path.basename(screen), "scenarios": task["scenarios"]}, file)
+                   "screen": os.path.basename(screen), "scenarios": played_scenarios}, file)
     with open(played, "w", encoding="utf-8") as file:
         json.dump(document, file)
     process = subprocess.run([affrescoui, "test", scenarios, "--json", "--document", played], stdout=subprocess.PIPE,
@@ -322,19 +360,33 @@ def run_task(task, args, mcp):
         result["pointed"] = pointed
         asked = {**task, "request": pointed_request(task, host, mcp)} if pointed else task
         start = host.document()
-        failed_before = not play(affrescoui, task, as_played(start), folder, "before")[0]
+        use = task["level"] == "use"
+        failed_before = not play(affrescoui, task, as_played(start), folder, "before",
+                                 replayed(task, []) if use else None)[0]
         began = time.monotonic()
         run = run_oracle if args.client == "oracle" else run_claude
         counts = run(asked, host, args.timeout, *([args.model] if args.client == "claude-code" else []))
         seconds = time.monotonic() - began
         end = host.settled()
-        passed, failures = play(affrescoui, task, as_played(end), folder, "after")
+        runs = ran(end)
+        if use:  # the runs replayed on the starting screen, where the records are as the host started them
+            passed, failures = play(affrescoui, task, as_played(start), folder, "after", replayed(task, runs))
+        else:
+            passed, failures = play(affrescoui, task, as_played(end), folder, "after")
         changed = changed_nodes(mcp, task, start["document"], end["document"])
         missing = missing_nodes(mcp, task, end["document"])
-        result.update(counts, seconds=round(seconds, 2), revisions=end["revision"] - start["revision"],
-                      scenariosPassed=passed, failures=failures, changed=changed, missing=missing,
-                      failedBefore=failed_before)
-        result["success"] = passed and not changed and not missing and (failed_before or args.client != "oracle")
+        revisions = end["revision"] - start["revision"]
+        result.update(counts, seconds=round(seconds, 2), revisions=revisions, runs=len(runs),
+                      runsAllowed=host.allowed, scenariosPassed=passed, failures=failures, changed=changed,
+                      missing=missing, failedBefore=failed_before)
+        if "commits" in task and revisions != task["commits"]:
+            failures.append(f"{revisions} revisions, where the request needs {task['commits']}")
+        if "runs" in task and len(runs) != task["runs"]:
+            failures.append(f"{len(runs)} runs, where the request needs {task['runs']}")
+        counted = ("commits" not in task or revisions == task["commits"]) and ("runs" not in task
+                                                                                or len(runs) == task["runs"])
+        result["success"] = (passed and counted and not changed and not missing
+                             and (failed_before or args.client != "oracle"))
     except (RuntimeError, OSError, ValueError, subprocess.TimeoutExpired) as failure:
         result["error"] = str(failure)[:300]
     finally:
@@ -380,7 +432,8 @@ def summary(results):
     return {"tasks": len(results), "passed": passed, "successRate": round(passed / len(results), 3) if results else None,
             "byLevel": {level: f"{sum(found)}/{len(found)}" for level, found in by_level.items() if found},
             "medianTokensIn": median("tokensIn"), "medianTokensOut": median("tokensOut"),
-            "medianToolCalls": median("toolCalls"), "medianSeconds": median("seconds")}
+            "medianToolCalls": median("toolCalls"), "medianSeconds": median("seconds"),
+            "runs": sum(result.get("runs") or 0 for result in results)}
 
 
 def markdown(paths):

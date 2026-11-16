@@ -37,6 +37,7 @@ Its fonts are in [`../shared/fonts`](../shared/fonts/README.md).
 - **Widgets:** tabs, a virtualised table with sorting and resizable columns, the `timeline` (clips dragged to change dates or owner), the `calendar` date picker, a line chart, rich-text runs with links, the markdown `editor`, checkboxes, tooltips, toasts.
 - **Drag and drop** between columns and swimlanes, and the same moves by keyboard (Alt+arrows, Cmd+arrows, the card menu).
 - **Commands:** titled actions in the command palette (Cmd+Shift+P), go to a card (Cmd+P), shortcuts, `enablement`, a context menu.
+- **Commands as tools:** an agent uses the board through typed commands (`cardMove`, `cardAssign`, `cardPriority`, `cardAdd`), listed and run by the MCP server's `list_commands` and `run_command`; `permissions.run` lets the first three run at once and makes `cardAdd` ask. A card that isn't there, or a column or a member by a name that isn't, changes nothing and the notice says so. The scenario `an-agent-uses-the-board` and the policy cases check them.
 - **Overlays:** the members popover, the modal date picker and settings sheet, the edit dialog.
 - **Settings** that persist (`settings` with a schema): language, work-in-progress warnings, first day of the week.
 - **Themes and locales:** light and dark tokens; English, Spanish and French string tables with plurals.

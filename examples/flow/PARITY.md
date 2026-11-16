@@ -20,3 +20,4 @@ and all of its data is invented. This page lists what a daily user would reach f
 | Inbox | notifications, read and unread | done | unread count in the sidebar, a preview with the issue's status, priority, assignee and label, J/K, U read or unread, H snooze, Enter opens the issue; G then I |
 | Roadmap | projects on a timeline | partial | the Timeline view |
 | Assistant | ask for a change in plain words | done | the shared assistant add-on; Cmd+Shift+A |
+| Agents | an agent uses the board, not only changes it | done | An agent can use it: `cardMove`, `cardAssign` and `cardPriority` run at once, `cardAdd` asks (`permissions.run`); cards by their id, columns and members by name |

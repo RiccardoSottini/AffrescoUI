@@ -7,9 +7,33 @@
 #include "Settings.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <string_view>
 
 namespace affresco::format {
+
+namespace {
+
+/// The steps whose effect stays in the state and the records (or in what is on the screen now): what a run that only
+/// used them changed, undo puts back whole. Any other step (a sound, the clipboard, an event, a window, a service, a
+/// timer) reaches outside them.
+constexpr auto insideSteps = std::to_array<std::string_view>(
+    {"set",    "push",    "remove",    "toggle", "increment", "if",       "forEach", "while", "run",
+	 "stop",   "note",    "log",       "focus",  "scrollTo",  "navigate", "edit",    "press", "lisp",
+	 "cancel", "dismiss", "transform", "insert", "update",    "delete",   "runHooks"});
+
+/// @brief Tells whether a step's effect reaches outside the state and the records.
+/// @param step The step (an object).
+/// @return true if one of its keys is a step that does.
+bool reachesOutside(const json& step) {
+	return std::ranges::any_of(step.items(), [](const auto& item) {
+		const std::string& key = item.key();
+		return std::ranges::find(insideSteps, key) == insideSteps.end() && stepKind(key) != StepKind::None;
+	});
+}
+
+} // namespace
 
 /* Running */
 
@@ -50,28 +74,36 @@ bool Running::run(const json& nested, const Scope& scope, const std::string& at)
 // Runs an event handler: an action name or inline steps. Errors are reported, never thrown into the event loop.
 void Steps::handle(const json& handler, Panel& sender, const json& event, const Scope& locals,
                    const std::string& where) {
-	const DocumentContext::BudgetScope budget(engine_.document); // the outermost handler's, shared by nested ones
-	try {
-		if(handler.is_string()) runNamed(handler.get<std::string>(), sender, event, locals, where);
-		else runSteps(handler, sender, event, locals, where);
-	} catch(const DocumentError& error) {
-		engine_.report(error.what());
-	} catch(const json::exception& error) { // a JSON error a step didn't turn into a DocumentError: never into the loop
-		engine_.report(where + ": " + error.what());
+	if(const std::optional<std::string> error = attempt(handler, sender, event, locals, where)) engine_.report(*error);
+}
+
+std::optional<std::string> Steps::attempt(const json& handler, Panel& sender, const json& event, const Scope& locals,
+                                          const std::string& where) {
+	std::optional<std::string> error;
+	{
+		const DocumentContext::BudgetScope budget(engine_.document); // the outermost handler's, shared by nested ones
+		try {
+			if(handler.is_string()) runNamed(handler.get<std::string>(), sender, event, locals, where);
+			else runSteps(handler, sender, event, locals, where);
+		} catch(const DocumentError& failure) {
+			error = failure.what();
+		} catch(const json::exception& failure) { // a JSON error a step didn't turn into a DocumentError
+			error = where + ": " + failure.what();
+		}
 	}
 	if(engine_.document.stateChanged()) engine_.reconciler.requestStateUpdate();
+	return error;
 }
 
 std::function<void()> Steps::later(json steps, Panel& sender, json event, SharedScope locals, std::string where) {
-	// What a program scheduled keeps its authors: running later lends it nothing
-	std::optional<StepAuthority> authority;
-	if(engine_.authority) authority = *engine_.authority;
+	// What a program or a peer's run scheduled keeps its authors: running later lends it nothing
+	KeptAuthority authority = keptAuthority(engine_);
 	return [this, steps = std::move(steps), sender = &sender, event = std::move(event), locals = std::move(locals),
 	        where = std::move(where), authority = std::move(authority)] {
 		Window* window = engine_.window;
 		if(!window) return;
 		Panel& from = engine_.reconciler.recordOf(sender) ? *sender : window->root();
-		const AuthorityScope holder(engine_, authority ? &*authority : nullptr);
+		const AuthorityScope holder(engine_, authority);
 		handle(steps, from, event, *locals, where);
 	};
 }
@@ -139,6 +171,7 @@ bool Steps::runStep(const json& step, Panel& sender, const json& event, const Sc
 	object(step, where);
 	engine_.document.spendStep(where);
 	if(engine_.authority) engine_.programs.checkStep(step, where);
+	if(outsideSeen_ && !*outsideSeen_) *outsideSeen_ = reachesOutside(step);
 	if(const std::optional<bool> keepGoing = engine_.steps->run(Running{*this, step, sender, event, locals, where}))
 		return *keepGoing;
 

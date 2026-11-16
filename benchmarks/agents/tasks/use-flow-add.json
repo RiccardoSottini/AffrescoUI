@@ -1,0 +1,44 @@
+{
+	"id": "use-flow-add",
+	"level": "use",
+	"screen": "examples/flow/lisp/index.screen.lisp",
+	"request": "Add a card called \"Write the release notes\" to In progress.",
+	"scenarios": [
+		{
+			"name": "added",
+			"steps": [
+				{
+					"expect": {
+						"data": "lane1.length",
+						"is": 4
+					}
+				},
+				{
+					"expect": {
+						"data": "lane1[3].title",
+						"is": "Write the release notes"
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#board",
+		"#statusBar"
+	],
+	"commits": 0,
+	"runs": 1,
+	"reference": {
+		"run": [
+			{
+				"name": "cardAdd",
+				"arguments": {
+					"title": "Write the release notes",
+					"status": "In progress"
+				}
+			}
+		]
+	}
+}

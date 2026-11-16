@@ -17,6 +17,7 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 | `Roles.hpp` | `Roles`: the role each author plays for this run (`design`, `data`, `builder`), set by the host or a reviewer, never by a revision; `ruleCovers`: whether a rule's author (`role:<name>` too) covers an author |
 | `ChangeSetRepair.hpp` | `ChangeSetRepairs`: change sets installed with their request, base and proof, checked on install, and repaired by an agent through review; `RepairStatus`, `InstalledChangeSet` |
 | `Presence.hpp` | `Presence`: who is on a document, where and doing what, bounded; shown, never trusted |
+| `Runs.hpp` | `Runs`: the `RunControl` of a screen (core/Commands.hpp): who may run which command as a peer (the rules of `permissions.run`, the mode, the reviewers, the run grants), the runs that wait for a decision and the log of the newest runs; `maxWaitingRunsPerChannel` (4), `maxArgumentBytes` (4 KiB) |
 
 Everything else a user needs is in `core/VersionControl.hpp` (the interface and its value types) and
 `core/DocumentRules.hpp`.
@@ -84,6 +85,12 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **`commitOwnInput()`** is the person's own change of a program, from the host's code alone: only `/program/` paths, judged by the rules' `checkOwnChange`, and marked in its commit (VERSION_CONTROL.md, "Programs").
 - **The document rules' `checkChange` runs on every change,** so what the format forbids for everyone (widening a
   capability, for example) is refused even for a reviewer.
+- **A run is never authority** (`Runs`, VERSION_CONTROL.md, "Running commands"): it is judged as its runner's,
+  never makes a commit, and a grant it earns covers one command for one channel, in memory only. A reviewer never
+  allows a run of its own channel, and only the person (`user`) allows a run that reaches outside, never "always".
+  At most 16 runs wait for a decision (4 per channel), each at most 120 s; the log keeps the newest 64 and never
+  drops a waiting run; arguments are kept cut to 4 KiB of JSON text. `Runs` reads the permissions again only when
+  the head commit changes, and takes the time from a clock it is given, so tests never sleep.
 - **On disk** (history version 2), commits carry their deltas, documents are written for snapshots only, and every
   256 loose objects go into a pack named by its SHA-256, which the refs name before the loose files are deleted.
   Objects and packs are verified against their hashes when they are loaded, a file larger than 64 MiB is refused,
@@ -169,6 +176,7 @@ include/affresco/vcs/
   Repository.hpp            the Repository class
   Merge.hpp                 mergeDocuments, the three-way merge for any caller
   Leases.hpp, Roles.hpp, Presence.hpp, ChangeSetRepair.hpp   what several agents at once add
+  Runs.hpp                  who may run a command as a peer, and the runs
 src/
   revisions/                a revision, from what it says to a commit on main
     Revisions.hpp / .cpp    what a revision says: author, message, patch; the commit time
@@ -191,6 +199,10 @@ src/
     Leases.cpp              parts of a document one person holds for a while
     LeasesRepository.cpp    who is connected, the parts they lease, and refusing changes to another holder's part
     Presence.cpp            who has the document open, and where
+  runs/                     who may run a command as a peer, and the runs (VERSION_CONTROL.md, "Running commands")
+    RunRules.cpp            judge(): the run rules, the mode, the reviewers and the grants, in order; stateDenial()
+    RunLog.cpp              numbering runs, the runs that wait and their limits, allow, deny, expire, the log
+    RunGrants.cpp           the grants an "always allow" adds, how long they last, revoking them
   history/                  the history on disk
     HistoryStore.hpp / .cpp the history folder: the lock, atomic writes, bounded reads, packs
     RepositoryHistory.cpp   writing and loading objects and refs, every hash checked

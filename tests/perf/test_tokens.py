@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """tokens.py's include merge, which must read a screen as the host does (Screen.cpp's mergeInclude), and how it counts
-a pick: no tokenizer and no affrescoui tool needed.
+a pick, and the commands it lists: no tokenizer and no affrescoui tool needed.
 
     python3 tests/perf/test_tokens.py
 """
@@ -134,6 +134,19 @@ class Picks(unittest.TestCase):
         self.assertIn("the largest pick: 300 tokens (haven-json alarmCode)", table)
         self.assertEqual(tokens.pick_table([("tokens/flow/outline", 900)]), "")
 
+
+class Commands(unittest.TestCase):
+    """The commands answer tokens.py builds from a document, as the host lists commands."""
+
+    def test_only_commands_each_run_ask(self):
+        document = {"actions": {"save": {"title": "Save", "category": "File", "do": "write", "enablement": "x"},
+                                "write": [{"set": {"path": "state.saved", "value": True}}],
+                                "steps": {"set": {"path": "state.a", "value": 1}},
+                                "go": {"description": "Goes", "arguments": {"to": {"type": "string"}}}}}
+        self.assertEqual(tokens.commands_answer(document)["commands"], [
+            {"name": "save", "title": "Save", "category": "File", "arguments": {}, "enabled": True, "run": "ask"},
+            {"name": "go", "description": "Goes", "arguments": {"to": {"type": "string"}}, "enabled": True,
+             "run": "ask"}])
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,44 @@
+{
+	"id": "use-flow-json-move",
+	"level": "use",
+	"screen": "examples/flow/json/index.screen.json",
+	"request": "Move card FLO-2 to Done.",
+	"scenarios": [
+		{
+			"name": "moved",
+			"steps": [
+				{
+					"expect": {
+						"data": "lane0.length",
+						"is": 3
+					}
+				},
+				{
+					"expect": {
+						"data": "lane3.length",
+						"is": 4
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#board",
+		"#statusBar"
+	],
+	"commits": 0,
+	"runs": 1,
+	"reference": {
+		"run": [
+			{
+				"name": "cardMove",
+				"arguments": {
+					"card": "FLO-2",
+					"status": "Done"
+				}
+			}
+		]
+	}
+}

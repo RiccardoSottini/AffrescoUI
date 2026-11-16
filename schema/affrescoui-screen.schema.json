@@ -868,6 +868,22 @@
 									"type": "string"
 								}
 							},
+							"run": {
+								"type": "object",
+								"additionalProperties": false,
+								"description": "Who may run which of the commands as a peer (rules of their own: no change rule covers a run).",
+								"properties": {
+									"allow": {
+										"$ref": "#/$defs/v2/runRules"
+									},
+									"ask": {
+										"$ref": "#/$defs/v2/runRules"
+									},
+									"deny": {
+										"$ref": "#/$defs/v2/runRules"
+									}
+								}
+							},
 							"review": {
 								"type": "object",
 								"additionalProperties": false,
@@ -4438,7 +4454,7 @@
 				"type": "object",
 				"minProperties": 1,
 				"additionalProperties": false,
-				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options, attachments, picks), cancelAsk, attach(+into, onDone, onError), pick(+hint, into, onDone, onCancel), unpick, chooseFolder(+title, onDone, onError), saveFile(+name, title, onDone, onError), openFile(+extensions, comments, title, onDone, onError), export(+pages, size, scale, title, name, onDone, onError), undoPlan(+into, drop, keep, head, then, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix, text, span, into, append, keep), press(+in, times), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError), runInTerminal(+text), clearTerminal, closeTerminal, insert(+value, values, into, then, onError), update(+id, where, fields, into, then, onError), delete(+id, where, into, then, onError), undoData(+into, then, onError), redoData(+into, then, onError), importCsv(+file, text, columns, separator, atomic, into, then, onError), openWindow(+fullscreen), closeWindow, fullscreen(+of), lisp(+with), evaluate(+file, confirm, then), propose(+as, file, then, onError), exportChanges(+from, only, into), runHooks(+with); review: accept(+head), reject(+reason), preview, endPreview, restore, revert(+drop, keep, head), undo",
+				"description": "set(+to), push(+value), remove(+at), toggle, increment(+by), if(+then, else), forEach(+as, index, do), while(+do), run(+with), call(+with, into, onError, then, loading, progress, timeout), cancel, emit(+data), send(+data), connect, patch(+message), invoke(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), request(+with, into, append, keep, onEvent, loading, progress, timeout, id, onDone, onError), subscribe(+with, do, append, keep, into, id, onError), respond(+error), signIn(+onDone, onError), signOut, ask(+into, options, attachments, picks), cancelAsk, attach(+into, onDone, onError), pick(+hint, into, onDone, onCancel), unpick, chooseFolder(+title, onDone, onError), saveFile(+name, title, onDone, onError), openFile(+extensions, comments, title, onDone, onError), export(+pages, size, scale, title, name, onDone, onError), undoPlan(+into, drop, keep, head, then, onError), focus, scrollTo, navigate, dismiss, edit(+in, line, column, toLine, toColumn, prefix, text, span, into, append, keep), press(+in, times), after(+do), debounce(+do), animate(+to, ms, easing), copy, log, stop, note, camera(+view, frame, projection, orbit, zoom), transform(+mode, axis, value, end), image(+of, with, onError), audio(+of, to, from, ms, onError), runInTerminal(+text), clearTerminal, closeTerminal, insert(+value, values, into, then, onError), update(+id, where, fields, into, then, onError), delete(+id, where, into, then, onError), undoData(+into, then, onError), redoData(+into, then, onError), importCsv(+file, text, columns, separator, atomic, into, then, onError), openWindow(+fullscreen), closeWindow, fullscreen(+of), lisp(+with), evaluate(+file, confirm, then), propose(+as, file, then, onError), exportChanges(+from, only, into), runHooks(+with); review: accept(+head), reject(+reason), preview, endPreview, restore, revert(+drop, keep, head), undo, allowRun(+always, for), denyRun(+reason), undoRun",
 				"properties": {
 					"set": {},
 					"push": {},
@@ -4484,6 +4500,9 @@
 						"const": true
 					},
 					"undoPlan": {},
+					"allowRun": {},
+					"denyRun": {},
+					"undoRun": {},
 					"focus": {},
 					"scrollTo": {},
 					"navigate": {},
@@ -4655,6 +4674,8 @@
 							}
 						]
 					},
+					"always": {},
+					"for": {},
 					"in": {},
 					"line": {},
 					"column": {},
@@ -4923,6 +4944,16 @@
 				"type": "string",
 				"pattern": "^[^() ]+(\\((#|/)[^ ]*\\))?$",
 				"description": "\"author\" or \"author(pattern)\", e.g. \"agent(#board)\""
+			},
+			"runRules": {
+				"type": "array",
+				"maxItems": 64,
+				"items": {
+					"type": "string",
+					"maxLength": 256,
+					"pattern": "^[^() ]+(\\([^()/# ][^() ]*\\))?$",
+					"description": "\"author\" or \"author(command)\": a name, or a prefix ending in *: \"agent(moveCard)\""
+				}
 			},
 			"characterPairs": {
 				"type": "array",
@@ -5214,10 +5245,25 @@
 						"$ref": "#/$defs/v2/handler"
 					},
 					"arguments": {
-						"type": "array",
-						"items": {
-							"type": "string"
-						}
+						"description": "Its arguments: names, or a type for each (the state's types)",
+						"anyOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							{
+								"type": "object",
+								"maxProperties": 32,
+								"propertyNames": {
+									"pattern": "^[A-Za-z0-9_-]{1,64}$"
+								},
+								"additionalProperties": {
+									"$ref": "#/$defs/v2/stateType"
+								}
+							}
+						]
 					}
 				}
 			},

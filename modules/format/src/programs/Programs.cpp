@@ -27,8 +27,9 @@ constexpr auto freeSteps = std::to_array<std::string_view>(
 	 "audio",    "dismiss", "transform", "insert", "update",    "delete",   "undoData",   "redoData",    "runHooks"});
 
 /// The steps that decide on changes: only ever from the person's own input.
-constexpr auto reviewSteps = std::to_array<std::string_view>(
-    {"accept", "reject", "preview", "endPreview", "restore", "revert", "undo", "evaluate"});
+constexpr auto reviewSteps =
+    std::to_array<std::string_view>({"accept", "reject", "preview", "endPreview", "restore", "revert", "undo",
+	                                 "evaluate", "allowRun", "denyRun", "undoRun"});
 
 /// @brief Credits the entries of a program no author is known for, so that none runs as if nobody wrote it.
 /// @param section The section.
@@ -69,10 +70,36 @@ bool isPersonsAuthor(std::string_view author) noexcept {
 	return author == "file" || author == "user" || author.starts_with("user/");
 }
 
-AuthorityScope::AuthorityScope(Engine& engine, const StepAuthority* authority) noexcept
-    : engine_(engine), outer_(std::exchange(engine.authority, authority)) {}
+KeptAuthority keptAuthority(const Engine& engine) {
+	return engine.authority ? KeptAuthority(*engine.authority) : std::nullopt;
+}
 
-AuthorityScope::~AuthorityScope() { engine_.authority = outer_; }
+AuthorityScope::AuthorityScope(Engine& engine, const StepAuthority* authority, bool judged)
+    : engine_(engine), outer_(std::exchange(engine.authority, authority)) {
+	// Only the outermost scope of a run's work judges it: one inside it (a Lisp step) is part of the same work
+	if(judged && authority && authority->run && !(outer_ && outer_->run) && engine.runControl) {
+		run_ = authority->run;
+		before_ = engine.versions.state();
+	}
+}
+
+// NOLINTNEXTLINE(bugprone-exception-escape): only building the report in its catch can throw, if memory runs out
+AuthorityScope::~AuthorityScope() {
+	engine_.authority = outer_;
+	if(!run_) return;
+	try {
+		const json& state = engine_.versions.state();
+		if(state == before_) return;
+		const std::optional<std::string> refusal = engine_.runControl->stateDenial(run_->runner, before_, state);
+		if(!refusal) return;
+		engine_.versions.state() = std::move(before_);
+		engine_.document.markStateChanged();
+		engine_.reconciler.requestStateUpdate();
+		engine_.report("what a run by '" + run_->runner + "' scheduled was put back: " + *refusal);
+	} catch(const std::exception& error) { // never out of a destructor: the change stays, and is told
+		engine_.report(std::string("what a run scheduled couldn't be judged: ") + error.what());
+	}
+}
 
 WorkBudget& Programs::work() const {
 	WorkBudget* running = engine_.document.budget();
@@ -101,7 +128,7 @@ void Programs::load() {
 	limits.budget = {lisp::maxBuildOperations, lisp::maxBuildBytes};
 	auto next = std::make_shared<lisp::Interpreter>(limits);
 	definePrimitives(*next);
-	next->setPure(true); // macros run now, and values are worked out: neither reaches anything
+	next->setPure(true);        // macros run now, and values are worked out: neither reaches anything
 	program.load(*next, false); // what runs: the build compiled everything, views too, and refused what didn't compile
 	next->workOutDefinitions();
 	next->setPure(false);
@@ -180,6 +207,8 @@ bool Programs::hasProgram() const noexcept { return live_ != nullptr; }
 
 std::optional<std::string> Programs::refusal(std::string_view what, StepKind kind,
                                              std::span<const std::string> ran) const {
+	if(engine_.authority && engine_.authority->run && engine_.authority->run->refused)
+		return "the run that scheduled this was refused, so what it scheduled runs no step";
 	if(kind == StepKind::None || kind == StepKind::Free) return std::nullopt;
 	const std::string step =
 	    "the " + std::string(kind == StepKind::Review ? "review" : "control") + " step \"" + std::string(what) + "\"";

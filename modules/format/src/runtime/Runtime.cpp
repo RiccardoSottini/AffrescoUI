@@ -42,6 +42,7 @@ Runtime::Runtime(VersionControl& versions, std::filesystem::path baseDirectory)
 }
 
 Runtime::~Runtime() {
+	setRunControl(nullptr); // the run control outlives the runtime and would call into it
 	impl_->composed.setObserver(nullptr);
 	impl_->events.disconnectAll(); // the window and the panels it keeps would call into the runtime on their next event
 	impl_->programs.dismissQuestion(); // and so would the answer to a question it asked
@@ -51,6 +52,8 @@ Runtime::~Runtime() {
 	impl_->serviceCalls.cancelAll();   // and so would what services return
 	if(impl_->identity) impl_->identity->onStatus(nullptr); // and so would a sign-in
 }
+
+Engine& Runtime::engine() const noexcept { return *impl_; }
 
 void Runtime::registerType(std::string name, Factory factory, std::vector<std::string> properties,
                            ApplyProperties apply) {
