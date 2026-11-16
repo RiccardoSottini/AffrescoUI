@@ -10,6 +10,7 @@ affrescoui_module(vcs
 	# history: the history on disk (snapshots, refs, packs) and loading it back, the log and change sets
 	src/history/RepositoryHistory.cpp
 	src/history/RepositoryChanges.cpp
+	src/history/RepositoryUndo.cpp
 	src/history/HistoryStore.cpp
 	# review: proposals, the three-way merge and repairing change sets
 	src/review/RepositoryReview.cpp

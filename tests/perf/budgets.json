@@ -107,6 +107,46 @@
       }
     },
     {
+      "id": "undo-independent",
+      "budget": "An undo of an earlier change no later one touched: 2 ms at most, at any depth",
+      "source": "bench",
+      "workloads": [
+        "history/undo/independent/"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 2.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": {
+        "value": 25.559,
+        "from": "history/undo/independent/10000",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "fbc17f6",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "id": "undo-plan",
+      "budget": "The plan of an undo with 8 conflicts, 10,000 commits back: 12 ms at most",
+      "source": "bench",
+      "workloads": [
+        "history/undoPlan/conflicts/10000"
+      ],
+      "field": "value",
+      "aggregate": "max",
+      "limit": 12.0,
+      "unit": "ms",
+      "ciThreshold": "pending",
+      "measured": {
+        "value": 11.01,
+        "from": "history/undoPlan/conflicts/10000",
+        "machine": "Apple M4 Pro, macOS 27.0.1",
+        "commit": "fbc17f6",
+        "date": "2026-11-16"
+      }
+    },
+    {
       "id": "typing",
       "budget": "Typing in a 100,000-line file: 8 ms at most from key to frame, at p99",
       "source": "bench",

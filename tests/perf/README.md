@@ -69,6 +69,8 @@ as the OpenGL driver's, aren't counted.
 | `history/commit/<n>` | One small commit (a label's text) on a Kanban history of 100 or 10,000 commits, 100 per run: the same cost at both sizes, and `retainedBytes` is what each commit keeps. Each run adds to the history |
 | `history/blame` | Blame of a node no commit changed, on the 10,000-commit history: it reads every commit back to revision 0 |
 | `history/diff` | A diff of two commits on the 10,000-commit history, the farthest from their snapshot: the worst rebuild |
+| `history/undo/independent/<n>` | Undoing revision 1, which set an action no later commit touched, on a history of 100 or 10,000 commits: worked out and committed (the commit checks the document, as every commit does). Between runs it is undone again, unmeasured: the same cost at both sizes |
+| `history/undoPlan/conflicts/10000` | The plan of an undo of revision 1 on the 10,000-commit history, which set 8 actions that later commits spread over the history set again: 8 conflicts, each traced to the commit that built on it |
 | `history/load/10000` | Opening a folder holding a history of 10,000 commits (written once, unmeasured, as one change set) |
 | `load/<template>` | Parsing, validating and building a template into a window. The window is opened before the run. Each run keeps its screen, so `retainedBytes` is the memory of a loaded screen |
 | `build/<template>` | Building a template into a window (`Screen::build`, with its checker warnings). The window is opened and the screen read, its fonts loaded, before the run. `retainedBytes` is the memory of the panels built and what the runtime keeps for them: divide it by the screen's panels for the memory per panel |
@@ -228,7 +230,7 @@ The areas:
 | `revision` | Kanban cards | O(1): the same small patch to a growing document |
 | `checker` | Kanban cards | O(n): the checker's findings and validation |
 | `history/commit` | commits | O(1): a commit, and the memory it keeps |
-| `history/restore`, `revert`, `diff` | commits | O(1) |
+| `history/restore`, `revert`, `diff`, `undoPlan` | commits | O(1); an undo's plan with no conflict walks no later commit |
 | `history/blame`, `history/load` | commits | O(n): blame searches the whole history; loading reads it |
 | `expressions/list`, `sort` | list items | O(n): filter, map and sum; O(n log n): a sort |
 | `text/measure`, `wrap`, `shape` | characters | O(n): Latin, Greek and Cyrillic words with icons |

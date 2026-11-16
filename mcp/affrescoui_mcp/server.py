@@ -19,6 +19,7 @@ from .picks import pick_lines, picks_of
 from .replies import client_name, describe, host_failure, malformed, scenarios_report, screen_info
 from .repository import ROOT, confined_path, find_cli, guide_path
 from .tools import INSTRUCTIONS, PROMPTS, SERVE_PROMPT, TOOLS
+from .undo import choice_error, plan_summary, undo_message
 
 OUTSIDE = "error: {}: must be inside the repository, the working folder or a --root folder"
 SCREEN_FILES = (".screen.json", ".screen.lisp")  # a screen file, in JSON or in the Lisp notation
@@ -471,8 +472,22 @@ class Server:
         return compact(catalog.get("data") or {"collections": {}, "queries": []}), False
 
     def change_main(self, kind, args):
-        """The restore_revision and revert_revision tools: main brought back to a revision, or one revision undone."""
+        """The restore_revision tool: main brought back to a revision."""
         return describe(self.host.request({"type": kind, "author": self.client, "revision": args.get("revision")}))
+
+    def revert_revision(self, args):
+        """The revert_revision tool: with dry_run, the plan of undoing one revision (nothing changes); else the undo,
+        with the choices given, described as applied, proposed or rejected. Arguments that break the tool's schema
+        are refused before the host is asked."""
+        refused = choice_error(args)
+        if refused:
+            return refused, True
+        if not args.get("dry_run"):
+            return describe(self.host.request(undo_message("revert", args, self.client)))
+        reply = self.host.request(undo_message("undoPlan", args, self.client))
+        if reply.get("type") != "undoPlan":
+            return host_failure(reply)
+        return compact(plan_summary(reply.get("plan"))), False
 
     def get_events(self, args):
         """The get_events tool: what happened since the last call."""
@@ -505,7 +520,7 @@ class Server:
         "get_history": get_history,
         "get_diff": get_diff,
         "restore_revision": lambda self, args: self.change_main("restore", args),
-        "revert_revision": lambda self, args: self.change_main("revert", args),
+        "revert_revision": revert_revision,
         "get_events": get_events,
         "export_changes": export_changes,
         "get_pick": get_pick,

@@ -90,7 +90,8 @@ history.
   `HEAD~2` (two back on `main`), or `proposal/3` (that proposal's newest commit).
 - `main` is append-only. Undo, restore and revert all add commits, so the history is an **audit log** nobody can
   rewrite, including the reviewer.
-- The live state (`/state`) is data, not code: commits keep the document, and state changes aren't undone.
+- The live state (`/state`) is data, not code: commits keep the document, and state changes aren't undone (an undo
+  takes back a commit's own change to it only while nothing changed that part since, in the run that made it).
 
 ## Permissions: allow, ask, deny
 The screen file decides, in a `permissions` section that no revision can change:
@@ -692,16 +693,16 @@ it back finds them.
 - **Evidence comes from the host.** Pictures, behaviour lines and scenario results are gathered by the host from the
   proposal itself; a revision can't carry any.
 - **Merges never guess:** a proposal that no longer applies to `main` is closed with the reason, and a revert whose
-  parts changed later is refused as a conflict.
+  parts changed later lists them as conflicts and waits for the person's choice for each.
 
 ## History
 - **Log:** every commit on `main` with its author, committer, message, time and parents (two for a merged
   proposal). It is available to the screen (`history`) and to agents.
 - **Diff** any two revisions, or a proposal against `main`.
-- **Revert** a revision: a new commit with its inverse, keeping everything after it (`git revert`). It undoes what the
+- **Revert** a revision: one new commit that undoes it, keeping everything after it (`git revert`). It undoes what the
   commit changed in the document and, in the run that made it, in the live state (the live state starts again with
-  every run, so after a restart only the document is reverted). If a later commit, or an action, changed the same
-  parts, it is refused as a conflict. **Undo** reverts the latest revision.
+  every run, so after a restart only the document is reverted). Where a later commit changed the same parts, the
+  person chooses (below). **Undo** reverts the latest revision.
 - **Restore** a revision: a new commit that makes the whole screen equal to it again (`git restore --source`).
 - Reverts and restores made by agents follow the same permissions as any other change.
 - **Blame** a node or a value (`git blame`): the commit on `main` that last changed it, with its author, committer
@@ -710,6 +711,37 @@ it back finds them.
   or replaced along with what holds it); an item added or removed before it in a list only moves it. A path under
   `/state` gives the last commit whose patch reached that part of the live state (actions that change the state
   aren't commits). What no commit changed gives revision 0.
+
+## Undo that keeps what came later
+Undoing an earlier commit is a three-way merge: the commit's own document is the base, main's head is one side and the
+document before the commit the other, keyed by node id like a rebase (lists of nodes by id, objects key by key, a
+definition of a program whole). What no later commit touched is undone; later changes to other nodes, or to other
+properties of the same node, stay. A part a later commit changed too is a **conflict**: the undo is refused until the
+person chooses for it, and `undoPlan` (`Repository::undoPlan`, the protocol's `undoPlan`) shows the plan first.
+
+- **The plan** lists each conflict (its value as the commit left it, as it is now and as it was before, the later
+  commits that changed it, oldest first), the later commits it involves, the parts a later change removed (nothing to
+  undo there), what happens to the live state, and how many later commits stay exactly as they are. Lists stop at 64,
+  with how many more.
+- **The choices:** `drop` takes the later changes to a conflict out too, back to the part before the commit; `keep`
+  leaves them, so the commit's part there isn't undone. Each names conflict paths, or `"all"`. `then` is a JSON Patch
+  applied after, in the same commit, to rebuild a dropped change on what is left. `head` is main's head the choices
+  were made on: if main moved since, the undo is refused ("look again"). Without choices, an undo with conflicts is
+  refused, naming them.
+- **One commit.** The undo is one commit, with a message that names it (`Revert "…"`, and the later revisions whose
+  changes it drops). Its `undo` mark (`CommitInfo::undo`, in the log and the history folder, covered by its id) says
+  `of` (the commit undone), `drop` (the paths dropped) and `then` (how many of its last operations are the rebuild).
+  The mark is checked when the commit lands: its patch must be that undo of that commit on main as it is now. It gives
+  no permission of its own.
+- **Never part of a model.** If a later commit changed a model the commit changed, the undo is refused, naming that
+  revision: undo it first. The records follow "Revert and restore never touch the records" above.
+- **A rebuild or a drop is a proposal** when its author may not review (on a screen without `permissions`, where
+  everyone may, when its author isn't the person, `user`): an undo that takes out what later changes
+  built, or rebuilds one, goes to a reviewer even when the rules would allow the change, never remembered as a grant
+  (`ProposalInfo::undo`, and a reason naming what it takes out). A plain undo is judged like any other change.
+- **The live state** a commit changed is undone with it while every part is as the commit left it; otherwise it is all
+  kept as it is, and the plan says so.
+- An undo of an undo brings the change back; a merge commit is undone whole, against its first parent.
 
 ## History on disk
 A screen opened from a file (`Screen::fromFile`, which `affrescoui_launcher` uses) keeps its history in
@@ -892,7 +924,7 @@ agent's, an in-screen `features.compose` is `features`'. A person can ask an age
 | Proposals | `proposals`, `previewProposal`, `acceptProposal`, `rejectProposal`; `proposalDiff`, `accept(id, Approval)` | `proposed`, `review`; reviewers: `preview`, `endPreview`, `accept` (`head`, `dontAskAgain`), `reject` | push with `proposal` (no accept tool) |
 | Modes and grants | `setMode`, `setModeForThisRun`; `grants`, `revokeGrant` | reviewers: `setMode`, `revoke` | (none) |
 | Runs | `vcs::Runs` (`RunControl`): `judge`, `begin`, `allow`, `deny`, `finish`, `runs`, `grants`, `revoke`, `expire`, `stateDenial` | `getCommands`, `runCommand`, `undoRun`; reviewers: `allowRun`, `denyRun`, `revokeRun`; `review` carries `runs` and `runGrants` | `list_commands`, `run_command`, `undo_run` |
-| History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff`, `blame` | `getHistory` (`limit`), `diff`, `blame` (`target`), `revert`, `undo`, `restore`, `committed` | `get_history`, `get_diff`, `get_blame`, `revert_revision`, `restore_revision` |
+| History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff`, `blame`; `vcs::Repository::undoPlan`, `undoRevision` | `getHistory` (`limit`), `diff`, `blame` (`target`), `revert`, `undo`, `undoPlan`, `restore`, `committed` | `get_history`, `get_diff`, `get_blame`, `revert_revision`, `restore_revision` |
 | Change sets | `exportChanges`, `importChanges`, `hasImported` | `exportChanges` | `export_changes` |
 | History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |
 | Programs | `sourceDocument`, `programAuthors` | `source` in `hello` and `document` | `get_screen`, `find_nodes`, `submit_revision` |

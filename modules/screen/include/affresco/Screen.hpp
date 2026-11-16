@@ -545,6 +545,23 @@ public:
 	/// @return true if it was reverted.
 	bool revert(int revision, std::string* error = nullptr);
 
+	/// @brief What undoing one revision would do, worked out without changing anything (VersionControl::undoPlan(),
+	/// as the person, author "user"): the later changes it keeps, those that conflict, and what is left to choose.
+	/// @param revision The revision to undo.
+	/// @param optionsJson The choices made so far, as JSON text: `{"drop", "keep", "then", "head"}` (SCREEN_FORMAT.md,
+	/// "Live protocol"); empty for none.
+	/// @return The plan as JSON text. An unknown revision or malformed choices give a plan whose outcome is "blocked"
+	/// and whose "blocked" is the error.
+	[[nodiscard]] std::string undoPlan(int revision, std::string_view optionsJson = {}) const;
+
+	/// @brief Undoes one revision with the choices made on its plan, keeping the later changes they keep, as one new
+	/// revision (VersionControl::undoRevision(), author "user"). Without choices, as revert(int, std::string*).
+	/// @param revision The revision to undo.
+	/// @param optionsJson The choices, as JSON text (see undoPlan()); empty for none.
+	/// @param error Receives the error, if any (may be nullptr): malformed choices too.
+	/// @return true if it was undone.
+	bool revert(int revision, std::string_view optionsJson, std::string* error);
+
 	/// @brief Reverts the latest revision.
 	/// @param error Receives the error, if any (may be nullptr).
 	/// @return true if it was reverted.

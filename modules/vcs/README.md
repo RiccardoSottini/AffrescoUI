@@ -32,8 +32,14 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **A delta rebuilds its document exactly** (`detail::delta`, `Deltas.hpp`): keys in order, 1 and 1.0 apart, which
   nlohmann's `json::diff` doesn't. main's head is the working copy, so commits never rebuild; diffs, restores, reverts
   and loading do, from at most 63 deltas.
-- **A revert undoes what the commit changed,** in the document and, in the run that made it, in the live state; it is
-  refused if a later commit or an action changed those parts since.
+- **A revert undoes what the commit changed and keeps what came later** (`RepositoryUndo.cpp`): a three-way merge
+  with the commit's document as the base, main as one side and its first parent's document as the other, so lists of
+  nodes merge by id. A part a later commit changed too is a conflict, settled only by the caller's `drop` or `keep`
+  (`MergeOptions::takeProposal` takes the parent's value for a dropped one); `detail::Trail` names the later commits
+  that changed it. `undoPlan` judges the result as a change; `undoRevision` writes it, marked `undo` (`of`, `drop`,
+  `then`), and `commit()` and `submitRevision` work it out again before it lands. A drop or a rebuild by an author
+  who may not review is always a proposal, and where the screen declares no permissions, by anyone but the person.
+  The live state is undone only while every part is as the commit left it.
 - **Every change is atomic:** a revision applies whole, or nothing changes (`RevisionStatus::Rejected` says why).
 - **A revision is bounded before it is applied** (`detail::RevisionBudget`, `Budget.hpp`): 10,000 operations (a
   proposal with all its commits too), 100,000 values copied by `copy` operations, and objects of at most 10,000
@@ -177,7 +183,8 @@ src/
     Budget.hpp / .cpp       what preparing one revision may cost
     Deltas.hpp / .cpp       exact deltas between documents, applying them safely, JSON Pointer segments
     Repository.cpp          commits and main; checking, judging and landing a revision
-    RepositoryDocuments.cpp rebuilding a commit's document from a snapshot and deltas; blame; restore and revert
+    RepositoryDocuments.cpp rebuilding a commit's document from a snapshot and deltas; blame; restore
+    Trail.hpp               a part followed back through the commits on main, for blame and an undo's plan
   review/                   proposals and what it takes to merge them
     RepositoryProposals.cpp opening, extending, previewing, accepting and rejecting proposals
     RepositoryReview.cpp    rebasing proposals onto a newer main, approvals and review policies, expiring grants
@@ -200,6 +207,7 @@ src/
     HistoryStore.hpp / .cpp the history folder: the lock, atomic writes, bounded reads, packs
     RepositoryHistory.cpp   writing and loading objects and refs, every hash checked
     RepositoryChanges.cpp   the log, and exporting, checking and importing change sets
+    RepositoryUndo.cpp      undoing an earlier commit: the plan, the choices, the undo mark
   CompositionProofRevision.hpp / .cpp   the revision that installs a feature from another app
   Reasons.hpp               an error's reason without its prefix, for messages that wrap it
   Sha256.hpp                SHA-256 (forwards to core's Sha256.hpp)

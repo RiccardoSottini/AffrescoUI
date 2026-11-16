@@ -18,6 +18,23 @@ change, file by file, with preview, accept, reject and undo
 An app's `{"call": "changes.open", "with": {"source": address, "line": n}}` opens it on its Source page instead: the
 text that drew an element, read-only, its line marked, and the commit that last changed it.
 
+Before an applied change is undone, the window shows what the undo would do. Its screen asks the host through three
+calls, and the host decides only through version control, as the person (the channel `user`):
+
+| Call | What it does |
+|---|---|
+| `changes.undoPlan {commit, drop?, keep?}` | The plan, worked out without changing anything (`VersionControl::undoPlan`, VERSION_CONTROL.md, "History"): which later changes were built on it, how many stay as they are, and what is left to choose |
+| `changes.undo {commit, drop?, keep?, head?}` | Undoes it as one new commit by the person. `drop` takes out the later changes built on it, `keep` leaves them (that part is not undone), both `"all"` or a list of paths; `head` is the main head the plan was read on, so a choice made on changes nobody saw is refused. Without them, a plain undo that keeps everything after it |
+| `changes.askUndo {commit, text}` | Runs the app's own action `assistant.start` with `{"text"}` (1 to 32 KiB), so its assistant asks the agents in the person's name; their proposal waits for review like any other. An app without that action answers "this app has no assistant" |
+
+The window takes only `drop`, `keep` and `head` from its screen (never `then`, a patch applied with the undo), and a
+malformed choice is an error it shows. `changes.list` also says `canAsk`: whether the app's document has the action
+`assistant.start`. With a plan whose outcome is "clean", the window shows the Undo button as before, with a quiet line
+for the later changes that stay, live data changed since that stays, and each warning. With "choose", it lists the
+later changes built on it (number, message, author and the parts they changed) and offers *Undo, and take these out
+too* (`drop: "all"`), *Undo the rest, leave these* (`keep: "all"`, shown off when that plan is blocked) and, with
+`canAsk`, *Ask the assistant to keep them*. With "blocked", the reason, and the request to the assistant.
+
 The app may use nothing its `app.json` declares (origins, folders, programs, sound, the assistant) until the person
 allows it. The host asks in a window of its own
 ([`../../examples/shared/host`](../../examples/shared/host/permissions.screen.json), the `.screen.lisp` program for an app opened

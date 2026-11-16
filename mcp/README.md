@@ -119,7 +119,7 @@ The setup, once the host builds on Windows (work in progress) and Python can con
 | `get_blame` | Who last changed a node (`"#board"`, `"#board/text"`) or a path (`"/colors/accent"`), and when, like `git blame`: the commit's revision, id, author, committer, message and time |
 | `get_pick` | What the person pointed at and has not sent yet: each element's node, type, and the definition or file that builds it (the host's `getPicks`). Refused to a connection whose reads are limited. Read-only |
 | `get_source` | Where a node is written (`at`: `"#id"`, a JSON Pointer or a definition's address): one line of JSON (address, file, line, notation, ...), then the definition's text in a program, or the node as JSON in a JSON document (the host's `getSource`). Refused to a connection whose reads are limited. Read-only |
-| `revert_revision` | Undo one revision and keep the later ones, like `git revert` (follows the permissions) |
+| `revert_revision` | Undo one earlier revision and keep the later ones that don't depend on it, in one new revision, like `git revert` (follows the permissions). `dry_run` returns the plan (the host's `undoPlan`) and changes nothing: its `outcome` (`clean`, `choose`, `ready`, `blocked`), `head`, the `conflicts` (later changes built on it), the `later` commits they come from, the live `state` it undoes and keeps, and its `warnings`. Each conflict's `path` goes in `drop` (the later change is lost there) or `keep` (it stays, and that part is not undone), or `"all"`, with `head` from the plan; `then` is a JSON Patch applied after the undo, to keep what a later change built in another place. With `drop` or `then`, the undo is always a proposal the person reviews. A refusal on a conflict says to dry-run first |
 | `restore_revision` | Bring the whole screen back to an earlier revision, like `git restore` (follows the permissions) |
 | `get_events` | What happened since the last call: decisions on proposals, commits by anyone, mode and grant changes, emitted events, the outcome of runs that waited (`{"run", "command", "outcome", "detail"}`), `{"commands": "may have changed"}` once after commits, errors |
 | `export_changes` | The revisions after a point as a change set ("plugin") |
@@ -129,6 +129,14 @@ The setup, once the host builds on Windows (work in progress) and Python can con
 | `get_usage` | The screen's usage summaries (counts per node and action, screens visited, controls never used), when the host switched them on with the person's consent and the connection may review. Read-only |
 
 Prompt: `serve_studio` (work through the people's requests one after another; the name is kept for existing clients).
+
+**Undoing an earlier change** without losing what was built on it: look first, then undo with the choices.
+
+```text
+revert_revision {"revision": 12, "dry_run": true}                      -> {"outcome":"choose","head":"9f3c2a1","conflicts":[{"path":"#title/size",...}],...}
+revert_revision {"revision": 12, "drop": ["#title/size"], "head": "9f3c2a1",
+                 "then": [{"op": "replace", "path": "/styles/heading/size", "value": 28}]}  -> proposed as proposal 4 ...
+```
 
 **Reading little.** Every node has an id (SCREEN_FORMAT.md, "Every type"), so an agent addresses nodes by name. The
 cheap way through a request: `get_screen` with `outline=true` (and `depth`), or `find_nodes`; then `at="#id"` for the
@@ -166,6 +174,7 @@ before commands answers `this host is older and has no commands`.
 | `picks.py` | What the person pointed at (pick records), cleaned to a record's keys and told in plain lines |
 | `commands.py` | Using the app: the commands listed a line each, a run's outcome and its changes in a few lines, undo |
 | `replies.py` | What the agent is told of the host's replies and of messages the server can't use |
+| `undo.py` | `revert_revision`'s choices, checked before the host is asked, and the undo's plan cut to what an agent needs |
 | `repository.py` | Where the guide and the `affrescoui` tool are found |
 
 **Queries are tested** without a host: `python3 mcp/test_affrescoui_mcp.py` (ctest `mcp`).

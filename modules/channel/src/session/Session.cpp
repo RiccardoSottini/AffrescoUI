@@ -37,11 +37,12 @@ std::string toBase64(std::string_view bytes) {
 
 /// @brief Tells whether a read shows the document whole, which a peer whose data rules limit its reads may not make.
 /// Picks and sources are among them: a node's definition and its bindings tell what the masked paths hold.
+/// An undo's plan is too: it shows the values a commit and the later ones left.
 /// @param type The message's type.
-/// @return true for diff, fileChanges, exportChanges, render, getEvidence, blame, getPicks and getSource.
+/// @return true for diff, fileChanges, exportChanges, render, getEvidence, blame, getPicks, getSource and undoPlan.
 bool showsWhole(std::string_view type) noexcept {
-	static constexpr std::array<std::string_view, 8> reads = {
-	    "diff", "fileChanges", "exportChanges", "render", "getEvidence", "blame", "getPicks", "getSource"};
+	static constexpr std::array<std::string_view, 9> reads = {
+	    "diff", "fileChanges", "exportChanges", "render", "getEvidence", "blame", "getPicks", "getSource", "undoPlan"};
 	return std::ranges::find(reads, type) != reads.end();
 }
 
@@ -189,6 +190,20 @@ json impactOf(const VersionControl& versions, const json& message) {
 	for(const ProposalInfo& p : versions.proposals())
 		if(json(p.id) == message["proposal"]) return p.impact;
 	return nullptr;
+}
+
+/// @brief The answer to an "undoPlan": what undoing the commit it names would do, with the choices it carries
+/// (VersionControl::undoPlan()).
+/// @param versions The document's version control.
+/// @param message The message: its "revision", and "drop", "keep", "then" and "head" if chosen.
+/// @param author Who asks (whose permissions the plan follows).
+/// @param id The message's id, echoed.
+/// @return `{"type": "undoPlan", "plan", "revision", "id"}`.
+/// @throws DocumentError If it names no revision or a commit there isn't, or its options are malformed.
+json undoPlanAnswer(const VersionControl& versions, const json& message, std::string_view author, const json& id) {
+	if(!message.contains("revision")) expect::fail("undoPlan.revision", "expected a revision number or a commit");
+	const UndoPlan plan = versions.undoPlan(message["revision"], author, undoOptionsFrom(message, "undoPlan"));
+	return {{"type", "undoPlan"}, {"plan", toJson(plan)}, {"revision", versions.head().number}, {"id", id}};
 }
 
 } // namespace
@@ -374,9 +389,10 @@ void Session::reply(const Incoming& in, const RevisionResult& result) {
 }
 
 // revision, restore, revert, undo: changes, which follow the author's permissions like any other, and rebuild the
-// screen, so they have a rate of their own
+// screen, so they have a rate of their own; undoPlan shares it, as it costs a merge
 bool Session::handleChange(const Incoming& in) {
-	if(in.type != "revision" && in.type != "restore" && in.type != "revert" && in.type != "undo") return false;
+	static constexpr std::array<std::string_view, 5> changes = {"revision", "restore", "revert", "undo", "undoPlan"};
+	if(std::ranges::find(changes, in.type) == changes.end()) return false;
 	if(!revisionRate_.take(TokenBucket::Clock::now())) {
 		const std::string what = "too many changes: at most " + toText(limits_.revisionsPerMinute) + " a minute";
 		overLimit(what);
@@ -399,7 +415,10 @@ bool Session::handleChange(const Incoming& in) {
 	} else if(in.type == "restore") {
 		reply(in, versions_.submitFrom(this, versions_.restoreRevision(revision(), in.author)));
 	} else if(in.type == "revert") {
-		reply(in, versions_.submitFrom(this, versions_.revertRevision(revision(), in.author)));
+		const UndoOptions options = undoOptionsFrom(m, "revert");
+		reply(in, versions_.submitFrom(this, versions_.undoRevision(revision(), in.author, options)));
+	} else if(in.type == "undoPlan") {
+		send(undoPlanAnswer(versions_, m, in.author, in.id));
 	} else { // undo
 		reply(in, versions_.submitFrom(this, versions_.revertRevision("HEAD", in.author)));
 	}

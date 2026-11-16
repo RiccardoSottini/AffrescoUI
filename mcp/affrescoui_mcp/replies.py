@@ -32,8 +32,11 @@ def host_failure(reply):
 
 
 def explain_denial(error):
-    """The error of a refused revision, followed by what the rule it names means, if it is a permission denial."""
+    """The error of a refused revision, followed by what the rule it names means, if it is a permission denial, or by
+    how to see the plan, if it is an undo refused on a conflict."""
     text = str(error)
+    if "revert: conflict:" in text:  # after the host's "AffrescoUI screen: "
+        return f"{text}. Call revert_revision with dry_run=true to see what was built on it."
     if "permission denied" not in text:
         return text
     for marker, meaning in DENIALS:
@@ -43,6 +46,11 @@ def explain_denial(error):
 
 
 def describe(reply):
+    """What became of a change, for the agent: applied, proposed for review, or rejected with what to do about it.
+
+    @param reply  the host's answer
+    @return (text, is_error)
+    """
     kind = reply.get("type")
     if kind == "applied":
         return (f"applied: the screen is now at revision {reply.get('revision')} "

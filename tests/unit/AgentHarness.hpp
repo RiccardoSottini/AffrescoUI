@@ -167,6 +167,12 @@ struct Harness {
 	std::vector<json> sent;                   ///< What the agent sent the screen.
 	std::vector<json> revisions;              ///< The revisions among them.
 	std::function<json(const json&)> verdict; ///< The screen's answer to a revision.
+	int head = 3;                             ///< main's head revision, one further for each undo applied.
+	std::vector<json> undos;                  ///< The undoPlan and revert messages among what was sent.
+	std::vector<int> headsSeen;               ///< main's head when each of them arrived.
+	json plan = json::object();               ///< The screen's answer to undoPlan, as its plan.
+	/// The screen's answer to a revert: applied by default (main moves one revision further).
+	std::function<json(const json&)> undoVerdict = [](const json&) { return json{{"type", "applied"}}; };
 	/// The screen's answer to getCommands and runCommand, if set; without it the screen doesn't answer them.
 	std::function<json(const json&)> commands;
 	/// The screen's document.
@@ -220,10 +226,16 @@ struct Harness {
 		const std::string type = message.value("type", "");
 		json reply;
 		if(type == "getDocument") {
-			reply = {{"type", "document"}, {"revision", 3}, {"document", document}, {"state", {{"board", "Q3"}}}};
+			reply = {{"type", "document"}, {"revision", head}, {"document", document}, {"state", {{"board", "Q3"}}}};
 		} else if(type == "revision") {
 			revisions.push_back(message);
 			reply = verdict(message);
+		} else if(type == "undoPlan" || type == "revert") {
+			undos.push_back(message);
+			headsSeen.push_back(head);
+			reply = type == "undoPlan" ? json{{"type", "undoPlan"}, {"revision", head}, {"plan", plan}}
+			                           : undoVerdict(message);
+			if(reply.value("type", "") == "applied") reply["revision"] = ++head;
 		} else if((type == "getCommands" || type == "runCommand") && commands) {
 			reply = commands(message);
 		} else {

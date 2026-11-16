@@ -265,7 +265,7 @@ TEST_CASE("assistant_lisp_input: words, in brackets or not, stay a request") {
 	built.press(Key::Enter);
 	REQUIRE(built.requests().size() == 2);
 	CHECK(built.requests()[1] == "make the title blue");
-	const json assistant = built.assistant(); // held: a loop over a member of a temporary reads freed memory
+	const json assistant = built.assistant();
 	for(const json& message : assistant["messages"]) CHECK(message.value("kind", "message") == "message");
 }
 
@@ -324,7 +324,7 @@ TEST_CASE("assistant_lisp_input: Cmd+Enter (Ctrl+Enter) and Ask instead send a f
 	built.run("assistant.askDraft"); // what the preview's Ask instead link runs
 	REQUIRE(built.requests().size() == 2);
 	CHECK(built.requests()[1] == "(+ 3 4)");
-	const json assistant = built.assistant(); // held: a loop over a member of a temporary reads freed memory
+	const json assistant = built.assistant();
 	for(const json& message : assistant["messages"]) CHECK(message.value("kind", "message") == "message");
 
 	built.type("(+ 5"); // Shift+Enter still starts a line in a form
