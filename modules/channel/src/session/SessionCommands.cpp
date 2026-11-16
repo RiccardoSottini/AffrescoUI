@@ -130,7 +130,7 @@ json checkedRun(const json& message, const PeerLimits& limits, bool limited) {
 	std::string evidence = optionalText(message, "evidence", "runCommand.evidence", maxTextBytes);
 	if(evidence.empty()) evidence = "state";
 	if(evidence != "state" && evidence != "picture" && evidence != "none")
-		expect::fail("runCommand.evidence", "expected \"state\", \"picture\" or \"none\"");
+		expect::fail("runCommand.evidence", R"(expected "state", "picture" or "none")");
 	const int scale = checkedScale(message);
 	if(limited) evidence = "none";
 	return {{"command", command}, {"arguments", std::move(arguments)}, {"evidence", evidence}, {"scale", scale}};
@@ -264,6 +264,7 @@ bool Session::handleCommands(const Incoming& in) {
 		overLimit(what);
 		throw DocumentError(what);
 	}
+	// NOLINTNEXTLINE(bugprone-exception-escape): only copying a message can throw, if memory runs out
 	commands_->run(in.author, run, [answer, this, alive = std::weak_ptr<bool>(commandsAlive_)](const json& message) {
 		if(alive.expired()) return; // the session left the service, or is gone
 		if(message.value("type", "") == "waiting") waitingRuns_.push_back(runIn(message));

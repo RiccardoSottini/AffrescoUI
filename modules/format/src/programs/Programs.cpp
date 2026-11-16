@@ -83,6 +83,7 @@ AuthorityScope::AuthorityScope(Engine& engine, const StepAuthority* authority, b
 	}
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape): only building the report in its catch can throw, if memory runs out
 AuthorityScope::~AuthorityScope() {
 	engine_.authority = outer_;
 	if(!run_) return;

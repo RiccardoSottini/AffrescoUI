@@ -71,7 +71,7 @@ bool holds(const json& text, std::string_view part) {
 	if(!text.is_string()) return false;
 	std::string lower = text.get<std::string>();
 	std::ranges::transform(lower, lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-	return lower.find(part) != std::string::npos;
+	return lower.contains(part);
 }
 
 /// @brief Tells whether a command matches a getCommands filter.
@@ -178,7 +178,8 @@ std::optional<std::string> ScreenCommands::busy() const {
 
 ScreenCommands::Checked ScreenCommands::check(std::string_view author, const std::string& name, json& arguments) const {
 	Checked checked;
-	if((checked.refusal = busy())) return checked;
+	checked.refusal = busy();
+	if(checked.refusal) return checked;
 	const std::optional<json> entry = runtime_.command(name);
 	if(!entry) {
 		std::vector<std::string> names;
@@ -189,7 +190,8 @@ ScreenCommands::Checked ScreenCommands::check(std::string_view author, const std
 		return checked;
 	}
 	checked.entry = *entry;
-	if((checked.refusal = runtime_.checkCommandArguments(name, arguments))) return checked;
+	checked.refusal = runtime_.checkCommandArguments(name, arguments);
+	if(checked.refusal) return checked;
 	if(!checked.entry.value("enabled", true)) {
 		checked.refusal = "'" + name + "' is disabled now";
 		return checked;
@@ -326,7 +328,7 @@ void ScreenCommands::execute(const Waiting& run) {
 		json answer = rejected(*outcome.refusal, run.run);
 		// Ended by what a step said, which can quote what it read (a refusal by the rules names their paths alone)
 		if(std::ranges::contains(outcome.errors, *outcome.refusal)) answer["failed"] = true;
-		return run.answer(std::move(answer));
+		return run.answer(answer);
 	}
 	control_.finish(run.run, RunState::Ran, "", outcome.changes, outcome.errors, outcome.undoable);
 	json answer = {{"type", "ran"},
@@ -429,6 +431,7 @@ void ScreenCommands::setAllowed(bool allowed) {
 	allowed_ = allowed;
 	if(allowed) return;
 	std::vector<int> runs;
+	runs.reserve(waiting_.size());
 	for(const Waiting& waiting : waiting_) runs.push_back(waiting.run);
 	for(const int run : runs) (void)control_.deny(run, "this host runs no commands");
 }
