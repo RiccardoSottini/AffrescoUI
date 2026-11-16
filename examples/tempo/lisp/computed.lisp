@@ -116,7 +116,8 @@
 (defcomputed listMenuItems "The playlist's menu: rename, delete."
   [{:title (t "playlist.rename") :run "startRename"} {:title (t "playlist.delete") :run "askDelete"}])
 
-(defcomputed palette "The command palette's rows: every command that can run, with its keys."
+(defcomputed palette "The command palette's rows: every command that can run, with its keys, but those an agent runs by
+  a song's title (songPlay...)."
   (map (fn [it]
          {:title it.title
           :detail (if it.key
@@ -125,7 +126,7 @@
                                  (split it.key "+")))
                       it.category)
           :run it.name})
-       (filter (fn [it] it.enabled) commands)))
+       (filter (fn [it] (and it.enabled (not= (slice it.name 0 4) "song"))) commands)))
 
 (defcomputed wave "The song's waveform: 64 heights, from its title and place."
   (map-indexed (fn [index it]

@@ -66,7 +66,8 @@
 		"ask": ["agent(/actions)"],
 		"deny": ["*(#statusBar)"],
 		"reviewers": ["studio"],
-		"budgets": [{"author": "agent", "added": 20, "removed": 5, "changed": 50}]
+		"budgets": [{"author": "agent", "added": 20, "removed": 5, "changed": 50}],
+		"run": { "allow": ["agent(songPlay)", "agent(songPause)", "agent(songQueue)", "agent(songLike)"] }
 	},
 
 	"settings": {
@@ -432,7 +433,7 @@
 		"listMinutes": "{{round(sum(computed.list.tracks ?? [], number(split(it.time ?? '0:0', ':')[0]) * 60 + number(split(it.time ?? '0:0', ':')[1])) / 60)}}",
 		"songMenuItems": "{{concat([{ title: t('song.play'), run: 'play', with: { list: state.songMenu.list, track: state.songMenu.track } }, { title: t('song.playNext'), run: 'playNext', with: { key: computed.songMenuKey } }, { title: t('song.addToQueue'), run: 'addToQueue', with: { key: computed.songMenuKey } }, { separator: true }, { title: t('song.addToPlaylist'), submenu: concat(map(data.playlists, { title: it.name, enabled: index != state.songMenu.list, run: 'addToPlaylist', with: { list: index } }), [{ separator: true }, { title: t('playlist.new'), run: 'newPlaylist', with: { withSong: true } }]) }, { title: t(contains(state.liked, computed.songMenuKey) ? 'song.unlike' : 'song.like'), run: 'toggleLike', with: { key: computed.songMenuKey } }], state.songMenu.list < 0 ? [] : [{ title: t('song.remove'), run: 'removeFromPlaylist', with: { list: state.songMenu.list, track: state.songMenu.track } }])}}",
 		"listMenuItems": "{{[{ title: t('playlist.rename'), run: 'startRename' }, { title: t('playlist.delete'), run: 'askDelete' }]}}",
-		"palette": "{{map(filter(commands, it.enabled), { title: it.title, detail: it.key ? join(map(split(it.key, '+'), it == 'mod' ? 'Cmd' : upper(slice(it, 0, 1)) + slice(it, 1)), '+') : it.category, run: it.name })}}",
+		"palette": "{{map(filter(commands, it.enabled && slice(it.name, 0, 4) != 'song'), { title: it.title, detail: it.key ? join(map(split(it.key, '+'), it == 'mod' ? 'Cmd' : upper(slice(it, 0, 1)) + slice(it, 1)), '+') : it.category, run: it.name })}}",
 		"wave": "{{map(range(64), 3 + (index * index * (length(computed.track.title) + state.playingTrack) + index * 7) % 21)}}",
 		"played": "{{clamp(floor(64 * state.elapsed / max(computed.duration, 1)), 0, 64)}}",
 		"wavePlayed": "{{join(map(slice(computed.wave, 0, computed.played), 'M ' + (index * 2 + 1) + ' ' + (28 - it) + ' V ' + (28 + it)), ' ') || 'M -40 -40'}}",
@@ -749,6 +750,29 @@
 		"showSearch": { "title": "Search the library", "category": "View", "icon": "search", "do": [{ "set": "state.page", "to": "search" }, { "focus": "#searchField" }] },
 		"showLiked": { "title": "Show the liked songs", "category": "View", "icon": "heart", "do": [{ "set": "state.page", "to": "liked" }] },
 		"likeSong": { "title": "Like the song playing", "category": "Playback", "icon": "heart", "do": [{ "run": "toggleLike", "with": { "key": "{{computed.playingKey}}" } }] },
+		"songPlay": { "title": "{{t('command.songPlay')}}", "description": "{{t('command.songPlay.about')}}", "category": "Playback", "icon": "play",
+			"arguments": { "title": { "type": ["string", "null"], "description": "The song's title, like Golden Rivers; the paused song when left out" }, "artist": { "type": ["string", "null"], "description": "Its artist, when two songs share a title" } },
+			"do": [
+				{ "note": "a library song, by its title (and artist), plays; without a title, the song again where it paused; a song that isn't there changes nothing but the page: the search shows what its title finds" },
+				{ "if": "{{title == null}}", "then": [{ "set": "state.isPlaying", "to": true }, { "stop": true }] },
+				{ "if": "{{find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))) == null}}", "then": [{ "set": "state.search", "to": "{{trim(title)}}" }, { "set": "state.page", "to": "search" }, { "stop": true }] },
+				{ "run": "play", "with": { "list": -1, "track": "{{number(find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).id)}}" } }
+			] },
+		"songPause": { "title": "{{t('command.songPause')}}", "description": "{{t('command.songPause.about')}}", "category": "Playback", "icon": "pause", "do": [{ "set": "state.isPlaying", "to": false }] },
+		"songQueue": { "title": "{{t('command.songQueue')}}", "description": "{{t('command.songQueue.about')}}", "category": "Playback", "icon": "list-plus",
+			"arguments": { "title": { "type": "string", "description": "The song's title, like Golden Rivers" }, "artist": { "type": ["string", "null"], "description": "Its artist, when two songs share a title" } },
+			"do": [
+				{ "note": "a library song, by its title (and artist), goes to the end of the queue" },
+				{ "if": "{{find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))) == null}}", "then": [{ "set": "state.search", "to": "{{trim(title)}}" }, { "set": "state.page", "to": "search" }, { "stop": true }] },
+				{ "run": "addToQueue", "with": { "key": "{{'-1:' + find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).id}}" } }
+			] },
+		"songLike": { "title": "{{t('command.songLike')}}", "description": "{{t('command.songLike.about')}}", "category": "Playback", "icon": "heart",
+			"arguments": { "title": { "type": "string", "description": "The song's title, like Golden Rivers" }, "artist": { "type": ["string", "null"], "description": "Its artist, when two songs share a title" } },
+			"do": [
+				{ "note": "a library song, by its title (and artist), is liked; a liked song stays liked" },
+				{ "if": "{{find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))) == null}}", "then": [{ "set": "state.search", "to": "{{trim(title)}}" }, { "set": "state.page", "to": "search" }, { "stop": true }] },
+				{ "if": "{{!contains(state.liked, '-1:' + find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).id)}}", "then": [{ "run": "toggleLike", "with": { "key": "{{'-1:' + find(data.songs, lower(it.title) == lower(trim(title)) && (artist == null || lower(it.artist) == lower(trim(artist)))).id}}" } }] }
+			] },
 		"showNowPlaying": { "title": "Show now playing", "category": "View", "icon": "radio", "do": [{ "set": "state.page", "to": "nowPlaying" }] },
 		"showSound": { "title": "Show the equaliser and crossfade", "category": "View", "icon": "sliders-horizontal", "do": [{ "set": "state.page", "to": "sound" }] },
 		"cancelRename": { "title": "Leave the playlist's name", "category": "View", "icon": "x", "enablement": "{{state.renaming}}",

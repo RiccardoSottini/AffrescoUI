@@ -951,7 +951,36 @@
 				{ "expect": { "state": "cardMenu", "is": true } },
 				{ "expect": { "state": "menuAt.x", "is": 242 } }
 			]
+		},
+		{
+			"name": "an-agent-uses-the-board",
+			"note": "An agent runs the board's commands (Commands as tools): moving, assigning and setting a priority are allowed by permissions.run; a card or a column that isn't there changes nothing, and the notice says so; adding a card asks",
+			"steps": [
+				{ "command": "cardMove", "with": { "card": "flo-1", "status": "in review" }, "as": "agent" },
+				{ "expect": { "data": "lane0.length", "is": 3 } },
+				{ "expect": { "data": "lane2.length", "is": 3 } },
+				{ "expect": { "data": "lane2[2].ref", "is": "FLO-1" } },
+				{ "command": "cardAssign", "with": { "card": "FLO-1", "who": "Maya" }, "as": "agent" },
+				{ "expect": { "data": "lane2[2].who", "is": "MK" } },
+				{ "command": "cardPriority", "with": { "card": "FLO-1", "priority": "urgent" }, "as": "agent" },
+				{ "expect": { "data": "lane2[2].priority", "is": 1 } },
+				{ "command": "cardMove", "with": { "card": "FLO-99", "status": "Done" }, "as": "agent" },
+				{ "expect": { "state": "toast.message", "is": "There is no card FLO-99 on this board" } },
+				{ "expect": { "data": "lane3.length", "is": 3 } },
+				{ "command": "cardMove", "with": { "card": "FLO-2", "status": "Archive" }, "as": "agent" },
+				{ "expect": { "state": "toast.message", "is": "There is no column named Archive" } },
+				{ "expect": { "data": "lane0[0].ref", "is": "FLO-2" } },
+				{ "command": "cardAssign", "with": { "card": "FLO-2", "who": "Zoe" }, "as": "agent" },
+				{ "expect": { "state": "toast.message", "is": "Nobody here is named Zoe" } },
+				{ "expect": { "data": "lane0[0].who", "is": "MK" } },
+				{ "command": "cardAdd", "with": { "title": "Write the release notes" }, "verdict": "ask" },
+				{ "expect": { "data": "lane0.length", "is": 3 } },
+				{ "command": "cardAdd", "with": { "title": "Write the release notes", "status": "In progress" }, "as": "studio" },
+				{ "expect": { "data": "lane1.length", "is": 4 } },
+				{ "expect": { "data": "lane1[3].title", "is": "Write the release notes" } },
+				{ "expect": { "data": "lane1[3].ref", "is": "FLO-21" } },
+				{ "expect": { "state": "nextRef", "is": 22 } }
+			]
 		}
-	
 	]
 }

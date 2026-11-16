@@ -50,7 +50,8 @@
                 :ask ["agent(/actions)" "agent(/program)"]
                 :deny ["*(#statusBar)"]
                 :reviewers [studio]
-                :budgets [{:author agent :added 20 :removed 5 :changed 50}]}
+                :budgets [{:author agent :added 20 :removed 5 :changed 50}]
+                :run {:allow ["agent(cardMove)" "agent(cardAssign)" "agent(cardPriority)"]}}
   :theme ~state.theme
   (node#panel-root :color @color.sidebar
     ~(top-bar)

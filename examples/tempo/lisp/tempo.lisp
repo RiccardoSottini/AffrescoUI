@@ -355,6 +355,63 @@
   (set "state.quickPick.query" query)
   (set "state.quickPick.open" true))
 
+;;; By names: what the commands an agent runs (songPlay, songPause, songQueue, songLike) do, on the library's songs. A
+;;; song that isn't there changes nothing but the page: the search shows what its title finds.
+
+(defn songNamed "The library song with that title, and by that artist when given, in any case: its key, or nil." [title artist]
+  (let [song (find (fn [it] (and (= (lower it.title) (lower (trim title)))
+                                 (or (nil? artist) (= (lower it.artist) (lower (trim artist))))))
+                   data.songs)]
+    (when (some? song) (keyOf -1 (number (:id song))))))
+
+(defn searchFor "Shows the search, with what was asked for." [title]
+  (set "state.search" (trim title))
+  (show "search"))
+
+(defn playSong "Plays the library song with that title (and artist); without a title, the song again where it paused." [title artist]
+  (let [key (when (some? title) (songNamed title artist))]
+    (cond (nil? title) (set "state.isPlaying" true)
+          (nil? key) (searchFor title)
+          :else (play (listOf key) (trackOf key)))))
+
+(defn queueSong "Adds the library song with that title (and artist) to the end of the queue." [title artist]
+  (let [key (songNamed title artist)]
+    (if (nil? key) (searchFor title) (addToQueue key))))
+
+(defn likeSongNamed "Likes the library song with that title (and artist); a liked song stays liked." [title artist]
+  (let [key (songNamed title artist)]
+    (cond (nil? key) (searchFor title)
+          (not (has state.liked key)) (toggleLike key))))
+
+(defcommand songPlay "Plays a song, by its title, or the song again."
+  :title ~(t "command.songPlay") :description ~(t "command.songPlay.about")
+  :category ~(t "category.playback") :icon "play"
+  :arguments {:title {:type [string null] :description "The song's title, like Golden Rivers; the paused song when left out"}
+              :artist {:type [string null] :description "Its artist, when two songs share a title"}}
+  [title artist]
+  (playSong title artist))
+
+(defcommand songPause "Pauses the song."
+  :title ~(t "command.songPause") :description ~(t "command.songPause.about")
+  :category ~(t "category.playback") :icon "pause" []
+  (set "state.isPlaying" false))
+
+(defcommand songQueue "Adds a song, by its title, to the end of the queue."
+  :title ~(t "command.songQueue") :description ~(t "command.songQueue.about")
+  :category ~(t "category.playback") :icon "list-plus"
+  :arguments {:title {:type string :description "The song's title, like Golden Rivers"}
+              :artist {:type [string null] :description "Its artist, when two songs share a title"}}
+  [title artist]
+  (queueSong title artist))
+
+(defcommand songLike "Likes a song, by its title."
+  :title ~(t "command.songLike") :description ~(t "command.songLike.about")
+  :category ~(t "category.playback") :icon "heart"
+  :arguments {:title {:type string :description "The song's title, like Golden Rivers"}
+              :artist {:type [string null] :description "Its artist, when two songs share a title"}}
+  [title artist]
+  (likeSongNamed title artist))
+
 ;;; Commands
 
 ;; Tempo opens playing, silently: the first press starts the song's sound; without sound (a host that gives none) it
