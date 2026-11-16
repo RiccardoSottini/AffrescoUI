@@ -26,7 +26,7 @@ namespace {
 std::string kindOf(const json& step) {
 	for(const auto& [key, value] : step.items())
 		if(key != "nth" && key != "note" && key != "to" && key != "toNth" && key != "dx" && key != "dy" &&
-		   key != "moves" && key != "event")
+		   key != "moves" && key != "event" && key != "with" && key != "as" && key != "verdict")
 			return key;
 	return "note";
 }
@@ -70,7 +70,9 @@ void Player::play() {
 			if(!expected.empty()) errors->erase(raised);
 			if(!errors->empty()) throw StepError(errors->front());
 		} catch(const std::exception& error) { // StepError, or what the screen threw (a DocumentError)
-			result_.failures.push_back({i + 1, kindOf(steps[i]) + ": " + error.what()});
+			// A command's refusal names the command itself: "'addCard' would ask (...)"
+			const std::string kind = kindOf(steps[i]);
+			result_.failures.push_back({i + 1, (kind == "command" ? "" : kind + ": ") + error.what()});
 			return;
 		}
 		result_.stepsPlayed = i + 1;
@@ -93,6 +95,8 @@ void Player::playStep(const json& step, std::size_t number) {
 		if(result.status == RevisionStatus::Rejected) throw StepError("refused: " + result.error);
 	} else if(step.contains("action")) {
 		screen.runAction(step["action"].get<std::string>(), window.root(), step.value("event", json::object()).dump());
+	} else if(step.contains("command")) {
+		command(step, number);
 	} else if(step.contains("resize")) {
 		window.setSize(step["resize"][0].get<int>(), step["resize"][1].get<int>());
 	} else if(step.contains("wait")) {

@@ -1,7 +1,7 @@
 /// @file
 /// @brief Unit tests for detail::ScreenCommands, the screen's commands as tools, over a fake run control: the order of
-/// a run's checks, the reviewers' decisions, undo, and what a limited reader is shown. The cases that need commands
-/// to list (the catalog, f4c) and the run control's rules (f4b) wait for the end-to-end tests (f4g).
+/// a run's checks, the reviewers' decisions, the person's question, undo, and what a limited reader is shown. The run
+/// control's own rules are tested through the real stack in command_e2e.cpp.
 
 #include "Headless.hpp"
 #include "Helpers.hpp"
@@ -11,6 +11,8 @@
 #include <affresco/core/Commands.hpp>
 #include <affresco/format/Rules.hpp>
 #include <affresco/format/Runtime.hpp>
+#include <affresco/render/Input.hpp>
+#include <affresco/render/Panel.hpp>
 #include <affresco/render/Window.hpp>
 #include <affresco/vcs/Repository.hpp>
 
@@ -106,6 +108,27 @@ json limitedScreen() {
 	return document;
 }
 
+/// @brief The test screen with a command, "bump", that adds one to the count.
+/// @return The document.
+json bumpScreen() {
+	json document = limitedScreen();
+	document["actions"]["bump"] = {{"title", "Bump"},
+	                               {"do", json::array({{{"set", "state.count"}, {"to", "{{state.count + 1}}"}}})}};
+	return document;
+}
+
+/// @brief A button of the window's question, by its name.
+/// @param panel Where to look.
+/// @param name The name.
+/// @return It, or nullptr.
+affresco::Panel* questionButton(affresco::Panel* panel, std::string_view name) {
+	if(!panel) return nullptr;
+	if(panel->accessibleRole() == "button" && panel->accessibleLabel() == name) return panel;
+	for(const auto& child : panel->children())
+		if(affresco::Panel* found = questionButton(child.get(), name)) return found;
+	return nullptr;
+}
+
 /// @brief A run of the agent's, kept by the run control.
 /// @param id Its number.
 /// @param author Its runner.
@@ -139,6 +162,25 @@ struct Fixture {
 	/// @param document The screen.
 	explicit Fixture(bool build = true, json document = limitedScreen()) : repository(rules, std::move(document)) {
 		if(build) runtime.build(*window);
+	}
+
+	/// @brief The count in the runtime's state.
+	/// @return It.
+	[[nodiscard]] int count() const { return repository.state().at("count").get<int>(); }
+
+	/// @brief Clicks a button of the window's question with the person's own mouse, once shown long enough.
+	/// @param name The button's name.
+	void press(std::string_view name) {
+		clock.advance(600.0);
+		window->render();
+		affresco::Panel* found = questionButton(window->confirmation(), name);
+		REQUIRE(found != nullptr);
+		const affresco::Rect& frame = found->frame();
+		const affresco::Vec2 at{(frame.left + frame.right) / 2.0f, (frame.top + frame.bottom) / 2.0f};
+		window->routeMouseMove(at);
+		window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Press, {}, at});
+		window->routeMouseButton({affresco::MouseButton::Left, affresco::Action::Release, {}, at});
+		window->render();
 	}
 
 	/// @brief Runs a command as @p author.
@@ -225,17 +267,60 @@ TEST_CASE("screen: a reader whose reads are limited gets the runs without their 
 	CHECK(reviewer["runGrants"] == json::array());
 }
 
-TEST_CASE("screen: a run the run control allows runs as its runner, and answers ran with what changed" *
-          doctest::skip(true)) {
-	// f4g: needs a command in the catalog (f4c) and runs (f4d)
+TEST_CASE("screen: a run the run control allows runs at once, and answers ran with what changed") {
+	Fixture f(true, bumpScreen());
+	const json ran = f.run("agent/claude", {{"command", "bump"}});
+	CHECK(ran["type"] == "ran");
+	CHECK(ran["run"] == 1);
+	CHECK(ran["failed"] == false);
+	CHECK(ran.contains("changed"));
+	CHECK(f.count() == 1);
+	CHECK(f.control.finished == std::vector<std::pair<int, RunState>>{{1, RunState::Ran}});
+	CHECK_FALSE(f.run("agent", {{"command", "bump"}, {"evidence", "none"}}).contains("changed"));
 }
 
-TEST_CASE("screen: a run that waits for a reviewer runs once allowed, checked again, and is refused when denied" *
-          doctest::skip(true)) {
-	// f4g: needs a command in the catalog (f4c)
+TEST_CASE("screen: a run that waits for a reviewer runs once allowed, checked again, and is refused when denied") {
+	Fixture f(true, bumpScreen());
+	f.control.judgement = {affresco::RunVerdict::Ask, "no rule allows it"};
+	const json waiting = f.run("agent", {{"command", "bump"}});
+	CHECK(waiting == json{{"type", "waiting"}, {"run", 1}, {"reason", "no rule allows it"}, {"expires", 120}});
+	CHECK(f.count() == 0);
+	(void)f.control.allow(1, "studio", false, "");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1]["type"] == "ran");
+	CHECK(f.count() == 1);
+
+	f.run("agent", {{"command", "bump"}});
+	f.control.judgement = {affresco::RunVerdict::Deny, "denied by *(bump)"}; // checked again once allowed
+	(void)f.control.allow(2, "studio", false, "");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1] == json{{"type", "rejected"}, {"error", "denied by *(bump)"}, {"run", 2}});
+	CHECK(f.control.finished.back() == std::pair<int, RunState>{2, RunState::Failed});
+	f.control.judgement = {affresco::RunVerdict::Ask, "no rule allows it"};
+
+	f.run("agent", {{"command", "bump"}});
+	(void)f.control.deny(3, "not now");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1] == json{{"type", "rejected"}, {"error", "not now"}, {"run", 3}});
+	CHECK(f.count() == 1);
 }
 
-TEST_CASE("screen: a run for the person asks in the window's own question, Run or Don't run, each time" *
-          doctest::skip(true)) {
-	// f4g: needs a command that reaches a service use (f4c)
+TEST_CASE("screen: a run for the person asks in the window's own question, Run or Don't run, each time") {
+	Fixture f(true, bumpScreen());
+	f.control.judgement = {affresco::RunVerdict::Person, "it uses files.write"};
+	for(int time = 1; time <= 2; ++time) {
+		CAPTURE(time);
+		CHECK(f.run("agent/claude", {{"command", "bump"}})["type"] == "waiting");
+		REQUIRE(f.window->confirmation() != nullptr);
+		f.press("Run");
+		REQUIRE(f.answers.size() == 2);
+		CHECK(f.answers[1]["type"] == "ran");
+		CHECK(f.window->confirmation() == nullptr);
+	}
+	CHECK(f.control.allowed == std::vector<std::pair<int, std::string>>{{1, "user"}, {2, "user"}});
+	f.run("agent", {{"command", "bump"}});
+	f.press("Don't run");
+	REQUIRE(f.answers.size() == 2);
+	CHECK(f.answers[1] == json{{"type", "rejected"}, {"error", "the person said no"}, {"run", 3}});
+	CHECK(f.count() == 2);
 }
