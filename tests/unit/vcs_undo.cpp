@@ -370,47 +370,50 @@ TEST_CASE("vcs undo: what a later commit didn't change is undone, the rest kept"
 	}
 }
 
+TEST_CASE("vcs undo: the same property changed since is a conflict: drop takes it back to before, keep leaves it") {
+	Children f;
+	Repository& repository = f.repository;
+	land(repository, setting({{"#first/text", "Uno"}}, "Rename"));
+	land(repository, setting({{"#first/text", "Eins"}}));
+	land(repository, setting({{"#second/text", "Dos"}}));
+	const UndoPlan plan = repository.undoPlan(1, "studio");
+	CHECK(plan.outcome == "choose");
+	REQUIRE(plan.conflicts.size() == 1);
+	const json& conflict = plan.conflicts[0];
+	CHECK(conflict["path"] == "#first/text");
+	CHECK(conflict["reason"] == "changed since");
+	CHECK(conflict["then"] == "Uno");
+	CHECK(conflict["now"] == "Eins");
+	CHECK(conflict["before"] == "One");
+	CHECK(conflict["commits"] == json::array({2}));
+	CHECK(conflict["choice"].is_null());
+	CHECK(plan.untouched == 1);
+	REQUIRE(plan.later.size() == 1);
+	CHECK(plan.later[0]["number"] == 2);
+	CHECK(plan.later[0]["parts"] == json::array({"#first/text"}));
+	CHECK(plan.changes.empty());
+	CHECK(plan.impact.is_null());
+
+	const std::string short1 = plan.of.id.substr(0, 7);
+	CHECK(undoError(repository, 1) == "revert: conflict: 1 later change was built on revision 1 (" + short1 +
+	                                      "): #first/text (revision 2): read the plan (undoPlan), then revert "
+	                                      "with \"drop\" or \"keep\" for each");
+	CHECK(repository.undoPlan(1, "studio", every(true)).outcome == "ready");
+	CHECK(repository.undoPlan(1, "studio", every(true)).conflicts[0]["choice"] == "drop");
+	CHECK(repository.undoPlan(1, "studio", every(false)).outcome == "blocked"); // keeping it leaves nothing
+
+	const json revision = repository.undoRevision(1, "studio", every(true));
+	CHECK(revision["message"] == "Revert \"Rename\" (with what revision 2 built on it)");
+	CHECK(revision["undo"]["drop"] == json::array({"#first/text"}));
+	land(repository, revision);
+	CHECK(textOf(repository, "first") == "One");
+	CHECK(textOf(repository, "second") == "Dos");
+}
+
 TEST_CASE("vcs undo: a part a later commit built on is a conflict, which the person chooses for") {
 	Children f;
 	Repository& repository = f.repository;
 
-	SUBCASE("the same property: drop takes it back to before the commit, keep leaves it") {
-		land(repository, setting({{"#first/text", "Uno"}}, "Rename"));
-		land(repository, setting({{"#first/text", "Eins"}}));
-		land(repository, setting({{"#second/text", "Dos"}}));
-		const UndoPlan plan = repository.undoPlan(1, "studio");
-		CHECK(plan.outcome == "choose");
-		REQUIRE(plan.conflicts.size() == 1);
-		const json& conflict = plan.conflicts[0];
-		CHECK(conflict["path"] == "#first/text");
-		CHECK(conflict["reason"] == "changed since");
-		CHECK(conflict["then"] == "Uno");
-		CHECK(conflict["now"] == "Eins");
-		CHECK(conflict["before"] == "One");
-		CHECK(conflict["commits"] == json::array({2}));
-		CHECK(conflict["choice"].is_null());
-		CHECK(plan.untouched == 1);
-		REQUIRE(plan.later.size() == 1);
-		CHECK(plan.later[0]["number"] == 2);
-		CHECK(plan.later[0]["parts"] == json::array({"#first/text"}));
-		CHECK(plan.changes.empty());
-		CHECK(plan.impact.is_null());
-
-		const std::string short1 = plan.of.id.substr(0, 7);
-		CHECK(undoError(repository, 1) == "revert: conflict: 1 later change was built on revision 1 (" + short1 +
-		                                      "): #first/text (revision 2): read the plan (undoPlan), then revert "
-		                                      "with \"drop\" or \"keep\" for each");
-		CHECK(repository.undoPlan(1, "studio", every(true)).outcome == "ready");
-		CHECK(repository.undoPlan(1, "studio", every(true)).conflicts[0]["choice"] == "drop");
-		CHECK(repository.undoPlan(1, "studio", every(false)).outcome == "blocked"); // keeping it leaves nothing
-
-		const json revision = repository.undoRevision(1, "studio", every(true));
-		CHECK(revision["message"] == "Revert \"Rename\" (with what revision 2 built on it)");
-		CHECK(revision["undo"]["drop"] == json::array({"#first/text"}));
-		land(repository, revision);
-		CHECK(textOf(repository, "first") == "One");
-		CHECK(textOf(repository, "second") == "Dos");
-	}
 	SUBCASE("a node it added that was changed since: the undo would take it away") {
 		land(repository, appending("fourth", "Four"));
 		land(repository, setting({{"#fourth/text", "Vier"}}));

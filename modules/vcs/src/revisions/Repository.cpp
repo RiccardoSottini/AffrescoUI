@@ -497,9 +497,7 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 		StagedBlobs staged(blobs_); // what its assets bring: gone again unless it lands or is proposed
 		const json changes = changesOf(revision, staged);
 		checkReadable(changes, author);
-		if(revision.contains("undo") && revision.contains("proposal"))
-			fail("revision.undo", "an undo opens a proposal of its own");
-		if(revision.contains("undo")) checkUndo(revision, author);
+		if(revision.contains("undo")) checkUndo(revision, author); // before a push: an undo is never pushed
 		if(revision.contains("proposal")) {
 			RevisionResult pushed = push(revision, author, changes);
 			staged.keep();

@@ -442,16 +442,19 @@ private:
 	/// @brief Sorts the merge's conflicts into the plan's: gone, or one to choose for.
 	/// @param work The work so far.
 	/// @param conflicts The merge's conflicts.
-	void sortConflicts(UndoWork& work, const json& conflicts) const;
+	static void sortConflicts(UndoWork& work, const json& conflicts);
 	/// @brief Finds the later commits that changed each conflict, walking main back from its head to the commit
 	/// undone once (at most maxUndoWalk commits, at most maxUndoListed conflicts), and fills the plan's "later",
 	/// "untouched" and each conflict's "commits".
 	/// @param work The work so far.
 	void traceLater(UndoWork& work) const;
+	/// @brief Fills the plan's "later" from the later commits traceLater() found (at most maxUndoListed).
+	/// @param work The work so far.
+	void listLater(UndoWork& work) const;
 	/// @brief Sets each conflict's choice from the options, and the plan's outcome.
 	/// @param work The work so far.
 	/// @param options The choices.
-	void chooseConflicts(UndoWork& work, const UndoOptions& options) const;
+	static void chooseConflicts(UndoWork& work, const UndoOptions& options);
 	/// @brief Adds the undo of the commit's change to the live state, when every part it changed is as it left them
 	/// (else they are all kept), to the patch, and lists them in the plan.
 	/// @param work The work so far.
@@ -466,6 +469,16 @@ private:
 	/// @param path The conflict's path.
 	/// @return Its numbers, oldest first (empty if it wasn't traced).
 	[[nodiscard]] static std::vector<int> laterNumbers(const UndoWork& work, const std::string& path);
+	/// @brief The error of an undo with conflicts nobody chose for: up to 4 of them, with the later revisions.
+	/// @param work The work, its outcome "choose".
+	/// @param undone The commit undone, described.
+	/// @return The error's text.
+	[[nodiscard]] static std::string openConflicts(const UndoWork& work, const std::string& undone);
+	/// @brief The undo's message: the person's, or `Revert "<message>"` and the later revisions it drops.
+	/// @param work The work.
+	/// @param options The choices.
+	/// @return The message.
+	[[nodiscard]] static std::string undoMessage(const UndoWork& work, const UndoOptions& options);
 	/// @brief Checks a revision that carries an undo mark: only the keys undoRevision() writes, and a patch that is the
 	/// undo of the commit it names as main is now, with the dropped paths it names, then its "then" operations.
 	/// @param revision The revision, an object with "undo".
@@ -485,7 +498,7 @@ private:
 	/// @brief Describes an undo waiting for review: never remembered, and its reason says what it takes out
 	/// (undoNeedsReview()). Changes nothing for any other proposal.
 	/// @param proposal The proposal, its undo mark set.
-	void describeUndoProposal(Proposal& proposal) const;
+	static void describeUndoProposal(Proposal& proposal);
 	/// @brief Operations as lines for a reviewer, as proposals show them.
 	/// @param patch The operations.
 	/// @return One line each.

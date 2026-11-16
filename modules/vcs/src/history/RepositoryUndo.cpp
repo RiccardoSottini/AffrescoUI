@@ -26,7 +26,7 @@ using expect::fail;
 namespace {
 
 /// Largest value, as JSON, that a plan shows as it is; a larger one shows as `{"cut": true, "bytes": n}`.
-constexpr std::size_t maxShownBytes = 16U * 1024U;
+constexpr std::size_t maxShownBytes = std::size_t{16} * 1024U;
 
 /// @brief A value as a plan shows it: as it is, or cut when it is large.
 /// @param value The value (null where there is none).
@@ -90,6 +90,46 @@ std::string changedModel(const json& then, const json& now, const json& before) 
 	return {};
 }
 
+/// @brief Finds what is wrong with the choices themselves, before any merge.
+/// @param options The choices.
+/// @return Why they can't be made, or "" if they can.
+std::string choiceProblem(const UndoOptions& options) {
+	if(!isChoice(options.drop)) return R"(drop: expected a list of paths or "all")";
+	if(!isChoice(options.keep)) return R"(keep: expected a list of paths or "all")";
+	if(!options.then.is_null() && !options.then.is_array()) return "then: expected a JSON Patch array";
+	if(options.drop == "all" && options.keep == "all") return R"("drop" and "keep" can't both be "all")";
+	if(options.drop.is_array())
+		for(const json& path : options.drop)
+			if(names(options.keep, path.get<std::string>())) return "'" + path.get<std::string>() + "' is both dropped and kept";
+	return {};
+}
+
+/// @brief Finds a path the choices name that isn't a conflict.
+/// @param options The choices.
+/// @param conflicts The conflicts.
+/// @return Why, or "" if every path named is one.
+std::string unknownChoice(const UndoOptions& options, const json& conflicts) {
+	for(const json* choice : {&options.drop, &options.keep})
+		if(choice->is_array())
+			for(const json& path : *choice)
+				if(std::ranges::none_of(conflicts, [&](const json& conflict) { return conflict["path"] == path; }))
+					return "'" + path.get<std::string>() + "' is not a conflict of this undo";
+	return {};
+}
+
+/// @brief Checks what a revision that says it is an undo holds, besides its mark.
+/// @param revision The revision.
+/// @throws DocumentError `revision.undo: ...` or `revision.patch: ...` if it holds more, or less.
+void checkUndoShape(const json& revision) {
+	if(revision.contains("proposal")) fail("revision.undo", "an undo opens a proposal of its own");
+	for(const auto& [key, value] : revision.items())
+		if(key != "author" && key != "message" && key != "parent" && key != "patch" && key != "undo")
+			fail("revision.undo", "an undo carries only author, message, parent, patch and undo, not '" + key + "'");
+	if(!revision.contains("parent")) fail("revision.undo", "an undo names main's head as its parent");
+	const auto patch = revision.find("patch");
+	if(patch == revision.end() || !patch->is_array()) fail("revision.patch", "expected a JSON Patch array");
+}
+
 } // namespace
 
 /// What working out an undo gives: the plan, and what the revision needs.
@@ -101,6 +141,7 @@ struct Repository::UndoWork {
 	json document;                   ///< The document after the undo, before "then".
 	json patch = json::array();      ///< The undo's operations: the document's, the live state's, then "then".
 	std::size_t then = 0;            ///< How many operations of the patch are "then".
+	std::map<int, json> later;       ///< The later commits that built on a conflict, by number, and the paths.
 };
 
 UndoPlan Repository::undoPlan(const json& revision, std::string_view author, const UndoOptions& options) const {
@@ -113,41 +154,40 @@ json Repository::undoRevision(const json& revision, std::string_view author, con
 	   !options.head.empty() && (options.head.size() < 7U || !head.starts_with(options.head)))
 		throw DocumentError("revert: main moved since you looked (it is now at " + head.substr(0, 7) + "): look again");
 	UndoWork work = workOutUndo(revision, author, options, false);
-	UndoPlan& plan = work.plan;
 	const Commit& target = *work.target;
-	if(plan.outcome == "blocked") throw DocumentError(plan.blocked);
-	if(plan.outcome == "choose") {
-		std::string listed;
-		std::size_t open = 0;
-		for(const json& conflict : work.conflicts) {
-			if(!conflict["choice"].is_null()) continue;
-			if(++open > 4U) continue;
-			const std::string path = conflict["path"].get<std::string>();
-			const std::vector<int> numbers = laterNumbers(work, path);
-			listed += (open > 1U ? ", " : "") + path + (numbers.empty() ? "" : " (" + revisionsText(numbers) + ")");
-		}
-		if(open > 4U) listed += " and " + std::to_string(open - 4U) + " more";
-		throw DocumentError("revert: conflict: " + std::to_string(open) + " later change" + (open == 1U ? "" : "s") +
-		                    (open == 1U ? " was" : " were") + " built on " + describe(target) + ": " + listed +
-		                    R"(: read the plan (undoPlan), then revert with "drop" or "keep" for each)");
-	}
-	std::string message = options.message;
-	if(message.empty()) {
-		message = "Revert \"" + target.message + "\"";
-		if(!work.dropped.empty()) {
-			std::set<int> numbers;
-			for(const json& path : work.dropped)
-				for(int number : laterNumbers(work, path.get<std::string>())) numbers.insert(number);
-			message += numbers.empty() ? " (with what later changes built on it)"
-			                           : " (with what " + revisionsText({numbers.begin(), numbers.end()}) +
-			                                 " built on it)";
-		}
-	}
+	if(work.plan.outcome == "blocked") throw DocumentError(work.plan.blocked);
+	if(work.plan.outcome == "choose") throw DocumentError(openConflicts(work, describe(target)));
 	return {{"author", std::string(author)},
-	        {"message", std::move(message)},
-	        {"parent", plan.head},
+	        {"message", undoMessage(work, options)},
+	        {"parent", work.plan.head},
 	        {"patch", std::move(work.patch)},
 	        {"undo", {{"of", target.id}, {"drop", std::move(work.dropped)}, {"then", work.then}}}};
+}
+
+std::string Repository::openConflicts(const UndoWork& work, const std::string& undone) {
+	std::string listed;
+	std::size_t open = 0;
+	for(const json& conflict : work.conflicts) {
+		if(!conflict["choice"].is_null() || ++open > 4U) continue;
+		const std::string path = conflict["path"].get<std::string>();
+		const std::vector<int> numbers = laterNumbers(work, path);
+		listed += (open > 1U ? ", " : "") + path + (numbers.empty() ? "" : " (" + revisionsText(numbers) + ")");
+	}
+	if(open > 4U) listed += " and " + std::to_string(open - 4U) + " more";
+	return "revert: conflict: " + std::to_string(open) + " later change" + (open == 1U ? " was" : "s were") +
+	       " built on " + undone + ": " + listed +
+	       R"(: read the plan (undoPlan), then revert with "drop" or "keep" for each)";
+}
+
+std::string Repository::undoMessage(const UndoWork& work, const UndoOptions& options) {
+	if(!options.message.empty()) return options.message;
+	std::string message = "Revert \"" + work.target->message + "\"";
+	if(work.dropped.empty()) return message;
+	std::set<int> numbers;
+	for(const json& path : work.dropped)
+		for(const int number : laterNumbers(work, path.get<std::string>())) numbers.insert(number);
+	if(numbers.empty()) return message + " (with what later changes built on it)";
+	return message + " (with what " + revisionsText({numbers.begin(), numbers.end()}) + " built on it)";
 }
 
 json Repository::revertRevision(const json& revision, std::string_view author) const {
@@ -172,14 +212,7 @@ Repository::UndoWork Repository::workOutUndo(const json& revision, std::string_v
 
 	if(std::ranges::find(main_, target.id) == main_.end()) return blocked(describe(target) + " is not on main");
 	if(target.parents.empty()) return blocked("revision 0 is the screen as loaded: there is nothing to revert");
-	if(!isChoice(options.drop)) return blocked(R"(drop: expected a list of paths or "all")");
-	if(!isChoice(options.keep)) return blocked(R"(keep: expected a list of paths or "all")");
-	if(!options.then.is_null() && !options.then.is_array()) return blocked("then: expected a JSON Patch array");
-	if(options.drop == "all" && options.keep == "all") return blocked(R"("drop" and "keep" can't both be "all")");
-	if(options.drop.is_array())
-		for(const json& path : options.drop)
-			if(names(options.keep, path.get<std::string>()))
-				return blocked("'" + path.get<std::string>() + "' is both dropped and kept");
+	if(const std::string problem = choiceProblem(options); !problem.empty()) return blocked(problem);
 
 	// The base is the commit's document: main changed it since (the later commits), the undo takes it back
 	const json then = documentOf(target);
@@ -192,11 +225,7 @@ Repository::UndoWork Repository::workOutUndo(const json& revision, std::string_v
 	const MergeResult merged = detail::merge(then, mainDocument(), before);
 	sortConflicts(work, merged.conflicts);
 	traceLater(work);
-	for(const json* choice : {&options.drop, &options.keep})
-		if(choice->is_array())
-			for(const json& path : *choice)
-				if(std::ranges::none_of(work.conflicts, [&](const json& c) { return c["path"] == path; }))
-					return blocked("'" + path.get<std::string>() + "' is not a conflict of this undo");
+	if(const std::string unknown = unknownChoice(options, work.conflicts); !unknown.empty()) return blocked(unknown);
 	chooseConflicts(work, options);
 	if(plan.outcome == "choose") return work;
 
@@ -212,19 +241,18 @@ Repository::UndoWork Repository::workOutUndo(const json& revision, std::string_v
 		work.then = options.then.size();
 		work.patch.insert(work.patch.end(), options.then.begin(), options.then.end());
 	}
-	if(work.patch.empty()) {
-		if(target.id == main_.back())
-			return blocked("nothing to revert: " + describe(target) +
-			               " changed neither the document nor, in this run, the live state");
-		return blocked("nothing to undo: later changes already replaced or removed everything revision " +
-		               std::to_string(target.number) + " did");
-	}
+	if(work.patch.empty())
+		return blocked(target.id == main_.back()
+		                   ? "nothing to revert: " + describe(target) +
+		                         " changed neither the document nor, in this run, the live state"
+		                   : "nothing to undo: later changes already replaced or removed everything revision " +
+		                         std::to_string(target.number) + " did");
 	if(judged) judgeUndo(work, author);
 	return work;
 }
 
 int Repository::newestChange(const std::string& pointer, const Commit& target) const {
-	for(std::size_t n = main_.size() - 1U; n > static_cast<std::size_t>(target.number); --n) {
+	for(std::size_t n = main_.size() - 1U; std::cmp_greater(n, target.number); --n) {
 		const Commit& commit = objects_.at(main_[n]);
 		const json worked = commit.delta.is_null() ? deltaOf(commit) : json(); // only for a history without deltas
 		for(const json& op : commit.delta.is_null() ? worked : commit.delta) {
@@ -236,7 +264,7 @@ int Repository::newestChange(const std::string& pointer, const Commit& target) c
 	return 0;
 }
 
-void Repository::sortConflicts(UndoWork& work, const json& conflicts) const {
+void Repository::sortConflicts(UndoWork& work, const json& conflicts) {
 	for(const json& conflict : conflicts) {
 		const std::string path = conflict["path"].get<std::string>();
 		const std::string& reason = conflict["reason"].get_ref<const std::string&>();
@@ -275,9 +303,8 @@ void Repository::traceLater(UndoWork& work) const {
 			continue; // a node main no longer has: nothing to follow
 		}
 	}
-	std::map<int, json> parts; // later commits that built on a conflict, by number, and the paths
-	for(std::size_t n = main_.size() - 1U, walked = 0; n > static_cast<std::size_t>(target.number) && !trails.empty() &&
-	                                                   walked < maxUndoWalk;
+	std::size_t n = main_.size() - 1U;
+	for(std::size_t walked = 0; std::cmp_greater(n, target.number) && !trails.empty() && walked < maxUndoWalk;
 	    --n, ++walked) {
 		const Commit& commit = objects_.at(main_[n]);
 		const json worked = commit.delta.is_null() ? deltaOf(commit) : json(); // only for a history without deltas
@@ -287,13 +314,18 @@ void Repository::traceLater(UndoWork& work) const {
 			if(step == detail::TrailStep::Untouched) return false;
 			json& conflict = work.conflicts[traced.first];
 			conflict["commits"].insert(conflict["commits"].begin(), commit.number);
-			json& listed = parts[commit.number];
+			json& listed = work.later[commit.number];
 			if(listed.is_null()) listed = json::array();
 			if(std::ranges::find(listed, conflict["path"]) == listed.end()) listed.push_back(conflict["path"]);
 			return step == detail::TrailStep::Replaced;
 		});
 	}
-	for(auto& [number, paths] : parts) {
+	listLater(work);
+	work.plan.untouched = later - work.later.size();
+}
+
+void Repository::listLater(UndoWork& work) const {
+	for(auto& [number, paths] : work.later) {
 		if(work.plan.later.size() >= maxUndoListed) {
 			++work.plan.laterMore;
 			continue;
@@ -304,12 +336,11 @@ void Repository::traceLater(UndoWork& work) const {
 		                           {"short", commit.id.substr(0, 7)},
 		                           {"author", commit.author},
 		                           {"message", commit.message},
-		                           {"parts", std::move(paths)}});
+		                           {"parts", paths}});
 	}
-	work.plan.untouched = later - parts.size();
 }
 
-void Repository::chooseConflicts(UndoWork& work, const UndoOptions& options) const {
+void Repository::chooseConflicts(UndoWork& work, const UndoOptions& options) {
 	UndoPlan& plan = work.plan;
 	bool open = false;
 	for(json& conflict : work.conflicts) {
@@ -409,14 +440,10 @@ bool Repository::undoNeedsReview(const json& mark) {
 }
 
 void Repository::checkUndo(const json& revision, const std::string& author) const {
-	for(const auto& [key, value] : revision.items())
-		if(key != "author" && key != "message" && key != "parent" && key != "patch" && key != "undo")
-			fail("revision.undo", "an undo carries only author, message, parent, patch and undo, not '" + key + "'");
+	checkUndoShape(revision);
 	const json& mark = revision["undo"];
 	checkUndoMark(mark, "revision.undo");
-	if(!revision.contains("parent")) fail("revision.undo", "an undo names main's head as its parent");
 	const auto patch = revision.find("patch");
-	if(patch == revision.end() || !patch->is_array()) fail("revision.patch", "expected a JSON Patch array");
 	const auto thenCount = mark["then"].get<std::size_t>();
 	const std::string of = mark["of"].get<std::string>();
 	if(thenCount > patch->size()) fail("revision.undo.then", "more operations than the patch has");
@@ -434,7 +461,7 @@ void Repository::checkUndo(const json& revision, const std::string& author) cons
 
 /* Proposals that undo */
 
-void Repository::describeUndoProposal(Proposal& proposal) const {
+void Repository::describeUndoProposal(Proposal& proposal) {
 	if(!undoNeedsReview(proposal.undo)) return;
 	proposal.remember.clear(); // what it takes out is never remembered: each one is the person's choice
 	if(!proposal.conflicts.empty()) return;
