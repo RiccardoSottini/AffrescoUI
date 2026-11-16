@@ -855,7 +855,9 @@ void ProviderAgent::send(std::string_view message) {
 		wake_.notify_all();                   // and a run it waits for is waited for no more
 		return;
 	}
-	if(!in.contains("id") || !in["id"].is_string()) return;
+	// The screen's answers never carry `from`: a message that does is another peer's, relayed to every peer, and its id
+	// (a counter, easily guessed) must not pass for the screen's answer
+	if(!in.contains("id") || !in["id"].is_string() || in.contains("from")) return;
 	{
 		const std::scoped_lock lock(mutex_);
 		const std::string id = in["id"].get<std::string>();
