@@ -3,6 +3,7 @@
 /// @file
 /// @brief format::Reconciler: the panels built from the document, kept in line with it and the state.
 
+#include "ChildList.hpp"
 #include "Record.hpp"
 
 #include "affresco/format/Runtime.hpp"
@@ -36,7 +37,7 @@ class Reconciler {
 public:
 	/// @brief The reconciler of an engine.
 	/// @param engine The runtime; outlives this object.
-	explicit Reconciler(Engine& engine) : engine_(engine) {}
+	explicit Reconciler(Engine& engine) : engine_(engine), children_(engine, *this) {}
 
 	/// @brief Brings every panel in line with the document and the state, then runs "watch" handlers.
 	/// @throws DocumentError If the document can't be built (the version is then refused).
@@ -65,6 +66,51 @@ public:
 	/// @brief What the last update cost (Runtime::lastUpdate()).
 	[[nodiscard]] const UpdateStatistics& statistics() const noexcept { return statistics_; }
 
+	/* For the children lists (ChildList) */
+
+	/// @brief What the running update has cost so far, to count work where it happens.
+	/// @return The counters.
+	[[nodiscard]] UpdateStatistics& counters() noexcept { return statistics_; }
+	/// @brief Creates the panel of a node type.
+	/// @param type The "type".
+	/// @param path Its place, for errors.
+	/// @return The panel.
+	[[nodiscard]] std::unique_ptr<Panel> create(const std::string& type, const std::string& path) const;
+	/// @brief Starts tracking a new panel, remembering its defaults, and connects its signals.
+	/// @param panel The panel.
+	/// @param type Its "type".
+	/// @return Its record.
+	Record& adopt(Panel& panel, const std::string& type);
+	/// @brief Drops the records of a subtree about to be destroyed, stopping its timers and running "onHide".
+	/// @param panel The subtree's root.
+	void forgetSubtree(const Panel& panel);
+	/// @brief Evaluates a node's values, recording what they read.
+	/// @param item The node, its variables and its place.
+	/// @param reads Gets what they read.
+	/// @return The values.
+	[[nodiscard]] std::vector<json> valuesOf(const Item& item, ReadSet& reads) const;
+	/// @brief Applies a node's values to its panel, recording what they read into the record.
+	/// @param panel The panel.
+	/// @param record Its record.
+	/// @param item What to apply: the node, and the place for errors.
+	/// @param values Its values, evaluated.
+	/// @param reads What evaluating them read.
+	/// @param created Whether the panel was just created.
+	void applyValues(Panel& panel, Record& record, const Item& item, std::vector<json> values, ReadSet reads,
+	                 bool created);
+	/// @brief Updates a kept panel and what is below it, if they read a change: its values are applied again if they
+	/// read one, then its children are updated (updateChildren()).
+	/// @param panel The panel.
+	/// @param record Its record.
+	/// @param changes What changed.
+	/// @param depth The panel's depth (ChildList::reconcileChildren()).
+	void updatePanel(Panel& panel, Record& record, const StateChanges& changes, int depth);
+	/// @brief Records what building a panel's list of children read, and gathers what its subtree reads.
+	/// @param panel The panel, its children built.
+	/// @param record Its record.
+	/// @param reads What building the list read (repeat, when, with, ...).
+	void listReconciled(Panel& panel, Record& record, ReadSet reads);
+
 private:
 	/// @brief Brings the panels in line with the document and the state, then runs "watch" handlers.
 	/// @param full Evaluate everything, whatever changed.
@@ -82,33 +128,12 @@ private:
 	void updateRoot(Panel& root, Record& record, const StateChanges* changes);
 	/// @brief Schedules one update after the current event.
 	void queue();
-	/// @brief Applies a node's values to its panel, recording what they read into the record.
-	/// @param panel The panel.
-	/// @param record Its record.
-	/// @param item What to apply: the node, and the place for errors.
-	/// @param values Its values, evaluated.
-	/// @param reads What evaluating them read.
-	/// @param created Whether the panel was just created.
-	void applyValues(Panel& panel, Record& record, const Item& item, std::vector<json> values, ReadSet reads,
-	                 bool created);
-	/// @brief Evaluates a node's values, recording what they read.
-	/// @param item The node, its variables and its place.
-	/// @param reads Gets what they read.
-	/// @return The values.
-	[[nodiscard]] std::vector<json> valuesOf(const Item& item, ReadSet& reads) const;
-	/// @brief Updates a kept panel and what is below it, if they read a change: its values are applied again if they
-	/// read one, then its children are updated (updateChildren()).
-	/// @param panel The panel.
-	/// @param record Its record.
-	/// @param changes What changed.
-	/// @param depth The panel's depth (reconcileChildren()).
-	void updatePanel(Panel& panel, Record& record, const StateChanges& changes, int depth);
 	/// @brief Updates only what reads the changes below a panel: a child whose values read one is applied again, and
 	/// a list of children that reads one is built again.
 	/// @param panel The panel.
 	/// @param record Its record.
 	/// @param changes What changed.
-	/// @param depth The panel's depth (reconcileChildren()).
+	/// @param depth The panel's depth (ChildList::reconcileChildren()).
 	void updateChildren(Panel& panel, Record& record, const StateChanges& changes, int depth);
 	/// @brief Copies again, in place, the items a panel's variables hold that a change lies in or covers.
 	/// @param locals The panel's variables.
@@ -118,86 +143,16 @@ private:
 	/// @param panel The panel.
 	/// @param record Its record.
 	void gatherReads(const Panel& panel, Record& record) const;
-	/// @brief Creates the panel of a node type.
-	/// @param type The "type".
-	/// @param path Its place, for errors.
-	/// @return The panel.
-	[[nodiscard]] std::unique_ptr<Panel> create(const std::string& type, const std::string& path) const;
-	/// @brief Starts tracking a new panel, remembering its defaults, and connects its signals.
-	/// @param panel The panel.
-	/// @param type Its "type".
-	/// @return Its record.
-	Record& adopt(Panel& panel, const std::string& type);
-	/// @brief Updates a panel's children in place, creating, replacing, moving or removing only what changed.
-	/// @param node The compiled node (its "children", unevaluated).
-	/// @param panel The panel.
-	/// @param record Its record.
-	/// @param path Its place, for errors.
-	/// @param depth The panel's depth below the window's root, or below the panel a template is built in.
-	/// @throws DocumentError If the panels would nest deeper than maxNodeDepth.
-	/// @param changes What changed, when only what reads it is updated (nullptr: everything).
-	void reconcileChildren(const CompiledNode& node, Panel& panel, Record& record, const std::string& path,
-	                       int depth = 0, const StateChanges* changes = nullptr);
-	/// @brief Builds one child in its place among a panel's children.
-	/// @param panel The parent.
-	/// @param index Its place.
-	/// @param item The child.
-	/// @param depth The child's depth.
-	/// @param changes What changed (nullptr: everything): a panel kept with the same node and variables then updates
-	/// only what reads it.
-	void reconcileChild(Panel& panel, std::size_t index, Item& item, int depth, const StateChanges* changes);
-	/// @brief The children to build: the current screen for an outlet, else the node's "children" (and for the root,
-	/// the document's "overlays" after them, those whose "when" holds).
-	/// @param node The node.
-	/// @param record Its record.
-	/// @param path Its place, for errors.
-	/// @return The children, or std::nullopt to leave the panel's children alone.
-	[[nodiscard]] std::optional<std::vector<Item>> childrenOf(const CompiledNode& node, const Record& record,
-	                                                          const std::string& path) const;
-	/// @brief Adds the nodes of the document's "overlays" whose "when" holds to the root's children, each keyed by its
-	/// place.
-	/// @param record The root's record.
-	/// @param items The root's children so far; made a list if there are overlays.
-	void addOverlays(const Record& record, std::optional<std::vector<Item>>& items) const;
-	/// @brief The panel already built for one child, moved to its place: the one there if it has the same type and key.
-	/// @param panel The parent.
-	/// @param index Its place among the children.
-	/// @param item The child.
-	/// @param type Its type.
-	/// @return The panel, or nullptr if a new one is needed.
-	Panel* reusable(Panel& panel, std::size_t index, const Item& item, const std::string& type);
-	/// @brief Creates the panel for one child in its place, replacing the one there.
-	/// @param panel The parent.
-	/// @param index Its place among the children.
-	/// @param item The child.
-	/// @param type Its type.
-	/// @return The new panel.
-	/// @throws DocumentError If the screen already has maxPanels panels.
-	Panel& make(Panel& panel, std::size_t index, const Item& item, const std::string& type);
-	/// @brief Updates a kept panel built from the same node with the same variables: only what reads the changes.
-	/// @param kept The panel.
-	/// @param item The child it is built from now.
-	/// @param changes What changed.
-	/// @param depth Its depth.
-	/// @return false if its node, place or variables differ: it must be built again.
-	bool updateKept(Panel& kept, const Item& item, const StateChanges& changes, int depth);
-	/// @brief Drops the records of a subtree about to be destroyed, stopping its timers and running "onHide".
-	/// @param panel The subtree's root.
-	void forgetSubtree(const Panel& panel);
-	/// @brief Runs the "watch" handlers whose values changed since the last update.
-	/// @param root The window's root, which sends them.
-	void watch(Panel& root);
 
 	Engine& engine_;                                   ///< The runtime.
 	std::unordered_map<const Panel*, Record> records_; ///< See records().
+	ChildList children_;                               ///< Builds the panels' children.
 	bool reconcileQueued_ = false;                     ///< A reconcile is deferred to the end of the event.
-	json watched_ = json::object();                    ///< "watch": the values seen last.
 	bool synced_ = false;                              ///< The last update ended without an error.
 	std::uint64_t syncedAppearance_ = 0;               ///< DocumentContext::appearance() then.
 	std::string syncedScreen_;                         ///< DocumentContext::screen() then.
-	std::string syncedWindow_;    ///< The window's size, scale and colour scheme then ("window" in computed values).
-	ReadSet rootScopeReads_;      ///< What the root's "with", "let" and "style" read.
-	UpdateStatistics statistics_; ///< See statistics().
+	ReadSet rootScopeReads_;                           ///< What the root's "with", "let" and "style" read.
+	UpdateStatistics statistics_;                      ///< See statistics().
 };
 
 } // namespace affresco::format

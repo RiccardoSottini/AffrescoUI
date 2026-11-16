@@ -2,7 +2,7 @@
 
 /// @file
 /// @brief format::DocumentContext: what the document's values are read against: colours, fonts, the theme, the
-/// globals, the cached "computed" values and the screen an outlet shows.
+/// globals and the screen an outlet shows.
 
 #include "DesignTokens.hpp"
 #include "Language.hpp"
@@ -31,11 +31,12 @@ namespace affresco::format {
 
 struct Engine;
 
-/// @brief What the document's values are read against: colours, fonts, the theme, the globals of expressions, the
-/// cached "computed" values, and the screen an outlet shows (navigation).
+/// @brief What the document's values are read against: colours, fonts, the theme, the globals of expressions (the
+/// cached "computed" values among them, held by ComputedValues), and the screen an outlet shows (navigation).
 ///
 /// Invariants: colours and fonts change all at once or not at all (readDerived()). The globals are built once and
-/// reused until globalsChanged(); computed values are cached per stateVersion(), which markStateChanged() bumps.
+/// reused until globalsChanged(); computed values (ComputedValues) are cached per stateVersion(), which
+/// markStateChanged() bumps.
 /// Callers: every subsystem that evaluates a value (builder, properties, events, steps), the reconciler (theme and
 /// screen per update) and Runtime's lookups. Main thread only.
 class DocumentContext {
@@ -298,14 +299,6 @@ private:
 
 	/// @brief The globals, built once and reused until globalsChanged().
 	[[nodiscard]] const Globals& globals() const;
-	/// @brief `computed.<name>`: evaluated when first read after a state change, then cached.
-	/// @param name The computed value.
-	/// @return Its value.
-	json computed(std::string_view name) const;
-	/// @brief `computed.<name>` in place: as computed(), without a copy.
-	/// @param name The computed value.
-	/// @return Its value, valid until the state next changes and the evaluation reading it has ended.
-	const json& computedValue(std::string_view name) const;
 	/// @brief The `nodes` variable: a built panel's geometry by id.
 	/// @param id The id.
 	/// @return {x, y, width, height, visible}, or null.
@@ -328,35 +321,30 @@ private:
 	};
 	std::map<std::uint64_t, FontSource> fontSources_;                          ///< By Font::id(), for fonts_.
 	std::map<std::string, std::shared_ptr<const Font>, std::less<>> variants_; ///< See fontVariant(), by key.
-	FontCache fontCache_;                    ///< By file, size and fallbacks: kept across revisions, within its bound.
-	ImageCache images_;                      ///< See images().
+	FontCache fontCache_; ///< By file, size and fallbacks: kept across revisions, within its bound.
+	ImageCache images_;   ///< See images().
 	std::shared_ptr<const LanguageCatalog> languages_; ///< See languages().
 	json languagesSource_;                             ///< The "languages" they were read from.
-	std::string theme_;                      ///< "theme", evaluated at each update.
-	Strings strings_;                        ///< "strings", and the locale chosen at each update.
-	std::string hostLocale_;                 ///< See setHostLocale().
-	std::string screen_;                     ///< The screen an "outlet" shows.
-	std::vector<std::string> screenHistory_; ///< For {"navigate": "back"}.
+	std::string theme_;                                ///< "theme", evaluated at each update.
+	Strings strings_;                                  ///< "strings", and the locale chosen at each update.
+	std::string hostLocale_;                           ///< See setHostLocale().
+	std::string screen_;                               ///< The screen an "outlet" shows.
+	std::vector<std::string> screenHistory_;           ///< For {"navigate": "back"}.
 
-	std::uint64_t appearance_ = 1;                  ///< See appearance().
-	std::uint64_t looks_ = 1;                       ///< See looks().
-	json lookSections_;                             ///< "colors", "tokens" and "fonts" when looks_ last changed.
-	WorkBudget* budget_ = nullptr;                  ///< The running event's or update's budget (BudgetScope), if any.
-	StateChanges changes_;                          ///< See takeChanges().
-	mutable ReadSet* reads_ = nullptr;              ///< Where the running ReadScope collects, if any.
-	std::uint64_t stateVersion_ = 0;                ///< Counts state changes (computed values are cached per version).
-	mutable std::optional<Globals> globalsCache_;   ///< See globals().
-	/// "computed" values read since the state last changed: a map, so a value read in place keeps its address
-	mutable std::map<std::string, json, std::less<>> computedValues_;
-	mutable std::uint64_t computedVersion_ = ~0ull; ///< The state version computedValues_ belong to.
-	mutable std::map<std::string, ReadSet, std::less<>> computedReads_; ///< What each computed value read.
-	mutable std::vector<std::string> computing_; ///< Computed values being evaluated (finds circles).
-	NodeLookup computedLookup_;                  ///< computed(), for expressions.
-	NodeLookup nodeLookup_;                      ///< node(), for expressions.
-	NodeLookup modelLookup_;                     ///< Models::at(), for expressions.
-	VariableLookup variableLookup_;              ///< variable(), for expressions.
-	VariableLookup computedValueLookup_;         ///< computedValue(), for expressions to read in place.
-	ProgramCall programCall_;                    ///< The program's functions, for the function `lisp`.
+	std::uint64_t appearance_ = 1;                ///< See appearance().
+	std::uint64_t looks_ = 1;                     ///< See looks().
+	json lookSections_;                           ///< "colors", "tokens" and "fonts" when looks_ last changed.
+	WorkBudget* budget_ = nullptr;                ///< The running event's or update's budget (BudgetScope), if any.
+	StateChanges changes_;                        ///< See takeChanges().
+	mutable ReadSet* reads_ = nullptr;            ///< Where the running ReadScope collects, if any.
+	std::uint64_t stateVersion_ = 0;              ///< Counts state changes (computed values are cached per version).
+	mutable std::optional<Globals> globalsCache_; ///< See globals().
+	NodeLookup computedLookup_;                   ///< ComputedValues::computed(), for expressions.
+	NodeLookup nodeLookup_;                       ///< node(), for expressions.
+	NodeLookup modelLookup_;                      ///< Models::at(), for expressions.
+	VariableLookup variableLookup_;               ///< variable(), for expressions.
+	VariableLookup computedValueLookup_;          ///< ComputedValues::value(), for expressions to read in place.
+	ProgramCall programCall_;                     ///< The program's functions, for the function `lisp`.
 	std::map<std::string, std::function<json()>, std::less<>> builders_; ///< See addVariable().
 	mutable std::map<std::string, json, std::less<>> built_;             ///< Variables built since they were stale.
 	mutable std::vector<std::string> building_;                          ///< Variables being built (finds circles).

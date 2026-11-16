@@ -5,9 +5,13 @@
 ///
 /// The runtime is split into subsystems, each a class with its own header that says what it does, what it keeps true
 /// and who calls it:
-/// - DocumentContext: colours, fonts, the theme, the globals, computed values, the screen shown;
-/// - Builder: a node's children after "use", "repeat", "when", "let", "with", "check" and styles;
-/// - Reconciler: the records of the panels built, keeping them in line with the document;
+/// - DocumentContext: colours, fonts, the theme, the globals, the screen shown;
+/// - ComputedValues: the cached "computed" values;
+/// - Builder: a node's children after "use", "repeat", "when", "let", "with", "check" and styles, from the nodes its
+///   CompiledCache compiles;
+/// - Reconciler: the records of the panels built, keeping them in line with the document; its ChildList builds each
+///   panel's children;
+/// - UpdateFrame and Watches: what every update does around the walk over the panels, and the "watch" handlers;
 /// - Properties: a node's evaluated values on its panel;
 /// - Events: input on the panels and the window, as handlers;
 /// - Steps: actions and their steps;
@@ -25,6 +29,7 @@
 #include "AudioPlayers.hpp"
 #include "AsyncCalls.hpp"
 #include "Builder.hpp"
+#include "ComputedValues.hpp"
 #include "CommandCatalog.hpp"
 #include "CommandRuns.hpp"
 #include "Connections.hpp"
@@ -44,6 +49,8 @@
 #include "StepRegistry.hpp"
 #include "Steps.hpp"
 #include "TypeRegistry.hpp"
+#include "UpdateFrame.hpp"
+#include "Watches.hpp"
 
 #include <filesystem>
 #include <map>
@@ -98,31 +105,34 @@ struct Engine : VersionObserver {
 	/// The files the OS last dropped on the window: what an "attach" step's "from" may name (AttachSteps.cpp).
 	std::vector<std::string> droppedFiles;
 
-	DocumentContext document;  ///< Colours, fonts, theme, globals, computed values, the screen shown.
-	Builder builder;           ///< Expands children.
-	Scheduler scheduler;       ///< Timers and deferred tasks.
-	Properties properties;     ///< Values on panels.
-	Reconciler reconciler;     ///< Records; updates.
-	Events events;             ///< Input.
-	Steps runner;              ///< Actions.
-	Programs programs;         ///< The document's live program, if it has one.
+	DocumentContext document;       ///< Colours, fonts, theme, globals, the screen shown.
+	ComputedValues computed{*this}; ///< The cached "computed" values.
+	Builder builder;                ///< Expands children.
+	Scheduler scheduler;            ///< Timers and deferred tasks.
+	Properties properties;          ///< Values on panels.
+	Reconciler reconciler;          ///< Records; updates.
+	UpdateFrame frame{*this};       ///< What every update does around the walk over the panels.
+	Watches watches{*this};         ///< The "watch" handlers.
+	Events events;                  ///< Input.
+	Steps runner;                   ///< Actions.
+	Programs programs;              ///< The document's live program, if it has one.
 	/// Who the steps running now come from, while a program runs them; nullptr for the screen's own
 	/// (Programs::checkStep()).
 	const StepAuthority* authority = nullptr;
 	Models models;             ///< The application's data models (their changes reach the others).
 	Connections connections;   ///< The declared connections (RFC 0003), started by "request" and "subscribe".
 	ServiceCalls serviceCalls; ///< Service calls and subscriptions (RFC 0002).
-	/// The terminals `terminal` nodes show and the terminal steps run lines in; shared with the views, which may outlive
-	/// the engine (its destructor stops their programs and their calls).
+	/// The terminals `terminal` nodes show and the terminal steps run lines in; shared with the views, which may
+	/// outlive the engine (its destructor stops their programs and their calls).
 	std::shared_ptr<TerminalSessions> terminals = std::make_shared<TerminalSessions>(serviceCalls);
-	Asks asks;                 ///< The person's requests to the agents ("ask") and their replies.
-	Picks picks;               ///< What the person pointed at ("pick") and has neither removed nor sent.
+	Asks asks;   ///< The person's requests to the agents ("ask") and their replies.
+	Picks picks; ///< What the person pointed at ("pick") and has neither removed nor sent.
 	/// Which file holds an entry of a JSON document (Runtime::setFileOf()); empty: the files aren't known.
 	std::function<FileOf(std::string_view pointer)> fileOf;
-	AsyncCalls calls;          ///< Slow native calls (last: destroyed first, joining their workers).
-	Connection peersChanged = 0; ///< On versions.onReviewChanged: who is connected (the "peers" variable).
-	AudioPlayers audio{*this}; ///< The declared sounds, played by "audio" steps.
-	DataLayer data{*this};     ///< The records: the store following the "models", the `data` variable.
+	AsyncCalls calls;                  ///< Slow native calls (last: destroyed first, joining their workers).
+	Connection peersChanged = 0;       ///< On versions.onReviewChanged: who is connected (the "peers" variable).
+	AudioPlayers audio{*this};         ///< The declared sounds, played by "audio" steps.
+	DataLayer data{*this};             ///< The records: the store following the "models", the `data` variable.
 	SecondWindows otherWindows{*this}; ///< The "windows" section's windows, and the `windows` variable.
 	/// Who may run the commands as peers, and the runs (Runtime::setRunControl()); nullptr: none.
 	RunControl* runControl = nullptr;
@@ -130,7 +140,7 @@ struct Engine : VersionObserver {
 	CommandCatalog commandCatalog{*this}; ///< Main's commands, as tools for peers.
 	CommandRuns commandRuns{*this};       ///< Runs them as their runners, and undoes runs.
 
-	/* VersionObserver */
+	/* VersionObserver (EngineVersions.cpp) */
 	/// @brief Re-reads colours and fonts, then reconciles.
 	void documentChanged() override;
 	/// @brief Refreshes the globals and schedules a reconcile (a review UI may list the proposals).
