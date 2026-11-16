@@ -94,7 +94,9 @@ Repository::Repository(const DocumentRules& rules, json document) : rules_(rules
 /* Objects */
 
 CommitInfo Repository::info(const Commit& c) {
-	return {c.id, c.number, c.parents, c.author, c.committer, c.message, c.time, c.proposal, c.run};
+	CommitInfo result{c.id, c.number, c.parents, c.author, c.committer, c.message, c.time, c.proposal, c.run};
+	result.undo = c.undo;
+	return result;
 }
 
 std::string Repository::describe(const Commit& c) {
@@ -110,6 +112,7 @@ std::string Repository::idOf(const Commit& commit) {
 	if(commit.proposal) object += "proposal " + std::to_string(commit.proposal) + "\n";
 	if(!commit.run.is_null()) object += "run " + detail::sha256(commit.run.dump()) + "\n"; // only when it runs any
 	if(commit.ownInput) object += "ownInput\n";
+	if(!commit.undo.is_null()) object += "undo " + detail::sha256(commit.undo.dump()) + "\n"; // only for an undo
 	object += "\n" + commit.message;
 	return detail::sha256(object);
 }
@@ -427,6 +430,7 @@ std::optional<std::string> Repository::commit(const json& revision) {
 	try {
 		expect::object(revision, "revision");
 		const std::string author = detail::authorOf(revision);
+		if(revision.contains("undo")) checkUndo(revision, author);
 		checkParent(revision);
 		StagedBlobs staged(blobs_);
 		const json run = runOf(revision);
@@ -443,6 +447,7 @@ std::optional<std::string> Repository::commit(const json& revision) {
 		c.patch = std::move(next.patch);
 		c.run = run;
 		c.ownInput = ownInput_;
+		c.undo = revision.value("undo", json());
 		land(std::move(c), std::move(next.document), std::move(next.state));
 		staged.keep();
 	} catch(const DocumentError& error) {
@@ -492,6 +497,7 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 		StagedBlobs staged(blobs_); // what its assets bring: gone again unless it lands or is proposed
 		const json changes = changesOf(revision, staged);
 		checkReadable(changes, author);
+		if(revision.contains("undo")) checkUndo(revision, author); // before a push: an undo is never pushed
 		if(revision.contains("proposal")) {
 			RevisionResult pushed = push(revision, author, changes);
 			staged.keep();
@@ -506,7 +512,9 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 
 		if(verdict.kind == Verdict::Kind::Deny) fail("revision", verdict.reason);
 
-		if(verdict.kind == Verdict::Kind::Ask || alwaysReview) {
+		// An undo that takes out what later changes built, or rebuilds one, is the person's choice: always proposed
+		const bool undoReviewed = undoNeedsReview(revision.value("undo", json())) && !mayReview(author);
+		if(verdict.kind == Verdict::Kind::Ask || alwaysReview || undoReviewed) {
 			const std::string channel = detail::channelOf(author);
 			if(std::ranges::count_if(proposals_, [&](const Proposal& p) {
 				   return detail::channelOf(p.author) == channel;
@@ -541,6 +549,7 @@ RevisionResult Repository::submitRevision(const json& revision, bool alwaysRevie
 		c.time = detail::utcNow();
 		c.patch = std::move(next.patch);
 		c.run = run;
+		c.undo = revision.value("undo", json());
 		const Commit& landed = land(std::move(c), std::move(next.document), std::move(next.state));
 		staged.keep();
 		return {RevisionStatus::Applied, landed.number, landed.id, 0, {}};

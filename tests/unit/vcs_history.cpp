@@ -534,12 +534,16 @@ TEST_CASE("vcs: reverting a commit undoes what it changed in the live state too"
 		commit(repository, repository.revertRevision("HEAD", "studio")); // and a revert reverts too
 		CHECK(repository.state()["count"] == 5);
 	}
-	SUBCASE("the live state changed since, by an action: a conflict, as for the document") {
-		commit(repository, {{"author", "studio"}, {"set", {{"/state/count", 5}}}});
+	SUBCASE("the live state changed since, by an action: the document is undone, the live state kept") {
+		commit(repository, {{"author", "studio"}, {"set", {{"#title/text", "Done"}, {"/state/count", 5}}}});
 		repository.state()["count"] = 6;
-		CHECK_THROWS_WITH_AS((void)repository.revertRevision("HEAD", "studio"),
-		                     doctest::Contains("conflict: /state/count changed after revision 1"),
-		                     affresco::DocumentError);
+		const affresco::UndoPlan plan = repository.undoPlan("HEAD", "studio");
+		CHECK(plan.outcome == "clean");
+		CHECK(plan.state["kept"] == json::array({"/state/count"}));
+		CHECK(plan.state["undone"] == json::array());
+		commit(repository, repository.revertRevision("HEAD", "studio"));
+		CHECK(repository.document() == document);
+		CHECK(repository.state()["count"] == 6);
 	}
 	SUBCASE("a commit that changes nothing has nothing to revert") {
 		commit(repository, {{"author", "studio"}, {"set", {{"/state/count", 0}}}});

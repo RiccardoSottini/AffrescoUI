@@ -111,7 +111,20 @@ std::string_view reasonOf(Side main, Side proposal) {
 	return "changed on main and in the proposal";
 }
 
-std::optional<json> mergeValue(Side base, Side main, Side proposal, const std::string& path, json& conflicts);
+/// @brief What a merge carries down to each value: the conflicts so far, and how to settle the next.
+struct Merging {
+	json& conflicts;             ///< The merge's conflicts; outlives this.
+	const MergeOptions& options; ///< How conflicts are settled; outlives this.
+
+	/// @brief Tells whether a conflict takes the proposal's value.
+	/// @param path The conflict's path.
+	/// @return true if the options say so.
+	[[nodiscard]] bool takesProposal(const std::string& path) const {
+		return options.takeProposal && options.takeProposal(path.empty() ? "/" : path);
+	}
+};
+
+std::optional<json> mergeValue(Side base, Side main, Side proposal, const std::string& path, Merging& merging);
 
 /// @brief The members of an object by key, so that a merge finds each at once (an ordered_json object searches its
 /// keys one by one).
@@ -170,16 +183,16 @@ std::vector<std::string_view> mergeKeyOrder(const std::vector<std::string_view>&
 /// @param main main's.
 /// @param proposal The proposal's.
 /// @param path Where they are.
-/// @param conflicts Gets the conflicts.
+/// @param merging Gets the conflicts, and says how to settle them.
 /// @return The merged object.
-json mergeObject(const json& base, const json& main, const json& proposal, const std::string& path, json& conflicts) {
+json mergeObject(const json& base, const json& main, const json& proposal, const std::string& path, Merging& merging) {
 	const std::array<Items, 3> indexed = {membersOf(base), membersOf(main), membersOf(proposal)};
 	std::unordered_map<std::string_view, json> values;
 	std::vector<std::string_view> mainKeys;
 	std::unordered_set<std::string_view> added;
 	const auto mergeKey = [&](std::string_view key) {
 		std::optional<json> value = mergeValue(memberOf(indexed[0], key), memberOf(indexed[1], key),
-		                                       memberOf(indexed[2], key), path + "/" + escapeKey(key), conflicts);
+		                                       memberOf(indexed[2], key), path + "/" + escapeKey(key), merging);
 		if(value) values.emplace(key, std::move(*value));
 		return value.has_value();
 	};
@@ -222,10 +235,10 @@ void placeAdded(std::vector<std::string>& order, const std::vector<std::string>&
 /// @param sides The ids of the base, main and the proposal, in order.
 /// @param kept The ids the merge keeps.
 /// @param path Where the list is.
-/// @param conflicts Gets a conflict if both sides reordered differently.
+/// @param merging Gets a conflict if both sides reordered differently, and says whose order it takes.
 /// @return The ids, in order.
 std::vector<std::string> mergeOrder(const Sides& sides, const std::unordered_set<std::string>& kept,
-                                    const std::string& path, json& conflicts) {
+                                    const std::string& path, Merging& merging) {
 	const std::array<std::unordered_set<std::string_view>, 3> on = {
 	    {{sides[0].begin(), sides[0].end()}, {sides[1].begin(), sides[1].end()}, {sides[2].begin(), sides[2].end()}}};
 	Sides common;
@@ -239,7 +252,8 @@ std::vector<std::string> mergeOrder(const Sides& sides, const std::unordered_set
 	if(common[0] == common[1]) order = common[2];
 	else if(common[0] != common[2] && common[1] != common[2]) {
 		const json base = common[0], main = common[1], proposal = common[2];
-		conflict(conflicts, path, "reordered on main and in the proposal", {&base, &main, &proposal});
+		conflict(merging.conflicts, path, "reordered on main and in the proposal", {&base, &main, &proposal});
+		if(merging.takesProposal(path)) order = common[2];
 	}
 	placeAdded(order, sides[1], kept);
 	placeAdded(order, sides[2], kept);
@@ -251,9 +265,9 @@ std::vector<std::string> mergeOrder(const Sides& sides, const std::unordered_set
 /// @param main main's.
 /// @param proposal The proposal's.
 /// @param path Where they are.
-/// @param conflicts Gets the conflicts.
+/// @param merging Gets the conflicts, and says how to settle them.
 /// @return The merged list.
-json mergeKeyed(const json& base, const json& main, const json& proposal, const std::string& path, json& conflicts) {
+json mergeKeyed(const json& base, const json& main, const json& proposal, const std::string& path, Merging& merging) {
 	const Sides sides = {idsOf(base), idsOf(main), idsOf(proposal)};
 	const std::array<Items, 3> indexed = {itemsOf(base), itemsOf(main), itemsOf(proposal)};
 	std::unordered_map<std::string, json> items;
@@ -262,13 +276,13 @@ json mergeKeyed(const json& base, const json& main, const json& proposal, const 
 		for(const std::string& id : *side) {
 			if(!seen.insert(id).second) continue;
 			std::optional<json> item =
-			    mergeValue(itemOf(indexed[0], id), itemOf(indexed[1], id), itemOf(indexed[2], id), "#" + id, conflicts);
+			    mergeValue(itemOf(indexed[0], id), itemOf(indexed[1], id), itemOf(indexed[2], id), "#" + id, merging);
 			if(!item) continue; // removed
 			items.emplace(id, std::move(*item));
 			kept.insert(id);
 		}
 	json merged = json::array();
-	for(const std::string& id : mergeOrder(sides, kept, path, conflicts)) merged.push_back(std::move(items.at(id)));
+	for(const std::string& id : mergeOrder(sides, kept, path, merging)) merged.push_back(std::move(items.at(id)));
 	return merged;
 }
 
@@ -277,13 +291,13 @@ json mergeKeyed(const json& base, const json& main, const json& proposal, const 
 /// @param main main's, or nullptr.
 /// @param proposal The proposal's, or nullptr.
 /// @param path Where they are.
-/// @param conflicts Gets the conflicts.
+/// @param merging Gets the conflicts, and says how to settle them.
 /// @return The merged value, or std::nullopt if they are not all objects or all keyed lists.
-std::optional<json> mergeInside(Side base, Side main, Side proposal, const std::string& path, json& conflicts) {
+std::optional<json> mergeInside(Side base, Side main, Side proposal, const std::string& path, Merging& merging) {
 	if(!base || !main || !proposal) return std::nullopt;
 	if(base->is_object() && main->is_object() && proposal->is_object())
-		return mergeObject(*base, *main, *proposal, path, conflicts);
-	if(keyed(*base) && keyed(*main) && keyed(*proposal)) return mergeKeyed(*base, *main, *proposal, path, conflicts);
+		return mergeObject(*base, *main, *proposal, path, merging);
+	if(keyed(*base) && keyed(*main) && keyed(*proposal)) return mergeKeyed(*base, *main, *proposal, path, merging);
 	return std::nullopt;
 }
 
@@ -292,21 +306,22 @@ std::optional<json> mergeInside(Side base, Side main, Side proposal, const std::
 /// @param main main's, or nullptr.
 /// @param proposal The proposal's, or nullptr.
 /// @param path Where it is.
-/// @param conflicts Gets the conflicts.
+/// @param merging Gets the conflicts, and says how to settle them.
 /// @return The merged value, or std::nullopt where the merge removes it.
-std::optional<json> mergeValue(Side base, Side main, Side proposal, const std::string& path, json& conflicts) {
+std::optional<json> mergeValue(Side base, Side main, Side proposal, const std::string& path, Merging& merging) {
 	if(same(main, proposal) || same(base, proposal)) return taken(main);
 	if(same(base, main)) return taken(proposal);
-	if(std::optional<json> merged = mergeInside(base, main, proposal, path, conflicts)) return merged;
-	conflict(conflicts, path, reasonOf(main, proposal), {base, main, proposal});
-	return taken(main);
+	if(std::optional<json> merged = mergeInside(base, main, proposal, path, merging)) return merged;
+	conflict(merging.conflicts, path, reasonOf(main, proposal), {base, main, proposal});
+	return taken(merging.takesProposal(path) ? proposal : main);
 }
 
 } // namespace
 
-MergeResult merge(const json& base, const json& main, const json& proposal) {
+MergeResult merge(const json& base, const json& main, const json& proposal, const MergeOptions& options) {
 	MergeResult result;
-	result.merged = mergeValue(&base, &main, &proposal, "", result.conflicts).value_or(json());
+	Merging merging{result.conflicts, options};
+	result.merged = mergeValue(&base, &main, &proposal, "", merging).value_or(json());
 	return result;
 }
 
@@ -314,8 +329,8 @@ MergeResult merge(const json& base, const json& main, const json& proposal) {
 
 namespace affresco::vcs {
 
-MergeResult mergeDocuments(const json& base, const json& main, const json& proposal) {
-	return detail::merge(base, main, proposal);
+MergeResult mergeDocuments(const json& base, const json& main, const json& proposal, const MergeOptions& options) {
+	return detail::merge(base, main, proposal, options);
 }
 
 } // namespace affresco::vcs

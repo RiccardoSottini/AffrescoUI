@@ -96,6 +96,48 @@ TEST_CASE("merge: a list reordered differently on both sides is a conflict; a li
 	CHECK_FALSE(merge(json::array({1, 2}), json::array({1, 2, 3}), json::array({0, 1, 2})).clean());
 }
 
+TEST_CASE("merge: a conflict the options settle for the proposal takes its value, and is listed all the same") {
+	const affresco::vcs::MergeOptions everywhere{[](const std::string&) { return true; }};
+	const json base = {{"title", "Tasks"}, {"color", "#fff"}, {"size", 1}};
+
+	// Changed on both sides
+	const auto changed = merge(base, {{"title", "Today"}, {"color", "#fff"}, {"size", 1}},
+	                           {{"title", "Done"}, {"color", "#fff"}, {"size", 1}}, everywhere);
+	REQUIRE(changed.conflicts.size() == 1);
+	CHECK(changed.conflicts[0]["reason"] == "changed on main and in the proposal");
+	CHECK(changed.merged["title"] == "Done");
+
+	// Removed on main, changed in the proposal: the proposal's value comes back
+	const auto removedOnMain =
+	    merge(base, {{"color", "#fff"}, {"size", 1}}, {{"title", "Done"}, {"color", "#fff"}, {"size", 1}}, everywhere);
+	REQUIRE(removedOnMain.conflicts.size() == 1);
+	CHECK(removedOnMain.conflicts[0]["reason"] == "removed on main, changed in the proposal");
+	CHECK(removedOnMain.merged["title"] == "Done");
+
+	// Changed on main, removed in the proposal: it goes
+	const auto removedInProposal =
+	    merge(base, {{"title", "Today"}, {"color", "#fff"}, {"size", 1}}, {{"color", "#fff"}, {"size", 1}}, everywhere);
+	REQUIRE(removedInProposal.conflicts.size() == 1);
+	CHECK(removedInProposal.conflicts[0]["reason"] == "changed on main, removed in the proposal");
+	CHECK_FALSE(removedInProposal.merged.contains("title"));
+
+	// Reordered on both sides: the proposal's order
+	const json items = json::parse(R"([{"id": "a"}, {"id": "b"}, {"id": "c"}])");
+	const auto reordered = merge(items, json::parse(R"([{"id": "c"}, {"id": "a"}, {"id": "b"}])"),
+	                             json::parse(R"([{"id": "b"}, {"id": "a"}, {"id": "c"}])"), everywhere);
+	REQUIRE(reordered.conflicts.size() == 1);
+	CHECK(reordered.conflicts[0]["reason"] == "reordered on main and in the proposal");
+	CHECK(idsOf(reordered.merged) == std::vector<std::string>{"b", "a", "c"});
+
+	// Asked with each conflict's path: only the ones it names
+	const affresco::vcs::MergeOptions some{[](const std::string& path) { return path == "/title"; }};
+	const auto chosen = merge(base, {{"title", "Today"}, {"color", "#000"}, {"size", 1}},
+	                          {{"title", "Done"}, {"color", "#111"}, {"size", 1}}, some);
+	CHECK(chosen.conflicts.size() == 2);
+	CHECK(chosen.merged["title"] == "Done");
+	CHECK(chosen.merged["color"] == "#000");
+}
+
 TEST_CASE("vcs: a proposal rebases itself onto a newer main, and keeps its approval when nothing else changed") {
 	const affresco::format::Rules rules;
 	affresco::vcs::Repository repository(rules, permissionsScreen());
