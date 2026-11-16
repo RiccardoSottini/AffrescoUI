@@ -125,6 +125,28 @@ public:
 	/// @param revision The revision, as for submit(); it can't push to a proposal.
 	/// @return Proposed or rejected, never applied.
 	RevisionResult propose(const json& revision) override;
+	/// @brief A merge of another version of the document into main (proposeMerge()).
+	struct MergeRequest {
+		json base;               ///< The common ancestor: the version both main and @ref theirs came from.
+		json theirs;             ///< The other version, whose changes since @ref base are merged.
+		std::string author;      ///< Who proposes it ("agent/claude-code"), judged as any author is.
+		std::string message;     ///< The proposal's title.
+		bool personOnly = false; ///< Only a reviewer of personChannel may accept it.
+	};
+	/// @brief What proposeMerge() did: a RevisionResult, and the merge's conflicts.
+	struct MergeProposed : RevisionResult {
+		/// `[{"path", "reason", "base", "main", "proposal"}]`, "main" being main's value and "proposal" theirs: what a
+		/// proposal leaves out, or, when nothing merged cleanly, why none was opened.
+		json conflicts = json::array();
+	};
+	/// @brief Merges another version of the document into main's source, as a proposal (VERSION_CONTROL.md,
+	/// "Rebasing"): what merged cleanly is its patch, and each conflict is kept in ProposalInfo::leftOut, where main's
+	/// value stays. A proposal with parts left out can still be accepted; it goes through propose(), so the document
+	/// rules, the deny rules and the limits apply whoever the author is. The live state is never merged.
+	/// @param request The versions, the author and the title.
+	/// @return Proposed; or Rejected, with why: "nothing to merge: main already has it", "nothing merges cleanly"
+	/// (with the conflicts' paths), or what propose() refused.
+	[[nodiscard]] MergeProposed proposeMerge(const MergeRequest& request);
 	std::optional<std::string> commit(const json& revision) override;
 	[[nodiscard]] CommitInfo resolve(const json& revision) const override { return info(find(revision)); }
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
@@ -203,11 +225,17 @@ public:
 	[[nodiscard]] json coordination() const override;
 
 private:
+	/// @brief What a proposal opened by proposeMerge() carries beyond its revision.
+	struct Opening {
+		json leftOut = json::array(); ///< The merge's conflicts (Proposal::leftOut).
+		bool personOnly = false;      ///< Proposal::personOnly.
+	};
 	/// @brief submit() and propose().
 	/// @param revision The revision.
 	/// @param alwaysReview true for propose(): open a proposal even where the rules allow the change.
+	/// @param opening What a proposal it opens carries beyond the revision (proposeMerge()).
 	/// @return What happened.
-	RevisionResult submitRevision(const json& revision, bool alwaysReview);
+	RevisionResult submitRevision(const json& revision, bool alwaysReview, const Opening& opening);
 	/// @brief Checks a change set's envelope: its format, version and list of revisions.
 	/// @param changes The change set.
 	/// @throws DocumentError If it isn't one this version reads.
@@ -256,6 +284,10 @@ private:
 		json run = json::array();           ///< Its commits' "run" steps, in order: what the merge commit runs.
 		json assets = json::array();        ///< The assets it brings, changes or removes (ProposalInfo::assets).
 		std::vector<std::string> person;    ///< Why only the person may accept it (personNeeds()); empty if not.
+		/// The parts of a merge that conflicted and were left out (proposeMerge()), in the conflicts' shape. Kept as
+		/// recorded when the proposal rebases: unlike conflicts, they never block it.
+		json leftOut = json::array();
+		bool personOnly = false; ///< Opened for only the person to accept (MergeRequest::personOnly).
 	};
 
 	/// @brief Asset bytes a revision brings, kept in blobs_ only while it is checked: unless keep() is called, they
@@ -570,6 +602,12 @@ private:
 	/// @param merged The merged document.
 	/// @throws DocumentError If the commit doesn't apply, or a rule refuses it.
 	void squash(Proposal& proposal, const json& merged);
+	/// @brief The operations that turn main's head into a merged document: keys in the merged order (detail::delta()),
+	/// and none in the live state, which a merge never changes.
+	/// @param merged The merged document.
+	/// @return The operations.
+	/// @throws DocumentError If there are more than a proposal may hold.
+	[[nodiscard]] json patchToward(const json& merged) const;
 	/// @brief Checks an approval before it counts: never the author's own, pinned to the head reviewed (or one the
 	/// proposal rebased from unchanged), and a "don't ask again" that can be granted for as long as it asks.
 	/// @param proposal The proposal.
@@ -737,6 +775,14 @@ private:
 	/// @param run Its steps, or null.
 	/// @return The lines; empty if any reviewer may.
 	[[nodiscard]] std::vector<std::string> personNeeds(const json& before, const json& after, const json& run) const;
+	/// @brief Why only the person may accept a proposal: personNeeds() for its steps, and that it was opened for the
+	/// person (Proposal::personOnly).
+	/// @param proposal The proposal.
+	/// @param before The view before.
+	/// @param after The view after.
+	/// @return The lines; empty if any reviewer may.
+	[[nodiscard]] std::vector<std::string> personNeeds(const Proposal& proposal, const json& before,
+	                                                   const json& after) const;
 	/// @brief The assets a change brings, changes or removes, for review.
 	/// @param before The view before.
 	/// @param after The view after.

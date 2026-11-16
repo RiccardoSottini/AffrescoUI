@@ -12,6 +12,7 @@ what. So the same module can keep any JSON document. Target: `affrescoui::vcs` (
 | Header | Offers |
 |---|---|
 | `Repository.hpp` | `Repository`: the `VersionControl` implementation; `openHistory` (the history on disk) and `OpenedHistory`; `blame`; `maxOpenProposals` (16 per channel); `snapshotInterval` (64) |
+| `Merge.hpp` | `mergeDocuments`: the three-way merge of JSON documents that rebases proposals (objects key by key in `main`'s order, lists of nodes by id, a string whole), for any caller with two versions and their common ancestor; `MergeResult` (`merged`, `conflicts`, `clean()`) |
 | `Leases.hpp` | `Leases`: a part of a document (an `#id` or a pointer) one person holds for a while, bounded; `LeasedRules`: a document's rules plus a deny rule for everyone else per running lease |
 | `Roles.hpp` | `Roles`: the role each author plays for this run (`design`, `data`, `builder`), set by the host or a reviewer, never by a revision; `ruleCovers`: whether a rule's author (`role:<name>` too) covers an author |
 | `ChangeSetRepair.hpp` | `ChangeSetRepairs`: change sets installed with their request, base and proof, checked on install, and repaired by an agent through review; `RepairStatus`, `InstalledChangeSet` |
@@ -61,7 +62,15 @@ Everything else a user needs is in `core/VersionControl.hpp` (the interface and 
 - **Proposals follow main** (`rebaseProposals`, `RepositoryReview.cpp`): when main moves, each open proposal rebases
   through `detail::merge` (`Merge.hpp`), keyed by node id. Approvals survive only an exact rebase (replaying its
   commits gives the merge); a merged rebase dismisses them; a conflict leaves the branch where it was, listed in
-  `conflicts`, and blocks accepting it.
+  `conflicts`, and blocks accepting it. An object's keys keep `main`'s order, and a key only one side added lands
+  after the key it followed on that side (at the start if it followed none the merge keeps): a definition added in
+  the middle of a program file stays there. A merged rebase's commit keeps that order (`patchToward`, `detail::delta`).
+- **`proposeMerge` is a proposal like any other** (`RepositoryReview.cpp`): it merges another version onto main's
+  source, with the version both came from as the base, and opens the clean part through `propose()`, so the document
+  rules, the deny rules and the limits judge it whoever the author is. Each conflict goes to `leftOut`, never into
+  the patch; `leftOut` doesn't block it and is kept as recorded through rebases and on disk. The live state is never
+  merged. `personOnly` makes only a reviewer of `personChannel` able to accept it. Nothing to merge, or nothing that
+  merges cleanly, opens no proposal.
 - **A review policy is met before a merge** (`DocumentRules::permissions().review`): approvals from distinct reviewers,
   more for behaviour changes (`DocumentRules::behaviourLines`), and one from an owner of each owned part changed. It
   is read from main when each approval arrives. Grants may carry `expires`; expired ones no longer allow.
@@ -159,6 +168,7 @@ borrowed too; `setObserver(nullptr)` before the observer goes.
 ```
 include/affresco/vcs/
   Repository.hpp            the Repository class
+  Merge.hpp                 mergeDocuments, the three-way merge for any caller
   Leases.hpp, Roles.hpp, Presence.hpp, ChangeSetRepair.hpp   what several agents at once add
   Runs.hpp                  who may run a command as a peer, and the runs
 src/

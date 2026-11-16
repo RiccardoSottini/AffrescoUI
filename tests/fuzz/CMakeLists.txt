@@ -35,6 +35,7 @@ affrescoui_fuzzer(session affrescoui::format affrescoui::vcs affrescoui::channel
 # The command messages (getCommands, runCommand, ...), over a service that keeps runs waiting
 affrescoui_fuzzer(commands affrescoui::format affrescoui::vcs affrescoui::channel)
 affrescoui_fuzzer(delta affrescoui::vcs)
+affrescoui_fuzzer(merge affrescoui::vcs) # the three-way merge of documents (vcs/Merge.hpp)
 affrescoui_fuzzer(policy affrescoui::format affrescoui::vcs)
 affrescoui_fuzzer(text affrescoui::render nlohmann_json::nlohmann_json) # Fuzz.hpp reads JSON
 target_include_directories(affrescoui_fuzz_text PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # detail/Utf8.hpp
