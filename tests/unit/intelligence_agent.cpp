@@ -1,8 +1,9 @@
 /// @file
 /// @brief The intelligence module's in-process agent (affresco/intelligence/Agent.hpp), with a fake network and a
-/// stand-in screen: the tool loop reads, revises and replies within its bounds, only the provider's origin is allowed, a
-/// missing key or a refused one is a reply without the key, claude-code retries a rejected revision once, and only
-/// the screen's own requests are taken. No real API is called.
+/// stand-in screen: the tool loop reads, revises and replies within its bounds, only the provider's origin is allowed,
+/// a missing key or a refused one is a reply without the key, claude-code retries a rejected revision once, and only
+/// the screen's own requests are taken; an undo of an earlier change reads its plan first, with tools or without, and
+/// a refused one comes back to the model. No real API is called.
 
 #include <affresco/intelligence/Agent.hpp>
 #include <affresco/intelligence/Intelligence.hpp>
@@ -178,10 +179,10 @@ struct Harness {
 	/// The screen's document.
 	json document = {
 	    {"root", {{"id", "page"}, {"children", {{{"id", "title"}, {"type", "label"}, {"text", "Tasks"}}}}}}};
-	int claudeRuns = 0;                       ///< Times claude-code ran.
-	std::vector<std::string> claudeModels;    ///< The model of each run.
-	std::vector<std::string> claudeAnswers;   ///< What it answers, in turn.
-	std::vector<std::string> claudeInputs;    ///< Its system prompt and input, each time it ran.
+	int claudeRuns = 0;                     ///< Times claude-code ran.
+	std::vector<std::string> claudeModels;  ///< The model of each run.
+	std::vector<std::string> claudeAnswers; ///< What it answers, in turn.
+	std::vector<std::string> claudeInputs;  ///< Its system prompt and input, each time it ran.
 	/// Runs instead of answering from claudeAnswers, if set: given the run's "stopped" check (worker thread).
 	std::function<intelligence::ClaudeAnswer(const std::function<bool()>&)> claudeRun;
 	std::unique_ptr<intelligence::ProviderAgent> agent; ///< The agent.
@@ -752,7 +753,7 @@ TEST_CASE("intelligence agent: the tool loop looks at an undo's plan, then undoe
 	CHECK_FALSE(undo.contains("drop"));
 	CHECK_FALSE(undo.contains("dry_run"));
 	CHECK(harness.headsSeen == std::vector<int>{3, 3}); // the dry run changed nothing
-	CHECK(harness.head == 4);                            // the undo: one revision further
+	CHECK(harness.head == 4);                           // the undo: one revision further
 	CHECK(harness.revisions.empty());
 
 	const std::vector<network::Request> requests = harness.requests();

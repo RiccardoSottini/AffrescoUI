@@ -3,6 +3,7 @@
 
 #include "Undo.hpp"
 
+#include <algorithm>
 #include <utility>
 
 namespace affresco::intelligence {
@@ -35,6 +36,23 @@ bool isPaths(const json& choice, std::size_t& paths) {
 	return true;
 }
 
+/// @brief Why the undo's choices can't be sent, if they can't: drop and keep, each a list of paths or "all", at most
+/// maxUndoPaths paths together, and then, a list of operations.
+/// @param input The model's arguments, an object.
+/// @return The reason, naming the choice, or nullopt.
+std::optional<std::string> choiceProblem(const json& input) {
+	std::size_t paths = 0;
+	for(const char* key : {"drop", "keep"})
+		if(input.contains(key) && !isPaths(input[key], paths))
+			return std::string(key) + ": a list of conflict paths or \"all\"";
+	if(paths > maxUndoPaths) return "drop and keep: at most " + std::to_string(maxUndoPaths) + " paths together";
+	const auto then = input.find("then");
+	if(then == input.end()) return std::nullopt;
+	if(!then->is_array() || !std::ranges::all_of(*then, [](const json& operation) { return operation.is_object(); }))
+		return "then: a JSON Patch, a list of operations";
+	return std::nullopt;
+}
+
 } // namespace
 
 ToolSpec undoTool() {
@@ -65,16 +83,7 @@ std::optional<std::string> undoProblem(const json& input) {
 	const auto revision = input.find("revision");
 	if(revision == input.end() || !(revision->is_number_integer() || revision->is_string()))
 		return "revision: a revision number or a commit id";
-	std::size_t paths = 0;
-	for(const char* key : {"drop", "keep"})
-		if(input.contains(key) && !isPaths(input[key], paths))
-			return std::string(key) + ": a list of conflict paths or \"all\"";
-	if(paths > maxUndoPaths) return "drop and keep: at most " + std::to_string(maxUndoPaths) + " paths together";
-	if(input.contains("then")) {
-		if(!input["then"].is_array()) return "then: a JSON Patch, a list of operations";
-		for(const json& operation : input["then"])
-			if(!operation.is_object()) return "then: a JSON Patch, a list of operations";
-	}
+	if(std::optional<std::string> problem = choiceProblem(input)) return problem;
 	for(const char* key : {"head", "message"})
 		if(input.contains(key) && !input[key].is_string()) return std::string(key) + ": a text";
 	if(input.contains("dry_run") && !input["dry_run"].is_boolean()) return "dry_run: true or false";
@@ -106,6 +115,6 @@ json planSummary(const json& plan) {
 	return summary;
 }
 
-bool undoConflict(const std::string& error) { return error.find("revert: conflict:") != std::string::npos; }
+bool undoConflict(const std::string& error) { return error.contains("revert: conflict:"); }
 
 } // namespace affresco::intelligence
