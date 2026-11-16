@@ -313,7 +313,8 @@ struct Rounds {
 /// @param said Its answer.
 /// @return Whether it does.
 bool asksToRead(const json& said) {
-	return said.contains("read") || said.contains("find") || said.contains("guide") || said.value("commands", json(false)) == json(true);
+	return said.contains("read") || said.contains("find") || said.contains("guide") ||
+	       said.value("commands", json(false)) == json(true);
 }
 
 /// @brief The texts of a list in claude-code's answer; anything else in it is skipped.
@@ -467,8 +468,8 @@ private:
 			} else if(call.name == "list_commands") {
 				result.content = listCommands(call.input.value("filter", json()));
 			} else if(call.name == "run_command") {
-				result.content = runCommand(call.input.value("name", json()), call.input.value("arguments", json()),
-				                            result.error);
+				result.content =
+				    runCommand(call.input.value("name", json()), call.input.value("arguments", json()), result.error);
 			} else {
 				result = {call.id, "no tool named '" + call.name + "'", true};
 			}
@@ -803,47 +804,7 @@ void ProviderAgent::send(std::string_view message) {
 	const json in = json::parse(message, nullptr, false);
 	if(!in.is_object()) return;
 	const std::string type = in.value("type", "");
-	if(type == "request") {
-		// Only the app's own chat (its ask step, from "user"): a request another peer relays has that peer as its
-		// "from"
-		if(in.value("source", "") != "screen" || in.value("from", "") != "user" || !in.contains("id") ||
-		   !in["id"].is_string())
-			return;
-		const std::string id = in["id"].get<std::string>();
-		const std::string text = in.contains("text") && in["text"].is_string() ? in["text"].get<std::string>() : "";
-		const std::string model = requestedModel(in);
-		const auto now = std::chrono::steady_clock::now();
-		while(!taken_.empty() && now - taken_.front() >= std::chrono::minutes(1)) taken_.pop_front();
-		if(taken_.size() >= options_.requestsPerMinute) {
-			deliver({{"type", "reply"},
-			         {"request", id},
-			         {"error", "Too many requests to the assistant: ask again in a minute."}});
-			return;
-		}
-		const json attached = attachmentsOf(in.value("attachments", json::array()));
-		json picks = picksOf(in.value("picks", json::array()));
-		json earlier = json::array();
-		for(const json& item : attachedBefore_)
-			if(!attachedHas(attached, item.value("id", ""))) earlier.push_back(item);
-		bool busy = false;
-		{
-			const std::scoped_lock lock(mutex_);
-			busy = jobs_.size() >= maxQueued;
-			if(!busy) jobs_.push_back({id, text, model, attached, std::move(earlier), std::move(picks)});
-		}
-		if(busy) {
-			deliver({{"type", "reply"}, {"request", id}, {"error", "The assistant is busy: ask again in a moment."}});
-			return;
-		}
-		taken_.push_back(now);
-		for(const json& item : attached) {
-			if(attachedHas(attachedBefore_, item.value("id", ""))) continue;
-			attachedBefore_.push_back(item);
-			if(attachedBefore_.size() > maxAttachments) attachedBefore_.erase(attachedBefore_.begin());
-		}
-		wake_.notify_all();
-		return;
-	}
+	if(type == "request") return queue(in);
 	if(type == "cancel") {
 		if(in.value("source", "") != "screen" || in.value("from", "") != "user" || !in.contains("request") ||
 		   !in["request"].is_string())
@@ -858,6 +819,55 @@ void ProviderAgent::send(std::string_view message) {
 	// The screen's answers never carry `from`: a message that does is another peer's, relayed to every peer, and its id
 	// (a counter, easily guessed) must not pass for the screen's answer
 	if(!in.contains("id") || !in["id"].is_string() || in.contains("from")) return;
+	receive(in);
+}
+
+void ProviderAgent::queue(const json& in) {
+	// Only the app's own chat (its ask step, from "user"): a request another peer relays has that peer as its
+	// "from"
+	if(in.value("source", "") != "screen" || in.value("from", "") != "user" || !in.contains("id") ||
+	   !in["id"].is_string())
+		return;
+	const std::string id = in["id"].get<std::string>();
+	const std::string text = in.contains("text") && in["text"].is_string() ? in["text"].get<std::string>() : "";
+	const std::string model = requestedModel(in);
+	const auto now = std::chrono::steady_clock::now();
+	while(!taken_.empty() && now - taken_.front() >= std::chrono::minutes(1)) taken_.pop_front();
+	if(taken_.size() >= options_.requestsPerMinute) {
+		deliver({{"type", "reply"},
+		         {"request", id},
+		         {"error", "Too many requests to the assistant: ask again in a minute."}});
+		return;
+	}
+	const json attached = attachmentsOf(in.value("attachments", json::array()));
+	json picks = picksOf(in.value("picks", json::array()));
+	json earlier = json::array();
+	for(const json& item : attachedBefore_)
+		if(!attachedHas(attached, item.value("id", ""))) earlier.push_back(item);
+	bool busy = false;
+	{
+		const std::scoped_lock lock(mutex_);
+		busy = jobs_.size() >= maxQueued;
+		if(!busy) jobs_.push_back({id, text, model, attached, std::move(earlier), std::move(picks)});
+	}
+	if(busy) {
+		deliver({{"type", "reply"}, {"request", id}, {"error", "The assistant is busy: ask again in a moment."}});
+		return;
+	}
+	taken_.push_back(now);
+	remember(attached);
+	wake_.notify_all();
+}
+
+void ProviderAgent::remember(const json& attached) {
+	for(const json& item : attached) {
+		if(attachedHas(attachedBefore_, item.value("id", ""))) continue;
+		attachedBefore_.push_back(item);
+		if(attachedBefore_.size() > maxAttachments) attachedBefore_.erase(attachedBefore_.begin());
+	}
+}
+
+void ProviderAgent::receive(const json& in) {
 	{
 		const std::scoped_lock lock(mutex_);
 		const std::string id = in["id"].get<std::string>();
