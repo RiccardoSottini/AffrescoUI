@@ -1900,9 +1900,9 @@ line:
 | → peer | `{"type": "hello", "format", "revision", "head", "document", "state", "mode", "you", "canReview"}` on connect. For a program, `document` is what it builds with `program` in it, and `source` the document as written (not to a reader whose reads are limited: "Data rules") |
 | → peer | answers to its revisions: `applied` (`revision`, `commit`), `proposed` (`proposal`, `commit`) or `rejected` (`error`) |
 | → all peers | `committed` (a commit landed on main), `review` (proposals, preview, mode, grants changed), a reviewer's decision, `event` (from `emit`), `error` |
-| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `picks` (`picks`), `source` (`source`), `done` |
-| peer → | `revision` (compact edits or `patch`, `proposal`?, `assets`?, `run`?), `revert` / `restore` (`revision`), `undo` |
-| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `fileChanges` (the same, plus `notation` and `file`: VERSION_CONTROL.md, "The changes, file by file"), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?) |
+| → peer | answers: `document` (with head, proposals, mode, grants), `history`, `diff`, `fileChanges` (`changes`), `blame` (`target`, `commit`), `changes`, `catalog`, `image`, `converted` (`value` or `text`), `picks` (`picks`), `source` (`source`), `undoPlan` (`plan`, `revision`), `done` |
+| peer → | `revision` (compact edits or `patch`, `proposal`?, `assets`?, `run`?), `revert` (`revision`, and the undo's choices `drop`?, `keep`?, `then`?, `head`?, `message`?: see below), `restore` (`revision`), `undo` |
+| peer → | `getDocument`, `getHistory` (`limit`?), `diff` (`from`, `to` or `proposal`), `fileChanges` (the same, plus `notation` and `file`: VERSION_CONTROL.md, "The changes, file by file"), `blame` (`target`: `#id` or a path), `exportChanges` (`from`, `name`), `getCatalog`, `render` (`proposal`?, `scale`?), `undoPlan` (`revision`, and `drop`?, `keep`?, `then`?, `head`? as on `revert`: what undoing that commit would do, without doing it; a peer whose reads are limited is refused it) |
 | peer → | `getPicks` (no fields; answers the elements the person pointed at and has not sent or removed, oldest first, 16 at most: pick records of each one's node, type, JSON Pointer, bounds, bindings as written and source, never a value from the state), `getSource` (`at`: a node's id, a JSON Pointer to a node, or a definition's address; answers the definition or file that writes it, with its notation and its text of 16 KiB at most). A peer whose reads are limited is refused both, and a host that keeps no picks or sources rejects them |
 | peer → | `convert` (`notation`: `"lisp"` or `"json"`, and `text` to read or `value` to write; a mistake is rejected with its line and column): how a peer reads and writes the Lisp notation, while revisions and the history stay JSON |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
@@ -1911,6 +1911,29 @@ line:
 
 Requests may carry an `"id"`; answers repeat it.
 
+**Undoing an earlier commit.** `revert` undoes one commit on main and keeps the commits after it. Where a later commit
+changed what it changed, the choices say what happens there: `drop` (those later changes are taken out too) and
+`keep` (they stay, and the commit's part there is not undone) each name conflict paths, or `"all"`; `then` is a JSON
+Patch applied after the undo, in the same commit; `head` is main's head the choices were made on; `message` is the
+commit's message. At most 256 paths in `drop` and `keep` together, each at most 1,024 bytes; a malformed choice is
+rejected naming its key (`revert.drop: expected a list of paths or "all"`). Without choices, `revert` is a plain undo,
+refused on a conflict. `undoPlan` answers what the undo would do first, as `plan`:
+
+| Key | Value |
+|---|---|
+| `of` | The commit to undo, as in `history` |
+| `head` | main's head id the plan was worked out on |
+| `outcome` | `"clean"` (it can be undone as asked), `"choose"` (later changes conflict and are not all named in `drop` or `keep`), `"ready"` (every conflict is named), `"blocked"` (it can't be done) |
+| `blocked` | Why, when blocked; else `""` |
+| `untouched` | How many later commits stay exactly as they are |
+| `later`, `laterMore` | At most 64 later commits a part of which conflicts, oldest first: `{"number", "id", "short", "author", "message", "parts": [paths]}`; and how many more |
+| `conflicts`, `conflictsMore` | At most 64: `{"path", "reason", "then", "now", "before", "commits": [numbers], "choice": "drop", "keep" or null}`; `then` is the value as the undone commit left it, `now` as it is, `before` as it was before the commit; and how many more |
+| `gone` | Paths the commit changed that a later change removed: nothing to undo there |
+| `state` | `{"undone": [paths], "kept": [paths]}` of the live state |
+| `changes`, `impact` | For `clean` and `ready`: the undo's operations as lines, and its impact per layer; else `[]` and null |
+| `proposals` | Ids of open proposals that would conflict with main after it |
+| `warnings` | Lines: a feature that would be left out, steps the commit ran once that are not undone |
+
 **Limits per peer** (`channel::PeerLimits`; the host may set others). A message over a limit is refused, and the first
 refusal in a row is logged:
 
@@ -1918,7 +1941,7 @@ refusal in a row is logged:
 |---|---|---|
 | One message | 88 MiB (a revision of 64 MiB of assets in base64) | `error` "message too large", without `id` (it isn't read) |
 | Messages of any kind | 100 a second, 200 at once | `error` "too many messages", without `id` |
-| Changes (`revision`, `restore`, `revert`, `undo`) | 120 a minute, 30 at once | `rejected` "too many changes", with `id` |
+| Changes (`revision`, `restore`, `revert`, `undo`, and `undoPlan`, which costs a merge) | 120 a minute, 30 at once | `rejected` "too many changes", with `id` |
 | Pictures (`render`), apart from the changes | 120 a minute, 30 at once | `rejected` "too many pictures", with `id` |
 | Sent to the peer and not yet read by it (a socket peer) | 64 MiB | the peer is disconnected |
 

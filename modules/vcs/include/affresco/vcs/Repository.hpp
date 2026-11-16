@@ -151,6 +151,15 @@ public:
 	[[nodiscard]] CommitInfo resolve(const json& revision) const override { return info(find(revision)); }
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
 	[[nodiscard]] json revertRevision(const json& revision, std::string_view author) const override;
+	/// @copydoc VersionControl::undoPlan
+	/// For now built on revertRevision(): "clean" if it would undo, else "blocked" with its refusal; options that
+	/// keep later changes are "blocked" too, and every list is empty.
+	[[nodiscard]] UndoPlan undoPlan(const json& revision, std::string_view author,
+	                                const UndoOptions& options = {}) const override;
+	/// @copydoc VersionControl::undoRevision
+	/// For now a plain undo only, as revertRevision().
+	[[nodiscard]] json undoRevision(const json& revision, std::string_view author,
+	                                const UndoOptions& options = {}) const override;
 	[[nodiscard]] json diff(const json& from, const json& to) const override;
 	[[nodiscard]] json impact(const json& from, const json& to) const override;
 	[[nodiscard]] CommitInfo blame(std::string_view target) const override;
