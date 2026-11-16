@@ -46,6 +46,7 @@ struct AgentOptions {
 	bool hiddenProviders = true;                    ///< Uses a provider the settings don't offer (hiddenProvidersAllowed()).
 	int maxSteps = 12;                              ///< The most answers of the model per request.
 	int maxRevisions = 6;                           ///< The most revisions per request.
+	int maxRuns = 12;                               ///< The most of the app's commands run per request.
 	long long maxOutputTokens = 60000;              ///< The most tokens the model writes per request.
 	std::chrono::milliseconds budget{240000};       ///< The longest a request may take.
 	std::chrono::milliseconds screenTimeout{30000}; ///< The longest the screen may take to answer the agent.
@@ -108,6 +109,12 @@ private:
 	/// @param message The message (an id is added).
 	/// @return The answer, or nullopt if none came in time or the agent stopped.
 	std::optional<affresco::json> ask(affresco::json message);
+	/// @brief Asks the screen to run a command and waits for how it ended: after a "waiting" answer, for the run's
+	/// second answer (the same id) until @p until, the person's cancel or the stop. Worker thread.
+	/// @param message The runCommand (an id is added).
+	/// @param until The latest it waits for a run that waits for the person's yes.
+	/// @return The last answer (a "waiting" one when the run still waits), or nullopt if none came in time.
+	std::optional<affresco::json> askRun(affresco::json message, std::chrono::steady_clock::time_point until);
 	/// @brief Sends a message to the screen, on the main thread.
 	/// @param message The message.
 	void deliver(const affresco::json& message);
