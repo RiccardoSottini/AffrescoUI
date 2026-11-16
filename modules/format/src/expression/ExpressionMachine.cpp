@@ -282,7 +282,7 @@ const Value* Machine::accumulator() const noexcept {
 Value Machine::call(const Node& node, const Place& place) {
 	const Place at(place, node.label);
 	const Function* function = node.function;
-	if(function && function->changes && context_.reads) context_.reads->always = true; // the clock
+	if(function && function->changes && context_.reads) context_.reads->addAlways(AlwaysReason::Clock); // the clock
 	if(function && function->decide) return decide(*function, node, at);
 
 	// Arguments first, then their number, as evaluating the JSON form did
@@ -348,7 +348,7 @@ Value Machine::walk(Root root, std::string_view name, std::span<const PathKey> k
 
 void Machine::noteRead(Root root, std::string_view name, std::span<const PathKey> keys) const {
 	if(root == Root::Nodes) { // a panel's geometry: no state change announces it
-		context_.reads->always = true;
+		context_.reads->addAlways(AlwaysReason::Geometry);
 		return;
 	}
 	std::string pointer;

@@ -46,6 +46,9 @@ affrescoui_fuzzer(richtext affrescoui::render nlohmann_json::nlohmann_json) # Fu
 target_compile_definitions(affrescoui_fuzz_richtext PRIVATE AFFRESCOUI_FUZZ_CHECKOUT="${PROJECT_SOURCE_DIR}")
 affrescoui_fuzzer(layout affrescoui)
 target_include_directories(affrescoui_fuzz_layout PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # Headless.hpp
+# Partial updates in verify mode: any screen and steps give the panels a full pass gives (format::Verify)
+affrescoui_fuzzer(updates affrescoui)
+target_include_directories(affrescoui_fuzz_updates PRIVATE ${PROJECT_SOURCE_DIR}/modules/render/src) # Headless.hpp
 # What the affrescoui tool reads (tools/affrescoui): its own sources, linked only into the fuzzer (the tool's target
 # compiles them otherwise), and the schema it builds in
 affrescoui_fuzzer(cli affrescoui::format)
