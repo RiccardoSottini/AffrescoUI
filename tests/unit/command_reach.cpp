@@ -134,7 +134,7 @@ TEST_CASE("format: a command that reaches a control step through a Lisp function
 )lisp";
 	const CommandReach function = lispReach(helpers + R"lisp((defcommand go "Goes." :title "Go" [] (asks)))lisp", "go");
 	CHECK(function.control);
-	CHECK(function.controlStep.contains("reaches a control or a review step"));
+	CHECK(function.controlStep.contains("a control or a review step in the function"));
 	const CommandReach advised =
 	    lispReach(helpers + R"lisp((defcommand go "Goes." :title "Go" [] (quiet)) (advice go :before asks))lisp", "go");
 	CHECK(advised.control);

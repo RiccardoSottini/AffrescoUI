@@ -65,7 +65,7 @@ private:
 			const json target = json::parse(finding.substr(5), nullptr, false);
 			const std::string name = target.is_string() ? target.get<std::string>() : "";
 			if(!scan_.program.defined.contains(name)) return "the function " + quoted(name) + ", which isn't defined";
-			return "the function " + quoted(name) + " reaches a control or a review step";
+			return "a control or a review step in the function " + quoted(name);
 		}
 		if(finding.starts_with("run ")) return describeRun(json::parse(finding.substr(4), nullptr, false), from, depth);
 		const json step = json::parse(finding, nullptr, false);
@@ -92,8 +92,7 @@ private:
 			const std::string inner = of(name, depth + 1);
 			return inner.empty() ? "run " + quoted(name) : inner;
 		}
-		if(scan_.program.defined.contains(name))
-			return "the function " + quoted(name) + " reaches a control or a review step";
+		if(scan_.program.defined.contains(name)) return "a control or a review step in the function " + quoted(name);
 		return "the application's own action " + quoted(name);
 	}
 
