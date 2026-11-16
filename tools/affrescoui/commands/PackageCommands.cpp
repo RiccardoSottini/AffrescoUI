@@ -1,6 +1,7 @@
 /// @file
 /// @brief The package commands (VERSION_CONTROL.md, "Sharing a version: packages"): `affrescoui pack` writes a version
-/// of an app as one package, and `affrescoui inspect` checks one and says what it holds.
+/// of an app as one package, `affrescoui inspect` checks one and says what it holds, `affrescoui install` proposes one
+/// to the person, and `affrescoui trust` keeps the publishers they trust.
 
 #include "Cli.hpp"
 
@@ -8,10 +9,14 @@
 #include <affresco/core/Log.hpp>
 #include <affresco/data/Store.hpp>
 #include <affresco/format/PackageFiles.hpp>
+#include <affresco/format/PackageInstall.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
+#include <optional>
 
 #ifndef AFFRESCOUI_VERSION
 #define AFFRESCOUI_VERSION "0.0.0"
@@ -25,11 +30,15 @@ namespace {
 /// @param app The app's folder or manifest.
 /// @param data The data folder.
 /// @param history Whether its history is read from the data folder.
+/// @param warnings Receives the warnings instead of the output (may be nullptr).
 /// @return The screen.
 /// @throws DocumentError If it isn't an app.
-Screen quietlyOpened(const std::filesystem::path& app, const std::filesystem::path& data, Screen::History history) {
-	setLogSink([](LogLevel level, std::string_view message) {
-		if(level != LogLevel::Debug && level != LogLevel::Info) std::cerr << message << '\n';
+Screen quietlyOpened(const std::filesystem::path& app, const std::filesystem::path& data, Screen::History history,
+                     std::vector<std::string>* warnings = nullptr) {
+	setLogSink([warnings](LogLevel level, std::string_view message) {
+		if(level == LogLevel::Debug || level == LogLevel::Info) return;
+		if(warnings) warnings->emplace_back(message);
+		else std::cerr << message << '\n';
 	});
 	try {
 		Screen screen = Screen::fromApp(app, data, history);
@@ -65,6 +74,8 @@ void printSummary(const json& summary) {
 	if(base["exact"].is_boolean())
 		std::cout << (base["exact"].get<bool>() ? ", exactly the app you have"
 		                                        : ", not the app you have (it was made from another release of it)");
+	if(base.contains("installedRelease") && base["installedRelease"].is_string())
+		std::cout << ", you have " << base["installedRelease"].get<std::string>();
 	std::cout << '\n' << "bytes: " << summary["bytes"].get<std::size_t>() << '\n';
 	std::cout << "files: " << summary["files"].get<std::size_t>() << '\n';
 	std::vector<std::string> assets;
@@ -79,6 +90,89 @@ void printSummary(const json& summary) {
 	std::cout << "definitions: " << definitions["added"].size() << " added, " << definitions["changed"].size()
 	          << " changed, " << definitions["removed"].size() << " removed\n";
 	std::cout << "signature: " << summary["signature"].get<std::string>() << '\n';
+}
+
+/// @brief A summary entry's field as text: a string as it is, a missing or null one as "?", anything else as JSON.
+/// @param entry The entry.
+/// @param name The field.
+/// @return It.
+std::string field(const json& entry, const char* name) {
+	const auto found = entry.find(name);
+	if(found == entry.end() || found->is_null()) return "?";
+	return found->is_string() ? found->get<std::string>() : found->dump();
+}
+
+/// @brief Prints a list of a summary's entries, one line each, or "none".
+/// @param title What they are.
+/// @param entries The entries.
+/// @param line One entry's line.
+void printList(std::string_view title, const json& entries, const std::function<std::string(const json&)>& line) {
+	std::cout << title << ':' << (entries.empty() ? " none" : "") << '\n';
+	for(const json& entry : entries) std::cout << "  " << line(entry) << '\n';
+}
+
+/// @brief Prints what installing a package would do: the parts of its summary packageSummary() works out for it.
+/// @param summary packageSummary(), with a person's copy.
+void printInstallParts(const json& summary) {
+	std::vector<std::string> layers;
+	for(const auto& [layer, count] : summary["impact"].items())
+		if(count.is_number() && count.get<int>() > 0) layers.push_back(layer + " " + std::to_string(count.get<int>()));
+	std::cout << "impact: " << listed(layers) << '\n';
+	const auto extension = [](const json& entry) {
+		return field(entry, "kind") + " " + field(entry, "name") + " (on " + field(entry, "target") + ")";
+	};
+	printList("extensions added", summary["extensions"]["added"], extension);
+	printList("extensions taken away", summary["extensions"]["removed"], extension);
+	printList("writes", summary["writes"], [](const json& entry) {
+		return field(entry, "step") + " " + field(entry, "collection") + ", in " + field(entry, "in");
+	});
+	printList("uses", summary["uses"], [](const json& entry) {
+		return field(entry, "step") + " " + field(entry, "use") + ", in " + field(entry, "in");
+	});
+	printList("models", summary["models"], [](const json& entry) {
+		return field(entry, "collection") + ": version " + field(entry, "from") + " to " + field(entry, "to") + ", " +
+		       std::to_string(entry.value("migrations", json::array()).size()) + " migrations";
+	});
+	if(summary.contains("capabilities"))
+		printList("capabilities", summary["capabilities"], [](const json& entry) {
+			return field(entry, "capability") + (entry.value("added", false) ? " (new to you)" : "") + ": " +
+			       field(entry, "why");
+		});
+	if(summary.contains("permissions"))
+		printList("permissions", summary["permissions"], [](const json& entry) { return entry.get<std::string>(); });
+	if(summary.contains("seed"))
+		printList("seed data", summary["seed"], [](const json& entry) {
+			return field(entry, "collection") + ": " + field(entry, "file") + ", " + field(entry, "records") +
+			       " records";
+		});
+	printList("problems", summary["problems"], [](const json& entry) { return entry.get<std::string>(); });
+	if(summary["conflicts"].is_array())
+		printList("not merged (you choose)", summary["conflicts"],
+		          [](const json& entry) { return field(entry, "path") + ": " + entry.value("reason", ""); });
+}
+
+/// @brief The trusted publishers' file of a data folder.
+/// @param arguments The command line (`--data`).
+/// @return `<data folder>/publishers.json`.
+std::filesystem::path publishersFile(const Arguments& arguments) {
+	return std::filesystem::path(arguments.value("--data").value_or(Screen::defaultDataDirectory().string())) /
+	       "publishers.json";
+}
+
+/// @brief Reads a package's file, saying why it is refused.
+/// @param file The file.
+/// @param text Receives its text.
+/// @return The package, or std::nullopt if it is refused (said on the output).
+std::optional<format::Package> readPackageFile(const std::filesystem::path& file, std::string& text) {
+	text = readFile(file);
+	try {
+		return format::readPackage(text);
+	} catch(const DocumentError& error) {
+		std::cout << "refused: " << error.what() << '\n';
+	} catch(const json::parse_error& error) {
+		std::cout << "refused: " << file.string() << ": not JSON (" << error.what() << ")\n";
+	}
+	return std::nullopt;
 }
 
 /// @brief The texts a package must never hold: the person's home folder, the data folder and the app's folder.
@@ -149,30 +243,116 @@ Exit packVersion(std::span<const std::string_view> args) {
 }
 
 Exit inspectPackage(std::span<const std::string_view> args) {
-	static constexpr std::array<std::string_view, 1> valued = {"--app"};
+	static constexpr std::array<std::string_view, 2> valued = {"--app", "--data"};
 	static constexpr std::array<std::string_view, 1> flags = {"--json"};
 	const Arguments arguments(args, valued, flags);
-	const std::filesystem::path file = arguments.file();
-	const std::string text = readFile(file);
-	format::Package package;
+	std::string text;
+	const std::optional<format::Package> package = readPackageFile(arguments.file(), text);
+	if(!package) return Exit::Problems;
+	const json trusted = format::readTrustedPublishers(publishersFile(arguments));
+	json summary;
+	if(const auto app = arguments.value("--app")) {
+		// the person's copy as its history has it: what doesn't merge with it is listed
+		const Screen screen = quietlyOpened(
+		    *app, arguments.value("--data").value_or(Screen::defaultDataDirectory().string()), Screen::History::OnDisk);
+		summary = screen.inspectPackage(text, trusted);
+	} else {
+		summary = format::packageSummary(*package, format::PackageReceiver{}, trusted);
+	}
+	if(arguments.flag("--json")) std::cout << summary.dump(1, '\t') << '\n';
+	else {
+		printSummary(summary);
+		printInstallParts(summary);
+	}
+	return summary["problems"].empty() ? Exit::Success : Exit::Problems;
+}
+
+namespace {
+
+/// @brief `install`'s app: the one named, or a new folder the package's files are written into (`--new`).
+/// @param arguments The command line.
+/// @param package The package.
+/// @return The app's folder or manifest, or std::nullopt if its files were refused (said on the output).
+/// @throws UsageError If the command line is wrong.
+std::optional<std::filesystem::path> installTarget(const Arguments& arguments, const format::Package& package) {
+	const auto folder = arguments.value("--new");
+	if(arguments.positional().size() != (folder ? 1U : 2U))
+		throw UsageError(folder ? "expected a package file" : "expected an app and a package file");
+	if(!folder) return std::filesystem::path(arguments.positional()[0]);
 	try {
-		package = format::readPackage(text);
+		format::installAppFiles(package, *folder);
 	} catch(const DocumentError& error) {
 		std::cout << "refused: " << error.what() << '\n';
-		return Exit::Problems;
-	} catch(const json::parse_error& error) {
-		std::cout << "refused: " << file.string() << ": not JSON (" << error.what() << ")\n";
+		return std::nullopt;
+	}
+	std::cout << "wrote the app as the package's base is into " << *folder << '\n';
+	return std::filesystem::path(*folder);
+}
+
+} // namespace
+
+Exit installPackage(std::span<const std::string_view> args) {
+	static constexpr std::array<std::string_view, 2> valued = {"--data", "--new"};
+	const Arguments arguments(args, valued, {});
+	if(arguments.positional().empty()) throw UsageError("expected a package file");
+	std::string text;
+	const std::optional<format::Package> package = readPackageFile(arguments.positional().back(), text);
+	if(!package) return Exit::Problems;
+	const json trusted = format::readTrustedPublishers(publishersFile(arguments));
+	const std::optional<std::filesystem::path> app = installTarget(arguments, *package);
+	if(!app) return Exit::Problems;
+
+	std::vector<std::string> warnings;
+	Screen screen = quietlyOpened(*app, arguments.value("--data").value_or(Screen::defaultDataDirectory().string()),
+	                              Screen::History::OnDisk, &warnings);
+	for(const std::string& warning : warnings) std::cerr << warning << '\n';
+	if(std::ranges::any_of(warnings, [](const std::string& w) { return w.contains("kept in memory only"); }))
+		throw std::runtime_error("another program writes this app's history (is a host showing it?): close it first");
+	const json summary = screen.inspectPackage(text, trusted);
+	printSummary(summary);
+	printInstallParts(summary);
+	std::string error;
+	const RevisionResult result = screen.proposePackage(text, &error);
+	if(result.status != RevisionStatus::Proposed) {
+		std::cout << "refused: " << error << '\n';
 		return Exit::Problems;
 	}
-	json installed;
-	if(const auto app = arguments.value("--app")) {
-		// the app as its files are: no data folder, so neither its history nor its state is read
-		Screen screen = quietlyOpened(*app, {}, Screen::History::InMemory);
-		installed = screen.versions().sourceDocument();
+	std::cout << "proposed: " << summary["name"].get<std::string>() << " " << summary["release"].get<std::string>()
+	          << " as proposal " << result.proposal << ", which only you can accept: open the app to review it\n";
+	return Exit::Success;
+}
+
+Exit trustPublisher(std::span<const std::string_view> args) {
+	static constexpr std::array<std::string_view, 2> valued = {"--name", "--data"};
+	static constexpr std::array<std::string_view, 2> flags = {"--remove", "--list"};
+	const Arguments arguments(args, valued, flags);
+	const std::filesystem::path path = publishersFile(arguments);
+	json publishers = format::readTrustedPublishers(path);
+	if(arguments.flag("--list")) {
+		if(publishers.empty()) std::cout << "no trusted publishers\n";
+		for(const auto& [key, name] : publishers.items()) std::cout << key << "  " << name.get<std::string>() << '\n';
+		return Exit::Success;
 	}
-	const json summary = format::packageSummary(package, installed, json::object());
-	if(arguments.flag("--json")) std::cout << summary.dump(1, '\t') << '\n';
-	else printSummary(summary);
+	if(arguments.positional().size() != 1) throw UsageError("expected a publisher's key (ed25519:...)");
+	const std::string key = arguments.positional()[0];
+	std::string said;
+	if(arguments.flag("--remove")) {
+		said = (publishers.erase(key) != 0 ? "no longer trusted: " : "wasn't trusted: ") + key;
+	} else {
+		const std::string prefix = "ed25519:";
+		publishers[key] =
+		    arguments.value("--name").value_or(key.substr(key.starts_with(prefix) ? prefix.size() : 0, 16));
+		said = "trusted: " + publishers[key].get<std::string>() + " (" + key + ")";
+	}
+	try {
+		const std::string text = publishers.dump(1, '\t') + "\n";
+		(void)format::parseTrustedPublishers(text); // never write what wouldn't be read back
+		std::filesystem::create_directories(path.parent_path());
+		writeFile(path, text);
+	} catch(const DocumentError& error) {
+		throw UsageError(error.what());
+	}
+	std::cout << said << '\n';
 	return Exit::Success;
 }
 

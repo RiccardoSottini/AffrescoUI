@@ -104,6 +104,11 @@ public:
 	}
 	/// @copydoc VersionControl::reject
 	bool reject(int proposal, std::string_view reason) override { return inner_.reject(proposal, reason); }
+	/// @copydoc VersionControl::resolveLeftOut
+	std::optional<std::string> resolveLeftOut(int proposal, std::string_view path, bool theirs,
+	                                          std::string_view reviewer) override {
+		return inner_.resolveLeftOut(proposal, path, theirs, reviewer);
+	}
 	/// @copydoc VersionControl::preview
 	std::optional<std::string> preview(int proposal) override { return inner_.preview(proposal); }
 	/// @copydoc VersionControl::endPreview

@@ -132,6 +132,10 @@ public:
 		std::string author;      ///< Who proposes it ("agent/claude-code"), judged as any author is.
 		std::string message;     ///< The proposal's title.
 		bool personOnly = false; ///< Only a reviewer of personChannel may accept it.
+		/// The assets that come with it, as a revision's "assets" (`[{"name", "type", "text" | "data"}]`), or null.
+		json assets = json();
+		/// Operations appended after the merge's own (a package's new state keys), or null.
+		json extra = json();
 	};
 	/// @brief What proposeMerge() did: a RevisionResult, and the merge's conflicts.
 	struct MergeProposed : RevisionResult {
@@ -173,6 +177,8 @@ public:
 	[[nodiscard]] json proposalDiff(int proposal) const override;
 	std::optional<std::string> accept(int proposal, const Approval& approval) override;
 	bool reject(int proposal, std::string_view reason) override;
+	std::optional<std::string> resolveLeftOut(int proposal, std::string_view path, bool theirs,
+	                                          std::string_view reviewer) override;
 	std::optional<std::string> preview(int proposal) override;
 	void endPreview() override;
 	[[nodiscard]] std::optional<int> previewing() const override { return previewing_; }

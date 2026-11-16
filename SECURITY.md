@@ -735,6 +735,27 @@ document doesn't list with that size and SHA-256; a state key the base has; and 
 history and every file the manifest doesn't reach, and refuses to write a package holding the person's paths or what
 looks like a key or a token.
 
+Installing one (`affrescoui install`, `Screen::proposePackage`; VERSION_CONTROL.md, "Installing a package") gives its
+code no more authority than a revision:
+- **Only the person accepts it.** It is a proposal by `plugin:<name>`, which only the person can accept (an agent, a
+  reviewer that isn't the person, and its own author are refused), and it is never applied as it is proposed. The
+  `install` command never accepts it. A trusted signature changes none of this: it names who made the file.
+- **Checked from its content.** The summary the person reviews is worked out from the document, never from what the
+  package says of itself; what refuses it is listed with its place. A package of changes can't touch `permissions`,
+  `channels`, `persist`, `services` or `connections`, nor add or take away the `program` as a whole; a definition that
+  holds a form that isn't a definition is refused, since it would run as the program is built.
+- **The revision rules hold.** A package can't bring or add a control step (`call`, ...) nor run a function that has
+  one; its `:around` advice that reaches one through `(proceed)` is refused as it runs. Capabilities are never widened
+  by it: a kind `app` package's are the new copy's manifest, shown to the person with what is new to them.
+- **The person's own stays.** What a three-way merge can't merge is left out, the person's value staying, until they
+  choose (only a reviewer of the person's channel, never the author); taking theirs moves the proposal's head, so an
+  approval given before is refused. A state key the person has is kept. Records aren't touched: models change only
+  the description.
+- **Files.** `install --new` writes a kind `app` package's files only into a folder that doesn't exist yet (not even
+  as a link), refusing an absolute path or one that leaves it, and leaves nothing behind if a file can't be written.
+- **Trusted publishers** (`publishers.json` in the data folder) are read whole or refused: at most 64 KiB and 256 keys,
+  each an Ed25519 public key at its fixed length; small-order and non-canonical keys don't verify.
+
 ### The `affrescoui` tool and the MCP server
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
@@ -842,10 +863,10 @@ A version of an app as one file, shared from person to person ("Packages" above)
 |---|---|
 | Assets | The reader's app and data; the writer's records, state, history, paths and keys |
 | Who attacks | Whoever made or changed the file; and, for the writer, a stray secret in the app's folder or its history |
-| Entry points | `readPackage` and `packageSummary` (`affrescoui inspect`); `Screen::exportPackage` (`affrescoui pack`) |
-| Limits | 16 MiB, checked before parsing; the JSON nesting limit and the document's; 1,024 files of 4 MiB; 100,000 delta operations; 10,000 state keys; a name 80 characters, a description 2,000 |
-| Mitigations | Every key known; the base checked by its tree; files inside the app's folder, the manifest the base's app; assets listed with their SHA-256; signatures verified. Writing: only the files the manifest reaches, no history, records or state, and a scan for the person's paths and for keys and tokens. Fuzzed: `package` |
-| Known gaps | The scan finds the patterns it knows, not every secret; installing is a later item |
+| Entry points | `readPackage` and `packageSummary` (`affrescoui inspect`); `Screen::exportPackage` (`affrescoui pack`); `Screen::proposePackage`, `installAppFiles` and `readTrustedPublishers` (`affrescoui install`, `trust`); `resolveLeftOut` (`resolve`) |
+| Limits | 16 MiB, checked before parsing; the JSON nesting limit and the document's; 1,024 files of 4 MiB; 100,000 delta operations; 10,000 state keys; a name 80 characters, a description 2,000; trusted publishers 64 KiB and 256 keys |
+| Mitigations | Every key known; the base checked by its tree; files inside the app's folder, the manifest the base's app; assets listed with their SHA-256; signatures verified. Writing: only the files the manifest reaches, no history, records or state, and a scan for the person's paths and for keys and tokens. Installing: a proposal only the person accepts, never applied as proposed; sections a revision can't change refused; the revision rules on its code (no control step, advice refused at one); what doesn't merge left out until the person chooses, a choice moving the head; the person's state keys kept; new files only in a new folder; the same file once. Tested: `packages_threats.cpp` (10 threats). Fuzzed: `package` (reading, the summary against a copy, installing on a JSON template and on a program) |
+| Known gaps | The scan finds the patterns it knows, not every secret; the summary shows what the code may write and use, not what it will do: the person reads the definitions in the changes window |
 
 ### Dependencies
 

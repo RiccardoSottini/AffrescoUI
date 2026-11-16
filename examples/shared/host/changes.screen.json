@@ -143,6 +143,12 @@
 			"changes.behaviour": "Changes what the app does: {lines}",
 			"changes.person": "Only you can accept this: {lines}",
 			"changes.conflicts": "It conflicts with changes made since. Its author must update it first.",
+			"changes.notMerged": "Not merged",
+			"changes.notMergedNote": "These parts changed on both sides. Yours stays unless you use theirs.",
+			"changes.mine": "Yours",
+			"changes.theirs": "Theirs",
+			"changes.keepMine": "Keep mine",
+			"changes.useTheirs": "Use theirs",
 			"changes.tooLarge": "Too large to show.",
 			"changes.canonical": "Shown in a standard layout, so lines may differ from the file on disk.",
 			"changes.assets": "Files it adds or removes",
@@ -193,6 +199,12 @@
 			"changes.behaviour": "Cambia lo que hace la app: {lines}",
 			"changes.person": "Solo tú puedes aceptarlo: {lines}",
 			"changes.conflicts": "Entra en conflicto con cambios posteriores. Su autor debe actualizarlo antes.",
+			"changes.notMerged": "Sin fusionar",
+			"changes.notMergedNote": "Estas partes cambiaron en ambos lados. La tuya se queda salvo que uses la suya.",
+			"changes.mine": "La tuya",
+			"changes.theirs": "La suya",
+			"changes.keepMine": "Mantener la mía",
+			"changes.useTheirs": "Usar la suya",
 			"changes.tooLarge": "Demasiado grande para mostrarlo.",
 			"changes.canonical": "Se muestra con un formato estándar, así que las líneas pueden no coincidir con el archivo en disco.",
 			"changes.assets": "Archivos que añade o quita",
@@ -243,6 +255,12 @@
 			"changes.behaviour": "Change ce que fait l''app : {lines}",
 			"changes.person": "Vous seul pouvez l''accepter : {lines}",
 			"changes.conflicts": "Elle entre en conflit avec des modifications récentes. Son auteur doit d''abord la mettre à jour.",
+			"changes.notMerged": "Non fusionné",
+			"changes.notMergedNote": "Ces parties ont changé des deux côtés. La vôtre reste, sauf si vous prenez la leur.",
+			"changes.mine": "La vôtre",
+			"changes.theirs": "La leur",
+			"changes.keepMine": "Garder la mienne",
+			"changes.useTheirs": "Prendre la leur",
 			"changes.tooLarge": "Trop volumineux pour être affiché.",
 			"changes.canonical": "Affiché dans une mise en forme standard : les lignes peuvent différer du fichier sur le disque.",
 			"changes.assets": "Fichiers ajoutés ou retirés",
@@ -305,6 +323,7 @@
 		"extras": "{{concat(map(state.view.assets ?? [], it.removed == true ? t('changes.removed', {name: it.name}) : it.name), map(state.view.run ?? [], json(it)))}}",
 		"sourceShown": "{{state.source != null && state.source.text != null}}",
 		"sourceName": "{{join(filter([state.source.file, state.source.kind != null ? state.source.kind + ' ' + reverse(split(state.source.address, '/'))[0] : state.source.node, state.source.marked != null ? t('changes.line', {line: state.source.marked}) : null], it != null), ' · ')}}",
+		"leftOut": "{{computed.open ? ((find(state.list.proposals ?? [], it.id == state.view.proposal) ?? {}).leftOut ?? []) : []}}",
 		"decided": "{{!computed.open}}",
 		"planShown": "{{state.plan != null && state.view != null && state.view.kind == 'commit'}}",
 		"planOutcome": "{{computed.planShown ? (state.plan.outcome ?? 'clean') : 'clean'}}",
@@ -650,6 +669,39 @@
 					{
 						"set": "state.closed",
 						"to": true
+					}
+				]
+			},
+			{
+				"run": "changes.refresh"
+			}
+		],
+		"changes.resolve": [
+			{
+				"note": "with: path, and take: mine keeps main's value, theirs takes the proposal's (its head moves, so the change is shown again)"
+			},
+			{
+				"call": "changes.resolve",
+				"with": {
+					"proposal": "{{state.view.proposal}}",
+					"path": "{{path}}",
+					"take": "{{take}}"
+				},
+				"into": "state.answer",
+				"onError": []
+			},
+			{
+				"set": "state.message",
+				"to": "{{state.answer.error ?? ''}}"
+			},
+			{
+				"if": "{{state.message == ''}}",
+				"then": [
+					{
+						"run": "changes.select",
+						"with": {
+							"what": "{{state.selected}}"
+						}
 					}
 				]
 			},
@@ -1586,6 +1638,216 @@
 												"font": "small",
 												"textColor": "@c.muted",
 												"height": 16
+											}
+										]
+									}
+								]
+							},
+							{
+								"type": "column",
+								"id": "changesNotMerged",
+								"when": "{{length(computed.leftOut) > 0}}",
+								"height": 262,
+								"scroll": "vertical",
+								"gap": 8,
+								"alignItems": "stretch",
+								"anchors": {
+									"left": 0,
+									"right": 0
+								},
+								"children": [
+									{
+										"type": "label",
+										"id": "changesNotMergedTitle",
+										"text": "{{t('changes.notMerged')}}",
+										"font": "small",
+										"textColor": "@c.muted",
+										"height": 20
+									},
+									{
+										"type": "label",
+										"id": "changesNotMergedNote",
+										"wrap": true,
+										"text": "{{t('changes.notMergedNote')}}",
+										"textColor": "@c.warning",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"height": 36
+									},
+									{
+										"type": "column",
+										"id": "changesLeftOut{{index}}",
+										"repeat": {
+											"for": "part",
+											"in": "{{computed.leftOut}}",
+											"index": "index"
+										},
+										"height": 182,
+										"gap": 6,
+										"alignItems": "stretch",
+										"anchors": {
+											"left": 0,
+											"right": 0
+										},
+										"children": [
+											{
+												"type": "label",
+												"text": "{{part.path}}",
+												"font": "code",
+												"textColor": "@c.text",
+												"height": 18
+											},
+											{
+												"type": "row",
+												"gap": 8,
+												"height": 18,
+												"children": [
+													{
+														"type": "label",
+														"text": "{{t('changes.mine')}}",
+														"font": "small",
+														"textColor": "@c.muted",
+														"grow": 1,
+														"height": 18
+													},
+													{
+														"type": "label",
+														"text": "{{t('changes.theirs')}}",
+														"font": "small",
+														"textColor": "@c.muted",
+														"grow": 1,
+														"height": 18
+													}
+												]
+											},
+											{
+												"type": "row",
+												"gap": 8,
+												"height": 96,
+												"children": [
+													{
+														"type": "editor",
+														"id": "changesLeftOutMine{{index}}",
+														"grow": 1,
+														"height": 96,
+														"font": "code",
+														"textColor": "@c.text",
+														"color": "@c.surface",
+														"borderWidth": 1,
+														"borderColor": "@c.border",
+														"radius": 8,
+														"text": "{{part.mine}}",
+														"readOnly": true
+													},
+													{
+														"type": "editor",
+														"id": "changesLeftOutTheirs{{index}}",
+														"grow": 1,
+														"height": 96,
+														"font": "code",
+														"textColor": "@c.text",
+														"color": "@c.surface",
+														"borderWidth": 1,
+														"borderColor": "@c.border",
+														"radius": 8,
+														"text": "{{part.theirs}}",
+														"readOnly": true
+													}
+												]
+											},
+											{
+												"type": "row",
+												"gap": 8,
+												"height": 32,
+												"children": [
+													{
+														"grow": 1,
+														"height": 32,
+														"color": "transparent"
+													},
+													{
+														"id": "changesKeepMine{{index}}",
+														"role": "button",
+														"focusable": true,
+														"cursor": "hand",
+														"height": 32,
+														"radius": 8,
+														"color": "@c.raised",
+														"borderWidth": 1,
+														"borderColor": "@c.border",
+														"label": "{{t('changes.keepMine')}}",
+														"focused": {
+															"borderColor": "@c.accent",
+															"borderWidth": 1
+														},
+														"onClick": [
+															{
+																"run": "changes.resolve",
+																"with": {
+																	"path": "{{part.path}}",
+																	"take": "mine"
+																}
+															}
+														],
+														"children": [
+															{
+																"type": "label",
+																"text": "{{t('changes.keepMine')}}",
+																"textColor": "@c.text",
+																"anchors": {
+																	"left": 10,
+																	"right": 10,
+																	"top": 7
+																},
+																"height": 18,
+																"align": "center"
+															}
+														],
+														"width": 120
+													},
+													{
+														"id": "changesUseTheirs{{index}}",
+														"role": "button",
+														"focusable": true,
+														"cursor": "hand",
+														"height": 32,
+														"radius": 8,
+														"color": "@c.raised",
+														"borderWidth": 1,
+														"borderColor": "@c.border",
+														"label": "{{t('changes.useTheirs')}}",
+														"focused": {
+															"borderColor": "@c.accent",
+															"borderWidth": 1
+														},
+														"onClick": [
+															{
+																"run": "changes.resolve",
+																"with": {
+																	"path": "{{part.path}}",
+																	"take": "theirs"
+																}
+															}
+														],
+														"children": [
+															{
+																"type": "label",
+																"text": "{{t('changes.useTheirs')}}",
+																"textColor": "@c.text",
+																"anchors": {
+																	"left": 10,
+																	"right": 10,
+																	"top": 7
+																},
+																"height": 18,
+																"align": "center"
+															}
+														],
+														"width": 120
+													}
+												]
 											}
 										]
 									}
