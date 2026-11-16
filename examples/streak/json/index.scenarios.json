@@ -1628,6 +1628,33 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "an-agent-uses-the-habits",
+			"note": "An agent runs the habits' commands (Commands as tools): marking a habit done is allowed by permissions.run, today, on an earlier day, or with an amount; a habit that isn't there, or a day after today, changes nothing, and a toast says so; adding and renaming a habit ask",
+			"steps": [
+				{ "command": "habitDone", "with": { "habit": "exercise" }, "as": "agent" },
+				{ "expect": { "node": "#cell", "nth": 24, "property": "name", "is": "Thu 15 Oct: done" } },
+				{ "command": "habitDone", "with": { "habit": "Run", "amount": 5 }, "as": "agent" },
+				{ "expect": { "node": "#cell", "nth": 8, "property": "name", "is": "Thu 15 Oct: 5 km" } },
+				{ "command": "habitDone", "with": { "habit": "Floss", "date": "2026-02-28" }, "as": "agent" },
+				{ "expect": { "data": "ordered[4].from", "is": "2026-02-28" } },
+				{ "expect": { "data": "ordered[4].entries.length", "is": 230 } },
+				{ "command": "habitDone", "with": { "habit": "Yoga" }, "as": "agent" },
+				{ "expect": { "state": "toasts[0].message", "is": "There is no habit named Yoga" } },
+				{ "command": "habitDone", "with": { "habit": "Meditate", "date": "2026-10-20" }, "as": "agent" },
+				{ "expect": { "state": "toasts[1].message", "is": "2026-10-20 can't be marked: give a day up to 2026-10-15, like 2026-10-14" } },
+				{ "command": "habitAdd", "with": { "name": "Stretch" }, "verdict": "ask" },
+				{ "expect": { "data": "ordered.length", "is": 8 } },
+				{ "command": "habitAdd", "with": { "name": "Stretch" }, "as": "studio" },
+				{ "expect": { "data": "ordered.length", "is": 9 } },
+				{ "expect": { "data": "ordered[8].name", "is": "Stretch" } },
+				{ "expect": { "data": "ordered[8].kind", "is": "yesNo" } },
+				{ "expect": { "state": "selected", "is": "habit1" } },
+				{ "command": "habitRename", "with": { "habit": "stretch", "name": "Stretch after running" }, "verdict": "ask" },
+				{ "command": "habitRename", "with": { "habit": "stretch", "name": "Stretch after running" }, "as": "studio" },
+				{ "expect": { "data": "ordered[8].name", "is": "Stretch after running" } }
+			]
 		}
 	]
 }

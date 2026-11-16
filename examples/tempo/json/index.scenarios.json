@@ -570,6 +570,34 @@
 				{ "key": "enter" },
 				{ "expect": { "state": "page", "is": "sound" } }
 			]
+		},
+		{
+			"name": "an-agent-uses-the-player",
+			"note": "An agent runs the player's commands (Commands as tools), all allowed by permissions.run: it plays a library song by its title, pauses and resumes, queues and likes a song; a liked song stays liked, and a song that isn't there changes nothing but the page: the search shows what its title finds",
+			"steps": [
+				{ "wait": 50, "note": "the library's songs are made once the app has started" },
+				{ "command": "songPlay", "with": { "title": "golden rivers" }, "verdict": "allow" },
+				{ "command": "songPlay", "with": { "title": "golden rivers" }, "as": "agent" },
+				{ "expect": { "state": "playingList", "is": -1 } },
+				{ "expect": { "state": "playingTrack", "is": 4 } },
+				{ "expect": { "node": "#nowPlaying", "text": "Golden Rivers  ·  Halfway" } },
+				{ "command": "songPause", "as": "agent" },
+				{ "expect": { "state": "isPlaying", "is": false } },
+				{ "command": "songPlay", "as": "agent" },
+				{ "expect": { "state": "isPlaying", "is": true } },
+				{ "expect": { "state": "playingTrack", "is": 4 } },
+				{ "command": "songQueue", "with": { "title": "Golden Signals", "artist": "Quiet Rooms" }, "as": "agent" },
+				{ "expect": { "state": "queue.length", "is": 50 } },
+				{ "expect": { "state": "queue[49]", "is": "-1:20" } },
+				{ "command": "songLike", "with": { "title": "Golden Rivers" }, "as": "agent" },
+				{ "expect": { "state": "liked", "is": ["-1:4"] } },
+				{ "command": "songLike", "with": { "title": "Golden Rivers" }, "as": "agent" },
+				{ "expect": { "state": "liked", "is": ["-1:4"] } },
+				{ "command": "songLike", "with": { "title": "Golden Rivers", "artist": "Nora Vale" }, "as": "agent" },
+				{ "expect": { "state": "liked", "is": ["-1:4"] } },
+				{ "expect": { "state": "page", "is": "search" } },
+				{ "expect": { "state": "search", "is": "Golden Rivers" } }
+			]
 		}
 	]
 }

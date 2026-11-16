@@ -362,9 +362,9 @@
                          :else (daysBetween it.start (addMonths it.start (if (= it.period "month") 1 3)))))})
        computed.goals))
 
-(defcomputed palette "The command palette's rows."
+(defcomputed palette "The command palette's rows: the commands, but those an agent runs with arguments (habitAdd...)."
   (map (fn [it] {:title (t (str "cmd." it.name)) :detail (or-else it.keyLabel "") :run it.name})
-       (filter (fn [it] (and it.enabled (not= it.name "commandPalette"))) commands)))
+       (filter (fn [it] (and it.enabled (not= it.name "commandPalette") (not= (slice it.name 0 5) "habit"))) commands)))
 
 (defcomputed signedIn "Whether the person is signed in to the server." (= (or-else auth.streakServer.state "signedOut") "signedIn"))
 

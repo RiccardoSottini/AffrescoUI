@@ -40,9 +40,13 @@ Laid out for the desktop: the list and the selected habit's detail side by side
 - **Commands and keys**: a command palette (`mod+k`, `quickPick`), `mod+n` and `mod+shift+n` new habits, `mod+e`
   edit, `mod+shift+h` archive, `mod+backspace` delete, `mod+comma` settings, `mod+j` theme, `mod+up`/`mod+down`
   between habits, `mod+enter` checks today, `mod+s` sync.
+- **Commands as tools**: an agent uses the habits through typed commands, a habit by its name: `habitDone` marks a day
+  done (today unless another is given, with an amount for a measurable habit) and runs at once under
+  `permissions.run`; `habitAdd` and `habitRename` ask. A habit that isn't there, or a day after today, changes nothing
+  and a toast says so. The scenario `an-agent-uses-the-habits` and the policy cases check them.
 - **Themes and languages**: English, Español and Français through `strings` and `t()`, the body set to `dir: auto`.
 - **Layout**: one pane at a time below 960 window units, the list and the detail side by side above.
-- **Scenarios**: 28, one per workflow above.
+- **Scenarios**: 29, one per workflow above.
 
 ## How it holds together
 

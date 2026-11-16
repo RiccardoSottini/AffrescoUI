@@ -1,0 +1,57 @@
+{
+	"id": "use-flow-triage",
+	"level": "use",
+	"screen": "examples/flow/lisp/index.screen.lisp",
+	"request": "Card FLO-1 is urgent, and Maya should take it: give it to her and mark it urgent.",
+	"scenarios": [
+		{
+			"name": "triaged",
+			"steps": [
+				{
+					"expect": {
+						"data": "lane0[0].ref",
+						"is": "FLO-1"
+					}
+				},
+				{
+					"expect": {
+						"data": "lane0[0].who",
+						"is": "MK"
+					}
+				},
+				{
+					"expect": {
+						"data": "lane0[0].priority",
+						"is": 1
+					}
+				}
+			]
+		}
+	],
+	"unchanged": [
+		"#topBar",
+		"#toolbar",
+		"#board",
+		"#statusBar"
+	],
+	"commits": 0,
+	"runs": 2,
+	"reference": {
+		"run": [
+			{
+				"name": "cardAssign",
+				"arguments": {
+					"card": "FLO-1",
+					"who": "Maya"
+				}
+			},
+			{
+				"name": "cardPriority",
+				"arguments": {
+					"card": "FLO-1",
+					"priority": "urgent"
+				}
+			}
+		]
+	}
+}

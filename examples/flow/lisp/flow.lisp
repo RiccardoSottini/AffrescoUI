@@ -50,19 +50,21 @@
     (when (and settings.board.wipWarnings (some? (:limit col)) (> (count (:cards col)) (:limit col)))
       (notify (t "toast.wip" {:column (:name col) :limit (:limit col)})))))
 
+(defn insertCard "A new card at the end of column c, with the next id, as one step undo can take back." [title c p who tag notes]
+  (remember)
+  (insert "issues"
+    :value {:id (str "FLO-" state.nextRef) :ref (str "FLO-" state.nextRef) :board state.boardId :status c
+            :order (nextOrder c) :priority p :title title :tag tag :who who :points 1 :notes notes})
+  (notify (t "toast.added" {:title title :column (:name (column c))}))
+  (logActivity "added" title "")
+  (set "state.nextRef" (inc state.nextRef)))
+
 (defn addCard "The composer's card, at the end of its column." []
   (let [title (trim state.newCard)
-        composer state.composer
-        c (:c composer)]
+        composer state.composer]
     (when (not= title "")
-      (remember)
-      (insert "issues"
-        :value {:id (str "FLO-" state.nextRef) :ref (str "FLO-" state.nextRef) :board state.boardId :status c
-                :order (nextOrder c) :priority (:p composer) :title title :tag (:tag composer) :who (:who composer)
-                :points 1 :notes (if (not= (trim (:notes composer)) "") (:notes composer) nil)})
-      (notify (t "toast.added" {:title title :column (:name (column c))}))
-      (logActivity "added" title "")
-      (set "state.nextRef" (inc state.nextRef))
+      (insertCard title (:c composer) (:p composer) (:who composer) (:tag composer)
+                  (if (not= (trim (:notes composer)) "") (:notes composer) nil))
       (set "state.newCard" "")
       (set "state.composer.notes" "")
       (set "state.composer.open" (:more composer)))))
@@ -100,6 +102,52 @@
       (when (not= (:who card) who)
         (remember)
         (update-record "issues" :id (:id card) :fields {:who who})))))
+
+;;; By ids and names: what the commands an agent runs (cardMove, cardAdd...) do. A card, a column or a member that
+;;; isn't there changes nothing, and the notice in the corner says so.
+
+(defn findCard "A card of this board by its id (FLO-12, in any case), with its column `c` and its place `at`; nil if
+  there is none." [ref]
+  (let [wanted (upper (trim ref))]
+    (find (fn [it] (= (:ref it) wanted)) computed.allCards)))
+
+(defn columnNamed "The column of this board with that name, in any case, or -1." [name]
+  (indexOf (map (fn [it] (lower (:name it))) computed.columns) (lower (trim name))))
+
+(defn memberNamed "A member's initials, from their initials, their name or their first name, in any case; nil if
+  nobody has it." [name]
+  (let [wanted (lower (trim name))]
+    (:who (find (fn [it] (or (= (lower (:who it)) wanted) (= (lower (:name it)) wanted)
+                             (= (first (split (lower (:name it)) " ")) wanted)))
+                state.members))))
+
+(defn moveCardTo "Moves a card, by its id, to the end of the column with that name." [ref status]
+  (let [card (findCard ref)
+        to (columnNamed status)]
+    (cond (nil? card) (notify (t "toast.noCard" {:ref ref}))
+          (< to 0) (notify (t "toast.noColumn" {:column status}))
+          :else (moveCard (:c card) (:at card) to))))
+
+(defn addCardTo "A card with that title, mine, at the end of the column with that name, or of the first one." [title status]
+  (let [c (if (nil? status) 0 (columnNamed status))]
+    (cond (= (trim title) "") (notify (t "toast.noTitle"))
+          (< c 0) (notify (t "toast.noColumn" {:column status}))
+          :else (insertCard (trim title) c 0 state.me "feature" nil))))
+
+(defn assignCardTo "Gives a card, by its id, to a member, by their initials or their name." [ref name]
+  (let [card (findCard ref)
+        who (memberNamed name)]
+    (cond (nil? card) (notify (t "toast.noCard" {:ref ref}))
+          (nil? who) (notify (t "toast.noMember" {:who name}))
+          :else (do (remember) (update-record "issues" :id (:ref card) :fields {:who who})))))
+
+(defn prioritizeCard "Sets a card's priority, by its id, from its name: none, urgent, high, medium or low." [ref priority]
+  (let [card (findCard ref)]
+    (if (nil? card)
+      (notify (t "toast.noCard" {:ref ref}))
+      (do (remember)
+          (update-record "issues" :id (:ref card)
+                         :fields {:priority (indexOf ["none" "urgent" "high" "medium" "low"] priority)})))))
 
 ;;; Every card
 
@@ -416,6 +464,38 @@
   (set "state.presence" {}))
 
 ;;; Commands: the palette (Cmd+Shift+P), the menus and the keys run these
+
+(defcommand cardMove "Moves a card, by its id, to the column with that name."
+  :title ~(t "command.cardMove") :description ~(t "command.cardMove.about")
+  :category ~(t "category.issue") :icon "arrow-right"
+  :arguments {:card {:type string :description "The card's id, like FLO-12"}
+              :status {:type string :description "The column's name, like In review"}}
+  [card status]
+  (moveCardTo card status))
+
+(defcommand cardAdd "Adds a card with that title to a column: the first one unless another is named."
+  :title ~(t "command.cardAdd") :description ~(t "command.cardAdd.about")
+  :category ~(t "category.issue") :icon "plus"
+  :arguments {:title {:type string :description "The card's title"}
+              :status {:type [string null] :description "The column's name; the first column when left out"}}
+  [title status]
+  (addCardTo title status))
+
+(defcommand cardAssign "Gives a card, by its id, to a member, by their initials or their name."
+  :title ~(t "command.cardAssign") :description ~(t "command.cardAssign.about")
+  :category ~(t "category.issue") :icon "user"
+  :arguments {:card {:type string :description "The card's id, like FLO-12"}
+              :who {:type string :description "A member's initials, name or first name, like MK or Maya"}}
+  [card who]
+  (assignCardTo card who))
+
+(defcommand cardPriority "Sets a card's priority, by its id."
+  :title ~(t "command.cardPriority") :description ~(t "command.cardPriority.about")
+  :category ~(t "category.issue") :icon "chevrons-up"
+  :arguments {:card {:type string :description "The card's id, like FLO-12"}
+              :priority {:enum [none urgent high medium low] :description "The priority"}}
+  [card priority]
+  (prioritizeCard card priority))
 
 (defcommand columnNew "A new card in the column whose menu is open."
   :title ~(t "command.columnNew")

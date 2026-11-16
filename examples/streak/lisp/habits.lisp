@@ -149,15 +149,18 @@
                        :days (or (:days reminder) everyDay)
                        :description (:description h) :error ""})))
 
+(defn insertHabit "A new habit of a kind, at the end of the list, from today, and selected." [kind fields]
+  (let [id (str "habit" state.nextId)]
+    (insert "habits"
+      :value (merge {:id id :kind kind :archived false :from state.today :entries "" :notes {}
+                     :position (inc (reduce max -1 (map :position data.ordered)))}
+                    fields))
+    (set "state.selected" id)
+    (increment "state.nextId")))
+
 (defn storeHabit "Inserts the dialog's habit, or updates the selected one." [fields]
   (if (= state.edit.id "")
-    (let [id (str "habit" state.nextId)]
-      (insert "habits"
-        :value (merge {:id id :kind state.edit.kind :archived false :from state.today :entries "" :notes {}
-                       :position (inc (reduce max -1 (map :position data.ordered)))}
-                      fields))
-      (set "state.selected" id)
-      (increment "state.nextId"))
+    (insertHabit state.edit.kind fields)
     (update-record "habits" :id computed.h.id :fields fields)))
 
 (defn frequencyOf "What the dialog's frequency choice means." [edit]
@@ -178,6 +181,61 @@
                    :target (or (number (:target edit)) 0) :targetType (:targetType edit)
                    :reminder (if (:reminderOn edit) {:time (:time edit) :days (:days edit)} nil)
                    :frequency (frequencyOf edit)}))))
+
+;;; By names: what the commands an agent runs (habitAdd, habitDone, habitRename) do. A habit that isn't there, or a
+;;; day that can't be marked, changes nothing, and a toast says so.
+
+(defn habitRow "The row of the habit with that name, in any case, or -1." [name]
+  (indexOf (map (fn [it] (lower (:name it))) data.ordered) (lower (trim name))))
+
+(defn addHabitNamed "A new habit with that name, every day: yes or no, or measurable with a target of 10." [name kind]
+  (if (= (trim name) "")
+    (toast (t "edit.nameNeeded"))
+    (insertHabit kind {:name (trim name) :question "" :color (mod (+ (* (count data.ordered) 3) 11) 20)
+                       :description "" :unit "" :target (if (= kind "measurable") 10 0) :targetType "atLeast"
+                       :reminder nil :frequency {:times 1 :days 1}})))
+
+(defn markDone "Marks a habit done, by its name, on a day up to today (today when nil): yes, or for a measurable one
+  an amount (its target when nil)." [name date amount]
+  (let [h (habitRow name)
+        day (or date state.today)]
+    (cond (< h 0) (toast (t "toast.noHabit" {:name name}))
+          (or (not (isDate day)) (< (daysBetween day state.today) 0))
+          (toast (t "toast.badDay" {:date day :today state.today}))
+          :else (putEntry h day (if (measurable? (habit h)) (text (or amount (:target (habit h)))) "y")))))
+
+(defn renameHabit "Gives a habit, by its name, a new name." [name to]
+  (let [h (habitRow name)]
+    (cond (< h 0) (toast (t "toast.noHabit" {:name name}))
+          (= (trim to) "") (toast (t "edit.nameNeeded"))
+          :else (update-record "habits" :id (:id (habit h)) :fields {:name (trim to)}))))
+
+(defcommand habitAdd "Adds a habit by its name."
+  :title ~(t "action.habitAdd.title") :description ~(t "action.habitAdd.about")
+  :category ~(t "action.habitAdd.category") :icon "plus"
+  :arguments {:name {:type string :description "The habit's name, like Stretch"}
+              :kind {:enum [yesNo measurable] :default yesNo
+                     :description "yesNo: done or not each day; measurable: an amount each day"}}
+  [name kind]
+  (addHabitNamed name kind))
+
+(defcommand habitDone "Marks a habit done, by its name, today or on another day."
+  :title ~(t "action.habitDone.title") :description ~(t "action.habitDone.about")
+  :category ~(t "action.habitDone.category") :icon "check"
+  :arguments {:habit {:type string :description "The habit's name, like Meditate"}
+              :date {:type [string null] :description "The day, like 2026-10-14; today when left out"}
+              :amount {:type [number null] :minimum 0
+                       :description "For a measurable habit, the amount; its target when left out"}}
+  [habit date amount]
+  (markDone habit date amount))
+
+(defcommand habitRename "Gives a habit, by its name, a new name."
+  :title ~(t "action.habitRename.title") :description ~(t "action.habitRename.about")
+  :category ~(t "action.habitRename.category") :icon "edit"
+  :arguments {:habit {:type string :description "The habit's name now"}
+              :name {:type string :description "Its new name"}}
+  [habit name]
+  (renameHabit habit name))
 
 ;;; Archiving, picking and deleting
 

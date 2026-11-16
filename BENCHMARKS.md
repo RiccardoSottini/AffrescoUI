@@ -158,10 +158,11 @@ Arcadia's JSON) and at the largest 0.312 (`#thumbnails` in Sinopia's JSON). It i
 
 ## Agents
 
-The agent benchmark (`benchmarks/agents/README.md`): 50 tasks a person might ask of a running screen, at three levels
-(19 edits, 26 features in a template, 5 features in Forge across its files), each given to a client that changes the
-screen through the MCP server, then checked by the task's scenarios, its unchanged nodes and, where the request says how
-it is written, the definitions or actions it must leave. The oracle submits each task's reference revisions: it checks
+The agent benchmark (`benchmarks/agents/README.md`): 62 tasks a person might ask of a running screen, at four levels
+(21 edits, 26 features in a template, 5 features in Forge across its files, 10 uses of an app through its commands),
+each given to a client that changes the screen, or runs the app's commands, through the MCP server, then checked by the
+task's scenarios, its unchanged nodes and, where the request says how it is written, the definitions or actions it must
+leave; a `use` task also by its runs, replayed on the starting screen, and by the screen staying as it was. The oracle submits each task's reference revisions: it checks
 the tasks themselves, and CI runs it on every change. A model has been run once, on the tasks that compare Lisp with
 JSON (below), not on the others.
 
@@ -171,7 +172,17 @@ JSON (below), not on the others.
 | 2026-11-02 | oracle | none | oracle 1, AffrescoUI 064a5355 (with changes) | Apple M4 Pro, macOS 27.0.1 | 34/34 (edit 12/12, feature 17/17, forge 5/5) | n/a / n/a | 1.0 |
 | 2026-11-15 | oracle | none | oracle 1, AffrescoUI 6f3b7584 (with changes) | Apple M4 Pro, macOS 27.0.1 | 50/50 (edit 19/19, feature 26/26, forge 5/5) | n/a / n/a | 1.0 |
 | 2026-11-15 | oracle (pointed) | none | oracle 1, AffrescoUI 6f3b7584 (with changes) | Apple M4 Pro, macOS 27.0.1 | 8/8 (edit 6/6, feature 2/2), the point- tasks only | n/a / n/a | 1.0 |
+| 2026-11-16 | oracle | none | oracle 1, AffrescoUI 45991cb6 (with changes) | Apple M4 Pro, macOS 27.0.1 | 62/62 (edit 21/21, feature 26/26, forge 5/5, use 10/10) | n/a / n/a | 1.0 |
 | 2026-11-02 | claude-code | claude-sonnet-5-5 | 2.1.312 (Claude Code), AffrescoUI 064a5355 (with changes) | Apple M4 Pro, macOS 27.0.1 | 11/11 (edit 2/2, feature 9/9), the 11 tasks below only | 179,548 / 1,022 | 7 |
+
+### Using an app against changing it
+
+The ten `use-` tasks ask for something done in Flow, Streak or Tempo (move a card, give it to someone and make it urgent,
+add a card; mark a habit done on a day, with an amount, add a habit; play, queue and like a song), which the apps'
+commands do: the client lists them (`list_commands`) and runs them (`run_command`), under each app's run rules, and the
+screen stays as it was (`"commits": 0`). Two `change-` tasks sound alike but change the screen (`"runs": 0`). The oracle
+passes all twelve (2026-11-16, above): 11 runs, two of them asked and allowed by the benchmark's reviewer. No model
+has been run on them yet.
 
 ### Pointing against describing
 

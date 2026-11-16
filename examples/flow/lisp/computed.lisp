@@ -143,14 +143,16 @@
             commands))
 
 (defcomputed palette
+  "The palette's rows: the commands, but those an agent runs with arguments (cardMove, cardAdd...), which it can't give."
   (map (fn [it] {:title it.title :detail (or-else it.keyLabel "") :run it.name})
          (concat computed.paletteFirst
                  (filter (fn [it]
                            (and it.enabled
                                 (= it.category "Issue")
+                                (not= (slice it.name 0 4) "card")
                                 (not (contains (map (fn [it] it.name) computed.paletteFirst) it.name))))
                          commands)
-                 (filter (fn [it] (and it.enabled (not= it.category "Issue"))) commands))))
+                 (filter (fn [it] (and it.enabled (not= it.category "Issue") (not= (slice it.name 0 4) "card"))) commands))))
 
 (defcomputed propItems
   (cond (= state.propKind "status") (map-indexed (fn [index it]
