@@ -2295,6 +2295,51 @@ capabilities, checks the composed document, then plays the feature's scenarios a
 names each unmet need and why. An install keeps the record whole on `/features/<name>`, with its `needs`, `bindings`
 and `proof` ([Version control](VERSION_CONTROL.md), "Installing across apps").
 
+## A feature written as a program
+
+A feature for an app written as a program may hold Lisp definitions instead of, or beside, its JSON parts. They go in
+`provides.program`, in the shape of a document's `program` section, `{ "<file>": { "<address>": "<text>" } }`, and in
+the package as `features/<name>/feature.lisp`. The record keeps the program whole, within the manifest's 1 MiB. A
+static app (no `program` section) refuses it: "this feature holds code, and this app is static: install its JSON
+version".
+
+The program is built alone, and every definition is named in the feature's namespace:
+
+| Definition | Its name |
+|---|---|
+| `defstate`, `defcomputed` | the feature's name, `wordCount` |
+| `defcommand` | `wordCount.<word>` (not `wordCount.adapted.*`, the adapter's) |
+| `defview`, `defn`, `def`, `defmacro`, `defstyle`, `defcomponent`, `defpart`, `defcustom`, `defhook` | `wordCount-<word>` |
+| `defkey`, `add-hook`, `remove-hook`, `advice` | as written |
+| `defscreen`, `defdefaults`, `defmenu`, `deftokens`, `include` | refused |
+
+What it builds must be parts a feature provides (`state`, `computed`, `actions`, `components`, `styles`, `keys`,
+`menus`, `settings`, `views`, `exports`), each member in its namespace (actions `wordCount.*`, node ids
+`wordCount-*`), with no control step; a member both the JSON parts and the program give must be the same. A build
+that fails or runs out of its budget is refused, naming the definition.
+
+Its code may reach its own definitions, the language's functions, the expressions' functions and the steps `set`,
+`toggle`, `push`, `remove-state` (each with its path written out, under `state.wordCount`), `after`, `debounce`,
+`copy`, `log` and `run`, which names, written out, one of its own commands or `app.<need>` for an action need. Any
+other step or undefined name is refused. A view and a command may read `app.<need>`; a function's body reads only the
+feature's own values: what else it needs, "pass it to the function as an argument from the view". A hook joins only a
+hook point the app declares with `defhook` and lists in `points.<name>.hooks` of a point the feature is placed in;
+advice only an action export such a point receives. Composition lists each in `extensions`. The functions don't run
+in the screen yet: what composes is what they built.
+
+```json
+"provides": { "program": { "feature.lisp": {
+  "state.wordCount": "(defstate wordCount {:characters false} \"Whether it counts characters.\")",
+  "computed.wordCount": "(defcomputed wordCount \"The counts.\" {:words (count app.text)})",
+  "wordCount-flip": "(defn wordCount-flip \"Flips it.\" [] (toggle \"state.wordCount.characters\"))",
+  "wordCount.toggle": "(defcommand wordCount.toggle \"Toggles.\" :title \"Toggle\" [] (wordCount-flip))",
+  "wordCount-label": "(defview wordCount-label \"The label.\" [] `(label#wordCount-label :text ~(str computed.wordCount.words) :onClick wordCount.toggle))",
+  "part.wordCount-views": "(defpart wordCount-views \"Its place.\" :views {:statusBar.right {:wordCount-label ~(wordCount-label)}})",
+  "defkey mod+k": "(defkey \"mod+k\" \"Toggles the count.\" wordCount.toggle)",
+  "add-hook after-save wordCount-flip": "(add-hook after-save wordCount-flip)"
+} } }
+```
+
 ## Other formats
 
 A screen file may instead hold a document in one of two other formats; the screen loader detects it and converts it

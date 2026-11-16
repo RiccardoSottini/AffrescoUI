@@ -705,7 +705,11 @@ code calls `Features::trustPublisher`; a catalogue installs only if its index an
 keys, the manifest by the very publisher the index names, and an upgrade never changes the publisher. A release's
 URL is a path inside the catalogue's folder. Whatever is installed is a revision under the document's
 `permissions`, and a feature can't bring a capability (`channels`, `services`, `connections`, `persist`) or a
-control step, so a feature never widens what the app can do. `affrescoui sign --new-key` writes a key only its owner
+control step, so a feature never widens what the app can do. A feature's program (its Lisp definitions) is built alone, within
+the build's budget, and refused unless every name is in its namespace, it builds only the parts a feature gives, and
+its code reaches only its own state and commands, the language, and the actions it needs: no other step, no
+undefined name, and a function reads none of the app's values. Its hooks and advice join only what the app offers the
+points it is placed in. `affrescoui sign --new-key` writes a key only its owner
 can read and never over an existing file; keep keys out of repositories (Forge's example catalogue was signed by a
 key that was then deleted).
 
@@ -892,6 +896,8 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Pictures for one peer (`render`): each draws the whole screen, and builds a proposal's and then main's again | 120 a minute, 30 at once, apart from the changes |
 | Sent to one socket peer and not yet read by it | 64 MiB; then the peer is disconnected |
 | Nesting inside one expression (`{{ ... }}`) | 100 levels |
+| A feature's program | within its manifest's 1 MiB; built with the Lisp build's budget, a build past it refused |
+| Feature builds kept (`Composition.cpp`) | 16 per thread |
 | `while` loop iterations | 10,000 |
 | Items in a `forEach` list | 10,000 |
 | `range(n)` | n up to 10,000 |
