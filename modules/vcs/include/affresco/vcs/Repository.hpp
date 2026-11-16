@@ -177,6 +177,12 @@ public:
 	void endPreview() override;
 	[[nodiscard]] std::optional<int> previewing() const override { return previewing_; }
 	[[nodiscard]] bool mayReview(std::string_view author) const override;
+	/// @brief Tells whether an author's undo that takes out or rebuilds later changes lands without a proposal: a
+	/// declared reviewer's, or the person's where the screen declares no permissions (there everyone may review,
+	/// but an agent's such undo is still the person's choice).
+	/// @param author The undo's author.
+	/// @return true if it lands as its rules allow.
+	[[nodiscard]] bool mayTakeOut(std::string_view author) const;
 	void setMode(Mode mode) override;
 	/// @brief Sets the mode until the program quits, without keeping it in the history: what a host's command line
 	/// asks for. The history keeps the mode a reviewer last chose (setMode()), which the next start uses.
@@ -491,7 +497,7 @@ private:
 	/// @throws DocumentError If it isn't one.
 	static void checkUndoMark(const json& mark, const std::string& where);
 	/// @brief Tells whether an undo mark takes out what later changes built, or rebuilds one: then an author who may
-	/// not review only proposes it, and it is never remembered.
+	/// not take it out (mayTakeOut()) only proposes it, and it is never remembered.
 	/// @param mark The mark, or null.
 	/// @return true if so.
 	[[nodiscard]] static bool undoNeedsReview(const json& mark);

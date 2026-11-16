@@ -280,8 +280,9 @@ never authority:
   allows nothing, and the permission rules judge the change as they would any other.
 - **Taking out what others built is reviewed.** An undo that drops a later change or rebuilds one (`drop`, `then`)
   becomes a proposal whenever its author may not review, whatever the mode and the grants. "Always allow" never
-  remembers it, so each one is the person's choice. A screen without `permissions` lets anyone change it, undos
-  included.
+  remembers it, so each one is the person's choice. A screen without `permissions` lets anyone change it and anyone
+  review, but there such an undo lands at once only from the person (`user`): an agent's is proposed, and accepted
+  by someone else.
 - **You accept what you saw.** The choices name the head they were made on; if main moved since, the undo is refused
   and the peer asks for the plan again. A short or wrong head is refused too.
 - **Models and records.** An undo never undoes part of a model that a later commit changed, and the records follow the

@@ -546,7 +546,7 @@ TEST_CASE("vcs undo: a program's definition is one value: another definition sta
 	CHECK(plan.outcome == "choose");
 	REQUIRE(plan.conflicts.size() == 1);
 	CHECK(plan.conflicts[0]["path"] == greeting);
-	land(repository, repository.undoRevision(1, "studio", every(true)));
+	land(repository, repository.undoRevision(1, "user", every(true))); // the person's: no permissions, no review
 	CHECK(repository.document()["program"]["app.lisp"]["greeting"] == greetingSource);
 	CHECK(repository.document()["program"]["app.lisp"]["farewell"].dump().contains("Ciao"));
 }

@@ -521,6 +521,41 @@ TEST_CASE("undo flows: two parts traced back through the same commits: each name
 	CHECK(children[3]["text"] == "Three");
 }
 
+TEST_CASE("undo flows: without permissions, an agent's undo with drop or then is still proposed; the person's lands") {
+	json screen = agentScreen();
+	screen.erase("permissions"); // anyone may change it, and anyone but the author may accept
+	const affresco::format::Rules rules;
+	Repository versions(rules, screen);
+	Peer agent(versions, "agent");
+	Peer person(versions, "user");
+	agent.land({{"patch", json::array({{{"op", "add"},
+	                                    {"path", "/root/children/-"},
+	                                    {"value", {{"type", "label"}, {"id", "fourth"}, {"text", "Four"}}}}})}});
+	agent.land({{"set", {{"#fourth/text", "Vier"}}}});
+	agent.land({{"set", {{"#first/text", "Uno"}}}});
+
+	CHECK(agent.revert(3)["type"] == "applied"); // clean: as any change
+	const json plan = agent.plan(1);
+	REQUIRE(plan["outcome"] == "choose");
+	const json dropped = agent.revert(1, {{"drop", "all"}, {"head", plan["head"]}});
+	INFO(dropped.dump());
+	REQUIRE(dropped["type"] == "proposed");
+	CHECK(versions.document()["root"]["children"].size() == 4U); // nothing taken out yet
+	CHECK(versions.proposals()[0].remember.empty());
+	const json rebuilt =
+	    agent.revert(2, {{"then", json::array({{{"op", "replace"}, {"path", "#second/text"}, {"value", "Dos"}}})}});
+	CHECK(rebuilt["type"] == "proposed"); // then alone is reviewed too
+	CHECK(agent.send({{"type", "accept"}, {"proposal", dropped["proposal"]}, {"head", dropped["commit"]}})["type"] ==
+	      "rejected"); // never its own
+
+	// The person's own undo with the same choice lands at once
+	const json again = person.plan(1);
+	const json landed = person.revert(1, {{"drop", "all"}, {"head", again["head"]}});
+	INFO(landed.dump());
+	CHECK(landed["type"] == "applied");
+	CHECK(versions.document()["root"]["children"].size() == 3U);
+}
+
 TEST_CASE("undo flows: a choice made on a plan main has moved past is rejected: look again") {
 	AgentFlow f;
 	const json plan = f.studio.plan(1);

@@ -670,7 +670,8 @@ person chooses for it, and `undoPlan` (`Repository::undoPlan`, the protocol's `u
   no permission of its own.
 - **Never part of a model.** If a later commit changed a model the commit changed, the undo is refused, naming that
   revision: undo it first. The records follow "Revert and restore never touch the records" above.
-- **A rebuild or a drop is a proposal** when its author may not review: an undo that takes out what later changes
+- **A rebuild or a drop is a proposal** when its author may not review (on a screen without `permissions`, where
+  everyone may, when its author isn't the person, `user`): an undo that takes out what later changes
   built, or rebuilds one, goes to a reviewer even when the rules would allow the change, never remembered as a grant
   (`ProposalInfo::undo`, and a reason naming what it takes out). A plain undo is judged like any other change.
 - **The live state** a commit changed is undone with it while every part is as the commit left it; otherwise it is all
