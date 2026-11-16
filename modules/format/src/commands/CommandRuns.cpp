@@ -183,6 +183,15 @@ CommandOutcome CommandRuns::run(const CommandRun& run) {
 
 CommandOutcome CommandRuns::undo(int run) {
 	CommandOutcome outcome;
+	// A previewed state is thrown away when the preview ends: an undo there would undo the records alone
+	if(engine_.versions.previewing()) {
+		outcome.refusal = "a proposal is previewed: runs are undone when it ends";
+		return outcome;
+	}
+	if(running_) {
+		outcome.refusal = "a command is running: runs are undone when it ends";
+		return outcome;
+	}
 	const RunUndo::Kept* kept = undo_.find(run);
 	const std::size_t changes = kept ? kept->changes : 0;
 	if(std::optional<std::string> why = undo_.undo(run, engine_.versions.state(), engine_.data.store())) {

@@ -392,3 +392,30 @@ TEST_CASE("format: an attack: a command run's record write through another agent
 	CHECK(app.records("notes") == 1);
 	CHECK(newestAuthor(app) == "agent/z");
 }
+
+TEST_CASE("format: an attack: a command run's undo is refused once what held a key it removed is no longer an object") {
+	json document = notesScreen({{"go", command(json::array({{{"remove", "state.a.b"}}, insertNote[0]}))},
+	                             {"mine", json::array({{{"set", "state.a"}, {"to", 5}}})}});
+	document["state"]["a"] = {{"b", 1}};
+	App app(document);
+	CHECK_FALSE(app.run("go").failed);
+	app.act("mine");
+	CHECK(app.undo(1).refusal == "run 1 changed /state/a/b, which changed since");
+	CHECK(app.records("notes") == 1);
+	CHECK(app.state("a") == 5);
+}
+
+TEST_CASE("format: an attack: a command run's undo is refused while a proposal is previewed") {
+	App app(notesScreen({{"go", command(json::array({{{"set", "state.n"}, {"to", 2}}, insertNote[0]}))}}));
+	CHECK_FALSE(app.run("go").failed);
+	const auto proposed = app.repository.propose(
+	    {{"author", "agent/y"}, {"message", "m"}, {"set", {{"/state/other", 3}}}});
+	REQUIRE(proposed.status == affresco::RevisionStatus::Proposed);
+	REQUIRE_FALSE(app.repository.preview(proposed.proposal).has_value());
+	CHECK(app.undo(1).refusal == "a proposal is previewed: runs are undone when it ends");
+	CHECK(app.records("notes") == 1);
+	app.repository.endPreview();
+	CHECK_FALSE(app.undo(1).refusal);
+	CHECK(app.state("n") == 1);
+	CHECK(app.records("notes") == 0);
+}

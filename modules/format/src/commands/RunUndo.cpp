@@ -108,10 +108,16 @@ const RunUndo::Kept* RunUndo::find(int run) const {
 }
 
 std::optional<std::string> RunUndo::stateRefusal(const Kept& kept, const json& state) {
-	for(const Place& place : kept.places)
-		if(valueAt(state, place.path) != place.after)
+	for(const Place& place : kept.places) {
+		// What holds the place must still hold values: a key the run removed has none now either, in a number too
+		const bool held = place.path.empty() || [&] {
+			const json::json_pointer parent = place.path.parent_pointer();
+			return state.contains(parent) && state.at(parent).is_structured();
+		}();
+		if(!held || valueAt(state, place.path) != place.after)
 			return "run " + std::to_string(kept.run) + " changed /state" + place.path.to_string() +
 			       ", which changed since";
+	}
 	return std::nullopt;
 }
 
@@ -135,6 +141,12 @@ std::optional<std::string> RunUndo::undo(int run, json& state, data::Store& stor
 	if(kept.tooLarge) return named + " changed more than undo keeps";
 	if(kept.places.empty() && kept.groups.empty()) return named + " changed nothing";
 	if(std::optional<std::string> why = stateRefusal(kept, state)) return why;
+	json restored = state; // put back on a copy first: nothing changes, records nor state, if it can't be
+	try {
+		restore(kept, restored);
+	} catch(const json::exception&) {
+		return named + " can't be undone: what holds what it changed changed since";
+	}
 	if(!kept.groups.empty()) {
 		std::vector<std::int64_t> newest = newestGroups(store, kept.groups.size());
 		std::ranges::reverse(newest);
@@ -147,7 +159,7 @@ std::optional<std::string> RunUndo::undo(int run, json& state, data::Store& stor
 			return named + "'s records can't be undone: " + error.what();
 		}
 	}
-	restore(kept, state);
+	state = std::move(restored);
 	kept.undone = true;
 	return std::nullopt;
 }
