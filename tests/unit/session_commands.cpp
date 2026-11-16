@@ -246,9 +246,15 @@ TEST_CASE("channel: a reader whose reads are limited sees only the commands it m
 	affresco::channel::Session session(channel, versions, "agent");
 	session.setCommands(&service);
 	service.listed = json::array({{{"name", "open"}}, {{"name", "secret"}}});
-	service.ranAnswer = {{"type", "ran"}, {"run", 1},     {"changed", json::array({1})},
-	                     {"changes", 1},  {"region", {}}, {"picture", "x"},
-	                     {"width", 1},    {"height", 1},  {"scale", 1},
+	service.ranAnswer = {{"type", "ran"},
+	                     {"run", 1},
+	                     {"changed", json::array({1})},
+	                     {"changes", 1},
+	                     {"region", {}},
+	                     {"picture", "x"},
+	                     {"width", 1},
+	                     {"height", 1},
+	                     {"scale", 1},
 	                     {"errors", json::array({"expected a list, got \"s3cret\""})}};
 
 	channel.receive(json{{"type", "getCommands"}}.dump());
@@ -267,7 +273,8 @@ TEST_CASE("channel: a reader whose reads are limited sees only the commands it m
 	CHECK(channel.sent.back()["changes"] == 1);
 
 	// An attack: a run that failed while it ran says why in words that can quote what it read
-	service.ranAnswer = {{"type", "rejected"}, {"run", 2}, {"failed", true}, {"error", "expected a list, got \"s3cret\""}};
+	service.ranAnswer = {
+	    {"type", "rejected"}, {"run", 2}, {"failed", true}, {"error", "expected a list, got \"s3cret\""}};
 	channel.receive(json{{"type", "runCommand"}, {"command", "open"}}.dump());
 	CHECK(channel.sent.back()["error"] == "the run failed while it ran");
 	service.ranAnswer = {{"type", "rejected"}, {"error", "runCommand.arguments: expected an object"}};

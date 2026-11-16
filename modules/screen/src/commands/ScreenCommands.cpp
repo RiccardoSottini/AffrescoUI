@@ -26,6 +26,10 @@ namespace {
 
 /// How often the expiry timer looks for runs that waited too long, in milliseconds, while one waits.
 constexpr double expiryCheckMilliseconds = 1000.0;
+/// After this many "Don't run" in the window, a channel's runs that need the person aren't asked again.
+constexpr int maxPersonNos = 3;
+/// The most bytes of a runner's name the window's question shows.
+constexpr std::size_t maxShownAuthorBytes = 64;
 
 /// @brief A "rejected" answer.
 /// @param error Why.
@@ -41,6 +45,16 @@ json rejected(const std::string& error, int run = 0) {
 /// @param author E.g. "agent/claude-code".
 /// @return E.g. "agent".
 std::string_view channelOf(std::string_view author) { return author.substr(0, author.find('/')); }
+
+/// @brief A runner's name as the window's question shows it: at most maxShownAuthorBytes, whole characters.
+/// @param author The runner.
+/// @return It, cut with "…" if longer.
+std::string shownAuthor(std::string_view author) {
+	if(author.size() <= maxShownAuthorBytes) return std::string(author);
+	std::size_t end = maxShownAuthorBytes;
+	while(end > 0 && (static_cast<unsigned char>(author[end]) & 0xC0U) == 0x80U) --end;
+	return std::string(author.substr(0, end)) + "…";
+}
 
 /// @brief Milliseconds since 1970 (UTC), as the run control counts them.
 /// @return Now.
@@ -220,6 +234,13 @@ void ScreenCommands::wait(Waiting waiting, const Checked& checked) {
 	waiting.personOnly = checked.judgement.verdict == RunVerdict::Person;
 	waiting.uses = joined(checked.reach.personUses);
 	if(waiting.personOnly) {
+		const auto nos = personNos_.find(channelOf(waiting.author));
+		if(nos != personNos_.end() && nos->second >= maxPersonNos) { // a question asked again and again wears out a no
+			const std::string why = "the person said no three times: runs of this channel that need them aren't asked "
+			                        "again until the app restarts";
+			(void)control_.deny(waiting.run, why);
+			return waiting.answer(rejected(why, waiting.run));
+		}
 		waiting.question = askPerson(waiting, checked);
 		if(waiting.question == 0) {
 			// Not kept in waiting_ yet: the denial below answers nobody, and the runner hears why here
@@ -241,17 +262,22 @@ std::uint64_t ScreenCommands::askPerson(const Waiting& waiting, const Checked& c
 	Window* window = runtime_.window();
 	if(!window) return 0;
 	const std::string uses = joined(checked.reach.personUses);
-	const Confirmation question{"Run “" + titleOf(checked.entry, waiting.command) + "”?",
-	                            waiting.author + " asks to run it." + (uses.empty() ? "" : " It " + uses + "."),
-	                            waiting.arguments.dump(2, ' ', false, json::error_handler_t::replace), "Run",
-	                            "Don't run"};
-	return window->confirm(question, [this, alive = std::weak_ptr<bool>(alive_), run = waiting.run](bool accepted) {
+	const Confirmation question{
+	    "Run “" + titleOf(checked.entry, waiting.command) + "”?",
+	    shownAuthor(waiting.author) + " asks to run it." + (uses.empty() ? "" : " It " + uses + "."),
+	    waiting.arguments.dump(2, ' ', false, json::error_handler_t::replace), "Run", "Don't run"};
+	return window->confirm(question, [this, alive = std::weak_ptr<bool>(alive_), run = waiting.run,
+	                                  channel = std::string(channelOf(waiting.author))](bool accepted) {
 		if(alive.expired()) return;
 		const auto it = std::ranges::find(waiting_, run, &Waiting::run);
 		if(it != waiting_.end()) it->question = 0; // answered: nothing to dismiss
 		// Only the person's own click or key answers the window's question: their yes, never remembered
-		if(accepted) (void)control_.allow(run, "user", false, "");
-		else (void)control_.deny(run, "the person said no");
+		if(accepted) {
+			(void)control_.allow(run, "user", false, "");
+		} else {
+			++personNos_[channel];
+			(void)control_.deny(run, "the person said no");
+		}
 	});
 }
 
@@ -298,7 +324,8 @@ void ScreenCommands::execute(const Waiting& run) {
 	if(outcome.refusal) {
 		control_.finish(run.run, RunState::Failed, *outcome.refusal, 0, outcome.errors, Undoable::None);
 		json answer = rejected(*outcome.refusal, run.run);
-		if(outcome.started) answer["failed"] = true; // ended while it ran: its error may quote what it read
+		// Ended by what a step said, which can quote what it read (a refusal by the rules names their paths alone)
+		if(std::ranges::contains(outcome.errors, *outcome.refusal)) answer["failed"] = true;
 		return run.answer(std::move(answer));
 	}
 	control_.finish(run.run, RunState::Ran, "", outcome.changes, outcome.errors, outcome.undoable);
@@ -388,7 +415,8 @@ json ScreenCommands::pending(std::string_view reader) const {
 		if(limited) { // what a run was asked with, and what its steps said, can quote values the reader may not read
 			entry.erase("arguments");
 			entry.erase("errors");
-			if(run.state == RunState::Failed) entry["reason"] = "the run failed";
+			if(run.state == RunState::Failed && std::ranges::contains(run.errors, run.reason))
+				entry["reason"] = "the run failed"; // what a step said, as execute() tells it
 		}
 		runs.push_back(std::move(entry));
 	}

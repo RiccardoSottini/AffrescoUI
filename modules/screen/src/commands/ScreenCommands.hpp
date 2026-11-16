@@ -10,6 +10,7 @@
 #include "pictures/OffscreenImages.hpp"
 
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -139,16 +140,18 @@ private:
 	/// @return Milliseconds since 1970 (UTC).
 	std::int64_t now(const Window& window);
 
-	format::Runtime& runtime_;     ///< The commands and their runs, and the window.
-	RunControl& control_;          ///< Who may run them, and the runs.
-	VersionControl& versions_;     ///< The document and its reviewers.
-	OffscreenImages& images_;      ///< The pictures, for a run's evidence.
-	bool allowed_ = true;          ///< See setAllowed().
-	std::vector<Waiting> waiting_; ///< The runs that wait for a decision, oldest first.
-	std::uint64_t expiry_ = 0;     ///< The window's timer for control_.expire(), while a run waits.
-	std::optional<std::pair<std::int64_t, double>> epoch_; ///< At now()'s first call: the system's and the window's time.
-	Connection changed_ = 0;       ///< On control_.onChanged: forwarded as onChanged.
-	Connection decisions_ = 0;     ///< On control_.onDecision: decided().
+	format::Runtime& runtime_;                          ///< The commands and their runs, and the window.
+	RunControl& control_;                               ///< Who may run them, and the runs.
+	VersionControl& versions_;                          ///< The document and its reviewers.
+	OffscreenImages& images_;                           ///< The pictures, for a run's evidence.
+	bool allowed_ = true;                               ///< See setAllowed().
+	std::vector<Waiting> waiting_;                      ///< The runs that wait for a decision, oldest first.
+	std::map<std::string, int, std::less<>> personNos_; ///< The person's "Don't run" in the window, per channel.
+	std::uint64_t expiry_ = 0; ///< The window's timer for control_.expire(), while a run waits.
+	std::optional<std::pair<std::int64_t, double>>
+	    epoch_;                ///< At now()'s first call: the system's and the window's time.
+	Connection changed_ = 0;   ///< On control_.onChanged: forwarded as onChanged.
+	Connection decisions_ = 0; ///< On control_.onDecision: decided().
 	std::shared_ptr<bool> alive_ = std::make_shared<bool>(true); ///< false once destroyed: guards the callbacks.
 };
 
