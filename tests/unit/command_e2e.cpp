@@ -6,6 +6,7 @@
 #include "CommandBoard.hpp"
 
 #include <affresco/Screen.hpp>
+#include <affresco/automation/Scenarios.hpp>
 #include <affresco/render/Input.hpp>
 #include <affresco/render/Window.hpp>
 
@@ -321,4 +322,34 @@ TEST_CASE("commands: a host that switches runs off lists nothing to run and refu
 	                               {"arguments", {{"card", "c1"}, {"to", "done"}}}})["error"] == off);
 	CHECK(board.ask(board.agent, {{"type", "getCommands"}})["type"] == "rejected");
 	CHECK(board.column("c1") == "todo");
+}
+
+TEST_CASE("commands: a scenario's command step runs a command as its author's peer, or checks the verdict it meets") {
+	const commandboard::Folder folder;
+	commandboard::writeText(folder.path / "board.screen.json", boardJson);
+	affresco::automation::Options options;
+	options.pictures = false;
+	const auto play = [&](const std::string& steps) {
+		const std::string text =
+		    R"({"version": 2, "screen": "board.screen.json", "scenarios": [{"name": "s", "steps": )" + steps + "}]}";
+		const affresco::automation::Report report = affresco::automation::run(
+		    affresco::automation::ScenarioFile::parse(text, folder.path / "board.scenarios.json"), options);
+		REQUIRE(report.scenarios.size() == 1);
+		std::string problems;
+		for(const auto& failure : report.scenarios[0].failures)
+			problems += std::to_string(failure.step) + ": " + failure.problem + "\n";
+		return problems;
+	};
+	CHECK(play(R"([{ "command": "moveCard", "with": { "card": "c1", "to": "done" } },
+		{ "expect": { "state": "cards[0].column", "is": "done" } },
+		{ "command": "clearBoard", "verdict": "deny" },
+		{ "command": "addCard", "verdict": "ask" },
+		{ "command": "addCard", "as": "studio", "with": { "title": "New" } },
+		{ "expect": { "state": "cards[2].title", "is": "New" } }])") == "");
+	CHECK(play(R"([{ "command": "addCard", "verdict": "allow" }])").contains(
+	    "1: 'addCard' would ask (no run rule allows 'addCard'"));
+	CHECK(play(R"([{ "command": "addCard", "with": { "title": "x" } }])").starts_with("1: 'addCard' would ask"));
+	CHECK(play(R"([{ "command": "moveCard", "with": { "card": "c1" } }])").contains("'moveCard' was refused: "));
+	CHECK(play(R"([{ "command": "moveCrad" }])").contains("no command 'moveCrad' that 'agent' sees"));
+	CHECK(play(R"([{ "command": "acceptAll" }])").contains("'acceptAll' is denied ("));
 }

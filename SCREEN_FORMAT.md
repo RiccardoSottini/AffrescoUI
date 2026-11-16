@@ -2192,6 +2192,7 @@ allowed on the file, a scenario and a step.
 | `{ "revision": { ... } }` | Applies a revision as the application would |
 | `{ "propose": { "author": "agent", ... } }` | Submits a revision as its author's peer would: the screen's `permissions` apply it, send it to review (`proposals`) or refuse it |
 | `{ "action": "name", "event": { ... } }` | Runs an action; `<channel>:<type>` plays what a channel would send |
+| `{ "command": "moveCard", "with": { ... }, "as": "agent" }` | Runs one of the app's commands as its author's peer would (`as`, default `agent`): the arguments are checked, the run rules judge, and it runs under that name. A run that would wait for a reviewer or the person, or is denied, ends the scenario. `"verdict": "ask"` (`allow`, `ask`, `person` or `deny`) runs nothing and checks the verdict a run would meet instead |
 | `{ "resize": [960, 720] }` | Resizes the window |
 | `{ "choose": "deck.json" }` | Answers the file dialogs that follow (`saveFile`, `openFile`, `export`, `attach`) with that file in the run's own folder, as the person would choose it; `null` cancels them. The dialog shows after the event: `{ "wait": 0 }` |
 | `{ "expect": ... }` | Checks something (below) |
@@ -2211,6 +2212,10 @@ question of its own (`evaluate`'s `confirm`), a role target is looked for in it 
 | `{ "node": "#box", "property": "color", "is": "#ffffff" }` | A property: `text textColor color borderColor borderWidth shown visible focused hovered tooltip checked value x y width height scrollX scrollY role name description scrollMarks` (positions and sizes in window units, within 0.01; `name` is the accessible name; `scrollMarks` is how many marks an editor's scroll bar has) |
 | `{ "node": { "role": "checkbox", "name": "Dark mode" }, "property": "checked", "is": true }` | The same, for the first shown node with that role and name |
 | `{ "image": "first-frame" }` | The window, drawn, is pixel for pixel the golden image `<scenario>-first-frame.png` (`affrescoui test --goldens DIR`) |
+
+`action` and `command` differ in whose authority runs: an action runs as the app's own code, with the person's, while
+a command runs as its author, under the screen's `permissions.run` and that peer's limits (its run rate, the size of its
+arguments), as an agent's run would; a `verdict` that differs is reported as a failed expectation.
 
 A failed expectation is reported and the scenario goes on; a step that can't be played (no such node, a refused
 revision) ends it, and so does one whose handlers raise an error (an unknown variable stops an action), unless the step
