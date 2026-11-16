@@ -7,6 +7,7 @@
 #include "affresco/core/Json.hpp"
 
 #include <cstddef>
+#include <memory>
 #include <set>
 #include <span>
 #include <string>
@@ -15,6 +16,18 @@
 #include <vector>
 
 namespace affresco::format {
+
+/// @brief What a document's program builds, beside its other sections (lisp::buildDocument()), built once per text:
+/// the last builds are kept by the whole document they came from (compared by value, so a kept tree is exactly what a
+/// new build would give), and every check of the same text shares one.
+/// @param document The document, with a program.
+/// @return The tree; shared, never changed.
+/// @throws DocumentError If it can't be built, naming the definition.
+[[nodiscard]] std::shared_ptr<const json> builtTree(const json& document);
+
+/// @brief How many times builtTree() built a document on this thread, rather than finding it kept: for the tests.
+/// @return The count.
+[[nodiscard]] std::size_t programBuildCount() noexcept;
 
 /// @brief What a document's program can do, as a revision's reviewer needs it: which names are its definitions, and
 /// which reach a control or a review step. Nothing runs but what a name reaches (lisp::Program::namesUsed()), so this
