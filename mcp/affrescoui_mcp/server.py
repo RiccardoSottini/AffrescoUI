@@ -12,7 +12,7 @@ import threading
 import time
 
 from . import commands
-from .document import apply_patch, changes_since, compact, find_nodes, locate, outline, pruned
+from .document import apply_patch, changes_since, compact, find_nodes, locate, outline, pruned, source_of
 from .guide import format_guide
 from .host import NO_UNIX_SOCKETS, Host, default_socket_dir, log
 from .picks import pick_lines, picks_of
@@ -217,8 +217,8 @@ class Server:
 
     def checked_document(self, args):
         """The document scenarios play on: main as the host has it now, or with an open proposal applied."""
-        reply = self.host.request({"type": "getDocument"})
-        document, shown = reply.get("document") or {}, f"main at revision {reply.get('revision')}"
+        reply = self.host.request({"type": "getDocument"})  # a program's source: its proposals' patches are on it
+        document, shown = source_of(reply), f"main at revision {reply.get('revision')}"
         if "proposal" in args:
             diff = self.host.request({"type": "diff", "proposal": args["proposal"]})
             if diff.get("type") != "diff":
@@ -321,7 +321,7 @@ class Server:
             if args.get("running"):
                 document = os.path.join(scratch, "running.json")
                 with open(document, "w", encoding="utf-8") as file:
-                    json.dump(self.host.request({"type": "getDocument"}).get("document") or {}, file)
+                    json.dump(source_of(self.host.request({"type": "getDocument"})), file)
                 command += ["--document", document]
             result = subprocess.run(command, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
@@ -340,7 +340,7 @@ class Server:
         with tempfile.TemporaryDirectory(prefix="affrescoui-compose-") as scratch:
             document, revision = os.path.join(scratch, "document.json"), os.path.join(scratch, "install.json")
             with open(document, "w", encoding="utf-8") as file:
-                json.dump(reply.get("document") or {}, file)
+                json.dump(source_of(reply), file)  # a program's source: the proof builds what it needs from it
             command = [find_cli(), "check", "--compose", screen, feature, "--document", document,
                        "--base", str((reply.get("head") or {}).get("id", "")), "--revision", revision]
             if isinstance(args.get("adapter"), dict):
