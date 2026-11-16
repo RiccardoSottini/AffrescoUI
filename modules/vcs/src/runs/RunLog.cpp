@@ -54,11 +54,10 @@ RunControl::Begun Runs::begin(std::string_view author, std::string_view command,
 	if(verdict == RunVerdict::Deny) return {0, "a denied run is never begun: " + std::string(reason)};
 	const std::string channel = detail::channelOf(author);
 	const auto waitingRuns = std::ranges::count_if(log_, [](const Entry& e) { return waiting(e.record.state); });
-	const auto ofChannel = std::ranges::count_if(log_, [&](const Entry& e) {
-		return waiting(e.record.state) && detail::channelOf(e.record.author) == channel;
-	});
-	if(static_cast<std::size_t>(waitingRuns) >= maxWaitingRuns ||
-	   static_cast<std::size_t>(ofChannel) >= maxWaitingRunsPerChannel)
+	const auto ofChannel = std::ranges::count_if(
+	    log_, [&](const Entry& e) { return waiting(e.record.state) && detail::channelOf(e.record.author) == channel; });
+	if(std::cmp_greater_equal(waitingRuns, maxWaitingRuns) ||
+	   std::cmp_greater_equal(ofChannel, maxWaitingRunsPerChannel))
 		return {0, "too many runs are waiting"};
 	RunRecord record;
 	record.id = nextRun_++;
@@ -85,7 +84,8 @@ std::optional<std::string> Runs::allowDenial(const Entry& entry, std::string_vie
 	if(!person && !versions_.mayReview(reviewer)) return "'" + std::string(reviewer) + "' may not review runs";
 	if(!person && detail::channelOf(reviewer) == detail::channelOf(entry.record.author))
 		return std::string("a reviewer can't allow a run from its own channel");
-	if(entry.record.personOnly && !person) return "run " + std::to_string(entry.record.id) + " only the person may allow";
+	if(entry.record.personOnly && !person)
+		return "run " + std::to_string(entry.record.id) + " only the person may allow";
 	if(entry.record.personOnly && always)
 		return std::string("a run that reaches outside is asked each time: allow it without \"always\"");
 	return std::nullopt;

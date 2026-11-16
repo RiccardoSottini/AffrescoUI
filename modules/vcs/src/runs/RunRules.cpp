@@ -19,8 +19,7 @@ namespace {
 /// @brief The system's clock.
 /// @return Milliseconds since 1970 (UTC).
 std::int64_t systemMilliseconds() {
-	return std::chrono::duration_cast<std::chrono::milliseconds>(
-	           std::chrono::system_clock::now().time_since_epoch())
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
 	    .count();
 }
 
@@ -56,9 +55,9 @@ const PermissionRule* firstCovering(const std::vector<PermissionRule>& rules, st
 std::string controlReason(std::string_view command, const CommandReach& reach) {
 	const std::string& step = reach.controlStep;
 	// "accept" names a step; "a computed run" already says what it is
-	const std::string what = step.empty()                                ? std::string("a control step")
-	                         : step.find(' ') != std::string::npos ? step
-	                                                                      : "the control step \"" + step + "\"";
+	const std::string what = step.empty()         ? std::string("a control step")
+	                         : step.contains(' ') ? step
+	                                              : "the control step \"" + step + "\"";
 	return "'" + std::string(command) + "' reaches " + what + ", which only the person may run";
 }
 

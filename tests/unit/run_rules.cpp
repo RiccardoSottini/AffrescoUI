@@ -8,6 +8,7 @@
 #include <affresco/vcs/Runs.hpp>
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -94,13 +95,13 @@ json screen(const json& extra = json::object()) {
 
 /// @brief A repository, the run rules and the runs, on a clock the test moves.
 struct Fixture {
-	std::int64_t now = startTime;            ///< The clock.
-	affresco::format::Rules format;          ///< The format's rules.
-	WithRunRules rules{format};              ///< With the test's run rules.
-	affresco::vcs::Repository repository;    ///< The document.
-	affresco::vcs::Runs runs;                ///< Under test.
+	std::int64_t now = startTime;                 ///< The clock.
+	affresco::format::Rules format;               ///< The format's rules.
+	WithRunRules rules{format};                   ///< With the test's run rules.
+	affresco::vcs::Repository repository;         ///< The document.
+	affresco::vcs::Runs runs;                     ///< Under test.
 	std::vector<affresco::RunDecision> decisions; ///< Every decision, oldest first.
-	int changes = 0;                         ///< How often onChanged fired.
+	int changes = 0;                              ///< How often onChanged fired.
 
 	/// @brief Sets everything up.
 	/// @param document The document.
@@ -121,7 +122,8 @@ struct Fixture {
 		for(const auto& text : ask) rules.run.ask.push_back(runRule(text));
 		for(const auto& text : deny) rules.run.deny.push_back(runRule(text));
 		// a new head commit is what makes the runs read the permissions again
-		REQUIRE_FALSE(repository.commit({{"author", "studio"}, {"set", {{"#board/color", "#00000" + std::to_string(++edits)}}}}));
+		REQUIRE_FALSE(
+		    repository.commit({{"author", "studio"}, {"set", {{"#board/color", "#00000" + std::to_string(++edits)}}}}));
 	}
 
 	/// @brief Judges a run of a command that reaches nothing special.
@@ -205,7 +207,7 @@ TEST_CASE("vcs: a run that uses a service that writes waits for the person, list
 }
 
 TEST_CASE("vcs: a run by a reviewer is allowed without a rule (row 5)") {
-	Fixture f;
+	const Fixture f;
 	CHECK((f.judge("studio/anna", "move-card").verdict == RunVerdict::Allow));
 }
 
@@ -229,12 +231,12 @@ TEST_CASE("vcs: a run on a document without permissions is allowed (row 8)") {
 	CHECK((f.judge("agent/claude-code", "move-card").verdict == RunVerdict::Allow));
 	json document = screen();
 	document.erase("permissions");
-	Fixture open(document); // without permissions anyone reviews: allowed as well
+	const Fixture open(document); // without permissions anyone reviews: allowed as well
 	CHECK((open.judge("agent/claude-code", "move-card").verdict == RunVerdict::Allow));
 }
 
 TEST_CASE("vcs: a run no rule allows waits, saying which rule would (row 9)") {
-	Fixture f;
+	const Fixture f;
 	const auto judged = f.judge("agent/claude-code", "move-card");
 	CHECK((judged.verdict == RunVerdict::Ask));
 	CHECK(judged.reason ==
@@ -264,7 +266,7 @@ TEST_CASE("vcs: a run in plan mode is denied even when it would wait for the per
 }
 
 TEST_CASE("vcs: a run by a reviewer still waits for the person when it reaches outside (rows 4 and 5)") {
-	Fixture f;
+	const Fixture f;
 	CHECK((f.runs.judge("studio/anna", "export", outside()).verdict == RunVerdict::Person));
 }
 
@@ -393,7 +395,7 @@ TEST_CASE("vcs: a run that reaches outside is allowed only by the person, never 
 	const int run = f.wait("agent/claude-code", "export", RunVerdict::Person);
 	CHECK(f.runs.runs()[0].personOnly);
 	CHECK(f.runs.allow(run, "studio/anna", false, "") == "run 1 only the person may allow");
-	CHECK(f.runs.allow(run, "user", true, "")->find("asked each time") != std::string::npos);
+	CHECK(f.runs.allow(run, "user", true, "").value_or("").find("asked each time") != std::string::npos);
 	CHECK(f.runs.grants().empty());
 	CHECK_FALSE(f.runs.allow(run, "user", false, ""));
 	REQUIRE(f.decisions.size() == 1);
@@ -414,7 +416,8 @@ TEST_CASE("vcs: a run that is denied is logged Denied and tells the runner") {
 
 TEST_CASE("vcs: a run that is allowed at once is finished by the caller, and logged") {
 	Fixture f;
-	const auto begun = f.runs.begin("agent/claude-code", "move-card", {{"card", 3}}, "Move a card", RunVerdict::Allow, "");
+	const auto begun =
+	    f.runs.begin("agent/claude-code", "move-card", {{"card", 3}}, "Move a card", RunVerdict::Allow, "");
 	CHECK(begun.run == 1);
 	CHECK(f.runs.allow(1, "user", false, "") == "no run 1 waits"); // it doesn't wait for a decision
 	f.runs.finish(1, affresco::RunState::Ran, "", 2, {"a warning"}, affresco::Undoable::State);
@@ -447,8 +450,8 @@ TEST_CASE("vcs: a run's every change fires onChanged once") {
 
 TEST_CASE("vcs: a run past 16 waiting is refused") {
 	Fixture f;
-	const char* channels[] = {"a", "b", "c", "d"};
-	for(const char* channel : channels)
+	const std::array<std::string_view, 4> channels = {"a", "b", "c", "d"};
+	for(const std::string_view channel : channels)
 		for(int i = 0; i < 4; ++i) REQUIRE(f.wait(std::string(channel) + "/x") > 0);
 	const auto refused = f.runs.begin("e/x", "move-card", {}, "", RunVerdict::Ask, "");
 	CHECK(refused.run == 0);
@@ -532,7 +535,7 @@ TEST_CASE("vcs: a run grant expires") {
 	f.now += 1;
 	CHECK((f.judge("agent/claude-code", "move-card").verdict == RunVerdict::Ask));
 	CHECK(f.runs.grants().empty());
-	CHECK(f.runs.allow(f.wait(), "user", true, "soon")->find("is not a duration") != std::string::npos);
+	CHECK(f.runs.allow(f.wait(), "user", true, "soon").value_or("").find("is not a duration") != std::string::npos);
 }
 
 TEST_CASE("vcs: a run grant is capped by grantsLast") {
@@ -573,9 +576,9 @@ TEST_CASE("vcs: a run grant loses to a deny rule, an ask rule, plan mode, a cont
 /* State changes, by the data rules */
 
 TEST_CASE("vcs: a run's state changes are judged by the runner's data rules") {
-	Fixture f(screen({{"data", json::array({{{"author", "agent"},
-	                                          {"write", json::array({"/state/cards"})},
-	                                          {"never", json::array({"/state/token"})}}})}}));
+	const Fixture f(screen({{"data", json::array({{{"author", "agent"},
+	                                               {"write", json::array({"/state/cards"})},
+	                                               {"never", json::array({"/state/token"})}}})}}));
 	const json before = screen()["state"];
 	json after = before;
 	SUBCASE("a path inside write") {
@@ -591,12 +594,12 @@ TEST_CASE("vcs: a run's state changes are judged by the runner's data rules") {
 		after["token"] = "changed";
 		const auto denial = f.runs.stateDenial("agent/claude-code", before, after);
 		REQUIRE(denial);
-		CHECK(denial->find("/state/token") != std::string::npos);
-		CHECK(denial->find("changed") == std::string::npos); // never a value from the state
+		CHECK(denial.value_or("").find("/state/token") != std::string::npos);
+		CHECK(denial.value_or("").find("changed") == std::string::npos); // never a value from the state
 	}
 }
 
 TEST_CASE("vcs: a run's state changes are free without data rules") {
-	Fixture f;
+	const Fixture f;
 	CHECK_FALSE(f.runs.stateDenial("agent/claude-code", json{{"board", "todo"}}, json{{"board", "done"}}));
 }
