@@ -1,5 +1,6 @@
 /// @file
-/// @brief `affrescoui sign`: signs a feature's manifest or a catalogue's index (RFC 0004), and makes signing keys.
+/// @brief `affrescoui sign`: signs a feature's manifest, a catalogue's index (RFC 0004) or a package, and makes signing
+/// keys.
 
 #include "Cli.hpp"
 #include "JsonText.hpp"
@@ -7,6 +8,7 @@
 #include "FeatureSignatures.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/format/Package.hpp>
 
 #include <array>
 #include <cstdio>
@@ -104,10 +106,18 @@ Exit signFile(std::span<const std::string_view> args) {
 	} catch(const json::parse_error& error) {
 		throw FileProblem(file.string() + ": isn't JSON (" + error.what() + ")");
 	}
-	if(!document.is_object()) throw FileProblem(file.string() + ": isn't a manifest or a catalogue's index");
+	if(!document.is_object()) throw FileProblem(file.string() + ": isn't a manifest, a catalogue's index or a package");
 	if(document.value("format", json()) == "affrescoui-catalog") refreshReleases(document, file.parent_path());
 	const SigningKey key = readKey(*keyFile);
+	const bool package = document.value("format", json()) == format::packageFormat;
 	const json signedDocument = key.sign(std::move(document));
+	if(package) {
+		try {
+			static_cast<void>(format::parsePackage(signedDocument)); // its signature verifies, and the rest reads
+		} catch(const DocumentError& error) {
+			throw FileProblem(file.string() + ": isn't a package that can be signed (" + error.what() + ")");
+		}
+	}
 	writeFile(arguments.value("-o").value_or(file.string()), printText(parseText(signedDocument.dump())));
 	std::cerr << file.string() << ": signed by " << key.publisher() << '\n';
 	return Exit::Success;

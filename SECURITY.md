@@ -720,6 +720,17 @@ refused. An adapter is expressions only and can't give a capability or a permiss
 again on the document it lands on; signatures and trust apply unchanged. The MCP tools return a proof's reasons,
 never the document.
 
+### Packages
+A package (VERSION_CONTROL.md, "Sharing a version: packages") is a file people pass around: what reads it treats it as
+untrusted input, and what writes it treats the person's own data as something to keep out. Reading
+(`readPackage`) refuses a file over 16 MiB before parsing it, then every key it doesn't know, by name; the JSON nesting
+limit and the document's; a delta of anything but add, remove and replace; a base the delta doesn't give (its tree);
+a file outside the app's folder, over 4 MiB, or beyond 1,024; a manifest whose id isn't the base's; an asset the
+document doesn't list with that size and SHA-256; a state key the base has; and a signature that doesn't verify. Its
+`author` is shown as written, not as a proof. Writing (`affrescoui pack`) keeps out the records, the state, the
+history and every file the manifest doesn't reach, and refuses to write a package holding the person's paths or what
+looks like a key or a token.
+
 ### The `affrescoui` tool and the MCP server
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
@@ -819,6 +830,19 @@ Features from another app, the adapters that bind their needs, and their proofs 
 | Mitigations | Expressions read only the host's exports; actions only those its point receives; no capability, permission or control step can be added; the composed document is checked and the scenarios played before the install; the install is a reviewed revision. Fuzzed: `composition` |
 | Known gaps | A proof's scenarios are those the feature and the host ship: behaviour they don't cover isn't proven |
 
+### Packages
+
+A version of an app as one file, shared from person to person ("Packages" above).
+
+| | |
+|---|---|
+| Assets | The reader's app and data; the writer's records, state, history, paths and keys |
+| Who attacks | Whoever made or changed the file; and, for the writer, a stray secret in the app's folder or its history |
+| Entry points | `readPackage` and `packageSummary` (`affrescoui inspect`); `Screen::exportPackage` (`affrescoui pack`) |
+| Limits | 16 MiB, checked before parsing; the JSON nesting limit and the document's; 1,024 files of 4 MiB; 100,000 delta operations; 10,000 state keys; a name 80 characters, a description 2,000 |
+| Mitigations | Every key known; the base checked by its tree; files inside the app's folder, the manifest the base's app; assets listed with their SHA-256; signatures verified. Writing: only the files the manifest reaches, no history, records or state, and a scan for the person's paths and for keys and tokens. Fuzzed: `package` |
+| Known gaps | The scan finds the patterns it knows, not every secret; installing is a later item |
+
 ### Dependencies
 
 Every third-party component is listed in `cmake/dependencies.json`, with its version, URL, SHA-256 and licence;
@@ -902,6 +926,10 @@ Input from peers, revisions and change sets is limited so that one message can't
 | Computed values reading computed values | 32 levels |
 | Panels built inside each other (components and outlets included; a component or a screen inside itself stops here) | 256 levels |
 | A step writing to a list position past the list's end (the positions between become `null`) | 10,000 positions past it |
+| A package (`maxPackageBytes`, `format/Package.hpp`) | 16 MiB, refused before it is parsed |
+| A package's files (`maxPackageFiles`, `maxPackageFileBytes`) | 1,024, each at most 4 MiB |
+| A package's delta and state | 100,000 operations, paths of 4,096 bytes; 10,000 keys of 256 bytes |
+| A package's name and description | 80 and 2,000 characters |
 | Hints ("did you mean ...") the checker gives in one pass, each comparing the name with the first names that exist | 50 findings, 1,000 names |
 | Styles using styles | 17 levels |
 | Files including files (`include`, at load time) | 9 levels below the screen file, and 1,024 files read in all (a file two files include is read for each) |
