@@ -156,13 +156,15 @@ private:
 	/// @param item Its value.
 	void note(const std::string& key, const json& item) {
 		static constexpr std::array writes = {"insert", "update", "delete", "undoData", "redoData", "importCsv"};
+		// Keys whose text names an action to run, as the checker and the steps read them
+		static constexpr std::array handlers = {"run", "do", "then", "else", "onDone", "onError", "onEvent"};
 		hooks_ = hooks_ || key == "runHooks";
 		writesRecords_ = writesRecords_ || std::ranges::find(writes, key) != writes.end();
 		if(!item.is_string() || item.get_ref<const std::string&>().contains("{{")) return;
 		const std::string& text = item.get_ref<const std::string&>();
 		if((key == "invoke" || key == "request" || key == "subscribe") && judgedByUse(key, text))
 			uses_.emplace(key, text);
-		else if(key == "run" || key == "do") follow(text);
+		else if(std::ranges::find(handlers, key) != handlers.end()) follow(text);
 		else if(key == "lisp") functions_.push_back(text);
 	}
 

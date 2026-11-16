@@ -162,6 +162,18 @@ TEST_CASE("format: a command that uses a service lists the uses that write, not 
 	CHECK(lisp.personUses == writes.personUses);
 }
 
+TEST_CASE("format: an attack: a command reaches the action a step names in onDone, onError, then, else or onEvent") {
+	// A handler given as text runs the action of that name: what it uses is the command's to show, as `run` is
+	const json save = json::parse(R"([{"invoke": "files.write", "with": {"path": "a"}}])");
+	for(const char* key : {"onDone", "onError", "then", "else", "onEvent"}) {
+		CAPTURE(key);
+		json read = json::parse(R"({"invoke": "files.read", "with": {"path": "a"}})");
+		read[key] = "save";
+		const CommandReach reach = jsonReach({{"save", save}, {"go", command(json::array({read}))}}, "go");
+		CHECK(reach.personUses == std::vector<std::string>{"uses files.write (write: writes a file)"});
+	}
+}
+
 TEST_CASE("format: a command that writes records") {
 	const CommandReach reach =
 	    jsonReach({{"go", command(json::parse(R"([{"insert": "cards", "value": {"title": "x"}}])"))}}, "go");
