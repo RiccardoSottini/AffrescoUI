@@ -48,6 +48,7 @@
 #include "TerminalSessions.hpp"
 #include "StepRegistry.hpp"
 #include "Steps.hpp"
+#include "Tracker.hpp"
 #include "TypeRegistry.hpp"
 #include "UpdateFrame.hpp"
 #include "Watches.hpp"
@@ -110,6 +111,7 @@ struct Engine : VersionObserver {
 	Builder builder;                ///< Expands children.
 	Scheduler scheduler;            ///< Timers and deferred tasks.
 	Properties properties;          ///< Values on panels.
+	Tracker tracker{*this};         ///< The readers of the state, run before the walk.
 	Reconciler reconciler;          ///< Records; updates.
 	UpdateFrame frame{*this};       ///< What every update does around the walk over the panels.
 	Watches watches{*this};         ///< The "watch" handlers.
@@ -142,6 +144,7 @@ struct Engine : VersionObserver {
 
 	/* VersionObserver (EngineVersions.cpp) */
 	/// @brief Re-reads colours and fonts, then reconciles.
+	using VersionObserver::documentChanged;
 	void documentChanged() override;
 	/// @brief Refreshes the globals and schedules a reconcile (a review UI may list the proposals).
 	void proposalsChanged() override;

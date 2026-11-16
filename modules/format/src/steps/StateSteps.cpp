@@ -5,7 +5,9 @@
 #include "Settings.hpp"
 
 #include <cstdint>
+#include <cstddef>
 #include <limits>
+#include <optional>
 
 namespace affresco::format {
 
@@ -14,8 +16,9 @@ namespace {
 /// @brief "remove": a state path, or an item of a list at "at".
 /// @param s The step.
 /// @param state The state.
+/// @param removedAt Gets the index of the item removed from a list, if one was.
 /// @return The place changed.
-json::json_pointer removeFrom(const Running& s, json& state) {
+json::json_pointer removeFrom(const Running& s, json& state, std::optional<std::size_t>& removedAt) {
 	const json::json_pointer pointer = s.target("remove");
 	if(!s.step.contains("at")) {
 		if(!findInState(state, pointer)) return pointer;
@@ -29,7 +32,8 @@ json::json_pointer removeFrom(const Running& s, json& state) {
 	if(!array.is_array() || !at.is_number_integer() || at.get<std::int64_t>() < 0 ||
 	   static_cast<std::size_t>(at.get<std::int64_t>()) >= array.size())
 		fail(s.where, "nothing to remove at " + at.dump());
-	array.erase(static_cast<std::size_t>(at.get<std::int64_t>()));
+	removedAt = static_cast<std::size_t>(at.get<std::int64_t>());
+	array.erase(*removedAt);
 	return pointer; // the items after it move: the whole list changed
 }
 
@@ -106,7 +110,9 @@ std::optional<bool> runStateStep(const Running& s) {
 	const bool settings = engine.versions.document().contains("settings");
 	const json before = settings && state.contains("settings") ? state["settings"] : json::object();
 
-	json::json_pointer pointer; // the place changed
+	json::json_pointer pointer;               // the place changed
+	std::optional<ListChange::Kind> listKind; // and how, if it is a list that changed shape
+	std::size_t listIndex = 0;
 	if(step.contains("set")) {
 		if(!step.contains("to")) fail(where, R"("set" needs "to")");
 		pointer = s.target("set");
@@ -123,8 +129,15 @@ std::optional<bool> runStateStep(const Running& s) {
 		expect::shallowEnough(value, pointerDepth(pointer) + 1, where + ".value");
 		engine.document.spendBytes(value, where + ".value");
 		array.push_back(std::move(value));
+		listKind = ListChange::Kind::Inserted;
+		listIndex = array.size() - 1;
 	} else if(step.contains("remove")) {
-		pointer = removeFrom(s, state);
+		std::optional<std::size_t> removedAt;
+		pointer = removeFrom(s, state, removedAt);
+		if(removedAt) {
+			listKind = ListChange::Kind::Removed;
+			listIndex = *removedAt;
+		}
 	} else if(step.contains("toggle")) {
 		pointer = s.target("toggle");
 		const json* found = findInState(state, pointer);
@@ -137,7 +150,8 @@ std::optional<bool> runStateStep(const Running& s) {
 		return std::nullopt;
 	}
 	if(settings) checkSettingsWritten(engine, before, where);
-	engine.document.markStateChanged(pointer);
+	if(listKind) engine.document.markListChanged(pointer, *listKind, listIndex);
+	else engine.document.markStateChanged(pointer);
 	return true;
 }
 

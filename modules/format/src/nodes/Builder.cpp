@@ -189,7 +189,8 @@ void Builder::instances(const CompiledRef& node, const SharedScope& locals, cons
 	const CompiledRepeat& repeat = *compiled;
 	std::optional<std::string> place;
 	const json list = listOf(repeat, *locals, at, place);
-	for(std::size_t k = 0; k < list.size(); ++k) { // a null list has none
+	engine_.reconciler.counters().rowsExpanded += list.size(); // a null list has none
+	for(std::size_t k = 0; k < list.size(); ++k) {             // a null list has none
 		SharedScope scope = place ? extend(locals, {{repeat.item, list[k]}, {repeat.index, k}}, repeat.item,
 		                                   *place + "/" + std::to_string(k))
 		                          : extend(locals, {{repeat.item, list[k]}, {repeat.index, k}});
@@ -205,6 +206,7 @@ void Builder::instances(const CompiledRef& node, const SharedScope& locals, cons
 std::vector<Item> Builder::expand(const json& children, const SharedScope& locals, const std::string& path) const {
 	std::vector<Item> items;
 	if(!children.is_array()) fail(path + ".children", "expected an array");
+	++engine_.reconciler.counters().listsExpanded;
 	items.reserve(children.size());
 	for(std::size_t i = 0; i < children.size(); ++i) {
 		const std::string at = path + ".children[" + std::to_string(i) + "]";

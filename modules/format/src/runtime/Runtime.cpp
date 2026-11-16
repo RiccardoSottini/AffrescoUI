@@ -135,7 +135,7 @@ void Runtime::build(Window& window) {
 	Engine& engine = *impl_;
 	engine.window = &window;
 	engine.serviceCalls.load(); // the grants are in place by now
-	engine.reconciler.reconcile();
+	engine.reconciler.reconcile("first");
 	engine.events.connect(window);
 
 	// "onLoad": once, after the first update

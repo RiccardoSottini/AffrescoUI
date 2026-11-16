@@ -185,6 +185,15 @@ struct Decision {
 	std::string commit;               ///< When merged: the merge commit.
 };
 
+/// @brief What a new version changed, where the version control can tell: the places of the document and of the
+/// state it changed and the sections of the document it touched, or everything.
+struct DocumentChange {
+	std::vector<std::string> document; ///< Places of the document changed, as JSON Pointers.
+	std::vector<std::string> state;    ///< Places of the state changed, as JSON Pointers.
+	std::vector<std::string> sections; ///< The document's top-level sections touched ("root", "styles"...).
+	bool everything = true;            ///< Anything may have changed (a restore, an import): the lists say nothing.
+};
+
 /// @brief Told when the working copy of a VersionControl changes. There is one observer: the renderer.
 class VersionObserver {
 public:
@@ -193,6 +202,14 @@ public:
 	/// @brief The document or the state was replaced (commit, preview, restore, import).
 	/// @throws DocumentError To refuse the new version: it is rolled back, and this is called again for the old one.
 	virtual void documentChanged() = 0;
+	/// @brief The document or the state was replaced, with what the new version changed. By default the same as
+	/// documentChanged(), which observers that can't use the detail keep.
+	/// @param change What changed.
+	/// @throws DocumentError To refuse the new version, as documentChanged().
+	virtual void documentChanged(const DocumentChange& change) {
+		static_cast<void>(change);
+		documentChanged();
+	}
 
 	/// @brief Only the proposals changed.
 	virtual void proposalsChanged() = 0;

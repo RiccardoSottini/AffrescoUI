@@ -93,7 +93,7 @@ public:
 	/// @brief Records that the state changed in a way no place describes: computed values are stale and every value
 	/// is evaluated again at the next update.
 	void markStateChanged() noexcept {
-		changes_.addAll();
+		requestUpdate();
 		++stateVersion_;
 	}
 	/// @brief Records that one place of the state changed: computed values are stale, and the next update evaluates
@@ -102,6 +102,19 @@ public:
 	void markStateChanged(const json::json_pointer& pointer) {
 		changes_.add(pointer.to_string());
 		++stateVersion_;
+	}
+	/// @brief Records that a list of the state changed shape, as markStateChanged(pointer) does for its place, with
+	/// how it changed (StateChanges::lists).
+	/// @param pointer The list.
+	/// @param kind Items inserted or removed.
+	/// @param index The first one.
+	/// @param count How many.
+	void markListChanged(const json::json_pointer& pointer, ListChange::Kind kind, std::size_t index,
+	                     std::size_t count = 1) {
+		std::string place = pointer.to_string();
+		changes_.add(place);
+		++stateVersion_;
+		if(!changes_.all) changes_.lists.push_back({std::move(place), kind, index, count});
 	}
 	/// @brief Records that a place outside the state changed, a data model's rows (Models.hpp): the next update
 	/// evaluates again only the values that read it. Computed values never read there, so they stay.
@@ -113,8 +126,34 @@ public:
 	/// panels.
 	/// @return The changes.
 	[[nodiscard]] StateChanges takeChanges() noexcept { return std::exchange(changes_, {}); }
+	/// @brief Why the changes call for a full update, as an update begins: the reason given to requestUpdate().
+	/// @return The first reason given since it was last taken; empty if none was.
+	[[nodiscard]] std::string_view takeFullReason() noexcept { return std::exchange(fullReason_, {}); }
 	/// @brief Marks a full update as due (every value evaluated again), without staling computed values.
-	void requestUpdate() noexcept { changes_.addAll(); }
+	/// @param reason Why, for UpdateStatistics::fullReason: a string that lives as long as the program.
+	void requestUpdate(std::string_view reason = "requested") noexcept {
+		changes_.addAll();
+		if(fullReason_.empty()) fullReason_ = reason;
+	}
+	/// @brief The changes of the update running, which places marked while it runs join (Tracker).
+	/// @return They, or null outside an update.
+	[[nodiscard]] const StateChanges* updating() const noexcept { return updating_; }
+	/// @brief Holds the changes of the update running, for updating(), while it lives.
+	class UpdatingScope {
+	public:
+		/// @brief Makes an update's changes the running ones.
+		/// @param context The context.
+		/// @param changes The changes; they outlive the scope.
+		UpdatingScope(DocumentContext& context, const StateChanges& changes) noexcept
+		    : context_(context), previous_(std::exchange(context.updating_, &changes)) {}
+		~UpdatingScope() { context_.updating_ = previous_; }
+		UpdatingScope(const UpdatingScope&) = delete;
+		UpdatingScope& operator=(const UpdatingScope&) = delete;
+
+	private:
+		DocumentContext& context_;     ///< The context.
+		const StateChanges* previous_; ///< The running changes before.
+	};
 	/// @brief Makes computed values stale (a revision may change the state too).
 	void bumpStateVersion() noexcept { ++stateVersion_; }
 	/// @brief Counts the state's changes: what is cached per version of the state compares it.
@@ -336,6 +375,8 @@ private:
 	json lookSections_;                           ///< "colors", "tokens" and "fonts" when looks_ last changed.
 	WorkBudget* budget_ = nullptr;                ///< The running event's or update's budget (BudgetScope), if any.
 	StateChanges changes_;                        ///< See takeChanges().
+	std::string_view fullReason_;                 ///< See takeFullReason().
+	const StateChanges* updating_ = nullptr;      ///< See updating().
 	mutable ReadSet* reads_ = nullptr;            ///< Where the running ReadScope collects, if any.
 	std::uint64_t stateVersion_ = 0;              ///< Counts state changes (computed values are cached per version).
 	mutable std::optional<Globals> globalsCache_; ///< See globals().

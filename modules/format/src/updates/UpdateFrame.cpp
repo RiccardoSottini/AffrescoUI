@@ -73,7 +73,7 @@ void showIcon(Engine& engine) {
 
 } // namespace
 
-void UpdateFrame::begin(const StateChanges& changes) {
+bool UpdateFrame::begin(const StateChanges& changes) {
 	static_cast<void>(changes); // every update reads the same window-wide values, whatever changed
 	Window& window = *engine_.window;
 	DocumentContext& context = engine_.document;
@@ -85,8 +85,10 @@ void UpdateFrame::begin(const StateChanges& changes) {
 	std::string windowNow = std::to_string(window.width()) + "x" + std::to_string(window.height()) + "@" +
 	                        std::to_string(window.contentScale()) +
 	                        (window.colorScheme() == ColorScheme::Dark ? "d" : "l");
+	bool resized = false;
 	if(windowNow != window_) {
-		if(!window_.empty()) context.bumpStateVersion();
+		resized = !window_.empty();
+		if(resized) context.bumpStateVersion();
 		window_ = std::move(windowNow);
 	}
 	context.updateTheme();
@@ -96,6 +98,7 @@ void UpdateFrame::begin(const StateChanges& changes) {
 	if(const auto font = context.findFont("default"); font && window.defaultFont() != font.get())
 		window.setDefaultFont(font);
 	showIcon(engine_); // and the icon: a file outside the allowed folders refuses the revision, as an image node's does
+	return resized;
 }
 
 void UpdateFrame::end(const StateChanges& changes, bool full) {

@@ -27,8 +27,9 @@ public:
 	/// @brief Before the walk: keeps the screen an outlet shows, drops the globals, stales computed values on a resize,
 	/// evaluates the theme and the locale, and gives the window its default font and its icon.
 	/// @param changes What changed since the last update.
+	/// @return Whether the window's size, scale or colour scheme changed since the update before (not on the first).
 	/// @throws DocumentError If the icon can't be shown (the revision is refused, as an image node's would be).
-	void begin(const StateChanges& changes);
+	bool begin(const StateChanges& changes);
 	/// @brief After the walk: runs the "watch" handlers whose values changed, shows the title, the menu bar and the
 	/// focus ring, and tells the application (Runtime::onUpdated).
 	/// @param changes What changed since the last update.
