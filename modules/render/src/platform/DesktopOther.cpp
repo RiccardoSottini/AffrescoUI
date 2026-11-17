@@ -11,7 +11,10 @@ ColorScheme colorScheme() { return ColorScheme::Light; }
 
 bool reducedMotion() { return false; }
 
-void watchColorScheme() {}
+std::unique_ptr<AppearanceWatch> watchColorScheme(std::function<void()> changed) {
+	static_cast<void>(changed); // colorScheme() and reducedMotion() never change here
+	return std::make_unique<AppearanceWatch>();
+}
 
 void keepOutOfSwitcher() {} // a hidden window has no taskbar entry
 

@@ -273,6 +273,8 @@ std::vector<Value::Field> Value::fields() const {
 	return result;
 }
 
+const json* Value::borrowed() const noexcept { return holding_ == Holding::Json && !storage_ ? inline_.data : nullptr; }
+
 json Value::toJson() const {
 	switch(holding_) {
 	case Holding::Null:
