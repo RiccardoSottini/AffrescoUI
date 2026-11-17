@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -129,6 +130,12 @@ GLFWimage iconImage(const Bitmap& icon, std::vector<std::uint8_t>& pixels) {
 #endif
 
 /// @brief A GLFW window and its OpenGL context.
+/// @brief What the platform's windows tell its event loop, and what it tells them. Main thread only.
+struct LoopState {
+	bool waiting = false;     ///< Inside waitEvents(): only then must a window's wake() post an event.
+	std::uint64_t events = 0; ///< The events the windows were delivered (Platform::eventsDelivered()).
+};
+
 class GlfwWindow final : public NativeWindow {
 public:
 	/// @brief Opens the window, makes its context current and turns vsync on. On Win32 and X11 it opens unitScale_
@@ -138,9 +145,10 @@ public:
 	/// @param height In window units.
 	/// @param sharing A window whose context shares its objects with this one's, or nullptr.
 	/// @param hidden Whether it stays hidden for its whole life: setVisible(true) leaves it off screen.
+	/// @param loop The platform's loop state, which outlives the window.
 	/// @throws std::runtime_error If the window or its context can't be created.
-	GlfwWindow(const std::string& title, int width, int height, GLFWwindow* sharing, bool hidden)
-	    : scalesUnits_(unitsArePixels()), unitScale_(startingUnitScale(scalesUnits_)),
+	GlfwWindow(const std::string& title, int width, int height, GLFWwindow* sharing, bool hidden, LoopState& loop)
+	    : loop_(loop), scalesUnits_(unitsArePixels()), unitScale_(startingUnitScale(scalesUnits_)),
 	      handle_(glfwCreateWindow(unitsToPixels(width, unitScale_), unitsToPixels(height, unitScale_), title.c_str(),
 		                           nullptr, sharing)),
 	      hidden_(hidden) {
@@ -211,7 +219,11 @@ public:
 	[[nodiscard]] ProcAddressLoader procAddressLoader() const override {
 		return reinterpret_cast<ProcAddressLoader>(glfwGetProcAddress);
 	}
-	void wake() override { glfwPostEmptyEvent(); }
+	// Outside the wait, the loop works out how long it may sleep before it sleeps: an empty event would only turn it
+	// once more for nothing
+	void wake() override {
+		if(loop_.waiting) glfwPostEmptyEvent();
+	}
 	[[nodiscard]] void* handle() const noexcept override { return handle_; }
 	[[nodiscard]] float contentScale() const override {
 		if(scalesUnits_) return unitScale_; // pixels per window unit, which the display's scale rounded gives
@@ -237,6 +249,13 @@ private:
 		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast): GlfwPlatform makes only GlfwWindows
 		return static_cast<GlfwWindow&>(of(owner(window)));
 	}
+	/// @brief The Window a GLFW window delivers an event to, counting the event (Platform::eventsDelivered()).
+	/// @param window The GLFW window.
+	/// @return Its Window.
+	static Window& delivered(GLFWwindow* window) {
+		++self(window).loop_.events;
+		return owner(window);
+	}
 	/// @brief The pointer's position now, in window units.
 	/// @return The position.
 	[[nodiscard]] Vec2 pointer() const {
@@ -257,6 +276,7 @@ private:
 	/// @param scale The new unit scale.
 	void rescale(float scale);
 
+	LoopState& loop_;                           ///< The platform's; outlives the window.
 	bool scalesUnits_;                          ///< Window units are scaled to pixels here (unitsArePixels()).
 	float unitScale_;                           ///< Pixels per window unit; exactly 1 unless scalesUnits_.
 	GLFWwindow* handle_;                        ///< The window and its context; destroyed with this object.
@@ -346,46 +366,47 @@ void GlfwWindow::connect(Window& window) {
 	// (During a live resize on macOS the loop is blocked and the refresh callback fires after every step.)
 	glfwSetWindowSizeCallback(handle_, [](GLFWwindow* native, int width, int height) {
 		const float scale = self(native).unitScale_;
-		resized(owner(native), pixelsToUnits(width, scale), pixelsToUnits(height, scale));
+		resized(delivered(native), pixelsToUnits(width, scale), pixelsToUnits(height, scale));
 	});
-	glfwSetFramebufferSizeCallback(handle_, [](GLFWwindow* native, int, int) { framebufferResized(owner(native)); });
-	glfwSetWindowRefreshCallback(handle_, [](GLFWwindow* native) { refresh(owner(native)); });
+	glfwSetFramebufferSizeCallback(handle_,
+	                               [](GLFWwindow* native, int, int) { framebufferResized(delivered(native)); });
+	glfwSetWindowRefreshCallback(handle_, [](GLFWwindow* native) { refresh(delivered(native)); });
 
 	glfwSetKeyCallback(handle_, [](GLFWwindow* native, int key, int scancode, int action, int mods) {
-		owner(native).routeKey({static_cast<Key>(key), scancode, static_cast<Action>(action), Mods{mods}});
+		delivered(native).routeKey({static_cast<Key>(key), scancode, static_cast<Action>(action), Mods{mods}});
 	});
 	glfwSetCharCallback(handle_, [](GLFWwindow* native, unsigned int codepoint) {
-		owner(native).routeChar({static_cast<char32_t>(codepoint)});
+		delivered(native).routeChar({static_cast<char32_t>(codepoint)});
 	});
 	glfwSetCursorPosCallback(handle_, [](GLFWwindow* native, double x, double y) {
 		const float scale = self(native).unitScale_;
-		owner(native).routeMouseMove({pointToUnits(x, scale), pointToUnits(y, scale)});
+		delivered(native).routeMouseMove({pointToUnits(x, scale), pointToUnits(y, scale)});
 	});
 	glfwSetMouseButtonCallback(handle_, [](GLFWwindow* native, int button, int action, int mods) {
 		// Asked rather than taken from the last move: a click can come before any move event
-		owner(native).routeMouseButton(
+		delivered(native).routeMouseButton(
 		    {static_cast<MouseButton>(button), static_cast<Action>(action), Mods{mods}, self(native).pointer()});
 	});
 	glfwSetScrollCallback(handle_, [](GLFWwindow* native, double dx, double dy) { // steps, not positions: not scaled
-		Window& w = owner(native);
+		Window& w = delivered(native);
 		w.routeScroll({{static_cast<float>(dx), static_cast<float>(dy)}, w.pointer()});
 	});
 	glfwSetCursorEnterCallback(
-	    handle_, [](GLFWwindow* native, int entered) { owner(native).routeCursorEnter(entered == GLFW_TRUE); });
+	    handle_, [](GLFWwindow* native, int entered) { delivered(native).routeCursorEnter(entered == GLFW_TRUE); });
 
 	glfwSetDropCallback(handle_, [](GLFWwindow* native, int count, const char** paths) {
 		const DropEvent event{std::vector<std::string>(paths, paths + count), self(native).pointer()};
-		dropped(owner(native), event);
+		dropped(delivered(native), event);
 	});
 	// Another display, or the setting changed: on Win32 and X11 the window keeps its units at the new scale
 	glfwSetWindowContentScaleCallback(handle_, [](GLFWwindow* native, float x, float) {
 		GlfwWindow& changed = self(native);
 		if(!changed.scalesUnits_) {
-			displayChanged(owner(native), x);
+			displayChanged(delivered(native), x);
 			return;
 		}
 		changed.rescale(unitScale(x));
-		displayChanged(owner(native), changed.unitScale_);
+		displayChanged(delivered(native), changed.unitScale_);
 	});
 	glfwSetWindowFocusCallback(handle_, [](GLFWwindow* native, int focused) {
 		const GlfwWindow& focusedWindow = self(native);
@@ -455,10 +476,16 @@ public:
 #endif
 		if(!glfwInit()) throw std::runtime_error("AffrescoUI: could not initialise GLFW");
 		if(hiddenWindows) desktop::keepOutOfSwitcher();
-		desktop::watchColorScheme();
+		appearance_ = desktop::watchColorScheme([this] {
+			++appearanceChanges_;
+			glfwPostEmptyEvent();
+		});
 	}
 	/// @brief Stops GLFW; every window must be gone.
-	~GlfwPlatform() override { glfwTerminate(); }
+	~GlfwPlatform() override {
+		appearance_.reset(); // nothing announced after GLFW stops
+		glfwTerminate();
+	}
 
 	GlfwPlatform(const GlfwPlatform&) = delete;
 	GlfwPlatform& operator=(const GlfwPlatform&) = delete;
@@ -469,7 +496,7 @@ public:
 		hintContext(); // other hints (e.g. GLFW_VISIBLE, set by tests) stay
 		hintVisibility();
 		hintScale();
-		return std::make_unique<GlfwWindow>(title, width, height, nullptr, hiddenWindows_);
+		return std::make_unique<GlfwWindow>(title, width, height, nullptr, hiddenWindows_, loop_);
 	}
 
 	[[nodiscard]] std::unique_ptr<NativeWindow> createSharedWindow(const std::string& title, int width, int height,
@@ -477,18 +504,25 @@ public:
 		hintContext();
 		hintVisibility();
 		hintScale();
-		return std::make_unique<GlfwWindow>(title, width, height, static_cast<GLFWwindow*>(sharing), hiddenWindows_);
+		return std::make_unique<GlfwWindow>(title, width, height, static_cast<GLFWwindow*>(sharing), hiddenWindows_,
+		                                    loop_);
 	}
 
 	void waitEvents(std::optional<double> timeoutSeconds) override {
+		loop_.waiting = true;
 		if(timeoutSeconds) glfwWaitEventsTimeout(*timeoutSeconds);
 		else glfwWaitEvents();
+		loop_.waiting = false;
 	}
 
 	void wake() override { glfwPostEmptyEvent(); }
 
 	[[nodiscard]] ColorScheme colorScheme() const override { return desktop::colorScheme(); }
 	[[nodiscard]] bool reducedMotion() const override { return desktop::reducedMotion(); }
+	[[nodiscard]] std::uint64_t eventsDelivered() const noexcept override { return loop_.events; }
+	[[nodiscard]] std::optional<std::uint64_t> appearanceChanges() const noexcept override {
+		return appearance_ ? std::optional(appearanceChanges_) : std::nullopt;
+	}
 
 private:
 	/// @brief Keeps the next window off screen and unfocused when windows open hidden.
@@ -500,6 +534,9 @@ private:
 	}
 
 	bool hiddenWindows_; ///< Windows open hidden (ApplicationOptions::hiddenWindows or AFFRESCOUI_HIDDEN).
+	LoopState loop_;     ///< Shared with the windows, which it outlives.
+	std::uint64_t appearanceChanges_ = 0;                  ///< Announced by appearance_ (main thread).
+	std::unique_ptr<desktop::AppearanceWatch> appearance_; ///< The system's announcements, or nullptr if none.
 };
 
 } // namespace
