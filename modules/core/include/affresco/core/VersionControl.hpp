@@ -187,11 +187,19 @@ struct Decision {
 
 /// @brief What a new version changed, where the version control can tell: the places of the document and of the
 /// state it changed and the sections of the document it touched, or everything.
+///
+/// Built by the version control from a patch it has checked, never by a peer, and never sent to one. It only lets
+/// the observer do less: what the observer shows after it must be what a full update shows (verify mode proves it).
+/// An empty `document` with `everything` false is a change of the live state only: the document is the same object
+/// as before.
 struct DocumentChange {
 	std::vector<std::string> document; ///< Places of the document changed, as JSON Pointers.
 	std::vector<std::string> state;    ///< Places of the state changed, as JSON Pointers.
 	std::vector<std::string> sections; ///< The document's top-level sections touched ("root", "styles"...).
 	bool everything = true;            ///< Anything may have changed (a restore, an import): the lists say nothing.
+	/// The document the observer saw before (what VersionControl::document() returned), valid only during the call;
+	/// nullptr when it isn't known, which counts as everything.
+	const json* before = nullptr;
 };
 
 /// @brief Told when the working copy of a VersionControl changes. There is one observer: the renderer.

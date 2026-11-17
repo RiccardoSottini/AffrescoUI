@@ -118,9 +118,10 @@ void Programs::definePrimitives(lisp::Interpreter& interpreter) {
 		                             return readPath(in, arguments);
 	                             }});
 	// The expressions' bare variables, which a step's name (`preview`) would otherwise hide from code
-	for(const char* name : {"window",       "revision", "proposals",   "history",  "preview",     "mode",  "theme",
-	                        "locale",       "screen",   "context",     "commands", "keybindings", "menus", "settings",
-	                        "settingsList", "services", "connections", "auth",     "requests",    "peers", "windows"})
+	for(const char* name : {"state", "event",    "window",       "revision",  "proposals",   "history",  "preview",
+	                        "mode",  "theme",    "locale",       "screen",    "context",     "commands", "keybindings",
+	                        "menus", "settings", "settingsList", "services",  "connections", "auth",     "requests",
+	                        "peers", "windows",  "runs",         "runGrants", "data"})
 		interpreter.addAppVariable(name);
 	defineSteps(interpreter);
 	defineFunctions(interpreter);
@@ -156,8 +157,7 @@ void Programs::defineFunctions(lisp::Interpreter& interpreter) {
 	}
 }
 
-lisp::Value Programs::viewOf(lisp::Interpreter& interpreter, json value) {
-	const std::size_t size = approximateBytes(value, bytesPerEvent);
+void Programs::charge(lisp::Interpreter& interpreter, std::size_t size) {
 	lisp::Budget left = interpreter.budget();
 	if(left.bytes < size || left.operations < size / 16) {
 		const auto [place, definition] = interpreter.place();
@@ -167,17 +167,40 @@ lisp::Value Programs::viewOf(lisp::Interpreter& interpreter, json value) {
 	left.bytes -= size;
 	left.operations -= size / 16;
 	interpreter.setBudget(left);
+}
+
+lisp::Value Programs::viewOf(lisp::Interpreter& interpreter, json value) {
+	charge(interpreter, approximateBytes(value, bytesPerEvent));
 	return interpreter.viewJson(std::make_shared<const json>(std::move(value)));
+}
+
+lisp::Value Programs::viewInPlace(lisp::Interpreter& interpreter, const json& value) {
+	std::size_t size = 0;
+	if(!value.is_structured()) {
+		size = approximateBytes(value, bytesPerEvent);
+	} else if(const auto charged = chargedInRead_.find(&value); charged != chargedInRead_.end()) {
+		size = charged->second; // read before in this read: charged again, without walking it again
+	} else {
+		size = approximateBytes(value, bytesPerEvent);
+		chargedInRead_.emplace(&value, size);
+	}
+	charge(interpreter, size);
+	// Owns nothing: the state stays as it is until the read returns, and nothing the read made outlives it (read())
+	return interpreter.viewJson(std::shared_ptr<const json>(std::shared_ptr<const json>(), &value));
 }
 
 lisp::Value Programs::readPath(lisp::Interpreter& interpreter, std::span<const lisp::Value> arguments) {
 	if(arguments.size() != 1 || arguments[0].kind() != lisp::Kind::String) throw lisp::Refusal("a path is a string");
 	const auto [place, definition] = interpreter.place();
 	const std::string path = indexedPath(arguments[0].text());
-	json value = outside(interpreter, [&] {
-		return format::lookup(path, engine_.document.context(*frame_->locals, *frame_->event), "lisp " + definition);
-	});
-	return viewOf(interpreter, std::move(value));
+	const auto context = [this] { return engine_.document.context(*frame_->locals, *frame_->event); };
+	if(reading_ == 0) // a handler, which may change what it read: a copy
+		return viewOf(interpreter,
+		              outside(interpreter, [&] { return format::lookup(path, context(), "lisp " + definition); }));
+	json made;
+	const json* lying =
+	    outside(interpreter, [&] { return format::lookupInPlace(path, context(), "lisp " + definition, made); });
+	return lying ? viewInPlace(interpreter, *lying) : viewOf(interpreter, std::move(made));
 }
 
 lisp::Value Programs::callFunction(const std::string& name, lisp::Interpreter& interpreter,

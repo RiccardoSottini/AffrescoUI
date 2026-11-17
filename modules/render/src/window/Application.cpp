@@ -157,12 +157,12 @@ int Application::run() {
 
 	running_ = true;
 	while(running_ && (!screenshot || clock_->seconds() < deadline)) {
-		if(!renderOpenWindows(windows_)) break;
+		if(!renderOpenWindows(windows_) || !running_) break; // a timer may have quit
 
 		// Sleeps until there is input or a timer is due: no CPU or GPU used while idle
-		std::optional<double> wait = secondsToNextTimer(windows_);
-		if(screenshot) wait = std::min(wait.value_or(1e9), std::max(0.0, deadline - clock_->seconds()));
-		platform_->waitEvents(wait);
+		std::optional<double> timeout = secondsToNextTimer(windows_);
+		if(screenshot) timeout = std::min(timeout.value_or(1e9), std::max(0.0, deadline - clock_->seconds()));
+		wait(timeout);
 		followSystem();
 		runPostedTasks();
 	}
@@ -173,7 +173,31 @@ int Application::run() {
 #endif
 }
 
+#ifndef __EMSCRIPTEN__
+void Application::wait(std::optional<double> timeoutSeconds) {
+	const std::uint64_t events = platform_->eventsDelivered();
+	platform_->waitEvents(timeoutSeconds);
+	std::optional<double> nextTimer = secondsToNextTimer(windows_);
+	// A timed wait of the system can end a little before its time: the rest is waited too, not a turn of its own
+	for(int again = 0; again < 4 && nextTimer && *nextTimer > 0.0 && *nextTimer < 0.002 && !posted_ &&
+	                   platform_->eventsDelivered() == events;
+	    ++again) {
+		platform_->waitEvents(nextTimer);
+		nextTimer = secondsToNextTimer(windows_);
+	}
+	++turns_;
+	if(posted_.exchange(false)) lastWake_ = Wake::Posted;
+	else if(platform_->eventsDelivered() != events) lastWake_ = Wake::Input;
+	else if(nextTimer && *nextTimer <= 0.0) lastWake_ = Wake::Timer;
+	else lastWake_ = Wake::Unknown;
+	++turnsBy_.at(static_cast<std::size_t>(lastWake_));
+}
+#endif
+
 void Application::followSystem() {
+	const std::optional<std::uint64_t> changes = platform_->appearanceChanges();
+	if(changes && changes == appearanceSeen_) return; // nothing announced since the last time: nothing to ask
+	appearanceSeen_ = changes;
 	const ColorScheme scheme = platform_->colorScheme();
 	const bool reduced = platform_->reducedMotion();
 	for(const auto& window : windows_)
@@ -186,6 +210,7 @@ void Application::post(std::function<void()> task) {
 		const std::scoped_lock lock(tasksMutex_);
 		tasks_.push_back(std::move(task));
 	}
+	posted_ = true;
 	platform_->wake(); // wake up the event loop's wait
 }
 
@@ -199,8 +224,9 @@ void Application::runPostedTasks() {
 }
 
 void Application::quit() {
+	// Called on the main thread, from inside run() (a task, a timer, an event): the loop sees it before it waits again,
+	// so waking the wait would leave an empty event behind, and the next run() would turn once for it
 	running_ = false;
-	platform_->wake(); // wake up the event loop's wait
 }
 
 } // namespace affresco

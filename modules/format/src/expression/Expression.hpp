@@ -19,6 +19,7 @@
 #include "affresco/core/Json.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -30,17 +31,79 @@ namespace affresco::format {
 struct ReadSet;
 class Strings;
 
+struct Scope;
+
+/// The key under a list's place that a read of a row's number records: "/items/~i" changes when rows of "/items" are
+/// numbered again after an insert or a removal before them. No JSON Pointer has it ("~" escapes only "0" and "1").
+inline constexpr std::string_view indexKey = "~i";
+
+/// @brief Where a scope's item lies (Scope::origin()): a repeat's row is a list's place and the row's number in it,
+/// which an insert or a removal before it changes in place (Scope::renumber()); another item is a place alone.
+struct ItemPlace {
+	/// The number of an item that is no list's row.
+	static constexpr std::size_t noRow = static_cast<std::size_t>(-1);
+
+	/// An enclosing scope whose item the list lies in ("column.cards"), so the list moves with that item; null when
+	/// `list` is a whole place. Lifetime: an ancestor of the scope, kept alive by its Scope::keep chain.
+	const Scope* base = nullptr;
+	std::string list{};                 ///< The list's place, after base's origin; the item's place for no row.
+	std::string index{};                ///< The repeat's variable that holds the row's number (empty: none).
+	mutable std::size_t row = noRow;    ///< The row's number in the list, or noRow.
+	mutable std::string built{};        ///< The origin, as last built.
+	mutable std::uint64_t revision = 0; ///< Counts the times built changed, so scopes over it see it did.
+	mutable std::uint64_t baseSeen = 0; ///< base's revision when built was built.
+	mutable bool upToDate = false;      ///< Whether built is right for row and base.
+};
+
 /// @brief Variables in scope: its own, then its parent's, and so on. Panels built inside a repeat share their parent's
 /// scope instead of copying it: a card's scope points at its column's, which holds the column once.
 struct Scope {
 	const Scope* parent = nullptr;     ///< The enclosing scope, or nullptr.
 	std::shared_ptr<const Scope> keep; ///< Keeps the parent alive when it is shared (null for a scope on the stack).
 	/// This scope's own variables. Mutable for one writer: the reconciler refreshes a repeat's item in place when the
-	/// state it was copied from changes (Reconciler::refreshItems), for panels that share the scope as const.
+	/// state it was copied from changes (Reconciler::refreshItems), and the children lists give a row its new number
+	/// (renumber()), for panels that share the scope as const.
 	mutable json vars = json::object();
 	std::string fromState; ///< A variable whose value lies in the state (a repeat's item), or empty.
-	std::string origin;    ///< Where in the state it lies, as a JSON Pointer.
+	ItemPlace place;       ///< Where in the state it lies (origin()).
 
+	/// @brief Where in the state (or under a place outside it, Reads.hpp, `places`) the item of fromState lies now,
+	/// as a JSON Pointer: the list's place, its base's origin first, then the row's number. Built when asked, and
+	/// again only after renumber() or a base's change.
+	/// @return The place; empty for a scope with no such item.
+	[[nodiscard]] const std::string& origin() const {
+		bool rebuild = !place.upToDate;
+		if(place.base) {
+			static_cast<void>(place.base->origin()); // brings the base up to date first
+			rebuild = rebuild || place.baseSeen != place.base->place.revision;
+		}
+		if(rebuild) {
+			place.built = place.base ? place.base->place.built : std::string();
+			place.built += place.list;
+			if(place.row != ItemPlace::noRow) {
+				place.built += '/';
+				place.built += std::to_string(place.row);
+			}
+			place.baseSeen = place.base ? place.base->place.revision : 0U;
+			place.upToDate = true;
+			++place.revision;
+		}
+		return place.built;
+	}
+	/// @brief The place of the list a row lies in, as a JSON Pointer.
+	/// @return It; empty for a scope that isn't a row.
+	[[nodiscard]] std::string listPlace() const {
+		if(place.row == ItemPlace::noRow) return {};
+		return place.base ? place.base->origin() + place.list : place.list;
+	}
+	/// @brief Gives a row its new number after an insert or a removal before it: its index variable and its origin.
+	/// @param row The number.
+	void renumber(std::size_t row) const {
+		if(row == place.row) return;
+		place.row = row;
+		place.upToDate = false;
+		if(!place.index.empty()) vars[place.index] = row;
+	}
 	/// @brief Finds a variable here or in an enclosing scope (the innermost wins).
 	/// @param name The variable.
 	/// @return Its value, or nullptr.
@@ -49,14 +112,22 @@ struct Scope {
 			if(const auto it = scope->vars.find(name); it != scope->vars.end()) return &*it;
 		return nullptr;
 	}
+	/// @brief The scope that defines a variable, if it is a repeat's item over a list of the state (the innermost
+	/// definition decides).
+	/// @param name The variable.
+	/// @return The scope, or nullptr.
+	[[nodiscard]] const Scope* itemScope(std::string_view name) const {
+		for(const Scope* scope = this; scope; scope = scope->parent)
+			if(scope->vars.contains(name)) return scope->fromState == name ? scope : nullptr;
+		return nullptr;
+	}
 	/// @brief Where in the state a variable's value lies, if it is a repeat's item over a list of the state: the
 	/// scope that defines it decides (the innermost).
 	/// @param name The variable.
 	/// @return The place, as a JSON Pointer, or nullptr.
 	[[nodiscard]] const std::string* originOf(std::string_view name) const {
-		for(const Scope* scope = this; scope; scope = scope->parent)
-			if(scope->vars.contains(name)) return scope->fromState == name ? &scope->origin : nullptr;
-		return nullptr;
+		const Scope* scope = itemScope(name);
+		return scope ? &scope->origin() : nullptr;
 	}
 };
 
@@ -75,19 +146,20 @@ using SharedScope = std::shared_ptr<const Scope>;
 	return scope;
 }
 
-/// @brief A shared scope with a repeat's variables on top of another, its item lying in the state.
+/// @brief A shared scope with a repeat's variables on top of another, its item lying in the state (or under a place
+/// outside it).
 /// @param parent The enclosing scope.
 /// @param vars The new variables.
 /// @param fromState The item's variable.
-/// @param origin Where the item lies in the state, as a JSON Pointer.
+/// @param place Where the item lies.
 /// @return The scope.
-[[nodiscard]] inline SharedScope extend(SharedScope parent, json vars, std::string fromState, std::string origin) {
+[[nodiscard]] inline SharedScope extend(SharedScope parent, json vars, std::string fromState, ItemPlace place) {
 	auto scope = std::make_shared<Scope>();
 	scope->parent = parent.get();
 	scope->keep = std::move(parent);
 	scope->vars = std::move(vars);
 	scope->fromState = std::move(fromState);
-	scope->origin = std::move(origin);
+	scope->place = std::move(place);
 	return scope;
 }
 
@@ -178,6 +250,18 @@ struct Placeholders {
 /// @return The value, or null if it doesn't exist.
 /// @throws DocumentError If the path is malformed.
 [[nodiscard]] json lookup(std::string_view path, const Context& context, const std::string& where);
+
+/// @brief Reads the value at a path as lookup() does, recording the same reads, without copying a value that lies in
+/// place: a value of the state, the event or a variable is given where it lies, valid while that JSON is (for the
+/// state, until it next changes, as Value::fromJson()).
+/// @param path E.g. "state.threads[0].title".
+/// @param context What paths can see.
+/// @param where Its place in the document, for errors.
+/// @param made Gets the value when it lies nowhere: a number, or what reading it made.
+/// @return Where it lies, or nullptr when it is in @p made.
+/// @throws DocumentError If the path is malformed.
+[[nodiscard]] const json* lookupInPlace(std::string_view path, const Context& context, const std::string& where,
+                                        json& made);
 
 /// @brief Resolves a writable location.
 /// @param path A path starting with "state".

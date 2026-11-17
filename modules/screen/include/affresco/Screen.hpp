@@ -47,6 +47,10 @@ class Store;
 
 namespace affresco {
 
+namespace format {
+struct UpdateStatistics;
+}
+
 /// @brief A malformed screen file; what() names the place, e.g. "root.children[1].anchors: unknown edge 'lefft'".
 using ScreenError = DocumentError;
 
@@ -521,6 +525,10 @@ public:
 	bool setInspector(bool on, bool statistics = true, std::string* error = nullptr);
 	/// @brief The inspector's latest events, oldest first (none while it has been off).
 	[[nodiscard]] std::vector<std::string> inspectorTrace() const;
+	/// @brief What the last update of its panels cost, and how many have run (format::Runtime::lastUpdate()), for an
+	/// inspector or a test that an idle app runs none. Valid while the Screen lives.
+	/// @return The statistics.
+	[[nodiscard]] const format::UpdateStatistics& lastUpdate() const noexcept;
 
 	/* History */
 

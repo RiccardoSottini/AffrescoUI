@@ -5,6 +5,7 @@
 /// globals and the screen an outlet shows.
 
 #include "DesignTokens.hpp"
+#include "HostVariables.hpp"
 #include "Language.hpp"
 #include "NodeKeys.hpp"
 #include "Reads.hpp"
@@ -34,9 +35,9 @@ struct Engine;
 /// @brief What the document's values are read against: colours, fonts, the theme, the globals of expressions (the
 /// cached "computed" values among them, held by ComputedValues), and the screen an outlet shows (navigation).
 ///
-/// Invariants: colours and fonts change all at once or not at all (readDerived()). The globals are built once and
-/// reused until globalsChanged(); computed values (ComputedValues) are cached per stateVersion(), which
-/// markStateChanged() bumps.
+/// Invariants: colours and fonts change all at once or not at all (readDerived()). The globals and built variables
+/// are built when read and kept until a place they read is marked (HostVariables); computed values (ComputedValues)
+/// are cached per stateVersion(), which every mark of the state, a global or a variable bumps.
 /// Callers: every subsystem that evaluates a value (builder, properties, events, steps), the reconciler (theme and
 /// screen per update) and Runtime's lookups. Main thread only.
 class DocumentContext {
@@ -74,37 +75,52 @@ public:
 	/// @throws DocumentError If it is invalid.
 	[[nodiscard]] json evaluate(const json& value, const Scope& locals, const json& event,
 	                            const std::string& where) const;
-	/// @brief Drops the cached globals (history, proposals, preview, window size or screen changed).
-	void globalsChanged() const {
-		globalsCache_.reset();
-		++variablesEpoch_;
+	/// @brief Makes every global and built variable stale, without marking their places: a change of everything
+	/// (a revision, a run's grants), which a full update follows.
+	void globalsChanged() const noexcept { values_.everythingChanged(); }
+	/// @brief Records that a global changed: it is built again when next read, and what read it is evaluated again.
+	/// @param name Its name, one of globalNames ("window", "history", ...).
+	void markGlobalChanged(std::string_view name) {
+		markPlaceChanged(std::string(places::globals) + "/" + std::string(name));
 	}
-	/// @brief Adds a screen-wide variable built when first read and cached until the state, the globals or
-	/// contextChanged() change (`context`, `commands`, `menus`, ...).
+	/// @brief Records that what a built variable was built from changed, in a way no place of the state describes
+	/// (a service's status, a request, the focus): it is built again when next read, and what read it is updated.
+	/// @param name Its name ("services", "context", ...).
+	void markVariableChanged(std::string_view name) {
+		markPlaceChanged(std::string(places::variables) + "/" + std::string(name));
+	}
+	/// @brief Records that what the versions show changed: the proposals, the history, the revision, the preview,
+	/// the mode and the peers. For the version control's callbacks.
+	void reviewChanged();
+	/// @brief Adds a screen-wide variable built when first read and kept until a place it read changes (`context`,
+	/// `commands`, `menus`, ...).
 	/// @param name Its name.
 	/// @param build Builds its value; it may evaluate the document's values, but not read itself.
-	void addVariable(std::string name, std::function<json()> build);
-	/// @brief Drops the built variables (the focus or a chord in progress changed what `context` holds).
-	void contextChanged() const noexcept { ++variablesEpoch_; }
-	/// @brief Counts what made the built variables stale: a value that read one is fresh only at the count it saw.
-	/// @return The count.
-	[[nodiscard]] std::uint64_t variablesEpoch() const noexcept { return variablesEpoch_; }
+	void addVariable(const std::string& name, std::function<json()> build) { values_.add(name, std::move(build)); }
+	/// @brief Records that the focus or a chord in progress changed what `context` holds.
+	void contextChanged() { markVariableChanged("context"); }
 	/// @brief A variable addVariable() added, built if it is stale.
 	/// @param name Its name.
 	/// @return Its value, valid until it is stale; null if there is no such variable, or it is being built.
 	[[nodiscard]] const json* variable(std::string_view name) const;
+	/// @brief The globals and variables built when read.
+	/// @return They.
+	[[nodiscard]] const HostVariables& hostValues() const noexcept { return values_; }
 	/// @brief Records that the state changed in a way no place describes: computed values are stale and every value
 	/// is evaluated again at the next update.
 	void markStateChanged() noexcept {
 		requestUpdate();
 		++stateVersion_;
+		values_.everythingChanged();
 	}
 	/// @brief Records that one place of the state changed: computed values are stale, and the next update evaluates
 	/// again only the values that read it.
 	/// @param pointer The place.
 	void markStateChanged(const json::json_pointer& pointer) {
-		changes_.add(pointer.to_string());
+		const std::string place = pointer.to_string();
+		changes_.add(place);
 		++stateVersion_;
+		values_.placeMarked(place);
 	}
 	/// @brief Records that a list of the state changed shape, as markStateChanged(pointer) does for its place, with
 	/// how it changed (StateChanges::lists).
@@ -117,12 +133,14 @@ public:
 		std::string place = pointer.to_string();
 		changes_.add(place);
 		++stateVersion_;
+		values_.placeMarked(place);
 		if(!changes_.all) changes_.lists.push_back({std::move(place), kind, index, count});
 	}
-	/// @brief Records that a place outside the state changed, a data model's rows (Models.hpp): the next update
-	/// evaluates again only the values that read it. Computed values never read there, so they stay.
-	/// @param place The place, "/~m/<name>/<row>".
-	void markPlaceChanged(std::string place) { changes_.add(std::move(place)); }
+	/// @brief Records that a place outside the state changed: the next update evaluates again only the values that
+	/// read it, and the built variables that read it are stale. A data model's rows ("/~m/<name>/<row>", Models.hpp)
+	/// keep computed values, which never read there; a global or a variable ("/~g/...", "/~v/...") makes them stale.
+	/// @param place The place.
+	void markPlaceChanged(const std::string& place);
 	/// @brief Records that a list outside the state changed shape, a data model's rows (Models.hpp), as
 	/// markPlaceChanged() does for its place, with how it changed (StateChanges::lists).
 	/// @param place The list, "/~m/<name>".
@@ -130,7 +148,7 @@ public:
 	/// @param index The first one.
 	/// @param count How many.
 	void markPlaceListChanged(std::string place, ListChange::Kind kind, std::size_t index, std::size_t count) {
-		changes_.add(place);
+		markPlaceChanged(place);
 		if(!changes_.all) changes_.lists.push_back({std::move(place), kind, index, count});
 	}
 	/// @brief Whether the state changed, or an update was requested, since the last update began (takeChanges()).
@@ -329,6 +347,9 @@ public:
 
 	/// @brief The screen shown now.
 	[[nodiscard]] const std::string& screen() const noexcept { return screen_; }
+	/// @brief The theme "theme" last evaluated to.
+	/// @return Its name; empty without one.
+	[[nodiscard]] const std::string& theme() const noexcept { return theme_; }
 	/// @brief Shows the first screen of "screens" if the one shown is gone (or none was), forgetting the way back.
 	/// @param document The document.
 	void keepScreen(const json& document);
@@ -340,17 +361,9 @@ public:
 	bool back();
 
 private:
-	/// @brief Screen-wide variables for expressions.
-	struct Globals {
-		json window;   ///< The window: its size, scale, colour scheme, ...
-		json revision; ///< The current revision.
-		json other;    ///< The rest: proposals, history, preview, mode, theme, locale and screen.
-	};
 	/// @brief A named colour, with variants per theme.
 	using NamedColor = Themed<Color>;
 
-	/// @brief The globals, built once and reused until globalsChanged().
-	[[nodiscard]] const Globals& globals() const;
 	/// @brief The `nodes` variable: a built panel's geometry by id.
 	/// @param id The id.
 	/// @return {x, y, width, height, visible}, or null.
@@ -383,28 +396,22 @@ private:
 	std::string screen_;                               ///< The screen an "outlet" shows.
 	std::vector<std::string> screenHistory_;           ///< For {"navigate": "back"}.
 
-	std::uint64_t appearance_ = 1;                ///< See appearance().
-	std::uint64_t looks_ = 1;                     ///< See looks().
-	json lookSections_;                           ///< "colors", "tokens" and "fonts" when looks_ last changed.
-	WorkBudget* budget_ = nullptr;                ///< The running event's or update's budget (BudgetScope), if any.
-	StateChanges changes_;                        ///< See takeChanges().
-	std::string_view fullReason_;                 ///< See takeFullReason().
-	const StateChanges* updating_ = nullptr;      ///< See updating().
-	mutable ReadSet* reads_ = nullptr;            ///< Where the running ReadScope collects, if any.
-	std::uint64_t stateVersion_ = 0;              ///< Counts state changes (computed values are cached per version).
-	mutable std::optional<Globals> globalsCache_; ///< See globals().
-	NodeLookup computedLookup_;                   ///< ComputedValues::computed(), for expressions.
-	NodeLookup nodeLookup_;                       ///< node(), for expressions.
-	NodeLookup modelLookup_;                      ///< Models::at(), for expressions.
-	VariableLookup variableLookup_;               ///< variable(), for expressions.
-	VariableLookup computedValueLookup_;          ///< ComputedValues::value(), for expressions to read in place.
-	ProgramCall programCall_;                     ///< The program's functions, for the function `lisp`.
-	std::map<std::string, std::function<json()>, std::less<>> builders_; ///< See addVariable().
-	mutable std::map<std::string, json, std::less<>> built_;             ///< Variables built since they were stale.
-	mutable std::vector<std::string> building_;                          ///< Variables being built (finds circles).
-	mutable std::uint64_t variablesEpoch_ = 0;                           ///< Counts what makes built variables stale.
-	mutable std::uint64_t builtEpoch_ = ~0ull;                           ///< The epoch built_ belongs to.
-	mutable std::uint64_t builtStateVersion_ = 0;                        ///< The state version built_ belongs to.
+	std::uint64_t appearance_ = 1;           ///< See appearance().
+	std::uint64_t looks_ = 1;                ///< See looks().
+	json lookSections_;                      ///< "colors", "tokens" and "fonts" when looks_ last changed.
+	WorkBudget* budget_ = nullptr;           ///< The running event's or update's budget (BudgetScope), if any.
+	StateChanges changes_;                   ///< See takeChanges().
+	std::string_view fullReason_;            ///< See takeFullReason().
+	const StateChanges* updating_ = nullptr; ///< See updating().
+	mutable ReadSet* reads_ = nullptr;       ///< Where the running ReadScope collects, if any.
+	std::uint64_t stateVersion_ = 0;         ///< Counts state changes (computed values are cached per version).
+	NodeLookup computedLookup_;              ///< ComputedValues::computed(), for expressions.
+	NodeLookup nodeLookup_;                  ///< node(), for expressions.
+	NodeLookup modelLookup_;                 ///< Models::at(), for expressions.
+	VariableLookup variableLookup_;          ///< variable(), for expressions.
+	VariableLookup computedValueLookup_;     ///< ComputedValues::value(), for expressions to read in place.
+	ProgramCall programCall_;                ///< The program's functions, for the function `lisp`.
+	HostVariables values_{engine_};          ///< The globals and built variables.
 };
 
 } // namespace affresco::format

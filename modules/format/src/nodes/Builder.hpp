@@ -8,6 +8,7 @@
 #include "Record.hpp"
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -45,8 +46,20 @@ public:
 	/// @param locals The parent's variables.
 	/// @param path Its place, for errors.
 	/// @return The children.
-	[[nodiscard]] std::vector<Item> expand(const json& children, const SharedScope& locals,
-	                                       const std::string& path) const;
+	/// @param state Gets each child's instances and where its list lies, for the children lists (nullptr: none).
+	[[nodiscard]] std::vector<Item> expand(const json& children, const SharedScope& locals, const std::string& path,
+	                                       ListState* state = nullptr) const;
+
+	/// @brief Builds one row of a repeat again, or a new one: its key, variables, node and "when", recording what they
+	/// read into the row and the running read set.
+	/// @param entry The repeat's child (ListEntry::placed).
+	/// @param number The row's number.
+	/// @param item The row's item.
+	/// @param row Gets the row: its scope, key, reads and whether its "when" holds.
+	/// @return The instance to build, or std::nullopt while its "when" doesn't hold.
+	/// @throws DocumentError If it can't be built.
+	[[nodiscard]] std::optional<Item> row(const ListEntry& entry, std::size_t number, const json& item,
+	                                      ListRow& row) const;
 	/// @brief The variables and the final node of one built instance: "with", "let", "check", dynamic style.
 	/// @param node The compiled node.
 	/// @param scope Its variables so far; gets the new ones.
@@ -70,14 +83,32 @@ private:
 	/// @return The list, or null to build nothing.
 	/// @throws DocumentError If it isn't a list, or names no registered model.
 	[[nodiscard]] json listOf(const CompiledRepeat& repeat, const Scope& locals, const std::string& at,
-	                          std::optional<std::string>& place) const;
+	                          std::optional<ItemPlace>& place) const;
 	/// @brief Adds the instances of one child: one, or one per item of its "repeat".
 	/// @param node The child, compiled.
 	/// @param locals The parent's variables.
 	/// @param at The child's place, for errors.
 	/// @param items Gets the instances whose "when" holds.
-	void instances(const CompiledRef& node, const SharedScope& locals, const std::string& at,
-	               std::vector<Item>& items) const;
+	/// @param entry Gets the instances and where the list lies (nullptr: none).
+	void instances(const CompiledRef& node, const SharedScope& locals, const std::string& at, std::vector<Item>& items,
+	               ListEntry* entry) const;
+	/// @brief Adds the instances of a child with a "repeat": one per item of its list (instances()).
+	/// @param node The child, compiled.
+	/// @param locals The parent's variables.
+	/// @param at The child's place, for errors.
+	/// @param items Gets the instances whose "when" holds.
+	/// @param entry Gets the instances and where the list lies (nullptr: none).
+	void repeated(const CompiledRef& node, const SharedScope& locals, const std::string& at, std::vector<Item>& items,
+	              ListEntry* entry) const;
+	/// @brief Adds one instance if its "when" holds: its key, then its variables and node (scoped()).
+	/// @param node The child, compiled.
+	/// @param scope Its variables so far.
+	/// @param where Its place.
+	/// @param key The repeat's key, or nullptr.
+	/// @param items Gets it.
+	/// @param row Gets it as a row, and what it read (nullptr: none).
+	void instance(const CompiledRef& node, SharedScope scope, std::string where, const Binding* key,
+	              std::vector<Item>& items, ListRow* row) const;
 	/// @brief The "check" variables of an instance: value, valid and error.
 	/// @param node The node.
 	/// @param layer The instance's variables so far; gets the new ones.

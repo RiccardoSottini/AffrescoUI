@@ -50,6 +50,10 @@ public:
 	/// @brief Schedules one update after the current event for the state changes recorded with their places
 	/// (DocumentContext::markStateChanged()): only what reads them is evaluated again.
 	void requestStateUpdate();
+	/// @brief Brings the panels in line now with the state changes recorded, as the update requestStateUpdate()
+	/// schedules does (a full one if the changes call for it): a revision of the state only is shown before it returns.
+	/// @throws DocumentError If the document can't be built (the version is then refused).
+	void updateNow() { update(false); }
 	/// @brief Builds a node outside reconciliation (Runtime::instantiate).
 	/// @param node The node.
 	/// @param parent Where to add it.
