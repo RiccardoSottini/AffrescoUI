@@ -304,6 +304,8 @@ struct RebuildStatistics {
 	std::size_t whole = 0;    ///< Builds that ran every definition.
 	std::size_t inPart = 0;   ///< Builds in part.
 	std::size_t compiled = 0; ///< The definitions they loaded and compiled, all of them together.
+	std::size_t redefined = 0;   ///< Interpreters changed in place (Program::redefine()).
+	std::size_t definedAgain = 0; ///< The definitions those changes defined again, all of them together.
 };
 
 /// @brief What this thread's builds did so far. @return It.

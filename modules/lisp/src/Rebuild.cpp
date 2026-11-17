@@ -522,7 +522,7 @@ bool Program::redefine(Interpreter& interpreter, const Program& before, const Bu
 	   machine.definitions().size() != before.entries_.size())
 		return false;
 	for(const auto& definition : machine.definitions())
-		if(!before.names_.contains(definition->name) || reachesAnywhere(definition->kind)) return false;
+		if(!before.names_.contains(definition->name) || isExtensionWord(definition->kind)) return false; // advice wraps
 	std::vector<std::string> seeds; // the names that changed or went
 	for(const Entry& entry : entries_) {
 		const auto was = before.names_.find(entry.name);
@@ -572,6 +572,8 @@ bool Program::redefine(Interpreter& interpreter, const Program& before, const Bu
 			for(const Entry& entry : entries_)
 				if((machine.definition(entry.name)->kind == "defmacro") == macros) order.push_back(entry.name);
 		machine.orderDefinitions(order);
+		++statistics.redefined;
+		statistics.definedAgain += static_cast<std::size_t>(std::ranges::count(again, true));
 		return true;
 	});
 }
