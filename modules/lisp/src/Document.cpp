@@ -4,6 +4,7 @@
 
 #include <affresco/lisp/Document.hpp>
 
+#include "Rebuild.hpp"
 #include "Namespaces.hpp"
 #include "Reader.hpp"
 #include "TopLevel.hpp"
@@ -167,17 +168,19 @@ void expectOneForm(std::string_view value, const std::string& where) {
 		throw problemIn(where, "a keyword's new value is exactly one form");
 }
 
-/// @brief Builds a section, under the limits.
+/// @brief Builds a section, under the limits: in part from an earlier build if it can (Program::rebuild()).
 /// @param section The section.
+/// @param previous The earlier build, or nullptr.
 /// @return What it built.
 /// @throws LispError If it can't be built, naming the definition.
-std::shared_ptr<const BuiltProgram> buildSection(const json& section) {
+std::shared_ptr<const BuiltProgram> buildSection(const json& section, const BuiltProgram* previous) {
 	Program program = programOf(section);
 	Limits limits;
 	limits.budget.operations = maxBuildOperations;
 	limits.budget.bytes = maxBuildBytes;
 	auto built = std::make_shared<BuiltProgram>();
-	built->tree = program.build(limits);
+	built->tree = previous && previous->record ? program.rebuild(*previous->record, limits) : program.build(limits);
+	built->record = program.record();
 	built->undefined = program.undefinedNames();
 	built->truth = program.truthTests();
 	built->extensions = program.extensions();
@@ -466,10 +469,61 @@ std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 		std::rotate(kept.begin(), found, found + 1);
 		return kept.front().second;
 	}
-	std::shared_ptr<const BuiltProgram> built = buildSection(section);
+	// The latest build is most likely the version before this one, which one revision changed
+	std::shared_ptr<const BuiltProgram> built = buildSection(section, kept.empty() ? nullptr : kept.front().second.get());
 	if(kept.size() >= keptBuilds) kept.pop_back();
 	kept.emplace(kept.begin(), section, built);
 	return built;
+}
+
+namespace {
+
+/// @brief The members of two trees' objects that differ, as JSON pointers: each top-level key, or each member of
+/// one that is an object in both.
+/// @param before The earlier tree.
+/// @param after The later.
+/// @param places Gets them.
+void addDifferences(const json& before, const json& after, std::vector<std::string>& places) {
+	std::set<std::string> keys;
+	for(const json* tree : {&before, &after})
+		for(const auto& [key, value] : tree->items()) keys.insert(key);
+	for(const std::string& key : keys) {
+		const json::json_pointer pointer = json::json_pointer() / key;
+		const bool had = before.contains(key);
+		const bool has = after.contains(key);
+		if(had && has && before[key] == after[key]) continue;
+		if(had && has && before[key].is_object() && after[key].is_object() && key != "root") {
+			std::set<std::string> members;
+			for(const json* section : {&before[key], &after[key]})
+				for(const auto& [member, value] : section->items()) members.insert(member);
+			for(const std::string& member : members) {
+				const json::json_pointer at = pointer / member;
+				if(!before.contains(at) || !after.contains(at) || before[at] != after[at])
+					places.push_back(at.to_string());
+			}
+			continue;
+		}
+		places.push_back(pointer.to_string());
+	}
+}
+
+} // namespace
+
+std::vector<std::string> changedPlaces(const BuiltProgram& before, const BuiltProgram& after) {
+	std::vector<std::string> places;
+	if(!before.record || !after.record || after.record->whole || after.record->from != before.record->serial) {
+		addDifferences(before.tree, after.tree, places);
+		return places;
+	}
+	std::set<std::string> seen;
+	for(const std::string& place : after.record->touched) {
+		if(!seen.insert(place).second) continue;
+		const json::json_pointer pointer(place);
+		const bool had = before.tree.contains(pointer);
+		const bool has = after.tree.contains(pointer);
+		if(had != has || (had && before.tree[pointer] != after.tree[pointer])) places.push_back(place);
+	}
+	return places;
 }
 
 namespace {

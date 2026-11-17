@@ -271,6 +271,10 @@ public:
 	void setPure(bool pure) noexcept { pure_ = pure; }
 	/// @brief What running may still spend. @return A reference to it.
 	[[nodiscard]] Budget& budget() noexcept { return budget_; }
+	/// @brief What running may still spend. @return It.
+	[[nodiscard]] const Budget& budget() const noexcept { return budget_; }
+	/// @brief What macro expansion may still spend, in operations, outside an expansion. @return It.
+	[[nodiscard]] std::size_t macroOperationsLeft() const noexcept { return macroOperations_; }
 	/// @brief Spends operations. @param count How many.
 	/// @throws Problem If the budget runs out.
 	void spend(std::size_t count) {
