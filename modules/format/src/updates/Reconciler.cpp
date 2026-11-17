@@ -58,7 +58,7 @@ void Reconciler::gatherReads(const Panel& panel, Record& record) const {
 	// A change inside the item it lies in reaches its handlers too (refreshItems())
 	for(const Scope* scope = record.locals.get(); scope; scope = scope->parent) {
 		if(scope->fromState.empty()) continue;
-		record.subtreeReads.addPath(scope->origin);
+		record.subtreeReads.addPath(scope->origin());
 		break;
 	}
 	const auto& children = panel.children();
@@ -76,12 +76,13 @@ void Reconciler::gatherReads(const Panel& panel, Record& record) const {
 // panel's handlers, timers and those below it see it as it is now (bindings read it live while updating)
 void Reconciler::refreshItems(const Scope& locals, const StateChanges& changes) const {
 	for(const Scope* scope = &locals; scope; scope = scope->parent) {
-		if(scope->fromState.empty() ||
-		   std::ranges::none_of(changes.paths, [&](const std::string& path) { return overlaps(scope->origin, path); }))
+		if(scope->fromState.empty() || std::ranges::none_of(changes.paths, [&](const std::string& path) {
+			   return overlaps(scope->origin(), path);
+		   }))
 			continue;
 		json value;
-		if(scope->origin.starts_with(modelPlaces)) value = engine_.models.at(scope->origin);
-		else if(const json* lying = findInState(engine_.versions.state(), json::json_pointer(scope->origin)))
+		if(scope->origin().starts_with(modelPlaces)) value = engine_.models.at(scope->origin());
+		else if(const json* lying = findInState(engine_.versions.state(), json::json_pointer(scope->origin())))
 			value = *lying;
 		if(value.is_null()) continue;                     // gone: the list that shows it is built again
 		scope->vars[scope->fromState] = std::move(value); // vars is mutable for this refresh

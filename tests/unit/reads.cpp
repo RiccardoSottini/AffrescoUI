@@ -92,11 +92,10 @@ TEST_CASE("format: changes of too many places count as a change of everything") 
 
 TEST_CASE("format: the children of a long list are looked up by the item they read") {
 	std::vector<Scope> items(70);
-	for(std::size_t i = 0; i < items.size(); ++i) items[i].origin = "/items/" + std::to_string(i);
+	for(std::size_t i = 0; i < items.size(); ++i) items[i].place.list = "/items/" + std::to_string(i);
 	ItemIndex index;
 	index.start(items.size());
-	for(std::size_t i = 0; i + 1 < items.size(); ++i)
-		index.add(i, &items[i], readsOf({items[i].origin + "/title"}));
+	for(std::size_t i = 0; i + 1 < items.size(); ++i) index.add(i, &items[i], readsOf({items[i].origin() + "/title"}));
 	index.add(69, &items[69], readsOf({"/count"})); // reads more than its item: visited every time
 
 	const auto one = index.visits(changesOf({"/items/5/title"}), items.size());
@@ -116,8 +115,8 @@ TEST_CASE("format: the children of a long list are looked up by the item they re
 
 TEST_CASE("format: an item index is dropped when a child it looks up starts reading more") {
 	std::vector<Scope> items(2);
-	items[0].origin = "/items/0";
-	items[1].origin = "/items/1";
+	items[0].place.list = "/items/0";
+	items[1].place.list = "/items/1";
 	ItemIndex index;
 	index.start(2);
 	index.add(0, &items[0], readsOf({"/items/0/title"}));
