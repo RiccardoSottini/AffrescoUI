@@ -164,7 +164,8 @@ std::optional<PartPlan> planPart(const BuildRecord& previous, const std::vector<
 	for(std::size_t at = 0; at < entries.size(); ++at) {
 		const Entry& entry = entries[at];
 		const auto found = previous.index.find(entry.name);
-		const DefinitionBuilt* was = found == previous.index.end() ? nullptr : previous.definitions[found->second].get();
+		const DefinitionBuilt* was =
+		    found == previous.index.end() ? nullptr : previous.definitions[found->second].get();
 		if(was) plan.before[at] = found->second;
 		if(was && was->text == entry.text && was->file == entry.file && was->author == entry.author) continue;
 		plan.changed[at] = true;
@@ -175,7 +176,8 @@ std::optional<PartPlan> planPart(const BuildRecord& previous, const std::vector<
 	}
 	for(const auto& definition : previous.definitions)
 		if(!names.contains(definition->name)) {
-			if(reachesAnywhere(definition->kind) || previous.extensions || shadows(definition->name)) return std::nullopt;
+			if(reachesAnywhere(definition->kind) || previous.extensions || shadows(definition->name))
+				return std::nullopt;
 			plan.removed.push_back(definition->name);
 		}
 	markAffected(previous, entries, names, plan);
@@ -224,8 +226,8 @@ std::vector<UndefinedName> foundIn(const Machine& machine, bool truth) {
 /// @return What they gave, or std::nullopt where only a build in full can be sure.
 /// @throws LispError If the build fails: the build in full says why.
 std::optional<PartBuilt> runPart(const std::vector<Entry>& entries, const std::map<std::string, std::size_t>& names,
-                                 const std::vector<std::pair<std::string, Primitive>>& primitives,
-                                 const PartPlan& plan, const Limits& limits) {
+                                 const std::vector<std::pair<std::string, Primitive>>& primitives, const PartPlan& plan,
+                                 const Limits& limits) {
 	Program program;
 	for(std::size_t at = 0; at < entries.size(); ++at)
 		if(plan.loaded[at]) program.addEntryUnread(entries[at]);
@@ -317,8 +319,8 @@ DefinitionBuilt recordDefinition(Machine& machine, const Definition& definition,
 	built.name = definition.name;
 	built.kind = definition.kind;
 	if(isExtensionWord(definition.kind)) {
-		built.extension = Extension{definition.kind,   definition.name,   definition.targets,
-		                            definition.doc,    definition.author, machine.authorNames(definition.authors)};
+		built.extension = Extension{definition.kind, definition.name,   definition.targets,
+		                            definition.doc,  definition.author, machine.authorNames(definition.authors)};
 		checkExtensionFunction(machine, definition);
 	}
 	Gifts gifts(parts, &built.gifts);
@@ -354,8 +356,7 @@ void addPlacesGiven(const DefinitionBuilt& definition, std::vector<std::string>&
 	for(const Gift& gift : definition.gifts)
 		if(gift.kind == Gift::Kind::Member || gift.kind == Gift::Kind::Default)
 			places.push_back("/" + pointerPart(gift.section) + "/" + pointerPart(gift.name));
-		else
-			places.push_back("/" + pointerPart(gift.name));
+		else places.push_back("/" + pointerPart(gift.name));
 }
 
 std::uint64_t nextBuildSerial() {
@@ -405,8 +406,9 @@ json Program::rebuild(const BuildRecord& previous, const Limits& limits) {
 }
 
 std::optional<json> Program::buildInPart(const BuildRecord& previous, const Limits& limits) {
-	if(!previous.inPart || recording_ || !namespaces_.empty() || previous.spent.operations >= limits.budget.operations ||
-	   previous.spent.bytes >= limits.budget.bytes || previous.macroSpent >= limits.macroOperations)
+	if(!previous.inPart || recording_ || !namespaces_.empty() ||
+	   previous.spent.operations >= limits.budget.operations || previous.spent.bytes >= limits.budget.bytes ||
+	   previous.macroSpent >= limits.macroOperations)
 		return std::nullopt;
 	const auto shadows = [this](std::string_view name) {
 		static const std::set<std::string, std::less<>> language = [] {
@@ -562,7 +564,8 @@ bool Program::redefine(Interpreter& interpreter, const Program& before, const Bu
 			const std::optional<Value> read = readEntry(machine.heap, entry.text, entry.file, entry.line, entry.column);
 			machine.heap.setBudget(&machine.budget());
 			if(!read || definitionAddress(*read).second != entry.name)
-				throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text defines its own name");
+				throw LispError(entry.file, entry.line, entry.column, entry.name,
+				                "an entry's text defines its own name");
 			static_cast<void>(machine.define(*read, entry.author, machine.authorSet(entry.author), false));
 		}
 		machine.compilePending(true);

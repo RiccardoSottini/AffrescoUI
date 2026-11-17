@@ -163,7 +163,9 @@ void Gifts::value(const std::string& key, json value) {
 	take({Gift::Kind::Value, "", key, "defpart", std::move(value)});
 }
 
-void Gifts::main(const std::string& key, json value) { take({Gift::Kind::Main, "", key, "defscreen", std::move(value)}); }
+void Gifts::main(const std::string& key, json value) {
+	take({Gift::Kind::Main, "", key, "defscreen", std::move(value)});
+}
 
 void Gifts::take(Gift gift) {
 	if(parts_) giveAgain(gift, *parts_);
@@ -179,7 +181,8 @@ void giveAgain(const Gift& gift, BuiltParts& parts) {
 		return;
 	case Gift::Kind::Default:
 		if(!parts.sections[gift.section].giveDefault(gift.name, gift.value))
-			throw Problem("\"" + notation::Lexer::excerpt(gift.name) + "\" is given twice, the second time by defdefaults");
+			throw Problem("\"" + notation::Lexer::excerpt(gift.name) +
+			              "\" is given twice, the second time by defdefaults");
 		return;
 	case Gift::Kind::Value: {
 		const auto [found, added] = parts.values.try_emplace(gift.name, gift.value);
@@ -190,7 +193,9 @@ void giveAgain(const Gift& gift, BuiltParts& parts) {
 			throw Problem("\"" + notation::Lexer::excerpt(gift.name) + "\" is given twice, differently, by defpart");
 		return;
 	}
-	case Gift::Kind::Main: parts.main[gift.name] = gift.value; return;
+	case Gift::Kind::Main:
+		parts.main[gift.name] = gift.value;
+		return;
 	}
 }
 
@@ -221,8 +226,9 @@ void buildDefinition(Machine& machine, const Definition& definition, Gifts& gift
 		                           Interpreter::parametersOf(definition.global->value)));
 	} else if(definition.kind == "defcustom") {
 		const Value value = machine.force(*definition.global);
-		gifts.member("settings", definition.kind, name,
-		             customSetting(valueToTree(machine, data, name), valueToTree(machine, value, name), definition.doc));
+		gifts.member(
+		    "settings", definition.kind, name,
+		    customSetting(valueToTree(machine, data, name), valueToTree(machine, value, name), definition.doc));
 	} else if(!sectionOfForm(definition.kind).empty()) {
 		buildSectionMember(machine, definition, data, gifts);
 	} else if(definition.kind == "defpart" || definition.kind == "defdefaults") {

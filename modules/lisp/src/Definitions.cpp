@@ -508,7 +508,8 @@ void Machine::orderDefinitions(const std::vector<std::string>& names) {
 	std::vector<std::unique_ptr<Definition>> ordered;
 	ordered.reserve(definitions_.size());
 	for(const std::string& name : names)
-		if(const auto found = definitionNames_.find(name); found != definitionNames_.end() && definitions_[found->second])
+		if(const auto found = definitionNames_.find(name);
+		   found != definitionNames_.end() && definitions_[found->second])
 			ordered.push_back(std::move(definitions_[found->second]));
 	for(auto& definition : definitions_)
 		if(definition) ordered.push_back(std::move(definition));
