@@ -54,6 +54,7 @@
 #include "EditorPort.hpp"
 #endif
 
+#include <affresco/PackagesProvider.hpp>
 #include <affresco/affresco.hpp>
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/format/App.hpp>
@@ -418,7 +419,9 @@ std::filesystem::path appsFolder(const Options& options) {
 
 /// @brief Grants the Launcher (the screen the host opens without a file) what it uses: the examples folder to read
 /// ("examples"), the person's apps folder ("apps", made if missing), and the sibling programs that open the apps
-/// ("affresco", detached: each with --data DIR and a socket folder of its own in DIR; Grants.hpp, grantAppPrograms).
+/// ("affresco", detached: each with --data DIR and a socket folder of its own in DIR; Grants.hpp, grantAppPrograms),
+/// the packages service on both folders, installing into the apps folder (PackagesProvider.hpp), and the file dialogs
+/// that save and open a package.
 /// @param screen The Launcher's screen.
 /// @param options The command line.
 /// @throws std::runtime_error If the apps folder can't be made.
@@ -442,6 +445,12 @@ void grantLauncher(affresco::Screen& screen, const Options& options) {
 	programs.reveal = true;
 	if(const auto refused = services::grantAppPrograms(screen.services(), "affresco", std::move(programs)))
 		throw std::runtime_error("the Launcher's programs: " + *refused);
+	affresco::PackagesGrant packages;
+	packages.roots = {{"examples", examples}, {"apps", apps}};
+	packages.writable = "apps";
+	packages.dataDirectory = std::filesystem::absolute(options.dataDir);
+	screen.services().add(affresco::makePackagesProvider(std::move(packages)));
+	screen.allowFileDialogs(true);
 }
 
 /// @brief Decides what the app may use: what the person decided before, and, when @p ask, what the person answers

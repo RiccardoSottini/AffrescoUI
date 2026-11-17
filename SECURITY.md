@@ -771,6 +771,16 @@ code no more authority than a revision:
 - **Trusted publishers** (`publishers.json` in the data folder) are read whole or refused: at most 64 KiB and 256 keys,
   each an Ed25519 public key at its fixed length; small-order and non-canonical keys don't verify.
 
+**The `packages` service** (`makePackagesProvider`, `PackagesGrant`) is what a host grants a screen, the Launcher, to
+export one of the person's apps and to install a file someone gave them; nothing has it unless the host grants it, and
+a screenshot run never does. Its arguments are checked by their schema, which takes no path: an app is a folder name
+in a root the grant names (`examples`, `apps`), refused if it is anything else (`..`, `/`, a capital, a leading `-`).
+`export` reads the app's history from a copy of its data, so the person's own data folder isn't written nor its lock
+taken, and leaves out what `affrescoui pack` leaves out. `inspect` and `install` refuse a package over 16 MiB before
+it is read. `install` writes only into the writable root (`apps`), only into a folder that doesn't exist yet, removes
+only that folder if anything fails, and leaves the package's changes a proposal only the person accepts. Results and
+errors name the roots, never a path. At most 4 calls run at once, each on a worker thread.
+
 ### The `affrescoui` tool and the MCP server
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that
@@ -815,18 +825,19 @@ the reason it has none.
 
 ### Services
 
-Services are `process`, `pty`, `fs`, `watch`, `search` and `jsonrpc`; language servers (LSP) and debug adapters (DAP)
-are `jsonrpc` programs. Syntax colours come from the syntax engine: tree-sitter and the grammars built into the
-library, which parse the editor's text (a peer's text too) within limits of their own ("Limits" below) and read no
-grammar from outside; the `syntax` fuzz target covers them.
+Services are `process`, `pty`, `fs`, `watch`, `search`, `jsonrpc` and `packages`; language servers (LSP) and debug
+adapters (DAP) are `jsonrpc` programs. Syntax colours come from the syntax engine: tree-sitter and the grammars built
+into the library, which parse the editor's text (a peer's text too) within limits of their own ("Limits" below) and
+read no grammar from outside; the `syntax` fuzz target covers them.
 
 | | |
 |---|---|
 | Assets | The user's files and folders, what the programs the host allows can do, and the host's memory and main thread |
 | Who attacks | A peer or a revision that calls a service; a program that misbehaves or was swapped (a language server, a debug adapter, a shell's child); whoever made the folder being searched or watched (file names, `.gitignore` files, contents) |
 | Entry points | `invoke`, `subscribe` and `respond` from the document; what a program writes (frames, lines, terminal output); file names, links and contents in a granted folder |
-| Limits | "Limits" below: the `process`, `fs`, `pty`, `search` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
+| Limits | "Limits" below: the `process`, `fs`, `pty`, `search`, `packages` and JSON-RPC rows, and the watch bounds in "Watched folders and terminals" |
 | Mitigations | A service is a capability: only the host declares it, a revision can't add one, and a program runs only if the host allowed it (`allowProcess`), from an argument vector, never through a shell unless the shell is the program allowed. A program started (a terminal's shell among them) gets only its standard input, output and error: none of the host's other descriptors, its peers' sockets among them. `fs`, `watch` and `search` keep paths inside their folder and never follow links out of it. Framing, globs, patterns and terminal output are fuzzed (`frames`, `search_glob`, `find_pattern`, `terminal`); PCRE2's match limits end catastrophic backtracking |
+| Packages | `packages` takes roots by name, never a path; installs only into a new folder of its writable root, removed on failure; a package refused over 16 MiB before it is read; what it installs waits as a proposal only the person accepts ("Packages" above) |
 | Known gaps | Programs aren't sandboxed (G-02) |
 
 ### The network
@@ -1057,6 +1068,7 @@ Input from peers, revisions and change sets is limited so that one message can't
 | TLS | 1.2 or later; the certificate and the host name are always verified (no option turns it off) |
 | What a service program writes (`services`: a JSON-RPC frame or line) | Headers 8 KiB, a body or a line 8 MiB; a larger one stops the service. An error message from it is cut to 1,000 bytes |
 | A JSON-RPC service | 256 calls waiting for an answer, 256 subscriptions, 16 MiB waiting to be written to it |
+| A `packages` service | 4 calls at once; a package 16 MiB, refused before it is read; names 80 characters, a description 2,000, an author 200; ids a to z, 0 to 9 and `-`, 64 characters |
 | A `process` service | 16 runs at once; its input 1 MiB; a line of its output 64 KiB (a longer one arrives in pieces) |
 | An `fs` service | 16 calls at once; a file read or written 8 MiB, UTF-8 text only; a listing 10,000 entries; paths that resolve inside its folder only |
 | Service calls of one screen (`invoke`, `subscribe`, `respond`) | 1,024 calls running, 256 subscriptions, 256 requests from services waiting for `respond`; a call's `keep` and the events it queues 10,000 |
