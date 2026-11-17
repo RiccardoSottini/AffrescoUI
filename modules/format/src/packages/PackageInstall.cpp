@@ -495,12 +495,12 @@ json readTrustedPublishers(const std::filesystem::path& path) {
 	return parseTrustedPublishers(text);
 }
 
-void installAppFiles(const Package& package, const std::filesystem::path& folder) {
-	if(package.kind != PackageKind::App) refuse("kind", "only a package of kind \"app\" holds an app's files");
-	std::error_code error;
-	if(std::filesystem::symlink_status(folder, error).type() != std::filesystem::file_type::not_found)
-		refuse("folder", "'" + folder.string() + "' already exists: install into a new folder");
-	const json& files = package.base.files;
+namespace {
+
+/// @brief Checks that each of an app's files lands inside its folder: relative, with no root and no `..` or `.` part.
+/// @param files The files, by path.
+/// @throws DocumentError If one doesn't.
+void checkInstallPaths(const json& files) {
 	if(!files.is_object() || files.size() > maxPackageFiles) refuse("base.files", "expected the app's files, by path");
 	for(const auto& [path, file] : files.items()) {
 		const std::filesystem::path relative(path);
@@ -508,20 +508,40 @@ void installAppFiles(const Package& package, const std::filesystem::path& folder
 		   std::ranges::any_of(relative, [](const std::filesystem::path& part) { return part == ".." || part == "."; }))
 			refuse("base.files." + path.substr(0, 1024), "not a file inside the app's folder");
 	}
+}
+
+/// @brief Writes an app's files into a new folder.
+/// @param files The files, by path, checked by checkInstallPaths().
+/// @param folder The folder.
+/// @throws DocumentError If two are the same file on this disk, or one can't be written.
+/// @throws std::filesystem::filesystem_error If a folder can't be made.
+void writeAppFiles(const json& files, const std::filesystem::path& folder) {
+	std::error_code error;
+	std::filesystem::create_directories(folder);
+	for(const auto& [path, file] : files.items()) {
+		const std::filesystem::path target = folder / path;
+		std::filesystem::create_directories(target.parent_path());
+		// The folder is new: a file there already is another of the package's, by a name this disk takes as the
+		// same (it differs by case, or by Unicode's forms), and the later one would replace it unseen
+		if(std::filesystem::symlink_status(target, error).type() != std::filesystem::file_type::not_found)
+			refuse("base.files." + path.substr(0, 1024), "is the same file on this disk as another of its files");
+		std::ofstream out(target, std::ios::binary | std::ios::trunc);
+		const std::string bytes = fileBytes(file);
+		if(!out.write(bytes.data(), static_cast<std::streamsize>(bytes.size())))
+			refuse("base.files." + path, "can't be written");
+	}
+}
+
+} // namespace
+
+void installAppFiles(const Package& package, const std::filesystem::path& folder) {
+	if(package.kind != PackageKind::App) refuse("kind", "only a package of kind \"app\" holds an app's files");
+	std::error_code error;
+	if(std::filesystem::symlink_status(folder, error).type() != std::filesystem::file_type::not_found)
+		refuse("folder", "'" + folder.string() + "' already exists: install into a new folder");
+	checkInstallPaths(package.base.files);
 	try {
-		std::filesystem::create_directories(folder);
-		for(const auto& [path, file] : files.items()) {
-			const std::filesystem::path target = folder / path;
-			std::filesystem::create_directories(target.parent_path());
-			// The folder is new: a file there already is another of the package's, by a name this disk takes as the
-			// same (it differs by case, or by Unicode's forms), and the later one would replace it unseen
-			if(std::filesystem::symlink_status(target, error).type() != std::filesystem::file_type::not_found)
-				refuse("base.files." + path.substr(0, 1024), "is the same file on this disk as another of its files");
-			std::ofstream out(target, std::ios::binary | std::ios::trunc);
-			const std::string bytes = fileBytes(file);
-			if(!out.write(bytes.data(), static_cast<std::streamsize>(bytes.size())))
-				refuse("base.files." + path, "can't be written");
-		}
+		writeAppFiles(package.base.files, folder);
 	} catch(const DocumentError&) {
 		std::filesystem::remove_all(folder, error); // nothing is left of a folder half written
 		throw;

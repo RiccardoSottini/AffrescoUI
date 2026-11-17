@@ -210,14 +210,20 @@ std::string bytesOf(const json& entry, const std::string& place, std::size_t mos
 /// @param files The files.
 /// @param app The base's app id.
 /// @throws DocumentError If they aren't.
+/// @brief Tells whether a path names a file inside the app's folder, with no empty or `.` part.
+/// @param path The path.
+/// @return true if it does.
+bool plainFilePath(const std::string& path) {
+	return insideApp(path) && !path.ends_with('/') && !path.contains("//") && path != "." && !path.starts_with("./") &&
+	       !path.contains("/./") && !path.ends_with("/.");
+}
+
 void checkFiles(const json& files, const std::string& app) {
 	if(!files.is_object()) refuse("base.files", "expected the app's files, by path");
 	if(files.size() > maxPackageFiles) refuse("base.files", "more than " + std::to_string(maxPackageFiles) + " files");
 	for(const auto& [path, file] : files.items()) {
 		const std::string place = "base.files." + path.substr(0, 1024);
-		if(!insideApp(path) || path.ends_with('/') || path.contains("//") || path == "." || path.starts_with("./") ||
-		   path.contains("/./") || path.ends_with("/."))
-			refuse(place, "not a file inside the app's folder");
+		if(!plainFilePath(path)) refuse(place, "not a file inside the app's folder");
 		if(!file.is_object() || file.size() != 1) refuse(place, R"(expected {"text"} or {"data"})");
 		static_cast<void>(bytesOf(file, place, maxPackageFileBytes));
 	}

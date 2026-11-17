@@ -59,7 +59,7 @@ json writtenSections() {
 /// @brief A host that is a program: its dock and window built by definitions, its other sections written.
 /// @return Its source, as version control keeps it.
 json programHost() {
-	json host = affresco::lisp::sourceDocument(std::string(program), "app.lisp");
+	json host = affresco::lisp::sourceDocument(program, "app.lisp");
 	host.update(writtenSections());
 	return host;
 }
@@ -163,11 +163,9 @@ format::ProvenComposition prove(const json& host, json* played = nullptr) {
 	                                runner);
 }
 
-/// @brief The record a proof of the picker into the JSON host gave before proofs took a program's source, byte for
-/// byte: installed records carry it, so a JSON host's must not change.
-/// @return It.
-json recordBefore() {
-	return json::parse(R"json(
+/// The record a proof of the picker into the JSON host gave before proofs took a program's source, byte for byte:
+/// installed records carry it, so a JSON host's must not change.
+constexpr std::string_view recordBeforeText = R"json(
 	{
 		"release": "1.0.0",
 		"title": "Page picker",
@@ -342,8 +340,11 @@ json recordBefore() {
 			"unmet": []
 		}
 	}
-	)json");
-}
+	)json";
+
+/// @brief The record a proof of the picker into the JSON host gave before proofs took a program's source.
+/// @return It, parsed from recordBeforeText.
+json recordBefore() { return json::parse(recordBeforeText); }
 
 /// @brief A proof's check by name.
 /// @param proof The proof.
@@ -369,8 +370,9 @@ TEST_CASE("composition: a proof on a program plays on its source, so a scenario 
 	CHECK(proven.document["features"].contains("pagePicker"));
 	CHECK(played.contains("program"));
 	CHECK_FALSE(played.contains("root"));
-	const json screen = format::Rules().built(proven.document).value(); // and it builds, the feature docked
-	CHECK(screen["root"]["children"][1]["id"] == "panels");
+	const std::optional<json> screen = format::Rules().built(proven.document); // and it builds, the feature docked
+	REQUIRE(screen.has_value());
+	CHECK((*screen)["root"]["children"][1]["id"] == "panels");
 }
 
 TEST_CASE("composition: a proof on a program installs by revision, and the definition it sits in still changes") {
@@ -391,7 +393,9 @@ TEST_CASE("composition: a proof on a program installs by revision, and the defin
 }
 
 TEST_CASE("composition: a proof given what a program built, in place of its source, is refused") {
-	const json built = format::Rules().built(programHost()).value();
+	const std::optional<json> builtTree = format::Rules().built(programHost());
+	REQUIRE(builtTree.has_value());
+	const json& built = *builtTree;
 	REQUIRE(format::isBuiltTree(built));
 	CHECK_FALSE(format::isBuiltTree(programHost()));
 	CHECK_FALSE(format::isBuiltTree(jsonHost()));

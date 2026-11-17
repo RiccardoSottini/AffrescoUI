@@ -376,12 +376,12 @@ void checkDataSteps(const std::string& feature, const json& value, const std::st
 	}
 }
 
-/// @brief Checks what a feature's program built: only the parts a feature provides, each member in its namespace, its
-/// views and exports as a JSON feature's, and no control step.
+/// @brief Joins the sections a feature's program built to its parts: only the parts a feature provides, as objects,
+/// each member in its namespace.
 /// @param feature The feature.
-/// @param built The feature being built: its tree's sections join its parts.
-void checkBuiltTree(const std::string& feature, BuiltFeature& built) {
-	const std::string place = programPlace(feature);
+/// @param place The program's place, for problems.
+/// @param built The feature being built.
+void joinBuiltSections(const std::string& feature, const std::string& place, BuiltFeature& built) {
 	for(const auto& [section, members] : built.program->tree.items()) {
 		if(section == "format" || section == "version") continue;
 		const std::string at =
@@ -399,6 +399,15 @@ void checkBuiltTree(const std::string& feature, BuiltFeature& built) {
 		                       : section == "menus" ? flatMenus(members)
 		                                            : members;
 	}
+}
+
+/// @brief Checks what a feature's program built: only the parts a feature provides, each member in its namespace, its
+/// views and exports as a JSON feature's, and no control step.
+/// @param feature The feature.
+/// @param built The feature being built: its tree's sections join its parts.
+void checkBuiltTree(const std::string& feature, BuiltFeature& built) {
+	const std::string place = programPlace(feature);
+	joinBuiltSections(feature, place, built);
 	try {
 		if(built.parts.contains("views")) checkProvidedViews(built.parts["views"], feature, place + ".views");
 		if(built.parts.contains("exports")) checkExportsSection(built.parts["exports"], place + ".exports");

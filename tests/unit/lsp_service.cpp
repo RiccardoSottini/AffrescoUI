@@ -213,6 +213,12 @@ struct Session {
 
 } // namespace
 
+TEST_CASE("lsp service: escapes that decode to bytes that aren't UTF-8 name no file a screen can be given") {
+	// a fuzz finding
+	CHECK_FALSE(lsp::pathOfUri(root, inFolder("/src/C%CCa.cpp")));
+	CHECK_FALSE(lsp::pathOfUri(root, inFolder("/%C0%AF.cpp")));
+}
+
 TEST_SUITE("lsp service") {
 	TEST_CASE("URIs stay inside the folder") {
 		CHECK(lsp::uriOf(root, "src/main.cpp") == inFolder("/src/main.cpp"));
@@ -233,9 +239,6 @@ TEST_SUITE("lsp service") {
 		CHECK_FALSE(lsp::pathOfUri(root, "file://host/folder/x.cpp"));
 		CHECK_FALSE(lsp::pathOfUri(root, "https://example.com/folder/x.cpp"));
 		CHECK_FALSE(lsp::pathOfUri(root, inFolder("")));
-		// Escapes that decode to bytes that aren't UTF-8 name no file a screen can be given (a fuzz finding)
-		CHECK_FALSE(lsp::pathOfUri(root, inFolder("/src/C%CCa.cpp")));
-		CHECK_FALSE(lsp::pathOfUri(root, inFolder("/%C0%AF.cpp")));
 	}
 
 	TEST_CASE("diagnostics: from 0, an empty range kept, codes as text, outside files refused") {
