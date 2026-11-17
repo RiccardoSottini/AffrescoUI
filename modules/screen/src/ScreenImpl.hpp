@@ -115,6 +115,7 @@ struct Screen::Impl {
 	std::map<std::string, DeclaredChannel> channels; ///< From "channels".
 	std::filesystem::path stateFile;                 ///< Where "persist" paths are kept.
 	json saved;                                      ///< What was last loaded or written there.
+	bool saveDue = false; ///< A change wasn't saved yet (a write failed, or came while a picture was drawn).
 
 	/// @brief Builds the modules and forwards runtime events and errors to every peer.
 	/// @param document The screen.
