@@ -112,6 +112,19 @@ std::optional<std::string> replaced(std::string text, std::string_view part, std
 	return text.replace(at, part.size(), with);
 }
 
+/// @brief A change of a view's property, a command's title or a state's value, if an entry's text is one.
+/// @param text The text.
+/// @return What it is and the changed text, or std::nullopt.
+std::optional<std::pair<std::string, std::string>> propertyChanged(const std::string& text) {
+	if(text.starts_with("(defview ") || text.starts_with("(defcomponent ") || text.starts_with("(defscreen "))
+		if(auto changed = replaced(text, ":text \"", ":text \"Changed ")) return {{"a view's property", *changed}};
+	if(text.starts_with("(defcommand "))
+		if(auto changed = replaced(text, ":title \"", ":title \"Changed ")) return {{"a command's title", *changed}};
+	if(text.starts_with("(defstate "))
+		return {{"a state's value", text.substr(0, text.rfind(')')) + " :changed true)"}};
+	return std::nullopt;
+}
+
 /// @brief A few changes of each kind the brief names, of a program's entries: a function's body, a view's property,
 /// a command's title, an added definition and a removed one.
 /// @param section The section.
@@ -131,20 +144,13 @@ std::vector<Change> changesOf(const json& section) {
 			if(text.starts_with("(defn ")) {
 				const std::size_t end = text.rfind(')');
 				add("a function's body", file, name, text.substr(0, end) + " nil" + text.substr(end));
-				if(counts["a removed function"] < 1 && name.find('.') == std::string::npos)
+				if(counts["a removed function"] < 1 && !name.contains('.'))
 					add("a removed function", file, name, std::nullopt);
 			}
-			if(text.starts_with("(defview ") || text.starts_with("(defcomponent ") || text.starts_with("(defscreen "))
-				if(auto changed = replaced(text, ":text \"", ":text \"Changed "))
-					add("a view's property", file, name, std::move(changed));
-			if(text.starts_with("(defcommand "))
-				if(auto changed = replaced(text, ":title \"", ":title \"Changed "))
-					add("a command's title", file, name, std::move(changed));
-			if(text.starts_with("(defstate "))
-				add("a state's value", file, name, text.substr(0, text.rfind(')')) + " :changed true)");
+			if(auto change = propertyChanged(text)) add(change->first, file, name, std::move(change->second));
 		}
 	if(!firstFile.empty())
-		add("an added definition", firstFile, "rebuild-added", "(defn rebuild-added \"Added.\" [x] (str x \"!\"))");
+		add("an added definition", firstFile, "rebuild-added", R"((defn rebuild-added "Added." [x] (str x "!")))");
 	return changes;
 }
 
@@ -243,7 +249,7 @@ TEST_CASE("lisp rebuild: an interpreter changed in place defines what a new one 
 		for(const Change& change : changesOf(section)) {
 			INFO(app, ": ", change.what, " (", change.file, " ", change.name, ")");
 			const json after = changed(section, change);
-			lisp::Program fresh = lisp::programOf(after);
+			const lisp::Program fresh = lisp::programOf(after);
 			const std::unique_ptr<lisp::Interpreter> loaded = loadedInterpreter(fresh);
 			const json patched = redefinedFrom(first, after);
 			++total;
@@ -291,10 +297,11 @@ TEST_CASE("lisp rebuild: one of 200 functions changed compiles that one, and red
 
 TEST_CASE("lisp rebuild: a function a view calls while it builds, changed, builds the view again") {
 	const auto program = [](const std::string& word) {
-		return sectionOf("(defn word \"\" [] \"" + word +
-		                 "\")\n(defn other \"\" [] 1)\n"
-		                 "(defview caption \"\" [] `(label#cap :text ~(word)))\n"
-		                 "(defscreen main (column#c ~(caption) (label#l :text \"x\")))\n");
+		return sectionOf(R"((defn word "" [] ")" + word + R"(")
+(defn other "" [] 1)
+(defview caption "" [] `(label#cap :text ~(word)))
+(defscreen main (column#c ~(caption) (label#l :text "x")))
+)");
 	};
 	const std::shared_ptr<const lisp::BuiltProgram> first = lisp::builtProgram(program("one"));
 	const std::size_t inPart = lisp::rebuildStatistics().inPart;
@@ -308,9 +315,10 @@ TEST_CASE("lisp rebuild: a function a view calls while it builds, changed, build
 }
 
 TEST_CASE("lisp rebuild: a function a view's expression calls by name, gone, builds the view again") {
-	const json section = sectionOf("(defstate query \"\")\n(defn shout \"\" [x] (str x \"!\"))\n(defn other \"\" [] 1)\n"
-	                               "(defview caption \"\" [] `(label#cap :text ~(shout state.query)))\n"
-	                               "(defscreen main (column#c ~(caption)))\n");
+	const json section =
+	    sectionOf("(defstate query \"\")\n(defn shout \"\" [x] (str x \"!\"))\n(defn other \"\" [] 1)\n"
+		          "(defview caption \"\" [] `(label#cap :text ~(shout state.query)))\n"
+		          "(defscreen main (column#c ~(caption)))\n");
 	lisp::Program first = lisp::programOf(section);
 	const json tree = first.build(buildLimits());
 	REQUIRE(tree.dump().contains("lisp('shout'"));
@@ -403,4 +411,3 @@ TEST_CASE("lisp rebuild: a function running while its program changes finishes w
 	app.press(affresco::Key::C);
 	CHECK(app.state("got") == 2);
 }
-

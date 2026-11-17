@@ -59,7 +59,7 @@ public:
 	/// @return JSON pointers into the built tree: a program's places, and each other section that differs, with
 	/// `/program` if it did; std::nullopt if either has no program.
 	/// @throws DocumentError If either can't be built.
-	[[nodiscard]] std::optional<std::vector<std::string>> changedPlaces(const json& before, const json& after) const;
+	[[nodiscard]] static std::optional<std::vector<std::string>> changedPlaces(const json& before, const json& after);
 	/// @brief Turns an edit of one keyword inside a definition (`/program/file/name/:title`) into a replace of its
 	/// text, every other byte kept (lisp::replaceKeyword()).
 	/// @param document The document before the operation.
