@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <format>
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -60,9 +61,44 @@ std::string listed(const std::vector<std::string>& names) {
 	return text;
 }
 
-/// @brief Prints a package's summary, one line per row.
-/// @param summary packageSummary().
-void printSummary(const json& summary) {
+/// @brief A text with the characters that steer a terminal written out: the controls (C0, DEL and C1) as "\x1b" or
+/// "\u009b", so that a package's text can't rewrite the lines that say what it does.
+/// @param text The text, UTF-8.
+/// @return It.
+std::string printable(std::string_view text) {
+	std::string shown;
+	for(std::size_t at = 0; at < text.size(); ++at) {
+		const auto byte = static_cast<unsigned char>(text[at]);
+		const auto next = at + 1 < text.size() ? static_cast<unsigned char>(text[at + 1]) : 0U;
+		if(byte < 0x20 || byte == 0x7f) shown += std::format("\\x{:02x}", byte);
+		else if(byte == 0xc2 && next >= 0x80 && next <= 0x9f) {
+			shown += std::format("\\u{:04x}", next);
+			++at;
+		} else shown += text[at];
+	}
+	return shown;
+}
+
+/// @brief A summary with every text and key of it printable().
+/// @param value The summary, or a part of it.
+/// @return It.
+json printableParts(const json& value) {
+	if(value.is_string()) return printable(value.get_ref<const std::string&>());
+	if(value.is_array()) {
+		json shown = json::array();
+		for(const json& item : value) shown.push_back(printableParts(item));
+		return shown;
+	}
+	if(!value.is_object()) return value;
+	json shown = json::object();
+	for(const auto& [key, item] : value.items()) shown[printable(key)] = printableParts(item);
+	return shown;
+}
+
+/// @brief Prints a package's summary, one line per row, its texts printableParts().
+/// @param given packageSummary().
+void printSummary(const json& given) {
+	const json summary = printableParts(given);
 	const json& base = summary["base"];
 	std::cout << "kind: " << summary["kind"].get<std::string>() << '\n'
 	          << "name: " << summary["name"].get<std::string>() << ' ' << summary["release"].get<std::string>() << '\n';
@@ -112,8 +148,9 @@ void printList(std::string_view title, const json& entries, const std::function<
 }
 
 /// @brief Prints what installing a package would do: the parts of its summary packageSummary() works out for it.
-/// @param summary packageSummary(), with a person's copy.
-void printInstallParts(const json& summary) {
+/// @param given packageSummary(), with a person's copy; its texts are printed printableParts().
+void printInstallParts(const json& given) {
+	const json summary = printableParts(given);
 	std::vector<std::string> layers;
 	for(const auto& [layer, count] : summary["impact"].items())
 		if(count.is_number() && count.get<int>() > 0) layers.push_back(layer + " " + std::to_string(count.get<int>()));
@@ -168,9 +205,9 @@ std::optional<format::Package> readPackageFile(const std::filesystem::path& file
 	try {
 		return format::readPackage(text);
 	} catch(const DocumentError& error) {
-		std::cout << "refused: " << error.what() << '\n';
+		std::cout << "refused: " << printable(error.what()) << '\n';
 	} catch(const json::parse_error& error) {
-		std::cout << "refused: " << file.string() << ": not JSON (" << error.what() << ")\n";
+		std::cout << "refused: " << file.string() << ": not JSON (" << printable(error.what()) << ")\n";
 	}
 	return std::nullopt;
 }
@@ -286,12 +323,12 @@ std::optional<std::filesystem::path> installTarget(const Arguments& arguments, c
 	try {
 		// what is written is what inspecting it showed, or nothing
 		if(const std::string problem = Screen::appFilesProblem(text); !problem.empty()) {
-			std::cout << "refused: " << problem << '\n';
+			std::cout << "refused: " << printable(problem) << '\n';
 			return std::nullopt;
 		}
 		format::installAppFiles(package, *folder);
 	} catch(const DocumentError& error) {
-		std::cout << "refused: " << error.what() << '\n';
+		std::cout << "refused: " << printable(error.what()) << '\n';
 		return std::nullopt;
 	}
 	std::cout << "wrote the app as the package's base is into " << *folder << '\n';
@@ -323,10 +360,11 @@ Exit installPackage(std::span<const std::string_view> args) {
 	std::string error;
 	const RevisionResult result = screen.proposePackage(text, &error);
 	if(result.status != RevisionStatus::Proposed) {
-		std::cout << "refused: " << error << '\n';
+		std::cout << "refused: " << printable(error) << '\n';
 		return Exit::Problems;
 	}
-	std::cout << "proposed: " << summary["name"].get<std::string>() << " " << summary["release"].get<std::string>()
+	std::cout << "proposed: " << printable(summary["name"].get<std::string>()) << " "
+	          << printable(summary["release"].get<std::string>())
 	          << " as proposal " << result.proposal << ", which only you can accept: open the app to review it\n";
 	return Exit::Success;
 }
