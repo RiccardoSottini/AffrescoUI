@@ -604,7 +604,8 @@ std::set<std::string, std::less<>> declaredHooks(const json& document,
 	std::set<std::string, std::less<>> declared;
 	if(!lisp::hasProgram(document)) return declared;
 	try {
-		for(const lisp::Entry& entry : lisp::programOf(document["program"]).entries())
+		const lisp::Program program = lisp::programOf(document["program"]); // a loop over a temporary's member dangles
+		for(const lisp::Entry& entry : program.entries())
 			if(headWord(entry.text) == "defhook" && listed.contains(entry.name)) declared.insert(entry.name);
 		// NOLINTNEXTLINE(bugprone-empty-catch): the app's own check reports it; meanwhile it declares no hook
 	} catch(const DocumentError&) {

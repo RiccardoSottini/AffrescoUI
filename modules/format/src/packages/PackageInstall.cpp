@@ -80,7 +80,8 @@ json builtOf(const Rules& rules, const json& document) { return rules.built(docu
 std::set<std::string> extensionsOf(const json& document) {
 	std::set<std::string> found;
 	if(!lisp::hasProgram(document)) return found;
-	for(const lisp::Extension& extension : lisp::builtProgram(document["program"])->extensions)
+	const std::shared_ptr<const lisp::BuiltProgram> built = lisp::builtProgram(document["program"]);
+	for(const lisp::Extension& extension : built->extensions)
 		if(!extension.targets.empty()) // the hook point, or what the advice joins
 			found.insert(
 			    json{{"kind", extension.kind}, {"name", extension.name}, {"target", extension.targets[0]}}.dump());
@@ -314,7 +315,8 @@ void addChangeParts(json& summary, const Package& package, const json& base) {
 /// @return Their names.
 std::set<std::string> macroNames(const json& document) {
 	std::set<std::string> names;
-	for(const auto& [key, text] : detail::definitionsOf(document).items()) {
+	const json definitions = detail::definitionsOf(document); // a loop over a temporary's items dangles
+	for(const auto& [key, text] : definitions.items()) {
 		if(!text.is_string()) continue;
 		try {
 			for(const lisp::FormAt& form : lisp::formsOf(text.get_ref<const std::string&>()))
@@ -344,7 +346,8 @@ std::string headOf(std::string_view text) {
 void checkDefinitionForms(const Package& package, const json& base, std::vector<std::string>& problems) {
 	const json before = detail::definitionsOf(package.kind == PackageKind::App ? json::object() : base);
 	const std::set<std::string> macros = macroNames(package.document);
-	for(const auto& [key, text] : detail::definitionsOf(package.document).items()) {
+	const json after = detail::definitionsOf(package.document);
+	for(const auto& [key, text] : after.items()) {
 		if(before.contains(key) && before[key] == text) continue;
 		const std::string place = "document.program." + key;
 		if(!text.is_string()) {
