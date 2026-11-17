@@ -744,7 +744,8 @@ json featureStates(const json& document) {
 	const auto features = document.find("features");
 	if(features == document.end() || !features->is_object()) return states;
 	for(const auto& [name, record] : features->items()) {
-		if(!record.is_object() || !record.value("enabled", false) || !record.contains("provides")) continue;
+		// a record not yet checked may say anything: only `"enabled": true` turns it on
+		if(!record.is_object() || record.value("enabled", json()) != true || !record.contains("provides")) continue;
 		const json& provides = record["provides"];
 		if(provides.contains("state")) states[name] = provides["state"];
 		else if(provides.contains("program")) { // its defstate, when its program builds
