@@ -262,14 +262,8 @@ void DocumentContext::addVariable(std::string name, std::function<json()> build)
 }
 
 const json* DocumentContext::variable(std::string_view name) const {
-	if(name == "data") { // the records (DataLayer): read again when the store or what the queries read changes
-		const json* value = engine_.data.variable();
-		if(reads_) {
-			reads_->addPath(dataPlaces);
-			reads_->add(engine_.data.queryReads());
-		}
-		return value;
-	}
+	// The records (DataLayer): what reads them the expressions record, "/~d/<collection or query>"
+	if(name == "data") return engine_.data.variable();
 	const auto builder = builders_.find(name);
 	if(builder == builders_.end()) return nullptr;
 	if(building_.empty() && (builtEpoch_ != variablesEpoch_ || builtStateVersion_ != stateVersion_)) {

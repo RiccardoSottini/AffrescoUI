@@ -86,6 +86,9 @@ public:
 	void addVariable(std::string name, std::function<json()> build);
 	/// @brief Drops the built variables (the focus or a chord in progress changed what `context` holds).
 	void contextChanged() const noexcept { ++variablesEpoch_; }
+	/// @brief Counts what made the built variables stale: a value that read one is fresh only at the count it saw.
+	/// @return The count.
+	[[nodiscard]] std::uint64_t variablesEpoch() const noexcept { return variablesEpoch_; }
 	/// @brief A variable addVariable() added, built if it is stale.
 	/// @param name Its name.
 	/// @return Its value, valid until it is stale; null if there is no such variable, or it is being built.
@@ -120,6 +123,16 @@ public:
 	/// evaluates again only the values that read it. Computed values never read there, so they stay.
 	/// @param place The place, "/~m/<name>/<row>".
 	void markPlaceChanged(std::string place) { changes_.add(std::move(place)); }
+	/// @brief Records that a list outside the state changed shape, a data model's rows (Models.hpp), as
+	/// markPlaceChanged() does for its place, with how it changed (StateChanges::lists).
+	/// @param place The list, "/~m/<name>".
+	/// @param kind Rows inserted or removed.
+	/// @param index The first one.
+	/// @param count How many.
+	void markPlaceListChanged(std::string place, ListChange::Kind kind, std::size_t index, std::size_t count) {
+		changes_.add(place);
+		if(!changes_.all) changes_.lists.push_back({std::move(place), kind, index, count});
+	}
 	/// @brief Whether the state changed, or an update was requested, since the last update began (takeChanges()).
 	[[nodiscard]] bool stateChanged() const noexcept { return !changes_.empty(); }
 	/// @brief What changed since the last update began, as an update begins: the state is then up to date with the
