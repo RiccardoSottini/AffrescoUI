@@ -439,6 +439,13 @@ bool ownPath(std::string_view path, std::string_view feature) {
 	return false;
 }
 
+/// @brief Tells whether a word is an argument of a `#(...)` function: `%`, `%&` or `%1` to `%9`.
+/// @param word The word.
+/// @return Whether it is.
+bool lambdaArgument(std::string_view word) {
+	return word == "%" || word == "%&" || (word.size() == 2 && word[1] >= '1' && word[1] <= '9');
+}
+
 /// @brief What a feature's code may reach, for one definition.
 struct Reach {
 	const std::string& feature;                         ///< The feature.
@@ -520,6 +527,19 @@ struct Reach {
 			        std::format("uses '{}', which the feature doesn't define and the language doesn't have", word));
 	}
 
+	/// @brief Checks the names a definition's text writes that the language keeps for what it compiles (`%read`, which
+	/// a path compiles to, reads any path), and the function that would make one (`symbol`).
+	/// @param entry The definition.
+	/// @param names The names its code uses.
+	void checkKeptNames(const lisp::Entry& entry, const std::vector<std::string>& names) const {
+		constexpr std::array<std::string_view, 1> percent = {"%"};
+		for(const std::string& word : pathsWritten(entry.text, percent))
+			if(!lambdaArgument(word))
+				problem(entry, std::format("uses '{}', a name the language keeps for what it compiles", word));
+		if(std::ranges::find(names, "symbol") != names.end())
+			problem(entry, "uses 'symbol': a feature's code writes out the names it uses");
+	}
+
 	/// @brief Checks what one definition uses.
 	/// @param entry The definition.
 	/// @param names The names its code uses.
@@ -530,6 +550,7 @@ struct Reach {
 		// The paths a function reads: the words of its text (the build reads them as the app's, and doesn't list
 		// them), and those its macros give
 		std::vector<std::string> paths = function ? pathsWritten(entry.text, valueRoots) : std::vector<std::string>();
+		checkKeptNames(entry, names);
 		for(const std::string& word : names) {
 			if(defined.contains(word) || word.starts_with('%')) continue;
 			if(std::ranges::any_of(valueRoots, [&](std::string_view root) { return word.starts_with(root); })) {

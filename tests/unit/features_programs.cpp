@@ -248,6 +248,15 @@ TEST_CASE("feature programs: what its code reaches") {
 	CHECK(refused("wordCount-flip", R"((defn wordCount-flip "F." [] state.text))", "reads 'state.text'"));
 	CHECK(refused("wordCount.toggle", R"((defcommand wordCount.toggle "T." [] (println computed.other.x)))",
 	              "reads 'computed.other.x'"));
+	// Through the primitive a path compiles to, called by name
+	CHECK(refused("wordCount-flip", R"((defn wordCount-flip "F." [] (%read (str "state." "text"))))",
+	              "uses '%read', a name the language keeps"));
+	CHECK(refused("wordCount-v", R"((defview wordCount-v "V." [] (text (str (map %read ["auth"])))))",
+	              "uses '%read', a name the language keeps"));
+	CHECK(refused("wordCount-m", R"((defmacro wordCount-m "M." [] (list (symbol "%read") "auth")))", "uses 'symbol'"));
+	CHECK(problems(appWith(record(withDefinition(
+	          "wordCount-flip", R"((defn wordCount-flip "F." [xs] (map #(inc %) xs) (str "100%" " done")))"))))
+	          .empty());
 	// What it may do
 	const json allowed = withDefinition(
 	    "wordCount-flip",
