@@ -6,6 +6,7 @@
 #include "CompositionProof.hpp"
 #include "CompositionProofRevision.hpp"
 #include "HistoryFiles.hpp" // TemporaryFolder
+#include "features/FeaturesService.hpp"
 
 #include <affresco/automation/Scenarios.hpp>
 #include <affresco/format/Rules.hpp>
@@ -14,6 +15,8 @@
 
 #include <doctest/doctest.h>
 
+#include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -161,6 +164,67 @@ format::ProvenComposition prove(const json& host, json* played = nullptr) {
 	                                 .digest = {},
 	                                 .publisher = {}},
 	                                runner);
+}
+
+/// @brief An executor whose tasks the test runs when it chooses, on its own thread.
+class QueuedExecutor final : public affresco::Executor {
+public:
+	/// @brief Queues a task.
+	/// @param task The task.
+	void post(std::function<void()> task) override { tasks_.push_back(std::move(task)); }
+	/// @brief Runs the tasks queued so far.
+	void run() { affresco::runTasks(tasks_); }
+
+private:
+	std::vector<std::function<void()>> tasks_; ///< Queued, not run yet.
+};
+
+/// @brief A call the test makes: its arguments, and the result or error it ends with.
+class TestCall final : public affresco::services::Call {
+public:
+	/// @brief A call with these arguments.
+	/// @param arguments Its "with".
+	explicit TestCall(json arguments) : arguments_(std::move(arguments)) {}
+	const json& arguments() const noexcept override { return arguments_; }
+	std::stop_token stopToken() const noexcept override { return stop_.get_token(); }
+	void progress(json /*progress*/) override {}
+	void event(json /*event*/) override {}
+	void finish(json result) override { result_ = std::move(result); }
+	void fail(std::string code, std::string message, json /*data*/) override { error_ = code + ": " + message; }
+	/// @brief Its result, or null.
+	/// @return It.
+	[[nodiscard]] const json& result() const { return result_; }
+	/// @brief Its error, "code: message", or empty.
+	/// @return It.
+	[[nodiscard]] const std::string& error() const { return error_; }
+
+private:
+	json arguments_;        ///< See the constructor.
+	std::stop_source stop_; ///< Never asked.
+	json result_;           ///< See result().
+	std::string error_;     ///< See error().
+};
+
+/// @brief Composes the picker into a host through its `features` service, as a screen's step would.
+/// @param repository The host's document; the install revision is submitted to it.
+/// @return The call, ended.
+std::shared_ptr<TestCall> composeThroughService(affresco::vcs::Repository& repository) {
+	const format::Features features;
+	const auto alive = std::make_shared<bool>(true);
+	const std::unique_ptr<affresco::services::Provider> provider =
+	    affresco::detail::makeFeaturesProvider(features, repository, alive);
+	QueuedExecutor executor;
+	const std::unique_ptr<affresco::services::Service> service = provider->create(
+	    json::object(), affresco::services::ServiceContext{
+	                        .executor = executor, .grant = {}, .report = {}, .request = {}, .now = false});
+	affresco::services::MethodSpec compose;
+	for(const affresco::services::MethodSpec& method : provider->methods(json::object()))
+		if(method.name == "compose") compose = method;
+	const auto call =
+	    std::make_shared<TestCall>(json{{"manifest", picker()}, {"adapter", adapter()}, {"source", "app:pages"}});
+	CHECK_FALSE(service->invoke(compose, call));
+	executor.run();
+	return call;
 }
 
 /// The record a proof of the picker into the JSON host gave before proofs took a program's source, byte for byte:
@@ -446,4 +510,39 @@ TEST_CASE("composition: a JSON host proves exactly as before") {
 	document["features"]["pagePicker"] = before;
 	document["features"]["pagePicker"].erase("proof"); // a failed proof's document holds the record without it
 	CHECK(proven.document == document);
+}
+
+TEST_CASE("composition: the features service composes into a program host on its source") {
+	const format::Rules rules;
+	affresco::vcs::Repository repository(rules, programHost());
+	const std::shared_ptr<TestCall> call = composeThroughService(repository);
+	INFO(call->error());
+	REQUIRE(call->error().empty());
+	CHECK(call->result()["status"] == "applied");
+	const json& source = repository.sourceDocument();
+	CHECK(source.contains("program"));
+	CHECK_FALSE(source.contains("root")); // the record went beside the program, not into a tree read back
+	CHECK(source["features"]["pagePicker"]["proof"]["passed"] == true);
+	CHECK(repository.document()["features"].contains("pagePicker"));
+	CHECK_FALSE(refusalOf(source, dockRevision())); // the dock's definition stays open to change
+}
+
+TEST_CASE("composition: the features service composes into a JSON host as before") {
+	const format::Rules rules;
+	affresco::vcs::Repository repository(rules, jsonHost());
+	const std::string base = repository.head().id;
+	const std::shared_ptr<TestCall> call = composeThroughService(repository);
+	INFO(call->error());
+	REQUIRE(call->error().empty());
+	// The record the proof gives on the document itself, as the service did before it took the source
+	const format::ProvenComposition proven =
+	    format::proveComposition({jsonHost(), picker(), adapter(), "app:pages", "host", base, "", ""},
+		                         [](const json&, const json&) { return std::vector<format::ScenarioOutcome>(); });
+	REQUIRE(proven.proof["passed"] == true);
+	// The install adds the digest of what it installed; the rest is the proof's record, byte for byte
+	json stored = repository.document()["features"]["pagePicker"];
+	CHECK(stored.contains("installed"));
+	stored.erase("installed");
+	CHECK(stored.dump() == proven.record.dump());
+	CHECK(repository.sourceDocument() == repository.document());
 }
