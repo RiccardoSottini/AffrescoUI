@@ -151,6 +151,11 @@ public:
 	/// @return Proposed; or Rejected, with why: "nothing to merge: main already has it", "nothing merges cleanly"
 	/// (with the conflicts' paths), or what propose() refused.
 	[[nodiscard]] MergeProposed proposeMerge(const MergeRequest& request);
+	/// @brief propose(), opened for only the person to accept (ProposalInfo::personOnly): for a change that drops
+	/// the person's own edits, which no other reviewer may decide for them.
+	/// @param revision The revision, as for propose().
+	/// @return Proposed or rejected, never applied.
+	RevisionResult proposeForPerson(const json& revision);
 	std::optional<std::string> commit(const json& revision) override;
 	[[nodiscard]] CommitInfo resolve(const json& revision) const override { return info(find(revision)); }
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;

@@ -85,7 +85,7 @@ struct Upgrade {
 	json leftOut = json::array(); ///< The merge's conflicts, the local version kept: `[{path, reason, base, main,
 	                              ///< proposal}]`.
 	json dropped = json::array(); ///< The places of the edits it drops, when the base is gone.
-	bool reviewed = false;        ///< Always a proposal, whatever the permissions say.
+	bool reviewed = false;        ///< Always a proposal only the person accepts, whatever the permissions say.
 };
 
 /// @brief The upgrade of an edited record whose base a catalogue still has: a three-way merge, the local version kept
@@ -232,7 +232,8 @@ private:
 		    [&repository = repository_, alive = alive_, submitted = std::move(submitted), call = std::move(call)] {
 			    if(!screenAlive(alive)) return;
 			    const RevisionResult result =
-			        submitted.reviewed ? repository.propose(submitted.revision) : repository.submit(submitted.revision);
+			        submitted.reviewed ? repository.proposeForPerson(submitted.revision)
+			                                 : repository.submit(submitted.revision);
 			    if(result.status == RevisionStatus::Rejected) {
 				    call->fail("rejected", result.error);
 				    return;

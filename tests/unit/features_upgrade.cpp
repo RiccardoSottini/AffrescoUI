@@ -392,6 +392,13 @@ TEST_CASE("feature upgrade: when the base release is gone, a proposal names the 
 		REQUIRE(proposals.size() == 1);
 		CHECK(proposals[0].message.starts_with("Upgrade wordCount to 1.1.0, dropping local edits:"));
 		CHECK(proposals[0].message.contains("/features/wordCount" + variant.edited));
+		// the edits it drops are the person's: no other reviewer decides for them
+		CHECK(std::ranges::find(proposals[0].person, "was opened for the person to accept") != proposals[0].person.end());
+		CHECK(installed.repository->accept(proposals[0].id, {"agent/helper", proposals[0].head, false}));
+		CHECK(installed.repository->accept(proposals[0].id, {"studio", proposals[0].head, false}));
+		CHECK(installed.record() == before);
+		REQUIRE_FALSE(installed.repository->accept(proposals[0].id, {"user", proposals[0].head, false}));
+		CHECK(installed.record() != before);
 	}
 }
 

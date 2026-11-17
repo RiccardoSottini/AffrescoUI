@@ -173,6 +173,10 @@ Repository::MergeProposed Repository::proposeMerge(const MergeRequest& request) 
 	return {std::move(proposed), std::move(merged.conflicts)};
 }
 
+RevisionResult Repository::proposeForPerson(const json& revision) {
+	return submitRevision(revision, true, {json::array(), true});
+}
+
 /* Approvals and policies */
 
 std::vector<std::string> Repository::personNeeds(const Proposal& proposal, const json& before,
