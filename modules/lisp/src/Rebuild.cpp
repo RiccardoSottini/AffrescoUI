@@ -168,13 +168,14 @@ std::optional<PartPlan> planPart(const BuildRecord& previous, const std::vector<
 		if(was) plan.before[at] = found->second;
 		if(was && was->text == entry.text && was->file == entry.file && was->author == entry.author) continue;
 		plan.changed[at] = true;
+		if(shadows(entry.name)) return std::nullopt; // a library macro anywhere may call it now, or no more
 		const std::string kind = headOf(entry.text);
 		if(reachesAnywhere(kind) || (was && reachesAnywhere(was->kind))) return std::nullopt;
 		if(was && was->kind != kind && previous.extensions) return std::nullopt; // a hook's function may be no more
 	}
 	for(const auto& definition : previous.definitions)
 		if(!names.contains(definition->name)) {
-			if(reachesAnywhere(definition->kind) || previous.extensions) return std::nullopt;
+			if(reachesAnywhere(definition->kind) || previous.extensions || shadows(definition->name)) return std::nullopt;
 			plan.removed.push_back(definition->name);
 		}
 	markAffected(previous, entries, names, plan);
@@ -465,6 +466,114 @@ std::optional<json> Program::buildInPart(const BuildRecord& previous, const Limi
 	} catch(const std::exception&) { // the build in full says what is wrong, as it would have
 		return std::nullopt;
 	}
+}
+
+} // namespace affresco::lisp
+
+namespace affresco::lisp {
+
+namespace {
+
+/// @brief Whether a name is one of the language's own globals (or a primitive defined before any program).
+/// @param machine A machine that has loaded a program.
+/// @param name The name.
+/// @return true if so.
+bool isLanguageName(const Machine& machine, std::string_view name) {
+	static const std::set<std::string, std::less<>> language = [] {
+		const std::vector<std::string> all = Interpreter().machine().globalNames();
+		return std::set<std::string, std::less<>>(all.begin(), all.end());
+	}();
+	const Definition* definition = machine.definition(name);
+	return language.contains(name) || (definition && definition->global && definition->global->host);
+}
+
+/// @brief The entries a redefinition defines again: those that changed, and those that use one that changed or went,
+/// over and over, by the uses of the new version's build.
+/// @param built The new version's build record.
+/// @param seeds The names that changed or went.
+/// @param names Each entry of the new version's place, by its name.
+/// @return Each entry's: whether it is defined again.
+std::vector<bool> redefined(const BuildRecord& built, std::vector<std::string> seeds,
+                            const std::map<std::string, std::size_t>& names) {
+	std::vector<bool> again(names.size(), false);
+	for(const std::string& name : seeds)
+		if(const auto found = names.find(name); found != names.end()) again[found->second] = true;
+	while(!seeds.empty()) {
+		const auto users = built.users.find(seeds.back());
+		seeds.pop_back();
+		if(users == built.users.end()) continue;
+		for(const std::size_t user : users->second) {
+			const std::string& name = built.definitions[user]->name;
+			const auto found = names.find(name);
+			if(found == names.end() || again[found->second]) continue;
+			again[found->second] = true;
+			seeds.push_back(name);
+		}
+	}
+	return again;
+}
+
+} // namespace
+
+bool Program::redefine(Interpreter& interpreter, const Program& before, const BuildRecord& built,
+                       const Limits& limits) const {
+	Machine& machine = interpreter.machine();
+	if(!namespaces_.empty() || !before.namespaces_.empty() || !machine.namespaces().programless() ||
+	   machine.definitions().size() != before.entries_.size())
+		return false;
+	for(const auto& definition : machine.definitions())
+		if(!before.names_.contains(definition->name) || reachesAnywhere(definition->kind)) return false;
+	std::vector<std::string> seeds; // the names that changed or went
+	for(const Entry& entry : entries_) {
+		const auto was = before.names_.find(entry.name);
+		const Entry* old = was == before.names_.end() ? nullptr : &before.entries_[was->second];
+		if(old && old->text == entry.text && old->file == entry.file && old->author == entry.author) continue;
+		const std::string kind = headOf(entry.text);
+		if(reachesAnywhere(kind) || isLanguageName(machine, entry.name) ||
+		   (old && machine.definition(entry.name)->kind != kind))
+			return false;
+		seeds.push_back(entry.name);
+	}
+	std::vector<std::string> removed;
+	for(const Entry& entry : before.entries_)
+		if(!names_.contains(entry.name)) {
+			if(isLanguageName(machine, entry.name)) return false;
+			removed.push_back(entry.name);
+		}
+	if(seeds.empty() && removed.empty()) return true;
+	seeds.insert(seeds.end(), removed.begin(), removed.end());
+	const std::vector<bool> again = redefined(built, std::move(seeds), names_);
+	/// The interpreter's budget, as it was, back however the change ends.
+	struct Restore {
+		Machine& machine; ///< The machine.
+		Budget saved;     ///< Its budget.
+		~Restore() {
+			machine.heap.setBudget(&machine.budget());
+			machine.budget() = saved;
+		}
+	} restore{machine, machine.budget()};
+	machine.budget() = limits.budget;
+	return leavingAsLispError(machine, [&] {
+		for(const std::string& name : removed) machine.forgetDefinition(name);
+		for(std::size_t at = 0; at < entries_.size(); ++at) {
+			if(!again[at]) continue;
+			const Entry& entry = entries_[at];
+			machine.heap.setBudget(nullptr); // reading is bounded by the text's size, as load()'s
+			const std::optional<Value> read = readEntry(machine.heap, entry.text, entry.file, entry.line, entry.column);
+			machine.heap.setBudget(&machine.budget());
+			if(!read || definitionAddress(*read).second != entry.name)
+				throw LispError(entry.file, entry.line, entry.column, entry.name, "an entry's text defines its own name");
+			static_cast<void>(machine.define(*read, entry.author, machine.authorSet(entry.author), false));
+		}
+		machine.compilePending(true);
+		machine.workOutDefinitions();
+		std::vector<std::string> order; // load()'s: the macros, then the rest, each in the order of the entries
+		for(const bool macros : {true, false})
+			for(const Entry& entry : entries_)
+				if((machine.definition(entry.name)->kind == "defmacro") == macros) order.push_back(entry.name);
+		machine.orderDefinitions(order);
+		return true;
+	});
 }
 
 } // namespace affresco::lisp

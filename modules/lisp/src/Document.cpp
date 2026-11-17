@@ -181,6 +181,10 @@ std::shared_ptr<const BuiltProgram> buildSection(const json& section, const Buil
 	auto built = std::make_shared<BuiltProgram>();
 	built->tree = previous && previous->record ? program.rebuild(*previous->record, limits) : program.build(limits);
 	built->record = program.record();
+	for(const Entry& entry : program.entries()) // the build read each entry, so its kind is the record's
+		if(const auto at = built->record->index.find(entry.name);
+		   at != built->record->index.end() && built->record->definitions[at->second]->kind == "defmacro")
+			built->macros.push_back(entry.text);
 	built->undefined = program.undefinedNames();
 	built->truth = program.truthTests();
 	built->extensions = program.extensions();

@@ -206,7 +206,8 @@ public:
 	/// @brief Builds the tree as build() does, from the record of a build of an earlier version of the program: only the
 	/// definitions that changed, and those that use them, are run; what the others gave is taken from the record. It
 	/// gives what build() gives, and refuses what build() refuses with build()'s message, as it builds in full where
-	/// it can't be sure: a changed or removed macro, hook or advice, a form that isn't a definition (a macro's call at
+	/// it can't be sure: a changed or removed macro, hook or advice, a definition named as one of the language's (a
+	/// macro of the language may call it), a form that isn't a definition (a macro's call at
 	/// the top level, `do`), namespaces, a recording build, a definition that would use one it didn't load, and any
 	/// error, which build() then reports. The budget is the one build() has, less what the record's build spent.
 	/// @param previous The earlier build's record (record()).
@@ -214,6 +215,21 @@ public:
 	/// @return The tree.
 	/// @throws LispError If building fails or a limit runs out, naming the place, as build() would.
 	[[nodiscard]] json rebuild(const BuildRecord& previous, const Limits& limits = {});
+
+	/// @brief Changes an interpreter that has loaded an earlier version of the program (load(), without everything)
+	/// into one that has loaded this one: the definitions that changed are defined again, with their entries' authors,
+	/// those that went are taken away, and those that use either are defined again, so that the values they work out
+	/// are worked out again. Where it can't be sure it gives what load() gives, it changes nothing and returns false:
+	/// a changed or removed macro, hook, advice or form that isn't a definition, a definition whose kind changed or
+	/// whose name is one of the language's, namespaces. The interpreter must be pure while it runs (setPure()).
+	/// @param interpreter The interpreter.
+	/// @param before The earlier version, as it was loaded.
+	/// @param built The record of this version's build (record()): who uses what.
+	/// @param limits What the change may spend.
+	/// @return true if it changed it; false if nothing was done.
+	/// @throws LispError If a definition fails: the interpreter is then half changed, for the caller to throw away.
+	[[nodiscard]] bool redefine(Interpreter& interpreter, const Program& before, const BuildRecord& built,
+	                            const Limits& limits = {}) const;
 	/// @brief What the last build kept of each definition, for the build of a later version (rebuild()).
 	/// @return It; nullptr before a build.
 	[[nodiscard]] std::shared_ptr<const BuildRecord> record() const noexcept { return record_; }

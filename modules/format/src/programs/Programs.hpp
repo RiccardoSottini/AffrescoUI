@@ -98,6 +98,17 @@ public:
 	/// values worked out, purely.
 	/// @throws DocumentError If it can't be loaded: the version is refused.
 	void load();
+	/// @brief Changes the program now into a later version of it in place (lisp::Program::redefine()): the definitions
+	/// that changed are defined again, with the authors given, those that went are taken away, and those that use
+	/// either are defined again, their values worked out again. load() goes through it; an editor's "evaluate one
+	/// definition" may too. Where that can't be sure to give what a new interpreter gives, it does nothing and
+	/// returns false, for the caller to load a new one: a function running (it keeps the code it started with), hooks
+	/// or advice, a macro changed, and the cases lisp::Program::redefine() lists. On any failure the program is the
+	/// earlier version again, in a new interpreter, and it returns false.
+	/// @param section The later version's `program` section.
+	/// @param authors Who wrote each of its entries (VersionControl::programAuthors()), each given one.
+	/// @return true if the program now is the later version.
+	bool redefine(const json& section, const json& authors);
 	/// The most text one evaluation takes: what a file of a person's definitions takes (four of lisp::maxEntryBytes).
 	static constexpr std::size_t maxEvaluatedBytes = std::size_t{4} << 20U;
 	/// The file a new definition goes in when nothing names one.
@@ -328,6 +339,11 @@ private:
 	/// @param interpreter Its interpreter.
 	/// @throws DocumentError If one names what isn't there.
 	void loadExtensions(lisp::Interpreter& interpreter);
+	/// @brief A new interpreter that has loaded a program, purely, its hooks and advice read into extensionsNext_.
+	/// @param program The program.
+	/// @return It.
+	/// @throws DocumentError If it can't be loaded.
+	[[nodiscard]] std::shared_ptr<lisp::Interpreter> loadedInterpreter(const lisp::Program& program);
 	/// @brief What a hook or advice by a stranger sees of where it is called from: only the panel.
 	/// @return It.
 	[[nodiscard]] Frame blindFrame() const;
@@ -548,6 +564,8 @@ private:
 	Engine& engine_;                          ///< The runtime.
 	std::shared_ptr<lisp::Interpreter> live_; ///< The program now; running code holds its own.
 	json loaded_;                             ///< The section it was loaded from.
+	std::optional<lisp::Program> program_;    ///< What live_ loaded, its entries' authors with it (redefine()).
+	int redefinitions_ = 0;                   ///< Changes made in place since live_ was made: its heap only grows.
 	Frame* frame_ = nullptr;                  ///< What the running function is called from.
 	int reading_ = 0;                         ///< Values being read: nothing but reading runs.
 	/// The size of each structured value the running read viewed in place (viewInPlace()), so that a place read again
