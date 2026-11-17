@@ -49,5 +49,13 @@ in the app's folder, removed when the host ends. Each connection waits until the
 question ([LISP.md](../../LISP.md), "Connecting an editor"; [SECURITY.md](../../SECURITY.md), "Editors (nREPL)"). The
 Launcher takes no editor: `--nrepl` without an app exits with 2.
 
+The Launcher is granted the examples to read (`examples`), the person's apps folder to read and write (`apps`, `--apps
+DIR`), the host's program to open each app, the open and save dialogs, and the `packages` service
+([`PackagesProvider.hpp`](../../modules/screen/include/affresco/PackagesProvider.hpp)) on both folders, installing into
+`apps` and reading the apps' histories and the trusted publishers in the data folder. With it the Launcher exports an
+app the person changed as one `.affresco.json` file, and installs one someone gave them as a new app, once they have
+reviewed it; its changes then wait in the new app as a proposal only the person accepts. No other screen gets the
+service, and a screenshot of the Launcher gets none of these.
+
 `host.cpp` is the program, and `Permissions.cpp` what the person allows. The helpers it shares with the other
 programs are in [`../shared`](../shared/README.md).

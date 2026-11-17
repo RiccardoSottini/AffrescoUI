@@ -21,7 +21,8 @@
 		"programs": {
 			"affresco": "Opens each app in a window of its own."
 		},
-		"assistant": "Answers your questions about your apps, with the assistant you set up in Settings."
+		"assistant": "Answers your questions about your apps, with the assistant you set up in Settings.",
+		"files": "Saves a version of an app of yours to share, and opens a version someone gave you."
 	},
 	"assets": [
 		"../assets/covers",

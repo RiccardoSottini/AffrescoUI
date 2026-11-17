@@ -3,7 +3,7 @@
 /// the apps are listed last changed first and once each, its assistant's changes wait for review, a name whose folder
 /// something else holds is refused with a clear reason (and that folder kept), Settings save the provider the form
 /// shows, with no pick first, and the window that asks for a new app's permissions shows no empty reason for a screen
-/// without an app.json.
+/// without an app.json; the export dialog and the review of a file show what the packages service answered.
 
 #include "Headless.hpp"
 #include "HistoryFiles.hpp" // TemporaryFolder
@@ -276,4 +276,50 @@ TEST_CASE("launcher: a new blank app's permissions show what it asks for, with n
 	CHECK(showsLabelStarting(window->root(), "Ask the assistant you set up in Settings"));
 	CHECK(showsLabelStarting(window->root(), "Garden planner says: “Backs up.”"));
 	CHECK_FALSE(showsLabelStarting(window->root(), "Garden planner says: “”"));
+}
+
+TEST_CASE("launcher: the export dialog and the review show the service's answers, and Install waits for a right name") {
+	const json summary = {{"kind", "changes"},
+	                      {"name", "Notes that count"},
+	                      {"release", "1.1.0"},
+	                      {"signature", "trusted:Robin"},
+	                      {"base", {{"app", "notes"}, {"name", "Notes"}, {"release", "1.0.0"}, {"exact", true}}},
+	                      {"definitions", {{"added", json::array()}, {"changed", {"app.lisp/count"}}}},
+	                      {"problems", json::array()}};
+	const json steps = {
+	    json{{"key", "mod+2"}},
+	    json{{"action", "launcher.export"},
+		     {"event", {{"id", "notes"}, {"name", "Notes"}, {"summary", summary}, {"leftOut", {{"records", 2}}}}}},
+	    json{{"wait", 0}},
+	    json{{"expect", {{"node", "#exportLine"}, {"text", "Your changes to Notes"}}}},
+	    json{{"expect",
+		      {{"node", "#exportLine"}, {"nth", 3}, {"text", "Left out: 2 records and 0 versions of its history"}}}},
+	    json{{"click", {{"role", "button"}, {"name", "Save…"}}}},
+	    json{{"wait", 10}},
+	    json{{"expect", {{"state", "exporting.open"}, {"is", false}}}},
+	    json{{"expect", {{"state", "toasts.length"}, {"is", 1}}}}, // nothing is granted: the service says why
+	    json{{"action", "launcher.review"}, {"event", {{"summary", summary}}}},
+	    json{{"wait", 0}},
+	    json{{"expect", {{"node", "#installSignature"}, {"text", "Signed by Robin, whom you trust"}}}},
+	    json{{"expect", {{"node", "#reviewLine"}, {"nth", 3}, {"text", "~ app.lisp/count"}}}},
+	    json{{"revision", {{"message", "name"}, {"set", {{"/state/install/name", "!!!"}}}}}},
+	    json{{"click", "#installButton"}},
+	    json{{"wait", 10}},
+	    json{{"expect", {{"state", "install.busy"}, {"is", false}}}},
+	    json{{"expect",
+		      {{"node", "#installNameHint"},
+		       {"text", "The name needs at least one letter or digit, a to z or 0 to 9."}}}},
+	    json{{"action", "launcher.review"}, {"event", {{"error", "It isn't a package."}}}},
+	    json{{"wait", 0}},
+	    json{{"expect", {{"node", "#installRefused"}, {"text", "It isn't a package."}}}},
+	    json{{"expect", {{"node", "#installButton"}, {"exists", false}}}},
+	    json{{"click", "#installCancel"}},
+	    json{{"expect", {{"state", "page"}, {"is", "mine"}}}}};
+	for(const std::string notation : notations) {
+		CAPTURE(notation);
+		const automation::Report report =
+		    playLauncher(json::array({{{"name", "share"}, {"steps", steps}}}), nullptr, notation);
+		INFO(report.text());
+		CHECK(report.failed() == 0);
+	}
 }
