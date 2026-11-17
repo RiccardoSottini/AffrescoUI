@@ -52,7 +52,7 @@ public:
 		json revision;
 		try {
 			if(method.name == "compose") {
-				revision = composeRevision(with, document);
+				revision = composeRevision(with, repository_.sourceDocument()); // a program's source, never its tree
 			} else {
 				const std::string name = with.value("name", std::string());
 				revision = method.name == "install"
@@ -81,7 +81,7 @@ private:
 	/// @brief Proves a feature from another app on the document (every check but the scenarios, which the proposal's
 	/// evidence plays when it is reviewed) and makes its install revision.
 	/// @param with `{ manifest, adapter, source, host }`.
-	/// @param document The document.
+	/// @param document The document as version control keeps it: a program's source, which the proof builds.
 	/// @return The revision, or null with unproven_ set to the proof's reasons.
 	/// @throws DocumentError If the manifest is too big.
 	json composeRevision(const json& with, const json& document) {
