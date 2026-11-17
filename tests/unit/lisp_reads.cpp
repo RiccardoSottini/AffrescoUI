@@ -46,7 +46,7 @@ struct Checked {
 	/// @param action Its name.
 	/// @param event Its event.
 	/// @return What the update did.
-	UpdateStatistics change(const char* action, json event) {
+	UpdateStatistics change(const char* action, const json& event) {
 		app.runtime->runAction(action, app.window->root(), event);
 		app.window->render();
 		for(const std::string& error : app.errors) INFO(error);
