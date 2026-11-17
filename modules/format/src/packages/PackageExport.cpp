@@ -84,7 +84,9 @@ public:
 		if(std::filesystem::is_directory(real, error)) {
 			for(auto it = std::filesystem::recursive_directory_iterator(real, error);
 			    !error && it != std::filesystem::recursive_directory_iterator(); it.increment(error))
-				if(it->is_regular_file(error) || it->is_symlink(error))
+				// a link to a folder is left out (one to its own would never end); a link to a file, or to nothing,
+				// is added, and checked
+				if(it->is_regular_file(error) || (it->is_symlink(error) && !it->is_directory(error)))
 					static_cast<void>(add(it->path(), relative(it->path())));
 			if(error) refuse(named, "its folder can't be read");
 			return std::nullopt;

@@ -115,6 +115,11 @@ TEST_CASE("packages export: an app's files are the ones its manifest reaches, ne
 	CHECK_THROWS_WITH_AS(static_cast<void>(format::appFiles(app / "app.json")),
 	                     doctest::Contains("outside the app's folder"), affresco::DocumentError);
 	std::filesystem::remove(app / "pictures" / "link.json");
+	// a link to a folder, even its own, is left out: the folder's files are reached once, by their own paths
+	const json before = format::appFiles(app / "app.json");
+	std::filesystem::create_directory_symlink(app / "pictures", app / "pictures" / "loop");
+	CHECK(format::appFiles(app / "app.json") == before);
+	std::filesystem::remove(app / "pictures" / "loop");
 	// a file the manifest names that isn't there
 	std::filesystem::remove(app / "theme.json");
 	CHECK_THROWS_WITH_AS(static_cast<void>(format::appFiles(app / "app.json")),
