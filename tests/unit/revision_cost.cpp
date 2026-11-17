@@ -184,8 +184,7 @@ TEST_CASE("revision cost: a revision of the state alone is a state update, with 
 	const Since since;
 	REQUIRE_FALSE(built.commit(json::parse(R"([{"op": "replace", "path": "/state/count", "value": 5}])")));
 	CHECK(built.text("count") == "5");
-	CHECK(built.runtime.lastUpdate().full); // every value: the history and the version's number are read untracked
-	CHECK(built.runtime.lastUpdate().fullReason == "revision");
+	CHECK_FALSE(built.runtime.lastUpdate().full);
 	CHECK(since.compiled() == 0U);
 	CHECK(since.derived() == 0U);
 }

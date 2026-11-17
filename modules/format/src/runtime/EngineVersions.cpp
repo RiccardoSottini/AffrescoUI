@@ -83,8 +83,7 @@ void Engine::documentChangedWith(const DocumentChange& change) {
 		for(const std::string& place : change.state)
 			if(place.empty()) document.markStateChanged(); // the whole state
 			else document.markStateChanged(json::json_pointer(place));
-		// the version's number and the history are globals, whose reads no update records: every value is evaluated
-		document.requestUpdate("revision");
+		document.reviewChanged(); // the version's number and the history: what reads them is evaluated too
 		reconciler.updateNow();
 		return;
 	}
@@ -100,6 +99,7 @@ void Engine::documentChangedWith(const DocumentChange& change) {
 	if((readers & reader::services) != 0U) serviceCalls.load();
 	if((readers & reader::sounds) != 0U) audio.documentChanged();
 	if((readers & reader::windows) != 0U) otherWindows.documentChanged();
+	document.requestUpdate("revision"); // what reads outside the panels (the icon, the title, the menus) runs too
 	reconciler.reconcile("revision");
 }
 
