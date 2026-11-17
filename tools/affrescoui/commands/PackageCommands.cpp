@@ -258,6 +258,8 @@ Exit inspectPackage(std::span<const std::string_view> args) {
 		summary = screen.inspectPackage(text, trusted);
 	} else {
 		summary = format::packageSummary(*package, format::PackageReceiver{}, trusted);
+		if(const std::string problem = Screen::appFilesProblem(text); !problem.empty())
+			summary["problems"].push_back(problem);
 	}
 	if(arguments.flag("--json")) std::cout << summary.dump(1, '\t') << '\n';
 	else {
@@ -272,14 +274,21 @@ namespace {
 /// @brief `install`'s app: the one named, or a new folder the package's files are written into (`--new`).
 /// @param arguments The command line.
 /// @param package The package.
+/// @param text Its file.
 /// @return The app's folder or manifest, or std::nullopt if its files were refused (said on the output).
 /// @throws UsageError If the command line is wrong.
-std::optional<std::filesystem::path> installTarget(const Arguments& arguments, const format::Package& package) {
+std::optional<std::filesystem::path> installTarget(const Arguments& arguments, const format::Package& package,
+                                                   std::string_view text) {
 	const auto folder = arguments.value("--new");
 	if(arguments.positional().size() != (folder ? 1U : 2U))
 		throw UsageError(folder ? "expected a package file" : "expected an app and a package file");
 	if(!folder) return std::filesystem::path(arguments.positional()[0]);
 	try {
+		// what is written is what inspecting it showed, or nothing
+		if(const std::string problem = Screen::appFilesProblem(text); !problem.empty()) {
+			std::cout << "refused: " << problem << '\n';
+			return std::nullopt;
+		}
 		format::installAppFiles(package, *folder);
 	} catch(const DocumentError& error) {
 		std::cout << "refused: " << error.what() << '\n';
@@ -299,7 +308,7 @@ Exit installPackage(std::span<const std::string_view> args) {
 	const std::optional<format::Package> package = readPackageFile(arguments.positional().back(), text);
 	if(!package) return Exit::Problems;
 	const json trusted = format::readTrustedPublishers(publishersFile(arguments));
-	const std::optional<std::filesystem::path> app = installTarget(arguments, *package);
+	const std::optional<std::filesystem::path> app = installTarget(arguments, *package, text);
 	if(!app) return Exit::Problems;
 
 	std::vector<std::string> warnings;

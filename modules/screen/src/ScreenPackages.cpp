@@ -3,7 +3,9 @@
 /// the person accepts (proposePackage()), as VERSION_CONTROL.md, "Installing a package", says.
 
 #include "ScreenPackages.hpp"
+#include "ScratchFolder.hpp"
 #include "ScreenImpl.hpp"
+#include "affresco/format/PackageFiles.hpp"
 #include "affresco/format/PackageInstall.hpp"
 #include "affresco/vcs/Merge.hpp"
 
@@ -104,6 +106,25 @@ RevisionResult proposePackage(const std::optional<format::AppManifest>& app, vcs
 
 json Screen::inspectPackage(std::string_view packageJson, const json& trustedPublishers) const {
 	return detail::inspectPackage(impl_->app, impl_->repository, packageJson, trustedPublishers);
+}
+
+std::string Screen::appFilesProblem(std::string_view packageJson) {
+	const format::Package package = format::readPackage(packageJson);
+	if(package.kind != format::PackageKind::App) return {};
+	const detail::ScratchFolder scratch;
+	if(scratch.path().empty()) return "base.files: no folder to open them in";
+	const std::filesystem::path folder = scratch.path() / package.base.app.substr(0, 64);
+	try {
+		format::installAppFiles(package, folder);
+		std::error_code error;
+		const std::filesystem::path manifest =
+		    std::filesystem::exists(folder / "app.json", error) ? folder / "app.json" : folder / "app.lisp";
+		const Screen screen = fromApp(manifest, {}, History::InMemory);
+		if(screen.inspectPackage(packageJson, json::object())["base"]["exact"] == true) return {};
+	} catch(const std::exception& error) {
+		return std::string("base.files: they don't open as an app: ") + error.what();
+	}
+	return "base.files: they aren't the base it describes (base.tree), so they aren't what inspecting it shows";
 }
 
 RevisionResult Screen::proposePackage(std::string_view packageJson, std::string* error) {

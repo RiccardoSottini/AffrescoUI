@@ -185,6 +185,23 @@ TEST_CASE("packages service: a whole app, exported and installed from its own fi
 	CHECK(same == json{{"id", "plain"}, {"sub", "/json"}, {"proposal", false}});
 	CHECK(json::parse(read(folders.apps / "plain" / "json" / "app.json"))["name"] == "Plain");
 
+	// Files that aren't the base it describes, a definition hidden in them alone, aren't what inspecting it shows
+	json hidden = plain["package"];
+	for(auto& [path, file] : hidden["base"]["files"].items())
+		if(path.ends_with(".screen.json")) {
+			json screen = json::parse(file["text"].get<std::string>());
+			screen["program"]["app.lisp"]["hidden"] = "(defn hidden [] 1)";
+			file["text"] = screen.dump();
+		}
+	const json shown = detail::inspectVersion(grant, {{"package", hidden}});
+	CHECK(shown["summary"]["problems"].dump().contains("aren't the base it describes"));
+	const auto refused = failure([&] {
+		static_cast<void>(detail::installVersion(grant, {{"package", hidden}, {"id", "hidden"}, {"name", "H"}}, {}));
+	});
+	CHECK(refused.first == "refused");
+	CHECK(refused.second.contains("aren't the base it describes"));
+	CHECK(!fs::exists(folders.apps / "hidden"));
+
 	// Without the app it was made on in another root, a copy's changes are the whole app
 	fs::remove_all(folders.examples / "notes");
 	CHECK(detail::exportVersion(grant, exportArguments(), {})["package"]["kind"] == "app");

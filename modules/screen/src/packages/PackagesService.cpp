@@ -612,7 +612,10 @@ json inspectVersion(const PackagesGrant& grant, const json& with) {
 	// The whole app, installed as a new one: nothing of it is the person's yet, every capability new
 	format::PackageReceiver receiver;
 	receiver.known = true;
-	return {{"summary", format::packageSummary(package, receiver, trusted)}};
+	json summary = format::packageSummary(package, receiver, trusted);
+	if(const std::string problem = Screen::appFilesProblem(text); !problem.empty())
+		summary["problems"].push_back(problem);
+	return {{"summary", std::move(summary)}};
 }
 
 namespace {
@@ -683,6 +686,8 @@ json installVersion(const PackagesGrant& grant, const json& with, const std::sto
 	if(package.kind == format::PackageKind::Changes) {
 		base = baseCopy(grant, package);
 		if(!base) throw PackagesFailure("refused", "base.app: made for " + package.base.name + ", which isn't here");
+	} else if(const std::string problem = Screen::appFilesProblem(text); !problem.empty()) {
+		throw PackagesFailure("refused", problem); // what goes in is what inspecting it showed, or nothing
 	}
 
 	const fs::path target = rootNamed(grant, grant.writable) / id;
