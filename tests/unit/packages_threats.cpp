@@ -201,6 +201,27 @@ TEST_CASE("package attack: an app's files that leave its folder, or a folder tha
 	CHECK_FALSE(std::filesystem::exists(root / "elsewhere"));
 }
 
+TEST_CASE("package attack: two of an app's files that this disk takes as one are refused, not one over the other") {
+	const std::filesystem::path root = freshFolder("affrescoui-package-files-case-test");
+	std::ofstream(root / "probe").put('x');
+	const bool caseBlind = std::filesystem::exists(root / "PROBE");
+	format::Package package;
+	package.kind = format::PackageKind::App;
+	package.base.files = {{"app.json", {{"text", "{}"}}}, {"APP.json", {{"text", R"({"hidden": true})"}}}};
+	if(caseBlind) {
+		CHECK_THROWS_WITH(format::installAppFiles(package, root / "app"), doctest::Contains("the same file on this disk"));
+		CHECK_FALSE(std::filesystem::exists(root / "app"));
+	} else {
+		format::installAppFiles(package, root / "app");
+		CHECK(std::filesystem::exists(root / "app" / "APP.json"));
+	}
+	// and a path with a "." part, which install would refuse, is refused when the package is read
+	json app = json::parse(packageOf(json::object(), json::object()));
+	app["kind"] = "app";
+	app["base"]["files"] = {{"./app.json", {{"text", "{}"}}}, {"app.json", {{"text", "{}"}}}};
+	CHECK_THROWS_WITH(static_cast<void>(format::readPackage(app.dump())), doctest::Contains("inside the app's folder"));
+}
+
 TEST_CASE("package attack: a package over a limit is refused before it is parsed") {
 	App app(personsApp, true);
 	std::string error;

@@ -509,6 +509,10 @@ void installAppFiles(const Package& package, const std::filesystem::path& folder
 		for(const auto& [path, file] : files.items()) {
 			const std::filesystem::path target = folder / path;
 			std::filesystem::create_directories(target.parent_path());
+			// The folder is new: a file there already is another of the package's, by a name this disk takes as the
+			// same (it differs by case, or by Unicode's forms), and the later one would replace it unseen
+			if(std::filesystem::symlink_status(target, error).type() != std::filesystem::file_type::not_found)
+				refuse("base.files." + path.substr(0, 1024), "is the same file on this disk as another of its files");
 			std::ofstream out(target, std::ios::binary | std::ios::trunc);
 			const std::string bytes = fileBytes(file);
 			if(!out.write(bytes.data(), static_cast<std::streamsize>(bytes.size())))

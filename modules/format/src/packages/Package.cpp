@@ -215,7 +215,8 @@ void checkFiles(const json& files, const std::string& app) {
 	if(files.size() > maxPackageFiles) refuse("base.files", "more than " + std::to_string(maxPackageFiles) + " files");
 	for(const auto& [path, file] : files.items()) {
 		const std::string place = "base.files." + path.substr(0, 1024);
-		if(!insideApp(path) || path.ends_with('/') || path.contains("//"))
+		if(!insideApp(path) || path.ends_with('/') || path.contains("//") || path == "." || path.starts_with("./") ||
+		   path.contains("/./") || path.ends_with("/."))
 			refuse(place, "not a file inside the app's folder");
 		if(!file.is_object() || file.size() != 1) refuse(place, R"(expected {"text"} or {"data"})");
 		static_cast<void>(bytesOf(file, place, maxPackageFileBytes));
