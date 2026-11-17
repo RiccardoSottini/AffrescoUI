@@ -388,4 +388,19 @@ TEST_CASE("catalogue: the check names a service an entry's changes use and its b
 	CHECK(said.find("notes-two 1.0.0: it uses packages.catalogue") != std::string::npos);
 }
 
+TEST_CASE("catalogue: the check refuses a whole app that changes its base app's permissions") {
+	json whole;
+	const Folders folders = withChange(
+	    "affrescoui-catalogue-check-permissions",
+	    {{{"op", "replace"}, {"path", "/program/app.lisp/count"}, {"value", "(defn count [] 2)"}}}, true, whole);
+	REQUIRE(whole["kind"] == "app");
+	// Agents' changes would land unreviewed: the base, rebuilt from the delta, is still the examples' notes
+	whole["document"]["permissions"] = {{"allow", {"agent"}}};
+	whole["base"]["delta"].push_back({{"op", "remove"}, {"path", "/permissions"}});
+	const fs::path examples = listForCheck(folders, whole);
+	std::string said;
+	CHECK(runCheck(folders.catalogue, examples, said) == 1);
+	INFO(said);
+	CHECK(said.find("notes-two 1.0.0: it changes permissions") != std::string::npos);
+}
 #endif

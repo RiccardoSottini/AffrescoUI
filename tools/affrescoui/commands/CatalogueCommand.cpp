@@ -134,6 +134,22 @@ void playProof(const json& scenarios, const json& document, const fs::path& app,
 	}
 }
 
+/// @brief Adds a problem for each section only a host grants (format::capabilitySections: the permissions, channels,
+/// services...) that a whole app sets otherwise than its base app does. A package of changes can't change them, nor
+/// can a revision, so neither may a version the catalogue lists as a whole app.
+/// @param package The package, of kind "app".
+/// @param base The base app's document, as the examples' folder holds it.
+/// @param entry The entry, for the lines.
+/// @param problems Gets them.
+void checkGrantedSections(const format::Package& package, const json& base, const std::string& entry,
+                          Problems& problems) {
+	for(const std::string_view section : format::capabilitySections) {
+		const std::string key(section);
+		if(package.document.value(key, json()) != base.value(key, json()))
+			problems.add(entry, "it changes " + key + ", which a version keeps as its base app has it");
+	}
+}
+
 /// @brief Checks a package's entry: its file, its base app, its proof, what it adds, its texts and its licence.
 /// @param index The index.
 /// @param id The entry's id.
@@ -161,12 +177,13 @@ void checkPackage(const format::CatalogIndex& index, const std::string& id,
 		                        package.base.notation);
 		return;
 	}
-	json summary;
+	json summary, base;
 	try {
 		const Quiet quiet;
 		// in memory: nothing is kept in the data folder, which only has to be one
-		const Screen screen = Screen::fromApp(app->folder, fs::temp_directory_path(), Screen::History::InMemory);
+		Screen screen = Screen::fromApp(app->folder, fs::temp_directory_path(), Screen::History::InMemory);
 		summary = screen.inspectPackage(text, json::object());
+		base = screen.versions().sourceDocument();
 	} catch(const std::exception& failure) {
 		problems.add(entry, std::string("it can't be inspected against its base app: ") + failure.what());
 		return;
@@ -179,6 +196,7 @@ void checkPackage(const format::CatalogIndex& index, const std::string& id,
 	for(const json& capability : summary.value("capabilities", json::array()))
 		if(capability.value("added", false))
 			problems.add(entry, "it adds the capability " + capability.value("capability", std::string()));
+	if(package.kind == format::PackageKind::App) checkGrantedSections(package, base, entry, problems);
 	if(package.kind == format::PackageKind::Changes)
 		for(const json& use : summary.value("uses", json::array())) // each {step, use, in}
 			problems.add(entry, "it uses " + use.value("use", std::string()) + " (in " +
