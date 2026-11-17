@@ -155,6 +155,7 @@ form reads the running app, becomes a **binding** that the engine keeps up to da
 | `<area>.lisp` (`toolbar.lisp`, `sidebar.lisp`...) | The views of one area of the window |
 | `<app>.lisp` | The logic: `defn` and `defcommand` |
 | `locales/`, `models.lisp`, `seed/`, `*.policy.lisp` | Data |
+| `features/<name>/` | A feature's folder: `feature.lisp` (the manifest) and its program files |
 
 **The rules** ([full list](SCREEN_FORMAT.md#writing-an-app-as-a-program)):
 

@@ -322,7 +322,7 @@ TEST_CASE("format: a command run is undone once") {
 }
 
 TEST_CASE("format: a command run that never ran can't be undone") {
-	App app(notesScreen(json::object()));
+	const App app(notesScreen(json::object()));
 	CHECK(app.undo(9).refusal == "there is no run 9");
 	CHECK(app.undo(0).refusal == "there is no run 0");
 }

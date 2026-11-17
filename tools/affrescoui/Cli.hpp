@@ -211,10 +211,30 @@ Exit migrateFiles(std::span<const std::string_view> args);
 /// @return How it ended.
 Exit generateSchema(std::span<const std::string_view> args);
 
-/// @brief `sign`: signs a feature's manifest or a catalogue's index, or makes a signing key.
+/// @brief `sign`: signs a feature's manifest, a catalogue's index or a package, or makes a signing key.
 /// @param args The arguments.
 /// @return How it ended.
 Exit signFile(std::span<const std::string_view> args);
+
+/// @brief `pack`: writes a version of an app, from its history, as one package (commands/PackageCommands.cpp).
+/// @param args The arguments.
+/// @return How it ended.
+Exit packVersion(std::span<const std::string_view> args);
+
+/// @brief `inspect`: checks a package and says what it holds; with --app, whether it was made from that app exactly.
+/// @param args The arguments.
+/// @return How it ended: Problems if the package is refused.
+Exit inspectPackage(std::span<const std::string_view> args);
+
+/// @brief `install`: proposes a package to the person, on an app or on a new folder written from it; never accepts it.
+/// @param args The arguments.
+/// @return How it ended: Problems if the package is refused.
+Exit installPackage(std::span<const std::string_view> args);
+
+/// @brief `trust`: adds, takes away or lists the publishers whose signatures the person trusts.
+/// @param args The arguments.
+/// @return How it ended.
+Exit trustPublisher(std::span<const std::string_view> args);
 
 /// @brief `source`: where a node is written, as an agent reads it with getSource (commands/SourceCommand.cpp).
 /// @param args The arguments.

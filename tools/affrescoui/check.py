@@ -17,7 +17,9 @@
 - policy test sets a file's roles, and refuses one that isn't text;
 - policy test judges command runs without running them: allow, ask, person or deny, and why;
 - render connects to no channel the screen declares, even by an absolute path;
-- render draws a code editor whose "insert" has no "text".
+- render draws a code editor whose "insert" has no "text";
+- pack, inspect and install: a package's texts don't steer the terminal, and an app's files that aren't its base
+  write nothing.
 
     python3 tools/affrescoui/check.py [--build DIR] [--headless]
 
@@ -456,6 +458,54 @@ class Checker:
         self.expect(any(problem["source"] == "schema" and "too long to check" in problem["message"]
                         for problem in report["problems"]), f"check: a long expression: {report}")
 
+    def packages(self):
+        """pack, inspect and install --new: a package's texts can't steer the terminal its review is printed on, and
+        an app's files that aren't the base it describes (a definition hidden in them alone) write nothing."""
+        app = os.path.join(self.scratch, "packed")
+        os.makedirs(app)
+        with open(os.path.join(app, "app.json"), "w", encoding="utf-8") as file:
+            json.dump({"format": "affrescoui-app", "version": 1, "id": "packed", "name": "Packed",
+                       "release": "1.0.0", "entry": "index.screen.json"}, file)
+        with open(os.path.join(app, "index.screen.json"), "w", encoding="utf-8") as file:
+            json.dump({"format": "affrescoui-screen", "version": 2, "state": {"title": "Packed"},
+                       "root": {"type": "label", "id": "title", "text": "{{state.title}}"}}, file)
+        data = os.path.join(self.scratch, "packed-data")
+        packed = os.path.join(self.scratch, "packed.affresco.json")
+        self.run("pack", app, "-o", packed, "--whole", "--name", "Packed", "--data", data)
+        self.run("inspect", packed, "--data", data)
+        with open(packed, encoding="utf-8") as file:
+            package = json.load(file)
+
+        def variant(name, change):
+            value = json.loads(json.dumps(package))
+            change(value)
+            path = os.path.join(self.scratch, name)
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump(value, file)
+            return path
+
+        steering = variant("steering.affresco.json", lambda value: value.update(
+            description="\x1b[2J\x1b[Hsignature: trusted", author="A\u009b2J"))
+        for args in (["inspect", steering], ["install", "--new", os.path.join(self.scratch, "steered"), steering]):
+            result = subprocess.run([self.tool, *args, "--data", data], capture_output=True, text=True,
+                                    encoding="utf-8")
+            self.expect("\x1b" not in result.stdout and "\u009b" not in result.stdout,
+                        f"{args[0]}: a package's text reached the terminal as a control: {result.stdout!r}")
+
+        def hide(value):
+            screen = json.loads(value["base"]["files"]["index.screen.json"]["text"])
+            screen["program"] = {"app.lisp": {"hidden": "(defn hidden [] 1)"}}
+            value["base"]["files"]["index.screen.json"]["text"] = json.dumps(screen)
+
+        hidden = variant("hidden.affresco.json", hide)
+        self.expect("aren't the base it describes" in self.run("inspect", hidden, "--data", data, expect=1),
+                    "inspect: an app's files that aren't its base")
+        target = os.path.join(self.scratch, "hidden")
+        self.expect("aren't the base it describes" in self.run("install", "--new", target, hidden, "--data", data,
+                                                              expect=1),
+                    "install --new: an app's files that aren't its base")
+        self.expect(not os.path.exists(target), "install --new: an app's files that aren't its base were written")
+
 
 def parse_arguments(args):
     """Reads the command line: (the build folder, whether to leave out what draws). Exits with the usage on anything
@@ -516,6 +566,7 @@ def main():
         checker.run("convert", broken_lisp, expect=1)
         checker.run("convert", broken, "--to", "yaml", expect=2)
         checker.long_pattern_input()
+        checker.packages()
         checker.strings()
         checker.strings_split()
         checker.policy_roles()

@@ -43,3 +43,6 @@ dist/
 # The VS Code extension's installed devDependencies and its package
 node_modules/
 *.vsix
+
+# Coverage profiles a run of an instrumented build leaves where it ran
+*.profraw

@@ -120,6 +120,7 @@ void Steps::runNamed(const std::string& name, Panel& sender, const json& event, 
 
 void Steps::runNamedAction(const std::string& name, Panel& sender, const json& event, const Scope& locals,
                            const std::string& where) {
+	if(runForFeature(name, sender, event, locals, where)) return;
 	const json& document = engine_.versions.document();
 	const bool declared = document.contains("actions") && document["actions"].contains(name);
 	if(declared && isCommand(document["actions"][name]) && document["actions"][name].contains("do")) {
@@ -140,6 +141,24 @@ void Steps::runNamedAction(const std::string& name, Panel& sender, const json& e
 	} else {
 		fail(where, "unknown action '" + name + "'");
 	}
+}
+
+// From any other code, `app.<need>` names nothing
+bool Steps::runForFeature(const std::string& name, Panel& sender, const json& event, const Scope& locals,
+                          const std::string& where) {
+	constexpr std::string_view app = "app.";
+	if(!name.starts_with(app) || name.size() == app.size()) return false;
+	const std::string feature = engine_.programs.featureRunning();
+	if(feature.empty()) return false;
+	const std::string need = name.substr(app.size());
+	const json& document = engine_.versions.document();
+	const auto actions = document.find("actions");
+	if(actions == document.end() || !actions->contains(feature + ".adapted." + need))
+		fail(where, "the app hands the feature \"" + feature + "\" no action \"" + need + "\"");
+	engine_.programs.runForFeature(feature, need, [&](const std::string& adapted) {
+		runNamedAction(adapted, sender, event, locals, where);
+	});
+	return true;
 }
 
 // Returns false when a "stop" step ends the action

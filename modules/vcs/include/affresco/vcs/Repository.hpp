@@ -132,6 +132,10 @@ public:
 		std::string author;      ///< Who proposes it ("agent/claude-code"), judged as any author is.
 		std::string message;     ///< The proposal's title.
 		bool personOnly = false; ///< Only a reviewer of personChannel may accept it.
+		/// The assets that come with it, as a revision's "assets" (`[{"name", "type", "text" | "data"}]`), or null.
+		json assets = json();
+		/// Operations appended after the merge's own (a package's new state keys), or null.
+		json extra = json();
 	};
 	/// @brief What proposeMerge() did: a RevisionResult, and the merge's conflicts.
 	struct MergeProposed : RevisionResult {
@@ -147,6 +151,11 @@ public:
 	/// @return Proposed; or Rejected, with why: "nothing to merge: main already has it", "nothing merges cleanly"
 	/// (with the conflicts' paths), or what propose() refused.
 	[[nodiscard]] MergeProposed proposeMerge(const MergeRequest& request);
+	/// @brief propose(), opened for only the person to accept (ProposalInfo::personOnly): for a change that drops
+	/// the person's own edits, which no other reviewer may decide for them.
+	/// @param revision The revision, as for propose().
+	/// @return Proposed or rejected, never applied.
+	RevisionResult proposeForPerson(const json& revision);
 	std::optional<std::string> commit(const json& revision) override;
 	[[nodiscard]] CommitInfo resolve(const json& revision) const override { return info(find(revision)); }
 	[[nodiscard]] json restoreRevision(const json& revision, std::string_view author) const override;
@@ -173,6 +182,8 @@ public:
 	[[nodiscard]] json proposalDiff(int proposal) const override;
 	std::optional<std::string> accept(int proposal, const Approval& approval) override;
 	bool reject(int proposal, std::string_view reason) override;
+	std::optional<std::string> resolveLeftOut(int proposal, std::string_view path, bool theirs,
+	                                          std::string_view reviewer) override;
 	std::optional<std::string> preview(int proposal) override;
 	void endPreview() override;
 	[[nodiscard]] std::optional<int> previewing() const override { return previewing_; }
@@ -195,6 +206,14 @@ public:
 	/* History */
 	[[nodiscard]] std::vector<CommitInfo> log() const override;
 	[[nodiscard]] json exportChanges(const json& from, std::string_view name) const override;
+	/// @brief What a version of the app is made of, to be shared as one package (VERSION_CONTROL.md, "Sharing a
+	/// version: packages"): main's document now and the one its first commit holds, and nothing about who made it or
+	/// what they keep (no commit id, author, time or message; never the live state).
+	/// @return `{"base", "document", "delta", "state", "assets"}`: the first commit's document and main's now, the
+	/// delta that turns the document back into the base (add, remove and replace), the `/state/<key>` keys the commits
+	/// add that the base's `state` doesn't have (each with the value the last such operation gave; a key added and
+	/// then removed isn't there), and the names of the assets the document lists and the base doesn't.
+	[[nodiscard]] json versionParts() const;
 	std::optional<std::string> importChanges(const json& changes) override;
 	/// @brief Tells whether a change set was already applied to this history: importChanges() keeps the id of each
 	/// one it applies (the SHA-256 of its JSON), on disk too, so a host can apply a plugin once.

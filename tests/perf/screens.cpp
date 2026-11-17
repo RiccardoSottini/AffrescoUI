@@ -96,6 +96,11 @@ json appDocument(const std::filesystem::path& folder) {
 	return json::parse(Screen::fromApp(folder, {}, Screen::History::InMemory).documentJson()); // nothing kept
 }
 
+std::filesystem::path jsonNotation(const std::filesystem::path& folder) {
+	const std::filesystem::path json = folder.parent_path() / "json";
+	return folder.filename() == "lisp" && std::filesystem::exists(json) ? json : folder;
+}
+
 json screenDocument(const std::filesystem::path& file) {
 	const std::filesystem::path app = Screen::appOf(file);
 	const Screen screen = app.empty() ? Screen::fromString(readFile(file), file.parent_path())
@@ -317,7 +322,7 @@ std::vector<Workload> revisionWorkloads(Context& context) {
 	for(const std::string& name : templateNames(context.examples())) {
 		const std::filesystem::path file = context.edits() / (name + ".json");
 		if(!std::filesystem::exists(file)) continue;
-		const std::filesystem::path folder = context.templateFolder(name);
+		const std::filesystem::path folder = jsonNotation(context.templateFolder(name));
 		const json document = appDocument(folder);
 		const json edits = json::parse(readFile(file)); // named: items() refers to it during the loop
 		for(const auto& [editName, edit] : edits.items()) {

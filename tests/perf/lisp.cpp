@@ -2,7 +2,7 @@
 /// @brief The "lisp" workloads (RFC 0005, "Performance"): what a program's function costs in an event and in a binding,
 /// each beside the same thing written as steps or as an expression, a reload when a definition changes, making an
 /// interpreter, building the largest example's program, with and without recording where its nodes come from, and
-/// finding where each of its nodes is written.
+/// finding where each of its nodes is written; and opening Orrery with a feature written as a program installed.
 
 #include "Bench.hpp"
 #include "Headless.hpp"
@@ -15,6 +15,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace affresco::bench {
 namespace {
@@ -123,6 +124,35 @@ void addOpenWorkloads(Context& context, std::vector<Workload>& workloads) {
 		}
 }
 
+/// @brief "lisp/open-orrery-sorter" and "lisp/open-orrery-sorter-parts": opening the Lisp Orrery with Sinopia's slide
+/// sorter installed, as the sorter written as a program (its record holds `provides.program`, built when the screen
+/// is) and as the record of its JSON parts the app held before (master's), the rest of the document the same.
+/// @param context The context.
+/// @param workloads Gets them.
+void addFeatureWorkloads(Context& context, std::vector<Workload>& workloads) {
+	const std::filesystem::path folder = context.examples() / "orrery" / "lisp";
+	const json program = Screen::fromApp(folder, {}, Screen::History::InMemory).versions().sourceDocument();
+	if(!program["features"]["slideSorter"]["provides"].contains("program"))
+		throw std::runtime_error("lisp: Orrery's slide sorter is not written as a program");
+	json parts = program;
+	const std::filesystem::path manifest = context.examples() / "sinopia" / "json" / "features" / "slide-sorter";
+	parts["features"]["slideSorter"]["provides"] = json::parse(readFile(manifest / "feature.json"))["provides"];
+	for(const auto& [name, document] : {std::pair{"", program}, std::pair{"-parts", parts}}) {
+		// Shared, so copying a workload's function copies no text, and can't throw
+		const auto source = std::make_shared<const json>(document);
+		const auto text = std::make_shared<const std::string>(document.dump());
+		const auto base = std::make_shared<const std::filesystem::path>(folder);
+		const auto window = std::make_shared<Window*>(nullptr);
+		Workload open{.name = std::string("lisp/open-orrery-sorter") + name, .unit = "ms", .runs = 5};
+		open.prepare = [&context, source, window] { *window = &context.openWindow(*source); };
+		open.step = [text, base, window] {
+			Screen screen = Screen::fromString(*text, *base);
+			screen.build(**window);
+		};
+		workloads.push_back(std::move(open));
+	}
+}
+
 /// @brief The example whose program is the largest, as the host loads it: its entry screen, with the program files it
 /// includes.
 /// @param context The context.
@@ -225,6 +255,7 @@ std::vector<Workload> lispWorkloads(Context& context) {
 	std::vector<Workload> workloads;
 	addStartWorkload(workloads);
 	addOpenWorkloads(context, workloads);
+	addFeatureWorkloads(context, workloads);
 	addOriginWorkloads(context, workloads);
 	addSourceWorkloads(context, workloads);
 	const json bound = lisp::sourceDocument(programWithBindings(), "bench.lisp");

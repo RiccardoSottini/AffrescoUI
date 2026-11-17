@@ -71,6 +71,29 @@ enum class StepKind : std::uint8_t {
 /// @brief Who a program's entry that nobody is credited with counts as: no one, with the least authority.
 inline constexpr std::string_view unknownAuthor = "unknown";
 
+/// @brief The author a feature's definitions run as: `feature:<name>`, a revision's authority, whoever installed it.
+/// @param feature The feature.
+/// @return The author.
+[[nodiscard]] std::string featureAuthor(std::string_view feature);
+
+/// @brief Tells whether a feature's code may run a step: the flow, writes written out under `state.<feature>`, and
+/// running its own commands, its own definitions and `app.<need>`.
+/// @param key The step's key.
+/// @param value Its value: the path or the name it is given.
+/// @param feature The feature.
+/// @return Whether it may.
+[[nodiscard]] bool featureMayRun(const std::string& key, const json& value, const std::string& feature);
+
+/// @brief The feature an author of running code is (featureAuthor()).
+/// @param author The author.
+/// @return The feature's name; empty for any other author.
+[[nodiscard]] std::string_view featureOfAuthor(std::string_view author) noexcept;
+
+/// @brief Credits each entry of a feature's files (`features/<name>/...`, lisp::effectiveProgram()) to the feature.
+/// @param section The program.
+/// @param authors `{file: {name: author}}`, changed.
+void creditFeatures(const json& section, json& authors);
+
 /// @brief Tells why a text can't be shown to the person as it is, if it can't: a character that draws nothing, or moves
 /// what is drawn around it, would let a question show other than what runs (ProgramEvaluate.cpp).
 /// @param text The text, UTF-8.
@@ -229,7 +252,41 @@ public:
 	/// @throws DocumentError If they may not.
 	void checkNative(const std::string& name, const std::string& where) const;
 
+	/// @name Features that hold programs (ProgramFeatures.cpp)
+	/// A feature's definitions run as `feature:<name>`, with a revision's authority; what they reach is checked again
+	/// here, the second line after composition's (FeaturePrograms.hpp).
+	/// @{
+	/// @brief The feature whose code leads to the steps now running.
+	/// @return Its name; empty when no feature's code does.
+	[[nodiscard]] std::string featureRunning() const;
+	/// @brief Runs, for a feature's code, an action the app hands it: `app.<need>` is the feature's
+	/// `<name>.adapted.<need>`, run with neither the feature's reach nor the person's authority.
+	/// @param feature The feature.
+	/// @param need The need's name.
+	/// @param run Runs the adapted action, given its name.
+	void runForFeature(const std::string& feature, const std::string& need,
+	                   const std::function<void(const std::string&)>& run);
+	/// @}
+
 private:
+	/// @brief Refuses a step a feature's code leads to that it may not run (featureRunning()).
+	/// @param step The step.
+	/// @param where Its place, for the error.
+	/// @throws DocumentError If it may not.
+	void checkFeatureStep(const json& step, const std::string& where) const;
+	/// @brief Refuses a control or review primitive that a feature's code led to.
+	/// @param primitive The primitive.
+	/// @param ran The authors whose code ran (lisp::CallContext::ran), and the run's.
+	/// @throws lisp::Refusal If one is a feature.
+	static void checkFeatureCall(std::string_view primitive, std::span<const std::string> ran);
+	/// @brief The program the document runs: its own, and the programs of the features its composition merged.
+	/// @param source The document as versioned.
+	/// @return It (lisp::effectiveProgram()).
+	[[nodiscard]] json runningProgram(const json& source) const;
+	/// @brief Loads a program into a new interpreter, and makes it the live one.
+	/// @param section The program.
+	/// @throws DocumentError If it can't be loaded.
+	void loadSection(const json& section);
 	/// The console evaluates as the person through runTyped() (as evaluateConfirmed() does), and looks names up in the
 	/// live program: no other class gets either way in.
 	friend class RuntimeConsole;

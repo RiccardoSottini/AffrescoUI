@@ -62,6 +62,105 @@ std::string partOf(const json& state, const std::string& path) {
 	return list && list->is_array() ? holder : path;
 }
 
+/// The prefix of a feature's files among a program's (lisp::effectiveProgram(), which the history doesn't link).
+constexpr std::string_view featureFiles = "features/";
+
+/// @brief The program a document runs, as lisp::effectiveProgram() gives it: its own files, and each enabled feature's
+/// program under `features/<name>/<file>`; nothing of a record of the wrong shape.
+/// @param document The document.
+/// @return `{file: {name: text}}`; null with no `program`.
+json runningProgram(const json& document) {
+	const auto own = document.find("program");
+	if(own == document.end()) return nullptr;
+	json program = *own;
+	const auto records = document.find("features");
+	if(!program.is_object() || records == document.end() || !records->is_object()) return program;
+	for(const auto& [name, record] : records->items()) {
+		if(!record.is_object() || record.value("enabled", json()) != true || name.contains('/')) continue;
+		const auto provides = record.find("provides");
+		if(provides == record.end() || !provides->is_object() || !provides->contains("program")) continue;
+		for(const auto& [file, entries] : (*provides)["program"].items())
+			if(entries.is_object()) {
+				std::string named(featureFiles);
+				named += name;
+				named += '/';
+				named += file;
+				program[named] = entries;
+			}
+	}
+	return program;
+}
+
+/// @brief The feature a file of a running program belongs to.
+/// @param file The file.
+/// @return Its name; empty for the document's own files.
+std::string featureOf(std::string_view file) {
+	if(!file.starts_with(featureFiles)) return {};
+	const std::string_view rest = file.substr(featureFiles.size());
+	const std::size_t slash = rest.find('/');
+	return slash == std::string_view::npos ? std::string() : std::string(rest.substr(0, slash));
+}
+
+/// @brief What a value holds under a key, if it is an object that has it.
+/// @param at The value, or nullptr.
+/// @param key The key.
+/// @return It, or nullptr.
+const json* below(const json* at, const char* key) {
+	if(!at || !at->is_object()) return nullptr;
+	const auto found = at->find(key);
+	return found == at->end() ? nullptr : &*found;
+}
+
+/// @brief The program of a feature's record in a document.
+/// @param document The document.
+/// @param feature The feature.
+/// @return `{file: {name: text}}`, or nullptr.
+const json* featureProgram(const json& document, const std::string& feature) {
+	return below(below(below(below(&document, "features"), feature.c_str()), "provides"), "program");
+}
+
+/// @brief Goes through the definitions some files hold.
+/// @tparam Each What to call: (file, name, text).
+/// @param prefix What goes before each file's name.
+/// @param files `{file: {name: text}}`.
+/// @param each What to call.
+template <class Each> void eachEntryOf(const std::string& prefix, const json& files, const Each& each) {
+	for(const auto& [file, entries] : files.items())
+		if(entries.is_object())
+			for(const auto& [name, text] : entries.items()) each(prefix + file, name, text);
+}
+
+/// @brief Tells whether a path of the "features" section may hold a feature's program, or part of it.
+/// @param path The path's segments, the first "features".
+/// @return true for the section, a record, its `provides`, its program, a file and a definition of it.
+bool reachesFeatureProgram(const std::vector<std::string>& path) {
+	return path.size() <= 6 && (path.size() < 3 || path[2] == "provides") && (path.size() < 4 || path[3] == "program");
+}
+
+/// @brief The definitions a value written at a path of the "features" section holds: what a feature's program has.
+/// @tparam Each What to call: (file, name, text), the file as runningProgram() names it.
+/// @param path The path's segments, the first "features".
+/// @param value What was written there.
+/// @param each What to call.
+template <class Each> void eachFeatureWritten(const std::vector<std::string>& path, const json& value, const Each& each) {
+	if(path.size() == 1) { // the whole section
+		if(value.is_object())
+			for(const auto& [name, record] : value.items()) eachFeatureWritten({"features", name}, record, each);
+		return;
+	}
+	if(!reachesFeatureProgram(path)) return;
+	std::string prefix(featureFiles);
+	prefix += path[1];
+	prefix += '/';
+	if(path.size() == 6) return each(prefix + path[4], path[5], value);
+	const json* files = &value; // what the path holds, brought down to the program's files
+	if(path.size() <= 2) files = below(files, "provides");
+	if(path.size() <= 3) files = below(files, "program");
+	if(!files || !files->is_object()) return;
+	if(path.size() == 5) eachEntryOf(prefix, json{{path[4], *files}}, each);
+	else eachEntryOf(prefix, *files, each);
+}
+
 /// @brief A definition's text in a document.
 /// @param document The document.
 /// @param file The file.
@@ -70,10 +169,29 @@ std::string partOf(const json& state, const std::string& path) {
 const json* entryIn(const json& document, const std::string& file, const std::string& name) {
 	const auto section = document.find("program");
 	if(section == document.end() || !section->is_object()) return nullptr;
+	if(const std::string feature = featureOf(file); !feature.empty()) { // a feature's: in its record
+		const json* entries = below(featureProgram(document, feature),
+		                            file.substr(featureFiles.size() + feature.size() + 1).c_str());
+		const json* text = entries ? below(entries, name.c_str()) : nullptr;
+		return text && text->is_string() ? text : nullptr;
+	}
 	const auto entries = section->find(file);
 	if(entries == section->end() || !entries->is_object()) return nullptr;
 	const auto text = entries->find(name);
 	return text == entries->end() ? nullptr : &*text;
+}
+
+/// @brief The definitions a value written at a path of the document's own program holds.
+/// @tparam Each What to call: (file, name, text).
+/// @param path The path's segments: empty for the whole document, else the first "program".
+/// @param value What was written there.
+/// @param each What to call.
+template <class Each> void eachOwnWritten(const std::vector<std::string>& path, const json& value, const Each& each) {
+	if(path.size() == 3) return each(path[1], path[2], value);
+	const json* files = path.empty() ? below(&value, "program") : &value;
+	if(!files || !files->is_object()) return;
+	if(path.size() == 2) eachEntryOf("", json{{path[1], *files}}, each);
+	else eachEntryOf("", *files, each);
 }
 
 /// @brief Goes through the definitions an operation of a commit's delta writes, reaching them from any level above.
@@ -84,25 +202,10 @@ template <class Each> void eachWritten(const json& op, const Each& each) {
 	const auto value = op.find("value");
 	if(value == op.end()) return;
 	const std::vector<std::string> path = detail::segmentsOf(op.value("path", ""));
-	if(path.size() >= 3) {
-		if(path[0] == "program" && path.size() == 3) each(path[1], path[2], *value);
-		return;
-	}
-	if(!path.empty() && path[0] != "program") return;
-	const json* files = &*value;
-	if(path.empty()) { // the whole document
-		const auto section = value->find("program");
-		if(section == value->end()) return;
-		files = &*section;
-	}
-	if(!files->is_object()) return;
-	if(path.size() == 2) {
-		for(const auto& [name, text] : files->items()) each(path[1], name, text);
-		return;
-	}
-	for(const auto& [file, entries] : files->items())
-		if(entries.is_object())
-			for(const auto& [name, text] : entries.items()) each(file, name, text);
+	if(!path.empty() && path[0] == "features") return eachFeatureWritten(path, *value, each);
+	if(path.empty())
+		if(const json* features = below(&*value, "features")) eachFeatureWritten({"features"}, *features, each);
+	if(path.empty() || (path[0] == "program" && path.size() <= 3)) eachOwnWritten(path, *value, each);
 }
 
 /// @brief The entries a person's commit is credited with, whose author is whoever first wrote that text.
@@ -146,22 +249,24 @@ private:
 class EntryAuthors {
 public:
 	/// @brief Starts with no entry credited.
-	/// @param head The document; it must outlive this.
-	explicit EntryAuthors(const json& head) {
-		const auto program = head.find("program");
-		if(program == head.end() || !program->is_object()) return;
-		section_ = &*program;
+	/// @param program The program the document runs (runningProgram()); it must outlive this.
+	explicit EntryAuthors(const json& program) {
+		if(!program.is_object()) return;
+		section_ = &program;
 		for(const auto& [file, entries] : section_->items())
 			if(entries.is_object()) missing_ += entries.size();
 	}
-	/// @brief Credits what an operation's path reaches: an entry, a file or the whole program.
+	/// @brief Credits what an operation's path reaches: an entry, a file or the whole program; or a feature's
+	/// record, its program, a file or an entry of it.
 	/// @param path The path's segments.
 	/// @param author The commit's author.
 	void creditPath(const std::vector<std::string>& path, const std::string& author) {
-		if(path.empty() || path[0] != "program") return;
+		if(path.empty()) return creditAll(author);
+		if(path[0] == "features") return creditFeature(path, author);
+		if(path[0] != "program") return;
 		if(path.size() >= 3) credit(path[1], path[2], author);
 		else if(path.size() == 2) creditFile(path[1], author);
-		else creditAll(author);
+		else creditOwn(author);
 	}
 	/// @brief Credits every entry not credited yet.
 	/// @param author The author.
@@ -190,6 +295,25 @@ private:
 		ofFile[name] = author;
 		--missing_;
 	}
+	/// @brief Credits what a path in the "features" section reaches of a feature's program.
+	/// @param path The path's segments, the first "features".
+	/// @param author The author.
+	void creditFeature(const std::vector<std::string>& path, const std::string& author) {
+		if((path.size() >= 3 && path[2] != "provides") || (path.size() >= 4 && path[3] != "program") || !section_)
+			return;
+		const std::string prefix = path.size() >= 2 ? std::string(featureFiles) + path[1] + "/" : std::string(featureFiles);
+		if(path.size() >= 6) return credit(prefix + path[4], path[5], author);
+		if(path.size() == 5) return creditFile(prefix + path[4], author);
+		for(const auto& [file, entries] : section_->items())
+			if(file.starts_with(prefix)) creditFile(file, author);
+	}
+	/// @brief Credits the entries of the document's own files that have no author yet.
+	/// @param author The author.
+	void creditOwn(const std::string& author) {
+		if(!section_) return;
+		for(const auto& [file, entries] : section_->items())
+			if(featureOf(file).empty()) creditFile(file, author);
+	}
 	/// @brief Credits a file's entries that have no author yet.
 	/// @param file The file.
 	/// @param author The author.
@@ -203,6 +327,20 @@ private:
 	json authors_ = json::object(); ///< See take().
 	std::size_t missing_ = 0;       ///< How many entries have no author.
 };
+
+/// @brief Credits a feature's entries that the app's file or the person is credited with to the feature: its code has
+/// a revision's authority, whoever installed it.
+/// @param credited `{file: {name: author}}`, changed.
+void creditFeatures(json& credited) {
+	for(auto& [file, entries] : credited.items()) {
+		const std::string feature = featureOf(file);
+		if(feature.empty()) continue;
+		for(auto& [name, author] : entries.items()) {
+			const auto& who = author.get_ref<const std::string&>();
+			if(who == "file" || who == "user" || who.starts_with("user/")) author = "feature:" + feature;
+		}
+	}
+}
 
 } // namespace
 
@@ -308,7 +446,8 @@ json Repository::impact(const json& from, const json& to) const {
 
 // Newest first: the first commit met that changed an entry, or held it whole, is who last wrote it
 json Repository::programAuthors() const {
-	EntryAuthors authors(mainDocument());
+	const json program = runningProgram(mainDocument());
+	EntryAuthors authors(program);
 	for(std::size_t n = main_.size() - 1; n > 0 && authors.missing(); --n) {
 		const Commit& commit = objects_.at(main_[n]);
 		for(const json& op : deltaOf(commit))
@@ -318,20 +457,21 @@ json Repository::programAuthors() const {
 	json credited = authors.take();
 	keepFirstWriters(credited);
 	creditPreviewed(credited);
+	creditFeatures(credited);
 	return credited;
 }
+
 
 // A person's restore or revert brings back what someone else wrote, and it stays theirs: whoever first wrote that text
 // on main. One walk over the history, however many entries it answers for
 void Repository::keepFirstWriters(json& credited) const {
-	const json& document = mainDocument();
-	const auto section = document.find("program");
-	if(section == document.end()) return; // a static app: no definition to credit
-	FirstWriters writers(*section, credited);
+	const json program = runningProgram(mainDocument());
+	if(!program.is_object()) return; // a static app: no definition to credit
+	FirstWriters writers(program, credited);
 	if(writers.done()) return;
 	const json first = documentOf(objects_.at(main_.front()));
-	if(const auto files = first.find("program"); files != first.end() && files->is_object()) {
-		const json whole = {{"path", "/program"}, {"value", *files}};
+	if(first.contains("program")) {
+		const json whole = {{"path", ""}, {"value", first}};
 		eachWritten(whole, [&](const std::string& file, const std::string& name, const json& text) {
 			writers.settle(file, name, text, "file");
 		});
@@ -350,10 +490,10 @@ void Repository::keepFirstWriters(json& credited) const {
 void Repository::creditPreviewed(json& credited) const {
 	if(!previewing_) return;
 	const Proposal* shown = findProposal(*previewing_);
-	const auto section = document_.find("program");
-	if(!shown || section == document_.end() || !section->is_object()) return;
+	const json section = runningProgram(document_);
+	if(!shown || !section.is_object()) return;
 	const json& main = mainDocument();
-	for(const auto& [file, entries] : section->items()) {
+	for(const auto& [file, entries] : section.items()) {
 		if(!entries.is_object()) continue;
 		for(const auto& [name, text] : entries.items())
 			if(const json* before = entryIn(main, file, name); !before || *before != text)

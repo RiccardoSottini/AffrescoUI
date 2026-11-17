@@ -35,11 +35,10 @@ namespace {
 
 constexpr int shiftKey = 0x0001;   ///< GLFW_MOD_SHIFT.
 constexpr int controlKey = 0x0002; ///< GLFW_MOD_CONTROL.
-constexpr int superKey = 0x0008;   ///< GLFW_MOD_SUPER (Cmd).
 
 /// The modifier of "mod" keys: Cmd on macOS, Ctrl elsewhere.
 #ifdef __APPLE__
-constexpr int modKey = superKey;
+constexpr int modKey = 0x0008; // GLFW_MOD_SUPER (Cmd)
 #else
 constexpr int modKey = controlKey;
 #endif

@@ -182,6 +182,9 @@ TEST_CASE("features: composing merges a feature into its namespace and its point
 	CHECK_FALSE(screen.contains("features"));
 	CHECK_FALSE(screen.contains("exports"));
 	CHECK(affresco::format::featureStates(document) == json::parse(R"({"wordCount": {"characters": false}})"));
+	json unchecked = document; // not yet checked: an "enabled" that isn't true or false is off, never an error
+	unchecked["features"]["wordCount"]["enabled"] = "yes";
+	CHECK(affresco::format::featureStates(unchecked) == json::object());
 	CHECK(affresco::format::findFeatureNode(document, "wordCount-label") ==
 	      "/features/wordCount/provides/views/statusBar.right/wordCount-label");
 }

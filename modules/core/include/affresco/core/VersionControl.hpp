@@ -392,6 +392,20 @@ public:
 	/// @return false if there is no such proposal.
 	virtual bool reject(int proposal, std::string_view reason) = 0;
 
+	/// @brief Settles one part a merge left out of a proposal (ProposalInfo::leftOut), as the person chooses: their
+	/// value (the proposal gains the operation that sets that part to it, a commit by the proposal's own author, and
+	/// its head moves, so an approval of the head before is refused) or main's (the part just stops being listed).
+	/// @param proposal The proposal's id.
+	/// @param path The part's path, as its entry in ProposalInfo::leftOut has it.
+	/// @param theirs true for the proposal's value, false to keep main's.
+	/// @param reviewer Who settles it: a reviewer of the person's channel, never the proposal's author.
+	/// @return The error, or std::nullopt.
+	virtual std::optional<std::string> resolveLeftOut(int proposal, std::string_view path, bool theirs,
+	                                                  std::string_view reviewer) {
+		static_cast<void>(proposal), static_cast<void>(path), static_cast<void>(theirs), static_cast<void>(reviewer);
+		return "AffrescoUI screen: this version control leaves nothing out of a proposal";
+	}
+
 	/// @brief Shows a proposal live, as accepting it would, until endPreview() or a commit.
 	/// @param proposal The proposal's id.
 	/// @return The error, or std::nullopt.

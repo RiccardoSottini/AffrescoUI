@@ -139,6 +139,107 @@
 				{ "expect": { "state": "locale", "is": "es" } },
 				{ "expect": { "node": "#settingsTitle", "text": "Ajustes" } }
 			]
+		},
+		{
+			"name": "export-dialog",
+			"steps": [
+				{ "key": "mod+2" },
+				{ "action": "launcher.show", "event": { "mine": [{ "id": "reading-list", "name": "Reading list", "modified": 1760000000000 }] } },
+				{ "wait": 0 },
+				{ "click": "#mineExport" },
+				{ "wait": 0 },
+				{ "expect": { "state": "exporting.open", "is": false } },
+				{ "expect": { "state": "exporting.busy", "is": false } },
+				{ "action": "launcher.export", "event": { "id": "reading-list", "name": "Reading list", "summary": { "kind": "app", "name": "Reading list", "definitions": { "added": ["app.lisp/a", "app.lisp/b"], "changed": [], "removed": [] }, "impact": { "view": 3, "logic": 2 } }, "leftOut": { "records": 12, "commits": 4 } } },
+				{ "wait": 0 },
+				{ "expect": { "state": "exporting.open", "is": true } },
+				{ "expect": { "node": "#exportLine", "text": "The whole app: its files and pictures" } },
+				{ "expect": { "node": "#exportLine", "nth": 1, "text": "2 definitions added, 0 changed, 0 taken away" } },
+				{ "expect": { "node": "#exportLine", "nth": 3, "text": "Left out: 12 records and 4 versions of its history" } },
+				{ "expect": { "node": "#exportNeverLine", "nth": 4, "text": "Where your files are" } },
+				{ "click": "#exportDescription" },
+				{ "type": "Books to read" },
+				{ "expect": { "state": "exporting.description", "is": "Books to read" } },
+				{ "key": "escape" },
+				{ "expect": { "state": "exporting.open", "is": false } }
+			]
+		},
+		{
+			"name": "review-clean",
+			"steps": [
+				{ "action": "launcher.review", "event": { "summary": { "kind": "changes", "name": "Notes that count", "release": "1.1.0", "author": "Robin", "signature": "none", "base": { "app": "notes", "name": "Notes", "release": "1.0.0", "exact": true }, "definitions": { "added": ["app.lisp/total"], "changed": ["app.lisp/count"], "removed": [] }, "impact": { "view": 1, "logic": 2, "data": "none" }, "extensions": { "added": [], "removed": [] }, "writes": [], "uses": [], "state": {}, "assets": [], "problems": [], "conflicts": [] }, "package": { "format": "affrescoui-package", "description": "It counts." } } },
+				{ "wait": 0 },
+				{ "expect": { "state": "page", "is": "install" } },
+				{ "expect": { "node": "#installTitle", "text": "Notes that count" } },
+				{ "expect": { "node": "#installAbout", "text": "Release 1.1.0 · It counts." } },
+				{ "expect": { "node": "#installAuthor", "text": "Says it is by Robin" } },
+				{ "expect": { "node": "#installSignature", "text": "Not signed" } },
+				{ "expect": { "node": "#reviewLine", "text": "What it was made on" } },
+				{ "expect": { "node": "#reviewLine", "nth": 1, "text": "Notes 1.0.0, as you have it" } },
+				{ "expect": { "node": "#reviewLine", "nth": 3, "text": "1 changes to what it shows" } },
+				{ "expect": { "node": "#reviewLine", "nth": 6, "text": "+ app.lisp/total" } },
+				{ "expect": { "node": "#reviewLine", "nth": 7, "text": "~ app.lisp/count" } },
+				{ "expect": { "node": "#installButton", "property": "shown", "is": true } },
+				{ "expect": { "node": "#installCant", "exists": false } },
+				{ "expect": { "state": "install.name", "is": "Notes that count" } },
+				{ "expect": { "node": "#installNameHint", "text": "Its folder: AffrescoUI/notes-that-count" } },
+				{ "click": "#installButton" },
+				{ "wait": 0 },
+				{ "expect": { "state": "install.tried", "is": true } },
+				{ "expect": { "state": "install.busy", "is": false } },
+				{ "expect": { "state": "page", "is": "install" } },
+				{ "click": "#installCancel" },
+				{ "expect": { "state": "page", "is": "mine" } }
+			]
+		},
+		{
+			"name": "review-conflicts",
+			"steps": [
+				{ "action": "launcher.review", "event": { "summary": { "kind": "changes", "name": "Notes, counted twice", "release": "1.1.0", "author": "Robin", "signature": "none", "base": { "app": "notes", "name": "Notes", "release": "0.9.0", "exact": false }, "definitions": { "added": ["app.lisp/total"], "changed": ["app.lisp/count"], "removed": [] }, "impact": { "view": 1, "logic": 2, "data": "none" }, "extensions": { "added": [], "removed": [] }, "writes": [], "uses": [], "state": {}, "assets": [], "problems": ["/program/app.lisp/count was changed here too: it won't merge"], "conflicts": [{ "path": "/program/app.lisp/count", "reason": "changed on both sides" }] } } },
+				{ "wait": 0 },
+				{ "expect": { "node": "#reviewLine", "nth": 1, "text": "Notes 0.9.0, not as you have it: some parts may not merge" } },
+				{ "expect": { "node": "#reviewLine", "nth": 2, "text": "Parts that won't merge" } },
+				{ "expect": { "node": "#reviewLine", "nth": 3, "text": "/program/app.lisp/count" } },
+				{ "expect": { "node": "#installButton", "exists": false } },
+				{ "expect": { "node": "#installName", "exists": false } },
+				{ "expect": { "node": "#installCant", "property": "shown", "is": true } }
+			]
+		},
+		{
+			"name": "review-whole-app",
+			"steps": [
+				{ "action": "launcher.review", "event": { "summary": { "kind": "app", "name": "Field notes", "release": "2.0.0", "author": "", "signature": "unknown:0123456789abcdef", "base": { "app": "field-notes", "name": "Field notes", "release": "2.0.0", "exact": null }, "definitions": { "added": [], "changed": [], "removed": [] }, "impact": { "view": 0, "logic": 0, "data": "none" }, "extensions": { "added": [], "removed": [] }, "writes": [], "uses": [], "capabilities": [{ "capability": "files", "why": "Saves your notes where you choose.", "added": true }], "permissions": ["app.lisp: agent asks"], "seed": [{ "collection": "notes", "file": "seed/notes.json", "records": 3 }], "state": { "title": "Field notes" }, "assets": [{ "name": "cover.png", "type": "image/png", "size": 1200 }], "problems": [], "conflicts": [] } } },
+				{ "wait": 0 },
+				{ "expect": { "node": "#installAuthor", "text": "Says nothing of who made it" } },
+				{ "expect": { "node": "#installSignature", "text": "Signed by a key you don't know (0123456789abcdef)" } },
+				{ "expect": { "node": "#reviewLine", "nth": 1, "text": "A whole app: nothing you have is changed" } },
+				{ "expect": { "node": "#reviewLine", "nth": 2, "text": "What it asks for" } },
+				{ "expect": { "node": "#reviewLine", "nth": 3, "text": "New: files: Saves your notes where you choose." } },
+				{ "expect": { "node": "#reviewLine", "nth": 4, "text": "Who may change it without asking" } },
+				{ "expect": { "node": "#reviewLine", "nth": 5, "text": "app.lisp: agent asks" } },
+				{ "expect": { "node": "#reviewLine", "nth": 7, "text": "title starts as \"Field notes\"" } },
+				{ "expect": { "node": "#reviewLine", "nth": 8, "text": "Picture cover.png" } },
+				{ "expect": { "node": "#reviewLine", "nth": 9, "text": "3 records in notes" } },
+				{ "expect": { "node": "#installButton", "property": "shown", "is": true } },
+				{ "action": "launcher.show", "event": { "mine": [{ "id": "field-notes", "name": "Field notes", "modified": 1760000000000 }] } },
+				{ "wait": 0 },
+				{ "click": "#installButton" },
+				{ "wait": 0 },
+				{ "expect": { "node": "#installNameHint", "text": "You have an app with that name already." } }
+			]
+		},
+		{
+			"name": "refused-file",
+			"steps": [
+				{ "action": "launcher.review", "event": { "error": "The file isn't a version of an app: it has no format." } },
+				{ "wait": 0 },
+				{ "expect": { "state": "page", "is": "install" } },
+				{ "expect": { "node": "#installAbout", "text": "This file can't be installed" } },
+				{ "expect": { "node": "#installRefused", "text": "The file isn't a version of an app: it has no format." } },
+				{ "expect": { "node": "#installButton", "exists": false } },
+				{ "expect": { "node": "#installName", "exists": false } },
+				{ "expect": { "node": "#reviewLine", "exists": false } }
+			]
 		}
 	]
 }

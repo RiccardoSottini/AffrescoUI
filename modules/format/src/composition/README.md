@@ -6,12 +6,12 @@ points and imports are resolved.
 
 | File | Holds |
 |---|---|
-| `Composition.*` | The enabled features merged into the screen, and what kept a feature out |
+| `Composition.*` | The enabled features merged into the screen (a program's built parts too), the hooks and advice accepted, and what kept a feature out |
 | `ComposedVersions.*` | The document's version control as the runtime sees it, with the features merged in |
-| `ContributionPoints.*` | The `points` section, typed exports, a feature's needs and an app's offers |
+| `ContributionPoints.*` | The `points` section, typed exports, a feature's needs, an app's offers and its hook points |
 | `CompositionProof.*` | The proof that a feature from another app fits a host: each check with its reasons |
 | `Contributions.*` | Commands, keybindings, menus and the `context` variable (RFC 0001) |
 
 A feature that doesn't fit is left out, with a problem naming its place, and the rest of the screen is built.
 
-Tests: `tests/unit/features.cpp`, `contributions.cpp`. Fuzz target: `composition`.
+Tests: `tests/unit/features.cpp`, `features_programs.cpp`, `contributions.cpp`. Fuzz target: `composition`.

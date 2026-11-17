@@ -7,6 +7,7 @@ feature as a revision, which version control reviews like any other.
 | File | Holds |
 |---|---|
 | `FeatureManifest.*` | Releases and their ranges, a manifest's shape, and its `features`, `exports` and `imports` |
+| `FeaturePrograms.*` | A feature's program: its names, its build alone, what its code reaches, its hooks and advice |
 | `FeatureCatalog.*` | Catalogue v0: a signed index, and a release's manifest fetched from its folder |
 | `FeatureSignatures.*` | base64url, canonical JSON (RFC 8785), Ed25519 signatures and SHA-512 digests |
 | `Features.cpp` | `Features` (`include/affresco/format/Features.hpp`): trusted publishers, catalogues, revisions |
@@ -16,4 +17,4 @@ that: a manifest of at most 1 MiB, an index of 8 MiB and 10,000 features. A loca
 folder. A feature can't bring a capability section, and one that uses a control step is installed by the host, not by a
 revision.
 
-Tests: `tests/unit/features.cpp`, `signatures.cpp`. Fuzz targets: `feature_manifest`, `catalog_index`, `signature`.
+Tests: `tests/unit/features.cpp`, `features_programs.cpp`, `signatures.cpp`. Fuzz targets: `feature_manifest`, `catalog_index`, `signature`.

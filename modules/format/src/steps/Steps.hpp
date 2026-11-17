@@ -65,6 +65,16 @@ public:
 	/// @throws DocumentError If a step fails, or nobody handles the action.
 	void runNamedAction(const std::string& name, Panel& sender, const json& event, const Scope& locals,
 	                    const std::string& where);
+	/// @brief Runs `app.<need>` for a feature's code: the action the app hands it, `<feature>.adapted.<need>`.
+	/// @param name The action.
+	/// @param sender The panel it comes from.
+	/// @param event The event.
+	/// @param locals The variables.
+	/// @param where Its place, for errors.
+	/// @return Whether it was one: false for any other name, or code no feature's leads to.
+	/// @throws DocumentError If the app hands the feature no such action, or a step fails.
+	bool runForFeature(const std::string& name, Panel& sender, const json& event, const Scope& locals,
+	                   const std::string& where);
 	/// @brief Runs steps in order.
 	/// @param steps A step or an array of steps.
 	/// @param sender The panel it comes from.

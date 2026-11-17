@@ -463,6 +463,54 @@ with open(args[args.index("--revision") + 1], "w") as file:
         self.assertNotIn("author", submitted)  # the host names it
         self.assertNotIn("root", text)
 
+    @unittest.skipIf(os.name == "nt", "the fake tool is a script")
+    def test_a_running_program_is_proven_on_its_source(self):
+        """A program's host sends its source beside what it builds: the tool is given the source, which a scenario of
+        the proof can change a definition of; a JSON host's document is sent as it is."""
+        built = {"program": {"app.lisp": {"main": "(defscreen main (column#root))"}}, "root": {"id": "root"}}
+        source = {"program": built["program"], "features": {}}
+        for reply, sent in (({"document": built, "source": source}, source), ({"document": {"root": {}}}, {"root": {}})):
+            with self.subTest(sent=sent), tempfile.TemporaryDirectory() as folder:
+                server, cli = self.server_with(folder)
+                server.host.reply.update(reply)
+                kept = os.path.join(folder, "sent.json")
+                with open(cli, "a", encoding="utf-8") as file:  # the fake tool keeps the document it was given
+                    file.write(f"import shutil\nshutil.copy(args[args.index('--document') + 1], {kept!r})\n")
+                with unittest.mock.patch.dict(os.environ, {"AFFRESCOUI_CLI": cli}):
+                    text, failed = server.call_tool("check_composition", {"screen": "a.screen.lisp", "feature": "f",
+                                                                          "adapter": {"bind": {}}})
+                self.assertFalse(failed, text)
+                with open(kept, encoding="utf-8") as file:
+                    self.assertEqual(json.load(file), sent)
+
+    @unittest.skipIf(os.name == "nt", "the fake tool is a script")
+    def test_a_feature_written_as_a_program_goes_to_the_tool_as_its_folder(self):
+        """A feature's folder (its feature.lisp and the program files that manifest lists) is handed to the tool
+        whole, which reads the files it lists from inside it; the tools' descriptions say so."""
+        with tempfile.TemporaryDirectory() as folder:
+            server, cli = self.server_with(folder)
+            kept = os.path.join(folder, "arguments.json")
+            with open(cli, "a", encoding="utf-8") as file:  # the fake tool keeps its arguments
+                file.write(f"json.dump(args, open({kept!r}, 'w'))\n")
+            with unittest.mock.patch.dict(os.environ, {"AFFRESCOUI_CLI": cli}):
+                text, failed = server.call_tool("check_composition", {"screen": "a.screen.lisp",
+                                                                      "feature": "features/slide-sorter",
+                                                                      "adapter": {"bind": {}}})
+            self.assertFalse(failed, text)
+            with open(kept, encoding="utf-8") as file:
+                arguments = json.load(file)
+        self.assertEqual(arguments[:2], ["check", "--compose"])
+        self.assertTrue(arguments[3].endswith(os.path.join("features", "slide-sorter")), arguments[3])
+        for name in ("check_composition", "install_feature"):
+            tool = next(tool for tool in mcp.TOOLS if tool["name"] == name)
+            self.assertIn("feature.lisp with the program files it lists",
+                          tool["inputSchema"]["properties"]["feature"]["description"])
+
+    def test_a_programs_source_is_what_the_tools_take(self):
+        self.assertEqual(mcp.source_of({"document": {"root": {}}, "source": {"program": {}}}), {"program": {}})
+        self.assertEqual(mcp.source_of({"document": {"root": {}}}), {"root": {}})
+        self.assertEqual(mcp.source_of({"type": "rejected"}), {})
+
     def test_only_a_screen_file_is_a_host(self):
         server = mcp.Server(os.path.join(HERE, "no-such-folder"), None)
         self.assertEqual(server.call_tool("check_composition", {"screen": "settings.json", "feature": "f"}),

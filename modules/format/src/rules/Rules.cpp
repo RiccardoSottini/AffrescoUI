@@ -33,14 +33,18 @@ namespace {
 /// The most findings a rejected revision lists; it says how many more there are.
 constexpr std::size_t maxListed = 10;
 
-/// @brief The screen a document builds: itself, or composed with its features (Composition.hpp).
+/// @brief The screen a document builds: itself, or composed with its features (Composition.hpp), its program then the
+/// one that runs: the app's own and the files of the features composition merged (lisp::effectiveProgram()).
 /// @param document The document.
 /// @param storage Holds the composed screen when there is one.
 /// @return The screen.
 const json& screenOf(const json& document, json& storage) {
 	// NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): callers pass documents they hold
 	if(!needsComposition(document)) return document;
-	storage = compose(document).screen;
+	Composition composed = compose(document);
+	storage = std::move(composed.screen);
+	if(!composed.merged.empty() && storage.contains("program"))
+		storage["program"] = lisp::effectiveProgram(document, composed.merged);
 	return storage;
 }
 
@@ -312,6 +316,8 @@ std::vector<std::string> Rules::findings(const json& document, const json& state
 		Composition composition = compose(document);
 		lines = std::move(composition.problems);
 		composed = std::move(composition.screen);
+		if(!composition.merged.empty() && composed.contains("program"))
+			composed["program"] = lisp::effectiveProgram(document, composition.merged);
 	}
 	const json& screen = composed.is_null() ? document : composed;
 	for(const Mismatch& mismatch : stateMismatches(screen, state)) // a state kept on disk may predate its types
@@ -327,17 +333,23 @@ std::vector<std::string> Rules::findings(const json& document, const json& state
 
 void Rules::addNativeAction(std::string name) { nativeActions_.insert(std::move(name)); }
 
+// The program a document runs holds its features' files: their service uses and record writes are the app's
 std::vector<std::string> Rules::reviewLines(const json& before, const json& after) const {
-	std::vector<std::string> lines = serviceReviewLines(before, after, services_);
-	std::vector<std::string> data = dataReviewLines(before, after, data_);
+	json keptBefore, keptAfter;
+	const json& ran = runningView(before, keptBefore, false);
+	const json& runs = runningView(after, keptAfter, false);
+	std::vector<std::string> lines = serviceReviewLines(ran, runs, services_);
+	std::vector<std::string> data = dataReviewLines(ran, runs, data_);
 	lines.insert(lines.end(), std::make_move_iterator(data.begin()), std::make_move_iterator(data.end()));
 	addExtensionReviewLines(before, after, lines);
 	return lines;
 }
 
 json Rules::impact(const json& before, const json& after) const {
-	json impact = dataImpact(before, after, data_);
-	impact["logic"] = impact["logic"].get<std::size_t>() + programLogic(before, after); // what the tree doesn't show
+	json keptBefore, keptAfter;
+	json impact = dataImpact(runningView(before, keptBefore, false), runningView(after, keptAfter, false), data_);
+	// What the tree doesn't show
+	impact["logic"] = impact["logic"].get<std::size_t>() + programLogic(before, after);
 	return impact;
 }
 

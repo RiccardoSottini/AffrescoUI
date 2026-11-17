@@ -1,8 +1,8 @@
 #pragma once
 
 /// @file
-/// @brief The `features` provider (RFC 0004): what the host's catalogues offer, and installing or upgrading a feature
-/// from them by revision. Enabling, disabling and removing are revisions on `/features/<name>` a screen submits itself.
+/// @brief The `features` provider (RFC 0004): what the host's catalogues offer, and installing, upgrading, enabling,
+/// disabling and removing a feature by revision. An upgrade keeps the edits made to a record in place.
 
 #include "affresco/format/Features.hpp"
 #include "affresco/services/Provider.hpp"

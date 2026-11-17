@@ -33,6 +33,28 @@ using notation::TokenKind;
 /// How many sections' builds a thread keeps: a revision judges two, a proposal's rebase two more.
 constexpr std::size_t keptBuilds = 4;
 
+/// How many a thread keeps once a section with features' files is built: a revision on an app with eight features
+/// judges each feature's program alone (Composition) and the app's effective program before and after, twice for a
+/// proposal's rebase.
+constexpr std::size_t keptFeatureBuilds = 24;
+
+/// The prefix of the files a feature's program brings into an effective program.
+constexpr std::string_view featuresPrefix = "features/";
+
+/// @brief How many sections builtProgram() built on this thread (programBuilds()).
+/// @return The count, to change.
+std::size_t& buildsMade() noexcept {
+	thread_local std::size_t made = 0;
+	return made;
+}
+
+/// @brief How many builds the thread keeps now: keptBuilds, then keptFeatureBuilds for good (keepFeatureBuilds()).
+/// @return The limit, to change.
+std::size_t& keptLimit() noexcept {
+	thread_local std::size_t limit = keptBuilds;
+	return limit;
+}
+
 /// What a program can't build: what is read when a file is, or what only a revision brings.
 constexpr std::array<std::string_view, 5> unbuildable = {"include", "assets", "features", "program", "$schema"};
 
@@ -459,6 +481,42 @@ Program programOf(const json& section, const json& authors) {
 	return program;
 }
 
+namespace {
+
+/// @brief Tells whether a section holds files a feature brought (effectiveProgram()).
+/// @param section The section.
+/// @return Whether it does.
+bool holdsFeatureFiles(const json& section) {
+	if(!section.is_object()) return false;
+	return std::ranges::any_of(section.items(), [](const auto& file) { return file.key().starts_with(featuresPrefix); });
+}
+
+/// @brief The enabled features of a "features" section that hold a program, among those named, by `order`, then by
+/// name; a record of the wrong shape is left out.
+/// @param records The section.
+/// @param features The features to take.
+/// @return `(order, name)`, sorted.
+std::vector<std::pair<long long, std::string>> featureOrder(const json& records, std::span<const std::string> features) {
+	std::vector<std::pair<long long, std::string>> order;
+	for(const std::string& name : features) {
+		const auto record = records.find(name);
+		if(record == records.end() || !record->is_object() || name.empty() || name.contains('/'))
+			continue;
+		const auto enabled = record->find("enabled");
+		const auto provides = record->find("provides");
+		if(enabled == record->end() || *enabled != true || provides == record->end() || !provides->is_object()) continue;
+		const auto program = provides->find("program");
+		if(program == provides->end() || !program->is_object()) continue;
+		const auto rank = record->find("order");
+		order.emplace_back(rank != record->end() && rank->is_number_integer() ? rank->get<long long>() : 0LL, name);
+	}
+	std::ranges::sort(order);
+	order.erase(std::ranges::unique(order).begin(), order.end());
+	return order;
+}
+
+} // namespace
+
 std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 	thread_local std::vector<std::pair<json, std::shared_ptr<const BuiltProgram>>> kept;
 	const auto found = std::ranges::find_if(kept, [&](const auto& build) { return build.first == section; });
@@ -467,9 +525,45 @@ std::shared_ptr<const BuiltProgram> builtProgram(const json& section) {
 		return kept.front().second;
 	}
 	std::shared_ptr<const BuiltProgram> built = buildSection(section);
-	if(kept.size() >= keptBuilds) kept.pop_back();
+	++buildsMade();
+	if(holdsFeatureFiles(section)) keepFeatureBuilds();
+	if(kept.size() >= keptLimit()) kept.pop_back();
 	kept.emplace(kept.begin(), section, built);
 	return built;
+}
+
+std::size_t programBuilds() noexcept { return buildsMade(); }
+
+void keepFeatureBuilds() noexcept { keptLimit() = keptFeatureBuilds; }
+
+std::string featureFiles(std::string_view name) { return std::string(featuresPrefix) + std::string(name) + "/"; }
+
+std::string featureOfFile(std::string_view file) {
+	if(!file.starts_with(featuresPrefix)) return {};
+	const std::string_view rest = file.substr(featuresPrefix.size());
+	const std::size_t slash = rest.find('/');
+	return slash == std::string_view::npos || slash == 0 ? std::string() : std::string(rest.substr(0, slash));
+}
+
+json effectiveProgram(const json& document) {
+	std::vector<std::string> all;
+	if(const auto features = document.is_object() ? document.find("features") : json::const_iterator();
+	   document.is_object() && features != document.end() && features->is_object())
+		for(const auto& [name, record] : features->items()) all.push_back(name);
+	return effectiveProgram(document, all);
+}
+
+json effectiveProgram(const json& document, std::span<const std::string> features) {
+	if(!document.is_object()) return nullptr;
+	const auto own = document.find("program");
+	if(own == document.end()) return nullptr;
+	json program = *own;
+	const auto records = document.find("features");
+	if(!program.is_object() || records == document.end() || !records->is_object()) return program;
+	for(const auto& [order, name] : featureOrder(*records, features))
+		for(const auto& [file, entries] : records->at(name).at("provides").at("program").items())
+			if(entries.is_object()) program[featureFiles(name) + file] = entries;
+	return program;
 }
 
 namespace {

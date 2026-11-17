@@ -25,11 +25,13 @@ add_library(affrescoui
 	# features: the service that proves and installs compositions across apps
 	src/features/FeaturesService.cpp)
 add_library(affrescoui::affrescoui ALIAS affrescoui)
+# packages: a screen's packages and the service that exports and installs them
+target_sources(affrescoui PRIVATE src/ScreenPackages.cpp src/packages/PackagesService.cpp)
 target_include_directories(affrescoui PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/screen/include>)
 set_target_properties(affrescoui PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(affrescoui PRIVATE ${AFFRESCOUI_WARNINGS})
 # The version an editor's `describe` reports (Screen::listenEditor())
-set_source_files_properties(src/ScreenEditor.cpp PROPERTIES COMPILE_DEFINITIONS AFFRESCOUI_VERSION="${PROJECT_VERSION}")
+set_source_files_properties(src/ScreenEditor.cpp src/packages/PackagesService.cpp PROPERTIES COMPILE_DEFINITIONS AFFRESCOUI_VERSION="${PROJECT_VERSION}")
 # The features service proves compositions across apps (CompositionProof.hpp) and submits their install revisions
 target_include_directories(affrescoui PRIVATE $<TARGET_PROPERTY:affrescoui_format,INCLUDE_DIRECTORIES>
 	${PROJECT_SOURCE_DIR}/modules/vcs/src

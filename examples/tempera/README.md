@@ -15,7 +15,7 @@ in JSON, also by hand: the Launcher's Settings choose which one opens, the same 
 
 ```sh
 ./build/affrescoui_launcher examples/tempera/lisp/index.screen.lisp --socket out/s   # opens the sample
-./build/affrescoui test examples/tempera/lisp/*.scenarios.json                       # the 62 scenarios (ctest: scenarios)
+./build/affrescoui test examples/tempera/lisp/index.scenarios.json                   # the 62 scenarios (ctest: scenarios)
 ```
 
 It opens a generated sample (1200 × 800: Sky, Sun and Hills), drawn by `onLoad`.
@@ -37,9 +37,9 @@ can't work yet is shown disabled, its tooltip saying "not available yet".
 | `lisp/menubar.lisp`, `options.lisp`, `tools.lisp`, `canvas.lisp` | The menu bar, the options bar, the tools bar, the canvas with rulers, guides and status bar |
 | `lisp/panels.lisp`, `properties.lisp`, `layers.lisp`, `dialogs.lisp` | The dock and its panels, and the dialogs |
 | `lisp/look.lisp`, `locales/` | The palette and styles; the text in English, Spanish and French |
-| `lisp/index.scenarios.json`, `agent.scenarios.json` | 61 scenarios, and an agent's proposal of a Filters panel to the program, run headless (they stay JSON) |
+| `lisp/index.scenarios.json` | 62 scenarios, an agent's proposal of a Filters panel to the program among them, run headless (they stay JSON); the slide sorter's proof plays them all |
 | `PARITY.md` | What a daily user of a professional editor finds, row by row, and how far Tempera has come, round by round |
-| `lisp/sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent |
+| `lisp/sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent. The Lisp Tempera installs the sorter written as a program (`sorter.lisp`), the JSON one its JSON manifest |
 
 The pixels stay in the library. The `images` section declares `doc`, and the state `doc` mirrors it after every step:
 the layers (top first) with their thumbnails (`doc/layer/<id>`), the history, the selection's bounds, the colours, the

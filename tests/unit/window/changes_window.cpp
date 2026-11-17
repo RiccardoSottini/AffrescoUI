@@ -3,11 +3,14 @@
 /// whatever that proposal does to the app, and a review it saw is the only one it can accept. Its Source page shows
 /// where an element is written, in either notation, with the line asked for marked and the commit that last changed it.
 /// Before it undoes an applied change, it shows what the undo would do (the host's plan), and undoes as the person.
+/// What a merge left out of a proposal it lists, each part's two sides, for the person to keep or take.
 
 #include "../../../apps/host/ChangesWindow.hpp"
 
 #include <affresco/affresco.hpp>
+#include <affresco/format/PackageFiles.hpp>
 #include <affresco/lisp/Document.hpp>
+#include <affresco/render/Accessibility.hpp>
 
 #include <doctest/doctest.h>
 
@@ -533,4 +536,89 @@ TEST_CASE("changes window: a program's assistant is found as a JSON document's i
 	affresco::Window& window = screen.createWindow(app);
 	const host::ChangesWindow changes(app, screen, window, changesScreen("lisp"));
 	CHECK(stateOf(openOnNewest(window, changes))["list"]["canAsk"] == true);
+}
+
+namespace {
+
+/// @brief Writes an app "notes" whose screen holds a program of one definition: generated test data only.
+/// @param folder Its folder, made.
+/// @return The folder.
+std::filesystem::path writeNotes(const std::filesystem::path& folder) {
+	std::filesystem::create_directories(folder);
+	writeText(folder / "app.json", R"({ "format": "affrescoui-app", "version": 1, "id": "notes", "name": "Notes",
+		"release": "1.0.0", "entry": "index.screen.json" })");
+	writeText(folder / "index.screen.json", R"json({ "format": "affrescoui-screen", "version": 2,
+		"window": { "title": "app", "width": 400, "height": 300 },
+		"program": { "app.lisp": { "count": "(defn count [] 1)" } },
+		"root": { "id": "root", "children": [{ "id": "title", "type": "label", "text": "One" }] } })json");
+	return folder;
+}
+
+/// @brief A package of "notes" whose count is 2, with a definition added, and a proposal of it on a copy whose count the person made 3.
+/// @param root Where both copies are made.
+/// @return The person's copy, with the proposal waiting.
+Screen leftOutProposal(const std::filesystem::path& root) {
+	Screen sharer = Screen::fromApp(writeNotes(root / "sharer"), root / "sharer-data", Screen::History::OnDisk);
+	const json two = {{{"op", "replace"}, {"path", "/program/app.lisp/count"}, {"value", "(defn count [] 2)"}},
+	                  {{"op", "add"}, {"path", "/program/app.lisp/label"}, {"value", "(defn label [] \"Two\")"}}};
+	REQUIRE_FALSE(sharer.versions().commit({{"author", "studio"}, {"message", "Two"}, {"patch", two}}));
+	affresco::format::PackageOptions options;
+	options.name = "Counting";
+	options.release = "1.1.0";
+	options.engine = "1.0.0";
+	const std::string package = affresco::format::packageJson(sharer.exportPackage(options)).dump();
+
+	Screen person = Screen::fromApp(writeNotes(root / "person"), root / "person-data", Screen::History::OnDisk);
+	const json three = {{{"op", "replace"}, {"path", "/program/app.lisp/count"}, {"value", "(defn count [] 3)"}}};
+	REQUIRE_FALSE(person.versions().commit({{"author", "user"}, {"message", "Three"}, {"patch", three}}));
+	std::string error;
+	REQUIRE_MESSAGE(person.proposePackage(package, &error).status == affresco::RevisionStatus::Proposed, error);
+	return person;
+}
+
+} // namespace
+
+TEST_CASE("changes window: what a merge left out is listed, both sides, and the person's choice settles it") {
+	for(const std::string notation : {"json", "lisp"}) {
+		CAPTURE(notation);
+		const TemporaryFolder folder;
+		affresco::Application app({nullptr, true});
+		Screen screen = leftOutProposal(folder.path());
+		affresco::Window& window = screen.createWindow(app);
+		const host::ChangesWindow changes(app, screen, window, changesScreen(notation));
+		pressShortcut(window);
+		Screen* own = changes.opened();
+		REQUIRE(own != nullptr);
+		own->runAction("changes.refresh", window.root());
+		json state = stateOf(*own);
+		REQUIRE(state["list"]["proposals"].size() == 1);
+		const json& part = state["list"]["proposals"][0]["leftOut"];
+		REQUIRE(part.size() == 1);
+		CHECK(part[0] == json{{"path", "/program/app.lisp/count"},
+		                      {"mine", "(defn count [] 3)"},
+		                      {"theirs", "(defn count [] 2)"}});
+		const std::string seen = state["view"]["head"].get<std::string>();
+
+		affresco::Panel* root = own->find("changesRoot");
+		REQUIRE(root != nullptr);
+		REQUIRE(root->window() != nullptr);
+		root->window()->render(); // the window draws what the host answered
+		CHECK(own->find("changesNotMerged") != nullptr);
+		affresco::Panel* useTheirs = own->find("changesUseTheirs0");
+		REQUIRE(useTheirs != nullptr);
+		REQUIRE(useTheirs->window() != nullptr);
+		CHECK(affresco::performAccessibleAction(*useTheirs->window(), *useTheirs, affresco::AccessibleAction::Press));
+		root->window()->render(); // the press runs, and the host answers
+		own->runAction("changes.refresh", window.root());
+		root->window()->render();
+		state = stateOf(*own);
+		CHECK(state["message"] == "");
+		CHECK(state["list"]["proposals"][0]["leftOut"] == json::array());
+		CHECK(state["view"]["head"] != seen); // its head moved: shown again, as it is now
+		CHECK(own->find("changesUseTheirs0") == nullptr);
+
+		own->runAction("changes.accept", window.root());
+		CHECK(stateOf(*own)["message"] == "");
+		CHECK(screen.versions().sourceDocument()["program"]["app.lisp"]["count"] == "(defn count [] 2)");
+	}
 }

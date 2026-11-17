@@ -1821,7 +1821,7 @@ without `app.json` reads `app.lisp`. A generated example:
   "$schema": "../../schema/affrescoui-app.schema.json",
   "format": "affrescoui-app", "version": 1,
   "id": "reading-list", "name": "Reading list", "description": "Books to read, and notes on the ones read.",
-  "icon": "assets/icon.png",
+  "icon": "assets/icon.png", "release": "1.2.0",
   "entry": "index.screen.json",
   "themes": ["themes/paper.json"],
   "capabilities": {
@@ -1841,6 +1841,9 @@ without `app.json` reads `app.lisp`. A generated example:
   the app's own choice, so it is bound to the folder that first opens it (recorded in the folder's `location`): an
   app elsewhere with the same id keeps its data, and the host the person's permissions, in `apps/<id>~<hash>/`, its
   own. A screen opened on its own is bound to its file the same way (`<data folder>/<screen name>.location`).
+- **`release`** (optional): the app's release, three numbers as a feature's (`"1.2.0"`, compared as semver's). A
+  shared version of the app names the release it was made from; an app without one is known by its files alone. A
+  malformed one refuses the app (`AffrescoUI app: release: expected three numbers such as 1.0.0`).
 - **`entry`** (default `index.screen.json`): the screen it opens, a `.json` file or a `.lisp` one (its includes, themes,
   models and seed data may be written in the Lisp notation too: "The Lisp notation"). Every path in the manifest is relative, inside the
   folder (no `..`, no link leading out), and is refused otherwise. The entry screen's `include`s, and theirs, are
@@ -1873,6 +1876,14 @@ without `app.json` reads `app.lisp`. A generated example:
 
 Limits: the manifest at most 256 KiB, a name 100 characters, a reason 300, 64 entries of each kind, 256 assets, a
 theme, models or seed file 16 MiB.
+
+## Packages
+A version of an app travels as one file, a package (`*.affresco.json`, `"format": "affrescoui-package"`,
+[schema](schema/affrescoui-package.schema.json)): its source document, the release it was made from (`base`: the app's
+id, name and release, the notation, the tree, and the JSON Patch that turns the document back into it), the state keys
+and assets it adds, and, for `"kind": "app"`, the app's files. It holds no records, state, history or paths. `affrescoui
+pack` writes one, `affrescoui inspect` reads one; see [Version control](VERSION_CONTROL.md), "Sharing a version:
+packages".
 
 ## Live screens: revisions and the channel
 
@@ -1930,6 +1941,7 @@ line:
 | peer → | `getPicks` (no fields; answers the elements the person pointed at and has not sent or removed, oldest first, 16 at most: pick records of each one's node, type, JSON Pointer, bounds, bindings as written and source, never a value from the state), `getSource` (`at`: a node's id, a JSON Pointer to a node, or a definition's address; answers the definition or file that writes it, with its notation and its text of 16 KiB at most). A peer whose reads are limited is refused both, and a host that keeps no picks or sources rejects them |
 | peer → | `convert` (`notation`: `"lisp"` or `"json"`, and `text` to read or `value` to write; a mistake is rejected with its line and column): how a peer reads and writes the Lisp notation, while revisions and the history stay JSON |
 | reviewer → | `accept` (`proposal`, `head`, `dontAskAgain`?), `reject`, `preview`, `endPreview`, `setMode`, `revoke` |
+| reviewer → | `resolve` (`proposal`, `path`, `take`: "mine" or "theirs"): settles a part a merge left out of a proposal (its leftOut: VERSION_CONTROL.md, "Installing a package"). Taking theirs adds the part to the proposal as its author's and moves its head; taking mine keeps main's. Never by its proposal's author; answered with done or rejected |
 | peer → | `getCommands` (`filter`?, `all`?), `runCommand` (`command`, `arguments`?, `evidence`?: "state", "picture" or "none", `scale`?), `undoRun` (`run`): the app's commands as tools (Commands as tools) |
 | → peer | answers to them: `commands` (a list of `{name, title, category, description, arguments, enabled, run, reason?, key?}`, `run` being "allow", "ask", "person" or "deny" for this peer now), `ran` (`run`, `command`, `changed`, `records`, `errors`, `failed`, `undoable`, and with a picture `region`, `picture`, `scale`), `waiting` (`run`, `reason`, `expires`), `undone` or `rejected`; after a wait, `ran` or `rejected` with `run` and the `id` of its `runCommand` |
 | reviewer → | `allowRun` (`run`, `always`?, `for`?), `denyRun` (`run`, `reason`?), `revokeRun` (`rule`) |
@@ -2291,6 +2303,65 @@ capabilities, checks the composed document, then plays the feature's scenarios a
 (`"format": "affrescoui-proof"`) records the bindings, each check, the scenarios and the base commit; a failed one
 names each unmet need and why. An install keeps the record whole on `/features/<name>`, with its `needs`, `bindings`
 and `proof` ([Version control](VERSION_CONTROL.md), "Installing across apps").
+
+## A feature written as a program
+
+A feature for an app written as a program may hold Lisp definitions instead of, or beside, its JSON parts. They go in
+`provides.program`, in the shape of a document's `program` section, `{ "<file>": { "<address>": "<text>" } }`, and in
+the package as `features/<name>/feature.lisp`. The record keeps the program whole, within the manifest's 1 MiB. A
+static app (no `program` section) refuses it: "this feature holds code, and this app is static: install its JSON
+version".
+
+The program is built alone, and every definition is named in the feature's namespace:
+
+| Definition | Its name |
+|---|---|
+| `defstate`, `defcomputed` | the feature's name, `wordCount` |
+| `defcommand` | `wordCount.<word>` (not `wordCount.adapted.*`, the adapter's) |
+| `defview`, `defn`, `def`, `defmacro`, `defstyle`, `defcomponent`, `defpart`, `defcustom`, `defhook` | `wordCount-<word>` |
+| `defkey`, `add-hook`, `remove-hook`, `advice` | as written |
+| `defscreen`, `defdefaults`, `defmenu`, `deftokens`, `include` | refused |
+
+What it builds must be parts a feature provides (`state`, `computed`, `actions`, `components`, `styles`, `keys`,
+`menus`, `settings`, `views`, `exports`), each member in its namespace (actions `wordCount.*`, node ids
+`wordCount-*`), with no control step; a member both the JSON parts and the program give must be the same. A build
+that fails or runs out of its budget is refused, naming the definition.
+
+Its code may reach its own definitions, the language's functions, the expressions' functions and the steps `set`,
+`toggle`, `push`, `remove-state` (each with its path written out, under `state.wordCount`), `after`, `debounce`,
+`copy`, `log` and `run`, which names, written out, one of its own commands or `app.<need>` for an action need. Any
+other step or undefined name is refused. A view may read `app.<need>`; a command's or a function's body reads only the
+feature's own values: what else it needs, "pass it to the function as an argument from the view". A hook joins only a
+hook point the app declares with `defhook` and lists in `points.<name>.hooks` of a point the feature is placed in;
+advice only an action export such a point receives. Composition lists each in `extensions`. The functions don't run
+in the screen yet: what composes is what they built.
+
+In a feature's folder, `feature.lisp` may list the files instead: `:program ["sorter.lisp"]` reads each file, which
+must be in the folder, into `provides.program` (`affrescoui check --compose`, `contributions` and the MCP server read
+the folder so). Sinopia's slide sorter (`examples/sinopia/lisp/features/slide-sorter/sorter.lisp`) begins:
+
+```lisp
+;;; sorter.lisp --- the slide sorter: thumbnails of an ordered list of pages, drag to reorder, click to select
+;;;
+;;; Written once, for Sinopia's slides, and installed into any app that offers its needs (feature.lisp): it reads
+;;; the app only as app.pages and app.current, and changes it only through the actions app.select, app.reorder and
+;;; app.duplicate. Its own state is the page picked last, the selection of an app that keeps none.
+
+;;; Its state
+
+(defstate slideSorter {:picked ""} "The id of the page picked last: the selection when the app has no current page.")
+
+;;; What it does
+
+(defn slideSorter-selected
+  "The selected page: the app's current page, else the one picked last."
+  [current]
+  (if (nil? current) state.slideSorter.picked current))
+
+(defcommand slideSorter.pick
+  "Selects a page: the sorter remembers it, and the app selects it."
+  :title "Select Page"
+```
 
 ## Other formats
 

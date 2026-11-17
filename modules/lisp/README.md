@@ -37,7 +37,7 @@ checked by author (`modules/format/src/programs/`; SECURITY.md, "The Lisp langua
 | `Value.hpp` | `Value`, `Kind`, `Place`: JSON's values plus symbols, keywords, lists and functions |
 | `Interpreter.hpp` | `Interpreter` (`addAppVariable`, `eval`, `evaluate`, `expandsToDefinition`, `extensions`, `definitionNames`, `wrapGlobal`, `makeFunction`, `Sealed`, `addAuthorsThatRan`, `authorsOf`, `call`, `global`, `describe`, `definePrimitive`, `setGate`, `setPure`, `authorsOnStack`, `authorsThatRan`, `leastAuthority`, `authorOf`, `definitionNameOf`, `parametersOf`, `isProgramFunction`, `workOutDefinitions`, `viewJson`, `toTree`, `print`, `budget`, `setBudget`, `Transient`), `Limits`, `Budget`, `Primitive`, `Gate`, `CallContext`, `Refusal`, `LispError`, `DefinitionInfo` |
 | `Program.hpp` | `Program` (`addFile`, `addEntry`, `addEntryUnread`, `entries`, `definePure`, `load`, `build`, `extensions`, `undefinedNames`, `truthTests`, `namesUsed`, `namedCalls`, `recordOrigins`, `nodePlaces`), `NamedCalls`, `CallsByName`, `NodePlace`, `Entry`, `splitEntries`, `isProgram`, `needsRunning`, `buildText`, `UndefinedName`; forms in a text a person has in hand: `formBefore`, `formAround`, `formsOf`, `FormAt` |
-| `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `nodeOrigins` (`NodeOrigin`), `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits; `findKeyword` and `withKeyword`, a keyword's value in any text of Lisp, read and replaced by tokens |
+| `Document.hpp` | A document holding a program: `readDocument` and `jsonText` (what a loader goes through), `sourceDocument`, `programOf`, `builtProgram`, `effectiveProgram` (`featureFiles`, `featureOfFile`), `programBuilds`, `keepFeatureBuilds`, `nodeOrigins` (`NodeOrigin`), `buildDocument`, `checkProgramShape`, `replaceKeyword`, `keywordValueText`, and their limits; `findKeyword` and `withKeyword`, a keyword's value in any text of Lisp, read and replaced by tokens |
 
 ## Values
 
@@ -226,6 +226,15 @@ one data value, a **template**.
   building a built document gives itself), and `program` kept. `builtProgram` keeps a thread's last four builds per section, since a
   revision judges before and after, and a build under a document has tighter limits than running does (`maxBuildOperations`,
   `maxBuildBytes`), as every revision pays for one.
+- **The program that runs.** `effectiveProgram(document)` is the document's own `program`, then the files of every enabled
+  `features` record whose `provides.program` holds some, each named `features/<name>/<file>`, the features in their `order`,
+  then by name (`effectiveProgram(document, names)` takes the features to add, those a composition merged). It checks
+  nothing: a malformed record is left out. A document with no `program` gives none, and with no feature program it gives
+  the document's own section, byte for byte. `buildDocument` reads the document's own program; what runs, and what judges
+  reach, reads the effective one; `featureOfFile` tells a feature's file from the document's. Once a section with features'
+  files is built (or `keepFeatureBuilds` is called, as composition does before it builds a feature's program alone),
+  `builtProgram` keeps 24 builds on that thread, so a revision on an app with eight features builds no section twice;
+  `programBuilds` counts them, for the tests.
 - **Where a node comes from.** `nodeOrigins(section)` gives, by node id, the definition that holds the form that built the node:
   its file and name (the address `/program/<file>/<definition>`), its kind, and the line and column of the node's `(` inside the
   definition's own text (the history keeps definitions; a file on disk may be laid out differently). A view's node comes from that
