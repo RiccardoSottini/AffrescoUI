@@ -678,6 +678,8 @@ bool proposeOn(const PackagesGrant& grant, const fs::path& manifest, const std::
 json installVersion(const PackagesGrant& grant, const json& with, const std::stop_token& stop) {
 	const std::string id = with.at("id").get<std::string>(), name = with.at("name").get<std::string>();
 	if(!isAppId(id)) throw PackagesFailure("invalid", "id: expected an app's id ([a-z0-9-]), not a path");
+	// "shared" holds the kits every app in the root includes, "launcher" the Launcher: never an installed app
+	if(id == "shared" || id == "launcher") throw PackagesFailure("invalid", "id: '" + id + "' is kept for the root's own");
 	if(grant.writable.empty() || !grant.roots.contains(grant.writable))
 		throw PackagesFailure("refused", "no root is granted to install into");
 	std::string text;

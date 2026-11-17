@@ -220,12 +220,13 @@ TEST_CASE("packages service: an existing id, a path or a stopped install leaves 
 	CHECK(read(folders.apps / "taken" / "note.txt") == "mine");
 	CHECK(!fs::exists(folders.apps / "taken" / "app.json"));
 
-	for(const char* path : {"../evil", "/tmp/evil", "a/b", "Evil", "-x"}) {
+	for(const char* path : {"../evil", "/tmp/evil", "a/b", "Evil", "-x", "shared", "launcher"}) {
 		CAPTURE(path);
 		const auto refused = failure([&] {
 			static_cast<void>(detail::installVersion(grant, {{"package", package}, {"id", path}, {"name", "E"}}, {}));
 		});
 		CHECK(refused.first == "invalid");
+		CHECK(!fs::exists(folders.apps / path));
 	}
 	CHECK(failure([&] {
 		      json arguments = exportArguments();
