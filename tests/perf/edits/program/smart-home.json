@@ -1,0 +1,14 @@
+{
+	"change-colour": {
+		"message": "Sky blue accent",
+		"change": [{ "definition": "look.lisp/part.colours", "from": ":accent {:dark \"#9ea3ff\" :light \"#4048b0\"}", "to": ":accent \"#0ea5e9\"" }]
+	},
+	"rename-label": {
+		"message": "Call the app Home",
+		"change": [{ "definition": "shell.lisp/sidebar", "from": ":text \"Haven\"", "to": ":text \"Home\"" }]
+	},
+	"add-node": {
+		"message": "Say when away mode is off",
+		"change": [{ "definition": "home.lisp/home-page", "append": "(label :text \"Away mode is off\" :textColor @muted :anchors {:left 32 :bottom 24} :fitText true)" }]
+	}
+}
