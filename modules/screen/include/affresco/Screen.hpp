@@ -592,12 +592,16 @@ public:
 	/// @return The summary; its "problems" are empty if it can be installed.
 	/// @throws DocumentError If it isn't a package, naming the place.
 	[[nodiscard]] json inspectPackage(std::string_view packageJson, const json& trustedPublishers) const;
-	/// @brief Whether a package of kind App's own files are the base it describes: written in a scratch folder and
-	/// opened there, their document must have its base.tree, or what is installed isn't what inspecting it showed.
+	/// @brief Whether a package of kind App's own files are the base it describes: opened, their document must have
+	/// its base.tree, or what is installed isn't what inspecting it showed.
 	/// @param packageJson The package's file.
+	/// @param placed The folder they were written into (installAppFiles), opened there beside the shared folder the
+	/// app will include; if empty, they are written in a scratch folder, and files that don't open there (an include
+	/// of the shared folder) are checked only where they are installed.
 	/// @return "" if they are (or it is a package of changes), else why not.
 	/// @throws DocumentError If it isn't a package, naming the place.
-	[[nodiscard]] static std::string appFilesProblem(std::string_view packageJson);
+	[[nodiscard]] static std::string appFilesProblem(std::string_view packageJson,
+	                                                 const std::filesystem::path& placed = {});
 	/// @brief Installs a package as a proposal that only the person can accept (VERSION_CONTROL.md, "Installing a
 	/// package"): its changes since its base, merged into this screen's document as "plugin:<name>", with its assets
 	/// and the state keys this screen lacks. What doesn't merge is left out, for the person to choose. Never applied.

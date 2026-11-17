@@ -202,6 +202,28 @@ TEST_CASE("packages service: a whole app, exported and installed from its own fi
 	CHECK(refused.second.contains("aren't the base it describes"));
 	CHECK(!fs::exists(folders.apps / "hidden"));
 
+	// An app that includes the shared folder beside it opens as its base where it is installed, beside that folder
+	for(const fs::path& root : {folders.examples, folders.apps})
+		write(root / "shared" / "kit.json", R"({ "tokens": { "kitGap": 2 } })");
+	write(folders.examples / "kit" / "json" / "app.json", R"({ "format": "affrescoui-app", "version": 1, "id": "kit",
+		"name": "Kit", "release": "1.0.0", "entry": "index.screen.json" })");
+	write(folders.examples / "kit" / "json" / "index.screen.json", R"json({ "format": "affrescoui-screen",
+		"version": 2, "include": ["../../shared/kit.json"],
+		"root": { "type": "label", "id": "title", "text": "Kit" } })json");
+	const json kit =
+	    detail::exportVersion(grant, {{"root", "examples"}, {"app", "kit"}, {"name", "Kit"}, {"whole", true}}, {});
+	CHECK(detail::installVersion(grant, {{"package", kit["package"]}, {"id", "kit"}, {"name", "Kit"}}, {}) ==
+	      json{{"id", "kit"}, {"sub", "/json"}, {"proposal", false}});
+	// and the same files with a definition hidden in them are refused there, leaving nothing
+	json hiddenKit = kit["package"];
+	json kitScreen = json::parse(hiddenKit["base"]["files"]["index.screen.json"]["text"].get<std::string>());
+	kitScreen["program"]["app.lisp"]["hidden"] = "(defn hidden [] 1)";
+	hiddenKit["base"]["files"]["index.screen.json"]["text"] = kitScreen.dump();
+	CHECK(failure([&] {
+		static_cast<void>(detail::installVersion(grant, {{"package", hiddenKit}, {"id", "kit-2"}, {"name", "K"}}, {}));
+	}).second.contains("aren't the base it describes"));
+	CHECK(!fs::exists(folders.apps / "kit-2"));
+
 	// Without the app it was made on in another root, a copy's changes are the whole app
 	fs::remove_all(folders.examples / "notes");
 	CHECK(detail::exportVersion(grant, exportArguments(), {})["package"]["kind"] == "app");

@@ -321,12 +321,14 @@ std::optional<std::filesystem::path> installTarget(const Arguments& arguments, c
 		throw UsageError(folder ? "expected a package file" : "expected an app and a package file");
 	if(!folder) return std::filesystem::path(arguments.positional()[0]);
 	try {
-		// what is written is what inspecting it showed, or nothing
-		if(const std::string problem = Screen::appFilesProblem(text); !problem.empty()) {
+		format::installAppFiles(package, *folder);
+		// what is written is what inspecting it showed, or nothing: the folder, new, is removed
+		if(const std::string problem = Screen::appFilesProblem(text, *folder); !problem.empty()) {
+			std::error_code error;
+			std::filesystem::remove_all(*folder, error);
 			std::cout << "refused: " << printable(problem) << '\n';
 			return std::nullopt;
 		}
-		format::installAppFiles(package, *folder);
 	} catch(const DocumentError& error) {
 		std::cout << "refused: " << printable(error.what()) << '\n';
 		return std::nullopt;

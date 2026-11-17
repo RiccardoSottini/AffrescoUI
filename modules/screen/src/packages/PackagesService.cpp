@@ -688,14 +688,15 @@ json installVersion(const PackagesGrant& grant, const json& with, const std::sto
 	if(package.kind == format::PackageKind::Changes) {
 		base = baseCopy(grant, package);
 		if(!base) throw PackagesFailure("refused", "base.app: made for " + package.base.name + ", which isn't here");
-	} else if(const std::string problem = Screen::appFilesProblem(text); !problem.empty()) {
-		throw PackagesFailure("refused", problem); // what goes in is what inspecting it showed, or nothing
 	}
 
 	const fs::path target = rootNamed(grant, grant.writable) / id;
 	MadeFolder made(target, id, grant.writable);
 	const std::string sub = placeFiles(package, base, target, stop);
 	const fs::path folder = sub.empty() ? target : target / sub;
+	// what goes in is what inspecting it showed, or nothing (the folder made is removed)
+	if(const std::string problem = Screen::appFilesProblem(text, folder); !problem.empty())
+		throw PackagesFailure("refused", problem);
 	std::error_code error;
 	const fs::path manifest = fs::exists(folder / "app.json", error) ? folder / "app.json" : folder / "app.lisp";
 	giveName(manifest, name);
