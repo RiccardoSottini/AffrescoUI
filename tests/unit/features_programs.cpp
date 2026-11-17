@@ -261,6 +261,23 @@ TEST_CASE("feature programs: what its code reaches") {
 	CHECK(composed.screen["actions"]["wordCount.adapted.save"] == json::array({{{"run", "save"}}}));
 }
 
+TEST_CASE("feature programs: steps its code writes as data reach no more than its code") {
+	// A command's steps given as data, a key's and a part's actions: the app runs them later, as its own
+	CHECK(refused("wordCount.x", R"((defcommand wordCount.x "X." :do [{:set "state.other" :value 1}] [] nil))",
+	              "a feature's code may not run the step 'set' so"));
+	CHECK(refused("wordCount.x", R"((defcommand wordCount.x "X." :do [{:run "save"}] [] nil))",
+	              "a feature's code may not run the step 'run' so"));
+	CHECK(refused("wordCount.x", R"((defcommand wordCount.x "X." :do [{:emit "saved"}] [] nil))",
+	              "a feature's code may not run the step 'emit' so"));
+	CHECK(refused("part.wordCount-p", R"((defpart wordCount-p :actions {:wordCount.y [{:toggle "state.other"}]}))",
+	              "a feature's code may not run the step 'toggle' so"));
+	// Its own state and commands, as data too
+	CHECK(problems(appWith(record(withDefinition(
+	          "wordCount.x",
+	          R"((defcommand wordCount.x "X." :do [{:set "state.wordCount.on" :value true} {:run "wordCount.toggle"}] [] nil))"))))
+	          .empty());
+}
+
 TEST_CASE("feature programs: hooks and advice join only what the app offers the feature's points") {
 	const json hooked = withDefinition("add-hook after-save wordCount-flip", "(add-hook after-save wordCount-flip)");
 	const format::Composition composed = format::compose(appWith(record(hooked)));

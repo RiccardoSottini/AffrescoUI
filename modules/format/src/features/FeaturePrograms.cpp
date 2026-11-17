@@ -351,6 +351,31 @@ void checkMembers(const std::string& feature, const std::string& section, const 
 	}
 }
 
+/// @brief Adds the steps written as data in what a feature's program built that its code couldn't run: the app runs
+/// them later, from a key, a menu or a view, with no feature's authority to check them then.
+/// @param feature The feature.
+/// @param value A part, or a value inside it.
+/// @param place Its place.
+/// @param problems Receives each step.
+/// @param depth How deep it is.
+void checkDataSteps(const std::string& feature, const json& value, const std::string& place,
+                    std::vector<std::string>& problems, int depth) {
+	if(depth > maxNesting) return;
+	if(value.is_object()) {
+		for(const auto& [key, item] : value.items())
+			if(stepKind(key) != StepKind::None && !featureMayRun(key, item, feature))
+				problems.push_back(std::format("{}: a feature's code may not run the step '{}' so: it writes only its "
+				                               "own state and runs its own commands and what the app hands it",
+				                               place, key));
+		for(const auto& [key, item] : value.items())
+			if(item.is_structured()) checkDataSteps(feature, item, std::format("{}.{}", place, key), problems, depth + 1);
+	} else if(value.is_array()) {
+		for(std::size_t index = 0; index < value.size(); ++index)
+			if(value[index].is_structured())
+				checkDataSteps(feature, value[index], std::format("{}[{}]", place, index), problems, depth + 1);
+	}
+}
+
 /// @brief Checks what a feature's program built: only the parts a feature provides, each member in its namespace, its
 /// views and exports as a JSON feature's, and no control step.
 /// @param feature The feature.
@@ -382,6 +407,9 @@ void checkBuiltTree(const std::string& feature, BuiltFeature& built) {
 	}
 	for(const std::string& step : controlStepsIn(built.parts, place))
 		built.problems.push_back(step + " is a control step: a feature that uses one is installed by the host");
+	for(const auto& [section, part] : built.parts.items())
+		if(section != "state" && section != "settings" && section != "styles" && section != "exports")
+			checkDataSteps(feature, part, std::format("{}.{}", place, section), built.problems, 1);
 }
 
 /// @brief Adds the problems with the addresses of a feature's definitions.

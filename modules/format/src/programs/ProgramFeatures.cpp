@@ -57,20 +57,6 @@ bool namedUnder(const json& value, const std::string& prefix) {
 	return !name.contains("{{") && name.size() > prefix.size() && name.starts_with(prefix);
 }
 
-/// @brief Tells whether a feature's code may run a step.
-/// @param key The step's key.
-/// @param value Its value: the path or the name it is given.
-/// @param feature The feature.
-/// @return Whether it may.
-bool featureMayRun(const std::string& key, const json& value, const std::string& feature) {
-	if(among(featureFlow, key)) return true;
-	if(among(featureWrites, key)) return ownState(value, feature);
-	if(key == "run") return namedUnder(value, feature + ".") || namedUnder(value, "app.");
-	// A callback of its own (after, debounce): one of its definitions
-	if(key == "lisp") return namedUnder(value, feature + ".") || namedUnder(value, feature + "-");
-	return false;
-}
-
 /// @brief The definition a step's place names, as Programs::runStepPrimitive() writes it ("lisp <definition>.<step>").
 /// @param where The place.
 /// @return The definition; the place itself when it names none.
@@ -85,6 +71,15 @@ std::string definitionAt(const std::string& where) {
 } // namespace
 
 std::string featureAuthor(std::string_view feature) { return std::string(featurePrefix) + std::string(feature); }
+
+bool featureMayRun(const std::string& key, const json& value, const std::string& feature) {
+	if(among(featureFlow, key)) return true;
+	if(among(featureWrites, key)) return ownState(value, feature);
+	if(key == "run") return namedUnder(value, feature + ".") || namedUnder(value, "app.");
+	// A callback of its own (after, debounce): one of its definitions
+	if(key == "lisp") return namedUnder(value, feature + ".") || namedUnder(value, feature + "-");
+	return false;
+}
 
 std::string_view featureOfAuthor(std::string_view author) noexcept {
 	if(!author.starts_with(featurePrefix)) return {};

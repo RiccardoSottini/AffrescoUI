@@ -76,6 +76,14 @@ inline constexpr std::string_view unknownAuthor = "unknown";
 /// @return The author.
 [[nodiscard]] std::string featureAuthor(std::string_view feature);
 
+/// @brief Tells whether a feature's code may run a step: the flow, writes written out under `state.<feature>`, and
+/// running its own commands, its own definitions and `app.<need>`.
+/// @param key The step's key.
+/// @param value Its value: the path or the name it is given.
+/// @param feature The feature.
+/// @return Whether it may.
+[[nodiscard]] bool featureMayRun(const std::string& key, const json& value, const std::string& feature);
+
 /// @brief The feature an author of running code is (featureAuthor()).
 /// @param author The author.
 /// @return The feature's name; empty for any other author.
