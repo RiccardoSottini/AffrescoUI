@@ -39,9 +39,10 @@ void layOut(Window& window) { static_cast<void>(window.panelAt({})); }
 /// @param cards n.
 /// @return The screen.
 LoadedScreen loadKanban(Context& context, int cards) {
-	json document = kanbanWithCards(context.templateFolder("kanban"), cards);
+	const std::filesystem::path folder = jsonNotation(context.templateFolder("kanban")); // the revisions are JSON's
+	json document = kanbanWithCards(folder, cards);
 	document["actions"]["renameBoard"] = json::parse(R"([{"set": "state.board", "to": "{{event.name}}"}])");
-	return context.load(document, context.templateFolder("kanban"));
+	return context.load(document, folder);
 }
 
 /// @brief "scaling/update/<cards>": one state change (renaming the board), its reconciliation and layout.
