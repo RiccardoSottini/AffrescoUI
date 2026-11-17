@@ -184,16 +184,20 @@ TEST_CASE("lisp reads: an app variable read from code is read as an expression r
 (defn whole "" [] (:count state)))lisp",
 	                "{:count 0 :other 0}",
 	                "(column (label#commands :text ~(listed)) (label#settings :text ~(set-to))"
-	                " (label#context :text ~(where)) (label#state :text ~(whole)))");
+	                " (label#context :text ~(where)) (label#state :text ~(whole)) (toggle#go))");
 	CHECK(checked.text("state") == "0");
-	// TODO(f5c): commands, settings and context are always read until the built variables are places; then this
-	// change evaluates only #state, which reads the state whole
+	// commands, settings and context are places, read through the lookup an expression takes: a change of the state
+	// evaluates only #state, which reads the state whole, and no binding is read on every update
 	const UpdateStatistics update = checked.change("other", {{"v", 1}});
 	CHECK_FALSE(update.full);
-	CHECK(update.alwaysReaders == 3);
-	CHECK(update.nodesEvaluated == 4);
-	CHECK(checked.change("count", {{"v", 2}}).nodesEvaluated == 4);
+	CHECK(update.alwaysReaders == 0);
+	CHECK(update.nodesEvaluated == 1);
+	CHECK(checked.change("count", {{"v", 2}}).nodesEvaluated == 1);
 	CHECK(checked.text("state") == "2");
+	// a change of a variable's own place evaluates what read it: the focus is the context's
+	checked.app.window->setFocus(checked.app.runtime->find("go"));
+	CHECK(checked.change("other", {{"v", 3}}).nodesEvaluated == 2); // #context, and #state, which reads the state whole
+	CHECK(checked.app.runtime->lastUpdate().alwaysReaders == 0);
 }
 
 TEST_CASE("lisp reads: a function that reads nothing of the app is evaluated once") {
