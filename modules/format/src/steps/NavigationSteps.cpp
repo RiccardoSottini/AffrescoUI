@@ -52,8 +52,7 @@ void navigate(const Running& s) {
 			fail(s.where + ".navigate", "unknown screen '" + name + "'");
 		engine.document.navigate(name);
 	}
-	engine.document.globalsChanged();
-	engine.document.markStateChanged();
+	engine.document.markGlobalChanged("screen"); // a full update follows (Reconciler::fullReason())
 }
 
 /// @brief Runs a navigation step.

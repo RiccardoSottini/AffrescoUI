@@ -29,6 +29,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -307,6 +308,11 @@ public:
 
 	/// @brief What the last update of the panels cost.
 	[[nodiscard]] const UpdateStatistics& lastUpdate() const noexcept;
+	/// @brief The places the last update changed, as JSON Pointers into the state (and places outside it, which
+	/// start with "/~"), for the host to skip work no change asked for (a state file written only when a place it
+	/// holds changed). They tell what the screen did: the host keeps them to itself, never sends them to a peer.
+	/// @return They, valid until the next update; nullopt if that update may have changed anything.
+	[[nodiscard]] std::optional<std::span<const std::string>> lastChanges() const noexcept;
 
 	/// @brief What the document says about a panel, for an inspector: the node it was built from (the nearest
 	/// ancestor built from one, for a panel a type creates itself) and its bindings as written. Never a value: what
