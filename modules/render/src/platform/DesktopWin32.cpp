@@ -149,7 +149,11 @@ bool reducedMotion() {
 	return SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animations, 0) && !animations;
 }
 
-void watchColorScheme() {} // WM_SETTINGCHANGE reaches the window and wakes the event loop, which reads it again
+// WM_SETTINGCHANGE reaches the window and wakes the event loop, which reads them again after every wake
+std::unique_ptr<AppearanceWatch> watchColorScheme(std::function<void()> changed) {
+	static_cast<void>(changed);
+	return nullptr;
+}
 
 void keepOutOfSwitcher() {} // a hidden window has no taskbar entry
 
