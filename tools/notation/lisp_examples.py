@@ -7,7 +7,8 @@ change is made there and this is run again; `--check` fails if what is there isn
 its json/ folder and its lisp/ folder, each written by hand, so this leaves both alone.
 
 Every document becomes a .lisp file: an app's manifest, its entry and every other screen, what they include, its themes,
-models and seed data, its policies, adapters and features' manifests. Two kinds stay JSON and are copied: scenarios, and
+models and seed data, its policies, adapters and features' manifests, but a feature written as a program, whose folder in
+lisp/ holds its code beside its manifest, written by hand. Two kinds stay JSON and are copied: scenarios, and
 a signed catalogue (its index pins each package's bytes, so spelling one differently needs the publisher's key). Assets
 are never copied: both folders read examples/<app>/assets/. What
 the apps share in examples/shared/ gets a .lisp file beside its JSON, as the fonts there serve both, unless that file is
@@ -54,12 +55,27 @@ def is_program(app):
     code, starting with a comment or a form where a document starts with a map. Its lisp/ folder is then a source of its
     own, written by hand beside its json/ folder."""
     for place, _, names in os.walk(os.path.join(EXAMPLES, app, "lisp")):
+        if holds_feature_program(os.path.relpath(place, EXAMPLES)):
+            continue  # a feature written as a program makes its folder a source, not the app a program
         for name in names:
             if name.endswith(".lisp"):
                 with open(os.path.join(place, name), encoding="utf-8") as file:
                     if file.read().lstrip()[:1] in (";", "("):
                         return True
     return False
+
+
+def holds_feature_program(folder):
+    """Whether a feature's folder in a lisp/ folder (its path from examples/) holds code written by hand: a program file
+    beside its feature.lisp, which that manifest lists. The folder is then a source of its own, never generated from the
+    json/ folder's feature.json, which stays the static apps' version (SCREEN_FORMAT.md, "A feature written as a
+    program")."""
+    parts = folder.split(os.sep)
+    if len(parts) < 3 or parts[-2] != "features" or "lisp" not in parts[:-2]:
+        return False
+    place = os.path.join(EXAMPLES, folder)
+    return os.path.isdir(place) and any(name.endswith(".lisp") and name != "feature.lisp"
+                                        and is_program_file(os.path.join(folder, name)) for name in os.listdir(place))
 
 
 def of_program(path, folder):
@@ -89,7 +105,7 @@ def is_generated(path):
         return path.endswith(".lisp") and not is_written_by_hand(path)
     place = (os.sep + path).find(LISP_FOLDER)
     return (place >= 0 and os.path.isdir(os.path.join(EXAMPLES, path[:place], "json"))
-            and not of_program(path, LISP_FOLDER))
+            and not of_program(path, LISP_FOLDER) and not holds_feature_program(os.path.dirname(path)))
 
 
 def read_json(path):
@@ -231,6 +247,8 @@ def write_tree(out, cli):
     for path in files:
         if path in loaded and path.startswith(SHARED) and is_written_by_hand(as_lisp(path)):
             continue  # a shared add-on written as a program: its Lisp is a source of its own
+        if path in loaded and holds_feature_program(os.path.dirname(target_of(path))):
+            continue  # its lisp/ twin is a feature written as a program, by hand
         if path in loaded:
             write_lisp(path, out, cli, loaded)
         elif is_copied(path):

@@ -39,7 +39,7 @@ can't work yet is shown disabled, its tooltip saying "not available yet".
 | `lisp/look.lisp`, `locales/` | The palette and styles; the text in English, Spanish and French |
 | `lisp/index.scenarios.json` | 62 scenarios, an agent's proposal of a Filters panel to the program among them, run headless (they stay JSON); the slide sorter's proof plays them all |
 | `PARITY.md` | What a daily user of a professional editor finds, row by row, and how far Tempera has come, round by round |
-| `lisp/sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent |
+| `lisp/sorter/` | Sinopia's slide sorter installed into Tempera: its adapter, a broken one, and an end-to-end test with a scripted agent. The Lisp Tempera installs the sorter written as a program (`sorter.lisp`), the JSON one its JSON manifest |
 
 The pixels stay in the library. The `images` section declares `doc`, and the state `doc` mirrors it after every step:
 the layers (top first) with their thumbnails (`doc/layer/<id>`), the history, the selection's bounds, the colours, the
