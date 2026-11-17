@@ -45,6 +45,57 @@ Panel& Panel::replaceChild(std::size_t index, std::unique_ptr<Panel> child) {
 	return *children_[index];
 }
 
+Panel& Panel::insertChild(std::size_t index, std::unique_ptr<Panel> child) {
+	if(index > children_.size()) throw std::out_of_range("Panel::insertChild: past the end");
+	Panel& ref = *child;
+	child->parent_ = this;
+	child->attachTo(window_);
+	children_.insert(children_.begin() + static_cast<std::ptrdiff_t>(index), std::move(child));
+	treeChanged();
+	invalidate();
+	return ref;
+}
+
+namespace {
+
+/// @brief Tells a window to forget a panel and every panel inside it (focus, hover, capture), as they leave it.
+/// @param panel The panel.
+/// @param forget Forgets one panel (Window::forget).
+template <typename Forget> void forgetAll(const Panel& panel, const Forget& forget) {
+	forget(panel);
+	for(const auto& child : panel.children()) forgetAll(*child, forget);
+}
+
+} // namespace
+
+std::unique_ptr<Panel> Panel::takeChild(std::size_t index) {
+	if(index >= children_.size()) throw std::out_of_range("Panel::takeChild: no such child");
+	std::unique_ptr<Panel> child = std::move(children_[index]);
+	children_.erase(children_.begin() + static_cast<std::ptrdiff_t>(index));
+	if(window_) forgetAll(*child, [this](const Panel& panel) { window_->forget(panel); });
+	child->parent_ = nullptr;
+	child->attachTo(nullptr);
+	treeChanged();
+	invalidate();
+	return child;
+}
+
+void Panel::reorderChildren(std::size_t first, std::vector<std::size_t> order) {
+	const std::size_t count = children_.size() > first ? children_.size() - first : 0U;
+	if(order.size() != count) throw std::invalid_argument("Panel::reorderChildren: not every child is placed");
+	std::vector<bool> placed(count, false); // checked before anything moves
+	for(const std::size_t from : order) {
+		if(from < first || from >= children_.size() || placed[from - first])
+			throw std::invalid_argument("Panel::reorderChildren: not a permutation");
+		placed[from - first] = true;
+	}
+	std::vector<std::unique_ptr<Panel>> moved(count);
+	for(std::size_t i = 0; i < count; ++i) moved[i] = std::move(children_[order[i]]);
+	for(std::size_t i = 0; i < count; ++i) children_[first + i] = std::move(moved[i]);
+	treeChanged(); // the first panel of an id, depth first, may be another one now
+	invalidate();
+}
+
 void Panel::removeChildren(std::size_t from) {
 	if(from >= children_.size()) return;
 	children_.erase(children_.begin() + static_cast<std::ptrdiff_t>(from), children_.end());
