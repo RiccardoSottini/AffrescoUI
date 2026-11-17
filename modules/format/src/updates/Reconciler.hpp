@@ -29,9 +29,11 @@ struct Engine;
 /// Invariants: there is a record for every panel it built that still exists, and none for any other (forgetSubtree()
 /// drops a subtree's records before it is destroyed); a factory's own children come before those built from the
 /// document and are left alone. State changes during one event become one update, run after the event
-/// (requestReconcile()). Cost follows the change: each record keeps what its values and its children's list read
-/// (Reads.hpp), so an update after state changes of known places (requestStateUpdate()) visits only the panels whose
-/// subtree reads one of them; anything else (a revision, a resize, a new theme or screen) updates everything. Callers:
+/// (requestReconcile()). Cost follows the change: each record's values, its children's list and the items its
+/// variables copy are readers of the state (PanelReader), kept by the place they read (Tracker), so an update after
+/// state changes of known places (requestStateUpdate()) runs only the readers of those places, in the order of the
+/// panels, without walking the tree; anything else (a revision, a resize, a new theme or screen) updates everything.
+/// Callers:
 /// the engine (documentChanged()), Runtime::build() and instantiate(), and every subsystem that reads records. Main
 /// thread only.
 class Reconciler {
@@ -101,14 +103,23 @@ public:
 	/// @param created Whether the panel was just created.
 	void applyValues(Panel& panel, Record& record, const Item& item, std::vector<json> values, ReadSet reads,
 	                 bool created);
-	/// @brief Updates a kept panel and what is below it, if they read a change: its values are applied again if they
-	/// read one, then its children are updated (updateChildren()).
+	/// @brief Updates a kept panel and what is below it, if they read a change: nothing to do here, since their
+	/// readers run by themselves (runReader()), each in its turn.
 	/// @param panel The panel.
 	/// @param record Its record.
 	/// @param changes What changed.
 	/// @param depth The panel's depth (ChildList::reconcileChildren()).
 	void updatePanel(Panel& panel, Record& record, const StateChanges& changes, int depth);
-	/// @brief Records what building a panel's list of children read, and gathers what its subtree reads.
+	/// @brief Runs one of a record's readers (PanelReader::update()): copies its items again, applies its values
+	/// again or builds its children's list again.
+	/// @param reader The reader.
+	/// @param changes The update's changes.
+	void runReader(const PanelReader& reader, const StateChanges& changes);
+	/// @brief Where a record's reader comes (PanelReader::position()).
+	/// @param reader The reader.
+	/// @param out Gets the numbers.
+	void positionOf(const PanelReader& reader, std::vector<std::uint32_t>& out);
+	/// @brief Records what building a panel's list of children read.
 	/// @param panel The panel, its children built.
 	/// @param record Its record.
 	/// @param reads What building the list read (repeat, when, with, ...).
@@ -129,28 +140,47 @@ private:
 	/// @return The reason (UpdateStatistics::fullReason), or empty if it may update a part.
 	[[nodiscard]] std::string_view fullReason(const StateChanges& changes, bool resized,
 	                                          std::string_view requested) const;
-	/// @brief Updates the window's root: its values and children, all or only what reads the changes.
+	/// @brief Updates the window's root and everything below it.
 	/// @param root The root.
 	/// @param record Its record.
-	/// @param changes What changed (nullptr: everything).
-	void updateRoot(Panel& root, Record& record, const StateChanges* changes);
+	void updateRoot(Panel& root, Record& record);
+	/// @brief Runs the readers the changes touch (Tracker::update()), the panels' among them unless a full pass
+	/// follows anyway; falls back to one if they make it due.
+	/// @param root The root.
+	/// @param record Its record.
+	/// @param changes What changed; gets what the readers marked.
+	/// @param part Whether only what reads the changes is updated.
+	/// @return Whether it stayed a partial update.
+	bool runReaders(Panel& root, Record& record, StateChanges& changes, bool part);
 	/// @brief Schedules one update after the current event.
 	void queue();
-	/// @brief Updates only what reads the changes below a panel: a child whose values read one is applied again, and
-	/// a list of children that reads one is built again.
+	/// @brief Adds a record's values and list readers to the tracker.
+	/// @param panel Its panel.
+	/// @param record The record.
+	void addReaders(Panel& panel, Record& record);
+	/// @brief Makes a record's items reader read the items its own variables hold (not its parent's), when they are
+	/// new: none, and the reader goes.
+	/// @param panel Its panel.
+	/// @param record The record.
+	void readItems(const Panel& panel, Record& record);
+	/// @brief The variables of a panel's parent's record, where its own variables stop.
+	/// @param panel The panel.
+	/// @return They, or nullptr.
+	[[nodiscard]] const Scope* parentLocals(const Panel& panel);
+	/// @brief Copies again, in place, the items a panel's own variables hold that a change lies in or covers.
 	/// @param panel The panel.
 	/// @param record Its record.
 	/// @param changes What changed.
-	/// @param depth The panel's depth (ChildList::reconcileChildren()).
-	void updateChildren(Panel& panel, Record& record, const StateChanges& changes, int depth);
-	/// @brief Copies again, in place, the items a panel's variables hold that a change lies in or covers.
-	/// @param locals The panel's variables.
-	/// @param changes What changed.
-	void refreshItems(const Scope& locals, const StateChanges& changes) const;
-	/// @brief Gathers what a panel's subtree reads, from its own reads and its children's.
-	/// @param panel The panel.
-	/// @param record Its record.
-	void gatherReads(const Panel& panel, Record& record) const;
+	void refreshItems(const Panel& panel, const Record& record, const StateChanges& changes);
+	/// @brief Copies again one item a change lies in or covers: only what changed when the change lies inside it.
+	/// @param scope The scope that holds it.
+	/// @param written The place changed.
+	/// @return false when nothing is left to copy for it (copied whole, or gone).
+	bool refreshItem(const Scope& scope, const std::string& written) const;
+	/// @brief Where a panel is among its parent's children, from the hint in its record if it holds.
+	/// @param panel The panel; has a parent.
+	/// @return Its index.
+	[[nodiscard]] std::uint32_t rankOf(const Panel& panel);
 
 	Engine& engine_;                                   ///< The runtime.
 	std::unordered_map<const Panel*, Record> records_; ///< See records().

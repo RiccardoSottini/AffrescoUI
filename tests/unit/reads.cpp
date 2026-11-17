@@ -1,19 +1,22 @@
 /// @file
-/// @brief Unit tests for what values read and what changed (src/Reads.hpp), and for the children of a long list by
-/// item (src/ItemIndex.hpp).
+/// @brief Unit tests for what values read and what changed (src/Reads.hpp), and for the readers of the state by the
+/// place they read (src/PlaceIndex.hpp).
 
-#include "ItemIndex.hpp"
+#include "PlaceIndex.hpp"
 #include "Reads.hpp"
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
-using affresco::format::ItemIndex;
+using affresco::format::ListChange;
+using affresco::format::PlaceIndex;
+using affresco::format::ReaderId;
 using affresco::format::ReadSet;
-using affresco::format::Scope;
 using affresco::format::StateChanges;
 
 namespace {
@@ -90,41 +93,109 @@ TEST_CASE("format: changes of too many places count as a change of everything") 
 	CHECK(changes.paths.empty());
 }
 
-TEST_CASE("format: the children of a long list are looked up by the item they read") {
-	std::vector<Scope> items(70);
-	for(std::size_t i = 0; i < items.size(); ++i) items[i].origin = "/items/" + std::to_string(i);
-	ItemIndex index;
-	index.start(items.size());
-	for(std::size_t i = 0; i + 1 < items.size(); ++i)
-		index.add(i, &items[i], readsOf({items[i].origin + "/title"}));
-	index.add(69, &items[69], readsOf({"/count"})); // reads more than its item: visited every time
+namespace {
 
-	const auto one = index.visits(changesOf({"/items/5/title"}), items.size());
-	REQUIRE(one);
-	CHECK(*one == std::vector<std::size_t>{5, 69});
-	const auto inside = index.visits(changesOf({"/items/7/title/x", "/items/3"}), items.size());
-	REQUIRE(inside);
-	CHECK(*inside == std::vector<std::size_t>{3, 7, 69});
-	const auto elsewhere = index.visits(changesOf({"/count"}), items.size());
-	REQUIRE(elsewhere);
-	CHECK(*elsewhere == std::vector<std::size_t>{69});
-
-	CHECK_FALSE(index.visits(changesOf({"/items"}), items.size()));    // the list itself
-	CHECK_FALSE(index.visits(changesOf({""}), items.size()));          // the whole state
-	CHECK_FALSE(index.visits(changesOf({"/count"}), items.size() + 1)); // the children moved since
+/// @brief The readers some changes touch, sorted.
+/// @param index The index.
+/// @param changes The changes.
+/// @return Their handles.
+std::vector<ReaderId> collected(PlaceIndex& index, const StateChanges& changes) {
+	std::vector<ReaderId> out;
+	index.collect(changes, out);
+	std::ranges::sort(out);
+	return out;
 }
 
-TEST_CASE("format: an item index is dropped when a child it looks up starts reading more") {
-	std::vector<Scope> items(2);
-	items[0].origin = "/items/0";
-	items[1].origin = "/items/1";
-	ItemIndex index;
-	index.start(2);
-	index.add(0, &items[0], readsOf({"/items/0/title"}));
-	index.add(1, &items[1], readsOf({"/flag"}));
-	CHECK(index.keeps(&items[0], readsOf({"/items/0/done"})));
-	CHECK(index.keeps(&items[1], readsOf({"/flag", "/count"}))); // with the others already
-	CHECK_FALSE(index.keeps(&items[0], readsOf({"/items/0/done", "/flag"})));
-	index.drop();
-	CHECK_FALSE(index.visits(changesOf({"/flag"}), 2));
+/// @brief A handle of a slot and a generation.
+/// @param slot The slot.
+/// @param generation The generation.
+/// @return The handle.
+constexpr ReaderId handle(std::uint32_t slot, std::uint32_t generation = 1) {
+	return slot | (generation << affresco::format::readerSlotBits);
+}
+
+} // namespace
+
+TEST_CASE("place index: a change finds the readers at it, above it and below it") {
+	PlaceIndex index;
+	const std::vector<std::string> exact{"/a/b"};
+	const std::vector<std::string> above{"/a"};
+	const std::vector<std::string> below{"/a/b/c"};
+	const std::vector<std::string> elsewhere{"/a/x", "/z"};
+	index.add(handle(1), exact);
+	index.add(handle(2), above);
+	index.add(handle(3), below);
+	index.add(handle(4), elsewhere);
+	CHECK(collected(index, changesOf({"/a/b"})) == std::vector<ReaderId>{handle(1), handle(2), handle(3)});
+	CHECK(collected(index, changesOf({"/a/b/c/d"})) == std::vector<ReaderId>{handle(1), handle(2), handle(3)});
+	CHECK(collected(index, changesOf({"/a"})) == std::vector<ReaderId>{handle(1), handle(2), handle(3), handle(4)});
+	CHECK(collected(index, changesOf({"/q"})).empty());
+	CHECK(collected(index, changesOf({"/z", "/a/x"})) == std::vector<ReaderId>{handle(2), handle(4)}); // each once
+	CHECK(index.entries() == 5);
+}
+
+TEST_CASE("place index: a shape reader is found by the list's change, not by one inside an item") {
+	PlaceIndex index;
+	const std::vector<std::string> shape{"/items/" + std::string(affresco::format::shapeKey)};
+	index.add(handle(1), shape);
+	CHECK(collected(index, changesOf({"/items/3/title"})).empty());
+	CHECK(collected(index, changesOf({"/items"})) == std::vector<ReaderId>{handle(1)});
+	CHECK_FALSE(collected(index, changesOf({""})).empty()); // the whole state
+	StateChanges listed;                                    // a list change given alone
+	listed.lists.push_back({"/items", ListChange::Kind::Inserted, 2, 1});
+	CHECK(collected(index, listed) == std::vector<ReaderId>{handle(1)});
+	StateChanges inner;
+	inner.lists.push_back({"/items/3/tags", ListChange::Kind::Removed, 0, 1});
+	CHECK(collected(index, inner).empty());
+}
+
+TEST_CASE("place index: anyKey in a read matches any key at its level") {
+	PlaceIndex index;
+	const std::vector<std::string> any{"/items/" + std::string(affresco::format::anyKey) + "/done"};
+	index.add(handle(1), any);
+	CHECK(collected(index, changesOf({"/items/7/done"})) == std::vector<ReaderId>{handle(1)});
+	CHECK(collected(index, changesOf({"/items/7"})) == std::vector<ReaderId>{handle(1)});
+	CHECK(collected(index, changesOf({"/items/7/title"})).empty());
+	StateChanges all;
+	all.addAll();
+	CHECK(collected(index, all).empty()); // everything: the caller updates every reader
+}
+
+TEST_CASE("place index: removing a reader frees the nodes nobody reads, and an old handle does nothing") {
+	PlaceIndex index;
+	const std::size_t empty = index.nodes();
+	const std::size_t keys = index.keys();
+	const std::vector<std::string> one{"/a/b/c", "/a/d"};
+	const std::vector<std::string> other{"/a/b"};
+	index.add(handle(1), one);
+	index.add(handle(2), other);
+	CHECK(index.nodes() == empty + 4);
+	index.remove(handle(1, 2)); // another generation: not this reader
+	CHECK(index.contains(handle(1)));
+	CHECK(index.entries() == 3);
+	index.remove(handle(1));
+	CHECK_FALSE(index.contains(handle(1)));
+	CHECK(index.nodes() == empty + 2); // /a and /a/b stay
+	CHECK(collected(index, changesOf({"/a/b/c"})) == std::vector<ReaderId>{handle(2)});
+	index.add(handle(1, 2), one); // the slot again, a new generation
+	CHECK(collected(index, changesOf({"/a/d"})) == std::vector<ReaderId>{handle(1, 2)});
+	index.set(handle(1, 2), other); // what it reads now: the nodes the old places alone held go
+	CHECK(index.nodes() == empty + 2);
+	index.remove(handle(1, 2));
+	index.remove(handle(2));
+	CHECK(index.nodes() == empty);
+	CHECK(index.keys() == keys);
+	CHECK(index.entries() == 0);
+}
+
+TEST_CASE("place index: one change among 100,000 readers of one list collects one") {
+	PlaceIndex index;
+	constexpr std::uint32_t count = 100000;
+	for(std::uint32_t i = 0; i < count; ++i) {
+		const std::vector<std::string> place{"/items/" + std::to_string(i) + "/title"};
+		index.add(handle(i + 1), place);
+	}
+	CHECK(collected(index, changesOf({"/items/4321/title"})) == std::vector<ReaderId>{handle(4322)});
+	CHECK(collected(index, changesOf({"/items/4321/done"})).empty());
+	CHECK(collected(index, changesOf({"/items"})).size() == count);
 }
