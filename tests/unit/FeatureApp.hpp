@@ -98,7 +98,7 @@ struct App {
 
 	/// @brief Clicks a panel, the person's own input.
 	/// @param id Its id.
-	void click(const std::string& id) {
+	void click(const std::string& id) const {
 		const affresco::Panel* panel = runtime->find(id);
 		REQUIRE(panel != nullptr);
 		const affresco::Rect& bounds = panel->bounds();
@@ -110,7 +110,7 @@ struct App {
 
 	/// @brief Runs an action as the screen's own (a key's, a menu's).
 	/// @param name The action.
-	void run(const std::string& name) {
+	void run(const std::string& name) const {
 		runtime->runAction(name, window->root(), json::object());
 		settle();
 	}

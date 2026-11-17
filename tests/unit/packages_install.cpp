@@ -273,7 +273,7 @@ TEST_CASE("packages install: a trusted key names its publisher, an unknown one i
 	const std::filesystem::path root = freshFolder("affrescoui-install-trust-test");
 	const format::SigningKey key = format::SigningKey::generate();
 	const std::string text = key.sign(json::parse(sharedVersion(root))).dump();
-	affresco::Screen screen = receiver(root);
+	const affresco::Screen screen = receiver(root);
 	CHECK(screen.inspectPackage(text, {{key.publisher(), "Studio"}})["signature"] == "trusted:Studio");
 	CHECK(screen.inspectPackage(text, json::object())["signature"] == "unknown:" + key.publisher().substr(8, 16));
 
@@ -306,7 +306,7 @@ TEST_CASE("packages install: the same file twice is already installed, accepted 
 		CHECK(error.contains("is already installed"));
 	}
 	// and after a restart, from the history on disk
-	affresco::Screen again =
+	const affresco::Screen again =
 	    affresco::Screen::fromApp(root / "person" / "notes", root / "person-data", affresco::Screen::History::OnDisk);
 	CHECK(again.hasImported(text));
 }

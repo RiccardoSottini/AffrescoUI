@@ -37,14 +37,15 @@ constexpr const char* personsApp = R"lisp(
 (defscreen main :state {:title "Notes" :seen nil} (panel#root))
 )lisp";
 
-/// The app the packages are for.
-const std::optional<format::AppManifest> notesApp = [] {
+/// @brief The app the packages are for.
+/// @return Its manifest.
+std::optional<format::AppManifest> notesApp() {
 	format::AppManifest app;
 	app.id = "notes";
 	app.name = "Notes";
 	app.release = "1.0.0";
 	return app;
-}();
+}
 
 /// The author of the packages below.
 constexpr const char* plugin = "plugin:helper-pack";
@@ -88,7 +89,7 @@ json withDefinitions(const App& app, const json& definitions) {
 /// @param text The package's file.
 void installAndAccept(App& app, const std::string& text) {
 	std::string error;
-	const affresco::RevisionResult result = affresco::detail::proposePackage(notesApp, app.repository, text, &error);
+	const affresco::RevisionResult result = affresco::detail::proposePackage(notesApp(), app.repository, text, &error);
 	REQUIRE_MESSAGE(result.status == RevisionStatus::Proposed, error);
 	const affresco::ProposalInfo proposal = app.repository.proposals().back();
 	const auto refused = app.repository.accept(proposal.id, {"user", proposal.head, false});
@@ -127,7 +128,7 @@ TEST_CASE("package attack: a package of changes that adds a section only the app
 		json document = base;
 		document[section] = value;
 		std::string error;
-		CHECK(affresco::detail::proposePackage(notesApp, app.repository, packageOf(base, document), &error).status ==
+		CHECK(affresco::detail::proposePackage(notesApp(), app.repository, packageOf(base, document), &error).status ==
 		      RevisionStatus::Rejected);
 		CHECK_MESSAGE(error.contains("document." + section + ": a package of changes can't change it"), error);
 	}
@@ -139,7 +140,7 @@ TEST_CASE("package attack: advice on a person's command is listed and reviewed, 
 	const json document = withDefinitions(
 	    app, {{"wrap", R"((defn wrap "" [proceed] (proceed)))"}, {"advice a around wrap", "(advice a :around wrap)"}});
 	const std::string text = packageOf(app.repository.sourceDocument(), document);
-	const json summary = affresco::detail::inspectPackage(notesApp, app.repository, text, json::object());
+	const json summary = affresco::detail::inspectPackage(notesApp(), app.repository, text, json::object());
 	REQUIRE(summary["extensions"]["added"].size() == 1);
 	CHECK(summary["extensions"]["added"][0]["kind"] == "advice");
 	CHECK(summary["extensions"]["added"][0]["target"] == "a");
@@ -157,7 +158,7 @@ TEST_CASE("package attack: a definition the person changed is left out, never re
 	app.write("helper", R"((defn helper "Mine, changed." [] 2))", "user");
 	const std::string text = packageOf(base, withDefinitions(app, {{"helper", R"((defn helper "Theirs." [] 3))"}}));
 	std::string error;
-	REQUIRE(affresco::detail::proposePackage(notesApp, app.repository, text, &error).status ==
+	REQUIRE(affresco::detail::proposePackage(notesApp(), app.repository, text, &error).status ==
 	        RevisionStatus::Rejected);
 	CHECK(error.contains("nothing merges cleanly"));
 	// with something else that merges, the proposal opens, the definition left out for the person to choose
@@ -227,11 +228,13 @@ TEST_CASE("package attack: a package over a limit is refused before it is parsed
 	std::string error;
 	// not even JSON: the size is what refuses it
 	const std::string huge(format::maxPackageBytes + 1, '[');
-	CHECK(affresco::detail::proposePackage(notesApp, app.repository, huge, &error).status == RevisionStatus::Rejected);
+	CHECK(affresco::detail::proposePackage(notesApp(), app.repository, huge, &error).status ==
+	      RevisionStatus::Rejected);
 	CHECK_MESSAGE(error.contains("larger than 16 MiB"), error);
 	// nested deeper than a screen may be: refused as it is parsed, never built
 	const std::string deep = std::string(1000, '[') + std::string(1000, ']');
-	CHECK(affresco::detail::proposePackage(notesApp, app.repository, deep, &error).status == RevisionStatus::Rejected);
+	CHECK(affresco::detail::proposePackage(notesApp(), app.repository, deep, &error).status ==
+	      RevisionStatus::Rejected);
 	CHECK_FALSE(error.empty());
 	// the trusted publishers' file likewise
 	const std::filesystem::path root = freshFolder("affrescoui-package-limits-attack-test");
@@ -250,7 +253,7 @@ TEST_CASE("package attack: an agent can't accept an install, nor settle what it 
 	document["program"]["app.lisp"]["other"] = R"((defn other "" [] 4))";
 	std::string error;
 	REQUIRE_MESSAGE(
-	    affresco::detail::proposePackage(notesApp, app.repository, packageOf(base, document), &error).status ==
+	    affresco::detail::proposePackage(notesApp(), app.repository, packageOf(base, document), &error).status ==
 	        RevisionStatus::Proposed,
 	    error);
 	const affresco::ProposalInfo proposal = app.repository.proposals().back();
@@ -270,7 +273,7 @@ TEST_CASE("package attack: nothing runs before it is accepted: a definition with
 	    {R"((defn x "" [] 1) (call "hit"))", R"((set "state.seen" "ran"))", "(call \"hit\")"}) {
 		CAPTURE(text);
 		std::string error;
-		CHECK(affresco::detail::proposePackage(notesApp, app.repository,
+		CHECK(affresco::detail::proposePackage(notesApp(), app.repository,
 		                                       packageOf(base, withDefinitions(app, {{"x", text}})), &error)
 		          .status == RevisionStatus::Rejected);
 		CHECK_MESSAGE(error.contains("document.program.app.lisp/x: holds a form that isn't a definition"), error);
@@ -285,7 +288,7 @@ TEST_CASE("package attack: after it is accepted, a control step its code reaches
 	// a control step written in it is refused as a revision's would be
 	std::string error;
 	CHECK(affresco::detail::proposePackage(
-	          notesApp, app.repository,
+	          notesApp(), app.repository,
 	          packageOf(app.repository.sourceDocument(),
 			            withDefinitions(app, {{"helper", R"((defn helper "Theirs." [] (call "hit")))"}})),
 	          &error)
@@ -340,5 +343,7 @@ TEST_CASE("package attack: a model change is listed, and no record is touched") 
 	std::string error;
 	REQUIRE_MESSAGE(screen.proposePackage(text, &error).status == RevisionStatus::Proposed, error);
 	CHECK(screen.data().changes() == changes);
-	CHECK(screen.data().get("notes", "n1")->toJson() == before->toJson());
+	const auto after = screen.data().get("notes", "n1");
+	REQUIRE(after);
+	CHECK((after ? after->toJson() : json()) == (before ? before->toJson() : json()));
 }

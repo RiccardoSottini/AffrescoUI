@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <array>
+#include <format>
 
 namespace affresco::format {
 
@@ -83,8 +84,8 @@ bool featureMayRun(const std::string& key, const json& value, const std::string&
 
 std::string_view featureOfAuthor(std::string_view author) noexcept {
 	if(!author.starts_with(featurePrefix)) return {};
-	const std::string_view name = author.substr(featurePrefix.size());
-	return name.contains('/') ? std::string_view() : name;
+	author.remove_prefix(featurePrefix.size());
+	return author.contains('/') ? std::string_view() : author;
 }
 
 void creditFeatures(const json& section, json& authors) {
@@ -116,9 +117,11 @@ void Programs::checkFeatureStep(const json& step, const std::string& where) cons
 		if(feature.empty()) continue;
 		for(const auto& [key, value] : step.items())
 			if(stepKind(key) != StepKind::None && !featureMayRun(key, value, feature))
-				fail(where, "the feature \"" + feature + "\" led here, from " + definitionAt(where) +
-				                ", and a feature's code may not run the step \"" + key +
-				                "\" so: it writes only its own state and runs its own commands and what the app hands it");
+				fail(where,
+				     std::format("the feature \"{}\" led here, from {}, and a feature's code may not run the step "
+				                 "\"{}\" so: it writes only its own state and runs its own commands and what the app "
+				                 "hands it",
+				                 feature, definitionAt(where), key));
 	}
 }
 

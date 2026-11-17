@@ -11,6 +11,8 @@
 
 #include <doctest/doctest.h>
 
+#include <format>
+
 using affresco::RevisionStatus;
 using featureapp::App;
 using featureapp::app;
@@ -214,8 +216,8 @@ TEST_CASE("features authority: judging a revision on an app with eight features 
 	for(int i = 0; i < 8; ++i) {
 		const std::string name = "count" + std::to_string(i);
 		json definitions = {
-		    {"state." + name, "(defstate " + name + R"( {:on false} "Its state."))"},
-		    {name + "-flip", "(defn " + name + R"(-flip "Flips it." [] (toggle "state.)" + name + R"(.on")))"}};
+		    {"state." + name, std::format(R"((defstate {} {{:on false}} "Its state."))", name)},
+		    {name + "-flip", std::format(R"((defn {0}-flip "Flips it." [] (toggle "state.{0}.on")))", name)}};
 		json feature = record(definitions);
 		feature["order"] = i;
 		feature.erase("needs");
@@ -241,20 +243,20 @@ TEST_CASE("features authority: an install, or switching it off, is judged as a c
 	json hooked = wordCount();
 	hooked["add-hook after-save wordCount-flip"] = "(add-hook after-save wordCount-flip)";
 	const json before = app();
-	json after = before;
-	after["features"]["wordCount"] = record(hooked);
+	json on = before;
+	on["features"]["wordCount"] = record(hooked);
 	const auto holds = [](const std::vector<std::string>& lines, const std::string& text) {
 		return std::ranges::any_of(lines, [&](const std::string& line) { return line.contains(text); });
 	};
 	// A hook through a feature is always reviewed, whatever it meets
-	CHECK(holds(rules.reviewLines(before, after), "adds 'add-hook after-save wordCount-flip'"));
-	CHECK(holds(rules.behaviourLines(before, after),
-	            "adds the definition 'wordCount-flip' of " + std::string(featureFile)));
-	CHECK(rules.impact(before, after)["logic"] == 5);
-	json off = after;
+	CHECK(holds(rules.reviewLines(before, on), "adds 'add-hook after-save wordCount-flip'"));
+	CHECK(
+	    holds(rules.behaviourLines(before, on), "adds the definition 'wordCount-flip' of " + std::string(featureFile)));
+	CHECK(rules.impact(before, on)["logic"] == 5);
+	json off = on;
 	off["features"]["wordCount"]["enabled"] = false;
-	CHECK(holds(rules.reviewLines(after, off), "removes 'add-hook after-save wordCount-flip'"));
-	CHECK(rules.impact(after, off)["logic"] == 5);
+	CHECK(holds(rules.reviewLines(on, off), "removes 'add-hook after-save wordCount-flip'"));
+	CHECK(rules.impact(on, off)["logic"] == 5);
 	// Taking away what the app's own code calls is refused, as taking away a definition of its own
 	json calls = app({{"host.go", R"((defcommand host.go "The person's." :title "Go" [] (wordCount-flip)))"}});
 	calls["features"]["wordCount"] = record();
@@ -262,7 +264,7 @@ TEST_CASE("features authority: an install, or switching it off, is judged as a c
 	const std::optional<std::string> removed =
 	    host.repository.commit({{"author", "agent/x"}, {"message", "m"}, {"remove", {"/features/wordCount"}}});
 	REQUIRE(removed.has_value());
-	CHECK(removed->contains(R"(the program no longer defines "wordCount-flip", which "host.go" uses)"));
+	CHECK(removed.value_or("").contains(R"(the program no longer defines "wordCount-flip", which "host.go" uses)"));
 	// A definition named like a control step: a feature's names start with its own, so composition refuses it first
 	json named = wordCount();
 	named["accept"] = R"((defn accept "Named like a review step." [] 1))";

@@ -30,7 +30,7 @@ void write(const std::filesystem::path& path, const std::string& text) {
 }
 
 /// A secret-looking text in a stray file of the folder: generated test data only.
-const std::string strayKey = "sk-" + std::string(24, 'q');
+constexpr std::string_view strayKey = "sk-qqqqqqqqqqqqqqqqqqqqqqqq";
 
 /// @brief Writes an app: an entry that includes a part (which includes another, from its own folder) and the shared
 /// kit, a theme, data models with a seed file, an icon and a folder of pictures, and two stray files its manifest
@@ -55,7 +55,7 @@ std::filesystem::path writeApp(const std::filesystem::path& root) {
 	write(app / "seed" / "notes.csv", "id,Title\nn1,First\n");
 	write(app / "icon.svg", R"(<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>)");
 	write(app / "pictures" / "dot.svg", R"(<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"/>)");
-	write(app / ".env", "API_KEY=" + strayKey + "\n");
+	write(app / ".env", "API_KEY=" + std::string(strayKey) + "\n");
 	write(app / "notes.txt", "Ada's own notes: not part of the app.\n");
 	return app;
 }
@@ -212,7 +212,7 @@ TEST_CASE("packages export: a whole app holds its files, and its base is the app
 }
 
 TEST_CASE("packages export: a screen that isn't an app's has no package") {
-	affresco::Screen screen = affresco::Screen::fromString(
+	const affresco::Screen screen = affresco::Screen::fromString(
 	    R"({ "format": "affrescoui-screen", "version": 2, "root": { "type": "label", "id": "a", "text": "a" } })");
 	CHECK_THROWS_WITH_AS(static_cast<void>(screen.exportPackage(options())), doctest::Contains("isn't an app's"),
 	                     affresco::DocumentError);
@@ -243,7 +243,7 @@ TEST_CASE("packages export: the scan refuses the person's paths and anything tha
           "place") {
 	const std::filesystem::path root = freshFolder("affrescoui-package-scrub-test");
 	const std::filesystem::path app = writeApp(root);
-	affresco::Screen screen = affresco::Screen::fromApp(app, root / "data");
+	const affresco::Screen screen = affresco::Screen::fromApp(app, root / "data");
 	const format::Package clean = screen.exportPackage(options());
 	const std::vector<std::string> privateTexts{root.string()};
 	REQUIRE(format::scrubProblems(clean, privateTexts).empty());
@@ -256,7 +256,7 @@ TEST_CASE("packages export: the scan refuses the person's paths and anything tha
 	const std::vector<std::pair<std::string, std::string>> leaks = {
 	    {(root / "data" / "tasks").string(), "one of your own paths"},
 	    {"-----BEGIN OPENSSH PRIVATE KEY-----", "a private key"},
-	    {"key " + strayKey, "an API key"},
+	    {"key " + std::string(strayKey), "an API key"},
 	    {"ghp_" + std::string(36, 'x'), "a code host's token"},
 	    {"xoxb-" + std::string(20, '1'), "a chat service's token"},
 	    {"AKIA" + std::string(16, 'Z'), "a cloud access key"},
@@ -279,7 +279,7 @@ TEST_CASE("packages export: the scan refuses the person's paths and anything tha
 	CHECK(problems[0].starts_with("document.state, a key: holds one of your own paths"));
 	// bytes of a file or an asset are scanned as they are, not as base64
 	format::Package whole = clean;
-	whole.base.files = {{"seed/notes.csv", {{"data", affresco::encodeBase64("x," + strayKey)}}}};
+	whole.base.files = {{"seed/notes.csv", {{"data", affresco::encodeBase64("x," + std::string(strayKey))}}}};
 	CHECK(format::scrubProblems(whole, privateTexts).size() == 1);
 	std::filesystem::remove_all(root);
 }

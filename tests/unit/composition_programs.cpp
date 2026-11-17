@@ -370,9 +370,10 @@ TEST_CASE("composition: a proof on a program plays on its source, so a scenario 
 	CHECK(proven.document["features"].contains("pagePicker"));
 	CHECK(played.contains("program"));
 	CHECK_FALSE(played.contains("root"));
-	const std::optional<json> screen = format::Rules().built(proven.document); // and it builds, the feature docked
-	REQUIRE(screen.has_value());
-	CHECK((*screen)["root"]["children"][1]["id"] == "panels");
+	const std::optional<json> built = format::Rules().built(proven.document); // and it builds, the feature docked
+	REQUIRE(built.has_value());
+	const json screen = built.value_or(json::object());
+	CHECK(screen["root"]["children"][1]["id"] == "panels");
 }
 
 TEST_CASE("composition: a proof on a program installs by revision, and the definition it sits in still changes") {
@@ -395,7 +396,7 @@ TEST_CASE("composition: a proof on a program installs by revision, and the defin
 TEST_CASE("composition: a proof given what a program built, in place of its source, is refused") {
 	const std::optional<json> builtTree = format::Rules().built(programHost());
 	REQUIRE(builtTree.has_value());
-	const json& built = *builtTree;
+	const json built = builtTree.value_or(json::object());
 	REQUIRE(format::isBuiltTree(built));
 	CHECK_FALSE(format::isBuiltTree(programHost()));
 	CHECK_FALSE(format::isBuiltTree(jsonHost()));
