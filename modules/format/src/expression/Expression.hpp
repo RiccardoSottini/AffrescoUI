@@ -179,6 +179,18 @@ struct Placeholders {
 /// @throws DocumentError If the path is malformed.
 [[nodiscard]] json lookup(std::string_view path, const Context& context, const std::string& where);
 
+/// @brief Reads the value at a path as lookup() does, recording the same reads, without copying a value that lies in
+/// place: a value of the state, the event or a variable is given where it lies, valid while that JSON is (for the
+/// state, until it next changes, as Value::fromJson()).
+/// @param path E.g. "state.threads[0].title".
+/// @param context What paths can see.
+/// @param where Its place in the document, for errors.
+/// @param made Gets the value when it lies nowhere: a number, or what reading it made.
+/// @return Where it lies, or nullptr when it is in @p made.
+/// @throws DocumentError If the path is malformed.
+[[nodiscard]] const json* lookupInPlace(std::string_view path, const Context& context, const std::string& where,
+                                        json& made);
+
 /// @brief Resolves a writable location.
 /// @param path A path starting with "state".
 /// @param context What paths can see.
