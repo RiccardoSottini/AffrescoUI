@@ -93,12 +93,13 @@ struct Folders {
 	}
 };
 
-/// @brief Makes the folders, and a package of notes that counts two: the person's copy changed by one commit and
-/// exported as its changes.
+/// @brief Makes the folders, and a package of notes: the person's copy changed by one commit and exported.
 /// @param name The test's folder.
+/// @param patch The commit's patch.
+/// @param whole Whether the package is the whole app, else its changes.
 /// @param package Set to the package.
 /// @return The folders.
-Folders withPackage(const std::string& name, json& package) {
+Folders withChange(const std::string& name, const json& patch, bool whole, json& package) {
 	Folders folders;
 	folders.top = freshFolder(name);
 	folders.examples = folders.top / "examples";
@@ -109,17 +110,28 @@ Folders withPackage(const std::string& name, json& package) {
 	writeNotes(folders.apps / "my-notes");
 	affresco::Screen screen =
 	    affresco::Screen::fromApp(folders.apps / "my-notes", folders.data, affresco::Screen::History::OnDisk);
-	const auto error = screen.versions().commit(
-	    {{"author", "user"},
-		 {"message", "Count two"},
-		 {"patch", {{{"op", "replace"}, {"path", "/program/app.lisp/count"}, {"value", "(defn count [] 2)"}}}}});
+	const auto error = screen.versions().commit({{"author", "user"}, {"message", "A change"}, {"patch", patch}});
 	REQUIRE_MESSAGE(!error, error.value_or(""));
 	const affresco::PackagesGrant grant = folders.grant({});
-	package = detail::exportVersion(
-	    grant, {{"root", "apps"}, {"app", "my-notes"}, {"name", "Notes that count two"}, {"description", "Two."}},
-	    {})["package"];
+	package = detail::exportVersion(grant,
+	                                {{"root", "apps"},
+	                                 {"app", "my-notes"},
+	                                 {"name", "Notes that count two"},
+	                                 {"description", "Two."},
+	                                 {"whole", whole}},
+	                                {})["package"];
 	fs::remove_all(folders.apps / "my-notes");
 	return folders;
+}
+
+/// @brief Makes the folders, and a package of notes that counts two: the person's copy changed by one commit and
+/// exported as its changes.
+/// @param name The test's folder.
+/// @param package Set to the package.
+/// @return The folders.
+Folders withPackage(const std::string& name, json& package) {
+	return withChange(name, {{{"op", "replace"}, {"path", "/program/app.lisp/count"}, {"value", "(defn count [] 2)"}}},
+	                  false, package);
 }
 
 /// @brief Writes a package into a catalogue's folder and an index that lists it, beside no feature.
@@ -158,6 +170,39 @@ std::pair<std::string, std::string> failure(const std::function<void()>& work) {
 	}
 	return {};
 }
+
+#ifdef AFFRESCOUI_CLI
+/// @brief Runs `affrescoui catalogue check` on a folder, from a child started with no shell.
+/// @param folder The catalogue's folder.
+/// @param examples The examples' folder.
+/// @param said Set to the lines it printed.
+/// @return Its exit code.
+int runCheck(const fs::path& folder, const fs::path& examples, std::string& said) {
+	const auto child = affresco::services::ChildProcess::start(
+	    {AFFRESCOUI_CLI, {"catalogue", "check", folder.string(), "--examples", examples.string()}, {}, std::nullopt});
+	child->closeInput();
+	said.clear();
+	std::array<char, 4096> buffer{};
+	for(std::ptrdiff_t count; (count = child->read(buffer.data(), buffer.size())) > 0;)
+		said.append(buffer.data(), static_cast<std::size_t>(count));
+	return child->wait();
+}
+
+/// @brief Lists a package of notes in a catalogue for the check: with a licence and a proof, its base the examples'
+/// notes (`<examples>/notes/json`, as `examples/` holds an app), and an unsigned index.
+/// @param folders The test's folders.
+/// @param package The package.
+/// @return The examples' folder the check reads.
+fs::path listForCheck(const Folders& folders, json package) {
+	package["license"] = "Apache-2.0";
+	package["proof"] = {
+	    {"scenarios", {{{"name", "opens"}, {"steps", {{{"expect", {{"state", "title"}, {"is", "Notes"}}}}}}}}}};
+	write(folders.catalogue / "index.json", listPackage(folders.catalogue, package).dump(1, '\t'));
+	const fs::path examples = folders.top / "check-examples";
+	writeNotes(examples / "notes" / "json");
+	return examples;
+}
+#endif
 
 } // namespace
 
@@ -317,19 +362,7 @@ TEST_CASE("catalogue: the check passes a good entry and names the broken one") {
 		  {"wordCount", {{"title", "Word count"}, {"releases", {release("wordCount/1.0.0.json", brokenBytes)}}}}}}};
 	write(folder / "index.json", index.dump(1, '\t'));
 	std::string said;
-	const auto check = [&] { // the tool's lines, from a child started with no shell, and its exit code
-		const auto child = affresco::services::ChildProcess::start(
-		    {AFFRESCOUI_CLI,
-			 {"catalogue", "check", folder.string(), "--examples", examples.string()},
-			 {},
-			 std::nullopt});
-		child->closeInput();
-		said.clear();
-		std::array<char, 4096> buffer{};
-		for(std::ptrdiff_t count; (count = child->read(buffer.data(), buffer.size())) > 0;)
-			said.append(buffer.data(), static_cast<std::size_t>(count));
-		return child->wait();
-	};
+	const auto check = [&] { return runCheck(folder, examples, said); };
 	CHECK(check() == 1);
 	INFO(said);
 	CHECK(said.find("wordCount 1.0.0") != std::string::npos);
@@ -340,4 +373,19 @@ TEST_CASE("catalogue: the check passes a good entry and names the broken one") {
 	write(folder / "index.json", index.dump(1, '\t'));
 	CHECK(check() == 0);
 }
+
+TEST_CASE("catalogue: the check names a service an entry's changes use and its base app doesn't") {
+	json package;
+	const Folders folders = withPackage("affrescoui-catalogue-check-uses", package);
+	REQUIRE(package["kind"] == "changes");
+	// An action that calls a service, written into the file: its base, rebuilt from the delta, has none
+	package["document"]["actions"] = {{"look", {{{"invoke", "packages.catalogue"}}}}};
+	package["base"]["delta"].push_back({{"op", "remove"}, {"path", "/actions"}});
+	const fs::path examples = listForCheck(folders, package);
+	std::string said;
+	CHECK(runCheck(folders.catalogue, examples, said) == 1); // a problem named, not a check that stops
+	INFO(said);
+	CHECK(said.find("notes-two 1.0.0: it uses packages.catalogue") != std::string::npos);
+}
+
 #endif

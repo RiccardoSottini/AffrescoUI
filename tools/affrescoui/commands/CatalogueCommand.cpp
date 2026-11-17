@@ -180,8 +180,9 @@ void checkPackage(const format::CatalogIndex& index, const std::string& id,
 		if(capability.value("added", false))
 			problems.add(entry, "it adds the capability " + capability.value("capability", std::string()));
 	if(package.kind == format::PackageKind::Changes)
-		for(const json& use : summary.value("uses", json::array()))
-			problems.add(entry, "it uses " + use.get<std::string>() + ", which its base app doesn't");
+		for(const json& use : summary.value("uses", json::array())) // each {step, use, in}
+			problems.add(entry, "it uses " + use.value("use", std::string()) + " (in " +
+			                        use.value("in", std::string()) + "), which its base app doesn't");
 	const json scenarios = package.proof.is_object() ? package.proof.value("scenarios", json()) : json();
 	if(!scenarios.is_array() || scenarios.empty()) problems.add(entry, "it has no proof: list its scenarios in proof");
 	else playProof(scenarios, package.document, app->folder, entry, problems);
