@@ -50,7 +50,7 @@ private:
 /// @param grant What the service may touch.
 /// @param with `{package, id, name}`.
 /// @param stop Asks the work to stop.
-/// @return `{id, proposal}`: proposal is whether a proposal waits for the person.
+/// @return `{id, sub, proposal}`: sub is the folder of its screen ("" or "/json"), proposal whether one waits.
 /// @throws PackagesFailure If it can't be installed: nothing is left in the writable root.
 [[nodiscard]] json installVersion(const PackagesGrant& grant, const json& with, const std::stop_token& stop);
 
