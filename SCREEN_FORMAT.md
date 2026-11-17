@@ -2330,7 +2330,7 @@ that fails or runs out of its budget is refused, naming the definition.
 Its code may reach its own definitions, the language's functions, the expressions' functions and the steps `set`,
 `toggle`, `push`, `remove-state` (each with its path written out, under `state.wordCount`), `after`, `debounce`,
 `copy`, `log` and `run`, which names, written out, one of its own commands or `app.<need>` for an action need. Any
-other step or undefined name is refused. A view and a command may read `app.<need>`; a function's body reads only the
+other step or undefined name is refused. A view may read `app.<need>`; a command's or a function's body reads only the
 feature's own values: what else it needs, "pass it to the function as an argument from the view". A hook joins only a
 hook point the app declares with `defhook` and lists in `points.<name>.hooks` of a point the feature is placed in;
 advice only an action export such a point receives. Composition lists each in `extensions`. The functions don't run
