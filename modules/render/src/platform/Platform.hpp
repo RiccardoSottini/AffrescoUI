@@ -7,6 +7,7 @@
 #include "affresco/render/Events.hpp"
 #include "affresco/render/Input.hpp"
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -99,7 +100,9 @@ public:
 	virtual void present() = 0;
 	/// @brief Looks the context's OpenGL functions up.
 	[[nodiscard]] virtual ProcAddressLoader procAddressLoader() const = 0;
-	/// @brief Wakes the event loop, so it works out again how long it may sleep.
+	/// @brief Wakes the event loop, so it works out again how long it may sleep. Main thread only (Window::setTimer()):
+	/// outside Platform::waitEvents() the loop works out its wait before it sleeps anyway, so only a wait under way
+	/// needs waking.
 	virtual void wake() = 0;
 	/// @brief The windowing system's own handle (a GLFWwindow*), for Window::nativeHandle().
 	[[nodiscard]] virtual void* handle() const noexcept = 0;
@@ -193,6 +196,16 @@ public:
 	[[nodiscard]] virtual ColorScheme colorScheme() const = 0;
 	/// @brief Whether the system asks for less motion now (false where it can't be read).
 	[[nodiscard]] virtual bool reducedMotion() const = 0;
+
+	/// @brief How many events the windowing system has delivered to the windows (input, resizes, redraws), so the
+	/// event loop can tell what woke it (Application::lastWake()). The default counts none.
+	/// @return The count since the platform started.
+	[[nodiscard]] virtual std::uint64_t eventsDelivered() const noexcept { return 0; }
+	/// @brief How many times the system announced a change of colourScheme() or reducedMotion(), so the event loop
+	/// reads them again only after one. The default announces none.
+	/// @return The count since the platform started, or std::nullopt where the system announces nothing: they must
+	/// then be read after every wake.
+	[[nodiscard]] virtual std::optional<std::uint64_t> appearanceChanges() const noexcept { return std::nullopt; }
 };
 
 /// @brief Starts GLFW.
