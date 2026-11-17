@@ -980,8 +980,9 @@ gets more authority than any revision has.
   "plugin:..." led here`). A package's data models change only the description: migrating the records is the person's
   to run ([Screen format](SCREEN_FORMAT.md), "Migrations").
 - **A new copy**: `affrescoui install --new <folder> <file>` writes a kind `app` package's files into a folder that
-  doesn't exist yet (`installAppFiles`), refusing a path that leaves it or is absolute, then proposes the version on
-  it. A copy of an app that includes the shared folder beside it needs that folder there too.
+  doesn't exist yet (`installAppFiles`), refusing a path that leaves it or is absolute, checks that they open there as
+  the base the package describes (`Screen::appFilesProblem`), removing the folder if they don't, then proposes the
+  version on it. A copy of an app that includes the shared folder beside it needs that folder there too.
 - **Trusted publishers** are the person's, in the data folder's `publishers.json`: `{"ed25519:<key>": "<name>"}`, at
   most 64 KiB and 256 keys, each key at its fixed length, refused whole if malformed. `affrescoui trust <key> [--name
   NAME]` adds one, `--remove` takes it out, and `--list` lists them. A trusted signature says who made the file; it

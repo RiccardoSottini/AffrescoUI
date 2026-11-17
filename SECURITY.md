@@ -723,7 +723,9 @@ URL is a path inside the catalogue's folder. Whatever is installed is a revision
 control step, so a feature never widens what the app can do. A feature's program (its Lisp definitions) is built alone, within
 the build's budget, and refused unless every name is in its namespace, it builds only the parts a feature gives, and
 its code reaches only its own state and commands, the language, and the actions it needs: no other step, no
-undefined name, and a function reads none of the app's values. Its hooks and advice join only what the app offers the
+undefined name, and a function reads none of the app's values. The steps it builds as data (a quoted list, a map)
+are checked like its code, and it may not write the names the language keeps for what it compiles (`%read`), nor
+build a name from text (`symbol`). A record whose `enabled` isn't `true` or `false` is off. Its hooks and advice join only what the app offers the
 points it is placed in. `affrescoui sign --new-key` writes a key only its owner
 can read and never over an existing file; keep keys out of repositories (Forge's example catalogue was signed by a
 key that was then deleted).
@@ -744,11 +746,13 @@ A package (VERSION_CONTROL.md, "Sharing a version: packages") is a file people p
 untrusted input, and what writes it treats the person's own data as something to keep out. Reading
 (`readPackage`) refuses a file over 16 MiB before parsing it, then every key it doesn't know, by name; the JSON nesting
 limit and the document's; a delta of anything but add, remove and replace; a base the delta doesn't give (its tree);
-a file outside the app's folder, over 4 MiB, or beyond 1,024; a manifest whose id isn't the base's; an asset the
-document doesn't list with that size and SHA-256; a state key the base has; and a signature that doesn't verify. Its
-`author` is shown as written, not as a proof. Writing (`affrescoui pack`) keeps out the records, the state, the
-history and every file the manifest doesn't reach, and refuses to write a package holding the person's paths or what
-looks like a key or a token.
+a file outside the app's folder, with a `.` part, over 4 MiB, or beyond 1,024; a manifest whose id isn't the base's;
+an asset the document doesn't list with that size and SHA-256; a state key the base has; and a signature that doesn't
+verify. Its `author` is shown as written, not as a proof, and `affrescoui` prints a package's texts with the
+characters that steer a terminal written out (`\x1b`), so a name can't redraw the review it is shown in. Writing
+(`affrescoui pack`) keeps out the records, the state, the history and every file the manifest doesn't reach (a link
+to a folder among its assets is left out), and refuses to write a package holding the person's paths or what looks
+like a key or a token.
 
 Installing one (`affrescoui install`, `Screen::proposePackage`; VERSION_CONTROL.md, "Installing a package") gives its
 code no more authority than a revision:
@@ -767,7 +771,11 @@ code no more authority than a revision:
   approval given before is refused. A state key the person has is kept. Records aren't touched: models change only
   the description.
 - **Files.** `install --new` writes a kind `app` package's files only into a folder that doesn't exist yet (not even
-  as a link), refusing an absolute path or one that leaves it, and leaves nothing behind if a file can't be written.
+  as a link), refusing an absolute path or one that leaves it, and two files the disk takes as one (`app.json` and
+  `APP.json` on a disk that ignores case), and leaves nothing behind if a file can't be written. The files must then
+  open, where they were written, as the base the package describes (its `base.tree`): the summary is worked out from
+  the document, so files that hold anything else (a definition only they have) aren't what the person reviewed, and
+  are removed with their folder.
 - **Trusted publishers** (`publishers.json` in the data folder) are read whole or refused: at most 64 KiB and 256 keys,
   each an Ed25519 public key at its fixed length; small-order and non-canonical keys don't verify.
 
@@ -775,6 +783,7 @@ code no more authority than a revision:
 export one of the person's apps and to install a file someone gave them; nothing has it unless the host grants it, and
 a screenshot run never does. Its arguments are checked by their schema, which takes no path: an app is a folder name
 in a root the grant names (`examples`, `apps`), refused if it is anything else (`..`, `/`, a capital, a leading `-`).
+An install never takes the id `shared`, whose kits every app of the root includes, nor `launcher`.
 `export` reads the app's history from a copy of its data, so the person's own data folder isn't written nor its lock
 taken, and leaves out what `affrescoui pack` leaves out. `inspect` and `install` refuse a package over 16 MiB before
 it is read. `install` writes only into the writable root (`apps`), only into a folder that doesn't exist yet, removes
@@ -891,7 +900,7 @@ A version of an app as one file, shared from person to person ("Packages" above)
 | Who attacks | Whoever made or changed the file; and, for the writer, a stray secret in the app's folder or its history |
 | Entry points | `readPackage` and `packageSummary` (`affrescoui inspect`); `Screen::exportPackage` (`affrescoui pack`); `Screen::proposePackage`, `installAppFiles` and `readTrustedPublishers` (`affrescoui install`, `trust`); `resolveLeftOut` (`resolve`) |
 | Limits | 16 MiB, checked before parsing; the JSON nesting limit and the document's; 1,024 files of 4 MiB; 100,000 delta operations; 10,000 state keys; a name 80 characters, a description 2,000; trusted publishers 64 KiB and 256 keys |
-| Mitigations | Every key known; the base checked by its tree; files inside the app's folder, the manifest the base's app; assets listed with their SHA-256; signatures verified. Writing: only the files the manifest reaches, no history, records or state, and a scan for the person's paths and for keys and tokens. Installing: a proposal only the person accepts, never applied as proposed; sections a revision can't change refused; the revision rules on its code (no control step, advice refused at one); what doesn't merge left out until the person chooses, a choice moving the head; the person's state keys kept; new files only in a new folder; the same file once. Tested: `packages_threats.cpp` (10 threats). Fuzzed: `package` (reading, the summary against a copy, installing on a JSON template and on a program) |
+| Mitigations | Every key known; the base checked by its tree; files inside the app's folder, the manifest the base's app; assets listed with their SHA-256; signatures verified. Writing: only the files the manifest reaches, no history, records or state, and a scan for the person's paths and for keys and tokens. Installing: a proposal only the person accepts, never applied as proposed; sections a revision can't change refused; the revision rules on its code (no control step, advice refused at one); what doesn't merge left out until the person chooses, a choice moving the head; the person's state keys kept; new files only in a new folder; the same file once. Tested: `packages_threats.cpp` (11 threats). Fuzzed: `package` (reading, the summary against a copy, installing on a JSON template and on a program) |
 | Known gaps | The scan finds the patterns it knows, not every secret; the summary shows what the code may write and use, not what it will do: the person reads the definitions in the changes window |
 
 ### Dependencies
@@ -1162,6 +1171,10 @@ removes the gap from this list.
   JSON-RPC service may do whatever its program does once started; `fs` keeps paths inside its folder, but a program
   writing to that folder at the same time could swap a folder for a link between the check and the use. Grant only
   programs and folders you trust the screen with. Tracking: G-02.
+- **`inspect` can't open a whole app that includes the shared folder.** Away from where it is installed, a kind `app`
+  package's files that include the shared folder beside them don't open, so `affrescoui inspect` (without `--app`) and
+  the Launcher's review check them against their base only when they are installed: `install` refuses them then, and
+  writes nothing. Tracking: G-32.
 - **Who is at the other end of a declared channel isn't checked.** The user check applies to connections a host
   accepts (`listen`, `SocketServer`). A screen's `channels` connect out to a socket, and the library doesn't check
   who listens there, nor the directory of that socket or of one an embedding application passes to `listen`. Tracking: G-03.
