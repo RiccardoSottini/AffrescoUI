@@ -4,6 +4,8 @@
 
 #include "affresco/format/Package.hpp"
 #include "affresco/format/PackageFiles.hpp"
+#include "affresco/format/PackageInstall.hpp"
+#include "PackageParts.hpp"
 
 #include "FeatureSignatures.hpp" // canonicalJson(): the tree is the hash of a document's canonical form
 #include "Limits.hpp"            // maxDocumentBytes: a package's document and its base are documents
@@ -358,24 +360,6 @@ void readExtras(const json& value, Package& package) {
 	}
 }
 
-/// @brief The definitions of a document's programs, as "file/name": text.
-/// @param document The document.
-/// @return Them.
-json definitionsOf(const json& document) {
-	json result = json::object();
-	const auto program = document.find("program");
-	if(program == document.end() || !program->is_object()) return result;
-	for(const auto& [file, definitions] : program->items()) {
-		if(!definitions.is_object()) continue;
-		for(const auto& [name, text] : definitions.items()) {
-			std::string key = file;
-			key.append("/").append(name);
-			result[key] = text;
-		}
-	}
-	return result;
-}
-
 /// @brief How a package's signature stands: "none", "trusted:<name>" or "unknown:<the key's first 16 characters>".
 /// @param signature The package's signature (verified when read), or null.
 /// @param trustedPublishers `{"ed25519:<key>": "<name>"}`, or anything else for none.
@@ -392,6 +376,25 @@ std::string signatureOf(const json& signature, const json& trustedPublishers) {
 }
 
 } // namespace
+
+namespace detail {
+
+json definitionsOf(const json& document) {
+	json result = json::object();
+	const auto program = document.find("program");
+	if(program == document.end() || !program->is_object()) return result;
+	for(const auto& [file, definitions] : program->items()) {
+		if(!definitions.is_object()) continue;
+		for(const auto& [name, text] : definitions.items()) {
+			std::string key = file;
+			key.append("/").append(name);
+			result[key] = text;
+		}
+	}
+	return result;
+}
+
+} // namespace detail
 
 std::string documentTree(const json& sourceDocument) { return "sha256:" + sha256::hex(canonicalJson(sourceDocument)); }
 
@@ -470,14 +473,21 @@ json baseOf(const Package& package) {
 }
 
 json packageSummary(const Package& package, const json& installedBase, const json& trustedPublishers) {
+	PackageReceiver receiver;
+	receiver.copy = installedBase;
+	return packageSummary(package, receiver, trustedPublishers);
+}
+
+json packageSummary(const Package& package, const PackageReceiver& receiver, const json& trustedPublishers) {
 	const json base = baseOf(package);
+	const json& installedBase = receiver.copy;
 	json assets = json::array();
 	if(package.assets.is_object())
 		for(const auto& [name, asset] : package.assets.items()) {
 			const json listed = package.document.value("assets", json::object()).value(name, json::object());
 			assets.push_back({{"name", name}, {"type", asset.value("type", "")}, {"size", listed.value("size", 0)}});
 		}
-	const json before = definitionsOf(base), after = definitionsOf(package.document);
+	const json before = detail::definitionsOf(base), after = detail::definitionsOf(package.document);
 	json added = json::array(), changed = json::array(), removed = json::array();
 	for(const auto& [name, text] : after.items()) {
 		if(!before.contains(name)) added.push_back(name);
@@ -487,19 +497,21 @@ json packageSummary(const Package& package, const json& installedBase, const jso
 		if(!after.contains(name)) removed.push_back(name);
 	json summaryBase = {{"app", package.base.app}, {"name", package.base.name}, {"release", package.base.release}};
 	summaryBase["exact"] = installedBase.is_null() ? json() : json(documentTree(installedBase) == package.base.tree);
-	return {{"kind", package.kind == PackageKind::App ? "app" : "changes"},
-	        {"name", package.name},
-	        {"release", package.release},
-	        {"author", package.author},
-	        {"engine", package.engine},
-	        {"base", std::move(summaryBase)},
-	        {"bytes", packageJson(package).dump().size()},
-	        {"files", package.base.files.is_object() ? package.base.files.size() : std::size_t{0}},
-	        {"assets", std::move(assets)},
-	        {"state", package.state.is_object() ? package.state : json::object()},
-	        {"definitions",
-	         {{"added", std::move(added)}, {"changed", std::move(changed)}, {"removed", std::move(removed)}}},
-	        {"signature", signatureOf(package.signature, trustedPublishers)}};
+	json summary = {{"kind", package.kind == PackageKind::App ? "app" : "changes"},
+	                {"name", package.name},
+	                {"release", package.release},
+	                {"author", package.author},
+	                {"engine", package.engine},
+	                {"base", std::move(summaryBase)},
+	                {"bytes", packageJson(package).dump().size()},
+	                {"files", package.base.files.is_object() ? package.base.files.size() : std::size_t{0}},
+	                {"assets", std::move(assets)},
+	                {"state", package.state.is_object() ? package.state : json::object()},
+	                {"definitions",
+	                 {{"added", std::move(added)}, {"changed", std::move(changed)}, {"removed", std::move(removed)}}},
+	                {"signature", signatureOf(package.signature, trustedPublishers)}};
+	detail::addInstallParts(summary, package, base, receiver);
+	return summary;
 }
 
 } // namespace affresco::format

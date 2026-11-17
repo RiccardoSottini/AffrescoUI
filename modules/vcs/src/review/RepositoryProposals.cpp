@@ -253,6 +253,44 @@ bool Repository::reject(int proposal, std::string_view reason) {
 	return true;
 }
 
+// Only the person settles what a merge left out, and their value comes as the proposal's author's own commit
+std::optional<std::string> Repository::resolveLeftOut(int proposal, std::string_view path, bool theirs,
+                                                      std::string_view reviewer) {
+	Proposal* open = findProposal(proposal);
+	const std::string name = "proposal #" + std::to_string(proposal);
+	if(!open) return "AffrescoUI screen: no " + name;
+	const std::string channel = detail::channelOf(reviewer);
+	if(channel == detail::channelOf(open->author))
+		return "AffrescoUI screen: " + name + " is by '" + open->author + "': its author can't settle what it left out";
+	if(channel != personChannel)
+		return "AffrescoUI screen: only the person settles what " + name + " left out, not '" + std::string(reviewer) +
+		       "'";
+	const auto entry = std::ranges::find_if(
+	    open->leftOut, [path](const json& part) { return part.is_object() && part.value("path", "") == path; });
+	if(entry == open->leftOut.end())
+		return "AffrescoUI screen: " + name + " left nothing out at '" + std::string(path) + "'";
+	const auto index = entry - open->leftOut.begin();
+
+	if(theirs) {
+		const json& value = (*entry)["proposal"];
+		const std::string where(path);
+		const json op = value.is_null() ? json{{"op", "remove"}, {"path", where}}
+		                                : json{{"op", "set"}, {"path", where}, {"value", value}};
+		Proposal updated = *open;
+		try {
+			extend(updated, {{"author", open->author}, {"message", "Take theirs at " + where}}, json::array({op}));
+		} catch(const DocumentError& error) {
+			return error.what();
+		}
+		*open = std::move(updated);
+	}
+	open->leftOut.erase(open->leftOut.begin() + index);
+	saveHistory();
+	if(previewing_ == proposal) endPreview(); // what was shown is out of date
+	proposalsChanged();
+	return std::nullopt;
+}
+
 std::optional<std::string> Repository::preview(int proposal) {
 	const Proposal* open = findProposal(proposal);
 	if(!open) return "AffrescoUI screen: no proposal " + std::to_string(proposal);

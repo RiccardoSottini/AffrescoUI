@@ -425,11 +425,31 @@ bool Session::handleChange(const Incoming& in) {
 	return true;
 }
 
-// accept, reject, preview, endPreview, setMode, revoke: decisions, for reviewers only (an agent must not approve
-// its own changes); inspect too, which shows how the screen is built
+namespace {
+
+/// @brief Settles a part a merge left out of a proposal, for a reviewer (VersionControl::resolveLeftOut(), which
+/// refuses anyone but the person, and the proposal's own author).
+/// @param versions The document.
+/// @param message The message: `{"type": "resolve", "proposal", "path", "take": "mine" | "theirs"}`.
+/// @param author Who sent it.
+/// @param proposal Its proposal's id.
+/// @return Why it was refused, or std::nullopt.
+/// @throws DocumentError If it is malformed.
+std::optional<std::string> resolveLeftOut(VersionControl& versions, const json& message, const std::string& author,
+                                          int proposal) {
+	const std::string path = expect::string(message.value("path", json()), "resolve.path");
+	const std::string take = expect::string(message.value("take", json()), "resolve.take");
+	if(take != "mine" && take != "theirs") return R"(AffrescoUI screen: resolve.take: expected "mine" or "theirs")";
+	return versions.resolveLeftOut(proposal, path, take == "theirs", author);
+}
+
+} // namespace
+
+// accept, reject, preview, endPreview, setMode, revoke, resolve: decisions, for reviewers only (an agent must not
+// approve its own changes); inspect too, which shows how the screen is built
 bool Session::handleReview(const Incoming& in) {
-	static constexpr std::array<std::string_view, 7> decisions = {"accept",  "reject", "preview", "endPreview",
-	                                                              "setMode", "revoke", "inspect"};
+	static constexpr std::array<std::string_view, 8> decisions = {"accept",  "reject", "preview", "endPreview",
+	                                                              "setMode", "revoke", "inspect", "resolve"};
 	if(std::ranges::find(decisions, in.type) == decisions.end()) return false;
 
 	const int at = versions_.head().number;
@@ -440,7 +460,12 @@ bool Session::handleReview(const Incoming& in) {
 		      {"id", in.id}});
 		return true;
 	}
-	if(const std::optional<std::string> error = in.type == "inspect" ? inspect(in) : decide(in))
+	const auto answer = [&] -> std::optional<std::string> {
+		if(in.type == "inspect") return inspect(in);
+		if(in.type == "resolve") return resolveLeftOut(versions_, in.message, in.author, proposalOf(in));
+		return decide(in);
+	};
+	if(const std::optional<std::string> error = answer())
 		send({{"type", "rejected"}, {"error", *error}, {"revision", versions_.head().number}, {"id", in.id}});
 	else send({{"type", "done"}, {"revision", versions_.head().number}, {"id", in.id}});
 	return true;

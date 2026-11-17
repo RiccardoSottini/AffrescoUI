@@ -942,7 +942,53 @@ the person:
 
 `affrescoui pack <app> [--whole] [-o file]` writes one (`Screen::exportPackage`); `affrescoui inspect <file> [--app
 <app>]` reads one as untrusted input and says what it holds, and whether its base is the app you have
-(`packageSummary`). Installing one is a later item: it will be a proposal, reviewed under the app's permissions.
+(`packageSummary`).
+
+### Installing a package
+`affrescoui install <app> <file> [--data DIR]` installs a version into the person's copy of its app. It never changes
+the app by itself: it checks the file, prints everything installing it would do, and opens a **proposal** that only
+the person can accept, in the host's changes window. The package is untrusted input all the way, and its code never
+gets more authority than any revision has.
+
+- **The summary** (`affrescoui inspect <file> --app <app>`, `Screen::inspectPackage`) is worked out from the content,
+  never from what the package says of itself: whether its base is exactly the person's copy (`base.exact`) and the
+  release they have (`base.installedRelease`); its impact per layer; every hook and advice it adds or takes away
+  (`extensions`, each `{kind, name, target}`); what its definitions and actions write (`writes`) and the services they
+  use (`uses`); the models it changes, with their migrations; for a kind `app` package, its capabilities (`added`
+  when the person's copy doesn't declare one), its permissions as lines, and its seed data (each collection's file and
+  record count); its `signature`: `none`, `trusted:<name>` or `unknown:<the key's first 16 characters>`; what doesn't
+  merge with the person's copy (`conflicts`); and `problems`, empty if it can be installed.
+- **What refuses it**, each problem naming its place: anything `inspect` refuses (a malformed file, a base that isn't
+  the one it names, a signature that doesn't verify); a package of changes that touches `permissions`, `channels`,
+  `persist`, `services` or `connections`, or adds or takes away the `program` as a whole (they come only with the app,
+  as a kind `app` package); one made for an app that isn't here ("made for Flow, which isn't here"); a document of a
+  newer format than the engine reads; a definition it adds or changes that holds a form that isn't a definition.
+- **The proposal** is a three-way merge (`mergeDocuments`) of the package's base, the person's main and the package's
+  document, proposed as `plugin:<name>` with the message `Install <name> <release>`, so blame and undo name it like
+  any plugin. Its assets go as the revision's assets; its state keys go as `add /state/<key>`, only where the person's
+  state has no such key. Only the person can accept it, as with assets (see "Assets"), and it is never applied as it
+  is proposed. The package's SHA-256 is recorded, so the same file again says it is already installed.
+- **What doesn't merge** is left out of the proposal, main's value staying (`leftOut`, see "Rebasing"), and listed for
+  the person in the changes window's **Not merged** section: each part's path, their text and the package's side by
+  side, and **Keep mine** or **Use theirs** (`VersionControl::resolveLeftOut`, or `resolve` over the live protocol).
+  Only a reviewer of the person's channel settles a part, never the proposal's author. Using theirs adds the operation
+  to the proposal as its author's, so a definition taken from the package is still `plugin:<name>`'s; the head moves,
+  so an approval of the head before is refused, and the person sees the change again before accepting it. Keeping
+  mine just stops the part being listed.
+- **What its code may do** is what any revision's code may: a package can't bring or add a control step, nor run a
+  function that has one, and its `:around` advice reaching one through `(proceed)` is refused as it runs (`code by
+  "plugin:..." led here`). A package's data models change only the description: migrating the records is the person's
+  to run ([Screen format](SCREEN_FORMAT.md), "Migrations").
+- **A new copy**: `affrescoui install --new <folder> <file>` writes a kind `app` package's files into a folder that
+  doesn't exist yet (`installAppFiles`), refusing a path that leaves it or is absolute, then proposes the version on
+  it. A copy of an app that includes the shared folder beside it needs that folder there too.
+- **Trusted publishers** are the person's, in the data folder's `publishers.json`: `{"ed25519:<key>": "<name>"}`, at
+  most 64 KiB and 256 keys, each key at its fixed length, refused whole if malformed. `affrescoui trust <key> [--name
+  NAME]` adds one, `--remove` takes it out, and `--list` lists them. A trusted signature says who made the file; it
+  is never authority: the proposal is reviewed the same way.
+
+`install` opens the app with its history and refuses while another program writes that history (a host showing the
+app): close it first. It ends by saying to open the app to review the proposal; it never accepts it.
 
 ## Features: signed packages
 A feature (RFC 0004) is a signed manifest that a catalogue lists. Its whole lifecycle is revisions on
@@ -1009,6 +1055,7 @@ agent's, an in-screen `features.compose` is `features`'. A person can ask an age
 | Runs | `vcs::Runs` (`RunControl`): `judge`, `begin`, `allow`, `deny`, `finish`, `runs`, `grants`, `revoke`, `expire`, `stateDenial` | `getCommands`, `runCommand`, `undoRun`; reviewers: `allowRun`, `denyRun`, `revokeRun`; `review` carries `runs` and `runGrants` | `list_commands`, `run_command`, `undo_run` |
 | History | `log`, `revert`, `undo`, `restore`, `submitRestore`; `resolve`, `diff`, `blame`; `vcs::Repository::undoPlan`, `undoRevision` | `getHistory` (`limit`), `diff`, `blame` (`target`), `revert`, `undo`, `undoPlan`, `restore`, `committed` | `get_history`, `get_diff`, `get_blame`, `revert_revision`, `restore_revision` |
 | Change sets | `exportChanges`, `importChanges`, `hasImported` | `exportChanges` | `export_changes` |
+| Packages | `exportPackage`, `inspectPackage`, `proposePackage`; `resolveLeftOut(proposal, path, theirs, reviewer)` | reviewers: `resolve` (`proposal`, `path`, `take`: `mine` or `theirs`) | (none) |
 | History on disk | `fromFile` does it; `setHistoryDirectory`; `vcs::Repository::openHistory` | (none) | (none) |
 | Programs | `sourceDocument`, `programAuthors` | `source` in `hello` and `document` | `get_screen`, `find_nodes`, `submit_revision` |
 | In the screen file | `permissions` (`allow`, `ask`, `deny`, `reviewers`), `locked`, steps `accept`/`reject`/`preview`/`endPreview`/`restore`/`revert`/`undo`, variables `proposals`/`history`/`preview`/`mode` | | |

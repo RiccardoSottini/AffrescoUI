@@ -165,12 +165,16 @@ struct ChangesWindow::Impl {
 
 	/// @brief What the window lists, and what it should show.
 	/// @return `{"selection", "selectionCount", "source", "sourceCount", "previewing", "proposals", "history",
-	/// "canAsk"}`.
+	/// "canAsk"}`, each proposal with what a merge left out of it (`leftOut`, the part's two values shown as text).
 	[[nodiscard]] json list() const {
 		if(mainWindow.shouldClose() && window != nullptr) window->setShouldClose(true); // it goes with its app
 		json proposals = json::array();
 		for(const affresco::ProposalInfo& p : screen.proposals())
-			proposals.push_back({{"id", p.id}, {"head", p.head}, {"author", p.author}, {"message", p.message}});
+			proposals.push_back({{"id", p.id},
+			                     {"head", p.head},
+			                     {"author", p.author},
+			                     {"message", p.message},
+			                     {"leftOut", leftOutOf(p)}});
 		const std::vector<affresco::CommitInfo> log = screen.versions().log();
 		json history = json::array();
 		for(auto commit = log.rbegin(); commit != log.rend() && history.size() < mostCommits; ++commit)
@@ -187,6 +191,25 @@ struct ChangesWindow::Impl {
 		        {"proposals", std::move(proposals)},
 		        {"history", std::move(history)},
 		        {"canAsk", canAsk()}};
+	}
+
+	/// @brief What a merge left out of a proposal, as the window shows it: each part's path, and main's and the
+	/// proposal's values as text, side by side.
+	/// @param proposal The proposal.
+	/// @return `[{"path", "mine", "theirs"}]`; empty if nothing was left out.
+	[[nodiscard]] static json leftOutOf(const affresco::ProposalInfo& proposal) {
+		json parts = json::array();
+		if(!proposal.leftOut.is_array()) return parts;
+		const auto text = [](const json& value) {
+			if(value.is_string()) return value.get<std::string>();
+			return value.is_null() ? std::string("(none)") : value.dump(2, ' ', false, json::error_handler_t::replace);
+		};
+		for(const json& part : proposal.leftOut)
+			if(part.is_object() && part.contains("path"))
+				parts.push_back({{"path", part["path"]},
+				                 {"mine", text(part.value("main", json()))},
+				                 {"theirs", text(part.value("proposal", json()))}});
+		return parts;
 	}
 
 	/// @brief Tells whether the app has an assistant to ask: an action assistantAction in its document, where the
@@ -292,6 +315,14 @@ struct ChangesWindow::Impl {
 			if(screen.previewedProposal()) screen.endPreview();
 			screen.rejectProposal(arguments.value("proposal", 0), arguments.value("reason", std::string()));
 			return json::object().dump();
+		});
+		own->onCall("changes.resolve", [this](const std::string& text) {
+			const json arguments = argumentsOf(text);
+			if(screen.previewedProposal()) screen.endPreview();
+			const std::optional<std::string> refused =
+			    screen.versions().resolveLeftOut(arguments.value("proposal", 0), arguments.value("path", std::string()),
+			                                     arguments.value("take", std::string()) == "theirs", undoAuthor);
+			return refused ? errorAnswer(*refused) : json::object().dump();
 		});
 		registerUndoCalls();
 	}

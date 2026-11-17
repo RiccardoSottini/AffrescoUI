@@ -306,7 +306,11 @@ TEST_CASE("packages: the summary names its parts, how its base compares, and how
 	CHECK(summary["release"] == "1.1.0");
 	CHECK(summary["author"] == "Ada");
 	CHECK(summary["engine"] == "1.0.0");
-	CHECK(summary["base"] == json{{"app", "notes"}, {"name", "Notes"}, {"release", "1.0.0"}, {"exact", nullptr}});
+	CHECK(summary["base"] == json{{"app", "notes"},
+	                              {"name", "Notes"},
+	                              {"release", "1.0.0"},
+	                              {"exact", nullptr},
+	                              {"installedRelease", nullptr}});
 	CHECK(summary["bytes"] == format::packageJson(package).dump().size());
 	CHECK(summary["files"] == 0);
 	CHECK(summary["assets"] == json::array({{{"name", "dot.svg"}, {"type", "image/svg+xml"}, {"size", dot.size()}}}));

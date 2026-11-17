@@ -585,6 +585,21 @@ public:
 	/// @throws DocumentError If the screen wasn't loaded from an app (fromApp()), a file of the app is outside its
 	/// folder, or the package isn't valid.
 	[[nodiscard]] format::Package exportPackage(const format::PackageOptions& options) const;
+	/// @brief What installing a package on this screen would do (VERSION_CONTROL.md, "Installing a package"):
+	/// format::packageSummary(), with this screen as the person's copy, and what doesn't merge with it.
+	/// @param packageJson The package's file.
+	/// @param trustedPublishers The publishers the person trusts (format::readTrustedPublishers()).
+	/// @return The summary; its "problems" are empty if it can be installed.
+	/// @throws DocumentError If it isn't a package, naming the place.
+	[[nodiscard]] json inspectPackage(std::string_view packageJson, const json& trustedPublishers) const;
+	/// @brief Installs a package as a proposal that only the person can accept (VERSION_CONTROL.md, "Installing a
+	/// package"): its changes since its base, merged into this screen's document as "plugin:<name>", with its assets
+	/// and the state keys this screen lacks. What doesn't merge is left out, for the person to choose. Never applied.
+	/// @param packageJson The package's file.
+	/// @param error Receives why it was refused, if it was (may be nullptr).
+	/// @return Proposed; or Rejected, with why: it isn't a package, it can't be installed (format::installProblems()),
+	/// it is already installed (the same file, accepted or not), or what proposing it refused.
+	RevisionResult proposePackage(std::string_view packageJson, std::string* error = nullptr);
 
 	/// @brief Applies a change set, all or nothing.
 	/// @param changesJson A change set from exportChanges().

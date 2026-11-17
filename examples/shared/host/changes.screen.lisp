@@ -70,6 +70,10 @@
 (defcomputed canAccept "Whether the person may accept it: not changed since it was read, and no conflicts."
   (and computed.open (not state.stale) (= (count (or-else state.view.conflicts [])) 0)))
 
+(defcomputed leftOut "What a merge left out of the proposal shown, for the person to settle: [{:path :mine :theirs}]."
+  (let [waiting (find (fn [p] (= (:id p) state.view.proposal)) (or-else state.list.proposals []))]
+    (if (and computed.open (some? waiting)) (or-else (:leftOut waiting) []) [])))
+
 (defcomputed decided "Whether nothing waits: a commit, or a proposal decided." (not computed.open))
 
 (defcomputed planShown "Whether the host answered a plan for the applied change shown."
@@ -238,6 +242,16 @@
 (defn accepted "The proposal is decided, unless the host refused." [result]
   (when (nil? (:error result)) (set "state.closed" true))
   (answered result))
+
+(defn resolvePart "Settles a part a merge left out of the proposal: \"mine\" keeps main's value, \"theirs\" takes the
+  proposal's (its head moves, so the change is shown again before it is accepted)." [path take]
+  (call "changes.resolve"
+        :with {:proposal state.view.proposal :path path :take take}
+        :then resolved
+        :onError ignored))
+
+(defn resolved "Shows the proposal again as it is now, unless the host refused." [result]
+  (if (nil? (:error result)) (selectChange state.selected) (answered result)))
 
 (defn rejectChange "Rejects the proposal, telling its author why." []
   (call "changes.reject" :with {:proposal state.view.proposal :reason state.reason} :then rejected :onError ignored))
@@ -689,6 +703,77 @@
        :height 18
        :align center)))
 
+;;; What a merge left out
+
+(defview left-out-text "One side of a part left out: its text, read only." [id text]
+  `(editor :id ~id
+     :grow 1
+     :height 96
+     :font code
+     :textColor @c.text
+     :color @c.surface
+     :borderWidth 1
+     :borderColor @c.border
+     :radius 8
+     :text ~text
+     :readOnly true))
+
+(defview left-out-row "A part a merge left out: its path, main's and the proposal's texts side by side, and the choice."
+  [part index]
+  `(column :id ~(str "changesLeftOut" index) :height 182 :gap 6 :alignItems stretch :anchors {:left 0 :right 0}
+     (label :text ~part.path :font code :textColor @c.text :height 18)
+     (row :gap 8 :height 18
+       (label :text ~(t "changes.mine") :font small :textColor @c.muted :grow 1 :height 18)
+       (label :text ~(t "changes.theirs") :font small :textColor @c.muted :grow 1 :height 18))
+     (row :gap 8 :height 96
+       ~(left-out-text (str "changesLeftOutMine" index) 'part.mine)
+       ~(left-out-text (str "changesLeftOutTheirs" index) 'part.theirs))
+     (row :gap 8 :height 32
+       (node :grow 1 :height 32 :color transparent)
+       (node :id ~(str "changesKeepMine" index)
+         :role button
+         :focusable true
+         :cursor hand
+         :height 32
+         :radius 8
+         :color @c.raised
+         :borderWidth 1
+         :borderColor @c.border
+         :label ~(t "changes.keepMine")
+         :focused {:borderColor @c.accent :borderWidth 1}
+         :onClick ~(handler resolvePart part.path "mine")
+         :width 120
+         (label :text ~(t "changes.keepMine") :textColor @c.text :anchors {:left 10 :right 10 :top 7} :height 18 :align center))
+       (node :id ~(str "changesUseTheirs" index)
+         :role button
+         :focusable true
+         :cursor hand
+         :height 32
+         :radius 8
+         :color @c.raised
+         :borderWidth 1
+         :borderColor @c.border
+         :label ~(t "changes.useTheirs")
+         :focused {:borderColor @c.accent :borderWidth 1}
+         :onClick ~(handler resolvePart part.path "theirs")
+         :width 120
+         (label :text ~(t "changes.useTheirs") :textColor @c.text :anchors {:left 10 :right 10 :top 7} :height 18 :align center)))))
+
+(defview not-merged
+  "What a merge left out of the proposal: each part, for the person to keep or take, one in view and more scrolling.
+  Nothing if none."
+  []
+  `(column#changesNotMerged :when ~(> (count computed.leftOut) 0)
+     :height 262 ; its title, its note and one part; more scroll
+     :scroll vertical
+     :gap 8
+     :alignItems stretch
+     :anchors {:left 0 :right 0}
+     (label#changesNotMergedTitle :text ~(t "changes.notMerged") :font small :textColor @c.muted :height 20)
+     (label#changesNotMergedNote :wrap true :text ~(t "changes.notMergedNote") :textColor @c.warning
+       :anchors {:left 0 :right 0} :height 36)
+     ~(repeat [part computed.leftOut :index index] (left-out-row part index))))
+
 ;;; Deciding
 
 (defview action-button "A button that decides: its text from a key, shown while `shown`."
@@ -780,6 +865,7 @@
         (row#changesBody :when ~(some? state.view) :grow 1 :gap 12
           ~(files)
           ~(pane))
+        ~(not-merged)
         ~@(undo-plan)
         (label#changesMessage :when ~(not= state.message "")
           :wrap true

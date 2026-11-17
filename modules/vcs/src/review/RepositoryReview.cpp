@@ -152,7 +152,9 @@ Repository::MergeProposed Repository::proposeMerge(const MergeRequest& request) 
 	};
 	const json& main = mainDocument();
 	MergeResult merged = detail::merge(withStateOf(request.base, main), main, withStateOf(request.theirs, main));
-	if(merged.merged == main) {
+	const bool more = (request.assets.is_array() && !request.assets.empty()) ||
+	                  (request.extra.is_array() && !request.extra.empty());
+	if(merged.merged == main && !more) {
 		if(merged.clean()) return refused("nothing to merge: main already has it", {});
 		std::string error = "nothing merges cleanly: every change conflicts with main, at " + pathsOf(merged.conflicts);
 		return refused(std::move(error), std::move(merged.conflicts));
@@ -163,7 +165,9 @@ Repository::MergeProposed Repository::proposeMerge(const MergeRequest& request) 
 	} catch(const DocumentError& error) {
 		return refused(error.what(), std::move(merged.conflicts));
 	}
-	const json revision = {{"author", request.author}, {"message", request.message}, {"patch", std::move(patch)}};
+	if(request.extra.is_array()) patch.insert(patch.end(), request.extra.begin(), request.extra.end());
+	json revision = {{"author", request.author}, {"message", request.message}, {"patch", std::move(patch)}};
+	if(request.assets.is_array() && !request.assets.empty()) revision["assets"] = request.assets;
 	// As any proposal: the document rules, the deny rules and the limits judge it, whoever the author is
 	RevisionResult proposed = submitRevision(revision, true, {merged.conflicts, request.personOnly});
 	return {std::move(proposed), std::move(merged.conflicts)};

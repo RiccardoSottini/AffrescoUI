@@ -226,6 +226,16 @@ Exit packVersion(std::span<const std::string_view> args);
 /// @return How it ended: Problems if the package is refused.
 Exit inspectPackage(std::span<const std::string_view> args);
 
+/// @brief `install`: proposes a package to the person, on an app or on a new folder written from it; never accepts it.
+/// @param args The arguments.
+/// @return How it ended: Problems if the package is refused.
+Exit installPackage(std::span<const std::string_view> args);
+
+/// @brief `trust`: adds, takes away or lists the publishers whose signatures the person trusts.
+/// @param args The arguments.
+/// @return How it ended.
+Exit trustPublisher(std::span<const std::string_view> args);
+
 /// @brief `source`: where a node is written, as an agent reads it with getSource (commands/SourceCommand.cpp).
 /// @param args The arguments.
 /// @return How it ended: Problems when nothing is at the place asked.
