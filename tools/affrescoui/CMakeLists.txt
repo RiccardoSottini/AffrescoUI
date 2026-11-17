@@ -20,7 +20,7 @@ target_sources(affrescoui_cli PRIVATE commands/CheckCommand.cpp commands/FormatC
 	commands/SignCommand.cpp commands/ImportCommand.cpp commands/MigrateCommand.cpp
 	commands/ConvertCommand.cpp commands/StringsCommand.cpp commands/LispCommands.cpp
 	commands/LispBindingCommand.cpp commands/SourceCommand.cpp)
-target_sources(affrescoui_cli PRIVATE commands/PackageCommands.cpp) # packages: checked, written, summarised
+target_sources(affrescoui_cli PRIVATE commands/PackageCommands.cpp commands/CatalogueCommand.cpp) # packages, the catalogue
 target_include_directories(affrescoui_cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}) # for commands/: Cli.hpp
 set_target_properties(affrescoui_cli PROPERTIES OUTPUT_NAME affrescoui CXX_EXTENSIONS OFF
 	RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

@@ -3,6 +3,8 @@
 /// @file
 /// @brief What the commands of the `affrescoui` tool share: exit codes, arguments, files, and the commands.
 
+#include <affresco/core/Json.hpp>
+
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -230,6 +232,19 @@ Exit inspectPackage(std::span<const std::string_view> args);
 /// @param args The arguments.
 /// @return How it ended: Problems if the package is refused.
 Exit installPackage(std::span<const std::string_view> args);
+
+/// @brief Sets each release's digest and size of a catalogue's index (its features' manifests, its packages' files)
+/// from the file it names, so the index lists what is there; `sign` does it before signing (commands/SignCommand.cpp).
+/// @param index The index.
+/// @param folder The index's folder: the releases' URLs are relative to it.
+/// @throws FileProblem If a file can't be read.
+void refreshReleases(json& index, const std::filesystem::path& folder);
+
+/// @brief `catalogue`: `check` checks a catalogue's folder entry by entry, `refresh` writes its index's digests and
+/// sizes (commands/CatalogueCommand.cpp).
+/// @param args The arguments.
+/// @return How it ended: Problems if an entry has one.
+Exit catalogueCommand(std::span<const std::string_view> args);
 
 /// @brief `trust`: adds, takes away or lists the publishers whose signatures the person trusts.
 /// @param args The arguments.

@@ -73,6 +73,20 @@
 				{ "resize": [800, 600] },
 				{ "expect": { "image": "small" } }
 			]
+		},
+		{
+			"name": "launcher-catalogue",
+			"screen": "index.screen.json",
+			"note": "The Catalogue page once the service answers with a catalogue, and the review of one of its versions, with where it was listed",
+			"steps": [
+				{ "action": "launcher.catalogue", "event": { "name": "affrescoui", "updated": "2026-11-17", "signed": true, "entries": [{ "id": "flow-by-priority", "kind": "package", "title": "Flow, by priority", "description": "Flow with every list ordered by priority.", "release": "1.0.0", "base": "flow", "installed": false}, { "id": "slideSorter", "kind": "feature", "title": "Slide sorter", "description": "Thumbnails of an ordered list of pages.", "release": "1.0.0", "base": "", "installed": false}]} },
+				{ "wait": 0},
+				{ "click": { "role": "tab", "name": "Catalogue" } },
+				{ "expect": { "image": "catalogue" } },
+				{ "action": "launcher.reviewListed", "event": { "id": "flow-by-priority", "release": "1.0.0", "description": "Flow with every list ordered by priority.", "listed": { "catalogue": "affrescoui", "updated": "2026-11-17", "signed": true}, "summary": { "kind": "changes", "name": "Flow, by priority", "release": "1.0.0", "author": "", "signature": "none", "base": { "app": "flow", "name": "Flow", "release": "", "exact": true}, "definitions": { "added": [], "changed": [], "removed": []}, "impact": { "view": 0, "logic": 1, "data": "none" }, "extensions": { "added": [], "removed": []}, "writes": [], "uses": [], "state": {}, "assets": [], "problems": [], "conflicts": []} } },
+				{ "wait": 0},
+				{ "expect": { "image": "catalogue-review" } }
+			]
 		}
 	]
 }

@@ -10,8 +10,9 @@
 (defstate exporting {:open false :id "" :name "" :description "" :author "" :summary {} :leftOut {} :busy false}
   "The export under way: the app's folder, the package's name, description and author, and what the service said.")
 
-(defstate install {:package {} :summary {} :error "" :name "" :tried false :busy false}
-  "The file being reviewed: the package, what installing it would do or why it can't be, and the new app's name.")
+(defstate install {:package {} :summary {} :error "" :name "" :tried false :busy false :entry {} :listed {}}
+  "The file being reviewed: the package, what installing it would do or why it can't be, the new app's name, and the
+  catalogue's entry it came from and where that was listed.")
 
 (defcomputed installSlug "The installed app's folder: its name as Create makes one."
   (slice (join "-"
@@ -33,8 +34,10 @@
         (contains computed.myIds computed.installSlug) "create.error.exists"
         :else ""))
 
-(defcomputed installable "Whether the file reviewed can be installed: it read, and has no problem."
-  (and (= state.install.error "") (= (count (or state.install.summary.problems [])) 0)))
+(defcomputed installable "Whether the file reviewed can be installed: it read, has no problem, and isn't a feature
+  (one is added from inside an app)."
+  (and (= state.install.error "") (= (count (or state.install.summary.problems [])) 0)
+       (not= state.install.summary.kind "feature")))
 
 (defcomputed exportLines "What the package holds, in plain lines." (exportLinesOf state.exporting))
 
@@ -75,7 +78,11 @@
 
 (defn reviewOf "A review, a section each: the base, what doesn't merge, the layers, definitions, hooks and advice, what
   it writes and uses, capabilities, who may change it, its state, pictures and records, and its problems." [summary]
-  (concat (baseLines summary)
+  (concat (if (= (:kind summary) "feature")
+            (section "review.needs"
+                     (map (fn [it] (line (t "review.need" {:name (:name it) :kind (:kind it)}) "text"))
+                          (or (:needs summary) [])))
+            (baseLines summary))
           (section "review.conflicts"
                    (map (fn [it] (line (:path it) "danger")) (or (:conflicts summary) [])))
           (section "review.layers" (layerLines (or (:impact summary) {})))
@@ -183,6 +190,8 @@
   (set "state.install.name" (or (:name summary) ""))
   (set "state.install.tried" false)
   (set "state.install.busy" false)
+  (set "state.install.entry" {})
+  (set "state.install.listed" {})
   (go "install"))
 
 (defn showReview "Shows the review of a file as event gives it ({summary, package?, error?}): scenarios play the
@@ -195,7 +204,10 @@
   (when (and computed.installable (= computed.installError "") (not state.install.busy))
     (set "state.install.busy" true)
     (invoke "packages.install"
-            :with {:package state.install.package :id computed.installSlug :name (trim state.install.name)}
+            :with (if (= (or-else state.install.entry.catalogue "") "")
+                    {:package state.install.package :id computed.installSlug :name (trim state.install.name)}
+                    {:catalogue state.install.entry.catalogue :release state.install.entry.release
+                     :id computed.installSlug :name (trim state.install.name)})
             :onDone [installed (trim state.install.name)] :onError notInstalled)))
 
 (defn notInstalled "Says why it wasn't installed: nothing was made." [error]
@@ -216,9 +228,9 @@
   (toast (t (if proposal "toast.installedProposal" "toast.installed") {:name title}) false)
   (after 1 refreshMine))
 
-(defn cancelInstall "Leaves the review: nothing is installed." []
-  (set "state.install" {:package {} :summary {} :error "" :name "" :tried false :busy false})
-  (go "mine"))
+(defn cancelInstall "Leaves the review, for the page it came from: nothing is installed." []
+  (go (if (= (or-else state.install.entry.catalogue "") "") "mine" "catalogue"))
+  (set "state.install" {:package {} :summary {} :error "" :name "" :tried false :busy false :entry {} :listed {}}))
 
 ;;; The export dialog
 
@@ -297,12 +309,15 @@
        :anchors {:left 0 :right 0 :top 50} :height 20)
      (label#installRefused :when ~(not= state.install.error "")
        :text ~state.install.error :wrap true :textColor @c.danger :anchors {:left 0 :right 0 :top 26} :height 44
-       :role alert)))
+       :role alert)
+     (label#installListed :when ~(and (= state.install.error "") (not= computed.listedLine ""))
+       :text ~computed.listedLine :textColor @c.muted :anchors {:left 0 :right 0 :top 74} :height 20)))
 
 (defview install-footer "The new app's name, what is wrong with it, Install and Cancel; no Install when it can't be."
   []
   `(node#installFooter :anchors {:left 36 :right 36 :bottom 0} :height 120 :color transparent
-     (label#installCant :when ~(not computed.installable) :text ~(t "review.cant") :textColor @c.danger
+     (label#installCant :when ~(not computed.installable)
+       :text ~(if (= state.install.summary.kind "feature") (t "review.featureHere") (t "review.cant")) :textColor @c.danger
        :anchors {:left 0 :right 160 :top 20} :height 22 :role status)
      (node#installName :when ~computed.installable :style field :bind state.install.name :maxLength 80
        :label ~(t "review.name") :anchors {:left 0 :right 320 :top 14} :height 42 :onSubmit installApp

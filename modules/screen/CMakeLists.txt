@@ -26,7 +26,7 @@ add_library(affrescoui
 	src/features/FeaturesService.cpp)
 add_library(affrescoui::affrescoui ALIAS affrescoui)
 # packages: a screen's packages and the service that exports and installs them
-target_sources(affrescoui PRIVATE src/ScreenPackages.cpp src/packages/PackagesService.cpp)
+target_sources(affrescoui PRIVATE src/ScreenPackages.cpp src/packages/PackagesService.cpp src/packages/PackagesCatalogue.cpp)
 target_include_directories(affrescoui PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/modules/screen/include>)
 set_target_properties(affrescoui PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(affrescoui PRIVATE ${AFFRESCOUI_WARNINGS})

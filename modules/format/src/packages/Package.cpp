@@ -368,21 +368,6 @@ void readExtras(const json& value, Package& package) {
 	}
 }
 
-/// @brief How a package's signature stands: "none", "trusted:<name>" or "unknown:<the key's first 16 characters>".
-/// @param signature The package's signature (verified when read), or null.
-/// @param trustedPublishers `{"ed25519:<key>": "<name>"}`, or anything else for none.
-/// @return It.
-std::string signatureOf(const json& signature, const json& trustedPublishers) {
-	if(!signature.is_object() || !signature.contains("publisher") || !signature["publisher"].is_string()) return "none";
-	const auto& publisher = signature["publisher"].get_ref<const std::string&>();
-	if(trustedPublishers.is_object()) {
-		const auto found = trustedPublishers.find(publisher);
-		if(found != trustedPublishers.end() && found->is_string()) return "trusted:" + found->get<std::string>();
-	}
-	constexpr std::string_view prefix = "ed25519:";
-	return "unknown:" + publisher.substr(publisher.starts_with(prefix) ? prefix.size() : 0, 16);
-}
-
 } // namespace
 
 namespace detail {
@@ -517,9 +502,20 @@ json packageSummary(const Package& package, const PackageReceiver& receiver, con
 	                {"state", package.state.is_object() ? package.state : json::object()},
 	                {"definitions",
 	                 {{"added", std::move(added)}, {"changed", std::move(changed)}, {"removed", std::move(removed)}}},
-	                {"signature", signatureOf(package.signature, trustedPublishers)}};
+	                {"signature", signatureStanding(package.signature, trustedPublishers)}};
 	detail::addInstallParts(summary, package, base, receiver);
 	return summary;
+}
+
+std::string signatureStanding(const json& signature, const json& trustedPublishers) {
+	if(!signature.is_object() || !signature.contains("publisher") || !signature["publisher"].is_string()) return "none";
+	const auto& publisher = signature["publisher"].get_ref<const std::string&>();
+	if(trustedPublishers.is_object()) {
+		const auto found = trustedPublishers.find(publisher);
+		if(found != trustedPublishers.end() && found->is_string()) return "trusted:" + found->get<std::string>();
+	}
+	constexpr std::string_view prefix = "ed25519:";
+	return "unknown:" + publisher.substr(publisher.starts_with(prefix) ? prefix.size() : 0, 16);
 }
 
 } // namespace affresco::format

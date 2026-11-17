@@ -45,7 +45,7 @@
 
 (defview pages-nav "The pages, each with its key." []
   `(column#nav :anchors {:left 12 :right 12 :top 90}
-     :height 186
+     :height ~(if state.catalogue.available 234 186)
      :gap 6
      :arrows vertical
      :role tablist
@@ -56,6 +56,8 @@
        :with {:id mine :icon folder-heart :title ~(t "nav.mine") :keyLabel ~(key-label "⌘2" "Ctrl+2")})
      (node#navCreate :use navItem
        :with {:id create :icon circle-plus :title ~(t "nav.create") :keyLabel ~(key-label "⌘N" "Ctrl+N")})
+     (node#navCatalogue :when ~state.catalogue.available :use navItem
+       :with {:id catalogue :icon library :title ~(t "nav.catalogue") :keyLabel ""})
      (node#navSettings :use navItem
        :with {:id settings :icon settings :title ~(t "nav.settings") :keyLabel ~(key-label "⌘," "Ctrl+,")})))
 
