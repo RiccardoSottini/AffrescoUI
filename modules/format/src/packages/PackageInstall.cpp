@@ -405,6 +405,10 @@ namespace detail {
 void addInstallParts(json& summary, const Package& package, const json& base, const PackageReceiver& receiver) {
 	summary["base"]["installedRelease"] = receiver.release.empty() ? json() : json(receiver.release);
 	std::vector<std::string> problems = installProblems(package, receiver);
+	// every part is there, empty, should the version not build: a reader never meets a part that's missing
+	summary["impact"] = json::object();
+	summary["extensions"] = {{"added", json::array()}, {"removed", json::array()}};
+	for(const char* part : {"writes", "uses", "models"}) summary[part] = json::array();
 	try {
 		addChangeParts(summary, package, base);
 	} catch(const DocumentError& error) {

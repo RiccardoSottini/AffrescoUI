@@ -299,6 +299,16 @@ TEST_CASE("packages: each limit at its edge") {
 	CHECK_THROWS_AS(static_cast<void>(format::readPackage(std::string(20, '{'))), json::parse_error);
 }
 
+TEST_CASE("packages: a version that doesn't build is a problem, with every part of its summary there") {
+	json value = changesPackage();
+	value["document"]["program"]["app.lisp"]["blocked"] = "(defn blocked [";
+	const json summary = format::packageSummary(format::parsePackage(value), json(), json::object());
+	CHECK(summary["problems"].dump().contains("can't be built"));
+	CHECK(summary.at("impact") == json::object());
+	CHECK(summary.at("extensions") == json{{"added", json::array()}, {"removed", json::array()}});
+	for(const char* part : {"writes", "uses", "models"}) CHECK(summary.at(part) == json::array());
+}
+
 TEST_CASE("packages: the summary names its parts, how its base compares, and how its signature stands") {
 	json value = changesPackage();
 	value["state"] = {{"blockedReason", "waiting"}};
