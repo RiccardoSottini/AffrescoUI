@@ -286,3 +286,31 @@ TEST_CASE("revision cost: a restore, a revert, a preview, its end and an import 
 	REQUIRE_FALSE(target.repository.importChanges(source.repository.exportChanges(0, "import")));
 	CHECK(target.last().everything);
 }
+
+TEST_CASE("revision cost: a definition changed shows the version's number, read by a label the program builds") {
+	lispapp::App app(R"lisp(
+(defview logo "The logo." [] `(label#logo :text "Logo" :width 200 :height 30))
+(defscreen main (panel#root ~(logo) (label#number :text ~(str "Revision " revision.number) :y 40 :width 200 :height 30)))
+)lisp");
+	const auto number = [&app] { return dynamic_cast<const affresco::Label*>(app.runtime->find("number"))->text(); };
+	REQUIRE(number() == "Revision 0");
+	app.write("logo", R"((defview logo "The logo." [] `(label#logo :text "Brand" :width 200 :height 30)))");
+	app.settle();
+	CHECK(number() == "Revision 1");
+}
+
+TEST_CASE("revision cost: a revision of the document shows the version's number, through a component's parameter too") {
+	json screen = json::parse(labelsScreen);
+	screen["components"] = json::parse(R"({"bar": {"params": {"items": []}, "node": {"type": "panel", "children": [
+		{"repeat": {"for": "item", "in": "items", "index": "i"}, "id": "item{{i}}", "type": "label", "text": "{{item.text}}",
+		 "width": 200, "height": 30}]}}})");
+	screen["root"]["children"].push_back(json::parse(R"({"id": "bar", "use": "bar", "y": 120,
+		"with": {"items": [{"text": "{{'Revision ' + revision.number}}"}]}})"));
+	screen["root"]["children"][0]["text"] = "{{revision.number}} of {{length(history)}}";
+	Built built(screen);
+	REQUIRE(built.text("logo") == "0 of 1");
+	REQUIRE(built.text("item0") == "Revision 0");
+	REQUIRE_FALSE(built.commit(json::parse(R"([{"op": "replace", "path": "/colors/ink", "value": "#405060"}])")));
+	CHECK(built.text("logo") == "1 of 2");
+	CHECK(built.text("item0") == "Revision 1");
+}
