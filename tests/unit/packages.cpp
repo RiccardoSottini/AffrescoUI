@@ -223,6 +223,12 @@ TEST_CASE("packages: an asset is one the document lists, with its bytes' size an
 	json other = value;
 	other["assets"]["dot.svg"]["text"] = std::string(dot) + " ";
 	CHECK(refusal(other).contains("assets.dot.svg: not the bytes the document's \"assets\" lists"));
+	for(const char* field : {"sha256", "type"}) { // a listing of another type is a mismatch, not an error
+		CAPTURE(field);
+		json numbered = value;
+		numbered["document"]["assets"]["dot.svg"][field] = 7;
+		CHECK(refusal(numbered).contains("assets.dot.svg: not the bytes the document's \"assets\" lists"));
+	}
 	json badName = value;
 	badName["assets"]["Dot.svg"] = badName["assets"]["dot.svg"];
 	CHECK(refusal(badName).contains("assets.Dot.svg:"));

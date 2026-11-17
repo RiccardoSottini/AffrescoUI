@@ -248,8 +248,9 @@ void checkListed(const json& listed, const std::string& name, const std::string&
                  const std::string& place) {
 	const auto entry = listed.is_object() ? listed.find(name) : listed.end();
 	if(entry == listed.end() || !entry->is_object()) refuse(place, R"(the document's "assets" doesn't list it)");
-	if(entry->value("sha256", "") != sha256::hex(bytes) || entry->value("size", json()) != bytes.size() ||
-	   entry->value("type", "") != type)
+	// compared as JSON, so a listing of another type is a mismatch, never a type error
+	if(entry->value("sha256", json()) != json(sha256::hex(bytes)) || entry->value("size", json()) != bytes.size() ||
+	   entry->value("type", json()) != json(type))
 		refuse(place, R"(not the bytes the document's "assets" lists (type, size and SHA-256))");
 }
 
