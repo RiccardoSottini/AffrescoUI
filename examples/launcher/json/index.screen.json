@@ -1100,20 +1100,6 @@
 	},
 
 	"overlays": {
-		"confirmDelete": {
-			"id": "confirmDeleteDialog",
-			"use": "dialog",
-			"with": {
-				"open": "state.confirmOpen",
-				"title": "{{t('delete.title', {name: state.confirm.name})}}",
-				"message": "{{t('delete.message', {folder: state.confirm.id})}}",
-				"width": 460,
-				"height": 180,
-				"highlight": "@c.accent",
-				"buttons": [{ "title": "{{t('delete.confirm')}}", "run": "deleteMine" }, { "title": "{{t('delete.cancel')}}", "default": true }]
-			}
-		},
-		"launcherToasts": { "id": "launcherToastList", "use": "toasts", "with": { "name": "toasts" } },
 		"exportDialog": {
 			"id": "exportDialog",
 			"use": "dialog",
@@ -1305,6 +1291,20 @@
 					]
 				}
 			]
-		}
+		},
+		"confirmDelete": {
+			"id": "confirmDeleteDialog",
+			"use": "dialog",
+			"with": {
+				"open": "state.confirmOpen",
+				"title": "{{t('delete.title', {name: state.confirm.name})}}",
+				"message": "{{t('delete.message', {folder: state.confirm.id})}}",
+				"width": 460,
+				"height": 180,
+				"highlight": "@c.accent",
+				"buttons": [{ "title": "{{t('delete.confirm')}}", "run": "deleteMine" }, { "title": "{{t('delete.cancel')}}", "default": true }]
+			}
+		},
+		"launcherToasts": { "id": "launcherToastList", "use": "toasts", "with": { "name": "toasts" } }
 	}
 }
