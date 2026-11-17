@@ -61,7 +61,8 @@ struct Composition {
 
 /// @brief The state an enabled feature declares, by feature: what the live state must have at `state.<name>`.
 /// @param document The document.
-/// @return `{ "<name>": <its initial state> }` for each enabled feature that provides state.
+/// @return `{ "<name>": <its initial state> }` for each enabled feature that provides state: its `provides.state`, or
+/// the `defstate` of its program.
 [[nodiscard]] json featureStates(const json& document);
 
 } // namespace affresco::format

@@ -2336,17 +2336,31 @@ hook point the app declares with `defhook` and lists in `points.<name>.hooks` of
 advice only an action export such a point receives. Composition lists each in `extensions`. The functions don't run
 in the screen yet: what composes is what they built.
 
-```json
-"provides": { "program": { "feature.lisp": {
-  "state.wordCount": "(defstate wordCount {:characters false} \"Whether it counts characters.\")",
-  "computed.wordCount": "(defcomputed wordCount \"The counts.\" {:words (count app.text)})",
-  "wordCount-flip": "(defn wordCount-flip \"Flips it.\" [] (toggle \"state.wordCount.characters\"))",
-  "wordCount.toggle": "(defcommand wordCount.toggle \"Toggles.\" :title \"Toggle\" [] (wordCount-flip))",
-  "wordCount-label": "(defview wordCount-label \"The label.\" [] `(label#wordCount-label :text ~(str computed.wordCount.words) :onClick wordCount.toggle))",
-  "part.wordCount-views": "(defpart wordCount-views \"Its place.\" :views {:statusBar.right {:wordCount-label ~(wordCount-label)}})",
-  "defkey mod+k": "(defkey \"mod+k\" \"Toggles the count.\" wordCount.toggle)",
-  "add-hook after-save wordCount-flip": "(add-hook after-save wordCount-flip)"
-} } }
+In a feature's folder, `feature.lisp` may list the files instead: `:program ["sorter.lisp"]` reads each file, which
+must be in the folder, into `provides.program` (`affrescoui check --compose`, `contributions` and the MCP server read
+the folder so). Sinopia's slide sorter (`examples/sinopia/lisp/features/slide-sorter/sorter.lisp`) begins:
+
+```lisp
+;;; sorter.lisp --- the slide sorter: thumbnails of an ordered list of pages, drag to reorder, click to select
+;;;
+;;; Written once, for Sinopia's slides, and installed into any app that offers its needs (feature.lisp): it reads
+;;; the app only as app.pages and app.current, and changes it only through the actions app.select, app.reorder and
+;;; app.duplicate. Its own state is the page picked last, the selection of an app that keeps none.
+
+;;; Its state
+
+(defstate slideSorter {:picked ""} "The id of the page picked last: the selection when the app has no current page.")
+
+;;; What it does
+
+(defn slideSorter-selected
+  "The selected page: the app's current page, else the one picked last."
+  [current]
+  (if (nil? current) state.slideSorter.picked current))
+
+(defcommand slideSorter.pick
+  "Selects a page: the sorter remembers it, and the app selects it."
+  :title "Select Page"
 ```
 
 ## Other formats

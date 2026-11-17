@@ -19,8 +19,11 @@
 
 #include <algorithm>
 #include <array>
+#include <filesystem>
 #include <format>
 #include <iostream>
+#include <system_error>
+#include <utility>
 
 namespace affresco::cli {
 
@@ -103,7 +106,90 @@ std::filesystem::path manifestFile(const std::filesystem::path& path) {
 	return std::filesystem::is_directory(path) ? notation::namedDocument(path, "feature") : path;
 }
 
-/// @brief The installable parts an app ships: `<its folder>/features/*/feature.json` (or `.lisp`), by name.
+/// @brief How many program files a feature's manifest may list: far more than a feature needs, few enough that a
+/// listing can't make the reader open files without end.
+constexpr std::size_t maximumProgramFiles = 64;
+
+/// @brief A program file a feature's manifest lists, checked to be a `.lisp` file inside the feature's folder: a
+/// relative path that never climbs out of it, a link included.
+/// @param folder The feature's folder.
+/// @param name The file, as the manifest lists it.
+/// @return The file.
+/// @throws FileProblem If it isn't such a file.
+std::filesystem::path programFile(const std::filesystem::path& folder, const json& name) {
+	const std::string text = name.is_string() ? name.get<std::string>() : std::string();
+	const std::filesystem::path relative = std::filesystem::path(text).lexically_normal();
+	const auto climbs = [](const std::filesystem::path& path) {
+		return !path.empty() && path.begin()->string() == "..";
+	};
+	if(text.empty() || relative.is_absolute() || relative.has_root_name() || climbs(relative) ||
+	   relative.extension() != ".lisp")
+		throw FileProblem(std::format("program: {} is not a .lisp file in the feature's folder", name.dump()));
+	const std::filesystem::path file = folder / relative;
+	std::error_code fileError;
+	std::error_code folderError;
+	const std::filesystem::path real = std::filesystem::weakly_canonical(file, fileError);
+	const std::filesystem::path home = std::filesystem::weakly_canonical(folder, folderError);
+	if(fileError || folderError || climbs(real.lexically_relative(home)) || !std::filesystem::is_regular_file(real))
+		throw FileProblem(std::format("program: {} is not a .lisp file in the feature's folder", name.dump()));
+	return file;
+}
+
+/// @brief Puts the program files a manifest lists (`"program": ["sorter.lisp", ...]`) into its
+/// `provides.program`, each file's definitions by address, as a document's `program` section holds them.
+/// @param manifest The manifest, which loses its list.
+/// @param folder The feature's folder, which holds the files.
+/// @throws FileProblem If the list or a file is wrong, or a file is also written inline.
+void addProgramFiles(json& manifest, const std::filesystem::path& folder) {
+	const json listed = manifest["program"];
+	manifest.erase("program");
+	if(!listed.is_array() || listed.empty() || listed.size() > maximumProgramFiles)
+		throw FileProblem(
+		    std::format("program: a list of 1 to {} .lisp files in the feature's folder", maximumProgramFiles));
+	if(!manifest.contains("provides")) manifest["provides"] = json::object();
+	json& provides = manifest["provides"];
+	if(!provides.is_object()) throw FileProblem("provides: an object");
+	json& program = provides["program"];
+	if(program.is_null()) program = json::object();
+	if(!program.is_object()) throw FileProblem("provides.program: an object");
+	for(const json& name : listed) {
+		const std::filesystem::path file = programFile(folder, name);
+		const std::string key = std::filesystem::path(name.get<std::string>()).lexically_normal().generic_string();
+		if(program.contains(key)) throw FileProblem("program: " + key + " is given twice");
+		try {
+			program[key] = lisp::sourceDocument(readFile(file), key).at("program").at(key);
+		} catch(const DocumentError& problem) {
+			throw FileProblem(file.string() + ": " + problem.what());
+		}
+	}
+}
+
+/// @brief A feature, read from its manifest: the manifest as it is, or, when it lists program files, with their
+/// definitions in its `provides.program` (SCREEN_FORMAT.md, "A feature written as a program").
+struct ReadFeature {
+	json manifest;      ///< The manifest, its program files read in.
+	std::string digest; ///< What pins it: its file's bytes, or, with program files, the manifest read as JSON text.
+};
+
+/// @brief Reads a feature from its manifest file: untrusted, in the notation its name says, its program files read in.
+/// @param file The manifest file.
+/// @return The feature.
+/// @throws FileProblem If it, or a program file it lists, can't be read.
+ReadFeature readFeature(const std::filesystem::path& file) {
+	const std::string text = readFile(file);
+	ReadFeature feature{.manifest = readUntrusted(file), .digest = format::digestOf(text)};
+	if(!feature.manifest.is_object() || !feature.manifest.contains("program")) return feature;
+	try {
+		addProgramFiles(feature.manifest, file.parent_path());
+	} catch(const FileProblem& problem) {
+		throw FileProblem(file.string() + ": " + problem.what());
+	}
+	feature.digest = format::digestOf(feature.manifest.dump());
+	return feature;
+}
+
+/// @brief The installable parts an app ships: `<its folder>/features/*/feature.json` (or `.lisp`, with the program
+/// files it lists), by name.
 /// @param screen The app's screen file.
 /// @return partOf() each, or `{name, problem}` for one that doesn't check.
 json partsOf(const std::filesystem::path& screen) {
@@ -117,7 +203,7 @@ json partsOf(const std::filesystem::path& screen) {
 			files.push_back(file);
 	std::ranges::sort(files);
 	for(const std::filesystem::path& file : files) try {
-			const json manifest = readUntrusted(file);
+			const json manifest = readFeature(file).manifest;
 			format::checkManifest(manifest, "feature");
 			parts.push_back(format::partOf(manifest));
 		} catch(const std::exception& error) {
@@ -242,17 +328,17 @@ Exit checkComposition(std::span<const std::string_view> args, const std::functio
 	if(arguments.positional().size() != 2) throw UsageError("expected a screen and a feature");
 	const std::filesystem::path screen = arguments.positional()[0];
 	const std::filesystem::path feature = manifestFile(arguments.positional()[1]);
-	const std::string manifestText = readFile(feature);
+	ReadFeature read = readFeature(feature);
 
 	format::ProofInputs inputs;
 	inputs.host = loadDocument(screen, documentText(arguments, screen));
-	inputs.manifest = readUntrusted(feature);
+	inputs.manifest = std::move(read.manifest);
 	if(const std::optional<std::string> adapter = arguments.value("--adapter"))
 		inputs.adapter = readUntrusted(*adapter);
 	inputs.source = arguments.value("--source").value_or(sourceOf(feature));
 	inputs.hostName = appNameOf(std::filesystem::absolute(screen).parent_path());
 	inputs.base = arguments.value("--base").value_or("");
-	inputs.digest = format::digestOf(manifestText);
+	inputs.digest = std::move(read.digest);
 	const format::ProvenComposition proven =
 	    format::proveComposition(inputs, runnerFor(screen, hostScenariosOf(arguments, screen), prepare));
 

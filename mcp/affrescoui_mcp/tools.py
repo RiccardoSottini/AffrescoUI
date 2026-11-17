@@ -120,7 +120,7 @@ TOOLS = [
                     "(SCREEN_FORMAT.md, \"Adapters\").",
      "inputSchema": object_schema({
          "screen": {"type": "string", "description": "The running app's screen file, for its folder and scenarios"},
-         "feature": {"type": "string", "description": "The feature's folder or feature.json, in its own app"},
+         "feature": {"type": "string", "description": "The feature's folder or manifest, in its own app: a feature.json, or a feature.lisp with the program files it lists"},
          "adapter": {"type": "object", "description": "The adapter (optional: needs bind by name without one)"},
      }, ["screen", "feature"]),
      "annotations": {"readOnlyHint": True}},
@@ -131,7 +131,7 @@ TOOLS = [
                     "blame, and undoes like one. A failed proof installs nothing and returns its reasons.",
      "inputSchema": object_schema({
          "screen": {"type": "string", "description": "The running app's screen file, for its folder and scenarios"},
-         "feature": {"type": "string", "description": "The feature's folder or feature.json, in its own app"},
+         "feature": {"type": "string", "description": "The feature's folder or manifest, in its own app: a feature.json, or a feature.lisp with the program files it lists"},
          "adapter": {"type": "object", "description": "The adapter (optional)"},
      }, ["screen", "feature"])},
     {"name": "get_format_guide",

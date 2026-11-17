@@ -743,10 +743,15 @@ json featureStates(const json& document) {
 	json states = json::object();
 	const auto features = document.find("features");
 	if(features == document.end() || !features->is_object()) return states;
-	for(const auto& [name, record] : features->items())
-		if(record.is_object() && record.value("enabled", false) && record.contains("provides") &&
-		   record["provides"].contains("state"))
-			states[name] = record["provides"]["state"];
+	for(const auto& [name, record] : features->items()) {
+		if(!record.is_object() || !record.value("enabled", false) || !record.contains("provides")) continue;
+		const json& provides = record["provides"];
+		if(provides.contains("state")) states[name] = provides["state"];
+		else if(provides.contains("program")) { // its defstate, when its program builds
+			const json& built = cachedBuild(name, provides).parts;
+			if(built.contains("state") && built["state"].contains(name)) states[name] = built["state"][name];
+		}
+	}
 	return states;
 }
 
