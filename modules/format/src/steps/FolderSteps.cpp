@@ -57,7 +57,7 @@ bool chooseFolder(const Running& s) {
 			failed();
 			return;
 		}
-		engine.document.globalsChanged(); // the "services" variable
+		engine.document.markVariableChanged("services");
 		outcome->vars = json{{"result", {{"name", folderName(chosen.front())}}}};
 		succeeded();
 	});
