@@ -38,7 +38,8 @@
 
 (defcomputed exportLines "What the package holds, in plain lines." (exportLinesOf state.exporting))
 
-(defcomputed reviewLines "What installing the file would do, a line each." (reviewOf state.install.summary))
+(defcomputed reviewLines "What installing the file would do, a line each; nothing for a file that can't be read."
+  (if (= state.install.error "") (reviewOf state.install.summary) []))
 
 (defcomputed signatureLine "Who signed the file reviewed, as the person reads it."
   (signatureOf (or-else state.install.summary.signature "none")))
@@ -62,7 +63,7 @@
         impact (or (:impact summary) {})
         leftOut (or (:leftOut exporting) {})]
     [(line (if (= (:kind summary) "changes")
-             (t "share.kindChanges" {:base (get-in summary [:base :name])})
+             (t "share.kindChanges" {:base (nameOf (:base summary))})
              (t "share.kindApp"))
            "text")
      (line (t "share.definitions" {:added (count (or (:added definitions) []))
@@ -89,12 +90,15 @@
           (section "review.contents" (contentLines summary))
           (section "review.problems" (map (fn [it] (line it "danger")) (or (:problems summary) [])))))
 
+(defn nameOf "The name of an app the summary names, or \"an unnamed app\" when it has none." [app]
+  (if (= (or (:name app) "") "") (t "review.unnamed") (:name app)))
+
 (defn baseLines "What the package was made on, and how that compares with what the person has." [summary]
   (let [base (or (:base summary) {})]
     [(line (t "review.base") "heading")
      (line (cond (= (:kind summary) "app") (t "review.baseApp")
-                 (= (:exact base) true) (t "review.baseExact" {:name (:name base) :release (or (:release base) "")})
-                 :else (t "review.baseOther" {:name (:name base) :release (or (:release base) "")}))
+                 (= (:exact base) true) (t "review.baseExact" {:name (nameOf base) :release (or (:release base) "")})
+                 :else (t "review.baseOther" {:name (nameOf base) :release (or (:release base) "")}))
            (if (or (= (:kind summary) "app") (= (:exact base) true)) "text" "danger"))]))
 
 (defn layerLines "How many changes each layer has: what it shows, what it does, its data." [impact]

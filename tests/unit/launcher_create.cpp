@@ -313,6 +313,7 @@ TEST_CASE("launcher: the export dialog and the review show the service's answers
 	    json{{"wait", 0}},
 	    json{{"expect", {{"node", "#installRefused"}, {"text", "It isn't a package."}}}},
 	    json{{"expect", {{"node", "#installButton"}, {"exists", false}}}},
+	    json{{"expect", {{"node", "#reviewLine"}, {"exists", false}}}},
 	    json{{"click", "#installCancel"}},
 	    json{{"expect", {{"state", "page"}, {"is", "mine"}}}}};
 	for(const std::string notation : notations) {

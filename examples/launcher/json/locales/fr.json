@@ -142,6 +142,7 @@
 			"review.signedTrusted": "Signé par {name}, à qui vous faites confiance",
 			"review.signedUnknown": "Signé par une clé que vous ne connaissez pas ({key})",
 			"review.unsigned": "Non signé",
+			"review.unnamed": "une app sans nom",
 			"review.base": "Ce sur quoi elle a été faite",
 			"review.baseApp": "Une app entière : rien de ce que vous avez ne change",
 			"review.baseExact": "{name} {release}, telle que vous l'avez",

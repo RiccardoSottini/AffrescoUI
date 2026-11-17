@@ -237,7 +237,8 @@
 				{ "expect": { "node": "#installAbout", "text": "This file can't be installed" } },
 				{ "expect": { "node": "#installRefused", "text": "The file isn't a version of an app: it has no format." } },
 				{ "expect": { "node": "#installButton", "exists": false } },
-				{ "expect": { "node": "#installName", "exists": false } }
+				{ "expect": { "node": "#installName", "exists": false } },
+				{ "expect": { "node": "#reviewLine", "exists": false } }
 			]
 		}
 	]

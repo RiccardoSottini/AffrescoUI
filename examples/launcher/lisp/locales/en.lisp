@@ -139,6 +139,7 @@
                 :review.signedTrusted "Signed by {name}, whom you trust"
                 :review.signedUnknown "Signed by a key you don't know ({key})"
                 :review.unsigned "Not signed"
+                :review.unnamed "an unnamed app"
                 :review.base "What it was made on"
                 :review.baseApp "A whole app: nothing you have is changed"
                 :review.baseExact "{name} {release}, as you have it"
