@@ -22,6 +22,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -89,6 +90,23 @@ void forEachWord(std::string_view text, const std::function<void(std::string_vie
 	}
 }
 
+/// @brief The other entries a text names: a view's expression calls a function by its name, which its compiled code
+/// doesn't hold, yet what it compiles to depends on whether the function is defined; a build in part loads each, and
+/// builds again what names one that changed or went.
+/// @param text An entry's text.
+/// @param own Its name.
+/// @param names Each entry's place, by its name.
+/// @return Their names, sorted.
+std::vector<std::string> entryWords(std::string_view text, std::string_view own,
+                                    const std::map<std::string, std::size_t>& names) {
+	std::set<std::string, std::less<>> found;
+	forEachWord(text, [&](std::string_view word) {
+		if(word != own && !found.contains(word))
+			if(const auto entry = names.find(std::string(word)); entry != names.end()) found.insert(entry->first);
+	});
+	return {found.begin(), found.end()};
+}
+
 /// @brief Marks the entries that run: those that changed, and those that use one that changed or went, over and over.
 /// @param previous The record.
 /// @param entries The entries.
@@ -142,8 +160,11 @@ void markLoaded(const BuildRecord& previous, const std::vector<Entry>& entries,
 		const std::size_t at = waiting.back();
 		waiting.pop_back();
 		if(plan.changed[at]) forEachWord(entries[at].text, use);
-		else
-			for(const std::string& name : previous.definitions[*plan.before[at]]->uses) use(name);
+		else {
+			const DefinitionBuilt& was = *previous.definitions[*plan.before[at]];
+			for(const std::string& name : was.uses) use(name);
+			for(const std::string& name : was.words) use(name);
+		}
 	}
 }
 
@@ -257,6 +278,7 @@ std::optional<PartBuilt> runPart(const std::vector<Entry>& entries, const std::m
 				loaded[at].name = entries[entry].name;
 				loaded[at].file = entries[entry].file;
 				loaded[at].text = entries[entry].text;
+				loaded[at].words = entryWords(entries[entry].text, entries[entry].name, names);
 				loaded[at].author = entries[entry].author;
 				part.built[entry] = std::move(loaded[at]);
 			}
@@ -295,6 +317,7 @@ void indexRecord(BuildRecord& record) {
 		const DefinitionBuilt& definition = *record.definitions[at];
 		record.index.emplace(definition.name, at);
 		for(const std::string& name : definition.uses) record.users[name].push_back(at);
+		for(const std::string& name : definition.words) record.users[name].push_back(at);
 		record.extensions = record.extensions || definition.extension.has_value();
 	}
 }
@@ -343,13 +366,22 @@ bool sortByDefinition(const std::vector<UndefinedName>& found,
 }
 
 void sortByDefinitionOrder(const Machine& machine, std::vector<UndefinedName>& found) {
-	std::map<std::string_view, std::size_t> order;
+	if(found.size() < 2) return;
+	std::unordered_map<std::string_view, std::size_t> order;
+	order.reserve(machine.definitions().size());
 	for(const auto& definition : machine.definitions()) order.emplace(definition->name, order.size());
-	const auto place = [&](const UndefinedName& item) {
+	std::vector<std::pair<std::size_t, std::size_t>> keys; // each item's definition's place, and its own
+	keys.reserve(found.size());
+	for(const UndefinedName& item : found) {
 		const auto at = order.find(item.definition);
-		return at == order.end() ? order.size() : at->second;
-	};
-	std::ranges::stable_sort(found, {}, place);
+		keys.emplace_back(at == order.end() ? order.size() : at->second, keys.size());
+	}
+	if(std::ranges::is_sorted(keys)) return;
+	std::ranges::sort(keys); // the second of each pair keeps the order found among equals
+	std::vector<UndefinedName> sorted;
+	sorted.reserve(found.size());
+	for(const auto& key : keys) sorted.push_back(std::move(found[key.second]));
+	found = std::move(sorted);
 }
 
 void addPlacesGiven(const DefinitionBuilt& definition, std::vector<std::string>& places) {
@@ -381,6 +413,8 @@ void Program::keepRecord(Machine& machine, std::vector<DefinitionBuilt> record, 
 		if(entry == names_.end()) continue; // a macro's call at the top level defined it
 		record[at].file = entries_[entry->second].file;
 		record[at].text = entries_[entry->second].text;
+		if(!recording_ && namespaces_.empty()) // else it never builds in part
+			record[at].words = entryWords(record[at].text, record[at].name, names_);
 		record[at].author = entries_[entry->second].author;
 		index.emplace(record[at].name, at);
 	}

@@ -26,6 +26,7 @@ struct DefinitionBuilt {
 	std::string text;                     ///< Its entry's text.
 	std::string author;                   ///< Its entry's author.
 	std::vector<std::string> uses;        ///< What its code uses by name (Program::namesUsed()).
+	std::vector<std::string> words;       ///< The other entries its text names: what it compiles to may depend on them.
 	std::optional<CallsByName> named;     ///< What it calls with a text written out first, if anything.
 	std::vector<Gift> gifts;              ///< What it gave the tree, in order.
 	std::optional<Extension> extension;   ///< Itself, if it is a hook or advice.
