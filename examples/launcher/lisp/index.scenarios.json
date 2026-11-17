@@ -165,6 +165,71 @@
 			]
 		},
 		{
+			"name": "catalogue-hidden-without-one",
+			"steps": [
+				{ "note": "With no catalogue granted, the Launcher shows no Catalogue page" },
+				{ "expect": { "state": "catalogue.available", "is": false } },
+				{ "expect": { "node": "#navCatalogue", "exists": false } }
+			]
+		},
+		{
+			"name": "catalogue-page",
+			"steps": [
+				{ "action": "launcher.catalogue", "event": { "name": "affrescoui", "updated": "2026-11-17", "signed": true, "entries": [{ "id": "flow-by-priority", "kind": "package", "title": "Flow, by priority", "description": "Flow with every list ordered by priority.", "release": "1.0.0", "base": "flow", "installed": false }, { "id": "slideSorter", "kind": "feature", "title": "Slide sorter", "description": "Thumbnails of an ordered list of pages.", "release": "1.0.0", "base": "", "installed": false }] } },
+				{ "wait": 0 },
+				{ "expect": { "node": { "role": "tab", "name": "Catalogue" }, "property": "shown", "is": true } },
+				{ "click": { "role": "tab", "name": "Catalogue" } },
+				{ "expect": { "state": "page", "is": "catalogue" } },
+				{ "expect": { "node": "#catalogueCardName", "text": "Flow, by priority" } },
+				{ "expect": { "node": "#catalogueCardName", "nth": 1, "text": "Slide sorter" } },
+				{ "expect": { "node": "#catalogueCardKind", "text": "A version of flow" } },
+				{ "expect": { "node": "#catalogueCardKind", "nth": 1, "text": "Feature" } },
+				{ "expect": { "node": "#catalogueUpdated", "text": "Updated 2026-11-17" } },
+				{ "click": "#catalogueSearch" },
+				{ "type": "thumb" },
+				{ "expect": { "state": "catalogueQuery", "is": "thumb" } },
+				{ "expect": { "node": "#catalogueCardName", "text": "Slide sorter" } },
+				{ "expect": { "node": "#catalogueCardName", "nth": 1, "exists": false } },
+				{ "type": "zzzz" },
+				{ "expect": { "node": "#catalogueNone", "property": "shown", "is": true } },
+				{ "key": "escape" },
+				{ "expect": { "node": "#catalogueCardName", "nth": 1, "text": "Slide sorter" } }
+			]
+		},
+		{
+			"name": "catalogue-review",
+			"steps": [
+				{ "action": "launcher.catalogue", "event": { "name": "affrescoui", "updated": "2026-11-17", "signed": true, "entries": [{ "id": "flow-by-priority", "kind": "package", "title": "Flow, by priority", "description": "Flow with every list ordered by priority.", "release": "1.0.0", "base": "flow", "installed": false }, { "id": "slideSorter", "kind": "feature", "title": "Slide sorter", "description": "Thumbnails of an ordered list of pages.", "release": "1.0.0", "base": "", "installed": false }] } },
+				{ "action": "launcher.reviewListed", "event": { "id": "flow-by-priority", "release": "1.0.0", "description": "Flow with every list ordered by priority.", "listed": { "catalogue": "affrescoui", "updated": "2026-11-17", "signed": true }, "summary": { "kind": "changes", "name": "Flow, by priority", "release": "1.0.0", "author": "", "signature": "none", "base": { "app": "flow", "name": "Flow", "release": "", "exact": true }, "definitions": { "added": [], "changed": [], "removed": [] }, "impact": { "view": 0, "logic": 1, "data": "none" }, "extensions": { "added": [], "removed": [] }, "writes": [], "uses": [], "state": {}, "assets": [], "problems": [], "conflicts": [] } } },
+				{ "wait": 0 },
+				{ "expect": { "state": "page", "is": "install" } },
+				{ "expect": { "node": "#installTitle", "text": "Flow, by priority" } },
+				{ "expect": { "node": "#installListed", "text": "Listed in the AffrescoUI catalogue, checked on 2026-11-17" } },
+				{ "expect": { "state": "install.entry.catalogue", "is": "flow-by-priority" } },
+				{ "expect": { "node": "#installButton", "property": "shown", "is": true } },
+				{ "click": "#installButton" },
+				{ "wait": 0 },
+				{ "expect": { "state": "install.tried", "is": true } },
+				{ "expect": { "state": "install.busy", "is": false } },
+				{ "click": "#installCancel" },
+				{ "expect": { "state": "page", "is": "catalogue" } },
+				{ "expect": { "state": "install.entry", "is": {} } }
+			]
+		},
+		{
+			"name": "catalogue-feature-review",
+			"steps": [
+				{ "action": "launcher.catalogue", "event": { "name": "affrescoui", "updated": "2026-11-17", "signed": true, "entries": [{ "id": "flow-by-priority", "kind": "package", "title": "Flow, by priority", "description": "Flow with every list ordered by priority.", "release": "1.0.0", "base": "flow", "installed": false }, { "id": "slideSorter", "kind": "feature", "title": "Slide sorter", "description": "Thumbnails of an ordered list of pages.", "release": "1.0.0", "base": "", "installed": false }] } },
+				{ "action": "launcher.reviewListed", "event": { "id": "slideSorter", "release": "1.0.0", "description": "Thumbnails of an ordered list of pages.", "listed": { "catalogue": "affrescoui", "updated": "2026-11-17", "signed": true }, "summary": { "kind": "feature", "name": "Slide sorter", "release": "1.0.0", "description": "Thumbnails of an ordered list of pages.", "license": "Apache-2.0", "signature": "none", "definitions": { "added": ["components.slideSorter"], "changed": [], "removed": [] }, "needs": [{ "name": "pages", "kind": "collection", "description": "The pages" }], "problems": [], "conflicts": [] } } },
+				{ "wait": 0 },
+				{ "expect": { "node": "#reviewLine", "text": "What it needs from an app" } },
+				{ "expect": { "node": "#reviewLine", "nth": 1, "text": "pages (collection)" } },
+				{ "expect": { "node": "#installButton", "exists": false } },
+				{ "expect": { "node": "#installCant", "text": "A feature is added from inside an app, which gives it what it needs: it can't be installed here." } },
+				{ "expect": { "node": "#installListed", "text": "Listed in the AffrescoUI catalogue, checked on 2026-11-17" } }
+			]
+		},
+		{
 			"name": "review-clean",
 			"steps": [
 				{ "action": "launcher.review", "event": { "summary": { "kind": "changes", "name": "Notes that count", "release": "1.1.0", "author": "Robin", "signature": "none", "base": { "app": "notes", "name": "Notes", "release": "1.0.0", "exact": true }, "definitions": { "added": ["app.lisp/total"], "changed": ["app.lisp/count"], "removed": [] }, "impact": { "view": 1, "logic": 2, "data": "none" }, "extensions": { "added": [], "removed": [] }, "writes": [], "uses": [], "state": {}, "assets": [], "problems": [], "conflicts": [] }, "package": { "format": "affrescoui-package", "description": "It counts." } } },

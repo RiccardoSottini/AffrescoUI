@@ -68,27 +68,24 @@ SigningKey readKey(const std::filesystem::path& file) {
 	}
 }
 
-/// @brief Sets each release's digest and size of a catalogue's index from its manifest, so the index signs what is
-/// there; the manifests are signed first.
-/// @param index The index.
-/// @param folder The index's folder: the releases' URLs are relative to it.
-/// @throws FileProblem If a manifest can't be read.
+} // namespace
+
 void refreshReleases(json& index, const std::filesystem::path& folder) {
-	const auto features = index.find("features");
-	if(features == index.end() || !features->is_object()) return;
-	for(auto& [name, feature] : features->items()) {
-		const auto releases = feature.find("releases");
-		if(releases == feature.end() || !releases->is_array()) continue;
-		for(json& release : *releases) {
-			if(!release.is_object() || !release.contains("url") || !release["url"].is_string()) continue;
-			const std::string bytes = readFile(folder / release["url"].get<std::string>());
-			release["digest"] = format::digestOf(bytes);
-			release["size"] = bytes.size();
+	for(const char* part : {"features", "packages"}) {
+		const auto entries = index.find(part);
+		if(entries == index.end() || !entries->is_object()) continue;
+		for(auto& [name, entry] : entries->items()) {
+			const auto releases = entry.find("releases");
+			if(releases == entry.end() || !releases->is_array()) continue;
+			for(json& release : *releases) {
+				if(!release.is_object() || !release.contains("url") || !release["url"].is_string()) continue;
+				const std::string bytes = readFile(folder / release["url"].get<std::string>());
+				release["digest"] = format::digestOf(bytes);
+				release["size"] = bytes.size();
+			}
 		}
 	}
 }
-
-} // namespace
 
 Exit signFile(std::span<const std::string_view> args) {
 	const Arguments arguments(args, signOptions, {});

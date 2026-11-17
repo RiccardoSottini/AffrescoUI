@@ -97,4 +97,11 @@ struct Package {
 /// @return The summary.
 [[nodiscard]] json packageSummary(const Package& package, const json& installedBase, const json& trustedPublishers);
 
+/// @brief How a signature stands for the person: "none", "trusted:<name>" or "unknown:<the key's first 16 characters>".
+/// It reads a package's signature, or a feature manifest's, as verified when it was read.
+/// @param signature `{"publisher", "value"}`, or null.
+/// @param trustedPublishers `{"ed25519:<key>": "<name>"}`, or anything else for none.
+/// @return It.
+[[nodiscard]] std::string signatureStanding(const json& signature, const json& trustedPublishers);
+
 } // namespace affresco::format

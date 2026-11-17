@@ -21,7 +21,7 @@
 namespace affresco::cli {
 
 std::span<const Command> commands() {
-	static constexpr std::array<Command, 22> list = {{
+	static constexpr std::array<Command, 23> list = {{
 	    {"run",
 		 "<file> [--print] [--socket DIR] [--data DIR] [--mode default|acceptEdits|plan] [--plugin changes.json]... "
 		 "[--nrepl [PORT]]",
@@ -86,6 +86,11 @@ std::span<const Command> commands() {
 		 installPackage},
 	    {"trust", "<key> [--name NAME] [--remove] [--data DIR] | --list [--data DIR]",
 		 "Keep the publishers whose signatures you trust, in the data folder's publishers.json", trustPublisher},
+	    {"catalogue", "check <folder> [--examples DIR] | refresh <folder>",
+		 "Check a catalogue's folder: each entry reads, fits its app in examples/, plays its proof, adds no "
+		 "capability, "
+		 "holds no path or key and has a licence, and the index's digests match; refresh writes them",
+		 catalogueCommand},
 	    {"sign", "<file> --key KEYFILE [-o out.json] | --new-key KEYFILE",
 		 "Sign a feature's manifest, a catalogue's index (its digests first) or a package; --new-key makes a key",
 		 signFile},

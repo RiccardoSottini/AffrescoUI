@@ -17,7 +17,9 @@
   :actions {:launcher.refresh [{:lisp refreshMine}]
             :launcher.show [{:lisp showMineList}]
             :launcher.export [{:lisp showExport}]
-            :launcher.review [{:lisp showReview}]})
+            :launcher.review [{:lisp showReview}]
+            :launcher.catalogue [{:lisp showListing}]
+            :launcher.reviewListed [{:lisp showListedReview}]})
 
 ;;; Pages and notes
 
@@ -67,7 +69,8 @@
 (defn refreshMine "Reads the apps folder again." []
   (let [pass (inc state.mineRun)]
     (set "state.mineRun" pass)
-    (listMine pass)))
+    (listMine pass)
+    (listCatalogue)))
 
 (defn current? "Whether a read is the last one started." [pass] (= pass state.mineRun))
 

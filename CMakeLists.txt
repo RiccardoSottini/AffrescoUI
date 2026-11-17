@@ -194,6 +194,10 @@ if(AFFRESCOUI_BUILD_EXAMPLES)
 	target_link_libraries(affrescoui_launcher PRIVATE affrescoui::automation)
 	target_compile_options(affrescoui_launcher PRIVATE ${AFFRESCOUI_WARNINGS})
 	target_compile_definitions(affrescoui_launcher PRIVATE AFFRESCOUI_EXAMPLES_ASSETS="${CMAKE_CURRENT_SOURCE_DIR}/examples")
+	# The key whose signature on catalogue/index.json the Launcher trusts ("ed25519:..."): the release key's public half,
+	# set by the release job; empty in a development build, which then trusts no catalogue (catalogue/README.md)
+	set(AFFRESCOUI_CATALOGUE_KEY "" CACHE STRING "The public key that signs the Launcher's catalogue")
+	target_compile_definitions(affrescoui_launcher PRIVATE AFFRESCOUI_CATALOGUE_KEY="${AFFRESCOUI_CATALOGUE_KEY}")
 	if(WIN32) # the program's icon in Explorer and the taskbar: the AffrescoUI app icon (brand/)
 		file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/affrescoui_launcher.rc"
 			CONTENT "1 ICON \"${CMAKE_CURRENT_SOURCE_DIR}/brand/affrescoui.ico\"\n")
@@ -274,6 +278,10 @@ endif()
 
 if(AFFRESCOUI_BUILD_TOOLS)
 	add_subdirectory(tools/affrescoui) # the affrescoui command-line tool
+	if(AFFRESCOUI_BUILD_TESTS) # tests/unit/catalogue.cpp runs `affrescoui catalogue check`
+		target_compile_definitions(affrescoui_unit_tests PRIVATE AFFRESCOUI_CLI="$<TARGET_FILE:affrescoui_cli>")
+		add_dependencies(affrescoui_unit_tests affrescoui_cli)
+	endif()
 endif()
 
 # The fuzz targets' sources can also be compiled alone, without libFuzzer, so that clang-tidy finds them in

@@ -30,6 +30,10 @@ opens it when it is started without a file.
   asks for (new ones marked), permissions, state, pictures and records; a file with problems lists them in red and
   can't be installed. Install, with a name checked as Create checks it, makes a new app at the top of My apps and
   opens it, its changes waiting for the person's review.
+- **Catalogue:** shown only when the host grants a catalogue whose index it trusts (`catalogue/README.md`): cards for
+  the versions of apps and the features it lists, with a search. A card opens the same review page, with the line
+  "Listed in the AffrescoUI catalogue, checked on <date>". A version installs as a file does. A feature is reviewed
+  there, with what it needs, and is installed from inside an app.
 - **Create:** a name (checked as it is typed: its folder's name, the names the examples keep, the apps there already,
   no double curly braces, which the new app's file would read as an expression; a folder of that name holding
   something else is said to be there, and kept),
@@ -50,7 +54,7 @@ opens it when it is started without a file.
   and the app-programs grant `affresco` (the service `launch`), which starts `affrescoui_launcher` on a `.screen.json`
   inside one of those two folders (with `--ask TEXT`), found next to the host, each detached,
   with the host's `--data` and a socket folder of its own (`<socket folder>/<root>-<app>`), so several apps run at once. The screen names roots and programs, never a path.
-  It also grants the `packages` service (`export`, `inspect`, `install`; SECURITY.md, "The `packages` service") on
+  It also grants the `packages` service (`export`, `inspect`, `install`, `catalogue`; SECURITY.md, "The `packages` service") on
   those two roots, `apps` the only writable one, with the data folder, and the file dialogs (the capability `files`).
 - **The apps folder** holds one folder per app and `shared/`, a copy of `examples/shared` without its C++ (fonts,
   add-ons, components, languages), brought up to date at each create, so the apps' `../shared/...` paths hold as in
@@ -58,7 +62,8 @@ opens it when it is started without a file.
   after its folder.
 - **Without the grants** (the rendering check, `affrescoui test`, a screenshot run), the services are refused: the
   examples come from `apps.json`, My apps says the folder isn't available, and scenarios play the folder's answer with
-  the action `launcher.show`, the service's with `launcher.export` and `launcher.review` (the summary in the event).
+  the action `launcher.show`, the service's with `launcher.export` and `launcher.review` (the summary in the event), and the catalogue's with
+  `launcher.catalogue` (its rows) and `launcher.reviewListed` (an entry's summary and where it was listed).
 
 | File | What it is |
 |---|---|

@@ -22,6 +22,7 @@
          "create.lisp"
          "settings.lisp"
          "share.lisp"
+         "catalogue.lisp"
          "../../shared/addons/intelligence/settings.lisp"
          "launcher.lisp")
 
@@ -60,6 +61,7 @@
     ~(sidebar)
     (node#main :anchors {:left "#sidebar.right" :right 0 :top 0 :bottom 0} :color transparent :dir auto
       ~(apps-page)
+      ~(catalogue-page)
       ~(mine-page)
       ~(create-page)
       ~(settings-page)

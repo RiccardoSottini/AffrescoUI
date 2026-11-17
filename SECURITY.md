@@ -790,6 +790,24 @@ it is read. `install` writes only into the writable root (`apps`), only into a f
 only that folder if anything fails, and leaves the package's changes a proposal only the person accepts. Results and
 errors name the roots, never a path. At most 4 calls run at once, each on a worker thread.
 
+### The AffrescoUI catalogue
+The Launcher lists the catalogue in the repository (`catalogue/`, its `README.md`): versions of apps and features,
+each added by a pull request that `affrescoui catalogue check` and a reviewer pass ("Adding to the catalogue" in
+`CONTRIBUTING.md`).
+- **Who signs.** The maintainer signs `catalogue/index.json` with the release key, in the release job only. The key's
+  private half is never in the repository, and the index is committed unsigned. The Launcher of a release trusts only
+  the public half built into it (`AFFRESCOUI_CATALOGUE_KEY`). A development build has no key built in, so it refuses
+  every index. It reads one unsigned only with `--catalogue DIR --trust-unsigned-catalogue`, and then prints a
+  warning. An app's own host is given no catalogue.
+- **What the signature says.** It says that the maintainer published this index and that it is unchanged since. Each
+  file the index lists is pinned by its SHA-512 digest and its size, so a changed file is refused before it is read.
+  The signature is not a promise that an entry is safe. It means that the entry was reviewed and is unchanged.
+- **What installing does.** An entry installs as a file from disk would. The `packages` service reads it from the
+  catalogue's folder, and the person sees the same review, with the date the index was checked. The package's
+  changes are a proposal that only the person accepts. A feature is reviewed from the catalogue and installed from
+  inside the app that binds what it needs. The service takes a catalogue entry by its id and release, never by a path,
+  and a release's file is a path inside the catalogue's folder.
+
 ### The `affrescoui` tool and the MCP server
 The command-line tool (`tools/affrescoui`) reads screen files people, agents and CI hand it:
 - `check`, `fmt` and `ids` read a file as untrusted text: the JSON nesting limit, a text reader of their own that

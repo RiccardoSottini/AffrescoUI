@@ -1,6 +1,7 @@
 /// @file
-/// @brief The `packages` service (PackagesService.hpp): `export`, `inspect` and `install`, each on a thread of its
-/// own (or at once, for scripted runs), every message naming the roots a screen knows instead of the folders they are.
+/// @brief The `packages` service (PackagesService.hpp): `export`, `inspect`, `install` and `catalogue`, each on a
+/// thread of its own (or at once, for scripted runs), every message naming the roots a screen knows instead of the
+/// folders they are.
 
 #include "packages/PackagesService.hpp"
 #include "ScratchFolder.hpp"
@@ -247,13 +248,29 @@ json trustedPublishers(const PackagesGrant& grant) {
 	}
 }
 
+/// @brief The text of the package a call names: the one it gives, or a catalogue's entry (PackagesCatalogue.cpp).
+/// @param grant What the service may touch.
+/// @param with The arguments: `package`, or `catalogue` and `release`.
+/// @return Its text.
+/// @throws PackagesFailure If it names neither, or the entry is refused or is a feature.
+std::string packageText(const PackagesGrant& grant, const json& with) {
+	if(with.contains("package") == with.contains("catalogue"))
+		throw PackagesFailure("invalid", "package: expected a package or a catalogue's entry, one of the two");
+	if(with.contains("package")) return with.at("package").dump();
+	CatalogueEntry entry = catalogueEntry(grant, with);
+	if(entry.feature)
+		throw PackagesFailure("refused", "catalogue: a feature is added from inside an app, which binds what it needs");
+	return std::move(entry.text);
+}
+
 /// @brief A package from a call's arguments, its own limits applied before it is read.
-/// @param with The arguments: `package`.
+/// @param grant What the service may touch.
+/// @param with The arguments: `package`, or `catalogue` and `release`.
 /// @param text Receives its text.
 /// @return It.
 /// @throws PackagesFailure If it is too large or isn't a package.
-format::Package packageOf(const json& with, std::string& text) {
-	text = with.at("package").dump();
+format::Package packageOf(const PackagesGrant& grant, const json& with, std::string& text) {
+	text = packageText(grant, with);
 	if(text.size() > format::maxPackageBytes)
 		throw PackagesFailure("tooLarge",
 		                      "package: larger than " + std::to_string(format::maxPackageBytes >> 20U) + " MiB");
@@ -448,6 +465,7 @@ private:
 			json result;
 			if(method == "export") result = exportVersion(grant_, with, stop);
 			else if(method == "inspect") result = inspectVersion(grant_, with);
+			else if(method == "catalogue") result = catalogueEntries(grant_);
 			else result = installVersion(grant_, with, stop);
 			call.finish(std::move(result));
 		} catch(const PackagesFailure& failure) {
@@ -475,7 +493,8 @@ public:
 	/// @brief One sentence for the catalog.
 	/// @return It.
 	std::string_view about() const override {
-		return "the host's apps exported as one shared file, and shared files reviewed and installed as new apps";
+		return "the host's apps exported as one shared file, and shared files or a catalogue's entries reviewed and "
+		       "installed as new apps";
 	}
 	/// @brief The JSON Schema of its configuration.
 	/// @return An empty object: it takes none.
@@ -483,11 +502,12 @@ public:
 		return {{"type", "object"}, {"additionalProperties", false}, {"properties", json::object()}};
 	}
 	/// @brief Its methods.
-	/// @return export, inspect and install.
+	/// @return export, inspect, install and catalogue.
 	std::vector<MethodSpec> methods(const json& /*configuration*/) const override {
 		const auto text = [](std::size_t most) { return json{{"type", "string"}, {"maxLength", most}}; };
 		const json named = {{"type", "string"}, {"minLength", 1}, {"maxLength", maxShortText}};
 		const json package = {{"type", "object"}};
+		const json release = text(32);
 		// None may be added by a revision: what it reads and writes is the person's apps, not the screen's
 		return {
 		    {"export",
@@ -512,24 +532,32 @@ public:
 			 false,
 			 false,
 			 {{"type", "object"},
-			  {"required", {"package"}},
-			  {"properties", {{"package", package}}},
+			  {"properties", {{"package", package}, {"catalogue", named}, {"release", release}}},
 			  {"additionalProperties", false}},
-			 "what installing a package would do, against the copy of its app a root holds: {summary}, with its "
-			 "problems"},
+			 "what installing a package (or a catalogue's entry: catalogue, release?) would do, against the copy of "
+			 "its app a root holds: {summary, listed?}, with its problems"},
 		    {"install",
 			 Effect::Write,
 			 false,
 			 false,
 			 {{"type", "object"},
-			  {"required", {"package", "id", "name"}},
+			  {"required", {"id", "name"}},
 			  {"properties",
 			   {{"package", package},
+			    {"catalogue", named},
+			    {"release", release},
 			    {"id", named},
 			    {"name", {{"type", "string"}, {"minLength", 1}, {"maxLength", format::maxPackageNameLength}}}}},
 			  {"additionalProperties", false}},
-			 "installs a package as a new app in the writable root, its changes a proposal only the person accepts: "
-			 "{id, sub, proposal}"}};
+			 "installs a package (or a catalogue's entry: catalogue, release?) as a new app in the writable root, its "
+			 "changes a proposal only the person accepts: {id, sub, proposal}"},
+		    {"catalogue",
+			 Effect::Read,
+			 false,
+			 false,
+			 {{"type", "object"}, {"properties", json::object()}, {"additionalProperties", false}},
+			 "the entries of the catalogue the host grants: {name, updated, signed, entries: [{id, kind, title, "
+			 "description, release, base, installed}]}"}};
 	}
 	/// @brief Creates the service. Main thread.
 	/// @param context What it works with: whether calls run at once.
@@ -601,9 +629,17 @@ json exportVersion(const PackagesGrant& grant, const json& with, const std::stop
 }
 
 json inspectVersion(const PackagesGrant& grant, const json& with) {
-	std::string text;
-	const format::Package package = packageOf(with, text);
 	const json trusted = trustedPublishers(grant);
+	if(with.contains("catalogue") && !with.contains("package")) {
+		// The entry as a file from disk would be reviewed, with where it was listed
+		CatalogueEntry entry = catalogueEntry(grant, with);
+		json result = entry.feature ? json{{"summary", featureReview(entry.text, trusted)}}
+		                            : inspectVersion(grant, {{"package", parseUntrusted(entry.text)}});
+		result["listed"] = std::move(entry.listed);
+		return result;
+	}
+	std::string text;
+	const format::Package package = packageOf(grant, with, text);
 	if(package.kind == format::PackageKind::Changes)
 		if(const std::optional<FoundApp> base = baseCopy(grant, package)) {
 			const Screen screen = Screen::fromApp(base->manifest, {}, Screen::History::InMemory);
@@ -683,7 +719,7 @@ json installVersion(const PackagesGrant& grant, const json& with, const std::sto
 	if(grant.writable.empty() || !grant.roots.contains(grant.writable))
 		throw PackagesFailure("refused", "no root is granted to install into");
 	std::string text;
-	const format::Package package = packageOf(with, text);
+	const format::Package package = packageOf(grant, with, text);
 	std::optional<FoundApp> base;
 	if(package.kind == format::PackageKind::Changes) {
 		base = baseCopy(grant, package);

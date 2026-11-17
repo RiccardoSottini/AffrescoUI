@@ -54,4 +54,33 @@ private:
 /// @throws PackagesFailure If it can't be installed: nothing is left in the writable root.
 [[nodiscard]] json installVersion(const PackagesGrant& grant, const json& with, const std::stop_token& stop);
 
+/// @brief `catalogue`: the entries of the granted catalogue (PackagesCatalogue), its index read and checked again.
+/// @param grant What the service may touch.
+/// @return `{name, updated, signed, entries: [{id, kind, title, description, release, base, installed}]}`: kind is
+/// "package" or "feature", installed whether an app of that id is in the writable root.
+/// @throws PackagesFailure If no catalogue is granted, or its index is refused.
+[[nodiscard]] json catalogueEntries(const PackagesGrant& grant);
+
+/// @brief A catalogue's entry for `inspect` and `install`: its file, read from the catalogue's folder and checked
+/// against the index's digest and size.
+struct CatalogueEntry {
+	std::string text = {};        ///< The file's text: a package, or a feature's manifest.
+	bool feature = false;         ///< Whether it is a feature's manifest.
+	json listed = json::object(); ///< `{catalogue, updated, signed}`, for the review's line.
+};
+
+/// @brief Reads the catalogue's entry a call names.
+/// @param grant What the service may touch.
+/// @param with The call's arguments: `catalogue` (the entry's id) and `release` (its newest if missing).
+/// @return The entry.
+/// @throws PackagesFailure If there is no such entry, or its file isn't the one the index lists.
+[[nodiscard]] CatalogueEntry catalogueEntry(const PackagesGrant& grant, const json& with);
+
+/// @brief What the review shows of a feature from a catalogue: its names and release, its signature, what it
+/// provides and what it needs. A feature is added from inside an app, which binds what it needs, so it has no install.
+/// @param text The manifest's text, checked against the index.
+/// @param trusted The trusted publishers the person keeps.
+/// @return `{kind: "feature", name, release, description, license, signature, definitions, needs, problems}`.
+[[nodiscard]] json featureReview(const std::string& text, const json& trusted);
+
 } // namespace affresco::detail
