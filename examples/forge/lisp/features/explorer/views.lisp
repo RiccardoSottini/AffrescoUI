@@ -99,7 +99,7 @@
   `(node#explorer-delete-dialog :use dialog
      :with {:open state.explorerEdit.confirm
             :title ~(t "explorer-delete-dialog.title" {:name state.explorerEdit.name})
-            :message ~(if (= state.explorerEdit.mode "folder")
+            :message ~(if (= state.explorerEdit.mode :folder)
                           (t "explorer-delete-dialog.folder")
                           (t "explorer-delete-dialog.file"))
             :buttons [{:title ~(t "explorer-delete-dialog.delete") :run explorerDeleteConfirmed}

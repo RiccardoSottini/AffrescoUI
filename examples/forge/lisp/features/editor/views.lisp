@@ -16,11 +16,11 @@
        `(column#group :color @color.editor :onClick ~(handler focusGroup gi)
           ~(group-tabs g gi)
           (node :when ~(and settings.breadcrumbs.enabled
-                            (some (fn [it] (and (= it.id g.active) (= it.kind "file"))) state.docs))
+                            (some #(and (= (:id %) g.active) (= (:kind %) :file)) state.docs))
             :use forgeBreadcrumbs
             :with {:path ~g.active})
           (node :when ~(and (empty? g.active) (= gi 0) (= settings.workbench.startupEditor "welcome")) :use forgeWelcome)
-          ~(repeat [d (filter (fn [it] (>= it 0)) [(indexOf computed.docIds g.active)]) :key d]
+          ~(repeat [d (filter #(>= % 0) [(indexOf computed.docIds g.active)]) :key d]
             (group-body gi d))))))
 
 (defview group-tabs "A group's tabs: a dirty file's has a marker, the preview's is in italics, each its file's icon."
@@ -34,13 +34,12 @@
      :activeBackground @color.tabActive
      :accentEdge bottom
      :accentColor ~(if (= gi state.activeGroup) "@color.accent" "@color.border")
-     :tabs ~(map (fn [it]
-                   (merge it
-                          {:italic (= it.preview true)
-                           :marker (contains computed.dirtyIds it.id)
-                           :closable (not it.sticky)
-                           :icon (:icon (tab-icon it))
-                           :iconColor (:color (tab-icon it))}))
+     :tabs ~(map #(merge %
+                         {:italic (true? (:preview %))
+                          :marker (contains computed.dirtyIds (:id %))
+                          :closable (not (:sticky %))
+                          :icon (:icon (tab-icon %))
+                          :iconColor (:color (tab-icon %))})
                  g.tabs)
      :onClose {:run closeTab :with {:gi ~gi :id ~event.id}}
      :drag {}
@@ -78,7 +77,7 @@
   `(= (get-in state.docs [~d :kind]) ~kind))
 
 (defmacro file-page? "Whether the open document `d` is a file." [d]
-  `(page? ~d "file"))
+  `(page? ~d :file))
 
 (defmacro doc-of "A field of the open document `d`." [d field]
   `(get-in state.docs [~d ~field]))
@@ -107,10 +106,10 @@
      :indentGuides ~settings.editor.guides.indentation
      :tabSize ~(or-else settings.editor.tabSize 4)
      :find ~(if (= gi state.activeGroup) computed.findQuery nil)
-     :decorations ~(concat (or-else (:decorations (or-else (find (fn [it] (= it.id (doc-of d :id))) state.lsp.files) {})) [])
-                           (map (fn [it] it.mark) (filter (fn [it] (= it.path (doc-of d :id))) computed.debugMarks))
+     :decorations ~(concat (or-else (:decorations (or-else (find #(= (:id %) (doc-of d :id)) state.lsp.files) {})) [])
+                           (map :mark (filter #(= (:path %) (doc-of d :id)) computed.debugMarks))
                            (if (= gi state.activeGroup) computed.conflictDecorations []))
-     :tokens ~(or-else (:tokens (or-else (find (fn [it] (= it.id (doc-of d :id))) state.lsp.files) {})) [])
+     :tokens ~(or-else (:tokens (or-else (find #(= (:id %) (doc-of d :id)) state.lsp.files) {})) [])
      :onTextHover lspHoverAt
      :onType lspTyped
      :popup ~(and (= gi state.activeGroup) state.lsp.completion.open)

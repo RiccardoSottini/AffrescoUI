@@ -37,7 +37,7 @@
   {}
   `(node :label ~s.title
      :width "100%"
-     :height ~(if (= s.type "boolean") 58 86)
+     :height ~(if (= s.type :boolean) 58 86)
      :color @color.editor
      :hover {:color @color.hover}
      :radius 4
@@ -47,15 +47,15 @@
      (label#setting-description :text ~(or-else s.description "")
        :textColor @color.muted
        :height 18
-       :anchors {:left ~(if (= s.type "boolean") 38 16) :right 90 :top 31})
+       :anchors {:left ~(if (= s.type :boolean) 38 16) :right 90 :top 31})
      ~(setting-choices)
      ~(setting-slider)
-     (label#setting-slider-value :when ~(and (not= s.type "boolean") (some? s.minimum) (some? s.maximum))
+     (label#setting-slider-value :when ~(and (not= s.type :boolean) (some? s.minimum) (some? s.maximum))
        :text ~(text s.value)
        :textColor @color.text
        :fitText true
        :anchors {:left 228 :top 58})
-     (textarea#setting-text :when ~(and (= s.type "string") (nil? s.enum))
+     (textarea#setting-text :when ~(and (= s.type :string) (nil? s.enum))
        :label ~s.title
        :bind ~(str "settings." s.key)
        :width 260
@@ -68,7 +68,7 @@
      ~(setting-reset)))
 
 (defview setting-check "A boolean setting's check box." []
-  `(checkbox#setting-check :when ~(= s.type "boolean")
+  `(checkbox#setting-check :when ~(= s.type :boolean)
      :label ~s.title
      :bind ~(str "settings." s.key)
      :width 14
@@ -95,12 +95,12 @@
      :onClick ~(handler resetSetting s.key)))
 
 (defview setting-slider "A number setting with bounds: a slider." []
-  `(slider#setting-slider :when ~(and (not= s.type "boolean") (some? s.minimum) (some? s.maximum))
+  `(slider#setting-slider :when ~(and (not= s.type :boolean) (some? s.minimum) (some? s.maximum))
      :label ~s.title
      :bind ~(str "settings." s.key)
      :min ~(or-else s.minimum 0)
      :max ~(or-else s.maximum 1)
-     :step ~(if (= s.type "integer") 1 0)
+     :step ~(if (= s.type :integer) 1 0)
      :width 200
      :height 20
      :anchors {:left 16 :top 56}
@@ -109,8 +109,8 @@
      :knobColor @color.text))
 
 (defview setting-number "A number setting without bounds: a field, kept while it reads as a number." []
-  `(textarea#setting-number :when ~(and (not= s.type "boolean")
-                                        (not= s.type "string")
+  `(textarea#setting-number :when ~(and (not= s.type :boolean)
+                                        (not= s.type :string)
                                         (or (nil? s.minimum) (nil? s.maximum)))
      :label ~s.title
      :text ~(text s.value)
@@ -193,7 +193,7 @@
          `(node#settings-row :use forgeSettingRow)))))
 
 (defview setting-choices "A setting with a few values: a button for each, the chosen one outlined." []
-  `(row#setting-choices :when ~(and (= s.type "string") (some? s.enum))
+  `(row#setting-choices :when ~(and (= s.type :string) (some? s.enum))
      :gap 4
      :width 480
      :height 24
