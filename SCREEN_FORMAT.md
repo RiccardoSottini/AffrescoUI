@@ -1682,7 +1682,8 @@ A channel connects to a local socket (relative paths are in `$AFFRESCOUI_SOCKET_
 `%LOCALAPPDATA%\affrescoui\sockets` on Windows).
 Each message of type `T` runs the action `name:T` with the message as `event`; `name:open`, `name:closed` and
 `name:error` (a `send` while disconnected) run when that happens. `reconnect` (or `true`: 2 s) tries again after a
-disconnect.
+disconnect. `name:closed` runs once per closing: when an open channel closes, or its first try fails, and not again
+for each retry that fails after.
 In an app (`app.json`) the stock host lets channels connect only with the `channels` capability, and only to a socket
 in its own socket folder: a relative path with no `..` (`studio.sock`, its own host). Any other is refused, and
 `name:closed` runs once with why (SECURITY.md, "Channels a screen declares").

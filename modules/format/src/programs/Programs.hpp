@@ -22,6 +22,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -242,6 +243,7 @@ private:
 	class Entered;
 	class Linked;
 	class Seeing;
+	class Reading;
 	struct Share;
 	/// @brief The forms of a text, as `evaluate` takes them.
 	struct FormsRead {
@@ -489,6 +491,19 @@ private:
 	/// @return The value.
 	/// @throws lisp::LispError If the budget runs out.
 	static lisp::Value viewOf(lisp::Interpreter& interpreter, json value);
+	/// @brief JSON read from the app while a value is read for the screen, as a value viewing it where it lies, with
+	/// no copy: nothing can change it until the read returns, and the read's result is its own tree. It costs what
+	/// its size costs, worked out once a place per read.
+	/// @param interpreter The interpreter.
+	/// @param value The JSON, where it lies; it stays there until the read returns.
+	/// @return The value.
+	/// @throws lisp::LispError If the budget runs out.
+	lisp::Value viewInPlace(lisp::Interpreter& interpreter, const json& value);
+	/// @brief Spends what a value read from the app costs: its size in bytes, and an operation per 16 of them.
+	/// @param interpreter The interpreter.
+	/// @param size The size.
+	/// @throws lisp::LispError If the budget runs out.
+	static void charge(lisp::Interpreter& interpreter, std::size_t size);
 	/// @brief The function of a name.
 	/// @param interpreter The interpreter.
 	/// @param name The name.
@@ -530,11 +545,14 @@ private:
 		return action();
 	}
 
-	Engine& engine_;                                   ///< The runtime.
-	std::shared_ptr<lisp::Interpreter> live_;          ///< The program now; running code holds its own.
-	json loaded_;                                      ///< The section it was loaded from.
-	Frame* frame_ = nullptr;                           ///< What the running function is called from.
-	int reading_ = 0;                                  ///< Values being read: nothing but reading runs.
+	Engine& engine_;                          ///< The runtime.
+	std::shared_ptr<lisp::Interpreter> live_; ///< The program now; running code holds its own.
+	json loaded_;                             ///< The section it was loaded from.
+	Frame* frame_ = nullptr;                  ///< What the running function is called from.
+	int reading_ = 0;                         ///< Values being read: nothing but reading runs.
+	/// The size of each structured value the running read viewed in place (viewInPlace()), so that a place read again
+	/// is charged again without being walked again. Its keys are never dereferenced, and go when the read ends.
+	std::unordered_map<const json*, std::size_t> chargedInRead_;
 	mutable WorkBudget ownBudget_;                     ///< With no event or update running (a tool).
 	bool ownInput_ = false;                            ///< What the person's own input asked to evaluate is running.
 	std::shared_ptr<const Extensions> extensions_;     ///< The hooks and advice of live_.
@@ -563,6 +581,25 @@ public:
 private:
 	Programs& programs_; ///< The programs.
 	Frame* outer_;       ///< What it was.
+};
+
+/// @brief A value read for the screen, as long as it lasts (Programs::read()): only what reads runs, and the state
+/// stays as it is, so what it reads is viewed where it lies.
+class Programs::Reading {
+public:
+	/// @brief Starts it.
+	/// @param programs The programs.
+	explicit Reading(Programs& programs) noexcept;
+	/// @brief Ends it.
+	~Reading();
+	Reading(const Reading&) = delete;
+	Reading& operator=(const Reading&) = delete;
+	Reading(Reading&&) = delete;
+	Reading& operator=(Reading&&) = delete;
+
+private:
+	Programs& programs_;                                 ///< The programs.
+	std::unordered_map<const json*, std::size_t> outer_; ///< What the read around it charged, if any.
 };
 
 /// @brief Links a running interpreter's budget to the event's while it lives: the event's going in, and back when it

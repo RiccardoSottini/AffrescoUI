@@ -121,7 +121,6 @@ void DataLayer::recordsChanged(const std::string& collection) {
 		if(collection.empty() || !from.is_string() || from.get_ref<const std::string&>() == collection)
 			engine_.computed.placeChanged(dataPlace(name));
 	}
-	engine_.document.contextChanged(); // and the built variables, which may read them
 	engine_.reconciler.requestStateUpdate();
 }
 

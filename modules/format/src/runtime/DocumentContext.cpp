@@ -72,16 +72,6 @@ Color hexColor(const json& hex, const std::string& at) {
 	return *parsed;
 }
 
-/// @brief The document's "window.menuBar", for expressions ("window.menuBar"): the drawn menu bar's default.
-/// @param document The document.
-/// @return Its list of {menu, title}, or [] if it has none.
-json menuBarOf(const json& document) {
-	const auto window = document.find("window");
-	if(window == document.end() || !window->is_object()) return json::array();
-	const auto menuBar = window->find("menuBar");
-	return menuBar != window->end() && menuBar->is_array() ? *menuBar : json::array();
-}
-
 } // namespace
 
 DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirectory)
@@ -89,7 +79,10 @@ DocumentContext::DocumentContext(Engine& engine, std::filesystem::path baseDirec
       computedLookup_([this](std::string_view name) { return engine_.computed.computed(name); }),
       nodeLookup_([this](std::string_view id) { return node(id); }),
       modelLookup_([this](std::string_view place) { return engine_.models.at(place); }),
-      variableLookup_([this](std::string_view name) { return variable(name); }),
+      variableLookup_([this](std::string_view name) {
+	      const json* global = values_.global(name);
+	      return global ? global : variable(name);
+      }),
       computedValueLookup_([this](std::string_view name) { return &engine_.computed.value(name); }),
       programCall_([this](const std::string& name, std::vector<json> arguments, const Scope& locals, const json& event,
 	                      const std::string& where) {
@@ -192,6 +185,7 @@ void DocumentContext::readDerived() {
 	variants_.clear();
 	strings_.read(doc);
 	changeAppearance();
+	requestUpdate("revision"); // everything is evaluated again, the readers outside the panels too (Tracker)
 	json sections = json::object();
 	for(const char* key : {"colors", "tokens", "fonts"})
 		if(doc.contains(key)) sections[key] = doc[key];
@@ -203,48 +197,14 @@ void DocumentContext::readDerived() {
 
 /* Values */
 
-const DocumentContext::Globals& DocumentContext::globals() const {
-	if(!globalsCache_) {
-		Globals& g = globalsCache_.emplace();
-		const VersionControl& versions = engine_.versions;
-		const Window* window = engine_.window;
-		g.window = window ? json{{"width", window->width()},
-		                         {"height", window->height()},
-		                         {"scale", window->contentScale()},
-		                         {"colorScheme", window->colorScheme() == ColorScheme::Dark ? "dark" : "light"},
-		                         {"nativeMenuBar", window->nativeMenuBar()},
-		                         {"reducedMotion", window->reducedMotion()},
-		                         {"menuBar", menuBarOf(versions.document())},
-		                         {"capsLock", window->capsLock()}}
-		                  : json::object();
-		g.revision = toJson(versions.head());
-
-		json list = json::array();
-		for(const ProposalInfo& p : versions.proposals()) list.push_back(toJson(p));
-		json log = json::array();
-		for(const CommitInfo& c : versions.log()) log.push_back(toJson(c));
-
-		const auto previewing = versions.previewing();
-		g.other = {{"proposals", list},
-		           {"history", log},
-		           {"preview", previewing ? json(*previewing) : json()},
-		           {"mode", toString(versions.mode())},
-		           {"theme", theme_},
-		           {"locale", strings_.locale()},
-		           {"screen", screen_}};
-	}
-
-	return *globalsCache_;
-}
-
 Context DocumentContext::context(const Scope& locals, const json& event) const {
-	const Globals& g = globals();
+	static const json none = json::object(); // the globals are read by name, when read (HostVariables)
 	return Context{engine_.versions.state(),
-	               g.window,
-	               g.revision,
+	               none,
+	               none,
 	               event,
 	               locals,
-	               g.other,
+	               none,
 	               &nodeLookup_,
 	               &computedLookup_,
 	               budget_,
@@ -256,36 +216,22 @@ Context DocumentContext::context(const Scope& locals, const json& event) const {
 	               &programCall_};
 }
 
-void DocumentContext::addVariable(std::string name, std::function<json()> build) {
-	builders_.insert_or_assign(std::move(name), std::move(build));
-	++variablesEpoch_;
-}
-
 const json* DocumentContext::variable(std::string_view name) const {
 	// The records (DataLayer): what reads them the expressions record, "/~d/<collection or query>"
 	if(name == "data") return engine_.data.variable();
-	const auto builder = builders_.find(name);
-	if(builder == builders_.end()) return nullptr;
-	if(building_.empty() && (builtEpoch_ != variablesEpoch_ || builtStateVersion_ != stateVersion_)) {
-		built_.clear(); // only between builds: a value read in an evaluation stays valid until it ends
-		builtEpoch_ = variablesEpoch_;
-		builtStateVersion_ = stateVersion_;
-	}
-	// a variable is built from what no state change announces (the focus, a chord): what reads it reads always
-	if(reads_) reads_->addAlways(AlwaysReason::Variable);
-	if(const auto found = built_.find(name); found != built_.end()) return &found->second;
-	if(std::ranges::find(building_, name) != building_.end()) return nullptr; // it reads itself
-	building_.emplace_back(name);
-	++engine_.reconciler.counters().variablesBuilt;
-	json value;
-	try {
-		value = builder->second();
-	} catch(...) {
-		building_.pop_back();
-		throw;
-	}
-	building_.pop_back();
-	return &built_.insert_or_assign(std::string(name), std::move(value)).first->second;
+	return values_.variable(name);
+}
+
+void DocumentContext::markPlaceChanged(const std::string& place) {
+	const bool hostValue = place.starts_with(places::globals) || place.starts_with(places::variables);
+	if(hostValue) ++stateVersion_; // computed values may read a global or a variable
+	changes_.add(place);
+	values_.placeMarked(place);
+}
+
+void DocumentContext::reviewChanged() {
+	for(const char* name : {"proposals", "history", "revision", "preview", "mode"}) markGlobalChanged(name);
+	markVariableChanged("peers");
 }
 
 /* The work budget */
@@ -433,9 +379,9 @@ void DocumentContext::updateTheme() {
 	const json& document = engine_.versions.document();
 	std::string theme =
 	    document.contains("theme") ? text(evaluate(document["theme"], *noVariables(), json::object(), "theme")) : "";
-	if(document.contains("theme")) globalsChanged();
 	if(theme == theme_) return;
 	theme_ = std::move(theme);
+	markGlobalChanged("theme");
 	changeAppearance();
 	++looks_;
 }
@@ -448,7 +394,7 @@ void DocumentContext::updateLocale() {
 	strings_.select(tag);
 	if(engine_.window) engine_.window->setLocaleRightToLeft(strings_.rightToLeft());
 	if(strings_.locale() == before) return;
-	globalsChanged();
+	markGlobalChanged("locale");
 	markStateChanged(); // what t() and the format functions wrote is written again
 	changeAppearance();
 }

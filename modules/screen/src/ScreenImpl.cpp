@@ -3,6 +3,7 @@
 
 #include "ScreenImpl.hpp"
 #include "StateFile.hpp"
+#include "Reads.hpp"
 #include "features/FeaturesService.hpp"
 
 #include "affresco/core/Log.hpp"
@@ -144,9 +145,22 @@ void Screen::Impl::load() {
 }
 
 void Screen::Impl::save() {
-	if(stateFile.empty() || persisted().empty()) return; // no state file: a screen from fromString()
-	if(images.rendering()) return;                       // a proposal's state, shown only for a picture
+	if(stateFile.empty()) return; // no state file: a screen from fromString()
+	const std::vector<json::json_pointer> pointers = persisted();
+	if(pointers.empty()) return;
+	if(!saveDue) { // only when a persisted place, or a place around or inside one, changed
+		const auto changes = runtime.lastChanges();
+		if(changes && std::ranges::none_of(*changes, [&pointers](const std::string& changed) {
+			   return std::ranges::any_of(pointers, [&changed](const json::json_pointer& pointer) {
+				   return format::overlaps(pointer.to_string(), changed);
+			   });
+		   }))
+			return;
+	}
+	saveDue = true;
+	if(images.rendering()) return; // a proposal's state, shown only for a picture
 	json now = persistedState();
+	saveDue = false;
 	if(now == saved) return;
 	std::error_code error;
 	std::filesystem::create_directories(stateFile.parent_path(), error);
@@ -154,6 +168,7 @@ void Screen::Impl::save() {
 		std::ostringstream message; // a path prints quoted, as it always has
 		message << "AffrescoUI screen: could not write " << stateFile;
 		affresco::log(LogLevel::Error, message.str());
+		saveDue = true; // tried again after the next update
 		return;
 	}
 	saved = std::move(now);

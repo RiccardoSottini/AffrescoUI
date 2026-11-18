@@ -120,7 +120,8 @@ struct CompiledRepeat {
 /// panel built from it, so a repeat's thousand items share one. It owns the node's keys but "children", which its
 /// bindings refer to, so a record can keep it after the document changes. Its children are not copied: they stay in
 /// the document, or in the component's instance it keeps, and an update reads them while that version is current.
-/// Immutable once built.
+/// Immutable once built, but for where its children are: a new version of the document that keeps the node moves
+/// them, and CompiledCache::carryOver() points the node at them there.
 struct CompiledNode {
 	CompiledNode() = default;
 	CompiledNode(const CompiledNode&) = delete;
@@ -130,7 +131,9 @@ struct CompiledNode {
 	~CompiledNode() = default;
 
 	json own;                       ///< The node's keys but "children": what the bindings refer to.
-	const json* children = nullptr; ///< Its "children" as written, or nullptr: in the document, or in keep.
+	/// Its "children" as written, or nullptr: in the document, or in keep. Mutable for CompiledCache::carryOver() only,
+	/// between updates, when the version it pointed into is replaced by one that holds the same node elsewhere.
+	mutable const json* children = nullptr;
 	NodeRef keep;                   ///< What holds children when the document doesn't (a component's instance).
 	std::string type = "panel";     ///< "type".
 	bool typeIsText = true;         ///< false: "type" isn't text, an error where the node is built.
@@ -170,6 +173,18 @@ using CompiledRef = std::shared_ptr<const CompiledNode>;
 /// @param node The node, an object.
 /// @return The copy.
 [[nodiscard]] json withoutChildren(const json& node);
+
+/// @brief What versions of the document cost on this thread, counted exactly, for the tests
+/// (tests/unit/revision_cost.cpp) and the benchmarks: they only ever grow.
+struct RevisionCounters {
+	std::size_t nodesCompiled = 0; ///< Nodes compiled (compileNode()).
+	std::size_t nodesCarried = 0;  ///< Compiled nodes a new version kept (CompiledCache::carryOver()).
+	std::size_t derivedReads = 0;  ///< Times colours, tokens, fonts, languages and strings were read again.
+};
+
+/// @brief This thread's counters.
+/// @return Them.
+[[nodiscard]] RevisionCounters& revisionCounters() noexcept;
 
 /// @brief Compiles a resolved node. Malformed scoping keys are kept for the builder to report at each instance's
 /// place, as building reports them.

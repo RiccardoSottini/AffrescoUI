@@ -36,12 +36,12 @@ inline constexpr std::uint64_t computedOrder = 2; ///< See settleOrder.
 /// its value differs. What reads it reads that place, not what it read.
 ///
 /// Invariants: a value is fresh when it isn't stale and was evaluated, or found untouched by an update's changes, at
-/// the state's current version (DocumentContext::stateVersion()) and, if it read always, in the current update and at
-/// the built variables' current count; between updates a move of either makes the values it concerns stale, since which
-/// places changed is known only to the next update. A value that reads another is stale whenever the other is. A value
-/// read in place stays valid until the evaluation reading it ends: a value equal to the old one keeps the old one's
-/// storage, and values are dropped only between evaluations. A value being evaluated that reads itself, or a chain
-/// deeper than maxComputedDepth, is an error. Callers: the document context's lookups (value()), the tracker (the
+/// the state's current version (DocumentContext::stateVersion(), which marks of a global or a variable move too) and,
+/// if it read always, in the current update; between updates a move of the version makes the values it concerns stale,
+/// since which places changed is known only to the next update. A value that reads another is stale whenever the other
+/// is. A value read in place stays valid until the evaluation reading it ends: a value equal to the old one keeps the
+/// old one's storage, and values are dropped only between evaluations. A value being evaluated that reads itself, or a
+/// chain deeper than maxComputedDepth, is an error. Callers: the document context's lookups (value()), the tracker (the
 /// readers), the data layer (placeChanged()), the engine (documentChanged()) and verify mode (checkKept()). Main thread
 /// only.
 class ComputedValues {
@@ -97,13 +97,12 @@ private:
 		/// @return The name.
 		[[nodiscard]] std::string name() const override { return "computed." + name_; }
 
-		ComputedValues& owner_;    ///< The values.
-		std::string name_;         ///< Its name.
-		json value;                ///< Its value, if known.
-		ReadSet reads;             ///< What its last evaluation read.
-		std::uint64_t version = 0; ///< The state version it is fresh at.
-		std::uint64_t epoch = 0;   ///< The update it was last evaluated in (epoch_).
-		std::uint64_t built = 0;   ///< The built variables' count it is fresh at (DocumentContext::variablesEpoch()).
+		ComputedValues& owner_;       ///< The values.
+		std::string name_;            ///< Its name.
+		json value;                   ///< Its value, if known.
+		ReadSet reads;                ///< What its last evaluation read.
+		std::uint64_t version = 0;    ///< The state version it is fresh at.
+		std::uint64_t epoch = 0;      ///< The update it was last evaluated in (epoch_).
 		std::uint64_t appearance = 0; ///< The appearance it was evaluated in (DocumentContext::appearance()).
 		ReaderId id = 0;              ///< Its handle in the tracker.
 		bool known = false;           ///< It has been evaluated since the last drop.
@@ -131,8 +130,7 @@ private:
 	};
 
 	/// @brief Whether a value's reads still hold at the state as it is: the state's version is the one it is fresh at,
-	/// and, if it read always (a built variable, a panel's geometry, the clock), it was evaluated in this update and
-	/// the built variables' count is the one it saw.
+	/// and, if it read always (a panel's geometry, the clock), it was evaluated in this update.
 	/// @param entry The value.
 	/// @return true if neither moved.
 	[[nodiscard]] bool current(const Entry& entry) const noexcept;

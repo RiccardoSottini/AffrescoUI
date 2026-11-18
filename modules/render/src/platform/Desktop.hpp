@@ -30,10 +30,25 @@ namespace platform::desktop {
 /// @return false where it can't be read.
 [[nodiscard]] bool reducedMotion();
 
-/// @brief Makes a change of the colour scheme or of the motion setting wake the event loop (glfwPostEmptyEvent()),
-/// where the OS announces it.
+/// @brief What watchColorScheme() set up: the OS stops announcing the changes to it once it is destroyed.
+class AppearanceWatch {
+public:
+	AppearanceWatch() = default;
+	virtual ~AppearanceWatch() = default;
+	AppearanceWatch(const AppearanceWatch&) = delete;
+	AppearanceWatch& operator=(const AppearanceWatch&) = delete;
+	AppearanceWatch(AppearanceWatch&&) = delete;
+	AppearanceWatch& operator=(AppearanceWatch&&) = delete;
+};
+
+/// @brief Calls a function on the main thread, inside the event loop's wait, whenever the colour scheme or the motion
+/// setting changes, where the OS announces it.
 /// Called once, after GLFW started.
-void watchColorScheme();
+/// @param changed What to call; it must wake the event loop (glfwPostEmptyEvent()).
+/// @return The watch, which must go before GLFW stops; nullptr where the OS announces no change (colorScheme() and
+/// reducedMotion() must then be read after every wake). Where they can't be read they never change: a watch that
+/// calls nothing.
+[[nodiscard]] std::unique_ptr<AppearanceWatch> watchColorScheme(std::function<void()> changed);
 
 /// @brief Keeps an app whose windows all stay hidden out of the Dock and the app switcher (macOS: an accessory app
 /// that never activates); nothing elsewhere, where a hidden window has no taskbar entry.

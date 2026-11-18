@@ -37,8 +37,8 @@ json ComputedValues::computed(std::string_view name) { return value(name); }
 bool ComputedValues::current(const Entry& entry) const noexcept {
 	const DocumentContext& context = engine_.document;
 	if(entry.version != context.stateVersion()) return false;
-	// What reads always (a built variable, a panel's geometry, the clock) holds within the update that evaluated it
-	return !entry.reads.always || (entry.built == context.variablesEpoch() && entry.epoch == epoch_);
+	// What reads always (a panel's geometry, the clock) holds within the update that evaluated it
+	return !entry.reads.always || entry.epoch == epoch_;
 }
 
 ComputedValues::Entry& ComputedValues::entryOf(std::string_view name) {
@@ -67,7 +67,8 @@ const json& ComputedValues::value(std::string_view name) {
 	// Between updates a move of the state may reach any value: evaluated again. A value read in place by an evaluation
 	// still running isn't replaced: an evaluation spans no move of the state, so it read this value current already
 	if(!entry.known || entry.stale || !current(entry)) evaluate(entry, (*definitions)[std::string(name)]);
-	// What no change announces (a built variable) may move it with no update reaching it: its reader reads always too
+	// What no change announces (a panel's geometry, the clock) may move it with no update reaching it: its reader reads
+	// always too
 	if(reading && entry.reads.always) reading->addAlways(entry.reads.why);
 	return entry.value;
 }
@@ -100,7 +101,6 @@ void ComputedValues::evaluate(Entry& entry, const json& definition) {
 	entry.known = true;
 	entry.stale = false;
 	entry.version = context.stateVersion();
-	entry.built = context.variablesEpoch();
 	entry.appearance = context.appearance();
 	entry.epoch = epoch_;
 	if(differs) engine_.document.markPlaceChanged(computedPlace(key));
@@ -126,7 +126,6 @@ void ComputedValues::settle(const StateChanges& changes) {
 	++epoch_;
 	swept_ = changes.paths.size();
 	const std::uint64_t now = engine_.document.stateVersion();
-	const std::uint64_t built = engine_.document.variablesEpoch();
 	const std::uint64_t appearance = engine_.document.appearance();
 	for(auto& [name, entry] : values_) {
 		// A new appearance (a locale, a theme) changes what t() and the colours give, though no place it read changed
@@ -145,7 +144,6 @@ void ComputedValues::settle(const StateChanges& changes) {
 	for(auto& [name, entry] : values_)
 		if(entry.known && !entry.stale) { // untouched: fresh at the state as it is now
 			entry.version = now;
-			entry.built = built;
 		}
 }
 

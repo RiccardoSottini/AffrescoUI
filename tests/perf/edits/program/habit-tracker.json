@@ -1,0 +1,14 @@
+{
+	"change-colour": {
+		"message": "Orange primary colour",
+		"change": [{ "definition": "look.lisp/tokens.tokens", "from": ":c.primary {:light \"#c2410c\"", "to": ":c.primary {:light \"#ea580c\"" }]
+	},
+	"rename-label": {
+		"message": "Ask the question differently",
+		"change": [{ "definition": "detail.lisp/subtitle-card", "from": "(label#label-h-question :text ~computed.h.question", "to": "(label#label-h-question :text \"Did you do it today?\"" }]
+	},
+	"add-node": {
+		"message": "Add a tip under the habit's cards",
+		"change": [{ "definition": "detail.lisp/detail-cards", "append": "(node :style caption :text \"Tip: small habits stick.\")" }]
+	}
+}
