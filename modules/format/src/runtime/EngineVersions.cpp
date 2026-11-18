@@ -15,7 +15,7 @@ void Engine::documentChanged() {
 	serviceCalls.load();            // a restore may change the services or the connections
 	audio.documentChanged();        // and the sounds, through an include or a feature
 	otherWindows.documentChanged(); // and the other windows
-	reconciler.reconcile();
+	reconciler.reconcile("revision");
 }
 
 void Engine::proposalsChanged() {

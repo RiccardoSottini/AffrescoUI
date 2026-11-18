@@ -278,10 +278,11 @@ const json* DocumentContext::variable(std::string_view name) const {
 		builtStateVersion_ = stateVersion_;
 	}
 	// a variable is built from what no state change announces (the focus, a chord): what reads it reads always
-	if(reads_) reads_->always = true;
+	if(reads_) reads_->addAlways(AlwaysReason::Variable);
 	if(const auto found = built_.find(name); found != built_.end()) return &found->second;
 	if(std::ranges::find(building_, name) != building_.end()) return nullptr; // it reads itself
 	building_.emplace_back(name);
+	++engine_.reconciler.counters().variablesBuilt;
 	json value;
 	try {
 		value = builder->second();

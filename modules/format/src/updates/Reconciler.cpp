@@ -27,6 +27,7 @@ Record& Reconciler::adopt(Panel& panel, const std::string& type) {
 
 std::vector<json> Reconciler::valuesOf(const Item& item, ReadSet& reads) const {
 	const DocumentContext::ReadScope scope(engine_.document, &reads);
+	++statistics_.nodesEvaluated;
 	return engine_.builder.values(*item.node, *item.locals, item.path);
 }
 
@@ -38,7 +39,8 @@ void Reconciler::applyValues(Panel& panel, Record& record, const Item& item, std
 		const DocumentContext::ReadScope scope(engine_.document, &reads); // the bound value, and what behaviour reads
 		engine_.properties.apply(panel, record, item.node, std::move(values), item.path, isRoot, created);
 	}
-	if(item.node->alwaysApply) reads.always = true; // its behaviour reads more than its values
+	if(item.node->alwaysApply) reads.addAlways(AlwaysReason::Behaviour); // its behaviour reads more than its values
+	if(reads.always) ++statistics_.alwaysReaders;
 	record.valueReads = std::move(reads);
 }
 
@@ -84,6 +86,7 @@ void Reconciler::refreshItems(const Scope& locals, const StateChanges& changes) 
 }
 
 void Reconciler::updatePanel(Panel& panel, Record& record, const StateChanges& changes, int depth) {
+	++statistics_.panelsVisited;
 	if(!record.subtreeReads.touchedBy(changes)) return;
 	refreshItems(*record.locals, changes);
 	if(record.valueReads.touchedBy(changes)) {
@@ -136,10 +139,14 @@ void Reconciler::forgetSubtree(const Panel& panel) {
 	for(const auto& child : panel.children()) forgetSubtree(*child);
 }
 
-bool Reconciler::canUpdatePart(const StateChanges& changes) const {
+std::string_view Reconciler::fullReason(const StateChanges& changes, bool resized, std::string_view requested) const {
 	const DocumentContext& context = engine_.document;
-	return synced_ && !changes.all && context.appearance() == syncedAppearance_ && context.screen() == syncedScreen_ &&
-	       !rootScopeReads_.touchedBy(changes);
+	if(!synced_) return "first";
+	if(context.appearance() != syncedAppearance_) return "appearance";
+	if(context.screen() != syncedScreen_) return "screen";
+	if(changes.all) return resized ? "resize" : !requested.empty() ? requested : "too many changes";
+	if(rootScopeReads_.touchedBy(changes)) return "requested"; // the root's own variables: everything below
+	return {};
 }
 
 void Reconciler::updateRoot(Panel& root, Record& record, const StateChanges* changes) {
@@ -151,6 +158,7 @@ void Reconciler::updateRoot(Panel& root, Record& record, const StateChanges* cha
 			applyValues(root, record, item, std::move(values), std::move(reads), false);
 			record.subtreeReads.add(record.valueReads);
 		}
+		++statistics_.panelsVisited;
 		updateChildren(root, record, *changes, 0);
 		return;
 	}
@@ -163,6 +171,7 @@ void Reconciler::updateRoot(Panel& root, Record& record, const StateChanges* cha
 		                              scope, "root");
 	}
 	const Item item{node, scope, "root", nullptr};
+	++statistics_.panelsVisited;
 	record.locals = std::move(scope);
 	ReadSet reads;
 	std::vector<json> values = valuesOf(item, reads);
@@ -171,22 +180,26 @@ void Reconciler::updateRoot(Panel& root, Record& record, const StateChanges* cha
 }
 
 // Brings the UI in line with the document and the state: everything, or only what reads the state changed
-void Reconciler::update(bool full) {
+void Reconciler::update(bool full, std::string_view reason) {
 	Window* window = engine_.window;
 	if(!window) return;
 	reconcileQueued_ = false;
 	const auto start = std::chrono::steady_clock::now();
-	statistics_.panelsApplied = statistics_.panelsCreated = 0;
+	statistics_ = {.updates = statistics_.updates, .milliseconds = statistics_.milliseconds};
 	DocumentContext& context = engine_.document;
 	const DocumentContext::BudgetScope budget(context); // an update has its own, unless an event runs it
-	const StateChanges changes = context.takeChanges();
-	engine_.frame.begin(changes);
+	StateChanges changes = context.takeChanges();
+	const std::string_view requested = context.takeFullReason();
+	const bool resized = engine_.frame.begin(changes);
 
 	Panel& root = window->root();
 	if(!records_.contains(&root)) adopt(root, "root");
 	Record& record = records_.at(&root);
 
-	const bool part = !full && canUpdatePart(changes);
+	engine_.tracker.update(changes); // the readers outside the panels first: what they mark joins this update
+	statistics_.fullReason = full ? reason : fullReason(changes, resized, requested);
+	statistics_.full = !statistics_.fullReason.empty();
+	const bool part = !statistics_.full;
 	synced_ = false; // until the update ends without an error
 	updateRoot(root, record, part ? &changes : nullptr);
 	synced_ = true;
@@ -213,8 +226,8 @@ void Reconciler::queue() {
 	});
 }
 
-void Reconciler::requestReconcile() {
-	engine_.document.requestUpdate();
+void Reconciler::requestReconcile(std::string_view reason) {
+	engine_.document.requestUpdate(reason);
 	queue();
 }
 

@@ -112,6 +112,7 @@ bool ChildList::updateKept(Panel& kept, const Item& item, const StateChanges& ch
 }
 
 void ChildList::reconcileChild(Panel& panel, std::size_t index, Item& item, int depth, const StateChanges* changes) {
+	++reconciler_.counters().panelsVisited;
 	const std::string& type = typeOf(*item.node, item.path);
 	Panel* kept = reusable(panel, index, item, type);
 	if(kept && changes && updateKept(*kept, item, *changes, depth)) return;

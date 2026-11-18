@@ -31,6 +31,7 @@ const json& ComputedValues::value(std::string_view name) {
 	if(computing_.size() >= maxComputedDepth)
 		fail("computed." + key, "computed values read each other too deeply (more than 32 levels)");
 	computing_.push_back(key);
+	++engine_.reconciler.counters().computedEvaluated;
 	json result;
 	ReadSet read;
 	try {

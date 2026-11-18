@@ -54,10 +54,21 @@ struct FileOf {
 
 /// @brief What the last update of the panels cost: read with Runtime::lastUpdate(), for an inspector.
 struct UpdateStatistics {
-	std::uint64_t updates = 0;     ///< Updates since the runtime started.
-	double milliseconds = 0;       ///< How long the last one took.
-	std::size_t panelsApplied = 0; ///< Panels whose values the last one applied (those it rebuilt among them).
-	std::size_t panelsCreated = 0; ///< Panels it created.
+	std::uint64_t updates = 0;         ///< Updates since the runtime started.
+	double milliseconds = 0;           ///< How long the last one took.
+	std::size_t panelsApplied = 0;     ///< Panels whose values the last one applied (those it rebuilt among them).
+	std::size_t panelsCreated = 0;     ///< Panels it created.
+	std::size_t panelsVisited = 0;     ///< Panels it looked at, to update them or what lies below them.
+	std::size_t nodesEvaluated = 0;    ///< Nodes whose values it evaluated.
+	std::size_t listsExpanded = 0;     ///< Lists of children it expanded ("use", "repeat", "when"...).
+	std::size_t rowsExpanded = 0;      ///< Items of repeats those lists went over.
+	std::size_t computedEvaluated = 0; ///< "computed" values it evaluated (not those it found cached).
+	std::size_t variablesBuilt = 0;    ///< Variables the host builds that it built.
+	std::size_t alwaysReaders = 0;     ///< Panels it applied that read what no change announces (every update does).
+	bool full = false;                 ///< Whether it evaluated everything rather than what read the changes.
+	/// Why it was full: "revision", "resize", "appearance", "screen", "too many changes", "requested" or "first";
+	/// empty when it wasn't.
+	std::string_view fullReason{};
 };
 
 /// @brief Brings a screen document to life: builds it into panels, keeps them in line with it, and runs actions.

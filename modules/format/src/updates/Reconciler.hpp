@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -41,9 +42,11 @@ public:
 
 	/// @brief Brings every panel in line with the document and the state, then runs "watch" handlers.
 	/// @throws DocumentError If the document can't be built (the version is then refused).
-	void reconcile() { update(true); }
+	/// @param reason Why, for UpdateStatistics::fullReason: a string that lives as long as the program.
+	void reconcile(std::string_view reason = "requested") { update(true, reason); }
 	/// @brief Schedules one full reconcile after the current event (batches state changes).
-	void requestReconcile();
+	/// @param reason Why, for UpdateStatistics::fullReason: a string that lives as long as the program.
+	void requestReconcile(std::string_view reason = "requested");
 	/// @brief Schedules one update after the current event for the state changes recorded with their places
 	/// (DocumentContext::markStateChanged()): only what reads them is evaluated again.
 	void requestStateUpdate();
@@ -114,13 +117,18 @@ public:
 private:
 	/// @brief Brings the panels in line with the document and the state, then runs "watch" handlers.
 	/// @param full Evaluate everything, whatever changed.
+	/// @param reason Why, when full.
 	/// @throws DocumentError If the document can't be built.
-	void update(bool full);
-	/// @brief Whether an update may visit only what reads the changes: the panels were last brought in line without
-	/// an error, under the same appearance and screen, and nothing changed that no place describes.
+	void update(bool full, std::string_view reason = "requested");
+	/// @brief Why an update must evaluate everything, if it must: it may evaluate only what reads the changes when the
+	/// last one ended without an error, under the same appearance and screen, and nothing changed that no place
+	/// describes.
 	/// @param changes What changed.
-	/// @return true if it may.
-	[[nodiscard]] bool canUpdatePart(const StateChanges& changes) const;
+	/// @param resized Whether the window changed size, scale or colour scheme.
+	/// @param requested The reason given to DocumentContext::requestUpdate(), if any.
+	/// @return The reason (UpdateStatistics::fullReason), or empty if it may update a part.
+	[[nodiscard]] std::string_view fullReason(const StateChanges& changes, bool resized,
+	                                          std::string_view requested) const;
 	/// @brief Updates the window's root: its values and children, all or only what reads the changes.
 	/// @param root The root.
 	/// @param record Its record.
@@ -152,7 +160,7 @@ private:
 	std::uint64_t syncedAppearance_ = 0;               ///< DocumentContext::appearance() then.
 	std::string syncedScreen_;                         ///< DocumentContext::screen() then.
 	ReadSet rootScopeReads_;                           ///< What the root's "with", "let" and "style" read.
-	UpdateStatistics statistics_;                      ///< See statistics().
+	mutable UpdateStatistics statistics_;              ///< See statistics().
 };
 
 } // namespace affresco::format

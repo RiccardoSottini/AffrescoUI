@@ -5,11 +5,11 @@
 /// step with the document's "models" as versions land, the `data` variable (each collection's records and each
 /// declared query's results), and who the write steps write as.
 
+#include "Reads.hpp"
+
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
 #include "affresco/data/Store.hpp"
-
-#include "Reads.hpp"
 
 #include <cstdint>
 #include <filesystem>
@@ -23,9 +23,9 @@ namespace affresco::format {
 
 struct Engine;
 
-/// Where the records lie among the places values read (Reads.hpp): a change of the store marks "/~d", so an update
-/// evaluates again only what reads `data`. "~d" is no key of a JSON Pointer, so it is never a place of the state.
-inline constexpr std::string_view dataPlaces = "/~d";
+/// Where the records lie among the places values read (places::data, Reads.hpp): a change of the store marks "/~d",
+/// so an update evaluates again only what reads `data`.
+inline constexpr std::string_view dataPlaces = places::data;
 
 /// @brief The runtime's data layer.
 ///
