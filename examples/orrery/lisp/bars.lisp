@@ -112,7 +112,7 @@
    {:title (t "command.openRender") :icon "sliders-horizontal" :keyLabel "Ctrl+," :run "openRender"}])
 
 (defcomputed statusItems "The status bar: the day, the next event, and the selected body."
-  [{:text (t "status.day" {:day (text (/ (round (* state.time 10)) 10))}) :color "@accent"}
+  [{:text (t "status.day" {:day (-> state.time (* 10) round (/ 10) text)}) :color "@accent"}
    {:text (cond (not computed.goal) (t "status.noEvents")
                 (< state.speed 0) (t "status.previous"
                    {:event computed.goal.label
