@@ -1,0 +1,20 @@
+{
+	"folders": [
+		"code-editor/lisp"
+	],
+	"allowed": {
+		"fn-one-parameter": 43,
+		"when-not": 6,
+		"if-nil": 1,
+		"when-some": 1,
+		"cond-one-value": 2,
+		"contains-vector": 1,
+		"minus-one": 3,
+		"plus-one": 7,
+		"count-zero": 1,
+		"string-function": 25,
+		"filter-some-map": 1,
+		"four-nested-calls": 42,
+		"entry-include": 1
+	}
+}

@@ -1,0 +1,16 @@
+{
+	"folders": [
+		"tempera/lisp"
+	],
+	"allowed": {
+		"fn-one-parameter": 29,
+		"if-nil": 1,
+		"when-some": 1,
+		"contains-vector": 1,
+		"minus-one": 1,
+		"plus-one": 3,
+		"string-function": 9,
+		"four-nested-calls": 50,
+		"entry-include": 1
+	}
+}

@@ -1,0 +1,29 @@
+{
+	"folders": [
+		"forge/lisp/*",
+		"forge/lisp/features/workbench",
+		"forge/lisp/features/explorer",
+		"forge/lisp/features/editor",
+		"forge/lisp/features/editing",
+		"forge/lisp/features/palette",
+		"forge/lisp/features/panels",
+		"forge/lisp/features/search",
+		"forge/lisp/features/themes",
+		"forge/lisp/features/todo-tree",
+		"forge/lisp/features/word-count"
+	],
+	"allowed": {
+		"fn-one-parameter": 94,
+		"when-not": 4,
+		"when-some": 4,
+		"cond-one-value": 8,
+		"or-equals": 3,
+		"contains-vector": 4,
+		"minus-one": 15,
+		"plus-one": 9,
+		"count-zero": 2,
+		"string-function": 42,
+		"four-nested-calls": 97,
+		"entry-include": 1
+	}
+}

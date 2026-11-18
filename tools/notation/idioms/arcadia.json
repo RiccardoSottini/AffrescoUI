@@ -1,0 +1,19 @@
+{
+	"folders": [
+		"arcadia/lisp"
+	],
+	"allowed": {
+		"fn-one-parameter": 93,
+		"when-not": 2,
+		"if-nil": 6,
+		"when-some": 2,
+		"cond-one-value": 15,
+		"or-equals": 3,
+		"minus-one": 12,
+		"plus-one": 5,
+		"count-zero": 5,
+		"string-function": 8,
+		"four-nested-calls": 91,
+		"entry-include": 1
+	}
+}

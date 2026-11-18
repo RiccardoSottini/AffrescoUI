@@ -1,0 +1,20 @@
+{
+	"folders": [
+		"sinopia/lisp"
+	],
+	"allowed": {
+		"fn-one-parameter": 142,
+		"when-not": 4,
+		"if-not": 3,
+		"if-nil": 16,
+		"when-some": 5,
+		"cond-one-value": 21,
+		"contains-vector": 3,
+		"minus-one": 20,
+		"plus-one": 36,
+		"count-zero": 6,
+		"string-function": 16,
+		"four-nested-calls": 157,
+		"entry-include": 1
+	}
+}

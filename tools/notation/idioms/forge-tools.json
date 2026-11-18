@@ -1,0 +1,29 @@
+{
+	"folders": [
+		"forge/lisp/features/debug",
+		"forge/lisp/features/lsp",
+		"forge/lisp/features/scm",
+		"forge/lisp/features/shell",
+		"forge/lisp/features/terminal",
+		"forge/lisp/features/agent",
+		"forge/lisp/features/accounts",
+		"forge/lisp/features/merge"
+	],
+	"allowed": {
+		"fn-one-parameter": 115,
+		"not-equal": 1,
+		"when-not": 13,
+		"if-not": 1,
+		"if-nil": 13,
+		"when-some": 14,
+		"cond-one-value": 16,
+		"or-equals": 11,
+		"contains-vector": 3,
+		"minus-one": 20,
+		"plus-one": 34,
+		"count-zero": 13,
+		"string-function": 41,
+		"filter-some-map": 1,
+		"four-nested-calls": 130
+	}
+}
