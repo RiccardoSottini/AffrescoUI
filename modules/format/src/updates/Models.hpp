@@ -4,6 +4,8 @@
 /// @brief format::Models: the application's data models a document shows (`"repeat": {"in": "models.files"}`), and
 /// where their rows lie for fine-grained updates.
 
+#include "Reads.hpp"
+
 #include "affresco/core/DataModel.hpp"
 #include "affresco/core/Json.hpp"
 #include "affresco/core/Signal.hpp"
@@ -18,9 +20,8 @@ namespace affresco::format {
 
 struct Engine;
 
-/// Where the rows of data models lie among the places values read (Reads.hpp): "/~m/<name>/<row>". "~m" is no key of
-/// a JSON Pointer ("~" escapes only "0" and "1"), so it is never a place of the state.
-inline constexpr std::string_view modelPlaces = "/~m";
+/// Where the rows of data models lie among the places values read: "/~m/<name>/<row>" (places::models, Reads.hpp).
+inline constexpr std::string_view modelPlaces = places::models;
 
 /// @brief The data model a repeat's "in" names.
 /// @param path "in" as written, "models.files", or as compiled, "{{models.files}}".
