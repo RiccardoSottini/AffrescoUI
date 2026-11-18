@@ -97,6 +97,7 @@
          (merge it
                 {:k (if (= it.parent "")
                       1
+                      ; style: keep, inc would put the 1 after: another binding's text
                       (/ (+ 1
                             (/ (+ (* (- computed.sun.x1 it.x1) (- it.x1))
                                   (* (- computed.sun.z1 it.z1)
@@ -133,6 +134,7 @@
      :distance (/ computed.range 4.3)
      :lit (if (= computed.sight.parent "")
             1
+            ; style: keep, inc would put the 1 after: another binding's text
             (/ (+ 1
                   (/ (+ (* (- computed.sun.x1 computed.sight.x1) (- computed.sight.x1))
                         (* (- computed.sun.z1 computed.sight.z1)
