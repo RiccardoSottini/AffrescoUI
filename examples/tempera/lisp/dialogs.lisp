@@ -109,7 +109,7 @@
      (node :style dim :fitText false :text ~(t "newDoc.preset") :width 70 :height 20)
      (node#new-preset :use tPicker
        :with {:title ~(t (str "preset."
-                              (or-else (:name (find (fn [it] (preset-chosen it)) state.newPresets)) "custom")))
+                              (or-else (:name (find #(preset-chosen %) state.newPresets)) "custom")))
               :tip ~(t "newDoc.presets")
               :width 200
               :open state.newPresetMenu
@@ -265,7 +265,7 @@
        (row#fill-fields :anchors {:left 20 :right 20 :top 48} :height 28 :gap 8 :alignItems center
          (node :style dim :fitText false :text ~(t "fillDialog.contents") :width 70 :height 20)
          (node#fill-contents :use tPicker
-           :with {:title ~(:title (find (fn [it] (= it.id state.fill.contents)) computed.fillContents))
+           :with {:title ~(:title (find #(= (:id %) state.fill.contents) computed.fillContents))
                   :tip ~(t "fillDialog.tip")
                   :width 200
                   :open state.fill.menu
